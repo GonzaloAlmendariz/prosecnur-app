@@ -33,78 +33,49 @@ function opcionesKey(choices: Array<{ name: string; label: string }>) {
 
 type PaletasPorCantidad = Record<number, SugeridaPalette[]>;
 
+export const PULSO_PUCP_COLORS = {
+  azul: "#081F5C",
+  rojo: "#CA5651",
+  verde: "#85BB85",
+  amarillo: "#EFD25E",
+  gris: "#BFBFBF",
+  naranja: "#E4A34C",
+  azulSecundario: "#7594CC",
+  morado: "#9688D3",
+  grisSecundario: "#D8D8D8",
+  blanco: "#FFFFFF",
+} as const;
+
 const SUGERIDAS_PALETAS: PaletasPorCantidad = {
   2: [
-    { label: "Binario", description: "Rojo y azul para decisiones dicotómicas.", colors: ["#B91C1C", "#1D4ED8"] },
-    { label: "Verificación", description: "Contraste sobrio para cumplimiento y auditoría.", colors: ["#DC2626", "#059669"] },
-    { label: "Bipolar", description: "Tonos neutros para reportes ejecutivos.", colors: ["#0F172A", "#94A3B8"] },
-    { label: "Dual contraste", description: "Combinación contrastada para lectura rápida.", colors: ["#065F46", "#B91C1C"] },
-    { label: "Dual institucional", description: "Tonos institucionales para operación diaria.", colors: ["#065F46", "#1E3A8A"] },
-    { label: "Resultado", description: "Escenarios financieros con señal de alerta.", colors: ["#16A34A", "#DC2626"] },
-    { label: "Estado", description: "Aplicable a estados de sistema o servicio.", colors: ["#047857", "#0EA5E9"] },
-    { label: "Bicolor sobrio", description: "Versión neutra para material institucional.", colors: ["#1F2937", "#F3F4F6"] },
-    { label: "Bicolor con gris", description: "Incluye gris para categoría sin dato.", colors: ["#DC2626", "#9CA3AF"] },
-    { label: "Bicolor técnico", description: "Alto contraste para pantallas claras.", colors: ["#B91C1C", "#1F2937"] },
+    { label: "Pulso principal", description: "Azul institucional y rojo principal.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo] },
+    { label: "Pulso aprobación", description: "Contraste directo para dos estados evaluativos.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde] },
+    { label: "Pulso neutro", description: "Azul institucional con gris para categorías de soporte.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.gris] },
   ],
   3: [
-    { label: "Semáforo", description: "Rojo, ámbar y verde para escala corta.", colors: ["#DC2626", "#F59E0B", "#22C55E"] },
-    { label: "Semáforo con neutro", description: "Versión con gris para categoría sin dato.", colors: ["#DC2626", "#EAB308", "#A3A3A3"] },
-    { label: "Likert", description: "Baja, media y alta en un formato profesional.", colors: ["#B91C1C", "#F97316", "#22C55E"] },
-    { label: "Riesgo", description: "Escala de incidente por nivel.", colors: ["#991B1B", "#F59E0B", "#15803D"] },
-    { label: "Progreso", description: "Azules de baja a alta adopción.", colors: ["#1E3A8A", "#3B82F6", "#93C5FD"] },
-    { label: "Desempeño", description: "Lectura técnica de rendimiento.", colors: ["#0F766E", "#14B8A6", "#A7F3D0"] },
-    { label: "Operación", description: "Frecuente en monitoreo operativo.", colors: ["#4C1D95", "#8B5CF6", "#A78BFA"] },
-    { label: "Calidad", description: "Diferenciación media-alta clara.", colors: ["#1D4ED8", "#94A3B8", "#16A34A"] },
-    { label: "Priorización", description: "Alertas sin saturación visual.", colors: ["#DC2626", "#F59E0B", "#0EA5E9"] },
-    { label: "Direccional", description: "Técnico, con valor negativo y positivo.", colors: ["#4338CA", "#E5E7EB", "#15803D"] },
+    { label: "Pulso principal", description: "Tres categorías con colores principales.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde] },
+    { label: "Pulso semáforo", description: "Rojo, amarillo y verde para niveles de aprobación.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde] },
+    { label: "Pulso frecuencias", description: "Azules y gris para frecuencias o distribución.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris] },
   ],
   4: [
-    { label: "Cuartiles", description: "Bajo, medio-bajo, medio-alto y alto.", colors: ["#DC2626", "#F97316", "#EAB308", "#16A34A"] },
-    { label: "Cuartiles con neutro", description: "Incluye gris para respuestas neutrales.", colors: ["#6B7280", "#F59E0B", "#3B82F6", "#0D9488"] },
-    { label: "Corporativo", description: "Azul y grises para entornos ejecutivos.", colors: ["#1E3A8A", "#0EA5E9", "#60A5FA", "#93C5FD"] },
-    { label: "Azul secuencial", description: "Escala limpia para madurez.", colors: ["#0F172A", "#1E3A8A", "#2563EB", "#93C5FD"] },
-    { label: "Verde secuencial", description: "Monocromo para seguimiento temporal.", colors: ["#14532D", "#15803D", "#22C55E", "#86EFAC"] },
-    { label: "Frío estable", description: "Ideal en dashboards con fondo claro.", colors: ["#1F2937", "#3B82F6", "#93C5FD", "#BFDBFE"] },
-    { label: "Riesgo por nivel", description: "Para evaluación por niveles de impacto.", colors: ["#991B1B", "#B45309", "#D97706", "#15803D"] },
-    { label: "Dual mixto", description: "Alta legibilidad en móviles y tablets.", colors: ["#B91C1C", "#9CA3AF", "#60A5FA", "#0369A1"] },
-    { label: "Monocromo", description: "Tonos ordenados de una familia.", colors: ["#111827", "#374151", "#9CA3AF", "#D1D5DB"] },
-    { label: "Divergente", description: "Contraste para cuatro clases.", colors: ["#2563EB", "#93C5FD", "#FCA5A5", "#DC2626"] },
+    { label: "Pulso aprobación", description: "Rojo, amarillo, verde y gris/plomo.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.gris] },
+    { label: "Pulso principal", description: "Cuatro categorías con fuerte presencia institucional.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo] },
+    { label: "Pulso secundarios", description: "Soporte para categorías adicionales sin repetir principales.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario] },
   ],
   5: [
-    { label: "Likert 5", description: "Escala clásica de cinco niveles.", colors: ["#B91C1C", "#F97316", "#EAB308", "#22C55E", "#15803D"] },
-    { label: "Semáforo 5", description: "Escala con gris de referencia intermedio.", colors: ["#DC2626", "#F59E0B", "#E5E7EB", "#93C5FD", "#22C55E"] },
-    { label: "Encuesta", description: "Frecuente en cuestionarios de opinión.", colors: ["#7F1D1D", "#F97316", "#FACC15", "#22C55E", "#166534"] },
-    { label: "Monocromo", description: "Escala sobria para revisiones técnicas.", colors: ["#0F172A", "#334155", "#64748B", "#94A3B8", "#BFDBFE"] },
-    { label: "Dual corporativo", description: "Dos familias para agrupaciones relacionadas.", colors: ["#1E3A8A", "#3B82F6", "#93C5FD", "#FCA5A5", "#DC2626"] },
-    { label: "Rendimiento", description: "Indicador para KPIs de resultados progresivos.", colors: ["#312E81", "#4F46E5", "#818CF8", "#A78BFA", "#C4B5FD"] },
-    { label: "Riesgo completo", description: "De crítico a excelente en continuidad.", colors: ["#7F1D1D", "#B91C1C", "#F97316", "#22C55E", "#166534"] },
-    { label: "Tendencia", description: "Útil para curvas de tendencia discretas.", colors: ["#0F766E", "#0EA5E9", "#93C5FD", "#FBBF24", "#F59E0B"] },
-    { label: "Divergente", description: "Alterna contraste de matiz para cinco clases.", colors: ["#2563EB", "#7C3AED", "#DB2777", "#F59E0B", "#16A34A"] },
-    { label: "Neutro analítico", description: "Cuando el cliente exige sobriedad.", colors: ["#1F2937", "#6B7280", "#9CA3AF", "#CBD5E1", "#86EFAC"] },
+    { label: "Pulso principales", description: "La secuencia principal completa de la guía.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris] },
+    { label: "Pulso Likert", description: "De desacuerdo a acuerdo con amarillo medio y gris neutro.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.gris] },
+    { label: "Pulso secundarios", description: "Paleta secundaria para series o cortes extensos.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.blanco] },
   ],
   6: [
-    { label: "Seis niveles", description: "Escala de severidad con ritmo uniforme.", colors: ["#7F1D1D", "#DC2626", "#F97316", "#F59E0B", "#22C55E", "#166534"] },
-    { label: "Progreso técnico", description: "Azules y verdes por nivel de avance.", colors: ["#172554", "#1D4ED8", "#3B82F6", "#60A5FA", "#93C5FD", "#A7F3D0"] },
-    { label: "Madurez", description: "Útil para indicadores por tramo.", colors: ["#0F172A", "#1D4ED8", "#3B82F6", "#60A5FA", "#93C5FD", "#34D399"] },
-    { label: "Clínico", description: "Escala frecuente en salud y riesgo.", colors: ["#7F1D1D", "#DC2626", "#F97316", "#65A30D", "#16A34A", "#0F766E"] },
-    { label: "Análisis técnico", description: "Contraste direccional para variables técnicas.", colors: ["#4338CA", "#6366F1", "#8B5CF6", "#C4B5FD", "#F9A8D4", "#F43F5E"] },
-    { label: "Neutro", description: "Con poca saturación para informes finos.", colors: ["#111827", "#334155", "#64748B", "#94A3B8", "#CBD5E1", "#E2E8F0"] },
-    { label: "Azul institucional", description: "Muy usada en analítica institucional.", colors: ["#172554", "#1D4ED8", "#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE"] },
-    { label: "Prioridad operacional", description: "Separa seis grados de prioridad.", colors: ["#7F1D1D", "#C2410C", "#D97706", "#65A30D", "#16A34A", "#0F766E"] },
-    { label: "Dual + neutro", description: "Alterna familia fría y cálida.", colors: ["#1E40AF", "#6B7280", "#F59E0B", "#0D9488", "#C026D3", "#16A34A"] },
-    { label: "Técnico moderno", description: "Paleta moderna para gráficas avanzadas.", colors: ["#0F172A", "#0369A1", "#0EA5E9", "#22C55E", "#A3E635", "#FDE047"] },
+    { label: "Pulso extendida", description: "Principales más naranja secundario.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.naranja] },
+    { label: "Pulso secundarios", description: "Categorías extra con secundarios y gris claro.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.gris] },
+    { label: "Pulso aprobación", description: "Escala evaluativa amplia con neutros.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris] },
   ],
   7: [
-    { label: "Siete niveles", description: "Combinación amplia para siete clases.", colors: ["#7F1D1D", "#DC2626", "#F97316", "#FACC15", "#22C55E", "#16A34A", "#166534"] },
-    { label: "Encuesta extensa", description: "Base para encuestas con muchas opciones.", colors: ["#B91C1C", "#F97316", "#FBBF24", "#84CC16", "#22C55E", "#14B8A6", "#0EA5E9"] },
-    { label: "Matriz de riesgo", description: "Progresión clara de severidad.", colors: ["#7F1D1D", "#B91C1C", "#F97316", "#F59E0B", "#22C55E", "#15803D", "#0F766E"] },
-    { label: "Institucional", description: "Alta variedad para categorías múltiples.", colors: ["#1E3A8A", "#3B82F6", "#60A5FA", "#38BDF8", "#2DD4BF", "#4ADE80", "#84CC16"] },
-    { label: "Equilibrado", description: "Cálidos y fríos con separación.", colors: ["#312E81", "#4F46E5", "#6366F1", "#A78BFA", "#F472B6", "#F59E0B", "#0D9488"] },
-    { label: "Categorías abiertas", description: "Útil para dimensiones largas.", colors: ["#0F766E", "#0EA5E9", "#22C55E", "#A855F7", "#F97316", "#D97706", "#9333EA"] },
-    { label: "Monocromo extendido", description: "Conservadora para reportes ejecutivos.", colors: ["#111827", "#334155", "#64748B", "#94A3B8", "#CBD5E1", "#E2E8F0", "#F8FAFC"] },
-    { label: "Tabla técnica", description: "Divergencia moderada para múltiples clases.", colors: ["#1E40AF", "#60A5FA", "#818CF8", "#C4B5FD", "#F9A8D4", "#FCA5A5", "#7F1D1D"] },
-    { label: "Radar", description: "Comodidad visual para categorías cercanas.", colors: ["#1E40AF", "#60A5FA", "#818CF8", "#C4B5FD", "#F9A8D4", "#FCA5A5", "#7F1D1D"] },
-    { label: "Verde-azul", description: "Tonalidad estable para seguimiento.", colors: ["#052E16", "#14532D", "#166534", "#22C55E", "#86EFAC", "#93C5FD", "#3B82F6"] },
+    { label: "Pulso completa", description: "Principales y secundarios sin repetir blanco.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario] },
+    { label: "Pulso extendida", description: "Incluye morado y gris claro para más cortes.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado] },
+    { label: "Pulso neutra", description: "Más discreta para tablas y cortes con categorías auxiliares.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.rojo] },
   ],
 };
 
@@ -411,7 +382,7 @@ export function PaletasEditor() {
             }}>
               <span style={{
                 fontSize: 10, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: 0.4,
+                letterSpacing: 0,
                 color: "var(--pulso-text-soft)",
                 display: "inline-flex", alignItems: "center", gap: 5,
               }}>
@@ -585,7 +556,7 @@ function Th({ children, style }: { children?: React.ReactNode; style?: React.CSS
         textAlign: "left",
         padding: "6px 10px",
         fontSize: 10, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: 0.3,
+        letterSpacing: 0,
         color: "var(--pulso-text-soft)",
         ...style,
       }}
@@ -661,8 +632,7 @@ function SugeridoButton({
           <span style={{
             fontSize: 9,
             color: isInverted ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-            letterSpacing: 0.2,
-            textTransform: "uppercase",
+            letterSpacing: 0,
           }}>
             {isInverted ? "Inversa" : "Base"}
           </span>

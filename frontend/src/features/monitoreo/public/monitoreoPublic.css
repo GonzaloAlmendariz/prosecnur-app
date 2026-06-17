@@ -1,0 +1,338 @@
+.mon-public-page {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.mon-public-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-end;
+}
+
+.mon-public-kicker {
+  color: var(--pulso-module-monitoring);
+  font-size: 11px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mon-public-header h1 {
+  margin: 4px 0;
+  color: var(--pulso-text);
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.mon-public-header p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 14px;
+}
+
+.mon-public-stamp {
+  min-width: 220px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 12px;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-public-stamp span,
+.mon-public-stamp em,
+.mon-public-metric span,
+.mon-public-panel-head span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 780;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-public-stamp strong {
+  color: var(--pulso-text);
+  font-size: 20px;
+}
+
+.mon-public-stamp em {
+  color: var(--pulso-text-faint);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mon-public-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mon-public-metric,
+.mon-public-panel {
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-public-metric {
+  min-width: 0;
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.mon-public-metric strong {
+  color: var(--pulso-text);
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.mon-public-metric em {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.mon-public-metric.is-ready strong {
+  color: var(--pulso-success-fg);
+}
+
+.mon-public-metric.is-warning strong {
+  color: var(--pulso-warning-fg);
+}
+
+.mon-public-metric.is-danger strong {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-public-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.85fr) minmax(0, 1.15fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.mon-public-panel {
+  min-width: 0;
+  padding: 14px;
+}
+
+.mon-public-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.mon-public-panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.mon-public-panel-head span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.mon-public-panel-head strong {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.mon-public-panel-head em {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 720;
+}
+
+.mon-public-daily,
+.mon-public-progress-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-public-daily-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 132px) minmax(0, 1fr) 54px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.mon-public-daily-row > span {
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-public-daily-row > strong {
+  color: var(--pulso-text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-public-daily-bar {
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--pulso-surface-2);
+  display: flex;
+}
+
+.mon-public-daily-bar i {
+  display: block;
+  min-width: 0;
+}
+
+.mon-public-daily-bar .is-done {
+  background: var(--pulso-success-fg);
+}
+
+.mon-public-daily-bar .is-pending {
+  background: color-mix(in srgb, var(--pulso-module-dashboard) 62%, white);
+}
+
+.mon-public-daily-bar .is-warning {
+  background: var(--pulso-warning-fg);
+}
+
+.mon-public-progress-card {
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  padding: 12px;
+  display: grid;
+  gap: 9px;
+}
+
+.mon-public-progress-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.mon-public-progress-card header strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-public-progress-card header span {
+  color: var(--pulso-success-fg);
+  font-weight: 820;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-public-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border) 70%, white);
+  overflow: hidden;
+}
+
+.mon-public-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--pulso-success-fg), var(--pulso-module-dashboard));
+}
+
+.mon-public-progress-card dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.mon-public-progress-card dt {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-public-progress-card dd {
+  margin: 2px 0 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 820;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-public-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+}
+
+.mon-public-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.mon-public-table th,
+.mon-public-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-public-table th {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-public-table td:nth-child(n+4) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 960px) {
+  .mon-public-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mon-public-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mon-public-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mon-public-progress-card dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .mon-public-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .mon-public-daily-row {
+    grid-template-columns: 80px minmax(0, 1fr) 42px;
+  }
+}

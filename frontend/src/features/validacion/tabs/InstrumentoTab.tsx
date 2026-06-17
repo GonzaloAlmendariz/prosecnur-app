@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, type CSSProperties } from "react";
 import {
   AlertTriangle,
   Download,
   ListTree,
   Play,
   RefreshCcw,
+  SlidersHorizontal,
   Upload,
 } from "lucide-react";
 import {
@@ -17,11 +18,13 @@ import {
   apiV2InstrumentoImportPlan,
   apiV2InstrumentoReglaToggleActiva,
   apiV2InstrumentoResultado,
+  apiV2InstrumentoVariablesExcluidas,
+  apiV2InstrumentoVariablesExcluidasSave,
   downloadUrl,
   type InstrumentoDrillResult,
   type InstrumentoResultado,
 } from "../../../api/client";
-import type { InstrumentoEstado } from "../types";
+import type { InstrumentoEstado, InstrumentoVariablesExcluidas } from "../types";
 import {
   EmptyState,
   ErrorBlock,
@@ -61,6 +64,8 @@ export default function InstrumentoTab() {
   const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
   const [reglaDirty, setReglaDirty] = useState(false);
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");
+  const [variablesExcluidas, setVariablesExcluidas] = useState<InstrumentoVariablesExcluidas | null>(null);
+  const [variableQuery, setVariableQuery] = useState("");
 
   // Carga inicial + refetch al cambiar base.
   const refetchAll = useCallback(async () => {
@@ -69,6 +74,8 @@ export default function InstrumentoTab() {
     try {
       const e = await apiV2InstrumentoEstado(baseNombre);
       setEstado(e);
+      const vars = await apiV2InstrumentoVariablesExcluidas(baseNombre);
+      setVariablesExcluidas(vars);
       if (e.auditoria_corrida) {
         const r = await apiV2InstrumentoResultado(baseNombre);
         setResultado(r);
@@ -88,6 +95,7 @@ export default function InstrumentoTab() {
     setExportFileId(null);
     setDrill(null);
     setJobId(null);
+    setVariableQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseNombre, version]);
 
@@ -172,6 +180,28 @@ export default function InstrumentoTab() {
   async function onAuditDone() {
     setJobId(null);
     await refetchAll();
+  }
+
+  async function onToggleVariableExcluida(variable: string, checked: boolean) {
+    const current = variablesExcluidas?.variables ?? estado?.variables_excluidas ?? [];
+    const next = checked
+      ? uniqueStrings([...current, variable])
+      : current.filter((item) => item !== variable);
+    setBusy(checked ? "Excluyendo variable…" : "Reactivando variable…");
+    setError("");
+    try {
+      const saved = await apiV2InstrumentoVariablesExcluidasSave(next, baseNombre);
+      setVariablesExcluidas(saved);
+      const e = await apiV2InstrumentoEstado(baseNombre);
+      setEstado(e);
+      setResultado(null);
+      setDrill(null);
+      setReglaDirty(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
   }
 
   async function loadDrill(id: string) {
@@ -279,6 +309,28 @@ export default function InstrumentoTab() {
     const fromList = compactRules.find((row) => row.id === drill.regla.id)?.displayName;
     return fromList ?? buildDisplayRuleName(drill.regla.nombre, getTargetVariableKey(drill.regla.variables), true);
   }, [compactRules, drill]);
+
+  const excludedVariableSet = useMemo(
+    () => new Set(variablesExcluidas?.variables ?? estado?.variables_excluidas ?? []),
+    [estado?.variables_excluidas, variablesExcluidas?.variables],
+  );
+  const variableExclusionOptions = useMemo(() => {
+    const query = normalizeSearchText(variableQuery);
+    const options = variablesExcluidas?.opciones ?? [];
+    return [...options]
+      .filter((option) => {
+        if (!query) return true;
+        return normalizeSearchText(`${option.variable} ${option.label}`).includes(query);
+      })
+      .sort((a, b) => {
+        const aSelected = excludedVariableSet.has(a.variable) ? 1 : 0;
+        const bSelected = excludedVariableSet.has(b.variable) ? 1 : 0;
+        if (aSelected !== bSelected) return bSelected - aSelected;
+        const diff = (b.n_inconsistencias ?? 0) - (a.n_inconsistencias ?? 0);
+        if (diff !== 0) return diff;
+        return a.variable.localeCompare(b.variable);
+      });
+  }, [excludedVariableSet, variableQuery, variablesExcluidas?.opciones]);
 
   if (loading) return <LoadingBlock label="Cargando estado…" />;
   if (!estado) {
@@ -420,6 +472,14 @@ export default function InstrumentoTab() {
             subtitle="Corre el plan contra la data y encuentra casos inconsistentes."
             done={estado.auditoria_corrida}
           />
+          <VariableExclusionsPanel
+            options={variableExclusionOptions}
+            excluded={excludedVariableSet}
+            query={variableQuery}
+            onQuery={setVariableQuery}
+            onToggle={(variable, checked) => void onToggleVariableExcluida(variable, checked)}
+            disabled={!!busy || !!jobId}
+          />
           <div>
             <button
               type="button"
@@ -481,8 +541,9 @@ export default function InstrumentoTab() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))",
               gap: 16,
+              minWidth: 0,
             }}
           >
             <PlotlyView view={resultado.top_reglas} height={560} />
@@ -556,6 +617,225 @@ type CompactRuleRow = {
   issueCode: string | null;
   detalle: string | null;
 };
+
+function VariableExclusionsPanel({
+  options,
+  excluded,
+  query,
+  onQuery,
+  onToggle,
+  disabled = false,
+}: {
+  options: InstrumentoVariablesExcluidas["opciones"];
+  excluded: Set<string>;
+  query: string;
+  onQuery: (value: string) => void;
+  onToggle: (variable: string, checked: boolean) => void;
+  disabled?: boolean;
+}) {
+  const selectedCount = excluded.size;
+  const totalCases = options.reduce((sum, option) => sum + (option.n_inconsistencias ?? 0), 0);
+  return (
+    <div
+      style={{
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 10,
+        background: "var(--pulso-surface-2)",
+        padding: "12px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 8,
+              background: "var(--pulso-primary-soft)",
+              color: "var(--pulso-primary)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <SlidersHorizontal size={14} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
+              Variables fuera de auditoría
+            </div>
+            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 2 }}>
+              Filtra reglas cuyo objetivo sea una variable marcada. La data no se modifica.
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            fontSize: 11,
+            color: "var(--pulso-text-soft)",
+          }}
+        >
+          <span style={variableExclusionBadgeStyle("var(--pulso-primary-soft)", "var(--pulso-primary)")}>
+            {selectedCount} excluidas
+          </span>
+          <span style={variableExclusionBadgeStyle("white", "var(--pulso-text-soft)")}>
+            {options.length} visibles
+          </span>
+          {totalCases > 0 && (
+            <span style={variableExclusionBadgeStyle("var(--pulso-warn-bg)", "var(--pulso-warn-fg)")}>
+              {formatCompactNumber(totalCases)} casos
+            </span>
+          )}
+        </div>
+      </div>
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => onQuery(event.target.value)}
+        placeholder="Buscar variable..."
+        disabled={disabled}
+        style={{
+          width: "100%",
+          minHeight: 32,
+          border: "1px solid var(--pulso-border)",
+          borderRadius: 8,
+          background: disabled ? "var(--pulso-surface-3)" : "white",
+          color: "var(--pulso-text)",
+          padding: "7px 10px",
+          fontSize: 12,
+          outline: "none",
+        }}
+      />
+      {options.length === 0 ? (
+        <div
+          style={{
+            border: "1px dashed var(--pulso-border)",
+            borderRadius: 8,
+            background: "white",
+            color: "var(--pulso-text-soft)",
+            fontSize: 12,
+            padding: "10px 12px",
+          }}
+        >
+          No hay variables disponibles para el filtro actual.
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+            gap: 8,
+            maxHeight: 260,
+            overflow: "auto",
+            paddingRight: 2,
+          }}
+        >
+          {options.map((option) => {
+            const checked = excluded.has(option.variable);
+            return (
+              <label
+                key={option.variable}
+                style={{
+                  minHeight: 74,
+                  border: `1px solid ${checked ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
+                  borderRadius: 8,
+                  background: checked ? "var(--pulso-primary-soft)" : "white",
+                  padding: "9px 10px",
+                  display: "grid",
+                  gridTemplateColumns: "18px minmax(0, 1fr)",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  opacity: disabled ? 0.68 : 1,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={(event) => onToggle(option.variable, event.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      minWidth: 0,
+                    }}
+                  >
+                    <strong
+                      style={{
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        fontSize: 12,
+                        color: "var(--pulso-text)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {option.variable}
+                    </strong>
+                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", whiteSpace: "nowrap" }}>
+                      {option.n_reglas} reglas
+                    </span>
+                  </span>
+                  <span
+                    title={option.label}
+                    style={{
+                      fontSize: 11,
+                      color: "var(--pulso-text-soft)",
+                      lineHeight: 1.35,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {option.label || "Sin etiqueta"}
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flexWrap: "wrap",
+                      fontSize: 10,
+                      color: "var(--pulso-text-soft)",
+                    }}
+                  >
+                    <span>{formatCompactNumber(option.n_inconsistencias ?? 0)} inconsistencias</span>
+                    {option.n_reglas_con_casos > 0 && <span>{option.n_reglas_con_casos} con casos</span>}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StepHeader({
   idx,
@@ -641,6 +921,38 @@ function StepHeader({
       </div>
     </div>
   );
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function formatCompactNumber(value: number) {
+  if (!Number.isFinite(value)) return "0";
+  return new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 }).format(value);
+}
+
+function variableExclusionBadgeStyle(background: string, color: string): CSSProperties {
+  return {
+    minHeight: 22,
+    padding: "3px 8px",
+    borderRadius: 999,
+    background,
+    color,
+    border: "1px solid var(--pulso-border)",
+    fontWeight: 700,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    display: "inline-flex",
+    alignItems: "center",
+  };
 }
 
 function normalizeCompactRuleRow(row: Record<string, unknown>): CompactRuleRow | null {

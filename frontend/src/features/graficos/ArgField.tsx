@@ -1565,13 +1565,13 @@ function SeriesColorsField({
   }
 
   function updateName(index: number, name: string) {
-    const base = visibleRows.length > 0 ? visibleRows : [["Serie", "#39588B"] as [string, string]];
+    const base = visibleRows.length > 0 ? visibleRows : [["Serie", "#081F5C"] as [string, string]];
     const next = base.map(([n, c], i) => [i === index ? name : n, c] as [string, string]);
     emit(next);
   }
 
   function updateColor(index: number, color: string | null) {
-    const base = visibleRows.length > 0 ? visibleRows : [["Serie", "#39588B"] as [string, string]];
+    const base = visibleRows.length > 0 ? visibleRows : [["Serie", "#081F5C"] as [string, string]];
     const next = base.map(([n, c], i) => [n, i === index ? (color ?? "") : c] as [string, string]);
     emit(next);
   }
@@ -1588,12 +1588,12 @@ function SeriesColorsField({
       i += 1;
       name = `Serie ${i}`;
     }
-    emit([...visibleRows, [name, COLOR_PRESETS[(visibleRows.length + 6) % COLOR_PRESETS.length].value]]);
+    emit([...visibleRows, [name, COLOR_PRESETS[visibleRows.length % 8].value]]);
   }
 
   function applySuggested() {
     const names = visibleRows.length > 0 ? visibleRows.map(([name]) => name) : ["Serie 1", "Serie 2", "Serie 3"];
-    const palette = ["#39588B", "#0B3A67", "#00BFC4", "#F8766D", "#7CAE00", "#C77CFF"];
+    const palette = ["#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF", "#E4A34C", "#7594CC", "#9688D3"];
     emit(names.map((name, i) => [name, palette[i % palette.length]] as [string, string]));
   }
 
@@ -2008,6 +2008,15 @@ function MultiFlag({
 // Presets generales — cubren los casos más comunes sin forzar al
 // analista a abrir el color wheel. Ordenados: neutros → primary → acento.
 const COLOR_PRESETS: { value: string; label: string }[] = [
+  { value: "#081F5C", label: "Pulso azul" },
+  { value: "#CA5651", label: "Pulso rojo" },
+  { value: "#85BB85", label: "Pulso verde" },
+  { value: "#EFD25E", label: "Pulso amarillo" },
+  { value: "#BFBFBF", label: "Pulso gris" },
+  { value: "#E4A34C", label: "Pulso naranja" },
+  { value: "#7594CC", label: "Pulso azul secundario" },
+  { value: "#9688D3", label: "Pulso morado" },
+  { value: "#D8D8D8", label: "Pulso gris secundario" },
   { value: "#000000", label: "Negro" },
   { value: "#222222", label: "Casi negro" },
   { value: "#555555", label: "Gris oscuro" },
@@ -2016,17 +2025,6 @@ const COLOR_PRESETS: { value: string; label: string }[] = [
   { value: "#FFFFFF", label: "Blanco" },
   { value: "#002457", label: "Azul Prosecnur" },
   { value: "#0B3A67", label: "Azul profundo" },
-  { value: "#39588B", label: "Azul acero" },
-  { value: "#4F6FA7", label: "Azul medio" },
-  { value: "#93C4EB", label: "Celeste" },
-  { value: "#00BFC4", label: "Turquesa" },
-  { value: "#B33A3A", label: "Rojo" },
-  { value: "#F8766D", label: "Coral" },
-  { value: "#C77CFF", label: "Violeta" },
-  { value: "#2E7D32", label: "Verde" },
-  { value: "#7CAE00", label: "Verde lima" },
-  { value: "#F5A623", label: "Ámbar" },
-  { value: "#E68613", label: "Naranja" },
 ];
 
 // Palabras clave CSS que los graficadores R también aceptan y que no

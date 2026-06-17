@@ -1,4 +1,4 @@
-import { useEffect, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Cloud, Database, Download, FileSpreadsheet, Filter, GitMerge, Layers, Loader2, Mail,
   MessageCircle, PhoneCall, Plus, QrCode, RefreshCw, Route, Search, SlidersHorizontal,
@@ -19,10 +19,17 @@ import {
   apiEstudioSetNombre,
   apiEstudioUpdateBaseMetadata,
   apiSurveyMonkeyMultibaseAudit,
+  apiSurveyMonkeyMultibaseCollectors,
+  apiSurveyMonkeyMultibaseDecisionApply,
+  apiSurveyMonkeyMultibaseDecisionPreview,
   apiSurveyMonkeyMultibaseImportIndependent,
   apiSurveyMonkeyMultibaseListSurveys,
   apiSurveyMonkeyMultibaseRefresh,
   apiSurveyMonkeyMultibaseRefreshPlan,
+  apiSurveyMonkeyMultibaseSavBundleImport,
+  apiSurveyMonkeyMultibaseSavBundleInspect,
+  apiSurveyMonkeyMultibaseWorkbookImport,
+  apiSurveyMonkeyMultibaseWorkbookInspect,
   apiUpload,
   downloadUrl,
   uploadKindForDataFile,
@@ -36,11 +43,20 @@ import type {
   EstudioPayload,
   SurveyMonkeyMultibaseSurveyInput,
   SurveyMonkeyMultibaseAudit,
+  SurveyMonkeyMultibaseCollector,
+  SurveyMonkeyDecisionAudit,
+  SurveyMonkeyDecisionPolicy,
+  SurveyMonkeyDecisionSourceAudit,
   SurveyMonkeyMultibaseDiff,
   SurveyMonkeyMultibaseListItem,
   SurveyMonkeyRefreshBasePlan,
   SurveyMonkeyRefreshPlan,
   SurveyMonkeyRefreshResult,
+  SurveyMonkeySavBundleFileInspection,
+  SurveyMonkeySavBundleImportResult,
+  SurveyMonkeySavBundleInspection,
+  SurveyMonkeyWorkbookImportResult,
+  SurveyMonkeyWorkbookInspection,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
@@ -801,6 +817,80 @@ export function smBestExistingBaseTarget(item: SurveyMonkeyMultibaseListItem, ba
   return best.score >= 0.58 ? best.baseName : "";
 }
 
+export function smWorkbookInspectionWarningCount(inspection?: SurveyMonkeyWorkbookInspection | null) {
+  if (!inspection) return 0;
+  const sheetWarnings = inspection.sheets.reduce((sum, sheet) => sum + sheet.warnings.length, 0);
+  return inspection.warnings.length + sheetWarnings;
+}
+
+export function smWorkbookInspectionCellErrorCount(inspection?: SurveyMonkeyWorkbookInspection | null) {
+  if (!inspection) return 0;
+  return inspection.sheets.reduce((sum, sheet) => sum + (sheet.n_cell_errors ?? 0), 0);
+}
+
+export function smWorkbookInspectionCanImport(inspection?: SurveyMonkeyWorkbookInspection | null) {
+  return !!inspection && inspection.ok && inspection.n_matched > 0 && inspection.n_blocking === 0;
+}
+
+export function smSavBundleInspectionWarningCount(inspection?: SurveyMonkeySavBundleInspection | null) {
+  if (!inspection) return 0;
+  const fileWarnings = inspection.files.reduce((sum, file) => sum + file.warnings.length, 0);
+  return inspection.warnings.length + fileWarnings;
+}
+
+export function smSavBundleInspectionCanImport(inspection?: SurveyMonkeySavBundleInspection | null) {
+  return !!inspection && inspection.ok && inspection.n_matched > 0 && inspection.n_blocking === 0;
+}
+
+function smWorkbookMissingLabel(sheet: SurveyMonkeyWorkbookInspection["sheets"][number]) {
+  const count = sheet.missing_variables.length;
+  if (!count) return "Sin variables faltantes";
+  const sample = sheet.missing_variables.slice(0, 4).join(", ");
+  return `${count} faltante${count === 1 ? "" : "s"}${sample ? `: ${sample}${count > 4 ? ", ..." : ""}` : ""}`;
+}
+
+function smWorkbookSheetIssueLabel(sheet: SurveyMonkeyWorkbookInspection["sheets"][number]) {
+  const nCellErrors = sheet.n_cell_errors ?? 0;
+  if (nCellErrors > 0) return `${nCellErrors} celdas con error Excel`;
+  return sheet.warnings[0] || "Lista para aplicar";
+}
+
+function smWorkbookSheetIssueTitle(sheet: SurveyMonkeyWorkbookInspection["sheets"][number]) {
+  const notes = [...sheet.warnings];
+  if ((sheet.n_cell_errors ?? 0) > 0) {
+    const sample = (sheet.cell_errors ?? [])
+      .slice(0, 3)
+      .map((err) => `${err.source}${err.variable ? ` → ${err.variable}` : ""}: ${err.n_errors}`)
+      .join(" · ");
+    notes.push(`Errores Excel detectados${sample ? `: ${sample}` : ""}`);
+  }
+  return notes.join(" · ");
+}
+
+function smSavBundleVariableSummary(file: SurveyMonkeySavBundleFileInspection) {
+  if (file.missing_variables.length) {
+    const sample = file.missing_variables.slice(0, 4).join(", ");
+    return `${file.missing_variables.length} faltante${file.missing_variables.length === 1 ? "" : "s"}${sample ? `: ${sample}${file.missing_variables.length > 4 ? ", ..." : ""}` : ""}`;
+  }
+  if (file.all_empty_variables.length) {
+    const sample = file.all_empty_variables.slice(0, 4).join(", ");
+    return `${file.all_empty_variables.length} sin datos observados${sample ? `: ${sample}${file.all_empty_variables.length > 4 ? ", ..." : ""}` : ""}`;
+  }
+  return "Variables esperadas disponibles";
+}
+
+function smSavBundleImpactLabel(file: SurveyMonkeySavBundleFileInspection) {
+  const delta = file.change_plan?.impact?.rows_delta;
+  const prefix = delta == null ? "" : delta > 0 ? `+${delta} filas · ` : `${delta} filas · `;
+  return `${prefix}${file.n_output_columns} columnas finales`;
+}
+
+function smSavBundleIssueLabel(file: SurveyMonkeySavBundleFileInspection) {
+  if (file.blocking) return file.warnings[0] || "Archivo bloqueado";
+  if (file.warnings.length) return file.warnings[0];
+  return "Lista para actualizar";
+}
+
 type SmImportScopeFields = {
   collectorIds: string;
   dateModifiedGte: string;
@@ -905,29 +995,75 @@ function smSurveyDefaultChannel(item: SurveyMonkeyMultibaseListItem) {
 
 function smChannelFromSpec(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
   if (!spec) return "";
+  const labels: string[] = [];
   const direct = smChannelLabel(String(spec.channel || spec.source_channel || spec.canal || ""));
-  if (direct) return direct;
+  if (direct) labels.push(direct);
   const sources = spec.sources ?? spec.campaigns ?? [];
   for (const source of sources) {
     const label = smChannelLabel(String(source.channel || source.source_channel || source.canal || ""));
-    if (label) return label;
+    if (label) labels.push(label);
   }
-  return "";
+  const unique = labels.filter((label, index, arr) => label && arr.indexOf(label) === index);
+  if (unique.length > 1) return "Mixto";
+  return unique[0] || "";
 }
 
-function smBaseChannel(base: EstudioBase) {
-  return smChannelLabel(String(base.source_channel || "")) || smChannelFromSpec(base.surveymonkey_source_spec) || "";
+function smBaseChannels(base: EstudioBase) {
+  const summaryChannels = Array.isArray(base.surveymonkey_source_summary?.channels)
+    ? base.surveymonkey_source_summary.channels.map((item) => smChannelLabel(String(item || ""))).filter(Boolean)
+    : [];
+  const sourceChannels = (base.surveymonkey_sources ?? [])
+    .map((source) => smChannelLabel(String(source.channel || source.channel_key || "")))
+    .filter(Boolean);
+  const inferredSourceChannels = [
+    ...smSourceSummariesFromSpec(base.surveymonkey_source_spec),
+    ...smSourceSummariesFromFilter(base.response_filter),
+  ].map((source) => source.channel).filter(Boolean);
+  const fallback = [
+    ...summaryChannels,
+    ...sourceChannels,
+    ...inferredSourceChannels,
+    smChannelLabel(String(base.source_channel || "")),
+    smChannelFromSpec(base.surveymonkey_source_spec),
+  ].filter(Boolean);
+  const unique = fallback.filter((label, index, arr) => arr.indexOf(label) === index);
+  return unique.length > 1 ? unique.filter((label) => label !== "Mixto") : unique;
+}
+
+export function smBaseChannel(base: EstudioBase) {
+  const summaryLabel = smChannelLabel(String(base.surveymonkey_source_summary?.channel_label || ""));
+  if (summaryLabel) return summaryLabel;
+  const channels = smBaseChannels(base);
+  if (channels.length > 1) return "Mixto";
+  return channels[0] || "";
+}
+
+export function smBaseChannelDetail(base: EstudioBase) {
+  const channels = smBaseChannels(base);
+  return channels.length > 1 ? channels.join(" + ") : channels[0] || "";
+}
+
+function smBaseHasMixedChannels(base: EstudioBase) {
+  return smBaseChannels(base).length > 1 || smChannelLabel(String(base.surveymonkey_source_summary?.channel_label || "")) === "Mixto";
 }
 
 type SmSourceSummary = {
+  sourceIndex: number | null;
   surveyId: string;
   title: string;
   channel: string;
+  channelKey: string;
   consentVar: string;
   collectionStrategy: string;
+  collectorIds: string[];
+  collectorCount: number | null;
   validRecords: number | null;
+  rawRecords: number | null;
+  effectiveRecords: number | null;
+  includedRecords: number | null;
   originalRecords: number | null;
   excludedRecords: number | null;
+  entersData: boolean;
 };
 
 function smSpecConsentVar(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
@@ -939,6 +1075,12 @@ function smNumberFromRecord(value: unknown) {
   if (value == null || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function smStringList(value: unknown) {
+  if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  const raw = String(value ?? "").trim();
+  return raw ? smSplitScopeList(raw) : [];
 }
 
 function smChannelFromStrategy(value: string) {
@@ -957,20 +1099,41 @@ function smSourceSummaryFromRecord(record: Record<string, unknown>, fallback: Pa
     record.source_title ?? record.source_alias ?? record.label ?? record.title ?? fallback.title ?? surveyId,
   ).trim();
   const collectionStrategy = String(record.collection_strategy ?? fallback.collectionStrategy ?? "").trim();
-  const explicitChannel = smChannelLabel(String(record.source_channel ?? record.channel ?? record.canal ?? fallback.channel ?? ""));
+  const explicitChannel = smChannelLabel(String(
+    record.source_channel ?? record.channel ?? record.canal ?? record.channel_key ?? fallback.channel ?? fallback.channelKey ?? "",
+  ));
   const channel = explicitChannel || smChannelFromStrategy(collectionStrategy);
+  const rawRecords = smNumberFromRecord(record.raw_records ?? record.raw_total ?? record.original_rows ?? fallback.rawRecords ?? fallback.originalRecords);
+  const effectiveRecords = smNumberFromRecord(record.effective_records ?? record.completed_with_consent ?? fallback.effectiveRecords);
+  const includedRecords = smNumberFromRecord(record.included_records ?? record.included ?? record.kept_rows ?? fallback.includedRecords ?? fallback.validRecords);
+  const validRecords = smNumberFromRecord(record.valid_records ?? includedRecords ?? effectiveRecords ?? record.kept_rows ?? fallback.validRecords);
+  const excludedRecords = smNumberFromRecord(record.excluded_records ?? record.excluded ?? record.excluded_rows ?? fallback.excludedRecords);
+  const collectorIds = [
+    ...smStringList(record.collector_ids),
+    ...smStringList(record.collector_id),
+    ...(fallback.collectorIds ?? []),
+  ].filter((item, index, arr) => arr.indexOf(item) === index);
+  const collectorCount = smNumberFromRecord(record.collector_count ?? fallback.collectorCount) ?? (collectorIds.length ? collectorIds.length : null);
   const consentVar = String(
     record.consent_var ?? record.consentimiento_var ?? record.consent_question ?? fallback.consentVar ?? "",
   ).trim();
   return {
+    sourceIndex: smNumberFromRecord(record.index ?? fallback.sourceIndex),
     surveyId,
     title: title || surveyId || "Fuente SurveyMonkey",
     channel,
+    channelKey: smChannelKey(channel),
     consentVar,
     collectionStrategy,
-    validRecords: smNumberFromRecord(record.kept_rows ?? record.valid_records ?? fallback.validRecords),
-    originalRecords: smNumberFromRecord(record.original_rows ?? fallback.originalRecords),
-    excludedRecords: smNumberFromRecord(record.excluded_rows ?? fallback.excludedRecords),
+    collectorIds,
+    collectorCount,
+    validRecords,
+    rawRecords,
+    effectiveRecords,
+    includedRecords,
+    originalRecords: rawRecords,
+    excludedRecords,
+    entersData: Boolean(record.enters_data ?? fallback.entersData ?? ((validRecords ?? includedRecords ?? effectiveRecords ?? 0) > 0)),
   };
 }
 
@@ -995,6 +1158,10 @@ function smSourceSummariesFromFilter(value: unknown): SmSourceSummary[] {
 }
 
 export function smSourceSummariesFromBase(base: EstudioBase): SmSourceSummary[] {
+  const fromPayload = Array.isArray(base.surveymonkey_sources)
+    ? base.surveymonkey_sources.map((source) => smSourceSummaryFromRecord(source as unknown as Record<string, unknown>))
+    : [];
+  if (fromPayload.length) return fromPayload;
   const fromSpec = smSourceSummariesFromSpec(base.surveymonkey_source_spec);
   const fromFilter = smSourceSummariesFromFilter(base.response_filter);
   if (fromSpec.length) {
@@ -1059,6 +1226,119 @@ export function smSpecWithConsentVar(spec: SurveyMonkeyMultibaseSurveyInput | nu
   return next;
 }
 
+function smSpecSources(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
+  if (!spec) return [];
+  const sources = spec.sources ?? spec.campaigns ?? [];
+  return sources.length ? sources : [spec];
+}
+
+function smScopeValueFromCollectorIds(value: unknown) {
+  return smStringList(value).join(", ");
+}
+
+function smWithCollectorIds<T extends SurveyMonkeyMultibaseSurveyInput>(source: T, collectorIds: string[]) {
+  const next: T = { ...source };
+  if (collectorIds.length) next.collector_ids = collectorIds;
+  else delete next.collector_ids;
+  delete next.collector_id;
+  return next;
+}
+
+export function smSpecWithSourceCollectors(
+  spec: SurveyMonkeyMultibaseSurveyInput | null | undefined,
+  sourceIndex: number,
+  collectorIdsValue: string,
+) {
+  if (!spec) return null;
+  const collectorIds = smSplitScopeList(collectorIdsValue);
+  const sources = spec.sources ?? spec.campaigns ?? [];
+  if (sources.length) {
+    const nextSources = sources.map((source, index) => (
+      index === sourceIndex ? smWithCollectorIds(source, collectorIds) : { ...source }
+    ));
+    const next: SurveyMonkeyMultibaseSurveyInput = {
+      ...spec,
+      sources: nextSources,
+    };
+    delete next.campaigns;
+    if (sourceIndex === 0) {
+      return smWithCollectorIds(next, collectorIds);
+    }
+    return next;
+  }
+  return sourceIndex === 0 ? smWithCollectorIds(spec, collectorIds) : { ...spec };
+}
+
+function smSpecFromFilterRecord(
+  record: Record<string, unknown>,
+  fallback: SurveyMonkeyMultibaseSurveyInput,
+): SurveyMonkeyMultibaseSurveyInput {
+  const surveyId = String(record.survey_id ?? record.id ?? fallback.survey_id ?? "").trim();
+  const label = String(
+    record.source_alias ?? record.label ?? record.source_title ?? fallback.source_alias ?? fallback.label ?? surveyId,
+  ).trim();
+  const channel = smChannelLabel(String(record.source_channel ?? record.channel ?? fallback.source_channel ?? fallback.channel ?? ""));
+  const spec: SurveyMonkeyMultibaseSurveyInput = {
+    survey_id: surveyId,
+    label: label || surveyId,
+    source_alias: label || surveyId,
+    source_title: String(record.source_title ?? fallback.source_title ?? label ?? surveyId).trim(),
+    response_statuses: smStringList(record.statuses ?? record.response_statuses ?? fallback.response_statuses),
+    keep_missing_status: Boolean(record.keep_missing_status ?? fallback.keep_missing_status ?? false),
+    collector_ids: smStringList(record.collector_ids ?? record.collector_id),
+    date_modified_gte: String(record.date_modified_gte ?? fallback.date_modified_gte ?? "").trim(),
+    date_modified_lte: String(record.date_modified_lte ?? fallback.date_modified_lte ?? "").trim(),
+    collection_strategy: String(record.collection_strategy ?? fallback.collection_strategy ?? "").trim(),
+    channel,
+    source_channel: channel,
+    consent_var: String(record.consent_var ?? record.consentimiento_var ?? fallback.consent_var ?? fallback.consentimiento_var ?? "").trim(),
+  };
+  if (!spec.response_statuses?.length) delete spec.response_statuses;
+  if (!spec.collector_ids?.length) delete spec.collector_ids;
+  if (!spec.date_modified_gte) delete spec.date_modified_gte;
+  if (!spec.date_modified_lte) delete spec.date_modified_lte;
+  if (!spec.collection_strategy) delete spec.collection_strategy;
+  if (!spec.channel) delete spec.channel;
+  if (!spec.source_channel) delete spec.source_channel;
+  if (!spec.consent_var) delete spec.consent_var;
+  return spec;
+}
+
+function smSpecDraftFromBase(base: EstudioBase): SurveyMonkeyMultibaseSurveyInput | null {
+  if (base.surveymonkey_source_spec) return base.surveymonkey_source_spec;
+  const surveyId = String(base.survey_id || "").trim();
+  if (!surveyId && !base.response_filter) return null;
+  const label = String(base.source_alias || base.source_title || base.nombre || surveyId).trim();
+  const channel = smChannelLabel(String(base.source_channel || ""));
+  const fallback: SurveyMonkeyMultibaseSurveyInput = {
+    survey_id: surveyId,
+    label,
+    source_alias: label,
+    source_title: String(base.source_title || label).trim(),
+    channel,
+    source_channel: channel,
+    consent_var: String(base.consent_var || "").trim(),
+    response_statuses: ["completed"],
+    keep_missing_status: false,
+  };
+  const filter = base.response_filter;
+  if (filter && typeof filter === "object") {
+    const record = filter as Record<string, unknown>;
+    const sourceRows = Array.isArray(record.sources) ? record.sources as Record<string, unknown>[] : [];
+    if (sourceRows.length) {
+      return {
+        ...fallback,
+        sources: sourceRows.map((source) => smSpecFromFilterRecord(source, fallback)),
+      };
+    }
+    return {
+      ...fallback,
+      sources: [smSpecFromFilterRecord(record, fallback)],
+    };
+  }
+  return surveyId ? fallback : null;
+}
+
 function smBaseConsentVar(base: EstudioBase) {
   const direct = String(base.consent_var || "").trim();
   if (direct) return direct;
@@ -1086,10 +1366,12 @@ function smConsentOptions(base: EstudioBase) {
   for (const item of variables) {
     const name = String(item.name || "").trim();
     if (!name) continue;
+    const type = String(item.type || "").trim();
+    if (type && type !== "select_one") continue;
     byName.set(name, {
       name,
       label: String(item.label || "").trim(),
-      type: String(item.type || "").trim(),
+      type,
       positiveChoices: (item.positive_choices ?? []).map((choice) => ({
         name: String(choice.name || "").trim(),
         label: String(choice.label || "").trim(),
@@ -1108,6 +1390,22 @@ function smConsentOptions(base: EstudioBase) {
     const bCandidate = candidateSet.has(b.name) || b.name === current;
     if (aCandidate !== bCandidate) return aCandidate ? -1 : 1;
     return a.name.localeCompare(b.name, "es");
+  });
+}
+
+function smDecisionVariableOptions(base: EstudioBase) {
+  const rows = (base.xlsform_variables ?? [])
+    .map((item) => ({
+      name: String(item.name || "").trim(),
+      label: String(item.label || "").trim(),
+      type: String(item.type || "").trim(),
+    }))
+    .filter((item) => item.name);
+  const seen = new Set<string>();
+  return rows.filter((item) => {
+    if (seen.has(item.name)) return false;
+    seen.add(item.name);
+    return true;
   });
 }
 
@@ -1178,10 +1476,12 @@ function SmConsentSelect({
   base,
   disabled,
   onChange,
+  compact = false,
 }: {
   base: EstudioBase;
   disabled?: boolean;
   onChange: (value: string) => void;
+  compact?: boolean;
 }) {
   const value = smBaseConsentVar(base);
   const options = smConsentOptions(base);
@@ -1197,7 +1497,7 @@ function SmConsentSelect({
           onChange={(event) => onChange(event.target.value)}
           aria-label={`Variable de consentimiento para ${base.nombre}`}
         >
-          <option value="">Autodetectar</option>
+          <option value="">Sin definir</option>
           {options.map((option) => (
             <option key={option.name} value={option.name}>
               {option.name}{option.label ? ` · ${smShortQuestionLabel(option.label)}` : ""}
@@ -1205,56 +1505,1375 @@ function SmConsentSelect({
           ))}
         </select>
       </div>
-      <div className="pulso-sm-consent-summary">
-        <strong>{filter.value || "Autodetectar"}</strong>
-        {filter.label ? <span>{filter.label}</span> : null}
-        <em>
-          Aprueba: {filter.approved.map((choice) => (
-            choice.name && choice.label ? `${choice.name} · ${choice.label}` : choice.label || choice.name
-          )).join(", ")}
-        </em>
-      </div>
+      {!compact ? (
+        <div className="pulso-sm-consent-summary">
+          <strong>{filter.value || "Sin definir"}</strong>
+          {filter.label ? <span>{filter.label}</span> : null}
+          <em>
+            {filter.value
+              ? `Aprueba: ${filter.approved.map((choice) => (
+                choice.name && choice.label ? `${choice.name} · ${choice.label}` : choice.label || choice.name
+              )).join(", ")}`
+              : "Selecciona una variable select_one"}
+          </em>
+        </div>
+      ) : null}
     </label>
   );
 }
 
+function smSourceMetricLabel(value: number | null | undefined) {
+  return value == null || !Number.isFinite(value) ? "S/D" : value.toLocaleString("es-PE");
+}
+
+function smSourceCollectorLabel(source: SmSourceSummary) {
+  if (source.collectorIds.length) {
+    return `${source.collectorIds.length} filtro${source.collectorIds.length === 1 ? "" : "s"}`;
+  }
+  if (source.collectorCount != null && source.collectorCount > 0) {
+    return `${source.collectorCount} recopilador${source.collectorCount === 1 ? "" : "es"}`;
+  }
+  return "Todos";
+}
+
 function SmSourceSummaryBlock({ sources }: { sources: SmSourceSummary[] }) {
-  const count = sources.length;
-  if (count <= 1) {
-    const source = sources[0];
-    return (
-      <span className="pulso-sm-source-chip is-single">
-        <GitMerge size={12} />
-        1 fuente{source?.channel ? ` · ${source.channel}` : ""}{source?.surveyId ? ` · ID ${source.surveyId}` : ""}
+  const rows = sources.length ? sources : [];
+  if (!rows.length) return null;
+  return (
+    <div className="pulso-sm-source-table" role="table" aria-label="Fuentes y campañas SurveyMonkey conectadas">
+      <div className="pulso-sm-source-table-head" role="row">
+        <span>Campaña/encuesta</span>
+        <span>Canal</span>
+        <span>Descargadas</span>
+        <span>Efectivas</span>
+        <span>Incluidas</span>
+        <span>Excluidas</span>
+        <span>Filtros</span>
+      </div>
+      {rows.map((source, index) => (
+        <div key={`${source.surveyId || source.title}-${index}`} className="pulso-sm-source-table-row" role="row">
+          <div className="pulso-sm-source-title-cell">
+            <strong title={source.title}>{source.title}</strong>
+            <small>
+              {source.surveyId ? `Survey ID ${source.surveyId}` : "SurveyMonkey"}
+              {source.consentVar ? ` · filtro ${source.consentVar}` : ""}
+            </small>
+          </div>
+          <span>{source.channel ? <SmChannelBadge channel={source.channel} /> : "S/D"}</span>
+          <span>{smSourceMetricLabel(source.rawRecords ?? source.originalRecords)}</span>
+          <span>{smSourceMetricLabel(source.effectiveRecords ?? source.validRecords)}</span>
+          <span>{smSourceMetricLabel(source.includedRecords ?? source.validRecords)}</span>
+          <span>{smSourceMetricLabel(source.excludedRecords)}</span>
+          <span title={source.collectorIds.join(", ")}>{smSourceCollectorLabel(source)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SmExistingCollectorsEditor({
+  base,
+  disabled,
+  onSave,
+}: {
+  base: EstudioBase;
+  disabled: boolean;
+  onSave: (base: EstudioBase, spec: SurveyMonkeyMultibaseSurveyInput) => Promise<void>;
+}) {
+  const spec = useMemo(() => smSpecDraftFromBase(base), [
+    base.nombre,
+    base.surveymonkey_source_spec,
+    base.response_filter,
+    base.survey_id,
+    base.source_alias,
+    base.source_title,
+    base.source_channel,
+    base.consent_var,
+  ]);
+  const [draft, setDraft] = useState<SurveyMonkeyMultibaseSurveyInput | null>(spec ?? null);
+
+  useEffect(() => {
+    setDraft(spec ?? null);
+  }, [base.nombre, spec]);
+
+  if (!spec || !draft) return null;
+  const sources = smSpecSources(draft);
+  const activeFilters = sources.filter((source) => smStringList(source.collector_ids ?? source.collector_id).length > 0).length;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(spec);
+
+  function updateSource(index: number, collectorIds: string) {
+    setDraft((current) => smSpecWithSourceCollectors(current, index, collectorIds));
+  }
+
+  return (
+    <details className="pulso-sm-existing-collectors">
+      <summary>
+        <Filter size={12} />
+        <span>Recopiladores</span>
+        <em>{activeFilters ? `${activeFilters} fuente${activeFilters === 1 ? "" : "s"} filtrada${activeFilters === 1 ? "" : "s"}` : "todos incluidos"}</em>
+      </summary>
+      <div className="pulso-sm-existing-collector-list">
+        {sources.map((source, index) => {
+          const title = String(source.source_alias || source.source_title || source.label || source.survey_id || `Fuente ${index + 1}`).trim();
+          const surveyId = String(source.survey_id || "").trim();
+          return (
+            <div className="pulso-sm-existing-collector-source" key={`${surveyId || "source"}-${index}`}>
+              <div className="pulso-sm-existing-collector-title">
+                <strong>{title || `Fuente ${index + 1}`}</strong>
+                {surveyId && <small>Survey ID {surveyId}</small>}
+              </div>
+              <SmCollectorPicker
+                surveyId={surveyId}
+                value={smScopeValueFromCollectorIds(source.collector_ids ?? source.collector_id)}
+                disabled={disabled}
+                label="Recopiladores que entran al refresh"
+                onChange={(value) => updateSource(index, value)}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="pulso-sm-existing-collector-actions">
+        <button
+          type="button"
+          className="pulso-sm-secondary"
+          disabled={disabled || !dirty}
+          onClick={() => void onSave(base, draft)}
+        >
+          <Check size={12} />
+          Guardar recopiladores
+        </button>
+        <button
+          type="button"
+          className="pulso-sm-secondary"
+          disabled={disabled || !dirty}
+          onClick={() => setDraft(spec)}
+        >
+          <XIcon size={12} />
+          Cancelar
+        </button>
+      </div>
+    </details>
+  );
+}
+
+function smDecisionNumber(value: unknown) {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function smDecisionOptionalNumber(value: unknown) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function smDecisionRowsImpactText(currentRows: number | null, previewRows: number | null) {
+  if (currentRows == null || previewRows == null) {
+    return "Cuando termine el recálculo se mostrará si el total sube, baja o queda igual.";
+  }
+  const currentLabel = currentRows.toLocaleString("es-PE");
+  const previewLabel = previewRows.toLocaleString("es-PE");
+  const delta = previewRows - currentRows;
+  if (delta > 0) {
+    return `Si aplicas ahora, la base activa pasará de ${currentLabel} a ${previewLabel} casos: entrarán ${delta.toLocaleString("es-PE")} casos adicionales.`;
+  }
+  if (delta < 0) {
+    return `Si aplicas ahora, la base activa pasará de ${currentLabel} a ${previewLabel} casos: saldrán ${Math.abs(delta).toLocaleString("es-PE")} casos que ya no cumplen estas reglas.`;
+  }
+  return `Si aplicas ahora, la base activa quedará con ${currentLabel} casos; no cambia el total, pero sí se reescribe con estas reglas.`;
+}
+
+function smDecisionRowsLabel(value: number | null) {
+  return value == null ? "pendiente" : value.toLocaleString("es-PE");
+}
+
+function smDecisionRowsDeltaLabel(currentRows: number | null, previewRows: number | null) {
+  if (currentRows == null || previewRows == null) return "por calcular";
+  const delta = previewRows - currentRows;
+  if (delta > 0) return `+${delta.toLocaleString("es-PE")}`;
+  if (delta < 0) return `-${Math.abs(delta).toLocaleString("es-PE")}`;
+  return "0";
+}
+
+function smDecisionRowsDeltaTone(currentRows: number | null, previewRows: number | null) {
+  if (currentRows == null || previewRows == null) return "is-pending";
+  const delta = previewRows - currentRows;
+  if (delta > 0) return "is-up";
+  if (delta < 0) return "is-down";
+  return "is-even";
+}
+
+function smDecisionInitialPolicy(base: EstudioBase): SurveyMonkeyDecisionPolicy {
+  const saved = base.surveymonkey_decision_policy ?? {};
+  const consentVar = String(saved.consent_var || smBaseConsentVar(base) || "").trim();
+  return {
+    version: 1,
+    statuses: saved.statuses?.length ? saved.statuses : ["completed"],
+    collector_ids: saved.collector_ids ?? [],
+    consent_var: consentVar,
+    consent_yes_values: saved.consent_yes_values?.length ? saved.consent_yes_values : ["1", "si", "sí", "yes", "true", "acepta", "acepto", "accepted"],
+    rejection_var: String(saved.rejection_var || consentVar || "").trim(),
+    rejection_values: saved.rejection_values?.length ? saved.rejection_values : ["0", "no", "no acepta", "no acepto", "rechaza", "rechazo"],
+    include_partials: saved.include_partials === true,
+    partial_min_answers: Math.max(10, Number(saved.partial_min_answers ?? 15) || 15),
+    include_rejections: saved.include_rejections === true,
+    duplicate_key_vars: saved.duplicate_key_vars?.length ? saved.duplicate_key_vars : ["cv_id", "custom_value", "recipient_id"],
+    include_duplicates: saved.include_duplicates !== false,
+    duplicate_keep: saved.duplicate_keep || "first",
+    manual_include_case_uids: saved.manual_include_case_uids ?? [],
+    edited: saved.edited === true,
+    saved_at: saved.saved_at,
+  };
+}
+
+function smDecisionStringList(values: unknown) {
+  return Array.isArray(values)
+    ? values.map((value) => String(value || "").trim()).filter(Boolean).sort()
+    : [];
+}
+
+export function smDecisionPolicyFingerprint(policy: SurveyMonkeyDecisionPolicy | null | undefined) {
+  const p = policy ?? {};
+  return JSON.stringify({
+    statuses: smDecisionStringList(p.statuses),
+    collector_ids: smDecisionStringList(p.collector_ids),
+    consent_var: String(p.consent_var || ""),
+    consent_yes_values: smDecisionStringList(p.consent_yes_values),
+    rejection_var: String(p.rejection_var || ""),
+    rejection_values: smDecisionStringList(p.rejection_values),
+    include_partials: p.include_partials === true,
+    partial_min_answers: Math.max(10, Number(p.partial_min_answers ?? 15) || 15),
+    include_rejections: p.include_rejections === true,
+    duplicate_key_vars: smDecisionStringList(p.duplicate_key_vars),
+    include_duplicates: p.include_duplicates !== false,
+    duplicate_keep: String(p.duplicate_keep || "first"),
+    manual_include_case_uids: smDecisionStringList(p.manual_include_case_uids),
+  });
+}
+
+function smDecisionValuesToText(values?: string[]) {
+  return (values ?? []).join(", ");
+}
+
+function smDecisionTextToValues(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function smDecisionAuditReady(audit: SurveyMonkeyDecisionAudit | null) {
+  return !!audit && typeof audit.raw_total !== "undefined" && Array.isArray(audit.sources);
+}
+
+function smDecisionDownstreamLabels(base: EstudioBase) {
+  const status = base.status ?? {};
+  const labels: string[] = [];
+  if (status.validacion) labels.push("Validación");
+  if (status.codificacion || status.codificacion_adaptada) labels.push("Codificación");
+  if (status.analitica) labels.push("Analítica");
+  if (status.graficos) labels.push("Gráficos");
+  return labels;
+}
+
+function smDecisionDuplicateOptions(base: EstudioBase, variableOptions: ReturnType<typeof smDecisionVariableOptions>) {
+  const metadata = [
+    { name: "cv_id", label: "ID personalizado SurveyMonkey" },
+    { name: "custom_value", label: "Custom value" },
+    { name: "recipient_id", label: "Recipient ID" },
+    { name: "response_id", label: "Response ID" },
+    { name: "case_uid", label: "Survey + response" },
+  ];
+  const byName = new Map<string, { name: string; label?: string | null }>();
+  for (const item of metadata) byName.set(item.name, item);
+  for (const item of variableOptions) byName.set(item.name, item);
+  if (!byName.has("p4")) byName.set("p4", { name: "p4", label: "Código PUCP disponible" });
+  return Array.from(byName.values());
+}
+
+type SmDecisionCollectorOption = { id: string; label: string; count: number; source: string };
+
+function smDecisionCollectorOptions(audit: SurveyMonkeyDecisionAudit | null) {
+  const byId = new Map<string, SmDecisionCollectorOption>();
+  for (const source of audit?.sources ?? []) {
+    const sourceLabel = smDecisionSourceName(source);
+    const names = new Map<string, string>();
+    for (const collector of source.collectors ?? []) {
+      const id = String(collector.id || "").trim();
+      if (!id) continue;
+      const name = String(collector.name || "").trim();
+      if (name) names.set(id, name);
+    }
+    const ids = new Set<string>([
+      ...Object.keys(source.collector_counts ?? {}),
+      ...Array.from(names.keys()),
+    ]);
+    for (const rawId of ids) {
+      const id = String(rawId || "").trim();
+      if (!id || id === "(vacio)") continue;
+      const name = names.get(id) || id;
+      const count = Number(source.collector_counts?.[id] ?? 0) || 0;
+      const existing = byId.get(id);
+      if (existing) {
+        existing.count += count;
+        if (sourceLabel && !existing.source.includes(sourceLabel)) existing.source = [existing.source, sourceLabel].filter(Boolean).join(", ");
+      } else {
+        byId.set(id, {
+          id,
+          label: name === id ? id : `${name} · ${id}`,
+          count,
+          source: sourceLabel,
+        });
+      }
+    }
+  }
+  return Array.from(byId.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+}
+
+export function smDecisionCollectorIsTest(collector: Pick<SmDecisionCollectorOption, "label" | "source">) {
+  const text = smNormalizeSearch(`${collector.label || ""} ${collector.source || ""}`);
+  return text.split(" ").includes("prueba");
+}
+
+export function smDecisionValidCollectorIds(collectorOptions: Array<Pick<SmDecisionCollectorOption, "id" | "label" | "source">>) {
+  return collectorOptions
+    .filter((collector) => String(collector.id || "").trim() && !smDecisionCollectorIsTest(collector))
+    .map((collector) => String(collector.id).trim());
+}
+
+export function smDecisionPolicyForSurveyMonkeyCommit(
+  policy: SurveyMonkeyDecisionPolicy,
+  collectorOptions: Array<Pick<SmDecisionCollectorOption, "id" | "label" | "source">>,
+) {
+  const validIds = smDecisionValidCollectorIds(collectorOptions);
+  if (!validIds.length) return { ...policy, edited: true };
+  const validSet = new Set(validIds);
+  const current = (policy.collector_ids?.length ? policy.collector_ids : validIds)
+    .map(String)
+    .filter((id) => validSet.has(id));
+  return {
+    ...policy,
+    collector_ids: current.length ? Array.from(new Set(current)) : validIds,
+    edited: true,
+  };
+}
+
+function smDecisionSourceName(source: SurveyMonkeyDecisionSourceAudit | null | undefined) {
+  return String(source?.source_title || source?.source_label || source?.source_alias || source?.survey_id || "Fuente").trim();
+}
+
+function smDecisionDuplicateOptionLabel(option: { name: string; label?: string | null }) {
+  const friendly: Record<string, string> = {
+    cv_id: "ID del enlace personalizado",
+    custom_value: "Valor personalizado del enlace",
+    recipient_id: "Destinatario SurveyMonkey",
+    response_id: "Respuesta SurveyMonkey",
+    case_uid: "Encuesta + respuesta",
+    p4: "Código PUCP",
+  };
+  return friendly[option.name] || (option.label ? `${smShortQuestionLabel(option.label, 52)} (${option.name})` : option.name);
+}
+
+function smDecisionQuestionOptionLabel(option: { name: string; label?: string | null }, max = 62) {
+  const label = String(option.label || "").trim();
+  if (!label) return option.name;
+  return `${smShortQuestionLabel(label, max)} (${option.name})`;
+}
+
+function smCollectorFriendlyName(label: string, id: string) {
+  const cleanLabel = String(label || "").trim();
+  const cleanId = String(id || "").trim();
+  if (!cleanLabel) return "Recopilador sin nombre";
+  const idSuffix = cleanId ? ` · ${cleanId}` : "";
+  const out = cleanLabel.endsWith(idSuffix) ? cleanLabel.slice(0, -idSuffix.length) : cleanLabel;
+  return out && out !== cleanId ? out : "Recopilador sin nombre";
+}
+
+function smDecisionCollectorStateLabel(collector: SmDecisionCollectorOption, isSelected: boolean) {
+  if (smDecisionCollectorIsTest(collector)) return "Prueba";
+  if (smDecisionNumber(collector.count) <= 0) return "Sin respuestas";
+  if (isSelected) return "Entra";
+  return "Desmarcado";
+}
+
+function smDecisionCollectorStateClass(label: string) {
+  if (label === "Entra") return "is-state-in";
+  if (label === "Prueba") return "is-state-test";
+  if (label === "Sin respuestas") return "is-state-empty";
+  return "is-state-out";
+}
+
+function smDecisionCollectorNameMap(audit: SurveyMonkeyDecisionAudit | null) {
+  const out = new Map<string, string>();
+  for (const source of audit?.sources ?? []) {
+    for (const collector of source.collectors ?? []) {
+      const id = String(collector.id || "").trim();
+      const name = String(collector.name || "").trim();
+      if (!id || !name || name === id) continue;
+      out.set(id, name);
+    }
+  }
+  return out;
+}
+
+function smDecisionCaseDecisionLabel(value: string) {
+  const key = value.replace(/_/g, " ");
+  const labels: Record<string, string> = {
+    efectiva: "Incluida",
+    excluida: "Fuera",
+    parcial_excluida: "Parcial fuera",
+    parcial_incluida: "Parcial incluida",
+    rechazo_excluido: "Rechazo fuera",
+    rechazo_incluido: "Rechazo incluido",
+    duplicado_excluido: "Duplicado fuera",
+    manual_incluida: "Rescate manual",
+  };
+  return labels[value] || key || "-";
+}
+
+type SmDecisionCaseRow = {
+  campania: string;
+  collector_id: string;
+  collector_label: string;
+  case_uid: string;
+  survey_id: string;
+  response_id: string;
+  custom_id: string;
+  estado: string;
+  respondidas: string;
+  answeredRequired: string;
+  answerableRequired: string;
+  completionLabel: string;
+  completionRatio: number | null;
+  nearComplete: boolean;
+  decision: string;
+  incluido: string;
+  manual: boolean;
+  duplicado: string;
+  duplicateGroupSize: string;
+  duplicateRank: string;
+  duplicateKeptResponseId: string;
+  duplicateCodeMatch: string;
+  duplicateCareerMatch: string;
+  duplicateEvidence: string;
+  dateModified: string;
+  observado: boolean;
+  motivo: string;
+};
+
+function smDecisionRatio(value: unknown) {
+  const n = Number(value ?? NaN);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function smDecisionCaseRows(audit: SurveyMonkeyDecisionAudit | null) {
+  const rows: SmDecisionCaseRow[] = [];
+  const collectorNames = smDecisionCollectorNameMap(audit);
+  for (const source of audit?.sources ?? []) {
+    const sourceName = smDecisionSourceName(source);
+    for (const item of source.cases ?? []) {
+      const collectorId = String(item.collector_id || "");
+      const collectorLabel = collectorNames.get(collectorId) || "Recopilador sin nombre";
+      if (smDecisionCollectorIsTest({ label: collectorLabel, source: sourceName })) continue;
+      rows.push({
+        campania: sourceName,
+        collector_id: collectorId,
+        collector_label: collectorLabel,
+        case_uid: String(item.case_uid || ""),
+        survey_id: String(item.survey_id || source.survey_id || ""),
+        response_id: String(item.response_id || ""),
+        custom_id: String(item.cv_id || item.custom_value || item.recipient_id || item.p4 || ""),
+        estado: String(item.response_status || ""),
+        respondidas: String(item.answered_questions_count || ""),
+        answeredRequired: String(item.answered_required_count || item.answered_questions_count || ""),
+        answerableRequired: String(item.answerable_required_count || ""),
+        completionLabel: String(item.answer_completion_label || item.answered_questions_count || ""),
+        completionRatio: smDecisionRatio(item.answer_completion_ratio),
+        nearComplete: item.near_complete === "1" || String(item.near_complete || "") === "true",
+        decision: String(item.decision_class || ""),
+        incluido: String(item.decision_included || ""),
+        manual: item.decision_manual_include === "1" || String(item.decision_manual_include || "") === "true",
+        duplicado: String(item.duplicate_status || ""),
+        duplicateGroupSize: String(item.duplicate_group_size || ""),
+        duplicateRank: String(item.duplicate_rank || ""),
+        duplicateKeptResponseId: String(item.duplicate_kept_response_id || ""),
+        duplicateCodeMatch: String(item.duplicate_code_match || ""),
+        duplicateCareerMatch: String(item.duplicate_career_match || ""),
+        duplicateEvidence: String(item.duplicate_evidence || ""),
+        dateModified: String(item.date_modified || item.date_created || ""),
+        observado: item.observed === true || String(item.observed || "") === "true",
+        motivo: String(item.observation_reason || ""),
+      });
+    }
+  }
+  return rows.sort((a, b) => {
+    const aObserved = a.observado === true ? 1 : 0;
+    const bObserved = b.observado === true ? 1 : 0;
+    if (aObserved !== bObserved) return bObserved - aObserved;
+    const aPartial = /partial|parcial/i.test(`${a.estado} ${a.decision}`) ? 1 : 0;
+    const bPartial = /partial|parcial/i.test(`${b.estado} ${b.decision}`) ? 1 : 0;
+    if (aPartial !== bPartial) return bPartial - aPartial;
+    const aRatio = a.completionRatio ?? -1;
+    const bRatio = b.completionRatio ?? -1;
+    if (aRatio !== bRatio) return bRatio - aRatio;
+    return smDecisionNumber(b.answeredRequired) - smDecisionNumber(a.answeredRequired);
+  });
+}
+
+function SmDecisionMetric({ label, value, tone = "neutral" }: { label: string; value: number; tone?: "neutral" | "good" | "warn" | "danger" }) {
+  return (
+    <span className={`pulso-sm-decision-metric is-${tone}`}>
+      <b>{value}</b>
+      <small>{label}</small>
+    </span>
+  );
+}
+
+function smDecisionCompareLabel(value: string) {
+  const key = value.trim().toLowerCase();
+  if (key === "coincide") return "coincide";
+  if (key === "difiere") return "difiere";
+  return "sin dato";
+}
+
+function smDecisionCompareTone(value: string) {
+  const key = value.trim().toLowerCase();
+  if (key === "coincide") return "is-match";
+  if (key === "difiere") return "is-diff";
+  return "is-empty";
+}
+
+function smDecisionShortDate(value: string) {
+  const raw = value.trim();
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw.slice(0, 10);
+  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
+}
+
+function smDecisionPercentLabel(value: number | null) {
+  if (value === null) return "";
+  const percent = Math.max(0, Math.min(100, Math.round(value * 100)));
+  return `${percent}%`;
+}
+
+function smDecisionProgressWidth(value: number | null) {
+  if (value === null) return "0%";
+  return `${Math.max(0, Math.min(100, Math.round(value * 100)))}%`;
+}
+
+export function smDecisionDuplicateEvidenceLine(row: SmDecisionCaseRow) {
+  if (!row.duplicateEvidence && !row.duplicateGroupSize) return "";
+  const groupSize = Number(row.duplicateGroupSize);
+  const groupCopy = Number.isFinite(groupSize) && groupSize > 1
+    ? `${groupSize} respuestas con el mismo ID enlace`
+    : row.duplicateEvidence
+      .replace(/\bcv_id\b/g, "ID enlace")
+      .replace(/\brecipient_cv_id\b/g, "ID enlace")
+      .replace(/custom_variables\.ID/gi, "ID enlace");
+  const parts = [
+    groupCopy,
+    row.duplicateKeptResponseId ? `Se conserva: ${row.duplicateKeptResponseId}` : "",
+    row.dateModified ? `Este caso: ${smDecisionShortDate(row.dateModified)}` : "",
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function SmDecisionCompletionCell({ row }: { row: SmDecisionCaseRow }) {
+  const percent = smDecisionPercentLabel(row.completionRatio);
+  return (
+    <div
+      className={`pulso-sm-case-completion${row.nearComplete ? " is-near" : ""}`}
+      title="Obligatorias aplicables respondidas / obligatorias aplicables totales"
+    >
+      <div className="pulso-sm-case-completion-top">
+        <b>{row.completionLabel || row.respondidas || "0"}</b>
+        {percent && <span>{percent}</span>}
+      </div>
+      <span className="pulso-sm-case-completion-track" aria-hidden="true">
+        <i style={{ width: smDecisionProgressWidth(row.completionRatio) }} />
       </span>
+    </div>
+  );
+}
+
+function SmDecisionSignature({ audit }: { audit: SurveyMonkeyDecisionAudit | null }) {
+  if (!audit) {
+    return (
+      <div className="pulso-sm-decision-signature is-empty">
+        <Loader2 size={13} className="pulso-spin" />
+        <span>Calculando firma de impacto...</span>
+      </div>
     );
   }
   return (
-    <details className="pulso-sm-source-details">
-      <summary>
-        <span className="pulso-sm-source-chip">
-          <GitMerge size={12} />
-          {count} fuentes/campañas
-        </span>
-      </summary>
-      <div className="pulso-sm-source-list">
-        {sources.map((source, index) => (
-          <div key={`${source.surveyId || source.title}-${index}`} className="pulso-sm-source-item">
-            <strong>{index + 1}. {source.title}</strong>
-            <div className="pulso-sm-source-item-meta">
-              {source.channel ? <SmChannelBadge channel={source.channel} /> : null}
-              {source.validRecords != null ? (
-                <span>{source.validRecords} registros válidos</span>
-              ) : null}
-              {source.originalRecords != null && source.excludedRecords != null ? (
-                <span>{source.excludedRecords} fuera del filtro</span>
-              ) : null}
-              {source.surveyId ? <span>ID {source.surveyId}</span> : null}
-              {source.consentVar ? <span>filtro {source.consentVar}</span> : null}
-            </div>
-          </div>
+    <div className="pulso-sm-decision-signature" aria-label="Firma de impacto SurveyMonkey">
+      <SmDecisionMetric label="descargadas" value={smDecisionNumber(audit.raw_total)} />
+      <SmDecisionMetric label="efectivas" value={smDecisionNumber(audit.completed_with_consent)} tone="good" />
+      <SmDecisionMetric label="parciales" value={smDecisionNumber(audit.partials_revisable)} tone="warn" />
+      <SmDecisionMetric label="rechazos" value={smDecisionNumber(audit.rejections)} tone="danger" />
+      <SmDecisionMetric label="duplicados" value={smDecisionNumber(audit.duplicate_extra_rows)} tone={smDecisionNumber(audit.duplicate_extra_rows) ? "warn" : "neutral"} />
+      <SmDecisionMetric label="rescate manual" value={smDecisionNumber(audit.manual_included)} tone={smDecisionNumber(audit.manual_included) ? "warn" : "neutral"} />
+      <SmDecisionMetric label="incluidas" value={smDecisionNumber(audit.included)} tone="good" />
+      <SmDecisionMetric label="excluidas" value={smDecisionNumber(audit.excluded)} />
+      <SmDecisionMetric label="fuentes" value={smDecisionNumber(audit.collectors_included)} />
+    </div>
+  );
+}
+
+function SmDecisionSourceAuditTable({ audit }: { audit: SurveyMonkeyDecisionAudit | null }) {
+  const sources = audit?.sources ?? [];
+  if (!sources.length) return null;
+  return (
+    <div className="pulso-sm-source-audit">
+      <div className="pulso-sm-source-audit-head">
+        <span>Campañas y fuentes</span>
+        <em>{sources.length} fuente{sources.length === 1 ? "" : "s"}</em>
+      </div>
+      <div className="pulso-sm-source-audit-grid" role="table" aria-label="Auditoría por campaña SurveyMonkey">
+        <span>Campaña</span>
+        <span>Descargadas</span>
+        <span>Efectivas</span>
+        <span>Parciales</span>
+        <span>Rechazos</span>
+        <span>Duplicados</span>
+        <span>Rescate</span>
+        <span>Incluidas</span>
+        {sources.map((source) => (
+          <Fragment key={`${source.survey_id || "survey"}-${smDecisionSourceName(source)}`}>
+            <strong title={smDecisionSourceName(source)}>
+              {smDecisionSourceName(source)}
+            </strong>
+            <b>{smDecisionNumber(source.raw_total)}</b>
+            <b>{smDecisionNumber(source.completed_with_consent)}</b>
+            <b>{smDecisionNumber(source.partials_revisable)}</b>
+            <b>{smDecisionNumber(source.rejections)}</b>
+            <b>{smDecisionNumber(source.duplicate_extra_rows)}</b>
+            <b>{smDecisionNumber(source.manual_included)}</b>
+            <b>{smDecisionNumber(source.included)}</b>
+          </Fragment>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SmDecisionImpactCard({
+  currentRows,
+  previewRows,
+  impactText,
+}: {
+  currentRows: number | null;
+  previewRows: number | null;
+  impactText: string;
+}) {
+  return (
+    <div className="pulso-sm-decision-impact" aria-label="Impacto sobre base activa">
+      <div className="pulso-sm-decision-impact-copy">
+        <strong>Si reemplazas la base activa</strong>
+        <span>{impactText}</span>
+      </div>
+      <dl>
+        <div>
+          <dt>Ahora</dt>
+          <dd>{smDecisionRowsLabel(currentRows)}</dd>
+        </div>
+        <div>
+          <dt>Recalculada</dt>
+          <dd>{smDecisionRowsLabel(previewRows)}</dd>
+        </div>
+        <div className={smDecisionRowsDeltaTone(currentRows, previewRows)}>
+          <dt>Cambio</dt>
+          <dd>{smDecisionRowsDeltaLabel(currentRows, previewRows)}</dd>
+        </div>
+      </dl>
+      <small>Guardar solo revisión no cambia filas. Reemplazar reconstruye esta base completa con las fuentes y reglas visibles.</small>
+    </div>
+  );
+}
+
+function SmDecisionCaseAudit({
+  audit,
+  policy,
+  disabled,
+  onPolicyPatch,
+}: {
+  audit: SurveyMonkeyDecisionAudit | null;
+  policy: SurveyMonkeyDecisionPolicy;
+  disabled: boolean;
+  onPolicyPatch: (patch: Partial<SurveyMonkeyDecisionPolicy>) => void;
+}) {
+  const [observedOnly, setObservedOnly] = useState(true);
+  const [nearCompleteOnly, setNearCompleteOnly] = useState(false);
+  const [collectorFilter, setCollectorFilter] = useState("");
+  const [query, setQuery] = useState("");
+  const rows = smDecisionCaseRows(audit);
+  const manualSet = new Set((policy.manual_include_case_uids ?? []).map(String).filter(Boolean));
+  const collectors = Array.from(rows.reduce((map, row) => {
+    const id = String(row.collector_id || "").trim();
+    if (!id) return map;
+    const entry = map.get(id) ?? { id, label: row.collector_label || "Recopilador sin nombre", total: 0, observed: 0 };
+    entry.total += 1;
+    if (row.observado === true) entry.observed += 1;
+    map.set(id, entry);
+    return map;
+  }, new Map<string, { id: string; label: string; total: number; observed: number }>()).values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+  const observedTotal = rows.filter((row) => row.observado === true).length;
+  const nearCompleteTotal = rows.filter((row) => row.nearComplete === true).length;
+  const manualTotal = manualSet.size;
+  function matchesQuery(row: SmDecisionCaseRow) {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [
+      row.campania,
+      row.collector_id,
+      row.collector_label,
+      row.case_uid,
+      row.survey_id,
+      row.response_id,
+      row.custom_id,
+      row.estado,
+      row.decision,
+      row.motivo,
+    ].join(" ").toLowerCase();
+    return q.split(/\s+/).filter(Boolean).every((token) => haystack.includes(token));
+  }
+  const filtered = rows.filter((row) => {
+    if (collectorFilter && row.collector_id !== collectorFilter) return false;
+    if (observedOnly && row.observado !== true) return false;
+    if (nearCompleteOnly && row.nearComplete !== true) return false;
+    if (!matchesQuery(row)) return false;
+    return true;
+  });
+  const visible = filtered.slice(0, 120);
+  if (!rows.length) return null;
+  function toggleManualInclude(caseUid: string, include: boolean) {
+    const cleanCaseUid = String(caseUid || "").trim();
+    if (!cleanCaseUid) return;
+    const current = (policy.manual_include_case_uids ?? []).map(String).filter(Boolean);
+    const next = include
+      ? Array.from(new Set([...current, cleanCaseUid]))
+      : current.filter((item) => item !== cleanCaseUid);
+    onPolicyPatch({ manual_include_case_uids: next });
+  }
+  const emptyCopy = observedOnly
+    ? collectorFilter
+      ? "Este recopilador no tiene casos observados con la configuración actual."
+      : "No hay casos observados con la configuración actual."
+    : "No hay casos para el filtro seleccionado.";
+  return (
+    <details className="pulso-sm-case-audit" open>
+      <summary>
+        <span>
+          <Search size={12} />
+          Casos para revisar
+        </span>
+        <em>
+          {observedTotal} observado{observedTotal === 1 ? "" : "s"}
+          {nearCompleteTotal > 0 ? ` · ${nearCompleteTotal} casi completa${nearCompleteTotal === 1 ? "" : "s"}` : ""}
+          {manualTotal > 0 ? ` · ${manualTotal} rescate${manualTotal === 1 ? "" : "s"}` : ""}
+        </em>
+      </summary>
+      <div className="pulso-sm-case-filters">
+        <label>
+          <input
+            type="checkbox"
+            checked={observedOnly}
+            onChange={(event) => setObservedOnly(event.target.checked)}
+          />
+          <span>Solo observados</span>
+          <small>{observedTotal}</small>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={nearCompleteOnly}
+            onChange={(event) => setNearCompleteOnly(event.target.checked)}
+          />
+          <span>Casi completas</span>
+          <small>{nearCompleteTotal}</small>
+        </label>
+        <select
+          value={collectorFilter}
+          onChange={(event) => setCollectorFilter(event.target.value)}
+          aria-label="Filtrar casos por recopilador"
+        >
+          <option value="">Todos los recopiladores</option>
+          {collectors.map((collector) => (
+            <option key={collector.id} value={collector.id}>
+              {collector.label} · {collector.observed} obs. · {collector.total} casos
+            </option>
+          ))}
+        </select>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={smTextShortcutGuard}
+          placeholder="Buscar por respuesta, llave de cruce o ID enlace"
+          aria-label="Buscar caso SurveyMonkey"
+        />
+        <strong>{visible.length}/{filtered.length} visibles</strong>
+      </div>
+      {visible.length ? (
+        <div className="pulso-sm-case-audit-table" role="table" aria-label="Casos SurveyMonkey para revisar">
+        <span>Campaña</span>
+        <span>Recopilador</span>
+        <span>Respuesta SurveyMonkey</span>
+        <span>Estado</span>
+        <span title="Obligatorias aplicables respondidas / obligatorias aplicables totales">Resp. aplicables</span>
+        <span>Resultado</span>
+        <span>Acción</span>
+        <span>Motivo</span>
+        {visible.map((row, index) => (
+          <Fragment key={`${row.campania}-${row.case_uid || row.response_id}-${index}`}>
+            <div className="pulso-sm-case-cell" title={row.campania}>{row.campania || "Fuente"}</div>
+            <div className="pulso-sm-case-cell">{row.collector_label || "Recopilador sin nombre"}</div>
+            <div className="pulso-sm-case-cell pulso-sm-case-ids">
+              <strong title={`Respuesta SurveyMonkey ${row.response_id || "-"}`}>Respuesta {row.response_id || "-"}</strong>
+              {row.custom_id ? (
+                <small title="ID del enlace personalizado">ID enlace {row.custom_id}</small>
+              ) : (
+                <small>Sin ID enlace</small>
+              )}
+            </div>
+            <div className="pulso-sm-case-cell">{row.estado || "-"}</div>
+            <div className="pulso-sm-case-cell is-numeric">
+              <SmDecisionCompletionCell row={row} />
+            </div>
+            <div className={`pulso-sm-case-cell is-result${row.incluido === "1" ? " is-included" : ""}`}>
+              {smDecisionCaseDecisionLabel(String(row.decision || ""))}
+            </div>
+            <div className="pulso-sm-case-cell">
+              {(() => {
+                const manuallyIncluded = row.manual || (!!row.case_uid && manualSet.has(row.case_uid));
+                const included = row.incluido === "1";
+                if (!row.case_uid) {
+                  return <span className="pulso-sm-case-action-note">Sin llave</span>;
+                }
+                if (manuallyIncluded) {
+                  return (
+                    <button
+                      type="button"
+                      className="pulso-sm-case-action is-remove"
+                      disabled={disabled}
+                      onClick={() => toggleManualInclude(row.case_uid, false)}
+                    >
+                      Quitar rescate
+                    </button>
+                  );
+                }
+                if (included) {
+                  return <span className="pulso-sm-case-action-note is-included">Incluida</span>;
+                }
+                return (
+                  <button
+                    type="button"
+                    className="pulso-sm-case-action"
+                    disabled={disabled}
+                    onClick={() => toggleManualInclude(row.case_uid, true)}
+                  >
+                    Incluir caso
+                  </button>
+                );
+              })()}
+            </div>
+            <div className={`pulso-sm-case-cell pulso-sm-case-review ${row.observado === true ? "is-observed" : "is-normal"}`}>
+              <div className="pulso-sm-case-review-main">
+                {row.nearComplete && <span className="pulso-sm-case-badge is-near">Casi completa</span>}
+                <span>{row.observado === true ? row.motivo || "Requiere revisión" : "Sin observación"}</span>
+              </div>
+              {smDecisionDuplicateEvidenceLine(row) && (
+                <div className="pulso-sm-case-evidence">
+                  <strong>Posible duplicado</strong>
+                  <span>{smDecisionDuplicateEvidenceLine(row)}</span>
+                  <span className={`pulso-sm-case-evidence-chip ${smDecisionCompareTone(row.duplicateCodeMatch)}`}>
+                    Código Pulso: {smDecisionCompareLabel(row.duplicateCodeMatch)}
+                  </span>
+                  <span className={`pulso-sm-case-evidence-chip ${smDecisionCompareTone(row.duplicateCareerMatch)}`}>
+                    Carrera: {smDecisionCompareLabel(row.duplicateCareerMatch)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </Fragment>
+        ))}
+      </div>
+      ) : (
+        <div className="pulso-sm-case-empty">
+          <Search size={13} />
+          <span>{emptyCopy}</span>
+        </div>
+      )}
+      {smDecisionNumber(audit?.case_rows_omitted) > 0 && (
+        <p>{smDecisionNumber(audit?.case_rows_omitted)} casos adicionales quedan fuera de esta vista rápida.</p>
+      )}
+    </details>
+  );
+}
+
+function SmDecisionSuite({
+  base,
+  disabled,
+  onApplied,
+  onRegenerateRaw,
+}: {
+  base: EstudioBase;
+  disabled: boolean;
+  onApplied: (payload: EstudioPayload) => Promise<void>;
+  onRegenerateRaw?: (base: EstudioBase) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [savedPolicy, setSavedPolicy] = useState<SurveyMonkeyDecisionPolicy>(() => smDecisionInitialPolicy(base));
+  const [policy, setPolicy] = useState<SurveyMonkeyDecisionPolicy>(() => smDecisionInitialPolicy(base));
+  const [audit, setAudit] = useState<SurveyMonkeyDecisionAudit | null>(base.surveymonkey_decision_audit ?? null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [savedNote, setSavedNote] = useState("");
+  const previewRequestSeq = useRef(0);
+  const hasRaw = !!String(base.surveymonkey_raw_snapshot_file_id || "").trim();
+  const options = smConsentOptions(base);
+  const variableOptions = smDecisionVariableOptions(base);
+  const adapted = base.status?.codificacion_adaptada === true;
+  const downstreamLabels = smDecisionDownstreamLabels(base);
+  const hasDownstreamProgress = downstreamLabels.length > 0;
+  const collectorOptions = smDecisionCollectorOptions(audit);
+  const duplicateOptions = smDecisionDuplicateOptions(base, variableOptions);
+  const explicitCollectorIds = policy.collector_ids ?? [];
+  const validCollectorIds = smDecisionValidCollectorIds(collectorOptions);
+  const testCollectorCount = collectorOptions.length - validCollectorIds.length;
+  const selectedCollectorIds = (explicitCollectorIds.length ? explicitCollectorIds : validCollectorIds)
+    .filter((collectorId) => validCollectorIds.includes(collectorId));
+  const selectedCollectorSet = new Set(selectedCollectorIds);
+  const auditReady = smDecisionAuditReady(audit);
+  const savedPolicyFingerprint = smDecisionPolicyFingerprint(savedPolicy);
+  const pendingPolicyFingerprint = smDecisionPolicyFingerprint(policy);
+  const hasPendingPolicyChanges = pendingPolicyFingerprint !== savedPolicyFingerprint;
+
+  useEffect(() => {
+    const nextSaved = smDecisionInitialPolicy(base);
+    setSavedPolicy(nextSaved);
+    setPolicy(nextSaved);
+    setAudit(base.surveymonkey_decision_audit ?? null);
+    setSavedNote("");
+    previewRequestSeq.current += 1;
+  }, [base.nombre, base.surveymonkey_decision_policy]);
+
+  useEffect(() => {
+    if (!open || !hasRaw) return;
+    const handle = window.setTimeout(() => {
+      void loadPreview(policy, true);
+    }, 360);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, hasRaw, pendingPolicyFingerprint]);
+
+  async function loadPreview(nextPolicy = policy, quiet = false) {
+    if (!hasRaw) return;
+    const requestId = previewRequestSeq.current + 1;
+    previewRequestSeq.current = requestId;
+    const previewBusyLabel = "Calculando impacto...";
+    setError("");
+    if (!quiet) setBusy(previewBusyLabel);
+    try {
+      const result = await apiSurveyMonkeyMultibaseDecisionPreview({
+        base_name: base.nombre,
+        policy: nextPolicy,
+      });
+      if (requestId !== previewRequestSeq.current) return;
+      setAudit(result.audit);
+    } catch (e) {
+      if (requestId !== previewRequestSeq.current) return;
+      setError((e as Error).message);
+    } finally {
+      if (requestId === previewRequestSeq.current) {
+        setBusy((currentBusy) => (!quiet || currentBusy === previewBusyLabel ? "" : currentBusy));
+      }
+    }
+  }
+
+  async function saveReview() {
+    if (!hasRaw) return;
+    previewRequestSeq.current += 1;
+    const nextPolicy = smDecisionPolicyForSurveyMonkeyCommit(policy, collectorOptions);
+    setError("");
+    setSavedNote("");
+    setBusy("Guardando revisión...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseDecisionApply({
+        base_name: base.nombre,
+        policy: nextPolicy,
+        regenerate_data: false,
+        force_replace_adapted: false,
+      });
+      setSavedPolicy(result.policy);
+      setPolicy(result.policy);
+      setAudit(result.audit);
+      setSavedNote("Revisión guardada. La base activa no cambió.");
+      await onApplied(result.estudio);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function applyToActiveBase() {
+    if (!hasRaw) return;
+    previewRequestSeq.current += 1;
+    const nextPolicy = smDecisionPolicyForSurveyMonkeyCommit(policy, collectorOptions);
+    setError("");
+    setSavedNote("");
+    setBusy("Aplicando a base efectiva...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseDecisionApply({
+        base_name: base.nombre,
+        policy: nextPolicy,
+        regenerate_data: true,
+        force_replace_adapted: true,
+      });
+      setSavedPolicy(result.policy);
+      setPolicy(result.policy);
+      setAudit(result.audit);
+      setSavedNote(result.replaced_active
+        ? "Base efectiva actualizada con las fuentes seleccionadas."
+        : "Revisión aplicada; no se reemplazó la base activa.");
+      await onApplied(result.estudio);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function regenerateRawSnapshot() {
+    if (!onRegenerateRaw) return;
+    previewRequestSeq.current += 1;
+    setError("");
+    setSavedNote("");
+    setBusy("Regenerando respaldo...");
+    try {
+      await onRegenerateRaw(base);
+      setSavedNote("Respaldo SurveyMonkey regenerado. Ya se pueden recalcular las reglas.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function updatePolicy(patch: Partial<SurveyMonkeyDecisionPolicy>) {
+    setSavedNote("");
+    setPolicy((current) => ({ ...current, ...patch, edited: true }));
+  }
+
+  function discardPendingPolicy() {
+    setError("");
+    setSavedNote("Cambios pendientes descartados; vuelve la configuración guardada.");
+    setPolicy(savedPolicy);
+  }
+
+  function toggleCollector(id: string, checked: boolean) {
+    const collector = collectorOptions.find((item) => item.id === id);
+    if (collector && smDecisionCollectorIsTest(collector)) return;
+    const current = policy.collector_ids?.length ? policy.collector_ids : validCollectorIds;
+    const next = checked
+      ? Array.from(new Set([...current, id]))
+      : current.filter((collectorId) => collectorId !== id);
+    if (!next.length) return;
+    updatePolicy({ collector_ids: next });
+  }
+
+  function selectValidCollectors() {
+    if (!validCollectorIds.length) return;
+    updatePolicy({ collector_ids: validCollectorIds });
+  }
+
+  const edited = hasPendingPolicyChanges || policy.edited || !!base.surveymonkey_decision_updated_at;
+  const rejectionValuesText = smDecisionValuesToText(policy.rejection_values);
+  const duplicateKey = policy.duplicate_key_vars?.[0] || "";
+  const sourceCount = auditReady ? audit?.sources?.length ?? 0 : smSourceSummariesFromBase(base).length;
+  const baseSurveyTitle = String(base.source_title || smSourceSummariesFromBase(base)[0]?.title || base.nombre || "").trim();
+  const currentActiveRows = smDecisionOptionalNumber(base.n_filas);
+  const previewIncludedRows = auditReady ? smDecisionOptionalNumber(audit?.included) : null;
+  const replacementImpactText = smDecisionRowsImpactText(currentActiveRows, previewIncludedRows);
+
+  return (
+    <details
+      className="pulso-sm-decision-suite"
+      open={open}
+      onToggle={(event) => {
+        const nextOpen = event.currentTarget.open;
+        setOpen(nextOpen);
+        if (nextOpen && hasRaw && !smDecisionAuditReady(audit)) void loadPreview(policy);
+      }}
+    >
+      <summary>
+        <SlidersHorizontal size={12} />
+        <span>Revisión SurveyMonkey</span>
+        <em>{hasRaw ? hasPendingPolicyChanges ? "cambios pendientes" : edited ? "configuración guardada" : "datos descargados" : "requiere descarga"}</em>
+      </summary>
+      {!hasRaw ? (
+        <div className="pulso-sm-decision-empty">
+          <AlertTriangle size={14} />
+          <span>Esta base no tiene respaldo de respuestas descargadas. Regenera desde SurveyMonkey para recalcular reglas.</span>
+          {onRegenerateRaw && (
+            <button
+              type="button"
+              className="pulso-sm-secondary"
+              disabled={disabled || !!busy}
+              onClick={() => void regenerateRawSnapshot()}
+            >
+              {busy ? <Loader2 size={12} className="pulso-spin" /> : <RefreshCw size={12} />}
+              Regenerar respaldo
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="pulso-sm-decision-panel">
+          <div className="pulso-sm-decision-context">
+            <strong title={baseSurveyTitle}>{baseSurveyTitle || "Base SurveyMonkey"}</strong>
+            <span>
+              {sourceCount || 1} campaña{(sourceCount || 1) === 1 ? "" : "s"} · {selectedCollectorIds.length} collector{selectedCollectorIds.length === 1 ? "" : "s"} entra{selectedCollectorIds.length === 1 ? "" : "n"} · {hasPendingPolicyChanges ? "cambios pendientes" : "configuración guardada"}
+            </span>
+          </div>
+          <SmDecisionSignature audit={auditReady ? audit : null} />
+          <SmDecisionSourceAuditTable audit={auditReady ? audit : null} />
+          {collectorOptions.length > 0 && (
+            <div className="pulso-sm-collector-picks" aria-label="Recopiladores SurveyMonkey">
+              <div className="pulso-sm-collector-picks-head">
+                <div>
+                  <span>Fuentes que entran al conteo</span>
+                  <em>
+                    {selectedCollectorIds.length} entra{selectedCollectorIds.length === 1 ? "" : "n"}
+                    {testCollectorCount > 0 ? ` · ${testCollectorCount} prueba bloqueada${testCollectorCount === 1 ? "" : "s"}` : ""}
+                  </em>
+                  <small>Incluye las fuentes válidas disponibles. Los recopiladores de prueba quedan fuera.</small>
+                </div>
+                <button type="button" className="pulso-sm-secondary" disabled={disabled || !!busy || !validCollectorIds.length} onClick={selectValidCollectors}>
+                  Usar fuentes válidas
+                </button>
+              </div>
+              <div className="pulso-sm-collector-picks-grid">
+                {collectorOptions.map((collector) => (
+                  (() => {
+                    const isTest = smDecisionCollectorIsTest(collector);
+                    const isSelected = selectedCollectorSet.has(collector.id);
+                    const savedCollectorIds = savedPolicy.collector_ids?.length
+                      ? savedPolicy.collector_ids
+                      : validCollectorIds;
+                    const changedFromSaved = !isTest && savedCollectorIds.includes(collector.id) !== isSelected;
+                    const stateLabel = smDecisionCollectorStateLabel(collector, isSelected);
+                    return (
+                      <label key={collector.id} className={`${isTest ? "is-excluded" : ""}${!isTest && isSelected ? " is-selected" : ""}${changedFromSaved ? " is-pending" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={disabled || !!busy || isTest}
+                          onChange={(event) => toggleCollector(collector.id, event.target.checked)}
+                        />
+                        <span>
+                          <b>{smCollectorFriendlyName(collector.label, collector.id)}</b>
+                          <small>
+                            {isTest
+                              ? "Recopilador de prueba"
+                              : `${collector.count} respuestas descargadas${collector.source ? ` · ${collector.source}` : ""}${changedFromSaved ? " · cambio pendiente" : ""}`}
+                          </small>
+                        </span>
+                        <em className={smDecisionCollectorStateClass(stateLabel)}>{stateLabel}</em>
+                      </label>
+                    );
+                  })()
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="pulso-sm-rule-board" aria-label="Reglas para contar respuestas efectivas">
+            <section className="pulso-sm-rule-section">
+              <div className="pulso-sm-rule-section-head">
+                <strong>Cómo se cuenta una efectiva</strong>
+                <span>Consentimiento, parciales y mínimo de avance.</span>
+              </div>
+              <div className="pulso-sm-decision-controls">
+                <label className="is-wide">
+                  <span>Pregunta de consentimiento</span>
+                  <select
+                    value={policy.consent_var || ""}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({
+                      consent_var: event.target.value,
+                      rejection_var: policy.rejection_var || event.target.value,
+                    })}
+                  >
+                    <option value="">No aplicar consentimiento</option>
+                    {variableOptions.map((option) => (
+                      <option key={option.name} value={option.name}>
+                        {smDecisionQuestionOptionLabel(option, 70)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="is-check">
+                  <input
+                    type="checkbox"
+                    checked={policy.include_partials === true}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ include_partials: event.target.checked })}
+                  />
+                  <span>Rescatar parciales con avance suficiente</span>
+                </label>
+                <label>
+                  <span>Mínimo para rescatar parcial</span>
+                  <input
+                    type="number"
+                    min={10}
+                    value={Math.max(10, Number(policy.partial_min_answers ?? 15) || 15)}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ partial_min_answers: Math.max(10, Number(event.target.value) || 10) })}
+                  />
+                </label>
+              </div>
+            </section>
+
+            <details className="pulso-sm-rule-section pulso-sm-rule-advanced">
+              <summary>
+                <span>Duplicados y rechazos</span>
+                <em>Abrir opciones avanzadas</em>
+              </summary>
+              <div className="pulso-sm-decision-controls">
+                <label>
+                  <span>Llave para detectar repetidos</span>
+                  <select
+                    value={duplicateKey}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ duplicate_key_vars: event.target.value ? [event.target.value] : [] })}
+                  >
+                    <option value="">No detectar repetidos</option>
+                    {duplicateOptions.map((option) => (
+                      <option key={option.name} value={option.name}>
+                        {smDecisionDuplicateOptionLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Qué respuesta conservar</span>
+                  <select
+                    value={policy.duplicate_keep || "first"}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ duplicate_keep: event.target.value })}
+                  >
+                    <option value="first">La primera respuesta</option>
+                    <option value="latest">La respuesta más reciente</option>
+                    <option value="most_answered">La más completa</option>
+                  </select>
+                </label>
+                <label className="is-check">
+                  <input
+                    type="checkbox"
+                    checked={policy.include_duplicates !== false}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ include_duplicates: event.target.checked })}
+                  />
+                  <span>Permitir repetidos en la base</span>
+                </label>
+                <label>
+                  <span>Pregunta donde se rechaza</span>
+                  <select
+                    value={policy.rejection_var || ""}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ rejection_var: event.target.value })}
+                  >
+                    <option value="">No aplicar rechazo</option>
+                    {options.map((option) => (
+                      <option key={option.name} value={option.name}>
+                        {smDecisionQuestionOptionLabel(option, 62)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Respuestas tratadas como rechazo</span>
+                  <input
+                    value={rejectionValuesText}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ rejection_values: smDecisionTextToValues(event.target.value) })}
+                    onKeyDown={smTextShortcutGuard}
+                  />
+                </label>
+                <label className="is-check">
+                  <input
+                    type="checkbox"
+                    checked={policy.include_rejections === true}
+                    disabled={disabled || !!busy}
+                    onChange={(event) => updatePolicy({ include_rejections: event.target.checked })}
+                  />
+                  <span>Permitir rechazos en la base</span>
+                </label>
+              </div>
+            </details>
+          </div>
+          <SmDecisionImpactCard
+            currentRows={currentActiveRows}
+            previewRows={previewIncludedRows}
+            impactText={replacementImpactText}
+          />
+          {adapted && (
+            <div className="pulso-sm-decision-warning">
+              <AlertTriangle size={13} />
+              <span>
+                Esta base ya tiene codificación. Guardar solo revisión deja la decisión auditada sin tocar datos; reemplazar la base activa puede requerir revisar los pasos posteriores.
+              </span>
+            </div>
+          )}
+          {hasDownstreamProgress && (
+            <div className="pulso-sm-decision-warning">
+              <AlertTriangle size={13} />
+              <span>
+                Ya hay avance en {downstreamLabels.join(", ")}. Si reemplazas la base activa, esos módulos quedan trabajando sobre la base recalculada.
+              </span>
+            </div>
+          )}
+          <SmDecisionCaseAudit
+            audit={auditReady ? audit : null}
+            policy={policy}
+            disabled={disabled || !!busy}
+            onPolicyPatch={updatePolicy}
+          />
+          {error && <ErrorBlock label="No se pudo calcular la suite" detail={error} />}
+          {savedNote && (
+            <div className="pulso-sm-decision-ok">
+              <CheckCircle2 size={13} />
+              <span>{savedNote}</span>
+            </div>
+          )}
+          <div className="pulso-sm-decision-actions">
+            <button type="button" className="pulso-sm-secondary" disabled={disabled || !!busy} onClick={() => void loadPreview(policy)}>
+              {busy ? <Loader2 size={12} className="pulso-spin" /> : <RefreshCw size={12} />}
+              Recalcular
+            </button>
+            <button type="button" className="pulso-sm-secondary" disabled={disabled || !!busy} onClick={() => void saveReview()}>
+              {busy ? <Loader2 size={12} className="pulso-spin" /> : <Check size={12} />}
+              Guardar solo revisión
+            </button>
+            <button
+              type="button"
+              className="pulso-sm-secondary"
+              disabled={disabled || !!busy || !hasPendingPolicyChanges}
+              onClick={discardPendingPolicy}
+            >
+              <XIcon size={12} />
+              Descartar cambios
+            </button>
+            <button
+              type="button"
+              disabled={disabled || !!busy || !validCollectorIds.length}
+              title="Reconstruye y reemplaza completa la base activa con estas fuentes y reglas; no agrega encima."
+              onClick={() => void applyToActiveBase()}
+            >
+              {busy ? <Loader2 size={12} className="pulso-spin" /> : <CheckCircle2 size={12} />}
+              Reemplazar base activa
+            </button>
+          </div>
+        </div>
+      )}
     </details>
   );
 }
@@ -1278,6 +2897,172 @@ function smTextShortcutGuard(event: KeyboardEvent<HTMLInputElement>) {
 
 function smClipboardGuard(event: ClipboardEvent<HTMLInputElement>) {
   event.stopPropagation();
+}
+
+const SM_DEFAULT_BASE_URL = "https://api.surveymonkey.com/v3";
+const smCollectorCatalogCache = new Map<string, SurveyMonkeyMultibaseCollector[]>();
+
+function smCollectorCacheKey(surveyId: string, baseUrl = SM_DEFAULT_BASE_URL) {
+  return `${baseUrl}::${surveyId.trim()}`;
+}
+
+function smCollectorDisplayName(item: SurveyMonkeyMultibaseCollector) {
+  const name = String(item.name || item.id || "Recopilador").trim();
+  return name || item.id || "Recopilador";
+}
+
+function smCollectorTypeLabel(value: string) {
+  const key = smNormalizeSearch(value);
+  if (key.includes("email")) return "correo";
+  if (key.includes("weblink") || key.includes("web_link") || key.includes("web link")) return "enlace";
+  if (key.includes("sms")) return "SMS";
+  if (key.includes("kiosk")) return "kiosko";
+  return value || "tipo S/D";
+}
+
+function smCollectorResponseLabel(count: number | null) {
+  if (count == null || !Number.isFinite(count)) return "conteo S/D";
+  return `${count.toLocaleString("es-PE")} respuesta${count === 1 ? "" : "s"}`;
+}
+
+function smToggleCollectorId(current: string, collectorId: string, checked: boolean, orderedIds: string[]) {
+  const set = new Set(smSplitScopeList(current));
+  if (checked) set.add(collectorId);
+  else set.delete(collectorId);
+  const ordered = orderedIds.filter((id) => set.has(id));
+  const trailing = Array.from(set).filter((id) => !orderedIds.includes(id));
+  return [...ordered, ...trailing].join(", ");
+}
+
+function SmCollectorPicker({
+  surveyId,
+  value,
+  disabled,
+  onChange,
+  label = "Recopiladores incluidos",
+}: {
+  surveyId: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  label?: string;
+}) {
+  const [collectors, setCollectors] = useState<SurveyMonkeyMultibaseCollector[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const cleanSurveyId = surveyId.trim();
+  const selected = smSplitScopeList(value);
+  const selectedSet = new Set(selected);
+  const orderedIds = (collectors ?? []).map((item) => item.id).filter(Boolean);
+  const missingSelected = selected.filter((id) => !orderedIds.includes(id));
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!cleanSurveyId) {
+      setCollectors(null);
+      setError("");
+      return;
+    }
+    const cacheKey = smCollectorCacheKey(cleanSurveyId);
+    const cached = smCollectorCatalogCache.get(cacheKey);
+    if (cached) {
+      setCollectors(cached);
+      setError("");
+      return;
+    }
+    setError("");
+    setCollectors(null);
+  }, [cleanSurveyId]);
+
+  function loadCollectors() {
+    if (!cleanSurveyId || loading) return;
+    const cacheKey = smCollectorCacheKey(cleanSurveyId);
+    const cached = smCollectorCatalogCache.get(cacheKey);
+    if (cached) {
+      setCollectors(cached);
+      setError("");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    void apiSurveyMonkeyMultibaseCollectors(cleanSurveyId)
+      .then((result) => {
+        smCollectorCatalogCache.set(cacheKey, result.collectors);
+        setCollectors(result.collectors);
+      })
+      .catch((e) => {
+        setError((e as Error).message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }
+
+  return (
+    <div className="pulso-sm-collector-picker">
+      <div className="pulso-sm-collector-picker-head">
+        <span><Filter size={13} /> {label}</span>
+        <div>
+          <em>{selected.length ? `${selected.length} seleccionados` : "Todos"}</em>
+          <button
+            type="button"
+            className="pulso-sm-collector-load"
+            disabled={disabled || loading || !cleanSurveyId}
+            onClick={loadCollectors}
+          >
+            {loading ? <Loader2 size={11} className="pulso-spin" /> : null}
+            Leer lista
+          </button>
+        </div>
+      </div>
+      <div className="pulso-sm-collector-options">
+        {!cleanSurveyId && <small>Elige una encuesta para listar sus recopiladores.</small>}
+        {!collectors && !loading && cleanSurveyId && !error && (
+          <small>Se muestran los filtros guardados. Pulsa Leer lista solo si necesitas cambiar recopiladores.</small>
+        )}
+        {loading && <small><Loader2 size={12} className="pulso-spin" /> Leyendo recopiladores...</small>}
+        {error && <small className="is-error">{error}</small>}
+        {collectors?.map((collector) => {
+          const collectorId = collector.id;
+          if (!collectorId) return null;
+          return (
+            <label key={collectorId} className="pulso-sm-collector-option">
+              <input
+                type="checkbox"
+                disabled={disabled}
+                checked={selectedSet.has(collectorId)}
+                onChange={(event) => onChange(smToggleCollectorId(value, collectorId, event.target.checked, orderedIds))}
+              />
+              <span>
+                <strong>{smCollectorDisplayName(collector)}</strong>
+                <small>{smCollectorTypeLabel(collector.type)} · {smCollectorResponseLabel(collector.response_count)} · ID {collectorId}</small>
+              </span>
+            </label>
+          );
+        })}
+        {missingSelected.map((collectorId) => (
+          <label key={collectorId} className="pulso-sm-collector-option is-manual">
+            <input
+              type="checkbox"
+              disabled={disabled}
+              checked
+              onChange={(event) => onChange(smToggleCollectorId(value, collectorId, event.target.checked, orderedIds))}
+            />
+            <span>
+              <strong>Recopilador {collectorId}</strong>
+              <small>ID guardado en el proyecto</small>
+            </span>
+          </label>
+        ))}
+        {collectors && !collectors.length && !loading && !error && <small>SurveyMonkey no devolvió recopiladores para esta encuesta.</small>}
+      </div>
+      {selected.length > 0 && (
+        <button type="button" className="pulso-sm-collector-clear" disabled={disabled} onClick={() => onChange("")}>
+          Incluir todos
+        </button>
+      )}
+    </div>
+  );
 }
 
 function smScopeStatuses(_scope?: SmImportScopeFields) {
@@ -1304,7 +3089,9 @@ function smValidationProfileForStrategy(strategy: SmImportScopeFields["collectio
 }
 
 function smHasScopeFilters(_scope: SmImportScopeFields) {
-  return false;
+  return smSplitScopeList(_scope.collectorIds).length > 0
+    || smScopeDate(_scope.dateModifiedGte).length > 0
+    || smScopeDate(_scope.dateModifiedLte).length > 0;
 }
 
 function smDateLabel(value?: string | null) {
@@ -1345,8 +3132,25 @@ function smScopeSummary(scope: SmImportScopeFields, nSources: number) {
   parts.push("Completas");
   const channel = smChannelLabel(scope.channel);
   if (channel) parts.push(channel);
+  const collectors = smSplitScopeList(scope.collectorIds);
+  if (collectors.length) parts.push(`${collectors.length} recopilador${collectors.length === 1 ? "" : "es"}`);
   if (nSources > 1) parts.push(`${nSources} campañas`);
   return parts.join(" · ");
+}
+
+function smSpecCollectorSummary(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
+  const sources = smSpecSources(spec);
+  if (!sources.length) return "";
+  const filtered = sources
+    .map((source, index) => {
+      const collectors = smStringList(source.collector_ids ?? source.collector_id);
+      if (!collectors.length) return "";
+      const label = String(source.source_alias || source.source_title || source.label || source.survey_id || `Fuente ${index + 1}`).trim();
+      return `${label}: ${collectors.join(", ")}`;
+    })
+    .filter(Boolean);
+  if (!filtered.length) return "Recopiladores: todos incluidos";
+  return `Recopiladores filtrados · ${filtered.join(" · ")}`;
 }
 
 function smSurveyById(surveys: SurveyMonkeyMultibaseListItem[] | null | undefined, id: string) {
@@ -1499,8 +3303,28 @@ function smRefreshRowStatusText(row: SurveyMonkeyRefreshBasePlan): string {
   const action = smRefreshAction(row);
   if (action === "noop_structure_warning") return "Sin nuevas; se conserva la base actual";
   if (action === "noop") return "Sin nuevas; ya está al día";
-  if (row.updateable) return "Se actualizarán respuestas actuales";
+  if (row.updateable) return "Se actualizará la base completa con sus fuentes guardadas";
   return "No se actualizará esta base";
+}
+
+function smRefreshSourcesText(sources: SmSourceSummary[]) {
+  if (!sources.length) return "";
+  return sources
+    .map((source) => `${source.title}${source.channel ? ` (${source.channel})` : ""}`)
+    .join(" · ");
+}
+
+function smRefreshResultSourcesText(row: SurveyMonkeyRefreshResult["results"][number]) {
+  const sources = row.sources ?? [];
+  if (!sources.length) return "";
+  return sources
+    .map((source) => {
+      const title = String(source.source_title || source.source_alias || source.survey_id || "Fuente").trim();
+      const channel = smChannelLabel(String(source.channel || ""));
+      const status = String(source.status || "").replace(/_/g, " ");
+      return `${title}${channel ? ` (${channel})` : ""}: ${status || (source.refreshed ? "actualizada" : "no actualizada")}`;
+    })
+    .join(" · ");
 }
 
 function smDiffSeverityLabel(severity: SurveyMonkeyMultibaseDiff["severity"]) {
@@ -1544,6 +3368,12 @@ function smSourceInputFromScope(
   if (meta?.sourceTitle?.trim()) input.source_title = meta.sourceTitle.trim();
   input.response_statuses = smScopeStatuses(scope);
   input.keep_missing_status = false;
+  const collectorIds = smSplitScopeList(scope.collectorIds);
+  if (collectorIds.length) input.collector_ids = collectorIds;
+  const dateModifiedGte = smScopeDate(scope.dateModifiedGte);
+  const dateModifiedLte = smScopeDate(scope.dateModifiedLte);
+  if (dateModifiedGte) input.date_modified_gte = dateModifiedGte;
+  if (dateModifiedLte) input.date_modified_lte = dateModifiedLte;
   input.collection_strategy = scope.collectionStrategy;
   const channel = smChannelLabel(scope.channel);
   if (channel) {
@@ -1667,6 +3497,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
   const [refreshPlan, setRefreshPlan] = useState<SurveyMonkeyRefreshPlan | null>(null);
   const [refreshResult, setRefreshResult] = useState<SurveyMonkeyRefreshResult | null>(null);
+  const [workbookFile, setWorkbookFile] = useState<File | null>(null);
+  const [workbookFileId, setWorkbookFileId] = useState("");
+  const [workbookInspection, setWorkbookInspection] = useState<SurveyMonkeyWorkbookInspection | null>(null);
+  const [workbookImportResult, setWorkbookImportResult] = useState<SurveyMonkeyWorkbookImportResult | null>(null);
+  const [savBundleFile, setSavBundleFile] = useState<File | null>(null);
+  const [savBundleFileId, setSavBundleFileId] = useState("");
+  const [savBundleInspection, setSavBundleInspection] = useState<SurveyMonkeySavBundleInspection | null>(null);
+  const [savBundleImportResult, setSavBundleImportResult] = useState<SurveyMonkeySavBundleImportResult | null>(null);
   const [editingAliasBase, setEditingAliasBase] = useState<string | null>(null);
   const [editingAliasDraft, setEditingAliasDraft] = useState("");
   const [busy, setBusy] = useState("");
@@ -1710,6 +3548,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const hasSelectedWork = selectedInputs.length > 0 || selectedMergeCampaignCount > 0;
   const canImport = hasSelectedWork && selectedInputs.length <= capacityLeft && !hasAliasIssues && !hasMergeTargetIssues && !modeConflict && !busy && !disabled;
   const overIndependentLimit = selectedInputs.length > capacityLeft;
+  const canImportWorkbook = smWorkbookInspectionCanImport(workbookInspection) && !busy && !disabled;
+  const canImportSavBundle = smSavBundleInspectionCanImport(savBundleInspection) && !busy && !disabled;
 
   async function refreshSurveyMonkeyConnection() {
     try {
@@ -1982,6 +3822,128 @@ function IndependentSiblingsSurveyMonkeyWizard({
     }
   }
 
+  function pickWorkbookFile(file: File | null) {
+    setWorkbookFile(file);
+    setWorkbookFileId("");
+    setWorkbookInspection(null);
+    setWorkbookImportResult(null);
+    setError("");
+  }
+
+  async function inspectWorkbook() {
+    if (!workbookFile && !workbookFileId) return;
+    setError("");
+    setWorkbookInspection(null);
+    setWorkbookImportResult(null);
+    setBusy("Inspeccionando Excel exportado...");
+    try {
+      let fileId = workbookFileId;
+      if (!fileId) {
+        if (!workbookFile) throw new Error("Selecciona un Excel exportado por SurveyMonkey.");
+        const upload = await apiUpload(workbookFile, uploadKindForDataFile(workbookFile));
+        fileId = upload.file_id;
+        setWorkbookFileId(fileId);
+      }
+      const result = await apiSurveyMonkeyMultibaseWorkbookInspect({
+        file_id: fileId,
+        missing_required_policy: "fill_blank_warn",
+      });
+      setWorkbookInspection(result);
+      if (!result.ok) {
+        setError("Hay hojas sin base hermana asignada. Revisa el nombre de las hojas o usa una plantilla con bases existentes.");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function importWorkbook() {
+    if (!workbookFileId || !workbookInspection) return;
+    setError("");
+    setWorkbookImportResult(null);
+    setBusy("Aplicando Excel exportado a bases existentes...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseWorkbookImport({
+        file_id: workbookFileId,
+        missing_required_policy: "fill_blank_warn",
+      });
+      setWorkbookImportResult(result);
+      setWorkbookInspection(result.inspection);
+      await onImported(result.estudio);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
+      }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function pickSavBundleFile(file: File | null) {
+    setSavBundleFile(file);
+    setSavBundleFileId("");
+    setSavBundleInspection(null);
+    setSavBundleImportResult(null);
+    setError("");
+  }
+
+  async function inspectSavBundle() {
+    if (!savBundleFile && !savBundleFileId) return;
+    setError("");
+    setSavBundleInspection(null);
+    setSavBundleImportResult(null);
+    setBusy("Inspeccionando ZIP SAV...");
+    try {
+      let fileId = savBundleFileId;
+      if (!fileId) {
+        if (!savBundleFile) throw new Error("Selecciona un ZIP con archivos .sav.");
+        const upload = await apiUpload(savBundleFile, "sav_bundle");
+        fileId = upload.file_id;
+        setSavBundleFileId(fileId);
+      }
+      const result = await apiSurveyMonkeyMultibaseSavBundleInspect({
+        file_id: fileId,
+        missing_required_policy: "fill_blank_warn",
+      });
+      setSavBundleInspection(result);
+      if (!result.ok) {
+        setError("Hay archivos SAV sin base hermana asignada o asignaciones duplicadas. Revisa los nombres antes de aplicar.");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function importSavBundle() {
+    if (!savBundleFileId || !savBundleInspection) return;
+    setError("");
+    setSavBundleImportResult(null);
+    setBusy("Aplicando actualización ZIP SAV...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseSavBundleImport({
+        file_id: savBundleFileId,
+        missing_required_policy: "fill_blank_warn",
+      });
+      setSavBundleImportResult(result);
+      setSavBundleInspection(result.inspection);
+      await onImported(result.estudio);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
+      }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function loadRefreshPlan(forceRefresh = false) {
     setError("");
     setRefreshResult(null);
@@ -2017,6 +3979,43 @@ function IndependentSiblingsSurveyMonkeyWizard({
       setRefreshPlan(updatedPlan);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runRegenerateSurveyMonkeyRaw(base: EstudioBase) {
+    const baseName = String(base.nombre || "").trim();
+    if (!baseName) return;
+    setError("");
+    setRefreshResult(null);
+    setBusy(`Regenerando respaldo de ${base.source_alias || base.source_title || baseName}...`);
+    try {
+      const result = await apiSurveyMonkeyMultibaseRefresh({
+        bases: [{ base_name: baseName }],
+        months: 12,
+        force_refresh: true,
+        reapply_codificacion: false,
+        regenerate_raw_snapshot: true,
+        raw_snapshot_only: true,
+      });
+      const row = (result.results ?? []).find((item) => item.base_name === baseName);
+      if (!row?.ok || !row.raw_snapshot_regenerated) {
+        throw new Error(row?.reason || "SurveyMonkey no pudo regenerar el respaldo descargado de esta base.");
+      }
+      setRefreshResult(result);
+      await onImported(result.estudio);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
+      }));
+      if (refreshPlan) {
+        const updatedPlan = await apiSurveyMonkeyMultibaseRefreshPlan({ months: 12, force_refresh: false });
+        setRefreshPlan(updatedPlan);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
     } finally {
       setBusy("");
     }
@@ -2088,6 +4087,26 @@ function IndependentSiblingsSurveyMonkeyWizard({
       });
       await onImported(payload);
       window.dispatchEvent(new Event("pulso:session-changed"));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function saveExistingCollectors(base: EstudioBase, spec: SurveyMonkeyMultibaseSurveyInput) {
+    setError("");
+    setBusy(`Actualizando recopiladores de ${base.nombre}...`);
+    try {
+      const payload = await apiEstudioUpdateBaseMetadata(base.nombre, {
+        surveymonkey_source_spec: spec,
+      });
+      await onImported(payload);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+      if (refreshPlan) {
+        const updatedPlan = await apiSurveyMonkeyMultibaseRefreshPlan({ months: 12, force_refresh: false });
+        setRefreshPlan(updatedPlan);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -2167,9 +4186,21 @@ function IndependentSiblingsSurveyMonkeyWizard({
               const importedAt = smCatalogDateLabel(base.imported_at);
               const isActive = base.nombre === estudio.active_base;
               const channel = smBaseChannel(base);
+              const channelDetail = smBaseChannelDetail(base);
+              const mixedChannel = smBaseHasMixedChannels(base);
               const sourceSummaries = smSourceSummariesFromBase(base);
+              const sourceCount = sourceSummaries.length || 1;
+              const sourceDetail = channelDetail || channel || "Sin canal";
+              const sourceKindLower = String(base.source_kind || "").toLowerCase();
+              const isWorkbookSource = sourceKindLower.includes("workbook");
+              const canReviewSurveyMonkey = !isWorkbookSource && (
+                sourceKindLower.includes("surveymonkey") ||
+                !!String(base.survey_id || "").trim() ||
+                !!String(base.surveymonkey_raw_snapshot_file_id || "").trim()
+              );
+              const showSourceDetail = sourceSummaries.length > 1 || isActive || canReviewSurveyMonkey;
               return (
-                <div className={`pulso-sm-family-row${isActive ? " is-active" : ""}`} role="row" key={base.nombre}>
+                <div className={`pulso-sm-family-row${isActive ? " is-active" : ""}${showSourceDetail ? " has-source-detail" : ""}`} role="row" key={base.nombre}>
                   <span className="pulso-sm-survey-index">{index + 1}</span>
                   <div className="pulso-sm-family-base-cell">
                     {editingAliasBase === base.nombre ? (
@@ -2217,7 +4248,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                   <div className="pulso-sm-family-origin-cell">
                     <strong title={title}>{title}</strong>
                     <small>{sourceKind}{base.survey_id ? ` · Survey ID ${base.survey_id}` : ""} · {importedAt}</small>
-                    <SmSourceSummaryBlock sources={sourceSummaries} />
+                    <small>{sourceCount} fuente{sourceCount === 1 ? "" : "s"} · {sourceDetail}</small>
                   </div>
                   <div className="pulso-sm-family-data-cell">
                     <span className="pulso-sm-family-status">
@@ -2234,20 +4265,311 @@ function IndependentSiblingsSurveyMonkeyWizard({
                     <small>Validación, codificación, analítica y gráficos por base</small>
                   </div>
                   <div className="pulso-sm-family-data-cell">
-                    <SmChannelSelect
-                      value={channel}
-                      disabled={disabled || !!busy}
-                      onChange={(value) => void saveExistingChannel(base, value)}
-                    />
-                    <SmConsentSelect
-                      base={base}
-                      disabled={disabled || !!busy}
-                      onChange={(value) => void saveExistingConsentVar(base, value)}
-                    />
+                    {mixedChannel ? (
+                      <div className="pulso-sm-channel-readonly">
+                        <span>Canales</span>
+                        <div>
+                          <SmChannelBadge channel={channel || "Mixto"} />
+                          {channelDetail ? <small>{channelDetail}</small> : null}
+                        </div>
+                      </div>
+                    ) : (
+                      <SmChannelSelect
+                        value={channel}
+                        disabled={disabled || !!busy}
+                        onChange={(value) => void saveExistingChannel(base, value)}
+                      />
+                    )}
+                    {!showSourceDetail ? (
+                      <SmConsentSelect
+                        base={base}
+                        disabled={disabled || !!busy}
+                        compact
+                        onChange={(value) => void saveExistingConsentVar(base, value)}
+                      />
+                    ) : null}
                   </div>
+                  {showSourceDetail ? (
+                    <div className="pulso-sm-family-detail-tray">
+                      <div className="pulso-sm-family-detail-head">
+                        <span>
+                          <GitMerge size={13} />
+                          {sourceCount} fuente{sourceCount === 1 ? "" : "s"} conectada{sourceCount === 1 ? "" : "s"}
+                        </span>
+                        <em>{sourceDetail}</em>
+                      </div>
+                      <SmSourceSummaryBlock sources={sourceSummaries} />
+                      <div className="pulso-sm-family-detail-actions">
+                        <div className="pulso-sm-family-detail-controls">
+                          <SmConsentSelect
+                            base={base}
+                            disabled={disabled || !!busy}
+                            onChange={(value) => void saveExistingConsentVar(base, value)}
+                          />
+                          <SmExistingCollectorsEditor
+                            base={base}
+                            disabled={disabled || !!busy}
+                            onSave={saveExistingCollectors}
+                          />
+                        </div>
+                        {canReviewSurveyMonkey ? (
+                          <SmDecisionSuite
+                            base={base}
+                            disabled={false}
+                            onRegenerateRaw={runRegenerateSurveyMonkeyRaw}
+                            onApplied={async (payload) => {
+                              await onImported(payload);
+                              window.dispatchEvent(new Event("pulso:session-changed"));
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
+          </div>
+          <div className="pulso-sm-workbook-import" aria-label="Importar Excel exportado por SurveyMonkey">
+            <div className="pulso-sm-family-config-head">
+              <div>
+                <strong>Importar Excel exportado</strong>
+                <span>
+                  Actualiza la data de bases existentes con un workbook multihoja. Faltantes como p3, p4 o p5 quedan vacíos con advertencia.
+                </span>
+              </div>
+              <div className="pulso-sm-family-actions">
+                <button
+                  type="button"
+                  className="pulso-sm-secondary"
+                  disabled={disabled || !!busy || !workbookFile}
+                  onClick={inspectWorkbook}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <FileSpreadsheet size={13} />}
+                  Inspeccionar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canImportWorkbook}
+                  onClick={importWorkbook}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                  Aplicar importación
+                </button>
+              </div>
+            </div>
+            <div className="pulso-sm-workbook-toolbar">
+              <FilePicker
+                icon={FileSpreadsheet}
+                title="Excel exportado"
+                accept=".xlsx,.xls"
+                acceptLabel="XLSX / XLS"
+                file={workbookFile}
+                onPick={pickWorkbookFile}
+              />
+              <div className="pulso-sm-workbook-summary">
+                {workbookInspection ? (
+                  <>
+                    <span className={`pulso-sm-family-status${workbookInspection.ok ? "" : " is-warning"}`}>
+                      {workbookInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                      {workbookInspection.n_matched}/{workbookInspection.n_sheets} hojas listas
+                    </span>
+                    <small>
+                      {smWorkbookInspectionWarningCount(workbookInspection)} advertencias
+                      {smWorkbookInspectionCellErrorCount(workbookInspection) > 0
+                        ? ` · ${smWorkbookInspectionCellErrorCount(workbookInspection)} errores Excel`
+                        : ""}
+                      {" · "}
+                      {workbookInspection.filename}
+                    </small>
+                  </>
+                ) : (
+                  <>
+                    <span className="pulso-sm-family-status is-neutral">
+                      <FileSpreadsheet size={12} />
+                      Sin inspección
+                    </span>
+                    <small>Las hojas se emparejan por nombre normalizado con las bases hermanas.</small>
+                  </>
+                )}
+              </div>
+            </div>
+            {workbookInspection && (
+              <div className="pulso-sm-family-table is-workbook" role="table" aria-label="Inspección de Excel exportado">
+                <div className="pulso-sm-family-row is-head is-workbook-row" role="row">
+                  <span>Hoja</span>
+                  <span>Base</span>
+                  <span>Data</span>
+                  <span>Encabezados</span>
+                  <span>Advertencias</span>
+                </div>
+                {workbookInspection.sheets.map((sheet) => {
+                  const sheetHasIssues = sheet.warnings.length > 0 || (sheet.n_cell_errors ?? 0) > 0;
+                  return (
+                    <div className={`pulso-sm-family-row is-workbook-row${sheet.blocking ? " is-invalid" : ""}`} role="row" key={sheet.sheet_name}>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{sheet.sheet_name}</strong>
+                        <small>{sheet.n_rows} filas · {sheet.n_columns} columnas de origen</small>
+                      </div>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{sheet.base_name || "Sin match"}</strong>
+                        <small>{sheet.matched ? "Match automático" : "Bloqueada"}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${sheet.blocking ? " is-warning" : " is-neutral"}`}>
+                          {sheet.blocking ? <AlertTriangle size={12} /> : <Database size={12} />}
+                          {sheet.n_output_columns ?? 0} columnas finales
+                        </span>
+                        <small>{smWorkbookMissingLabel(sheet)}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className="pulso-sm-family-status is-neutral">
+                          <CheckCircle2 size={12} />
+                          {sheet.recognized_headers} reconocidos
+                        </span>
+                        <small>{sheet.unknown_headers.length} dudosos · {sheet.ambiguous_headers.length} ambiguos</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${sheetHasIssues ? " is-warning" : " is-neutral"}`}>
+                          {sheetHasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {sheet.warnings.length || (sheet.n_cell_errors ?? 0) || "OK"}
+                        </span>
+                        <small title={smWorkbookSheetIssueTitle(sheet)}>{smWorkbookSheetIssueLabel(sheet)}</small>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          {workbookImportResult && (
+            <div className="pulso-sm-multibase-warning">
+              <CheckCircle2 size={15} />
+              <span>
+                Importadas {workbookImportResult.imported_bases} bases desde {workbookImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
+              </span>
+            </div>
+          )}
+          </div>
+          <div className="pulso-sm-workbook-import" aria-label="Importar ZIP SAV SurveyMonkey">
+            <div className="pulso-sm-family-config-head">
+              <div>
+                <strong>Importar ZIP SAV</strong>
+                <span>
+                  Reemplaza de forma controlada la data efectiva de bases hermanas existentes. El XLSForm de cada carrera se conserva.
+                </span>
+              </div>
+              <div className="pulso-sm-family-actions">
+                <button
+                  type="button"
+                  className="pulso-sm-secondary"
+                  disabled={disabled || !!busy || !savBundleFile}
+                  onClick={inspectSavBundle}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <Database size={13} />}
+                  Inspeccionar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canImportSavBundle}
+                  onClick={importSavBundle}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                  Aplicar actualización
+                </button>
+              </div>
+            </div>
+            <div className="pulso-sm-workbook-toolbar">
+              <FilePicker
+                icon={Database}
+                title="ZIP con SAV"
+                accept=".zip,application/zip,application/x-zip-compressed"
+                acceptLabel="ZIP"
+                file={savBundleFile}
+                onPick={pickSavBundleFile}
+              />
+              <div className="pulso-sm-workbook-summary">
+                {savBundleInspection ? (
+                  <>
+                    <span className={`pulso-sm-family-status${savBundleInspection.ok ? "" : " is-warning"}`}>
+                      {savBundleInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                      {savBundleInspection.n_matched}/{savBundleInspection.n_files} archivos listos
+                    </span>
+                    <small>
+                      {smSavBundleInspectionWarningCount(savBundleInspection)} advertencias · {savBundleInspection.filename}
+                    </small>
+                    <small>Se reemplazará solo la base de datos. El XLSForm no cambiará.</small>
+                  </>
+                ) : (
+                  <>
+                    <span className="pulso-sm-family-status is-neutral">
+                      <Database size={12} />
+                      Sin inspección
+                    </span>
+                    <small>Los archivos .sav se emparejan por carrera y se normalizan contra el XLSForm vigente.</small>
+                  </>
+                )}
+              </div>
+            </div>
+            {savBundleInspection && (
+              <div className="pulso-sm-family-table is-sav-bundle" role="table" aria-label="Plan de actualización ZIP SAV">
+                <div className="pulso-sm-family-row is-head is-sav-row" role="row">
+                  <span>Archivo</span>
+                  <span>Base</span>
+                  <span>Actualmente</span>
+                  <span>Después de aplicar</span>
+                  <span>Impacto</span>
+                </div>
+                {savBundleInspection.files.map((file) => {
+                  const hasIssues = file.blocking || file.warnings.length > 0 || file.missing_variables.length > 0 || file.all_empty_variables.length > 0;
+                  const currentRows = file.change_plan?.current?.n_rows;
+                  const currentColumns = file.change_plan?.current?.n_columns;
+                  const incoming = file.change_plan?.incoming;
+                  return (
+                    <div className={`pulso-sm-family-row is-sav-row${file.blocking ? " is-invalid" : hasIssues ? " is-warning" : ""}`} role="row" key={file.entry_name || file.file_name}>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{file.file_name || file.entry_name}</strong>
+                        <small>{file.n_rows} filas · {file.n_columns} columnas SAV</small>
+                      </div>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{file.base_name || "Sin match"}</strong>
+                        <small>{file.matched ? "Match automático" : "Bloqueada"}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className="pulso-sm-family-status is-neutral">
+                          <Database size={12} />
+                          {currentRows ?? "?"} filas
+                        </span>
+                        <small>{currentColumns ?? "?"} columnas actuales · XLSForm preservado</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${file.blocking ? " is-warning" : " is-neutral"}`}>
+                          {file.blocking ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {incoming?.normalized_rows ?? file.n_rows} filas
+                        </span>
+                        <small>{smSavBundleImpactLabel(file)}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${hasIssues ? " is-warning" : " is-neutral"}`}>
+                          {hasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {file.matched_variables}/{file.expected_variables} variables
+                        </span>
+                        <small title={[...file.warnings, ...file.all_empty_variables, ...file.missing_variables].join("\n")}>
+                          {file.blocking ? smSavBundleIssueLabel(file) : smSavBundleVariableSummary(file)}
+                        </small>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {savBundleImportResult && (
+              <div className="pulso-sm-multibase-warning">
+                <CheckCircle2 size={15} />
+                <span>
+                  Actualizadas {savBundleImportResult.imported_bases} bases desde {savBundleImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
+                </span>
+              </div>
+            )}
           </div>
           {refreshPlan && (
             <div className="pulso-sm-family-config" aria-label="Diagnóstico de actualización SurveyMonkey">
@@ -2263,7 +4585,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               </div>
               <div className="pulso-sm-refresh-explain">
                 <RefreshCw size={14} />
-                <span>Actualiza solo las fuentes ya guardadas en cada base y reporta registros válidos nuevos por SurveyMonkey. Para sumar campañas o canales usa Agregar desde SurveyMonkey.</span>
+                <span>Actualiza todas las fuentes ya guardadas en cada base, incluyendo combinaciones teléfono + correo cuando existan, y reporta registros válidos nuevos por SurveyMonkey. Para sumar campañas o canales usa Agregar desde SurveyMonkey.</span>
               </div>
               <div className="pulso-sm-family-table is-refresh" role="table" aria-label="Diagnóstico de fuentes SurveyMonkey">
                 <div className="pulso-sm-family-row is-head is-refresh-row" role="row">
@@ -2278,6 +4600,9 @@ function IndependentSiblingsSurveyMonkeyWizard({
                   const noop = smRefreshIsNoop(row);
                   const warningOnly = action === "noop_structure_warning";
                   const structureDetail = smRefreshStructureDetail(row);
+                  const collectorSummary = smSpecCollectorSummary(row.source_spec);
+                  const refreshSources = smSourceSummariesFromSpec(row.source_spec);
+                  const refreshSourcesText = smRefreshSourcesText(refreshSources);
                   return (
                     <div className={`pulso-sm-family-row is-refresh-row${row.updateable ? "" : " is-invalid"}${warningOnly ? " is-warning" : ""}`} role="row" key={row.base_name}>
                       <div className="pulso-sm-family-origin-cell">
@@ -2285,6 +4610,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
                         <small>
                           <code>{row.base_name}</code> · Survey ID {row.survey_id || "S/D"} · {row.source_count ?? 1} fuente{(row.source_count ?? 1) === 1 ? "" : "s"} actual{(row.source_count ?? 1) === 1 ? "" : "es"}
                         </small>
+                        {refreshSourcesText && <small title={refreshSourcesText}>Actualiza base completa: {refreshSourcesText}</small>}
+                        {collectorSummary && <small>{collectorSummary}</small>}
                       </div>
                       <div className="pulso-sm-family-data-cell">
                         <span className="pulso-sm-family-status">
@@ -2333,12 +4660,18 @@ function IndependentSiblingsSurveyMonkeyWizard({
               {refreshResult && (
                 <div className="pulso-sm-multibase-warning">
                   <CheckCircle2 size={15} />
-                  <span>
-                    Actualizadas {refreshResult.results.filter((row) => row.ok && !row.skipped).length} bases · {" "}
-                    {refreshResult.results.filter((row) => row.ok && row.noop).length} sin cambios · {" "}
-                    {refreshResult.results.reduce((sum, row) => sum + Number(row.n_new ?? 0), 0)} registros válidos nuevos · {" "}
-                    {(refreshResult.codificacion_jobs ?? []).filter((job) => job.ok && job.job_id).length} jobs de recodificación lanzados.
-                  </span>
+                  <div className="pulso-sm-refresh-result-copy">
+                    <span>
+                      Actualizadas {refreshResult.results.filter((row) => row.ok && !row.skipped).length} bases · {" "}
+                      {refreshResult.results.filter((row) => row.ok && row.noop).length} sin cambios · {" "}
+                      {refreshResult.results.reduce((sum, row) => sum + Number(row.n_new ?? 0), 0)} registros válidos nuevos · {" "}
+                      {(refreshResult.codificacion_jobs ?? []).filter((job) => job.ok && job.job_id).length} jobs de recodificación lanzados.
+                    </span>
+                    {refreshResult.results.map((row) => {
+                      const detail = smRefreshResultSourcesText(row);
+                      return detail ? <small key={row.base_name}>{row.base_name}: {detail}</small> : null;
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -2606,6 +4939,12 @@ function IndependentSiblingsSurveyMonkeyWizard({
                             <strong>{smSurveyResponseLabel(item)}</strong>
                           </span>
                         </div>
+                        <SmCollectorPicker
+                          surveyId={item.id}
+                          value={scope.collectorIds}
+                          disabled={disabled || !!busy}
+                          onChange={(value) => updateScope(item.id, { collectorIds: value })}
+                        />
                         <div className="pulso-sm-scope-fields is-operational">
                           <SmChannelSelect
                             value={scope.channel}
@@ -2699,6 +5038,13 @@ function IndependentSiblingsSurveyMonkeyWizard({
                                   )}
                                 </div>
                                 <div className="pulso-sm-extra-advanced">
+                                  <SmCollectorPicker
+                                    surveyId={source.surveyId}
+                                    value={source.collectorIds}
+                                    disabled={disabled || !!busy || !source.surveyId.trim()}
+                                    label="Recopiladores"
+                                    onChange={(value) => updateExtraSource(item.id, source.key, { collectorIds: value })}
+                                  />
                                   <label>
                                     <span>Etiqueta</span>
                                     <input

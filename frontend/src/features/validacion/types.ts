@@ -331,7 +331,24 @@ export type InstrumentoEstado = {
   plan_construido: boolean;
   auditoria_corrida: boolean;
   n_reglas: number;
+  variables_excluidas?: string[];
+  n_variables_excluidas?: number;
   views: ViewDescriptor[];
+};
+
+export type InstrumentoVariableExclusionOption = {
+  variable: string;
+  label: string;
+  n_reglas: number;
+  n_reglas_con_casos: number;
+  n_inconsistencias: number;
+};
+
+export type InstrumentoVariablesExcluidas = {
+  ok: true;
+  base_nombre: string | null;
+  variables: string[];
+  opciones: InstrumentoVariableExclusionOption[];
 };
 
 export type ExploradorVariable = {

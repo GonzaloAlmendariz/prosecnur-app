@@ -11,6 +11,7 @@ import {
   apiHojasRutaPopulationPreview,
   apiHojasRutaQuotaPreview,
   apiHojasRutaRandomPdf,
+  apiHojasRutaRouteWorkbook,
   apiHojasRutaSampleSizePreview,
   apiHojasRutaSamplePreview,
   apiHojasRutaSetPhase,
@@ -44,6 +45,7 @@ import {
   HojasRutaSamplePreview,
   HojasRutaState,
   HojasRutaRun,
+  HojasRutaWorkbookResult,
   HojasRutaStreetMap,
   HojasRutaStreetMapFeature,
   HojasRutaUiState,
@@ -6218,6 +6220,7 @@ export default function HojasRutaPage() {
   const [error, setError] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<HojasRutaJobResult | null>(null);
+  const [routeWorkbook, setRouteWorkbook] = useState<HojasRutaWorkbookResult | null>(null);
   const [manualReplacementJobId, setManualReplacementJobId] = useState<string | null>(null);
   const [manualReplacementResult, setManualReplacementResult] = useState<HojasRutaManualReplacementResult | null>(null);
   const [manualReplacementQuery, setManualReplacementQuery] = useState("");
@@ -6447,6 +6450,23 @@ export default function HojasRutaPage() {
   const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId && !manualReplacementJobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
   const replacementBlocks = useMemo(() => sample?.replacement_blocks ?? [], [sample]);
+  const routeWorkbookInvalidationKey = useMemo(() => {
+    if (!config || !sample?.ok) return "";
+    return JSON.stringify({
+      seed: config.seed,
+      n: config.n_objetivo,
+      method: config.sampling_method,
+      replacementsPerTitular: config.replacements_per_titular,
+      replacementPolicy: config.replacement_policy,
+      blocks: selectedBlocks.map((block) => `${block.id_manzana}:${block.rango_inicio ?? ""}:${block.rango_fin ?? ""}`),
+      replacements: replacementBlocks.map((block) => `${block.id_manzana}:${block.titular_id_manzana ?? ""}:${block.rango_inicio ?? ""}:${block.rango_fin ?? ""}`),
+    });
+  }, [config, replacementBlocks, sample?.ok, selectedBlocks]);
+
+  useEffect(() => {
+    setRouteWorkbook(null);
+  }, [routeWorkbookInvalidationKey]);
+
   const selectedBlocksPage = deliveryPageSlice(selectedBlocks, deliveryBlocksPage);
   const replacementBlocksPage = deliveryPageSlice(replacementBlocks, deliveryReplacementsPage);
   const manualReplacementCountClamped = Math.min(MAX_REPLACEMENTS_PER_TITULAR, Math.max(1, Math.round(Number(manualReplacementCount || 1))));
@@ -6997,6 +7017,22 @@ export default function HojasRutaPage() {
     }
   }
 
+  async function generateRouteWorkbook() {
+    if (!config) return;
+    setBusy("route-workbook");
+    setError("");
+    setRouteWorkbook(null);
+    try {
+      const workbook = await apiHojasRutaRouteWorkbook(config, sample);
+      setRouteWorkbook(workbook);
+      window.open(downloadUrl(workbook.file_id), "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   function toggleManualReplacementBlock(id: string) {
     setManualReplacementSelectedIds((prev) => (
       prev.includes(id)
@@ -7236,10 +7272,8 @@ export default function HojasRutaPage() {
   const jumpPreviewSource = selectedBlocks.length
     ? "promedio de titulares generados"
     : "promedio de manzanas en distritos confirmados";
-  const sampleListRows = sampleListTab === "reemplazos" ? replacementBlocks : (sample?.blocks ?? []);
-  const sampleListTotalLabel = sampleListTab === "reemplazos"
-    ? `${formatNumber(sampleListRows.length)} reemplazo(s)`
-    : `${formatNumber(sampleListRows.length)} titular(es)`;
+  const sampleListRows = sample?.blocks ?? [];
+  const sampleListTotalLabel = `${formatNumber(sampleListRows.length)} titular(es)`;
   const stageSteps: StepMeta<HojasRutaStage>[] = [
     {
       key: "territorio",
@@ -7955,68 +7989,64 @@ export default function HojasRutaPage() {
                       <MiniMetric label="Carga media" value={selectedBlockAvgLoad} />
                       <MiniMetric label="Reemplazos" value={formatNumber(sample.n_replacement_blocks ?? 0)} />
                     </div>
-                    <div className="hojas-ruta-sample-tabs" role="tablist" aria-label="Lista de manzanas seleccionadas">
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={sampleListTab === "titulares"}
-                        className={sampleListTab === "titulares" ? "is-active" : ""}
-                        onClick={() => setSampleListTab("titulares")}
-                      >
-                        Titulares <span>{formatNumber(selectedBlocks.length)}</span>
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={sampleListTab === "reemplazos"}
-                        className={sampleListTab === "reemplazos" ? "is-active" : ""}
-                        onClick={() => setSampleListTab("reemplazos")}
-                      >
-                        Reemplazos <span>{formatNumber(replacementBlocks.length)}</span>
-                      </button>
-                    </div>
                     {sampleListRows.length ? (
                       <div className="hojas-ruta-sample-table-shell">
+                        <div className="hojas-ruta-sample-tabs" role="tablist" aria-label="Tipo de manzanas seleccionadas">
+                          <button
+                            type="button"
+                            className={sampleListTab === "titulares" ? "is-active" : ""}
+                            onClick={() => setSampleListTab("titulares")}
+                          >
+                            Titulares <span>{formatNumber(selectedBlocks.length)}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={sampleListTab === "reemplazos" ? "is-active" : ""}
+                            onClick={() => setSampleListTab("reemplazos")}
+                          >
+                            Reemplazos <span>{formatNumber(replacementBlocks.length)}</span>
+                          </button>
+                        </div>
                         <div className="hojas-ruta-section-title">
                           <strong>{sampleListTotalLabel}</strong>
-                          <span>Todas las manzanas de la corrida, incluyendo todos los distritos seleccionados.</span>
+                          <span>{sampleListTab === "titulares" ? "Manzanas titulares seleccionadas para campo." : "Manzanas de reemplazo asociadas al sorteo."}</span>
                         </div>
                         <div className="hojas-ruta-review-table-wrap is-sample-list">
                           <table className="hojas-ruta-review-table">
                             <thead>
                               <tr>
-                                {(sampleListTab === "reemplazos"
-                                  ? ["Distrito", "ID manzana", "Zona titular -> reemplazo", "Reemplaza a", "Rango", "Viviendas", "Método"]
-                                  : ["Distrito", "ID manzana", "Zona", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
+                                {(sampleListTab === "titulares"
+                                  ? ["Distrito", "ID manzana", "Zona", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
+                                  : ["Distrito", "ID reemplazo", "Reemplaza", "Zona", "Rango", "Viviendas", "Método"]
                                 ).map((h) => (
                                   <th key={h}>{h}</th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody>
-                              {sampleListRows.map((b) => (
-                                sampleListTab === "reemplazos" ? (
-                                  <tr key={`sample-replacement:${b.id_manzana}`}>
-                                    <td className="is-strong">{b.distrito}</td>
-                                    <td className="is-code">{b.id_manzana}</td>
-                                    <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
-                                    <td className="is-code">{b.titular_id_manzana ?? "-"}</td>
-                                    <td className="is-code">{replacementRangeLabel(b)}</td>
-                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                    <td>{methodLabel(b.metodo)}</td>
-                                  </tr>
-                                ) : (
-                                  <tr key={`sample-titular:${b.id_manzana}`}>
-                                    <td className="is-strong">{b.distrito}</td>
-                                    <td className="is-code">{b.id_manzana}</td>
-                                    <td className="is-code">{b.zona}</td>
-                                    <td className="is-number">{formatNumber(b.hoja_num ?? b.orden_seleccion ?? 0)}</td>
-                                    <td className="is-code">{routeRangeLabel(b)}</td>
-                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                    <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
-                                    <td>{methodLabel(b.metodo)}</td>
-                                  </tr>
-                                )
+                              {(sampleListTab === "titulares" ? selectedBlocks : replacementBlocks).map((b) => (
+                                <tr key={`${sampleListTab}:${b.id_manzana}`}>
+                                  <td className="is-strong">{b.distrito}</td>
+                                  <td className="is-code">{b.id_manzana}</td>
+                                  {sampleListTab === "titulares" ? (
+                                    <>
+                                      <td className="is-code">{b.zona}</td>
+                                      <td className="is-number">{formatNumber(b.hoja_num ?? b.orden_seleccion ?? 0)}</td>
+                                      <td className="is-code">{routeRangeLabel(b)}</td>
+                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                      <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
+                                      <td>{methodLabel(b.metodo)}</td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td className="is-code">{b.titular_id_manzana ?? "S/D"}</td>
+                                      <td className="is-code">{b.zona}</td>
+                                      <td className="is-code">{replacementRangeLabel(b)}</td>
+                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                      <td>{methodLabel(b.metodo)}</td>
+                                    </>
+                                  )}
+                                </tr>
                               ))}
                             </tbody>
                           </table>
@@ -8024,9 +8054,7 @@ export default function HojasRutaPage() {
                       </div>
                     ) : (
                       <div className="hojas-ruta-block-list-empty">
-                        {sampleListTab === "reemplazos"
-                          ? "Esta corrida no tiene manzanas de reemplazo."
-                          : "No hay manzanas titulares en esta corrida."}
+                        No hay manzanas titulares en esta corrida.
                       </div>
                     )}
                     <div className="hojas-ruta-action-row hojas-ruta-sample-next">
@@ -8271,15 +8299,26 @@ export default function HojasRutaPage() {
                       <ReadinessItem ok={!!quota?.ok} label="Cuotas" value={quota?.ok ? "listas" : "pendiente"} />
                       <ReadinessItem ok={!!sample?.ok} label="Manzanas" value={sample?.ok ? "listas" : "pendiente"} />
                     </div>
-                    <button
-                      type="button"
-                      style={{ ...btnPrimary, width: "100%", justifyContent: "center" }}
-                      onClick={() => void generate()}
-                      disabled={!canGenerate || busy !== ""}
-                    >
-                      {busy === "generate" ? <Loader2 size={14} className="pulso-spin" /> : <Play size={14} />}
-                      Generar ZIP
-                    </button>
+                    <div className="hojas-ruta-delivery-actions">
+                      <button
+                        type="button"
+                        style={{ ...btnPrimary, width: "100%", justifyContent: "center" }}
+                        onClick={() => void generate()}
+                        disabled={!canGenerate || busy !== ""}
+                      >
+                        {busy === "generate" ? <Loader2 size={14} className="pulso-spin" /> : <Play size={14} />}
+                        Generar ZIP
+                      </button>
+                      <button
+                        type="button"
+                        style={{ ...btnSecondary, width: "100%", justifyContent: "center" }}
+                        onClick={() => void generateRouteWorkbook()}
+                        disabled={!canGenerate || busy !== ""}
+                      >
+                        {busy === "route-workbook" ? <Loader2 size={14} className="pulso-spin" /> : <FileSpreadsheet size={14} />}
+                        Crear Excel de hojas de ruta
+                      </button>
+                    </div>
                     <div className="hojas-ruta-output-list">
                       <div>
                         <FileText size={17} />
@@ -8295,7 +8334,7 @@ export default function HojasRutaPage() {
                       </div>
                       <div>
                         <FileSpreadsheet size={17} />
-                        <span>Resumen Excel del proceso</span>
+                        <span>Excel operativo de hojas de ruta</span>
                       </div>
                       <div>
                         <Layers size={17} />
@@ -8468,17 +8507,30 @@ export default function HojasRutaPage() {
                 </aside>
               </div>
 
-              {result && (
-                <Panel title="Entregables generados" eyebrow="ZIP operativo + informe tecnico">
+              {(result || routeWorkbook) && (
+                <Panel title="Entregables generados" eyebrow="Descargas recientes">
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <StatusPill ok text={`${formatNumber(result.n_pdfs)} PDFs`} />
-                    {result.n_zone_pdfs ? <StatusPill ok text={`${formatNumber(result.n_zone_pdfs)} hojas de zona`} /> : null}
-                    {result.n_replacement_blocks ? <StatusPill ok text={`${formatNumber(result.n_replacement_blocks)} reemplazos`} /> : null}
-                    <StatusPill ok text={`${formatNumber(result.total_entrevistas)} entrevistas`} />
-                    <StatusPill ok text={result.frame_version} />
-                    <a href={downloadUrl(result.file_id)} style={{ ...btnPrimary, textDecoration: "none" }}>
-                      <Download size={14} /> Descargar ZIP
-                    </a>
+                    {routeWorkbook ? (
+                      <>
+                        <StatusPill ok text={`${formatNumber(routeWorkbook.n_blocks)} titulares`} />
+                        {routeWorkbook.n_replacement_blocks ? <StatusPill ok text={`${formatNumber(routeWorkbook.n_replacement_blocks)} reemplazos`} /> : null}
+                        <a href={downloadUrl(routeWorkbook.file_id)} style={{ ...btnSecondary, textDecoration: "none" }}>
+                          <FileSpreadsheet size={14} /> Descargar Excel
+                        </a>
+                      </>
+                    ) : null}
+                    {result ? (
+                      <>
+                        <StatusPill ok text={`${formatNumber(result.n_pdfs)} PDFs`} />
+                        {result.n_zone_pdfs ? <StatusPill ok text={`${formatNumber(result.n_zone_pdfs)} hojas de zona`} /> : null}
+                        {result.n_replacement_blocks ? <StatusPill ok text={`${formatNumber(result.n_replacement_blocks)} reemplazos`} /> : null}
+                        <StatusPill ok text={`${formatNumber(result.total_entrevistas)} entrevistas`} />
+                        <StatusPill ok text={result.frame_version} />
+                        <a href={downloadUrl(result.file_id)} style={{ ...btnPrimary, textDecoration: "none" }}>
+                          <Download size={14} /> Descargar ZIP
+                        </a>
+                      </>
+                    ) : null}
                   </div>
                 </Panel>
               )}

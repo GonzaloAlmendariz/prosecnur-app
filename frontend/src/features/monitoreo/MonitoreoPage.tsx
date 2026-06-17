@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, Dispatch, FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from "react";
 import { Link } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
@@ -18,9 +18,12 @@ import {
   ChevronDown,
   ClipboardCheck,
   ContactRound,
+  Copy,
   Clock,
+  ArrowRight,
   Download,
   Eye,
+  ExternalLink,
   FileCheck2,
   Globe2,
   Layers3,
@@ -41,25 +44,45 @@ import {
   Search,
   ShieldAlert,
   SlidersHorizontal,
+  Table2,
   Target,
   Trash2,
+  UploadCloud,
   XCircle,
 } from "lucide-react";
 import {
   apiPath,
+  apiJobStatus,
   apiMonitoreoAcreditacionSeguimiento,
+  apiMonitoreoAcreditacionCaseReconciliation,
   apiMonitoreoClientReportPdf,
   apiMonitoreoConfig,
   apiMonitoreoCierre,
   apiMonitoreoCollectorsConfig,
   apiMonitoreoKoboAssets,
   apiMonitoreoTerritorialConfig,
+  apiMonitoreoTerritorialEnumeratorCodeReconciliation,
+  apiMonitoreoTerritorialEnumeratorsCodes,
+  apiMonitoreoTerritorialEnumeratorsTemplate,
+  apiMonitoreoTerritorialEnumeratorsUpload,
+  apiMonitoreoTerritorialMap,
+  apiMonitoreoTerritorialMapPrepare,
+  apiMonitoreoTerritorialPrewarm,
+  apiMonitoreoTerritorialPhase,
+  apiMonitoreoTerritorialReconciliationBatch,
+  apiMonitoreoTerritorialSource,
+  apiMonitoreoTerritorialUmpReconciliation,
   apiMonitoreoTerritorialInspectKobo,
+  apiMonitoreoTerritorialOccurrencesConfig,
+  apiMonitoreoTerritorialOccurrencesInspect,
+  apiMonitoreoTerritorialOccurrencesSync,
+  apiMonitoreoTerritorialOccurrencesXlsform,
   apiMonitoreoSheetsInspect,
   apiMonitoreoSheetsPublish,
   apiMonitoreoSheetsSource,
   apiMonitoreoSheetsStatus,
   apiMonitoreoSheetsSync,
+  apiMonitoreoPublish,
   apiMonitoreoSource,
   apiMonitoreoSources,
   apiMonitoreoState,
@@ -85,8 +108,10 @@ import {
   MonitoreoCollectorUse,
   MonitoreoDashboard,
   MonitoreoGoal,
+  MonitoreoAssistedReviewCandidate,
   MonitoreoKoboAssetItem,
   MonitoreoLinkCollector,
+  MonitoreoLastDeploy,
   MonitoreoOperationalCases,
   MonitoreoOperationalEvent,
   MonitoreoOperationalModel,
@@ -109,7 +134,28 @@ import {
   MonitoreoSyncResult,
   MonitoreoSurveyMonkeyCollector,
   MonitoreoTerritorialDashboard,
+  MonitoreoTerritorialCodeReconciliation,
+  MonitoreoTerritorialUmpReconciliation,
+  MonitoreoTerritorialEnumeratorReconciliationResponse,
+  TerritorialInternalReviewCase,
+  MonitoreoTerritorialMapCacheMeta,
+  MonitoreoTerritorialMapPhaseCacheMeta,
+  MonitoreoTerritorialReportCacheMeta,
+  MonitoreoTerritorialPhase,
+  MonitoreoTerritorialPhaseCoherence,
+  MonitoreoTerritorialPhaseCoherenceItem,
+  MonitoreoTerritorialPrewarmScopeResult,
+  MonitoreoTerritorialPrewarmResult,
+  MonitoreoTerritorialPhaseMapping,
+  MonitoreoTerritorialReconciliationBatchChange,
+  MonitoreoTerritorialVariableRef,
   MonitoreoTerritorialUpdateHistoryEntry,
+  MonitoreoFieldOccurrenceDashboard,
+  MonitoreoFieldOccurrenceFieldCheck,
+  MonitoreoFieldOccurrenceInspectResult,
+  MonitoreoFieldOccurrenceConfig,
+  MonitoreoFieldOccurrenceRecord,
+  MonitoreoFieldOccurrenceUmpSummary,
   MonitoreoVariable,
   HojasRutaBlockMap,
   HojasRutaBlockMapFeature,
@@ -130,6 +176,31 @@ import {
   SurveyMonkeyMultibaseListItem,
 } from "../../api/client";
 import { PlotlyChart } from "../../lib/PlotlyChart";
+import {
+  buildOccurrenceDistrictSummary,
+  buildOccurrenceRouteUmpRows,
+  type OccurrenceDistrictSummary,
+  type OccurrenceOutcomeSummary as OccurrenceOutcomeItem,
+  type OccurrenceRouteUmpRow,
+  type OccurrenceUmpAttentionReason,
+  type OccurrenceUmpAttentionStatus,
+} from "./fieldOccurrences";
+import {
+  buildTerritorialRouteCoverageModel,
+  filterTerritorialRouteBlocks,
+  normalizeRouteBlockCode,
+  type TerritorialRouteBucket,
+  type TerritorialRouteCoverageModel,
+  type TerritorialRouteDistrictCoverage,
+} from "./routeCoverageModel";
+import {
+  buildTerritorialExecutiveSummary,
+  type TerritorialExecutiveDistribution,
+  type TerritorialExecutivePriorityGroup,
+  type TerritorialExecutivePriorityItem,
+  type TerritorialExecutiveSummaryModel,
+  type TerritorialExecutiveUmpStack,
+} from "./territorialSummaryModel";
 import {
   IconConfigureLayers,
   IconGpsReview,
@@ -152,6 +223,7 @@ import { EmptyState, LoadingBlock } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
 import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
+import type { HfSavedToken } from "../project/types";
 import districtCoverage from "../hojasRuta/limaDistrictCoverage.json";
 import {
   EMPTY_INTERNAL_QUERY_FILTERS,
@@ -202,6 +274,16 @@ const EMPTY_ACREDITACION: MonitoreoAcreditacion = {
     bloqueos: 0,
   },
 };
+
+function slugifySpaceName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+}
 
 const EMPTY_OPERATIONAL_MODEL: MonitoreoOperationalModel = {
   schema_version: "monitoreo_operativo_v1",
@@ -379,6 +461,7 @@ const EMPTY_PROFILE: MonitoreoProfile = {
   reconciliation_decisions: {
     include_response_ids: [],
     exclude_response_ids: [],
+    manual_case_reconciliations: {},
   },
 };
 
@@ -390,14 +473,77 @@ const EMPTY_TERRITORIAL_CONFIG: MonitoreoConfig["territorial"] = {
   kobo_asset_name: "",
   source_id: "",
   inspected_at: "",
+  phase_sources: {
+    pilot: { asset_uid: "", kobo_version_id: "", kobo_asset_name: "", source_id: "", inspected_at: "", base_url: "", connection_profile_id: "" },
+    field: { asset_uid: "", kobo_version_id: "", kobo_asset_name: "", source_id: "", inspected_at: "", base_url: "", connection_profile_id: "" },
+  },
+  phase_windows: {
+    pilot: { start_at: "" },
+    field: { start_at: "" },
+  },
+  phase_mappings: {
+    pilot: {
+      district_var: "Core/M5_district",
+      ump_var: "Core/M8_ump",
+      pulso_code_var: "codigo_pulso",
+      gps_var: "_geolocation",
+      consent_var: "consent",
+      age_var: "Core/E1_age",
+      sex_var: "",
+      status_var: "_status",
+      territorial_status_var: "",
+      coherence_status_var: "",
+      id_var: "_uuid",
+      submitted_by_var: "_submitted_by",
+      supervisor_var: "",
+      kobo_user_var: "_submitted_by",
+      submission_time_var: "_submission_time",
+      start_var: "start",
+      end_var: "end",
+      duration_var: "",
+      platform_effective_var: "",
+      platform_effective_values: [],
+      valid_statuses: ["submitted_via_web", "submitted_via_kobocollect", "submitted_via_enketo", "submitted"],
+    },
+    field: {
+      district_var: "Core/M5_district",
+      ump_var: "Core/M8_ump",
+      pulso_code_var: "codigo_pulso",
+      gps_var: "_geolocation",
+      consent_var: "consent",
+      age_var: "Core/E1_age",
+      sex_var: "",
+      status_var: "_status",
+      territorial_status_var: "",
+      coherence_status_var: "",
+      id_var: "_uuid",
+      submitted_by_var: "_submitted_by",
+      supervisor_var: "",
+      kobo_user_var: "_submitted_by",
+      submission_time_var: "_submission_time",
+      start_var: "start",
+      end_var: "end",
+      duration_var: "",
+      platform_effective_var: "",
+      platform_effective_values: [],
+      valid_statuses: ["submitted_via_web", "submitted_via_kobocollect", "submitted_via_enketo", "submitted"],
+    },
+  },
   snapshot_hash: "",
   district_var: "Core/M5_district",
+  ump_var: "Core/M8_ump",
+  pulso_code_var: "codigo_pulso",
   gps_var: "_geolocation",
   consent_var: "consent",
   age_var: "Core/E1_age",
+  sex_var: "",
   status_var: "_status",
+  territorial_status_var: "",
+  coherence_status_var: "",
   id_var: "_uuid",
   submitted_by_var: "_submitted_by",
+  supervisor_var: "",
+  kobo_user_var: "_submitted_by",
   submission_time_var: "_submission_time",
   start_var: "start",
   end_var: "end",
@@ -418,6 +564,8 @@ const EMPTY_TERRITORIAL_CONFIG: MonitoreoConfig["territorial"] = {
   max_duration_seconds: 7200,
   high_age_review: 95,
   count_review_in_official_progress: false,
+  enumerator_code_reconciliation: { pilot: [], field: [] },
+  ump_reconciliation: { pilot: [], field: [] },
   validation_decisions: {
     approved_response_ids: [],
     approval_reasons: {},
@@ -495,7 +643,26 @@ const DEFAULT_SOURCE: SourceDraft = {
   },
 };
 
-type WorkbenchView = "avance" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
+type WorkbenchView = "avance" | "ocurrencias" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
+type TerritorialReportScope = "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full";
+type TerritorialBootStatus = "idle" | "loading" | "ready" | "partial" | "error";
+type TerritorialBootStepStatus = "pending" | "loading" | "ready" | "stale" | "error";
+type TerritorialBootStepKey = "fuente" | "hojasRuta" | "validacion" | "consultas" | "avance";
+type TerritorialBootStepState = {
+  status: TerritorialBootStepStatus;
+  label: string;
+  detail: string;
+  error?: string;
+};
+type TerritorialBootSteps = Record<TerritorialBootStepKey, TerritorialBootStepState>;
+type TerritorialBootState = {
+  status: TerritorialBootStatus;
+  key: string;
+  phase: MonitoreoTerritorialPhase | "";
+  startedAt?: number;
+  completedAt?: number;
+  steps: TerritorialBootSteps;
+};
 type OperationalModelMode = "estructura" | "enlaces" | "casos" | "estrategias" | "reglas";
 type QualityMode = "conciliacion" | "reglas" | "equipo";
 type InternalQueryMode = InternalQueryEvidenceMode;
@@ -503,6 +670,14 @@ type ExplorerOpenIntent = {
   id: number;
   filters: Partial<InternalQueryFilters>;
   label?: string;
+  selectedCaseId?: string;
+};
+type SourceSyncRateLimitNotice = {
+  provider: "surveymonkey";
+  title: string;
+  detail: string;
+  sources: string[];
+  messages: string[];
 };
 type MonitoreoRouteFamily = MonitoreoProfile["family"];
 type MonitoringSemanticTone = "effective" | "partial" | "refusal" | "noneffective" | "pending" | "assignment" | "base" | "ready" | "warning";
@@ -654,17 +829,73 @@ const WORKBENCH_VIEWS: Array<{
   { key: "fuentes", label: "Fuentes", desc: "Elegir encuestas y bases", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", desc: "Metas, mecanismos y barrido", icon: ListChecks },
   { key: "consultas", label: "Explorador", desc: "Universo, casos y trazabilidad", icon: Search },
-  { key: "calidad", label: "Calidad", desc: "Supervisión y consistencia", icon: ShieldAlert },
   { key: "telefonico", label: "Monitoreo telefónico", desc: "Modelo, barrido y supervisión", icon: PhoneCall },
   { key: "avance", label: "Avance", desc: "Cumplimiento y brechas", icon: BarChart3 },
 ];
 
 const TERRITORIAL_WORKBENCH_VIEWS: typeof WORKBENCH_VIEWS = [
   { key: "fuentes", label: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
-  { key: "modelo", label: "Hojas de ruta", desc: "Fase, metas y manzanas", icon: Route },
-  { key: "consultas", label: "Consultas internas", desc: "Brechas, GPS y atrasos", icon: Search },
-  { key: "calidad", label: "Validación", desc: "Resumen, GPS y duración", icon: ShieldAlert },
+  { key: "modelo", label: "Manzanas seleccionadas", desc: "Titulares, reemplazos y mapa", icon: Route },
+  { key: "calidad", label: "Validación", desc: "Resumen, GPS, duración y cuotas", icon: ShieldAlert },
+  { key: "consultas", label: "Consultas internas", desc: "Registros por validar", icon: Search },
   { key: "avance", label: "Avance territorial", desc: "Distrito, manzana y ritmo", icon: BarChart3 },
+  { key: "ocurrencias", label: "Ocurrencias de campo", desc: "Estados y UMP", icon: ClipboardCheck },
+];
+
+const TERRITORIAL_BOOT_STEP_DEFS: Array<{
+  key: TerritorialBootStepKey;
+  view: WorkbenchView;
+  scope: TerritorialReportScope;
+  label: string;
+  loadingDetail: string;
+  readyDetail: string;
+  icon: typeof BarChart3;
+}> = [
+  {
+    key: "fuente",
+    view: "fuentes",
+    scope: "source",
+    label: "Fuente",
+    loadingDetail: "Leyendo proyecto",
+    readyDetail: "Fuente local lista",
+    icon: PlugZap,
+  },
+  {
+    key: "hojasRuta",
+    view: "modelo",
+    scope: "route_summary",
+    label: "Manzanas seleccionadas",
+    loadingDetail: "Preparando manzanas seleccionadas",
+    readyDetail: "Manzanas listas",
+    icon: Route,
+  },
+  {
+    key: "validacion",
+    view: "calidad",
+    scope: "validation_summary",
+    label: "Validación",
+    loadingDetail: "Cargando validación",
+    readyDetail: "Validación lista",
+    icon: ShieldAlert,
+  },
+  {
+    key: "consultas",
+    view: "consultas",
+    scope: "queries_summary",
+    label: "Consultas internas",
+    loadingDetail: "Preparando consultas",
+    readyDetail: "Consultas listas",
+    icon: Search,
+  },
+  {
+    key: "avance",
+    view: "avance",
+    scope: "advance_summary",
+    label: "Avance territorial",
+    loadingDetail: "Cargando avance",
+    readyDetail: "Avance listo",
+    icon: BarChart3,
+  },
 ];
 
 function workbenchViewsForRoute(route: { family: MonitoreoRouteFamily }) {
@@ -983,6 +1214,12 @@ function numberOrFallback(value: unknown, fallback: number): number {
   return n == null ? fallback : n;
 }
 
+function boolish(value: unknown) {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return ["1", "true", "t", "yes", "si", "sí"].includes(normalized);
+}
+
 function arrayOrEmpty<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
@@ -1172,6 +1409,475 @@ function cleanSourceDimensions(dimensions: Partial<SourceDimensions> | Record<st
   return Object.fromEntries(entries);
 }
 
+function normalizeTerritorialPhase(value: unknown): MonitoreoTerritorialPhase {
+  return value === "field" ? "field" : "pilot";
+}
+
+function emptyTerritorialPhaseSource() {
+  return { asset_uid: "", kobo_version_id: "", kobo_asset_name: "", source_id: "", inspected_at: "", base_url: "", connection_profile_id: "" };
+}
+
+function normalizeTerritorialPhaseSource(value: unknown) {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  return {
+    asset_uid: stringOrEmpty(raw.asset_uid ?? raw.assetUid),
+    kobo_version_id: stringOrEmpty(raw.kobo_version_id ?? raw.koboVersionId ?? raw.version_id ?? raw.versionId),
+    kobo_asset_name: stringOrEmpty(raw.kobo_asset_name ?? raw.koboAssetName ?? raw.asset_name ?? raw.assetName),
+    source_id: stringOrEmpty(raw.source_id ?? raw.sourceId),
+    inspected_at: stringOrEmpty(raw.inspected_at ?? raw.inspectedAt),
+    base_url: stringOrEmpty(raw.base_url ?? raw.baseUrl),
+    connection_profile_id: stringOrEmpty(raw.connection_profile_id ?? raw.connectionProfileId ?? raw.profile_id ?? raw.profileId),
+  };
+}
+
+function emptyTerritorialPhaseWindow() {
+  return { start_at: "" };
+}
+
+function normalizeTerritorialPhaseWindow(value: unknown) {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  return {
+    start_at: stringOrEmpty(raw.start_at ?? raw.startAt ?? raw.started_at ?? raw.startedAt ?? raw.inicio_at ?? raw.inicioAt),
+  };
+}
+
+function emptyTerritorialPhaseMapping(): MonitoreoTerritorialPhaseMapping {
+  return {
+    district_var: "Core/M5_district",
+    ump_var: "Core/M8_ump",
+    pulso_code_var: "codigo_pulso",
+    gps_var: "_geolocation",
+    consent_var: "consent",
+    age_var: "Core/E1_age",
+    sex_var: "",
+    status_var: "_status",
+    territorial_status_var: "",
+    coherence_status_var: "",
+    id_var: "_uuid",
+    submitted_by_var: "_submitted_by",
+    supervisor_var: "",
+    kobo_user_var: "_submitted_by",
+    submission_time_var: "_submission_time",
+    start_var: "start",
+    end_var: "end",
+    duration_var: "",
+    platform_effective_var: "",
+    platform_effective_values: [],
+    variable_refs: {},
+    valid_statuses: ["submitted_via_web", "submitted_via_kobocollect", "submitted_via_enketo", "submitted"],
+  };
+}
+
+function normalizeTerritorialVariableRef(value: unknown): MonitoreoTerritorialVariableRef | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as Record<string, unknown>;
+  const ref: MonitoreoTerritorialVariableRef = {
+    name: stringOrEmpty(raw.name),
+    original_name: stringOrEmpty(raw.original_name ?? raw.originalName),
+    normalized_name: stringOrEmpty(raw.normalized_name ?? raw.normalizedName),
+    path: stringOrEmpty(raw.path),
+    xpath: stringOrEmpty(raw.xpath),
+    label: stringOrEmpty(raw.label),
+    type: stringOrEmpty(raw.type),
+    group: stringOrEmpty(raw.group),
+  };
+  return Object.values(ref).some(Boolean) ? ref : undefined;
+}
+
+function normalizeTerritorialVariableRefs(value: unknown): NonNullable<MonitoreoTerritorialPhaseMapping["variable_refs"]> {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const refs: NonNullable<MonitoreoTerritorialPhaseMapping["variable_refs"]> = {};
+  const pairs = [
+    ["district", raw.district ?? raw.district_var ?? raw.distrito],
+    ["ump", raw.ump ?? raw.ump_var ?? raw.block ?? raw.manzana],
+    ["geo", raw.geo ?? raw.gps ?? raw.gps_var ?? raw.geolocation],
+    ["age", raw.age ?? raw.age_var ?? raw.edad],
+    ["sex", raw.sex ?? raw.sex_var ?? raw.sexo ?? raw.gender],
+    ["enumerator_pulso_code", raw.enumerator_pulso_code ?? raw.pulso_code ?? raw.pulso_code_var ?? raw.codigo_pulso],
+    ["valid_filter_question", raw.valid_filter_question ?? raw.platform_effective_var ?? raw.filter],
+  ] as const;
+  pairs.forEach(([key, item]) => {
+    const ref = normalizeTerritorialVariableRef(item);
+    if (ref) refs[key] = ref;
+  });
+  return refs;
+}
+
+function normalizeTerritorialPhaseMapping(value: unknown): MonitoreoTerritorialPhaseMapping {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const fallback = emptyTerritorialPhaseMapping();
+  const variableRefs = normalizeTerritorialVariableRefs(raw.variable_refs ?? raw.variableRefs ?? raw.variables);
+  return {
+    district_var: stringOrEmpty(raw.district_var ?? raw.distrito_var) || fallback.district_var,
+    ump_var: stringOrEmpty(raw.ump_var ?? raw.block_var ?? raw.manzana_var) || fallback.ump_var,
+    pulso_code_var: stringOrEmpty(
+      raw.pulso_code_var ??
+        raw.codigo_pulso_var ??
+        raw.codigoPulsoVar ??
+        raw.enumerator_pulso_code_var ??
+        raw.enumerator_pulso_code ??
+        raw.enumeratorPulsoCodeVar,
+    ) || fallback.pulso_code_var,
+    gps_var: stringOrEmpty(raw.gps_var ?? raw.geolocation_var) || fallback.gps_var,
+    consent_var: stringOrEmpty(raw.consent_var ?? raw.consentimiento_var) || fallback.consent_var,
+    age_var: stringOrEmpty(raw.age_var ?? raw.edad_var) || fallback.age_var,
+    sex_var: stringOrEmpty(raw.sex_var ?? raw.sexo_var ?? raw.gender_var ?? raw.genero_var),
+    status_var: stringOrEmpty(raw.status_var ?? raw.estado_var) || fallback.status_var,
+    territorial_status_var: stringOrEmpty(raw.territorial_status_var ?? raw.estado_cobertura_var),
+    coherence_status_var: stringOrEmpty(raw.coherence_status_var ?? raw.estado_coherencia_var),
+    id_var: stringOrEmpty(raw.id_var) || fallback.id_var,
+    submitted_by_var: stringOrEmpty(raw.submitted_by_var ?? raw.enumerator_var) || fallback.submitted_by_var,
+    supervisor_var: stringOrEmpty(raw.supervisor_var ?? raw.supervisorVar),
+    kobo_user_var: stringOrEmpty(raw.kobo_user_var ?? raw.koboUserVar ?? raw.submitted_by_var) || fallback.kobo_user_var,
+    submission_time_var: stringOrEmpty(raw.submission_time_var ?? raw.date_var) || fallback.submission_time_var,
+    start_var: stringOrEmpty(raw.start_var) || fallback.start_var,
+    end_var: stringOrEmpty(raw.end_var) || fallback.end_var,
+    duration_var: stringOrEmpty(raw.duration_var),
+    platform_effective_var: stringOrEmpty(raw.platform_effective_var ?? raw.effective_filter_var),
+    platform_effective_values: arrayOrEmpty<string>(raw.platform_effective_values ?? raw.effective_filter_values).slice(0, 1),
+    variable_refs: variableRefs,
+    valid_statuses: arrayOrEmpty<string>(raw.valid_statuses).length ? arrayOrEmpty<string>(raw.valid_statuses) : fallback.valid_statuses,
+  };
+}
+
+function normalizeTerritorialCodeReconciliation(value: unknown): Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialCodeReconciliation[]>> {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const normalizeEntry = (item: unknown): MonitoreoTerritorialCodeReconciliation | null => {
+    if (!item || typeof item !== "object") return null;
+    const entry = item as Record<string, unknown>;
+    const rawCode = stringOrEmpty(entry.raw_code ?? entry.rawCode ?? entry.raw ?? entry.code);
+    const normalizedCode = stringOrEmpty(entry.normalized_code ?? entry.normalizedCode ?? entry.normalized ?? entry.code);
+    const assignedCode = stringOrEmpty(entry.assigned_code ?? entry.assignedCode ?? entry.codigo_pulso ?? entry.codigoPulso);
+    if (!normalizedCode || !assignedCode) return null;
+    return {
+      response_id: stringOrEmpty(entry.response_id ?? entry.responseId ?? entry.id_respuesta),
+      response_id_field: stringOrEmpty(entry.response_id_field ?? entry.responseIdField ?? entry.id_respuesta_campo),
+      raw_code: rawCode,
+      normalized_code: normalizedCode,
+      assigned_code: assignedCode,
+      assigned_name: stringOrEmpty(entry.assigned_name ?? entry.assignedName ?? entry.nombre),
+      ump: stringOrEmpty(entry.ump ?? entry.manzana),
+      district: stringOrEmpty(entry.district ?? entry.distrito),
+      note: stringOrEmpty(entry.note ?? entry.nota),
+      created_at: stringOrEmpty(entry.created_at ?? entry.createdAt),
+      scope: stringOrEmpty(entry.scope),
+    };
+  };
+  return {
+    pilot: arrayOrEmpty<unknown>(raw.pilot).map(normalizeEntry).filter((item): item is MonitoreoTerritorialCodeReconciliation => Boolean(item)),
+    field: arrayOrEmpty<unknown>(raw.field).map(normalizeEntry).filter((item): item is MonitoreoTerritorialCodeReconciliation => Boolean(item)),
+  };
+}
+
+function normalizeTerritorialUmpReconciliation(value: unknown): Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialUmpReconciliation[]>> {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const normalizeEntry = (item: unknown): MonitoreoTerritorialUmpReconciliation | null => {
+    if (!item || typeof item !== "object") return null;
+    const entry = item as Record<string, unknown>;
+    const rawUmp = stringOrEmpty(entry.raw_ump ?? entry.rawUmp ?? entry.raw ?? entry.ump);
+    const assignedBlockId = stringOrEmpty(entry.assigned_block_id ?? entry.assignedBlockId ?? entry.id_manzana ?? entry.block_id);
+    const assignedUmp = stringOrEmpty(entry.assigned_ump ?? entry.assignedUmp ?? entry.route_ump ?? entry.ump_asignada);
+    if (!rawUmp || !assignedBlockId || !assignedUmp) return null;
+    return {
+      response_id: stringOrEmpty(entry.response_id ?? entry.responseId ?? entry.id_respuesta),
+      response_id_field: stringOrEmpty(entry.response_id_field ?? entry.responseIdField ?? entry.id_respuesta_campo),
+      raw_ump: rawUmp,
+      assigned_block_id: assignedBlockId,
+      assigned_ump: assignedUmp,
+      assigned_district: stringOrEmpty(entry.assigned_district ?? entry.assignedDistrict ?? entry.distrito),
+      assigned_ubigeo: stringOrEmpty(entry.assigned_ubigeo ?? entry.assignedUbigeo ?? entry.ubigeo),
+      note: stringOrEmpty(entry.note ?? entry.nota),
+      created_at: stringOrEmpty(entry.created_at ?? entry.createdAt),
+      scope: stringOrEmpty(entry.scope),
+    };
+  };
+  return {
+    pilot: arrayOrEmpty<unknown>(raw.pilot).map(normalizeEntry).filter((item): item is MonitoreoTerritorialUmpReconciliation => Boolean(item)),
+    field: arrayOrEmpty<unknown>(raw.field).map(normalizeEntry).filter((item): item is MonitoreoTerritorialUmpReconciliation => Boolean(item)),
+  };
+}
+
+function territorialMappingForPhase(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
+  const mappings = config.territorial.phase_mappings ?? EMPTY_TERRITORIAL_CONFIG.phase_mappings;
+  return normalizeTerritorialPhaseMapping(mappings?.[phase] ?? config.territorial);
+}
+
+function territorialPhaseWindowForPhase(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
+  const windows = config.territorial.phase_windows ?? EMPTY_TERRITORIAL_CONFIG.phase_windows;
+  return normalizeTerritorialPhaseWindow(windows?.[phase]);
+}
+
+function territorialLocalDateTimeParts(value: string) {
+  const raw = stringOrEmpty(value);
+  if (!raw) return { date: "", time: "" };
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return { date: "", time: "" };
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`,
+    time: `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`,
+  };
+}
+
+function territorialIsoFromLocalDateTime(dateValue: string, timeValue: string) {
+  const date = stringOrEmpty(dateValue).trim();
+  if (!date) return "";
+  const time = stringOrEmpty(timeValue).trim() || "00:00";
+  const parsed = new Date(`${date}T${time.length === 5 ? `${time}:00` : time}`);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString();
+}
+
+function formatTerritorialPhaseStart(value: string) {
+  const raw = stringOrEmpty(value);
+  if (!raw) return "Sin inicio definido";
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return "Sin inicio definido";
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+function territorialSourcePhase(source: MonitoreoSource | null | undefined): MonitoreoTerritorialPhase | "" {
+  const phase = String(
+    source?.dimensions?.territorial_phase ??
+    source?.dimensions?.route_phase ??
+    source?.dimensions?.phase ??
+    "",
+  ).trim();
+  return phase === "field" || phase === "pilot" ? phase : "";
+}
+
+function territorialPhaseSource(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
+  const phaseSources = config.territorial.phase_sources ?? EMPTY_TERRITORIAL_CONFIG.phase_sources;
+  const item = phaseSources?.[phase];
+  return normalizeTerritorialPhaseSource(item);
+}
+
+function territorialKoboSourceForPhase(
+  sources: MonitoreoSource[],
+  config: MonitoreoConfig,
+  phase: MonitoreoTerritorialPhase = normalizeTerritorialPhase(config.territorial.active_route_phase),
+) {
+  const phaseConfig = territorialPhaseSource(config, phase);
+  const primary = sources.filter((src) => src.kind === "kobo" && src.role !== "ocurrencias_campo");
+  if (phaseConfig.source_id) {
+    const hit = primary.find((src) => src.id === phaseConfig.source_id);
+    if (hit) return hit;
+  }
+  if (phaseConfig.asset_uid) {
+    const hit = primary.find((src) => src.asset_uid === phaseConfig.asset_uid);
+    if (hit) return hit;
+  }
+  const byDimension = primary.find((src) => territorialSourcePhase(src) === phase && src.enabled) ??
+    primary.find((src) => territorialSourcePhase(src) === phase);
+  if (byDimension) return byDimension;
+  return null;
+}
+
+function territorialPhaseSourceHasIdentity(source: ReturnType<typeof normalizeTerritorialPhaseSource>) {
+  return Boolean(source.source_id || source.asset_uid);
+}
+
+function territorialPhaseSourcesSameIdentity(
+  a: ReturnType<typeof normalizeTerritorialPhaseSource>,
+  b: ReturnType<typeof normalizeTerritorialPhaseSource>,
+) {
+  if (a.source_id && b.source_id) return a.source_id === b.source_id;
+  if (a.asset_uid && b.asset_uid) return a.asset_uid === b.asset_uid;
+  return !territorialPhaseSourceHasIdentity(a) && !territorialPhaseSourceHasIdentity(b);
+}
+
+function mergeTerritorialPhaseSourcesForUi(
+  incoming: MonitoreoConfig,
+  current: MonitoreoConfig,
+  acceptIncoming = false,
+) {
+  if (acceptIncoming) return incoming.territorial.phase_sources ?? EMPTY_TERRITORIAL_CONFIG.phase_sources;
+  const incomingSources = incoming.territorial.phase_sources ?? EMPTY_TERRITORIAL_CONFIG.phase_sources;
+  const currentSources = current.territorial.phase_sources ?? EMPTY_TERRITORIAL_CONFIG.phase_sources;
+  return (["pilot", "field"] as MonitoreoTerritorialPhase[]).reduce((acc, phase) => {
+    const incomingSource = normalizeTerritorialPhaseSource(incomingSources?.[phase]);
+    const currentSource = normalizeTerritorialPhaseSource(currentSources?.[phase]);
+    if (!territorialPhaseSourceHasIdentity(currentSource)) {
+      acc[phase] = incomingSource;
+    } else if (!territorialPhaseSourceHasIdentity(incomingSource)) {
+      acc[phase] = currentSource;
+    } else if (territorialPhaseSourcesSameIdentity(incomingSource, currentSource)) {
+      acc[phase] = { ...currentSource, ...incomingSource };
+    } else {
+      acc[phase] = currentSource;
+    }
+    return acc;
+  }, {} as Record<MonitoreoTerritorialPhase, ReturnType<typeof normalizeTerritorialPhaseSource>>);
+}
+
+function territorialVisiblePhaseSource(
+  sources: MonitoreoSource[],
+  config: MonitoreoConfig,
+  phase: MonitoreoTerritorialPhase,
+  health?: MonitoreoTerritorialPhaseCoherenceItem | null,
+) {
+  const phaseSource = territorialPhaseSource(config, phase);
+  const source = territorialKoboSourceForPhase(sources, config, phase);
+  const label = territorialPhaseLabel(phase);
+  const assetUid = phaseSource.asset_uid || health?.asset_uid || source?.asset_uid || "";
+  const version = phaseSource.kobo_version_id || health?.version_id || "";
+  const sourceId = phaseSource.source_id || health?.source_id || source?.id || "";
+  const name = phaseSource.kobo_asset_name || health?.asset_name || source?.label || (assetUid ? `Formulario Kobo ${label}` : `${label} sin fuente definida`);
+  return {
+    phase,
+    label,
+    phaseSource,
+    source,
+    sourceId,
+    assetUid,
+    version,
+    name,
+  };
+}
+
+function dashboardMatchesVisiblePhaseSource(
+  reports: MonitoreoTerritorialDashboard | null,
+  phase: MonitoreoTerritorialPhase,
+  visible: ReturnType<typeof territorialVisiblePhaseSource>,
+) {
+  if (!reports || reports.active_route_phase !== phase) return false;
+  const dashboardAssetUid = stringOrEmpty(reports.source_coherence?.asset_uid);
+  if (visible.assetUid && dashboardAssetUid && visible.assetUid !== dashboardAssetUid) return false;
+  return true;
+}
+
+function territorialReportsCoverView(
+  reports: MonitoreoTerritorialDashboard | null,
+  phase: MonitoreoTerritorialPhase,
+  visible: ReturnType<typeof territorialVisiblePhaseSource>,
+  view: WorkbenchView,
+) {
+  if (!dashboardMatchesVisiblePhaseSource(reports, phase, visible)) return false;
+  const scope = reports?.report_scope || "full";
+  if (view === "fuentes") return (scope === "source" || scope === "full") && Boolean(reports?.ump_declared_summary);
+  if (view === "avance") return scope === "advance_summary" || scope === "validation_summary" || scope === "full";
+  if (view === "modelo") {
+    const hasRouteRows = Boolean(
+      reports?.route_blocks?.length
+      || reports?.map?.blocks?.length
+      || reports?.block_progress?.length,
+    );
+    return scope === "full" && hasRouteRows;
+  }
+  if (view === "consultas") return scope === "queries_summary" || scope === "full";
+  if (view === "ocurrencias") return scope === "queries_summary" || scope === "full";
+  if (view === "calidad") return scope === "validation_summary" || scope === "full";
+  return true;
+}
+
+function territorialPhaseCoherenceItem(
+  coherence: MonitoreoTerritorialPhaseCoherence | null | undefined,
+  phase: MonitoreoTerritorialPhase,
+): MonitoreoTerritorialPhaseCoherenceItem | null {
+  return coherence?.phases?.[phase] ?? null;
+}
+
+function territorialPhaseLabel(phase: MonitoreoTerritorialPhase) {
+  return phase === "field" ? "Campo" : "Piloto";
+}
+
+function territorialMapCacheForPhase(
+  cache: MonitoreoTerritorialMapCacheMeta | MonitoreoTerritorialMapPhaseCacheMeta | null | undefined,
+  phase: MonitoreoTerritorialPhase,
+): MonitoreoTerritorialMapPhaseCacheMeta | null {
+  if (!cache) return null;
+  const maybeMeta = cache as MonitoreoTerritorialMapCacheMeta;
+  if (maybeMeta.phases || maybeMeta.active) {
+    return maybeMeta.phases?.[phase] ?? maybeMeta.active ?? null;
+  }
+  const phaseCache = cache as MonitoreoTerritorialMapPhaseCacheMeta;
+  return phaseCache.phase ? phaseCache : null;
+}
+
+function territorialMapCacheFromReports(
+  reports: MonitoreoTerritorialDashboard | null | undefined,
+): MonitoreoTerritorialMapPhaseCacheMeta | null {
+  if (!reports) return null;
+  const phase = normalizeTerritorialPhase(reports.active_route_phase);
+  return reports.map.cache ?? territorialMapCacheForPhase(reports.map_cache, phase);
+}
+
+function territorialMapCacheLabel(cache: MonitoreoTerritorialMapPhaseCacheMeta | null | undefined, needsGps = true) {
+  const routeStatus = cache?.route_geometry?.status ?? "missing";
+  const gpsStatus = cache?.gps_points?.status ?? "missing";
+  if (routeStatus === "valid" && (!needsGps || gpsStatus === "valid")) return "Mapa del proyecto";
+  if (routeStatus === "stale" || (needsGps && gpsStatus === "stale")) return "Caché obsoleta";
+  if (routeStatus === "missing" || (needsGps && gpsStatus === "missing")) return "Preparando mapa";
+  return "Mapa del proyecto";
+}
+
+function territorialPhaseSyncButtonLabel(phase: MonitoreoTerritorialPhase) {
+  return `Actualizar ${territorialPhaseLabel(phase)}`;
+}
+
+function territorialPhaseStatusLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null, phase: MonitoreoTerritorialPhase) {
+  const label = territorialPhaseLabel(phase);
+  if (!item) return `${label} seleccionado.`;
+  if (item.message) return item.message;
+  switch (item.status) {
+    case "source_not_applied":
+      return `${label} no tiene formulario aplicado.`;
+    case "source_applied_not_synced":
+      return `${label} tiene formulario aplicado, pero falta sincronizar respuestas locales.`;
+    case "source_synced_with_rows":
+      return `${label} tiene ${formatMetric(item.local_rows)} respuestas locales sincronizadas.`;
+    case "source_synced_zero_rows":
+      return `${label} sincronizado con 0 respuestas reales.`;
+    case "dashboard_stale":
+      return `${label} tiene tablero desactualizado respecto de su fuente.`;
+    case "source_snapshot_mismatch":
+      return `${label} tiene desalineación entre fuente aplicada y snapshot.`;
+    case "sync_error":
+      return `La última actualización de ${label} terminó con error.`;
+    default:
+      return `${label} seleccionado.`;
+  }
+}
+
+function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null) {
+  if (!item) return "Sin diagnóstico";
+  switch (item.status) {
+    case "source_not_applied":
+      return "Sin fuente";
+    case "source_applied_not_synced":
+      return "Sin actualizar";
+    case "source_synced_with_rows":
+      return `${formatMetric(item.local_rows)} locales`;
+    case "source_synced_zero_rows":
+      return "Sin respuestas";
+    case "dashboard_stale":
+      return "Ficha desactualizada";
+    case "source_snapshot_mismatch":
+      return "Revisar fuente";
+    case "sync_error":
+      return "Error al actualizar";
+    default:
+      return item.status;
+  }
+}
+
+function territorialPhaseStatusTone(item: MonitoreoTerritorialPhaseCoherenceItem | null) {
+  if (!item) return "unknown";
+  if (item.status === "source_synced_with_rows") return "ready";
+  if (item.status === "source_synced_zero_rows") return "empty";
+  if (item.status === "source_applied_not_synced" || item.status === "dashboard_stale") return "warning";
+  if (item.status === "source_not_applied") return "missing";
+  if (item.status === "source_snapshot_mismatch" || item.status === "sync_error") return "error";
+  return "base";
+}
+
+const territorialKoboAssetCatalogCache = new Map<string, MonitoreoKoboAssetItem[]>();
+
 function sourceDimensionEntries(dimensions: Record<string, string> | undefined) {
   return Object.entries(dimensions ?? {}).filter(([, value]) => String(value ?? "").trim());
 }
@@ -1239,6 +1945,10 @@ function mergeProfile(value: unknown): MonitoreoProfile {
     reconciliation_decisions: {
       include_response_ids: arrayOrEmpty<string>(reconciliation.include_response_ids),
       exclude_response_ids: arrayOrEmpty<string>(reconciliation.exclude_response_ids),
+      manual_case_reconciliations:
+        reconciliation.manual_case_reconciliations && typeof reconciliation.manual_case_reconciliations === "object" && !Array.isArray(reconciliation.manual_case_reconciliations)
+          ? { ...reconciliation.manual_case_reconciliations }
+          : {},
     },
   };
 }
@@ -1257,12 +1967,114 @@ function mergeTerritorialConfig(value: Partial<MonitoreoConfig["territorial"]> |
   const next = { ...EMPTY_TERRITORIAL_CONFIG, ...(value ?? {}) };
   const thresholds = { ...EMPTY_TERRITORIAL_CONFIG.geo_thresholds_m, ...(next.geo_thresholds_m ?? {}) };
   const decisions = next.validation_decisions ?? EMPTY_TERRITORIAL_CONFIG.validation_decisions;
+  const activePhase = normalizeTerritorialPhase(next.active_route_phase);
+  const rawPhaseSources = ((value as Record<string, unknown> | undefined)?.phase_sources ??
+    (value as Record<string, unknown> | undefined)?.phaseSources ??
+    {}) as Record<string, unknown>;
+  const rawPhaseWindows = ((value as Record<string, unknown> | undefined)?.phase_windows ??
+    (value as Record<string, unknown> | undefined)?.phaseWindows ??
+    {}) as Record<string, unknown>;
+  const rawPhaseMappings = ((value as Record<string, unknown> | undefined)?.phase_mappings ??
+    (value as Record<string, unknown> | undefined)?.phaseMappings ??
+    {}) as Record<string, unknown>;
+  const rawCodeReconciliation = ((value as Record<string, unknown> | undefined)?.enumerator_code_reconciliation ??
+    (value as Record<string, unknown> | undefined)?.enumeratorCodeReconciliation ??
+    EMPTY_TERRITORIAL_CONFIG.enumerator_code_reconciliation) as Record<string, unknown>;
+  const rawUmpReconciliation = ((value as Record<string, unknown> | undefined)?.ump_reconciliation ??
+    (value as Record<string, unknown> | undefined)?.umpReconciliation ??
+    EMPTY_TERRITORIAL_CONFIG.ump_reconciliation) as Record<string, unknown>;
+  const phaseSources = {
+    pilot: normalizeTerritorialPhaseSource(rawPhaseSources.pilot),
+    field: normalizeTerritorialPhaseSource(rawPhaseSources.field),
+  };
+  const phaseWindows = {
+    pilot: normalizeTerritorialPhaseWindow(rawPhaseWindows.pilot),
+    field: normalizeTerritorialPhaseWindow(rawPhaseWindows.field),
+  };
+  const legacyPilotStart = stringOrEmpty(
+    (value as Record<string, unknown> | undefined)?.pilot_start_at ??
+      (value as Record<string, unknown> | undefined)?.pilotStartAt ??
+      (value as Record<string, unknown> | undefined)?.inicio_piloto_at ??
+      (value as Record<string, unknown> | undefined)?.inicioPilotoAt,
+  );
+  const legacyFieldStart = stringOrEmpty(
+    (value as Record<string, unknown> | undefined)?.field_start_at ??
+      (value as Record<string, unknown> | undefined)?.fieldStartAt ??
+      (value as Record<string, unknown> | undefined)?.campo_start_at ??
+      (value as Record<string, unknown> | undefined)?.campoStartAt ??
+      (value as Record<string, unknown> | undefined)?.inicio_campo_at ??
+      (value as Record<string, unknown> | undefined)?.inicioCampoAt,
+  );
+  if (!phaseWindows.pilot.start_at && legacyPilotStart) phaseWindows.pilot = { start_at: legacyPilotStart };
+  if (!phaseWindows.field.start_at && legacyFieldStart) phaseWindows.field = { start_at: legacyFieldStart };
+  const phaseMappings = {
+    pilot: normalizeTerritorialPhaseMapping(rawPhaseMappings.pilot),
+    field: normalizeTerritorialPhaseMapping(rawPhaseMappings.field),
+  };
+  const hasLegacySource = Boolean(
+    stringOrEmpty(next.asset_uid) ||
+    stringOrEmpty(next.source_id) ||
+    stringOrEmpty(next.kobo_asset_name) ||
+    stringOrEmpty(next.kobo_version_id),
+  );
+  const hasPhaseMappings = Boolean(rawPhaseMappings.pilot || rawPhaseMappings.field);
+  const hasLegacyMapping = [
+    next.district_var,
+    next.ump_var,
+    next.pulso_code_var,
+    next.gps_var,
+    next.consent_var,
+    next.age_var,
+    next.status_var,
+    next.id_var,
+    next.submitted_by_var,
+    next.platform_effective_var,
+  ].some((item) => stringOrEmpty(item));
+  if (!phaseSources.pilot.asset_uid && !phaseSources.pilot.source_id && !phaseSources.field.asset_uid && !phaseSources.field.source_id && hasLegacySource) {
+    phaseSources.pilot = normalizeTerritorialPhaseSource({
+      asset_uid: next.asset_uid,
+      kobo_version_id: next.kobo_version_id,
+      kobo_asset_name: next.kobo_asset_name,
+      source_id: next.source_id,
+      inspected_at: next.inspected_at,
+    });
+  }
+  if (!hasPhaseMappings && hasLegacyMapping) {
+    phaseMappings[activePhase] = normalizeTerritorialPhaseMapping(next);
+  }
+  const activeSource = phaseSources[activePhase] ?? emptyTerritorialPhaseSource();
+  const activeMapping = phaseMappings[activePhase] ?? emptyTerritorialPhaseMapping();
   return {
     ...next,
-    active_route_phase: next.active_route_phase === "field" ? "field" : "pilot",
-    platform_effective_var: stringOrEmpty(next.platform_effective_var),
-    platform_effective_values: arrayOrEmpty<string>(next.platform_effective_values).slice(0, 1),
-    valid_statuses: arrayOrEmpty<string>(next.valid_statuses).length ? arrayOrEmpty<string>(next.valid_statuses) : EMPTY_TERRITORIAL_CONFIG.valid_statuses,
+    active_route_phase: activePhase,
+    asset_uid: activeSource.asset_uid,
+    kobo_version_id: activeSource.kobo_version_id,
+    kobo_asset_name: activeSource.kobo_asset_name,
+    source_id: activeSource.source_id,
+    inspected_at: activeSource.inspected_at,
+    phase_sources: phaseSources,
+    phase_windows: phaseWindows,
+    phase_mappings: phaseMappings,
+    district_var: activeMapping.district_var,
+    ump_var: activeMapping.ump_var,
+    pulso_code_var: activeMapping.pulso_code_var,
+    gps_var: activeMapping.gps_var,
+    consent_var: activeMapping.consent_var,
+    age_var: activeMapping.age_var,
+    status_var: activeMapping.status_var,
+    territorial_status_var: activeMapping.territorial_status_var,
+    coherence_status_var: activeMapping.coherence_status_var,
+    id_var: activeMapping.id_var,
+    submitted_by_var: activeMapping.submitted_by_var,
+    supervisor_var: activeMapping.supervisor_var,
+    kobo_user_var: activeMapping.kobo_user_var,
+    submission_time_var: activeMapping.submission_time_var,
+    start_var: activeMapping.start_var,
+    end_var: activeMapping.end_var,
+    duration_var: activeMapping.duration_var,
+    platform_effective_var: activeMapping.platform_effective_var,
+    platform_effective_values: activeMapping.platform_effective_values,
+    valid_statuses: activeMapping.valid_statuses,
     district_crosswalk: arrayOrEmpty(next.district_crosswalk).length ? arrayOrEmpty(next.district_crosswalk) : EMPTY_TERRITORIAL_CONFIG.district_crosswalk,
     geo_thresholds_m: {
       cerca: numberOrFallback(thresholds.cerca, EMPTY_TERRITORIAL_CONFIG.geo_thresholds_m.cerca),
@@ -1272,6 +2084,8 @@ function mergeTerritorialConfig(value: Partial<MonitoreoConfig["territorial"]> |
     max_duration_seconds: numberOrFallback(next.max_duration_seconds, EMPTY_TERRITORIAL_CONFIG.max_duration_seconds),
     high_age_review: numberOrFallback(next.high_age_review, EMPTY_TERRITORIAL_CONFIG.high_age_review),
     count_review_in_official_progress: next.count_review_in_official_progress === true,
+    enumerator_code_reconciliation: normalizeTerritorialCodeReconciliation(rawCodeReconciliation),
+    ump_reconciliation: normalizeTerritorialUmpReconciliation(rawUmpReconciliation),
     validation_decisions: {
       approved_response_ids: arrayOrEmpty<string>(decisions.approved_response_ids),
       approval_reasons: stringRecordOrEmpty(decisions.approval_reasons),
@@ -1356,28 +2170,10 @@ async function startMonitoreoSourceSyncJob(config: Partial<MonitoreoConfig>, sou
 
 function needsDeferredMonitoreoReports(state: MonitoreoState) {
   const family = state.monitoreo_profile?.family ?? state.config?.monitoreo_profile?.family;
-  if (family === "territorial") return !hasMonitoreoTerritorialReports(state.dashboard?.territorial_reports);
+  if (family === "territorial") return false;
   if (!state.has_snapshot) return false;
   if (family === "acreditacion") return !hasMonitoreoAcreditacionReports(state.dashboard?.acreditacion_reports);
   return false;
-}
-
-function mergeDeferredMonitoreoReports(current: MonitoreoState | null, enriched: MonitoreoState) {
-  const family = enriched.monitoreo_profile?.family ?? enriched.config?.monitoreo_profile?.family;
-  if (family === "territorial") {
-    const reports = enriched.dashboard?.territorial_reports ?? null;
-    if (!hasMonitoreoTerritorialReports(reports)) return current ?? enriched;
-    return enriched;
-  }
-  const reports = enriched.dashboard?.acreditacion_reports ?? null;
-  if (!hasMonitoreoAcreditacionReports(reports)) return current ?? enriched;
-  if (!current) return enriched;
-  return {
-    ...current,
-    dashboard: current.dashboard
-      ? { ...current.dashboard, acreditacion_reports: reports }
-      : enriched.dashboard,
-  };
 }
 
 function hasMonitoreoAcreditacionReports(
@@ -1392,53 +2188,535 @@ function hasMonitoreoTerritorialReports(
   return Boolean(reports && reports.schema === "monitoreo_territorial_dashboard_v1" && reports.kpis);
 }
 
+function dashboardTerritorialPhase(dashboard: MonitoreoDashboard | null | undefined): MonitoreoTerritorialPhase | null {
+  const reports = dashboard?.territorial_reports;
+  if (!hasMonitoreoTerritorialReports(reports)) return null;
+  return normalizeTerritorialPhase(reports.active_route_phase);
+}
+
+function configWithTerritorialPhase(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase): MonitoreoConfig {
+  return mergeConfig({
+    ...config,
+    territorial: {
+      ...config.territorial,
+      active_route_phase: phase,
+    },
+  });
+}
+
+function territorialPhaseSourceStatus(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
+  const source = territorialPhaseSource(config, phase);
+  const configured = Boolean(source.source_id || source.asset_uid);
+  const label = phase === "field" ? "Campo" : "Piloto";
+  return configured
+    ? { status: "configured", message: `${label} seleccionado.` }
+    : { status: "missing_source", message: `${label} seleccionado sin fuente configurada.` };
+}
+
+function stateWithTerritorialPhase(state: MonitoreoState, phase: MonitoreoTerritorialPhase): MonitoreoState {
+  const config = configWithTerritorialPhase(mergeConfig(state.config), phase);
+  return { ...state, config };
+}
+
+function territorialPhaseIdentity(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
+  const source = territorialPhaseSource(config, phase);
+  return {
+    phase,
+    source_id: source.source_id,
+    asset_uid: source.asset_uid,
+  };
+}
+
+function territorialPhaseIdentityMatches(
+  a: ReturnType<typeof territorialPhaseIdentity>,
+  b: ReturnType<typeof territorialPhaseIdentity>,
+) {
+  if (a.phase !== b.phase) return false;
+  if (a.source_id && b.source_id && a.source_id !== b.source_id) return false;
+  if (a.asset_uid && b.asset_uid && a.asset_uid !== b.asset_uid) return false;
+  return true;
+}
+
+function territorialViewNeedsReports(view: WorkbenchView) {
+  return view === "fuentes" || view === "modelo" || view === "avance" || view === "consultas" || view === "ocurrencias" || view === "calidad";
+}
+
+function territorialReportScopeForView(view: WorkbenchView): TerritorialReportScope {
+  if (view === "fuentes") return "source";
+  if (view === "modelo") return "full";
+  if (view === "avance") return "advance_summary";
+  if (view === "calidad") return "validation_summary";
+  if (view === "consultas") return "queries_summary";
+  if (view === "ocurrencias") return "queries_summary";
+  return "full";
+}
+
+function createTerritorialBootSteps(): TerritorialBootSteps {
+  return TERRITORIAL_BOOT_STEP_DEFS.reduce((acc, step) => {
+    acc[step.key] = {
+      status: "pending",
+      label: step.label,
+      detail: "Pendiente",
+    };
+    return acc;
+  }, {} as TerritorialBootSteps);
+}
+
+function createTerritorialBootState(
+  status: TerritorialBootStatus = "idle",
+  phase: MonitoreoTerritorialPhase | "" = "",
+  key = "",
+  startedAt?: number,
+): TerritorialBootState {
+  return {
+    status,
+    key,
+    phase,
+    startedAt,
+    steps: createTerritorialBootSteps(),
+  };
+}
+
+function territorialBootStepStatusLabel(status: TerritorialBootStepStatus) {
+  switch (status) {
+    case "loading":
+      return "Leyendo";
+    case "ready":
+      return "Listo";
+    case "stale":
+      return "Revisar";
+    case "error":
+      return "Revisar";
+    default:
+      return "Pendiente";
+  }
+}
+
+function territorialBootReportDetail(meta: MonitoreoTerritorialReportCacheMeta | null | undefined, fallback: string) {
+  if (meta?.cache_hit || meta?.cache_source === "project") return "Usando caché del proyecto";
+  if (meta?.cache_source === "snapshot") return "Usando datos locales";
+  if (meta?.cache_source === "memory") return "Usando memoria local";
+  return fallback;
+}
+
+function territorialBootConfigFingerprint(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
+  const phaseSource = territorialPhaseSource(config, phase);
+  const mapping = territorialMappingForPhase(config, phase);
+  const territorial = config.territorial;
+  return [
+    phase,
+    phaseSource.source_id,
+    phaseSource.asset_uid,
+    phaseSource.kobo_version_id,
+    mapping.district_var,
+    mapping.ump_var,
+    mapping.gps_var,
+    mapping.consent_var,
+    mapping.age_var,
+    mapping.status_var,
+    mapping.submitted_by_var,
+    mapping.kobo_user_var,
+    mapping.platform_effective_var,
+    arrayOrEmpty<string>(mapping.platform_effective_values).join(","),
+    territorial.count_review_in_official_progress ? "review-in" : "review-out",
+    String(territorial.min_duration_seconds ?? ""),
+    String(territorial.max_duration_seconds ?? ""),
+    String(territorial.high_age_review ?? ""),
+  ].map((item) => String(item ?? "")).join("|");
+}
+
+function territorialReportRequestKey(
+  phase: MonitoreoTerritorialPhase,
+  visible: ReturnType<typeof territorialVisiblePhaseSource>,
+  scope: TerritorialReportScope,
+) {
+  return [phase, visible.sourceId || visible.assetUid || "sin-fuente", scope].join("|");
+}
+
+function territorialLoadingLabelForView(view: WorkbenchView) {
+  switch (view) {
+    case "modelo":
+      return "Cargando manzanas seleccionadas...";
+    case "avance":
+      return "Cargando avance territorial...";
+    case "consultas":
+      return "Cargando consultas internas...";
+    case "ocurrencias":
+      return "Cargando ocurrencias de campo...";
+    case "calidad":
+      return "Cargando validación territorial...";
+    default:
+      return "Cargando datos territoriales...";
+  }
+}
+
+function logTerritorialViewTiming(details: Record<string, unknown>) {
+  if (typeof console === "undefined") return;
+  console.info("[monitoreo] territorial_view_timing", details);
+}
+
+function territorialReportStatusLabel(input: {
+  reportsReady: boolean;
+  loading: boolean;
+  error: string;
+  meta?: MonitoreoTerritorialReportCacheMeta | null;
+  hasLocalCache: boolean;
+}) {
+  if (input.error) return "Reintentar";
+  if (input.loading && input.reportsReady) return "Actualizando resumen";
+  if (input.reportsReady && (input.hasLocalCache || input.meta?.cache_hit || input.meta?.cache_source === "project" || input.meta?.cache_source === "snapshot")) {
+    return "Cargado desde proyecto";
+  }
+  if (input.loading) return "Actualizando resumen";
+  if (input.reportsReady) return "Resumen listo";
+  return "Reporte pendiente";
+}
+
+function TerritorialViewError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <Alert kind="error">
+      <div className="mon-territorial-view-error">
+        <span>{message}</span>
+        {onRetry ? (
+          <button type="button" className="pulso-button" onClick={onRetry}>
+            <RefreshCw size={14} />
+            <span>Reintentar</span>
+          </button>
+        ) : null}
+      </div>
+    </Alert>
+  );
+}
+
+function TerritorialBootPanel({
+  boot,
+  phase,
+  nRows,
+  syncedAt,
+}: {
+  boot: TerritorialBootState;
+  phase: MonitoreoTerritorialPhase;
+  nRows: number;
+  syncedAt: string;
+}) {
+  const total = TERRITORIAL_BOOT_STEP_DEFS.length;
+  const ready = TERRITORIAL_BOOT_STEP_DEFS.filter((step) => boot.steps[step.key]?.status === "ready").length;
+  const activeStep = TERRITORIAL_BOOT_STEP_DEFS.find((step) => boot.steps[step.key]?.status === "loading") ??
+    TERRITORIAL_BOOT_STEP_DEFS.find((step) => boot.steps[step.key]?.status === "pending") ??
+    TERRITORIAL_BOOT_STEP_DEFS[total - 1];
+  const progress = total ? Math.max(0.08, ready / total) : 0.08;
+  const style = { "--mon-territorial-boot-progress": `${Math.round(progress * 360)}deg` } as CSSProperties;
+  return (
+    <section className="mon-territorial-boot" aria-label="Preparación inicial de monitoreo territorial">
+      <div className="mon-territorial-boot-shell">
+        <div className="mon-territorial-boot-ring-wrap">
+          <div className="mon-territorial-boot-ring" style={style} aria-hidden="true">
+            <div>
+              <Loader2 size={22} className="pulso-spin" />
+              <strong>{ready}/{total}</strong>
+            </div>
+          </div>
+          <span>{activeStep.loadingDetail}</span>
+        </div>
+        <div className="mon-territorial-boot-copy">
+          <span className="mon-territorial-boot-eyebrow">{territorialPhaseLabel(phase)} · preparación local</span>
+          <h2>Preparando Monitoreo territorial</h2>
+          <p>Estamos preparando los datos territoriales guardados en el proyecto. No se está sincronizando Kobo.</p>
+          <div className="mon-territorial-boot-meta" aria-label="Datos locales usados para la preparación">
+            <span>{formatMetric(nRows)} respuestas locales</span>
+            <span>{syncedAt ? `Datos locales: ${formatDate(syncedAt)}` : "Sin sincronización local reciente"}</span>
+          </div>
+        </div>
+        <div className="mon-territorial-boot-steps">
+          {TERRITORIAL_BOOT_STEP_DEFS.map((step) => {
+            const item = boot.steps[step.key];
+            const StepIcon = step.icon;
+            const status = item?.status ?? "pending";
+            const statusIcon = status === "ready"
+              ? <CheckCircle2 size={15} />
+              : status === "error" || status === "stale"
+                ? <AlertTriangle size={15} />
+                : status === "loading"
+                  ? <Loader2 size={15} className="pulso-spin" />
+                  : <Clock size={15} />;
+            return (
+              <article key={step.key} className={`mon-territorial-boot-step is-${status}`}>
+                <span className="mon-territorial-boot-step-icon"><StepIcon size={16} /></span>
+                <div>
+                  <strong>{item?.label ?? step.label}</strong>
+                  <em>{item?.detail ?? "Pendiente"}</em>
+                </div>
+                <small>
+                  {statusIcon}
+                  {territorialBootStepStatusLabel(status)}
+                </small>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function MonitoreoPage() {
   useAnaliticaAutosave();
   const { sessionId } = useSession();
 
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [config, setConfig] = useState<MonitoreoConfig>(EMPTY_CONFIG);
+  const [selectedRoutePhase, setSelectedRoutePhase] = useState<MonitoreoTerritorialPhase>(EMPTY_TERRITORIAL_CONFIG.active_route_phase);
+  const [loadedDashboardPhase, setLoadedDashboardPhase] = useState<MonitoreoTerritorialPhase | null>(null);
+  const [loadingRoutePhase, setLoadingRoutePhase] = useState<MonitoreoTerritorialPhase | null>(null);
+  const [routePhaseStatus, setRoutePhaseStatus] = useState<{ status: string; message: string } | null>(null);
+  const [territorialViewLoading, setTerritorialViewLoading] = useState<Partial<Record<WorkbenchView, boolean>>>({});
+  const [territorialViewError, setTerritorialViewError] = useState<Partial<Record<WorkbenchView, string>>>({});
+  const [territorialBoot, setTerritorialBoot] = useState<TerritorialBootState>(() => createTerritorialBootState());
   const [source, setSource] = useState<SourceDraft>(DEFAULT_SOURCE);
   const [loading, setLoading] = useState(true);
   const [savingSource, setSavingSource] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
+  const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
+  const [occurrencesBusy, setOccurrencesBusy] = useState<"" | "config" | "inspect" | "xlsform" | "sync">("");
+  const [uploadingEnumeratorRoster, setUploadingEnumeratorRoster] = useState(false);
+  const [templatingEnumeratorRoster, setTemplatingEnumeratorRoster] = useState(false);
+  const [downloadingEnumeratorCodes, setDownloadingEnumeratorCodes] = useState(false);
   const [error, setError] = useState("");
+  const [webPublishOpen, setWebPublishOpen] = useState(false);
   const [sourceSyncJob, setSourceSyncJob] = useState<{ jobId: string; label: string } | null>(null);
+  const [sourceSyncRateLimitNotice, setSourceSyncRateLimitNotice] = useState<SourceSyncRateLimitNotice | null>(null);
   const [sample, setSample] = useState<MonitoreoRow[]>([]);
   const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
   const [activeModelMode, setActiveModelMode] = useState<OperationalModelMode>("estructura");
-  const [activeQualityMode, setActiveQualityMode] = useState<QualityMode>("conciliacion");
   const [explorerIntent, setExplorerIntent] = useState<ExplorerOpenIntent | null>(null);
   const [territorialSelectedResponseId, setTerritorialSelectedResponseId] = useState("");
+  const [territorialValidationIntent, setTerritorialValidationIntent] = useState<{ tab: TerritorialValidationTab; responseId?: string; token: number } | null>(null);
+  const [territorialReviewFilters, setTerritorialReviewFilters] = useState<TerritorialReviewFilters>(EMPTY_TERRITORIAL_REVIEW_FILTERS);
+  const selectedRoutePhaseRef = useRef<MonitoreoTerritorialPhase>(EMPTY_TERRITORIAL_CONFIG.active_route_phase);
+  const routePhaseTouchedRef = useRef(false);
+  const routePhaseRequestSeqRef = useRef(0);
+  const territorialSourceApplySeqRef = useRef(0);
+  const territorialInspectSeqRef = useRef(0);
+  const territorialReportsSeqRef = useRef(0);
+  const territorialBootSeqRef = useRef(0);
+  const territorialBootInFlightKeyRef = useRef("");
+  const territorialBootCompletedKeyRef = useRef("");
+  const territorialReportsInFlightRef = useRef(new Set<string>());
+  const territorialReportCacheRef = useRef(new Map<string, MonitoreoTerritorialDashboard>());
+  const territorialReportMetaCacheRef = useRef(new Map<string, MonitoreoTerritorialReportCacheMeta>());
+  const territorialMapPrepareInFlightRef = useRef(new Set<string>());
+  const stateRequestSeqRef = useRef(0);
+  const configRef = useRef<MonitoreoConfig>(EMPTY_CONFIG);
+  const activeViewRef = useRef<WorkbenchView>("fuentes");
+  const [territorialReportCacheVersion, setTerritorialReportCacheVersion] = useState(0);
 
-  const openExplorerFromQuality = (filters: Partial<InternalQueryFilters>, label?: string) => {
-    setExplorerIntent({ id: Date.now(), filters, label });
-    setActiveView("consultas");
-  };
+  const commitConfig = useCallback((next: MonitoreoConfig) => {
+    configRef.current = next;
+    setConfig(next);
+  }, []);
+
+  const setAuthoritativeRoutePhase = useCallback((phase: MonitoreoTerritorialPhase, userIntent = false) => {
+    selectedRoutePhaseRef.current = phase;
+    if (userIntent) routePhaseTouchedRef.current = true;
+    setSelectedRoutePhase(phase);
+  }, []);
+
+  const openTerritorialValidationCase = useCallback((tab: TerritorialValidationTab, responseId?: string) => {
+    if (responseId) setTerritorialSelectedResponseId(responseId);
+    setTerritorialValidationIntent({ tab, responseId, token: Date.now() });
+    setActiveView("calidad");
+  }, []);
+
+  useEffect(() => {
+    selectedRoutePhaseRef.current = selectedRoutePhase;
+  }, [selectedRoutePhase]);
+
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
+
+  const resetTerritorialReportRequests = useCallback(() => {
+    ++territorialReportsSeqRef.current;
+    ++territorialBootSeqRef.current;
+    territorialReportsInFlightRef.current.clear();
+    territorialReportCacheRef.current.clear();
+    territorialReportMetaCacheRef.current.clear();
+    territorialBootInFlightKeyRef.current = "";
+    territorialBootCompletedKeyRef.current = "";
+    setTerritorialReportCacheVersion((version) => version + 1);
+    setTerritorialViewLoading({});
+    setTerritorialViewError({});
+    setTerritorialBoot(createTerritorialBootState());
+  }, []);
+
+  const rememberTerritorialReport = useCallback((nextState: MonitoreoState) => {
+    const reports = nextState.dashboard?.territorial_reports;
+    if (!hasMonitoreoTerritorialReports(reports)) return;
+    const stateConfig = mergeConfig(nextState.config);
+    const phase = normalizeTerritorialPhase(reports.active_route_phase);
+    const health = territorialPhaseCoherenceItem(nextState.territorial_phase_coherence ?? reports.phase_coherence, phase);
+    const visible = territorialVisiblePhaseSource(nextState.sources ?? [], stateConfig, phase, health);
+    const incomingScope = (reports.report_scope || "full") as TerritorialReportScope;
+    const scopes: TerritorialReportScope[] = incomingScope === "full"
+      ? ["source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "full"]
+      : incomingScope === "route_summary"
+        ? ["route_summary", "advance_summary"]
+        : [incomingScope];
+    scopes.forEach((scope) => {
+      const reportKey = territorialReportRequestKey(phase, visible, scope);
+      territorialReportCacheRef.current.set(reportKey, reports);
+      if (nextState.territorial_report_cache) {
+        territorialReportMetaCacheRef.current.set(reportKey, nextState.territorial_report_cache);
+      }
+    });
+    if (nextState.territorial_report_cache?.key) {
+      territorialReportMetaCacheRef.current.set(nextState.territorial_report_cache.key, nextState.territorial_report_cache);
+    }
+    setTerritorialReportCacheVersion((version) => version + 1);
+  }, []);
+
+  const applyMonitoreoState = useCallback((next: MonitoreoState, options: { adoptPhase?: boolean; acceptPhaseSources?: boolean } = {}) => {
+    const incomingConfig = mergeConfig(next.config);
+    const family = next.monitoreo_profile?.family ?? incomingConfig.monitoreo_profile.family;
+    const shouldProtectPhase = family === "territorial";
+    let authoritativePhase = selectedRoutePhaseRef.current;
+    if (shouldProtectPhase && (options.adoptPhase || !routePhaseTouchedRef.current)) {
+      authoritativePhase = normalizeTerritorialPhase(incomingConfig.territorial.active_route_phase);
+      setAuthoritativeRoutePhase(authoritativePhase, false);
+    }
+    const phaseSafeIncomingConfig = shouldProtectPhase
+      ? mergeConfig({
+          ...incomingConfig,
+          territorial: {
+            ...incomingConfig.territorial,
+            active_route_phase: authoritativePhase,
+            phase_sources: mergeTerritorialPhaseSourcesForUi(
+              incomingConfig,
+              configRef.current,
+              Boolean(options.acceptPhaseSources || options.adoptPhase || !routePhaseTouchedRef.current),
+            ),
+          },
+        })
+      : incomingConfig;
+    const nextState = shouldProtectPhase
+      ? stateWithTerritorialPhase({ ...next, config: phaseSafeIncomingConfig }, authoritativePhase)
+      : { ...next, config: phaseSafeIncomingConfig };
+    if (shouldProtectPhase) {
+      rememberTerritorialReport(nextState);
+    }
+    const incomingDashboardPhase = dashboardTerritorialPhase(next.dashboard);
+    setLoadedDashboardPhase(incomingDashboardPhase);
+    setRoutePhaseStatus(shouldProtectPhase ? territorialPhaseSourceStatus(nextState.config, authoritativePhase) : null);
+    setState((current) => {
+      if (shouldProtectPhase && incomingDashboardPhase && incomingDashboardPhase !== authoritativePhase) {
+        const currentDashboardPhase = dashboardTerritorialPhase(current?.dashboard);
+        if (currentDashboardPhase === authoritativePhase) {
+          return { ...nextState, dashboard: current?.dashboard ?? nextState.dashboard };
+        }
+      }
+      return nextState;
+    });
+    commitConfig(nextState.config);
+  }, [commitConfig, rememberTerritorialReport, setAuthoritativeRoutePhase]);
 
   async function refresh() {
+    const requestSeq = ++stateRequestSeqRef.current;
+    const requestedPhase = selectedRoutePhaseRef.current;
+    const requestedView = activeView;
+    const requestedIdentity = territorialPhaseIdentity(configRef.current, requestedPhase);
+    const isTerritorial = (state?.monitoreo_profile?.family ?? configRef.current.monitoreo_profile.family) === "territorial";
+    const includeReports = !isTerritorial || territorialViewNeedsReports(requestedView);
+    const reportScope = isTerritorial && includeReports ? territorialReportScopeForView(requestedView) : undefined;
+    const requestedVisible = isTerritorial && includeReports
+      ? territorialVisiblePhaseSource(state?.sources ?? [], configRef.current, requestedPhase, null)
+      : null;
+    const requestKey = requestedVisible && reportScope
+      ? territorialReportRequestKey(requestedPhase, requestedVisible, reportScope)
+      : "";
+    if (requestKey && territorialReportsInFlightRef.current.has(requestKey)) return;
     setError("");
-    const next = await apiMonitoreoState({ includeReports: true });
-    setState(next);
-    setConfig(mergeConfig(next.config));
+    setLoadingRoutePhase(requestedPhase);
+    if (isTerritorial && includeReports) {
+      setTerritorialViewLoading((current) => ({ ...current, [requestedView]: true }));
+      setTerritorialViewError((current) => ({ ...current, [requestedView]: "" }));
+    }
+    if (requestKey) territorialReportsInFlightRef.current.add(requestKey);
+    try {
+      const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const next = await apiMonitoreoState({ includeReports, reportScope });
+      const loadedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (requestSeq !== stateRequestSeqRef.current) return;
+      if (isTerritorial && includeReports && requestedView !== activeViewRef.current) return;
+      if (requestedPhase !== selectedRoutePhaseRef.current) return;
+      if (!territorialPhaseIdentityMatches(requestedIdentity, territorialPhaseIdentity(configRef.current, requestedPhase))) return;
+      applyMonitoreoState(next);
+      if (isTerritorial && includeReports) {
+        const meta = next.territorial_report_cache;
+        const logReady = () => {
+          logTerritorialViewTiming({
+            view: requestedView,
+            phase: requestedPhase,
+            source_id: requestedVisible?.sourceId || "",
+            report_scope: reportScope,
+            cache_hit: Boolean(meta?.cache_hit),
+            cache_source: meta?.cache_source || "unknown",
+            backend_ms: meta?.backend_ms ?? next.monitoreo_perf?.backend_ms ?? null,
+            payload_size: meta?.payload_size ?? next.monitoreo_perf?.payload_size ?? null,
+            frontend_request_ms: Math.round(loadedAt - startedAt),
+            render_ready_ms: Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt),
+          });
+        };
+        if (typeof requestAnimationFrame !== "undefined") requestAnimationFrame(logReady);
+        else logReady();
+      }
+    } catch (e) {
+      const stillCurrent = requestSeq === stateRequestSeqRef.current
+        && requestedPhase === selectedRoutePhaseRef.current
+        && territorialPhaseIdentityMatches(requestedIdentity, territorialPhaseIdentity(configRef.current, requestedPhase));
+      if (isTerritorial && includeReports) {
+        if (!stillCurrent || requestedView !== activeViewRef.current) return;
+        setTerritorialViewError((current) => ({ ...current, [requestedView]: (e as Error).message }));
+      } else {
+        if (!stillCurrent) return;
+        setError((e as Error).message);
+      }
+      throw e;
+    } finally {
+      if (requestKey) territorialReportsInFlightRef.current.delete(requestKey);
+      if (requestSeq === stateRequestSeqRef.current) {
+        setLoadingRoutePhase((current) => current === requestedPhase ? null : current);
+        if (isTerritorial && includeReports) {
+          setTerritorialViewLoading((current) => ({ ...current, [requestedView]: false }));
+        }
+      }
+    }
   }
 
   useEffect(() => {
     if (!sessionId) return;
     let cancelled = false;
+    const requestSeq = ++stateRequestSeqRef.current;
     setLoading(true);
     setError("");
     apiMonitoreoState({ includeReports: false })
       .then((next) => {
-        if (cancelled) return;
-        setState(next);
-        setConfig(mergeConfig(next.config));
+        if (cancelled || requestSeq !== stateRequestSeqRef.current) return;
+        applyMonitoreoState(next, { adoptPhase: true });
         if (needsDeferredMonitoreoReports(next)) {
           void apiMonitoreoState({ includeReports: true })
             .then((enriched) => {
-              if (cancelled) return;
-              setState((current) => mergeDeferredMonitoreoReports(current, enriched));
+              if (cancelled || requestSeq !== stateRequestSeqRef.current) return;
+              const enrichedPhase = dashboardTerritorialPhase(enriched.dashboard);
+              if (enrichedPhase && enrichedPhase !== selectedRoutePhaseRef.current) {
+                setLoadedDashboardPhase(enrichedPhase);
+                return;
+              }
+              applyMonitoreoState(enriched);
             })
             .catch(() => {
               // El estado liviano ya permite trabajar; las vistas de reporte
@@ -1455,7 +2733,7 @@ export default function MonitoreoPage() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [applyMonitoreoState, sessionId]);
 
   const variables = state?.variables ?? [];
   const sources = state?.sources ?? [];
@@ -1466,22 +2744,69 @@ export default function MonitoreoPage() {
   useEffect(() => {
     const views = workbenchViewsForRoute(route);
     if (!views.some((view) => view.key === activeView)) {
-      setActiveView(route.family === "territorial" ? "avance" : views[0]?.key ?? "fuentes");
+      setActiveView(route.family === "territorial" ? "avance" : "consultas");
     }
   }, [activeView, route.family]);
   const routeSelected = isRouteSelected(profile, state, sources, acreditacion);
-  const activeSheetSourceIds = activeSources.filter((src) => src.kind === "google_sheets").map((src) => src.id);
-  const activeSurveyMonkeySourceIds = activeSources.filter((src) => src.kind === "surveymonkey").map((src) => src.id);
-  const activeKoboSourceIds = activeSources.filter((src) => src.kind === "kobo").map((src) => src.id);
+  const activePrimarySources = activeSources.filter((src) => src.role !== "ocurrencias_campo");
+  const activeSheetSourceIds = activePrimarySources.filter((src) => src.kind === "google_sheets").map((src) => src.id);
+  const activeSurveyMonkeySourceIds = activePrimarySources.filter((src) => src.kind === "surveymonkey").map((src) => src.id);
+  const activeKoboSourceIds = activePrimarySources.filter((src) => src.kind === "kobo").map((src) => src.id);
+  const activeTerritorialPhase = selectedRoutePhase;
+  const activeTerritorialKoboSource = route.family === "territorial"
+    ? territorialKoboSourceForPhase(sources, config, activeTerritorialPhase)
+    : null;
+  const activeTerritorialKoboSourceIds = activeTerritorialKoboSource?.id ? [activeTerritorialKoboSource.id] : [];
   const activeSurveyMonkeySyncIds = Array.from(new Set([...activeSheetSourceIds, ...activeSurveyMonkeySourceIds]));
   const activeKoboSyncIds = Array.from(new Set([...activeSheetSourceIds, ...activeKoboSourceIds]));
-  const activeSourceIds = activeSources.map((src) => src.id);
+  const activeSourceIds = activePrimarySources.map((src) => src.id);
   const rawDashboard = state?.dashboard;
   const acreditacionReports = hasMonitoreoAcreditacionReports(rawDashboard?.acreditacion_reports)
     ? rawDashboard.acreditacion_reports
     : null;
-  const territorialReports = hasMonitoreoTerritorialReports(rawDashboard?.territorial_reports)
+  const rawTerritorialReports = hasMonitoreoTerritorialReports(rawDashboard?.territorial_reports)
     ? rawDashboard.territorial_reports
+    : null;
+  const baseTerritorialPhaseCoherence = route.family === "territorial"
+    ? state?.territorial_phase_coherence ?? rawTerritorialReports?.phase_coherence ?? null
+    : null;
+  const activeTerritorialHealth = route.family === "territorial"
+    ? territorialPhaseCoherenceItem(baseTerritorialPhaseCoherence, activeTerritorialPhase)
+    : null;
+  const activeTerritorialVisible = route.family === "territorial"
+    ? territorialVisiblePhaseSource(sources, config, activeTerritorialPhase, activeTerritorialHealth)
+    : null;
+  const territorialBootKey = route.family === "territorial" && activeTerritorialVisible && (activeTerritorialVisible.sourceId || activeTerritorialVisible.assetUid || state?.has_snapshot)
+    ? [
+        "territorial",
+        activeTerritorialPhase,
+        activeTerritorialVisible.sourceId || activeTerritorialVisible.assetUid || "sin-fuente",
+        activeTerritorialVisible.version || "",
+        state?.n_rows ?? 0,
+        state?.synced_at ?? "",
+        territorialBootConfigFingerprint(config, activeTerritorialPhase),
+      ].join("::")
+    : "";
+  const territorialBootMatchesContext = Boolean(territorialBootKey && territorialBoot.key === territorialBootKey);
+  const territorialBootBlocksContent = false;
+  const territorialBootOwnsContext = route.family === "territorial" &&
+    territorialBootMatchesContext &&
+    (territorialBoot.status === "loading" || territorialBoot.status === "ready" || territorialBoot.status === "partial" || territorialBoot.status === "error");
+  const activeTerritorialScope = territorialReportScopeForView(activeView);
+  const activeTerritorialReportKey = activeTerritorialVisible
+    ? territorialReportRequestKey(activeTerritorialPhase, activeTerritorialVisible, activeTerritorialScope)
+    : "";
+  const cachedTerritorialReports = activeTerritorialReportKey && territorialReportCacheVersion >= 0
+    ? territorialReportCacheRef.current.get(activeTerritorialReportKey) ?? null
+    : null;
+  const rawTerritorialReportsCoverActiveView = activeTerritorialVisible
+    ? territorialReportsCoverView(rawTerritorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView)
+    : false;
+  const territorialReports = rawTerritorialReportsCoverActiveView
+    ? rawTerritorialReports
+    : cachedTerritorialReports ?? rawTerritorialReports;
+  const activeTerritorialReportMeta = activeTerritorialReportKey
+    ? territorialReportMetaCacheRef.current.get(activeTerritorialReportKey) ?? null
     : null;
   const dashboard: MonitoreoDashboard | null =
     rawDashboard?.kpis && Array.isArray(rawDashboard.progress) && Array.isArray(rawDashboard.production)
@@ -1492,13 +2817,413 @@ export default function MonitoreoPage() {
           inconsistencies: rawDashboard.inconsistencies ?? [],
           acreditacion_reports: acreditacionReports,
           territorial_reports: territorialReports,
-        }
+      }
       : null;
+  const territorialPhaseCoherence = route.family === "territorial"
+    ? state?.territorial_phase_coherence ?? territorialReports?.phase_coherence ?? baseTerritorialPhaseCoherence
+    : null;
+  const territorialActiveViewLoading = !territorialBootBlocksContent && Boolean(territorialViewLoading[activeView]);
+  const territorialActiveViewError = territorialViewError[activeView] ?? "";
+  const territorialActiveReportsReady = route.family === "territorial" && activeTerritorialVisible
+    ? territorialReportsCoverView(territorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView)
+    : false;
+  const territorialReportStatus = route.family === "territorial" && territorialViewNeedsReports(activeView)
+    ? territorialReportStatusLabel({
+        reportsReady: territorialActiveReportsReady,
+        loading: territorialActiveViewLoading,
+        error: territorialActiveViewError,
+        meta: activeTerritorialReportMeta,
+        hasLocalCache: Boolean(cachedTerritorialReports),
+      })
+    : "";
+  const territorialReportStatusTone = territorialActiveViewError
+    ? "error"
+    : territorialActiveViewLoading
+      ? "loading"
+      : territorialActiveReportsReady
+        ? "ready"
+        : "pending";
+  const showTerritorialReportStatus = route.family === "territorial" &&
+    territorialViewNeedsReports(activeView) &&
+    Boolean(territorialReportStatus) &&
+    !territorialBootBlocksContent &&
+    (!territorialActiveReportsReady || territorialActiveViewLoading || Boolean(territorialActiveViewError));
+
+  useEffect(() => {
+    if (route.family !== "territorial") {
+      territorialBootInFlightKeyRef.current = "";
+      territorialBootCompletedKeyRef.current = "";
+      setTerritorialBoot(createTerritorialBootState());
+      return;
+    }
+    if (!sessionId || !territorialBootKey || !activeTerritorialVisible || sourceSyncJob) {
+      if (!territorialBootKey) setTerritorialBoot(createTerritorialBootState());
+      return;
+    }
+    if (territorialBootInFlightKeyRef.current === territorialBootKey || territorialBootCompletedKeyRef.current === territorialBootKey) return;
+
+    const bootKey = territorialBootKey;
+    const phase = activeTerritorialPhase;
+    const visible = activeTerritorialVisible;
+    const requestedIdentity = territorialPhaseIdentity(configRef.current, phase);
+    const bootSeq = ++territorialBootSeqRef.current;
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    let cancelled = false;
+    const stepResults = new Map<TerritorialBootStepKey, TerritorialBootStepStatus>();
+
+    territorialBootInFlightKeyRef.current = bootKey;
+    TERRITORIAL_BOOT_STEP_DEFS.forEach((step) => stepResults.set(step.key, "pending"));
+    setTerritorialViewLoading({});
+    setTerritorialViewError({});
+    setTerritorialBoot(createTerritorialBootState("loading", phase, bootKey, startedAt));
+
+    const stillCurrent = () => (
+      !cancelled &&
+      bootSeq === territorialBootSeqRef.current &&
+      (bootKey === territorialBootInFlightKeyRef.current || bootKey === territorialBootCompletedKeyRef.current) &&
+      phase === selectedRoutePhaseRef.current &&
+      territorialPhaseIdentityMatches(requestedIdentity, territorialPhaseIdentity(configRef.current, phase))
+    );
+
+    const updateStep = (stepKey: TerritorialBootStepKey, patch: Partial<TerritorialBootStepState>) => {
+      if (!stillCurrent()) return;
+      setTerritorialBoot((current) => {
+        if (current.key !== bootKey) return current;
+        return {
+          ...current,
+          steps: {
+            ...current.steps,
+            [stepKey]: {
+              ...current.steps[stepKey],
+              ...patch,
+            },
+          },
+        };
+      });
+    };
+
+    let pollTimer: number | null = null;
+    const requestKeys = TERRITORIAL_BOOT_STEP_DEFS.map((step) => territorialReportRequestKey(phase, visible, step.scope));
+
+    const finishBoot = () => {
+      if (!stillCurrent()) return;
+      const statuses = TERRITORIAL_BOOT_STEP_DEFS.map((step) => stepResults.get(step.key) ?? "pending");
+      const readyCount = statuses.filter((status) => status === "ready").length;
+      const errorCount = statuses.filter((status) => status === "error").length;
+      const staleCount = statuses.filter((status) => status === "stale").length;
+      const completedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const status: TerritorialBootStatus = errorCount === statuses.length
+        ? "error"
+        : errorCount || staleCount
+          ? "partial"
+          : "ready";
+      territorialBootCompletedKeyRef.current = bootKey;
+      territorialBootInFlightKeyRef.current = "";
+      requestKeys.forEach((key) => territorialReportsInFlightRef.current.delete(key));
+      setTerritorialViewLoading({});
+      setTerritorialBoot((current) => current.key === bootKey
+        ? {
+            ...current,
+            status,
+            completedAt,
+          }
+        : current);
+      logTerritorialViewTiming({
+        view: "territorial_boot",
+        phase,
+        source_id: visible.sourceId || "",
+        ready_steps: readyCount,
+        error_steps: errorCount,
+        stale_steps: staleCount,
+        frontend_request_ms: Math.round(completedAt - startedAt),
+      });
+    };
+
+    const applyJobProgress = (progress: { current?: number; total?: number; message?: string } | null | undefined) => {
+      if (!stillCurrent()) return;
+      const current = Math.max(0, Math.min(TERRITORIAL_BOOT_STEP_DEFS.length, Number(progress?.current ?? 0)));
+      const activeIndex = current <= 0 ? 0 : Math.min(TERRITORIAL_BOOT_STEP_DEFS.length - 1, current - 1);
+      TERRITORIAL_BOOT_STEP_DEFS.forEach((step, index) => {
+        const previous = stepResults.get(step.key);
+        if (previous === "error" || previous === "stale") return;
+        if (current > 0 && index < current - 1) {
+          stepResults.set(step.key, "ready");
+          updateStep(step.key, { status: "ready", detail: step.readyDetail, error: "" });
+        } else if (index === activeIndex) {
+          stepResults.set(step.key, "loading");
+          updateStep(step.key, {
+            status: "loading",
+            detail: index === activeIndex && progress?.message ? progress.message : step.loadingDetail,
+            error: "",
+          });
+        }
+      });
+    };
+
+    const loadActiveScopeFromCache = async () => {
+      const view = activeViewRef.current;
+      const scope = territorialReportScopeForView(view);
+      const requestKey = territorialReportRequestKey(phase, visible, scope);
+      const step = TERRITORIAL_BOOT_STEP_DEFS.find((item) => item.scope === scope);
+      territorialReportsInFlightRef.current.add(requestKey);
+      try {
+        const stepStartedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const next = await apiMonitoreoState({ includeReports: true, reportScope: scope });
+        const loadedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (!stillCurrent()) return;
+        applyMonitoreoState(next);
+        const reports = hasMonitoreoTerritorialReports(next.dashboard?.territorial_reports)
+          ? next.dashboard.territorial_reports
+          : null;
+        const reportsReady = territorialReportsCoverView(reports, phase, visible, view);
+        if (step) {
+          stepResults.set(step.key, reportsReady ? "ready" : "stale");
+          updateStep(step.key, {
+            status: reportsReady ? "ready" : "stale",
+            detail: reportsReady
+              ? territorialBootReportDetail(next.territorial_report_cache, step.readyDetail)
+              : "Datos parciales del proyecto",
+            error: reportsReady ? "" : "El resumen llegó incompleto.",
+          });
+        }
+        const logReady = () => {
+          logTerritorialViewTiming({
+            view,
+            phase,
+            source_id: visible.sourceId || "",
+            report_scope: scope,
+            cache_hit: Boolean(next.territorial_report_cache?.cache_hit),
+            cache_source: next.territorial_report_cache?.cache_source || "unknown",
+            backend_ms: next.territorial_report_cache?.backend_ms ?? next.monitoreo_perf?.backend_ms ?? null,
+            payload_size: next.territorial_report_cache?.payload_size ?? next.monitoreo_perf?.payload_size ?? null,
+            frontend_request_ms: Math.round(loadedAt - stepStartedAt),
+            render_ready_ms: Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - stepStartedAt),
+            boot: true,
+            post_prewarm: true,
+          });
+        };
+        if (typeof requestAnimationFrame !== "undefined") requestAnimationFrame(logReady);
+        else logReady();
+      } catch (e) {
+        if (!stillCurrent()) return;
+        const message = (e as Error).message;
+        if (step) {
+          stepResults.set(step.key, "error");
+          updateStep(step.key, { status: "error", detail: "No se pudo abrir", error: message });
+          setTerritorialViewError((current) => ({ ...current, [step.view]: message }));
+        }
+      } finally {
+        territorialReportsInFlightRef.current.delete(requestKey);
+      }
+    };
+
+    const hydratePreparedScopes = async (
+      byScope: Map<string, MonitoreoTerritorialPrewarmScopeResult>,
+      options: { onlyActive?: boolean; skipActive?: boolean; background?: boolean } = {},
+    ) => {
+      const activeScope = territorialReportScopeForView(activeViewRef.current);
+      const scopeSteps = options.onlyActive
+        ? TERRITORIAL_BOOT_STEP_DEFS.filter((step) => step.scope === activeScope)
+        : options.skipActive
+          ? TERRITORIAL_BOOT_STEP_DEFS.filter((step) => step.scope !== activeScope)
+          : [
+              ...TERRITORIAL_BOOT_STEP_DEFS.filter((step) => step.scope !== activeScope),
+              ...TERRITORIAL_BOOT_STEP_DEFS.filter((step) => step.scope === activeScope),
+            ];
+      for (const step of scopeSteps) {
+        if (!stillCurrent()) return;
+        const prewarmItem = byScope.get(step.scope);
+        if (prewarmItem && prewarmItem.status !== "ready") continue;
+        const requestKey = territorialReportRequestKey(phase, visible, step.scope);
+        const cached = territorialReportCacheRef.current.get(requestKey) ?? null;
+        if (territorialReportsCoverView(cached, phase, visible, step.view)) {
+          if (!options.background) {
+            stepResults.set(step.key, "ready");
+            updateStep(step.key, {
+              status: "ready",
+              detail: territorialBootReportDetail(territorialReportMetaCacheRef.current.get(requestKey), "Usando caché local"),
+              error: "",
+            });
+          }
+          continue;
+        }
+        territorialReportsInFlightRef.current.delete(requestKey);
+        territorialReportsInFlightRef.current.add(requestKey);
+        if (!options.background) updateStep(step.key, { status: "loading", detail: "Cargando en memoria local...", error: "" });
+        try {
+          const next = await apiMonitoreoState({ includeReports: true, reportScope: step.scope });
+          if (!stillCurrent()) return;
+          rememberTerritorialReport(next);
+          const reports = hasMonitoreoTerritorialReports(next.dashboard?.territorial_reports)
+            ? next.dashboard.territorial_reports
+            : null;
+          const reportsReady = territorialReportsCoverView(reports, phase, visible, step.view);
+          if (!options.background) {
+            stepResults.set(step.key, reportsReady ? "ready" : "stale");
+            updateStep(step.key, {
+              status: reportsReady ? "ready" : "stale",
+              detail: reportsReady
+                ? territorialBootReportDetail(next.territorial_report_cache, step.readyDetail)
+                : "Datos parciales del proyecto",
+              error: reportsReady ? "" : "El resumen llegó incompleto.",
+            });
+          }
+        } catch (e) {
+          if (!stillCurrent()) return;
+          const message = (e as Error).message;
+          if (!options.background) {
+            stepResults.set(step.key, "error");
+            updateStep(step.key, { status: "error", detail: "No se pudo abrir", error: message });
+            setTerritorialViewError((current) => ({ ...current, [step.view]: message }));
+          }
+        } finally {
+          territorialReportsInFlightRef.current.delete(requestKey);
+        }
+      }
+    };
+
+    const runBoot = async () => {
+      for (const step of TERRITORIAL_BOOT_STEP_DEFS) {
+        if (!stillCurrent()) return;
+        const requestKey = territorialReportRequestKey(phase, visible, step.scope);
+        const cached = territorialReportCacheRef.current.get(requestKey) ?? null;
+        if (territorialReportsCoverView(cached, phase, visible, step.view)) {
+          stepResults.set(step.key, "ready");
+          updateStep(step.key, {
+            status: "ready",
+            detail: territorialBootReportDetail(territorialReportMetaCacheRef.current.get(requestKey), "Usando caché local"),
+            error: "",
+          });
+        }
+      }
+      finishBoot();
+    };
+
+    void runBoot();
+
+    return () => {
+      cancelled = true;
+      if (pollTimer != null) window.clearTimeout(pollTimer);
+      requestKeys.forEach((key) => territorialReportsInFlightRef.current.delete(key));
+      if (territorialBootInFlightKeyRef.current === bootKey) {
+        territorialBootInFlightKeyRef.current = "";
+      }
+    };
+  }, [
+    activeTerritorialPhase,
+    applyMonitoreoState,
+    rememberTerritorialReport,
+    route.family,
+    sessionId,
+    sourceSyncJob,
+    territorialBootKey,
+  ]);
+
+  useEffect(() => {
+    if (!sessionId || route.family !== "territorial" || !territorialViewNeedsReports(activeView)) return;
+    if (territorialBootBlocksContent) return;
+    if (territorialBootKey && territorialBootInFlightKeyRef.current === territorialBootKey) return;
+    const activePhase = selectedRoutePhaseRef.current;
+    const activeHealth = territorialPhaseCoherenceItem(territorialPhaseCoherence, activePhase);
+    const visible = territorialVisiblePhaseSource(sources, config, activePhase, activeHealth);
+    const reportsReady = territorialReportsCoverView(territorialReports, activePhase, visible, activeView);
+    const scope = territorialReportScopeForView(activeView);
+    const requestKey = territorialReportRequestKey(activePhase, visible, scope);
+    if (reportsReady || territorialViewLoading[activeView] || territorialReportsInFlightRef.current.has(requestKey)) return;
+    if (territorialViewError[activeView]) return;
+
+    const view = activeView;
+    const requestSeq = ++territorialReportsSeqRef.current;
+    const requestedIdentity = territorialPhaseIdentity(configRef.current, activePhase);
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    territorialReportsInFlightRef.current.add(requestKey);
+    setTerritorialViewLoading((current) => ({ ...current, [view]: true }));
+    setTerritorialViewError((current) => ({ ...current, [view]: "" }));
+    void apiMonitoreoState({
+      includeReports: true,
+      reportScope: scope,
+    })
+      .then((next) => {
+        const loadedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (requestSeq !== territorialReportsSeqRef.current) return;
+        if (view !== activeViewRef.current) return;
+        if (activePhase !== selectedRoutePhaseRef.current) return;
+        if (!territorialPhaseIdentityMatches(requestedIdentity, territorialPhaseIdentity(configRef.current, activePhase))) return;
+        applyMonitoreoState(next);
+        const meta = next.territorial_report_cache;
+        const logReady = () => {
+          logTerritorialViewTiming({
+            view,
+            phase: activePhase,
+            source_id: visible.sourceId || "",
+            report_scope: scope,
+            cache_hit: Boolean(meta?.cache_hit),
+            cache_source: meta?.cache_source || "unknown",
+            backend_ms: meta?.backend_ms ?? next.monitoreo_perf?.backend_ms ?? null,
+            payload_size: meta?.payload_size ?? next.monitoreo_perf?.payload_size ?? null,
+            frontend_request_ms: Math.round(loadedAt - startedAt),
+            render_ready_ms: Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt),
+          });
+        };
+        if (typeof requestAnimationFrame !== "undefined") requestAnimationFrame(logReady);
+        else logReady();
+      })
+      .catch((e: unknown) => {
+        if (requestSeq === territorialReportsSeqRef.current && view === activeViewRef.current) {
+          setTerritorialViewError((current) => ({ ...current, [view]: (e as Error).message }));
+        }
+      })
+      .finally(() => {
+        territorialReportsInFlightRef.current.delete(requestKey);
+        setTerritorialViewLoading((current) => ({ ...current, [view]: false }));
+      });
+  }, [
+    activeView,
+    applyMonitoreoState,
+    config,
+    route.family,
+    sessionId,
+    sources,
+    territorialPhaseCoherence,
+    territorialBootKey,
+    territorialBootBlocksContent,
+    territorialReports,
+    territorialViewError,
+    territorialViewLoading,
+  ]);
+
+  useEffect(() => {
+    if (!sessionId || route.family !== "territorial") return;
+    if (territorialBootKey && territorialBootInFlightKeyRef.current === territorialBootKey) return;
+    if (activeView !== "modelo" && activeView !== "calidad") return;
+    const phase = selectedRoutePhaseRef.current;
+    const cache = territorialMapCacheForPhase(state?.territorial_map_cache, phase);
+    const layers: Array<"route_geometry" | "gps_points"> = activeView === "calidad"
+      ? ["route_geometry", "gps_points"]
+      : ["route_geometry"];
+    const staleLayers = layers.filter((layer) => cache?.[layer]?.status === "stale");
+    if (!staleLayers.length) return;
+    const key = `${phase}:${staleLayers.join(",")}`;
+    if (territorialMapPrepareInFlightRef.current.has(key)) return;
+    territorialMapPrepareInFlightRef.current.add(key);
+    void apiMonitoreoTerritorialMapPrepare({ phase, layers: staleLayers, force: false })
+      .then(() => {
+        if (phase === selectedRoutePhaseRef.current && activeView === activeViewRef.current) {
+          void refresh().catch(() => undefined);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        territorialMapPrepareInFlightRef.current.delete(key);
+      });
+  }, [activeView, route.family, sessionId, selectedRoutePhase, state?.territorial_map_cache, territorialBootKey]);
 
   async function persistSource(payload: MonitoreoSourcePayload) {
     const result = await apiMonitoreoSource(payload);
-    setState(result.state);
-    setConfig(mergeConfig(result.state.config));
+    if ((result.state.monitoreo_profile?.family ?? result.state.config.monitoreo_profile.family) === "territorial") {
+      resetTerritorialReportRequests();
+    }
+    applyMonitoreoState(result.state);
   }
 
   async function addSurveySource(survey: SurveyMonkeyMultibaseListItem, label: string, dimensions: Partial<SourceDimensions>) {
@@ -1529,8 +3254,7 @@ export default function MonitoreoPage() {
     setError("");
     try {
       const result = await apiMonitoreoSources(payloads);
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
+      applyMonitoreoState(result.state);
     } catch (e) {
       setError((e as Error).message);
       throw e;
@@ -1568,6 +3292,10 @@ export default function MonitoreoPage() {
     setSavingSource(true);
     setError("");
     try {
+      const phase = selectedRoutePhaseRef.current;
+      const territorialDimensions = route.family === "territorial"
+        ? { ...cleanSourceDimensions(dimensions), territorial_phase: phase }
+        : cleanSourceDimensions(dimensions);
       const result = await apiMonitoreoSource({
         kind: "kobo",
         label: label.trim() || asset.name,
@@ -1576,19 +3304,18 @@ export default function MonitoreoPage() {
         connection_profile_id: source.connection_profile_id,
         role: "respuestas",
         integration_mode: "connected_read",
-        dimensions: cleanSourceDimensions(dimensions),
+        dimensions: territorialDimensions,
       });
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
+      applyMonitoreoState(result.state);
       if ((result.state.monitoreo_profile?.family ?? result.state.config.monitoreo_profile.family) === "territorial") {
         const inspection = await apiMonitoreoTerritorialInspectKobo({
           source_id: result.source.id,
           asset_uid: asset.uid,
           base_url: source.base_url || "https://kf.kobotoolbox.org",
           connection_profile_id: source.connection_profile_id,
+          phase,
         });
-        setState(inspection.state);
-        setConfig(mergeConfig(inspection.config));
+        applyMonitoreoState(stateWithTerritorialPhase(inspection.state, phase), { acceptPhaseSources: true });
       }
     } catch (e) {
       setError((e as Error).message);
@@ -1601,56 +3328,209 @@ export default function MonitoreoPage() {
   async function useTerritorialKoboAsset(asset: MonitoreoKoboAssetItem) {
     setSavingSource(true);
     setError("");
+    const applySeq = ++territorialSourceApplySeqRef.current;
+    ++stateRequestSeqRef.current;
+    resetTerritorialReportRequests();
     try {
-      const current = sources.find((src) => src.kind === "kobo" && src.enabled) ?? sources.find((src) => src.kind === "kobo") ?? null;
-      const baseUrl = current?.base_url || source.base_url || "https://kf.kobotoolbox.org";
-      const profileId = current?.connection_profile_id || source.connection_profile_id || "";
-      const result = await apiMonitoreoSource({
-        id: current?.id,
-        kind: "kobo",
-        label: asset.name,
-        enabled: true,
+      const phase = selectedRoutePhaseRef.current;
+      const current = territorialKoboSourceForPhase(sources, config, phase);
+      const anyKobo = sources.find((src) => src.kind === "kobo" && src.enabled && src.role !== "ocurrencias_campo") ??
+        sources.find((src) => src.kind === "kobo" && src.role !== "ocurrencias_campo") ??
+        null;
+      const baseUrl = current?.base_url || anyKobo?.base_url || source.base_url || "https://kf.kobotoolbox.org";
+      const profileId = current?.connection_profile_id || anyKobo?.connection_profile_id || source.connection_profile_id || "";
+      setAuthoritativeRoutePhase(phase, true);
+      setTerritorialViewError({});
+      const result = await apiMonitoreoTerritorialSource({
+        phase,
         asset_uid: asset.uid,
+        name: `${asset.name}${phase === "field" ? " · Campo" : " · Piloto"}`,
+        version_id: asset.version_id || "",
         base_url: baseUrl,
         connection_profile_id: profileId,
-        role: "respuestas",
-        integration_mode: "connected_read",
-        dimensions: cleanSourceDimensions((current?.dimensions ?? source.dimensions) as Partial<SourceDimensions>),
+        source_id: current?.id,
       });
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
-      const inspection = await apiMonitoreoTerritorialInspectKobo({
-        source_id: result.source.id,
-        asset_uid: asset.uid,
-        base_url: baseUrl,
-        connection_profile_id: profileId,
+      if (applySeq !== territorialSourceApplySeqRef.current || phase !== selectedRoutePhaseRef.current) return;
+      applyMonitoreoState(stateWithTerritorialPhase(result.state, phase), { acceptPhaseSources: true });
+      const stableConfig = configWithTerritorialPhase(mergeConfig(result.config), phase);
+      commitConfig(stableConfig);
+      setRoutePhaseStatus({
+        status: result.phase_source_status,
+        message: `${phase === "field" ? "Campo" : "Piloto"} seleccionado. Usa ${territorialPhaseSyncButtonLabel(phase)} para descargar respuestas.`,
       });
-      setState(inspection.state);
-      setConfig(mergeConfig(inspection.config));
     } catch (e) {
       setError((e as Error).message);
       throw e;
     } finally {
-      setSavingSource(false);
+      if (applySeq === territorialSourceApplySeqRef.current) setSavingSource(false);
     }
   }
 
   async function patchTerritorialConfig(patch: Partial<MonitoreoConfig["territorial"]>) {
-    const previousConfig = config;
-    const nextConfig = mergeConfig({ ...config, territorial: { ...config.territorial, ...patch } });
+    const previousConfig = configRef.current;
+    const nextConfig = mergeConfig({ ...previousConfig, territorial: { ...previousConfig.territorial, ...patch } });
+    const phasePatch = patch.active_route_phase ? normalizeTerritorialPhase(patch.active_route_phase) : null;
+    const phaseOnlyPatch = Boolean(phasePatch) && Object.keys(patch).every((key) => key === "active_route_phase");
     setSavingConfig(true);
     setError("");
-    setConfig(nextConfig);
+    commitConfig(nextConfig);
+    if (route.family === "territorial") resetTerritorialReportRequests();
     try {
+      if (phasePatch && phaseOnlyPatch) {
+        ++stateRequestSeqRef.current;
+        const requestSeq = ++routePhaseRequestSeqRef.current;
+        setAuthoritativeRoutePhase(phasePatch, true);
+        setLoadingRoutePhase(phasePatch);
+        setRoutePhaseStatus(territorialPhaseSourceStatus(nextConfig, phasePatch));
+        const result = await apiMonitoreoTerritorialPhase(phasePatch);
+        if (requestSeq !== routePhaseRequestSeqRef.current) return;
+        const stableConfig = configWithTerritorialPhase(mergeConfig(result.config), phasePatch);
+        commitConfig(stableConfig);
+        setRoutePhaseStatus({ status: result.phase_source_status, message: result.message });
+        void refresh().catch((e: unknown) => {
+          setRoutePhaseStatus({ status: "error", message: `No se pudo actualizar ${phasePatch === "field" ? "Campo" : "Piloto"}; se conserva la seleccion.` });
+          setError((e as Error).message);
+        });
+        return;
+      }
       const result = await apiMonitoreoTerritorialConfig(nextConfig.territorial);
-      setState(result.state);
-      setConfig(mergeConfig(result.config));
+      applyMonitoreoState(result.state);
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
     } catch (e) {
-      setConfig(previousConfig);
+      if (!phaseOnlyPatch) commitConfig(previousConfig);
+      if (phasePatch && phaseOnlyPatch) {
+        setLoadingRoutePhase((current) => current === phasePatch ? null : current);
+        setRoutePhaseStatus({ status: "error", message: `No se pudo guardar ${phasePatch === "field" ? "Campo" : "Piloto"}; se conserva la seleccion local.` });
+      }
       setError((e as Error).message);
       throw e;
     } finally {
       setSavingConfig(false);
+    }
+  }
+
+  async function uploadTerritorialEnumeratorRoster(file: File, options: { code_format?: "PXXX" | "DNI" } = {}) {
+    setUploadingEnumeratorRoster(true);
+    setError("");
+    try {
+      const roster = config.territorial?.enumerator_roster;
+      const result = await apiMonitoreoTerritorialEnumeratorsUpload(file, {
+        code_var: roster?.code_var || "codigo_pulso",
+        ump_var: roster?.ump_var || "ump",
+        code_format: options.code_format || roster?.code_format || "PXXX",
+      });
+      applyMonitoreoState(result.state);
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setUploadingEnumeratorRoster(false);
+    }
+  }
+
+  async function reconcileTerritorialEnumeratorCode(entry: MonitoreoTerritorialCodeReconciliation) {
+    resetTerritorialReportRequests();
+    setSavingConfig(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialEnumeratorCodeReconciliation({
+        ...entry,
+        phase: entry.phase ?? selectedRoutePhaseRef.current,
+      });
+      applyMonitoreoState(stateWithTerritorialPhase(result.state, selectedRoutePhaseRef.current));
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function reconcileTerritorialUmp(entry: MonitoreoTerritorialUmpReconciliation) {
+    resetTerritorialReportRequests();
+    setSavingConfig(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialUmpReconciliation({
+        ...entry,
+        phase: entry.phase ?? selectedRoutePhaseRef.current,
+      });
+      applyMonitoreoState(stateWithTerritorialPhase(result.state, selectedRoutePhaseRef.current));
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function reconcileTerritorialBatch(changes: MonitoreoTerritorialReconciliationBatchChange[]) {
+    resetTerritorialReportRequests();
+    setSavingConfig(true);
+    setError("");
+    try {
+      const changesWithPhase = changes.map((change): MonitoreoTerritorialReconciliationBatchChange => {
+        if (change.kind === "code") {
+          return {
+            client_id: change.client_id,
+            kind: "code",
+            reconciliation: {
+              ...change.reconciliation,
+              phase: change.reconciliation.phase ?? selectedRoutePhaseRef.current,
+            },
+          };
+        }
+        return {
+          client_id: change.client_id,
+          kind: "ump",
+          reconciliation: {
+            ...change.reconciliation,
+            phase: change.reconciliation.phase ?? selectedRoutePhaseRef.current,
+          },
+        };
+      });
+      const result = await apiMonitoreoTerritorialReconciliationBatch(changesWithPhase);
+      if (result.state) {
+        applyMonitoreoState(stateWithTerritorialPhase(result.state, selectedRoutePhaseRef.current));
+      }
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+      return result;
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function downloadTerritorialEnumeratorTemplate() {
+    setTemplatingEnumeratorRoster(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialEnumeratorsTemplate();
+      window.open(result.download_url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setTemplatingEnumeratorRoster(false);
+    }
+  }
+
+  async function downloadTerritorialEnumeratorCodes() {
+    setDownloadingEnumeratorCodes(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialEnumeratorsCodes();
+      window.open(result.download_url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setDownloadingEnumeratorCodes(false);
     }
   }
 
@@ -1659,8 +3539,7 @@ export default function MonitoreoPage() {
     setError("");
     try {
       const result = await apiMonitoreoSheetsSource(payload);
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
+      applyMonitoreoState(result.state);
     } catch (e) {
       setError((e as Error).message);
       throw e;
@@ -1672,10 +3551,11 @@ export default function MonitoreoPage() {
   async function syncSheetSources(sourceIds: string[]) {
     setSavingSource(true);
     setError("");
+    setSourceSyncRateLimitNotice(null);
+    if (route.family === "territorial") resetTerritorialReportRequests();
     try {
       const result = await apiMonitoreoSheetsSync(sourceIds);
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
+      applyMonitoreoState(result.state);
     } catch (e) {
       setError((e as Error).message);
       throw e;
@@ -1685,17 +3565,84 @@ export default function MonitoreoPage() {
   }
 
   async function syncExternalSources(sourceIds: string[], label: string) {
+    if (!sourceIds.length) {
+      setError("Define primero una fuente activa para actualizar.");
+      return;
+    }
     setSavingSource(true);
     setError("");
+    setSourceSyncRateLimitNotice(null);
+    if (route.family === "territorial") resetTerritorialReportRequests();
     try {
-      await apiMonitoreoConfig(config);
-      const start = await startMonitoreoSourceSyncJob(config, sourceIds);
+      const configForSync = configWithTerritorialPhase(config, selectedRoutePhaseRef.current);
+      await apiMonitoreoConfig(configForSync);
+      const start = await startMonitoreoSourceSyncJob(configForSync, sourceIds);
       setSourceSyncJob({ jobId: start.job_id, label });
     } catch (e) {
       setError((e as Error).message);
       throw e;
     } finally {
       setSavingSource(false);
+    }
+  }
+
+  async function configureFieldOccurrences(patch: Partial<MonitoreoFieldOccurrenceConfig>) {
+    setOccurrencesBusy("config");
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialOccurrencesConfig(patch);
+      resetTerritorialReportRequests();
+      applyMonitoreoState(result.state);
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setOccurrencesBusy("");
+    }
+  }
+
+  async function inspectFieldOccurrences() {
+    setOccurrencesBusy("inspect");
+    setError("");
+    try {
+      return await apiMonitoreoTerritorialOccurrencesInspect();
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setOccurrencesBusy("");
+    }
+  }
+
+  async function generateFieldOccurrencesXlsform() {
+    setOccurrencesBusy("xlsform");
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialOccurrencesXlsform();
+      applyMonitoreoState(result.state);
+      if (result.download_url) {
+        window.open(result.download_url, "_blank", "noopener,noreferrer");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setOccurrencesBusy("");
+    }
+  }
+
+  async function syncFieldOccurrences() {
+    setOccurrencesBusy("sync");
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialOccurrencesSync();
+      applyMonitoreoState(result.state);
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setOccurrencesBusy("");
     }
   }
 
@@ -1717,7 +3664,7 @@ export default function MonitoreoPage() {
         },
       });
       const result = await apiMonitoreoConfig(nextConfig);
-      setState(result.state);
+      applyMonitoreoState(result.state, { adoptPhase: nextRoute.family === "territorial" });
       setConfig(mergeConfig(result.config));
       setSource(nextRoute.family === "territorial"
         ? { ...DEFAULT_SOURCE, kind: "kobo", label: "Encuesta de Percepción de Comunidad de Acogida - Perú 2026", base_url: "https://kobo.unhcr.org", role: "respuestas" }
@@ -1735,8 +3682,7 @@ export default function MonitoreoPage() {
     setError("");
     try {
       const result = await apiMonitoreoAcreditacionSeguimiento(payload);
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
+      applyMonitoreoState(result.state);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1749,8 +3695,7 @@ export default function MonitoreoPage() {
     setError("");
     try {
       const result = await apiMonitoreoCierre({ plan_refuerzo, aprobar_brechas });
-      setState(result.state);
-      setConfig(mergeConfig(result.state.config));
+      applyMonitoreoState(result.state);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1772,47 +3717,24 @@ export default function MonitoreoPage() {
     }
   }
 
-  async function updateReconciliationDecision(responseIds: string | string[], include: boolean) {
-    const cleanIds = (Array.isArray(responseIds) ? responseIds : [responseIds])
-      .map((responseId) => responseId.trim())
-      .filter(Boolean);
-    if (!cleanIds.length) return;
-    const previousConfig = config;
-    const profile = mergeProfile(config.monitoreo_profile);
-    const decisions = profile.reconciliation_decisions ?? {};
-    const includeIds = new Set(arrayOrEmpty<string>(decisions.include_response_ids));
-    const excludeIds = new Set(arrayOrEmpty<string>(decisions.exclude_response_ids));
-    cleanIds.forEach((cleanId) => {
-      if (include) {
-        includeIds.add(cleanId);
-        excludeIds.delete(cleanId);
-      } else {
-        includeIds.delete(cleanId);
-        excludeIds.delete(cleanId);
-      }
-    });
-    const nextConfig = mergeConfig({
-      ...config,
-      monitoreo_profile: {
-        ...profile,
-        reconciliation_decisions: {
-          include_response_ids: Array.from(includeIds),
-          exclude_response_ids: Array.from(excludeIds),
-        },
-      },
-    });
-    setSavingConfig(true);
+  async function updateCaseReconciliationDecision(payload: {
+    response_id: string;
+    action: "keep_excluded" | "include_with_caveat";
+    candidate_id?: string;
+    note?: string;
+  }) {
+    const responseId = payload.response_id.trim();
+    if (!responseId) return;
+    setCaseReconciliationBusyId(responseId);
     setError("");
-    setConfig(nextConfig);
     try {
-      const result = await apiMonitoreoConfig(nextConfig);
-      setState(result.state);
-      setConfig(mergeConfig(result.config));
+      const result = await apiMonitoreoAcreditacionCaseReconciliation({ ...payload, response_id: responseId });
+      applyMonitoreoState(result.state);
+      setConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
     } catch (e) {
-      setConfig(previousConfig);
       setError((e as Error).message);
     } finally {
-      setSavingConfig(false);
+      setCaseReconciliationBusyId("");
     }
   }
 
@@ -1863,21 +3785,37 @@ export default function MonitoreoPage() {
           activeView={activeView}
           onChange={setActiveView}
           sources={sources}
-          activeSources={activeSources.length}
+          activeSources={activePrimarySources.length}
           nRows={state?.n_rows ?? 0}
           syncedAt={state?.synced_at ?? ""}
           dashboardReady={!!dashboard}
           config={config}
           dashboard={dashboard}
-          route={route}
-        />
-        <main className="mon-workbench-main pulso-content-area" aria-live="polite">
+	          route={route}
+	          savingPhase={savingConfig}
+	          selectedRoutePhase={selectedRoutePhase}
+	          loadedDashboardPhase={loadedDashboardPhase}
+	          loadingRoutePhase={loadingRoutePhase}
+	          routePhaseStatus={routePhaseStatus}
+	          phaseCoherence={territorialPhaseCoherence}
+              showWebPublish={activeView === "avance"}
+              publishLastDeploy={state?.publication?.last_deploy ?? null}
+              publishHasSnapshot={!!state?.has_snapshot}
+              publishRows={state?.n_rows ?? 0}
+              publishRouteLabel={route.shortLabel}
+              onOpenWebPublish={() => setWebPublishOpen(true)}
+	          onTerritorialPhaseChange={(phase) => patchTerritorialConfig({ active_route_phase: phase })}
+	        />
+        <main
+          className={`mon-workbench-main pulso-content-area${route.family === "territorial" ? " is-territorial" : ""}${showTerritorialReportStatus ? " has-report-status" : ""}`}
+          aria-live="polite"
+        >
           <WorkbenchHead
             activeView={activeView}
             route={route}
             dashboard={dashboard}
             nRows={state?.n_rows ?? 0}
-            activeSources={activeSources.length}
+            activeSources={activePrimarySources.length}
             strategyCount={config.strategy_phases.length}
           />
           {route.family !== "territorial" && (
@@ -1886,7 +3824,7 @@ export default function MonitoreoPage() {
               route={route}
               dashboard={dashboard}
               nRows={state?.n_rows ?? 0}
-              activeSources={activeSources.length}
+              activeSources={activePrimarySources.length}
               sourceTotal={sources.length}
               config={config}
               actions={activeView === "fuentes" ? (
@@ -1905,192 +3843,496 @@ export default function MonitoreoPage() {
               ) : null}
             />
           )}
+          {showTerritorialReportStatus && (
+            <div className={`mon-territorial-report-status is-${territorialReportStatusTone}`}>
+              <span>{territorialReportStatus}</span>
+              {activeTerritorialReportMeta?.payload_size ? (
+                <small>{Math.round(activeTerritorialReportMeta.payload_size / 1024)} KB</small>
+              ) : null}
+            </div>
+          )}
           <div className={`mon-workbench-content mon-workbench-content--${activeView}`}>
-            {sourceSyncJob && (
-              <div className="mon-workbench-progress">
-                <JobProgress<MonitoreoSyncResult>
-                  label={sourceSyncJob.label}
-                  jobId={sourceSyncJob.jobId}
-                  onDone={async () => {
-                    setSourceSyncJob(null);
-                    await refresh();
-                  }}
-                  onError={(msg) => {
-                    setSourceSyncJob(null);
-                    setError(msg);
-                  }}
-                  onCancelled={() => setSourceSyncJob(null)}
-                />
-              </div>
-            )}
-            {activeView === "avance" && (
-              route.family === "territorial" ? (
-                <TerritorialAdvanceView
-                  dashboard={dashboard}
-                  syncedAt={state?.synced_at ?? ""}
-                  nRows={state?.n_rows ?? 0}
-                />
-              ) : (
-                <AvanceView
-                  sources={sources}
-                  config={config}
-                  dashboard={dashboard}
-                  syncedAt={state?.synced_at ?? ""}
-                  nRows={state?.n_rows ?? 0}
-                  acreditacion={acreditacion}
-                />
-              )
-            )}
-
-            {activeView === "consultas" && (
-              route.family === "territorial" ? (
-                <TerritorialQueriesView dashboard={dashboard} />
-              ) : (
-                <ConsultasView
-                  reports={dashboard?.acreditacion_reports ?? null}
-                  sources={sources}
-                  config={config}
-                  nRows={state?.n_rows ?? 0}
-                  syncedAt={state?.synced_at ?? ""}
-                  openIntent={explorerIntent}
-                />
-              )
-            )}
-
-            {activeView === "modelo" && (
-              route.family === "territorial" ? (
-                <TerritorialRouteView
-                  config={config}
-                  sources={sources}
-                  dashboard={dashboard}
-                  saving={savingConfig}
-                  syncing={Boolean(sourceSyncJob)}
-                  onSyncKobo={() => syncExternalSources(activeKoboSourceIds, "Actualizando Kobo")}
-                  onPhaseChange={async (phase) => {
-                    setSavingConfig(true);
-                    setError("");
-                    try {
-                      const result = await apiMonitoreoTerritorialConfig({ ...config.territorial, active_route_phase: phase });
-                      setState(result.state);
-                      setConfig(mergeConfig(result.config));
-                    } catch (e) {
-                      setError((e as Error).message);
-                    } finally {
-                      setSavingConfig(false);
-                    }
-                  }}
-                />
-              ) : (
-                <OperationalModelPanel
-                  mode={activeModelMode}
-                  onModeChange={setActiveModelMode}
-                  sources={sources}
-                  config={config}
-                  acreditacion={acreditacion}
-                  dashboard={dashboard}
-                  variables={variables}
-                  setConfig={setConfig}
-                  onConfigPersisted={(next) => {
-                    setState(next);
-                    setConfig(mergeConfig(next.config));
-                  }}
-                />
-              )
-            )}
-
-            {activeView === "fuentes" && (
-              <div className="mon-stage mon-stage--sources">
-                {route.family === "territorial" ? (
-                  <TerritorialSourceConsole
-                    dashboard={dashboard}
-                    config={config}
-                    sources={sources}
-                    variables={variables}
-                    history={state?.territorial_update_history ?? []}
-                    saving={savingSource}
-                    syncing={Boolean(sourceSyncJob)}
-                    onInspect={async () => {
-                      const kobo = sources.find((src) => src.kind === "kobo" && src.enabled) ?? sources.find((src) => src.kind === "kobo");
-                      if (!kobo) {
-                        setError("Agrega primero la fuente Kobo de la encuesta territorial.");
-                        return;
-                      }
-                      setSavingSource(true);
-                      setError("");
-                      try {
-                        const result = await apiMonitoreoTerritorialInspectKobo({ source_id: kobo.id, asset_uid: kobo.asset_uid, base_url: kobo.base_url, connection_profile_id: kobo.connection_profile_id });
-                        setState(result.state);
-                        setConfig(mergeConfig(result.config));
-                      } catch (e) {
-                        setError((e as Error).message);
-                      } finally {
-                        setSavingSource(false);
-                      }
-                    }}
-                    onUseAsset={useTerritorialKoboAsset}
-                    onConfigPatch={patchTerritorialConfig}
-                    onSyncKobo={() => syncExternalSources(activeKoboSourceIds, "Actualizando Kobo")}
+            {territorialBootBlocksContent ? (
+              <TerritorialBootPanel
+                boot={territorialBoot}
+                phase={activeTerritorialPhase}
+                nRows={state?.n_rows ?? 0}
+                syncedAt={state?.synced_at ?? ""}
+              />
+            ) : (
+              <>
+                {sourceSyncJob && (
+                  <div className="mon-workbench-progress">
+                    <JobProgress<MonitoreoSyncResult>
+                      label={sourceSyncJob.label}
+                      jobId={sourceSyncJob.jobId}
+                      onDone={async (result) => {
+                        setSourceSyncJob(null);
+                        const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
+                        setSourceSyncRateLimitNotice(rateLimitNotice);
+                        await refresh();
+                      }}
+                      onError={(msg) => {
+                        setSourceSyncJob(null);
+                        setError(msg);
+                      }}
+                      onCancelled={() => setSourceSyncJob(null)}
+                    />
+                  </div>
+                )}
+                {sourceSyncRateLimitNotice ? (
+                  <SourceSyncRateLimitNoticeCard
+                    notice={sourceSyncRateLimitNotice}
+                    onDismiss={() => setSourceSyncRateLimitNotice(null)}
                   />
-                ) : (
-                  <SourcePanel
-                    className="mon-fill-panel mon-source-fill-panel"
-                    draft={source}
-                    setDraft={setSource}
-                    saving={savingSource}
-                    state={state}
-                    config={config}
-                    route={route}
-                    onAddSurvey={addSurveySource}
-                    onAddSurveys={addSurveySources}
-                    onAddKobo={addKoboSource}
-                    onAddSheet={addSheetSource}
-                    onSheetsSynced={syncSheetSources}
-                    onUpdateSource={updateSource}
+                ) : null}
+                {activeView === "avance" && (
+                  route.family === "territorial" ? (
+	                <TerritorialAdvanceView
+	                  dashboard={dashboard}
+	                  syncedAt={state?.synced_at ?? ""}
+	                  nRows={state?.n_rows ?? 0}
+	                  loading={territorialActiveViewLoading}
+	                  error={territorialActiveViewError}
+	                />
+                  ) : (
+                    <AvanceView
+                      sources={sources}
+                      config={config}
+                      dashboard={dashboard}
+                      syncedAt={state?.synced_at ?? ""}
+                      nRows={state?.n_rows ?? 0}
+                      acreditacion={acreditacion}
+                    />
+                  )
+                )}
+
+                {activeView === "consultas" && (
+                  route.family === "territorial" ? (
+	                <TerritorialQueriesView
+	                  dashboard={dashboard}
+	                  loading={territorialActiveViewLoading}
+	                  error={territorialActiveViewError}
+	                  onRetry={() => {
+	                    setTerritorialViewError((current) => ({ ...current, consultas: "" }));
+	                    void refresh().catch(() => undefined);
+	                  }}
+		                  config={config}
+		                  onOpenValidationCase={openTerritorialValidationCase}
+		                  reviewFilters={territorialReviewFilters}
+		                  onReviewFiltersChange={setTerritorialReviewFilters}
+	                />
+                  ) : (
+                    <ConsultasView
+                      reports={dashboard?.acreditacion_reports ?? null}
+                      sources={sources}
+                      config={config}
+	                  nRows={state?.n_rows ?? 0}
+	                  syncedAt={state?.synced_at ?? ""}
+	                  openIntent={explorerIntent}
+                      caseReconciliationBusyId={caseReconciliationBusyId}
+                      onCaseReconciliationDecision={updateCaseReconciliationDecision}
+	                />
+                  )
+                )}
+
+                {activeView === "ocurrencias" && route.family === "territorial" && (
+                  <TerritorialFieldOccurrencesSection
+                    dashboard={dashboard}
+                    loading={territorialActiveViewLoading}
+                    error={territorialActiveViewError}
+                    onRetry={() => {
+                      setTerritorialViewError((current) => ({ ...current, ocurrencias: "" }));
+                      void refresh().catch(() => undefined);
+                    }}
+                    busy={occurrencesBusy}
+                    onGenerate={generateFieldOccurrencesXlsform}
+                    onConfigure={configureFieldOccurrences}
+                    onInspect={inspectFieldOccurrences}
+                    onSync={syncFieldOccurrences}
                   />
                 )}
-              </div>
-            )}
 
-            {activeView === "telefonico" && route.family !== "territorial" && (
-              <TelefonicoView
-                dashboard={dashboard}
-                syncedAt={state?.synced_at ?? ""}
-                nRows={state?.n_rows ?? 0}
-                inconsistencies={dashboard?.inconsistencies ?? []}
-                sample={sample}
-                hasSnapshot={!!state?.has_snapshot}
-                onBuildSample={buildSample}
-              />
-            )}
+                {activeView === "modelo" && (
+                  route.family === "territorial" ? (
+	                <TerritorialRouteView
+	                  config={config}
+	                  sources={sources}
+	                  dashboard={dashboard}
+		                  saving={savingConfig}
+			                  syncing={Boolean(sourceSyncJob)}
+			                  phaseCoherence={territorialPhaseCoherence}
+			                  loading={territorialActiveViewLoading}
+			                  error={territorialActiveViewError}
+			                  onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
+			                />
+                  ) : (
+                    <OperationalModelPanel
+                      mode={activeModelMode}
+                      onModeChange={setActiveModelMode}
+                      sources={sources}
+                      config={config}
+                      acreditacion={acreditacion}
+                      dashboard={dashboard}
+                      variables={variables}
+	                  setConfig={setConfig}
+	                  onConfigPersisted={(next) => {
+	                    applyMonitoreoState(next);
+	                  }}
+                    />
+                  )
+                )}
 
-            {activeView === "calidad" && (
-              route.family === "territorial" ? (
-                <TerritorialValidationView
-                  dashboard={dashboard}
-                  config={config}
-                  saving={savingConfig}
-                  selectedResponseId={territorialSelectedResponseId}
-                  onSelectResponse={setTerritorialSelectedResponseId}
-                  onConfigPatch={patchTerritorialConfig}
-                />
-              ) : (
-                <QualityView
-                  mode={activeQualityMode}
-                  onModeChange={setActiveQualityMode}
-                  config={config}
-                  reports={dashboard?.acreditacion_reports ?? null}
-                  inconsistencies={dashboard?.inconsistencies ?? []}
-                  onReconciliationDecisionChange={updateReconciliationDecision}
-                  reconciliationBusy={savingConfig}
-                  onOpenExplorer={openExplorerFromQuality}
-                />
-              )
-            )}
+                {activeView === "fuentes" && (
+                  <div className="mon-stage mon-stage--sources">
+                    {route.family === "territorial" ? (
+                      <TerritorialSourceConsole
+                        dashboard={dashboard}
+                        config={config}
+                        sources={sources}
+                        variables={variables}
+                        history={state?.territorial_update_history ?? []}
+                        saving={savingSource || savingConfig}
+                        syncing={Boolean(sourceSyncJob)}
+                        uploadingRoster={uploadingEnumeratorRoster}
+                        templatingRoster={templatingEnumeratorRoster}
+	                    downloadingRosterCodes={downloadingEnumeratorCodes}
+	                    onInspect={async () => {
+		                      const phase = selectedRoutePhaseRef.current;
+	                      const inspectSeq = ++territorialInspectSeqRef.current;
+	                      const requestedIdentity = territorialPhaseIdentity(configRef.current, phase);
+	                      const kobo = territorialKoboSourceForPhase(sources, configRef.current, phase);
+	                      if (!kobo) {
+	                        setError(`Agrega primero la fuente Kobo territorial de ${phase === "field" ? "campo" : "piloto"}.`);
+	                        return;
+	                      }
+                          setSavingSource(true);
+                          setError("");
+                          try {
+		                        const result = await apiMonitoreoTerritorialInspectKobo({ source_id: kobo.id, asset_uid: kobo.asset_uid, base_url: kobo.base_url, connection_profile_id: kobo.connection_profile_id, phase });
+	                        if (inspectSeq !== territorialInspectSeqRef.current) return;
+	                        if (phase !== selectedRoutePhaseRef.current) return;
+	                        if (!territorialPhaseIdentityMatches(requestedIdentity, territorialPhaseIdentity(configRef.current, phase))) return;
+	                        applyMonitoreoState(stateWithTerritorialPhase(result.state, phase));
+                          } catch (e) {
+                            setError((e as Error).message);
+                          } finally {
+                            if (inspectSeq === territorialInspectSeqRef.current) setSavingSource(false);
+                          }
+                        }}
+                        onUseAsset={useTerritorialKoboAsset}
+                        onConfigPatch={patchTerritorialConfig}
+                        onCodeReconcile={reconcileTerritorialEnumeratorCode}
+                        onUmpReconcile={reconcileTerritorialUmp}
+                        onBatchReconcile={reconcileTerritorialBatch}
+                        onUploadEnumeratorRoster={uploadTerritorialEnumeratorRoster}
+	                    onDownloadEnumeratorTemplate={downloadTerritorialEnumeratorTemplate}
+	                    onDownloadEnumeratorCodes={downloadTerritorialEnumeratorCodes}
+		                    phaseCoherence={territorialPhaseCoherence}
+		                    onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
+	                  />
+                    ) : (
+                      <SourcePanel
+                        className="mon-fill-panel mon-source-fill-panel"
+                        draft={source}
+                        setDraft={setSource}
+                        saving={savingSource}
+                        state={state}
+                        config={config}
+                        route={route}
+                        onAddSurvey={addSurveySource}
+                        onAddSurveys={addSurveySources}
+                        onAddKobo={addKoboSource}
+                        onAddSheet={addSheetSource}
+                        onSheetsSynced={syncSheetSources}
+                        onUpdateSource={updateSource}
+                      />
+                    )}
+                  </div>
+                )}
 
+                {activeView === "telefonico" && route.family !== "territorial" && (
+                  <TelefonicoView
+                    dashboard={dashboard}
+                    syncedAt={state?.synced_at ?? ""}
+                    nRows={state?.n_rows ?? 0}
+                    inconsistencies={dashboard?.inconsistencies ?? []}
+                    sample={sample}
+                    hasSnapshot={!!state?.has_snapshot}
+                    onBuildSample={buildSample}
+                  />
+                )}
+
+                {activeView === "calidad" && route.family === "territorial" && (
+                    <TerritorialValidationView
+	                  dashboard={dashboard}
+	                  config={config}
+	                  saving={savingConfig}
+	                  loading={territorialActiveViewLoading}
+	                  error={territorialActiveViewError}
+	                  onRetry={() => {
+	                    setTerritorialViewError((current) => ({ ...current, calidad: "" }));
+	                    void refresh().catch(() => undefined);
+	                  }}
+		                  selectedResponseId={territorialSelectedResponseId}
+		                  openIntent={territorialValidationIntent}
+	                  onSelectResponse={setTerritorialSelectedResponseId}
+                      onConfigPatch={patchTerritorialConfig}
+                    />
+                )}
+              </>
+            )}
           </div>
         </main>
       </section>
+      {webPublishOpen && (
+        <MonitoreoWebPublishDialog
+          defaultTitle={config.acreditacion?.estudio?.titulo || route.label || "reporte-monitoreo"}
+          lastDeploy={state?.publication?.last_deploy ?? null}
+          hasSnapshot={!!state?.has_snapshot}
+          onClose={() => setWebPublishOpen(false)}
+          onPublished={() => { void refresh(); }}
+        />
+      )}
     </PageFrame>
+  );
+}
+
+function MonitoreoRailWebPublishControl({
+  lastDeploy,
+  hasSnapshot,
+  nRows,
+  routeLabel,
+  onOpen,
+}: {
+  lastDeploy?: MonitoreoLastDeploy | null;
+  hasSnapshot: boolean;
+  nRows: number;
+  routeLabel: string;
+  onOpen: () => void;
+}) {
+  const publishedMeta = lastDeploy
+    ? [
+      lastDeploy.repo_id ? shortenMiddle(lastDeploy.repo_id, 28) : (lastDeploy.app_url ? "Web disponible" : "Publicacion previa"),
+      lastDeploy.published_at ? formatDate(lastDeploy.published_at) : "",
+    ].filter(Boolean).join(" · ")
+    : "";
+  return (
+    <section className="mon-rail-web-publish" aria-label="Publicacion web de avance">
+      <span><Globe2 size={13} /> Avance web</span>
+      <strong>{lastDeploy ? "Web publicada" : `Publicar ${routeLabel}`}</strong>
+      <small>
+        {lastDeploy
+          ? publishedMeta
+          : `${formatMetric(nRows)} registros locales listos para publicar.`}
+      </small>
+      <div className={`mon-rail-web-publish-actions${lastDeploy?.app_url ? " has-open" : ""}`}>
+        {lastDeploy?.app_url ? (
+          <a href={lastDeploy.app_url} target="_blank" rel="noreferrer" aria-label="Abrir web publicada">
+            <ExternalLink size={14} />
+          </a>
+        ) : null}
+        <button type="button" onClick={onOpen} disabled={!hasSnapshot}>
+          <Globe2 size={14} />
+          <span>{lastDeploy ? "Re-publicar" : "Publicar web"}</span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function MonitoreoWebPublishDialog({
+  defaultTitle,
+  lastDeploy,
+  hasSnapshot,
+  onClose,
+  onPublished,
+}: {
+  defaultTitle: string;
+  lastDeploy?: MonitoreoLastDeploy | null;
+  hasSnapshot: boolean;
+  onClose: () => void;
+  onPublished: () => void;
+}) {
+  const [username, setUsername] = useState(lastDeploy?.hf_username ?? "");
+  const [token, setToken] = useState("");
+  const [tokenName, setTokenName] = useState("Monitoreo");
+  const [savedTokens, setSavedTokens] = useState<HfSavedToken[]>([]);
+  const [selectedTokenId, setSelectedTokenId] = useState("");
+  const [spaceName, setSpaceName] = useState(
+    () => lastDeploy?.space_name ?? slugifySpaceName(defaultTitle || "reporte-monitoreo"),
+  );
+  const [isPrivate, setIsPrivate] = useState(lastDeploy?.private ?? false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<{ repo_id: string; app_url: string; url: string } | null>(null);
+
+  const canPublish = useMemo(
+    () => hasSnapshot && !!username.trim() && /^hf_[A-Za-z0-9_]+$/.test(token.trim()) && /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(spaceName.trim()),
+    [hasSnapshot, username, token, spaceName],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      if (!window.prosecnurApi?.getHfSettings) {
+        setLoadingSettings(false);
+        return;
+      }
+      try {
+        const settings = await window.prosecnurApi.getHfSettings();
+        if (!alive) return;
+        setUsername((current) => current || settings.hf_username || "");
+        setSavedTokens(settings.saved_tokens ?? []);
+      } catch (_e) {
+        // Fuera de Electron, el usuario llena los campos manualmente.
+      } finally {
+        if (alive) setLoadingSettings(false);
+      }
+    }
+    void load();
+    return () => { alive = false; };
+  }, []);
+
+  async function handleSavedTokenChange(id: string) {
+    setSelectedTokenId(id);
+    if (!id || !window.prosecnurApi?.getHfToken) return;
+    setLoadingSettings(true);
+    try {
+      const saved = await window.prosecnurApi.getHfToken(id);
+      if (!saved) return;
+      setUsername(saved.hf_username ?? "");
+      setToken(saved.hf_token ?? "");
+      setTokenName(saved.name ?? "Monitoreo");
+    } finally {
+      setLoadingSettings(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!canPublish || publishing) return;
+    setPublishing(true);
+    setError("");
+    setResult(null);
+    try {
+      const out = await apiMonitoreoPublish({
+        hf_username: username.trim(),
+        hf_token: token.trim(),
+        space_name: spaceName.trim(),
+        private: isPrivate,
+      });
+      if (window.prosecnurApi?.rememberSuccessfulHfToken) {
+        const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
+          name: tokenName.trim() || username.trim(),
+          hf_username: username.trim(),
+          hf_token: token.trim(),
+        });
+        setSavedTokens(settings.saved_tokens ?? []);
+      }
+      setResult({ repo_id: out.repo_id, app_url: out.app_url, url: out.url });
+      onPublished();
+      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  return (
+    <div className="mon-web-publish-backdrop" onClick={publishing ? undefined : onClose}>
+      <form
+        className="mon-web-publish-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mon-web-publish-title"
+        onClick={(event) => event.stopPropagation()}
+        onSubmit={handleSubmit}
+      >
+        <header className="mon-web-publish-dialog-head">
+          <div>
+            <span><Globe2 size={14} /> Hugging Face Space</span>
+            <h2 id="mon-web-publish-title">Publicar web de avance</h2>
+            <p>Sube un visor publico read-only con datos agregados del corte actual.</p>
+          </div>
+          <button type="button" onClick={onClose} disabled={publishing} aria-label="Cerrar">
+            <XCircle size={16} />
+          </button>
+        </header>
+
+        <div className="mon-web-publish-form">
+          {savedTokens.length > 0 && (
+            <label className="is-wide">
+              Token guardado
+              <select
+                value={selectedTokenId}
+                onChange={(event) => void handleSavedTokenChange(event.target.value)}
+                disabled={publishing || loadingSettings}
+              >
+                <option value="">Usar otro token...</option>
+                {savedTokens.map((saved) => (
+                  <option key={saved.id} value={saved.id}>
+                    {saved.name} · {saved.hf_username} · {saved.masked_token}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label>
+            Usuario u organizacion HF
+            <input value={username} onChange={(event) => setUsername(event.target.value)} disabled={publishing || loadingSettings} placeholder="prosecnur" />
+          </label>
+          <label>
+            Token write
+            <input value={token} onChange={(event) => setToken(event.target.value)} disabled={publishing || loadingSettings} placeholder="hf_..." type="password" autoComplete="off" />
+          </label>
+          <label className="is-wide">
+            Recordar token como
+            <input value={tokenName} onChange={(event) => setTokenName(event.target.value)} disabled={publishing || loadingSettings} placeholder="ACNUR" />
+          </label>
+          <label className="is-wide">
+            Nombre del Space
+            <input value={spaceName} onChange={(event) => setSpaceName(slugifySpaceName(event.target.value))} disabled={publishing} placeholder="acnur-avance-territorial" />
+          </label>
+          <label className="mon-web-publish-check">
+            <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} disabled={publishing} />
+            Crear como privado
+          </label>
+        </div>
+
+        {publishing ? (
+          <div className="mon-web-publish-status">
+            <Loader2 size={16} className="pulso-spin" />
+            <span>Subiendo runtime publico y snapshot agregado. El build de HF puede tomar algunos minutos.</span>
+          </div>
+        ) : null}
+        {!hasSnapshot ? <Alert kind="error">Sincroniza un corte antes de publicar.</Alert> : null}
+        {error ? <Alert kind="error">{error}</Alert> : null}
+        {result ? (
+          <div className="mon-web-publish-result">
+            <CheckCircle2 size={18} />
+            <div>
+              <strong>{result.repo_id}</strong>
+              <span>HF recibio el Space. La web aparecera cuando termine el build.</span>
+            </div>
+            <a href={result.app_url} target="_blank" rel="noreferrer">
+              <ExternalLink size={13} />
+              Abrir
+            </a>
+          </div>
+        ) : null}
+
+        <footer className="mon-web-publish-dialog-actions">
+          <button type="button" onClick={onClose} disabled={publishing}>Cerrar</button>
+          <button type="submit" disabled={!canPublish || publishing}>
+            {publishing ? <Loader2 size={14} className="pulso-spin" /> : <Globe2 size={14} />}
+            Publicar
+          </button>
+        </footer>
+      </form>
+    </div>
   );
 }
 
@@ -2166,9 +4408,22 @@ function MonitoreoRail({
   syncedAt,
   dashboardReady,
   config,
-  dashboard,
-  route,
-}: {
+	  dashboard,
+	  route,
+	  savingPhase,
+	  selectedRoutePhase,
+	  loadedDashboardPhase,
+	  loadingRoutePhase,
+	  routePhaseStatus,
+	  phaseCoherence,
+      showWebPublish,
+      publishLastDeploy,
+      publishHasSnapshot,
+      publishRows,
+      publishRouteLabel,
+      onOpenWebPublish,
+	  onTerritorialPhaseChange,
+	}: {
   activeView: WorkbenchView;
   onChange: (view: WorkbenchView) => void;
   sources: MonitoreoSource[];
@@ -2177,15 +4432,46 @@ function MonitoreoRail({
   syncedAt: string;
   dashboardReady: boolean;
   config: MonitoreoConfig;
-  dashboard: MonitoreoDashboard | null;
-  route: (typeof MONITOREO_ROUTES)[number];
-}) {
+	  dashboard: MonitoreoDashboard | null;
+	  route: (typeof MONITOREO_ROUTES)[number];
+	  savingPhase?: boolean;
+	  selectedRoutePhase: MonitoreoTerritorialPhase;
+	  loadedDashboardPhase: MonitoreoTerritorialPhase | null;
+	  loadingRoutePhase: MonitoreoTerritorialPhase | null;
+	  routePhaseStatus: { status: string; message: string } | null;
+	  phaseCoherence?: MonitoreoTerritorialPhaseCoherence | null;
+      showWebPublish?: boolean;
+      publishLastDeploy?: MonitoreoLastDeploy | null;
+      publishHasSnapshot?: boolean;
+      publishRows?: number;
+      publishRouteLabel?: string;
+      onOpenWebPublish?: () => void;
+	  onTerritorialPhaseChange?: (phase: "pilot" | "field") => Promise<void>;
+	}) {
   const views = workbenchViewsForRoute(route);
   const territorial = route.family === "territorial" ? territorialReportsFromDashboard(dashboard) : null;
+  const isTerritorial = route.family === "territorial";
   const railMeta = territorial?.kpis.meta ?? config.goals.length;
-  const railMechanisms = territorial
-    ? (territorial.active_route_phase === "field" ? "Campo" : "Piloto")
-    : String(config.strategy_phases.length);
+	  const activePhase = selectedRoutePhase;
+	  const selectedPhaseLabel = activePhase === "field" ? "Campo" : "Piloto";
+	  const loadingSelectedPhase = loadingRoutePhase === activePhase;
+	  const loadedPhaseBehind = Boolean(loadedDashboardPhase && loadedDashboardPhase !== activePhase);
+	  const activePhaseHealth = territorialPhaseCoherenceItem(phaseCoherence, activePhase);
+	  const sourceStatus = routePhaseStatus?.status ?? activePhaseHealth?.status ?? territorial?.phase_source_status ?? "";
+	  const sourceMessage = routePhaseStatus?.message ?? (activePhaseHealth ? territorialPhaseStatusLabel(activePhaseHealth, activePhase) : territorial?.phase_source_message ?? "");
+	  const phaseStatusLabel = loadingSelectedPhase
+	    ? `Actualizando datos de ${selectedPhaseLabel}...`
+	    : sourceStatus === "missing_source"
+	      ? sourceMessage || `${selectedPhaseLabel} seleccionado sin fuente configurada.`
+	      : loadedPhaseBehind
+	        ? `Mostrando ultimo tablero de ${loadedDashboardPhase === "field" ? "Campo" : "Piloto"} mientras carga ${selectedPhaseLabel}.`
+	        : sourceStatus === "error"
+	          ? sourceMessage || `No se pudo actualizar ${selectedPhaseLabel}; se conserva la seleccion.`
+	          : sourceMessage || `${selectedPhaseLabel} seleccionado.`;
+  const phaseOptions = [
+    { key: "pilot" as const, label: "Piloto", hint: "30 meta" },
+    { key: "field" as const, label: "Campo", hint: "1,200 meta" },
+  ];
   return (
     <aside className="mon-workbench-rail pulso-sidebar" aria-label="Flujos de monitoreo">
       <div className="mon-rail-head">
@@ -2220,11 +4506,42 @@ function MonitoreoRail({
           );
         })}
       </div>
+      {showWebPublish && onOpenWebPublish ? (
+        <MonitoreoRailWebPublishControl
+          lastDeploy={publishLastDeploy ?? null}
+          hasSnapshot={Boolean(publishHasSnapshot)}
+          nRows={publishRows ?? 0}
+          routeLabel={publishRouteLabel || route.shortLabel}
+          onOpen={onOpenWebPublish}
+        />
+      ) : null}
+      {isTerritorial && onTerritorialPhaseChange ? (
+        <div className="mon-rail-phase-switch" aria-label="Formato territorial">
+          <span>Formato territorial</span>
+          <div role="tablist" aria-label="Piloto o campo">
+            {phaseOptions.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={activePhase === item.key}
+                className={activePhase === item.key ? "is-active" : ""}
+	                disabled={activePhase === item.key}
+                onClick={() => { void onTerritorialPhaseChange(item.key).catch(() => undefined); }}
+              >
+                <strong>{item.label}</strong>
+                <small>{item.hint}</small>
+              </button>
+            ))}
+          </div>
+	          <em className={`mon-rail-phase-status${sourceStatus ? ` is-${sourceStatus}` : ""}`}>{phaseStatusLabel}</em>
+	        </div>
+      ) : null}
       <div className="mon-rail-status" aria-label="Estado del monitoreo">
         <RailMetric label="Fuentes activas" value={`${activeSources}/${sources.length}`} />
         <RailMetric label="Registros" value={nRows ? nRows.toLocaleString("es-PE") : "S/D"} />
         <RailMetric label="Meta" value={typeof railMeta === "number" ? railMeta.toLocaleString("es-PE") : String(railMeta ?? "S/D")} />
-        <RailMetric label={territorial ? "Fase" : "Mecanismos"} value={railMechanisms} />
+        {!isTerritorial && <RailMetric label="Mecanismos" value={String(config.strategy_phases.length)} />}
         <div className={`mon-rail-sync${dashboardReady ? " is-ready" : ""}`}>
           <span>{dashboardReady ? "Tablero listo" : "Pendiente de sync"}</span>
           <strong>{syncedAt ? formatDate(syncedAt) : "Sin sincronizar"}</strong>
@@ -2390,6 +4707,97 @@ function SourceSyncActions({
   );
 }
 
+function SourceSyncRateLimitNoticeCard({
+  notice,
+  onDismiss,
+}: {
+  notice: SourceSyncRateLimitNotice;
+  onDismiss: () => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const visibleSources = notice.sources.slice(0, 6);
+  const hiddenSources = Math.max(0, notice.sources.length - visibleSources.length);
+  return (
+    <section className="mon-source-rate-limit-notice" aria-label="Advertencia de limite de API">
+      <span className="mon-source-rate-limit-icon"><AlertTriangle size={15} /></span>
+      <div>
+        <strong>{notice.title}</strong>
+        <p>{notice.detail}</p>
+      </div>
+      <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Trigger asChild>
+          <button type="button" className="mon-source-rate-limit-action">
+            <ShieldAlert size={13} />
+            <span>Ver recomendación</span>
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content className="mon-source-rate-limit-popover" align="end" sideOffset={8}>
+            <header>
+              <span><ShieldAlert size={14} /> SurveyMonkey limitó la API</span>
+              <em>HTTP 429</em>
+            </header>
+            <p>
+              Prosecnur conservó las respuestas anteriores de las encuestas bloqueadas. Para actualizar ahora, usa otro código API/token de SurveyMonkey con cuota disponible; si no, espera a que se libere el límite y vuelve a sincronizar.
+            </p>
+            {visibleSources.length ? (
+              <div>
+                <span>Fuentes afectadas</span>
+                <ul>
+                  {visibleSources.map((source) => (
+                    <li key={source}>{source}</li>
+                  ))}
+                  {hiddenSources ? <li>+{hiddenSources.toLocaleString("es-PE")} fuentes más</li> : null}
+                </ul>
+              </div>
+            ) : null}
+            <small>
+              La actualización parcial no debe borrar efectivas existentes; solo quedan pendientes las fuentes que SurveyMonkey no dejó leer.
+            </small>
+            <Popover.Close asChild>
+              <button type="button">Entendido</button>
+            </Popover.Close>
+            <Popover.Arrow className="mon-source-rate-limit-arrow" />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+      <button type="button" className="mon-source-rate-limit-dismiss" onClick={onDismiss} aria-label="Cerrar advertencia">
+        <XCircle size={14} />
+      </button>
+    </section>
+  );
+}
+
+function buildSourceSyncRateLimitNotice(result: unknown): SourceSyncRateLimitNotice | null {
+  if (!result || typeof result !== "object") return null;
+  const rawErrors = (result as Partial<MonitoreoSyncResult>).errors;
+  const errors = Array.isArray(rawErrors) ? rawErrors : [];
+  const rateLimited = errors.filter(isSurveyMonkeyRateLimitError);
+  if (!rateLimited.length) return null;
+  const sources = Array.from(new Set(rateLimited.map((item) => (
+    stringOrEmpty(item.source_label) || stringOrEmpty(item.source_id) || "Encuesta SurveyMonkey"
+  ))));
+  const messages = Array.from(new Set(rateLimited.map((item) => stringOrEmpty(item.message)).filter(Boolean)));
+  return {
+    provider: "surveymonkey",
+    title: "SurveyMonkey alcanzó el límite de API",
+    detail: `${sources.length.toLocaleString("es-PE")} ${sources.length === 1 ? "fuente no pudo" : "fuentes no pudieron"} actualizarse. Se conservaron las respuestas previas; para refrescar ahora conviene usar otro código API/token.`,
+    sources,
+    messages,
+  };
+}
+
+function isSurveyMonkeyRateLimitError(error: { source_id?: string; source_label?: string; message?: string }) {
+  const text = normalizeMatch([
+    error.source_id,
+    error.source_label,
+    error.message,
+  ].filter(Boolean).join(" "));
+  const isSurveyMonkey = text.includes("surveymonkey") || text.includes("sm contabilidad") || text.includes("sm-contabilidad");
+  const isRateLimit = text.includes("429") || text.includes("rate limit") || text.includes("too many requests") || text.includes("limite");
+  return isSurveyMonkey && isRateLimit;
+}
+
 function workbenchClarityItems({
   activeView,
   route,
@@ -2416,6 +4824,9 @@ function workbenchClarityItems({
     const geoReview = (kpis?.geo_revision ?? 0) + (kpis?.geo_no_defendible ?? 0) + (kpis?.geo_sin_cruce ?? 0);
     const incompleteBlocks = territorial?.internal_queries?.incomplete_blocks?.length ?? 0;
     const laggingDistricts = territorial?.internal_queries?.lagging_districts?.length ?? 0;
+    const occurrences = territorial?.field_occurrences ?? null;
+    const occurrenceSummary = occurrences?.summary ?? null;
+    const occurrenceUmpCount = occurrences?.by_ump?.length ?? occurrenceSummary?.manzanas_reportadas ?? 0;
     const byView: Record<WorkbenchView, Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof BarChart3 }>> = {
       fuentes: [
         { label: "Formulario", value: territorial?.source_coherence?.asset_name ? "Definido" : "Pendiente", hint: territorial?.source_coherence?.version_id || "Kobo API", tone: territorial?.source_coherence?.asset_name ? "ready" : "warning", icon: PlugZap },
@@ -2436,6 +4847,11 @@ function workbenchClarityItems({
         { label: "Manzanas incompletas", value: formatMetric(incompleteBlocks), hint: "brecha por hoja", tone: incompleteBlocks ? "warning" : "ready", icon: Route },
         { label: "GPS lejos", value: formatMetric(territorial?.internal_queries?.far_gps?.length ?? 0), hint: ">300 m o fuera", tone: territorial?.internal_queries?.far_gps?.length ? "refusal" : "ready", icon: MapPin },
         { label: "Distritos atrás", value: formatMetric(laggingDistricts), hint: "meta menos válidas", tone: laggingDistricts ? "warning" : "ready", icon: BarChart3 },
+      ],
+      ocurrencias: [
+        { label: "Reportes", value: formatMetric(occurrenceSummary?.total_records ?? 0), hint: occurrences?.snapshot?.synced_at ? formatDate(occurrences.snapshot.synced_at) : "sin sync", tone: occurrenceSummary?.total_records ? "base" : "warning", icon: ClipboardCheck },
+        { label: "UMP", value: formatMetric(occurrenceUmpCount), hint: "con ocurrencias", tone: occurrenceUmpCount ? "ready" : "warning", icon: Route },
+        { label: "No efectivas", value: formatMetric(occurrenceSummary?.no_efectivas ?? 0), hint: occurrenceSummary?.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(Number(occurrenceSummary.tasa_no_efectiva) * 100), tone: occurrenceSummary?.no_efectivas ? "warning" : "ready", icon: ShieldAlert },
       ],
       telefonico: [
         { label: "Equipo", value: formatMetric(territorial?.team?.length ?? 0), hint: "enumeradores Kobo", tone: territorial?.team?.length ? "base" : "warning", icon: ContactRound },
@@ -2499,6 +4915,11 @@ function workbenchClarityItems({
       { label: "Efectivas", value: internalQueries.cases.length ? formatMetric(internalSummary.effective) : "S/D", hint: "reales trazadas", tone: internalSummary.effective ? "effective" : "warning", icon: CheckCircle2 },
       { label: "Salen pendientes", value: formatMetric(internalSummary.pendingExit), hint: "faltantes/barrido recuperados", tone: internalSummary.pendingExit ? "ready" : "base", icon: Route },
       { label: "Alertas", value: formatMetric(internalIssues), hint: internalDuplicates ? `${formatMetric(internalDuplicates)} duplicados` : "casos de revisión", tone: internalIssues ? "warning" : "ready", icon: ShieldAlert },
+    ],
+    ocurrencias: [
+      { label: "Efectivas", value: internalQueries.cases.length ? formatMetric(internalSummary.effective) : "S/D", hint: "lectura territorial", tone: internalSummary.effective ? "effective" : "warning", icon: CheckCircle2 },
+      { label: "Salen pendientes", value: formatMetric(internalSummary.pendingExit), hint: "fallback no territorial", tone: internalSummary.pendingExit ? "ready" : "base", icon: Route },
+      { label: "Alertas", value: formatMetric(internalIssues), hint: "casos de revisión", tone: internalIssues ? "warning" : "ready", icon: ShieldAlert },
     ],
     telefonico: [
       { label: "Efectivas tel.", value: formatMetric(phoneTotals.effective), hint: "operativas", tone: phoneTotals.effective ? "effective" : "warning", icon: PhoneCall },
@@ -2592,24 +5013,26 @@ function AvanceView({
 }) {
   return (
     <div className="mon-stage mon-stage--avance">
-      {dashboard ? (
-        <div className="mon-stage-stack mon-stage-stack--dashboard">
-          <AcreditacionAdvanceWorkbench
-            sources={sources}
-            config={config}
-            acreditacion={acreditacion}
-            dashboard={dashboard}
-            syncedAt={syncedAt}
-            nRows={nRows}
+      {dashboard
+        ? (
+          <div className="mon-stage-stack mon-stage-stack--dashboard">
+            <AcreditacionAdvanceWorkbench
+              sources={sources}
+              config={config}
+              acreditacion={acreditacion}
+              dashboard={dashboard}
+              syncedAt={syncedAt}
+              nRows={nRows}
+            />
+          </div>
+        )
+        : (
+          <EmptyState
+            icon={<RefreshCw size={18} />}
+            title="Sin datos sincronizados"
+            hint="Conecta una fuente y sincroniza para ver el tablero operativo."
           />
-        </div>
-      ) : (
-        <EmptyState
-          icon={<RefreshCw size={18} />}
-          title="Sin datos sincronizados"
-          hint="Conecta una fuente y sincroniza para ver el tablero operativo."
-        />
-      )}
+        )}
     </div>
   );
 }
@@ -2634,64 +5057,2423 @@ function territorialAdvanceModel(reports: MonitoreoTerritorialDashboard) {
   };
 }
 
+const TERRITORIAL_FIELD_TARGET_TOTAL = 1200;
+const TERRITORIAL_UMP_TARGET = 8;
+
+type TerritorialAdvanceTab = "resumen" | "ump" | "ritmo";
+type TerritorialUmpStatus = "complete" | "incomplete" | "overfilled" | "none";
+type TerritorialQuotaStatus = "complete" | "in_field" | "pending" | "missing" | "exceeded" | "not_configured";
+type TerritorialQuotaConsistencyFilter = "complete" | "exceeded" | "pending" | "in_field" | "missing";
+type TerritorialQuotaProgressBlock = NonNullable<MonitoreoTerritorialDashboard["route_quota_progress"]>["blocks"][number];
+type TerritorialQuotaProgressDistrict = NonNullable<NonNullable<MonitoreoTerritorialDashboard["route_quota_progress"]>["districts"]>[number];
+type TerritorialQuotaSummary = {
+  total: number;
+  complete: number;
+  in_field: number;
+  pending: number;
+  partial: number;
+  missing: number;
+  exceeded: number;
+  not_configured: number;
+  sex_missing_total: number;
+  age_missing_total: number;
+  demographic_missing_total: number;
+  districts_with_gap: number;
+};
+
+type TerritorialDistrictDashboardRow = TerritorialDistrictProgress & {
+  ump_complete: number;
+  ump_started_incomplete: number;
+  ump_overfilled: number;
+  ump_no_progress: number;
+};
+
+type TerritorialUmpDashboardRow = {
+  key: string;
+  district: string;
+  ubigeo: string;
+  ump: string;
+  blockId: string;
+  blockLabel: string;
+  zone: string;
+  valid: number;
+  observation: number;
+  invalid: number;
+  target: number;
+  gap: number;
+  progressPct: number | null;
+  status: TerritorialUmpStatus;
+  quotaStatus: TerritorialQuotaStatus;
+  quotaStatusLabel: string;
+  quotaMissingLabel: string;
+  quotaProgress: TerritorialQuotaProgressBlock | null;
+  responsible: string;
+  lastResponseAt: string;
+};
+
+type TerritorialDailyDashboardRow = MonitoreoTerritorialDashboard["daily"][number] & {
+  no_validas: number;
+  cumulative_valid: number;
+  cumulative_progress_pct: number | null;
+  cumulative_gap: number;
+};
+
+type TerritorialAttentionItem = {
+  key: string;
+  tone: "base" | "warning" | "danger" | "ready";
+  label: string;
+  title: string;
+  meta: string;
+};
+
+function territorialObjectiveTotal(advance: ReturnType<typeof territorialAdvanceModel>) {
+  return numberOrNull(advance.meta) ?? TERRITORIAL_FIELD_TARGET_TOTAL;
+}
+
+function territorialObjectiveProgress(validas: number, targetTotal: number) {
+  return targetTotal > 0 ? (validas / targetTotal) * 100 : null;
+}
+
+function territorialBlockTarget(row: TerritorialBlockProgress) {
+  return Math.max(1, Math.round(numberOrNull(row.meta) ?? numberOrNull(row.entrevistas) ?? TERRITORIAL_UMP_TARGET));
+}
+
+function territorialUmpStatus(row: TerritorialBlockProgress, targetOverride?: number): TerritorialUmpStatus {
+  const valid = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
+  const target = Math.max(1, Math.round(numberOrNull(targetOverride) ?? territorialBlockTarget(row)));
+  if (valid > target) return "overfilled";
+  if (valid >= target) return "complete";
+  if (valid > 0) return "incomplete";
+  return "none";
+}
+
+function territorialUmpStatusLabel(status: TerritorialUmpStatus) {
+  const labels: Record<TerritorialUmpStatus, string> = {
+    complete: "Completa",
+    incomplete: "Incompleta",
+    overfilled: "Excedida",
+    none: "Sin avance",
+  };
+  return labels[status];
+}
+
+function territorialQuotaStatus(value: string | undefined | null): TerritorialQuotaStatus {
+  const status = stringOrEmpty(value);
+  if (status === "partial") return "pending";
+  return status === "complete" || status === "in_field" || status === "pending" || status === "missing" || status === "exceeded" || status === "not_configured"
+    ? status
+    : "not_configured";
+}
+
+function territorialQuotaStatusLabel(status: TerritorialQuotaStatus) {
+  const labels: Record<TerritorialQuotaStatus, string> = {
+    complete: "Completa",
+    in_field: "En campo",
+    pending: "Cuota pendiente",
+    missing: "No iniciada",
+    exceeded: "Excedida",
+    not_configured: "Sin cuota",
+  };
+  return labels[status];
+}
+
+function territorialQuotaForBlock(
+  reports: MonitoreoTerritorialDashboard,
+  block: TerritorialBlockProgress,
+): TerritorialQuotaProgressBlock | null {
+  const blocks = reports.route_quota_progress?.blocks ?? [];
+  if (!blocks.length) return null;
+  return blocks.find((item) => {
+    if (territorialStrictCodesIntersect([item.id_manzana], [block.id_manzana])) return true;
+    const hasTuple = territorialStrictCodesPresent([item.zona]) && territorialStrictCodesPresent([item.manzana]);
+    if (hasTuple) {
+      const ubigeoMatches = !territorialStrictCodesPresent([item.ubigeo])
+        || territorialStrictCodesIntersect([item.ubigeo], [block.ubigeo]);
+      return ubigeoMatches
+        && territorialStrictCodesIntersect([item.zona], [block.zona])
+        && territorialStrictCodesIntersect([item.manzana], [block.manzana]);
+    }
+    return territorialStrictCodesIntersect([item.ump], territorialBlockOperationalValues(block));
+  }) ?? null;
+}
+
+function territorialQuotaMissingLabel(quota: TerritorialQuotaProgressBlock | null) {
+  const status = territorialQuotaStatus(quota?.status);
+  if (!quota || !quota.configured || status === "not_configured") return "Cuota sexo/edad no configurada";
+  const missing = quota.missing?.filter((item) => (item.missing ?? 0) > 0) ?? [];
+  if (!missing.length) return status === "complete" || status === "exceeded" ? "Sin faltantes de cuota" : `${formatMetric(quota.missing_total)} válidas faltantes`;
+  return missing.slice(0, 2).map((item) => `${item.label}: ${formatMetric(item.missing)}`).join(" · ");
+}
+
+function territorialRawText(value: unknown) {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function territorialUmpNumber(value: unknown) {
+  const raw = territorialRawText(value);
+  const match = raw.match(/\d+/);
+  if (!match) return Number.POSITIVE_INFINITY;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+function compareTerritorialUmpValues(a: unknown, b: unknown) {
+  const numberDiff = territorialUmpNumber(a) - territorialUmpNumber(b);
+  if (numberDiff !== 0) return numberDiff;
+  return territorialRawText(a).localeCompare(territorialRawText(b), "es-PE", { numeric: true });
+}
+
+function compareTerritorialQuotaBlocks(a: TerritorialQuotaProgressBlock, b: TerritorialQuotaProgressBlock) {
+  return compareTerritorialUmpValues(a.ump, b.ump)
+    || (stringOrEmpty(a.tipo_manzana) === "reemplazo" ? 1 : 0) - (stringOrEmpty(b.tipo_manzana) === "reemplazo" ? 1 : 0)
+    || stringOrEmpty(a.id_manzana).localeCompare(stringOrEmpty(b.id_manzana), "es-PE", { numeric: true });
+}
+
+function emptyTerritorialQuotaSummary(): TerritorialQuotaSummary {
+  return {
+    total: 0,
+    complete: 0,
+    in_field: 0,
+    pending: 0,
+    partial: 0,
+    missing: 0,
+    exceeded: 0,
+    not_configured: 0,
+    sex_missing_total: 0,
+    age_missing_total: 0,
+    demographic_missing_total: 0,
+    districts_with_gap: 0,
+  };
+}
+
+function normalizeTerritorialQuotaSummary(value: Partial<Record<keyof TerritorialQuotaSummary, unknown>> | null | undefined): TerritorialQuotaSummary {
+  const summary = emptyTerritorialQuotaSummary();
+  if (!value) return summary;
+  summary.total = Math.max(0, Math.round(numberOrNull(value.total) ?? 0));
+  summary.complete = Math.max(0, Math.round(numberOrNull(value.complete) ?? 0));
+  summary.in_field = Math.max(0, Math.round(numberOrNull(value.in_field) ?? 0));
+  summary.pending = Math.max(0, Math.round(numberOrNull(value.pending) ?? 0));
+  summary.partial = Math.max(0, Math.round(numberOrNull(value.partial) ?? 0));
+  summary.pending += summary.partial;
+  summary.missing = Math.max(0, Math.round(numberOrNull(value.missing) ?? 0));
+  summary.exceeded = Math.max(0, Math.round(numberOrNull(value.exceeded) ?? 0));
+  summary.not_configured = Math.max(0, Math.round(numberOrNull(value.not_configured) ?? 0));
+  summary.sex_missing_total = Math.max(0, Math.round(numberOrNull(value.sex_missing_total) ?? 0));
+  summary.age_missing_total = Math.max(0, Math.round(numberOrNull(value.age_missing_total) ?? 0));
+  summary.demographic_missing_total = Math.max(0, Math.round(numberOrNull(value.demographic_missing_total) ?? 0));
+  summary.districts_with_gap = Math.max(0, Math.round(numberOrNull(value.districts_with_gap) ?? 0));
+  return summary;
+}
+
+function territorialQuotaBlockValidas(block: TerritorialQuotaProgressBlock) {
+  return Math.max(0, numberOrNull(block.validas) ?? 0);
+}
+
+function territorialQuotaItemMissingTotal(rows: TerritorialQuotaProgressBlock["sex"] | undefined) {
+  return (rows ?? []).reduce((sum, item) => (
+    sum + Math.max(0, Math.round(numberOrNull(item.missing) ?? Math.max(0, (numberOrNull(item.target) ?? 0) - (numberOrNull(item.achieved) ?? 0))))
+  ), 0);
+}
+
+function territorialQuotaBlockSexMissingTotal(block: TerritorialQuotaProgressBlock) {
+  return Math.max(0, Math.round(numberOrNull(block.sex_missing_total) ?? territorialQuotaItemMissingTotal(block.sex)));
+}
+
+function territorialQuotaBlockAgeMissingTotal(block: TerritorialQuotaProgressBlock) {
+  return Math.max(0, Math.round(numberOrNull(block.age_missing_total) ?? territorialQuotaItemMissingTotal(block.age)));
+}
+
+function territorialQuotaBlockDemographicMissingTotal(block: TerritorialQuotaProgressBlock) {
+  return Math.max(0, Math.round(numberOrNull(block.demographic_missing_total) ?? (territorialQuotaBlockSexMissingTotal(block) + territorialQuotaBlockAgeMissingTotal(block))));
+}
+
+function summarizeTerritorialQuotaProgressBlocks(blocks: TerritorialQuotaProgressBlock[]) {
+  return blocks.reduce((acc, row) => {
+    acc.total += 1;
+    acc[territorialQuotaStatus(row.status)] += 1;
+    acc.sex_missing_total += territorialQuotaBlockSexMissingTotal(row);
+    acc.age_missing_total += territorialQuotaBlockAgeMissingTotal(row);
+    acc.demographic_missing_total += territorialQuotaBlockDemographicMissingTotal(row);
+    return acc;
+  }, emptyTerritorialQuotaSummary());
+}
+
+function territorialQuotaBlockPrimaryLabel(block: TerritorialQuotaProgressBlock) {
+  const ump = territorialRawText(block.ump);
+  if (ump) return `UMP ${ump}`;
+  if (block.zona || block.manzana) return `Z${block.zona || "S/D"} · M${block.manzana || "S/D"}`;
+  return block.id_manzana || "Manzana sin código";
+}
+
+function territorialQuotaBlockSecondaryLabel(block: TerritorialQuotaProgressBlock) {
+  const parts = [
+    block.distrito || "Sin distrito",
+    block.zona ? `Zona ${block.zona}` : "",
+    block.manzana ? `Mz ${block.manzana}` : "",
+    block.tipo_manzana === "reemplazo" ? "Reemplazo" : "Titular",
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function territorialQuotaItemTone(item: TerritorialQuotaProgressBlock["sex"][number]) {
+  const target = Math.max(0, numberOrNull(item.target) ?? 0);
+  const achieved = Math.max(0, numberOrNull(item.achieved) ?? 0);
+  const missing = Math.max(0, numberOrNull(item.missing) ?? Math.max(0, target - achieved));
+  if (target > 0 && achieved > target) return "exceeded";
+  if (target > 0 && achieved === 0) return "not_started";
+  if (missing > 0) return "warning";
+  return "ready";
+}
+
+function territorialQuotaItemPercent(item: TerritorialQuotaProgressBlock["sex"][number]) {
+  const target = Math.max(0, numberOrNull(item.target) ?? 0);
+  const achieved = Math.max(0, numberOrNull(item.achieved) ?? 0);
+  return target > 0 ? Math.min(140, Math.max(0, (achieved / target) * 100)) : 0;
+}
+
+function territorialResponseMatchesBlock(row: Partial<TerritorialResponseAuditRow>, block: TerritorialBlockProgress) {
+  if (territorialStrictCodesPresent([row.advance_block_id])) {
+    return territorialStrictCodesIntersect([row.advance_block_id], [block.id_manzana]);
+  }
+
+  if (territorialResponseHasBlockTuple(row)) {
+    return territorialResponseBlockTupleMatches(row, block);
+  }
+
+  if (territorialStrictCodesPresent([row.advance_block_ump])) {
+    const ubigeoMatches = !territorialStrictCodesPresent([row.advance_block_ubigeo])
+      || territorialStrictCodesIntersect([row.advance_block_ubigeo], [block.ubigeo]);
+    return ubigeoMatches && territorialStrictCodesIntersect(
+      [row.advance_block_ump],
+      territorialBlockOperationalValues(block),
+    );
+  }
+
+  return territorialStrictCodesIntersect(
+    [row.declared_ump_normalized, row.declared_ump_raw],
+    territorialBlockOperationalValues(block),
+  );
+}
+
+function territorialUmpRowMatchesBlock(row: TerritorialUmpDashboardRow, block: TerritorialBlockProgress) {
+  if (territorialStrictCodesPresent([row.blockId])) {
+    return territorialStrictCodesIntersect([row.blockId], [block.id_manzana]);
+  }
+  return territorialStrictCodesIntersect([row.ump], territorialBlockOperationalValues(block));
+}
+
+const TERRITORIAL_EMPTY_CODE_VALUES = new Set(["NA", "NAN", "NULL", "NONE", "SD", "SINDATO", "SINDATOS"]);
+
+function territorialStrictOperationalCodeVariants(value: unknown): string[] {
+  const normalized = normalizeTerritorialBlockCode(value);
+  const variants = new Set<string>();
+  if (!normalized || TERRITORIAL_EMPTY_CODE_VALUES.has(normalized)) return [];
+  variants.add(normalized);
+  variants.add(stripLeftZeros(normalized));
+  const withoutCommonPrefix = normalized.replace(/^(?:UMP|MZ|MANZANA|HOJA)/, "");
+  if (withoutCommonPrefix && withoutCommonPrefix !== normalized) {
+    variants.add(withoutCommonPrefix);
+    variants.add(stripLeftZeros(withoutCommonPrefix));
+  }
+  return Array.from(variants).filter((variant) => variant && !TERRITORIAL_EMPTY_CODE_VALUES.has(variant));
+}
+
+function territorialStrictCodeSet(values: unknown[]): Set<string> {
+  const out = new Set<string>();
+  values.forEach((value) => {
+    territorialStrictOperationalCodeVariants(value).forEach((key) => out.add(key));
+  });
+  return out;
+}
+
+function territorialStrictCodesPresent(values: unknown[]): boolean {
+  return territorialStrictCodeSet(values).size > 0;
+}
+
+function territorialStrictCodesIntersect(aValues: unknown[], bValues: unknown[]): boolean {
+  const aCodes = territorialStrictCodeSet(aValues);
+  if (!aCodes.size) return false;
+  return Array.from(territorialStrictCodeSet(bValues)).some((key) => aCodes.has(key));
+}
+
+function territorialBlockOperationalValues(block: TerritorialBlockProgress) {
+  return [block.ump, block.hoja_num];
+}
+
+function territorialBlockMatchCodes(block: TerritorialBlockProgress): Set<string> {
+  return territorialStrictCodeSet([
+    block.id_manzana,
+    block.ump,
+    block.hoja_num,
+    block.manzana,
+    block.territorio_muestral,
+  ]);
+}
+
+function territorialResponseHasBlockTuple(row: Partial<TerritorialResponseAuditRow>) {
+  return territorialStrictCodesPresent([row.advance_block_zona])
+    && territorialStrictCodesPresent([row.advance_block_manzana]);
+}
+
+function territorialResponseBlockTupleMatches(row: Partial<TerritorialResponseAuditRow>, block: TerritorialBlockProgress) {
+  const hasZone = territorialStrictCodesPresent([row.advance_block_zona]);
+  const hasBlock = territorialStrictCodesPresent([row.advance_block_manzana]);
+  if (!hasZone || !hasBlock) return false;
+  const ubigeoMatches = !territorialStrictCodesPresent([row.advance_block_ubigeo])
+    || territorialStrictCodesIntersect([row.advance_block_ubigeo], [block.ubigeo]);
+  return ubigeoMatches
+    && territorialStrictCodesIntersect([row.advance_block_zona], [block.zona])
+    && territorialStrictCodesIntersect([row.advance_block_manzana], [block.manzana]);
+}
+
+function territorialFindBlockForUmpRow(row: TerritorialUmpDashboardRow, blocks: TerritorialBlockProgress[]) {
+  return blocks.find((block) => block.tipo_manzana !== "reemplazo" && territorialUmpRowMatchesBlock(row, block))
+    ?? blocks.find((block) => territorialUmpRowMatchesBlock(row, block))
+    ?? null;
+}
+
+function territorialResponseMatchesUmpRow(row: TerritorialUmpDashboardRow, response: Partial<TerritorialResponseAuditRow>) {
+  if (territorialStrictCodesPresent([response.advance_block_id])) {
+    return territorialStrictCodesIntersect([response.advance_block_id], [row.blockId]);
+  }
+  if (territorialStrictCodesPresent([response.advance_block_ump])) {
+    return territorialStrictCodesIntersect([response.advance_block_ump], [row.ump]);
+  }
+  return territorialStrictCodesIntersect([response.declared_ump_normalized, response.declared_ump_raw], [row.ump]);
+}
+
+function latestTerritorialBlockResponse(
+  block: TerritorialBlockProgress,
+  reports: MonitoreoTerritorialDashboard,
+): Partial<TerritorialResponseAuditRow> | null {
+  const responseRows: Partial<TerritorialResponseAuditRow>[] = [
+    ...(reports.response_audit ?? []),
+    ...(reports.map?.points ?? []),
+  ];
+  const candidates = responseRows.filter((row) => territorialResponseMatchesBlock(row, block));
+  if (!candidates.length) return null;
+  return candidates.sort((a, b) => {
+    const aDate = stringOrEmpty(a.submission_date_iso) || stringOrEmpty(a.submission_time) || stringOrEmpty(a.submission_datetime);
+    const bDate = stringOrEmpty(b.submission_date_iso) || stringOrEmpty(b.submission_time) || stringOrEmpty(b.submission_datetime);
+    return compareInternalQueryDateValues(bDate, aDate);
+  })[0] ?? null;
+}
+
+function buildTerritorialUmpRows(reports: MonitoreoTerritorialDashboard): TerritorialUmpDashboardRow[] {
+  const advance = territorialAdvanceModel(reports);
+  const source = advance.block_progress?.length ? advance.block_progress : reports.block_progress ?? [];
+  return source
+    .filter((row) => row.tipo_manzana !== "reemplazo")
+    .map((row, index) => {
+      const latest = latestTerritorialBlockResponse(row, reports);
+      const quotaProgress = territorialQuotaForBlock(reports, row);
+      const target = Math.max(1, Math.round(numberOrNull(quotaProgress?.target) ?? territorialBlockTarget(row)));
+      const valid = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
+      const status = territorialUmpStatus(row, target);
+      const quotaStatus = territorialQuotaStatus(quotaProgress?.status);
+      const responsibleFromResponse = latest
+        ? stringOrEmpty(latest.responsible_display).trim() || territorialCaseResponsibleLabel(latest as TerritorialResponseAuditRow, false)
+        : "";
+      const responsible = stringOrEmpty(row.responsable).trim() || responsibleFromResponse || "Sin responsable asignado";
+      return {
+        key: territorialBlockStableKey(row) || `${row.ubigeo}-${row.zona}-${row.manzana}-${index}`,
+        district: row.distrito || "Sin distrito",
+        ubigeo: row.ubigeo || "",
+        ump: row.ump || territorialRouteOperationalLabel(row),
+        blockId: row.id_manzana || "",
+        blockLabel: territorialPhysicalBlockLabel(row),
+        zone: row.zona || "",
+        valid,
+        observation: Math.max(0, Math.round(numberOrNull(row.revision) ?? 0)),
+        invalid: Math.max(0, Math.round(numberOrNull(row.no_defendibles) ?? 0)),
+        target,
+        gap: Math.max(0, target - valid),
+        progressPct: target > 0 ? Math.round((valid / target) * 100) : null,
+        status,
+        quotaStatus,
+        quotaStatusLabel: territorialQuotaStatusLabel(quotaStatus),
+        quotaMissingLabel: territorialQuotaMissingLabel(quotaProgress),
+        quotaProgress,
+        responsible,
+        lastResponseAt: latest ? formatTerritorialSubmissionStamp(latest) : "",
+      };
+    })
+    .sort((a, b) => (
+      compareTerritorialUmpValues(a.ump, b.ump)
+      || a.blockLabel.localeCompare(b.blockLabel, "es-PE", { numeric: true })
+      || a.district.localeCompare(b.district, "es-PE")
+    ));
+}
+
+function buildTerritorialDistrictRows(
+  rows: TerritorialDistrictProgress[],
+  umpRows: TerritorialUmpDashboardRow[],
+): TerritorialDistrictDashboardRow[] {
+  const counts = new Map<string, Pick<TerritorialDistrictDashboardRow, "ump_complete" | "ump_started_incomplete" | "ump_overfilled" | "ump_no_progress">>();
+  umpRows.forEach((row) => {
+    const key = row.ubigeo || row.district;
+    const current = counts.get(key) ?? {
+      ump_complete: 0,
+      ump_started_incomplete: 0,
+      ump_overfilled: 0,
+      ump_no_progress: 0,
+    };
+    if (row.status === "complete") current.ump_complete += 1;
+    if (row.status === "incomplete") current.ump_started_incomplete += 1;
+    if (row.status === "overfilled") current.ump_overfilled += 1;
+    if (row.status === "none") current.ump_no_progress += 1;
+    counts.set(key, current);
+  });
+  return rows.map((row) => ({
+    ...row,
+    ...(counts.get(row.ubigeo || row.distrito) ?? {
+      ump_complete: 0,
+      ump_started_incomplete: 0,
+      ump_overfilled: 0,
+      ump_no_progress: 0,
+    }),
+  })).sort((a, b) => (
+    (a.avance_pct ?? -1) - (b.avance_pct ?? -1)
+    || (b.brecha ?? 0) - (a.brecha ?? 0)
+    || a.distrito.localeCompare(b.distrito, "es-PE")
+  ));
+}
+
+function buildTerritorialDailyRows(
+  reports: MonitoreoTerritorialDashboard,
+  advance: ReturnType<typeof territorialAdvanceModel>,
+  targetTotal: number,
+): TerritorialDailyDashboardRow[] {
+  const sourceRows = reports.daily?.length ? reports.daily : advance.daily ?? [];
+  let cumulative = 0;
+  return [...sourceRows]
+    .sort((a, b) => compareInternalQueryDateValues(a.date, b.date))
+    .map((row) => {
+      const total = Math.max(0, Math.round(numberOrNull(row.total) ?? 0));
+      const validas = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
+      const revision = Math.max(0, Math.round(numberOrNull(row.revision) ?? 0));
+      cumulative += validas;
+      return {
+        ...row,
+        total,
+        validas,
+        revision,
+        no_validas: Math.max(0, total - validas - revision),
+        cumulative_valid: cumulative,
+        cumulative_progress_pct: territorialObjectiveProgress(cumulative, targetTotal),
+        cumulative_gap: Math.max(0, targetTotal - cumulative),
+      };
+    });
+}
+
+function summarizeTerritorialUmpRows(rows: TerritorialUmpDashboardRow[]) {
+  return rows.reduce((acc, row) => {
+    if (row.status === "complete") acc.complete += 1;
+    if (row.status === "incomplete") acc.incomplete += 1;
+    if (row.status === "overfilled") acc.overfilled += 1;
+    if (row.status === "none") acc.none += 1;
+    return acc;
+  }, { complete: 0, incomplete: 0, overfilled: 0, none: 0 });
+}
+
+function territorialFulfilledUmpCount(summary: Pick<ReturnType<typeof summarizeTerritorialUmpRows>, "complete" | "overfilled">) {
+  return summary.complete + summary.overfilled;
+}
+
+function territorialDistrictFulfilledUmpCount(row: Pick<TerritorialDistrictDashboardRow, "ump_complete" | "ump_overfilled">) {
+  return row.ump_complete + row.ump_overfilled;
+}
+
+function summarizeTerritorialQuotaRows(rows: TerritorialUmpDashboardRow[]) {
+  return rows.reduce((acc, row) => {
+    acc.total += 1;
+    acc[row.quotaStatus] += 1;
+    return acc;
+  }, emptyTerritorialQuotaSummary());
+}
+
+function buildTerritorialAttentionItems(
+  districtRows: TerritorialDistrictDashboardRow[],
+  umpRows: TerritorialUmpDashboardRow[],
+  reports: MonitoreoTerritorialDashboard,
+): TerritorialAttentionItem[] {
+  const items: TerritorialAttentionItem[] = [];
+  districtRows
+    .filter((row) => (row.brecha ?? 0) > 0)
+    .slice(0, 3)
+    .forEach((row) => {
+      items.push({
+        key: `district-${row.ubigeo || row.distrito}`,
+        tone: (row.avance_pct ?? 0) < 25 ? "danger" : "warning",
+        label: "Distrito",
+        title: row.distrito || row.ubigeo,
+        meta: `${formatMetric(row.validas)} / ${formatMetric(row.meta)} válidas · brecha ${formatMetric(row.brecha)}`,
+      });
+    });
+  umpRows
+    .filter((row) => row.status === "incomplete")
+    .slice(0, 4)
+    .forEach((row) => {
+      items.push({
+        key: `ump-${row.key}`,
+        tone: "warning",
+        label: "UMP incompleta",
+        title: `${row.district} · ${row.ump}`,
+        meta: `${formatMetric(row.valid)} / ${formatMetric(row.target)} válidas · ${row.responsible}`,
+      });
+    });
+  umpRows
+    .filter((row) => row.quotaStatus === "missing" || row.quotaStatus === "pending" || row.quotaStatus === "in_field")
+    .slice(0, 3)
+    .forEach((row) => {
+      items.push({
+        key: `quota-${row.key}`,
+        tone: row.quotaStatus === "in_field" ? "base" : "warning",
+        label: row.quotaStatusLabel,
+        title: `${row.district} · ${row.ump}`,
+        meta: row.quotaMissingLabel,
+      });
+    });
+  const farGps = reports.kpis.geo_no_defendible ?? 0;
+  if (farGps > 0) {
+    items.push({
+      key: "gps-far",
+      tone: "danger",
+      label: "Validación",
+      title: `${formatMetric(farGps)} puntos fuera de ruta`,
+      meta: "Revisar como casos GPS en Validación",
+    });
+  }
+  return items.slice(0, 7);
+}
+
+function buildTerritorialAdvanceWorkbench(reports: MonitoreoTerritorialDashboard) {
+  const baseAdvance = territorialAdvanceModel(reports);
+  const targetTotal = territorialObjectiveTotal(baseAdvance);
+  const progressPct = baseAdvance.avance_pct ?? territorialObjectiveProgress(baseAdvance.validas, targetTotal);
+  const mapPoints = Array.isArray(reports.map?.points) ? reports.map.points : [];
+  const mapBlocks = Array.isArray(reports.map?.blocks) ? reports.map.blocks : [];
+  const advance = {
+    ...baseAdvance,
+    meta: targetTotal,
+    avance_pct: progressPct,
+    brecha: Math.max(0, targetTotal - baseAdvance.validas),
+  };
+  const umpRows = buildTerritorialUmpRows(reports);
+  const districtRows = buildTerritorialDistrictRows(advance.district_progress, umpRows);
+  const dailyRows = buildTerritorialDailyRows(reports, advance, targetTotal);
+  const umpSummary = summarizeTerritorialUmpRows(umpRows);
+  const quotaSummary = summarizeTerritorialQuotaRows(umpRows);
+  return {
+    advance,
+    targetTotal,
+    progressPct,
+    districtRows,
+    umpRows,
+    dailyRows,
+    umpSummary,
+    quotaSummary,
+    attention: buildTerritorialAttentionItems(districtRows, umpRows, reports),
+    mapAvailable: Boolean(mapPoints.length || mapBlocks.length),
+  };
+}
+
+function useTerritorialAdvanceMapReports(reports: MonitoreoTerritorialDashboard) {
+  const [layerState, setLayerState] = useState<{
+    points: MonitoreoTerritorialDashboard["map"]["points"];
+    blocks: TerritorialBlockProgress[];
+    loading: boolean;
+    error: string;
+    cache: MonitoreoTerritorialMapPhaseCacheMeta | null;
+  }>({ points: [], blocks: [], loading: false, error: "", cache: null });
+  const phase = reports.active_route_phase === "field" ? "field" : "pilot";
+  const reportPointCount = reports.map?.points?.length ?? 0;
+  const advanceBlocks = territorialAdvanceModel(reports).block_progress ?? [];
+  const reportBlockCount = advanceBlocks.length || reports.map?.blocks?.length || reports.block_progress?.length || 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    const needsPoints = reportPointCount === 0;
+    const needsBlocks = reportBlockCount === 0;
+    if (!needsPoints && !needsBlocks) {
+      setLayerState((current) => ({ ...current, loading: false, error: "" }));
+      return () => { cancelled = true; };
+    }
+    setLayerState((current) => ({ ...current, loading: true, error: "" }));
+    const loadLayer = async (layer: "gps_points" | "route_geometry") => {
+      const cached = await apiMonitoreoTerritorialMap({ phase, layer, allowStale: true, prepare: false });
+      const payload = cached.payload;
+      const hasPayload = layer === "gps_points"
+        ? Boolean(payload.points?.length)
+        : Boolean(payload.blocks?.length);
+      const status = typeof cached.cache === "object" && cached.cache && "status" in cached.cache
+        ? String(cached.cache.status || "")
+        : "";
+      if (status === "valid" && hasPayload) return cached;
+      return apiMonitoreoTerritorialMap({ phase, layer, allowStale: true, prepare: true });
+    };
+    Promise.all([
+      needsPoints ? loadLayer("gps_points") : Promise.resolve(null),
+      needsBlocks ? loadLayer("route_geometry") : Promise.resolve(null),
+    ])
+      .then(([gpsLayer, routeLayer]) => {
+        if (cancelled) return;
+        setLayerState({
+          points: gpsLayer?.payload.points ?? [],
+          blocks: routeLayer?.payload.blocks ?? [],
+          loading: false,
+          error: "",
+          cache: (gpsLayer?.cache ?? routeLayer?.cache ?? null) as MonitoreoTerritorialMapPhaseCacheMeta | null,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLayerState((current) => ({
+          ...current,
+          loading: false,
+          error: "No se pudo cargar la capa cacheada de mapa para Avance.",
+        }));
+      });
+    return () => { cancelled = true; };
+  }, [phase, reportBlockCount, reportPointCount]);
+
+  const composedReports = useMemo(() => {
+    const sourceBlocks = advanceBlocks.length
+      ? advanceBlocks
+      : reports.map?.blocks?.length
+        ? reports.map.blocks
+        : reports.block_progress?.length
+          ? reports.block_progress
+          : layerState.blocks;
+    const sourcePoints = reports.map?.points?.length ? reports.map.points : layerState.points;
+    return {
+      ...reports,
+      block_progress: sourceBlocks,
+      map: {
+        ...(reports.map ?? { phase, blocks: [], points: [], alerts: [], legend: [] }),
+        phase,
+        blocks: sourceBlocks,
+        points: sourcePoints,
+        cache: reports.map?.cache ?? layerState.cache ?? null,
+      },
+    };
+  }, [advanceBlocks, layerState.blocks, layerState.cache, layerState.points, phase, reports]);
+
+  return {
+    reports: composedReports,
+    loading: layerState.loading,
+    error: layerState.error,
+    pointsLoaded: composedReports.map.points.length,
+    blocksLoaded: composedReports.map.blocks.length,
+  };
+}
+
 function TerritorialAdvanceView({
   dashboard,
   syncedAt,
   nRows,
+  loading = false,
+  error = "",
 }: {
   dashboard: MonitoreoDashboard | null;
   syncedAt: string;
   nRows: number;
+  loading?: boolean;
+  error?: string;
 }) {
-  const reports = territorialReportsFromDashboard(dashboard);
-  if (!reports) {
+  const rawReports = territorialReportsFromDashboard(dashboard);
+  const reports = rawReports && rawReports.report_scope !== "source" ? rawReports : null;
+  const [activeTab, setActiveTab] = useState<TerritorialAdvanceTab>("resumen");
+  const [selectedDistrictFilter, setSelectedDistrictFilter] = useState("todos");
+  const [focusedUmpKey, setFocusedUmpKey] = useState("");
+  const workbench = useMemo(() => reports ? buildTerritorialAdvanceWorkbench(reports) : null, [reports]);
+  useEffect(() => {
+    if (!workbench || selectedDistrictFilter === "todos") return;
+    const exists = workbench.districtRows.some((row) => territorialDistrictFilterKey(row) === selectedDistrictFilter);
+    if (!exists) setSelectedDistrictFilter("todos");
+  }, [selectedDistrictFilter, workbench]);
+  if (!reports || !workbench) {
     return (
       <div className="mon-stage mon-stage--avance">
-        <EmptyState
-          icon={<RefreshCw size={18} />}
-          title="Sin reporte territorial"
-          hint="Agrega Kobo, inspecciona el instrumento y sincroniza respuestas para cruzarlas con Hojas de Ruta."
-        />
+        {loading ? (
+          <LoadingBlock label={territorialLoadingLabelForView("avance")} minHeight={420} />
+        ) : error ? (
+          <Alert kind="error">{error}</Alert>
+        ) : (
+          <EmptyState
+            icon={<RefreshCw size={18} />}
+            title="Sin reporte territorial"
+            hint="Agrega Kobo, inspecciona el instrumento y sincroniza respuestas para cruzarlas con Hojas de Ruta."
+          />
+        )}
       </div>
     );
   }
-  const advance = territorialAdvanceModel(reports);
-  const filterLabel = reports.source_validity.field_label || reports.source_validity.field || "Consentimiento";
+  const phaseLabel = reports.active_route_phase === "field" ? "Campo real" : "Piloto operativo";
+  const tabs = [
+    { key: "resumen" as const, label: "Resumen", value: formatPercentLabel(workbench.progressPct), icon: Target },
+    { key: "ump" as const, label: "Mapa y UMP", value: formatMetric(workbench.umpRows.length), icon: Route },
+    { key: "ritmo" as const, label: "Ritmo diario", value: formatMetric(workbench.dailyRows.length), icon: CalendarRange },
+  ];
   return (
     <div className="mon-stage mon-stage--avance">
       <div className="mon-stage-stack mon-stage-stack--dashboard">
         <Panel
           className="mon-advance-panel mon-territorial-panel"
           eyebrow="Avance territorial"
-          title={<span className="mon-title-icon"><BarChart3 size={16} /> Avance operativo</span>}
+          title={<span className="mon-title-icon"><BarChart3 size={16} /> Tablero de campo territorial</span>}
           actions={<div className="mon-advance-meta"><span>{nRows.toLocaleString("es-PE")} registros</span>{syncedAt && <span>{formatDate(syncedAt)}</span>}</div>}
         >
-          <div className="mon-advance-hero">
-            <div className="mon-advance-hero-copy">
-              <span>{reports.active_route_phase === "field" ? "Campo real" : "Piloto operativo"}</span>
-              <strong>{formatMetric(advance.validas)} válidas de {formatMetric(advance.meta)}</strong>
-              <p>Cuenta respuestas que pasan el filtro de consentimiento o aptitud. GPS y duración quedan como observaciones en Validación.</p>
-            </div>
-            <div className="mon-advance-hero-kpis">
-              <AdvanceMetric label="Avance" value={formatPercentLabel(advance.avance_pct)} hint="válidas / meta" tone="ready" />
-              <AdvanceMetric label="Brecha" value={formatMetric(advance.brecha)} hint="meta pendiente" tone={advance.brecha ? "warning" : "ready"} />
-              <AdvanceMetric label="Filtro" value={formatMetric(advance.validas)} hint={filterLabel} tone="base" />
-              <AdvanceMetric label="Observación" value={formatMetric(advance.observacion)} hint="se revisa aparte" tone={advance.observacion ? "warning" : "ready"} />
-            </div>
+          <div className="mon-territorial-workbench">
+            <TerritorialAdvanceHero workbench={workbench} phaseLabel={phaseLabel} reports={reports} />
+            <TerritorialAdvanceTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+            {activeTab === "resumen" && (
+              <TerritorialAdvanceSummary
+                workbench={workbench}
+                reports={reports}
+                selectedDistrict={selectedDistrictFilter}
+                syncedAt={syncedAt}
+                onOpenDistrict={(districtKey) => {
+                  setSelectedDistrictFilter(districtKey);
+                  setFocusedUmpKey("");
+                  setActiveTab("ump");
+                }}
+                onOpenUmp={(districtKey, umpKey) => {
+                  setSelectedDistrictFilter(districtKey || "todos");
+                  setFocusedUmpKey(umpKey);
+                  setActiveTab("ump");
+                }}
+              />
+            )}
+            {activeTab === "ump" && (
+              <TerritorialUmpSection
+                reports={reports}
+                rows={workbench.umpRows}
+                districtRows={workbench.districtRows}
+                summary={workbench.umpSummary}
+                districtFilter={selectedDistrictFilter}
+                onDistrictFilterChange={setSelectedDistrictFilter}
+                focusedUmpKey={focusedUmpKey}
+                onFocusedUmpConsumed={() => setFocusedUmpKey("")}
+              />
+            )}
+            {activeTab === "ritmo" && <TerritorialRhythmSection rows={workbench.dailyRows} targetTotal={workbench.targetTotal} />}
           </div>
-          <div className="mon-territorial-dashboard-grid">
-            <TerritorialProgressBars rows={advance.district_progress} />
-            <TerritorialAdvanceCompositionCard advance={advance} />
-            <TerritorialDailySparkBars rows={advance.daily} />
-          </div>
-          <div className="mon-territorial-grid">
-            <TerritorialDistrictTable rows={advance.district_progress} title="Avance por distrito" />
-            <TerritorialDailyTable rows={advance.daily} />
-          </div>
-          <TerritorialBlockStrip rows={advance.block_progress} />
         </Panel>
       </div>
     </div>
+  );
+}
+
+function TerritorialAdvanceHero({
+  workbench,
+  phaseLabel,
+  reports,
+}: {
+  workbench: ReturnType<typeof buildTerritorialAdvanceWorkbench>;
+  phaseLabel: string;
+  reports: MonitoreoTerritorialDashboard;
+}) {
+  const advance = workbench.advance;
+  const pct = Math.max(0, Math.min(100, workbench.progressPct ?? 0));
+  const filterLabel = reports.source_validity.field_label || reports.source_validity.field || "filtro de avance";
+  const fulfilledUmp = territorialFulfilledUmpCount(workbench.umpSummary);
+  return (
+    <section className="mon-territorial-overview-hero" aria-label="Resumen general de avance territorial">
+      <div className="mon-territorial-overview-copy">
+        <span>{phaseLabel}</span>
+        <strong>{formatMetric(advance.validas)} válidas de {formatMetric(workbench.targetTotal)} · {formatPercentLabel(workbench.progressPct)}</strong>
+        <p>{formatMetric(advance.brecha)} pendientes para llegar al objetivo de {formatMetric(workbench.targetTotal)} respuestas. Avance según {filterLabel}; UMP por declaración configurada.</p>
+      </div>
+      <div className="mon-territorial-objective-meter" aria-label="Avance hacia el objetivo territorial">
+        <header>
+          <span>Objetivo territorial</span>
+          <strong>{formatPercentLabel(workbench.progressPct)}</strong>
+        </header>
+        <div className="mon-territorial-objective-track">
+          <i style={{ width: `${pct}%` }} />
+        </div>
+        <footer>
+          <span><strong>{formatMetric(advance.validas)}</strong><em>Válidas</em></span>
+          <span><strong>{formatMetric(advance.brecha)}</strong><em>Pendientes</em></span>
+          <span><strong>{formatMetric(fulfilledUmp)}</strong><em>UMP completas</em></span>
+          <span><strong>{formatMetric(workbench.umpSummary.none)}</strong><em>UMP sin avance</em></span>
+        </footer>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceTabBar({
+  tabs,
+  activeTab,
+  onChange,
+}: {
+  tabs: Array<{ key: TerritorialAdvanceTab; label: string; value: string; icon: typeof BarChart3 }>;
+  activeTab: TerritorialAdvanceTab;
+  onChange: (tab: TerritorialAdvanceTab) => void;
+}) {
+  return (
+    <div className="mon-territorial-advance-tabs" role="tablist" aria-label="Lecturas de avance territorial">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            className={activeTab === tab.key ? "is-active" : ""}
+            onClick={() => onChange(tab.key)}
+          >
+            <Icon size={14} />
+            <span>{tab.label}</span>
+            <em>{tab.value}</em>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TerritorialAdvanceSummary({
+  workbench,
+  reports,
+  selectedDistrict,
+  syncedAt,
+  onOpenDistrict,
+  onOpenUmp,
+}: {
+  workbench: ReturnType<typeof buildTerritorialAdvanceWorkbench>;
+  reports: MonitoreoTerritorialDashboard;
+  selectedDistrict: string;
+  syncedAt: string;
+  onOpenDistrict: (districtKey: string) => void;
+  onOpenUmp: (districtKey: string, umpKey: string) => void;
+}) {
+  const validityLabel = reports.source_validity.field_label || reports.source_validity.field || "criterio configurado";
+  const executive = useMemo(() => (
+    buildTerritorialExecutiveSummary({
+      reports,
+      districtRows: workbench.districtRows,
+      umpRows: workbench.umpRows,
+    })
+  ), [reports, workbench.districtRows, workbench.umpRows]);
+  const cutLabel = syncedAt || reports.generated_at ? formatDate(syncedAt || reports.generated_at) : "Sin corte";
+  return (
+    <section className="mon-territorial-tab-panel mon-territorial-exec" aria-label="Resumen ejecutivo de avance territorial">
+      <TerritorialExecutiveCommandBar
+        phase={reports.active_route_phase === "field" ? "Campo real" : "Piloto operativo"}
+        cutLabel={cutLabel}
+        validResponses={workbench.advance.validas}
+        selectedDistrict={selectedDistrict}
+      />
+      <div className="mon-territorial-exec-canvas">
+        <div className="mon-territorial-exec-side">
+          <TerritorialExecutiveProgressPanel
+            workbench={workbench}
+            criterionLabel={validityLabel}
+            cutLabel={cutLabel}
+          />
+          <TerritorialExecutiveUmpPanel stack={executive.ump} />
+        </div>
+        <TerritorialExecutiveDistrictBoard
+          rows={workbench.districtRows}
+          selectedDistrict={selectedDistrict}
+          onOpenDistrict={onOpenDistrict}
+        />
+        <TerritorialExecutiveDemographics summary={executive} />
+        <TerritorialExecutivePriorities
+          groups={executive.priorities}
+          onOpenDistrict={onOpenDistrict}
+          onOpenUmp={onOpenUmp}
+        />
+        <TerritorialExecutiveOperationalCut
+          advance={workbench.advance}
+          criterionLabel={validityLabel}
+        />
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveCommandBar({
+  phase,
+  cutLabel,
+  validResponses,
+  selectedDistrict,
+}: {
+  phase: string;
+  cutLabel: string;
+  validResponses: number;
+  selectedDistrict: string;
+}) {
+  return (
+    <header className="mon-territorial-exec-commandbar">
+      <div>
+        <span><MapPin size={14} /> Vista ejecutiva territorial</span>
+        <strong>Resumen de avance</strong>
+      </div>
+      <div className="mon-territorial-exec-commandbar-meta" aria-label="Contexto del corte">
+        <span>{phase}</span>
+        <span>Corte {cutLabel}</span>
+        <span>{formatMetric(validResponses)} válidas en avance</span>
+        {selectedDistrict !== "todos" && <span>Distrito filtrado</span>}
+      </div>
+    </header>
+  );
+}
+
+function TerritorialExecutiveProgressPanel({
+  workbench,
+  criterionLabel,
+  cutLabel,
+}: {
+  workbench: ReturnType<typeof buildTerritorialAdvanceWorkbench>;
+  criterionLabel: string;
+  cutLabel: string;
+}) {
+  const pct = Math.max(0, Math.min(100, workbench.progressPct ?? 0));
+  return (
+    <section className="mon-territorial-exec-progress" aria-label="Estado general del campo">
+      <div className="mon-territorial-exec-progress-main">
+        <div>
+          <span>Estado general del campo</span>
+          <strong>{formatMetric(workbench.advance.validas)}</strong>
+          <em>válidas actuales</em>
+        </div>
+        <figure
+          className="mon-territorial-exec-ring"
+          style={{ "--exec-ring": `${pct * 3.6}deg` } as CSSProperties}
+          aria-label={`${formatPercentLabel(workbench.progressPct)} de avance territorial`}
+        >
+          <strong>{formatPercentLabel(workbench.progressPct)}</strong>
+          <span>avance</span>
+        </figure>
+      </div>
+      <div className="mon-territorial-exec-progress-track">
+        <i style={{ width: `${pct}%` }} />
+      </div>
+      <dl className="mon-territorial-exec-progress-facts">
+        <div><dt>Objetivo</dt><dd>{formatMetric(workbench.targetTotal)}</dd></div>
+        <div><dt>Pendientes</dt><dd>{formatMetric(workbench.advance.brecha)}</dd></div>
+        <div><dt>Distritos</dt><dd>{formatMetric(workbench.districtRows.length)}</dd></div>
+        <div><dt>Corte</dt><dd>{cutLabel}</dd></div>
+      </dl>
+      <p>Avance calculado con {criterionLabel}. Los estados técnicos explican el corte, pero no compiten con el cumplimiento territorial.</p>
+    </section>
+  );
+}
+
+function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUmpStack }) {
+  return (
+    <section className="mon-territorial-exec-ump" aria-label="Estado de UMP y manzanas">
+      <header>
+        <span><Route size={14} /> Estado UMP</span>
+        <strong>{formatMetric(stack.fulfilled)} de {formatMetric(stack.total)} completas</strong>
+      </header>
+      <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
+        {stack.segments.map((segment) => (
+          <i
+            key={segment.key}
+            className={`is-${segment.key}`}
+            role="listitem"
+            style={{ "--exec-stack-size": `${Math.max(segment.value ? 5 : 0, segment.pct)}%` } as CSSProperties}
+            title={`${segment.label}: ${formatMetric(segment.value)}`}
+          />
+        ))}
+      </div>
+      <div className="mon-territorial-exec-ump-grid">
+        {stack.segments.map((segment) => (
+          <span key={segment.key} className={`is-${segment.tone}`}>
+            <strong>{formatMetric(segment.value)}</strong>
+            <em>{segment.label}</em>
+          </span>
+        ))}
+      </div>
+      <div className="mon-territorial-exec-ump-state-list" aria-label="Detalle porcentual por estado UMP">
+        {stack.segments.map((segment) => (
+          <div key={segment.key} className={`is-${segment.tone}`}>
+            <header>
+              <span>{segment.label}</span>
+              <strong>{formatMetric(segment.value)} · {formatPercentLabel(segment.pct)}</strong>
+            </header>
+            <i aria-hidden="true">
+              <em style={{ width: `${segment.pct}%` }} />
+            </i>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveDistrictBoard({
+  rows,
+  selectedDistrict,
+  onOpenDistrict,
+}: {
+  rows: TerritorialDistrictDashboardRow[];
+  selectedDistrict: string;
+  onOpenDistrict: (districtKey: string) => void;
+}) {
+  const ordered = [...rows].sort((a, b) => (
+    (a.avance_pct ?? -1) - (b.avance_pct ?? -1)
+    || (b.brecha ?? 0) - (a.brecha ?? 0)
+    || a.distrito.localeCompare(b.distrito, "es-PE")
+  ));
+  return (
+    <section className="mon-territorial-exec-districts" aria-label="Avance por distrito">
+      <header>
+        <div>
+          <span><BarChart3 size={14} /> Avance por distrito</span>
+          <strong>Lectura territorial dominante</strong>
+        </div>
+        <em>{formatMetric(rows.filter((row) => row.validas > 0).length)} con avance</em>
+      </header>
+      <div className="mon-territorial-exec-district-grid">
+        {ordered.map((row) => (
+          <TerritorialExecutiveDistrictCard
+            key={territorialDistrictFilterKey(row) || row.distrito}
+            row={row}
+            selected={selectedDistrict !== "todos" && territorialDistrictFilterKey(row) === selectedDistrict}
+            onOpenDistrict={onOpenDistrict}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveDistrictCard({
+  row,
+  selected,
+  onOpenDistrict,
+}: {
+  row: TerritorialDistrictDashboardRow;
+  selected: boolean;
+  onOpenDistrict: (districtKey: string) => void;
+}) {
+  const districtKey = territorialDistrictFilterKey(row);
+  const pct = Math.max(0, Math.min(100, row.avance_pct ?? 0));
+  const fulfilledUmp = territorialDistrictFulfilledUmpCount(row);
+  const totalUmp = row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress;
+  const tone = territorialDistrictCardTone(row);
+  return (
+    <button
+      type="button"
+      className={`mon-territorial-exec-district-card is-${tone}${selected ? " is-selected" : ""}`}
+      aria-pressed={selected}
+      aria-label={`${row.distrito}: ${formatMetric(row.validas)} de ${formatMetric(row.meta)} válidas; abrir Mapa y UMP`}
+      onClick={() => {
+        if (districtKey) onOpenDistrict(districtKey);
+      }}
+    >
+      <TerritorialDistrictShapeIcon ubigeo={row.ubigeo} label={row.distrito} active={tone === "ready" || selected} warning={tone !== "ready"} />
+      <div className="mon-territorial-exec-district-body">
+        <header>
+          <span>{row.ubigeo || "S/U"}</span>
+          <strong>{row.distrito || "Sin distrito"}</strong>
+        </header>
+        <div className="mon-territorial-exec-district-metrics">
+          <dl>
+            <div><dt>Válidas</dt><dd>{formatMetric(row.validas)} / {formatMetric(row.meta)}</dd></div>
+            <div><dt>Brecha</dt><dd>{formatMetric(row.brecha)}</dd></div>
+            <div><dt>UMP</dt><dd>{formatMetric(fulfilledUmp)} / {formatMetric(totalUmp)}</dd></div>
+          </dl>
+          <i aria-hidden="true"><em style={{ width: `${pct}%` }} /></i>
+        </div>
+        <b className="mon-territorial-exec-district-pct">{formatPercentLabel(row.avance_pct)}</b>
+        <footer>
+          <span className="is-ready">{formatMetric(fulfilledUmp)} completas</span>
+          <span className="is-warning">{formatMetric(row.ump_started_incomplete)} incompletas</span>
+          <span>{formatMetric(row.ump_no_progress)} sin avance</span>
+        </footer>
+      </div>
+    </button>
+  );
+}
+
+function TerritorialExecutiveDemographics({ summary }: { summary: TerritorialExecutiveSummaryModel }) {
+  return (
+    <section className="mon-territorial-exec-demographics" aria-label="Distribución del campo válido por sexo y edad">
+      <header>
+        <span><Layers3 size={14} /> Distribución del campo válido</span>
+        <strong>Solo respuestas que cuentan en avance</strong>
+      </header>
+      <div>
+        <TerritorialExecutiveDistributionPanel title="Distribución por sexo" distribution={summary.sex} mode="donut" />
+        <TerritorialExecutiveDistributionPanel title="Distribución por edad" distribution={summary.age} mode="bars" />
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveDistributionPanel({
+  title,
+  distribution,
+  mode,
+}: {
+  title: string;
+  distribution: TerritorialExecutiveDistribution;
+  mode: "donut" | "bars";
+}) {
+  const ready = distribution.status === "ready" || distribution.status === "empty";
+  const first = distribution.items[0];
+  return (
+    <article className={`mon-territorial-exec-distribution is-${distribution.status}`}>
+      <header>
+        <span>{title}</span>
+        <em>{distribution.variable || "Sin variable"}</em>
+      </header>
+      {!ready ? (
+        <div className="mon-territorial-exec-empty">
+          <strong>{distribution.message}</strong>
+          <span>Configura la fuente territorial para activar esta lectura.</span>
+        </div>
+      ) : mode === "donut" ? (
+        <div className="mon-territorial-exec-sex-chart">
+          <figure
+            className="mon-territorial-exec-sex-ring"
+            style={{ "--exec-ring": `${(first?.pct ?? 0) * 3.6}deg` } as CSSProperties}
+            aria-label={`${distribution.message}: ${formatMetric(distribution.total)} respuestas válidas`}
+          >
+            <strong>{formatMetric(distribution.total)}</strong>
+            <span>válidas</span>
+          </figure>
+          <div className="mon-territorial-exec-distribution-list">
+            {distribution.items.map((item) => (
+              <span key={item.key} className={`is-${item.tone}`}>
+                <i style={{ width: `${Math.max(item.value ? 5 : 0, item.pct)}%` }} />
+                <strong>{item.label}</strong>
+                <em>{formatMetric(item.value)} · {formatPercentLabel(item.pct)}</em>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mon-territorial-exec-distribution-list is-bars">
+          {distribution.items.map((item) => (
+            <span key={item.key} className={`is-${item.tone}`}>
+              <i style={{ width: `${Math.max(item.value ? 5 : 0, item.pct)}%` }} />
+              <strong>{item.label}</strong>
+              <em>{formatMetric(item.value)} · {formatPercentLabel(item.pct)}</em>
+            </span>
+          ))}
+          {!distribution.items.length && (
+            <div className="mon-territorial-exec-empty">
+              <strong>{distribution.message}</strong>
+              <span>La distribución aparecerá cuando existan válidas.</span>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function TerritorialExecutivePriorities({
+  groups,
+  onOpenDistrict,
+  onOpenUmp,
+}: {
+  groups: TerritorialExecutivePriorityGroup[];
+  onOpenDistrict: (districtKey: string) => void;
+  onOpenUmp: (districtKey: string, umpKey: string) => void;
+}) {
+  return (
+    <section className="mon-territorial-exec-priorities" aria-label="Prioridades de avance">
+      <header>
+        <span><AlertTriangle size={14} /> Prioridades de avance</span>
+        <strong>Frentes pendientes conectados con Mapa y UMP</strong>
+      </header>
+      <div className="mon-territorial-exec-priority-groups">
+        {groups.map((group) => (
+          <article key={group.key} className={`is-${group.key}`}>
+            <header>
+              <strong>{group.label}</strong>
+              <em>{group.items.length ? formatMetric(group.items.length) : "0"}</em>
+            </header>
+            <div>
+              {group.items.length ? group.items.map((item) => (
+                <TerritorialExecutivePriorityButton
+                  key={item.key}
+                  item={item}
+                  onOpenDistrict={onOpenDistrict}
+                  onOpenUmp={onOpenUmp}
+                />
+              )) : (
+                <span className="mon-territorial-exec-priority-empty">{group.emptyLabel}</span>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutivePriorityButton({
+  item,
+  onOpenDistrict,
+  onOpenUmp,
+}: {
+  item: TerritorialExecutivePriorityItem;
+  onOpenDistrict: (districtKey: string) => void;
+  onOpenUmp: (districtKey: string, umpKey: string) => void;
+}) {
+  const pct = Math.max(0, Math.min(100, item.progressPct ?? safePercent(item.value, item.target) ?? 0));
+  return (
+    <button
+      type="button"
+      className={`mon-territorial-exec-priority is-${item.tone}`}
+      onClick={() => {
+        if (item.action.type === "district") onOpenDistrict(item.action.districtKey);
+        else onOpenUmp(item.action.districtKey, item.action.umpKey);
+      }}
+    >
+      <span>
+        <strong>{item.title}</strong>
+        <em>{item.detail}</em>
+      </span>
+      <b>{formatMetric(item.gap)}</b>
+      <i><small style={{ width: `${Math.max(4, pct)}%` }} /></i>
+    </button>
+  );
+}
+
+function TerritorialExecutiveOperationalCut({
+  advance,
+  criterionLabel,
+}: {
+  advance: ReturnType<typeof territorialAdvanceModel>;
+  criterionLabel: string;
+}) {
+  const items = [
+    { key: "valid", label: "Cuentan en avance", value: advance.validas, tone: "ready", hint: "válidas actuales" },
+    { key: "review", label: "En observación", value: advance.observacion, tone: "warning", hint: "no bloquea avance" },
+    { key: "invalid", label: "No cuentan según criterio", value: advance.no_validas, tone: "muted", hint: criterionLabel },
+  ];
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  return (
+    <section className="mon-territorial-exec-cut" aria-label="Corte operativo">
+      <header>
+        <span><FileCheck2 size={14} /> Corte operativo</span>
+        <strong>Qué entra y qué queda separado</strong>
+      </header>
+      <div className="mon-territorial-exec-cut-stack" aria-label="Distribución del corte operativo">
+        {items.map((item) => (
+          <i
+            key={item.key}
+            className={`is-${item.tone}`}
+            style={{ "--exec-stack-size": `${Math.max(item.value ? 5 : 0, safePercent(item.value, total) ?? 0)}%` } as CSSProperties}
+            title={`${item.label}: ${formatMetric(item.value)}`}
+          />
+        ))}
+      </div>
+      <div>
+        {items.map((item) => (
+          <span key={item.key} className={`is-${item.tone}`}>
+            <strong>{formatMetric(item.value)}</strong>
+            <em>{item.label}</em>
+            <small>{item.hint}</small>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function territorialDistrictFilterKey(row: { ubigeo?: string; distrito?: string; district?: string }) {
+  return stringOrEmpty(row.ubigeo).trim() || stringOrEmpty(row.distrito).trim() || stringOrEmpty(row.district).trim();
+}
+
+function territorialDistrictCardTone(row: TerritorialDistrictDashboardRow) {
+  if ((row.brecha ?? 0) <= 0) return "ready";
+  if ((row.validas ?? 0) <= 0) return "empty";
+  return "open";
+}
+
+function territorialDistrictScorecardLayoutClass(count: number) {
+  if (count <= 1) return "is-balanced-1";
+  if (count === 2) return "is-balanced-2";
+  if (count === 3) return "is-balanced-3";
+  if (count === 4) return "is-balanced-4";
+  if (count <= 6) return "is-balanced-3";
+  if (count <= 8) return "is-balanced-4";
+  return "is-balanced-auto";
+}
+
+function DistrictProgressCard({
+  row,
+  selected = false,
+  onSelect,
+}: {
+  row: TerritorialDistrictDashboardRow;
+  selected?: boolean;
+  onSelect?: (districtKey: string) => void;
+}) {
+  const districtKey = territorialDistrictFilterKey(row);
+  const pct = Math.min(100, Math.max(0, row.avance_pct ?? 0));
+  const totalUmp = row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress;
+  const fulfilledUmp = territorialDistrictFulfilledUmpCount(row);
+  const tone = territorialDistrictCardTone(row);
+  const interactive = Boolean(onSelect && districtKey);
+  return (
+    <button
+      type="button"
+      className={`mon-territorial-district-progress-card is-${tone}${selected ? " is-selected" : ""}`}
+      aria-pressed={interactive ? selected : undefined}
+      aria-label={`${row.distrito}: ${formatMetric(row.validas)} de ${formatMetric(row.meta)} válidas, brecha ${formatMetric(row.brecha)}`}
+      onClick={() => {
+        if (interactive) onSelect?.(districtKey);
+      }}
+    >
+      <TerritorialDistrictShapeIcon
+        ubigeo={row.ubigeo}
+        label={row.distrito}
+        active={tone === "ready" || selected}
+        warning={tone === "open"}
+      />
+      <div className="mon-territorial-district-card-main">
+        <header>
+          <div>
+            <span>{row.ubigeo || "Sin ubigeo"}</span>
+            <strong>{row.distrito || "Sin distrito"}</strong>
+          </div>
+          <em>{formatPercentLabel(row.avance_pct)}</em>
+        </header>
+        <div className="mon-territorial-district-meter">
+          <i style={{ width: `${pct}%` }} />
+        </div>
+        <dl>
+          <div><dt>Válidas</dt><dd>{formatMetric(row.validas)} / {formatMetric(row.meta)}</dd></div>
+          <div><dt>Brecha</dt><dd>{formatMetric(row.brecha)}</dd></div>
+          <div><dt>UMP</dt><dd>{formatMetric(fulfilledUmp)} / {formatMetric(totalUmp)}</dd></div>
+        </dl>
+        <footer>
+          <span className="is-ready">{formatMetric(fulfilledUmp)} completas</span>
+          <span className="is-warning">{formatMetric(row.ump_started_incomplete)} incompletas</span>
+          <span>{formatMetric(row.ump_no_progress)} sin avance</span>
+        </footer>
+      </div>
+    </button>
+  );
+}
+
+function TerritorialDistrictScorecards({
+  rows,
+  selectedDistrict = "todos",
+  onSelectDistrict,
+  compact = false,
+}: {
+  rows: TerritorialDistrictDashboardRow[];
+  selectedDistrict?: string;
+  onSelectDistrict?: (districtKey: string) => void;
+  compact?: boolean;
+}) {
+  const ordered = [...rows].sort((a, b) => (
+    (a.avance_pct ?? -1) - (b.avance_pct ?? -1)
+    || (b.brecha ?? 0) - (a.brecha ?? 0)
+    || a.distrito.localeCompare(b.distrito, "es-PE")
+  ));
+  const layoutClass = territorialDistrictScorecardLayoutClass(ordered.length);
+  return (
+    <div
+      className={`mon-territorial-district-scorecards ${layoutClass}${compact ? " is-compact" : ""}`}
+      data-card-count={ordered.length}
+      aria-label="Resumen ejecutivo por distrito"
+    >
+      {ordered.map((row) => {
+        const key = territorialDistrictFilterKey(row);
+        return (
+          <DistrictProgressCard
+            key={key || row.distrito}
+            row={row}
+            selected={selectedDistrict !== "todos" && key === selectedDistrict}
+            onSelect={onSelectDistrict}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function TerritorialDistrictMapKpiRail({
+  rows,
+  selectedDistrict,
+  onSelectDistrict,
+}: {
+  rows: TerritorialDistrictDashboardRow[];
+  selectedDistrict: string;
+  onSelectDistrict: (districtKey: string) => void;
+}) {
+  const totals = rows.reduce((acc, row) => {
+    const validas = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
+    const meta = Math.max(0, Math.round(numberOrNull(row.meta) ?? 0));
+    acc.validas += validas;
+    acc.meta += meta;
+    acc.brecha += Math.max(0, Math.round(numberOrNull(row.brecha) ?? Math.max(0, meta - validas)));
+    acc.completeUmp += territorialDistrictFulfilledUmpCount(row);
+    acc.totalUmp += row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress;
+    return acc;
+  }, { validas: 0, meta: 0, brecha: 0, completeUmp: 0, totalUmp: 0 });
+  const ordered = [...rows].sort((a, b) => (
+    (a.avance_pct ?? -1) - (b.avance_pct ?? -1)
+    || (b.brecha ?? 0) - (a.brecha ?? 0)
+    || a.distrito.localeCompare(b.distrito, "es-PE")
+  ));
+  const allPct = totals.meta > 0 ? (totals.validas / totals.meta) * 100 : null;
+  const cards = [
+    {
+      key: "todos",
+      label: "Todos los distritos",
+      code: "Global",
+      validas: totals.validas,
+      meta: totals.meta,
+      brecha: totals.brecha,
+      advancePct: allPct,
+      completeUmp: totals.completeUmp,
+      totalUmp: totals.totalUmp,
+      tone: totals.brecha <= 0 ? "ready" : "open",
+    },
+    ...ordered.map((row) => {
+      const validas = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
+      const meta = Math.max(0, Math.round(numberOrNull(row.meta) ?? 0));
+      return {
+        key: territorialDistrictFilterKey(row),
+        label: row.distrito || "Sin distrito",
+        code: row.ubigeo || "Sin ubigeo",
+        validas,
+        meta,
+        brecha: Math.max(0, Math.round(numberOrNull(row.brecha) ?? Math.max(0, meta - validas))),
+        advancePct: row.avance_pct,
+        completeUmp: territorialDistrictFulfilledUmpCount(row),
+        totalUmp: row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress,
+        tone: territorialDistrictCardTone(row),
+      };
+    }).filter((item) => item.key),
+  ];
+  return (
+    <section className="mon-territorial-district-kpi-rail" aria-label="KPIs de avance por distrito">
+      <header>
+        <div>
+          <span><MapPin size={14} /> Avance por distrito</span>
+          <strong>{formatMetric(rows.length)} distritos · {formatMetric(totals.completeUmp)} UMP completas</strong>
+        </div>
+        <em>{selectedDistrict === "todos" ? "Vista general" : "Distrito filtrado"}</em>
+      </header>
+      <div className="mon-territorial-district-kpi-grid">
+        {cards.map((card) => {
+          const pct = Math.max(0, Math.min(100, card.advancePct ?? 0));
+          const selected = selectedDistrict === card.key;
+          return (
+            <button
+              key={card.key}
+              type="button"
+              className={`mon-territorial-district-kpi-card is-${card.tone}${selected ? " is-selected" : ""}`}
+              aria-pressed={selected}
+              onClick={() => onSelectDistrict(card.key)}
+            >
+              <span>{card.code}</span>
+              <strong>{card.label}</strong>
+              <b>{formatPercentLabel(card.advancePct)}</b>
+              <i><em style={{ width: `${pct}%` }} /></i>
+              <small>{formatMetric(card.validas)} / {formatMetric(card.meta)} válidas · brecha {formatMetric(card.brecha)}</small>
+              <small>{formatMetric(card.completeUmp)} / {formatMetric(card.totalUmp)} UMP completas</small>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialUmpMapNavigator({
+  rows,
+  selectedRowKey,
+  selectedDistrictLabel,
+  onSelectRow,
+}: {
+  rows: TerritorialUmpDashboardRow[];
+  selectedRowKey: string;
+  selectedDistrictLabel: string;
+  onSelectRow: (row: TerritorialUmpDashboardRow) => void;
+}) {
+  return (
+    <aside className="mon-territorial-ump-map-nav" aria-label="Manzanas del mapa">
+      <header>
+        <div>
+          <span><Route size={14} /> Manzanas</span>
+          <strong>{selectedDistrictLabel}</strong>
+        </div>
+        <em>{formatMetric(rows.length)}</em>
+      </header>
+      <div>
+        {rows.length ? rows.map((row) => {
+          const selected = row.key === selectedRowKey;
+          const pct = Math.min(100, Math.max(4, row.progressPct ?? 0));
+          return (
+            <button
+              key={row.key}
+              type="button"
+              className={`mon-territorial-ump-map-nav-row is-${row.status}${selected ? " is-selected" : ""}`}
+              aria-pressed={selected}
+              onClick={() => onSelectRow(row)}
+            >
+              <span>
+                <strong>{row.ump}</strong>
+                <em>{row.blockLabel}{row.zone ? ` · Zona ${row.zone}` : ""}</em>
+              </span>
+              <b>{row.district}</b>
+              <i><small style={{ width: `${pct}%` }} /></i>
+              <footer>
+                <small>{formatMetric(row.valid)} / {formatMetric(row.target)} válidas</small>
+                <small>{territorialUmpStatusLabel(row.status)}</small>
+              </footer>
+            </button>
+          );
+        }) : (
+          <p>No hay manzanas con esos filtros.</p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function TerritorialDistrictsSection({
+  rows,
+  selectedDistrict,
+  onOpenDistrict,
+}: {
+  rows: TerritorialDistrictDashboardRow[];
+  selectedDistrict: string;
+  onOpenDistrict: (districtKey: string) => void;
+}) {
+  return (
+    <section className="mon-territorial-tab-panel" aria-label="Avance territorial por distrito">
+      <TerritorialDistrictScorecards rows={rows} selectedDistrict={selectedDistrict} onSelectDistrict={onOpenDistrict} />
+      <div className="mon-territorial-district-layout">
+        <TerritorialProgressBars rows={rows} />
+        <TerritorialDistrictTable rows={rows} title="Distritos y UMP" />
+      </div>
+    </section>
+  );
+}
+
+function TerritorialUmpSection({
+  reports,
+  rows,
+  districtRows,
+  summary,
+  districtFilter,
+  onDistrictFilterChange,
+  focusedUmpKey = "",
+  onFocusedUmpConsumed,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  rows: TerritorialUmpDashboardRow[];
+  districtRows: TerritorialDistrictDashboardRow[];
+  summary: ReturnType<typeof summarizeTerritorialUmpRows>;
+  districtFilter: string;
+  onDistrictFilterChange: (districtKey: string) => void;
+  focusedUmpKey?: string;
+  onFocusedUmpConsumed?: () => void;
+}) {
+  const [status, setStatus] = useState<TerritorialUmpStatus | "todos">("todos");
+  const [quotaStatus, setQuotaStatus] = useState<TerritorialQuotaStatus | "todos">("todos");
+  const [zone, setZone] = useState("todos");
+  const [responsible, setResponsible] = useState("todos");
+  const [search, setSearch] = useState("");
+  const [selectedKey, setSelectedKey] = useState("");
+  const [selectedResponseId, setSelectedResponseId] = useState("");
+  const mapState = useTerritorialAdvanceMapReports(reports);
+  const totalUmpCount = summary.complete + summary.incomplete + summary.overfilled + summary.none;
+  const districtLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    rows.forEach((row) => {
+      const key = territorialDistrictFilterKey(row);
+      if (!key || labels.has(key)) return;
+      labels.set(key, row.ubigeo ? `${row.district} · ${row.ubigeo}` : row.district);
+    });
+    return labels;
+  }, [rows]);
+  const districts = useMemo(() => Array.from(districtLabels.keys()).sort((a, b) => (
+    (districtLabels.get(a) || a).localeCompare(districtLabels.get(b) || b, "es-PE")
+  )), [districtLabels]);
+  const zones = useMemo(() => uniqueNonEmpty(rows.map((row) => row.zone)).sort((a, b) => a.localeCompare(b, "es-PE", { numeric: true })), [rows]);
+  const responsibles = useMemo(() => uniqueNonEmpty(rows.map((row) => row.responsible)).sort((a, b) => a.localeCompare(b, "es-PE")), [rows]);
+  const matchesUmpFilters = useCallback((row: TerritorialUmpDashboardRow, effectiveDistrict = districtFilter) => {
+    const query = normalizeMatch(search);
+    if (effectiveDistrict !== "todos" && territorialDistrictFilterKey(row) !== effectiveDistrict) return false;
+    if (status !== "todos" && row.status !== status) return false;
+    if (quotaStatus !== "todos" && row.quotaStatus !== quotaStatus) return false;
+    if (zone !== "todos" && row.zone !== zone) return false;
+    if (responsible !== "todos" && row.responsible !== responsible) return false;
+    if (!query) return true;
+    return [row.district, row.ump, row.blockId, row.blockLabel, row.zone, row.responsible, row.quotaMissingLabel]
+      .some((value) => normalizeMatch(value).includes(query));
+  }, [districtFilter, quotaStatus, responsible, search, status, zone]);
+  const filteredRows = useMemo(() => rows.filter((row) => matchesUmpFilters(row)), [matchesUmpFilters, rows]);
+  const selectedDistrictLabel = districtFilter === "todos" ? "Todos los distritos" : districtLabels.get(districtFilter) || districtFilter;
+  const handleDistrictSelect = (districtKey: string) => {
+    const nextRow = rows.find((row) => matchesUmpFilters(row, districtKey));
+    onDistrictFilterChange(districtKey);
+    setSelectedKey(nextRow?.key ?? "");
+    setSelectedResponseId("");
+  };
+  useEffect(() => {
+    if (!focusedUmpKey) return;
+    const nextRow = rows.find((row) => row.key === focusedUmpKey);
+    if (!nextRow) {
+      onFocusedUmpConsumed?.();
+      return;
+    }
+    setStatus("todos");
+    setQuotaStatus("todos");
+    setZone("todos");
+    setResponsible("todos");
+    setSearch("");
+    const districtKey = territorialDistrictFilterKey(nextRow) || "todos";
+    if (districtFilter !== districtKey) onDistrictFilterChange(districtKey);
+    setSelectedKey(nextRow.key);
+    setSelectedResponseId("");
+    onFocusedUmpConsumed?.();
+  }, [districtFilter, focusedUmpKey, onDistrictFilterChange, onFocusedUmpConsumed, rows]);
+  useEffect(() => {
+    if (focusedUmpKey) return;
+    if (!filteredRows.length) {
+      setSelectedKey("");
+      setSelectedResponseId("");
+      return;
+    }
+    if (!selectedKey || !filteredRows.some((row) => row.key === selectedKey)) {
+      setSelectedKey(filteredRows[0].key);
+      setSelectedResponseId("");
+    }
+  }, [filteredRows, focusedUmpKey, selectedKey]);
+  const selectedRow = filteredRows.find((row) => row.key === selectedKey) ?? filteredRows[0] ?? null;
+  const selectedResponses = useMemo(() => (
+    selectedRow ? territorialResponsesForUmp(selectedRow, mapState.reports) : []
+  ), [mapState.reports, selectedRow]);
+  const selectRow = (row: TerritorialUmpDashboardRow) => {
+    setSelectedKey(row.key);
+    setSelectedResponseId("");
+  };
+  return (
+    <section className="mon-territorial-tab-panel mon-territorial-tab-panel--ump-map" aria-label="Estado operativo de UMP y manzanas">
+      <TerritorialDistrictMapKpiRail
+        rows={districtRows}
+        selectedDistrict={districtFilter}
+        onSelectDistrict={handleDistrictSelect}
+      />
+      <div className="mon-territorial-ump-map-layout">
+        <div className="mon-territorial-ump-map-pane">
+          <header className="mon-territorial-ump-map-head">
+            <div>
+              <span><MapPin size={14} /> Mapa operativo UMP</span>
+              <strong>{formatMetric(filteredRows.length)} de {formatMetric(totalUmpCount)} manzanas · {formatMetric(mapState.pointsLoaded)} respuestas locales</strong>
+            </div>
+            {mapState.loading && <em><Loader2 size={13} className="pulso-spin" /> Cargando capa</em>}
+          </header>
+          {mapState.error && <Alert kind="warn">{mapState.error}</Alert>}
+          {mapState.blocksLoaded || mapState.pointsLoaded ? (
+            <TerritorialAdvanceValidationMap
+              reports={mapState.reports}
+              row={selectedRow}
+              selectedResponseId={selectedResponseId}
+            />
+          ) : (
+            <EmptyState
+              icon={<MapPin size={18} />}
+              title="Mapa UMP sin capa local"
+              hint="No hay geometría ni puntos cacheados para la fase activa."
+              variant="inline"
+            />
+          )}
+        </div>
+        <TerritorialUmpMapNavigator
+          rows={filteredRows}
+          selectedRowKey={selectedRow?.key ?? ""}
+          selectedDistrictLabel={selectedDistrictLabel}
+          onSelectRow={selectRow}
+        />
+      </div>
+      <div className="mon-territorial-ump-toolbar" aria-label="Filtros de UMP">
+        <label className="mon-query-search">
+          <Search size={14} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar UMP, manzana, distrito o responsable..." />
+        </label>
+        <TerritorialUmpSelect
+          label="Distrito"
+          value={districtFilter}
+          options={["todos", ...districts]}
+          onChange={handleDistrictSelect}
+          formatOption={(value) => value === "todos" ? "Todos" : districtLabels.get(value) || value}
+        />
+        <TerritorialUmpSelect
+          label="Estado"
+          value={status}
+          options={["todos", "complete", "incomplete", "overfilled", "none"]}
+          onChange={(value) => setStatus(value as TerritorialUmpStatus | "todos")}
+          formatOption={(value) => value === "todos" ? "Todos" : territorialUmpStatusLabel(value as TerritorialUmpStatus)}
+        />
+        <TerritorialUmpSelect
+          label="Cuota"
+          value={quotaStatus}
+          options={["todos", "in_field", "pending", "missing", "complete", "exceeded", "not_configured"]}
+          onChange={(value) => setQuotaStatus(value as TerritorialQuotaStatus | "todos")}
+          formatOption={(value) => value === "todos" ? "Todas" : territorialQuotaStatusLabel(value as TerritorialQuotaStatus)}
+        />
+        <TerritorialUmpSelect
+          label="Zona"
+          value={zone}
+          options={["todos", ...zones]}
+          onChange={setZone}
+          formatOption={(value) => value === "todos" ? "Todas" : `Zona ${value}`}
+        />
+        <TerritorialUmpSelect label="Responsable" value={responsible} options={["todos", ...responsibles]} onChange={setResponsible} />
+      </div>
+      <div className="mon-territorial-ump-support-grid">
+        <TerritorialUmpDetailPanel
+          row={selectedRow}
+          responses={selectedResponses}
+          selectedResponseId={selectedResponseId}
+          onSelectResponse={setSelectedResponseId}
+        />
+        <div className="mon-territorial-ump-table-wrap">
+          <table className="mon-territorial-ump-table" aria-label="Tabla operativa de UMP y manzanas">
+            <thead>
+              <tr>
+                <th>UMP / manzana</th>
+                <th>Válidas</th>
+                <th>Estado</th>
+                <th>Cuota</th>
+                <th>Responsable</th>
+                <th>Último registro</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row) => {
+                const total = row.valid + row.observation + row.invalid;
+                return (
+                  <tr
+                    key={row.key}
+                    className={`is-${row.status}${selectedRow?.key === row.key ? " is-selected" : ""}`}
+                    onClick={() => selectRow(row)}
+                  >
+                    <td><strong>{row.ump}</strong><small>{row.district} · {row.blockLabel}{row.zone ? ` · Zona ${row.zone}` : ""}</small></td>
+                    <td>
+                      <span className="mon-territorial-progress-cell">
+                        <strong>{formatMetric(row.valid)} / {formatMetric(row.target)}</strong>
+                        <small>{formatMetric(total)} respuestas asociadas</small>
+                        <i style={{ width: `${Math.min(100, Math.max(4, row.progressPct ?? 0))}%` }} />
+                      </span>
+                    </td>
+                    <td><span className={`mon-territorial-ump-status is-${row.status}`}>{territorialUmpStatusLabel(row.status)}</span></td>
+                    <td>
+                      <span className={`mon-territorial-ump-status mon-territorial-quota-status is-${row.quotaStatus}`}>
+                        {row.quotaStatusLabel}
+                      </span>
+                      <small>{row.quotaMissingLabel}</small>
+                    </td>
+                    <td>{row.responsible}</td>
+                    <td>{row.lastResponseAt || "Sin registro"}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="mon-territorial-ump-row-action"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectRow(row);
+                        }}
+                      >
+                        Seleccionar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!filteredRows.length && (
+                <tr><td colSpan={7}>Sin UMP con esos filtros.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceValidationMap({
+  reports,
+  row,
+  selectedResponseId,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  row: TerritorialUmpDashboardRow | null;
+  selectedResponseId: string;
+}) {
+  const blocks = useMemo(() => {
+    const mapBlocks = Array.isArray(reports.map?.blocks) ? reports.map.blocks : [];
+    return mapBlocks.length ? mapBlocks : reports.block_progress ?? [];
+  }, [reports]);
+  const selectedBlock = useMemo(() => (
+    row ? territorialFindBlockForUmpRow(row, blocks) : null
+  ), [blocks, row]);
+  const selectedRouteSet = useMemo(() => (
+    territorialResolveGeoRouteSet(selectedBlock, blocks)
+  ), [blocks, selectedBlock]);
+  const rows = useMemo(() => {
+    const mapRows = territorialRowsForGeoMap(reports);
+    const effectiveRows = mapRows.filter(territorialResponseIsEffective);
+    return effectiveRows.length ? effectiveRows : mapRows;
+  }, [reports]);
+  const pointsByResponse = useMemo(() => (
+    new Map(territorialKoboMapPoints(reports).map((point) => [point.response_id, point]))
+  ), [reports]);
+  const selectedRouteKeys = useMemo(() => (
+    new Set(selectedRouteSet.routeBlocks.map(territorialBlockStableKey).filter(Boolean))
+  ), [selectedRouteSet]);
+  const selectedBlockCases = useMemo(() => {
+    if (!row && !selectedBlock) return [];
+    const cases = rows.map((response) => (
+      territorialBuildGeoCase(response, blocks, pointsByResponse.get(response.response_id))
+    ));
+    const selected = cases.filter((item) => {
+      const directMatch = row ? territorialResponseMatchesUmpRow(row, item.row) : false;
+      const titularKey = item.titularBlock ? territorialBlockStableKey(item.titularBlock) : "";
+      const blockKey = item.block ? territorialBlockStableKey(item.block) : "";
+      return directMatch
+        || Boolean(titularKey && selectedRouteKeys.has(titularKey))
+        || Boolean(blockKey && selectedRouteKeys.has(blockKey));
+    });
+    const byId = new Map<string, TerritorialGeoCase>();
+    selected.forEach((item, index) => {
+      const key = item.row.response_id || `${item.groupKey}:${index}`;
+      byId.set(key, item);
+    });
+    return Array.from(byId.values()).sort((a, b) => {
+      const aGps = territorialResponseHasGps(a.row) ? 0 : 1;
+      const bGps = territorialResponseHasGps(b.row) ? 0 : 1;
+      if (aGps !== bGps) return aGps - bGps;
+      return (a.row.row_index ?? 0) - (b.row.row_index ?? 0);
+    });
+  }, [blocks, pointsByResponse, row, rows, selectedBlock, selectedRouteKeys]);
+  const focusPointId = selectedBlockCases.some((item) => item.row.response_id === selectedResponseId)
+    ? selectedResponseId
+    : "";
+  return (
+    <TerritorialValidationGeoRouteMap
+      reports={reports}
+      rows={rows}
+      selectedBlock={selectedBlock}
+      selectedRouteBlocks={selectedRouteSet.routeBlocks.length ? selectedRouteSet.routeBlocks : selectedBlock ? [selectedBlock] : []}
+      selectedBlockCases={selectedBlockCases}
+      focusPointId={focusPointId}
+      fitSelectedPoints
+    />
+  );
+}
+
+function territorialResponsesForUmp(
+  row: TerritorialUmpDashboardRow,
+  reports: MonitoreoTerritorialDashboard,
+) {
+  const rows: Partial<TerritorialResponseAuditRow>[] = [
+    ...(reports.response_audit ?? []),
+    ...(reports.map?.points ?? []),
+  ];
+  const byId = new Map<string, Partial<TerritorialResponseAuditRow>>();
+  rows
+    .filter((response) => territorialResponseMatchesUmpRow(row, response))
+    .forEach((response, index) => {
+      const id = stringOrEmpty(response.response_id) || `row-${response.row_index ?? index}`;
+      byId.set(id, { ...(byId.get(id) ?? {}), ...response });
+    });
+  return Array.from(byId.values()).sort((a, b) => {
+    const aDate = stringOrEmpty(a.submission_date_iso) || stringOrEmpty(a.submission_time) || stringOrEmpty(a.submission_datetime);
+    const bDate = stringOrEmpty(b.submission_date_iso) || stringOrEmpty(b.submission_time) || stringOrEmpty(b.submission_datetime);
+    return compareInternalQueryDateValues(bDate, aDate);
+  });
+}
+
+function territorialResponseDemographicLabel(response: Partial<TerritorialResponseAuditRow>) {
+  const parts: string[] = [];
+  const sex = stringOrEmpty(response.sex).trim();
+  const age = numberOrNull(response.age);
+  if (sex) parts.push(sex);
+  if (age != null) parts.push(`${formatMetric(Math.round(age))} años`);
+  return parts.join(" · ");
+}
+
+function TerritorialUmpQuotaPanel({ row }: { row: TerritorialUmpDashboardRow }) {
+  const quota = row.quotaProgress;
+  const configured = Boolean(quota?.configured);
+  const missingItems = (quota?.missing ?? []).filter((item) => (item.missing ?? 0) > 0).slice(0, 4);
+  const compositionItems = [
+    ...(quota?.sex ?? []).map((item) => ({ ...item, kind: "Sexo" })),
+    ...(quota?.age ?? []).map((item) => ({ ...item, kind: "Edad" })),
+  ].slice(0, 6);
+  const excess = Math.max(0, (quota?.validas ?? row.valid) - (quota?.target ?? row.target));
+  return (
+    <section className="mon-territorial-ump-quota-panel" aria-label="Cuota sexo y edad de la manzana seleccionada">
+      <header>
+        <span><Target size={14} /> Cuota sexo/edad</span>
+        <strong>{row.quotaStatusLabel}</strong>
+        <em>{row.quotaMissingLabel}</em>
+      </header>
+      <div className="mon-territorial-ump-quota-metrics">
+        <span><strong>{formatMetric(quota?.target ?? row.target)}</strong><em>meta cuota</em></span>
+        <span><strong>{formatMetric(quota?.validas ?? row.valid)}</strong><em>válidas</em></span>
+        <span><strong>{formatMetric(quota?.missing_total ?? row.gap)}</strong><em>faltantes</em></span>
+        <span><strong>{formatMetric(excess)}</strong><em>exceso</em></span>
+      </div>
+      {!configured ? (
+        <p>La cuota necesita totales por sexo y grupos de edad en Hojas de Ruta, más variables de sexo y edad configuradas en Kobo.</p>
+      ) : (
+        <>
+          <div className="mon-territorial-ump-quota-list" aria-label="Faltantes de cuota">
+            {missingItems.length ? missingItems.map((item) => (
+              <span key={item.label} className="is-warning">
+                <strong>{item.label}</strong>
+                <em>{formatMetric(item.achieved)} / {formatMetric(item.target)} · faltan {formatMetric(item.missing)}</em>
+              </span>
+            )) : (
+              <span className="is-ready">
+                <strong>Sin faltantes</strong>
+                <em>Los totales por sexo y grupos de edad cumplen la meta configurada.</em>
+              </span>
+            )}
+          </div>
+          <div className="mon-territorial-ump-quota-breakdown" aria-label="Composición observada de cuota">
+            {compositionItems.map((item) => (
+              <span key={`${item.kind}-${item.label}`}>
+                <strong>{item.label}</strong>
+                <em>{item.kind} · {formatMetric(item.achieved)} / {formatMetric(item.target)}</em>
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function TerritorialUmpDetailPanel({
+  row,
+  responses,
+  selectedResponseId,
+  onSelectResponse,
+}: {
+  row: TerritorialUmpDashboardRow | null;
+  responses: Partial<TerritorialResponseAuditRow>[];
+  selectedResponseId: string;
+  onSelectResponse: (responseId: string) => void;
+}) {
+  if (!row) {
+    return (
+      <aside className="mon-territorial-ump-detail">
+        <EmptyState icon={<Route size={18} />} title="Sin UMP seleccionada" variant="inline" />
+      </aside>
+    );
+  }
+  const withGps = responses.filter((response) => response.gps_parseable === true || (Number.isFinite(Number(response.lat)) && Number.isFinite(Number(response.lon)))).length;
+  const withoutGps = Math.max(0, responses.length - withGps);
+  const outOfRoute = responses.filter((response) => response.geo_estado === "geo_no_defendible").length;
+  const reviewGps = responses.filter((response) => response.geo_estado === "geo_revision" || response.geo_estado === "geo_sin_gps").length;
+  return (
+    <aside className="mon-territorial-ump-detail" aria-label="Detalle de UMP seleccionada">
+      <header>
+        <span><Route size={14} /> UMP seleccionada</span>
+        <strong>{row.ump}</strong>
+        <em>{row.district}{row.zone ? ` · Zona ${row.zone}` : ""} · {row.blockLabel}</em>
+      </header>
+      <div className="mon-territorial-ump-detail-status">
+        <span className={`mon-territorial-ump-status is-${row.status}`}>{territorialUmpStatusLabel(row.status)}</span>
+        <strong>{formatMetric(row.valid)} / {formatMetric(row.target)} válidas</strong>
+        <i><b style={{ width: `${Math.min(100, Math.max(4, row.progressPct ?? 0))}%` }} /></i>
+      </div>
+      <TerritorialUmpQuotaPanel row={row} />
+      <dl className="mon-territorial-ump-detail-grid">
+        <div><dt>Observación</dt><dd>{formatMetric(row.observation)}</dd></div>
+        <div><dt>No válidas</dt><dd>{formatMetric(row.invalid)}</dd></div>
+        <div><dt>Responsable</dt><dd title={row.responsible}>{row.responsible}</dd></div>
+        <div><dt>Último registro</dt><dd>{row.lastResponseAt || "Sin registro"}</dd></div>
+      </dl>
+      <div className="mon-territorial-ump-gps-strip" aria-label="Cruce UMP y GPS">
+        <span><strong>{formatMetric(withGps)}</strong><em>con GPS</em></span>
+        <span><strong>{formatMetric(withoutGps)}</strong><em>sin GPS</em></span>
+        <span><strong>{formatMetric(reviewGps)}</strong><em>observar GPS</em></span>
+        <span><strong>{formatMetric(outOfRoute)}</strong><em>fuera zona</em></span>
+      </div>
+      <section className="mon-territorial-ump-responses" aria-label="Respuestas asociadas a la UMP">
+        <header>
+          <span>Respuestas asociadas</span>
+          <strong>{formatMetric(responses.length)}</strong>
+        </header>
+        <div>
+          {responses.length ? responses.map((response, index) => {
+            const responseId = stringOrEmpty(response.response_id) || `row-${response.row_index ?? index}`;
+            const isSelected = selectedResponseId === responseId;
+            const hasGps = response.gps_parseable === true || (Number.isFinite(Number(response.lat)) && Number.isFinite(Number(response.lon)));
+            const demographicLabel = territorialResponseDemographicLabel(response);
+            return (
+              <button
+                key={responseId}
+                type="button"
+                className={`mon-territorial-ump-response${isSelected ? " is-selected" : ""}`}
+                onClick={() => onSelectResponse(responseId)}
+              >
+                <span className={hasGps ? "is-gps" : "is-no-gps"}>{hasGps ? "GPS" : "Sin GPS"}</span>
+                <strong>{shortenMiddle(responseId, 24)}</strong>
+                <em>{formatTerritorialSubmissionStamp(response) || "Sin fecha"} · {stringOrEmpty(response.responsible_display || response.submitted_by) || "Sin responsable"}{demographicLabel ? ` · ${demographicLabel}` : ""}</em>
+                <small>{territorialGeoLabel(stringOrEmpty(response.geo_estado) || "geo_sin_gps")}</small>
+              </button>
+            );
+          }) : (
+            <p>No hay respuestas locales asociadas a esta UMP en la capa cacheada.</p>
+          )}
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+function TerritorialUmpSelect({
+  label,
+  value,
+  options,
+  onChange,
+  formatOption,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  formatOption?: (value: string) => string;
+}) {
+  return (
+    <label className="mon-territorial-ump-select">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option} value={option}>{formatOption ? formatOption(option) : (option === "todos" ? "Todos" : option)}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function TerritorialRhythmSection({
+  rows,
+  targetTotal,
+}: {
+  rows: TerritorialDailyDashboardRow[];
+  targetTotal: number;
+}) {
+  const chartConfig = useMemo(() => ({
+    displayModeBar: false,
+    doubleClick: false,
+    responsive: true,
+    scrollZoom: false,
+  }), []);
+  const chart = useMemo(() => buildTerritorialDailyChart(rows, targetTotal), [rows, targetTotal]);
+  const latest = rows[rows.length - 1] ?? null;
+  const best = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.validas > current.validas ? row : current), null);
+  return (
+    <section className="mon-territorial-tab-panel" aria-label="Ritmo diario y acumulado">
+      <div className="mon-territorial-rhythm-layout">
+        <article className="mon-territorial-rhythm-chart">
+          <header>
+            <div>
+              <span>Ritmo diario</span>
+              <strong>Barras diarias y acumulado hacia {formatMetric(targetTotal)}</strong>
+            </div>
+            <em>{formatMetric(rows.length)} días</em>
+          </header>
+          {rows.length ? (
+            <PlotlyChart
+              data={chart.data}
+              layout={chart.layout}
+              config={chartConfig}
+              height={360}
+              ariaLabel="Respuestas válidas diarias y acumuladas"
+            />
+          ) : (
+            <EmptyState
+              icon={<CalendarRange size={18} />}
+              title="Sin ritmo diario"
+              hint="No hay fechas suficientes en las respuestas locales para construir barras diarias y acumulado."
+              variant="inline"
+            />
+          )}
+        </article>
+        <aside className="mon-territorial-rhythm-side" aria-label="Resumen de ritmo diario">
+          <AdvanceMetric label="Acumulado" value={formatMetric(latest?.cumulative_valid ?? 0)} hint={latest ? `${formatPercentLabel(latest.cumulative_progress_pct)} del objetivo` : "sin fechas"} tone="ready" />
+          <AdvanceMetric label="Brecha acumulada" value={formatMetric(latest?.cumulative_gap ?? targetTotal)} hint="pendientes" tone={(latest?.cumulative_gap ?? targetTotal) ? "warning" : "ready"} />
+          <AdvanceMetric label="Mejor día" value={best ? formatMetric(best.validas) : "S/D"} hint={best ? territorialDailyDateLabel(best) : "sin fecha"} tone="base" />
+        </aside>
+      </div>
+      <TerritorialDailyDashboardTable rows={rows} />
+    </section>
+  );
+}
+
+function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], targetTotal: number) {
+  const xLabels = rows.map((row) => territorialDailyDateLabel(row));
+  const hoverData = rows.map((row) => [
+    territorialDailyDateLabel(row),
+    row.validas,
+    row.cumulative_valid,
+    row.revision,
+    row.no_validas,
+    row.cumulative_progress_pct,
+  ]);
+  const y2Max = Math.max(targetTotal, ...rows.map((row) => row.cumulative_valid), 1);
+  return {
+    data: [
+      {
+        type: "bar" as const,
+        name: "Válidas",
+        x: xLabels,
+        y: rows.map((row) => row.validas),
+        marker: { color: "#168a55", line: { width: 0 } },
+        customdata: hoverData,
+        hovertemplate: "Válidas del día: %{y}<extra></extra>",
+      },
+      {
+        type: "bar" as const,
+        name: "Observación",
+        x: xLabels,
+        y: rows.map((row) => row.revision),
+        marker: { color: "#b7791f", line: { width: 0 } },
+        customdata: hoverData,
+        hovertemplate: "Observación: %{y}<extra></extra>",
+      },
+      {
+        type: "bar" as const,
+        name: "No válidas",
+        x: xLabels,
+        y: rows.map((row) => row.no_validas),
+        marker: { color: "#b42318", line: { width: 0 } },
+        customdata: hoverData,
+        hovertemplate: "No válidas: %{y}<extra></extra>",
+      },
+      {
+        type: "scatter" as const,
+        mode: "lines+markers" as const,
+        name: "Acumulado",
+        x: xLabels,
+        y: rows.map((row) => row.cumulative_valid),
+        yaxis: "y2",
+        line: { color: "#002457", width: 3, shape: "spline" as const, smoothing: 0.45 },
+        marker: { color: "#ffffff", size: 7, line: { color: "#002457", width: 1.8 } },
+        customdata: hoverData,
+        hovertemplate: "Acumulado: %{y}<br>Avance: %{customdata[5]:.1f}%<extra></extra>",
+      },
+      {
+        type: "scatter" as const,
+        mode: "lines" as const,
+        name: "Objetivo",
+        x: xLabels,
+        y: rows.map(() => targetTotal),
+        yaxis: "y2",
+        line: { color: "rgba(0, 36, 87, 0.34)", width: 1.6, dash: "dot" as const },
+        hoverinfo: "skip" as const,
+      },
+    ],
+    layout: {
+      barmode: "stack" as const,
+      bargap: rows.length <= 1 ? 0.7 : rows.length <= 7 ? 0.42 : 0.24,
+      hovermode: "x unified" as const,
+      showlegend: true,
+      legend: { orientation: "h" as const, x: 0, y: 1.08, font: { size: 11, color: "#5f6b7a" } },
+      margin: { l: 48, r: 66, t: 34, b: rows.length > 7 ? 62 : 44 },
+      paper_bgcolor: "transparent",
+      plot_bgcolor: "transparent",
+      hoverlabel: {
+        align: "left" as const,
+        bgcolor: "#ffffff",
+        bordercolor: "rgba(15, 23, 42, 0.12)",
+        font: { color: "#17212f", size: 12 },
+      },
+      xaxis: {
+        type: "category",
+        fixedrange: true,
+        showgrid: false,
+        zeroline: false,
+        tickangle: rows.length > 7 ? -32 : 0,
+        tickfont: { color: "#5f6b7a", size: 10 },
+        automargin: true,
+      },
+      yaxis: {
+        title: { text: "Por día", font: { color: "#5f6b7a", size: 11 } },
+        fixedrange: true,
+        rangemode: "tozero",
+        showline: false,
+        zeroline: false,
+        gridcolor: "rgba(15, 23, 42, 0.08)",
+        tickfont: { color: "#5f6b7a", size: 10 },
+      },
+      yaxis2: {
+        title: { text: "Acumulado", font: { color: "#002457", size: 11 } },
+        overlaying: "y",
+        side: "right",
+        fixedrange: true,
+        range: [0, Math.ceil(y2Max * 1.08)],
+        showgrid: false,
+        zeroline: false,
+        tickfont: { color: "#002457", size: 10 },
+      },
+    },
+  };
+}
+
+function TerritorialDailyDashboardTable({ rows }: { rows: TerritorialDailyDashboardRow[] }) {
+  return (
+    <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
+      <table className="mon-advance-daily-table" aria-label="Detalle diario territorial">
+        <thead><tr><th>Fecha</th><th>Válidas</th><th>Observación</th><th>No válidas</th><th>Acumulado</th><th>Avance</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.date}><td><strong>{territorialDailyDateLabel(row)}</strong></td><td>{formatMetric(row.validas)}</td><td>{formatMetric(row.revision)}</td><td>{formatMetric(row.no_validas)}</td><td>{formatMetric(row.cumulative_valid)}</td><td>{formatPercentLabel(row.cumulative_progress_pct)}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function TerritorialUmpStatusCard({ summary }: { summary: ReturnType<typeof summarizeTerritorialUmpRows> }) {
+  const fulfilled = territorialFulfilledUmpCount(summary);
+  const items = [
+    { key: "complete", label: "Completas", value: fulfilled, tone: "ready" },
+    { key: "incomplete", label: "Incompletas", value: summary.incomplete, tone: "warning" },
+    { key: "none", label: "Sin avance", value: summary.none, tone: "base" },
+  ];
+  return (
+    <section className="mon-territorial-ump-status-card" aria-label="Estado operativo de UMP">
+      <header>
+        <span><Route size={14} /> Estado UMP</span>
+        <strong>Meta por manzana desde Hojas de Ruta · fallback {formatMetric(TERRITORIAL_UMP_TARGET)}</strong>
+      </header>
+      <div>
+        {items.map((item) => (
+          <span key={item.key} className={`is-${item.tone}`}>
+            <strong>{formatMetric(item.value)}</strong>
+            <em>{item.label}</em>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialQuotaStatusCard({
+  summary,
+  configured,
+}: {
+  summary: ReturnType<typeof summarizeTerritorialQuotaRows>;
+  configured: boolean;
+}) {
+  const items = [
+    { key: "complete", label: "Completas", value: summary.complete + summary.exceeded, tone: "ready" },
+    { key: "in_field", label: "En campo", value: summary.in_field, tone: "base" },
+    { key: "pending", label: "Pendientes", value: summary.pending, tone: "warning" },
+    { key: "missing", label: "No iniciadas", value: summary.missing, tone: "base" },
+    { key: "not_configured", label: "No configuradas", value: summary.not_configured, tone: "base" },
+  ];
+  return (
+    <section className="mon-territorial-ump-status-card mon-territorial-quota-status-card" aria-label="Estado de cuota sexo y edad">
+      <header>
+        <span><Target size={14} /> Cuota sexo/edad</span>
+        <strong>{configured ? "Metas por manzana desde Hojas de Ruta" : "Cuota no configurada para este corte"}</strong>
+      </header>
+      <div>
+        {items.map((item) => (
+          <span key={item.key} className={`is-${item.tone}`}>
+            <strong>{formatMetric(item.value)}</strong>
+            <em>{item.label}</em>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function summarizeTerritorialDistrictQuota(districts: TerritorialQuotaProgressDistrict[]) {
+  return districts.reduce((acc, row) => {
+    const status = territorialQuotaStatus(row.status);
+    acc.total += 1;
+    acc[status] += 1;
+    acc.sex_missing_total += Math.max(0, Math.round(numberOrNull(row.sex_missing_total) ?? territorialQuotaItemMissingTotal(row.sex)));
+    acc.age_missing_total += Math.max(0, Math.round(numberOrNull(row.age_missing_total) ?? territorialQuotaItemMissingTotal(row.age)));
+    acc.demographic_missing_total += Math.max(0, Math.round(numberOrNull(row.demographic_missing_total) ?? ((numberOrNull(row.sex_missing_total) ?? 0) + (numberOrNull(row.age_missing_total) ?? 0))));
+    return acc;
+  }, emptyTerritorialQuotaSummary());
+}
+
+function TerritorialDistrictQuotaStatusCard({ reports }: { reports: MonitoreoTerritorialDashboard }) {
+  const districts = reports.route_quota_progress?.districts ?? [];
+  const summary = normalizeTerritorialQuotaSummary(reports.route_quota_progress?.district_summary ?? summarizeTerritorialDistrictQuota(districts));
+  const topMissing = [...districts]
+    .filter((row) => Math.max(0, numberOrNull(row.demographic_missing_total) ?? numberOrNull(row.missing_total) ?? 0) > 0)
+    .sort((a, b) => (
+      (numberOrNull(b.demographic_missing_total) ?? 0) - (numberOrNull(a.demographic_missing_total) ?? 0)
+    ))
+    .slice(0, 3);
+  return (
+    <section className="mon-territorial-ump-status-card mon-territorial-district-quota-card" aria-label="Cuota demográfica por distrito">
+      <header>
+        <span><BarChart3 size={14} /> Cuota demográfica distrital</span>
+        <strong>Totales marginales por sexo y edad desde la muestra</strong>
+      </header>
+      <div>
+        <span className="is-ready"><strong>{formatMetric(summary.complete)}</strong><em>Completos</em></span>
+        <span className="is-warning"><strong>{formatMetric(summary.pending + summary.missing)}</strong><em>Con brecha</em></span>
+        <span><strong>{formatMetric(summary.in_field)}</strong><em>En campo</em></span>
+        <span className="is-ready"><strong>{formatMetric(summary.exceeded)}</strong><em>Excedidos</em></span>
+        <span><strong>{formatMetric(summary.total)}</strong><em>Distritos</em></span>
+      </div>
+      <footer>
+        {topMissing.length ? topMissing.map((row) => (
+          <span key={row.ubigeo || row.distrito}>
+            <strong>{row.distrito || row.ubigeo || "Sin distrito"}</strong>
+            <em>{formatMetric(row.validas)} / {formatMetric(row.target)} · brecha sexo/edad {formatMetric(numberOrNull(row.demographic_missing_total) ?? row.missing_total)}</em>
+          </span>
+        )) : (
+          <span>
+            <strong>Sin faltantes distritales</strong>
+            <em>Sexo y edad cumplen las metas marginales de la muestra.</em>
+          </span>
+        )}
+      </footer>
+    </section>
+  );
+}
+
+function TerritorialAttentionPanel({ items }: { items: TerritorialAttentionItem[] }) {
+  return (
+    <section className="mon-territorial-attention-panel" aria-label="Distritos y UMP que requieren atención">
+      <header>
+        <span><AlertTriangle size={14} /> Atención</span>
+        <strong>{items.length ? `${formatMetric(items.length)} frentes` : "Sin alertas críticas"}</strong>
+      </header>
+      <div>
+        {items.length ? items.map((item) => (
+          <article key={item.key} className={`is-${item.tone}`}>
+            <span>{item.label}</span>
+            <strong>{item.title}</strong>
+            <em>{item.meta}</em>
+          </article>
+        )) : (
+          <article className="is-ready">
+            <span>Campo</span>
+            <strong>Sin brechas destacadas</strong>
+            <em>Los distritos y UMP no tienen alertas prioritarias en este corte.</em>
+          </article>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -2724,19 +7506,25 @@ function TerritorialProgressBars({ rows }: { rows: TerritorialDistrictProgress[]
   );
 }
 
-function TerritorialAdvanceCompositionCard({ advance }: { advance: ReturnType<typeof territorialAdvanceModel> }) {
+function TerritorialAdvanceCompositionCard({
+  advance,
+  criterionLabel,
+}: {
+  advance: ReturnType<typeof territorialAdvanceModel>;
+  criterionLabel?: string;
+}) {
   const values = [
     { key: "validada", label: "Cuenta en avance", value: advance.validas, className: "is-validada" },
     { key: "revision", label: "En observación", value: advance.observacion, className: "is-revision" },
     { key: "aprobada", label: "Visto bueno", value: advance.observacion_aprobada, className: "is-gps" },
-    { key: "no_valida", label: "No válida", value: advance.no_validas, className: "is-no_defendible" },
+    { key: "no_valida", label: "No válidas según criterio", value: advance.no_validas, className: "is-no_defendible" },
   ];
   const max = Math.max(1, ...values.map((item) => item.value || 0));
   return (
     <section className="mon-territorial-chart-card is-quality" aria-label="Composición de avance operativo">
       <header>
         <span><FileCheck2 size={14} /> Corte operativo</span>
-        <strong>{formatMetric(advance.total_respuestas)} respuestas</strong>
+        <strong>{formatMetric(advance.total_respuestas)} respuestas{criterionLabel ? ` · ${criterionLabel}` : ""}</strong>
       </header>
       <div className="mon-territorial-geo-bars">
         {values.map((item) => (
@@ -2902,9 +7690,19 @@ function TerritorialSourceConsole({
   history,
   saving,
   syncing,
+  uploadingRoster,
+  templatingRoster,
+  downloadingRosterCodes,
   onInspect,
   onUseAsset,
   onConfigPatch,
+  onCodeReconcile,
+  onUmpReconcile,
+  onBatchReconcile,
+  onUploadEnumeratorRoster,
+  onDownloadEnumeratorTemplate,
+  onDownloadEnumeratorCodes,
+  phaseCoherence,
   onSyncKobo,
 }: {
   dashboard: MonitoreoDashboard | null;
@@ -2914,69 +7712,66 @@ function TerritorialSourceConsole({
   history: MonitoreoTerritorialUpdateHistoryEntry[];
   saving: boolean;
   syncing: boolean;
+  uploadingRoster: boolean;
+  templatingRoster: boolean;
+  downloadingRosterCodes: boolean;
   onInspect: () => Promise<void>;
   onUseAsset: (asset: MonitoreoKoboAssetItem) => Promise<void>;
   onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
-  onSyncKobo: () => Promise<void>;
-}) {
-  const reports = territorialReportsFromDashboard(dashboard);
-  const source = sources.find((item) => item.kind === "kobo" && item.enabled) ?? sources.find((item) => item.kind === "kobo") ?? null;
-  const coherence = reports?.source_coherence ?? null;
-  const sourceValidity = reports?.source_validity ?? null;
+  onCodeReconcile: (entry: MonitoreoTerritorialCodeReconciliation) => Promise<void>;
+  onUmpReconcile: (entry: MonitoreoTerritorialUmpReconciliation) => Promise<void>;
+  onBatchReconcile?: (changes: MonitoreoTerritorialReconciliationBatchChange[]) => Promise<{
+    applied: Array<{ client_id: string }>;
+    failed: Array<{ client_id: string; message: string }>;
+  }>;
+  onUploadEnumeratorRoster: (file: File, options?: { code_format?: "PXXX" | "DNI" }) => Promise<void>;
+  onDownloadEnumeratorTemplate: () => Promise<void>;
+  onDownloadEnumeratorCodes: () => Promise<void>;
+  phaseCoherence?: MonitoreoTerritorialPhaseCoherence | null;
+	  onSyncKobo: () => Promise<void>;
+	}) {
+	  const reports = territorialReportsFromDashboard(dashboard);
+	  const activePhase = normalizeTerritorialPhase(config.territorial.active_route_phase);
+	  const activePhaseHealth = territorialPhaseCoherenceItem(phaseCoherence, activePhase);
+	  const visibleSource = territorialVisiblePhaseSource(sources, config, activePhase, activePhaseHealth);
+	  const phaseSource = visibleSource.phaseSource;
+	  const source = visibleSource.source;
+	  const fallbackSource = source ?? sources.find((item) => item.kind === "kobo" && item.enabled && item.role !== "ocurrencias_campo") ?? sources.find((item) => item.kind === "kobo" && item.role !== "ocurrencias_campo") ?? null;
+	  const dashboardIsForVisibleSource = dashboardMatchesVisiblePhaseSource(reports, activePhase, visibleSource);
+	  const visibleReports = dashboardIsForVisibleSource ? reports : null;
+	  const coherence = visibleReports?.source_coherence ?? null;
+	  const sourceValidity = visibleReports?.source_validity ?? null;
   const [assetQuery, setAssetQuery] = useState("");
   const [assets, setAssets] = useState<MonitoreoKoboAssetItem[]>([]);
-  const [assetsLoading, setAssetsLoading] = useState(false);
-  const [assetsError, setAssetsError] = useState("");
-  const [showFormList, setShowFormList] = useState(false);
-  const schemaRefreshAttemptedRef = useRef(false);
-  const baseUrl = source?.base_url || "https://kf.kobotoolbox.org";
-  const profileId = source?.connection_profile_id || "";
-  const activeAssetUid = source?.asset_uid || coherence?.asset_uid || config.territorial.asset_uid || "";
+	  const [assetsLoading, setAssetsLoading] = useState(false);
+	  const [assetsError, setAssetsError] = useState("");
+	  const [assetsLoaded, setAssetsLoaded] = useState(false);
+	  const [showFormList, setShowFormList] = useState(false);
+	  const [pendingAssetUid, setPendingAssetUid] = useState("");
+	  const [assetFilter, setAssetFilter] = useState<"all" | "active">("all");
+	  const baseUrl = source?.base_url || phaseSource.base_url || fallbackSource?.base_url || "https://kf.kobotoolbox.org";
+	  const profileId = source?.connection_profile_id || phaseSource.connection_profile_id || fallbackSource?.connection_profile_id || "";
+	  const assetCatalogKey = `${profileId || "default"}::${baseUrl}`;
+	  const activeAssetUid = visibleSource.assetUid;
   const surveyFields = coherence?.survey_fields ?? [];
   const choicesByList = coherence?.choices_by_list ?? {};
   const liveDistricts = coherence?.district_choices ?? config.territorial.district_crosswalk.map((row) => ({ name: row.kobo_code, label: row.kobo_label }));
-  const districtDiagram = useMemo(() => buildTerritorialSourceDistricts(config, reports, liveDistricts), [config, reports, liveDistricts]);
+  const districtDiagram = useMemo(() => buildTerritorialSourceDistricts(config, visibleReports, liveDistricts), [config, visibleReports, liveDistricts]);
   const crossedDistricts = districtDiagram.selected.filter((row) => row.presentInKobo).length;
-  const responseCount = sourceValidity?.total_responses ?? reports?.kpis.total_respuestas ?? dashboard?.kpis.total ?? 0;
+  const responseCount = activePhaseHealth?.local_rows ?? sourceValidity?.total_responses ?? visibleReports?.kpis.total_respuestas ?? (dashboardIsForVisibleSource ? dashboard?.kpis.total : 0) ?? 0;
   const routeDistrictTotal = districtDiagram.selected.length || config.territorial.district_crosswalk.length || liveDistricts.length;
   const districtCrossPct = routeDistrictTotal ? Math.round((crossedDistricts / routeDistrictTotal) * 100) : null;
   const sourceEffectiveCount = numberOrNull(sourceValidity?.effective_count);
   const sourceMissingCount = numberOrNull(sourceValidity?.missing_count);
+  const sourceNonEffectiveCount = numberOrNull(sourceValidity?.non_effective_count);
   const filterConfigured = Boolean(config.territorial.platform_effective_var && config.territorial.platform_effective_values.length);
   const filterProgressPct = sourceEffectiveCount != null && responseCount > 0 ? Math.round((sourceEffectiveCount / responseCount) * 100) : null;
   const surveyQuestionCount = coherence?.survey_count ?? (surveyFields.length ? surveyFields.length : null);
   const surveyChoiceCount = coherence?.choices_count ?? null;
   const schemaHealthPct = surveyQuestionCount ? 100 : activeAssetUid ? 55 : 0;
-  const activeFormName = coherence?.asset_name || source?.label || "Formulario Kobo territorial";
-  const activeVersion = coherence?.version_id || config.territorial.kobo_version_id || "sin versión";
+	  const activeFormName = visibleSource.name;
+	  const activeVersion = visibleSource.version || "sin versión";
   const activeModifiedLabel = coherence?.date_modified ? formatDate(coherence.date_modified) : "sin fecha de modificación";
-  const variableNames = variables.map((variable) => variable.name);
-  const variableSet = useMemo(() => new Set(variableNames), [variableNames.join("|")]);
-  const fieldSelectOptions = useMemo(() => {
-    const fromSchema = surveyFields
-      .filter((field) => isKoboSingleChoiceField(field.type))
-      .map((field) => {
-        const value = variableSet.has(field.xpath) ? field.xpath : variableSet.has(field.name) ? field.name : "";
-        if (!value) return null;
-        return { value, label: field.label || field.name, hint: field.name === field.xpath ? field.type : `${field.name} · ${field.type}` };
-      })
-      .filter((item): item is { value: string; label: string; hint: string } => Boolean(item));
-    return fromSchema;
-  }, [surveyFields, variableSet]);
-  const responsibleFieldOptions = useMemo(() => {
-    const fromSchema = surveyFields
-      .map((field) => {
-        const value = variableSet.has(field.xpath) ? field.xpath : variableSet.has(field.name) ? field.name : "";
-        if (!value) return null;
-        return { value, label: field.label || field.name, hint: field.name === field.xpath ? field.type : `${field.name} · ${field.type}` };
-      })
-      .filter((item): item is { value: string; label: string; hint: string } => Boolean(item));
-    const seen = new Set(fromSchema.map((item) => item.value));
-    const fromVariables = variables
-      .filter((variable) => variable.name && !seen.has(variable.name))
-      .map((variable) => ({ value: variable.name, label: variable.label || variable.name, hint: variable.tipo || "variable Kobo" }));
-    return [...fromSchema, ...fromVariables].slice(0, 220);
-  }, [surveyFields, variableSet, variables]);
   const selectedFilterField = surveyFields.find((field) => field.xpath === config.territorial.platform_effective_var || field.name === config.territorial.platform_effective_var) ?? null;
   const fieldOptions = useMemo(() => {
     const configured = sourceValidity?.field && sourceValidity.field === config.territorial.platform_effective_var
@@ -2991,186 +7786,478 @@ function TerritorialSourceConsole({
   const selectedFilterValueLabels = config.territorial.platform_effective_values
     .map((value) => fieldOptions.find((option) => option.value === value)?.label?.replace(/\s+·\s+\d+$/, "") ?? value)
     .slice(0, 6);
-  const filteredAssets = assets.filter((asset) => {
-    const q = assetQuery.trim().toLocaleLowerCase("es-PE");
-    if (!q) return true;
-    return `${asset.name} ${asset.uid}`.toLocaleLowerCase("es-PE").includes(q);
-  });
-  const displayedAssets = filteredAssets.slice(0, 18);
+  const activePhaseLabel = territorialPhaseLabel(activePhase);
+  const phaseNeedsRefresh = activePhaseHealth?.status === "dashboard_stale" || activePhaseHealth?.status === "source_snapshot_mismatch";
+  const districtsAligned = routeDistrictTotal > 0 ? crossedDistricts >= routeDistrictTotal : Boolean(activeAssetUid);
+  const sourceReadinessGaps = [
+    !activeAssetUid ? "formulario" : "",
+    activeAssetUid && !surveyQuestionCount ? "lectura del formulario" : "",
+    activeAssetUid && !districtsAligned ? "distritos" : "",
+    activeAssetUid && !config.territorial.ump_var ? "UMP / manzana" : "",
+    activeAssetUid && !config.territorial.pulso_code_var ? "Código Pulso" : "",
+    activeAssetUid && !filterConfigured ? "corte operativo" : "",
+    activeAssetUid && filterConfigured && sourceEffectiveCount == null ? "conteo del corte" : "",
+  ].filter(Boolean);
+  const sourceOperationalReady = Boolean(activeAssetUid && !phaseNeedsRefresh && !sourceReadinessGaps.length);
+  const sourceReadinessTone: "ready" | "warning" | "missing" = !activeAssetUid ? "missing" : sourceOperationalReady ? "ready" : "warning";
+  const sourceOperationalStatus = !activeAssetUid
+    ? "Sin formulario"
+    : sourceOperationalReady
+      ? `Listo para ${activePhaseLabel}`
+      : "Revisar configuración";
+  const sourceReadinessMessage = !activeAssetUid
+    ? `Selecciona el formulario que usará ${activePhaseLabel.toLocaleLowerCase("es-PE")}.`
+    : phaseNeedsRefresh
+      ? `${activePhaseLabel} tiene datos locales, pero la ficha no coincide con el formulario aplicado. Actualiza para reconstruir el corte.`
+      : sourceOperationalReady
+        ? `${activePhaseLabel} está usando este formulario. ${sourceEffectiveCount == null ? "El corte queda pendiente de conteo." : `${formatMetric(sourceEffectiveCount)} respuestas pasan el filtro.`}`
+        : `Falta completar: ${sourceReadinessGaps.join(", ")}.`;
+  const sourceFilterRuleLabel = filterConfigured
+    ? `Pasan el filtro con: ${selectedFilterValueLabels.join(", ") || "valor configurado"}`
+    : "Define qué respuestas pasan el filtro.";
+  const notCountingCount = sourceNonEffectiveCount ?? (
+    sourceEffectiveCount == null ? null : Math.max(0, responseCount - sourceEffectiveCount - (sourceMissingCount ?? 0))
+  );
+  const variableRefs = config.territorial.phase_mappings?.[activePhase]?.variable_refs ?? {};
+  const fieldCheckStatus = (
+    key: "district" | "ump" | "enumerator_pulso_code" | "valid_filter_question",
+    configured: boolean,
+  ) => {
+    const detected = coherence?.detected_fields?.[key];
+    if (!configured) return { badge: "Pendiente", detail: "Falta elegir el campo.", tone: "warning" as const };
+    if (detected?.present === false) return { badge: "Revisar", detail: "No aparece en la lectura actual.", tone: "warning" as const };
+    if (detected?.present === true) return { badge: "Listo", detail: "Encontrado en el formulario.", tone: "ready" as const };
+    return { badge: "Configurado", detail: "Pendiente de confirmar en la ficha.", tone: "base" as const };
+  };
+  const sourceFormChecks = [
+    { label: "Distrito", ...fieldCheckStatus("district", Boolean(config.territorial.district_var)) },
+    { label: "UMP / manzana", ...fieldCheckStatus("ump", Boolean(config.territorial.ump_var)) },
+    { label: "Código Pulso", ...fieldCheckStatus("enumerator_pulso_code", Boolean(config.territorial.pulso_code_var)) },
+    { label: "Corte operativo", ...fieldCheckStatus("valid_filter_question", filterConfigured) },
+  ];
+  const alignedDistricts = districtDiagram.selected.filter((row) => row.presentInKobo);
+  const missingRouteDistricts = districtDiagram.selected.filter((row) => !row.presentInKobo);
+  const extraKoboDistricts = districtDiagram.extraKobo;
+  const districtDisplayLabel = (row: { label?: string; name?: string; ubigeo?: string }) => row.label || row.name || row.ubigeo || "Distrito";
+  const filterQuestionLabel = selectedFilterField?.label || sourceValidity?.field_label || sourceValidity?.field || config.territorial.platform_effective_var || "Por definir";
+	  const filteredAssets = assets.filter((asset) => {
+	    const q = assetQuery.trim().toLocaleLowerCase("es-PE");
+	    const haystack = `${asset.name} ${asset.uid}`.toLocaleLowerCase("es-PE");
+	    if (assetFilter === "active" && !asset.deployment_active) return false;
+	    if (!q) return true;
+	    return haystack.includes(q);
+	  }).sort((a, b) => {
+	    if (a.uid === activeAssetUid) return -1;
+	    if (b.uid === activeAssetUid) return 1;
+	    return String(b.date_modified ?? "").localeCompare(String(a.date_modified ?? ""));
+	  });
+	  const displayedAssets = filteredAssets.slice(0, 18);
+	  const pendingAsset = pendingAssetUid ? assets.find((asset) => asset.uid === pendingAssetUid) ?? null : null;
+  const codeSummaryForTab = territorialEnumeratorPulsoCodeSummary(visibleReports);
+  const umpReviewTotal = visibleReports?.ump_declared_summary?.metrics?.review_ump_count ?? 0;
+  const reconciliationTotal = codeSummaryForTab.unrecognizedResponseCount + umpReviewTotal;
+  const [sourceTab, setSourceTab] = useState<"form" | "filter" | "roster" | "reconciliation" | "history">("form");
+  const [pendingReconciliationChanges, setPendingReconciliationChanges] = useState<TerritorialPendingReconciliationChange[]>([]);
+  const [reconciliationConfirmOpen, setReconciliationConfirmOpen] = useState(false);
+  const [reconciliationBatchApplying, setReconciliationBatchApplying] = useState(false);
+  const [reconciliationBatchMessage, setReconciliationBatchMessage] = useState("");
+  const reconciliationContextKey = `${activePhase}::${activeAssetUid || ""}::${visibleSource.sourceId || source?.id || ""}::${activeVersion || ""}`;
+	  const sourceTabs = [
+	    { key: "form" as const, label: "Formulario", value: activeAssetUid ? "Definido" : "Pendiente" },
+	    { key: "filter" as const, label: "Filtro y distritos", value: filterConfigured ? `${formatMetric(sourceEffectiveCount ?? 0)} efectivas` : "Por definir" },
+	    { key: "roster" as const, label: "Encuestadores", value: `${formatMetric(config.territorial.enumerator_roster?.assignments?.length ?? 0)} códigos` },
+	    { key: "reconciliation" as const, label: "Reconciliación", value: reconciliationTotal ? `${formatMetric(reconciliationTotal)} por revisar` : "Sin pendientes" },
+	    { key: "history" as const, label: "Historial", value: `${formatMetric(history.length)} eventos` },
+	  ];
+	  const phaseCards = (["pilot", "field"] as MonitoreoTerritorialPhase[]).map((phase) => {
+	    const health = territorialPhaseCoherenceItem(phaseCoherence, phase);
+	    const item = territorialVisiblePhaseSource(sources, config, phase, health);
+	    return {
+	      phase,
+	      label: phase === "field" ? "Campo" : "Piloto",
+	      hint: phase === "field" ? "Formulario de campo" : "Formulario piloto",
+	      assetUid: item.assetUid,
+	      name: item.name,
+	      version: item.version || "sin versión",
+	      health,
+	    };
+	  });
 
-  const loadAssets = useCallback(async () => {
+  const loadAssets = useCallback(async (force = false) => {
     setAssetsLoading(true);
     setAssetsError("");
     try {
+      if (!force && territorialKoboAssetCatalogCache.has(assetCatalogKey)) {
+        setAssets(territorialKoboAssetCatalogCache.get(assetCatalogKey) ?? []);
+        setAssetsLoaded(true);
+        return;
+      }
       const result = await apiMonitoreoKoboAssets(baseUrl, 100, { connection_profile_id: profileId || undefined });
+      territorialKoboAssetCatalogCache.set(assetCatalogKey, result.assets);
       setAssets(result.assets);
+      setAssetsLoaded(true);
     } catch (e) {
       setAssetsError((e as Error).message);
     } finally {
       setAssetsLoading(false);
     }
-  }, [baseUrl, profileId]);
-
-  useEffect(() => {
-    void loadAssets();
-  }, [loadAssets]);
+  }, [assetCatalogKey, baseUrl, profileId]);
 
   useEffect(() => {
     if (activeAssetUid) setShowFormList(false);
   }, [activeAssetUid]);
 
   useEffect(() => {
-    if (!activeAssetUid || surveyFields.length || saving || schemaRefreshAttemptedRef.current) return;
-    schemaRefreshAttemptedRef.current = true;
-    void onInspect().catch(() => undefined);
-  }, [activeAssetUid, onInspect, saving, surveyFields.length]);
+    setPendingAssetUid("");
+    setAssets(territorialKoboAssetCatalogCache.get(assetCatalogKey) ?? []);
+    setAssetsLoaded(territorialKoboAssetCatalogCache.has(assetCatalogKey));
+  }, [activePhase, assetCatalogKey]);
+
+  useEffect(() => {
+    setPendingReconciliationChanges([]);
+    setReconciliationConfirmOpen(false);
+    setReconciliationBatchMessage("");
+  }, [reconciliationContextKey]);
+
+  const stageReconciliationChange = useCallback((change: TerritorialPendingReconciliationChange) => {
+    setReconciliationBatchMessage("");
+    setPendingReconciliationChanges((current) => [
+      ...current.filter((item) => item.id !== change.id),
+      { ...change, status: "pending", error: "" },
+    ]);
+  }, []);
+
+  const discardReconciliationChanges = useCallback(() => {
+    if (reconciliationBatchApplying) return;
+    setPendingReconciliationChanges([]);
+    setReconciliationConfirmOpen(false);
+    setReconciliationBatchMessage("");
+  }, [reconciliationBatchApplying]);
+
+  const applyPendingReconciliationChanges = useCallback(async () => {
+    const changes = pendingReconciliationChanges.filter((change) => change.status !== "saving");
+    if (!changes.length || reconciliationBatchApplying) return;
+    setReconciliationBatchApplying(true);
+    setReconciliationBatchMessage("");
+    setPendingReconciliationChanges((current) => current.map((change) => ({ ...change, status: "saving", error: "" })));
+    const succeeded = new Set<string>();
+    const failed = new Map<string, string>();
+    const applySequentially = async () => {
+      for (const change of changes) {
+        try {
+          if (change.kind === "code") {
+            await onCodeReconcile(change.payload);
+          } else {
+            await onUmpReconcile(change.payload);
+          }
+          succeeded.add(change.id);
+        } catch (error) {
+          failed.set(change.id, (error as Error).message || String(error));
+        }
+      }
+    };
+    if (onBatchReconcile) {
+      try {
+        const result = await onBatchReconcile(changes.map((change): MonitoreoTerritorialReconciliationBatchChange => ({
+          client_id: change.id,
+          kind: change.kind,
+          reconciliation: change.payload,
+        } as MonitoreoTerritorialReconciliationBatchChange)));
+        result.applied.forEach((item) => succeeded.add(item.client_id));
+        result.failed.forEach((item) => failed.set(item.client_id, item.message || "No se pudo guardar este cambio."));
+      } catch (error) {
+        const message = (error as Error).message || String(error);
+        const canFallback = /HTTP_404|\b404\b|Failed to fetch/i.test(message);
+        if (canFallback) {
+          await applySequentially();
+        } else {
+          changes.forEach((change) => failed.set(change.id, message));
+        }
+      }
+    } else {
+      await applySequentially();
+    }
+    setPendingReconciliationChanges((current) => current
+      .filter((change) => !succeeded.has(change.id))
+      .map((change) => failed.has(change.id)
+        ? { ...change, status: "error", error: failed.get(change.id) || "No se pudo guardar este cambio." }
+        : { ...change, status: "pending", error: "" }));
+    setReconciliationBatchApplying(false);
+    if (failed.size) {
+      setReconciliationBatchMessage(`${formatMetric(succeeded.size)} guardadas · ${formatMetric(failed.size)} con error`);
+      return;
+    }
+    setReconciliationConfirmOpen(false);
+    setReconciliationBatchMessage(succeeded.size ? `${formatMetric(succeeded.size)} reconciliaciones guardadas.` : "");
+  }, [onBatchReconcile, onCodeReconcile, onUmpReconcile, pendingReconciliationChanges, reconciliationBatchApplying]);
 
   return (
-    <div className="mon-territorial-source-console">
+    <div className={`mon-territorial-source-console is-tab-${sourceTab}`}>
       <section className="mon-territorial-source-command" aria-label="Fuente Kobo activa">
         <div className="mon-territorial-source-title">
-          <span><PlugZap size={15} /> Formulario Kobo</span>
-          <strong title={coherence?.asset_name || source?.label || ""}>{coherence?.asset_name || source?.label || "Selecciona el formulario territorial"}</strong>
-          <em>{activeAssetUid ? shortenMiddle(activeAssetUid, 36) : "Sin asset definido"}{coherence?.version_id ? ` · ${coherence.version_id}` : ""}</em>
+          <span><PlugZap size={15} /> Formulario de {activePhaseLabel.toLocaleLowerCase("es-PE")}</span>
+          <strong title={activeFormName}>{activeFormName || "Selecciona el formulario territorial"}</strong>
+          <em>{sourceOperationalStatus}{responseCount ? ` · ${formatMetric(responseCount)} respuestas recibidas` : ""}</em>
         </div>
         <div className="mon-territorial-source-top-metrics">
-          <span><strong>{formatMetric(crossedDistricts)}</strong><em>distritos</em></span>
-          <span><strong>{formatMetric(responseCount)}</strong><em>respuestas</em></span>
-          <span><strong>{sourceEffectiveCount == null ? "Por definir" : formatMetric(sourceEffectiveCount)}</strong><em>efectivas</em></span>
+          <span><strong>{formatMetric(crossedDistricts)}</strong><em>alineados</em></span>
+          <span><strong>{formatMetric(responseCount)}</strong><em>recibidas</em></span>
+          <span><strong>{sourceEffectiveCount == null ? "Por definir" : formatMetric(sourceEffectiveCount)}</strong><em>pasan filtro</em></span>
         </div>
         <button type="button" className="pulso-button is-primary" onClick={() => { void onSyncKobo().catch(() => undefined); }} disabled={saving || syncing || !source}>
           {syncing ? <Loader2 size={15} className="pulso-spin" /> : <RefreshCw size={15} />}
-          <span>Actualizar Kobo</span>
+          <span>{territorialPhaseSyncButtonLabel(activePhase)}</span>
         </button>
       </section>
 
-      <div className="mon-territorial-source-workgrid">
-        <section className={`mon-territorial-source-card mon-territorial-form-picker${activeAssetUid && !showFormList ? " is-selected" : ""}`} aria-label="Selector de formulario Kobo">
-          <header>
-            <span><Search size={14} /> {activeAssetUid && !showFormList ? "Formulario seleccionado" : "Seleccionar formulario"}</span>
-            <strong>{activeAssetUid && !showFormList ? "Definido" : assetsLoading ? "Cargando" : `${formatMetric(filteredAssets.length)} disponibles`}</strong>
+      {activePhaseHealth && (
+        <div className={`mon-territorial-source-status is-${territorialPhaseStatusTone(activePhaseHealth)} is-${activePhaseHealth.status}`}>
+          <span>{territorialPhaseBadgeLabel(activePhaseHealth)}</span>
+          <strong>{territorialPhaseStatusLabel(activePhaseHealth, activePhase)}</strong>
+          <em>{formatMetric(activePhaseHealth.snapshot_total_rows)} filas locales</em>
+        </div>
+      )}
+
+      <nav className="mon-territorial-source-tabbar" aria-label="Secciones de Fuente">
+        {sourceTabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={sourceTab === tab.key ? "is-active" : ""}
+            onClick={() => setSourceTab(tab.key)}
+          >
+            <span>{tab.label}</span>
+            <em>{tab.value}</em>
+          </button>
+        ))}
+      </nav>
+
+      {sourceTab === "form" ? (
+        <div className="mon-territorial-source-workgrid is-single">
+	          <section className="mon-territorial-phase-source-strip" aria-label="Formularios por fase">
+	            {phaseCards.map((item) => (
+	              <button
+	                key={item.phase}
+	                type="button"
+	                className={`${activePhase === item.phase ? "is-active" : ""} is-${territorialPhaseStatusTone(item.health)}`}
+	                onClick={() => { void onConfigPatch({ active_route_phase: item.phase }).catch(() => undefined); }}
+	              >
+	                <span>
+	                  <strong>{item.label}</strong>
+	                  <em>{item.hint}</em>
+	                </span>
+	                <i>{item.health ? territorialPhaseBadgeLabel(item.health) : item.assetUid ? "Definido" : "Pendiente"}</i>
+	                <small>{item.assetUid ? `${shortenMiddle(item.name, 38)} · ${formatMetric(item.health?.local_rows ?? 0)} locales` : "Selecciona un formulario Kobo"}</small>
+	              </button>
+	            ))}
+	          </section>
+	          <section className={`mon-territorial-source-card mon-territorial-form-picker${activeAssetUid && !showFormList ? " is-selected" : ""}`} aria-label="Selector de formulario Kobo">
+	          <header>
+	            <span><Search size={14} /> {activeAssetUid && !showFormList ? `Formulario ${activePhase === "field" ? "campo" : "piloto"}` : `Seleccionar formulario ${activePhase === "field" ? "campo" : "piloto"}`}</span>
+	            <strong>{activeAssetUid && !showFormList ? "Definido" : assetsLoading ? "Cargando" : !assetsLoaded ? "Sin consultar" : `${formatMetric(filteredAssets.length)} disponibles`}</strong>
           </header>
           {activeAssetUid && !showFormList ? (
             <div className="mon-territorial-form-detail">
-              <div className="mon-territorial-form-detail-main">
-                <div>
-                  <strong>{activeFormName}</strong>
-                  <em>{shortenMiddle(activeAssetUid, 42)} · {activeVersion}</em>
+              <div className="mon-territorial-form-summary-row">
+                <div className="mon-territorial-form-detail-main">
+                  <div>
+                    <strong>{activeFormName}</strong>
+                    <em>{sourceReadinessMessage}</em>
+                  </div>
+                  <span className={`is-${sourceReadinessTone}`}>{sourceOperationalStatus}</span>
                 </div>
-                <span>{coherence?.deployment_active === false ? "Inactivo" : "Activo"}</span>
+                <div className="mon-territorial-form-actions" aria-label="Acciones del formulario aplicado">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFormList(true);
+                      if (!assetsLoaded) void loadAssets().catch(() => undefined);
+                    }}
+                    disabled={saving}
+                  >
+                    <Search size={13} />
+                    <span>Cambiar formulario</span>
+                  </button>
+                  <button type="button" onClick={() => { void onInspect().catch(() => undefined); }} disabled={saving || !source}>
+                    {saving ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+                    <span>Actualizar ficha</span>
+                  </button>
+                </div>
               </div>
-              <div className="mon-territorial-form-kpi-grid" aria-label="KPIs técnicos del formulario">
+              <div className="mon-territorial-form-kpi-grid" aria-label="Estado operativo de la fuente">
                 <TerritorialSourceMetric
-                  label="Cruce distrito"
-                  value={`${formatMetric(crossedDistricts)} / ${formatMetric(routeDistrictTotal)}`}
-                  hint={`${formatPercentLabel(districtCrossPct)} ruta + Kobo`}
+                  label="Distritos alineados"
+                  value={`${formatMetric(crossedDistricts)} de ${formatMetric(routeDistrictTotal)}`}
+                  hint={districtsAligned ? "Hojas de Ruta y Kobo coinciden" : "Revisar cobertura territorial"}
                   progress={districtCrossPct}
                   tone={crossedDistricts === routeDistrictTotal ? "ready" : "warning"}
                 />
                 <TerritorialSourceMetric
-                  label="Respuestas Kobo"
+                  label="Respuestas recibidas"
                   value={formatMetric(responseCount)}
-                  hint={source?.last_sync_at ? `sync ${formatDate(source.last_sync_at)}` : "sin sync reciente"}
+                  hint={source?.last_sync_at ? `Actualizado ${formatDate(source.last_sync_at)}` : "Sin actualización reciente"}
                   progress={responseCount ? 100 : 0}
                   tone={responseCount ? "base" : "warning"}
                 />
                 <TerritorialSourceMetric
-                  label="Estructura"
-                  value={`${formatMetric(surveyQuestionCount)} preg. · ${formatMetric(surveyChoiceCount)} opc.`}
-                  hint={`inspección ${activeModifiedLabel}`}
-                  progress={schemaHealthPct}
-                  tone={surveyQuestionCount ? "ready" : "warning"}
-                />
-                <TerritorialSourceMetric
-                  label="Filtro válido"
+                  label="Respuestas que pasan el filtro"
                   value={sourceEffectiveCount == null ? "Por definir" : formatMetric(sourceEffectiveCount)}
-                  hint={filterConfigured ? `${formatPercentLabel(filterProgressPct)} del corte` : "elige pregunta y estado"}
+                  hint={filterConfigured ? `${formatPercentLabel(filterProgressPct)} del corte` : "Define el corte operativo"}
                   progress={filterProgressPct ?? 0}
                   tone={filterConfigured ? "ready" : "warning"}
                 />
+                <TerritorialSourceMetric
+                  label="Formulario leído"
+                  value={surveyQuestionCount == null ? "Pendiente" : `${formatMetric(surveyQuestionCount)} preguntas`}
+                  hint={surveyChoiceCount == null ? `Inspección ${activeModifiedLabel}` : `${formatMetric(surveyChoiceCount)} opciones disponibles`}
+                  progress={schemaHealthPct}
+                  tone={surveyQuestionCount ? "ready" : "warning"}
+                />
               </div>
-              <div className="mon-territorial-form-blueprint" aria-label="Lectura técnica del formulario territorial">
+              <div className={`mon-territorial-form-readiness is-${sourceReadinessTone}`} aria-label="Preparación de la fuente">
+                {sourceReadinessTone === "ready" ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                <div>
+                  <strong>{sourceOperationalStatus}</strong>
+                  <em>{sourceReadinessMessage}</em>
+                </div>
+                <span>{filterConfigured ? "Corte definido" : "Corte pendiente"}</span>
+              </div>
+              <div className="mon-territorial-form-blueprint" aria-label="Lectura operativa del formulario territorial">
                 <article>
                   <header>
                     <ListChecks size={14} />
                     <div>
-                      <strong>Estructura del instrumento</strong>
-                      <em>Formulario Kobo inspeccionado</em>
+                      <strong>Formulario</strong>
+                      <em>Campos necesarios para monitoreo</em>
                     </div>
                   </header>
-                  <dl>
-                    <div><dt>Preguntas</dt><dd>{formatMetric(surveyQuestionCount)}</dd></div>
-                    <div><dt>Opciones</dt><dd>{formatMetric(surveyChoiceCount)}</dd></div>
-                    <div><dt>Campo distrito</dt><dd>{config.territorial.district_var || "Por definir"}</dd></div>
-                    <div><dt>Versión</dt><dd>{activeVersion}</dd></div>
-                  </dl>
+                  <div className="mon-territorial-source-checklist">
+                    {sourceFormChecks.map((item) => (
+                      <span key={item.label} className={`is-${item.tone}`}>
+                        <b>{item.label}</b>
+                        <em>{item.detail}</em>
+                        <i>{item.badge}</i>
+                      </span>
+                    ))}
+                  </div>
                 </article>
                 <article>
                   <header>
                     <MapPin size={14} />
                     <div>
-                      <strong>Cobertura territorial</strong>
-                      <em>Kobo contra Hojas de Ruta</em>
+                      <strong>Territorio</strong>
+                      <em>Distritos de la ruta contra Kobo</em>
                     </div>
                   </header>
-                  <div className="mon-territorial-form-districts">
-                    <strong>{formatMetric(crossedDistricts)} de {formatMetric(routeDistrictTotal)} distritos cruzados</strong>
-                    <div>
-                      {liveDistricts.slice(0, 8).map((row) => <span key={row.name}>{row.label || row.name}</span>)}
+                  <div className="mon-territorial-source-coverage">
+                    <div className="mon-territorial-source-coverage-summary">
+                      <span><strong>{formatMetric(alignedDistricts.length)}</strong><em>alineados</em></span>
+                      <span className={missingRouteDistricts.length ? "is-warning" : ""}><strong>{formatMetric(missingRouteDistricts.length)}</strong><em>faltan en Kobo</em></span>
+                      <span className={extraKoboDistricts.length ? "is-warning" : ""}><strong>{formatMetric(extraKoboDistricts.length)}</strong><em>solo en Kobo</em></span>
                     </div>
+                    <div className="mon-territorial-source-chipset">
+                      {alignedDistricts.slice(0, 10).map((row) => <span key={row.ubigeo || row.label}>{districtDisplayLabel(row)}</span>)}
+                      {alignedDistricts.length > 10 ? <span className="is-muted">+{formatMetric(alignedDistricts.length - 10)}</span> : null}
+                      {!alignedDistricts.length ? <span className="is-muted">Sin distritos alineados todavía</span> : null}
+                    </div>
+                    {missingRouteDistricts.length || extraKoboDistricts.length ? (
+                      <div className="mon-territorial-source-coverage-review">
+                        {missingRouteDistricts.length ? <span>Faltan en Kobo: {missingRouteDistricts.slice(0, 3).map(districtDisplayLabel).join(", ")}{missingRouteDistricts.length > 3 ? "..." : ""}</span> : null}
+                        {extraKoboDistricts.length ? <span>Solo en Kobo: {extraKoboDistricts.slice(0, 3).map(districtDisplayLabel).join(", ")}{extraKoboDistricts.length > 3 ? "..." : ""}</span> : null}
+                      </div>
+                    ) : null}
                   </div>
                 </article>
                 <article>
                   <header>
                     <FileCheck2 size={14} />
                     <div>
-                      <strong>Filtro operativo</strong>
-                      <em>Encuesta válida de plataforma</em>
+                      <strong>Corte operativo</strong>
+                      <em>Qué respuestas pasan el filtro</em>
                     </div>
                   </header>
-                  <div className="mon-territorial-filter-snapshot">
-                    <strong>{selectedFilterField?.label || sourceValidity?.field_label || "Por definir"}</strong>
-                    <em>{filterConfigured ? selectedFilterValueLabels.join(" · ") : "Selecciona pregunta y valores válidos"}</em>
-                    <span>{sourceMissingCount == null ? "Sin conteo de omisiones" : `${formatMetric(sourceMissingCount)} sin dato`}</span>
+                  <div className="mon-territorial-source-cut">
+                    <strong>{sourceFilterRuleLabel}</strong>
+                    <p>{filterConfigured ? "La ficha usa este criterio para separar las respuestas que pasan el filtro de las que quedan fuera del corte." : "Selecciona una pregunta y un valor válido en Filtro y distritos."}</p>
+                    <div className="mon-territorial-source-cut-counts">
+                      <span><b>{sourceEffectiveCount == null ? "S/D" : formatMetric(sourceEffectiveCount)}</b><em>pasan filtro</em></span>
+                      <span><b>{notCountingCount == null ? "S/D" : formatMetric(notCountingCount)}</b><em>fuera filtro</em></span>
+                      <span><b>{sourceMissingCount == null ? "S/D" : formatMetric(sourceMissingCount)}</b><em>sin dato</em></span>
+                    </div>
                   </div>
-                </article>
-              </div>
-              <div className="mon-territorial-form-actions">
-                <button type="button" onClick={() => setShowFormList(true)} disabled={saving}>
-                  <Search size={13} />
-                  <span>Cambiar formulario</span>
-                </button>
-                <button type="button" onClick={() => { void onInspect().catch(() => undefined); }} disabled={saving || !source}>
-                  {saving ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-                  <span>Actualizar ficha</span>
-                </button>
-              </div>
-            </div>
-          ) : (
+	                </article>
+	              </div>
+              <details className="mon-territorial-form-technical">
+                <summary>
+                  <span><ListChecks size={13} /> Ver detalles técnicos</span>
+                  <ChevronDown size={14} />
+                </summary>
+                <dl>
+                  <div><dt>Asset Kobo</dt><dd>{activeAssetUid ? shortenMiddle(activeAssetUid, 44) : "Sin asset definido"}</dd></div>
+                  <div><dt>Versión</dt><dd>{activeVersion}</dd></div>
+                  <div><dt>Despliegue</dt><dd>{coherence?.deployment_active === false ? "Inactivo" : "Activo"}</dd></div>
+                  <div><dt>Inspección</dt><dd>{activeModifiedLabel}</dd></div>
+                  <div><dt>Sincronización local</dt><dd>{source?.last_sync_at ? formatDate(source.last_sync_at) : "Sin actualización reciente"}</dd></div>
+                  <div><dt>Source ID</dt><dd>{activePhaseHealth?.source_id || visibleSource.sourceId || source?.id || "Sin source_id"}</dd></div>
+                  <div><dt>Variable distrito</dt><dd>{operationalVariableDisplayFromRef(variableRefs.district, config.territorial.district_var, "Por definir")}</dd></div>
+                  <div><dt>Variable UMP</dt><dd>{operationalVariableDisplayFromRef(variableRefs.ump, config.territorial.ump_var, "Por definir")}</dd></div>
+                  <div><dt>Variable Código Pulso</dt><dd>{operationalVariableDisplayFromRef(variableRefs.enumerator_pulso_code, config.territorial.pulso_code_var, "Por definir")}</dd></div>
+                  <div><dt>Pregunta del filtro</dt><dd>{filterQuestionLabel}</dd></div>
+                  <div><dt>Valores válidos</dt><dd>{filterConfigured ? selectedFilterValueLabels.join(", ") : "Por definir"}</dd></div>
+                  <div><dt>Filas del snapshot</dt><dd>{activePhaseHealth ? formatMetric(activePhaseHealth.snapshot_total_rows) : "S/D"}</dd></div>
+                </dl>
+              </details>
+	              <TerritorialFieldStartCard
+	                activePhase={activePhase}
+	                config={config}
+	                rawRows={activePhaseHealth?.local_rows ?? responseCount}
+	                visibleRows={numberOrNull(sourceValidity?.total_responses) ?? visibleReports?.kpis.total_respuestas ?? responseCount}
+	                submissionTimeVar={config.territorial.submission_time_var}
+	                saving={saving}
+	                onConfigPatch={onConfigPatch}
+	              />
+	            </div>
+	          ) : (
             <>
-              <div className="mon-territorial-source-search">
-                <input
-                  value={assetQuery}
-                  onChange={(event) => setAssetQuery(event.target.value)}
-                  placeholder="Buscar formulario Kobo..."
-                  aria-label="Buscar formulario Kobo"
-                />
-                <button type="button" onClick={() => { void loadAssets(); }} disabled={assetsLoading || saving} title="Actualizar listado de formularios">
-                  {assetsLoading ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-                </button>
-              </div>
+	              <div className="mon-territorial-source-search">
+	                <input
+	                  value={assetQuery}
+	                  onChange={(event) => setAssetQuery(event.target.value)}
+	                  placeholder={`Buscar formulario Kobo para ${activePhase === "field" ? "campo" : "piloto"}...`}
+	                  aria-label="Buscar formulario Kobo"
+	                />
+	                <button type="button" onClick={() => { void loadAssets(true); }} disabled={assetsLoading || saving} title="Actualizar listado de formularios">
+	                  {assetsLoading ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
+	                </button>
+	              </div>
+	              <div className="mon-territorial-asset-filters" aria-label="Filtros de formulario Kobo">
+	                {[
+	                  { key: "all" as const, label: "Todos" },
+	                  { key: "active" as const, label: "Desplegados" },
+	                ].map((item) => (
+	                  <button
+	                    key={item.key}
+	                    type="button"
+	                    className={assetFilter === item.key ? "is-active" : ""}
+	                    onClick={() => setAssetFilter(item.key)}
+	                  >
+	                    {item.label}
+	                  </button>
+	                ))}
+	              </div>
               {assetsError ? <Alert kind="error">{assetsError}</Alert> : null}
               <div className="mon-territorial-asset-list">
                 {displayedAssets.length ? displayedAssets.map((asset) => {
                   const active = asset.uid === activeAssetUid;
+                  const pending = asset.uid === pendingAssetUid && !active;
                   return (
-                    <article key={asset.uid} className={active ? "is-active" : ""}>
+                    <article key={asset.uid} className={active ? "is-active" : pending ? "is-pending" : ""}>
                       <div>
                         <strong>{asset.name}</strong>
-                        <em>{shortenMiddle(asset.uid, 34)} · {asset.date_modified ? formatDate(asset.date_modified) : "sin fecha"}</em>
+                        <em>{shortenMiddle(asset.uid, 34)} · {asset.version_id || "sin versión"} · {asset.date_modified ? formatDate(asset.date_modified) : "sin fecha"}</em>
                       </div>
-                      <span className={active ? "is-ready" : ""}>
-                        {active ? "Seleccionado" : "Disponible"}
+                      <span className={active ? "is-ready" : pending ? "is-warning" : ""}>
+                        {active ? "Aplicado" : pending ? "Pendiente" : "Disponible"}
                       </span>
                       <button
                         type="button"
@@ -3179,32 +8266,144 @@ function TerritorialSourceConsole({
                             setShowFormList(false);
                             return;
                           }
-                          void onUseAsset(asset).then(() => setShowFormList(false)).catch(() => undefined);
+                          setPendingAssetUid(asset.uid);
                         }}
                         disabled={saving || assetsLoading}
                       >
-                        {saving && !active ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                        <span>{active ? "Seleccionado" : "Seleccionar"}</span>
+                        <CheckCircle2 size={13} />
+                        <span>{active ? "Aplicado" : pending ? "Pendiente" : "Elegir"}</span>
                       </button>
                     </article>
                   );
                 }) : (
                   <div className="mon-territorial-source-empty">
-                    {assetsLoading ? "Leyendo formularios Kobo..." : "No hay formularios para esta búsqueda."}
+                    {assetsLoading ? "Leyendo formularios Kobo..." : !assetsLoaded ? "Carga el listado de formularios Kobo para elegir una fuente." : "No hay formularios para esta búsqueda."}
+                    {!assetsLoading && !assetsLoaded ? (
+                      <button type="button" onClick={() => { void loadAssets().catch(() => undefined); }} disabled={saving}>
+                        <RefreshCw size={13} />
+                        <span>Cargar listado</span>
+                      </button>
+                    ) : null}
                   </div>
                 )}
               </div>
+              {pendingAsset ? (
+                <div className="mon-territorial-form-apply">
+                  <div>
+                    <strong>{pendingAsset.name}</strong>
+                    <em>{shortenMiddle(pendingAsset.uid, 36)}{pendingAsset.version_id ? ` · ${pendingAsset.version_id}` : ""}</em>
+                  </div>
+                  <button
+                    type="button"
+                    className="pulso-button is-primary"
+                    onClick={() => {
+                      void onUseAsset(pendingAsset)
+                        .then(() => {
+                          setPendingAssetUid("");
+                          setShowFormList(false);
+                        })
+                        .catch(() => undefined);
+                    }}
+                    disabled={saving || assetsLoading}
+                  >
+                    {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
+                    <span>Aplicar a {activePhase === "field" ? "Campo" : "Piloto"}</span>
+                  </button>
+                </div>
+              ) : null}
             </>
           )}
-        </section>
+          </section>
+        </div>
+      ) : null}
 
-        <section className="mon-territorial-source-card mon-territorial-history" aria-label="Historial de actualizaciones">
+      {sourceTab === "filter" ? (
+        <div className="mon-territorial-source-tabpanel">
+          <TerritorialOperationalConfigPanel
+            activePhase={activePhase}
+            activePhaseHealth={activePhaseHealth}
+            activeFormName={activeFormName}
+            activeAssetUid={activeAssetUid}
+            activeVersion={activeVersion}
+            choicesByList={choicesByList}
+            config={config}
+            districtCrossPct={districtCrossPct}
+            districtDiagram={districtDiagram}
+            liveDistricts={liveDistricts}
+            onConfigPatch={onConfigPatch}
+            onOpenRoster={() => setSourceTab("roster")}
+            onOpenReconciliation={() => setSourceTab("reconciliation")}
+            responseCount={responseCount}
+            routeDistrictTotal={routeDistrictTotal}
+            saving={saving}
+            source={source}
+            sourceValidity={sourceValidity}
+            surveyFields={surveyFields}
+            variables={variables}
+            visibleReports={visibleReports}
+          />
+        </div>
+      ) : null}
+
+      {sourceTab === "roster" ? (
+        <div className="mon-territorial-source-tabpanel">
+          <TerritorialEnumeratorRosterCard
+            activePhase={activePhase}
+            config={config}
+            mode="roster"
+            onConfigPatch={onConfigPatch}
+            roster={config.territorial.enumerator_roster}
+            responseCount={responseCount}
+            saving={saving}
+            surveyFields={surveyFields}
+            variables={variables}
+            visibleReports={visibleReports}
+            uploading={uploadingRoster}
+            templating={templatingRoster}
+            downloadingCodes={downloadingRosterCodes}
+            onUpload={onUploadEnumeratorRoster}
+            onDownloadTemplate={onDownloadEnumeratorTemplate}
+            onDownloadCodes={onDownloadEnumeratorCodes}
+          />
+        </div>
+      ) : null}
+
+      {sourceTab === "reconciliation" ? (
+        <TerritorialReconciliationTab
+          activePhase={activePhase}
+          config={config}
+          onConfigPatch={onConfigPatch}
+          roster={config.territorial.enumerator_roster}
+          responseCount={responseCount}
+          saving={saving}
+          surveyFields={surveyFields}
+          variables={variables}
+          visibleReports={visibleReports}
+          pendingChanges={pendingReconciliationChanges}
+          batchApplying={reconciliationBatchApplying}
+          batchMessage={reconciliationBatchMessage}
+          confirmOpen={reconciliationConfirmOpen}
+          onConfirmOpenChange={setReconciliationConfirmOpen}
+          onApplyPendingChanges={applyPendingReconciliationChanges}
+          onDiscardPendingChanges={discardReconciliationChanges}
+          onStageReconciliationChange={stageReconciliationChange}
+          uploading={uploadingRoster}
+          templating={templatingRoster}
+          downloadingCodes={downloadingRosterCodes}
+          onUpload={onUploadEnumeratorRoster}
+          onDownloadTemplate={onDownloadEnumeratorTemplate}
+          onDownloadCodes={onDownloadEnumeratorCodes}
+        />
+      ) : null}
+
+      {sourceTab === "history" ? (
+        <section className="mon-territorial-source-card mon-territorial-source-tabpanel mon-territorial-history is-standalone" aria-label="Historial de actualizaciones">
           <header>
             <span><Clock size={14} /> Historial de actualizaciones</span>
             <strong>{formatMetric(history.length)} eventos</strong>
           </header>
           <div className="mon-territorial-history-list">
-            {history.length ? history.slice(0, 10).map((entry) => (
+            {history.length ? history.slice(0, 24).map((entry) => (
               <article key={entry.id || `${entry.type}-${entry.created_at}`}>
                 <time>{formatTerritorialHistoryDate(entry.created_at)}</time>
                 <div>
@@ -3221,75 +8420,2809 @@ function TerritorialSourceConsole({
             )}
           </div>
         </section>
-      </div>
+      ) : null}
+    </div>
+  );
+}
 
-      <div className="mon-territorial-source-bottomgrid">
-        <section className="mon-territorial-source-card mon-territorial-validity" aria-label="Definición de encuesta válida">
-          <header>
-            <span><FileCheck2 size={14} /> Definición de encuesta válida</span>
-            <strong>{sourceValidity?.effective_count == null ? "Por definir" : `${formatMetric(sourceValidity.effective_count)} efectivas`}</strong>
-          </header>
-          <div className="mon-territorial-validity-editor">
-            <TerritorialFieldSelect
-              label="Pregunta filtro"
-              value={config.territorial.platform_effective_var}
-              options={fieldSelectOptions}
-              onChange={(value) => { void onConfigPatch({ platform_effective_var: value, platform_effective_values: [] }).catch(() => undefined); }}
-            />
-            <TerritorialSingleValueSelect
-              label="Estado válido"
-              value={config.territorial.platform_effective_values[0] ?? ""}
-              options={fieldOptions}
-              onChange={(value) => { void onConfigPatch({ platform_effective_values: value ? [value] : [] }).catch(() => undefined); }}
-            />
-            <TerritorialFieldSelect
-              label="Variable responsable"
-              value={config.territorial.submitted_by_var}
-              options={responsibleFieldOptions}
-              placeholder="Buscar variable responsable..."
-              emptyLabel="Responsable por definir"
-              emptyHint="Sin responsable configurado."
-              emptyOptionsHint="Inspecciona el formulario para detectar variables Kobo."
-              onChange={(value) => { void onConfigPatch({ submitted_by_var: value }).catch(() => undefined); }}
-            />
-          </div>
-          <div className="mon-territorial-validity-metrics">
-            <span><strong>{sourceValidity?.effective_count == null ? "Por definir" : formatMetric(sourceValidity.effective_count)}</strong><em>efectivas</em></span>
-            <span><strong>{sourceValidity?.non_effective_count == null ? "Por definir" : formatMetric(sourceValidity.non_effective_count)}</strong><em>no efectivas</em></span>
-            <span><strong>{sourceValidity?.missing_count == null ? "Por definir" : formatMetric(sourceValidity.missing_count)}</strong><em>sin dato</em></span>
-            <span><strong>{formatMetric(sourceValidity?.total_responses ?? responseCount)}</strong><em>total Kobo</em></span>
-          </div>
-          <p className="mon-territorial-source-note">Esta cuenta usa sólo la pregunta filtro configurada. La validación territorial queda separada.</p>
-        </section>
-
-        <section className="mon-territorial-source-card mon-territorial-district-diagram" aria-label="Distritos seleccionados">
-          <header>
-            <span><MapPin size={14} /> Distritos seleccionados</span>
-            <strong>{formatMetric(crossedDistricts)} cruzados</strong>
-          </header>
-          <div className="mon-territorial-district-grid">
-            {districtDiagram.selected.map((row) => (
-              <article key={row.ubigeo} className={row.presentInKobo ? "is-ready" : "is-warning"}>
-                <TerritorialDistrictShapeIcon ubigeo={row.ubigeo} active={row.presentInKobo} warning={!row.presentInKobo} />
-                <div>
-                  <strong>{row.label}</strong>
-                  <em>{row.ubigeo}</em>
-                </div>
-                <span>{row.presentInKobo ? "Ruta + Kobo" : "Falta en Kobo"}</span>
-              </article>
-            ))}
-          </div>
-          {districtDiagram.extraKobo.length ? (
-            <div className="mon-territorial-extra-kobo">
-              <strong>Extras Kobo fuera de ruta</strong>
-              <div>
-                {districtDiagram.extraKobo.map((row) => <span key={row.name}>{row.label || row.name}</span>)}
-              </div>
-            </div>
-          ) : null}
-        </section>
+function TerritorialReconciliationTab({
+  activePhase,
+  config,
+  onConfigPatch,
+  roster,
+  responseCount,
+  saving,
+  surveyFields,
+  variables,
+  visibleReports,
+  pendingChanges,
+  batchApplying,
+  batchMessage,
+  confirmOpen,
+  onConfirmOpenChange,
+  onApplyPendingChanges,
+  onDiscardPendingChanges,
+  onStageReconciliationChange,
+  uploading,
+  templating,
+  downloadingCodes,
+  onUpload,
+  onDownloadTemplate,
+  onDownloadCodes,
+}: {
+  activePhase: MonitoreoTerritorialPhase;
+  config: MonitoreoConfig;
+  onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
+  roster: MonitoreoConfig["territorial"]["enumerator_roster"];
+  responseCount: number;
+  saving: boolean;
+  surveyFields: TerritorialSurveyField[];
+  variables: MonitoreoVariable[];
+  visibleReports: MonitoreoTerritorialDashboard | null;
+  pendingChanges: TerritorialPendingReconciliationChange[];
+  batchApplying: boolean;
+  batchMessage: string;
+  confirmOpen: boolean;
+  onConfirmOpenChange: (open: boolean) => void;
+  onApplyPendingChanges: () => Promise<void>;
+  onDiscardPendingChanges: () => void;
+  onStageReconciliationChange: (change: TerritorialPendingReconciliationChange) => void;
+  uploading: boolean;
+  templating: boolean;
+  downloadingCodes: boolean;
+  onUpload: (file: File, options?: { code_format?: "PXXX" | "DNI" }) => Promise<void>;
+  onDownloadTemplate: () => Promise<void>;
+  onDownloadCodes: () => Promise<void>;
+}) {
+  const mapping = territorialMappingForPhase(config, activePhase);
+  const codePendingChanges = pendingChanges.filter((change): change is TerritorialPendingCodeReconciliationChange => change.kind === "code");
+  const umpPendingChanges = pendingChanges.filter((change): change is TerritorialPendingUmpReconciliationChange => change.kind === "ump");
+  return (
+    <div className="mon-territorial-source-tabpanel mon-territorial-reconciliation-tab">
+      <TerritorialReconciliationBatchBar
+        changes={pendingChanges}
+        applying={batchApplying}
+        saving={saving}
+        message={batchMessage}
+        onConfirm={() => onConfirmOpenChange(true)}
+        onDiscard={onDiscardPendingChanges}
+      />
+      <TerritorialReconciliationBatchDialog
+        open={confirmOpen}
+        changes={pendingChanges}
+        applying={batchApplying}
+        message={batchMessage}
+        onOpenChange={onConfirmOpenChange}
+        onApply={onApplyPendingChanges}
+      />
+      <div className="mon-territorial-reconciliation-grid">
+        <TerritorialEnumeratorRosterCard
+          activePhase={activePhase}
+          config={config}
+          mode="reconciliation"
+          onConfigPatch={onConfigPatch}
+          roster={roster}
+          responseCount={responseCount}
+          saving={saving}
+          surveyFields={surveyFields}
+          variables={variables}
+          visibleReports={visibleReports}
+          pendingCodeChanges={codePendingChanges}
+          onStageCodeReconciliation={onStageReconciliationChange}
+          uploading={uploading}
+          templating={templating}
+          downloadingCodes={downloadingCodes}
+          onUpload={onUpload}
+          onDownloadTemplate={onDownloadTemplate}
+          onDownloadCodes={onDownloadCodes}
+        />
+        <TerritorialDeclaredUmpPanel
+          activePhase={activePhase}
+          draftMapping={mapping}
+          responseCount={responseCount}
+          saving={saving || batchApplying}
+          visibleReports={visibleReports}
+          pendingUmpChanges={umpPendingChanges}
+          onStageUmpReconciliation={onStageReconciliationChange}
+        />
       </div>
     </div>
+  );
+}
+
+type TerritorialPendingReconciliationStatus = "pending" | "saving" | "error";
+
+type TerritorialPendingCodeReconciliationChange = {
+  id: string;
+  kind: "code";
+  scope: string;
+  phase: MonitoreoTerritorialPhase;
+  payload: MonitoreoTerritorialCodeReconciliation;
+  title: string;
+  detail: string;
+  target: string;
+  status?: TerritorialPendingReconciliationStatus;
+  error?: string;
+};
+
+type TerritorialPendingUmpReconciliationChange = {
+  id: string;
+  kind: "ump";
+  scope: string;
+  phase: MonitoreoTerritorialPhase;
+  payload: MonitoreoTerritorialUmpReconciliation;
+  title: string;
+  detail: string;
+  target: string;
+  status?: TerritorialPendingReconciliationStatus;
+  error?: string;
+};
+
+type TerritorialPendingReconciliationChange = TerritorialPendingCodeReconciliationChange | TerritorialPendingUmpReconciliationChange;
+
+function territorialPendingCodeReconciliationId(payload: MonitoreoTerritorialCodeReconciliation) {
+  const phase = normalizeTerritorialPhase(payload.phase);
+  const scope = payload.scope || "response";
+  const identity = scope === "response"
+    ? stringOrEmpty(payload.response_id) || `${payload.response_id_field || "row"}:${payload.raw_code || payload.normalized_code}`
+    : payload.normalized_code || payload.raw_code;
+  return `code:${phase}:${scope}:${identity}`;
+}
+
+function territorialPendingUmpReconciliationId(payload: MonitoreoTerritorialUmpReconciliation) {
+  const phase = normalizeTerritorialPhase(payload.phase);
+  const scope = payload.scope || "response";
+  const identity = scope === "response"
+    ? stringOrEmpty(payload.response_id) || `${payload.response_id_field || "row"}:${payload.raw_ump}`
+    : payload.raw_ump;
+  return `ump:${phase}:${scope}:${identity}`;
+}
+
+function territorialBuildPendingCodeReconciliationChange(payload: MonitoreoTerritorialCodeReconciliation): TerritorialPendingCodeReconciliationChange {
+  const scope = payload.scope || "response";
+  const assigned = [payload.assigned_code, payload.assigned_name].filter(Boolean).join(" · ");
+  return {
+    id: territorialPendingCodeReconciliationId(payload),
+    kind: "code",
+    scope,
+    phase: normalizeTerritorialPhase(payload.phase),
+    payload,
+    title: payload.raw_code || payload.normalized_code || "Código sin dato",
+    detail: `${territorialReconciliationScopeLabel("code", scope)} · ${assigned || "Sin asignación"}`,
+    target: assigned || payload.assigned_code || "Sin asignación",
+    status: "pending",
+  };
+}
+
+function territorialBuildPendingUmpReconciliationChange(payload: MonitoreoTerritorialUmpReconciliation): TerritorialPendingUmpReconciliationChange {
+  const scope = payload.scope || "response";
+  const route = [payload.assigned_ump ? `UMP ${payload.assigned_ump}` : "", payload.assigned_district, shortenMiddle(payload.assigned_block_id, 18)].filter(Boolean).join(" · ");
+  return {
+    id: territorialPendingUmpReconciliationId(payload),
+    kind: "ump",
+    scope,
+    phase: normalizeTerritorialPhase(payload.phase),
+    payload,
+    title: payload.raw_ump || "UMP sin dato",
+    detail: `${territorialReconciliationScopeLabel("ump", scope)} · ${route || "Sin ruta"}`,
+    target: route || payload.assigned_block_id || "Sin ruta",
+    status: "pending",
+  };
+}
+
+function territorialReconciliationScopeLabel(kind: "code" | "ump", scope: string) {
+  if (kind === "code") return scope === "code_legacy" ? "Todas con este código" : "Esta respuesta";
+  return scope === "ump_value" ? "Valor UMP" : "Esta respuesta";
+}
+
+function territorialPendingChangeStatusLabel(change: TerritorialPendingReconciliationChange) {
+  if (change.status === "saving") return "Guardando";
+  if (change.status === "error") return "Error";
+  return "Pendiente";
+}
+
+function TerritorialReconciliationBatchBar({
+  applying,
+  changes,
+  message,
+  saving,
+  onConfirm,
+  onDiscard,
+}: {
+  applying: boolean;
+  changes: TerritorialPendingReconciliationChange[];
+  message: string;
+  saving: boolean;
+  onConfirm: () => void;
+  onDiscard: () => void;
+}) {
+  const codeCount = changes.filter((change) => change.kind === "code").length;
+  const umpCount = changes.filter((change) => change.kind === "ump").length;
+  const errorCount = changes.filter((change) => change.status === "error").length;
+  const hasChanges = changes.length > 0;
+  return (
+    <section className={`mon-territorial-reconciliation-batchbar${hasChanges ? " is-active" : ""}`} aria-label="Cambios de reconciliación pendientes">
+      <div className="mon-territorial-reconciliation-batchcopy">
+        <span><ClipboardCheck size={14} /> Lote de reconciliación</span>
+        <strong>{hasChanges ? `${formatMetric(changes.length)} cambios pendientes` : "Sin cambios pendientes"}</strong>
+        <em>{message || `${formatMetric(codeCount)} Código Pulso · ${formatMetric(umpCount)} UMP${errorCount ? ` · ${formatMetric(errorCount)} con error` : ""}`}</em>
+      </div>
+      <div className="mon-territorial-reconciliation-batchrail">
+        <div className="mon-territorial-reconciliation-batchcounts" aria-label="Conteo de cambios pendientes">
+          <span><strong>{formatMetric(codeCount)}</strong><em>Código Pulso</em></span>
+          <span><strong>{formatMetric(umpCount)}</strong><em>UMP</em></span>
+        </div>
+        <div className="mon-territorial-reconciliation-batchactions">
+          <button type="button" onClick={onDiscard} disabled={!hasChanges || applying}>
+            <Trash2 size={13} />
+            <span>Descartar</span>
+          </button>
+          <button type="button" className="is-primary" onClick={onConfirm} disabled={!hasChanges || applying || saving}>
+            {applying ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+            <span>Confirmar...</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialReconciliationBatchDialog({
+  applying,
+  changes,
+  message,
+  open,
+  onApply,
+  onOpenChange,
+}: {
+  applying: boolean;
+  changes: TerritorialPendingReconciliationChange[];
+  message: string;
+  open: boolean;
+  onApply: () => Promise<void>;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const codeCount = changes.filter((change) => change.kind === "code").length;
+  const umpCount = changes.filter((change) => change.kind === "ump").length;
+  return (
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!applying) onOpenChange(nextOpen); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="mon-territorial-dialog-overlay" />
+        <Dialog.Content className="mon-territorial-reconciliation-dialog">
+          <header>
+            <div>
+              <Dialog.Title>Confirmar reconciliaciones</Dialog.Title>
+              <Dialog.Description>
+                Se aplicarán {formatMetric(changes.length)} cambios: {formatMetric(codeCount)} Código Pulso y {formatMetric(umpCount)} UMP.
+              </Dialog.Description>
+            </div>
+            <Dialog.Close aria-label="Cerrar confirmación" disabled={applying}>
+              <XCircle size={16} />
+            </Dialog.Close>
+          </header>
+          {message ? <p className="mon-territorial-reconciliation-dialog-message">{message}</p> : null}
+          <div className="mon-territorial-reconciliation-confirm-list" aria-label="Cambios por aplicar">
+            {changes.length ? changes.map((change) => (
+              <article key={change.id} className={`is-${change.kind} is-${change.status || "pending"}`}>
+                <span>{change.kind === "code" ? "Código Pulso" : "UMP"}</span>
+                <strong>{change.title}</strong>
+                <em>{change.detail}</em>
+                <small>{territorialPendingChangeStatusLabel(change)}</small>
+                {change.error ? <p>{change.error}</p> : null}
+              </article>
+            )) : (
+              <div className="mon-territorial-reconciliation-confirm-empty">No hay cambios pendientes.</div>
+            )}
+          </div>
+          <footer>
+            <Dialog.Close asChild>
+              <button type="button" className="pulso-button" disabled={applying}>Cancelar</button>
+            </Dialog.Close>
+            <button
+              type="button"
+              className="pulso-button is-primary"
+              onClick={() => { void onApply().catch(() => undefined); }}
+              disabled={!changes.length || applying}
+            >
+              {applying ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+              <span>Aplicar cambios</span>
+            </button>
+          </footer>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function TerritorialFieldStartCard({
+  activePhase,
+  config,
+  rawRows,
+  visibleRows,
+  submissionTimeVar,
+  saving,
+  onConfigPatch,
+}: {
+  activePhase: MonitoreoTerritorialPhase;
+  config: MonitoreoConfig;
+  rawRows: number;
+  visibleRows: number;
+  submissionTimeVar: string;
+  saving: boolean;
+  onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
+}) {
+  const phaseWindow = territorialPhaseWindowForPhase(config, activePhase);
+  const startAt = stringOrEmpty(phaseWindow.start_at);
+  const parts = useMemo(() => territorialLocalDateTimeParts(startAt), [startAt]);
+  const [dateValue, setDateValue] = useState(parts.date);
+  const [timeValue, setTimeValue] = useState(parts.time);
+  const phaseLabel = territorialPhaseLabel(activePhase);
+  const nextIso = territorialIsoFromLocalDateTime(dateValue, timeValue);
+  const dirty = nextIso !== startAt;
+  const excludedRows = startAt ? Math.max(0, Math.round(rawRows - visibleRows)) : 0;
+  const ready = Boolean(startAt);
+
+  useEffect(() => {
+    setDateValue(parts.date);
+    setTimeValue(parts.time);
+  }, [parts.date, parts.time]);
+
+  const patchPhaseStart = useCallback(async (nextStartAt: string) => {
+    const current = config.territorial.phase_windows ?? EMPTY_TERRITORIAL_CONFIG.phase_windows;
+    const phaseWindows = {
+      pilot: normalizeTerritorialPhaseWindow(current?.pilot),
+      field: normalizeTerritorialPhaseWindow(current?.field),
+    };
+    phaseWindows[activePhase] = { start_at: nextStartAt };
+    await onConfigPatch({
+      active_route_phase: activePhase,
+      phase_windows: phaseWindows,
+    });
+  }, [activePhase, config.territorial.phase_windows, onConfigPatch]);
+
+  const setNow = useCallback(() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setDateValue(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+    setTimeValue(`${pad(now.getHours())}:${pad(now.getMinutes())}`);
+  }, []);
+
+  return (
+    <section className={`mon-territorial-field-start-card${ready ? " is-ready" : " is-empty"}`} aria-label={`Inicio operativo de ${phaseLabel}`}>
+      <header>
+        <span><CalendarRange size={15} /> Inicio de {phaseLabel}</span>
+        <strong>{formatTerritorialPhaseStart(startAt)}</strong>
+        <em>{submissionTimeVar ? `Corte con ${submissionTimeVar}` : "Corte con fecha Kobo disponible"}</em>
+      </header>
+      <div className="mon-territorial-field-start-controls">
+        <label>
+          <span>Fecha</span>
+          <input
+            type="date"
+            value={dateValue}
+            onChange={(event) => setDateValue(event.target.value)}
+            disabled={saving}
+          />
+        </label>
+        <label>
+          <span>Hora</span>
+          <input
+            type="time"
+            value={timeValue}
+            onChange={(event) => setTimeValue(event.target.value)}
+            disabled={saving}
+          />
+        </label>
+        <button type="button" onClick={setNow} disabled={saving} title="Usar la fecha y hora actual">
+          <Clock size={14} />
+          <span>Ahora</span>
+        </button>
+      </div>
+      <div className="mon-territorial-field-start-impact" aria-label="Impacto del corte operativo">
+        <span><strong>{formatMetric(rawRows)}</strong><em>sincronizadas</em></span>
+        <span><strong>{formatMetric(visibleRows)}</strong><em>en corte</em></span>
+        <span className={excludedRows ? "is-warning" : ""}><strong>{formatMetric(excludedRows)}</strong><em>excluidas</em></span>
+      </div>
+      <div className="mon-territorial-field-start-actions" aria-label="Acciones de inicio operativo">
+        <button
+          type="button"
+          className="pulso-button is-primary"
+          onClick={() => { void patchPhaseStart(nextIso).catch(() => undefined); }}
+          disabled={saving || !dateValue || !timeValue || !nextIso || !dirty}
+        >
+          {saving ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+          <span>Aplicar corte</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => { void patchPhaseStart("").catch(() => undefined); }}
+          disabled={saving || !startAt}
+        >
+          <XCircle size={14} />
+          <span>Limpiar</span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+type TerritorialSurveyField = NonNullable<MonitoreoTerritorialDashboard["source_coherence"]["survey_fields"]>[number];
+type TerritorialChoicesByList = NonNullable<MonitoreoTerritorialDashboard["source_coherence"]["choices_by_list"]>;
+type TerritorialSourceValidity = MonitoreoTerritorialDashboard["source_validity"];
+type OperationalVariableRole =
+  | "district"
+  | "ump"
+  | "pulso_code"
+  | "gps"
+  | "age"
+  | "sex"
+  | "filter";
+type OperationalVariableField =
+  | "district_var"
+  | "ump_var"
+  | "pulso_code_var"
+  | "gps_var"
+  | "age_var"
+  | "sex_var"
+  | "platform_effective_var";
+
+type OperationalVariableCategory = "form" | "metadata" | "technical" | "other";
+
+type OperationalVariableOption = {
+  value: string;
+  label: string;
+  hasLabel: boolean;
+  technical: string;
+  originalName: string;
+  normalizedName: string;
+  path: string;
+  type: string;
+  group: string;
+  category: OperationalVariableCategory;
+  aliases: string[];
+  filled: number | null;
+  total: number | null;
+  completeness: number | null;
+  sampleValues: string[];
+  suggested?: boolean;
+  confidence?: "Alta" | "Media" | "Baja";
+  reason?: string;
+};
+
+type OperationalVariableStatus = "defined" | "suggested" | "missing" | "no_data" | "inconsistent" | "not_found";
+
+const OPERATIONAL_ROLE_LABELS: Record<OperationalVariableRole, string> = {
+  district: "Distrito",
+  ump: "UMP / manzana",
+  pulso_code: "Código Pulso del encuestador",
+  gps: "Geolocalización",
+  age: "Edad",
+  sex: "Sexo",
+  filter: "Pregunta filtro",
+};
+
+const OPERATIONAL_MAPPING_KEYS: Array<keyof MonitoreoTerritorialPhaseMapping> = [
+  "district_var",
+  "ump_var",
+  "pulso_code_var",
+  "gps_var",
+  "age_var",
+  "sex_var",
+  "platform_effective_var",
+  "platform_effective_values",
+  "variable_refs",
+];
+
+type TerritorialEnumeratorPulsoCodeSummary = {
+  field: string;
+  fieldResolved: string;
+  umpField: string;
+  umpFieldResolved: string;
+  configured: boolean;
+  rosterTotal: number;
+  responseWithCodeCount: number;
+  responseCodeCount: number;
+  recognizedCodeCount: number;
+  autoRecognizedCodeCount: number;
+  reconciledCodeCount: number;
+  unrecognizedCodeCount: number;
+  recognizedResponseCount: number;
+  autoRecognizedResponseCount: number;
+  reconciledResponseCount: number;
+  unrecognizedResponseCount: number;
+  missingResponseCount: number;
+  topUnrecognized: Array<{ code: string; raw_code?: string; normalized_code?: string; count: number }>;
+  unrecognizedCodes: Array<{ code: string; raw_code?: string; normalized_code?: string; count: number }>;
+  unrecognizedResponses: MonitoreoTerritorialEnumeratorReconciliationResponse[];
+  reconciliationResponses: MonitoreoTerritorialEnumeratorReconciliationResponse[];
+  assignedSummary: Array<{
+    code: string;
+    name: string;
+    response_count: number;
+    auto_response_count?: number;
+    reconciled_response_count?: number;
+    appears_in_base?: boolean;
+    last_record?: string;
+    status?: string;
+  }>;
+  reconciliationEntries: MonitoreoTerritorialCodeReconciliation[];
+  responseExamples: string[];
+  rosterExamples: string[];
+};
+
+function territorialEnumeratorPulsoCodeSummary(reports: MonitoreoTerritorialDashboard | null): TerritorialEnumeratorPulsoCodeSummary {
+  const summary = reports?.enumerator_code_summary;
+  return {
+    field: stringOrEmpty(summary?.field),
+    fieldResolved: stringOrEmpty(summary?.field_resolved),
+    umpField: stringOrEmpty(summary?.ump_field),
+    umpFieldResolved: stringOrEmpty(summary?.ump_field_resolved),
+    configured: Boolean(summary?.configured),
+    rosterTotal: numberOrFallback(summary?.roster_total, 0),
+    responseWithCodeCount: numberOrFallback(summary?.response_with_code_count, 0),
+    responseCodeCount: numberOrFallback(summary?.response_code_count, 0),
+    recognizedCodeCount: numberOrFallback(summary?.recognized_code_count, 0),
+    autoRecognizedCodeCount: numberOrFallback(summary?.auto_recognized_code_count, summary?.recognized_code_count ?? 0),
+    reconciledCodeCount: numberOrFallback(summary?.reconciled_code_count, 0),
+    unrecognizedCodeCount: numberOrFallback(summary?.unrecognized_code_count, 0),
+    recognizedResponseCount: numberOrFallback(summary?.recognized_response_count, 0),
+    autoRecognizedResponseCount: numberOrFallback(summary?.auto_recognized_response_count, summary?.recognized_response_count ?? 0),
+    reconciledResponseCount: numberOrFallback(summary?.reconciled_response_count, 0),
+    unrecognizedResponseCount: numberOrFallback(summary?.unrecognized_response_count, 0),
+    missingResponseCount: numberOrFallback(summary?.missing_response_count, 0),
+    topUnrecognized: arrayOrEmpty<{ code: string; raw_code?: string; normalized_code?: string; count: number }>(summary?.top_unrecognized),
+    unrecognizedCodes: arrayOrEmpty<{ code: string; raw_code?: string; normalized_code?: string; count: number }>(summary?.unrecognized_codes ?? summary?.top_unrecognized),
+    unrecognizedResponses: arrayOrEmpty<MonitoreoTerritorialEnumeratorReconciliationResponse>(summary?.unrecognized_responses),
+    reconciliationResponses: arrayOrEmpty<MonitoreoTerritorialEnumeratorReconciliationResponse>(summary?.reconciliation_responses),
+    assignedSummary: arrayOrEmpty<{
+      code: string;
+      name: string;
+      response_count: number;
+      auto_response_count?: number;
+      reconciled_response_count?: number;
+      appears_in_base?: boolean;
+      last_record?: string;
+      status?: string;
+    }>(summary?.assigned_summary),
+    reconciliationEntries: arrayOrEmpty<MonitoreoTerritorialCodeReconciliation>(summary?.reconciliation_entries),
+    responseExamples: arrayOrEmpty<string>(summary?.response_examples),
+    rosterExamples: arrayOrEmpty<string>(summary?.roster_examples),
+  };
+}
+
+function operationalPulsoSummaryTitle(summary: TerritorialEnumeratorPulsoCodeSummary) {
+  if (!summary.configured) return "Código Pulso por configurar";
+  if (summary.responseWithCodeCount <= 0) return "0 respuestas con código";
+  if (summary.rosterTotal <= 0) return "No hay códigos asignados";
+  if (summary.recognizedCodeCount <= 0) return "0 códigos reconocidos";
+  if (summary.unrecognizedCodeCount > 0) return `${formatMetric(summary.recognizedCodeCount)} códigos reconocidos`;
+  return "Los códigos cruzan con Encuestadores";
+}
+
+function TerritorialOperationalConfigPanel({
+  activePhase,
+  activePhaseHealth,
+  activeFormName,
+  activeAssetUid,
+  activeVersion,
+  choicesByList,
+  config,
+  districtCrossPct,
+  districtDiagram,
+  liveDistricts,
+  onConfigPatch,
+  onOpenReconciliation,
+  responseCount,
+  routeDistrictTotal,
+  saving,
+  source,
+  sourceValidity,
+  surveyFields,
+  variables,
+  visibleReports,
+}: {
+  activePhase: MonitoreoTerritorialPhase;
+  activePhaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
+  activeFormName: string;
+  activeAssetUid: string;
+  activeVersion: string;
+  choicesByList: TerritorialChoicesByList;
+  config: MonitoreoConfig;
+  districtCrossPct: number | null;
+  districtDiagram: ReturnType<typeof buildTerritorialSourceDistricts>;
+  liveDistricts: Array<{ name: string; label: string }>;
+  onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
+  onOpenRoster: () => void;
+  onOpenReconciliation: () => void;
+  responseCount: number;
+  routeDistrictTotal: number;
+  saving: boolean;
+  source: MonitoreoSource | null;
+  sourceValidity: TerritorialSourceValidity | null;
+  surveyFields: TerritorialSurveyField[];
+  variables: MonitoreoVariable[];
+  visibleReports: MonitoreoTerritorialDashboard | null;
+}) {
+  const savedMapping = territorialMappingForPhase(config, activePhase);
+  const savedSignature = territorialOperationalMappingSignature(savedMapping);
+  const [draftMapping, setDraftMapping] = useState<MonitoreoTerritorialPhaseMapping>(savedMapping);
+  const draftSignature = territorialOperationalMappingSignature(draftMapping);
+  const dirty = draftSignature !== savedSignature;
+  const variableOptions = useMemo(
+    () => buildOperationalVariableOptions(surveyFields, variables, responseCount),
+    [responseCount, surveyFields, variables],
+  );
+  const optionsByRole = useMemo(() => {
+    const out = {} as Record<OperationalVariableRole, OperationalVariableOption[]>;
+    (Object.keys(OPERATIONAL_ROLE_LABELS) as OperationalVariableRole[]).forEach((role) => {
+      out[role] = operationalOptionsForRole(role, variableOptions);
+    });
+    return out;
+  }, [variableOptions]);
+  const draftRefs = draftMapping.variable_refs ?? {};
+  const savedRefs = savedMapping.variable_refs ?? {};
+  const selectedDistrictOption = resolveOperationalVariableOption(draftMapping.district_var, optionsByRole.district, draftRefs.district);
+  const selectedUmpOption = resolveOperationalVariableOption(draftMapping.ump_var, optionsByRole.ump, draftRefs.ump);
+  const selectedGpsOption = resolveOperationalVariableOption(draftMapping.gps_var, optionsByRole.gps, draftRefs.geo);
+  const selectedAgeOption = resolveOperationalVariableOption(draftMapping.age_var, optionsByRole.age, draftRefs.age);
+  const selectedSexOption = resolveOperationalVariableOption(draftMapping.sex_var, optionsByRole.sex, draftRefs.sex);
+  const selectedFilterOption = resolveOperationalVariableOption(draftMapping.platform_effective_var, optionsByRole.filter, draftRefs.valid_filter_question);
+  const fieldOptions = useMemo(
+    () => operationalValueOptionsForField(selectedFilterOption?.value ?? draftMapping.platform_effective_var, surveyFields, choicesByList, variables, sourceValidity),
+    [choicesByList, draftMapping.platform_effective_var, selectedFilterOption?.value, sourceValidity, surveyFields, variables],
+  );
+  const selectedFilterValueLabels = draftMapping.platform_effective_values
+    .map((value) => cleanOperationalValueLabel(fieldOptions.find((option) => option.value === value)?.label ?? value))
+    .slice(0, 4);
+  const selectedFilterDisplay = selectedFilterOption
+    ? operationalVariableDisplay(selectedFilterOption)
+    : operationalVariableDisplayFromRef(draftRefs.valid_filter_question, draftMapping.platform_effective_var, "Pregunta por definir");
+  const selectedFilterValueDisplay = selectedFilterValueLabels[0] || draftMapping.platform_effective_values[0] || "Valor por definir";
+  const sourceTotalCount = numberOrNull(sourceValidity?.total_responses) ?? responseCount;
+  const crossedDistricts = districtDiagram.selected.filter((row) => row.presentInKobo).length;
+  const missingDistricts = Math.max(0, districtDiagram.selected.length - crossedDistricts);
+  const sourceEffectiveCount = numberOrNull(sourceValidity?.effective_count);
+  const sourceMissingCount = numberOrNull(sourceValidity?.missing_count);
+  const sourceNonEffectiveCount = numberOrNull(sourceValidity?.non_effective_count);
+  const configuredRequired = [
+    draftMapping.district_var,
+    draftMapping.ump_var,
+    draftMapping.gps_var,
+    draftMapping.platform_effective_var,
+    draftMapping.platform_effective_values[0] ?? "",
+  ].filter(Boolean).length;
+  const missingRequired = 5 - configuredRequired;
+  const notFoundCount = ([
+    ["district", draftMapping.district_var, draftRefs.district],
+    ["ump", draftMapping.ump_var, draftRefs.ump],
+    ["gps", draftMapping.gps_var, draftRefs.geo],
+    ["filter", draftMapping.platform_effective_var, draftRefs.valid_filter_question],
+  ] as Array<[OperationalVariableRole, string, MonitoreoTerritorialVariableRef | undefined]>).filter(([role, value, ref]) => (
+    operationalVariableStatus(value, optionsByRole[role], responseCount, stringOrEmpty(savedMapping[operationalRoleField(role)]), ref) === "not_found"
+  )).length;
+  const generalStatus = territorialOperationalGeneralStatus({
+    responseCount,
+    missingRequired,
+    notFoundCount,
+    missingDistricts,
+    phaseHealth: activePhaseHealth,
+    dirty,
+  });
+  const suggestedPatch = useMemo(
+    () => {
+      const patch = suggestedOperationalMappingPatch(draftMapping, optionsByRole);
+      const refs = { ...(patch.variable_refs ?? draftMapping.variable_refs ?? {}) };
+      delete refs.enumerator_pulso_code;
+      return {
+        ...patch,
+        pulso_code_var: draftMapping.pulso_code_var,
+        variable_refs: refs,
+      };
+    },
+    [draftMapping, optionsByRole],
+  );
+
+  useEffect(() => {
+    setDraftMapping(savedMapping);
+  }, [activePhase, savedSignature]);
+
+  const patchDraft = useCallback((patch: Partial<MonitoreoTerritorialPhaseMapping>) => {
+    setDraftMapping((prev) => normalizeTerritorialPhaseMapping({ ...prev, ...patch }));
+  }, []);
+
+  async function saveDraft() {
+    const currentPhaseMappings = config.territorial.phase_mappings ?? EMPTY_TERRITORIAL_CONFIG.phase_mappings;
+    const phaseMappings: Record<MonitoreoTerritorialPhase, MonitoreoTerritorialPhaseMapping> = {
+      pilot: normalizeTerritorialPhaseMapping(currentPhaseMappings?.pilot),
+      field: normalizeTerritorialPhaseMapping(currentPhaseMappings?.field),
+      [activePhase]: draftMapping,
+    };
+    await onConfigPatch({
+      active_route_phase: activePhase,
+      phase_mappings: phaseMappings,
+      ...draftMapping,
+    });
+  }
+
+  return (
+    <div className="mon-territorial-operational-console">
+      <section className="mon-territorial-operational-hero" aria-label="Estado operativo del formulario">
+        <div className="mon-territorial-operational-title">
+          <span><SlidersHorizontal size={15} /> Configuración operativa del formulario</span>
+          <strong>{activePhase === "field" ? "Campo" : "Piloto"} · {activeFormName || "Formulario por definir"}</strong>
+          <em>
+            {formatMetric(responseCount)} respuestas locales · {sourceEffectiveCount == null ? "efectivas por definir" : `${formatMetric(sourceEffectiveCount)} efectivas`} · {formatMetric(crossedDistricts)}/{formatMetric(routeDistrictTotal)} distritos cruzados
+          </em>
+          <small>{activeAssetUid ? shortenMiddle(activeAssetUid, 28) : "sin asset"} · {activeVersion || "sin versión"}</small>
+        </div>
+        <div className={`mon-territorial-operational-state is-${generalStatus.tone}`}>
+          <span>{dirty ? "Cambios pendientes" : generalStatus.badge}</span>
+          <strong>{dirty ? "Cambios pendientes" : generalStatus.label}</strong>
+          <em>{generalStatus.message}</em>
+        </div>
+        <div className="mon-territorial-operational-actions" aria-label="Acciones de configuración">
+          <button type="button" onClick={() => setDraftMapping(normalizeTerritorialPhaseMapping({ ...draftMapping, ...suggestedPatch }))} disabled={saving}>
+            <RefreshCw size={14} />
+            <span>Usar sugerencias</span>
+          </button>
+          <button type="button" onClick={() => setDraftMapping(savedMapping)} disabled={saving || !dirty}>
+            <XCircle size={14} />
+            <span>Descartar cambios</span>
+          </button>
+          <button type="button" className="pulso-button is-primary" onClick={() => { void saveDraft().catch(() => undefined); }} disabled={saving || !dirty}>
+            {saving ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+            <span>Guardar configuración</span>
+          </button>
+          <em>{source?.last_sync_at ? `Datos locales: ${formatDate(source.last_sync_at)}` : "Guardar no sincroniza Kobo"}</em>
+        </div>
+      </section>
+
+      <section className="mon-territorial-operational-layout" aria-label="Configuración y revisión operativa">
+        <div className="mon-territorial-operational-column">
+          <div className="mon-operational-group is-territory">
+            <header>
+              <MapPin size={15} />
+              <div>
+                <strong>Variables territoriales</strong>
+                <em>Dónde ocurrió la encuesta y cómo cruza con ruta/mapa.</em>
+              </div>
+            </header>
+            <div className="mon-operational-field-grid is-territory">
+              <OperationalVariableSelect
+                role="district"
+                label="Distrito"
+                value={draftMapping.district_var}
+                savedValue={savedMapping.district_var}
+                variableRef={draftRefs.district}
+                savedVariableRef={savedRefs.district}
+                options={optionsByRole.district}
+                required
+                onChange={(option) => patchDraft(operationalVariablePatch("district", option, draftMapping))}
+              />
+              <OperationalVariableSelect
+                role="ump"
+                label="UMP / manzana"
+                value={draftMapping.ump_var}
+                savedValue={savedMapping.ump_var}
+                variableRef={draftRefs.ump}
+                savedVariableRef={savedRefs.ump}
+                options={optionsByRole.ump}
+                required
+                onChange={(option) => patchDraft(operationalVariablePatch("ump", option, draftMapping))}
+              />
+              <OperationalVariableSelect
+                role="gps"
+                label="Geolocalización"
+                value={draftMapping.gps_var}
+                savedValue={savedMapping.gps_var}
+                variableRef={draftRefs.geo}
+                savedVariableRef={savedRefs.geo}
+                options={optionsByRole.gps}
+                required
+                onChange={(option) => patchDraft(operationalVariablePatch("gps", option, draftMapping))}
+              />
+            </div>
+          </div>
+          <div className="mon-operational-group is-quota">
+            <header>
+              <Target size={15} />
+              <div>
+                <strong>Variables de cuota</strong>
+                <em>Solo se usan si Hojas de Ruta trae cuota sexo/edad.</em>
+              </div>
+            </header>
+            <div className="mon-operational-field-grid">
+              <OperationalVariableSelect
+                role="age"
+                label="Edad"
+                value={draftMapping.age_var}
+                savedValue={savedMapping.age_var}
+                variableRef={draftRefs.age}
+                savedVariableRef={savedRefs.age}
+                options={optionsByRole.age}
+                onChange={(option) => patchDraft(operationalVariablePatch("age", option, draftMapping))}
+              />
+              <OperationalVariableSelect
+                role="sex"
+                label="Sexo"
+                value={draftMapping.sex_var}
+                savedValue={savedMapping.sex_var}
+                variableRef={draftRefs.sex}
+                savedVariableRef={savedRefs.sex}
+                options={optionsByRole.sex}
+                onChange={(option) => patchDraft(operationalVariablePatch("sex", option, draftMapping))}
+              />
+            </div>
+          </div>
+          <TerritorialOperationalReviewPanel
+            draftMapping={draftMapping}
+            districtCrossPct={districtCrossPct}
+            districtDiagram={districtDiagram}
+            missingDistricts={missingDistricts}
+            notFoundCount={notFoundCount}
+            onOpenReconciliation={onOpenReconciliation}
+            responseCount={responseCount}
+            routeDistrictTotal={routeDistrictTotal}
+            selectedDistrictOption={selectedDistrictOption ?? undefined}
+            selectedFilterOption={selectedFilterOption ?? undefined}
+            selectedFilterValueLabels={selectedFilterValueLabels}
+            selectedGpsOption={selectedGpsOption ?? undefined}
+            selectedUmpOption={selectedUmpOption ?? undefined}
+            sourceEffectiveCount={sourceEffectiveCount}
+            sourceMissingCount={sourceMissingCount}
+            sourceNonEffectiveCount={sourceNonEffectiveCount}
+            sourceValidity={sourceValidity}
+            status={generalStatus}
+          />
+        </div>
+
+        <div className="mon-territorial-operational-column">
+          <div className="mon-operational-group is-validity">
+            <header>
+              <FileCheck2 size={15} />
+              <div>
+                <strong>Encuesta efectiva</strong>
+                <em>Cuenta cuando la pregunta seleccionada toma el valor válido.</em>
+              </div>
+            </header>
+            <p className="mon-operational-group-copy">Una respuesta cuenta como efectiva cuando la pregunta seleccionada toma el valor válido. Todo valor distinto se considera no efectivo.</p>
+            <div className="mon-operational-field-grid">
+              <OperationalVariableSelect
+                role="filter"
+                label="Pregunta filtro"
+                value={draftMapping.platform_effective_var}
+                savedValue={savedMapping.platform_effective_var}
+                variableRef={draftRefs.valid_filter_question}
+                savedVariableRef={savedRefs.valid_filter_question}
+                options={optionsByRole.filter}
+                required
+                onChange={(option) => patchDraft({
+                  ...operationalVariablePatch("filter", option, draftMapping),
+                  platform_effective_values: [],
+                })}
+              />
+              <TerritorialSingleValueSelect
+                label="Valor válido"
+                value={draftMapping.platform_effective_values[0] ?? ""}
+                options={fieldOptions}
+                onChange={(value) => patchDraft({ platform_effective_values: value ? [value] : [] })}
+              />
+            </div>
+            <div className="mon-operational-effective-rule" aria-label="Regla de encuesta efectiva">
+              <div>
+                <span>Pregunta filtro</span>
+                <strong>{selectedFilterDisplay}</strong>
+              </div>
+              <ArrowRight size={14} aria-hidden="true" />
+              <div>
+                <span>Valor válido</span>
+                <strong>{selectedFilterValueDisplay}</strong>
+              </div>
+              <ArrowRight size={14} aria-hidden="true" />
+              <div>
+                <span>Resultado</span>
+                <strong>{sourceEffectiveCount == null ? "Pendiente" : `${formatMetric(sourceEffectiveCount)} efectivas`}</strong>
+              </div>
+            </div>
+            <div className="mon-operational-effective-counts" aria-label="Conteo de encuesta efectiva">
+              <span><strong>{sourceEffectiveCount == null ? "S/D" : formatMetric(sourceEffectiveCount)}</strong><em>efectivas</em></span>
+              <span><strong>{sourceNonEffectiveCount == null ? "S/D" : formatMetric(sourceNonEffectiveCount)}</strong><em>no efectivas</em></span>
+              <span><strong>{sourceMissingCount == null ? "S/D" : formatMetric(sourceMissingCount)}</strong><em>sin dato</em></span>
+              <span><strong>{formatMetric(sourceTotalCount)}</strong><em>total</em></span>
+            </div>
+          </div>
+          <TerritorialDeclaredUmpSummaryCard
+            draftMapping={draftMapping}
+            onOpenReconciliation={onOpenReconciliation}
+            responseCount={responseCount}
+            visibleReports={visibleReports}
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function operationalRoleField(role: OperationalVariableRole): OperationalVariableField {
+  switch (role) {
+    case "district": return "district_var";
+    case "ump": return "ump_var";
+    case "pulso_code": return "pulso_code_var";
+    case "gps": return "gps_var";
+    case "age": return "age_var";
+    case "sex": return "sex_var";
+    case "filter": return "platform_effective_var";
+  }
+}
+
+function territorialOperationalMappingSignature(mapping: MonitoreoTerritorialPhaseMapping) {
+  return JSON.stringify(Object.fromEntries(OPERATIONAL_MAPPING_KEYS.map((key) => [key, mapping[key]])));
+}
+
+function operationalNameKey(value: string) {
+  return normalizeMatch(value).replace(/\s+/g, "_");
+}
+
+function operationalPathVariants(value: string) {
+  const raw = stringOrEmpty(value);
+  if (!raw) return [];
+  return [
+    raw,
+    raw.replace(/\./g, "/"),
+    raw.replace(/\//g, "."),
+  ].filter(Boolean);
+}
+
+function operationalLastSegment(value: string) {
+  const raw = stringOrEmpty(value);
+  if (!raw) return "";
+  const parts = raw.split(/[/.]/).filter(Boolean);
+  return parts[parts.length - 1] ?? raw;
+}
+
+function operationalVariableName(option: OperationalVariableOption) {
+  return stringOrEmpty(option.path || option.technical || option.originalName || option.value);
+}
+
+function operationalLabelIsDistinct(label: string, names: string[]) {
+  const labelKey = operationalNameKey(label);
+  if (!labelKey) return false;
+  const nameKeys = names.flatMap((name) => [
+    operationalNameKey(name),
+    operationalNameKey(operationalLastSegment(name)),
+  ]);
+  return !nameKeys.includes(labelKey);
+}
+
+function operationalVariableDisplay(option: OperationalVariableOption, fallback = "Falta configurar") {
+  const name = operationalVariableName(option);
+  const label = stringOrEmpty(option.label);
+  if (option.hasLabel && label && operationalLabelIsDistinct(label, [name, option.value, option.technical, option.originalName])) {
+    return `${label} (${name || option.value})`;
+  }
+  return name || label || option.value || fallback;
+}
+
+function operationalVariableDisplayFromRef(
+  ref: MonitoreoTerritorialVariableRef | undefined,
+  value: string,
+  fallback = "Falta configurar",
+) {
+  const name = stringOrEmpty(ref?.path || ref?.xpath || ref?.original_name || ref?.name || value);
+  const label = stringOrEmpty(ref?.label);
+  if (label && operationalLabelIsDistinct(label, [name, value, ref?.name ?? "", ref?.original_name ?? ""])) {
+    return `${label} (${name || value})`;
+  }
+  return name || label || value || fallback;
+}
+
+function cleanOperationalValueLabel(value: string) {
+  return stringOrEmpty(value).replace(/\s+·\s+[\d.,]+$/, "");
+}
+
+function operationalPulsoCodeAliases(value: string) {
+  const raw = stringOrEmpty(value);
+  if (!raw) return [];
+  const aliases = new Set<string>();
+  const last = operationalNameKey(operationalLastSegment(raw));
+  const swapLast = (from: string, to: string) => {
+    aliases.add(to);
+    const swapped = raw.replace(new RegExp(`(^|[./])${from}$`, "i"), `$1${to}`);
+    if (swapped !== raw) aliases.add(swapped);
+  };
+  if (last === "codigo_pulso") swapLast("codigo_pulso", "code_pulso");
+  if (last === "code_pulso") swapLast("code_pulso", "codigo_pulso");
+  return Array.from(aliases);
+}
+
+function operationalAliasSet(values: Array<string | undefined | null>) {
+  const aliases = new Set<string>();
+  values.forEach((value) => {
+    const raw = stringOrEmpty(value);
+    if (!raw) return;
+    operationalPathVariants(raw).forEach((variant) => aliases.add(variant));
+    operationalPulsoCodeAliases(raw).forEach((variant) => {
+      operationalPathVariants(variant).forEach((pathVariant) => aliases.add(pathVariant));
+    });
+    aliases.add(operationalNameKey(raw));
+    const last = operationalLastSegment(raw);
+    if (last) aliases.add(last);
+  });
+  return Array.from(aliases).filter(Boolean);
+}
+
+function operationalVariableRefFromOption(option: OperationalVariableOption): MonitoreoTerritorialVariableRef {
+  return {
+    name: option.value,
+    original_name: option.originalName || option.technical || option.value,
+    normalized_name: option.normalizedName || operationalNameKey(option.value),
+    path: option.path || option.technical || option.value,
+    xpath: option.path || option.technical || option.value,
+    label: option.label,
+    type: option.type,
+    group: option.group,
+  };
+}
+
+function operationalRefKeyForRole(role: OperationalVariableRole): keyof NonNullable<MonitoreoTerritorialPhaseMapping["variable_refs"]> {
+  switch (role) {
+    case "district": return "district";
+    case "ump": return "ump";
+    case "pulso_code": return "enumerator_pulso_code";
+    case "gps": return "geo";
+    case "age": return "age";
+    case "sex": return "sex";
+    case "filter": return "valid_filter_question";
+  }
+}
+
+function operationalVariablePatch(
+  role: OperationalVariableRole,
+  option: OperationalVariableOption | null,
+  current: MonitoreoTerritorialPhaseMapping,
+): Partial<MonitoreoTerritorialPhaseMapping> {
+  const key = operationalRoleField(role);
+  const refKey = operationalRefKeyForRole(role);
+  const refs = { ...(current.variable_refs ?? {}) };
+  if (option) {
+    refs[refKey] = operationalVariableRefFromOption(option);
+  } else {
+    delete refs[refKey];
+  }
+  return { [key]: option?.value ?? "", variable_refs: refs } as Partial<MonitoreoTerritorialPhaseMapping>;
+}
+
+function resolveOperationalVariableOption(
+  value: string,
+  options: OperationalVariableOption[],
+  ref?: MonitoreoTerritorialVariableRef,
+) {
+  const direct = options.find((option) => option.value === value || option.technical === value || option.path === value || option.originalName === value);
+  if (direct) return direct;
+  const candidates = [
+    value,
+    ref?.name,
+    ref?.original_name,
+    ref?.path,
+    ref?.xpath,
+    ref?.normalized_name,
+  ].filter(Boolean) as string[];
+  const exactAliases = new Set(candidates.flatMap((candidate) => operationalPathVariants(candidate)));
+  const exact = options.find((option) => option.aliases.some((alias) => exactAliases.has(alias)));
+  if (exact) return exact;
+  const normalized = new Set(candidates.map(operationalNameKey));
+  const normalizedHits = options.filter((option) => option.aliases.some((alias) => normalized.has(operationalNameKey(alias))));
+  if (normalizedHits.length === 1) return normalizedHits[0];
+  const lastSegments = new Set(candidates.map(operationalLastSegment).filter(Boolean).map(operationalNameKey));
+  const lastHits = options.filter((option) => option.aliases.some((alias) => lastSegments.has(operationalNameKey(operationalLastSegment(alias)))));
+  if (lastHits.length === 1) return lastHits[0];
+  const label = stringOrEmpty(ref?.label);
+  const type = stringOrEmpty(ref?.type);
+  if (label && type) {
+    const labelKey = operationalNameKey(label);
+    const typeKey = operationalNameKey(type);
+    const labelHits = options.filter((option) => operationalNameKey(option.label) === labelKey && operationalNameKey(option.type) === typeKey);
+    if (labelHits.length === 1) return labelHits[0];
+  }
+  return null;
+}
+
+function buildOperationalVariableOptions(
+  surveyFields: TerritorialSurveyField[],
+  variables: MonitoreoVariable[],
+  responseCount: number,
+): OperationalVariableOption[] {
+  const variableByName = new Map(variables.map((variable) => [variable.name, variable]));
+  const variableBuckets = new Map<string, MonitoreoVariable[]>();
+  variables.forEach((variable) => {
+    operationalAliasSet([variable.name, variable.label]).forEach((alias) => {
+      const key = operationalNameKey(alias);
+      variableBuckets.set(key, [...(variableBuckets.get(key) ?? []), variable]);
+    });
+  });
+  const findVariable = (values: string[]) => {
+    for (const value of values) {
+      const direct = variableByName.get(value);
+      if (direct) return direct;
+      const hits = variableBuckets.get(operationalNameKey(value)) ?? [];
+      const unique = Array.from(new Set(hits));
+      if (unique.length === 1) return unique[0];
+    }
+    return undefined;
+  };
+  const seen = new Set<string>();
+  const options: OperationalVariableOption[] = [];
+  const addOption = (input: {
+    value: string;
+      label: string;
+      hasLabel?: boolean;
+      technical: string;
+    originalName?: string;
+    path?: string;
+    type: string;
+    group: string;
+    category?: OperationalVariableCategory;
+    variable?: MonitoreoVariable;
+  }) => {
+    const value = input.value.trim();
+    if (!value) return;
+    const aliases = operationalAliasSet([value, input.technical, input.originalName, input.path, input.label]);
+    const stableKey = operationalNameKey((input.path || input.technical || value).replace(/\./g, "/"));
+    if (seen.has(stableKey)) return;
+    seen.add(stableKey);
+    const variable = input.variable ?? findVariable(aliases);
+    const total = responseCount > 0 ? responseCount : null;
+    const filled = total != null && variable ? Math.max(0, total - numberOrFallback(variable.n_missing, 0)) : null;
+    const technical = input.technical || input.path || input.originalName || value;
+    options.push({
+      value,
+      label: input.label || value,
+      hasLabel: Boolean(input.hasLabel),
+      technical,
+      originalName: input.originalName || technical,
+      normalizedName: operationalNameKey(input.originalName || technical || value),
+      path: input.path || technical,
+      type: input.type || variable?.tipo || "variable",
+      group: input.group || "Formulario",
+      category: input.category ?? operationalVariableCategory(technical || value, input.group, input.type),
+      aliases,
+      filled,
+      total,
+      completeness: total && filled != null ? Math.round((filled / total) * 100) : null,
+      sampleValues: (variable?.values ?? []).slice(0, 5),
+    });
+  };
+
+  surveyFields.forEach((field) => {
+    const value = variableByName.has(field.xpath) ? field.xpath : variableByName.has(field.name) ? field.name : field.xpath || field.name;
+    const variable = variableByName.get(value) ?? variableByName.get(field.xpath) ?? variableByName.get(field.name);
+    addOption({
+      value,
+      label: field.label || field.name || field.xpath,
+      hasLabel: Boolean(stringOrEmpty(field.label)),
+      technical: field.xpath || field.name,
+      originalName: field.name || field.xpath,
+      path: field.xpath || field.name,
+      type: field.type || variable?.tipo || "variable Kobo",
+      group: operationalFieldGroup(field.xpath || field.name),
+      category: operationalVariableCategory(field.xpath || field.name, operationalFieldGroup(field.xpath || field.name), field.type),
+      variable,
+    });
+  });
+
+  variables.forEach((variable) => {
+    addOption({
+      value: variable.name,
+      label: variable.label || variable.name,
+      hasLabel: Boolean(stringOrEmpty(variable.label)),
+      technical: variable.name,
+      originalName: variable.name,
+      path: variable.name,
+      type: variable.tipo || "variable local",
+      group: operationalFieldGroup(variable.name),
+      variable,
+    });
+  });
+
+  return options.slice(0, 320);
+}
+
+function operationalFieldGroup(value: string) {
+  const raw = String(value || "").split("/").filter(Boolean);
+  if (raw.length > 1) return raw[0];
+  if (String(value).startsWith("_")) return "Metadata Kobo";
+  return "Formulario";
+}
+
+function operationalVariableCategory(value: string, group: string, type = ""): OperationalVariableCategory {
+  const key = String(value || "").trim();
+  const normalized = normalizeMatch(`${key} ${group} ${type}`);
+  if (key.startsWith("_") || normalized.includes("metadata kobo")) return "metadata";
+  if (key.startsWith(".") || normalized.includes("source") || normalized.includes("snapshot") || normalized.includes("prosecnur")) return "technical";
+  if (key.includes("/") || normalized.includes("select_one") || normalized.includes("select multiple") || normalized.includes("text") || normalized.includes("integer") || normalized.includes("decimal")) return "form";
+  return group === "Formulario" ? "form" : "other";
+}
+
+function operationalSuggestion(role: OperationalVariableRole, option: OperationalVariableOption) {
+  const labelHaystack = normalizeMatch(option.hasLabel ? option.label : "");
+  const nameHaystack = normalizeMatch(`${option.value} ${option.technical} ${option.originalName} ${option.path}`);
+  const typeHaystack = normalizeMatch(option.type);
+  const includes = (haystack: string, ...needles: string[]) => needles.some((needle) => haystack.includes(normalizeMatch(needle)));
+  let score = 0;
+  let reason = "";
+  if (role === "district" && (includes(labelHaystack, "distrito", "district") || includes(nameHaystack, "core m5 district", "m5 district", "distrito", "district"))) {
+    score = includes(nameHaystack, "core m5 district", "m5 district") ? 98 : includes(labelHaystack, "distrito", "district") ? 86 : 76;
+    reason = includes(labelHaystack, "distrito", "district") ? "Sugerida por etiqueta" : "Sugerida por name";
+  } else if (role === "ump" && (includes(labelHaystack, "ump", "manzana", "block") || includes(nameHaystack, "core m8", "m8 ump", "ump", "manzana", "block"))) {
+    score = includes(nameHaystack, "core m8", "m8 ump") ? 96 : includes(labelHaystack, "ump", "manzana", "block") ? 84 : 74;
+    reason = includes(labelHaystack, "ump", "manzana", "block") ? "Sugerida por etiqueta" : "Sugerida por name";
+  } else if (role === "pulso_code" && (includes(labelHaystack, "codigo pulso", "cod pulso", "code pulso", "pulso code") || includes(nameHaystack, "codigo pulso", "cod pulso", "pulso codigo", "codigo_pulso", "cod_pulso", "code_pulso", "code pulso", "pulso code"))) {
+    score = includes(labelHaystack, "codigo pulso", "code pulso", "pulso code") ? 96 : 88;
+    reason = "Sugerida por coincidencia con Código Pulso";
+  } else if (role === "gps" && (includes(typeHaystack, "geopoint") || includes(nameHaystack, "geolocation", "geo location", "gps") || includes(labelHaystack, "gps", "geolocalizacion", "ubicacion"))) {
+    score = includes(typeHaystack, "geopoint") ? 98 : includes(nameHaystack, "geolocation") ? 92 : 78;
+    reason = includes(typeHaystack, "geopoint") ? "Sugerida por tipo geopoint" : includes(labelHaystack, "gps", "geolocalizacion", "ubicacion") ? "Sugerida por etiqueta" : "Sugerida por name";
+  } else if (role === "age" && (includes(typeHaystack, "integer", "decimal") || includes(labelHaystack, "edad", "age") || includes(nameHaystack, "e1 age", "edad", "age"))) {
+    score = includes(nameHaystack, "e1 age") ? 92 : includes(labelHaystack, "edad", "age") ? 84 : 62;
+    reason = includes(labelHaystack, "edad", "age") ? "Sugerida por etiqueta" : "Sugerida por name";
+  } else if (role === "sex" && (includes(labelHaystack, "sexo", "sex", "genero", "género", "gender") || includes(nameHaystack, "e2 sex", "sexo", "sex", "genero", "gender") || isKoboSingleChoiceField(option.type))) {
+    score = includes(labelHaystack, "sexo", "sex", "genero", "gender") ? 88 : includes(nameHaystack, "sexo", "sex", "gender") ? 82 : 58;
+    reason = includes(labelHaystack, "sexo", "sex", "genero", "gender") ? "Sugerida por etiqueta" : includes(nameHaystack, "sexo", "sex", "gender") ? "Sugerida por name" : "Sugerida por tipo de pregunta";
+  } else if (role === "filter" && (includes(labelHaystack, "consent", "consentimiento", "elegib", "apto", "resultado") || includes(nameHaystack, "consent", "consentimiento", "elegib", "apto", "resultado") || isKoboSingleChoiceField(option.type))) {
+    score = includes(labelHaystack, "consent", "consentimiento", "elegib", "apto") ? 88 : includes(nameHaystack, "consent", "consentimiento", "elegib", "apto") ? 80 : 62;
+    reason = includes(labelHaystack, "consent", "consentimiento", "elegib", "apto", "resultado") ? "Sugerida por etiqueta" : includes(nameHaystack, "consent", "consentimiento", "elegib", "apto", "resultado") ? "Sugerida por name" : "Sugerida por tipo de pregunta";
+  }
+  return score ? { score, reason } : null;
+}
+
+function operationalOptionsForRole(role: OperationalVariableRole, options: OperationalVariableOption[]) {
+  const ranked = options
+    .map((option) => ({ option, suggestion: operationalSuggestion(role, option) }))
+    .sort((a, b) => (
+      (b.suggestion?.score ?? 0) - (a.suggestion?.score ?? 0) ||
+      (b.option.completeness ?? -1) - (a.option.completeness ?? -1) ||
+      operationalVariableDisplay(a.option).localeCompare(operationalVariableDisplay(b.option), "es")
+    ));
+  const suggestedValues = new Set(
+    ranked
+      .filter((item) => (item.suggestion?.score ?? 0) >= 58)
+      .slice(0, role === "filter" ? 5 : 3)
+      .map((item) => item.option.value),
+  );
+  return options.map((option) => {
+    const suggestion = operationalSuggestion(role, option);
+    const isSuggested = suggestedValues.has(option.value);
+    const confidence: OperationalVariableOption["confidence"] = suggestion?.score
+      ? suggestion.score >= 88 ? "Alta" : suggestion.score >= 72 ? "Media" : "Baja"
+      : undefined;
+    return {
+      ...option,
+      suggested: isSuggested,
+      confidence,
+      reason: isSuggested ? suggestion?.reason : undefined,
+    };
+  }).sort((a, b) => {
+    if (a.suggested && !b.suggested) return -1;
+    if (!a.suggested && b.suggested) return 1;
+    return (b.completeness ?? -1) - (a.completeness ?? -1) || a.label.localeCompare(b.label, "es");
+  });
+}
+
+function suggestedOperationalMappingPatch(
+  current: MonitoreoTerritorialPhaseMapping,
+  optionsByRole: Record<OperationalVariableRole, OperationalVariableOption[]>,
+) {
+  const next: Partial<MonitoreoTerritorialPhaseMapping> = {};
+  const refs = { ...(current.variable_refs ?? {}) };
+  (Object.keys(OPERATIONAL_ROLE_LABELS) as OperationalVariableRole[]).forEach((role) => {
+    const suggested = optionsByRole[role]?.find((option) => option.suggested);
+    if (!suggested) return;
+    const key = operationalRoleField(role);
+    (next as Record<string, string>)[key] = suggested.value;
+    refs[operationalRefKeyForRole(role)] = operationalVariableRefFromOption(suggested);
+  });
+  return { ...next, variable_refs: refs, platform_effective_values: current.platform_effective_values };
+}
+
+function operationalValueOptionsForField(
+  fieldValue: string,
+  surveyFields: TerritorialSurveyField[],
+  choicesByList: TerritorialChoicesByList,
+  variables: MonitoreoVariable[],
+  sourceValidity: TerritorialSourceValidity | null,
+) {
+  if (!fieldValue) return [];
+  const matchesField = (candidate: string | undefined) => {
+    if (!candidate) return false;
+    if (candidate === fieldValue) return true;
+    return operationalNameKey(candidate) === operationalNameKey(fieldValue) ||
+      operationalNameKey(operationalLastSegment(candidate)) === operationalNameKey(operationalLastSegment(fieldValue));
+  };
+  if ((matchesField(sourceValidity?.field) || matchesField(sourceValidity?.field_resolved)) && sourceValidity?.options?.length) {
+    return sourceValidity.options.map((item) => ({
+      value: item.value,
+      label: `${item.label || item.value} · valor Kobo: ${item.value}${item.count != null ? ` · ${formatMetric(item.count)}` : ""}`,
+    }));
+  }
+  const selectedField = surveyFields.find((field) => matchesField(field.xpath) || matchesField(field.name)) ?? null;
+  const schemaChoices = selectedField?.list_name ? choicesByList[selectedField.list_name] ?? [] : [];
+  if (schemaChoices.length) return schemaChoices.map((item) => ({ value: item.name, label: `${item.label || item.name} · valor Kobo: ${item.name}` }));
+  const selected = variables.find((variable) => matchesField(variable.name) || matchesField(variable.label));
+  return (selected?.values ?? []).slice(0, 80).map((value) => ({ value, label: value }));
+}
+
+function operationalVariableStatus(
+  value: string,
+  options: OperationalVariableOption[],
+  responseCount: number,
+  savedValue: string | string[],
+  ref?: MonitoreoTerritorialVariableRef,
+): OperationalVariableStatus {
+  if (!value) return "missing";
+  const selected = resolveOperationalVariableOption(value, options, ref);
+  if (!selected) return "not_found";
+  if (responseCount > 0 && selected.filled === 0) return "no_data";
+  if (responseCount > 0 && selected.completeness != null && selected.completeness < 25) return "inconsistent";
+  if (selected.suggested && value !== savedValue) return "suggested";
+  return "defined";
+}
+
+function operationalVariableStatusLabel(status: OperationalVariableStatus) {
+  return {
+    defined: "Definido",
+    suggested: "Sugerido",
+      missing: "Pendiente",
+      no_data: "Sin datos",
+      inconsistent: "Revisar",
+      not_found: "Revisar",
+  }[status];
+}
+
+function operationalVariableStatusTone(status: OperationalVariableStatus) {
+  if (status === "defined" || status === "suggested") return "ready";
+  if (status === "missing" || status === "no_data") return "warning";
+  return "error";
+}
+
+function territorialOperationalGeneralStatus(input: {
+  responseCount: number;
+  missingRequired: number;
+  notFoundCount: number;
+  missingDistricts: number;
+  phaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
+  dirty: boolean;
+}) {
+  if (input.responseCount <= 0) {
+    return { label: "Sin respuestas locales", badge: "Sin datos", tone: "warning", message: "La fuente está aplicada, pero todavía no hay respuestas locales." };
+  }
+  if (input.notFoundCount > 0 || input.missingDistricts > 0) {
+    return { label: "Revisar cruce", badge: "Revisar", tone: "error", message: "Hay variables que no aparecen o distritos sin cruce en la ruta." };
+  }
+  if (input.missingRequired > 0) {
+    return { label: "Falta configurar", badge: "Pendiente", tone: "warning", message: `${formatMetric(input.missingRequired)} campo(s) pendientes en esta fase.` };
+  }
+  if (input.phaseHealth?.status === "source_applied_not_synced" || input.phaseHealth?.status === "dashboard_stale") {
+    return { label: "Datos locales pendientes", badge: "Pendiente", tone: "warning", message: "Guardar no sincroniza Kobo; actualiza datos cuando necesites traer respuestas." };
+  }
+  if (input.dirty) {
+    return { label: "Cambios sin guardar", badge: "Pendiente", tone: "warning", message: "Guarda para mantener este mapeo en esta fase." };
+  }
+  return { label: "Configuración revisada", badge: "Definido", tone: "ready", message: "Variables, ruta y respuestas locales cruzan para esta fase." };
+}
+
+function OperationalVariableSelect({
+  role,
+  label,
+  value,
+  savedValue,
+  variableRef,
+  options,
+  required = false,
+  onChange,
+}: {
+  role: OperationalVariableRole;
+  label: string;
+  value: string;
+  savedValue: string;
+  variableRef?: MonitoreoTerritorialVariableRef;
+  savedVariableRef?: MonitoreoTerritorialVariableRef;
+  options: OperationalVariableOption[];
+  required?: boolean;
+  onChange: (option: OperationalVariableOption | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [highlightedValue, setHighlightedValue] = useState(value);
+  const selected = resolveOperationalVariableOption(value, options, variableRef);
+  const selectedValue = selected?.value ?? value;
+  const status = operationalVariableStatus(value, options, selected?.total ?? 0, savedValue, variableRef);
+  const normalizedQuery = normalizeMatch(query);
+  const filtered = options
+    .filter((option) => {
+      if (!normalizedQuery) return true;
+      return normalizeMatch(`${option.label} ${option.value} ${option.technical} ${option.type} ${option.group}`).includes(normalizedQuery);
+    })
+    .slice(0, 80);
+  const groups = operationalVariableOptionGroups(filtered);
+  const highlighted = filtered.find((option) => option.value === highlightedValue) ?? selected ?? filtered[0] ?? null;
+  const displayLabel = selected
+    ? operationalVariableDisplay(selected)
+    : operationalVariableDisplayFromRef(variableRef, value, "Falta configurar");
+  const displayMeta = selected
+    ? operationalVariableMeta(selected)
+    : variableRef
+      ? `${variableRef.type || "variable"} · ${variableRef.group || "Formulario"}`
+      : "Selecciona variable del formulario";
+  useEffect(() => {
+    if (!open) return;
+    setHighlightedValue(selected?.value ?? filtered[0]?.value ?? "");
+  }, [filtered, open, selected?.value]);
+  return (
+    <div className={`mon-operational-variable is-${operationalVariableStatusTone(status)}`}>
+      <span className="mon-operational-variable-label">{label}{required ? <i>requerido</i> : null}</span>
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger asChild>
+          <button type="button" className="mon-operational-variable-trigger">
+            <div>
+              <strong>{displayLabel}</strong>
+              <em>{displayMeta}</em>
+            </div>
+            <span className={`is-${operationalVariableStatusTone(status)}`}>{operationalVariableStatusLabel(status)}</span>
+            <ChevronDown size={14} />
+          </button>
+        </Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className="mon-operational-variable-drawer-overlay" />
+          <Dialog.Content className="mon-operational-variable-drawer">
+            <header className="mon-operational-variable-drawer-head">
+              <div>
+                <Dialog.Title>Seleccionar variable</Dialog.Title>
+                <Dialog.Description>Rol: {OPERATIONAL_ROLE_LABELS[role]}</Dialog.Description>
+              </div>
+              <Dialog.Close className="mon-operational-variable-drawer-close" aria-label="Cerrar selector">
+                <XCircle size={15} />
+              </Dialog.Close>
+            </header>
+            <div className="mon-territorial-select-search">
+              <Search size={13} />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar variable..." autoFocus />
+            </div>
+            <div className="mon-operational-variable-drawer-body">
+              <div className="mon-operational-variable-options">
+                <button
+                  type="button"
+                  className={!value ? "is-selected" : ""}
+                  onMouseEnter={() => setHighlightedValue("")}
+                  onFocus={() => setHighlightedValue("")}
+                  onClick={() => {
+                    onChange(null);
+                    setQuery("");
+                    setOpen(false);
+                  }}
+                >
+                  <div>
+                    <strong>Sin configurar</strong>
+                    <em>El rol queda pendiente hasta guardar.</em>
+                  </div>
+                  {!value ? <CheckCircle2 size={14} /> : null}
+                </button>
+                {groups.map((group) => (
+                  <div key={group.key} className="mon-operational-option-section">
+                    <span className="mon-operational-option-group">{group.label}</span>
+                    {group.options.map((option) => (
+                      <OperationalVariableOptionButton
+                        key={`${group.key}-${option.value}`}
+                        option={option}
+                        selected={option.value === selectedValue}
+                        onPreview={() => setHighlightedValue(option.value)}
+                        onSelect={() => {
+                          onChange(option);
+                          setQuery("");
+                          setOpen(false);
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+                {!filtered.length ? <p>No hay coincidencias con la búsqueda.</p> : null}
+              </div>
+              <OperationalVariablePreviewCard option={highlighted} />
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </div>
+  );
+}
+
+function OperationalVariableOptionButton({
+  option,
+  selected,
+  onPreview,
+  onSelect,
+}: {
+  option: OperationalVariableOption;
+  selected: boolean;
+  onPreview: () => void;
+  onSelect: () => void;
+}) {
+  return (
+    <button type="button" className={selected ? "is-selected" : ""} onFocus={onPreview} onMouseEnter={onPreview} onClick={onSelect}>
+      <div>
+        <strong>{operationalVariableDisplay(option)}</strong>
+        <em>{operationalVariableMeta(option)}</em>
+        {option.reason ? <small>{option.reason}</small> : null}
+      </div>
+      {selected ? <CheckCircle2 size={14} /> : option.suggested ? <SparkleFallback /> : null}
+    </button>
+  );
+}
+
+function operationalVariableOptionGroups(options: OperationalVariableOption[]) {
+  const suggested = options.filter((option) => option.suggested);
+  const used = new Set(suggested.map((option) => option.value));
+  const groups: Array<{ key: string; label: string; options: OperationalVariableOption[] }> = [];
+  if (suggested.length) groups.push({ key: "suggested", label: "Sugeridas", options: suggested });
+  ([
+    ["form", "Preguntas del formulario"],
+    ["metadata", "Metadata Kobo"],
+    ["technical", "Campos técnicos Prosecnur"],
+    ["other", "Otras variables"],
+  ] as Array<[OperationalVariableCategory, string]>).forEach(([category, label]) => {
+    const items = options.filter((option) => option.category === category && !used.has(option.value));
+    if (items.length) groups.push({ key: category, label, options: items });
+  });
+  return groups;
+}
+
+function OperationalVariablePreviewCard({ option }: { option: OperationalVariableOption | null }) {
+  if (!option) {
+    return (
+      <aside className="mon-operational-variable-preview">
+        <strong>Selecciona una variable</strong>
+        <p>La vista previa mostrará etiqueta, nombre técnico, tipo, grupo, completitud y ejemplos.</p>
+      </aside>
+    );
+  }
+  return (
+    <aside className="mon-operational-variable-preview">
+      <span>{option.suggested ? "Sugerida" : operationalVariableCategoryLabel(option.category)}</span>
+      <strong>{operationalVariableDisplay(option)}</strong>
+      <dl>
+        <div><dt>Name</dt><dd>{operationalVariableName(option) || "S/D"}</dd></div>
+        <div><dt>Tipo</dt><dd>{option.type || "S/D"}</dd></div>
+        <div><dt>Grupo</dt><dd>{option.group || "Formulario"}</dd></div>
+        <div><dt>Completitud</dt><dd>{operationalVariableCompletion(option)}</dd></div>
+      </dl>
+      <p>{option.reason || "Puedes elegirla para este rol; se guardará solo al confirmar la configuración."}</p>
+      <div>
+        {(option.sampleValues.length ? option.sampleValues : ["Sin ejemplos locales"]).map((sample) => (
+          <em key={sample}>{sample}</em>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function SparkleFallback() {
+  return <span className="mon-operational-suggest-dot" aria-hidden="true" />;
+}
+
+function operationalVariableCategoryLabel(category: OperationalVariableCategory) {
+  return {
+    form: "Pregunta del formulario",
+    metadata: "Metadata Kobo",
+    technical: "Campo técnico Prosecnur",
+    other: "Otra variable",
+  }[category];
+}
+
+function operationalVariableCompletion(option: OperationalVariableOption) {
+  return option.total == null || option.filled == null
+    ? "Sin datos locales"
+    : `${formatMetric(option.filled)}/${formatMetric(option.total)} con dato`;
+}
+
+function operationalVariableMeta(option: OperationalVariableOption) {
+  return `${option.type || "variable"} · ${operationalVariableCompletion(option)}`;
+}
+
+type OperationalReviewTone = "ready" | "warning" | "error";
+type OperationalReviewBadge = "Definido" | "Pendiente" | "Sin datos" | "Revisar";
+type OperationalReviewRow = {
+  title: string;
+  result: string;
+  variable?: string;
+  detailLabel?: string;
+  note?: string;
+  badge: OperationalReviewBadge;
+  tone: OperationalReviewTone;
+};
+
+function TerritorialOperationalReviewPanel({
+  draftMapping,
+  districtCrossPct,
+  districtDiagram,
+  missingDistricts,
+  notFoundCount,
+  onOpenReconciliation,
+  responseCount,
+  routeDistrictTotal,
+  selectedDistrictOption,
+  selectedFilterOption,
+  selectedFilterValueLabels,
+  selectedGpsOption,
+  selectedUmpOption,
+  sourceEffectiveCount,
+  sourceMissingCount,
+  sourceNonEffectiveCount,
+  sourceValidity,
+  status,
+}: {
+  draftMapping: MonitoreoTerritorialPhaseMapping;
+  districtCrossPct: number | null;
+  districtDiagram: ReturnType<typeof buildTerritorialSourceDistricts>;
+  missingDistricts: number;
+  notFoundCount: number;
+  onOpenReconciliation: () => void;
+  responseCount: number;
+  routeDistrictTotal: number;
+  selectedDistrictOption: OperationalVariableOption | undefined;
+  selectedFilterOption: OperationalVariableOption | undefined;
+  selectedFilterValueLabels: string[];
+  selectedGpsOption: OperationalVariableOption | undefined;
+  selectedUmpOption: OperationalVariableOption | undefined;
+  sourceEffectiveCount: number | null;
+  sourceMissingCount: number | null;
+  sourceNonEffectiveCount: number | null;
+  sourceValidity: TerritorialSourceValidity | null;
+  status: ReturnType<typeof territorialOperationalGeneralStatus>;
+}) {
+  const variableRefs = draftMapping.variable_refs ?? {};
+  const districtVariable = selectedDistrictOption
+    ? operationalVariableDisplay(selectedDistrictOption)
+    : operationalVariableDisplayFromRef(variableRefs.district, draftMapping.district_var, "");
+  const umpVariable = selectedUmpOption
+    ? operationalVariableDisplay(selectedUmpOption)
+    : operationalVariableDisplayFromRef(variableRefs.ump, draftMapping.ump_var, "");
+  const gpsVariable = selectedGpsOption
+    ? operationalVariableDisplay(selectedGpsOption)
+    : operationalVariableDisplayFromRef(variableRefs.geo, draftMapping.gps_var, "");
+  const filterVariable = selectedFilterOption
+    ? operationalVariableDisplay(selectedFilterOption)
+    : operationalVariableDisplayFromRef(variableRefs.valid_filter_question, sourceValidity?.field_resolved || draftMapping.platform_effective_var, "");
+  const filterValue = selectedFilterValueLabels[0] || draftMapping.platform_effective_values[0] || "";
+  const sourceTotal = numberOrNull(sourceValidity?.total_responses) ?? responseCount;
+  const rows: OperationalReviewRow[] = [
+    {
+      title: "Distrito",
+      result: draftMapping.district_var
+        ? `Cruza con ${formatMetric(Math.max(0, routeDistrictTotal - missingDistricts))} de ${formatMetric(routeDistrictTotal)} distritos de la ruta.`
+        : "Falta configurar la variable de distrito.",
+      variable: districtVariable || undefined,
+      badge: !draftMapping.district_var ? "Pendiente" : !selectedDistrictOption ? "Revisar" : missingDistricts ? "Revisar" : "Definido",
+      tone: !draftMapping.district_var ? "warning" : !selectedDistrictOption || missingDistricts ? "error" : "ready",
+    },
+    {
+      title: "UMP / manzana",
+      result: selectedUmpOption
+        ? `${formatMetric(selectedUmpOption.filled ?? 0)} respuestas tienen UMP; ${formatMetric(Math.max(0, (selectedUmpOption.total ?? responseCount) - (selectedUmpOption.filled ?? 0)))} están sin dato.`
+        : draftMapping.ump_var ? "Variable configurada; el conteo local queda pendiente." : "Falta configurar la variable de UMP/manzana.",
+      variable: umpVariable || undefined,
+      badge: !draftMapping.ump_var ? "Pendiente" : selectedUmpOption?.filled === 0 ? "Sin datos" : !selectedUmpOption ? "Revisar" : "Definido",
+      tone: !draftMapping.ump_var || selectedUmpOption?.filled === 0 ? "warning" : !selectedUmpOption ? "error" : "ready",
+    },
+    {
+      title: "GPS",
+      result: selectedGpsOption
+        ? `${formatMetric(selectedGpsOption.filled ?? 0)} respuestas tienen coordenada utilizable.`
+        : draftMapping.gps_var ? "Variable configurada; el conteo local queda pendiente." : "Falta configurar geolocalización.",
+      variable: gpsVariable || undefined,
+      badge: !draftMapping.gps_var ? "Pendiente" : selectedGpsOption?.filled === 0 ? "Sin datos" : !selectedGpsOption ? "Revisar" : "Definido",
+      tone: !draftMapping.gps_var || selectedGpsOption?.filled === 0 ? "warning" : !selectedGpsOption ? "error" : "ready",
+    },
+    {
+      title: "Filtro válido",
+      result: draftMapping.platform_effective_var && draftMapping.platform_effective_values[0]
+        ? sourceEffectiveCount == null
+          ? "Conteo de respuestas efectivas pendiente."
+          : `${formatMetric(sourceEffectiveCount)} de ${formatMetric(sourceTotal)} respuestas cumplen el criterio de efectividad.`
+        : "Falta elegir pregunta filtro y valor válido.",
+      detailLabel: "Regla",
+      variable: filterVariable && filterValue ? `${filterVariable} = ${filterValue}` : filterVariable || undefined,
+      note: draftMapping.platform_effective_var && draftMapping.platform_effective_values[0]
+        ? `${sourceNonEffectiveCount == null ? "S/D" : formatMetric(sourceNonEffectiveCount)} no efectivas; ${sourceMissingCount == null ? "S/D" : formatMetric(sourceMissingCount)} sin dato.`
+        : undefined,
+      badge: !draftMapping.platform_effective_var || !draftMapping.platform_effective_values[0] ? "Pendiente" : sourceEffectiveCount == null ? "Sin datos" : "Definido",
+      tone: !draftMapping.platform_effective_var || !draftMapping.platform_effective_values[0] || sourceEffectiveCount == null ? "warning" : "ready",
+    },
+  ];
+  return (
+    <section className="mon-operational-summary" aria-label="Revisión de configuración">
+      <header>
+        <ShieldAlert size={15} />
+        <div>
+          <strong>Revisión de configuración</strong>
+          <em>{status.message}</em>
+        </div>
+      </header>
+      <div className="mon-operational-review-list">
+        {rows.map((row) => (
+          <article key={row.title} className={`is-${row.tone}`}>
+            <span className="mon-operational-review-status" aria-hidden="true" />
+            <div>
+              <header>
+                <strong>{row.title}</strong>
+                <em>{row.badge}</em>
+              </header>
+              <p>{row.result}</p>
+              {row.variable ? <small><b>{row.detailLabel ?? "Variable"}:</b> {row.variable}</small> : null}
+              {row.note ? <small className="mon-operational-review-note">{row.note}</small> : null}
+            </div>
+          </article>
+        ))}
+      </div>
+      <button type="button" className="mon-operational-roster-link" onClick={onOpenReconciliation}>
+        <Link2 size={13} />
+        <span>El cruce de Código Pulso y UMP se revisa en Reconciliación</span>
+      </button>
+      <div className="mon-operational-coverage-meter">
+        <strong>{formatMetric(routeDistrictTotal - missingDistricts)} de {formatMetric(routeDistrictTotal)} distritos cruzados</strong>
+        <span><i style={{ width: `${Math.max(0, Math.min(100, districtCrossPct ?? 0))}%` }} /></span>
+        <em>{formatMetric(missingDistricts)} faltantes · {formatMetric(districtDiagram.extraKobo.length)} no reconocidos · {notFoundCount ? `${formatMetric(notFoundCount)} variables no existen` : "variables coherentes"}</em>
+      </div>
+      <div className="mon-operational-district-pills">
+        {districtDiagram.selected.map((row) => (
+          <span key={row.ubigeo} className={row.presentInKobo ? "is-ready" : "is-warning"}>{row.label}</span>
+        ))}
+        {districtDiagram.extraKobo.map((row) => (
+          <span key={`extra-${row.name}`} className="is-extra">{row.label || row.name}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type TerritorialDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];
+type TerritorialDeclaredUmpRouteOption = NonNullable<NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["route_options"]>[number];
+type TerritorialDeclaredUmpFilter = "all" | "recognized" | "reconciled" | "review" | "missing";
+
+const TERRITORIAL_DECLARED_UMP_FILTERS: Array<{ key: TerritorialDeclaredUmpFilter; label: string }> = [
+  { key: "all", label: "Todas" },
+  { key: "recognized", label: "Exacta" },
+  { key: "reconciled", label: "Reconciliada" },
+  { key: "review", label: "Revisar" },
+  { key: "missing", label: "Sin UMP" },
+];
+
+function TerritorialDeclaredUmpPanel({
+  activePhase,
+  draftMapping,
+  responseCount,
+  saving,
+  visibleReports,
+  onStageUmpReconciliation,
+  pendingUmpChanges = [],
+}: {
+  activePhase: MonitoreoTerritorialPhase;
+  draftMapping: MonitoreoTerritorialPhaseMapping;
+  responseCount: number;
+  saving: boolean;
+  visibleReports: MonitoreoTerritorialDashboard | null;
+  onStageUmpReconciliation?: (change: TerritorialPendingReconciliationChange) => void;
+  pendingUmpChanges?: TerritorialPendingUmpReconciliationChange[];
+}) {
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<TerritorialDeclaredUmpFilter>("all");
+  const [selectedBlockByRow, setSelectedBlockByRow] = useState<Record<string, string>>({});
+  const summary = visibleReports?.ump_declared_summary ?? null;
+  const rows = summary?.rows ?? [];
+  const metrics = summary?.metrics ?? null;
+  const routeOptions = useMemo(() => {
+    const allOptions = [
+      ...arrayOrEmpty<TerritorialDeclaredUmpRouteOption>(summary?.route_options),
+      ...rows.flatMap((row) => arrayOrEmpty<TerritorialDeclaredUmpRouteOption>(row.route_blocks)),
+    ];
+    const seen = new Set<string>();
+    return allOptions.filter((option) => {
+      const id = territorialUmpRouteOptionId(option);
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [rows, summary?.route_options]);
+  const emptyReason = !visibleReports
+    ? "El reporte de Fuente todavía no está cargado."
+    : responseCount <= 0
+      ? "La fuente está aplicada, pero todavía no hay respuestas sincronizadas localmente."
+      : !draftMapping.ump_var
+        ? "Falta configurar la variable UMP/manzana para revisar la base local."
+        : !summary
+          ? "El reporte territorial todavía no incluye el resumen de UMP. Actualiza la vista para recalcularlo."
+        : summary && !summary.configured
+          ? `No se pudo leer la variable ${summary.field || draftMapping.ump_var} en la base local.`
+          : !rows.length
+            ? "La base local no devolvió UMP declaradas para esta configuración."
+            : "";
+  const filteredRows = useMemo(() => {
+    const needle = normalizeMatch(query);
+    return rows.filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      if (!needle) return true;
+      return [
+        row.raw_ump,
+        row.responsible,
+        row.status_label,
+        row.status,
+        row.assigned_ump,
+        row.assigned_block_id,
+        row.assigned_district,
+        row.assigned_ubigeo,
+        ...(row.route_blocks ?? []).flatMap((block) => [block.route_ump, block.id_manzana, block.distrito, block.manzana]),
+      ].some((value) => normalizeMatch(String(value ?? "")).includes(needle));
+    });
+  }, [query, rows, statusFilter]);
+  const kpis = [
+    { label: "UMP exactas", value: metrics ? formatMetric(metrics.recognized_ump_count) : "S/D" },
+    { label: "UMP reconciliadas", value: metrics ? formatMetric(metrics.reconciled_ump_count ?? 0) : "S/D" },
+    { label: "UMP por revisar", value: metrics ? formatMetric(metrics.review_ump_count) : "S/D" },
+    { label: "Respuestas con UMP", value: metrics ? formatMetric(metrics.responses_with_ump) : "S/D" },
+    { label: "Respuestas sin UMP", value: metrics ? formatMetric(metrics.responses_without_ump) : "S/D" },
+  ];
+  const rowKey = (row: TerritorialDeclaredUmpRow) => `${row.status}-${row.raw_ump || "missing"}-${row.response_id || "value"}`;
+  const pendingUmpChangeForRow = (row: TerritorialDeclaredUmpRow) => {
+    const responsePayload: MonitoreoTerritorialUmpReconciliation = {
+      response_id: stringOrEmpty(row.response_id) || rowKey(row),
+      response_id_field: stringOrEmpty(row.response_id_field) || "row_index",
+      raw_ump: row.raw_ump,
+      assigned_block_id: "",
+      assigned_ump: "",
+      phase: activePhase,
+      scope: "response",
+    };
+    const valuePayload: MonitoreoTerritorialUmpReconciliation = {
+      raw_ump: row.raw_ump,
+      assigned_block_id: "",
+      assigned_ump: "",
+      phase: activePhase,
+      scope: "ump_value",
+    };
+    const responseId = territorialPendingUmpReconciliationId(responsePayload);
+    const valueId = territorialPendingUmpReconciliationId(valuePayload);
+    return pendingUmpChanges.find((change) => change.id === responseId || change.id === valueId) ?? null;
+  };
+  const selectedOptionForRow = (row: TerritorialDeclaredUmpRow) => {
+    const pending = pendingUmpChangeForRow(row);
+    const selectedId = selectedBlockByRow[rowKey(row)] || pending?.payload.assigned_block_id || row.assigned_block_id || row.route_blocks?.[0]?.id_manzana || routeOptions[0]?.id_manzana || "";
+    return routeOptions.find((option) => territorialUmpRouteOptionId(option) === selectedId) ?? null;
+  };
+  function stageUmpReconciliation(row: TerritorialDeclaredUmpRow, scope: "response" | "ump_value") {
+    if (!row.raw_ump || row.status === "missing") return;
+    const selected = selectedOptionForRow(row);
+    if (!selected) return;
+    const assignedBlockId = stringOrEmpty(selected.id_manzana);
+    const assignedUmp = stringOrEmpty(selected.route_ump);
+    if (!assignedBlockId || !assignedUmp) return;
+    onStageUmpReconciliation?.(territorialBuildPendingUmpReconciliationChange({
+      response_id: scope === "response" ? stringOrEmpty(row.response_id) : "",
+      response_id_field: scope === "response" ? stringOrEmpty(row.response_id_field) || "row_index" : "",
+      raw_ump: row.raw_ump,
+      assigned_block_id: assignedBlockId,
+      assigned_ump: assignedUmp,
+      assigned_district: stringOrEmpty(selected.distrito),
+      assigned_ubigeo: stringOrEmpty(selected.ubigeo),
+      phase: activePhase,
+      note: scope === "response" ? "Reconciliado manualmente por respuesta" : "Reconciliado manualmente por UMP literal",
+      created_at: new Date().toISOString(),
+      scope,
+    }));
+  }
+  return (
+    <section className="mon-operational-ump" aria-label="UMP declaradas en base">
+      <header className="mon-operational-ump-header">
+        <div className="mon-operational-ump-title">
+          <ListChecks size={15} />
+          <div>
+            <strong>UMPs</strong>
+            <em>Valores literales de Kobo contra Hojas de Ruta. Sin normalización automática.</em>
+          </div>
+        </div>
+        <div className="mon-operational-ump-kpis" aria-label="Resumen de UMP declaradas">
+          {kpis.map((item) => (
+            <span key={item.label}>
+              <strong>{item.value}</strong>
+              <em>{item.label}</em>
+            </span>
+          ))}
+        </div>
+      </header>
+      <div className="mon-operational-ump-toolbar">
+        <label className="mon-operational-ump-search">
+          <Search size={13} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar UMP literal, distrito, ruta o UID" />
+        </label>
+        <div className="mon-operational-ump-filters" aria-label="Filtrar por estado de UMP">
+          {TERRITORIAL_DECLARED_UMP_FILTERS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={statusFilter === item.key ? "is-selected" : ""}
+              onClick={() => setStatusFilter(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {emptyReason ? <p className="mon-operational-ump-note">{emptyReason}</p> : null}
+      <div className="mon-operational-ump-table">
+        {filteredRows.length ? filteredRows.map((row) => {
+          const key = rowKey(row);
+          const selected = selectedOptionForRow(row);
+          const pending = pendingUmpChangeForRow(row);
+          const selectedId = selected ? territorialUmpRouteOptionId(selected) : "";
+          const assignedDistrict = stringOrEmpty(selected?.distrito) || row.assigned_district || row.route_blocks?.[0]?.distrito || "S/D";
+          const assignedUbigeo = stringOrEmpty(selected?.ubigeo) || row.assigned_ubigeo || row.route_blocks?.[0]?.ubigeo || "";
+          const assignedBlockId = stringOrEmpty(selected?.id_manzana) || row.assigned_block_id || "";
+          return (
+            <article key={key} className={`mon-operational-ump-row is-${pending ? pending.status === "error" ? "danger" : "pending" : declaredUmpStatusTone(row.status)}${pending ? " is-pending" : ""}`}>
+              <header>
+                <span className="mon-operational-ump-identity">
+                  <em>UMP literal Kobo</em>
+                  <strong>{row.raw_ump || "S/D"}</strong>
+                </span>
+                <span className={`mon-operational-ump-status is-${pending ? pending.status === "error" ? "danger" : "pending" : declaredUmpStatusTone(row.status)}`}>
+                  {pending ? pending.status === "error" ? "Error" : "Pendiente" : declaredUmpStatusLabel(row)}
+                </span>
+              </header>
+              <div className="mon-operational-ump-row-main">
+                <span className="mon-operational-ump-count">
+                  <em>Respuestas</em>
+                  <strong>{formatMetric(row.response_count)}</strong>
+                </span>
+                <label className="mon-operational-ump-route">
+                  <span>Ruta asignada</span>
+                  {row.status === "missing" ? (
+                    <em className="mon-operational-ump-empty">Sin UMP declarada</em>
+                  ) : (
+                    <select
+                      value={selectedId}
+                      onChange={(event) => {
+                        const nextBlockId = event.currentTarget.value;
+                        setSelectedBlockByRow((current) => ({ ...current, [key]: nextBlockId }));
+                      }}
+                      disabled={saving || !routeOptions.length}
+                    >
+                      {routeOptions.map((option) => (
+                        <option key={territorialUmpRouteOptionId(option)} value={territorialUmpRouteOptionId(option)}>
+                          {territorialUmpRouteOptionLabel(option)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </label>
+                <span className="mon-operational-ump-responsible">
+                  <em>Distrito</em>
+                  <strong>{assignedDistrict}</strong>
+                  {assignedUbigeo ? <small>{assignedUbigeo}</small> : null}
+                </span>
+              </div>
+              <footer>
+                <span className="mon-operational-ump-route-id">
+                  {assignedBlockId ? shortenMiddle(assignedBlockId, 22) : "Sin ruta asignada"}
+                </span>
+                {row.status === "missing" ? (
+                  <span className="mon-operational-ump-empty">—</span>
+                ) : (
+                  <div className="mon-operational-ump-actions">
+                    <button
+                      type="button"
+                      onClick={() => stageUmpReconciliation(row, "response")}
+                      disabled={saving || !row.response_id || !selected}
+                    >
+                      {pending?.status === "saving" ? <Loader2 size={12} className="pulso-spin" /> : <Plus size={12} />}
+                      <span>Agregar respuesta</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="is-primary"
+                      onClick={() => stageUmpReconciliation(row, "ump_value")}
+                      disabled={saving || !selected}
+                    >
+                      {pending?.status === "saving" ? <Loader2 size={12} className="pulso-spin" /> : <Plus size={12} />}
+                      <span>Agregar valor</span>
+                    </button>
+                  </div>
+                )}
+              </footer>
+              {pending?.error ? <div className="mon-territorial-pending-row-note">{pending.error}</div> : null}
+            </article>
+          );
+        }) : (
+          <p className="mon-operational-ump-empty-cell">
+            {rows.length ? "No hay UMP con ese filtro o búsqueda." : emptyReason}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function declaredUmpStatusLabel(row: TerritorialDeclaredUmpRow) {
+  if (row.status_label) return row.status_label;
+  switch (row.status) {
+    case "recognized": return "Exacta";
+    case "reconciled": return "Reconciliada";
+    case "review": return "Revisar";
+    case "missing": return "Sin UMP";
+    default: return "Revisar";
+  }
+}
+
+function declaredUmpStatusTone(status: string) {
+  switch (status) {
+    case "recognized": return "recognized";
+    case "reconciled": return "recognized";
+    case "missing": return "missing";
+    default: return "review";
+  }
+}
+
+function territorialUmpRouteOptionId(option: TerritorialDeclaredUmpRouteOption | undefined | null) {
+  return stringOrEmpty(option?.id_manzana) || stringOrEmpty(option?.route_ump);
+}
+
+function territorialUmpRouteOptionLabel(option: TerritorialDeclaredUmpRouteOption | undefined | null) {
+  if (!option) return "Sin ruta";
+  const parts = [
+    stringOrEmpty(option.route_ump) ? `UMP ${option.route_ump}` : "",
+    stringOrEmpty(option.distrito) ? shortenMiddle(stringOrEmpty(option.distrito), 18) : "",
+    stringOrEmpty(option.manzana) ? `Mz ${option.manzana}` : "",
+  ].filter(Boolean);
+  return parts.join(" · ") || "Ruta sin etiqueta";
+}
+
+function TerritorialDeclaredUmpSummaryCard({
+  draftMapping,
+  onOpenReconciliation,
+  responseCount,
+  visibleReports,
+}: {
+  draftMapping: MonitoreoTerritorialPhaseMapping;
+  onOpenReconciliation: () => void;
+  responseCount: number;
+  visibleReports: MonitoreoTerritorialDashboard | null;
+}) {
+  const summary = visibleReports?.ump_declared_summary ?? null;
+  const metrics = summary?.metrics ?? null;
+  const reviewCount = metrics?.review_ump_count ?? 0;
+  const reconciledCount = metrics?.reconciled_ump_count ?? 0;
+  const routeCount = summary?.route_ump_count ?? 0;
+  const configured = Boolean(draftMapping.ump_var && summary?.configured !== false);
+  const status = !visibleReports
+    ? "Reporte pendiente"
+    : responseCount <= 0
+      ? "Sin respuestas locales"
+      : !draftMapping.ump_var
+        ? "Variable UMP pendiente"
+        : reviewCount > 0
+          ? `${formatMetric(reviewCount)} UMP por revisar`
+          : "UMP sin pendientes";
+  return (
+    <section className="mon-operational-ump-summary" aria-label="Resumen de UMP declaradas">
+      <header>
+        <ListChecks size={15} />
+        <div>
+          <strong>UMP declaradas</strong>
+          <em>{status}</em>
+        </div>
+      </header>
+      <div className="mon-operational-ump-summary-grid">
+        <span><strong>{metrics ? formatMetric(metrics.responses_with_ump) : "S/D"}</strong><em>respuestas con UMP</em></span>
+        <span><strong>{metrics ? formatMetric(metrics.responses_without_ump) : "S/D"}</strong><em>sin UMP</em></span>
+        <span><strong>{metrics ? formatMetric(metrics.recognized_ump_count) : "S/D"}</strong><em>exactas</em></span>
+        <span><strong>{formatMetric(reconciledCount)}</strong><em>reconciliadas</em></span>
+        <span><strong>{formatMetric(reviewCount)}</strong><em>por revisar</em></span>
+        <span><strong>{formatMetric(routeCount)}</strong><em>UMP en ruta</em></span>
+      </div>
+      <button type="button" className="pulso-button" onClick={onOpenReconciliation} disabled={!configured && !summary}>
+        <Link2 size={14} />
+        <span>Revisar UMP</span>
+      </button>
+    </section>
+  );
+}
+
+function TerritorialEnumeratorRosterCard({
+  activePhase,
+  config,
+  mode = "roster",
+  onConfigPatch,
+  onStageCodeReconciliation,
+  pendingCodeChanges = [],
+  roster,
+  responseCount,
+  saving,
+  surveyFields,
+  variables,
+  visibleReports,
+  uploading,
+  templating,
+  downloadingCodes,
+  onUpload,
+  onDownloadTemplate,
+  onDownloadCodes,
+}: {
+  activePhase: MonitoreoTerritorialPhase;
+  config: MonitoreoConfig;
+  mode?: "roster" | "reconciliation" | "full";
+  onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
+  onStageCodeReconciliation?: (change: TerritorialPendingReconciliationChange) => void;
+  pendingCodeChanges?: TerritorialPendingCodeReconciliationChange[];
+  roster: MonitoreoConfig["territorial"]["enumerator_roster"];
+  responseCount: number;
+  saving: boolean;
+  surveyFields: TerritorialSurveyField[];
+  variables: MonitoreoVariable[];
+  visibleReports: MonitoreoTerritorialDashboard | null;
+  uploading: boolean;
+  templating: boolean;
+  downloadingCodes: boolean;
+  onUpload: (file: File, options?: { code_format?: "PXXX" | "DNI" }) => Promise<void>;
+  onDownloadTemplate: () => Promise<void>;
+  onDownloadCodes: () => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const showReconciliationBlocks = mode !== "roster";
+  const showRosterBlocks = mode !== "reconciliation";
+  const assignments = roster?.assignments ?? [];
+  const hasRoster = assignments.length > 0;
+  const uploadedLabel = roster?.uploaded_at ? formatDate(roster.uploaded_at) : "sin fecha";
+  const rosterCodeFormat = roster?.code_format === "DNI" ? "DNI" : "PXXX";
+  const [codeFormat, setCodeFormat] = useState<"PXXX" | "DNI">(rosterCodeFormat);
+  const savedMapping = territorialMappingForPhase(config, activePhase);
+  const savedPulsoSignature = JSON.stringify({
+    pulso_code_var: savedMapping.pulso_code_var,
+    ref: savedMapping.variable_refs?.enumerator_pulso_code ?? null,
+  });
+  const [draftMapping, setDraftMapping] = useState<MonitoreoTerritorialPhaseMapping>(savedMapping);
+  const draftRefs = draftMapping.variable_refs ?? {};
+  const draftPulsoSignature = JSON.stringify({
+    pulso_code_var: draftMapping.pulso_code_var,
+    ref: draftRefs.enumerator_pulso_code ?? null,
+  });
+  const pulsoDirty = draftPulsoSignature !== savedPulsoSignature;
+  const variableOptions = useMemo(
+    () => buildOperationalVariableOptions(surveyFields, variables, responseCount),
+    [responseCount, surveyFields, variables],
+  );
+  const pulsoOptions = useMemo(() => operationalOptionsForRole("pulso_code", variableOptions), [variableOptions]);
+  const pulsoSuggestion = pulsoOptions.find((option) => option.suggested) ?? pulsoOptions[0] ?? null;
+  const enumeratorSummary = territorialEnumeratorPulsoCodeSummary(visibleReports);
+  const codeRows = enumeratorSummary.assignedSummary.length
+    ? enumeratorSummary.assignedSummary
+    : assignments.map((row) => ({
+      code: row.codigo_pulso,
+      name: row.nombre,
+      response_count: 0,
+      auto_response_count: 0,
+      reconciled_response_count: 0,
+      appears_in_base: false,
+      last_record: "",
+      status: "sin_registros",
+    }));
+  const responseRows = enumeratorSummary.reconciliationResponses;
+  const [reconcileSearch, setReconcileSearch] = useState("");
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [assignmentSearchByResponse, setAssignmentSearchByResponse] = useState<Record<string, string>>({});
+  const [assignedCodeByResponse, setAssignedCodeByResponse] = useState<Record<string, string>>({});
+  const filteredCodeRows = codeRows.filter((row) => {
+    const query = normalizeMatch(rosterSearch);
+    if (!query) return true;
+    return normalizeMatch([
+      row.code,
+      row.name,
+      assignedStatusLabel(row),
+      row.status,
+      row.last_record,
+    ].join(" ")).includes(query);
+  });
+  const filteredResponseRows = responseRows.filter((row) => {
+    const normalizedCode = row.normalized_code || row.code || "";
+    const rawCode = row.raw_code || row.code || "";
+    const query = normalizeMatch(reconcileSearch);
+    if (!query) return true;
+    return normalizeMatch([
+      rawCode,
+      normalizedCode,
+      row.response_id,
+      row.ump,
+      row.district,
+      row.assigned_code,
+      row.assigned_name,
+      responseStatusLabel(row),
+      row.status,
+    ].join(" ")).includes(query);
+  });
+  const assignedResponseCount = responseRows.filter((row) => row.reconciled || row.status === "reconciled" || row.assigned_code).length;
+  const pulsoWithValueCount = enumeratorSummary.configured
+    ? enumeratorSummary.responseWithCodeCount || Math.max(0, responseCount - enumeratorSummary.missingResponseCount)
+    : 0;
+
+  useEffect(() => {
+    setCodeFormat(rosterCodeFormat);
+  }, [rosterCodeFormat]);
+
+  useEffect(() => {
+    setDraftMapping(savedMapping);
+  }, [activePhase, savedPulsoSignature]);
+
+  function patchPulsoDraft(option: OperationalVariableOption | null) {
+    setDraftMapping((prev) => normalizeTerritorialPhaseMapping({
+      ...prev,
+      ...operationalVariablePatch("pulso_code", option, prev),
+    }));
+  }
+
+  async function savePulsoVariable() {
+    const currentPhaseMappings = config.territorial.phase_mappings ?? EMPTY_TERRITORIAL_CONFIG.phase_mappings;
+    const currentPhaseMapping = normalizeTerritorialPhaseMapping(currentPhaseMappings?.[activePhase]);
+    const nextRefs = { ...(currentPhaseMapping.variable_refs ?? {}) };
+    if (draftRefs.enumerator_pulso_code) {
+      nextRefs.enumerator_pulso_code = draftRefs.enumerator_pulso_code;
+    } else {
+      delete nextRefs.enumerator_pulso_code;
+    }
+    const nextMapping = normalizeTerritorialPhaseMapping({
+      ...currentPhaseMapping,
+      pulso_code_var: draftMapping.pulso_code_var,
+      variable_refs: nextRefs,
+    });
+    await onConfigPatch({
+      phase_mappings: {
+        pilot: normalizeTerritorialPhaseMapping(currentPhaseMappings?.pilot),
+        field: normalizeTerritorialPhaseMapping(currentPhaseMappings?.field),
+        [activePhase]: nextMapping,
+      },
+      pulso_code_var: nextMapping.pulso_code_var,
+    });
+  }
+
+  function responseDraftKey(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    return row.response_id || `${row.row_index}-${row.raw_code || row.normalized_code || row.code || "response"}`;
+  }
+
+  function pendingCodeChangeFor(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const normalizedCode = row.normalized_code || row.code || row.raw_code;
+    const rawCode = row.raw_code || row.code || normalizedCode;
+    const responsePayload: MonitoreoTerritorialCodeReconciliation = {
+      response_id: row.response_id || responseDraftKey(row),
+      response_id_field: row.response_id_field || "row_index",
+      raw_code: rawCode,
+      normalized_code: normalizedCode,
+      assigned_code: "",
+      phase: activePhase,
+      scope: "response",
+    };
+    const legacyPayload: MonitoreoTerritorialCodeReconciliation = {
+      raw_code: rawCode,
+      normalized_code: normalizedCode,
+      assigned_code: "",
+      phase: activePhase,
+      scope: "code_legacy",
+    };
+    const responseId = territorialPendingCodeReconciliationId(responsePayload);
+    const legacyId = territorialPendingCodeReconciliationId(legacyPayload);
+    return pendingCodeChanges.find((change) => change.id === responseId || change.id === legacyId) ?? null;
+  }
+
+  function draftAssignedCode(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const key = responseDraftKey(row);
+    const drafted = assignedCodeByResponse[key] || "";
+    if (drafted && assignments.some((assignment) => assignment.codigo_pulso === drafted)) return drafted;
+    const pending = pendingCodeChangeFor(row);
+    if (pending?.payload.assigned_code && assignments.some((assignment) => assignment.codigo_pulso === pending.payload.assigned_code)) return pending.payload.assigned_code;
+    if (row.assigned_code && assignments.some((assignment) => assignment.codigo_pulso === row.assigned_code)) return row.assigned_code;
+    return assignments[0]?.codigo_pulso || "";
+  }
+
+  function assignmentOptionsForResponse(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const key = responseDraftKey(row);
+    const assignedCode = draftAssignedCode(row);
+    const selected = assignments.find((assignment) => assignment.codigo_pulso === assignedCode) ?? null;
+    const query = normalizeMatch(assignmentSearchByResponse[key] || "");
+    const matches = query
+      ? assignments.filter((assignment) => normalizeMatch(`${assignment.codigo_pulso} ${assignment.nombre} ${assignment.nombre_normalizado ?? ""}`).includes(query))
+      : assignments;
+    return selected && !matches.some((assignment) => assignment.codigo_pulso === selected.codigo_pulso)
+      ? [selected, ...matches]
+      : matches;
+  }
+
+  function setResponseAssignmentSearch(row: MonitoreoTerritorialEnumeratorReconciliationResponse, value: string) {
+    const key = responseDraftKey(row);
+    setAssignmentSearchByResponse((current) => ({ ...current, [key]: value }));
+  }
+
+  function setResponseAssignedCode(row: MonitoreoTerritorialEnumeratorReconciliationResponse, value: string) {
+    const key = responseDraftKey(row);
+    setAssignedCodeByResponse((current) => ({ ...current, [key]: value }));
+  }
+
+  function copyResponseId(responseId: string) {
+    if (!responseId || !navigator.clipboard?.writeText) return;
+    void navigator.clipboard.writeText(responseId).catch(() => undefined);
+  }
+
+  function stageCodeReconciliationFor(row: MonitoreoTerritorialEnumeratorReconciliationResponse, scope: "response" | "code_legacy" = "response") {
+    const selectedCode = draftAssignedCode(row);
+    const selectedAssignment = assignments.find((assignment) => assignment.codigo_pulso === selectedCode) ?? null;
+    if (!selectedAssignment) return;
+    const normalizedCode = row.normalized_code || row.code || row.raw_code;
+    const rawCode = row.raw_code || row.code || normalizedCode;
+    const nextEntry: MonitoreoTerritorialCodeReconciliation = {
+      response_id: scope === "response" ? row.response_id || responseDraftKey(row) : "",
+      response_id_field: scope === "response" ? row.response_id_field || "row_index" : "",
+      raw_code: rawCode,
+      normalized_code: normalizedCode,
+      assigned_code: selectedAssignment.codigo_pulso,
+      assigned_name: selectedAssignment.nombre,
+      ump: row.ump || "",
+      district: row.district || "",
+      phase: activePhase,
+      note: scope === "response" ? "Reconciliado manualmente por respuesta" : "Reconciliado manualmente por código",
+      created_at: new Date().toISOString(),
+      scope,
+    };
+    onStageCodeReconciliation?.(territorialBuildPendingCodeReconciliationChange(nextEntry));
+    const key = responseDraftKey(row);
+    setAssignmentSearchByResponse((current) => ({ ...current, [key]: "" }));
+  }
+
+  function assignedStatusLabel(row: typeof codeRows[number]) {
+    const status = stringOrEmpty(row.status);
+    if (status === "reconciliado" || numberOrFallback(row.reconciled_response_count, 0) > 0) return "Reconciliado";
+    if (status === "revisar") return "Revisar";
+    if (numberOrFallback(row.response_count, 0) > 0 || row.appears_in_base) return "Reconocido";
+    return "Sin registros";
+  }
+
+  function assignedStatusTone(row: typeof codeRows[number]) {
+    const label = assignedStatusLabel(row);
+    if (label === "Reconocido" || label === "Reconciliado") return "ready";
+    if (label === "Revisar") return "warning";
+    return "muted";
+  }
+
+  function responseStatusLabel(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const pending = pendingCodeChangeFor(row);
+    if (pending) return pending.status === "error" ? "Error" : "Pendiente";
+    return row.reconciled || row.status === "reconciled" || row.assigned_code ? "Asignada" : "Por asignar";
+  }
+
+  function responseStatusTone(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const pending = pendingCodeChangeFor(row);
+    if (pending?.status === "error") return "danger";
+    if (pending) return "pending";
+    return responseStatusLabel(row) === "Asignada" ? "ready" : "warning";
+  }
+
+  function responseAssignedLabel(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const pending = pendingCodeChangeFor(row);
+    if (pending) return pending.target;
+    if (!row.reconciled || !row.assigned_code) return "";
+    return `${row.assigned_code}${row.assigned_name ? ` · ${row.assigned_name}` : ""}`;
+  }
+
+  function renderReconciliationAction(row: MonitoreoTerritorialEnumeratorReconciliationResponse) {
+    const key = responseDraftKey(row);
+    const assignedCode = draftAssignedCode(row);
+    const selectedAssignment = assignments.find((assignment) => assignment.codigo_pulso === assignedCode) ?? null;
+    const assignmentOptions = assignmentOptionsForResponse(row);
+    const assignedLabel = responseAssignedLabel(row);
+    const responseId = row.response_id || `row-${row.row_index}`;
+    const visibleAssignmentOptions = assignmentOptions.slice(0, 80);
+    const pending = pendingCodeChangeFor(row);
+
+    return (
+      <div className="mon-territorial-response-action">
+        <Popover.Root
+          onOpenChange={(open) => {
+            if (!open) return;
+            setResponseAssignedCode(row, assignedCode);
+          }}
+        >
+          <Popover.Trigger asChild>
+            <button type="button" className={row.reconciled ? "is-reconciled" : ""} disabled={!hasRoster || saving}>
+              {row.reconciled ? <CheckCircle2 size={13} /> : <Link2 size={13} />}
+              <span>{row.reconciled ? "Revisar" : "Asignar"}</span>
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content className="mon-territorial-enumerator-reconcile-popover" align="end" side="left" sideOffset={8}>
+              <strong>{row.reconciled ? "Revisar asignación" : "Asignar respuesta"}</strong>
+              <div className="mon-territorial-enumerator-response-context">
+                <span><em>Código en base</em><strong>{row.raw_code || row.code || "S/D"}</strong></span>
+                <span><em>Normalizado</em><strong>{row.normalized_code || row.code || "S/D"}</strong></span>
+                <span><em>UMP</em><strong>{row.ump || "S/D"}</strong></span>
+                <span><em>Distrito</em><strong>{row.district || "S/D"}</strong></span>
+                <span className="is-wide"><em>UID respuesta</em><strong title={responseId}>{responseId}</strong></span>
+              </div>
+              <label className="mon-territorial-enumerator-assignment-search">
+                <span>Buscar encuestador</span>
+                <input
+                  value={assignmentSearchByResponse[key] ?? ""}
+                  onChange={(event) => setResponseAssignmentSearch(row, event.currentTarget.value)}
+                  disabled={!hasRoster || saving}
+                  placeholder="Nombre, apellido, DNI o código"
+                />
+              </label>
+              <div className="mon-territorial-enumerator-assignment-current">
+                <span>Asignación seleccionada</span>
+                <strong>{selectedAssignment ? `${selectedAssignment.codigo_pulso} · ${selectedAssignment.nombre}` : assignedLabel || "Sin selección"}</strong>
+              </div>
+              <div className="mon-territorial-enumerator-assignment-results" aria-label="Resultados de encuestadores">
+                {visibleAssignmentOptions.length ? visibleAssignmentOptions.map((assignment) => {
+                  const selected = assignment.codigo_pulso === assignedCode;
+                  return (
+                    <button
+                      key={assignment.codigo_pulso}
+                      type="button"
+                      className={selected ? "is-selected" : ""}
+                      onClick={() => setResponseAssignedCode(row, assignment.codigo_pulso)}
+                      disabled={saving}
+                    >
+                      <span>{assignment.codigo_pulso}</span>
+                      <strong>{assignment.nombre}</strong>
+                      {assignment.dni ? <em>DNI {assignment.dni}</em> : null}
+                    </button>
+                  );
+                }) : (
+                  <div className="mon-territorial-enumerator-assignment-empty">
+                    <Search size={14} />
+                    <span>Sin coincidencias para esa búsqueda.</span>
+                  </div>
+                )}
+              </div>
+              {assignmentOptions.length > visibleAssignmentOptions.length ? (
+                <em className="mon-territorial-enumerator-assignment-more">
+                  Mostrando {formatMetric(visibleAssignmentOptions.length)} de {formatMetric(assignmentOptions.length)} coincidencias.
+                </em>
+              ) : null}
+              <div className="mon-territorial-enumerator-reconcile-actions">
+                <Popover.Close asChild>
+                  <button type="button" className="pulso-button" disabled={saving}>Cancelar</button>
+                </Popover.Close>
+                <Popover.Close asChild>
+                  <button
+                    type="button"
+                    className="pulso-button"
+                    onClick={() => stageCodeReconciliationFor(row, "response")}
+                    disabled={saving || !selectedAssignment}
+                  >
+                    {pending?.status === "saving" ? <Loader2 size={14} className="pulso-spin" /> : <Plus size={14} />}
+                    <span>Agregar respuesta</span>
+                  </button>
+                </Popover.Close>
+                <Popover.Close asChild>
+                  <button
+                    type="button"
+                    className="pulso-button is-primary"
+                    onClick={() => stageCodeReconciliationFor(row, "code_legacy")}
+                    disabled={saving || !selectedAssignment || !(row.normalized_code || row.code || row.raw_code)}
+                  >
+                    {pending?.status === "saving" ? <Loader2 size={14} className="pulso-spin" /> : <Plus size={14} />}
+                    <span>Agregar código</span>
+                  </button>
+                </Popover.Close>
+              </div>
+              <Popover.Arrow className="mon-territorial-enumerator-reconcile-arrow" />
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+      </div>
+    );
+  }
+
+  return (
+    <section className={`mon-territorial-source-card mon-territorial-enumerator-roster is-${mode}${hasRoster ? "" : " is-empty"}`} aria-label={mode === "reconciliation" ? "Reconciliación de códigos Pulso" : "Encuestadores y códigos Pulso"}>
+      <header>
+        <span><ContactRound size={14} /> {mode === "reconciliation" ? "Códigos Pulso" : "Encuestadores y códigos Pulso"}</span>
+        <strong>{mode === "reconciliation" ? `${formatMetric(enumeratorSummary.unrecognizedResponseCount)} por revisar` : hasRoster ? `${formatMetric(assignments.length)} asignados` : "Por definir"}</strong>
+      </header>
+      <div className="mon-territorial-enumerator-layout">
+        {showReconciliationBlocks ? (
+        <div className="mon-territorial-enumerator-code-config">
+          <div className="mon-territorial-enumerator-code-compact-head">
+            <div className="mon-territorial-enumerator-block-head">
+              <div>
+                <span>Código Pulso en base Kobo</span>
+                <strong>{operationalPulsoSummaryTitle(enumeratorSummary)}</strong>
+                <em>{activePhase === "field" ? "Campo" : "Piloto"} · guardar variable no sincroniza Kobo.</em>
+              </div>
+            </div>
+            <div className="mon-territorial-enumerator-metrics" aria-label="Cruce de códigos Pulso">
+              <span><strong>{formatMetric(enumeratorSummary.rosterTotal || assignments.length)}</strong><em>códigos asignados</em></span>
+              <span><strong>{formatMetric(enumeratorSummary.responseCodeCount)}</strong><em>códigos en base</em></span>
+              <span><strong>{formatMetric(enumeratorSummary.autoRecognizedResponseCount)}</strong><em>auto</em></span>
+              <span><strong>{formatMetric(enumeratorSummary.reconciledResponseCount)}</strong><em>manual</em></span>
+              <span><strong>{formatMetric(enumeratorSummary.unrecognizedResponseCount)}</strong><em>revisar</em></span>
+              <span><strong>{formatMetric(enumeratorSummary.missingResponseCount)}</strong><em>sin código</em></span>
+            </div>
+          </div>
+          <div className="mon-territorial-enumerator-variable-strip">
+            <OperationalVariableSelect
+              role="pulso_code"
+              label="Variable de código Pulso"
+              value={draftMapping.pulso_code_var}
+              savedValue={savedMapping.pulso_code_var}
+              variableRef={draftRefs.enumerator_pulso_code}
+              savedVariableRef={savedMapping.variable_refs?.enumerator_pulso_code}
+              options={pulsoOptions}
+              required
+              onChange={patchPulsoDraft}
+            />
+            <div className="mon-territorial-enumerator-variable-actions">
+              <button type="button" onClick={() => pulsoSuggestion && patchPulsoDraft(pulsoSuggestion)} disabled={saving || !pulsoSuggestion}>
+                <RefreshCw size={14} />
+                <span>Restaurar</span>
+              </button>
+              <button type="button" onClick={() => setDraftMapping(savedMapping)} disabled={saving || !pulsoDirty}>
+                <XCircle size={14} />
+                <span>Descartar</span>
+              </button>
+              <button type="button" className="pulso-button is-primary" onClick={() => { void savePulsoVariable().catch(() => undefined); }} disabled={saving || !pulsoDirty}>
+                {saving ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+                <span>Guardar</span>
+              </button>
+            </div>
+          </div>
+          <p className="mon-territorial-enumerator-status">
+            {!hasRoster
+              ? "No hay códigos Pulso asignados en la lista de encuestadores."
+              : !enumeratorSummary.configured
+                ? "Selecciona y guarda la variable de Kobo que contiene el Código Pulso."
+                : pulsoWithValueCount <= 0
+                  ? "La variable seleccionada no contiene códigos en la base local."
+                  : enumeratorSummary.recognizedCodeCount <= 0
+                    ? "Hay códigos en base, pero no cruzan con la lista de encuestadores. Revisa formato o variable seleccionada."
+                    : `${formatMetric(enumeratorSummary.recognizedResponseCount)} respuestas cruzan con códigos asignados; ${formatMetric(enumeratorSummary.unrecognizedResponseCount)} requieren revisión.`}
+          </p>
+        </div>
+        ) : null}
+
+        {showReconciliationBlocks ? (
+        <div className="mon-territorial-enumerator-crosswalk">
+          <div className="mon-territorial-enumerator-crosswalk-head">
+            <div className="mon-territorial-enumerator-block-head">
+              <div>
+                <span>Cruce código Pulso en base Kobo</span>
+                <strong>
+                  {formatMetric(enumeratorSummary.unrecognizedCodeCount)} códigos · {formatMetric(enumeratorSummary.unrecognizedResponseCount)} respuestas para revisar
+                </strong>
+                <em>{formatMetric(enumeratorSummary.reconciledResponseCount)} reconciliaciones guardadas en {activePhase === "field" ? "Campo" : "Piloto"}.</em>
+              </div>
+            </div>
+            {responseRows.length ? (
+              <div className="mon-territorial-enumerator-review-tools" aria-label="Filtros de respuestas">
+                <label>
+                  <Search size={13} />
+                  <input
+                    value={reconcileSearch}
+                    onChange={(event) => setReconcileSearch(event.currentTarget.value)}
+                    placeholder="Buscar código, asignado, UMP, distrito o UID"
+                  />
+                </label>
+                <span className="mon-territorial-enumerator-review-count">
+                  {formatMetric(filteredResponseRows.length)} visibles · {formatMetric(assignedResponseCount)} asignadas
+                </span>
+                {reconcileSearch ? (
+                  <button type="button" onClick={() => setReconcileSearch("")}>
+                    <XCircle size={13} />
+                    <span>Limpiar</span>
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+              {responseRows.length ? (
+            <div className="mon-territorial-enumerator-review-grid">
+              <div className="mon-territorial-enumerator-response-worklist">
+                <div className="mon-territorial-enumerator-response-list" aria-label="Respuestas para reconciliar">
+                  {filteredResponseRows.length ? filteredResponseRows.map((row) => {
+                    const responseId = row.response_id || `row-${row.row_index}`;
+                    const assignedLabel = responseAssignedLabel(row);
+                    const tone = responseStatusTone(row);
+                    const pending = pendingCodeChangeFor(row);
+                    return (
+                      <article key={`${responseId}-${row.raw_code || row.normalized_code}`} className={`mon-territorial-enumerator-response-card is-${tone}${row.reconciled ? " is-reconciled" : ""}${pending ? " is-pending" : ""}`}>
+                        <div className="mon-territorial-enumerator-response-main">
+                          <span className={`mon-territorial-enumerator-response-status is-${tone}`}>{responseStatusLabel(row)}</span>
+                          <strong>{row.raw_code || row.code || "S/D"}</strong>
+                          <em>Normalizado: {row.normalized_code || row.code || "S/D"}</em>
+                        </div>
+                        <div className="mon-territorial-enumerator-response-meta">
+                          <span><strong>{row.ump || "S/D"}</strong><em>UMP / manzana</em></span>
+                          <span><strong>{row.district || "S/D"}</strong><em>Distrito</em></span>
+                          <span className="is-wide"><strong>{assignedLabel || "Sin asignación guardada"}</strong><em>Asignado</em></span>
+                        </div>
+                        <div className="mon-territorial-response-uid-cell">
+                          <code title={responseId}>{shortenMiddle(responseId, 30)}</code>
+                          <button type="button" onClick={() => copyResponseId(responseId)} aria-label="Copiar UID respuesta">
+                            <Copy size={12} />
+                            <span>Copiar</span>
+                          </button>
+                        </div>
+                        {renderReconciliationAction(row)}
+                        {pending?.error ? <div className="mon-territorial-pending-row-note">{pending.error}</div> : null}
+                      </article>
+                    );
+                  }) : (
+                    <div className="mon-territorial-enumerator-response-empty">
+                      <Search size={16} />
+                      <span>No hay respuestas con esos filtros.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mon-territorial-enumerator-ok">
+              <CheckCircle2 size={16} />
+              <span>No hay códigos no reconocidos.</span>
+            </div>
+          )}
+        </div>
+        ) : null}
+
+        {showRosterBlocks ? (
+        <div className="mon-territorial-enumerator-command">
+          <div className="mon-territorial-enumerator-state">
+            <span><QrCode size={18} /></span>
+            <div>
+              <strong>{hasRoster ? roster?.file_name || "Excel cargado" : "Subir Excel de encuestadores"}</strong>
+              <em>
+                {hasRoster
+                  ? `${uploadedLabel} · formato ${roster?.code_format || "PXXX"}`
+                  : "Usa AP PATERNO, AP MATERNO y NOMBRES."}
+              </em>
+            </div>
+          </div>
+          <div className="mon-territorial-enumerator-fieldchips" aria-label="Campos de cruce Kobo">
+            <span><strong>{savedMapping.pulso_code_var || roster?.code_var || "codigo_pulso"}</strong><em>código Pulso</em></span>
+            <span><strong>{savedMapping.ump_var || "UMP no configurada"}</strong><em>UMP / manzana</em></span>
+          </div>
+          <div className="mon-territorial-enumerator-mode" aria-label="Formato de código Pulso">
+            <span>Tipo de código</span>
+            <div>
+              {(["PXXX", "DNI"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={codeFormat === mode ? "is-active" : ""}
+                  onClick={() => setCodeFormat(mode)}
+                  disabled={uploading || templating || downloadingCodes}
+                >
+                  {mode === "DNI" ? "DNI del Excel" : "PXXX aleatorio"}
+                </button>
+              ))}
+            </div>
+            <em>{codeFormat === "DNI" ? "Requiere columna DNI completa y sin duplicados." : "Genera códigos aleatorios y conserva los ya asignados."}</em>
+          </div>
+          <p>
+            Estos códigos identifican al responsable cuando Kobo trae el campo abierto de código Pulso. Deben copiarse exactamente; con PXXX se conservan los ya asignados y con DNI se usa el documento del Excel.
+          </p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xls,.xlsx,.xlsm,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            hidden
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              if (!file) return;
+              void onUpload(file, { code_format: codeFormat }).finally(() => {
+                event.currentTarget.value = "";
+              });
+            }}
+          />
+          <div className="mon-territorial-enumerator-actions">
+            <button
+              type="button"
+              className="pulso-button"
+              onClick={() => { void onDownloadTemplate().catch(() => undefined); }}
+              disabled={templating || uploading || downloadingCodes}
+            >
+              {templating ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
+              <span>Plantilla Excel</span>
+            </button>
+            <button
+              type="button"
+              className="pulso-button is-code-download"
+              onClick={() => { void onDownloadCodes().catch(() => undefined); }}
+              disabled={!hasRoster || downloadingCodes || uploading || templating}
+            >
+              {downloadingCodes ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
+              <span>Descargar códigos</span>
+            </button>
+            <button
+              type="button"
+              className="pulso-button"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading || templating || downloadingCodes}
+            >
+              {uploading ? <Loader2 size={15} className="pulso-spin" /> : <UploadCloud size={15} />}
+              <span>{hasRoster ? "Actualizar Excel" : "Subir Excel"}</span>
+            </button>
+          </div>
+        </div>
+        ) : null}
+        {showRosterBlocks ? (
+        <div className="mon-territorial-enumerator-table" aria-label="Asignaciones de código Pulso">
+          {hasRoster ? (
+            <>
+              <div className="mon-territorial-enumerator-table-toolbar">
+                <label>
+                  <Search size={13} />
+                  <input
+                    value={rosterSearch}
+                    onChange={(event) => setRosterSearch(event.currentTarget.value)}
+                    placeholder="Buscar encuestador por nombre, código o estado"
+                  />
+                </label>
+                <span>{formatMetric(filteredCodeRows.length)} / {formatMetric(codeRows.length)} visibles</span>
+                {rosterSearch ? (
+                  <button type="button" onClick={() => setRosterSearch("")}>
+                    <XCircle size={13} />
+                    <span>Limpiar</span>
+                  </button>
+                ) : null}
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Encuestador</th>
+                    <th>Respuestas</th>
+                    <th>Último</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCodeRows.length ? filteredCodeRows.map((row) => (
+                    <tr key={`${row.code}-${row.name}`}>
+                      <td><span>{row.code}</span></td>
+                      <td>{row.name}</td>
+                      <td>
+                        {formatMetric(numberOrFallback(row.response_count, 0))}
+                        {numberOrFallback(row.reconciled_response_count, 0) > 0 ? <em>+{formatMetric(numberOrFallback(row.reconciled_response_count, 0))} reconciliadas</em> : null}
+                      </td>
+                      <td>{row.last_record || "S/D"}</td>
+                      <td><b className={`is-${assignedStatusTone(row)}`}>{assignedStatusLabel(row)}</b></td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={5}>No hay encuestadores con esos filtros.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </>
+          ) : (
+            <div className="mon-territorial-enumerator-empty">
+              <UploadCloud size={22} />
+              <strong>Roster pendiente</strong>
+              <em>Sube un Excel con apellidos y nombres para generar códigos aleatorios PXXX.</em>
+              <div>
+                <span>AP PATERNO</span>
+                <span>AP MATERNO</span>
+                <span>NOMBRES</span>
+              </div>
+            </div>
+          )}
+        </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -3489,7 +11422,7 @@ function TerritorialSingleValueSelect({
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
           <button type="button" className="mon-territorial-select-trigger">
-            <strong>{selected?.label || (options.length ? "Seleccionar estado..." : "Sin estados disponibles")}</strong>
+            <strong>{selected?.label || (options.length ? "Seleccionar valor válido..." : "Sin valores disponibles")}</strong>
             <ChevronDown size={14} />
           </button>
         </Popover.Trigger>
@@ -3500,7 +11433,7 @@ function TerritorialSingleValueSelect({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar estado..."
+                placeholder="Buscar valor..."
                 autoFocus
               />
             </div>
@@ -3515,8 +11448,8 @@ function TerritorialSingleValueSelect({
                 }}
               >
                 <div>
-                  <strong>Estado por definir</strong>
-                  <em>La cuenta queda como por definir.</em>
+                  <strong>Valor por definir</strong>
+                  <em>La cuenta de efectivas queda pendiente.</em>
                 </div>
                 {!value ? <CheckCircle2 size={14} /> : null}
               </button>
@@ -3545,19 +11478,44 @@ function TerritorialSingleValueSelect({
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
-      <em>{selected ? `Valor Kobo: ${selected.value}` : "Sólo se permite un estado válido por filtro."}</em>
+      <em>{selected ? `Valor Kobo: ${selected.value}` : "Sólo se define el valor positivo/efectivo."}</em>
     </div>
   );
 }
 
-function TerritorialDistrictShapeIcon({ ubigeo, active, warning }: { ubigeo: string; active?: boolean; warning?: boolean }) {
+function TerritorialDistrictShapeIcon({
+  ubigeo,
+  label = "",
+  active,
+  warning,
+}: {
+  ubigeo: string;
+  label?: string;
+  active?: boolean;
+  warning?: boolean;
+}) {
   const d = useMemo(() => territorialDistrictIconPath(ubigeo), [ubigeo]);
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true" className={`mon-territorial-district-shape${active ? " is-active" : ""}${warning ? " is-warning" : ""}`}>
       <rect x="1" y="1" width="46" height="46" rx="10" />
-      {d ? <path d={d} fillRule="evenodd" /> : <circle cx="24" cy="24" r="13" />}
+      {d ? <path d={d} fillRule="evenodd" /> : (
+        <>
+          <circle cx="24" cy="24" r="13" />
+          <text x="24" y="27.5" textAnchor="middle">{territorialDistrictInitials(label || ubigeo)}</text>
+        </>
+      )}
     </svg>
   );
+}
+
+function territorialDistrictInitials(value: string) {
+  const words = stringOrEmpty(value)
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const initials = words.slice(0, 2).map((word) => word[0]).join("");
+  return initials.toLocaleUpperCase("es-PE") || "DT";
 }
 
 function territorialDistrictIconPath(ubigeo: string) {
@@ -3608,140 +11566,520 @@ function formatTerritorialHistoryDate(value: string) {
   return text.charAt(0).toLocaleUpperCase("es-PE") + text.slice(1);
 }
 
+type TerritorialRouteWorkbenchTab = "resumen" | "mapa";
+
 function TerritorialRouteView({
   config,
   sources,
   dashboard,
   saving,
   syncing,
+  phaseCoherence,
+  loading = false,
+  error = "",
   onSyncKobo,
-  onPhaseChange,
 }: {
   config: MonitoreoConfig;
   sources: MonitoreoSource[];
   dashboard: MonitoreoDashboard | null;
   saving: boolean;
   syncing: boolean;
+  phaseCoherence?: MonitoreoTerritorialPhaseCoherence | null;
+  loading?: boolean;
+  error?: string;
   onSyncKobo: () => Promise<void>;
-  onPhaseChange: (phase: "pilot" | "field") => Promise<void>;
 }) {
   const reports = territorialReportsFromDashboard(dashboard);
-  const source = sources.find((item) => item.kind === "kobo" && item.enabled) ?? sources.find((item) => item.kind === "kobo") ?? null;
-  const phase = reports?.active_route_phase === "field" ? "field" : config.territorial.active_route_phase;
+  const activePhase = normalizeTerritorialPhase(config.territorial.active_route_phase);
+  const activePhaseHealth = territorialPhaseCoherenceItem(phaseCoherence, activePhase);
+  const visibleSource = territorialVisiblePhaseSource(sources, config, activePhase, activePhaseHealth);
+  const source = visibleSource.source;
+  const dashboardIsForVisibleSource = dashboardMatchesVisiblePhaseSource(reports, activePhase, visibleSource);
+  const visibleReports = territorialReportsCoverView(reports, activePhase, visibleSource, "modelo") ? reports : null;
   const routeBlocks = useMemo(() => {
-    const rows = reports?.route_blocks?.length
-      ? reports.route_blocks
-      : reports?.map.blocks?.length
-        ? reports.map.blocks
-        : reports?.block_progress ?? [];
+    const rows = visibleReports?.route_blocks?.length
+      ? visibleReports.route_blocks
+      : visibleReports?.map.blocks?.length
+        ? visibleReports.map.blocks
+        : visibleReports?.block_progress ?? [];
     return rows.filter((row) => territorialBlockStableKey(row));
-  }, [reports]);
+  }, [visibleReports]);
   const titularBlocks = useMemo(() => routeBlocks
     .filter((row) => row.tipo_manzana !== "reemplazo")
     .sort(territorialRouteBlockComparator), [routeBlocks]);
   const [selectedBlockKey, setSelectedBlockKey] = useState("");
+  const [inspectedBlockKey, setInspectedBlockKey] = useState("");
+  const [activeRouteTab, setActiveRouteTab] = useState<TerritorialRouteWorkbenchTab>("mapa");
 
   useEffect(() => {
-    if (!routeBlocks.length) {
+    if (!titularBlocks.length) {
       setSelectedBlockKey("");
+      setInspectedBlockKey("");
       return;
     }
-    const currentExists = selectedBlockKey && routeBlocks.some((row) => territorialBlockStableKey(row) === selectedBlockKey);
+    const currentExists = selectedBlockKey && titularBlocks.some((row) => territorialBlockStableKey(row) === selectedBlockKey);
     if (!currentExists) {
-      const preferredId = reports?.selected_block_context?.default_block_id || "";
-      const preferred = routeBlocks.find((row) => row.id_manzana === preferredId)
-        ?? titularBlocks[0]
-        ?? routeBlocks[0];
-      setSelectedBlockKey(territorialBlockStableKey(preferred));
+      const preferredId = visibleReports?.selected_block_context?.default_block_id || "";
+      const preferred = titularBlocks.find((row) => row.id_manzana === preferredId) ?? titularBlocks[0];
+      const preferredKey = territorialBlockStableKey(preferred);
+      setSelectedBlockKey(preferredKey);
+      setInspectedBlockKey(preferredKey);
     }
-  }, [reports?.selected_block_context?.default_block_id, routeBlocks, selectedBlockKey, titularBlocks]);
+  }, [visibleReports?.selected_block_context?.default_block_id, routeBlocks, selectedBlockKey, titularBlocks]);
 
-  const selectedBlock = routeBlocks.find((row) => territorialBlockStableKey(row) === selectedBlockKey) ?? null;
-  const coherence = reports?.source_coherence ?? null;
-  const activeFormName = coherence?.asset_name || source?.label || config.territorial.kobo_asset_name || "Formulario Kobo territorial";
-  const activeVersion = coherence?.version_id || config.territorial.kobo_version_id || "sin versión";
-  const crossedDistricts = reports?.route_overview?.district_count ?? reports?.district_progress.length ?? 0;
-  const responseCount = reports?.source_validity?.total_responses ?? reports?.kpis.total_respuestas ?? dashboard?.kpis.total ?? 0;
-  const routeMeta = reports?.route_overview?.total_entrevistas ?? reports?.kpis.meta ?? null;
-  const responsibleCount = reports?.responsible_summary?.configured ? reports.responsible_summary.distinct_count : null;
-  const blocksByDistrict = reports?.route_overview?.blocks_by_district ?? buildTerritorialBlocksByDistrict(titularBlocks);
-  const replacementsPerRoute = reports?.route_overview?.replacement_per_route ?? null;
+  const selectedBlock = titularBlocks.find((row) => territorialBlockStableKey(row) === selectedBlockKey) ?? null;
+  const selectedRouteSet = useMemo(() => (
+    territorialResolveGeoRouteSet(selectedBlock, routeBlocks)
+  ), [routeBlocks, selectedBlock]);
+  const selectedRouteSetKeys = useMemo(() => (
+    new Set(selectedRouteSet.routeBlocks.map(territorialBlockStableKey).filter(Boolean))
+  ), [selectedRouteSet]);
+  useEffect(() => {
+    if (!selectedBlock) {
+      if (inspectedBlockKey) setInspectedBlockKey("");
+      return;
+    }
+    if (!inspectedBlockKey || !selectedRouteSetKeys.has(inspectedBlockKey)) {
+      setInspectedBlockKey(selectedBlockKey);
+    }
+  }, [inspectedBlockKey, selectedBlock, selectedBlockKey, selectedRouteSetKeys]);
+  const inspectedBlock = useMemo(() => {
+    if (inspectedBlockKey) {
+      const block = selectedRouteSet.routeBlocks.find((row) => territorialBlockStableKey(row) === inspectedBlockKey);
+      if (block) return block;
+    }
+    return selectedBlock;
+  }, [inspectedBlockKey, selectedBlock, selectedRouteSet.routeBlocks]);
+  const selectRouteTitularBlock = useCallback((key: string) => {
+    setSelectedBlockKey(key);
+    setInspectedBlockKey(key);
+  }, []);
+  const inspectRouteBlock = useCallback((key: string) => {
+    setInspectedBlockKey(key);
+  }, []);
+  const activeFormName = visibleSource.name;
+  const activeVersion = visibleSource.version || "sin versión";
+  const crossedDistricts = visibleReports?.route_overview?.district_count ?? visibleReports?.district_progress.length ?? 0;
+  const responseCount = activePhaseHealth?.local_rows ?? visibleReports?.source_validity?.total_responses ?? visibleReports?.kpis.total_respuestas ?? (dashboardIsForVisibleSource ? dashboard?.kpis.total : 0) ?? 0;
+  const routeMeta = visibleReports?.route_overview?.total_entrevistas ?? visibleReports?.kpis.meta ?? null;
+  const responsibleCount = visibleReports?.responsible_summary?.configured ? visibleReports.responsible_summary.distinct_count : null;
+  const blocksByDistrict = visibleReports?.route_overview?.blocks_by_district ?? buildTerritorialBlocksByDistrict(titularBlocks);
+  const replacementsPerRoute = visibleReports?.route_overview?.replacement_per_route ?? null;
+  const replacementCount = visibleReports?.route_overview?.replacement_count ?? Math.max(0, routeBlocks.length - titularBlocks.length);
+  const routeMetricCards = [
+    { label: "Titulares", value: formatMetric(titularBlocks.length || visibleReports?.block_progress.length || 0), hint: "manzanas seleccionadas", icon: Route },
+    { label: "Reemplazos", value: formatMetric(replacementCount), hint: `${formatTerritorialRatio(replacementsPerRoute)} por titular`, icon: ListChecks },
+    { label: "Distritos", value: formatMetric(crossedDistricts), hint: "con manzanas", icon: MapPin },
+    { label: "Responsables", value: formatTerritorialDefinedMetric(responsibleCount), hint: visibleReports?.responsible_summary?.field_label || config.territorial.submitted_by_var || "Variable por definir", icon: ContactRound },
+    { label: "Respuestas Kobo", value: formatMetric(responseCount), hint: "sincronizadas", icon: ClipboardCheck },
+    { label: "Meta fase", value: formatTerritorialDefinedMetric(routeMeta), hint: "entrevistas previstas", icon: Target },
+  ];
   return (
     <div className="mon-stage mon-stage--modelo">
       <Panel className="mon-territorial-panel mon-territorial-route-panel">
-        {reports ? (
-          <div className="mon-territorial-route-workbench">
-            <section className="mon-territorial-route-command" aria-label="Resumen de Hojas de Ruta territorial">
-              <div className="mon-territorial-route-title">
-                <span><Route size={15} /> Formulario Kobo activo</span>
-                <strong title={activeFormName}>{activeFormName}</strong>
-                <em>{coherence?.asset_uid || config.territorial.asset_uid || "sin asset"} · {activeVersion}</em>
-              </div>
-              <div className="mon-territorial-route-top-metrics">
-                <span><strong>{formatMetric(crossedDistricts)}</strong><em>distritos cruzados</em></span>
-                <span><strong>{formatMetric(responseCount)}</strong><em>respuestas Kobo</em></span>
-                <span><strong>{formatTerritorialDefinedMetric(routeMeta)}</strong><em>meta fase</em></span>
-              </div>
-              <button type="button" className="pulso-button is-primary" onClick={() => { void onSyncKobo().catch(() => undefined); }} disabled={syncing || saving || !source}>
-                {syncing ? <Loader2 size={15} className="pulso-spin" /> : <RefreshCw size={15} />}
-                <span>Actualizar Kobo</span>
-              </button>
-            </section>
-
-            <div className="mon-territorial-route-phase">
-              <div className="mon-territorial-route-phase-toggle" role="tablist" aria-label="Fase de Hojas de Ruta">
-                {([
-                  { key: "pilot" as const, label: "Piloto", hint: "fase operativa" },
-                  { key: "field" as const, label: "Campo", hint: "referencia/preparación" },
-                ]).map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={phase === item.key}
-                    className={phase === item.key ? "is-active" : ""}
-                    onClick={() => { void onPhaseChange(item.key); }}
-                    disabled={saving || phase === item.key}
-                  >
-                    <strong>{item.label}</strong>
-                    <em>{item.hint}</em>
-                  </button>
-                ))}
-              </div>
-              <p>{reports.phase_note || "La tabla de manzanas controla el mapa y el panel técnico."}</p>
+        <div className="mon-territorial-route-workbench">
+          <section className="mon-territorial-route-command" aria-label="Resumen de manzanas seleccionadas">
+            <div className="mon-territorial-route-title">
+              <span><Route size={15} /> Manzanas seleccionadas</span>
+              <strong title={activeFormName}>{activeFormName || "Formulario Kobo activo"}</strong>
+              <em>{territorialPhaseLabel(activePhase)} · {visibleSource.assetUid || "sin asset"} · {activeVersion}</em>
             </div>
-
-            <div className="mon-territorial-route-kpis" aria-label="KPIs profesionales de Hojas de Ruta">
-              <TerritorialRouteKpiCard label="# rutas" value={formatMetric(titularBlocks.length || reports.block_progress.length)} hint="manzanas titulares" icon={Route} />
-              <TerritorialRouteKpiCard label="# manzanas por distrito" value={territorialBlocksDistributionLabel(blocksByDistrict)} hint={territorialBlocksDistributionHint(blocksByDistrict)} icon={BarChart3} />
-              <TerritorialRouteKpiCard label="# distritos" value={formatMetric(crossedDistricts)} hint="Kobo + Hojas" icon={MapPin} />
-              <TerritorialRouteKpiCard label="# reemplazos por ruta" value={formatTerritorialRatio(replacementsPerRoute)} hint={`${formatMetric(reports.route_overview?.replacement_count ?? Math.max(0, routeBlocks.length - titularBlocks.length))} reemplazos`} icon={ListChecks} />
-              <TerritorialRouteKpiCard label="# responsables" value={formatTerritorialDefinedMetric(responsibleCount)} hint={reports.responsible_summary?.field_label || config.territorial.submitted_by_var || "Variable por definir"} icon={ContactRound} />
+            <div className="mon-territorial-route-command-facts" aria-label="Estado de selección territorial">
+              <span><strong>{formatMetric(titularBlocks.length || visibleReports?.block_progress.length || 0)}</strong><em>titulares</em></span>
+              <span><strong>{formatMetric(replacementCount)}</strong><em>reemplazos</em></span>
+              <span><strong>{formatMetric(crossedDistricts)}</strong><em>distritos</em></span>
+              <span><strong>{formatTerritorialDefinedMetric(routeMeta)}</strong><em>meta fase</em></span>
             </div>
-
-            <div className="mon-territorial-route-board">
-              <TerritorialRouteBlockTable
-                blocks={routeBlocks}
-                selectedBlockKey={selectedBlockKey}
-                onSelectBlock={setSelectedBlockKey}
-              />
-              <TerritorialRouteAdaptiveMap
-                blocks={routeBlocks}
-                selectedBlockKey={selectedBlockKey}
-                onSelectBlock={setSelectedBlockKey}
-              />
-              <TerritorialRouteBlockContext
-                reports={reports}
-                block={selectedBlock}
-              />
-            </div>
-          </div>
-        ) : (
-          <EmptyState icon={<Route size={18} />} title="Sin cruce de Hojas de Ruta" hint="Sincroniza Kobo y confirma que el proyecto tiene corrida piloto/campo en Hojas de Ruta." />
-        )}
+            <button type="button" className="pulso-button is-primary" onClick={() => { void onSyncKobo().catch(() => undefined); }} disabled={syncing || saving || !source}>
+              {syncing ? <Loader2 size={15} className="pulso-spin" /> : <RefreshCw size={15} />}
+              <span>{territorialPhaseSyncButtonLabel(activePhase)}</span>
+            </button>
+          </section>
+          {visibleReports ? (
+            <>
+              <div className="mon-territorial-route-tabs" role="tablist" aria-label="Vistas de manzanas seleccionadas">
+                <button
+                  type="button"
+                  className={activeRouteTab === "resumen" ? "is-active" : ""}
+                  role="tab"
+                  aria-selected={activeRouteTab === "resumen"}
+                  onClick={() => setActiveRouteTab("resumen")}
+                >
+                  <BarChart3 size={14} />
+                  <span>Resumen</span>
+                </button>
+                <button
+                  type="button"
+                  className={activeRouteTab === "mapa" ? "is-active" : ""}
+                  role="tab"
+                  aria-selected={activeRouteTab === "mapa"}
+                  onClick={() => setActiveRouteTab("mapa")}
+                >
+                  <MapPin size={14} />
+                  <span>Mapa y ficha</span>
+                </button>
+              </div>
+	              {activeRouteTab === "resumen" ? (
+	                <TerritorialRouteSummary
+	                  cards={routeMetricCards}
+	                  reports={visibleReports}
+	                  blocks={routeBlocks}
+	                  routeMeta={routeMeta}
+	                  responseCount={responseCount}
+	                  activePhase={activePhase}
+	                />
+              ) : (
+                <div className="mon-territorial-route-map-workspace">
+                  <aside className="mon-territorial-route-sidebar" aria-label="Lista y ficha técnica de manzanas">
+                    <TerritorialRouteBlockTable
+                      blocks={routeBlocks}
+                      selectedBlockKey={selectedBlockKey}
+                      inspectedBlockKey={inspectedBlockKey}
+                      onSelectBlock={selectRouteTitularBlock}
+                      onInspectBlock={inspectRouteBlock}
+                    />
+                    <TerritorialRouteBlockContext
+                      reports={visibleReports}
+                      block={inspectedBlock}
+                    />
+                  </aside>
+                  <TerritorialRouteAdaptiveMap
+                    blocks={routeBlocks}
+                    selectedBlockKey={selectedBlockKey}
+                    inspectedBlockKey={inspectedBlockKey}
+                    onSelectBlock={selectRouteTitularBlock}
+                    onInspectBlock={inspectRouteBlock}
+                  />
+                </div>
+              )}
+            </>
+          ) : loading ? (
+            <LoadingBlock label={territorialLoadingLabelForView("modelo")} minHeight={520} />
+          ) : error ? (
+            <Alert kind="error">{error}</Alert>
+          ) : (
+            <EmptyState icon={<Route size={18} />} title="Sin manzanas seleccionadas" hint="Sincroniza Kobo y confirma que el proyecto tiene corrida piloto/campo en Hojas de Ruta." />
+          )}
+        </div>
       </Panel>
     </div>
   );
+}
+
+function TerritorialRouteSummary({
+  cards,
+  reports,
+  blocks,
+  routeMeta,
+  responseCount,
+  activePhase,
+}: {
+  cards: Array<{ label: string; value: string; hint: string; icon: typeof BarChart3 }>;
+  reports: MonitoreoTerritorialDashboard;
+  blocks: TerritorialBlockProgress[];
+  routeMeta: number | null;
+  responseCount: number;
+  activePhase: MonitoreoTerritorialPhase;
+}) {
+  const coverage = useMemo(() => buildTerritorialRouteCoverageModel(blocks, reports), [blocks, reports]);
+  const progressPct = routeMeta && routeMeta > 0
+    ? Math.min(100, Math.max(0, Math.round((responseCount / routeMeta) * 100)))
+    : null;
+  return (
+    <section className="mon-territorial-route-summary-tab" aria-label="Resumen de manzanas seleccionadas">
+      <div className="mon-territorial-route-atlas">
+        <section className="mon-territorial-route-atlas-map-panel" aria-label="Atlas de cobertura territorial">
+          <header>
+            <span><MapPin size={13} /> Atlas territorial</span>
+            <strong>{formatMetric(coverage.totals.zones)} zonas seleccionadas en {formatMetric(coverage.totals.districts)} distritos</strong>
+          </header>
+          <TerritorialRouteCoverageMap coverage={coverage} />
+        </section>
+
+        <aside className="mon-territorial-route-atlas-rail" aria-label="Indicadores y composición demográfica">
+          <div className="mon-territorial-route-atlas-phase">
+            <span><BarChart3 size={13} /> {territorialPhaseLabel(activePhase)}</span>
+            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <div className="mon-territorial-route-summary-progress" aria-label="Avance contra meta de fase">
+              <span>
+                <strong>{formatMetric(responseCount)}</strong>
+                <em>respuestas Kobo</em>
+              </span>
+              <i style={{ "--route-progress": `${progressPct ?? 0}%` } as CSSProperties}>
+                <b />
+              </i>
+              <small>{progressPct == null ? "Meta de fase por definir" : `${progressPct}% de ${formatMetric(routeMeta)} entrevistas`}</small>
+            </div>
+          </div>
+          <div className="mon-territorial-route-atlas-kpis" aria-label="Indicadores principales">
+            {cards.map((item) => (
+              <TerritorialRouteKpiCard
+                key={item.label}
+                label={item.label}
+                value={item.value}
+                hint={item.hint}
+                icon={item.icon}
+              />
+            ))}
+          </div>
+          <TerritorialRouteBucketBars title="Sexo" buckets={coverage.sexTotals} empty="Sin cuotas por sexo" />
+          <TerritorialRouteBucketBars title="Rango de edad" buckets={coverage.ageTotals} empty="Sin cuotas por edad" />
+        </aside>
+
+        <TerritorialRouteDistrictCoverageTable rows={coverage.districts} />
+      </div>
+    </section>
+  );
+}
+
+function TerritorialRouteCoverageMap({ coverage }: { coverage: TerritorialRouteCoverageModel }) {
+  const [zoneMaps, setZoneMaps] = useState<Record<string, HojasRutaZoneMap>>({});
+  const [loading, setLoading] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const ubigeosKey = coverage.ubigeos.join("|");
+  useEffect(() => {
+    const missing = coverage.ubigeos.filter((ubigeo) => ubigeo && !zoneMaps[ubigeo]);
+    if (!missing.length) return;
+    let cancelled = false;
+    setLoading(true);
+    setMapError("");
+    Promise.allSettled(missing.map(async (ubigeo) => [ubigeo, await loadTerritorialRouteCartography(ubigeo)] as const))
+      .then((results) => {
+        if (cancelled) return;
+        const nextMaps: Record<string, HojasRutaZoneMap> = {};
+        results.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const [ubigeo, bundle] = result.value;
+          if (bundle.zoneMap) nextMaps[ubigeo] = bundle.zoneMap;
+        });
+        if (Object.keys(nextMaps).length) {
+          setZoneMaps((previous) => ({ ...previous, ...nextMaps }));
+        }
+        if (results.some((result) => result.status === "rejected")) {
+          setMapError("No se pudo cargar toda la cartografía zonal de Hojas de Ruta.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [coverage.ubigeos, ubigeosKey, zoneMaps]);
+
+  const districtByUbigeo = useMemo(() => (
+    new Map(coverage.districts.map((district) => [normalizeRouteBlockCode(district.ubigeo), district]))
+  ), [coverage.districts]);
+  const activeUbigeos = useMemo(() => new Set(coverage.ubigeos.map(normalizeRouteBlockCode)), [coverage.ubigeos, ubigeosKey]);
+  const routeZoneFeatures = useMemo(() => (
+    coverage.ubigeos.flatMap((ubigeo) => zoneMaps[ubigeo]?.geojson?.features ?? [])
+      .filter((feature) => coverage.zoneKeys.has(territorialZoneFeatureKey(feature)))
+  ), [coverage.ubigeos, coverage.zoneKeys, ubigeosKey, zoneMaps]);
+  const projection = useMemo(() => buildTerritorialMapProjection(
+    [],
+    TERRITORIAL_LIMA_DISTRICT_FEATURES,
+    [],
+    routeZoneFeatures,
+  ), [routeZoneFeatures]);
+  const legendRows = coverage.districts.slice(0, 7);
+  return (
+    <div className="mon-territorial-route-coverage-map">
+      <div className="mon-territorial-route-coverage-map-frame">
+        {projection.hasGeometry ? (
+          <svg
+            className="mon-territorial-route-coverage-svg"
+            viewBox={`0 0 ${TERRITORIAL_LIMA_MAP_WIDTH} ${TERRITORIAL_LIMA_MAP_HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label="Mapa estático de Lima Metropolitana y Callao con zonas seleccionadas por distrito"
+          >
+            <g className="mon-territorial-route-coverage-districts" aria-hidden="true">
+              {TERRITORIAL_LIMA_DISTRICT_FEATURES.map((feature) => {
+                const key = normalizeRouteBlockCode(feature.properties.ubigeo);
+                const active = activeUbigeos.has(key);
+                const district = districtByUbigeo.get(key);
+                const d = territorialDistrictPath(feature, projection);
+                if (!d) return null;
+                return (
+                  <path
+                    key={feature.properties.ubigeo}
+                    d={d}
+                    className={active ? "is-active" : ""}
+                    vectorEffect="non-scaling-stroke"
+                    style={{ "--route-district-color": district?.color ?? "#94a3b8" } as CSSProperties}
+                  >
+                    <title>{feature.properties.distrito}</title>
+                  </path>
+                );
+              })}
+            </g>
+            <g className="mon-territorial-route-coverage-zones" aria-label="Zonas seleccionadas">
+              {routeZoneFeatures.map((feature) => {
+                const d = territorialZonePath(feature, projection);
+                if (!d) return null;
+                const ubigeo = normalizeRouteBlockCode(feature.properties.ubigeo);
+                const district = districtByUbigeo.get(ubigeo);
+                return (
+                  <path
+                    key={territorialZoneFeatureKey(feature)}
+                    d={d}
+                    vectorEffect="non-scaling-stroke"
+                    style={{ "--route-zone-color": district?.color ?? "#be123c" } as CSSProperties}
+                  >
+                    <title>{`${district?.distrito || feature.properties.ubigeo || "Distrito"} · ${territorialZoneDisplayLabel(feature)}`}</title>
+                  </path>
+                );
+              })}
+            </g>
+            <g className="mon-territorial-route-coverage-labels" aria-label="Etiquetas distritales">
+              {TERRITORIAL_LIMA_DISTRICT_FEATURES.map((feature) => {
+                const key = normalizeRouteBlockCode(feature.properties.ubigeo);
+                const active = activeUbigeos.has(key);
+                const anchor = Number.isFinite(feature.properties.label_lon) && Number.isFinite(feature.properties.label_lat)
+                  ? { lon: feature.properties.label_lon, lat: feature.properties.label_lat }
+                  : territorialDistrictCentroid(feature);
+                if (!anchor) return null;
+                const point = projection.project(anchor.lon, anchor.lat);
+                return (
+                  <text
+                    key={`label-${feature.properties.ubigeo}`}
+                    x={point.x}
+                    y={point.y}
+                    className={active ? "is-active" : ""}
+                    textAnchor="middle"
+                  >
+                    {feature.properties.distrito}
+                  </text>
+                );
+              })}
+            </g>
+            <text className="mon-territorial-route-coverage-caption" x="18" y={TERRITORIAL_LIMA_MAP_HEIGHT - 18}>
+              {`${formatMetric(coverage.totals.zones)} zonas cubiertas · ${formatMetric(coverage.totals.operationalBlocks)} manzanas operativas`}
+            </text>
+          </svg>
+        ) : (
+          <EmptyState icon={<MapPin size={18} />} title="Sin geometría territorial" hint="No hay distritos o zonas para dibujar en este corte." />
+        )}
+        {loading ? <span className="mon-territorial-route-map-loading"><Loader2 size={13} className="pulso-spin" /> Cargando zonas</span> : null}
+      </div>
+      {mapError ? <div className="mon-territorial-map-error">{mapError}</div> : null}
+      <div className="mon-territorial-route-coverage-legend" aria-label="Leyenda por distrito">
+        {legendRows.map((district) => (
+          <span key={district.ubigeo || district.distrito} style={{ "--route-district-color": district.color } as CSSProperties}>
+            <i />
+            <b title={district.distrito}>{district.distrito}</b>
+          </span>
+        ))}
+        {coverage.districts.length > legendRows.length ? <em>+{formatMetric(coverage.districts.length - legendRows.length)} distritos</em> : null}
+      </div>
+    </div>
+  );
+}
+
+function TerritorialRouteBucketBars({
+  title,
+  buckets,
+  empty,
+}: {
+  title: string;
+  buckets: TerritorialRouteBucket[];
+  empty: string;
+}) {
+  const maxValue = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.target, bucket.achieved)));
+  return (
+    <section className="mon-territorial-route-bucket-panel" aria-label={`Distribución por ${title}`}>
+      <header>
+        <span>{title}</span>
+        <strong>{buckets.length ? `${formatMetric(buckets.reduce((total, bucket) => total + bucket.target, 0))} cuota` : empty}</strong>
+      </header>
+      <div>
+        {buckets.slice(0, 7).map((bucket, index) => {
+          const pct = Math.max(5, Math.round((Math.max(bucket.target, bucket.achieved) / maxValue) * 100));
+          return (
+            <article key={bucket.label} style={{ "--route-bucket-pct": `${pct}%`, "--route-bucket-color": territorialRouteBucketColor(index) } as CSSProperties}>
+              <span><strong title={bucket.label}>{bucket.label}</strong><em>{formatMetric(bucket.achieved)} / {formatMetric(bucket.target)}</em></span>
+              <i><b /></i>
+            </article>
+          );
+        })}
+        {!buckets.length ? <p>{empty}</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialRouteDistrictCoverageTable({ rows }: { rows: TerritorialRouteDistrictCoverage[] }) {
+  const maxTarget = Math.max(1, ...rows.map((row) => Math.max(row.target, row.validas)));
+  return (
+    <section className="mon-territorial-route-district-coverage" aria-label="Cobertura por distrito">
+      <header>
+        <span><ListChecks size={13} /> Distritos evaluados</span>
+        <strong>{formatMetric(rows.length)} distritos con manzanas seleccionadas</strong>
+      </header>
+      <div className="mon-territorial-route-district-coverage-head" aria-hidden="true">
+        <span>Distrito</span>
+        <span>Territorio</span>
+        <span>Cuota</span>
+        <span>Sexo</span>
+        <span>Edad</span>
+      </div>
+      <div className="mon-territorial-route-district-coverage-list">
+        {rows.map((row) => {
+          const pct = Math.max(5, Math.round((Math.max(row.target, row.validas) / maxTarget) * 100));
+          return (
+            <article key={row.ubigeo || row.distrito} style={{ "--route-district-color": row.color, "--route-district-pct": `${pct}%` } as CSSProperties}>
+              <div className="mon-territorial-route-district-identity">
+                <TerritorialDistrictShapeIcon ubigeo={row.ubigeo} label={row.distrito} active />
+                <span>
+                  <strong title={row.distrito}>{row.distrito}</strong>
+                  <em>{row.ubigeo || "sin ubigeo"}</em>
+                </span>
+              </div>
+              <div className="mon-territorial-route-district-territory">
+                <strong>{formatMetric(row.zones)} zonas</strong>
+                <em>{formatMetric(row.titulares)} titulares · {formatMetric(row.reemplazos)} reemplazos</em>
+              </div>
+              <div className="mon-territorial-route-district-quota">
+                <span><strong>{formatMetric(row.validas)}</strong><em>de {formatMetric(row.target || row.population)} previstas</em></span>
+                <i><b /></i>
+              </div>
+              <TerritorialRouteMiniStack buckets={row.sex} />
+              <TerritorialRouteMiniStack buckets={row.age} />
+            </article>
+          );
+        })}
+        {!rows.length ? <p>Sin distritos cruzados con Hojas de Ruta.</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialRouteMiniStack({ buckets }: { buckets: TerritorialRouteBucket[] }) {
+  const total = buckets.reduce((sum, bucket) => sum + Math.max(bucket.target, bucket.achieved), 0);
+  if (!buckets.length || total <= 0) return <div className="mon-territorial-route-mini-stack is-empty">Sin dato</div>;
+  return (
+    <div className="mon-territorial-route-mini-stack">
+      <i>
+        {buckets.slice(0, 5).map((bucket, index) => {
+          const value = Math.max(bucket.target, bucket.achieved);
+          return (
+            <b
+              key={bucket.label}
+              title={`${bucket.label}: ${formatMetric(bucket.achieved)} / ${formatMetric(bucket.target)}`}
+              style={{
+                "--route-bucket-color": territorialRouteBucketColor(index),
+                "--route-bucket-pct": `${Math.max(4, Math.round((value / total) * 100))}%`,
+              } as CSSProperties}
+            />
+          );
+        })}
+      </i>
+      <span>{buckets.slice(0, 2).map((bucket) => bucket.label).join(" · ")}</span>
+    </div>
+  );
+}
+
+function territorialRouteBucketColor(index: number) {
+  const colors = ["#0f766e", "#be123c", "#2563eb", "#c2410c", "#7c3aed", "#0891b2", "#a16207"];
+  return colors[index % colors.length];
 }
 
 function TerritorialRouteKpiCard({
@@ -3768,19 +12106,35 @@ function TerritorialRouteKpiCard({
 function TerritorialRouteBlockTable({
   blocks,
   selectedBlockKey,
+  inspectedBlockKey,
   onSelectBlock,
+  onInspectBlock,
 }: {
   blocks: TerritorialBlockProgress[];
   selectedBlockKey: string;
+  inspectedBlockKey: string;
   onSelectBlock: (key: string) => void;
+  onInspectBlock: (key: string) => void;
 }) {
   const [districtFilter, setDistrictFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "titular" | "reemplazo">("all");
-  const [rangeFilter, setRangeFilter] = useState("");
-  const ordered = useMemo(() => [...blocks].sort(territorialRouteBlockComparator), [blocks]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(() => new Set());
+  const titularRows = useMemo(() => blocks
+    .filter((block) => block.tipo_manzana !== "reemplazo")
+    .sort(territorialRouteBlockComparator), [blocks]);
+  const replacementCount = useMemo(() => blocks.filter((block) => block.tipo_manzana === "reemplazo").length, [blocks]);
+  const replacementsByTitularKey = useMemo(() => {
+    const map = new Map<string, TerritorialBlockProgress[]>();
+    titularRows.forEach((block) => {
+      const key = territorialBlockStableKey(block);
+      if (!key) return;
+      map.set(key, territorialResolveGeoRouteSet(block, blocks).replacementBlocks);
+    });
+    return map;
+  }, [blocks, titularRows]);
   const districtOptions = useMemo(() => {
     const map = new Map<string, { value: string; label: string; hint: string }>();
-    ordered.forEach((block) => {
+    titularRows.forEach((block) => {
       const value = String(block.ubigeo || block.distrito || "").trim();
       if (!value || map.has(value)) return;
       map.set(value, {
@@ -3790,49 +12144,59 @@ function TerritorialRouteBlockTable({
       });
     });
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "es-PE"));
-  }, [ordered]);
-  const rangeOptions = useMemo(() => {
-    const map = new Map<string, { value: string; label: string; start: number }>();
-    ordered.forEach((block) => {
-      const value = territorialRouteRangeKey(block);
-      if (!value || map.has(value)) return;
-      map.set(value, {
-        value,
-        label: territorialRouteRangeLabel(block),
-        start: numberOrNull(block.rango_inicio) ?? Number.MAX_SAFE_INTEGER,
-      });
-    });
-    return Array.from(map.values()).sort((a, b) => a.start - b.start || a.label.localeCompare(b.label, "es-PE", { numeric: true }));
-  }, [ordered]);
-  const filtered = useMemo(() => ordered.filter((block) => {
-    const districtMatch = !districtFilter || districtFilter === String(block.ubigeo || block.distrito || "").trim();
-    const typeMatch = typeFilter === "all" || block.tipo_manzana === typeFilter;
-    const rangeMatch = !rangeFilter || territorialRouteRangeKey(block) === rangeFilter;
-    return districtMatch && typeMatch && rangeMatch;
-  }), [districtFilter, ordered, rangeFilter, typeFilter]);
-  const filtersActive = Boolean(districtFilter || typeFilter !== "all" || rangeFilter);
+  }, [titularRows]);
+  const filtered = useMemo(() => filterTerritorialRouteBlocks(titularRows, {
+    districtFilter,
+    query: searchQuery,
+  }), [districtFilter, searchQuery, titularRows]);
+  const filtersActive = Boolean(districtFilter || searchQuery.trim());
   useEffect(() => {
-    if (!filtered.length) {
-      if (selectedBlockKey) onSelectBlock("");
-      return;
-    }
+    if (!filtered.length) return;
     if (!filtered.some((block) => territorialBlockStableKey(block) === selectedBlockKey)) {
-      onSelectBlock(territorialBlockStableKey(filtered[0]));
+      const fallbackKey = territorialBlockStableKey(filtered[0]);
+      onSelectBlock(fallbackKey);
+      onInspectBlock(fallbackKey);
     }
-  }, [filtered, onSelectBlock, selectedBlockKey]);
+  }, [filtered, inspectedBlockKey, onInspectBlock, onSelectBlock, selectedBlockKey]);
+  useEffect(() => {
+    setExpandedBlocks((previous) => {
+      const available = new Set(filtered.map(territorialBlockStableKey).filter(Boolean));
+      const next = new Set(Array.from(previous).filter((key) => available.has(key)));
+      if (selectedBlockKey && available.has(selectedBlockKey)) next.add(selectedBlockKey);
+      if (!next.size && filtered[0]) next.add(territorialBlockStableKey(filtered[0]));
+      return next;
+    });
+  }, [filtered, selectedBlockKey]);
+  const selectTitularBlock = (key: string) => {
+    onSelectBlock(key);
+    onInspectBlock(key);
+    setExpandedBlocks((previous) => new Set(previous).add(key));
+  };
+  const toggleTitularBlock = (key: string) => {
+    setExpandedBlocks((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+  const inspectReplacementBlock = (titularKey: string, replacementKey: string) => {
+    onSelectBlock(titularKey);
+    onInspectBlock(replacementKey);
+    setExpandedBlocks((previous) => new Set(previous).add(titularKey));
+  };
   const resetFilters = () => {
     setDistrictFilter("");
-    setTypeFilter("all");
-    setRangeFilter("");
+    setSearchQuery("");
   };
-  const routeRowMinHeight = filtered.length > 0 && filtered.length <= 8
-    ? Math.min(96, Math.max(64, Math.floor(560 / filtered.length)))
-    : 56;
   return (
-    <section className="mon-territorial-route-table-card" aria-label="Tabla de manzanas de Hojas de Ruta">
+    <section className="mon-territorial-route-table-card" aria-label="Manzanas titulares de Hojas de Ruta">
       <header>
-        <span>Manzanas</span>
-        <strong>{filtersActive ? `${formatMetric(filtered.length)} / ${formatMetric(ordered.length)}` : `${formatMetric(ordered.length)} en fase`}</strong>
+        <span>Manzanas titulares</span>
+        <strong>
+          {filtersActive ? `${formatMetric(filtered.length)} / ${formatMetric(titularRows.length)} titulares` : `${formatMetric(titularRows.length)} titulares`}
+          {replacementCount ? ` · ${formatMetric(replacementCount)} reemplazos` : ""}
+        </strong>
       </header>
       <div className="mon-territorial-route-table-filters" aria-label="Filtros de manzanas">
         <label>
@@ -3844,78 +12208,96 @@ function TerritorialRouteBlockTable({
             ))}
           </select>
         </label>
-        <label>
-          <span>Tipo</span>
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as "all" | "titular" | "reemplazo")}>
-            <option value="all">Todos</option>
-            <option value="titular">Titulares</option>
-            <option value="reemplazo">Reemplazos</option>
-          </select>
-        </label>
-        <label>
-          <span>Rango</span>
-          <select value={rangeFilter} onChange={(event) => setRangeFilter(event.target.value)}>
-            <option value="">Todos</option>
-            {rangeOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+        <label className="is-search">
+          <span>Buscar UMP</span>
+          <div className="mon-territorial-route-search-field">
+            <Search size={13} />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="UMP 89, Mz 0590, responsable"
+              aria-label="Buscar manzana titular por UMP, manzana, zona, rango o responsable"
+            />
+          </div>
         </label>
         <button type="button" onClick={resetFilters} disabled={!filtersActive}>Limpiar</button>
       </div>
-      <div
-        className="mon-territorial-route-table-scroll"
-        style={{ "--route-row-min-height": `${routeRowMinHeight}px` } as CSSProperties}
-      >
-        <table className="mon-territorial-route-table">
-          <colgroup>
-            <col className="is-district" />
-            <col className="is-zone" />
-            <col className="is-block" />
-            <col className="is-range" />
-            <col className="is-ump" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>Distrito</th>
-              <th>Zona</th>
-              <th>Manzana</th>
-              <th>Rango</th>
-              <th>UMP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((block) => {
-              const key = territorialBlockStableKey(block);
-              const selected = key === selectedBlockKey;
-              return (
-                <tr key={key} className={selected ? "is-selected" : ""} onClick={() => onSelectBlock(key)}>
-                  <td>
-                    <strong title={block.distrito}>{block.distrito || "Sin distrito"}</strong>
-                    <em>{block.ubigeo || "sin ubigeo"}</em>
-                  </td>
-                  <td>{block.zona || "S/D"}</td>
-                  <td>
-                    <strong>{block.manzana || "S/D"}</strong>
-                    <span
-                      className={`mon-territorial-route-badge is-${block.tipo_manzana === "reemplazo" ? "replacement" : "titular"}`}
-                      title={territorialRouteTypeTitle(block)}
-                    >
-                      {territorialRouteTypeLabel(block)}
-                    </span>
-                  </td>
-                  <td>{territorialRouteRangeLabel(block)}</td>
-                  <td title={territorialRouteUmpTitle(block)}>{territorialRouteUmpLabel(block)}</td>
-                </tr>
-              );
-            })}
-            {!filtered.length ? (
-              <tr className="is-empty">
-                <td colSpan={5}>Sin manzanas para los filtros seleccionados.</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+      <div className="mon-territorial-route-table-scroll mon-territorial-route-accordion-scroll">
+        {filtered.map((block) => {
+          const key = territorialBlockStableKey(block);
+          const expanded = expandedBlocks.has(key);
+          const selected = key === selectedBlockKey;
+          const inspected = key === inspectedBlockKey;
+          const replacements = replacementsByTitularKey.get(key) ?? [];
+          const replacementLabel = replacements.length ? `${formatMetric(replacements.length)} reemplazos` : "sin reemplazos";
+          return (
+            <article key={key} className={`mon-territorial-route-accordion-item${selected ? " is-selected" : ""}${expanded ? " is-expanded" : ""}`}>
+              <button
+                type="button"
+                className="mon-territorial-route-accordion-trigger"
+                aria-expanded={expanded}
+                onClick={() => {
+                  selectTitularBlock(key);
+                  if (selected) toggleTitularBlock(key);
+                }}
+              >
+                <ChevronDown size={14} className={expanded ? "is-expanded" : ""} />
+                <span className="mon-territorial-route-accordion-title">
+                  <strong title={`${block.distrito || block.ubigeo || ""} · ${territorialPhysicalBlockLabel(block)}`}>
+                    {territorialRouteOperationalLabel(block)}
+                  </strong>
+                  <em>{block.distrito || "Sin distrito"} · {territorialPhysicalBlockLabel(block)} · Zona {block.zona || "S/D"} · Rango {territorialRouteRangeLabel(block)}</em>
+                </span>
+                <span className="mon-territorial-route-accordion-meta">
+                  <b>{replacementLabel}</b>
+                  <i className="mon-territorial-route-badge is-titular">UMP titular</i>
+                </span>
+              </button>
+              {expanded ? (
+                <div className="mon-territorial-route-accordion-body">
+                  <button
+                    type="button"
+                    className={`mon-territorial-route-primary-block${inspected ? " is-inspected" : ""}`}
+                    onClick={() => selectTitularBlock(key)}
+                  >
+                    <span className="mon-territorial-route-badge is-titular">Titular</span>
+                    <strong>{territorialRouteOperationalLabel(block)}</strong>
+                    <em>{territorialPhysicalBlockLabel(block)} · Zona {block.zona || "S/D"}</em>
+                    <small>{block.ubigeo || "sin ubigeo"} · {territorialRouteUmpTitle(block)}</small>
+                  </button>
+                  <div className="mon-territorial-route-replacement-list" aria-label={`Reemplazos de ${block.manzana || block.id_manzana || "la titular"}`}>
+                    {replacements.map((replacement) => {
+                      const replacementKey = territorialBlockStableKey(replacement);
+                      const inspectedReplacement = replacementKey === inspectedBlockKey;
+                      return (
+                        <button
+                          key={replacementKey}
+                          type="button"
+                          className={`mon-territorial-route-replacement-row${inspectedReplacement ? " is-inspected" : ""}`}
+                          onClick={() => inspectReplacementBlock(key, replacementKey)}
+                        >
+                          <span className="mon-territorial-route-badge is-replacement" title={territorialRouteTypeTitle(replacement)}>
+                            {territorialRouteReplacementLabel(replacement)}
+                          </span>
+                          <strong>{territorialRouteOperationalLabel(replacement)}</strong>
+                          <em>{territorialPhysicalBlockLabel(replacement)} · Zona {replacement.zona || "S/D"}</em>
+                          <small>Reemplazo de {territorialRoutePrimaryUmpLabel(replacement)} · rango titular {territorialRouteRangeLabel(block)}</small>
+                        </button>
+                      );
+                    })}
+                    {!replacements.length ? (
+                      <p className="mon-territorial-route-replacement-empty">Esta titular no tiene reemplazos asociados.</p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+        {!filtered.length ? (
+          <div className="mon-territorial-route-accordion-empty">Sin titulares para los filtros seleccionados.</div>
+        ) : null}
       </div>
     </section>
   );
@@ -3924,13 +12306,19 @@ function TerritorialRouteBlockTable({
 function TerritorialRouteAdaptiveMap({
   blocks,
   selectedBlockKey,
+  inspectedBlockKey,
   onSelectBlock,
+  onInspectBlock,
 }: {
   blocks: TerritorialBlockProgress[];
   selectedBlockKey: string;
+  inspectedBlockKey: string;
   onSelectBlock: (key: string) => void;
+  onInspectBlock: (key: string) => void;
 }) {
   const selectedBlock = selectedBlockKey ? blocks.find((block) => territorialBlockStableKey(block) === selectedBlockKey) ?? null : null;
+  const inspectedBlock = inspectedBlockKey ? blocks.find((block) => territorialBlockStableKey(block) === inspectedBlockKey) ?? null : null;
+  const focusBlock = inspectedBlock ?? selectedBlock;
   const selectedUbigeo = selectedBlock?.ubigeo || "";
   const [blockMap, setBlockMap] = useState<HojasRutaBlockMap | null>(null);
   const [neighborBlockMaps, setNeighborBlockMaps] = useState<Record<string, HojasRutaBlockMap | null>>({});
@@ -3949,8 +12337,6 @@ function TerritorialRouteAdaptiveMap({
   const routeDistrictUbigeos = useMemo(() => (
     Array.from(new Set(blocks.map((block) => normalizeTerritorialBlockCode(block.ubigeo)).filter(Boolean))).slice(0, 12)
   ), [blocks]);
-  const routeDistrictUbigeosKey = routeDistrictUbigeos.join("|");
-
   useEffect(() => {
     if (!selectedUbigeo) {
       setBlockMap(null);
@@ -3992,40 +12378,37 @@ function TerritorialRouteAdaptiveMap({
     return () => { cancelled = true; };
   }, [selectedUbigeo]);
 
-  useEffect(() => {
-    if (!routeDistrictUbigeos.length) return undefined;
-    let cancelled = false;
-    const timers: number[] = [];
-    const startTimer = window.setTimeout(() => {
-      routeDistrictUbigeos.forEach((ubigeo, index) => {
-        if (!ubigeo || ubigeo === selectedUbigeo) return;
-        const timer = window.setTimeout(() => {
-          if (!cancelled) void loadTerritorialRouteCartography(ubigeo);
-        }, index * 140);
-        timers.push(timer);
-      });
-    }, 350);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(startTimer);
-      timers.forEach((timer) => window.clearTimeout(timer));
-    };
-  }, [routeDistrictUbigeos, routeDistrictUbigeosKey, selectedUbigeo]);
-
   const districtBlocks = useMemo(() => (
     selectedUbigeo ? blocks.filter((block) => normalizeTerritorialBlockCode(block.ubigeo) === normalizeTerritorialBlockCode(selectedUbigeo)) : blocks
   ), [blocks, selectedUbigeo]);
   const blockFeatures = blockMap?.geojson?.features ?? [];
   const routeFeatures = useMemo(() => selectTerritorialMapFeatures(blockFeatures, districtBlocks), [blockFeatures, districtBlocks]);
   const selectedFeature = useMemo(() => (
-    routeFeatures.find((item) => territorialBlockStableKey(item.block) === selectedBlockKey) ?? null
-  ), [routeFeatures, selectedBlockKey]);
-  const selectedZoneKey = selectedBlock ? territorialBlockZoneKey(selectedBlock) : "";
+    routeFeatures.find((item) => territorialBlockStableKey(item.block) === inspectedBlockKey)
+      ?? routeFeatures.find((item) => territorialBlockStableKey(item.block) === selectedBlockKey)
+      ?? null
+  ), [inspectedBlockKey, routeFeatures, selectedBlockKey]);
+  const activeRouteSet = useMemo(() => (
+    territorialResolveGeoRouteSet(selectedBlock, districtBlocks)
+  ), [districtBlocks, selectedBlock]);
+  const activeRouteSetKeys = useMemo(() => new Set(activeRouteSet.routeBlocks.map(territorialBlockStableKey).filter(Boolean)), [activeRouteSet]);
+  const activeRouteSetFeatures = useMemo(() => (
+    routeFeatures.filter((item) => activeRouteSetKeys.has(territorialBlockStableKey(item.block)))
+  ), [activeRouteSetKeys, routeFeatures]);
+  const activeRouteSetAnchors = useMemo(() => (
+    activeRouteSetFeatures.flatMap((item) => item.centroid ? [item.centroid] : [])
+  ), [activeRouteSetFeatures]);
+  const routeAnchorFeature = useMemo(() => (
+    activeRouteSetFeatures.find((item) => territorialBlockStableKey(item.block) === selectedBlockKey)
+      ?? activeRouteSetFeatures.find((item) => item.block.tipo_manzana !== "reemplazo")
+      ?? null
+  ), [activeRouteSetFeatures, selectedBlockKey]);
+  const selectedZoneKey = focusBlock ? territorialBlockZoneKey(focusBlock) : "";
   const zoneFeatures = zoneMap?.geojson?.features ?? [];
   const selectedZoneFeature = selectedZoneKey
     ? zoneFeatures.find((feature) => territorialZoneFeatureKey(feature) === selectedZoneKey) ?? null
     : null;
-  const activeZoneRouteFeatures = routeFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey);
+  const activeZoneRouteFeatures = activeRouteSetFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey);
   const routeZoneKeys = useMemo(() => new Set(districtBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean)), [districtBlocks]);
   const routeZoneFeatures = useMemo(() => (
     zoneFeatures.filter((feature) => routeZoneKeys.has(territorialZoneFeatureKey(feature)))
@@ -4090,8 +12473,8 @@ function TerritorialRouteAdaptiveMap({
   }, [externalContextUbigeosKey, selectedUbigeo]);
 
   const routeFeatureKeys = useMemo(() => (
-    new Set(routeFeatures.map((item) => territorialFeatureStableKey(item.feature)))
-  ), [routeFeatures]);
+    new Set(activeRouteSetFeatures.map((item) => territorialFeatureStableKey(item.feature)))
+  ), [activeRouteSetFeatures]);
   const districtContextFeatures = useMemo(() => (
     blockFeatures.filter((feature) => !routeFeatureKeys.has(territorialFeatureStableKey(feature)))
   ), [blockFeatures, routeFeatureKeys]);
@@ -4101,25 +12484,28 @@ function TerritorialRouteAdaptiveMap({
   const nearbyContextFeatures = useMemo(() => selectTerritorialRouteRadialContext({
     sameDistrictFeatures: districtContextFeatures,
     externalDistrictFeatures: externalDistrictContextFeatures,
-    routeFeatures,
+    routeFeatures: activeRouteSetFeatures,
     selectedFeature,
     selectedZoneKey,
-  }), [districtContextFeatures, externalDistrictContextFeatures, routeFeatures, selectedFeature, selectedZoneKey]);
+    anchorPoint: selectedFeature?.centroid ?? routeAnchorFeature?.centroid ?? null,
+    anchorPoints: activeRouteSetAnchors,
+  }), [activeRouteSetAnchors, activeRouteSetFeatures, districtContextFeatures, externalDistrictContextFeatures, routeAnchorFeature?.centroid, selectedFeature, selectedZoneKey]);
   const activeZoneContextFeatures = nearbyContextFeatures.activeZoneFeatures;
   const crossDistrictNeighborFeatures = nearbyContextFeatures.externalDistrictFeatures;
   const neighborFeatures = nearbyContextFeatures.sameDistrictFeatures;
   const visibleStreetFeatures = useMemo(() => sampleTerritorialStreetFeatures(streetMap?.geojson?.features ?? []), [streetMap]);
   const visibleContextFeatures = useMemo(() => sampleTerritorialContextFeatures(contextMap?.geojson?.features ?? []), [contextMap]);
   const projectionFeatures = useMemo(() => {
+    const routeSetGeometry = activeRouteSetFeatures.map((item) => item.feature);
     if (selectedFeature) return [
       selectedFeature.feature,
-      ...activeZoneRouteFeatures.map((item) => item.feature),
+      ...routeSetGeometry,
       ...nearbyContextFeatures.projectionFeatures,
     ];
-    if (activeZoneRouteFeatures.length) return activeZoneRouteFeatures.map((item) => item.feature);
+    if (routeSetGeometry.length) return routeSetGeometry;
     if (selectedZoneKey) return blockFeatures.filter((feature) => territorialFeatureZoneKey(feature) === selectedZoneKey).slice(0, 72);
     return blockFeatures.slice(0, 72);
-  }, [activeZoneRouteFeatures, blockFeatures, nearbyContextFeatures.projectionFeatures, selectedFeature, selectedZoneKey]);
+  }, [activeRouteSetFeatures, blockFeatures, nearbyContextFeatures.projectionFeatures, selectedFeature, selectedZoneKey]);
   const projectionZones = useMemo(() => (
     selectedZoneFeature
       ? [selectedZoneFeature]
@@ -4135,7 +12521,7 @@ function TerritorialRouteAdaptiveMap({
   const autoFocusDistrictRef = useRef("");
   useEffect(() => {
     const autoFocusKey = [
-      selectedBlockKey || "sin-bloque",
+      inspectedBlockKey || selectedBlockKey || "sin-bloque",
       selectedUbigeo || "sin-distrito",
       selectedFeature?.key || "sin-geometria",
       projection.hasGeometry ? "geom" : "no-geom",
@@ -4152,6 +12538,7 @@ function TerritorialRouteAdaptiveMap({
     autoFocusDistrictRef.current = selectedUbigeo || "";
     navigation.zoomTo(TERRITORIAL_ROUTE_AUTO_ZOOM, center.x, center.y, { animate: sameDistrict, durationMs: 420 });
   }, [
+    inspectedBlockKey,
     navigation.reset,
     navigation.zoomTo,
     projection,
@@ -4159,10 +12546,34 @@ function TerritorialRouteAdaptiveMap({
     selectedFeature?.centroid,
     selectedUbigeo,
   ]);
-  const routeFeaturePaths = routeFeatures.filter((item) => item !== selectedFeature);
+  const routeFeaturePaths = activeRouteSetFeatures.filter((item) => item !== selectedFeature);
+  const relatedReplacementKeys = useMemo(() => (
+    activeRouteSet.replacementBlocks.length
+      ? new Set(activeRouteSet.replacementBlocks.map(territorialBlockStableKey).filter(Boolean))
+      : territorialRelatedReplacementBlockKeys(selectedBlock, districtBlocks)
+  ), [activeRouteSet, districtBlocks, selectedBlock]);
+  const selectedFeatureKey = selectedFeature?.key ?? "";
+  const routeAnchorFeatureKey = routeAnchorFeature?.key ?? selectedFeatureKey;
   const routeMapLabels = useMemo(() => {
     if (!projection.hasGeometry) return [];
     const labels: TerritorialRouteMapLabel[] = [];
+    activeRouteSetFeatures.forEach((item) => {
+      if (!item.centroid) return;
+      const blockKey = territorialBlockStableKey(item.block);
+      const active = item.key === selectedFeatureKey || blockKey === inspectedBlockKey;
+      labels.push({
+        id: `route-block-${item.key}`,
+        text: territorialRouteMapBlockLabel(item.block),
+        kind: active
+          ? "active-route-block"
+          : item.block.tipo_manzana === "reemplazo"
+            ? "replacement-block"
+            : "route-block",
+        priority: active ? 130 : item.block.tipo_manzana === "reemplazo" ? 116 : 112,
+        anchorPoint: projection.project(item.centroid.lon, item.centroid.lat),
+        screenOffset: territorialRouteMapBlockLabelOffset(item.block),
+      });
+    });
     if (districtFeature) {
       const activeCentroid = territorialDistrictCentroid(districtFeature);
       if (activeCentroid) {
@@ -4202,8 +12613,7 @@ function TerritorialRouteAdaptiveMap({
       });
     });
     return labels;
-  }, [districtFeature, neighborDistrictFeatures, projection, routeZoneKeys, selectedBlock?.distrito, selectedZoneKey, zoneFeatures]);
-  const selectedFeatureKey = selectedFeature?.key ?? "";
+  }, [activeRouteSetFeatures, districtFeature, inspectedBlockKey, neighborDistrictFeatures, projection, routeZoneKeys, selectedBlock?.distrito, selectedFeatureKey, selectedZoneKey, zoneFeatures]);
   const zoomClass = navigation.zoom >= 2.2 ? "is-zoom-blocks" : navigation.zoom >= 1.55 ? "is-zoom-detail" : "is-zoom-general";
   const zoomFromControl = (factor: number) => {
     navigation.setZoom(navigation.zoom * factor);
@@ -4214,7 +12624,11 @@ function TerritorialRouteAdaptiveMap({
       <section className="mon-territorial-route-map-card" aria-label="Mapa adaptativo por manzana">
         <header>
           <span>Mapa adaptativo</span>
-          <strong>{selectedBlock ? `${selectedBlock.distrito} · Zona ${selectedBlock.zona} · Mz ${selectedBlock.manzana}` : "Sin manzana seleccionada"}</strong>
+          <strong>
+            {selectedBlock
+              ? `${selectedBlock.distrito} · ${territorialRouteOperationalLabel(selectedBlock)} · ${territorialPhysicalBlockLabel(selectedBlock)}${focusBlock && territorialBlockStableKey(focusBlock) !== selectedBlockKey ? ` · inspección ${territorialRouteOperationalLabel(focusBlock)} · ${territorialPhysicalBlockLabel(focusBlock)}` : ""}`
+              : "Sin manzana seleccionada"}
+          </strong>
         </header>
         {!selectedBlock ? (
           <div className="mon-territorial-route-map-placeholder" role="status">
@@ -4264,8 +12678,10 @@ function TerritorialRouteAdaptiveMap({
               neighborFeatures={neighborFeatures}
               focusZoneFeatures={activeZoneContextFeatures}
               externalNeighborFeatures={crossDistrictNeighborFeatures}
-              selectedFeatures={routeFeatures}
+              selectedFeatures={activeRouteSetFeatures}
               selectedBlockKey={selectedFeatureKey}
+              relatedBlockKeys={relatedReplacementKeys}
+              routeAnchorBlockKey={routeAnchorFeatureKey}
               routeMapLabels={routeMapLabels}
               mode="route"
             />
@@ -4289,19 +12705,32 @@ function TerritorialRouteAdaptiveMap({
                         vectorEffect="non-scaling-stroke"
                         role="button"
                         tabIndex={0}
+                        aria-label={`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)} · ${item.block.distrito || "Sin distrito"}`}
                         onPointerDown={(event) => event.stopPropagation()}
                         onClick={(event) => {
                           event.stopPropagation();
                           if (navigation.suppressClick()) return;
-                          onSelectBlock(key);
+                          if (item.block.tipo_manzana === "reemplazo") {
+                            onInspectBlock(key);
+                          } else {
+                            onSelectBlock(key);
+                            onInspectBlock(key);
+                          }
                         }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
-                            onSelectBlock(key);
+                            if (item.block.tipo_manzana === "reemplazo") {
+                              onInspectBlock(key);
+                            } else {
+                              onSelectBlock(key);
+                              onInspectBlock(key);
+                            }
                           }
                         }}
-                      />
+                      >
+                        <title>{`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)} · Zona ${item.block.zona || "S/D"}`}</title>
+                      </path>
                     );
                   })}
                 </g>
@@ -4333,12 +12762,30 @@ function TerritorialRouteBlockContext({
   block: TerritorialBlockProgress | null;
 }) {
   const populationRows = useMemo(() => filterTerritorialRowsForBlock(reports.route_population?.cells ?? [], block), [block, reports.route_population?.cells]);
-  const quotaRows = useMemo(() => filterTerritorialRowsForBlock(reports.route_quota?.cells ?? [], block), [block, reports.route_quota?.cells]);
+  const quotaMarginals = useMemo(
+    () => findTerritorialQuotaMarginalsForBlock(reports.route_quota_marginals?.blocks ?? [], block),
+    [block, reports.route_quota_marginals?.blocks],
+  );
+  const responseResponsibleRows = useMemo(() => buildTerritorialRouteResponsibleRows(reports, block), [block, reports]);
+  const responseRowsTotal = responseResponsibleRows.reduce((total, row) => total + row.count, 0);
+  const blockResponseTotal = block ? territorialRouteBlockResponseTotal(block) : 0;
+  const responseTotal = responseResponsibleRows.length ? responseRowsTotal : blockResponseTotal;
+  const latestResponseLabel = responseResponsibleRows
+    .map((row) => row.latestLabel)
+    .filter(Boolean)
+    .sort((a, b) => compareInternalQueryDateValues(b, a))[0] ?? territorialRouteBlockActivityLabel(block);
+  const isReplacement = block?.tipo_manzana === "reemplazo";
+  const responsibleLabel = territorialRouteContextResponsibleLabel(block, responseResponsibleRows);
+  const blockKey = block ? territorialBlockStableKey(block) : "";
+  const [supportOpen, setSupportOpen] = useState(false);
+  useEffect(() => {
+    setSupportOpen(false);
+  }, [blockKey]);
   return (
     <aside className="mon-territorial-route-context-card" aria-label="Panel técnico de manzana seleccionada">
       <header>
         <span>Ficha técnica</span>
-        <strong>{block ? `Mz ${block.manzana || block.id_manzana}` : "Sin selección"}</strong>
+        <strong>{block ? `${territorialRouteOperationalLabel(block)} · ${territorialPhysicalBlockLabel(block)}` : "Sin selección"}</strong>
       </header>
       {block ? (
         <div className="mon-territorial-route-context-body">
@@ -4350,38 +12797,287 @@ function TerritorialRouteBlockContext({
               >
                 {territorialRouteTypeLabel(block)}
               </span>
-              <strong>{block.distrito}</strong>
-              <em>{`Zona ${block.zona || "S/D"} · Manzana ${block.manzana || "S/D"}`}</em>
+              <strong>{territorialRouteOperationalLabel(block)}</strong>
+              <em>{`${territorialPhysicalBlockLabel(block)} · ${block.distrito || "Sin distrito"} · Zona ${block.zona || "S/D"}`}</em>
+              {isReplacement ? (
+                <p>Asociada operativamente a {territorialRoutePrimaryUmpLabel(block)}.</p>
+              ) : null}
             </section>
             <div className="mon-territorial-route-context-metrics">
               <TerritorialRouteFact label="Rango" value={territorialRouteRangeLabel(block)} />
-              <TerritorialRouteFact label="UMP" value={territorialRouteUmpLabel(block)} />
+              <TerritorialRouteFact label="Responsable" value={responsibleLabel} />
+              <TerritorialRouteFact label="Respuestas" value={formatMetric(responseTotal)} />
+              <TerritorialRouteFact label="Última Kobo" value={latestResponseLabel || "Sin respuestas"} />
+              <TerritorialRouteFact label={isReplacement ? "UMP titular" : "Manzana física"} value={isReplacement ? territorialRoutePrimaryUmpLabel(block) : territorialPhysicalBlockLabel(block)} />
               <TerritorialRouteFact label="Viviendas" value={formatTerritorialDefinedMetric(block.viviendas ?? null)} />
               <TerritorialRouteFact label="Población" value={formatTerritorialDefinedMetric(block.poblacion ?? null)} />
-              <TerritorialRouteFact label="NSE" value={String(block.nse_nivel || block.nse_codigo || "No disponible en la fuente")} />
-              <TerritorialRouteFact label="Salto" value={block.constante_salto ? `${block.constante_salto} ${block.constante_salto_unidad || ""}` : "No disponible en la fuente"} />
+              <TerritorialRouteFact label="Salto" value={block.constante_salto ? `${block.constante_salto} ${block.constante_salto_unidad || ""}` : "No disponible"} />
             </div>
+            <TerritorialRouteResponseResponsibles rows={responseResponsibleRows} fallbackTotal={blockResponseTotal} />
           </div>
-          <div className="mon-territorial-route-context-tables">
-            <TerritorialRouteMatrixTable
-              title="Población distrital por sexo y edad"
-              rows={populationRows}
-              valueKey="poblacion"
-              empty="No disponible en la fuente"
-              showPercent
-            />
-            <TerritorialRouteMatrixTable
-              title="Cuotas asignadas a la manzana"
-              rows={quotaRows}
-              valueKey="cuota"
-              empty="No disponible en la fuente"
-            />
-          </div>
+          <section className={`mon-territorial-route-context-details${supportOpen ? " is-open" : ""}`}>
+            <button
+              type="button"
+              className="mon-territorial-route-context-details-trigger"
+              aria-expanded={supportOpen}
+              onClick={() => setSupportOpen((current) => !current)}
+            >
+              <ChevronDown size={15} aria-hidden="true" />
+              <span>Tablas de soporte</span>
+              <strong>{populationRows.length ? "Población y cuotas" : "Sin matriz poblacional"}</strong>
+            </button>
+            {supportOpen ? (
+              <div className="mon-territorial-route-context-tables">
+                <TerritorialRouteMatrixTable
+                  title="Población distrital por sexo y edad"
+                  rows={populationRows}
+                  valueKey="poblacion"
+                  empty="No disponible en la fuente"
+                  showPercent
+                />
+                <TerritorialRouteQuotaMarginalsCard quota={quotaMarginals} block={block} />
+              </div>
+            ) : null}
+          </section>
         </div>
       ) : (
         <div className="mon-territorial-source-empty">Selecciona una manzana de la tabla para ver población, cuotas y datos operativos.</div>
       )}
     </aside>
+  );
+}
+
+type TerritorialRouteResponsibleRow = {
+  key: string;
+  label: string;
+  count: number;
+  validas: number;
+  revision: number;
+  noDefendibles: number;
+  latestLabel: string;
+  latestRaw: string;
+};
+
+function territorialRouteBlockResponseTotal(block: TerritorialBlockProgress) {
+  const validas = Math.max(0, Math.round(numberOrNull(block.validas) ?? 0));
+  const revision = Math.max(0, Math.round(numberOrNull(block.revision) ?? 0));
+  const noDefendibles = Math.max(0, Math.round(numberOrNull(block.no_defendibles) ?? 0));
+  return validas + revision + noDefendibles;
+}
+
+function territorialRouteBlockActivityLabel(block: TerritorialBlockProgress | null) {
+  const activity = block as (TerritorialBlockProgress & {
+    last_response_date_label?: string | null;
+    last_response_date_iso?: string | null;
+  }) | null;
+  const date = territorialQuotaCompactActivityLabel(stringOrEmpty(activity?.last_response_date_label || activity?.last_response_date_iso));
+  return date || "";
+}
+
+function territorialRouteContextResponsibleLabel(
+  block: TerritorialBlockProgress | null,
+  responseRows: TerritorialRouteResponsibleRow[],
+) {
+  const hojaResponsible = stringOrEmpty(block?.responsable).trim();
+  if (hojaResponsible && !territorialMissingResponsibleLabel(hojaResponsible)) return hojaResponsible;
+  const namedRows = responseRows.filter((row) => !territorialMissingResponsibleLabel(row.label));
+  if (namedRows.length === 1) return namedRows[0].label;
+  if (namedRows.length > 1) return `${formatMetric(namedRows.length)} responsables Kobo`;
+  return "Sin responsable asignado";
+}
+
+function territorialRouteResponseResponsibleLabel(row: Partial<TerritorialResponseAuditRow>) {
+  const display = stringOrEmpty(row.responsible_display).trim();
+  if (display && !territorialMissingResponsibleLabel(display)) return display;
+  const resolved = territorialCaseResponsibleLabel(row as TerritorialResponseAuditRow, false);
+  if (resolved && !territorialMissingResponsibleLabel(resolved)) return resolved;
+  const submittedBy = stringOrEmpty(row.submitted_by).trim();
+  if (submittedBy && !territorialMissingResponsibleLabel(submittedBy)) return submittedBy;
+  return "Sin responsable asignado";
+}
+
+function territorialRouteResponseStatusBucket(row: Partial<TerritorialResponseAuditRow>): "validas" | "revision" | "noDefendibles" {
+  const validation = normalizeMatch(row.validation_status);
+  const observation = normalizeMatch(row.observation_status);
+  if (
+    row.advance_valid === false
+    || validation.includes("no_defendible")
+    || validation.includes("no_valida")
+    || validation.includes("no valida")
+  ) {
+    return "noDefendibles";
+  }
+  const hasOpenObservation = (
+    observation.includes("observacion")
+    || observation.includes("observación")
+  ) && !(
+    observation.includes("sin observacion")
+    || observation.includes("sin observación")
+    || observation.includes("no observacion")
+    || observation.includes("no observación")
+  );
+  if (validation.includes("revision") || hasOpenObservation) return "revision";
+  return "validas";
+}
+
+function territorialRouteResponseSortValue(row: Partial<TerritorialResponseAuditRow>) {
+  return (
+    stringOrEmpty(row.submission_date_iso)
+    || stringOrEmpty(row.submission_datetime)
+    || stringOrEmpty(row.submission_time)
+    || stringOrEmpty(row.submission_date)
+  );
+}
+
+function buildTerritorialRouteResponsibleRows(
+  reports: MonitoreoTerritorialDashboard,
+  block: TerritorialBlockProgress | null,
+): TerritorialRouteResponsibleRow[] {
+  if (!block) return [];
+  const responseRows: Partial<TerritorialResponseAuditRow>[] = [
+    ...(reports.response_audit ?? []),
+    ...(reports.map?.points ?? []),
+  ];
+  const deduped = new Map<string, Partial<TerritorialResponseAuditRow>>();
+  responseRows
+    .filter((row) => territorialResponseMatchesBlock(row, block))
+    .forEach((row, index) => {
+      const key = stringOrEmpty(row.response_id).trim()
+        || [
+          row.submitted_by,
+          row.submission_date_iso,
+          row.submission_datetime,
+          row.advance_block_id,
+          `${index}`,
+        ].map((value) => String(value ?? "").trim()).join("|");
+      deduped.set(key, { ...(deduped.get(key) ?? {}), ...row });
+    });
+
+  const grouped = new Map<string, TerritorialRouteResponsibleRow>();
+  Array.from(deduped.values()).forEach((row) => {
+    const label = territorialRouteResponseResponsibleLabel(row);
+    const key = normalizeMatch(label) || "sin-responsable";
+    const current = grouped.get(key) ?? {
+      key,
+      label,
+      count: 0,
+      validas: 0,
+      revision: 0,
+      noDefendibles: 0,
+      latestLabel: "",
+      latestRaw: "",
+    };
+    const bucket = territorialRouteResponseStatusBucket(row);
+    current.count += 1;
+    current[bucket] += 1;
+    const latestRaw = territorialRouteResponseSortValue(row);
+    if (latestRaw && (!current.latestRaw || compareInternalQueryDateValues(latestRaw, current.latestRaw) > 0)) {
+      current.latestRaw = latestRaw;
+      current.latestLabel = formatTerritorialSubmissionStamp(row);
+    }
+    grouped.set(key, current);
+  });
+
+  return Array.from(grouped.values()).sort((a, b) => (
+    b.count - a.count
+    || compareInternalQueryDateValues(b.latestRaw, a.latestRaw)
+    || a.label.localeCompare(b.label, "es-PE")
+  ));
+}
+
+function TerritorialRouteResponseResponsibles({
+  rows,
+  fallbackTotal = 0,
+}: {
+  rows: TerritorialRouteResponsibleRow[];
+  fallbackTotal?: number;
+}) {
+  const total = rows.reduce((acc, row) => acc + row.count, 0);
+  const displayedTotal = rows.length ? total : fallbackTotal;
+  return (
+    <section className="mon-territorial-route-response-owners" aria-label="Responsables por respuesta Kobo">
+      <header>
+        <span><ContactRound size={13} /> Responsables por respuesta</span>
+        <strong>{displayedTotal ? `${formatMetric(displayedTotal)} respuestas` : "Sin respuestas"}</strong>
+      </header>
+      {rows.length ? (
+        <div>
+          {rows.slice(0, 4).map((row) => (
+            <article key={row.key}>
+              <span>
+                <strong title={row.label}>{row.label}</strong>
+                <em>{row.latestLabel || "Sin fecha"}</em>
+              </span>
+              <b>{formatMetric(row.count)}</b>
+              <small>{formatMetric(row.validas)} válidas · {formatMetric(row.revision)} rev. · {formatMetric(row.noDefendibles)} no def.</small>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p>{fallbackTotal ? "Este corte trae totales de avance, pero no filas Kobo para listar responsables." : "Sin respuestas Kobo cruzadas con esta manzana."}</p>
+      )}
+    </section>
+  );
+}
+
+type TerritorialRouteQuotaMarginalBlock = NonNullable<MonitoreoTerritorialDashboard["route_quota_marginals"]>["blocks"][number];
+
+function TerritorialRouteQuotaMarginalsCard({
+  quota,
+  block,
+}: {
+  quota: TerritorialRouteQuotaMarginalBlock | null;
+  block: TerritorialBlockProgress | null;
+}) {
+  const ageTotals = [...(quota?.age_totals ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const sexTotals = [...(quota?.sex_totals ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const fallbackTotal = numberOrNull(block?.entrevistas ?? block?.meta);
+  const total = numberOrNull(quota?.total) ?? fallbackTotal;
+  return (
+    <section className="mon-territorial-route-mini-table mon-territorial-route-quota-marginals">
+      <header>
+        <span>Cuotas requeridas por la hoja de ruta</span>
+        <strong>{total == null ? "No disponible en la fuente" : `${formatMetric(total)} cuotas`}</strong>
+      </header>
+      {quota ? (
+        <div className="mon-territorial-route-quota-body">
+          <div className="mon-territorial-route-quota-chips" aria-label="Marginales por sexo">
+            {sexTotals.map((row) => (
+              <span key={row.label}>
+                <em>{row.label}</em>
+                <strong>{formatMetric(numberOrNull(row.value) ?? 0)}</strong>
+              </span>
+            ))}
+            <span className="is-total">
+              <em>Total</em>
+              <strong>{formatMetric(total)}</strong>
+            </span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Rango edad</th>
+                <th>Total requerido</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ageTotals.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{formatMetric(numberOrNull(row.value) ?? 0)}</td>
+                </tr>
+              ))}
+              <tr className="is-total">
+                <th scope="row">Total</th>
+                <td>{formatMetric(total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p>No disponible en la fuente</p>
+      )}
+    </section>
   );
 }
 
@@ -4568,7 +13264,11 @@ function territorialRouteRangeStart(block: TerritorialBlockProgress) {
 }
 
 function territorialRouteUmpNumber(block: TerritorialBlockProgress) {
-  return numberOrNull(block.hoja_num) ?? numberOrNull(block.orden_seleccion) ?? numberOrNull(block.titular_hoja_num) ?? Number.MAX_SAFE_INTEGER;
+  return numberOrNull(block.hoja_num)
+    ?? numberOrNull(block.orden_seleccion)
+    ?? numberOrNull(block.ump)
+    ?? numberOrNull(block.titular_hoja_num)
+    ?? Number.MAX_SAFE_INTEGER;
 }
 
 function territorialRouteReplacementOrder(block: TerritorialBlockProgress) {
@@ -4582,30 +13282,75 @@ function territorialRouteReplacementTotal(block: TerritorialBlockProgress) {
   return numberOrNull(block.replacement_total);
 }
 
-function territorialRouteUmpLabel(block: TerritorialBlockProgress) {
+function territorialRoutePrimaryUmpNumber(block: TerritorialBlockProgress) {
   if (block.tipo_manzana === "reemplazo") {
-    const replacementOrder = territorialRouteReplacementOrder(block);
-    return Number.isFinite(replacementOrder) && replacementOrder !== Number.MAX_SAFE_INTEGER
-      ? `R${formatMetric(replacementOrder)}`
-      : "R por definir";
+    return numberOrNull(block.titular_hoja_num)
+      ?? numberOrNull(block.titular_orden_seleccion)
+      ?? Number.MAX_SAFE_INTEGER;
   }
+  return territorialRouteUmpNumber(block);
+}
+
+function territorialRoutePrimaryUmpLabel(block: TerritorialBlockProgress) {
+  const value = territorialRoutePrimaryUmpNumber(block);
+  return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER
+    ? `UMP ${formatMetric(value)}`
+    : "UMP por definir";
+}
+
+function territorialRouteReplacementLabel(block: TerritorialBlockProgress) {
+  const replacementOrder = territorialRouteReplacementOrder(block);
+  return Number.isFinite(replacementOrder) && replacementOrder !== Number.MAX_SAFE_INTEGER
+    ? `R${formatMetric(replacementOrder)}`
+    : "R";
+}
+
+function territorialRouteOperationalLabel(block: TerritorialBlockProgress) {
+  if (block.tipo_manzana === "reemplazo") {
+    const primary = territorialRoutePrimaryUmpLabel(block);
+    const replacement = territorialRouteReplacementLabel(block);
+    return primary === "UMP por definir" ? replacement : `${primary}-${replacement}`;
+  }
+  return territorialRoutePrimaryUmpLabel(block);
+}
+
+function territorialRouteMapBlockLabel(block: TerritorialBlockProgress) {
+  return territorialRouteOperationalLabel(block);
+}
+
+function territorialRouteMapBlockLabelOffset(block: TerritorialBlockProgress) {
+  if (block.tipo_manzana !== "reemplazo") return { x: -34, y: -42 };
+  const order = territorialRouteReplacementOrder(block);
+  const direction = Number.isFinite(order) && order !== Number.MAX_SAFE_INTEGER && order % 2 === 0 ? -1 : 1;
+  return { x: 34, y: 42 * direction };
+}
+
+function territorialPhysicalBlockLabel(block: TerritorialBlockProgress) {
+  return `Mz ${block.manzana || block.id_manzana || "S/D"}`;
+}
+
+function territorialRouteUmpLabel(block: TerritorialBlockProgress) {
+  if (block.tipo_manzana === "reemplazo") return territorialRouteReplacementLabel(block);
   const value = territorialRouteUmpNumber(block);
   return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER ? formatMetric(value) : "Por definir";
 }
 
 function territorialRouteUmpTitle(block: TerritorialBlockProgress) {
   const territory = block.territorio_muestral || block.ump || block.id_manzana || "";
-  const order = territorialRouteUmpLabel(block);
+  const operational = territorialRouteOperationalLabel(block);
   if (block.tipo_manzana === "reemplazo") {
-    const titular = numberOrNull(block.titular_hoja_num) ?? numberOrNull(block.titular_orden_seleccion);
-    const titularLabel = titular != null ? ` · titular UMP ${formatMetric(titular)}` : "";
-    return territory ? `UMP ${order}${titularLabel} · ${territory}` : `UMP ${order}${titularLabel}`;
+    const titularLabel = territorialRoutePrimaryUmpLabel(block);
+    return territory ? `${operational} · reemplazo de ${titularLabel} · ${territory}` : `${operational} · reemplazo de ${titularLabel}`;
   }
-  return territory ? `UMP ${order} · ${territory}` : `UMP ${order}`;
+  return territory ? `${operational} · ${territory}` : operational;
 }
 
 function territorialRouteTypeLabel(block: TerritorialBlockProgress) {
   if (block.tipo_manzana !== "reemplazo") return "Titular";
+  return territorialRouteReplacementLabel(block);
+}
+
+function territorialRouteReplacementOrdinalTitle(block: TerritorialBlockProgress) {
   const order = territorialRouteReplacementOrder(block);
   const total = territorialRouteReplacementTotal(block);
   if (Number.isFinite(order) && order !== Number.MAX_SAFE_INTEGER && total != null && total > 1) {
@@ -4617,10 +13362,8 @@ function territorialRouteTypeLabel(block: TerritorialBlockProgress) {
 
 function territorialRouteTypeTitle(block: TerritorialBlockProgress) {
   if (block.tipo_manzana !== "reemplazo") return "Manzana titular de la ruta";
-  const label = block.replacement_label ? String(block.replacement_label) : territorialRouteTypeLabel(block);
-  const titular = numberOrNull(block.titular_hoja_num) ?? numberOrNull(block.titular_orden_seleccion);
-  const titularText = titular != null ? ` · reemplazo de UMP ${formatMetric(titular)}` : "";
-  return `${label}${titularText}`;
+  const label = block.replacement_label ? String(block.replacement_label) : territorialRouteReplacementOrdinalTitle(block);
+  return `${territorialRouteOperationalLabel(block)} · ${label} de ${territorialRoutePrimaryUmpLabel(block)}`;
 }
 
 function filterTerritorialRowsForBlock(rows: Record<string, string | number | null>[], block: TerritorialBlockProgress | null) {
@@ -4647,6 +13390,46 @@ function filterTerritorialRowsForBlock(rows: Record<string, string | number | nu
     );
   });
   return matching.length ? matching : rows.filter((row) => normalizeMatch(territorialRowValue(row, ["ubigeo", "UBIGEO"])) === ubigeo);
+}
+
+function filterTerritorialQuotaRowsForBlock(rows: Record<string, string | number | null>[], block: TerritorialBlockProgress | null) {
+  if (!block || !rows.length) return [];
+  const id = normalizeMatch(block.id_manzana);
+  const manzana = normalizeMatch(block.manzana);
+  const ubigeo = normalizeMatch(block.ubigeo);
+  const territory = normalizeMatch(block.territorio_muestral || `${block.ubigeo}-${block.zona}`);
+  const zone = normalizeMatch(block.zona);
+  return rows.filter((row) => {
+    const rowId = normalizeMatch(territorialRowValue(row, ["id_manzana", "idManzana", "ID_MANZANA"]));
+    const rowManzana = normalizeMatch(territorialRowValue(row, ["manzana", "Manzana", "CODMZNA"]));
+    const rowUbigeo = normalizeMatch(territorialRowValue(row, ["ubigeo", "UBIGEO"]));
+    const rowTerritory = normalizeMatch(territorialRowValue(row, ["territorio", "territorio_muestral", "UMP", "ump"]));
+    const rowZone = normalizeMatch(territorialRowValue(row, ["zona", "Zona"]));
+    if (id && rowId) return rowId === id;
+    if (ubigeo && zone && manzana && rowUbigeo === ubigeo && rowZone === zone && rowManzana === manzana) return true;
+    if (territory && rowTerritory) return rowTerritory === territory && rowManzana === manzana;
+    return false;
+  });
+}
+
+function findTerritorialQuotaMarginalsForBlock(rows: TerritorialRouteQuotaMarginalBlock[], block: TerritorialBlockProgress | null) {
+  if (!block || !rows.length) return null;
+  const id = normalizeMatch(block.id_manzana);
+  const manzana = normalizeMatch(block.manzana);
+  const ubigeo = normalizeMatch(block.ubigeo);
+  const territory = normalizeMatch(block.territorio_muestral || `${block.ubigeo}-${block.zona}`);
+  const zone = normalizeMatch(block.zona);
+  return rows.find((row) => {
+    const rowId = normalizeMatch(row.id_manzana);
+    const rowManzana = normalizeMatch(row.manzana);
+    const rowUbigeo = normalizeMatch(row.ubigeo);
+    const rowTerritory = normalizeMatch(row.territorio);
+    const rowZone = normalizeMatch(row.zona);
+    if (id && rowId) return rowId === id;
+    if (ubigeo && zone && manzana && rowUbigeo === ubigeo && rowZone === zone && rowManzana === manzana) return true;
+    if (territory && rowTerritory) return rowTerritory === territory && rowManzana === manzana;
+    return false;
+  }) ?? null;
 }
 
 function territorialRowValue(row: Record<string, string | number | null>, keys: string[]) {
@@ -4676,32 +13459,51 @@ function TerritorialRoutePhaseSummary({ reports }: { reports: MonitoreoTerritori
   );
 }
 
-type TerritorialValidationTab = "resumen" | "geolocalizacion" | "duracion";
+type TerritorialValidationTab = "resumen" | "geolocalizacion" | "duracion" | "cuotas";
 
 const TERRITORIAL_VALIDATION_TABS: Array<{ key: TerritorialValidationTab; label: string; desc: string; icon: typeof ShieldAlert }> = [
   { key: "resumen", label: "Resumen", desc: "Válidas y revisión", icon: ShieldAlert },
   { key: "geolocalizacion", label: "Geolocalización", desc: "GPS y manzanas", icon: MapPin },
   { key: "duracion", label: "Duración de tiempo", desc: "Mediana, P95 y outliers", icon: Clock },
+  { key: "cuotas", label: "Cuotas", desc: "Sexo y edad", icon: Target },
 ];
 
 function TerritorialValidationView({
   dashboard,
   config,
   saving,
+  loading = false,
+  error = "",
+  onRetry,
   selectedResponseId,
+  openIntent,
   onSelectResponse,
   onConfigPatch,
 }: {
   dashboard: MonitoreoDashboard | null;
   config: MonitoreoConfig;
   saving: boolean;
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
   selectedResponseId?: string;
+  openIntent?: { tab: TerritorialValidationTab; responseId?: string; token: number } | null;
   onSelectResponse?: (responseId: string) => void;
   onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<TerritorialValidationTab>("resumen");
-  const reports = territorialReportsFromDashboard(dashboard);
+  useEffect(() => {
+    if (!openIntent) return;
+    setActiveTab(openIntent.tab);
+    if (openIntent.responseId) onSelectResponse?.(openIntent.responseId);
+  }, [onSelectResponse, openIntent]);
+
+  const rawReports = territorialReportsFromDashboard(dashboard);
+  const reportScope = rawReports?.report_scope || "full";
+  const reports = rawReports && (reportScope === "validation_summary" || reportScope === "full") ? rawReports : null;
   if (!reports) {
+    if (loading) return <LoadingBlock label={territorialLoadingLabelForView("calidad")} minHeight={520} />;
+    if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
     return <EmptyState icon={<ShieldAlert size={18} />} title="Sin validación territorial" hint="Sincroniza respuestas Kobo para auditar consentimiento, edad, duplicados y GPS." />;
   }
   const advance = territorialAdvanceModel(reports);
@@ -4709,9 +13511,16 @@ function TerritorialValidationView({
   const observationRows = rows.filter((row) => row.advance_valid === true && ["en_observacion", "aprobada"].includes(row.observation_status || ""));
   const geoRows = observationRows.filter(territorialRowHasGeoObservation);
   const durationRows = observationRows.filter((row) => territorialRowHasDurationObservation(row, config));
+  const quotaSummary = normalizeTerritorialQuotaSummary(reports.route_quota_progress?.summary ?? summarizeTerritorialQuotaProgressBlocks(reports.route_quota_progress?.blocks ?? []));
   const tabs = TERRITORIAL_VALIDATION_TABS.map((tab) => ({
     ...tab,
-    count: tab.key === "geolocalizacion" ? rows.length : tab.key === "duracion" ? durationRows.length : observationRows.length,
+    count: tab.key === "geolocalizacion"
+      ? rows.length
+      : tab.key === "duracion"
+        ? durationRows.length
+        : tab.key === "cuotas"
+          ? quotaSummary.in_field + quotaSummary.pending + quotaSummary.missing
+          : observationRows.length,
   }));
 
   async function setObservationApproval(row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) {
@@ -4742,6 +13551,12 @@ function TerritorialValidationView({
         approved_at: approvedAt,
       },
     });
+  }
+
+  function openDurationCaseInGeo(row: TerritorialResponseAuditRow) {
+    const responseId = stringOrEmpty(row.response_id).trim();
+    if (responseId) onSelectResponse?.(responseId);
+    setActiveTab("geolocalizacion");
   }
 
   return (
@@ -4799,6 +13614,12 @@ function TerritorialValidationView({
           </div>
         )}
 
+        {activeTab === "cuotas" && (
+          <div className="mon-territorial-validation-tabbody mon-territorial-validation-tabbody--quota">
+            <TerritorialQuotaConsistencyPanel reports={reports} />
+          </div>
+        )}
+
         {activeTab === "geolocalizacion" && (
           <div className="mon-territorial-validation-tabbody">
             <TerritorialValidationGeoWorkbench
@@ -4812,36 +13633,316 @@ function TerritorialValidationView({
 
         {activeTab === "duracion" && (
           <div className="mon-territorial-validation-tabbody">
-            <div className="mon-territorial-source-grid">
-              <AdvanceMetric label="Mediana" value={formatDurationLabel(reports.kpis.duration_median)} hint="duración central" tone="ready" />
-              <AdvanceMetric label="P95" value={formatDurationLabel(reports.kpis.duration_p95)} hint="cola operativa" tone={(reports.kpis.duration_p95 ?? 0) > config.territorial.max_duration_seconds ? "warning" : "base"} />
-              <AdvanceMetric label="Mínimo" value={formatDurationLabel(config.territorial.min_duration_seconds)} hint="umbral" tone="base" />
-              <AdvanceMetric label="Máximo" value={formatDurationLabel(config.territorial.max_duration_seconds)} hint="umbral" tone="base" />
-            </div>
-            <div className="mon-territorial-dashboard-grid">
-              <TerritorialDurationCard reports={reports} />
-              <TerritorialDailySparkBars rows={reports.daily} />
-              <TerritorialTeamBars rows={reports.team} />
-            </div>
-            <TerritorialObservationList
-              title="Casos con duración por revisar"
-              icon={Clock}
-              rows={durationRows}
+            <TerritorialDurationControlView
+              reports={reports}
+              rows={rows}
+              reviewRows={durationRows}
               config={config}
               saving={saving}
-              reason="duracion"
               onApprove={setObservationApproval}
+              onOpenGeoCase={openDurationCaseInGeo}
               selectedResponseId={selectedResponseId}
               onSelectResponse={onSelectResponse}
             />
-            <div className="mon-territorial-grid">
-              <TerritorialTeamTable rows={reports.team} />
-              <TerritorialDailyTable rows={reports.daily} />
-            </div>
           </div>
         )}
       </Panel>
     </div>
+  );
+}
+
+function TerritorialQuotaConsistencyPanel({ reports }: { reports: MonitoreoTerritorialDashboard }) {
+  const quota = reports.route_quota_progress ?? null;
+  const blocks = quota?.blocks ?? [];
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<TerritorialQuotaConsistencyFilter | null>(null);
+  const [showReplacements, setShowReplacements] = useState(false);
+  const replacementCount = useMemo(
+    () => blocks.filter((block) => stringOrEmpty(block.tipo_manzana).toLowerCase() === "reemplazo").length,
+    [blocks],
+  );
+  const visibleBlocks = useMemo(
+    () => blocks.filter((block) => showReplacements || stringOrEmpty(block.tipo_manzana).toLowerCase() !== "reemplazo"),
+    [blocks, showReplacements],
+  );
+  const summary = useMemo(() => summarizeTerritorialQuotaProgressBlocks(visibleBlocks), [visibleBlocks]);
+  const orderedBlocks = useMemo(() => {
+    const query = normalizeMatch(search);
+    return [...visibleBlocks]
+      .filter((block) => block.configured || territorialQuotaStatus(block.status) !== "not_configured")
+      .filter((block) => {
+        const status = territorialQuotaStatus(block.status);
+        if (filter && status !== filter) return false;
+        if (!query) return true;
+        const haystack = normalizeMatch([
+          block.id_manzana,
+          block.distrito,
+          block.ubigeo,
+          block.zona,
+          block.manzana,
+          block.ump,
+          block.responsable,
+          block.responsible,
+          territorialQuotaStatusLabel(status),
+          ...(block.sex ?? []).map((item) => item.label),
+          ...(block.age ?? []).map((item) => item.label),
+        ].join(" "));
+        return haystack.includes(query);
+      })
+      .sort(compareTerritorialQuotaBlocks);
+  }, [filter, search, visibleBlocks]);
+
+  const filterOptions: Array<{ key: TerritorialQuotaConsistencyFilter | "all"; label: string; value: number }> = [
+    { key: "complete", label: "Completas", value: summary.complete },
+    { key: "exceeded", label: "Excedidas", value: summary.exceeded },
+    { key: "pending", label: "Pendiente", value: summary.pending },
+    { key: "in_field", label: "En campo", value: summary.in_field },
+    { key: "missing", label: "No iniciadas", value: summary.missing },
+    { key: "all", label: "Todas", value: summary.total },
+  ];
+
+  return (
+    <section className="mon-territorial-quota-consistency" aria-label="Consistencia de cuotas por manzana">
+      <header className="mon-territorial-quota-commandbar">
+        <div className="mon-territorial-quota-command-title">
+          <span><Target size={14} /> Cuotas por manzana</span>
+          <strong>{quota?.configured ? `${formatMetric(summary.total)} ${showReplacements ? "manzanas evaluadas" : "titulares evaluadas"}` : "Cuotas no disponibles"}</strong>
+        </div>
+        <label className="mon-territorial-quota-search">
+          <Search size={13} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
+            placeholder="Buscar UMP, distrito, responsable o rango"
+          />
+        </label>
+        <div className="mon-territorial-quota-command-actions">
+          <label
+            className={`mon-territorial-quota-replacement-toggle ${showReplacements ? "is-active" : ""}`}
+            title={showReplacements ? "Ocultar manzanas de reemplazo" : "Incluir manzanas de reemplazo"}
+          >
+            <input
+              type="checkbox"
+              checked={showReplacements}
+              onChange={(event) => setShowReplacements(event.currentTarget.checked)}
+            />
+            <ListChecks size={13} />
+            <span>Reemplazos</span>
+            <strong>{showReplacements ? "Sí" : formatMetric(replacementCount)}</strong>
+          </label>
+          <div role="tablist" aria-label="Filtrar cuotas por estado">
+            {filterOptions.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={(option.key === "all" ? filter === null : filter === option.key) ? "is-active" : ""}
+                aria-selected={option.key === "all" ? filter === null : filter === option.key}
+                onClick={() => setFilter((current) => option.key === "all" ? null : current === option.key ? null : option.key)}
+              >
+                <span>{option.label}</span>
+                <strong>{formatMetric(option.value)}</strong>
+              </button>
+            ))}
+          </div>
+          {search ? (
+            <button type="button" className="mon-territorial-quota-clear" onClick={() => setSearch("")}>
+              <XCircle size={13} />
+              <span>Limpiar</span>
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      {quota?.configured && orderedBlocks.length ? (
+        <div className="mon-territorial-quota-block-list" aria-label="Manzanas y cumplimiento de cuota">
+          {orderedBlocks.map((block) => (
+            <TerritorialQuotaBlockCard key={block.id_manzana || `${block.ubigeo}-${block.zona}-${block.manzana}-${block.ump}`} block={block} />
+          ))}
+        </div>
+      ) : (
+        <div className="mon-territorial-quota-empty">
+          <Target size={18} />
+          <strong>{quota?.configured ? "Sin manzanas con esos filtros" : "Sin cuota territorial configurada"}</strong>
+          <span>{quota?.configured ? "Prueba otro distrito, UMP o estado de cuota." : "Cuando Hojas de Ruta tenga sexo y rangos de edad, Monitoreo evaluará los márgenes por manzana."}</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function territorialQuotaBlockResponsibleLabel(block: TerritorialQuotaProgressBlock) {
+  const label = territorialRawText(block.responsable || block.responsible);
+  if (label && !territorialMissingResponsibleLabel(label)) return label;
+  return "-";
+}
+
+function territorialQuotaCompactActivityLabel(value: string) {
+  return value
+    .replace(/^(?:hoy|ultimo registro|último registro)\s*·\s*/i, "")
+    .replace(/\s*,\s*/g, " ")
+    .replace(/\b0(?=\d:\d{2}(?:am|pm)\b)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function territorialQuotaBlockActivityLabel(block: TerritorialQuotaProgressBlock) {
+  const date = territorialQuotaCompactActivityLabel(stringOrEmpty(block.last_response_date_label || block.last_response_date_iso));
+  if (date) return date;
+  return "Sin registro Kobo";
+}
+
+function TerritorialQuotaBlockCard({ block }: { block: TerritorialQuotaProgressBlock }) {
+  const status = territorialQuotaStatus(block.status);
+  const target = Math.max(0, numberOrNull(block.target) ?? 0);
+  const validas = Math.max(0, numberOrNull(block.validas) ?? 0);
+  const progressPct = target > 0 ? Math.min(140, Math.max(0, (validas / target) * 100)) : 0;
+  const responsible = territorialQuotaBlockResponsibleLabel(block);
+  const activity = territorialQuotaBlockActivityLabel(block);
+  return (
+    <article className={`mon-territorial-quota-block-card is-${status}`}>
+      <header>
+        <div>
+          <span>{territorialQuotaBlockSecondaryLabel(block)}</span>
+          <strong>{territorialQuotaBlockPrimaryLabel(block)}</strong>
+        </div>
+        <b>{territorialQuotaStatusLabel(status)}</b>
+      </header>
+      <div className="mon-territorial-quota-block-meta">
+        <span title={responsible}><ContactRound size={12} /><strong>Responsable</strong><em>{responsible}</em></span>
+        <span title={activity}><Clock size={12} /><strong>Actividad</strong><em>{activity}</em></span>
+      </div>
+      <div className="mon-territorial-quota-total-meter" aria-label={`Avance total ${formatPercentLabel(progressPct)}`}>
+        <i style={{ width: `${Math.min(100, progressPct)}%` }} />
+      </div>
+      <div className="mon-territorial-quota-margins">
+        <TerritorialQuotaMarginGroup title="Sexo" icon={ContactRound} rows={block.sex ?? []} empty="Sin cuota por sexo" />
+        <TerritorialQuotaMarginGroup title="Edad" icon={CalendarRange} rows={block.age ?? []} empty="Sin cuota por edad" />
+      </div>
+      <TerritorialQuotaObservedCrossMatrix cross={block.observed_cross ?? null} />
+    </article>
+  );
+}
+
+function TerritorialQuotaObservedCrossMatrix({ cross }: { cross: TerritorialQuotaProgressBlock["observed_cross"] | null | undefined }) {
+  const rows = cross?.rows ?? [];
+  const columns = cross?.columns ?? [];
+  const total = Math.max(0, Math.round(numberOrNull(cross?.total_consentido ?? cross?.total) ?? 0));
+  const hasMatrix = rows.length > 0 && columns.length > 0;
+  return (
+    <section className="mon-territorial-quota-observed" aria-label="Llenado observado por sexo y edad">
+      <header>
+        <span><Table2 size={13} /> Llenado observado</span>
+        <strong>{formatMetric(total)} consentidos</strong>
+      </header>
+      {hasMatrix ? (
+        <div className="mon-territorial-quota-observed-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Sexo</th>
+                {columns.map((column) => (
+                  <th key={column.label} scope="col">{column.label}</th>
+                ))}
+                <th scope="col">Total sexo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const cells = new Map((row.cells ?? []).map((cell) => [stringOrEmpty(cell.label || cell.age), Math.max(0, Math.round(numberOrNull(cell.value) ?? 0))]));
+                const rowTotal = Math.max(0, Math.round(numberOrNull(row.total) ?? 0));
+                const rowTarget = Math.max(0, Math.round(numberOrNull(row.target) ?? 0));
+                return (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    {columns.map((column) => {
+                      const value = cells.get(column.label) ?? 0;
+                      return (
+                        <td key={`${row.label}-${column.label}`} className={value > 0 ? "" : "is-empty"}>
+                          {formatMetric(value)}
+                        </td>
+                      );
+                    })}
+                    <td className="is-total">
+                      <strong>{formatMetric(rowTotal)}</strong>
+                      {rowTarget > 0 ? <em>/ {formatMetric(rowTarget)}</em> : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Total edad</th>
+                {columns.map((column) => {
+                  const columnTotal = Math.max(0, Math.round(numberOrNull(column.total) ?? 0));
+                  const columnTarget = Math.max(0, Math.round(numberOrNull(column.target) ?? 0));
+                  return (
+                    <td key={`total-${column.label}`}>
+                      <strong>{formatMetric(columnTotal)}</strong>
+                      {columnTarget > 0 ? <em>/ {formatMetric(columnTarget)}</em> : null}
+                    </td>
+                  );
+                })}
+                <td className="is-total">
+                  <strong>{formatMetric(total)}</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      ) : (
+        <p className="mon-territorial-quota-observed-empty">Sin registros consentidos asociados a esta UMP.</p>
+      )}
+      <p>El cruce es descriptivo; la cuota se evalúa por totales de sexo y edad.</p>
+    </section>
+  );
+}
+
+function TerritorialQuotaMarginGroup({
+  title,
+  icon: Icon,
+  rows,
+  empty,
+}: {
+  title: string;
+  icon: typeof ContactRound | typeof CalendarRange;
+  rows: TerritorialQuotaProgressBlock["sex"];
+  empty: string;
+}) {
+  const target = rows.reduce((sum, item) => sum + Math.max(0, numberOrNull(item.target) ?? 0), 0);
+  const achieved = rows.reduce((sum, item) => sum + Math.max(0, numberOrNull(item.achieved) ?? 0), 0);
+  return (
+    <section className="mon-territorial-quota-margin-group">
+      <header>
+        <span><Icon size={13} /> {title}</span>
+        <strong>{rows.length ? `${formatMetric(achieved)} / ${formatMetric(target)}` : empty}</strong>
+      </header>
+      {rows.length ? (
+        <div>
+          {rows.map((item) => (
+            <TerritorialQuotaMarginRow key={`${title}-${item.label}`} item={item} />
+          ))}
+        </div>
+      ) : (
+        <p>{empty}</p>
+      )}
+    </section>
+  );
+}
+
+function TerritorialQuotaMarginRow({ item }: { item: TerritorialQuotaProgressBlock["sex"][number] }) {
+  const target = Math.max(0, numberOrNull(item.target) ?? 0);
+  const achieved = Math.max(0, numberOrNull(item.achieved) ?? 0);
+  const missing = Math.max(0, numberOrNull(item.missing) ?? Math.max(0, target - achieved));
+  const pct = territorialQuotaItemPercent(item);
+  const tone = territorialQuotaItemTone(item);
+  return (
+    <span className={`mon-territorial-quota-margin-row is-${tone}`}>
+      <strong title={item.label}>{item.label}</strong>
+      <em>{formatMetric(achieved)} / {formatMetric(target)}</em>
+      <i><b style={{ width: `${Math.min(100, pct)}%` }} /></i>
+      <small>{missing > 0 ? `faltan ${formatMetric(missing)}` : achieved > target ? `+${formatMetric(achieved - target)}` : "ok"}</small>
+    </span>
   );
 }
 
@@ -4870,6 +13971,7 @@ function territorialRowHasDurationObservation(row: TerritorialResponseAuditRow, 
 
 function observationReasonLabel(value: string) {
   const key = normalizeMatch(value);
+  if (key.includes("codigo pulso parece numero encuesta")) return "Código parece Nro. encuesta";
   if (key.includes("gps_sin")) return "Sin GPS";
   if (key.includes("gps_revision")) return "GPS 150-300 m";
   if (key.includes("gps_lejos") || key.includes("gps_no_defendible")) return "GPS fuera del marco";
@@ -4920,6 +14022,80 @@ function territorialResponseHasGps(row: TerritorialResponseAuditRow) {
   return Boolean(row.gps_parseable) || (lat != null && lon != null);
 }
 
+function territorialResponseIsEffective(row: TerritorialResponseAuditRow) {
+  const validationStatus = normalizeMatch(row.validation_status);
+  const advanceStatus = normalizeMatch(row.advance_status);
+  const observationStatus = normalizeMatch(row.observation_status);
+  const consent = normalizeMatch(row.consent);
+  const status = normalizeMatch(row.status);
+  const nonEffectiveStatuses = new Set([
+    "no defendible",
+    "no valida",
+    "no valido",
+    "rechazo",
+    "rechaza",
+    "rechazado",
+    "rechazada",
+    "refusal",
+    "rejected",
+    "disqualified",
+    "descalificado",
+  ]);
+  if (row.source_effective === false) return false;
+  if (row.advance_valid === false) return false;
+  if (nonEffectiveStatuses.has(validationStatus)) return false;
+  if (nonEffectiveStatuses.has(advanceStatus)) return false;
+  if (observationStatus === "no valida") return false;
+  if (["0", "no", "false", "rechaza", "rechazo"].includes(consent)) return false;
+  if (nonEffectiveStatuses.has(status)) return false;
+  return true;
+}
+
+function territorialMissingResponsibleLabel(value: unknown) {
+  const key = normalizeMatch(value);
+  return !key
+    || key === "sd"
+    || key === "s d"
+    || /^responsable\s*\d+$/.test(key)
+    || key.includes("sin responsable")
+    || key.includes("sin asignar")
+    || key.includes("no asignado")
+    || key.includes("sin encuestador")
+    || key.includes("responsable no identificado");
+}
+
+function territorialPulsoCodeLabel(row: TerritorialResponseAuditRow) {
+  const code = stringOrEmpty(row.pulso_code_normalized || row.pulso_code || row.pulso_code_raw).trim();
+  return code || "S/D";
+}
+
+function territorialEnumeratorName(row: TerritorialResponseAuditRow) {
+  const name = stringOrEmpty(row.enumerator_assigned).trim();
+  const code = territorialPulsoCodeLabel(row);
+  if (territorialMissingResponsibleLabel(name)) return "";
+  if (code !== "S/D" && normalizeTerritorialBlockCode(name) === normalizeTerritorialBlockCode(code)) return "";
+  return name;
+}
+
+function territorialCaseResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = false) {
+  const name = territorialEnumeratorName(row);
+  const code = territorialPulsoCodeLabel(row);
+  if (name && includeCode && code !== "S/D") return `${code} · ${name}`;
+  if (name) return name;
+  if (code !== "S/D") return "Responsable no identificado";
+  return "Sin responsable asignado";
+}
+
+function territorialGeoGroupResponsibleLabel(rows: TerritorialGeoCase[]) {
+  const labels = Array.from(new Set(rows
+    .map((item) => territorialCaseResponsibleLabel(item.row, false))
+    .filter((label) => !territorialMissingResponsibleLabel(label) && normalizeMatch(label) !== "responsable no identificado")));
+  if (labels.length === 1) return labels[0];
+  if (labels.length > 1) return `${formatMetric(labels.length)} responsables reconocidos`;
+  const hasUnrecognizedCode = rows.some((item) => territorialPulsoCodeLabel(item.row) !== "S/D");
+  return hasUnrecognizedCode ? "Responsable no identificado" : "Sin responsable asignado";
+}
+
 function territorialKoboMapPoints(reports: MonitoreoTerritorialDashboard): TerritorialKoboMapPoint[] {
   return reports.map.points
     .map((point) => ({
@@ -4928,6 +14104,67 @@ function territorialKoboMapPoints(reports: MonitoreoTerritorialDashboard): Terri
       lonValue: typeof point.lon === "number" ? point.lon : Number(point.lon),
     }))
     .filter((point) => point.lat != null && point.lon != null && Number.isFinite(point.latValue) && Number.isFinite(point.lonValue));
+}
+
+function territorialRowsForGeoMap(reports: MonitoreoTerritorialDashboard): TerritorialResponseAuditRow[] {
+  const auditRows = Array.isArray(reports.response_audit) ? reports.response_audit : [];
+  if (auditRows.length) return auditRows;
+  return (reports.map?.points ?? []).map((point, index) => {
+    const lat = numberOrNull(point.lat);
+    const lon = numberOrNull(point.lon);
+    const responseId = stringOrEmpty(point.response_id) || `gps-${index + 1}`;
+    return {
+      row_index: index + 1,
+      response_id: responseId,
+      district_code: stringOrEmpty(point.ubigeo),
+      distrito: stringOrEmpty(point.distrito),
+      ubigeo: stringOrEmpty(point.ubigeo),
+      consent: "",
+      age: numberOrNull(point.age),
+      sex: stringOrEmpty(point.sex),
+      status: "",
+      submitted_by: stringOrEmpty(point.submitted_by),
+      pulso_code: stringOrEmpty(point.pulso_code),
+      pulso_code_raw: stringOrEmpty(point.pulso_code_raw),
+      pulso_code_normalized: stringOrEmpty(point.pulso_code_normalized),
+      enumerator_assigned: stringOrEmpty(point.enumerator_assigned),
+      responsible_display: stringOrEmpty(point.responsible_display),
+      pulso_code_recognized: Boolean(point.pulso_code_recognized),
+      pulso_code_reconciled: Boolean(point.pulso_code_reconciled),
+      pulso_code_range_warning: Boolean(point.pulso_code_range_warning),
+      submission_time: stringOrEmpty(point.submission_datetime || point.submission_date_iso || point.submission_date),
+      submission_time_source: stringOrEmpty(point.submission_time_source),
+      submission_date_iso: stringOrEmpty(point.submission_date_iso),
+      submission_date: stringOrEmpty(point.submission_date),
+      submission_hour: stringOrEmpty(point.submission_hour),
+      submission_datetime: stringOrEmpty(point.submission_datetime),
+      duration_seconds: null,
+      lat,
+      lon,
+      gps_parseable: Boolean(point.gps_parseable) || (lat != null && lon != null),
+      geo_estado: stringOrEmpty(point.geo_estado) || "geo_sin_gps",
+      distance_m: numberOrNull(point.distance_m),
+      nearest_block_id: stringOrEmpty(point.nearest_block_id),
+      nearest_block_type: stringOrEmpty(point.nearest_block_type),
+      declared_ump_raw: stringOrEmpty(point.declared_ump_raw),
+      declared_ump_normalized: stringOrEmpty(point.declared_ump_normalized),
+      advance_block_id: stringOrEmpty(point.advance_block_id),
+      advance_block_ump: stringOrEmpty(point.advance_block_ump),
+      advance_block_ubigeo: stringOrEmpty(point.advance_block_ubigeo),
+      advance_block_distrito: stringOrEmpty(point.advance_block_distrito),
+      advance_block_zona: stringOrEmpty(point.advance_block_zona),
+      advance_block_manzana: stringOrEmpty(point.advance_block_manzana),
+      advance_block_type: stringOrEmpty(point.advance_block_type),
+      advance_block_match: Boolean(point.advance_block_match),
+      advance_block_match_status: stringOrEmpty(point.advance_block_match_status),
+      advance_valid: point.advance_valid !== false,
+      observation_status: stringOrEmpty(point.observation_status),
+      observation_reasons: stringOrEmpty(point.observation_reasons),
+      validation_status: stringOrEmpty(point.validation_status) || (point.advance_valid === false ? "no_defendible" : "validada"),
+      source_effective: point.advance_valid !== false,
+      issues: stringOrEmpty(point.issues),
+    } satisfies TerritorialResponseAuditRow;
+  });
 }
 
 function territorialGeoSummary(rows: TerritorialResponseAuditRow[]) {
@@ -4945,6 +14182,26 @@ function territorialGeoSummary(rows: TerritorialResponseAuditRow[]) {
   return counts;
 }
 
+function territorialGeoDispositionSummary(rows: TerritorialGeoCase[]) {
+  const counts: Record<TerritorialGeoDispositionKey, number> = {
+    en_zona: 0,
+    en_distrito: 0,
+    fuera_distrito: 0,
+    sin_gps: 0,
+  };
+  rows.forEach((item) => {
+    counts[item.geoDisposition] += 1;
+  });
+  return counts;
+}
+
+function territorialGeoDispositionMeta(value: TerritorialGeoDispositionKey) {
+  if (value === "en_zona") return { label: "En zona", shortLabel: "Zona", detail: "dentro de zona" };
+  if (value === "en_distrito") return { label: "Fuera de zona", shortLabel: "Fuera zona", detail: "en distrito" };
+  if (value === "fuera_distrito") return { label: "Fuera de zona", shortLabel: "Fuera zona", detail: "fuera de distrito" };
+  return { label: "Sin GPS", shortLabel: "Sin GPS", detail: "sin coordenada" };
+}
+
 function territorialDurationStatusFromSeconds(seconds: number | null, config: MonitoreoConfig) {
   if (seconds == null) return "sin_dato";
   if (seconds < config.territorial.min_duration_seconds) return "muy_corta";
@@ -4959,7 +14216,8 @@ function territorialDurationBand(row: TerritorialResponseAuditRow, config: Monit
   const key = stringOrEmpty(row.duration_status) || territorialDurationStatusFromSeconds(seconds, config);
   if (key === "muy_corta") return { key, label: "Muy corta", detail: `< ${formatDurationLabel(config.territorial.min_duration_seconds)}` };
   if (key === "corta") return { key, label: "Corta", detail: `< ${formatDurationLabel(territorialShortDurationSeconds(config))}` };
-  if (key === "larga" || key === "extrema") return { key: "esperada", label: "En rango", detail: "normal en campo" };
+  if (key === "extrema") return { key, label: "Extrema", detail: `> ${formatDurationLabel(Math.max(config.territorial.max_duration_seconds * 3, 12 * 3600))}` };
+  if (key === "larga") return { key, label: "Larga", detail: `> ${formatDurationLabel(config.territorial.max_duration_seconds)}` };
   if (key === "esperada") return { key, label: "En rango", detail: "sin alerta" };
   return { key: "sin_dato", label: "Sin dato", detail: "sin duración" };
 }
@@ -5151,23 +14409,83 @@ function TerritorialValidationGeoWorkbench({
   selectedResponseId?: string;
   onSelectResponse?: (responseId: string) => void;
 }) {
-  const gpsRows = useMemo(() => rows.filter(territorialResponseHasGps), [rows]);
-  const selectedRow = useMemo(() => (
-    selectedResponseId ? rows.find((row) => row.response_id === selectedResponseId) ?? null : null
-  ), [rows, selectedResponseId]);
+  const effectiveRows = useMemo(() => rows.filter(territorialResponseIsEffective), [rows]);
+  const effectiveRowIds = useMemo(() => new Set(effectiveRows.map((row) => row.response_id).filter(Boolean)), [effectiveRows]);
+  const gpsRows = useMemo(() => effectiveRows.filter(territorialResponseHasGps), [effectiveRows]);
+  const routeBlocks = useMemo(() => {
+    const blocks = reports.map.blocks.length ? reports.map.blocks : reports.block_progress;
+    return blocks.filter((block) => territorialBlockStableKey(block)).sort(territorialRouteBlockComparator);
+  }, [reports]);
+  const pointsByResponse = useMemo(() => (
+    new Map(territorialKoboMapPoints(reports)
+      .filter((point) => effectiveRowIds.has(point.response_id))
+      .map((point) => [point.response_id, point]))
+  ), [effectiveRowIds, reports]);
+  const enrichedCases = useMemo(() => effectiveRows
+    .slice()
+    .sort((a, b) => {
+      const aGps = territorialResponseHasGps(a) ? 0 : 1;
+      const bGps = territorialResponseHasGps(b) ? 0 : 1;
+      if (aGps !== bGps) return aGps - bGps;
+      return (a.row_index ?? 0) - (b.row_index ?? 0);
+    })
+    .map((row) => territorialBuildGeoCase(row, routeBlocks, pointsByResponse.get(row.response_id))), [effectiveRows, pointsByResponse, routeBlocks]);
+  const districtSections = useMemo(() => territorialGeoBlockSections(enrichedCases), [enrichedCases]);
+  const districtSectionsFocusKey = useMemo(() => (
+    districtSections.flatMap((section) => section.blockGroups.map((group) => group.key)).join("|")
+  ), [districtSections]);
+  const [selectedGeoBlockKey, setSelectedGeoBlockKey] = useState("");
+  const [focusPointId, setFocusPointId] = useState("");
+  const appliedResponseFocusRef = useRef("");
+  useEffect(() => {
+    const available = new Set(districtSections.flatMap((section) => section.blockGroups.map((group) => group.key)));
+    if (selectedGeoBlockKey && available.has(selectedGeoBlockKey)) return;
+    setSelectedGeoBlockKey(districtSections[0]?.blockGroups[0]?.key ?? "");
+  }, [districtSections, selectedGeoBlockKey]);
+  useEffect(() => {
+    const responseId = stringOrEmpty(selectedResponseId).trim();
+    if (!responseId) return;
+    const focusKey = `${responseId}:${districtSectionsFocusKey}`;
+    if (appliedResponseFocusRef.current === focusKey) return;
+    const targetGroup = districtSections
+      .flatMap((section) => section.blockGroups)
+      .find((group) => group.rows.some((item) => item.row.response_id === responseId));
+    if (!targetGroup) return;
+    appliedResponseFocusRef.current = focusKey;
+    setSelectedGeoBlockKey(targetGroup.key);
+    setFocusPointId(responseId);
+  }, [districtSections, districtSectionsFocusKey, selectedResponseId]);
+  const selectedBlockGroup = useMemo(() => (
+    districtSections.flatMap((section) => section.blockGroups).find((group) => group.key === selectedGeoBlockKey)
+      ?? districtSections[0]?.blockGroups[0]
+      ?? null
+  ), [districtSections, selectedGeoBlockKey]);
+  useEffect(() => {
+    if (!focusPointId) return;
+    const belongsToSelectedGroup = selectedBlockGroup?.rows.some((item) => item.row.response_id === focusPointId);
+    if (!belongsToSelectedGroup) setFocusPointId("");
+  }, [focusPointId, selectedBlockGroup]);
+  const selectGeoBlock = useCallback((key: string) => {
+    setSelectedGeoBlockKey(key);
+    setFocusPointId("");
+  }, []);
   return (
     <div className="mon-territorial-validation-geo-workbench">
       <TerritorialValidationGeoRouteMap
         reports={reports}
-        rows={rows}
-        selectedResponseId={selectedResponseId}
-        onSelectResponse={onSelectResponse}
+        rows={effectiveRows}
+        selectedBlock={selectedBlockGroup?.titularBlock ?? selectedBlockGroup?.block ?? null}
+        selectedRouteBlocks={selectedBlockGroup?.routeBlocks ?? []}
+        selectedBlockCases={selectedBlockGroup?.rows ?? []}
+        focusPointId={focusPointId}
       />
       <TerritorialGeoCaseList
-        rows={rows}
+        districtSections={districtSections}
         gpsRows={gpsRows}
-        selectedRow={selectedRow}
-        selectedResponseId={selectedResponseId}
+        selectedBlockKey={selectedBlockGroup?.key ?? ""}
+        focusPointId={focusPointId}
+        onSelectBlock={selectGeoBlock}
+        onFocusPoint={setFocusPointId}
         onSelectResponse={onSelectResponse}
       />
     </div>
@@ -5177,28 +14495,46 @@ function TerritorialValidationGeoWorkbench({
 function TerritorialValidationGeoRouteMap({
   reports,
   rows,
-  selectedResponseId,
-  onSelectResponse,
+  selectedBlock,
+  selectedRouteBlocks,
+  selectedBlockCases,
+  focusPointId,
+  fitSelectedPoints = false,
 }: {
   reports: MonitoreoTerritorialDashboard;
   rows: TerritorialResponseAuditRow[];
-  selectedResponseId?: string;
-  onSelectResponse?: (responseId: string) => void;
+  selectedBlock: TerritorialBlockProgress | null;
+  selectedRouteBlocks: TerritorialBlockProgress[];
+  selectedBlockCases: TerritorialGeoCase[];
+  focusPointId: string;
+  fitSelectedPoints?: boolean;
 }) {
-  const points = useMemo(() => territorialKoboMapPoints(reports), [reports]);
+  const rowIds = useMemo(() => new Set(rows.map((row) => row.response_id).filter(Boolean)), [rows]);
+  const points = useMemo(() => territorialKoboMapPoints(reports)
+    .filter((point) => rowIds.has(point.response_id)), [reports, rowIds]);
   const rowsById = useMemo(() => new Map(rows.map((row) => [row.response_id, row])), [rows]);
   const blocks = reports.map.blocks.length ? reports.map.blocks : reports.block_progress;
-  const selectedPoint = selectedResponseId ? points.find((point) => point.response_id === selectedResponseId) ?? null : null;
-  const activePoint = selectedPoint ?? points[0] ?? null;
-  const activeRow = selectedResponseId
-    ? rowsById.get(selectedResponseId) ?? null
-    : activePoint?.response_id
-      ? rowsById.get(activePoint.response_id) ?? null
-      : null;
+  const selectedCasePoints = useMemo(() => selectedBlockCases
+    .map((item) => {
+      const point = points.find((candidate) => candidate.response_id === item.row.response_id);
+      return point ? { ...point, geoDisposition: item.geoDisposition } : null;
+    })
+    .filter((point): point is TerritorialKoboMapPoint & { geoDisposition: TerritorialGeoDispositionKey } => Boolean(point))
+    .map((point, index) => ({ ...point, pointNumber: index + 1 })), [points, selectedBlockCases]);
+  const focusCase = focusPointId ? selectedBlockCases.find((item) => item.row.response_id === focusPointId) ?? null : null;
+  const focusRow = focusCase?.row ?? null;
+  const focusPoint = focusPointId ? selectedCasePoints.find((point) => point.response_id === focusPointId) ?? null : null;
+  const activePoint = focusPoint ?? (focusRow ? null : selectedCasePoints[0] ?? points[0] ?? null);
+  const activeRow = focusRow
+    ?? selectedBlockCases[0]?.row
+    ?? (activePoint?.response_id ? rowsById.get(activePoint.response_id) ?? null : null);
   const activeNearestBlockId = normalizeTerritorialBlockCode(activeRow?.nearest_block_id || activePoint?.nearest_block_id);
-  const activeRouteBlock = activeNearestBlockId
+  const activeMatchedRouteBlock = activeNearestBlockId
     ? blocks.find((block) => territorialBlockMatchesNormalizedId(block, activeNearestBlockId)) ?? null
     : null;
+  const activeRouteBlock = selectedBlock
+    ?? activeMatchedRouteBlock
+    ?? null;
   const activeSpatialDistrict = activePoint
     ? TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => territorialPointInDistrictFeature(activePoint.lonValue, activePoint.latValue, feature)) ?? null
     : null;
@@ -5221,13 +14557,8 @@ function TerritorialValidationGeoRouteMap({
     TERRITORIAL_LIMA_MAP_HEIGHT,
     TERRITORIAL_ROUTE_MIN_ZOOM,
     TERRITORIAL_LIMA_MAP_MAX_ZOOM,
-    TERRITORIAL_ROUTE_AUTO_ZOOM,
+    TERRITORIAL_VALIDATION_GEO_INITIAL_ZOOM,
   );
-  const routeDistrictUbigeos = useMemo(() => (
-    Array.from(new Set(blocks.map((block) => normalizeTerritorialBlockCode(block.ubigeo)).filter(Boolean))).slice(0, 12)
-  ), [blocks]);
-  const routeDistrictUbigeosKey = routeDistrictUbigeos.join("|");
-
   useEffect(() => {
     if (!selectedUbigeo) {
       setBlockMap(null);
@@ -5269,26 +14600,6 @@ function TerritorialValidationGeoRouteMap({
     return () => { cancelled = true; };
   }, [selectedUbigeo]);
 
-  useEffect(() => {
-    if (!routeDistrictUbigeos.length) return undefined;
-    let cancelled = false;
-    const timers: number[] = [];
-    const startTimer = window.setTimeout(() => {
-      routeDistrictUbigeos.forEach((ubigeo, index) => {
-        if (!ubigeo || ubigeo === selectedUbigeo) return;
-        const timer = window.setTimeout(() => {
-          if (!cancelled) void loadTerritorialRouteCartography(ubigeo);
-        }, index * 140);
-        timers.push(timer);
-      });
-    }, 350);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(startTimer);
-      timers.forEach((timer) => window.clearTimeout(timer));
-    };
-  }, [routeDistrictUbigeos, routeDistrictUbigeosKey, selectedUbigeo]);
-
   const districtBlocks = useMemo(() => (
     selectedUbigeo ? blocks.filter((block) => normalizeTerritorialBlockCode(block.ubigeo) === selectedUbigeo) : blocks
   ), [blocks, selectedUbigeo]);
@@ -5300,6 +14611,18 @@ function TerritorialValidationGeoRouteMap({
       ? routeFeatures.find((item) => territorialBlockStableKey(item.block) === activeBlockStableKey) ?? null
       : null
   ), [activeBlockStableKey, routeFeatures]);
+  const activeRouteSet = useMemo(() => (
+    selectedRouteBlocks.length
+      ? territorialRouteSetFromBlocks(selectedRouteBlocks, activeRouteBlock)
+      : territorialResolveGeoRouteSet(activeRouteBlock, districtBlocks)
+  ), [activeRouteBlock, districtBlocks, selectedRouteBlocks]);
+  const activeRouteSetKeys = useMemo(() => new Set(activeRouteSet.routeBlocks.map(territorialBlockStableKey).filter(Boolean)), [activeRouteSet]);
+  const activeRouteSetFeatures = useMemo(() => (
+    routeFeatures.filter((item) => activeRouteSetKeys.has(territorialBlockStableKey(item.block)))
+  ), [activeRouteSetKeys, routeFeatures]);
+  const activeRouteSetAnchors = useMemo(() => (
+    activeRouteSetFeatures.flatMap((item) => item.centroid ? [item.centroid] : [])
+  ), [activeRouteSetFeatures]);
   const zoneFeatures = zoneMap?.geojson?.features ?? [];
   const activeSpatialZone = activePoint
     ? zoneFeatures.find((feature) => (
@@ -5315,7 +14638,7 @@ function TerritorialValidationGeoRouteMap({
   const selectedZoneFeature = selectedZoneKey
     ? zoneFeatures.find((feature) => territorialZoneFeatureKey(feature) === selectedZoneKey) ?? null
     : null;
-  const activeZoneRouteFeatures = routeFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey);
+  const activeZoneRouteFeatures = activeRouteSetFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey);
   const routeZoneKeys = useMemo(() => new Set(districtBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean)), [districtBlocks]);
   const routeZoneFeatures = useMemo(() => (
     zoneFeatures.filter((feature) => routeZoneKeys.has(territorialZoneFeatureKey(feature)))
@@ -5327,34 +14650,10 @@ function TerritorialValidationGeoRouteMap({
     ?? (activePoint ? { lon: activePoint.lonValue, lat: activePoint.latValue } : null)
     ?? (selectedZoneFeature ? territorialZoneCentroid(selectedZoneFeature) : null)
     ?? (districtFeature ? territorialDistrictCentroid(districtFeature) : null);
-  const neighborDistrictFeatures = useMemo(() => {
-    if (!districtFeature || !activeAnchor) return [];
-    const ranked = TERRITORIAL_LIMA_DISTRICT_FEATURES
-      .filter((feature) => feature.properties.ubigeo !== selectedUbigeo)
-      .map((feature) => ({
-        feature,
-        distance: territorialDistrictDistanceToAnchor(feature, activeAnchor),
-      }))
-      .filter((item): item is { feature: TerritorialDistrictFeature; distance: number } => Number.isFinite(item.distance))
-      .sort((a, b) => a.distance - b.distance);
-    const nearby = ranked.filter((item) => (
-      item.distance <= TERRITORIAL_ROUTE_CONTEXT_RADIUS_M + TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_BUFFER_M
-    ));
-    return (nearby.length ? nearby : ranked.slice(0, 8))
-      .slice(0, TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT)
-      .map((item) => item.feature);
-  }, [activeAnchor, districtFeature, selectedUbigeo]);
-  const neighborDistrictUbigeos = useMemo(() => (
-    neighborDistrictFeatures
-      .map((feature) => feature.properties.ubigeo)
-      .filter((ubigeo) => ubigeo && ubigeo !== selectedUbigeo)
-      .slice(0, TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT)
-  ), [neighborDistrictFeatures, selectedUbigeo]);
-  const externalContextUbigeos = useMemo(() => (
-    Array.from(new Set([...neighborDistrictUbigeos, ...routeDistrictUbigeos]))
-      .filter((ubigeo) => ubigeo && ubigeo !== selectedUbigeo)
-      .slice(0, TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT)
-  ), [neighborDistrictUbigeos, routeDistrictUbigeos, selectedUbigeo]);
+  // Keep validation maps scoped to the active district; neighbor context can be
+  // reintroduced later behind an explicit detail action.
+  const neighborDistrictFeatures = useMemo<TerritorialDistrictFeature[]>(() => [], []);
+  const externalContextUbigeos = useMemo<string[]>(() => [], []);
   const externalContextUbigeosKey = externalContextUbigeos.join("|");
 
   useEffect(() => {
@@ -5379,8 +14678,8 @@ function TerritorialValidationGeoRouteMap({
   }, [externalContextUbigeosKey, selectedUbigeo]);
 
   const routeFeatureKeys = useMemo(() => (
-    new Set(routeFeatures.map((item) => territorialFeatureStableKey(item.feature)))
-  ), [routeFeatures]);
+    new Set(activeRouteSetFeatures.map((item) => territorialFeatureStableKey(item.feature)))
+  ), [activeRouteSetFeatures]);
   const districtContextFeatures = useMemo(() => (
     blockFeatures.filter((feature) => !routeFeatureKeys.has(territorialFeatureStableKey(feature)))
   ), [blockFeatures, routeFeatureKeys]);
@@ -5390,25 +14689,21 @@ function TerritorialValidationGeoRouteMap({
   const nearbyContextFeatures = useMemo(() => selectTerritorialRouteRadialContext({
     sameDistrictFeatures: districtContextFeatures,
     externalDistrictFeatures: externalDistrictContextFeatures,
-    routeFeatures,
+    routeFeatures: activeRouteSetFeatures,
     selectedFeature,
     selectedZoneKey,
     anchorPoint: activeAnchor,
-  }), [activeAnchor, districtContextFeatures, externalDistrictContextFeatures, routeFeatures, selectedFeature, selectedZoneKey]);
+    anchorPoints: activeRouteSetAnchors,
+    radiusMeters: TERRITORIAL_VALIDATION_ROUTE_CONTEXT_RADIUS_M,
+  }), [activeAnchor, activeRouteSetAnchors, activeRouteSetFeatures, districtContextFeatures, externalDistrictContextFeatures, selectedFeature, selectedZoneKey]);
   const visibleStreetFeatures = useMemo(() => sampleTerritorialStreetFeatures(streetMap?.geojson?.features ?? []), [streetMap]);
   const visibleContextFeatures = useMemo(() => sampleTerritorialContextFeatures(contextMap?.geojson?.features ?? []), [contextMap]);
-  const mapPoints = useMemo(() => (
-    points.filter((point) => {
-      if (!selectedUbigeo) return true;
-      if (activePoint?.response_id && point.response_id === activePoint.response_id) return true;
-      const declaredUbigeo = normalizeTerritorialBlockCode(point.ubigeo);
-      if (declaredUbigeo === selectedUbigeo) return true;
-      return Boolean(districtFeature && territorialPointInDistrictFeature(point.lonValue, point.latValue, districtFeature));
-    })
-  ), [activePoint?.response_id, districtFeature, points, selectedUbigeo]);
+  const mapPoints = selectedCasePoints;
   const projectionFeatures = useMemo(() => {
+    const routeSetGeometry = activeRouteSetFeatures.map((item) => item.feature);
     if (selectedFeature) return [
       selectedFeature.feature,
+      ...routeSetGeometry,
       ...activeZoneRouteFeatures.map((item) => item.feature),
       ...nearbyContextFeatures.projectionFeatures,
     ];
@@ -5416,32 +14711,120 @@ function TerritorialValidationGeoRouteMap({
     if (activeZoneRouteFeatures.length) return activeZoneRouteFeatures.map((item) => item.feature);
     if (selectedZoneKey) return blockFeatures.filter((feature) => territorialFeatureZoneKey(feature) === selectedZoneKey).slice(0, 96);
     return blockFeatures.slice(0, 96);
-  }, [activeZoneRouteFeatures, blockFeatures, nearbyContextFeatures.projectionFeatures, selectedFeature, selectedZoneKey]);
+  }, [activeRouteSetFeatures, activeZoneRouteFeatures, blockFeatures, nearbyContextFeatures.projectionFeatures, selectedFeature, selectedZoneKey]);
   const projectionZones = useMemo(() => (
     selectedZoneFeature
       ? [selectedZoneFeature]
       : routeZoneFeatures
   ), [routeZoneFeatures, selectedZoneFeature]);
   const projectionDistricts = !selectedFeature && !selectedZoneFeature && districtFeature ? [districtFeature] : [];
-  const projectionPoints = activePoint ? [activePoint] : mapPoints.slice(0, 1);
+  const projectionPoints = focusPoint
+    ? [focusPoint, ...mapPoints.filter((point) => point.response_id !== focusPoint.response_id)]
+    : mapPoints.length
+      ? mapPoints
+      : activePoint
+        ? [activePoint]
+        : [];
   const projection = useMemo(() => buildTerritorialMapProjection(
     projectionPoints,
     projectionDistricts,
     projectionFeatures,
     projectionZones,
   ), [projectionDistricts, projectionFeatures, projectionPoints, projectionZones]);
+  const selectedCasePointFocus = useMemo(() => {
+    if (!fitSelectedPoints || focusPoint || !selectedCasePoints.length) return null;
+    const projected = selectedCasePoints
+      .filter((point) => Number.isFinite(point.lonValue) && Number.isFinite(point.latValue))
+      .map((point) => projection.project(point.lonValue, point.latValue));
+    if (!projected.length) return null;
+    const minX = Math.min(...projected.map((point) => point.x));
+    const maxX = Math.max(...projected.map((point) => point.x));
+    const minY = Math.min(...projected.map((point) => point.y));
+    const maxY = Math.max(...projected.map((point) => point.y));
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  }, [fitSelectedPoints, focusPoint, projection, selectedCasePoints]);
+  const selectedFeatureKey = selectedFeature?.key ?? "";
+  const activeRouteBlockKey = activeRouteBlock ? territorialBlockStableKey(activeRouteBlock) : "";
+  const routeAnchorFeatureKey = (
+    activeRouteSetFeatures.find((item) => item.block.tipo_manzana !== "reemplazo")?.key
+    ?? selectedFeatureKey
+  );
+  const routeMapLabels = useMemo(() => {
+    if (!projection.hasGeometry) return [];
+    const labels: TerritorialRouteMapLabel[] = [];
+    activeRouteSetFeatures.forEach((item) => {
+      if (!item.centroid) return;
+      const blockKey = territorialBlockStableKey(item.block);
+      const active = item.key === selectedFeatureKey || blockKey === activeRouteBlockKey;
+      labels.push({
+        id: `validation-route-block-${item.key}`,
+        text: territorialRouteMapBlockLabel(item.block),
+        kind: active
+          ? "active-route-block"
+          : item.block.tipo_manzana === "reemplazo"
+            ? "replacement-block"
+            : "route-block",
+        priority: active ? 130 : item.block.tipo_manzana === "reemplazo" ? 116 : 112,
+        anchorPoint: projection.project(item.centroid.lon, item.centroid.lat),
+        screenOffset: territorialRouteMapBlockLabelOffset(item.block),
+      });
+    });
+    if (districtFeature) {
+      const activeCentroid = territorialDistrictCentroid(districtFeature);
+      const activeLabelAnchor = territorialActiveDistrictLabelPoint(districtFeature, activeAnchor);
+      if (activeCentroid && activeLabelAnchor) {
+        labels.push({
+          id: `validation-district-active-${districtFeature.properties.ubigeo}`,
+          text: districtFeature.properties.distrito || activeRow?.distrito || "Distrito",
+          kind: "active-district",
+          priority: 96,
+          anchorPoint: projection.project(activeLabelAnchor.lon, activeLabelAnchor.lat),
+        });
+        neighborDistrictFeatures.forEach((feature) => {
+          const anchor = territorialNeighborDistrictLabelPoint(feature, activeAnchor ?? activeCentroid);
+          if (!anchor) return;
+          labels.push({
+            id: `validation-district-neighbor-${feature.properties.ubigeo}`,
+            text: feature.properties.distrito,
+            kind: "neighbor-district",
+            priority: 44,
+            anchorPoint: projection.project(anchor.lon, anchor.lat),
+          });
+        });
+      }
+    }
+    zoneFeatures.forEach((feature) => {
+      const key = territorialZoneFeatureKey(feature);
+      const centroid = territorialZoneCentroid(feature);
+      if (!key || !centroid) return;
+      const route = routeZoneKeys.has(key);
+      const active = key === selectedZoneKey;
+      labels.push({
+        id: `validation-zone-${key}`,
+        text: territorialZoneDisplayLabel(feature),
+        kind: active ? "active-zone" : route ? "route-zone" : "context-zone",
+        priority: active ? 100 : route ? 68 : 22,
+        anchorPoint: projection.project(centroid.lon, centroid.lat),
+      });
+    });
+    return labels;
+  }, [activeAnchor, activeRouteBlockKey, activeRouteSetFeatures, activeRow?.distrito, districtFeature, neighborDistrictFeatures, projection, routeZoneKeys, selectedFeatureKey, selectedZoneKey, zoneFeatures]);
   const autoFocusKeyRef = useRef("");
   const autoFocusDistrictRef = useRef("");
   useEffect(() => {
     const autoFocusKey = [
-      selectedResponseId || activePoint?.response_id || "sin-caso",
+      selectedFeature?.key || activeRouteBlock?.id_manzana || "sin-manzana",
       selectedUbigeo || "sin-distrito",
-      selectedFeature?.key || "sin-manzana",
+      focusPointId || "sin-punto-observable",
       projection.hasGeometry ? "geom" : "no-geom",
     ].join("|");
     if (autoFocusKeyRef.current === autoFocusKey) return;
     autoFocusKeyRef.current = autoFocusKey;
-    const centerPoint = selectedFeature?.centroid
+    const centerPoint = focusPoint
+      ? projection.project(focusPoint.lonValue, focusPoint.latValue)
+      : selectedCasePointFocus
+        ? selectedCasePointFocus
+      : selectedFeature?.centroid
       ? projection.project(selectedFeature.centroid.lon, selectedFeature.centroid.lat)
       : activePoint
         ? projection.project(activePoint.lonValue, activePoint.latValue)
@@ -5455,26 +14838,47 @@ function TerritorialValidationGeoRouteMap({
     }
     const sameDistrict = Boolean(autoFocusDistrictRef.current && autoFocusDistrictRef.current === selectedUbigeo);
     autoFocusDistrictRef.current = selectedUbigeo || "";
-    navigation.zoomTo(TERRITORIAL_ROUTE_AUTO_ZOOM, centerPoint.x, centerPoint.y, { animate: sameDistrict, durationMs: 420 });
+    const targetZoom = focusPoint
+      ? TERRITORIAL_VALIDATION_GEO_POINT_ZOOM
+      : selectedCasePointFocus
+        ? TERRITORIAL_VALIDATION_GEO_INITIAL_ZOOM
+      : activeRouteBlock
+        ? TERRITORIAL_VALIDATION_GEO_BLOCK_ZOOM
+        : TERRITORIAL_VALIDATION_GEO_INITIAL_ZOOM;
+    navigation.zoomTo(targetZoom, centerPoint.x, centerPoint.y, { animate: sameDistrict, durationMs: 420 });
   }, [
     activeAnchor,
     activePoint,
+    focusPoint,
+    focusPointId,
     navigation.reset,
     navigation.zoomTo,
     projection,
+    selectedCasePointFocus,
     selectedFeature?.centroid,
-    selectedResponseId,
+    activeRouteBlock?.id_manzana,
     selectedUbigeo,
   ]);
-  const selectedFeatureKey = selectedFeature?.key ?? "";
+  const relatedReplacementKeys = useMemo(() => (
+    activeRouteSet.replacementBlocks.length
+      ? new Set(activeRouteSet.replacementBlocks.map(territorialBlockStableKey).filter(Boolean))
+      : territorialRelatedReplacementBlockKeys(activeRouteBlock, districtBlocks)
+  ), [activeRouteBlock, activeRouteSet, districtBlocks]);
   const zoomClass = navigation.zoom >= 2.2 ? "is-zoom-blocks" : navigation.zoom >= 1.55 ? "is-zoom-detail" : "is-zoom-general";
-  const pointScale = 1 / Math.max(1, navigation.zoom);
-  const geoSummary = territorialGeoSummary(rows);
-  const activeTitle = activeRow
-    ? `${activeRow.distrito || activeRow.district_code || activeSpatialDistrict?.properties.distrito || "Sin distrito"} · ${geoStatusLabel(activeRow.geo_estado)}`
-    : activePoint
-      ? `${activePoint.distrito || activeSpatialDistrict?.properties.distrito || "Sin distrito"} · ${geoStatusLabel(activePoint.geo_estado)}`
-      : "Sin punto GPS";
+  const geoSummary = territorialGeoDispositionSummary(selectedBlockCases);
+  const activeTitle = activeRouteBlock
+    ? `${activeRouteBlock.distrito || "Sin distrito"} · ${territorialRouteOperationalLabel(activeRouteBlock)} · ${territorialPhysicalBlockLabel(activeRouteBlock)}`
+    : "Selecciona una manzana";
+  const selectedGpsCaseCount = selectedBlockCases.filter((item) => territorialResponseHasGps(item.row)).length;
+  const mapEmptyMessage = !points.length && rows.some(territorialResponseHasGps)
+    ? "El reporte de validación no incluye puntos GPS. Actualiza la validación."
+    : selectedBlockCases.length && !selectedGpsCaseCount
+      ? "Hay respuestas asociadas a esta UMP, pero no tienen geolocalización."
+      : selectedBlockCases.length && !mapPoints.length
+        ? "No hay puntos GPS para esta UMP."
+        : !selectedBlockCases.length
+          ? "No hay respuestas asociadas a esta UMP."
+          : "";
   const zoomFromControl = (factor: number) => {
     navigation.setZoom(navigation.zoom * factor);
   };
@@ -5528,9 +14932,13 @@ function TerritorialValidationGeoRouteMap({
               neighborFeatures={nearbyContextFeatures.sameDistrictFeatures}
               focusZoneFeatures={nearbyContextFeatures.activeZoneFeatures}
               externalNeighborFeatures={nearbyContextFeatures.externalDistrictFeatures}
-              selectedFeatures={routeFeatures}
+              selectedFeatures={activeRouteSetFeatures}
               selectedBlockKey={selectedFeatureKey}
-              routeMapLabels={[]}
+              relatedBlockKeys={relatedReplacementKeys}
+              routeAnchorBlockKey={routeAnchorFeatureKey}
+              routeMapLabels={routeMapLabels}
+              koboPoints={mapPoints}
+              selectedPointId={focusPointId}
               mode="route"
             />
             <svg
@@ -5540,135 +14948,595 @@ function TerritorialValidationGeoRouteMap({
               role="img"
               aria-label="Mapa de Hojas de Ruta con puntos GPS de Kobo"
             >
-              <g transform={navigation.transform}>
-                <g className="mon-territorial-map-points" aria-label="Puntos de encuestas Kobo">
-                  {mapPoints.map((point, index) => {
-                    const { x, y } = projection.project(point.lonValue, point.latValue);
-                    const selected = (selectedPoint?.response_id || (!selectedResponseId ? activePoint?.response_id : "")) === point.response_id;
-                    const coreRadius = selected ? 3.8 : point.geo_estado === "geo_ok" ? 2.6 : 2.9;
-                    return (
-                      <g
-                        key={`${point.response_id || "gps"}-${index}`}
-                        className={`mon-territorial-map-point-node ${territorialGeoClass(point.geo_estado)}${selected ? " is-selected" : ""}`}
-                        transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Caso Kobo ${point.response_id || index}, ${geoStatusLabel(point.geo_estado)}`}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (navigation.suppressClick()) return;
-                          if (point.response_id) onSelectResponse?.(point.response_id);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            if (point.response_id) onSelectResponse?.(point.response_id);
-                          }
-                        }}
-                      >
-                        <circle className="mon-territorial-map-point-hit" r="6.4" />
-                        {selected && <circle className="mon-territorial-map-point-focus" r="6.2" />}
-                        <circle className="mon-territorial-map-point-core" r={coreRadius} />
-                        <title>{`${shortenMiddle(point.response_id || "sin id", 28)} · ${geoStatusLabel(point.geo_estado)} · ${point.latValue.toFixed(6)}, ${point.lonValue.toFixed(6)} · ${formatDistanceLabel(point.distance_m)}`}</title>
-                      </g>
-                    );
-                  })}
-                </g>
-              </g>
               <text className="mon-territorial-map-caption" x="18" y={TERRITORIAL_LIMA_MAP_HEIGHT - 18}>
                 {`${selectedUbigeo ? activeTitle : "GPS y manzanas"} · ${formatMetric(mapPoints.length)} puntos visibles · ${formatMetric(points.length)} puntos Kobo`}
               </text>
             </svg>
+            {mapEmptyMessage ? (
+              <div className="mon-territorial-validation-geo-empty-note">
+                {mapEmptyMessage}
+              </div>
+            ) : null}
+            <div className="mon-territorial-validation-geo-map-footer" aria-label="Resumen GPS y manzanas">
+              <span className="is-en_zona"><strong>{formatMetric(geoSummary.en_zona)}</strong><em>En zona</em></span>
+              <span className="is-en_distrito"><strong>{formatMetric(geoSummary.en_distrito)}</strong><em>Fuera zona</em></span>
+              <span className="is-fuera_distrito"><strong>{formatMetric(geoSummary.fuera_distrito)}</strong><em>Fuera distrito</em></span>
+              <span className="is-sin_gps"><strong>{formatMetric(geoSummary.sin_gps)}</strong><em>Sin GPS</em></span>
+            </div>
           </div>
         ) : (
-          <EmptyState icon={<MapPin size={18} />} title="Sin puntos GPS para mapear" hint="La lista mantiene todos los casos; selecciona un caso con GPS para centrar el mapa." />
+          <EmptyState icon={<MapPin size={18} />} title="Sin manzana para mapear" hint={mapEmptyMessage || "Selecciona una manzana con puntos GPS asignados para centrar el mapa."} />
         )}
         {mapError ? <div className="mon-territorial-map-error">{mapError}</div> : null}
-        <div className="mon-territorial-validation-geo-map-footer" aria-label="Resumen GPS y manzanas">
-          <span className="is-geo_ok"><strong>{formatMetric(geoSummary.geo_ok)}</strong><em>Dentro</em></span>
-          <span className="is-geo_cerca"><strong>{formatMetric(geoSummary.geo_cerca)}</strong><em>Cerca</em></span>
-          <span className="is-geo_revision"><strong>{formatMetric(geoSummary.geo_revision)}</strong><em>Revisión</em></span>
-          <span className="is-geo_no_defendible"><strong>{formatMetric(geoSummary.geo_no_defendible)}</strong><em>Fuera</em></span>
-          <span className="is-geo_sin_gps"><strong>{formatMetric(geoSummary.geo_sin_gps)}</strong><em>Sin GPS</em></span>
-        </div>
       </section>
     </Tooltip.Provider>
   );
 }
 
 function TerritorialGeoCaseList({
-  rows,
+  districtSections,
   gpsRows,
-  selectedRow,
-  selectedResponseId,
+  selectedBlockKey,
+  focusPointId,
+  onSelectBlock,
+  onFocusPoint,
   onSelectResponse,
 }: {
-  rows: TerritorialResponseAuditRow[];
+  districtSections: TerritorialGeoDistrictSection[];
   gpsRows: TerritorialResponseAuditRow[];
-  selectedRow: TerritorialResponseAuditRow | null;
-  selectedResponseId?: string;
+  selectedBlockKey: string;
+  focusPointId: string;
+  onSelectBlock: (key: string) => void;
+  onFocusPoint: (responseId: string) => void;
   onSelectResponse?: (responseId: string) => void;
 }) {
-  const ordered = useMemo(() => [...rows].sort((a, b) => {
-    const aGps = territorialResponseHasGps(a) ? 0 : 1;
-    const bGps = territorialResponseHasGps(b) ? 0 : 1;
-    if (aGps !== bGps) return aGps - bGps;
-    return (a.row_index ?? 0) - (b.row_index ?? 0);
-  }), [rows]);
+  const totalRows = useMemo(() => districtSections.reduce((sum, section) => sum + section.caseCount, 0), [districtSections]);
+  const prefersReducedMotion = useReducedMotion();
+  const selectedBlockGroup = useMemo(() => (
+    districtSections.flatMap((section) => section.blockGroups).find((group) => group.key === selectedBlockKey)
+      ?? districtSections[0]?.blockGroups[0]
+      ?? null
+  ), [districtSections, selectedBlockKey]);
+  const [expandedBlockKey, setExpandedBlockKey] = useState("");
+  useEffect(() => {
+    setExpandedBlockKey((previous) => {
+      if (!previous) return "";
+      const available = new Set(districtSections.flatMap((section) => section.blockGroups.map((group) => group.key)));
+      return available.has(previous) ? previous : "";
+    });
+  }, [districtSections]);
+  const toggleBlock = (key: string) => {
+    setExpandedBlockKey((previous) => (previous === key ? "" : key));
+  };
+  const selectBlock = (key: string) => {
+    onSelectBlock(key);
+  };
+  const focusCasePoint = (groupKey: string, responseId: string) => {
+    if (!responseId) return;
+    selectBlock(groupKey);
+    onFocusPoint(responseId);
+    onSelectResponse?.(responseId);
+  };
   return (
     <section className="mon-territorial-geo-case-list" aria-label="Todos los casos geolocalizados">
       <header>
         <div>
-          <span><MapPin size={14} /> Todos los casos</span>
-          <p>Selecciona una encuesta para centrar el mapa en su GPS y revisar distancia a manzana.</p>
+          <span><MapPin size={14} /> Casos por manzana</span>
+          <p>UMP/manzana seleccionada y puntos GPS asociados.</p>
         </div>
-        <strong>{formatMetric(gpsRows.length)} GPS · {formatMetric(rows.length)} casos</strong>
+        <strong>{formatMetric(gpsRows.length)} GPS · {formatMetric(totalRows)} casos</strong>
       </header>
-      {selectedRow ? (
+      {selectedBlockGroup ? (
         <div className="mon-territorial-geo-selected-case">
-          <span className={`mon-territorial-band is-${territorialDistanceBand(selectedRow).key}`}>
-            {geoStatusLabel(selectedRow.geo_estado)}
-          </span>
-          <strong title={selectedRow.response_id}>{shortenMiddle(selectedRow.response_id || `Fila ${selectedRow.row_index}`, 30)}</strong>
+          <div className="mon-territorial-geo-selected-case-main">
+            <span className={`mon-territorial-route-badge ${selectedBlockGroup.block?.tipo_manzana === "reemplazo" ? "is-replacement" : "is-titular"}`}>
+              {selectedBlockGroup.block?.tipo_manzana === "reemplazo" ? "Reemplazo" : "UMP"}
+            </span>
+            <div>
+              <strong>{selectedBlockGroup.blockLabel}</strong>
+              <em>
+                {(selectedBlockGroup.block?.distrito || selectedBlockGroup.rows[0]?.distrito || "Sin distrito")}
+                {selectedBlockGroup.block?.zona ? ` · Zona ${selectedBlockGroup.block.zona}` : ""}
+              </em>
+            </div>
+          </div>
           <dl>
-            <div><dt>Distrito</dt><dd>{selectedRow.distrito || selectedRow.ubigeo || "Sin distrito"}</dd></div>
-            <div><dt>Distancia</dt><dd>{formatDistanceLabel(selectedRow.distance_m)}</dd></div>
-            <div><dt>Fecha</dt><dd>{formatTerritorialSubmissionStamp(selectedRow) || "S/D"}</dd></div>
-            <div><dt>GPS</dt><dd>{territorialResponseHasGps(selectedRow) ? `${Number(selectedRow.lat).toFixed(5)}, ${Number(selectedRow.lon).toFixed(5)}` : "Sin punto"}</dd></div>
+            <div><dt>Puntos GPS</dt><dd>{`${formatMetric(selectedBlockGroup.gpsCount)} punto${selectedBlockGroup.gpsCount === 1 ? "" : "s"}`}</dd></div>
+            <div><dt>Zona</dt><dd>{selectedBlockGroup.block?.zona || "S/D"}</dd></div>
+            <div className="is-wide"><dt>Responsable</dt><dd>{selectedBlockGroup.responsable}</dd></div>
           </dl>
         </div>
       ) : null}
       <div className="mon-territorial-geo-case-scroll">
-        {ordered.map((row) => {
-          const responseId = row.response_id || `row-${row.row_index}`;
-          const selected = selectedResponseId && selectedResponseId === row.response_id;
-          const hasGps = territorialResponseHasGps(row);
-          const band = territorialDistanceBand(row);
+        {districtSections.map((section) => {
+          const sectionMeta = section.kind === "outside_frame"
+            ? `${formatMetric(section.caseCount)} casos · punto observable`
+            : section.kind === "without_gps"
+              ? `${formatMetric(section.caseCount)} casos · hora registrada`
+              : `${section.ubigeo || "Sin ubigeo"} · ${formatMetric(section.caseCount)} casos · ${formatMetric(section.blockGroups.length)} UMP`;
           return (
-            <button
-              key={`${row.row_index}-${responseId}`}
-              type="button"
-              className={`mon-territorial-geo-case-row${selected ? " is-selected" : ""}${hasGps ? "" : " is-no-gps"}`}
-              onClick={() => { if (row.response_id) onSelectResponse?.(row.response_id); }}
-            >
-              <span className={`mon-territorial-geo-case-dot ${territorialGeoClass(row.geo_estado)}`} aria-hidden="true" />
-              <span className="mon-territorial-geo-case-main">
-                <strong title={responseId}>{shortenMiddle(responseId, 26)}</strong>
-                <em>{row.distrito || row.ubigeo || "Sin distrito"} · {territorialInterviewerLabel(row.submitted_by)}</em>
-              </span>
-              <span className="mon-territorial-geo-case-meta">
-                <b>{geoStatusLabel(row.geo_estado)}</b>
-                <small>{hasGps ? formatDistanceLabel(row.distance_m) : "sin punto"}</small>
-              </span>
-              <span className="mon-territorial-geo-case-date">{formatTerritorialSubmissionStamp(row) || `Fila ${formatMetric(row.row_index)}`}</span>
-              <span className={`mon-territorial-band is-${band.key}`}>{band.label}</span>
-            </button>
-          );
-        })}
+          <div key={section.key} className={`mon-territorial-geo-district-section is-${section.kind}`}>
+            <div className="mon-territorial-geo-district-heading">
+              <strong>{section.distrito}</strong>
+              <span>{section.kind === "route" ? sectionMeta : `${section.ubigeo} · ${sectionMeta}`}</span>
+            </div>
+            {section.blockGroups.map((group) => {
+              const expanded = expandedBlockKey === group.key;
+              const selectedGroup = selectedBlockKey === group.key;
+              const block = group.titularBlock ?? group.block;
+              const badgeLabel = group.replacementBlocks.length
+                ? `${formatMetric(group.replacementBlocks.length)} R`
+                : "UMP";
+              const pointCountLabel = group.gpsCount
+                ? `${formatMetric(group.gpsCount)} GPS`
+                : `${formatMetric(group.rows.length)} casos`;
+              const blockSubtitle = block
+                ? `${block.distrito || section.distrito || "Sin distrito"} · Zona ${block.zona || "S/D"}`
+                : group.assignmentLabel;
+              const reviewCount = group.reviewCount + group.noDefendibleCount;
+              const reviewLabel = reviewCount > 0 ? ` · ${formatMetric(reviewCount)} revisar` : "";
+              const casesPanelId = `geo-cases-${group.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+              return (
+                <div key={group.key} className="mon-territorial-geo-district-group">
+                  <div
+                    className={`mon-territorial-geo-district-trigger${selectedGroup ? " is-selected" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      className="mon-territorial-geo-district-expander"
+                      aria-label={`${expanded ? "Colapsar" : "Expandir"} ${group.blockLabel}`}
+                      aria-expanded={expanded}
+                      aria-controls={casesPanelId}
+                      onClick={() => toggleBlock(group.key)}
+                    >
+                      <ChevronDown size={14} className={expanded ? "is-expanded" : ""} />
+                    </button>
+                    <button
+                      type="button"
+                      className="mon-territorial-geo-district-main"
+                      aria-pressed={selectedGroup}
+                      onClick={() => selectBlock(group.key)}
+                    >
+                      <span className="mon-territorial-geo-district-copy">
+                        <strong>{group.blockLabel}</strong>
+                        <em>{blockSubtitle}</em>
+                      </span>
+                      <span className="mon-territorial-geo-district-count">{pointCountLabel}</span>
+                      <span className="mon-territorial-geo-district-owner">{group.responsable}{reviewLabel}</span>
+                      <span className="mon-territorial-route-badge is-titular">{badgeLabel}</span>
+                    </button>
+                  </div>
+                  <AnimatePresence initial={false}>
+                  {expanded ? (
+                    <motion.div
+                      id={casesPanelId}
+                      key={`${group.key}-cases`}
+                      className="mon-territorial-geo-district-cases"
+                      initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
+                      animate={prefersReducedMotion ? undefined : { height: "auto", opacity: 1 }}
+                      exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                    >
+                      {(() => {
+                        let gpsPointIndex = 0;
+                        return group.rows.map((item, index) => {
+                          const row = item.row;
+                          const hasGps = territorialResponseHasGps(row);
+                          if (hasGps) gpsPointIndex += 1;
+                          const pointLabel = hasGps ? `Punto ${formatMetric(gpsPointIndex)}` : "Sin GPS";
+                          const disposition = territorialGeoDispositionMeta(item.geoDisposition);
+                          const dispositionDetail = item.geoDisposition === "fuera_distrito" && item.spatialDistrito
+                            ? `${item.spatialDistrito}${item.spatialUbigeo ? ` · ${item.spatialUbigeo}` : ""}`
+                            : item.geoDisposition === "sin_gps"
+                              ? `Declarado: ${row.distrito || row.district_code || "sin dato"}`
+                              : disposition.detail;
+                          const stampParts = territorialSubmissionStampParts(row);
+                          const stamp = stampParts.label || `Fila ${formatMetric(row.row_index)}`;
+                          const codeLabel = territorialPulsoCodeLabel(row);
+                          const enumeratorLabel = territorialCaseResponsibleLabel(row, false);
+                          const focused = focusPointId && focusPointId === row.response_id;
+                          const rowClickable = Boolean(row.response_id);
+                          const placeLabel = item.geoDisposition === "sin_gps"
+                            ? dispositionDetail
+                            : item.spatialDistrito
+                              ? `${item.spatialDistrito}${item.spatialUbigeo ? ` · ${item.spatialUbigeo}` : ""}`
+                              : `${row.distrito || item.distrito || "Sin distrito"}${row.ubigeo || item.ubigeo ? ` · ${row.ubigeo || item.ubigeo}` : ""}`;
+                          return (
+                            <button
+                              type="button"
+                              key={`${row.row_index}-${row.response_id || index}`}
+                              className={`mon-territorial-geo-case-row is-static is-${item.geoDisposition}${hasGps ? "" : " is-no-gps"}${focused ? " is-focused-point" : ""}`}
+                              disabled={!rowClickable}
+                              aria-pressed={rowClickable ? Boolean(focused) : undefined}
+                              title={codeLabel !== "S/D" ? `Código Pulso: ${codeLabel}` : undefined}
+                              onClick={() => {
+                                if (rowClickable) focusCasePoint(group.key, row.response_id);
+                              }}
+                            >
+                              <span className={`mon-territorial-geo-case-dot is-${item.geoDisposition}`} aria-hidden="true" />
+                              <span className="mon-territorial-geo-case-main">
+                                <span className="mon-territorial-geo-case-title">
+                                  <strong>{pointLabel}</strong>
+                                </span>
+                                <em className="mon-territorial-geo-case-stamp" title={stamp}>
+                                  {stampParts.date ? <span>{stampParts.date}</span> : null}
+                                  {stampParts.hour ? <span className="is-time">{stampParts.hour}</span> : null}
+                                  {!stampParts.date && !stampParts.hour ? <span>{stamp}</span> : null}
+                                </em>
+                              </span>
+                              <span className="mon-territorial-geo-case-meta">
+                                <b>{enumeratorLabel}</b>
+                                <small>{placeLabel}</small>
+                              </span>
+                              <span className="mon-territorial-geo-case-place">
+                                <b>{item.blockLabel}</b>
+                                <small>{hasGps ? dispositionDetail : "sin punto"}</small>
+                              </span>
+                              <span className={`mon-territorial-geo-disposition is-${item.geoDisposition}`}>{disposition.shortLabel}</span>
+                            </button>
+                          );
+                        });
+                      })()}
+                    </motion.div>
+                  ) : null}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        );})}
+        {!districtSections.length ? (
+          <div className="mon-territorial-source-empty">Sin casos para agrupar por manzana.</div>
+        ) : null}
+        {districtSections.length ? (
+          <div className="mon-territorial-geo-scroll-end">Fin de casos</div>
+        ) : null}
       </div>
     </section>
   );
+}
+
+type TerritorialGeoCase = {
+  row: TerritorialResponseAuditRow;
+  block: TerritorialBlockProgress | null;
+  titularBlock: TerritorialBlockProgress | null;
+  replacementBlocks: TerritorialBlockProgress[];
+  routeBlocks: TerritorialBlockProgress[];
+  groupKey: string;
+  districtKey: string;
+  distrito: string;
+  ubigeo: string;
+  blockLabel: string;
+  assignmentLabel: string;
+  responsable: string;
+  spatialUbigeo: string;
+  spatialDistrito: string;
+  geoDisposition: TerritorialGeoDispositionKey;
+};
+
+type TerritorialGeoBlockGroup = {
+  key: string;
+  block: TerritorialBlockProgress | null;
+  titularBlock: TerritorialBlockProgress | null;
+  replacementBlocks: TerritorialBlockProgress[];
+  routeBlocks: TerritorialBlockProgress[];
+  blockLabel: string;
+  assignmentLabel: string;
+  responsable: string;
+  rows: TerritorialGeoCase[];
+  gpsCount: number;
+  reviewCount: number;
+  noDefendibleCount: number;
+};
+
+type TerritorialGeoDistrictSection = {
+  key: string;
+  kind: "route" | "outside_frame" | "without_gps";
+  distrito: string;
+  ubigeo: string;
+  caseCount: number;
+  blockGroups: TerritorialGeoBlockGroup[];
+};
+
+type TerritorialGeoRouteSet = {
+  titularBlock: TerritorialBlockProgress | null;
+  replacementBlocks: TerritorialBlockProgress[];
+  routeBlocks: TerritorialBlockProgress[];
+};
+
+function territorialBuildGeoCase(
+  row: TerritorialResponseAuditRow,
+  blocks: TerritorialBlockProgress[],
+  point: TerritorialKoboMapPoint | undefined,
+): TerritorialGeoCase {
+  const matchedBlock = territorialFindProximityAssignedBlock(row, blocks, point);
+  const block = matchedBlock;
+  const routeSet = territorialResolveGeoRouteSet(block, blocks);
+  const groupBlock = routeSet.titularBlock ?? block;
+  const spatialDistrict = point
+    ? TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => territorialPointInDistrictFeature(point.lonValue, point.latValue, feature)) ?? null
+    : null;
+  const distrito = groupBlock?.distrito || block?.distrito || row.distrito || row.district_code || "Sin distrito";
+  const ubigeo = normalizeTerritorialBlockCode(groupBlock?.ubigeo || block?.ubigeo || row.ubigeo || row.district_code);
+  const districtKey = `${ubigeo || "sin-ubigeo"}:${normalizeMatch(distrito) || "sin-distrito"}`;
+  const rawBlockKey = groupBlock ? territorialBlockStableKey(groupBlock) : "";
+  const groupKey = rawBlockKey ? `${districtKey}:ump:${rawBlockKey}` : `${districtKey}:sin-manzana`;
+  const blockLabel = groupBlock ? `${territorialRouteOperationalLabel(groupBlock)} · ${territorialPhysicalBlockLabel(groupBlock)}` : "Sin manzana asignada";
+  const assignmentLabel = matchedBlock
+    ? block?.tipo_manzana === "reemplazo"
+      ? `Asignado a ${territorialRouteOperationalLabel(block)}`
+      : "Asignación por proximidad"
+    : "Sin cruce de manzana";
+  const spatialUbigeo = spatialDistrict?.properties.ubigeo || "";
+  const geoDisposition = territorialGeoDispositionForCase(row, block, routeSet, spatialDistrict, Boolean(matchedBlock));
+  return {
+    row,
+    block,
+    titularBlock: routeSet.titularBlock,
+    replacementBlocks: routeSet.replacementBlocks,
+    routeBlocks: routeSet.routeBlocks,
+    groupKey,
+    districtKey,
+    distrito,
+    ubigeo,
+    blockLabel,
+    assignmentLabel,
+    responsable: territorialCaseResponsibleLabel(row, false),
+    spatialUbigeo,
+    spatialDistrito: spatialDistrict?.properties.distrito || "",
+    geoDisposition,
+  };
+}
+
+function territorialFindProximityAssignedBlock(
+  row: TerritorialResponseAuditRow,
+  blocks: TerritorialBlockProgress[],
+  point: TerritorialKoboMapPoint | undefined,
+) {
+  const nearestId = normalizeTerritorialBlockCode(row.nearest_block_id || point?.nearest_block_id);
+  if (!nearestId) return null;
+  return blocks.find((block) => territorialBlockMatchesNormalizedId(block, nearestId)) ?? null;
+}
+
+function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGeoDistrictSection[] {
+  const sections = new Map<string, TerritorialGeoDistrictSection>();
+  cases.forEach((item) => {
+    const sectionMeta = territorialGeoCaseSectionMeta(item);
+    const section = sections.get(sectionMeta.key) ?? {
+      key: sectionMeta.key,
+      kind: sectionMeta.kind,
+      distrito: sectionMeta.distrito,
+      ubigeo: sectionMeta.ubigeo,
+      caseCount: 0,
+      blockGroups: [],
+    };
+    const groupKey = `${sectionMeta.key}:${item.groupKey}`;
+    let group = section.blockGroups.find((candidate) => candidate.key === groupKey);
+    if (!group) {
+      group = {
+        key: groupKey,
+        block: item.titularBlock ?? item.block,
+        titularBlock: item.titularBlock,
+        replacementBlocks: item.replacementBlocks,
+        routeBlocks: item.routeBlocks,
+        blockLabel: item.blockLabel,
+        assignmentLabel: item.assignmentLabel,
+        responsable: item.responsable,
+        rows: [],
+        gpsCount: 0,
+        reviewCount: 0,
+        noDefendibleCount: 0,
+      };
+      section.blockGroups.push(group);
+    } else {
+      group.replacementBlocks = territorialUniqueBlocks([...group.replacementBlocks, ...item.replacementBlocks]);
+      group.routeBlocks = territorialUniqueBlocks([...group.routeBlocks, ...item.routeBlocks]);
+      if (!group.titularBlock && item.titularBlock) {
+        group.titularBlock = item.titularBlock;
+        group.block = item.titularBlock;
+      }
+    }
+    group.rows.push(item);
+    section.caseCount += 1;
+    if (territorialResponseHasGps(item.row)) group.gpsCount += 1;
+    if (item.geoDisposition === "en_distrito" || item.geoDisposition === "sin_gps") group.reviewCount += 1;
+    if (item.geoDisposition === "fuera_distrito") group.noDefendibleCount += 1;
+    sections.set(sectionMeta.key, section);
+  });
+  return Array.from(sections.values())
+    .map((section) => ({
+      ...section,
+      blockGroups: section.blockGroups
+        .map((group) => ({
+          ...group,
+          responsable: territorialGeoGroupResponsibleLabel(group.rows),
+        }))
+        .sort(territorialGeoBlockGroupComparator),
+    }))
+    .sort((a, b) => {
+      const order = { route: 0, outside_frame: 1, without_gps: 2 };
+      const kindDiff = order[a.kind] - order[b.kind];
+      if (kindDiff !== 0) return kindDiff;
+      return a.distrito.localeCompare(b.distrito, "es-PE", { numeric: true });
+    });
+}
+
+function territorialGeoCaseSectionMeta(item: TerritorialGeoCase): Pick<TerritorialGeoDistrictSection, "key" | "kind" | "distrito" | "ubigeo"> {
+  if (item.geoDisposition === "sin_gps") {
+    return {
+      key: "sin-punto-geografico",
+      kind: "without_gps",
+      distrito: "Sin punto geográfico",
+      ubigeo: "coord. ausente",
+    };
+  }
+  return {
+    key: item.districtKey,
+    kind: "route",
+    distrito: item.distrito || "Distrito de ruta",
+    ubigeo: item.ubigeo,
+  };
+}
+
+function territorialGeoBlockGroupComparator(a: TerritorialGeoBlockGroup, b: TerritorialGeoBlockGroup) {
+  const aBlock = a.titularBlock ?? a.block;
+  const bBlock = b.titularBlock ?? b.block;
+  if (aBlock && bBlock) return territorialRouteBlockComparator(aBlock, bBlock);
+  if (aBlock) return -1;
+  if (bBlock) return 1;
+  return a.blockLabel.localeCompare(b.blockLabel, "es-PE", { numeric: true });
+}
+
+function territorialResolveGeoRouteSet(
+  block: TerritorialBlockProgress | null,
+  blocks: TerritorialBlockProgress[],
+): TerritorialGeoRouteSet {
+  if (!block) return { titularBlock: null, replacementBlocks: [], routeBlocks: [] };
+  const sameDistrict = blocks.filter((candidate) => (
+    normalizeTerritorialBlockCode(candidate.ubigeo) === normalizeTerritorialBlockCode(block.ubigeo)
+  ));
+  const targetUmp = block.tipo_manzana === "reemplazo"
+    ? numberOrNull(block.titular_hoja_num) ?? numberOrNull(block.titular_orden_seleccion)
+    : territorialRouteUmpNumber(block);
+  const targetRangeKey = block.tipo_manzana === "reemplazo"
+    ? territorialReplacementRangeKey(block) || territorialRouteRangeKey(block)
+    : territorialRouteRangeKey(block);
+  const targetTitularId = block.tipo_manzana === "reemplazo"
+    ? normalizeTerritorialBlockCode(block.titular_id_manzana)
+    : normalizeTerritorialBlockCode(block.id_manzana);
+  const titularBlock = block.tipo_manzana !== "reemplazo"
+    ? block
+    : sameDistrict.find((candidate) => (
+      candidate.tipo_manzana !== "reemplazo"
+      && targetTitularId
+      && normalizeTerritorialBlockCode(candidate.id_manzana) === targetTitularId
+    )) ?? sameDistrict.find((candidate) => (
+      candidate.tipo_manzana !== "reemplazo"
+      && targetTitularId
+      && territorialBlockLookupKeys(candidate).includes(targetTitularId)
+    )) ?? sameDistrict.find((candidate) => (
+      candidate.tipo_manzana !== "reemplazo"
+      && targetTitularId
+      && normalizeTerritorialBlockCode(candidate.manzana) === targetTitularId
+    )) ?? sameDistrict.find((candidate) => (
+      candidate.tipo_manzana !== "reemplazo"
+      && territorialRouteUmpNumber(candidate) === targetUmp
+    )) ?? sameDistrict.find((candidate) => (
+      candidate.tipo_manzana !== "reemplazo"
+      && targetRangeKey
+      && territorialRouteRangeKey(candidate) === targetRangeKey
+    )) ?? null;
+  const anchorBlock = titularBlock ?? block;
+  const anchorUmp = territorialRouteUmpNumber(anchorBlock);
+  const anchorRangeKey = territorialRouteRangeKey(anchorBlock) || targetRangeKey;
+  const anchorKey = territorialBlockStableKey(anchorBlock);
+  const anchorId = normalizeTerritorialBlockCode(anchorBlock.id_manzana);
+  const replacementBlocks = sameDistrict
+    .filter((candidate) => {
+      if (candidate.tipo_manzana !== "reemplazo") return false;
+      const candidateKey = territorialBlockStableKey(candidate);
+      if (!candidateKey || candidateKey === anchorKey) return false;
+      const candidateTitularId = normalizeTerritorialBlockCode(candidate.titular_id_manzana);
+      if (anchorId && candidateTitularId && candidateTitularId === anchorId) return true;
+      const candidateTitular = numberOrNull(candidate.titular_hoja_num) ?? numberOrNull(candidate.titular_orden_seleccion);
+      if (Number.isFinite(anchorUmp) && anchorUmp !== Number.MAX_SAFE_INTEGER && candidateTitular === anchorUmp) return true;
+      return Boolean(anchorRangeKey && (territorialReplacementRangeKey(candidate) || territorialRouteRangeKey(candidate)) === anchorRangeKey);
+    })
+    .sort(territorialRouteBlockComparator);
+  return {
+    titularBlock,
+    replacementBlocks,
+    routeBlocks: territorialUniqueBlocks([anchorBlock, ...replacementBlocks]),
+  };
+}
+
+function territorialRouteSetFromBlocks(
+  blocks: TerritorialBlockProgress[],
+  activeBlock: TerritorialBlockProgress | null,
+): TerritorialGeoRouteSet {
+  const unique = territorialUniqueBlocks(blocks);
+  const titularBlock = unique.find((block) => block.tipo_manzana !== "reemplazo")
+    ?? (activeBlock?.tipo_manzana !== "reemplazo" ? activeBlock : null);
+  return {
+    titularBlock,
+    replacementBlocks: unique.filter((block) => block.tipo_manzana === "reemplazo").sort(territorialRouteBlockComparator),
+    routeBlocks: unique.sort(territorialRouteBlockComparator),
+  };
+}
+
+function territorialUniqueBlocks(blocks: TerritorialBlockProgress[]) {
+  const lookup = new Map<string, TerritorialBlockProgress>();
+  blocks.forEach((block, index) => {
+    if (!block) return;
+    const key = territorialBlockStableKey(block) || `${normalizeTerritorialBlockCode(block.ubigeo)}:${block.zona}:${block.manzana}:${index}`;
+    if (!lookup.has(key)) lookup.set(key, block);
+  });
+  return Array.from(lookup.values());
+}
+
+function territorialReplacementRangeKey(block: TerritorialBlockProgress) {
+  const start = numberOrNull(block.titular_rango_inicio);
+  const end = numberOrNull(block.titular_rango_fin);
+  return start != null && end != null ? `${start}:${end}` : "";
+}
+
+function territorialGeoDispositionForCase(
+  row: TerritorialResponseAuditRow,
+  assignedBlock: TerritorialBlockProgress | null,
+  routeSet: TerritorialGeoRouteSet,
+  spatialDistrict: TerritorialDistrictFeature | null,
+  matchedByProximity: boolean,
+): TerritorialGeoDispositionKey {
+  if (!territorialResponseHasGps(row)) return "sin_gps";
+  const routeUbigeo = normalizeTerritorialBlockCode(routeSet.titularBlock?.ubigeo || assignedBlock?.ubigeo || row.ubigeo || row.district_code);
+  const spatialUbigeo = normalizeTerritorialBlockCode(spatialDistrict?.properties.ubigeo);
+  if (spatialUbigeo && routeUbigeo && spatialUbigeo !== routeUbigeo) return "fuera_distrito";
+  const distance = numberOrNull(row.distance_m);
+  if (!spatialUbigeo && (row.geo_estado === "geo_no_defendible" || (distance != null && distance > 900))) {
+    return "fuera_distrito";
+  }
+  const routeZones = new Set(routeSet.routeBlocks.map((block) => normalizeTerritorialBlockCode(block.zona)).filter(Boolean));
+  const assignedZone = normalizeTerritorialBlockCode(assignedBlock?.zona);
+  if (matchedByProximity && assignedZone && routeZones.has(assignedZone)) return "en_zona";
+  if (matchedByProximity && (row.geo_estado === "geo_ok" || row.geo_estado === "geo_cerca")) return "en_zona";
+  return "en_distrito";
+}
+
+function territorialRelatedReplacementBlockKeys(
+  selectedBlock: TerritorialBlockProgress | null,
+  blocks: TerritorialBlockProgress[],
+) {
+  const related = new Set<string>();
+  if (!selectedBlock) return related;
+  const selectedKey = territorialBlockStableKey(selectedBlock);
+  const selectedTitularId = selectedBlock.tipo_manzana === "reemplazo"
+    ? normalizeTerritorialBlockCode(selectedBlock.titular_id_manzana)
+    : normalizeTerritorialBlockCode(selectedBlock.id_manzana);
+  const selectedUmp = territorialRouteUmpNumber(selectedBlock);
+  const selectedTitular = selectedBlock.tipo_manzana === "reemplazo"
+    ? numberOrNull(selectedBlock.titular_hoja_num) ?? numberOrNull(selectedBlock.titular_orden_seleccion)
+    : selectedUmp;
+  blocks.forEach((block) => {
+    const blockKey = territorialBlockStableKey(block);
+    if (!blockKey || blockKey === selectedKey || block.tipo_manzana !== "reemplazo") return;
+    const blockTitularId = normalizeTerritorialBlockCode(block.titular_id_manzana);
+    if (selectedTitularId && blockTitularId && selectedTitularId === blockTitularId) {
+      related.add(blockKey);
+      return;
+    }
+    const blockTitular = numberOrNull(block.titular_hoja_num) ?? numberOrNull(block.titular_orden_seleccion);
+    if (selectedTitular != null && blockTitular != null && selectedTitular === blockTitular) {
+      related.add(blockKey);
+      return;
+    }
+    if (
+      normalizeTerritorialBlockCode(block.ubigeo) === normalizeTerritorialBlockCode(selectedBlock.ubigeo)
+      && territorialRouteRangeKey(block) === territorialRouteRangeKey(selectedBlock)
+    ) {
+      related.add(blockKey);
+    }
+  });
+  return related;
 }
 
 function TerritorialValidationChart({
@@ -5842,9 +15710,10 @@ function TerritorialDurationBreakdown({
   rows: TerritorialResponseAuditRow[];
 }) {
   const counts = territorialDurationBreakdown(rows.filter((row) => row.advance_valid !== false), config);
-  const inRange = counts.esperada + counts.larga + counts.extrema;
+  const inRange = counts.esperada;
+  const longOutliers = counts.larga + counts.extrema;
   const priority = counts.corta + counts.muy_corta;
-  const totalDuration = Math.max(1, inRange + priority + counts.sin_dato);
+  const totalDuration = Math.max(1, inRange + priority + longOutliers + counts.sin_dato);
   const shortPct = safePercent(counts.corta, totalDuration) ?? 0;
   const veryShortPct = safePercent(counts.muy_corta, totalDuration) ?? 0;
   const reviewPct = shortPct + veryShortPct;
@@ -5853,6 +15722,7 @@ function TerritorialDurationBreakdown({
     { key: "esperada", label: "En rango", detail: "sin alerta", value: inRange, className: "is-duration-esperada" },
     { key: "corta", label: "Corta", detail: `menos de ${formatDurationLabel(shortThreshold)}`, value: counts.corta, className: "is-duration-corta" },
     { key: "muy_corta", label: "Muy corta", detail: `menos de ${formatDurationLabel(config.territorial.min_duration_seconds)}`, value: counts.muy_corta, className: "is-duration-muy_corta" },
+    { key: "larga", label: "Larga", detail: `más de ${formatDurationLabel(config.territorial.max_duration_seconds)}`, value: longOutliers, className: "is-duration-larga" },
     { key: "sin_dato", label: "Sin dato", detail: "sin duración", value: counts.sin_dato, className: "is-duration-sin_dato" },
   ];
   return (
@@ -5894,6 +15764,700 @@ function TerritorialDurationBreakdown({
           </article>
         ))}
       </div>
+    </section>
+  );
+}
+
+const TERRITORIAL_DURATION_VISUAL_CAP_SECONDS = 90 * 60;
+
+const TERRITORIAL_DURATION_HISTOGRAM_BINS = [
+  { start: 0, end: 60, label: "0-1 min" },
+  { start: 60, end: 180, label: "1-3 min" },
+  { start: 180, end: 300, label: "3-5 min" },
+  { start: 300, end: 600, label: "5-10 min" },
+  { start: 600, end: 900, label: "10-15 min" },
+  { start: 900, end: 1200, label: "15-20 min" },
+  { start: 1200, end: 1800, label: "20-30 min" },
+  { start: 1800, end: 3600, label: "30-60 min" },
+  { start: 3600, end: 5400, label: "60-90 min" },
+];
+
+type TerritorialDurationHistogramBin = {
+  key: string;
+  label: string;
+  start: number;
+  end: number;
+  count: number;
+  pct: number;
+  tone: "base" | "short" | "very-short";
+};
+
+type TerritorialDurationEnumeratorSummary = {
+  key: string;
+  label: string;
+  total: number;
+  median: number | null;
+  p95: number | null;
+  veryShort: number;
+  review: number;
+  lastRecord: string;
+  unassigned: boolean;
+};
+
+type TerritorialDurationModel = {
+  validRows: TerritorialResponseAuditRow[];
+  rowsWithDuration: TerritorialResponseAuditRow[];
+  shortRows: TerritorialResponseAuditRow[];
+  veryShortRows: TerritorialResponseAuditRow[];
+  longRows: TerritorialResponseAuditRow[];
+  histogramRows: TerritorialResponseAuditRow[];
+  bins: TerritorialDurationHistogramBin[];
+  median: number | null;
+  p95: number | null;
+  maxBinCount: number;
+  visualCapSeconds: number;
+  shortThresholdSeconds: number;
+  enumerators: TerritorialDurationEnumeratorSummary[];
+};
+
+function durationSecondsForRow(row: TerritorialResponseAuditRow) {
+  const seconds = numberOrNull(row.duration_seconds);
+  return seconds != null && Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+}
+
+function percentileFromSorted(values: number[], percentile: number) {
+  if (!values.length) return null;
+  if (values.length === 1) return values[0];
+  const position = (values.length - 1) * percentile;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  if (lower === upper) return values[lower];
+  const weight = position - lower;
+  return values[lower] * (1 - weight) + values[upper] * weight;
+}
+
+function territorialDurationStatusKey(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
+  return stringOrEmpty(row.duration_status) || territorialDurationStatusFromSeconds(durationSecondsForRow(row), config);
+}
+
+function territorialDurationIsShort(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
+  const seconds = durationSecondsForRow(row);
+  const status = territorialDurationStatusKey(row, config);
+  return status === "muy_corta" || status === "corta" || (seconds != null && seconds < territorialShortDurationSeconds(config));
+}
+
+function territorialDurationIsVeryShort(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
+  const seconds = durationSecondsForRow(row);
+  const status = territorialDurationStatusKey(row, config);
+  return status === "muy_corta" || (seconds != null && seconds < config.territorial.min_duration_seconds);
+}
+
+function territorialDurationIsLong(row: TerritorialResponseAuditRow, config: MonitoreoConfig, visualCapSeconds: number) {
+  const seconds = durationSecondsForRow(row);
+  const status = territorialDurationStatusKey(row, config);
+  return status === "larga" || status === "extrema" || (seconds != null && seconds > visualCapSeconds);
+}
+
+function territorialResolvedResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = true) {
+  const resolved = stringOrEmpty(row.responsible_display).trim();
+  if (resolved) return resolved;
+  return territorialCaseResponsibleLabel(row, includeCode);
+}
+
+function territorialDurationDateLabel(row: TerritorialResponseAuditRow) {
+  const label = stringOrEmpty(row.submission_date).trim();
+  if (label) return formatInternalQueryDateAxisLabel(label);
+  const iso = stringOrEmpty(row.submission_date_iso).trim();
+  return formatInternalQueryDateAxisLabel(iso === "sin_fecha" ? "" : iso);
+}
+
+function territorialLatestRecordLabel(rows: TerritorialResponseAuditRow[]) {
+  const dates = rows
+    .map((row) => stringOrEmpty(row.submission_date_iso).trim())
+    .filter((date) => date && date !== "sin_fecha")
+    .sort(compareInternalQueryDateValues);
+  if (!dates.length) return "S/D";
+  return formatInternalQueryDateAxisLabel(dates[dates.length - 1]);
+}
+
+function territorialDurationReviewReasonLabels(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
+  const reasons: string[] = [];
+  const durationBand = territorialDurationBand(row, config);
+  const hasGpsReason = territorialRowHasGeoObservation(row);
+  if (hasGpsReason && ["muy_corta", "corta"].includes(durationBand.key)) {
+    reasons.push("Duración y GPS a revisar");
+  } else if (durationBand.key === "muy_corta") {
+    reasons.push("Muy corta");
+  } else if (durationBand.key === "corta") {
+    reasons.push("Duración corta");
+  } else if (durationBand.key === "larga" || durationBand.key === "extrema") {
+    reasons.push("Outlier largo");
+  }
+  if (hasGpsReason && !reasons.some((item) => item.includes("GPS"))) reasons.push("Sin GPS");
+  if (territorialMissingResponsibleLabel(territorialResolvedResponsibleLabel(row, false))) reasons.push("Sin encuestador");
+  return reasons.length ? reasons : ["Duración por revisar"];
+}
+
+function buildTerritorialDurationEnumeratorRows(
+  rows: TerritorialResponseAuditRow[],
+  config: MonitoreoConfig,
+  visualCapSeconds: number,
+) {
+  const groups = new Map<string, { label: string; rows: TerritorialResponseAuditRow[]; unassigned: boolean }>();
+  rows.forEach((row) => {
+    const label = territorialResolvedResponsibleLabel(row, true);
+    const key = normalizeMatch(label) || `row-${row.row_index}`;
+    const current = groups.get(key) ?? {
+      label,
+      rows: [],
+      unassigned: territorialMissingResponsibleLabel(label),
+    };
+    current.rows.push(row);
+    groups.set(key, current);
+  });
+  return Array.from(groups.entries()).map(([key, item]) => {
+    const values = item.rows
+      .map(durationSecondsForRow)
+      .filter((value): value is number => value != null)
+      .sort((a, b) => a - b);
+    const veryShort = item.rows.filter((row) => territorialDurationIsVeryShort(row, config)).length;
+    const review = item.rows.filter((row) => (
+      territorialDurationIsShort(row, config) || territorialDurationIsLong(row, config, visualCapSeconds)
+    )).length;
+    return {
+      key,
+      label: item.label,
+      total: item.rows.length,
+      median: percentileFromSorted(values, 0.5),
+      p95: percentileFromSorted(values, 0.95),
+      veryShort,
+      review,
+      lastRecord: territorialLatestRecordLabel(item.rows),
+      unassigned: item.unassigned,
+    };
+  }).sort((a, b) => {
+    const unassignedRank = Number(a.unassigned) - Number(b.unassigned);
+    if (unassignedRank !== 0) return unassignedRank;
+    return b.review - a.review || b.veryShort - a.veryShort || b.total - a.total || a.label.localeCompare(b.label, "es");
+  });
+}
+
+function buildTerritorialDurationModel(rows: TerritorialResponseAuditRow[], config: MonitoreoConfig): TerritorialDurationModel {
+  const visualCapSeconds = Math.max(
+    territorialShortDurationSeconds(config),
+    Math.min(config.territorial.max_duration_seconds || TERRITORIAL_DURATION_VISUAL_CAP_SECONDS, TERRITORIAL_DURATION_VISUAL_CAP_SECONDS),
+  );
+  const validRows = rows.filter(territorialResponseIsEffective);
+  const rowsWithDuration = validRows.filter((row) => durationSecondsForRow(row) != null);
+  const values = rowsWithDuration
+    .map(durationSecondsForRow)
+    .filter((value): value is number => value != null)
+    .sort((a, b) => a - b);
+  const histogramRows = rowsWithDuration.filter((row) => (durationSecondsForRow(row) ?? Infinity) <= visualCapSeconds);
+  const histogramValues = histogramRows.map(durationSecondsForRow).filter((value): value is number => value != null);
+  const bins = TERRITORIAL_DURATION_HISTOGRAM_BINS
+    .filter((bin) => bin.start < visualCapSeconds)
+    .map((bin) => ({ ...bin, end: Math.min(bin.end, visualCapSeconds) }))
+    .filter((bin) => bin.end > bin.start)
+    .map((bin, index, allBins) => {
+      const isLast = index === allBins.length - 1;
+      const count = histogramValues.filter((value) => value >= bin.start && (isLast ? value <= bin.end : value < bin.end)).length;
+      const pct = safePercent(count, Math.max(1, histogramValues.length)) ?? 0;
+      const tone: TerritorialDurationHistogramBin["tone"] = bin.end <= config.territorial.min_duration_seconds
+        ? "very-short"
+        : bin.end <= territorialShortDurationSeconds(config) ? "short" : "base";
+      return {
+        key: `${bin.start}-${bin.end}`,
+        label: bin.label,
+        start: bin.start,
+        end: bin.end,
+        count,
+        pct,
+        tone,
+      };
+    });
+  return {
+    validRows,
+    rowsWithDuration,
+    shortRows: rowsWithDuration.filter((row) => territorialDurationIsShort(row, config)),
+    veryShortRows: rowsWithDuration.filter((row) => territorialDurationIsVeryShort(row, config)),
+    longRows: rowsWithDuration.filter((row) => territorialDurationIsLong(row, config, visualCapSeconds)),
+    histogramRows,
+    bins,
+    median: percentileFromSorted(values, 0.5),
+    p95: percentileFromSorted(values, 0.95),
+    maxBinCount: Math.max(1, ...bins.map((bin) => bin.count)),
+    visualCapSeconds,
+    shortThresholdSeconds: territorialShortDurationSeconds(config),
+    enumerators: buildTerritorialDurationEnumeratorRows(rowsWithDuration, config, visualCapSeconds),
+  };
+}
+
+function mergeDurationReviewRows(primary: TerritorialResponseAuditRow[], fallback: TerritorialResponseAuditRow[]) {
+  const byKey = new Map<string, TerritorialResponseAuditRow>();
+  [...primary, ...fallback].forEach((row) => {
+    const key = row.response_id || `row-${row.row_index}`;
+    byKey.set(key, row);
+  });
+  return Array.from(byKey.values());
+}
+
+function TerritorialDurationControlView({
+  reports,
+  rows,
+  reviewRows,
+  config,
+  saving,
+  onApprove,
+  onOpenGeoCase,
+  selectedResponseId,
+  onSelectResponse,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  rows: TerritorialResponseAuditRow[];
+  reviewRows: TerritorialResponseAuditRow[];
+  config: MonitoreoConfig;
+  saving: boolean;
+  onApprove: (row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) => Promise<void>;
+  onOpenGeoCase: (row: TerritorialResponseAuditRow) => void;
+  selectedResponseId?: string;
+  onSelectResponse?: (responseId: string) => void;
+}) {
+  const model = useMemo(() => buildTerritorialDurationModel(rows, config), [rows, config]);
+  const durationReviewRows = useMemo(
+    () => mergeDurationReviewRows(model.shortRows, reviewRows),
+    [model.shortRows, reviewRows],
+  );
+  return (
+    <div className="mon-duration-control">
+      <TerritorialDurationOverview model={model} reviewCount={durationReviewRows.length} />
+      <div className="mon-duration-workbench-grid">
+        <TerritorialDurationHistogram model={model} />
+        <TerritorialDurationDailyCard rows={reports.daily} />
+      </div>
+      <TerritorialDurationReviewTable
+        rows={durationReviewRows}
+        config={config}
+        saving={saving}
+        onApprove={onApprove}
+        onOpenGeoCase={onOpenGeoCase}
+        selectedResponseId={selectedResponseId}
+        onSelectResponse={onSelectResponse}
+      />
+      <div className="mon-duration-lower-grid">
+        <TerritorialDurationEnumeratorTable rows={model.enumerators} />
+        <TerritorialDurationLongOutliers model={model} />
+      </div>
+    </div>
+  );
+}
+
+function TerritorialDurationOverview({ model, reviewCount }: { model: TerritorialDurationModel; reviewCount: number }) {
+  return (
+    <section className="mon-duration-overview" aria-label="Resumen de duración de encuestas">
+      <div>
+        <span><Clock size={14} /> Duración de encuestas</span>
+        <strong>
+          {formatMetric(model.validRows.length)} válidas · {formatMetric(reviewCount)} por revisar · Mediana {formatDurationLabel(model.median)} · P95 {formatDurationLabel(model.p95)}
+        </strong>
+      </div>
+      <dl>
+        <span><dt>Mediana</dt><dd>{formatDurationLabel(model.median)}</dd></span>
+        <span><dt>P95</dt><dd>{formatDurationLabel(model.p95)}</dd></span>
+        <span className={model.veryShortRows.length ? "is-warning" : ""}><dt>Muy cortas</dt><dd>{formatMetric(model.veryShortRows.length)}</dd></span>
+        <span className={model.longRows.length ? "is-warning" : ""}><dt>Outliers largos</dt><dd>{formatMetric(model.longRows.length)}</dd></span>
+      </dl>
+    </section>
+  );
+}
+
+function TerritorialDurationHistogram({ model }: { model: TerritorialDurationModel }) {
+  const marker = (value: number | null) => value == null
+    ? null
+    : `${Math.max(0, Math.min(100, (value / model.visualCapSeconds) * 100))}%`;
+  const p95Outside = model.p95 != null && model.p95 > model.visualCapSeconds;
+  const markers = [
+    { key: "short", label: `Umbral corto: ${formatDurationLabel(model.shortThresholdSeconds)}`, value: model.shortThresholdSeconds, className: "is-short", visible: true },
+    { key: "median", label: `Mediana: ${formatDurationLabel(model.median)}`, value: model.median, className: "is-median", visible: model.median == null || model.median <= model.visualCapSeconds },
+    { key: "p95", label: `P95: ${formatDurationLabel(model.p95)}`, value: model.p95, className: "is-p95", visible: !p95Outside },
+  ].filter((item) => item.value != null && item.visible);
+  return (
+    <section className="mon-duration-panel mon-duration-histogram" aria-label="Distribución de duración en minutos">
+      <header>
+        <div>
+          <span><BarChart3 size={14} /> Distribución de duración</span>
+          <strong>{formatMetric(model.histogramRows.length)} dentro de {formatDurationLabel(model.visualCapSeconds)}</strong>
+        </div>
+        <em>{model.longRows.length ? `${formatMetric(model.longRows.length)} largas fuera` : "sin largas fuera"}</em>
+      </header>
+      <div className="mon-duration-histogram-body">
+        {model.bins.map((bin) => (
+          <article key={bin.key} className={`is-${bin.tone}`}>
+            <span>{bin.label}</span>
+            <div>
+              <i style={{ width: `${Math.max(bin.count ? 5 : 0, (bin.count / model.maxBinCount) * 100)}%` }} />
+            </div>
+            <strong>{formatMetric(bin.count)}</strong>
+          </article>
+        ))}
+      </div>
+      <div className="mon-duration-ruler" aria-label="Marcadores de duración con valores explícitos">
+        <span>0</span>
+        <span>{formatDurationLabel(model.visualCapSeconds)}</span>
+        {markers.map((item) => {
+          const left = marker(item.value);
+          if (!left) return null;
+          return (
+            <b key={item.key} className={item.className} style={{ left }} title={item.label}>
+              <i />
+              <em>{item.label}</em>
+            </b>
+          );
+        })}
+      </div>
+      {(p95Outside || model.longRows.length > 0) && (
+        <div className="mon-duration-histogram-notes" aria-label="Notas del histograma de duración">
+          {p95Outside && <span className="is-p95">P95 fuera del histograma principal: {formatDurationLabel(model.p95)}</span>}
+          {model.longRows.length > 0 && (
+            <span>{formatMetric(model.longRows.length)} duraciones largas fuera del histograma principal.</span>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+type TerritorialDurationDailyHover = {
+  dateLabel: string;
+  validas: number;
+  revision: number;
+  total: number;
+  remainder: number;
+  reviewPct: number | null;
+  x: number;
+};
+
+function durationDailyHoverX(target: HTMLElement) {
+  const parent = target.parentElement?.getBoundingClientRect();
+  const rect = target.getBoundingClientRect();
+  if (!parent || parent.width <= 0) return 50;
+  return Math.max(10, Math.min(90, ((rect.left + rect.width / 2 - parent.left) / parent.width) * 100));
+}
+
+function TerritorialDurationDailyTooltip({ item }: { item: TerritorialDurationDailyHover }) {
+  return (
+    <span
+      className="mon-duration-daily-tooltip"
+      aria-hidden="true"
+      style={{ "--duration-daily-tooltip-x": `${item.x}%` } as CSSProperties}
+    >
+      <strong>{item.dateLabel}</strong>
+      <span>Válidas: {formatMetric(item.validas)}</span>
+      <span>Por revisar: {formatMetric(item.revision)}</span>
+      {item.remainder > 0 && <span>Otros: {formatMetric(item.remainder)}</span>}
+      <em>Total: {formatMetric(item.total)}</em>
+    </span>
+  );
+}
+
+function territorialDailyScaleMax(value: number) {
+  if (value <= 0) return 1;
+  if (value <= 10) return Math.max(5, value);
+  const magnitude = 10 ** Math.floor(Math.log10(value));
+  const normalized = value / magnitude;
+  const step = normalized <= 2 ? 0.25 : normalized <= 5 ? 0.5 : 1;
+  return Math.ceil(normalized / step) * step * magnitude;
+}
+
+function TerritorialDurationDailyCard({ rows }: { rows: MonitoreoTerritorialDashboard["daily"] }) {
+  const ordered = [...rows].sort((a, b) => compareInternalQueryDateValues(a.date, b.date)).slice(-14);
+  const maxTotal = Math.max(1, ...ordered.map((row) => row.total || 0));
+  const scaleMax = territorialDailyScaleMax(maxTotal);
+  const scaleMid = Math.round(scaleMax / 2);
+  const periodTotals = ordered.reduce((acc, row) => {
+    acc.total += Math.max(0, row.total || 0);
+    acc.validas += Math.max(0, row.validas || 0);
+    acc.revision += Math.max(0, row.revision || 0);
+    return acc;
+  }, { total: 0, validas: 0, revision: 0 });
+  const [hover, setHover] = useState<TerritorialDurationDailyHover | null>(null);
+  const showHover = (target: HTMLElement, row: MonitoreoTerritorialDashboard["daily"][number]) => {
+    const validas = Math.max(0, row.validas || 0);
+    const revision = Math.max(0, row.revision || 0);
+    const total = Math.max(0, row.total || 0);
+    setHover({
+      dateLabel: territorialDailyDateLabel(row),
+      validas,
+      revision,
+      total,
+      remainder: Math.max(0, total - validas - revision),
+      reviewPct: safePercent(revision, total),
+      x: durationDailyHoverX(target),
+    });
+  };
+  return (
+    <section className="mon-duration-panel mon-duration-daily" aria-label="Ritmo diario de respuestas válidas">
+      <header>
+        <div>
+          <span><CalendarRange size={14} /> Ritmo diario de respuestas válidas</span>
+          <strong>{formatMetric(periodTotals.total)} respuestas · {formatMetric(periodTotals.validas)} válidas · {formatMetric(periodTotals.revision)} por revisar</strong>
+        </div>
+        <em>{formatMetric(ordered.length)} días</em>
+      </header>
+      <div className="mon-duration-daily-chart">
+        <div className="mon-duration-daily-scale" aria-hidden="true">
+          <span>0</span>
+          <span>{formatMetric(scaleMid)}</span>
+          <span>{formatMetric(scaleMax)}</span>
+        </div>
+        <div className="mon-duration-daily-rows">
+        {ordered.map((row) => {
+          const total = Math.max(0, row.total || 0);
+          const validas = Math.max(0, row.validas || 0);
+          const revision = Math.max(0, row.revision || 0);
+          const remainder = Math.max(0, total - validas - revision);
+          const totalWidth = Math.max(total ? 7 : 0, safePercent(total, scaleMax) ?? 0);
+          const validPct = Math.max(validas ? 2 : 0, safePercent(validas, Math.max(1, total)) ?? 0);
+          const reviewPct = Math.max(revision ? 2 : 0, safePercent(revision, Math.max(1, total)) ?? 0);
+          const remainderPct = Math.max(remainder ? 2 : 0, 100 - validPct - reviewPct);
+          const reviewRate = safePercent(revision, total);
+          const dateLabel = territorialDailyDateLabel(row);
+          const tooltipLabel = `${dateLabel}. Válidas: ${formatMetric(validas)}. Por revisar: ${formatMetric(revision)}. Total: ${formatMetric(total)}.`;
+          return (
+            <article
+              key={row.date}
+              tabIndex={0}
+              className={revision ? "has-review" : ""}
+              aria-label={tooltipLabel}
+              title={tooltipLabel}
+              onMouseEnter={(event) => showHover(event.currentTarget, row)}
+              onFocus={(event) => showHover(event.currentTarget, row)}
+              onMouseLeave={() => setHover(null)}
+              onBlur={() => setHover(null)}
+            >
+              <time dateTime={row.date || undefined}>{dateLabel}</time>
+              <div className="mon-duration-daily-track-shell">
+                <div className="mon-duration-daily-track" style={{ width: `${Math.min(100, totalWidth)}%` }}>
+                  {validas > 0 && <i className="is-valid" style={{ width: `${Math.min(100, validPct)}%` }} />}
+                  {revision > 0 && <i className="is-review" style={{ width: `${Math.min(100, reviewPct)}%` }} />}
+                  {remainder > 0 && <i className="is-other" style={{ width: `${Math.max(0, Math.min(100, remainderPct))}%` }} />}
+                </div>
+              </div>
+              <div className="mon-duration-daily-value">
+                <strong>{formatMetric(total)}</strong>
+                <small>{formatMetric(validas)} V · {formatMetric(revision)} R</small>
+              </div>
+              <em className={revision ? "is-warning" : "is-ready"}>{formatPercentLabel(reviewRate)} revisar</em>
+            </article>
+          );
+        })}
+          {hover && <TerritorialDurationDailyTooltip item={hover} />}
+        </div>
+      </div>
+      <footer>
+        <span><i className="is-valid" /> Válidas</span>
+        <span><i className="is-review" /> Por revisar</span>
+        <span><i className="is-other" /> Otros del total</span>
+      </footer>
+    </section>
+  );
+}
+
+function TerritorialDurationReviewTable({
+  rows,
+  config,
+  saving,
+  onApprove,
+  onOpenGeoCase,
+  selectedResponseId,
+  onSelectResponse,
+}: {
+  rows: TerritorialResponseAuditRow[];
+  config: MonitoreoConfig;
+  saving: boolean;
+  onApprove: (row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) => Promise<void>;
+  onOpenGeoCase: (row: TerritorialResponseAuditRow) => void;
+  selectedResponseId?: string;
+  onSelectResponse?: (responseId: string) => void;
+}) {
+  const ordered = [...rows].sort((a, b) => {
+    const aApproved = a.observation_status === "aprobada" ? 1 : 0;
+    const bApproved = b.observation_status === "aprobada" ? 1 : 0;
+    if (aApproved !== bApproved) return aApproved - bApproved;
+    return (durationSecondsForRow(a) ?? Infinity) - (durationSecondsForRow(b) ?? Infinity);
+  });
+  return (
+    <section className="mon-duration-review" aria-label="Casos con duración por revisar">
+      <header>
+        <div>
+          <span><ShieldAlert size={14} /> Casos con duración por revisar</span>
+          <strong>{formatMetric(ordered.length)} casos sospechosos</strong>
+        </div>
+        <em>cortas, muy cortas o con señal combinada</em>
+      </header>
+      {ordered.length ? (
+        <div className="mon-duration-review-scroll">
+          <table className="mon-duration-review-table">
+            <thead>
+              <tr>
+                <th>Caso</th>
+                <th>Fecha</th>
+                <th>Encuestador</th>
+                <th>Distrito</th>
+                <th>UMP</th>
+                <th>Duración</th>
+                <th>Motivo</th>
+                <th>Decisión</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ordered.map((row) => {
+                const approved = row.observation_status === "aprobada";
+                const responseId = row.response_id || `row-${row.row_index}`;
+                const selected = selectedResponseId && selectedResponseId === row.response_id;
+                const durationBand = territorialDurationBand(row, config);
+                const reasons = territorialDurationReviewReasonLabels(row, config);
+                const nearestBlockId = stringOrEmpty(row.nearest_block_id).trim();
+                return (
+                  <tr key={`${row.row_index}-${responseId}`} className={`${approved ? "is-approved" : "is-pending"}${selected ? " is-selected" : ""}`}>
+                    <td>
+                      <button
+                        type="button"
+                        className="mon-territorial-case-id-button"
+                        title={responseId}
+                        onClick={() => {
+                          if (row.response_id) onSelectResponse?.(row.response_id);
+                        }}
+                      >
+                        {shortenMiddle(responseId, 18)}
+                      </button>
+                      <small>Fila {formatMetric(row.row_index)}</small>
+                    </td>
+                    <td><strong>{territorialDurationDateLabel(row)}</strong><small>{normalizeTerritorialHourLabel(stringOrEmpty(row.submission_hour)) || "sin hora"}</small></td>
+                    <td><strong>{territorialResolvedResponsibleLabel(row, true)}</strong><small>{territorialPulsoCodeLabel(row)}</small></td>
+                    <td><strong>{row.distrito || "Sin distrito"}</strong><small>{row.ubigeo || row.district_code || "sin cruce"}</small></td>
+                    <td>
+                      {nearestBlockId ? (
+                        <span className="mon-duration-map-cell">
+                          <strong title={nearestBlockId}>{shortenMiddle(nearestBlockId, 18)}</strong>
+                          <button
+                            type="button"
+                            className="mon-duration-ump-action"
+                            onClick={() => onOpenGeoCase(row)}
+                            title={`Ver ${nearestBlockId} en Geolocalización`}
+                          >
+                            <MapPin size={12} />
+                            <span>Ver en mapa</span>
+                          </button>
+                        </span>
+                      ) : (
+                        <strong>S/D</strong>
+                      )}
+                      <small>{nearestBlockId ? row.nearest_block_type || "manzana" : "sin UMP"}</small>
+                    </td>
+                    <td><span className={`mon-territorial-band is-duration-${durationBand.key}`}><Clock size={13} /> {durationBand.label}</span><small>{formatDurationLabel(row.duration_seconds)}</small></td>
+                    <td>
+                      <span className="mon-duration-reason-stack">
+                        {reasons.map((reason) => <em key={reason}>{reason}</em>)}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="mon-territorial-observation-action"
+                        disabled={saving || !responseId}
+                        onClick={() => { void onApprove(row, "duracion").catch(() => undefined); }}
+                      >
+                        {saving ? <Loader2 size={13} className="pulso-spin" /> : approved ? <XCircle size={13} /> : <CheckCircle2 size={13} />}
+                        <span>{approved ? "Quitar" : "Visto bueno"}</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="mon-territorial-audit-empty">Sin duraciones cortas por revisar.</div>
+      )}
+    </section>
+  );
+}
+
+function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDurationEnumeratorSummary[] }) {
+  return (
+    <section className="mon-duration-panel mon-duration-enumerators" aria-label="Duración por encuestador">
+      <header>
+        <div>
+          <span><ContactRound size={14} /> Duración por encuestador</span>
+          <strong>{formatMetric(rows.length)} responsables</strong>
+        </div>
+      </header>
+      <div className="mon-duration-enumerator-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Encuestador</th>
+              <th>Total</th>
+              <th>Mediana</th>
+              <th>P95</th>
+              <th>Muy cortas</th>
+              <th>Revisar</th>
+              <th>Último</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key} className={row.unassigned ? "is-unassigned" : ""}>
+                <td><strong>{row.label}</strong></td>
+                <td>{formatMetric(row.total)}</td>
+                <td>{formatDurationLabel(row.median)}</td>
+                <td>{formatDurationLabel(row.p95)}</td>
+                <td>{formatMetric(row.veryShort)}</td>
+                <td>{formatMetric(row.review)}</td>
+                <td>{row.lastRecord}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialDurationLongOutliers({ model }: { model: TerritorialDurationModel }) {
+  const ordered = [...model.longRows]
+    .sort((a, b) => (durationSecondsForRow(b) ?? 0) - (durationSecondsForRow(a) ?? 0))
+    .slice(0, 7);
+  return (
+    <section className="mon-duration-panel mon-duration-outliers" aria-label="Duraciones largas excluidas del histograma">
+      <header>
+        <div>
+          <span><Activity size={14} /> Duraciones largas</span>
+          <strong>{formatMetric(model.longRows.length)} fuera del histograma</strong>
+        </div>
+        <em>&gt; {formatDurationLabel(model.visualCapSeconds)}</em>
+      </header>
+      {ordered.length ? (
+        <div className="mon-duration-outlier-list">
+          {ordered.map((row) => {
+            const responseId = row.response_id || `row-${row.row_index}`;
+            return (
+              <article key={`${row.row_index}-${responseId}`}>
+                <div>
+                  <strong>{formatDurationLabel(row.duration_seconds)}</strong>
+                  <span>{territorialResolvedResponsibleLabel(row, true)}</span>
+                  <em>{territorialDurationDateLabel(row)} · revisar envío</em>
+                </div>
+                <small title={responseId}>{shortenMiddle(responseId, 16)}</small>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <p>Sin duraciones largas fuera del histograma principal.</p>
+      )}
     </section>
   );
 }
@@ -5946,52 +16510,1873 @@ function TerritorialTeamBars({ rows }: { rows: MonitoreoTerritorialDashboard["te
   );
 }
 
-function TerritorialQueriesView({ dashboard }: { dashboard: MonitoreoDashboard | null }) {
-  const reports = territorialReportsFromDashboard(dashboard);
+function TerritorialQueriesView({
+  dashboard,
+  config,
+  loading = false,
+  error = "",
+  onRetry,
+  onOpenValidationCase,
+  reviewFilters,
+  onReviewFiltersChange,
+}: {
+  dashboard: MonitoreoDashboard | null;
+  config: MonitoreoConfig;
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+  onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
+  reviewFilters: TerritorialReviewFilters;
+  onReviewFiltersChange: Dispatch<SetStateAction<TerritorialReviewFilters>>;
+}) {
+  const rawReports = territorialReportsFromDashboard(dashboard);
+  const reportScope = rawReports?.report_scope || "full";
+  const reports = rawReports && (reportScope === "queries_summary" || reportScope === "full") ? rawReports : null;
   if (!reports) {
+    if (loading) return <LoadingBlock label={territorialLoadingLabelForView("consultas")} minHeight={420} />;
+    if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
     return <EmptyState icon={<Search size={18} />} title="Sin consultas territoriales" hint="Sincroniza Kobo para generar preguntas operativas internas." />;
   }
   return (
     <div className="mon-stage mon-stage--consultas">
-      <Panel className="mon-territorial-panel" eyebrow="Consultas internas" title={<span className="mon-title-icon"><Search size={16} /> Brechas accionables</span>}>
-        <div className="mon-territorial-query-summary">
-          <span>
-            <strong>{formatMetric(reports.internal_queries.incomplete_blocks.length)}</strong>
-            <em>manzanas incompletas</em>
-          </span>
-          <span>
-            <strong>{formatMetric(reports.internal_queries.far_gps.length)}</strong>
-            <em>GPS lejos</em>
-          </span>
-          <span>
-            <strong>{formatMetric(reports.internal_queries.lagging_districts.length)}</strong>
-            <em>distritos atrasados</em>
-          </span>
-          <span>
-            <strong>{formatMetric(Math.max(0, (reports.kpis.meta ?? 0) - reports.kpis.validas))}</strong>
-            <em>brecha oficial</em>
-          </span>
-        </div>
-        <div className="mon-territorial-query-grid">
-          <TerritorialQueryList title="Manzanas incompletas" icon={Route} rows={reports.internal_queries.incomplete_blocks.slice(0, 12)} render={(row) => ({
-            title: `${row.distrito} · Z${row.zona} M${row.manzana}`,
-            meta: `faltan ${formatMetric(row.brecha)} · ${formatMetric(row.validas)} / ${formatMetric(row.meta)} válidas`,
-            tone: (row.brecha ?? 0) > 2 ? "warning" : "base",
-          })} />
-          <TerritorialQueryList title="GPS lejos" icon={MapPin} rows={reports.internal_queries.far_gps.slice(0, 12)} render={(row) => ({
-            title: shortenMiddle(row.response_id || "sin id", 24),
-            meta: `${row.distrito || "Sin distrito"} · ${formatMetric(row.distance_m ?? null)} m`,
-            tone: "danger",
-          })} />
-          <TerritorialQueryList title="Distritos atrasados" icon={BarChart3} rows={reports.internal_queries.lagging_districts.slice(0, 12)} render={(row) => ({
-            title: row.distrito,
-            meta: `${formatMetric(row.validas)} / ${formatMetric(row.meta)} · brecha ${formatMetric(row.brecha)}`,
-            tone: (row.avance_pct ?? 0) < 50 ? "warning" : "base",
-          })} />
-        </div>
-      </Panel>
+      <TerritorialReviewCasesView
+        reports={reports}
+        config={config}
+        onOpenValidationCase={onOpenValidationCase}
+        filters={reviewFilters}
+        setFilters={onReviewFiltersChange}
+      />
     </div>
   );
+}
+
+type TerritorialReviewTypeFilter = "all" | "record" | "gps" | "duration" | "ump";
+type TerritorialReviewStateFilter = "all" | "sin_observacion" | "pendiente" | "en_observacion" | "visto_bueno";
+
+type TerritorialReviewFilters = {
+  type: TerritorialReviewTypeFilter;
+  district: string;
+  responsible: string;
+  ump: string;
+  state: TerritorialReviewStateFilter;
+  search: string;
+};
+
+const EMPTY_TERRITORIAL_REVIEW_FILTERS: TerritorialReviewFilters = {
+  type: "all",
+  district: "",
+  responsible: "",
+  ump: "",
+  state: "all",
+  search: "",
+};
+
+function TerritorialReviewCasesView({
+  reports,
+  config,
+  onOpenValidationCase,
+  filters,
+  setFilters,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  config: MonitoreoConfig;
+  onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
+  filters: TerritorialReviewFilters;
+  setFilters: Dispatch<SetStateAction<TerritorialReviewFilters>>;
+}) {
+  const [copiedCaseId, setCopiedCaseId] = useState("");
+  const cases = useMemo(() => buildTerritorialReviewCases(reports, config), [config, reports]);
+  const filteredCases = useMemo(() => filterTerritorialReviewCases(cases, filters), [cases, filters]);
+  const options = useMemo(() => territorialReviewFilterOptions(cases), [cases]);
+  const summary = useMemo(() => summarizeTerritorialReviewCases(cases), [cases]);
+  const visibleSummary = useMemo(() => summarizeTerritorialReviewCases(filteredCases), [filteredCases]);
+  const canClear = !isEmptyTerritorialReviewFilters(filters);
+  const phaseLabel = territorialPhaseLabel(normalizeTerritorialPhase(reports.active_route_phase));
+
+  const patchFilters = (patch: Partial<TerritorialReviewFilters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+  };
+
+  const copyUuid = (item: TerritorialInternalReviewCase) => {
+    const responseId = stringOrEmpty(item.response_id).trim();
+    if (!responseId || !navigator.clipboard) return;
+    void navigator.clipboard.writeText(responseId).then(() => {
+      setCopiedCaseId(item.id);
+      window.setTimeout(() => setCopiedCaseId((current) => (current === item.id ? "" : current)), 1200);
+    }).catch(() => undefined);
+  };
+
+  return (
+    <Panel className="mon-territorial-panel mon-territorial-review-panel" eyebrow="Consultas internas" title={<span className="mon-title-icon"><Search size={16} /> Registros por validar</span>}>
+      <section className="mon-territorial-review-hero" aria-label="Resumen de registros consultables">
+        <div>
+          <span>Después de Validación · {phaseLabel}</span>
+          <strong>{formatMetric(summary.total)} casos consultables</strong>
+          <p>Todas las respuestas del corte quedan disponibles junto a alertas agregadas de UMP; las filas limpias se marcan sin observación y las que requieren revisión conservan responsable, distrito, fecha/hora, UUID y acceso a validación.</p>
+        </div>
+        <div className="mon-territorial-review-metrics">
+          <TerritorialReviewMetric icon={FileCheck2} label="Sin observación" value={summary.clean} tone="ready" />
+          <TerritorialReviewMetric icon={MapPin} label="GPS por revisar" value={summary.gps} tone={summary.gps ? "warning" : "ready"} />
+          <TerritorialReviewMetric icon={Clock} label="Duración por revisar" value={summary.duration} tone={summary.duration ? "warning" : "ready"} />
+          <TerritorialReviewMetric icon={ContactRound} label="Cruce responsable" value={summary.unassigned} tone={summary.unassigned ? "warning" : "ready"} hint={summary.unassigned ? "sin responsable" : "resuelto"} />
+        </div>
+      </section>
+
+      <div className="mon-territorial-review-filterbar" aria-label="Filtros de registros por validar">
+        <label className="mon-query-search">
+          <Search size={14} />
+          <input
+            value={filters.search}
+            onChange={(event) => patchFilters({ search: event.target.value })}
+            placeholder="Buscar UUID, UMP, distrito o responsable..."
+          />
+        </label>
+        <TerritorialReviewSelect
+          label="Tipo"
+          value={filters.type}
+          options={["all", "record", "gps", "duration", "ump"]}
+          formatOption={territorialReviewTypeFilterLabel}
+          onChange={(value) => patchFilters({ type: value as TerritorialReviewTypeFilter })}
+        />
+        <TerritorialReviewSelect label="Distrito" value={filters.district} options={options.districts} onChange={(district) => patchFilters({ district })} />
+        <TerritorialReviewSelect label="Responsable" value={filters.responsible} options={options.responsibles} onChange={(responsible) => patchFilters({ responsible })} />
+        <TerritorialReviewSelect label="UMP" value={filters.ump} options={options.umps} onChange={(ump) => patchFilters({ ump })} />
+        <TerritorialReviewSelect
+          label="Estado"
+          value={filters.state}
+          options={["all", "sin_observacion", "pendiente", "en_observacion", "visto_bueno"]}
+          formatOption={territorialReviewStateFilterLabel}
+          onChange={(state) => patchFilters({ state: state as TerritorialReviewStateFilter })}
+        />
+        <button type="button" onClick={() => setFilters(EMPTY_TERRITORIAL_REVIEW_FILTERS)} disabled={!canClear} title="Limpiar filtros">
+          <XCircle size={14} />
+          <span>Limpiar</span>
+        </button>
+      </div>
+
+      <section className="mon-territorial-review-table-shell" aria-label="Tabla principal de registros por validar">
+        <header>
+          <div>
+            <span>Tabla principal</span>
+            <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
+          </div>
+          <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} observables · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración · {formatMetric(visibleSummary.ump)} UMP</em>
+        </header>
+        {filteredCases.length ? (
+          <div className="mon-territorial-review-table-scroll">
+            <table className="mon-territorial-review-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Motivo</th>
+                  <th>Distrito</th>
+                  <th>UMP / manzana</th>
+                  <th>Responsable</th>
+                  <th>Fecha y hora</th>
+                  <th>Dato observado</th>
+                  <th>UUID</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCases.map((item) => {
+                  const responseId = stringOrEmpty(item.response_id).trim();
+                  const target = territorialReviewValidationTarget(item);
+                  return (
+                    <tr key={item.id} className={`is-${territorialReviewTypeKey(item)} is-${territorialReviewStateKey(item)}`}>
+                      <td><span className={`mon-territorial-review-type is-${territorialReviewTypeKey(item)}`}>{territorialReviewTypeLabel(item)}</span></td>
+                      <td><strong>{territorialReviewReasonLabel(item)}</strong><small>{territorialReviewStatusLabel(item)}</small></td>
+                      <td><strong>{item.district || "Sin distrito"}</strong><small>{item.ubigeo || "sin cruce"}</small></td>
+                      <td><strong title={territorialReviewUmpTitle(item)}>{territorialReviewUmpLabel(item)}</strong><small>{territorialReviewBlockMeta(item)}</small></td>
+                      <td><strong>{territorialReviewResponsibleLabel(item)}</strong><small>{territorialReviewResponsibleHint(item)}</small></td>
+                      <td><strong>{territorialReviewDateLabel(item)}</strong><small>{territorialReviewHourLabel(item)}</small></td>
+                      <td><span className={`mon-territorial-review-observed is-${territorialReviewTypeKey(item)}`}>{territorialReviewObservedValue(item)}</span></td>
+                      <td>
+                        {responseId ? (
+                          <button type="button" className="mon-territorial-review-copy" title={responseId} onClick={() => copyUuid(item)}>
+                            <span>{copiedCaseId === item.id ? "Copiado" : shortenMiddle(responseId, 18)}</span>
+                            <Copy size={12} />
+                          </button>
+                        ) : (
+                          <span className="mon-territorial-review-no-uuid">Sin UUID</span>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="mon-territorial-review-action"
+                          onClick={() => onOpenValidationCase?.(target.tab, responseId || undefined)}
+                        >
+                          <target.icon size={13} />
+                          <span>{target.label}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mon-territorial-audit-empty">Sin registros con esos filtros.</div>
+        )}
+      </section>
+    </Panel>
+  );
+}
+
+function TerritorialReviewMetric({
+  icon: Icon,
+  label,
+  value,
+  tone,
+  hint,
+}: {
+  icon: typeof BarChart3;
+  label: string;
+  value: number;
+  tone: "ready" | "warning";
+  hint?: string;
+}) {
+  return (
+    <span className={`is-${tone}`}>
+      <Icon size={14} />
+      <em>{label}</em>
+      <strong>{formatMetric(value)}</strong>
+      <small>{hint ?? "casos"}</small>
+    </span>
+  );
+}
+
+function TerritorialReviewSelect({
+  label,
+  value,
+  options,
+  onChange,
+  formatOption,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  formatOption?: (value: string) => string;
+}) {
+  return (
+    <label className="mon-territorial-review-select">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option || "all"} value={option}>{formatOption ? formatOption(option) : (option || "Todos")}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function buildTerritorialReviewCases(
+  reports: MonitoreoTerritorialDashboard,
+  config: MonitoreoConfig,
+): TerritorialInternalReviewCase[] {
+  const direct = reports.internal_queries?.review_cases ?? [];
+  const rawCases = direct.length ? direct : [
+    ...(reports.internal_queries?.far_gps ?? []).map((row, index) => territorialReviewCaseFromAuditLike(row, index, "gps", territorialReviewGpsReason(row), "map")),
+    ...(reports.internal_queries?.duration_review ?? []).map((row, index) => territorialReviewCaseFromAuditLike(row, index, "duration", territorialReviewDurationReason(row, config), "duration")),
+    ...(reports.internal_queries?.incomplete_blocks ?? []).map((block, index) => territorialReviewBlockCase(block, index, "ump_iniciada_incompleta")),
+    ...(reports.internal_queries?.exceeded_blocks ?? []).map((block, index) => territorialReviewBlockCase(block, index, "ump_excedida")),
+  ];
+  return rawCases
+    .map((item, index) => territorialReviewNormalizeCase(item, index, reports.active_route_phase))
+    .filter((item) => item.id)
+    .sort(territorialReviewCompareCases);
+}
+
+function territorialReviewCaseFromAuditLike(
+  row: Partial<TerritorialResponseAuditRow>,
+  index: number,
+  type: "gps" | "duration",
+  reason: string,
+  action: "map" | "duration",
+): TerritorialInternalReviewCase {
+  const responsible = territorialCaseResponsibleLabel(row as TerritorialResponseAuditRow, false);
+  return {
+    id: `${type}:${row.response_id || row.row_index || index}`,
+    type,
+    reason,
+    action,
+    response_id: stringOrEmpty(row.response_id),
+    row_index: typeof row.row_index === "number" ? row.row_index : null,
+    district: stringOrEmpty(row.distrito),
+    ubigeo: stringOrEmpty(row.ubigeo),
+    block_id: stringOrEmpty(row.nearest_block_id),
+    block_type: stringOrEmpty(row.nearest_block_type),
+    responsible,
+    submitted_by: stringOrEmpty(row.submitted_by),
+    pulso_code: stringOrEmpty(row.pulso_code || row.pulso_code_raw),
+    pulso_code_raw: stringOrEmpty(row.pulso_code_raw),
+    pulso_code_recognized: Boolean(row.pulso_code_recognized),
+    pulso_code_reconciled: Boolean(row.pulso_code_reconciled),
+    submission_date_iso: stringOrEmpty(row.submission_date_iso),
+    submission_date: stringOrEmpty(row.submission_date),
+    submission_hour: stringOrEmpty(row.submission_hour),
+    submission_datetime: stringOrEmpty(row.submission_datetime),
+    duration_seconds: numberOrNull(row.duration_seconds),
+    duration_status: stringOrEmpty(row.duration_status),
+    distance_m: numberOrNull(row.distance_m),
+    geo_estado: stringOrEmpty(row.geo_estado),
+    observation_status: stringOrEmpty(row.observation_status),
+    validation_status: stringOrEmpty(row.validation_status),
+    validation_decision: stringOrEmpty(row.validation_decision),
+    status: territorialReviewStateKey(row as TerritorialInternalReviewCase),
+    issues: stringOrEmpty(row.issues || row.observation_reasons),
+  };
+}
+
+function territorialReviewBlockCase(
+  block: TerritorialBlockProgress,
+  index: number,
+  reason: "ump_iniciada_incompleta" | "ump_excedida",
+): TerritorialInternalReviewCase {
+  const blockId = stringOrEmpty(block.id_manzana || `${block.ubigeo}-${block.zona}-${block.manzana}`);
+  const meta = numberOrNull(block.entrevistas) ?? numberOrNull(block.meta) ?? 8;
+  return {
+    id: `ump:${reason}:${blockId || index}`,
+    type: "ump",
+    reason,
+    action: "ump",
+    district: stringOrEmpty(block.distrito),
+    ubigeo: stringOrEmpty(block.ubigeo),
+    ump: stringOrEmpty(block.ump || territorialRouteOperationalLabel(block)),
+    block_id: blockId,
+    block_type: stringOrEmpty(block.tipo_manzana),
+    zona: stringOrEmpty(block.zona),
+    manzana: stringOrEmpty(block.manzana),
+    responsible: stringOrEmpty(block.responsable),
+    validas: numberOrNull(block.validas),
+    meta,
+    status: "pendiente",
+  };
+}
+
+function territorialReviewNormalizeCase(
+  item: TerritorialInternalReviewCase,
+  index: number,
+  phase: string,
+): TerritorialInternalReviewCase {
+  const type = territorialReviewTypeKey(item);
+  const responseId = stringOrEmpty(item.response_id).trim();
+  const blockId = stringOrEmpty(item.block_id).trim();
+  const fallbackId = responseId || blockId || `${type}-${index}`;
+  const id = stringOrEmpty(item.id).trim() || `${type}:${fallbackId}`;
+  const responsible = stringOrEmpty(item.responsible).trim() || stringOrEmpty(item.submitted_by).trim();
+  return {
+    ...item,
+    id,
+    type,
+    action: stringOrEmpty(item.action) || (type === "record" ? "record" : type === "duration" ? "duration" : type === "ump" ? "ump" : "map"),
+    phase: item.phase || phase,
+    response_id: responseId,
+    district: stringOrEmpty(item.district).trim() || "Sin distrito",
+    ubigeo: stringOrEmpty(item.ubigeo).trim(),
+    ump: stringOrEmpty(item.ump).trim(),
+    block_id: blockId,
+    block_type: stringOrEmpty(item.block_type).trim(),
+    zona: stringOrEmpty(item.zona).trim(),
+    manzana: stringOrEmpty(item.manzana).trim(),
+    responsible: responsible || "Sin responsable asignado",
+    submitted_by: stringOrEmpty(item.submitted_by).trim(),
+    pulso_code: stringOrEmpty(item.pulso_code).trim(),
+    pulso_code_raw: stringOrEmpty(item.pulso_code_raw).trim(),
+    submission_date_iso: stringOrEmpty(item.submission_date_iso).trim(),
+    submission_date: stringOrEmpty(item.submission_date).trim(),
+    submission_hour: stringOrEmpty(item.submission_hour).trim(),
+    submission_datetime: stringOrEmpty(item.submission_datetime).trim(),
+    duration_seconds: numberOrNull(item.duration_seconds),
+    distance_m: numberOrNull(item.distance_m),
+    validas: numberOrNull(item.validas),
+    meta: numberOrNull(item.meta),
+    status: territorialReviewStateKey(item),
+    issues: stringOrEmpty(item.issues).trim(),
+  };
+}
+
+function territorialReviewGpsReason(item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>) {
+  const geo = territorialReviewCodeKey((item as TerritorialInternalReviewCase).geo_estado);
+  if (geo === "geo_sin_gps" || geo === "sin_gps") return "gps_sin_gps";
+  if (geo === "geo_no_defendible") return "gps_muy_lejos";
+  if (geo === "geo_revision") return "gps_fuera_zona";
+  return "gps_por_revisar";
+}
+
+function territorialReviewDurationReason(
+  item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>,
+  config: MonitoreoConfig,
+) {
+  const status = territorialReviewCodeKey((item as TerritorialInternalReviewCase).duration_status);
+  const duration = numberOrNull((item as TerritorialInternalReviewCase).duration_seconds);
+  if (status === "muy_corta" || (duration != null && duration < config.territorial.min_duration_seconds)) return "duracion_menor_1_min";
+  if (status === "corta" || (duration != null && duration < territorialShortDurationSeconds(config))) return "duracion_menor_5_min";
+  if (status === "extrema") return "duracion_larga";
+  if (status === "larga") return "duracion_larga";
+  return "duracion_por_revisar";
+}
+
+function territorialReviewCodeKey(value: unknown) {
+  return normalizeMatch(value).replace(/\s+/g, "_");
+}
+
+function territorialReviewTypeKey(item: Partial<TerritorialInternalReviewCase>) {
+  const type = territorialReviewCodeKey(item.type);
+  const reason = territorialReviewCodeKey(item.reason);
+  if (type.includes("record") || type.includes("registro") || reason === "sin_observacion" || reason.includes("registro")) return "record";
+  if (type.includes("dur") || reason.includes("duracion")) return "duration";
+  if (type.includes("ump") || reason.includes("ump")) return "ump";
+  return "gps";
+}
+
+function territorialReviewTypeLabel(item: TerritorialInternalReviewCase) {
+  const key = territorialReviewTypeKey(item);
+  if (key === "record") return "Registro";
+  if (key === "duration") return "Duración";
+  if (key === "ump") return "UMP";
+  return "GPS";
+}
+
+function territorialReviewTypeFilterLabel(value: string) {
+  if (value === "record") return "Registro";
+  if (value === "gps") return "GPS";
+  if (value === "duration") return "Duración";
+  if (value === "ump") return "UMP";
+  return "Todos";
+}
+
+function territorialReviewReasonLabel(item: TerritorialInternalReviewCase) {
+  const reason = territorialReviewCodeKey(item.reason);
+  if (reason === "sin_observacion") return "Sin observación";
+  if (reason === "registro_no_efectivo") return "No efectiva / fuera de corte";
+  if (reason === "gps_muy_lejos") return "GPS muy lejos de la UMP";
+  if (reason === "gps_sin_gps") return "Sin GPS";
+  if (reason === "gps_fuera_zona") return "GPS fuera de zona";
+  if (reason === "gps_por_revisar") return "GPS por revisar";
+  if (reason === "duracion_menor_1_min") return "Menor a 1 min";
+  if (reason === "duracion_menor_5_min") return "Menor a 5 min";
+  if (reason === "duracion_larga") return "Duración larga atípica";
+  if (reason === "duracion_por_revisar") return "Duración por revisar";
+  if (reason === "ump_iniciada_incompleta") return "UMP iniciada incompleta";
+  if (reason === "ump_excedida") return "UMP excedida";
+  return observationReasonLabel(item.reason || item.issues || "Por revisar");
+}
+
+function territorialReviewStateKey(item: Partial<TerritorialInternalReviewCase>) {
+  const status = territorialReviewCodeKey(item.status);
+  const decision = territorialReviewCodeKey(item.validation_decision);
+  const observation = territorialReviewCodeKey(item.observation_status);
+  const validation = territorialReviewCodeKey(item.validation_status);
+  const reason = territorialReviewCodeKey(item.reason);
+  if (status === "visto_bueno" || decision === "visto_bueno" || observation === "aprobada") return "visto_bueno";
+  if (status === "en_observacion" || status === "revision" || observation === "en_observacion" || validation === "revision") return "en_observacion";
+  if (status === "sin_observacion" || reason === "sin_observacion" || territorialReviewTypeKey(item) === "record") return "sin_observacion";
+  return "pendiente";
+}
+
+function territorialReviewStateFilterLabel(value: string) {
+  if (value === "sin_observacion") return "Sin observación";
+  if (value === "pendiente") return "Pendiente";
+  if (value === "en_observacion") return "En observación";
+  if (value === "visto_bueno") return "Visto bueno";
+  return "Todos";
+}
+
+function territorialReviewStatusLabel(item: TerritorialInternalReviewCase) {
+  const state = territorialReviewStateKey(item);
+  const reason = territorialReviewCodeKey(item.reason);
+  if (state === "sin_observacion" && reason === "sin_observacion") return "Registro limpio";
+  if (state === "sin_observacion" && reason === "registro_no_efectivo") return "Fuera del criterio";
+  return territorialReviewStateFilterLabel(territorialReviewStateKey(item));
+}
+
+function territorialReviewUmpLabel(item: TerritorialInternalReviewCase) {
+  const ump = stringOrEmpty(item.ump).trim();
+  if (ump) return /^ump\b/i.test(ump) ? ump : `UMP ${ump}`;
+  const block = stringOrEmpty(item.block_id).trim();
+  return block ? shortenMiddle(block, 16) : "S/D";
+}
+
+function territorialReviewUmpTitle(item: TerritorialInternalReviewCase) {
+  return [
+    item.ump ? `UMP ${item.ump}` : "",
+    item.block_id ? `Manzana ${item.block_id}` : "",
+    item.block_type || "",
+  ].filter(Boolean).join(" · ") || "Sin UMP";
+}
+
+function territorialReviewBlockMeta(item: TerritorialInternalReviewCase) {
+  const pieces = [
+    item.block_type || "",
+    item.zona ? `Zona ${item.zona}` : "",
+    item.manzana ? `Mz. ${item.manzana}` : "",
+  ].filter(Boolean);
+  return pieces.join(" · ") || "sin manzana";
+}
+
+function territorialReviewResponsibleLabel(item: TerritorialInternalReviewCase) {
+  const responsible = stringOrEmpty(item.responsible).trim();
+  if (territorialMissingResponsibleLabel(responsible)) return "Sin responsable asignado";
+  return responsible;
+}
+
+function territorialReviewResponsibleHint(item: TerritorialInternalReviewCase) {
+  if (territorialMissingResponsibleLabel(item.responsible)) return "problema de cruce";
+  if (item.pulso_code_recognized) return "Código Pulso reconocido";
+  if (item.pulso_code_reconciled) return "Código Pulso reconciliado";
+  if (territorialReviewTypeKey(item) === "ump") return "ruta/UMP";
+  return item.pulso_code || item.submitted_by || "responsable";
+}
+
+function territorialReviewDateLabel(item: TerritorialInternalReviewCase) {
+  const label = stringOrEmpty(item.submission_date).trim();
+  if (label) return formatInternalQueryDateAxisLabel(label);
+  const iso = stringOrEmpty(item.submission_date_iso).trim();
+  if (iso) return formatInternalQueryDateAxisLabel(iso);
+  const datetime = stringOrEmpty(item.submission_datetime).trim();
+  if (datetime) return formatInternalQueryDateAxisLabel(datetime);
+  return "S/D";
+}
+
+function territorialReviewHourLabel(item: TerritorialInternalReviewCase) {
+  const hour = normalizeTerritorialHourLabel(stringOrEmpty(item.submission_hour).trim());
+  if (hour) return isTerritorialMidnightLabel(hour) ? "sin hora" : hour;
+  const parts = territorialSubmissionStampParts({
+    submission_date: item.submission_date,
+    submission_hour: item.submission_hour,
+    submission_datetime: item.submission_datetime,
+  });
+  return parts.hour || "sin hora";
+}
+
+function territorialReviewObservedValue(item: TerritorialInternalReviewCase) {
+  const type = territorialReviewTypeKey(item);
+  if (type === "record") {
+    if (territorialReviewCodeKey(item.reason) === "registro_no_efectivo") return "No efectiva";
+    return "OK";
+  }
+  if (type === "duration") return formatDurationLabel(item.duration_seconds);
+  if (type === "ump") return `${formatMetric(numberOrNull(item.validas) ?? 0)}/${formatMetric(numberOrNull(item.meta) ?? 8)} válidas`;
+  if (territorialReviewCodeKey(item.geo_estado) === "geo_sin_gps" || territorialReviewCodeKey(item.reason) === "gps_sin_gps") return "Sin GPS";
+  return formatDistanceLabel(item.distance_m);
+}
+
+function territorialReviewValidationTarget(item: TerritorialInternalReviewCase): {
+  tab: TerritorialValidationTab;
+  label: string;
+  icon: typeof BarChart3;
+} {
+  const type = territorialReviewTypeKey(item);
+  if (type === "record") return { tab: "resumen", label: "Ver registro", icon: FileCheck2 };
+  if (type === "duration") return { tab: "duracion", label: "Ver duración", icon: Clock };
+  if (type === "ump") return { tab: "geolocalizacion", label: "Ver UMP", icon: Route };
+  return { tab: "geolocalizacion", label: "Ver en mapa", icon: MapPin };
+}
+
+function territorialReviewFilterOptions(cases: TerritorialInternalReviewCase[]) {
+  return {
+    districts: ["", ...uniqueNonEmpty(cases.map((item) => item.district)).sort((a, b) => a.localeCompare(b, "es"))],
+    responsibles: ["", ...uniqueNonEmpty(cases.map(territorialReviewResponsibleLabel)).sort((a, b) => a.localeCompare(b, "es"))],
+    umps: ["", ...uniqueNonEmpty(cases.map(territorialReviewUmpLabel)).sort((a, b) => a.localeCompare(b, "es"))],
+  };
+}
+
+function filterTerritorialReviewCases(cases: TerritorialInternalReviewCase[], filters: TerritorialReviewFilters) {
+  const query = normalizeMatch(filters.search);
+  return cases.filter((item) => {
+    if (filters.type !== "all" && territorialReviewTypeKey(item) !== filters.type) return false;
+    if (filters.state !== "all" && territorialReviewStateKey(item) !== filters.state) return false;
+    if (filters.district && item.district !== filters.district) return false;
+    if (filters.responsible && territorialReviewResponsibleLabel(item) !== filters.responsible) return false;
+    if (filters.ump && territorialReviewUmpLabel(item) !== filters.ump) return false;
+    if (!query) return true;
+    const haystack = normalizeMatch([
+      item.response_id,
+      item.district,
+      item.ubigeo,
+      item.ump,
+      item.block_id,
+      item.responsible,
+      item.submitted_by,
+      item.pulso_code,
+      territorialReviewReasonLabel(item),
+      territorialReviewObservedValue(item),
+    ].filter(Boolean).join(" "));
+    return haystack.includes(query);
+  }).sort(territorialReviewCompareCases);
+}
+
+function summarizeTerritorialReviewCases(cases: TerritorialInternalReviewCase[]) {
+  return cases.reduce((summary, item) => {
+    const type = territorialReviewTypeKey(item);
+    const state = territorialReviewStateKey(item);
+    summary.total += 1;
+    if (type === "record") summary.record += 1;
+    if (type === "gps") summary.gps += 1;
+    if (type === "duration") summary.duration += 1;
+    if (type === "ump") summary.ump += 1;
+    if (state === "sin_observacion") summary.clean += 1;
+    if (type !== "record") summary.review += 1;
+    if (territorialMissingResponsibleLabel(item.responsible)) summary.unassigned += 1;
+    return summary;
+  }, { total: 0, record: 0, gps: 0, duration: 0, ump: 0, clean: 0, review: 0, unassigned: 0 });
+}
+
+function isEmptyTerritorialReviewFilters(filters: TerritorialReviewFilters) {
+  return filters.type === "all"
+    && !filters.district
+    && !filters.responsible
+    && !filters.ump
+    && filters.state === "all"
+    && !filters.search.trim();
+}
+
+function territorialReviewCompareCases(a: TerritorialInternalReviewCase, b: TerritorialInternalReviewCase) {
+  const stateRank: Record<string, number> = { pendiente: 0, en_observacion: 1, visto_bueno: 2, sin_observacion: 3 };
+  const typeRank: Record<string, number> = { gps: 0, duration: 1, ump: 2, record: 3 };
+  const stateDelta = (stateRank[territorialReviewStateKey(a)] ?? 9) - (stateRank[territorialReviewStateKey(b)] ?? 9);
+  if (stateDelta !== 0) return stateDelta;
+  const typeDelta = (typeRank[territorialReviewTypeKey(a)] ?? 9) - (typeRank[territorialReviewTypeKey(b)] ?? 9);
+  if (typeDelta !== 0) return typeDelta;
+  const dateDelta = compareInternalQueryDateValues(territorialReviewSortableDate(b), territorialReviewSortableDate(a));
+  if (dateDelta !== 0) return dateDelta;
+  return `${a.district} ${territorialReviewUmpLabel(a)} ${a.id}`.localeCompare(`${b.district} ${territorialReviewUmpLabel(b)} ${b.id}`, "es");
+}
+
+function territorialReviewSortableDate(item: TerritorialInternalReviewCase) {
+  return stringOrEmpty(item.submission_date_iso || item.submission_date || item.submission_datetime);
+}
+
+type KoboOccurrenceProfile = {
+  id: string;
+  alias: string;
+  is_default?: boolean;
+  has_token?: boolean;
+  base_url?: string;
+  server_label?: string;
+};
+
+function normalizeKoboBaseUrl(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  try {
+    return new URL(raw).origin.replace(/\/+$/, "");
+  } catch {
+    const cleaned = raw
+      .split("#")[0]
+      .replace(/\/api\/v2.*$/i, "")
+      .replace(/\/+$/, "");
+    if (!cleaned) return "";
+    return /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+  }
+}
+
+function koboOccurrenceLandingUrl(baseUrl: string, assetUid: string) {
+  const base = normalizeKoboBaseUrl(baseUrl) || "https://kf.kobotoolbox.org";
+  return `${base}/#/forms/${encodeURIComponent(assetUid)}/landing`;
+}
+
+function koboOccurrenceProfiles(connection: ConnectionTokenState | null): KoboOccurrenceProfile[] {
+  if (!connection) return [];
+  const profiles = (connection.profiles ?? [])
+    .map((profile) => ({
+      id: profile.id,
+      alias: profile.alias || profile.server_label || "Kobo",
+      is_default: profile.is_default,
+      has_token: profile.has_token,
+      base_url: profile.base_url,
+      server_label: profile.server_label,
+    }))
+    .filter((profile) => profile.id || profile.base_url);
+  if (profiles.length) return profiles;
+  if (!connection.has_token && !connection.active_profile_base_url && !connection.active_profile_id) return [];
+  return [{
+    id: connection.active_profile_id || "",
+    alias: connection.active_profile_alias || connection.active_profile_server_label || "Kobo",
+    is_default: true,
+    has_token: connection.has_token,
+    base_url: connection.active_profile_base_url,
+    server_label: connection.active_profile_server_label,
+  }];
+}
+
+function koboOccurrenceProfileLabel(profile: KoboOccurrenceProfile) {
+  const label = profile.server_label || profile.alias || "Kobo";
+  const base = normalizeKoboBaseUrl(profile.base_url);
+  return base ? `${label} · ${base.replace(/^https?:\/\//i, "")}` : label;
+}
+
+function TerritorialFieldOccurrencesSection({
+  dashboard,
+  loading = false,
+  error = "",
+  onRetry,
+  busy,
+  onGenerate,
+  onConfigure,
+  onInspect,
+  onSync,
+}: {
+  dashboard: MonitoreoDashboard | null;
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+  busy?: "" | "config" | "inspect" | "xlsform" | "sync";
+  onGenerate?: () => Promise<void>;
+  onConfigure?: (patch: Partial<MonitoreoFieldOccurrenceConfig>) => Promise<void>;
+  onInspect?: () => Promise<MonitoreoFieldOccurrenceInspectResult>;
+  onSync?: () => Promise<void>;
+}) {
+  const rawReports = territorialReportsFromDashboard(dashboard);
+  const reportScope = rawReports?.report_scope || "full";
+  const reports = rawReports && (reportScope === "queries_summary" || reportScope === "full") ? rawReports : null;
+  if (!reports) {
+    if (loading) return <LoadingBlock label={territorialLoadingLabelForView("ocurrencias")} minHeight={420} />;
+    if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
+    return <EmptyState icon={<ClipboardCheck size={18} />} title="Sin ocurrencias de campo" hint="Selecciona o sincroniza el formulario de ocurrencias para leer estados por UMP." />;
+  }
+  return (
+    <div className="mon-stage mon-stage--ocurrencias">
+      <TerritorialFieldOccurrencesView
+        reports={reports}
+        busy={busy}
+        onGenerate={onGenerate}
+        onConfigure={onConfigure}
+        onInspect={onInspect}
+        onSync={onSync}
+      />
+    </div>
+  );
+}
+
+function TerritorialFieldOccurrencesView({
+  reports,
+  busy,
+  onGenerate,
+  onConfigure,
+  onInspect,
+  onSync,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  busy?: "" | "config" | "inspect" | "xlsform" | "sync";
+  onGenerate?: () => Promise<void>;
+  onConfigure?: (patch: Partial<MonitoreoFieldOccurrenceConfig>) => Promise<void>;
+  onInspect?: () => Promise<MonitoreoFieldOccurrenceInspectResult>;
+  onSync?: () => Promise<void>;
+}) {
+  const occurrences = reports.field_occurrences ?? null;
+  const config = occurrences?.config ?? null;
+  const summary = occurrences?.summary ?? {
+    total_records: 0,
+    days_reported: 0,
+    responsables: 0,
+    manzanas_reportadas: 0,
+    efectivas: 0,
+    no_efectivas: 0,
+    intentos: 0,
+    tasa_no_efectiva: null,
+  };
+  const records = occurrences?.records ?? [];
+  const [districtFilter, setDistrictFilter] = useState("todos");
+  const [responsableFilter, setResponsableFilter] = useState("todos");
+  const [umpSearch, setUmpSearch] = useState("");
+  const [umpStatusFilter, setUmpStatusFilter] = useState<"todos" | OccurrenceUmpAttentionStatus>("todos");
+  const [umpOutcomeFilter, setUmpOutcomeFilter] = useState("todos");
+  const [selectedUmpId, setSelectedUmpId] = useState("");
+  const umpSummary = useMemo(() => {
+    const incoming = occurrences?.by_ump ?? [];
+    if (incoming.length) return incoming;
+    return buildOccurrenceUmpSummary(records, occurrences?.by_outcome ?? []);
+  }, [occurrences?.by_outcome, occurrences?.by_ump, records]);
+  const routeUmpRows = useMemo(() => buildOccurrenceRouteUmpRows({ occurrences, umpSummary }), [occurrences, umpSummary]);
+  const districtSummary = useMemo(() => buildOccurrenceDistrictSummary(occurrences, routeUmpRows), [occurrences, routeUmpRows]);
+  const districtOptions = useMemo(() => uniqueNonEmpty([
+    ...records.map((row) => String(row.distrito ?? "")),
+    ...routeUmpRows.map((row) => row.distrito),
+  ]).sort(), [records, routeUmpRows]);
+  const responsableOptions = useMemo(() => uniqueNonEmpty([
+    ...records.map((row) => String(row.responsable ?? "")),
+    ...routeUmpRows.filter((row) => row.has_report).map((row) => row.responsable),
+  ]).sort(), [records, routeUmpRows]);
+  const dominantOutcomeOptions = useMemo(() => {
+    const pairs = new Map<string, string>();
+    routeUmpRows.forEach((row) => {
+      if (row.dominant_outcome?.key) pairs.set(row.dominant_outcome.key, row.dominant_outcome.label);
+    });
+    return Array.from(pairs.entries()).sort((a, b) => a[1].localeCompare(b[1], "es-PE"));
+  }, [routeUmpRows]);
+  const filteredUmpRows = useMemo(() => routeUmpRows.filter((row) => {
+    if (districtFilter !== "todos" && row.distrito !== districtFilter) return false;
+    if (responsableFilter !== "todos" && row.responsable !== responsableFilter) return false;
+    if (umpStatusFilter !== "todos" && row.status !== umpStatusFilter) return false;
+    if (umpOutcomeFilter !== "todos" && row.dominant_outcome?.key !== umpOutcomeFilter) return false;
+    const q = umpSearch.trim().toLocaleLowerCase("es-PE");
+    if (q && !row.search_text.includes(q)) return false;
+    return true;
+  }), [districtFilter, responsableFilter, routeUmpRows, umpOutcomeFilter, umpSearch, umpStatusFilter]);
+  const selectedUmpRow = useMemo(() => (
+    filteredUmpRows.find((row) => row.id === selectedUmpId) ?? filteredUmpRows[0] ?? null
+  ), [filteredUmpRows, selectedUmpId]);
+  useEffect(() => {
+    if (!filteredUmpRows.length) {
+      if (selectedUmpId) setSelectedUmpId("");
+      return;
+    }
+    if (!filteredUmpRows.some((row) => row.id === selectedUmpId)) {
+      setSelectedUmpId(filteredUmpRows[0].id);
+    }
+  }, [filteredUmpRows, selectedUmpId]);
+  const active = Boolean(config?.asset_uid);
+  const rateLabel = summary.tasa_no_efectiva == null || Number.isNaN(Number(summary.tasa_no_efectiva))
+    ? "S/D"
+    : formatPercentLabel(Number(summary.tasa_no_efectiva) * 100);
+  const topOutcomes = [...(occurrences?.by_outcome ?? [])].sort((a, b) => b.total - a.total).slice(0, 7);
+  const history = occurrences?.history ?? [];
+  const [copiedLink, setCopiedLink] = useState(false);
+  const surveyLink = String(config?.survey_url || config?.asset_url || "").trim();
+  const [occurrenceTab, setOccurrenceTab] = useState<"states" | "ump" | "alerts">("states");
+  const [koboConnection, setKoboConnection] = useState<ConnectionTokenState | null>(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState(config?.connection_profile_id ?? "");
+  const [assetSelectionError, setAssetSelectionError] = useState("");
+  const [occurrenceAssets, setOccurrenceAssets] = useState<MonitoreoKoboAssetItem[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [assetsError, setAssetsError] = useState("");
+  const [assetQuery, setAssetQuery] = useState("");
+  const [pendingAssetUid, setPendingAssetUid] = useState("");
+  const [fieldCheck, setFieldCheck] = useState<MonitoreoFieldOccurrenceFieldCheck | null>(null);
+  const [assetPickerOpen, setAssetPickerOpen] = useState(!active);
+  const koboProfiles = useMemo(() => koboOccurrenceProfiles(koboConnection), [koboConnection]);
+  const selectedProfile = useMemo(() => {
+    if (!koboProfiles.length) return null;
+    return koboProfiles.find((profile) => profile.id === selectedProfileId) ??
+      koboProfiles.find((profile) => profile.is_default) ??
+      koboProfiles[0];
+  }, [koboProfiles, selectedProfileId]);
+  const hasKoboToken = Boolean(koboConnection?.has_token || selectedProfile?.has_token);
+  const occurrenceBaseUrl = normalizeKoboBaseUrl(
+    selectedProfile?.base_url ||
+      config?.base_url ||
+      koboConnection?.active_profile_base_url ||
+      "https://kf.kobotoolbox.org",
+  );
+  const occurrenceAssetCatalogKey = `occurrences::${selectedProfile?.id || selectedProfileId || "default"}::${occurrenceBaseUrl}`;
+  const filteredOccurrenceAssets = useMemo(() => {
+    const q = assetQuery.trim().toLocaleLowerCase("es-PE");
+    return occurrenceAssets
+      .filter((asset) => {
+        const haystack = `${asset.name} ${asset.uid}`.toLocaleLowerCase("es-PE");
+        return !q || haystack.includes(q);
+      })
+      .sort((a, b) => {
+        if (a.uid === config?.asset_uid) return -1;
+        if (b.uid === config?.asset_uid) return 1;
+        if (a.deployment_active !== b.deployment_active) return a.deployment_active ? -1 : 1;
+        return String(b.date_modified ?? "").localeCompare(String(a.date_modified ?? ""));
+      })
+      .slice(0, 8);
+  }, [assetQuery, config?.asset_uid, occurrenceAssets]);
+  const canConfigureOccurrence = Boolean(onConfigure) && !busy;
+  const occurrenceConnectionLabel = connectionLoading
+    ? "cargando cuentas"
+    : hasKoboToken
+      ? `${koboProfiles.length || 1} perfil Kobo`
+      : "sin token Kobo";
+  const showAssetPicker = !active || assetPickerOpen;
+
+  useEffect(() => {
+    let cancelled = false;
+    setConnectionLoading(true);
+    setConnectionError("");
+    apiConnectionsList()
+      .then((result) => {
+        if (cancelled) return;
+        setKoboConnection(result.connections.find((item) => item.provider === "kobo") ?? null);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setConnectionError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setConnectionLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const configuredProfileId = String(config?.connection_profile_id ?? "").trim();
+    if (configuredProfileId) {
+      setSelectedProfileId(configuredProfileId);
+      return;
+    }
+    const preferred = koboConnection?.active_profile_id ||
+      koboProfiles.find((profile) => profile.is_default)?.id ||
+      koboProfiles[0]?.id ||
+      "";
+    if (preferred) setSelectedProfileId((current) => current || preferred);
+  }, [config?.connection_profile_id, koboConnection?.active_profile_id, koboProfiles]);
+
+  useEffect(() => {
+    setOccurrenceAssets(territorialKoboAssetCatalogCache.get(occurrenceAssetCatalogKey) ?? []);
+    setAssetsLoaded(territorialKoboAssetCatalogCache.has(occurrenceAssetCatalogKey));
+    setAssetsError("");
+    setAssetSelectionError("");
+  }, [occurrenceAssetCatalogKey]);
+
+  useEffect(() => {
+    setFieldCheck(null);
+  }, [config?.asset_uid]);
+
+  useEffect(() => {
+    setAssetPickerOpen(!active);
+  }, [active, config?.asset_uid]);
+
+  const loadOccurrenceAssets = useCallback(async (force = false) => {
+    if (!occurrenceBaseUrl) {
+      setAssetsError("Define primero el servidor Kobo.");
+      return;
+    }
+    setAssetsLoading(true);
+    setAssetsError("");
+    try {
+      if (!force && territorialKoboAssetCatalogCache.has(occurrenceAssetCatalogKey)) {
+        setOccurrenceAssets(territorialKoboAssetCatalogCache.get(occurrenceAssetCatalogKey) ?? []);
+        setAssetsLoaded(true);
+        return;
+      }
+      const result = await apiMonitoreoKoboAssets(occurrenceBaseUrl, 100, {
+        connection_profile_id: selectedProfile?.id || selectedProfileId || undefined,
+      });
+      territorialKoboAssetCatalogCache.set(occurrenceAssetCatalogKey, result.assets);
+      setOccurrenceAssets(result.assets);
+      setAssetsLoaded(true);
+    } catch (e) {
+      setAssetsError((e as Error).message);
+    } finally {
+      setAssetsLoading(false);
+    }
+  }, [occurrenceAssetCatalogKey, occurrenceBaseUrl, selectedProfile, selectedProfileId]);
+
+  const configureOccurrenceAsset = useCallback(async (asset: MonitoreoKoboAssetItem, baseUrl = occurrenceBaseUrl, profileId = selectedProfile?.id || selectedProfileId || "") => {
+    if (!onConfigure) return;
+    const cleanBase = normalizeKoboBaseUrl(baseUrl) || occurrenceBaseUrl || "https://kf.kobotoolbox.org";
+    const assetUrl = koboOccurrenceLandingUrl(cleanBase, asset.uid);
+    const sameAsset = asset.uid === config?.asset_uid;
+    setPendingAssetUid(asset.uid);
+    setAssetSelectionError("");
+    try {
+      await onConfigure({
+        enabled: true,
+        form_title: config?.form_title || "OCURRENCIAS DE TRABAJO DE CAMPO",
+        asset_uid: asset.uid,
+        asset_name: asset.name || asset.uid,
+        version_id: asset.version_id || "",
+        source_id: config?.source_id || "",
+        base_url: cleanBase,
+        survey_url: assetUrl,
+        asset_url: assetUrl,
+        connection_profile_id: profileId,
+        status: sameAsset && config?.status ? config.status : "configured",
+        last_sync_at: sameAsset ? config?.last_sync_at || "" : "",
+        uploaded_at: sameAsset ? config?.uploaded_at || "" : "",
+      });
+      setAssetPickerOpen(false);
+    } catch (e) {
+      setAssetSelectionError((e as Error).message);
+      throw e;
+    } finally {
+      setPendingAssetUid("");
+    }
+  }, [config?.asset_uid, config?.form_title, config?.last_sync_at, config?.source_id, config?.status, config?.uploaded_at, occurrenceBaseUrl, onConfigure, selectedProfile, selectedProfileId]);
+
+  const inspectOccurrenceFields = useCallback(async () => {
+    if (!onInspect) return;
+    setAssetSelectionError("");
+    try {
+      const result = await onInspect();
+      setFieldCheck(result.field_check);
+    } catch (e) {
+      setAssetSelectionError((e as Error).message);
+    }
+  }, [onInspect]);
+
+  const reportedUmpCount = routeUmpRows.filter((row) => row.has_report).length;
+  const noReportUmpCount = routeUmpRows.filter((row) => !row.has_report).length;
+  const observationRows = routeUmpRows.filter((row) => row.status === "sin_reporte" || row.status === "revisar_cruce");
+  const occurrenceTabs = [
+    { key: "states" as const, label: "Estados general", value: rateLabel },
+    { key: "ump" as const, label: "Por UMP", value: `${formatMetric(reportedUmpCount)}/${formatMetric(routeUmpRows.length)} reportadas` },
+    { key: "alerts" as const, label: "Observaciones", value: `${formatMetric(observationRows.length)} por revisar` },
+  ];
+  const copyOccurrenceLink = async () => {
+    if (!surveyLink) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(surveyLink);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = surveyLink;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedLink(true);
+      window.setTimeout(() => setCopiedLink(false), 1600);
+    } catch {
+      setCopiedLink(false);
+    }
+  };
+  return (
+    <Panel className="mon-territorial-panel mon-field-occurrences" eyebrow="Ocurrencias de campo" title={<span className="mon-title-icon"><ClipboardCheck size={16} /> Estados reportados por UMP</span>}>
+      <section className={`mon-field-occurrences-command ${active ? "is-active" : "is-empty"}`} aria-label="Formulario y acciones de ocurrencias">
+        <div className="mon-field-occurrences-command-source">
+          <span>{active ? "Formulario Kobo activo" : "Formulario por seleccionar"}</span>
+          <strong>{config?.asset_name || config?.form_title || "OCURRENCIAS DE TRABAJO DE CAMPO"}</strong>
+          <em>{active ? shortenMiddle(config?.asset_uid ?? "", 34) : "Descarga el XLSForm o vincula el formulario creado en Kobo"}</em>
+        </div>
+        <div className="mon-field-occurrences-command-metrics" aria-label="Resumen compacto de ocurrencias">
+          <span><strong>{formatMetric(summary.total_records)}</strong><em>reportes</em></span>
+          <span><strong>{formatMetric(summary.efectivas)}</strong><em>efectivas</em></span>
+          <span><strong>{formatMetric(summary.no_efectivas)}</strong><em>{rateLabel}</em></span>
+          <span><strong>{formatMetric(noReportUmpCount)}</strong><em>sin reporte</em></span>
+        </div>
+        <div className="mon-field-occurrences-command-actions">
+          <button type="button" className="pulso-button" onClick={() => setAssetPickerOpen((current) => !current)} disabled={!!busy}>
+            {assetPickerOpen ? <ChevronDown size={15} /> : <Search size={15} />}
+            {assetPickerOpen ? "Ocultar Kobo" : active ? "Cambiar formulario" : "Elegir formulario"}
+          </button>
+          <button type="button" className="pulso-button" onClick={() => { void onGenerate?.().catch(() => undefined); }} disabled={!!busy}>
+            {busy === "xlsform" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+            XLSForm
+          </button>
+          <button type="button" className="pulso-button" onClick={() => { void inspectOccurrenceFields(); }} disabled={!!busy || !active || !hasKoboToken}>
+            {busy === "inspect" ? <Loader2 size={15} className="spin" /> : <FileCheck2 size={15} />}
+            Campos
+          </button>
+          <button type="button" className="pulso-button is-primary" onClick={() => { void onSync?.().catch(() => undefined); }} disabled={!!busy || !active}>
+            {busy === "sync" ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+            Actualizar
+          </button>
+          <button type="button" className="pulso-button" onClick={() => { void copyOccurrenceLink(); }} disabled={!surveyLink || !!busy} title={copiedLink ? "Enlace copiado" : "Copiar enlace"}>
+            {copiedLink ? <CheckCircle2 size={15} /> : <Link2 size={15} />}
+          </button>
+        </div>
+      </section>
+
+      {(showAssetPicker || fieldCheck || connectionError || assetsError || assetSelectionError) ? (
+        <section className="mon-field-occurrences-connect" aria-label="Seleccion de formulario Kobo para ocurrencias">
+            <header>
+              <div className="mon-field-occurrences-connect-title">
+                <span><PlugZap size={13} /> Formularios Kobo</span>
+                <strong>{config?.asset_name || "Selecciona formulario de ocurrencias"}</strong>
+              </div>
+              <div className="mon-field-occurrences-connect-head-actions">
+                <em>{occurrenceConnectionLabel}</em>
+                {active ? (
+                  <button
+                    type="button"
+                    className="mon-field-occurrences-change-button"
+                    onClick={() => setAssetPickerOpen((current) => !current)}
+                    disabled={!!busy}
+                  >
+                    {assetPickerOpen ? <ChevronDown size={13} /> : <Search size={13} />}
+                    {assetPickerOpen ? "Ocultar" : "Cambiar"}
+                  </button>
+                ) : null}
+              </div>
+            </header>
+            {showAssetPicker ? (
+              <>
+                <div className="mon-field-occurrences-connect-controls">
+                  <label>
+                    <span>Cuenta</span>
+                    <select
+                      value={selectedProfile?.id || selectedProfileId}
+                      onChange={(event) => setSelectedProfileId(event.target.value)}
+                      disabled={connectionLoading || !koboProfiles.length || !!busy}
+                    >
+                      {koboProfiles.length ? koboProfiles.map((profile) => (
+                        <option key={profile.id || profile.base_url || profile.alias} value={profile.id}>
+                          {koboOccurrenceProfileLabel(profile)}
+                        </option>
+                      )) : (
+                        <option value="">Kobo sin configurar</option>
+                      )}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="pulso-button"
+                    onClick={() => { void loadOccurrenceAssets(true); }}
+                    disabled={assetsLoading || !!busy || !hasKoboToken || !occurrenceBaseUrl}
+                  >
+                    {assetsLoading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+                    Cargar formularios
+                  </button>
+                  <label className="mon-field-occurrences-connect-search">
+                    <Search size={14} />
+                    <input
+                      value={assetQuery}
+                      onChange={(event) => setAssetQuery(event.target.value)}
+                      placeholder="Buscar formulario..."
+                      disabled={!assetsLoaded && !occurrenceAssets.length}
+                    />
+                  </label>
+                </div>
+                {(connectionError || assetsError || assetSelectionError) && (
+                  <p className="mon-field-occurrences-connect-error">{connectionError || assetsError || assetSelectionError}</p>
+                )}
+                {!hasKoboToken && !connectionLoading && !connectionError ? (
+                  <p className="mon-field-occurrences-connect-note">Configura Kobo en Usuarios para cargar formularios desde la API.</p>
+                ) : null}
+              </>
+            ) : null}
+            {fieldCheck ? (
+              <div className={`mon-field-occurrences-fieldcheck ${fieldCheck.required_ok ? "is-ready" : "is-warning"}`}>
+                <header>
+                  <span>{fieldCheck.required_ok ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />} Prueba de campos</span>
+                  <strong>{fieldCheck.message}</strong>
+                  <em>{formatMetric(fieldCheck.field_count)} campos leídos</em>
+                </header>
+                <div>
+                  {fieldCheck.items.slice(0, 14).map((item) => (
+                    <span key={item.key} className={item.ok ? "is-ok" : item.required ? "is-missing" : "is-optional"}>
+                      {item.ok ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                      <b>{item.label}</b>
+                      <em>{item.found_name || (item.required ? "faltante" : "opcional")}</em>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {showAssetPicker && assetsLoaded ? (
+              <div className="mon-field-occurrences-assets">
+                {filteredOccurrenceAssets.map((asset) => {
+                  const selected = asset.uid === config?.asset_uid;
+                  const choosing = pendingAssetUid === asset.uid || (busy === "config" && selected);
+                  return (
+                    <button
+                      key={asset.uid}
+                      type="button"
+                      className={`mon-field-occurrences-asset ${selected ? "is-selected" : ""}`}
+                      onClick={() => { void configureOccurrenceAsset(asset).catch(() => undefined); }}
+                      disabled={!canConfigureOccurrence || choosing}
+                    >
+                      <span>
+                        <strong>{asset.name || asset.uid}</strong>
+                        <em>{shortenMiddle(asset.uid, 30)}{asset.version_id ? ` · v ${shortenMiddle(asset.version_id, 14)}` : ""}</em>
+                      </span>
+                      <b className={asset.deployment_active ? "is-active" : ""}>{asset.deployment_active ? "activo" : "sin deploy"}</b>
+                      <i>{choosing ? <Loader2 size={13} className="spin" /> : selected ? <CheckCircle2 size={13} /> : "Usar"}</i>
+                    </button>
+                  );
+                })}
+                {!filteredOccurrenceAssets.length && (
+                  <p className="mon-field-occurrences-connect-note">Sin formularios para esta busqueda.</p>
+                )}
+              </div>
+            ) : null}
+        </section>
+      ) : null}
+
+      <nav className="mon-field-occurrences-tabbar" aria-label="Secciones de ocurrencias">
+        {occurrenceTabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={occurrenceTab === tab.key ? "is-active" : ""}
+            onClick={() => setOccurrenceTab(tab.key)}
+          >
+            <span>{tab.label}</span>
+            <em>{tab.value}</em>
+          </button>
+        ))}
+      </nav>
+
+      {occurrenceTab === "states" ? (
+        <section className="mon-field-occurrences-overview">
+          <div className="mon-field-occurrences-state-grid">
+            <OccurrenceStateComposition summary={summary} rateLabel={rateLabel} />
+            <OccurrenceOutcomeBars items={topOutcomes} total={summary.no_efectivas} />
+            <OccurrenceDailyBars rows={occurrences?.by_day ?? []} />
+          </div>
+          <OccurrenceDistrictMatrix rows={districtSummary} />
+        </section>
+      ) : null}
+
+      {occurrenceTab === "ump" ? (
+        <OccurrenceUmpWorkspace
+          rows={filteredUmpRows}
+          allRows={routeUmpRows}
+          selectedRow={selectedUmpRow}
+          selectedId={selectedUmpId}
+          onSelect={setSelectedUmpId}
+          search={umpSearch}
+          onSearch={setUmpSearch}
+          districtFilter={districtFilter}
+          onDistrictFilter={setDistrictFilter}
+          districtOptions={districtOptions}
+          responsableFilter={responsableFilter}
+          onResponsableFilter={setResponsableFilter}
+          responsableOptions={responsableOptions}
+          statusFilter={umpStatusFilter}
+          onStatusFilter={setUmpStatusFilter}
+          outcomeFilter={umpOutcomeFilter}
+          onOutcomeFilter={setUmpOutcomeFilter}
+          outcomeOptions={dominantOutcomeOptions}
+        />
+      ) : null}
+
+      {occurrenceTab === "alerts" ? (
+        <section className="mon-field-occurrences-body is-side-only">
+        <aside className="mon-field-occurrences-side">
+          <section>
+            <header><BarChart3 size={15} /><strong>Tipos de ocurrencia</strong></header>
+            {topOutcomes.length ? topOutcomes.map((item) => (
+              <div key={item.key} className="mon-field-occurrences-outcome">
+                <span>{item.label}</span>
+                <strong>{formatMetric(item.total)}</strong>
+              </div>
+            )) : <em>Sin conteos sincronizados.</em>}
+          </section>
+          <section>
+            <header><Route size={15} /><strong>Cobertura</strong></header>
+            <OccurrenceAlertLine label="Sin reporte UMP" value={occurrences?.alerts?.missing_blocks?.length ?? 0} />
+            <OccurrenceAlertLine label="Con observación" value={occurrences?.alerts?.observations?.length ?? 0} />
+            <OccurrenceAlertLine label="Fuera de ruta" value={occurrences?.alerts?.outside_route?.length ?? 0} />
+          </section>
+          <section>
+            <header><Clock size={15} /><strong>Historial</strong></header>
+            {history.slice(0, 5).map((entry) => (
+              <p key={entry.id}>
+                <strong>{entry.type}</strong>
+                <span>{entry.created_at ? formatDate(entry.created_at) : "sin fecha"} · {formatMetric(entry.response_count)} registros</span>
+              </p>
+            ))}
+            {!history.length && <em>Sin eventos registrados.</em>}
+          </section>
+        </aside>
+        </section>
+      ) : null}
+    </Panel>
+  );
+}
+
+type OccurrenceUmpSummary = MonitoreoFieldOccurrenceUmpSummary;
+
+const OCCURRENCE_STATUS_META: Record<OccurrenceUmpAttentionStatus, { label: string; caption: string }> = {
+  revisar_cruce: { label: "Cruce por revisar", caption: "UMP o ruta por confirmar" },
+  reportada_no_efectiva: { label: "Con reporte no efectivo", caption: "Resultado registrado" },
+  reportada_efectiva: { label: "Con reporte efectivo", caption: "Con efectivas" },
+  sin_reporte: { label: "Sin reporte", caption: "UMP esperada" },
+};
+
+const OCCURRENCE_REASON_LABELS: Record<OccurrenceUmpAttentionReason, string> = {
+  sin_reporte: "Sin reporte de UMP",
+  ump_no_esperada: "UMP no esperada",
+  fuera_ruta: "Fuera de ruta",
+  multiples_consolidados: "Múltiples consolidados",
+  observacion: "Con observación",
+  motivo_concentrado: "Motivo predominante",
+};
+
+const OCCURRENCE_OUTCOME_FALLBACKS: OccurrenceOutcomeItem[] = [
+  { key: "no_queria_participar", label: "No quería participar", total: 0 },
+  { key: "vivienda_abandonada_inaccesible", label: "Vivienda abandonada", total: 0 },
+  { key: "hogar_migrante_refugiado", label: "Hogar migrante/refugiado", total: 0 },
+  { key: "hogar_ausente", label: "Hogar ausente", total: 0 },
+  { key: "no_cumple_criterios", label: "No cumple criterios", total: 0 },
+  { key: "fuera_cuota", label: "Fuera de cuota", total: 0 },
+  { key: "encuesta_inconclusa", label: "Encuesta inconclusa", total: 0 },
+];
+
+const OCCURRENCE_OUTCOME_COLORS: Record<string, string> = {
+  no_queria_participar: "#c2416b",
+  vivienda_abandonada_inaccesible: "#7c3aed",
+  hogar_migrante_refugiado: "#0e7490",
+  hogar_ausente: "#d97706",
+  no_cumple_criterios: "#2563eb",
+  fuera_cuota: "#9333ea",
+  encuesta_inconclusa: "#64748b",
+};
+
+function occurrenceOutcomeColor(key: string) {
+  return OCCURRENCE_OUTCOME_COLORS[key] ?? "#b66a2c";
+}
+
+function occurrenceStartLabel(row: MonitoreoFieldOccurrenceRecord) {
+  const stamp = String(row.datetime_label ?? "").trim();
+  if (stamp) return stamp;
+  const date = String(row.date_label || formatShortDate(row.date)).trim();
+  const hour = normalizeTerritorialHourLabel(String(row.hora_inicio ?? "").trim());
+  if (date && hour) return `${date} · ${hour}`;
+  return date || hour || "Sin inicio";
+}
+
+function buildOccurrenceUmpSummary(
+  records: MonitoreoFieldOccurrenceRecord[],
+  outcomeCatalog: OccurrenceOutcomeItem[],
+): OccurrenceUmpSummary[] {
+  const outcomes = outcomeCatalog.length ? outcomeCatalog : OCCURRENCE_OUTCOME_FALLBACKS;
+  const groups = new Map<string, MonitoreoFieldOccurrenceRecord[]>();
+  records.forEach((row) => {
+    const key = String(row.manzana_key || (row.ump ? `ump:${row.ump}` : "") || row.route_label || "Sin UMP").trim() || "Sin UMP";
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  });
+  return Array.from(groups.entries())
+    .map(([key, rows]) => {
+      const sorted = [...rows].sort((a, b) => occurrenceSortKey(a).localeCompare(occurrenceSortKey(b)));
+      const last = sorted[sorted.length - 1] ?? rows[0];
+      const intentos = rows.reduce((sum, row) => sum + (numberOrNull(row.intentos) ?? 0), 0);
+      const noEfectivas = rows.reduce((sum, row) => sum + (numberOrNull(row.no_efectivas) ?? 0), 0);
+      return {
+        key,
+        ump: String(rows.find((row) => row.ump)?.ump ?? ""),
+        manzana: String(rows.find((row) => row.manzana)?.manzana ?? ""),
+        manzana_key: String(rows.find((row) => row.manzana_key)?.manzana_key ?? ""),
+        route_label: String(rows.find((row) => row.route_label)?.route_label ?? ""),
+        distrito: String(rows.find((row) => row.distrito)?.distrito ?? ""),
+        zona: String(rows.find((row) => row.zona)?.zona ?? ""),
+        responsable: String(rows.find((row) => row.responsable)?.responsable ?? "Sin responsable"),
+        reportes: rows.length,
+        efectivas: rows.reduce((sum, row) => sum + (numberOrNull(row.efectivas) ?? 0), 0),
+        no_efectivas: noEfectivas,
+        intentos,
+        tasa_no_efectiva: intentos > 0 ? noEfectivas / intentos : null,
+        ultimo_reporte: last ? occurrenceStartLabel(last) : "",
+        outcomes: outcomes.map((item) => ({
+          key: item.key,
+          label: item.label,
+          total: rows.reduce((sum, row) => sum + (numberOrNull((row as Record<string, unknown>)[item.key]) ?? 0), 0),
+        })),
+      };
+    })
+    .sort((a, b) => b.intentos - a.intentos || (a.route_label || a.key).localeCompare(b.route_label || b.key, "es-PE"));
+}
+
+function occurrenceSortKey(row: MonitoreoFieldOccurrenceRecord) {
+  return `${row.date || ""} ${row.hora_inicio || ""} ${row.row_id || ""}`;
+}
+
+function OccurrenceStateComposition({
+  summary,
+  rateLabel,
+}: {
+  summary: MonitoreoFieldOccurrenceDashboard["summary"];
+  rateLabel: string;
+}) {
+  const total = Math.max(1, summary.intentos || summary.efectivas + summary.no_efectivas);
+  const effectivePct = Math.max(0, Math.min(100, (summary.efectivas / total) * 100));
+  const nonEffectivePct = Math.max(0, Math.min(100, (summary.no_efectivas / total) * 100));
+  return (
+    <section className="mon-field-occurrences-chart-card is-state" aria-label="Estados generales de ocurrencias">
+      <header>
+        <span><CheckCircle2 size={14} /> Estados generales</span>
+        <strong>{formatMetric(summary.intentos)} intentos</strong>
+      </header>
+      <div className="mon-field-occurrences-state-meter">
+        <span className="is-effective" style={{ width: `${effectivePct}%` }} />
+        <span className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
+      </div>
+      <div className="mon-field-occurrences-state-stats">
+        <span className="is-effective"><strong>{formatMetric(summary.efectivas)}</strong><em>Efectivas</em></span>
+        <span className="is-noneffective"><strong>{formatMetric(summary.no_efectivas)}</strong><em>No efectivas</em></span>
+        <span><strong>{rateLabel}</strong><em>Tasa no efectiva</em></span>
+        <span><strong>{formatMetric(summary.days_reported)}</strong><em>Días</em></span>
+      </div>
+    </section>
+  );
+}
+
+function OccurrenceOutcomeBars({ items, total }: { items: OccurrenceOutcomeItem[]; total: number }) {
+  const max = Math.max(1, ...items.map((item) => item.total || 0));
+  return (
+    <section className="mon-field-occurrences-chart-card is-outcomes" aria-label="Motivos de no efectividad">
+      <header>
+        <span><ShieldAlert size={14} /> Motivos no efectivos</span>
+        <strong>{formatMetric(total)} eventos</strong>
+      </header>
+      <div>
+        {items.length ? items.map((item) => (
+          <article
+            key={item.key}
+            style={{ "--occurrence-outcome-color": occurrenceOutcomeColor(item.key) } as CSSProperties}
+          >
+            <span>{item.label}</span>
+            <b>{formatMetric(item.total)}</b>
+            <i style={{ width: `${Math.max(4, (item.total / max) * 100)}%` }} />
+          </article>
+        )) : (
+          <em>Sin motivos sincronizados.</em>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function OccurrenceDailyBars({ rows }: { rows: MonitoreoFieldOccurrenceDashboard["by_day"] }) {
+  const max = Math.max(1, ...rows.map((row) => row.intentos || 0));
+  return (
+    <section className="mon-field-occurrences-chart-card is-daily" aria-label="Ritmo diario de ocurrencias">
+      <header>
+        <span><CalendarRange size={14} /> Ritmo diario</span>
+        <strong>{formatMetric(rows.length)} días</strong>
+      </header>
+      <div className="mon-field-occurrences-daily-bars">
+        {rows.length ? rows.map((row) => {
+          const total = Math.max(0, row.intentos || row.efectivas + row.no_efectivas);
+          const effectivePct = total > 0 ? Math.max(0, Math.min(100, ((row.efectivas || 0) / total) * 100)) : 0;
+          const nonEffectivePct = total > 0 ? Math.max(0, Math.min(100, ((row.no_efectivas || 0) / total) * 100)) : 0;
+          const volumePct = Math.max(10, Math.min(100, (total / max) * 100));
+          return (
+            <article key={row.date}>
+              <div className="mon-field-occurrences-daily-label">
+                <strong>{row.date_label || formatShortDate(row.date)}</strong>
+                <em>{formatMetric(total)} intentos</em>
+              </div>
+              <div className="mon-field-occurrences-daily-track" aria-hidden="true">
+                <span style={{ width: `${volumePct}%` }}>
+                  <i className="is-effective" style={{ width: `${effectivePct}%` }} />
+                  <i className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
+                </span>
+              </div>
+              <div className="mon-field-occurrences-daily-values">
+                <span className="is-effective"><strong>{formatMetric(row.efectivas)}</strong><em>Efectivas</em></span>
+                <span className="is-noneffective"><strong>{formatMetric(row.no_efectivas)}</strong><em>No efectivas</em></span>
+              </div>
+            </article>
+          );
+        }) : (
+          <em>Sin fechas sincronizadas.</em>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] }) {
+  const maxIntentos = Math.max(1, ...rows.map((row) => row.intentos || 0));
+  return (
+    <section className="mon-field-occurrences-districts" aria-label="Resumen de estados por distrito">
+      <header>
+        <div>
+          <span><MapPin size={14} /> Resumen por distrito</span>
+          <strong>{formatMetric(rows.length)} distritos</strong>
+        </div>
+        <em>Estados consolidados y motivo predominante</em>
+      </header>
+      <div className="mon-field-occurrences-district-rows">
+        {rows.length ? rows.map((row) => {
+          const intentos = Math.max(0, row.intentos || row.efectivas + row.no_efectivas);
+          const effectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / intentos) * 100)) : 0;
+          const nonEffectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / intentos) * 100)) : 0;
+          const volumePct = Math.max(8, Math.min(100, (intentos / maxIntentos) * 100));
+          const totalUmp = Math.max(1, row.ump_reportadas + row.ump_sin_reporte);
+          const reportedPct = Math.max(0, Math.min(100, (row.ump_reportadas / totalUmp) * 100));
+          const topOutcomes = [...(row.outcomes ?? [])].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 3);
+          const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
+          return (
+            <article key={row.distrito || "sin-distrito"} className="mon-field-occurrences-district-row">
+              <div className="mon-field-occurrences-district-name">
+                <strong>{row.distrito || "Sin distrito"}</strong>
+                <span>{formatMetric(row.ump_reportadas)} reportadas · {formatMetric(row.ump_sin_reporte)} sin reporte</span>
+              </div>
+              <div className="mon-field-occurrences-district-coverage" aria-label="Cobertura UMP">
+                <span>
+                  <i className="is-reported" style={{ width: `${reportedPct}%` }} />
+                  <i className="is-missing" style={{ width: `${100 - reportedPct}%` }} />
+                </span>
+                <em>{formatMetric(row.ump_reportadas)}/{formatMetric(totalUmp)} UMP</em>
+              </div>
+              <div className="mon-field-occurrences-district-meter" aria-label="Estados efectivos y no efectivos">
+                <span style={{ width: `${volumePct}%` }}>
+                  <i className="is-effective" style={{ width: `${effectivePct}%` }} />
+                  <i className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
+                </span>
+              </div>
+              <div className="mon-field-occurrences-district-counts">
+                <span className="is-effective"><strong>{formatMetric(row.efectivas)}</strong><em>Efectivas</em></span>
+                <span className="is-noneffective"><strong>{formatMetric(row.no_efectivas)}</strong><em>No efectivas</em></span>
+                <span><strong>{rate}</strong><em>Tasa</em></span>
+              </div>
+              <div className="mon-field-occurrences-district-outcomes">
+                {topOutcomes.length ? topOutcomes.map((item) => (
+                  <span
+                    key={item.key}
+                    style={{ "--occurrence-outcome-color": occurrenceOutcomeColor(item.key) } as CSSProperties}
+                  >
+                    <b>{item.label}</b>
+                    <em>{formatMetric(item.total)}</em>
+                  </span>
+                )) : (
+                  <span className="is-empty"><b>Sin motivos no efectivos</b><em>{formatMetric(intentos)} intentos</em></span>
+                )}
+              </div>
+            </article>
+          );
+        }) : (
+          <em>Sin distritos con ocurrencias sincronizadas.</em>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function OccurrenceUmpWorkspace({
+  rows,
+  allRows,
+  selectedRow,
+  selectedId,
+  onSelect,
+  search,
+  onSearch,
+  districtFilter,
+  onDistrictFilter,
+  districtOptions,
+  responsableFilter,
+  onResponsableFilter,
+  responsableOptions,
+  statusFilter,
+  onStatusFilter,
+  outcomeFilter,
+  onOutcomeFilter,
+  outcomeOptions,
+}: {
+  rows: OccurrenceRouteUmpRow[];
+  allRows: OccurrenceRouteUmpRow[];
+  selectedRow: OccurrenceRouteUmpRow | null;
+  selectedId: string;
+  onSelect: (value: string) => void;
+  search: string;
+  onSearch: (value: string) => void;
+  districtFilter: string;
+  onDistrictFilter: (value: string) => void;
+  districtOptions: string[];
+  responsableFilter: string;
+  onResponsableFilter: (value: string) => void;
+  responsableOptions: string[];
+  statusFilter: "todos" | OccurrenceUmpAttentionStatus;
+  onStatusFilter: (value: "todos" | OccurrenceUmpAttentionStatus) => void;
+  outcomeFilter: string;
+  onOutcomeFilter: (value: string) => void;
+  outcomeOptions: Array<[string, string]>;
+}) {
+	  const counts = useMemo(() => ({
+	    efectivas: allRows.filter((row) => row.status === "reportada_efectiva").length,
+	    noEfectivas: allRows.filter((row) => row.status === "reportada_no_efectiva").length,
+	    revisar: allRows.filter((row) => row.status === "revisar_cruce").length,
+	    umpNoEsperada: allRows.filter((row) => row.attention_reasons.includes("ump_no_esperada")).length,
+	    sinReporte: allRows.filter((row) => row.status === "sin_reporte").length,
+	  }), [allRows]);
+
+  return (
+    <section className="mon-field-occurrences-workspace" aria-label="Cobertura por UMP">
+      <header className="mon-field-occurrences-workspace-head">
+        <div className="mon-field-occurrences-workspace-title">
+          <span><Route size={14} /> Cobertura por UMP</span>
+          <strong>{formatMetric(allRows.length)} UMP esperadas · {formatMetric(rows.length)} visibles</strong>
+	          <em>{formatMetric(counts.efectivas + counts.noEfectivas + counts.revisar)} reportadas · {formatMetric(counts.sinReporte)} sin reporte</em>
+	        </div>
+	        <div className="mon-field-occurrences-workspace-stats" aria-label="Indicadores de cobertura UMP">
+	          <span className="is-reportada_efectiva"><strong>{formatMetric(counts.efectivas)}</strong><em>efectivas</em></span>
+	          <span className="is-reportada_no_efectiva"><strong>{formatMetric(counts.noEfectivas)}</strong><em>no efectivas</em></span>
+	          <span className="is-revisar_cruce"><strong>{formatMetric(counts.revisar)}</strong><em>{counts.umpNoEsperada ? "UMP no esperada" : "cruce"}</em></span>
+	          <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
+	        </div>
+      </header>
+
+      <div className="mon-field-occurrences-workspace-filters" aria-label="Filtros de cobertura UMP">
+        <label className="mon-field-occurrences-search">
+          <Search size={14} />
+          <input
+            value={search}
+            onChange={(event) => onSearch(event.target.value)}
+            placeholder="Buscar UMP, manzana, distrito o responsable"
+          />
+        </label>
+        <select value={statusFilter} onChange={(event) => onStatusFilter(event.target.value as "todos" | OccurrenceUmpAttentionStatus)} aria-label="Filtrar por estado UMP">
+          <option value="todos">Todos los estados</option>
+          <option value="reportada_efectiva">Con reporte efectivo</option>
+          <option value="reportada_no_efectiva">Con reporte no efectivo</option>
+          <option value="revisar_cruce">Cruce por revisar</option>
+          <option value="sin_reporte">Sin reporte</option>
+        </select>
+        <select value={districtFilter} onChange={(event) => onDistrictFilter(event.target.value)} aria-label="Filtrar distrito">
+          <option value="todos">Todos los distritos</option>
+          {districtOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+        <select value={responsableFilter} onChange={(event) => onResponsableFilter(event.target.value)} aria-label="Filtrar responsable">
+          <option value="todos">Todos los responsables</option>
+          {responsableOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+        <select value={outcomeFilter} onChange={(event) => onOutcomeFilter(event.target.value)} aria-label="Filtrar motivo predominante">
+          <option value="todos">Todos los motivos</option>
+          {outcomeOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select>
+      </div>
+
+      <div className="mon-field-occurrences-split">
+        <section className="mon-field-occurrences-ump-index" aria-label="Lista operativa de UMP">
+          <header>
+            <div>
+              <span>Cobertura territorial</span>
+              <strong>{formatMetric(rows.length)} UMP</strong>
+            </div>
+            <em>Ordenadas por estado y resultado</em>
+          </header>
+          <div className="mon-field-occurrences-ump-rows" role="listbox" aria-label="UMP esperadas">
+            {rows.map((row) => (
+              <OccurrenceUmpListRow
+                key={row.id}
+                row={row}
+                selected={row.id === selectedId}
+                onSelect={() => onSelect(row.id)}
+              />
+            ))}
+            {!rows.length && (
+              <EmptyState icon={<Route size={18} />} title="Sin UMP para estos filtros" variant="inline" />
+            )}
+          </div>
+        </section>
+        <OccurrenceUmpDetail row={selectedRow} />
+      </div>
+    </section>
+  );
+}
+
+function OccurrenceStatusBadge({ status }: { status: OccurrenceUmpAttentionStatus }) {
+  const meta = OCCURRENCE_STATUS_META[status];
+  const icon = status === "reportada_efectiva"
+    ? <CheckCircle2 size={12} />
+    : status === "sin_reporte"
+      ? <Clock size={12} />
+      : status === "reportada_no_efectiva"
+        ? <ClipboardCheck size={12} />
+        : <AlertTriangle size={12} />;
+  return (
+    <span className={`mon-field-occurrences-status is-${status}`}>
+      {icon}
+      {meta.label}
+    </span>
+  );
+}
+
+function OccurrenceReasonChips({ reasons, limit = 3 }: { reasons: OccurrenceUmpAttentionReason[]; limit?: number }) {
+  const visible = reasons.slice(0, limit);
+  return (
+    <div className="mon-field-occurrences-reasons" aria-label="Notas del reporte UMP">
+      {visible.length ? visible.map((reason) => (
+        <span key={reason}>{OCCURRENCE_REASON_LABELS[reason]}</span>
+      )) : (
+        <span>Sin nota de revisión</span>
+      )}
+      {reasons.length > visible.length ? <span>+{reasons.length - visible.length}</span> : null}
+    </div>
+  );
+}
+
+function OccurrenceUmpListRow({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: OccurrenceRouteUmpRow;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const effectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / row.intentos) * 100)) : 0;
+  const nonEffectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / row.intentos) * 100)) : 0;
+	  const title = `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+	  const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
+	  const unexpectedUmp = row.attention_reasons.includes("ump_no_esperada");
+	  const resultLabel = unexpectedUmp
+	    ? `UMP ${row.ump || "S/D"} no está en la ruta esperada`
+	    : row.has_report
+	    ? row.dominant_outcome?.label ?? (row.no_efectivas > 0 ? "No efectiva sin motivo" : "Consolidado efectivo")
+	    : "Sin reporte registrado";
+	  const resultMeta = unexpectedUmp
+	    ? "Este consolidado no entra a cobertura por distrito/manzana"
+	    : row.has_report
+	    ? `${formatMetric(row.efectivas)} efectivas · ${formatMetric(row.no_efectivas)} no efectivas · ${rate} no efectiva`
+	    : "Esperada en hoja de ruta";
+  const sourceMeta = row.has_report
+    ? `${formatMetric(row.reportes)} reporte${row.reportes === 1 ? "" : "s"} · ${formatMetric(row.intentos)} intento${row.intentos === 1 ? "" : "s"}`
+    : "Pendiente de sincronización";
+  const resultColor = row.dominant_outcome ? occurrenceOutcomeColor(row.dominant_outcome.key) : "var(--occurrence-status-color)";
+  return (
+    <button
+      type="button"
+      className={`mon-field-occurrences-ump-row is-${row.status} ${selected ? "is-selected" : ""}`}
+      onClick={onSelect}
+      role="option"
+      aria-selected={selected}
+    >
+      <div className="mon-field-occurrences-ump-row-main">
+        <div className="mon-field-occurrences-ump-identity">
+          <span>{title}</span>
+          <strong>{row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? ` · Zona ${row.zona}` : ""}`}</strong>
+        </div>
+        <OccurrenceStatusBadge status={row.status} />
+      </div>
+      <div className="mon-field-occurrences-ump-row-signal">
+        <div className={`mon-field-occurrences-ump-meter ${row.has_report ? "" : "is-empty"}`} aria-hidden="true">
+          <span style={{ width: row.has_report ? "100%" : "0%" }}>
+            <i className="is-effective" style={{ width: `${effectivePct}%` }} />
+            <i className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
+          </span>
+        </div>
+        <div
+          className="mon-field-occurrences-ump-row-result"
+          style={{ ["--occurrence-outcome-color" as string]: resultColor }}
+        >
+          <strong>{resultLabel}</strong>
+          <em>{resultMeta}</em>
+        </div>
+      </div>
+	      <div className="mon-field-occurrences-ump-row-meta">
+	        <span>{row.distrito || (unexpectedUmp ? "Sin cruce UMP" : "Sin distrito")}</span>
+	        <span>{row.responsable || "Sin responsable"}</span>
+	        <span>{sourceMeta}</span>
+	      </div>
+    </button>
+  );
+}
+
+function OccurrenceDetailMetric({ label, value, tone = "" }: { label: string; value: string; tone?: string }) {
+  return (
+    <span className={tone ? `is-${tone}` : ""}>
+      <strong>{value}</strong>
+      <em>{label}</em>
+    </span>
+  );
+}
+
+function OccurrenceUmpDetail({ row }: { row: OccurrenceRouteUmpRow | null }) {
+  if (!row) {
+    return (
+      <section className="mon-field-occurrences-ump-detail is-empty">
+        <EmptyState icon={<Route size={18} />} title="Selecciona una UMP" variant="inline" />
+      </section>
+    );
+  }
+  const total = Math.max(1, row.intentos);
+  const effectivePct = Math.max(0, Math.min(100, (row.efectivas / total) * 100));
+  const nonEffectivePct = Math.max(0, Math.min(100, (row.no_efectivas / total) * 100));
+  const topOutcomes = [...row.outcomes].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
+  const sourceRecords = row.records.slice(0, 8);
+	  const expectedBlocks = row.expected_blocks.slice(0, 6);
+	  const title = `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+	  const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
+	  const unexpectedUmp = row.attention_reasons.includes("ump_no_esperada");
+	  const districtLabel = row.distrito || (unexpectedUmp ? "Sin cruce UMP" : "Sin distrito");
+	  return (
+	    <section className={`mon-field-occurrences-ump-detail is-${row.status}`} aria-label="Detalle de UMP seleccionada">
+      <header className="mon-field-occurrences-detail-head">
+        <div>
+          <span>Detalle de recorrido</span>
+          <strong>{title}</strong>
+          <em>{row.route_label || row.distrito || "Sin ruta asignada"}</em>
+        </div>
+	        <OccurrenceStatusBadge status={row.status} />
+	      </header>
+
+	      {unexpectedUmp ? (
+	        <section className="mon-field-occurrences-detail-notice">
+	          <AlertTriangle size={14} />
+	          <div>
+	            <strong>UMP no encontrada en la ruta esperada</strong>
+	            <span>{row.route_match_message || `El consolidado reportó UMP ${row.ump || "S/D"}, pero esa UMP no existe en las UMP esperadas del XLSForm/ruta activa.`}</span>
+	          </div>
+	        </section>
+	      ) : null}
+
+	      <div className="mon-field-occurrences-detail-kpis">
+        <OccurrenceDetailMetric label="intentos" value={formatMetric(row.intentos)} />
+        <OccurrenceDetailMetric label="efectivas" value={formatMetric(row.efectivas)} tone="effective" />
+        <OccurrenceDetailMetric label="no efectivas" value={formatMetric(row.no_efectivas)} tone="noneffective" />
+        <OccurrenceDetailMetric label="tasa no efectiva" value={rate} />
+      </div>
+
+      <div className="mon-field-occurrences-detail-meter" aria-label="Composicion efectiva y no efectiva">
+        <span className="is-effective" style={{ width: `${effectivePct}%` }} />
+        <span className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
+      </div>
+
+      <div className="mon-field-occurrences-detail-grid">
+        <section>
+          <header><ShieldAlert size={14} /><strong>Motivos predominantes</strong></header>
+          <div className="mon-field-occurrences-detail-outcomes">
+            {topOutcomes.length ? topOutcomes.map((item) => (
+              <article key={item.key}>
+                <span>{item.label}</span>
+                <strong>{formatMetric(item.total)}</strong>
+              </article>
+            )) : <em>Sin motivos no efectivos reportados.</em>}
+          </div>
+        </section>
+        <section>
+          <header><Clock size={14} /><strong>Ventana reportada</strong></header>
+          <div className="mon-field-occurrences-detail-facts">
+            <p><span>Último reporte</span><strong>{row.last_report_label}</strong></p>
+	            <p><span>Horario</span><strong>{row.report_window_label}</strong></p>
+	            <p><span>Responsable</span><strong>{row.responsable || "Sin responsable"}</strong></p>
+	            <p><span>Distrito</span><strong>{districtLabel}</strong></p>
+	          </div>
+	        </section>
+      </div>
+
+      <section className="mon-field-occurrences-detail-section">
+        <header><AlertTriangle size={14} /><strong>Notas del reporte UMP</strong></header>
+        <OccurrenceReasonChips reasons={row.attention_reasons} limit={6} />
+        {row.observation_excerpt ? <p>{row.observation_excerpt}</p> : null}
+      </section>
+
+      <section className="mon-field-occurrences-detail-section is-records">
+        <header><Table2 size={14} /><strong>Registros fuente</strong><em>{formatMetric(row.reportes)} reporte{row.reportes === 1 ? "" : "s"}</em></header>
+        <div>
+          {sourceRecords.length ? sourceRecords.map((record) => (
+            <article key={record.row_id || `${record.codigo_pulso}-${record.datetime_label}`}>
+              <strong>{record.codigo_pulso || shortenMiddle(record.row_id, 18)}</strong>
+              <span>{occurrenceStartLabel(record)}{record.hora_label ? ` · ${record.hora_label}` : ""}</span>
+              <em>{record.observaciones ? shortenMiddle(record.observaciones, 68) : "Sin observación"}</em>
+            </article>
+          )) : expectedBlocks.length ? expectedBlocks.map((block, index) => (
+            <article key={String(block.route_key ?? block.id_manzana ?? index)}>
+              <strong>{String(block.block_label ?? block.route_label ?? `Mz ${block.manzana ?? "S/D"}`)}</strong>
+              <span>{String(block.distrito ?? "Sin distrito")}{block.zona ? ` · Zona ${block.zona}` : ""}</span>
+              <em>Sin reporte UMP</em>
+            </article>
+          )) : (
+            <em>Sin registros fuente para esta UMP.</em>
+          )}
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function OccurrenceAlertLine({ label, value }: { label: string; value: number }) {
+  return (
+    <p className={value ? "is-warning" : "is-ready"}>
+      <strong>{formatMetric(value)}</strong>
+      <span>{label}</span>
+    </p>
+  );
+}
+
+function uniqueNonEmpty(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
 
 const TERRITORIAL_LIMA_MAP_WIDTH = 1000;
@@ -6006,12 +18391,16 @@ const TERRITORIAL_ROUTE_CARTOGRAPHY_IDB_STORE = "bundles";
 const TERRITORIAL_ROUTE_CARTOGRAPHY_IDB_VERSION = 1;
 const TERRITORIAL_ROUTE_CARTOGRAPHY_CACHE_VERSION = "route-cartography-v2";
 const TERRITORIAL_ROUTE_CONTEXT_RADIUS_M = 1500;
+const TERRITORIAL_VALIDATION_ROUTE_CONTEXT_RADIUS_M = 1000;
 const TERRITORIAL_ROUTE_CONTEXT_MAX_FEATURES = 900;
 const TERRITORIAL_ROUTE_EXTERNAL_CONTEXT_MAX_FEATURES = 320;
 const TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_BUFFER_M = 2200;
 const TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT = 24;
 const TERRITORIAL_ROUTE_MIN_ZOOM = 0.7;
 const TERRITORIAL_ROUTE_AUTO_ZOOM = 1.2;
+const TERRITORIAL_VALIDATION_GEO_INITIAL_ZOOM = 2.1;
+const TERRITORIAL_VALIDATION_GEO_BLOCK_ZOOM = 10.5;
+const TERRITORIAL_VALIDATION_GEO_POINT_ZOOM = 18;
 
 type TerritorialRouteCartographyBundle = {
   blockMap: HojasRutaBlockMap | null;
@@ -6021,7 +18410,15 @@ type TerritorialRouteCartographyBundle = {
   partial: boolean;
 };
 
-type TerritorialRouteMapLabelKind = "active-zone" | "active-district" | "route-zone" | "context-zone" | "neighbor-district";
+type TerritorialRouteMapLabelKind =
+  | "active-zone"
+  | "active-district"
+  | "route-zone"
+  | "context-zone"
+  | "neighbor-district"
+  | "route-block"
+  | "replacement-block"
+  | "active-route-block";
 
 type TerritorialRouteMapLabel = {
   id: string;
@@ -6029,6 +18426,7 @@ type TerritorialRouteMapLabel = {
   kind: TerritorialRouteMapLabelKind;
   priority: number;
   anchorPoint: { x: number; y: number };
+  screenOffset?: { x: number; y: number };
 };
 
 type TerritorialRouteMapScreenLabel = TerritorialRouteMapLabel & {
@@ -6207,6 +18605,13 @@ type TerritorialKoboMapPoint = MonitoreoTerritorialDashboard["map"]["points"][nu
   latValue: number;
   lonValue: number;
 };
+
+type TerritorialNumberedKoboMapPoint = TerritorialKoboMapPoint & {
+  pointNumber?: number;
+  geoDisposition?: TerritorialGeoDispositionKey;
+};
+
+type TerritorialGeoDispositionKey = "en_zona" | "en_distrito" | "fuera_distrito" | "sin_gps";
 
 type TerritorialGeoPoint = [number, number];
 type TerritorialGeoRing = TerritorialGeoPoint[];
@@ -6488,11 +18893,15 @@ function useTerritorialMapNavigation(width: number, height: number, minZoom: num
 
 function TerritorialMapPanel({
   reports,
+  selectedBlockId,
   selectedResponseId,
+  onSelectBlock,
   onSelectResponse,
 }: {
   reports: MonitoreoTerritorialDashboard;
+  selectedBlockId?: string;
   selectedResponseId?: string;
+  onSelectBlock?: (blockId: string, block: TerritorialBlockProgress) => void;
   onSelectResponse?: (responseId: string) => void;
 }) {
   const [blockMaps, setBlockMaps] = useState<Record<string, HojasRutaBlockMap>>({});
@@ -6526,14 +18935,20 @@ function TerritorialMapPanel({
     1,
     TERRITORIAL_LIMA_MAP_MAX_ZOOM,
   );
-  const points = reports.map.points
+  const mapPayload = reports.map ?? { points: [], blocks: [], lines: [], routes: [] };
+  const mapPoints = Array.isArray(mapPayload.points) ? mapPayload.points : [];
+  const mapBlocks = Array.isArray(mapPayload.blocks) ? mapPayload.blocks : [];
+  const mapLegend = Array.isArray(mapPayload.legend) ? mapPayload.legend : [];
+  const reportBlocks = Array.isArray(reports.block_progress) ? reports.block_progress : [];
+  const reportDistricts = Array.isArray(reports.district_progress) ? reports.district_progress : [];
+  const points = mapPoints
     .map((point) => ({
       ...point,
       latValue: typeof point.lat === "number" ? point.lat : Number(point.lat),
       lonValue: typeof point.lon === "number" ? point.lon : Number(point.lon),
     }))
     .filter((point) => point.lat != null && point.lon != null && Number.isFinite(point.latValue) && Number.isFinite(point.lonValue));
-  const blocks = reports.map.blocks.length ? reports.map.blocks : reports.block_progress;
+  const blocks = mapBlocks.length ? mapBlocks : reportBlocks;
   const ubigeos = useMemo(() => (
     Array.from(new Set(blocks.map((block) => String(block.ubigeo || "").trim()).filter(Boolean))).sort()
   ), [blocks]);
@@ -6545,21 +18960,46 @@ function TerritorialMapPanel({
 
   useEffect(() => {
     if (!cartographyUbigeos.length) return;
-    const missing = cartographyUbigeos.filter((ubigeo) => !blockMaps[ubigeo]);
+    const missing = cartographyUbigeos.filter((ubigeo) => (
+      !blockMaps[ubigeo] || !zoneMaps[ubigeo] || !streetMaps[ubigeo] || !contextMaps[ubigeo]
+    ));
     if (!missing.length) return;
     let cancelled = false;
     setMapLoading(true);
     setMapError("");
-    Promise.allSettled(missing.map(async (ubigeo) => [ubigeo, await apiHojasRutaBlockMap(ubigeo, 0, false)] as const))
+    Promise.allSettled(missing.map(async (ubigeo) => [ubigeo, await loadTerritorialRouteCartography(ubigeo)] as const))
       .then((results) => {
         if (cancelled) return;
         const nextEntries = results
-          .filter((result): result is PromiseFulfilledResult<readonly [string, HojasRutaBlockMap]> => result.status === "fulfilled")
+          .filter((result): result is PromiseFulfilledResult<readonly [string, TerritorialRouteCartographyBundle]> => result.status === "fulfilled")
           .map((result) => result.value);
         if (nextEntries.length) {
           setBlockMaps((previous) => {
             const next = { ...previous };
-            nextEntries.forEach(([ubigeo, map]) => { next[ubigeo] = map; });
+            nextEntries.forEach(([ubigeo, bundle]) => {
+              if (bundle.blockMap) next[ubigeo] = bundle.blockMap;
+            });
+            return next;
+          });
+          setZoneMaps((previous) => {
+            const next = { ...previous };
+            nextEntries.forEach(([ubigeo, bundle]) => {
+              if (bundle.zoneMap) next[ubigeo] = bundle.zoneMap;
+            });
+            return next;
+          });
+          setStreetMaps((previous) => {
+            const next = { ...previous };
+            nextEntries.forEach(([ubigeo, bundle]) => {
+              if (bundle.streetMap) next[ubigeo] = bundle.streetMap;
+            });
+            return next;
+          });
+          setContextMaps((previous) => {
+            const next = { ...previous };
+            nextEntries.forEach(([ubigeo, bundle]) => {
+              if (bundle.contextMap) next[ubigeo] = bundle.contextMap;
+            });
             return next;
           });
         }
@@ -6572,58 +19012,7 @@ function TerritorialMapPanel({
         if (!cancelled) setMapLoading(false);
       });
     return () => { cancelled = true; };
-  }, [blockMaps, cartographyUbigeos, cartographyUbigeosKey]);
-
-  useEffect(() => {
-    if (!cartographyUbigeos.length) return;
-    const missingZones = cartographyUbigeos.filter((ubigeo) => !zoneMaps[ubigeo]);
-    const missingStreets = cartographyUbigeos.filter((ubigeo) => !streetMaps[ubigeo]);
-    const missingContext = cartographyUbigeos.filter((ubigeo) => !contextMaps[ubigeo]);
-    if (!missingZones.length && !missingStreets.length && !missingContext.length) return;
-    let cancelled = false;
-    Promise.allSettled([
-      ...missingZones.map(async (ubigeo) => ({ layer: "zone" as const, ubigeo, payload: await apiHojasRutaZoneMap(ubigeo) })),
-      ...missingStreets.map(async (ubigeo) => ({ layer: "street" as const, ubigeo, payload: await apiHojasRutaStreetMap(ubigeo) })),
-      ...missingContext.map(async (ubigeo) => ({ layer: "context" as const, ubigeo, payload: await apiHojasRutaContextMap(ubigeo) })),
-    ]).then((results) => {
-      if (cancelled) return;
-      const fulfilled = results
-        .filter((result): result is PromiseFulfilledResult<
-          | { layer: "zone"; ubigeo: string; payload: HojasRutaZoneMap }
-          | { layer: "street"; ubigeo: string; payload: HojasRutaStreetMap }
-          | { layer: "context"; ubigeo: string; payload: HojasRutaContextMap }
-        > => result.status === "fulfilled")
-        .map((result) => result.value);
-      if (fulfilled.some((item) => item.layer === "zone")) {
-        setZoneMaps((previous) => {
-          const next = { ...previous };
-          fulfilled.forEach((item) => {
-            if (item.layer === "zone") next[item.ubigeo] = item.payload;
-          });
-          return next;
-        });
-      }
-      if (fulfilled.some((item) => item.layer === "street")) {
-        setStreetMaps((previous) => {
-          const next = { ...previous };
-          fulfilled.forEach((item) => {
-            if (item.layer === "street") next[item.ubigeo] = item.payload;
-          });
-          return next;
-        });
-      }
-      if (fulfilled.some((item) => item.layer === "context")) {
-        setContextMaps((previous) => {
-          const next = { ...previous };
-          fulfilled.forEach((item) => {
-            if (item.layer === "context") next[item.ubigeo] = item.payload;
-          });
-          return next;
-        });
-      }
-    });
-    return () => { cancelled = true; };
-  }, [cartographyUbigeos, cartographyUbigeosKey, contextMaps, streetMaps, zoneMaps]);
+  }, [blockMaps, cartographyUbigeos, cartographyUbigeosKey, contextMaps, streetMaps, zoneMaps]);
 
   const allFeatures = useMemo(() => (
     cartographyUbigeos.flatMap((ubigeo) => blockMaps[ubigeo]?.geojson?.features ?? [])
@@ -6674,15 +19063,15 @@ function TerritorialMapPanel({
     }))
   ), [allZoneFeatures, points, routeUbigeos, selectedBlockIds, selectedFeatures, selectedZoneKeys]);
   const districtStats = useMemo(() => (
-    buildTerritorialDistrictMapStats(reports.district_progress, classifiedPoints, blocks, TERRITORIAL_LIMA_DISTRICT_FEATURES)
-  ), [blocks, classifiedPoints, reports.district_progress]);
+    buildTerritorialDistrictMapStats(reportDistricts, classifiedPoints, blocks, TERRITORIAL_LIMA_DISTRICT_FEATURES)
+  ), [blocks, classifiedPoints, reportDistricts]);
   const districtStatsByUbigeo = useMemo(() => new Map(districtStats.map((row) => [row.ubigeo, row])), [districtStats]);
   const selectedDistrictFeature = selectedUbigeo
     ? TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => feature.properties.ubigeo === selectedUbigeo) ?? null
     : null;
   const selectedDistrictStat = selectedUbigeo ? districtStatsByUbigeo.get(selectedUbigeo) ?? null : null;
   const selectedDistrictName = selectedDistrictFeature?.properties.distrito
-    || reports.district_progress.find((row) => row.ubigeo === selectedUbigeo)?.distrito
+    || reportDistricts.find((row) => row.ubigeo === selectedUbigeo)?.distrito
     || selectedDistrictStat?.distrito
     || selectedUbigeo;
   const districtZoneFeatures = useMemo(() => (
@@ -6803,6 +19192,9 @@ function TerritorialMapPanel({
     )
   ), [projectionBlockFeatures, projectionSeedDistrictFeatures, projectionZoneFeatures, visiblePoints]);
   const k = reports.kpis;
+  const mapCache = territorialMapCacheFromReports(reports);
+  const mapCacheStatus = mapCache?.gps_points?.status ?? mapCache?.route_geometry?.status ?? "missing";
+  const mapCacheChipLabel = territorialMapCacheLabel(mapCache, true);
   const selectedCount = selectedFeatures.length;
   const unresolvedCount = Math.max(0, blocks.length - selectedCount);
   const mapPending = mapLoading && !allFeatures.length;
@@ -6899,6 +19291,7 @@ function TerritorialMapPanel({
   const selectBlock = (item: TerritorialSelectedMapFeature) => {
     setSelectedBlockKey(item.key);
     setSelectedPointId("");
+    onSelectBlock?.(item.block.id_manzana || territorialBlockStableKey(item.block), item.block);
   };
   const selectPoint = (point: TerritorialClassifiedPoint) => {
     setSelectedPointId(point.response_id);
@@ -6985,6 +19378,26 @@ function TerritorialMapPanel({
   }, [classifiedPoints, selectedPointId, selectedResponseId]);
 
   useEffect(() => {
+    if (!selectedBlockId) return;
+    const requestedKeys = territorialStrictOperationalCodeVariants(selectedBlockId);
+    if (!requestedKeys.length) return;
+    const externalBlock = selectedFeatures.find((item) => {
+      const blockKeys = territorialBlockMatchCodes(item.block);
+      return requestedKeys.some((key) => blockKeys.has(key));
+    });
+    if (!externalBlock || externalBlock.key === selectedBlockKey) return;
+    setSelectedBlockKey(externalBlock.key);
+    setSelectedPointId("");
+    const nextUbigeo = stringOrEmpty(externalBlock.block.ubigeo);
+    const nextZona = stringOrEmpty(externalBlock.block.zona);
+    if (nextUbigeo) {
+      setSelectedUbigeo(nextUbigeo);
+      setSelectedZona(nextZona);
+      setMapLevel(nextZona ? "zone" : "district");
+    }
+  }, [selectedBlockId, selectedBlockKey, selectedFeatures]);
+
+  useEffect(() => {
     if (!selectedInspectorActive) setInspectorDialogOpen(false);
   }, [selectedInspectorActive]);
 
@@ -7014,7 +19427,9 @@ function TerritorialMapPanel({
           )}
         </nav>
         <div className="mon-territorial-map-command-row" aria-label="Comandos del mapa territorial">
-          <span className="mon-territorial-map-data-chip"><IconRefreshData size={13} /> Datos desde Kobo + Hojas</span>
+          <span className={`mon-territorial-map-data-chip is-cache-${mapCacheStatus}`}>
+            <IconRefreshData size={13} /> {mapCacheChipLabel}
+          </span>
           <Popover.Root>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
@@ -7257,10 +19672,12 @@ function TerritorialMapPanel({
                 {selectedMapFeatures.map((item, index) => {
                   const d = territorialFeaturePath(item.feature, projection);
                   if (!d) return null;
+                  const blockStatus = territorialUmpStatus(item.block);
                   const classes = [
                     "mon-territorial-map-selected-block",
-                    item.block.tipo_manzana === "titular" ? "is-titular" : "is-replacement",
-                    (item.block.brecha ?? 0) > 0 ? "is-gap" : "is-complete",
+                    item.block.tipo_manzana === "reemplazo" ? "is-replacement" : "is-titular",
+                    `is-ump-${blockStatus}`,
+                    item.block.tipo_manzana !== "reemplazo" && (item.block.brecha ?? 0) > 0 ? "is-gap" : "is-complete",
                     selectedBlockKey === item.key ? "is-selected" : "",
                   ].join(" ");
                   return (
@@ -7271,7 +19688,7 @@ function TerritorialMapPanel({
                       vectorEffect="non-scaling-stroke"
                       role="button"
                       tabIndex={0}
-                      aria-label={`Manzana ${item.block.distrito}, zona ${item.block.zona}, manzana ${item.block.manzana}`}
+                      aria-label={`${territorialRouteOperationalLabel(item.block)}, ${territorialPhysicalBlockLabel(item.block)}, ${item.block.distrito}, zona ${item.block.zona}`}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -7280,7 +19697,7 @@ function TerritorialMapPanel({
                       }}
                       onKeyDown={(event) => handleBlockKey(event, item)}
                     >
-                      <title>{`${item.block.distrito} · Z${item.block.zona} M${item.block.manzana} · ${formatMetric(item.block.validas)} / ${formatMetric(item.block.meta)} válidas`}</title>
+                      <title>{`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)} · ${item.block.distrito} · ${formatMetric(item.block.validas)} / ${formatMetric(item.block.meta)} válidas`}</title>
                     </path>
                   );
                 })}
@@ -7293,11 +19710,11 @@ function TerritorialMapPanel({
                   return (
                     <g
                       key={`${item.key}-${index}-marker`}
-                      className={`mon-territorial-map-block-marker ${item.block.tipo_manzana === "titular" ? "is-titular" : "is-replacement"}${selected ? " is-selected" : ""}`}
+                      className={`mon-territorial-map-block-marker ${item.block.tipo_manzana === "reemplazo" ? "is-replacement" : "is-titular"}${selected ? " is-selected" : ""}`}
                       transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${markerScale.toFixed(4)})`}
                       role="button"
                       tabIndex={0}
-                      aria-label={`Centro de manzana ${item.block.distrito}, zona ${item.block.zona}, manzana ${item.block.manzana}`}
+                      aria-label={`Centro de ${territorialRouteOperationalLabel(item.block)}, ${territorialPhysicalBlockLabel(item.block)}`}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -7307,7 +19724,7 @@ function TerritorialMapPanel({
                       onKeyDown={(event) => handleBlockKey(event, item)}
                     >
                       <rect x="-4.5" y="-4.5" width="9" height="9" rx="2" />
-                      <title>{`${item.block.distrito} · Z${item.block.zona} M${item.block.manzana} · ${item.block.tipo_manzana === "titular" ? "titular" : "reemplazo"}`}</title>
+                      <title>{`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)} · ${item.block.tipo_manzana === "reemplazo" ? "reemplazo" : "titular"}`}</title>
                     </g>
                   );
                 })}
@@ -7402,7 +19819,7 @@ function TerritorialMapPanel({
       <div className="mon-territorial-map-legend">
         {mapLevel === "zone" && <span className="is-route-selected">Manzana seleccionada</span>}
         <span className="is-map-legend-section">GPS Kobo</span>
-        {reports.map.legend.map((item) => <span key={item.key} className={`is-gps-state ${territorialGeoClass(item.key)}`}>{item.label}</span>)}
+        {mapLegend.map((item) => <span key={item.key} className={`is-gps-state ${territorialGeoClass(item.key)}`}>{item.label}</span>)}
         <span className="is-map-context">Hoja de Ruta: {formatMetric(routeZoneFeatures.length)} zonas ruta · {formatMetric(visibleStreetFeatures.length)} vías visibles</span>
         <span className="is-map-level">{territorialMapLevelLabel(mapLevel)}</span>
         {mapLevel === "zone" && zoneOutOfFocusCount > 0 && <span className="is-warning">{formatMetric(zoneOutOfFocusCount)} puntos fuera del foco; revisar en distrito</span>}
@@ -7479,7 +19896,7 @@ function TerritorialMapInspectorContent({
         </dl>
         <div className="mon-territorial-inspector-alerts">
           <span>Alertas</span>
-          <p>{String(selectedPoint.issues || "").replace(/;/g, ", ") || "Sin alertas"}</p>
+          <p>{String(selectedPoint.issues || "").split(";").map((item) => item.trim()).filter(Boolean).map(observationReasonLabel).join(", ") || "Sin alertas"}</p>
         </div>
       </section>
     );
@@ -7487,9 +19904,11 @@ function TerritorialMapInspectorContent({
 
   if (selectedBlock) {
     const blockDetails = [
-      ["Tipo", selectedBlock.block.tipo_manzana === "titular" ? "Titular" : "Reemplazo"],
-      ["ID", selectedBlock.block.id_manzana || "sin id"],
-      ["Meta", formatMetric(selectedBlock.block.meta)],
+      ["Operativo", territorialRouteOperationalLabel(selectedBlock.block)],
+      ["Tipo", selectedBlock.block.tipo_manzana === "reemplazo" ? "Reemplazo" : "Titular"],
+      ["Manzana física", territorialPhysicalBlockLabel(selectedBlock.block)],
+      ["UMP titular", territorialRoutePrimaryUmpLabel(selectedBlock.block)],
+      ["Meta UMP", formatMetric(TERRITORIAL_UMP_TARGET)],
       ["Válidas", formatMetric(selectedBlock.block.validas)],
       ["Revisión", formatMetric(selectedBlock.block.revision)],
       ["No válidas", formatMetric(selectedBlock.block.no_defendibles)],
@@ -7500,7 +19919,7 @@ function TerritorialMapInspectorContent({
       <section className="mon-territorial-inspector-card" aria-label="Detalle auditado de manzana Hoja de Ruta">
         <header>
           <span><IconRoutePath size={14} /> Manzana Hoja de Ruta</span>
-          <strong>{`${selectedBlock.block.distrito} · Z${selectedBlock.block.zona} M${selectedBlock.block.manzana}`}</strong>
+          <strong>{`${territorialRouteOperationalLabel(selectedBlock.block)} · ${selectedBlock.block.distrito} · ${territorialPhysicalBlockLabel(selectedBlock.block)}`}</strong>
         </header>
         <dl>
           {blockDetails.map(([label, value]) => (
@@ -7828,7 +20247,11 @@ function TerritorialZoneCanvasLayer({
   externalNeighborFeatures = [],
   selectedFeatures,
   selectedBlockKey,
+  relatedBlockKeys = new Set<string>(),
+  routeAnchorBlockKey = "",
   routeMapLabels = [],
+  koboPoints = [],
+  selectedPointId = "",
   mode = "audit",
 }: {
   projection: TerritorialMapProjection;
@@ -7846,7 +20269,11 @@ function TerritorialZoneCanvasLayer({
   externalNeighborFeatures?: HojasRutaBlockMapFeature[];
   selectedFeatures: TerritorialSelectedMapFeature[];
   selectedBlockKey: string;
+  relatedBlockKeys?: Set<string>;
+  routeAnchorBlockKey?: string;
   routeMapLabels?: TerritorialRouteMapLabel[];
+  koboPoints?: TerritorialNumberedKoboMapPoint[];
+  selectedPointId?: string;
   mode?: "audit" | "route";
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -7993,25 +20420,113 @@ function TerritorialZoneCanvasLayer({
         );
       });
     }
+    if (mode === "route") {
+      const routeAnchorFeature = selectedFeatures.find((item) => item.key === routeAnchorBlockKey)
+        ?? selectedFeatures.find((item) => item.key === selectedBlockKey && item.block.tipo_manzana !== "reemplazo")
+        ?? selectedFeatures.find((item) => item.block.tipo_manzana !== "reemplazo")
+        ?? null;
+      const routeAnchorPoint = routeAnchorFeature?.centroid
+        ? projection.project(routeAnchorFeature.centroid.lon, routeAnchorFeature.centroid.lat)
+        : null;
+      if (routeAnchorFeature && routeAnchorPoint) {
+        const connectorFeatures = selectedFeatures.filter((item) => {
+          if (!item.centroid || item.key === routeAnchorFeature.key) return false;
+          const blockKey = territorialBlockStableKey(item.block);
+          return item.block.tipo_manzana === "reemplazo" || relatedBlockKeys.has(blockKey);
+        });
+        connectorFeatures.forEach((item) => {
+          if (!item.centroid) return;
+          const targetPoint = projection.project(item.centroid.lon, item.centroid.lat);
+          const dotRadius = 3.9 / Math.max(1, zoom);
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(routeAnchorPoint.x, routeAnchorPoint.y);
+          ctx.lineTo(targetPoint.x, targetPoint.y);
+          ctx.lineWidth = 1.55 / Math.max(1, zoom);
+          ctx.strokeStyle = "rgba(180, 83, 9, 0.58)";
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(routeAnchorPoint.x, routeAnchorPoint.y, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(109, 40, 217, 0.82)";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(targetPoint.x, targetPoint.y, dotRadius * 1.08, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(217, 119, 6, 0.9)";
+          ctx.fill();
+          ctx.lineWidth = 0.75 / Math.max(1, zoom);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.94)";
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+    }
     selectedFeatures.forEach((item) => {
       const selected = selectedBlockKey === item.key;
-      const isTitular = item.block.tipo_manzana === "titular";
+      const blockKey = territorialBlockStableKey(item.block);
+      const relatedReplacement = !selected && relatedBlockKeys.has(blockKey);
+      const isReplacement = item.block.tipo_manzana === "reemplazo";
+      const isTitular = !isReplacement;
       renderPath(
         territorialFeaturePath(item.feature, projection),
         selected
           ? theme.selectedBlock.activeFill
+          : relatedReplacement
+            ? "rgba(217, 119, 6, 0.18)"
           : isTitular
             ? theme.selectedBlock.titularFill
             : theme.selectedBlock.replacementFill,
         selected
           ? theme.selectedBlock.activeStroke
+          : relatedReplacement
+            ? "rgba(180, 83, 9, 0.92)"
           : isTitular
             ? theme.selectedBlock.titularStroke
             : theme.selectedBlock.replacementStroke,
-        selected ? 3.4 : 1.85,
-        !selected && (item.block.brecha ?? 0) > 0 ? [5, 4] : [],
+        selected ? 3.4 : relatedReplacement ? 2.55 : 1.85,
+        !selected && !isReplacement && (item.block.brecha ?? 0) > 0 ? [5, 4] : [],
       );
     });
+    if (koboPoints.length) {
+      const basePointRadius = territorialCanvasKoboPointRadius(selectedFeatures, selectedBlockKey, projection, zoom);
+      koboPoints.forEach((point) => {
+        if (!Number.isFinite(point.lonValue) || !Number.isFinite(point.latValue)) return;
+        const { x, y } = projection.project(point.lonValue, point.latValue);
+        const selected = Boolean(selectedPointId && point.response_id === selectedPointId);
+        const style = territorialCanvasGeoPointStyle(point.geoDisposition ?? point.geo_estado);
+        const radius = basePointRadius * (selected ? 1.12 : point.geo_estado === "geo_ok" ? 0.82 : 0.9);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 1.42, 0, Math.PI * 2);
+        ctx.fillStyle = style.halo;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = style.fill;
+        ctx.fill();
+        ctx.lineWidth = (selected ? 1.35 : 0.8) / Math.max(1, zoom);
+        ctx.strokeStyle = selected ? style.selectedStroke : "rgba(255, 255, 255, 0.94)";
+        ctx.stroke();
+        if (selected) {
+          ctx.beginPath();
+          ctx.arc(x, y, radius * 1.52, 0, Math.PI * 2);
+          ctx.lineWidth = 1.15 / Math.max(1, zoom);
+          ctx.strokeStyle = style.selectedStroke;
+          ctx.stroke();
+        }
+        if (point.pointNumber != null) {
+          const numberZoomScale = zoom <= 8
+            ? 1
+            : Math.pow(8 / zoom, 0.42);
+          const numberFontSize = clamp(radius * 1.02 * numberZoomScale, 0.32, 3.6);
+          ctx.font = `800 ${numberFontSize}px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
+          ctx.fillText(String(point.pointNumber), x, y + radius * 0.03);
+        }
+        ctx.restore();
+      });
+    }
     if (mode === "route" && routeMapLabels.length) {
       const visibleLabels = layoutTerritorialRouteMapLabels(routeMapLabels, zoom, pan);
       visibleLabels.forEach((label) => {
@@ -8019,10 +20534,34 @@ function TerritorialZoneCanvasLayer({
         ctx.save();
         ctx.translate(label.anchorPoint.x, label.anchorPoint.y);
         ctx.scale(1 / Math.max(1, zoom), 1 / Math.max(1, zoom));
+        const offsetX = label.screenOffset?.x ?? 0;
+        const offsetY = label.screenOffset?.y ?? 0;
+        if (offsetX || offsetY) {
+          ctx.beginPath();
+          ctx.moveTo(offsetX * 0.18, offsetY * 0.18);
+          ctx.lineTo(offsetX * 0.72, offsetY * 0.72);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = style.leader ?? style.border ?? style.color;
+          ctx.stroke();
+        }
+        ctx.translate(offsetX, offsetY);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.font = `${style.weight} ${style.size}px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif`;
         ctx.globalAlpha = style.alpha;
+        if (style.background) {
+          const paddingX = style.paddingX ?? 6;
+          const boxHeight = style.boxHeight ?? style.size + 8;
+          const boxWidth = Math.min(132, Math.max(34, ctx.measureText(label.text).width + paddingX * 2));
+          drawTerritorialCanvasRoundRect(ctx, -boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight, Math.min(6, boxHeight / 2));
+          ctx.fillStyle = style.background;
+          ctx.fill();
+          if (style.border) {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = style.border;
+            ctx.stroke();
+          }
+        }
         ctx.lineWidth = style.halo;
         ctx.strokeStyle = style.haloColor;
         ctx.fillStyle = style.color;
@@ -8032,7 +20571,7 @@ function TerritorialZoneCanvasLayer({
       });
     }
     ctx.restore();
-  }, [activeDistrictUbigeo, activeZoneKey, contextFeatures, districtFeatures, externalNeighborFeatures, focusZoneFeatures, mode, neighborFeatures, pan, pan.x, pan.y, projection, routeMapLabels, routeZoneKeys, selectedBlockKey, selectedFeatures, streetFeatures, zoneFeatures, zoom]);
+  }, [activeDistrictUbigeo, activeZoneKey, contextFeatures, districtFeatures, externalNeighborFeatures, focusZoneFeatures, koboPoints, mode, neighborFeatures, pan, pan.x, pan.y, projection, relatedBlockKeys, routeAnchorBlockKey, routeMapLabels, routeZoneKeys, selectedBlockKey, selectedFeatures, selectedPointId, streetFeatures, zoneFeatures, zoom]);
   return <canvas ref={canvasRef} className="mon-territorial-map-canvas" aria-hidden="true" />;
 }
 
@@ -8043,6 +20582,8 @@ function selectTerritorialRouteRadialContext({
   selectedFeature,
   selectedZoneKey,
   anchorPoint,
+  anchorPoints,
+  radiusMeters,
 }: {
   sameDistrictFeatures: HojasRutaBlockMapFeature[];
   externalDistrictFeatures: HojasRutaBlockMapFeature[];
@@ -8050,11 +20591,16 @@ function selectTerritorialRouteRadialContext({
   selectedFeature: TerritorialSelectedMapFeature | null;
   selectedZoneKey: string;
   anchorPoint?: { lon: number; lat: number } | null;
+  anchorPoints?: Array<{ lon: number; lat: number }>;
+  radiusMeters?: number;
 }): TerritorialRouteRadialContext {
   const anchor = selectedFeature?.centroid
     ?? anchorPoint
     ?? routeFeatures.flatMap((item) => item.centroid ? [item.centroid] : [])[0]
     ?? null;
+  const anchors = (anchorPoints ?? [])
+    .filter((point) => Number.isFinite(point.lon) && Number.isFinite(point.lat));
+  const distanceAnchors = anchors.length ? anchors : anchor ? [anchor] : [];
   const routeKeys = new Set(routeFeatures.map((item) => territorialFeatureStableKey(item.feature)));
   const empty: TerritorialRouteRadialContext = {
     sameDistrictFeatures: [],
@@ -8063,7 +20609,8 @@ function selectTerritorialRouteRadialContext({
     projectionFeatures: [],
     radiusMeters: 0,
   };
-  if (!anchor) return empty;
+  if (!distanceAnchors.length) return empty;
+  const radiusBase = radiusMeters ?? TERRITORIAL_ROUTE_CONTEXT_RADIUS_M;
 
   const scoreFeatures = (
     features: HojasRutaBlockMapFeature[],
@@ -8079,7 +20626,7 @@ function selectTerritorialRouteRadialContext({
         key: `${source}:${rawKey}`,
         source,
         zoneKey: territorialFeatureZoneKey(feature),
-        distance: territorialApproxDistanceMeters(anchor.lon, anchor.lat, centroid.lon, centroid.lat),
+        distance: Math.min(...distanceAnchors.map((item) => territorialApproxDistanceMeters(item.lon, item.lat, centroid.lon, centroid.lat))),
       };
     })
     .filter((item): item is {
@@ -8097,11 +20644,11 @@ function selectTerritorialRouteRadialContext({
   ];
   if (!scored.length) return empty;
 
-  let radius = TERRITORIAL_ROUTE_CONTEXT_RADIUS_M;
+  let radius = radiusBase;
   let within = scored.filter((item) => item.distance <= radius);
   if (!within.length) {
     within = scored.slice(0, 120);
-    radius = Math.max(TERRITORIAL_ROUTE_CONTEXT_RADIUS_M, Math.ceil(within[within.length - 1]?.distance ?? TERRITORIAL_ROUTE_CONTEXT_RADIUS_M));
+    radius = Math.max(radiusBase, Math.ceil(within[within.length - 1]?.distance ?? radiusBase));
   }
 
   const activeZone = selectedZoneKey
@@ -8116,7 +20663,7 @@ function selectTerritorialRouteRadialContext({
     : scored
       .filter((item) => (
         item.source === "external"
-        && item.distance <= TERRITORIAL_ROUTE_CONTEXT_RADIUS_M + 900
+        && item.distance <= radiusBase + 900
         && !activeKeys.has(item.key)
       ))
       .slice(0, Math.min(120, TERRITORIAL_ROUTE_EXTERNAL_CONTEXT_MAX_FEATURES));
@@ -8602,6 +21149,20 @@ function territorialNeighborDistrictLabelPoint(
   };
 }
 
+function territorialActiveDistrictLabelPoint(
+  feature: TerritorialDistrictFeature,
+  focus: { lon: number; lat: number } | null,
+) {
+  const centroid = territorialDistrictCentroid(feature);
+  if (!centroid) return focus;
+  if (!focus || !Number.isFinite(focus.lon) || !Number.isFinite(focus.lat)) return centroid;
+  if (!territorialPointInDistrictFeature(focus.lon, focus.lat, feature)) return centroid;
+  return {
+    lon: focus.lon * 0.62 + centroid.lon * 0.38,
+    lat: focus.lat * 0.62 + centroid.lat * 0.38,
+  };
+}
+
 function territorialMapScreenPoint(point: { x: number; y: number }, zoom: number, pan: TerritorialMapPan) {
   return {
     x: TERRITORIAL_LIMA_MAP_WIDTH / 2 + pan.x + zoom * (point.x - TERRITORIAL_LIMA_MAP_WIDTH / 2),
@@ -8619,7 +21180,11 @@ function layoutTerritorialRouteMapLabels(
   [...labels]
     .sort((a, b) => b.priority - a.priority || a.text.localeCompare(b.text, "es-PE", { numeric: true }))
     .forEach((label) => {
-      const screen = territorialMapScreenPoint(label.anchorPoint, zoom, pan);
+      const baseScreen = territorialMapScreenPoint(label.anchorPoint, zoom, pan);
+      const screen = {
+        x: baseScreen.x + (label.screenOffset?.x ?? 0),
+        y: baseScreen.y + (label.screenOffset?.y ?? 0),
+      };
       const box = territorialRouteMapLabelBox(label, screen);
       if (!territorialRouteMapLabelIntersectsViewport(box)) return;
       if (acceptedBoxes.some((acceptedBox) => territorialRouteMapLabelBoxesOverlap(box, acceptedBox))) return;
@@ -8629,7 +21194,66 @@ function layoutTerritorialRouteMapLabels(
   return accepted.sort((a, b) => a.priority - b.priority || a.text.localeCompare(b.text, "es-PE", { numeric: true }));
 }
 
-function territorialRouteMapCanvasLabelStyle(kind: TerritorialRouteMapLabelKind) {
+type TerritorialRouteMapCanvasLabelStyle = {
+  size: number;
+  weight: number;
+  alpha: number;
+  color: string;
+  halo: number;
+  haloColor: string;
+  background?: string;
+  border?: string;
+  leader?: string;
+  boxHeight?: number;
+  paddingX?: number;
+};
+
+function territorialRouteMapCanvasLabelStyle(kind: TerritorialRouteMapLabelKind): TerritorialRouteMapCanvasLabelStyle {
+  if (kind === "active-route-block") {
+    return {
+      size: 9.8,
+      weight: 920,
+      alpha: 0.98,
+      color: "rgba(255, 255, 255, 0.98)",
+      halo: 0,
+      haloColor: "transparent",
+      background: "rgba(76, 29, 149, 0.92)",
+      border: "rgba(255, 255, 255, 0.82)",
+      leader: "rgba(76, 29, 149, 0.72)",
+      boxHeight: 20,
+      paddingX: 7,
+    };
+  }
+  if (kind === "replacement-block") {
+    return {
+      size: 8.8,
+      weight: 900,
+      alpha: 0.95,
+      color: "rgba(120, 53, 15, 0.98)",
+      halo: 2.4,
+      haloColor: "rgba(255, 255, 255, 0.92)",
+      background: "rgba(255, 251, 235, 0.88)",
+      border: "rgba(180, 83, 9, 0.54)",
+      leader: "rgba(180, 83, 9, 0.62)",
+      boxHeight: 18,
+      paddingX: 6,
+    };
+  }
+  if (kind === "route-block") {
+    return {
+      size: 8.8,
+      weight: 900,
+      alpha: 0.94,
+      color: "rgba(91, 33, 182, 0.96)",
+      halo: 2.4,
+      haloColor: "rgba(255, 255, 255, 0.92)",
+      background: "rgba(245, 243, 255, 0.86)",
+      border: "rgba(124, 58, 237, 0.46)",
+      leader: "rgba(124, 58, 237, 0.58)",
+      boxHeight: 18,
+      paddingX: 6,
+    };
+  }
   if (kind === "active-zone") {
     return {
       size: 10.5,
@@ -8680,11 +21304,147 @@ function territorialRouteMapCanvasLabelStyle(kind: TerritorialRouteMapLabelKind)
   };
 }
 
+function drawTerritorialCanvasRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function territorialCanvasGeoPointStyle(value: string) {
+  if (value === "en_zona") {
+    return {
+      fill: "rgba(22, 138, 85, 0.96)",
+      halo: "rgba(22, 138, 85, 0.16)",
+      selectedStroke: "rgba(22, 138, 85, 0.92)",
+    };
+  }
+  if (value === "en_distrito") {
+    return {
+      fill: "rgba(183, 121, 31, 0.96)",
+      halo: "rgba(183, 121, 31, 0.16)",
+      selectedStroke: "rgba(183, 121, 31, 0.92)",
+    };
+  }
+  if (value === "fuera_distrito") {
+    return {
+      fill: "rgba(180, 35, 24, 0.96)",
+      halo: "rgba(180, 35, 24, 0.15)",
+      selectedStroke: "rgba(180, 35, 24, 0.92)",
+    };
+  }
+  if (value === "sin_gps") {
+    return {
+      fill: "rgba(102, 112, 133, 0.92)",
+      halo: "rgba(102, 112, 133, 0.14)",
+      selectedStroke: "rgba(71, 84, 103, 0.88)",
+    };
+  }
+  if (value === "geo_ok") {
+    return {
+      fill: "rgba(22, 138, 85, 0.96)",
+      halo: "rgba(22, 138, 85, 0.16)",
+      selectedStroke: "rgba(22, 138, 85, 0.92)",
+    };
+  }
+  if (value === "geo_cerca") {
+    return {
+      fill: "rgba(14, 116, 144, 0.96)",
+      halo: "rgba(14, 116, 144, 0.15)",
+      selectedStroke: "rgba(14, 116, 144, 0.92)",
+    };
+  }
+  if (value === "geo_revision") {
+    return {
+      fill: "rgba(183, 121, 31, 0.96)",
+      halo: "rgba(183, 121, 31, 0.16)",
+      selectedStroke: "rgba(183, 121, 31, 0.92)",
+    };
+  }
+  if (value === "geo_no_defendible") {
+    return {
+      fill: "rgba(180, 35, 24, 0.96)",
+      halo: "rgba(180, 35, 24, 0.15)",
+      selectedStroke: "rgba(180, 35, 24, 0.92)",
+    };
+  }
+  return {
+    fill: "rgba(102, 112, 133, 0.92)",
+    halo: "rgba(102, 112, 133, 0.14)",
+    selectedStroke: "rgba(71, 84, 103, 0.88)",
+  };
+}
+
+function territorialCanvasKoboPointRadius(
+  selectedFeatures: TerritorialSelectedMapFeature[],
+  selectedBlockKey: string,
+  projection: TerritorialMapProjection,
+  zoom = 1,
+) {
+  const activeFeature = selectedFeatures.find((item) => item.key === selectedBlockKey)?.feature;
+  const candidates = activeFeature
+    ? [activeFeature]
+    : selectedFeatures.slice(0, 6).map((item) => item.feature);
+  const spans = candidates
+    .map((feature) => territorialProjectedFeatureMinSpan(feature, projection))
+    .filter((span) => Number.isFinite(span) && span > 0)
+    .sort((a, b) => a - b);
+  const reference = spans.length
+    ? spans[Math.floor(spans.length / 2)]
+    : 18;
+  const zoomAttenuation = zoom <= 8
+    ? 1
+    : Math.pow(8 / zoom, 0.58);
+  return clamp(reference * 0.105 * zoomAttenuation, 0.72, 4.05);
+}
+
+function territorialProjectedFeatureMinSpan(feature: HojasRutaBlockMapFeature, projection: TerritorialMapProjection) {
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  territorialFeaturePolygons(feature).forEach((polygon) => {
+    polygon.forEach((ring) => {
+      ring.forEach((coord) => {
+        const lon = Number(coord[0]);
+        const lat = Number(coord[1]);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+        const { x, y } = projection.project(lon, lat);
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+      });
+    });
+  });
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return 0;
+  return Math.min(maxX - minX, maxY - minY);
+}
+
 function territorialRouteMapLabelBox(label: TerritorialRouteMapLabel, point: { x: number; y: number }) {
   const density = label.kind === "active-district"
     ? 8.1
     : label.kind === "neighbor-district"
       ? 6.6
+      : label.kind === "active-route-block"
+        ? 7.6
+        : label.kind === "replacement-block" || label.kind === "route-block"
+          ? 7.1
       : label.kind === "active-zone"
         ? 7.2
         : label.kind === "route-zone"
@@ -8694,13 +21454,25 @@ function territorialRouteMapLabelBox(label: TerritorialRouteMapLabel, point: { x
     ? 78
     : label.kind === "neighbor-district"
       ? 64
+      : label.kind === "active-route-block"
+        ? 58
+        : label.kind === "replacement-block" || label.kind === "route-block"
+          ? 50
       : label.kind === "active-zone"
         ? 62
         : label.kind === "route-zone"
           ? 48
           : 38;
   const width = Math.min(238, Math.max(minWidth, label.text.length * density + 14));
-  const height = label.kind === "active-district" ? 24 : label.kind === "context-zone" ? 13 : 18;
+  const height = label.kind === "active-district"
+    ? 24
+    : label.kind === "active-route-block"
+      ? 22
+      : label.kind === "replacement-block" || label.kind === "route-block"
+        ? 20
+        : label.kind === "context-zone"
+          ? 13
+          : 18;
   return {
     left: point.x - width / 2,
     right: point.x + width / 2,
@@ -8933,21 +21705,28 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function TerritorialDistrictTable({ rows, title = "Avance por distrito" }: { rows: TerritorialDistrictProgress[]; title?: string }) {
+function TerritorialDistrictTable({ rows, title = "Avance por distrito" }: { rows: TerritorialDistrictDashboardRow[]; title?: string }) {
   return (
     <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
       <div className="mon-territorial-table-title">{title}</div>
       <table className="mon-advance-daily-table" aria-label="Avance por distrito">
-        <thead><tr><th>Distrito</th><th>Meta</th><th>Válidas</th><th>Revisión</th><th>Brecha</th><th>Avance</th></tr></thead>
+        <thead><tr><th>Distrito</th><th>Válidas / objetivo</th><th>Avance</th><th>Brecha</th><th>UMP cumplidas</th><th>UMP incompletas</th><th>Sin avance</th><th>Excedidas</th></tr></thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.ubigeo}>
               <td><strong>{row.distrito}</strong><small>{row.ubigeo}</small></td>
-              <td>{formatMetric(row.meta)}</td>
-              <td>{formatMetric(row.validas)}</td>
-              <td>{formatMetric(row.revision)}</td>
-              <td>{formatMetric(row.brecha)}</td>
+              <td>
+                <span className="mon-territorial-progress-cell">
+                  <strong>{formatMetric(row.validas)} / {formatMetric(row.meta)}</strong>
+                  <i style={{ width: `${Math.min(100, Math.max(4, row.avance_pct ?? 0))}%` }} />
+                </span>
+              </td>
               <td>{formatPercentLabel(row.avance_pct)}</td>
+              <td>{formatMetric(row.brecha)}</td>
+              <td>{formatMetric(territorialDistrictFulfilledUmpCount(row))}</td>
+              <td>{formatMetric(row.ump_started_incomplete)}</td>
+              <td>{formatMetric(row.ump_no_progress)}</td>
+              <td>{formatMetric(row.ump_overfilled)}</td>
             </tr>
           ))}
         </tbody>
@@ -9146,33 +21925,74 @@ function formatDurationLabel(value: number | null | undefined) {
 function formatShortDate(value: string) {
   if (!value) return "S/D";
   const raw = String(value);
-  const parts = raw.slice(0, 10).split("-");
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
-  return raw.length > 5 ? raw.slice(5) : raw;
+  return formatInternalQueryDateAxisLabel(raw);
 }
 
-function formatTerritorialSubmissionStamp(row: {
+type TerritorialSubmissionStampSource = {
   submission_date?: string | null;
   submission_hour?: string | null;
   submission_datetime?: string | null;
   submission_time?: string | null;
-}) {
+  submission_time_source?: string | null;
+};
+
+function territorialSubmissionStampParts(row: TerritorialSubmissionStampSource) {
   const date = String(row.submission_date ?? "").trim();
-  const hour = String(row.submission_hour ?? "").trim();
-  if (date && hour) return `${date} · ${hour}`;
-  if (date || hour) return date || hour;
-  return String(row.submission_datetime ?? row.submission_time ?? "").trim();
+  const hour = normalizeTerritorialHourLabel(String(row.submission_hour ?? "").trim());
+  const rawTime = String(row.submission_time ?? "").trim();
+  const source = String(row.submission_time_source ?? "").trim();
+  const midnightFallback =
+    isTerritorialMidnightLabel(hour) &&
+    !territorialTimestampHasExplicitNonMidnightClock(rawTime) &&
+    !["end", "end_time", "start", "start_time"].includes(source);
+  if (date && hour && !midnightFallback) return { date, hour, label: `${date} · ${hour}` };
+  if (date && hour && midnightFallback) return { date, hour: "sin hora", label: `${date} · sin hora` };
+  if (date || hour) return { date, hour: date ? "" : hour, label: date || hour };
+  const fallback = String(row.submission_datetime ?? row.submission_time ?? "").trim();
+  return { date: "", hour: "", label: fallback };
+}
+
+function formatTerritorialSubmissionStamp(row: TerritorialSubmissionStampSource) {
+  return territorialSubmissionStampParts(row).label;
+}
+
+function normalizeTerritorialHourLabel(value: string) {
+  const raw = value.trim();
+  const twelveHour = raw.match(/^0?(\d{1,2}):(\d{2})\s*([ap])\.?m\.?$/i);
+  if (twelveHour) return `${Number(twelveHour[1])}:${twelveHour[2]}${twelveHour[3].toLowerCase()}m`;
+  const twentyFourHour = raw.match(/^([01]?\d|2[0-3]):(\d{2})(?::\d{2})?$/);
+  if (twentyFourHour) {
+    const hour = Number(twentyFourHour[1]);
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${twentyFourHour[2]}${hour >= 12 ? "pm" : "am"}`;
+  }
+  return raw;
+}
+
+function isTerritorialMidnightLabel(value: string) {
+  return /^12:00\s*a\.?m\.?$/i.test(value.trim());
+}
+
+function territorialTimestampHasExplicitNonMidnightClock(value: string) {
+  const raw = value.trim();
+  const match = raw.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return false;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const second = Number(match[3] ?? 0);
+  return hour !== 0 || minute !== 0 || second !== 0;
 }
 
 function territorialDailyDateLabel(row: MonitoreoTerritorialDashboard["daily"][number]) {
   const label = String(row.date_label ?? "").trim();
-  if (label) return label;
+  if (label) return formatInternalQueryDateAxisLabel(label);
   const date = String(row.date ?? "").trim();
-  return formatInternalQueryDateLabel(date === "sin_fecha" ? "" : date);
+  return formatInternalQueryDateAxisLabel(date === "sin_fecha" ? "" : date);
 }
 
 function issueShortLabel(value: string) {
   const key = normalizeMatch(value);
+  if (key.includes("codigo pulso parece numero encuesta")) return "cód. no Pulso";
   if (key.includes("consent")) return "consent.";
   if (key.includes("distrito")) return "distrito";
   if (key.includes("gps no defendible")) return "GPS lejos";
@@ -12372,7 +25192,18 @@ function AdvanceDailyMiniChart({
   variant: "general" | "actor" | "source";
   showTable?: boolean;
 }) {
-  const model = buildAdvanceDailyChartModel(`${variant}-${normalizeMatch(title)}`, points);
+  const modelId = `${variant}-${normalizeMatch(title)}`;
+  const pointsSignature = advanceDailyPointsSignature(points);
+  const model = useMemo(
+    () => buildAdvanceDailyChartModel(modelId, points),
+    [modelId, pointsSignature],
+  );
+  const chartConfig = useMemo(() => ({
+    displayModeBar: false,
+    doubleClick: false,
+    responsive: true,
+    scrollZoom: false,
+  }), []);
   const height = variant === "general" ? 250 : 176;
   const tableRows = [
     { key: "effective", label: "Efectivas", total: model.totals.completed, values: model.timelineRows.map((point) => point.effective) },
@@ -12404,7 +25235,7 @@ function AdvanceDailyMiniChart({
           <PlotlyChart
             data={model.chartData}
             layout={model.chartLayout}
-            config={{ displayModeBar: false, doubleClick: false, responsive: true, scrollZoom: false }}
+            config={chartConfig}
             height={height}
             ariaLabel={`Avance diario de ${title}`}
           />
@@ -13943,6 +26774,21 @@ function sortAdvanceDailyPoints(points: AdvanceDailyPoint[]) {
     if (bDate) return 1;
     return a.date.localeCompare(b.date, "es");
   });
+}
+
+function advanceDailyPointsSignature(points: AdvanceDailyPoint[]) {
+  return sortAdvanceDailyPoints(points)
+    .map((point) => [
+      point.date,
+      point.completed || 0,
+      point.effective || 0,
+      point.partial || 0,
+      point.refusals || 0,
+      point.refusalsPlatform || 0,
+      point.refusalsPhone || 0,
+      point.total || 0,
+    ].join(":"))
+    .join("|");
 }
 
 function formatAdvanceDayLabel(value: unknown) {
@@ -17973,6 +30819,8 @@ function ConsultasView({
   nRows,
   syncedAt,
   openIntent,
+  caseReconciliationBusyId = "",
+  onCaseReconciliationDecision,
 }: {
   reports: MonitoreoAcreditacionReports | null;
   sources: MonitoreoSource[];
@@ -17980,6 +30828,13 @@ function ConsultasView({
   nRows: number;
   syncedAt: string;
   openIntent: ExplorerOpenIntent | null;
+  caseReconciliationBusyId?: string;
+  onCaseReconciliationDecision?: (payload: {
+    response_id: string;
+    action: "keep_excluded" | "include_with_caveat";
+    candidate_id?: string;
+    note?: string;
+  }) => void;
 }) {
   const model = useMemo(() => normalizeInternalQueries(reports?.internal_queries), [reports?.internal_queries]);
   const [filters, setFilters] = useState<InternalQueryFilters>({ ...EMPTY_INTERNAL_QUERY_FILTERS });
@@ -17996,6 +30851,10 @@ function ConsultasView({
   const stateSummary = useMemo(() => summarizeInternalCases(stateScopeCases), [stateScopeCases]);
   const summary = useMemo(() => summarizeInternalCases(filteredCases), [filteredCases]);
   const allSummary = useMemo(() => summarizeInternalCases(model.cases), [model.cases]);
+  const pendingRiskCases = useMemo(
+    () => internalPendingRiskCases(model.cases, filters.actor),
+    [filters.actor, model.cases],
+  );
   const selectedCase = filteredCases.find((item) => internalCaseIdentity(item) === selectedCaseId)
     ?? filteredCases[0]
     ?? null;
@@ -18005,7 +30864,7 @@ function ConsultasView({
   useEffect(() => {
     if (!openIntent) return;
     setFilters({ ...EMPTY_INTERNAL_QUERY_FILTERS, ...openIntent.filters });
-    setSelectedCaseId("");
+    setSelectedCaseId(openIntent.selectedCaseId ?? "");
   }, [openIntent]);
 
   const patchFilters = (patch: Partial<InternalQueryFilters>) => {
@@ -18041,6 +30900,11 @@ function ConsultasView({
           onFilter={patchFilters}
           onClear={clearFilters}
         />
+        <InternalPendingRiskStrip
+          cases={pendingRiskCases}
+          activeActor={filters.actor}
+          onReview={(actor) => patchFilters({ actor, state: "reviewable", search: "" })}
+        />
         <div className="mon-case-explorer-body">
           <InternalCasesWorkspace
             cases={filteredCases}
@@ -18054,10 +30918,54 @@ function ConsultasView({
             title="Casos del corte"
             emptyTitle="Sin casos para mostrar"
             emptyHint="Ajusta la búsqueda o limpia filtros para volver al corte completo."
+            caseReconciliationBusyId={caseReconciliationBusyId}
+            onCaseReconciliationDecision={onCaseReconciliationDecision}
           />
         </div>
       </section>
     </div>
+  );
+}
+
+function InternalPendingRiskStrip({
+  cases,
+  activeActor,
+  onReview,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  activeActor: string;
+  onReview: (actor: string) => void;
+}) {
+  if (!cases.length) return null;
+  const actorCounts = cases.reduce<Map<string, number>>((acc, item) => {
+    const actor = item.actor || "Sin actor";
+    acc.set(actor, (acc.get(actor) ?? 0) + 1);
+    return acc;
+  }, new Map());
+  const actorEntries = Array.from(actorCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"));
+  const targetActor = activeActor && actorCounts.has(activeActor) ? activeActor : actorEntries[0]?.[0] ?? "";
+  const exactCount = cases.reduce((acc, item) => acc + internalPendingEvidenceCandidates(item).filter((candidate) => assistedCandidateEvidenceLevel(candidate) === "exact").length, 0);
+  const possibleCount = cases.reduce((acc, item) => acc + internalPendingEvidenceCandidates(item).filter((candidate) => assistedCandidateEvidenceLevel(candidate) === "possible").length, 0);
+  return (
+    <section className="mon-pending-risk-strip" aria-label="Pendientes con posible respuesta no reconciliada">
+      <span><AlertTriangle size={15} /></span>
+      <div>
+        <strong>{formatCaseLabel(cases.length)} revisables pueden afectar la lista de no respuesta</strong>
+        <p>
+          Hay respuestas excluidas o sin llave con correo/código compatible con personas todavía pendientes.
+          No cuentan como efectivas hasta decidirlas, pero conviene revisarlas antes de enviar faltantes.
+        </p>
+      </div>
+      <ul>
+        {actorEntries.slice(0, 3).map(([actor, count]) => (
+          <li key={actor}><b>{actor}</b><em>{formatMetric(count)}</em></li>
+        ))}
+      </ul>
+      <small>{formatMetric(exactCount)} exactas · {formatMetric(possibleCount)} similares</small>
+      <button type="button" onClick={() => targetActor && onReview(targetActor)} disabled={!targetActor}>
+        Revisar {targetActor || "casos"}
+      </button>
+    </section>
   );
 }
 
@@ -19168,6 +32076,8 @@ function InternalCasesWorkspace({
   title = "Casos trazables",
   emptyTitle = "Sin casos filtrados",
   emptyHint = "Ajusta la búsqueda o limpia filtros para volver a la mesa completa.",
+  caseReconciliationBusyId = "",
+  onCaseReconciliationDecision,
 }: {
   cases: MonitoreoInternalQueryCase[];
   selectedCase: MonitoreoInternalQueryCase | null;
@@ -19180,6 +32090,13 @@ function InternalCasesWorkspace({
   title?: string;
   emptyTitle?: string;
   emptyHint?: string;
+  caseReconciliationBusyId?: string;
+  onCaseReconciliationDecision?: (payload: {
+    response_id: string;
+    action: "keep_excluded" | "include_with_caveat";
+    candidate_id?: string;
+    note?: string;
+  }) => void;
 }) {
   const sourceMap = useMemo(() => new Map(sources.map((source) => [source.id, source])), [sources]);
   return (
@@ -19211,7 +32128,13 @@ function InternalCasesWorkspace({
           emptyHint={emptyHint}
         />
       </section>
-      <InternalCaseDetail item={selectedCase} sourceMap={sourceMap} collectors={collectors} />
+      <InternalCaseDetail
+        item={selectedCase}
+        sourceMap={sourceMap}
+        collectors={collectors}
+        caseReconciliationBusyId={caseReconciliationBusyId}
+        onCaseReconciliationDecision={onCaseReconciliationDecision}
+      />
     </div>
   );
 }
@@ -19230,6 +32153,7 @@ function InternalCaseStateChips({
     { value: "", label: "Todos", count: summary.total, tone: "base" },
     { value: "effective", label: "Efectivas", count: summary.effective, tone: "effective" },
     { value: "non_effective", label: "No efectivas", count: nonEffective, tone: "muted" },
+    { value: "excluded", label: "Excluidas", count: summary.excluded, tone: "excluded" },
     { value: "partial", label: "Parciales", count: summary.partial, tone: "partial" },
     { value: "refusal", label: "Rechazos", count: summary.refusal, tone: "refusal" },
     { value: "pending", label: "Sin respuesta", count: summary.pending, tone: "pending" },
@@ -19569,10 +32493,19 @@ function InternalCaseDetail({
   item,
   sourceMap,
   collectors,
+  caseReconciliationBusyId = "",
+  onCaseReconciliationDecision,
 }: {
   item: MonitoreoInternalQueryCase | null;
   sourceMap: Map<string, MonitoreoSource>;
   collectors: MonitoreoLinkCollector[];
+  caseReconciliationBusyId?: string;
+  onCaseReconciliationDecision?: (payload: {
+    response_id: string;
+    action: "keep_excluded" | "include_with_caveat";
+    candidate_id?: string;
+    note?: string;
+  }) => void;
 }) {
   if (!item) {
     return (
@@ -19609,6 +32542,12 @@ function InternalCaseDetail({
           {item.duplicate_count > 1 && <em>{formatMetric(item.duplicate_count)} duplicados</em>}
         </div>
       </section>
+
+      <InternalAssistedReviewBlock
+        item={item}
+        busy={caseReconciliationBusyId === item.response_id}
+        onDecision={onCaseReconciliationDecision}
+      />
 
       <div className="mon-query-trace-chain" aria-label="Cadena de trazabilidad">
         <InternalTraceStep
@@ -19655,6 +32594,367 @@ function InternalCaseDetail({
         <div><dt>Duplicados</dt><dd>{item.duplicate_count > 1 ? formatMetric(item.duplicate_count) : "No"}</dd></div>
       </dl>
     </aside>
+  );
+}
+
+function InternalAssistedReviewBlock({
+  item,
+  busy,
+  onDecision,
+}: {
+  item: MonitoreoInternalQueryCase;
+  busy: boolean;
+  onDecision?: (payload: {
+    response_id: string;
+    action: "keep_excluded" | "include_with_caveat";
+    candidate_id?: string;
+    note?: string;
+  }) => void;
+}) {
+  const review = item.assisted_review;
+  const issueKey = normalizeMatch(item.issue_type);
+  const baseKey = normalizeMatch(item.base_result);
+  const platformComplete = normalizeMatch(item.platform_state).includes("completa");
+  const reviewableCase = Boolean(
+    item.response_id &&
+    (
+      issueKey === "fuera_base" ||
+      issueKey === "fuera base" ||
+      issueKey === "sin_llave" ||
+      issueKey === "sin llave" ||
+      issueKey === "incluido_con_salvedad" ||
+      issueKey === "incluido con salvedad" ||
+      baseKey.includes("sin cruce") ||
+      baseKey.includes("sin llave")
+    ),
+  );
+  const candidates: MonitoreoAssistedReviewCandidate[] = Array.isArray(review?.candidates)
+    ? review.candidates
+    : [];
+  const assignmentCandidates: MonitoreoAssistedReviewCandidate[] = Array.isArray(review?.assignment_candidates)
+    ? review.assignment_candidates
+    : [];
+  const warnings: string[] = Array.isArray(review?.warnings)
+    ? review.warnings.map((warning) => String(warning ?? "")).filter(Boolean)
+    : [];
+  const manual = review?.manual_decision ?? null;
+  const visible = Boolean(reviewableCase || (review && (assistedReviewFlagTruthy(review.eligible) || manual || candidates.length || assignmentCandidates.length || warnings.length)));
+  const evidenceRows = useMemo(() => {
+    const seen = new Set<string>();
+    const out: MonitoreoAssistedReviewCandidate[] = [];
+    const add = (candidate: MonitoreoAssistedReviewCandidate) => {
+      const level = assistedCandidateEvidenceLevel(candidate);
+      if (level === "manual") return;
+      const id = candidate.candidate_id || candidate.case_key || `${candidate.base_source}:${candidate.base_row}`;
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      out.push(candidate);
+    };
+    candidates.forEach(add);
+    assignmentCandidates.forEach(add);
+    return out.sort((a, b) => assistedCandidateEvidenceRank(a) - assistedCandidateEvidenceRank(b) ||
+      String(a.person_label || a.case_key).localeCompare(String(b.person_label || b.case_key), "es"));
+  }, [candidates, assignmentCandidates]);
+  const assignmentOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const add = (candidate: MonitoreoAssistedReviewCandidate, out: MonitoreoAssistedReviewCandidate[]) => {
+      const id = candidate.candidate_id || candidate.case_key || `${candidate.base_source}:${candidate.base_row}`;
+      if (!id || seen.has(id) || assistedReviewFlagTruthy(candidate.already_effective)) return;
+      seen.add(id);
+      out.push(candidate);
+    };
+    const out: MonitoreoAssistedReviewCandidate[] = [];
+    candidates.forEach((candidate) => add(candidate, out));
+    assignmentCandidates.forEach((candidate) => add(candidate, out));
+    return out.sort((a, b) =>
+      String(a.person_label || a.case_key).localeCompare(String(b.person_label || b.case_key), "es"));
+  }, [candidates, assignmentCandidates]);
+  const candidateKey = candidates.map((candidate) => candidate.candidate_id || candidate.case_key).join("|");
+  const assignmentKey = assignmentCandidates.map((candidate) => candidate.candidate_id || candidate.case_key).join("|");
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [assignmentSearch, setAssignmentSearch] = useState("");
+  const [manualAssignmentConfirmed, setManualAssignmentConfirmed] = useState(false);
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    setSelectedCandidateId("");
+    setAssignmentSearch("");
+    setManualAssignmentConfirmed(false);
+    setNote("");
+  }, [item.response_id, candidateKey, assignmentKey]);
+
+  if (!visible) return null;
+
+  const contradiction = warnings.some((warning) => normalizeMatch(warning).includes("codigo declarado no coincide"));
+  const selectedCandidate: MonitoreoAssistedReviewCandidate | null =
+    assignmentOptions.find((candidate) => candidate.candidate_id === selectedCandidateId) ?? null;
+  const selectedEvidenceLevel = selectedCandidate ? assistedCandidateEvidenceLevel(selectedCandidate) : "";
+  const selectedNeedsEvidenceNote = Boolean(selectedCandidate && selectedEvidenceLevel !== "exact");
+  const noteRequired = Boolean(contradiction || selectedNeedsEvidenceNote);
+  const assignmentSearchQuery = normalizeMatch(assignmentSearch);
+  const candidateMatchesSearch = (candidate: MonitoreoAssistedReviewCandidate) => {
+    if (!assignmentSearchQuery) return true;
+    const haystack = normalizeMatch([
+      candidate.person_label,
+      candidate.case_key,
+      candidate.base_record,
+      candidate.base_source,
+      candidate.base_status,
+      candidate.current_status,
+      item.actor,
+      candidate.match_label,
+      candidate.evidence_label,
+      candidate.evidence_level,
+      ...(candidate.evidence_fields ?? []),
+    ].join(" "));
+    return assignmentSearchQuery.split(/\s+/).filter(Boolean).every((token) => haystack.includes(token));
+  };
+  const filteredAssignmentOptions = assignmentOptions.filter(candidateMatchesSearch);
+  const unavailableAssignmentMatches = assignmentSearchQuery
+    ? evidenceRows.filter((candidate) => assistedReviewFlagTruthy(candidate.already_effective) && candidateMatchesSearch(candidate))
+    : [];
+  const visibleEvidenceRows = evidenceRows.slice(0, 5);
+  const hiddenEvidenceCount = Math.max(0, evidenceRows.length - visibleEvidenceRows.length);
+  const visibleAssignmentOptions = filteredAssignmentOptions.slice(0, assignmentSearchQuery ? 12 : 8);
+  const includeDisabled = !onDecision || !selectedCandidate || !platformComplete || busy || !manualAssignmentConfirmed || (noteRequired && !note.trim());
+  const keepDisabled = !onDecision || busy;
+  const canAct = Boolean(onDecision && item.response_id);
+  const declaredCode = review?.declared_code || review?.primary_key || item.case_key.replace(/^codigo:/i, "") || "S/D";
+  const declaredEmail = review?.declared_email || "S/D";
+  const includeHint = !platformComplete
+    ? "Solo una respuesta completa puede incluirse con salvedad."
+    : !selectedCandidate
+      ? "Selecciona una persona pendiente del universo para incluir con salvedad."
+      : !manualAssignmentConfirmed
+        ? "Confirma esta asignación antes de guardar."
+        : noteRequired && !note.trim()
+        ? selectedEvidenceLevel === "manual"
+          ? "Agrega una nota para justificar la asignación."
+          : selectedEvidenceLevel === "possible"
+            ? "Agrega una nota porque la evidencia es probable, no exacta."
+            : "Agrega una nota para documentar la contradicción código/correo."
+        : "";
+  const hasPendingEvidence = internalPendingEvidenceCandidates(item).length > 0;
+  const decisionNotes = assistedReviewDecisionNotes(warnings, candidates, selectedCandidate, hasPendingEvidence);
+
+  const submit = (action: "keep_excluded" | "include_with_caveat") => {
+    if (!onDecision || !item.response_id) return;
+    if (action === "include_with_caveat" && !selectedCandidate) return;
+    if (action === "include_with_caveat" && !manualAssignmentConfirmed) return;
+    onDecision({
+      response_id: item.response_id,
+      action,
+      candidate_id: action === "include_with_caveat" ? selectedCandidate?.candidate_id : undefined,
+      note: note.trim(),
+    });
+  };
+
+  return (
+    <section className="mon-assisted-review" aria-label="Revisión asistida del caso">
+      <header>
+        <span><ShieldAlert size={14} /> Revisión asistida</span>
+        {manual ? <em>{manual.action === "include_with_caveat" ? "Incluida con salvedad" : "Excluida"}</em> : <em>Sin decisión</em>}
+      </header>
+
+      <div className="mon-assisted-review-evidence">
+        <div>
+          <dt>Código declarado</dt>
+          <dd>{declaredCode}</dd>
+        </div>
+        <div>
+          <dt>Correo declarado</dt>
+          <dd>{declaredEmail}</dd>
+        </div>
+      </div>
+
+      <div className="mon-assisted-evidence-found" aria-label="Evidencia encontrada">
+        <span>Evidencia encontrada · no asigna automáticamente</span>
+        {evidenceRows.length ? (
+          <div>
+            {visibleEvidenceRows.map((candidate) => {
+              const label = assistedCandidateEvidenceLabel(candidate);
+              const person = candidate.person_label || candidate.base_record || "Persona del universo";
+              const code = candidate.case_key || candidate.base_record || "Sin código oficial";
+              const alreadyCovered = assistedReviewFlagTruthy(candidate.already_effective);
+              return (
+                <article
+                  key={candidate.candidate_id || `${candidate.case_key}-${candidate.base_row}`}
+                  className={alreadyCovered ? "is-covered" : ""}
+                >
+                  <strong>{label}</strong>
+                  <small>{[person, code].filter(Boolean).join(" · ")}</small>
+                  {alreadyCovered ? <em>Ya asignada</em> : null}
+                </article>
+              );
+            })}
+            {hiddenEvidenceCount ? (
+              <small className="mon-assisted-evidence-more">
+                +{formatMetric(hiddenEvidenceCount)} coincidencias compatibles. Usa la búsqueda para revisar el universo pendiente.
+              </small>
+            ) : null}
+          </div>
+        ) : (
+          <p>Sin coincidencia por código o correo.</p>
+        )}
+      </div>
+
+      {canAct ? (
+        <div className="mon-assisted-assignment" aria-label="Asignación a persona del universo">
+          <label>
+            <span>Asignación a persona pendiente</span>
+            <small>La plataforma solo muestra pendientes del actor. La asignación se aplica solo cuando eliges una persona, confirmas y guardas.</small>
+            <input
+              type="search"
+              value={assignmentSearch}
+              onChange={(event) => setAssignmentSearch(event.target.value)}
+              placeholder="Buscar nombre, código o correo..."
+            />
+          </label>
+          {unavailableAssignmentMatches.length ? (
+            <div className="mon-assisted-assignment-found" aria-label="Resultado encontrado fuera de pendientes">
+              <span>Resultado encontrado</span>
+              {unavailableAssignmentMatches.map((candidate) => (
+                <article
+                  key={`unavailable-${candidate.candidate_id || candidate.case_key || candidate.base_row}`}
+                >
+                  <strong>{candidate.person_label || candidate.base_record || "Persona del universo"}</strong>
+                  <small>
+                    {[
+                      candidate.case_key || candidate.base_record || "Sin código oficial",
+                      "No está en pendientes",
+                    ].filter(Boolean).join(" · ")}
+                  </small>
+                  <em>Ya asignada</em>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          {assignmentOptions.length ? (
+            <div className="mon-assisted-assignment-list">
+              {visibleAssignmentOptions.map((candidate) => {
+                const selected = candidate.candidate_id === selectedCandidateId;
+                const evidenceLevel = assistedCandidateEvidenceLevel(candidate);
+                return (
+                  <button
+                    key={candidate.candidate_id || `${candidate.case_key}-${candidate.base_row}`}
+                    type="button"
+                    className={selected ? "is-selected" : ""}
+                    aria-pressed={selected}
+                    onClick={() => setSelectedCandidateId(candidate.candidate_id)}
+                  >
+                    <span>
+                      <strong>{candidate.person_label || candidate.base_record || "Persona del universo"}</strong>
+                      <small>
+                        {[
+                          candidate.case_key || candidate.base_record || "Sin código oficial",
+                          candidate.current_status || candidate.base_status || "Pendiente en universo/base",
+                          candidate.base_source,
+                        ].filter(Boolean).join(" · ")}
+                      </small>
+                    </span>
+                    {evidenceLevel !== "manual" ? (
+                      <em className={`is-${evidenceLevel}`}>
+                        {assistedCandidateEvidenceLabel(candidate)}
+                      </em>
+                    ) : null}
+                  </button>
+                );
+              })}
+              {filteredAssignmentOptions.length > visibleAssignmentOptions.length ? (
+                <small>
+                  Mostrando {formatMetric(visibleAssignmentOptions.length)} de {formatMetric(filteredAssignmentOptions.length)} personas pendientes; usa la búsqueda para afinar.
+                </small>
+              ) : null}
+              {assignmentSearchQuery && !visibleAssignmentOptions.length ? (
+                <small>No hay personas pendientes que coincidan con la búsqueda.</small>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mon-assisted-review-empty">No hay personas pendientes disponibles en el universo de este actor.</p>
+          )}
+        </div>
+      ) : null}
+
+      {selectedCandidate ? (
+        <div className="mon-assisted-selected">
+          <span>Persona seleccionada</span>
+          <strong>{selectedCandidate.person_label || selectedCandidate.base_record || "Persona del universo"}</strong>
+          <small>
+            {[
+              selectedCandidate.case_key || selectedCandidate.base_record || "Sin código oficial",
+              item.actor,
+            ].filter(Boolean).join(" · ")}
+          </small>
+          <p>La asignación no se aplica hasta guardar.</p>
+        </div>
+      ) : null}
+
+      {selectedCandidate ? (
+        <label className="mon-assisted-confirm">
+          <input
+            type="checkbox"
+            checked={manualAssignmentConfirmed}
+            onChange={(event) => setManualAssignmentConfirmed(event.target.checked)}
+          />
+          <span>
+            Confirmo esta asignación. La evidencia por correo/código solo orienta; no decide automáticamente.
+          </span>
+        </label>
+      ) : null}
+
+      {decisionNotes.length ? (
+        <div className="mon-assisted-decision-notes" role="status" aria-label="Lectura para decidir">
+          {decisionNotes.map((note) => (
+            <article key={`${note.title}-${note.detail}`} className={`is-${note.tone}`}>
+              <strong>{note.title}</strong>
+              <small>{note.detail}</small>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {manual ? (
+        <div className="mon-assisted-manual">
+          <span>Decisión registrada</span>
+          <strong>{manual.action === "include_with_caveat" ? "Incluida con salvedad" : "Mantener excluida"}</strong>
+          <small>
+            {[manual.assigned_person_label, manual.assigned_case_key, manual.match_type].filter(Boolean).join(" · ") || "Sin asignación al universo"}
+          </small>
+          {manual.note ? <p>{manual.note}</p> : null}
+        </div>
+      ) : null}
+
+      {canAct ? (
+        <div className="mon-assisted-actions">
+          <label>
+            <span>Nota</span>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              rows={2}
+              placeholder={contradiction
+                ? "Nota requerida por contradicción código/correo"
+                : selectedEvidenceLevel === "possible"
+                  ? "Nota requerida por coincidencia probable"
+                  : selectedEvidenceLevel === "manual"
+                    ? "Nota requerida para esta asignación"
+                    : "Nota opcional"}
+            />
+          </label>
+          <div>
+            <button type="button" className="is-keep" disabled={keepDisabled} onClick={() => submit("keep_excluded")}>
+              {busy ? <Loader2 size={14} className="pulso-spin" /> : <XCircle size={14} />}
+              <span>Mantener excluida</span>
+            </button>
+            <button type="button" className="is-include" disabled={includeDisabled} onClick={() => submit("include_with_caveat")}>
+              {busy ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
+              <span>Incluir con salvedad</span>
+            </button>
+          </div>
+          {includeHint ? <small className="mon-assisted-action-hint">{includeHint}</small> : null}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -19942,6 +33242,147 @@ function internalCaseDisplayName(item: MonitoreoInternalQueryCase) {
   return formatPersonDisplayName(item.person_label || item.case_key || item.response_id || "Caso sin llave");
 }
 
+type AssistedReviewDecisionNote = {
+  tone: "info" | "warning" | "blocked";
+  title: string;
+  detail: string;
+};
+
+function assistedReviewFlagTruthy(value: unknown) {
+  if (typeof value === "boolean") return value;
+  return ["1", "true", "t", "yes", "si", "sí"].includes(String(value ?? "").trim().toLowerCase());
+}
+
+function assistedCandidateEvidenceLevel(candidate: MonitoreoAssistedReviewCandidate) {
+  const level = normalizeMatch(candidate.evidence_level);
+  const matchType = normalizeMatch(candidate.match_type);
+  if (level.includes("exact") || matchType.includes("exact")) return "exact";
+  if (level.includes("possible") || level.includes("probable") || matchType.includes("similar")) return "possible";
+  return "manual";
+}
+
+function assistedCandidateEvidenceLabel(candidate: MonitoreoAssistedReviewCandidate) {
+  const level = assistedCandidateEvidenceLevel(candidate);
+  const matchType = normalizeMatch(candidate.match_type);
+  const label = normalizeMatch(candidate.evidence_label);
+  if (level === "exact") {
+    if ((matchType.includes("email") || label.includes("correo")) && (matchType.includes("code") || label.includes("codigo"))) {
+      return "Correo y código exactos";
+    }
+    if (matchType.includes("email") || label.includes("correo")) return "Correo exacto";
+    if (matchType.includes("code") || label.includes("codigo")) return "Código exacto";
+    return "Coincidencia exacta";
+  }
+  if (level === "possible") {
+    if (matchType.includes("email") || label.includes("correo")) return "Correo compatible";
+    if (matchType.includes("code") || label.includes("codigo")) return "Código compatible";
+    return "Coincidencia compatible";
+  }
+  return "Búsqueda por usuario";
+}
+
+function assistedCandidateEvidenceRank(candidate: MonitoreoAssistedReviewCandidate) {
+  const level = assistedCandidateEvidenceLevel(candidate);
+  if (level === "exact") return 0;
+  if (level === "possible") return 1;
+  return 2;
+}
+
+function internalPendingEvidenceCandidates(item: MonitoreoInternalQueryCase) {
+  const review = item.assisted_review;
+  const assignment = Array.isArray(review?.assignment_candidates) ? review.assignment_candidates : [];
+  return assignment.filter((candidate) => (
+    !assistedReviewFlagTruthy(candidate.already_effective) &&
+    assistedCandidateEvidenceLevel(candidate) !== "manual"
+  ));
+}
+
+function assistedReviewDecisionNotes(
+  warnings: string[],
+  candidates: MonitoreoAssistedReviewCandidate[],
+  selectedCandidate: MonitoreoAssistedReviewCandidate | null,
+  hasPendingEvidence: boolean,
+): AssistedReviewDecisionNote[] {
+  const notes: AssistedReviewDecisionNote[] = [];
+  const add = (note: AssistedReviewDecisionNote) => {
+    if (notes.some((item) => item.title === note.title && item.detail === note.detail)) return;
+    notes.push(note);
+  };
+
+  warnings.forEach((warning) => {
+    const key = normalizeMatch(warning);
+    if (key.includes("llave principal no cruza") && key.includes("correo declarado")) {
+      add({
+        tone: "info",
+        title: "Correo exacto, llave no",
+        detail: "Hay una pista de identidad, pero no cuenta hasta asignarla, confirmarla y guardar.",
+      });
+      return;
+    }
+    if (key.includes("codigo declarado no coincide")) {
+      add({
+        tone: "warning",
+        title: "Código y correo no apuntan igual",
+        detail: "Si decides incluir, la nota debe explicar por qué la persona asignada es la correcta.",
+      });
+      return;
+    }
+    if (key.includes("personas pendientes") && key.includes("compatible")) {
+      add({
+        tone: "info",
+        title: "Revisar antes de enviar faltantes",
+        detail: "Hay pendientes con evidencia secundaria. Ninguno se incluye sin confirmarlo y guardar.",
+      });
+      return;
+    }
+    add({
+      tone: "warning",
+      title: "Revisar antes de decidir",
+      detail: warning,
+    });
+  });
+
+  if (candidates.some((candidate) => assistedReviewFlagTruthy(candidate.already_effective))) {
+    add({
+      tone: "warning",
+      title: "Ya asignada",
+      detail: "La persona detectada tiene otra respuesta reconciliada; este caso no debe sumar avance por sí solo.",
+    });
+  }
+  if (selectedCandidate) {
+    const selectedLevel = assistedCandidateEvidenceLevel(selectedCandidate);
+    if (selectedLevel === "manual") {
+      add({
+        tone: "info",
+        title: "Nota requerida para incluir",
+        detail: "Documenta la evidencia externa antes de guardar.",
+      });
+    } else if (selectedLevel === "possible") {
+      add({
+        tone: "info",
+        title: "Nota requerida para incluir",
+        detail: "La evidencia es compatible, no exacta; documenta por qué esta persona es la correcta.",
+      });
+    }
+  }
+  if (hasPendingEvidence) {
+    add({
+      tone: "info",
+      title: "Revisar antes de enviar faltantes",
+      detail: "Hay pendientes con evidencia secundaria. Ninguno se incluye sin confirmarlo y guardar.",
+    });
+  }
+  return notes;
+}
+
+function internalPendingRiskCases(cases: MonitoreoInternalQueryCase[], actor = "") {
+  return cases.filter((item) => (
+    (!actor || item.actor === actor) &&
+    item.advancement !== "effective" &&
+    internalPendingEvidenceCandidates(item).length > 0
+  ));
+}
+
 function formatPersonDisplayName(value: string) {
   const text = String(value ?? "").trim().replace(/\s+/g, " ");
   if (!text) return "Caso sin llave";
@@ -20163,6 +33604,7 @@ function internalBaseResultLabel(value: string) {
 
 function internalQueryStateOptionLabel(value: string) {
   const key = normalizeMatch(value);
+  if (key === "reviewable") return "Revisables";
   if (key === "effective" || key.includes("efectiva")) return "Efectiva real";
   if (key === "non_effective") return "No efectivas";
   if (key === "partial" || key.includes("parcial")) return "Parcial";
@@ -20170,8 +33612,8 @@ function internalQueryStateOptionLabel(value: string) {
   if (key === "pending" || key === "sin_respuesta" || key.includes("sin respuesta")) return "Sin respuesta";
   if (key === "included_review") return "Incluida auditada";
   if (key === "excluded") return "Excluida";
-  if (key === "sin_llave") return "Sin llave";
-  if (key === "fuera_base") return "Fuera de base";
+  if (key === "sin_llave" || key === "sin llave") return "Sin llave";
+  if (key === "fuera_base" || key === "fuera base") return "Fuera de base";
   return prettyOperationalLabel(value);
 }
 
@@ -20267,7 +33709,7 @@ function QualityView({
   inconsistencies: MonitoreoRow[];
   onReconciliationDecisionChange: (responseIds: string | string[], include: boolean) => void;
   reconciliationBusy: boolean;
-  onOpenExplorer: (filters: Partial<InternalQueryFilters>, label?: string) => void;
+  onOpenExplorer: (filters: Partial<InternalQueryFilters>, label?: string, selectedCaseId?: string) => void;
 }) {
   const summary = buildQualityCommandSummary(reports, inconsistencies, config);
   return (
@@ -20291,7 +33733,7 @@ function QualityView({
       )}
       {mode === "reglas" && (
         <div className="mon-quality-workspace is-reglas">
-          <AcreditacionReconciliationRulebookPanel reports={reports} />
+          <AcreditacionReconciliationRulebookPanel reports={reports} onOpenExplorer={onOpenExplorer} />
           {inconsistencies.length > 0 && (
             <TablePanel title="Inconsistencias" icon={<ShieldAlert size={16} />} rows={inconsistencies} />
           )}
@@ -20494,7 +33936,7 @@ function AcreditacionReconciliationTracePanel({
   profile: MonitoreoProfile;
   busy: boolean;
   onDecisionChange: (responseIds: string | string[], include: boolean) => void;
-  onOpenExplorer: (filters: Partial<InternalQueryFilters>, label?: string) => void;
+  onOpenExplorer: (filters: Partial<InternalQueryFilters>, label?: string, selectedCaseId?: string) => void;
 }) {
   const rows = buildReconciliationTraceItems(reportRowsForBlock(reports, "alertas", "trazabilidad_cruce"));
   const decisions = mergeProfile(profile).reconciliation_decisions ?? {};
@@ -20526,10 +33968,17 @@ function AcreditacionReconciliationTracePanel({
     onOpenExplorer(reconciliationExplorerFilters({ group }), group.title);
   };
   const openActorInExplorer = (group: ReconciliationIssueGroup, actorGroup: ReconciliationActorGroup) => {
-    onOpenExplorer(reconciliationExplorerFilters({ group, actor: actorGroup.actor }), `${group.title} · ${actorGroup.actor}`);
+    onOpenExplorer(
+      reconciliationExplorerFilters({ group, actor: actorGroup.actor, allReviewable: true }),
+      `Casos revisables · ${actorGroup.actor}`,
+    );
   };
   const openCaseInExplorer = (group: ReconciliationIssueGroup, row: ReconciliationTraceItem) => {
-    onOpenExplorer(reconciliationExplorerFilters({ group, row }), row.responseId || row.key || row.actor || group.title);
+    onOpenExplorer(
+      reconciliationExplorerFilters({ group, row }),
+      row.responseId || row.key || row.actor || group.title,
+      row.responseId || undefined,
+    );
   };
 
   return (
@@ -20763,14 +34212,25 @@ function ReconciliationRuleExplainer({ group }: { group: ReconciliationIssueGrou
 
 function AcreditacionReconciliationRulebookPanel({
   reports,
+  onOpenExplorer,
 }: {
   reports: MonitoreoAcreditacionReports | null;
+  onOpenExplorer: (filters: Partial<InternalQueryFilters>, label?: string, selectedCaseId?: string) => void;
 }) {
   const rows = buildReconciliationTraceItems(reportRowsForBlock(reports, "alertas", "trazabilidad_cruce"));
   const reviewRows = rows.filter((row) => row.resultKey !== "cruzo");
   const groups = buildReconciliationIssueGroups(reviewRows, new Set());
+  const internalCases = normalizeInternalQueries(reports?.internal_queries).cases;
+  const casesByResponseId = new Map(
+    internalCases
+      .filter((item) => item.response_id)
+      .map((item) => [item.response_id, item] as const),
+  );
   const generatedAt = reports ? formatDate(reports.generated_at) : "Sin sincronizar";
   const totalReview = reviewRows.length;
+  const openRuleGroup = (group: ReconciliationIssueGroup) => {
+    onOpenExplorer(reconciliationExplorerFilters({ group }), group.title);
+  };
   return (
     <section className="mon-reconciliation-rulebook" aria-label="Reglas de cruce y excepciones">
       <header className="mon-quality-section-head">
@@ -20792,12 +34252,28 @@ function AcreditacionReconciliationRulebookPanel({
         </p>
       </div>
 
+      <div className="mon-reconciliation-rulebook-compare" aria-label="Diferencia entre tipos de revisión">
+        <span>
+          <em>Sin llave</em>
+          <strong>No hay código/correo usable en la columna de cruce configurada.</strong>
+        </span>
+        <span>
+          <em>Fuera de base</em>
+          <strong>Sí hay una llave declarada, pero no existe en el universo del actor.</strong>
+        </span>
+        <span>
+          <em>Por actor</em>
+          <strong>Docentes puede aparecer en ambos porque son respuestas distintas con problemas distintos.</strong>
+        </span>
+      </div>
+
       {groups.length ? (
         <div className="mon-reconciliation-rulebook-grid">
           {groups.map((group) => {
             const stateCounts = reconciliationPlatformStateCounts(group.rows);
             const actors = buildReconciliationActorGroups(group.rows, new Set());
             const copy = reconciliationIssueCopy(group.id);
+            const evidence = reconciliationRulebookEvidence(group, casesByResponseId);
             return (
               <article key={group.id} className={`mon-reconciliation-rulebook-card is-${group.tone}`}>
                 <div className="mon-reconciliation-rulebook-card-head">
@@ -20806,10 +34282,29 @@ function AcreditacionReconciliationRulebookPanel({
                 </div>
                 <strong>{group.title}</strong>
                 <p>{copy.meaning}</p>
+                <div className="mon-reconciliation-rulebook-explain">
+                  <span>
+                    <em>Diferencia</em>
+                    <strong>{copy.difference}</strong>
+                  </span>
+                  <span>
+                    <em>Qué hacer</em>
+                    <strong>{copy.action}</strong>
+                  </span>
+                </div>
                 <div className="mon-reconciliation-rulebook-stats">
                   <span><em>Completas</em><strong>{stateCounts.completa}</strong></span>
                   <span><em>Parciales</em><strong>{stateCounts.parcial}</strong></span>
                   <span><em>Rechazos</em><strong>{stateCounts.rechazo}</strong></span>
+                </div>
+                <div className="mon-reconciliation-rulebook-evidence" aria-label="Evidencia útil para cruce">
+                  <span>Evidencia para match</span>
+                  {evidence.map((item) => (
+                    <div key={`${item.label}-${item.value}`} className={item.tone ? `is-${item.tone}` : ""}>
+                      <em>{item.label}</em>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
                 </div>
                 <div className="mon-reconciliation-rulebook-actors">
                   {actors.slice(0, 4).map((actor) => (
@@ -20821,6 +34316,10 @@ function AcreditacionReconciliationRulebookPanel({
                   {actors.length > 4 && <span><strong>Otros</strong><em>{actors.length - 4} actor{actors.length - 4 === 1 ? "" : "es"}</em></span>}
                 </div>
                 <small>{copy.when}</small>
+                <button type="button" className="mon-reconciliation-rulebook-open" onClick={() => openRuleGroup(group)}>
+                  <Eye size={13} />
+                  Ver casos en Explorador
+                </button>
               </article>
             );
           })}
@@ -20842,30 +34341,83 @@ function reconciliationIssueCopy(id: string) {
     return {
       meaning: "La respuesta no trae un dato confiable para encontrarla en la base.",
       when: "Aparece si no hay código, correo del envío u otro dato suficiente para hacer el cruce.",
+      difference: "No se detectó una llave usable en las columnas configuradas; puede ser parcial, rechazo o una respuesta sin código/correo.",
+      action: "Abrir en Explorador, revisar si hay correo, código u otro dato declarado; si no hay evidencia, mantener excluida o corregir formulario/base.",
     };
   }
   if (id === "codigo_fuera_base") {
     return {
       meaning: "La persona declaró un código, pero ese código no existe en el universo base configurado para el actor.",
       when: "Aparece con códigos escritos manualmente, errores de digitación o casos que no pertenecen al marco.",
+      difference: "Sí existe un código declarado, pero ese código no aparece en la base del actor.",
+      action: "Comparar con correo declarado y candidatos sugeridos; si cruza por correo, incluir con salvedad desde Explorador; si no, mantener excluida o corregir base.",
     };
   }
   return {
     meaning: "Existe un dato de cruce, pero no se encontró un registro equivalente dentro de la base.",
     when: "Aparece cuando el correo, código u otro dato reconocible queda fuera del universo cargado.",
+    difference: "Hay una llave distinta al código, como correo u otro identificador, pero no cruzó con el universo cargado.",
+    action: "Revisar evidencia secundaria y candidatos; decidir en Explorador con nota si se incluye con salvedad.",
   };
+}
+
+function reconciliationRulebookEvidence(
+  group: ReconciliationIssueGroup,
+  casesByResponseId: Map<string, MonitoreoInternalQueryCase>,
+) {
+  const cases = group.rows
+    .map((row) => (row.responseId ? casesByResponseId.get(row.responseId) : undefined))
+    .filter((item): item is MonitoreoInternalQueryCase => Boolean(item));
+  const unique = (values: string[]) => Array.from(new Set(values.map(cleanQualityText).filter(Boolean))).slice(0, 3);
+  const joined = (values: string[]) => values.join(" · ");
+  const declaredCodes = unique(cases.map((item) => item.assisted_review?.declared_code || item.assisted_review?.primary_key || ""));
+  const declaredEmails = unique(cases.map((item) => item.assisted_review?.declared_email || ""));
+  const candidates = unique(cases.flatMap((item) => (item.assisted_review?.candidates ?? []).map((candidate) => (
+    [candidate.person_label, candidate.case_key].filter(Boolean).join(" · ")
+  ))));
+  const traceFields = unique(group.rows
+    .map((row) => traceColumnLabel(row.responseColumn, row.responseLabel))
+    .filter((value) => normalizeMatch(value) !== "sin columna"));
+  const traceValues = unique(group.rows
+    .map((row) => row.responseValue || row.key)
+    .filter((value) => normalizeMatch(value) !== "sin llave detectada"));
+  const warningCount = cases.reduce((sum, item) => sum + (item.assisted_review?.warnings?.length ?? 0), 0);
+  const evidence: Array<{ label: string; value: string; tone?: "ok" | "warning" | "danger" | "info" }> = [];
+
+  if (declaredCodes.length) evidence.push({ label: "Código declarado", value: joined(declaredCodes), tone: "warning" });
+  if (declaredEmails.length) evidence.push({ label: "Correo declarado", value: joined(declaredEmails), tone: "ok" });
+  if (candidates.length) evidence.push({ label: "Candidato sugerido", value: joined(candidates), tone: "ok" });
+  if (traceFields.length) evidence.push({ label: "Campo usado", value: joined(traceFields), tone: "info" });
+  if (traceValues.length && !declaredCodes.length) evidence.push({ label: "Valor observado", value: joined(traceValues), tone: "info" });
+  if (warningCount) {
+    evidence.push({
+      label: "Advertencias",
+      value: `${warningCount.toLocaleString("es-PE")} señal${warningCount === 1 ? "" : "es"} en revisión asistida`,
+      tone: "warning",
+    });
+  }
+  if (!evidence.length) {
+    evidence.push({
+      label: "Sin evidencia secundaria",
+      value: "No hay código/correo/candidato visible; revisar manualmente en Explorador o mantener excluida.",
+      tone: "danger",
+    });
+  }
+  return evidence.slice(0, 5);
 }
 
 function reconciliationExplorerFilters({
   group,
   actor,
   row,
+  allReviewable = false,
 }: {
   group: ReconciliationIssueGroup;
   actor?: string;
   row?: ReconciliationTraceItem;
+  allReviewable?: boolean;
 }): Partial<InternalQueryFilters> {
-  const state = group.id === "sin_llave" ? "sin_llave" : "fuera_base";
+  const state = allReviewable ? "reviewable" : group.id === "sin_llave" ? "sin_llave" : "fuera_base";
   const search = row
     ? row.responseId || row.key || row.responseValue || row.baseValue || row.actor
     : "";

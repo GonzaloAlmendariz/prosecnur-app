@@ -262,6 +262,7 @@ export function DataReviewPane() {
     [variables, currentDraft, baselineDraft],
   );
   const includedCount = variables.filter((v) => !excluded.has(v.name)).length;
+  const excludedCount = Math.max(variables.length - includedCount, 0);
   const editedCount = useMemo(() => {
     const varCount = Object.keys(config.datos.variable_labels ?? {}).length;
     const valueCount = Object.values(config.datos.value_labels ?? {}).reduce(
@@ -378,13 +379,16 @@ export function DataReviewPane() {
       actions={
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <span style={pillStyle}>{includedCount}/{variables.length} incluidas</span>
-          <span style={pillStyle}>{editedCount} edición{editedCount === 1 ? "" : "es"}</span>
+          {excludedCount > 0 ? (
+            <span style={pillStyle}>{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
+          ) : null}
+          <span style={pillStyle}>{editedCount} etiqueta{editedCount === 1 ? "" : "s"} editada{editedCount === 1 ? "" : "s"}</span>
           {draftStatus.pendingCount > 0 ? (
-            <span style={pillStyle}>{draftStatus.pendingCount} sin confirmar</span>
+            <span style={pillStyle}>{draftStatus.pendingCount} etiqueta{draftStatus.pendingCount === 1 ? "" : "s"} sin confirmar</span>
           ) : null}
           {draftStatus.emptyCount > 0 && draftStatus.pendingCount > 0 ? (
             <span style={{ ...pillStyle, color: "var(--pulso-danger-fg)", borderColor: "var(--pulso-danger-border)" }}>
-              {draftStatus.emptyCount} vacía{draftStatus.emptyCount === 1 ? "" : "s"}
+              {draftStatus.emptyCount} etiqueta{draftStatus.emptyCount === 1 ? "" : "s"} vacía{draftStatus.emptyCount === 1 ? "" : "s"}
             </span>
           ) : null}
           <button
@@ -393,10 +397,10 @@ export function DataReviewPane() {
             disabled={loading || draftStatus.pendingCount === 0}
             className="pulso-primary"
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-            title={draftStatus.pendingCount === 0 ? "No hay cambios de etiquetas pendientes." : "Validar y guardar etiquetas editadas."}
+            title={draftStatus.pendingCount === 0 ? "No hay etiquetas pendientes. La inclusión de variables se autoguarda." : "Validar y guardar etiquetas editadas."}
           >
             <CheckCircle2 size={13} />
-            Confirmar cambios
+            Confirmar etiquetas
           </button>
           <button
             type="button"

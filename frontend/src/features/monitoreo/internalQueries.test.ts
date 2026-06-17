@@ -122,6 +122,7 @@ describe("internalQueries", () => {
     expect(summary.effective).toBe(1);
     expect(summary.partial).toBe(1);
     expect(summary.pending).toBe(1);
+    expect(summary.excluded).toBe(0);
     expect(summary.pendingExit).toBe(1);
     expect(summary.duplicates).toBe(1);
   });
@@ -140,6 +141,92 @@ describe("internalQueries", () => {
     expect(internalQueryCaseTone(filtered[0])).toBe("partial");
   });
 
+  it("normalizes assisted review evidence and searches declared fields", () => {
+    const normalized = normalizeInternalQueries({
+      ...model,
+      cases: [
+        {
+          ...model.cases[1],
+          platform_state: "Completa",
+          advancement: "excluded",
+          issue_type: "fuera_base",
+          assisted_review: {
+            eligible: "TRUE",
+            primary_key: "FDC",
+            declared_code: "FDC",
+            declared_email: "fduarte@pucp.edu.pe",
+            warnings: ["La llave principal no cruza con la base."],
+            candidates: [
+              {
+                candidate_id: "codigo:01999225",
+                person_label: "Franklin Duarte",
+                case_key: "01999225",
+                base_record: "01999225",
+                base_source: "Base Docentes",
+                base_row: 15,
+                base_status: "Universo",
+                match_type: "email_exact",
+                match_label: "Coincidencia por correo exacto",
+                evidence_level: "exact",
+                evidence_label: "Correo exacto",
+                evidence_score: 100,
+                evidence_fields: ["correo"],
+                current_status: "Disponible en universo/base",
+                already_effective: "FALSE",
+              },
+            ],
+            assignment_candidates: [
+              {
+                candidate_id: "codigo:22222222",
+                person_label: "Maria Pendiente",
+                case_key: "22222222",
+                base_record: "22222222",
+                base_source: "Base Docentes",
+                base_row: 16,
+                base_status: "Universo",
+                match_type: "email_similar",
+                match_label: "Correo similar en pendiente",
+                evidence_level: "possible",
+                evidence_label: "Correo similar 82%",
+                evidence_score: 82,
+                evidence_fields: ["correo"],
+                current_status: "Pendiente en universo/base",
+                already_effective: "FALSE",
+                assignment_allowed: "TRUE",
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const filtered = filterInternalQueryCases(normalized.cases, {
+      ...EMPTY_INTERNAL_QUERY_FILTERS,
+      search: "fduarte 01999225 Franklin",
+    });
+    const excluded = filterInternalQueryCases(normalized.cases, {
+      ...EMPTY_INTERNAL_QUERY_FILTERS,
+      state: "excluded",
+    });
+    const summary = summarizeInternalCases(normalized.cases);
+
+    expect(normalized.cases[0].assisted_review?.eligible).toBe(true);
+    expect(normalized.cases[0].assisted_review?.candidates?.[0].already_effective).toBe(false);
+    expect(normalized.cases[0].assisted_review?.assignment_candidates?.[0].case_key).toBe("22222222");
+    expect(normalized.cases[0].assisted_review?.assignment_candidates?.[0].evidence_level).toBe("possible");
+    expect(normalized.cases[0].assisted_review?.assignment_candidates?.[0].evidence_fields).toEqual(["correo"]);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].assisted_review?.declared_code).toBe("FDC");
+    expect(excluded).toHaveLength(1);
+    expect(summary.excluded).toBe(1);
+
+    const filteredByAssignable = filterInternalQueryCases(normalized.cases, {
+      ...EMPTY_INTERNAL_QUERY_FILTERS,
+      search: "Maria 22222222 correo similar pendiente",
+    });
+    expect(filteredByAssignable).toHaveLength(1);
+  });
+
   it("filters base cases that still have no response", () => {
     const normalized = normalizeInternalQueries(model);
     const filtered = filterInternalQueryCases(normalized.cases, {
@@ -150,12 +237,19 @@ describe("internalQueries", () => {
       ...EMPTY_INTERNAL_QUERY_FILTERS,
       state: "non_effective",
     });
+    const reviewable = filterInternalQueryCases(normalized.cases, {
+      ...EMPTY_INTERNAL_QUERY_FILTERS,
+      state: "reviewable",
+    });
     const options = internalQueryOptions(normalized.cases);
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0].person_label).toBe("Luis Pendiente");
     expect(filtered[0].platform_state).toBe("Sin respuesta");
     expect(nonEffective).toHaveLength(2);
+    expect(reviewable).toHaveLength(1);
+    expect(reviewable[0].response_id).toBe("r2");
+    expect(options.states).toContain("reviewable");
     expect(options.states).toContain("non_effective");
   });
 

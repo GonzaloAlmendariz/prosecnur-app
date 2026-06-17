@@ -8,16 +8,25 @@ import {
   apiConnectionTokenLoad,
   apiConnectionTokenSave,
   apiConnectionsList,
+  apiPublicArtifact,
   apiMonitoreoClientReportPdf,
   apiMonitoreoClientReportSheetsPublish,
   apiMonitoreoConfig,
   apiMonitoreoDemo,
   apiMonitoreoKoboAssets,
+  apiMonitoreoPublicReport,
+  apiMonitoreoPublish,
   apiMonitoreoState,
   apiMonitoreoSource,
   apiMonitoreoSheetsPublish,
   apiMonitoreoSheetsSource,
   apiMonitoreoSync,
+  apiMonitoreoTerritorialMap,
+  apiMonitoreoTerritorialMapPrepare,
+  apiMonitoreoTerritorialPhase,
+  apiMonitoreoTerritorialReconciliationBatch,
+  apiMonitoreoTerritorialSource,
+  apiMonitoreoTerritorialUmpReconciliation,
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
@@ -26,6 +35,12 @@ import {
   apiSurveyMonkeyMultibaseListSurveys,
   apiSurveyMonkeyMultibaseRefresh,
   apiSurveyMonkeyMultibaseRefreshPlan,
+  apiSurveyMonkeyMultibaseSavBundleImport,
+  apiSurveyMonkeyMultibaseSavBundleInspect,
+  apiSurveyMonkeyMultibaseWorkbookImport,
+  apiSurveyMonkeyMultibaseWorkbookInspect,
+  apiV2InstrumentoVariablesExcluidas,
+  apiV2InstrumentoVariablesExcluidasSave,
   apiGraficosPpt,
   apiGraficosPreviewSlide,
   apiAnaliticaConfigPut,
@@ -554,12 +569,94 @@ describe("Monitoreo client", () => {
     await apiMonitoreoState();
     await apiMonitoreoState({ includeReports: false });
     await apiMonitoreoState({ includeReports: true });
+    await apiMonitoreoState({ includeReports: true, reportScope: "route_summary" });
+    await apiMonitoreoState({ includeReports: true, reportScope: "validation_summary" });
+    await apiMonitoreoState({ includeReports: true, reportScope: "queries_summary" });
 
     expect(urls).toEqual([
       "/api/monitoreo/state",
       "/api/monitoreo/state?include_reports=0",
       "/api/monitoreo/state?include_reports=1",
+      "/api/monitoreo/state?include_reports=1&report_scope=route_summary",
+      "/api/monitoreo/state?include_reports=1&report_scope=validation_summary",
+      "/api/monitoreo/state?include_reports=1&report_scope=queries_summary",
     ]);
+  });
+
+  test("loads public artifact descriptor", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        kind: "monitoreo",
+        title: "ACNUR avance",
+        module: "monitoreo",
+        public_scope: "aggregate",
+        profile_family: "territorial",
+        report_scope: "advance_summary",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiPublicArtifact();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/public/artifact", expect.objectContaining({ headers: expect.any(Object) }));
+    expect(result.kind).toBe("monitoreo");
+    expect(result.profile_family).toBe("territorial");
+  });
+
+  test("loads public monitoreo report", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ok: true,
+        generated_at: "2026-06-16T00:00:00Z",
+        synced_at: "2026-06-16T00:00:00Z",
+        profile: { family: "acreditacion" },
+        accreditation: { actors: [], daily_general: [], daily_actor: [], sources: [], summary: [], has_targets: false },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoPublicReport();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/monitoreo/public-report", expect.objectContaining({ headers: expect.any(Object) }));
+    expect(result.profile.family).toBe("acreditacion");
+  });
+
+  test("publishes monitoreo web artifact to HF", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        repo_id: "pulso/acnur-avance",
+        space_name: "acnur-avance",
+        url: "https://huggingface.co/spaces/pulso/acnur-avance",
+        app_url: "https://pulso-acnur-avance.hf.space",
+        published_at: "2026-06-16T00:00:00Z",
+        artifact_kind: "monitoreo",
+        files_uploaded: 6,
+        total_bytes: 100,
+        project_size: 50,
+        uploaded: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoPublish({
+      hf_username: "pulso",
+      hf_token: "hf_abc",
+      space_name: "acnur-avance",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/publish",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      hf_username: "pulso",
+      hf_token: "hf_abc",
+      space_name: "acnur-avance",
+    });
+    expect(result.artifact_kind).toBe("monitoreo");
   });
 
   test("lists Kobo assets with selected connection profile", async () => {
@@ -1071,6 +1168,225 @@ describe("Monitoreo client", () => {
     expect(result.estudio.processing_mode).toBe("independent_siblings");
   });
 
+  test("inspects and imports offline SurveyMonkey workbooks", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/workbook/inspect")) {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          file_id: "file-xlsx",
+          missing_required_policy: "fill_blank_warn",
+        });
+        return jsonResponse({
+          ok: true,
+          file_id: "file-xlsx",
+          filename: "Base Cliente.xlsx",
+          n_sheets: 1,
+          n_matched: 1,
+          n_blocking: 0,
+          blocking_sheets: [],
+          sheets: [{
+            sheet_name: "Industrial",
+            base_name: "ingenieria_industrial",
+            matched: true,
+            blocking: false,
+            n_rows: 206,
+            n_columns: 94,
+            n_output_columns: 78,
+            recognized_headers: 90,
+            unknown_headers: ["Columna rara"],
+            ambiguous_headers: [],
+            missing_variables: ["p3", "p4", "p5"],
+            blank_filled_variables: ["p3", "p4", "p5"],
+            cell_errors: [{
+              source: "Evalúe la utilidad | Claridad",
+              kind: "question",
+              variable: "p13_1",
+              n_errors: 173,
+              rows: [2, 3, 4],
+            }],
+            n_cell_errors: 173,
+            warnings: ["La hoja Industrial no trae 3 variables esperadas; se completaron vacías."],
+          }],
+          warnings: ["La hoja Industrial no trae 3 variables esperadas; se completaron vacías."],
+        });
+      }
+      expect(url).toMatch(/\/workbook\/import$/);
+      return jsonResponse({
+        ok: true,
+        file_id: "file-xlsx",
+        filename: "Base Cliente.xlsx",
+        imported_bases: 1,
+        results: [{
+          base_name: "ingenieria_industrial",
+          sheet_name: "Industrial",
+          data_file_id: "data-new",
+          snapshot_file_id: "snap-new",
+          n_rows: 206,
+          n_columns: 78,
+          warnings: [],
+        }],
+        inspection: {
+          ok: true,
+          file_id: "file-xlsx",
+          filename: "Base Cliente.xlsx",
+          n_sheets: 1,
+          n_matched: 1,
+          n_blocking: 0,
+          blocking_sheets: [],
+          sheets: [],
+          warnings: [],
+        },
+        estudio: {
+          nombre: "AC Ingenierías",
+          processing_mode: "independent_siblings",
+          active_base: "ingenieria_industrial",
+          n_bases: 1,
+          bases: {},
+          max_bases: 10,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const inspection = await apiSurveyMonkeyMultibaseWorkbookInspect({
+      file_id: "file-xlsx",
+      missing_required_policy: "fill_blank_warn",
+    });
+    expect(inspection.ok).toBe(true);
+    expect(inspection.sheets[0].missing_variables).toEqual(["p3", "p4", "p5"]);
+    expect(inspection.sheets[0].unknown_headers).toEqual(["Columna rara"]);
+    expect(inspection.sheets[0].n_cell_errors).toBe(173);
+    expect(inspection.sheets[0].cell_errors?.[0]).toMatchObject({
+      source: "Evalúe la utilidad | Claridad",
+      variable: "p13_1",
+      n_errors: 173,
+      rows: [2, 3, 4],
+    });
+
+    const imported = await apiSurveyMonkeyMultibaseWorkbookImport({
+      file_id: "file-xlsx",
+      missing_required_policy: "fill_blank_warn",
+    });
+    expect(imported.imported_bases).toBe(1);
+    expect(imported.results[0].snapshot_file_id).toBe("snap-new");
+    expect(imported.estudio.processing_mode).toBe("independent_siblings");
+  });
+
+  test("inspects and imports offline SurveyMonkey SAV bundles", async () => {
+    const changePlan = {
+      action: "replace_data",
+      base_name: "ingenieria_civil",
+      source_file: "Revision Civil.sav",
+      current: { n_rows: 176, n_columns: 84, data_file_id: "old-data", xlsform_file_id: "xls" },
+      incoming: { raw_rows: 182, raw_columns: 111, normalized_rows: 182, normalized_columns: 86 },
+      impact: {
+        rows_delta: 6,
+        columns_delta: 2,
+        expected_variables: 61,
+        matched_variables: 61,
+        missing_variables: [],
+        blank_filled_variables: [],
+        all_empty_variables: ["p28"],
+        metadata_columns: ["respondent_id", "collector_id"],
+      },
+      effects: { xlsform: "preserved", data: "replaced", invalidates: ["validacion", "analitica", "codificacion", "graficos"] },
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/sav-bundle/inspect")) {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          file_id: "zip-sav",
+          missing_required_policy: "fill_blank_warn",
+        });
+        return jsonResponse({
+          ok: true,
+          file_id: "zip-sav",
+          filename: "Bases finales.zip",
+          n_files: 1,
+          n_matched: 1,
+          n_blocking: 0,
+          blocking_files: [],
+          files: [{
+            file_name: "Revision Civil.sav",
+            entry_name: "Bases finales/Revision Civil.sav",
+            base_name: "ingenieria_civil",
+            matched: true,
+            blocking: false,
+            action: "replace_data",
+            n_rows: 182,
+            n_columns: 111,
+            n_output_columns: 86,
+            expected_variables: 61,
+            matched_variables: 61,
+            missing_variables: [],
+            blank_filled_variables: [],
+            all_empty_variables: ["p28"],
+            metadata_columns: ["respondent_id", "collector_id"],
+            warnings: ["El archivo Civil tiene 1 variables esperadas presentes pero completamente vacías."],
+            change_plan: changePlan,
+          }],
+          warnings: ["El archivo Civil tiene 1 variables esperadas presentes pero completamente vacías."],
+        });
+      }
+      expect(url).toMatch(/\/sav-bundle\/import$/);
+      return jsonResponse({
+        ok: true,
+        file_id: "zip-sav",
+        filename: "Bases finales.zip",
+        imported_bases: 1,
+        results: [{
+          base_name: "ingenieria_civil",
+          file_name: "Revision Civil.sav",
+          entry_name: "Bases finales/Revision Civil.sav",
+          data_file_id: "data-new",
+          snapshot_file_id: "snap-sav",
+          n_rows: 182,
+          n_columns: 86,
+          warnings: [],
+          change_plan: changePlan,
+        }],
+        inspection: {
+          ok: true,
+          file_id: "zip-sav",
+          filename: "Bases finales.zip",
+          n_files: 1,
+          n_matched: 1,
+          n_blocking: 0,
+          blocking_files: [],
+          files: [],
+          warnings: [],
+        },
+        estudio: {
+          nombre: "AC Ingenierías",
+          processing_mode: "independent_siblings",
+          active_base: "ingenieria_civil",
+          n_bases: 1,
+          bases: {},
+          max_bases: 10,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const inspection = await apiSurveyMonkeyMultibaseSavBundleInspect({
+      file_id: "zip-sav",
+      missing_required_policy: "fill_blank_warn",
+    });
+    expect(inspection.ok).toBe(true);
+    expect(inspection.files[0].change_plan.effects.xlsform).toBe("preserved");
+    expect(inspection.files[0].change_plan.impact.rows_delta).toBe(6);
+    expect(inspection.files[0].all_empty_variables).toEqual(["p28"]);
+
+    const imported = await apiSurveyMonkeyMultibaseSavBundleImport({
+      file_id: "zip-sav",
+      missing_required_policy: "fill_blank_warn",
+    });
+    expect(imported.imported_bases).toBe(1);
+    expect(imported.results[0].snapshot_file_id).toBe("snap-sav");
+    expect(imported.results[0].change_plan.incoming.normalized_rows).toBe(182);
+    expect(imported.estudio.processing_mode).toBe("independent_siblings");
+  });
+
   test("builds SurveyMonkey refresh plan payloads with selected campaigns", async () => {
     let sentInit: RequestInit | undefined;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -1258,6 +1574,244 @@ describe("Monitoreo client", () => {
     expect(bodies).toEqual([{ config }, { config }]);
   });
 
+  test("starts scoped Monitoreo sync with explicit source ids", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ ok: true, job_id: "job-monitoreo" }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoSync(undefined, ["kobo_field"]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/sync",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      source_ids: ["kobo_field"],
+    });
+  });
+
+  test("updates territorial phase through lightweight endpoint", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({
+        ok: true,
+        config: { territorial: { active_route_phase: "field" } },
+        active_route_phase: "field",
+        phase_source_status: "missing_source",
+        message: "Campo seleccionado, pero todavia no tiene fuente configurada.",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoTerritorialPhase("field");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/territorial/phase",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      active_route_phase: "field",
+    });
+    expect(result.phase_source_status).toBe("missing_source");
+  });
+
+  test("sends territorial UMP reconciliation through dedicated endpoint", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({
+        ok: true,
+        reconciliation: {
+          phase: "field",
+          scope: "ump_value",
+          raw_ump: "UMP 70",
+          assigned_block_id: "mz-70",
+          assigned_ump: "70",
+        },
+        config: { territorial: { active_route_phase: "field" } },
+        state: { ok: true, sources: [], config: {}, variables: [], dashboard: null, errors: [] },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoTerritorialUmpReconciliation({
+      phase: "field",
+      scope: "ump_value",
+      raw_ump: "UMP 70",
+      assigned_block_id: "mz-70",
+      assigned_ump: "70",
+      assigned_district: "SAN MARTIN",
+      assigned_ubigeo: "150101",
+      note: "Reconciliacion manual",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/territorial/umps/reconcile",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      phase: "field",
+      scope: "ump_value",
+      raw_ump: "UMP 70",
+      assigned_block_id: "mz-70",
+      assigned_ump: "70",
+      assigned_district: "SAN MARTIN",
+      assigned_ubigeo: "150101",
+      note: "Reconciliacion manual",
+    });
+    expect(result.reconciliation.assigned_block_id).toBe("mz-70");
+  });
+
+  test("sends territorial reconciliation batch through dedicated endpoint", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({
+        ok: true,
+        applied: [{ client_id: "code:field:response:r-1", kind: "code", reconciliation: { assigned_code: "P191" } }],
+        failed: [{ client_id: "ump:field:ump_value:UMP 70", kind: "ump", code: "E_TEST", message: "Ruta inválida" }],
+        config: { territorial: { active_route_phase: "field" } },
+        state: { ok: true, sources: [], config: {}, variables: [], dashboard: null, errors: [] },
+        saved_project: true,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoTerritorialReconciliationBatch([
+      {
+        client_id: "code:field:response:r-1",
+        kind: "code",
+        reconciliation: {
+          phase: "field",
+          scope: "response",
+          response_id: "r-1",
+          raw_code: "191",
+          normalized_code: "P191",
+          assigned_code: "P191",
+        },
+      },
+      {
+        client_id: "ump:field:ump_value:UMP 70",
+        kind: "ump",
+        reconciliation: {
+          phase: "field",
+          scope: "ump_value",
+          raw_ump: "UMP 70",
+          assigned_block_id: "mz-70",
+          assigned_ump: "70",
+        },
+      },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/territorial/reconciliation/batch",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      changes: [
+        {
+          client_id: "code:field:response:r-1",
+          kind: "code",
+          reconciliation: {
+            phase: "field",
+            scope: "response",
+            response_id: "r-1",
+            raw_code: "191",
+            normalized_code: "P191",
+            assigned_code: "P191",
+          },
+        },
+        {
+          client_id: "ump:field:ump_value:UMP 70",
+          kind: "ump",
+          reconciliation: {
+            phase: "field",
+            scope: "ump_value",
+            raw_ump: "UMP 70",
+            assigned_block_id: "mz-70",
+            assigned_ump: "70",
+          },
+        },
+      ],
+    });
+    expect(result.applied[0]?.client_id).toBe("code:field:response:r-1");
+    expect(result.failed[0]?.message).toBe("Ruta inválida");
+  });
+
+  test("applies territorial source through lightweight endpoint", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({
+        ok: true,
+        source: { id: "kobo_field", kind: "kobo", asset_uid: "asset_field" },
+        config: { territorial: { active_route_phase: "field" } },
+        state: { ok: true, sources: [], config: {}, variables: [], dashboard: null, errors: [] },
+        active_route_phase: "field",
+        phase_source_status: "configured",
+        message: "Campo seleccionado.",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoTerritorialSource({
+      phase: "field",
+      asset_uid: "asset_field",
+      name: "Formulario Campo",
+      version_id: "version_field",
+      base_url: "https://kobo.unhcr.org",
+      connection_profile_id: "perfil_unhcr",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/territorial/source",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      phase: "field",
+      asset_uid: "asset_field",
+      name: "Formulario Campo",
+      version_id: "version_field",
+      base_url: "https://kobo.unhcr.org",
+      connection_profile_id: "perfil_unhcr",
+    });
+    expect(result.phase_source_status).toBe("configured");
+  });
+
+  test("requests territorial map cache layers and prepare endpoint", async () => {
+    const urls: string[] = [];
+    const bodies: unknown[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      urls.push(String(input));
+      if (init?.body) bodies.push(JSON.parse(String(init.body)));
+      return jsonResponse({
+        ok: true,
+        phase: "field",
+        layers: ["route_geometry", "gps_points"],
+        map_cache: { schema: "monitoreo_territorial_map_cache_v1" },
+        payload: { phase: "field", blocks: [], points: [], alerts: [], legend: [] },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoTerritorialMap({
+      phase: "field",
+      layer: "gps_points",
+      hash: "hash-previo",
+      allowStale: true,
+      prepare: false,
+    });
+    await apiMonitoreoTerritorialMapPrepare({
+      phase: "field",
+      layers: ["route_geometry", "gps_points"],
+      force: true,
+    });
+
+    expect(urls).toEqual([
+      "/api/monitoreo/territorial/map?phase=field&layer=gps_points&hash=hash-previo&allow_stale=1&prepare=0",
+      "/api/monitoreo/territorial/map/prepare",
+    ]);
+    expect(bodies[0]).toEqual({
+      phase: "field",
+      layers: ["route_geometry", "gps_points"],
+      force: true,
+    });
+  });
+
   test("loads demo data through its own endpoint", async () => {
     let sentInit: RequestInit | undefined;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -1324,6 +1878,54 @@ describe("Analitica client", () => {
     ]);
     expect(calls[0].body).toEqual({ config: { fuente_preferida: "adaptados" } });
     expect(calls[2].body).toEqual({ config: { fuente_preferida: "originales" } });
+  });
+});
+
+describe("Validacion v2 client", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLocalStorage());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("reads and saves excluded validation variables by base", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      expect(url).toBe("/api/validacion/v2/instrumento/variables-excluidas");
+      expect((init?.headers as Record<string, string>)["X-Base-Nombre"]).toBe("mecatronica");
+      if (init?.method === "POST") {
+        expect(JSON.parse(String(init.body))).toEqual({ variables: ["p3", "p4"] });
+        return jsonResponse({
+          ok: true,
+          base_nombre: "mecatronica",
+          variables: ["p3", "p4"],
+          opciones: [],
+        });
+      }
+      return jsonResponse({
+        ok: true,
+        base_nombre: "mecatronica",
+        variables: ["p3"],
+        opciones: [{
+          variable: "p3",
+          label: "Correo",
+          n_reglas: 1,
+          n_reglas_con_casos: 1,
+          n_inconsistencias: 176,
+        }],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const current = await apiV2InstrumentoVariablesExcluidas("mecatronica");
+    expect(current.variables).toEqual(["p3"]);
+    expect(current.opciones[0].n_inconsistencias).toBe(176);
+
+    const saved = await apiV2InstrumentoVariablesExcluidasSave(["p3", "p4"], "mecatronica");
+    expect(saved.variables).toEqual(["p3", "p4"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

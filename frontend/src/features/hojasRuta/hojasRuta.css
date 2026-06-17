@@ -325,6 +325,17 @@
   background: #bfdbfe;
 }
 
+.hojas-ruta-map-legend i.is-route-link {
+  border-color: rgba(29, 78, 216, 0.68);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(29, 78, 216, 0.76) 0 3px,
+      transparent 3px 6px
+    ),
+    #eff6ff;
+}
+
 .hojas-ruta-map-legend i.is-pilot {
   border-color: #b45309;
   background: #fde68a;
@@ -3264,6 +3275,15 @@
   background: #f2fbf7;
 }
 
+.hojas-ruta-review-table tbody tr.is-selected td {
+  background: rgba(15, 118, 110, 0.095);
+  box-shadow: inset 3px 0 0 #0f766e;
+}
+
+.hojas-ruta-review-table-wrap.is-sample-list tbody tr {
+  cursor: pointer;
+}
+
 .hojas-ruta-review-table .is-number {
   text-align: right;
 }
@@ -4974,6 +4994,12 @@
 
 .hojas-ruta-delivery-side .hojas-ruta-delivery-checklist {
   margin: 0 0 12px 0;
+}
+
+.hojas-ruta-delivery-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 @media (min-width: 1600px) {

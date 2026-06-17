@@ -520,12 +520,13 @@ function UnifiedSiblingsCard({
     multi_select: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
   };
 }) {
-  const run = useReporteRun();
+  const cleanRun = useReporteRun();
+  const metadataRun = useReporteRun();
   const { state } = useSession();
   const enabled = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
 
-  async function onGenerate() {
-    await run.runSync(() =>
+  async function onGenerateClean() {
+    await cleanRun.runSync(() =>
       apiAnaliticaBasesXlsxUnificada({
         valores: cfg.valores,
         multi_select: cfg.multi_select,
@@ -535,9 +536,20 @@ function UnifiedSiblingsCard({
     );
   }
 
+  async function onGenerateWithMetadata() {
+    await metadataRun.runSync(() =>
+      apiAnaliticaBasesXlsxUnificada({
+        valores: cfg.valores,
+        multi_select: cfg.multi_select,
+        omitir_identificadores_directos: false,
+        omitir_metadatos_operativos: false,
+      }),
+    );
+  }
+
   if (!enabled) return null;
 
-  const summary = run.lastResult?.unified;
+  const summary = metadataRun.lastResult?.unified ?? cleanRun.lastResult?.unified;
 
   return (
     <Section
@@ -550,8 +562,11 @@ function UnifiedSiblingsCard({
         <>
           Descarga una sola base con todas las hermanas. Incluye <code>base_hermana</code>{" "}
           <code>registro_origen_id</code> y <code>registro_unificado_id</code> al inicio
-          para identificar carrera, registro original y fila única global, omitiendo identificadores directos
-          y metadatos operativos.
+          para identificar carrera, registro original y fila única global. Si la base viene de SurveyMonkey,
+          conserva <code>id_enlace_sm</code> como ID técnico del enlace para doble cruce. La base efectiva incluye
+          respuestas completas con consentimiento válido; casos posteriores al corte o de collector no esperado se
+          conservan con marcas de observación. La descarga estándar omite PII no necesaria; usa <strong>Con metadata</strong> cuando necesites
+          auditar o reenviar la base completa.
           El libro incluye auditoría de <strong>variables comunes</strong> y <strong>variables no comunes</strong>;
           los reportes comparativos deben leerse solo sobre las comunes.
         </>
@@ -571,22 +586,49 @@ function UnifiedSiblingsCard({
         >
           Mantiene la independencia de procesamiento: no cambia la base activa, no fusiona estados y no afecta Gráficos.
           Solo prepara una descarga analítica combinada para exploración preliminar en Excel. Cada fila conserva
-          su identificador original cuando existe y suma un identificador único para la tabla unificada.
+          su identificador original, el <code>id_enlace_sm</code> de SurveyMonkey cuando existe, observaciones de corte/collector y un identificador único para la tabla unificada.
           {summary && (
             <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>
               {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} comunes · {summary.n_variables_no_comunes} no comunes
             </div>
           )}
         </div>
-        <GenerateFooter
-          label="Exportar data unificada"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "bases_unificadas.xlsx"}
-          error={run.error}
-          onGenerate={onGenerate}
-          perBase={run.perBase}
-        />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
+          <div>
+            <GenerateFooter
+              label="Exportar data unificada"
+              busy={cleanRun.busy}
+              fileId={cleanRun.fileId}
+              downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
+              error={cleanRun.error}
+              onGenerate={onGenerateClean}
+              perBase={cleanRun.perBase}
+            />
+          </div>
+          <div
+            title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas."
+          >
+            <GenerateFooter
+              label="Con metadata"
+              busy={metadataRun.busy}
+              fileId={metadataRun.fileId}
+              downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
+              error={metadataRun.error}
+              onGenerate={onGenerateWithMetadata}
+              disabled={cleanRun.busy}
+              disabledHint={cleanRun.busy ? "Espera a que termine la exportación limpia." : undefined}
+              perBase={metadataRun.perBase}
+              variant="secondary"
+            />
+          </div>
+        </div>
       </div>
     </Section>
   );
