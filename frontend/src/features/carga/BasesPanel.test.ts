@@ -28,8 +28,11 @@ import {
   smWorkbookInspectionCanImport,
   smWorkbookInspectionCellErrorCount,
   smWorkbookInspectionWarningCount,
+  smSavBundleIssueGroups,
   smSavBundleInspectionCanImport,
   smSavBundleInspectionWarningCount,
+  smSavBundleVariableLabel,
+  smXlsformVariableLabelLookup,
 } from "./BasesPanel";
 
 describe("BasesPanel integrated history helpers", () => {
@@ -171,6 +174,27 @@ describe("BasesPanel integrated history helpers", () => {
     expect(smSavBundleInspectionCanImport(inspection)).toBe(true);
     expect(smSavBundleInspectionWarningCount(inspection)).toBe(2);
     expect(smSavBundleInspectionCanImport({ ...inspection, ok: false, n_blocking: 1 })).toBe(false);
+
+    const geologicaGroups = smSavBundleIssueGroups(inspection.files[1]);
+    expect(geologicaGroups).toMatchObject([
+      {
+        key: "warnings",
+        label: "Advertencias de inspección",
+        notes: ["El archivo tiene 1 variables esperadas presentes pero completamente vacías."],
+      },
+      {
+        key: "all-empty",
+        label: "Sin datos observados",
+        variables: ["p28"],
+      },
+    ]);
+
+    const labelLookup = smXlsformVariableLabelLookup({
+      xlsform_variables: [
+        { name: "p28", label: "Indique el tipo de actividad principal que realiza actualmente" },
+      ],
+    });
+    expect(smSavBundleVariableLabel("p28", labelLookup)).toBe("Indique el tipo de actividad principal que realiza actualmente");
   });
 
   test("normalizes named R lists serialized as objects", () => {

@@ -44,6 +44,7 @@ export type OccurrenceRouteUmpRow = {
   records: MonitoreoFieldOccurrenceRecord[];
   expected_blocks: MonitoreoRow[];
   has_report: boolean;
+  is_unreconciled: boolean;
   is_outside_route: boolean;
   has_multiple_reports: boolean;
   has_observation: boolean;
@@ -221,17 +222,17 @@ function classifyRow(input: {
   hasReport: boolean;
   isOutsideRoute: boolean;
   hasMultipleReports: boolean;
-	  hasObservation: boolean;
-	  noEfectivas: number;
-	  isUnexpectedUmp: boolean;
-	  backendStatus?: unknown;
-	}) {
-	  const reasons: OccurrenceUmpAttentionReason[] = [];
-	  if (!input.hasReport) reasons.push("sin_reporte");
-	  if (input.isUnexpectedUmp) reasons.push("ump_no_esperada");
-	  else if (input.isOutsideRoute) reasons.push("fuera_ruta");
-	  if (input.hasMultipleReports) reasons.push("multiples_consolidados");
-	  if (input.hasObservation) reasons.push("observacion");
+  hasObservation: boolean;
+  noEfectivas: number;
+  isUnexpectedUmp: boolean;
+  backendStatus?: unknown;
+}) {
+  const reasons: OccurrenceUmpAttentionReason[] = [];
+  if (!input.hasReport) reasons.push("sin_reporte");
+  if (input.isUnexpectedUmp) reasons.push("ump_no_esperada");
+  else if (input.isOutsideRoute) reasons.push("fuera_ruta");
+  if (input.hasMultipleReports) reasons.push("multiples_consolidados");
+  if (input.hasObservation) reasons.push("observacion");
 
   const backendStatus = normalizedBackendStatus(input.backendStatus);
   let status: OccurrenceUmpAttentionStatus = backendStatus ?? "reportada_efectiva";
@@ -331,22 +332,22 @@ function makeRow(params: {
   const intentos = safeInt(summary?.intentos);
   const noEfectivas = safeInt(summary?.no_efectivas);
   const tasa = numberOrNull(summary?.tasa_no_efectiva);
-	  const hasReport = summary?.has_report ?? Boolean(summary && reportes > 0);
-	  const hasObservation = params.records.some((record) => text(record.observaciones));
-	  const hasMultipleReports = reportes > 1;
-	  const isUnexpectedUmp = params.isOutsideRoute && hasReport && params.expectedBlocks.length === 0 && (
-	    text(summary?.route_match_status) === "ump_no_esperada" ||
-	    Boolean(summary?.ump)
-	  );
-	  const classification = classifyRow({
-	    hasReport,
-	    isOutsideRoute: params.isOutsideRoute,
-	    hasMultipleReports,
-	    hasObservation,
-	    noEfectivas,
-	    isUnexpectedUmp,
-	    backendStatus: summary?.estado_consolidado,
-	  });
+  const hasReport = summary?.has_report ?? Boolean(summary && reportes > 0);
+  const hasObservation = params.records.some((record) => text(record.observaciones));
+  const hasMultipleReports = reportes > 1;
+  const isUnexpectedUmp = params.isOutsideRoute && hasReport && params.expectedBlocks.length === 0 && (
+    text(summary?.route_match_status) === "ump_no_esperada" ||
+    Boolean(summary?.ump)
+  );
+  const classification = classifyRow({
+    hasReport,
+    isOutsideRoute: params.isOutsideRoute,
+    hasMultipleReports,
+    hasObservation,
+    noEfectivas,
+    isUnexpectedUmp,
+    backendStatus: summary?.estado_consolidado,
+  });
   const blockUmpValue = anchor ? blockUmp(anchor) : "";
   const ump = text(summary?.ump) || blockUmpValue;
   const manzana = text(summary?.manzana) || pick(anchor, ["manzana"]);
@@ -377,6 +378,7 @@ function makeRow(params: {
     records: params.records,
     expected_blocks: params.expectedBlocks,
     has_report: hasReport,
+    is_unreconciled: isUnexpectedUmp,
     is_outside_route: params.isOutsideRoute,
     has_multiple_reports: hasMultipleReports,
     has_observation: hasObservation,
@@ -474,12 +476,12 @@ export function buildOccurrenceDistrictSummary(
   (occurrences?.by_outcome ?? []).forEach((item) => outcomeCatalog.set(item.key, item.label));
   rows.forEach((row) => row.outcomes.forEach((item) => outcomeCatalog.set(item.key, item.label)));
   const groups = new Map<string, OccurrenceRouteUmpRow[]>();
-	  rows.forEach((row) => {
-	    const district = text(row.distrito) || (
-	      row.has_report && row.attention_reasons.includes("ump_no_esperada") ? "Sin cruce UMP" : "Sin distrito"
-	    );
-	    groups.set(district, [...(groups.get(district) ?? []), row]);
-	  });
+  rows.forEach((row) => {
+    const district = text(row.distrito) || (
+      row.is_unreconciled ? "UMP sin conciliación" : "Sin distrito"
+    );
+    groups.set(district, [...(groups.get(district) ?? []), row]);
+  });
   return Array.from(groups.entries()).map(([distrito, districtRows]) => {
     const outcomes = Array.from(outcomeCatalog.entries()).map(([key, label]) => ({
       key,
@@ -493,8 +495,8 @@ export function buildOccurrenceDistrictSummary(
     const dominant = topOutcome(outcomes);
     return {
       distrito,
-      ump_reportadas: districtRows.filter((row) => row.has_report).length,
-      ump_sin_reporte: districtRows.filter((row) => !row.has_report).length,
+      ump_reportadas: districtRows.filter((row) => row.has_report && !row.is_unreconciled).length,
+      ump_sin_reporte: districtRows.filter((row) => !row.has_report && !row.is_unreconciled).length,
       efectivas: districtRows.reduce((sum, row) => sum + row.efectivas, 0),
       no_efectivas: noEfectivas,
       intentos,

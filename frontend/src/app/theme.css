@@ -6382,6 +6382,123 @@ h1.pulso-page-title {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.pulso-sm-sav-detail-tray {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  margin-top: 1px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-border) 62%, var(--pulso-border) 38%);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 235, 0.62), rgba(255, 255, 255, 0.96)),
+    #fff;
+}
+.pulso-sm-sav-detail-tray .pulso-sm-family-detail-head span {
+  color: var(--pulso-warn-fg);
+}
+.pulso-sm-sav-issue-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+.pulso-sm-sav-issue-card {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+}
+.pulso-sm-sav-issue-card.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 70%, var(--pulso-border) 30%);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 36%, #fff 64%);
+}
+.pulso-sm-sav-issue-card.is-danger {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+.pulso-sm-sav-issue-card strong {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 840;
+}
+.pulso-sm-sav-issue-card strong span {
+  flex: 0 0 auto;
+  min-width: 20px;
+  padding: 2px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  text-align: center;
+}
+.pulso-sm-sav-issue-card p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 690;
+  line-height: 1.35;
+}
+.pulso-sm-sav-variable-list,
+.pulso-sm-sav-note-list {
+  min-width: 0;
+  gap: 5px;
+}
+.pulso-sm-sav-variable-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.pulso-sm-sav-note-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+.pulso-sm-sav-variable-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 42%, var(--pulso-border) 58%);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+}
+.pulso-sm-sav-variable-item code {
+  color: var(--pulso-primary);
+  font-size: 10px;
+  font-weight: 820;
+  line-height: 1.35;
+}
+.pulso-sm-sav-variable-item span {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.pulso-sm-sav-note-list span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-border) 56%, var(--pulso-border) 44%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--pulso-warn-fg);
+  font-size: 10px;
+  font-weight: 780;
+  line-height: 1.2;
+  padding: 3px 7px;
+}
 .pulso-sm-refresh-explain {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);

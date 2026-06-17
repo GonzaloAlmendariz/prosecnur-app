@@ -10142,7 +10142,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       is_code_col <- is_explicit_code_col || is_label_code_col
       code_value_allowed <- TRUE
       if (isTRUE(generic_response_label_without_source) && !is_explicit_code_col) {
-        code_value_allowed <- FALSE
+        generic_code_value <- toupper(gsub("[^A-Za-z0-9]+", "", value))
+        code_value_allowed <- isTRUE(row_response_key_by_label) && nchar(generic_code_value) >= 5L
       }
       keys <- character(0)
       email <- if (is_email_col) .monitoreo_email_key(value) else ""
@@ -10740,7 +10741,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   out
 }
 
-.monitoreo_report_daily_source_df <- function(data, profile = list()) {
+.monitoreo_report_daily_source_df <- function(data, profile = list(), by_collector = FALSE) {
   response_mask_all <- .monitoreo_report_role_mask(data, "respuestas")
   use_responses <- any(response_mask_all, na.rm = TRUE)
   work <- if (use_responses) {
@@ -10757,6 +10758,22 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   source_labels <- if (".source_label" %in% names(work)) trimws(as.character(work$.source_label %||% "Respuestas")) else rep("Respuestas", nrow(work))
   source_labels[!nzchar(source_labels) | is.na(source_labels)] <- if (use_responses) "Respuestas" else "Barrido"
   source_keys <- ifelse(nzchar(source_ids), source_ids, source_labels)
+  collector_ids <- .monitoreo_report_first_values(work, c("collector_id", "id_recopilador", "recopilador_id", "Collector ID"))
+  collector_names <- .monitoreo_report_first_values(work, c(
+    "collector_name", "Nombre recopilador", "nombre_recopilador", "Recopilador",
+    "recopilador", "Collector", "CollectorNm", "collector"
+  ))
+  collector_types <- .monitoreo_report_first_values(work, c(
+    "collector_type", "Tipo recopilador", "tipo_recopilador", "Collector Type"
+  ))
+  if (length(collector_ids) != nrow(work)) collector_ids <- rep("", nrow(work))
+  if (length(collector_names) != nrow(work)) collector_names <- rep("", nrow(work))
+  if (length(collector_types) != nrow(work)) collector_types <- rep("", nrow(work))
+  collector_labels <- vapply(seq_len(nrow(work)), function(i) {
+    label <- .monitoreo_internal_collector_label(collector_ids[[i]], collector_names[[i]])
+    if (identical(label, "Sin recopilador")) "Sin recopilador" else label
+  }, character(1))
+  collector_keys <- ifelse(nzchar(collector_ids), collector_ids, collector_labels)
   units <- .monitoreo_report_units(profile, data)
   reconciled_global <- if (use_responses) {
     .monitoreo_report_response_reconciled_mask(data, profile)[response_mask_all]
@@ -10769,42 +10786,55 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   source_order <- unique(source_keys)
   rows <- list()
   for (source_key in source_order) {
-    source_mask <- source_keys == source_key
-    first_idx <- which(source_mask)[[1]]
-    source_id <- source_ids[[first_idx]] %||% ""
-    source_label <- source_labels[[first_idx]]
-    channel <- channels[[first_idx]] %||% ""
-    if (!nzchar(channel) || is.na(channel)) channel <- "Sin canal"
-    actor <- .monitoreo_report_source_actor(actors[[first_idx]] %||% "", source_label, profile, channel)
-    unit <- NULL
-    actor_key <- .monitoreo_report_unit_key(actor)
-    for (candidate in units) {
-      if (identical(.monitoreo_scalar(candidate$key, ""), actor_key) ||
-          identical(.monitoreo_report_unit_key(candidate$label), actor_key)) {
-        unit <- candidate
-        break
+    source_mask_base <- source_keys == source_key
+    collector_order <- if (isTRUE(by_collector)) unique(collector_keys[source_mask_base]) else ""
+    for (collector_key in collector_order) {
+      source_mask <- source_mask_base
+      if (isTRUE(by_collector)) source_mask <- source_mask & collector_keys == collector_key
+      first_idx <- which(source_mask)[[1]]
+      source_id <- source_ids[[first_idx]] %||% ""
+      source_label <- source_labels[[first_idx]]
+      channel <- channels[[first_idx]] %||% ""
+      if (!nzchar(channel) || is.na(channel)) channel <- "Sin canal"
+      actor <- .monitoreo_report_source_actor(actors[[first_idx]] %||% "", source_label, profile, channel)
+      unit <- NULL
+      actor_key <- .monitoreo_report_unit_key(actor)
+      for (candidate in units) {
+        if (identical(.monitoreo_scalar(candidate$key, ""), actor_key) ||
+            identical(.monitoreo_report_unit_key(candidate$label), actor_key)) {
+          unit <- candidate
+          break
+        }
       }
-    }
-    reconciled <- if (is.null(unit) || !use_responses) reconciled_global else {
-      .monitoreo_report_response_reconciled_mask(data, profile, unit)[response_mask_all]
-    }
-    for (state in names(state_rows)) {
-      values <- vapply(dates_sorted, function(day) {
-        state_mask <- states == state
-        if (!identical(state, "Rechazo")) state_mask <- state_mask & reconciled
-        sum(source_mask & state_mask & dates == day, na.rm = TRUE)
-      }, integer(1))
-      total <- as.integer(sum(values))
-      if (!total) next
-      rows[[length(rows) + 1L]] <- as.data.frame(as.list(c(
-        source_id = source_id,
-        Fuente = source_label,
-        Actor = actor,
-        Canal = channel,
-        Estado = state_rows[[state]],
-        stats::setNames(as.list(as.integer(values)), dates_sorted),
-        Total = total
-      )), check.names = FALSE, stringsAsFactors = FALSE)
+      reconciled <- if (is.null(unit) || !use_responses) reconciled_global else {
+        .monitoreo_report_response_reconciled_mask(data, profile, unit)[response_mask_all]
+      }
+      for (state in names(state_rows)) {
+        values <- vapply(dates_sorted, function(day) {
+          state_mask <- states == state
+          if (!identical(state, "Rechazo")) state_mask <- state_mask & reconciled
+          sum(source_mask & state_mask & dates == day, na.rm = TRUE)
+        }, integer(1))
+        total <- as.integer(sum(values))
+        if (!total) next
+        row <- c(
+          list(
+            source_id = source_id,
+            Fuente = source_label,
+            Actor = actor,
+            Canal = channel
+          ),
+          if (isTRUE(by_collector)) list(
+            collector_id = collector_ids[[first_idx]] %||% "",
+            Recopilador = collector_labels[[first_idx]],
+            `Tipo recopilador` = collector_types[[first_idx]] %||% ""
+          ) else list(),
+          list(Estado = state_rows[[state]]),
+          stats::setNames(as.list(as.integer(values)), dates_sorted),
+          list(Total = total)
+        )
+        rows[[length(rows) + 1L]] <- as.data.frame(as.list(row), check.names = FALSE, stringsAsFactors = FALSE)
+      }
     }
   }
   if (!length(rows)) return(data.frame())
@@ -12773,6 +12803,7 @@ monitoreo_acreditacion_reportes <- function(data, config = list()) {
   avance_general <- .monitoreo_report_daily_df(data, profile, FALSE)
   avance_canal <- .monitoreo_report_daily_channel_df(data, profile)
   avance_fuente <- .monitoreo_report_daily_source_df(data, profile)
+  avance_recopilador <- .monitoreo_report_daily_source_df(data, profile, by_collector = TRUE)
   distribucion <- .monitoreo_report_distribution_df(data, profile)
   variables_control <- .monitoreo_report_control_distribution_df(data, profile)
   alertas <- .monitoreo_report_alerts_df(data, profile)
@@ -12782,14 +12813,19 @@ monitoreo_acreditacion_reportes <- function(data, config = list()) {
   client_sheets <- monitoreo_acreditacion_client_report_sheets(client_report, include_targets = FALSE)
   respuestas <- data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE]
   encuesta_rows <- if (nrow(respuestas)) {
+    source_id <- as.character(respuestas$.source_id %||% "")
     source <- as.character(respuestas$.source_label %||% "Respuestas")
     states <- .monitoreo_report_states(respuestas, profile)
-    df <- data.frame(Fuente = source, Estado = states, stringsAsFactors = FALSE)
-    agg <- as.data.frame(table(df$Fuente, df$Estado), stringsAsFactors = FALSE)
-    names(agg) <- c("Fuente", "Estado", "Respuestas")
+    df <- data.frame(source_id = source_id, Fuente = source, Estado = states, stringsAsFactors = FALSE)
+    agg <- stats::aggregate(
+      rep(1L, nrow(df)),
+      by = list(source_id = df$source_id, Fuente = df$Fuente, Estado = df$Estado),
+      FUN = sum
+    )
+    names(agg) <- c("source_id", "Fuente", "Estado", "Respuestas")
     agg[agg$Respuestas > 0L, , drop = FALSE]
   } else {
-    data.frame(Fuente = "Sin respuestas conectadas", Estado = "Pendiente", Respuestas = 0L, stringsAsFactors = FALSE)
+    data.frame(source_id = "", Fuente = "Sin respuestas conectadas", Estado = "Pendiente", Respuestas = 0L, stringsAsFactors = FALSE)
   }
 
   list(
@@ -12809,7 +12845,8 @@ monitoreo_acreditacion_reportes <- function(data, config = list()) {
       .monitoreo_report_sheet("monitoreo_telefonico", "Monitoreo telefónico", "Seguimiento de llamadas, estados, responsables, pendientes e incidencias.", .monitoreo_report_phone_blocks(data, profile)),
       .monitoreo_report_sheet("avance_encuesta", "Avance por encuesta", "Resumen de respuestas por encuesta/canal cuando existen fuentes de plataforma conectadas.", list(
         .monitoreo_report_block("resumen_encuesta", "Resumen general por encuesta", encuesta_rows),
-        .monitoreo_report_block("avance_fuente_dia", "Avance diario por fuente", avance_fuente)
+        .monitoreo_report_block("avance_fuente_dia", "Avance diario por fuente", avance_fuente),
+        .monitoreo_report_block("avance_recopilador_dia", "Avance diario por recopilador", avance_recopilador)
       )),
       .monitoreo_report_sheet("alertas", "Alertas", "Observaciones de consistencia del barrido y el cruce de respuestas.", list(
         .monitoreo_report_block("alertas", "Observaciones detectadas", alertas),

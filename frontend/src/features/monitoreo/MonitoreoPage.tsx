@@ -48,6 +48,7 @@ import {
   Target,
   Trash2,
   UploadCloud,
+  X,
   XCircle,
 } from "lucide-react";
 import {
@@ -182,7 +183,6 @@ import {
   type OccurrenceDistrictSummary,
   type OccurrenceOutcomeSummary as OccurrenceOutcomeItem,
   type OccurrenceRouteUmpRow,
-  type OccurrenceUmpAttentionReason,
   type OccurrenceUmpAttentionStatus,
 } from "./fieldOccurrences";
 import {
@@ -201,6 +201,18 @@ import {
   type TerritorialExecutiveSummaryModel,
   type TerritorialExecutiveUmpStack,
 } from "./territorialSummaryModel";
+import {
+  resolveTerritorialGeoAssignment,
+  type TerritorialGeoAssignmentSource,
+} from "./territorialGeoAssignment";
+import {
+  buildTerritorialUmpCaseAudit,
+  buildTerritorialUmpResponseReconciliation,
+  territorialAuditBlockLabel,
+  territorialAuditBlockUmp,
+  type TerritorialUmpAuditCase,
+  type TerritorialUmpAuditModel,
+} from "./territorialCaseAuditModel";
 import {
   IconConfigureLayers,
   IconGpsReview,
@@ -881,7 +893,7 @@ const TERRITORIAL_BOOT_STEP_DEFS: Array<{
   {
     key: "consultas",
     view: "consultas",
-    scope: "queries_summary",
+    scope: "full",
     label: "Consultas internas",
     loadingDetail: "Preparando consultas",
     readyDetail: "Consultas listas",
@@ -1769,7 +1781,10 @@ function territorialReportsCoverView(
     );
     return scope === "full" && hasRouteRows;
   }
-  if (view === "consultas") return scope === "queries_summary" || scope === "full";
+  if (view === "consultas") {
+    if (scope === "full") return true;
+    return scope === "queries_summary" && Boolean(reports?.response_audit?.length);
+  }
   if (view === "ocurrencias") return scope === "queries_summary" || scope === "full";
   if (view === "calidad") return scope === "validation_summary" || scope === "full";
   return true;
@@ -2246,7 +2261,7 @@ function territorialReportScopeForView(view: WorkbenchView): TerritorialReportSc
   if (view === "modelo") return "full";
   if (view === "avance") return "advance_summary";
   if (view === "calidad") return "validation_summary";
-  if (view === "consultas") return "queries_summary";
+  if (view === "consultas") return "full";
   if (view === "ocurrencias") return "queries_summary";
   return "full";
 }
@@ -2613,6 +2628,9 @@ export default function MonitoreoPage() {
     setLoadedDashboardPhase(incomingDashboardPhase);
     setRoutePhaseStatus(shouldProtectPhase ? territorialPhaseSourceStatus(nextState.config, authoritativePhase) : null);
     setState((current) => {
+      if (shouldProtectPhase && !incomingDashboardPhase && current?.dashboard?.territorial_reports) {
+        return { ...nextState, dashboard: current.dashboard };
+      }
       if (shouldProtectPhase && incomingDashboardPhase && incomingDashboardPhase !== authoritativePhase) {
         const currentDashboardPhase = dashboardTerritorialPhase(current?.dashboard);
         if (currentDashboardPhase === authoritativePhase) {
@@ -3918,7 +3936,10 @@ export default function MonitoreoPage() {
 	                    void refresh().catch(() => undefined);
 	                  }}
 		                  config={config}
+		                  saving={savingConfig}
 		                  onOpenValidationCase={openTerritorialValidationCase}
+		                  onUmpReconcile={reconcileTerritorialUmp}
+		                  onBatchReconcile={reconcileTerritorialBatch}
 		                  reviewFilters={territorialReviewFilters}
 		                  onReviewFiltersChange={setTerritorialReviewFilters}
 	                />
@@ -5960,6 +5981,29 @@ function TerritorialAdvanceSummary({
       umpRows: workbench.umpRows,
     })
   ), [reports, workbench.districtRows, workbench.umpRows]);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const sideRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const side = sideRef.current;
+    if (!canvas || !side) return undefined;
+    const syncSideHeight = () => {
+      const height = Math.ceil(side.getBoundingClientRect().height);
+      if (height > 0) canvas.style.setProperty("--exec-side-height", `${height}px`);
+    };
+    syncSideHeight();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", syncSideHeight);
+      return () => window.removeEventListener("resize", syncSideHeight);
+    }
+    const observer = new ResizeObserver(syncSideHeight);
+    observer.observe(side);
+    window.addEventListener("resize", syncSideHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncSideHeight);
+    };
+  }, []);
   const cutLabel = syncedAt || reports.generated_at ? formatDate(syncedAt || reports.generated_at) : "Sin corte";
   return (
     <section className="mon-territorial-tab-panel mon-territorial-exec" aria-label="Resumen ejecutivo de avance territorial">
@@ -5969,8 +6013,8 @@ function TerritorialAdvanceSummary({
         validResponses={workbench.advance.validas}
         selectedDistrict={selectedDistrict}
       />
-      <div className="mon-territorial-exec-canvas">
-        <div className="mon-territorial-exec-side">
+      <div className="mon-territorial-exec-canvas" ref={canvasRef}>
+        <div className="mon-territorial-exec-side" ref={sideRef}>
           <TerritorialExecutiveProgressPanel
             workbench={workbench}
             criterionLabel={validityLabel}
@@ -8624,6 +8668,7 @@ function territorialPendingChangeStatusLabel(change: TerritorialPendingReconcili
 function TerritorialReconciliationBatchBar({
   applying,
   changes,
+  hideWhenEmpty = false,
   message,
   saving,
   onConfirm,
@@ -8631,6 +8676,7 @@ function TerritorialReconciliationBatchBar({
 }: {
   applying: boolean;
   changes: TerritorialPendingReconciliationChange[];
+  hideWhenEmpty?: boolean;
   message: string;
   saving: boolean;
   onConfirm: () => void;
@@ -8640,6 +8686,7 @@ function TerritorialReconciliationBatchBar({
   const umpCount = changes.filter((change) => change.kind === "ump").length;
   const errorCount = changes.filter((change) => change.status === "error").length;
   const hasChanges = changes.length > 0;
+  if (hideWhenEmpty && !hasChanges && !message) return null;
   return (
     <section className={`mon-territorial-reconciliation-batchbar${hasChanges ? " is-active" : ""}`} aria-label="Cambios de reconciliación pendientes">
       <div className="mon-territorial-reconciliation-batchcopy">
@@ -14528,10 +14575,10 @@ function TerritorialValidationGeoRouteMap({
   const activeRow = focusRow
     ?? selectedBlockCases[0]?.row
     ?? (activePoint?.response_id ? rowsById.get(activePoint.response_id) ?? null : null);
-  const activeNearestBlockId = normalizeTerritorialBlockCode(activeRow?.nearest_block_id || activePoint?.nearest_block_id);
-  const activeMatchedRouteBlock = activeNearestBlockId
-    ? blocks.find((block) => territorialBlockMatchesNormalizedId(block, activeNearestBlockId)) ?? null
+  const activeAssignment = activeRow || activePoint
+    ? resolveTerritorialGeoAssignment(activeRow ?? activePoint ?? {}, blocks, activePoint ?? undefined)
     : null;
+  const activeMatchedRouteBlock = activeAssignment?.block ?? null;
   const activeRouteBlock = selectedBlock
     ?? activeMatchedRouteBlock
     ?? null;
@@ -15021,8 +15068,8 @@ function TerritorialGeoCaseList({
     <section className="mon-territorial-geo-case-list" aria-label="Todos los casos geolocalizados">
       <header>
         <div>
-          <span><MapPin size={14} /> Casos por manzana</span>
-          <p>UMP/manzana seleccionada y puntos GPS asociados.</p>
+          <span><MapPin size={14} /> Casos por UMP declarada</span>
+          <p>La UMP declarada agrupa los casos; el GPS solo marca observaciones espaciales.</p>
         </div>
         <strong>{formatMetric(gpsRows.length)} GPS · {formatMetric(totalRows)} casos</strong>
       </header>
@@ -15043,6 +15090,9 @@ function TerritorialGeoCaseList({
           <dl>
             <div><dt>Puntos GPS</dt><dd>{`${formatMetric(selectedBlockGroup.gpsCount)} punto${selectedBlockGroup.gpsCount === 1 ? "" : "s"}`}</dd></div>
             <div><dt>Zona</dt><dd>{selectedBlockGroup.block?.zona || "S/D"}</dd></div>
+            {selectedBlockGroup.gpsDiagnosticCount ? (
+              <div><dt>Diagnóstico</dt><dd>{formatMetric(selectedBlockGroup.gpsDiagnosticCount)} GPS cerca de otra manzana</dd></div>
+            ) : null}
             <div className="is-wide"><dt>Responsable</dt><dd>{selectedBlockGroup.responsable}</dd></div>
           </dl>
         </div>
@@ -15070,9 +15120,12 @@ function TerritorialGeoCaseList({
               const pointCountLabel = group.gpsCount
                 ? `${formatMetric(group.gpsCount)} GPS`
                 : `${formatMetric(group.rows.length)} casos`;
+              const gpsDiagnosticSuffix = group.gpsDiagnosticCount
+                ? ` · ${formatMetric(group.gpsDiagnosticCount)} GPS cerca de otra manzana`
+                : "";
               const blockSubtitle = block
-                ? `${block.distrito || section.distrito || "Sin distrito"} · Zona ${block.zona || "S/D"}`
-                : group.assignmentLabel;
+                ? `${block.distrito || section.distrito || "Sin distrito"} · Zona ${block.zona || "S/D"} · ${group.assignmentLabel}${gpsDiagnosticSuffix}`
+                : `${group.assignmentLabel}${gpsDiagnosticSuffix}`;
               const reviewCount = group.reviewCount + group.noDefendibleCount;
               const reviewLabel = reviewCount > 0 ? ` · ${formatMetric(reviewCount)} revisar` : "";
               const casesPanelId = `geo-cases-${group.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -15134,6 +15187,7 @@ function TerritorialGeoCaseList({
                           const stamp = stampParts.label || `Fila ${formatMetric(row.row_index)}`;
                           const codeLabel = territorialPulsoCodeLabel(row);
                           const enumeratorLabel = territorialCaseResponsibleLabel(row, false);
+                          const demographicLabel = `${territorialReviewSexLabel(row)} · ${territorialReviewAgeLabel(row)}`;
                           const focused = focusPointId && focusPointId === row.response_id;
                           const rowClickable = Boolean(row.response_id);
                           const placeLabel = item.geoDisposition === "sin_gps"
@@ -15141,6 +15195,7 @@ function TerritorialGeoCaseList({
                             : item.spatialDistrito
                               ? `${item.spatialDistrito}${item.spatialUbigeo ? ` · ${item.spatialUbigeo}` : ""}`
                               : `${row.distrito || item.distrito || "Sin distrito"}${row.ubigeo || item.ubigeo ? ` · ${row.ubigeo || item.ubigeo}` : ""}`;
+                          const geoDetail = item.gpsDiagnosticLabel || (hasGps ? dispositionDetail : "sin punto");
                           return (
                             <button
                               type="button"
@@ -15162,6 +15217,9 @@ function TerritorialGeoCaseList({
                                   {stampParts.date ? <span>{stampParts.date}</span> : null}
                                   {stampParts.hour ? <span className="is-time">{stampParts.hour}</span> : null}
                                   {!stampParts.date && !stampParts.hour ? <span>{stamp}</span> : null}
+                                  <span className="mon-territorial-geo-case-demo" title={`Sexo y edad: ${demographicLabel}`}>
+                                    {demographicLabel}
+                                  </span>
                                 </em>
                               </span>
                               <span className="mon-territorial-geo-case-meta">
@@ -15170,7 +15228,7 @@ function TerritorialGeoCaseList({
                               </span>
                               <span className="mon-territorial-geo-case-place">
                                 <b>{item.blockLabel}</b>
-                                <small>{hasGps ? dispositionDetail : "sin punto"}</small>
+                                <small>{geoDetail}</small>
                               </span>
                               <span className={`mon-territorial-geo-disposition is-${item.geoDisposition}`}>{disposition.shortLabel}</span>
                             </button>
@@ -15186,7 +15244,7 @@ function TerritorialGeoCaseList({
           </div>
         );})}
         {!districtSections.length ? (
-          <div className="mon-territorial-source-empty">Sin casos para agrupar por manzana.</div>
+          <div className="mon-territorial-source-empty">Sin casos para agrupar por UMP declarada.</div>
         ) : null}
         {districtSections.length ? (
           <div className="mon-territorial-geo-scroll-end">Fin de casos</div>
@@ -15199,6 +15257,7 @@ function TerritorialGeoCaseList({
 type TerritorialGeoCase = {
   row: TerritorialResponseAuditRow;
   block: TerritorialBlockProgress | null;
+  nearestBlock: TerritorialBlockProgress | null;
   titularBlock: TerritorialBlockProgress | null;
   replacementBlocks: TerritorialBlockProgress[];
   routeBlocks: TerritorialBlockProgress[];
@@ -15208,6 +15267,8 @@ type TerritorialGeoCase = {
   ubigeo: string;
   blockLabel: string;
   assignmentLabel: string;
+  nearestBlockDiffers: boolean;
+  gpsDiagnosticLabel: string;
   responsable: string;
   spatialUbigeo: string;
   spatialDistrito: string;
@@ -15217,6 +15278,7 @@ type TerritorialGeoCase = {
 type TerritorialGeoBlockGroup = {
   key: string;
   block: TerritorialBlockProgress | null;
+  nearestBlock: TerritorialBlockProgress | null;
   titularBlock: TerritorialBlockProgress | null;
   replacementBlocks: TerritorialBlockProgress[];
   routeBlocks: TerritorialBlockProgress[];
@@ -15225,6 +15287,7 @@ type TerritorialGeoBlockGroup = {
   responsable: string;
   rows: TerritorialGeoCase[];
   gpsCount: number;
+  gpsDiagnosticCount: number;
   reviewCount: number;
   noDefendibleCount: number;
 };
@@ -15249,8 +15312,8 @@ function territorialBuildGeoCase(
   blocks: TerritorialBlockProgress[],
   point: TerritorialKoboMapPoint | undefined,
 ): TerritorialGeoCase {
-  const matchedBlock = territorialFindProximityAssignedBlock(row, blocks, point);
-  const block = matchedBlock;
+  const assignment = resolveTerritorialGeoAssignment(row, blocks, point);
+  const block = assignment.block;
   const routeSet = territorialResolveGeoRouteSet(block, blocks);
   const groupBlock = routeSet.titularBlock ?? block;
   const spatialDistrict = point
@@ -15261,17 +15324,17 @@ function territorialBuildGeoCase(
   const districtKey = `${ubigeo || "sin-ubigeo"}:${normalizeMatch(distrito) || "sin-distrito"}`;
   const rawBlockKey = groupBlock ? territorialBlockStableKey(groupBlock) : "";
   const groupKey = rawBlockKey ? `${districtKey}:ump:${rawBlockKey}` : `${districtKey}:sin-manzana`;
-  const blockLabel = groupBlock ? `${territorialRouteOperationalLabel(groupBlock)} · ${territorialPhysicalBlockLabel(groupBlock)}` : "Sin manzana asignada";
-  const assignmentLabel = matchedBlock
-    ? block?.tipo_manzana === "reemplazo"
-      ? `Asignado a ${territorialRouteOperationalLabel(block)}`
-      : "Asignación por proximidad"
-    : "Sin cruce de manzana";
+  const blockLabel = groupBlock ? `${territorialRouteOperationalLabel(groupBlock)} · ${territorialPhysicalBlockLabel(groupBlock)}` : "Sin UMP declarada";
+  const assignmentLabel = territorialGeoAssignmentLabel(assignment.source, block);
+  const gpsDiagnosticLabel = assignment.nearestDiffers && assignment.nearestBlock
+    ? `GPS cercano a ${territorialRouteOperationalLabel(assignment.nearestBlock)} · ${territorialPhysicalBlockLabel(assignment.nearestBlock)}`
+    : "";
   const spatialUbigeo = spatialDistrict?.properties.ubigeo || "";
-  const geoDisposition = territorialGeoDispositionForCase(row, block, routeSet, spatialDistrict, Boolean(matchedBlock));
+  const geoDisposition = territorialGeoDispositionForCase(row, block, routeSet, spatialDistrict, assignment.nearestMatchesAssigned);
   return {
     row,
     block,
+    nearestBlock: assignment.nearestBlock,
     titularBlock: routeSet.titularBlock,
     replacementBlocks: routeSet.replacementBlocks,
     routeBlocks: routeSet.routeBlocks,
@@ -15281,6 +15344,8 @@ function territorialBuildGeoCase(
     ubigeo,
     blockLabel,
     assignmentLabel,
+    nearestBlockDiffers: assignment.nearestDiffers,
+    gpsDiagnosticLabel,
     responsable: territorialCaseResponsibleLabel(row, false),
     spatialUbigeo,
     spatialDistrito: spatialDistrict?.properties.distrito || "",
@@ -15288,14 +15353,15 @@ function territorialBuildGeoCase(
   };
 }
 
-function territorialFindProximityAssignedBlock(
-  row: TerritorialResponseAuditRow,
-  blocks: TerritorialBlockProgress[],
-  point: TerritorialKoboMapPoint | undefined,
+function territorialGeoAssignmentLabel(
+  source: TerritorialGeoAssignmentSource,
+  block: TerritorialBlockProgress | null,
 ) {
-  const nearestId = normalizeTerritorialBlockCode(row.nearest_block_id || point?.nearest_block_id);
-  if (!nearestId) return null;
-  return blocks.find((block) => territorialBlockMatchesNormalizedId(block, nearestId)) ?? null;
+  if (!block) return "Sin UMP declarada";
+  if (source === "advance_block_id" || source === "advance_block_tuple" || source === "advance_block_ump" || source === "declared_ump") {
+    return "Asignación por UMP declarada";
+  }
+  return "Sin UMP declarada";
 }
 
 function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGeoDistrictSection[] {
@@ -15316,6 +15382,7 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
       group = {
         key: groupKey,
         block: item.titularBlock ?? item.block,
+        nearestBlock: item.nearestBlock,
         titularBlock: item.titularBlock,
         replacementBlocks: item.replacementBlocks,
         routeBlocks: item.routeBlocks,
@@ -15324,6 +15391,7 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
         responsable: item.responsable,
         rows: [],
         gpsCount: 0,
+        gpsDiagnosticCount: 0,
         reviewCount: 0,
         noDefendibleCount: 0,
       };
@@ -15331,6 +15399,7 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
     } else {
       group.replacementBlocks = territorialUniqueBlocks([...group.replacementBlocks, ...item.replacementBlocks]);
       group.routeBlocks = territorialUniqueBlocks([...group.routeBlocks, ...item.routeBlocks]);
+      if (!group.nearestBlock && item.nearestBlock) group.nearestBlock = item.nearestBlock;
       if (!group.titularBlock && item.titularBlock) {
         group.titularBlock = item.titularBlock;
         group.block = item.titularBlock;
@@ -15339,6 +15408,7 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
     group.rows.push(item);
     section.caseCount += 1;
     if (territorialResponseHasGps(item.row)) group.gpsCount += 1;
+    if (item.nearestBlockDiffers) group.gpsDiagnosticCount += 1;
     if (item.geoDisposition === "en_distrito" || item.geoDisposition === "sin_gps") group.reviewCount += 1;
     if (item.geoDisposition === "fuera_distrito") group.noDefendibleCount += 1;
     sections.set(sectionMeta.key, section);
@@ -15485,7 +15555,7 @@ function territorialGeoDispositionForCase(
   assignedBlock: TerritorialBlockProgress | null,
   routeSet: TerritorialGeoRouteSet,
   spatialDistrict: TerritorialDistrictFeature | null,
-  matchedByProximity: boolean,
+  gpsMatchesAssignedBlock: boolean,
 ): TerritorialGeoDispositionKey {
   if (!territorialResponseHasGps(row)) return "sin_gps";
   const routeUbigeo = normalizeTerritorialBlockCode(routeSet.titularBlock?.ubigeo || assignedBlock?.ubigeo || row.ubigeo || row.district_code);
@@ -15497,8 +15567,8 @@ function territorialGeoDispositionForCase(
   }
   const routeZones = new Set(routeSet.routeBlocks.map((block) => normalizeTerritorialBlockCode(block.zona)).filter(Boolean));
   const assignedZone = normalizeTerritorialBlockCode(assignedBlock?.zona);
-  if (matchedByProximity && assignedZone && routeZones.has(assignedZone)) return "en_zona";
-  if (matchedByProximity && (row.geo_estado === "geo_ok" || row.geo_estado === "geo_cerca")) return "en_zona";
+  if (gpsMatchesAssignedBlock && assignedZone && routeZones.has(assignedZone)) return "en_zona";
+  if (gpsMatchesAssignedBlock && (row.geo_estado === "geo_ok" || row.geo_estado === "geo_cerca")) return "en_zona";
   return "en_distrito";
 }
 
@@ -16515,8 +16585,11 @@ function TerritorialQueriesView({
   config,
   loading = false,
   error = "",
+  saving = false,
   onRetry,
   onOpenValidationCase,
+  onUmpReconcile,
+  onBatchReconcile,
   reviewFilters,
   onReviewFiltersChange,
 }: {
@@ -16524,8 +16597,14 @@ function TerritorialQueriesView({
   config: MonitoreoConfig;
   loading?: boolean;
   error?: string;
+  saving?: boolean;
   onRetry?: () => void;
   onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
+  onUmpReconcile?: (entry: MonitoreoTerritorialUmpReconciliation) => Promise<void>;
+  onBatchReconcile?: (changes: MonitoreoTerritorialReconciliationBatchChange[]) => Promise<{
+    applied: Array<{ client_id: string }>;
+    failed: Array<{ client_id: string; message: string }>;
+  }>;
   reviewFilters: TerritorialReviewFilters;
   onReviewFiltersChange: Dispatch<SetStateAction<TerritorialReviewFilters>>;
 }) {
@@ -16542,7 +16621,10 @@ function TerritorialQueriesView({
       <TerritorialReviewCasesView
         reports={reports}
         config={config}
+        saving={saving}
         onOpenValidationCase={onOpenValidationCase}
+        onUmpReconcile={onUmpReconcile}
+        onBatchReconcile={onBatchReconcile}
         filters={reviewFilters}
         setFilters={onReviewFiltersChange}
       />
@@ -16574,24 +16656,83 @@ const EMPTY_TERRITORIAL_REVIEW_FILTERS: TerritorialReviewFilters = {
 function TerritorialReviewCasesView({
   reports,
   config,
+  saving,
   onOpenValidationCase,
+  onUmpReconcile,
+  onBatchReconcile,
   filters,
   setFilters,
 }: {
   reports: MonitoreoTerritorialDashboard;
   config: MonitoreoConfig;
+  saving: boolean;
   onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
+  onUmpReconcile?: (entry: MonitoreoTerritorialUmpReconciliation) => Promise<void>;
+  onBatchReconcile?: (changes: MonitoreoTerritorialReconciliationBatchChange[]) => Promise<{
+    applied: Array<{ client_id: string }>;
+    failed: Array<{ client_id: string; message: string }>;
+  }>;
   filters: TerritorialReviewFilters;
   setFilters: Dispatch<SetStateAction<TerritorialReviewFilters>>;
 }) {
   const [copiedCaseId, setCopiedCaseId] = useState("");
+  const [selectedAuditBlockId, setSelectedAuditBlockId] = useState("");
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
+  const [pendingAuditReconciliationChanges, setPendingAuditReconciliationChanges] = useState<TerritorialPendingReconciliationChange[]>([]);
+  const [auditReconciliationConfirmOpen, setAuditReconciliationConfirmOpen] = useState(false);
+  const [auditReconciliationBatchApplying, setAuditReconciliationBatchApplying] = useState(false);
+  const [auditReconciliationBatchMessage, setAuditReconciliationBatchMessage] = useState("");
   const cases = useMemo(() => buildTerritorialReviewCases(reports, config), [config, reports]);
   const filteredCases = useMemo(() => filterTerritorialReviewCases(cases, filters), [cases, filters]);
   const options = useMemo(() => territorialReviewFilterOptions(cases), [cases]);
   const summary = useMemo(() => summarizeTerritorialReviewCases(cases), [cases]);
   const visibleSummary = useMemo(() => summarizeTerritorialReviewCases(filteredCases), [filteredCases]);
+  const auditBlockOptions = useMemo(() => territorialReviewAuditBlockOptions(reports), [reports]);
+  const selectedAuditOption = useMemo(() => {
+    if (!auditBlockOptions.length) return null;
+    return auditBlockOptions.find((option) => option.id === selectedAuditBlockId)
+      ?? territorialReviewAuditOptionFromFilter(auditBlockOptions, filters.ump)
+      ?? territorialReviewAuditOptionFromCases(auditBlockOptions, filteredCases)
+      ?? auditBlockOptions[0]
+      ?? null;
+  }, [auditBlockOptions, filteredCases, filters.ump, selectedAuditBlockId]);
+  const auditModel = useMemo(() => buildTerritorialUmpCaseAudit(reports, {
+    blockId: selectedAuditOption?.id,
+    ump: selectedAuditOption?.ump,
+  }), [reports, selectedAuditOption?.id, selectedAuditOption?.ump]);
+  const pendingAuditUmpChanges = pendingAuditReconciliationChanges.filter((change): change is TerritorialPendingUmpReconciliationChange => change.kind === "ump");
   const canClear = !isEmptyTerritorialReviewFilters(filters);
   const phaseLabel = territorialPhaseLabel(normalizeTerritorialPhase(reports.active_route_phase));
+  const reconciliationContextKey = `${reports.active_route_phase || ""}::${reports.source_coherence?.asset_uid || ""}::${reports.generated_at || ""}`;
+
+  useEffect(() => {
+    if (!selectedAuditOption) {
+      if (selectedAuditBlockId) setSelectedAuditBlockId("");
+      if (auditDrawerOpen) setAuditDrawerOpen(false);
+      return;
+    }
+    if (selectedAuditBlockId !== selectedAuditOption.id) setSelectedAuditBlockId(selectedAuditOption.id);
+  }, [auditDrawerOpen, selectedAuditBlockId, selectedAuditOption]);
+
+  useEffect(() => {
+    const option = territorialReviewAuditOptionFromFilter(auditBlockOptions, filters.ump);
+    if (option && option.id !== selectedAuditBlockId) setSelectedAuditBlockId(option.id);
+  }, [auditBlockOptions, filters.ump, selectedAuditBlockId]);
+
+  useEffect(() => {
+    if (!auditDrawerOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAuditDrawerOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [auditDrawerOpen]);
+
+  useEffect(() => {
+    setPendingAuditReconciliationChanges([]);
+    setAuditReconciliationConfirmOpen(false);
+    setAuditReconciliationBatchMessage("");
+  }, [reconciliationContextKey]);
 
   const patchFilters = (patch: Partial<TerritorialReviewFilters>) => {
     setFilters((current) => ({ ...current, ...patch }));
@@ -16604,6 +16745,95 @@ function TerritorialReviewCasesView({
       setCopiedCaseId(item.id);
       window.setTimeout(() => setCopiedCaseId((current) => (current === item.id ? "" : current)), 1200);
     }).catch(() => undefined);
+  };
+
+  const stageAuditReconciliationChange = useCallback((change: TerritorialPendingReconciliationChange) => {
+    setAuditReconciliationBatchMessage("");
+    setPendingAuditReconciliationChanges((current) => [
+      ...current.filter((item) => item.id !== change.id),
+      { ...change, status: "pending", error: "" },
+    ]);
+  }, []);
+
+  const discardAuditReconciliationChanges = useCallback(() => {
+    if (auditReconciliationBatchApplying) return;
+    setPendingAuditReconciliationChanges([]);
+    setAuditReconciliationConfirmOpen(false);
+    setAuditReconciliationBatchMessage("");
+  }, [auditReconciliationBatchApplying]);
+
+  const applyAuditReconciliationChanges = useCallback(async () => {
+    const changes = pendingAuditReconciliationChanges.filter((change) => change.status !== "saving");
+    if (!changes.length || auditReconciliationBatchApplying) return;
+    setAuditReconciliationBatchApplying(true);
+    setAuditReconciliationBatchMessage("");
+    setPendingAuditReconciliationChanges((current) => current.map((change) => ({ ...change, status: "saving", error: "" })));
+    const succeeded = new Set<string>();
+    const failed = new Map<string, string>();
+    const applySequentially = async () => {
+      if (!onUmpReconcile) {
+        changes.forEach((change) => failed.set(change.id, "No hay endpoint de reconciliación disponible."));
+        return;
+      }
+      for (const change of changes) {
+        try {
+          if (change.kind === "ump") {
+            await onUmpReconcile(change.payload);
+            succeeded.add(change.id);
+          }
+        } catch (error) {
+          failed.set(change.id, (error as Error).message || String(error));
+        }
+      }
+    };
+    if (onBatchReconcile) {
+      try {
+        const result = await onBatchReconcile(changes.map((change): MonitoreoTerritorialReconciliationBatchChange => ({
+          client_id: change.id,
+          kind: change.kind,
+          reconciliation: change.payload,
+        } as MonitoreoTerritorialReconciliationBatchChange)));
+        result.applied.forEach((item) => succeeded.add(item.client_id));
+        result.failed.forEach((item) => failed.set(item.client_id, item.message || "No se pudo guardar este cambio."));
+      } catch (error) {
+        const message = (error as Error).message || String(error);
+        const canFallback = /HTTP_404|\b404\b|Failed to fetch/i.test(message);
+        if (canFallback) {
+          await applySequentially();
+        } else {
+          changes.forEach((change) => failed.set(change.id, message));
+        }
+      }
+    } else {
+      await applySequentially();
+    }
+    setPendingAuditReconciliationChanges((current) => current
+      .filter((change) => !succeeded.has(change.id))
+      .map((change) => failed.has(change.id)
+        ? { ...change, status: "error", error: failed.get(change.id) || "No se pudo guardar este cambio." }
+        : { ...change, status: "pending", error: "" }));
+    setAuditReconciliationBatchApplying(false);
+    if (failed.size) {
+      setAuditReconciliationBatchMessage(`${formatMetric(succeeded.size)} guardadas · ${formatMetric(failed.size)} con error`);
+      return;
+    }
+    setAuditReconciliationConfirmOpen(false);
+    setAuditReconciliationBatchMessage(succeeded.size ? `${formatMetric(succeeded.size)} reconciliaciones guardadas.` : "");
+  }, [auditReconciliationBatchApplying, onBatchReconcile, onUmpReconcile, pendingAuditReconciliationChanges]);
+
+  const stageAuditCaseToTarget = useCallback((item: TerritorialUmpAuditCase, note: string) => {
+    if (!auditModel.targetBlock) return;
+    const payload = buildTerritorialUmpResponseReconciliation(item, auditModel.targetBlock, auditModel.phase, note);
+    if (!payload) return;
+    stageAuditReconciliationChange(territorialBuildPendingUmpReconciliationChange(payload));
+  }, [auditModel.phase, auditModel.targetBlock, stageAuditReconciliationChange]);
+
+  const selectAuditForCase = (item: TerritorialInternalReviewCase) => {
+    const option = territorialReviewAuditOptionFromCase(auditBlockOptions, item);
+    if (option) {
+      setSelectedAuditBlockId(option.id);
+      setAuditDrawerOpen(true);
+    }
   };
 
   return (
@@ -16654,73 +16884,149 @@ function TerritorialReviewCasesView({
         </button>
       </div>
 
-      <section className="mon-territorial-review-table-shell" aria-label="Tabla principal de registros por validar">
-        <header>
-          <div>
-            <span>Tabla principal</span>
-            <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
-          </div>
-          <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} observables · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración · {formatMetric(visibleSummary.ump)} UMP</em>
-        </header>
-        {filteredCases.length ? (
-          <div className="mon-territorial-review-table-scroll">
-            <table className="mon-territorial-review-table">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Motivo</th>
-                  <th>Distrito</th>
-                  <th>UMP / manzana</th>
-                  <th>Responsable</th>
-                  <th>Fecha y hora</th>
-                  <th>Dato observado</th>
-                  <th>UUID</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCases.map((item) => {
-                  const responseId = stringOrEmpty(item.response_id).trim();
-                  const target = territorialReviewValidationTarget(item);
-                  return (
-                    <tr key={item.id} className={`is-${territorialReviewTypeKey(item)} is-${territorialReviewStateKey(item)}`}>
-                      <td><span className={`mon-territorial-review-type is-${territorialReviewTypeKey(item)}`}>{territorialReviewTypeLabel(item)}</span></td>
-                      <td><strong>{territorialReviewReasonLabel(item)}</strong><small>{territorialReviewStatusLabel(item)}</small></td>
-                      <td><strong>{item.district || "Sin distrito"}</strong><small>{item.ubigeo || "sin cruce"}</small></td>
-                      <td><strong title={territorialReviewUmpTitle(item)}>{territorialReviewUmpLabel(item)}</strong><small>{territorialReviewBlockMeta(item)}</small></td>
-                      <td><strong>{territorialReviewResponsibleLabel(item)}</strong><small>{territorialReviewResponsibleHint(item)}</small></td>
-                      <td><strong>{territorialReviewDateLabel(item)}</strong><small>{territorialReviewHourLabel(item)}</small></td>
-                      <td><span className={`mon-territorial-review-observed is-${territorialReviewTypeKey(item)}`}>{territorialReviewObservedValue(item)}</span></td>
-                      <td>
-                        {responseId ? (
-                          <button type="button" className="mon-territorial-review-copy" title={responseId} onClick={() => copyUuid(item)}>
-                            <span>{copiedCaseId === item.id ? "Copiado" : shortenMiddle(responseId, 18)}</span>
-                            <Copy size={12} />
-                          </button>
-                        ) : (
-                          <span className="mon-territorial-review-no-uuid">Sin UUID</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="mon-territorial-review-action"
-                          onClick={() => onOpenValidationCase?.(target.tab, responseId || undefined)}
-                        >
-                          <target.icon size={13} />
-                          <span>{target.label}</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="mon-territorial-audit-empty">Sin registros con esos filtros.</div>
-        )}
-      </section>
+      <div className="mon-territorial-review-batchslot">
+        <TerritorialReconciliationBatchBar
+          changes={pendingAuditReconciliationChanges}
+          applying={auditReconciliationBatchApplying}
+          saving={saving}
+          message={auditReconciliationBatchMessage}
+          hideWhenEmpty
+          onConfirm={() => setAuditReconciliationConfirmOpen(true)}
+          onDiscard={discardAuditReconciliationChanges}
+        />
+      </div>
+      <TerritorialReconciliationBatchDialog
+        open={auditReconciliationConfirmOpen}
+        changes={pendingAuditReconciliationChanges}
+        applying={auditReconciliationBatchApplying}
+        message={auditReconciliationBatchMessage}
+        onOpenChange={setAuditReconciliationConfirmOpen}
+        onApply={applyAuditReconciliationChanges}
+      />
+
+      <div className="mon-territorial-review-workbench">
+        <section className="mon-territorial-review-table-shell" aria-label="Tabla principal de registros por validar">
+          <header>
+            <div>
+              <span>Tabla principal</span>
+              <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
+            </div>
+            <div className="mon-territorial-review-table-tools">
+              <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} observables · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración · {formatMetric(visibleSummary.ump)} UMP</em>
+              {selectedAuditOption ? (
+                <button
+                  type="button"
+                  className="mon-territorial-review-audit-trigger"
+                  onClick={() => {
+                    setSelectedAuditBlockId(selectedAuditOption.id);
+                    setAuditDrawerOpen(true);
+                  }}
+                >
+                  <ListChecks size={13} />
+                  <span>Auditar {selectedAuditOption.label}</span>
+                </button>
+              ) : null}
+            </div>
+          </header>
+          {filteredCases.length ? (
+            <div className="mon-territorial-review-table-scroll">
+              <table className="mon-territorial-review-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Motivo</th>
+                    <th>Sexo</th>
+                    <th>Edad</th>
+                    <th>Distrito</th>
+                    <th>UMP / manzana</th>
+                    <th>Responsable</th>
+                    <th>Fecha y hora</th>
+                    <th>Dato observado</th>
+                    <th>UUID</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCases.map((item) => {
+                    const responseId = stringOrEmpty(item.response_id).trim();
+                    const target = territorialReviewValidationTarget(item);
+                    const auditOption = territorialReviewAuditOptionFromCase(auditBlockOptions, item);
+                    return (
+                      <tr key={item.id} className={`is-${territorialReviewTypeKey(item)} is-${territorialReviewStateKey(item)}`}>
+                        <td><span className={`mon-territorial-review-type is-${territorialReviewTypeKey(item)}`}>{territorialReviewTypeLabel(item)}</span></td>
+                        <td><strong>{territorialReviewReasonLabel(item)}</strong><small>{territorialReviewStatusLabel(item)}</small></td>
+                        <td><span className="mon-territorial-review-demo is-sex">{territorialReviewSexLabel(item)}</span></td>
+                        <td><span className="mon-territorial-review-demo is-age">{territorialReviewAgeLabel(item)}</span></td>
+                        <td><strong>{item.district || "Sin distrito"}</strong><small>{item.ubigeo || "sin cruce"}</small></td>
+                        <td><strong title={territorialReviewUmpTitle(item)}>{territorialReviewUmpLabel(item)}</strong><small>{territorialReviewBlockMeta(item)}</small></td>
+                        <td><strong>{territorialReviewResponsibleLabel(item)}</strong><small>{territorialReviewResponsibleHint(item)}</small></td>
+                        <td><strong>{territorialReviewDateLabel(item)}</strong><small>{territorialReviewHourLabel(item)}</small></td>
+                        <td><span className={`mon-territorial-review-observed is-${territorialReviewTypeKey(item)}`}>{territorialReviewObservedValue(item)}</span></td>
+                        <td>
+                          {responseId ? (
+                            <button type="button" className="mon-territorial-review-copy" title={responseId} onClick={() => copyUuid(item)}>
+                              <span>{copiedCaseId === item.id ? "Copiado" : shortenMiddle(responseId, 18)}</span>
+                              <Copy size={12} />
+                            </button>
+                          ) : (
+                            <span className="mon-territorial-review-no-uuid">Sin UUID</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="mon-territorial-review-actions">
+                            <button
+                              type="button"
+                              className="mon-territorial-review-action"
+                              onClick={() => onOpenValidationCase?.(target.tab, responseId || undefined)}
+                            >
+                              <target.icon size={13} />
+                              <span>{target.label}</span>
+                            </button>
+                            {auditOption ? (
+                              <button
+                                type="button"
+                                className="mon-territorial-review-action is-audit"
+                                onClick={() => selectAuditForCase(item)}
+                              >
+                                <ListChecks size={13} />
+                                <span>Auditar UMP</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mon-territorial-audit-empty">Sin registros con esos filtros.</div>
+          )}
+        </section>
+
+      </div>
+      {auditDrawerOpen ? (
+        <>
+          <button
+            type="button"
+            className="mon-territorial-ump-audit-scrim"
+            aria-label="Cerrar auditoría UMP"
+            onClick={() => setAuditDrawerOpen(false)}
+          />
+          <TerritorialUmpAuditPanel
+            audit={auditModel}
+            blockOptions={auditBlockOptions}
+            selectedBlockId={selectedAuditOption?.id ?? ""}
+            pendingChanges={pendingAuditUmpChanges}
+            saving={saving || auditReconciliationBatchApplying}
+            onSelectBlock={setSelectedAuditBlockId}
+            onStageReconciliation={stageAuditCaseToTarget}
+            onOpenValidationCase={onOpenValidationCase}
+            onClose={() => setAuditDrawerOpen(false)}
+          />
+        </>
+      ) : null}
     </Panel>
   );
 }
@@ -16773,11 +17079,406 @@ function TerritorialReviewSelect({
   );
 }
 
+type TerritorialReviewAuditBlockOption = {
+  id: string;
+  label: string;
+  detail: string;
+  ump: string;
+  block: TerritorialBlockProgress;
+  target: number | null;
+  validas: number | null;
+  missing: number | null;
+};
+
+function TerritorialUmpAuditPanel({
+  audit,
+  blockOptions,
+  selectedBlockId,
+  pendingChanges,
+  saving,
+  onSelectBlock,
+  onStageReconciliation,
+  onOpenValidationCase,
+  onClose,
+}: {
+  audit: TerritorialUmpAuditModel;
+  blockOptions: TerritorialReviewAuditBlockOption[];
+  selectedBlockId: string;
+  pendingChanges: TerritorialPendingUmpReconciliationChange[];
+  saving: boolean;
+  onSelectBlock: (blockId: string) => void;
+  onStageReconciliation: (item: TerritorialUmpAuditCase, note: string) => void;
+  onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
+  onClose: () => void;
+}) {
+  const [notesByCase, setNotesByCase] = useState<Record<string, string>>({});
+  const pendingByCase = useMemo(() => new Map(pendingChanges.map((change) => [
+    territorialUmpAuditPendingCaseKey(change.payload.response_id, change.payload.raw_ump),
+    change,
+  ])), [pendingChanges]);
+  const targetLabel = territorialAuditBlockLabel(audit.targetBlock);
+  const targetDetail = audit.targetBlock
+    ? [
+        audit.targetBlock.distrito || "Sin distrito",
+        audit.targetBlock.zona ? `Zona ${audit.targetBlock.zona}` : "",
+        audit.targetBlock.id_manzana ? shortenMiddle(audit.targetBlock.id_manzana, 18) : "",
+      ].filter(Boolean).join(" · ")
+    : "Selecciona una UMP";
+  const summaryCards = [
+    { label: "Meta", value: audit.summary.target == null ? "S/D" : formatMetric(audit.summary.target) },
+    { label: "Válidas", value: audit.summary.validas == null ? "S/D" : formatMetric(audit.summary.validas) },
+    { label: "Brecha", value: audit.summary.missing == null ? "S/D" : formatMetric(audit.summary.missing) },
+    { label: "Casos vistos", value: formatMetric(audit.summary.assignedCount) },
+  ];
+
+  useEffect(() => {
+    setNotesByCase({});
+  }, [selectedBlockId]);
+
+  return (
+    <aside className="mon-territorial-ump-audit" role="dialog" aria-modal="false" aria-label="Auditoría de UMP seleccionada">
+      <header className="mon-territorial-ump-audit-header">
+        <div>
+          <span><ListChecks size={14} /> Auditoría UMP</span>
+          <strong>{targetLabel}</strong>
+          <em>{targetDetail}</em>
+        </div>
+        <button type="button" className="mon-territorial-ump-audit-close" onClick={onClose} aria-label="Cerrar auditoría UMP">
+          <X size={14} />
+        </button>
+        <label>
+          <span>UMP</span>
+          <select value={selectedBlockId} onChange={(event) => onSelectBlock(event.currentTarget.value)}>
+            {blockOptions.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+      </header>
+
+      <div className="mon-territorial-ump-audit-summary" aria-label="Resumen de la UMP auditada">
+        {summaryCards.map((item) => (
+          <span key={item.label}>
+            <strong>{item.value}</strong>
+            <em>{item.label}</em>
+          </span>
+        ))}
+      </div>
+
+      {!audit.targetBlock ? (
+        <div className="mon-territorial-ump-audit-empty">
+          <MapPin size={17} />
+          <strong>Sin UMP seleccionada</strong>
+          <span>Selecciona una fila o una UMP para auditar sus casos.</span>
+        </div>
+      ) : !audit.dataAvailable ? (
+        <div className="mon-territorial-ump-audit-empty">
+          <AlertTriangle size={17} />
+          <strong>Falta el corte completo</strong>
+          <span>El consultor necesita el detalle de respuestas para contrastar edad, sexo, UMP declarada y GPS.</span>
+        </div>
+      ) : (
+        <>
+          <section className="mon-territorial-ump-audit-section" aria-label="Casos que cuentan en la UMP">
+            <header>
+              <span><FileCheck2 size={13} /> Casos que cuentan</span>
+              <strong>{formatMetric(audit.assignedCases.length)}</strong>
+            </header>
+            <div className="mon-territorial-ump-audit-case-list">
+              {audit.assignedCases.length ? audit.assignedCases.map((item) => (
+                <TerritorialUmpAuditCaseRow
+                  key={item.id}
+                  item={item}
+                  mode="assigned"
+                  onOpenValidationCase={onOpenValidationCase}
+                />
+              )) : (
+                <p className="mon-territorial-ump-audit-note">No hay respuestas asignadas operativamente a esta UMP.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="mon-territorial-ump-audit-section is-candidates" aria-label="Casos cercanos o sospechosos">
+            <header>
+              <span><AlertTriangle size={13} /> Cercanos o sospechosos</span>
+              <strong>{formatMetric(audit.candidateCases.length)}</strong>
+            </header>
+            <div className="mon-territorial-ump-audit-case-list">
+              {audit.candidateCases.length ? audit.candidateCases.map((item) => {
+                const pending = pendingByCase.get(territorialUmpAuditPendingCaseKey(item.responseId, item.declaredUmp)) ?? null;
+                const defaultNote = territorialUmpAuditDefaultNote(item, audit.targetBlock);
+                const note = notesByCase[item.id] ?? defaultNote;
+                const canStage = item.canReconcileToTarget && Boolean(note.trim()) && !saving;
+                return (
+                  <TerritorialUmpAuditCaseRow
+                    key={item.id}
+                    item={item}
+                    mode="candidate"
+                    note={note}
+                    pending={pending}
+                    saving={saving}
+                    canStage={canStage}
+                    onNoteChange={(next) => setNotesByCase((current) => ({ ...current, [item.id]: next }))}
+                    onStage={() => onStageReconciliation(item, note)}
+                    onOpenValidationCase={onOpenValidationCase}
+                  />
+                );
+              }) : (
+                <p className="mon-territorial-ump-audit-note">Sin casos cercanos por GPS ni candidatos por responsable y jornada.</p>
+              )}
+            </div>
+          </section>
+        </>
+      )}
+    </aside>
+  );
+}
+
+function TerritorialUmpAuditCaseRow({
+  item,
+  mode,
+  note = "",
+  pending = null,
+  saving = false,
+  canStage = false,
+  onNoteChange,
+  onStage,
+  onOpenValidationCase,
+}: {
+  item: TerritorialUmpAuditCase;
+  mode: "assigned" | "candidate";
+  note?: string;
+  pending?: TerritorialPendingUmpReconciliationChange | null;
+  saving?: boolean;
+  canStage?: boolean;
+  onNoteChange?: (note: string) => void;
+  onStage?: () => void;
+  onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
+}) {
+  const warning = item.nearestDiffers && item.nearestBlock
+    ? `GPS más cerca de ${territorialAuditBlockLabel(item.nearestBlock)}`
+    : item.nearestBlock
+      ? `GPS cercano a ${territorialAuditBlockLabel(item.nearestBlock)}`
+      : "Sin manzana GPS cercana";
+  const assigned = item.assignedBlock
+    ? territorialAuditBlockLabel(item.assignedBlock)
+    : item.assignedUmp
+      ? `UMP ${item.assignedUmp}`
+      : "Sin UMP operativa";
+  const spatialSuggestion = territorialUmpAuditSpatialSuggestion(item, assigned);
+  return (
+    <article className={`mon-territorial-ump-audit-case is-${mode}${pending ? ` is-${pending.status || "pending"}` : ""}`}>
+      <div className="mon-territorial-ump-audit-case-main">
+        <span className="mon-territorial-ump-audit-demo">{item.demographicLabel}</span>
+        <div>
+          <strong title={item.responseId}>{item.responseId ? shortenMiddle(item.responseId, 24) : `Fila ${formatMetric(item.rowIndex ?? 0)}`}</strong>
+          <em>{item.submissionLabel} · {item.responsible}</em>
+        </div>
+      </div>
+      <dl>
+        <div><dt>Cuenta en</dt><dd>{assigned}</dd></div>
+        <div><dt>Declarada</dt><dd>{item.declaredUmp ? `UMP ${item.declaredUmp}` : "S/D"}</dd></div>
+        <div><dt>GPS</dt><dd>{warning}</dd></div>
+        <div><dt>Distancia</dt><dd>{formatDistanceLabel(item.distanceM)}</dd></div>
+      </dl>
+      {spatialSuggestion ? (
+        <div className={`mon-territorial-ump-audit-spatial is-${spatialSuggestion.tone}`}>
+          <MapPin size={12} />
+          <div>
+            <strong>{spatialSuggestion.title}</strong>
+            <span>{spatialSuggestion.detail}</span>
+          </div>
+        </div>
+      ) : null}
+      {mode === "candidate" ? (
+        <>
+          <div className="mon-territorial-ump-audit-reasons">
+            {item.candidateReasons.map((reason) => (
+              <span key={reason} className={`is-${reason}`}>{territorialUmpAuditCandidateReasonLabel(reason)}</span>
+            ))}
+          </div>
+          <label className="mon-territorial-ump-audit-note-field">
+            <span>Nota</span>
+            <textarea
+              value={note}
+              onChange={(event) => onNoteChange?.(event.currentTarget.value)}
+              disabled={saving || pending?.status === "saving"}
+              rows={2}
+            />
+          </label>
+          <footer>
+            <button
+              type="button"
+              className="mon-territorial-ump-audit-open"
+              onClick={() => onOpenValidationCase?.("geolocalizacion", item.responseId || undefined)}
+              disabled={!item.responseId}
+            >
+              <Eye size={12} />
+              <span>Ver GPS</span>
+            </button>
+            <button
+              type="button"
+              className="mon-territorial-ump-audit-stage"
+              onClick={onStage}
+              disabled={!canStage || pending?.status === "saving"}
+            >
+              {pending?.status === "saving" ? <Loader2 size={12} className="pulso-spin" /> : <Plus size={12} />}
+              <span>{pending ? pending.status === "error" ? "Reintentar" : "Pendiente" : "Reconciliar"}</span>
+            </button>
+          </footer>
+          {pending?.error ? <p className="mon-territorial-ump-audit-error">{pending.error}</p> : null}
+        </>
+      ) : (
+        <footer>
+          <button
+            type="button"
+            className="mon-territorial-ump-audit-open"
+            onClick={() => onOpenValidationCase?.("geolocalizacion", item.responseId || undefined)}
+            disabled={!item.responseId}
+          >
+            <Eye size={12} />
+            <span>Ver GPS</span>
+          </button>
+        </footer>
+      )}
+    </article>
+  );
+}
+
+function territorialUmpAuditSpatialSuggestion(item: TerritorialUmpAuditCase, assignedLabel: string) {
+  if (!item.nearestDiffers || !item.nearestBlock) return null;
+  const distanceM = numberOrNull(item.distanceM);
+  const geoKey = territorialReviewCodeKey(item.row.geo_estado);
+  const nearEnough = (distanceM != null && distanceM <= 300) || geoKey === "geo_cerca" || geoKey === "geo_revision";
+  if (!nearEnough) return null;
+  const nearestLabel = territorialAuditBlockLabel(item.nearestBlock);
+  const nearestResponsible = item.nearestBlockResponsible || territorialUmpAuditBlockResponsibleLabel(item.nearestBlock);
+  const distance = formatDistanceLabel(item.distanceM);
+  const gpsNearTarget = item.candidateReasons.includes("gps_near_target");
+  const title = gpsNearTarget
+    ? `Posible correspondencia por GPS: ${nearestLabel}`
+    : `GPS más cerca de otra manzana: ${nearestLabel}`;
+  const detail = [
+    `La UMP operativa es ${assignedLabel}.`,
+    distance !== "S/D" ? `El punto está a ${distance} de ${nearestLabel}.` : `El punto cae más cerca de ${nearestLabel}.`,
+    `Responsable de esa manzana: ${nearestResponsible}.`,
+    `Quizás corresponde a ${nearestLabel}; confirmar con ficha física antes de reconciliar.`,
+  ].join(" ");
+  return {
+    tone: gpsNearTarget ? "target" : "other",
+    title,
+    detail,
+  };
+}
+
+function territorialUmpAuditBlockResponsibleLabel(block: TerritorialBlockProgress | null | undefined) {
+  const fallback = block as (TerritorialBlockProgress & { responsible?: unknown }) | null | undefined;
+  const responsible = stringOrEmpty(block?.responsable || fallback?.responsible).trim();
+  return responsible || "sin responsable asignado";
+}
+
+function territorialReviewAuditBlockOptions(reports: MonitoreoTerritorialDashboard): TerritorialReviewAuditBlockOption[] {
+  const quotaBlocks = reports.route_quota_progress?.blocks ?? [];
+  const quotaById = new Map(quotaBlocks.map((block) => [normalizeTerritorialBlockCode(block.id_manzana), block]));
+  const seen = new Set<string>();
+  return [
+    ...(reports.block_progress ?? []),
+    ...(reports.map?.blocks ?? []),
+    ...(reports.advance?.block_progress ?? []),
+  ].filter((block) => {
+    const id = stringOrEmpty(block.id_manzana).trim();
+    const key = normalizeTerritorialBlockCode(id || `${block.ubigeo}-${block.zona}-${block.manzana}-${territorialAuditBlockUmp(block)}`);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((block) => {
+    const id = stringOrEmpty(block.id_manzana).trim() || `${block.ubigeo}-${block.zona}-${block.manzana}-${territorialAuditBlockUmp(block)}`;
+    const quota = quotaById.get(normalizeTerritorialBlockCode(block.id_manzana)) ?? null;
+    const target = numberOrNull(quota?.target ?? block.meta ?? block.entrevistas);
+    const validas = numberOrNull(quota?.validas ?? block.validas);
+    const missing = numberOrNull(quota?.missing_total ?? block.brecha)
+      ?? (target == null || validas == null ? null : Math.max(0, target - validas));
+    return {
+      id,
+      label: territorialAuditBlockLabel(block),
+      detail: [
+        block.distrito || "Sin distrito",
+        block.zona ? `Zona ${block.zona}` : "",
+        missing != null ? `${formatMetric(missing)} brecha` : "",
+      ].filter(Boolean).join(" · "),
+      ump: territorialAuditBlockUmp(block),
+      block,
+      target,
+      validas,
+      missing,
+    };
+  }).sort((a, b) => {
+    const district = stringOrEmpty(a.block.distrito).localeCompare(stringOrEmpty(b.block.distrito), "es-PE");
+    if (district !== 0) return district;
+    return stringOrEmpty(a.ump || a.label).localeCompare(stringOrEmpty(b.ump || b.label), "es-PE", { numeric: true });
+  });
+}
+
+function territorialReviewAuditOptionFromFilter(options: TerritorialReviewAuditBlockOption[], value: string) {
+  const normalized = normalizeTerritorialBlockCode(value).replace(/^UMP/, "");
+  if (!normalized) return null;
+  return options.find((option) => {
+    const label = normalizeTerritorialBlockCode(option.label).replace(/^UMP/, "");
+    const ump = normalizeTerritorialBlockCode(option.ump).replace(/^UMP/, "");
+    const blockId = normalizeTerritorialBlockCode(option.id);
+    return normalized === ump || normalized === label || normalized === blockId || label.includes(normalized);
+  }) ?? null;
+}
+
+function territorialReviewAuditOptionFromCases(
+  options: TerritorialReviewAuditBlockOption[],
+  cases: TerritorialInternalReviewCase[],
+) {
+  const umpCase = cases.find((item) => territorialReviewTypeKey(item) === "ump")
+    ?? cases.find((item) => stringOrEmpty(item.block_id || item.ump));
+  return umpCase ? territorialReviewAuditOptionFromCase(options, umpCase) : null;
+}
+
+function territorialReviewAuditOptionFromCase(options: TerritorialReviewAuditBlockOption[], item: TerritorialInternalReviewCase) {
+  const blockId = normalizeTerritorialBlockCode(item.block_id);
+  const ump = normalizeTerritorialBlockCode(item.ump || territorialReviewUmpLabel(item)).replace(/^UMP/, "");
+  return options.find((option) => {
+    const optionId = normalizeTerritorialBlockCode(option.id);
+    const optionUmp = normalizeTerritorialBlockCode(option.ump).replace(/^UMP/, "");
+    if (blockId && optionId === blockId) return true;
+    return Boolean(ump && optionUmp === ump);
+  }) ?? null;
+}
+
+function territorialUmpAuditPendingCaseKey(responseId: unknown, rawUmp: unknown) {
+  return `${stringOrEmpty(responseId).trim()}::${stringOrEmpty(rawUmp).trim()}`;
+}
+
+function territorialUmpAuditDefaultNote(item: TerritorialUmpAuditCase, targetBlock: TerritorialBlockProgress | null) {
+  const target = territorialAuditBlockUmp(targetBlock);
+  const from = item.declaredUmp || item.assignedUmp || "S/D";
+  return `Ficha física indica UMP ${target || "S/D"}; registro Kobo declaró UMP ${from}.`;
+}
+
+function territorialUmpAuditCandidateReasonLabel(reason: TerritorialUmpAuditCase["candidateReasons"][number]) {
+  if (reason === "gps_near_target") return "GPS cerca de esta UMP";
+  if (reason === "same_responsible_window") return "Mismo responsable y jornada";
+  return "Candidato";
+}
+
 function buildTerritorialReviewCases(
   reports: MonitoreoTerritorialDashboard,
   config: MonitoreoConfig,
 ): TerritorialInternalReviewCase[] {
   const direct = reports.internal_queries?.review_cases ?? [];
+  const auditRows = reports.response_audit ?? [];
+  const auditByResponseId = new Map<string, TerritorialResponseAuditRow>();
+  const auditByRowIndex = new Map<number, TerritorialResponseAuditRow>();
+  auditRows.forEach((row) => {
+    const responseId = stringOrEmpty(row.response_id).trim();
+    if (responseId) auditByResponseId.set(responseId, row);
+    if (typeof row.row_index === "number") auditByRowIndex.set(row.row_index, row);
+  });
   const rawCases = direct.length ? direct : [
     ...(reports.internal_queries?.far_gps ?? []).map((row, index) => territorialReviewCaseFromAuditLike(row, index, "gps", territorialReviewGpsReason(row), "map")),
     ...(reports.internal_queries?.duration_review ?? []).map((row, index) => territorialReviewCaseFromAuditLike(row, index, "duration", territorialReviewDurationReason(row, config), "duration")),
@@ -16785,9 +17486,31 @@ function buildTerritorialReviewCases(
     ...(reports.internal_queries?.exceeded_blocks ?? []).map((block, index) => territorialReviewBlockCase(block, index, "ump_excedida")),
   ];
   return rawCases
+    .map((item) => territorialReviewHydrateCaseDemographics(item, auditByResponseId, auditByRowIndex))
     .map((item, index) => territorialReviewNormalizeCase(item, index, reports.active_route_phase))
     .filter((item) => item.id)
     .sort(territorialReviewCompareCases);
+}
+
+function territorialReviewHydrateCaseDemographics(
+  item: TerritorialInternalReviewCase,
+  auditByResponseId: Map<string, TerritorialResponseAuditRow>,
+  auditByRowIndex: Map<number, TerritorialResponseAuditRow>,
+): TerritorialInternalReviewCase {
+  const currentAge = numberOrNull(item.age);
+  const currentSex = stringOrEmpty(item.sex).trim();
+  if (currentAge != null && currentSex) return item;
+  const responseId = stringOrEmpty(item.response_id).trim();
+  const rowIndex = numberOrNull(item.row_index);
+  const auditRow = (responseId ? auditByResponseId.get(responseId) : null)
+    ?? (rowIndex != null ? auditByRowIndex.get(rowIndex) : null)
+    ?? null;
+  if (!auditRow) return item;
+  return {
+    ...item,
+    age: currentAge ?? numberOrNull(auditRow.age),
+    sex: currentSex || stringOrEmpty(auditRow.sex).trim(),
+  };
 }
 
 function territorialReviewCaseFromAuditLike(
@@ -16805,6 +17528,8 @@ function territorialReviewCaseFromAuditLike(
     action,
     response_id: stringOrEmpty(row.response_id),
     row_index: typeof row.row_index === "number" ? row.row_index : null,
+    age: numberOrNull(row.age),
+    sex: stringOrEmpty(row.sex).trim(),
     district: stringOrEmpty(row.distrito),
     ubigeo: stringOrEmpty(row.ubigeo),
     block_id: stringOrEmpty(row.nearest_block_id),
@@ -16875,6 +17600,9 @@ function territorialReviewNormalizeCase(
     action: stringOrEmpty(item.action) || (type === "record" ? "record" : type === "duration" ? "duration" : type === "ump" ? "ump" : "map"),
     phase: item.phase || phase,
     response_id: responseId,
+    row_index: numberOrNull(item.row_index),
+    age: numberOrNull(item.age),
+    sex: stringOrEmpty(item.sex).trim(),
     district: stringOrEmpty(item.district).trim() || "Sin distrito",
     ubigeo: stringOrEmpty(item.ubigeo).trim(),
     ump: stringOrEmpty(item.ump).trim(),
@@ -17063,6 +17791,19 @@ function territorialReviewObservedValue(item: TerritorialInternalReviewCase) {
   if (type === "ump") return `${formatMetric(numberOrNull(item.validas) ?? 0)}/${formatMetric(numberOrNull(item.meta) ?? 8)} válidas`;
   if (territorialReviewCodeKey(item.geo_estado) === "geo_sin_gps" || territorialReviewCodeKey(item.reason) === "gps_sin_gps") return "Sin GPS";
   return formatDistanceLabel(item.distance_m);
+}
+
+function territorialReviewSexLabel(item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>) {
+  const key = normalizeMatch((item as TerritorialInternalReviewCase).sex);
+  if (["1", "h", "hombre", "masculino", "male", "varon"].includes(key)) return "H";
+  if (["2", "m", "mujer", "femenino", "female", "f"].includes(key)) return "M";
+  const raw = stringOrEmpty((item as TerritorialInternalReviewCase).sex).trim();
+  return raw || "S/D";
+}
+
+function territorialReviewAgeLabel(item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>) {
+  const age = numberOrNull((item as TerritorialInternalReviewCase).age);
+  return age == null ? "S/D" : formatMetric(age);
 }
 
 function territorialReviewValidationTarget(item: TerritorialInternalReviewCase): {
@@ -17507,12 +18248,20 @@ function TerritorialFieldOccurrencesView({
     }
   }, [onInspect]);
 
-  const reportedUmpCount = routeUmpRows.filter((row) => row.has_report).length;
-  const noReportUmpCount = routeUmpRows.filter((row) => !row.has_report).length;
+  const expectedRouteUmpRows = routeUmpRows.filter((row) => !row.is_unreconciled);
+  const unreconciledUmpCount = routeUmpRows.length - expectedRouteUmpRows.length;
+  const reportedUmpCount = expectedRouteUmpRows.filter((row) => row.has_report).length;
+  const noReportUmpCount = expectedRouteUmpRows.filter((row) => !row.has_report).length;
   const observationRows = routeUmpRows.filter((row) => row.status === "sin_reporte" || row.status === "revisar_cruce");
   const occurrenceTabs = [
     { key: "states" as const, label: "Estados general", value: rateLabel },
-    { key: "ump" as const, label: "Por UMP", value: `${formatMetric(reportedUmpCount)}/${formatMetric(routeUmpRows.length)} reportadas` },
+    {
+      key: "ump" as const,
+      label: "Por UMP",
+      value: unreconciledUmpCount
+        ? `${formatMetric(reportedUmpCount)}/${formatMetric(expectedRouteUmpRows.length)} · ${formatMetric(unreconciledUmpCount)} sin conciliación`
+        : `${formatMetric(reportedUmpCount)}/${formatMetric(expectedRouteUmpRows.length)} reportadas`,
+    },
     { key: "alerts" as const, label: "Observaciones", value: `${formatMetric(observationRows.length)} por revisar` },
   ];
   const copyOccurrenceLink = async () => {
@@ -17782,15 +18531,6 @@ const OCCURRENCE_STATUS_META: Record<OccurrenceUmpAttentionStatus, { label: stri
   sin_reporte: { label: "Sin reporte", caption: "UMP esperada" },
 };
 
-const OCCURRENCE_REASON_LABELS: Record<OccurrenceUmpAttentionReason, string> = {
-  sin_reporte: "Sin reporte de UMP",
-  ump_no_esperada: "UMP no esperada",
-  fuera_ruta: "Fuera de ruta",
-  multiples_consolidados: "Múltiples consolidados",
-  observacion: "Con observación",
-  motivo_concentrado: "Motivo predominante",
-};
-
 const OCCURRENCE_OUTCOME_FALLBACKS: OccurrenceOutcomeItem[] = [
   { key: "no_queria_participar", label: "No quería participar", total: 0 },
   { key: "vivienda_abandonada_inaccesible", label: "Vivienda abandonada", total: 0 },
@@ -17876,15 +18616,20 @@ function OccurrenceStateComposition({
   summary: MonitoreoFieldOccurrenceDashboard["summary"];
   rateLabel: string;
 }) {
-  const total = Math.max(1, summary.intentos || summary.efectivas + summary.no_efectivas);
+  const totalAttempts = summary.intentos || summary.efectivas + summary.no_efectivas;
+  const total = Math.max(1, totalAttempts);
   const effectivePct = Math.max(0, Math.min(100, (summary.efectivas / total) * 100));
   const nonEffectivePct = Math.max(0, Math.min(100, (summary.no_efectivas / total) * 100));
   return (
     <section className="mon-field-occurrences-chart-card is-state" aria-label="Estados generales de ocurrencias">
       <header>
         <span><CheckCircle2 size={14} /> Estados generales</span>
-        <strong>{formatMetric(summary.intentos)} intentos</strong>
       </header>
+      <div className="mon-field-occurrences-intents-card">
+        <span>Intentos reportados</span>
+        <strong>{formatMetric(totalAttempts)}</strong>
+        <em>{formatMetric(summary.efectivas)} efectivas · {formatMetric(summary.no_efectivas)} no efectivas</em>
+      </div>
       <div className="mon-field-occurrences-state-meter">
         <span className="is-effective" style={{ width: `${effectivePct}%` }} />
         <span className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
@@ -18072,28 +18817,45 @@ function OccurrenceUmpWorkspace({
   onOutcomeFilter: (value: string) => void;
   outcomeOptions: Array<[string, string]>;
 }) {
-	  const counts = useMemo(() => ({
-	    efectivas: allRows.filter((row) => row.status === "reportada_efectiva").length,
-	    noEfectivas: allRows.filter((row) => row.status === "reportada_no_efectiva").length,
-	    revisar: allRows.filter((row) => row.status === "revisar_cruce").length,
-	    umpNoEsperada: allRows.filter((row) => row.attention_reasons.includes("ump_no_esperada")).length,
-	    sinReporte: allRows.filter((row) => row.status === "sin_reporte").length,
-	  }), [allRows]);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailSide, setDetailSide] = useState<"left" | "right">("right");
+  const counts = useMemo(() => {
+    const expectedRows = allRows.filter((row) => !row.is_unreconciled);
+    return {
+      expected: expectedRows.length,
+      reportadas: expectedRows.filter((row) => row.has_report).length,
+      efectivas: expectedRows.filter((row) => row.status === "reportada_efectiva").length,
+      noEfectivas: expectedRows.filter((row) => row.status === "reportada_no_efectiva").length,
+      sinConciliacion: allRows.filter((row) => row.is_unreconciled).length,
+      sinReporte: expectedRows.filter((row) => row.status === "sin_reporte").length,
+    };
+  }, [allRows]);
+  useEffect(() => {
+    if (!selectedRow) setDetailOpen(false);
+  }, [selectedRow]);
+  const openDetail = useCallback((row: OccurrenceRouteUmpRow, index: number) => {
+    onSelect(row.id);
+    setDetailSide(index % 2 === 0 ? "right" : "left");
+    setDetailOpen(true);
+  }, [onSelect]);
+  const coverageSummary = counts.sinConciliacion
+    ? `${formatMetric(counts.expected)} UMP esperadas · ${formatMetric(counts.sinConciliacion)} sin conciliación · ${formatMetric(rows.length)} visibles`
+    : `${formatMetric(counts.expected)} UMP esperadas · ${formatMetric(rows.length)} visibles`;
 
   return (
     <section className="mon-field-occurrences-workspace" aria-label="Cobertura por UMP">
       <header className="mon-field-occurrences-workspace-head">
         <div className="mon-field-occurrences-workspace-title">
           <span><Route size={14} /> Cobertura por UMP</span>
-          <strong>{formatMetric(allRows.length)} UMP esperadas · {formatMetric(rows.length)} visibles</strong>
-	          <em>{formatMetric(counts.efectivas + counts.noEfectivas + counts.revisar)} reportadas · {formatMetric(counts.sinReporte)} sin reporte</em>
-	        </div>
-	        <div className="mon-field-occurrences-workspace-stats" aria-label="Indicadores de cobertura UMP">
-	          <span className="is-reportada_efectiva"><strong>{formatMetric(counts.efectivas)}</strong><em>efectivas</em></span>
-	          <span className="is-reportada_no_efectiva"><strong>{formatMetric(counts.noEfectivas)}</strong><em>no efectivas</em></span>
-	          <span className="is-revisar_cruce"><strong>{formatMetric(counts.revisar)}</strong><em>{counts.umpNoEsperada ? "UMP no esperada" : "cruce"}</em></span>
-	          <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
-	        </div>
+          <strong>{coverageSummary}</strong>
+          <em>{formatMetric(counts.reportadas)} reportadas · {formatMetric(counts.sinReporte)} sin reporte</em>
+        </div>
+        <div className="mon-field-occurrences-workspace-stats" aria-label="Indicadores de cobertura UMP">
+          <span className="is-reportada_efectiva"><strong>{formatMetric(counts.efectivas)}</strong><em>efectivas</em></span>
+          <span className="is-reportada_no_efectiva"><strong>{formatMetric(counts.noEfectivas)}</strong><em>no efectivas</em></span>
+          <span className="is-revisar_cruce"><strong>{formatMetric(counts.sinConciliacion)}</strong><em>sin conciliación</em></span>
+          <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
+        </div>
       </header>
 
       <div className="mon-field-occurrences-workspace-filters" aria-label="Filtros de cobertura UMP">
@@ -18126,22 +18888,22 @@ function OccurrenceUmpWorkspace({
         </select>
       </div>
 
-      <div className="mon-field-occurrences-split">
+      <div className={`mon-field-occurrences-board ${detailOpen && selectedRow ? `is-detail-open is-detail-${detailSide}` : ""}`}>
         <section className="mon-field-occurrences-ump-index" aria-label="Lista operativa de UMP">
           <header>
             <div>
               <span>Cobertura territorial</span>
-              <strong>{formatMetric(rows.length)} UMP</strong>
+              <strong>{formatMetric(rows.length)} visibles</strong>
             </div>
             <em>Ordenadas por estado y resultado</em>
           </header>
-          <div className="mon-field-occurrences-ump-rows" role="listbox" aria-label="UMP esperadas">
-            {rows.map((row) => (
+          <div className="mon-field-occurrences-ump-rows" role="listbox" aria-label="UMP esperadas y sin conciliación">
+            {rows.map((row, index) => (
               <OccurrenceUmpListRow
                 key={row.id}
                 row={row}
-                selected={row.id === selectedId}
-                onSelect={() => onSelect(row.id)}
+                selected={detailOpen && row.id === selectedId}
+                onSelect={() => openDetail(row, index)}
               />
             ))}
             {!rows.length && (
@@ -18149,13 +18911,19 @@ function OccurrenceUmpWorkspace({
             )}
           </div>
         </section>
-        <OccurrenceUmpDetail row={selectedRow} />
+        {detailOpen && selectedRow ? (
+          <OccurrenceUmpDetail
+            row={selectedRow}
+            side={detailSide}
+            onClose={() => setDetailOpen(false)}
+          />
+        ) : null}
       </div>
     </section>
   );
 }
 
-function OccurrenceStatusBadge({ status }: { status: OccurrenceUmpAttentionStatus }) {
+function OccurrenceStatusBadge({ status, label }: { status: OccurrenceUmpAttentionStatus; label?: string }) {
   const meta = OCCURRENCE_STATUS_META[status];
   const icon = status === "reportada_efectiva"
     ? <CheckCircle2 size={12} />
@@ -18167,22 +18935,8 @@ function OccurrenceStatusBadge({ status }: { status: OccurrenceUmpAttentionStatu
   return (
     <span className={`mon-field-occurrences-status is-${status}`}>
       {icon}
-      {meta.label}
+      {label ?? meta.label}
     </span>
-  );
-}
-
-function OccurrenceReasonChips({ reasons, limit = 3 }: { reasons: OccurrenceUmpAttentionReason[]; limit?: number }) {
-  const visible = reasons.slice(0, limit);
-  return (
-    <div className="mon-field-occurrences-reasons" aria-label="Notas del reporte UMP">
-      {visible.length ? visible.map((reason) => (
-        <span key={reason}>{OCCURRENCE_REASON_LABELS[reason]}</span>
-      )) : (
-        <span>Sin nota de revisión</span>
-      )}
-      {reasons.length > visible.length ? <span>+{reasons.length - visible.length}</span> : null}
-    </div>
   );
 }
 
@@ -18197,19 +18951,24 @@ function OccurrenceUmpListRow({
 }) {
   const effectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / row.intentos) * 100)) : 0;
   const nonEffectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / row.intentos) * 100)) : 0;
-	  const title = `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
-	  const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
-	  const unexpectedUmp = row.attention_reasons.includes("ump_no_esperada");
-	  const resultLabel = unexpectedUmp
-	    ? `UMP ${row.ump || "S/D"} no está en la ruta esperada`
-	    : row.has_report
-	    ? row.dominant_outcome?.label ?? (row.no_efectivas > 0 ? "No efectiva sin motivo" : "Consolidado efectivo")
-	    : "Sin reporte registrado";
-	  const resultMeta = unexpectedUmp
-	    ? "Este consolidado no entra a cobertura por distrito/manzana"
-	    : row.has_report
-	    ? `${formatMetric(row.efectivas)} efectivas · ${formatMetric(row.no_efectivas)} no efectivas · ${rate} no efectiva`
-	    : "Esperada en hoja de ruta";
+  const unexpectedUmp = row.is_unreconciled;
+  const title = unexpectedUmp
+    ? "UMP sin conciliación"
+    : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+  const identityLabel = unexpectedUmp
+    ? `Declarada ${row.ump || "S/D"} · requiere cruce`
+    : row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? ` · Zona ${row.zona}` : ""}`;
+  const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
+  const resultLabel = unexpectedUmp
+    ? "No vinculada a una UMP esperada"
+    : row.has_report
+      ? row.dominant_outcome?.label ?? (row.no_efectivas > 0 ? "No efectiva sin motivo" : "Consolidado efectivo")
+      : "Sin reporte registrado";
+  const resultMeta = unexpectedUmp
+    ? row.route_match_message || `La UMP declarada ${row.ump || "S/D"} queda fuera del marco hasta conciliarse.`
+    : row.has_report
+      ? `${formatMetric(row.efectivas)} efectivas · ${formatMetric(row.no_efectivas)} no efectivas · ${rate} no efectiva`
+      : "Esperada en hoja de ruta";
   const sourceMeta = row.has_report
     ? `${formatMetric(row.reportes)} reporte${row.reportes === 1 ? "" : "s"} · ${formatMetric(row.intentos)} intento${row.intentos === 1 ? "" : "s"}`
     : "Pendiente de sincronización";
@@ -18225,9 +18984,9 @@ function OccurrenceUmpListRow({
       <div className="mon-field-occurrences-ump-row-main">
         <div className="mon-field-occurrences-ump-identity">
           <span>{title}</span>
-          <strong>{row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? ` · Zona ${row.zona}` : ""}`}</strong>
+          <strong>{identityLabel}</strong>
         </div>
-        <OccurrenceStatusBadge status={row.status} />
+        <OccurrenceStatusBadge status={row.status} label={unexpectedUmp ? "Sin conciliación" : undefined} />
       </div>
       <div className="mon-field-occurrences-ump-row-signal">
         <div className={`mon-field-occurrences-ump-meter ${row.has_report ? "" : "is-empty"}`} aria-hidden="true">
@@ -18244,11 +19003,11 @@ function OccurrenceUmpListRow({
           <em>{resultMeta}</em>
         </div>
       </div>
-	      <div className="mon-field-occurrences-ump-row-meta">
-	        <span>{row.distrito || (unexpectedUmp ? "Sin cruce UMP" : "Sin distrito")}</span>
-	        <span>{row.responsable || "Sin responsable"}</span>
-	        <span>{sourceMeta}</span>
-	      </div>
+      <div className="mon-field-occurrences-ump-row-meta">
+        <span>{unexpectedUmp ? "UMP sin conciliación" : row.distrito || "Sin distrito"}</span>
+        <span>{row.responsable || "Sin responsable"}</span>
+        <span>{sourceMeta}</span>
+      </div>
     </button>
   );
 }
@@ -18262,7 +19021,15 @@ function OccurrenceDetailMetric({ label, value, tone = "" }: { label: string; va
   );
 }
 
-function OccurrenceUmpDetail({ row }: { row: OccurrenceRouteUmpRow | null }) {
+function OccurrenceUmpDetail({
+  row,
+  side = "right",
+  onClose,
+}: {
+  row: OccurrenceRouteUmpRow | null;
+  side?: "left" | "right";
+  onClose?: () => void;
+}) {
   if (!row) {
     return (
       <section className="mon-field-occurrences-ump-detail is-empty">
@@ -18274,34 +19041,53 @@ function OccurrenceUmpDetail({ row }: { row: OccurrenceRouteUmpRow | null }) {
   const effectivePct = Math.max(0, Math.min(100, (row.efectivas / total) * 100));
   const nonEffectivePct = Math.max(0, Math.min(100, (row.no_efectivas / total) * 100));
   const topOutcomes = [...row.outcomes].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
-  const sourceRecords = row.records.slice(0, 8);
-	  const expectedBlocks = row.expected_blocks.slice(0, 6);
-	  const title = `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
-	  const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
-	  const unexpectedUmp = row.attention_reasons.includes("ump_no_esperada");
-	  const districtLabel = row.distrito || (unexpectedUmp ? "Sin cruce UMP" : "Sin distrito");
-	  return (
-	    <section className={`mon-field-occurrences-ump-detail is-${row.status}`} aria-label="Detalle de UMP seleccionada">
+  const unexpectedUmp = row.is_unreconciled;
+  const title = unexpectedUmp
+    ? "UMP sin conciliación"
+    : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+  const subtitle = unexpectedUmp
+    ? `Declarada ${row.ump || "S/D"} · pendiente de cruce con ruta esperada`
+    : row.route_label || row.distrito || "Sin ruta asignada";
+  const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
+  const districtLabel = row.distrito || (unexpectedUmp ? "UMP sin conciliación" : "Sin distrito");
+  return (
+    <section
+      className={`mon-field-occurrences-ump-detail is-${row.status} is-${side}`}
+      aria-label="Detalle de UMP seleccionada"
+      aria-modal="false"
+      role="dialog"
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose?.();
+      }}
+    >
       <header className="mon-field-occurrences-detail-head">
         <div>
           <span>Detalle de recorrido</span>
           <strong>{title}</strong>
-          <em>{row.route_label || row.distrito || "Sin ruta asignada"}</em>
+          <em>{subtitle}</em>
         </div>
-	        <OccurrenceStatusBadge status={row.status} />
-	      </header>
+        <div className="mon-field-occurrences-detail-actions">
+          <OccurrenceStatusBadge status={row.status} label={unexpectedUmp ? "Sin conciliación" : undefined} />
+          {onClose ? (
+            <button type="button" className="mon-field-occurrences-detail-close" onClick={onClose} aria-label="Cerrar detalle">
+              <X size={14} />
+            </button>
+          ) : null}
+        </div>
+      </header>
 
-	      {unexpectedUmp ? (
-	        <section className="mon-field-occurrences-detail-notice">
-	          <AlertTriangle size={14} />
-	          <div>
-	            <strong>UMP no encontrada en la ruta esperada</strong>
-	            <span>{row.route_match_message || `El consolidado reportó UMP ${row.ump || "S/D"}, pero esa UMP no existe en las UMP esperadas del XLSForm/ruta activa.`}</span>
-	          </div>
-	        </section>
-	      ) : null}
+      {unexpectedUmp ? (
+        <section className="mon-field-occurrences-detail-notice">
+          <AlertTriangle size={14} />
+          <div>
+            <strong>UMP declarada sin conciliación</strong>
+            <span>{row.route_match_message || `La UMP declarada ${row.ump || "S/D"} no se incluye como UMP esperada hasta reconciliarse con la ruta activa.`}</span>
+          </div>
+        </section>
+      ) : null}
 
-	      <div className="mon-field-occurrences-detail-kpis">
+      <div className="mon-field-occurrences-detail-kpis">
         <OccurrenceDetailMetric label="intentos" value={formatMetric(row.intentos)} />
         <OccurrenceDetailMetric label="efectivas" value={formatMetric(row.efectivas)} tone="effective" />
         <OccurrenceDetailMetric label="no efectivas" value={formatMetric(row.no_efectivas)} tone="noneffective" />
@@ -18329,39 +19115,12 @@ function OccurrenceUmpDetail({ row }: { row: OccurrenceRouteUmpRow | null }) {
           <header><Clock size={14} /><strong>Ventana reportada</strong></header>
           <div className="mon-field-occurrences-detail-facts">
             <p><span>Último reporte</span><strong>{row.last_report_label}</strong></p>
-	            <p><span>Horario</span><strong>{row.report_window_label}</strong></p>
-	            <p><span>Responsable</span><strong>{row.responsable || "Sin responsable"}</strong></p>
-	            <p><span>Distrito</span><strong>{districtLabel}</strong></p>
-	          </div>
-	        </section>
+            <p><span>Horario</span><strong>{row.report_window_label}</strong></p>
+            <p><span>Responsable</span><strong>{row.responsable || "Sin responsable"}</strong></p>
+            <p><span>Distrito</span><strong>{districtLabel}</strong></p>
+          </div>
+        </section>
       </div>
-
-      <section className="mon-field-occurrences-detail-section">
-        <header><AlertTriangle size={14} /><strong>Notas del reporte UMP</strong></header>
-        <OccurrenceReasonChips reasons={row.attention_reasons} limit={6} />
-        {row.observation_excerpt ? <p>{row.observation_excerpt}</p> : null}
-      </section>
-
-      <section className="mon-field-occurrences-detail-section is-records">
-        <header><Table2 size={14} /><strong>Registros fuente</strong><em>{formatMetric(row.reportes)} reporte{row.reportes === 1 ? "" : "s"}</em></header>
-        <div>
-          {sourceRecords.length ? sourceRecords.map((record) => (
-            <article key={record.row_id || `${record.codigo_pulso}-${record.datetime_label}`}>
-              <strong>{record.codigo_pulso || shortenMiddle(record.row_id, 18)}</strong>
-              <span>{occurrenceStartLabel(record)}{record.hora_label ? ` · ${record.hora_label}` : ""}</span>
-              <em>{record.observaciones ? shortenMiddle(record.observaciones, 68) : "Sin observación"}</em>
-            </article>
-          )) : expectedBlocks.length ? expectedBlocks.map((block, index) => (
-            <article key={String(block.route_key ?? block.id_manzana ?? index)}>
-              <strong>{String(block.block_label ?? block.route_label ?? `Mz ${block.manzana ?? "S/D"}`)}</strong>
-              <span>{String(block.distrito ?? "Sin distrito")}{block.zona ? ` · Zona ${block.zona}` : ""}</span>
-              <em>Sin reporte UMP</em>
-            </article>
-          )) : (
-            <em>Sin registros fuente para esta UMP.</em>
-          )}
-        </div>
-      </section>
     </section>
   );
 }
@@ -18385,7 +19144,6 @@ const TERRITORIAL_LIMA_MAP_CONTEXT_LIMIT = 160;
 const TERRITORIAL_LIMA_MAP_STREET_LIMIT = 220;
 const TERRITORIAL_LIMA_MAP_POI_LIMIT = 120;
 const TERRITORIAL_LIMA_MAP_MAX_ZOOM = 180;
-const TERRITORIAL_ZONE_FOCUS_RADIUS_M = 650;
 const TERRITORIAL_ROUTE_CARTOGRAPHY_IDB_NAME = "prosecnur-territorial-route-cartography";
 const TERRITORIAL_ROUTE_CARTOGRAPHY_IDB_STORE = "bundles";
 const TERRITORIAL_ROUTE_CARTOGRAPHY_IDB_VERSION = 1;
@@ -18649,6 +19407,11 @@ type TerritorialClassifiedPoint = TerritorialKoboMapPoint & {
   spatial_distrito: string;
   spatial_zona: string;
   spatial_zona_key: string;
+  operational_ubigeo: string;
+  operational_zone_key: string;
+  operational_block_id: string;
+  operational_ump: string;
+  gps_nearest_differs_operational: boolean;
   route_membership: TerritorialRouteMembership;
   nearest_selected_block_id: string;
   distance_to_selected_block_m: number | null;
@@ -19060,8 +19823,9 @@ function TerritorialMapPanel({
       selectedBlockIds,
       selectedFeatures,
       routeUbigeos,
+      blocks,
     }))
-  ), [allZoneFeatures, points, routeUbigeos, selectedBlockIds, selectedFeatures, selectedZoneKeys]);
+  ), [allZoneFeatures, blocks, points, routeUbigeos, selectedBlockIds, selectedFeatures, selectedZoneKeys]);
   const districtStats = useMemo(() => (
     buildTerritorialDistrictMapStats(reportDistricts, classifiedPoints, blocks, TERRITORIAL_LIMA_DISTRICT_FEATURES)
   ), [blocks, classifiedPoints, reportDistricts]);
@@ -19083,7 +19847,10 @@ function TerritorialMapPanel({
     : null;
   const districtPoints = useMemo(() => (
     selectedUbigeo
-      ? classifiedPoints.filter((point) => point.spatial_ubigeo === selectedUbigeo || String(point.ubigeo || "") === selectedUbigeo)
+      ? classifiedPoints.filter((point) => (
+        point.operational_ubigeo === selectedUbigeo
+        || (!point.operational_ubigeo && String(point.ubigeo || "") === selectedUbigeo)
+      ))
       : classifiedPoints
   ), [classifiedPoints, selectedUbigeo]);
   const districtSelectedFeatures = useMemo(() => (
@@ -19098,39 +19865,15 @@ function TerritorialMapPanel({
       ? districtSelectedFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey)
       : districtSelectedFeatures
   ), [districtSelectedFeatures, selectedZoneKey]);
-  const zoneSelectedBlockIds = useMemo(() => (
-    zoneSelectedFeatures.reduce((acc, item) => {
-      const id = normalizeTerritorialBlockCode(item.block.id_manzana);
-      if (id) {
-        acc.add(id);
-        if (id.endsWith("0")) acc.add(id.slice(0, -1));
-      }
-      territorialBlockLookupKeys(item.block).forEach((key) => {
-        if (key.startsWith("id:")) acc.add(key.slice(3));
-      });
-      return acc;
-    }, new Set<string>())
-  ), [zoneSelectedFeatures]);
   const zoneRelatedPoints = useMemo(() => (
     selectedZoneKey
-      ? districtPoints.filter((point) => (
-        point.spatial_zona_key === selectedZoneKey
-        || zoneSelectedBlockIds.has(normalizeTerritorialBlockCode(point.nearest_selected_block_id || point.nearest_block_id))
-      ))
+      ? districtPoints.filter((point) => point.operational_zone_key === selectedZoneKey)
       : districtPoints
-  ), [districtPoints, selectedZoneKey, zoneSelectedBlockIds]);
+  ), [districtPoints, selectedZoneKey]);
   const zoneFocusPoints = useMemo(() => {
     if (!selectedZoneKey) return zoneRelatedPoints;
-    return zoneRelatedPoints.filter((point) => {
-      if (point.spatial_zona_key === selectedZoneKey) return true;
-      const nearestBlockId = normalizeTerritorialBlockCode(point.nearest_selected_block_id || point.nearest_block_id);
-      const distance = Number(point.distance_to_selected_block_m ?? point.distance_m);
-      return Boolean(nearestBlockId)
-        && zoneSelectedBlockIds.has(nearestBlockId)
-        && Number.isFinite(distance)
-        && distance <= TERRITORIAL_ZONE_FOCUS_RADIUS_M;
-    });
-  }, [selectedZoneKey, zoneRelatedPoints, zoneSelectedBlockIds]);
+    return zoneRelatedPoints;
+  }, [selectedZoneKey, zoneRelatedPoints]);
   const zoneOutOfFocusCount = selectedZoneKey ? Math.max(0, zoneRelatedPoints.length - zoneFocusPoints.length) : 0;
   const visiblePointsBase = mapLevel === "lima"
     ? classifiedPoints
@@ -19220,7 +19963,7 @@ function TerritorialMapPanel({
     ? `${formatMetric(observedDistrictCount)} distritos con ruta o puntos · ${formatMetric(outOfRouteVisibleCount)} fuera de ruta visibles`
     : mapLevel === "district"
       ? `${formatMetric(districtZoneFeatures.length)} zonas · ${formatMetric(districtPoints.length)} puntos Kobo · ${formatMetric(selectedDistrictStat?.outOfRoutePoints ?? 0)} fuera de ruta`
-      : `${formatMetric(zoneSelectedFeatures.length)} manzanas seleccionadas · ${formatMetric(zoneFocusPoints.length)} puntos en foco · ${formatMetric(zoneOutOfFocusCount)} fuera del foco`;
+      : `${formatMetric(zoneSelectedFeatures.length)} manzanas seleccionadas · ${formatMetric(zoneFocusPoints.length)} puntos por UMP declarada${zoneOutOfFocusCount ? ` · ${formatMetric(zoneOutOfFocusCount)} fuera del foco` : ""}`;
   const markerScale = 1 / navigation.zoom;
   const pointScale = 1 / navigation.zoom;
   const zoomClass = navigation.zoom >= 2.2 ? "is-zoom-blocks" : navigation.zoom >= 1.55 ? "is-zoom-detail" : "is-zoom-general";
@@ -19875,10 +20618,13 @@ function TerritorialMapInspectorContent({
       ["Distrito declarado", selectedPoint.distrito || "sin declaración"],
       ["Zona espacial", selectedPoint.spatial_zona || "fuera de zona"],
       ["Membresía", territorialRouteMembershipLabel(selectedPoint.route_membership)],
+      ["UMP declarada", selectedPoint.operational_ump ? `UMP ${selectedPoint.operational_ump}` : "sin UMP declarada"],
+      ["Manzana UMP", selectedPoint.operational_block_id || "sin manzana declarada"],
       ["Distancia", `${formatMetric(selectedPoint.distance_to_selected_block_m ?? selectedPoint.distance_m ?? null)} m`],
       ["Estado", territorialValidationLabel(selectedPoint.validation_status)],
       ["GPS", territorialGeoLabel(selectedPoint.geo_estado)],
       ["Manzana cercana", selectedPoint.nearest_selected_block_id || selectedPoint.nearest_block_id || "sin manzana"],
+      ["Observación espacial", selectedPoint.gps_nearest_differs_operational ? "GPS cercano a otra manzana" : "sin cruce operativo"],
     ];
     return (
       <section className="mon-territorial-inspector-card" aria-label="Detalle auditado de punto Kobo">
@@ -20020,6 +20766,7 @@ function classifyTerritorialMapPoint(
     selectedBlockIds: Set<string>;
     selectedFeatures: TerritorialSelectedMapFeature[];
     routeUbigeos: Set<string>;
+    blocks: TerritorialBlockProgress[];
   },
 ): TerritorialClassifiedPoint {
   const hasGps = Number.isFinite(point.lonValue) && Number.isFinite(point.latValue);
@@ -20039,11 +20786,28 @@ function classifyTerritorialMapPoint(
     ? context.selectedFeatures.find((item) => territorialBlockMatchesNormalizedId(item.block, nearestBlockId)) ?? null
     : null;
   const nearestSelectedBlockId = nearestSelected?.block.id_manzana || (nearestBlockId && context.selectedBlockIds.has(nearestBlockId) ? point.nearest_block_id : "");
+  const assignment = resolveTerritorialGeoAssignment(point, context.blocks, point);
+  const operationalBlock = assignment.block;
+  const operationalBlockKey = operationalBlock ? territorialBlockStableKey(operationalBlock) : "";
+  const operationalSelected = operationalBlock
+    ? context.selectedFeatures.find((item) => (
+      (operationalBlockKey && territorialBlockStableKey(item.block) === operationalBlockKey)
+      || territorialBlockMatchesNormalizedId(item.block, normalizeTerritorialBlockCode(operationalBlock.id_manzana))
+    )) ?? null
+    : null;
+  const operationalBlockId = operationalSelected?.block.id_manzana || operationalBlock?.id_manzana || "";
+  const operationalUmp = stringOrEmpty(operationalBlock?.ump || operationalBlock?.hoja_num || point.advance_block_ump || point.declared_ump_normalized || point.declared_ump_raw);
+  const operationalZoneKey = operationalBlock ? territorialBlockZoneKey(operationalBlock) : "";
+  const operationalUbigeo = normalizeTerritorialBlockCode(operationalBlock?.ubigeo || point.advance_block_ubigeo || point.ubigeo || "");
   const distanceValue = typeof point.distance_m === "number" && Number.isFinite(point.distance_m) ? point.distance_m : null;
   let routeMembership: TerritorialRouteMembership = "unresolved";
   if (hasGps) {
-    if (nearestSelectedBlockId && point.geo_estado === "geo_ok") {
+    if (operationalBlock) {
       routeMembership = "selected_block";
+    } else if (operationalZoneKey && context.selectedZoneKeys.has(operationalZoneKey)) {
+      routeMembership = "selected_zone";
+    } else if (operationalUbigeo && context.routeUbigeos.has(operationalUbigeo)) {
+      routeMembership = "selected_district";
     } else if (spatialZoneKey && context.selectedZoneKeys.has(spatialZoneKey)) {
       routeMembership = "selected_zone";
     } else if (spatialUbigeo && context.routeUbigeos.has(spatialUbigeo)) {
@@ -20058,6 +20822,11 @@ function classifyTerritorialMapPoint(
     spatial_distrito: spatialDistrict?.properties.distrito ?? "",
     spatial_zona: spatialZone ? String(spatialZone.properties.zona || spatialZone.properties.zona_label || "").trim() : "",
     spatial_zona_key: spatialZoneKey,
+    operational_ubigeo: operationalUbigeo,
+    operational_zone_key: operationalZoneKey,
+    operational_block_id: operationalBlockId,
+    operational_ump: operationalUmp,
+    gps_nearest_differs_operational: assignment.nearestDiffers,
     route_membership: routeMembership,
     nearest_selected_block_id: nearestSelectedBlockId,
     distance_to_selected_block_m: nearestSelectedBlockId ? distanceValue : null,
@@ -20125,9 +20894,9 @@ function buildTerritorialDistrictMapStats(
     }
   });
   points.forEach((point) => {
-    const ubigeo = point.spatial_ubigeo;
+    const ubigeo = point.operational_ubigeo || stringOrEmpty(point.ubigeo) || point.spatial_ubigeo;
     if (!ubigeo) return;
-    const stat = ensure(ubigeo, point.spatial_distrito || point.distrito);
+    const stat = ensure(ubigeo, point.distrito || point.spatial_distrito);
     if (!stat) return;
     stat.observedPoints += 1;
     if (point.route_membership === "out_of_route") stat.outOfRoutePoints += 1;
@@ -20186,8 +20955,9 @@ function buildTerritorialZoneMapStats(
     stat.hasSelected = true;
   });
   points.forEach((point) => {
-    if (!point.spatial_zona_key) return;
-    const stat = ensure(point.spatial_zona_key, point.spatial_zona ? `Zona ${point.spatial_zona}` : "", point.spatial_zona);
+    if (!point.operational_zone_key) return;
+    const operationalZona = stripLeftZeros(normalizeTerritorialBlockCode(point.operational_zone_key.split(":")[1] || ""));
+    const stat = ensure(point.operational_zone_key, operationalZona ? `Zona ${operationalZona}` : "", operationalZona);
     if (!stat) return;
     stat.observedPoints += 1;
     stat.hasObserved = true;
@@ -24018,6 +24788,8 @@ type AdvanceDailySeries = {
   actor?: string;
   channel?: string;
   sourceId?: string;
+  collectorId?: string;
+  collector?: string;
   points: AdvanceDailyPoint[];
   completed: number;
   partial: number;
@@ -24057,14 +24829,27 @@ function AcreditacionAdvanceWorkbench({
   const [activeTab, setActiveTab] = useState<AdvanceWorkbenchTab>("resumen");
   const reports = dashboard.acreditacion_reports ?? null;
   const unitLexicon = monitoringUnitLexicon(config.monitoreo_profile);
-  const cards = buildActorProgressCards(sources, config, acreditacion, dashboard);
-  const totals = actorProgressTotals(cards);
-  const goalSummary = actorGoalSummary(cards);
-  const surveyRows = buildSurveyProgressRows(reportRowsForBlock(reports, "avance_encuesta", "resumen_encuesta"), sources);
-  const dailyActorKeys = new Set(cards.map((card) => normalizeMatch(card.actor)).filter(Boolean));
-  const dailyPoints = buildAdvanceDailyPoints(reports, dailyActorKeys);
-  const dailyActorSeries = buildAdvanceDailySeries(reports, "avance_general_dia", "Unidad", dailyActorKeys);
-  const dailySourceSeries = buildAdvanceDailySourceSeries(reports);
+  const cards = useMemo(
+    () => buildActorProgressCards(sources, config, acreditacion, dashboard),
+    [sources, config, acreditacion, dashboard],
+  );
+  const totals = useMemo(() => actorProgressTotals(cards), [cards]);
+  const goalSummary = useMemo(() => actorGoalSummary(cards), [cards]);
+  const surveyRows = useMemo(
+    () => buildSurveyProgressRows(reportRowsForBlock(reports, "avance_encuesta", "resumen_encuesta"), sources),
+    [reports, sources],
+  );
+  const dailyActorKeys = useMemo(
+    () => new Set(cards.map((card) => normalizeMatch(card.actor)).filter(Boolean)),
+    [cards],
+  );
+  const dailyPoints = useMemo(() => buildAdvanceDailyPoints(reports, dailyActorKeys), [reports, dailyActorKeys]);
+  const dailyActorSeries = useMemo(
+    () => buildAdvanceDailySeries(reports, "avance_general_dia", "Unidad", dailyActorKeys),
+    [reports, dailyActorKeys],
+  );
+  const dailySourceSeries = useMemo(() => buildAdvanceDailySourceSeries(reports), [reports]);
+  const dailyCollectorSeries = useMemo(() => buildAdvanceDailyCollectorSeries(reports), [reports]);
   const clientReport = reports?.client_report ?? null;
   const clientSourceRows = clientReport ? clientReportSources(clientReport) : [];
   const completionPct = safePercent(totals.completed, totals.universe);
@@ -24153,7 +24938,7 @@ function AcreditacionAdvanceWorkbench({
           </div>
         )}
         {activeTab === "actores" && <AdvanceActorsPanel cards={cards} totals={totals} dailySeries={dailyActorSeries} unitLexicon={unitLexicon} />}
-        {activeTab === "encuestas" && <AdvanceSurveysPanel rows={surveyRows} dailySeries={dailySourceSeries} clientReport={clientReport} unitLexicon={unitLexicon} />}
+        {activeTab === "encuestas" && <AdvanceSurveysPanel rows={surveyRows} dailySeries={dailySourceSeries} collectorDailySeries={dailyCollectorSeries} clientReport={clientReport} unitLexicon={unitLexicon} />}
         {activeTab === "detalle" && (
           <div className="mon-advance-detail-stack">
             <AcreditacionControlVariablesPanel reports={reports} unitLexicon={unitLexicon} />
@@ -25232,7 +26017,7 @@ function AdvanceDailyMiniChart({
       </div>
       {model.timelineRows.length ? (
         <div className="mon-advance-line-chart">
-          <PlotlyChart
+          <LazyPlotlyChart
             data={model.chartData}
             layout={model.chartLayout}
             config={chartConfig}
@@ -25281,6 +26066,64 @@ function AdvanceDailyMiniChart({
   );
 }
 
+function LazyPlotlyChart({
+  data,
+  layout,
+  config,
+  height,
+  ariaLabel,
+}: {
+  data: unknown[];
+  layout?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  height: number;
+  ariaLabel: string;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible) return undefined;
+    const el = ref.current;
+    if (!el) return undefined;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "520px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible]);
+
+  return (
+    <div
+      ref={ref}
+      className="mon-advance-lazy-chart"
+      style={{ "--advance-lazy-chart-height": `${height}px` } as CSSProperties}
+    >
+      {visible ? (
+        <PlotlyChart
+          data={data}
+          layout={layout}
+          config={config}
+          height={height}
+          ariaLabel={ariaLabel}
+        />
+      ) : (
+        <div className="mon-advance-lazy-chart-placeholder" aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
 function AdvanceActorsPanel({
   cards,
   totals,
@@ -25323,11 +26166,13 @@ function AdvanceActorsPanel({
 function AdvanceSurveysPanel({
   rows,
   dailySeries,
+  collectorDailySeries,
   clientReport,
   unitLexicon = monitoringUnitLexicon(),
 }: {
   rows: AdvanceSurveyProgress[];
   dailySeries: AdvanceDailySeries[];
+  collectorDailySeries: AdvanceDailySeries[];
   clientReport: MonitoreoClientReport | null;
   unitLexicon?: MonitoringUnitLexicon;
 }) {
@@ -25335,6 +26180,7 @@ function AdvanceSurveysPanel({
   const visibleRows = visibleAdvanceSurveyRows(rows);
   const max = Math.max(1, ...visibleRows.map((row) => row.total), ...clientSourceRows.map(clientSourceTotal));
   const dailyBySource = new Map(dailySeries.map((series) => [normalizeMatch(series.sourceId || series.label), series]));
+  const collectorsBySource = groupAdvanceDailyCollectorsBySource(collectorDailySeries);
   const clientActors = clientReport ? clientReportActors(clientReport) : [];
   const sourceActorGroups = clientSourceActorGroups(clientSourceRows, clientActors);
   const actorGroups = buildAdvanceSurveyActorGroups(visibleRows, sourceActorGroups, clientActors);
@@ -25374,6 +26220,7 @@ function AdvanceSurveysPanel({
                 <div className="mon-advance-survey-actor-sources">
                   {group.rows.map((row) => {
                     const daily = dailyBySource.get(normalizeMatch(row.sourceId)) ?? dailyBySource.get(normalizeMatch(row.title)) ?? null;
+                    const collectorSeries = advanceDailyCollectorsForSurvey(row, collectorsBySource);
                     return (
                       <article key={row.id} className="mon-advance-survey-card">
                         <div className="mon-advance-survey-main">
@@ -25396,15 +26243,12 @@ function AdvanceSurveysPanel({
                             ))}
                           </div>
                         </div>
-                        {daily && (
-                          <AdvanceDailyMiniChart
-                            title="Ritmo diario"
-                            eyebrow={`${group.actor} · ${row.channel}`}
-                            hint={`${daily.points.filter((point) => parsePhoneReportDate(point.date)).length} días con fecha · ${formatMetric(daily.total)} respuestas`}
-                            points={daily.points}
-                            variant="source"
-                          />
-                        )}
+                        <AdvanceSurveyDailyChart
+                          actor={group.actor}
+                          row={row}
+                          daily={daily}
+                          collectorSeries={collectorSeries}
+                        />
                       </article>
                     );
                   })}
@@ -25446,6 +26290,68 @@ function AdvanceSurveysPanel({
         <EmptyState icon={<ClipboardCheck size={18} />} title="Sin respuestas de fuentes" hint="Sincroniza las fuentes de plataforma o barrido para ver este desglose." variant="inline" />
       )}
     </section>
+  );
+}
+
+function AdvanceSurveyDailyChart({
+  actor,
+  row,
+  daily,
+  collectorSeries,
+}: {
+  actor: string;
+  row: AdvanceSurveyProgress;
+  daily: AdvanceDailySeries | null;
+  collectorSeries: AdvanceDailySeries[];
+}) {
+  const collectors = useMemo(
+    () => [...collectorSeries]
+      .sort((a, b) => b.total - a.total || (a.collector ?? a.label).localeCompare(b.collector ?? b.label, "es")),
+    [collectorSeries],
+  );
+  const [selectedCollectorId, setSelectedCollectorId] = useState("total");
+  const selectedCollector = selectedCollectorId === "total"
+    ? null
+    : collectors.find((item) => item.id === selectedCollectorId) ?? null;
+  const fallbackCollector = !daily ? collectors[0] ?? null : null;
+  const active = selectedCollector ?? daily ?? fallbackCollector;
+  const selectValue = selectedCollector?.id ?? (daily ? "total" : fallbackCollector?.id ?? "total");
+
+  useEffect(() => {
+    if (selectedCollectorId === "total") return;
+    if (!collectors.some((item) => item.id === selectedCollectorId)) {
+      setSelectedCollectorId("total");
+    }
+  }, [collectors, selectedCollectorId]);
+
+  if (!active) return null;
+  const isCollector = Boolean(selectedCollector) || (!daily && Boolean(fallbackCollector));
+  const datedDays = active.points.filter((point) => parsePhoneReportDate(point.date)).length;
+  const collectorTotal = collectors.reduce((sum, item) => sum + item.total, 0);
+  return (
+    <div className="mon-advance-survey-chart-stack">
+      {collectors.length > 0 && (
+        <label className="mon-advance-collector-switch">
+          <span>Recopilador</span>
+          <select value={selectValue} onChange={(event) => setSelectedCollectorId(event.currentTarget.value)}>
+            {daily && <option value="total">Encuesta completa</option>}
+            {collectors.map((item) => (
+              <option key={item.id} value={item.id}>
+                {(item.collector || item.label || "Sin recopilador")} · {formatMetric(item.total)}
+              </option>
+            ))}
+          </select>
+          <em>{formatMetric(collectors.length)} recopilador{collectors.length === 1 ? "" : "es"} · {formatMetric(collectorTotal)} respuestas</em>
+        </label>
+      )}
+      <AdvanceDailyMiniChart
+        title={isCollector ? "Ritmo diario por recopilador" : "Ritmo diario"}
+        eyebrow={isCollector ? `${actor} · ${row.channel} · ${active.collector || "Sin recopilador"}` : `${actor} · ${row.channel}`}
+        hint={`${datedDays} días con fecha · ${formatMetric(active.total)} respuestas`}
+        points={active.points}
+        variant="source"
+      />
+    </div>
   );
 }
 
@@ -26486,15 +27392,16 @@ function buildSurveyProgressRows(rows: MonitoreoRow[], sources: MonitoreoSource[
   rows.forEach((row, index) => {
     const rawTitle = String(reportRowValue(row, ["fuente", "source", "encuesta"]) ?? `Encuesta ${index + 1}`).trim();
     const title = rawTitle || `Encuesta ${index + 1}`;
-    const source = surveySourceForTitle(title, sources);
+    const rowSourceId = String(reportRowValue(row, ["source_id", "source id", "id fuente"]) ?? "").trim();
+    const source = (rowSourceId ? surveySourceForId(rowSourceId, sources) : null) ?? surveySourceForTitle(title, sources);
     const exactTitle = source?.survey_title || source?.dimensions?.survey_title || source?.label || title;
-    const key = normalizeMatch(source?.id || source?.survey_id || exactTitle || title) || `survey-${index}`;
+    const key = normalizeMatch(source?.id || rowSourceId || source?.survey_id || exactTitle || title) || `survey-${index}`;
     const rawState = String(reportRowValue(row, ["estado", "estatus"]) ?? "Sin estado").trim() || "Sin estado";
     const state = source?.kind === "surveymonkey" && surveyStateTone(rawState) === "pending" ? "Completa" : rawState;
     const value = reportRowNumber(row, ["respuestas", "casos", "total"]) ?? 0;
     const existing = grouped.get(key) ?? {
       id: key,
-      sourceId: source?.id ?? "",
+      sourceId: source?.id ?? rowSourceId,
       title: exactTitle,
       actor: source ? sourceActorDisplay(source) : inferActorFromSurveyTitle(title, sources),
       channel: source ? sourceChannelDisplay(source) : inferChannelFromSurveyTitle(title),
@@ -26556,6 +27463,12 @@ function surveySourceForTitle(title: string, sources: MonitoreoSource[]) {
       return label && key && (label.includes(key) || key.includes(label));
     })
     ?? null;
+}
+
+function surveySourceForId(sourceId: string, sources: MonitoreoSource[]) {
+  const key = normalizeMatch(sourceId);
+  if (!key) return null;
+  return sources.find((source) => normalizeMatch(source.id) === key || normalizeMatch(source.survey_id) === key) ?? null;
 }
 
 function inferActorFromSurveyTitle(title: string, sources: MonitoreoSource[]) {
@@ -26729,6 +27642,110 @@ function buildAdvanceDailySourceSeries(reports: MonitoreoAcreditacionReports | n
     .sort((a, b) => b.total - a.total || (a.actor ?? "").localeCompare(b.actor ?? "", "es") || a.label.localeCompare(b.label, "es"));
 }
 
+function buildAdvanceDailyCollectorSeries(reports: MonitoreoAcreditacionReports | null): AdvanceDailySeries[] {
+  const block = reportBlockForSheet(reports, "avance_encuesta", "avance_recopilador_dia");
+  if (!block) return [];
+  const dates = reportBlockDateColumns(block);
+  const grouped = new Map<string, {
+    label: string;
+    actor: string;
+    channel: string;
+    sourceId: string;
+    collectorId: string;
+    collector: string;
+    points: Map<string, AdvanceDailyPoint>;
+  }>();
+  block.rows.forEach((row, index) => {
+    const sourceId = String(reportRowValue(row, ["source_id", "source id", "id fuente"]) ?? "").trim();
+    const label = String(reportRowValue(row, ["fuente", "source", "encuesta"]) ?? `Fuente ${index + 1}`).trim() || `Fuente ${index + 1}`;
+    const actor = String(reportRowValue(row, ["actor"]) ?? "").trim();
+    const channel = String(reportRowValue(row, ["canal"]) ?? "").trim();
+    const collectorId = String(reportRowValue(row, ["collector_id", "collector id", "id recopilador"]) ?? "").trim();
+    const collector = String(reportRowValue(row, ["recopilador", "collector", "responsable"]) ?? "").trim() || collectorId || "Sin recopilador";
+    const sourceKey = normalizeMatch(sourceId || label) || `source-${index}`;
+    const collectorKey = normalizeMatch(collectorId || collector) || `collector-${index}`;
+    const key = `${sourceKey}\r${collectorKey}`;
+    const state = String(reportRowValue(row, ["estado"]) ?? "").trim();
+    const tone = surveyStateTone(state);
+    const entry = grouped.get(key) ?? { label, actor, channel, sourceId, collectorId, collector, points: new Map<string, AdvanceDailyPoint>() };
+    dates.forEach((date) => {
+      const value = reportNumberValue(row[date]);
+      if (!value) return;
+      const point = entry.points.get(date) ?? { date, completed: 0, partial: 0, refusals: 0, refusalsPlatform: 0, refusalsPhone: 0, effective: 0, total: 0 };
+      if (tone === "completed") {
+        point.completed += value;
+        point.effective += value;
+      } else if (tone === "partial") {
+        point.partial += value;
+      } else if (tone === "refusals") {
+        point.refusals += value;
+      }
+      point.total += value;
+      entry.points.set(date, point);
+    });
+    grouped.set(key, entry);
+  });
+  return Array.from(grouped.entries()).map(([id, entry]) => {
+    const points = sortAdvanceDailyPoints(Array.from(entry.points.values()))
+      .filter((point) => point.total > 0 || point.effective > 0);
+    const totals = advanceDailyTotals(points);
+    return {
+      id,
+      label: entry.label,
+      actor: entry.actor,
+      channel: entry.channel,
+      sourceId: entry.sourceId,
+      collectorId: entry.collectorId,
+      collector: entry.collector,
+      points,
+      completed: totals.completed,
+      partial: totals.partial,
+      refusals: totals.refusals,
+      total: totals.total,
+    };
+  }).filter((item) => item.total > 0 || item.completed > 0)
+    .sort((a, b) => b.total - a.total || (a.collector ?? "").localeCompare(b.collector ?? "", "es"));
+}
+
+function groupAdvanceDailyCollectorsBySource(series: AdvanceDailySeries[]) {
+  const grouped = new Map<string, AdvanceDailySeries[]>();
+  series.forEach((item) => {
+    const keys = uniqueNormalizedKeys([item.sourceId, item.label]);
+    keys.forEach((key) => {
+      const current = grouped.get(key) ?? [];
+      current.push(item);
+      grouped.set(key, current);
+    });
+  });
+  return grouped;
+}
+
+function advanceDailyCollectorsForSurvey(row: AdvanceSurveyProgress, grouped: Map<string, AdvanceDailySeries[]>) {
+  const keys = uniqueNormalizedKeys([row.sourceId, row.title, row.surveyId]);
+  const seen = new Set<string>();
+  const out: AdvanceDailySeries[] = [];
+  keys.forEach((key) => {
+    (grouped.get(key) ?? []).forEach((item) => {
+      if (seen.has(item.id)) return;
+      seen.add(item.id);
+      out.push(item);
+    });
+  });
+  return out;
+}
+
+function uniqueNormalizedKeys(values: unknown[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  values.forEach((value) => {
+    const key = normalizeMatch(value);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(key);
+  });
+  return out;
+}
+
 function buildRowBasedDailyPoints(block: MonitoreoReportBlock | null) {
   if (!block) return [];
   const columns = reportBlockColumns(block);
@@ -26807,7 +27824,37 @@ function reportBlockColumns(block: MonitoreoReportBlock | null) {
 function reportBlockDateColumns(block: MonitoreoReportBlock | null) {
   return reportBlockColumns(block).filter((column) => {
     const key = normalizeMatch(column);
-    return key && !["unidad", "canal", "estado", "total", "fecha", "efectivas", "completas", "parciales", "rechazos", "rechazos plataforma", "rechazos telefonicos", "rechazos telefónicos", "barridos", "incidencias", "ratio incidencias"].includes(key);
+    return key && ![
+      "unidad",
+      "actor",
+      "canal",
+      "estado",
+      "total",
+      "fecha",
+      "fuente",
+      "source",
+      "source_id",
+      "source id",
+      "id fuente",
+      "encuesta",
+      "recopilador",
+      "collector",
+      "collector_id",
+      "collector id",
+      "id recopilador",
+      "tipo recopilador",
+      "tipo_recopilador",
+      "efectivas",
+      "completas",
+      "parciales",
+      "rechazos",
+      "rechazos plataforma",
+      "rechazos telefonicos",
+      "rechazos telefónicos",
+      "barridos",
+      "incidencias",
+      "ratio incidencias",
+    ].includes(key);
   });
 }
 

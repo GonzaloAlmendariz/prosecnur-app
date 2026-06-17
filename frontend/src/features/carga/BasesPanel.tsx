@@ -842,6 +842,15 @@ export function smSavBundleInspectionCanImport(inspection?: SurveyMonkeySavBundl
   return !!inspection && inspection.ok && inspection.n_matched > 0 && inspection.n_blocking === 0;
 }
 
+export type SmSavBundleIssueGroup = {
+  key: string;
+  label: string;
+  reason: string;
+  variables: string[];
+  notes: string[];
+  tone: "warning" | "danger" | "neutral";
+};
+
 function smWorkbookMissingLabel(sheet: SurveyMonkeyWorkbookInspection["sheets"][number]) {
   const count = sheet.missing_variables.length;
   if (!count) return "Sin variables faltantes";
@@ -867,15 +876,71 @@ function smWorkbookSheetIssueTitle(sheet: SurveyMonkeyWorkbookInspection["sheets
   return notes.join(" · ");
 }
 
+export function smSavBundleIssueGroups(file: SurveyMonkeySavBundleFileInspection): SmSavBundleIssueGroup[] {
+  const groups: SmSavBundleIssueGroup[] = [];
+  if (file.blocking || file.warnings.length) {
+    groups.push({
+      key: "warnings",
+      label: file.blocking ? "Bloqueo de inspección" : "Advertencias de inspección",
+      reason: file.blocking
+        ? "El archivo no se puede aplicar hasta resolver esta condición."
+        : "La importación puede continuar, pero conviene revisar estos avisos antes de reemplazar la data.",
+      variables: [],
+      notes: file.warnings,
+      tone: file.blocking ? "danger" : "warning",
+    });
+  }
+  if (file.missing_variables.length) {
+    groups.push({
+      key: "missing",
+      label: "Faltantes en SAV",
+      reason: "El XLSForm vigente espera estas variables, pero no se encontró una columna equivalente en el SAV. Se crearán vacías para conservar la estructura.",
+      variables: file.missing_variables,
+      notes: [],
+      tone: "warning",
+    });
+  }
+  if (file.blank_filled_variables.length) {
+    groups.push({
+      key: "blank-filled",
+      label: "Rellenadas en blanco",
+      reason: "La política de actualización permite completar estas variables como columnas vacías sin bloquear la importación.",
+      variables: file.blank_filled_variables,
+      notes: [],
+      tone: "neutral",
+    });
+  }
+  if (file.all_empty_variables.length) {
+    groups.push({
+      key: "all-empty",
+      label: "Sin datos observados",
+      reason: "La variable existe o fue reconocida en la normalización, pero todas sus filas llegan vacías en este SAV.",
+      variables: file.all_empty_variables,
+      notes: [],
+      tone: "warning",
+    });
+  }
+  return groups;
+}
+
+export function smSavBundleVariableLabel(variable: string, lookup?: Map<string, string>) {
+  return String(lookup?.get(variable) || "").replace(/\s+/g, " ").trim();
+}
+
 function smSavBundleVariableSummary(file: SurveyMonkeySavBundleFileInspection) {
   if (file.missing_variables.length) {
     const sample = file.missing_variables.slice(0, 4).join(", ");
     return `${file.missing_variables.length} faltante${file.missing_variables.length === 1 ? "" : "s"}${sample ? `: ${sample}${file.missing_variables.length > 4 ? ", ..." : ""}` : ""}`;
   }
+  if (file.blank_filled_variables.length) {
+    const sample = file.blank_filled_variables.slice(0, 4).join(", ");
+    return `${file.blank_filled_variables.length} rellenada${file.blank_filled_variables.length === 1 ? "" : "s"} en blanco${sample ? `: ${sample}${file.blank_filled_variables.length > 4 ? ", ..." : ""}` : ""}`;
+  }
   if (file.all_empty_variables.length) {
     const sample = file.all_empty_variables.slice(0, 4).join(", ");
     return `${file.all_empty_variables.length} sin datos observados${sample ? `: ${sample}${file.all_empty_variables.length > 4 ? ", ..." : ""}` : ""}`;
   }
+  if (file.warnings.length) return `Revisar detalle: ${file.warnings[0]}`;
   return "Variables esperadas disponibles";
 }
 
@@ -1358,6 +1423,16 @@ function smShortQuestionLabel(label: string, max = 62) {
   const clean = label.replace(/\s+/g, " ").trim();
   if (clean.length <= max) return clean;
   return `${clean.slice(0, max - 1).trim()}…`;
+}
+
+export function smXlsformVariableLabelLookup(base?: Pick<EstudioBase, "xlsform_variables"> | null) {
+  const lookup = new Map<string, string>();
+  for (const item of base?.xlsform_variables ?? []) {
+    const name = String(item.name || "").trim();
+    if (!name || lookup.has(name)) continue;
+    lookup.set(name, String(item.label || "").replace(/\s+/g, " ").trim());
+  }
+  return lookup;
 }
 
 function smConsentOptions(base: EstudioBase) {
@@ -4170,6 +4245,295 @@ function IndependentSiblingsSurveyMonkeyWizard({
             <strong>Familia cargada</strong>
             <span>{estudio.n_bases}/{independentMaxBases} bases · listas para procesar por base activa</span>
           </div>
+          <div className="pulso-sm-workbook-import" aria-label="Importar Excel exportado por SurveyMonkey">
+            <div className="pulso-sm-family-config-head">
+              <div>
+                <strong>Importar Excel exportado</strong>
+                <span>
+                  Actualiza la data de bases existentes con un workbook multihoja. Faltantes como p3, p4 o p5 quedan vacíos con advertencia.
+                </span>
+              </div>
+              <div className="pulso-sm-family-actions">
+                <button
+                  type="button"
+                  className="pulso-sm-secondary"
+                  disabled={disabled || !!busy || !workbookFile}
+                  onClick={inspectWorkbook}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <FileSpreadsheet size={13} />}
+                  Inspeccionar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canImportWorkbook}
+                  onClick={importWorkbook}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                  Aplicar importación
+                </button>
+              </div>
+            </div>
+            <div className="pulso-sm-workbook-toolbar">
+              <FilePicker
+                icon={FileSpreadsheet}
+                title="Excel exportado"
+                accept=".xlsx,.xls"
+                acceptLabel="XLSX / XLS"
+                file={workbookFile}
+                onPick={pickWorkbookFile}
+              />
+              <div className="pulso-sm-workbook-summary">
+                {workbookInspection ? (
+                  <>
+                    <span className={`pulso-sm-family-status${workbookInspection.ok ? "" : " is-warning"}`}>
+                      {workbookInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                      {workbookInspection.n_matched}/{workbookInspection.n_sheets} hojas listas
+                    </span>
+                    <small>
+                      {smWorkbookInspectionWarningCount(workbookInspection)} advertencias
+                      {smWorkbookInspectionCellErrorCount(workbookInspection) > 0
+                        ? ` · ${smWorkbookInspectionCellErrorCount(workbookInspection)} errores Excel`
+                        : ""}
+                      {" · "}
+                      {workbookInspection.filename}
+                    </small>
+                  </>
+                ) : (
+                  <>
+                    <span className="pulso-sm-family-status is-neutral">
+                      <FileSpreadsheet size={12} />
+                      Sin inspección
+                    </span>
+                    <small>Las hojas se emparejan por nombre normalizado con las bases hermanas.</small>
+                  </>
+                )}
+              </div>
+            </div>
+            {workbookInspection && (
+              <div className="pulso-sm-family-table is-workbook" role="table" aria-label="Inspección de Excel exportado">
+                <div className="pulso-sm-family-row is-head is-workbook-row" role="row">
+                  <span>Hoja</span>
+                  <span>Base</span>
+                  <span>Data</span>
+                  <span>Encabezados</span>
+                  <span>Advertencias</span>
+                </div>
+                {workbookInspection.sheets.map((sheet) => {
+                  const sheetHasIssues = sheet.warnings.length > 0 || (sheet.n_cell_errors ?? 0) > 0;
+                  return (
+                    <div className={`pulso-sm-family-row is-workbook-row${sheet.blocking ? " is-invalid" : ""}`} role="row" key={sheet.sheet_name}>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{sheet.sheet_name}</strong>
+                        <small>{sheet.n_rows} filas · {sheet.n_columns} columnas de origen</small>
+                      </div>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{sheet.base_name || "Sin match"}</strong>
+                        <small>{sheet.matched ? "Match automático" : "Bloqueada"}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${sheet.blocking ? " is-warning" : " is-neutral"}`}>
+                          {sheet.blocking ? <AlertTriangle size={12} /> : <Database size={12} />}
+                          {sheet.n_output_columns ?? 0} columnas finales
+                        </span>
+                        <small>{smWorkbookMissingLabel(sheet)}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className="pulso-sm-family-status is-neutral">
+                          <CheckCircle2 size={12} />
+                          {sheet.recognized_headers} reconocidos
+                        </span>
+                        <small>{sheet.unknown_headers.length} dudosos · {sheet.ambiguous_headers.length} ambiguos</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${sheetHasIssues ? " is-warning" : " is-neutral"}`}>
+                          {sheetHasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {sheet.warnings.length || (sheet.n_cell_errors ?? 0) || "OK"}
+                        </span>
+                        <small title={smWorkbookSheetIssueTitle(sheet)}>{smWorkbookSheetIssueLabel(sheet)}</small>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {workbookImportResult && (
+              <div className="pulso-sm-multibase-warning">
+                <CheckCircle2 size={15} />
+                <span>
+                  Importadas {workbookImportResult.imported_bases} bases desde {workbookImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="pulso-sm-workbook-import" aria-label="Importar ZIP SAV SurveyMonkey">
+            <div className="pulso-sm-family-config-head">
+              <div>
+                <strong>Importar ZIP SAV</strong>
+                <span>
+                  Reemplaza de forma controlada la data efectiva de bases hermanas existentes. El XLSForm de cada carrera se conserva.
+                </span>
+              </div>
+              <div className="pulso-sm-family-actions">
+                <button
+                  type="button"
+                  className="pulso-sm-secondary"
+                  disabled={disabled || !!busy || !savBundleFile}
+                  onClick={inspectSavBundle}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <Database size={13} />}
+                  Inspeccionar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canImportSavBundle}
+                  onClick={importSavBundle}
+                >
+                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                  Aplicar actualización
+                </button>
+              </div>
+            </div>
+            <div className="pulso-sm-workbook-toolbar">
+              <FilePicker
+                icon={Database}
+                title="ZIP con SAV"
+                accept=".zip,application/zip,application/x-zip-compressed"
+                acceptLabel="ZIP"
+                file={savBundleFile}
+                onPick={pickSavBundleFile}
+              />
+              <div className="pulso-sm-workbook-summary">
+                {savBundleInspection ? (
+                  <>
+                    <span className={`pulso-sm-family-status${savBundleInspection.ok ? "" : " is-warning"}`}>
+                      {savBundleInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                      {savBundleInspection.n_matched}/{savBundleInspection.n_files} archivos listos
+                    </span>
+                    <small>
+                      {smSavBundleInspectionWarningCount(savBundleInspection)} advertencias · {savBundleInspection.filename}
+                    </small>
+                    <small>Se reemplazará solo la base de datos. El XLSForm no cambiará.</small>
+                  </>
+                ) : (
+                  <>
+                    <span className="pulso-sm-family-status is-neutral">
+                      <Database size={12} />
+                      Sin inspección
+                    </span>
+                    <small>Los archivos .sav se emparejan por carrera y se normalizan contra el XLSForm vigente.</small>
+                  </>
+                )}
+              </div>
+            </div>
+            {savBundleInspection && (
+              <div className="pulso-sm-family-table is-sav-bundle" role="table" aria-label="Plan de actualización ZIP SAV">
+                <div className="pulso-sm-family-row is-head is-sav-row" role="row">
+                  <span>Archivo</span>
+                  <span>Base</span>
+                  <span>Actualmente</span>
+                  <span>Después de aplicar</span>
+                  <span>Impacto</span>
+                </div>
+                {savBundleInspection.files.map((file) => {
+                  const issueGroups = smSavBundleIssueGroups(file);
+                  const hasIssues = issueGroups.length > 0;
+                  const issueVariableCount = issueGroups.reduce((sum, group) => sum + group.variables.length + group.notes.length, 0);
+                  const fileBase = file.base_name ? existingBaseByName.get(file.base_name) : undefined;
+                  const fileLabelLookup = smXlsformVariableLabelLookup(fileBase);
+                  const currentRows = file.change_plan?.current?.n_rows;
+                  const currentColumns = file.change_plan?.current?.n_columns;
+                  const incoming = file.change_plan?.incoming;
+                  return (
+                    <div className={`pulso-sm-family-row is-sav-row${file.blocking ? " is-invalid" : hasIssues ? " is-warning" : ""}`} role="row" key={file.entry_name || file.file_name}>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{file.file_name || file.entry_name}</strong>
+                        <small>{file.n_rows} filas · {file.n_columns} columnas SAV</small>
+                      </div>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{file.base_name || "Sin match"}</strong>
+                        <small>{file.matched ? "Match automático" : "Bloqueada"}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className="pulso-sm-family-status is-neutral">
+                          <Database size={12} />
+                          {currentRows ?? "?"} filas
+                        </span>
+                        <small>{currentColumns ?? "?"} columnas actuales · XLSForm preservado</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${file.blocking ? " is-warning" : " is-neutral"}`}>
+                          {file.blocking ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {incoming?.normalized_rows ?? file.n_rows} filas
+                        </span>
+                        <small>{smSavBundleImpactLabel(file)}</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${hasIssues ? " is-warning" : " is-neutral"}`}>
+                          {hasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {file.matched_variables}/{file.expected_variables} variables
+                        </span>
+                        <small title={[...file.warnings, ...file.all_empty_variables, ...file.missing_variables].join("\n")}>
+                          {file.blocking ? smSavBundleIssueLabel(file) : smSavBundleVariableSummary(file)}
+                        </small>
+                      </div>
+                      {issueGroups.length > 0 ? (
+                        <div className="pulso-sm-sav-detail-tray" aria-label={`Detalle de advertencias para ${file.file_name || file.entry_name}`}>
+                          <div className="pulso-sm-family-detail-head">
+                            <span>
+                              <AlertTriangle size={13} />
+                              Motivos de revisión
+                            </span>
+                            <em>
+                              {issueVariableCount} detalle{issueVariableCount === 1 ? "" : "s"} · {file.action === "replace_data" ? "reemplazo controlado" : file.action}
+                            </em>
+                          </div>
+                          <div className="pulso-sm-sav-issue-grid">
+                            {issueGroups.map((group) => (
+                              <div className={`pulso-sm-sav-issue-card is-${group.tone}`} key={group.key}>
+                                <strong>
+                                  {group.label}
+                                  <span>{group.variables.length || group.notes.length}</span>
+                                </strong>
+                                <p>{group.reason}</p>
+                                {group.variables.length > 0 ? (
+                                  <div className="pulso-sm-sav-variable-list" aria-label={`${group.label}: variables`}>
+                                    {group.variables.map((variable) => {
+                                      const variableLabel = smSavBundleVariableLabel(variable, fileLabelLookup);
+                                      return (
+                                        <span className="pulso-sm-sav-variable-item" key={variable} title={variableLabel ? `${variable} · ${variableLabel}` : variable}>
+                                          <code>{variable}</code>
+                                          <span>{variableLabel || "Sin etiqueta XLSForm"}</span>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                ) : null}
+                                {group.notes.length > 0 ? (
+                                  <div className="pulso-sm-sav-note-list" aria-label={`${group.label}: notas`}>
+                                    {group.notes.map((note) => (
+                                      <span key={note}>{note}</span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {savBundleImportResult && (
+              <div className="pulso-sm-multibase-warning">
+                <CheckCircle2 size={15} />
+                <span>
+                  Actualizadas {savBundleImportResult.imported_bases} bases desde {savBundleImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
+                </span>
+              </div>
+            )}
+          </div>
           <div className="pulso-sm-family-table" role="table" aria-label="Bases hermanas independientes cargadas">
             <div className="pulso-sm-family-row is-head" role="row">
               <span>#</span>
@@ -4329,247 +4693,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 </div>
               );
             })}
-          </div>
-          <div className="pulso-sm-workbook-import" aria-label="Importar Excel exportado por SurveyMonkey">
-            <div className="pulso-sm-family-config-head">
-              <div>
-                <strong>Importar Excel exportado</strong>
-                <span>
-                  Actualiza la data de bases existentes con un workbook multihoja. Faltantes como p3, p4 o p5 quedan vacíos con advertencia.
-                </span>
-              </div>
-              <div className="pulso-sm-family-actions">
-                <button
-                  type="button"
-                  className="pulso-sm-secondary"
-                  disabled={disabled || !!busy || !workbookFile}
-                  onClick={inspectWorkbook}
-                >
-                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <FileSpreadsheet size={13} />}
-                  Inspeccionar
-                </button>
-                <button
-                  type="button"
-                  disabled={!canImportWorkbook}
-                  onClick={importWorkbook}
-                >
-                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                  Aplicar importación
-                </button>
-              </div>
-            </div>
-            <div className="pulso-sm-workbook-toolbar">
-              <FilePicker
-                icon={FileSpreadsheet}
-                title="Excel exportado"
-                accept=".xlsx,.xls"
-                acceptLabel="XLSX / XLS"
-                file={workbookFile}
-                onPick={pickWorkbookFile}
-              />
-              <div className="pulso-sm-workbook-summary">
-                {workbookInspection ? (
-                  <>
-                    <span className={`pulso-sm-family-status${workbookInspection.ok ? "" : " is-warning"}`}>
-                      {workbookInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
-                      {workbookInspection.n_matched}/{workbookInspection.n_sheets} hojas listas
-                    </span>
-                    <small>
-                      {smWorkbookInspectionWarningCount(workbookInspection)} advertencias
-                      {smWorkbookInspectionCellErrorCount(workbookInspection) > 0
-                        ? ` · ${smWorkbookInspectionCellErrorCount(workbookInspection)} errores Excel`
-                        : ""}
-                      {" · "}
-                      {workbookInspection.filename}
-                    </small>
-                  </>
-                ) : (
-                  <>
-                    <span className="pulso-sm-family-status is-neutral">
-                      <FileSpreadsheet size={12} />
-                      Sin inspección
-                    </span>
-                    <small>Las hojas se emparejan por nombre normalizado con las bases hermanas.</small>
-                  </>
-                )}
-              </div>
-            </div>
-            {workbookInspection && (
-              <div className="pulso-sm-family-table is-workbook" role="table" aria-label="Inspección de Excel exportado">
-                <div className="pulso-sm-family-row is-head is-workbook-row" role="row">
-                  <span>Hoja</span>
-                  <span>Base</span>
-                  <span>Data</span>
-                  <span>Encabezados</span>
-                  <span>Advertencias</span>
-                </div>
-                {workbookInspection.sheets.map((sheet) => {
-                  const sheetHasIssues = sheet.warnings.length > 0 || (sheet.n_cell_errors ?? 0) > 0;
-                  return (
-                    <div className={`pulso-sm-family-row is-workbook-row${sheet.blocking ? " is-invalid" : ""}`} role="row" key={sheet.sheet_name}>
-                      <div className="pulso-sm-family-origin-cell">
-                        <strong>{sheet.sheet_name}</strong>
-                        <small>{sheet.n_rows} filas · {sheet.n_columns} columnas de origen</small>
-                      </div>
-                      <div className="pulso-sm-family-origin-cell">
-                        <strong>{sheet.base_name || "Sin match"}</strong>
-                        <small>{sheet.matched ? "Match automático" : "Bloqueada"}</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className={`pulso-sm-family-status${sheet.blocking ? " is-warning" : " is-neutral"}`}>
-                          {sheet.blocking ? <AlertTriangle size={12} /> : <Database size={12} />}
-                          {sheet.n_output_columns ?? 0} columnas finales
-                        </span>
-                        <small>{smWorkbookMissingLabel(sheet)}</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className="pulso-sm-family-status is-neutral">
-                          <CheckCircle2 size={12} />
-                          {sheet.recognized_headers} reconocidos
-                        </span>
-                        <small>{sheet.unknown_headers.length} dudosos · {sheet.ambiguous_headers.length} ambiguos</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className={`pulso-sm-family-status${sheetHasIssues ? " is-warning" : " is-neutral"}`}>
-                          {sheetHasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                          {sheet.warnings.length || (sheet.n_cell_errors ?? 0) || "OK"}
-                        </span>
-                        <small title={smWorkbookSheetIssueTitle(sheet)}>{smWorkbookSheetIssueLabel(sheet)}</small>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          {workbookImportResult && (
-            <div className="pulso-sm-multibase-warning">
-              <CheckCircle2 size={15} />
-              <span>
-                Importadas {workbookImportResult.imported_bases} bases desde {workbookImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
-              </span>
-            </div>
-          )}
-          </div>
-          <div className="pulso-sm-workbook-import" aria-label="Importar ZIP SAV SurveyMonkey">
-            <div className="pulso-sm-family-config-head">
-              <div>
-                <strong>Importar ZIP SAV</strong>
-                <span>
-                  Reemplaza de forma controlada la data efectiva de bases hermanas existentes. El XLSForm de cada carrera se conserva.
-                </span>
-              </div>
-              <div className="pulso-sm-family-actions">
-                <button
-                  type="button"
-                  className="pulso-sm-secondary"
-                  disabled={disabled || !!busy || !savBundleFile}
-                  onClick={inspectSavBundle}
-                >
-                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <Database size={13} />}
-                  Inspeccionar
-                </button>
-                <button
-                  type="button"
-                  disabled={!canImportSavBundle}
-                  onClick={importSavBundle}
-                >
-                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                  Aplicar actualización
-                </button>
-              </div>
-            </div>
-            <div className="pulso-sm-workbook-toolbar">
-              <FilePicker
-                icon={Database}
-                title="ZIP con SAV"
-                accept=".zip,application/zip,application/x-zip-compressed"
-                acceptLabel="ZIP"
-                file={savBundleFile}
-                onPick={pickSavBundleFile}
-              />
-              <div className="pulso-sm-workbook-summary">
-                {savBundleInspection ? (
-                  <>
-                    <span className={`pulso-sm-family-status${savBundleInspection.ok ? "" : " is-warning"}`}>
-                      {savBundleInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
-                      {savBundleInspection.n_matched}/{savBundleInspection.n_files} archivos listos
-                    </span>
-                    <small>
-                      {smSavBundleInspectionWarningCount(savBundleInspection)} advertencias · {savBundleInspection.filename}
-                    </small>
-                    <small>Se reemplazará solo la base de datos. El XLSForm no cambiará.</small>
-                  </>
-                ) : (
-                  <>
-                    <span className="pulso-sm-family-status is-neutral">
-                      <Database size={12} />
-                      Sin inspección
-                    </span>
-                    <small>Los archivos .sav se emparejan por carrera y se normalizan contra el XLSForm vigente.</small>
-                  </>
-                )}
-              </div>
-            </div>
-            {savBundleInspection && (
-              <div className="pulso-sm-family-table is-sav-bundle" role="table" aria-label="Plan de actualización ZIP SAV">
-                <div className="pulso-sm-family-row is-head is-sav-row" role="row">
-                  <span>Archivo</span>
-                  <span>Base</span>
-                  <span>Actualmente</span>
-                  <span>Después de aplicar</span>
-                  <span>Impacto</span>
-                </div>
-                {savBundleInspection.files.map((file) => {
-                  const hasIssues = file.blocking || file.warnings.length > 0 || file.missing_variables.length > 0 || file.all_empty_variables.length > 0;
-                  const currentRows = file.change_plan?.current?.n_rows;
-                  const currentColumns = file.change_plan?.current?.n_columns;
-                  const incoming = file.change_plan?.incoming;
-                  return (
-                    <div className={`pulso-sm-family-row is-sav-row${file.blocking ? " is-invalid" : hasIssues ? " is-warning" : ""}`} role="row" key={file.entry_name || file.file_name}>
-                      <div className="pulso-sm-family-origin-cell">
-                        <strong>{file.file_name || file.entry_name}</strong>
-                        <small>{file.n_rows} filas · {file.n_columns} columnas SAV</small>
-                      </div>
-                      <div className="pulso-sm-family-origin-cell">
-                        <strong>{file.base_name || "Sin match"}</strong>
-                        <small>{file.matched ? "Match automático" : "Bloqueada"}</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className="pulso-sm-family-status is-neutral">
-                          <Database size={12} />
-                          {currentRows ?? "?"} filas
-                        </span>
-                        <small>{currentColumns ?? "?"} columnas actuales · XLSForm preservado</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className={`pulso-sm-family-status${file.blocking ? " is-warning" : " is-neutral"}`}>
-                          {file.blocking ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                          {incoming?.normalized_rows ?? file.n_rows} filas
-                        </span>
-                        <small>{smSavBundleImpactLabel(file)}</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className={`pulso-sm-family-status${hasIssues ? " is-warning" : " is-neutral"}`}>
-                          {hasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                          {file.matched_variables}/{file.expected_variables} variables
-                        </span>
-                        <small title={[...file.warnings, ...file.all_empty_variables, ...file.missing_variables].join("\n")}>
-                          {file.blocking ? smSavBundleIssueLabel(file) : smSavBundleVariableSummary(file)}
-                        </small>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {savBundleImportResult && (
-              <div className="pulso-sm-multibase-warning">
-                <CheckCircle2 size={15} />
-                <span>
-                  Actualizadas {savBundleImportResult.imported_bases} bases desde {savBundleImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
-                </span>
-              </div>
-            )}
           </div>
           {refreshPlan && (
             <div className="pulso-sm-family-config" aria-label="Diagnóstico de actualización SurveyMonkey">
