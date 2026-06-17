@@ -141,27 +141,37 @@
   )
 }
 
+.estudio_consent_candidate_score <- function(name, label, type = "") {
+  nm <- .estudio_choice_key(name)
+  lab <- .estudio_choice_key(label)
+  typ <- .estudio_choice_key(type)
+  text <- paste(nm, lab)
+  if (!grepl("^select one|select_one|select$", typ) && !grepl("^p[0-9]+$", nm)) return(0L)
+  if (grepl("actividades|vinculacion|gustaria participar|participar con la carrera", lab) &&
+      !grepl("consent|consentimiento|continuar|encuesta|entrevista", lab)) {
+    return(0L)
+  }
+  if (grepl("consent|consentimiento", text)) return(100L)
+  if (grepl("desea continuar|continuar con la encuesta|continuar encuesta", lab)) return(95L)
+  if (grepl("acepta|acepto|aceptar", lab) && grepl("participar|encuesta|entrevista|estudio", lab)) return(90L)
+  if (grepl("autoriz", lab) && grepl("encuesta|entrevista|estudio", lab)) return(80L)
+  0L
+}
+
 .estudio_consent_candidates <- function(variables, current = "") {
   current <- .estudio_scalar(current, "")
-  rows <- .estudio_records_payload(variables)
-  if (!length(rows)) return(if (nzchar(current)) as.list(current) else list())
-  score <- vapply(rows, function(row) {
-    name <- tolower(.estudio_scalar(row$name, ""))
-    label <- tolower(iconv(.estudio_scalar(row$label, ""), to = "ASCII//TRANSLIT"))
-    text <- paste(name, label)
-    hit <- grepl(
-      "consent|consentimiento|desea continuar|continuar con la encuesta|acepta|acepto|aceptar|autoriz|participar en (la|esta|este|el) (encuesta|estudio)",
-      text
-    )
-    if (identical(name, tolower(current))) return(3L)
-    if (hit) return(2L)
-    if (identical(name, "p1")) return(1L)
-    0L
+  out <- if (nzchar(current)) current else character(0)
+  if (is.null(variables) || !length(variables)) return(unique(out))
+  scores <- vapply(variables, function(item) {
+    item <- item %||% list()
+    .estudio_consent_candidate_score(item$name, item$label, item$type)
   }, integer(1))
-  names_out <- vapply(rows, function(row) .estudio_scalar(row$name, ""), character(1))
-  out <- names_out[score > 0L]
-  out <- out[order(score[score > 0L], decreasing = TRUE)]
-  unique(c(current[nzchar(current)], out))
+  if (any(scores > 0L)) {
+    ordered <- order(scores, decreasing = TRUE)
+    names <- vapply(variables[ordered], function(item) .estudio_scalar((item %||% list())$name, ""), character(1))
+    out <- c(out, names[scores[ordered] > 0L])
+  }
+  unique(out[nzchar(out)])
 }
 
 .estudio_base_consent_var <- function(meta, variables = list()) {
@@ -177,7 +187,8 @@
   if (!nzchar(direct)) direct <- .estudio_consent_from_spec(meta, meta$response_filter %||% list())
   if (nzchar(direct)) return(direct)
   candidates <- .estudio_consent_candidates(variables)
-  .estudio_scalar(candidates[[1]] %||% "", "")
+  if (length(candidates)) return(candidates[[1]])
+  ""
 }
 
 .estudio_base_status_payload <- function(meta, s = NULL) {
@@ -242,6 +253,282 @@
   )
 }
 
+.estudio_char_vector <- function(x) {
+  if (is.null(x) || !length(x)) return(character(0))
+  if (is.list(x) && !is.data.frame(x)) {
+    x <- unlist(x, recursive = FALSE, use.names = FALSE)
+  }
+  out <- trimws(as.character(x %||% character(0)))
+  out[!is.na(out) & nzchar(out)]
+}
+
+.estudio_int_value <- function(x) {
+  if (is.null(x) || !length(x)) return(NA_integer_)
+  out <- suppressWarnings(as.integer(x[[1]]))
+  if (is.na(out)) NA_integer_ else out
+}
+
+.estudio_int_pick <- function(...) {
+  values <- list(...)
+  for (value in values) {
+    out <- .estudio_int_value(value)
+    if (!is.na(out)) return(out)
+  }
+  NA_integer_
+}
+
+.estudio_count_value <- function(x, keys) {
+  if (is.null(x) || !is.list(x) || !length(x)) return(NA_integer_)
+  nms <- names(x)
+  if (is.null(nms)) return(NA_integer_)
+  key_norm <- .estudio_choice_key(keys)
+  for (i in seq_along(x)) {
+    nm <- .estudio_choice_key(nms[[i]])
+    if (nzchar(nm) && nm %in% key_norm) {
+      return(.estudio_int_value(x[[i]]))
+    }
+  }
+  NA_integer_
+}
+
+.estudio_sm_channel_key <- function(value) {
+  key <- .estudio_choice_key(value)
+  if (!nzchar(key)) return("")
+  if (grepl("whatsapp", key, fixed = TRUE)) return("whatsapp")
+  if (grepl("sms", key, fixed = TRUE)) return("sms")
+  if (grepl("presencial|qr|ficha", key)) return("presencial")
+  if (grepl("correo|email|mail|web|online|link|enlace", key)) return("correo")
+  if (grepl("telef|fono|phone|campo", key)) return("telefono")
+  if (grepl("mixto|multicanal", key)) return("mixto")
+  "mixto"
+}
+
+.estudio_sm_channel_label <- function(source, fallback = "") {
+  raw <- .estudio_scalar(
+    source$source_channel %||% source$channel %||% source$canal,
+    ""
+  )
+  if (!nzchar(raw)) raw <- .estudio_scalar(source$collection_strategy %||% fallback, "")
+  key <- .estudio_sm_channel_key(raw)
+  switch(
+    key,
+    correo = "Correo",
+    telefono = "Telefónico",
+    whatsapp = "WhatsApp",
+    presencial = "Ficha QR",
+    sms = "SMS",
+    mixto = "Mixto",
+    ""
+  )
+}
+
+.estudio_sm_source_items <- function(x) {
+  if (is.null(x) || !is.list(x) || !length(x)) return(list())
+  sources <- x$sources %||% x$campaigns %||% list()
+  if (is.list(sources) && length(sources)) return(unname(sources))
+  has_source_identity <- nzchar(.estudio_scalar(
+    x$survey_id %||% x$id %||% x$source_title %||% x$title %||% x$label,
+    ""
+  ))
+  if (has_source_identity) list(x) else list()
+}
+
+.estudio_sm_source_record <- function(source, index = NA_integer_, fallback = list()) {
+  source <- source %||% list()
+  if (!is.list(source)) source <- list()
+  survey_id <- .estudio_scalar(source$survey_id %||% source$id %||% fallback$survey_id, "")
+  source_title <- .estudio_scalar(
+    source$source_title %||% source$title %||% source$label %||% source$source_alias %||% fallback$source_title,
+    survey_id
+  )
+  source_alias <- .estudio_scalar(
+    source$source_alias %||% source$label %||% source_title %||% fallback$source_alias,
+    source_title
+  )
+  channel <- .estudio_sm_channel_label(source, fallback$channel %||% fallback$source_channel %||% "")
+  collector_ids <- unique(c(
+    .estudio_char_vector(source$collector_ids),
+    .estudio_char_vector(source$collector_id),
+    .estudio_char_vector(names(source$kept_collector_counts %||% list())),
+    .estudio_char_vector(names(source$collector_counts %||% list()))
+  ))
+  collector_ids <- collector_ids[nzchar(collector_ids) & collector_ids != "(vacio)"]
+  collector_count <- length(collector_ids)
+  if (!collector_count && is.list(source$collectors %||% NULL)) {
+    collector_count <- length(source$collectors)
+  }
+
+  completed_records <- .estudio_int_pick(
+    source$completed_records,
+    source$completed,
+    .estudio_count_value(source$original_status_counts %||% source$status_counts, c("completed", "complete")),
+    .estudio_count_value(source$kept_status_counts, c("completed", "complete"))
+  )
+  effective_records <- .estudio_int_pick(source$effective_records, source$completed_with_consent)
+  included_records <- .estudio_int_pick(source$included_records, source$included, source$kept_rows)
+  valid_records <- .estudio_int_pick(source$valid_records, included_records, effective_records, source$kept_rows)
+  raw_records <- .estudio_int_pick(source$raw_records, source$raw_total, source$original_rows)
+  excluded_records <- .estudio_int_pick(source$excluded_records, source$excluded, source$excluded_rows)
+  has_data_count <- any(!is.na(c(valid_records, included_records, effective_records)) & c(valid_records, included_records, effective_records) > 0L)
+
+  list(
+    index = .estudio_int_value(index),
+    survey_id = survey_id,
+    source_alias = source_alias,
+    source_title = source_title,
+    channel = channel,
+    channel_key = .estudio_sm_channel_key(channel),
+    collection_strategy = .estudio_scalar(source$collection_strategy %||% fallback$collection_strategy, ""),
+    collector_ids = as.list(collector_ids),
+    collector_count = as.integer(collector_count),
+    consent_var = .estudio_scalar(
+      source$consent_var %||% source$consentimiento_var %||% source$consent_question %||% fallback$consent_var,
+      ""
+    ),
+    raw_records = raw_records,
+    completed_records = completed_records,
+    effective_records = effective_records,
+    included_records = included_records,
+    valid_records = valid_records,
+    excluded_records = excluded_records,
+    enters_data = isTRUE(has_data_count)
+  )
+}
+
+.estudio_sm_source_records <- function(x, fallback = list()) {
+  items <- .estudio_sm_source_items(x)
+  if (!length(items)) return(list())
+  unname(lapply(seq_along(items), function(i) {
+    .estudio_sm_source_record(items[[i]], index = i, fallback = fallback)
+  }))
+}
+
+.estudio_sm_source_match <- function(records, source = list(), index = NA_integer_) {
+  if (!length(records)) return(NULL)
+  survey_id <- .estudio_scalar(source$survey_id, "")
+  if (nzchar(survey_id)) {
+    matches <- Filter(function(record) identical(.estudio_scalar(record$survey_id, ""), survey_id), records)
+    if (length(matches) == 1L) return(matches[[1]])
+  }
+  idx <- .estudio_int_value(index)
+  if (!is.na(idx) && idx >= 1L && idx <= length(records)) return(records[[idx]])
+  NULL
+}
+
+.estudio_sm_source_merge <- function(base, patch) {
+  if (is.null(base)) base <- list()
+  if (is.null(patch)) return(base)
+  for (nm in names(patch)) {
+    value <- patch[[nm]]
+    if (nm %in% c(
+      "raw_records", "completed_records", "effective_records", "included_records",
+      "valid_records", "excluded_records", "collector_count", "index"
+    )) {
+      if (!is.na(.estudio_int_value(value))) base[[nm]] <- .estudio_int_value(value)
+    } else if (identical(nm, "collector_ids")) {
+      base[[nm]] <- as.list(unique(c(.estudio_char_vector(base[[nm]]), .estudio_char_vector(value))))
+      base$collector_count <- as.integer(length(base[[nm]]))
+    } else if (identical(nm, "enters_data")) {
+      base[[nm]] <- isTRUE(base[[nm]]) || isTRUE(value)
+    } else {
+      current <- .estudio_scalar(base[[nm]], "")
+      candidate <- .estudio_scalar(value, "")
+      if (!nzchar(current) && nzchar(candidate)) base[[nm]] <- candidate
+    }
+  }
+  base
+}
+
+.estudio_sm_source_summary <- function(meta) {
+  if (is.null(meta) || !is.list(meta)) return(NULL)
+  spec <- meta$surveymonkey_source_spec %||% list()
+  filter <- meta$response_filter %||% list()
+  audit <- meta$surveymonkey_decision_audit %||% list()
+  fallback <- list(
+    survey_id = meta$survey_id,
+    source_alias = meta$source_alias,
+    source_title = meta$source_title,
+    channel = meta$source_channel,
+    source_channel = meta$source_channel,
+    consent_var = meta$consent_var
+  )
+  spec_records <- .estudio_sm_source_records(spec, fallback)
+  filter_records <- .estudio_sm_source_records(filter, fallback)
+  audit_records <- .estudio_sm_source_records(audit, fallback)
+  records <- list()
+  matched_filter <- logical(length(filter_records))
+  matched_audit <- logical(length(audit_records))
+
+  seed_records <- if (length(spec_records)) spec_records else if (length(filter_records)) filter_records else audit_records
+  for (i in seq_along(seed_records)) {
+    record <- seed_records[[i]]
+    filter_match <- .estudio_sm_source_match(filter_records, record, i)
+    audit_match <- .estudio_sm_source_match(audit_records, record, i)
+    if (!is.null(filter_match)) {
+      match_idx <- which(vapply(filter_records, function(x) identical(x, filter_match), logical(1)))[1]
+      if (!is.na(match_idx)) matched_filter[[match_idx]] <- TRUE
+    }
+    if (!is.null(audit_match)) {
+      match_idx <- which(vapply(audit_records, function(x) identical(x, audit_match), logical(1)))[1]
+      if (!is.na(match_idx)) matched_audit[[match_idx]] <- TRUE
+    }
+    records[[length(records) + 1L]] <- .estudio_sm_source_merge(
+      .estudio_sm_source_merge(record, filter_match),
+      audit_match
+    )
+  }
+  if (length(filter_records)) {
+    for (i in seq_along(filter_records)) {
+      if (isTRUE(matched_filter[[i]])) next
+      audit_match <- .estudio_sm_source_match(audit_records, filter_records[[i]], i)
+      records[[length(records) + 1L]] <- .estudio_sm_source_merge(filter_records[[i]], audit_match)
+    }
+  }
+  if (length(audit_records)) {
+    for (i in seq_along(audit_records)) {
+      if (isTRUE(matched_audit[[i]])) next
+      records[[length(records) + 1L]] <- audit_records[[i]]
+    }
+  }
+  records <- Filter(function(x) {
+    nzchar(.estudio_scalar(x$survey_id, "")) || nzchar(.estudio_scalar(x$source_title, ""))
+  }, records)
+  if (!length(records)) return(NULL)
+
+  channel_keys <- unique(vapply(records, function(x) .estudio_scalar(x$channel_key, ""), character(1)))
+  channel_keys <- channel_keys[nzchar(channel_keys)]
+  channel_labels <- unique(vapply(records, function(x) .estudio_scalar(x$channel, ""), character(1)))
+  channel_labels <- channel_labels[nzchar(channel_labels)]
+  sum_field <- function(field) {
+    vals <- vapply(records, function(x) .estudio_int_value(x[[field]]), integer(1))
+    if (!any(!is.na(vals))) return(NA_integer_)
+    as.integer(sum(vals[!is.na(vals)]))
+  }
+  has_key <- function(key) any(channel_keys == key)
+  source_active <- function(key) {
+    any(vapply(records, function(x) identical(.estudio_scalar(x$channel_key, ""), key) && isTRUE(x$enters_data), logical(1)))
+  }
+  list(
+    kind = "surveymonkey_source_summary",
+    source_count = as.integer(length(records)),
+    main_survey_id = .estudio_scalar(meta$survey_id %||% records[[1]]$survey_id, ""),
+    channel_label = if (length(channel_keys) > 1L) "Mixto" else (channel_labels[[1]] %||% ""),
+    channels = as.list(channel_labels),
+    has_phone = has_key("telefono"),
+    has_email = has_key("correo"),
+    phone_active = source_active("telefono"),
+    email_active = source_active("correo"),
+    total_raw_records = sum_field("raw_records"),
+    total_effective_records = sum_field("effective_records"),
+    total_included_records = sum_field("included_records"),
+    total_valid_records = sum_field("valid_records"),
+    total_excluded_records = sum_field("excluded_records"),
+    active_data_rows = .estudio_int_value(meta$n_filas),
+    active_data_columns = .estudio_int_value(meta$n_columnas),
+    sources = records
+  )
+}
+
 .estudio_multi_integrated_payload <- function(multi, s = NULL) {
   if (is.null(multi) || !is.list(multi) || !length(multi)) return(NULL)
   guide_fid <- as.character(multi$guide_xlsform_file_id %||% "")
@@ -280,6 +567,7 @@
   multi_payload <- .estudio_multi_integrated_payload(meta$multi_integrated, s)
   xlsform_variables <- .estudio_xlsform_variables_payload(meta, s)
   consent_var <- .estudio_base_consent_var(meta, xlsform_variables)
+  sm_source_summary <- .estudio_sm_source_summary(meta)
   list(
     nombre          = meta$nombre,
     xlsform_file_id = meta$xlsform_file_id,
@@ -302,8 +590,21 @@
     sibling_family_id = as.character(meta$sibling_family_id %||% NA_character_),
     imported_at     = as.character(meta$imported_at %||% NA_character_),
     surveymonkey_source_spec = meta$surveymonkey_source_spec %||% NA,
+    surveymonkey_raw_snapshot_file_id = as.character(meta$surveymonkey_raw_snapshot_file_id %||% NA_character_),
+    surveymonkey_effective_data_file_id = as.character(meta$surveymonkey_effective_data_file_id %||% NA_character_),
+    surveymonkey_workbook_file_id = as.character(meta$surveymonkey_workbook_file_id %||% NA_character_),
+    surveymonkey_workbook_snapshot_file_id = as.character(meta$surveymonkey_workbook_snapshot_file_id %||% NA_character_),
+    surveymonkey_workbook_import = meta$surveymonkey_workbook_import %||% NA,
+    surveymonkey_sav_bundle_file_id = as.character(meta$surveymonkey_sav_bundle_file_id %||% NA_character_),
+    surveymonkey_sav_bundle_snapshot_file_id = as.character(meta$surveymonkey_sav_bundle_snapshot_file_id %||% NA_character_),
+    surveymonkey_sav_bundle_import = meta$surveymonkey_sav_bundle_import %||% NA,
+    surveymonkey_decision_policy = meta$surveymonkey_decision_policy %||% NA,
+    surveymonkey_decision_audit = meta$surveymonkey_decision_audit %||% NA,
+    surveymonkey_decision_updated_at = as.character(meta$surveymonkey_decision_updated_at %||% NA_character_),
     surveymonkey_refreshed_at = as.character(meta$surveymonkey_refreshed_at %||% NA_character_),
     surveymonkey_last_refresh = meta$surveymonkey_last_refresh %||% NA,
+    surveymonkey_source_summary = sm_source_summary %||% NA,
+    surveymonkey_sources = if (is.null(sm_source_summary)) list() else sm_source_summary$sources,
     logic_template_base = as.character(meta$logic_template_base %||% NA_character_),
     logic_template_applied_at = as.character(meta$logic_template_applied_at %||% NA_character_),
     logic_template_status = as.character(meta$logic_template_status %||% NA_character_),
@@ -653,6 +954,143 @@
   )
 }
 
+.estudio_xlsform_logic_value_count <- function(survey) {
+  if (is.null(survey) || !is.data.frame(survey) || !nrow(survey)) return(0L)
+  cols <- intersect(
+    c("relevant", "constraint", "constraint_message", "readonly",
+      "calculation", "calculate", "choice_filter", "default", "trigger"),
+    names(survey)
+  )
+  if (!length(cols)) return(0L)
+  values <- trimws(as.character(unlist(survey[, cols, drop = FALSE], use.names = FALSE)))
+  values[is.na(values)] <- ""
+  as.integer(sum(nzchar(values)))
+}
+
+.estudio_xlsform_logic_inventory <- function(sid, bases = NULL) {
+  s <- session_get(sid)
+  bases <- bases %||% (s$estudio$bases %||% list())
+  base_names <- names(bases)
+  rows <- list()
+  sheets <- list()
+  for (base_name in base_names) {
+    file_id <- as.character(bases[[base_name]]$xlsform_file_id %||% "")
+    if (!nzchar(file_id)) next
+    meta <- tryCatch(get_file(sid, file_id), error = function(e) NULL)
+    if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) next
+    xls <- tryCatch(.estudio_xlsform_read_sheets(meta$path), error = function(e) NULL)
+    if (is.null(xls) || !is.data.frame(xls$survey)) next
+    sheets[[base_name]] <- xls
+    rows[[length(rows) + 1L]] <- data.frame(
+      base = base_name,
+      logic_value_count = .estudio_xlsform_logic_value_count(xls$survey),
+      stringsAsFactors = FALSE
+    )
+  }
+  data <- if (length(rows)) {
+    do.call(rbind, rows)
+  } else {
+    data.frame(base = character(), logic_value_count = integer(), stringsAsFactors = FALSE)
+  }
+  list(data = data, sheets = sheets)
+}
+
+.estudio_select_xlsform_logic_template <- function(sid,
+                                                   bases = NULL,
+                                                   explicit_template = NULL,
+                                                   targets = character()) {
+  s <- session_get(sid)
+  bases <- bases %||% (s$estudio$bases %||% list())
+  base_names <- names(bases)
+  explicit_template <- as.character(explicit_template %||% "")
+  if (nzchar(explicit_template) && explicit_template %in% base_names) {
+    inv <- .estudio_xlsform_logic_inventory(sid, bases)
+    return(list(base = explicit_template, sheets = inv$sheets[[explicit_template]], inventory = inv$data))
+  }
+
+  family <- s$estudio$independent_siblings %||% list()
+  family_template <- as.character(family$template_base %||% "")
+  inv <- .estudio_xlsform_logic_inventory(sid, bases)
+  if (!nrow(inv$data)) return(list(base = "", sheets = NULL, inventory = inv$data))
+
+  if (nzchar(family_template) && family_template %in% base_names) {
+    return(list(base = family_template, sheets = inv$sheets[[family_template]], inventory = inv$data))
+  }
+
+  candidates <- inv$data
+  non_targets <- candidates[!(candidates$base %in% targets), , drop = FALSE]
+  if (nrow(non_targets)) candidates <- non_targets
+  candidates <- candidates[order(-candidates$logic_value_count, candidates$base), , drop = FALSE]
+  template_base <- as.character(candidates$base[1] %||% "")
+  list(base = template_base, sheets = inv$sheets[[template_base]], inventory = inv$data)
+}
+
+estudio_sync_shared_xlsform_logic_if_needed <- function(sid,
+                                                        targets = NULL,
+                                                        min_delta = 1L) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || !estudio_is_independent_siblings(sid)) {
+    return(list(ok = TRUE, applied = FALSE, reason = "not_independent_siblings"))
+  }
+  family <- s$estudio$independent_siblings %||% list()
+  if (!isTRUE(family$shared_logic)) {
+    return(list(ok = TRUE, applied = FALSE, reason = "shared_logic_disabled"))
+  }
+  bases <- s$estudio$bases %||% list()
+  base_names <- names(bases)
+  if (length(base_names) < 2L) {
+    return(list(ok = TRUE, applied = FALSE, reason = "not_enough_bases"))
+  }
+  targets <- as.character(targets %||% base_names)
+  targets <- targets[nzchar(targets) & targets %in% base_names]
+  if (!length(targets)) {
+    targets <- as.character(s$estudio$active_base %||% "")
+    targets <- targets[nzchar(targets) & targets %in% base_names]
+  }
+  if (!length(targets)) {
+    return(list(ok = TRUE, applied = FALSE, reason = "no_targets"))
+  }
+
+  selected <- .estudio_select_xlsform_logic_template(
+    sid,
+    bases = bases,
+    explicit_template = NULL,
+    targets = targets
+  )
+  template_base <- as.character(selected$base %||% "")
+  inventory <- selected$inventory
+  if (!nzchar(template_base) || !nrow(inventory)) {
+    return(list(ok = TRUE, applied = FALSE, reason = "template_unavailable"))
+  }
+  template_count <- inventory$logic_value_count[match(template_base, inventory$base)][1]
+  if (is.na(template_count) || template_count <= 0L) {
+    return(list(ok = TRUE, applied = FALSE, reason = "template_without_logic"))
+  }
+  target_counts <- inventory$logic_value_count[match(targets, inventory$base)]
+  target_counts[is.na(target_counts)] <- 0L
+  needs <- targets[(template_count - target_counts) >= as.integer(min_delta)]
+  needs <- setdiff(needs, template_base)
+  if (!length(needs)) {
+    return(list(
+      ok = TRUE,
+      applied = FALSE,
+      reason = "already_synced",
+      template_base = template_base,
+      logic_value_count = as.integer(template_count)
+    ))
+  }
+
+  out <- estudio_apply_template_xlsform_logic(
+    sid,
+    template_base = template_base,
+    targets = needs,
+    clear_target_logic = FALSE
+  )
+  out$applied <- length(out$updated_bases %||% list()) > 0L
+  out$reason <- ""
+  out
+}
+
 estudio_apply_template_xlsform_logic <- function(sid,
                                                  template_base = NULL,
                                                  targets = NULL,
@@ -668,12 +1106,15 @@ estudio_apply_template_xlsform_logic <- function(sid,
     stop_api(409, "E_NOT_ENOUGH_BASES",
              "Se necesitan al menos dos bases hermanas para aplicar lógica compartida.")
   }
-  preferred_template <- as.character(template_base %||%
-                                       (s$estudio$independent_siblings %||% list())$template_base %||%
-                                       s$estudio$active_base %||% "")
-  candidates <- unique(c(preferred_template, as.character(s$estudio$active_base %||% ""), base_names[1]))
-  candidates <- candidates[nzchar(candidates) & candidates %in% base_names]
-  template_base <- candidates[1] %||% ""
+  target_hint <- as.character(targets %||% character(0))
+  target_hint <- target_hint[nzchar(target_hint) & target_hint %in% base_names]
+  selected_template <- .estudio_select_xlsform_logic_template(
+    sid,
+    bases = bases,
+    explicit_template = template_base,
+    targets = target_hint
+  )
+  template_base <- as.character(selected_template$base %||% "")
   if (!nzchar(template_base)) {
     stop_api(404, "E_TEMPLATE_BASE_NOT_FOUND", "No encontré la base plantilla indicada.")
   }

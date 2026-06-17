@@ -974,6 +974,36 @@ sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L,
   )
 }
 
+sm_multibase_collectors <- function(survey_id,
+                                    token,
+                                    base_url = "https://api.surveymonkey.com/v3") {
+  survey_id <- .sm_mb_scalar(survey_id, "")
+  if (!nzchar(survey_id)) stop_api(400, "E_SM_SURVEY_ID", "Falta survey_id.")
+  collectors <- sm_api_fetch_collectors(
+    survey_id = survey_id,
+    token = token,
+    base_url = base_url
+  )
+  rows <- lapply(collectors$data %||% list(), function(item) {
+    collector_id <- .sm_mb_scalar(item$id %||% item$collector_id, "")
+    response_count <- suppressWarnings(as.integer(item$response_count %||% item$num_responses %||% NA_integer_))
+    list(
+      id = collector_id,
+      name = .sm_mb_scalar(item$name %||% item$title %||% item$collector_name, collector_id),
+      type = .sm_mb_scalar(item$type %||% item$collector_type, ""),
+      response_count = if (is.finite(response_count)) response_count else NA_integer_,
+      date_created = .sm_mb_scalar(item$date_created, ""),
+      date_modified = .sm_mb_scalar(item$date_modified, "")
+    )
+  })
+  list(
+    ok = TRUE,
+    survey_id = survey_id,
+    total = suppressWarnings(as.integer(collectors$total %||% length(rows))),
+    collectors = rows
+  )
+}
+
 .sm_mb_question_specs <- function(details) {
   pages <- details$pages %||% list()
   specs <- list()
@@ -1058,6 +1088,27 @@ sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L,
   tab <- sort(table(values), decreasing = TRUE)
   out <- as.list(as.integer(tab))
   names(out) <- names(tab)
+  out
+}
+
+.sm_mb_response_custom_metadata <- function(resp) {
+  out <- list(
+    recipient_id = .sm_mb_scalar(resp$recipient_id %||% NA_character_),
+    custom_value = .sm_mb_scalar(resp$custom_value %||% NA_character_),
+    total_time = .sm_mb_scalar(resp$total_time %||% NA_character_),
+    ip_address = .sm_mb_scalar(resp$ip_address %||% NA_character_)
+  )
+  custom <- resp$custom_variables %||% list()
+  if (length(custom)) {
+    for (nm in names(custom)) {
+      safe <- if (exists(".sm_api_safe_name", mode = "function")) {
+        .sm_api_safe_name(nm)
+      } else {
+        gsub("[^A-Za-z0-9_]+", "_", tolower(as.character(nm)))
+      }
+      out[[paste0("cv_", safe)]] <- .sm_mb_scalar(custom[[nm]] %||% NA_character_)
+    }
+  }
   out
 }
 
@@ -1164,31 +1215,49 @@ sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L,
   questions <- .sm_mb_question_rows(inst)
   if (is.null(questions) || !nrow(questions)) return("")
   configured <- .sm_mb_scalar(configured, "")
+  q_names <- as.character(questions$name %||% "")
   if (nzchar(configured)) {
-    q_names <- as.character(questions$name %||% "")
     exact <- which(q_names == configured)[1]
     if (!is.na(exact)) return(configured)
     folded <- which(tolower(q_names) == tolower(configured))[1]
     if (!is.na(folded)) return(q_names[folded])
+    return("")
   }
-  lab_col <- .sm_mb_label_col(questions)
-  labels <- if (!is.na(lab_col)) as.character(questions[[lab_col]]) else as.character(questions$name)
-  norm_labels <- .sm_mb_norm(labels)
-  type <- .sm_mb_type_base(questions$type)
-  select_like <- type %in% c("select_one", "select_multiple")
-  consent_hit <- grepl(
-    "consent|consentimiento|desea continuar|continuar con la encuesta|acepta|acepto|aceptar|autoriz|participar en (la|esta|este|el) (encuesta|estudio)",
-    norm_labels
-  )
-  idx <- which(select_like & consent_hit)[1]
-  if (is.na(idx)) idx <- which(consent_hit)[1]
-  if (is.na(idx)) return("")
-  .sm_mb_scalar(questions$name[idx], "")
+  .sm_mb_consent_candidate_var(inst)
 }
 
 .sm_mb_consent_yes <- function(values) {
   key <- .sm_mb_norm(values)
   key %in% c("1", "si", "sí", "yes", "true", "acepta", "acepto", "accepted", "y")
+}
+
+.sm_mb_consent_candidate_score <- function(name, label, type = "") {
+  nm <- .sm_mb_norm(name)
+  lab <- .sm_mb_norm(label)
+  typ <- .sm_mb_norm(type)
+  text <- paste(nm, lab)
+  if (!grepl("^select one|select_one|select$", typ) && !grepl("^p[0-9]+$", nm)) return(0L)
+  if (grepl("actividades|vinculacion|gustaria participar|participar con la carrera", lab) &&
+      !grepl("consent|consentimiento|continuar|encuesta|entrevista", lab)) {
+    return(0L)
+  }
+  if (grepl("consent|consentimiento", text)) return(100L)
+  if (grepl("desea continuar|continuar con la encuesta|continuar encuesta", lab)) return(95L)
+  if (grepl("acepta|acepto|aceptar", lab) && grepl("participar|encuesta|entrevista|estudio", lab)) return(90L)
+  if (grepl("autoriz", lab) && grepl("encuesta|entrevista|estudio", lab)) return(80L)
+  0L
+}
+
+.sm_mb_consent_candidate_var <- function(inst) {
+  questions <- .sm_mb_question_rows(inst)
+  if (is.null(questions) || !nrow(questions)) return("")
+  label_col <- .sm_mb_label_col(questions)
+  labels <- if (!is.na(label_col)) questions[[label_col]] else questions$name
+  scores <- vapply(seq_len(nrow(questions)), function(i) {
+    .sm_mb_consent_candidate_score(questions$name[[i]], labels[[i]], questions$type[[i]])
+  }, integer(1))
+  if (!any(scores > 0L)) return("")
+  as.character(questions$name[[which.max(scores)]])
 }
 
 .sm_mb_filter_info_apply_consent <- function(filter_info, before_values, after_values, consent_var) {
@@ -1464,7 +1533,8 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
                                                          date_modified_gte = "",
                                                          date_modified_lte = "",
                                                          variant_map = list(),
-                                                         consent_var = "") {
+                                                         consent_var = "",
+                                                         apply_consent_filter = TRUE) {
   specs <- .sm_mb_question_specs(details)
   variant_lookup <- .sm_mb_variant_lookup(variant_map)
   responses <- .sm_mb_filter_responses(
@@ -1499,6 +1569,7 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
       date_created = .sm_mb_scalar(resp$date_created, ""),
       date_modified = .sm_mb_scalar(resp$date_modified, "")
     )
+    row <- c(row, .sm_mb_response_custom_metadata(resp))
     multi_tokens <- list()
     for (page in resp$pages %||% list()) {
       for (question in page$questions %||% list()) {
@@ -1586,7 +1657,9 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   expected <- .sm_mb_expected_names(inst)
   extras <- c("pais", "survey_id", "collector_id", "respondent_id", "response_id",
               "case_uid", "source_title", "source_channel", "response_status", "collection_mode",
-              "date_created", "date_modified", "empresa_source_code",
+              "date_created", "date_modified", "recipient_id", "custom_value",
+              "total_time", "ip_address", "decision_class",
+              "decision_included", "answered_questions_count", "empresa_source_code",
               "empresa_source_label", "empresa_uid")
   cols <- unique(c(extras, expected, cols))
   cols <- cols[!is.na(cols) & nzchar(cols)]
@@ -1601,9 +1674,13 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   }))
   names(df) <- cols
   rownames(df) <- NULL
-  df <- .sm_mb_filter_effective_consent_df(df, inst, response_filter, consent_var = consent_var)
-  response_filter <- attr(df, "sm_response_filter", exact = TRUE) %||% response_filter
-  attr(df, "sm_response_filter") <- response_filter
+  if (isTRUE(apply_consent_filter)) {
+    df <- .sm_mb_filter_effective_consent_df(df, inst, response_filter, consent_var = consent_var)
+    response_filter <- attr(df, "sm_response_filter", exact = TRUE) %||% response_filter
+    attr(df, "sm_response_filter") <- response_filter
+  } else {
+    attr(df, "sm_response_filter") <- response_filter
+  }
   df
 }
 
@@ -1669,6 +1746,819 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   out
 }
 
+.sm_mb_snapshot_slug <- function(x, fallback = "base") {
+  out <- .sm_mb_slug(x)
+  out <- gsub("[^a-z0-9_]+", "_", out)
+  out <- gsub("^_+|_+$", "", out)
+  if (!nzchar(out)) fallback else substr(out, 1L, 64L)
+}
+
+.sm_mb_source_snapshot <- function(source_id,
+                                   source_spec,
+                                   source_details,
+                                   payload,
+                                   token,
+                                   base_url = "https://api.surveymonkey.com/v3") {
+  collectors <- tryCatch(
+    sm_api_fetch_collectors(source_id, token = token, base_url = base_url),
+    error = function(e) list(total = NA_integer_, data = list(), error = conditionMessage(e))
+  )
+  list(
+    survey_id = .sm_mb_scalar(source_id, ""),
+    source_spec = source_spec %||% list(),
+    source_title = .sm_mb_scalar(source_spec$source_title %||% source_details$title %||% source_spec$label, ""),
+    source_alias = .sm_mb_scalar(source_spec$source_alias %||% source_spec$label, ""),
+    source_channel = .sm_mb_source_channel(source_spec, ""),
+    collection_strategy = .sm_mb_collection_strategy(source_spec, ""),
+    fetched_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    total = suppressWarnings(as.integer(payload$total %||% length(payload$data %||% list()))),
+    responses = payload$data %||% list(),
+    details = source_details %||% list(),
+    collectors = collectors$data %||% list(),
+    collectors_total = suppressWarnings(as.integer(collectors$total %||% length(collectors$data %||% list()))),
+    collectors_error = .sm_mb_scalar(collectors$error, "")
+  )
+}
+
+.sm_mb_save_raw_snapshot <- function(sid, base_name, spec, sources, policy = list()) {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Se requiere jsonlite.", call. = FALSE)
+  payload <- list(
+    version = "surveymonkey_raw_snapshot/1",
+    created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    base_name = .sm_mb_scalar(base_name, ""),
+    spec = spec %||% list(),
+    decision_policy = policy %||% list(),
+    sources = sources %||% list()
+  )
+  json <- jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", pretty = FALSE)
+  save_upload(
+    sid,
+    "data",
+    paste0(.sm_mb_snapshot_slug(base_name), "_surveymonkey_raw.json"),
+    charToRaw(enc2utf8(as.character(json)))
+  )
+}
+
+.sm_mb_read_raw_snapshot <- function(sid, file_id) {
+  fid <- .sm_mb_scalar(file_id, "")
+  if (!nzchar(fid)) stop_api(409, "E_SM_RAW_SNAPSHOT_MISSING", "Esta base no tiene snapshot raw de SurveyMonkey.")
+  meta <- get_file(sid, fid)
+  if (is.null(meta$path) || !file.exists(meta$path)) {
+    stop_api(409, "E_SM_RAW_SNAPSHOT_FILE_MISSING", "El archivo raw de SurveyMonkey no existe en la sesión.")
+  }
+  if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Se requiere jsonlite.", call. = FALSE)
+  jsonlite::fromJSON(meta$path, simplifyVector = FALSE)
+}
+
+.sm_mb_default_collector_ids <- function(spec) {
+  sources <- spec$sources %||% spec$campaigns %||% list(spec)
+  unique(unlist(lapply(sources, function(source) {
+    .sm_mb_char_vector(source$collector_ids %||% source$collector_id)
+  }), use.names = FALSE))
+}
+
+.sm_mb_default_duplicate_key_vars <- function(inst) {
+  # Metadata SurveyMonkey real primero. p4/código PUCP queda disponible en UI,
+  # pero no se usa como sustituto silencioso de cv_id/custom values.
+  c("cv_id", "custom_value", "recipient_id")
+}
+
+.sm_mb_default_decision_policy <- function(spec, inst, response_filter = list()) {
+  consent_var <- .sm_mb_spec_consent_var(spec, response_filter %||% list())
+  list(
+    version = 1L,
+    edited = FALSE,
+    statuses = as.list(c("completed")),
+    collector_ids = as.list(.sm_mb_default_collector_ids(spec)),
+    consent_var = consent_var,
+    consent_yes_values = as.list(c("1", "si", "sí", "yes", "true", "acepta", "acepto", "accepted")),
+    rejection_var = consent_var,
+    rejection_values = as.list(c("0", "no", "no acepta", "no acepto", "rechaza", "rechazo", "decline", "declined")),
+    include_partials = FALSE,
+    partial_min_answers = 15L,
+    include_rejections = FALSE,
+    duplicate_key_vars = as.list(.sm_mb_default_duplicate_key_vars(inst)),
+    include_duplicates = TRUE,
+    duplicate_keep = "first",
+    manual_include_case_uids = list(),
+    saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+}
+
+.sm_mb_decision_policy_normalize <- function(policy, spec, inst, response_filter = list()) {
+  defaults <- .sm_mb_default_decision_policy(spec, inst, response_filter)
+  policy <- policy %||% list()
+  min_answers <- suppressWarnings(as.integer(policy$partial_min_answers %||% defaults$partial_min_answers))
+  if (is.na(min_answers)) min_answers <- 15L
+  min_answers <- max(10L, min_answers)
+  out <- defaults
+  for (key in intersect(names(policy), names(defaults))) out[[key]] <- policy[[key]]
+  out$statuses <- as.list(.sm_mb_char_vector(policy$statuses %||% defaults$statuses))
+  if (!length(out$statuses)) out$statuses <- as.list(c("completed"))
+  out$collector_ids <- as.list(.sm_mb_char_vector(policy$collector_ids %||% defaults$collector_ids))
+  out$consent_yes_values <- as.list(.sm_mb_char_vector(policy$consent_yes_values %||% defaults$consent_yes_values))
+  out$rejection_values <- as.list(.sm_mb_char_vector(policy$rejection_values %||% defaults$rejection_values))
+  out$consent_var <- .sm_mb_scalar(policy$consent_var %||% defaults$consent_var, "")
+  out$rejection_var <- .sm_mb_scalar(policy$rejection_var %||% defaults$rejection_var, "")
+  out$include_partials <- isTRUE(policy$include_partials)
+  out$partial_min_answers <- as.integer(min_answers)
+  out$include_rejections <- isTRUE(policy$include_rejections)
+  out$duplicate_key_vars <- as.list(.sm_mb_char_vector(policy$duplicate_key_vars %||% defaults$duplicate_key_vars))
+  out$include_duplicates <- if (is.null(policy$include_duplicates)) TRUE else isTRUE(policy$include_duplicates)
+  out$manual_include_case_uids <- as.list(unique(.sm_mb_char_vector(policy$manual_include_case_uids %||% defaults$manual_include_case_uids)))
+  duplicate_keep <- .sm_mb_scalar(policy$duplicate_keep %||% defaults$duplicate_keep, "first")
+  if (!duplicate_keep %in% c("first", "latest", "most_answered")) duplicate_keep <- "first"
+  out$duplicate_keep <- duplicate_keep
+  out$edited <- isTRUE(policy$edited)
+  out$saved_at <- .sm_mb_scalar(policy$saved_at, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  out
+}
+
+.sm_mb_snapshot_collector_catalog <- function(snapshot) {
+  rows <- list()
+  for (source in snapshot$sources %||% list()) {
+    for (collector in source$collectors %||% list()) {
+      id <- .sm_mb_scalar(collector$id %||% collector$collector_id, "")
+      if (!nzchar(id)) next
+      rows[[length(rows) + 1L]] <- list(
+        id = id,
+        name = .sm_mb_scalar(collector$name %||% collector$title %||% collector$collector_name, ""),
+        source = .sm_mb_scalar(source$source_title %||% source$source_alias, "")
+      )
+    }
+    counts <- names(source$collector_counts %||% list())
+    for (id in counts) {
+      id <- .sm_mb_scalar(id, "")
+      if (nzchar(id)) rows[[length(rows) + 1L]] <- list(id = id, name = "", source = "")
+    }
+  }
+  if (!length(rows)) return(data.frame(id = character(), name = character(), source = character(), stringsAsFactors = FALSE))
+  out <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE, optional = TRUE))
+  out <- out[!duplicated(out$id), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.sm_mb_collector_is_test <- function(name, source = "") {
+  text <- .sm_mb_norm(paste(.sm_mb_scalar(name, ""), .sm_mb_scalar(source, "")))
+  any(strsplit(text, "\\s+")[[1]] %in% "prueba")
+}
+
+.sm_mb_decision_policy_exclude_test_collectors <- function(policy, snapshot) {
+  catalog <- .sm_mb_snapshot_collector_catalog(snapshot)
+  if (!nrow(catalog)) return(policy)
+  is_test <- vapply(seq_len(nrow(catalog)), function(i) {
+    .sm_mb_collector_is_test(catalog$name[[i]], catalog$source[[i]])
+  }, logical(1))
+  allowed <- unique(as.character(catalog$id[!is_test]))
+  allowed <- allowed[nzchar(allowed)]
+  if (!length(allowed)) return(policy)
+  selected <- .sm_mb_char_vector(policy$collector_ids)
+  selected <- if (length(selected)) intersect(selected, allowed) else allowed
+  policy$collector_ids <- as.list(selected)
+  policy
+}
+
+.sm_mb_values_match <- function(values, accepted) {
+  values_norm <- .sm_mb_norm(values)
+  accepted_norm <- .sm_mb_norm(accepted)
+  accepted_norm <- accepted_norm[nzchar(accepted_norm)]
+  if (!length(accepted_norm)) return(rep(FALSE, length(values_norm)))
+  values_norm %in% accepted_norm
+}
+
+.sm_mb_nonempty <- function(x) {
+  x <- as.character(x %||% "")
+  !is.na(x) & nzchar(trimws(x))
+}
+
+.sm_mb_policy_source_filter <- function(df, policy) {
+  collectors <- .sm_mb_char_vector(policy$collector_ids)
+  if (!length(collectors) || !("collector_id" %in% names(df))) return(rep(TRUE, nrow(df)))
+  as.character(df$collector_id %||% "") %in% collectors
+}
+
+.sm_mb_question_answer_counts <- function(df, inst) {
+  expected <- intersect(.sm_mb_expected_names(inst), names(df))
+  if (!length(expected) || !nrow(df)) return(rep(0L, nrow(df)))
+  mat <- vapply(expected, function(col) .sm_mb_nonempty(df[[col]]), logical(nrow(df)))
+  if (is.null(dim(mat))) mat <- matrix(mat, nrow = nrow(df))
+  as.integer(rowSums(mat, na.rm = TRUE))
+}
+
+.sm_mb_required_truthy <- function(value) {
+  value <- .sm_mb_norm(as.character(value %||% ""))
+  value %in% c("1", "true", "yes", "si", "sí", "required", "all", "at_least", "at least")
+}
+
+.sm_mb_admin_completion_vars <- function(inst) {
+  survey <- inst$survey
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) return(character(0))
+  names_raw <- as.character(survey$name %||% "")
+  labels <- rep("", nrow(survey))
+  label_cols <- grep("^label($|::)|^hint($|::)", names(survey), value = TRUE)
+  for (col in label_cols) {
+    value <- as.character(survey[[col]] %||% "")
+    value[is.na(value)] <- ""
+    fill <- !nzchar(labels) & nzchar(value)
+    labels[fill] <- value[fill]
+  }
+  text <- .sm_mb_norm(paste(names_raw, labels))
+  admin <- grepl("codigo pulso|código pulso|carrera del egresado|celular del egresado|enumerador", text)
+  unique(names_raw[admin & !is.na(names_raw) & nzchar(names_raw)])
+}
+
+.sm_mb_required_question_specs <- function(inst) {
+  survey <- inst$survey
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) {
+    return(data.frame(name = character(), relevant = character(), group_relevant = character(), stringsAsFactors = FALSE))
+  }
+  type_base <- .sm_mb_type_base(survey$type %||% "")
+  type_raw <- trimws(as.character(survey$type %||% ""))
+  names_raw <- trimws(as.character(survey$name %||% ""))
+  required <- if ("required" %in% names(survey)) {
+    vapply(survey$required, .sm_mb_required_truthy, logical(1))
+  } else {
+    rep(FALSE, nrow(survey))
+  }
+  keep <- nzchar(names_raw) &
+    !(type_base %in% .sm_mb_non_question_types) &
+    !(type_raw %in% .sm_mb_non_question_types) &
+    required &
+    !(names_raw %in% .sm_mb_admin_completion_vars(inst))
+  out <- data.frame(
+    name = names_raw[keep],
+    relevant = if ("relevant" %in% names(survey)) as.character(survey$relevant[keep] %||% "") else rep("", sum(keep)),
+    group_relevant = if ("group_relevant" %in% names(survey)) as.character(survey$group_relevant[keep] %||% "") else rep("", sum(keep)),
+    stringsAsFactors = FALSE
+  )
+  out$name[is.na(out$name)] <- ""
+  out$relevant[is.na(out$relevant)] <- ""
+  out$group_relevant[is.na(out$group_relevant)] <- ""
+  out <- out[nzchar(out$name), , drop = FALSE]
+  out <- out[!duplicated(out$name), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.sm_mb_selected <- function(x, code) {
+  tokens <- strsplit(as.character(x %||% ""), "\\s+")
+  vapply(tokens, function(items) code %in% items, logical(1))
+}
+
+.sm_mb_eval_relevant_expr <- function(expr, df) {
+  expr <- .sm_mb_trim(expr)
+  n <- nrow(df)
+  if (!nzchar(expr) || !n) return(rep(TRUE, n))
+  if (exists(".sm_eval_relevant_expr", mode = "function")) {
+    out <- tryCatch(.sm_eval_relevant_expr(expr, df), error = function(e) NULL)
+    if (!is.null(out) && length(out) == n) return(ifelse(is.na(as.logical(out)), FALSE, as.logical(out)))
+  }
+  e <- expr
+  e <- gsub(
+    "selected\\(\\s*\\$\\{([A-Za-z_][A-Za-z0-9_/]*)\\}\\s*,\\s*'([^']*)'\\s*\\)",
+    ".sm_mb_selected(data[['\\1']], '\\2')",
+    e, perl = TRUE
+  )
+  e <- gsub("\\$\\{([A-Za-z_][A-Za-z0-9_/]*)\\}", "as.character(data[['\\1']])", e, perl = TRUE)
+  e <- gsub("(?<![!=])=(?!=)", "==", e, perl = TRUE)
+  e <- gsub("\\bnot\\(", "!(", e, perl = TRUE)
+  e <- gsub("\\bor\\b", "|", e, perl = TRUE)
+  e <- gsub("\\band\\b", "&", e, perl = TRUE)
+  out <- tryCatch(eval(parse(text = sprintf("{ res <- (%s); ifelse(is.na(res), FALSE, res) }", e)),
+    envir = list(data = df, .sm_mb_selected = .sm_mb_selected)), error = function(e) NULL)
+  if (is.null(out) || length(out) != n) return(rep(TRUE, n))
+  ifelse(is.na(as.logical(out)), FALSE, as.logical(out))
+}
+
+.sm_mb_required_completion_info <- function(df, inst) {
+  df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+  n <- nrow(df)
+  specs <- .sm_mb_required_question_specs(inst)
+  if (!n || !nrow(specs)) {
+    return(list(
+      answered = rep(0L, n),
+      answerable = rep(0L, n),
+      ratio = rep(NA_real_, n),
+      label = rep("0/0", n)
+    ))
+  }
+  answered <- integer(n)
+  answerable <- integer(n)
+  for (i in seq_len(nrow(specs))) {
+    var <- specs$name[[i]]
+    applicable <- rep(TRUE, n)
+    rels <- c(specs$group_relevant[[i]], specs$relevant[[i]])
+    rels <- rels[nzchar(.sm_mb_trim(rels))]
+    for (expr in rels) {
+      applicable <- applicable & .sm_mb_eval_relevant_expr(expr, df)
+    }
+    answerable <- answerable + as.integer(applicable)
+    values <- if (var %in% names(df)) df[[var]] else rep(NA_character_, n)
+    answered <- answered + as.integer(applicable & .sm_mb_nonempty(values))
+  }
+  ratio <- ifelse(answerable > 0L, answered / answerable, NA_real_)
+  list(
+    answered = as.integer(answered),
+    answerable = as.integer(answerable),
+    ratio = ratio,
+    label = paste0(answered, "/", answerable)
+  )
+}
+
+.sm_mb_duplicate_info <- function(df, answer_counts, policy) {
+  n <- nrow(df)
+  empty <- list(
+    key = rep("", n),
+    key_var = rep("", n),
+    group_size = rep(0L, n),
+    rank = rep(1L, n),
+    in_group = rep(FALSE, n),
+    extra = rep(FALSE, n),
+    key_vars = character(0)
+  )
+  if (!n) return(empty)
+  key_vars <- intersect(.sm_mb_char_vector(policy$duplicate_key_vars), names(df))
+  if (!length(key_vars)) return(empty)
+  key <- rep("", n)
+  key_var <- rep("", n)
+  for (var in key_vars) {
+    values <- as.character(df[[var]] %||% "")
+    values[is.na(values)] <- ""
+    values <- trimws(values)
+    fill <- !nzchar(key) & nzchar(values)
+    if (any(fill, na.rm = TRUE)) {
+      key[fill] <- paste(var, values[fill], sep = "=")
+      key_var[fill] <- var
+    }
+  }
+  has_key <- nzchar(key)
+  if (!any(has_key)) {
+    empty$key_vars <- key_vars
+    return(empty)
+  }
+  tab <- table(key[has_key])
+  group_size <- rep(0L, n)
+  group_size[has_key] <- as.integer(tab[key[has_key]])
+  in_group <- has_key & group_size > 1L
+  rank <- rep(1L, n)
+  keep <- .sm_mb_scalar(policy$duplicate_keep, "first")
+  modified <- if ("date_modified" %in% names(df)) {
+    vapply(as.character(df$date_modified), .sm_mb_parse_time, numeric(1))
+  } else if ("date_created" %in% names(df)) {
+    vapply(as.character(df$date_created), .sm_mb_parse_time, numeric(1))
+  } else {
+    rep(NA_real_, n)
+  }
+  for (dup_key in names(tab)[tab > 1L]) {
+    idx <- which(key == dup_key)
+    ord <- switch(keep,
+      latest = order(ifelse(is.na(modified[idx]), -Inf, modified[idx]), decreasing = TRUE),
+      most_answered = order(answer_counts[idx], ifelse(is.na(modified[idx]), -Inf, modified[idx]), decreasing = TRUE),
+      seq_along(idx)
+    )
+    rank[idx[ord]] <- seq_along(idx)
+  }
+  list(
+    key = key,
+    key_var = key_var,
+    group_size = as.integer(group_size),
+    rank = as.integer(rank),
+    in_group = in_group,
+    extra = in_group & rank > 1L,
+    key_vars = key_vars
+  )
+}
+
+.sm_mb_completion_compare_var <- function(inst, pattern) {
+  survey <- inst$survey
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) return("")
+  names_raw <- as.character(survey$name %||% "")
+  label_cols <- grep("^label($|::)", names(survey), value = TRUE)
+  labels <- rep("", nrow(survey))
+  for (col in label_cols) {
+    value <- as.character(survey[[col]] %||% "")
+    value[is.na(value)] <- ""
+    fill <- !nzchar(labels) & nzchar(value)
+    labels[fill] <- value[fill]
+  }
+  text <- .sm_mb_norm(paste(names_raw, labels))
+  hit <- which(grepl(pattern, text))
+  if (!length(hit)) return("")
+  .sm_mb_scalar(names_raw[[hit[[1L]]]], "")
+}
+
+.sm_mb_compare_sensitive_status <- function(values, ref_idx) {
+  values <- as.character(values %||% "")
+  values[is.na(values)] <- ""
+  values_norm <- .sm_mb_norm(trimws(values))
+  ref <- values_norm[[ref_idx]]
+  if (!nzchar(ref)) return(rep("sin dato", length(values_norm)))
+  ifelse(!nzchar(values_norm), "sin dato", ifelse(values_norm == ref, "coincide", "difiere"))
+}
+
+.sm_mb_duplicate_key_label <- function(value) {
+  key <- tolower(trimws(.sm_mb_scalar(value, "")))
+  if (!nzchar(key)) return("llave de cruce")
+  if (key %in% c("cv_id", "recipient_cv_id", "id_enlace_sm") || grepl("custom_variables.*id", key)) {
+    return("ID enlace")
+  }
+  if (grepl("codigo pulso|código pulso", key)) return("Código Pulso")
+  if (grepl("carrera", key)) return("Carrera")
+  .sm_mb_scalar(value, "llave de cruce")
+}
+
+.sm_mb_duplicate_evidence <- function(df, dup, inst) {
+  n <- nrow(df)
+  empty <- list(
+    kept_case_uid = rep("", n),
+    kept_response_id = rep("", n),
+    code_match = rep("", n),
+    career_match = rep("", n),
+    summary = rep("", n)
+  )
+  if (!n || is.null(dup$key) || !any(dup$in_group, na.rm = TRUE)) return(empty)
+  case_uids <- as.character(df$case_uid %||% "")
+  response_ids <- as.character(df$response_id %||% "")
+  code_var <- .sm_mb_completion_compare_var(inst, "codigo pulso|código pulso")
+  career_var <- .sm_mb_completion_compare_var(inst, "carrera del egresado")
+  for (dup_key in unique(dup$key[dup$in_group])) {
+    if (!nzchar(dup_key)) next
+    idx <- which(dup$key == dup_key)
+    if (!length(idx)) next
+    ref_idx <- idx[which.min(dup$rank[idx])]
+    empty$kept_case_uid[idx] <- .sm_mb_scalar(case_uids[[ref_idx]], "")
+    empty$kept_response_id[idx] <- .sm_mb_scalar(response_ids[[ref_idx]], "")
+    empty$summary[idx] <- sprintf("Grupo de %s por %s; se conserva respuesta %s.",
+      length(idx),
+      .sm_mb_duplicate_key_label(dup$key_var[[ref_idx]]),
+      .sm_mb_scalar(response_ids[[ref_idx]], "-")
+    )
+    if (nzchar(code_var) && code_var %in% names(df)) {
+      empty$code_match[idx] <- .sm_mb_compare_sensitive_status(df[[code_var]][idx], which(idx == ref_idx))
+    } else {
+      empty$code_match[idx] <- "sin dato"
+    }
+    if (nzchar(career_var) && career_var %in% names(df)) {
+      empty$career_match[idx] <- .sm_mb_compare_sensitive_status(df[[career_var]][idx], which(idx == ref_idx))
+    } else {
+      empty$career_match[idx] <- "sin dato"
+    }
+  }
+  empty
+}
+
+.sm_mb_decision_case_rows <- function(df, source_label = "", limit = 250L) {
+  if (!is.data.frame(df) || !nrow(df)) return(list())
+  limit <- suppressWarnings(as.integer(limit %||% 250L))
+  if (is.na(limit) || limit < 1L) limit <- 250L
+  decision <- as.character(df$decision_class %||% "")
+  dup_status <- as.character(df$duplicate_status %||% "")
+  status <- as.character(df$response_status %||% "")
+  answers <- suppressWarnings(as.integer(df$answered_required_count %||% df$answered_questions_count %||% 0L))
+  reason <- rep("", nrow(df))
+  reason[decision == "duplicado_excluido"] <- "Tiene el mismo identificador que otro caso y queda fuera por la regla de duplicados."
+  reason[decision == "parcial_excluida"] <- "La encuesta está parcial y no entra con la regla actual."
+  reason[decision == "parcial_incluida"] <- "La encuesta está parcial, pero entra porque activaste incluir parciales."
+  reason[decision == "rechazo_excluido"] <- "La persona no aceptó participar o marcó rechazo."
+  reason[decision == "rechazo_incluido"] <- "La persona marcó rechazo, pero entra porque activaste incluir rechazos."
+  reason[decision == "manual_incluida"] <- "Incluida manualmente por la política de revisión."
+  excluded_idx <- which(decision == "excluida")
+  reason[excluded_idx] <- ifelse(
+    nzchar(status[excluded_idx]) & !(tolower(status[excluded_idx]) %in% c("completed", "complete")),
+    "No está completa y no entra con la regla actual.",
+    "No cumple los filtros actuales de consentimiento, recopilador o campaña."
+  )
+  reason[dup_status == "duplicado_extra"] <- "Tiene el mismo identificador que otro caso y queda como repetido."
+  reason[is.na(reason)] <- ""
+  observed <- nzchar(reason)
+  observed_total <- sum(observed, na.rm = TRUE)
+  observed_rows <- which(observed)
+  regular_rows <- which(!observed)
+  if (length(answers) == length(reason)) {
+    if (length(observed_rows)) {
+      ord <- order(decision[observed_rows] == "duplicado_excluido", decision[observed_rows] == "parcial_excluida", answers[observed_rows], decreasing = TRUE)
+      observed_rows <- observed_rows[ord]
+    }
+    if (length(regular_rows)) {
+      regular_rows <- regular_rows[order(answers[regular_rows], decreasing = TRUE)]
+    }
+  }
+  cols <- intersect(c(
+    "case_uid", "survey_id", "source_title", "source_channel", "collector_id",
+    "response_id", "recipient_id", "custom_value", "cv_id", "p4",
+    "response_status", "date_created", "date_modified",
+    "answered_questions_count", "answered_required_count", "answerable_required_count",
+    "answer_completion_ratio", "answer_completion_label", "near_complete",
+    "decision_class", "decision_included",
+    "decision_manual_include",
+    "duplicate_status", "duplicate_key_var", "duplicate_key",
+    "duplicate_group_size", "duplicate_rank",
+    "duplicate_kept_case_uid", "duplicate_kept_response_id",
+    "duplicate_code_match", "duplicate_career_match", "duplicate_evidence"
+  ), names(df))
+  rows <- utils::head(c(observed_rows, regular_rows), limit)
+  out_rows <- lapply(rows, function(i) {
+    out <- lapply(cols, function(col) .sm_mb_scalar(df[[col]][i], ""))
+    names(out) <- cols
+    out$source_label <- .sm_mb_scalar(source_label, "")
+    out$observed <- isTRUE(observed[[i]])
+    out$observation_reason <- .sm_mb_scalar(reason[[i]], "")
+    out
+  })
+  attr(out_rows, "observed_total") <- as.integer(observed_total)
+  attr(out_rows, "case_rows_omitted") <- as.integer(max(0L, nrow(df) - length(out_rows)))
+  out_rows
+}
+
+.sm_mb_decision_apply_df <- function(df, inst, policy, source_label = "") {
+  df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+  if (!nrow(df)) {
+    attr(df, "sm_decision_audit") <- list(
+      raw_total = 0L, included = 0L, excluded = 0L, source_label = source_label
+    )
+    return(df)
+  }
+  statuses <- tolower(.sm_mb_char_vector(policy$statuses))
+  if (!length(statuses)) statuses <- c("completed")
+  status <- tolower(trimws(as.character(df$response_status %||% "")))
+  status_included <- status %in% statuses
+  completed <- status %in% c("completed", "complete")
+  collector_included <- .sm_mb_policy_source_filter(df, policy)
+
+  completion <- .sm_mb_required_completion_info(df, inst)
+  answer_counts <- completion$answered
+  partial_min <- suppressWarnings(as.integer(policy$partial_min_answers %||% 15L))
+  if (is.na(partial_min)) partial_min <- 15L
+  partial_min <- max(10L, partial_min)
+  partial_revisable <- !completed & answer_counts > partial_min
+
+  consent_var <- .sm_mb_scalar(policy$consent_var, "")
+  consent_values <- if (nzchar(consent_var) && consent_var %in% names(df)) as.character(df[[consent_var]]) else rep("", nrow(df))
+  consent_available <- nzchar(consent_var) && consent_var %in% names(df)
+  consent_yes <- if (consent_available) {
+    .sm_mb_values_match(consent_values, policy$consent_yes_values %||% character())
+  } else {
+    rep(TRUE, nrow(df))
+  }
+
+  rejection_var <- .sm_mb_scalar(policy$rejection_var, consent_var)
+  rejection_values <- if (nzchar(rejection_var) && rejection_var %in% names(df)) as.character(df[[rejection_var]]) else rep("", nrow(df))
+  rejection <- if (nzchar(rejection_var) && rejection_var %in% names(df)) {
+    .sm_mb_values_match(rejection_values, policy$rejection_values %||% character())
+  } else {
+    rep(FALSE, nrow(df))
+  }
+
+  effective <- completed & consent_yes
+  dup <- .sm_mb_duplicate_info(df, answer_counts, policy)
+  duplicate_excluded <- !isTRUE(policy$include_duplicates) & dup$extra
+  include_partial <- isTRUE(policy$include_partials) & partial_revisable & collector_included & !rejection
+  include_rejection <- isTRUE(policy$include_rejections) & rejection & collector_included
+  case_uids <- if ("case_uid" %in% names(df)) as.character(df$case_uid %||% "") else rep("", nrow(df))
+  manual_case_uids <- .sm_mb_char_vector(policy$manual_include_case_uids)
+  manual_include <- nzchar(case_uids) & case_uids %in% manual_case_uids & collector_included
+  included <- (collector_included & !duplicate_excluded & ((status_included & effective) | include_partial | include_rejection)) | manual_include
+  decision_class <- ifelse(manual_include, "manual_incluida",
+    ifelse(duplicate_excluded, "duplicado_excluido",
+    ifelse(included & effective, "efectiva",
+    ifelse(included & partial_revisable, "parcial_incluida",
+      ifelse(included & rejection, "rechazo_incluido",
+        ifelse(rejection, "rechazo_excluido",
+          ifelse(partial_revisable, "parcial_excluida", "excluida")))))))
+
+  df$decision_class <- decision_class
+  df$decision_included <- ifelse(included, "1", "0")
+  df$decision_manual_include <- ifelse(manual_include, "1", "0")
+  df$answered_questions_count <- as.character(answer_counts)
+  df$answered_required_count <- as.character(completion$answered)
+  df$answerable_required_count <- as.character(completion$answerable)
+  df$answer_completion_ratio <- ifelse(is.na(completion$ratio), NA_character_, sprintf("%.6f", completion$ratio))
+  df$answer_completion_label <- completion$label
+  near_complete <- !included & !is.na(completion$ratio) & completion$ratio >= 0.95
+  df$near_complete <- ifelse(near_complete, "1", "0")
+  df$duplicate_key <- ifelse(nzchar(dup$key), dup$key, NA_character_)
+  df$duplicate_key_var <- ifelse(nzchar(dup$key_var), dup$key_var, NA_character_)
+  df$duplicate_group_size <- as.character(dup$group_size)
+  df$duplicate_rank <- as.character(dup$rank)
+  df$duplicate_status <- ifelse(dup$extra, "duplicado_extra",
+    ifelse(dup$in_group, "duplicado_conservado", "unico"))
+  dup_evidence <- .sm_mb_duplicate_evidence(df, dup, inst)
+  df$duplicate_kept_case_uid <- dup_evidence$kept_case_uid
+  df$duplicate_kept_response_id <- dup_evidence$kept_response_id
+  df$duplicate_code_match <- dup_evidence$code_match
+  df$duplicate_career_match <- dup_evidence$career_match
+  df$duplicate_evidence <- dup_evidence$summary
+
+  status_counts <- .sm_mb_count_values(status)
+  collector_counts <- if ("collector_id" %in% names(df)) .sm_mb_count_values(df$collector_id) else list()
+  included_collectors <- if ("collector_id" %in% names(df)) {
+    unique(as.character(df$collector_id[included] %||% ""))
+  } else {
+    character(0)
+  }
+  included_collectors <- included_collectors[nzchar(included_collectors)]
+  case_rows <- .sm_mb_decision_case_rows(df, source_label = source_label, limit = 250L)
+  audit <- list(
+    source_label = source_label,
+    raw_total = as.integer(nrow(df)),
+    completed = as.integer(sum(completed, na.rm = TRUE)),
+    completed_with_consent = as.integer(sum(completed & consent_yes, na.rm = TRUE)),
+    partials_revisable = as.integer(sum(partial_revisable, na.rm = TRUE)),
+    rejections = as.integer(sum(rejection, na.rm = TRUE)),
+    unclear_consent = as.integer(if (consent_available) sum(!consent_yes & !rejection & .sm_mb_nonempty(consent_values), na.rm = TRUE) else 0L),
+    included = as.integer(sum(included, na.rm = TRUE)),
+    excluded = as.integer(sum(!included, na.rm = TRUE)),
+    collectors_included = as.integer(length(included_collectors)),
+    partial_min_answers = as.integer(partial_min),
+    answerable_required_max = as.integer(max(completion$answerable, na.rm = TRUE)),
+    near_complete_cases = as.integer(sum(near_complete, na.rm = TRUE)),
+    consent_var = consent_var,
+    rejection_var = rejection_var,
+    consent_available = isTRUE(consent_available),
+    duplicate_key_vars = as.list(dup$key_vars),
+    duplicate_keep = .sm_mb_scalar(policy$duplicate_keep, "first"),
+    include_duplicates = isTRUE(policy$include_duplicates),
+    duplicate_groups = as.integer(length(unique(dup$key[dup$in_group]))),
+    duplicate_rows = as.integer(sum(dup$in_group, na.rm = TRUE)),
+    duplicate_extra_rows = as.integer(sum(dup$extra, na.rm = TRUE)),
+    duplicates_excluded = as.integer(sum(duplicate_excluded, na.rm = TRUE)),
+    duplicates_included = as.integer(sum(dup$in_group & included, na.rm = TRUE)),
+    manual_included = as.integer(sum(manual_include, na.rm = TRUE)),
+    status_counts = status_counts,
+    collector_counts = collector_counts,
+    observed_cases = as.integer(attr(case_rows, "observed_total", exact = TRUE) %||% 0L),
+    cases = case_rows,
+    case_rows_omitted = as.integer(attr(case_rows, "case_rows_omitted", exact = TRUE) %||% max(0L, nrow(df) - 250L))
+  )
+  out <- df[included, , drop = FALSE]
+  attr(out, "sm_decision_audit") <- audit
+  out
+}
+
+.sm_mb_decision_audit_total <- function(audits) {
+  audits <- Filter(function(x) is.list(x) && length(x), audits %||% list())
+  sums <- function(key) as.integer(sum(vapply(audits, function(x) as.integer(x[[key]] %||% 0L), integer(1))))
+  list(
+    version = 1L,
+    audited_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    raw_total = sums("raw_total"),
+    completed = sums("completed"),
+    completed_with_consent = sums("completed_with_consent"),
+    partials_revisable = sums("partials_revisable"),
+    rejections = sums("rejections"),
+    unclear_consent = sums("unclear_consent"),
+    duplicate_groups = sums("duplicate_groups"),
+    duplicate_rows = sums("duplicate_rows"),
+    duplicate_extra_rows = sums("duplicate_extra_rows"),
+    duplicates_excluded = sums("duplicates_excluded"),
+    duplicates_included = sums("duplicates_included"),
+    manual_included = sums("manual_included"),
+    near_complete_cases = sums("near_complete_cases"),
+    observed_cases = sums("observed_cases"),
+    case_rows_omitted = sums("case_rows_omitted"),
+    included = sums("included"),
+    excluded = sums("excluded"),
+    collectors_included = sums("collectors_included"),
+    sources = audits
+  )
+}
+
+.sm_mb_build_effective_from_snapshot <- function(sid, base_name, policy = NULL) {
+  s <- session_get(sid)
+  base <- s$estudio$bases[[base_name]]
+  if (is.null(base)) stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", base_name))
+  snapshot <- .sm_mb_read_raw_snapshot(sid, base$surveymonkey_raw_snapshot_file_id)
+  xls_fid <- .sm_mb_scalar(base$original_xlsform_file_id %||% base$xlsform_file_id, "")
+  if (!nzchar(xls_fid)) stop_api(409, "E_SM_NO_XLSFORM", "La base no tiene XLSForm asociado.")
+  rp_inst <- reporte_instrumento(path = get_file(sid, xls_fid)$path)
+  spec <- tryCatch(.sm_mb_normalize_survey_specs(list(snapshot$spec %||% base$surveymonkey_source_spec %||% list()))[[1]], error = function(e) {
+    base$surveymonkey_source_spec %||% list(survey_id = base$survey_id)
+  })
+  policy <- .sm_mb_decision_policy_normalize(policy %||% base$surveymonkey_decision_policy, spec, rp_inst, base$response_filter %||% list())
+  policy <- .sm_mb_decision_policy_exclude_test_collectors(policy, snapshot)
+
+  source_dfs <- list()
+  source_audits <- list()
+  for (source in snapshot$sources %||% list()) {
+    source_id <- .sm_mb_scalar(source$survey_id %||% (source$source_spec %||% list())$survey_id, spec$survey_id)
+    source_spec <- source$source_spec %||% spec
+    details <- source$details %||% list()
+    responses <- source$responses %||% list()
+    source_title <- .sm_mb_scalar(source$source_title %||% source_spec$source_title %||% source_spec$label, "")
+    source_df <- sm_multibase_api_responses_to_canonical_data(
+      details = details,
+      responses = responses,
+      inst = rp_inst,
+      survey_id = source_id,
+      pais = .sm_mb_scalar(source_spec$pais %||% spec$pais, ""),
+      source_title = source_title,
+      source_channel = .sm_mb_source_channel(source_spec, spec$source_channel %||% ""),
+      company_vars = character(0),
+      response_statuses = c("all"),
+      keep_missing_status = TRUE,
+      collector_ids = character(0),
+      date_modified_gte = "",
+      date_modified_lte = "",
+      consent_var = "",
+      apply_consent_filter = FALSE
+    )
+    decided <- .sm_mb_decision_apply_df(source_df, rp_inst, policy, source_label = source_title)
+    source_dfs[[length(source_dfs) + 1L]] <- decided
+    audit <- attr(decided, "sm_decision_audit", exact = TRUE) %||% list()
+    audit$survey_id <- source_id
+    audit$source_title <- source_title
+    audit$source_alias <- .sm_mb_scalar(source$source_alias %||% source_spec$source_alias %||% source_spec$label, "")
+    audit$collectors <- lapply(source$collectors %||% list(), function(item) {
+      list(
+        id = .sm_mb_scalar(item$id %||% item$collector_id, ""),
+        name = .sm_mb_scalar(item$name %||% item$title %||% item$collector_name, ""),
+        type = .sm_mb_scalar(item$type %||% item$collector_type, ""),
+        response_count = suppressWarnings(as.integer(item$response_count %||% item$num_responses %||% NA_integer_))
+      )
+    })
+    source_audits[[length(source_audits) + 1L]] <- audit
+  }
+  data_df <- .sm_mb_bind_rows(source_dfs)
+  if (nrow(data_df)) data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+  audit <- .sm_mb_decision_audit_total(source_audits)
+  audit$policy <- policy
+  list(data = data_df, inst = rp_inst, policy = policy, audit = audit, snapshot = snapshot)
+}
+
+sm_multibase_decision_preview <- function(sid, base_name, policy = NULL) {
+  built <- .sm_mb_build_effective_from_snapshot(sid, base_name, policy)
+  list(
+    ok = TRUE,
+    base_name = base_name,
+    policy = built$policy,
+    audit = built$audit,
+    n_filas_preview = as.integer(nrow(built$data)),
+    n_columnas_preview = as.integer(ncol(built$data))
+  )
+}
+
+sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
+                                        regenerate_data = TRUE,
+                                        force_replace_adapted = FALSE) {
+  built <- .sm_mb_build_effective_from_snapshot(sid, base_name, policy)
+  s <- session_get(sid)
+  base <- s$estudio$bases[[base_name]]
+  is_adapted <- .sm_mb_base_current_is_adapted(s, base)
+  has_downstream_progress <- .sm_mb_base_has_downstream_progress(s, base_name, base)
+  generated_meta <- NULL
+  replaced_active <- FALSE
+  if (isTRUE(regenerate_data) && is.data.frame(built$data)) {
+    data_path <- file.path(s$dir, "downloads", paste0(uuid::UUIDgenerate(), "_", base_name, "_decision_data.xlsx"))
+    .sm_mb_write_xlsx(built$data, data_path)
+    data_bytes <- readBin(data_path, what = "raw", n = file.info(data_path)$size)
+    generated_meta <- save_upload(sid, "data", paste0(base_name, "_decision_data.xlsx"), data_bytes)
+    rp_data <- reporte_data(built$data, instrumento = built$inst)
+    s <- session_get(sid)
+    base <- s$estudio$bases[[base_name]]
+    base$surveymonkey_effective_data_file_id <- generated_meta$file_id
+    if ((!isTRUE(is_adapted) && !isTRUE(has_downstream_progress)) || isTRUE(force_replace_adapted)) {
+      base$data_file_id <- generated_meta$file_id
+      base$data_ext <- generated_meta$ext
+      base$n_filas <- as.integer(nrow(built$data))
+      base$n_columnas <- as.integer(ncol(built$data))
+      s$rp_data_sources[[base_name]] <- rp_data
+      if (identical(names(s$estudio$bases)[1], base_name)) s$rp_data <- rp_data
+      replaced_active <- TRUE
+    }
+    s$estudio$bases[[base_name]] <- base
+    .session_env[[sid]] <- s
+  }
+  s <- session_get(sid)
+  base <- s$estudio$bases[[base_name]]
+  built$policy$edited <- TRUE
+  built$policy$saved_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  base$surveymonkey_decision_policy <- built$policy
+  base$surveymonkey_decision_audit <- built$audit
+  base$response_filter <- built$audit
+  base$surveymonkey_decision_updated_at <- built$policy$saved_at
+  if (!is.null(generated_meta)) {
+    base$surveymonkey_effective_data_file_id <- generated_meta$file_id
+  }
+  s$estudio$bases[[base_name]] <- base
+  if (isTRUE(replaced_active)) {
+    s <- .invalidate_processing_state(s, base_name)
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  list(
+    ok = TRUE,
+    base_name = base_name,
+    policy = built$policy,
+    audit = built$audit,
+    generated_file_id = generated_meta$file_id %||% NA_character_,
+    replaced_active = isTRUE(replaced_active),
+    kept_adapted_data = isTRUE(is_adapted) && !isTRUE(force_replace_adapted),
+    kept_downstream_data = isTRUE(has_downstream_progress) && !isTRUE(force_replace_adapted),
+    estudio = .estudio_payload(sid)
+  )
+}
+
 .sm_mb_response_filter_total <- function(filters) {
   filters <- Filter(function(x) is.list(x) && length(x), filters %||% list())
   if (!length(filters)) return(list())
@@ -1711,6 +2601,104 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
     if (ncol(df)) openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.sm_mb_logic_value_count <- function(survey) {
+  if (is.null(survey) || !is.data.frame(survey) || !nrow(survey)) return(0L)
+  cols <- intersect(
+    c("relevant", "constraint", "constraint_message", "readonly",
+      "calculation", "calculate", "choice_filter", "default", "trigger"),
+    names(survey)
+  )
+  if (!length(cols)) return(0L)
+  vals <- unlist(survey[, cols, drop = FALSE], use.names = FALSE)
+  vals <- trimws(as.character(vals %||% ""))
+  vals[is.na(vals)] <- ""
+  as.integer(sum(nzchar(vals)))
+}
+
+.sm_mb_read_xlsform_sheets_safe <- function(path) {
+  if (!nzchar(.sm_mb_scalar(path, "")) || !file.exists(path)) return(NULL)
+  tryCatch({
+    if (exists(".estudio_xlsform_read_sheets", mode = "function")) {
+      .estudio_xlsform_read_sheets(path)
+    } else {
+      list(
+        survey = suppressWarnings(readxl::read_excel(path, sheet = "survey")),
+        choices = suppressWarnings(readxl::read_excel(path, sheet = "choices")),
+        settings = tryCatch(suppressWarnings(readxl::read_excel(path, sheet = "settings")), error = function(e) NULL)
+      )
+    }
+  }, error = function(e) NULL)
+}
+
+.sm_mb_shared_logic_template_sheets <- function(sid, target_base = "") {
+  s <- session_get(sid, required = FALSE)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  if (is.null(s) || !length(bases)) return(NULL)
+  family <- (s$estudio %||% list())$independent_siblings %||% list()
+  if (!isTRUE(family$shared_logic)) return(NULL)
+
+  base_names <- names(bases)
+  preferred <- as.character(family$template_base %||% "")
+  preferred <- preferred[nzchar(preferred) & preferred %in% base_names]
+  target_base <- as.character(target_base %||% "")
+  candidates <- unique(c(
+    preferred,
+    if (nzchar(target_base) && target_base %in% base_names) target_base else character(0),
+    setdiff(base_names, target_base)
+  ))
+
+  best <- NULL
+  best_count <- 0L
+  for (candidate in candidates) {
+    fid <- .sm_mb_scalar(bases[[candidate]]$xlsform_file_id, "")
+    if (!nzchar(fid)) next
+    meta <- tryCatch(get_file(sid, fid), error = function(e) NULL)
+    sheets <- .sm_mb_read_xlsform_sheets_safe(meta$path %||% "")
+    if (is.null(sheets) || is.null(sheets$survey)) next
+    count <- .sm_mb_logic_value_count(sheets$survey)
+    if (count > best_count) {
+      best_count <- count
+      best <- list(base = candidate, sheets = sheets, logic_value_count = count)
+    }
+  }
+  if (is.null(best) || best_count <= 0L) return(NULL)
+  best
+}
+
+.sm_mb_apply_shared_logic_to_model <- function(sid, base_name, model) {
+  if (!exists(".estudio_apply_template_logic_survey", mode = "function")) {
+    return(list(model = model, applied = FALSE, reason = "helper_unavailable"))
+  }
+  template <- .sm_mb_shared_logic_template_sheets(sid, target_base = base_name)
+  if (is.null(template)) {
+    return(list(model = model, applied = FALSE, reason = "template_unavailable"))
+  }
+  applied <- tryCatch(
+    .estudio_apply_template_logic_survey(
+      template_survey = template$sheets$survey,
+      target_survey = model$survey,
+      template_choices = template$sheets$choices,
+      target_choices = model$choices,
+      clear_target_logic = FALSE
+    ),
+    error = function(e) e
+  )
+  if (inherits(applied, "error")) {
+    return(list(model = model, applied = FALSE, reason = conditionMessage(applied)))
+  }
+  model$survey <- applied$survey
+  list(
+    model = model,
+    applied = length(applied$applied_variables %||% character(0)) > 0L ||
+      as.integer(applied$changed_cells %||% 0L) > 0L,
+    reason = "",
+    template_base = template$base,
+    changed_cells = as.integer(applied$changed_cells %||% 0L),
+    applied_variables = as.list(applied$applied_variables %||% character(0)),
+    logic_value_count = as.integer(template$logic_value_count %||% 0L)
+  )
 }
 
 .sm_mb_unique_base_name <- function(sid, label, fallback = "surveymonkey_base") {
@@ -2189,9 +3177,29 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   action %in% c("update", "noop", "noop_structure_warning")
 }
 
+.sm_mb_refresh_source_log <- function(spec, status = "", refreshed = FALSE, reason = "") {
+  spec <- spec %||% list()
+  source_specs <- spec$sources %||% list(spec)
+  unname(lapply(seq_along(source_specs), function(i) {
+    source <- source_specs[[i]] %||% list()
+    list(
+      index = as.integer(i),
+      survey_id = .sm_mb_scalar(source$survey_id %||% spec$survey_id, ""),
+      source_title = .sm_mb_scalar(source$source_title %||% source$label %||% spec$source_title, ""),
+      source_alias = .sm_mb_scalar(source$source_alias %||% source$label %||% "", ""),
+      channel = .sm_mb_source_channel(source, spec$source_channel %||% spec$channel %||% ""),
+      refreshed = isTRUE(refreshed),
+      status = .sm_mb_scalar(status, ""),
+      reason = .sm_mb_scalar(reason, "")
+    )
+  }))
+}
+
 .sm_mb_prepare_refresh_snapshot <- function(sid, base_name, spec, token) {
   details <- sm_api_fetch_survey_details(spec$survey_id, token)
   xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+  logic_sync <- .sm_mb_apply_shared_logic_to_model(sid, base_name, xls_model)
+  xls_model <- logic_sync$model
   downloads_dir <- file.path(session_get(sid)$dir, "downloads")
   dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
   inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_refresh_xlsform.xlsx"))
@@ -2200,6 +3208,7 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
 
   source_dfs <- list()
   source_filters <- list()
+  raw_snapshot_sources <- list()
   source_specs <- spec$sources %||% list(spec)
   for (source_spec in source_specs) {
     source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
@@ -2218,6 +3227,13 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
     validation_profile <- .sm_mb_validation_exclusion_profile(source_spec, collection_strategy)
     excluded_vars <- .sm_mb_excluded_validation_vars(source_spec, validation_profile, rp_inst)
     payload <- sm_api_fetch_all_responses_bulk(source_id, token)
+    raw_snapshot_sources[[length(raw_snapshot_sources) + 1L]] <- .sm_mb_source_snapshot(
+      source_id = source_id,
+      source_spec = source_spec,
+      source_details = source_details,
+      payload = payload,
+      token = token
+    )
     one_df <- sm_multibase_api_responses_to_canonical_data(
       details = source_details,
       responses = payload$data,
@@ -2254,6 +3270,40 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
     rp_inst = rp_inst,
     remote_df = remote_df,
     response_filter = .sm_mb_response_filter_total(source_filters),
+    raw_snapshot_sources = raw_snapshot_sources,
+    decision_policy = .sm_mb_default_decision_policy(spec, rp_inst, .sm_mb_response_filter_total(source_filters)),
+    source_kind = if (length(source_specs) > 1L) "surveymonkey_api_multi_source" else "surveymonkey_api",
+    xlsform_logic_sync = logic_sync[setdiff(names(logic_sync), "model")]
+  )
+}
+
+.sm_mb_prepare_raw_snapshot <- function(sid, base_name, spec, token, rp_inst = NULL) {
+  details <- sm_api_fetch_survey_details(spec$survey_id, token)
+  if (is.null(rp_inst)) {
+    xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+    dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+    inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_raw_xlsform.xlsx"))
+    .sm_mb_write_xlsform_model(xls_model, inst_path)
+    rp_inst <- reporte_instrumento(path = inst_path)
+  }
+  raw_snapshot_sources <- list()
+  source_specs <- spec$sources %||% list(spec)
+  for (source_spec in source_specs) {
+    source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
+    source_details <- if (identical(source_id, spec$survey_id)) details else sm_api_fetch_survey_details(source_id, token)
+    payload <- sm_api_fetch_all_responses_bulk(source_id, token)
+    raw_snapshot_sources[[length(raw_snapshot_sources) + 1L]] <- .sm_mb_source_snapshot(
+      source_id = source_id,
+      source_spec = source_spec,
+      source_details = source_details,
+      payload = payload,
+      token = token
+    )
+  }
+  list(
+    raw_snapshot_sources = raw_snapshot_sources,
+    decision_policy = .sm_mb_default_decision_policy(spec, rp_inst, list()),
     source_kind = if (length(source_specs) > 1L) "surveymonkey_api_multi_source" else "surveymonkey_api"
   )
 }
@@ -2280,9 +3330,32 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
     identical(as.character((dat %||% list())$kind %||% ""), "data_adaptada")
 }
 
+.sm_mb_base_has_downstream_progress <- function(s, base_name, base) {
+  status <- (base %||% list())$status %||% list()
+  status_hit <- any(vapply(c("validacion", "codificacion", "codificacion_adaptada", "analitica", "graficos"), function(k) {
+    isTRUE(status[[k]])
+  }, logical(1)))
+  if (isTRUE(status_hit)) return(TRUE)
+  ast <- if (!is.null(s$analitica_status_por_base) && is.list(s$analitica_status_por_base)) {
+    s$analitica_status_por_base[[base_name]] %||% list()
+  } else {
+    list()
+  }
+  gst <- if (!is.null(s$graficos_status_por_base) && is.list(s$graficos_status_por_base)) {
+    s$graficos_status_por_base[[base_name]] %||% list()
+  } else {
+    list()
+  }
+  any(vapply(c(ast, gst), isTRUE, logical(1)))
+}
+
 .sm_mb_update_base_refresh_files <- function(sid, base_name, inst_meta, data_meta, rp_inst,
                                              rp_data, spec, response_filter, source_kind,
-                                             keep_current = FALSE, n_new = 0L) {
+                                             keep_current = FALSE, n_new = 0L,
+                                             raw_snapshot_file_id = "",
+                                             decision_policy = NULL,
+                                             decision_audit = NULL,
+                                             xlsform_logic_sync = NULL) {
   s <- session_get(sid)
   base <- s$estudio$bases[[base_name]]
   base$original_xlsform_file_id <- inst_meta$file_id
@@ -2305,18 +3378,35 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   base$consent_var <- .sm_mb_spec_consent_var(spec, response_filter %||% list())
   base$response_filter <- response_filter
   base$surveymonkey_source_spec <- spec
+  if (nzchar(.sm_mb_scalar(raw_snapshot_file_id, ""))) {
+    base$surveymonkey_raw_snapshot_file_id <- .sm_mb_scalar(raw_snapshot_file_id, "")
+  }
+  if (!is.null(decision_policy)) base$surveymonkey_decision_policy <- decision_policy
+  if (!is.null(decision_audit)) base$surveymonkey_decision_audit <- decision_audit
   base$surveymonkey_refreshed_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   base$surveymonkey_last_refresh <- list(
     refreshed_at = base$surveymonkey_refreshed_at,
     n_new = as.integer(n_new),
     source_count = as.integer(length(spec$sources %||% list(spec)))
   )
+  if (is.list(xlsform_logic_sync) && length(xlsform_logic_sync)) {
+    base$surveymonkey_last_refresh$xlsform_logic_sync <- xlsform_logic_sync
+    if (isTRUE(xlsform_logic_sync$applied)) {
+      base$logic_template_base <- .sm_mb_scalar(xlsform_logic_sync$template_base %||% base$logic_template_base, "")
+      base$logic_template_applied_at <- base$surveymonkey_refreshed_at
+      base$logic_template_status <- "refresh_reapplied"
+    } else if (nzchar(.sm_mb_scalar(xlsform_logic_sync$reason, ""))) {
+      base$logic_template_status <- paste0("refresh_not_reapplied:", .sm_mb_scalar(xlsform_logic_sync$reason, ""))
+    }
+  }
   s$estudio$bases[[base_name]] <- base
   if (!is.null(s$codif_por_base) && !is.null(s$codif_por_base[[base_name]])) {
     s$codif_por_base[[base_name]]$inst <- NULL
     s$codif_por_base[[base_name]]$data <- NULL
   }
-  s <- .invalidate_processing_state(s, base_name)
+  if (!isTRUE(keep_current)) {
+    s <- .invalidate_processing_state(s, base_name)
+  }
   first <- names(s$estudio$bases)[1]
   if (identical(first, base_name) && !isTRUE(keep_current)) {
     s$rp_inst <- s$rp_inst_sources[[base_name]]
@@ -2325,6 +3415,73 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(base)
+}
+
+.sm_mb_update_base_raw_snapshot <- function(sid, base_name, spec, raw_snapshot_file_id,
+                                            decision_policy = NULL,
+                                            source_kind = "",
+                                            n_new = 0L) {
+  s <- session_get(sid)
+  base <- s$estudio$bases[[base_name]]
+  if (is.null(base)) stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", base_name))
+  fid <- .sm_mb_scalar(raw_snapshot_file_id, "")
+  if (!nzchar(fid)) stop_api(500, "E_SM_RAW_SNAPSHOT_SAVE", "No se pudo guardar el snapshot raw SurveyMonkey.")
+  base$surveymonkey_raw_snapshot_file_id <- fid
+  base$surveymonkey_source_spec <- spec
+  if (nzchar(.sm_mb_scalar(source_kind, ""))) base$source_kind <- .sm_mb_scalar(source_kind, "")
+  base$survey_id <- .sm_mb_scalar(spec$survey_id %||% base$survey_id, "")
+  base$source_alias <- .sm_mb_scalar(spec$source_alias %||% spec$label %||% base$source_alias, base_name)
+  base$source_title <- .sm_mb_scalar(spec$source_title %||% base$source_title, "")
+  base$source_channel <- .sm_mb_source_channel(spec, base$source_channel %||% "")
+  has_policy <- is.list(base$surveymonkey_decision_policy) && length(base$surveymonkey_decision_policy)
+  if (!has_policy && !is.null(decision_policy)) base$surveymonkey_decision_policy <- decision_policy
+  base$surveymonkey_refreshed_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  base$surveymonkey_last_refresh <- list(
+    refreshed_at = base$surveymonkey_refreshed_at,
+    n_new = as.integer(n_new),
+    source_count = as.integer(length(spec$sources %||% list(spec))),
+    raw_snapshot_regenerated = TRUE
+  )
+  s$estudio$bases[[base_name]] <- base
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(base)
+}
+
+.sm_mb_regenerate_raw_snapshot_for_base <- function(sid, base_name, base, spec, token) {
+  xls_fid <- .sm_mb_scalar(base$original_xlsform_file_id %||% base$xlsform_file_id, "")
+  rp_inst <- if (nzchar(xls_fid)) {
+    tryCatch(reporte_instrumento(path = get_file(sid, xls_fid)$path), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  snapshot <- .sm_mb_prepare_raw_snapshot(
+    sid = sid,
+    base_name = base_name,
+    spec = spec,
+    token = token,
+    rp_inst = rp_inst
+  )
+  raw_meta <- .sm_mb_save_raw_snapshot(
+    sid = sid,
+    base_name = base_name,
+    spec = spec,
+    sources = snapshot$raw_snapshot_sources,
+    policy = snapshot$decision_policy %||% list()
+  )
+  .sm_mb_update_base_raw_snapshot(
+    sid = sid,
+    base_name = base_name,
+    spec = spec,
+    raw_snapshot_file_id = raw_meta$file_id %||% "",
+    decision_policy = snapshot$decision_policy %||% NULL,
+    source_kind = snapshot$source_kind %||% ""
+  )
+  list(
+    ok = TRUE,
+    raw_snapshot_file_id = raw_meta$file_id %||% "",
+    source_count = as.integer(length(snapshot$raw_snapshot_sources %||% list()))
+  )
 }
 
 .sm_mb_write_instrument_xlsx <- function(path_in, path_out, company_vars = character(), wording_decisions = list()) {
@@ -2573,6 +3730,7 @@ sm_multibase_import_independent <- function(sid,
 
     source_dfs <- list()
     source_filters <- list()
+    raw_snapshot_sources <- list()
     source_specs <- spec$sources %||% list(spec)
     for (source_spec in source_specs) {
       source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
@@ -2630,6 +3788,13 @@ sm_multibase_import_independent <- function(sid,
         )
       } else {
         payload <- sm_api_fetch_all_responses_bulk(source_id, token)
+        raw_snapshot_sources[[length(raw_snapshot_sources) + 1L]] <- .sm_mb_source_snapshot(
+          source_id = source_id,
+          source_spec = source_spec,
+          source_details = source_details,
+          payload = payload,
+          token = token
+        )
         one_df <- sm_multibase_api_responses_to_canonical_data(
           details = source_details,
           responses = payload$data,
@@ -2662,6 +3827,7 @@ sm_multibase_import_independent <- function(sid,
     }
     data_df <- .sm_mb_bind_rows(source_dfs)
     response_filter <- .sm_mb_response_filter_total(source_filters)
+    decision_policy <- .sm_mb_default_decision_policy(spec, rp_inst, response_filter)
 
     if (!is.data.frame(data_df) || !nrow(data_df)) {
       stop_api(409, "E_SM_NO_RESPONSES",
@@ -2689,6 +3855,8 @@ sm_multibase_import_independent <- function(sid,
       n_filas = as.integer(nrow(data_df)),
       n_columnas = as.integer(ncol(data_df)),
       response_filter = response_filter %||% list(),
+      decision_policy = decision_policy,
+      raw_snapshot_sources = raw_snapshot_sources,
       source_kind = if (length(source_specs) > 1L) {
         "surveymonkey_api_multi_source"
       } else if (nzchar(spec$data_file_id)) {
@@ -2708,6 +3876,17 @@ sm_multibase_import_independent <- function(sid,
     data_bytes <- readBin(item$data_path, what = "raw", n = file.info(item$data_path)$size)
     inst_meta <- save_upload(sid, "xlsform", paste0(item$base_name, "_xlsform.xlsx"), inst_bytes)
     data_meta <- save_upload(sid, "data", paste0(item$base_name, "_data.xlsx"), data_bytes)
+    raw_meta <- if (length(item$raw_snapshot_sources %||% list())) {
+      .sm_mb_save_raw_snapshot(
+        sid = sid,
+        base_name = item$base_name,
+        spec = item$source_spec,
+        sources = item$raw_snapshot_sources,
+        policy = item$decision_policy
+      )
+    } else {
+      NULL
+    }
     base_meta <- estudio_add_base(
       sid,
       nombre = item$base_name,
@@ -2729,6 +3908,9 @@ sm_multibase_import_independent <- function(sid,
         sibling_family_id = family_id,
         imported_at = imported_at,
         response_filter = item$response_filter,
+        surveymonkey_raw_snapshot_file_id = raw_meta$file_id %||% "",
+        surveymonkey_decision_policy = item$decision_policy,
+        surveymonkey_decision_audit = item$response_filter,
         surveymonkey_source_spec = item$source_spec
       )
     )
@@ -2927,7 +4109,9 @@ sm_multibase_refresh <- function(sid,
                                  bases = list(),
                                  months = 12L,
                                  force_refresh = FALSE,
-                                 reapply_codificacion = TRUE) {
+                                 reapply_codificacion = TRUE,
+                                 regenerate_raw_snapshot = FALSE,
+                                 raw_snapshot_only = FALSE) {
   plan <- sm_multibase_refresh_plan(
     sid = sid,
     token = token,
@@ -2940,7 +4124,81 @@ sm_multibase_refresh <- function(sid,
   for (row in plan$bases %||% list()) {
     base_name <- .sm_mb_scalar(row$base_name, "")
     if (!nzchar(base_name)) next
+    if (isTRUE(raw_snapshot_only)) {
+      base <- estudio_list_bases(sid)[[base_name]]
+      spec <- tryCatch(.sm_mb_normalize_survey_specs(list(row$source_spec))[[1]], error = function(e) NULL)
+      raw_result <- if (!is.null(base) && !is.null(spec)) {
+        tryCatch(.sm_mb_regenerate_raw_snapshot_for_base(sid, base_name, base, spec, token), error = function(e) e)
+      } else {
+        structure(simpleError("No se pudo reconstruir la especificación SurveyMonkey guardada."), class = c("simpleError", "error", "condition"))
+      }
+      if (inherits(raw_result, "error")) {
+        results[[length(results) + 1L]] <- list(
+          base_name = base_name,
+          ok = FALSE,
+          skipped = TRUE,
+          raw_snapshot_only = TRUE,
+          reason = conditionMessage(raw_result),
+          issues = row$issues %||% list(),
+          structure = row$structure %||% list(),
+          refresh_action = row$refresh_action %||% "raw_snapshot_only"
+        )
+      } else {
+        results[[length(results) + 1L]] <- list(
+          base_name = base_name,
+          ok = TRUE,
+          skipped = TRUE,
+          noop = TRUE,
+          raw_snapshot_only = TRUE,
+          raw_snapshot_regenerated = TRUE,
+          raw_snapshot_file_id = raw_result$raw_snapshot_file_id %||% "",
+          reason = "Snapshot raw regenerado; la data activa y los pasos posteriores quedaron intactos.",
+          n_new = 0L,
+          current_rows_before = row$current_rows,
+          rows_after = row$current_rows,
+          edited_rows_reported = row$edited_rows,
+          source_count = raw_result$source_count %||% row$source_count,
+          structure = row$structure %||% list(),
+          refresh_action = row$refresh_action %||% "raw_snapshot_only"
+        )
+      }
+      next
+    }
     if (!isTRUE(row$updateable)) {
+      if (isTRUE(regenerate_raw_snapshot)) {
+        base <- estudio_list_bases(sid)[[base_name]]
+        spec <- tryCatch(.sm_mb_normalize_survey_specs(list(row$source_spec))[[1]], error = function(e) NULL)
+        raw_result <- if (!is.null(base) && !is.null(spec)) {
+          tryCatch(.sm_mb_regenerate_raw_snapshot_for_base(sid, base_name, base, spec, token), error = function(e) e)
+        } else {
+          structure(simpleError("No se pudo reconstruir la especificación SurveyMonkey guardada."), class = c("simpleError", "error", "condition"))
+        }
+        if (!inherits(raw_result, "error")) {
+          results[[length(results) + 1L]] <- list(
+            base_name = base_name,
+            ok = TRUE,
+            skipped = TRUE,
+            data_refresh_blocked = TRUE,
+            raw_snapshot_regenerated = TRUE,
+            raw_snapshot_file_id = raw_result$raw_snapshot_file_id %||% "",
+            reason = "Snapshot raw regenerado; la data activa no se actualizo porque el diagnostico no permitia incorporar filas.",
+            issues = row$issues %||% list(),
+            structure = row$structure %||% list(),
+            refresh_action = row$refresh_action %||% "blocked"
+          )
+          next
+        }
+        results[[length(results) + 1L]] <- list(
+          base_name = base_name,
+          ok = FALSE,
+          skipped = TRUE,
+          reason = conditionMessage(raw_result),
+          issues = row$issues %||% list(),
+          structure = row$structure %||% list(),
+          refresh_action = row$refresh_action %||% "blocked"
+        )
+        next
+      }
       results[[length(results) + 1L]] <- list(
         base_name = base_name,
         ok = FALSE,
@@ -2953,15 +4211,44 @@ sm_multibase_refresh <- function(sid,
     }
     refresh_action <- .sm_mb_scalar(row$refresh_action, "")
     if (refresh_action %in% c("noop", "noop_structure_warning")) {
+      raw_result <- NULL
+      if (isTRUE(regenerate_raw_snapshot)) {
+        base <- estudio_list_bases(sid)[[base_name]]
+        spec <- .sm_mb_normalize_survey_specs(list(row$source_spec))[[1]]
+        raw_result <- tryCatch(.sm_mb_regenerate_raw_snapshot_for_base(sid, base_name, base, spec, token), error = function(e) e)
+        if (inherits(raw_result, "error")) {
+          results[[length(results) + 1L]] <- list(
+            base_name = base_name,
+            ok = FALSE,
+            skipped = TRUE,
+            noop = TRUE,
+            reason = conditionMessage(raw_result),
+            n_new = 0L,
+            current_rows_before = row$current_rows,
+            rows_after = row$current_rows,
+            edited_rows_reported = row$edited_rows,
+            source_count = row$source_count,
+            structure = row$structure %||% list(),
+            refresh_action = refresh_action
+          )
+          next
+        }
+      }
       results[[length(results) + 1L]] <- list(
         base_name = base_name,
         ok = TRUE,
         skipped = TRUE,
         noop = TRUE,
+        raw_snapshot_regenerated = !is.null(raw_result),
+        raw_snapshot_file_id = if (!is.null(raw_result)) raw_result$raw_snapshot_file_id %||% "" else "",
         reason = if (identical(refresh_action, "noop_structure_warning")) {
-          "Sin filas nuevas; se conserva la base local. Hay alertas estructurales para revisar antes de incorporar futuros casos."
+          if (!is.null(raw_result)) {
+            "Snapshot raw regenerado; sin filas nuevas. Hay alertas estructurales para revisar antes de incorporar futuros casos."
+          } else {
+            "Sin filas nuevas; se conserva la base local. Hay alertas estructurales para revisar antes de incorporar futuros casos."
+          }
         } else {
-          "Sin filas nuevas; la base ya esta al dia."
+          if (!is.null(raw_result)) "Snapshot raw regenerado; la base efectiva ya estaba al dia." else "Sin filas nuevas; la base ya esta al dia."
         },
         n_new = 0L,
         current_rows_before = row$current_rows,
@@ -2994,6 +4281,17 @@ sm_multibase_refresh <- function(sid,
     data_bytes <- readBin(data_path, what = "raw", n = file.info(data_path)$size)
     inst_meta <- save_upload(sid, "xlsform", paste0(base_name, "_refresh_xlsform.xlsx"), inst_bytes)
     data_meta <- save_upload(sid, "data", paste0(base_name, "_refresh_data.xlsx"), data_bytes)
+    raw_meta <- if (length(snapshot$raw_snapshot_sources %||% list())) {
+      .sm_mb_save_raw_snapshot(
+        sid = sid,
+        base_name = base_name,
+        spec = spec,
+        sources = snapshot$raw_snapshot_sources,
+        policy = snapshot$decision_policy %||% list()
+      )
+    } else {
+      NULL
+    }
     rp_data <- reporte_data(merged$data, instrumento = snapshot$rp_inst)
 
     s_now <- session_get(sid)
@@ -3011,7 +4309,11 @@ sm_multibase_refresh <- function(sid,
       response_filter = snapshot$response_filter,
       source_kind = snapshot$source_kind,
       keep_current = keep_current,
-      n_new = merged$n_new
+      n_new = merged$n_new,
+      raw_snapshot_file_id = raw_meta$file_id %||% "",
+      decision_policy = snapshot$decision_policy %||% NULL,
+      decision_audit = snapshot$response_filter %||% NULL,
+      xlsform_logic_sync = snapshot$xlsform_logic_sync %||% NULL
     )
 
     codif_job <- NULL
@@ -3031,9 +4333,42 @@ sm_multibase_refresh <- function(sid,
       rows_after = as.integer(nrow(merged$data)),
       edited_rows_reported = row$edited_rows,
       source_count = as.integer(length(spec$sources %||% list(spec))),
+      raw_snapshot_regenerated = !is.null(raw_meta),
+      raw_snapshot_file_id = raw_meta$file_id %||% "",
+      xlsform_logic_sync = snapshot$xlsform_logic_sync %||% list(),
       codificacion_job = codif_job
     )
   }
+  plan_by_base <- list()
+  for (row in plan$bases %||% list()) {
+    base_name <- .sm_mb_scalar(row$base_name, "")
+    if (nzchar(base_name)) plan_by_base[[base_name]] <- row
+  }
+  results <- lapply(results, function(result) {
+    if (!is.null(result$sources)) return(result)
+    base_name <- .sm_mb_scalar(result$base_name, "")
+    row <- plan_by_base[[base_name]] %||% list()
+    spec <- row$source_spec %||% list()
+    status <- if (isTRUE(result$raw_snapshot_regenerated) && isTRUE(result$skipped)) {
+      "raw_snapshot_regenerado"
+    } else if (isTRUE(result$ok) && !isTRUE(result$skipped)) {
+      "actualizada"
+    } else if (isTRUE(result$noop)) {
+      "sin_cambios"
+    } else if (isTRUE(result$skipped)) {
+      "no_actualizada"
+    } else {
+      "error"
+    }
+    refreshed <- isTRUE(result$ok) && (!isTRUE(result$skipped) || isTRUE(result$raw_snapshot_regenerated))
+    result$sources <- .sm_mb_refresh_source_log(
+      spec,
+      status = status,
+      refreshed = refreshed,
+      reason = .sm_mb_scalar(result$reason, "")
+    )
+    result
+  })
   list(
     ok = TRUE,
     results = results,
@@ -3075,6 +4410,20 @@ mount_surveymonkey_multibase <- function(pr) {
         token = token,
         base_url = .sm_mb_scalar(parsed$base_url, "https://api.surveymonkey.com/v3"),
         response_limit = suppressWarnings(as.integer(parsed$response_limit %||% 5L))
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/collectors", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      token <- .connections_token_require("surveymonkey", sid)
+      sm_multibase_collectors(
+        survey_id = parsed$survey_id %||% parsed$id,
+        token = token,
+        base_url = .sm_mb_scalar(parsed$base_url, "https://api.surveymonkey.com/v3")
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/audit", wrap_endpoint(function(req, res, ...) {
@@ -3124,6 +4473,84 @@ mount_surveymonkey_multibase <- function(pr) {
         keep_missing_status = if (is.null(parsed$keep_missing_status)) TRUE else isTRUE(parsed$keep_missing_status)
       )
     })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/workbook/inspect", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_workbook_inspect(
+        sid = sid,
+        file_id = parsed$file_id %||% parsed$workbook_file_id,
+        sheet_base_map = parsed$sheet_base_map %||% parsed$sheet_map %||% list(),
+        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn")
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/workbook/import", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_workbook_import(
+        sid = sid,
+        file_id = parsed$file_id %||% parsed$workbook_file_id,
+        sheet_base_map = parsed$sheet_base_map %||% parsed$sheet_map %||% list(),
+        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn")
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/sav-bundle/inspect", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_sav_bundle_inspect(
+        sid = sid,
+        file_id = parsed$file_id %||% parsed$sav_bundle_file_id,
+        file_base_map = parsed$file_base_map %||% parsed$sav_base_map %||% list(),
+        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn")
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/sav-bundle/import", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_sav_bundle_import(
+        sid = sid,
+        file_id = parsed$file_id %||% parsed$sav_bundle_file_id,
+        file_base_map = parsed$file_base_map %||% parsed$sav_base_map %||% list(),
+        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn")
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/decision-preview", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_decision_preview(
+        sid = sid,
+        base_name = .sm_mb_scalar(parsed$base_name %||% parsed$nombre, ""),
+        policy = parsed$policy %||% NULL
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/decision-apply", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_decision_apply(
+        sid = sid,
+        base_name = .sm_mb_scalar(parsed$base_name %||% parsed$nombre, ""),
+        policy = parsed$policy %||% NULL,
+        regenerate_data = if (is.null(parsed$regenerate_data)) TRUE else isTRUE(parsed$regenerate_data),
+        force_replace_adapted = isTRUE(parsed$force_replace_adapted)
+      )
+    })) |>
     plumber::pr_post("/api/surveymonkey/multibase/refresh-plan", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
@@ -3154,7 +4581,9 @@ mount_surveymonkey_multibase <- function(pr) {
         bases = parsed$bases %||% list(),
         months = suppressWarnings(as.integer(parsed$months %||% 12L)),
         force_refresh = isTRUE(parsed$force_refresh),
-        reapply_codificacion = if (is.null(parsed$reapply_codificacion)) TRUE else isTRUE(parsed$reapply_codificacion)
+        reapply_codificacion = if (is.null(parsed$reapply_codificacion)) TRUE else isTRUE(parsed$reapply_codificacion),
+        regenerate_raw_snapshot = isTRUE(parsed$regenerate_raw_snapshot),
+        raw_snapshot_only = isTRUE(parsed$raw_snapshot_only)
       )
     }))
 }

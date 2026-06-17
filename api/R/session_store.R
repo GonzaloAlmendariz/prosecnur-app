@@ -667,11 +667,19 @@ estudio_update_base_metadata <- function(sid, nombre, patch = list()) {
   }
   allowed <- c(
     "source_alias", "source_title", "source_channel", "source_kind", "survey_id",
-    "response_filter", "surveymonkey_source_spec", "consent_var"
+    "response_filter", "surveymonkey_source_spec", "consent_var",
+    "surveymonkey_decision_policy", "surveymonkey_decision_audit",
+    "surveymonkey_raw_snapshot_file_id", "surveymonkey_effective_data_file_id",
+    "surveymonkey_workbook_file_id", "surveymonkey_workbook_snapshot_file_id",
+    "surveymonkey_workbook_import",
+    "surveymonkey_sav_bundle_file_id", "surveymonkey_sav_bundle_snapshot_file_id",
+    "surveymonkey_sav_bundle_import"
   )
   meta <- s$estudio$bases[[nombre]]
   for (key in intersect(names(patch), allowed)) {
-    if (key %in% c("response_filter", "surveymonkey_source_spec")) {
+    if (key %in% c("response_filter", "surveymonkey_source_spec",
+                   "surveymonkey_decision_policy", "surveymonkey_decision_audit",
+                   "surveymonkey_workbook_import", "surveymonkey_sav_bundle_import")) {
       meta[[key]] <- patch[[key]]
       next
     }
@@ -721,6 +729,7 @@ validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
       plan_result      = s$plan_result,
       evaluacion       = s$evaluacion,
       reglas_custom    = s$reglas_custom %||% list(),
+      variables_excluidas = s$validacion_variables_excluidas %||% character(0),
       explorador_cache = s$explorador_cache %||% list(),
       limpieza_draft   = s$limpieza_draft %||% list(),
       limpieza_preview = s$limpieza_preview %||% NULL,
@@ -731,6 +740,7 @@ validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
       plan_result      = NULL,
       evaluacion       = NULL,
       reglas_custom    = list(),
+      variables_excluidas = character(0),
       explorador_cache = list(),
       limpieza_draft   = list(),
       limpieza_preview = NULL,
@@ -745,13 +755,18 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
   base_nombre <- .resolve_base_nombre(s, base_nombre)
   if (is.null(base_nombre)) {
     # Fallback legacy: guardamos en la raíz de la sesión.
-    s[[key]] <- value
+    if (identical(key, "variables_excluidas")) {
+      s$validacion_variables_excluidas <- value
+    } else {
+      s[[key]] <- value
+    }
   } else {
     if (is.null(s$estudio$bases[[base_nombre]]$validacion)) {
       s$estudio$bases[[base_nombre]]$validacion <- list(
         plan_result      = NULL,
         evaluacion       = NULL,
         reglas_custom    = list(),
+        variables_excluidas = character(0),
         explorador_cache = list(),
         limpieza_draft   = list(),
         limpieza_preview = NULL,
@@ -773,6 +788,7 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
     plan_result      = NULL,
     evaluacion       = NULL,
     reglas_custom    = list(),
+    variables_excluidas = character(0),
     explorador_cache = list(),
     limpieza_draft   = list(),
     limpieza_preview = NULL,

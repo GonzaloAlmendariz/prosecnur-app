@@ -57,6 +57,57 @@ test_that("reporte_ppt_plan renderiza text_slide en PPT", {
     )
   )
   expect_true(file.exists(out_ppt))
+
+  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide2.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- paste(slide_xml, collapse = "\n")
+  expect_match(slide_xml, "Diseño metodológico", fixed = TRUE)
+  expect_false(grepl("DISEÑO METODOLÓGICO", slide_xml, fixed = TRUE))
+  expect_match(slide_xml, 'sz="2400"', fixed = TRUE)
+  expect_match(slide_xml, 'sz="1400"', fixed = TRUE)
+})
+
+test_that("technical_table respeta mayusculas y minusculas del titulo", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("flextable")
+
+  dat <- data.frame(x = 1)
+  inst <- list(
+    survey = data.frame(
+      name = "x",
+      type = "integer",
+      list_name = NA_character_,
+      stringsAsFactors = FALSE
+    ),
+    choices = NULL,
+    orders_list = NULL
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  expect_no_error(
+    reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = list(
+        diapo_001 = p_slide_tabla_tecnica(
+          titulo = "Tabla técnica mixta",
+          filas = data.frame(
+            criterio = "Diseño",
+            detalle = "Texto de prueba",
+            stringsAsFactors = FALSE
+          )
+        )
+      ),
+      presets = p_presets(),
+      path_ppt = out_ppt,
+      mensajes_progreso = FALSE
+    )
+  )
+
+  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- paste(slide_xml, collapse = "\n")
+  expect_match(slide_xml, "Tabla técnica mixta", fixed = TRUE)
+  expect_false(grepl("TABLA TÉCNICA MIXTA", slide_xml, fixed = TRUE))
 })
 
 test_that("reporte_word_plan excluye text_slide del flujo Word", {

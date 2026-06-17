@@ -44,6 +44,22 @@
   validacion_scope_get(sid, base_nombre)
 }
 
+.validacion_sync_shared_logic_if_needed <- function(sid, base_nombre = NULL) {
+  if (!exists("estudio_sync_shared_xlsform_logic_if_needed", mode = "function")) {
+    return(NULL)
+  }
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases %||% list())) {
+    return(NULL)
+  }
+  target <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (is.null(target) || !nzchar(target)) return(NULL)
+  tryCatch(
+    estudio_sync_shared_xlsform_logic_if_needed(sid, targets = target),
+    error = function(e) list(ok = FALSE, applied = FALSE, error = conditionMessage(e))
+  )
+}
+
 # Recorta el preview de `_limpieza_simulate` a sólo los campos serializables
 # que el frontend necesita. Los campos pesados / no-serializables
 # (`data_final`, `evaluacion_final`, `logs`) son utilizados internamente
@@ -332,6 +348,120 @@
   )
 }
 
+.validacion_chr_vec <- function(x) {
+  if (is.null(x) || !length(x)) return(character(0))
+  if (is.list(x) && !is.data.frame(x)) x <- unlist(x, recursive = TRUE, use.names = FALSE)
+  out <- trimws(as.character(x %||% character(0)))
+  unique(out[!is.na(out) & nzchar(out)])
+}
+
+.validacion_rule_target_vars <- function(rule) {
+  roles <- rule$variable_roles %||% list()
+  target <- .validacion_chr_vec(roles$target %||% roles$targets)
+  if (length(target)) return(target)
+  vars <- .validacion_chr_vec(rule$variables)
+  if (length(vars)) return(vars[1])
+  character(0)
+}
+
+.validacion_filter_bundle_excluded_vars <- function(bundle, excluded_vars = character()) {
+  excluded_vars <- .validacion_chr_vec(excluded_vars)
+  if (!length(excluded_vars) || is.null(bundle) || !length(bundle$rules %||% list())) return(bundle)
+  keep <- vapply(bundle$rules, function(rule) {
+    !length(intersect(.validacion_rule_target_vars(rule), excluded_vars))
+  }, logical(1))
+  bundle$rules <- bundle$rules[keep]
+  bundle$plan <- compile_rules_to_plan(bundle$rules)
+  bundle$excluded_validation_vars <- as.list(excluded_vars)
+  bundle
+}
+
+.validacion_label_col <- function(survey) {
+  if (is.null(survey) || !is.data.frame(survey)) return(NA_character_)
+  nms <- names(survey)
+  hit <- which(tolower(nms) %in% c(
+    "label", "label::spanish (es)", "label::spanish(es)", "label::spanish_es",
+    "label_spanish_es", "label::spanish", "label::es"
+  ))[1]
+  if (is.na(hit)) NA_character_ else nms[[hit]]
+}
+
+.validacion_variable_options <- function(sid, base = NULL, scope = NULL) {
+  scope <- scope %||% tryCatch(.get_base_scope(sid, base), error = function(e) list())
+  bundle <- (scope$plan_result %||% list())$bundle %||% NULL
+  ev <- scope$evaluacion %||% NULL
+  if (!is.null(bundle) && length(bundle$rules %||% list())) {
+    meta <- tryCatch(.rule_meta_from_bundle(bundle), error = function(e) NULL)
+    if (is.data.frame(meta) && nrow(meta)) {
+      vars <- data.frame(
+        variable = as.character(meta$variable_1 %||% ""),
+        label = as.character(meta$variable_1_etiqueta %||% ""),
+        tipo_regla = as.character(meta$tipo_regla %||% ""),
+        stringsAsFactors = FALSE
+      )
+      vars <- vars[!is.na(vars$variable) & nzchar(vars$variable), , drop = FALSE]
+      if (nrow(vars)) {
+        agg <- stats::aggregate(
+          list(n_reglas = vars$variable),
+          by = list(variable = vars$variable),
+          FUN = length
+        )
+        labels <- stats::aggregate(
+          list(label = vars$label),
+          by = list(variable = vars$variable),
+          FUN = function(x) .validacion_chr_vec(x)[1] %||% ""
+        )
+        out <- merge(agg, labels, by = "variable", all.x = TRUE)
+        if (is.list(ev) && is.data.frame(ev$resumen) && nrow(ev$resumen)) {
+          res <- ev$resumen
+          res$variable <- as.character(res$variable_1 %||% "")
+          res <- res[!is.na(res$variable) & nzchar(res$variable), , drop = FALSE]
+          if (nrow(res)) {
+            counts <- stats::aggregate(
+              list(
+                n_reglas_con_casos = as.integer(res$n_inconsistencias > 0L),
+                n_inconsistencias = as.integer(res$n_inconsistencias %||% 0L)
+              ),
+              by = list(variable = res$variable),
+              FUN = sum,
+              na.rm = TRUE
+            )
+            out <- merge(out, counts, by = "variable", all.x = TRUE)
+          }
+        }
+        out$n_reglas_con_casos[is.na(out$n_reglas_con_casos)] <- 0L
+        out$n_inconsistencias[is.na(out$n_inconsistencias)] <- 0L
+        out <- out[order(out$variable), , drop = FALSE]
+        return(lapply(seq_len(nrow(out)), function(i) {
+          list(
+            variable = as.character(out$variable[i]),
+            label = as.character(out$label[i] %||% ""),
+            n_reglas = as.integer(out$n_reglas[i] %||% 0L),
+            n_reglas_con_casos = as.integer(out$n_reglas_con_casos[i] %||% 0L),
+            n_inconsistencias = as.integer(out$n_inconsistencias[i] %||% 0L)
+          )
+        }))
+      }
+    }
+  }
+
+  files <- tryCatch(.resolve_base_files(sid, base), error = function(e) NULL)
+  if (is.null(files)) return(list())
+  inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE), error = function(e) NULL)
+  survey <- inst$survey %||% NULL
+  if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey)) return(list())
+  lab_col <- .validacion_label_col(survey)
+  labels <- if (!is.na(lab_col)) as.character(survey[[lab_col]]) else as.character(survey$name)
+  types <- as.character(survey$type %||% "")
+  keep <- !is.na(survey$name) & nzchar(as.character(survey$name)) &
+    !grepl("^(begin_|end_|note|calculate|start|end$|today|deviceid|subscriberid|simserial|phonenumber)", types)
+  vars <- data.frame(variable = as.character(survey$name[keep]), label = labels[keep], stringsAsFactors = FALSE)
+  vars <- vars[!duplicated(vars$variable), , drop = FALSE]
+  lapply(seq_len(nrow(vars)), function(i) {
+    list(variable = vars$variable[i], label = vars$label[i] %||% "", n_reglas = 0L, n_reglas_con_casos = 0L, n_inconsistencias = 0L)
+  })
+}
+
 .require_xlsform <- function(sid) {
   s <- session_get(sid)
   xlsform_files <- Filter(function(f) f$kind == "xlsform", s$files)
@@ -570,12 +700,51 @@ mount_validacion <- function(pr) {
       } else if (!is.null(scope$plan_result) && !is.null(scope$plan_result$plan)) {
         nrow(scope$plan_result$plan)
       } else 0L
+      vars_excluidas <- .validacion_chr_vec(scope$variables_excluidas)
       list(
         ok = TRUE,
         base_nombre = base %||% NA_character_,
         plan_construido = !is.null(scope$plan_result),
         auditoria_corrida = !is.null(scope$evaluacion),
-        n_reglas = as.integer(n_reglas)
+        n_reglas = as.integer(n_reglas),
+        variables_excluidas = as.list(vars_excluidas),
+        n_variables_excluidas = as.integer(length(vars_excluidas))
+      )
+    })) |>
+
+    # --- Instrumento: variables excluidas de auditoría -----------------------
+    plumber::pr_get("/api/validacion/v2/instrumento/variables-excluidas", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      vars_excluidas <- .validacion_chr_vec(scope$variables_excluidas)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        variables = as.list(vars_excluidas),
+        opciones = .validacion_variable_options(sid, base, scope)
+      )
+    })) |>
+
+    plumber::pr_post("/api/validacion/v2/instrumento/variables-excluidas", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        if (nzchar(body_raw)) jsonlite::fromJSON(body_raw, simplifyVector = FALSE) else list(),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      vars <- .validacion_chr_vec(parsed$variables %||% parsed$variables_excluidas)
+      validacion_scope_set(sid, base, "variables_excluidas", vars)
+      validacion_scope_set(sid, base, "evaluacion", NULL)
+      .limpieza_invalidate_outputs(sid, base)
+      scope <- .get_base_scope(sid, base)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        variables = as.list(.validacion_chr_vec(scope$variables_excluidas)),
+        opciones = .validacion_variable_options(sid, base, scope)
       )
     })) |>
 
@@ -583,6 +752,7 @@ mount_validacion <- function(pr) {
     plumber::pr_post("/api/validacion/v2/instrumento/plan", wrap_endpoint(function(req, res, incluir = NULL) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
+      logic_sync <- .validacion_sync_shared_logic_if_needed(sid, base)
       # Resolver archivos de la base (multi-base) o legacy.
       files <- .resolve_base_files(sid, base)
       # El inst_limpieza scoped por base: leemos on-demand y lo cacheamos
@@ -625,6 +795,7 @@ mount_validacion <- function(pr) {
       list(
         ok = TRUE,
         base_nombre = files$base_nombre %||% NA_character_,
+        xlsform_logic_sync = logic_sync %||% NULL,
         n_reglas = as.integer(nrow(plan)),
         resumen = if (!is.null(resumen)) .plan_rows_preview(resumen, n = 50) else list(),
         plan_preview = .plan_rows_preview(plan, n = 50)
@@ -723,6 +894,10 @@ mount_validacion <- function(pr) {
         bundle_efectivo$rules <- Filter(function(r) !(r$id %in% desactivadas), bundle_efectivo$rules)
         bundle_efectivo$plan <- compile_rules_to_plan(bundle_efectivo$rules)
       }
+      bundle_efectivo <- .validacion_filter_bundle_excluded_vars(
+        bundle_efectivo,
+        scope$variables_excluidas %||% character(0)
+      )
 
       # api_path para que el subprocess callr pueda cargar el paquete.
       api_path <- .app_api_dir()
@@ -1479,6 +1654,10 @@ mount_validacion <- function(pr) {
         bundle_final <- .validacion_patch_integrated_bundle(
           bundle_final,
           .validacion_mb_base_meta(sid, base_effective %||% base)
+        )
+        bundle_final <- .validacion_filter_bundle_excluded_vars(
+          bundle_final,
+          scope$variables_excluidas %||% character(0)
         )
         validation_exclusions <- .validacion_mb_collection_exclusions_for_base(sid, base_effective %||% base)
 

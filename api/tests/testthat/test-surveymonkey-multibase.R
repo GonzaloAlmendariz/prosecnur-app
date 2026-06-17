@@ -188,6 +188,7 @@ test_that("conversor API produce columnas canonicas, metadata y empresa especial
       collector_id = "collector-a",
       response_status = "completed",
       collection_mode = "default",
+      custom_variables = list(ID = "1003"),
       date_created = "2026-05-27T10:00:00+00:00",
       date_modified = "2026-05-27T10:05:00+00:00",
       pages = list(list(questions = list(
@@ -219,6 +220,7 @@ test_that("conversor API produce columnas canonicas, metadata y empresa especial
   expect_equal(out$respondent_id, "1001")
   expect_equal(out$response_id, "1001")
   expect_equal(out$case_uid, "survey-a:1001")
+  expect_equal(out$cv_id, "1003")
   expect_equal(out$pais, "Chile")
   expect_equal(out$p1, "1")
   expect_equal(out$p2, "Empresa A")
@@ -228,6 +230,41 @@ test_that("conversor API produce columnas canonicas, metadata y empresa especial
   expect_equal(out$p3_1, "high")
   expect_equal(out$p3_2, "low")
   expect_equal(out$p4, "doc ia")
+})
+
+test_that("decision efectiva permite collector fuera de filtro y excluye rechazo", {
+  inst <- make_sm_mb_inst()
+  df <- data.frame(
+    response_status = c("completed", "completed", "completed"),
+    collector_id = c("collector-fuera", "collector-esperado", "collector-esperado"),
+    response_id = c("r1", "r2", "r3"),
+    date_modified = c(
+      "2026-05-29T10:00:00+00:00",
+      "2026-05-27T10:00:00+00:00",
+      "2026-05-27T10:05:00+00:00"
+    ),
+    p1 = c("1", "1", "2"),
+    p2 = c("1", "1", "1"),
+    stringsAsFactors = FALSE
+  )
+  policy <- list(
+    statuses = list("completed"),
+    collector_ids = list(),
+    consent_var = "p1",
+    consent_yes_values = list("1", "si", "sí"),
+    rejection_var = "p1",
+    rejection_values = list("2", "no"),
+    include_partials = FALSE,
+    include_rejections = FALSE,
+    include_duplicates = TRUE,
+    duplicate_key_vars = list()
+  )
+
+  out <- .sm_mb_decision_apply_df(df, inst, policy)
+
+  expect_equal(out$response_id, c("r1", "r2"))
+  expect_true(all(out$decision_class == "efectiva"))
+  expect_false("r3" %in% out$response_id)
 })
 
 test_that("conversor API excluye respuestas parciales de SurveyMonkey", {

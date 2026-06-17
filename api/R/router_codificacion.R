@@ -1856,26 +1856,12 @@ mount_codificacion <- function(pr) {
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
     plumber::pr_get("/api/codificacion/export-json", wrap_endpoint(function(req, res) {
-      # Export completo del estado de codificación (draft familias +
-      # grupos + marcadas + dummy_col de SM). Permite al analista guardar
-      # su progreso a disco y compartirlo / restaurarlo entre sesiones.
-      # Formato simétrico con /import-json.
       sid <- session_header(req)
-      s <- session_get(sid)
-      list(
-        ok = TRUE,
-        version = "codif/1.0",
-        exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        familias_draft = codif_get(sid, "familias_draft") %||% list(rows = list(), source = NULL),
-        grupos_recod = codif_get(sid, "grupos_recod") %||% list(),
-        marcadas = codif_get(sid, "marcadas") %||% list(),
-        respuestas_recod = codif_get(sid, "respuestas_recod") %||% list()
-      )
+      codif_config_export(sid)
     })) |>
     plumber::pr_post("/api/codificacion/import-json", wrap_endpoint(function(req, res, ...) {
-      # Restaura un estado de codificación previamente exportado. No
-      # toca archivos cargados (xlsform/data); solo reemplaza el draft,
-      # grupos y marcadas.
+      # Alias read-only: valida y devuelve preview. La aplicación real del
+      # import vive en /import-json/apply para evitar sobrescritura silenciosa.
       sid <- session_header(req)
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
@@ -1885,35 +1871,35 @@ mount_codificacion <- function(pr) {
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
       parsed <- .mark_utf8(parsed)
-      version <- as.character(parsed$version %||% "")
-      if (!startsWith(version, "codif/")) {
-        stop_api(400, "E_BAD_VERSION",
-          sprintf("JSON no es de codificación (version='%s'). Se espera 'codif/1.x'.", version))
-      }
-      fam <- parsed$familias_draft
-      if (!is.null(fam) && !is.null(fam$rows) && is.list(fam$rows)) {
-        draft <- list(
-          rows = fam$rows,
-          source = as.character(fam$source %||% "import"),
-          updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-        )
-        codif_set(sid, "familias_draft", draft)
-      }
-      if (!is.null(parsed$grupos_recod)) {
-        codif_set(sid, "grupos_recod", parsed$grupos_recod)
-      }
-      if (!is.null(parsed$marcadas)) {
-        codif_set(sid, "marcadas", parsed$marcadas)
-      }
-      if (!is.null(parsed$respuestas_recod)) {
-        codif_set(sid, "respuestas_recod", parsed$respuestas_recod)
-      }
-      list(
-        ok = TRUE,
-        n_rows = length(parsed$familias_draft$rows %||% list()),
-        n_preguntas_con_grupos = length(parsed$grupos_recod %||% list()),
-        n_marcadas = length(parsed$marcadas %||% list())
+      bundle <- parsed$bundle %||% parsed
+      codif_config_preview_import(sid, bundle, parsed$file_name %||% "")
+    })) |>
+    plumber::pr_post("/api/codificacion/import-json/preview", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
+      parsed <- .mark_utf8(parsed)
+      bundle <- parsed$bundle %||% parsed
+      codif_config_preview_import(sid, bundle, parsed$file_name %||% "")
+    })) |>
+    plumber::pr_post("/api/codificacion/import-json/apply", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      parsed <- .mark_utf8(parsed)
+      bundle <- parsed$bundle %||% list()
+      selections <- parsed$selections %||% list()
+      codif_config_apply_import(sid, bundle, selections, parsed$file_name %||% "")
     })) |>
     plumber::pr_get("/api/codificacion/preguntas-abiertas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)

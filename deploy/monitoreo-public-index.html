@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Reporte de avance</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --border: #dfe5ee;
+      --text: #1f2937;
+      --soft: #667085;
+      --faint: #98a2b3;
+      --blue: #2563eb;
+      --green: #14936a;
+      --amber: #c47c12;
+      --red: #c2413b;
+      --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 22px 0 34px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+    }
+    .kicker {
+      display: inline-flex;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 4px 0 4px;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    p { margin: 0; color: var(--soft); }
+    .stamp {
+      min-width: 210px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      display: grid;
+      gap: 2px;
+    }
+    .stamp span, .stamp em, .panel-head span, .metric span {
+      color: var(--soft);
+      font-size: 11px;
+      font-style: normal;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .stamp strong { font-size: 19px; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .metric, .panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .metric {
+      min-width: 0;
+      padding: 14px;
+      display: grid;
+      gap: 4px;
+    }
+    .metric strong {
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .metric em {
+      color: var(--soft);
+      font-size: 12px;
+      font-style: normal;
+      min-height: 18px;
+    }
+    .metric.ready strong { color: var(--green); }
+    .metric.warning strong { color: var(--amber); }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(360px, .85fr) minmax(0, 1.15fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .panel {
+      min-width: 0;
+      padding: 14px;
+    }
+    .panel.wide { grid-column: 1 / -1; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+    .panel-head strong {
+      display: block;
+      font-size: 18px;
+      margin-top: 2px;
+    }
+    .panel-head em {
+      color: var(--faint);
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 700;
+    }
+    .daily, .progress-list {
+      display: grid;
+      gap: 8px;
+    }
+    .daily-row {
+      display: grid;
+      grid-template-columns: minmax(84px, 132px) minmax(0, 1fr) 54px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+    .daily-row > span {
+      color: var(--soft);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .daily-row > strong {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--surface-soft);
+      display: flex;
+    }
+    .bar i { display: block; min-width: 0; }
+    .bar .done { background: var(--green); }
+    .bar .pending { background: #8eb4f9; }
+    .bar .warning { background: var(--amber); }
+    .progress-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      padding: 12px;
+      display: grid;
+      gap: 9px;
+    }
+    .progress-card header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+    .progress-card header strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .progress-card header span {
+      color: var(--green);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      background: #e7edf5;
+      overflow: hidden;
+    }
+    .meter i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+    dl {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+    }
+    dt {
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    dd {
+      margin: 2px 0 0;
+      font-size: 13px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 760px;
+    }
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      background: var(--surface-soft);
+      color: var(--soft);
+      font-size: 10px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    td:nth-child(n+4) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .empty, .error {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+      color: var(--soft);
+    }
+    .error { border-color: rgba(194, 65, 59, .35); color: var(--red); }
+    footer {
+      margin-top: 26px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      color: var(--soft);
+      text-align: center;
+      font-size: 11px;
+    }
+    @media (max-width: 960px) {
+      main { width: min(100vw - 20px, 1480px); padding-top: 12px; }
+      .header { align-items: stretch; flex-direction: column; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .layout { grid-template-columns: 1fr; }
+      dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .metrics { grid-template-columns: 1fr; }
+      .daily-row { grid-template-columns: 80px minmax(0, 1fr) 42px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="app" class="empty">Cargando reporte de avance...</div>
+    <footer>Elaborado con Prosecnur · Pulso PUCP <span id="year"></span></footer>
+  </main>
+  <script>
+    const fmt = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
+    const pctFmt = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
+    const app = document.getElementById("app");
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function norm(value) {
+      return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+    function val(row, names) {
+      if (!row) return null;
+      const wanted = new Set(names.map(norm));
+      const key = Object.keys(row).find((name) => wanted.has(norm(name)));
+      return key ? row[key] : null;
+    }
+    function num(row, names) {
+      const value = val(row, names);
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const parsed = Number(String(value ?? "").replace(/%/g, "").replace(/\s/g, "").replace(",", "."));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function text(row, names, fallback = "") {
+      const value = val(row, names);
+      return value == null || value === "" ? fallback : String(value);
+    }
+    function metric(value) {
+      return value == null || !Number.isFinite(value) ? "S/D" : fmt.format(Math.round(value));
+    }
+    function percent(value) {
+      if (value == null || !Number.isFinite(value)) return "S/D";
+      const pct = Math.abs(value) <= 1 ? value * 100 : value;
+      return `${pctFmt.format(pct)}%`;
+    }
+    function safePercent(part, total) {
+      return Number.isFinite(part) && Number.isFinite(total) && total > 0 ? (part / total) * 100 : null;
+    }
+    function formatDate(value) {
+      if (!value) return "Sin fecha";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" });
+    }
+    function metricCard(label, value, hint, tone = "base") {
+      return `<article class="metric ${tone}"><span>${esc(label)}</span><strong>${esc(value)}</strong><em>${esc(hint)}</em></article>`;
+    }
+    function dailyChart(rows, options) {
+      const points = (rows || []).map((row) => {
+        const done = num(row, options.done) || 0;
+        const pending = num(row, options.pending) || 0;
+        const warning = num(row, options.warning) || 0;
+        const total = num(row, options.total) || done + pending + warning;
+        return { label: text(row, options.date, "Sin fecha"), done, pending, warning, total };
+      });
+      const max = Math.max(1, ...points.map((point) => point.total));
+      const body = points.length ? points.map((point) => `
+        <div class="daily-row">
+          <span>${esc(point.label)}</span>
+          <div class="bar" aria-label="${esc(point.label)}: ${point.total} respuestas">
+            <i class="done" style="width:${Math.max(0, point.done / max * 100)}%"></i>
+            <i class="pending" style="width:${Math.max(0, point.pending / max * 100)}%"></i>
+            <i class="warning" style="width:${Math.max(0, point.warning / max * 100)}%"></i>
+          </div>
+          <strong>${metric(point.total)}</strong>
+        </div>`).join("") : `<div class="empty">Sin serie diaria agregada.</div>`;
+      return `
+        <article class="panel">
+          <header class="panel-head"><div><span>Diario</span><strong>Avance diario</strong></div><em>${points.length} dias</em></header>
+          <div class="daily">${body}</div>
+        </article>`;
+    }
+    function progressCard(title, progress, rows) {
+      return `
+        <section class="progress-card">
+          <header><strong>${esc(title)}</strong><span>${percent(progress)}</span></header>
+          <div class="meter"><i style="width:${Math.max(0, Math.min(100, progress || 0))}%"></i></div>
+          <dl>${rows.map((item) => `<div><dt>${esc(item[0])}</dt><dd>${esc(item[1])}</dd></div>`).join("")}</dl>
+        </section>`;
+    }
+    function accreditation(payload, artifact) {
+      const report = payload.accreditation;
+      const actors = report.actors || [];
+      const sources = report.sources || [];
+      const universe = actors.reduce((sum, row) => sum + (num(row, ["Universo"]) || 0), 0);
+      const effective = actors.reduce((sum, row) => sum + (num(row, ["Efectivas"]) || 0), 0);
+      const partial = actors.reduce((sum, row) => sum + (num(row, ["Parciales"]) || 0), 0);
+      const refusal = actors.reduce((sum, row) => sum + (num(row, ["Rechazos plataforma"]) || 0), 0);
+      const gap = actors.reduce((sum, row) => sum + Math.max(0, num(row, ["Brecha meta"]) || 0), 0);
+      const actorCards = actors.map((row) => {
+        const actor = text(row, ["Actor"], "Sin actor");
+        const eff = num(row, ["Efectivas"]) || 0;
+        const univ = num(row, ["Universo"]) || 0;
+        const meta = num(row, ["Meta"]);
+        const progress = num(row, ["Avance meta"]) ?? num(row, ["Avance universo"]) ?? safePercent(eff, meta || univ) ?? 0;
+        return progressCard(actor, progress, [
+          ["Efectivas", metric(eff)],
+          ["Universo", metric(univ)],
+          ["Meta", metric(meta)],
+          ["Brecha", metric(num(row, ["Brecha meta"]))]
+        ]);
+      }).join("");
+      const table = sources.length ? `
+        <article class="panel wide">
+          <header class="panel-head"><div><span>Fuentes</span><strong>Fuentes agregadas por actor</strong></div><em>${sources.length} fuentes</em></header>
+          <div class="table-wrap"><table><thead><tr><th>Actor</th><th>Canal</th><th>Fuente</th><th>Efectivas</th><th>Parciales</th><th>Rechazos</th><th>Ultima efectiva</th></tr></thead><tbody>
+            ${sources.map((row) => `<tr><td>${esc(text(row, ["Actor"], "Sin actor"))}</td><td>${esc(text(row, ["Canal"], "Sin canal"))}</td><td>${esc(text(row, ["Fuente"], "Encuesta"))}</td><td>${metric(num(row, ["Efectivas"]))}</td><td>${metric(num(row, ["Parciales"]))}</td><td>${metric(num(row, ["Rechazos plataforma"]))}</td><td>${esc(text(row, ["Ultima efectiva", "Última efectiva"], "S/D"))}</td></tr>`).join("")}
+          </tbody></table></div>
+        </article>` : "";
+      return `
+        ${header(payload, artifact, report.title || artifact.title || "Reporte de avance", "Acreditacion")}
+        <section class="metrics">
+          ${metricCard("Efectivas", metric(effective), `${percent(safePercent(effective, universe))} del universo`, "ready")}
+          ${metricCard("Universo", metric(universe), `${actors.length} actores`)}
+          ${metricCard("Brecha meta", metric(gap), report.has_targets ? "pendiente contra meta" : "meta no configurada", gap ? "warning" : "ready")}
+          ${metricCard("Parciales", metric(partial), `${metric(refusal)} rechazos plataforma`, partial || refusal ? "warning" : "base")}
+        </section>
+        <section class="layout">
+          ${dailyChart(report.daily_general || [], { date: ["Fecha"], total: ["Total respuestas", "Efectivas"], done: ["Efectivas"], pending: ["Parciales"], warning: ["Rechazos plataforma"] })}
+          <article class="panel"><header class="panel-head"><div><span>Actores</span><strong>Avance por actor</strong></div><em>${actors.length} filas</em></header><div class="progress-list">${actorCards || '<div class="empty">Sin actores agregados.</div>'}</div></article>
+          ${table}
+        </section>`;
+    }
+    function territorial(payload, artifact) {
+      const report = payload.territorial;
+      const advance = report.advance || {};
+      const districts = report.district_progress || [];
+      const valid = num(advance, ["validas"]) || num(report.kpis, ["validas"]) || 0;
+      const meta = num(advance, ["meta"]) ?? num(report.kpis, ["meta"]);
+      const gap = num(advance, ["brecha"]);
+      const revision = num(report.kpis, ["revision"]) || 0;
+      const active = districts.filter((row) => (num(row, ["validas"]) || 0) > 0).length;
+      const districtCards = districts.map((row) => {
+        const validas = num(row, ["validas"]) || 0;
+        const rowMeta = num(row, ["meta"]);
+        const progress = num(row, ["avance_pct"]) ?? safePercent(validas, rowMeta) ?? 0;
+        return progressCard(text(row, ["distrito"], "Sin distrito"), progress, [
+          ["Validas", metric(validas)],
+          ["Meta", metric(rowMeta)],
+          ["Revision", metric(num(row, ["revision"]))],
+          ["Brecha", metric(num(row, ["brecha"]))]
+        ]);
+      }).join("");
+      return `
+        ${header(payload, artifact, artifact.title || "Reporte territorial", "Territorial")}
+        <section class="metrics">
+          ${metricCard("Validas", metric(valid), `${percent(num(advance, ["avance_pct"]) ?? safePercent(valid, meta))} de avance`, "ready")}
+          ${metricCard("Meta", metric(meta), "objetivo territorial")}
+          ${metricCard("Brecha", metric(gap), "pendientes contra meta", gap ? "warning" : "ready")}
+          ${metricCard("Distritos con avance", metric(active), `${metric(districts.length)} distritos publicados`)}
+          ${metricCard("Revision", metric(revision), "respuestas en observacion", revision ? "warning" : "ready")}
+        </section>
+        <section class="layout">
+          ${dailyChart(report.daily || [], { date: ["date_label", "date"], total: ["total"], done: ["validas"], pending: ["revision"], warning: ["no_defendibles"] })}
+          <article class="panel"><header class="panel-head"><div><span>${esc(report.active_route_phase === "field" ? "Campo" : "Piloto")}</span><strong>Avance por distrito</strong></div><em>${districts.length} distritos</em></header><div class="progress-list">${districtCards || '<div class="empty">Sin distritos agregados.</div>'}</div></article>
+        </section>`;
+    }
+    function header(payload, artifact, title, family) {
+      return `
+        <header class="header">
+          <div>
+            <span class="kicker">Monitoreo · ${esc(family)}</span>
+            <h1>${esc(title)}</h1>
+            <p>Corte publicado ${esc(formatDate(payload.synced_at || payload.generated_at))}</p>
+          </div>
+          <div class="stamp"><span>Alcance</span><strong>${artifact.public_scope === "aggregate" ? "Agregado" : esc(artifact.public_scope || "publico")}</strong><em>${payload.n_rows ? `${metric(payload.n_rows)} registros fuente` : "Solo lectura"}</em></div>
+        </header>`;
+    }
+    async function boot() {
+      try {
+        const [artifact, payload] = await Promise.all([
+          fetch("/api/public/artifact").then((r) => r.json()),
+          fetch("/api/monitoreo/public-report").then((r) => r.json())
+        ]);
+        if (payload.error) throw new Error(payload.error.message || "No se pudo cargar el reporte.");
+        document.title = artifact.title || "Reporte de avance";
+        app.className = "";
+        app.innerHTML = payload.accreditation
+          ? accreditation(payload, artifact)
+          : payload.territorial
+            ? territorial(payload, artifact)
+            : '<div class="empty">Este artefacto no contiene un reporte publico compatible.</div>';
+      } catch (err) {
+        app.className = "error";
+        app.textContent = err.message || "No se pudo cargar el reporte.";
+      }
+    }
+    boot();
+  </script>
+</body>
+</html>

@@ -772,6 +772,38 @@ mount_hojas_ruta <- function(pr) {
       )
       list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf")
     })) |>
+    plumber::pr_post("/api/hojas-ruta/route-workbook", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .hojas_ruta_parse_body(req)
+      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      outputs <- .hojas_ruta_workspace_outputs_normalize(
+        .hojas_ruta_active_run(sid, active$phase)$run$workspace_outputs %||% list()
+      )
+      sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% outputs$sample %||% NULL
+      out_path <- tempfile(fileext = ".xlsx")
+      summary <- hojas_ruta_generar_excel_operativo_integrado(
+        cfg,
+        out_path,
+        sample_override = sample_override
+      )
+      out_name <- .export_filename(sid, "hojas_ruta_operativo", "xlsx")
+      meta <- .register_output_file(sid, "hojas_ruta_operativo", out_path, original_name = out_name)
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        filename = meta$original_name,
+        size = meta$size,
+        n_blocks = as.integer(summary$n_blocks %||% 0L),
+        n_replacement_blocks = as.integer(summary$n_replacement_blocks %||% 0L),
+        total_entrevistas = as.integer(summary$total_entrevistas %||% 0L),
+        total_replacement_interviews = as.integer(summary$total_replacement_interviews %||% 0L),
+        frame_version = summary$frame_version %||% NA_character_,
+        alerts = summary$alerts %||% list()
+      )
+    })) |>
     plumber::pr_post("/api/hojas-ruta/generate", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)

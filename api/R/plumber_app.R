@@ -17,23 +17,34 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err))
 
   pr <- mount_sistema(pr)
-  pr <- mount_jobs(pr)
-  pr <- mount_proyecto(pr)
-  pr <- mount_carga(pr)
-  pr <- mount_connections(pr)
-  pr <- mount_xlsform_editor(pr)
-  pr <- mount_surveymonkey_multibase(pr)
-  pr <- mount_multi_integrated(pr)
-  pr <- mount_estudio(pr)
-  pr <- mount_validacion(pr)
-  pr <- mount_codificacion(pr)
-  pr <- mount_analitica(pr)
-  pr <- mount_hojas_ruta(pr)
-  pr <- mount_calc_muestra(pr)
-  pr <- mount_enciclopedia(pr)
-  pr <- mount_monitoreo(pr)
-  pr <- mount_graficos(pr)
-  pr <- mount_dashboard(pr)
+  if (is_public_mode()) {
+    sid <- Sys.getenv("PULSO_BOOTSTRAP_SID", "")
+    s <- if (nzchar(sid)) session_get(sid, required = FALSE) else NULL
+    kind <- as.character(s$public_artifact$kind %||% "dashboard")[1]
+    if (identical(kind, "monitoreo")) {
+      pr <- mount_monitoreo(pr)
+    } else {
+      pr <- mount_dashboard(pr)
+    }
+  } else {
+    pr <- mount_jobs(pr)
+    pr <- mount_proyecto(pr)
+    pr <- mount_carga(pr)
+    pr <- mount_connections(pr)
+    pr <- mount_xlsform_editor(pr)
+    pr <- mount_surveymonkey_multibase(pr)
+    pr <- mount_multi_integrated(pr)
+    pr <- mount_estudio(pr)
+    pr <- mount_validacion(pr)
+    pr <- mount_codificacion(pr)
+    pr <- mount_analitica(pr)
+    pr <- mount_hojas_ruta(pr)
+    pr <- mount_calc_muestra(pr)
+    pr <- mount_enciclopedia(pr)
+    pr <- mount_monitoreo(pr)
+    pr <- mount_graficos(pr)
+    pr <- mount_dashboard(pr)
+  }
 
   # Modo público (deploy web): filtro de whitelist para que solo pasen
   # endpoints read-only del dashboard. NO-OP cuando PULSO_PUBLIC_MODE

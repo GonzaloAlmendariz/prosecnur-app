@@ -170,6 +170,24 @@
 }
 
 #' @noRd
+.reporte_plan_labels_for_levels <- function(list_name, levels, choices_use = NULL) {
+  levels <- .reporte_plan_clean_chr(levels)
+  out <- levels
+  choices_levels <- .reporte_plan_choice_levels_for_list(list_name, choices_use)
+  if (!nrow(choices_levels) || !length(levels)) return(out)
+
+  for (i in seq_along(levels)) {
+    level <- levels[i]
+    idx <- which(choices_levels$code == level | choices_levels$label == level)
+    if (length(idx)) {
+      label <- choices_levels$label[idx[1]]
+      if (!is.na(label) && nzchar(trimws(label))) out[i] <- label
+    }
+  }
+  out
+}
+
+#' @noRd
 .reporte_plan_ordered_stack_levels <- function(list_name,
                                                observed_opts,
                                                choices_use = NULL,
@@ -269,6 +287,29 @@
   }
 
   out[!is.na(out) & nzchar(trimws(out))]
+}
+
+#' @noRd
+.reporte_plan_pulso_palette_for_levels <- function(levels) {
+  levels <- .reporte_plan_clean_chr(levels)
+  levels <- levels[nzchar(levels)]
+  if (!length(levels)) return(NULL)
+
+  main <- c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF",
+            "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
+  approval <- c("#CA5651", "#EFD25E", "#85BB85", "#081F5C", "#BFBFBF",
+                "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
+
+  low_high_words <- paste(
+    "nada", "poco", "bajo", "desacuerdo", "insatis", "malo",
+    "alto", "acuerdo", "satis", "bueno", "mucho", "muy",
+    sep = "|"
+  )
+  looks_like_scale <- all(grepl("^[0-9]+$", levels)) ||
+    any(grepl(low_high_words, tolower(levels), perl = TRUE))
+
+  pal <- if (looks_like_scale && length(levels) >= 3L) approval else main
+  stats::setNames(rep_len(pal, length(levels)), levels)
 }
 
 #' @title Reporte PowerPoint basado en "plan" (p_* + diapo_###)
@@ -824,13 +865,13 @@ reporte_ppt_plan <- function(
     table_height <- .style_num(style, "table_height", 5.55, min = 1)
     first_col_pct <- .style_num(style, "first_col_pct", 0.20, min = 0.14, max = 0.32)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
-    text_color <- as.character(.style_value(style, "text_color", "#0B1F4D"))[1]
-    first_col_fill <- as.character(.style_value(style, "first_col_fill", "#D9D9D9"))[1]
-    body_fill <- as.character(.style_value(style, "body_fill", "#F3F3F3"))[1]
-    border_color <- as.character(.style_value(style, "border_color", "#7F7F7F"))[1]
+    text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
+    first_col_fill <- as.character(.style_value(style, "first_col_fill", "#D8D8D8"))[1]
+    body_fill <- as.character(.style_value(style, "body_fill", "#F2F2F2"))[1]
+    border_color <- as.character(.style_value(style, "border_color", "#BFBFBF"))[1]
     border_width <- .style_num(style, "border_width", 0.75, min = 0.1)
-    first_col_size <- .style_num(style, "first_col_size", 16.5, min = 6)
-    body_size <- .style_num(style, "body_size", 16.5, min = 6)
+    first_col_size <- .style_num(style, "first_col_size", 14, min = 6)
+    body_size <- .style_num(style, "body_size", 14, min = 6)
     pad_h <- .style_num(style, "padding_h", 8, min = 0)
     pad_v <- .style_num(style, "padding_v", 5, min = 0)
 
@@ -862,7 +903,7 @@ reporte_ppt_plan <- function(
         padding.right = pad_h,
         part = "body"
       )
-      ft <- flextable::line_spacing(ft, space = 1.05, part = "body")
+      ft <- flextable::line_spacing(ft, space = 1.00, part = "body")
       ft <- flextable::height(ft, i = seq_len(nrow(tbl)), height = row_heights, part = "body")
       ft <- flextable::hrule(ft, rule = "atleast", part = "body")
       ft <- flextable::border_remove(ft)
@@ -1674,15 +1715,15 @@ reporte_ppt_plan <- function(
 
   .slide_subtitle_style <- function() {
     base_args <- presets$base$args %||% list()
-    font_size <- suppressWarnings(as.numeric(base_args$size_subtitulo_slide %||% 18)[1])
-    if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 18
+    font_size <- suppressWarnings(as.numeric(base_args$size_subtitulo_slide %||% base_args$size_subtitulo %||% 16)[1])
+    if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 16
     font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
     font_family <- as.character(font_family)[1]
     if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
     list(
       font_family = font_family,
       font_size = font_size,
-      color = base_args$color_nota_pie %||% "#39588B",
+      color = base_args$color_subtitulo %||% "#85BB85",
       # Separacion corta y consistente bajo el titulo.
       top_gap = 0.008,
       # Altura suficiente para evitar que PowerPoint reduzca automaticamente la fuente.
@@ -2127,6 +2168,34 @@ reporte_ppt_plan <- function(
     if (!is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
+    # paleta auto (paleta_<listname>) y orden institucional del instrumento
+    ln <- .list_name_of_var(var)
+    ctx_paleta <- .resolve_ref(var, arg_name = "var")
+    colores_grupos <- .paleta_auto(ln, env_diapos)
+    ordered_opts <- .reporte_plan_ordered_stack_levels(
+      ln,
+      as.character(tab$Opciones),
+      choices_use = ctx_paleta$choices,
+      palette_names = names(colores_grupos %||% NULL)
+    )
+    idx_order <- match(ordered_opts, as.character(tab$Opciones), nomatch = 0L)
+    idx_order <- idx_order[idx_order > 0L]
+    if (length(idx_order)) tab <- tab[idx_order, , drop = FALSE]
+    etiquetas_opts <- .reporte_plan_labels_for_levels(
+      ln,
+      as.character(tab$Opciones),
+      choices_use = ctx_paleta$choices
+    )
+    if (is.null(colores_grupos) || !length(colores_grupos)) {
+      colores_grupos <- .reporte_plan_pulso_palette_for_levels(etiquetas_opts)
+    }
+    colores_grupos <- .reporte_plan_palette_for_levels(
+      ln,
+      etiquetas_opts,
+      choices_use = ctx_paleta$choices,
+      palette = colores_grupos
+    )
+
     pct_int  <- .pct_enteros_100(tab$n)
     cols_pct <- paste0("pct_", seq_len(nrow(tab)))
 
@@ -2141,18 +2210,7 @@ reporte_ppt_plan <- function(
     )
     for (i in seq_along(cols_pct)) df_wide[[cols_pct[i]]] <- pct_int[i] / 100
 
-    etiquetas_grupos <- stats::setNames(as.character(tab$Opciones), cols_pct)
-
-    # paleta auto (paleta_<listname>)
-    ln <- .list_name_of_var(var)
-    colores_grupos <- .paleta_auto(ln, env_diapos)
-    ctx_paleta <- .resolve_ref(var, arg_name = "var")
-    colores_grupos <- .reporte_plan_palette_for_levels(
-      ln,
-      as.character(tab$Opciones),
-      choices_use = ctx_paleta$choices,
-      palette = colores_grupos
-    )
+    etiquetas_grupos <- stats::setNames(etiquetas_opts, cols_pct)
 
     if (!exists("graficar_barras_apiladas", mode = "function", inherits = TRUE)) {
       stop("No existe `graficar_barras_apiladas()` en el entorno/paquete.", call. = FALSE)
@@ -2476,15 +2534,21 @@ reporte_ppt_plan <- function(
         choices_use = choices_use,
         palette_names = names(colores_grupos %||% NULL)
       )
+      if (is.null(colores_grupos) || !length(colores_grupos)) {
+        colores_grupos <- .reporte_plan_pulso_palette_for_levels(
+          .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
+        )
+      }
+      labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
       colores_grupos <- .reporte_plan_palette_for_levels(
         ln,
-        all_opts,
+        labels_opts,
         choices_use = choices_use,
         palette = colores_grupos
       )
 
       cols_pct <- paste0("pct_", seq_along(all_opts))
-      etiquetas_grupos <- stats::setNames(all_opts, cols_pct)
+      etiquetas_grupos <- stats::setNames(labels_opts, cols_pct)
 
       duplicated_labels <- duplicated(labels_by_v) | duplicated(labels_by_v, fromLast = TRUE)
 
@@ -2614,15 +2678,21 @@ reporte_ppt_plan <- function(
         choices_use = ctx_var$choices,
         palette_names = names(colores_grupos %||% NULL)
       )
+      if (is.null(colores_grupos) || !length(colores_grupos)) {
+        colores_grupos <- .reporte_plan_pulso_palette_for_levels(
+          .reporte_plan_labels_for_levels(ln_var, all_opts, choices_use = ctx_var$choices)
+        )
+      }
+      labels_opts <- .reporte_plan_labels_for_levels(ln_var, all_opts, choices_use = ctx_var$choices)
       colores_grupos <- .reporte_plan_palette_for_levels(
         ln_var,
-        all_opts,
+        labels_opts,
         choices_use = ctx_var$choices,
         palette = colores_grupos
       )
 
       cols_pct <- paste0("pct_", seq_along(all_opts))
-      etiquetas_grupos <- stats::setNames(all_opts, cols_pct)
+      etiquetas_grupos <- stats::setNames(labels_opts, cols_pct)
 
       # --- construir 1 fila por nivel del cruce
       rows <- list()
@@ -2769,14 +2839,20 @@ reporte_ppt_plan <- function(
           choices_use = choices_use,
           palette_names = names(colores_grupos %||% NULL)
         )
+        if (is.null(colores_grupos) || !length(colores_grupos)) {
+          colores_grupos <- .reporte_plan_pulso_palette_for_levels(
+            .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
+          )
+        }
+        labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
         colores_grupos <- .reporte_plan_palette_for_levels(
           ln,
-          all_opts,
+          labels_opts,
           choices_use = choices_use,
           palette = colores_grupos
         )
         cols_pct <- paste0("pct_", seq_along(all_opts))
-        etiquetas_grupos <- stats::setNames(all_opts, cols_pct)
+        etiquetas_grupos <- stats::setNames(labels_opts, cols_pct)
 
         rows <- list()
         for (group_id in names(valid_refs)) {
@@ -2889,14 +2965,20 @@ reporte_ppt_plan <- function(
           choices_use = scale_spec$choices,
           palette_names = names(colores_grupos %||% NULL)
         )
+        if (is.null(colores_grupos) || !length(colores_grupos)) {
+          colores_grupos <- .reporte_plan_pulso_palette_for_levels(
+            .reporte_plan_labels_for_levels(ln, all_opts, choices_use = scale_spec$choices)
+          )
+        }
+        labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = scale_spec$choices)
         colores_grupos <- .reporte_plan_palette_for_levels(
           ln,
-          all_opts,
+          labels_opts,
           choices_use = scale_spec$choices,
           palette = colores_grupos
         )
         cols_pct <- paste0("pct_", seq_along(all_opts))
-        etiquetas_grupos <- stats::setNames(all_opts, cols_pct)
+        etiquetas_grupos <- stats::setNames(labels_opts, cols_pct)
 
         rows <- list()
         x_cruce <- .clean_chr(dsrc[[cruce]])
@@ -4461,14 +4543,48 @@ reporte_ppt_plan <- function(
       if (!isTRUE(solo_lista)) {
         doc <- .add_slide_strict(doc, contract$layout)
 
+        base_args <- presets$base$args %||% list()
+        font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+        font_family <- as.character(font_family)[1]
+        if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
+
+        title_size <- suppressWarnings(as.numeric(base_args$size_titulo_slide %||% 24)[1])
+        if (!is.finite(title_size) || is.na(title_size) || title_size <= 0) title_size <- 24
+        body_size <- suppressWarnings(as.numeric(base_args$size_cuerpo_slide %||% 14)[1])
+        if (!is.finite(body_size) || is.na(body_size) || body_size <= 0) body_size <- 14
+
         if (!is.null(title_slide) && nzchar(trimws(as.character(title_slide)[1]))) {
-          doc <- .ph_with_strict(doc, as.character(title_slide)[1], contract$slots$title)
+          title_value <- officer::fpar(
+            officer::ftext(
+              as.character(title_slide)[1],
+              prop = officer::fp_text(
+                color = base_args$color_titulo %||% "#CA5651",
+                font.size = title_size,
+                bold = TRUE,
+                font.family = font_family
+              )
+            ),
+            fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
+          )
+          doc <- .ph_with_strict(doc, title_value, contract$slots$title)
         } else {
           stop("text_slide requiere `title` no vacio.", call. = FALSE)
         }
 
         if (is.null(txt) || !nzchar(trimws(as.character(txt)[1]))) txt <- " "
-        doc <- .ph_with_strict(doc, as.character(txt)[1], contract$slots$text)
+        body_value <- officer::fpar(
+          officer::ftext(
+            as.character(txt)[1],
+            prop = officer::fp_text(
+              color = base_args$color_nota_pie %||% "#081F5C",
+              font.size = body_size,
+              bold = FALSE,
+              font.family = font_family
+            )
+          ),
+          fp_p = officer::fp_par(text.align = "justify", line_spacing = 1)
+        )
+        doc <- .ph_with_strict(doc, body_value, contract$slots$text)
       }
 
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(
@@ -4512,8 +4628,8 @@ reporte_ppt_plan <- function(
         title_top <- .style_num(style, "title_top", 0.70, min = 0)
         title_width <- .style_num(style, "title_width", 11.9, min = 1)
         title_height <- .style_num(style, "title_height", 0.55, min = 0.2)
-        title_size <- .style_num(style, "title_size", 25.5, min = 8)
-        title_color <- as.character(.style_value(style, "title_color", "#D93A39"))[1]
+        title_size <- .style_num(style, "title_size", 24, min = 8)
+        title_color <- as.character(.style_value(style, "title_color", "#CA5651"))[1]
 
         title_prop <- officer::fp_text(
           color = title_color,
@@ -4522,7 +4638,7 @@ reporte_ppt_plan <- function(
           font.family = as.character(style$font_family)[1]
         )
         title_value <- officer::fpar(
-          officer::ftext(toupper(as.character(title_slide)[1]), prop = title_prop),
+          officer::ftext(as.character(title_slide)[1], prop = title_prop),
           fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
         )
         doc <- officer::ph_with(
@@ -4558,8 +4674,8 @@ reporte_ppt_plan <- function(
 
         if (!is.null(base_txt) && nzchar(trimws(as.character(base_txt)[1]))) {
           footer_prop <- officer::fp_text(
-            color = as.character(.style_value(style, "footer_color", "#4B5563"))[1],
-            font.size = .style_num(style, "footer_size", 8.5, min = 5),
+            color = as.character(.style_value(style, "footer_color", "#081F5C"))[1],
+            font.size = .style_num(style, "footer_size", 10, min = 5),
             font.family = as.character(style$font_family)[1]
           )
           footer_value <- officer::fpar(

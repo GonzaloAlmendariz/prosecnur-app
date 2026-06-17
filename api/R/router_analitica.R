@@ -710,9 +710,302 @@
 .analitica_unified_operational_metadata_cols <- function() {
   c(
     "pais", "survey_id", "collector_id", "respondent_id", "response_id",
-    "case_uid", "source_title", "response_status", "collection_mode",
-    "date_created", "date_modified", "empresa_source_code",
+    "case_uid", "source_title", "source_channel", "response_status", "collection_mode",
+    "date_created", "date_modified", "recipient_id", "custom_value",
+    "total_time", "ip_address", "decision_class", "decision_included", "decision_manual_include",
+    "answered_questions_count", "duplicate_status", "duplicate_key",
+    "duplicate_key_var", "duplicate_group_size", "duplicate_rank", "empresa_source_code",
     "empresa_source_label", "empresa_uid"
+  )
+}
+
+.analitica_unified_link_id_var <- function() "id_enlace_sm"
+
+.analitica_unified_link_id_label <- function() "ID enlace SurveyMonkey"
+
+.analitica_unified_observation_metadata_cols <- function() {
+  c(
+    "posterior_corte", "fecha_corte_referencia",
+    "collector_fuera_scope", "collector_id", "collector_label",
+    "date_modified", "observacion_export"
+  )
+}
+
+.analitica_unified_reconciliation_metadata_cols <- function() {
+  c(.analitica_unified_link_id_var(), .analitica_unified_observation_metadata_cols())
+}
+
+.analitica_unified_scalar <- function(x) {
+  if (is.null(x) || length(x) == 0L) return("")
+  out <- as.character(x)[1]
+  if (is.na(out)) "" else out
+}
+
+.analitica_unified_cv_id_from_response <- function(resp) {
+  custom <- resp$custom_variables %||% list()
+  if (!length(custom)) return("")
+  nms <- names(custom)
+  if (is.null(nms)) return("")
+  hit <- which(tolower(as.character(nms)) == "id")[1]
+  if (is.na(hit)) return("")
+  .analitica_unified_scalar(custom[[hit]])
+}
+
+.analitica_unified_link_id_lookup_from_snapshot <- function(snapshot) {
+  sources <- (snapshot %||% list())$sources %||% list()
+  rows <- list()
+  for (source in sources) {
+    source_spec <- source$source_spec %||% list()
+    source_id <- .analitica_unified_scalar(
+      source$survey_id %||% source_spec$survey_id %||% (snapshot$spec %||% list())$survey_id
+    )
+    for (resp in source$responses %||% list()) {
+      response_id <- .analitica_unified_scalar(resp$id %||% resp$response_id %||% resp$respondent_id)
+      cv_id <- .analitica_unified_cv_id_from_response(resp)
+      if (!nzchar(response_id) || !nzchar(cv_id)) next
+      case_uid <- .analitica_unified_scalar(resp$case_uid)
+      if (!nzchar(case_uid) && nzchar(source_id)) case_uid <- paste(source_id, response_id, sep = ":")
+      rows[[length(rows) + 1L]] <- data.frame(
+        case_uid = case_uid,
+        response_id = response_id,
+        cv_id = cv_id,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  empty <- list(case_uid = setNames(character(0), character(0)),
+                response_id = setNames(character(0), character(0)))
+  if (!length(rows)) return(empty)
+  df <- do.call(rbind, rows)
+  df <- df[nzchar(df$cv_id), , drop = FALSE]
+  if (!nrow(df)) return(empty)
+
+  case_df <- df[nzchar(df$case_uid), , drop = FALSE]
+  case_map <- setNames(character(0), character(0))
+  if (nrow(case_df)) {
+    case_df <- case_df[!duplicated(case_df$case_uid), , drop = FALSE]
+    case_map <- stats::setNames(as.character(case_df$cv_id), as.character(case_df$case_uid))
+  }
+
+  response_map <- setNames(character(0), character(0))
+  dup_response <- names(table(df$response_id))[table(df$response_id) > 1L]
+  response_df <- df[nzchar(df$response_id) & !df$response_id %in% dup_response, , drop = FALSE]
+  if (nrow(response_df)) {
+    response_map <- stats::setNames(as.character(response_df$cv_id), as.character(response_df$response_id))
+  }
+  list(case_uid = case_map, response_id = response_map)
+}
+
+.analitica_unified_link_id_lookup_for_base <- function(sid, base_meta) {
+  raw_fid <- .analitica_unified_scalar((base_meta %||% list())$surveymonkey_raw_snapshot_file_id)
+  if (!nzchar(raw_fid) || !exists(".sm_mb_read_raw_snapshot", mode = "function")) {
+    return(.analitica_unified_link_id_lookup_from_snapshot(list()))
+  }
+  snapshot <- tryCatch(.sm_mb_read_raw_snapshot(sid, raw_fid), error = function(e) NULL)
+  .analitica_unified_link_id_lookup_from_snapshot(snapshot %||% list())
+}
+
+.analitica_unified_lookup_values <- function(keys, lookup) {
+  keys <- as.character(keys %||% character(0))
+  keys[is.na(keys)] <- ""
+  out <- rep("", length(keys))
+  if (!length(lookup)) return(out)
+  hit <- lookup[keys]
+  ok <- !is.na(hit) & nzchar(hit)
+  out[ok] <- as.character(hit[ok])
+  out
+}
+
+.analitica_unified_link_id_values <- function(data, sid = NULL, base_meta = NULL,
+                                             lookup = NULL) {
+  n <- if (is.data.frame(data)) nrow(data) else 0L
+  out <- rep("", n)
+  if (!is.data.frame(data) || !n) {
+    attr(out, "label") <- .analitica_unified_link_id_label()
+    return(out)
+  }
+
+  fill_missing <- function(values) {
+    values <- as.character(values %||% character(0))
+    if (length(values) != n) values <- rep("", n)
+    values[is.na(values)] <- ""
+    missing <- !nzchar(out) & nzchar(values)
+    out[missing] <<- values[missing]
+  }
+
+  if ("cv_id" %in% names(data)) fill_missing(data$cv_id)
+  if (.analitica_unified_link_id_var() %in% names(data)) {
+    fill_missing(data[[.analitica_unified_link_id_var()]])
+  }
+  if (is.null(lookup) && !is.null(sid)) {
+    lookup <- .analitica_unified_link_id_lookup_for_base(sid, base_meta)
+  }
+  if (is.list(lookup) && length(lookup)) {
+    if ("case_uid" %in% names(data)) {
+      fill_missing(.analitica_unified_lookup_values(data$case_uid, lookup$case_uid %||% character(0)))
+    }
+    if ("response_id" %in% names(data)) {
+      fill_missing(.analitica_unified_lookup_values(data$response_id, lookup$response_id %||% character(0)))
+    }
+  }
+  attr(out, "label") <- .analitica_unified_link_id_label()
+  out
+}
+
+.analitica_unified_effective_export_policy <- function(policy = list()) {
+  policy <- policy %||% list()
+  policy$statuses <- as.list(c("completed"))
+  policy$collector_ids <- list()
+  policy$include_partials <- FALSE
+  policy$include_rejections <- FALSE
+  policy
+}
+
+.analitica_unified_source_filters <- function(base_meta) {
+  rf <- (base_meta %||% list())$response_filter %||% list()
+  items <- if (is.list(rf) && identical(.analitica_unified_scalar(rf$kind), "surveymonkey_multi_source_response_filter")) {
+    rf$sources %||% list()
+  } else if (length(rf)) {
+    list(rf)
+  } else {
+    list()
+  }
+  lapply(items, function(item) {
+    list(
+      survey_id = .analitica_unified_scalar(item$survey_id),
+      source_title = .analitica_unified_scalar(item$source_title),
+      collector_ids = .as_chr_vec(item$collector_ids),
+      date_modified_lte = .analitica_unified_scalar(item$date_modified_lte),
+      date_modified_gte = .analitica_unified_scalar(item$date_modified_gte)
+    )
+  })
+}
+
+.analitica_unified_filter_for_row <- function(filters, survey_id = "", source_title = "") {
+  if (!length(filters)) return(list())
+  survey_id <- .analitica_unified_scalar(survey_id)
+  source_title <- .analitica_unified_scalar(source_title)
+  if (nzchar(survey_id)) {
+    hit <- Filter(function(x) identical(.analitica_unified_scalar(x$survey_id), survey_id), filters)
+    if (length(hit)) return(hit[[1]])
+  }
+  if (nzchar(source_title)) {
+    hit <- Filter(function(x) identical(.analitica_unified_scalar(x$source_title), source_title), filters)
+    if (length(hit)) return(hit[[1]])
+  }
+  if (length(filters) == 1L) filters[[1]] else list()
+}
+
+.analitica_unified_parse_time <- function(x) {
+  x <- .analitica_unified_scalar(x)
+  if (!nzchar(x)) return(NA_real_)
+  if (exists(".sm_mb_parse_time", mode = "function")) {
+    return(.sm_mb_parse_time(x))
+  }
+  out <- suppressWarnings(as.POSIXct(x, tz = "UTC"))
+  if (is.na(out)) return(NA_real_)
+  as.numeric(out)
+}
+
+.analitica_unified_collector_labels <- function(snapshot) {
+  sources <- (snapshot %||% list())$sources %||% list()
+  out <- list()
+  for (source in sources) {
+    for (collector in source$collectors %||% list()) {
+      id <- .analitica_unified_scalar(collector$id %||% collector$collector_id)
+      label <- .analitica_unified_scalar(collector$name %||% collector$title %||% collector$collector_name)
+      if (nzchar(id) && nzchar(label) && is.null(out[[id]])) out[[id]] <- label
+    }
+  }
+  out
+}
+
+.analitica_unified_apply_observation_metadata <- function(data, base_meta, snapshot = list()) {
+  if (!is.data.frame(data)) return(data)
+  n <- nrow(data)
+  filters <- .analitica_unified_source_filters(base_meta)
+  collector_labels <- .analitica_unified_collector_labels(snapshot)
+
+  posterior <- rep(FALSE, n)
+  cutoff <- rep("", n)
+  collector_out <- rep(FALSE, n)
+  collector_label <- rep("", n)
+  observation <- rep("", n)
+
+  for (i in seq_len(n)) {
+    survey_id <- if ("survey_id" %in% names(data)) data$survey_id[i] else ""
+    source_title <- if ("source_title" %in% names(data)) data$source_title[i] else ""
+    filter <- .analitica_unified_filter_for_row(filters, survey_id, source_title)
+
+    collector <- if ("collector_id" %in% names(data)) .analitica_unified_scalar(data$collector_id[i]) else ""
+    allowed_collectors <- .as_chr_vec(filter$collector_ids)
+    if (nzchar(collector) && length(allowed_collectors) > 0L && !(collector %in% allowed_collectors)) {
+      collector_out[i] <- TRUE
+    }
+    if (nzchar(collector) && !is.null(collector_labels[[collector]])) {
+      collector_label[i] <- collector_labels[[collector]]
+    }
+
+    cutoff_i <- .analitica_unified_scalar(filter$date_modified_lte)
+    cutoff[i] <- cutoff_i
+    if (nzchar(cutoff_i)) {
+      modified <- if ("date_modified" %in% names(data)) data$date_modified[i] else if ("date_created" %in% names(data)) data$date_created[i] else ""
+      posterior[i] <- isTRUE(.analitica_unified_parse_time(modified) > .analitica_unified_parse_time(cutoff_i))
+    }
+
+    reasons <- character(0)
+    if (isTRUE(posterior[i])) {
+      reasons <- c(reasons, "Respuesta completa válida posterior al corte de reporte; incluida en base efectiva.")
+    }
+    if (isTRUE(collector_out[i])) {
+      reasons <- c(reasons, "Collector fuera del filtro operativo previo; incluida por cumplir criterio de efectividad.")
+    }
+    observation[i] <- paste(reasons, collapse = " ")
+  }
+
+  data$posterior_corte <- posterior
+  data$fecha_corte_referencia <- cutoff
+  data$collector_fuera_scope <- collector_out
+  data$collector_label <- collector_label
+  data$observacion_export <- observation
+
+  attr(data$posterior_corte, "label") <- "Posterior al corte operativo"
+  attr(data$fecha_corte_referencia, "label") <- "Fecha de corte operativo de referencia"
+  attr(data$collector_fuera_scope, "label") <- "Collector fuera del filtro operativo"
+  if ("collector_id" %in% names(data)) attr(data$collector_id, "label") <- "Collector ID SurveyMonkey"
+  attr(data$collector_label, "label") <- "Collector SurveyMonkey"
+  if ("date_modified" %in% names(data)) attr(data$date_modified, "label") <- "Fecha modificación SurveyMonkey"
+  attr(data$observacion_export, "label") <- "Observación de exportación"
+  data
+}
+
+.analitica_unified_effective_context <- function(sid, base_name, base_meta, pair) {
+  raw_fid <- .analitica_unified_scalar((base_meta %||% list())$surveymonkey_raw_snapshot_file_id)
+  if (nzchar(raw_fid) && exists(".sm_mb_build_effective_from_snapshot", mode = "function")) {
+    policy <- .analitica_unified_effective_export_policy(
+      (base_meta %||% list())$surveymonkey_decision_policy %||% list()
+    )
+    built <- tryCatch(
+      .sm_mb_build_effective_from_snapshot(sid, base_name, policy = policy),
+      error = function(e) NULL
+    )
+    if (is.list(built) && is.data.frame(built$data) && !is.null(built$inst)) {
+      return(list(
+        inst = built$inst,
+        data = reporte_data(built$data, instrumento = built$inst),
+        audit = built$audit %||% list(),
+        snapshot = built$snapshot %||% list(),
+        rebuilt_from_snapshot = TRUE
+      ))
+    }
+  }
+  parsed <- .analitica_read_pair(pair, base_meta)
+  list(
+    inst = parsed$inst,
+    data = parsed$data,
+    audit = (base_meta %||% list())$surveymonkey_decision_audit %||% list(),
+    snapshot = list(),
+    rebuilt_from_snapshot = FALSE
   )
 }
 
@@ -730,7 +1023,7 @@
 
     is_identifier <- grepl("\\b(correo|email|e mail|mail)\\b", text, perl = TRUE) ||
       grepl("\\b(telefono|celular|whatsapp)\\b", text, perl = TRUE) ||
-      grepl("\\b(codigo\\s+(pucp|pulso)|dni|documento|ruc)\\b", text, perl = TRUE) ||
+      grepl("\\b(codigo\\s+pucp|dni|documento|ruc)\\b", text, perl = TRUE) ||
       grepl("\\b(nombre\\s+legal\\s+de\\s+la\\s+empresa|nombre\\s+del\\s+emprendimiento)\\b", text, perl = TRUE) ||
       grepl("\\b(jefe\\s+directo|datos\\s+de\\s+su\\s+jefe|datos\\s+de\\s+contacto|correo\\s+de\\s+contacto|numero\\s+de\\s+contacto)\\b", text, perl = TRUE) ||
       identical(label_norm, "nombre") ||
@@ -750,7 +1043,10 @@
                                           omitir_metadatos_operativos = TRUE) {
   out <- .as_chr_vec(cfg_excluidas)
   if (isTRUE(omitir_metadatos_operativos)) {
-    out <- c(out, intersect(.analitica_unified_operational_metadata_cols(), names(data)))
+    op_meta <- intersect(.analitica_unified_operational_metadata_cols(), names(data))
+    out <- c(out, setdiff(op_meta, .analitica_unified_reconciliation_metadata_cols()))
+    cv_meta <- grep("^(cv_|recipient_cv_)", names(data), value = TRUE)
+    out <- c(out, setdiff(cv_meta, .analitica_unified_reconciliation_metadata_cols()))
   }
   if (isTRUE(omitir_identificadores_directos)) {
     out <- c(out, .analitica_unified_direct_identifier_cols(data, rp_inst))
@@ -832,7 +1128,9 @@
 }
 
 .analitica_write_unified_xlsx <- function(df_cod, df_lab, common_df, omitted_df,
-                                          bases_df, path, valores = "ambos") {
+                                          bases_df, path, valores = "ambos",
+                                          decision_audit_df = NULL,
+                                          decision_case_audit_df = NULL) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
   wb <- openxlsx::createWorkbook()
 
@@ -876,6 +1174,12 @@
   write_meta_sheet("variables_comunes", common_df)
   write_meta_sheet("variables_no_comunes", omitted_df)
   write_meta_sheet("bases", bases_df)
+  if (!is.null(decision_audit_df) && is.data.frame(decision_audit_df) && nrow(decision_audit_df)) {
+    write_meta_sheet("auditoria_surveymonkey", decision_audit_df)
+  }
+  if (!is.null(decision_case_audit_df) && is.data.frame(decision_case_audit_df) && nrow(decision_case_audit_df)) {
+    write_meta_sheet("auditoria_sm_casos", decision_case_audit_df)
+  }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
 }
@@ -902,16 +1206,20 @@
   alias_var <- "base_hermana"
   origin_id_var <- "registro_origen_id"
   uid_var <- "registro_unificado_id"
-  key_cols <- c(alias_var, origin_id_var, uid_var)
+  link_id_var <- .analitica_unified_link_id_var()
+  key_cols <- c(alias_var, origin_id_var, uid_var, link_id_var)
   dfs_cod <- list()
   dfs_lab <- list()
   labels <- list(
     base_hermana = "Base hermana / carrera",
     registro_origen_id = "Identificador original del registro en su base",
-    registro_unificado_id = "Identificador único del registro unificado"
+    registro_unificado_id = "Identificador único del registro unificado",
+    id_enlace_sm = .analitica_unified_link_id_label()
   )
   labels_by_base <- list()
   bases_rows <- list()
+  decision_audit_rows <- list()
+  decision_case_audit_rows <- list()
 
   for (nombre in names(bases)) {
     pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
@@ -922,10 +1230,20 @@
       stop_api(409, "E_ANALITICA_SOURCE_MISSING",
         sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
     }
-    parsed <- .analitica_read_pair(pair, bases[[nombre]])
-    reviewed <- .analitica_apply_data_review(parsed$data, parsed$inst, cfg)
+    effective_ctx <- .analitica_unified_effective_context(sid, nombre, bases[[nombre]], pair)
+    reviewed <- .analitica_apply_data_review(effective_ctx$data, effective_ctx$inst, cfg)
     rp_inst <- reviewed$inst
     reviewed$data <- .bases_normalize_other_selects(reviewed$data, rp_inst)
+    reviewed$data <- .analitica_unified_apply_observation_metadata(
+      reviewed$data,
+      bases[[nombre]],
+      snapshot = effective_ctx$snapshot %||% list()
+    )
+    reviewed$data[[link_id_var]] <- .analitica_unified_link_id_values(
+      reviewed$data,
+      sid = sid,
+      base_meta = bases[[nombre]]
+    )
 
     origin_col_name <- .analitica_origin_id_col(reviewed$data)
     origin_col <- if (!is.null(origin_col_name) && origin_col_name %in% names(reviewed$data)) {
@@ -980,6 +1298,65 @@
       n_columnas = as.integer(ncol(rp_data)),
       stringsAsFactors = FALSE
     )
+    audit <- effective_ctx$audit %||% (bases[[nombre]] %||% list())$surveymonkey_decision_audit %||% list()
+    policy <- (bases[[nombre]] %||% list())$surveymonkey_decision_policy %||% list()
+    if (length(audit)) {
+      decision_audit_rows[[length(decision_audit_rows) + 1L]] <- data.frame(
+        base_nombre = nombre,
+        alias = alias,
+        raw_total = as.integer(audit$raw_total %||% NA_integer_),
+        completas = as.integer(audit$completed %||% NA_integer_),
+        completas_con_consentimiento = as.integer(audit$completed_with_consent %||% NA_integer_),
+        parciales_revisables = as.integer(audit$partials_revisable %||% NA_integer_),
+        rechazos = as.integer(audit$rejections %||% NA_integer_),
+        grupos_duplicados = as.integer(audit$duplicate_groups %||% NA_integer_),
+        filas_en_grupos_duplicados = as.integer(audit$duplicate_rows %||% NA_integer_),
+        duplicados_extra = as.integer(audit$duplicate_extra_rows %||% NA_integer_),
+        duplicados_excluidos = as.integer(audit$duplicates_excluded %||% NA_integer_),
+        incluidas = as.integer(audit$included %||% NA_integer_),
+        excluidas = as.integer(audit$excluded %||% NA_integer_),
+        umbral_parcial_mas_de = as.integer((policy %||% list())$partial_min_answers %||% NA_integer_),
+        incluye_parciales = isTRUE((policy %||% list())$include_partials),
+        incluye_rechazos = isTRUE((policy %||% list())$include_rejections),
+        incluye_duplicados = if (is.null((policy %||% list())$include_duplicates)) TRUE else isTRUE((policy %||% list())$include_duplicates),
+        clave_duplicados = paste(.as_chr_vec((policy %||% list())$duplicate_key_vars), collapse = ", "),
+        criterio_duplicados = as.character((policy %||% list())$duplicate_keep %||% ""),
+        variable_consentimiento = as.character((policy %||% list())$consent_var %||% ""),
+        variable_rechazo = as.character((policy %||% list())$rejection_var %||% ""),
+        auditada_en = as.character(audit$audited_at %||% ""),
+        stringsAsFactors = FALSE
+      )
+      for (source in audit$sources %||% list()) {
+        for (case_row in source$cases %||% list()) {
+          decision_case_audit_rows[[length(decision_case_audit_rows) + 1L]] <- data.frame(
+            base_nombre = nombre,
+            alias = alias,
+            campania = as.character(source$source_alias %||% source$source_title %||% source$source_label %||% ""),
+            survey_id = as.character(case_row$survey_id %||% source$survey_id %||% ""),
+            source_title = as.character(case_row$source_title %||% source$source_title %||% ""),
+            collector_id = as.character(case_row$collector_id %||% ""),
+            response_id = as.character(case_row$response_id %||% ""),
+            case_uid = as.character(case_row$case_uid %||% ""),
+            recipient_id = as.character(case_row$recipient_id %||% ""),
+            custom_value = as.character(case_row$custom_value %||% ""),
+            cv_id = as.character(case_row$cv_id %||% ""),
+            p4 = as.character(case_row$p4 %||% ""),
+            estado = as.character(case_row$response_status %||% ""),
+            preguntas_respondidas = as.character(case_row$answered_questions_count %||% ""),
+            decision = as.character(case_row$decision_class %||% ""),
+            incluido = as.character(case_row$decision_included %||% ""),
+            estado_duplicado = as.character(case_row$duplicate_status %||% ""),
+            clave_duplicado = as.character(case_row$duplicate_key %||% ""),
+            variable_clave_duplicado = as.character(case_row$duplicate_key_var %||% ""),
+            tamano_grupo_duplicado = as.character(case_row$duplicate_group_size %||% ""),
+            orden_en_duplicado = as.character(case_row$duplicate_rank %||% ""),
+            fecha_creacion = as.character(case_row$date_created %||% ""),
+            fecha_modificacion = as.character(case_row$date_modified %||% ""),
+            stringsAsFactors = FALSE
+          )
+        }
+      }
+    }
   }
 
   present_cols <- lapply(dfs_cod, names)
@@ -1033,6 +1410,16 @@
                stringsAsFactors = FALSE)
   }
   bases_df <- do.call(rbind, bases_rows)
+  decision_audit_df <- if (length(decision_audit_rows)) {
+    do.call(rbind, decision_audit_rows)
+  } else {
+    data.frame()
+  }
+  decision_case_audit_df <- if (length(decision_case_audit_rows)) {
+    do.call(rbind, decision_case_audit_rows)
+  } else {
+    data.frame()
+  }
 
   aligned_cod <- .analitica_unified_align(dfs_cod, union_cols, labels)
   aligned_lab <- .analitica_unified_align(dfs_lab, union_cols, labels)
@@ -1051,7 +1438,9 @@
   out_name <- .export_filename(sid, "bases_unificadas", "xlsx")
   out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
   .analitica_write_unified_xlsx(df_cod, df_lab, common_df, omitted_df,
-                                bases_df, out_path, valores = valores)
+                                bases_df, out_path, valores = valores,
+                                decision_audit_df = decision_audit_df,
+                                decision_case_audit_df = decision_case_audit_df)
   meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
   list(
     ok = TRUE,
@@ -1064,6 +1453,7 @@
       alias_var = alias_var,
       origin_id_var = origin_id_var,
       unique_id_var = uid_var,
+      link_id_var = link_id_var,
       n_filas = as.integer(nrow(df_cod)),
       n_columnas = as.integer(ncol(df_cod)),
       n_variables_comunes = as.integer(nrow(common_df)),

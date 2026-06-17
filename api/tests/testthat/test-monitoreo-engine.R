@@ -91,6 +91,87 @@ test_that("monitoreo agrupa por dimensiones genericas cuando no hay control vars
   expect_equal(dash$progress$meta[dash$progress$dim_segmento == "Grupo A"], 3L)
 })
 
+test_that("Kobo arma URL incremental con query por _id", {
+  url <- kobo_api_asset_data_url(
+    "asset 1",
+    base_url = "https://kobo.unhcr.org/",
+    page = 2L,
+    page_size = 2000L,
+    query = list(`_id` = list(`$gt` = 123))
+  )
+
+  expect_match(url, "^https://kobo\\.unhcr\\.org/api/v2/assets/asset%201/data/")
+  expect_match(url, "page=2", fixed = TRUE)
+  expect_match(url, "page_size=1000", fixed = TRUE)
+  expect_match(utils::URLdecode(url), '"_id":{"$gt":123', fixed = TRUE)
+})
+
+test_that("merge incremental de monitoreo preserva snapshot y actualiza filas Kobo", {
+  prev <- data.frame(
+    .source_id = c("kobo_field", "kobo_field", "sheet_meta"),
+    `_id` = c(1, 2, 1),
+    valor = c("antigua 1", "antigua 2", "meta"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  delta <- data.frame(
+    .source_id = c("kobo_field", "kobo_field"),
+    `_id` = c(2, 3),
+    valor = c("actualizada 2", "nueva 3"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  merged <- .monitoreo_merge_sync_result_data(
+    prev,
+    delta,
+    synced_source_ids = "kobo_field",
+    incremental_source_ids = "kobo_field"
+  )
+
+  expect_equal(nrow(merged), 4L)
+  expect_equal(merged$valor[merged$.source_id == "sheet_meta"], "meta")
+  expect_equal(merged$valor[merged$.source_id == "kobo_field" & merged$`_id` == 1], "antigua 1")
+  expect_equal(merged$valor[merged$.source_id == "kobo_field" & merged$`_id` == 2], "actualizada 2")
+  expect_equal(merged$valor[merged$.source_id == "kobo_field" & merged$`_id` == 3], "nueva 3")
+})
+
+test_that("merge de monitoreo conserva fuentes que fallan en sync parcial", {
+  prev <- data.frame(
+    .source_id = c("sheet_base", "sm_docentes", "sm_estudiantes"),
+    response_id = c("", "r1", "r2"),
+    valor = c("base vieja", "docente previa", "estudiante previa"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  result <- data.frame(
+    .source_id = "sheet_base",
+    response_id = "",
+    valor = "base nueva",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  sync_summary <- list(sheet_base = list(
+    source_id = "sheet_base",
+    source_label = "Base",
+    kind = "google_sheets",
+    mode = "full",
+    rows = 1L
+  ))
+  synced <- .monitoreo_sync_successful_source_ids(sync_summary, result)
+
+  merged <- .monitoreo_merge_sync_result_data(
+    prev,
+    result,
+    synced_source_ids = synced
+  )
+
+  expect_equal(sort(unique(merged$.source_id)), c("sheet_base", "sm_docentes", "sm_estudiantes"))
+  expect_equal(merged$valor[merged$.source_id == "sheet_base"], "base nueva")
+  expect_equal(merged$valor[merged$.source_id == "sm_docentes"], "docente previa")
+  expect_equal(merged$valor[merged$.source_id == "sm_estudiantes"], "estudiante previa")
+})
+
 test_that("inspeccion SurveyMonkey prepara columnas y filas de muestra", {
   df <- data.frame(
     response_id = c("r1", "r2"),
@@ -155,6 +236,410 @@ test_that("monitoreo filtra variables de fase contra columnas disponibles", {
   expect_equal(phase$breakdown_vars, list("anio_egreso"))
   expect_equal(phase$attempts_var, "")
   expect_equal(phase$outcome_var, "resultado")
+})
+
+test_that("acreditacion no infiere codigo desde preguntas SurveyMonkey genericas", {
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    key_rules = list(
+      response_fields = c("CodPulso", "Código PUCP", "Codigo PUCP", "email_address", "custom_value", "cv_id"),
+      universe_fields = c("CodPulso", "Código", "correo"),
+      automatic_detection = TRUE
+    )
+  ))
+  response <- data.frame(
+    .source_id = "sm-docentes",
+    .source_role = "respuestas",
+    dim_actor = "Docentes",
+    response_id = "r1",
+    response_status = "completed",
+    q0003 = "02003102",
+    q0004 = "64",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(response, "variable_labels") <- c(
+    q0003 = "¿Cuántos años tiene en la actualidad?",
+    q0004 = "¿Cuál es su código PUCP ?"
+  )
+
+  details <- .monitoreo_report_key_details(response, profile, "respuesta")[[1]]
+  expect_length(details, 0L)
+})
+
+test_that("acreditacion usa solo codigo explicito o etiqueta confiable por fuente", {
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    key_rules = list(
+      response_fields = c("CodPulso", "Código PUCP", "Codigo PUCP", "email_address", "custom_value", "cv_id"),
+      universe_fields = c("CodPulso", "Código", "correo"),
+      automatic_detection = TRUE
+    )
+  ))
+  explicit <- data.frame(
+    .source_id = "sm-docentes",
+    .source_role = "respuestas",
+    response_status = "completed",
+    custom_value = "02003102",
+    q0004 = "64",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  explicit_details <- .monitoreo_report_key_details(explicit, profile, "respuesta")[[1]]
+  expect_true("codigo:02003102" %in% vapply(explicit_details, `[[`, character(1), "key"))
+  expect_false("codigo:64" %in% vapply(explicit_details, `[[`, character(1), "key"))
+
+  labelled <- data.frame(
+    .source_id = "sm-docentes",
+    .source_role = "respuestas",
+    response_status = "completed",
+    q0003 = "64",
+    q0004 = "02003102",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(labelled, "variable_labels") <- c(
+    q0003 = "¿Cuál es su código PUCP ?",
+    q0004 = "¿Cuántos años tiene en la actualidad?"
+  )
+  labelled <- .monitoreo_set_source_variable_labels(labelled, "sm-docentes", c(
+    q0003 = "¿Cuántos años tiene en la actualidad?",
+    q0004 = "¿Cuál es su código PUCP ?"
+  ))
+  labelled_details <- .monitoreo_report_key_details(labelled, profile, "respuesta")[[1]]
+  expect_true("codigo:02003102" %in% vapply(labelled_details, `[[`, character(1), "key"))
+  expect_false("codigo:64" %in% vapply(labelled_details, `[[`, character(1), "key"))
+})
+
+test_that("monitoreo territorial preserva fase activa previa cuando el payload la omite", {
+  previous <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "field",
+    phase_sources = list(
+      pilot = list(source_id = "src_pilot", asset_uid = "asset_pilot"),
+      field = list(source_id = "src_field", asset_uid = "asset_field")
+    )
+  ))
+
+  normalized <- monitoreo_territorial_normalize_config(
+    list(phase_sources = list(pilot = list(source_id = "src_pilot_new", asset_uid = "asset_pilot_new"))),
+    previous = previous
+  )
+
+  expect_equal(normalized$active_route_phase, "field")
+  expect_equal(normalized$source_id, "src_field")
+  expect_equal(normalized$phase_sources$field$source_id, "src_field")
+  expect_equal(normalized$phase_sources$pilot$source_id, "src_pilot_new")
+
+  full <- monitoreo_normalize_config(
+    list(enumerator_var = "encuestador"),
+    previous_config = list(territorial = previous)
+  )
+  expect_equal(full$territorial$active_route_phase, "field")
+})
+
+test_that("monitoreo territorial respeta cambio explicito de fase", {
+  previous <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "field",
+    phase_sources = list(
+      pilot = list(source_id = "src_pilot", asset_uid = "asset_pilot"),
+      field = list(source_id = "src_field", asset_uid = "asset_field")
+    )
+  ))
+
+  normalized <- monitoreo_territorial_normalize_config(
+    list(active_route_phase = "pilot"),
+    previous = previous
+  )
+
+  expect_equal(normalized$active_route_phase, "pilot")
+  expect_equal(normalized$source_id, "src_pilot")
+  expect_equal(normalized$phase_sources$field$source_id, "src_field")
+})
+
+test_that("monitoreo territorial guarda mapping operativo por fase", {
+  previous <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "pilot",
+    district_var = "district_pilot",
+    ump_var = "ump_pilot",
+    pulso_code_var = "pulso_pilot",
+    submitted_by_var = "user_pilot",
+    platform_effective_var = "filter_pilot",
+    platform_effective_values = list("ok_pilot")
+  ))
+
+  normalized <- monitoreo_territorial_normalize_config(
+    list(
+      active_route_phase = "field",
+      district_var = "district_field",
+      ump_var = "ump_field",
+      pulso_code_var = "pulso_field",
+      submitted_by_var = "user_field",
+      platform_effective_var = "filter_field",
+      platform_effective_values = list("ok_field")
+    ),
+    previous = previous
+  )
+
+  expect_equal(normalized$active_route_phase, "field")
+  expect_equal(normalized$district_var, "district_field")
+  expect_equal(normalized$phase_mappings$field$district_var, "district_field")
+  expect_equal(normalized$phase_mappings$field$platform_effective_values, list("ok_field"))
+  expect_equal(normalized$phase_mappings$pilot$district_var, "district_pilot")
+  expect_equal(normalized$phase_mappings$pilot$ump_var, "ump_pilot")
+  expect_equal(normalized$phase_mappings$pilot$pulso_code_var, "pulso_pilot")
+  expect_equal(normalized$phase_mappings$pilot$submitted_by_var, "user_pilot")
+  expect_equal(normalized$phase_mappings$pilot$platform_effective_var, "filter_pilot")
+  expect_equal(normalized$phase_mappings$pilot$platform_effective_values, list("ok_pilot"))
+})
+
+test_that("monitoreo territorial acepta alias de codigo Pulso del encuestador", {
+  data <- data.frame(
+    district = "sjm",
+    ump = "150133001001",
+    gps = "-12 -77",
+    code_enum = "P001",
+    filtro = "si",
+    check.names = FALSE
+  )
+  normalized <- monitoreo_territorial_normalize_config(
+    list(
+      active_route_phase = "field",
+      district_var = "district",
+      ump_var = "ump",
+      gps_var = "gps",
+      enumerator_pulso_code = "code_enum",
+      platform_effective_var = "filtro",
+      platform_effective_values = list("si"),
+      invalid_value = "no"
+    ),
+    data = data
+  )
+
+  expect_equal(normalized$pulso_code_var, "code_enum")
+  expect_equal(normalized$phase_mappings$field$pulso_code_var, "code_enum")
+  expect_false("invalid_value" %in% names(normalized$phase_mappings$field))
+})
+
+test_that("monitoreo territorial advierte cuando codigo Pulso parece numero de encuesta", {
+  operational_blocks <- data.frame(
+    id_manzana = c("150135049000630", "15013503000001F"),
+    ubigeo = c("150135", "150135"),
+    tipo_manzana = c("titular", "reemplazo"),
+    rango_inicio = c(1089L, 1089L),
+    rango_fin = c(1096L, 1096L),
+    titular_id_manzana = c("", "150135049000630"),
+    titular_rango_inicio = c(NA_integer_, 1089L),
+    titular_rango_fin = c(NA_integer_, 1096L),
+    responsable = c("", ""),
+    stringsAsFactors = FALSE
+  )
+
+  warned <- .monitoreo_territorial_code_range_warning(
+    pulso_code_raw = c("1089", "1094_630", "P198", "1088"),
+    pulso_code_recognized = c(FALSE, FALSE, TRUE, FALSE),
+    nearest_block_id = rep("150135049000630", 4),
+    operational_blocks = operational_blocks
+  )
+
+  expect_equal(warned, c(TRUE, TRUE, FALSE, FALSE))
+})
+
+test_that("monitoreo territorial no usa el rango para resolver responsables", {
+  operational_blocks <- data.frame(
+    id_manzana = "150135049000630",
+    ubigeo = "150135",
+    tipo_manzana = "titular",
+    rango_inicio = 1089L,
+    rango_fin = 1096L,
+    responsable = "",
+    stringsAsFactors = FALSE
+  )
+
+  warned <- .monitoreo_territorial_code_range_warning(
+    pulso_code_raw = c("P101", "P102", "1089"),
+    pulso_code_recognized = c(TRUE, TRUE, FALSE),
+    nearest_block_id = rep("150135049000630", 3),
+    operational_blocks = operational_blocks
+  )
+
+  expect_equal(warned, c(FALSE, FALSE, TRUE))
+})
+
+test_that("monitoreo territorial mantiene Campo aunque la fuente de Campo este vacia", {
+  normalized <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "field",
+    phase_sources = list(
+      pilot = list(source_id = "src_pilot", asset_uid = "asset_pilot"),
+      field = list()
+    )
+  ))
+  status <- monitoreo_territorial_phase_source_status(normalized, "field")
+
+  expect_equal(normalized$active_route_phase, "field")
+  expect_equal(normalized$source_id, "")
+  expect_equal(status$phase_source_status, "missing_source")
+})
+
+test_that("monitoreo territorial cambia fuente activa sin borrar la otra fase", {
+  cfg <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "pilot",
+    phase_sources = list(
+      pilot = list(source_id = "src_pilot", asset_uid = "asset_pilot"),
+      field = list(source_id = "src_field", asset_uid = "asset_field")
+    )
+  ))
+  switched <- monitoreo_territorial_normalize_config(
+    list(active_route_phase = "field"),
+    previous = cfg
+  )
+
+  expect_equal(switched$active_route_phase, "field")
+  expect_equal(switched$source_id, "src_field")
+  expect_equal(switched$phase_sources$pilot$source_id, "src_pilot")
+  expect_equal(switched$phase_sources$field$source_id, "src_field")
+})
+
+test_that("monitoreo territorial preserva fuente duplicada sin borrar la fase seleccionada", {
+  normalized <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "field",
+    phase_sources = list(
+      pilot = list(source_id = "src_same", asset_uid = "asset_same"),
+      field = list(source_id = "src_same", asset_uid = "asset_same")
+    )
+  ))
+  status <- monitoreo_territorial_phase_source_status(normalized, "field")
+
+  expect_equal(normalized$active_route_phase, "field")
+  expect_equal(normalized$phase_sources$field$source_id, "src_same")
+  expect_equal(normalized$source_id, "src_same")
+  expect_equal(status$phase_source_status, "configured")
+})
+
+test_that("monitoreo territorial no cruza fuente por asset entre piloto y campo", {
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial"),
+    territorial = list(
+      active_route_phase = "field",
+      phase_sources = list(
+        pilot = list(source_id = "src_pilot", asset_uid = "asset_shared", kobo_asset_name = "Piloto"),
+        field = list(source_id = "", asset_uid = "asset_shared", kobo_asset_name = "Campo")
+      )
+    )
+  ))
+  sources <- monitoreo_normalize_sources(list(
+    list(
+      id = "src_pilot",
+      kind = "kobo",
+      label = "Piloto",
+      enabled = TRUE,
+      role = "respuestas",
+      asset_uid = "asset_shared",
+      dimensions = list(territorial_phase = "pilot")
+    )
+  ))
+
+  source <- .monitoreo_territorial_source(sources, cfg, phase = "field")
+  coherence <- .monitoreo_territorial_phase_coherence(
+    data = data.frame(.source_id = "src_pilot", check.names = FALSE),
+    cfg = cfg,
+    sources = sources
+  )
+
+  expect_null(source)
+  expect_false(coherence$phases$field$source_exists)
+  expect_equal(coherence$phases$field$status, "source_applied_not_synced")
+  expect_true(coherence$phases$pilot$source_exists)
+})
+
+test_that("monitoreo territorial diagnostica fuente aplicada pendiente de sincronizacion", {
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial"),
+    territorial = list(
+      active_route_phase = "field",
+      phase_sources = list(
+        pilot = list(source_id = "src_pilot", asset_uid = "asset_pilot", kobo_asset_name = "Piloto"),
+        field = list(source_id = "src_field", asset_uid = "asset_field", kobo_asset_name = "Campo VF")
+      )
+    )
+  ))
+  sources <- monitoreo_normalize_sources(list(
+    list(
+      id = "src_pilot",
+      kind = "kobo",
+      label = "Piloto",
+      enabled = TRUE,
+      role = "respuestas",
+      asset_uid = "asset_pilot",
+      dimensions = list(territorial_phase = "pilot"),
+      last_sync_at = "2026-06-01T00:00:00Z"
+    ),
+    list(
+      id = "src_field",
+      kind = "kobo",
+      label = "Campo VF",
+      enabled = TRUE,
+      role = "respuestas",
+      asset_uid = "asset_field",
+      dimensions = list(territorial_phase = "field")
+    )
+  ))
+  data <- data.frame(
+    .source_id = c("src_pilot", "src_pilot"),
+    `_uuid` = c("p1", "p2"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+
+  coherence <- .monitoreo_territorial_phase_coherence(
+    data = data,
+    cfg = cfg,
+    sources = sources,
+    synced_at = "2026-06-01T00:00:00Z"
+  )
+
+  expect_equal(coherence$phases$field$status, "source_applied_not_synced")
+  expect_equal(coherence$phases$field$local_rows, 0L)
+  expect_match(coherence$phases$field$message, "no hay respuestas sincronizadas localmente")
+  expect_equal(coherence$phases$pilot$status, "source_synced_with_rows")
+  expect_equal(coherence$phases$pilot$local_rows, 2L)
+})
+
+test_that("monitoreo territorial invalida snapshot de una fase sin borrar la otra", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial"),
+    territorial = list(
+      active_route_phase = "field",
+      phase_sources = list(
+        pilot = list(source_id = "src_pilot", asset_uid = "asset_pilot", kobo_asset_name = "Piloto"),
+        field = list(source_id = "src_field", asset_uid = "asset_old", kobo_asset_name = "Campo viejo")
+      )
+    )
+  ))
+  data <- data.frame(
+    .source_id = c("src_pilot", "src_field", "src_field"),
+    `_uuid` = c("p1", "f1", "f2"),
+    estado = c("completed", "completed", "completed"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  session_set(sid, "monitoreo_config", cfg)
+  session_set(sid, "monitoreo_snapshot", list(
+    synced_at = "2026-06-01T00:00:00Z",
+    data = data,
+    config = cfg,
+    dashboard = monitoreo_build_dashboard(data, cfg),
+    variables = monitoreo_variables(data),
+    errors = list()
+  ))
+
+  removed <- .monitoreo_prune_snapshot_source_ids(sid, "src_field", cfg)
+  remaining <- session_get(sid)$monitoreo_snapshot$data
+
+  expect_equal(removed, 2L)
+  expect_equal(nrow(remaining), 1L)
+  expect_equal(unique(remaining$.source_id), "src_pilot")
 })
 
 test_that("monitoreo normaliza modelo operativo local", {
@@ -900,6 +1385,312 @@ test_that("perfil acreditacion permite decision auditada de incluir respuestas s
   expect_equal(decision$`Decision avance`, "Incluido en avance")
 })
 
+.monitoreo_test_assisted_review_data <- function(actor = "Docentes", candidate_actor = actor) {
+  data.frame(
+    CodPulso = c("01999225", "", ""),
+    Nombre = c("Franklin Duarte", "", ""),
+    correo = c("fduarte@pucp.edu.pe", "", ""),
+    cv_id = c("", "FDC", "01999225"),
+    correo_declarado = c("", "fduarte@pucp.edu.pe", ""),
+    response_id = c("", "r-fdc", "r-direct"),
+    response_status = c("", "completed", "completed"),
+    date_modified = c("", "2026-06-12T10:00:00+00:00", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas", "respuestas"),
+    .source_label = c(
+      "Base · Docentes",
+      "SurveyMonkey · Docentes · Correo",
+      "SurveyMonkey · Docentes · Correo"
+    ),
+    dim_actor = c(candidate_actor, actor, actor),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+}
+
+.monitoreo_test_assisted_review_profile <- function(reconciliation_decisions = list()) {
+  monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    variant = "multi_actor",
+    units = list(list(id = "Docentes", label = "Docentes")),
+    key_rules = list(
+      universe_fields = c("CodPulso", "correo"),
+      response_fields = c("cv_id"),
+      automatic_detection = FALSE
+    ),
+    reconciliation_decisions = reconciliation_decisions
+  ))
+}
+
+.monitoreo_test_records_df <- function(records) {
+  if (!length(records)) return(data.frame())
+  do.call(rbind, lapply(records, function(record) {
+    record[] <- lapply(record, function(value) {
+      if (is.list(value)) I(list(value)) else value
+    })
+    as.data.frame(record, check.names = FALSE, stringsAsFactors = FALSE)
+  }))
+}
+
+test_that("perfil acreditacion sugiere candidato por correo exacto sin incluir automaticamente", {
+  data <- .monitoreo_test_assisted_review_data()
+  profile <- .monitoreo_test_assisted_review_profile()
+  queries <- .monitoreo_acreditacion_internal_queries(data, profile)
+  cases <- .monitoreo_test_records_df(queries$cases)
+  reviewed <- cases[cases$response_id == "r-fdc", , drop = FALSE]
+
+  expect_equal(nrow(reviewed), 1L)
+  expect_equal(reviewed$base_result, "Sin cruce")
+  expect_equal(reviewed$advancement, "excluded")
+  expect_true(isTRUE(reviewed$assisted_review[[1]]$eligible))
+  expect_equal(reviewed$assisted_review[[1]]$declared_email, "fduarte@pucp.edu.pe")
+  expect_equal(length(reviewed$assisted_review[[1]]$candidates), 1L)
+  expect_equal(reviewed$assisted_review[[1]]$candidates[[1]]$person_label, "Franklin Duarte")
+  expect_equal(reviewed$assisted_review[[1]]$candidates[[1]]$case_key, "01999225")
+  expect_true("email_exact" %in% reviewed$assisted_review[[1]]$candidates[[1]]$match_type)
+})
+
+test_that("perfil acreditacion detecta contradiccion entre codigo declarado y codigo oficial", {
+  data <- .monitoreo_test_assisted_review_data()
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-fdc", , drop = FALSE]
+  warnings <- unlist(reviewed$assisted_review[[1]]$warnings, use.names = FALSE)
+
+  expect_true(any(grepl("codigo declarado no coincide", .monitoreo_text_key(warnings), fixed = TRUE)))
+})
+
+test_that("perfil acreditacion marca pendiente por correo similar sin incluir automaticamente", {
+  data <- data.frame(
+    CodPulso = c("00002849", ""),
+    Nombre = c("Javier Rosas", ""),
+    correo = c("javier.rosas@pucp.edu.pe", ""),
+    cv_id = c("", "19886218"),
+    correo_declarado = c("", "javier.rosa@pucp.edu.pe"),
+    response_id = c("", "r-javier"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · WhatsApp"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-javier", , drop = FALSE]
+  assisted <- reviewed$assisted_review[[1]]
+
+  expect_equal(reviewed$base_result, "Sin cruce")
+  expect_equal(reviewed$advancement, "excluded")
+  expect_equal(length(assisted$candidates), 0L)
+  expect_equal(length(assisted$assignment_candidates), 1L)
+  expect_equal(assisted$assignment_candidates[[1]]$person_label, "Javier Rosas")
+  expect_equal(assisted$assignment_candidates[[1]]$match_type, "email_similar")
+  expect_equal(assisted$assignment_candidates[[1]]$evidence_level, "possible")
+  expect_true(assisted$assignment_candidates[[1]]$evidence_score >= 72L)
+})
+
+test_that("perfil acreditacion no sugiere candidatos fuera del actor", {
+  data <- .monitoreo_test_assisted_review_data(candidate_actor = "Administrativos")
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-fdc", , drop = FALSE]
+
+  expect_equal(length(reviewed$assisted_review[[1]]$candidates), 0L)
+  expect_true(any(grepl("no se encontro coincidencia", .monitoreo_text_key(reviewed$assisted_review[[1]]$warnings), fixed = TRUE)))
+})
+
+test_that("perfil acreditacion no cruza respuestas contra bases de otro actor", {
+  data <- data.frame(
+    CodPulso = c("1145", ""),
+    Nombre = c("Codigo en egresados", ""),
+    cv_id = c("", "1145"),
+    response_id = c("", "r-docente-1145"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Egresados", "SurveyMonkey · Docentes · Personalizado"),
+    dim_actor = c("Egresados", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-docente-1145", , drop = FALSE]
+  trace <- .monitoreo_report_reconciliation_trace_df(data, profile)
+  traced <- trace[trace$response_id == "r-docente-1145", , drop = FALSE]
+
+  expect_equal(reviewed$base_result, "Sin cruce")
+  expect_equal(reviewed$advancement, "excluded")
+  expect_equal(reviewed$base_source, "")
+  expect_equal(traced$Resultado, "Sin cruce")
+})
+
+test_that("perfil acreditacion expone revision asistida para respuestas sin llave no completas", {
+  data <- data.frame(
+    CodPulso = c("A1", ""),
+    cv_id = c("", ""),
+    response_id = c("", "r-sin-llave"),
+    response_status = c("", "partial"),
+    date_modified = c("", "2026-06-12T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · Personalizado"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-sin-llave", , drop = FALSE]
+
+  expect_equal(reviewed$base_result, "Sin llave")
+  expect_equal(reviewed$advancement, "partial")
+  expect_true(isTRUE(reviewed$assisted_review[[1]]$eligible))
+  expect_equal(length(reviewed$assisted_review[[1]]$candidates), 0L)
+})
+
+test_that("perfil acreditacion ofrece pendientes del actor para asignacion manual", {
+  data <- data.frame(
+    CodPulso = c("01999225", "22222222", "", "01999225"),
+    Nombre = c("Franklin Duarte", "Maria Pendiente", "", ""),
+    correo = c("fduarte@pucp.edu.pe", "maria.pendiente@pucp.edu.pe", "", ""),
+    cv_id = c("", "", "FDC", "01999225"),
+    correo_declarado = c("", "", "fduarte@pucp.edu.pe", ""),
+    response_id = c("", "", "r-fdc", "r-direct"),
+    response_status = c("", "", "completed", "completed"),
+    date_modified = c("", "", "2026-06-12T10:00:00+00:00", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "universo", "respuestas", "respuestas"),
+    .source_label = c(
+      "Base · Docentes",
+      "Base · Docentes",
+      "SurveyMonkey · Docentes · Correo",
+      "SurveyMonkey · Docentes · Correo"
+    ),
+    dim_actor = c("Docentes", "Docentes", "Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-fdc", , drop = FALSE]
+  assisted <- reviewed$assisted_review[[1]]
+
+  expect_equal(length(assisted$candidates), 1L)
+  expect_true(isTRUE(assisted$candidates[[1]]$already_effective))
+  expect_equal(length(assisted$assignment_candidates), 1L)
+  expect_equal(assisted$assignment_candidates[[1]]$person_label, "Maria Pendiente")
+  expect_equal(assisted$assignment_candidates[[1]]$case_key, "22222222")
+  expect_false(isTRUE(assisted$assignment_candidates[[1]]$already_effective))
+})
+
+test_that("perfil acreditacion inclusion manual puede asignar a pendiente no sugerido", {
+  data <- data.frame(
+    CodPulso = c("01999225", "22222222", "", "01999225"),
+    Nombre = c("Franklin Duarte", "Maria Pendiente", "", ""),
+    correo = c("fduarte@pucp.edu.pe", "maria.pendiente@pucp.edu.pe", "", ""),
+    cv_id = c("", "", "FDC", "01999225"),
+    correo_declarado = c("", "", "fduarte@pucp.edu.pe", ""),
+    response_id = c("", "", "r-fdc", "r-direct"),
+    response_status = c("", "", "completed", "completed"),
+    date_modified = c("", "", "2026-06-12T10:00:00+00:00", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "universo", "respuestas", "respuestas"),
+    .source_label = c(
+      "Base · Docentes",
+      "Base · Docentes",
+      "SurveyMonkey · Docentes · Correo",
+      "SurveyMonkey · Docentes · Correo"
+    ),
+    dim_actor = c("Docentes", "Docentes", "Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile(list(
+    include_response_ids = c("r-fdc"),
+    manual_case_reconciliations = list(
+      `r-fdc` = list(
+        response_id = "r-fdc",
+        actor = "Docentes",
+        action = "include_with_caveat",
+        declared_code = "FDC",
+        declared_email = "fduarte@pucp.edu.pe",
+        assigned_person_label = "Maria Pendiente",
+        assigned_case_key = "22222222",
+        assigned_base_source = "Base · Docentes",
+        assigned_base_row = 2L,
+        match_type = "manual_pending",
+        previous_status = "excluded",
+        new_status = "included_with_caveat",
+        note = "Asignacion manual con evidencia externa.",
+        decided_at = "2026-06-15T14:04:00-05:00"
+      )
+    )
+  ))
+  cases <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- cases[cases$response_id == "r-fdc", , drop = FALSE]
+
+  expect_equal(reviewed$advancement, "effective")
+  expect_equal(reviewed$issue_type, "incluido_con_salvedad")
+  expect_equal(reviewed$assisted_review[[1]]$manual_decision$match_type, "manual_pending")
+  expect_false(any(cases$response_id == "" & cases$person_label == "Maria Pendiente"))
+})
+
+test_that("perfil acreditacion inclusion manual actualiza avance sin borrar regla automatica", {
+  data <- .monitoreo_test_assisted_review_data()
+  profile <- .monitoreo_test_assisted_review_profile(list(
+    include_response_ids = c("r-fdc"),
+    manual_case_reconciliations = list(
+      `r-fdc` = list(
+        response_id = "r-fdc",
+        actor = "Docentes",
+        action = "include_with_caveat",
+        declared_code = "FDC",
+        declared_email = "fduarte@pucp.edu.pe",
+        assigned_person_label = "Franklin Duarte",
+        assigned_case_key = "01999225",
+        assigned_base_source = "Base · Docentes",
+        assigned_base_row = 1L,
+        match_type = "email_exact",
+        previous_status = "excluded",
+        new_status = "included_with_caveat",
+        note = "Correo declarado cruza con base.",
+        decided_at = "2026-06-15T09:34:00-05:00"
+      )
+    )
+  ))
+  cases <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- cases[cases$response_id == "r-fdc", , drop = FALSE]
+
+  expect_equal(reviewed$advancement, "effective")
+  expect_equal(reviewed$issue_type, "incluido_con_salvedad")
+  expect_equal(reviewed$decision, "Incluido en avance")
+  expect_true(grepl("fuera de la base", reviewed$rule, fixed = TRUE))
+  expect_equal(reviewed$assisted_review[[1]]$manual_decision$action, "include_with_caveat")
+  expect_false(any(cases$response_id == "" & cases$person_label == "Franklin Duarte"))
+})
+
+test_that("perfil acreditacion normaliza decisiones manuales con perfiles antiguos", {
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    reconciliation_decisions = list(
+      include_response_ids = c("r-old"),
+      exclude_response_ids = c("r-excluded"),
+      manual_case_reconciliations = list(
+        `r-old` = list(
+          action = "include_with_caveat",
+          actor = "Docentes",
+          assigned_case_key = "01999225",
+          decided_at = "2026-06-15T09:34:00-05:00"
+        )
+      )
+    )
+  ))
+
+  expect_equal(profile$reconciliation_decisions$include_response_ids, list("r-old"))
+  expect_equal(profile$reconciliation_decisions$exclude_response_ids, list("r-excluded"))
+  expect_equal(profile$reconciliation_decisions$manual_case_reconciliations$`r-old`$response_id, "r-old")
+  expect_equal(profile$reconciliation_decisions$manual_case_reconciliations$`r-old`$action, "include_with_caveat")
+})
+
 test_that("perfil acreditacion usa etiquetas SurveyMonkey para detectar llaves q", {
   data <- data.frame(
     CodPulso = c("20222716", ""),
@@ -930,6 +1721,88 @@ test_that("perfil acreditacion usa etiquetas SurveyMonkey para detectar llaves q
   resumen <- reports$sheets[[1]]$blocks[[1]]$rows[[1]]
   expect_equal(resumen$Efectivas, 1L)
   expect_equal(resumen$`Efectivas sin cruce base`, 0L)
+})
+
+test_that("perfil acreditacion conserva etiquetas SurveyMonkey por fuente al unir encuestas", {
+  base <- data.frame(
+    CodPulso = "2003102",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  normal <- data.frame(
+    q0003 = "52",
+    q0004 = "20229999",
+    response_id = "r-normal",
+    response_status = "partial",
+    date_modified = "2026-06-01T09:00:00+00:00",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(normal, "variable_labels") <- c(
+    q0003 = "¿Cuántos años tiene en la actualidad?",
+    q0004 = "¿Cuál es su código PUCP ?"
+  )
+  personalizado <- data.frame(
+    q0003 = "02003102",
+    q0004 = "64",
+    response_id = "r-personalizado",
+    response_status = "completed",
+    date_modified = "2026-06-01T10:00:00+00:00",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(personalizado, "variable_labels") <- c(
+    q0003 = "Indique su código PUCP",
+    q0004 = "¿Cuántos años tiene en la actualidad?"
+  )
+  data <- .monitoreo_bind_rows(list(
+    .monitoreo_add_source_columns(base, list(
+      id = "base-docentes",
+      kind = "google_sheets",
+      label = "Base · Docentes",
+      role = "universo",
+      dimensions = list(actor = "Docentes")
+    )),
+    .monitoreo_add_source_columns(normal, list(
+      id = "docentes-correo",
+      kind = "surveymonkey",
+      label = "SurveyMonkey · Docentes · Correo",
+      role = "respuestas",
+      dimensions = list(actor = "Docentes")
+    )),
+    .monitoreo_add_source_columns(personalizado, list(
+      id = "docentes-personalizado",
+      kind = "surveymonkey",
+      label = "SurveyMonkey · Docentes · Personalizado",
+      role = "respuestas",
+      dimensions = list(actor = "Docentes")
+    ))
+  ))
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Docentes", label = "Docentes")),
+      key_rules = list(
+        universe_fields = c("CodPulso"),
+        response_fields = c("Código PUCP"),
+        automatic_detection = FALSE
+      )
+    )
+  ), data)
+
+  reports <- monitoreo_build_dashboard(data, cfg)$acreditacion_reports
+  resumen <- reports$sheets[[1]]$blocks[[1]]$rows[[1]]
+  expect_equal(resumen$Efectivas, 1L)
+  expect_equal(resumen$`Efectivas sin cruce base`, 0L)
+
+  alert_sheet <- reports$sheets[[which(vapply(reports$sheets, `[[`, character(1), "id") == "alertas")]]
+  trace_block <- alert_sheet$blocks[[which(vapply(alert_sheet$blocks, `[[`, character(1), "id") == "trazabilidad_cruce")]]
+  trace <- do.call(rbind, lapply(trace_block$rows, as.data.frame, check.names = FALSE))
+  matched <- trace[trace$response_id == "r-personalizado", , drop = FALSE]
+  expect_equal(matched$Resultado, "Cruzó")
+  expect_equal(matched$`Columna respuesta`, "q0003")
+  expect_equal(matched$`Valor respuesta`, "02003102")
 })
 
 test_that("perfil acreditacion no usa correo opcional de resultados como llave", {
@@ -1182,7 +2055,12 @@ test_that("consultas internas de acreditacion trazan faltantes, parciales, recha
   internal <- monitoreo_build_dashboard(data, cfg)$acreditacion_reports$internal_queries
   records_df <- function(records) {
     if (!length(records)) return(data.frame())
-    do.call(rbind, lapply(records, as.data.frame, check.names = FALSE, stringsAsFactors = FALSE))
+    do.call(rbind, lapply(records, function(record) {
+      record[] <- lapply(record, function(value) {
+        if (is.list(value)) I(list(value)) else value
+      })
+      as.data.frame(record, check.names = FALSE, stringsAsFactors = FALSE)
+    }))
   }
   cases <- records_df(internal$cases)
   actor_totals <- records_df(internal$totals$actor)
@@ -1342,13 +2220,637 @@ test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   expect_equal(report$kpis$revision, 1L)
   expect_equal(report$kpis$no_defendibles, 2L)
   expect_equal(report$district_progress[[1]]$validas, 1L)
-  expect_equal(report$block_progress[[1]]$validas, 1L)
+  expect_equal(report$block_progress[[1]]$validas, 0L)
   expect_equal(report$response_audit[[1]]$submission_date, "1 Junio")
   expect_equal(report$response_audit[[1]]$submission_hour, "05:10am")
   expect_equal(report$daily[[1]]$date_label, "1 Junio")
   expect_equal(length(report$map$points), 4L)
   expect_equal(report$map$points[[1]]$lat, -12.1)
   expect_equal(report$map$points[[1]]$geo_estado, "geo_ok")
+})
+
+test_that("monitoreo territorial cuenta avance UMP por declaracion y no por GPS", {
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm", "sjm"),
+    `Core/M8_ump` = c("7", "7", ""),
+    `_geolocation` = c("", "-12.1 -77.0", "-12.1 -77.0"),
+    consent = c("1", "1", "1"),
+    `Core/E1_age` = c(25, 25, 25),
+    `_status` = rep("submitted_via_web", 3),
+    `_uuid` = c("ump-no-gps", "ump-gps", "gps-only"),
+    `_submitted_by` = c("enc1", "enc1", "enc2"),
+    start = rep("2026-06-01T10:00:00Z", 3),
+    end = rep("2026-06-01T10:10:00Z", 3),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "Core/M8_ump"
+    )
+  ), data)
+  context <- list(
+    phase = "pilot",
+    blocks = list(list(
+      id_manzana = "150133001001",
+      ubigeo = "150133",
+      distrito = "SAN JUAN DE MIRAFLORES",
+      zona = "001",
+      manzana = "001",
+      hoja_num = 7,
+      orden_seleccion = 7,
+      entrevistas = 3
+    )),
+    geo_results = data.frame(
+      lat = c(NA_real_, -12.1, -12.1),
+      lon = c(NA_real_, -77, -77),
+      gps_parseable = c(FALSE, TRUE, TRUE),
+      geo_estado = c("geo_sin_gps", "geo_ok", "geo_ok"),
+      distance_m = c(NA_real_, 0, 0),
+      nearest_block_id = c("", "150133001001", "150133001001"),
+      nearest_block_type = c("", "titular", "titular"),
+      geometry_match = c("", "inside_selected_block", "inside_selected_block"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  report <- monitoreo_territorial_reportes(data, cfg, context)
+  light_report <- monitoreo_territorial_reportes(data, cfg, context, report_scope = "advance_summary")
+
+  expect_equal(report$advance$validas, 2L)
+  expect_equal(report$advance$no_validas, 1L)
+  expect_equal(report$advance$block_progress[[1]]$validas, 2L)
+  expect_equal(light_report$advance$validas, 2L)
+  expect_equal(report$block_progress[[1]]$validas, 2L)
+  expect_equal(light_report$advance$block_progress[[1]]$validas, 2L)
+  expect_equal(report$response_audit[[1]]$advance_block_id, "150133001001")
+  expect_equal(report$response_audit[[1]]$geo_estado, "geo_sin_gps")
+  expect_equal(report$response_audit[[3]]$advance_block_id, "")
+  expect_false(isTRUE(report$response_audit[[3]]$advance_valid))
+  expect_match(report$response_audit[[3]]$issues, "ump_sin_cruce")
+  expect_equal(report$map$blocks[[1]]$validas, 2L)
+})
+
+test_that("monitoreo territorial cruza UMP literal y no usa llaves normalizadas", {
+  route_blocks <- data.frame(
+    id_manzana = c("150103012000070", "150117030000290", "150117024000360", "150133047000220", "150135048000220"),
+    ubigeo = c("150103", "150117", "150117", "150133", "150135"),
+    distrito = c("ATE", "LOS OLIVOS", "LOS OLIVOS", "SAN JUAN DE MIRAFLORES", "SAN MARTIN DE PORRES"),
+    zona = c("01200", "03000", "02400", "04700", "04800"),
+    manzana = c("0070", "0290", "0360", "0220", "0220"),
+    tipo_manzana = c("titular", "titular", "reemplazo", "titular", "titular"),
+    hoja_num = c(6L, 70L, 70L, 124L, 136L),
+    orden_seleccion = c(6L, 70L, 70L, 124L, 136L),
+    titular_hoja_num = c(NA_integer_, NA_integer_, 70L, NA_integer_, NA_integer_),
+    titular_id_manzana = c("", "", "150117030000290", "", ""),
+    entrevistas = rep(8L, 5),
+    stringsAsFactors = FALSE
+  )
+
+  lookup <- .monitoreo_territorial_route_ump_lookup(route_blocks)
+  expect_true("70" %in% names(lookup$by_literal))
+  expect_true("150135048000220" %in% names(lookup$by_block_literal))
+  expect_equal(lookup$by_literal[["70"]][[1]]$id_manzana, "150117030000290")
+  expect_equal(lookup$route_ump_count, 4L)
+
+  resolved <- .monitoreo_territorial_declared_ump_matches(
+    c("70", "0220", "0220", "0290", "150135048000220"),
+    route_blocks,
+    ubigeo = c("", "150135", "150133", "150117", ""),
+    distrito = c("", "SAN MARTIN DE PORRES", "SAN JUAN DE MIRAFLORES", "LOS OLIVOS", "")
+  )
+
+  expect_equal(resolved$advance_block_id[[1]], "150117030000290")
+  expect_equal(resolved$advance_block_ump[[1]], "70")
+  expect_equal(resolved$advance_block_type[[1]], "titular")
+  expect_equal(resolved$advance_block_match_source[[1]], "literal")
+  expect_equal(resolved$advance_block_match_status[[1]], "recognized")
+  expect_equal(resolved$advance_block_id[[2]], "")
+  expect_equal(resolved$advance_block_match_status[[2]], "review")
+  expect_equal(resolved$advance_block_id[[3]], "")
+  expect_equal(resolved$advance_block_match_status[[3]], "review")
+  expect_equal(resolved$advance_block_id[[4]], "")
+  expect_equal(resolved$advance_block_match_status[[4]], "review")
+  expect_equal(resolved$advance_block_id[[5]], "")
+  expect_equal(resolved$advance_block_match_status[[5]], "review")
+})
+
+test_that("monitoreo territorial reconcilia UMP por respuesta y por valor literal", {
+  route_blocks <- data.frame(
+    id_manzana = "150117030000290",
+    ubigeo = "150117",
+    distrito = "LOS OLIVOS",
+    zona = "03000",
+    manzana = "0290",
+    tipo_manzana = "titular",
+    hoja_num = 70L,
+    orden_seleccion = 70L,
+    entrevistas = 8L,
+    stringsAsFactors = FALSE
+  )
+  raw <- c("UMP 70", "UMP 70", "070", "70")
+  response_id <- c("r-1", "r-2", "r-3", "r-4")
+
+  unresolved <- .monitoreo_territorial_declared_ump_matches(raw, route_blocks, response_id = response_id, phase = "field")
+  expect_equal(unresolved$advance_block_match_status, c("review", "review", "review", "recognized"))
+
+  resolved <- .monitoreo_territorial_declared_ump_matches(
+    raw,
+    route_blocks,
+    response_id = response_id,
+    phase = "field",
+    reconciliations = list(
+      field = list(
+        list(
+          raw_ump = "UMP 70",
+          assigned_block_id = "150117030000290",
+          assigned_ump = "70",
+          assigned_district = "LOS OLIVOS",
+          assigned_ubigeo = "150117",
+          scope = "ump_value"
+        ),
+        list(
+          response_id = "r-3",
+          raw_ump = "070",
+          assigned_block_id = "150117030000290",
+          assigned_ump = "70",
+          assigned_district = "LOS OLIVOS",
+          assigned_ubigeo = "150117",
+          scope = "response"
+        )
+      )
+    )
+  )
+
+  expect_equal(resolved$advance_block_match_status, c("reconciled", "reconciled", "reconciled", "recognized"))
+  expect_equal(resolved$advance_block_reconciliation_scope[[1]], "ump_value")
+  expect_equal(resolved$advance_block_reconciliation_scope[[3]], "response")
+  expect_equal(resolved$advance_block_id, rep("150117030000290", 4))
+})
+
+test_that("monitoreo territorial prioriza timestamp Kobo sobre inicio de entrevista", {
+  data <- data.frame(
+    kobo_timestamp_iso = "2026-06-16T20:58:11Z",
+    `_submission_time` = "2026-06-16T20:58:11",
+    start = "2026-06-15T16:31:10.260-05:00",
+    end = "2026-06-15T23:04:18.892-05:00",
+    check.names = FALSE
+  )
+  pick <- .monitoreo_territorial_submission_time_values(
+    data,
+    list(submission_time_var = "_submission_time", start_var = "start", end_var = "end")
+  )
+  parsed <- .monitoreo_parse_time_vec(pick$values)
+
+  expect_equal(pick$source, "kobo_timestamp_iso")
+  expect_equal(.monitoreo_date_iso_vec(parsed, pick$values), "2026-06-16")
+  expect_equal(.monitoreo_format_datetime_label_vec(parsed, pick$values), "16 Junio 03:58pm")
+})
+
+test_that("monitoreo territorial no confunde UMP 70 con manzana 0070", {
+  data <- data.frame(
+    `Core/M5_district` = "olivos",
+    `Core/M8_ump` = "70",
+    `_geolocation` = "",
+    consent = "1",
+    `Core/E1_age` = 25,
+    `_status` = "submitted_via_web",
+    `_uuid` = "ump-70",
+    `_submitted_by` = "P702",
+    start = "2026-06-16T20:50:00Z",
+    end = "2026-06-16T21:00:00Z",
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "Core/M8_ump",
+      district_crosswalk = list(
+        list(kobo_code = "ate", kobo_label = "Ate", ubigeo = "150103", distrito = "ATE"),
+        list(kobo_code = "olivos", kobo_label = "Los Olivos", ubigeo = "150117", distrito = "LOS OLIVOS")
+      )
+    )
+  ), data)
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(id_manzana = "150103012000070", ubigeo = "150103", distrito = "ATE", zona = "01200", manzana = "0070", hoja_num = 6, orden_seleccion = 6, entrevistas = 8),
+      list(id_manzana = "150117030000290", ubigeo = "150117", distrito = "LOS OLIVOS", zona = "03000", manzana = "0290", hoja_num = 70, orden_seleccion = 70, entrevistas = 8)
+    )
+  )
+
+  report <- monitoreo_territorial_reportes(data, cfg, context)
+  by_ump <- stats::setNames(report$block_progress, vapply(report$block_progress, function(block) as.character(block$ump %||% ""), character(1)))
+
+  expect_equal(report$response_audit[[1]]$advance_block_id, "150117030000290")
+  expect_equal(report$response_audit[[1]]$advance_block_ump, "70")
+  expect_equal(by_ump[["6"]]$validas, 0L)
+  expect_equal(by_ump[["70"]]$validas, 1L)
+})
+
+test_that("monitoreo territorial no normaliza UMP para avance y permite reconciliarla", {
+  data <- data.frame(
+    `Core/M5_district` = "olivos",
+    `Core/M8_ump` = "UMP 70",
+    `_geolocation` = "",
+    consent = "1",
+    `Core/E1_age` = 25,
+    `_status` = "submitted_via_web",
+    `_uuid` = "ump-70-prefix",
+    `_submitted_by` = "P702",
+    start = "2026-06-16T20:50:00Z",
+    end = "2026-06-16T21:00:00Z",
+    check.names = FALSE
+  )
+  base_cfg <- list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "Core/M8_ump",
+      district_crosswalk = list(
+        list(kobo_code = "olivos", kobo_label = "Los Olivos", ubigeo = "150117", distrito = "LOS OLIVOS")
+      )
+    )
+  )
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(id_manzana = "150117030000290", ubigeo = "150117", distrito = "LOS OLIVOS", zona = "03000", manzana = "0290", hoja_num = 70, orden_seleccion = 70, entrevistas = 8)
+    )
+  )
+
+  unresolved_report <- monitoreo_territorial_reportes(data, monitoreo_normalize_config(base_cfg, data), context)
+  expect_equal(unresolved_report$response_audit[[1]]$advance_block_id, "")
+  expect_false(isTRUE(unresolved_report$response_audit[[1]]$advance_valid))
+  expect_match(unresolved_report$response_audit[[1]]$issues, "ump_sin_cruce")
+
+  reconciled_cfg <- base_cfg
+  reconciled_cfg$territorial$ump_reconciliation <- list(
+    field = list(
+      list(
+        raw_ump = "UMP 70",
+        assigned_block_id = "150117030000290",
+        assigned_ump = "70",
+        assigned_district = "LOS OLIVOS",
+        assigned_ubigeo = "150117",
+        scope = "ump_value"
+      )
+    )
+  )
+  resolved_report <- monitoreo_territorial_reportes(data, monitoreo_normalize_config(reconciled_cfg, data), context)
+  expect_equal(resolved_report$response_audit[[1]]$advance_block_id, "150117030000290")
+  expect_equal(resolved_report$response_audit[[1]]$advance_block_match_status, "reconciled")
+  expect_true(isTRUE(resolved_report$response_audit[[1]]$advance_valid))
+  expect_equal(resolved_report$advance$validas, 1L)
+})
+
+test_that("monitoreo territorial cuotas cruza Kobo por UMP declarada y no por GPS", {
+  context <- list(
+    phase = "pilot",
+    config = list(
+      age_range_mode = "manual",
+      entrevistas_por_manzana = 4,
+      age_ranges = list(
+        list(id = "18_29", label = "18-29", min = 18L, max = 29L),
+        list(id = "30_44", label = "30-44", min = 30L, max = 44L)
+      )
+    ),
+    blocks = list(list(
+      id_manzana = "150133001001",
+      ubigeo = "150133",
+      distrito = "SAN JUAN DE MIRAFLORES",
+      zona = "001",
+      manzana = "001",
+      hoja_num = 7,
+      entrevistas = 4,
+      territorio_muestral = "150133-001",
+      pob_18_24_h = 80,
+      pob_18_24_m = 80,
+      pob_25_34_h = 0,
+      pob_25_34_m = 0,
+      pob_35_44_h = 20,
+      pob_35_44_m = 20
+    )),
+    quota = list(cells = list(
+      list(ubigeo = "150133", territorio = "150133-001", rango_edad = "18-29", sexo = "Hombre", cuota = 2),
+      list(ubigeo = "150133", territorio = "150133-001", rango_edad = "30-44", sexo = "Mujer", cuota = 2)
+    ))
+  )
+  operational_blocks <- .monitoreo_territorial_block_goal_df(context, include_replacements = TRUE)
+  audit <- data.frame(
+    nearest_block_id = c("999999999999", "999999999999", "150133001001"),
+    advance_block_id = c("", "", ""),
+    declared_ump_raw = c("7", "UMP 7", ""),
+    declared_ump_normalized = c("", "", ""),
+    advance_block_ump = c("", "", ""),
+    advance_valid = c(TRUE, TRUE, TRUE),
+    sex = c("Hombre", "Mujer", "Hombre"),
+    age = c(25, 40, 25),
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit,
+    list(
+      active_route_phase = "pilot",
+      age_var = "Core/E1_age",
+      sex_var = "sexo",
+      ump_reconciliation = list(
+        pilot = list(
+          list(
+            raw_ump = "UMP 7",
+            assigned_block_id = "150133001001",
+            assigned_ump = "7",
+            assigned_district = "SAN JUAN DE MIRAFLORES",
+            assigned_ubigeo = "150133",
+            scope = "ump_value"
+          )
+        )
+      )
+    )
+  )
+  block <- payload$blocks[[1]]
+  sex_achieved <- stats::setNames(
+    vapply(block$sex, function(row) as.integer(row$achieved %||% 0L), integer(1)),
+    vapply(block$sex, function(row) as.character(row$label %||% ""), character(1))
+  )
+  age_achieved <- stats::setNames(
+    vapply(block$age, function(row) as.integer(row$achieved %||% 0L), integer(1)),
+    vapply(block$age, function(row) as.character(row$label %||% ""), character(1))
+  )
+
+  expect_equal(block$validas, 2L)
+  expect_equal(sex_achieved[["Hombre"]], 1L)
+  expect_equal(sex_achieved[["Mujer"]], 1L)
+  expect_equal(age_achieved[["18-29"]], 1L)
+  expect_equal(age_achieved[["30-44"]], 1L)
+})
+
+.with_mocked_hojas_ruta_reference_quota_marginals <- function(value) {
+  target_env <- environment(.monitoreo_territorial_route_quota_marginals_payload)
+  name <- ".hojas_ruta_reference_quota_marginals"
+  had_previous <- exists(name, envir = target_env, inherits = FALSE)
+  previous <- if (had_previous) get(name, envir = target_env) else NULL
+  was_locked <- had_previous && bindingIsLocked(name, target_env)
+  if (was_locked) unlockBinding(name, target_env)
+  assign(name, value, envir = target_env)
+  if (was_locked) lockBinding(name, target_env)
+
+  function() {
+    exists_now <- exists(name, envir = target_env, inherits = FALSE)
+    is_locked <- exists_now && bindingIsLocked(name, target_env)
+    if (is_locked) unlockBinding(name, target_env)
+    if (had_previous) {
+      assign(name, previous, envir = target_env)
+    } else if (exists_now) {
+      rm(list = name, envir = target_env)
+    }
+    if (was_locked && exists(name, envir = target_env, inherits = FALSE)) {
+      lockBinding(name, target_env)
+    }
+  }
+}
+
+test_that("monitoreo territorial cuotas expone llenado observado consentido por sexo y edad", {
+  restore_quota_marginals <- .with_mocked_hojas_ruta_reference_quota_marginals(function(block, config) NULL)
+  on.exit(restore_quota_marginals(), add = TRUE)
+
+  context <- list(
+    phase = "pilot",
+    blocks = list(list(
+      id_manzana = "150133001007",
+      ubigeo = "150133",
+      distrito = "SAN JUAN DE MIRAFLORES",
+      zona = "001",
+      manzana = "007",
+      hoja_num = 7,
+      entrevistas = 4,
+      territorio_muestral = "150133-001"
+    )),
+    quota = list(cells = list(
+      list(id_manzana = "150133001007", ubigeo = "150133", territorio = "150133-001", rango_edad = "18-29", sexo = "Hombre", cuota = 2),
+      list(id_manzana = "150133001007", ubigeo = "150133", territorio = "150133-001", rango_edad = "30-44", sexo = "Mujer", cuota = 2)
+    ))
+  )
+  operational_blocks <- .monitoreo_territorial_block_goal_df(context, include_replacements = TRUE)
+  audit <- data.frame(
+    advance_block_id = "",
+    declared_ump_raw = c("7", "7", "7", "7"),
+    declared_ump_normalized = "",
+    advance_block_ump = "",
+    ubigeo = "150133",
+    advance_block_ubigeo = "150133",
+    advance_valid = c(TRUE, TRUE, FALSE, TRUE),
+    consent = c("1", "1", "0", "1"),
+    sex = c("Hombre", "Mujer", "Hombre", ""),
+    age = c(25, 40, 25, NA),
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit,
+    list(age_var = "Core/E1_age", sex_var = "sexo")
+  )
+  block <- payload$blocks[[1]]
+  cross <- block$observed_cross
+  rows <- stats::setNames(cross$rows, vapply(cross$rows, function(row) as.character(row$label %||% ""), character(1)))
+  columns <- stats::setNames(
+    vapply(cross$columns, function(column) as.integer(column$total %||% 0L), integer(1)),
+    vapply(cross$columns, function(column) as.character(column$label %||% ""), character(1))
+  )
+  hombre_cells <- stats::setNames(
+    vapply(rows[["Hombre"]]$cells, function(cell) as.integer(cell$value %||% 0L), integer(1)),
+    vapply(rows[["Hombre"]]$cells, function(cell) as.character(cell$label %||% ""), character(1))
+  )
+  mujer_cells <- stats::setNames(
+    vapply(rows[["Mujer"]]$cells, function(cell) as.integer(cell$value %||% 0L), integer(1)),
+    vapply(rows[["Mujer"]]$cells, function(cell) as.character(cell$label %||% ""), character(1))
+  )
+  sin_dato_cells <- stats::setNames(
+    vapply(rows[["Sin dato"]]$cells, function(cell) as.integer(cell$value %||% 0L), integer(1)),
+    vapply(rows[["Sin dato"]]$cells, function(cell) as.character(cell$label %||% ""), character(1))
+  )
+
+  expect_equal(cross$total_consentido, 3L)
+  expect_equal(hombre_cells[["18-29"]], 1L)
+  expect_equal(mujer_cells[["30-44"]], 1L)
+  expect_equal(sin_dato_cells[["Sin dato"]], 1L)
+  expect_equal(rows[["Hombre"]]$total, 1L)
+  expect_equal(rows[["Mujer"]]$total, 1L)
+  expect_equal(rows[["Sin dato"]]$total, 1L)
+  expect_equal(columns[["18-29"]], 1L)
+  expect_equal(columns[["30-44"]], 1L)
+  expect_equal(columns[["Sin dato"]], 1L)
+
+  audit_blank_consent <- audit
+  audit_blank_consent$consent <- ""
+  payload_blank_consent <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit_blank_consent,
+    list(age_var = "Core/E1_age", sex_var = "sexo")
+  )
+  expect_equal(payload_blank_consent$blocks[[1]]$observed_cross$total_consentido, 3L)
+})
+
+test_that("monitoreo territorial cuotas prioriza marginales por manzana", {
+  restore_quota_marginals <- .with_mocked_hojas_ruta_reference_quota_marginals(function(block, config) {
+    list(
+      defs = list(
+        list(id = "18_29", label = "18-29", min = 18L, max = 29L),
+        list(id = "30_44", label = "30-44", min = 30L, max = 44L)
+      ),
+      age_totals = c(3L, 1L),
+      hombre_total = 3L,
+      mujer_total = 1L,
+      entrevistas = 4L
+    )
+  })
+  on.exit(restore_quota_marginals(), add = TRUE)
+
+  context <- list(
+    phase = "pilot",
+    blocks = list(list(
+      id_manzana = "150133001004",
+      ubigeo = "150133",
+      distrito = "SAN JUAN DE MIRAFLORES",
+      zona = "001",
+      manzana = "004",
+      hoja_num = 4,
+      entrevistas = 4,
+      territorio_muestral = "150133-001"
+    )),
+    quota = list(cells = list(
+      list(ubigeo = "150133", territorio = "150133-001", rango_edad = "18-29", sexo = "Hombre", cuota = 4)
+    ))
+  )
+  operational_blocks <- .monitoreo_territorial_block_goal_df(context, include_replacements = TRUE)
+  audit <- data.frame(
+    nearest_block_id = "",
+    advance_block_id = "",
+    declared_ump_raw = "4",
+    declared_ump_normalized = "",
+    advance_block_ump = "",
+    ubigeo = "150133",
+    advance_block_ubigeo = "150133",
+    advance_valid = TRUE,
+    sex = "Hombre",
+    age = 25,
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit,
+    list(age_var = "Core/E1_age", sex_var = "sexo")
+  )
+  block <- payload$blocks[[1]]
+  age_target <- stats::setNames(
+    vapply(block$age, function(row) as.integer(row$target %||% 0L), integer(1)),
+    vapply(block$age, function(row) as.character(row$label %||% ""), character(1))
+  )
+  sex_target <- stats::setNames(
+    vapply(block$sex, function(row) as.integer(row$target %||% 0L), integer(1)),
+    vapply(block$sex, function(row) as.character(row$label %||% ""), character(1))
+  )
+
+  expect_equal(age_target[["18-29"]], 3L)
+  expect_equal(age_target[["30-44"]], 1L)
+  expect_equal(sex_target[["Hombre"]], 3L)
+  expect_equal(sex_target[["Mujer"]], 1L)
+})
+
+test_that("monitoreo territorial interpreta rangos abiertos como 60+", {
+  labels <- .monitoreo_territorial_quota_age_label(c(59, 60, 63, 75), c("45-59", "60+"))
+  expect_equal(labels, c("45-59", "60+", "60+", "60+"))
+
+  labels_text <- .monitoreo_territorial_quota_age_label(c(59, 60, 72), c("45-59", "60 a más"))
+  expect_equal(labels_text, c("45-59", "60 a más", "60 a más"))
+})
+
+test_that("monitoreo territorial clasifica cuotas por actividad de campo", {
+  restore_quota_marginals <- .with_mocked_hojas_ruta_reference_quota_marginals(function(block, config) NULL)
+  on.exit(restore_quota_marginals(), add = TRUE)
+
+  today <- as.character(as.Date(Sys.time(), tz = "America/Lima"))
+  yesterday <- as.character(as.Date(Sys.time(), tz = "America/Lima") - 1)
+  context <- list(
+    phase = "pilot",
+    blocks = list(
+      list(id_manzana = "150133001001", ubigeo = "150133", distrito = "SAN JUAN DE MIRAFLORES", zona = "001", manzana = "001", hoja_num = 1, entrevistas = 2, responsable = "Ana Campo"),
+      list(id_manzana = "150133001002", ubigeo = "150133", distrito = "SAN JUAN DE MIRAFLORES", zona = "001", manzana = "002", hoja_num = 2, entrevistas = 2, responsable = "Bruno Campo"),
+      list(id_manzana = "150133001003", ubigeo = "150133", distrito = "SAN JUAN DE MIRAFLORES", zona = "001", manzana = "003", hoja_num = 3, entrevistas = 2, responsable = "Carla Campo"),
+      list(id_manzana = "150133001004", ubigeo = "150133", distrito = "SAN JUAN DE MIRAFLORES", zona = "001", manzana = "004", hoja_num = 4, entrevistas = 2, responsable = "Diego Campo")
+    ),
+    quota = list(cells = list(
+      list(id_manzana = "150133001001", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Hombre", cuota = 1),
+      list(id_manzana = "150133001001", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Mujer", cuota = 1),
+      list(id_manzana = "150133001002", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Hombre", cuota = 1),
+      list(id_manzana = "150133001002", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Mujer", cuota = 1),
+      list(id_manzana = "150133001003", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Hombre", cuota = 1),
+      list(id_manzana = "150133001003", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Mujer", cuota = 1),
+      list(id_manzana = "150133001004", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Hombre", cuota = 1),
+      list(id_manzana = "150133001004", ubigeo = "150133", territorio = "150133-001", rango_edad = "", sexo = "Mujer", cuota = 1)
+    ))
+  )
+  operational_blocks <- .monitoreo_territorial_block_goal_df(context, include_replacements = TRUE)
+  audit <- data.frame(
+    advance_block_id = "",
+    declared_ump_raw = c("1", "2", "4", "4", "4"),
+    declared_ump_normalized = "",
+    advance_block_ump = "",
+    ubigeo = "150133",
+    advance_block_ubigeo = "150133",
+    advance_valid = TRUE,
+    sex = c("Hombre", "Hombre", "Hombre", "Mujer", "Mujer"),
+    age = c(25, 30, 35, 36, 37),
+    submission_date_iso = c(today, yesterday, today, today, today),
+    submission_date = c("Fecha hoy", "Fecha ayer", "Fecha hoy", "Fecha hoy", "Fecha hoy"),
+    submission_hour = c("03:34pm", "10:05am", "02:10pm", "02:20pm", "02:30pm"),
+    responsible_display = c("Ana Kobo", "Bruno Kobo", "Diego Kobo", "Diego Kobo", "Diego Kobo"),
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit,
+    list(age_var = "Core/E1_age", sex_var = "sexo")
+  )
+  statuses <- stats::setNames(
+    vapply(payload$blocks, function(block) as.character(block$status %||% ""), character(1)),
+    vapply(payload$blocks, function(block) as.character(block$ump %||% ""), character(1))
+  )
+
+  expect_identical(statuses[["1"]], "in_field")
+  expect_identical(statuses[["2"]], "pending")
+  expect_identical(statuses[["3"]], "missing")
+  expect_identical(statuses[["4"]], "exceeded")
+  expect_equal(payload$summary$sex_missing_total, 4L)
+  expect_equal(payload$summary$age_missing_total, 0L)
+  expect_equal(payload$summary$demographic_missing_total, 4L)
+  expect_equal(payload$district_summary$sex_missing_total, 3L)
+  expect_equal(payload$district_summary$demographic_missing_total, 3L)
+  responsables <- stats::setNames(
+    vapply(payload$blocks, function(block) as.character(block$responsable %||% ""), character(1)),
+    vapply(payload$blocks, function(block) as.character(block$ump %||% ""), character(1))
+  )
+  expect_equal(responsables[["1"]], "Ana Kobo")
+  expect_equal(responsables[["2"]], "Bruno Kobo")
+  expect_equal(responsables[["3"]], "-")
+  expect_equal(responsables[["4"]], "Diego Kobo")
+  labels <- stats::setNames(
+    vapply(payload$blocks, function(block) as.character(block$last_response_date_label %||% ""), character(1)),
+    vapply(payload$blocks, function(block) as.character(block$ump %||% ""), character(1))
+  )
+  expect_equal(labels[["1"]], "Fecha hoy 3:34pm")
 })
 
 test_that("monitoreo territorial cuenta encuesta valida solo por filtro de fuente", {
@@ -1378,6 +2880,658 @@ test_that("monitoreo territorial cuenta encuesta valida solo por filtro de fuent
   ), data)
   pending <- monitoreo_territorial_reportes(data, pending_cfg, list(phase = "pilot"))
   expect_true(is.na(pending$source_validity$effective_count))
+})
+
+test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
+  data <- data.frame(
+    `_uuid` = c("occ-1", "occ-2", "occ-3"),
+    start = c("2026-06-16T20:00:00Z", "2026-06-16T21:00:00Z", "2026-06-17T14:00:00Z"),
+    end = c("2026-06-16T20:20:00Z", "2026-06-16T21:15:00Z", "2026-06-17T14:30:00Z"),
+    `identificacion_consolidado/codigo_pulso` = c("P001", "P001", "P002"),
+    `identificacion_consolidado/ump` = c("7", "7", "8"),
+    fase = c("field", "field", "field"),
+    `estados/no_queria_participar` = c("1", "2", "0"),
+    `estados/hogar_ausente` = c("1", "0", "0"),
+    `estados/encuestas_efectivas` = c("3", "2", "4"),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      field_occurrences = list(
+        enabled = TRUE,
+        asset_uid = "asset_ocurrencias",
+        route_phase = "field"
+      ),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P002", nombre = "Bruno Campo")
+        )
+      )
+    )
+  ), data.frame())
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(
+        id_manzana = "150133001001",
+        ubigeo = "150133",
+        distrito = "SAN JUAN DE MIRAFLORES",
+        zona = "001",
+        manzana = "001",
+        hoja_num = 7,
+        orden_seleccion = 7,
+        entrevistas = 4
+      ),
+      list(
+        id_manzana = "150103002002",
+        ubigeo = "150103",
+        distrito = "ATE",
+        zona = "002",
+        manzana = "002",
+        hoja_num = 8,
+        orden_seleccion = 8,
+        entrevistas = 4
+      ),
+      list(
+        id_manzana = "150103002003",
+        ubigeo = "150103",
+        distrito = "ATE",
+        zona = "002",
+        manzana = "003",
+        hoja_num = 9,
+        orden_seleccion = 9,
+        entrevistas = 4
+      )
+    )
+  )
+
+  report <- monitoreo_territorial_occurrences_report(data, cfg, context)
+
+  expect_equal(report$summary$total_records, 3L)
+  expect_equal(report$summary$responsables, 2L)
+  expect_equal(report$summary$manzanas_reportadas, 2L)
+  expect_equal(report$summary$efectivas, 9L)
+  expect_equal(report$summary$no_efectivas, 4L)
+  expect_equal(report$summary$intentos, 13L)
+  expect_equal(report$records[[1]]$responsable, "Ana Campo")
+  expect_equal(report$records[[1]]$ump, "7")
+  expect_equal(report$records[[1]]$manzana, "001")
+  expect_equal(report$records[[1]]$manzana_key, "m0001")
+  expect_equal(length(report$alerts$outside_route), 0L)
+  expect_equal(length(report$by_ump), 3L)
+  expect_equal(report$by_ump[[1]]$ump, "7")
+  expect_equal(report$by_ump[[1]]$manzana, "001")
+  expect_equal(report$by_ump[[1]]$responsable, "Ana Campo")
+  expect_true(report$by_ump[[1]]$has_report)
+  expect_equal(report$by_ump[[1]]$estado_consolidado, "reportada_no_efectiva")
+  expect_equal(report$by_ump[[1]]$motivo_principal, "No quería participar")
+  expect_equal(report$by_ump[[1]]$reportes, 2L)
+  expect_equal(report$by_ump[[1]]$efectivas, 5L)
+  expect_equal(report$by_ump[[1]]$no_efectivas, 4L)
+  expect_equal(report$by_ump[[1]]$intentos, 9L)
+  by_ump <- stats::setNames(report$by_ump, vapply(report$by_ump, function(item) as.character(item$ump %||% ""), character(1)))
+  expect_equal(by_ump[["8"]]$responsable, "Bruno Campo")
+  expect_true(by_ump[["8"]]$has_report)
+  expect_equal(by_ump[["8"]]$estado_consolidado, "reportada_efectiva")
+  expect_false(by_ump[["9"]]$has_report)
+  expect_equal(by_ump[["9"]]$estado_consolidado, "sin_reporte")
+  ump_outcomes <- stats::setNames(
+    vapply(report$by_ump[[1]]$outcomes, function(item) as.integer(item$total %||% 0L), integer(1)),
+    vapply(report$by_ump[[1]]$outcomes, function(item) as.character(item$key %||% ""), character(1))
+  )
+  expect_equal(ump_outcomes[["no_queria_participar"]], 3L)
+  expect_equal(ump_outcomes[["hogar_ausente"]], 1L)
+  by_district <- stats::setNames(report$by_district, vapply(report$by_district, function(item) as.character(item$distrito %||% ""), character(1)))
+  expect_equal(by_district[["SAN JUAN DE MIRAFLORES"]]$ump_reportadas, 1L)
+  expect_equal(by_district[["SAN JUAN DE MIRAFLORES"]]$ump_sin_reporte, 0L)
+  expect_equal(by_district[["SAN JUAN DE MIRAFLORES"]]$motivo_principal, "No quería participar")
+  expect_equal(by_district[["ATE"]]$ump_reportadas, 1L)
+  expect_equal(by_district[["ATE"]]$ump_sin_reporte, 1L)
+  expect_equal(by_district[["ATE"]]$efectivas, 4L)
+})
+
+test_that("monitoreo ocurrencias advierte UMP no esperada sin inferir distrito", {
+  data <- data.frame(
+    `_uuid` = "occ-typo",
+    start = "2026-06-16T20:00:00Z",
+    end = "2026-06-16T20:20:00Z",
+    `identificacion_consolidado/codigo_pulso` = "P001",
+    `identificacion_consolidado/ump` = "1437",
+    fase = "field",
+    `estados/no_queria_participar` = "2",
+    `estados/hogar_ausente` = "1",
+    `estados/encuestas_efectivas` = "5",
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      field_occurrences = list(enabled = TRUE, route_phase = "field"),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(list(codigo_pulso = "P001", nombre = "Ana Campo"))
+      )
+    )
+  ), data.frame())
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(
+        id_manzana = "150135063000590",
+        ubigeo = "150135",
+        distrito = "SAN MARTIN DE PORRES",
+        zona = "063",
+        manzana = "0590",
+        hoja_num = 143,
+        orden_seleccion = 143,
+        entrevistas = 8
+      )
+    )
+  )
+
+  report <- monitoreo_territorial_occurrences_report(data, cfg, context)
+  by_ump <- stats::setNames(report$by_ump, vapply(report$by_ump, function(item) as.character(item$ump %||% ""), character(1)))
+  invalid <- by_ump[["1437"]]
+  expect_equal(invalid$estado_consolidado, "revisar_cruce")
+  expect_equal(invalid$distrito, "")
+  expect_equal(invalid$route_match_status, "ump_no_esperada")
+  expect_match(invalid$route_label, "no está en las UMP esperadas")
+  expect_equal(by_ump[["143"]]$estado_consolidado, "sin_reporte")
+
+  by_district <- stats::setNames(report$by_district, vapply(report$by_district, function(item) as.character(item$distrito %||% ""), character(1)))
+  expect_true("Sin cruce UMP" %in% names(by_district))
+  expect_equal(by_district[["Sin cruce UMP"]]$ump_reportadas, 1L)
+  expect_equal(by_district[["SAN MARTIN DE PORRES"]]$ump_sin_reporte, 1L)
+  outside_umps <- vapply(report$alerts$outside_route, function(item) as.character(item$ump %||% ""), character(1))
+  expect_true("1437" %in% outside_umps)
+})
+
+test_that("monitoreo ocurrencias XLSForm usa selector de UMP esperadas", {
+  testthat::skip_if_not_installed("readxl")
+  path <- tempfile(fileext = ".xlsx")
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(
+        id_manzana = "150133001001",
+        ubigeo = "150133",
+        distrito = "SAN JUAN DE MIRAFLORES",
+        zona = "001",
+        manzana = "001",
+        hoja_num = 7,
+        orden_seleccion = 7,
+        entrevistas = 4
+      ),
+      list(
+        id_manzana = "150103002002",
+        ubigeo = "150103",
+        distrito = "ATE",
+        zona = "002",
+        manzana = "002",
+        hoja_num = 8,
+        orden_seleccion = 8,
+        entrevistas = 4
+      )
+    )
+  )
+
+  monitoreo_territorial_occurrences_xlsform(
+    context,
+    path,
+    enumerator_roster = list(assignments = list(list(codigo_pulso = "P001", nombre = "Ana Campo")))
+  )
+  survey <- as.data.frame(readxl::read_excel(path, sheet = "survey"), stringsAsFactors = FALSE)
+  choices <- as.data.frame(readxl::read_excel(path, sheet = "choices"), stringsAsFactors = FALSE)
+  ump_row <- survey[survey$name == "ump", , drop = FALSE]
+
+  expect_equal(ump_row$type[[1]], "select_one ump")
+  expect_equal(ump_row$name[[1]], "ump")
+  expect_true(any(choices$list_name == "ump"))
+  ump_choice_names <- as.character(choices$name[choices$list_name == "ump"])
+  expect_true(all(c("7", "8") %in% ump_choice_names))
+  expect_false("1437" %in% ump_choice_names)
+})
+
+test_that("monitoreo ocurrencias reconoce schema Kobo con campos dentro de grupos", {
+  schema <- list(all_fields = list(
+    list(name = "identificacion_consolidado/codigo_pulso", xpath = "", type = "select_one codigo_pulso"),
+    list(name = "identificacion_consolidado/ump", xpath = "", type = "integer"),
+    list(name = "start", xpath = "/ocurrencias_trabajo_campo/start", type = "start"),
+    list(name = "end", xpath = "/ocurrencias_trabajo_campo/end", type = "end"),
+    list(name = "estados/no_queria_participar", xpath = "", type = "integer"),
+    list(name = "estados/vivienda_abandonada_inaccesible", xpath = "", type = "integer"),
+    list(name = "estados/hogar_migrante_refugiado", xpath = "", type = "integer"),
+    list(name = "estados/hogar_ausente", xpath = "", type = "integer"),
+    list(name = "estados/no_cumple_criterios", xpath = "", type = "integer"),
+    list(name = "estados/fuera_cuota", xpath = "", type = "integer"),
+    list(name = "estados/encuesta_inconclusa", xpath = "", type = "integer"),
+    list(name = "estados/encuestas_efectivas", xpath = "", type = "integer")
+  ))
+
+  check <- .monitoreo_territorial_occurrences_schema_check(schema)
+
+  expect_true(check$ok)
+  expect_equal(check$status, "ready")
+  found <- stats::setNames(
+    vapply(check$items, function(item) as.character(item$found_name %||% ""), character(1)),
+    vapply(check$items, function(item) as.character(item$key %||% ""), character(1))
+  )
+  expect_equal(found[["codigo_pulso"]], "identificacion_consolidado/codigo_pulso")
+  expect_equal(found[["ump"]], "identificacion_consolidado/ump")
+  expect_equal(found[["encuestas_efectivas"]], "estados/encuestas_efectivas")
+  expected <- stats::setNames(
+    lapply(check$items, function(item) unlist(item$expected %||% list(), use.names = FALSE)),
+    vapply(check$items, function(item) as.character(item$key %||% ""), character(1))
+  )
+  expect_equal(expected[["codigo_pulso"]][[1]], "identificacion_consolidado/codigo_pulso")
+  expect_equal(expected[["ump"]][[1]], "identificacion_consolidado/ump")
+  expect_equal(expected[["encuestas_efectivas"]][[1]], "estados/encuestas_efectivas")
+})
+
+test_that("monitoreo territorial cruza codigo Pulso de respuestas con encuestadores", {
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm", "sjm", "sjm"),
+    `Core/M8_ump` = c("m1", "m1", "m2", "m2"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0"),
+    codigo_encuestador = c("P001", "P002", "P999", ""),
+    filtro_fuente = c("apto", "apto", "no_apto", "apto"),
+    `_status` = rep("submitted_via_web", 4),
+    `_uuid` = c("a", "b", "c", "d"),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      pulso_code_var = "codigo_encuestador",
+      platform_effective_var = "filtro_fuente",
+      platform_effective_values = list("apto"),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P002", nombre = "Luis Ruta")
+        )
+      )
+    )
+  ), data)
+  report <- monitoreo_territorial_reportes(data, cfg, list(phase = "field"))
+
+  expect_equal(report$source_validity$effective_count, 3L)
+  expect_equal(report$source_validity$non_effective_count, 1L)
+  expect_equal(report$enumerator_code_summary$recognized_code_count, 2L)
+  expect_equal(report$enumerator_code_summary$unrecognized_code_count, 1L)
+  expect_equal(report$enumerator_code_summary$missing_response_count, 1L)
+  expect_equal(report$response_audit[[1]]$pulso_code, "P001")
+  expect_equal(report$response_audit[[1]]$enumerator_assigned, "Ana Campo")
+  expect_true(isTRUE(report$response_audit[[1]]$source_effective))
+})
+
+test_that("monitoreo territorial guarda reconciliacion Pulso y UMP por fase", {
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      active_route_phase = "field",
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(list(codigo_pulso = "P191", nombre = "Ana Campo"))
+      ),
+      enumerator_code_reconciliation = list(
+        field = list(list(raw_code = "191", normalized_code = "P191", assigned_code = "P191"))
+      ),
+      ump_reconciliation = list(
+        field = list(list(raw_ump = "UMP 70", assigned_block_id = "mz-70", assigned_ump = "70", scope = "ump_value"))
+      )
+    )
+  ), data.frame())
+
+  expect_equal(cfg$territorial$enumerator_code_reconciliation$field[[1]]$phase, "field")
+  expect_equal(cfg$territorial$ump_reconciliation$field[[1]]$phase, "field")
+  expect_equal(cfg$territorial$ump_reconciliation$field[[1]]$raw_ump, "UMP 70")
+  expect_equal(cfg$territorial$ump_reconciliation$field[[1]]$assigned_block_id, "mz-70")
+  expect_equal(length(cfg$territorial$enumerator_code_reconciliation$pilot), 0L)
+  expect_equal(length(cfg$territorial$ump_reconciliation$pilot), 0L)
+})
+
+test_that("monitoreo territorial aplica lote mixto de reconciliacion en memoria", {
+  route_blocks <- data.frame(
+    id_manzana = "150117030000290",
+    ubigeo = "150117",
+    distrito = "LOS OLIVOS",
+    zona = "03000",
+    manzana = "0290",
+    tipo_manzana = "titular",
+    hoja_num = 70L,
+    orden_seleccion = 70L,
+    entrevistas = 8L,
+    stringsAsFactors = FALSE
+  )
+  tcfg <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "field",
+    enumerator_roster = list(
+      enabled = TRUE,
+      code_format = "PXXX",
+      assignments = list(list(codigo_pulso = "P191", nombre = "Ana Campo"))
+    )
+  ), data.frame())
+  batch <- .monitoreo_territorial_apply_reconciliation_batch(
+    tcfg,
+    list(
+      list(
+        client_id = "code-ok",
+        kind = "code",
+        reconciliation = list(
+          phase = "field",
+          scope = "response",
+          response_id = "r-1",
+          response_id_field = "_uuid",
+          raw_code = "191",
+          normalized_code = "P191",
+          assigned_code = "P191"
+        )
+      ),
+      list(
+        client_id = "ump-ok",
+        kind = "ump",
+        reconciliation = list(
+          phase = "field",
+          scope = "ump_value",
+          raw_ump = "UMP 70",
+          assigned_block_id = "150117030000290",
+          assigned_ump = "70",
+          assigned_district = "LOS OLIVOS",
+          assigned_ubigeo = "150117"
+        )
+      )
+    ),
+    cfg = list(territorial = tcfg),
+    ump_context_builder = function(phase, current_tcfg, current_cfg) {
+      list(route_lookup = .monitoreo_territorial_route_ump_lookup(route_blocks))
+    }
+  )
+
+  expect_equal(vapply(batch$applied, `[[`, character(1), "client_id"), c("code-ok", "ump-ok"))
+  expect_equal(batch$changed_phases, "field")
+  expect_equal(batch$tcfg$enumerator_code_reconciliation$field[[1]]$assigned_code, "P191")
+  expect_equal(batch$tcfg$enumerator_code_reconciliation$field[[1]]$response_id, "r-1")
+  expect_equal(batch$tcfg$ump_reconciliation$field[[1]]$raw_ump, "UMP 70")
+  expect_equal(batch$tcfg$ump_reconciliation$field[[1]]$assigned_block_id, "150117030000290")
+})
+
+test_that("monitoreo territorial lote parcial guarda exitosos y conserva fallos", {
+  route_blocks <- data.frame(
+    id_manzana = "150117030000290",
+    ubigeo = "150117",
+    distrito = "LOS OLIVOS",
+    zona = "03000",
+    manzana = "0290",
+    tipo_manzana = "titular",
+    hoja_num = 70L,
+    orden_seleccion = 70L,
+    entrevistas = 8L,
+    stringsAsFactors = FALSE
+  )
+  tcfg <- monitoreo_territorial_normalize_config(list(
+    active_route_phase = "field",
+    enumerator_roster = list(
+      enabled = TRUE,
+      code_format = "PXXX",
+      assignments = list(list(codigo_pulso = "P191", nombre = "Ana Campo"))
+    )
+  ), data.frame())
+  batch <- .monitoreo_territorial_apply_reconciliation_batch(
+    tcfg,
+    list(
+      list(
+        client_id = "code-ok",
+        kind = "code",
+        reconciliation = list(
+          phase = "field",
+          scope = "code_legacy",
+          raw_code = "191",
+          normalized_code = "P191",
+          assigned_code = "P191"
+        )
+      ),
+      list(
+        client_id = "ump-bad",
+        kind = "ump",
+        reconciliation = list(
+          phase = "field",
+          scope = "ump_value",
+          raw_ump = "UMP 999",
+          assigned_block_id = "no-existe",
+          assigned_ump = "999",
+          assigned_district = "LOS OLIVOS",
+          assigned_ubigeo = "150117"
+        )
+      )
+    ),
+    cfg = list(territorial = tcfg),
+    ump_context_builder = function(phase, current_tcfg, current_cfg) {
+      list(route_lookup = .monitoreo_territorial_route_ump_lookup(route_blocks))
+    }
+  )
+
+  expect_equal(length(batch$applied), 1L)
+  expect_equal(batch$applied[[1]]$client_id, "code-ok")
+  expect_equal(length(batch$failed), 1L)
+  expect_equal(batch$failed[[1]]$client_id, "ump-bad")
+  expect_equal(batch$failed[[1]]$code, "E_TERRITORIAL_UMP_RECONCILE_UNKNOWN_BLOCK")
+  expect_equal(batch$tcfg$enumerator_code_reconciliation$field[[1]]$assigned_code, "P191")
+  expect_equal(length(batch$tcfg$ump_reconciliation$field), 0L)
+})
+
+test_that("monitoreo territorial rechaza lote vacio de reconciliacion", {
+  tcfg <- monitoreo_territorial_normalize_config(list(active_route_phase = "field"), data.frame())
+  expect_error(
+    .monitoreo_territorial_apply_reconciliation_batch(tcfg, list()),
+    class = "api_error"
+  )
+})
+
+test_that("monitoreo territorial reconcilia codigo Pulso por respuesta", {
+  data <- data.frame(
+    `Core/M5_district` = c("sjl", "smp", "sjl"),
+    `closing_group.UMP` = c("150132073000410", "150132073000612", "150132073000410"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0"),
+    codigo_encuestador = c("1091", "1091", "P001"),
+    filtro_fuente = c("apto", "apto", "apto"),
+    `_status` = rep("submitted_via_web", 3),
+    `_uuid` = c("r-1", "r-2", "r-3"),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "closing_group/UMP",
+      pulso_code_var = "codigo_encuestador",
+      platform_effective_var = "filtro_fuente",
+      platform_effective_values = list("apto"),
+      district_crosswalk = list(
+        list(kobo_code = "sjl", kobo_label = "SJL", ubigeo = "150132", distrito = "San Juan de Lurigancho"),
+        list(kobo_code = "smp", kobo_label = "SMP", ubigeo = "150135", distrito = "San Martin de Porres")
+      ),
+      variable_refs = list(
+        ump = list(name = "closing_group/UMP", path = "closing_group/UMP")
+      ),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P191", nombre = "Henman Riera Antonio Richard")
+        )
+      ),
+      enumerator_code_reconciliation = list(
+        field = list(
+          list(
+            response_id = "r-1",
+            response_id_field = "_uuid",
+            raw_code = "1091",
+            normalized_code = "1091",
+            assigned_code = "P191",
+            assigned_name = "Henman Riera Antonio Richard",
+            ump = "150132073000410",
+            district = "San Juan de Lurigancho"
+          )
+        )
+      )
+    )
+  ), data)
+  report <- monitoreo_territorial_reportes(data, cfg, list(phase = "field"))
+  rows <- report$enumerator_code_summary$reconciliation_responses
+  by_id <- stats::setNames(rows, vapply(rows, function(row) row$response_id, character(1)))
+
+  expect_equal(cfg$territorial$enumerator_code_reconciliation$field[[1]]$phase, "field")
+  expect_equal(report$enumerator_code_summary$reconciliation_entries[[1]]$phase, "field")
+  expect_equal(length(rows), 2L)
+  expect_true(isTRUE(by_id[["r-1"]]$reconciled))
+  expect_equal(by_id[["r-1"]]$assigned_code, "P191")
+  expect_false(isTRUE(by_id[["r-2"]]$reconciled))
+  expect_equal(by_id[["r-2"]]$ump, "150132073000612")
+  expect_equal(by_id[["r-2"]]$district, "San Martin de Porres")
+  expect_equal(report$enumerator_code_summary$reconciled_response_count, 1L)
+  expect_equal(report$enumerator_code_summary$unrecognized_response_count, 1L)
+})
+
+test_that("monitoreo territorial reconcilia codigo Pulso mal escrito para todas sus respuestas", {
+  data <- data.frame(
+    `Core/M5_district` = c("smp", "smp", "sjl"),
+    `closing_group.UMP` = c("137", "137", "96"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.2 -77.1"),
+    codigo_encuestador = c("1094_630", "1094_630", "P001"),
+    filtro_fuente = c("apto", "apto", "apto"),
+    `_status` = rep("submitted_via_web", 3),
+    `_uuid` = c("r-1", "r-2", "r-3"),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "closing_group/UMP",
+      pulso_code_var = "codigo_encuestador",
+      platform_effective_var = "filtro_fuente",
+      platform_effective_values = list("apto"),
+      district_crosswalk = list(
+        list(kobo_code = "sjl", kobo_label = "SJL", ubigeo = "150132", distrito = "San Juan de Lurigancho"),
+        list(kobo_code = "smp", kobo_label = "SMP", ubigeo = "150135", distrito = "San Martin de Porres")
+      ),
+      variable_refs = list(
+        ump = list(name = "closing_group/UMP", path = "closing_group/UMP")
+      ),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P630", nombre = "Responsable corregido")
+        )
+      ),
+      enumerator_code_reconciliation = list(
+        field = list(
+          list(
+            raw_code = "1094_630",
+            normalized_code = "1094630",
+            assigned_code = "P630",
+            assigned_name = "Responsable corregido",
+            scope = "code_legacy"
+          )
+        )
+      )
+    )
+  ), data)
+  report <- monitoreo_territorial_reportes(data, cfg, list(phase = "field"))
+  rows <- report$enumerator_code_summary$reconciliation_responses
+  by_id <- stats::setNames(rows, vapply(rows, function(row) row$response_id, character(1)))
+
+  expect_equal(length(rows), 2L)
+  expect_true(isTRUE(by_id[["r-1"]]$reconciled))
+  expect_true(isTRUE(by_id[["r-2"]]$reconciled))
+  expect_equal(by_id[["r-1"]]$assigned_code, "P630")
+  expect_equal(by_id[["r-2"]]$assigned_name, "Responsable corregido")
+  expect_equal(report$enumerator_code_summary$reconciled_response_count, 2L)
+  expect_equal(report$enumerator_code_summary$unrecognized_response_count, 0L)
+})
+
+test_that("monitoreo territorial resuelve path guardado de codigo Pulso contra snapshot local", {
+  data <- data.frame(
+    `Core.M5_district` = c("sjm", "sjm", "sjm"),
+    `Core.M8_ump` = c("m1", "m1", "m2"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0"),
+    `closing_group.code_pulso` = c("1", "052", "P999"),
+    `closing_group.efectiva` = c("1", "0", "1"),
+    `_status` = rep("submitted_via_web", 3),
+    `_uuid` = c("a", "b", "c"),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "Core/M8_ump",
+      gps_var = "_geolocation",
+      pulso_code_var = "closing_group/code_pulso",
+      platform_effective_var = "closing_group/efectiva",
+      platform_effective_values = list("1"),
+      variable_refs = list(
+        enumerator_pulso_code = list(
+          name = "closing_group/code_pulso",
+          original_name = "code_pulso",
+          path = "closing_group/code_pulso",
+          label = "Codigo PULSO",
+          type = "text",
+          group = "closing_group"
+        ),
+        valid_filter_question = list(
+          name = "closing_group/efectiva",
+          path = "closing_group/efectiva",
+          label = "Encuesta efectiva",
+          type = "select_one",
+          group = "closing_group"
+        )
+      ),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P052", nombre = "Luis Ruta")
+        )
+      )
+    )
+  ), data)
+  report <- monitoreo_territorial_reportes(data, cfg, list(phase = "field"))
+
+  expect_equal(cfg$territorial$pulso_code_var, "closing_group.code_pulso")
+  expect_equal(report$enumerator_code_summary$field, "closing_group.code_pulso")
+  expect_equal(report$enumerator_code_summary$field_resolved, "closing_group.code_pulso")
+  expect_equal(report$source_validity$field_resolved, "closing_group.efectiva")
+  expect_equal(report$source_validity$effective_count, 2L)
+  expect_equal(report$enumerator_code_summary$recognized_code_count, 2L)
+  expect_equal(report$enumerator_code_summary$unrecognized_code_count, 1L)
+  expect_equal(report$response_audit[[1]]$pulso_code, "P001")
+  expect_equal(report$response_audit[[2]]$pulso_code, "P052")
+  expect_equal(report$response_audit[[2]]$enumerator_assigned, "Luis Ruta")
+
+  legacy_cfg <- cfg
+  legacy_cfg$territorial$pulso_code_var <- "codigo_pulso"
+  legacy_cfg$territorial$variable_refs$enumerator_pulso_code <- NULL
+  legacy_cfg <- monitoreo_normalize_config(legacy_cfg, data)
+  legacy_report <- monitoreo_territorial_reportes(data, legacy_cfg, list(phase = "field"))
+
+  expect_equal(legacy_cfg$territorial$pulso_code_var, "closing_group.code_pulso")
+  expect_equal(legacy_report$enumerator_code_summary$field_resolved, "closing_group.code_pulso")
+  expect_equal(legacy_report$enumerator_code_summary$recognized_code_count, 2L)
+  expect_equal(legacy_report$enumerator_code_summary$unrecognized_code_count, 1L)
 })
 
 test_that("monitoreo territorial separa avance operativo de observaciones GPS y tiempo", {
@@ -1513,20 +3667,34 @@ test_that("monitoreo territorial cambia KPIs al alternar piloto y campo", {
 test_that("monitoreo territorial expone payload operativo de Hojas de Ruta", {
   data <- data.frame(
     `Core/M5_district` = c("ate", "ate", "chorrillos"),
+    `Core/M8_ump` = c("1", "1", "2"),
     `_geolocation` = c("", "", ""),
     consent = c("1", "1", "1"),
     `Core/E1_age` = c(25, 32, 40),
+    sexo = c("Hombre", "Mujer", "Hombre"),
     `_status` = rep("submitted_via_web", 3),
     `_uuid` = c("a", "b", "c"),
     `_submitted_by` = c("enc1", "enc2", "enc1"),
     check.names = FALSE
   )
   cfg <- monitoreo_normalize_config(list(monitoreo_profile = list(family = "territorial", status = "active")), data)
+  cfg$territorial$sex_var <- "sexo"
+  cfg$territorial$phase_mappings$pilot$sex_var <- "sexo"
   context <- list(
     phase = "pilot",
+    config = list(
+      age_range_mode = "manual",
+      entrevistas_por_manzana = 5,
+      age_ranges = list(
+        list(id = "18_29", label = "18-29", min = 18L, max = 29L),
+        list(id = "30_44", label = "30-44", min = 30L, max = 44L),
+        list(id = "45_59", label = "45-59", min = 45L, max = 59L),
+        list(id = "60_plus", label = "60+", min = 60L, max = NA_integer_)
+      )
+    ),
     blocks = list(
-      list(id_manzana = "150103042001", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "001", entrevistas = 5, viviendas = 80, poblacion = 250, territorio_muestral = "150103-04200", hoja_num = 1, rango_inicio = 1, rango_fin = 5),
-      list(id_manzana = "150108012001", ubigeo = "150108", distrito = "CHORRILLOS", zona = "01200", manzana = "001", entrevistas = 5, viviendas = 40, poblacion = 120, territorio_muestral = "150108-01200", hoja_num = 2, rango_inicio = 6, rango_fin = 10)
+      list(id_manzana = "150103042001", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "001", entrevistas = 5, viviendas = 80, poblacion = 250, territorio_muestral = "150103-04200", hoja_num = 1, rango_inicio = 1, rango_fin = 5, pob_18_24_h = 90, pob_18_24_m = 70, pob_25_34_h = 12, pob_25_34_m = 8, pob_35_44_h = 8, pob_35_44_m = 6, pob_45_54_h = 4, pob_45_54_m = 2, pob_55_64_h = 1, pob_55_64_m = 1, pob_65_plus_h = 1, pob_65_plus_m = 1),
+      list(id_manzana = "150108012001", ubigeo = "150108", distrito = "CHORRILLOS", zona = "01200", manzana = "001", entrevistas = 5, viviendas = 40, poblacion = 120, territorio_muestral = "150108-01200", hoja_num = 2, rango_inicio = 6, rango_fin = 10, pob_18_24_h = 12, pob_18_24_m = 8, pob_25_34_h = 25, pob_25_34_m = 20, pob_35_44_h = 15, pob_35_44_m = 12, pob_45_54_h = 8, pob_45_54_m = 6, pob_55_64_h = 4, pob_55_64_m = 4, pob_65_plus_h = 3, pob_65_plus_m = 3)
     ),
     replacement_blocks = list(
       list(id_manzana = "150103042002", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "002", entrevistas = 5, tipo_manzana = "reemplazo", titular_id_manzana = "150103042001", replacement_order = 1)
@@ -1556,4 +3724,26 @@ test_that("monitoreo territorial expone payload operativo de Hojas de Ruta", {
   expect_true(all(c("id_manzana", "cuota") %in% names(quota_cells)))
   expect_equal(sum(as.integer(quota_cells$cuota[quota_cells$id_manzana == "150103042001"]), na.rm = TRUE), 5L)
   expect_equal(sum(as.integer(quota_cells$cuota[quota_cells$id_manzana == "150103042002"]), na.rm = TRUE), 5L)
+
+  validation_report <- monitoreo_territorial_reportes(data, cfg, context, report_scope = "validation_summary")
+  expect_true(validation_report$route_quota_progress$configured)
+  expect_gt(length(validation_report$route_quota_progress$blocks), 0L)
+  expect_equal(validation_report$route_quota$total_rows, 0L)
+  expect_equal(length(validation_report$route_quota$cells), 0L)
+  expect_true(any(vapply(validation_report$route_quota_progress$blocks, function(block) length(block$sex %||% list()) > 0L, logical(1))))
+  expect_true(any(vapply(validation_report$route_quota_progress$blocks, function(block) length(block$age %||% list()) > 0L, logical(1))))
+  quota_blocks <- validation_report$route_quota_progress$blocks
+  ate_quota <- quota_blocks[[which(vapply(quota_blocks, function(block) identical(block$id_manzana, "150103042001"), logical(1)))[[1]]]]
+  sex_achieved <- stats::setNames(
+    vapply(ate_quota$sex, function(row) as.integer(row$achieved %||% 0L), integer(1)),
+    vapply(ate_quota$sex, function(row) as.character(row$label %||% ""), character(1))
+  )
+  age_achieved <- stats::setNames(
+    vapply(ate_quota$age, function(row) as.integer(row$achieved %||% 0L), integer(1)),
+    vapply(ate_quota$age, function(row) as.character(row$label %||% ""), character(1))
+  )
+  expect_equal(ate_quota$validas, 2L)
+  expect_equal(sex_achieved[["Hombre"]], 1L)
+  expect_equal(sex_achieved[["Mujer"]], 1L)
+  expect_equal(age_achieved[["18-29"]], 1L)
 })

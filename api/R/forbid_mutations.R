@@ -3,7 +3,7 @@
 # Cuando `PULSO_PUBLIC_MODE=1` (lo activa `launch_server.R` antes de
 # construir el plumber app), se inserta un filtro que actúa como una
 # whitelist: solo deja pasar los endpoints estrictamente necesarios
-# para que el dashboard read-only funcione end-to-end.
+# para que los artefactos publicos read-only funcionen end-to-end.
 #
 # Cualquier otro path (uploads, edición, codificación, exports masivos,
 # shutdown, etc.) responde 403 con `E_FORBIDDEN_PUBLIC`.
@@ -24,6 +24,8 @@ PUBLIC_MODE_WHITELIST <- c(
   "GET /api/system/health",
   "GET /api/system/bootstrap",
   "GET /api/session/state",
+  # Descriptor de artefacto publico
+  "GET /api/public/artifact",
   # Dashboard read-only
   "GET /api/dashboard/manifest",
   "GET /api/dashboard/source",
@@ -47,7 +49,10 @@ PUBLIC_MODE_WHITELIST <- c(
   "POST /api/dashboard/dimensiones/payload",
   "POST /api/dashboard/dimensiones/categorias-var",
   "POST /api/dashboard/dimensiones/foda",
-  "POST /api/dashboard/dimensiones/matriz_unidades"
+  "POST /api/dashboard/dimensiones/matriz_unidades",
+  # Monitoreo publico agregado. No expone sync, Sheets/Kobo, export,
+  # PDF, respuestas individuales, GPS puntual ni consultas internas.
+  "GET /api/monitoreo/public-report"
 )
 
 # Devuelve TRUE si la combinación METHOD + PATH está autorizada en modo
