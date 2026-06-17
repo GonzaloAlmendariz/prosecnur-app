@@ -179,28 +179,30 @@ audit-reference-smoke:
 	  node desktop/smoke-electron.mjs
 
 build:
-	cd frontend && pnpm build
+	@started=$$(date +%s); \
+	  cd frontend && pnpm build; \
+	  cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
+	  elapsed=$$(( $$(date +%s) - started )); \
+	  echo "✓ Frontend compilado en $${elapsed}s."
 
 build-if-stale:
-	@BUILD_INDEX="$(REPO_ROOT)/api/inst/www/index.html"; \
-	  FRONTEND_DIR="$(REPO_ROOT)/frontend"; \
-	  needs_build=0; \
-	  if [ ! -f "$$BUILD_INDEX" ]; then \
-	    needs_build=1; \
-	  elif find "$$FRONTEND_DIR/src" \
-	      "$$FRONTEND_DIR/index.html" \
-	      "$$FRONTEND_DIR/package.json" \
-	      "$$FRONTEND_DIR/pnpm-lock.yaml" \
-	      "$$FRONTEND_DIR/vite.config.ts" \
-	      "$$FRONTEND_DIR"/tsconfig*.json \
-	      -type f -newer "$$BUILD_INDEX" 2>/dev/null | grep -q .; then \
-	    needs_build=1; \
-	  fi; \
-	  if [ "$$needs_build" = "1" ]; then \
-	    echo "→ Frontend faltante o desactualizado; compilando..."; \
+	@started=$$(date +%s); \
+	  status=0; \
+	  node scripts/frontend-build-status.mjs --check || status=$$?; \
+	  check_elapsed=$$(( $$(date +%s) - started )); \
+	  if [ "$$status" = "0" ]; then \
+	    echo "✓ Check frontend completado en $${check_elapsed}s."; \
+	  elif [ "$$status" = "1" ]; then \
+	    echo "→ Compilando frontend de producción..."; \
+	    build_started=$$(date +%s); \
 	    cd frontend && pnpm build; \
+	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
+	    build_elapsed=$$(( $$(date +%s) - build_started )); \
+	    total_elapsed=$$(( $$(date +%s) - started )); \
+	    echo "✓ Frontend compilado en $${build_elapsed}s (total $${total_elapsed}s)."; \
 	  else \
-	    echo "✓ Frontend vigente; saltando build."; \
+	    echo "✗ No se pudo evaluar el estado del frontend (codigo $$status)." >&2; \
+	    exit "$$status"; \
 	  fi
 
 desktop: build

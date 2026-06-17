@@ -10,9 +10,11 @@
 #
 # Efecto equivalente a Prosecnur.app en modo DEV:
 #   - cd al directorio del repo.
-#   - make desktop-fast → pnpm build solo si el frontend falta o está viejo
+#   - make desktop-fast → pnpm build solo si el fingerprint del frontend cambió
 #     + pnpm --dir desktop start (que arranca Electron; Electron a su vez
 #     spawea Rscript launch.R).
+#   - Si PROSECNUR_DEV_RENDERER=vite, usa make dev-electron-vite y evita el
+#     build de producción; ideal para iterar en UI durante desarrollo.
 #
 # Diferencia con el .app:
 #   - Abre una ventana de Terminal visible que muestra la salida.
@@ -22,6 +24,15 @@
 
 set -euo pipefail
 cd "$(dirname "$0")"
+
+LAUNCH_STARTED_AT=$SECONDS
+
+elapsed_since() {
+  local started_at="$1"
+  echo "$((SECONDS - started_at))s"
+}
+
+section_started_at=$SECONDS
 
 # Si falta algún setup inicial, avisar y ofrecer correrlo.
 if ! command -v Rscript >/dev/null 2>&1; then
@@ -36,23 +47,30 @@ if ! command -v pnpm >/dev/null 2>&1; then
   read -r
   exit 1
 fi
+echo "✓ Toolchain verificado ($(elapsed_since "$section_started_at"))"
 
 # Primera vez: dependencias.
 if [ ! -d "frontend/node_modules" ]; then
+  section_started_at=$SECONDS
   echo "→ pnpm install en frontend/ (primera vez)..."
   pnpm --dir frontend install
+  echo "✓ Dependencias frontend listas ($(elapsed_since "$section_started_at"))"
 fi
 if [ ! -d "desktop/node_modules/electron" ]; then
+  section_started_at=$SECONDS
   echo "→ pnpm install en desktop/ (primera vez)..."
   pnpm --dir desktop install
+  echo "✓ Dependencias desktop listas ($(elapsed_since "$section_started_at"))"
 fi
 
 # Paquetes R: sentinel en Application Support para no repetir.
 R_SENTINEL="$HOME/Library/Application Support/Prosecnur/r-deps-installed"
 if [ ! -f "$R_SENTINEL" ]; then
+  section_started_at=$SECONDS
   echo "→ Instalando paquetes R (primera vez, puede tomar varios minutos)..."
   mkdir -p "$(dirname "$R_SENTINEL")"
   Rscript launcher/install-r-deps.R && touch "$R_SENTINEL"
+  echo "✓ Paquetes R listos ($(elapsed_since "$section_started_at"))"
 fi
 
 # Quarto CLI: opcional pero crítico para Fase 4 → Enumeradores PDF.
@@ -91,7 +109,25 @@ if ! command -v quarto >/dev/null 2>&1 && [ ! -f "$QUARTO_SENTINEL" ]; then
   echo ""
 fi
 
-# Levantar la app via make desktop-fast. exec reemplaza el proceso bash
-# con make para que Ctrl+C en Terminal mate todo limpio.
-echo "→ Lanzando Prosecnur..."
-exec make desktop-fast
+case "${PROSECNUR_DEV_RENDERER:-static}" in
+  static|bundle|"")
+    MAKE_TARGET="desktop-fast"
+    echo "→ Lanzando Prosecnur con bundle estático (check/build incremental)."
+    ;;
+  vite|VITE)
+    MAKE_TARGET="dev-electron-vite"
+    echo "→ Lanzando Prosecnur con Vite dev server (sin build de producción)."
+    ;;
+  *)
+    echo "❌ PROSECNUR_DEV_RENDERER debe ser 'vite' o quedar vacío/static."
+    echo "Presiona Enter para cerrar..."
+    read -r
+    exit 1
+    ;;
+esac
+
+echo "→ Setup launcher completado en $(elapsed_since "$LAUNCH_STARTED_AT"). Entrando a make ${MAKE_TARGET}..."
+
+# Levantar la app via make. exec reemplaza el proceso bash con make para que
+# Ctrl+C en Terminal mate todo limpio.
+exec make "$MAKE_TARGET"
