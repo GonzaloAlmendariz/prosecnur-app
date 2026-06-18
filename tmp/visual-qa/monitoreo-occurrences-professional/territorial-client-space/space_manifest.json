@@ -1,0 +1,50 @@
+{
+  "schema": "monitoreo_space_manifest_v1",
+  "variant": "territorial_client",
+  "family": "territorial_fieldwork",
+  "audience": "client",
+  "source": "publication_model",
+  "generated_at": "2026-06-18T20:12:25Z",
+  "publication_sections": {
+    "portada": {
+      "id": "portada",
+      "title": "Portada",
+      "n_rows": 13
+    },
+    "resumen_avance": {
+      "id": "resumen_avance",
+      "title": "Resumen de avance",
+      "n_rows": 9
+    },
+    "avance_por_distrito": {
+      "id": "avance_por_distrito",
+      "title": "Avance por distrito",
+      "n_rows": 3
+    },
+    "avance_por_ump": {
+      "id": "avance_por_ump",
+      "title": "Avance por UMP",
+      "n_rows": 6
+    },
+    "avance_diario": {
+      "id": "avance_diario",
+      "title": "Avance diario",
+      "n_rows": 7
+    },
+    "avance_por_responsable": {
+      "id": "avance_por_responsable",
+      "title": "Avance por responsable",
+      "n_rows": 3
+    },
+    "cuotas_resumen": {
+      "id": "cuotas_resumen",
+      "title": "Cuotas resumen",
+      "n_rows": 3
+    },
+    "fuentes_actualizacion": {
+      "id": "fuentes_actualizacion",
+      "title": "Fuentes y actualización",
+      "n_rows": 2
+    }
+  }
+}

@@ -374,6 +374,14 @@ kobo_api_fetch_all_asset_data <- function(asset_uid,
   if (is.finite(min_id)) {
     query <- list(`_id` = list(`$gt` = min_id))
   }
+  if (!is.null(progress)) {
+    msg <- if (is.finite(min_id)) {
+      "Kobo: consultando respuestas nuevas"
+    } else {
+      "Kobo: consultando respuestas"
+    }
+    progress(0L, NA_integer_, msg)
+  }
 
   repeat {
     payload <- if (is.null(next_url)) {
@@ -386,7 +394,7 @@ kobo_api_fetch_all_asset_data <- function(asset_uid,
     total <- suppressWarnings(as.integer(payload$count %||% total))
     if (!is.null(progress)) {
       progress(length(out), if (is.finite(total)) total else NA_integer_,
-               sprintf("Kobo: %d registros", length(out)))
+               sprintf("Kobo: pagina %d, %d registros recibidos", page, length(out)))
     }
     next_url <- payload[["next"]] %||% NULL
     if (is.null(next_url) || !nzchar(as.character(next_url))) break

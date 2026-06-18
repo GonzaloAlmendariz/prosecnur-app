@@ -604,6 +604,63 @@ test_that("monitoreo territorial diagnostica fuente aplicada pendiente de sincro
   expect_equal(coherence$phases$pilot$local_rows, 2L)
 })
 
+test_that("monitoreo territorial no marca stale cuando ventana de fase excluye filas locales", {
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial"),
+    territorial = list(
+      active_route_phase = "field",
+      submission_time_var = "_submission_time",
+      phase_windows = list(
+        field = list(start_at = "2026-06-18T08:00:00Z")
+      ),
+      phase_sources = list(
+        field = list(source_id = "src_field", asset_uid = "asset_field", kobo_asset_name = "Campo VF")
+      )
+    )
+  ))
+  sources <- monitoreo_normalize_sources(list(
+    list(
+      id = "src_field",
+      kind = "kobo",
+      label = "Campo VF",
+      enabled = TRUE,
+      role = "respuestas",
+      asset_uid = "asset_field",
+      dimensions = list(territorial_phase = "field"),
+      last_sync_at = "2026-06-18T09:00:00Z"
+    )
+  ))
+  data <- data.frame(
+    .source_id = c("src_field", "src_field", "src_field"),
+    `_submission_time` = c(
+      "2026-06-18T07:59:00Z",
+      "2026-06-18T08:01:00Z",
+      "2026-06-18T08:02:00Z"
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  dashboard <- list(
+    territorial_reports = list(
+      active_route_phase = "field",
+      source_validity = list(total_responses = 2L),
+      source_coherence = list(asset_uid = "asset_field")
+    )
+  )
+
+  coherence <- .monitoreo_territorial_phase_coherence(
+    data = data,
+    cfg = cfg,
+    sources = sources,
+    dashboard = dashboard
+  )
+
+  expect_equal(coherence$phases$field$local_rows, 3L)
+  expect_equal(coherence$phases$field$report_rows, 2L)
+  expect_true(isTRUE(coherence$phases$field$dashboard_matches_source))
+  expect_equal(coherence$phases$field$status, "source_synced_with_rows")
+})
+
 test_that("monitoreo territorial invalida snapshot de una fase sin borrar la otra", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
@@ -2137,6 +2194,30 @@ test_that("consultas internas de acreditacion trazan faltantes, parciales, recha
   expect_true(length(internal$flow$links) > 0L)
 })
 
+test_that("Google Sheets reset limpia filtros y reglas previas de pestanas controladas", {
+  requests <- .monitoreo_sheets_reset_tab_requests(
+    42L,
+    list(
+      row_count = 20L,
+      column_count = 8L,
+      has_basic_filter = TRUE,
+      conditional_format_count = 3L
+    ),
+    list(c("Indicador", "Valor"), c("Total", "2"))
+  )
+
+  expect_true(any(vapply(requests, function(request) !is.null(request$clearBasicFilter), logical(1))))
+  expect_true(any(vapply(requests, function(request) !is.null(request$unmergeCells), logical(1))))
+  deleted_indices <- unlist(lapply(requests, function(request) {
+    request$deleteConditionalFormatRule$index %||% NULL
+  }), use.names = FALSE)
+  expect_equal(deleted_indices, c(2L, 1L, 0L))
+  expect_true(any(vapply(requests, function(request) !is.null(request$updateCells), logical(1))))
+  resize <- Filter(function(request) !is.null(request$updateSheetProperties), requests)[[1]]
+  expect_equal(resize$updateSheetProperties$properties$gridProperties$rowCount, 2L)
+  expect_equal(resize$updateSheetProperties$properties$gridProperties$columnCount, 2L)
+})
+
 test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   expect_error(
     monitoreo_sheets_publish_tabs("sheet_abc", list(Barrido = list(c("A", "B")))),
@@ -2155,7 +2236,7 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
 
   calls <- list()
   sheet_id <- 10L
-  sheets <- list(list(properties = list(sheetId = 1L, title = "Barrido")))
+  sheets <- list(list(properties = list(sheetId = 1L, title = "Barrido", gridProperties = list(rowCount = 1000L, columnCount = 26L))))
   set_google_api(function(url, method = "GET", body = NULL) {
     calls[[length(calls) + 1L]] <<- list(url = url, method = method, body = body)
     if (grepl("[?]fields=", url)) {
@@ -2165,7 +2246,11 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
       for (request in body$requests %||% list()) {
         title <- request$addSheet$properties$title %||% ""
         if (nzchar(title)) {
-          sheets[[length(sheets) + 1L]] <<- list(properties = list(sheetId = sheet_id, title = title))
+          sheets[[length(sheets) + 1L]] <<- list(properties = list(
+            sheetId = sheet_id,
+            title = title,
+            gridProperties = list(rowCount = 1000L, columnCount = 26L)
+          ))
           sheet_id <<- sheet_id + 1L
         }
       }
@@ -2199,6 +2284,32 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   }), use.names = FALSE)
   expect_equal(sort(add_titles), sort(names(payload)))
   expect_equal(metadata_keys, rep("prosecnur.owner", 4L))
+  reset_requests <- batch_calls[[3]]$body$requests
+  expect_true(any(vapply(reset_requests, function(request) !is.null(request$unmergeCells), logical(1))))
+  expect_true(any(vapply(reset_requests, function(request) !is.null(request$updateCells), logical(1))))
+  expect_true(any(vapply(reset_requests, function(request) {
+    !is.null(request$updateSheetProperties$properties$gridProperties$rowCount)
+  }, logical(1))))
+  format_requests <- batch_calls[[4]]$body$requests
+  frozen <- unlist(lapply(format_requests, function(request) {
+    request$updateSheetProperties$properties$gridProperties$frozenRowCount %||% NULL
+  }), use.names = FALSE)
+  expect_true(length(frozen) >= 4L)
+  expect_true(all(frozen == 1L))
+  expect_true(any(vapply(format_requests, function(request) !is.null(request$setBasicFilter), logical(1))))
+
+  first_batch_count <- length(batch_calls)
+  out2 <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
+  expect_true(out2$ok)
+  batch_calls2 <- calls[vapply(calls, function(call) grepl(":batchUpdate$", call$url), logical(1))]
+  second_batch_calls <- batch_calls2[seq.int(first_batch_count + 1L, length(batch_calls2))]
+  second_add_titles <- unlist(lapply(second_batch_calls, function(batch) {
+    lapply(batch$body$requests %||% list(), function(request) request$addSheet$properties$title %||% NULL)
+  }), use.names = FALSE)
+  expect_length(second_add_titles, 0L)
+  expect_true(any(vapply(unlist(lapply(second_batch_calls, function(batch) batch$body$requests %||% list()), recursive = FALSE), function(request) {
+    !is.null(request$updateCells)
+  }, logical(1))))
 })
 
 test_that("Google Sheets con encabezado vacio produce data frame vacio", {
@@ -2284,6 +2395,69 @@ test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   expect_equal(length(report$map$points), 4L)
   expect_equal(report$map$points[[1]]$lat, -12.1)
   expect_equal(report$map$points[[1]]$geo_estado, "geo_ok")
+})
+
+test_that("monitoreo territorial recupera sexo y edad desde rutas alternativas", {
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm"),
+    `Core/M8_ump` = c("1", "1"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0"),
+    consent = c("1", "1"),
+    `Core/E1_age` = c("", NA),
+    `identificacion_consolidado/edad` = c("35 años", "42"),
+    `Core/E2_sex` = c("", NA),
+    `identificacion_consolidado/sexo` = c("Hombre", "Mujer"),
+    `_status` = rep("submitted_via_web", 2),
+    `_uuid` = c("sex-age-a", "sex-age-b"),
+    `_submitted_by` = c("enc1", "enc1"),
+    start = c("2026-06-01T10:00:00Z", "2026-06-01T10:20:00Z"),
+    end = c("2026-06-01T10:10:00Z", "2026-06-01T10:30:00Z"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      district_var = "Core/M5_district",
+      ump_var = "Core/M8_ump",
+      age_var = "Core/E1_age",
+      sex_var = "Core/E2_sex"
+    )
+  ), data)
+  context <- list(
+    phase = "pilot",
+    blocks = list(list(
+      id_manzana = "150133001001",
+      ubigeo = "150133",
+      distrito = "SAN JUAN DE MIRAFLORES",
+      zona = "001",
+      manzana = "001",
+      hoja_num = 1,
+      entrevistas = 2
+    )),
+    geo_results = data.frame(
+      lat = c(-12.1, -12.1),
+      lon = c(-77, -77),
+      gps_parseable = c(TRUE, TRUE),
+      geo_estado = c("geo_ok", "geo_ok"),
+      distance_m = c(0, 0),
+      nearest_block_id = rep("150133001001", 2),
+      nearest_block_type = rep("titular", 2),
+      geometry_match = rep("inside_selected_block", 2),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  report <- monitoreo_territorial_reportes(data, cfg, context)
+  audit <- .monitoreo_workbook_df(report$response_audit)
+  expect_equal(suppressWarnings(as.numeric(audit$age)), c(35, 42))
+  expect_equal(audit$sex, c("Hombre", "Mujer"))
+
+  report$config <- cfg
+  master <- .monitoreo_publication_territorial_master_df(data, report)
+  master_by_uuid <- master[match(c("sex-age-a", "sex-age-b"), master$UUID), , drop = FALSE]
+  expect_equal(master_by_uuid$Edad, c(35, 42))
+  expect_equal(master_by_uuid$Sexo, c("Hombre", "Mujer"))
 })
 
 test_that("monitoreo territorial cuenta avance UMP por declaracion y no por GPS", {
@@ -2444,6 +2618,47 @@ test_that("monitoreo territorial reconcilia UMP por respuesta y por valor litera
   expect_equal(resolved$advance_block_reconciliation_scope[[1]], "ump_value")
   expect_equal(resolved$advance_block_reconciliation_scope[[3]], "response")
   expect_equal(resolved$advance_block_id, rep("150117030000290", 4))
+})
+
+test_that("monitoreo territorial expone responsable en resumen de reconciliacion UMP", {
+  data <- data.frame(
+    ump = c("70", "999"),
+    codigo_pulso = c("P001", "P002"),
+    `_uuid` = c("r-route", "r-code"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  route_blocks <- data.frame(
+    id_manzana = "150117030000290",
+    ubigeo = "150117",
+    distrito = "LOS OLIVOS",
+    zona = "03000",
+    manzana = "0290",
+    tipo_manzana = "titular",
+    hoja_num = 70L,
+    orden_seleccion = 70L,
+    responsable = "Ana Ruta",
+    stringsAsFactors = FALSE
+  )
+  summary <- .monitoreo_territorial_declared_ump_summary(
+    data,
+    list(
+      ump_var = "ump",
+      active_route_phase = "field",
+      variable_refs = list(),
+      ump_reconciliation = list()
+    ),
+    route_blocks = route_blocks,
+    enumerator_assigned = c("Ana Kobo", "Bruno Kobo"),
+    phase = "field"
+  )
+  rows <- stats::setNames(summary$rows, vapply(summary$rows, function(row) as.character(row$raw_ump %||% ""), character(1)))
+
+  expect_equal(rows[["70"]]$responsible, "Ana Ruta")
+  expect_equal(rows[["70"]]$responsible_source, "route")
+  expect_equal(rows[["70"]]$assigned_responsible, "Ana Ruta")
+  expect_equal(rows[["999"]]$responsible, "Bruno Kobo")
+  expect_equal(rows[["999"]]$responsible_source, "codigo_pulso")
 })
 
 test_that("monitoreo territorial prioriza timestamp Kobo sobre inicio de entrevista", {
@@ -2889,7 +3104,7 @@ test_that("monitoreo territorial clasifica cuotas por actividad de campo", {
   expect_identical(statuses[["1"]], "in_field")
   expect_identical(statuses[["2"]], "pending")
   expect_identical(statuses[["3"]], "missing")
-  expect_identical(statuses[["4"]], "exceeded")
+  expect_identical(statuses[["4"]], "complete")
   expect_equal(payload$summary$sex_missing_total, 4L)
   expect_equal(payload$summary$age_missing_total, 0L)
   expect_equal(payload$summary$demographic_missing_total, 4L)
@@ -3049,6 +3264,30 @@ test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
   expect_equal(by_district[["ATE"]]$ump_reportadas, 1L)
   expect_equal(by_district[["ATE"]]$ump_sin_reporte, 1L)
   expect_equal(by_district[["ATE"]]$efectivas, 4L)
+
+  published <- .monitoreo_publication_occurrences_df(list(field_occurrences = report), "internal")
+  published_text <- paste(unlist(published, use.names = FALSE), collapse = "\n")
+  expect_true(any(published$Bloque == "Resumen de ocurrencias", na.rm = TRUE))
+  expect_true(any(published$Bloque == "Estado por UMP", na.rm = TRUE))
+  expect_true(any(published$Bloque == "Ranking por categoría", na.rm = TRUE))
+  expect_true(any(published$Bloque == "Qué se reporta cada día", na.rm = TRUE))
+  expect_true(any(published$Bloque == "Reportes por distrito y día", na.rm = TRUE))
+  expect_true(any(published$Bloque == "Resumen por distrito", na.rm = TRUE))
+  expect_true(grepl("No quería participar", published_text, fixed = TRUE))
+  expect_true(grepl("Reportada no efectiva", published_text, fixed = TRUE))
+  expect_true(grepl("SAN JUAN DE MIRAFLORES", published_text, fixed = TRUE))
+  summary_rows <- published[published$Bloque == "Resumen de ocurrencias", , drop = FALSE]
+  report_row <- summary_rows[summary_rows$Indicador == "Reportes", , drop = FALSE]
+  expect_equal(suppressWarnings(as.numeric(report_row$Valor[[1]])), 3)
+
+  section_model <- list(ocurrencias_campo = .monitoreo_publication_section("ocurrencias_campo", "Ocurrencias de campo", published))
+  sheet_rows <- .monitoreo_publication_territorial_internal_sheet_rows(section_model, "ocurrencias_campo")
+  sheet_text <- paste(unlist(sheet_rows, use.names = FALSE), collapse = "\n")
+  expect_true(grepl("ESTADO POR UMP", sheet_text, fixed = TRUE))
+  expect_true(grepl("RITMO DIARIO DE OCURRENCIAS", sheet_text, fixed = TRUE))
+  expect_true(grepl("RANKING POR CATEGORÍA", sheet_text, fixed = TRUE))
+  expect_true(grepl("QUÉ SE REPORTA CADA DÍA", sheet_text, fixed = TRUE))
+  expect_true(grepl("REPORTES POR DISTRITO Y DÍA", sheet_text, fixed = TRUE))
 })
 
 test_that("monitoreo ocurrencias advierte UMP no esperada sin inferir distrito", {
@@ -3227,6 +3466,180 @@ test_that("monitoreo territorial cruza codigo Pulso de respuestas con encuestado
   expect_equal(report$response_audit[[1]]$pulso_code, "P001")
   expect_equal(report$response_audit[[1]]$enumerator_assigned, "Ana Campo")
   expect_true(isTRUE(report$response_audit[[1]]$source_effective))
+})
+
+test_that("monitoreo territorial usa hoja de ruta operativa como diagnostico sin contarla como respuesta", {
+  responses <- data.frame(
+    `Core/M5_district` = "ate",
+    `Core/M8_ump` = "2",
+    codigo_pulso = "P002",
+    `_geolocation` = "",
+    consent = "1",
+    `Core/E1_age` = 30,
+    `_status` = "submitted_via_web",
+    `_uuid` = "r-bob",
+    `_submitted_by` = "bob",
+    .source_id = "kobo-field",
+    .source_kind = "kobo",
+    .source_label = "Kobo campo",
+    .source_role = "respuestas",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  route_sheet <- data.frame(
+    Ruta = c("R1", "R2"),
+    Distrito = c("ATE", "ATE"),
+    Zona = c("04200", "04200"),
+    Manzana = c("001", "002"),
+    `Codigo manzana` = c("150103042001", "150103042002"),
+    Tipo = c("Titular", "Titular"),
+    `Reemplaza a` = c("", ""),
+    `Rango encuestas` = c("1-8", "9-16"),
+    Encuestas = c(8, 8),
+    UMP = c("1", "2"),
+    Encuestador = c("Ana", "Bob"),
+    `Fecha de Salida ` = c("", ""),
+    `Fecha de entrega  ` = c("", ""),
+    Estado = c("Pendiente", "Pendiente"),
+    `Encuesta 1` = c("", ""),
+    .source_id = "sheet-route",
+    .source_kind = "google_sheets",
+    .source_label = "Hoja de ruta operativa",
+    .source_role = "hoja_ruta",
+    dim_territorial_phase = "field",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  data <- .monitoreo_bind_rows(list(responses, route_sheet))
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      active_route_phase = "field",
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana"),
+          list(codigo_pulso = "P002", nombre = "Bob")
+        )
+      )
+    )
+  ), responses)
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(id_manzana = "150103042001", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "001", entrevistas = 8, hoja_num = 1),
+      list(id_manzana = "150103042002", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "002", entrevistas = 8, hoja_num = 2)
+    )
+  )
+
+  report <- monitoreo_territorial_reportes(data, cfg, context)
+
+  expect_equal(report$kpis$total_respuestas, 1L)
+  expect_true(report$route_sheet$connected)
+  expect_true(report$route_sheet$headers_ok)
+  expect_equal(report$route_sheet$metrics$assignments, 2L)
+  expect_equal(report$route_sheet$metrics$assigned_without_response, 1L)
+  progress <- .monitoreo_territorial_rows_df(report$route_sheet$assignment_progress)
+  expect_equal(progress$no_response[progress$encuestador == "Ana"], 1L)
+  expect_equal(progress$started[progress$encuestador == "Bob"], 1L)
+  expect_equal(length(report$internal_queries$route_sheet_assigned_no_response), 1L)
+})
+
+test_that("monitoreo territorial sugiere reconciliar UMP y Codigo Pulso desde hoja de ruta", {
+  responses <- data.frame(
+    `Core/M5_district` = c("ate", "ate"),
+    `Core/M8_ump` = c("99", "2"),
+    codigo_pulso = c("P001", "P001"),
+    `_geolocation` = c("", ""),
+    consent = c("1", "1"),
+    `Core/E1_age` = c(30, 31),
+    `_status` = c("submitted_via_web", "submitted_via_web"),
+    `_uuid` = c("r-wrong-ump", "r-wrong-code"),
+    `_submitted_by` = c("ana", "ana"),
+    .source_id = "kobo-field",
+    .source_kind = "kobo",
+    .source_label = "Kobo campo",
+    .source_role = "respuestas",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  route_sheet <- data.frame(
+    Ruta = c("R1", "R2"),
+    Distrito = c("ATE", "ATE"),
+    Zona = c("04200", "04200"),
+    Manzana = c("001", "002"),
+    `Codigo manzana` = c("150103042001", "150103042002"),
+    Tipo = c("Titular", "Titular"),
+    `Reemplaza a` = c("", ""),
+    `Rango encuestas` = c("1-8", "9-16"),
+    Encuestas = c(8, 8),
+    UMP = c("1", "2"),
+    Encuestador = c("Ana", "Bob"),
+    `Fecha de Salida ` = c("", ""),
+    `Fecha de entrega  ` = c("", ""),
+    Estado = c("Pendiente", "Pendiente"),
+    .source_id = "sheet-route",
+    .source_kind = "google_sheets",
+    .source_label = "Hoja de ruta operativa",
+    .source_role = "hoja_ruta",
+    dim_territorial_phase = "field",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  data <- .monitoreo_bind_rows(list(responses, route_sheet))
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      active_route_phase = "field",
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana"),
+          list(codigo_pulso = "P002", nombre = "Bob")
+        )
+      )
+    )
+  ), responses)
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(id_manzana = "150103042001", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "001", entrevistas = 8, hoja_num = 1),
+      list(id_manzana = "150103042002", ubigeo = "150103", distrito = "ATE", zona = "04200", manzana = "002", entrevistas = 8, hoja_num = 2)
+    )
+  )
+
+  report <- monitoreo_territorial_reportes(data, cfg, context)
+  wrong_ump <- report$route_sheet$diagnostics$wrong_ump_candidates
+  wrong_code <- report$route_sheet$diagnostics$wrong_code_candidates
+  batch <- report$route_sheet$recommendations$batch
+
+  expect_true(any(vapply(wrong_ump, function(item) identical(item$response_id, "r-wrong-ump") && identical(item$assigned_block_id, "150103042001"), logical(1))))
+  expect_true(any(vapply(wrong_code, function(item) identical(item$response_id, "r-wrong-code") && identical(item$expected_code, "P002"), logical(1))))
+  expect_true(any(vapply(batch, function(item) identical(item$kind, "ump") && identical(item$reconciliation$response_id, "r-wrong-ump"), logical(1))))
+  expect_true(any(vapply(batch, function(item) identical(item$kind, "code") && identical(item$reconciliation$response_id, "r-wrong-code"), logical(1))))
+})
+
+test_that("monitoreo territorial conserva hoja_ruta al filtrar por fase", {
+  data <- data.frame(
+    .source_id = c("kobo-field", "sheet-route", "sheet-pilot"),
+    .source_role = c("respuestas", "hoja_ruta", "hoja_ruta"),
+    dim_territorial_phase = c("field", "field", "pilot"),
+    value = c("respuesta", "hoja campo", "hoja piloto"),
+    stringsAsFactors = FALSE
+  )
+  cfg <- list(
+    monitoreo_profile = list(family = "territorial"),
+    territorial = list(
+      active_route_phase = "field",
+      phase_sources = list(field = list(source_id = "kobo-field"))
+    )
+  )
+
+  filtered <- .monitoreo_territorial_filter_data_for_phase(data, cfg, phase = "field")
+
+  expect_equal(filtered$.source_id, c("kobo-field", "sheet-route"))
 })
 
 test_that("monitoreo territorial guarda reconciliacion Pulso y UMP por fase", {
@@ -3629,6 +4042,22 @@ test_that("monitoreo territorial separa avance operativo de observaciones GPS y 
   expect_true(all(vapply(report$response_audit, `[[`, character(1), "observation_status") == "en_observacion"))
   audit <- .monitoreo_territorial_rows_df(report$response_audit)
   expect_equal(audit$duration_status[audit$response_id == "tiempo-corto"], "corta")
+  expect_equal(audit$duration_operational_status[audit$response_id == "tiempo-corto"], "corto")
+  expect_equal(audit$duration_operational_label[audit$response_id == "tiempo-corto"], "Corto")
+  duration_review <- .monitoreo_territorial_rows_df(report$internal_queries$duration_review)
+  expect_equal(duration_review$response_id, "tiempo-corto")
+})
+
+test_that("monitoreo territorial normaliza tiempo visible a tres estados operativos", {
+  raw <- c("muy_corta", "muy_corto", "corta", "corto", "esperada", "larga", "extrema", "sin_dato", "", "malformado")
+  expect_equal(
+    .monitoreo_territorial_duration_operational_status(raw),
+    c("muy_corto", "muy_corto", "corto", "corto", "normal", "normal", "normal", "normal", "normal", "normal")
+  )
+  expect_equal(
+    .monitoreo_territorial_duration_operational_label(raw),
+    c("Muy corto", "Muy corto", "Corto", "Corto", "Normal", "Normal", "Normal", "Normal", "Normal", "Normal")
+  )
 })
 
 test_that("monitoreo territorial visto bueno aprueba observacion sin cambiar avance", {
@@ -3679,6 +4108,11 @@ test_that("monitoreo territorial visto bueno aprueba observacion sin cambiar ava
   expect_equal(approved$validation_decision[[1]], "visto_bueno")
   expect_equal(approved$validation_status[[1]], "validada")
   expect_equal(audit$observation_status[audit$response_id == "tiempo-largo"], "sin_observacion")
+  expect_equal(audit$duration_status[audit$response_id == "tiempo-largo"], "larga")
+  expect_equal(audit$duration_operational_label[audit$response_id == "tiempo-largo"], "Normal")
+  expect_equal(length(report$internal_queries$duration_review), 0L)
+  review_reasons <- vapply(report$internal_queries$review_cases %||% list(), function(item) as.character(item$reason %||% ""), character(1))
+  expect_false(any(review_reasons == "duracion_larga"))
 })
 
 test_that("monitoreo territorial cambia KPIs al alternar piloto y campo", {
@@ -3803,4 +4237,474 @@ test_that("monitoreo territorial expone payload operativo de Hojas de Ruta", {
   expect_equal(sex_achieved[["Hombre"]], 1L)
   expect_equal(sex_achieved[["Mujer"]], 1L)
   expect_equal(age_achieved[["18-29"]], 1L)
+})
+
+test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", {
+  demo <- monitoreo_demo_payload(seed = 17L, n = 18L)
+  data <- demo$snapshot$data
+  data$telefono_contacto <- "PHONE-SHEETS-SENTINEL"
+  data$email_contacto <- "sheets-sentinel@example.test"
+  data$response_id <- paste0("RID-SHEETS-", seq_len(nrow(data)))
+
+  client_tabs <- monitoreo_publication_sheets_tabs(data, demo$config, audience = "client")
+  internal_tabs <- monitoreo_publication_sheets_tabs(data, demo$config, audience = "internal")
+
+  expect_equal(names(client_tabs), c(
+    "Portada", "Resumen ejecutivo", "Avance general", "Avance por actor",
+    "Avance diario", "Avance por segmento", "Cobertura y pendientes",
+    "Fuentes y actualización"
+  ))
+  expect_equal(names(internal_tabs), c(
+    "Portada", "Resumen operativo", "Avance general", "Avance por actor",
+    "Avance diario", "Avance por segmento", "Metas internas por actor", "Pendientes por actor",
+    "Control de seguimiento", "Fuentes y actualización",
+    "Auditoría técnica", "Base técnica"
+  ))
+  expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(client_tabs)))
+  expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(internal_tabs)))
+
+  client_text <- paste(unlist(client_tabs, use.names = FALSE), collapse = " ")
+  expect_false(grepl("PHONE-SHEETS-SENTINEL|sheets-sentinel@example\\.test|RID-SHEETS-", client_text))
+  expect_false(grepl("Acción sugerida|Recomendación|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", client_text))
+
+  internal_text <- paste(unlist(internal_tabs[["Base técnica"]], use.names = FALSE), collapse = " ")
+  expect_true(grepl("PHONE-SHEETS-SENTINEL", internal_text, fixed = TRUE))
+  expect_true(grepl("sheets-sentinel@example.test", internal_text, fixed = TRUE))
+})
+
+test_that("modelo publicable de Monitoreo arma workbook operacional compartido", {
+  data <- data.frame(
+    `_id` = c("RAW-ID-1", "RAW-ID-2"),
+    `formhub/uuid` = c("UUID-SENTINEL-1", "UUID-SENTINEL-2"),
+    start = c("2026-06-18T09:00:00", "malformed-start"),
+    end = c("2026-06-18T09:00:30", ""),
+    gps_inicio = c("-12.1 -77.1 0 5", "MALFORMED-GPS"),
+    `Core/E1_age` = c(35, 42),
+    `Core/E2_sex` = c("1", "2"),
+    telefono_contacto = c("PHONE-MODEL-SENTINEL", "PHONE-MODEL-SENTINEL-2"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  audit <- data.frame(
+    response_id = c("RAW-ID-1", "RAW-ID-2"),
+    responsible_display = c("Ana Perez", ""),
+    submitted_by = c("Ana Perez", ""),
+    pulso_code = c("E001", ""),
+    distrito = c("Distrito 1", "Distrito 1"),
+    declared_ump_raw = c("UMP-1", ""),
+    advance_block_ump = c("UMP-1", ""),
+    advance_block_manzana = c("MZ-1", ""),
+    advance_block_id = c("MZ-1", ""),
+    submission_time = c("2026-06-18T09:00:00-05:00", "2026-06-18T10:15:00-05:00"),
+    submission_date = c("18/06/2026", "18/06/2026"),
+    submission_hour = c("09:00", "10:15"),
+    age = c(35, 42),
+    sex = c("1", "2"),
+    duration_seconds = c(30, NA_real_),
+    duration_status = c("muy_corta", ""),
+    advance_valid = c(TRUE, FALSE),
+    gps_parseable = c(TRUE, FALSE),
+    geo_estado = c("geo_no_defendible", "geo_sin_gps"),
+    lat = c(-12.1, NA_real_),
+    lon = c(-77.1, NA_real_),
+    issues = c("gps_no_defendible", "ump_sin_cruce"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  reports <- list(
+    kpis = list(total_respuestas = 2L, validas = 1L, meta = 4L, avance_pct = 25),
+    advance = list(district_progress = list(), block_progress = list(), daily = list()),
+    route_overview = list(district_count = 1L, operational_block_count = 4L, responsible_count = 1L),
+    route_quota_progress = list(blocks = list(
+      list(distrito = "Distrito 1", ump = "UMP-1", manzana = "MZ-1", responsable = "Ana Perez", target = 2L, validas = 1L),
+      list(distrito = "Distrito 1", ump = "UMP-2", manzana = "MZ-2", responsable = "Luis", target = 1L, validas = 0L),
+      list(distrito = "Distrito 1", ump = "UMP-3", manzana = "MZ-3", responsable = "Luis", target = 1L, validas = 8L),
+      list(distrito = "Distrito 1", ump = "UMP-4", manzana = "MZ-4", responsable = "Luis", target = 1L, validas = 9L),
+      list(distrito = "Distrito 2", ump = "", manzana = "", responsable = "", target = 3L, validas = 0L),
+      list(distrito = "Distrito 3", ump = "UMP-5", manzana = "MZ-5", responsable = "-", validas = 0L)
+    )),
+    response_audit = .monitoreo_df_records(audit),
+    map = list(points = .monitoreo_df_records(audit), alerts = list(list(code = "geometry_unresolved", message = "Geometría incompleta"))),
+    internal_queries = list(review_cases = list(list(
+      reason = "duracion_menor_1_min",
+      type = "duration",
+      response_id = "RAW-ID-1",
+      district = "Distrito 1",
+      ump = "UMP-1",
+      block_id = "MZ-1",
+      responsible = "Ana Perez",
+      pulso_code = "E001",
+      issues = "duration_review"
+    )))
+  )
+  dashboard <- list(kpis = reports$kpis, territorial_reports = reports)
+  cfg <- list(monitoreo_profile = list(family = "territorial"), territorial = list(min_duration_seconds = 60, max_duration_seconds = 7200))
+
+  model <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "internal",
+    dashboard = dashboard,
+    synced_at = "2026-06-18T12:00:00Z",
+    context = list(session_id = "sid-test", spreadsheet_id = "sheet-test")
+  )
+  expect_equal(model$family, "territorial_fieldwork")
+  expected_sections <- c(
+    "portada", "tabla_maestra", "resumen_operativo", "avance_campo", "encuestadores_rutas", "responsables_rutas", "cuotas_ump",
+    "validacion_tiempos", "ocurrencias_campo", "casos_accionables",
+    "gps_territorio", "auditoria_tecnica", "base_tecnica"
+  )
+  expect_true(all(expected_sections %in% names(model)))
+  expect_false("llenado_sexo_edad" %in% names(model))
+
+  tabs <- monitoreo_publication_sheets_tabs(
+    data,
+    cfg,
+    audience = "internal",
+    dashboard = dashboard,
+    synced_at = "2026-06-18T12:00:00Z",
+    context = list(session_id = "sid-test", spreadsheet_id = "sheet-test")
+  )
+  expect_equal(names(tabs), c(
+    "Portada", "Tabla maestra", "Resumen territorial", "Ritmo diario", "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
+    "Validación de tiempos", "Ocurrencias de campo",
+    "GPS y territorio", "Auditoría técnica", "Base técnica"
+  ))
+  expect_false(any(startsWith(names(tabs), "Interno - ")))
+  master <- .monitoreo_publication_section_frame(model, "tabla_maestra")
+  expect_equal(names(master), c(
+    "Fecha", "Hora", "UMP", "Manzana", "Distrito", "Encuestador",
+    "Sexo", "Edad", "Duración de tiempo", "Clasificación de tiempo",
+    "Clasificación de GPS", "Longitud", "Latitud", "Altitud", "UUID"
+  ))
+  expect_equal(master$UUID[[1]], "UUID-SENTINEL-2")
+  expect_equal(master$UUID[[2]], "UUID-SENTINEL-1")
+  expect_equal(master$`Clasificación de tiempo`[[2]], "Muy corto")
+  expect_equal(master$`Clasificación de GPS`[[2]], "Lejos")
+  expect_equal(master$Sexo[[2]], "Hombre")
+  master_header <- tabs[["Tabla maestra"]][[1]]
+  expect_true(all(c("Sexo", "Clasificación de tiempo", "Clasificación de GPS") %in% master_header))
+  expect_true(all(match(c("Sexo", "Clasificación de tiempo", "Clasificación de GPS"), master_header) %in% .monitoreo_sheets_status_columns(master_header)))
+  expect_equal(tabs[["Validación de tiempos"]][[1]][[1]], "Responsable")
+
+  rutas <- .monitoreo_publication_section_frame(model, "encuestadores_rutas")
+  expect_true(all(c("UMP titular", "Manzana de referencia", "Responsable", "Estado UMP") %in% names(rutas)))
+  expect_false(any(c("Responsable planificado", "Responsable observado", "Fuente del responsable") %in% names(rutas)))
+
+  responsables <- .monitoreo_publication_section_frame(model, "responsables_rutas")
+  expect_true("Bloque" %in% names(responsables))
+  expect_true(any(responsables$Bloque == "Responsables observados por registros"))
+  expect_true(any(responsables$Bloque == "Asignación planificada"))
+  planned_assignment <- .monitoreo_publication_block_df(responsables, "Asignación planificada")
+  expect_true(all(c("UMP", "Responsable asignado", "Encuestas válidas", paste("Encuesta", 1:8)) %in% names(planned_assignment)))
+  expect_false("Encuestas extra" %in% names(planned_assignment))
+  expect_false("UMP asignadas" %in% names(planned_assignment))
+  expect_false(any(grepl(" estado$", names(planned_assignment), ignore.case = TRUE)))
+  expect_equal(
+    planned_assignment$UMP,
+    planned_assignment$UMP[order(.monitoreo_publication_ump_sort_number(planned_assignment$UMP), planned_assignment$UMP)]
+  )
+
+  resumen <- .monitoreo_publication_section_frame(model, "resumen_operativo")
+  expect_true(any(resumen$Bloque == "Tarjetas ejecutivas"))
+  expect_true(any(resumen$Bloque == "Producción por encuestador"))
+  avance_distrito <- .monitoreo_publication_block_df(resumen, "Avance por distrito")
+  expect_true(all(c("Efectivas poblacionales", "UMP falta cuota", "UMP pendientes", "% UMP completas") %in% names(avance_distrito)))
+  expect_false("Estado" %in% names(avance_distrito))
+  expect_false(any(c("UMP por aplicar", "UMP con exceso", "UMP no iniciadas") %in% names(avance_distrito)))
+  expect_true("TOTAL" %in% avance_distrito$Distrito)
+  produccion <- .monitoreo_publication_block_df(resumen, "Producción por encuestador")
+  expect_true(all(c("Responsable", "UMP completas cumpliendo cuota", "% avance poblacional") %in% names(produccion)))
+  expect_true(any(suppressWarnings(as.numeric(produccion$`UMP completas cumpliendo cuota`)) > 0, na.rm = TRUE))
+  expect_true(all(.monitoreo_publication_has_assigned_responsible(produccion$Responsable)))
+  expect_false(any(trimws(as.character(produccion$Responsable)) %in% c("-", "Sin responsable", "Sin datos", "No asignado")))
+
+  cuotas <- .monitoreo_publication_section_frame(model, "cuotas_ump")
+  expect_true("Bloque" %in% names(cuotas))
+  expect_true(any(cuotas$Bloque == "Resumen de cuotas UMP"))
+  expect_true(any(cuotas$Bloque == "Cumplimiento por UMP"))
+  expect_true(any(cuotas$Bloque == "Matriz esperada sexo/edad"))
+  expect_false(any(cuotas$Bloque == "Matriz observada sexo/edad por UMP"))
+  expect_false(any(cuotas$Bloque == "Edades exactas observadas"))
+  cumplimiento <- .monitoreo_publication_block_df(cuotas, "Cumplimiento por UMP")
+  expect_false(any(cumplimiento$`Estado cuota` == "Excedida", na.rm = TRUE))
+  expect_false(any(grepl("exceso", names(cumplimiento), ignore.case = TRUE)))
+  expect_true(all(c(
+    "Distrito", "Zona", "UMP", "Manzana", "Último ingreso", "Tipo", "Responsable",
+    "Efectivas (n)", "Avance (%)", "Estado cuota",
+    "Hombre (n)", "Cuota hombre (n)", "Mujer (n)", "Cuota mujer (n)",
+    "Edades hombre", "Edades mujer"
+  ) %in% names(cumplimiento)))
+  expect_false(any(c("Cumple cuota", "Criterio cuota") %in% names(cumplimiento)))
+  expect_true(all(!is.na(cumplimiento$`Edades hombre`)))
+  expect_true(all(!is.na(cumplimiento$`Edades mujer`)))
+  expect_equal(
+    cumplimiento$UMP,
+    cumplimiento$UMP[order(.monitoreo_publication_ump_sort_number(cumplimiento$UMP), cumplimiento$UMP)]
+  )
+
+  tiempos <- .monitoreo_publication_section_frame(model, "validacion_tiempos")
+  tiempo_labels <- unique(trimws(as.character(tiempos$Clasificación)))
+  tiempo_labels <- tiempo_labels[nzchar(tiempo_labels)]
+  expect_true(all(tiempo_labels %in% c("Normal", "Corto", "Muy corto")))
+  expect_true(any(tiempos$Clasificación %in% c("Corto", "Muy corto")))
+  expect_false("Regla aplicada" %in% names(tiempos))
+
+  gps <- .monitoreo_publication_section_frame(model, "gps_territorio")
+  expect_true(all(c("ID respuesta", "Estado GPS por respuesta", "Latitud", "Longitud") %in% names(gps)))
+  expect_true(any(gps$`Estado GPS por respuesta` == "Lejos", na.rm = TRUE))
+  expect_true(any(gps$`Estado GPS por respuesta` == "Sin GPS", na.rm = TRUE))
+  expect_false(any(c("Casos con GPS", "Casos sin GPS", "GPS sospechoso", "Fuera de zona") %in% names(gps)))
+  expect_false("Acción sugerida" %in% names(tiempos))
+  expect_false("Acción sugerida" %in% names(.monitoreo_publication_section_frame(model, "casos_accionables")))
+
+  audit_text <- paste(unlist(model$auditoria_tecnica$rows, use.names = FALSE), collapse = " ")
+  base_text <- paste(unlist(model$base_tecnica$rows, use.names = FALSE), collapse = " ")
+  expect_true(grepl("UUID-SENTINEL-1", audit_text, fixed = TRUE))
+  expect_true(grepl("PHONE-MODEL-SENTINEL", base_text, fixed = TRUE))
+
+  client_model <- monitoreo_publication_model(data, cfg, audience = "client", dashboard = dashboard)
+  expect_equal(client_model$family, "territorial_fieldwork")
+  expect_equal(client_model$tab_order, as.list(c(
+    "Portada", "Resumen de avance", "Avance por distrito", "Avance por UMP",
+    "Avance diario", "Avance por responsable", "Cuotas resumen",
+    "Fuentes y actualización"
+  )))
+  expect_true(all(c("resumen_avance", "avance_por_distrito", "avance_por_ump", "cuotas_resumen") %in% names(client_model)))
+  client_district <- .monitoreo_workbook_df(client_model$avance_por_distrito$rows)
+  client_ump <- .monitoreo_workbook_df(client_model$avance_por_ump$rows)
+  expect_false("Estado" %in% names(client_district))
+  expect_true("Estado" %in% names(client_ump))
+  expect_false(any(c("base_tecnica", "auditoria_tecnica", "validacion_tiempos", "ocurrencias_campo", "casos_accionables", "gps_territorio") %in% names(client_model)))
+  client_text <- paste(unlist(client_model, use.names = FALSE), collapse = " ")
+  expect_false(grepl("PHONE-MODEL-SENTINEL|UUID-SENTINEL-1|RAW-ID-1", client_text))
+  expect_false(grepl("Acción sugerida|Recomendación|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", client_text))
+})
+
+test_that("detectores separan familia y audiencia sin inferencias riesgosas", {
+  expect_equal(detect_monitoreo_family(config = list(monitoreo_profile = list(family = "territorial"))), "territorial_fieldwork")
+  expect_equal(detect_monitoreo_family(config = list(monitoreo_profile = list(family = "acreditacion"))), "accreditation_monitoring")
+  expect_equal(detect_monitoreo_family(data = data.frame(distrito = "Lima", stringsAsFactors = FALSE)), "generic_monitoring")
+  expect_equal(detect_monitoreo_family(data = data.frame(dim_actor = "Docentes", stringsAsFactors = FALSE)), "generic_monitoring")
+  expect_equal(detect_monitoreo_family(data = data.frame(dim_actor = "Docentes", universo = 10L, stringsAsFactors = FALSE)), "accreditation_monitoring")
+  expect_equal(detect_monitoreo_family(data = data.frame(distrito = "Lima", advance_block_ump = "1", manzana = "001", stringsAsFactors = FALSE)), "territorial_fieldwork")
+  expect_equal(detect_publication_audience("client"), "client")
+  expect_equal(detect_publication_audience("interno"), "internal")
+  expect_equal(detect_publication_audience(destination = list(target = "Cliente")), "client")
+  expect_equal(detect_publication_audience(), "internal")
+})
+
+test_that("modelo de acreditacion separa cliente progreso e interno operativo", {
+  demo <- monitoreo_demo_payload(seed = 19L, n = 20L)
+  data <- demo$snapshot$data
+  data$response_id <- paste0("RID-ACC-", seq_len(nrow(data)))
+  data$telefono_contacto <- "PHONE-ACC-SENTINEL"
+  data$lat <- -12.1
+  data$lon <- -77.1
+
+  client_model <- monitoreo_publication_model(data, demo$config, audience = "client")
+  expect_equal(client_model$family, "accreditation_monitoring")
+  expect_equal(client_model$tab_order, as.list(c(
+    "Portada", "Resumen ejecutivo", "Avance general", "Avance por actor",
+    "Avance diario", "Avance por segmento", "Cobertura y pendientes",
+    "Fuentes y actualización"
+  )))
+  expect_true(all(c("resumen_ejecutivo", "avance_general", "avance_por_actor", "avance_diario", "avance_por_segmento", "cobertura_pendientes") %in% names(client_model)))
+  expect_false(any(c("pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(client_model)))
+  client_actor_cols <- unlist(client_model$avance_por_actor$columns, use.names = FALSE)
+  expect_true(all(c("Actor", "Universo", "Efectivas", "Pendientes", "% avance universo", "% cobertura", "Estado de avance") %in% client_actor_cols))
+  expect_false(any(grepl("Mínimo|Minimo|Meta|Brecha|umbral|Referencia operativa", client_actor_cols, ignore.case = TRUE)))
+  expect_true("client" %in% names(client_model$accreditation_progress))
+  expect_false("internal" %in% names(client_model$accreditation_progress))
+  expect_equal(client_model$daily_progress$target_reference$label, "Universo esperado")
+  client_text <- paste(unlist(client_model, use.names = FALSE), collapse = " ")
+  expect_false(grepl("PHONE-ACC-SENTINEL|RID-ACC-1|-12\\.1|-77\\.1", client_text))
+  expect_false(grepl("Mínimo/meta|Meta alcanzada|Mínimo alcanzado|Cerca del mínimo|Sobre el mínimo|Brechas de cumplimiento", client_text))
+  expect_false(grepl("Acción sugerida|Recomendación|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", client_text))
+
+  explicit_targets_model <- monitoreo_publication_model(data, demo$config, audience = "client", include_targets = TRUE)
+  explicit_cols <- unlist(explicit_targets_model$avance_por_actor$columns, use.names = FALSE)
+  expect_true(any(grepl("Referencia operativa|umbral interno", explicit_cols, ignore.case = TRUE)))
+  expect_true("internal" %in% names(explicit_targets_model$accreditation_progress))
+
+  internal_model <- monitoreo_publication_model(data, demo$config, audience = "internal")
+  expect_equal(internal_model$family, "accreditation_monitoring")
+  expect_true(all(c("resumen_operativo", "metas_internas_actor", "pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(internal_model)))
+  internal_actor_cols <- unlist(internal_model$avance_por_actor$columns, use.names = FALSE)
+  expect_true(all(c("Mínimo/meta operativa", "% sobre mínimo", "Brecha contra mínimo", "Estado interno") %in% internal_actor_cols))
+  expect_true("internal" %in% names(internal_model$accreditation_progress))
+  internal_text <- paste(unlist(internal_model$base_tecnica$rows, use.names = FALSE), collapse = " ")
+  expect_true(grepl("PHONE-ACC-SENTINEL|RID-ACC-1|-12\\.1|-77\\.1", internal_text))
+})
+
+test_that("modelos cliente toleran campos faltantes sin inventar recomendaciones", {
+  acc <- data.frame(
+    dim_actor = c("Docentes", "Estudiantes"),
+    universo = c(10L, 20L),
+    efectiva = c(TRUE, FALSE),
+    stringsAsFactors = FALSE
+  )
+  acc_cfg <- list(monitoreo_profile = list(family = "acreditacion", units = list(list(id = "doc", label = "Docentes"))))
+  acc_model <- monitoreo_publication_model(acc, acc_cfg, audience = "client")
+  expect_true("avance_diario" %in% names(acc_model))
+  expect_true("cobertura_pendientes" %in% names(acc_model))
+
+  terr <- data.frame(
+    distrito = c("Norte", "Sur"),
+    gps_inicio = c("", ""),
+    stringsAsFactors = FALSE
+  )
+  terr_cfg <- list(monitoreo_profile = list(family = "territorial"), territorial = list())
+  terr_model <- monitoreo_publication_model(terr, terr_cfg, audience = "client")
+  expect_true("avance_por_ump" %in% names(terr_model))
+  expect_false("gps_territorio" %in% names(terr_model))
+
+  combined_text <- paste(unlist(list(acc_model, terr_model), use.names = FALSE), collapse = " ")
+  expect_false(grepl("Acción sugerida|Recomendación|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", combined_text))
+})
+
+test_that("modelo de avance diario cuenta estados, efectivas y acumulados sin inventar categorias", {
+  acc <- data.frame(
+    fecha = c("2026-06-17", "2026-06-17", "2026-06-18", "2026-06-18"),
+    status = c("completed", "partial", "rejected", "misterio_externo"),
+    dim_actor = c("Docentes", "Docentes", "Estudiantes", "Docentes"),
+    carrera = c("A", "A", "B", "A"),
+    stringsAsFactors = FALSE
+  )
+  status <- build_daily_status_table(acc, date_col = "fecha", status_col = "status", family = "acreditacion")
+  expect_equal(sum(status$Casos), 4L)
+  expect_true(all(c("Respondió", "Parcial", "Rechazo", "Sin clasificación") %in% status$Estado))
+  expect_false("misterio_externo" %in% status$Estado)
+
+  effective <- build_daily_effective_table(acc, date_col = "fecha", status_col = "status", family = "acreditacion")
+  expect_equal(effective$`Nuevas efectivas`, c(1L, 0L))
+  cumulative <- build_cumulative_progress_table(effective, target = 4L, universe = 10L)
+  expect_equal(cumulative$`Efectivas acumuladas`, c(1L, 1L))
+  expect_equal(cumulative$`Meta/referencia`, c(4L, 4L))
+  expect_equal(cumulative$Brecha, c(3L, 3L))
+
+  actor <- build_daily_actor_progress(
+    acc,
+    date_col = "fecha",
+    actor_col = "dim_actor",
+    status_col = "status",
+    target_table = data.frame(Actor = c("Docentes", "Estudiantes"), `Mínimo/meta` = c(2L, 2L), check.names = FALSE)
+  )
+  expect_true(all(c("Fecha", "Actor", "Nuevas efectivas", "Efectivas acumuladas", "% avance mínimo", "Brecha") %in% names(actor)))
+  expect_true(any(actor$Actor == "Docentes"))
+
+  model <- build_daily_progress_model(
+    acc,
+    list(monitoreo_profile = list(family = "acreditacion")),
+    "acreditacion",
+    frames = list(
+      avance_general = data.frame(Indicador = "Total", Universo = 10L, `Mínimo/meta` = 4L, Efectivas = 1L, check.names = FALSE),
+      avance_por_actor = data.frame(Actor = c("Docentes", "Estudiantes"), `Mínimo/meta` = c(2L, 2L), check.names = FALSE)
+    )
+  )
+  expect_equal(model$schema, "monitoreo_daily_progress_v1")
+  expect_true(length(model$by_date_status) > 0L)
+  expect_true(length(model$daily_effective) > 0L)
+  expect_true(length(model$cumulative_effective) > 0L)
+  expect_true(length(model$by_date_actor) > 0L)
+  expect_true(isTRUE(model$target_reference$configured))
+  expect_equal(model$target_reference$label, "Universo esperado")
+  internal_daily <- build_daily_progress_model(
+    acc,
+    list(monitoreo_profile = list(family = "acreditacion")),
+    "acreditacion",
+    frames = list(
+      avance_general = data.frame(Indicador = "Total", Universo = 10L, `Mínimo/meta operativa` = 4L, Efectivas = 1L, check.names = FALSE),
+      avance_por_actor = data.frame(Actor = c("Docentes", "Estudiantes"), `Mínimo/meta operativa` = c(2L, 2L), check.names = FALSE)
+    ),
+    audience = "internal"
+  )
+  expect_equal(internal_daily$target_reference$label, "Referencia operativa")
+  model_text <- paste(unlist(model, use.names = FALSE), collapse = " ")
+  expect_false(grepl("Recomendación|Acción sugerida|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", model_text))
+})
+
+test_that("modelo de avance diario maneja vacios y desagrega territorial por distrito y UMP", {
+  missing_date <- build_daily_progress_model(
+    data.frame(status = c("completed", "partial"), stringsAsFactors = FALSE),
+    list(monitoreo_profile = list(family = "acreditacion")),
+    "acreditacion"
+  )
+  expect_equal(missing_date$empty_state$date, "No hay fecha disponible para construir evolución diaria.")
+
+  missing_status <- build_daily_progress_model(
+    data.frame(fecha = c("2026-06-17", "2026-06-18"), stringsAsFactors = FALSE),
+    list(monitoreo_profile = list(family = "territorial")),
+    "territorial"
+  )
+  expect_equal(missing_status$empty_state$status, "No hay estados normalizados disponibles.")
+
+  terr <- data.frame(
+    submission_date_iso = c("2026-06-17", "2026-06-17", "2026-06-17", "2026-06-18"),
+    validation_status = c("no_defendible", "validada", "no_defendible", "validada"),
+    source_effective = c(TRUE, TRUE, FALSE, TRUE),
+    advance_valid = c(FALSE, TRUE, FALSE, TRUE),
+    distrito = c("ate", "ate", "sjl", "olivos"),
+    advance_block_ump = c("UMP-01", "UMP-01", "UMP-02", "UMP-03"),
+    responsable = c("Ana", "Ana", "-", "Bruno"),
+    pulso_code = c("P001", "P001", "", "P002"),
+    stringsAsFactors = FALSE
+  )
+  terr_model <- build_daily_progress_model(
+    terr,
+    list(monitoreo_profile = list(family = "territorial")),
+    "territorial",
+    frames = list(
+      avance_por_distrito = data.frame(Distrito = c("Ate", "San Juan de Lurigancho", "Los Olivos"), Meta = c(1L, 1L, 1L), check.names = FALSE),
+      avance_por_ump = data.frame(UMP = c("UMP-01", "UMP-02", "UMP-03"), Meta = c(1L, 1L, 1L), check.names = FALSE)
+    ),
+    reports = list(
+      kpis = list(meta = 3L),
+      route_quota_progress = list(blocks = list(
+        list(distrito = "Ate", ump = "UMP-01", tipo_manzana = "titular"),
+        list(distrito = "San Juan de Lurigancho", ump = "UMP-02", tipo_manzana = "titular"),
+        list(distrito = "Los Olivos", ump = "UMP-03", tipo_manzana = "titular")
+      ))
+    )
+  )
+  expect_true(length(terr_model$by_date_status) > 0L)
+  expect_true(length(terr_model$by_date_district) > 0L)
+  expect_true(length(terr_model$by_date_responsible) > 0L)
+  expect_true(length(terr_model$by_date_ump) > 0L)
+  expect_true(isTRUE(terr_model$target_reference$configured))
+  expect_equal(terr_model$target_reference$label, "Meta/cuota territorial")
+  daily_ump <- .monitoreo_publication_records_df(terr_model$daily_effective)
+  expect_equal(as.integer(daily_ump$`Nuevas UMP efectivas`), c(1L, 1L))
+  expect_equal(daily_ump$`Fecha etiqueta`, c("17 Junio", "18 Junio"))
+  cumulative_ump <- .monitoreo_publication_records_df(terr_model$cumulative_effective)
+  expect_equal(as.integer(utils::tail(cumulative_ump$`UMP efectivas acumuladas`, 1L)), 2L)
+  expect_equal(as.integer(cumulative_ump$`Meta UMP`), c(3L, 3L))
+  status_ump <- .monitoreo_publication_records_df(terr_model$by_date_status)
+  expect_equal(as.integer(status_ump$Casos[status_ump$Fecha == "2026-06-17" & status_ump$Estado == "Efectiva"]), 1L)
+  expect_equal(as.integer(status_ump$Casos[status_ump$Fecha == "2026-06-17" & status_ump$Estado == "No efectiva"]), 1L)
+  district_ump <- .monitoreo_publication_records_df(terr_model$by_date_district)
+  expect_true("Ate" %in% district_ump$Distrito)
+  expect_true("Los Olivos" %in% district_ump$Distrito)
+  expect_false("ate" %in% district_ump$Distrito)
+  responsible_ump <- .monitoreo_publication_records_df(terr_model$by_date_responsible)
+  expect_true(all(c("Encuestador", "Nuevas UMP efectivas", "UMP efectivas acumuladas") %in% names(responsible_ump)))
+  expect_true(any(grepl("P001", responsible_ump$Encuestador, fixed = TRUE)))
+  expect_true(any(grepl("P002", responsible_ump$Encuestador, fixed = TRUE)))
+  expect_false("-" %in% responsible_ump$Encuestador)
+})
+
+test_that("clasificacion operacional de duracion usa umbrales centralizados", {
+  tcfg <- list(min_duration_seconds = 60, max_duration_seconds = 7200)
+  expect_equal(.monitoreo_publication_duration_label("", NA_real_, tcfg), "")
+  expect_equal(.monitoreo_publication_duration_label("malformed", NA_real_, tcfg), "")
+  expect_equal(.monitoreo_publication_duration_label("", 30, tcfg), "Muy corto")
+  expect_equal(.monitoreo_publication_duration_label("sin_dato", 30, tcfg), "Muy corto")
+  expect_equal(.monitoreo_publication_duration_label("", 120, tcfg), "Corto")
+  expect_equal(.monitoreo_publication_duration_label("", 1800, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("", 8000, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("", 50000, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("esperada", NA_real_, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("larga", NA_real_, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("extrema", NA_real_, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("sin_dato", NA_real_, tcfg), "")
 })

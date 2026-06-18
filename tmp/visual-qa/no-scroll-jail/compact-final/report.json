@@ -1,0 +1,649 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T10:57:51.887Z",
+  "options": {
+    "routes": [
+      "/",
+      "/carga",
+      "/validacion",
+      "/codificacion",
+      "/analitica",
+      "/graficos",
+      "/editor-xlsform",
+      "/tablero",
+      "/calc-muestra",
+      "/hojas-ruta",
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "layoutPreset": "compact",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 10:57:25 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+        "name": "prosecnur_audit_reference",
+        "dirty": true,
+        "last_saved_at": "2026-06-07T23:39:47Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso\",\"name\":\"prosecnur_audit_reference\",\"dirty\":true,\"last_saved_at\":\"2026-06-07T23:39:47Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/no-scroll-jail/compact-final/logs/api.log",
+      "vite": "tmp/visual-qa/no-scroll-jail/compact-final/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 11,
+    "screenshots": [
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-root-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-carga-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-validacion-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-codificacion-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-analitica-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-graficos-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-editor-xlsform-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-tablero-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-calc-muestra-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-hojas-ruta-1280x720-compact.png",
+      "tmp/visual-qa/no-scroll-jail/compact-final/quick-monitoreo-1280x720-compact.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-root-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar prosecnur_audit_reference Cambios sin guardar Cambiar Nuevo SUITE DE HERRAMIENTAS Explora los módulos de trabajo de Prosecnur Editor de formularios Editor de formularios Diseña, importa o traduce tu cuestionario Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm. Entrar al módulo Editor Proceso Dashboard Ru",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": null,
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/carga",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/carga",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-carga-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos prosecnur_audit_reference sin guardar Fase 1 - Carga de insumos XLSForm Data Listo para validar Insumos listos Modo multi Activo: puedes subir varias bases o importar encuestas por API. RUTA DE CARGA Insumos listos 1 XLSForm Instrumento cargado 2 Base de datos Data cargada 3 Revisión Compatible para Validación VARIAS BASES 1 base MODO MULTI Auditoria Canonica Prosecnur Seleccion",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 128,
+          "width": 1264,
+          "height": 584
+        },
+        "adaptiveSplit": {
+          "x": 8,
+          "y": 196,
+          "width": 1264,
+          "height": 530
+        },
+        "rail": {
+          "x": 9,
+          "y": 197,
+          "width": 232,
+          "height": 528
+        },
+        "main": {
+          "x": 241,
+          "y": 197,
+          "width": 1030,
+          "height": 528
+        }
+      },
+      "issues": []
+    },
+    {
+      "route": "/validacion",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/validacion",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-validacion-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos prosecnur_audit_reference sin guardar Fase 2 - Validación XLSForm Data Lista para auditar VALIDACIÓN Validación 1 Explorar datos Distribuciones y anomalías 2 Reglas del instrumento Validar contra el XLSForm 3 Criterios de revisión Señales adicionales 4 Limpieza y normalización Decidir y cerrar la base VISTA ACTUAL Explorar datos Distribuciones y anomalías auditoria VARIABLES · 2",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 128,
+          "width": 1264,
+          "height": 584
+        },
+        "adaptiveSplit": {
+          "x": 8,
+          "y": 192,
+          "width": 1264,
+          "height": 530
+        },
+        "rail": {
+          "x": 9,
+          "y": 193,
+          "width": 232,
+          "height": 528
+        },
+        "main": {
+          "x": 241,
+          "y": 193,
+          "width": 1030,
+          "height": 528
+        }
+      },
+      "issues": []
+    },
+    {
+      "route": "/codificacion",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/codificacion",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-codificacion-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos prosecnur_audit_reference sin guardar Fase 3 - Codificación XLSForm Data Lista para organizar Exportar configuración Importar configuración... CODIFICACIÓN Flujo de trabajo 1 Organizar Emparejar y marcar 2 Codificar Agrupar respuestas 3 Adaptar Generar el dataset PASO ACTUAL Organizar Emparejar y marcar auditoria Todas 19 Emparejadas 0 Por codificar 0 Codificadas 0 IDENTIFICACIO",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 128,
+          "width": 1264,
+          "height": 584
+        },
+        "adaptiveSplit": {
+          "x": 8,
+          "y": 194,
+          "width": 1264,
+          "height": 530
+        },
+        "rail": {
+          "x": 9,
+          "y": 195,
+          "width": 232,
+          "height": 528
+        },
+        "main": {
+          "x": 241,
+          "y": 195,
+          "width": 1030,
+          "height": 528
+        }
+      },
+      "issues": []
+    },
+    {
+      "route": "/analitica",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/analitica",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-analitica-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos prosecnur_audit_reference sin guardar Fase 4 - Análisis y reportes Fuente analítica: Original Original: datos e instrumento de Fase 1. Codificada aparece después de aplicar Fase 3. XLSForm: auditoria_canonica_xlsform.xlsx · Data: auditoria_canonica_data.xlsx Original Fase 1 Codificada No disponible AUTOGUARDADO Exportar JSON Importar JSON ANALÍTICA Mesa de reportes Datos Revisió",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 128,
+          "width": 1264,
+          "height": 584
+        },
+        "adaptiveSplit": {
+          "x": 8,
+          "y": 213,
+          "width": 1264,
+          "height": 530
+        },
+        "rail": {
+          "x": 9,
+          "y": 214,
+          "width": 232,
+          "height": 528
+        },
+        "main": {
+          "x": 241,
+          "y": 214,
+          "width": 1030,
+          "height": 528
+        }
+      },
+      "issues": []
+    },
+    {
+      "route": "/graficos",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/graficos",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-graficos-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos prosecnur_audit_reference sin guardar Fase 5 - Reportes gráficos AUTOGUARDADO Empieza agregando slides en el panel izquierdo. 1 error Mostrar bordes Compartir 9/9 Reset Estilo global 8 presets · 7 modos Exportar .pptx Exportar .docx Cómodo Timeline Canvas TIMELINE Agregar slide Empieza tu reporte Agrega tu primer slide para construir el plan paso a paso. Agregar slide Tip: pulsa",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 128,
+          "width": 1264,
+          "height": 584
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/editor-xlsform",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/editor-xlsform",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-editor-xlsform-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Editor de formularios Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench. Sin archivo Sin cambios pendientes ¿Cómo quieres armar tu formulario? Continuar formulario guardado Archivo: auditoria_canonica_xlsform.xlsx · Guardado automáticamente hace 10 d. Entrar Descartar guardado Empezar de cero Un formulario en blanco para construir pregunta por pregunta. Importar XLSForm ",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 624
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/tablero",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/tablero",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-tablero-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "dashboard"
+      ],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Datos Paletas Personalizar Vista previa Deploy Auditoria Canonica Prosecnur Proyecto sintetico para revision y auditoria Resumen Relaciones Base de datos Dimensiones Resumen Selecciona una sección y aplica filtros para analizar resultados. Filtros Perfil de la muestra N: 72 Region Lima Callao Provincia Distrito Norte Centro Sur Resumen de sección: Identificacion Evaluacion Region 50% 25% 25% Lima Ca",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": null,
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/calc-muestra",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/calc-muestra",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-calc-muestra-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "calc-muestra"
+      ],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Calculador de muestra Mesa de trabajo para proponer un diseño muestral nuevo desde el marco disponible. COMPONENTES 4 CALCULADOS 4 PRODUCTO Mixto Cambiar marco Calcular Reporte Marco primero Acreditación PLANTILLA CONOCIDA Estudiantes universitarios PLANTILLA CONOCIDA Diseñar desde marco disponible ESTUDIO OCASIONAL Territorial / hogares HANDOFF PLANTILLA CONOCIDA Acreditación Actores, marco, meta m",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 624
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/hojas-ruta",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/hojas-ruta",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-hojas-ruta-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "hojas-ruta"
+      ],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Hojas de ruta Cuotas, manzanas y fichas de campo desde un marco territorial trazable. BASE Cargada DISTRITOS 2 POBLACIÓN 309,719 MANZANAS 3,831 Piloto Campo real 1 Territorio Distritos y manzanas 2 Poblacion Matriz INEI 2017 3 Muestra N y cuotas 4 Manzanas Seleccion de campo 5 Entrega Revision y ZIP SIGUIENTE: REVISAR POBLACION Elige el marco de campo Confirma distritos sin perder el mapa. El resto ",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 624
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/compact-final/quick-monitoreo-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "monitoreo"
+      ],
+      "session": "1ea4be66-04e4-4e8f-aa04-29e770e65eef",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Acreditación institucional RUTA ACTIVA Acreditación Tipo único del proyecto SUPERFICIES DE TRABAJO 5 VISTAS Fuentes Elegir encuestas y bases Modelo operativo Metas, mecanismos y barrido Explorador Universo, casos y trazabilidad Monitoreo telefónico Modelo, barrido y supervisión Avance Cumplimiento y brechas SALIDAS Acreditación 0/2 web · 0/2 Sheets · sin enlace 80 registros listos para publicar. ÚLT",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 624
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

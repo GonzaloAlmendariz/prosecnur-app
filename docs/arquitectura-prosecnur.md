@@ -154,7 +154,7 @@ la evolucion del codigo.
 | Rutas | Preparar hojas de ruta, mapas, cuotas y reportes decisionales | Configuracion territorial, previews, entregables de campo | `/api/hojas-ruta/*`; [`frontend/src/features/hojasRuta`](../frontend/src/features/hojasRuta) | Archivos, datos cartograficos locales, jobs, reportes | Depender de analitica salvo contrato explicito de fuente |
 | Enciclopedia metodologica | Exponer catalogos, glosario, tipos de estudio y comparadores metodologicos de consulta | Catalogos read-only versionados con la app; sin estado mutable de proyecto | `/api/enciclopedia/*`; [`frontend/src/features/enciclopedia`](../frontend/src/features/enciclopedia) | Nucleo API, catalogos metodologicos locales, modulo de muestra como consumidor | Mutar proyectos `.pulso`, guardar decisiones de limpieza o depender de credenciales externas |
 | Muestra | Calcular componentes muestrales, recomendar tecnicas y exportar reporte | Estudio muestral, componentes, resultados, modo de trabajo | `/api/calc-muestra/*`; [`frontend/src/features/calcMuestra`](../frontend/src/features/calcMuestra) | Motor de calculo, enciclopedia metodologica, jobs | Mutar bases de encuesta o decisiones de limpieza |
-| Monitoreo | Centro de control operativo local: fuentes, snapshots, casos, cruces, metas, alertas, auditoria, perfiles y exportaciones | `monitoreo_sources`, `monitoreo_config`, `monitoreo_profile`, `monitoreo_snapshot`, eventos de sincronizacion; `monitoreo_territorial_map_cache` persiste mapas territoriales compactos por fase; persiste en `.pulso` sin credenciales | `/api/monitoreo/*`, `/api/monitoreo/sheets/*`; [`frontend/src/features/monitoreo`](../frontend/src/features/monitoreo) | Carga, calc-muestra cuando importa, archivos, reportes, conexiones globales SurveyMonkey/Kobo/Google Sheets, hojas de ruta segun perfil | Reemplazar el estado del estudio sin accion explicita, pedir o guardar credenciales, usar Sheets como backend canonico, modificar pestanas vivas de campo |
+| Monitoreo | Centro de control operativo local: fuentes, snapshots, casos, cruces, metas, alertas, auditoria, perfiles, exportaciones y publicaciones por audiencia | `monitoreo_sources`, `monitoreo_config`, `monitoreo_profile`, `monitoreo_snapshot`, `monitoreo_publication`, eventos de sincronizacion; `monitoreo_territorial_map_cache` persiste mapas territoriales compactos por fase; persiste en `.pulso` sin credenciales | `/api/monitoreo/*`, `/api/monitoreo/sheets/*`; [`frontend/src/features/monitoreo`](../frontend/src/features/monitoreo) | Carga, calc-muestra cuando importa, archivos, reportes, conexiones globales SurveyMonkey/Kobo/Google Sheets, hojas de ruta segun perfil, Hugging Face como destino manual de snapshots read-only | Reemplazar el estado del estudio sin accion explicita, pedir o guardar credenciales, usar Sheets como backend canonico, modificar pestanas vivas de campo, publicar datos internos en Spaces no privados |
 
 ## Caracteristicas Arquitectonicas Criticas
 
@@ -205,7 +205,8 @@ la evolucion del codigo.
 7. Los trabajos largos deben usar jobs y producir resultados descargables o
    estados consultables, no bloquear el hilo de Plumber.
 8. Las rutas expuestas por un artefacto publicado deben ser read-only o tener
-   una justificacion documentada.
+   una justificacion documentada. Cuando el artefacto contenga datos internos
+   completos, debe ser privado y requerir confirmacion manual de publicacion.
 9. Los flujos que puedan crecer por filas, columnas, bases, slides o archivos
    deben declarar su estrategia de escala local: limites, previews, paginacion,
    lazy loading, jobs, chunking o caches regenerables.
@@ -296,6 +297,7 @@ Antes de introducir un modulo o una dependencia transversal, revisar:
 - [ADR 0005: Secretos fuera del proyecto](adrs/0005-secretos-fuera-del-proyecto.md)
 - [ADR 0006: Modulos por dominio](adrs/0006-modulos-por-dominio.md)
 - [ADR 0007: Integraciones salientes y dashboard publicable](adrs/0007-integraciones-salientes-dashboard-publicable.md)
+- [ADR 0014: Publicacion dual de Monitoreo](adrs/0014-publicacion-dual-monitoreo.md)
 
 ## Evolucion Esperada
 

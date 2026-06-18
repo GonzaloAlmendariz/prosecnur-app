@@ -61,6 +61,21 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
   rememberSuccessfulHfToken: (settings) =>
     ipcRenderer.invoke("hf:rememberSuccessfulToken", settings || {}),
 
+  checkHfToken: (settings) =>
+    ipcRenderer.invoke("hf:checkToken", settings || {}),
+
+  forgetHfToken: (id) =>
+    ipcRenderer.invoke("hf:forgetToken", { id }),
+
+  rememberHfDestination: (settings) =>
+    ipcRenderer.invoke("hf:rememberDestination", settings || {}),
+
+  saveHfDefaultNamespace: (namespace) =>
+    ipcRenderer.invoke("hf:saveDefaultNamespace", { namespace }),
+
+  forgetHfDestination: (id) =>
+    ipcRenderer.invoke("hf:forgetDestination", { id }),
+
   // ----- Eventos del menú nativo (main → renderer) ----------------------------
 
   // Suscribe a comandos del menú "Archivo" del main process. callback

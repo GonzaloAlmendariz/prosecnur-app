@@ -15,7 +15,7 @@
 
 mount_proyecto <- function(pr) {
   pr |>
-    plumber::pr_post("/api/project/save", wrap_endpoint(function(req, res, path = NULL, project_name = NULL, ...) {
+    plumber::pr_post("/api/project/save", wrap_endpoint(function(req, res, path = NULL, project_name = NULL, allow_empty_overwrite = FALSE, ...) {
       sid <- session_header(req)
       # Plumber matchea keys del body JSON contra los args de la función,
       # pero también permite leer el body crudo. Aceptamos ambas formas
@@ -50,7 +50,8 @@ mount_proyecto <- function(pr) {
         proj_name <- tools::file_path_sans_ext(basename(requested_path))
       }
 
-      build_pulso(sid, requested_path, project_name = proj_name)
+      allow_empty <- isTRUE(allow_empty_overwrite) || isTRUE(body$allow_empty_overwrite)
+      build_pulso(sid, requested_path, project_name = proj_name, allow_empty_overwrite = allow_empty)
     })) |>
     plumber::pr_post("/api/project/open", wrap_endpoint(function(req, res, path = NULL, ...) {
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")

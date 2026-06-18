@@ -273,20 +273,19 @@ describe("territorialSummaryModel", () => {
     expect(missingAgeRanges.age.message).toBe("Rangos de edad no configurados");
   });
 
-  it("treats overfilled UMP as fulfilled information, not as a priority problem", () => {
+  it("treats UMP above quota as complete information, not as a priority problem", () => {
     const summary = buildTerritorialExecutiveSummary({
       reports: makeReports(),
       districtRows: [],
       umpRows: [
         ump({ key: "complete", status: "complete", valid: 8, gap: 0 }),
-        ump({ key: "over", status: "overfilled", valid: 10, gap: 0 }),
+        ump({ key: "over", status: "complete", valid: 10, gap: 0 }),
         ump({ key: "incomplete", status: "incomplete", valid: 4, gap: 4 }),
         ump({ key: "none", status: "none", valid: 0, gap: 8 }),
       ],
     });
 
     expect(summary.ump.fulfilled).toBe(2);
-    expect(summary.ump.overfilled).toBe(1);
     expect(summary.priorities.flatMap((group) => group.items).map((item) => item.key)).not.toContain("ump:over");
   });
 

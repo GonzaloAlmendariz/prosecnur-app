@@ -513,6 +513,8 @@
 
 .cmv2-rail-item {
   width: 100%;
+  min-width: 0;
+  white-space: normal;
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
   gap: 8px;
@@ -533,6 +535,9 @@
 .cmv2-rail-item strong,
 .cmv2-rail-item small {
   display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .cmv2-rail-item strong {
@@ -843,6 +848,10 @@
 .cmv2-table select {
   min-height: 32px;
   padding: 0 8px;
+}
+
+.cmv2-table select.cmv2-channel-select {
+  min-width: 116px;
 }
 
 .cmv2-side .cmv2-form-grid input {
@@ -1287,6 +1296,14 @@
     grid-template-columns: 230px minmax(0, 1fr);
   }
 
+  .cmv2-main {
+    padding: 12px;
+  }
+
+  .cmv2-frame-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  }
+
   .cmv2-desk-grid,
   .cmv2-university-top,
   .cmv2-university-edit-layout {
@@ -1297,6 +1314,51 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+  }
+}
+
+@media (max-width: 1080px), (max-height: 700px) {
+  .cmv2-frame.pulso-page-frame {
+    gap: 8px;
+  }
+
+  .cmv2-frame .pulso-page-frame-body--fill {
+    overflow: auto;
+  }
+
+  .cmv2-workbench {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .cmv2-rail {
+    order: 2;
+    max-height: none;
+  }
+
+  .cmv2-main {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .cmv2-frame-card {
+    min-height: 148px;
+  }
+
+  .cmv2-frame-card,
+  .cmv2-panel {
+    min-width: 0;
+  }
+
+  .cmv2-frame-card p,
+  .cmv2-frame-card strong,
+  .cmv2-frame-card small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 

@@ -1,0 +1,184 @@
+{
+  "ok": false,
+  "generatedAt": "2026-06-18T12:45:58.484Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1024,
+        "height": 600
+      }
+    ],
+    "layoutPreset": "short",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/Prueba_App/GIZ.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "cd836148-b57b-4f9d-a171-03d4ca1b3595",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 12:45:49 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/Prueba_App/GIZ.pulso",
+        "name": "GIZ",
+        "dirty": true,
+        "last_saved_at": "2026-05-24T00:25:48Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/Prueba_App/GIZ.pulso\",\"name\":\"GIZ\",\"dirty\":true,\"last_saved_at\":\"2026-05-24T00:25:48Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/quick/2026-06-18T12-45-40-999Z/logs/api.log",
+      "vite": "tmp/visual-qa/quick/2026-06-18T12-45-40-999Z/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/quick/2026-06-18T12-45-40-999Z/quick-monitoreo-1024x600-short.png"
+    ],
+    "visualIssues": 4,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": false
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1024,
+        "height": 600
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/quick/2026-06-18T12-45-40-999Z/quick-monitoreo-1024x600-short.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "short",
+        "density": "short",
+        "mode": "short"
+      },
+      "ready": [],
+      "session": "cd836148-b57b-4f9d-a171-03d4ca1b3595",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo GIZ sin guardar Monitoreo operativo TIPO ÚNICO DEL PROYECTO Elige la ruta de monitoreo Esta decisión fija la arquitectura del proyecto: fuentes esperadas, reglas de cruce, alertas, secciones de avance y reportes. Para cambiar de ruta después, crea un proyecto nuevo o reinicia el monitoreo. DISPONIBLE EN V1 Acreditación Control operativo por actores, carreras, barrido telefónico, QR y respuestas de plataforma. Multi-actor Segmentada por ",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1024,
+          "height": 600
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 996,
+          "height": 504
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": [
+        {
+          "type": "overflow-y",
+          "tag": "article",
+          "className": "mon-route-card mon-route-card--acreditacion is-active-route",
+          "label": "Disponible en v1AcreditaciónControl operativo por actores, carreras, barrido telefónico, QR y respuestas de plataforma.Multi-actorSegmentada por carreraMínimos ",
+          "rect": {
+            "x": 33,
+            "y": 201,
+            "width": 473,
+            "height": 177
+          },
+          "scroll": {
+            "width": 471,
+            "height": 185,
+            "clientWidth": 471,
+            "clientHeight": 175
+          }
+        },
+        {
+          "type": "overflow-y",
+          "tag": "article",
+          "className": "mon-route-card mon-route-card--territorial is-active-route",
+          "label": "Disponible en v1TerritorialKobo como fuente canónica de respuestas y Hojas de Ruta como marco canónico de territorio.Kobo APIHojas de RutaManzanasGPS válido01Ko",
+          "rect": {
+            "x": 518,
+            "y": 201,
+            "width": 473,
+            "height": 177
+          },
+          "scroll": {
+            "width": 471,
+            "height": 185,
+            "clientWidth": 471,
+            "clientHeight": 175
+          }
+        },
+        {
+          "type": "overflow-y",
+          "tag": "article",
+          "className": "mon-route-card mon-route-card--telefonico is-planned",
+          "label": "PlanificadoTelefónicoOperación de llamadas, intentos, operadores, estados de contacto y cierre de muestra.Call centerIntentosOperadoresNo efectivos01Base de con",
+          "rect": {
+            "x": 33,
+            "y": 390,
+            "width": 473,
+            "height": 177
+          },
+          "scroll": {
+            "width": 471,
+            "height": 185,
+            "clientWidth": 471,
+            "clientHeight": 175
+          }
+        },
+        {
+          "type": "overflow-y",
+          "tag": "article",
+          "className": "mon-route-card mon-route-card--digital_general is-planned",
+          "label": "PlanificadoGeneralSeguimiento transversal para encuestas digitales sin reglas específicas de acreditación.Encuestas webMetas simplesCalidadExportaciones01Plataf",
+          "rect": {
+            "x": 518,
+            "y": 390,
+            "width": 473,
+            "height": 177
+          },
+          "scroll": {
+            "width": 471,
+            "height": 185,
+            "clientWidth": 471,
+            "clientHeight": 175
+          }
+        }
+      ]
+    }
+  ]
+}

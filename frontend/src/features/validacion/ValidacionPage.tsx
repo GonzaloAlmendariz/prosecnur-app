@@ -10,6 +10,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { TabMeta } from "../../components/TabStrip";
 import { EmptyState, ErrorBlock } from "../../components/States";
 import BaseSelector from "./BaseSelector";
@@ -153,6 +154,8 @@ export default function ValidacionPage() {
       density="compact"
       headerMode="sr-only"
       bodyMode="fill"
+      layout="workbench"
+      scrollOwner="panels"
       resetScrollKey={`${activeTab}:${baseNombre ?? ""}`}
       toolbar={
         <div className="pulso-validacion-toolbar-stack">
@@ -192,13 +195,18 @@ export default function ValidacionPage() {
         </div>
       }
     >
-      <section className={`pulso-validacion-shell pulso-split-view${!prereqsOk ? " is-empty" : ""}`}>
-        <ValidacionModeSidebar
-          active={activeTab}
-          onChange={setActiveTab}
-          disabled={!prereqsOk}
-        />
-
+      <AdaptiveSplitView
+        ariaLabel="Mesa de trabajo de validación"
+        railLabel="Secciones de validación"
+        className={`pulso-validacion-shell${!prereqsOk ? " is-empty" : ""}`}
+        rail={(
+          <ValidacionModeSidebar
+            active={activeTab}
+            onChange={setActiveTab}
+            disabled={!prereqsOk}
+          />
+        )}
+      >
         <main
           id="validacion-panel"
           className={`pulso-validacion-content pulso-content-area${activeTab === "reglas_custom" ? " is-contained-scroll" : ""}`}
@@ -237,7 +245,7 @@ export default function ValidacionPage() {
             </>
           )}
         </main>
-      </section>
+      </AdaptiveSplitView>
     </PageFrame>
   );
 }

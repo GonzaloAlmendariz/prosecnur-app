@@ -20,6 +20,7 @@ function parseArgs(argv) {
     project: process.env.PULSO || "",
     session: process.env.PULSO_SESSION || "",
     name: "screen",
+    layoutPreset: process.env.QA_LAYOUT_PRESET || "auto",
     waitSelector: "[data-audit-ready]",
     reloadEngine: true,
     failOnIssues: false,
@@ -40,6 +41,7 @@ function parseArgs(argv) {
     else if (arg === "--project") out.project = next();
     else if (arg === "--session") out.session = next();
     else if (arg === "--name") out.name = next();
+    else if (arg === "--layout-preset" || arg === "--preset") out.layoutPreset = next();
     else if (arg === "--wait-selector") out.waitSelector = next();
     else if (arg === "--click-tab") out.clickTabs.push(next());
     else if (arg === "--expect-text") out.expectText.push(next());
@@ -60,6 +62,9 @@ function parseArgs(argv) {
   out.viewport = dedupeViewports(out.viewport);
   if (!Number.isFinite(out.timeoutMs) || out.timeoutMs <= 0) {
     throw new Error(`Timeout inválido: ${out.timeoutMs}`);
+  }
+  if (!["auto", "large", "portable", "portable-compact", "compact", "short"].includes(out.layoutPreset)) {
+    throw new Error(`Preset inválido: ${out.layoutPreset}. Usa auto, large, portable, portable-compact, compact o short.`);
   }
   return out;
 }
@@ -98,6 +103,7 @@ Opciones principales:
   --click-tab TEXT        Abre una pestaña por nombre antes de capturar. Puede repetirse.
   --viewport 390x844      Agrega viewport. Puede repetirse.
   --only-viewport 1440x900 Usa solo ese viewport.
+  --layout-preset NAME     Siembra pulso.layoutPreset: auto, large, portable, portable-compact, compact o short.
   --timeout-ms N          Timeout por request y navegación. Default: ${DEFAULT_TIMEOUT_MS}.
   --expect-text TEXT      Falla el reporte si no aparece el texto.
   --forbid-text TEXT      Falla el reporte si aparece el texto.
@@ -241,11 +247,12 @@ function resolveTargetUrl(opts) {
 async function runViewport(opts, setup, viewport) {
   const browser = await chromium.launch({ headless: !opts.headed });
   const context = await browser.newContext({ viewport });
-  if (setup.session) {
-    await context.addInitScript((sessionId) => {
+  await context.addInitScript(({ sessionId, layoutPreset }) => {
+    if (layoutPreset) window.localStorage.setItem("pulso.layoutPreset", layoutPreset);
+    if (sessionId) {
       window.localStorage.setItem("pulso.sessionId", sessionId);
-    }, setup.session);
-  }
+    }
+  }, { sessionId: setup.session, layoutPreset: opts.layoutPreset });
   const page = await context.newPage();
   const targetUrl = resolveTargetUrl(opts);
   const viewportName = `${viewport.width}x${viewport.height}`;
@@ -325,6 +332,11 @@ async function runViewport(opts, setup, viewport) {
     return {
       title: document.title,
       url: location.href,
+      activeLayout: {
+        preset: document.documentElement.dataset.pulsoLayoutPreset || null,
+        density: document.documentElement.dataset.pulsoLayoutDensity || null,
+        mode: document.documentElement.dataset.pulsoLayoutMode || null,
+      },
       ready: Array.from(document.querySelectorAll("[data-audit-ready]")).map((el) => el.getAttribute("data-audit-ready")),
       checks,
       issues,
@@ -358,6 +370,7 @@ async function main() {
       project: opts.project || null,
       session: setup.session || null,
       reloadEngine: opts.reloadEngine,
+      layoutPreset: opts.layoutPreset,
       waitSelector: opts.waitSelector,
       clickTabs: opts.clickTabs,
     },

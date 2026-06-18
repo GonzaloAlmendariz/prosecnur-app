@@ -1,0 +1,124 @@
+{
+  "ok": false,
+  "generatedAt": "2026-06-18T16:40:05.428Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 1000
+      }
+    ],
+    "layoutPreset": "portable",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "45bf3830-3d08-46e7-9161-80990197217c",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 16:40:00 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso",
+        "name": "ACNURCG",
+        "dirty": false,
+        "last_saved_at": "2026-06-18T14:24:21Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso\",\"name\":\"ACNURCG\",\"dirty\":false,\"last_saved_at\":\"2026-06-18T14:24:21Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/quick/2026-06-18T16-39-56-862Z/logs/api.log",
+      "vite": "tmp/visual-qa/quick/2026-06-18T16-39-56-862Z/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/quick/2026-06-18T16-39-56-862Z/form-actions-selected-monitoreo-1440x1000-portable.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 2,
+    "resourceErrors": 0,
+    "projectMisses": 1,
+    "ok": false
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/quick/2026-06-18T16-39-56-862Z/form-actions-selected-monitoreo-1440x1000-portable.png",
+      "fullScreenshot": null,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+        }
+      ],
+      "pageErrors": [],
+      "apiErrors": [
+        {
+          "status": 500,
+          "url": "http://127.0.0.1:5174/api/system/health"
+        },
+        {
+          "status": 500,
+          "url": "http://127.0.0.1:5174/api/system/health"
+        }
+      ],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "portable",
+        "density": "balanced",
+        "mode": "desktop"
+      },
+      "ready": [],
+      "session": "45bf3830-3d08-46e7-9161-80990197217c",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": true,
+      "projectLoaded": false,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo Sin proyecto [HTTP_500] Internal Server Error Cargando monitoreo...",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1000
+        },
+        "pageFrame": null,
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

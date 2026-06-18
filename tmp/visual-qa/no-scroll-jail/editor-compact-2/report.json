@@ -1,0 +1,148 @@
+{
+  "ok": false,
+  "generatedAt": "2026-06-18T10:46:25.628Z",
+  "options": {
+    "routes": [
+      "/editor-xlsform"
+    ],
+    "viewports": [
+      {
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "layoutPreset": "compact",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "dfc241a6-30af-4f5b-8ac3-b5e9ba5e1889",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 10:46:20 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+        "name": "prosecnur_audit_reference",
+        "dirty": true,
+        "last_saved_at": "2026-06-07T23:39:47Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso\",\"name\":\"prosecnur_audit_reference\",\"dirty\":true,\"last_saved_at\":\"2026-06-07T23:39:47Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/no-scroll-jail/editor-compact-2/logs/api.log",
+      "vite": "tmp/visual-qa/no-scroll-jail/editor-compact-2/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/no-scroll-jail/editor-compact-2/quick-editor-xlsform-1280x720-compact.png"
+    ],
+    "visualIssues": 2,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": false
+  },
+  "results": [
+    {
+      "route": "/editor-xlsform",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/editor-xlsform",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/editor-compact-2/quick-editor-xlsform-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "dfc241a6-30af-4f5b-8ac3-b5e9ba5e1889",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Editor de formularios Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench. Sin archivo Sin cambios pendientes ¿Cómo quieres armar tu formulario? Continuar formulario guardado Archivo: auditoria_canonica_xlsform.xlsx · Guardado automáticamente hace 10 d. Entrar Descartar guardado Empezar de cero Un formulario en blanco para construir pregunta por pregunta. Importar XLSForm ",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 624
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": [
+        {
+          "type": "overflow-x",
+          "tag": "button",
+          "className": "pulso-empty-home-card",
+          "label": "Empezar de ceroUn formulario en blanco para construir pregunta por pregunta.",
+          "rect": {
+            "x": 55,
+            "y": 299,
+            "width": 379,
+            "height": 132
+          },
+          "scroll": {
+            "width": 394,
+            "height": 128,
+            "clientWidth": 377,
+            "clientHeight": 128
+          }
+        },
+        {
+          "type": "overflow-x",
+          "tag": "button",
+          "className": "pulso-empty-home-card",
+          "label": "Traducir SurveyMonkeyConecta una encuesta de SurveyMonkey por API y la convierte a XLSForm.",
+          "rect": {
+            "x": 846,
+            "y": 299,
+            "width": 379,
+            "height": 132
+          },
+          "scroll": {
+            "width": 466,
+            "height": 128,
+            "clientWidth": 377,
+            "clientHeight": 128
+          }
+        }
+      ]
+    }
+  ]
+}

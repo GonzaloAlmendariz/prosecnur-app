@@ -91,6 +91,49 @@ test_that("Kobo supports multiple server profiles without exposing plaintext tok
   })
 })
 
+test_that("Kobo profile ids from another machine fall back to local profiles", {
+  with_temp_home({
+    .connections_profile_save(
+      "kobo",
+      token = "kobo_eu_secret_abcdef",
+      alias = "Kobo EU",
+      profile_id = "local_eu",
+      base_url = "https://eu.kobotoolbox.org",
+      make_default = TRUE
+    )
+    .connections_profile_save(
+      "kobo",
+      token = "kobo_unhcr_secret_123456",
+      alias = "Kobo UNHCR",
+      profile_id = "local_unhcr",
+      base_url = "https://kobo.unhcr.org",
+      make_default = FALSE
+    )
+
+    status <- .connections_token_status(
+      "kobo",
+      profile_id = "perfil_acnur_de_otra_maquina",
+      base_url = "https://kobo.unhcr.org"
+    )
+
+    expect_true(status$has_token)
+    expect_equal(status$active_profile_id, "local_unhcr")
+    expect_equal(status$active_profile_base_url, "https://kobo.unhcr.org")
+    expect_equal(
+      .connections_token_require(
+        "kobo",
+        profile_id = "perfil_acnur_de_otra_maquina",
+        base_url = "https://kobo.unhcr.org"
+      ),
+      "kobo_unhcr_secret_123456"
+    )
+    expect_equal(
+      .connections_token_require("kobo", profile_id = "perfil_acnur_de_otra_maquina"),
+      "kobo_eu_secret_abcdef"
+    )
+  })
+})
+
 test_that("Google Sheets OAuth is exposed as a global connection and can be cleared", {
   with_temp_home({
     monitoreo_sheets_oauth_save(list(access_token = "oauth_material_sentinel"))

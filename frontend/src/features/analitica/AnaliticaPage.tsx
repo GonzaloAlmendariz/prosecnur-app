@@ -17,6 +17,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { EmptyState, LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
 import { CodebookPane } from "./panes/CodebookPane";
@@ -107,6 +108,8 @@ export default function AnaliticaPage() {
       density="compact"
       headerMode="sr-only"
       bodyMode="fill"
+      layout="workbench"
+      scrollOwner="panels"
       resetScrollKey={`${active}:${state?.active_base ?? ""}`}
       toolbar={
         <div className="pulso-analitica-toolbar-stack">
@@ -122,17 +125,22 @@ export default function AnaliticaPage() {
         </div>
       }
     >
-      <section className={`pulso-analitica-shell pulso-split-view${!prereqOk ? " is-empty" : ""}`}>
-        <AnaliticaSidebar
-          active={active}
-          onChange={goReporte}
-          disabled={!prereqOk || prepBusy || !prepOk}
-          prepBusy={prepBusy}
-          prepOk={prepOk}
-          state={state}
-          reportes={reportes}
-        />
-
+      <AdaptiveSplitView
+        ariaLabel="Mesa de trabajo de analítica"
+        railLabel="Reportes de analítica"
+        className={`pulso-analitica-shell${!prereqOk ? " is-empty" : ""}`}
+        rail={(
+          <AnaliticaSidebar
+            active={active}
+            onChange={goReporte}
+            disabled={!prereqOk || prepBusy || !prepOk}
+            prepBusy={prepBusy}
+            prepOk={prepOk}
+            state={state}
+            reportes={reportes}
+          />
+        )}
+      >
         <main
           id="analitica-panel"
           className="pulso-analitica-content pulso-content-area"
@@ -185,7 +193,7 @@ export default function AnaliticaPage() {
             </>
           )}
         </main>
-      </section>
+      </AdaptiveSplitView>
     </PageFrame>
   );
 }

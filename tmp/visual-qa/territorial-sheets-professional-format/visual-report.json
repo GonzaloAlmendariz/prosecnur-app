@@ -1,0 +1,15 @@
+{
+  "schema": "territorial_sheets_preview_visual_qa_v1",
+  "generatedAt": "2026-06-18T14:22:35.601Z",
+  "root": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/territorial-sheets-professional-format",
+  "html": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/territorial-sheets-professional-format/territorial-internal-sheets-preview.html",
+  "screenshot": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/territorial-sheets-professional-format/territorial-internal-sheets-preview-1440x1000.png",
+  "ok": true,
+  "issues": [],
+  "metrics": {
+    "panels": 9,
+    "tables": 9,
+    "statusCells": 12,
+    "sectionRows": 14
+  }
+}

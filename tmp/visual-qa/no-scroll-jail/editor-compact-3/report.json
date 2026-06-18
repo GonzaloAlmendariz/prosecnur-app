@@ -1,0 +1,111 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T10:47:17.322Z",
+  "options": {
+    "routes": [
+      "/editor-xlsform"
+    ],
+    "viewports": [
+      {
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "layoutPreset": "compact",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5175/",
+    "apiUrl": "http://127.0.0.1:8789",
+    "frontendPort": 5175,
+    "apiPort": 8789,
+    "session": "be0fd09b-ad44-4b85-a0c6-91f77a74655b",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 10:47:11 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+        "name": "prosecnur_audit_reference",
+        "dirty": true,
+        "last_saved_at": "2026-06-07T23:39:47Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso\",\"name\":\"prosecnur_audit_reference\",\"dirty\":true,\"last_saved_at\":\"2026-06-07T23:39:47Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/no-scroll-jail/editor-compact-3/logs/api.log",
+      "vite": "tmp/visual-qa/no-scroll-jail/editor-compact-3/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/no-scroll-jail/editor-compact-3/quick-editor-xlsform-1280x720-compact.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/editor-xlsform",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5175/editor-xlsform",
+      "screenshot": "tmp/visual-qa/no-scroll-jail/editor-compact-3/quick-editor-xlsform-1280x720-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [],
+      "session": "be0fd09b-ad44-4b85-a0c6-91f77a74655b",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Editor de formularios Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench. Sin archivo Sin cambios pendientes ¿Cómo quieres armar tu formulario? Continuar formulario guardado Archivo: auditoria_canonica_xlsform.xlsx · Guardado automáticamente hace 10 d. Entrar Descartar guardado Empezar de cero Un formulario en blanco para construir pregunta por pregunta. Importar XLSForm ",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 624
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

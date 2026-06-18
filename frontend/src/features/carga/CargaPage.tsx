@@ -29,6 +29,7 @@ import { useSession } from "../../lib/SessionContext";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
@@ -329,6 +330,8 @@ export default function CargaPage() {
       density="compact"
       headerMode="sr-only"
       bodyMode="fill"
+      layout="workbench"
+      scrollOwner="panels"
       toolbar={
         <ContextBar
           ariaLabel="Estado de carga y modo del estudio"
@@ -431,18 +434,24 @@ export default function CargaPage() {
           usuario puede agregar, quitar, renombrar y volver a la carga
           simple si queda 1 sola base. */}
       {isMultiBase && estudio && (
-        <section className="pulso-upload-section pulso-carga-workbench pulso-split-view">
-          <CargaStageRail
-            hasXlsform={hasXlsform}
-            hasData={hasData}
-            pendingChoiceMapping={pendingChoiceMapping}
-            allReady={allReady}
-            isMultiBase={isMultiBase}
-            bases={state?.n_bases ?? 0}
-            instrumento={instrumento}
-            dataPreview={dataPreview}
-            estructura={estructura}
-          />
+        <AdaptiveSplitView
+          ariaLabel="Mesa de trabajo de carga multibase"
+          railLabel="Estado de carga"
+          className="pulso-upload-section pulso-carga-workbench"
+          rail={(
+            <CargaStageRail
+              hasXlsform={hasXlsform}
+              hasData={hasData}
+              pendingChoiceMapping={pendingChoiceMapping}
+              allReady={allReady}
+              isMultiBase={isMultiBase}
+              bases={state?.n_bases ?? 0}
+              instrumento={instrumento}
+              dataPreview={dataPreview}
+              estructura={estructura}
+            />
+          )}
+        >
           <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi">
             <BasesPanel
               estudio={estudio}
@@ -467,7 +476,7 @@ export default function CargaPage() {
               error={error}
             />
           </div>
-        </section>
+        </AdaptiveSplitView>
       )}
 
       {/* Sección 1 — LOS DOS INSUMOS (single-base). Solo se muestra si
@@ -475,18 +484,24 @@ export default function CargaPage() {
           BasesPanel ya cubre la carga de insumos. */}
       {!isMultiBase && (
       <>
-      <section className="pulso-upload-section pulso-carga-workbench pulso-split-view">
-        <CargaStageRail
-          hasXlsform={hasXlsform}
-          hasData={hasData}
-          pendingChoiceMapping={pendingChoiceMapping}
-          allReady={allReady}
-          isMultiBase={isMultiBase}
-          bases={state?.n_bases ?? 0}
-          instrumento={instrumento}
-          dataPreview={dataPreview}
-          estructura={estructura}
-        />
+      <AdaptiveSplitView
+        ariaLabel="Mesa de trabajo de carga"
+        railLabel="Estado de carga"
+        className="pulso-upload-section pulso-carga-workbench"
+        rail={(
+          <CargaStageRail
+            hasXlsform={hasXlsform}
+            hasData={hasData}
+            pendingChoiceMapping={pendingChoiceMapping}
+            allReady={allReady}
+            isMultiBase={isMultiBase}
+            bases={state?.n_bases ?? 0}
+            instrumento={instrumento}
+            dataPreview={dataPreview}
+            estructura={estructura}
+          />
+        )}
+      >
 
         <div className="pulso-carga-content pulso-content-area">
           <div className="pulso-upload-section-head pulso-carga-content-head">
@@ -658,7 +673,7 @@ export default function CargaPage() {
         {/* El botón "+ Agregar otra base" se eliminó — ahora la
             conversión single→multi se hace con el MultiBaseToggle de
             arriba del todo. */}
-      </section>
+      </AdaptiveSplitView>
       </>
       )}
     </PageFrame>

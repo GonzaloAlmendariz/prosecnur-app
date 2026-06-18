@@ -1,0 +1,152 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T10:38:17.386Z",
+  "options": {
+    "routes": [
+      "/?settings=connections"
+    ],
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 1000
+      },
+      {
+        "width": 1280,
+        "height": 800
+      }
+    ],
+    "layoutPreset": "auto",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "b1e2de3c-5b81-4006-9e6f-4937d2a8cfdf",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 10:37:07 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+        "name": "prosecnur_audit_reference",
+        "dirty": true,
+        "last_saved_at": "2026-06-07T23:39:47Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso\",\"name\":\"prosecnur_audit_reference\",\"dirty\":true,\"last_saved_at\":\"2026-06-07T23:39:47Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/global-settings-hf-2x2/logs/api.log",
+      "vite": "tmp/visual-qa/global-settings-hf-2x2/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 2,
+    "screenshots": [
+      "tmp/visual-qa/global-settings-hf-2x2/quick-settings-connections-1440x1000-auto.png",
+      "tmp/visual-qa/global-settings-hf-2x2/quick-settings-connections-1280x800-auto.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/?settings=connections",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:5174/%3Fsettings=connections",
+      "screenshot": "tmp/visual-qa/global-settings-hf-2x2/quick-settings-connections-1440x1000-auto.png",
+      "fullScreenshot": "tmp/visual-qa/global-settings-hf-2x2/quick-settings-connections-1440x1000-auto-full.png",
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "auto",
+        "density": "auto",
+        "mode": "auto"
+      },
+      "ready": [],
+      "session": "b1e2de3c-5b81-4006-9e6f-4937d2a8cfdf",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar prosecnur_audit_reference Cambios sin guardar Cambiar Nuevo SUITE DE HERRAMIENTAS Explora los módulos de trabajo de Prosecnur Editor de formularios Editor de formularios Diseña, importa o traduce tu cuestionario Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm. Crear desde cero con asistente visual Import",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1000
+        },
+        "pageFrame": null,
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    },
+    {
+      "route": "/?settings=connections",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "url": "http://127.0.0.1:5174/%3Fsettings=connections",
+      "screenshot": "tmp/visual-qa/global-settings-hf-2x2/quick-settings-connections-1280x800-auto.png",
+      "fullScreenshot": "tmp/visual-qa/global-settings-hf-2x2/quick-settings-connections-1280x800-auto-full.png",
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "auto",
+        "density": "auto",
+        "mode": "auto"
+      },
+      "ready": [],
+      "session": "b1e2de3c-5b81-4006-9e6f-4937d2a8cfdf",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar prosecnur_audit_reference Cambios sin guardar Cambiar Nuevo SUITE DE HERRAMIENTAS Explora los módulos de trabajo de Prosecnur Editor de formularios Editor de formularios Diseña, importa o traduce tu cuestionario Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm. Crear desde cero con asistente visual Import",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 800
+        },
+        "pageFrame": null,
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

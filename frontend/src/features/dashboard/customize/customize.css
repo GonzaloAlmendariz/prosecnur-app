@@ -971,6 +971,59 @@
 .dashboard-scope .dash-publish-wide {
   grid-column: 1 / -1;
 }
+.dashboard-scope .dash-publish-hf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.dashboard-scope .dash-publish-hf-actions button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--dash-borde);
+  border-radius: 8px;
+  background: var(--dash-superficie-2);
+  color: var(--dash-texto);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 760;
+  padding: 0 10px;
+}
+.dashboard-scope .dash-publish-hf-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+.dashboard-scope .dash-publish-saved-credential {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--dash-primario) 20%, var(--dash-borde));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-primario-soft) 72%, #fff), rgba(255, 255, 255, 0.88)),
+    var(--dash-superficie);
+}
+.dashboard-scope .dash-publish-saved-credential span {
+  color: var(--dash-primario);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dashboard-scope .dash-publish-saved-credential strong {
+  color: var(--dash-text-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+.dashboard-scope .dash-publish-saved-credential small {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 600;
+}
 .dashboard-scope .dash-publish-check {
   align-items: center;
   flex-direction: row !important;
