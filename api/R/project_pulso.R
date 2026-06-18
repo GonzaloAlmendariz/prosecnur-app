@@ -1259,6 +1259,89 @@
   unique(out)
 }
 
+.pulso_snapshot_has_content <- function(snapshot) {
+  if (is.null(snapshot) || !is.list(snapshot)) return(FALSE)
+  data <- snapshot$data %||% NULL
+  if (is.data.frame(data) && nrow(data) > 0L) return(TRUE)
+  if (length(snapshot$territorial_report_cache %||% list()) > 0L) return(TRUE)
+  if (length(snapshot$dashboard %||% list()) > 0L) return(TRUE)
+  if (length(snapshot$variables %||% list()) > 0L) return(TRUE)
+  FALSE
+}
+
+.pulso_state_has_project_content <- function(s) {
+  if (is.null(s) || !is.list(s)) return(FALSE)
+  files <- s$files %||% list()
+  bases <- (s$estudio %||% list())$bases %||% list()
+  length(files) > 0L ||
+    length(bases) > 0L ||
+    length(s$monitoreo_sources %||% list()) > 0L ||
+    .pulso_snapshot_has_content(s$monitoreo_snapshot %||% NULL) ||
+    length(s$monitoreo_territorial_map_cache %||% list()) > 0L
+}
+
+.pulso_existing_project_summary <- function(path) {
+  info <- file.info(path)
+  out <- list(
+    exists = isTRUE(file.exists(path)),
+    readable = FALSE,
+    size = if (!is.na(info$size %||% NA_real_)) as.numeric(info$size) else NA_real_,
+    manifest_n_files = NA_integer_,
+    manifest_n_bases = NA_integer_,
+    manifest_significant = FALSE,
+    state_significant = FALSE,
+    significant = FALSE
+  )
+  if (!isTRUE(out$exists)) return(out)
+
+  stage_dir <- tempfile("pulso_guard_")
+  dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(stage_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  ok <- tryCatch({
+    utils::unzip(path, exdir = stage_dir)
+    TRUE
+  }, error = function(e) FALSE)
+  if (!isTRUE(ok)) {
+    out$significant <- is.finite(out$size) && out$size > 4096
+    return(out)
+  }
+  out$readable <- TRUE
+
+  manifest_path <- file.path(stage_dir, "manifest.json")
+  if (file.exists(manifest_path)) {
+    manifest <- tryCatch(jsonlite::fromJSON(manifest_path, simplifyVector = TRUE), error = function(e) list())
+    out$manifest_n_files <- suppressWarnings(as.integer(manifest$n_files %||% NA_integer_))
+    out$manifest_n_bases <- suppressWarnings(as.integer(manifest$n_bases %||% NA_integer_))
+    out$manifest_significant <- isTRUE(out$manifest_n_files > 0L) || isTRUE(out$manifest_n_bases > 0L)
+  }
+
+  state_path <- file.path(stage_dir, "state.rds")
+  if (file.exists(state_path)) {
+    state <- tryCatch(readRDS(state_path), error = function(e) NULL)
+    out$state_significant <- .pulso_state_has_project_content(state)
+  }
+
+  out$significant <- isTRUE(out$manifest_significant) || isTRUE(out$state_significant)
+  out
+}
+
+.pulso_refuse_empty_project_overwrite <- function(s, dest_path, allow_empty_overwrite = FALSE) {
+  if (isTRUE(allow_empty_overwrite)) return(invisible(FALSE))
+  existing <- .pulso_existing_project_summary(dest_path)
+  if (!isTRUE(existing$exists) || !isTRUE(existing$significant)) return(invisible(FALSE))
+  if (.pulso_state_has_project_content(s)) return(invisible(FALSE))
+  stop_api(
+    409,
+    "E_REFUSE_EMPTY_PROJECT_OVERWRITE",
+    sprintf(
+      "Prosecnur no sobrescribió '%s' porque el archivo existente contiene estado de proyecto y la sesión actual está vacía.",
+      basename(dest_path)
+    ),
+    details = existing
+  )
+}
+
 # Reescribe s$files[[*]]$path para que apunten al nuevo tempdir de sesión
 # tras un load_pulso. Los files físicos ya fueron copiados por el caller a
 # `uploads_dir`.
@@ -1293,7 +1376,7 @@
 #   dest_path   — path absoluto del .pulso (se crea o reemplaza)
 #   project_name — nombre humano para el manifest (opcional)
 # Retorna list(ok=TRUE, size, saved_at).
-build_pulso <- function(sid, dest_path, project_name = NULL) {
+build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwrite = FALSE) {
   if (!requireNamespace("zip", quietly = TRUE)) {
     stop_api(500, "E_NO_ZIP", "El paquete R 'zip' no está instalado.")
   }
@@ -1302,6 +1385,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL) {
   }
 
   s <- session_get(sid)
+  .pulso_refuse_empty_project_overwrite(s, dest_path, allow_empty_overwrite = allow_empty_overwrite)
 
   # Staging temp para armar el zip.
   stage_dir <- tempfile("pulso_stage_")

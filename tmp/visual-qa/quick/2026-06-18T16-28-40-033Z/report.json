@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T16:28:53.382Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 1000
+      }
+    ],
+    "layoutPreset": "portable",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "7704c20b-4ad8-47ce-84c7-ecfe0bddca30",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 16:28:44 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso",
+        "name": "ACNURCG",
+        "dirty": false,
+        "last_saved_at": "2026-06-18T14:24:21Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso\",\"name\":\"ACNURCG\",\"dirty\":false,\"last_saved_at\":\"2026-06-18T14:24:21Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/quick/2026-06-18T16-28-40-033Z/logs/api.log",
+      "vite": "tmp/visual-qa/quick/2026-06-18T16-28-40-033Z/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/quick/2026-06-18T16-28-40-033Z/quick-monitoreo-1440x1000-portable.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/quick/2026-06-18T16-28-40-033Z/quick-monitoreo-1440x1000-portable.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "portable",
+        "density": "balanced",
+        "mode": "desktop"
+      },
+      "ready": [
+        "monitoreo"
+      ],
+      "session": "7704c20b-4ad8-47ce-84c7-ecfe0bddca30",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo ACNURCG hace 2 h Monitoreo territorial RUTA ACTIVA Territorial Tipo único del proyecto SUPERFICIES DE TRABAJO 6 VISTAS Fuente Formulario Kobo y filtro Manzanas seleccionadas Titulares, reemplazos y mapa Validación Resumen, GPS, duración y cuotas Consultas internas Registros por validar Avance territorial Distrito, manzana y ritmo Ocurrencias de campo Estados y UMP PUBLICACIONES Territorial 0/2 web · 1/2 Sheets 876 registros listos para ",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1000
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 82,
+          "width": 1424,
+          "height": 910
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

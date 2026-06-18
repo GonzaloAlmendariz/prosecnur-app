@@ -26,6 +26,7 @@ import PublicArtifactApp from "./PublicArtifactApp";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
 import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
+import { useApplyLayoutPreset } from "../lib/layoutPreference";
 
 // Dashboard — code-split para no arrastrar plotly al bundle principal.
 // Su payload solo se carga cuando el usuario entra a /tablero. La ruta
@@ -44,6 +45,8 @@ const ROUTER_BASENAME =
 installLogSink();
 
 export default function App() {
+  useApplyLayoutPreset();
+
   useEffect(() => {
     logNote("App montado", "info");
   }, []);

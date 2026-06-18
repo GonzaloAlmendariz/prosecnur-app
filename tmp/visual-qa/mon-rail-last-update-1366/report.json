@@ -1,0 +1,111 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T09:51:14.340Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1366,
+        "height": 768
+      }
+    ],
+    "layoutPreset": "portable-compact",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5175/",
+    "apiUrl": "http://127.0.0.1:8789",
+    "frontendPort": 5175,
+    "apiPort": 8789,
+    "session": "dc9f59ba-5121-4125-be5a-182aa67cdfbf",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 09:51:07 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+        "name": "prosecnur_audit_reference",
+        "dirty": true,
+        "last_saved_at": "2026-06-07T23:39:47Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso\",\"name\":\"prosecnur_audit_reference\",\"dirty\":true,\"last_saved_at\":\"2026-06-07T23:39:47Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/mon-rail-last-update-1366/logs/api.log",
+      "vite": "tmp/visual-qa/mon-rail-last-update-1366/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/mon-rail-last-update-1366/quick-monitoreo-1366x768-portable-compact.png"
+    ],
+    "visualIssues": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "url": "http://127.0.0.1:5175/monitoreo",
+      "screenshot": "tmp/visual-qa/mon-rail-last-update-1366/quick-monitoreo-1366x768-portable-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "portable-compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "monitoreo"
+      ],
+      "session": "dc9f59ba-5121-4125-be5a-182aa67cdfbf",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo prosecnur_audit_reference sin guardar Acreditación institucional RUTA ACTIVA Acreditación Tipo único del proyecto SUPERFICIES DE TRABAJO 5 VISTAS Fuentes Elegir encuestas y bases Modelo operativo Metas, mecanismos y barrido Explorador Universo, casos y trazabilidad Monitoreo telefónico Modelo, barrido y supervisión Avance Cumplimiento y brechas SALIDAS Acreditación 0/2 web · Sheets sin enlace Cliente Interno Sheets 80 registros listos p",
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1338,
+          "height": 672
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

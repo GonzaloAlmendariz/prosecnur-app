@@ -82,6 +82,33 @@ Cada fuente declara:
 | `integration_mode` | `file`, `connected_read`, `controlled_write` |
 | `sheet_binding` | spreadsheet id, pestana, fila de encabezado, rango opcional, ultima lectura y hash |
 
+En `territorial`, una fuente Google Sheets con `role = hoja_ruta` representa la
+hoja operativa generada por Hojas de Ruta. El preset esperado usa
+`sheet_name = Hojas_de_ruta`, `header_row = 6`, `integration_mode =
+connected_read` y, por defecto, `dimensions.territorial_phase = field`.
+
+### Publicaciones
+
+Monitoreo separa publicacion por audiencia y canal. Cada corte puede publicarse
+como `web` y/o `sheets`, y cada canal puede salir para `client` y/o
+`internal`:
+
+- `client`: publica un Space de avance agregado para cliente, sin PII,
+  contactos, GPS puntual, identificadores crudos, alertas, casos accionables ni
+  auditoria.
+- `internal`: publica un Space privado de solo lectura web para el equipo, con
+  el snapshot operativo completo, incluyendo PII, GPS, IDs, alertas, auditoria
+  y casos accionables.
+
+La publicacion web interna exige `private = true`. Toda salida interna,
+incluyendo Sheets, exige confirmacion manual explicita en Prosecnur antes de
+subir el corte completo fuera de la maquina local. No hay autosync remoto: cada
+corte se sincroniza localmente y luego se republica de forma manual.
+
+Los ejecutivos tabulares por audiencia se publican desde Prosecnur hacia Google
+Sheets como pestanas controladas de cliente o internas. El Space interno no
+expone descargas XLSX/CSV; muestra datos completos solo como vista web privada.
+
 ## KoboToolbox
 
 KoboToolbox se configura desde la Configuracion global de Prosecnur como
@@ -138,6 +165,10 @@ Reglas de escritura:
 - Las pestanas controladas v1 son `Prosecnur - Resumen`,
   `Prosecnur - Alertas`, `Prosecnur - Auditoria` y
   `Prosecnur - Reporte`.
+- En Monitoreo Territorial, `hoja_ruta` se lee como snapshot local para
+  diagnosticar asignaciones, UMP sin primera encuesta y posibles errores de
+  UMP/Codigo Pulso; no altera el avance oficial hasta que el usuario aplique
+  una reconciliacion.
 
 ## Perfil `acreditacion`
 
@@ -240,6 +271,11 @@ respuestas con GPS ausente/lejos o duracion fuera de umbral quedan `En
 observacion`; un visto bueno auditado puede aprobar la observacion sin cambiar
 el total de avance operativo.
 
+La hoja operativa `Hojas_de_ruta` puede conectarse opcionalmente como evidencia
+diagnostica. Monitoreo la normaliza a asignaciones por encuestador/UMP, la cruza
+contra la ruta activa y el roster, y expone recomendaciones de reconciliacion
+sin aplicarlas automaticamente.
+
 ## Pruebas
 
 Cobertura minima:
@@ -252,4 +288,6 @@ Cobertura minima:
 - endpoints `/api/monitoreo/sheets/*`;
 - tipos TypeScript y envio de payloads de Sheets desde frontend;
 - perfil `territorial`: avance operativo separado de observaciones GPS/tiempo
-  y visto bueno persistido en `config.territorial.validation_decisions`.
+  y visto bueno persistido en `config.territorial.validation_decisions`;
+- perfil `territorial`: fuente opcional `hoja_ruta` no cuenta como respuesta y
+  produce diagnosticos/recomendaciones de reconciliacion.

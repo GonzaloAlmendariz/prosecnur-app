@@ -796,16 +796,19 @@ function useAdaptiveCinemaMetrics() {
 
 function computeCinemaMetrics(width: number, height: number): CinemaMetrics {
   const crampedHeight = height < 220 && width < 620;
-  const compact = width < 500 || crampedHeight;
+  const shortDeck = height < 310;
+  const compact = width < 500 || crampedHeight || shortDeck;
   const roomy = width > 640 && height > 365;
   const density: CinemaDensity = compact ? "compact" : roomy ? "roomy" : "standard";
-  const cardWidth = Math.round(clamp(width * (compact ? 0.72 : 0.5), compact ? 244 : 276, roomy ? 352 : 326));
+  const cardWidth = Math.round(clamp(width * (compact ? 0.68 : 0.5), compact ? 224 : 276, roomy ? 352 : 326));
   const cardMinHeight = Math.round(
     crampedHeight
       ? clamp(height - 16, 126, 220)
+      : shortDeck
+      ? clamp(height - 24, 190, 258)
       : clamp(height - (compact ? 22 : 30), compact ? 258 : 292, roomy ? 350 : 326),
   );
-  const cardStep = Math.round(clamp(width * (compact ? 0.34 : 0.32), compact ? 116 : 152, roomy ? 224 : 194));
+  const cardStep = Math.round(clamp(width * (compact ? 0.3 : 0.32), compact ? 104 : 152, roomy ? 224 : 194));
   const cardYOffset = Math.round(clamp(height * 0.026, compact ? 4 : 7, 12));
 
   return {
@@ -813,10 +816,10 @@ function computeCinemaMetrics(width: number, height: number): CinemaMetrics {
     cardMinHeight,
     cardStep,
     cardYOffset,
-    cardRotate: compact ? 2.8 : roomy ? 4.5 : 3.7,
-    cardTilt: compact ? 5.5 : roomy ? 10 : 7.5,
-    scaleDrop: compact ? 0.085 : roomy ? 0.105 : 0.095,
-    minScale: compact ? 0.78 : 0.72,
+    cardRotate: compact ? 2.6 : roomy ? 4.5 : 3.7,
+    cardTilt: compact ? 5 : roomy ? 10 : 7.5,
+    scaleDrop: compact ? 0.1 : roomy ? 0.105 : 0.095,
+    minScale: compact ? 0.74 : 0.72,
     hiddenDistance: 1,
     density,
   };

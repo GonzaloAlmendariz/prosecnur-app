@@ -130,6 +130,8 @@
   artifact <- artifact %||% list()
   kind <- .public_artifact_scalar(artifact$kind, "dashboard")
   if (!kind %in% c("dashboard", "monitoreo")) kind <- "dashboard"
+  audience <- .public_artifact_scalar(artifact$audience, if (identical(kind, "monitoreo")) "client" else "")
+  if (identical(kind, "monitoreo") && !audience %in% c("client", "internal")) audience <- "client"
   public_scope <- .public_artifact_scalar(
     artifact$public_scope,
     if (identical(kind, "monitoreo")) "aggregate" else "dashboard"
@@ -140,10 +142,38 @@
     title = title,
     module = .public_artifact_scalar(artifact$module, if (identical(kind, "monitoreo")) "monitoreo" else "dashboard"),
     public_scope = public_scope,
+    audience = audience,
     profile_family = .public_artifact_scalar(artifact$profile_family, ""),
+    publication_family = .public_artifact_scalar(artifact$publication_family, artifact$monitoring_family %||% ""),
+    monitoring_family = .public_artifact_scalar(artifact$monitoring_family, artifact$publication_family %||% artifact$profile_family %||% ""),
+    destination = .public_artifact_scalar(artifact$destination, if (identical(kind, "monitoreo")) "hugging_face_space" else ""),
+    source = .public_artifact_scalar(artifact$source, if (identical(kind, "monitoreo")) "publication_model" else ""),
+    namespace = .public_artifact_scalar(artifact$namespace, ""),
+    space_name = .public_artifact_scalar(artifact$space_name, ""),
+    repo_id = .public_artifact_scalar(artifact$repo_id, ""),
+    app_url = .public_artifact_scalar(artifact$app_url, ""),
+    space_url = .public_artifact_scalar(artifact$space_url, artifact$app_url %||% ""),
+    sheet_url = .public_artifact_scalar(artifact$sheet_url, ""),
+    last_used_at = .public_artifact_scalar(artifact$last_used_at, artifact$published_at %||% ""),
+    publication_sections = artifact$publication_sections %||% list(),
     report_scope = .public_artifact_scalar(artifact$report_scope, ""),
     published_at = .public_artifact_scalar(artifact$published_at, "")
   )
+}
+
+.public_artifact_sections_from_model <- function(model = NULL) {
+  if (is.null(model) || !is.list(model)) return(list())
+  section_names <- names(model)[vapply(model, function(value) {
+    is.list(value) && nzchar(.public_artifact_scalar(value$id, ""))
+  }, logical(1))]
+  lapply(section_names, function(id) {
+    section <- model[[id]]
+    list(
+      id = .public_artifact_scalar(section$id, id),
+      title = .public_artifact_scalar(section$title, id),
+      n_rows = as.integer(section$n_rows %||% length(section$rows %||% list()))
+    )
+  })
 }
 
 .dashboard_publish_render_readme <- function(root, repo_id, space_name, project_name, artifact = NULL) {
@@ -170,7 +200,14 @@
     error = function(e) "dev"
   )
   artifact_label <- if (identical(artifact$kind, "monitoreo")) {
-    "Reporte de avance"
+    family <- .public_artifact_scalar(artifact$publication_family, artifact$monitoring_family %||% artifact$profile_family %||% "")
+    if (identical(artifact$audience, "internal")) {
+      "Monitoreo operativo interno"
+    } else if (identical(family, "territorial_fieldwork") || identical(artifact$profile_family, "territorial")) {
+      "Reporte de avance territorial"
+    } else {
+      "Reporte de avance para cliente"
+    }
   } else {
     "Dashboard"
   }
@@ -267,6 +304,10 @@
 
   if (identical(artifact$kind, "monitoreo")) {
     .dashboard_publish_copy_public_runtime(root, stage, artifact = artifact)
+    publication_model <- public_payload$monitoreo_report$publication_model %||% NULL
+    if (is.list(publication_model) && exists("render_monitoreo_space", mode = "function")) {
+      render_monitoreo_space(publication_model, file.path(stage, "api", "inst", "www", "space"))
+    }
   } else {
     for (file in c("Dockerfile", ".dockerignore")) {
       src <- file.path(root, file)
@@ -391,6 +432,16 @@
   invisible(TRUE)
 }
 
+.hf_lfs_track_patterns <- function() {
+  c(
+    "data/*.pulso",
+    "api/inst/www/space/publication_model.json",
+    "*.pptx",
+    "*.xlsx",
+    "*.sav"
+  )
+}
+
 .hf_token_username <- function(token) {
   .dashboard_publish_require_curl()
   h <- curl::new_handle()
@@ -430,13 +481,13 @@
   .git_run(c("init", "-b", "main"), prepared$stage)
   .git_run(c("config", "--local", "credential.helper", ""), prepared$stage)
   # LFS: trackeamos los binarios que sí necesitamos subir (data/*.pulso)
-  # y por las dudas otros binarios que pudieran colarse (pptx/xlsx/sav).
+  # el JSON del modelo publico si crece sobre 10 MiB, y por las dudas otros
+  # binarios que pudieran colarse (pptx/xlsx/sav).
   # `git lfs install --local` instala los hooks en este repo solo.
   .git_run(c("lfs", "install", "--local"), prepared$stage)
-  .git_run(c("lfs", "track", "data/*.pulso"), prepared$stage)
-  .git_run(c("lfs", "track", "*.pptx"), prepared$stage)
-  .git_run(c("lfs", "track", "*.xlsx"), prepared$stage)
-  .git_run(c("lfs", "track", "*.sav"), prepared$stage)
+  for (pattern in .hf_lfs_track_patterns()) {
+    .git_run(c("lfs", "track", pattern), prepared$stage)
+  }
   .git_run(c("add", ".gitattributes"), prepared$stage)
   .git_run(c("add", "-A"), prepared$stage)
   commit_label <- if (identical(prepared$artifact_kind %||% "", "monitoreo")) "Deploy monitoreo" else "Deploy dashboard"
@@ -489,6 +540,13 @@
   published_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   artifact <- prepared$artifact %||% .public_artifact_normalize(artifact, space_name)
   artifact$published_at <- published_at
+  artifact$namespace <- hf_username
+  artifact$space_name <- space_name
+  artifact$repo_id <- repo_id
+  artifact$app_url <- app_url
+  artifact$space_url <- app_url
+  artifact$last_used_at <- published_at
+  artifact$source <- artifact$source %||% if (identical(artifact$kind, "monitoreo")) "publication_model" else "dashboard"
 
   list(
     ok = TRUE,
@@ -500,7 +558,15 @@
     private = isTRUE(private),
     artifact_kind = artifact$kind,
     public_scope = artifact$public_scope,
+    audience = artifact$audience %||% "",
     profile_family = artifact$profile_family,
+    publication_family = artifact$publication_family %||% "",
+    monitoring_family = artifact$monitoring_family %||% artifact$publication_family %||% artifact$profile_family %||% "",
+    destination = artifact$destination %||% "",
+    source = artifact$source %||% "",
+    namespace = artifact$namespace %||% "",
+    space_url = artifact$space_url %||% "",
+    publication_sections = artifact$publication_sections %||% list(),
     report_scope = artifact$report_scope,
     files_uploaded = length(uploaded),
     total_bytes = total,
@@ -521,8 +587,15 @@
     private = isTRUE(private),
     artifact_kind = out$artifact_kind %||% "",
     public_scope = out$public_scope %||% "",
+    audience = out$audience %||% "",
     profile_family = out$profile_family %||% "",
-    report_scope = out$report_scope %||% ""
+    publication_family = out$publication_family %||% "",
+    monitoring_family = out$monitoring_family %||% out$publication_family %||% out$profile_family %||% "",
+    report_scope = out$report_scope %||% "",
+    namespace = hf_username,
+    last_used_at = out$published_at,
+    source = "hugging_face",
+    destination = out$destination %||% "hugging_face_space"
   )
 }
 
@@ -556,9 +629,18 @@ dashboard_publish_space <- function(sid, hf_username, hf_token, space_name, priv
   out
 }
 
-monitoreo_publish_space <- function(sid, hf_username, hf_token, space_name, private = FALSE) {
+monitoreo_publish_space <- function(sid, hf_username, hf_token, space_name, private = FALSE, audience = "client") {
   if (is_public_mode()) {
     stop_api(403, "E_PUBLIC_MODE", "Publicar esta deshabilitado en modo publico.")
+  }
+  audience <- .public_artifact_scalar(tolower(as.character(audience %||% "client")[1]), "client")
+  if (!audience %in% c("client", "internal")) audience <- "client"
+  if (identical(audience, "internal") && !isTRUE(private)) {
+    stop_api(
+      400,
+      "E_MONITOREO_INTERNAL_PRIVATE",
+      "La publicacion interna contiene datos completos y debe crearse como Space privado."
+    )
   }
   s <- session_get(sid)
   snapshot <- s$monitoreo_snapshot %||% NULL
@@ -566,8 +648,10 @@ monitoreo_publish_space <- function(sid, hf_username, hf_token, space_name, priv
   if (!nrow(data)) {
     stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar el reporte web.")
   }
-  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% snapshot$config %||% list(), data)
-  family <- .public_artifact_scalar(cfg$monitoreo_profile$family, "")
+  raw_config <- s$monitoreo_config %||% snapshot$config %||% list()
+  cfg <- monitoreo_normalize_config(raw_config, data)
+  publication_family <- detect_monitoreo_family(config = raw_config, data = data)
+  family <- .monitoreo_publication_engine_family(publication_family)
   if (!family %in% c("acreditacion", "territorial")) {
     stop_api(
       409,
@@ -579,14 +663,28 @@ monitoreo_publish_space <- function(sid, hf_username, hf_token, space_name, priv
     cfg$acreditacion$estudio$titulo,
     s$estudio$nombre %||% if (identical(family, "territorial")) "Reporte territorial" else "Reporte de acreditacion"
   )
-  report_scope <- if (identical(family, "territorial")) "advance_summary" else "client_report"
-  public_report <- .monitoreo_public_report_payload(sid)
+  report_scope <- if (identical(audience, "internal")) {
+    "internal_full"
+  } else if (identical(family, "territorial")) {
+    "advance_summary"
+  } else {
+    "client_report"
+  }
+  public_scope <- if (identical(audience, "internal")) "internal_full" else "aggregate"
+  public_report <- .monitoreo_public_report_payload(sid, audience = audience)
+  publication_model <- public_report$publication_model %||% list()
   artifact <- list(
     kind = "monitoreo",
     module = "monitoreo",
     title = title,
-    public_scope = "aggregate",
+    public_scope = public_scope,
+    audience = audience,
     profile_family = family,
+    publication_family = .monitoreo_publication_family_label(publication_family),
+    monitoring_family = .monitoreo_publication_family_label(publication_family),
+    destination = "hugging_face_space",
+    source = "publication_model",
+    publication_sections = .public_artifact_sections_from_model(publication_model),
     report_scope = report_scope
   )
   out <- .publish_space_common(
@@ -599,7 +697,18 @@ monitoreo_publish_space <- function(sid, hf_username, hf_token, space_name, priv
     public_payload = list(monitoreo_report = public_report)
   )
   s <- session_get(sid)
-  s$monitoreo_publication <- list(last_deploy = .publish_last_deploy_payload(out, hf_username, private))
+  publication <- s$monitoreo_publication %||% list()
+  deploy <- .publish_last_deploy_payload(out, hf_username, private)
+  if (identical(audience, "internal")) {
+    publication$internal_last_deploy <- deploy
+  } else {
+    publication$client_last_deploy <- deploy
+    publication$last_deploy <- deploy
+  }
+  if (is.null(publication$last_deploy)) {
+    publication$last_deploy <- publication$client_last_deploy %||% publication$internal_last_deploy %||% NULL
+  }
+  s$monitoreo_publication <- publication
   s$project_dirty <- TRUE
   .session_env[[sid]] <- s
   out

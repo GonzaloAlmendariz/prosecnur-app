@@ -35,5 +35,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0011](0011-cache-persistida-mapas-monitoreo-territorial.md) | Aceptado | 2026-06-15 | Monitoreo territorial persiste una cache compacta de mapas por fase |
 | [0012](0012-reportes-monitoreo-publicables.md) | Aceptado | 2026-06-16 | Monitoreo publica reportes web como snapshots agregados sin subir la app completa |
 | [0013](0013-importacion-workbook-surveymonkey-offline.md) | Aceptado | 2026-06-16 | SurveyMonkey multibase importa archivos offline contra bases existentes |
+| [0014](0014-publicacion-dual-monitoreo.md) | Aceptado | 2026-06-18 | Monitoreo separa publicaciones cliente e internas por audiencia |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

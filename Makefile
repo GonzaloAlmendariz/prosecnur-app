@@ -23,7 +23,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -39,6 +39,7 @@ help:
 	@echo "  dev-frontend     Run Vite dev server (proxies /api to VITE_API_PROXY_TARGET or PULSO_PORT)"
 	@echo "  dev-electron-vite Run Electron against Vite HMR; optional PULSO=/path/project.pulso"
 	@echo "  visual-qa        Run reusable Playwright visual QA against a route/project"
+	@echo "  ui-quick-check   Fast Playwright UI check; starts free ports and optional PULSO project"
 	@echo "  monitoreo-qa     Run visual QA for /monitoreo with a .pulso project"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
@@ -128,6 +129,11 @@ visual-qa:
 	  --out "$(QA_OUT)" \
 	  $(if $(PULSO),--project "$(PULSO)",) \
 	  $(QA_ARGS)
+
+ui-quick-check:
+	@node scripts/ui-quick-check.mjs \
+	  $(if $(PULSO),--project "$(PULSO)",) \
+	  $(UI_QA_ARGS)
 
 monitoreo-qa:
 	@test -n "$(PULSO)" || (echo "uso: make monitoreo-qa PULSO=/ruta/al/proyecto.pulso [QA_API=auto]"; exit 1)

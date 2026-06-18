@@ -4,7 +4,7 @@ import type {
   TerritorialResponseAuditRow,
 } from "../../api/client";
 
-export type TerritorialSummaryUmpStatus = "complete" | "incomplete" | "overfilled" | "none";
+export type TerritorialSummaryUmpStatus = "complete" | "incomplete" | "none";
 
 export type TerritorialSummaryDistrictRow = TerritorialDistrictProgress & {
   ump_complete: number;
@@ -54,7 +54,6 @@ export type TerritorialExecutiveUmpStack = {
   total: number;
   fulfilled: number;
   complete: number;
-  overfilled: number;
   incomplete: number;
   none: number;
   segments: Array<{
@@ -211,16 +210,14 @@ export function buildTerritorialPriorityGroups(
 
 function buildUmpStack(rows: TerritorialSummaryUmpRow[]): TerritorialExecutiveUmpStack {
   const complete = rows.filter((row) => row.status === "complete").length;
-  const overfilled = rows.filter((row) => row.status === "overfilled").length;
   const incomplete = rows.filter((row) => row.status === "incomplete").length;
   const none = rows.filter((row) => row.status === "none").length;
-  const fulfilled = complete + overfilled;
+  const fulfilled = complete;
   const total = Math.max(0, fulfilled + incomplete + none);
   return {
     total,
     fulfilled,
     complete,
-    overfilled,
     incomplete,
     none,
     segments: [

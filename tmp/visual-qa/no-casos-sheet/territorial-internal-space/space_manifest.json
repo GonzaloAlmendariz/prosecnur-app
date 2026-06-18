@@ -1,0 +1,75 @@
+{
+  "schema": "monitoreo_space_manifest_v1",
+  "variant": "territorial_internal",
+  "family": "territorial_fieldwork",
+  "audience": "internal",
+  "source": "publication_model",
+  "generated_at": "2026-06-18T20:19:19Z",
+  "publication_sections": {
+    "portada": {
+      "id": "portada",
+      "title": "Portada",
+      "n_rows": 13
+    },
+    "resumen_operativo": {
+      "id": "resumen_operativo",
+      "title": "Resumen territorial",
+      "n_rows": 29
+    },
+    "avance_campo": {
+      "id": "avance_campo",
+      "title": "Ritmo diario",
+      "n_rows": 11
+    },
+    "encuestadores_rutas": {
+      "id": "encuestadores_rutas",
+      "title": "Manzanas y responsables",
+      "n_rows": 6
+    },
+    "responsables_rutas": {
+      "id": "responsables_rutas",
+      "title": "Responsables y rutas",
+      "n_rows": 6
+    },
+    "cuotas_ump": {
+      "id": "cuotas_ump",
+      "title": "Cuotas sexo y edad",
+      "n_rows": 50
+    },
+    "validacion_tiempos": {
+      "id": "validacion_tiempos",
+      "title": "Validación de tiempos",
+      "n_rows": 36
+    },
+    "ocurrencias_campo": {
+      "id": "ocurrencias_campo",
+      "title": "Ocurrencias de campo",
+      "n_rows": 22
+    },
+    "gps_territorio": {
+      "id": "gps_territorio",
+      "title": "GPS y territorio",
+      "n_rows": 36
+    },
+    "casos_accionables": {
+      "id": "casos_accionables",
+      "title": "Casos accionables",
+      "n_rows": 59
+    },
+    "fuentes_actualizacion": {
+      "id": "fuentes_actualizacion",
+      "title": "Fuentes y actualización",
+      "n_rows": 1
+    },
+    "auditoria_tecnica": {
+      "id": "auditoria_tecnica",
+      "title": "Auditoría técnica",
+      "n_rows": 89
+    },
+    "base_tecnica": {
+      "id": "base_tecnica",
+      "title": "Base técnica",
+      "n_rows": 36
+    }
+  }
+}

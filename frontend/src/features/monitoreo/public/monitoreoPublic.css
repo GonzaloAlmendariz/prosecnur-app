@@ -120,9 +120,424 @@
   align-items: start;
 }
 
+.mon-public-layout--suite {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.mon-public-model-landing {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.78fr) minmax(360px, 1.22fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.mon-public-model-intro {
+  min-width: 0;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 14px;
+}
+
+.mon-public-model-intro > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-module-monitoring);
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-public-model-intro > strong {
+  color: var(--pulso-text);
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.mon-public-model-intro p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.mon-public-model-intro dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.mon-public-model-intro dl div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.mon-public-model-intro dt {
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-public-model-intro dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-public-progress-overview .mon-public-progress-card dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mon-public-daily-progress {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 14px;
+}
+
+.mon-public-daily-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.mon-public-daily-progress-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.mon-public-daily-progress-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-module-monitoring);
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-public-daily-progress-head strong {
+  color: var(--pulso-text);
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.mon-public-daily-progress-head em {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 740;
+}
+
+.mon-public-daily-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.mon-public-daily-card {
+  min-width: 0;
+  box-shadow: none;
+}
+
+.mon-public-daily-card--wide {
+  grid-column: 1 / -1;
+}
+
+.mon-public-suite {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.mon-public-section-rail {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 2px;
+}
+
+.mon-public-section-rail button {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-public-section-rail button span {
+  min-width: 0;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.15;
+}
+
+.mon-public-section-rail button strong {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-public-section-rail button.is-active {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-module-monitoring), var(--pulso-shadow-low);
+}
+
+.mon-public-section-rail button.is-active span,
+.mon-public-section-rail button.is-active strong {
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-public-suite-main {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.mon-public-suite-tools {
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.mon-public-suite-tools span,
+.mon-public-insights span,
+.mon-public-mini-map > span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-public-suite-tools strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--pulso-text);
+  font-size: 20px;
+}
+
+.mon-public-suite-tools p {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.mon-public-search {
+  min-width: 260px;
+  max-width: 360px;
+  height: 38px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-public-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.mon-public-panel--model {
+  min-height: 540px;
+}
+
+.mon-public-table-wrap--model {
+  max-height: 520px;
+  background: var(--pulso-surface);
+}
+
+.mon-public-table-wrap--model .mon-public-table {
+  min-width: 1080px;
+}
+
+.mon-public-table-wrap--model .mon-public-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.mon-public-table-note {
+  margin: 10px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.mon-public-insights {
+  display: grid;
+  gap: 10px;
+}
+
+.mon-public-insights article,
+.mon-public-mini-map {
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 12px;
+}
+
+.mon-public-insights article strong,
+.mon-public-mini-map strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--pulso-text);
+  font-size: 26px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-public-insights article p {
+  margin: 7px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.mon-public-mini-map ul {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-public-mini-map li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-public-mini-map li strong {
+  margin: 0;
+  font-size: 12px;
+}
+
+.mon-public-map-canvas {
+  position: relative;
+  height: 190px;
+  margin-top: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--pulso-border) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--pulso-border) 55%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--pulso-module-monitoring) 5%, var(--pulso-surface-2));
+  background-size: 36px 36px;
+}
+
+.mon-public-map-canvas i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px var(--pulso-surface);
+}
+
+.mon-public-map-canvas i.is-ok {
+  background: var(--pulso-success-fg);
+}
+
+.mon-public-map-canvas i.is-warning {
+  background: var(--pulso-warning-fg);
+}
+
 .mon-public-panel {
   min-width: 0;
   padding: 14px;
+}
+
+.mon-public-private-note {
+  border: 1px solid color-mix(in srgb, var(--pulso-danger-fg) 34%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-danger-fg) 9%, var(--pulso-surface));
+  color: var(--pulso-text);
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.mon-public-private-note svg {
+  color: var(--pulso-danger-fg);
+  margin-top: 1px;
+}
+
+.mon-public-private-note strong {
+  display: block;
+  font-size: 13px;
+}
+
+.mon-public-private-note p {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .mon-public-panel--wide {
@@ -209,6 +624,101 @@
   background: var(--pulso-warning-fg);
 }
 
+.mon-public-status-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-public-status-day {
+  display: grid;
+  grid-template-columns: minmax(82px, 118px) minmax(0, 1fr) 50px;
+  gap: 8px;
+  align-items: center;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-public-status-day > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-public-status-day > strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-public-stacked-bar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-public-stacked-bar i {
+  display: block;
+  min-width: 2px;
+  height: 100%;
+}
+
+.mon-public-line-chart {
+  width: 100%;
+  height: 190px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0)),
+    var(--pulso-surface-2);
+}
+
+.mon-public-line-chart polyline {
+  fill: none;
+  stroke: var(--pulso-module-dashboard);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.5;
+}
+
+.mon-public-line-chart circle {
+  fill: var(--pulso-module-dashboard);
+  stroke: var(--pulso-surface);
+  stroke-width: 1.8;
+}
+
+.mon-public-line-chart .target-line {
+  stroke: var(--pulso-warning-fg);
+  stroke-dasharray: 4 4;
+  stroke-width: 1.8;
+}
+
+.mon-public-chart-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.mon-public-chart-foot small {
+  display: grid;
+  gap: 1px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  text-align: right;
+}
+
+.mon-public-chart-foot strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-public-table-wrap--compact table {
+  min-width: 680px;
+}
+
 .mon-public-progress-card {
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
@@ -280,6 +790,11 @@
   border-radius: 8px;
 }
 
+.mon-public-table-wrap.is-internal {
+  max-height: min(68vh, 680px);
+  background: var(--pulso-surface);
+}
+
 .mon-public-table {
   width: 100%;
   min-width: 760px;
@@ -303,6 +818,22 @@
   text-transform: uppercase;
 }
 
+.mon-public-table-wrap.is-internal .mon-public-table {
+  min-width: 1120px;
+}
+
+.mon-public-table-wrap.is-internal .mon-public-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.mon-public-table-wrap.is-internal .mon-public-table td {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .mon-public-table td:nth-child(n+4) {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -322,6 +853,34 @@
     grid-template-columns: 1fr;
   }
 
+  .mon-public-model-landing {
+    grid-template-columns: 1fr;
+  }
+
+  .mon-public-daily-progress-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mon-public-suite {
+    grid-template-columns: 1fr;
+  }
+
+  .mon-public-section-rail {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: none;
+  }
+
+  .mon-public-suite-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mon-public-search {
+    max-width: none;
+    width: 100%;
+  }
+
   .mon-public-progress-card dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -333,6 +892,10 @@
   }
 
   .mon-public-daily-row {
+    grid-template-columns: 80px minmax(0, 1fr) 42px;
+  }
+
+  .mon-public-status-day {
     grid-template-columns: 80px minmax(0, 1fr) 42px;
   }
 }

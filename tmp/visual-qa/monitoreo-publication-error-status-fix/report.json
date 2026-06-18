@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T18:12:46.831Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1366,
+        "height": 768
+      }
+    ],
+    "layoutPreset": "portable-compact",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120528.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "4a5bd4e2-c408-41aa-9aac-cc362d487f8c",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 18:12:12 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120528.pulso",
+        "name": "monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120528",
+        "dirty": false,
+        "last_saved_at": "2026-06-17T17:46:45Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120528.pulso\",\"name\":\"monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120528\",\"dirty\":false,\"last_saved_at\":\"2026-06-17T17:46:45Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/monitoreo-publication-error-status-fix/logs/api.log",
+      "vite": "tmp/visual-qa/monitoreo-publication-error-status-fix/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/monitoreo-publication-error-status-fix/quick-monitoreo-1366x768-portable-compact.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/monitoreo-publication-error-status-fix/quick-monitoreo-1366x768-portable-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "portable-compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "monitoreo"
+      ],
+      "session": "4a5bd4e2-c408-41aa-9aac-cc362d487f8c",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120528 sin guardar Acreditación institucional RUTA ACTIVA Acreditación Tipo único del proyecto SUPERFICIES DE TRABAJO 5 VISTAS Fuentes Elegir encuestas y bases Modelo operativo Metas, mecanismos y barrido Explorador Universo, casos y trazabilidad Monitoreo telefónico Modelo, barrido y supervisión Avance Cumplimiento y brechas PUBLICACIONES Acreditación 0/2 web · 0/2",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1338,
+          "height": 672
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

@@ -7,19 +7,30 @@ La app principal sigue siendo local: Prosecnur arma un snapshot temporal del
 Hay dos familias:
 
 - Dashboard: conserva el flujo existente y sirve el dashboard interactivo.
-- Monitoreo: publica un visor minimo de snapshot agregado. El Space contiene
-  `data/proyecto.pulso`, un runtime R reducido y un HTML publico; no sube el
-  frontend ni los routers completos de la app local.
+- Monitoreo: publica visores por audiencia. Cliente recibe avance agregado;
+  interno recibe un visor privado con el corte operativo completo. El Space
+  contiene `data/proyecto.pulso`, un runtime R reducido y un HTML publico; no
+  sube el frontend ni los routers completos de la app local.
 
 ## Crear token de Hugging Face
 
 1. Entra a https://huggingface.co/settings/tokens.
 2. Crea un token con permiso `write`.
-3. En Prosecnur abre Dashboard -> Deploy o Monitoreo -> Publicar web.
-4. Ingresa usuario/organizacion, token `hf_...` y nombre del Space.
+3. En Prosecnur abre Dashboard -> Deploy o Monitoreo -> Publicaciones.
+4. Elige el namespace destino, pega el token `hf_...` y define el nombre del
+   Space.
 
 En la app de escritorio el token se guarda con `electron.safeStorage` dentro del
-directorio `userData` de Electron. No se escribe en el repo.
+directorio `userData` de Electron. No se escribe en el repo. La lista visible
+de tokens guarda solo metadatos no secretos, como nombre, alias/cuenta y
+mascara; el valor cifrado se descifra solo cuando el usuario selecciona un token
+guardado o publica con el.
+
+La credencial y el destino son conceptos separados. Un token puede pertenecer a
+una cuenta personal y publicar en una organizacion, por ejemplo el token local
+puede figurar como `GonzaloAlmVill` mientras el destino sea
+`pulsopucp/resultados-de-la-encuesta-de-satisfaccion`. Prosecnur recuerda
+destinos recientes y un namespace por defecto como metadata no secreta.
 
 ## Publicar dashboard
 
@@ -36,17 +47,22 @@ si solo cambia `data/proyecto.pulso`.
 ## Publicar Monitoreo
 
 1. Sincroniza localmente el corte de Monitoreo.
-2. Abre el modulo Monitoreo y pulsa `Publicar web`.
-3. Usa un Space distinto por reporte, por ejemplo `acnur-avance-territorial`
-   y `acnur-avance-acreditacion`.
-4. Publica. Para actualizar el corte, vuelve a publicar al mismo Space.
+2. Abre el modulo Monitoreo y pulsa `Salidas`.
+3. Elige audiencia (`Cliente` o `Interno`) y canal (`Web` o `Sheets`).
+4. Para Web, usa un Space distinto por reporte/audiencia, por ejemplo
+   `acnur-avance-territorial-cliente` y `acnur-avance-territorial-interno`.
+5. Publica. Para actualizar el corte, vuelve a publicar al mismo Space.
 
-El Space de Monitoreo no sincroniza Kobo ni Sheets. Solo lee el payload
+El Space de Monitoreo no sincroniza Kobo ni Sheets. Cliente solo lee el payload
 agregado embebido en el `.pulso` publicado:
 
 - acreditacion: resumen, avance por actor, brechas/meta, avance diario y
   fuentes agregadas;
 - territorial: KPIs, avance por distrito, brechas, avance diario y fase activa.
+
+La vista interna exige Space privado y confirmacion manual. Puede contener
+datos personales, GPS puntual, identificadores, alertas, auditoria y casos
+accionables; por eso no debe publicarse en un Space publico.
 
 ## Logs de build
 

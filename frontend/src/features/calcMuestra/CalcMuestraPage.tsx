@@ -1473,6 +1473,7 @@ function AcreditacionActorsTable({
                   </td>
                   <td>
                     <select
+                      className="cmv2-channel-select"
                       value={comp.canal_recojo}
                       onChange={(e) => onComponente(comp.id, { canal_recojo: e.currentTarget.value as CalcMuestraCanalRecojo })}
                     >

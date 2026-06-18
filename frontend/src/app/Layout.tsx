@@ -11,8 +11,9 @@ import {
   moduleChromeVars,
 } from "../lib/modules";
 
-// Layout global de la app. El header siempre muestra el brand + session
-// chip. El topbar de las 5 fases (Carga → Gráficos) aparece SOLO cuando
+// Layout global de la app. El header muestra marca, navegación, proyecto
+// activo y errores de sesión solo cuando existen. El topbar de las 5 fases
+// (Carga → Gráficos) aparece SOLO cuando
 // el usuario está dentro del módulo "Procesamiento de XLSForm" — el
 // Home (`/`) no lo muestra porque es un menú de módulos a nivel superior,
 // no una fase del procesamiento.
@@ -166,12 +167,12 @@ function NavItem({ it }: { it: NavItem }) {
   );
 }
 
-function SessionChip() {
-  const { version, error } = useSession();
+function SessionErrorChip() {
+  const { error } = useSession();
+  if (!error) return null;
   return (
-    <div className="pulso-session-chip">
-      {version && <span>{version}</span>}
-      {error && <span className="is-error">{error}</span>}
+    <div className="pulso-session-chip pulso-session-chip--error" role="status">
+      <span className="is-error">{error}</span>
     </div>
   );
 }
@@ -429,7 +430,7 @@ export default function Layout() {
         )}
         <div className="pulso-app-header-spacer" />
         <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
-        <SessionChip />
+        <SessionErrorChip />
       </header>
       <main
         className={`pulso-main pulso-main--${policy}${isProcessing ? " pulso-main--processing" : ""}`}

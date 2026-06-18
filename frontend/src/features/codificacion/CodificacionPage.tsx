@@ -5,6 +5,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
 import { EmptyState } from "../../components/States";
 import { PreguntasLanding } from "./PreguntasLanding";
@@ -52,6 +53,8 @@ export default function CodificacionPage() {
       density="compact"
       headerMode="sr-only"
       bodyMode="fill"
+      layout="workbench"
+      scrollOwner="panels"
       resetScrollKey={step}
       lead={
         step === "organizar"
@@ -102,13 +105,18 @@ export default function CodificacionPage() {
         </div>
       }
     >
-      <section className={`pulso-codificacion-shell pulso-split-view${!prereqOk ? " is-empty" : ""}`}>
-        <CodificacionModeSidebar
-          active={step}
-          onChange={goStep}
-          disabled={!prereqOk}
-        />
-
+      <AdaptiveSplitView
+        ariaLabel="Mesa de trabajo de codificación"
+        railLabel="Pasos de codificación"
+        className={`pulso-codificacion-shell${!prereqOk ? " is-empty" : ""}`}
+        rail={(
+          <CodificacionModeSidebar
+            active={step}
+            onChange={goStep}
+            disabled={!prereqOk}
+          />
+        )}
+      >
         <main
           id="codificacion-panel"
           className="pulso-codificacion-content pulso-content-area"
@@ -152,7 +160,7 @@ export default function CodificacionPage() {
             </>
           )}
         </main>
-      </section>
+      </AdaptiveSplitView>
     </PageFrame>
   );
 }

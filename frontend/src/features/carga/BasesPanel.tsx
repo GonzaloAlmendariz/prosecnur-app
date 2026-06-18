@@ -19,6 +19,7 @@ import {
   apiEstudioSetNombre,
   apiEstudioUpdateBaseMetadata,
   apiSurveyMonkeyMultibaseAudit,
+  apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic,
   apiSurveyMonkeyMultibaseCollectors,
   apiSurveyMonkeyMultibaseDecisionApply,
   apiSurveyMonkeyMultibaseDecisionPreview,
@@ -98,6 +99,11 @@ type Props = {
   initialStrategy?: "separate" | "integrated" | "independent";
 };
 
+type SmCanonicalOption = {
+  fileId: string;
+  label: string;
+};
+
 export function BasesPanel({
   estudio, onChanged, autoOpenAdd, hasSessionXlsform, onAutoOpenConsumed, onDowngraded, initialStrategy,
 }: Props) {
@@ -135,7 +141,7 @@ export function BasesPanel({
     .join("|");
   const maxReached = estudio.n_bases >= estudio.max_bases;
   const canonicalOptions = [
-    ...(hasSessionXlsform ? [{ fileId: "", label: "XLSForm cargado en Carga" }] : []),
+    ...(hasSessionXlsform ? [{ fileId: "", label: "XLSForm cargado en Carga/Editor" }] : []),
     ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · XLSForm` })),
   ];
 
@@ -490,6 +496,7 @@ export function BasesPanel({
       {strategy === "independent" && (
         <IndependentSiblingsSurveyMonkeyWizard
           estudio={estudio}
+          canonicalOptions={canonicalOptions}
           disabled={!!busy}
           onImported={async (payload) => {
             await onChanged(payload);
@@ -3546,10 +3553,12 @@ function smSelectedCampaignInputs(
 
 function IndependentSiblingsSurveyMonkeyWizard({
   estudio,
+  canonicalOptions,
   disabled,
   onImported,
 }: {
   estudio: EstudioPayload;
+  canonicalOptions: SmCanonicalOption[];
   disabled: boolean;
   onImported: (payload: EstudioPayload) => Promise<void>;
 }) {
@@ -3568,6 +3577,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [scopeDrafts, setScopeDrafts] = useState<Record<string, SmImportScopeDraft>>({});
   const [audit, setAudit] = useState<SurveyMonkeyMultibaseAudit | null>(null);
   const [logicSync, setLogicSync] = useState<EstudioLogicSyncResult | null>(null);
+  const [canonicalRepairResult, setCanonicalRepairResult] = useState<EstudioLogicSyncResult | null>(null);
+  const [canonicalFileId, setCanonicalFileId] = useState(canonicalOptions[0]?.fileId ?? "");
   const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
   const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
   const [refreshPlan, setRefreshPlan] = useState<SurveyMonkeyRefreshPlan | null>(null);
@@ -3625,6 +3636,26 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const overIndependentLimit = selectedInputs.length > capacityLeft;
   const canImportWorkbook = smWorkbookInspectionCanImport(workbookInspection) && !busy && !disabled;
   const canImportSavBundle = smSavBundleInspectionCanImport(savBundleInspection) && !busy && !disabled;
+  const hasCanonicalReference = canonicalOptions.length > 0;
+  const selectedCanonical = canonicalOptions.find((option) => option.fileId === canonicalFileId) ?? canonicalOptions[0] ?? null;
+  const canonicalReferenceKind = selectedCanonical?.fileId ? "Base hermana existente" : "XLSForm cargado en Carga/Editor";
+  const familyStatus = String(estudio.independent_siblings?.status || "");
+  const familyLogicAppliedAt = String(estudio.independent_siblings?.logic_applied_at || "");
+  const hasFamilyLogicApplied = !!familyLogicAppliedAt || familyStatus.includes("logic_applied");
+  const hasCanonicalBaseStatus = existingBases.some((base) => String(base.logic_template_status || "").startsWith("canonical_"));
+  const shouldOfferCanonicalRepair = hasExistingIndependentBases && hasCanonicalReference && !hasFamilyLogicApplied && !hasCanonicalBaseStatus;
+  const canonicalRepairChangedCells = (canonicalRepairResult?.results ?? []).reduce((sum, row) => sum + (Number(row.changed_cells) || 0), 0);
+
+  useEffect(() => {
+    if (!canonicalOptions.length) {
+      if (canonicalFileId) setCanonicalFileId("");
+      return;
+    }
+    if (!canonicalOptions.some((option) => option.fileId === canonicalFileId)) {
+      setCanonicalFileId(canonicalOptions[0].fileId);
+      setAudit(null);
+    }
+  }, [canonicalOptions, canonicalFileId]);
 
   async function refreshSurveyMonkeyConnection() {
     try {
@@ -3798,7 +3829,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setError("");
     setBusy("Auditando familia SurveyMonkey...");
     try {
-      const result = await apiSurveyMonkeyMultibaseAudit(selectedInputs);
+      const result = await apiSurveyMonkeyMultibaseAudit(
+        selectedInputs,
+        hasCanonicalReference ? canonicalFileId : "",
+      );
       setAudit(result);
     } catch (e) {
       setError((e as Error).message);
@@ -3810,6 +3844,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
   async function runImport() {
     setError("");
     setLogicSync(null);
+    setCanonicalRepairResult(null);
     setRefreshResult(null);
     const mergePayload = selectedMergePayload();
     const hasNewBases = selectedInputs.length > 0;
@@ -3826,6 +3861,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
           surveys: selectedInputs,
           response_statuses: ["completed"],
           keep_missing_status: false,
+          canonical_xlsform_file_id: canonicalFileId,
+          use_canonical_xlsform_logic: hasCanonicalReference,
         });
         setAudit(result.audit);
         if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
@@ -3874,6 +3911,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     const templateBase = smIndependentTemplateBase(estudio, existingBases);
     setError("");
     setLogicSync(null);
+    setCanonicalRepairResult(null);
     setBusy("Sincronizando lógica XLSForm entre bases compatibles...");
     try {
       const result = await apiEstudioApplyIndependentTemplateLogic({
@@ -3892,6 +3930,34 @@ function IndependentSiblingsSurveyMonkeyWizard({
       setError(message.includes("E_TEMPLATE_BASE_NOT_FOUND")
         ? "No hay una base de referencia válida. Selecciona una base activa de la familia o vuelve a cargar la familia."
         : message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runCanonicalLogicRepair() {
+    if (!hasExistingIndependentBases || !hasCanonicalReference) return;
+    setError("");
+    setLogicSync(null);
+    setCanonicalRepairResult(null);
+    setBusy("Aplicando lógica del XLSForm base a las hermanas...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic({
+        canonical_xlsform_file_id: canonicalFileId,
+        targets: existingBases.map((base) => base.nombre),
+        clear_target_logic: false,
+      });
+      setLogicSync(result);
+      setCanonicalRepairResult(result);
+      if (result.estudio) {
+        await onImported(result.estudio);
+        window.dispatchEvent(new Event("pulso:session-changed"));
+        window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+          detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
+        }));
+      }
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setBusy("");
     }
@@ -4239,6 +4305,102 @@ function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
+      <div className={`pulso-sm-logic-reference${hasCanonicalReference ? "" : " is-missing"}`} aria-label="XLSForm base para lógica compartida">
+        <div className="pulso-sm-logic-reference-main">
+          <span className="pulso-sm-logic-reference-icon" aria-hidden="true">
+            {hasCanonicalReference ? <FileSpreadsheet size={15} /> : <AlertTriangle size={15} />}
+          </span>
+          <div>
+            <strong>XLSForm base de lógica</strong>
+            <span>
+              {hasCanonicalReference
+                ? "Se aplicará a los XLSForms de cada encuesta nueva antes de normalizar la data."
+                : "Carga un XLSForm en Carga/Editor para usarlo como plantilla de lógica."}
+            </span>
+          </div>
+        </div>
+        <label className="pulso-sm-logic-reference-select">
+          <span>Referencia</span>
+          <select
+            value={canonicalFileId}
+            disabled={!hasCanonicalReference || !!busy || disabled}
+            onChange={(event) => {
+              setCanonicalFileId(event.target.value);
+              setAudit(null);
+              setLogicSync(null);
+              setCanonicalRepairResult(null);
+            }}
+          >
+            {hasCanonicalReference ? canonicalOptions.map((option) => (
+              <option key={option.fileId || "session-xlsform"} value={option.fileId}>
+                {option.label}
+              </option>
+            )) : (
+              <option value="">Sin XLSForm base</option>
+            )}
+          </select>
+        </label>
+        <div className="pulso-sm-logic-reference-status">
+          {hasCanonicalReference ? (
+            <>
+              <span><CheckCircle2 size={12} /> Lógica compartida activa</span>
+              <small>{canonicalReferenceKind}: {selectedCanonical?.label ?? "XLSForm base"}</small>
+            </>
+          ) : (
+            <>
+              <span><AlertTriangle size={12} /> Sin plantilla</span>
+              <small>Las bases se importarían con la lógica directa de SurveyMonkey.</small>
+            </>
+          )}
+        </div>
+      </div>
+
+      {shouldOfferCanonicalRepair && (
+        <div className="pulso-sm-logic-repair" aria-label="Aviso de lógica pendiente en bases hermanas">
+          <div className="pulso-sm-logic-repair-copy">
+            <span className="pulso-sm-logic-repair-icon" aria-hidden="true">
+              <AlertTriangle size={15} />
+            </span>
+            <div>
+              <strong>Estas bases podrían estar sin la lógica del XLSForm base</strong>
+              <span>
+                Puedes alinear sus instrumentos con <b>{selectedCanonical?.label ?? "el XLSForm base"}</b>.
+                No reemplaza respuestas ni cambia la base de datos; actualiza las reglas de salto/visibilidad de cada hermana.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={runCanonicalLogicRepair}
+            disabled={disabled || !!busy}
+          >
+            {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+            Aplicar lógica a hermanas
+          </button>
+        </div>
+      )}
+
+      {canonicalRepairResult && (
+        <div className="pulso-sm-logic-repair is-done" aria-label="Resultado de alineación de lógica">
+          <div className="pulso-sm-logic-repair-copy">
+            <span className="pulso-sm-logic-repair-icon" aria-hidden="true">
+              <CheckCircle2 size={15} />
+            </span>
+            <div>
+              <strong>
+                {canonicalRepairResult.n_updated_bases > 0
+                  ? "Lógica aplicada a las bases hermanas"
+                  : "Las bases hermanas ya estaban alineadas"}
+              </strong>
+              <span>
+                {canonicalRepairResult.n_updated_bases}/{canonicalRepairResult.n_targets} bases actualizadas
+                {canonicalRepairChangedCells > 0 ? ` · ${canonicalRepairChangedCells} reglas ajustadas` : ""}.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {hasExistingIndependentBases && (
         <div className="pulso-sm-family-config">
           <div className="pulso-sm-family-config-head">
@@ -4425,6 +4587,15 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 )}
               </div>
             </div>
+            {savBundleInspection && !savBundleImportResult && (
+              <div className="pulso-sm-multibase-warning">
+                <AlertTriangle size={15} />
+                <span>
+                  Plan inspeccionado pendiente de aplicar. Todavía no se reemplazó ninguna base ni se guardó el ZIP en el proyecto:
+                  pulsa <strong>Aplicar actualización</strong> para cambiar la data efectiva.
+                </span>
+              </div>
+            )}
             {savBundleInspection && (
               <div className="pulso-sm-family-table is-sav-bundle" role="table" aria-label="Plan de actualización ZIP SAV">
                 <div className="pulso-sm-family-row is-head is-sav-row" role="row">

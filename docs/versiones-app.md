@@ -22,10 +22,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 3.3.3 | Corte 3.3.3: SurveyMonkey y monitoreo operativo | Publicada en GitHub | Agrega actualizacion incremental SurveyMonkey multibase con campanas/canales persistidos, registros validos bajo consentimiento y recodificacion; suma centro operativo de Monitoreo con Google Sheets controlado y consultas internas. |
 | 3.3.4 | Corte 3.3.4: deploy final SurveyMonkey y monitoreo | Publicada en GitHub | Mantiene el flujo SurveyMonkey multibase/campanas, suma pulido final de Monitoreo territorial con nomenclatura de registros validos/no validos y estabiliza el empaquetado macOS sin firma automatica local. |
 | 3.4.0 | Corte 3.4: monitoreo publicable y fuentes offline | Publicada en GitHub | Publica reportes agregados de Monitoreo como artefactos web read-only, agrega importacion offline SurveyMonkey por workbook y ZIP SAV, export/import JSON de codificacion, variables excluidas en Validacion y mejoras territoriales de campo. |
-| 3.4.1 | Corte 3.4.1: auditoria territorial y SAV | Version actual para deploy | Refuerza auditoria territorial por UMP con asignacion declarada/reconciliada, distribuciones de cuota cuando faltan filas de auditoria, avance por recopilador en acreditacion y detalle revisable para ZIP SAV SurveyMonkey. |
+| 3.4.1 | Corte 3.4.1: auditoria territorial y SAV | Publicada en GitHub | Refuerza auditoria territorial por UMP con asignacion declarada/reconciliada, distribuciones de cuota cuando faltan filas de auditoria, avance por recopilador en acreditacion y detalle revisable para ZIP SAV SurveyMonkey. |
+| 3.4.2 | Corte 3.4.2: monitoreo operativo y publicacion | Version actual para deploy | Consolida mejoras de Monitoreo, reportes publicables, controles de salida, QA visual y ajustes de layout acumulados para el nuevo instalable. |
 
 ## Version actual
 
-Estamos en `3.4.1` (corte `3.4.1`). Esta es la version publicada como
-`v3.4.1` para que GitHub Releases genere el instalador y el auto-updater la
+Estamos en `3.4.2` (corte `3.4.2`). Esta es la version publicada como
+`v3.4.2` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.

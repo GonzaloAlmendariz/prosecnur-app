@@ -707,6 +707,104 @@ test_that("project_dirty se marca al mutar y se limpia al guardar", {
   expect_false(isTRUE(session_get(setup$sid)$project_dirty))
 })
 
+test_that("build_pulso rechaza sobrescribir un proyecto con contenido desde una sesion vacia", {
+  testthat::skip_if_not_installed("zip")
+  testthat::skip_if_not_installed("jsonlite")
+
+  setup <- .fake_session_with_state()
+  empty_sid <- session_create()
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({
+    unlink(tmp, force = TRUE)
+    session_delete(setup$sid)
+    session_delete(empty_sid)
+  }, add = TRUE)
+
+  build_pulso(setup$sid, tmp, project_name = "Proyecto con datos")
+  before_size <- file.info(tmp)$size
+
+  err <- tryCatch(
+    build_pulso(empty_sid, tmp, project_name = "Sesion vacia"),
+    error = function(e) e
+  )
+
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_REFUSE_EMPTY_PROJECT_OVERWRITE")
+  expect_equal(file.info(tmp)$size, before_size)
+
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  expect_true(length(session_get(loaded$session_id)$files) > 0L)
+})
+
+test_that("build_pulso permite crear un proyecto vacio nuevo", {
+  testthat::skip_if_not_installed("zip")
+  testthat::skip_if_not_installed("jsonlite")
+
+  sid <- session_create()
+  tmp <- tempfile(fileext = ".pulso")
+  unlink(tmp, force = TRUE)
+  on.exit({
+    unlink(tmp, force = TRUE)
+    session_delete(sid)
+  }, add = TRUE)
+
+  saved <- build_pulso(sid, tmp, project_name = "Proyecto vacio")
+
+  expect_true(file.exists(tmp))
+  expect_true(saved$size > 0L)
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  expect_equal(length(session_get(loaded$session_id)$files %||% list()), 0L)
+})
+
+test_that("build_pulso preserva estado de monitoreo con fuentes, snapshot, cache y archivos", {
+  testthat::skip_if_not_installed("zip")
+  testthat::skip_if_not_installed("jsonlite")
+
+  sid <- session_create()
+  roster <- save_upload(sid, "data", "encuestadores.xlsx", .tiny_xlsx_bytes())
+  occurrences <- save_upload(sid, "xlsform", "ocurrencias.xlsx", .tiny_xlsx_bytes())
+  s <- session_get(sid)
+  s$monitoreo_sources <- list(
+    list(id = "main", label = "Encuesta principal", type = "kobo"),
+    list(id = "field", label = "Campo", type = "kobo"),
+    list(id = "occurrences", label = "Ocurrencias", type = "sheets")
+  )
+  s$monitoreo_config <- list(
+    territorial = list(
+      enumerator_roster = list(source_file_id = roster$file_id),
+      field_occurrences = list(xlsform_file_id = occurrences$file_id)
+    )
+  )
+  s$monitoreo_snapshot <- list(
+    synced_at = "2026-06-18T20:00:00Z",
+    data = data.frame(id = 1:3, estado = c("ok", "ok", "revision"), check.names = FALSE),
+    variables = list(id = list(label = "ID"), estado = list(label = "Estado")),
+    dashboard = list(kpis = list(total = 3L)),
+    errors = list(),
+    territorial_report_cache = list(campo = list(scope = "full"))
+  )
+  s$monitoreo_territorial_map_cache <- list(campo = list(points = list(list(id = "p1"))))
+  .session_env[[sid]] <- s
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({
+    unlink(tmp, force = TRUE)
+    session_delete(sid)
+  }, add = TRUE)
+
+  build_pulso(sid, tmp, project_name = "Monitoreo preservado")
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  restored <- session_get(loaded$session_id)
+
+  expect_equal(length(restored$monitoreo_sources), 3L)
+  expect_equal(nrow(restored$monitoreo_snapshot$data), 3L)
+  expect_true(length(restored$monitoreo_territorial_map_cache) > 0L)
+  expect_equal(length(restored$files), 2L)
+})
+
 test_that("session_set en keys internas de project NO entra en bucle de dirty", {
   setup <- .fake_session_with_state()
   on.exit(session_delete(setup$sid))

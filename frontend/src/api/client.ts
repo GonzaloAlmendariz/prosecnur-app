@@ -1325,6 +1325,8 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
   surveys: SurveyMonkeyMultibaseSurveyInput[];
   response_statuses?: string[];
   keep_missing_status?: boolean;
+  canonical_xlsform_file_id?: string;
+  use_canonical_xlsform_logic?: boolean;
 }) {
   return handle<{
     ok: true;
@@ -1337,6 +1339,20 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
     xlsform_logic_sync?: EstudioLogicSyncResult | null;
   }>(
     await apiFetch("/api/surveymonkey/multibase/import-independent", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic(payload: {
+  canonical_xlsform_file_id?: string;
+  targets?: string[];
+  clear_target_logic?: boolean;
+}) {
+  return handle<EstudioLogicSyncResult>(
+    await apiFetch("/api/surveymonkey/multibase/apply-canonical-xlsform-logic", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -4124,6 +4140,93 @@ export type MonitoreoClientReport = {
   sheets?: MonitoreoReportSheet[];
 };
 
+export type MonitoreoPublicationSection = {
+  id: string;
+  title: string;
+  description?: string;
+  columns?: string[];
+  rows?: MonitoreoRow[];
+  n_rows?: number;
+};
+
+export type MonitoreoDailyReference = {
+  label?: string;
+  value?: number | string | null;
+  configured?: boolean;
+  universe?: number | string | null;
+};
+
+export type MonitoreoDailyProgressModel = {
+  schema?: "monitoreo_daily_progress_v1" | string;
+  family?: string;
+  by_date_status?: MonitoreoRow[];
+  daily_effective?: MonitoreoRow[];
+  cumulative_effective?: MonitoreoRow[];
+  cumulative_by_status?: MonitoreoRow[];
+  by_date_actor?: MonitoreoRow[];
+  by_date_segment?: MonitoreoRow[];
+  by_date_district?: MonitoreoRow[];
+  by_date_ump?: MonitoreoRow[];
+  target_reference?: MonitoreoDailyReference;
+  universe_reference?: MonitoreoDailyReference;
+  status_palette?: Record<string, string>;
+  empty_state?: Record<string, string>;
+};
+
+export type MonitoreoPublicationModel = {
+  schema: "monitoreo_publication_model_v1" | string;
+  audience: "client" | "internal" | string;
+  family: "acreditacion" | "territorial" | "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
+  generated_at: string;
+  synced_at?: string;
+  tab_order?: string[];
+  daily_progress?: MonitoreoDailyProgressModel;
+  accreditation_progress?: {
+    client?: {
+      overall_coverage?: MonitoreoRow[];
+      by_actor_coverage?: MonitoreoRow[];
+      by_segment_coverage?: MonitoreoRow[];
+      daily_progress?: MonitoreoRow[];
+      cumulative_progress?: MonitoreoRow[];
+    };
+    internal?: {
+      actor_targets?: MonitoreoRow[];
+      minimum_targets?: MonitoreoRow[];
+      gaps_to_minimum?: MonitoreoRow[];
+      internal_target_status?: MonitoreoRow[];
+    };
+  };
+  implementation_map?: MonitoreoRow[];
+  portada?: MonitoreoPublicationSection;
+  resumen_avance?: MonitoreoPublicationSection;
+  avance_por_distrito?: MonitoreoPublicationSection;
+  avance_por_ump?: MonitoreoPublicationSection;
+  avance_diario?: MonitoreoPublicationSection;
+  avance_por_responsable?: MonitoreoPublicationSection;
+  cuotas_resumen?: MonitoreoPublicationSection;
+  resumen_ejecutivo?: MonitoreoPublicationSection;
+  avance_general?: MonitoreoPublicationSection;
+  avance_por_actor?: MonitoreoPublicationSection;
+  avance_por_segmento?: MonitoreoPublicationSection;
+  cobertura_pendientes?: MonitoreoPublicationSection;
+  brechas_cumplimiento?: MonitoreoPublicationSection;
+  resumen_operativo?: MonitoreoPublicationSection;
+  metas_internas_actor?: MonitoreoPublicationSection;
+  pendientes_por_actor?: MonitoreoPublicationSection;
+  control_seguimiento?: MonitoreoPublicationSection;
+  avance_campo?: MonitoreoPublicationSection;
+  encuestadores_rutas?: MonitoreoPublicationSection;
+  cuotas_ump?: MonitoreoPublicationSection;
+  validacion_tiempos?: MonitoreoPublicationSection;
+  ocurrencias_campo?: MonitoreoPublicationSection;
+  casos_accionables?: MonitoreoPublicationSection;
+  gps_territorio?: MonitoreoPublicationSection;
+  fuentes_actualizacion?: MonitoreoPublicationSection;
+  auditoria_tecnica?: MonitoreoPublicationSection;
+  base_tecnica?: MonitoreoPublicationSection;
+  [key: string]: unknown;
+};
+
 export type PublicArtifactKind = "dashboard" | "monitoreo" | string;
 
 export type PublicArtifactDescriptor = {
@@ -4131,7 +4234,20 @@ export type PublicArtifactDescriptor = {
   title: string;
   module: string;
   public_scope: string;
+  audience?: "client" | "internal" | string;
   profile_family?: "acreditacion" | "territorial" | string;
+  publication_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
+  monitoring_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
+  destination?: "hugging_face_space" | "google_sheets" | string;
+  source?: string;
+  namespace?: string;
+  space_name?: string;
+  repo_id?: string;
+  app_url?: string;
+  space_url?: string;
+  sheet_url?: string;
+  last_used_at?: string;
+  publication_sections?: Array<{ id?: string; title?: string; n_rows?: number } | string>;
   report_scope?: string;
   published_at?: string;
 };
@@ -4146,14 +4262,35 @@ export type MonitoreoLastDeploy = {
   private?: boolean;
   artifact_kind?: "monitoreo" | string;
   public_scope?: string;
+  audience?: "client" | "internal" | string;
   profile_family?: "acreditacion" | "territorial" | string;
+  publication_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
+  monitoring_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
   report_scope?: string;
+  namespace?: string;
+  last_used_at?: string;
+  source?: string;
+  destination?: "hugging_face_space" | string;
+};
+
+export type MonitoreoLastSheetsPublication = {
+  ok?: true;
+  spreadsheet_id: string;
+  spreadsheet_url?: string;
+  controlled_tabs?: string[];
+  tabs?: string[];
+  updated_at?: string;
+  mode?: "controlled_write" | string;
+  audience?: "client" | "internal" | string;
+  include_targets?: boolean;
+  confirmed_full_data?: boolean;
 };
 
 export type MonitoreoPublishRequest = {
   hf_username: string;
   hf_token: string;
   space_name: string;
+  audience?: "client" | "internal";
   private?: boolean;
 };
 
@@ -4167,6 +4304,7 @@ export type MonitoreoPublishResponse = {
   private?: boolean;
   artifact_kind: "monitoreo" | string;
   public_scope?: string;
+  audience?: "client" | "internal" | string;
   profile_family?: "acreditacion" | "territorial" | string;
   report_scope?: string;
   files_uploaded: number;
@@ -4180,10 +4318,22 @@ export type MonitoreoPublicReportPayload = {
   generated_at: string;
   synced_at: string;
   n_rows?: number;
+  audience?: "client" | "internal" | string;
   profile: {
     family: "acreditacion" | "territorial" | string;
     variant?: string;
     status?: string;
+  };
+  publication_model?: MonitoreoPublicationModel;
+  internal?: {
+    schema: string;
+    family?: string;
+    generated_at?: string;
+    synced_at?: string;
+    n_rows?: number;
+    dashboard?: MonitoreoDashboard | null;
+    reports?: Record<string, unknown>;
+    snapshot?: { synced_at?: string; errors?: unknown[]; rows?: MonitoreoRow[] };
   };
   accreditation?: {
     schema: string;
@@ -4391,6 +4541,8 @@ export type TerritorialResponseAuditRow = {
   submission_datetime?: string;
   duration_seconds: number | null;
   duration_status?: "sin_dato" | "muy_corta" | "corta" | "esperada" | "larga" | "extrema" | string;
+  duration_operational_status?: "normal" | "corto" | "muy_corto" | string;
+  duration_operational_label?: "Normal" | "Corto" | "Muy corto" | string;
   duration_source?: string;
   duration_source_type?: "duration_field" | "start_end" | "missing" | string;
   lat: number | null;
@@ -4455,6 +4607,8 @@ export type TerritorialInternalReviewCase = {
   submission_datetime?: string;
   duration_seconds?: number | null;
   duration_status?: string;
+  duration_operational_status?: "normal" | "corto" | "muy_corto" | string;
+  duration_operational_label?: "Normal" | "Corto" | "Muy corto" | string;
   distance_m?: number | null;
   geo_estado?: string;
   validas?: number | null;
@@ -4466,6 +4620,99 @@ export type TerritorialInternalReviewCase = {
   source_effective?: boolean;
   status?: "sin_observacion" | "pendiente" | "en_observacion" | "visto_bueno" | string;
   issues?: string;
+};
+
+export type MonitoreoTerritorialRouteSheetAssignment = MonitoreoRow & {
+  source_id?: string;
+  source_label?: string;
+  source_row?: number;
+  phase?: MonitoreoTerritorialPhase | string;
+  ruta?: string;
+  distrito?: string;
+  zona?: string;
+  manzana?: string;
+  codigo_manzana?: string;
+  tipo_manzana?: string;
+  reemplaza_a?: string;
+  rango_encuestas?: string;
+  rango_inicio?: number | null;
+  rango_fin?: number | null;
+  encuestas?: number | null;
+  ump?: string;
+  encuestador?: string;
+  expected_code?: string;
+  fecha_salida?: string;
+  fecha_entrega?: string;
+  estado?: string;
+  matched_block_id?: string;
+  matched_ump?: string;
+  matched_distrito?: string;
+  matched_zona?: string;
+  matched_manzana?: string;
+  match_method?: string;
+  match_status?: "matched" | "unmatched" | string;
+  response_count?: number;
+  started?: boolean;
+  validas?: number;
+  revision?: number;
+  no_defendibles?: number;
+  last_response?: string;
+};
+
+export type MonitoreoTerritorialRouteSheetProgress = {
+  encuestador: string;
+  encuestador_key?: string;
+  expected_code?: string;
+  assigned_blocks: number;
+  matched_blocks: number;
+  started: number;
+  no_response: number;
+  total_responses: number;
+  validas: number;
+  revision: number;
+  no_defendibles: number;
+  last_response?: string;
+};
+
+export type MonitoreoTerritorialRouteSheetRecommendation =
+  | { client_id: string; kind: "code"; reconciliation: MonitoreoTerritorialCodeReconciliation }
+  | { client_id: string; kind: "ump"; reconciliation: MonitoreoTerritorialUmpReconciliation };
+
+export type MonitoreoTerritorialRouteSheet = {
+  schema: "monitoreo_territorial_route_sheet_v1" | string;
+  phase: MonitoreoTerritorialPhase | string;
+  connected: boolean;
+  source_id?: string;
+  source_label?: string;
+  headers_ok: boolean;
+  reason?: string;
+  metrics: {
+    rows: number;
+    assignments: number;
+    matched_rows: number;
+    unmatched_rows: number;
+    assigned_encuestadores: number;
+    assigned_without_response: number;
+    wrong_ump_candidates: number;
+    wrong_code_candidates: number;
+    orphan_responses: number;
+  };
+  warnings?: Array<{ level?: string; code?: string; message?: string }>;
+  assignments: MonitoreoTerritorialRouteSheetAssignment[];
+  assignment_progress: MonitoreoTerritorialRouteSheetProgress[];
+  diagnostics: {
+    sheet_assigned_no_response: MonitoreoTerritorialRouteSheetAssignment[];
+    wrong_ump_candidates: MonitoreoRow[];
+    wrong_code_candidates: MonitoreoRow[];
+    unmatched_sheet_rows: MonitoreoTerritorialRouteSheetAssignment[];
+    orphan_responses: MonitoreoRow[];
+  };
+  recommendations: {
+    ump: MonitoreoTerritorialRouteSheetRecommendation[];
+    code: MonitoreoTerritorialRouteSheetRecommendation[];
+    batch: MonitoreoTerritorialRouteSheetRecommendation[];
+  };
+  review_cases?: TerritorialInternalReviewCase[];
 };
 
 export type MonitoreoTerritorialMapCacheLayerStatus = "valid" | "stale" | "missing" | "refreshing" | string;
@@ -4552,7 +4799,7 @@ export type MonitoreoPerformanceMeta = {
 export type TerritorialMapPayload = {
   phase: "pilot" | "field" | string;
   blocks: TerritorialBlockProgress[];
-  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "pulso_code" | "pulso_code_raw" | "pulso_code_normalized" | "enumerator_assigned" | "responsible_display" | "pulso_code_recognized" | "pulso_code_reconciled" | "pulso_code_range_warning" | "submission_time_source" | "submission_date_iso" | "submission_date" | "submission_hour" | "submission_datetime" | "ubigeo" | "distrito" | "age" | "sex" | "lat" | "lon" | "gps_parseable" | "geo_estado" | "distance_m" | "nearest_block_id" | "nearest_block_type" | "declared_ump_raw" | "declared_ump_normalized" | "advance_block_id" | "advance_block_ump" | "advance_block_ubigeo" | "advance_block_distrito" | "advance_block_zona" | "advance_block_manzana" | "advance_block_type" | "advance_block_match" | "advance_block_match_status" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
+  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "pulso_code" | "pulso_code_raw" | "pulso_code_normalized" | "enumerator_assigned" | "responsible_display" | "pulso_code_recognized" | "pulso_code_reconciled" | "pulso_code_range_warning" | "submission_time_source" | "submission_date_iso" | "submission_date" | "submission_hour" | "submission_datetime" | "duration_seconds" | "duration_status" | "duration_operational_status" | "duration_operational_label" | "ubigeo" | "distrito" | "age" | "sex" | "lat" | "lon" | "gps_parseable" | "geo_estado" | "distance_m" | "nearest_block_id" | "nearest_block_type" | "declared_ump_raw" | "declared_ump_normalized" | "advance_block_id" | "advance_block_ump" | "advance_block_ubigeo" | "advance_block_distrito" | "advance_block_zona" | "advance_block_manzana" | "advance_block_type" | "advance_block_match" | "advance_block_match_status" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
   cache?: MonitoreoTerritorialMapPhaseCacheMeta | null;
   alerts: Array<{ severity: string; code: string; message: string }>;
   legend: Array<{ key: string; label: string }>;
@@ -4571,6 +4818,7 @@ export type TerritorialDeclaredUmpRow = {
   assigned_ump?: string;
   assigned_district?: string;
   assigned_ubigeo?: string;
+  assigned_responsible?: string;
   reconciliation_scope?: "response" | "ump_value" | string;
   route_block_count?: number | null;
   route_blocks?: Array<{
@@ -4981,6 +5229,7 @@ export type MonitoreoTerritorialDashboard = {
     total_responses: number;
     options: Array<{ value: string; label: string; count?: number }>;
   };
+  route_sheet?: MonitoreoTerritorialRouteSheet | null;
   ump_declared_summary?: TerritorialDeclaredUmpSummary;
   enumerator_code_summary?: {
     field: string;
@@ -5080,7 +5329,7 @@ export type MonitoreoTerritorialDashboard = {
   block_progress: TerritorialBlockProgress[];
   operational_preview?: TerritorialResponseAuditRow[];
   response_audit: TerritorialResponseAuditRow[];
-  team: Array<{ submitted_by: string; raw_submitted_by?: string; total: number; validas: number; revision: number; no_defendibles: number; duration_median: number | null; duration_p95?: number | null; duration_very_short?: number; duration_review?: number; last_record?: string }>;
+  team: Array<{ submitted_by: string; raw_submitted_by?: string; total: number; validas: number; revision: number; no_defendibles: number; duration_median: number | null; duration_p95?: number | null; duration_normal?: number; duration_short?: number; duration_very_short?: number; duration_review?: number; last_record?: string }>;
   daily: Array<{ date: string; date_label?: string; total: number; validas: number; revision: number }>;
   map_cache?: MonitoreoTerritorialMapPhaseCacheMeta | MonitoreoTerritorialMapCacheMeta | null;
   map: TerritorialMapPayload;
@@ -5091,6 +5340,11 @@ export type MonitoreoTerritorialDashboard = {
     duration_review?: TerritorialMapPayload["points"];
     lagging_districts: TerritorialDistrictProgress[];
     review_cases?: TerritorialInternalReviewCase[];
+    route_sheet_assigned_no_response?: MonitoreoTerritorialRouteSheetAssignment[];
+    route_sheet_wrong_ump_candidates?: MonitoreoRow[];
+    route_sheet_wrong_code_candidates?: MonitoreoRow[];
+    route_sheet_unmatched_rows?: MonitoreoTerritorialRouteSheetAssignment[];
+    route_sheet_orphan_responses?: MonitoreoRow[];
   };
   field_occurrences?: MonitoreoFieldOccurrenceDashboard | null;
 };
@@ -5122,6 +5376,10 @@ export type MonitoreoState = {
   territorial_update_history?: MonitoreoTerritorialUpdateHistoryEntry[];
   publication?: {
     last_deploy?: MonitoreoLastDeploy | null;
+    client_last_deploy?: MonitoreoLastDeploy | null;
+    internal_last_deploy?: MonitoreoLastDeploy | null;
+    client_last_sheets?: MonitoreoLastSheetsPublication | null;
+    internal_last_sheets?: MonitoreoLastSheetsPublication | null;
   };
   acreditacion: MonitoreoAcreditacion;
   errors: { source_id?: string; source_label?: string; message: string }[];
@@ -5198,6 +5456,7 @@ export type MonitoreoSheetsSyncResult = {
 export type MonitoreoSheetsPublishResult = {
   ok: true;
   spreadsheet_id: string;
+  spreadsheet_url?: string;
   controlled_tabs: string[];
   updated_at: string;
   mode: "controlled_write";
@@ -5242,6 +5501,25 @@ export async function apiMonitoreoPublish(payload: MonitoreoPublishRequest) {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoPublicationSheetsPublish(
+  spreadsheetId = "",
+  options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
+) {
+  return handle<MonitoreoSheetsPublishResult & { audience?: "client" | "internal" | string }>(
+    await apiFetch("/api/monitoreo/publication/sheets", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        spreadsheet_id: spreadsheetId,
+        audience: options.audience ?? "client",
+        include_targets: !!options.includeTargets,
+        ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
+        ...(options.config ? { config: options.config } : {}),
+      }),
     }),
   );
 }

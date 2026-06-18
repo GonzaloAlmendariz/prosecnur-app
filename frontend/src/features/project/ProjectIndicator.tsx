@@ -42,7 +42,6 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
   const [copied, setCopied] = useState(false);
   const { status } = project;
   const projectPath = status.path ?? "";
-  const pathFile = projectPath ? projectPath.replace(/\\/g, "/").split("/").pop() ?? projectPath : "";
 
   if (!status.has_project) {
     return (
@@ -53,7 +52,10 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
           className="pulso-project-chip pulso-project-chip--empty"
           title="Crear o abrir un proyecto .pulso"
         >
-          <Circle size={11} /> Sin proyecto
+          <span className="pulso-project-chip-icon" aria-hidden="true">
+            <Circle size={10} />
+          </span>
+          <span className="pulso-project-chip-name">Sin proyecto</span>
         </button>
       </div>
     );
@@ -67,31 +69,26 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
         title={projectPath ? `Ruta .pulso: ${projectPath}` : undefined}
         className={`pulso-project-chip ${status.dirty ? "is-dirty" : "is-saved"}`}
       >
-        <Folder size={12} />
-        <span className="pulso-project-chip-name">{status.name}</span>
-        {pathFile && (
-          <>
-            <span className="pulso-project-chip-separator">·</span>
-            <span
-              className="pulso-project-chip-path"
-            >
-              {pathFile}
-            </span>
-          </>
-        )}
-        <span className="pulso-project-chip-separator">·</span>
-        {status.dirty ? (
-          <>
-            <Circle size={9} fill="currentColor" />
-            <span>sin guardar</span>
-          </>
-        ) : (
-          <>
-            <CheckCircle2 size={11} />
-            <span>{relTime(status.last_saved_at)}</span>
-          </>
-        )}
-        <ChevronDown size={11} />
+        <span className="pulso-project-chip-icon" aria-hidden="true">
+          <Folder size={13} />
+        </span>
+        <span className="pulso-project-chip-copy">
+          <span className="pulso-project-chip-name">{status.name}</span>
+        </span>
+        <span className={`pulso-project-chip-status ${status.dirty ? "is-dirty" : "is-saved"}`}>
+          {status.dirty ? (
+            <>
+              <Circle size={7} fill="currentColor" />
+              <span>sin guardar</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={10} />
+              <span>{relTime(status.last_saved_at)}</span>
+            </>
+          )}
+        </span>
+        <ChevronDown className="pulso-project-chip-chevron" size={11} />
       </button>
 
       {open && (

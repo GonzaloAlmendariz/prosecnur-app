@@ -1,0 +1,130 @@
+{
+  "ok": false,
+  "generatedAt": "2026-06-18T09:38:54.482Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "layoutPreset": "auto",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "65f2b87c-a377-4d88-bd0f-58f63fe88c9f",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 09:38:41 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
+        "name": "prosecnur_audit_reference",
+        "dirty": true,
+        "last_saved_at": "2026-06-07T23:39:47Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso\",\"name\":\"prosecnur_audit_reference\",\"dirty\":true,\"last_saved_at\":\"2026-06-07T23:39:47Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/monitoreo-salidas-v3/logs/api.log",
+      "vite": "tmp/visual-qa/monitoreo-salidas-v3/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/monitoreo-salidas-v3/quick-monitoreo-390x844-auto.png"
+    ],
+    "visualIssues": 1,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": false
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/monitoreo-salidas-v3/quick-monitoreo-390x844-auto.png",
+      "fullScreenshot": "tmp/visual-qa/monitoreo-salidas-v3/quick-monitoreo-390x844-auto-full.png",
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "auto",
+        "density": "auto",
+        "mode": "auto"
+      },
+      "ready": [
+        "monitoreo"
+      ],
+      "session": "65f2b87c-a377-4d88-bd0f-58f63fe88c9f",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur prosecnur_audit_reference sin guardar Acreditación institucional RUTA ACTIVA Acreditación Tipo único del proyecto SUPERFICIES DE TRABAJO 5 VISTAS Fuentes Elegir encuestas y bases Modelo operativo Metas, mecanismos y barrido Explorador Universo, casos y trazabilidad Monitoreo telefónico Modelo, barrido y supervisión Avance Cumplimiento y brechas SALIDAS Acreditación 0/2 web · Sheets sin enlace Cliente Interno Sheets 80 registros listos para publicar. FUENTES ACTIVAS 0/2 REGISTROS 80 MET",
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 163,
+          "width": 374,
+          "height": 673
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": [
+        {
+          "type": "overflow-y",
+          "tag": "section",
+          "className": "pulso-panel pulso-panel--content mon-fill-panel mon-source-fill-panel mon-acr-sources-panel",
+          "label": "Fuentes Fuentes de acreditaciónSheets listoSurveyMonkey listo Configuración fijaArquitectura de fuentes de acreditaciónSheets define universo y barrido; SurveyM",
+          "rect": {
+            "x": 18,
+            "y": 794,
+            "width": 354,
+            "height": 35
+          },
+          "scroll": {
+            "width": 352,
+            "height": 130,
+            "clientWidth": 352,
+            "clientHeight": 33
+          }
+        }
+      ]
+    }
+  ]
+}

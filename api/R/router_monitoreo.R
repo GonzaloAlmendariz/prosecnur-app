@@ -141,7 +141,116 @@
   )
 }
 
-.monitoreo_public_report_payload <- function(sid) {
+.monitoreo_public_audience <- function(value = NULL) {
+  audience <- tolower(.monitoreo_scalar(value, "client"))
+  if (!audience %in% c("client", "internal")) "client" else audience
+}
+
+.monitoreo_last_publication_event <- function(events = list()) {
+  if (!is.list(events) || !length(events)) return(NULL)
+  events[[length(events)]]
+}
+
+.monitoreo_publication_sheet_event_key <- function(audience = "client") {
+  paste0("monitoreo_publication_sheet_events_", .monitoreo_public_audience(audience))
+}
+
+.monitoreo_last_publication_spreadsheet_id <- function(s, audience = "client") {
+  event <- .monitoreo_last_publication_event(s[[.monitoreo_publication_sheet_event_key(audience)]] %||% list())
+  if (!is.list(event)) return("")
+  .monitoreo_extract_spreadsheet_id(
+    event$spreadsheet_id %||%
+      event$spreadsheetId %||%
+      event$spreadsheet_url %||%
+      event$spreadsheetUrl %||%
+      ""
+  )
+}
+
+.monitoreo_resolve_publication_spreadsheet_id <- function(parsed, s, audience = "client") {
+  requested <- parsed$spreadsheet_id %||% parsed$spreadsheetId %||% ""
+  has_requested <- nzchar(trimws(.monitoreo_scalar(requested, "")))
+  spreadsheet_id <- .monitoreo_extract_spreadsheet_id(requested)
+  if (nzchar(spreadsheet_id)) return(spreadsheet_id)
+  if (isTRUE(has_requested)) return("")
+  spreadsheet_id <- .monitoreo_last_publication_spreadsheet_id(s, audience)
+  if (nzchar(spreadsheet_id)) return(spreadsheet_id)
+  ""
+}
+
+.monitoreo_publication_confirmed_full_data <- function(parsed = list()) {
+  .monitoreo_bool(
+    parsed$confirmed_full_data %||%
+      parsed$confirmedFullData %||%
+      parsed$confirm_internal %||%
+      parsed$confirmInternal,
+    FALSE
+  )
+}
+
+.monitoreo_require_internal_publication_confirmation <- function(audience, parsed = list(), channel = "salida") {
+  if (!identical(.monitoreo_public_audience(audience), "internal")) return(invisible(TRUE))
+  if (.monitoreo_publication_confirmed_full_data(parsed)) return(invisible(TRUE))
+  stop_api(
+    400,
+    "E_MONITOREO_INTERNAL_CONFIRMATION",
+    sprintf("Confirma manualmente que la %s interna contiene datos completos antes de publicarla.", channel)
+  )
+}
+
+.monitoreo_public_internal_payload <- function(data, cfg, snapshot, dashboard, family, base) {
+  reports <- if (identical(family, "territorial")) {
+    dashboard$territorial_reports %||% list()
+  } else {
+    dashboard$acreditacion_reports %||% list()
+  }
+  base$internal <- list(
+    schema = "monitoreo_internal_full_report_v1",
+    family = family,
+    generated_at = base$generated_at,
+    synced_at = base$synced_at,
+    n_rows = as.integer(nrow(data)),
+    dashboard = .monitoreo_public_dashboard(dashboard, include_reports = TRUE),
+    reports = reports,
+    config = cfg,
+    snapshot = list(
+      synced_at = .monitoreo_scalar(snapshot$synced_at, ""),
+      errors = snapshot$errors %||% list(),
+      rows = .monitoreo_df_records(data)
+    )
+  )
+  if (identical(family, "acreditacion")) {
+    client <- reports$client_report %||% monitoreo_acreditacion_client_report_model(data, cfg)
+    base$accreditation <- list(
+      schema = "monitoreo_internal_accreditation_report_v1",
+      title = .monitoreo_scalar(client$title, "Reporte interno de monitoreo"),
+      generated_at = .monitoreo_scalar(client$generated_at, base$generated_at),
+      has_targets = isTRUE(client$has_targets),
+      summary = client$summary %||% list(),
+      actors = client$actors %||% list(),
+      daily_general = client$daily_general %||% list(),
+      daily_actor = client$daily_actor %||% list(),
+      sources = client$sources %||% list(),
+      client_report = client,
+      reports = reports,
+      internal_queries = reports$internal_queries %||% list(),
+      sheets = reports$sheets %||% list(),
+      snapshot_rows = .monitoreo_df_records(data)
+    )
+  } else {
+    base$territorial <- c(
+      list(
+        schema = "monitoreo_internal_territorial_report_v1",
+        generated_at = .monitoreo_scalar(reports$generated_at, base$generated_at)
+      ),
+      reports,
+      list(snapshot_rows = .monitoreo_df_records(data))
+    )
+  }
+  base
+}
+
+.monitoreo_public_report_payload <- function(sid, audience = NULL) {
   s <- session_get(sid)
   embedded <- s$public_artifact_payload$monitoreo_report %||% NULL
   if (is.list(embedded)) return(embedded)
@@ -152,8 +261,10 @@
   }
   cfg <- monitoreo_normalize_config(s$monitoreo_config %||% snapshot$config %||% list(), data)
   profile <- cfg$monitoreo_profile %||% monitoreo_normalize_profile(list())
-  family <- .monitoreo_scalar(profile$family, "")
-  report_scope <- if (identical(family, "territorial")) "advance_summary" else "full"
+  publication_family <- detect_monitoreo_family(config = s$monitoreo_config %||% snapshot$config %||% list(), data = data)
+  family <- .monitoreo_publication_engine_family(publication_family)
+  audience <- .monitoreo_public_audience(audience %||% s$public_artifact$audience %||% "client")
+  report_scope <- if (identical(audience, "internal")) "full" else if (identical(family, "territorial")) "advance_summary" else "full"
   dashboard <- .monitoreo_dashboard_for_session(
     sid,
     data,
@@ -166,8 +277,22 @@
     generated_at = .monitoreo_now_iso(),
     synced_at = .monitoreo_scalar(snapshot$synced_at, ""),
     n_rows = as.integer(nrow(data)),
-    profile = .monitoreo_public_profile(profile)
+    audience = audience,
+    profile = .monitoreo_public_profile(modifyList(profile, list(family = family)))
   )
+  base$publication_model <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = audience,
+    include_targets = FALSE,
+    dashboard = dashboard,
+    synced_at = base$synced_at,
+      context = list(session_id = sid, family = publication_family)
+  )
+
+  if (identical(audience, "internal")) {
+    return(.monitoreo_public_internal_payload(data, cfg, snapshot, dashboard, family, base))
+  }
 
   if (identical(family, "acreditacion")) {
     reports <- dashboard$acreditacion_reports %||% list()
@@ -177,21 +302,21 @@
       schema = "monitoreo_public_accreditation_report_v1",
       title = .monitoreo_scalar(client$title, "Reporte de avance"),
       generated_at = .monitoreo_scalar(client$generated_at, base$generated_at),
-      has_targets = isTRUE(client$has_targets),
+      has_targets = FALSE,
       summary = .monitoreo_public_select_records(client$summary, c("Indicador", "Valor")),
       actors = .monitoreo_public_select_records(client$actors, c(
         "Actor", "Universo", "Efectivas", "Parciales", "Rechazos plataforma",
-        "Sin respuesta plataforma", "Sin respuesta", "Meta", "Brecha meta",
-        "Avance universo", "Avance meta", "Primer día", "Última efectiva", "Origen avance"
+        "Sin respuesta plataforma", "Sin respuesta", "Avance universo",
+        "Primer día", "Última efectiva", "Origen avance"
       )),
       daily_general = .monitoreo_public_select_records(client$daily_general, c(
-        "Fecha", "Efectivas", "Parciales", "Rechazos plataforma", "Total respuestas", "Acumulado"
+        "Fecha", "Efectivas", "Total respuestas", "Acumulado"
       )),
       daily_actor = .monitoreo_public_select_records(client$daily_actor, c(
-        "Actor", "Fecha", "Efectivas", "Parciales", "Rechazos plataforma", "Total respuestas", "Acumulado"
+        "Actor", "Fecha", "Efectivas", "Total respuestas", "Acumulado"
       )),
       sources = .monitoreo_public_select_records(client$sources, c(
-        "Actor", "Canal", "Fuente", "Efectivas", "Parciales", "Rechazos plataforma",
+        "Actor", "Canal", "Fuente", "Efectivas",
         "Total respuestas", "Primer día", "Última respuesta", "Última efectiva"
       ))
     )
@@ -214,19 +339,15 @@
       advance = list(
         total_respuestas = as.integer(advance$total_respuestas %||% report$kpis$total_respuestas %||% 0L),
         validas = as.integer(advance$validas %||% report$kpis$validas %||% 0L),
-        observacion = as.integer(advance$observacion %||% 0L),
-        observacion_aprobada = as.integer(advance$observacion_aprobada %||% 0L),
-        no_validas = as.integer(advance$no_validas %||% 0L),
         meta = advance$meta %||% report$kpis$meta %||% NA,
         avance_pct = advance$avance_pct %||% report$kpis$avance_pct %||% NA,
         brecha = advance$brecha %||% NA
       ),
       district_progress = .monitoreo_public_select_records(district_progress, c(
-        "ubigeo", "distrito", "meta", "total", "validas", "revision",
-        "no_defendibles", "avance_pct", "brecha"
+        "ubigeo", "distrito", "meta", "total", "validas", "avance_pct", "brecha"
       )),
       daily = .monitoreo_public_select_records(daily, c(
-        "date", "date_label", "total", "validas", "revision"
+        "date", "date_label", "total", "validas"
       )),
       route_quota_progress = list(
         configured = isTRUE(quota$configured),
@@ -313,24 +434,34 @@
   phase_source <- .monitoreo_territorial_phase_source(cfg$territorial %||% list(), phase)
   source_id <- .monitoreo_scalar(phase_source$source_id, "")
   if (!".source_id" %in% names(data)) return(data)
-  if (!nzchar(source_id)) return(data[0, , drop = FALSE])
-  phase_data <- data[as.character(data$.source_id %||% "") == source_id, , drop = FALSE]
-  if (!nrow(phase_data)) return(phase_data)
+  source_ids <- trimws(as.character(data$.source_id %||% ""))
+  source_ids[is.na(source_ids)] <- ""
+  source_roles <- if (".source_role" %in% names(data)) trimws(as.character(data$.source_role %||% "")) else rep("", nrow(data))
+  source_roles[is.na(source_roles)] <- ""
+  source_role_keys <- vapply(source_roles, .monitoreo_safe_name, character(1))
+  sheet_phase <- if ("dim_territorial_phase" %in% names(data)) trimws(as.character(data$dim_territorial_phase %||% "")) else rep("", nrow(data))
+  sheet_phase[is.na(sheet_phase)] <- ""
+  route_sheet_mask <- source_role_keys %in% c("hojaruta", "hoja_ruta") & (!nzchar(sheet_phase) | sheet_phase == phase)
+  if (!nzchar(source_id)) return(data[route_sheet_mask, , drop = FALSE])
+  phase_mask <- source_ids == source_id
+  phase_data <- data[phase_mask, , drop = FALSE]
+  if (!nrow(phase_data)) return(data[route_sheet_mask, , drop = FALSE])
 
   tcfg_raw <- cfg$territorial %||% list()
   tcfg_raw$active_route_phase <- phase
   tcfg <- monitoreo_territorial_normalize_config(tcfg_raw, phase_data)
   phase_window <- .monitoreo_territorial_phase_window(tcfg, phase)
   start_at <- .monitoreo_scalar(phase_window$start_at, "")
-  if (!nzchar(start_at)) return(phase_data)
+  if (!nzchar(start_at)) return(data[phase_mask | route_sheet_mask, , drop = FALSE])
   start_time <- suppressWarnings(.monitoreo_parse_time_vec(start_at))
-  if (!length(start_time) || is.na(start_time[[1]])) return(phase_data)
+  if (!length(start_time) || is.na(start_time[[1]])) return(data[phase_mask | route_sheet_mask, , drop = FALSE])
 
   submitted <- .monitoreo_territorial_submission_time_values(phase_data, tcfg)
   submitted_time <- suppressWarnings(.monitoreo_parse_time_vec(submitted$values))
-  if (!length(submitted_time) || !any(!is.na(submitted_time))) return(phase_data)
+  if (!length(submitted_time) || !any(!is.na(submitted_time))) return(data[phase_mask | route_sheet_mask, , drop = FALSE])
   keep <- is.na(submitted_time) | submitted_time >= start_time[[1]]
-  phase_data[keep %in% TRUE, , drop = FALSE]
+  phase_mask[phase_mask] <- keep %in% TRUE
+  data[phase_mask | route_sheet_mask, , drop = FALSE]
 }
 
 .monitoreo_territorial_phase_label <- function(phase) {
@@ -402,6 +533,17 @@
       if (length(hit)) source <- hit[[1]]
     }
     local_rows <- if (nzchar(source_id)) .monitoreo_snapshot_count(data, source_id) else 0L
+    report_rows <- local_rows
+    if (nzchar(source_id) && nrow(data)) {
+      phase_report_data <- .monitoreo_territorial_filter_data_for_phase(data, cfg, phase)
+      if (is.data.frame(phase_report_data) && nrow(phase_report_data) && ".source_id" %in% names(phase_report_data)) {
+        phase_report_source_ids <- trimws(as.character(phase_report_data$.source_id %||% ""))
+        phase_report_source_ids[is.na(phase_report_source_ids)] <- ""
+        report_rows <- sum(phase_report_source_ids == source_id, na.rm = TRUE)
+      } else {
+        report_rows <- 0L
+      }
+    }
     source_asset <- .monitoreo_scalar(source$asset_uid, "")
     source_exists <- !is.null(source)
     source_applied <- nzchar(asset_uid) || nzchar(source_id)
@@ -411,7 +553,7 @@
     dash_rows <- dashboard_rows(phase)
     dashboard_active <- identical(phase, dashboard_phase)
     dashboard_matches <- if (dashboard_active && is.finite(dash_rows)) {
-      identical(as.integer(dash_rows), as.integer(local_rows)) &&
+      identical(as.integer(dash_rows), as.integer(report_rows)) &&
         (!nzchar(asset_uid) || !nzchar(dashboard_asset) || identical(asset_uid, dashboard_asset))
     } else {
       NA
@@ -457,6 +599,7 @@
       source_id = source_id,
       source_asset_uid = source_asset,
       local_rows = as.integer(local_rows),
+      report_rows = as.integer(report_rows),
       snapshot_total_rows = as.integer(nrow(data)),
       snapshot_synced_at = .monitoreo_scalar(synced_at, ""),
       last_sync_at = last_sync_at,
@@ -2088,7 +2231,11 @@
     ) else NULL,
     territorial_update_history = .monitoreo_territorial_history(sid),
     publication = list(
-      last_deploy = s$monitoreo_publication$last_deploy %||% NULL
+      last_deploy = s$monitoreo_publication$last_deploy %||% NULL,
+      client_last_deploy = s$monitoreo_publication$client_last_deploy %||% NULL,
+      internal_last_deploy = s$monitoreo_publication$internal_last_deploy %||% NULL,
+      client_last_sheets = .monitoreo_last_publication_event(s$monitoreo_publication_sheet_events_client %||% list()),
+      internal_last_sheets = .monitoreo_last_publication_event(s$monitoreo_publication_sheet_events_internal %||% list())
     ),
     acreditacion = cfg$acreditacion %||% monitoreo_normalize_acreditacion(list()),
     errors = snapshot$errors %||% list()
@@ -2444,11 +2591,11 @@
     )
   } else if (identical(kind, "kobo")) {
     profile_id <- .monitoreo_scalar(source$connection_profile_id %||% source$profile_id, "")
-    token <- .connections_token_require("kobo", sid, profile_id = profile_id)
     if (!nzchar(source$asset_uid)) stop_api(400, "E_KOBO_ASSET", "Falta asset_uid de Kobo.")
     base_url <- .monitoreo_scalar(source$base_url, "")
     if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
     if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+    token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
     probe <- tryCatch(
       kobo_api_fetch_asset_data(source$asset_uid, token, base_url = base_url, page = 1L, page_size = 1L),
       error = function(e) stop_api(400, "E_KOBO_API_FAILED", conditionMessage(e))
@@ -3133,12 +3280,7 @@ mount_monitoreo <- function(pr) {
         stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar pestanas Prosecnur.")
       }
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data)
-      spreadsheet_id <- .monitoreo_extract_spreadsheet_id(parsed$spreadsheet_id %||% parsed$spreadsheetId %||% "")
-      if (!nzchar(spreadsheet_id)) {
-        sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
-        writable <- Filter(function(src) identical(src$kind, "google_sheets") && identical(src$integration_mode, "controlled_write"), sources)
-        if (length(writable)) spreadsheet_id <- writable[[1]]$sheet_binding$spreadsheet_id %||% ""
-      }
+      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "internal")
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino.")
       tabs <- .monitoreo_sheets_publish_payload(snapshot, cfg)
       published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
@@ -3156,12 +3298,7 @@ mount_monitoreo <- function(pr) {
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
-      spreadsheet_id <- .monitoreo_extract_spreadsheet_id(parsed$spreadsheet_id %||% parsed$spreadsheetId %||% "")
-      if (!nzchar(spreadsheet_id)) {
-        sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
-        writable <- Filter(function(src) identical(src$kind, "google_sheets") && identical(src$integration_mode, "controlled_write"), sources)
-        if (length(writable)) spreadsheet_id <- writable[[1]]$sheet_binding$spreadsheet_id %||% ""
-      }
+      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
       tabs <- .monitoreo_client_report_tabs_payload(model)
       published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
@@ -3179,8 +3316,62 @@ mount_monitoreo <- function(pr) {
         hf_username = parsed$hf_username %||% "",
         hf_token = parsed$hf_token %||% "",
         space_name = parsed$space_name %||% "",
-        private = isTRUE(parsed$private)
+        private = isTRUE(parsed$private),
+        audience = .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
       )
+    })) |>
+    plumber::pr_post("/api/monitoreo/publication/sheets", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
+        stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar el ejecutivo en Sheets.")
+      }
+      audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
+      .monitoreo_require_internal_publication_confirmation(audience, parsed, channel = "publicacion Sheets")
+      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data)
+      include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
+      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
+      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para publicar el ejecutivo en Sheets.")
+      spreadsheet_url <- paste0("https://docs.google.com/spreadsheets/d/", spreadsheet_id, "/edit")
+      publication_family <- detect_monitoreo_family(config = parsed$config %||% s$monitoreo_config %||% list(), data = snapshot$data)
+      engine_family <- .monitoreo_publication_engine_family(publication_family)
+      report_scope <- if (identical(audience, "internal")) "full" else if (identical(engine_family, "territorial")) "advance_summary" else "full"
+      dashboard <- .monitoreo_dashboard_for_session(
+        sid,
+        snapshot$data,
+        cfg,
+        include_reports = TRUE,
+        report_scope = report_scope
+      )
+      if (identical(engine_family, "territorial") && identical(audience, "internal")) {
+        if (is.null(dashboard$territorial_reports) || !is.list(dashboard$territorial_reports)) {
+          dashboard$territorial_reports <- list()
+        }
+        dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg)
+      }
+      tabs <- monitoreo_publication_sheets_tabs(
+        snapshot$data,
+        cfg,
+        audience = audience,
+        include_targets = include_targets,
+        dashboard = dashboard,
+        synced_at = snapshot$synced_at %||% "",
+        context = list(session_id = sid, spreadsheet_id = spreadsheet_id, spreadsheet_url = spreadsheet_url, family = publication_family)
+      )
+      published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
+      event_key <- paste0("monitoreo_publication_sheet_events_", audience)
+      session_set(sid, event_key, c(
+        s[[event_key]] %||% list(),
+        list(c(published, list(
+          audience = audience,
+          tabs = names(tabs),
+          include_targets = include_targets,
+          confirmed_full_data = identical(audience, "internal")
+        )))
+      ))
+      c(published, list(audience = audience))
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/pdf", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -3260,11 +3451,13 @@ mount_monitoreo <- function(pr) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
       profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
-      token <- .connections_token_require("kobo", sid, profile_id = profile_id)
-      base_url <- parsed$base_url %||% parsed$baseUrl %||% .connections_profile_base_url("kobo", profile_id)
+      base_url <- .monitoreo_scalar(parsed$base_url %||% parsed$baseUrl, "")
+      if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+      if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+      token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
       kobo_api_fetch_assets(
         token,
-        base_url = if (nzchar(as.character(base_url %||% "")[1])) base_url else kobo_api_default_base_url(),
+        base_url = base_url,
         limit = parsed$limit %||% 100L
       )
     })) |>
@@ -3282,11 +3475,13 @@ mount_monitoreo <- function(pr) {
 	      asset_uid <- .monitoreo_scalar(parsed$asset_uid %||% parsed$assetUid %||% source$asset_uid %||% phase_source$asset_uid, "")
 	      if (!nzchar(asset_uid)) {
 	        stop_api(400, "E_KOBO_ASSET_REQUIRED", "Selecciona primero un formulario Kobo para esta fase.")
-	      }
+      }
       profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% source$connection_profile_id %||% NULL
-      token <- .connections_token_require("kobo", sid, profile_id = profile_id)
-      base_url <- parsed$base_url %||% parsed$baseUrl %||% source$base_url %||% .connections_profile_base_url("kobo", profile_id)
+      base_url <- .monitoreo_scalar(parsed$base_url %||% parsed$baseUrl, "")
+      if (!nzchar(base_url)) base_url <- .monitoreo_scalar(source$base_url, "")
+      if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
       if (!nzchar(.monitoreo_scalar(base_url, ""))) base_url <- kobo_api_default_base_url()
+      token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
       detail <- tryCatch(
         .monitoreo_kobo_asset_detail(asset_uid, token, base_url),
         error = function(e) stop_api(400, "E_KOBO_ASSET_DETAIL", conditionMessage(e))
@@ -3962,9 +4157,12 @@ mount_monitoreo <- function(pr) {
       }
       profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||%
         source$connection_profile_id %||% cfg$territorial$field_occurrences$connection_profile_id %||% NULL
-      token <- .connections_token_require("kobo", sid, profile_id = profile_id)
-      base_url <- parsed$base_url %||% parsed$baseUrl %||% source$base_url %||% cfg$territorial$field_occurrences$base_url %||% .connections_profile_base_url("kobo", profile_id)
+      base_url <- .monitoreo_scalar(parsed$base_url %||% parsed$baseUrl, "")
+      if (!nzchar(base_url)) base_url <- .monitoreo_scalar(source$base_url, "")
+      if (!nzchar(base_url)) base_url <- .monitoreo_scalar(cfg$territorial$field_occurrences$base_url, "")
+      if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
       if (!nzchar(.monitoreo_scalar(base_url, ""))) base_url <- kobo_api_default_base_url()
+      token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
       detail <- tryCatch(
         .monitoreo_kobo_asset_detail(asset_uid, token, base_url),
         error = function(e) stop_api(400, "E_KOBO_OCCURRENCES_SCHEMA", conditionMessage(e))
@@ -4093,9 +4291,11 @@ mount_monitoreo <- function(pr) {
         file_meta <- .register_output_file(sid, "monitoreo_ocurrencias_xlsform", out_path, original_name = basename(xls$filename))
       }
       profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% cfg$territorial$field_occurrences$connection_profile_id %||% NULL
-      token <- .connections_token_require("kobo", sid, profile_id = profile_id)
-      base_url <- parsed$base_url %||% parsed$baseUrl %||% cfg$territorial$field_occurrences$base_url %||% .connections_profile_base_url("kobo", profile_id)
+      base_url <- .monitoreo_scalar(parsed$base_url %||% parsed$baseUrl, "")
+      if (!nzchar(base_url)) base_url <- .monitoreo_scalar(cfg$territorial$field_occurrences$base_url, "")
+      if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
       if (!nzchar(.monitoreo_scalar(base_url, ""))) base_url <- kobo_api_default_base_url()
+      token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
       imported <- tryCatch(
         kobo_api_import_xlsform(out_path, token, base_url = base_url),
         error = function(e) stop_api(400, "E_KOBO_OCCURRENCES_IMPORT", conditionMessage(e))
@@ -4213,10 +4413,11 @@ mount_monitoreo <- function(pr) {
         stop_api(409, "E_OCCURRENCES_SOURCE", "Primero sube o configura el formulario Kobo de ocurrencias.")
       }
       profile_id <- .monitoreo_scalar(source$connection_profile_id %||% parsed$connection_profile_id %||% parsed$connectionProfileId, "")
-      token <- .connections_token_require("kobo", sid, profile_id = profile_id)
-      base_url <- .monitoreo_scalar(source$base_url %||% parsed$base_url %||% parsed$baseUrl, "")
+      base_url <- .monitoreo_scalar(source$base_url, "")
+      if (!nzchar(base_url)) base_url <- .monitoreo_scalar(parsed$base_url %||% parsed$baseUrl, "")
       if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
       if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+      token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
       if (!nzchar(.monitoreo_scalar(source$asset_url, ""))) {
         source$asset_url <- kobo_api_asset_url(source$asset_uid, base_url = base_url)
       }

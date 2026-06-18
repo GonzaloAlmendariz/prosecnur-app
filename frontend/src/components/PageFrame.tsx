@@ -12,6 +12,8 @@ type PageFrameProps = {
   meta?: ReactNode;
   toolbar?: ReactNode;
   children: ReactNode;
+  layout?: "document" | "workbench" | "canvas" | "data";
+  scrollOwner?: "page" | "body" | "panels";
   bodyMode?: "scroll" | "fill";
   headerMode?: "visible" | "sr-only";
   className?: string;
@@ -25,6 +27,8 @@ export function PageFrame({
   meta,
   toolbar,
   children,
+  layout = "document",
+  scrollOwner,
   bodyMode = "scroll",
   headerMode = "visible",
   className,
@@ -35,9 +39,12 @@ export function PageFrame({
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const previousResetKeyRef = useRef(resetScrollKey);
+  const resolvedScrollOwner = scrollOwner ?? (bodyMode === "fill" ? "panels" : "page");
   const classes = [
     "pulso-page-frame",
     `pulso-page-frame--${density}`,
+    `pulso-page-frame--layout-${layout}`,
+    `pulso-page-frame--scroll-${resolvedScrollOwner}`,
     className,
   ].filter(Boolean).join(" ");
 

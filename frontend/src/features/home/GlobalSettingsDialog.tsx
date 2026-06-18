@@ -3,15 +3,19 @@ import {
   AlertTriangle,
   Check,
   Cloud,
-  Database,
+  ClipboardList,
+  ExternalLink,
+  FileSpreadsheet,
   KeyRound,
-  Link2,
   Loader2,
+  MonitorCog,
   RefreshCw,
+  ServerCog,
   Settings2,
   ShieldCheck,
   Trash2,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import {
   apiConnectionCheck,
@@ -28,9 +32,20 @@ import {
   type ConnectionProvider,
   type ConnectionTokenState,
 } from "../../api/client";
+import {
+  LAYOUT_PRESET_OPTIONS,
+  layoutPresetMeta,
+  useLayoutPreset,
+} from "../../lib/layoutPreference";
+import {
+  openHuggingFaceTokens,
+  PULSO_HF_DEFAULT_NAMESPACE,
+  PULSO_HF_DEFAULT_TOKEN_ALIAS,
+} from "../../lib/huggingFace";
+import type { HfSavedDestination, HfSavedToken } from "../project/types";
 import type { ReleaseNote } from "./ReleaseNotesDrawer";
 
-type SettingsTab = "connections" | "notes" | "credits";
+type SettingsTab = "appearance" | "connections" | "notes" | "credits";
 
 type GlobalSettingsDialogProps = {
   open: boolean;
@@ -43,33 +58,75 @@ type ProviderMeta = {
   provider: ConnectionProvider;
   title: string;
   subtitle: string;
-  Icon: typeof Cloud;
+  Icon: LucideIcon;
   credentialKind: "token" | "oauth";
+  inputLabel: string;
+  inputHelp: string;
+  inputPlaceholder: string;
+  emptyHelp: string;
+  verifyHint: string;
 };
+
+type HfSettingsState = {
+  hf_username: string;
+  default_namespace: string;
+  token_configured: boolean;
+  encryption_available: boolean;
+  saved_tokens: HfSavedToken[];
+  recent_destinations: HfSavedDestination[];
+};
+
+type HfBusyState = "load" | "save" | "check" | "clear" | "destination" | null;
+
+type HfMessage = { kind: "ok" | "error"; text: string } | null;
 
 const PROVIDERS: ProviderMeta[] = [
   {
     provider: "surveymonkey",
     title: "SurveyMonkey",
-    subtitle: "Editor XLSForm, importación multibase y Monitoreo.",
-    Icon: Cloud,
+    subtitle: "Encuestas, XLSForm y respuestas multibase.",
+    Icon: ClipboardList,
     credentialKind: "token",
+    inputLabel: "Nueva clave de API",
+    inputHelp: "Pega una clave con permisos de lectura. Si escribes un alias, quedará como perfil reutilizable.",
+    inputPlaceholder: "Pegar clave de SurveyMonkey",
+    emptyHelp: "Conecta una clave para importar formularios y respuestas.",
+    verifyHint: "Lista encuestas visibles; no confirma que una campaña específica esté lista para importar.",
   },
   {
     provider: "kobo",
     title: "KoboToolbox",
-    subtitle: "Monitoreo de campo y conexiones de captura.",
-    Icon: Database,
+    subtitle: "Servidores de captura, assets y respuestas de campo.",
+    Icon: ServerCog,
     credentialKind: "token",
+    inputLabel: "Nueva clave de API",
+    inputHelp: "Elige el servidor correcto y pega una clave con acceso a los proyectos que leerá Prosecnur.",
+    inputPlaceholder: "Pegar clave de KoboToolbox",
+    emptyHelp: "Conecta un perfil para leer proyectos y respuestas Kobo.",
+    verifyHint: "Consulta assets visibles en el servidor activo; no valida formularios específicos del proyecto.",
   },
   {
     provider: "google_sheets",
     title: "Google Sheets",
-    subtitle: "Hojas vivas de campo y publicación controlada de salidas Prosecnur.",
-    Icon: Database,
+    subtitle: "Lectura y publicación controlada de hojas de Monitoreo.",
+    Icon: FileSpreadsheet,
     credentialKind: "oauth",
+    inputLabel: "Archivo de autorización de Google",
+    inputHelp: "En Google Cloud, descarga el cliente OAuth de escritorio y pega aquí su JSON. Después Prosecnur abrirá Google para elegir la cuenta.",
+    inputPlaceholder: "Pegar el JSON descargado de Google Cloud",
+    emptyHelp: "Autoriza una cuenta para leer o publicar hojas controladas.",
+    verifyHint: "Confirma que el OAuth responde; los permisos de una hoja concreta se revisan en Monitoreo.",
   },
 ];
+
+const EMPTY_HF_SETTINGS: HfSettingsState = {
+  hf_username: "",
+  default_namespace: "",
+  token_configured: false,
+  encryption_available: true,
+  saved_tokens: [],
+  recent_destinations: [],
+};
 
 const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
 const KOBO_SERVER_OPTIONS = [
@@ -146,25 +203,30 @@ function normalizeConnections(items: ConnectionTokenState[]): Record<ConnectionP
   return next;
 }
 
-function connectionStatusLabel(state: ConnectionTokenState): string {
-  if (!state.has_token) return "No configurada";
-  if (state.ephemeral) return "Solo esta sesión";
-  if (state.persisted) return "Guardada en este equipo";
-  return "Configurada";
+function connectionStatusLabel(meta: ProviderMeta, state: ConnectionTokenState): string {
+  if (!state.has_token) return meta.credentialKind === "oauth" ? "Sin autorización" : "Sin clave";
+  if (meta.credentialKind === "oauth") return "Autorizada en este equipo";
+  if (state.ephemeral) return "Activa solo esta sesión";
+  if (state.persisted) return "Clave guardada en este equipo";
+  return "Clave activa";
 }
 
 function checkMessage(provider: ConnectionProvider, result: ConnectionCheckResult): string {
   if (!result.ok) return result.error;
   if (provider === "surveymonkey") {
     const n = result.n_surveys_visible;
-    return n == null ? "Conexión verificada." : `Conexión verificada · ${n} encuestas visibles.`;
+    return n == null
+      ? "La clave responde. No se recibió un conteo de encuestas visibles."
+      : `La clave responde. Prosecnur puede listar ${n} encuestas visibles.`;
   }
   if (provider === "google_sheets") {
-    return "Conexión verificada · Google Sheets responde con la cuenta autorizada.";
+    return "El OAuth responde. Los permisos de una hoja concreta se validan al registrarla en Monitoreo.";
   }
   const count = result.count;
-  const server = result.base_url ? ` · ${result.base_url}` : "";
-  return count == null ? `Conexión verificada.${server}` : `Conexión verificada · ${count} assets visibles${server}.`;
+  const server = result.base_url ? ` en ${result.base_url}` : "";
+  return count == null
+    ? `La clave responde${server}. No se recibió un conteo de assets.`
+    : `La clave responde${server}. ${count} assets visibles.`;
 }
 
 function koboBaseUrlFromConnection(state: ConnectionTokenState): string {
@@ -187,10 +249,62 @@ function parseTokenInput(value: string): string {
   }
 }
 
+function isValidHfNamespace(value: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$/.test(value.trim());
+}
+
+function hfDestinationLabel(destination: HfSavedDestination): string {
+  if (destination.repo_id) return destination.repo_id;
+  if (destination.namespace && destination.space_name) return `${destination.namespace}/${destination.space_name}`;
+  return destination.namespace || destination.label || "Destino HF";
+}
+
+function activeConnectionLabel(meta: ProviderMeta, state: ConnectionTokenState): string {
+  if (meta.provider === "google_sheets") return "Cuenta Google autorizada";
+  if (meta.provider === "kobo") {
+    const alias = state.active_profile_alias || "Perfil Kobo activo";
+    return state.active_profile_server_label ? `${alias} en ${state.active_profile_server_label}` : alias;
+  }
+  return state.active_profile_alias ? `Perfil ${state.active_profile_alias}` : "Clave activa de SurveyMonkey";
+}
+
+function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState): string {
+  const parts: string[] = [];
+  if (meta.provider === "google_sheets") {
+    parts.push("Lista para fuentes y publicaciones de Monitoreo");
+  } else if (meta.provider === "kobo" && state.active_profile_base_url) {
+    parts.push(state.active_profile_base_url);
+  } else if (meta.provider === "surveymonkey") {
+    parts.push("Lista para importar encuestas y respuestas");
+  }
+  if (state.masked_token && meta.provider !== "google_sheets") {
+    parts.push(`${meta.credentialKind === "oauth" ? "Referencia OAuth" : "Referencia local"} ${state.masked_token}`);
+  }
+  if (meta.provider === "google_sheets") parts.push("Autorización local guardada");
+  if (state.ephemeral) parts.push("No se guardó para el próximo inicio");
+  return parts.join(" · ");
+}
+
+function profileDetail(profile: ConnectionProfileState, isKobo: boolean): string {
+  const parts = [profile.is_default ? "Activo" : "Disponible"];
+  if (isKobo && profile.server_label) parts.push(profile.server_label);
+  if (isKobo && profile.base_url && !profile.server_label) parts.push(profile.base_url);
+  if (profile.masked_token) parts.push(`Referencia ${profile.masked_token}`);
+  return parts.join(" · ");
+}
+
 export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: GlobalSettingsDialogProps) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [activeTab, setActiveTab] = useState<SettingsTab>("connections");
   const [connections, setConnections] = useState<Record<ConnectionProvider, ConnectionTokenState>>(EMPTY_CONNECTIONS);
+  const [hfSettings, setHfSettings] = useState<HfSettingsState>(EMPTY_HF_SETTINGS);
+  const [hfUsername, setHfUsername] = useState("");
+  const [hfDefaultNamespace, setHfDefaultNamespace] = useState("");
+  const [hfToken, setHfToken] = useState("");
+  const [hfTokenName, setHfTokenName] = useState(PULSO_HF_DEFAULT_TOKEN_ALIAS);
+  const [hfSelectedTokenId, setHfSelectedTokenId] = useState("");
+  const [hfBusy, setHfBusy] = useState<HfBusyState>(null);
+  const [hfMessage, setHfMessage] = useState<HfMessage>(null);
   const [inputs, setInputs] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "" });
   const [aliases, setAliases] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "" });
   const [baseUrls, setBaseUrls] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: KOBO_DEFAULT_BASE_URL, google_sheets: "" });
@@ -200,11 +314,13 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [messages, setMessages] = useState<Partial<Record<ConnectionProvider, { kind: "ok" | "error"; text: string }>>>({});
+  const [layoutPreset, setLayoutPreset] = useLayoutPreset();
 
   const latestNote = notes[0];
+  const layoutMeta = layoutPresetMeta(layoutPreset);
   const configuredCount = useMemo(
-    () => Object.values(connections).filter((item) => item.has_token).length,
-    [connections],
+    () => Object.values(connections).filter((item) => item.has_token).length + (hfSettings.token_configured ? 1 : 0),
+    [connections, hfSettings.token_configured],
   );
 
   useEffect(() => {
@@ -215,8 +331,9 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     setMessages({});
     setLoadingConnections(true);
     let cancelled = false;
-    apiConnectionsList()
-      .then((result) => {
+    async function loadConnections() {
+      try {
+        const result = await apiConnectionsList();
         if (cancelled) return;
         const next = normalizeConnections(result.connections);
         setConnections(next);
@@ -229,13 +346,31 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           ...current,
           kobo: koboBaseUrlFromConnection(next.kobo),
         }));
-      })
-      .catch((error: unknown) => {
+      } catch (error) {
         if (!cancelled) setLoadError(String((error as Error)?.message ?? error));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingConnections(false);
-      });
+      }
+    }
+    async function loadHfSettings() {
+      if (!window.prosecnurApi?.getHfSettings) {
+        setHfSettings(EMPTY_HF_SETTINGS);
+        return;
+      }
+      try {
+        const settings = await window.prosecnurApi.getHfSettings();
+        if (cancelled) return;
+        setHfSettings(settings);
+        setHfUsername((current) => current || settings.hf_username || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+        setHfDefaultNamespace((current) => current || settings.default_namespace || settings.recent_destinations?.[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE);
+      } catch (error) {
+        if (!cancelled) {
+          setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+        }
+      }
+    }
+    void loadConnections();
+    void loadHfSettings();
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -369,6 +504,149 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     }
   }
 
+  async function useSavedHfToken(id: string) {
+    if (!id || !window.prosecnurApi?.getHfToken) return;
+    setHfBusy("load");
+    setHfMessage(null);
+    setHfSelectedTokenId(id);
+    try {
+      const saved = await window.prosecnurApi.getHfToken(id);
+      if (!saved) {
+        setHfMessage({ kind: "error", text: "No encontré ese token guardado." });
+        return;
+      }
+      setHfUsername(saved.hf_username || "");
+      setHfTokenName(saved.name || "Hugging Face");
+      setHfToken(saved.hf_token || "");
+      setHfMessage({ kind: "ok", text: "Token cargado para publicar o verificar." });
+    } catch (error) {
+      setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+    } finally {
+      setHfBusy(null);
+    }
+  }
+
+  async function saveHfToken() {
+    if (!window.prosecnurApi?.rememberSuccessfulHfToken) {
+      setHfMessage({ kind: "error", text: "La conexión HF se guarda desde la app de escritorio." });
+      return;
+    }
+    const username = hfUsername.trim();
+    const token = hfToken.trim();
+    if (!token) {
+      setHfMessage({ kind: "error", text: "Pega un token write de Hugging Face." });
+      return;
+    }
+    setHfBusy("save");
+    setHfMessage(null);
+    try {
+      const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
+        id: hfSelectedTokenId || undefined,
+        name: hfTokenName.trim() || username,
+        credential_username: username,
+        hf_token: token,
+      });
+      setHfSettings(settings);
+      setHfUsername(settings.hf_username || username);
+      setHfToken("");
+      setHfSelectedTokenId("");
+      setHfMessage({ kind: "ok", text: "Token de Hugging Face guardado en este equipo." });
+    } catch (error) {
+      setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+    } finally {
+      setHfBusy(null);
+    }
+  }
+
+  async function checkHfToken() {
+    if (!window.prosecnurApi?.checkHfToken) {
+      setHfMessage({ kind: "error", text: "La verificación HF está disponible en la app de escritorio." });
+      return;
+    }
+    if (!hfToken.trim() && !hfSelectedTokenId) {
+      setHfMessage({ kind: "error", text: "Pega un token o selecciona uno guardado para verificarlo." });
+      return;
+    }
+    setHfBusy("check");
+    setHfMessage(null);
+    try {
+      const result = await window.prosecnurApi.checkHfToken({
+        id: hfSelectedTokenId || undefined,
+        hf_token: hfToken.trim() || undefined,
+      });
+      if (result.ok) {
+        const orgs = result.org_count ? ` · ${result.org_count} organizaciones visibles` : "";
+        if (result.name) setHfUsername((current) => current || result.name);
+        setHfMessage({ kind: "ok", text: `Hugging Face responde${result.name ? ` como ${result.name}` : ""}${orgs}.` });
+      } else {
+        setHfMessage({ kind: "error", text: result.error });
+      }
+    } catch (error) {
+      setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+    } finally {
+      setHfBusy(null);
+    }
+  }
+
+  async function deleteHfToken(id: string) {
+    if (!window.prosecnurApi?.forgetHfToken) return;
+    setHfBusy("clear");
+    setHfMessage(null);
+    try {
+      const settings = await window.prosecnurApi.forgetHfToken(id);
+      setHfSettings(settings);
+      if (hfSelectedTokenId === id) {
+        setHfSelectedTokenId("");
+        setHfToken("");
+      }
+      setHfMessage({ kind: "ok", text: "Token de Hugging Face quitado de este equipo." });
+    } catch (error) {
+      setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+    } finally {
+      setHfBusy(null);
+    }
+  }
+
+  async function saveHfDefaultNamespace() {
+    if (!window.prosecnurApi?.saveHfDefaultNamespace) {
+      setHfMessage({ kind: "error", text: "El destino HF se guarda desde la app de escritorio." });
+      return;
+    }
+    const namespace = hfDefaultNamespace.trim();
+    if (!namespace || !isValidHfNamespace(namespace)) {
+      setHfMessage({ kind: "error", text: `Escribe un namespace HF válido, por ejemplo ${PULSO_HF_DEFAULT_NAMESPACE}.` });
+      return;
+    }
+    setHfBusy("destination");
+    setHfMessage(null);
+    try {
+      const settings = await window.prosecnurApi.saveHfDefaultNamespace(namespace);
+      setHfSettings(settings);
+      setHfDefaultNamespace(settings.default_namespace || namespace);
+      setHfMessage({ kind: "ok", text: `Destino web por defecto guardado: ${namespace}.` });
+    } catch (error) {
+      setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+    } finally {
+      setHfBusy(null);
+    }
+  }
+
+  async function deleteHfDestination(id: string) {
+    if (!window.prosecnurApi?.forgetHfDestination) return;
+    setHfBusy("destination");
+    setHfMessage(null);
+    try {
+      const settings = await window.prosecnurApi.forgetHfDestination(id);
+      setHfSettings(settings);
+      setHfDefaultNamespace(settings.default_namespace || "");
+      setHfMessage({ kind: "ok", text: "Destino HF quitado de los recientes." });
+    } catch (error) {
+      setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
+    } finally {
+      setHfBusy(null);
+    }
+  }
+
   return (
     <>
       <div className="home-settings-backdrop" onClick={onClose} aria-hidden="true" />
@@ -393,9 +671,13 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         </header>
 
         <nav className="home-settings-tabs" role="tablist" aria-label="Secciones de ajustes">
+          <button type="button" className={activeTab === "appearance" ? "is-active" : ""} onClick={() => setActiveTab("appearance")}>
+            Apariencia
+            <span>{layoutMeta.size}</span>
+          </button>
           <button type="button" className={activeTab === "connections" ? "is-active" : ""} onClick={() => setActiveTab("connections")}>
             Conexiones
-            <span>{configuredCount}/{PROVIDERS.length}</span>
+            <span>{configuredCount}/{PROVIDERS.length + 1}</span>
           </button>
           <button type="button" className={activeTab === "notes" ? "is-active" : ""} onClick={() => setActiveTab("notes")}>
             Notas
@@ -407,13 +689,50 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         </nav>
 
         <div className="home-settings-body">
+          {activeTab === "appearance" && (
+            <div className="home-settings-panel" role="tabpanel">
+              <div className="home-settings-panel-copy">
+                <MonitorCog size={15} aria-hidden="true" />
+                <p>
+                  <strong>Disposición de pantalla.</strong>
+                  <span> Elige el perfil de escritorio que debe guiar densidad, railes y toolbars. El tamaño de la ventana no cambia; Prosecnur ajusta la gramática interna.</span>
+                </p>
+              </div>
+              <div className="home-layout-preset-list" role="radiogroup" aria-label="Disposición de pantalla">
+                {LAYOUT_PRESET_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={layoutPreset === option.value}
+                    className={`home-layout-preset${layoutPreset === option.value ? " is-active" : ""}`}
+                    onClick={() => setLayoutPreset(option.value)}
+                  >
+                    <span className="home-layout-preset-check" aria-hidden="true">
+                      {layoutPreset === option.value && <Check size={13} />}
+                    </span>
+                    <span className="home-layout-preset-copy">
+                      <strong>{option.label}</strong>
+                      <small>{option.size}</small>
+                      <span>{option.description}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="home-layout-preset-current">
+                <span>Activo</span>
+                <strong>{layoutMeta.label} · {layoutMeta.size}</strong>
+              </div>
+            </div>
+          )}
+
           {activeTab === "connections" && (
             <div className="home-settings-panel" role="tabpanel">
               <div className="home-settings-panel-copy">
                 <KeyRound size={15} aria-hidden="true" />
                 <p>
-                  <strong>Suite de conexiones globales.</strong>
-                  <span> API keys, OAuth y tokens viven aquí porque trascienden a los proyectos de Pulso. Cada proyecto .pulso guarda fuentes, mapeos y snapshots; nunca credenciales.</span>
+                  <strong>Credenciales globales.</strong>
+                  <span> Conecta las herramientas externas que Prosecnur usa fuera de cada proyecto. El archivo .pulso guarda fuentes, mapeos y snapshots; las claves y autorizaciones se quedan en este equipo.</span>
                 </p>
               </div>
               {loadError && (
@@ -447,6 +766,27 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                     onOpenAuth={() => authUrls[meta.provider] && window.open(authUrls[meta.provider], "_blank", "noopener,noreferrer")}
                   />
                 ))}
+                <HuggingFaceConnectionCard
+                  settings={hfSettings}
+                  username={hfUsername}
+                  defaultNamespace={hfDefaultNamespace}
+                  token={hfToken}
+                  tokenName={hfTokenName}
+                  selectedTokenId={hfSelectedTokenId}
+                  busy={hfBusy}
+                  message={hfMessage}
+                  desktopAvailable={Boolean(window.prosecnurApi?.getHfSettings)}
+                  onUsernameChange={setHfUsername}
+                  onDefaultNamespaceChange={setHfDefaultNamespace}
+                  onTokenChange={setHfToken}
+                  onTokenNameChange={setHfTokenName}
+                  onUseSavedToken={(id) => void useSavedHfToken(id)}
+                  onSave={() => void saveHfToken()}
+                  onSaveDefaultNamespace={() => void saveHfDefaultNamespace()}
+                  onCheck={() => void checkHfToken()}
+                  onDelete={(id) => void deleteHfToken(id)}
+                  onDeleteDestination={(id) => void deleteHfDestination(id)}
+                />
               </div>
             </div>
           )}
@@ -507,6 +847,268 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
   );
 }
 
+function HuggingFaceConnectionCard({
+  settings,
+  username,
+  defaultNamespace,
+  token,
+  tokenName,
+  selectedTokenId,
+  busy,
+  message,
+  desktopAvailable,
+  onUsernameChange,
+  onDefaultNamespaceChange,
+  onTokenChange,
+  onTokenNameChange,
+  onUseSavedToken,
+  onSave,
+  onSaveDefaultNamespace,
+  onCheck,
+  onDelete,
+  onDeleteDestination,
+}: {
+  settings: HfSettingsState;
+  username: string;
+  defaultNamespace: string;
+  token: string;
+  tokenName: string;
+  selectedTokenId: string;
+  busy: HfBusyState;
+  message: HfMessage;
+  desktopAvailable: boolean;
+  onUsernameChange: (value: string) => void;
+  onDefaultNamespaceChange: (value: string) => void;
+  onTokenChange: (value: string) => void;
+  onTokenNameChange: (value: string) => void;
+  onUseSavedToken: (id: string) => void;
+  onSave: () => void;
+  onSaveDefaultNamespace: () => void;
+  onCheck: () => void;
+  onDelete: (id: string) => void;
+  onDeleteDestination: (id: string) => void;
+}) {
+  const savedTokens = settings.saved_tokens ?? [];
+  const destinations = settings.recent_destinations ?? [];
+  const selected = savedTokens.find((item) => item.id === selectedTokenId) ?? savedTokens[0] ?? null;
+  const hasTokens = savedTokens.length > 0;
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const effectiveDefaultNamespace = defaultNamespace.trim() || settings.default_namespace || destinations[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE;
+  const defaultDestination = destinations.find((item) => item.namespace === effectiveDefaultNamespace) ?? destinations[0] ?? null;
+  const canSave = desktopAvailable && busy == null && token.trim().length > 0;
+  const canCheck = desktopAvailable && busy == null && (token.trim().length > 0 || selectedTokenId.length > 0);
+  const canSaveNamespace = desktopAvailable && busy == null && isValidHfNamespace(defaultNamespace);
+
+  return (
+    <article className="home-connection-card home-connection-card--hf">
+      <div className="home-connection-top">
+        <span className="home-connection-icon" aria-hidden="true">
+          <Cloud size={18} strokeWidth={2.1} />
+        </span>
+        <div className="home-connection-title">
+          <h4>Hugging Face Spaces</h4>
+          <p>Publicación web de Dashboard y Monitoreo por audiencia.</p>
+        </div>
+        <span className={`home-connection-status ${hasTokens ? "is-ready" : ""}`}>
+          {hasTokens ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
+          {hasTokens ? "Token guardado en este equipo" : "Sin token HF"}
+        </span>
+      </div>
+
+      <div className="home-hf-current-grid">
+        {hasTokens && selected ? (
+          <div className="home-connection-current">
+            <span>Credencial local</span>
+            <strong>{selected.name || selected.hf_username || "Token HF"}</strong>
+            <small>{selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"} · {selected.masked_token || "••••"}</small>
+          </div>
+        ) : (
+          <div className="home-connection-empty">
+            <span>Pendiente</span>
+            <strong>Conecta un token write para publicar Spaces.</strong>
+          </div>
+        )}
+        {effectiveDefaultNamespace ? (
+          <div className="home-connection-current home-connection-current--destination">
+            <span>Destino web por defecto</span>
+            <strong>{effectiveDefaultNamespace}</strong>
+            <small>{defaultDestination ? hfDestinationLabel(defaultDestination) : "Namespace usado para nuevas publicaciones"}</small>
+          </div>
+        ) : (
+          <div className="home-connection-empty">
+            <span>Sin destino</span>
+            <strong>Define o usa {PULSO_HF_DEFAULT_NAMESPACE}.</strong>
+          </div>
+        )}
+      </div>
+
+      <details className="home-connection-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
+        <summary>
+          <span>Configurar publicación</span>
+          <small>{hasTokens ? `${savedTokens.length} ${savedTokens.length === 1 ? "token" : "tokens"}` : "Token requerido"} · {effectiveDefaultNamespace || "sin namespace"}</small>
+        </summary>
+
+        {savedTokens.length > 0 && (
+          <div className="home-connection-profiles" aria-label="Tokens de Hugging Face">
+            <div className="home-connection-profiles-head">
+              <span>Tokens de publicación</span>
+              <small>{savedTokens.length} {savedTokens.length === 1 ? "token" : "tokens"}</small>
+            </div>
+            <div className="home-connection-profile-list">
+              {savedTokens.map((saved) => (
+                <div key={saved.id} className={`home-connection-profile ${saved.id === selectedTokenId ? "is-default" : ""}`}>
+                  <div className="home-connection-profile-copy">
+                    <strong>{saved.name || "Token HF"}</strong>
+                    <small>{saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"} · {saved.masked_token || "••••"}</small>
+                  </div>
+                  <div className="home-connection-profile-actions">
+                    <button type="button" onClick={() => onUseSavedToken(saved.id)} disabled={busy != null}>
+                      {busy === "load" && saved.id === selectedTokenId ? "Abriendo" : "Usar"}
+                    </button>
+                    <button type="button" className="is-danger" onClick={() => onDelete(saved.id)} disabled={busy != null}>
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p>Se usa al publicar web cliente/interno. Los XLSX y Sheets de Monitoreo usan la conexión Google Sheets.</p>
+          </div>
+        )}
+
+        {destinations.length > 0 && (
+          <div className="home-connection-profiles home-hf-destination-list" aria-label="Destinos recientes de Hugging Face">
+            <div className="home-connection-profiles-head">
+              <span>Destinos recientes</span>
+              <small>{destinations.length} {destinations.length === 1 ? "destino" : "destinos"}</small>
+            </div>
+            <div className="home-connection-profile-list">
+              {destinations.map((destination) => (
+                <div key={destination.id} className={`home-connection-profile ${destination.namespace === effectiveDefaultNamespace ? "is-default" : ""}`}>
+                  <div className="home-connection-profile-copy">
+                    <strong>{hfDestinationLabel(destination)}</strong>
+                    <small>{destination.private ? "Privado" : "No marcado privado"}{destination.audience ? ` · ${destination.audience}` : ""}</small>
+                  </div>
+                  <div className="home-connection-profile-actions">
+                    <button type="button" onClick={() => onDefaultNamespaceChange(destination.namespace)} disabled={busy != null || !destination.namespace}>
+                      Usar
+                    </button>
+                    <button type="button" className="is-danger" onClick={() => onDeleteDestination(destination.id)} disabled={busy != null}>
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p>Estos destinos no contienen secretos; sirven para no confundir la cuenta del token con el namespace donde se publica.</p>
+          </div>
+        )}
+
+        <div className="home-connection-form">
+          <label>
+            <span>Cuenta o alias de la credencial</span>
+            <small>No define el destino. Sirve para reconocer qué token local estás usando.</small>
+            <input
+              type="text"
+              value={username}
+              onChange={(event) => onUsernameChange(event.target.value)}
+              placeholder={PULSO_HF_DEFAULT_TOKEN_ALIAS}
+              disabled={busy != null || !desktopAvailable}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Namespace destino por defecto</span>
+            <small>Ejemplo: {PULSO_HF_DEFAULT_NAMESPACE}. El Space se elige en Dashboard o Monitoreo.</small>
+            <input
+              type="text"
+              value={defaultNamespace}
+              onChange={(event) => onDefaultNamespaceChange(event.target.value.trim())}
+              placeholder={PULSO_HF_DEFAULT_NAMESPACE}
+              disabled={busy != null || !desktopAvailable}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            <span>Alias del token</span>
+            <input
+              type="text"
+              value={tokenName}
+              onChange={(event) => onTokenNameChange(event.target.value)}
+              placeholder={PULSO_HF_DEFAULT_TOKEN_ALIAS}
+              disabled={busy != null || !desktopAvailable}
+            />
+          </label>
+          <label>
+            <span>Token write</span>
+            <small>Permite crear o actualizar Spaces. No se guarda dentro del proyecto .pulso.</small>
+            <input
+              className="home-secret-input is-masked"
+              type="text"
+              value={token}
+              onChange={(event) => onTokenChange(event.target.value)}
+              placeholder={hasTokens ? "Pegar para reemplazar o crear token" : "hf_..."}
+              disabled={busy != null || !desktopAvailable}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              data-form-type="other"
+              data-lpignore="true"
+              data-1p-ignore="true"
+            />
+          </label>
+        </div>
+
+        <div className="home-connection-actions">
+          <button type="button" className="is-primary" onClick={onSave} disabled={!canSave}>
+            {busy === "save" ? <Loader2 size={13} className="pulso-spin" /> : <KeyRound size={13} />}
+            Guardar token
+          </button>
+          <button type="button" onClick={onSaveDefaultNamespace} disabled={!canSaveNamespace}>
+            {busy === "destination" ? <Loader2 size={13} className="pulso-spin" /> : <Cloud size={13} />}
+            Guardar destino
+          </button>
+          <button
+            type="button"
+            onClick={onCheck}
+            disabled={!canCheck}
+            title="Consulta whoami en Hugging Face; los permisos concretos del Space se validan al publicar."
+            aria-label="Verificar token de Hugging Face"
+          >
+            {busy === "check" ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+            Verificar alcance
+          </button>
+          <button type="button" onClick={() => onDefaultNamespaceChange(PULSO_HF_DEFAULT_NAMESPACE)} disabled={busy != null || !desktopAvailable}>
+            <Cloud size={13} />
+            Usar {PULSO_HF_DEFAULT_NAMESPACE}
+          </button>
+          <button type="button" onClick={openHuggingFaceTokens}>
+            <ExternalLink size={13} />
+            Crear token HF
+          </button>
+        </div>
+
+        <p className="home-connection-verify-note">
+          <RefreshCw size={12} aria-hidden="true" />
+          <span>{desktopAvailable ? "Valida el token contra Hugging Face; la publicación confirma permisos del Space destino." : "Disponible al abrir Prosecnur como app de escritorio."}</span>
+        </p>
+      </details>
+
+      {message && (
+        <div className={`home-settings-alert ${message.kind === "error" ? "is-error" : "is-ok"}`}>
+          {message.kind === "error" ? <AlertTriangle size={14} /> : <Check size={14} />}
+          <span>{message.text}</span>
+        </div>
+      )}
+    </article>
+  );
+}
+
 function ConnectionCard({
   meta,
   state,
@@ -558,8 +1160,9 @@ function ConnectionCard({
   const isOAuth = meta.credentialKind === "oauth";
   const profiles = supportsProfiles ? state.profiles ?? [] : [];
   const koboServerSelectValue = KOBO_SERVER_OPTIONS.some((option) => option.value === baseUrl) ? baseUrl : "custom";
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const saveLabel = isOAuth
-    ? "Autorizar"
+    ? "Autorizar cuenta"
     : supportsProfiles && (!supportsSession || remember)
     ? alias.trim()
       ? "Guardar perfil"
@@ -578,160 +1181,176 @@ function ConnectionCard({
         </div>
         <span className={`home-connection-status ${state.has_token ? "is-ready" : ""}`}>
           {state.has_token ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
-          {connectionStatusLabel(state)}
+          {connectionStatusLabel(meta, state)}
         </span>
       </div>
 
-      {state.has_token && (
-        <div className="home-connection-mask">
-          <span>
-            {isOAuth
-              ? "OAuth activo"
-              : supportsProfiles && state.active_profile_alias
-                ? `Perfil activo · ${state.active_profile_alias}${isKobo && state.active_profile_server_label ? ` · ${state.active_profile_server_label}` : ""}`
-                : "Clave activa"}
-          </span>
-          <code>{state.masked_token}</code>
+      {state.has_token ? (
+        <div className="home-connection-current">
+          <span>{isOAuth ? "Autorización activa" : "Credencial activa"}</span>
+          <strong>{activeConnectionLabel(meta, state)}</strong>
+          <small>{activeConnectionDetail(meta, state)}</small>
+        </div>
+      ) : (
+        <div className="home-connection-empty">
+          <span>Pendiente</span>
+          <strong>{meta.emptyHelp}</strong>
         </div>
       )}
 
-      {supportsProfiles && profiles.length > 0 && (
-        <div className="home-connection-profiles" aria-label={`Perfiles ${meta.title}`}>
-          <div className="home-connection-profiles-head">
-            <span>Perfiles guardados</span>
-            <small>{profiles.length} {profiles.length === 1 ? "perfil" : "perfiles"}</small>
-          </div>
-          <div className="home-connection-profile-list">
-            {profiles.map((profile) => (
-              <div key={profile.id} className={`home-connection-profile ${profile.is_default ? "is-default" : ""}`}>
-                <div className="home-connection-profile-copy">
-                  <strong>{profile.alias}</strong>
-                  <small>
-                    {profile.is_default ? "Predeterminado" : "Disponible"}
-                    {profile.server_label ? ` · ${profile.server_label}` : ""}
-                    {profile.masked_token ? ` · ${profile.masked_token}` : ""}
-                    {profile.base_url ? ` · ${profile.base_url}` : ""}
-                  </small>
-                </div>
-                <div className="home-connection-profile-actions">
-                  {!profile.is_default && (
-                    <button type="button" onClick={() => onSetDefault(profile)} disabled={busy != null}>
-                      Usar
+      <details className="home-connection-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
+        <summary>
+          <span>Configurar credencial</span>
+          <small>{supportsProfiles ? `${profiles.length} ${profiles.length === 1 ? "perfil" : "perfiles"}` : isOAuth ? "OAuth local" : "Token API"}</small>
+        </summary>
+
+        {supportsProfiles && profiles.length > 0 && (
+          <div className="home-connection-profiles" aria-label={`Perfiles ${meta.title}`}>
+            <div className="home-connection-profiles-head">
+              <span>Perfiles de acceso</span>
+              <small>{profiles.length} {profiles.length === 1 ? "perfil" : "perfiles"}</small>
+            </div>
+            <div className="home-connection-profile-list">
+              {profiles.map((profile) => (
+                <div key={profile.id} className={`home-connection-profile ${profile.is_default ? "is-default" : ""}`}>
+                  <div className="home-connection-profile-copy">
+                    <strong>{profile.alias}</strong>
+                    <small>
+                      {profileDetail(profile, isKobo)}
+                    </small>
+                  </div>
+                  <div className="home-connection-profile-actions">
+                    {!profile.is_default && (
+                      <button type="button" onClick={() => onSetDefault(profile)} disabled={busy != null}>
+                        Activar
+                      </button>
+                    )}
+                    <button type="button" className="is-danger" onClick={() => onDeleteProfile(profile)} disabled={busy != null}>
+                      Quitar
                     </button>
-                  )}
-                  <button type="button" className="is-danger" onClick={() => onDeleteProfile(profile)} disabled={busy != null}>
-                    Quitar
-                  </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <p>
+              {isKobo
+                ? "Cada perfil fija servidor y clave. Prosecnur usa solo el perfil activo al leer assets y respuestas."
+                : "Prosecnur usa solo el perfil activo. Si necesitas otra clave, actívala antes de importar."}
+            </p>
           </div>
-          <p>
-            {isKobo
-              ? "Cada perfil Kobo fija servidor y token; Prosecnur usa el perfil elegido al leer assets y respuestas."
-              : "El cambio de perfil es manual. Prosecnur no rota tokens automáticamente para sortear límites de la API."}
-          </p>
-        </div>
-      )}
-
-      <div className="home-connection-form">
-        {supportsProfiles && (!supportsSession || remember) && (
-          <label>
-            <span>Alias del perfil</span>
-            <input
-              type="text"
-              value={alias}
-              onChange={(event) => onAliasChange(event.target.value)}
-              placeholder={state.active_profile_alias || "Principal"}
-              disabled={busy != null}
-            />
-          </label>
         )}
-        {isKobo && (
-          <>
+
+        <div className="home-connection-form">
+          {supportsProfiles && (!supportsSession || remember) && (
             <label>
-              <span>Servidor Kobo</span>
-              <select
-                value={koboServerSelectValue}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  onBaseUrlChange(value === "custom" ? baseUrl || KOBO_DEFAULT_BASE_URL : value);
-                }}
+              <span>Alias del perfil</span>
+              <input
+                type="text"
+                value={alias}
+                onChange={(event) => onAliasChange(event.target.value)}
+                placeholder={state.active_profile_alias || "Principal"}
                 disabled={busy != null}
-              >
-                {KOBO_SERVER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-                <option value="custom">Custom</option>
-              </select>
+              />
             </label>
-            {koboServerSelectValue === "custom" && (
-              <label>
-                <span>URL del servidor</span>
-                <input
-                  type="text"
-                  value={baseUrl}
-                  onChange={(event) => onBaseUrlChange(event.target.value)}
-                  placeholder="https://kobo.example.org"
-                  disabled={busy != null}
-                />
-              </label>
-            )}
-          </>
-        )}
-        <label>
-          <span>{isOAuth ? "JSON cliente OAuth local" : "Nueva clave API"}</span>
-          {isOAuth ? (
-            <textarea
-              value={input}
-              onChange={(event) => onInputChange(event.target.value)}
-              placeholder="Pegar JSON descargado de Google Cloud"
-              rows={4}
-              disabled={busy != null}
-            />
-          ) : (
-            <input
-              type="password"
-              value={input}
-              onChange={(event) => onInputChange(event.target.value)}
-              placeholder={state.has_token ? "Pegar para reemplazar o crear perfil" : "Pegar clave API"}
-              disabled={busy != null}
-            />
           )}
-        </label>
-        {supportsSession && (
-          <label className="home-connection-check">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(event) => onRememberChange(event.target.checked)}
-              disabled={busy != null}
-            />
-            <span>Recordar en este equipo</span>
+          {isKobo && (
+            <>
+              <label>
+                <span>Servidor Kobo</span>
+                <select
+                  value={koboServerSelectValue}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onBaseUrlChange(value === "custom" ? baseUrl || KOBO_DEFAULT_BASE_URL : value);
+                  }}
+                  disabled={busy != null}
+                >
+                  {KOBO_SERVER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              {koboServerSelectValue === "custom" && (
+                <label>
+                  <span>URL del servidor</span>
+                  <input
+                    type="text"
+                    value={baseUrl}
+                    onChange={(event) => onBaseUrlChange(event.target.value)}
+                    placeholder="https://kobo.example.org"
+                    disabled={busy != null}
+                  />
+                </label>
+              )}
+            </>
+          )}
+          <label>
+            <span>{meta.inputLabel}</span>
+            <small>{meta.inputHelp}</small>
+            {isOAuth ? (
+              <textarea
+                value={input}
+                onChange={(event) => onInputChange(event.target.value)}
+                placeholder={meta.inputPlaceholder}
+                rows={4}
+                disabled={busy != null}
+              />
+            ) : (
+              <input
+                type="password"
+                value={input}
+                onChange={(event) => onInputChange(event.target.value)}
+                placeholder={state.has_token ? "Pegar para reemplazar o crear perfil" : meta.inputPlaceholder}
+                disabled={busy != null}
+              />
+            )}
           </label>
-        )}
-      </div>
+          {supportsSession && (
+            <label className="home-connection-check">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(event) => onRememberChange(event.target.checked)}
+                disabled={busy != null}
+              />
+              <span>Recordar en este equipo</span>
+            </label>
+          )}
+        </div>
 
-      <div className="home-connection-actions">
-        <button type="button" className="is-primary" onClick={onSave} disabled={!hasInput || busy != null}>
-          {busy === "save" ? <Loader2 size={13} className="pulso-spin" /> : <KeyRound size={13} />}
-          {saveLabel}
-        </button>
-        {isOAuth && (
-          <button type="button" onClick={onOpenAuth} disabled={!authUrl || busy != null}>
-            <Link2 size={13} />
-            Abrir Google
+        <div className="home-connection-actions">
+          <button type="button" className="is-primary" onClick={onSave} disabled={!hasInput || busy != null}>
+            {busy === "save" ? <Loader2 size={13} className="pulso-spin" /> : <KeyRound size={13} />}
+            {saveLabel}
           </button>
-        )}
-        <button type="button" onClick={onCheck} disabled={!canCheck}>
-          {busy === "check" ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-          Probar
-        </button>
-        <button type="button" className="is-danger" onClick={onClear} disabled={!canClear}>
-          {busy === "clear" ? <Loader2 size={13} className="pulso-spin" /> : <Trash2 size={13} />}
-          Quitar
-        </button>
-      </div>
+          {isOAuth && authUrl && (
+            <button type="button" onClick={onOpenAuth} disabled={!authUrl || busy != null}>
+              <ExternalLink size={13} />
+              Continuar en Google
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onCheck}
+            disabled={!canCheck}
+            title={meta.verifyHint}
+            aria-label={`Verificar alcance de ${meta.title}`}
+          >
+            {busy === "check" ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+            Verificar alcance
+          </button>
+          <button type="button" className="is-danger" onClick={onClear} disabled={!canClear}>
+            {busy === "clear" ? <Loader2 size={13} className="pulso-spin" /> : <Trash2 size={13} />}
+            Quitar
+          </button>
+        </div>
+
+        <p className="home-connection-verify-note">
+          <RefreshCw size={12} aria-hidden="true" />
+          <span>{meta.verifyHint}</span>
+        </p>
+      </details>
 
       {message && (
         <div className={`home-settings-alert ${message.kind === "error" ? "is-error" : "is-ok"}`}>

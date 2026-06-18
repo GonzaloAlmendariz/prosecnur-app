@@ -429,6 +429,8 @@
             out <- merge(out, counts, by = "variable", all.x = TRUE)
           }
         }
+        if (!"n_reglas_con_casos" %in% names(out)) out$n_reglas_con_casos <- 0L
+        if (!"n_inconsistencias" %in% names(out)) out$n_inconsistencias <- 0L
         out$n_reglas_con_casos[is.na(out$n_reglas_con_casos)] <- 0L
         out$n_inconsistencias[is.na(out$n_inconsistencias)] <- 0L
         out <- out[order(out$variable), , drop = FALSE]

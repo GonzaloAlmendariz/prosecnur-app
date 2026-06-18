@@ -14,6 +14,7 @@ import {
   apiMonitoreoConfig,
   apiMonitoreoDemo,
   apiMonitoreoKoboAssets,
+  apiMonitoreoPublicationSheetsPublish,
   apiMonitoreoPublicReport,
   apiMonitoreoPublish,
   apiMonitoreoState,
@@ -30,6 +31,7 @@ import {
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
+  apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic,
   apiSurveyMonkeyMultibaseImportIndependent,
   apiSurveyMonkeyMultibaseInspectSurvey,
   apiSurveyMonkeyMultibaseListSurveys,
@@ -645,6 +647,7 @@ describe("Monitoreo client", () => {
       hf_username: "pulso",
       hf_token: "hf_abc",
       space_name: "acnur-avance",
+      audience: "client",
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -655,8 +658,43 @@ describe("Monitoreo client", () => {
       hf_username: "pulso",
       hf_token: "hf_abc",
       space_name: "acnur-avance",
+      audience: "client",
     });
     expect(result.artifact_kind).toBe("monitoreo");
+  });
+
+  test("publishes executive publication tabs to Sheets by audience", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        audience: "internal",
+        spreadsheet_id: "sheet_exec",
+        controlled_tabs: ["Portada", "Base técnica"],
+        updated_at: "2026-06-18T12:00:00Z",
+        mode: "controlled_write",
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoPublicationSheetsPublish("sheet_exec", {
+      audience: "internal",
+      includeTargets: true,
+      confirmedFullData: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/publication/sheets",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      spreadsheet_id: "sheet_exec",
+      audience: "internal",
+      include_targets: true,
+      confirmed_full_data: true,
+    });
+    expect(result.controlled_tabs).toContain("Base técnica");
   });
 
   test("lists Kobo assets with selected connection profile", async () => {
@@ -837,6 +875,76 @@ describe("Monitoreo client", () => {
         sheet_name: "Barrido",
         header_row: 1,
       },
+    });
+  });
+
+  test("registers territorial route sheet source with operational defaults", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        source: {
+          id: "google_sheets_route_sheet",
+          kind: "google_sheets",
+          label: "Hoja de ruta operativa",
+          enabled: true,
+          role: "hoja_ruta",
+          integration_mode: "connected_read",
+          sheet_binding: {
+            spreadsheet_id: "sheet_route",
+            sheet_name: "Hojas_de_ruta",
+            header_row: 6,
+            range: "",
+          },
+          dimensions: { territorial_phase: "field" },
+        },
+        validation: { ok: true },
+        state: {
+          ok: true,
+          sources: [],
+          config: {},
+          has_snapshot: false,
+          synced_at: "",
+          n_rows: 0,
+          variables: [],
+          dashboard: null,
+          errors: [],
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoSheetsSource({
+      kind: "google_sheets",
+      label: "Hoja de ruta operativa",
+      role: "hoja_ruta",
+      integration_mode: "connected_read",
+      sheet_binding: {
+        spreadsheet_id: "sheet_route",
+        sheet_name: "Hojas_de_ruta",
+        header_row: 6,
+        range: "",
+      },
+      dimensions: { territorial_phase: "field" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/sheets/source",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      kind: "google_sheets",
+      label: "Hoja de ruta operativa",
+      role: "hoja_ruta",
+      integration_mode: "connected_read",
+      sheet_binding: {
+        spreadsheet_id: "sheet_route",
+        sheet_name: "Hojas_de_ruta",
+        header_row: 6,
+        range: "",
+      },
+      dimensions: { territorial_phase: "field" },
     });
   });
 
@@ -1166,6 +1274,90 @@ describe("Monitoreo client", () => {
       }],
     });
     expect(result.estudio.processing_mode).toBe("independent_siblings");
+  });
+
+  test("imports independent siblings with a canonical XLSForm logic template", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        processing_mode: "independent_siblings",
+        active_base: "ingenieria_civil",
+        bases: [],
+        n_bases: 1,
+        estudio: {
+          nombre: null,
+          processing_mode: "independent_siblings",
+          active_base: "ingenieria_civil",
+          n_bases: 1,
+          bases: {},
+          max_bases: 10,
+        },
+        audit: { ok: true, surveys: [], ref_survey_id: "1", n_blocking: 0, n_review: 0, n_special: 0, company_positions: [], company_variables: [], diffs: [] },
+        xlsform_logic_sync: {
+          ok: true,
+          template_base: "XLSForm cargado en Carga/Editor",
+          targets: ["ingenieria_civil"],
+          updated_bases: ["ingenieria_civil"],
+          n_targets: 1,
+          n_updated_bases: 1,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiSurveyMonkeyMultibaseImportIndependent({
+      surveys: [{ survey_id: "1", label: "Ingeniería Civil" }],
+      canonical_xlsform_file_id: "xls-template",
+      use_canonical_xlsform_logic: true,
+    });
+
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      surveys: [{ survey_id: "1", label: "Ingeniería Civil" }],
+      canonical_xlsform_file_id: "xls-template",
+      use_canonical_xlsform_logic: true,
+    });
+  });
+
+  test("applies canonical XLSForm logic to existing independent siblings", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        template_base: "XLSForm cargado en Carga/Editor",
+        targets: ["ingenieria_civil", "ingenieria_industrial"],
+        updated_bases: ["ingenieria_civil"],
+        n_targets: 2,
+        n_updated_bases: 1,
+        results: [],
+        estudio: {
+          nombre: "Ingenieria",
+          processing_mode: "independent_siblings",
+          active_base: "ingenieria_civil",
+          n_bases: 2,
+          bases: {},
+          max_bases: 10,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic({
+      canonical_xlsform_file_id: "xls-template",
+      targets: ["ingenieria_civil", "ingenieria_industrial"],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/surveymonkey/multibase/apply-canonical-xlsform-logic",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      canonical_xlsform_file_id: "xls-template",
+      targets: ["ingenieria_civil", "ingenieria_industrial"],
+    });
+    expect(result.n_updated_bases).toBe(1);
   });
 
   test("inspects and imports offline SurveyMonkey workbooks", async () => {

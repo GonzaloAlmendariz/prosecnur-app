@@ -1,0 +1,189 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T09:56:28.193Z",
+  "options": {
+    "routes": [
+      "/carga"
+    ],
+    "viewports": [
+      {
+        "width": 1710,
+        "height": 1107
+      },
+      {
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "layoutPreset": "auto",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Downloads/Ingenieria.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "f6187ecb-696e-4ca1-b30c-a7b69df0e8ba",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 09:56:19 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Downloads/Ingenieria.pulso",
+        "name": "Ingenieria",
+        "dirty": false,
+        "last_saved_at": "2026-06-17T19:56:48Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Downloads/Ingenieria.pulso\",\"name\":\"Ingenieria\",\"dirty\":false,\"last_saved_at\":\"2026-06-17T19:56:48Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/logic-icons-centered/logs/api.log",
+      "vite": "tmp/visual-qa/logic-icons-centered/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 2,
+    "screenshots": [
+      "tmp/visual-qa/logic-icons-centered/quick-carga-1710x1107-auto.png",
+      "tmp/visual-qa/logic-icons-centered/quick-carga-1280x720-auto.png"
+    ],
+    "visualIssues": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/carga",
+      "viewport": {
+        "width": 1710,
+        "height": 1107
+      },
+      "url": "http://127.0.0.1:5174/carga",
+      "screenshot": "tmp/visual-qa/logic-icons-centered/quick-carga-1710x1107-auto.png",
+      "fullScreenshot": "tmp/visual-qa/logic-icons-centered/quick-carga-1710x1107-auto-full.png",
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "auto",
+        "density": "auto",
+        "mode": "auto"
+      },
+      "ready": [],
+      "session": "f6187ecb-696e-4ca1-b30c-a7b69df0e8ba",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos Ingenieria sin guardar BASE ACTIVA 2/5 Ingeniería Geológica Fase 1 - Carga de insumos XLSForm Data Listo para validar Insumos listos Modo multi Tienes 9 bases. Para volver a una sola, quita las extras en el panel de abajo. RUTA DE CARGA Insumos listos 1 XLSForm Instrumento cargado 2 Base de datos Data cargada 3 Revisión Compatible para Validación VARIAS BASES 9 bases MODO MULTI ",
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1710,
+          "height": 1107
+        },
+        "pageFrame": {
+          "x": 10,
+          "y": 82,
+          "width": 1690,
+          "height": 1015
+        },
+        "adaptiveSplit": {
+          "x": 10,
+          "y": 154,
+          "width": 1690,
+          "height": 943
+        },
+        "rail": {
+          "x": 11,
+          "y": 155,
+          "width": 238,
+          "height": 941
+        },
+        "main": {
+          "x": 249,
+          "y": 155,
+          "width": 1450,
+          "height": 941
+        }
+      },
+      "issues": []
+    },
+    {
+      "route": "/carga",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:5174/carga",
+      "screenshot": "tmp/visual-qa/logic-icons-centered/quick-carga-1280x720-auto.png",
+      "fullScreenshot": "tmp/visual-qa/logic-icons-centered/quick-carga-1280x720-auto-full.png",
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "auto",
+        "density": "auto",
+        "mode": "auto"
+      },
+      "ready": [],
+      "session": "f6187ecb-696e-4ca1-b30c-a7b69df0e8ba",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo 1 Carga 2 Validación 3 Codificación 4 Analítica 5 Gráficos Ingenieria sin guardar BASE ACTIVA 2/5 Ingeniería Geológica Fase 1 - Carga de insumos XLSForm Data Listo para validar Insumos listos Modo multi Tienes 9 bases. Para volver a una sola, quita las extras en el panel de abajo. RUTA DE CARGA Insumos listos 1 XLSForm Instrumento cargado 2 Base de datos Data cargada 3 Revisión Compatible para Validación VARIAS BASES 9 bases MODO MULTI ",
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 720
+        },
+        "pageFrame": {
+          "x": 8,
+          "y": 128,
+          "width": 1264,
+          "height": 584
+        },
+        "adaptiveSplit": {
+          "x": 8,
+          "y": 196,
+          "width": 1264,
+          "height": 516
+        },
+        "rail": {
+          "x": 9,
+          "y": 197,
+          "width": 218,
+          "height": 514
+        },
+        "main": {
+          "x": 227,
+          "y": 197,
+          "width": 1044,
+          "height": 514
+        }
+      },
+      "issues": []
+    }
+  ]
+}

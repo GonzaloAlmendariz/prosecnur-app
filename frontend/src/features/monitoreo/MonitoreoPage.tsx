@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, Dispatch, FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from "react";
 import { Link } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -84,6 +84,7 @@ import {
   apiMonitoreoSheetsStatus,
   apiMonitoreoSheetsSync,
   apiMonitoreoPublish,
+  apiMonitoreoPublicationSheetsPublish,
   apiMonitoreoSource,
   apiMonitoreoSources,
   apiMonitoreoState,
@@ -113,6 +114,7 @@ import {
   MonitoreoKoboAssetItem,
   MonitoreoLinkCollector,
   MonitoreoLastDeploy,
+  MonitoreoLastSheetsPublication,
   MonitoreoOperationalCases,
   MonitoreoOperationalEvent,
   MonitoreoOperationalModel,
@@ -135,6 +137,7 @@ import {
   MonitoreoSyncResult,
   MonitoreoSurveyMonkeyCollector,
   MonitoreoTerritorialDashboard,
+  MonitoreoTerritorialRouteSheet,
   MonitoreoTerritorialCodeReconciliation,
   MonitoreoTerritorialUmpReconciliation,
   MonitoreoTerritorialEnumeratorReconciliationResponse,
@@ -214,6 +217,13 @@ import {
   type TerritorialUmpAuditModel,
 } from "./territorialCaseAuditModel";
 import {
+  buildTerritorialMasterRecordRows,
+  filterTerritorialMasterRecordRows,
+  summarizeTerritorialMasterRecordRows,
+  territorialMasterRecordOptions,
+  type TerritorialMasterRecordFilters,
+} from "./territorialMasterRecords";
+import {
   IconConfigureLayers,
   IconGpsReview,
   IconGpsValid,
@@ -232,6 +242,11 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
+import {
+  openHuggingFaceTokens,
+  PULSO_HF_DEFAULT_NAMESPACE,
+  PULSO_HF_DEFAULT_TOKEN_ALIAS,
+} from "../../lib/huggingFace";
 import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
 import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
@@ -628,6 +643,7 @@ type SourceDimensions = {
   actor: string;
   canal: string;
   carrera: string;
+  territorial_phase: string;
 };
 
 const EMPTY_SOURCE_DIMENSIONS: SourceDimensions = {
@@ -637,6 +653,7 @@ const EMPTY_SOURCE_DIMENSIONS: SourceDimensions = {
   actor: "",
   canal: "",
   carrera: "",
+  territorial_phase: "",
 };
 
 const DEFAULT_SOURCE: SourceDraft = {
@@ -654,6 +671,28 @@ const DEFAULT_SOURCE: SourceDraft = {
     range: "",
   },
 };
+
+function territorialRouteSheetDraftDefaults(prev: SourceDraft, phase: MonitoreoTerritorialPhase | string = "field"): SourceDraft {
+  return {
+    ...prev,
+    kind: "google_sheets",
+    label: prev.label && prev.label !== "Barrido acreditación" ? prev.label : "Hoja de ruta operativa",
+    base_url: "",
+    connection_profile_id: "",
+    role: "hoja_ruta",
+    integration_mode: "connected_read",
+    dimensions: {
+      ...prev.dimensions,
+      territorial_phase: phase || "field",
+    },
+    sheet_binding: {
+      ...prev.sheet_binding,
+      sheet_name: prev.sheet_binding.sheet_name || "Hojas_de_ruta",
+      header_row: Number(prev.sheet_binding.header_row ?? 0) > 1 ? prev.sheet_binding.header_row : 6,
+      range: prev.sheet_binding.range ?? "",
+    },
+  };
+}
 
 type WorkbenchView = "avance" | "ocurrencias" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
 type TerritorialReportScope = "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full";
@@ -691,6 +730,14 @@ type SourceSyncRateLimitNotice = {
   sources: string[];
   messages: string[];
 };
+type SourceSyncJobState = {
+  jobId: string | null;
+  label: string;
+  phase: string;
+  message: string;
+  percent: number;
+};
+type MonitoreoPublishAudience = "client" | "internal";
 type MonitoreoRouteFamily = MonitoreoProfile["family"];
 type MonitoringSemanticTone = "effective" | "partial" | "refusal" | "noneffective" | "pending" | "assignment" | "base" | "ready" | "warning";
 
@@ -1906,6 +1953,7 @@ function dimensionLabel(key: string) {
     servicio: "Corte secundario",
     municipalidad: "Territorio / ámbito",
     territorio: "Territorio / ámbito",
+    territorial_phase: "Fase territorial",
   };
   return labels[key] ?? key.replace(/_/g, " ");
 }
@@ -2498,8 +2546,9 @@ export default function MonitoreoPage() {
   const [templatingEnumeratorRoster, setTemplatingEnumeratorRoster] = useState(false);
   const [downloadingEnumeratorCodes, setDownloadingEnumeratorCodes] = useState(false);
   const [error, setError] = useState("");
-  const [webPublishOpen, setWebPublishOpen] = useState(false);
-  const [sourceSyncJob, setSourceSyncJob] = useState<{ jobId: string; label: string } | null>(null);
+  const [outputsOpen, setOutputsOpen] = useState(false);
+  const [outputsMinimized, setOutputsMinimized] = useState(false);
+  const [sourceSyncJob, setSourceSyncJob] = useState<SourceSyncJobState | null>(null);
   const [sourceSyncRateLimitNotice, setSourceSyncRateLimitNotice] = useState<SourceSyncRateLimitNotice | null>(null);
   const [sample, setSample] = useState<MonitoreoRow[]>([]);
   const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
@@ -3590,13 +3639,41 @@ export default function MonitoreoPage() {
     setSavingSource(true);
     setError("");
     setSourceSyncRateLimitNotice(null);
+    setSourceSyncJob({
+      jobId: null,
+      label,
+      phase: "Preparando",
+      message: "Guardando configuración y preparando actualización...",
+      percent: 4,
+    });
     if (route.family === "territorial") resetTerritorialReportRequests();
     try {
       const configForSync = configWithTerritorialPhase(config, selectedRoutePhaseRef.current);
+      setSourceSyncJob({
+        jobId: null,
+        label,
+        phase: "Configuración",
+        message: "Guardando la configuración territorial local...",
+        percent: 8,
+      });
       await apiMonitoreoConfig(configForSync);
+      setSourceSyncJob({
+        jobId: null,
+        label,
+        phase: "Iniciando",
+        message: "Creando el job de actualización...",
+        percent: 12,
+      });
       const start = await startMonitoreoSourceSyncJob(configForSync, sourceIds);
-      setSourceSyncJob({ jobId: start.job_id, label });
+      setSourceSyncJob({
+        jobId: start.job_id,
+        label,
+        phase: "En cola",
+        message: "Esperando al motor local de actualización...",
+        percent: 14,
+      });
     } catch (e) {
+      setSourceSyncJob(null);
       setError((e as Error).message);
       throw e;
     } finally {
@@ -3783,6 +3860,23 @@ export default function MonitoreoPage() {
     );
   }
 
+  const clientPublicationDeploy = state?.publication?.client_last_deploy?.audience === "client"
+    ? state.publication.client_last_deploy
+    : null;
+  const internalPublicationDeploy = state?.publication?.internal_last_deploy?.audience === "internal"
+    ? state.publication.internal_last_deploy
+    : null;
+  const clientPublicationSheets = state?.publication?.client_last_sheets?.audience === "client"
+    ? state.publication.client_last_sheets
+    : null;
+  const internalPublicationSheets = state?.publication?.internal_last_sheets?.audience === "internal"
+    ? state.publication.internal_last_sheets
+    : null;
+  const publicationSpreadsheetId =
+    clientPublicationSheets?.spreadsheet_id ||
+    internalPublicationSheets?.spreadsheet_id ||
+    "";
+
   return (
     <PageFrame
       title={route.label}
@@ -3802,11 +3896,7 @@ export default function MonitoreoPage() {
         <MonitoreoRail
           activeView={activeView}
           onChange={setActiveView}
-          sources={sources}
-          activeSources={activePrimarySources.length}
-          nRows={state?.n_rows ?? 0}
           syncedAt={state?.synced_at ?? ""}
-          dashboardReady={!!dashboard}
           config={config}
           dashboard={dashboard}
 	          route={route}
@@ -3816,12 +3906,19 @@ export default function MonitoreoPage() {
 	          loadingRoutePhase={loadingRoutePhase}
 	          routePhaseStatus={routePhaseStatus}
 	          phaseCoherence={territorialPhaseCoherence}
-              showWebPublish={activeView === "avance"}
-              publishLastDeploy={state?.publication?.last_deploy ?? null}
+              showWebPublish
+              publishClientDeploy={clientPublicationDeploy}
+              publishInternalDeploy={internalPublicationDeploy}
+              publishClientSheets={clientPublicationSheets}
+              publishInternalSheets={internalPublicationSheets}
               publishHasSnapshot={!!state?.has_snapshot}
               publishRows={state?.n_rows ?? 0}
               publishRouteLabel={route.shortLabel}
-              onOpenWebPublish={() => setWebPublishOpen(true)}
+              publishSpreadsheetId={publicationSpreadsheetId}
+              onOpenWebPublish={() => {
+                setOutputsOpen(true);
+                setOutputsMinimized(false);
+              }}
 	          onTerritorialPhaseChange={(phase) => patchTerritorialConfig({ active_route_phase: phase })}
 	        />
         <main
@@ -3881,21 +3978,25 @@ export default function MonitoreoPage() {
               <>
                 {sourceSyncJob && (
                   <div className="mon-workbench-progress">
-                    <JobProgress<MonitoreoSyncResult>
-                      label={sourceSyncJob.label}
-                      jobId={sourceSyncJob.jobId}
-                      onDone={async (result) => {
-                        setSourceSyncJob(null);
-                        const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
-                        setSourceSyncRateLimitNotice(rateLimitNotice);
-                        await refresh();
-                      }}
-                      onError={(msg) => {
-                        setSourceSyncJob(null);
-                        setError(msg);
-                      }}
-                      onCancelled={() => setSourceSyncJob(null)}
-                    />
+                    {sourceSyncJob.jobId ? (
+                      <JobProgress<MonitoreoSyncResult>
+                        label={sourceSyncJob.label}
+                        jobId={sourceSyncJob.jobId}
+                        onDone={async (result) => {
+                          setSourceSyncJob(null);
+                          const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
+                          setSourceSyncRateLimitNotice(rateLimitNotice);
+                          await refresh();
+                        }}
+                        onError={(msg) => {
+                          setSourceSyncJob(null);
+                          setError(msg);
+                        }}
+                        onCancelled={() => setSourceSyncJob(null)}
+                      />
+                    ) : (
+                      <SourceSyncPendingProgress job={sourceSyncJob} />
+                    )}
                   </div>
                 )}
                 {sourceSyncRateLimitNotice ? (
@@ -4046,6 +4147,9 @@ export default function MonitoreoPage() {
                         onCodeReconcile={reconcileTerritorialEnumeratorCode}
                         onUmpReconcile={reconcileTerritorialUmp}
                         onBatchReconcile={reconcileTerritorialBatch}
+                        onAddSheet={addSheetSource}
+                        onSheetsSynced={syncSheetSources}
+                        onUpdateSource={updateSource}
                         onUploadEnumeratorRoster={uploadTerritorialEnumeratorRoster}
 	                    onDownloadEnumeratorTemplate={downloadTerritorialEnumeratorTemplate}
 	                    onDownloadEnumeratorCodes={downloadTerritorialEnumeratorCodes}
@@ -4106,106 +4210,364 @@ export default function MonitoreoPage() {
           </div>
         </main>
       </section>
-      {webPublishOpen && (
-        <MonitoreoWebPublishDialog
-          defaultTitle={config.acreditacion?.estudio?.titulo || route.label || "reporte-monitoreo"}
-          lastDeploy={state?.publication?.last_deploy ?? null}
-          hasSnapshot={!!state?.has_snapshot}
-          onClose={() => setWebPublishOpen(false)}
-          onPublished={() => { void refresh(); }}
-        />
+      {outputsOpen && (
+        <FloatingPortal>
+          <MonitoreoOutputsSuite
+            defaultTitle={config.acreditacion?.estudio?.titulo || route.label || "reporte-monitoreo"}
+            routeLabel={route.shortLabel}
+            clientDeploy={clientPublicationDeploy}
+            internalDeploy={internalPublicationDeploy}
+            clientSheets={clientPublicationSheets}
+            internalSheets={internalPublicationSheets}
+            hasSnapshot={!!state?.has_snapshot}
+            nRows={state?.n_rows ?? 0}
+            minimized={outputsMinimized}
+            onMinimize={() => setOutputsMinimized(true)}
+            onRestore={() => setOutputsMinimized(false)}
+            onClose={() => setOutputsOpen(false)}
+            onPublished={() => { void refresh(); }}
+          />
+        </FloatingPortal>
       )}
     </PageFrame>
   );
 }
 
 function MonitoreoRailWebPublishControl({
-  lastDeploy,
+  clientDeploy,
+  internalDeploy,
+  clientSheets,
+  internalSheets,
   hasSnapshot,
   nRows,
   routeLabel,
+  spreadsheetId,
   onOpen,
 }: {
-  lastDeploy?: MonitoreoLastDeploy | null;
+  clientDeploy?: MonitoreoLastDeploy | null;
+  internalDeploy?: MonitoreoLastDeploy | null;
+  clientSheets?: MonitoreoLastSheetsPublication | null;
+  internalSheets?: MonitoreoLastSheetsPublication | null;
   hasSnapshot: boolean;
   nRows: number;
   routeLabel: string;
+  spreadsheetId: string;
   onOpen: () => void;
 }) {
-  const publishedMeta = lastDeploy
-    ? [
-      lastDeploy.repo_id ? shortenMiddle(lastDeploy.repo_id, 28) : (lastDeploy.app_url ? "Web disponible" : "Publicacion previa"),
-      lastDeploy.published_at ? formatDate(lastDeploy.published_at) : "",
-    ].filter(Boolean).join(" · ")
-    : "";
+  const webPublishedCount = [clientDeploy, internalDeploy].filter(Boolean).length;
+  const sheetsPublishedCount = [clientSheets, internalSheets].filter(Boolean).length;
+  const hasSpreadsheet = Boolean(String(spreadsheetId || "").trim());
   return (
-    <section className="mon-rail-web-publish" aria-label="Publicacion web de avance">
-      <span><Globe2 size={13} /> Avance web</span>
-      <strong>{lastDeploy ? "Web publicada" : `Publicar ${routeLabel}`}</strong>
-      <small>
-        {lastDeploy
-          ? publishedMeta
-          : `${formatMetric(nRows)} registros locales listos para publicar.`}
-      </small>
-      <div className={`mon-rail-web-publish-actions${lastDeploy?.app_url ? " has-open" : ""}`}>
-        {lastDeploy?.app_url ? (
-          <a href={lastDeploy.app_url} target="_blank" rel="noreferrer" aria-label="Abrir web publicada">
-            <ExternalLink size={14} />
-          </a>
-        ) : null}
-        <button type="button" onClick={onOpen} disabled={!hasSnapshot}>
-          <Globe2 size={14} />
-          <span>{lastDeploy ? "Re-publicar" : "Publicar web"}</span>
-        </button>
-      </div>
+    <section className="mon-rail-web-publish" aria-label="Publicaciones del corte">
+      <button
+        type="button"
+        className="mon-rail-web-publish-trigger"
+        aria-label={`Abrir suite de publicaciones del corte de ${routeLabel}`}
+        onClick={onOpen}
+      >
+        <span className="mon-rail-web-publish-trigger-icon"><Globe2 size={14} /></span>
+        <span className="mon-rail-web-publish-trigger-copy">
+          <span>Publicaciones</span>
+          <strong>{routeLabel}</strong>
+          <small>{webPublishedCount}/2 web · {sheetsPublishedCount}/2 Sheets{!hasSpreadsheet && !sheetsPublishedCount ? " · sin enlace" : ""}</small>
+        </span>
+        <Maximize2 size={14} className="mon-rail-web-publish-trigger-chevron" />
+      </button>
+      {!hasSnapshot ? <em className="mon-rail-web-publish-error">Sin corte sincronizado</em> : null}
+      {hasSnapshot && nRows ? <small>{formatMetric(nRows)} registros listos para publicar.</small> : null}
     </section>
   );
 }
 
-function MonitoreoWebPublishDialog({
+type MonitoreoSheetsPublicationState = {
+  tabs: string[];
+  spreadsheetId: string;
+  updatedAt?: string;
+};
+type MonitoreoOutputChannel = "web" | "sheets";
+type MonitoreoOutputFamily = "territorial" | "accreditation" | "generic";
+type MonitoreoOutputStatusKind = "idle" | "publishing" | "success" | "error";
+type MonitoreoOutputTargetKey = `${MonitoreoPublishAudience}:${MonitoreoOutputChannel}`;
+type MonitoreoOutputPublicationStatus = {
+  kind: MonitoreoOutputStatusKind;
+  message: string;
+  detail?: string;
+  updatedAt: number;
+  seen: boolean;
+};
+
+function monitoreoOutputTargetKey(audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel): MonitoreoOutputTargetKey {
+  return `${audience}:${channel}`;
+}
+
+function sheetsPublicationStateFromDeploy(deploy?: MonitoreoLastSheetsPublication | null): MonitoreoSheetsPublicationState | null {
+  if (!deploy?.spreadsheet_id) return null;
+  const tabs = (deploy.controlled_tabs ?? deploy.tabs ?? []).map(String);
+  return {
+    tabs,
+    spreadsheetId: deploy.spreadsheet_id,
+    updatedAt: deploy.updated_at,
+  };
+}
+
+function normalizeMonitoreoSpreadsheetTarget(value?: string | null) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const pathMatch = raw.match(/\/d\/([A-Za-z0-9_-]+)/);
+  if (pathMatch?.[1]) return pathMatch[1];
+  const idMatch = raw.match(/[?&]id=([A-Za-z0-9_-]+)/);
+  if (idMatch?.[1]) return idMatch[1];
+  return raw;
+}
+
+function monitoreoOutputFamilyFromLabel(routeLabel: string, defaultTitle = ""): MonitoreoOutputFamily {
+  const text = `${routeLabel} ${defaultTitle}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (text.includes("territorial") || text.includes("campo")) return "territorial";
+  if (text.includes("acredit")) return "accreditation";
+  return "generic";
+}
+
+function monitoreoOutputArtifactCopy(
+  family: MonitoreoOutputFamily,
+  audience: MonitoreoPublishAudience,
+  channel: MonitoreoOutputChannel,
+) {
+  const destination = channel === "web" ? "web" : "en Sheets";
+  if (audience === "internal") {
+    return {
+      eyebrow: channel === "web" ? "Web interna" : "Sheets interno",
+      title: `Interno · Monitoreo operativo ${destination}`,
+      shortTitle: channel === "web" ? "Monitoreo web" : "Monitoreo Sheets",
+      description: "Incluye validación, cuotas y auditoría.",
+      detail: channel === "web" ? "HF Space privado para el equipo." : "Pestañas operativas controladas.",
+      button: channel === "web" ? "Publicar monitoreo web" : "Publicar monitoreo Sheets",
+      republish: channel === "web" ? "Actualizar monitoreo web" : "Actualizar monitoreo Sheets",
+    };
+  }
+  const familyTitle = family === "territorial" ? "Reporte de avance territorial" : family === "accreditation" ? "Reporte de avance para cliente" : "Reporte de avance";
+  const description = family === "territorial" ? "Avance por distrito, UMP y cuota." : family === "accreditation" ? "Avance por actor, segmento y día." : "Avance agregado del corte.";
+  return {
+    eyebrow: channel === "web" ? "Web cliente" : "Sheets cliente",
+    title: `Cliente · ${familyTitle} ${destination}`,
+    shortTitle: channel === "web" ? "Reporte web" : "Reporte Sheets",
+    description,
+    detail: channel === "web" ? "HF Space con avance agregado." : "Pestañas ejecutivas de avance.",
+    button: channel === "web" ? "Publicar reporte web" : "Publicar reporte Sheets",
+    republish: channel === "web" ? "Actualizar reporte web" : "Actualizar reporte Sheets",
+  };
+}
+
+function MonitoreoOutputPublicationStatusBar({
+  status,
+  ready,
+  canPublish,
+  fallbackMessage,
+}: {
+  status: MonitoreoOutputPublicationStatus;
+  ready: boolean;
+  canPublish: boolean;
+  fallbackMessage: string;
+}) {
+  const statusClass = status.kind === "idle" && ready ? "ready" : status.kind;
+  const title = status.kind === "publishing"
+    ? "Publicando"
+    : status.kind === "success"
+    ? "Publicación completada"
+    : status.kind === "error"
+    ? "Revisar publicación"
+    : ready
+    ? "Publicado"
+    : canPublish
+    ? "Listo para publicar"
+    : "Pendiente";
+  const detail = status.message || fallbackMessage;
+  const Icon = status.kind === "publishing"
+    ? Loader2
+    : status.kind === "success" || ready
+    ? CheckCircle2
+    : status.kind === "error"
+    ? AlertTriangle
+    : Clock;
+  const [copied, setCopied] = useState(false);
+  const copyDetail = async () => {
+    if (!detail) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(detail);
+      } else {
+        const area = document.createElement("textarea");
+        area.value = detail;
+        area.setAttribute("readonly", "true");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        document.body.removeChild(area);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className={`mon-output-publication-status is-${statusClass}`} role="status" aria-live="polite">
+      <span className="mon-output-publication-status-icon" aria-hidden="true">
+        <Icon size={14} className={status.kind === "publishing" ? "pulso-spin" : undefined} />
+      </span>
+      <div>
+        <span className="mon-output-publication-status-head">
+          <strong>{title}</strong>
+          {status.kind === "error" && detail ? (
+            <button type="button" onClick={() => { void copyDetail(); }}>
+              {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+              {copied ? "Copiado" : "Copiar"}
+            </button>
+          ) : null}
+        </span>
+        <small>{detail}</small>
+        <span className="mon-output-publication-meter" aria-hidden="true">
+          <span />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function MonitoreoOutputsSuite({
   defaultTitle,
-  lastDeploy,
+  routeLabel,
+  clientDeploy,
+  internalDeploy,
+  clientSheets,
+  internalSheets,
   hasSnapshot,
+  nRows,
+  minimized,
+  onMinimize,
+  onRestore,
   onClose,
   onPublished,
 }: {
   defaultTitle: string;
-  lastDeploy?: MonitoreoLastDeploy | null;
+  routeLabel: string;
+  clientDeploy?: MonitoreoLastDeploy | null;
+  internalDeploy?: MonitoreoLastDeploy | null;
+  clientSheets?: MonitoreoLastSheetsPublication | null;
+  internalSheets?: MonitoreoLastSheetsPublication | null;
   hasSnapshot: boolean;
+  nRows: number;
+  minimized: boolean;
+  onMinimize: () => void;
+  onRestore: () => void;
   onClose: () => void;
   onPublished: () => void;
 }) {
-  const [username, setUsername] = useState(lastDeploy?.hf_username ?? "");
+  const audiences: MonitoreoPublishAudience[] = ["client", "internal"];
+  const [activeAudience, setActiveAudience] = useState<MonitoreoPublishAudience>("client");
+  const [activeChannel, setActiveChannel] = useState<MonitoreoOutputChannel>("web");
+  const [username, setUsername] = useState(clientDeploy?.hf_username ?? internalDeploy?.hf_username ?? "");
   const [token, setToken] = useState("");
-  const [tokenName, setTokenName] = useState("Monitoreo");
+  const [tokenName, setTokenName] = useState(PULSO_HF_DEFAULT_TOKEN_ALIAS);
   const [savedTokens, setSavedTokens] = useState<HfSavedToken[]>([]);
   const [selectedTokenId, setSelectedTokenId] = useState("");
-  const [spaceName, setSpaceName] = useState(
-    () => lastDeploy?.space_name ?? slugifySpaceName(defaultTitle || "reporte-monitoreo"),
-  );
-  const [isPrivate, setIsPrivate] = useState(lastDeploy?.private ?? false);
   const [loadingSettings, setLoadingSettings] = useState(true);
-  const [publishing, setPublishing] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState<{ repo_id: string; app_url: string; url: string } | null>(null);
-
-  const canPublish = useMemo(
-    () => hasSnapshot && !!username.trim() && /^hf_[A-Za-z0-9_]+$/.test(token.trim()) && /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(spaceName.trim()),
-    [hasSnapshot, username, token, spaceName],
+  const [clientSpaceName, setClientSpaceName] = useState(
+    () => clientDeploy?.space_name ?? slugifySpaceName(`${defaultTitle || "reporte-monitoreo"}-cliente`),
   );
+  const [internalSpaceName, setInternalSpaceName] = useState(
+    () => internalDeploy?.space_name ?? slugifySpaceName(`${defaultTitle || "reporte-monitoreo"}-interno`),
+  );
+  const [clientPrivate, setClientPrivate] = useState(clientDeploy?.private ?? false);
+  const [internalConfirmed, setInternalConfirmed] = useState(false);
+  const [publishingAudience, setPublishingAudience] = useState<MonitoreoPublishAudience | null>(null);
+  const [, setWebError] = useState("");
+  const [webResult, setWebResult] = useState<Partial<Record<MonitoreoPublishAudience, { repo_id: string; app_url: string; url: string }>>>({});
+  const [spreadsheetIds, setSpreadsheetIds] = useState<Record<MonitoreoPublishAudience, string>>(() => ({
+    client: sheetsPublicationStateFromDeploy(clientSheets)?.spreadsheetId || "",
+    internal: sheetsPublicationStateFromDeploy(internalSheets)?.spreadsheetId || "",
+  }));
+  const [sheetsBusy, setSheetsBusy] = useState<MonitoreoPublishAudience | null>(null);
+  const [, setSheetsError] = useState("");
+  const [sheetsPublished, setSheetsPublished] = useState<Record<MonitoreoPublishAudience, MonitoreoSheetsPublicationState | null>>(() => ({
+    client: sheetsPublicationStateFromDeploy(clientSheets),
+    internal: sheetsPublicationStateFromDeploy(internalSheets),
+  }));
+  const [publicationStatuses, setPublicationStatuses] = useState<Partial<Record<MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus>>>({});
+  const minimizedRef = useRef(minimized);
+  const sheetsProjectSeedRef = useRef([
+    routeLabel,
+    defaultTitle,
+    clientSheets?.spreadsheet_id || "",
+    internalSheets?.spreadsheet_id || "",
+  ].join("|"));
+
+  useEffect(() => {
+    minimizedRef.current = minimized;
+    if (!minimized) {
+      setPublicationStatuses((current) => {
+        let changed = false;
+        const next: Partial<Record<MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus>> = {};
+        for (const [key, status] of Object.entries(current) as Array<[MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus]>) {
+          if (!status.seen && status.kind !== "publishing") {
+            next[key] = { ...status, seen: true };
+            changed = true;
+          } else {
+            next[key] = status;
+          }
+        }
+        return changed ? next : current;
+      });
+    }
+  }, [minimized]);
+
+  useEffect(() => {
+    const nextClient = sheetsPublicationStateFromDeploy(clientSheets);
+    const nextInternal = sheetsPublicationStateFromDeploy(internalSheets);
+    const nextSeed = [
+      routeLabel,
+      defaultTitle,
+      nextClient?.spreadsheetId || "",
+      nextInternal?.spreadsheetId || "",
+    ].join("|");
+    const changedPublicationContext = sheetsProjectSeedRef.current !== nextSeed;
+    sheetsProjectSeedRef.current = nextSeed;
+    setSheetsPublished((current) => ({
+      client: changedPublicationContext ? nextClient : current.client ?? nextClient,
+      internal: changedPublicationContext ? nextInternal : current.internal ?? nextInternal,
+    }));
+    setSpreadsheetIds((current) => ({
+      client: changedPublicationContext ? nextClient?.spreadsheetId || "" : current.client || nextClient?.spreadsheetId || "",
+      internal: changedPublicationContext ? nextInternal?.spreadsheetId || "" : current.internal || nextInternal?.spreadsheetId || "",
+    }));
+  }, [clientSheets, defaultTitle, internalSheets, routeLabel]);
+
+  useEffect(() => {
+    setWebError("");
+    setSheetsError("");
+  }, [activeAudience, activeChannel]);
 
   useEffect(() => {
     let alive = true;
     async function load() {
       if (!window.prosecnurApi?.getHfSettings) {
+        setUsername((current) => current || PULSO_HF_DEFAULT_NAMESPACE);
         setLoadingSettings(false);
         return;
       }
       try {
         const settings = await window.prosecnurApi.getHfSettings();
         if (!alive) return;
-        setUsername((current) => current || settings.hf_username || "");
-        setSavedTokens(settings.saved_tokens ?? []);
+        setUsername((current) => current || settings.default_namespace || settings.recent_destinations?.[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE);
+        const nextTokens = settings.saved_tokens ?? [];
+        setSavedTokens(nextTokens);
+        if (nextTokens.length) {
+          setSelectedTokenId((current) => current || nextTokens[0].id);
+          setToken("");
+          setTokenName(nextTokens[0].name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+        }
       } catch (_e) {
         // Fuera de Electron, el usuario llena los campos manualmente.
       } finally {
@@ -4218,17 +4580,640 @@ function MonitoreoWebPublishDialog({
 
   async function handleSavedTokenChange(id: string) {
     setSelectedTokenId(id);
-    if (!id || !window.prosecnurApi?.getHfToken) return;
-    setLoadingSettings(true);
-    try {
-      const saved = await window.prosecnurApi.getHfToken(id);
-      if (!saved) return;
-      setUsername(saved.hf_username ?? "");
-      setToken(saved.hf_token ?? "");
-      setTokenName(saved.name ?? "Monitoreo");
-    } finally {
-      setLoadingSettings(false);
+    setToken("");
+    const saved = savedTokens.find((item) => item.id === id);
+    if (saved) setTokenName(saved.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+  }
+
+  const selectedSavedToken = savedTokens.find((saved) => saved.id === selectedTokenId) ?? null;
+  const outputFamily = useMemo(() => monitoreoOutputFamilyFromLabel(routeLabel, defaultTitle), [routeLabel, defaultTitle]);
+  const artifactCopy = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => monitoreoOutputArtifactCopy(outputFamily, audience, channel);
+  const artifactCopyFromKey = (key: string) => {
+    const [audience, channel] = key.split(":") as [MonitoreoPublishAudience, MonitoreoOutputChannel];
+    return artifactCopy(audience, channel).title;
+  };
+  const hfTokenValid = /^hf_[A-Za-z0-9_]+$/.test(token.trim());
+  const hfCredentialReady = selectedTokenId ? true : hfTokenValid;
+  const spaceValid = (value: string) => /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(value.trim());
+  const spreadsheetId = spreadsheetIds[activeAudience] ?? "";
+  const setActiveSpreadsheetId = (value: string) => {
+    const previousTarget = normalizeMonitoreoSpreadsheetTarget(spreadsheetIds[activeAudience]);
+    const nextTarget = normalizeMonitoreoSpreadsheetTarget(value);
+    setSpreadsheetIds((current) => ({ ...current, [activeAudience]: value }));
+    if (previousTarget !== nextTarget) {
+      const key = monitoreoOutputTargetKey(activeAudience, "sheets");
+      setPublicationStatuses((current) => {
+        const status = current[key];
+        if (!status || status.kind === "publishing") return current;
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
     }
+  };
+  const sheetsUrl = (id = spreadsheetId) => {
+    const raw = normalizeMonitoreoSpreadsheetTarget(id);
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(raw)}`;
+  };
+  const deployFor = (audience: MonitoreoPublishAudience) => audience === "client" ? clientDeploy : internalDeploy;
+  const spaceFor = (audience: MonitoreoPublishAudience) => audience === "client" ? clientSpaceName : internalSpaceName;
+  const audienceLabel = (audience: MonitoreoPublishAudience) => audience === "client" ? "Cliente" : "Interno";
+  const audienceSummary = (audience: MonitoreoPublishAudience) => audience === "client"
+    ? "Avance agregado para cliente, sin PII ni trazabilidad operativa."
+    : "Corte completo para equipo, con PII, GPS, IDs, alertas y auditoría.";
+  const canPublishWeb = (audience: MonitoreoPublishAudience) => (
+    hasSnapshot &&
+    !!username.trim() &&
+    hfCredentialReady &&
+    spaceValid(spaceFor(audience)) &&
+    (audience === "client" || internalConfirmed)
+  );
+  const canPublishSheets = (audience: MonitoreoPublishAudience) => (
+    hasSnapshot &&
+    !!spreadsheetId.trim() &&
+    (audience === "client" || internalConfirmed)
+  );
+
+  const setPublicationStatus = (
+    audience: MonitoreoPublishAudience,
+    channel: MonitoreoOutputChannel,
+    next: Omit<MonitoreoOutputPublicationStatus, "updatedAt">,
+  ) => {
+    const key = monitoreoOutputTargetKey(audience, channel);
+    setPublicationStatuses((current) => ({
+      ...current,
+      [key]: {
+        ...next,
+        updatedAt: Date.now(),
+      },
+    }));
+  };
+
+  const statusForTarget = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel): MonitoreoOutputPublicationStatus => (
+    publicationStatuses[monitoreoOutputTargetKey(audience, channel)] ?? {
+      kind: "idle",
+      message: "",
+      updatedAt: 0,
+      seen: true,
+    }
+  );
+
+  const fallbackStatusMessage = (
+    audience: MonitoreoPublishAudience,
+    channel: MonitoreoOutputChannel,
+    ready: boolean,
+    canPublish: boolean,
+  ) => {
+    if (ready) return "La salida ya tiene una publicación previa. Puedes actualizarla con un nuevo corte.";
+    if (!hasSnapshot) return "Sincroniza un corte antes de publicar.";
+    if (audience === "internal" && !internalConfirmed) return "Confirma explícitamente la salida interna para habilitar la publicación.";
+    if (channel === "web") {
+      if (!username.trim()) return "Define el namespace destino de Hugging Face.";
+      if (!hfCredentialReady) return "Selecciona una credencial HF guardada o pega un token write.";
+      if (!spaceValid(spaceFor(audience))) return "Revisa el nombre del Space: usa minúsculas, números y guiones.";
+      return canPublish ? `${artifactCopy(audience, channel).shortTitle} listo para recibir este corte.` : "Completa la configuración web.";
+    }
+    if (!spreadsheetId.trim()) return "Configura el spreadsheet destino de Google Sheets.";
+    return canPublish ? `${artifactCopy(audience, channel).shortTitle} listo para actualizar pestañas controladas.` : "Completa la configuración de Sheets.";
+  };
+
+  async function resolveHfTokenForPublish() {
+    const pasted = token.trim();
+    if (pasted) return pasted;
+    if (!selectedTokenId) return "";
+    if (!window.prosecnurApi?.getHfToken) {
+      throw new Error("No pude leer la credencial guardada de Hugging Face en esta sesion.");
+    }
+    const saved = await window.prosecnurApi.getHfToken(selectedTokenId);
+    const savedToken = saved?.hf_token?.trim() ?? "";
+    if (!savedToken) {
+      throw new Error("La credencial guardada no pudo descifrarse. Selecciona otro token o pegalo manualmente.");
+    }
+    setTokenName(saved?.name || tokenName || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+    return savedToken;
+  }
+
+  async function publishWeb(audience: MonitoreoPublishAudience) {
+    if (!canPublishWeb(audience) || publishingAudience) return;
+    setPublishingAudience(audience);
+    setWebError("");
+    setPublicationStatus(audience, "web", {
+      kind: "publishing",
+      message: `Preparando ${artifactCopy(audience, "web").title} y credencial HF...`,
+      seen: true,
+    });
+    try {
+      const hfToken = await resolveHfTokenForPublish();
+      setPublicationStatus(audience, "web", {
+        kind: "publishing",
+        message: `Subiendo ${artifactCopy(audience, "web").title} a Hugging Face Spaces...`,
+        seen: true,
+      });
+      const out = await apiMonitoreoPublish({
+        hf_username: username.trim(),
+        hf_token: hfToken,
+        space_name: spaceFor(audience).trim(),
+        audience,
+        private: audience === "internal" ? true : clientPrivate,
+      });
+      if (window.prosecnurApi?.rememberSuccessfulHfToken) {
+        const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
+          id: selectedTokenId || undefined,
+          name: tokenName.trim() || username.trim(),
+          credential_username: savedTokens.find((saved) => saved.id === selectedTokenId)?.hf_username || "",
+          destination_namespace: username.trim(),
+          space_name: spaceFor(audience).trim(),
+          repo_id: out.repo_id,
+          app_url: out.app_url,
+          module: "monitoreo",
+          audience,
+          private: audience === "internal" ? true : clientPrivate,
+          hf_token: hfToken,
+        });
+        setSavedTokens(settings.saved_tokens ?? []);
+      }
+      setWebResult((current) => ({
+        ...current,
+        [audience]: { repo_id: out.repo_id, app_url: out.app_url, url: out.url },
+      }));
+      setPublicationStatus(audience, "web", {
+        kind: "success",
+        message: `HF recibió ${out.repo_id}. El Space aparecerá cuando termine el build.`,
+        detail: out.app_url,
+        seen: !minimizedRef.current,
+      });
+      onPublished();
+      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
+    } catch (e) {
+      const message = (e as Error).message;
+      setWebError(message);
+      setPublicationStatus(audience, "web", {
+        kind: "error",
+        message,
+        seen: !minimizedRef.current,
+      });
+    } finally {
+      setPublishingAudience(null);
+    }
+  }
+
+  async function publishSheets(audience: MonitoreoPublishAudience) {
+    if (!canPublishSheets(audience) || sheetsBusy) return;
+    setSheetsBusy(audience);
+    setSheetsError("");
+    setPublicationStatus(audience, "sheets", {
+      kind: "publishing",
+      message: `Actualizando ${artifactCopy(audience, "sheets").title}...`,
+      seen: true,
+    });
+    try {
+      const out = await apiMonitoreoPublicationSheetsPublish(spreadsheetId.trim(), {
+        audience,
+        confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
+      });
+      setSheetsPublished((current) => ({
+        ...current,
+        [audience]: {
+          tabs: (out.controlled_tabs ?? []).map(String),
+          spreadsheetId: out.spreadsheet_id,
+          updatedAt: out.updated_at,
+        },
+      }));
+      setSpreadsheetIds((current) => ({ ...current, [audience]: out.spreadsheet_id }));
+      const tabs = (out.controlled_tabs ?? []).map(String);
+      setPublicationStatus(audience, "sheets", {
+        kind: "success",
+        message: tabs.length
+          ? `${tabs.length} pestañas actualizadas en Google Sheets.`
+          : "Google Sheets recibió la publicación controlada.",
+        detail: out.spreadsheet_id,
+        seen: !minimizedRef.current,
+      });
+      onPublished();
+      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
+    } catch (e) {
+      const message = (e as Error).message;
+      setSheetsError(message);
+      setPublicationStatus(audience, "sheets", {
+        kind: "error",
+        message,
+        seen: !minimizedRef.current,
+      });
+    } finally {
+      setSheetsBusy(null);
+    }
+  }
+
+  const channels: MonitoreoOutputChannel[] = ["web", "sheets"];
+  const activeDeploy = deployFor(activeAudience);
+  const activeWebResult = webResult[activeAudience];
+  const activeSheetsResult = sheetsPublished[activeAudience];
+  const sheetsTargetMatchesInput = (audience: MonitoreoPublishAudience, publishedId?: string | null) => {
+    const target = normalizeMonitoreoSpreadsheetTarget(spreadsheetIds[audience]);
+    const published = normalizeMonitoreoSpreadsheetTarget(publishedId ?? sheetsPublished[audience]?.spreadsheetId);
+    return Boolean(target && published && target === published);
+  };
+  const activeSheetsMatchesInput = sheetsTargetMatchesInput(activeAudience);
+  const activeSheetsUrl = sheetsUrl();
+  const activeIsInternal = activeAudience === "internal";
+  const activeCanPublish = activeChannel === "web" ? canPublishWeb(activeAudience) : canPublishSheets(activeAudience);
+  const activeReady = activeChannel === "web" ? Boolean(activeDeploy || activeWebResult) : activeSheetsMatchesInput;
+  const activeStatus = statusForTarget(activeAudience, activeChannel);
+  const activeDisplayStatus: MonitoreoOutputPublicationStatus = activeChannel === "sheets" &&
+    activeStatus.kind === "success" &&
+    !sheetsTargetMatchesInput(activeAudience, activeStatus.detail)
+    ? { kind: "idle", message: "", updatedAt: activeStatus.updatedAt, seen: true }
+    : activeStatus;
+  const activePublishing = activeDisplayStatus.kind === "publishing";
+  const anyPublishing = Boolean(publishingAudience || sheetsBusy) ||
+    Object.values(publicationStatuses).some((status) => status?.kind === "publishing");
+  const activeFallbackStatus = fallbackStatusMessage(activeAudience, activeChannel, activeReady, activeCanPublish);
+  const activeCopy = artifactCopy(activeAudience, activeChannel);
+  const targetReady = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => {
+    const status = statusForTarget(audience, channel);
+    if (channel === "web") {
+      return status.kind === "success" || Boolean(deployFor(audience) || webResult[audience]);
+    }
+    return (
+      (status.kind === "success" && sheetsTargetMatchesInput(audience, status.detail)) ||
+      sheetsTargetMatchesInput(audience)
+    );
+  };
+  const webPublishedCount = audiences.filter((audience) => targetReady(audience, "web")).length;
+  const sheetsPublishedCount = audiences.filter((audience) => targetReady(audience, "sheets")).length;
+  const targetLabelForStatus = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => {
+    const status = statusForTarget(audience, channel);
+    if (status.kind === "publishing") return "Publicando";
+    if (status.kind === "error") return "Error";
+    if (status.kind === "success" && (channel === "web" || sheetsTargetMatchesInput(audience, status.detail))) return "Publicada";
+    if (targetReady(audience, channel)) return "Publicada";
+    return "Pendiente";
+  };
+  const targetDescription = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => {
+    return artifactCopy(audience, channel).description;
+  };
+  const publishActiveTarget = () => {
+    if (anyPublishing) return;
+    if (activeChannel === "web") void publishWeb(activeAudience);
+    else void publishSheets(activeAudience);
+  };
+  const minimizedPublishing = Object.entries(publicationStatuses)
+    .find(([, status]) => status?.kind === "publishing") as [MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus] | undefined;
+  const minimizedError = Object.entries(publicationStatuses)
+    .find(([, status]) => status?.kind === "error" && !status.seen) as [MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus] | undefined;
+  const minimizedSuccess = Object.entries(publicationStatuses)
+    .find(([, status]) => status?.kind === "success" && !status.seen) as [MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus] | undefined;
+  const minimizedState = minimizedPublishing ? "publishing" : minimizedError ? "error" : minimizedSuccess ? "complete" : "idle";
+  const minimizedStatusText = minimizedPublishing
+    ? `Publicando ${artifactCopyFromKey(minimizedPublishing[0])}`
+    : minimizedError
+    ? `Revisar ${artifactCopyFromKey(minimizedError[0])}`
+    : minimizedSuccess
+    ? `Listo ${artifactCopyFromKey(minimizedSuccess[0])}`
+    : `${webPublishedCount}/2 web · ${sheetsPublishedCount}/2 Sheets`;
+
+  if (minimized) {
+    return (
+      <button
+        type="button"
+        className={`mon-output-suite-minimized is-${minimizedState}`}
+        onClick={onRestore}
+        aria-label="Restaurar salidas del corte"
+      >
+        <span className="mon-output-minimized-mark" aria-hidden="true">
+          {minimizedState === "publishing" ? (
+            <span className="mon-output-minimized-ring" />
+          ) : minimizedState === "complete" ? (
+            <CheckCircle2 size={15} />
+          ) : minimizedState === "error" ? (
+            <AlertTriangle size={15} />
+          ) : (
+            <Globe2 size={14} />
+          )}
+        </span>
+        <span>{minimizedState === "publishing" ? "Publicando" : minimizedState === "complete" ? "Listo" : minimizedState === "error" ? "Revisar" : "Salidas"}</span>
+        <strong>{minimizedStatusText}</strong>
+      </button>
+    );
+  }
+
+  return (
+    <section className="mon-output-suite" role="dialog" aria-label="Suite de publicaciones del corte" aria-modal="false">
+      <header className="mon-output-suite-head">
+        <div>
+          <span><Globe2 size={14} /> Publicaciones del corte</span>
+          <strong>{routeLabel}</strong>
+          <small>{hasSnapshot ? `${formatMetric(nRows)} registros del corte actual` : "Sin corte sincronizado"}</small>
+        </div>
+        <div className="mon-output-suite-window-actions">
+          <button type="button" onClick={onMinimize} aria-label="Minimizar salidas">
+            <Minus size={14} />
+          </button>
+          <button type="button" onClick={onClose} aria-label="Cerrar salidas">
+            <X size={14} />
+          </button>
+        </div>
+      </header>
+      <div className="mon-output-suite-body">
+        <div className="mon-output-suite-layout">
+          <section className="mon-output-target-picker" aria-label="Seleccion de publicación">
+            <header>
+              <span>Publicaciones</span>
+              <strong>Matriz de publicación</strong>
+              <small>{webPublishedCount + sheetsPublishedCount}/4 publicadas</small>
+            </header>
+            <div className="mon-output-target-grid">
+              {audiences.map((audience) => (
+                <div key={audience} className={`mon-output-target-row is-${audience}`}>
+                  <div className="mon-output-target-row-label">
+                    <span>{audienceLabel(audience)}</span>
+                    <small>{audience === "client" ? "Agregado" : "Completo"}</small>
+                  </div>
+                  {channels.map((channel) => {
+                    const Icon = channel === "web" ? Globe2 : Table2;
+                    const ready = targetReady(audience, channel);
+                    const status = statusForTarget(audience, channel);
+                    const active = activeAudience === audience && activeChannel === channel;
+                    const copy = artifactCopy(audience, channel);
+                    return (
+                      <button
+                        key={`${audience}-${channel}`}
+                        type="button"
+                        className={`mon-output-target-cell is-${audience} is-${channel} is-${status.kind}${active ? " is-active" : ""}${ready ? " is-ready" : ""}`}
+                        onClick={() => {
+                          setActiveAudience(audience);
+                          setActiveChannel(channel);
+                        }}
+                      >
+                        <span><Icon size={13} /> {copy.eyebrow}</span>
+                        <strong>{copy.shortTitle}</strong>
+                        <small>{targetLabelForStatus(audience, channel)} · {copy.description}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className={`mon-output-target-detail is-${activeAudience} is-${activeChannel}`}>
+            <header className={`mon-output-audience-head is-${activeAudience}`}>
+              <div>
+                <span>{activeCopy.eyebrow}</span>
+                <strong>{activeCopy.title}</strong>
+                <small>{activeChannel === "web" ? `${activeCopy.detail} ${audienceSummary(activeAudience)}` : `${activeCopy.detail} ${targetDescription(activeAudience, "sheets")}`}</small>
+              </div>
+              <em>{activeReady ? "Publicado" : "Pendiente"}</em>
+            </header>
+            {activeIsInternal ? (
+              <>
+                <label className="mon-web-publish-check is-danger mon-output-audience-confirm">
+                  <input type="checkbox" checked={internalConfirmed} onChange={(event) => setInternalConfirmed(event.target.checked)} disabled={anyPublishing} />
+                  Confirmo que esta salida interna puede contener datos personales, GPS, identificadores, alertas y auditoría completa.
+                </label>
+                <Alert kind="warn">La salida interna puede publicarse por Web y/o Sheets, pero siempre requiere esta confirmación manual.</Alert>
+              </>
+            ) : null}
+            {!hasSnapshot ? <Alert kind="error">Sincroniza un corte antes de publicar.</Alert> : null}
+            {activeChannel === "web" ? (
+              <div className={`mon-output-web-card is-${activeAudience}`}>
+              <div>
+                <span>{activeCopy.eyebrow}</span>
+                <strong>{activeCopy.title}</strong>
+                <small>{activeCopy.detail}</small>
+              </div>
+              <div className="mon-output-suite-form-grid">
+                {savedTokens.length > 0 ? (
+                  <label className="is-wide">
+                    <span>Token guardado</span>
+                    <select value={selectedTokenId} onChange={(event) => void handleSavedTokenChange(event.target.value)} disabled={anyPublishing || loadingSettings}>
+                      <option value="">Usar otro token...</option>
+                      {savedTokens.map((saved) => (
+                        <option key={saved.id} value={saved.id}>
+                          {saved.name} · {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"} · {saved.masked_token}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                {selectedSavedToken ? (
+                  <div className="mon-output-saved-credential is-wide">
+                    <span>Credencial activa</span>
+                    <strong>{selectedSavedToken.name || "Token HF"}</strong>
+                    <small>{selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · se descifra solo al publicar.</small>
+                  </div>
+                ) : null}
+                <label>
+                  <span>Namespace destino HF</span>
+                  <input value={username} onChange={(event) => setUsername(event.target.value)} disabled={anyPublishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_NAMESPACE} />
+                </label>
+                {!selectedSavedToken ? (
+                  <>
+                    <label>
+                      <span>Token write</span>
+                      <input
+                        className="mon-secret-input is-masked"
+                        value={token}
+                        onChange={(event) => setToken(event.target.value)}
+                        disabled={anyPublishing || loadingSettings}
+                        placeholder="hf_..."
+                        type="text"
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        data-form-type="other"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                      />
+                    </label>
+                    <label className="is-wide">
+                      <span>Recordar token como</span>
+                      <input value={tokenName} onChange={(event) => setTokenName(event.target.value)} disabled={anyPublishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_TOKEN_ALIAS} />
+                    </label>
+                  </>
+                ) : null}
+                <div className="mon-output-hf-actions is-wide">
+                  <button type="button" onClick={() => setUsername(PULSO_HF_DEFAULT_NAMESPACE)} disabled={anyPublishing || loadingSettings}>
+                    Usar {PULSO_HF_DEFAULT_NAMESPACE}
+                  </button>
+                  <button type="button" onClick={openHuggingFaceTokens}>
+                    <ExternalLink size={13} /> Crear token HF
+                  </button>
+                </div>
+              </div>
+              <label>
+                <span>Nombre del Space</span>
+                <input
+                  value={activeAudience === "client" ? clientSpaceName : internalSpaceName}
+                  onChange={(event) => {
+                    const next = slugifySpaceName(event.target.value);
+                    if (activeAudience === "client") setClientSpaceName(next);
+                    else setInternalSpaceName(next);
+                  }}
+                  disabled={anyPublishing}
+                  placeholder={activeAudience === "client" ? "acnur-avance-cliente" : "acnur-avance-interno"}
+                />
+              </label>
+              {activeAudience === "client" ? (
+                <label className="mon-web-publish-check">
+                  <input type="checkbox" checked={clientPrivate} onChange={(event) => setClientPrivate(event.target.checked)} disabled={anyPublishing} />
+                  Crear Space cliente como privado
+                </label>
+              ) : (
+                <span className="mon-output-channel-lock"><ShieldAlert size={12} /> Privado obligatorio</span>
+              )}
+              <footer className="mon-output-suite-actions">
+                <button type="button" onClick={publishActiveTarget} disabled={!activeCanPublish || anyPublishing}>
+                  {activePublishing ? <Loader2 size={14} className="pulso-spin" /> : <Globe2 size={14} />}
+                  {activeDeploy || activeWebResult ? activeCopy.republish : activeCopy.button}
+                </button>
+              </footer>
+              <MonitoreoOutputPublicationStatusBar
+                status={activeDisplayStatus}
+                ready={activeReady}
+                canPublish={activeCanPublish}
+                fallbackMessage={activeFallbackStatus}
+              />
+              </div>
+            ) : (
+              <div className={`mon-output-sheets-card is-${activeAudience}`}>
+              <div>
+                <span>{activeCopy.eyebrow}</span>
+                <strong>{activeCopy.title}</strong>
+                <small>{activeSheetsMatchesInput && activeSheetsResult?.tabs.length ? `${activeSheetsResult.tabs.length} pestañas actualizadas` : activeCopy.description}</small>
+              </div>
+              <label>
+                <span>Spreadsheet destino</span>
+                <input
+                  value={spreadsheetId}
+                  onChange={(event) => setActiveSpreadsheetId(event.target.value)}
+                  disabled={anyPublishing}
+                  placeholder="https://docs.google.com/spreadsheets/d/..."
+                />
+              </label>
+              <small>Prosecnur escribe sólo pestañas de {audienceLabel(activeAudience).toLowerCase()} y conserva separada la audiencia.</small>
+              {activeSheetsUrl ? (
+                <a href={activeSheetsUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink size={13} />
+                  Abrir spreadsheet
+                </a>
+              ) : null}
+              <footer className="mon-output-suite-actions">
+                <button type="button" onClick={publishActiveTarget} disabled={!activeCanPublish || anyPublishing}>
+                  {activePublishing ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
+                  {activeSheetsMatchesInput ? activeCopy.republish : activeCopy.button}
+                </button>
+              </footer>
+              <MonitoreoOutputPublicationStatusBar
+                status={activeDisplayStatus}
+                ready={activeReady}
+                canPublish={activeCanPublish}
+                fallbackMessage={activeFallbackStatus}
+              />
+              </div>
+            )}
+            {!spreadsheetId.trim() && activeChannel === "sheets" ? <Alert kind="warn">Configura el enlace del spreadsheet destino para habilitar la publicación de pestañas.</Alert> : null}
+          </section>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MonitoreoWebPublishDialog({
+  audience,
+  defaultTitle,
+  lastDeploy,
+  hasSnapshot,
+  onClose,
+  onPublished,
+}: {
+  audience: MonitoreoPublishAudience;
+  defaultTitle: string;
+  lastDeploy?: MonitoreoLastDeploy | null;
+  hasSnapshot: boolean;
+  onClose: () => void;
+  onPublished: () => void;
+}) {
+  const isInternal = audience === "internal";
+  const [username, setUsername] = useState(lastDeploy?.hf_username ?? "");
+  const [token, setToken] = useState("");
+  const [tokenName, setTokenName] = useState(PULSO_HF_DEFAULT_TOKEN_ALIAS);
+  const [savedTokens, setSavedTokens] = useState<HfSavedToken[]>([]);
+  const [selectedTokenId, setSelectedTokenId] = useState("");
+  const [spaceName, setSpaceName] = useState(
+    () => lastDeploy?.space_name ?? slugifySpaceName(`${defaultTitle || "reporte-monitoreo"}-${isInternal ? "interno" : "cliente"}`),
+  );
+  const [isPrivate, setIsPrivate] = useState(isInternal ? true : lastDeploy?.private ?? false);
+  const [internalConfirmed, setInternalConfirmed] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<{ repo_id: string; app_url: string; url: string } | null>(null);
+  const selectedSavedToken = savedTokens.find((saved) => saved.id === selectedTokenId) ?? null;
+  const hfCredentialReady = selectedTokenId ? true : /^hf_[A-Za-z0-9_]+$/.test(token.trim());
+
+  const canPublish = useMemo(
+    () => hasSnapshot &&
+      !!username.trim() &&
+      hfCredentialReady &&
+      /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(spaceName.trim()) &&
+      (!isInternal || (isPrivate && internalConfirmed)),
+    [hasSnapshot, username, hfCredentialReady, spaceName, isInternal, isPrivate, internalConfirmed],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      if (!window.prosecnurApi?.getHfSettings) {
+        setUsername((current) => current || PULSO_HF_DEFAULT_NAMESPACE);
+        setLoadingSettings(false);
+        return;
+      }
+      try {
+        const settings = await window.prosecnurApi.getHfSettings();
+        if (!alive) return;
+        setUsername((current) => current || settings.default_namespace || settings.recent_destinations?.[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE);
+        const nextTokens = settings.saved_tokens ?? [];
+        setSavedTokens(nextTokens);
+        if (nextTokens.length) {
+          setSelectedTokenId((current) => current || nextTokens[0].id);
+          setToken("");
+          setTokenName(nextTokens[0].name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+        }
+      } catch (_e) {
+        // Fuera de Electron, el usuario llena los campos manualmente.
+      } finally {
+        if (alive) setLoadingSettings(false);
+      }
+    }
+    void load();
+    return () => { alive = false; };
+  }, []);
+
+  async function handleSavedTokenChange(id: string) {
+    setSelectedTokenId(id);
+    setToken("");
+    const saved = savedTokens.find((item) => item.id === id);
+    if (saved) setTokenName(saved.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+  }
+
+  async function resolveHfTokenForPublish() {
+    const pasted = token.trim();
+    if (pasted) return pasted;
+    if (!selectedTokenId) return "";
+    if (!window.prosecnurApi?.getHfToken) {
+      throw new Error("No pude leer la credencial guardada de Hugging Face en esta sesion.");
+    }
+    const saved = await window.prosecnurApi.getHfToken(selectedTokenId);
+    const savedToken = saved?.hf_token?.trim() ?? "";
+    if (!savedToken) {
+      throw new Error("La credencial guardada no pudo descifrarse. Selecciona otro token o pegalo manualmente.");
+    }
+    setTokenName(saved?.name || tokenName || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+    return savedToken;
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -4238,17 +5223,27 @@ function MonitoreoWebPublishDialog({
     setError("");
     setResult(null);
     try {
+      const hfToken = await resolveHfTokenForPublish();
       const out = await apiMonitoreoPublish({
         hf_username: username.trim(),
-        hf_token: token.trim(),
+        hf_token: hfToken,
         space_name: spaceName.trim(),
+        audience,
         private: isPrivate,
       });
       if (window.prosecnurApi?.rememberSuccessfulHfToken) {
         const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
+          id: selectedTokenId || undefined,
           name: tokenName.trim() || username.trim(),
-          hf_username: username.trim(),
-          hf_token: token.trim(),
+          credential_username: savedTokens.find((saved) => saved.id === selectedTokenId)?.hf_username || "",
+          destination_namespace: username.trim(),
+          space_name: spaceName.trim(),
+          repo_id: out.repo_id,
+          app_url: out.app_url,
+          module: "monitoreo",
+          audience,
+          private: isPrivate,
+          hf_token: hfToken,
         });
         setSavedTokens(settings.saved_tokens ?? []);
       }
@@ -4275,8 +5270,10 @@ function MonitoreoWebPublishDialog({
         <header className="mon-web-publish-dialog-head">
           <div>
             <span><Globe2 size={14} /> Hugging Face Space</span>
-            <h2 id="mon-web-publish-title">Publicar web de avance</h2>
-            <p>Sube un visor publico read-only con datos agregados del corte actual.</p>
+            <h2 id="mon-web-publish-title">{isInternal ? "Publicar vista interna" : "Publicar vista cliente"}</h2>
+            <p>{isInternal
+              ? "Sube un visor privado read-only con datos completos del corte actual."
+              : "Sube un visor read-only con avance agregado del corte actual."}</p>
           </div>
           <button type="button" onClick={onClose} disabled={publishing} aria-label="Cerrar">
             <XCircle size={16} />
@@ -4295,38 +5292,82 @@ function MonitoreoWebPublishDialog({
                 <option value="">Usar otro token...</option>
                 {savedTokens.map((saved) => (
                   <option key={saved.id} value={saved.id}>
-                    {saved.name} · {saved.hf_username} · {saved.masked_token}
+                    {saved.name} · {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"} · {saved.masked_token}
                   </option>
                 ))}
               </select>
             </label>
           )}
+          {selectedSavedToken ? (
+            <div className="mon-web-publish-saved-credential is-wide">
+              <span>Credencial activa</span>
+              <strong>{selectedSavedToken.name || "Token HF"}</strong>
+              <small>{selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · se descifra solo al publicar.</small>
+            </div>
+          ) : null}
           <label>
-            Usuario u organizacion HF
-            <input value={username} onChange={(event) => setUsername(event.target.value)} disabled={publishing || loadingSettings} placeholder="prosecnur" />
+            Namespace destino HF
+            <input value={username} onChange={(event) => setUsername(event.target.value)} disabled={publishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_NAMESPACE} />
           </label>
-          <label>
-            Token write
-            <input value={token} onChange={(event) => setToken(event.target.value)} disabled={publishing || loadingSettings} placeholder="hf_..." type="password" autoComplete="off" />
-          </label>
-          <label className="is-wide">
-            Recordar token como
-            <input value={tokenName} onChange={(event) => setTokenName(event.target.value)} disabled={publishing || loadingSettings} placeholder="ACNUR" />
-          </label>
+          {!selectedSavedToken ? (
+            <>
+              <label>
+                Token write
+                <input
+                  className="mon-secret-input is-masked"
+                  value={token}
+                  onChange={(event) => setToken(event.target.value)}
+                  disabled={publishing || loadingSettings}
+                  placeholder="hf_..."
+                  type="text"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                />
+              </label>
+              <label className="is-wide">
+                Recordar token como
+                <input value={tokenName} onChange={(event) => setTokenName(event.target.value)} disabled={publishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_TOKEN_ALIAS} />
+              </label>
+            </>
+          ) : null}
+          <div className="mon-output-hf-actions is-wide">
+            <button type="button" onClick={() => setUsername(PULSO_HF_DEFAULT_NAMESPACE)} disabled={publishing || loadingSettings}>
+              Usar {PULSO_HF_DEFAULT_NAMESPACE}
+            </button>
+            <button type="button" onClick={openHuggingFaceTokens}>
+              <ExternalLink size={13} /> Crear token HF
+            </button>
+          </div>
           <label className="is-wide">
             Nombre del Space
             <input value={spaceName} onChange={(event) => setSpaceName(slugifySpaceName(event.target.value))} disabled={publishing} placeholder="acnur-avance-territorial" />
           </label>
           <label className="mon-web-publish-check">
-            <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} disabled={publishing} />
+            <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} disabled={publishing || isInternal} />
             Crear como privado
           </label>
+          {isInternal ? (
+            <label className="mon-web-publish-check is-danger is-wide">
+              <input type="checkbox" checked={internalConfirmed} onChange={(event) => setInternalConfirmed(event.target.checked)} disabled={publishing} />
+              Confirmo que este Space privado incluirá datos personales, GPS, identificadores, alertas y auditoría completa.
+            </label>
+          ) : null}
         </div>
 
+        {isInternal ? (
+          <Alert kind="warn">
+            La publicación interna contiene información completa de operación y no habilita descargas desde Hugging Face; los ejecutivos tabulares se publican como pestañas controladas en Google Sheets.
+          </Alert>
+        ) : null}
         {publishing ? (
           <div className="mon-web-publish-status">
             <Loader2 size={16} className="pulso-spin" />
-            <span>Subiendo runtime publico y snapshot agregado. El build de HF puede tomar algunos minutos.</span>
+            <span>Subiendo runtime público y snapshot {isInternal ? "completo" : "agregado"}. El build de HF puede tomar algunos minutos.</span>
           </div>
         ) : null}
         {!hasSnapshot ? <Alert kind="error">Sincroniza un corte antes de publicar.</Alert> : null}
@@ -4423,11 +5464,7 @@ function MonitoreoRouteHub({
 function MonitoreoRail({
   activeView,
   onChange,
-  sources,
-  activeSources,
-  nRows,
   syncedAt,
-  dashboardReady,
   config,
 	  dashboard,
 	  route,
@@ -4438,20 +5475,20 @@ function MonitoreoRail({
 	  routePhaseStatus,
 	  phaseCoherence,
       showWebPublish,
-      publishLastDeploy,
+      publishClientDeploy,
+      publishInternalDeploy,
+      publishClientSheets,
+      publishInternalSheets,
       publishHasSnapshot,
       publishRows,
       publishRouteLabel,
+      publishSpreadsheetId,
       onOpenWebPublish,
 	  onTerritorialPhaseChange,
 	}: {
   activeView: WorkbenchView;
   onChange: (view: WorkbenchView) => void;
-  sources: MonitoreoSource[];
-  activeSources: number;
-  nRows: number;
   syncedAt: string;
-  dashboardReady: boolean;
   config: MonitoreoConfig;
 	  dashboard: MonitoreoDashboard | null;
 	  route: (typeof MONITOREO_ROUTES)[number];
@@ -4462,18 +5499,21 @@ function MonitoreoRail({
 	  routePhaseStatus: { status: string; message: string } | null;
 	  phaseCoherence?: MonitoreoTerritorialPhaseCoherence | null;
       showWebPublish?: boolean;
-      publishLastDeploy?: MonitoreoLastDeploy | null;
+      publishClientDeploy?: MonitoreoLastDeploy | null;
+      publishInternalDeploy?: MonitoreoLastDeploy | null;
+      publishClientSheets?: MonitoreoLastSheetsPublication | null;
+      publishInternalSheets?: MonitoreoLastSheetsPublication | null;
       publishHasSnapshot?: boolean;
       publishRows?: number;
       publishRouteLabel?: string;
+      publishSpreadsheetId?: string;
       onOpenWebPublish?: () => void;
 	  onTerritorialPhaseChange?: (phase: "pilot" | "field") => Promise<void>;
 	}) {
   const views = workbenchViewsForRoute(route);
   const territorial = route.family === "territorial" ? territorialReportsFromDashboard(dashboard) : null;
   const isTerritorial = route.family === "territorial";
-  const railMeta = territorial?.kpis.meta ?? config.goals.length;
-	  const activePhase = selectedRoutePhase;
+		  const activePhase = selectedRoutePhase;
 	  const selectedPhaseLabel = activePhase === "field" ? "Campo" : "Piloto";
 	  const loadingSelectedPhase = loadingRoutePhase === activePhase;
 	  const loadedPhaseBehind = Boolean(loadedDashboardPhase && loadedDashboardPhase !== activePhase);
@@ -4515,6 +5555,7 @@ function MonitoreoRail({
               role="tab"
               aria-selected={active}
               className={`mon-nav-item is-${item.key}${active ? " is-active" : ""}`}
+              title={`${item.label}: ${item.desc}`}
               onClick={() => onChange(item.key)}
             >
               <span className="mon-nav-icon"><Icon size={15} /></span>
@@ -4529,10 +5570,14 @@ function MonitoreoRail({
       </div>
       {showWebPublish && onOpenWebPublish ? (
         <MonitoreoRailWebPublishControl
-          lastDeploy={publishLastDeploy ?? null}
+          clientDeploy={publishClientDeploy ?? null}
+          internalDeploy={publishInternalDeploy ?? null}
+          clientSheets={publishClientSheets ?? null}
+          internalSheets={publishInternalSheets ?? null}
           hasSnapshot={Boolean(publishHasSnapshot)}
           nRows={publishRows ?? 0}
           routeLabel={publishRouteLabel || route.shortLabel}
+          spreadsheetId={publishSpreadsheetId ?? ""}
           onOpen={onOpenWebPublish}
         />
       ) : null}
@@ -4558,26 +5603,13 @@ function MonitoreoRail({
 	          <em className={`mon-rail-phase-status${sourceStatus ? ` is-${sourceStatus}` : ""}`}>{phaseStatusLabel}</em>
 	        </div>
       ) : null}
-      <div className="mon-rail-status" aria-label="Estado del monitoreo">
-        <RailMetric label="Fuentes activas" value={`${activeSources}/${sources.length}`} />
-        <RailMetric label="Registros" value={nRows ? nRows.toLocaleString("es-PE") : "S/D"} />
-        <RailMetric label="Meta" value={typeof railMeta === "number" ? railMeta.toLocaleString("es-PE") : String(railMeta ?? "S/D")} />
-        {!isTerritorial && <RailMetric label="Mecanismos" value={String(config.strategy_phases.length)} />}
-        <div className={`mon-rail-sync${dashboardReady ? " is-ready" : ""}`}>
-          <span>{dashboardReady ? "Tablero listo" : "Pendiente de sync"}</span>
-          <strong>{syncedAt ? formatDate(syncedAt) : "Sin sincronizar"}</strong>
+      <div className="mon-rail-status" aria-label="Última actualización del monitoreo">
+        <div className={`mon-rail-sync${syncedAt ? " is-ready" : ""}`}>
+          <span>Última actualización</span>
+          <strong>{syncedAt ? formatDate(syncedAt) : "Sin actualización"}</strong>
         </div>
       </div>
     </aside>
-  );
-}
-
-function RailMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="mon-rail-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 
@@ -4680,6 +5712,34 @@ function WorkbenchClarityStrip({
       </div>
       {actions ?? <SemanticStatusLegend />}
     </section>
+  );
+}
+
+function SourceSyncPendingProgress({ job }: { job: SourceSyncJobState }) {
+  const percent = Math.max(0, Math.min(100, Number.isFinite(job.percent) ? job.percent : 0));
+  return (
+    <div className="job-progress" aria-live="polite">
+      <div className="job-progress-head">
+        <div className="job-progress-title">
+          <Loader2 size={14} className="pulso-spin" />
+          <strong>{job.label}</strong>
+          <span className="job-progress-phase">{job.phase}</span>
+        </div>
+      </div>
+      <div
+        className="job-progress-bar"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(percent)}
+      >
+        <div className="job-progress-bar-fill" style={{ width: `${percent}%` }} />
+      </div>
+      <div className="job-progress-foot">
+        <span className="job-progress-message">{job.message}</span>
+        <span className="job-progress-percent">{Math.round(percent)}%</span>
+      </div>
+    </div>
   );
 }
 
@@ -5082,9 +6142,9 @@ const TERRITORIAL_FIELD_TARGET_TOTAL = 1200;
 const TERRITORIAL_UMP_TARGET = 8;
 
 type TerritorialAdvanceTab = "resumen" | "ump" | "ritmo";
-type TerritorialUmpStatus = "complete" | "incomplete" | "overfilled" | "none";
-type TerritorialQuotaStatus = "complete" | "in_field" | "pending" | "missing" | "exceeded" | "not_configured";
-type TerritorialQuotaConsistencyFilter = "complete" | "exceeded" | "pending" | "in_field" | "missing";
+type TerritorialUmpStatus = "complete" | "incomplete" | "none";
+type TerritorialQuotaStatus = "complete" | "in_field" | "pending" | "missing" | "not_configured";
+type TerritorialQuotaConsistencyFilter = "complete" | "pending" | "in_field" | "missing";
 type TerritorialQuotaProgressBlock = NonNullable<MonitoreoTerritorialDashboard["route_quota_progress"]>["blocks"][number];
 type TerritorialQuotaProgressDistrict = NonNullable<NonNullable<MonitoreoTerritorialDashboard["route_quota_progress"]>["districts"]>[number];
 type TerritorialQuotaSummary = {
@@ -5162,7 +6222,6 @@ function territorialBlockTarget(row: TerritorialBlockProgress) {
 function territorialUmpStatus(row: TerritorialBlockProgress, targetOverride?: number): TerritorialUmpStatus {
   const valid = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
   const target = Math.max(1, Math.round(numberOrNull(targetOverride) ?? territorialBlockTarget(row)));
-  if (valid > target) return "overfilled";
   if (valid >= target) return "complete";
   if (valid > 0) return "incomplete";
   return "none";
@@ -5172,7 +6231,6 @@ function territorialUmpStatusLabel(status: TerritorialUmpStatus) {
   const labels: Record<TerritorialUmpStatus, string> = {
     complete: "Completa",
     incomplete: "Incompleta",
-    overfilled: "Excedida",
     none: "Sin avance",
   };
   return labels[status];
@@ -5180,8 +6238,9 @@ function territorialUmpStatusLabel(status: TerritorialUmpStatus) {
 
 function territorialQuotaStatus(value: string | undefined | null): TerritorialQuotaStatus {
   const status = stringOrEmpty(value);
+  if (status === "exceeded") return "complete";
   if (status === "partial") return "pending";
-  return status === "complete" || status === "in_field" || status === "pending" || status === "missing" || status === "exceeded" || status === "not_configured"
+  return status === "complete" || status === "in_field" || status === "pending" || status === "missing" || status === "not_configured"
     ? status
     : "not_configured";
 }
@@ -5192,7 +6251,6 @@ function territorialQuotaStatusLabel(status: TerritorialQuotaStatus) {
     in_field: "En campo",
     pending: "Cuota pendiente",
     missing: "No iniciada",
-    exceeded: "Excedida",
     not_configured: "Sin cuota",
   };
   return labels[status];
@@ -5222,7 +6280,7 @@ function territorialQuotaMissingLabel(quota: TerritorialQuotaProgressBlock | nul
   const status = territorialQuotaStatus(quota?.status);
   if (!quota || !quota.configured || status === "not_configured") return "Cuota sexo/edad no configurada";
   const missing = quota.missing?.filter((item) => (item.missing ?? 0) > 0) ?? [];
-  if (!missing.length) return status === "complete" || status === "exceeded" ? "Sin faltantes de cuota" : `${formatMetric(quota.missing_total)} válidas faltantes`;
+  if (!missing.length) return status === "complete" ? "Sin faltantes de cuota" : `${formatMetric(quota.missing_total)} válidas faltantes`;
   return missing.slice(0, 2).map((item) => `${item.label}: ${formatMetric(item.missing)}`).join(" · ");
 }
 
@@ -5278,7 +6336,8 @@ function normalizeTerritorialQuotaSummary(value: Partial<Record<keyof Territoria
   summary.partial = Math.max(0, Math.round(numberOrNull(value.partial) ?? 0));
   summary.pending += summary.partial;
   summary.missing = Math.max(0, Math.round(numberOrNull(value.missing) ?? 0));
-  summary.exceeded = Math.max(0, Math.round(numberOrNull(value.exceeded) ?? 0));
+  summary.complete += Math.max(0, Math.round(numberOrNull(value.exceeded) ?? 0));
+  summary.exceeded = 0;
   summary.not_configured = Math.max(0, Math.round(numberOrNull(value.not_configured) ?? 0));
   summary.sex_missing_total = Math.max(0, Math.round(numberOrNull(value.sex_missing_total) ?? 0));
   summary.age_missing_total = Math.max(0, Math.round(numberOrNull(value.age_missing_total) ?? 0));
@@ -5341,7 +6400,6 @@ function territorialQuotaItemTone(item: TerritorialQuotaProgressBlock["sex"][num
   const target = Math.max(0, numberOrNull(item.target) ?? 0);
   const achieved = Math.max(0, numberOrNull(item.achieved) ?? 0);
   const missing = Math.max(0, numberOrNull(item.missing) ?? Math.max(0, target - achieved));
-  if (target > 0 && achieved > target) return "exceeded";
   if (target > 0 && achieved === 0) return "not_started";
   if (missing > 0) return "warning";
   return "ready";
@@ -5542,7 +6600,6 @@ function buildTerritorialDistrictRows(
     };
     if (row.status === "complete") current.ump_complete += 1;
     if (row.status === "incomplete") current.ump_started_incomplete += 1;
-    if (row.status === "overfilled") current.ump_overfilled += 1;
     if (row.status === "none") current.ump_no_progress += 1;
     counts.set(key, current);
   });
@@ -5592,18 +6649,17 @@ function summarizeTerritorialUmpRows(rows: TerritorialUmpDashboardRow[]) {
   return rows.reduce((acc, row) => {
     if (row.status === "complete") acc.complete += 1;
     if (row.status === "incomplete") acc.incomplete += 1;
-    if (row.status === "overfilled") acc.overfilled += 1;
     if (row.status === "none") acc.none += 1;
     return acc;
   }, { complete: 0, incomplete: 0, overfilled: 0, none: 0 });
 }
 
 function territorialFulfilledUmpCount(summary: Pick<ReturnType<typeof summarizeTerritorialUmpRows>, "complete" | "overfilled">) {
-  return summary.complete + summary.overfilled;
+  return summary.complete;
 }
 
 function territorialDistrictFulfilledUmpCount(row: Pick<TerritorialDistrictDashboardRow, "ump_complete" | "ump_overfilled">) {
-  return row.ump_complete + row.ump_overfilled;
+  return row.ump_complete;
 }
 
 function summarizeTerritorialQuotaRows(rows: TerritorialUmpDashboardRow[]) {
@@ -6202,7 +7258,7 @@ function TerritorialExecutiveDistrictCard({
   const districtKey = territorialDistrictFilterKey(row);
   const pct = Math.max(0, Math.min(100, row.avance_pct ?? 0));
   const fulfilledUmp = territorialDistrictFulfilledUmpCount(row);
-  const totalUmp = row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress;
+  const totalUmp = row.ump_complete + row.ump_started_incomplete + row.ump_no_progress;
   const tone = territorialDistrictCardTone(row);
   return (
     <button
@@ -6460,7 +7516,7 @@ function DistrictProgressCard({
 }) {
   const districtKey = territorialDistrictFilterKey(row);
   const pct = Math.min(100, Math.max(0, row.avance_pct ?? 0));
-  const totalUmp = row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress;
+  const totalUmp = row.ump_complete + row.ump_started_incomplete + row.ump_no_progress;
   const fulfilledUmp = territorialDistrictFulfilledUmpCount(row);
   const tone = territorialDistrictCardTone(row);
   const interactive = Boolean(onSelect && districtKey);
@@ -6560,7 +7616,7 @@ function TerritorialDistrictMapKpiRail({
     acc.meta += meta;
     acc.brecha += Math.max(0, Math.round(numberOrNull(row.brecha) ?? Math.max(0, meta - validas)));
     acc.completeUmp += territorialDistrictFulfilledUmpCount(row);
-    acc.totalUmp += row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress;
+    acc.totalUmp += row.ump_complete + row.ump_started_incomplete + row.ump_no_progress;
     return acc;
   }, { validas: 0, meta: 0, brecha: 0, completeUmp: 0, totalUmp: 0 });
   const ordered = [...rows].sort((a, b) => (
@@ -6594,7 +7650,7 @@ function TerritorialDistrictMapKpiRail({
         brecha: Math.max(0, Math.round(numberOrNull(row.brecha) ?? Math.max(0, meta - validas))),
         advancePct: row.avance_pct,
         completeUmp: territorialDistrictFulfilledUmpCount(row),
-        totalUmp: row.ump_complete + row.ump_started_incomplete + row.ump_overfilled + row.ump_no_progress,
+        totalUmp: row.ump_complete + row.ump_started_incomplete + row.ump_no_progress,
         tone: territorialDistrictCardTone(row),
       };
     }).filter((item) => item.key),
@@ -6733,7 +7789,7 @@ function TerritorialUmpSection({
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedResponseId, setSelectedResponseId] = useState("");
   const mapState = useTerritorialAdvanceMapReports(reports);
-  const totalUmpCount = summary.complete + summary.incomplete + summary.overfilled + summary.none;
+  const totalUmpCount = summary.complete + summary.incomplete + summary.none;
   const districtLabels = useMemo(() => {
     const labels = new Map<string, string>();
     rows.forEach((row) => {
@@ -6859,14 +7915,14 @@ function TerritorialUmpSection({
         <TerritorialUmpSelect
           label="Estado"
           value={status}
-          options={["todos", "complete", "incomplete", "overfilled", "none"]}
+          options={["todos", "complete", "incomplete", "none"]}
           onChange={(value) => setStatus(value as TerritorialUmpStatus | "todos")}
           formatOption={(value) => value === "todos" ? "Todos" : territorialUmpStatusLabel(value as TerritorialUmpStatus)}
         />
         <TerritorialUmpSelect
           label="Cuota"
           value={quotaStatus}
-          options={["todos", "in_field", "pending", "missing", "complete", "exceeded", "not_configured"]}
+          options={["todos", "in_field", "pending", "missing", "complete", "not_configured"]}
           onChange={(value) => setQuotaStatus(value as TerritorialQuotaStatus | "todos")}
           formatOption={(value) => value === "todos" ? "Todas" : territorialQuotaStatusLabel(value as TerritorialQuotaStatus)}
         />
@@ -7061,7 +8117,6 @@ function TerritorialUmpQuotaPanel({ row }: { row: TerritorialUmpDashboardRow }) 
     ...(quota?.sex ?? []).map((item) => ({ ...item, kind: "Sexo" })),
     ...(quota?.age ?? []).map((item) => ({ ...item, kind: "Edad" })),
   ].slice(0, 6);
-  const excess = Math.max(0, (quota?.validas ?? row.valid) - (quota?.target ?? row.target));
   return (
     <section className="mon-territorial-ump-quota-panel" aria-label="Cuota sexo y edad de la manzana seleccionada">
       <header>
@@ -7073,7 +8128,6 @@ function TerritorialUmpQuotaPanel({ row }: { row: TerritorialUmpDashboardRow }) 
         <span><strong>{formatMetric(quota?.target ?? row.target)}</strong><em>meta cuota</em></span>
         <span><strong>{formatMetric(quota?.validas ?? row.valid)}</strong><em>válidas</em></span>
         <span><strong>{formatMetric(quota?.missing_total ?? row.gap)}</strong><em>faltantes</em></span>
-        <span><strong>{formatMetric(excess)}</strong><em>exceso</em></span>
       </div>
       {!configured ? (
         <p>La cuota necesita totales por sexo y grupos de edad en Hojas de Ruta, más variables de sexo y edad configuradas en Kobo.</p>
@@ -7420,9 +8474,9 @@ function TerritorialQuotaStatusCard({
   configured: boolean;
 }) {
   const items = [
-    { key: "complete", label: "Completas", value: summary.complete + summary.exceeded, tone: "ready" },
+    { key: "complete", label: "Completas", value: summary.complete, tone: "ready" },
     { key: "in_field", label: "En campo", value: summary.in_field, tone: "base" },
-    { key: "pending", label: "Pendientes", value: summary.pending, tone: "warning" },
+    { key: "pending", label: "Cuota pendiente", value: summary.pending, tone: "warning" },
     { key: "missing", label: "No iniciadas", value: summary.missing, tone: "base" },
     { key: "not_configured", label: "No configuradas", value: summary.not_configured, tone: "base" },
   ];
@@ -7475,7 +8529,6 @@ function TerritorialDistrictQuotaStatusCard({ reports }: { reports: MonitoreoTer
         <span className="is-ready"><strong>{formatMetric(summary.complete)}</strong><em>Completos</em></span>
         <span className="is-warning"><strong>{formatMetric(summary.pending + summary.missing)}</strong><em>Con brecha</em></span>
         <span><strong>{formatMetric(summary.in_field)}</strong><em>En campo</em></span>
-        <span className="is-ready"><strong>{formatMetric(summary.exceeded)}</strong><em>Excedidos</em></span>
         <span><strong>{formatMetric(summary.total)}</strong><em>Distritos</em></span>
       </div>
       <footer>
@@ -7743,6 +8796,9 @@ function TerritorialSourceConsole({
   onCodeReconcile,
   onUmpReconcile,
   onBatchReconcile,
+  onAddSheet,
+  onSheetsSynced,
+  onUpdateSource,
   onUploadEnumeratorRoster,
   onDownloadEnumeratorTemplate,
   onDownloadEnumeratorCodes,
@@ -7768,6 +8824,9 @@ function TerritorialSourceConsole({
     applied: Array<{ client_id: string }>;
     failed: Array<{ client_id: string; message: string }>;
   }>;
+  onAddSheet: (payload: MonitoreoSourcePayload) => Promise<void>;
+  onSheetsSynced: (sourceIds: string[]) => Promise<void>;
+  onUpdateSource: (source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>) => Promise<void>;
   onUploadEnumeratorRoster: (file: File, options?: { code_format?: "PXXX" | "DNI" }) => Promise<void>;
   onDownloadEnumeratorTemplate: () => Promise<void>;
   onDownloadEnumeratorCodes: () => Promise<void>;
@@ -7785,6 +8844,12 @@ function TerritorialSourceConsole({
 	  const visibleReports = dashboardIsForVisibleSource ? reports : null;
 	  const coherence = visibleReports?.source_coherence ?? null;
 	  const sourceValidity = visibleReports?.source_validity ?? null;
+  const routeSheetSources = sources.filter((item) => item.kind === "google_sheets" && item.role === "hoja_ruta");
+  const routeSheetSource = routeSheetSources.find((item) => {
+    const phase = territorialSourcePhase(item);
+    return !phase || phase === activePhase;
+  }) ?? routeSheetSources[0] ?? null;
+  const routeSheetReport = visibleReports?.route_sheet ?? null;
   const [assetQuery, setAssetQuery] = useState("");
   const [assets, setAssets] = useState<MonitoreoKoboAssetItem[]>([]);
 	  const [assetsLoading, setAssetsLoading] = useState(false);
@@ -8095,6 +9160,16 @@ function TerritorialSourceConsole({
 	              </button>
 	            ))}
 	          </section>
+            <TerritorialRouteSheetSourceCard
+              activePhase={activePhase}
+              routeSheet={routeSheetReport}
+              saving={saving}
+              source={routeSheetSource}
+              syncing={syncing}
+              onAddSheet={onAddSheet}
+              onSheetsSynced={onSheetsSynced}
+              onUpdateSource={onUpdateSource}
+            />
 	          <section className={`mon-territorial-source-card mon-territorial-form-picker${activeAssetUid && !showFormList ? " is-selected" : ""}`} aria-label="Selector de formulario Kobo">
 	          <header>
 	            <span><Search size={14} /> {activeAssetUid && !showFormList ? `Formulario ${activePhase === "field" ? "campo" : "piloto"}` : `Seleccionar formulario ${activePhase === "field" ? "campo" : "piloto"}`}</span>
@@ -8466,6 +9541,187 @@ function TerritorialSourceConsole({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function TerritorialRouteSheetSourceCard({
+  activePhase,
+  routeSheet,
+  saving,
+  source,
+  syncing,
+  onAddSheet,
+  onSheetsSynced,
+  onUpdateSource,
+}: {
+  activePhase: MonitoreoTerritorialPhase;
+  routeSheet: MonitoreoTerritorialRouteSheet | null;
+  saving: boolean;
+  source: MonitoreoSource | null;
+  syncing: boolean;
+  onAddSheet: (payload: MonitoreoSourcePayload) => Promise<void>;
+  onSheetsSynced: (sourceIds: string[]) => Promise<void>;
+  onUpdateSource: (source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>) => Promise<void>;
+}) {
+  const [spreadsheetId, setSpreadsheetId] = useState(source?.sheet_binding?.spreadsheet_id ?? "");
+  const [range, setRange] = useState(source?.sheet_binding?.range ?? "");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const metrics = routeSheet?.metrics ?? null;
+  const connected = Boolean(source);
+  const headersOk = routeSheet?.headers_ok !== false;
+  const diagnosticReady = Boolean(routeSheet?.connected && headersOk);
+  const tone = !connected ? "missing" : diagnosticReady ? "ready" : "warning";
+  const savedSpreadsheetId = source?.sheet_binding?.spreadsheet_id ?? "";
+  const savedRange = source?.sheet_binding?.range ?? "";
+  const dirty = connected && (
+    spreadsheetId.trim() !== savedSpreadsheetId ||
+    range.trim() !== savedRange ||
+    source?.sheet_binding?.sheet_name !== "Hojas_de_ruta" ||
+    Number(source?.sheet_binding?.header_row ?? 1) !== 6 ||
+    source?.integration_mode !== "connected_read" ||
+    source?.role !== "hoja_ruta" ||
+    territorialSourcePhase(source) !== activePhase
+  );
+  const lastSync = source?.last_sync_at ? formatDate(source.last_sync_at) : "Sin sincronizar";
+  const sourceLabel = source?.label || "Hoja de ruta operativa";
+  const sourceDetail = connected
+    ? `${sourceLabel} · ${lastSync}`
+    : "Conecta la Google Sheet de Hojas de Ruta para activar diagnósticos operativos.";
+  const warning = routeSheet?.warnings?.[0]?.message || routeSheet?.reason || "";
+  const sheetHref = savedSpreadsheetId
+    ? savedSpreadsheetId.startsWith("http")
+      ? savedSpreadsheetId
+      : `https://docs.google.com/spreadsheets/d/${savedSpreadsheetId}/edit`
+    : "";
+
+  useEffect(() => {
+    setSpreadsheetId(source?.sheet_binding?.spreadsheet_id ?? "");
+    setRange(source?.sheet_binding?.range ?? "");
+    setMessage("");
+    setError("");
+  }, [source?.id, source?.sheet_binding?.range, source?.sheet_binding?.spreadsheet_id]);
+
+  const sourcePayload = useCallback((): MonitoreoSourcePayload => ({
+    kind: "google_sheets",
+    label: source?.label || "Hoja de ruta operativa",
+    enabled: source?.enabled ?? true,
+    role: "hoja_ruta",
+    integration_mode: "connected_read",
+    sheet_binding: {
+      spreadsheet_id: spreadsheetId.trim(),
+      sheet_name: "Hojas_de_ruta",
+      header_row: 6,
+      range: range.trim(),
+    },
+    dimensions: cleanSourceDimensions({
+      ...(source?.dimensions ?? {}),
+      territorial_phase: activePhase,
+    }),
+  }), [activePhase, range, source, spreadsheetId]);
+
+  const saveRouteSheetSource = useCallback(async () => {
+    setMessage("");
+    setError("");
+    if (!spreadsheetId.trim()) {
+      setError("Pega el ID o URL del Spreadsheet de Hojas de Ruta.");
+      return;
+    }
+    try {
+      const payload = sourcePayload();
+      if (source) {
+        await onUpdateSource(source, payload);
+        setMessage("Fuente actualizada con preset operativo.");
+      } else {
+        await onAddSheet(payload);
+        setMessage("Fuente de hoja de ruta registrada.");
+      }
+    } catch (err) {
+      setError((err as Error).message || "No se pudo guardar la fuente.");
+    }
+  }, [onAddSheet, onUpdateSource, source, sourcePayload, spreadsheetId]);
+
+  const syncRouteSheetSource = useCallback(async () => {
+    if (!source?.id) return;
+    setMessage("");
+    setError("");
+    try {
+      await onSheetsSynced([source.id]);
+      setMessage("Snapshot de Hojas de Ruta actualizado.");
+    } catch (err) {
+      setError((err as Error).message || "No se pudo sincronizar la hoja.");
+    }
+  }, [onSheetsSynced, source?.id]);
+
+  return (
+    <section className={`mon-territorial-source-card mon-territorial-route-sheet-source is-${tone}`} aria-label="Hoja de ruta operativa">
+      <header>
+        <span><Layers3 size={14} /> Hoja de ruta operativa</span>
+        <strong>{connected ? diagnosticReady ? "Diagnóstico activo" : "Conectada por revisar" : "Opcional"}</strong>
+      </header>
+      <div className="mon-territorial-route-sheet-source-body">
+        <div className="mon-territorial-route-sheet-source-copy">
+          <strong>{sourceDetail}</strong>
+          <em>Rol hoja_ruta · Hojas_de_ruta · encabezado fila 6 · {territorialPhaseLabel(activePhase)}</em>
+        </div>
+        <div className="mon-territorial-route-sheet-source-metrics" aria-label="Resumen de hoja de ruta">
+          <span>
+            <strong>{formatMetric(metrics?.assignments ?? 0)}</strong>
+            <em>asignaciones</em>
+          </span>
+          <span className={(metrics?.assigned_without_response ?? 0) ? "is-warning" : ""}>
+            <strong>{formatMetric(metrics?.assigned_without_response ?? 0)}</strong>
+            <em>sin primera encuesta</em>
+          </span>
+          <span className={(metrics?.wrong_ump_candidates ?? 0) ? "is-warning" : ""}>
+            <strong>{formatMetric(metrics?.wrong_ump_candidates ?? 0)}</strong>
+            <em>UMP sospechosa</em>
+          </span>
+          <span className={(metrics?.wrong_code_candidates ?? 0) ? "is-warning" : ""}>
+            <strong>{formatMetric(metrics?.wrong_code_candidates ?? 0)}</strong>
+            <em>Código Pulso</em>
+          </span>
+        </div>
+        <div className="mon-territorial-route-sheet-source-form">
+          <label>
+            <span>Spreadsheet</span>
+            <input
+              value={spreadsheetId}
+              onChange={(event) => setSpreadsheetId(event.target.value)}
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              disabled={saving || syncing}
+            />
+          </label>
+          <label>
+            <span>Rango</span>
+            <input
+              value={range}
+              onChange={(event) => setRange(event.target.value)}
+              placeholder="Opcional"
+              disabled={saving || syncing}
+            />
+          </label>
+          <button type="button" onClick={() => { void saveRouteSheetSource(); }} disabled={saving || syncing || (!dirty && connected)}>
+            {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
+            <span>{connected ? "Guardar preset" : "Conectar"}</span>
+          </button>
+          <button type="button" className="is-primary" onClick={() => { void syncRouteSheetSource(); }} disabled={saving || syncing || !source?.id}>
+            {syncing ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+            <span>Sincronizar</span>
+          </button>
+          {sheetHref ? (
+            <a href={sheetHref} target="_blank" rel="noopener noreferrer" title="Abrir Spreadsheet">
+              <ExternalLink size={13} />
+            </a>
+          ) : null}
+        </div>
+        {warning || message || error ? (
+          <div className={`mon-territorial-route-sheet-source-note${error ? " is-error" : warning ? " is-warning" : " is-ready"}`}>
+            {error || warning || message}
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -10305,7 +11561,8 @@ function TerritorialDeclaredUmpPanel({
         row.assigned_block_id,
         row.assigned_district,
         row.assigned_ubigeo,
-        ...(row.route_blocks ?? []).flatMap((block) => [block.route_ump, block.id_manzana, block.distrito, block.manzana]),
+        row.assigned_responsible,
+        ...(row.route_blocks ?? []).flatMap((block) => [block.route_ump, block.id_manzana, block.distrito, block.manzana, block.responsable]),
       ].some((value) => normalizeMatch(String(value ?? "")).includes(needle));
     });
   }, [query, rows, statusFilter]);
@@ -10411,6 +11668,18 @@ function TerritorialDeclaredUmpPanel({
           const assignedDistrict = stringOrEmpty(selected?.distrito) || row.assigned_district || row.route_blocks?.[0]?.distrito || "S/D";
           const assignedUbigeo = stringOrEmpty(selected?.ubigeo) || row.assigned_ubigeo || row.route_blocks?.[0]?.ubigeo || "";
           const assignedBlockId = stringOrEmpty(selected?.id_manzana) || row.assigned_block_id || "";
+          const observedResponsible = stringOrEmpty(row.responsible).trim();
+          const routeResponsible = stringOrEmpty(selected?.responsable).trim()
+            || stringOrEmpty(row.assigned_responsible).trim()
+            || stringOrEmpty(row.route_blocks?.[0]?.responsable).trim();
+          const responsibleLabel = observedResponsible || routeResponsible || "Sin responsable";
+          const responsibleSource = declaredUmpResponsibleSourceLabel(row.responsible_source, Boolean(observedResponsible), Boolean(routeResponsible));
+          const hasDifferentRouteResponsible = Boolean(
+            observedResponsible
+            && routeResponsible
+            && normalizeMatch(observedResponsible) !== normalizeMatch(routeResponsible)
+          );
+          const districtDetail = [assignedDistrict, assignedUbigeo].filter((value) => stringOrEmpty(value) && value !== "S/D").join(" · ");
           return (
             <article key={key} className={`mon-operational-ump-row is-${pending ? pending.status === "error" ? "danger" : "pending" : declaredUmpStatusTone(row.status)}${pending ? " is-pending" : ""}`}>
               <header>
@@ -10449,9 +11718,18 @@ function TerritorialDeclaredUmpPanel({
                   )}
                 </label>
                 <span className="mon-operational-ump-responsible">
+                  <em>Responsable</em>
+                  <strong title={responsibleLabel}>{responsibleLabel}</strong>
+                  {hasDifferentRouteResponsible ? (
+                    <small title={routeResponsible}>Ruta: {shortenMiddle(routeResponsible, 24)}</small>
+                  ) : responsibleSource ? (
+                    <small>{responsibleSource}</small>
+                  ) : null}
+                </span>
+                <span className="mon-operational-ump-district">
                   <em>Distrito</em>
                   <strong>{assignedDistrict}</strong>
-                  {assignedUbigeo ? <small>{assignedUbigeo}</small> : null}
+                  {districtDetail ? <small>{districtDetail}</small> : null}
                 </span>
               </div>
               <footer>
@@ -10515,6 +11793,15 @@ function declaredUmpStatusTone(status: string) {
   }
 }
 
+function declaredUmpResponsibleSourceLabel(source: unknown, hasObservedResponsible: boolean, hasRouteResponsible: boolean) {
+  const key = normalizeMatch(stringOrEmpty(source));
+  if (key === "codigo_pulso") return "Kobo / Código Pulso";
+  if (key === "route") return "Ruta asignada";
+  if (hasObservedResponsible) return "Kobo";
+  if (hasRouteResponsible) return "Ruta asignada";
+  return "";
+}
+
 function territorialUmpRouteOptionId(option: TerritorialDeclaredUmpRouteOption | undefined | null) {
   return stringOrEmpty(option?.id_manzana) || stringOrEmpty(option?.route_ump);
 }
@@ -10525,6 +11812,7 @@ function territorialUmpRouteOptionLabel(option: TerritorialDeclaredUmpRouteOptio
     stringOrEmpty(option.route_ump) ? `UMP ${option.route_ump}` : "",
     stringOrEmpty(option.distrito) ? shortenMiddle(stringOrEmpty(option.distrito), 18) : "",
     stringOrEmpty(option.manzana) ? `Mz ${option.manzana}` : "",
+    stringOrEmpty(option.responsable) ? shortenMiddle(stringOrEmpty(option.responsable), 22) : "",
   ].filter(Boolean);
   return parts.join(" · ") || "Ruta sin etiqueta";
 }
@@ -13741,8 +15029,7 @@ function TerritorialQuotaConsistencyPanel({ reports }: { reports: MonitoreoTerri
 
   const filterOptions: Array<{ key: TerritorialQuotaConsistencyFilter | "all"; label: string; value: number }> = [
     { key: "complete", label: "Completas", value: summary.complete },
-    { key: "exceeded", label: "Excedidas", value: summary.exceeded },
-    { key: "pending", label: "Pendiente", value: summary.pending },
+    { key: "pending", label: "Cuota pendiente", value: summary.pending },
     { key: "in_field", label: "En campo", value: summary.in_field },
     { key: "missing", label: "No iniciadas", value: summary.missing },
     { key: "all", label: "Todas", value: summary.total },
@@ -14008,12 +15295,12 @@ function territorialRowHasGeoObservation(row: TerritorialResponseAuditRow) {
 
 function territorialRowHasDurationObservation(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
   const reasons = territorialObservationReasonParts(row);
-  const duration = numberOrNull(row.duration_seconds);
-  const status = stringOrEmpty(row.duration_status);
+  if (!territorialDurationHasEvaluableTime(row, config)) return false;
+  const operational = territorialDurationOperationalStatus(row, config);
   return reasons.includes("duracion_muy_corta")
     || reasons.includes("duracion_corta")
-    || (status === "muy_corta" || status === "corta")
-    || (duration != null && duration < territorialShortDurationSeconds(config));
+    || operational === "muy_corto"
+    || operational === "corto";
 }
 
 function observationReasonLabel(value: string) {
@@ -14258,15 +15545,66 @@ function territorialDurationStatusFromSeconds(seconds: number | null, config: Mo
   return "esperada";
 }
 
-function territorialDurationBand(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
+type TerritorialDurationOperationalKey = "normal" | "corto" | "muy_corto";
+
+function territorialDurationOperationalStatusFromRaw(value: unknown): TerritorialDurationOperationalKey {
+  const key = normalizeMatch(value).replace(/\s+/g, "_");
+  if (key === "muy_corta" || key === "muy_corto") return "muy_corto";
+  if (key === "corta" || key === "corto") return "corto";
+  return "normal";
+}
+
+function territorialDurationOperationalStatusFromSeconds(seconds: number | null, config: MonitoreoConfig): TerritorialDurationOperationalKey {
+  if (seconds == null) return "normal";
+  if (seconds < config.territorial.min_duration_seconds) return "muy_corto";
+  if (seconds < territorialShortDurationSeconds(config)) return "corto";
+  return "normal";
+}
+
+function territorialDurationHasEvaluableTime(
+  row: Partial<TerritorialResponseAuditRow | TerritorialInternalReviewCase>,
+  _config?: MonitoreoConfig,
+) {
   const seconds = numberOrNull(row.duration_seconds);
-  const key = stringOrEmpty(row.duration_status) || territorialDurationStatusFromSeconds(seconds, config);
-  if (key === "muy_corta") return { key, label: "Muy corta", detail: `< ${formatDurationLabel(config.territorial.min_duration_seconds)}` };
-  if (key === "corta") return { key, label: "Corta", detail: `< ${formatDurationLabel(territorialShortDurationSeconds(config))}` };
-  if (key === "extrema") return { key, label: "Extrema", detail: `> ${formatDurationLabel(Math.max(config.territorial.max_duration_seconds * 3, 12 * 3600))}` };
-  if (key === "larga") return { key, label: "Larga", detail: `> ${formatDurationLabel(config.territorial.max_duration_seconds)}` };
-  if (key === "esperada") return { key, label: "En rango", detail: "sin alerta" };
-  return { key: "sin_dato", label: "Sin dato", detail: "sin duración" };
+  if (seconds != null && Number.isFinite(seconds) && seconds >= 0) return true;
+  const direct = normalizeMatch(row.duration_operational_status).replace(/\s+/g, "_");
+  if (direct === "corto" || direct === "muy_corto") return true;
+  const raw = normalizeMatch(row.duration_status).replace(/\s+/g, "_");
+  return ["muy_corta", "muy_corto", "corta", "corto", "esperada", "larga", "extrema"].includes(raw);
+}
+
+function territorialDurationOperationalStatus(row: Partial<TerritorialResponseAuditRow | TerritorialInternalReviewCase>, config: MonitoreoConfig): TerritorialDurationOperationalKey {
+  const seconds = numberOrNull(row.duration_seconds);
+  const direct = normalizeMatch(row.duration_operational_status).replace(/\s+/g, "_");
+  if (direct === "corto" || direct === "muy_corto") return direct;
+  const label = normalizeMatch(row.duration_operational_label);
+  if (label === "muy corto") return "muy_corto";
+  if (label === "corto") return "corto";
+  const raw = normalizeMatch(row.duration_status).replace(/\s+/g, "_");
+  if (["muy_corta", "muy_corto", "corta", "corto", "esperada", "larga", "extrema"].includes(raw)) {
+    return territorialDurationOperationalStatusFromRaw(raw);
+  }
+  if (seconds != null) return territorialDurationOperationalStatusFromSeconds(seconds, config);
+  if (direct === "normal" || label === "normal") return "normal";
+  return "normal";
+}
+
+function territorialDurationOperationalClassName(key: TerritorialDurationOperationalKey) {
+  return `is-duration-${key.replace("_", "-")}`;
+}
+
+function territorialDurationBand(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
+  if (!territorialDurationHasEvaluableTime(row, config)) {
+    return { key: "none", label: "", detail: "sin duración registrada", className: "is-duration-none", hasDuration: false };
+  }
+  const key = territorialDurationOperationalStatus(row, config);
+  if (key === "muy_corto") {
+    return { key, label: "Muy corto", detail: `< ${formatDurationLabel(config.territorial.min_duration_seconds)}`, className: territorialDurationOperationalClassName(key), hasDuration: true };
+  }
+  if (key === "corto") {
+    return { key, label: "Corto", detail: `< ${formatDurationLabel(territorialShortDurationSeconds(config))}`, className: territorialDurationOperationalClassName(key), hasDuration: true };
+  }
+  return { key, label: "Normal", detail: "sin alerta operativa", className: territorialDurationOperationalClassName(key), hasDuration: true };
 }
 
 function territorialCaseReviewReasons(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
@@ -14283,7 +15621,7 @@ function territorialCaseReviewReasons(row: TerritorialResponseAuditRow, config: 
     const band = territorialDurationBand(row, config);
     out.push({
       key: `duration-${band.key}`,
-      label: band.key === "muy_corta" ? "Duración muy corta" : "Duración corta",
+      label: band.key === "muy_corto" ? "Duración muy corta" : "Duración corta",
       detail: band.detail,
     });
   }
@@ -14302,16 +15640,16 @@ function territorialObservationPriority(row: TerritorialResponseAuditRow, config
   if (row.geo_estado === "geo_no_defendible") score += 80 + Math.min(40, distance / 1000);
   if (row.geo_estado === "geo_sin_gps") score += 65;
   if (row.geo_estado === "geo_revision") score += 45;
-  if (durationBand === "muy_corta") score += 70;
-  if (durationBand === "corta") score += 44;
+  if (durationBand === "muy_corto") score += 70;
+  if (durationBand === "corto") score += 44;
   return score;
 }
 
 function territorialDurationBreakdown(rows: TerritorialResponseAuditRow[], config: MonitoreoConfig) {
-  const counts = { esperada: 0, corta: 0, muy_corta: 0, larga: 0, extrema: 0, sin_dato: 0 };
+  const counts = { normal: 0, corto: 0, muy_corto: 0 };
   rows.forEach((row) => {
     const key = territorialDurationBand(row, config).key as keyof typeof counts;
-    counts[key in counts ? key : "sin_dato"] += 1;
+    counts[key in counts ? key : "normal"] += 1;
   });
   return counts;
 }
@@ -14406,7 +15744,9 @@ function TerritorialObservationList({
                         <small>{formatDistanceLabel(row.distance_m)}</small>
                       </td>
                       <td>
-                        <span className={`mon-territorial-band is-duration-${durationBand.key}`}><Clock size={13} /> {durationBand.label}</span>
+                        {durationBand.hasDuration
+                          ? <span className={`mon-territorial-band ${durationBand.className}`}><Clock size={13} /> {durationBand.label}</span>
+                          : <span className="mon-territorial-duration-empty">No registrada</span>}
                         <small>{formatDurationLabel(row.duration_seconds)}</small>
                       </td>
                       <td>
@@ -15128,6 +16468,7 @@ function TerritorialGeoCaseList({
                 : `${group.assignmentLabel}${gpsDiagnosticSuffix}`;
               const reviewCount = group.reviewCount + group.noDefendibleCount;
               const reviewLabel = reviewCount > 0 ? ` · ${formatMetric(reviewCount)} revisar` : "";
+              const riskSummary = territorialGeoGroupRiskSummary(group);
               const casesPanelId = `geo-cases-${group.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
               return (
                 <div key={group.key} className="mon-territorial-geo-district-group">
@@ -15154,9 +16495,22 @@ function TerritorialGeoCaseList({
                         <strong>{group.blockLabel}</strong>
                         <em>{blockSubtitle}</em>
                       </span>
-                      <span className="mon-territorial-geo-district-count">{pointCountLabel}</span>
+                      <span className={`mon-territorial-geo-district-risk is-${riskSummary.tone}`}>
+                        <span>
+                          <strong>{riskSummary.distanceLabel}</strong>
+                          <em>{riskSummary.distanceHint}</em>
+                        </span>
+                        <span>
+                          {riskSummary.tags.map((tag) => (
+                            <small key={tag.key} className={`is-${tag.tone}`}>{tag.label}</small>
+                          ))}
+                        </span>
+                      </span>
                       <span className="mon-territorial-geo-district-owner">{group.responsable}{reviewLabel}</span>
-                      <span className="mon-territorial-route-badge is-titular">{badgeLabel}</span>
+                      <span className="mon-territorial-geo-district-metrics">
+                        <span className="mon-territorial-geo-district-count">{pointCountLabel}</span>
+                        <span className="mon-territorial-route-badge is-titular">{badgeLabel}</span>
+                      </span>
                     </button>
                   </div>
                   <AnimatePresence initial={false}>
@@ -15306,6 +16660,60 @@ type TerritorialGeoRouteSet = {
   replacementBlocks: TerritorialBlockProgress[];
   routeBlocks: TerritorialBlockProgress[];
 };
+
+type TerritorialGeoRiskTone = "ready" | "warning" | "danger" | "muted";
+
+type TerritorialGeoGroupRiskSummary = {
+  tone: TerritorialGeoRiskTone;
+  distanceLabel: string;
+  distanceHint: string;
+  tags: Array<{ key: string; label: string; tone: TerritorialGeoRiskTone }>;
+};
+
+function territorialGeoCaseDistanceToDeclaredBlock(item: TerritorialGeoCase) {
+  const lat = numberOrNull(item.row.lat);
+  const lon = numberOrNull(item.row.lon);
+  const block = item.block ?? item.titularBlock;
+  const blockLat = numberOrNull(block?.lat);
+  const blockLon = numberOrNull(block?.lon);
+  if (lat != null && lon != null && blockLat != null && blockLon != null) {
+    return territorialApproxDistanceMeters(lon, lat, blockLon, blockLat);
+  }
+  return numberOrNull(item.row.distance_m);
+}
+
+function territorialGeoGroupRiskSummary(group: TerritorialGeoBlockGroup): TerritorialGeoGroupRiskSummary {
+  const farthest = group.rows
+    .map((item) => ({ item, distance: territorialGeoCaseDistanceToDeclaredBlock(item) }))
+    .filter((item): item is { item: TerritorialGeoCase; distance: number } => item.distance != null && Number.isFinite(item.distance))
+    .sort((a, b) => b.distance - a.distance)[0] ?? null;
+  const outsideDistrict = group.rows.filter((item) => item.geoDisposition === "fuera_distrito").length;
+  const outsideZone = group.rows.filter((item) => item.geoDisposition === "en_distrito").length;
+  const withoutGps = group.rows.filter((item) => item.geoDisposition === "sin_gps").length;
+  const nearOtherBlock = group.gpsDiagnosticCount;
+  const tags: TerritorialGeoGroupRiskSummary["tags"] = [];
+
+  if (outsideDistrict) tags.push({ key: "outside-district", label: `${formatMetric(outsideDistrict)} fuera distrito`, tone: "danger" });
+  if (outsideZone) tags.push({ key: "outside-zone", label: `${formatMetric(outsideZone)} fuera zona`, tone: "warning" });
+  if (nearOtherBlock) tags.push({ key: "near-other", label: `${formatMetric(nearOtherBlock)} cerca otra Mz`, tone: "warning" });
+  if (withoutGps) tags.push({ key: "without-gps", label: `${formatMetric(withoutGps)} sin GPS`, tone: "muted" });
+  if (!tags.length) tags.push({ key: "in-zone", label: "GPS en zona", tone: "ready" });
+
+  const farthestDistance = farthest?.distance ?? null;
+  const tone: TerritorialGeoRiskTone = outsideDistrict || (farthestDistance != null && farthestDistance > 900)
+    ? "danger"
+    : outsideZone || nearOtherBlock || (farthestDistance != null && farthestDistance > 300)
+      ? "warning"
+      : withoutGps && withoutGps === group.rows.length
+        ? "muted"
+        : "ready";
+  return {
+    tone,
+    distanceLabel: farthestDistance != null ? formatDistanceLabel(farthestDistance) : withoutGps ? "Sin GPS" : "S/D",
+    distanceHint: farthestDistance != null ? "máx. a UMP declarada" : withoutGps ? "coord. ausente" : "sin distancia",
+    tags: tags.slice(0, 3),
+  };
+}
 
 function territorialBuildGeoCase(
   row: TerritorialResponseAuditRow,
@@ -15779,21 +17187,19 @@ function TerritorialDurationBreakdown({
   config: MonitoreoConfig;
   rows: TerritorialResponseAuditRow[];
 }) {
-  const counts = territorialDurationBreakdown(rows.filter((row) => row.advance_valid !== false), config);
-  const inRange = counts.esperada;
-  const longOutliers = counts.larga + counts.extrema;
-  const priority = counts.corta + counts.muy_corta;
-  const totalDuration = Math.max(1, inRange + priority + longOutliers + counts.sin_dato);
-  const shortPct = safePercent(counts.corta, totalDuration) ?? 0;
-  const veryShortPct = safePercent(counts.muy_corta, totalDuration) ?? 0;
+  const rowsWithDuration = rows.filter((row) => row.advance_valid !== false && durationSecondsForRow(row) != null);
+  const counts = territorialDurationBreakdown(rowsWithDuration, config);
+  const normal = counts.normal;
+  const priority = counts.corto + counts.muy_corto;
+  const totalDuration = Math.max(1, normal + priority);
+  const shortPct = safePercent(counts.corto, totalDuration) ?? 0;
+  const veryShortPct = safePercent(counts.muy_corto, totalDuration) ?? 0;
   const reviewPct = shortPct + veryShortPct;
   const shortThreshold = territorialShortDurationSeconds(config);
   const items = [
-    { key: "esperada", label: "En rango", detail: "sin alerta", value: inRange, className: "is-duration-esperada" },
-    { key: "corta", label: "Corta", detail: `menos de ${formatDurationLabel(shortThreshold)}`, value: counts.corta, className: "is-duration-corta" },
-    { key: "muy_corta", label: "Muy corta", detail: `menos de ${formatDurationLabel(config.territorial.min_duration_seconds)}`, value: counts.muy_corta, className: "is-duration-muy_corta" },
-    { key: "larga", label: "Larga", detail: `más de ${formatDurationLabel(config.territorial.max_duration_seconds)}`, value: longOutliers, className: "is-duration-larga" },
-    { key: "sin_dato", label: "Sin dato", detail: "sin duración", value: counts.sin_dato, className: "is-duration-sin_dato" },
+    { key: "normal", label: "Normal", detail: "sin alerta operativa", value: normal, className: "is-duration-normal" },
+    { key: "corto", label: "Corto", detail: `menos de ${formatDurationLabel(shortThreshold)}`, value: counts.corto, className: "is-duration-corto" },
+    { key: "muy_corto", label: "Muy corto", detail: `menos de ${formatDurationLabel(config.territorial.min_duration_seconds)}`, value: counts.muy_corto, className: "is-duration-muy-corto" },
   ];
   return (
     <section className="mon-territorial-audit-card mon-territorial-audit-card--duration" aria-label="Auditoría de duración">
@@ -15819,7 +17225,7 @@ function TerritorialDurationBreakdown({
         <div className="mon-territorial-duration-copy">
           <span><strong>{formatDurationLabel(reports.kpis.duration_p95)}</strong><em>P95 referencial</em></span>
           <span><strong>menos de {formatDurationLabel(shortThreshold)}</strong><em>umbral corto</em></span>
-          <span><strong>{formatMetric(inRange)}</strong><em>en rango</em></span>
+          <span><strong>{formatMetric(normal)}</strong><em>normal</em></span>
         </div>
       </div>
       <div className="mon-territorial-duration-lanes">
@@ -15868,6 +17274,8 @@ type TerritorialDurationEnumeratorSummary = {
   total: number;
   median: number | null;
   p95: number | null;
+  normal: number;
+  short: number;
   veryShort: number;
   review: number;
   lastRecord: string;
@@ -15877,9 +17285,10 @@ type TerritorialDurationEnumeratorSummary = {
 type TerritorialDurationModel = {
   validRows: TerritorialResponseAuditRow[];
   rowsWithDuration: TerritorialResponseAuditRow[];
+  normalRows: TerritorialResponseAuditRow[];
   shortRows: TerritorialResponseAuditRow[];
   veryShortRows: TerritorialResponseAuditRow[];
-  longRows: TerritorialResponseAuditRow[];
+  overflowRows: TerritorialResponseAuditRow[];
   histogramRows: TerritorialResponseAuditRow[];
   bins: TerritorialDurationHistogramBin[];
   median: number | null;
@@ -15906,26 +17315,17 @@ function percentileFromSorted(values: number[], percentile: number) {
   return values[lower] * (1 - weight) + values[upper] * weight;
 }
 
-function territorialDurationStatusKey(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
-  return stringOrEmpty(row.duration_status) || territorialDurationStatusFromSeconds(durationSecondsForRow(row), config);
-}
-
 function territorialDurationIsShort(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
-  const seconds = durationSecondsForRow(row);
-  const status = territorialDurationStatusKey(row, config);
-  return status === "muy_corta" || status === "corta" || (seconds != null && seconds < territorialShortDurationSeconds(config));
+  return territorialDurationOperationalStatus(row, config) === "corto" || territorialDurationOperationalStatus(row, config) === "muy_corto";
 }
 
 function territorialDurationIsVeryShort(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
-  const seconds = durationSecondsForRow(row);
-  const status = territorialDurationStatusKey(row, config);
-  return status === "muy_corta" || (seconds != null && seconds < config.territorial.min_duration_seconds);
+  return territorialDurationOperationalStatus(row, config) === "muy_corto";
 }
 
-function territorialDurationIsLong(row: TerritorialResponseAuditRow, config: MonitoreoConfig, visualCapSeconds: number) {
+function territorialDurationExceedsVisualCap(row: TerritorialResponseAuditRow, visualCapSeconds: number) {
   const seconds = durationSecondsForRow(row);
-  const status = territorialDurationStatusKey(row, config);
-  return status === "larga" || status === "extrema" || (seconds != null && seconds > visualCapSeconds);
+  return seconds != null && seconds > visualCapSeconds;
 }
 
 function territorialResolvedResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = true) {
@@ -15954,14 +17354,12 @@ function territorialDurationReviewReasonLabels(row: TerritorialResponseAuditRow,
   const reasons: string[] = [];
   const durationBand = territorialDurationBand(row, config);
   const hasGpsReason = territorialRowHasGeoObservation(row);
-  if (hasGpsReason && ["muy_corta", "corta"].includes(durationBand.key)) {
+  if (hasGpsReason && ["muy_corto", "corto"].includes(durationBand.key)) {
     reasons.push("Duración y GPS a revisar");
-  } else if (durationBand.key === "muy_corta") {
-    reasons.push("Muy corta");
-  } else if (durationBand.key === "corta") {
+  } else if (durationBand.key === "muy_corto") {
+    reasons.push("Muy corto");
+  } else if (durationBand.key === "corto") {
     reasons.push("Duración corta");
-  } else if (durationBand.key === "larga" || durationBand.key === "extrema") {
-    reasons.push("Outlier largo");
   }
   if (hasGpsReason && !reasons.some((item) => item.includes("GPS"))) reasons.push("Sin GPS");
   if (territorialMissingResponsibleLabel(territorialResolvedResponsibleLabel(row, false))) reasons.push("Sin encuestador");
@@ -15971,7 +17369,6 @@ function territorialDurationReviewReasonLabels(row: TerritorialResponseAuditRow,
 function buildTerritorialDurationEnumeratorRows(
   rows: TerritorialResponseAuditRow[],
   config: MonitoreoConfig,
-  visualCapSeconds: number,
 ) {
   const groups = new Map<string, { label: string; rows: TerritorialResponseAuditRow[]; unassigned: boolean }>();
   rows.forEach((row) => {
@@ -15990,16 +17387,18 @@ function buildTerritorialDurationEnumeratorRows(
       .map(durationSecondsForRow)
       .filter((value): value is number => value != null)
       .sort((a, b) => a - b);
+    const normal = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "normal").length;
+    const short = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "corto").length;
     const veryShort = item.rows.filter((row) => territorialDurationIsVeryShort(row, config)).length;
-    const review = item.rows.filter((row) => (
-      territorialDurationIsShort(row, config) || territorialDurationIsLong(row, config, visualCapSeconds)
-    )).length;
+    const review = short + veryShort;
     return {
       key,
       label: item.label,
       total: item.rows.length,
       median: percentileFromSorted(values, 0.5),
       p95: percentileFromSorted(values, 0.95),
+      normal,
+      short,
       veryShort,
       review,
       lastRecord: territorialLatestRecordLabel(item.rows),
@@ -16049,9 +17448,10 @@ function buildTerritorialDurationModel(rows: TerritorialResponseAuditRow[], conf
   return {
     validRows,
     rowsWithDuration,
+    normalRows: rowsWithDuration.filter((row) => territorialDurationOperationalStatus(row, config) === "normal"),
     shortRows: rowsWithDuration.filter((row) => territorialDurationIsShort(row, config)),
     veryShortRows: rowsWithDuration.filter((row) => territorialDurationIsVeryShort(row, config)),
-    longRows: rowsWithDuration.filter((row) => territorialDurationIsLong(row, config, visualCapSeconds)),
+    overflowRows: rowsWithDuration.filter((row) => territorialDurationExceedsVisualCap(row, visualCapSeconds)),
     histogramRows,
     bins,
     median: percentileFromSorted(values, 0.5),
@@ -16059,7 +17459,7 @@ function buildTerritorialDurationModel(rows: TerritorialResponseAuditRow[], conf
     maxBinCount: Math.max(1, ...bins.map((bin) => bin.count)),
     visualCapSeconds,
     shortThresholdSeconds: territorialShortDurationSeconds(config),
-    enumerators: buildTerritorialDurationEnumeratorRows(rowsWithDuration, config, visualCapSeconds),
+    enumerators: buildTerritorialDurationEnumeratorRows(rowsWithDuration, config),
   };
 }
 
@@ -16116,7 +17516,6 @@ function TerritorialDurationControlView({
       />
       <div className="mon-duration-lower-grid">
         <TerritorialDurationEnumeratorTable rows={model.enumerators} />
-        <TerritorialDurationLongOutliers model={model} />
       </div>
     </div>
   );
@@ -16128,14 +17527,14 @@ function TerritorialDurationOverview({ model, reviewCount }: { model: Territoria
       <div>
         <span><Clock size={14} /> Duración de encuestas</span>
         <strong>
-          {formatMetric(model.validRows.length)} válidas · {formatMetric(reviewCount)} por revisar · Mediana {formatDurationLabel(model.median)} · P95 {formatDurationLabel(model.p95)}
+          {formatMetric(model.rowsWithDuration.length)} con tiempo · {formatMetric(reviewCount)} por revisar · Mediana {formatDurationLabel(model.median)} · P95 {formatDurationLabel(model.p95)}
         </strong>
       </div>
       <dl>
         <span><dt>Mediana</dt><dd>{formatDurationLabel(model.median)}</dd></span>
         <span><dt>P95</dt><dd>{formatDurationLabel(model.p95)}</dd></span>
-        <span className={model.veryShortRows.length ? "is-warning" : ""}><dt>Muy cortas</dt><dd>{formatMetric(model.veryShortRows.length)}</dd></span>
-        <span className={model.longRows.length ? "is-warning" : ""}><dt>Outliers largos</dt><dd>{formatMetric(model.longRows.length)}</dd></span>
+        <span><dt>Normal</dt><dd>{formatMetric(model.normalRows.length)}</dd></span>
+        <span className={model.shortRows.length ? "is-warning" : ""}><dt>Por revisar</dt><dd>{formatMetric(model.shortRows.length)}</dd></span>
       </dl>
     </section>
   );
@@ -16158,7 +17557,7 @@ function TerritorialDurationHistogram({ model }: { model: TerritorialDurationMod
           <span><BarChart3 size={14} /> Distribución de duración</span>
           <strong>{formatMetric(model.histogramRows.length)} dentro de {formatDurationLabel(model.visualCapSeconds)}</strong>
         </div>
-        <em>{model.longRows.length ? `${formatMetric(model.longRows.length)} largas fuera` : "sin largas fuera"}</em>
+        <em>{model.overflowRows.length ? `${formatMetric(model.overflowRows.length)} fuera de escala` : "escala completa"}</em>
       </header>
       <div className="mon-duration-histogram-body">
         {model.bins.map((bin) => (
@@ -16185,11 +17584,11 @@ function TerritorialDurationHistogram({ model }: { model: TerritorialDurationMod
           );
         })}
       </div>
-      {(p95Outside || model.longRows.length > 0) && (
+      {(p95Outside || model.overflowRows.length > 0) && (
         <div className="mon-duration-histogram-notes" aria-label="Notas del histograma de duración">
           {p95Outside && <span className="is-p95">P95 fuera del histograma principal: {formatDurationLabel(model.p95)}</span>}
-          {model.longRows.length > 0 && (
-            <span>{formatMetric(model.longRows.length)} duraciones largas fuera del histograma principal.</span>
+          {model.overflowRows.length > 0 && (
+            <span>{formatMetric(model.overflowRows.length)} registros quedan fuera de la escala visible del histograma.</span>
           )}
         </div>
       )}
@@ -16425,7 +17824,12 @@ function TerritorialDurationReviewTable({
                       )}
                       <small>{nearestBlockId ? row.nearest_block_type || "manzana" : "sin UMP"}</small>
                     </td>
-                    <td><span className={`mon-territorial-band is-duration-${durationBand.key}`}><Clock size={13} /> {durationBand.label}</span><small>{formatDurationLabel(row.duration_seconds)}</small></td>
+                    <td>
+                      {durationBand.hasDuration
+                        ? <span className={`mon-territorial-band ${durationBand.className}`}><Clock size={13} /> {durationBand.label}</span>
+                        : <span className="mon-territorial-duration-empty">No registrada</span>}
+                      <small>{formatDurationLabel(row.duration_seconds)}</small>
+                    </td>
                     <td>
                       <span className="mon-duration-reason-stack">
                         {reasons.map((reason) => <em key={reason}>{reason}</em>)}
@@ -16472,7 +17876,9 @@ function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDuratio
               <th>Total</th>
               <th>Mediana</th>
               <th>P95</th>
-              <th>Muy cortas</th>
+              <th>Normal</th>
+              <th>Corto</th>
+              <th>Muy corto</th>
               <th>Revisar</th>
               <th>Último</th>
             </tr>
@@ -16484,6 +17890,8 @@ function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDuratio
                 <td>{formatMetric(row.total)}</td>
                 <td>{formatDurationLabel(row.median)}</td>
                 <td>{formatDurationLabel(row.p95)}</td>
+                <td>{formatMetric(row.normal)}</td>
+                <td>{formatMetric(row.short)}</td>
                 <td>{formatMetric(row.veryShort)}</td>
                 <td>{formatMetric(row.review)}</td>
                 <td>{row.lastRecord}</td>
@@ -16492,42 +17900,6 @@ function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDuratio
           </tbody>
         </table>
       </div>
-    </section>
-  );
-}
-
-function TerritorialDurationLongOutliers({ model }: { model: TerritorialDurationModel }) {
-  const ordered = [...model.longRows]
-    .sort((a, b) => (durationSecondsForRow(b) ?? 0) - (durationSecondsForRow(a) ?? 0))
-    .slice(0, 7);
-  return (
-    <section className="mon-duration-panel mon-duration-outliers" aria-label="Duraciones largas excluidas del histograma">
-      <header>
-        <div>
-          <span><Activity size={14} /> Duraciones largas</span>
-          <strong>{formatMetric(model.longRows.length)} fuera del histograma</strong>
-        </div>
-        <em>&gt; {formatDurationLabel(model.visualCapSeconds)}</em>
-      </header>
-      {ordered.length ? (
-        <div className="mon-duration-outlier-list">
-          {ordered.map((row) => {
-            const responseId = row.response_id || `row-${row.row_index}`;
-            return (
-              <article key={`${row.row_index}-${responseId}`}>
-                <div>
-                  <strong>{formatDurationLabel(row.duration_seconds)}</strong>
-                  <span>{territorialResolvedResponsibleLabel(row, true)}</span>
-                  <em>{territorialDurationDateLabel(row)} · revisar envío</em>
-                </div>
-                <small title={responseId}>{shortenMiddle(responseId, 16)}</small>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <p>Sin duraciones largas fuera del histograma principal.</p>
-      )}
     </section>
   );
 }
@@ -16683,10 +18055,19 @@ function TerritorialReviewCasesView({
   const [auditReconciliationBatchApplying, setAuditReconciliationBatchApplying] = useState(false);
   const [auditReconciliationBatchMessage, setAuditReconciliationBatchMessage] = useState("");
   const cases = useMemo(() => buildTerritorialReviewCases(reports, config), [config, reports]);
+  const masterRows = useMemo(() => buildTerritorialMasterRecordRows(reports.response_audit ?? []), [reports.response_audit]);
+  const masterFilters = useMemo<TerritorialMasterRecordFilters>(() => ({
+    search: filters.search,
+    district: filters.district,
+    responsible: filters.responsible,
+    ump: filters.ump,
+    state: filters.state,
+  }), [filters.district, filters.responsible, filters.search, filters.state, filters.ump]);
+  const filteredMasterRows = useMemo(() => filterTerritorialMasterRecordRows(masterRows, masterFilters), [masterFilters, masterRows]);
   const filteredCases = useMemo(() => filterTerritorialReviewCases(cases, filters), [cases, filters]);
-  const options = useMemo(() => territorialReviewFilterOptions(cases), [cases]);
-  const summary = useMemo(() => summarizeTerritorialReviewCases(cases), [cases]);
-  const visibleSummary = useMemo(() => summarizeTerritorialReviewCases(filteredCases), [filteredCases]);
+  const options = useMemo(() => territorialMasterRecordOptions(masterRows), [masterRows]);
+  const summary = useMemo(() => summarizeTerritorialMasterRecordRows(masterRows), [masterRows]);
+  const visibleSummary = useMemo(() => summarizeTerritorialMasterRecordRows(filteredMasterRows), [filteredMasterRows]);
   const auditBlockOptions = useMemo(() => territorialReviewAuditBlockOptions(reports), [reports]);
   const selectedAuditOption = useMemo(() => {
     if (!auditBlockOptions.length) return null;
@@ -16704,6 +18085,8 @@ function TerritorialReviewCasesView({
   const canClear = !isEmptyTerritorialReviewFilters(filters);
   const phaseLabel = territorialPhaseLabel(normalizeTerritorialPhase(reports.active_route_phase));
   const reconciliationContextKey = `${reports.active_route_phase || ""}::${reports.source_coherence?.asset_uid || ""}::${reports.generated_at || ""}`;
+  const routeSheet = reports.route_sheet ?? null;
+  const routeSheetRecommendations = routeSheet?.recommendations?.batch ?? [];
 
   useEffect(() => {
     if (!selectedAuditOption) {
@@ -16738,12 +18121,12 @@ function TerritorialReviewCasesView({
     setFilters((current) => ({ ...current, ...patch }));
   };
 
-  const copyUuid = (item: TerritorialInternalReviewCase) => {
-    const responseId = stringOrEmpty(item.response_id).trim();
+  const copyUuid = (id: string, responseIdValue: string) => {
+    const responseId = stringOrEmpty(responseIdValue).trim();
     if (!responseId || !navigator.clipboard) return;
     void navigator.clipboard.writeText(responseId).then(() => {
-      setCopiedCaseId(item.id);
-      window.setTimeout(() => setCopiedCaseId((current) => (current === item.id ? "" : current)), 1200);
+      setCopiedCaseId(id);
+      window.setTimeout(() => setCopiedCaseId((current) => (current === id ? "" : current)), 1200);
     }).catch(() => undefined);
   };
 
@@ -16754,6 +18137,21 @@ function TerritorialReviewCasesView({
       { ...change, status: "pending", error: "" },
     ]);
   }, []);
+
+  const stageRouteSheetRecommendations = useCallback(() => {
+    if (!routeSheetRecommendations.length) return;
+    let staged = 0;
+    for (const item of routeSheetRecommendations) {
+      if (item.kind === "code") {
+        stageAuditReconciliationChange(territorialBuildPendingCodeReconciliationChange(item.reconciliation));
+        staged += 1;
+      } else if (item.kind === "ump") {
+        stageAuditReconciliationChange(territorialBuildPendingUmpReconciliationChange(item.reconciliation));
+        staged += 1;
+      }
+    }
+    if (staged) setAuditReconciliationBatchMessage(`${formatMetric(staged)} sugerencias de hoja de ruta en cola.`);
+  }, [routeSheetRecommendations, stageAuditReconciliationChange]);
 
   const discardAuditReconciliationChanges = useCallback(() => {
     if (auditReconciliationBatchApplying) return;
@@ -16841,8 +18239,8 @@ function TerritorialReviewCasesView({
       <section className="mon-territorial-review-hero" aria-label="Resumen de registros consultables">
         <div>
           <span>Después de Validación · {phaseLabel}</span>
-          <strong>{formatMetric(summary.total)} casos consultables</strong>
-          <p>Todas las respuestas del corte quedan disponibles junto a alertas agregadas de UMP; las filas limpias se marcan sin observación y las que requieren revisión conservan responsable, distrito, fecha/hora, UUID y acceso a validación.</p>
+          <strong>{formatMetric(summary.total)} registros del corte</strong>
+          <p>Una fila por respuesta, ordenada desde el registro más reciente, con identidad operativa, clasificación final de tiempo/GPS y acceso directo a las validaciones. Las alertas agregadas de UMP siguen disponibles desde la auditoría.</p>
         </div>
         <div className="mon-territorial-review-metrics">
           <TerritorialReviewMetric icon={FileCheck2} label="Sin observación" value={summary.clean} tone="ready" />
@@ -16852,22 +18250,22 @@ function TerritorialReviewCasesView({
         </div>
       </section>
 
+      <TerritorialRouteSheetStrip
+        routeSheet={routeSheet}
+        saving={saving}
+        stagedCount={pendingAuditReconciliationChanges.length}
+        onStageRecommendations={stageRouteSheetRecommendations}
+      />
+
       <div className="mon-territorial-review-filterbar" aria-label="Filtros de registros por validar">
         <label className="mon-query-search">
           <Search size={14} />
           <input
             value={filters.search}
             onChange={(event) => patchFilters({ search: event.target.value })}
-            placeholder="Buscar UUID, UMP, distrito o responsable..."
+            placeholder="Buscar UUID, UMP, distrito, manzana o encuestador..."
           />
         </label>
-        <TerritorialReviewSelect
-          label="Tipo"
-          value={filters.type}
-          options={["all", "record", "gps", "duration", "ump"]}
-          formatOption={territorialReviewTypeFilterLabel}
-          onChange={(value) => patchFilters({ type: value as TerritorialReviewTypeFilter })}
-        />
         <TerritorialReviewSelect label="Distrito" value={filters.district} options={options.districts} onChange={(district) => patchFilters({ district })} />
         <TerritorialReviewSelect label="Responsable" value={filters.responsible} options={options.responsibles} onChange={(responsible) => patchFilters({ responsible })} />
         <TerritorialReviewSelect label="UMP" value={filters.ump} options={options.umps} onChange={(ump) => patchFilters({ ump })} />
@@ -16912,7 +18310,7 @@ function TerritorialReviewCasesView({
               <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
             </div>
             <div className="mon-territorial-review-table-tools">
-              <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} observables · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración · {formatMetric(visibleSummary.ump)} UMP</em>
+              <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} por revisar · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración</em>
               {selectedAuditOption ? (
                 <button
                   type="button"
@@ -16928,43 +18326,69 @@ function TerritorialReviewCasesView({
               ) : null}
             </div>
           </header>
-          {filteredCases.length ? (
+          {filteredMasterRows.length ? (
             <div className="mon-territorial-review-table-scroll">
               <table className="mon-territorial-review-table">
                 <thead>
                   <tr>
-                    <th>Tipo</th>
-                    <th>Motivo</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>UMP</th>
+                    <th>Manzana</th>
+                    <th>Distrito</th>
+                    <th>Encuestador</th>
                     <th>Sexo</th>
                     <th>Edad</th>
-                    <th>Distrito</th>
-                    <th>UMP / manzana</th>
-                    <th>Responsable</th>
-                    <th>Fecha y hora</th>
-                    <th>Dato observado</th>
+                    <th>Duración</th>
+                    <th>Clasificación tiempo</th>
+                    <th>Clasificación GPS</th>
                     <th>UUID</th>
-                    <th>Acción</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCases.map((item) => {
-                    const responseId = stringOrEmpty(item.response_id).trim();
-                    const target = territorialReviewValidationTarget(item);
-                    const auditOption = territorialReviewAuditOptionFromCase(auditBlockOptions, item);
+                  {filteredMasterRows.map((item) => {
+                    const row = item.source;
+                    const responseId = item.responseId.trim();
+                    const durationBand = territorialDurationBand(row, config);
+                    const gpsBand = territorialDistanceBand(row);
+                    const codeLabel = territorialPulsoCodeLabel(row);
+                    const hour = normalizeTerritorialHourLabel(item.hourValue);
+                    const hourLabel = hour && !isTerritorialMidnightLabel(hour)
+                      ? hour
+                      : territorialSubmissionStampParts({
+                        submission_date: row.submission_date,
+                        submission_hour: row.submission_hour,
+                        submission_datetime: row.submission_datetime,
+                      }).hour || "sin hora";
+                    const durationLabel = durationBand.hasDuration ? formatDurationLabel(row.duration_seconds) : "No registrada";
+                    const durationClass = durationBand.hasDuration ? durationBand.className : "is-duration-none";
+                    const durationStatusLabel = durationBand.hasDuration ? durationBand.label : "No registrada";
+                    const districtHint = item.ubigeo || row.advance_block_ubigeo || "sin ubigeo";
+                    const manzanaHint = row.advance_block_zona ? `Zona ${row.advance_block_zona}` : row.advance_block_type || "referencia territorial";
+                    const submittedBy = stringOrEmpty(row.submitted_by).trim();
+                    const submittedHint = submittedBy
+                      && normalizeMatch(submittedBy) !== normalizeMatch(item.responsible)
+                      && !normalizeMatch(submittedBy).includes("sin encuestador")
+                      ? submittedBy
+                      : "";
+                    const interviewerHint = codeLabel !== "S/D" ? `Código ${codeLabel}` : submittedHint || "sin código visible";
                     return (
-                      <tr key={item.id} className={`is-${territorialReviewTypeKey(item)} is-${territorialReviewStateKey(item)}`}>
-                        <td><span className={`mon-territorial-review-type is-${territorialReviewTypeKey(item)}`}>{territorialReviewTypeLabel(item)}</span></td>
-                        <td><strong>{territorialReviewReasonLabel(item)}</strong><small>{territorialReviewStatusLabel(item)}</small></td>
-                        <td><span className="mon-territorial-review-demo is-sex">{territorialReviewSexLabel(item)}</span></td>
-                        <td><span className="mon-territorial-review-demo is-age">{territorialReviewAgeLabel(item)}</span></td>
-                        <td><strong>{item.district || "Sin distrito"}</strong><small>{item.ubigeo || "sin cruce"}</small></td>
-                        <td><strong title={territorialReviewUmpTitle(item)}>{territorialReviewUmpLabel(item)}</strong><small>{territorialReviewBlockMeta(item)}</small></td>
-                        <td><strong>{territorialReviewResponsibleLabel(item)}</strong><small>{territorialReviewResponsibleHint(item)}</small></td>
-                        <td><strong>{territorialReviewDateLabel(item)}</strong><small>{territorialReviewHourLabel(item)}</small></td>
-                        <td><span className={`mon-territorial-review-observed is-${territorialReviewTypeKey(item)}`}>{territorialReviewObservedValue(item)}</span></td>
+                      <tr key={item.id} className={`is-master-record is-${item.state}`}>
+                        <td><strong>{item.dateValue ? formatInternalQueryDateAxisLabel(item.dateValue) : "S/D"}</strong><small>{item.rowIndex ? `fila ${formatMetric(item.rowIndex)}` : "respuesta"}</small></td>
+                        <td><strong>{hourLabel}</strong><small>{row.submission_time_source || "hora reportada"}</small></td>
+                        <td><strong>{/^ump\b/i.test(item.ump) || item.ump === "S/D" ? item.ump : `UMP ${item.ump}`}</strong><small>{row.declared_ump_raw ? `declarada ${row.declared_ump_raw}` : "UMP del corte"}</small></td>
+                        <td><strong>{item.manzana}</strong><small>{manzanaHint}</small></td>
+                        <td><strong>{item.district}</strong><small>{districtHint}</small></td>
+                        <td><strong>{item.responsible}</strong><small>{interviewerHint}</small></td>
+                        <td><span className="mon-territorial-review-demo is-sex">{territorialReviewSexLabel(row)}</span></td>
+                        <td><span className="mon-territorial-review-demo is-age">{territorialReviewAgeLabel(row)}</span></td>
+                        <td><span className={`mon-territorial-review-observed is-duration ${durationClass}`}>{durationLabel}</span></td>
+                        <td><span className={`mon-territorial-review-time ${durationClass}`}>{durationStatusLabel}</span><small>{durationBand.detail}</small></td>
+                        <td><span className={`mon-territorial-review-gps is-${gpsBand.key}`}>{gpsBand.label}</span><small>{gpsBand.detail}</small></td>
                         <td>
                           {responseId ? (
-                            <button type="button" className="mon-territorial-review-copy" title={responseId} onClick={() => copyUuid(item)}>
+                            <button type="button" className="mon-territorial-review-copy" title={responseId} onClick={() => copyUuid(item.id, responseId)}>
                               <span>{copiedCaseId === item.id ? "Copiado" : shortenMiddle(responseId, 18)}</span>
                               <Copy size={12} />
                             </button>
@@ -16976,22 +18400,22 @@ function TerritorialReviewCasesView({
                           <div className="mon-territorial-review-actions">
                             <button
                               type="button"
-                              className="mon-territorial-review-action"
-                              onClick={() => onOpenValidationCase?.(target.tab, responseId || undefined)}
+                              className="mon-territorial-review-action is-duration"
+                              disabled={!responseId}
+                              onClick={() => onOpenValidationCase?.("duracion", responseId || undefined)}
                             >
-                              <target.icon size={13} />
-                              <span>{target.label}</span>
+                              <Clock size={13} />
+                              <span>Tiempo</span>
                             </button>
-                            {auditOption ? (
-                              <button
-                                type="button"
-                                className="mon-territorial-review-action is-audit"
-                                onClick={() => selectAuditForCase(item)}
-                              >
-                                <ListChecks size={13} />
-                                <span>Auditar UMP</span>
-                              </button>
-                            ) : null}
+                            <button
+                              type="button"
+                              className="mon-territorial-review-action is-gps"
+                              disabled={!responseId}
+                              onClick={() => onOpenValidationCase?.("geolocalizacion", responseId || undefined)}
+                            >
+                              <MapPin size={13} />
+                              <span>GPS</span>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -17051,6 +18475,52 @@ function TerritorialReviewMetric({
       <strong>{formatMetric(value)}</strong>
       <small>{hint ?? "casos"}</small>
     </span>
+  );
+}
+
+function TerritorialRouteSheetStrip({
+  routeSheet,
+  saving,
+  stagedCount,
+  onStageRecommendations,
+}: {
+  routeSheet: MonitoreoTerritorialRouteSheet | null;
+  saving: boolean;
+  stagedCount: number;
+  onStageRecommendations: () => void;
+}) {
+  const connected = Boolean(routeSheet?.connected && routeSheet.headers_ok);
+  const metrics = routeSheet?.metrics ?? null;
+  const batchCount = routeSheet?.recommendations?.batch?.length ?? 0;
+  const warnings = routeSheet?.warnings ?? [];
+  const sourceLabel = routeSheet?.source_label || routeSheet?.source_id || "Hoja de ruta";
+  return (
+    <section className={`mon-territorial-route-sheet-strip${connected ? " is-ready" : " is-warning"}`} aria-label="Asignación operativa de hoja de ruta">
+      <header>
+        <span><Layers3 size={14} /> Hoja de ruta operativa</span>
+        <strong>{connected ? sourceLabel : "Sin hoja operativa conectada"}</strong>
+        <em>{connected ? `${formatMetric(metrics?.assignments ?? 0)} asignaciones · ${formatMetric(metrics?.assigned_encuestadores ?? 0)} encuestadores` : "Diagnóstico opcional"}</em>
+      </header>
+      <div className="mon-territorial-route-sheet-metrics">
+        <TerritorialReviewMetric icon={Route} label="Sin primera encuesta" value={metrics?.assigned_without_response ?? 0} tone={metrics?.assigned_without_response ? "warning" : "ready"} />
+        <TerritorialReviewMetric icon={MapPin} label="UMP sospechosa" value={metrics?.wrong_ump_candidates ?? 0} tone={metrics?.wrong_ump_candidates ? "warning" : "ready"} />
+        <TerritorialReviewMetric icon={ContactRound} label="Código Pulso" value={metrics?.wrong_code_candidates ?? 0} tone={metrics?.wrong_code_candidates ? "warning" : "ready"} />
+        <TerritorialReviewMetric icon={AlertTriangle} label="Sin cruce" value={metrics?.unmatched_rows ?? 0} tone={metrics?.unmatched_rows ? "warning" : "ready"} />
+      </div>
+      <div className="mon-territorial-route-sheet-actions">
+        {warnings.slice(0, 2).map((warning) => (
+          <span key={warning.code || warning.message} className="is-warning">
+            <AlertTriangle size={13} />
+            {warning.message || warning.code || "Revisar hoja"}
+          </span>
+        ))}
+        {stagedCount > 0 ? <span className="is-ready"><CheckCircle2 size={13} /> {formatMetric(stagedCount)} en cola</span> : null}
+        <button type="button" onClick={onStageRecommendations} disabled={saving || !batchCount}>
+          <ListChecks size={13} />
+          <span>{batchCount ? `Poner ${formatMetric(batchCount)} sugerencias en cola` : "Sin sugerencias"}</span>
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -17483,12 +18953,12 @@ function buildTerritorialReviewCases(
     ...(reports.internal_queries?.far_gps ?? []).map((row, index) => territorialReviewCaseFromAuditLike(row, index, "gps", territorialReviewGpsReason(row), "map")),
     ...(reports.internal_queries?.duration_review ?? []).map((row, index) => territorialReviewCaseFromAuditLike(row, index, "duration", territorialReviewDurationReason(row, config), "duration")),
     ...(reports.internal_queries?.incomplete_blocks ?? []).map((block, index) => territorialReviewBlockCase(block, index, "ump_iniciada_incompleta")),
-    ...(reports.internal_queries?.exceeded_blocks ?? []).map((block, index) => territorialReviewBlockCase(block, index, "ump_excedida")),
   ];
   return rawCases
     .map((item) => territorialReviewHydrateCaseDemographics(item, auditByResponseId, auditByRowIndex))
     .map((item, index) => territorialReviewNormalizeCase(item, index, reports.active_route_phase))
     .filter((item) => item.id)
+    .filter((item) => territorialReviewTypeKey(item) !== "duration" || territorialReviewDurationIsActionable(item, config))
     .sort(territorialReviewCompareCases);
 }
 
@@ -17546,6 +19016,8 @@ function territorialReviewCaseFromAuditLike(
     submission_datetime: stringOrEmpty(row.submission_datetime),
     duration_seconds: numberOrNull(row.duration_seconds),
     duration_status: stringOrEmpty(row.duration_status),
+    duration_operational_status: stringOrEmpty(row.duration_operational_status),
+    duration_operational_label: stringOrEmpty(row.duration_operational_label),
     distance_m: numberOrNull(row.distance_m),
     geo_estado: stringOrEmpty(row.geo_estado),
     observation_status: stringOrEmpty(row.observation_status),
@@ -17559,7 +19031,7 @@ function territorialReviewCaseFromAuditLike(
 function territorialReviewBlockCase(
   block: TerritorialBlockProgress,
   index: number,
-  reason: "ump_iniciada_incompleta" | "ump_excedida",
+  reason: "ump_iniciada_incompleta",
 ): TerritorialInternalReviewCase {
   const blockId = stringOrEmpty(block.id_manzana || `${block.ubigeo}-${block.zona}-${block.manzana}`);
   const meta = numberOrNull(block.entrevistas) ?? numberOrNull(block.meta) ?? 8;
@@ -17619,6 +19091,9 @@ function territorialReviewNormalizeCase(
     submission_hour: stringOrEmpty(item.submission_hour).trim(),
     submission_datetime: stringOrEmpty(item.submission_datetime).trim(),
     duration_seconds: numberOrNull(item.duration_seconds),
+    duration_status: stringOrEmpty(item.duration_status).trim(),
+    duration_operational_status: stringOrEmpty(item.duration_operational_status).trim(),
+    duration_operational_label: stringOrEmpty(item.duration_operational_label).trim(),
     distance_m: numberOrNull(item.distance_m),
     validas: numberOrNull(item.validas),
     meta: numberOrNull(item.meta),
@@ -17639,13 +19114,18 @@ function territorialReviewDurationReason(
   item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>,
   config: MonitoreoConfig,
 ) {
-  const status = territorialReviewCodeKey((item as TerritorialInternalReviewCase).duration_status);
-  const duration = numberOrNull((item as TerritorialInternalReviewCase).duration_seconds);
-  if (status === "muy_corta" || (duration != null && duration < config.territorial.min_duration_seconds)) return "duracion_menor_1_min";
-  if (status === "corta" || (duration != null && duration < territorialShortDurationSeconds(config))) return "duracion_menor_5_min";
-  if (status === "extrema") return "duracion_larga";
-  if (status === "larga") return "duracion_larga";
+  const status = territorialDurationOperationalStatus(item, config);
+  if (status === "muy_corto") return "duracion_menor_1_min";
+  if (status === "corto") return "duracion_menor_5_min";
   return "duracion_por_revisar";
+}
+
+function territorialReviewDurationIsActionable(
+  item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>,
+  config: MonitoreoConfig,
+) {
+  return territorialDurationOperationalStatus(item, config) === "corto"
+    || territorialDurationOperationalStatus(item, config) === "muy_corto";
 }
 
 function territorialReviewCodeKey(value: unknown) {
@@ -17687,10 +19167,11 @@ function territorialReviewReasonLabel(item: TerritorialInternalReviewCase) {
   if (reason === "gps_por_revisar") return "GPS por revisar";
   if (reason === "duracion_menor_1_min") return "Menor a 1 min";
   if (reason === "duracion_menor_5_min") return "Menor a 5 min";
-  if (reason === "duracion_larga") return "Duración larga atípica";
   if (reason === "duracion_por_revisar") return "Duración por revisar";
   if (reason === "ump_iniciada_incompleta") return "UMP iniciada incompleta";
-  if (reason === "ump_excedida") return "UMP excedida";
+  if (reason === "hoja_ruta_sin_respuesta") return "Asignada sin primera encuesta";
+  if (reason === "hoja_ruta_posible_ump_errada") return "Posible UMP mal llenada";
+  if (reason === "hoja_ruta_posible_codigo_errado") return "Posible Código Pulso errado";
   return observationReasonLabel(item.reason || item.issues || "Por revisar");
 }
 
@@ -22480,7 +23961,7 @@ function TerritorialDistrictTable({ rows, title = "Avance por distrito" }: { row
     <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
       <div className="mon-territorial-table-title">{title}</div>
       <table className="mon-advance-daily-table" aria-label="Avance por distrito">
-        <thead><tr><th>Distrito</th><th>Válidas / objetivo</th><th>Avance</th><th>Brecha</th><th>UMP cumplidas</th><th>UMP incompletas</th><th>Sin avance</th><th>Excedidas</th></tr></thead>
+        <thead><tr><th>Distrito</th><th>Válidas / objetivo</th><th>Avance</th><th>Brecha</th><th>UMP cumplidas</th><th>UMP incompletas</th><th>Sin avance</th></tr></thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.ubigeo}>
@@ -22496,7 +23977,6 @@ function TerritorialDistrictTable({ rows, title = "Avance por distrito" }: { row
               <td>{formatMetric(territorialDistrictFulfilledUmpCount(row))}</td>
               <td>{formatMetric(row.ump_started_incomplete)}</td>
               <td>{formatMetric(row.ump_no_progress)}</td>
-              <td>{formatMetric(row.ump_overfilled)}</td>
             </tr>
           ))}
         </tbody>
@@ -36291,8 +37771,10 @@ function SourcePanel({
   const isSm = draft.kind === "surveymonkey";
   const isSheets = draft.kind === "google_sheets";
   const isAcreditacionRoute = route.family === "acreditacion";
+  const isTerritorialRoute = route.family === "territorial";
   const unitLexicon = monitoringUnitLexicon(config.monitoreo_profile);
   const activeAcreditacionPreset = isAcreditacionRoute ? acreditacionPresetForDraft(draft) : null;
+  const activeTerritorialRouteSheetPreset = isTerritorialRoute && isSheets && draft.role === "hoja_ruta";
   const configuredSources = state?.sources ?? [];
   const activeCount = configuredSources.filter((src) => src.enabled).length;
   const defaultSmQuery = isAcreditacionRoute ? acreditacionSurveyCatalogDefaultQuery(config.monitoreo_profile) : "";
@@ -36339,6 +37821,17 @@ function SourcePanel({
       integration_mode: "connected_read",
     }));
   }, [draft.kind, isAcreditacionRoute, setDraft]);
+
+  useEffect(() => {
+    if (!isTerritorialRoute || draft.kind !== "google_sheets") return;
+    setDraft((prev) => {
+      if (prev.kind !== "google_sheets") return prev;
+      if (prev.role === "hoja_ruta" && Number(prev.sheet_binding.header_row ?? 1) === 6 && (prev.sheet_binding.sheet_name || "") === "Hojas_de_ruta") {
+        return prev;
+      }
+      return territorialRouteSheetDraftDefaults(prev, config.territorial.active_route_phase || "field");
+    });
+  }, [config.territorial.active_route_phase, draft.kind, isTerritorialRoute, setDraft]);
 
   useEffect(() => {
     let cancelled = false;
@@ -36606,8 +38099,20 @@ function SourcePanel({
       kind,
       base_url: kind === "kobo" ? (activeKoboProfile?.base_url || koboCredential?.active_profile_base_url || "https://kf.kobotoolbox.org") : kind === "surveymonkey" ? "https://api.surveymonkey.com/v3" : "",
       connection_profile_id: kind === "kobo" ? (activeKoboProfile?.id || koboCredential?.active_profile_id || "") : "",
-      role: kind === "google_sheets" ? "barrido" : "respuestas",
+      label: kind === "google_sheets" && isTerritorialRoute ? "Hoja de ruta operativa" : prev.label,
+      role: kind === "google_sheets" ? (isTerritorialRoute ? "hoja_ruta" : "barrido") : "respuestas",
       integration_mode: kind === "google_sheets" ? "connected_read" : "connected_read",
+      dimensions: kind === "google_sheets" && isTerritorialRoute
+        ? { ...prev.dimensions, territorial_phase: config.territorial.active_route_phase || "field" }
+        : prev.dimensions,
+      sheet_binding: kind === "google_sheets" && isTerritorialRoute
+        ? {
+          ...prev.sheet_binding,
+          sheet_name: "Hojas_de_ruta",
+          header_row: 6,
+          range: "",
+        }
+        : prev.sheet_binding,
     }));
   }
 
@@ -36730,9 +38235,12 @@ function SourcePanel({
       const inspection = await apiMonitoreoSheetsInspect(draft.sheet_binding);
       setSheetsInspection(inspection);
       if (!draft.sheet_binding.sheet_name && inspection.sheets[0]?.title) {
+        const routeSheetTitle = inspection.sheets.find((sheet) => normalizeMatch(sheet.title) === "hojas_de_ruta")?.title;
         updateSheetBinding({
           sheet_name: activeAcreditacionPreset
             ? preferredAcreditacionSheetTitle(inspection, activeAcreditacionPreset)
+            : activeTerritorialRouteSheetPreset && routeSheetTitle
+              ? routeSheetTitle
             : inspection.sheets[0].title,
         });
       }
@@ -36755,16 +38263,18 @@ function SourcePanel({
       await onAddSheet({
         id: editingSource?.id,
         kind: "google_sheets",
-        label: draft.label || draft.sheet_binding.sheet_name || "Google Sheets",
-        role: draft.role ?? "barrido",
+        label: activeTerritorialRouteSheetPreset ? (draft.label || "Hoja de ruta operativa") : (draft.label || draft.sheet_binding.sheet_name || "Google Sheets"),
+        role: activeTerritorialRouteSheetPreset ? "hoja_ruta" : (draft.role ?? "barrido"),
         integration_mode: draft.integration_mode ?? "connected_read",
         sheet_binding: {
           spreadsheet_id: draft.sheet_binding.spreadsheet_id ?? "",
-          sheet_name: draft.sheet_binding.sheet_name ?? "",
-          header_row: Number(draft.sheet_binding.header_row ?? 1) || 1,
+          sheet_name: activeTerritorialRouteSheetPreset ? (draft.sheet_binding.sheet_name || "Hojas_de_ruta") : (draft.sheet_binding.sheet_name ?? ""),
+          header_row: activeTerritorialRouteSheetPreset ? 6 : (Number(draft.sheet_binding.header_row ?? 1) || 1),
           range: draft.sheet_binding.range ?? "",
         },
-        dimensions: cleanSourceDimensions(draft.dimensions),
+        dimensions: cleanSourceDimensions(activeTerritorialRouteSheetPreset
+          ? { ...draft.dimensions, territorial_phase: config.territorial.active_route_phase || "field" }
+          : draft.dimensions),
       });
       setSheetsMessage(editingSource ? "Base actualizada" : "Base registrada");
     } catch (e) {
@@ -37453,7 +38963,7 @@ function SourcePanel({
             <div className="mon-sm-picker">
               <div className="mon-sm-picker-title">
                 <Layers3 size={15} />
-                <span>{activeAcreditacionPreset ? `${activeAcreditacionPreset.label} en Sheets` : "Google Sheets institucional"}</span>
+                <span>{activeAcreditacionPreset ? `${activeAcreditacionPreset.label} en Sheets` : activeTerritorialRouteSheetPreset ? "Hoja de ruta operativa" : "Google Sheets institucional"}</span>
               </div>
               <div className="mon-sm-picker-head mon-sm-picker-head--compact">
                 <div className={`mon-sheets-global-auth${sheetsStatus?.has_token ? " is-ready" : ""}`}>
@@ -37475,7 +38985,7 @@ function SourcePanel({
               </div>
               <div className="mon-sm-picker-head">
                 <label>
-                  <span>{activeAcreditacionPreset ? "Spreadsheet de trabajo" : "Spreadsheet ID o URL"}</span>
+                  <span>{activeAcreditacionPreset ? "Spreadsheet de trabajo" : activeTerritorialRouteSheetPreset ? "Spreadsheet de Hojas de Ruta" : "Spreadsheet ID o URL"}</span>
                   <input
                     value={draft.sheet_binding.spreadsheet_id ?? ""}
                     onChange={(e) => updateSheetBinding({ spreadsheet_id: e.target.value })}
@@ -37483,11 +38993,11 @@ function SourcePanel({
                   />
                 </label>
                 <label>
-                  <span>{activeAcreditacionPreset?.sheetLabel ?? "Pestaña"}</span>
+                  <span>{activeAcreditacionPreset?.sheetLabel ?? (activeTerritorialRouteSheetPreset ? "Pestaña operativa" : "Pestaña")}</span>
                   <input
                     value={draft.sheet_binding.sheet_name ?? ""}
                     onChange={(e) => updateSheetBinding({ sheet_name: e.target.value })}
-                    placeholder={activeAcreditacionPreset?.sheetPlaceholder ?? "Barrido"}
+                    placeholder={activeAcreditacionPreset?.sheetPlaceholder ?? (activeTerritorialRouteSheetPreset ? "Hojas_de_ruta" : "Barrido")}
                   />
                 </label>
                 <label>
@@ -37508,16 +39018,17 @@ function SourcePanel({
                   />
                 </label>
               </div>
-              {activeAcreditacionPreset ? (
+              {activeAcreditacionPreset || activeTerritorialRouteSheetPreset ? (
                 <div className="mon-acr-binding-row">
                   <label>
                     <span>Nombre operativo</span>
-                    <input value={draft.label} onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))} placeholder={activeAcreditacionPreset.sourceLabel} />
+                    <input value={draft.label} onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))} placeholder={activeAcreditacionPreset?.sourceLabel ?? "Hoja de ruta operativa"} />
                   </label>
                   <div className="mon-acr-binding-lock">
-                    <span><Layers3 size={13} /> {activeAcreditacionPreset.service}</span>
-                    <span>Rol: {activeAcreditacionPreset.role}</span>
+                    <span><Layers3 size={13} /> {activeAcreditacionPreset?.service ?? "Asignaciones de campo"}</span>
+                    <span>Rol: {activeAcreditacionPreset?.role ?? "hoja_ruta"}</span>
                     <span>Lectura conectada</span>
+                    {activeTerritorialRouteSheetPreset ? <span>Encabezado fila 6</span> : null}
                   </div>
                 </div>
               ) : (

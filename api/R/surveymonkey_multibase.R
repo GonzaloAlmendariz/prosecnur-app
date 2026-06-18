@@ -363,6 +363,20 @@
     return(list(path = meta$path, inst = reporte_instrumento(path = meta$path), meta = meta))
   }
   s <- session_get(sid)
+  current_inst <- s$instrumento %||% NULL
+  if (is.list(current_inst) &&
+      is.data.frame(current_inst$survey) &&
+      "name" %in% names(current_inst$survey)) {
+    return(list(
+      path = "",
+      inst = current_inst,
+      meta = list(
+        file_id = "",
+        kind = "xlsform_session",
+        original_name = "XLSForm cargado en Carga/Editor"
+      )
+    ))
+  }
   files <- s$files %||% list()
   xls <- Filter(function(f) identical(f$kind, "xlsform"), files)
   if (!length(xls)) {
@@ -2701,6 +2715,227 @@ sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
   )
 }
 
+.sm_mb_apply_canonical_logic_to_model <- function(canonical, model) {
+  if (is.null(canonical)) {
+    return(list(model = model, applied = FALSE, reason = "canonical_unavailable"))
+  }
+  if (!exists(".estudio_apply_template_logic_survey", mode = "function")) {
+    return(list(model = model, applied = FALSE, reason = "helper_unavailable"))
+  }
+  inst <- canonical$inst %||% list()
+  template_survey <- inst$survey %||% NULL
+  if (!is.data.frame(template_survey) || !"name" %in% names(template_survey)) {
+    return(list(model = model, applied = FALSE, reason = "canonical_without_survey"))
+  }
+  applied <- tryCatch(
+    .estudio_apply_template_logic_survey(
+      template_survey = template_survey,
+      target_survey = model$survey,
+      template_choices = inst$choices,
+      target_choices = model$choices,
+      clear_target_logic = FALSE
+    ),
+    error = function(e) e
+  )
+  if (inherits(applied, "error")) {
+    return(list(model = model, applied = FALSE, reason = conditionMessage(applied)))
+  }
+  model$survey <- applied$survey
+  meta <- canonical$meta %||% list()
+  records_payload <- if (exists(".estudio_records_payload", mode = "function")) {
+    .estudio_records_payload(applied$missing_references)
+  } else if (is.data.frame(applied$missing_references) && nrow(applied$missing_references)) {
+    unname(lapply(seq_len(nrow(applied$missing_references)), function(i) as.list(applied$missing_references[i, , drop = FALSE])))
+  } else {
+    list()
+  }
+  list(
+    model = model,
+    applied = length(applied$applied_variables %||% character(0)) > 0L ||
+      as.integer(applied$changed_cells %||% 0L) > 0L,
+    reason = "",
+    template_base = .sm_mb_scalar(meta$original_name %||% meta$file_id, "XLSForm base"),
+    template_file_id = .sm_mb_scalar(meta$file_id, ""),
+    template_kind = .sm_mb_scalar(meta$kind, "xlsform"),
+    changed_cells = as.integer(applied$changed_cells %||% 0L),
+    applied_variables = as.list(applied$applied_variables %||% character(0)),
+    skipped_missing_variables = as.list(applied$skipped_missing_variables %||% character(0)),
+    missing_references = records_payload,
+    n_applied_variables = as.integer(length(applied$applied_variables %||% character(0))),
+    n_skipped_missing_variables = as.integer(length(applied$skipped_missing_variables %||% character(0))),
+    n_missing_references = as.integer(nrow(applied$missing_references %||% data.frame())),
+    logic_columns = as.list(applied$logic_columns %||% character(0)),
+    logic_value_count = as.integer(.sm_mb_logic_value_count(template_survey))
+  )
+}
+
+.sm_mb_canonical_logic_sync_payload <- function(canonical, rows) {
+  rows <- Filter(function(x) is.list(x) && length(x), rows %||% list())
+  if (is.null(canonical) || !length(rows)) return(NULL)
+  meta <- canonical$meta %||% list()
+  updated <- vapply(rows, function(x) {
+    if (isTRUE(x$applied) || as.integer(x$changed_cells %||% 0L) > 0L) {
+      .sm_mb_scalar(x$base, "")
+    } else {
+      ""
+    }
+  }, character(1))
+  updated <- updated[nzchar(updated)]
+  list(
+    ok = TRUE,
+    template_base = .sm_mb_scalar(meta$original_name %||% meta$file_id, "XLSForm base"),
+    template_file_id = .sm_mb_scalar(meta$file_id, ""),
+    template_kind = .sm_mb_scalar(meta$kind, "xlsform"),
+    targets = as.list(vapply(rows, function(x) .sm_mb_scalar(x$base, ""), character(1))),
+    updated_bases = as.list(updated),
+    n_targets = as.integer(length(rows)),
+    n_updated_bases = as.integer(length(updated)),
+    results = rows
+  )
+}
+
+sm_multibase_apply_canonical_xlsform_logic <- function(sid,
+                                                       canonical_file_id = "",
+                                                       targets = NULL,
+                                                       clear_target_logic = FALSE) {
+  if (!estudio_is_independent_siblings(sid)) {
+    stop_api(409, "E_NOT_INDEPENDENT_SIBLINGS",
+             "Esta acción solo está disponible para bases hermanas independientes.")
+  }
+  if (!exists(".estudio_apply_template_logic_survey", mode = "function")) {
+    stop_api(500, "E_XLSFORM_LOGIC_HELPER",
+             "No está disponible el motor para aplicar lógica XLSForm.")
+  }
+
+  canonical <- .sm_mb_canonical_inst(sid, .sm_mb_scalar(canonical_file_id, ""))
+  template <- canonical$inst %||% list()
+  template_survey <- template$survey %||% NULL
+  if (!is.data.frame(template_survey) || !"name" %in% names(template_survey)) {
+    stop_api(400, "E_TEMPLATE_XLSFORM_INVALIDO",
+             "El XLSForm base no tiene una hoja survey válida.")
+  }
+
+  bases <- estudio_list_bases(sid)
+  base_names <- names(bases)
+  targets <- as.character(targets %||% base_names)
+  targets <- targets[nzchar(targets) & targets %in% base_names]
+  if (!length(targets)) {
+    stop_api(400, "E_NO_TARGETS", "No hay bases hermanas destino para aplicar la lógica.")
+  }
+
+  now <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  rows <- list()
+  updated <- character()
+  for (target in targets) {
+    target_base <- bases[[target]]
+    target_meta <- get_file(sid, target_base$xlsform_file_id)
+    target_sheets <- .estudio_xlsform_read_sheets(target_meta$path)
+    applied <- .estudio_apply_template_logic_survey(
+      template_survey = template_survey,
+      target_survey = target_sheets$survey,
+      template_choices = template$choices,
+      target_choices = target_sheets$choices,
+      clear_target_logic = isTRUE(clear_target_logic)
+    )
+    rows[[length(rows) + 1L]] <- list(
+      base = target,
+      applied_variables = as.list(applied$applied_variables),
+      skipped_missing_variables = as.list(applied$skipped_missing_variables),
+      missing_references = if (exists(".estudio_records_payload", mode = "function")) {
+        .estudio_records_payload(applied$missing_references)
+      } else {
+        list()
+      },
+      n_applied_variables = as.integer(length(applied$applied_variables)),
+      n_skipped_missing_variables = as.integer(length(applied$skipped_missing_variables)),
+      n_missing_references = as.integer(nrow(applied$missing_references)),
+      changed_cells = as.integer(applied$changed_cells),
+      logic_columns = as.list(applied$logic_columns),
+      remapped_choices = if (exists(".estudio_records_payload", mode = "function")) {
+        .estudio_records_payload(applied$remapped_choices)
+      } else {
+        list()
+      },
+      n_remapped_choices = as.integer(nrow(applied$remapped_choices))
+    )
+    if (applied$changed_cells <= 0L) next
+
+    target_sheets$survey <- applied$survey
+    out_path <- tempfile(sprintf("%s_canonical_logic_", target), fileext = ".xlsx")
+    on.exit(unlink(out_path), add = TRUE)
+    .estudio_xlsform_write_sheets(target_sheets, out_path)
+    raw <- readBin(out_path, what = "raw", n = file.info(out_path)$size)
+    original_name <- sprintf("%s_xlsform_logica_base_%s.xlsx", target, format(Sys.time(), "%Y%m%d_%H%M%S", tz = "UTC"))
+    new_meta <- save_upload(sid, "xlsform", original_name, raw)
+    new_inst <- reporte_instrumento(path = new_meta$path)
+
+    data_meta <- get_file(sid, target_base$data_file_id)
+    data_df <- .read_data_from_path(data_meta$path, data_meta$ext)
+    data_df <- normalize_data_for_xlsform(data_df, new_inst)
+    .carga_assert_data_xlsform_compatible(data_df, new_inst)
+    new_rp_data <- reporte_data(data_df, instrumento = new_inst)
+
+    estudio_preserve_original_base_files(sid, target)
+    estudio_replace_base_files(
+      sid,
+      target,
+      xlsform_file_id = new_meta$file_id,
+      data_file_id = target_base$data_file_id,
+      data_ext = target_base$data_ext,
+      rp_inst = new_inst,
+      rp_data = new_rp_data,
+      n_filas = as.integer(nrow(data_df)),
+      n_columnas = as.integer(ncol(data_df))
+    )
+    updated <- c(updated, target)
+  }
+
+  meta <- canonical$meta %||% list()
+  sync <- list(
+    ok = TRUE,
+    kind = "canonical_xlsform_logic",
+    template_base = .sm_mb_scalar(meta$original_name %||% meta$file_id, "XLSForm base"),
+    template_file_id = .sm_mb_scalar(meta$file_id, ""),
+    template_kind = .sm_mb_scalar(meta$kind, "xlsform"),
+    targets = as.list(targets),
+    updated_bases = as.list(updated),
+    n_targets = as.integer(length(targets)),
+    n_updated_bases = as.integer(length(updated)),
+    clear_target_logic = isTRUE(clear_target_logic),
+    applied_at = now,
+    results = rows
+  )
+
+  s <- session_get(sid)
+  family <- s$estudio$independent_siblings %||% list()
+  family$logic_policy <- "shared_template"
+  family$shared_logic <- TRUE
+  family$status <- "canonical_xlsform_logic_applied"
+  family$template_source <- list(
+    kind = .sm_mb_scalar(meta$kind, "xlsform"),
+    file_id = .sm_mb_scalar(meta$file_id, ""),
+    xlsform_name = .sm_mb_scalar(meta$original_name, "XLSForm base")
+  )
+  family$logic_applied_at <- now
+  family$logic_sync <- sync
+  family$updated_at <- now
+  s$estudio$independent_siblings <- family
+  for (target in targets) {
+    base <- s$estudio$bases[[target]]
+    base$logic_template_base <- sync$template_base
+    base$logic_template_file_id <- sync$template_file_id
+    base$logic_template_applied_at <- now
+    base$logic_template_status <- if (target %in% updated) "canonical_updated" else "canonical_unchanged"
+    base$surveymonkey_xlsform_logic_sync <- sync
+    s$estudio$bases[[target]] <- base
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+
+  sync$estudio <- .estudio_payload(sid)
+  sync
+}
+
 .sm_mb_unique_base_name <- function(sid, label, fallback = "surveymonkey_base") {
   nombre <- .sm_mb_slug(label)
   if (!nzchar(nombre)) nombre <- fallback
@@ -3651,7 +3886,9 @@ sm_multibase_import_independent <- function(sid,
                                             specs,
                                             token,
                                             response_statuses = c("completed"),
-                                            keep_missing_status = TRUE) {
+                                            keep_missing_status = TRUE,
+                                            canonical_file_id = "",
+                                            use_canonical_xlsform_logic = FALSE) {
   specs <- .sm_mb_normalize_survey_specs(specs)
   if (!length(specs)) stop_api(400, "E_SM_NO_SURVEYS", "Selecciona al menos una encuesta.")
 
@@ -3686,6 +3923,29 @@ sm_multibase_import_independent <- function(sid,
       diffs = list()
     )
   )
+  canonical_logic <- NULL
+  if (isTRUE(use_canonical_xlsform_logic) || nzchar(.sm_mb_scalar(canonical_file_id, ""))) {
+    canonical_logic <- tryCatch(
+      .sm_mb_canonical_inst(sid, .sm_mb_scalar(canonical_file_id, "")),
+      error = function(e) e
+    )
+    if (inherits(canonical_logic, "error")) {
+      stop_api(
+        409,
+        "E_NO_CANONICAL_XLSFORM",
+        paste0("No encontré el XLSForm base para aplicar la lógica: ", conditionMessage(canonical_logic))
+      )
+    }
+  }
+  if (!is.null(canonical_logic)) {
+    audit <- tryCatch(
+      sm_multibase_audit(specs, token, canonical_inst = canonical_logic$inst %||% NULL),
+      error = function(e) {
+        audit$error <- conditionMessage(e)
+        audit
+      }
+    )
+  }
   fetched <- .sm_mb_fetch_family(specs, token)
   summaries_by_id <- .sm_mb_summary_lookup(fetched$summaries)
   family_id <- if (exists("estudio_independent_family_id", mode = "function")) {
@@ -3724,6 +3984,11 @@ sm_multibase_import_independent <- function(sid,
     planned_names <- c(planned_names, base_name)
 
     xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    canonical_sync <- NULL
+    if (!is.null(canonical_logic)) {
+      canonical_sync <- .sm_mb_apply_canonical_logic_to_model(canonical_logic, xls_model)
+      xls_model <- canonical_sync$model
+    }
     inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_xlsform.xlsx"))
     .sm_mb_write_xlsform_model(xls_model, inst_path)
     rp_inst <- reporte_instrumento(path = inst_path)
@@ -3857,6 +4122,7 @@ sm_multibase_import_independent <- function(sid,
       response_filter = response_filter %||% list(),
       decision_policy = decision_policy,
       raw_snapshot_sources = raw_snapshot_sources,
+      canonical_logic_sync = canonical_sync,
       source_kind = if (length(source_specs) > 1L) {
         "surveymonkey_api_multi_source"
       } else if (nzchar(spec$data_file_id)) {
@@ -3914,11 +4180,29 @@ sm_multibase_import_independent <- function(sid,
         surveymonkey_source_spec = item$source_spec
       )
     )
+    if (is.list(item$canonical_logic_sync) && length(item$canonical_logic_sync)) {
+      base_meta$logic_template_base <- .sm_mb_scalar(item$canonical_logic_sync$template_base, "XLSForm base")
+      base_meta$logic_template_file_id <- .sm_mb_scalar(item$canonical_logic_sync$template_file_id, "")
+      base_meta$logic_template_applied_at <- imported_at
+      base_meta$logic_template_status <- if (isTRUE(item$canonical_logic_sync$applied)) "canonical_applied" else paste0("canonical_not_applied:", .sm_mb_scalar(item$canonical_logic_sync$reason, "unchanged"))
+      base_meta$surveymonkey_xlsform_logic_sync <- item$canonical_logic_sync[setdiff(names(item$canonical_logic_sync), "model")]
+      s_after_base <- session_get(sid)
+      s_after_base$estudio$bases[[item$base_name]] <- base_meta
+      s_after_base <- .mark_project_dirty(s_after_base)
+      .session_env[[sid]] <- s_after_base
+    }
     imported_names <- c(imported_names, item$base_name)
     bases_out[[length(bases_out) + 1L]] <- .estudio_base_payload(base_meta, session_get(sid, required = FALSE))
   }
   if (length(imported_names)) {
-    xlsform_logic_sync <- NULL
+    canonical_logic_rows <- Filter(Negate(is.null), lapply(prepared, function(item) {
+      sync <- item$canonical_logic_sync %||% NULL
+      if (!is.list(sync) || !length(sync)) return(NULL)
+      sync$model <- NULL
+      sync$base <- item$base_name
+      sync
+    }))
+    xlsform_logic_sync <- .sm_mb_canonical_logic_sync_payload(canonical_logic, canonical_logic_rows)
     if (!length(existing_names)) {
       estudio_active_base_set(sid, imported_names[1])
       active_for_source <- imported_names[1]
@@ -3937,6 +4221,24 @@ sm_multibase_import_independent <- function(sid,
         status = "imported_siblings"
       )
     }
+    if (!is.null(canonical_logic) && !is.null(xlsform_logic_sync)) {
+      s_logic <- session_get(sid)
+      family <- s_logic$estudio$independent_siblings %||% list()
+      family$logic_policy <- "shared_template"
+      family$shared_logic <- TRUE
+      family$status <- "canonical_xlsform_logic_applied"
+      family$template_source <- list(
+        kind = .sm_mb_scalar((canonical_logic$meta %||% list())$kind, "xlsform"),
+        file_id = .sm_mb_scalar((canonical_logic$meta %||% list())$file_id, ""),
+        xlsform_name = .sm_mb_scalar((canonical_logic$meta %||% list())$original_name, "XLSForm base")
+      )
+      family$logic_applied_at <- imported_at
+      family$logic_sync <- xlsform_logic_sync
+      family$updated_at <- imported_at
+      s_logic$estudio$independent_siblings <- family
+      s_logic <- .mark_project_dirty(s_logic)
+      .session_env[[sid]] <- s_logic
+    }
     if (exists("estudio_propagate_shared_codif_logic", mode = "function") &&
         length(existing_names) > 0L) {
       estudio_propagate_shared_codif_logic(
@@ -3946,7 +4248,8 @@ sm_multibase_import_independent <- function(sid,
         overwrite = FALSE
       )
     }
-    if (length(existing_names) > 0L &&
+    if (is.null(canonical_logic) &&
+        length(existing_names) > 0L &&
         exists("estudio_apply_template_xlsform_logic", mode = "function")) {
       xlsform_logic_sync <- tryCatch(
         estudio_apply_template_xlsform_logic(
@@ -4470,7 +4773,22 @@ mount_surveymonkey_multibase <- function(pr) {
         specs = parsed$surveys %||% list(),
         token = token,
         response_statuses = .sm_mb_response_statuses(parsed$response_statuses),
-        keep_missing_status = if (is.null(parsed$keep_missing_status)) TRUE else isTRUE(parsed$keep_missing_status)
+        keep_missing_status = if (is.null(parsed$keep_missing_status)) TRUE else isTRUE(parsed$keep_missing_status),
+        canonical_file_id = .sm_mb_scalar(parsed$canonical_xlsform_file_id, ""),
+        use_canonical_xlsform_logic = isTRUE(parsed$use_canonical_xlsform_logic)
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/apply-canonical-xlsform-logic", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      sm_multibase_apply_canonical_xlsform_logic(
+        sid = sid,
+        canonical_file_id = .sm_mb_scalar(parsed$canonical_xlsform_file_id, ""),
+        targets = parsed$targets %||% list(),
+        clear_target_logic = isTRUE(parsed$clear_target_logic)
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/workbook/inspect", wrap_endpoint(function(req, res, ...) {

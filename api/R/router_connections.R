@@ -224,20 +224,41 @@
   )
 }
 
-.connections_active_profile <- function(provider, profile_id = NULL) {
+.connections_active_profile <- function(provider, profile_id = NULL, base_url = NULL) {
+  provider <- .connections_normalize_provider(provider)
   manifest <- .connections_load_profile_manifest(provider)
-  default_id <- .connections_profile_clean_id(profile_id %||% manifest$default_profile_id %||% "")
-  if (!length(manifest$profiles %||% list())) return(NULL)
-  for (p in manifest$profiles) {
-    if (identical(.connections_profile_clean_id(p$id %||% ""), default_id)) return(p)
+  profiles <- manifest$profiles %||% list()
+  if (!length(profiles)) return(NULL)
+
+  find_by_id <- function(profile_id) {
+    profile_id <- .connections_profile_clean_id(profile_id %||% "")
+    if (!nzchar(profile_id)) return(NULL)
+    for (p in profiles) {
+      if (identical(.connections_profile_clean_id(p$id %||% ""), profile_id)) return(p)
+    }
+    NULL
   }
-  if (nzchar(default_id)) return(NULL)
-  manifest$profiles[[1L]]
+
+  profile <- find_by_id(profile_id)
+  if (!is.null(profile)) return(profile)
+
+  raw_base_url <- trimws(as.character(base_url %||% "")[1])
+  if (is.na(raw_base_url)) raw_base_url <- ""
+  if (identical(provider, "kobo") && nzchar(raw_base_url)) {
+    wanted_base <- .connections_kobo_base_url(base_url)
+    for (p in profiles) {
+      if (identical(.connections_kobo_base_url(p$base_url %||% ""), wanted_base)) return(p)
+    }
+  }
+
+  profile <- find_by_id(manifest$default_profile_id)
+  if (!is.null(profile)) return(profile)
+  profiles[[1L]]
 }
 
-.connections_profile_base_url <- function(provider, profile_id = NULL) {
+.connections_profile_base_url <- function(provider, profile_id = NULL, base_url = NULL) {
   provider <- .connections_normalize_provider(provider)
-  profile <- .connections_active_profile(provider, profile_id)
+  profile <- .connections_active_profile(provider, profile_id, base_url = base_url)
   if (identical(provider, "kobo")) {
     return(.connections_kobo_base_url(profile$base_url %||% kobo_api_default_base_url()))
   }
@@ -358,13 +379,13 @@
     ))
 }
 
-.connections_token_state <- function(provider, sid = NULL, profile_id = NULL) {
+.connections_token_state <- function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
   provider <- .connections_normalize_provider(provider)
   secret_name <- .connections_secret_name(provider)
   use_session <- .connections_session_token_exists(sid, provider)
   profile_requested <- nzchar(.connections_profile_clean_id(profile_id %||% ""))
   profile_status <- if (.connections_profiles_supported(provider)) .connections_profiles_status(provider) else NULL
-  active_profile <- if (.connections_profiles_supported(provider)) .connections_active_profile(provider, profile_id) else NULL
+  active_profile <- if (.connections_profiles_supported(provider)) .connections_active_profile(provider, profile_id, base_url = base_url) else NULL
   token <- if (use_session) {
     prosecnur_session_secret_load(sid, secret_name)
   } else if (profile_requested && is.null(active_profile)) {
@@ -396,17 +417,17 @@
   )
 }
 
-.connections_token_status <- function(provider, sid = NULL, profile_id = NULL) {
+.connections_token_status <- function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
   provider <- .connections_normalize_provider(provider)
   if (identical(provider, "google_sheets")) {
     return(monitoreo_sheets_oauth_status())
   }
-  .connections_token_state(provider, sid, profile_id = profile_id)$status
+  .connections_token_state(provider, sid, profile_id = profile_id, base_url = base_url)$status
 }
 
-.connections_token_require <- function(provider, sid = NULL, profile_id = NULL) {
+.connections_token_require <- function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
   provider <- .connections_normalize_provider(provider)
-  state <- .connections_token_state(provider, sid, profile_id = profile_id)
+  state <- .connections_token_state(provider, sid, profile_id = profile_id, base_url = base_url)
   token <- as.character(state$token %||% "")[1]
   if (is.na(token) || !nzchar(token)) {
     code <- if (identical(provider, "kobo")) "E_KOBO_TOKEN" else "E_SM_TOKEN"
@@ -484,8 +505,12 @@
 }
 
 .connections_check_kobo <- function(sid = NULL, base_url = NULL, profile_id = NULL) {
-  token <- .connections_token_require("kobo", sid, profile_id = profile_id)
-  base <- .connections_kobo_base_url(base_url %||% .connections_profile_base_url("kobo", profile_id))
+  base <- trimws(as.character(base_url %||% "")[1])
+  if (is.na(base) || !nzchar(base)) {
+    base <- .connections_profile_base_url("kobo", profile_id)
+  }
+  base <- .connections_kobo_base_url(base)
+  token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base)
   url <- paste0(base, "/api/v2/assets/?limit=1")
   probe <- tryCatch(
     .kobo_api_fetch_json(url, token),
@@ -497,7 +522,7 @@
     provider = "kobo",
     status_code = 200L,
     base_url = base,
-    profile_id = .connections_token_status("kobo", sid, profile_id = profile_id)$active_profile_id %||% "",
+    profile_id = .connections_token_status("kobo", sid, profile_id = profile_id, base_url = base)$active_profile_id %||% "",
     count = as.integer(probe$count %||% length(probe$results %||% list()))
   )
 }

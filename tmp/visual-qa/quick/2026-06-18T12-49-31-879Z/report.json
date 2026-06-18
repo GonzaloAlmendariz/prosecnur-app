@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-18T12:49:56.541Z",
+  "options": {
+    "routes": [
+      "/monitoreo"
+    ],
+    "viewports": [
+      {
+        "width": 1280,
+        "height": 800
+      }
+    ],
+    "layoutPreset": "compact",
+    "api": "real",
+    "project": "/Users/gonzaloalmendariz/Documents/Pulso/Prueba_App/GIZ.pulso",
+    "headed": false
+  },
+  "stack": {
+    "url": "http://127.0.0.1:5174/",
+    "apiUrl": "http://127.0.0.1:8788",
+    "frontendPort": 5174,
+    "apiPort": 8788,
+    "session": "5fc362af-55de-4ac4-8f34-7a8c4f82e2cd",
+    "projectStatus": {
+      "ok": true,
+      "status": 200,
+      "headers": {
+        "content-encoding": "gzip",
+        "content-type": "application/json",
+        "date": "Thu, 18 Jun 2026 12:49:40 GMT",
+        "transfer-encoding": "chunked"
+      },
+      "json": {
+        "has_project": true,
+        "path": "/Users/gonzaloalmendariz/Documents/Pulso/Prueba_App/GIZ.pulso",
+        "name": "GIZ",
+        "dirty": true,
+        "last_saved_at": "2026-05-24T00:25:48Z"
+      },
+      "text": "{\"has_project\":true,\"path\":\"/Users/gonzaloalmendariz/Documents/Pulso/Prueba_App/GIZ.pulso\",\"name\":\"GIZ\",\"dirty\":true,\"last_saved_at\":\"2026-05-24T00:25:48Z\"}"
+    },
+    "logs": {
+      "api": "tmp/visual-qa/quick/2026-06-18T12-49-31-879Z/logs/api.log",
+      "vite": "tmp/visual-qa/quick/2026-06-18T12-49-31-879Z/logs/vite.log"
+    }
+  },
+  "summary": {
+    "captures": 1,
+    "screenshots": [
+      "tmp/visual-qa/quick/2026-06-18T12-49-31-879Z/quick-monitoreo-1280x800-compact.png"
+    ],
+    "visualIssues": 0,
+    "scrollJails": 0,
+    "globalOverflow": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "apiErrors": 0,
+    "resourceErrors": 0,
+    "projectMisses": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "route": "/monitoreo",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "url": "http://127.0.0.1:5174/monitoreo",
+      "screenshot": "tmp/visual-qa/quick/2026-06-18T12-49-31-879Z/quick-monitoreo-1280x800-compact.png",
+      "fullScreenshot": null,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "apiErrors": [],
+      "resourceErrors": [],
+      "title": "Prosecnur",
+      "activeLayout": {
+        "preset": "compact",
+        "density": "compact",
+        "mode": "compact"
+      },
+      "ready": [
+        "monitoreo"
+      ],
+      "session": "5fc362af-55de-4ac4-8f34-7a8c4f82e2cd",
+      "rootClasses": "",
+      "globalOverflowX": false,
+      "noProjectText": false,
+      "projectLoaded": true,
+      "textSample": "Prosecnur Editor Proceso Dashboard Rutas Muestra Guía Campo GIZ sin guardar Monitoreo territorial RUTA ACTIVA Territorial Tipo único del proyecto SUPERFICIES DE TRABAJO 6 VISTAS Fuente Formulario Kobo y filtro Manzanas seleccionadas Titulares, reemplazos y mapa Validación Resumen, GPS, duración y cuotas Consultas internas Registros por validar Avance territorial Distrito, manzana y ritmo Ocurrencias de campo Estados y UMP PUBLICACIONES Territorial 0/2 web · 0/2 Sheets · sin enlace Sin corte sinc",
+      "scrollJails": [],
+      "layoutRects": {
+        "shell": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 800
+        },
+        "pageFrame": {
+          "x": 14,
+          "y": 82,
+          "width": 1252,
+          "height": 704
+        },
+        "adaptiveSplit": null,
+        "rail": null,
+        "main": null
+      },
+      "issues": []
+    }
+  ]
+}

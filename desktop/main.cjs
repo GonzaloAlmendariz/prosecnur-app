@@ -1,8 +1,9 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage, clipboard } = require("electron");
 const { spawn } = require("node:child_process");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, createHash } = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
+const https = require("node:https");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
@@ -216,6 +217,28 @@ function maskSecret(value) {
   return `${text.slice(0, 3)}••••${text.slice(-4)}`;
 }
 
+function secretFingerprint(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+function normalizeSecretRecord(record) {
+  if (record && typeof record === "object" && typeof record.value === "string") {
+    return {
+      encrypted: record.encrypted !== false,
+      value: record.value
+    };
+  }
+  if (typeof record === "string" && record) {
+    return {
+      encrypted: false,
+      value: Buffer.from(record, "utf8").toString("base64")
+    };
+  }
+  return { encrypted: true, value: "" };
+}
+
 function encryptSecret(value) {
   const text = String(value || "");
   if (!text) return { encrypted: true, value: "" };
@@ -242,13 +265,144 @@ function decryptSecret(record) {
   }
 }
 
+const HF_TOKEN_CACHE = new Map();
+
+function hfTokenCacheKey(entry = {}) {
+  const secret = entry.hf_token || {};
+  return [
+    entry.token_fingerprint || "",
+    secret.encrypted === false ? "plain" : "encrypted",
+    secret.value || "",
+  ].join(":");
+}
+
+function cacheHfToken(entry, token) {
+  const id = String(entry?.id || "").trim();
+  const value = String(token || "").trim();
+  if (!id || !value) return;
+  HF_TOKEN_CACHE.set(id, {
+    key: hfTokenCacheKey(entry),
+    token: value,
+  });
+}
+
+function forgetCachedHfToken(id) {
+  const key = String(id || "").trim();
+  if (key) HF_TOKEN_CACHE.delete(key);
+}
+
+function retainCachedHfTokenIds(ids) {
+  const keep = new Set(ids.map((id) => String(id || "").trim()).filter(Boolean));
+  for (const id of HF_TOKEN_CACHE.keys()) {
+    if (!keep.has(id)) HF_TOKEN_CACHE.delete(id);
+  }
+}
+
+function cachedHfToken(entry) {
+  const id = String(entry?.id || "").trim();
+  const key = hfTokenCacheKey(entry);
+  const cached = id ? HF_TOKEN_CACHE.get(id) : null;
+  if (cached && cached.key === key && cached.token) return cached.token;
+  const token = decryptSecret(entry?.hf_token);
+  if (id && token) cacheHfToken(entry, token);
+  else if (id) forgetCachedHfToken(id);
+  return token;
+}
+
+function cachedHfTokenMatches(entry, token) {
+  const id = String(entry?.id || "").trim();
+  const cached = id ? HF_TOKEN_CACHE.get(id) : null;
+  return Boolean(cached && cached.key === hfTokenCacheKey(entry) && cached.token === token);
+}
+
 function hfTokenMeta(entry) {
-  const token = decryptSecret(entry && entry.hf_token);
   return {
     id: entry.id,
     name: entry.name || entry.hf_username || "Token HF",
     hf_username: entry.hf_username || "",
-    masked_token: maskSecret(token),
+    masked_token: entry.masked_token || "••••",
+    created_at: entry.created_at || null,
+    last_used_at: entry.last_used_at || null
+  };
+}
+
+function normalizeHfNamespace(value) {
+  return String(value || "").trim();
+}
+
+function hfAppUrlForDestination(namespace, spaceName) {
+  const ns = normalizeHfNamespace(namespace);
+  const space = String(spaceName || "").trim();
+  if (!ns || !space) return "";
+  const appSlug = tolowerSafe(`${ns.replace(/[^A-Za-z0-9]+/g, "-")}-${space}`);
+  return `https://${appSlug}.hf.space`;
+}
+
+function tolowerSafe(value) {
+  return String(value || "").toLowerCase();
+}
+
+function normalizeHfDestinationEntry(entry = {}) {
+  let namespace = normalizeHfNamespace(entry.namespace || entry.destination_namespace || entry.hf_username);
+  let spaceName = String(entry.space_name || entry.spaceName || "").trim();
+  const repoIdInput = String(entry.repo_id || entry.repoId || "").trim();
+  if ((!namespace || !spaceName) && repoIdInput.includes("/")) {
+    const parts = repoIdInput.split("/");
+    namespace = namespace || normalizeHfNamespace(parts[0]);
+    spaceName = spaceName || String(parts.slice(1).join("/")).trim();
+  }
+  const repoId = namespace && spaceName ? `${namespace}/${spaceName}` : repoIdInput;
+  const appUrl = String(entry.app_url || entry.appUrl || "").trim() || hfAppUrlForDestination(namespace, spaceName);
+  const id = typeof entry.id === "string" && entry.id ? entry.id : (repoId || namespace || randomUUID());
+  return {
+    id,
+    namespace,
+    space_name: spaceName,
+    repo_id: repoId,
+    app_url: appUrl,
+    label: String(entry.label || entry.name || repoId || namespace || "Destino HF").trim(),
+    module: String(entry.module || "").trim(),
+    audience: String(entry.audience || "").trim(),
+    private: Boolean(entry.private),
+    created_at: entry.created_at || null,
+    last_used_at: entry.last_used_at || null
+  };
+}
+
+function hfDestinationMeta(entry) {
+  return {
+    id: entry.id,
+    namespace: entry.namespace || "",
+    space_name: entry.space_name || "",
+    repo_id: entry.repo_id || "",
+    app_url: entry.app_url || "",
+    label: entry.label || entry.repo_id || entry.namespace || "Destino HF",
+    module: entry.module || "",
+    audience: entry.audience || "",
+    private: Boolean(entry.private),
+    created_at: entry.created_at || null,
+    last_used_at: entry.last_used_at || null
+  };
+}
+
+function normalizeHfTokenEntry(entry = {}) {
+  const id = typeof entry.id === "string" && entry.id ? entry.id : randomUUID();
+  const hfUsername = typeof entry.hf_username === "string" ? entry.hf_username : "";
+  const name = typeof entry.name === "string" && entry.name ? entry.name : (hfUsername || "Token HF");
+  const hfToken = normalizeSecretRecord(entry.hf_token || entry.token);
+  const maskedToken = typeof entry.masked_token === "string" && entry.masked_token
+    ? entry.masked_token
+    : (typeof entry.maskedToken === "string" && entry.maskedToken ? entry.maskedToken : "••••");
+  const fingerprint = typeof entry.token_fingerprint === "string" && entry.token_fingerprint
+    ? entry.token_fingerprint
+    : (typeof entry.tokenFingerprint === "string" ? entry.tokenFingerprint : "");
+  return {
+    id,
+    name,
+    hf_username: hfUsername,
+    hf_token: hfToken,
+    masked_token: maskedToken,
+    token_fingerprint: fingerprint,
     created_at: entry.created_at || null,
     last_used_at: entry.last_used_at || null
   };
@@ -259,39 +413,54 @@ function readHfSettingsRaw() {
   if (!fs.existsSync(p)) {
     return {
       hf_username: "",
+      default_namespace: "",
+      destinations: [],
       tokens: []
     };
   }
   try {
     const raw = JSON.parse(fs.readFileSync(p, "utf8"));
-    const tokens = Array.isArray(raw.tokens) ? raw.tokens : [];
+    const tokens = (Array.isArray(raw.tokens) ? raw.tokens : [])
+      .map(normalizeHfTokenEntry)
+      .filter((entry) => entry.hf_token.value);
+    const destinations = (Array.isArray(raw.destinations) ? raw.destinations : [])
+      .map(normalizeHfDestinationEntry)
+      .filter((entry) => entry.namespace || entry.repo_id);
     let migrated = false;
     // Migracion del formato inicial: un unico token en hf_token.
     if (raw.hf_token && !tokens.length) {
-      tokens.push({
+      tokens.push(normalizeHfTokenEntry({
         id: randomUUID(),
         name: raw.hf_username || "Token HF",
         hf_username: raw.hf_username || "",
         hf_token: raw.hf_token,
+        masked_token: raw.masked_token || "••••",
+        token_fingerprint: raw.token_fingerprint || "",
         created_at: raw.updated_at || new Date().toISOString(),
         last_used_at: raw.updated_at || null
-      });
+      }));
       migrated = true;
     }
     if (migrated) {
       writeHfSettingsRaw({
         hf_username: raw.hf_username || "",
+        default_namespace: normalizeHfNamespace(raw.default_namespace || raw.destination_namespace),
+        destinations,
         tokens,
         updated_at: raw.updated_at || new Date().toISOString()
       });
     }
     return {
       hf_username: typeof raw.hf_username === "string" ? raw.hf_username : "",
+      default_namespace: normalizeHfNamespace(raw.default_namespace || raw.destination_namespace),
+      destinations,
       tokens
     };
   } catch (_e) {
     return {
       hf_username: "",
+      default_namespace: "",
+      destinations: [],
       tokens: []
     };
   }
@@ -302,13 +471,22 @@ function writeHfSettingsRaw(raw) {
   fs.writeFileSync(hfSettingsPath(), JSON.stringify(raw, null, 2), "utf8");
 }
 
+function encryptionAvailableForSettings() {
+  // En macOS consultar Safe Storage puede tocar el llavero segun el estado del
+  // sistema. El listado de tokens solo necesita metadata, no validar el secreto.
+  if (process.platform === "darwin") return true;
+  return safeStorage.isEncryptionAvailable();
+}
+
 function readHfSettings() {
   const raw = readHfSettingsRaw();
   return {
     hf_username: raw.hf_username || "",
+    default_namespace: raw.default_namespace || "",
     token_configured: raw.tokens.length > 0,
-    encryption_available: safeStorage.isEncryptionAvailable(),
-    saved_tokens: raw.tokens.map(hfTokenMeta)
+    encryption_available: encryptionAvailableForSettings(),
+    saved_tokens: raw.tokens.map(hfTokenMeta),
+    recent_destinations: raw.destinations.map(hfDestinationMeta)
   };
 }
 
@@ -318,41 +496,241 @@ function getHfToken(id) {
   if (!entry) return null;
   return {
     ...hfTokenMeta(entry),
-    hf_token: decryptSecret(entry.hf_token)
+    hf_token: cachedHfToken(entry)
   };
 }
 
 function rememberSuccessfulHfToken(settings = {}) {
-  const username = String(settings.hf_username || "").trim();
+  const id = String(settings.id || settings.token_id || settings.tokenId || "").trim();
+  const username = String(
+    settings.credential_username ||
+    settings.token_username ||
+    settings.account_username ||
+    settings.hf_account ||
+    settings.hf_username ||
+    ""
+  ).trim();
   const token = String(settings.hf_token || "").trim();
-  const name = String(settings.name || username || "Token HF").trim();
-  if (!username || !token) return readHfSettings();
+  const destinationNamespace = normalizeHfNamespace(settings.destination_namespace || settings.namespace);
+  const name = String(settings.name || username || destinationNamespace || "Token HF").trim();
+  if (!token) return readHfSettings();
   const raw = readHfSettingsRaw();
   const now = new Date().toISOString();
-  const existing = raw.tokens.find((entry) => (
-    entry.hf_username === username && decryptSecret(entry.hf_token) === token
-  ));
+  const fingerprint = secretFingerprint(token);
+  const existing = raw.tokens.find((entry) => entry.id === id) ||
+    raw.tokens.find((entry) => entry.hf_username === username && entry.token_fingerprint === fingerprint);
+  let cachedEntry = null;
   if (existing) {
+    const sameStoredToken =
+      (existing.token_fingerprint && existing.token_fingerprint === fingerprint) ||
+      cachedHfTokenMatches(existing, token);
     existing.name = name;
+    existing.hf_username = username;
+    if (!sameStoredToken) existing.hf_token = encryptSecret(token);
+    existing.masked_token = maskSecret(token);
+    existing.token_fingerprint = fingerprint;
+    existing.created_at = existing.created_at || now;
     existing.last_used_at = now;
+    raw.tokens = [
+      existing,
+      ...raw.tokens.filter((entry) => entry.id !== existing.id)
+    ];
+    cachedEntry = existing;
   } else {
-    raw.tokens.unshift({
+    cachedEntry = {
       id: randomUUID(),
       name,
       hf_username: username,
       hf_token: encryptSecret(token),
+      masked_token: maskSecret(token),
+      token_fingerprint: fingerprint,
       created_at: now,
       last_used_at: now
-    });
+    };
+    raw.tokens.unshift(cachedEntry);
   }
+  cacheHfToken(cachedEntry, token);
   raw.tokens = raw.tokens.slice(0, 10);
-  raw.hf_username = username;
+  retainCachedHfTokenIds(raw.tokens.map((entry) => entry.id));
+  if (username) raw.hf_username = username;
+  if (destinationNamespace || settings.repo_id || settings.space_name) {
+    rememberHfDestination(settings, raw);
+  }
   const payload = {
     hf_username: raw.hf_username,
+    default_namespace: raw.default_namespace || "",
+    destinations: raw.destinations || [],
     tokens: raw.tokens,
     updated_at: new Date().toISOString()
   };
   writeHfSettingsRaw(payload);
+  return readHfSettings();
+}
+
+function rememberHfDestination(settings = {}, existingRaw = null) {
+  const raw = existingRaw || readHfSettingsRaw();
+  const now = new Date().toISOString();
+  const destination = normalizeHfDestinationEntry({
+    namespace: settings.destination_namespace || settings.namespace || settings.hf_username,
+    space_name: settings.space_name,
+    repo_id: settings.repo_id,
+    app_url: settings.app_url,
+    label: settings.label || settings.name,
+    module: settings.module,
+    audience: settings.audience,
+    private: settings.private,
+    created_at: now,
+    last_used_at: now
+  });
+  if (!destination.namespace && !destination.repo_id) {
+    return existingRaw ? raw : readHfSettings();
+  }
+  const existing = raw.destinations.find((entry) => (
+    (destination.repo_id && entry.repo_id === destination.repo_id) ||
+    (destination.namespace && destination.space_name &&
+      entry.namespace === destination.namespace && entry.space_name === destination.space_name)
+  ));
+  if (existing) {
+    Object.assign(existing, {
+      namespace: destination.namespace || existing.namespace,
+      space_name: destination.space_name || existing.space_name,
+      repo_id: destination.repo_id || existing.repo_id,
+      app_url: destination.app_url || existing.app_url,
+      label: destination.label || existing.label,
+      module: destination.module || existing.module,
+      audience: destination.audience || existing.audience,
+      private: destination.private,
+      created_at: existing.created_at || now,
+      last_used_at: now
+    });
+    raw.destinations = [
+      existing,
+      ...raw.destinations.filter((entry) => entry.id !== existing.id)
+    ];
+  } else {
+    raw.destinations.unshift(destination);
+  }
+  raw.destinations = raw.destinations.slice(0, 20);
+  if (destination.namespace) raw.default_namespace = destination.namespace;
+  if (!existingRaw) {
+    writeHfSettingsRaw({
+      hf_username: raw.hf_username || "",
+      default_namespace: raw.default_namespace || "",
+      destinations: raw.destinations,
+      tokens: raw.tokens,
+      updated_at: now
+    });
+  }
+  return existingRaw ? raw : readHfSettings();
+}
+
+function saveHfDefaultNamespace(settings = {}) {
+  const namespace = normalizeHfNamespace(settings.namespace || settings.destination_namespace || settings.hf_username);
+  const raw = readHfSettingsRaw();
+  raw.default_namespace = namespace;
+  writeHfSettingsRaw({
+    hf_username: raw.hf_username || "",
+    default_namespace: raw.default_namespace || "",
+    destinations: raw.destinations,
+    tokens: raw.tokens,
+    updated_at: new Date().toISOString()
+  });
+  return readHfSettings();
+}
+
+function requestHfJson(pathname, token) {
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: "huggingface.co",
+      path: pathname,
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "User-Agent": `${APP_NAME}/desktop`,
+      },
+      timeout: 15000,
+    }, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        let parsed = {};
+        try { parsed = body ? JSON.parse(body) : {}; } catch (_e) { parsed = {}; }
+        resolve({
+          ok: res.statusCode >= 200 && res.statusCode < 300,
+          status_code: res.statusCode || 0,
+          body: parsed,
+        });
+      });
+    });
+    req.on("timeout", () => {
+      req.destroy(new Error("Timeout al contactar Hugging Face."));
+    });
+    req.on("error", (error) => {
+      resolve({ ok: false, status_code: 0, error: error.message, body: {} });
+    });
+    req.end();
+  });
+}
+
+async function checkHfToken(settings = {}) {
+  const id = String(settings.id || settings.token_id || settings.tokenId || "").trim();
+  const explicitToken = String(settings.hf_token || "").trim();
+  let token = explicitToken;
+  if (!token && id) {
+    const saved = getHfToken(id);
+    token = String(saved?.hf_token || "").trim();
+  }
+  if (!token) {
+    return { ok: false, status_code: 0, error: "Pega un token HF o selecciona uno guardado." };
+  }
+  const result = await requestHfJson("/api/whoami-v2", token);
+  if (!result.ok) {
+    const error = result.error || result.body?.error || result.body?.message || "Hugging Face no aceptó el token.";
+    return { ok: false, status_code: result.status_code, error: String(error) };
+  }
+  const body = result.body || {};
+  const name = body.name || body.fullname || body.email || "";
+  const orgs = Array.isArray(body.orgs) ? body.orgs.length : 0;
+  return {
+    ok: true,
+    status_code: result.status_code,
+    name: String(name || ""),
+    org_count: orgs,
+  };
+}
+
+function forgetHfToken(settings = {}) {
+  const id = String(settings.id || settings.token_id || settings.tokenId || "").trim();
+  const raw = readHfSettingsRaw();
+  if (id) forgetCachedHfToken(id);
+  else HF_TOKEN_CACHE.clear();
+  raw.tokens = id ? raw.tokens.filter((entry) => entry.id !== id) : [];
+  const first = raw.tokens[0];
+  writeHfSettingsRaw({
+    hf_username: first?.hf_username || raw.hf_username || "",
+    default_namespace: raw.default_namespace || "",
+    destinations: raw.destinations || [],
+    tokens: raw.tokens,
+    updated_at: new Date().toISOString()
+  });
+  return readHfSettings();
+}
+
+function forgetHfDestination(settings = {}) {
+  const id = String(settings.id || "").trim();
+  const raw = readHfSettingsRaw();
+  raw.destinations = id ? raw.destinations.filter((entry) => entry.id !== id) : [];
+  if (!raw.destinations.some((entry) => entry.namespace === raw.default_namespace)) {
+    raw.default_namespace = raw.destinations[0]?.namespace || raw.default_namespace || "";
+  }
+  writeHfSettingsRaw({
+    hf_username: raw.hf_username || "",
+    default_namespace: raw.default_namespace || "",
+    destinations: raw.destinations,
+    tokens: raw.tokens,
+    updated_at: new Date().toISOString()
+  });
   return readHfSettings();
 }
 
@@ -432,6 +810,16 @@ function registerIpcHandlers() {
   ipcMain.handle("hf:getToken", (_event, args = {}) => getHfToken(args.id));
 
   ipcMain.handle("hf:rememberSuccessfulToken", (_event, args = {}) => rememberSuccessfulHfToken(args));
+
+  ipcMain.handle("hf:checkToken", (_event, args = {}) => checkHfToken(args));
+
+  ipcMain.handle("hf:forgetToken", (_event, args = {}) => forgetHfToken(args));
+
+  ipcMain.handle("hf:rememberDestination", (_event, args = {}) => rememberHfDestination(args));
+
+  ipcMain.handle("hf:saveDefaultNamespace", (_event, args = {}) => saveHfDefaultNamespace(args));
+
+  ipcMain.handle("hf:forgetDestination", (_event, args = {}) => forgetHfDestination(args));
 }
 
 // Helper para enviar comandos del menú al renderer. Se usa desde
