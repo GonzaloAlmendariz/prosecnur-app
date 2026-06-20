@@ -2678,7 +2678,7 @@ a { color: var(--pulso-primary); }
   font-size: 21px;
 }
 
-.pulso-main--viewport .dashboard-scope nav[aria-label="Pestañas del dashboard"] {
+.pulso-main--viewport .dashboard-scope .dash-section-rail {
   margin-bottom: 12px !important;
 }
 

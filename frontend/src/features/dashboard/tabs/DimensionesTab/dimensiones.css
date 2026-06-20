@@ -22,9 +22,17 @@
     transform var(--dash-dur-modal) var(--dash-ease-in-out);
 }
 .dashboard-scope .dash-resumen-layout[data-sidebar="closed"] > .dash-sidebar {
+  max-width: 0;
+  min-width: 0;
   opacity: 0;
+  overflow: hidden;
   transform: translateX(-12px);
+  visibility: hidden;
   pointer-events: none;
+}
+.dashboard-scope .dash-resumen-layout[data-sidebar="closed"] > .dash-sidebar * {
+  pointer-events: none;
+  visibility: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
   .dashboard-scope .dash-resumen-layout,

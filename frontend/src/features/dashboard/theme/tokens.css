@@ -33,6 +33,16 @@
   --dash-primario-ring: rgba(0, 36, 87, 0.16);
   --dash-shadow-color: rgba(15, 23, 42, 0.08);
 
+  /* Chrome de edición del módulo Dashboard. Se mantiene separado del
+   * primario del dashboard final, que pertenece al branding del cliente. */
+  --dash-editor-accent: var(--pulso-module-dashboard, #2563eb);
+  --dash-editor-accent-soft: var(--pulso-module-dashboard-soft, rgba(37, 99, 235, 0.13));
+  --dash-editor-accent-border: var(--pulso-module-dashboard-border, rgba(37, 99, 235, 0.3));
+  --dash-editor-ring: color-mix(in srgb, var(--dash-editor-accent) 18%, transparent);
+  --dash-editor-material:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 249, 253, 0.72)),
+    color-mix(in srgb, var(--dash-superficie) 84%, transparent);
+
   /* Texto: jerarquía adicional para títulos críticos. */
   --dash-text-strong: #0f172a;
   /* Divider interno más sutil que el borde de cards. */
@@ -119,8 +129,10 @@
   align-items: center;
   display: flex;
   gap: 18px;
-  margin-bottom: 18px;
-  padding: 18px 0 14px;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  min-height: 0;
+  padding: 4px 0 0;
 }
 .dashboard-scope .dash-header-logos {
   align-items: center;
@@ -138,24 +150,6 @@
   flex: 0 0 auto;
   object-fit: contain;
   width: auto;
-}
-.dashboard-scope .dash-header-copy {
-  flex: 1;
-  min-width: 0;
-}
-.dashboard-scope .dash-header-title {
-  color: var(--dash-primario);
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.15;
-  margin: 0;
-}
-.dashboard-scope .dash-header-subtitle {
-  color: var(--dash-texto-suave);
-  font-size: 13px;
-  line-height: 1.35;
-  margin-top: 3px;
 }
 .dashboard-scope .dash-header-action {
   align-items: center;
@@ -195,21 +189,44 @@
   gap: 8px;
 }
 
+.dashboard-scope .dash-tab-nav-wrap {
+  --dash-rail-accent: var(--dash-primario);
+  --dash-rail-accent-soft: var(--dash-primario-soft);
+  --dash-rail-accent-ring: var(--dash-primario-ring);
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+.dashboard-scope .dash-tab-nav-wrap::-webkit-scrollbar {
+  display: none;
+}
+.dashboard-scope .dash-section-rail.is-editor {
+  --dash-rail-accent: var(--dash-editor-accent);
+  --dash-rail-accent-soft: var(--dash-editor-accent-soft);
+  --dash-rail-accent-ring: var(--dash-editor-ring);
+}
 .dashboard-scope .dash-tab-nav {
+  backdrop-filter: saturate(1.14) blur(18px);
+  -webkit-backdrop-filter: saturate(1.14) blur(18px);
   display: inline-flex;
   gap: 4px;
+  max-width: 100%;
   padding: 4px;
-  border-radius: var(--dash-radius-md);
+  border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(246, 248, 252, 0.76)),
-    var(--dash-superficie-2);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-borde-fuerte));
-  box-shadow: var(--dash-shadow-sm);
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.78), transparent 68%),
+    var(--dash-editor-material);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 72%, var(--dash-rail-accent) 28%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 14px 34px rgba(15, 23, 42, 0.09),
+    0 4px 10px color-mix(in srgb, var(--dash-rail-accent) 10%, transparent);
   position: relative;
   isolation: isolate;
-}
-.dashboard-scope .dash-tab-nav-wrap {
-  margin-bottom: 16px;
 }
 
 .dashboard-scope .dash-tab-blocked-hints {
@@ -240,10 +257,12 @@
 
 /* Pill que se desliza siguiendo el tab activo (legacy: .navbar .nav::before). */
 .dashboard-scope .dash-tab-nav::before {
-  background: var(--dash-primario);
-  border-radius: var(--dash-radius-md);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-rail-accent) 90%, #fff 10%), var(--dash-rail-accent));
+  border-radius: 999px;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    0 8px 18px color-mix(in srgb, var(--dash-rail-accent) 24%, transparent),
     var(--dash-shadow-sm);
   content: "";
   height: var(--dash-tab-pill-h, 0);
@@ -262,15 +281,21 @@
   z-index: 0;
 }
 .dashboard-scope .dash-tab {
+  align-items: center;
   appearance: none;
   border: none;
   background: transparent;
   color: var(--dash-texto-suave);
-  padding: 8px 14px;
-  border-radius: var(--dash-radius-md);
+  display: inline-flex;
+  gap: 7px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 13px;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     color var(--dash-dur-hover) var(--dash-ease-out),
@@ -279,16 +304,16 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-tab:hover:not(:disabled):not(.is-active) {
-    background: var(--dash-primario-soft);
-    color: var(--dash-primario);
+    background: var(--dash-rail-accent-soft);
+    color: var(--dash-rail-accent);
   }
   /* Hover sobre la pestaña activa: tapar la pill primaria con un fondo
    * opaco y mostrar el texto en color primario. Da feedback claro sin
    * dejar texto blanco sobre fondo claro (que era invisible). El fondo
    * usa color-mix para una mezcla soft sobre la superficie del nav. */
   .dashboard-scope .dash-tab.is-active:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--dash-superficie-2) 86%, var(--dash-primario) 14%);
-    color: var(--dash-primario);
+    background: color-mix(in srgb, var(--dash-superficie-2) 86%, var(--dash-rail-accent) 14%);
+    color: var(--dash-rail-accent);
     text-shadow: none;
   }
 }
@@ -304,12 +329,24 @@
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
+.dashboard-scope .dash-tab-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.dashboard-scope .dash-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .dashboard-scope .dash-tab:active:not(:disabled) {
   transform: scale(0.975);
 }
 .dashboard-scope .dash-tab:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+.dashboard-scope .dash-section-workspace {
+  min-width: 0;
 }
 
 .dashboard-scope .dash-section-title {
@@ -393,6 +430,43 @@
   position: static;
 }
 .dashboard-scope .dash-resumen-layout > main { min-width: 0; }
+
+/* Modo lector/publicable: el contexto izquierdo permanece estable y el
+ * desplazamiento principal vive en la zona derecha del dashboard. */
+@media (min-width: 901px) {
+  .dashboard-scope.dashboard-scope--reader .dash-resumen-layout {
+    --dash-reader-workspace-height: clamp(420px, calc(100dvh - 190px), 980px);
+    align-items: stretch;
+    height: var(--dash-reader-workspace-height);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .dashboard-scope.dashboard-scope--reader .dash-resumen-layout > .dash-sidebar {
+    align-self: stretch;
+    max-height: var(--dash-reader-workspace-height);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+    position: sticky;
+    scrollbar-gutter: stable;
+    top: 0;
+  }
+
+  .dashboard-scope.dashboard-scope--reader .dash-resumen-layout > main {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-gutter: stable;
+  }
+
+  .dashboard-scope.dashboard-scope--reader .dash-resumen-layout > main > .dash-cardbox {
+    min-height: 100%;
+  }
+}
 
 /* Cardbox base — fondo gris suave neutro. SIN tinte del primario para
  * que cambiar la paleta de marca a Rojos / Verdes no manche el card. */
@@ -824,6 +898,7 @@
   margin: 6px 0 0;
 }
 .dashboard-scope .dash-quick-btn {
+  align-items: center;
   appearance: none;
   background: var(--dash-superficie);
   border: 1px solid color-mix(in srgb, var(--dash-borde) 76%, var(--dash-primario) 24%);
@@ -831,9 +906,12 @@
   box-shadow: var(--dash-shadow-xs);
   color: var(--dash-primario);
   cursor: pointer;
+  display: inline-flex;
   flex: 1;
   font-size: 11px;
   font-weight: 700;
+  justify-content: center;
+  min-width: 70px;
   padding: 6px 10px;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
@@ -1342,6 +1420,7 @@
   display: flex;
   inset: 0;
   justify-content: center;
+  overflow: auto;
   padding: 20px;
   position: fixed;
   z-index: 80;
@@ -1398,9 +1477,10 @@
   color: var(--dash-texto-suave);
   cursor: pointer;
   display: inline-flex;
-  height: 30px;
+  height: 40px;
   justify-content: center;
-  width: 30px;
+  min-width: 40px;
+  width: 40px;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     border-color var(--dash-dur-hover) var(--dash-ease-out),
@@ -1764,6 +1844,151 @@
   opacity: 0.6;
 }
 
+/* ============================================================
+ * Chrome editor del módulo Dashboard.
+ * Estas reglas afectan solo superficies de preparación/admin; el
+ * dashboard final sigue leyendo --dash-primario como paleta de marca.
+ * ============================================================ */
+.dashboard-scope :is(.dash-source, .dash-curation) {
+  border-color: color-mix(in srgb, var(--dash-borde) 64%, var(--dash-editor-accent) 36%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 18px 42px rgba(15, 23, 42, 0.08),
+    0 5px 16px color-mix(in srgb, var(--dash-editor-accent) 10%, transparent);
+}
+.dashboard-scope .dash-source {
+  margin-inline: auto;
+}
+.dashboard-scope :is(.dash-source-panel, .dash-curation-section, .dash-curation-panel) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.92)),
+    var(--dash-superficie);
+  border-color: color-mix(in srgb, var(--dash-borde) 76%, var(--dash-editor-accent) 24%);
+  box-shadow: var(--dash-shadow-sm);
+}
+.dashboard-scope :is(.dash-source-panel-head, .dash-curation-section-head strong) {
+  color: var(--dash-editor-accent);
+}
+.dashboard-scope :is(
+  .dash-source-current > svg,
+  .dash-source-current > .lucide,
+  .dash-source-upload-icon,
+  .dash-curation-summary > svg,
+  .dash-curation-summary > .lucide,
+  .dash-curation-stat > svg,
+  .dash-curation-stat > .lucide,
+  .dash-curation-summary strong
+) {
+  color: var(--dash-editor-accent);
+}
+.dashboard-scope .dash-source-current,
+.dashboard-scope .dash-curation-summary {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-editor-accent-soft) 58%, #fff 42%), rgba(255, 255, 255, 0.86)),
+    var(--dash-superficie);
+  border-color: color-mix(in srgb, var(--dash-borde) 68%, var(--dash-editor-accent) 32%);
+}
+.dashboard-scope .dash-source-segment.is-active,
+.dashboard-scope .dash-primary-btn {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-editor-accent) 90%, #fff 10%), var(--dash-editor-accent));
+  border-color: var(--dash-editor-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 9px 20px color-mix(in srgb, var(--dash-editor-accent) 22%, transparent),
+    var(--dash-shadow-sm);
+}
+.dashboard-scope .dash-source-segment:focus-visible {
+  outline-color: color-mix(in srgb, var(--dash-editor-accent) 55%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-source-segment:hover:not(:disabled):not(.is-active),
+  .dashboard-scope .dash-source-upload-card:hover {
+    background: var(--dash-editor-accent-soft);
+    border-color: color-mix(in srgb, var(--dash-borde) 50%, var(--dash-editor-accent) 50%);
+    color: var(--dash-editor-accent);
+  }
+  .dashboard-scope .dash-source-segment.is-active:hover:not(:disabled) {
+    box-shadow:
+      var(--dash-shadow-sm),
+      0 0 0 3px var(--dash-editor-ring);
+  }
+}
+.dashboard-scope .dash-source-upload-card:focus-within,
+.dashboard-scope .dash-source-upload-card.has-file {
+  border-color: color-mix(in srgb, var(--dash-borde) 54%, var(--dash-editor-accent) 46%);
+}
+.dashboard-scope .dash-source-upload-card:focus-within {
+  box-shadow: 0 0 0 3px var(--dash-editor-ring);
+}
+.dashboard-scope .dash-source-upload-card.has-file {
+  background: color-mix(in srgb, var(--dash-editor-accent-soft) 72%, white);
+}
+.dashboard-scope .dash-curation-panel-icon {
+  background: var(--dash-editor-accent-soft);
+  border-color: color-mix(in srgb, var(--dash-borde) 55%, var(--dash-editor-accent) 45%);
+  color: var(--dash-editor-accent);
+}
+.dashboard-scope .dash-curation-meter span {
+  background:
+    linear-gradient(90deg, var(--dash-editor-accent), color-mix(in srgb, var(--dash-editor-accent) 58%, #fff));
+}
+.dashboard-scope .dash-curation-var.is-default {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.2)),
+    var(--dash-editor-accent-soft);
+  border-color: color-mix(in srgb, var(--dash-borde) 64%, var(--dash-editor-accent) 36%);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-curation-var:hover {
+    border-color: color-mix(in srgb, var(--dash-borde) 48%, var(--dash-editor-accent) 52%);
+    box-shadow: var(--dash-shadow-sm);
+  }
+}
+.dashboard-scope .dash-modal {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.9), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(247, 249, 253, 0.965)),
+    var(--dash-superficie);
+  border-color: color-mix(in srgb, var(--dash-borde) 66%, var(--dash-editor-accent) 34%);
+  box-shadow:
+    0 30px 84px rgba(15, 23, 42, 0.24),
+    0 8px 24px color-mix(in srgb, var(--dash-editor-accent) 12%, transparent);
+}
+.dashboard-scope .dash-modal-head {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 253, 0.7));
+  border-bottom-color: color-mix(in srgb, var(--dash-borde) 78%, var(--dash-editor-accent) 22%);
+}
+.dashboard-scope .dash-modal-head h2 {
+  color: var(--dash-editor-accent);
+}
+.dashboard-scope .dash-icon-btn {
+  border-radius: 999px;
+  width: 40px;
+}
+.dashboard-scope .dash-palette-layout {
+  background: rgba(255, 255, 255, 0.4);
+}
+.dashboard-scope .dash-palette-list {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(244, 247, 251, 0.86)),
+    var(--dash-superficie-2);
+}
+.dashboard-scope .dash-palette-search {
+  border-color: color-mix(in srgb, var(--dash-borde) 74%, var(--dash-editor-accent) 26%);
+  box-shadow: var(--dash-shadow-xs);
+}
+.dashboard-scope .dash-palette-list-item.is-active {
+  background: var(--dash-editor-accent-soft);
+  border-color: var(--dash-editor-accent-border);
+  color: var(--dash-editor-accent);
+}
+.dashboard-scope .dash-palette-icon {
+  background: var(--dash-editor-accent-soft);
+  color: var(--dash-editor-accent);
+}
+
 /* Motion táctil transversal.
  * La capa ::after no es decorativa pesada: aparece solo durante hover/press
  * para que cada botón confirme que recibió el gesto. */
@@ -2002,9 +2227,6 @@
     align-items: flex-start;
     gap: 12px;
     flex-wrap: wrap;
-  }
-  .dashboard-scope .dash-header-title {
-    font-size: 22px;
   }
   .dashboard-scope .dash-header-action {
     padding: 8px 12px;

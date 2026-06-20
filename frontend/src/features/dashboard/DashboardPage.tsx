@@ -1,7 +1,19 @@
 import "./theme/tokens.css";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Palette, Rocket, Settings, UploadCloud } from "lucide-react";
+import {
+  Database,
+  Eye,
+  EyeOff,
+  GitBranch,
+  LayoutDashboard,
+  Layers,
+  Palette,
+  Rocket,
+  Settings,
+  UploadCloud,
+  type LucideIcon,
+} from "lucide-react";
 import { type DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
 import { DashboardHeader } from "./header/DashboardHeader";
@@ -20,14 +32,21 @@ import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from ".
 import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData";
 import { isPublicMode } from "../../lib/runtime";
 
+const DASHBOARD_SECTION_ICONS: Record<DashboardTabId, LucideIcon> = {
+  resumen: LayoutDashboard,
+  relaciones: GitBranch,
+  base_datos: Database,
+  dimensiones: Layers,
+};
+
 // Página principal del Dashboard.
-// Layout:
+// Jerarquía:
 //   ┌─────────────────────────────────────────────┐
-//   │ Header — logo + título + Personalizar       │
+//   │ Command bar editor-only                     │
 //   ├─────────────────────────────────────────────┤
-//   │ Tabs nav — Resumen | Relaciones | Base ...  │
+//   │ Rail de secciones — Resumen | Relaciones... │
 //   ├─────────────────────────────────────────────┤
-//   │ Tab content                                 │
+//   │ Workbench de la sección activa              │
 //   └─────────────────────────────────────────────┘
 //
 // La estructura de tabs viene del manifest del paquete (NO editable).
@@ -78,6 +97,7 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
 
   const { loading, error, manifest, themeDefault, refresh } = useDashboardManifest();
   const hasDashboardSource = !!manifest?.estado.tiene_data;
+  const editorChromeVisible = !adminHidden && !previewMode;
 
   // Filtrado de tabs por config.tabs_enabled — vive en el store (editable
   // desde Personalizar → Pestañas). Los tabs deshabilitados no aparecen
@@ -116,6 +136,7 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
       paletaId={config.paleta_id}
       colorPrimarioOverride={config.color_primario_override}
       themeDefault={themeDefault ?? undefined}
+      className={adminHidden || previewMode ? "dashboard-scope--reader" : "dashboard-scope--editor"}
     >
       {adminHidden || previewMode ? (
         previewMode && !adminHidden ? (
@@ -133,63 +154,67 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
           </button>
         ) : null
       ) : (
-        <div className="dash-admin-toolbar-wrap">
-          <div className="dash-admin-toolbar" role="toolbar" aria-label="Edición del dashboard">
-            <button
-              type="button"
-              disabled={!manifest}
-              className={sourceOpen ? "is-active" : ""}
-              onClick={() => setSourceOpen((v) => !v)}
-              title="Cambiar XLSForm y data del dashboard"
-            >
-              <UploadCloud size={13} /> Datos
-            </button>
-            <button
-              type="button"
-              disabled={!hasDashboardSource}
-              onClick={() => setPalettesOpen(true)}
-              title="Paletas de colores por lista"
-            >
-              <Palette size={13} /> Paletas
-            </button>
-            <button
-              type="button"
-              disabled={!hasDashboardSource}
-              onClick={() => setCustomizeOpen(true)}
-              title="Personalizar marca, pestañas y vistas"
-            >
-              <Settings size={13} /> Personalizar
-            </button>
+        <div className="dash-admin-toolbar-wrap dash-editor-commandbar-wrap">
+          <div className="dash-admin-toolbar dash-editor-commandbar" role="toolbar" aria-label="Edición del dashboard">
+            <div className="dash-admin-toolbar-group" aria-label="Fuente y diseño">
+              <button
+                type="button"
+                disabled={!manifest}
+                className={sourceOpen ? "is-active" : ""}
+                onClick={() => setSourceOpen((v) => !v)}
+                title="Cambiar XLSForm y data del dashboard"
+              >
+                <UploadCloud size={13} /> Datos
+              </button>
+              <button
+                type="button"
+                disabled={!hasDashboardSource}
+                onClick={() => setPalettesOpen(true)}
+                title="Paletas de colores por lista"
+              >
+                <Palette size={13} /> Paletas
+              </button>
+              <button
+                type="button"
+                disabled={!hasDashboardSource}
+                onClick={() => setCustomizeOpen(true)}
+                title="Personalizar marca, pestañas y vistas"
+              >
+                <Settings size={13} /> Personalizar
+              </button>
+            </div>
             <span className="dash-admin-toolbar-sep" aria-hidden="true" />
-            <button
-              type="button"
-              disabled={!hasDashboardSource}
-              onClick={() => setPreviewMode(true)}
-              title="Ver el dashboard como se verá publicado"
-            >
-              <Eye size={13} /> Vista previa
-            </button>
-            <button
-              type="button"
-              disabled={!hasDashboardSource}
-              onClick={() => setPublishOpen(true)}
-              title={
-                config.last_deploy
-                  ? `Re-publicar a ${config.last_deploy.repo_id}`
-                  : "Publicar el dashboard como Hugging Face Space"
-              }
-            >
-              <Rocket size={13} /> {config.last_deploy ? "Re-publicar" : "Deploy"}
-            </button>
+            <div className="dash-admin-toolbar-group" aria-label="Previsualización y publicación">
+              <button
+                type="button"
+                disabled={!hasDashboardSource}
+                onClick={() => setPreviewMode(true)}
+                title="Ver el dashboard como se verá publicado"
+              >
+                <Eye size={13} /> Vista previa
+              </button>
+              <button
+                type="button"
+                disabled={!hasDashboardSource}
+                onClick={() => setPublishOpen(true)}
+                title={
+                  config.last_deploy
+                    ? `Re-publicar a ${config.last_deploy.repo_id}`
+                    : "Publicar el dashboard como Hugging Face Space"
+                }
+              >
+                <Rocket size={13} /> {config.last_deploy ? "Re-publicar" : "Deploy"}
+              </button>
+            </div>
           </div>
           {config.last_deploy && (
             <div className="dash-admin-toolbar-deploy-info">
               Última publicación{" "}
               <a
-                href={config.last_deploy.app_url}
+                href={config.last_deploy.url || config.last_deploy.app_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Abrir en una pestaña nueva"
+                title="Abrir Space en Hugging Face"
               >
                 {config.last_deploy.repo_id}
               </a>
@@ -250,7 +275,10 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
 
       {manifest && manifest.estado.tiene_data && !sourceOpen && (manifest.estado.curacion_confirmed || adminHidden) && (
         <>
-          <nav aria-label="Pestañas del dashboard" className="dash-tab-nav-wrap">
+          <nav
+            aria-label="Secciones del dashboard"
+            className={`dash-tab-nav-wrap dash-section-rail ${editorChromeVisible ? "is-editor" : "is-public"}`}
+          >
             <TabNav
               tabs={visibleTabs}
               activeId={tabActiva}
@@ -268,7 +296,14 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
             </div>
           )}
 
-          <TabContent tab={tabActiva} />
+          <section
+            id={`dash-section-${tabActiva}`}
+            className="dash-section-workspace"
+            role="tabpanel"
+            aria-labelledby={`dash-tab-${tabActiva}`}
+          >
+            <TabContent tab={tabActiva} />
+          </section>
         </>
       )}
 
@@ -318,23 +353,49 @@ function TabNav({
   }, [activeId, tabs]);
 
   return (
-    <div className="dash-tab-nav" ref={navRef}>
+    <div className="dash-tab-nav" ref={navRef} role="tablist" aria-orientation="horizontal">
       {tabs.map((t) => (
-        <button
+        <DashboardSectionTab
           key={t.id}
-          type="button"
-          className={`dash-tab ${t.id === activeId ? "is-active" : ""}`}
-          disabled={!t.available}
-          aria-label={!t.available && t.reason ? `${t.label}. ${t.reason}` : t.label}
-          data-audit-tab={t.id}
-          data-audit-disabled-reason={!t.available ? t.reason ?? "No disponible" : undefined}
-          title={!t.available ? t.reason ?? undefined : t.label}
-          onClick={() => onSelect(t.id)}
-        >
-          {t.label}
-        </button>
+          tab={t}
+          active={t.id === activeId}
+          onSelect={onSelect}
+        />
       ))}
     </div>
+  );
+}
+
+function DashboardSectionTab({
+  tab,
+  active,
+  onSelect,
+}: {
+  tab: { id: DashboardTabId; label: string; available: boolean; reason: string | null };
+  active: boolean;
+  onSelect: (id: DashboardTabId) => void;
+}) {
+  const Icon = DASHBOARD_SECTION_ICONS[tab.id];
+  return (
+    <button
+      id={`dash-tab-${tab.id}`}
+      type="button"
+      role="tab"
+      className={`dash-tab ${active ? "is-active" : ""}`}
+      disabled={!tab.available}
+      aria-selected={active}
+      aria-controls={`dash-section-${tab.id}`}
+      aria-label={!tab.available && tab.reason ? `${tab.label}. ${tab.reason}` : tab.label}
+      data-audit-tab={tab.id}
+      data-audit-disabled-reason={!tab.available ? tab.reason ?? "No disponible" : undefined}
+      title={!tab.available ? tab.reason ?? undefined : tab.label}
+      onClick={() => onSelect(tab.id)}
+    >
+      <span className="dash-tab-icon" aria-hidden="true">
+        <Icon size={14} strokeWidth={2.25} />
+      </span>
+      <span className="dash-tab-label">{tab.label}</span>
+    </button>
   );
 }
 
