@@ -30,12 +30,14 @@ export function ThemeProvider({
   colorPrimarioOverride,
   paletaColors,
   themeDefault,
+  className,
 }: {
   children: ReactNode;
   paletaId: string | null;
   colorPrimarioOverride: string | null;
   paletaColors?: string[];
   themeDefault?: DashboardThemeDefault;
+  className?: string;
 }) {
   const theme = deriveDashboardTheme({
     paletaId,
@@ -63,7 +65,7 @@ export function ThemeProvider({
   };
 
   return (
-    <div className="dashboard-scope" style={style}>
+    <div className={["dashboard-scope", className].filter(Boolean).join(" ")} style={style}>
       {children}
     </div>
   );

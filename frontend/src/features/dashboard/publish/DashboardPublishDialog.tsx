@@ -267,10 +267,10 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
             <CheckCircle2 size={18} />
             <div>
               <strong>{result.repo_id}</strong>
-              <span>HF ya recibió el Space. El dashboard aparecerá cuando termine el build.</span>
+              <span>HF ya recibió el Space. Abre Hugging Face para ver el build.</span>
             </div>
-            <button type="button" onClick={() => openUrl(result.app_url)}>
-              <ExternalLink size={13} /> Abrir
+            <button type="button" onClick={() => openUrl(result.url || result.app_url)}>
+              <ExternalLink size={13} /> Abrir en HF
             </button>
           </div>
         )}
