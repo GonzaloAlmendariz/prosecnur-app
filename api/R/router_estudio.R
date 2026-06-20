@@ -224,7 +224,7 @@
     "analitica_bases_data_ok", "analitica_bases_instrumento_ok",
     "analitica_bases_sav_ok", "analitica_bases_csv_ok",
     "analitica_bases_xlsx_ok",
-    "analitica_enumeradores_ok", "analitica_multibase_ok"
+    "analitica_enumeradores_ok", "analitica_multibase_ok", "analitica_panel_ok"
   ), function(k) isTRUE(analitica_status[[k]]), logical(1)))
   graficos_done <- any(vapply(c("graficos_ppt_ok", "graficos_word_ok"), function(k) {
     isTRUE(graficos_status[[k]])

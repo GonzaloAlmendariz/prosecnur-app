@@ -2353,6 +2353,22 @@ test_that("monitoreo territorial resuelve manzanas por id, cero operativo y fall
   expect_false(any(resolved$geometry_unresolved))
 })
 
+test_that("monitoreo territorial separa GPS ausente de cruce territorial ausente", {
+  data <- data.frame(
+    `_geolocation` = c("-12.1 -77.0", ""),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  tcfg <- monitoreo_territorial_default_config(data)
+  geo <- .monitoreo_territorial_geo_status(data, tcfg, c("", ""), context = list(blocks = list()))
+
+  expect_equal(geo$geo_estado[[1]], "geo_sin_cruce")
+  expect_true(isTRUE(geo$gps_parseable[[1]]))
+  expect_equal(geo$geometry_match[[1]], "route_context_missing")
+  expect_equal(geo$geo_estado[[2]], "geo_sin_gps")
+  expect_false(isTRUE(geo$gps_parseable[[2]]))
+})
+
 test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   data <- data.frame(
     `Core/M5_district` = c("sjm", "sjm", "sjm", "vmt"),
@@ -2395,6 +2411,115 @@ test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   expect_equal(length(report$map$points), 4L)
   expect_equal(report$map$points[[1]]$lat, -12.1)
   expect_equal(report$map$points[[1]]$geo_estado, "geo_ok")
+})
+
+test_that("monitoreo territorial full conserva auditoria completa para publicacion", {
+  n <- 505L
+  end_time <- as.POSIXct("2026-06-13 15:00:00", tz = "UTC") + seq_len(n) * 60
+  start_time <- end_time - 600
+  data <- data.frame(
+    `Core/M5_district` = rep("sjm", n),
+    `_geolocation` = rep("-12.1 -77.0", n),
+    consent = rep("1", n),
+    `Core/E1_age` = rep(25, n),
+    `_status` = rep("submitted_via_web", n),
+    `_uuid` = sprintf("bulk-%03d", seq_len(n)),
+    `_submitted_by` = rep("enc1", n),
+    start = format(start_time, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    end = format(end_time, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(monitoreo_profile = list(family = "territorial", status = "active")), data)
+  context <- list(
+    phase = "pilot",
+    blocks = list(list(id_manzana = "150133001001", ubigeo = "150133", distrito = "SAN JUAN DE MIRAFLORES", zona = "001", manzana = "001", entrevistas = 2)),
+    geo_results = data.frame(
+      lat = rep(-12.1, n),
+      lon = rep(-77, n),
+      gps_parseable = rep(TRUE, n),
+      geo_estado = rep("geo_ok", n),
+      distance_m = rep(0, n),
+      nearest_block_id = rep("150133001001", n),
+      nearest_block_type = rep("titular", n),
+      geometry_match = rep("inside_selected_block", n),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  report <- monitoreo_territorial_reportes(data, cfg, context, report_scope = "full")
+  audit <- .monitoreo_workbook_df(report$response_audit)
+  expect_equal(nrow(audit), n)
+  expect_true("bulk-505" %in% audit$response_id)
+
+  report$config <- cfg
+  master <- .monitoreo_publication_territorial_master_df(data, report)
+  expect_equal(nrow(master), n)
+  expect_equal(master$UUID[[1]], "bulk-505")
+})
+
+test_that("publicaciones territoriales operativas excluyen sin cruce territorial", {
+  data <- data.frame(
+    `_uuid` = c("valid-gps", "sin-cruce"),
+    `_geolocation` = c("", "-12.1 -77.0"),
+    `Core/E1_age` = c(25, 26),
+    `Core/E2_sex` = c("hombre", "mujer"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  audit <- data.frame(
+    row_index = 1:2,
+    response_id = c("valid-gps", "sin-cruce"),
+    submission_date = c("1 Junio", "1 Junio"),
+    submission_hour = c("10:00am", "10:05am"),
+    declared_ump_raw = c("81", "82"),
+    advance_block_ump = c("81", "82"),
+    advance_block_manzana = c("0150", "0160"),
+    advance_block_distrito = c("SAN JUAN DE LURIGANCHO", "SAN JUAN DE LURIGANCHO"),
+    distrito = c("SAN JUAN DE LURIGANCHO", "SAN JUAN DE LURIGANCHO"),
+    responsible_display = c("P842 · Persona A", "P842 · Persona A"),
+    pulso_code = c("P842", "P842"),
+    sex = c("Hombre", "Mujer"),
+    age = c(25, 26),
+    duration_seconds = c(600, 600),
+    duration_status = c("normal", "normal"),
+    duration_operational_status = c("normal", "normal"),
+    advance_valid = c(TRUE, FALSE),
+    source_effective = c(TRUE, FALSE),
+    validation_status = c("revision", "no_defendible"),
+    observation_status = c("en_observacion", "no_valida"),
+    geo_estado = c("geo_sin_gps", "geo_sin_cruce"),
+    gps_parseable = c(FALSE, TRUE),
+    lat = c(NA, -12.1),
+    lon = c(NA, -77),
+    distance_m = c(NA, NA),
+    issues = c("gps_sin_gps", "gps_sin_cruce"),
+    stringsAsFactors = FALSE
+  )
+  reports <- list(
+    response_audit = .monitoreo_df_records(audit),
+    internal_queries = list(
+      review_cases = .monitoreo_df_records(audit),
+      far_gps = .monitoreo_df_records(audit),
+      duration_review = list()
+    ),
+    route_blocks = list(),
+    config = list(territorial = list())
+  )
+
+  master <- .monitoreo_publication_territorial_master_df(data, reports)
+  gps <- .monitoreo_publication_gps_df(reports, audience = "internal")
+  cases <- .monitoreo_publication_action_cases_df(reports, audience = "internal")
+  operational_text <- paste(
+    unlist(master, use.names = FALSE),
+    unlist(gps, use.names = FALSE),
+    unlist(cases, use.names = FALSE),
+    collapse = "\n"
+  )
+
+  expect_true(grepl("valid-gps", operational_text, fixed = TRUE))
+  expect_false(grepl("sin-cruce", operational_text, fixed = TRUE))
+  expect_false(grepl("Sin cruce territorial|gps_sin_cruce", operational_text))
 })
 
 test_that("monitoreo territorial recupera sexo y edad desde rutas alternativas", {
@@ -2458,6 +2583,52 @@ test_that("monitoreo territorial recupera sexo y edad desde rutas alternativas",
   master_by_uuid <- master[match(c("sex-age-a", "sex-age-b"), master$UUID), , drop = FALSE]
   expect_equal(master_by_uuid$Edad, c(35, 42))
   expect_equal(master_by_uuid$Sexo, c("Hombre", "Mujer"))
+})
+
+test_that("tabla maestra territorial publica solo respuestas validas", {
+  data <- data.frame(
+    `formhub/uuid` = c("valid-master-uuid", "invalid-master-uuid"),
+    `Core/E1_age` = c(34, ""),
+    `Core/E2_sex` = c("1", ""),
+    gps_inicio = c("-12.1 -77.1 0 5", "-12.2 -77.2 0 5"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  audit <- data.frame(
+    row_index = c(1L, 2L),
+    response_id = c("valid-master-id", "invalid-master-id"),
+    responsible_display = c("P001 · Ana Perez", "P002 · Luis Perez"),
+    distrito = c("SAN JUAN DE MIRAFLORES", "SAN JUAN DE MIRAFLORES"),
+    advance_block_ump = c("1", "1"),
+    advance_block_manzana = c("001", "001"),
+    submission_time = c("2026-06-19T09:00:00-05:00", "2026-06-19T10:00:00-05:00"),
+    submission_date = c("19 Junio", "19 Junio"),
+    submission_hour = c("09:00am", "10:00am"),
+    age = c(34, NA_real_),
+    sex = c("1", ""),
+    duration_seconds = c(600, 500),
+    duration_status = c("normal", "normal"),
+    advance_valid = c(TRUE, FALSE),
+    geo_estado = c("geo_ok", "geo_ok"),
+    lat = c(-12.1, -12.2),
+    lon = c(-77.1, -77.2),
+    issues = c("", "consentimiento_no"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  master <- .monitoreo_publication_territorial_master_df(
+    data,
+    list(
+      response_audit = .monitoreo_df_records(audit),
+      config = list(territorial = list())
+    )
+  )
+
+  expect_equal(nrow(master), 1L)
+  expect_equal(master$UUID[[1]], "valid-master-uuid")
+  expect_false("invalid-master-uuid" %in% master$UUID)
+  expect_false(any(master$Sexo == "Sin dato", na.rm = TRUE))
+  expect_false(any(is.na(master$Edad)))
 })
 
 test_that("monitoreo territorial cuenta avance UMP por declaracion y no por GPS", {
@@ -3217,6 +3388,24 @@ test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
         hoja_num = 9,
         orden_seleccion = 9,
         entrevistas = 4
+      ),
+      list(
+        id_manzana = "150103002004",
+        ubigeo = "150103",
+        distrito = "ATE",
+        zona = "002",
+        manzana = "004",
+        hoja_num = 10,
+        orden_seleccion = 10,
+        entrevistas = 4
+      )
+    ),
+    reports = list(
+	      route_quota_progress = list(
+	        blocks = list(
+	          list(distrito = "ATE", ump = "9", manzana = "003", validas = 4L, target = 4L, estado_cuota = "Completa", last_record = "2026-06-09"),
+	          list(distrito = "ATE", ump = "10", manzana = "004", validas = 2L, target = 4L, estado_cuota = "Cuota pendiente", last_record = "2026-06-17")
+	        )
       )
     )
   )
@@ -3234,7 +3423,7 @@ test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
   expect_equal(report$records[[1]]$manzana, "001")
   expect_equal(report$records[[1]]$manzana_key, "m0001")
   expect_equal(length(report$alerts$outside_route), 0L)
-  expect_equal(length(report$by_ump), 3L)
+  expect_equal(length(report$by_ump), 4L)
   expect_equal(report$by_ump[[1]]$ump, "7")
   expect_equal(report$by_ump[[1]]$manzana, "001")
   expect_equal(report$by_ump[[1]]$responsable, "Ana Campo")
@@ -3250,7 +3439,14 @@ test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
   expect_true(by_ump[["8"]]$has_report)
   expect_equal(by_ump[["8"]]$estado_consolidado, "reportada_efectiva")
   expect_false(by_ump[["9"]]$has_report)
-  expect_equal(by_ump[["9"]]$estado_consolidado, "sin_reporte")
+  expect_equal(by_ump[["9"]]$estado_consolidado, "completa_sin_reporte")
+  expect_equal(by_ump[["9"]]$avance_validas, 4L)
+  expect_true(by_ump[["9"]]$avance_completa)
+  expect_false(by_ump[["10"]]$has_report)
+  expect_equal(by_ump[["10"]]$estado_consolidado, "incompleta_sin_reporte")
+  expect_equal(by_ump[["10"]]$avance_validas, 2L)
+  expect_false(by_ump[["10"]]$avance_completa)
+  expect_equal(length(report$alerts$started_missing_ump), 2L)
   ump_outcomes <- stats::setNames(
     vapply(report$by_ump[[1]]$outcomes, function(item) as.integer(item$total %||% 0L), integer(1)),
     vapply(report$by_ump[[1]]$outcomes, function(item) as.character(item$key %||% ""), character(1))
@@ -3262,8 +3458,12 @@ test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
   expect_equal(by_district[["SAN JUAN DE MIRAFLORES"]]$ump_sin_reporte, 0L)
   expect_equal(by_district[["SAN JUAN DE MIRAFLORES"]]$motivo_principal, "No quería participar")
   expect_equal(by_district[["ATE"]]$ump_reportadas, 1L)
-  expect_equal(by_district[["ATE"]]$ump_sin_reporte, 1L)
-  expect_equal(by_district[["ATE"]]$efectivas, 4L)
+  expect_equal(by_district[["ATE"]]$ump_sin_reporte, 2L)
+	  expect_equal(by_district[["ATE"]]$ump_completas_sin_reporte, 1L)
+	  expect_equal(by_district[["ATE"]]$ump_incompletas_sin_reporte, 1L)
+	  expect_equal(by_district[["ATE"]]$validas_sin_reporte, 6L)
+	  expect_equal(by_district[["ATE"]]$ultimo_ingreso_sin_reporte, "17 Junio")
+	  expect_equal(by_district[["ATE"]]$efectivas, 4L)
 
   published <- .monitoreo_publication_occurrences_df(list(field_occurrences = report), "internal")
   published_text <- paste(unlist(published, use.names = FALSE), collapse = "\n")
@@ -3275,7 +3475,14 @@ test_that("monitoreo ocurrencias cruza UMP y codigo Pulso desde grupos Kobo", {
   expect_true(any(published$Bloque == "Resumen por distrito", na.rm = TRUE))
   expect_true(grepl("No quería participar", published_text, fixed = TRUE))
   expect_true(grepl("Reportada no efectiva", published_text, fixed = TRUE))
-  expect_true(grepl("SAN JUAN DE MIRAFLORES", published_text, fixed = TRUE))
+	  expect_true(grepl("Completa sin reporte", published_text, fixed = TRUE))
+	  expect_true(grepl("Incompleta sin reporte", published_text, fixed = TRUE))
+	  expect_true("Válidas avance" %in% names(published))
+	  expect_true("Último ingreso sin reporte" %in% names(published))
+	  expect_true(grepl("4/4 válidas", published_text, fixed = TRUE))
+	  expect_true(grepl("2/4 válidas", published_text, fixed = TRUE))
+	  expect_true(grepl("último ingreso 17 Junio", published_text, fixed = TRUE))
+	  expect_true(grepl("SAN JUAN DE MIRAFLORES", published_text, fixed = TRUE))
   summary_rows <- published[published$Bloque == "Resumen de ocurrencias", , drop = FALSE]
   report_row <- summary_rows[summary_rows$Indicador == "Reportes", , drop = FALSE]
   expect_equal(suppressWarnings(as.numeric(report_row$Valor[[1]])), 3)
@@ -4060,7 +4267,7 @@ test_that("monitoreo territorial normaliza tiempo visible a tres estados operati
   )
 })
 
-test_that("monitoreo territorial visto bueno aprueba observacion sin cambiar avance", {
+test_that("monitoreo territorial ignora vistos buenos heredados como aprobacion manual", {
   data <- data.frame(
     `Core/M5_district` = c("sjm", "sjm"),
     `_geolocation` = c("-12.2 -77.2", "-12.1 -77.0"),
@@ -4102,11 +4309,11 @@ test_that("monitoreo territorial visto bueno aprueba observacion sin cambiar ava
   audit <- .monitoreo_territorial_rows_df(report$response_audit)
   approved <- audit[audit$response_id == "gps-lejos", , drop = FALSE]
   expect_equal(report$advance$validas, 2L)
-  expect_equal(report$advance$observacion, 0L)
-  expect_equal(report$advance$observacion_aprobada, 1L)
-  expect_equal(approved$observation_status[[1]], "aprobada")
-  expect_equal(approved$validation_decision[[1]], "visto_bueno")
-  expect_equal(approved$validation_status[[1]], "validada")
+  expect_equal(report$advance$observacion, 1L)
+  expect_equal(report$advance$observacion_aprobada, 0L)
+  expect_equal(approved$observation_status[[1]], "en_observacion")
+  expect_equal(approved$validation_decision[[1]], "")
+  expect_equal(approved$validation_status[[1]], "revision")
   expect_equal(audit$observation_status[audit$response_id == "tiempo-largo"], "sin_observacion")
   expect_equal(audit$duration_status[audit$response_id == "tiempo-largo"], "larga")
   expect_equal(audit$duration_operational_label[audit$response_id == "tiempo-largo"], "Normal")
@@ -4239,6 +4446,229 @@ test_that("monitoreo territorial expone payload operativo de Hojas de Ruta", {
   expect_equal(age_achieved[["18-29"]], 1L)
 })
 
+test_that("reconciliacion espacial UMP sugiere solo divergencias auditables", {
+  blocks <- data.frame(
+    id_manzana = c("B1", "B2"),
+    ump = c("1", "2"),
+    distrito = c("ATE", "ATE"),
+    ubigeo = c("150103", "150103"),
+    zona = c("001", "002"),
+    manzana = c("0100", "0200"),
+    tipo_manzana = c("titular", "titular"),
+    responsable = c("P1 - Ana", "P1 - Ana"),
+    entrevistas = c(8L, 8L),
+    stringsAsFactors = FALSE
+  )
+  base_audit <- data.frame(
+    response_id = "r1",
+    row_index = 1L,
+    declared_ump_raw = "1",
+    declared_ump_normalized = "1",
+    advance_block_id = "B1",
+    advance_block_ump = "1",
+    advance_block_distrito = "ATE",
+    advance_block_ubigeo = "150103",
+    advance_block_zona = "001",
+    advance_block_manzana = "0100",
+    nearest_block_id = "B2",
+    distance_m = 24,
+    responsible_display = "P1 - Ana",
+    advance_valid = TRUE,
+    gps_parseable = TRUE,
+    geo_estado = "geo_ok",
+    stringsAsFactors = FALSE
+  )
+  quota <- list(blocks = list(
+    list(id_manzana = "B1", target = 8L, validas = 7L, status = "pending"),
+    list(id_manzana = "B2", target = 8L, validas = 7L, status = "pending")
+  ))
+  tcfg <- monitoreo_territorial_default_config(data.frame())
+  tcfg$active_route_phase <- "field"
+
+  same_audit <- base_audit
+  same_audit$nearest_block_id <- "B1"
+  same_payload <- .monitoreo_territorial_spatial_reconciliation_payload(same_audit, blocks, quota, tcfg, phase = "field")
+  expect_length(same_payload$candidates, 0L)
+
+  payload <- .monitoreo_territorial_spatial_reconciliation_payload(base_audit, blocks, quota, tcfg, phase = "field")
+  expect_length(payload$candidates, 1L)
+  expect_equal(payload$candidates[[1]]$target_block_id, "B2")
+  expect_true(payload$candidates[[1]]$responsible_match)
+  expect_true(payload$candidates[[1]]$impact$target$would_complete_quota)
+  expect_equal(payload$patterns[[1]]$count, 1L)
+  pattern_json <- as.character(jsonlite::toJSON(payload$patterns[[1]], auto_unbox = TRUE, null = "null"))
+  expect_match(pattern_json, '"candidate_ids":\\["spatial:field:r1"\\]', fixed = FALSE)
+})
+
+test_that("parser multi-GPS conserva altitud y precision sin inventar coordenadas", {
+  raw <- .monitoreo_territorial_parse_gps_cell("-12.1000 -77.2000 123 15")
+  expect_equal(raw[["lat"]], -12.1)
+  expect_equal(raw[["lon"]], -77.2)
+  expect_equal(raw[["altitude"]], 123)
+  expect_equal(raw[["accuracy_m"]], 15)
+
+  json <- .monitoreo_territorial_parse_gps_cell("[-12.2, -77.3, 98, 8]")
+  expect_equal(json[["lat"]], -12.2)
+  expect_equal(json[["lon"]], -77.3)
+  expect_equal(json[["altitude"]], 98)
+  expect_equal(json[["accuracy_m"]], 8)
+
+  null_gps <- .monitoreo_territorial_parse_gps_cell("[null, null]")
+  expect_true(is.na(null_gps[["lat"]]))
+  expect_true(is.na(null_gps[["lon"]]))
+})
+
+test_that("seleccion de GPS efectivo exige precision y mejora severidad o distancia", {
+  expect_true(.monitoreo_territorial_geo_alternate_improves(
+    "geo_revision", 240, "geo_cerca", 70, 35
+  ))
+  expect_false(.monitoreo_territorial_geo_alternate_improves(
+    "geo_revision", 240, "geo_cerca", 70, 120
+  ))
+  expect_true(.monitoreo_territorial_geo_alternate_improves(
+    "geo_revision", 240, "geo_revision", 90, 40
+  ))
+  expect_false(.monitoreo_territorial_geo_alternate_improves(
+    "geo_revision", 90, "geo_revision", 240, 40
+  ))
+  expect_true(.monitoreo_territorial_geo_alternate_improves(
+    "geo_no_defendible", 780, "geo_revision", 260, 75
+  ))
+})
+
+test_that("reconciliacion espacial UMP penaliza responsable distinto sin ocultar evidencia GPS fuerte", {
+  blocks_match <- data.frame(
+    id_manzana = c("B1", "B2"),
+    ump = c("1", "2"),
+    distrito = c("ATE", "ATE"),
+    ubigeo = c("150103", "150103"),
+    zona = c("001", "002"),
+    manzana = c("0100", "0200"),
+    tipo_manzana = c("titular", "titular"),
+    responsable = c("P1 - Ana", "P1 - Ana"),
+    entrevistas = c(8L, 8L),
+    stringsAsFactors = FALSE
+  )
+  blocks_diff <- blocks_match
+  blocks_diff$responsable[[2]] <- "P2 - Luis"
+  audit <- data.frame(
+    response_id = "r2",
+    row_index = 2L,
+    declared_ump_raw = "1",
+    declared_ump_normalized = "1",
+    advance_block_id = "B1",
+    advance_block_ump = "1",
+    advance_block_distrito = "ATE",
+    advance_block_ubigeo = "150103",
+    nearest_block_id = "B2",
+    distance_m = 18,
+    responsible_display = "P1 - Ana",
+    advance_valid = TRUE,
+    gps_parseable = TRUE,
+    geo_estado = "geo_ok",
+    stringsAsFactors = FALSE
+  )
+  quota <- list(blocks = list(
+    list(id_manzana = "B1", target = 8L, validas = 5L, status = "pending"),
+    list(id_manzana = "B2", target = 8L, validas = 7L, status = "pending")
+  ))
+  tcfg <- monitoreo_territorial_default_config(data.frame())
+  tcfg$active_route_phase <- "field"
+
+  match_payload <- .monitoreo_territorial_spatial_reconciliation_payload(audit, blocks_match, quota, tcfg, phase = "field")
+  diff_payload <- .monitoreo_territorial_spatial_reconciliation_payload(audit, blocks_diff, quota, tcfg, phase = "field")
+
+  expect_length(match_payload$candidates, 1L)
+  expect_length(diff_payload$candidates, 1L)
+  expect_lt(diff_payload$candidates[[1]]$score, match_payload$candidates[[1]]$score)
+  expect_false(diff_payload$candidates[[1]]$responsible_match)
+})
+
+test_that("reconciliacion espacial UMP respeta descartes de caso y patron con hash de evidencia", {
+  blocks <- data.frame(
+    id_manzana = c("B1", "B2"),
+    ump = c("1", "2"),
+    distrito = c("ATE", "ATE"),
+    ubigeo = c("150103", "150103"),
+    zona = c("001", "002"),
+    manzana = c("0100", "0200"),
+    tipo_manzana = c("titular", "titular"),
+    responsable = c("P1 - Ana", "P1 - Ana"),
+    entrevistas = c(8L, 8L),
+    stringsAsFactors = FALSE
+  )
+  audit <- data.frame(
+    response_id = c("r3", "r4"),
+    row_index = c(3L, 4L),
+    declared_ump_raw = c("1", "1"),
+    declared_ump_normalized = c("1", "1"),
+    advance_block_id = c("B1", "B1"),
+    advance_block_ump = c("1", "1"),
+    advance_block_distrito = c("ATE", "ATE"),
+    advance_block_ubigeo = c("150103", "150103"),
+    nearest_block_id = c("B2", "B2"),
+    distance_m = c(18, 22),
+    responsible_display = c("P1 - Ana", "P1 - Ana"),
+    advance_valid = c(TRUE, TRUE),
+    gps_parseable = c(TRUE, TRUE),
+    geo_estado = c("geo_ok", "geo_ok"),
+    stringsAsFactors = FALSE
+  )
+  quota <- list(blocks = list(
+    list(id_manzana = "B1", target = 8L, validas = 5L, status = "pending"),
+    list(id_manzana = "B2", target = 8L, validas = 6L, status = "pending")
+  ))
+  tcfg <- monitoreo_territorial_default_config(data.frame())
+  tcfg$active_route_phase <- "field"
+  payload <- .monitoreo_territorial_spatial_reconciliation_payload(audit, blocks, quota, tcfg, phase = "field")
+  expect_length(payload$candidates, 2L)
+  expect_equal(payload$patterns[[1]]$count, 2L)
+
+  tcfg$spatial_reconciliation$field$dismissed_candidates <- list(list(
+    candidate_id = payload$candidates[[1]]$candidate_id,
+    evidence_hash = payload$candidates[[1]]$evidence_hash,
+    phase = "field"
+  ))
+  one_dismissed <- .monitoreo_territorial_spatial_reconciliation_payload(audit, blocks, quota, tcfg, phase = "field")
+  expect_length(one_dismissed$candidates, 1L)
+
+  tcfg$spatial_reconciliation$field$dismissed_candidates <- list()
+  tcfg$spatial_reconciliation$field$dismissed_patterns <- list(list(
+    pattern_key = payload$patterns[[1]]$pattern_key,
+    evidence_hash = payload$patterns[[1]]$evidence_hash,
+    phase = "field"
+  ))
+  pattern_dismissed <- .monitoreo_territorial_spatial_reconciliation_payload(audit, blocks, quota, tcfg, phase = "field")
+  expect_length(pattern_dismissed$candidates, 0L)
+
+  future_audit <- rbind(audit, transform(audit[1, , drop = FALSE], response_id = "r5", row_index = 5L))
+  future_payload <- .monitoreo_territorial_spatial_reconciliation_payload(future_audit, blocks, quota, tcfg, phase = "field")
+  expect_length(future_payload$candidates, 3L)
+})
+
+test_that("descartes de reconciliacion espacial persisten en config territorial normalizada", {
+  tcfg <- monitoreo_territorial_default_config(data.frame())
+  tcfg$active_route_phase <- "field"
+
+  dismissed_case <- .monitoreo_territorial_dismiss_spatial_reconciliation(
+    tcfg,
+    list(candidate_id = "spatial:field:r1", evidence_hash = "hash-1", phase = "field", reason = "no corresponde"),
+    scope = "candidate"
+  )
+  normalized_case <- monitoreo_territorial_normalize_config(dismissed_case$tcfg, data.frame())
+  expect_equal(normalized_case$spatial_reconciliation$field$dismissed_candidates[[1]]$candidate_id, "spatial:field:r1")
+  expect_equal(normalized_case$spatial_reconciliation$field$dismissed_candidates[[1]]$evidence_hash, "hash-1")
+
+  dismissed_pattern <- .monitoreo_territorial_dismiss_spatial_reconciliation(
+    normalized_case,
+    list(pattern_key = "spatial-pattern:field:p1:1:B2", evidence_hash = "hash-p", phase = "field"),
+    scope = "pattern"
+  )
+  normalized_pattern <- monitoreo_territorial_normalize_config(dismissed_pattern$tcfg, data.frame())
+  expect_equal(normalized_pattern$spatial_reconciliation$field$dismissed_patterns[[1]]$pattern_key, "spatial-pattern:field:p1:1:B2")
+  expect_equal(normalized_pattern$spatial_reconciliation$field$dismissed_patterns[[1]]$scope, "pattern")
+})
+
 test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", {
   demo <- monitoreo_demo_payload(seed = 17L, n = 18L)
   data <- demo$snapshot$data
@@ -4250,15 +4680,10 @@ test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", 
   internal_tabs <- monitoreo_publication_sheets_tabs(data, demo$config, audience = "internal")
 
   expect_equal(names(client_tabs), c(
-    "Portada", "Resumen ejecutivo", "Avance general", "Avance por actor",
-    "Avance diario", "Avance por segmento", "Cobertura y pendientes",
-    "Fuentes y actualización"
+    "Reporte", "Detalle del avance", "Corte y fuentes"
   ))
   expect_equal(names(internal_tabs), c(
-    "Portada", "Resumen operativo", "Avance general", "Avance por actor",
-    "Avance diario", "Avance por segmento", "Metas internas por actor", "Pendientes por actor",
-    "Control de seguimiento", "Fuentes y actualización",
-    "Auditoría técnica", "Base técnica"
+    "Resumen", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"
   ))
   expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(client_tabs)))
   expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(internal_tabs)))
@@ -4267,9 +4692,9 @@ test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", 
   expect_false(grepl("PHONE-SHEETS-SENTINEL|sheets-sentinel@example\\.test|RID-SHEETS-", client_text))
   expect_false(grepl("Acción sugerida|Recomendación|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", client_text))
 
-  internal_text <- paste(unlist(internal_tabs[["Base técnica"]], use.names = FALSE), collapse = " ")
-  expect_true(grepl("PHONE-SHEETS-SENTINEL", internal_text, fixed = TRUE))
-  expect_true(grepl("sheets-sentinel@example.test", internal_text, fixed = TRUE))
+  internal_text <- paste(unlist(internal_tabs, use.names = FALSE), collapse = " ")
+  expect_true(grepl("Seguimiento|Alertas|Corte y fuentes", paste(names(internal_tabs), collapse = " ")))
+  expect_false("Registros del corte" %in% names(internal_tabs))
 })
 
 test_that("modelo publicable de Monitoreo arma workbook operacional compartido", {
@@ -4325,6 +4750,18 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
     )),
     response_audit = .monitoreo_df_records(audit),
     map = list(points = .monitoreo_df_records(audit), alerts = list(list(code = "geometry_unresolved", message = "Geometría incompleta"))),
+    field_occurrences = list(rows = list(list(
+      fecha = "2026-06-18",
+      hora = "11:45",
+      distrito = "Distrito 1",
+      ump = "UMP-1",
+      manzana = "MZ-1",
+      responsable = "Ana Perez",
+      tipo_ocurrencia = "Seguimiento de campo",
+      severidad = "Media",
+      estado = "Registrada",
+      descripcion = "OCCURRENCE-SENTINEL desde consolidado de ocurrencias"
+    ))),
     internal_queries = list(review_cases = list(list(
       reason = "duracion_menor_1_min",
       type = "duration",
@@ -4367,7 +4804,7 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   )
   expect_equal(names(tabs), c(
     "Portada", "Tabla maestra", "Resumen territorial", "Ritmo diario", "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
-    "Validación de tiempos", "Ocurrencias de campo",
+    "Validación de tiempos", "Ocurrencias de campo", "Casos accionables",
     "GPS y territorio", "Auditoría técnica", "Base técnica"
   ))
   expect_false(any(startsWith(names(tabs), "Interno - ")))
@@ -4375,15 +4812,16 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   expect_equal(names(master), c(
     "Fecha", "Hora", "UMP", "Manzana", "Distrito", "Encuestador",
     "Sexo", "Edad", "Duración de tiempo", "Clasificación de tiempo",
-    "Clasificación de GPS", "Longitud", "Latitud", "Altitud", "UUID"
+    "Clasificación de GPS", "Fuente GPS", "Nota GPS", "Longitud", "Latitud", "Altitud", "UUID"
   ))
-  expect_equal(master$UUID[[1]], "UUID-SENTINEL-2")
-  expect_equal(master$UUID[[2]], "UUID-SENTINEL-1")
-  expect_equal(master$`Clasificación de tiempo`[[2]], "Muy corto")
-  expect_equal(master$`Clasificación de GPS`[[2]], "Lejos")
-  expect_equal(master$Sexo[[2]], "Hombre")
+  expect_equal(nrow(master), 1L)
+  expect_equal(master$UUID[[1]], "UUID-SENTINEL-1")
+  expect_false("UUID-SENTINEL-2" %in% master$UUID)
+  expect_equal(master$`Clasificación de tiempo`[[1]], "Muy corto")
+  expect_equal(master$`Clasificación de GPS`[[1]], "Fuera de distrito")
+  expect_equal(master$Sexo[[1]], "Hombre")
   master_header <- tabs[["Tabla maestra"]][[1]]
-  expect_true(all(c("Sexo", "Clasificación de tiempo", "Clasificación de GPS") %in% master_header))
+  expect_true(all(c("Sexo", "Clasificación de tiempo", "Clasificación de GPS", "Fuente GPS", "Nota GPS") %in% master_header))
   expect_true(all(match(c("Sexo", "Clasificación de tiempo", "Clasificación de GPS"), master_header) %in% .monitoreo_sheets_status_columns(master_header)))
   expect_equal(tabs[["Validación de tiempos"]][[1]][[1]], "Responsable")
 
@@ -4396,10 +4834,15 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   expect_true(any(responsables$Bloque == "Responsables observados por registros"))
   expect_true(any(responsables$Bloque == "Asignación planificada"))
   planned_assignment <- .monitoreo_publication_block_df(responsables, "Asignación planificada")
-  expect_true(all(c("UMP", "Responsable asignado", "Encuestas válidas", paste("Encuesta", 1:8)) %in% names(planned_assignment)))
+  expect_true(all(c("UMP", "Responsable asignado", "Encuestas válidas", paste("Encuesta", 1:15)) %in% names(planned_assignment)))
   expect_false("Encuestas extra" %in% names(planned_assignment))
+  expect_false(any(c("Reemplazos disponibles", "Fuente asignación") %in% names(planned_assignment)))
   expect_false("UMP asignadas" %in% names(planned_assignment))
   expect_false(any(grepl(" estado$", names(planned_assignment), ignore.case = TRUE)))
+  expect_equal(planned_assignment$`Encuesta 9`[planned_assignment$UMP == "UMP-4"], "Completa")
+  expect_equal(planned_assignment$`Encuesta 10`[planned_assignment$UMP == "UMP-4"], "")
+  expect_equal(planned_assignment$`Encuesta 1`[planned_assignment$UMP == "UMP-2"], "Pendiente")
+  expect_equal(planned_assignment$`Encuesta 9`[planned_assignment$UMP == "UMP-2"], "")
   expect_equal(
     planned_assignment$UMP,
     planned_assignment$UMP[order(.monitoreo_publication_ump_sort_number(planned_assignment$UMP), planned_assignment$UMP)]
@@ -4448,25 +4891,35 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   tiempo_labels <- tiempo_labels[nzchar(tiempo_labels)]
   expect_true(all(tiempo_labels %in% c("Normal", "Corto", "Muy corto")))
   expect_true(any(tiempos$Clasificación %in% c("Corto", "Muy corto")))
+  expect_false("RAW-ID-2" %in% tiempos$`ID caso`)
   expect_false("Regla aplicada" %in% names(tiempos))
 
   gps <- .monitoreo_publication_section_frame(model, "gps_territorio")
   expect_true(all(c("ID respuesta", "Estado GPS por respuesta", "Latitud", "Longitud") %in% names(gps)))
-  expect_true(any(gps$`Estado GPS por respuesta` == "Lejos", na.rm = TRUE))
-  expect_true(any(gps$`Estado GPS por respuesta` == "Sin GPS", na.rm = TRUE))
+  expect_gt(nrow(gps), 0L)
+  expect_true(any(gps$`Estado GPS por respuesta` == "Fuera de distrito", na.rm = TRUE))
+  expect_true(all(gps$`Estado GPS por respuesta` %in% c("En zona", "Fuera de zona", "Fuera de distrito", "Sin cruce territorial", "Sin GPS")))
+  expect_false("RAW-ID-2" %in% gps$`ID respuesta`)
   expect_false(any(c("Casos con GPS", "Casos sin GPS", "GPS sospechoso", "Fuera de zona") %in% names(gps)))
   expect_false("Acción sugerida" %in% names(tiempos))
-  expect_false("Acción sugerida" %in% names(.monitoreo_publication_section_frame(model, "casos_accionables")))
+  accionables <- .monitoreo_publication_section_frame(model, "casos_accionables")
+  expect_false("Acción sugerida" %in% names(accionables))
+  expect_false("RAW-ID-2" %in% accionables$`ID caso`)
+  ocurrencias_text <- paste(unlist(model$ocurrencias_campo$rows, use.names = FALSE), collapse = " ")
+  expect_true(grepl("OCCURRENCE-SENTINEL", ocurrencias_text, fixed = TRUE))
+  expect_false(grepl("RAW-ID-2", ocurrencias_text, fixed = TRUE))
 
   audit_text <- paste(unlist(model$auditoria_tecnica$rows, use.names = FALSE), collapse = " ")
   base_text <- paste(unlist(model$base_tecnica$rows, use.names = FALSE), collapse = " ")
   expect_true(grepl("UUID-SENTINEL-1", audit_text, fixed = TRUE))
+  expect_false(grepl("UUID-SENTINEL-2", audit_text, fixed = TRUE))
   expect_true(grepl("PHONE-MODEL-SENTINEL", base_text, fixed = TRUE))
+  expect_true(grepl("UUID-SENTINEL-2", base_text, fixed = TRUE))
 
   client_model <- monitoreo_publication_model(data, cfg, audience = "client", dashboard = dashboard)
   expect_equal(client_model$family, "territorial_fieldwork")
   expect_equal(client_model$tab_order, as.list(c(
-    "Portada", "Resumen de avance", "Avance por distrito", "Avance por UMP",
+    "Portada", "Resumen territorial", "Avance por distrito", "Avance por UMP",
     "Avance diario", "Avance por responsable", "Cuotas resumen",
     "Fuentes y actualización"
   )))
@@ -4479,6 +4932,47 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   client_text <- paste(unlist(client_model, use.names = FALSE), collapse = " ")
   expect_false(grepl("PHONE-MODEL-SENTINEL|UUID-SENTINEL-1|RAW-ID-1", client_text))
   expect_false(grepl("Acción sugerida|Recomendación|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", client_text))
+})
+
+test_that("clasificacion GPS publicada prioriza fuera de distrito con distancia extrema", {
+  route_blocks <- data.frame(
+    id_manzana = c("150103031000090", "15010300100390"),
+    ubigeo = c("150103", "150103"),
+    zona = c("03100", "00100"),
+    manzana = c("0090", "0390"),
+    stringsAsFactors = FALSE
+  )
+  row <- list(
+    geo_estado = "geo_no_defendible",
+    distance_m = 7866.5,
+    nearest_block_id = "15010300100390",
+    advance_block_id = "150103031000090",
+    advance_block_ubigeo = "150103",
+    advance_block_zona = "031"
+  )
+
+  far_band <- .monitoreo_publication_gps_row_band(row, "geo_no_defendible", row$distance_m, route_blocks)
+  expect_equal(far_band$label, "Fuera de distrito")
+  expect_match(far_band$detail, "distrito")
+
+  near_band <- .monitoreo_publication_gps_row_band(row, "geo_revision", 120, route_blocks)
+  expect_equal(near_band$label, "Fuera de zona")
+  expect_match(near_band$detail, "zona")
+
+  spatial_same_ump <- row
+  spatial_same_ump$spatial_ubigeo <- "150103"
+  spatial_same_ump$spatial_zona <- "03100"
+  spatial_same_ump$nearest_block_id <- "15010300100390"
+  spatial_band <- .monitoreo_publication_gps_row_band(spatial_same_ump, "geo_revision", 120, route_blocks)
+  expect_equal(spatial_band$label, "En zona")
+  expect_match(spatial_band$detail, "UMP")
+
+  spatial_other_district <- row
+  spatial_other_district$spatial_ubigeo <- "150128"
+  spatial_other_district$spatial_zona <- "00100"
+  district_band <- .monitoreo_publication_gps_row_band(spatial_other_district, "geo_revision", 120, route_blocks)
+  expect_equal(district_band$label, "Fuera de distrito")
+  expect_match(district_band$detail, "UMP")
 })
 
 test_that("detectores separan familia y audiencia sin inferencias riesgosas", {
@@ -4505,11 +4999,11 @@ test_that("modelo de acreditacion separa cliente progreso e interno operativo", 
   client_model <- monitoreo_publication_model(data, demo$config, audience = "client")
   expect_equal(client_model$family, "accreditation_monitoring")
   expect_equal(client_model$tab_order, as.list(c(
-    "Portada", "Resumen ejecutivo", "Avance general", "Avance por actor",
-    "Avance diario", "Avance por segmento", "Cobertura y pendientes",
-    "Fuentes y actualización"
+    "Portada", "Resumen del avance", "Vista general", "Avance por actor",
+    "Ritmo diario", "Avance por segmento", "Avance por canal",
+    "Pendientes por cubrir", "Corte y fuentes"
   )))
-  expect_true(all(c("resumen_ejecutivo", "avance_general", "avance_por_actor", "avance_diario", "avance_por_segmento", "cobertura_pendientes") %in% names(client_model)))
+  expect_true(all(c("resumen_ejecutivo", "avance_general", "avance_por_actor", "avance_diario", "avance_por_segmento", "avance_por_canal_fuente", "cobertura_pendientes") %in% names(client_model)))
   expect_false(any(c("pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(client_model)))
   client_actor_cols <- unlist(client_model$avance_por_actor$columns, use.names = FALSE)
   expect_true(all(c("Actor", "Universo", "Efectivas", "Pendientes", "% avance universo", "% cobertura", "Estado de avance") %in% client_actor_cols))
@@ -4529,7 +5023,7 @@ test_that("modelo de acreditacion separa cliente progreso e interno operativo", 
 
   internal_model <- monitoreo_publication_model(data, demo$config, audience = "internal")
   expect_equal(internal_model$family, "accreditation_monitoring")
-  expect_true(all(c("resumen_operativo", "metas_internas_actor", "pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(internal_model)))
+  expect_true(all(c("resumen_operativo", "avance_por_canal_recopilador", "metas_internas_actor", "pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(internal_model)))
   internal_actor_cols <- unlist(internal_model$avance_por_actor$columns, use.names = FALSE)
   expect_true(all(c("Mínimo/meta operativa", "% sobre mínimo", "Brecha contra mínimo", "Estado interno") %in% internal_actor_cols))
   expect_true("internal" %in% names(internal_model$accreditation_progress))
@@ -4640,14 +5134,14 @@ test_that("modelo de avance diario maneja vacios y desagrega territorial por dis
   expect_equal(missing_status$empty_state$status, "No hay estados normalizados disponibles.")
 
   terr <- data.frame(
-    submission_date_iso = c("2026-06-17", "2026-06-17", "2026-06-17", "2026-06-18"),
-    validation_status = c("no_defendible", "validada", "no_defendible", "validada"),
-    source_effective = c(TRUE, TRUE, FALSE, TRUE),
-    advance_valid = c(FALSE, TRUE, FALSE, TRUE),
-    distrito = c("ate", "ate", "sjl", "olivos"),
-    advance_block_ump = c("UMP-01", "UMP-01", "UMP-02", "UMP-03"),
-    responsable = c("Ana", "Ana", "-", "Bruno"),
-    pulso_code = c("P001", "P001", "", "P002"),
+    submission_date_iso = c("2026-06-17", "2026-06-18", "2026-06-17", "2026-06-18", "2026-06-17", "2026-06-17"),
+    validation_status = c("validada", "validada", "no_defendible", "validada", "validada", "validada"),
+    source_effective = c(TRUE, TRUE, FALSE, TRUE, TRUE, TRUE),
+    advance_valid = c(TRUE, TRUE, FALSE, TRUE, TRUE, TRUE),
+    distrito = c("ate", "ate", "sjl", "olivos", "ate", "ate"),
+    advance_block_ump = c("UMP-01", "UMP-01", "UMP-02", "UMP-03", "UMP-04", "UMP-04"),
+    responsable = c("Ana", "Ana", "-", "Bruno", "Carla", "Carla"),
+    pulso_code = c("P001", "P001", "", "P002", "P003", "P003"),
     stringsAsFactors = FALSE
   )
   terr_model <- build_daily_progress_model(
@@ -4655,15 +5149,16 @@ test_that("modelo de avance diario maneja vacios y desagrega territorial por dis
     list(monitoreo_profile = list(family = "territorial")),
     "territorial",
     frames = list(
-      avance_por_distrito = data.frame(Distrito = c("Ate", "San Juan de Lurigancho", "Los Olivos"), Meta = c(1L, 1L, 1L), check.names = FALSE),
-      avance_por_ump = data.frame(UMP = c("UMP-01", "UMP-02", "UMP-03"), Meta = c(1L, 1L, 1L), check.names = FALSE)
+      avance_por_distrito = data.frame(Distrito = c("Ate", "San Juan de Lurigancho", "Los Olivos"), Meta = c(2L, 1L, 1L), check.names = FALSE),
+      avance_por_ump = data.frame(UMP = c("UMP-01", "UMP-02", "UMP-03", "UMP-04"), Meta = c(2L, 2L, 1L, 2L), check.names = FALSE)
     ),
     reports = list(
-      kpis = list(meta = 3L),
+      kpis = list(meta = 4L),
       route_quota_progress = list(blocks = list(
-        list(distrito = "Ate", ump = "UMP-01", tipo_manzana = "titular"),
-        list(distrito = "San Juan de Lurigancho", ump = "UMP-02", tipo_manzana = "titular"),
-        list(distrito = "Los Olivos", ump = "UMP-03", tipo_manzana = "titular")
+        list(distrito = "Ate", ump = "UMP-01", tipo_manzana = "titular", status = "complete", target = 2L, validas = 2L),
+        list(distrito = "San Juan de Lurigancho", ump = "UMP-02", tipo_manzana = "titular", status = "pending", target = 2L, validas = 1L),
+        list(distrito = "Los Olivos", ump = "UMP-03", tipo_manzana = "titular", status = "complete", target = 1L, validas = 1L),
+        list(distrito = "Ate", ump = "UMP-04", tipo_manzana = "titular", status = "complete", target = 2L, validas = 2L)
       ))
     )
   )
@@ -4674,13 +5169,13 @@ test_that("modelo de avance diario maneja vacios y desagrega territorial por dis
   expect_true(isTRUE(terr_model$target_reference$configured))
   expect_equal(terr_model$target_reference$label, "Meta/cuota territorial")
   daily_ump <- .monitoreo_publication_records_df(terr_model$daily_effective)
-  expect_equal(as.integer(daily_ump$`Nuevas UMP efectivas`), c(1L, 1L))
+  expect_equal(as.integer(daily_ump$`Nuevas UMP efectivas`), c(1L, 2L))
   expect_equal(daily_ump$`Fecha etiqueta`, c("17 Junio", "18 Junio"))
   cumulative_ump <- .monitoreo_publication_records_df(terr_model$cumulative_effective)
-  expect_equal(as.integer(utils::tail(cumulative_ump$`UMP efectivas acumuladas`, 1L)), 2L)
-  expect_equal(as.integer(cumulative_ump$`Meta UMP`), c(3L, 3L))
+  expect_equal(as.integer(utils::tail(cumulative_ump$`UMP efectivas acumuladas`, 1L)), 3L)
+  expect_equal(as.integer(cumulative_ump$`Meta UMP`), c(4L, 4L))
   status_ump <- .monitoreo_publication_records_df(terr_model$by_date_status)
-  expect_equal(as.integer(status_ump$Casos[status_ump$Fecha == "2026-06-17" & status_ump$Estado == "Efectiva"]), 1L)
+  expect_equal(as.integer(status_ump$Casos[status_ump$Fecha == "2026-06-17" & status_ump$Estado == "Efectiva"]), 2L)
   expect_equal(as.integer(status_ump$Casos[status_ump$Fecha == "2026-06-17" & status_ump$Estado == "No efectiva"]), 1L)
   district_ump <- .monitoreo_publication_records_df(terr_model$by_date_district)
   expect_true("Ate" %in% district_ump$Distrito)
@@ -4690,6 +5185,7 @@ test_that("modelo de avance diario maneja vacios y desagrega territorial por dis
   expect_true(all(c("Encuestador", "Nuevas UMP efectivas", "UMP efectivas acumuladas") %in% names(responsible_ump)))
   expect_true(any(grepl("P001", responsible_ump$Encuestador, fixed = TRUE)))
   expect_true(any(grepl("P002", responsible_ump$Encuestador, fixed = TRUE)))
+  expect_true(any(grepl("P003", responsible_ump$Encuestador, fixed = TRUE)))
   expect_false("-" %in% responsible_ump$Encuestador)
 })
 

@@ -615,6 +615,7 @@ mount_sistema <- function(pr) {
         analitica_multibase_available = isTRUE(s$analitica_multibase_available) ||
           isTRUE(tryCatch(.analitica_multibase_available(sid), error = function(e) FALSE)),
         analitica_multibase_ok = isTRUE(s$analitica_multibase_ok),
+        analitica_panel_ok = isTRUE(s$analitica_panel_ok),
         analitica_fuente = s$analitica_fuente %||% NA_character_,
         analitica_fuente_detalle = list(
           actual = s$analitica_fuente %||% NA_character_,

@@ -2,13 +2,18 @@
 
 ## Estado
 
-Aceptado
+Aceptado; reemplazado para Monitoreo web por [ADR 0016](0016-monitoreo-solo-google-sheets.md)
 
 ## Fecha
 
 2026-06-18
 
 ## Contexto
+
+Nota de vigencia: esta decision conserva el criterio de separacion por
+audiencia, pero los canales web de Monitoreo fueron reemplazados por
+[ADR 0016](0016-monitoreo-solo-google-sheets.md). El contrato vigente no
+publica Monitoreo en Hugging Face; publica solo Google Sheets cliente e interno.
 
 Los monitoreos de acreditacion y territorial necesitan compartir cortes de
 avance con dos audiencias distintas. El cliente debe ver solo avance agregado,

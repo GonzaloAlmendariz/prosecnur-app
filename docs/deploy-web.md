@@ -1,22 +1,17 @@
 # Publicacion web en HF
 
-Este flujo publica artefactos separados en Hugging Face Spaces con SDK Docker.
-La app principal sigue siendo local: Prosecnur arma un snapshot temporal del
-`.pulso`, sube un runtime publico read-only y deja el Space sin login.
+Este flujo publica Dashboards en Hugging Face Spaces con SDK Docker. La app
+principal sigue siendo local: Prosecnur arma un snapshot temporal del `.pulso`,
+sube un runtime publico read-only y deja el Space sin login.
 
-Hay dos familias:
-
-- Dashboard: conserva el flujo existente y sirve el dashboard interactivo.
-- Monitoreo: publica visores por audiencia. Cliente recibe avance agregado;
-  interno recibe un visor privado con el corte operativo completo. El Space
-  contiene `data/proyecto.pulso`, un runtime R reducido y un HTML publico; no
-  sube el frontend ni los routers completos de la app local.
+Monitoreo no usa Hugging Face. Sus salidas vigentes son workbooks de Google
+Sheets cliente e interno publicados desde el modulo Monitoreo.
 
 ## Crear token de Hugging Face
 
 1. Entra a https://huggingface.co/settings/tokens.
 2. Crea un token con permiso `write`.
-3. En Prosecnur abre Dashboard -> Deploy o Monitoreo -> Publicaciones.
+3. En Prosecnur abre Dashboard -> Deploy.
 4. Elige el namespace destino, pega el token `hf_...` y define el nombre del
    Space.
 
@@ -46,23 +41,14 @@ si solo cambia `data/proyecto.pulso`.
 
 ## Publicar Monitoreo
 
-1. Sincroniza localmente el corte de Monitoreo.
-2. Abre el modulo Monitoreo y pulsa `Salidas`.
-3. Elige audiencia (`Cliente` o `Interno`) y canal (`Web` o `Sheets`).
-4. Para Web, usa un Space distinto por reporte/audiencia, por ejemplo
-   `acnur-avance-territorial-cliente` y `acnur-avance-territorial-interno`.
-5. Publica. Para actualizar el corte, vuelve a publicar al mismo Space.
+Monitoreo se publica desde `Monitoreo -> Salidas` exclusivamente a Google
+Sheets:
 
-El Space de Monitoreo no sincroniza Kobo ni Sheets. Cliente solo lee el payload
-agregado embebido en el `.pulso` publicado:
+- `Cliente / Sheets`: avance agregado para acreditacion o territorial.
+- `Interno / Sheets`: workbook operativo con confirmacion manual.
 
-- acreditacion: resumen, avance por actor, brechas/meta, avance diario y
-  fuentes agregadas;
-- territorial: KPIs, avance por distrito, brechas, avance diario y fase activa.
-
-La vista interna exige Space privado y confirmacion manual. Puede contener
-datos personales, GPS puntual, identificadores, alertas, auditoria y casos
-accionables; por eso no debe publicarse en un Space publico.
+Cuando exista monitoreo telefonico, debe agregarse como otra familia de tablas
+Sheets. No debe agregarse como Space ni como flujo HF.
 
 ## Logs de build
 

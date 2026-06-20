@@ -89,25 +89,28 @@ connected_read` y, por defecto, `dimensions.territorial_phase = field`.
 
 ### Publicaciones
 
-Monitoreo separa publicacion por audiencia y canal. Cada corte puede publicarse
-como `web` y/o `sheets`, y cada canal puede salir para `client` y/o
-`internal`:
+Monitoreo separa publicacion por audiencia y familia. Cada corte sale solo a
+Google Sheets, con dos destinos controlados por tipo de monitoreo:
+`client/sheets` e `internal/sheets`.
 
-- `client`: publica un Space de avance agregado para cliente, sin PII,
+- `client/sheets`: workbook de avance agregado para cliente, sin PII,
   contactos, GPS puntual, identificadores crudos, alertas, casos accionables ni
   auditoria.
-- `internal`: publica un Space privado de solo lectura web para el equipo, con
-  el snapshot operativo completo, incluyendo PII, GPS, IDs, alertas, auditoria
-  y casos accionables.
+- `internal/sheets`: workbook operativo interno para el equipo, con el snapshot
+  completo, incluyendo PII, GPS, IDs, alertas, auditoria y casos accionables
+  cuando el perfil lo requiere.
 
-La publicacion web interna exige `private = true`. Toda salida interna,
-incluyendo Sheets, exige confirmacion manual explicita en Prosecnur antes de
+Las familias vigentes son acreditacion y territorial. Monitoreo telefonico debe
+entrar como una nueva familia de tablas Sheets cuando se implemente, no como
+canal web.
+
+Toda salida interna exige confirmacion manual explicita en Prosecnur antes de
 subir el corte completo fuera de la maquina local. No hay autosync remoto: cada
 corte se sincroniza localmente y luego se republica de forma manual.
 
 Los ejecutivos tabulares por audiencia se publican desde Prosecnur hacia Google
-Sheets como pestanas controladas de cliente o internas. El Space interno no
-expone descargas XLSX/CSV; muestra datos completos solo como vista web privada.
+Sheets como pestanas controladas de cliente o internas. Monitoreo no publica en
+Hugging Face ni genera Spaces.
 
 ## KoboToolbox
 

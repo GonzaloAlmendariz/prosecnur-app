@@ -212,6 +212,7 @@ const NSE_STYLE: Record<string, { fill: string; stroke: string; label: string }>
   MEDIO: { fill: "#0f766e", stroke: "#064e3b", label: "Medio" },
   "MEDIO BAJO": { fill: "#d97706", stroke: "#92400e", label: "Medio bajo" },
   BAJO: { fill: "#dc2626", stroke: "#7f1d1d", label: "Bajo" },
+  "SIN DATA": { fill: "#94a3b8", stroke: "#475569", label: "Sin data" },
 };
 
 function colorWithAlpha(hex: string, alpha: number) {
@@ -431,6 +432,19 @@ function replacementRangeLabel(block: Partial<HojasRutaSamplePreview["replacemen
     return `${base} [Encuestas ${formatNumber(start)} a ${formatNumber(end)}]`;
   }
   return base;
+}
+
+function blockNseLabel(block: Partial<HojasRutaSamplePreview["blocks"][number]> | null | undefined) {
+  const nivel = String(block?.nse_nivel ?? "").trim();
+  if (nivel && !["NA", "NaN"].includes(nivel)) return nivel;
+  const codigo = String(block?.nse_codigo ?? "").trim();
+  if (codigo && !["NA", "NaN"].includes(codigo)) return `Codigo ${codigo}`;
+  return "";
+}
+
+function blockNseSuffix(block: Partial<HojasRutaSamplePreview["blocks"][number]> | null | undefined) {
+  const label = blockNseLabel(block);
+  return label ? ` · NSE ${label}` : "";
 }
 
 function routeRangeLabel(block: Partial<HojasRutaSamplePreview["blocks"][number]> | null | undefined) {
@@ -3902,7 +3916,7 @@ function TerritoryMapExplorer({
   const activeDistrictName = activeTerritory?.distrito ?? districtNameForUbigeo(activeUbigeo);
   const showingZones = mapLevel === "zonas" && !!activeUbigeo && zoneMap?.ubigeo === activeUbigeo;
   const showingBlocks = mapLevel === "manzanas" && !!activeUbigeo && blockMap?.ubigeo === activeUbigeo;
-  const nseAvailableForBlocks = Boolean(showingBlocks && frame?.nse_data?.available && activeUbigeo.startsWith("1501"));
+  const nseAvailableForBlocks = Boolean(showingBlocks && frame?.nse_data?.available);
 
   return (
     <div className="hojas-ruta-map-explorer">
@@ -3966,7 +3980,7 @@ function TerritoryMapExplorer({
                 className={layerMode === "nse" ? "is-active" : ""}
                 onClick={() => onLayerModeChange("nse")}
                 disabled={!nseAvailableForBlocks}
-                title={nseAvailableForBlocks ? "Colorear manzanas por nivel socioeconomico" : "NSE disponible solo para manzanas de Lima"}
+                title={nseAvailableForBlocks ? "Colorear manzanas por nivel socioeconomico oficial" : "NSE oficial no disponible para estas manzanas"}
               >
                 NSE
               </button>
@@ -4155,7 +4169,7 @@ function SamplingMapExplorer({
     : showingZones
       ? `Zonas de ${activeDistrictName}`
       : "Lima Metropolitana y Callao";
-  const nseAvailableForBlocks = Boolean(showingBlocks && frame?.nse_data?.available && activeUbigeo.startsWith("1501"));
+  const nseAvailableForBlocks = Boolean(showingBlocks && frame?.nse_data?.available);
 
   return (
     <div className={`hojas-ruta-sampling-map-explorer${inspectorCollapsed ? " is-inspector-collapsed" : ""}`}>
@@ -4193,7 +4207,7 @@ function SamplingMapExplorer({
                   className={layerMode === "nse" ? "is-active" : ""}
                   onClick={() => onLayerModeChange("nse")}
                   disabled={!nseAvailableForBlocks}
-                  title={nseAvailableForBlocks ? "Colorear manzanas por nivel socioeconomico" : "NSE disponible solo para manzanas de Lima"}
+                  title={nseAvailableForBlocks ? "Colorear manzanas por nivel socioeconomico oficial" : "NSE oficial no disponible para estas manzanas"}
                 >
                   NSE
                 </button>
@@ -4362,8 +4376,8 @@ function SamplingMapExplorer({
                       <strong>{block.tipo_manzana === "reemplazo" ? "Reemplazo" : "Titular"}</strong>
                       <small>
                         {block.tipo_manzana === "reemplazo"
-                          ? `${replacementRangeLabel(block)} · zona ${block.titular_zona ?? "?"} -> ${block.zona}`
-                          : `Zona ${block.zona} · ID ${block.id_manzana}`}
+                          ? `${replacementRangeLabel(block)} · zona ${block.titular_zona ?? "?"} -> ${block.zona}${blockNseSuffix(block)}`
+                          : `Zona ${block.zona} · ID ${block.id_manzana}${blockNseSuffix(block)}`}
                       </small>
                     </span>
                     <em>{formatNumber(block.entrevistas)}</em>
@@ -8016,8 +8030,8 @@ export default function HojasRutaPage() {
                             <thead>
                               <tr>
                                 {(sampleListTab === "titulares"
-                                  ? ["Distrito", "ID manzana", "Zona", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
-                                  : ["Distrito", "ID reemplazo", "Reemplaza", "Zona", "Rango", "Viviendas", "Método"]
+                                  ? ["Distrito", "ID manzana", "Zona", "NSE", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
+                                  : ["Distrito", "ID reemplazo", "Reemplaza", "Zona", "NSE", "Rango", "Viviendas", "Método"]
                                 ).map((h) => (
                                   <th key={h}>{h}</th>
                                 ))}
@@ -8031,6 +8045,7 @@ export default function HojasRutaPage() {
                                   {sampleListTab === "titulares" ? (
                                     <>
                                       <td className="is-code">{b.zona}</td>
+                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
                                       <td className="is-number">{formatNumber(b.hoja_num ?? b.orden_seleccion ?? 0)}</td>
                                       <td className="is-code">{routeRangeLabel(b)}</td>
                                       <td className="is-number">{formatNumber(b.viviendas)}</td>
@@ -8041,6 +8056,7 @@ export default function HojasRutaPage() {
                                     <>
                                       <td className="is-code">{b.titular_id_manzana ?? "S/D"}</td>
                                       <td className="is-code">{b.zona}</td>
+                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
                                       <td className="is-code">{replacementRangeLabel(b)}</td>
                                       <td className="is-number">{formatNumber(b.viviendas)}</td>
                                       <td>{methodLabel(b.metodo)}</td>
@@ -8171,13 +8187,14 @@ export default function HojasRutaPage() {
                                   <col className="is-district" />
                                   <col className="is-block-id" />
                                   <col className="is-zone" />
+                                  <col className="is-nse" />
                                   <col className="is-households" />
                                   <col className="is-interviews" />
                                   <col className="is-method" />
                                 </colgroup>
                                 <thead>
                                   <tr>
-                                    {["Distrito", "ID manzana", "Zona", "Viviendas", "Entrevistas", "Método"].map((h) => (
+                                    {["Distrito", "ID manzana", "Zona", "NSE", "Viviendas", "Entrevistas", "Método"].map((h) => (
                                       <th key={h}>{h}</th>
                                     ))}
                                   </tr>
@@ -8188,6 +8205,7 @@ export default function HojasRutaPage() {
                                       <td className="is-strong">{b.distrito}</td>
                                       <td className="is-code">{b.id_manzana}</td>
                                       <td className="is-code">{b.zona}</td>
+                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
                                       <td className="is-number">{formatNumber(b.viviendas)}</td>
                                       <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
                                       <td>{methodLabel(b.metodo)}</td>
@@ -8219,6 +8237,7 @@ export default function HojasRutaPage() {
                                   <col className="is-district" />
                                   <col className="is-block-id" />
                                   <col className="is-zone" />
+                                  <col className="is-nse" />
                                   <col className="is-replaces" />
                                   <col className="is-range" />
                                   <col className="is-households" />
@@ -8226,7 +8245,7 @@ export default function HojasRutaPage() {
                                 </colgroup>
                                 <thead>
                                   <tr>
-                                    {["Distrito", "ID manzana", "Zona", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
+                                    {["Distrito", "ID manzana", "Zona", "NSE", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
                                       <th key={h}>{h}</th>
                                     ))}
                                   </tr>
@@ -8237,6 +8256,7 @@ export default function HojasRutaPage() {
                                       <td className="is-strong">{b.distrito}</td>
                                       <td className="is-code">{b.id_manzana}</td>
                                       <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
+                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
                                       <td className="is-code">{b.titular_id_manzana ?? "—"}</td>
                                       <td className="is-code">{replacementRangeLabel(b)}</td>
                                       <td className="is-number">{formatNumber(b.viviendas)}</td>

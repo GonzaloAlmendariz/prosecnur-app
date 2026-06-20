@@ -72,6 +72,10 @@ minimo:
 - `project_sha256`: checksum de esa copia.
 - `app_version` y `git_sha`.
 - `screenshots`: capturas producidas por el smoke.
+- `smoke.deepWalks`: recorrido jerarquico de modulos, paths, secciones internas
+  y pestanas detectadas por el smoke. Cada entrada expone `module`, `path`,
+  `activePath`, `availablePaths`, `sections`, `tabs` y
+  `moduleSectionTabCoverage` ademas de los detalles tecnicos del clic.
 
 Si una captura no proviene de un run con `audit-run.json`, no se considera
 evidencia canonica para diagnostico de regresiones.
@@ -85,16 +89,36 @@ La semilla incluye:
 - Estado del Editor XLSForm persistido en el `.pulso`, de modo que el smoke
   entra al workbench editable y valida la exportacion.
 - Data sintetica con filas validas y filas intencionalmente auditables.
-- Estudio `.pulso` con base cargada para Carga, Validacion, Codificacion,
-  Analitica y Graficos.
+- Estudio `.pulso` con dos olas (`auditoria` y `auditoria_ola2`) para Carga,
+  Validacion, Codificacion, Analitica, base panel y Graficos.
 - Fuente de Dashboard cargada y curada para recorrer sus pestanas.
-- Estudio de calculo muestral precomputado.
-- Snapshot demo de Monitoreo sin tokens reales.
-- Configuracion inicial de Hojas de ruta basada en recursos locales.
+- Codificacion sembrada con familias, respuestas y grupos de recodificacion
+  para preguntas abiertas.
+- Plan editable de Graficos con slides de portada, seccion y barras. El PPTX
+  no se guarda como output generado dentro del `.pulso`.
+- Estudio de calculo muestral precomputado para acreditacion, con catalogo de
+  cobertura de marco propio y seleccion de aulas universitarias.
+- Marco, seleccion, comparacion metodologica y reemplazos de aplicacion en
+  aulas universitarias.
+- Monitoreo activo en la ruta de aulas universitarias, mas escenarios
+  disponibles de acreditacion territorial, monitoreo territorial y aulas.
+- Hojas de ruta con poblacion, tamano de muestra, cuotas y muestra ya
+  seleccionadas sobre recursos locales.
+- Analitica con dimensiones e informacion de base panel usando `response_id`
+  como llave entre las dos olas.
+- Smoke profundo de UI: ademas de abrir cada ruta, la auditoria recorre
+  controles semanticos de navegacion (`tablist`, rails, sidebars y bloques de
+  lectura) y reporta el resultado con el vocabulario de Prosecnur:
+  modulo -> path/familia -> seccion -> pestana. En rutas con familias
+  canonicas, como Monitoreo y Muestra, tambien reporta `activePath` y
+  `availablePaths`, sin activar acciones destructivas o de exportacion.
 
 Las integraciones salientes reales (SurveyMonkey, Kobo, Hugging Face) no se
 ejecutan en la auditoria automatica. Solo se verifica que sus superficies
-locales no contaminen el proyecto con secretos ni dependan de credenciales.
+locales no contaminen el proyecto con secretos ni dependan de credenciales. El
+`.pulso` conserva insumos y estado editable; los entregables regenerables
+(dashboard renderizado, PPTX, PDFs o exportaciones de procesamiento) se vuelven
+a producir desde la aplicacion cuando se auditan esas pantallas.
 
 ## Regla de diagnostico
 

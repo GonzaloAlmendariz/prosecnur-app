@@ -62,6 +62,13 @@ test_that("snapshot publico de monitoreo guarda solo metadata y payload agregado
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
   session_set(sid, "estudio", list(nombre = "Demo ACNUR", bases = list()))
+  session_set(sid, "monitoreo_sources", list(list(id = "fuente-viva", kind = "kobo", label = "Kobo vivo")))
+  session_set(sid, "monitoreo_config", list(sentinel = "config-viva"))
+  session_set(sid, "monitoreo_snapshot", list(
+    data = data.frame(response_id = c("live-1", "live-2"), stringsAsFactors = FALSE),
+    synced_at = "2026-06-18T12:00:00Z"
+  ))
+  session_set(sid, "hojas_ruta_workspace_outputs", list(sample = list(status = "progreso-vivo")))
 
   payload <- list(monitoreo_report = list(
     ok = TRUE,
@@ -97,193 +104,48 @@ test_that("snapshot publico de monitoreo guarda solo metadata y payload agregado
   expect_equal(length(saved$files), 0L)
   expect_null(saved$monitoreo_snapshot)
   expect_null(saved$monitoreo_sources)
-  expect_null(session_get(sid)$public_artifact)
-  expect_null(session_get(sid)$public_artifact_payload)
+  live <- session_get(sid)
+  expect_null(live$public_artifact)
+  expect_null(live$public_artifact_payload)
+  expect_equal(live$monitoreo_sources[[1]]$id, "fuente-viva")
+  expect_equal(live$monitoreo_config$sentinel, "config-viva")
+  expect_equal(live$monitoreo_snapshot$data$response_id, c("live-1", "live-2"))
+  expect_equal(live$hojas_ruta_workspace_outputs$sample$status, "progreso-vivo")
 })
 
-test_that("staging de monitoreo usa runtime publico minimo", {
+test_that("staging HF de monitoreo queda deshabilitado", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
-  old_root <- Sys.getenv("PULSO_APP_ROOT", unset = NA_character_)
-  repo_root <- normalizePath(file.path(testthat::test_path("..", ".."), ".."), mustWork = FALSE)
-  Sys.setenv(PULSO_APP_ROOT = repo_root)
-  on.exit({
-    if (is.na(old_root)) Sys.unsetenv("PULSO_APP_ROOT") else Sys.setenv(PULSO_APP_ROOT = old_root)
-  }, add = TRUE)
   session_set(sid, "estudio", list(nombre = "Demo ACNUR", bases = list()))
-  publication_model <- monitoreo_space_test_model(
-    family = "territorial_fieldwork",
-    audience = "client",
-    sections = list(
-      portada = monitoreo_space_test_section("portada", "Portada", list(list(Campo = "Registros", Valor = "25"))),
-      resumen_avance = monitoreo_space_test_section("resumen_avance", "Resumen de avance", list(list(Indicador = "Efectivas", Valor = "12"))),
-      avance_por_distrito = monitoreo_space_test_section("avance_por_distrito", "Avance por distrito", list(list(Distrito = "Norte", Válidas = 8L, Meta = 10L, `% avance` = "80%"))),
-      avance_diario = monitoreo_space_test_section("avance_diario", "Avance diario", list(list(Fecha = "2026-06-18", Efectivas = 3L))),
-      fuentes_actualizacion = monitoreo_space_test_section("fuentes_actualizacion", "Fuentes y actualización")
-    )
-  )
 
-  prepared <- .dashboard_publish_prepare_space(
-    sid = sid,
-    repo_id = "pulso/demo-monitoreo",
-    space_name = "demo-monitoreo",
-    artifact = list(
-      kind = "monitoreo",
-      module = "monitoreo",
-      title = "Demo ACNUR",
-      public_scope = "aggregate",
-      profile_family = "territorial",
-      report_scope = "advance_summary"
+  err <- expect_error(
+    .dashboard_publish_prepare_space(
+      sid = sid,
+      repo_id = "pulso/demo-monitoreo",
+      space_name = "demo-monitoreo",
+      artifact = list(
+        kind = "monitoreo",
+        module = "monitoreo",
+        title = "Demo ACNUR",
+        public_scope = "aggregate",
+        profile_family = "territorial",
+        report_scope = "advance_summary"
+      ),
+      public_payload = list(monitoreo_report = list(ok = TRUE, publication_model = list()))
     ),
-    public_payload = list(monitoreo_report = list(ok = TRUE, publication_model = publication_model))
+    class = "api_error"
   )
-  on.exit(unlink(prepared$stage, recursive = TRUE, force = TRUE), add = TRUE)
 
-  expect_equal(prepared$artifact_kind, "monitoreo")
-  expect_true(file.exists(file.path(prepared$stage, "api", "R", "public_runtime.R")))
-  expect_true(file.exists(file.path(prepared$stage, "api", "inst", "www", "index.html")))
-  expect_true(file.exists(file.path(prepared$stage, "api", "inst", "www", "space", "index.html")))
-  expect_true(file.exists(file.path(prepared$stage, "api", "inst", "www", "space", "publication_model.json")))
-  expect_true(file.exists(file.path(prepared$stage, "api", "inst", "www", "space", "space_manifest.json")))
-  space_html <- paste(readLines(file.path(prepared$stage, "api", "inst", "www", "space", "index.html"), warn = FALSE), collapse = " ")
-  expect_true(grepl('class="space-topbar"', space_html, fixed = TRUE))
-  expect_true(grepl("data-section-link", space_html, fixed = TRUE))
-  expect_true(grepl("data-table-search", space_html, fixed = TRUE))
-  expect_true(grepl("data-table-reset", space_html, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-status"', space_html, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-effective"', space_html, fixed = TRUE))
-  expect_true(grepl('data-chart="cumulative-progress"', space_html, fixed = TRUE))
-  expect_true(grepl("space-plotly-chart", space_html, fixed = TRUE))
-  expect_true(grepl('data-chart-layer="daily-bars"', space_html, fixed = TRUE))
-  expect_true(grepl('data-chart-layer="cumulative-line"', space_html, fixed = TRUE))
-  expect_false(dir.exists(file.path(prepared$stage, "frontend")))
-  expect_false(file.exists(file.path(prepared$stage, "api", "R", "router_dashboard.R")))
-  expect_false(file.exists(file.path(prepared$stage, "api", "R", "router_carga.R")))
+  expect_equal(err$status, 410)
+  expect_equal(err$code, "E_MONITOREO_HF_DISABLED")
+  expect_match(err$message, "Google Sheets")
 })
 
-test_that("publicador HF sube publication_model.json por Git LFS", {
+test_that("publicador HF ya no registra modelos Space de monitoreo en Git LFS", {
   patterns <- .hf_lfs_track_patterns()
+  expect_equal(.dashboard_publish_artifact_sdk(list(kind = "dashboard")), "docker")
   expect_true("data/*.pulso" %in% patterns)
-  expect_true("api/inst/www/space/publication_model.json" %in% patterns)
-})
-
-test_that("render_monitoreo_space despacha variantes y separa secciones por audiencia", {
-  internal_sentinals <- list(
-    gps_territorio = monitoreo_space_test_section("gps_territorio", "GPS y territorio", list(list(`ID caso` = "RAW-ID-1", lat = -12.1, lon = -77.1))),
-    auditoria_tecnica = monitoreo_space_test_section("auditoria_tecnica", "Auditoría técnica", list(list(response_id = "RID-SECRET"))),
-    casos_accionables = monitoreo_space_test_section("casos_accionables", "Casos accionables", list(list(Prioridad = "Alta")))
-  )
-  territorial_client <- monitoreo_space_test_model(
-    family = "territorial_fieldwork",
-    audience = "client",
-    sections = c(list(
-      portada = monitoreo_space_test_section("portada", "Portada", list(list(Campo = "Registros", Valor = "30"))),
-      resumen_avance = monitoreo_space_test_section("resumen_avance", "Resumen de avance", list(list(Indicador = "Efectivas", Valor = "18"))),
-      avance_por_distrito = monitoreo_space_test_section("avance_por_distrito", "Avance por distrito", list(list(Distrito = "Centro", Válidas = 9L, Meta = 12L, `% avance` = "75%"))),
-      avance_por_ump = monitoreo_space_test_section("avance_por_ump", "Avance por UMP", list(list(UMP = "UMP-01", Válidas = 5L, Meta = 6L))),
-      avance_diario = monitoreo_space_test_section("avance_diario", "Avance diario", list(list(Fecha = "2026-06-18", Efectivas = 4L))),
-      cuotas_resumen = monitoreo_space_test_section("cuotas_resumen", "Cuotas resumen")
-    ), internal_sentinals)
-  )
-  out_dir <- tempfile("space_")
-  out <- render_monitoreo_space(territorial_client, out_dir)
-  html <- paste(readLines(file.path(out_dir, "index.html"), warn = FALSE), collapse = " ")
-  json <- paste(readLines(file.path(out_dir, "publication_model.json"), warn = FALSE), collapse = " ")
-  expect_equal(unname(out[["variant"]]), "territorial_client")
-  expect_true(grepl("Reporte de avance territorial", html, fixed = TRUE))
-  expect_true(grepl("Avance por distrito", html, fixed = TRUE))
-  expect_true(grepl('class="space-topbar"', html, fixed = TRUE))
-  expect_true(grepl("data-section-link", html, fixed = TRUE))
-  expect_true(grepl('class="section-card"', html, fixed = TRUE))
-  expect_true(grepl("data-table-search", html, fixed = TRUE))
-  expect_true(grepl("data-table-reset", html, fixed = TRUE))
-  expect_true(grepl("status-chip", html, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-status"', html, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-effective"', html, fixed = TRUE))
-  expect_true(grepl('data-chart="cumulative-progress"', html, fixed = TRUE))
-  expect_true(grepl("space-plotly-chart", html, fixed = TRUE))
-  expect_true(grepl('data-chart-layer="daily-bars"', html, fixed = TRUE))
-  expect_true(grepl('data-chart-layer="cumulative-line"', html, fixed = TRUE))
-  expect_true(grepl("Meta/cuota territorial", html, fixed = TRUE))
-  expect_false(grepl("GPS y territorio|Auditoría técnica|Casos accionables|RAW-ID-1|RID-SECRET|-12\\.1|-77\\.1", paste(html, json)))
-
-  territorial_internal <- territorial_client
-  territorial_internal$audience <- "internal"
-  territorial_internal$resumen_operativo <- monitoreo_space_test_section("resumen_operativo", "Resumen operativo", list(list(Indicador = "Registros", Valor = "30")))
-  territorial_internal$validacion_tiempos <- monitoreo_space_test_section("validacion_tiempos", "Validación de tiempos", list(list(Clasificación = "Muy corto", Casos = 1L)))
-  territorial_internal$ocurrencias_campo <- monitoreo_space_test_section("ocurrencias_campo", "Ocurrencias en campo", list(list(Estado = "Registrada", Casos = 1L)))
-  territorial_internal$cuotas_ump <- monitoreo_space_test_section("cuotas_ump", "Cuotas sexo y edad", list(
-    list(UMP = "UMP-01", Distrito = "Centro", Responsable = "Ana", Válidas = 6L, `Cuota esperada` = 6L, `% avance` = "100%", `Estado cuota` = "Completa"),
-    list(UMP = "UMP-02", Distrito = "Centro", Responsable = "Bruno", Válidas = 3L, `Cuota esperada` = 6L, `% avance` = "50%", `Estado cuota` = "En campo")
-  ))
-  territorial_internal$base_tecnica <- monitoreo_space_test_section("base_tecnica", "Base técnica", list(list(response_id = "TER-RAW-BASE", Campo = "gps_inicio")))
-  out_dir2 <- tempfile("space_")
-  out2 <- render_monitoreo_space(territorial_internal, out_dir2)
-  html2 <- paste(readLines(file.path(out_dir2, "index.html"), warn = FALSE), collapse = " ")
-  expect_equal(unname(out2[["variant"]]), "territorial_internal")
-  expect_true(grepl('data-card="territorial-ump"', html2, fixed = TRUE))
-  expect_true(grepl("data-table-filter", html2, fixed = TRUE))
-  expect_true(grepl("technical-section", html2, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-status"', html2, fixed = TRUE))
-  expect_true(grepl("Validación de tiempos", html2, fixed = TRUE))
-  expect_true(grepl("GPS y territorio", html2, fixed = TRUE))
-  expect_true(grepl("Ocurrencias en campo", html2, fixed = TRUE))
-  expect_true(grepl("Auditoría técnica", html2, fixed = TRUE))
-})
-
-test_that("render_monitoreo_space cubre acreditacion y tolera secciones faltantes", {
-  accreditation_client <- monitoreo_space_test_model(
-    family = "accreditation_monitoring",
-    audience = "client",
-    sections = list(
-      portada = monitoreo_space_test_section("portada", "Portada", list(list(Campo = "Registros", Valor = "80"))),
-      resumen_ejecutivo = monitoreo_space_test_section("resumen_ejecutivo", "Resumen ejecutivo", list(list(Indicador = "Efectivas", Valor = "45"))),
-      avance_general = monitoreo_space_test_section("avance_general", "Avance general", list(list(Indicador = "Total", Efectivas = 45L, Universo = 80L))),
-      avance_por_actor = monitoreo_space_test_section("avance_por_actor", "Avance por actor", list(list(Actor = "Docentes", Universo = 80L, Efectivas = 20L, Pendientes = 60L, `% avance universo` = "25.0%", `Estado de avance` = "En avance"))),
-      avance_por_segmento = monitoreo_space_test_section("avance_por_segmento", "Avance por segmento", list(list(Segmento = "Facultad", Efectivas = 15L))),
-      cobertura_pendientes = monitoreo_space_test_section("cobertura_pendientes", "Cobertura y pendientes", list(list(Actor = "Docentes", Universo = 80L, Efectivas = 20L, Pendientes = 60L, `% cobertura` = "25.0%"))),
-      pendientes_por_actor = monitoreo_space_test_section("pendientes_por_actor", "Pendientes por actor", list(list(response_id = "RID-INTERNAL"))),
-      auditoria_tecnica = monitoreo_space_test_section("auditoria_tecnica", "Auditoría técnica", list(list(response_id = "RID-AUDIT")))
-    )
-  )
-  out_dir <- tempfile("space_")
-  out <- render_monitoreo_space(accreditation_client, out_dir)
-  html <- paste(readLines(file.path(out_dir, "index.html"), warn = FALSE), collapse = " ")
-  json <- paste(readLines(file.path(out_dir, "publication_model.json"), warn = FALSE), collapse = " ")
-  expect_equal(unname(out[["variant"]]), "accreditation_client")
-  expect_true(grepl("Reporte de avance para cliente", html, fixed = TRUE))
-  expect_true(grepl("Avance por actor", html, fixed = TRUE))
-  expect_true(grepl('class="space-topbar"', html, fixed = TRUE))
-  expect_true(grepl('data-card="actor-progress"', html, fixed = TRUE))
-  expect_true(grepl("data-table-search", html, fixed = TRUE))
-  expect_true(grepl("status-chip", html, fixed = TRUE))
-  expect_true(grepl("Avance diario", html, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-status"', html, fixed = TRUE))
-  expect_true(grepl('data-chart="daily-effective"', html, fixed = TRUE))
-  expect_true(grepl('data-chart="cumulative-progress"', html, fixed = TRUE))
-  expect_true(grepl("space-plotly-chart", html, fixed = TRUE))
-  expect_true(grepl('data-chart-layer="daily-bars"', html, fixed = TRUE))
-  expect_true(grepl('data-chart-layer="cumulative-line"', html, fixed = TRUE))
-  expect_true(grepl("Universo esperado", html, fixed = TRUE))
-  expect_true(grepl("Avance por segmento", html, fixed = TRUE))
-  expect_true(grepl("Cobertura y pendientes", html, fixed = TRUE))
-  expect_false(grepl("Mínimo/meta|Brechas de cumplimiento", html))
-  expect_false(grepl("Pendientes por actor|Auditoría técnica|RID-INTERNAL|RID-AUDIT", paste(html, json)))
-  expect_false(grepl("Recomendación|Acción sugerida|Comentario operativo|Próximo paso|Diagnóstico|Riesgo", html))
-
-  accreditation_internal <- accreditation_client
-  accreditation_internal$audience <- "internal"
-  accreditation_internal$resumen_operativo <- monitoreo_space_test_section("resumen_operativo", "Resumen operativo")
-  accreditation_internal$control_seguimiento <- monitoreo_space_test_section("control_seguimiento", "Control de seguimiento")
-  accreditation_internal$casos_accionables <- monitoreo_space_test_section("casos_accionables", "Casos accionables")
-  out_dir2 <- tempfile("space_")
-  out2 <- render_monitoreo_space(accreditation_internal, out_dir2)
-  html2 <- paste(readLines(file.path(out_dir2, "index.html"), warn = FALSE), collapse = " ")
-  expect_equal(unname(out2[["variant"]]), "accreditation_internal")
-  expect_true(grepl('data-chart="daily-status"', html2, fixed = TRUE))
-  expect_true(grepl("Pendientes por actor", html2, fixed = TRUE))
-  expect_true(grepl("Control de seguimiento", html2, fixed = TRUE))
-  expect_true(grepl("Auditoría técnica", html2, fixed = TRUE))
+  expect_false(any(grepl("api/inst/www/space", patterns, fixed = TRUE)))
 })
 
 test_that("reporte publico de monitoreo prefiere payload embebido", {
@@ -353,19 +215,18 @@ test_that("builder interno de monitoreo conserva datos operativos completos", {
   expect_true(grepl("PHONE-SENTINEL-INTERNO|pii-interno@example\\.test|RID-INTERNAL-1|-12\\.456789|-77\\.654321", json))
 })
 
-test_that("publicacion interna de monitoreo exige Space privado", {
+test_that("publicacion HF de monitoreo responde como deshabilitada", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
   err <- expect_error(
-    monitoreo_publish_space(
-      sid = "sin-sesion-necesaria",
-      hf_username = "pulso",
-      hf_token = "hf_dummy",
-      space_name = "monitoreo-interno",
-      private = FALSE,
-      audience = "internal"
-    ),
+    monitoreo_publish_space(sid, "pulso", "hf_abc", "demo-monitoreo"),
     class = "api_error"
   )
-  expect_equal(err$code, "E_MONITOREO_INTERNAL_PRIVATE")
+
+  expect_equal(err$status, 410)
+  expect_equal(err$code, "E_MONITOREO_HF_DISABLED")
+  expect_match(err$message, "Google Sheets")
 })
 
 test_that("publicacion interna de monitoreo en Sheets exige confirmacion manual", {

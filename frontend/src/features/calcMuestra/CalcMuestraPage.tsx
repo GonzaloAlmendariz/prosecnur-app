@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Database,
   FileText,
+  Gauge,
   Grid3X3,
   Home,
   Layers3,
@@ -21,6 +22,7 @@ import {
   Table2,
   Target,
   Trash2,
+  Users,
   Wand2,
 } from "lucide-react";
 import { PageFrame } from "../../components/PageFrame";
@@ -30,6 +32,9 @@ import { Math as LatexMath } from "../enciclopedia/shared/components/Math";
 import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore } from "./store/calcMuestraStore";
 import {
+  apiCalcMuestraAulasCompararMetodos,
+  apiCalcMuestraAulasSeleccionar,
+  apiCalcMuestraAulasSimularReemplazos,
   apiCalcMuestraCalcular,
   apiCalcMuestraEstudioPut,
   apiCalcMuestraIniciarEstudio,
@@ -38,6 +43,16 @@ import {
   apiMonitoreoImportFromCalcMuestra,
   calcMuestraReporteDescargarUrl,
   type CalcMuestraCanalRecojo,
+  type CalcMuestraAulasMethodComparison,
+  type CalcMuestraAulasMethodSummary,
+  type CalcMuestraAulasObjectiveConfig,
+  type CalcMuestraAulasProfileDistribution,
+  type CalcMuestraAulasReplacementSuggestion,
+  type CalcMuestraAulasReplacementSimulation,
+  type CalcMuestraAulasRepresentativityMetric,
+  type CalcMuestraAulasSelection,
+  type CalcMuestraAulasSimulationSummary,
+  type CalcMuestraAulasState,
   type CalcMuestraComponente,
   type CalcMuestraEstrato,
   type CalcMuestraEstudio,
@@ -48,6 +63,9 @@ import {
   type CalcMuestraParametros,
   type CalcMuestraTecnica,
   type CalcMuestraWorkspace,
+  type CalcMuestraWorkspaceAulasConfig,
+  type CalcMuestraWorkspaceAulasModalidad,
+  type CalcMuestraWorkspaceAulasSelector,
   type CalcMuestraWorkspaceEscenario,
   type CalcMuestraWorkspaceFrameMode,
   type CalcMuestraWorkspaceProducto,
@@ -69,6 +87,14 @@ type MarcoOcasional =
   | "servicios"
   | "cuotas_controladas"
   | "cobertura";
+type CalcMuestraSectionNavItem = {
+  id: string;
+  label: string;
+  detail: string;
+  icon: typeof Database;
+  targetId?: string;
+  route?: "hojas-ruta";
+};
 
 const UNIVERSITY_TOTAL_COMPONENT_ID = "estudiantes_universidad";
 const UNIVERSITY_FACULTY_COMPONENT_ID = "estudiantes_facultad";
@@ -100,6 +126,133 @@ const EMPTY_WORKSPACE: CalcMuestraWorkspace = {
   escenarios: [],
   notas_diseno: "",
 };
+
+const UNIVERSITY_AULAS_SIZE_GROUPS: CalcMuestraWorkspaceAulasConfig["grupos_tamano"] = [
+  { id: "G1", label: "G1", min: 15, max: 20, descripcion: "aulas pequenas o especializadas" },
+  { id: "G2", label: "G2", min: 21, max: 30, descripcion: "aulas medianas" },
+  { id: "G3", label: "G3", min: 31, max: 40, descripcion: "aulas estandar" },
+  { id: "G4", label: "G4", min: 41, max: null, descripcion: "aulas grandes o masivas" },
+];
+
+const DEFAULT_UNIVERSITY_AULAS_OBJECTIVE: CalcMuestraAulasObjectiveConfig = {
+  schema: "calc_muestra_aulas_representativity_objective_v1",
+  primary_unit: "estudiantes_unicos_elegibles",
+  variables: [
+    { dimension: "faculty", label: "Facultad", aula_col: "faculty", student_col: "faculty", weight: 0.18, tolerance: 0.025, source_preference: "student" },
+    { dimension: "program", label: "Programa", aula_col: "program", student_col: "program", weight: 0.14, tolerance: 0.04, source_preference: "student" },
+    { dimension: "level", label: "Nivel/ciclo", aula_col: "level", student_col: "level", weight: 0.1, tolerance: 0.05, source_preference: "student" },
+    { dimension: "schedule", label: "Horario", aula_col: "schedule", weight: 0.1, tolerance: 0.05, source_preference: "aula" },
+    { dimension: "modality", label: "Modalidad", aula_col: "modality", weight: 0.06, tolerance: 0.03, source_preference: "aula" },
+    { dimension: "size_group", label: "Tamaño de aula", aula_col: "size_group", weight: 0.08, tolerance: 0.05, source_preference: "aula" },
+    { dimension: "sex", label: "Sexo", aula_col: "sex_top_1", student_col: "sex", weight: 0.1, tolerance: 0.025, source_preference: "student" },
+  ],
+  component_weights: {
+    balance: 0.76,
+    unique_coverage: 0.1,
+    duplicate_loss: 0.06,
+    dispersion: 0.05,
+    weight_stability: 0.02,
+    reserve_depth: 0.01,
+  },
+  duplicate_loss_tolerance: 0.15,
+  dispersion_tolerance: 0.15,
+  weight_cv_warn: 0.5,
+  weight_cv_critical: 1,
+  reserve_depth_target: 1,
+  missing_policy: "redistribute_active_weights",
+};
+
+const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = {
+  schema: "calc_muestra_workspace_aulas_v1",
+  modalidad: "presencial_aula",
+  selector: "cube_balanceado",
+  selector_engine: "cube_balanceado",
+  method_family: "balanced_probability",
+  min_elegibles_aula: 15,
+  usar_grupos_tamano: true,
+  grupos_tamano: UNIVERSITY_AULAS_SIZE_GROUPS,
+  estratos_selector: ["faculty", "sex_top_1", "size_group"],
+  balance_vars: ["faculty", "sex_top_1", "size_group", "program", "level"],
+  spread_vars: ["program", "level", "schedule", "size_group"],
+  candidate_pool_size: 500,
+  simulation_runs: 500,
+  mos_strategy: "eligible_yield_winsorized",
+  coordination_mode: "permanent_random_number",
+  bolsas_reemplazo: 11,
+  aulas_extra_operativas_default: 1,
+  penalizacion_repetidos: 1.35,
+  pps_weight: 0.25,
+  coverage_weight: 1,
+  monte_carlo_n: 500,
+  semilla: 20260619,
+  objective: DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
+  notas_metodologicas:
+    "Selector reproducible sobre marco colapsado por curso-horario: balancea cuotas, tamano de aula y cobertura unica, controla estudiantes repetidos y conserva auditoria interna del proceso.",
+};
+
+const UNIVERSITY_AULAS_SELECTOR_OPTIONS: Array<{
+  id: CalcMuestraWorkspaceAulasSelector;
+  label: string;
+  detail: string;
+}> = [
+  {
+    id: "cube_balanceado",
+    label: "Balance por cuotas y tamaño",
+    detail: "Recomendado: conserva proporciones del marco usando tamaño elegible, cuotas y variables de control.",
+  },
+  {
+    id: "local_pivotal_balanceado",
+    label: "Balance + dispersión",
+    detail: "Modo avanzado para evitar concentración por programa, nivel, horario o campus cuando hay auxiliares buenas.",
+  },
+  {
+    id: "pool_controlado",
+    label: "Optimizar repetidos",
+    detail: "Elige entre muestras candidatas para reducir solape; exige simulación para probabilidades finales.",
+  },
+  {
+    id: "sistematico_pps",
+    label: "Sistemático por facultad",
+    detail: "Ordena el marco depurado y selecciona aulas de forma espaciada dentro de cada facultad.",
+  },
+  {
+    id: "estratificado_aleatorio",
+    label: "Aleatorio estratificado",
+    detail: "Selecciona dentro de cada grupo de control sin ajuste adicional por repetición.",
+  },
+  {
+    id: "pps_balanceado",
+    label: "Balance legacy",
+    detail: "Alias antiguo; se normaliza al motor balanceado recomendado para conservar compatibilidad.",
+  },
+  {
+    id: "manual_auditable",
+    label: "Manual auditable",
+    detail: "Permite una decisión operativa documentada con responsable, motivo y registro de cambios.",
+  },
+];
+
+const UNIVERSITY_AULAS_MODALIDAD_OPTIONS: Array<{
+  id: CalcMuestraWorkspaceAulasModalidad;
+  label: string;
+  detail: string;
+}> = [
+  {
+    id: "presencial_aula",
+    label: "Presencial en aula",
+    detail: "Aplica filtros de presencialidad, horario, docente y aula fisica.",
+  },
+  {
+    id: "mixto_aula",
+    label: "Mixto con aula base",
+    detail: "Usa aulas como punto operativo y admite canal digital o papel.",
+  },
+  {
+    id: "online_controlado",
+    label: "Online controlado",
+    detail: "Mantiene cuotas, pero reduce dependencia del aula fisica.",
+  },
+];
 
 const CANAL_OPTIONS: Array<{ id: CalcMuestraCanalRecojo; label: string }> = [
   { id: "aula_qr", label: "Aulas / QR" },
@@ -219,7 +372,7 @@ const ESCENARIOS_OPINION: CalcMuestraWorkspaceEscenario[] = [
   },
 ];
 
-const P_EXITO_HSVG_2025_OPERATIVA: Record<string, number> = {
+const UNIVERSITY_REFERENCE_SUCCESS_RATE: Record<string, number> = {
   "ARQUITECTURA Y URBANISMO": 0.30,
   "ARTE Y DISEÑO": 0.50,
   "ARTE Y DISENO": 0.50,
@@ -256,7 +409,7 @@ type UniversityAuditDefaults = Partial<Pick<
   | "aulas_extra_operativas"
 >>;
 
-const PUCP_ESCENARIO_A_AUDIT: Record<string, UniversityAuditDefaults> = {
+const UNIVERSITY_REFERENCE_BASE_SCENARIO_DEFAULTS: Record<string, UniversityAuditDefaults> = {
   "ARQUITECTURA Y URBANISMO": { cuota_fija: 126, sobremuestra_fija: 189, aulas_base_fijas: 11 },
   "ARTE Y DISENO": { cuota_fija: 120, sobremuestra_fija: 180, aulas_base_fijas: 13 },
   "ARTES ESCENICAS": { cuota_fija: 69, sobremuestra_fija: 104, aulas_base_fijas: 11 },
@@ -274,7 +427,7 @@ const PUCP_ESCENARIO_A_AUDIT: Record<string, UniversityAuditDefaults> = {
   "PSICOLOGIA": { cuota_fija: 79, sobremuestra_fija: 119, aulas_base_fijas: 6 },
 };
 
-const PUCP_ESCENARIO_B_AUDIT: Record<string, UniversityAuditDefaults> = {
+const UNIVERSITY_REFERENCE_FACULTY_SCENARIO_DEFAULTS: Record<string, UniversityAuditDefaults> = {
   "ARQUITECTURA Y URBANISMO": { cuota_fija: 373, sobremuestra_fija: 448, aulas_base_fijas: 24 },
   "ARTE Y DISENO": { cuota_fija: 418, sobremuestra_fija: 502, aulas_base_fijas: 35 },
   "ARTES ESCENICAS": { cuota_fija: 230, sobremuestra_fija: 276, aulas_base_fijas: 27 },
@@ -297,34 +450,69 @@ const FRAME_CARDS: Array<{
   title: string;
   eyebrow: string;
   copy: string;
+  action: string;
+  details: string[];
+  sourceRoles: Array<{ label: string; detail: string }>;
   icon: typeof Database;
 }> = [
   {
-    id: "acreditacion",
-    title: "Acreditación",
-    eyebrow: "Plantilla conocida",
-    copy: "Actores por programa, reglas por tamaño de marco y salidas por cobertura, muestra o cuotas.",
-    icon: ClipboardList,
-  },
-  {
     id: "opinion_universitaria",
-    title: "Estudiantes universitarios",
-    eyebrow: "Plantilla conocida",
-    copy: "Marco por facultad y sexo; PUCP puede cargarse como punto de partida editable.",
+    title: "Encuesta a estudiantes",
+    eyebrow: "Universidad / aulas",
+    copy: "Diseña muestra de estudiantes desde una base institucional, dos bases equivalentes o un marco de curso-horario.",
+    action: "Configurar estudio",
+    details: ["Base madre", "Cuotas", "Aulas", "Monitoreo"],
+    sourceRoles: [
+      { label: "Marco", detail: "estudiante x curso-horario" },
+      { label: "Cálculo", detail: "universidad, facultad y cuotas" },
+      { label: "Selección", detail: "aulas titulares y reservas" },
+      { label: "Campo", detail: "agenda, QR y reemplazos" },
+    ],
     icon: Grid3X3,
   },
   {
     id: "marco_disponible",
-    title: "Diseñar desde marco disponible",
-    eyebrow: "Estudio ocasional",
-    copy: "Para GIZ, OPS, RET u otros estudios con marco propio: total, estratos, conglomerados, servicios o cuotas.",
+    title: "Cálculo de muestra general",
+    eyebrow: "Marco propio",
+    copy: "Para estudios con universo total, estratos, conglomerados, servicios, cuotas o coberturas operativas.",
+    action: "Diseñar muestra",
+    details: ["Marco total", "Estratos", "Conglomerados", "Cuotas"],
+    sourceRoles: [
+      { label: "Unidad", detail: "persona, atención, actor o institución" },
+      { label: "Marco", detail: "total, estratos o matriz operativa" },
+      { label: "Método", detail: "probabilístico, cobertura o cuotas" },
+      { label: "Salida", detail: "n, distribución y reporte" },
+    ],
     icon: SlidersHorizontal,
+  },
+  {
+    id: "acreditacion",
+    title: "Acreditación institucional",
+    eyebrow: "Actores y cuotas",
+    copy: "Calcula metas por actor, programa o canal cuando el estudio se organiza por componentes institucionales.",
+    action: "Configurar actores",
+    details: ["Actores", "Programas", "Canales", "Brechas"],
+    sourceRoles: [
+      { label: "Universo", detail: "actores y segmentos" },
+      { label: "Regla", detail: "meta, cobertura o cuota" },
+      { label: "Cálculo", detail: "mínimos por componente" },
+      { label: "Reporte", detail: "metas y brechas" },
+    ],
+    icon: ClipboardList,
   },
   {
     id: "territorial_handoff",
     title: "Territorial / hogares",
-    eyebrow: "Handoff",
-    copy: "Cuando la unidad natural es zona, manzana o ruta domiciliaria, el diseño se arma en Hojas de Ruta.",
+    eyebrow: "Hojas de ruta",
+    copy: "Cuando la selección depende de zonas, manzanas, viviendas o rutas, el diseño vive en Hojas de Ruta.",
+    action: "Abrir Hojas de Ruta",
+    details: ["Zonas", "Manzanas", "Viviendas", "Reemplazos"],
+    sourceRoles: [
+      { label: "Territorio", detail: "distritos, zonas y cartografía" },
+      { label: "Ruta", detail: "manzanas y viviendas titulares" },
+      { label: "Campo", detail: "reemplazos y ocurrencias" },
+      { label: "Cierre", detail: "avance territorial" },
+    ],
     icon: MapPinned,
   },
 ];
@@ -360,6 +548,7 @@ function workspaceFor(mode: ActiveDesk): CalcMuestraWorkspace {
         variableControl("sexo", "Sexo", "cuota"),
       ],
       escenarios: ESCENARIOS_OPINION,
+      aulas_config: DEFAULT_UNIVERSITY_AULAS_CONFIG,
       notas_diseno:
         "Propuesta A: representatividad a nivel universidad. Propuesta B: representatividad a nivel facultad.",
     };
@@ -423,9 +612,58 @@ function inferDesk(estudio: CalcMuestraEstudio, workspace: CalcMuestraWorkspace)
   if (estudio.macro_familia === "territorial") return "territorial_handoff";
   if (workspace.frame_mode !== "sin_definir") return workspace.frame_mode;
   if (estudio.macro_familia === "acreditacion" && estudio.componentes.length > 0) return "acreditacion";
-  if (estudio.macro_familia === "hsvg_universitario" && estudio.componentes.length > 0) return "opinion_universitaria";
+  if (["encuesta_estudiantes", "hsvg_universitario"].includes(estudio.macro_familia) && estudio.componentes.length > 0) return "opinion_universitaria";
   if (estudio.componentes.length > 0) return "marco_disponible";
   return "sin_definir";
+}
+
+function defaultRailSectionForDesk(desk: ActiveDesk) {
+  if (desk === "opinion_universitaria") return "definicion";
+  if (desk === "marco_disponible") return "marco";
+  if (desk === "acreditacion") return "actores";
+  if (desk === "territorial_handoff") return "hojas-ruta";
+  return "pathways";
+}
+
+function railTitleForDesk(desk: ActiveDesk) {
+  if (desk === "opinion_universitaria") return "Encuesta a estudiantes";
+  if (desk === "marco_disponible") return "Muestra general";
+  if (desk === "acreditacion") return "Acreditación";
+  if (desk === "territorial_handoff") return "Territorial";
+  if (desk === "legacy") return "Sesión anterior";
+  return "Tipo de estudio";
+}
+
+function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
+  if (desk === "opinion_universitaria") {
+    return [
+      { id: "definicion", label: "Definición", detail: "estudio y contrato de datos", icon: ClipboardList, targetId: "cmv2-section-university-setup" },
+      { id: "marco", label: "Marco institucional", detail: "base madre o dos bases", icon: Database, targetId: "cmv2-section-university-marco" },
+      { id: "calculo", label: "Cálculo", detail: "n final y ajustes", icon: Calculator, targetId: "cmv2-section-university-calculo" },
+      { id: "aulas", label: "Aulas y selección", detail: "selector, reservas y cuotas", icon: Grid3X3, targetId: "cmv2-section-university-aulas" },
+      { id: "salidas", label: "Salidas", detail: "reporte y monitoreo", icon: Route, targetId: "cmv2-section-university-salidas" },
+    ];
+  }
+  if (desk === "marco_disponible") {
+    return [
+      { id: "marco", label: "Marco", detail: "unidad y cobertura", icon: Database, targetId: "cmv2-section-general-marco" },
+      { id: "metodo", label: "Método", detail: "muestra, cobertura o cuotas", icon: Settings2, targetId: "cmv2-section-general-metodo" },
+      { id: "resultados", label: "Resultados", detail: "n, distribución y reporte", icon: BarChart3, targetId: "cmv2-section-general-resultados" },
+    ];
+  }
+  if (desk === "acreditacion") {
+    return [
+      { id: "actores", label: "Actores", detail: "marco y canal", icon: ClipboardList, targetId: "cmv2-section-acreditacion-actores" },
+      { id: "contexto", label: "Contexto", detail: "programa y fuente", icon: Database, targetId: "cmv2-section-acreditacion-contexto" },
+      { id: "resultados", label: "Resultados", detail: "metas por actor", icon: BarChart3, targetId: "cmv2-section-acreditacion-resultados" },
+    ];
+  }
+  if (desk === "territorial_handoff") {
+    return [
+      { id: "hojas-ruta", label: "Diseño de rutas", detail: "zonas, manzanas y viviendas", icon: MapPinned, route: "hojas-ruta" },
+    ];
+  }
+  return [];
 }
 
 function uid(prefix: string) {
@@ -441,6 +679,13 @@ function toInputNumber(value: number | null | undefined) {
   return Number.isFinite(value) ? String(value) : "";
 }
 
+function normalizeAulasSelectorEngine(value: unknown): CalcMuestraWorkspaceAulasSelector {
+  const raw = String(value ?? "").trim();
+  if (raw === "local_pivotal_balanceado" || raw === "pool_controlado" || raw === "sistematico_pps" || raw === "estratificado_aleatorio" || raw === "manual_auditable") return raw;
+  if (raw === "pps_balanceado") return "cube_balanceado";
+  return "cube_balanceado";
+}
+
 function fmtInt(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
   return Math.round(value).toLocaleString("es-PE");
@@ -449,6 +694,39 @@ function fmtInt(value: number | null | undefined) {
 function fmtPct(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["aulas_config"] | null): CalcMuestraWorkspaceAulasConfig {
+  const raw: Partial<CalcMuestraWorkspaceAulasConfig> = config ?? {};
+  const selector = raw.selector ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.selector;
+  const selectorEngine = normalizeAulasSelectorEngine(raw.selector_engine ?? selector);
+  return {
+    ...DEFAULT_UNIVERSITY_AULAS_CONFIG,
+    ...raw,
+    modalidad: raw.modalidad ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.modalidad,
+    selector,
+    selector_engine: selectorEngine,
+    method_family: raw.method_family ?? (selectorEngine === "pool_controlado" ? "probability_with_operational_optimization" : "balanced_probability"),
+    min_elegibles_aula: Math.max(1, Math.round(safeNumber(raw.min_elegibles_aula, DEFAULT_UNIVERSITY_AULAS_CONFIG.min_elegibles_aula))),
+    usar_grupos_tamano: raw.usar_grupos_tamano ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.usar_grupos_tamano,
+    grupos_tamano: raw.grupos_tamano?.length ? raw.grupos_tamano : DEFAULT_UNIVERSITY_AULAS_CONFIG.grupos_tamano,
+    estratos_selector: raw.estratos_selector?.length ? raw.estratos_selector : DEFAULT_UNIVERSITY_AULAS_CONFIG.estratos_selector,
+    balance_vars: raw.balance_vars?.length ? raw.balance_vars : DEFAULT_UNIVERSITY_AULAS_CONFIG.balance_vars,
+    spread_vars: raw.spread_vars?.length ? raw.spread_vars : DEFAULT_UNIVERSITY_AULAS_CONFIG.spread_vars,
+    candidate_pool_size: Math.max(1, Math.round(safeNumber(raw.candidate_pool_size, DEFAULT_UNIVERSITY_AULAS_CONFIG.candidate_pool_size))),
+    simulation_runs: Math.max(0, Math.round(safeNumber(raw.simulation_runs, DEFAULT_UNIVERSITY_AULAS_CONFIG.simulation_runs))),
+    mos_strategy: raw.mos_strategy ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.mos_strategy,
+    coordination_mode: raw.coordination_mode ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.coordination_mode,
+    bolsas_reemplazo: Math.max(0, Math.round(safeNumber(raw.bolsas_reemplazo, DEFAULT_UNIVERSITY_AULAS_CONFIG.bolsas_reemplazo))),
+    aulas_extra_operativas_default: Math.max(0, Math.round(safeNumber(raw.aulas_extra_operativas_default, DEFAULT_UNIVERSITY_AULAS_CONFIG.aulas_extra_operativas_default))),
+    penalizacion_repetidos: Math.max(0, safeNumber(raw.penalizacion_repetidos, DEFAULT_UNIVERSITY_AULAS_CONFIG.penalizacion_repetidos)),
+    pps_weight: Math.max(0, safeNumber(raw.pps_weight, DEFAULT_UNIVERSITY_AULAS_CONFIG.pps_weight)),
+    coverage_weight: Math.max(0, safeNumber(raw.coverage_weight, DEFAULT_UNIVERSITY_AULAS_CONFIG.coverage_weight)),
+    monte_carlo_n: Math.max(0, Math.round(safeNumber(raw.monte_carlo_n, DEFAULT_UNIVERSITY_AULAS_CONFIG.monte_carlo_n))),
+    semilla: Math.round(safeNumber(raw.semilla, DEFAULT_UNIVERSITY_AULAS_CONFIG.semilla)),
+    objective: raw.objective ?? DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
+    notas_metodologicas: raw.notas_metodologicas ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.notas_metodologicas,
+  };
 }
 
 function universityFacultyError(N: number) {
@@ -481,7 +759,7 @@ function normalizeUniversityLabel(label: string) {
 
 function defaultTitleFor(mode: ActiveDesk) {
   if (mode === "acreditacion") return "Diseño muestral de acreditación";
-  if (mode === "opinion_universitaria") return "Estudiantes universitarios";
+  if (mode === "opinion_universitaria") return "Encuesta a estudiantes";
   return "Diseño muestral desde marco disponible";
 }
 
@@ -671,7 +949,7 @@ function defaultComponente(overrides: ComponentePatch = {}): CalcMuestraComponen
 }
 
 function withUniversityEstratoDefaults(estratos: CalcMuestraEstrato[] = [], kind: "universidad" | "facultad" = "universidad") {
-  const auditMap = kind === "facultad" ? PUCP_ESCENARIO_B_AUDIT : PUCP_ESCENARIO_A_AUDIT;
+  const auditMap = kind === "facultad" ? UNIVERSITY_REFERENCE_FACULTY_SCENARIO_DEFAULTS : UNIVERSITY_REFERENCE_BASE_SCENARIO_DEFAULTS;
   return estratos.map((e) => ({
     ...e,
     sub_a_label: e.sub_a_label || "Mujeres",
@@ -679,8 +957,8 @@ function withUniversityEstratoDefaults(estratos: CalcMuestraEstrato[] = [], kind
     e_facultad: safeNumber(e.e_facultad, universityFacultyError(safeNumber(e.N))),
     confianza_facultad: safeNumber(e.confianza_facultad, universityFacultyConfidence(safeNumber(e.N))),
     p_facultad: e.p_facultad == null
-      ? P_EXITO_HSVG_2025_OPERATIVA[e.label.toUpperCase()] ?? P_EXITO_HSVG_2025_OPERATIVA[normalizeUniversityLabel(e.label)] ?? 0.5
-      : safeNumber(e.p_facultad, P_EXITO_HSVG_2025_OPERATIVA[e.label.toUpperCase()] ?? P_EXITO_HSVG_2025_OPERATIVA[normalizeUniversityLabel(e.label)] ?? 0.5),
+      ? UNIVERSITY_REFERENCE_SUCCESS_RATE[e.label.toUpperCase()] ?? UNIVERSITY_REFERENCE_SUCCESS_RATE[normalizeUniversityLabel(e.label)] ?? 0.5
+      : safeNumber(e.p_facultad, UNIVERSITY_REFERENCE_SUCCESS_RATE[e.label.toUpperCase()] ?? UNIVERSITY_REFERENCE_SUCCESS_RATE[normalizeUniversityLabel(e.label)] ?? 0.5),
     ...(auditMap[normalizeUniversityLabel(e.label)] ?? {}),
     aulas_extra_operativas: e.aulas_extra_operativas == null
       ? auditMap[normalizeUniversityLabel(e.label)]?.aulas_extra_operativas ?? 1
@@ -755,6 +1033,7 @@ function universityWorkspace(workspace: CalcMuestraWorkspace, total: CalcMuestra
   const byId = new Map((workspace.escenarios.length ? workspace.escenarios : ESCENARIOS_OPINION).map((e) => [e.id, e]));
   return {
     ...workspace,
+    aulas_config: normalizeUniversityAulasConfig(workspace.aulas_config),
     escenarios: ESCENARIOS_OPINION.map((base) => {
       const current = byId.get(base.id);
       const component_id = base.id === "total-universidad" ? total.id : faculty.id;
@@ -884,16 +1163,35 @@ export default function CalcMuestraPage() {
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [reporteEnCurso, setReporteEnCurso] = useState(false);
+  const [activeRailSection, setActiveRailSection] = useState("pathways");
+  const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
   const workspace = useMemo(() => normalizeWorkspace(estudio), [estudio]);
   const desk = inferDesk(estudio, workspace);
   const resultados = estudio.componentes.filter(hasUsefulResult).length;
   const productos = Array.from(new Set(estudio.componentes.map(tecnicaProducto)));
 
+  useEffect(() => {
+    setActiveRailSection(defaultRailSectionForDesk(desk));
+  }, [desk]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    let alive = true;
+    apiCalcMuestraState()
+      .then((state) => {
+        if (alive) setAulasState(state.aulas ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [hydrated]);
+
   async function persistCurrent(estudioOverride?: CalcMuestraEstudio) {
     await apiCalcMuestraEstudioPut(estudioOverride ?? estudio);
   }
 
-  async function iniciar(mode: ActiveDesk, opts: { variantePucp?: boolean } = {}) {
+  async function iniciar(mode: ActiveDesk, opts: { cargarModeloBase?: boolean } = {}) {
     setMsg(null);
     if (mode === "territorial_handoff") {
       setWorkspace(workspaceFor("territorial_handoff"));
@@ -903,13 +1201,13 @@ export default function CalcMuestraPage() {
       mode === "acreditacion"
         ? "acreditacion"
         : mode === "opinion_universitaria"
-          ? "hsvg_universitario"
+          ? "encuesta_estudiantes"
           : "estudio_propio";
     setBusy("Preparando mesa");
     try {
       const res = await apiCalcMuestraIniciarEstudio(
         tipo,
-        opts.variantePucp ? "plantilla_pucp" : "vacio",
+        opts.cargarModeloBase ? "plantilla_pucp" : "vacio",
       );
       let componentes = res.estudio.componentes;
       if (mode === "marco_disponible" && componentes.length === 0) {
@@ -939,6 +1237,30 @@ export default function CalcMuestraPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  function elegirEstudio(mode: ActiveDesk) {
+    if (mode === "territorial_handoff") {
+      navigate("/hojas-ruta");
+      return;
+    }
+    void iniciar(mode);
+  }
+
+  function navegarSeccion(item: CalcMuestraSectionNavItem) {
+    if (item.route === "hojas-ruta") {
+      navigate("/hojas-ruta");
+      return;
+    }
+    setActiveRailSection(item.id);
+    if (desk === "opinion_universitaria") return;
+    if (!item.targetId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(item.targetId ?? "")?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+      });
+    });
   }
 
   function updateComponente(id: string, patch: ComponentePatch) {
@@ -1086,14 +1408,61 @@ export default function CalcMuestraPage() {
     }
   }
 
+  async function compararMetodosAulas(config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) {
+    setMsg(null);
+    setBusy("Comparando métodos");
+    try {
+      const res = await apiCalcMuestraAulasCompararMetodos({
+        config,
+        objective_config: config.objective,
+        methods: ["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"],
+        simulation_runs: simulationRuns,
+      });
+      setAulasState(res.state.aulas ?? null);
+      setMsg({ kind: "info", text: "Comparación de métodos lista." });
+    } catch (e) {
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo comparar métodos. Construye primero el marco de aulas." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function seleccionarAulasDesdeMetodo(config: CalcMuestraWorkspaceAulasConfig, methodId?: string) {
+    setMsg(null);
+    setBusy("Seleccionando aulas");
+    try {
+      const res = await apiCalcMuestraAulasSeleccionar(config, undefined, methodId, config.objective);
+      setAulasState(res.state.aulas ?? null);
+      setMsg({ kind: "info", text: "Selección de aulas generada." });
+    } catch (e) {
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo seleccionar aulas. Construye primero el marco." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function simularReemplazosAulas(config: CalcMuestraWorkspaceAulasConfig) {
+    setMsg(null);
+    setBusy("Simulando reemplazos");
+    try {
+      const res = await apiCalcMuestraAulasSimularReemplazos({ config, objective_config: config.objective });
+      setAulasState(res.state.aulas ?? null);
+      setMsg({ kind: "info", text: "Simulación de reemplazos lista." });
+    } catch (e) {
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo simular reemplazos. Genera primero una selección." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (!hydrated) return <LoadingBlock label="Cargando mesa de muestra..." />;
 
   return (
     <PageFrame
       className="cmv2-frame"
       bodyMode="fill"
-      title="Calculador de muestra"
-      lead="Mesa de trabajo para proponer un diseño muestral nuevo desde el marco disponible."
+      title="Cálculo de muestra y marco muestral"
+      lead="Construye marcos, calcula escenarios y selecciona unidades para campo: aulas, manzanas, actores o muestras generales."
       meta={
         <div className="cmv2-header-metrics">
           <Metric label="Componentes" value={estudio.componentes.length} />
@@ -1104,7 +1473,7 @@ export default function CalcMuestraPage() {
       toolbar={
         <div className="cmv2-toolbar">
           <button type="button" className="cmv2-ghost" onClick={() => setWorkspace(EMPTY_WORKSPACE)}>
-            <RefreshCw size={14} /> Cambiar marco
+            <RefreshCw size={14} /> Cambiar estudio
           </button>
           <button type="button" className="cmv2-primary" onClick={() => void calcular()} disabled={calculando || estudio.componentes.length === 0}>
             {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
@@ -1128,36 +1497,16 @@ export default function CalcMuestraPage() {
         data-audit-ready="calc-muestra"
         data-audit-desk={desk}
       />
-      <div className="cmv2-workbench">
-        <aside className="cmv2-rail">
-          <div className="cmv2-rail-title">
-            <Database size={16} />
-            <span>Marco primero</span>
-          </div>
-          <nav className="cmv2-rail-nav" aria-label="Tipo de marco">
-            {FRAME_CARDS.map((card) => {
-              const Icon = card.icon;
-              const active = desk === card.id;
-              return (
-                <button
-                  key={card.id}
-                  type="button"
-                  className={`cmv2-rail-item ${active ? "is-active" : ""}`}
-                  onClick={() => {
-                    if (card.id === "territorial_handoff") setWorkspace(workspaceFor("territorial_handoff"));
-                    else void iniciar(card.id);
-                  }}
-                >
-                  <Icon size={16} />
-                  <span>
-                    <strong>{card.title}</strong>
-                    <small>{card.eyebrow}</small>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
+      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}`}>
+        {desk !== "sin_definir" && (
+          <CalcMuestraRail
+            desk={desk}
+            activeSection={activeRailSection}
+            onChooseStudy={elegirEstudio}
+            onBackToStudies={() => setWorkspace(EMPTY_WORKSPACE)}
+            onSection={navegarSeccion}
+          />
+        )}
 
         <main className="cmv2-main">
           {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
@@ -1168,7 +1517,7 @@ export default function CalcMuestraPage() {
             </div>
           )}
 
-          {desk === "sin_definir" && <FrameSelector onSelect={(mode) => void iniciar(mode)} onTerritorial={() => setWorkspace(workspaceFor("territorial_handoff"))} />}
+          {desk === "sin_definir" && <FrameSelector onSelect={elegirEstudio} onTerritorial={() => navigate("/hojas-ruta")} />}
 
           {desk === "legacy" && (
             <LegacyDesk
@@ -1183,6 +1532,7 @@ export default function CalcMuestraPage() {
             <AcreditacionDesk
               estudio={estudio}
               workspace={workspace}
+              activeSection={activeRailSection}
               onTitulo={setTitulo}
               onContexto={setContexto}
               onWorkspace={setWorkspace}
@@ -1196,13 +1546,19 @@ export default function CalcMuestraPage() {
             <OpinionUniversitariaDeskRevamp
               estudio={estudio}
               workspace={workspace}
+              aulasState={aulasState}
+              busy={busy}
+              activeSection={activeRailSection}
               onTitulo={setTitulo}
               onContexto={setContexto}
               onWorkspace={setWorkspace}
               onComponente={updateComponente}
               onSetComponentes={setComponentes}
-              onCargarPucp={() => void iniciar("opinion_universitaria", { variantePucp: true })}
+              onCargarModelo={() => void iniciar("opinion_universitaria", { cargarModeloBase: true })}
               onCalcular={calcular}
+              onCompararAulas={compararMetodosAulas}
+              onSeleccionarAulas={seleccionarAulasDesdeMetodo}
+              onSimularReemplazos={simularReemplazosAulas}
               calculando={calculando}
             />
           )}
@@ -1211,6 +1567,7 @@ export default function CalcMuestraPage() {
             <MarcoDisponibleDesk
               estudio={estudio}
               workspace={workspace}
+              activeSection={activeRailSection}
               onTitulo={setTitulo}
               onContexto={setContexto}
               onPatchEstudio={patchEstudio}
@@ -1239,6 +1596,78 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function CalcMuestraRail({
+  desk,
+  activeSection,
+  onChooseStudy,
+  onBackToStudies,
+  onSection,
+}: {
+  desk: ActiveDesk;
+  activeSection: string;
+  onChooseStudy: (mode: ActiveDesk) => void;
+  onBackToStudies: () => void;
+  onSection: (item: CalcMuestraSectionNavItem) => void;
+}) {
+  const choosing = desk === "sin_definir";
+  const sections = railSectionsForDesk(desk);
+  return (
+    <aside className={`cmv2-rail ${choosing ? "is-choosing" : "is-contextual"}`}>
+      <div className="cmv2-rail-title">
+        {choosing ? <Database size={16} /> : <Route size={16} />}
+        <span>{railTitleForDesk(desk)}</span>
+      </div>
+      {!choosing && (
+        <button type="button" className="cmv2-rail-switch" onClick={onBackToStudies}>
+          <Home size={14} />
+          Elegir otro estudio
+        </button>
+      )}
+      <nav className="cmv2-rail-nav" aria-label={choosing ? "Tipo de estudio" : "Secciones del estudio"}>
+        {choosing ? (
+          FRAME_CARDS.map((card) => {
+            const Icon = card.icon;
+            return (
+              <button
+                key={card.id}
+                type="button"
+                className="cmv2-rail-item"
+                onClick={() => onChooseStudy(card.id)}
+              >
+                <Icon size={16} />
+                <span>
+                  <strong>{card.title}</strong>
+                  <small>{card.eyebrow}</small>
+                </span>
+              </button>
+            );
+          })
+        ) : (
+          sections.map((item) => {
+            const Icon = item.icon;
+            const active = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`cmv2-rail-item ${active ? "is-active" : ""}`}
+                aria-current={active ? "page" : undefined}
+                onClick={() => onSection(item)}
+              >
+                <Icon size={16} />
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.detail}</small>
+                </span>
+              </button>
+            );
+          })
+        )}
+      </nav>
+    </aside>
+  );
+}
+
 function FrameSelector({
   onSelect,
   onTerritorial,
@@ -1250,10 +1679,10 @@ function FrameSelector({
     <section className="cmv2-selector">
       <div className="cmv2-selector-head">
         <div>
-          <span className="cmv2-eyebrow">Punto de partida</span>
-          <h2>Qué marco tienes disponible</h2>
+          <span className="cmv2-eyebrow">Marco muestral y selección</span>
+          <h2>Elige la ruta de diseño</h2>
         </div>
-        <p>Marcos conocidos y marcos nuevos.</p>
+        <p>Primero defines el tipo de marco; luego Prosecnur abre una mesa específica con sus insumos, criterios, selección y salidas de campo.</p>
       </div>
       <div className="cmv2-frame-grid">
         {FRAME_CARDS.map((card) => {
@@ -1263,15 +1692,28 @@ function FrameSelector({
             <button
               key={card.id}
               type="button"
-              className={`cmv2-frame-card ${territorial ? "is-handoff" : ""}`}
+              className={`cmv2-frame-card cmv2-frame-card--${card.id} ${territorial ? "is-handoff" : ""}`}
               onClick={() => (territorial ? onTerritorial() : onSelect(card.id))}
             >
               <span className="cmv2-card-icon"><Icon size={20} /></span>
               <small>{card.eyebrow}</small>
               <strong>{card.title}</strong>
               <p>{card.copy}</p>
+              <div className="cmv2-path-tags" aria-label={`Alcance ${card.title}`}>
+                {card.details.map((detail) => <span key={detail}>{detail}</span>)}
+              </div>
+              <div className="cmv2-path-flow">
+                {card.sourceRoles.map((role, index) => (
+                  <em key={role.label}>
+                    <i>{String(index + 1).padStart(2, "0")}</i>
+                    <span>{role.label}</span>
+                    <small>{role.detail}</small>
+                  </em>
+                ))}
+              </div>
               <span className="cmv2-card-action">
-                {territorial ? "Ver explicación" : "Abrir mesa"} <ArrowRight size={14} />
+                <span>{card.action}</span>
+                <ArrowRight size={14} />
               </span>
             </button>
           );
@@ -1390,6 +1832,7 @@ function StudyBasics({
 function AcreditacionDesk({
   estudio,
   workspace,
+  activeSection,
   onTitulo,
   onContexto,
   onWorkspace,
@@ -1399,6 +1842,7 @@ function AcreditacionDesk({
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
+  activeSection: string;
   onTitulo: (titulo: string) => void;
   onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
@@ -1406,11 +1850,14 @@ function AcreditacionDesk({
   onCalcular: () => void;
   calculando: boolean;
 }) {
+  const selectedSection = ["actores", "contexto", "resultados"].includes(activeSection)
+    ? activeSection
+    : "actores";
   return (
     <div className="cmv2-desk">
       <ShellHeader
-        eyebrow="Plantilla conocida"
-        title="Acreditación"
+        eyebrow="Acreditación institucional"
+        title="Actores y cuotas"
         copy="Actores, marco, meta mínima y salida."
         icon={ClipboardList}
       >
@@ -1419,14 +1866,22 @@ function AcreditacionDesk({
           Calcular actores
         </button>
       </ShellHeader>
-      <div className="cmv2-desk-grid">
-        <div className="cmv2-stack">
-          <ResultadoPanel componentes={estudio.componentes} />
-          <AcreditacionActorsTable componentes={estudio.componentes} onComponente={onComponente} />
-        </div>
-        <aside className="cmv2-side">
+      <div className="cmv2-university-workbench" data-active-section={selectedSection}>
+        {selectedSection === "actores" && (
+          <div id="cmv2-section-acreditacion-actores" className="cmv2-tab-panel" role="tabpanel" aria-label="Actores">
+            <AcreditacionActorsTable componentes={estudio.componentes} onComponente={onComponente} />
+          </div>
+        )}
+        {selectedSection === "contexto" && (
+          <div id="cmv2-section-acreditacion-contexto" className="cmv2-tab-panel" role="tabpanel" aria-label="Contexto">
           <StudyBasics estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
-        </aside>
+          </div>
+        )}
+        {selectedSection === "resultados" && (
+          <div id="cmv2-section-acreditacion-resultados" className="cmv2-tab-panel" role="tabpanel" aria-label="Resultados">
+            <ResultadoPanel componentes={estudio.componentes} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1565,24 +2020,36 @@ function PercentCell({ value, onChange }: { value: number; onChange: (value: num
 function OpinionUniversitariaDeskRevamp({
   estudio,
   workspace,
+  aulasState,
+  busy,
+  activeSection,
   onTitulo,
   onContexto,
   onWorkspace,
   onComponente,
   onSetComponentes,
-  onCargarPucp,
+  onCargarModelo,
   onCalcular,
+  onCompararAulas,
+  onSeleccionarAulas,
+  onSimularReemplazos,
   calculando,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
+  aulasState: CalcMuestraAulasState | null;
+  busy: string | null;
+  activeSection: string;
   onTitulo: (titulo: string) => void;
   onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   onComponente: (id: string, patch: ComponentePatch) => void;
   onSetComponentes: (componentes: CalcMuestraComponente[]) => void;
-  onCargarPucp: () => void;
+  onCargarModelo: () => void;
   onCalcular: (estudioOverride?: CalcMuestraEstudio) => void | Promise<void>;
+  onCompararAulas: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
+  onSeleccionarAulas: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
+  onSimularReemplazos: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   calculando: boolean;
 }) {
   const baseWorkspace = useMemo(
@@ -1699,69 +2166,547 @@ function OpinionUniversitariaDeskRevamp({
     void onCalcular(nextEstudio);
   }
 
+  const selectedSection = ["definicion", "marco", "aulas", "calculo", "salidas"].includes(activeSection)
+    ? activeSection
+    : "definicion";
+  const marcoReady = safeNumber(totalComp.marco.marco_validado) > 0 && (totalComp.marco.estratos ?? []).some((e) => safeNumber(e.N) > 0);
+  const calculationReady = Boolean(totalComp.resultado || facultyComp.resultado);
+  const comparisonReady = Boolean(aulasState?.method_comparison || aulasState?.selection?.method_comparison);
+  const selectionReady = Boolean(aulasState?.selection);
+  const replacementReady = Boolean(aulasState?.replacement_simulation || aulasState?.selection?.replacement_simulation);
+
   return (
     <div className="cmv2-desk">
       <ShellHeader
-        eyebrow="Plantilla conocida"
+        eyebrow="Encuesta a estudiantes"
         title="Estudiantes universitarios"
-        copy="Mesa por facultades y sexo para estimar una propuesta global, una propuesta por facultad o ambas."
+        copy="Mesa por marco institucional, escenarios de muestra y selección de aulas."
         icon={Grid3X3}
       >
-        <button type="button" className="cmv2-ghost" onClick={onCargarPucp}>
-          <Wand2 size={14} /> Cargar PUCP
+        <button type="button" className="cmv2-ghost" onClick={onCargarModelo}>
+          <Wand2 size={14} /> Cargar modelo
         </button>
         <button type="button" className="cmv2-primary" onClick={calculateProposals} disabled={calculando}>
           {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
           Calcular propuestas
         </button>
       </ShellHeader>
-      <div className="cmv2-university-workbench">
-        <div className="cmv2-university-top">
-          <StudyBasics
-            estudio={estudio}
-            workspace={syncedWorkspace}
-            onTitulo={onTitulo}
-            onContexto={onContexto}
-            onWorkspace={onWorkspace}
-            mode="universitario"
-          />
-          <UniversityRevampMarcoPanel comp={totalComp} />
-        </div>
-
-        <section className="cmv2-panel cmv2-university-edit-panel">
-          <div className="cmv2-panel-head">
-            <span className="cmv2-eyebrow">Marco y parámetros</span>
-            <strong>Facultades, sexo y supuestos de cálculo</strong>
-          </div>
-          <div className="cmv2-university-edit-layout">
-            <UniversityRevampFacultadesTable
-              estratos={totalComp.marco.estratos ?? []}
-              onEstratos={updateSharedEstratos}
-            />
-            <UniversityRevampParametrosPanel
+      <div className="cmv2-university-workbench" data-active-section={selectedSection}>
+        {selectedSection === "definicion" && (
+          <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-label="Definición">
+            <UniversityGuidedBrief
+              section="definicion"
+              workspace={syncedWorkspace}
               totalComp={totalComp}
               facultyComp={facultyComp}
-              onComponente={onComponente}
+              marcoReady={marcoReady}
+              calculationReady={calculationReady}
+              comparisonReady={comparisonReady}
+              selectionReady={selectionReady}
+              replacementReady={replacementReady}
+            />
+            <UniversityStudySetupPanel
+              estudio={estudio}
+              workspace={syncedWorkspace}
+              onTitulo={onTitulo}
+              onContexto={onContexto}
+              onWorkspace={onWorkspace}
             />
           </div>
-        </section>
+        )}
 
-        <UniversityRevampCalculoPanel
-          componentes={[totalComp, facultyComp]}
-          workspace={syncedWorkspace}
-          draftTargets={draftTargets}
-          onDraftTarget={setDraftTarget}
-          onApplyTarget={applyTarget}
-          calculando={calculando}
-        />
+        {selectedSection === "marco" && (
+          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco institucional">
+            <UniversityGuidedBrief
+              section="marco"
+              workspace={syncedWorkspace}
+              totalComp={totalComp}
+              facultyComp={facultyComp}
+              marcoReady={marcoReady}
+              calculationReady={calculationReady}
+              comparisonReady={comparisonReady}
+              selectionReady={selectionReady}
+              replacementReady={replacementReady}
+            />
+            <UniversityRevampBlueprint componentes={[totalComp, facultyComp]} workspace={syncedWorkspace} />
+            <div className="cmv2-university-top">
+              <UniversityRevampMarcoPanel comp={totalComp} />
+              <UniversityFrameReadinessPanel comp={totalComp} workspace={syncedWorkspace} />
+            </div>
+          </div>
+        )}
 
-        <UniversityRevampResultadosPanel
-          componentes={[totalComp, facultyComp]}
-          workspace={syncedWorkspace}
-          onWorkspace={onWorkspace}
-        />
+        {selectedSection === "aulas" && (
+          <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-label="Aulas y selección">
+            <UniversityGuidedBrief
+              section="aulas"
+              workspace={syncedWorkspace}
+              totalComp={totalComp}
+              facultyComp={facultyComp}
+              marcoReady={marcoReady}
+              calculationReady={calculationReady}
+              comparisonReady={comparisonReady}
+              selectionReady={selectionReady}
+              replacementReady={replacementReady}
+            />
+            <UniversityClassroomSelectionPanel
+              workspace={syncedWorkspace}
+              totalComp={totalComp}
+              facultyComp={facultyComp}
+              aulasState={aulasState}
+              busy={busy}
+              onWorkspace={onWorkspace}
+              onCompare={onCompararAulas}
+              onSelectMethod={onSeleccionarAulas}
+              onSimulateReplacements={onSimularReemplazos}
+            />
+            <section className="cmv2-panel cmv2-university-edit-panel">
+              <div className="cmv2-panel-head">
+                <span className="cmv2-eyebrow">Cuotas de cálculo</span>
+                <strong>Facultades, sexo y supuestos estadísticos</strong>
+              </div>
+              <div className="cmv2-university-edit-layout">
+                <UniversityRevampFacultadesTable
+                  estratos={totalComp.marco.estratos ?? []}
+                  onEstratos={updateSharedEstratos}
+                />
+                <UniversityRevampParametrosPanel
+                  totalComp={totalComp}
+                  facultyComp={facultyComp}
+                  onComponente={onComponente}
+                />
+              </div>
+            </section>
+          </div>
+        )}
+
+        {selectedSection === "calculo" && (
+          <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-label="Cálculo">
+            <UniversityGuidedBrief
+              section="calculo"
+              workspace={syncedWorkspace}
+              totalComp={totalComp}
+              facultyComp={facultyComp}
+              marcoReady={marcoReady}
+              calculationReady={calculationReady}
+              comparisonReady={comparisonReady}
+              selectionReady={selectionReady}
+              replacementReady={replacementReady}
+            />
+            <UniversityRevampCalculoPanel
+              componentes={[totalComp, facultyComp]}
+              workspace={syncedWorkspace}
+              draftTargets={draftTargets}
+              onDraftTarget={setDraftTarget}
+              onApplyTarget={applyTarget}
+              calculando={calculando}
+            />
+          </div>
+        )}
+
+        {selectedSection === "salidas" && (
+          <div id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-label="Salidas">
+            <UniversityGuidedBrief
+              section="salidas"
+              workspace={syncedWorkspace}
+              totalComp={totalComp}
+              facultyComp={facultyComp}
+              marcoReady={marcoReady}
+              calculationReady={calculationReady}
+              comparisonReady={comparisonReady}
+              selectionReady={selectionReady}
+              replacementReady={replacementReady}
+            />
+            <UniversityRevampResultadosPanel
+              componentes={[totalComp, facultyComp]}
+              workspace={syncedWorkspace}
+              onWorkspace={onWorkspace}
+            />
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+type UniversityBlueprintTone = "ready" | "working" | "pending" | "neutral";
+
+function UniversityRevampBlueprint({
+  componentes,
+  workspace,
+}: {
+  componentes: [CalcMuestraComponente, CalcMuestraComponente];
+  workspace: CalcMuestraWorkspace;
+}) {
+  const [totalComp, facultyComp] = componentes;
+  const estratos = totalComp.marco.estratos ?? [];
+  const marcoTotal = safeNumber(totalComp.marco.marco_validado);
+  const facultades = estratos.filter((e) => safeNumber(e.N) > 0).length;
+  const hasSexo = estratos.some((e) => safeNumber(e.N_a) > 0 || safeNumber(e.N_b) > 0);
+  const marcoReady = marcoTotal > 0 && facultades > 0;
+  const hasResultados = marcoReady && componentes.some((comp) => Boolean(comp.resultado));
+  const aulasCalculadas = componentes.reduce((sum, comp) => sum + safeNumber(comp.resultado?.aulas_total), 0);
+  const selectionReady = hasResultados && aulasCalculadas > 0;
+  const aulasConfig = normalizeUniversityAulasConfig(workspace.aulas_config);
+  const selectorLabel = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === aulasConfig.selector)?.label ?? "Balance por cuotas y tamaño";
+  const flow: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    tone: UniversityBlueprintTone;
+    icon: typeof Database;
+  }> = [
+    {
+      label: "Solicitud institucional",
+      value: workspace.fuente_marco ? "Base institucional" : "Base madre / dos bases",
+      detail: "estudiante x curso-horario",
+      tone: "neutral",
+      icon: ClipboardList,
+    },
+    {
+      label: "Marco madre",
+      value: marcoReady ? fmtInt(marcoTotal) : "pendiente",
+      detail: facultades ? `${facultades} facultades` : "sin facultades",
+      tone: marcoReady ? "ready" : "pending",
+      icon: Database,
+    },
+    {
+      label: "Escenarios",
+      value: hasResultados ? "calculados" : "por calcular",
+      detail: "universidad + facultad",
+      tone: hasResultados ? "ready" : marcoReady ? "working" : "pending",
+      icon: BarChart3,
+    },
+    {
+      label: "Aulas",
+      value: selectionReady ? `${fmtInt(aulasCalculadas)} previstas` : `M1 + M2-M${aulasConfig.bolsas_reemplazo + 1}`,
+      detail: `${selectorLabel}, repetidos y tamaño`,
+      tone: selectionReady ? "ready" : hasResultados ? "working" : "neutral",
+      icon: Layers3,
+    },
+    {
+      label: "Monitoreo",
+      value: "Agenda de aulas",
+      detail: "QR, avance y reemplazos",
+      tone: "neutral",
+      icon: Route,
+    },
+  ];
+  const checks: Array<{ label: string; value: string; ready: boolean; icon: typeof Database }> = [
+    { label: "Unidad", value: "estudiante x curso-horario", ready: marcoReady, icon: Table2 },
+    { label: "Cuotas", value: hasSexo ? "facultad x sexo" : "sexo pendiente", ready: hasSexo, icon: Target },
+    { label: "Aulas", value: selectionReady ? "titulares y bolsa" : "curso-horario", ready: selectionReady, icon: Grid3X3 },
+    { label: "Trazabilidad", value: "registro y bitácora", ready: hasResultados, icon: CheckCircle2 },
+  ];
+
+  return (
+    <section className="cmv2-panel cmv2-university-blueprint">
+      <div className="cmv2-university-blueprint-main">
+        <div className="cmv2-panel-head">
+          <span className="cmv2-eyebrow">Encuesta a estudiantes</span>
+          <strong>Marco institucional, muestra y aulas</strong>
+        </div>
+        <div className="cmv2-university-flow" aria-label="Flujo operativo de muestra universitaria">
+          {flow.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <div key={step.label} className={`cmv2-university-flow-step is-${step.tone}`}>
+                <span className="cmv2-university-flow-index">{index + 1}</span>
+                <span className="cmv2-university-flow-icon"><Icon size={15} /></span>
+                <span className="cmv2-university-flow-copy">
+                  <small>{step.label}</small>
+                  <strong>{step.value}</strong>
+                  <em>{step.detail}</em>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="cmv2-university-readiness">
+        {checks.map((check) => {
+          const Icon = check.icon;
+          return (
+            <div key={check.label} className={`cmv2-university-readiness-card ${check.ready ? "is-ready" : "is-pending"}`}>
+              <span><Icon size={14} /></span>
+              <div>
+                <small>{check.label}</small>
+                <strong>{check.value}</strong>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+type UniversityGuidedSection = "definicion" | "marco" | "calculo" | "aulas" | "salidas";
+type GuideStatus = "ready" | "working" | "pending";
+type GuideItem = {
+  label: string;
+  title: string;
+  detail: string;
+  status: GuideStatus;
+};
+type GuideCheck = {
+  label: string;
+  value: string;
+  status: GuideStatus;
+};
+
+function guidedStatusLabel(status: GuideStatus) {
+  if (status === "ready") return "Listo";
+  if (status === "working") return "Siguiente paso";
+  return "Pendiente";
+}
+
+function guideStatus(done: boolean, enabled = true): GuideStatus {
+  if (done) return "ready";
+  return enabled ? "working" : "pending";
+}
+
+function UniversityGuidedBrief({
+  section,
+  workspace,
+  totalComp,
+  facultyComp,
+  marcoReady,
+  calculationReady,
+  comparisonReady,
+  selectionReady,
+  replacementReady,
+}: {
+  section: UniversityGuidedSection;
+  workspace: CalcMuestraWorkspace;
+  totalComp: CalcMuestraComponente;
+  facultyComp: CalcMuestraComponente;
+  marcoReady: boolean;
+  calculationReady: boolean;
+  comparisonReady: boolean;
+  selectionReady: boolean;
+  replacementReady: boolean;
+}) {
+  const facultades = totalComp.marco.estratos ?? [];
+  const marcoTotal = safeNumber(totalComp.marco.marco_validado);
+  const facultyTarget = safeNumber(facultyComp.resultado?.n_objetivo ?? facultyComp.meta.valor, 0);
+  const totalTarget = safeNumber(totalComp.resultado?.n_objetivo ?? totalComp.meta.valor, 0);
+  const quotaLabel = calculationReady
+    ? `${fmtInt(Math.max(facultyTarget, totalTarget))} entrevistas objetivo`
+    : marcoReady
+      ? "listo para calcular"
+      : "requiere marco";
+  const definitionReady = Boolean(workspace.fuente_marco || workspace.marco_disponible);
+  const selectionLabel = selectionReady ? "M1 y reservas generadas" : comparisonReady ? "método elegido, falta selección" : "requiere comparación";
+  const replacementLabel = replacementReady ? "simulación lista" : selectionReady ? "lista para simular" : "requiere selección";
+  const sourceLabel = workspace.fuente_marco || "registro académico o equivalente";
+  const frameLabel = workspace.marco_disponible || "base madre o bases equivalentes";
+  const config: Record<UniversityGuidedSection, {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    status: GuideStatus;
+    items: GuideItem[];
+    checks: GuideCheck[];
+  }> = {
+    definicion: {
+      eyebrow: "Guía de sección",
+      title: "Primero se fija el contrato de datos",
+      lead: "Esta pantalla traduce el pedido institucional a reglas simples: qué archivo entra, qué representa una fila y qué unidad se podrá seleccionar después.",
+      status: guideStatus(definitionReady),
+      items: [
+        { label: "Entrada", title: "Base institucional", detail: "Puede llegar como base madre o como estudiantes elegibles más catálogo curso-horario.", status: guideStatus(Boolean(workspace.marco_disponible)) },
+        { label: "Fila esperada", title: "estudiante x curso-horario", detail: "Un estudiante puede aparecer varias veces; eso se controla más adelante al seleccionar aulas.", status: "ready" },
+        { label: "Salida", title: "contrato validable", detail: "Con esto Prosecnur sabe cómo pedir, leer y auditar la información antes de calcular.", status: guideStatus(definitionReady) },
+      ],
+      checks: [
+        { label: "Fuente", value: sourceLabel, status: guideStatus(Boolean(workspace.fuente_marco)) },
+        { label: "Marco disponible", value: frameLabel, status: guideStatus(Boolean(workspace.marco_disponible)) },
+        { label: "Observación", value: "estudiante matriculado", status: "ready" },
+        { label: "Selección final", value: "curso-horario / aula", status: "ready" },
+      ],
+    },
+    marco: {
+      eyebrow: "Guía de sección",
+      title: "Luego se valida la población que realmente entra al estudio",
+      lead: "Aquí se revisa que el marco tenga facultades, sexo y totales consistentes antes de convertirlo en cuotas o aulas.",
+      status: guideStatus(marcoReady, definitionReady),
+      items: [
+        { label: "Entrada", title: "base ya entendida", detail: "La app espera población filtrada y elegible, no una lista operativa de aulas todavía.", status: guideStatus(definitionReady) },
+        { label: "Validación", title: `${fmtInt(marcoTotal)} estudiantes`, detail: "Se confirma cobertura, exclusiones y distribución por dominios relevantes.", status: guideStatus(marcoReady, definitionReady) },
+        { label: "Salida", title: "marco listo para cálculo", detail: "El N por facultad debe salir de este marco; la selección de aulas viene después.", status: guideStatus(marcoReady, definitionReady) },
+      ],
+      checks: [
+        { label: "Facultades", value: facultades.length ? `${fmtInt(facultades.length)} dominios` : "sin dominios cargados", status: guideStatus(facultades.length > 0, definitionReady) },
+        { label: "Sexo", value: facultades.some((e) => safeNumber(e.N_a) || safeNumber(e.N_b)) ? "control disponible" : "pendiente", status: guideStatus(facultades.some((e) => safeNumber(e.N_a) || safeNumber(e.N_b)), marcoReady) },
+        { label: "Orden correcto", value: "marco antes que aulas", status: "ready" },
+        { label: "Marco", value: frameLabel, status: guideStatus(marcoReady, definitionReady) },
+      ],
+    },
+    calculo: {
+      eyebrow: "Guía de sección",
+      title: "Después el marco se convierte en N y cuotas",
+      lead: "Esta parte decide cuántas respuestas necesita el estudio por universidad y por facultad. Todavía no sortea aulas.",
+      status: guideStatus(calculationReady, marcoReady),
+      items: [
+        { label: "Entrada", title: "marco validado", detail: "Toma los totales por facultad y sexo desde la base institucional.", status: guideStatus(marcoReady, definitionReady) },
+        { label: "Decisión", title: quotaLabel, detail: "Aplica error, confianza, deff, sobremuestra y rendimiento esperado.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Salida", title: "N por facultad", detail: "Ese N se traduce luego a aulas M1 y reservas equivalentes.", status: guideStatus(calculationReady, marcoReady) },
+      ],
+      checks: [
+        { label: "Marco", value: marcoReady ? "validado" : "pendiente", status: guideStatus(marcoReady, definitionReady) },
+        { label: "Escenario universidad", value: totalComp.resultado ? "calculado" : "por calcular", status: guideStatus(Boolean(totalComp.resultado), marcoReady) },
+        { label: "Escenario facultad", value: facultyComp.resultado ? "calculado" : "por calcular", status: guideStatus(Boolean(facultyComp.resultado), marcoReady) },
+        { label: "Siguiente", value: "selección de aulas", status: guideStatus(calculationReady, marcoReady) },
+      ],
+    },
+    aulas: {
+      eyebrow: "Guía de sección",
+      title: "Finalmente el N se traduce en aulas titulares y reservas",
+      lead: "El laboratorio compara métodos, evita concentración y repetidos, y deja una selección trazable para que Monitoreo solo ejecute el plan.",
+      status: guideStatus(selectionReady, calculationReady),
+      items: [
+        { label: "Entrada", title: "N/cuotas calculadas", detail: "La selección de aulas parte del objetivo por facultad, no de una lista suelta.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Decisión", title: comparisonReady ? "métodos comparados" : "comparar métodos", detail: "PPS, balanceado, local pivotal y pool controlado se evalúan con el mismo objetivo.", status: guideStatus(comparisonReady, calculationReady) },
+        { label: "Salida", title: selectionLabel, detail: "M1 es la muestra titular; M2...Mk son reservas, no un nuevo diseño.", status: guideStatus(selectionReady, comparisonReady) },
+      ],
+      checks: [
+        { label: "Marco colapsado", value: "curso-horario / aula", status: guideStatus(marcoReady, definitionReady) },
+        { label: "Cuotas", value: quotaLabel, status: guideStatus(calculationReady, marcoReady) },
+        { label: "Selección", value: selectionLabel, status: guideStatus(selectionReady, comparisonReady) },
+        { label: "Reservas", value: replacementLabel, status: guideStatus(replacementReady, selectionReady) },
+      ],
+    },
+    salidas: {
+      eyebrow: "Guía de sección",
+      title: "El cierre separa reporte, workbook y monitoreo",
+      lead: "La app debe dejar evidencia metodológica y un plan operativo claro, sin exponer PII ni rediseñar el marco durante campo.",
+      status: guideStatus(selectionReady || calculationReady, marcoReady),
+      items: [
+        { label: "Entrada", title: "cálculo y selección", detail: "Toma escenarios, cuotas, titulares, reservas y advertencias metodológicas.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Entrega", title: "reporte y workbook", detail: "Incluye perfil del marco, score, probabilidades, pesos, riesgos y sustento.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Handoff", title: "monitoreo de aulas", detail: "Monitoreo agenda y activa reservas; no cambia silenciosamente el diseño.", status: guideStatus(selectionReady, calculationReady) },
+      ],
+      checks: [
+        { label: "Reporte", value: calculationReady ? "preparable" : "requiere cálculo", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Plan de aulas", value: selectionReady ? "disponible" : "pendiente", status: guideStatus(selectionReady, calculationReady) },
+        { label: "Reservas", value: replacementLabel, status: guideStatus(replacementReady, selectionReady) },
+        { label: "PII", value: "solo interno si existe", status: "ready" },
+      ],
+    },
+  };
+  const current = config[section];
+  return (
+    <section className="cmv2-guide-brief" data-guide-section={section}>
+      <div className="cmv2-guide-head">
+        <div>
+          <span className="cmv2-eyebrow">{current.eyebrow}</span>
+          <strong>{current.title}</strong>
+          <p>{current.lead}</p>
+        </div>
+        <span className={`cmv2-guide-status is-${current.status}`}>{guidedStatusLabel(current.status)}</span>
+      </div>
+      <div className="cmv2-guide-flow" aria-label="Entrada, decisión y salida de la sección">
+        {current.items.map((item, index) => (
+          <article key={item.label} className={`is-${item.status}`}>
+            <span>{item.status === "ready" ? <CheckCircle2 size={13} /> : index + 1}</span>
+            <div>
+              <small>{item.label}</small>
+              <strong>{item.title}</strong>
+              <em>{item.detail}</em>
+            </div>
+            {index < current.items.length - 1 && <ArrowRight size={13} aria-hidden="true" />}
+          </article>
+        ))}
+      </div>
+      <div className="cmv2-guide-checks" aria-label="Estado de preparación">
+        {current.checks.map((check) => (
+          <span key={check.label} className={`is-${check.status}`}>
+            {check.status === "ready" ? <CheckCircle2 size={12} /> : <CirclePendingIcon />}
+            <b>{check.label}</b>
+            <em>{check.value}</em>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function UniversityStudySetupPanel({
+  estudio,
+  workspace,
+  onTitulo,
+  onContexto,
+  onWorkspace,
+}: {
+  estudio: CalcMuestraEstudio;
+  workspace: CalcMuestraWorkspace;
+  onTitulo: (titulo: string) => void;
+  onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
+  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+}) {
+  const requiredFields = ["student_key", "curso_horario", "facultad", "sexo", "horario", "elegible"];
+  return (
+    <section className="cmv2-panel cmv2-university-contract">
+      <div className="cmv2-panel-head">
+        <span className="cmv2-eyebrow">Definición del estudio</span>
+        <strong>Contrato de datos</strong>
+      </div>
+      <div className="cmv2-university-contract-grid">
+        <label className="cmv2-compact-field">
+          <span>Título</span>
+          <input
+            value={estudio.titulo}
+            placeholder="Encuesta a estudiantes"
+            onChange={(e) => onTitulo(e.currentTarget.value)}
+          />
+        </label>
+        <label className="cmv2-compact-field">
+          <span>Cliente</span>
+          <input
+            value={estudio.contexto.cliente}
+            placeholder="Institución o área solicitante"
+            onChange={(e) => onContexto("cliente", e.currentTarget.value)}
+          />
+        </label>
+        <label className="cmv2-compact-field">
+          <span>Fuente institucional</span>
+          <input
+            value={workspace.fuente_marco}
+            placeholder="Registro académico, matrícula o sistema equivalente"
+            onChange={(e) => onWorkspace({ ...workspace, fuente_marco: e.currentTarget.value })}
+          />
+        </label>
+        <label className="cmv2-compact-field">
+          <span>Marco disponible</span>
+          <input
+            value={workspace.marco_disponible}
+            placeholder="Base madre o bases institucionales equivalentes"
+            onChange={(e) => onWorkspace({ ...workspace, marco_disponible: e.currentTarget.value })}
+          />
+        </label>
+      </div>
+      <div className="cmv2-university-contract-cards">
+        <div>
+          <small>Cada fila del insumo</small>
+          <strong>estudiante x curso-horario</strong>
+          <span>Un estudiante puede aparecer en más de un curso; el selector controla repetidos desde el marco.</span>
+        </div>
+        <div>
+          <small>Unidad de observación</small>
+          <strong>estudiante matriculado</strong>
+          <span>La encuesta puede ser anónima; no se exige identificador personal en respuestas.</span>
+        </div>
+        <div>
+          <small>Unidad de selección</small>
+          <strong>curso-horario / aula</strong>
+          <span>Las aulas titulares y reservas se derivan del marco colapsado por curso-horario.</span>
+        </div>
+      </div>
+      <div className="cmv2-university-field-strip" aria-label="Variables mínimas esperadas">
+        {requiredFields.map((field) => <span key={field}>{field}</span>)}
+      </div>
+    </section>
   );
 }
 
@@ -1790,6 +2735,1430 @@ function UniversityRevampMarcoPanel({ comp }: { comp: CalcMuestraComponente }) {
   );
 }
 
+function UniversityFrameReadinessPanel({
+  comp,
+  workspace,
+}: {
+  comp: CalcMuestraComponente;
+  workspace: CalcMuestraWorkspace;
+}) {
+  const facultades = comp.marco.estratos ?? [];
+  const marcoTotal = safeNumber(comp.marco.marco_validado);
+  const hasFacultades = facultades.some((e) => safeNumber(e.N) > 0);
+  const hasSexo = facultades.some((e) => safeNumber(e.N_a) > 0 || safeNumber(e.N_b) > 0);
+  const items = [
+    {
+      label: "Fuente",
+      value: workspace.fuente_marco || "Registro académico pendiente",
+      ready: Boolean(workspace.fuente_marco),
+    },
+    {
+      label: "Unidad de fila",
+      value: "estudiante x curso-horario",
+      ready: true,
+    },
+    {
+      label: "Facultades",
+      value: hasFacultades ? `${fmtInt(facultades.length)} estratos` : "sin marco cargado",
+      ready: hasFacultades,
+    },
+    {
+      label: "Control de cuotas",
+      value: hasSexo ? "facultad x sexo" : "sexo pendiente",
+      ready: hasSexo,
+    },
+  ];
+  return (
+    <section className="cmv2-panel cmv2-university-readiness-panel">
+      <div className="cmv2-panel-head">
+        <span className="cmv2-eyebrow">Preparación del marco</span>
+        <strong>Base madre y validación</strong>
+      </div>
+      <div className="cmv2-university-frame-status">
+        <Metric label="Marco validado" value={fmtInt(marcoTotal)} />
+        <Metric label="Facultades" value={facultades.length} />
+      </div>
+      <div className="cmv2-frame-checklist">
+        {items.map((item) => (
+          <div key={item.label} className={item.ready ? "is-ready" : "is-pending"}>
+            <span>{item.ready ? <CheckCircle2 size={14} /> : <CirclePendingIcon />}</span>
+            <div>
+              <small>{item.label}</small>
+              <strong>{item.value}</strong>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type ClassroomLabTab = "marco" | "objetivo" | "metodo" | "laboratorio" | "seleccion" | "reemplazos" | "auditoria";
+
+const CLASSROOM_LAB_TABS: Array<{ id: ClassroomLabTab; label: string; icon: typeof Database }> = [
+  { id: "marco", label: "Marco de aplicación", icon: Database },
+  { id: "objetivo", label: "N y objetivos", icon: Target },
+  { id: "metodo", label: "Métodos", icon: Settings2 },
+  { id: "laboratorio", label: "Simulación", icon: BarChart3 },
+  { id: "seleccion", label: "Selección M1", icon: Table2 },
+  { id: "reemplazos", label: "Reservas", icon: RefreshCw },
+  { id: "auditoria", label: "Auditoría", icon: FileText },
+];
+
+function ClassroomLabGuide({
+  activeTab,
+  frameReady,
+  quotaReady,
+  comparisonReady,
+  selectionReady,
+  replacementReady,
+  frameAulas,
+  uniqueStudents,
+  quotaLabel,
+  recommendedMethodLabel,
+  m1Count,
+  reserveCount,
+}: {
+  activeTab: ClassroomLabTab;
+  frameReady: boolean;
+  quotaReady: boolean;
+  comparisonReady: boolean;
+  selectionReady: boolean;
+  replacementReady: boolean;
+  frameAulas: number;
+  uniqueStudents: number;
+  quotaLabel: string;
+  recommendedMethodLabel: string;
+  m1Count: number;
+  reserveCount: number;
+}) {
+  const guides: Record<ClassroomLabTab, {
+    title: string;
+    lead: string;
+    decision: string;
+    input: string;
+    output: string;
+    status: GuideStatus;
+  }> = {
+    marco: {
+      title: "Verifica que la base ya pueda convertirse en aulas",
+      lead: "La idea es mirar la cadena real: base institucional, marco colapsado por curso-horario, estudiantes únicos y exclusiones.",
+      input: frameReady ? `${fmtInt(frameAulas)} aulas y ${fmtInt(uniqueStudents)} estudiantes únicos` : "base institucional pendiente",
+      decision: "qué filas son válidas y qué aula representa cada curso-horario",
+      output: "marco de aplicación auditable",
+      status: guideStatus(frameReady),
+    },
+    objetivo: {
+      title: "Traduce el N calculado en criterios de selección",
+      lead: "Aquí se define cómo convertir cuotas por facultad en aulas, reservas y restricciones operativas sin cambiar el diseño base.",
+      input: quotaLabel,
+      decision: "cuánto peso dar a balance, repetidos, tamaño de aula y reservas",
+      output: "objetivo listo para comparar métodos",
+      status: guideStatus(quotaReady, frameReady),
+    },
+    metodo: {
+      title: "Compara métodos con el mismo objetivo",
+      lead: "La app debe poder explicar por qué un método gana: mejor balance, menos concentración, menos repetidos o mejor profundidad de reservas.",
+      input: quotaReady ? "marco + N/cuotas" : "requiere N/cuotas",
+      decision: `usar ${recommendedMethodLabel || "un método comparable"}`,
+      output: "recomendación defendible",
+      status: guideStatus(comparisonReady, quotaReady),
+    },
+    laboratorio: {
+      title: "Revisa estabilidad antes de aceptar la selección",
+      lead: "La simulación muestra si el resultado recomendado es consistente o si depende demasiado de una corrida particular.",
+      input: comparisonReady ? "métodos comparados" : "comparación pendiente",
+      decision: "si el score, los pesos y la duplicación son estables",
+      output: "riesgos y advertencias antes de seleccionar",
+      status: guideStatus(comparisonReady, quotaReady),
+    },
+    seleccion: {
+      title: "Convierte el método elegido en M1 y reservas",
+      lead: "Esta pestaña muestra la propuesta que realmente pasará a campo: titulares, reservas, brechas y trazabilidad aula por aula.",
+      input: comparisonReady ? "método recomendado o elegido" : "requiere comparación",
+      decision: selectionReady ? `${fmtInt(m1Count)} titulares y ${fmtInt(reserveCount)} reservas` : "generar selección",
+      output: "plan de aulas para monitoreo",
+      status: guideStatus(selectionReady, comparisonReady),
+    },
+    reemplazos: {
+      title: "Prepara reemplazos equivalentes antes de campo",
+      lead: "Las reservas se ordenan por equivalencia de celda, balance, solape y riesgo para que Monitoreo no rediseñe sobre la marcha.",
+      input: selectionReady ? "M1 + reservas" : "requiere selección",
+      decision: replacementReady ? "impacto antes/después disponible" : "simular reemplazos",
+      output: "reservas sugeridas por aula caída",
+      status: guideStatus(replacementReady, selectionReady),
+    },
+    auditoria: {
+      title: "Abre la capa técnica solo cuando hace falta defender el diseño",
+      lead: "Fuentes, fórmulas, probabilidades, pesos, Monte Carlo y fallbacks quedan visibles sin saturar la operación diaria.",
+      input: selectionReady || comparisonReady ? "diseño evaluado" : "requiere comparación o selección",
+      decision: "qué probabilidad y peso se reporta como final",
+      output: "bitácora metodológica defendible",
+      status: guideStatus(selectionReady || comparisonReady, quotaReady),
+    },
+  };
+  const guide = guides[activeTab];
+  return (
+    <div className="cmv2-classroom-lab-guide">
+      <div>
+        <span className="cmv2-eyebrow">Cómo leer esta pestaña</span>
+        <strong>{guide.title}</strong>
+        <p>{guide.lead}</p>
+      </div>
+      <div className="cmv2-classroom-lab-guide-steps">
+        <span className={`is-${guide.status}`}>{guidedStatusLabel(guide.status)}</span>
+        <em><b>Entra:</b> {guide.input}</em>
+        <em><b>Decide:</b> {guide.decision}</em>
+        <em><b>Sale:</b> {guide.output}</em>
+      </div>
+    </div>
+  );
+}
+
+function UniversityClassroomSelectionPanel({
+  workspace,
+  totalComp,
+  facultyComp,
+  aulasState,
+  busy,
+  onWorkspace,
+  onCompare,
+  onSelectMethod,
+  onSimulateReplacements,
+}: {
+  workspace: CalcMuestraWorkspace;
+  totalComp: CalcMuestraComponente;
+  facultyComp: CalcMuestraComponente;
+  aulasState: CalcMuestraAulasState | null;
+  busy: string | null;
+  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+  onCompare: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
+  onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
+  onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
+}) {
+  const [activeLabTab, setActiveLabTab] = useState<ClassroomLabTab>("marco");
+  const [showMethodExplanation, setShowMethodExplanation] = useState(true);
+  const [tableQuery, setTableQuery] = useState("");
+  const frame = aulasState?.frame ?? null;
+  const comparison = aulasState?.method_comparison ?? aulasState?.selection?.method_comparison ?? null;
+  const selection = aulasState?.selection ?? null;
+  const replacementSimulation = aulasState?.replacement_simulation ?? aulasState?.selection?.replacement_simulation ?? null;
+  const frameRows = frame?.aula_frame ?? [];
+  const populationRows = frame?.population ?? [];
+  const selectionRows = selection?.selection ?? [];
+  const config = normalizeUniversityAulasConfig((aulasState?.config as CalcMuestraWorkspaceAulasConfig | undefined) ?? workspace.aulas_config);
+  const objective = comparison?.objective_config ?? selection?.objective_config ?? config.objective ?? DEFAULT_UNIVERSITY_AULAS_OBJECTIVE;
+  const objectiveVariables = rowsFrom<CalcMuestraAulasObjectiveConfig["variables"][number]>(objective.variables);
+  const representativity = selection?.representativity ?? null;
+  const comparisonMethods = rowsFrom<CalcMuestraAulasMethodSummary>(comparison?.methods);
+  const representativityMetrics = rowsFrom<CalcMuestraAulasRepresentativityMetric>(representativity?.metrics ?? selection?.diagnostics?.representativity_metrics);
+  const comparisonMetrics = rowsFrom<CalcMuestraAulasRepresentativityMetric>(comparison?.representativity_metrics);
+  const simulationRows = rowsFrom<CalcMuestraAulasSimulationSummary>(comparison?.simulation_summary);
+  const profileRows = rowsFrom<CalcMuestraAulasProfileDistribution>(
+    representativity?.profile_distributions ?? selection?.diagnostics?.profile_distributions ?? comparison?.method_profiles,
+  );
+  const recommendedProfileRows = profileRows.filter((row) => !row.method_id || row.method_id === (comparison?.recommendation?.method_id ?? ""));
+  const visibleProfiles = (recommendedProfileRows.length ? recommendedProfileRows : profileRows).slice(0, 36);
+  const coverageRows = rowsFrom<Record<string, unknown>>(representativity?.coverage_overlap ?? selection?.diagnostics?.coverage_overlap);
+  const currentRepresentativityScore = safeNumber(selection?.representativity_score ?? representativity?.representativity_score ?? comparison?.recommendation?.representativity_score, Number.NaN);
+  const engineOption = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === config.selector_engine) ?? UNIVERSITY_AULAS_SELECTOR_OPTIONS[0];
+  const modalidad = UNIVERSITY_AULAS_MODALIDAD_OPTIONS.find((option) => option.id === config.modalidad) ?? UNIVERSITY_AULAS_MODALIDAD_OPTIONS[0];
+  const m1Rows = selectionRows.filter((row) => classroomRowText(row, ["wave"]) === "M1");
+  const reserveRows = selectionRows.filter((row) => classroomRowText(row, ["wave"]) !== "M1");
+  const recommendedMethodId = comparison?.recommendation?.method_id ?? String(config.selector_engine ?? config.selector);
+  const recommendedMethod = comparisonMethods.find((method) => method.method_id === recommendedMethodId) ?? null;
+  const filteredSelectionRows = selectionRows.filter((row) => classroomRowSearch(row, tableQuery));
+  const totalBase = estimateClassroomBase(totalComp);
+  const facultyBase = estimateClassroomBase(facultyComp);
+  const referenciaBase = Math.max(totalBase ?? 0, facultyBase ?? 0);
+  const facultades = totalComp.marco.estratos ?? [];
+  const extraOperativo = estimateOperationalExtra(facultades, config);
+  const planTotal = selectionRows.length || frameRows.length || (referenciaBase > 0 ? referenciaBase * (config.bolsas_reemplazo + 1) : 0);
+  const sobremuestraPct = Math.max(totalComp.parametros.oversample_pct, facultyComp.parametros.oversample_pct);
+  const selectorFields = config.estratos_selector.map(selectorFieldLabel);
+  const facultyTarget = safeNumber(facultyComp.resultado?.n_objetivo ?? facultyComp.meta.valor, 0);
+  const hasCalculatedQuota = facultyTarget > 0 || safeNumber(totalComp.resultado?.n_objetivo ?? totalComp.meta.valor, 0) > 0;
+  const labQuotaLabel = hasCalculatedQuota ? `${fmtInt(Math.max(facultyTarget, safeNumber(totalComp.resultado?.n_objetivo ?? totalComp.meta.valor, 0)))} entrevistas objetivo` : "N/cuotas pendientes";
+  const steps = [
+    { label: "Base institucional", value: "estudiante x curso-horario", detail: "un estudiante puede aparecer en varios cursos" },
+    { label: "Marco colapsado", value: frameRows.length ? `${fmtInt(frameRows.length)} aulas` : "curso-horario", detail: "una fila por aula seleccionable" },
+    { label: "N por facultad", value: facultyTarget ? fmtInt(facultyTarget) : "pendiente", detail: "viene de la pestaña Cálculo" },
+    { label: "Aulas por facultad", value: referenciaBase ? `${fmtInt(referenciaBase)} M1` : "pendiente", detail: "cuota / rendimiento esperado" },
+    { label: "Comparador", value: comparison ? "métodos evaluados" : "por correr", detail: "PPS, cube, local pivotal y pool controlado" },
+    { label: "Selección", value: selection ? `${fmtInt(m1Rows.length)} titulares` : engineOption.label, detail: "balance, cobertura y repetidos" },
+    { label: "Reservas", value: `M2-M${config.bolsas_reemplazo + 1}`, detail: "bolsas equivalentes priorizadas" },
+  ];
+  const auditRows = [
+    { label: "Diseño probabilístico", value: engineOption.label, detail: "Aulas/curso-horario con probabilidad conocida y balance por variables auxiliares." },
+    { label: "Optimización operativa", value: config.selector_engine === "pool_controlado" ? `${fmtInt(config.candidate_pool_size)} candidatas` : "sin post-selección", detail: "Si se elige entre candidatas, las probabilidades finales salen de simulación." },
+    { label: "Probabilidades y pesos", value: `${fmtInt(config.simulation_runs)} corridas`, detail: "Produce pi_base, pi_design, pi_mc, pi_final y pesos de aula/estudiante agregado." },
+    { label: "Fuentes", value: "oficiales + académicas", detail: "PISA/NAEP/UN/Eurostat/AAPOR, cube method y paquetes R documentados." },
+    { label: "Reservas", value: `M2-M${config.bolsas_reemplazo + 1}`, detail: "Reemplazos trazables; no se mezclan con sobremuestra ni rediseño del marco." },
+  ];
+  const topGaps = visibleProfiles
+    .filter((row) => Number.isFinite(safeNumber(row.abs_error, Number.NaN)))
+    .sort((a, b) => safeNumber(b.abs_error, 0) - safeNumber(a.abs_error, 0))
+    .slice(0, 6);
+
+  function updateConfig(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
+    onWorkspace({
+      ...workspace,
+      aulas_config: normalizeUniversityAulasConfig({ ...config, ...patch }),
+    });
+  }
+
+  function setSelector(next: CalcMuestraWorkspaceAulasSelector | string) {
+    const nextEngine = normalizeAulasSelectorEngine(next);
+    updateConfig({
+      selector: nextEngine,
+      selector_engine: nextEngine,
+      method_family: nextEngine === "pool_controlado" ? "probability_with_operational_optimization" : "balanced_probability",
+    });
+  }
+
+  function setUseSizeGroups(value: boolean) {
+    const base = ["faculty", "sex_top_1"];
+    updateConfig({
+      usar_grupos_tamano: value,
+      estratos_selector: value ? [...base, "size_group"] : base,
+    });
+  }
+
+  function runComparison() {
+    void onCompare(config, config.simulation_runs ?? config.monte_carlo_n ?? 500);
+  }
+
+  function runSelection(methodId = recommendedMethodId) {
+    void onSelectMethod(config, methodId);
+  }
+
+  function runReplacementSimulation() {
+    void onSimulateReplacements(config);
+  }
+
+  return (
+    <section className="cmv2-panel cmv2-classroom-selector">
+      <div className="cmv2-panel-head">
+        <div>
+          <span className="cmv2-eyebrow">Selección de aulas</span>
+          <strong>Laboratorio guiado: marco, método, simulación y reservas</strong>
+        </div>
+        <div className="cmv2-classroom-badges" aria-label="Trazabilidad del selector">
+          <span>Reproducible</span>
+          <span>Marco auditado</span>
+          <span>Listo para monitoreo</span>
+        </div>
+      </div>
+
+      <div className="cmv2-classroom-kpis">
+        <Metric label="N/cuotas" value={hasCalculatedQuota ? "calculadas" : "pendiente"} />
+        <Metric label="M1 desde cuotas" value={referenciaBase ? fmtInt(referenciaBase) : "pendiente"} />
+        <Metric label="Representatividad" value={Number.isFinite(currentRepresentativityScore) ? classroomScore(currentRepresentativityScore) : "pendiente"} />
+        <Metric label="Bolsas reserva" value={`M2-M${config.bolsas_reemplazo + 1}`} />
+        <Metric label="Aulas en lista" value={planTotal ? fmtInt(planTotal) : "sin marco"} />
+        <Metric label="+ aulas operativas" value={fmtInt(extraOperativo)} />
+      </div>
+
+      <div className="cmv2-classroom-commandbar" aria-label="Acciones del laboratorio de aulas">
+        <button type="button" className="cmv2-ghost" onClick={runComparison} disabled={Boolean(busy)}>
+          {busy === "Comparando métodos" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
+          Comparar métodos
+        </button>
+        <button type="button" className="cmv2-primary" onClick={() => runSelection()} disabled={Boolean(busy)}>
+          {busy === "Seleccionando aulas" ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
+          Generar selección
+        </button>
+        <button type="button" className="cmv2-ghost" onClick={runReplacementSimulation} disabled={Boolean(busy) || !selection}>
+          {busy === "Simulando reemplazos" ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
+          Simular reemplazos
+        </button>
+        {comparison?.recommendation && (
+          <span className="cmv2-classroom-recommendation">
+            Recomendado: <strong>{comparison.recommendation.method_label ?? classroomMethodLabel(recommendedMethodId)}</strong>
+          </span>
+        )}
+      </div>
+
+      <div className="cmv2-classroom-lab-tabs" role="tablist" aria-label="Secciones del laboratorio de selección de aulas">
+        {CLASSROOM_LAB_TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeLabTab === tab.id}
+              className={`cmv2-classroom-lab-tab ${activeLabTab === tab.id ? "is-active" : ""}`}
+              onClick={() => setActiveLabTab(tab.id)}
+            >
+              <Icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <ClassroomLabGuide
+        activeTab={activeLabTab}
+        frameReady={frameRows.length > 0}
+        quotaReady={hasCalculatedQuota}
+        comparisonReady={Boolean(comparison)}
+        selectionReady={Boolean(selection)}
+        replacementReady={Boolean(replacementSimulation)}
+        frameAulas={frameRows.length}
+        uniqueStudents={populationRows.length}
+        quotaLabel={labQuotaLabel}
+        recommendedMethodLabel={comparison?.recommendation?.method_label ?? classroomMethodLabel(recommendedMethodId)}
+        m1Count={m1Rows.length}
+        reserveCount={reserveRows.length}
+      />
+
+      <div className="cmv2-classroom-lab-body" role="tabpanel" aria-label={CLASSROOM_LAB_TABS.find((tab) => tab.id === activeLabTab)?.label}>
+        {activeLabTab === "marco" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Cadena metodológica</span>
+                <strong>De base institucional a agenda</strong>
+              </div>
+              <div className="cmv2-classroom-flow">
+                {steps.map((step, index) => (
+                  <div key={step.label} className="cmv2-classroom-step">
+                    <span>{index + 1}</span>
+                    <div>
+                      <small>{step.label}</small>
+                      <strong>{step.value}</strong>
+                      <em>{step.detail}</em>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="cmv2-classroom-methods">
+                <article>
+                  <small>Unidad seleccionable</small>
+                  <strong>curso-horario / aula</strong>
+                  <span>No se sortean filas alumno-curso como unidad final; se colapsa primero el marco.</span>
+                </article>
+                <article>
+                  <small>Repetidos</small>
+                  <strong>Control de solape</strong>
+                  <span>Si un estudiante aparece en varios cursos, el selector lo controla desde el marco institucional.</span>
+                </article>
+                <article>
+                  <small>Reservas</small>
+                  <strong>M2...Mk no son encuestas extra</strong>
+                  <span>Son reemplazos equivalentes; el extra operativo se presupuesta y se mapea por separado.</span>
+                </article>
+                <article>
+                  <small>Campo anónimo</small>
+                  <strong>No exige identificación personal</strong>
+                  <span>La trazabilidad de campo cruza collector, link, aula, fecha y estado operativo.</span>
+                </article>
+              </div>
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Perfil marco vs muestra</span>
+                <strong>Distribuciones que gobernarán la selección</strong>
+              </div>
+              <ProfileBalanceChart rows={visibleProfiles} />
+              <div className="cmv2-classroom-insumo-grid" aria-label="Formatos de insumo esperados">
+                <article>
+                  <small>Entrada institucional</small>
+                  <strong>Estudiantes matriculados</strong>
+                  <span>Puede venir como estudiante x curso-horario con código interno, facultad, carrera, sexo, condición, curso, horario y modalidad.</span>
+                </article>
+                <article>
+                  <small>Catálogo operativo</small>
+                  <strong>Curso-horario</strong>
+                  <span>Puede venir separado con curso-horario, sesiones y aula, docente, contacto, matriculados totales y población elegible.</span>
+                </article>
+                <article>
+                  <small>Selección previa</small>
+                  <strong>Muestra + agenda</strong>
+                  <span>Si ya existe selección, Prosecnur debe leer titulares, reservas, envío de correos y agenda sin recalcular silenciosamente.</span>
+                </article>
+                <article>
+                  <small>Campo</small>
+                  <strong>Aulas agendadas y adicionales</strong>
+                  <span>Monitoreo recibe estados, llamadas, fechas, aplicadores, QR/collector y reemplazos usados.</span>
+                </article>
+              </div>
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <div className="cmv2-classroom-stat-grid">
+                <Metric label="Aulas del marco" value={frameRows.length ? fmtInt(frameRows.length) : "pendiente"} />
+                <Metric label="Estudiantes únicos" value={populationRows.length ? fmtInt(populationRows.length) : "pendiente"} />
+                <Metric label="Exclusiones" value={frame?.exclusions?.length ? fmtInt(frame.exclusions.length) : "0"} />
+                <Metric label="Hash del marco" value={frame?.frame_hash ? String(frame.frame_hash).slice(0, 8) : "sin hash"} />
+              </div>
+              <div className="cmv2-classroom-audit-grid">
+                {(frame?.audit ?? []).slice(0, 4).map((row, index) => (
+                  <div key={index}>
+                    <small>{classroomRowText(row, ["metric", "indicador", "name"]) || `Auditoría ${index + 1}`}</small>
+                    <strong>{classroomRowText(row, ["value", "valor", "n"]) || "registrado"}</strong>
+                    <span>{classroomRowText(row, ["detail", "detalle", "note"]) || "Control del marco construido."}</span>
+                  </div>
+                ))}
+                {!frame?.audit?.length && (
+                  <div>
+                    <small>Marco pendiente</small>
+                    <strong>Carga o construye el marco</strong>
+                    <span>Cuando exista base madre o dos bases equivalentes, esta sección mostrará auditoría real.</span>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {activeLabTab === "objetivo" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Objetivo</span>
+                <strong>Del N por facultad a aulas titulares y reservas</strong>
+              </div>
+              <div className="cmv2-classroom-control-grid">
+                <label className="cmv2-compact-field cmv2-classroom-field-wide">
+                  <span>Modalidad</span>
+                  <select
+                    value={config.modalidad}
+                    onChange={(e) => updateConfig({ modalidad: e.currentTarget.value as CalcMuestraWorkspaceAulasModalidad })}
+                  >
+                    {UNIVERSITY_AULAS_MODALIDAD_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>{option.label}</option>
+                    ))}
+                  </select>
+                  <em>{modalidad.detail}</em>
+                </label>
+                <div className="cmv2-compact-field">
+                  <span>Mínimo por aula</span>
+                  <NumberCell value={config.min_elegibles_aula} min={1} step={1} onChange={(v) => updateConfig({ min_elegibles_aula: Math.round(v) })} />
+                  <em>Descarta cursos demasiado pequeños para sostener una aplicación presencial.</em>
+                </div>
+                <div className="cmv2-compact-field">
+                  <span>Bolsas de reemplazo</span>
+                  <NumberCell value={config.bolsas_reemplazo} min={0} step={1} onChange={(v) => updateConfig({ bolsas_reemplazo: Math.round(v) })} />
+                  <em>Crea M2, M3... como alternativas equivalentes para campo.</em>
+                </div>
+                <div className="cmv2-compact-field">
+                  <span>Extra operativo por estrato</span>
+                  <NumberCell value={config.aulas_extra_operativas_default} min={0} step={1} onChange={(v) => updateConfig({ aulas_extra_operativas_default: Math.round(v) })} />
+                  <em>Refuerzo de agenda; no cambia el N estadístico ni la muestra titular.</em>
+                </div>
+                <div className="cmv2-compact-field">
+                  <span>Evitar repetidos</span>
+                  <NumberCell value={config.penalizacion_repetidos} min={0} step={0.05} onChange={(v) => updateConfig({ penalizacion_repetidos: v })} />
+                  <em>Más alto prioriza estudiantes únicos cuando aparecen en varios cursos.</em>
+                </div>
+                <div className="cmv2-compact-field">
+                  <span>Candidatas a comparar</span>
+                  <NumberCell value={config.candidate_pool_size ?? 500} min={1} step={25} onChange={(v) => updateConfig({ candidate_pool_size: Math.round(v) })} />
+                  <em>Solo afecta el pool controlado; obliga a auditar probabilidades por simulación.</em>
+                </div>
+                <div className="cmv2-compact-field">
+                  <span>Corridas de auditoría</span>
+                  <NumberCell value={config.simulation_runs ?? config.monte_carlo_n} min={0} step={50} onChange={(v) => updateConfig({ simulation_runs: Math.round(v), monte_carlo_n: Math.round(v) })} />
+                  <em>Estima estabilidad, pesos y probabilidades cuando hay optimización.</em>
+                </div>
+                <div className="cmv2-compact-field">
+                  <span>Semilla</span>
+                  <NumberCell value={config.semilla} min={1} step={1} onChange={(v) => updateConfig({ semilla: Math.round(v) })} />
+                  <em>Permite reproducir la misma selección en auditoría.</em>
+                </div>
+              </div>
+              <label className="cmv2-classroom-toggle">
+                <input
+                  type="checkbox"
+                  checked={config.usar_grupos_tamano}
+                  onChange={(e) => setUseSizeGroups(e.currentTarget.checked)}
+                />
+                <span>
+                  <strong>Usar grupos de tamaño de aula</strong>
+                  <em>Recomendado cuando la selección puede sesgarse hacia cursos grandes.</em>
+                </span>
+              </label>
+              <div className="cmv2-classroom-groups" aria-label="Grupos de tamaño de aula">
+                {config.grupos_tamano.map((group) => (
+                  <span key={group.id}>
+                    <strong>{group.label}</strong>
+                    {group.min}{group.max == null ? "+" : `-${group.max}`} elegibles
+                  </span>
+                ))}
+              </div>
+              <div className="cmv2-classroom-groups" aria-label="Criterios activos del selector">
+                <strong>Criterios activos</strong>
+                {selectorFields.map((field) => <span key={field}>{field}</span>)}
+              </div>
+              <ObjectiveWeightsPanel variables={objectiveVariables as Array<Record<string, unknown>>} />
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <div className="cmv2-classroom-operational-grid" aria-label="Criterios operativos del plan de aulas">
+                <span><strong>{fmtPct(sobremuestraPct)}</strong> margen estadístico</span>
+                <span><strong>{fmtInt(config.min_elegibles_aula)}</strong> mínimo por aula</span>
+                <span><strong>{fmtInt(extraOperativo)}</strong> refuerzos operativos</span>
+              </div>
+              <div className="cmv2-classroom-note">
+                <CheckCircle2 size={15} />
+                <span>Primero se calcula el N necesario por facultad; después se traduce ese objetivo a aulas titulares M1 y reservas M2...Mk con profundidad suficiente para el monitoreo.</span>
+              </div>
+              <RepresentativityMetricGrid metrics={representativityMetrics} />
+            </aside>
+          </div>
+        )}
+
+        {activeLabTab === "metodo" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Comparación</span>
+                <strong>Métodos lado a lado y decisión recomendada</strong>
+              </div>
+              <div className="cmv2-classroom-method-grid">
+                {["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"].map((methodId) => {
+                  const option = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((item) => item.id === methodId);
+                  const compared = comparisonMethods.find((method) => method.method_id === methodId);
+                  const active = String(config.selector_engine) === methodId;
+                  return (
+                    <button
+                      key={methodId}
+                      type="button"
+                      className={`cmv2-classroom-method-card ${active ? "is-active" : ""}`}
+                      onClick={() => setSelector(methodId)}
+                    >
+                      <small>{methodId === "cube_balanceado" ? "Recomendado" : methodId === "sistematico_pps" ? "Benchmark" : methodId === "pool_controlado" ? "Optimización" : "Avanzado"}</small>
+                      <strong>{option?.label ?? classroomMethodLabel(methodId)}</strong>
+                      <span>{option?.detail ?? classroomMethodReason(methodId)}</span>
+                      {compared && <em>Representatividad {classroomScore(compared.representativity_score ?? compared.overall_score)} · pérdida {fmtPct(compared.duplicate_loss ?? 0)}</em>}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="cmv2-classroom-toggle">
+                <input
+                  type="checkbox"
+                  checked={showMethodExplanation}
+                  onChange={(e) => setShowMethodExplanation(e.currentTarget.checked)}
+                />
+                <span>
+                  <strong>Mostrar explicación metodológica</strong>
+                  <em>Usa lenguaje de decisión: proporcional al tamaño, balance por cuotas, dispersión y control de repetidos.</em>
+                </span>
+              </label>
+              {!comparison || !comparisonMethods.length ? (
+                <ClassroomEmptyState
+                  icon={BarChart3}
+                  title="Comparación pendiente"
+                  detail="Corre el comparador para evaluar representatividad, balance, cobertura, repetidos y riesgos de cada motor."
+                  actionLabel="Comparar métodos"
+                  onAction={runComparison}
+                  disabled={Boolean(busy)}
+                />
+              ) : (
+                <>
+                  <div className="cmv2-classroom-quality-grid">
+                    {comparisonMethods.map((method) => (
+                      <MethodSummaryCard
+                        key={method.method_id}
+                        method={method}
+                        active={method.method_id === recommendedMethodId}
+                        onSelect={() => runSelection(method.method_id)}
+                      />
+                    ))}
+                  </div>
+                  <ClassroomBalanceTable rows={comparison.balance ?? []} methodId={recommendedMethodId} />
+                </>
+              )}
+              {showMethodExplanation && (
+                <div className="cmv2-classroom-audit-grid">
+                  {auditRows.slice(0, 4).map((row) => (
+                    <div key={row.label}>
+                      <small>{row.label}</small>
+                      <strong>{row.value}</strong>
+                      <span>{row.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
+              <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+              <div className="cmv2-classroom-note">
+                <Settings2 size={15} />
+                <span>El PPS queda como base auditable. El método balanceado es el motor recomendado cuando hay variables auxiliares; el pool controlado mejora solape pero obliga a estimar probabilidades finales por simulación.</span>
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {activeLabTab === "laboratorio" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Simulación</span>
+                <strong>Estabilidad del score, cobertura y duplicación</strong>
+              </div>
+              {!comparison || !comparisonMethods.length ? (
+                <ClassroomEmptyState
+                  icon={BarChart3}
+                  title="Simulación pendiente"
+                  detail="Corre el comparador para generar corridas presupuestadas y observar variabilidad del diseño antes de seleccionar."
+                  actionLabel="Comparar métodos"
+                  onAction={runComparison}
+                  disabled={Boolean(busy)}
+                />
+              ) : (
+                <>
+                  <SimulationSummaryPanel rows={simulationRows} />
+                  <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
+                  <ProfileBalanceChart rows={visibleProfiles} />
+                </>
+              )}
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
+              <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+            </aside>
+          </div>
+        )}
+
+        {activeLabTab === "seleccion" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Selección propuesta</span>
+                <strong>Titulares M1, reservas y trazabilidad</strong>
+              </div>
+              {!selection ? (
+                <ClassroomEmptyState
+                  icon={Table2}
+                  title="Todavía no hay selección"
+                  detail="Genera una selección desde el método recomendado o desde una tarjeta del comparador."
+                  actionLabel="Generar selección"
+                  onAction={() => runSelection()}
+                  disabled={Boolean(busy)}
+                />
+              ) : (
+                <>
+                  <div className="cmv2-classroom-stat-grid">
+                    <Metric label="Titulares M1" value={fmtInt(m1Rows.length)} />
+                    <Metric label="Reservas" value={fmtInt(reserveRows.length)} />
+                    <Metric label="Score representativo" value={classroomScore(selection.representativity_score)} />
+                    <Metric label="Motor usado" value={selection.selector_engine_used ?? selection.selector_engine ?? engineOption.label} />
+                    <Metric label="Probabilidad" value={selection.probability_source ?? "diseño"} />
+                  </div>
+                  <CoverageOverlapPanel rows={coverageRows} />
+                  <ProfileBalanceChart rows={visibleProfiles} />
+                  <label className="cmv2-compact-field cmv2-classroom-table-filter">
+                    <span>Filtrar aulas</span>
+                    <input
+                      value={tableQuery}
+                      placeholder="facultad, curso, horario, docente..."
+                      onChange={(e) => setTableQuery(e.currentTarget.value)}
+                    />
+                  </label>
+                  <ClassroomSelectionTable rows={filteredSelectionRows.slice(0, 80)} />
+                </>
+              )}
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <ClassroomOverlapGraph rows={m1Rows} />
+              <RepresentativityMetricGrid metrics={representativityMetrics} />
+            </aside>
+          </div>
+        )}
+
+        {activeLabTab === "reemplazos" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Reemplazos</span>
+                <strong>Reservas equivalentes y efecto esperado</strong>
+              </div>
+              {!replacementSimulation ? (
+                <ClassroomEmptyState
+                  icon={RefreshCw}
+                  title="Simulación pendiente"
+                  detail="Después de generar una selección, simula reservas sugeridas por celda, balance, solape y tamaño efectivo."
+                  actionLabel="Simular reemplazos"
+                  onAction={runReplacementSimulation}
+                  disabled={Boolean(busy) || !selection}
+                />
+              ) : (
+                <ClassroomReplacementTables simulation={replacementSimulation} />
+              )}
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <div className="cmv2-classroom-note">
+                <Route size={15} />
+                <span>Calc-Muestra propone titulares y reservas; Monitoreo solo activa reservas, registra motivos y recalcula brechas sin rediseñar silenciosamente el marco base.</span>
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {activeLabTab === "auditoria" && (
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <span className="cmv2-eyebrow">Auditoría técnica</span>
+                <strong>Fuentes, probabilidades, pesos y advertencias</strong>
+              </div>
+              <div className="cmv2-classroom-audit-grid">
+                {auditRows.map((row) => (
+                  <div key={row.label}>
+                    <small>{row.label}</small>
+                    <strong>{row.value}</strong>
+                    <span>{row.detail}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="cmv2-classroom-formula-grid">
+                <div className="cmv2-classroom-formula">
+                  <small>Error de balance</small>
+                  <code className="cmv2-classroom-formula-code">error_balance[c] = p_sample[c] - p_frame[c]</code>
+                  <span>La app calcula brechas por cada categoría activa.</span>
+                </div>
+                <div className="cmv2-classroom-formula">
+                  <small>Peso de aula</small>
+                  <code className="cmv2-classroom-formula-code">w_i = 1 / pi_i</code>
+                  <span>El peso final usa `pi_final`, no una probabilidad intermedia.</span>
+                </div>
+                <div className="cmv2-classroom-formula">
+                  <small>Probabilidad estudiantil interna</small>
+                  <code className="cmv2-classroom-formula-code">pi_student = 1 - prod(1 - pi_classroom_j)</code>
+                  <span>Se estima desde las aulas del marco; no se exporta PII al cliente.</span>
+                </div>
+                <div className="cmv2-classroom-formula">
+                  <small>N efectivo aproximado</small>
+                  <code className="cmv2-classroom-formula-code">n_eff ~= (sum w_i)^2 / sum(w_i^2)</code>
+                  <span>Advierte cuando pesos muy desiguales reducen precisión.</span>
+                </div>
+              </div>
+              <RepresentativityMetricGrid metrics={representativityMetrics} />
+              <ClassroomMethodSources selection={selection} comparison={comparison} />
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+              <ProfileBalanceChart rows={topGaps} />
+            </aside>
+          </div>
+        )}
+      </div>
+
+      <div className="cmv2-classroom-note">
+        <CheckCircle2 size={15} />
+        <span>
+          El cálculo de muestra define cuota y sobremuestra; la selección de aulas arma M1 y reservas equivalentes. Prosecnur conserva internamente versión del marco, código de reproducción y bitácora; la pantalla muestra decisiones operativas listas para Monitoreo de aulas universitarias.
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function ClassroomEmptyState({
+  icon: Icon,
+  title,
+  detail,
+  actionLabel,
+  onAction,
+  disabled,
+}: {
+  icon: typeof Database;
+  title: string;
+  detail: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="cmv2-classroom-empty">
+      <span><Icon size={18} /></span>
+      <div>
+        <strong>{title}</strong>
+        <em>{detail}</em>
+        {actionLabel && onAction && (
+          <button type="button" className="cmv2-ghost" onClick={onAction} disabled={disabled}>
+            {actionLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ObjectiveWeightsPanel({ variables }: { variables?: Array<Record<string, unknown>> | unknown }) {
+  const rows = rowsFrom<Record<string, unknown>>(variables);
+  const total = rows.reduce((sum, row) => sum + Math.max(0, classroomRowNumber(row, ["weight"])), 0) || 1;
+  return (
+    <div className="cmv2-representativity-panel">
+      <div className="cmv2-subhead">
+        <span className="cmv2-eyebrow">Objetivo matemático</span>
+        <strong>Pesos y tolerancias activas</strong>
+      </div>
+      <div className="cmv2-objective-bars">
+        {rows.map((row) => {
+          const weight = Math.max(0, classroomRowNumber(row, ["weight"]));
+          const tolerance = classroomRowNumber(row, ["tolerance"]);
+          return (
+            <div key={classroomRowText(row, ["dimension", "label"])} className="cmv2-objective-row">
+              <span>{classroomRowText(row, ["label", "dimension"])}</span>
+              <div aria-hidden="true"><i style={{ width: `${Math.max(4, (weight / total) * 100)}%` }} /></div>
+              <strong>{fmtPct(weight)}</strong>
+              <em>tol. {fmtPct(tolerance)}</em>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RepresentativityMetricGrid({ metrics }: { metrics?: CalcMuestraAulasRepresentativityMetric[] | unknown }) {
+  const visible = rowsFrom<CalcMuestraAulasRepresentativityMetric>(metrics)
+    .filter((metric) => metric.active !== false && Number.isFinite(safeNumber(metric.score, Number.NaN)))
+    .slice(0, 8);
+  if (!visible.length) return null;
+  return (
+    <div className="cmv2-representativity-metric-grid">
+      {visible.map((metric) => (
+        <article key={metric.metric_id}>
+          <small>{metric.metric_group}</small>
+          <strong>{classroomScore(metric.score)}</strong>
+          <span>{metric.label}</span>
+          <div aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, safeNumber(metric.score, 0)))}%` }} /></div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ProfileBalanceChart({ rows }: { rows?: CalcMuestraAulasProfileDistribution[] | unknown }) {
+  const visible = rowsFrom<CalcMuestraAulasProfileDistribution>(rows)
+    .filter((row) => Number.isFinite(safeNumber(row.frame_prop, Number.NaN)) || Number.isFinite(safeNumber(row.selected_prop, Number.NaN)))
+    .slice(0, 12);
+  if (!visible.length) {
+    return (
+      <div className="cmv2-classroom-empty is-compact">
+        <span><BarChart3 size={16} /></span>
+        <div>
+          <strong>Sin perfil calculado</strong>
+          <em>Construye el marco y corre comparación o selección para ver el ajuste frente al marco.</em>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="cmv2-profile-bars">
+      {visible.map((row, index) => {
+        const frame = Math.max(0, Math.min(1, safeNumber(row.frame_prop, 0)));
+        const selected = Math.max(0, Math.min(1, safeNumber(row.selected_prop, 0)));
+        const gap = Math.abs(selected - frame);
+        return (
+          <div key={`${row.dimension}-${row.category}-${index}`} className={gap > safeNumber(row.tolerance, 1) ? "is-alert" : ""}>
+            <div>
+              <strong>{row.label || row.dimension}</strong>
+              <span>{row.category}</span>
+              <em>{fmtPct(gap)} brecha</em>
+            </div>
+            <div className="cmv2-profile-track" aria-label={`${row.category}: marco ${fmtPct(frame)}, seleccionado ${fmtPct(selected)}`}>
+              <i className="is-frame" style={{ width: `${frame * 100}%` }} />
+              <i className="is-selected" style={{ width: `${selected * 100}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CoverageOverlapPanel({ rows }: { rows?: Array<Record<string, unknown>> | unknown }) {
+  const metricRows = rowsFrom<Record<string, unknown>>(rows);
+  const covered = classroomMetricValue(metricRows, "selected_unique_students");
+  const exposure = classroomMetricValue(metricRows, "selected_student_course_exposure");
+  const coverage = classroomMetricValue(metricRows, "coverage_population_pct");
+  const efficiency = classroomMetricValue(metricRows, "coverage_efficiency");
+  const duplicateLoss = classroomMetricValue(metricRows, "duplicate_loss");
+  return (
+    <div className="cmv2-coverage-panel">
+      <article>
+        <Users size={16} />
+        <small>Estudiantes únicos cubiertos</small>
+        <strong>{Number.isFinite(covered) ? fmtInt(covered) : "pendiente"}</strong>
+        <span>{Number.isFinite(coverage) ? `${fmtPct(coverage)} del marco` : "requiere selección"}</span>
+      </article>
+      <article>
+        <Layers3 size={16} />
+        <small>Exposición alumno-curso</small>
+        <strong>{Number.isFinite(exposure) ? fmtInt(exposure) : "pendiente"}</strong>
+        <span>{Number.isFinite(efficiency) ? `${fmtPct(efficiency)} eficiencia única` : "sin cálculo"}</span>
+      </article>
+      <article>
+        <Gauge size={16} />
+        <small>Pérdida por repetidos</small>
+        <strong>{Number.isFinite(duplicateLoss) ? fmtPct(duplicateLoss) : "pendiente"}</strong>
+        <span>se controla desde el marco, no desde respuestas anónimas</span>
+      </article>
+    </div>
+  );
+}
+
+function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimulationSummary[] | unknown }) {
+  const summaryRows = rowsFrom<CalcMuestraAulasSimulationSummary>(rows);
+  if (!summaryRows.length) {
+    return (
+      <div className="cmv2-classroom-empty is-compact">
+        <span><BarChart3 size={16} /></span>
+        <div>
+          <strong>Simulación pendiente</strong>
+          <em>Corre el comparador para estimar estabilidad de score, cobertura y pérdida por repetidos.</em>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="cmv2-simulation-grid">
+      {summaryRows.map((row) => (
+        <article key={row.method_id}>
+          <small>{classroomMethodLabel(row.method_id)}</small>
+          <strong>{classroomScore(row.score_mean)}</strong>
+          <span>{fmtInt(safeNumber(row.executed_runs, 0))}/{fmtInt(safeNumber(row.requested_runs, 0))} corridas</span>
+          <div className="cmv2-simulation-range" aria-label={`Rango ${classroomScore(row.score_p10)} a ${classroomScore(row.score_p90)}`}>
+            <i style={{
+              left: `${Math.max(0, Math.min(100, safeNumber(row.score_p10, 0)))}%`,
+              width: `${Math.max(2, Math.min(100, safeNumber(row.score_p90, 0)) - Math.max(0, safeNumber(row.score_p10, 0)))}%`,
+            }} />
+          </div>
+          <em>{row.note}</em>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function MethodSummaryCard({
+  method,
+  active,
+  onSelect,
+}: {
+  method: CalcMuestraAulasMethodSummary;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <article className={`cmv2-classroom-quality-card ${active ? "is-recommended" : ""}`}>
+      <div>
+        <small>{active ? "Recomendado" : method.method_id}</small>
+        <strong>{method.method_label}</strong>
+        <span>{method.operational_reason ?? classroomMethodReason(String(method.method_id))}</span>
+      </div>
+      <div className="cmv2-classroom-quality-metrics">
+        <span><strong>{classroomScore(method.representativity_score ?? method.overall_score)}</strong> representatividad</span>
+        <span><strong>{classroomScore(method.balance_score)}</strong> balance</span>
+        <span><strong>{fmtPct(method.duplicate_loss ?? 0)}</strong> pérdida rep.</span>
+        <span><strong>{fmtPct(method.coverage_unique_pct ?? 0)}</strong> cobertura</span>
+      </div>
+      <button type="button" className={active ? "cmv2-primary" : "cmv2-ghost"} onClick={onSelect}>
+        Usar método <ArrowRight size={13} />
+      </button>
+    </article>
+  );
+}
+
+function ClassroomRecommendation({
+  comparison,
+  fallbackMethod,
+}: {
+  comparison: CalcMuestraAulasMethodComparison | null;
+  fallbackMethod: string;
+}) {
+  if (!comparison?.recommendation) {
+    return (
+      <div className="cmv2-classroom-reco-panel">
+        <small>Recomendación</small>
+        <strong>{fallbackMethod}</strong>
+        <span>Corre el comparador para que Prosecnur recomiende un método con métricas reales del marco.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="cmv2-classroom-reco-panel is-ready">
+      <small>Recomendación del laboratorio</small>
+      <strong>{comparison.recommendation.method_label ?? classroomMethodLabel(comparison.recommendation.method_id ?? "")}</strong>
+      <span>{comparison.recommendation.operational_reason}</span>
+      <b>Score {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
+      <em>{comparison.recommendation.methodological_reason}</em>
+    </div>
+  );
+}
+
+function ClassroomRiskList({ risks }: { risks?: NonNullable<CalcMuestraAulasMethodComparison["risk_flags"]> | unknown }) {
+  const riskRows = rowsFrom<Record<string, unknown>>(risks);
+  const visible = riskRows.length ? riskRows.slice(0, 8) : [{
+    code: "sin_alertas",
+    severity: "ok",
+    title: "Sin alertas críticas",
+    detail: "La auditoría interna no reporta riesgos activos para el último cálculo.",
+  }];
+  return (
+    <div className="cmv2-classroom-risk-list">
+      <div className="cmv2-subhead">
+        <span className="cmv2-eyebrow">Riesgos</span>
+        <strong>Alertas interpretables</strong>
+      </div>
+      {visible.map((risk, index) => (
+        <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${String(risk.severity ?? "media")}`}>
+          <small>{String(risk.severity ?? "media")}</small>
+          <strong>{String(risk.title ?? "Alerta metodológica")}</strong>
+          <span>{String(risk.detail ?? "Revisa la auditoría técnica del selector.")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<string, unknown>> | unknown; methodId: string }) {
+  const visible = rowsFrom<Record<string, unknown>>(rows)
+    .filter((row) => !methodId || classroomRowText(row, ["method_id"]) === methodId)
+    .slice(0, 10);
+  if (!visible.length) {
+    return (
+      <div className="cmv2-classroom-empty is-compact">
+        <span><BarChart3 size={16} /></span>
+        <div>
+          <strong>Sin diagnóstico de balance visible</strong>
+          <em>El comparador no devolvió filas de balance para este método.</em>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="cmv2-classroom-table-wrap">
+      <table className="cmv2-table cmv2-classroom-table">
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Categoría</th>
+            <th>Marco</th>
+            <th>Seleccionado</th>
+            <th>Diferencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((row, index) => (
+            <tr key={index}>
+              <td>{classroomRowText(row, ["variable"])}</td>
+              <td>{classroomRowText(row, ["categoria", "category"])}</td>
+              <td>{fmtPct(classroomRowNumber(row, ["marco_prop", "frame_share"]))}</td>
+              <td>{fmtPct(classroomRowNumber(row, ["seleccion_m1_prop", "selected_share"]))}</td>
+              <td>{fmtPct(classroomRowNumber(row, ["diferencia_abs", "delta"]))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ClassroomSelectionTable({ rows }: { rows?: Array<Record<string, unknown>> | unknown }) {
+  const tableRows = rowsFrom<Record<string, unknown>>(rows);
+  if (!tableRows.length) {
+    return (
+      <div className="cmv2-classroom-empty is-compact">
+        <span><Table2 size={16} /></span>
+        <div>
+          <strong>Sin filas para mostrar</strong>
+          <em>Ajusta el filtro o genera una selección.</em>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="cmv2-classroom-table-wrap">
+      <table className="cmv2-table cmv2-classroom-table">
+        <thead>
+          <tr>
+            <th>Ola</th>
+            <th>Aula</th>
+            <th>Facultad / programa</th>
+            <th>Horario</th>
+            <th>Elegibles</th>
+            <th>pi final</th>
+            <th>Peso</th>
+            <th>Solape</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tableRows.map((row, index) => (
+            <tr key={`${classroomRowText(row, ["classroom_id"])}-${index}`}>
+              <td>{classroomRowText(row, ["wave"])}</td>
+              <td>
+                <strong>{classroomRowText(row, ["course_name", "label", "classroom_id"])}</strong>
+                <small>{classroomRowText(row, ["teacher", "classroom_id"])}</small>
+              </td>
+              <td>
+                {classroomRowText(row, ["faculty", "stratum"])}
+                <small>{classroomRowText(row, ["program", "level"])}</small>
+              </td>
+              <td>{classroomRowText(row, ["schedule", "modality"])}</td>
+              <td>{fmtInt(classroomRowNumber(row, ["eligible_n"]))}</td>
+              <td>{fmtPct(classroomRowNumber(row, ["pi_final"]))}</td>
+              <td>{classroomNumberText(row, ["weight_classroom"])}</td>
+              <td>{fmtInt(classroomRowNumber(row, ["duplicate_overlap"]))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, unknown>> | unknown }) {
+  const visible = rowsFrom<Record<string, unknown>>(rows)
+    .slice(0, 8)
+    .map((row, index) => ({
+      id: classroomRowText(row, ["classroom_id"]) || `aula-${index}`,
+      label: classroomRowText(row, ["course_name", "label", "classroom_id"]) || `Aula ${index + 1}`,
+      overlap: classroomRowNumber(row, ["duplicate_overlap"]),
+      x: 36 + (index % 2) * 128,
+      y: 36 + Math.floor(index / 2) * 54,
+    }));
+  const maxOverlap = Math.max(1, ...visible.map((item) => item.overlap));
+  return (
+    <div className="cmv2-classroom-overlap-graph">
+      <div className="cmv2-subhead">
+        <span className="cmv2-eyebrow">Solape</span>
+        <strong>Aulas titulares</strong>
+      </div>
+      {!visible.length ? (
+        <span className="cmv2-classroom-muted">Genera selección para ver concentración de repetidos.</span>
+      ) : (
+        <svg viewBox="0 0 230 250" role="img" aria-label="Grafo simple de solape entre aulas">
+          {visible.slice(1).map((item, index) => (
+            <line
+              key={`line-${item.id}`}
+              x1={visible[index].x}
+              y1={visible[index].y}
+              x2={item.x}
+              y2={item.y}
+              stroke="#d8e1ec"
+              strokeWidth={1}
+            />
+          ))}
+          {visible.map((item) => {
+            const radius = 11 + Math.min(14, (item.overlap / maxOverlap) * 14);
+            return (
+              <g key={item.id}>
+                <circle cx={item.x} cy={item.y} r={radius} fill="rgba(15, 118, 110, 0.12)" stroke="#0f766e" strokeWidth={1.2} />
+                <text x={item.x} y={item.y + 3} textAnchor="middle">{fmtInt(item.overlap)}</text>
+                <text x={item.x} y={item.y + radius + 13} textAnchor="middle">{String(item.label).slice(0, 16)}</text>
+              </g>
+            );
+          })}
+        </svg>
+      )}
+    </div>
+  );
+}
+
+function ClassroomReplacementTables({ simulation }: { simulation: CalcMuestraAulasReplacementSimulation }) {
+  const suggestions = rowsFrom<CalcMuestraAulasReplacementSuggestion>(simulation?.suggestions).slice(0, 18);
+  if (!suggestions.length) {
+    return (
+      <ClassroomEmptyState
+        icon={RefreshCw}
+        title="Sin reservas sugeridas"
+        detail="La simulación existe, pero no trae sugerencias compatibles con este estado. Vuelve a simular reemplazos con la selección actual."
+      />
+    );
+  }
+  return (
+    <div className="cmv2-classroom-replacement-stack">
+      <div className="cmv2-classroom-table-wrap">
+        <table className="cmv2-table cmv2-classroom-table">
+          <thead>
+            <tr>
+              <th>Aula caída</th>
+              <th>Reserva sugerida</th>
+              <th>Ola</th>
+              <th>Equivalencia</th>
+              <th>Score repr.</th>
+              <th>Delta</th>
+              <th>Solape</th>
+            </tr>
+          </thead>
+          <tbody>
+            {suggestions.map((item) => (
+              <tr key={`${item.titular_classroom_id}-${item.reserve_classroom_id}-${item.rank}`}>
+                <td>
+                  {item.titular_label || item.titular_classroom_id}
+                  <small>{item.titular_classroom_id}</small>
+                </td>
+                <td>
+                  {item.reserve_label || item.reserve_classroom_id}
+                  <small>{item.reserve_classroom_id}</small>
+                </td>
+                <td>{item.wave}</td>
+                <td>{item.match_level}</td>
+                <td>{classroomScore(item.after_score ?? item.score)}</td>
+                <td>{classroomNumberText(item as unknown as Record<string, unknown>, ["score_delta"])}</td>
+                <td>{fmtInt(item.overlap_delta ?? 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ClassroomImpactTable rows={simulation?.impact ?? []} />
+    </div>
+  );
+}
+
+function ClassroomImpactTable({ rows }: { rows?: Array<Record<string, unknown>> | unknown }) {
+  const visible = rowsFrom<Record<string, unknown>>(rows).slice(0, 12);
+  if (!visible.length) return null;
+  return (
+    <div className="cmv2-classroom-table-wrap">
+      <table className="cmv2-table cmv2-classroom-table">
+        <thead>
+          <tr>
+            <th>Titular</th>
+            <th>Reserva</th>
+            <th>Score</th>
+            <th>Balance</th>
+            <th>Elegibles</th>
+            <th>Advertencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((row, index) => (
+            <tr key={index}>
+              <td>{classroomRowText(row, ["titular_classroom_id"])}</td>
+              <td>{classroomRowText(row, ["suggested_replacement_id"])}</td>
+              <td>{classroomScore(classroomRowNumber(row, ["after_score"]))}<small>{classroomNumberText(row, ["score_delta"])}</small></td>
+              <td>{classroomRowText(row, ["balance_effect"])}</td>
+              <td>{classroomNumberText(row, ["eligible_delta"])}</td>
+              <td>{classroomRowText(row, ["warning"]) || "sin alerta"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ClassroomMethodSources({
+  selection,
+  comparison,
+}: {
+  selection: CalcMuestraAulasSelection | null;
+  comparison: CalcMuestraAulasMethodComparison | null;
+}) {
+  const sourceRows = [
+    { label: "Fuente oficial", value: selection?.official_reference ?? "OECD/PISA, NCES/NAEP, UN, Eurostat, AAPOR" },
+    { label: "Fuente académica", value: selection?.academic_reference ?? "Deville & Tillé; Statistics Canada; Groves & Heeringa" },
+    { label: "Implementación", value: selection?.implementation_reference ?? "sampling::samplecube(); BalancedSampling::lcube/lpm2" },
+    { label: "Probabilidades", value: selection?.probability_source ?? comparison?.recommendation?.method_id ?? "pendiente" },
+    { label: "Pesos", value: selection?.weight_source ?? "weight_classroom = 1/pi_final; pi_student interno agregado" },
+    { label: "No respuesta", value: selection?.nonresponse_policy ?? "códigos de disposición y ajuste posterior por dominio" },
+  ];
+  return (
+    <div className="cmv2-classroom-source-grid">
+      {sourceRows.map((row) => (
+        <div key={row.label}>
+          <small>{row.label}</small>
+          <span>{row.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function classroomRowText(row: Record<string, unknown> | undefined, keys: string[]) {
+  if (!row) return "";
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && value !== "") return String(value);
+  }
+  return "";
+}
+
+function rowsFrom<T = Record<string, unknown>>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function classroomRowNumber(row: Record<string, unknown> | undefined, keys: string[]) {
+  for (const key of keys) {
+    const value = row?.[key];
+    const n = safeNumber(value, Number.NaN);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
+function classroomMetricValue(rows: Array<Record<string, unknown>>, metric: string) {
+  const row = rows.find((item) => classroomRowText(item, ["metric"]) === metric);
+  return row ? classroomRowNumber(row, ["value"]) : Number.NaN;
+}
+
+function classroomNumberText(row: Record<string, unknown>, keys: string[]) {
+  const n = classroomRowNumber(row, keys);
+  if (!Number.isFinite(n)) return "—";
+  return Math.abs(n) >= 100 ? fmtInt(n) : n.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function classroomRowSearch(row: Record<string, unknown>, query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(q));
+}
+
+function classroomMethodLabel(methodId: string) {
+  return UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === methodId)?.label ?? methodId;
+}
+
+function classroomMethodReason(methodId: string) {
+  return UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === methodId)?.detail ??
+    "Método auditable registrado en la bitácora metodológica.";
+}
+
+function classroomScore(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (value <= 1) return `${Math.round(value * 100)}%`;
+  return `${Math.round(value)}/100`;
+}
+
+function selectorFieldLabel(field: string) {
+  const labels: Record<string, string> = {
+    faculty: "facultad",
+    sex_top_1: "sexo esperado",
+    size_group: "tamaño de aula",
+  };
+  return labels[field] ?? field;
+}
+
+function estimateClassroomBase(comp: CalcMuestraComponente) {
+  const fromResult = safeNumber(comp.resultado?.aulas_base_total, 0);
+  if (fromResult > 0) return fromResult;
+  const fixed = (comp.marco.estratos ?? []).reduce((sum, e) => sum + safeNumber(e.aulas_base_fijas, 0), 0);
+  if (fixed > 0) return fixed;
+  const target = safeNumber(comp.meta.valor, 0);
+  if (target <= 0) return null;
+  const operative = target * (1 + safeNumber(comp.parametros.oversample_pct, 0));
+  const effectiveClassroom = Math.max(1, safeNumber(comp.parametros.promedio_conglomerado, 25) * safeNumber(comp.parametros.tau, 0.7));
+  return Math.ceil(operative / effectiveClassroom);
+}
+
+function estimateOperationalExtra(estratos: CalcMuestraEstrato[], config: CalcMuestraWorkspaceAulasConfig) {
+  const fromEstratos = estratos.reduce((sum, e) => sum + safeNumber(e.aulas_extra_operativas, 0), 0);
+  if (fromEstratos > 0) return fromEstratos;
+  const cells = Math.max(1, estratos.filter((e) => safeNumber(e.N) > 0).length);
+  return cells * config.aulas_extra_operativas_default;
+}
+
+function CirclePendingIcon() {
+  return <span className="cmv2-pending-dot" aria-hidden="true" />;
+}
+
 function UniversityRevampFacultadesTable({
   estratos,
   onEstratos,
@@ -1808,66 +4177,83 @@ function UniversityRevampFacultadesTable({
     }),
     { N: 0, mujeres: 0, hombres: 0 },
   );
+  const hasRows = estratos.length > 0;
   return (
     <div className="cmv2-university-table-block">
       <div className="cmv2-subhead">
         <span className="cmv2-eyebrow">Tabla editable</span>
         <strong>Facultades del marco</strong>
       </div>
-      <div className="cmv2-table-wrap cmv2-university-table-scroll">
-        <table className="cmv2-table cmv2-table--university-edit">
-          <thead>
-            <tr>
-              <th>Facultad</th>
-              <th>Total</th>
-              <th>Mujeres</th>
-              <th>Hombres</th>
-              <th>Error facultad</th>
-              <th>Confianza</th>
-              <th>p éxito</th>
-              <th>+ aulas</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {estratos.map((e, i) => (
-              <tr key={e.id}>
-                <td><input className="cmv2-table-input" value={e.label} onChange={(ev) => update(i, { label: ev.currentTarget.value })} /></td>
-                <td><NumberCell value={e.N} onChange={(v) => {
-                  const N = Math.round(v);
-                  update(i, { N, e_facultad: universityFacultyError(N), confianza_facultad: universityFacultyConfidence(N) });
-                }} /></td>
-                <td><NumberCell value={e.N_a} onChange={(v) => update(i, { N_a: Math.round(v) })} /></td>
-                <td><NumberCell value={e.N_b} onChange={(v) => update(i, { N_b: Math.round(v) })} /></td>
-                <td><NumberCell value={e.e_facultad} step={0.005} suffix="prop." onChange={(v) => update(i, { e_facultad: v })} /></td>
-                <td><NumberCell value={e.confianza_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { confianza_facultad: v, z_facultad: undefined })} /></td>
-                <td><NumberCell value={e.p_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { p_facultad: v })} /></td>
-                <td><NumberCell value={e.aulas_extra_operativas} step={1} onChange={(v) => update(i, { aulas_extra_operativas: Math.max(0, Math.round(v)) })} /></td>
-                <td>
-                  <button
-                    type="button"
-                    className="cmv2-icon-button"
-                    onClick={() => onEstratos(estratos.filter((_, idx) => idx !== i))}
-                    aria-label="Eliminar facultad"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
+      <div className={`cmv2-table-wrap cmv2-university-table-scroll ${hasRows ? "" : "cmv2-university-table-empty"}`}>
+        {hasRows ? (
+          <table className="cmv2-table cmv2-table--university-edit">
+            <thead>
+              <tr>
+                <th>Facultad</th>
+                <th>Total</th>
+                <th>Mujeres</th>
+                <th>Hombres</th>
+                <th>Error facultad</th>
+                <th>Confianza</th>
+                <th>p éxito</th>
+                <th>+ aulas</th>
+                <th />
               </tr>
-            ))}
-            <tr className="cmv2-total-row">
-              <td><strong>Total</strong></td>
-              <td>{fmtInt(totals.N)}</td>
-              <td>{fmtInt(totals.mujeres)}</td>
-              <td>{fmtInt(totals.hombres)}</td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
-              <td>—</td>
-              <td />
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {estratos.map((e, i) => (
+                <tr key={e.id}>
+                  <td><input className="cmv2-table-input" value={e.label} onChange={(ev) => update(i, { label: ev.currentTarget.value })} /></td>
+                  <td><NumberCell value={e.N} onChange={(v) => {
+                    const N = Math.round(v);
+                    update(i, { N, e_facultad: universityFacultyError(N), confianza_facultad: universityFacultyConfidence(N) });
+                  }} /></td>
+                  <td><NumberCell value={e.N_a} onChange={(v) => update(i, { N_a: Math.round(v) })} /></td>
+                  <td><NumberCell value={e.N_b} onChange={(v) => update(i, { N_b: Math.round(v) })} /></td>
+                  <td><NumberCell value={e.e_facultad} step={0.005} suffix="prop." onChange={(v) => update(i, { e_facultad: v })} /></td>
+                  <td><NumberCell value={e.confianza_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { confianza_facultad: v, z_facultad: undefined })} /></td>
+                  <td><NumberCell value={e.p_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { p_facultad: v })} /></td>
+                  <td><NumberCell value={e.aulas_extra_operativas} step={1} onChange={(v) => update(i, { aulas_extra_operativas: Math.max(0, Math.round(v)) })} /></td>
+                  <td>
+                    <button
+                      type="button"
+                      className="cmv2-icon-button"
+                      onClick={() => onEstratos(estratos.filter((_, idx) => idx !== i))}
+                      aria-label="Eliminar facultad"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              <tr className="cmv2-total-row">
+                <td><strong>Total</strong></td>
+                <td>{fmtInt(totals.N)}</td>
+                <td>{fmtInt(totals.mujeres)}</td>
+                <td>{fmtInt(totals.hombres)}</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        ) : (
+          <div className="cmv2-university-empty-frame">
+            <span className="cmv2-card-icon"><Database size={18} /></span>
+            <div>
+              <span className="cmv2-eyebrow">Marco sin facultades</span>
+              <strong>Base institucional pendiente</strong>
+              <div className="cmv2-university-empty-tags">
+                <span>facultad</span>
+                <span>sexo</span>
+                <span>curso-horario</span>
+                <span>elegibles</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="cmv2-inline-actions">
         <button
@@ -2169,7 +4555,7 @@ function OpinionUniversitariaDesk({
   onWorkspace,
   onComponente,
   onReplaceComponente,
-  onCargarPucp,
+  onCargarModelo,
   onCalcular,
   calculando,
 }: {
@@ -2180,7 +4566,7 @@ function OpinionUniversitariaDesk({
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   onComponente: (id: string, patch: ComponentePatch) => void;
   onReplaceComponente: (comp: CalcMuestraComponente) => void;
-  onCargarPucp: () => void;
+  onCargarModelo: () => void;
   onCalcular: () => void;
   calculando: boolean;
 }) {
@@ -2215,13 +4601,13 @@ function OpinionUniversitariaDesk({
   return (
     <div className="cmv2-desk">
       <ShellHeader
-        eyebrow="Plantilla conocida"
+        eyebrow="Encuesta a estudiantes"
         title="Estudiantes universitarios"
         copy="Mesa por facultades y sexo; calcula tamaño muestral y distribución de cuotas."
         icon={Grid3X3}
       >
-        <button type="button" className="cmv2-ghost" onClick={onCargarPucp}>
-          <Wand2 size={14} /> Cargar PUCP
+        <button type="button" className="cmv2-ghost" onClick={onCargarModelo}>
+          <Wand2 size={14} /> Cargar modelo
         </button>
         <button type="button" className="cmv2-primary" onClick={() => void onCalcular()} disabled={calculando}>
           {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
@@ -2459,6 +4845,7 @@ function ScenarioStrip({
 function MarcoDisponibleDesk({
   estudio,
   workspace,
+  activeSection,
   onTitulo,
   onContexto,
   onPatchEstudio,
@@ -2473,6 +4860,7 @@ function MarcoDisponibleDesk({
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
+  activeSection: string;
   onTitulo: (titulo: string) => void;
   onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   onPatchEstudio: (patch: Partial<CalcMuestraEstudio>) => void;
@@ -2488,12 +4876,15 @@ function MarcoDisponibleDesk({
   const comp = estudio.componentes[0] ?? defaultComponente();
   const matrizMode = (comp.marco.matriz_operativa?.length ?? 0) > 0;
   const estratosMode = (comp.marco.estratos?.length ?? 0) > 0 && !matrizMode;
+  const selectedSection = ["marco", "metodo", "resultados"].includes(activeSection)
+    ? activeSection
+    : "marco";
 
   return (
     <div className="cmv2-desk">
       <ShellHeader
-        eyebrow="Estudio ocasional"
-        title="Diseñar desde marco disponible"
+        eyebrow="Cálculo de muestra general"
+        title="Marco propio"
         copy="Define unidad, variables de control y forma del marco. Luego eliges el cálculo y ajustas parámetros."
         icon={SlidersHorizontal}
       >
@@ -2502,10 +4893,23 @@ function MarcoDisponibleDesk({
           Calcular mesa
         </button>
       </ShellHeader>
-      <div className="cmv2-desk-grid">
-        <div className="cmv2-stack">
-          <ResultadoPanel componentes={estudio.componentes} />
+      <div className="cmv2-university-workbench" data-active-section={selectedSection}>
+        {selectedSection === "marco" && (
+          <div id="cmv2-section-general-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco">
+            <div className="cmv2-desk-grid">
+              <div className="cmv2-stack">
           <MarcoShapeSelector selected={workspace.marco_disponible} onSelect={onEnsureKind} />
+                <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
+              </div>
+              <aside className="cmv2-side">
+                <StudyBasics estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
+              </aside>
+            </div>
+          </div>
+        )}
+
+        {selectedSection === "metodo" && (
+          <div id="cmv2-section-general-metodo" className="cmv2-tab-panel" role="tabpanel" aria-label="Método">
           <section className="cmv2-panel">
             <div className="cmv2-panel-head">
               <span className="cmv2-eyebrow">Cálculo</span>
@@ -2517,9 +4921,11 @@ function MarcoDisponibleDesk({
           {matrizMode && <MatrizServiciosTable comp={comp} onComponente={onComponente} />}
           {estratosMode && <EstratosTable comp={comp} onComponente={onComponente} />}
         </div>
-        <aside className="cmv2-side">
-          <StudyBasics estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
-          <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
+        )}
+
+        {selectedSection === "resultados" && (
+          <div id="cmv2-section-general-resultados" className="cmv2-tab-panel" role="tabpanel" aria-label="Resultados">
+          <ResultadoPanel componentes={estudio.componentes} />
           <section className="cmv2-panel">
             <div className="cmv2-panel-head">
               <span className="cmv2-eyebrow">Salida</span>
@@ -2539,7 +4945,8 @@ function MarcoDisponibleDesk({
               </button>
             </div>
           </section>
-        </aside>
+          </div>
+        )}
       </div>
     </div>
   );

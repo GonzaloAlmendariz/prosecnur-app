@@ -16,6 +16,12 @@
 #   POST /api/calc-muestra/recomendar          — recomienda técnica
 #   POST /api/calc-muestra/iniciar-estudio     — inicia estudio por tipo
 #   POST /api/calc-muestra/modo-trabajo        — transición de modo
+#   POST /api/calc-muestra/marco/config        — configura marco de aulas
+#   POST /api/calc-muestra/marco/construir     — construye marco de aulas
+#   POST /api/calc-muestra/aulas/comparar-metodos — compara motores
+#   POST /api/calc-muestra/aulas/seleccionar   — selecciona aulas M1..Mk
+#   POST /api/calc-muestra/aulas/simular-reemplazos — simula reservas
+#   POST /api/calc-muestra/aulas/exportar      — exporta workbook de seleccion
 #   POST /api/calc-muestra/reporte             — encola job Quarto
 #   GET  /api/calc-muestra/reporte/descargar   — descarga reporte binario
 #
@@ -35,12 +41,31 @@
   )
 }
 
+.cm_table_from_payload <- function(sid, body, key) {
+  direct <- body[[key]] %||% NULL
+  if (!is.null(direct)) return(.cm_aulas_as_df(direct, key))
+  file_key <- paste0(key, "_file_id")
+  file_id <- calc_str(body[[file_key]] %||% body[[paste0(key, "FileId")]], "")
+  if (!nzchar(file_id)) return(data.frame(stringsAsFactors = FALSE))
+  meta <- get_file(sid, file_id)
+  sheet <- body[[paste0(key, "_sheet")]] %||% body[[paste0(key, "Sheet")]] %||% NULL
+  .cm_aulas_read_table(meta$path, sheet = sheet)
+}
+
 .cm_state_payload <- function(sid) {
   s <- session_get(sid)
   estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
   reporte_meta <- s$calc_muestra_reporte %||% list(disponible = FALSE)
   list(
     estudio = estudio,
+    aulas = list(
+      config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
+      frame = s$calc_muestra_aulas_frame %||% NULL,
+      selection = s$calc_muestra_aulas_selection %||% NULL,
+      method_comparison = s$calc_muestra_aulas_method_comparison %||% NULL,
+      replacement_simulation = s$calc_muestra_aulas_replacement_simulation %||% NULL,
+      export = s$calc_muestra_aulas_export %||% NULL
+    ),
     reporte = list(
       disponible    = isTRUE(reporte_meta$disponible),
       generated_at  = reporte_meta$generated_at %||% NULL,
@@ -165,13 +190,13 @@ mount_calc_muestra <- function(pr) {
     # POST /api/calc-muestra/iniciar-estudio — inicia estudio por tipo
     # Body: { tipo: "acreditacion"|"hsvg_universitario"|"territorial"|
     #              "linea_base_servicios"|"listado_telefonico"|"estudio_propio",
-    #         variante: "vacio"|"plantilla_pucp" }
+    #         variante: "vacio"|"modelo_universitario" }
     # La UI solo ofrece plantillas calculables. `territorial` y
     # `listado_telefonico` se conservan por compatibilidad legacy.
     # Reemplaza los componentes del estudio actual con la estructura del tipo.
     # Por defecto crea componentes vacíos que el usuario completa por UI.
-    # La variante "plantilla_pucp" (solo HSVG) pre-puebla los 15 estratos
-    # de facultades con el marco DTI 2025-II como punto de partida editable.
+    # La variante universitaria de referencia pre-puebla estratos editables
+    # de facultades como punto de partida, sin acoplar el motor a una institución.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/iniciar-estudio",
                      wrap_endpoint(function(req, res, ...) {
@@ -207,6 +232,184 @@ mount_calc_muestra <- function(pr) {
       estudio$modo_trabajo <- modo
       session_set(sid, "calc_muestra_estudio", estudio)
       list(ok = TRUE, modo_trabajo = modo, estudio = estudio)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco/config — guarda configuracion de marco
+    # Body: { config: {...} }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco/config",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      config <- calc_muestra_aulas_normalize_config(body$config %||% body)
+      session_set(sid, "calc_muestra_aulas_config", config)
+      list(ok = TRUE, config = config, state = .cm_state_payload(sid))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco/construir — construye marco de aulas
+    # Body: { base_madre|base_madre_file_id, estudiantes|estudiantes_file_id,
+    #         inscripciones|inscripciones_file_id, config }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco/construir",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      config <- calc_muestra_aulas_normalize_config(body$config %||% s$calc_muestra_aulas_config %||% list())
+      base_madre <- .cm_table_from_payload(sid, body, "base_madre")
+      estudiantes <- .cm_table_from_payload(sid, body, "estudiantes")
+      inscripciones <- .cm_table_from_payload(sid, body, "inscripciones")
+      frame <- tryCatch(
+        calc_muestra_aulas_construir(
+          base_madre = base_madre,
+          estudiantes = estudiantes,
+          inscripciones = inscripciones,
+          config = config
+        ),
+        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
+      )
+      session_set(sid, "calc_muestra_aulas_config", frame$config)
+      session_set(sid, "calc_muestra_aulas_frame", frame)
+      session_set(sid, "calc_muestra_aulas_selection", NULL)
+      session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
+      session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
+      session_set(sid, "calc_muestra_aulas_export", NULL)
+      list(ok = TRUE, frame = frame, state = .cm_state_payload(sid))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/aulas/comparar-metodos — laboratorio comparativo
+    # Body: { config?: {...}, frame?: {...}, methods?: [], simulation_runs?: n }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/aulas/comparar-metodos",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      frame <- body$frame %||% s$calc_muestra_aulas_frame %||% NULL
+      if (is.null(frame)) {
+        stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de comparar métodos.")
+      }
+      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      config_input <- body$config %||% base_config
+      if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
+        config_input$objective <- body$objective_config %||% body$objetivo_representatividad
+      }
+      config <- calc_muestra_aulas_normalize_config(config_input)
+      comparison <- tryCatch(
+        calc_muestra_aulas_comparar_metodos(
+          frame,
+          config,
+          methods = body$methods %||% body$metodos %||% NULL,
+          simulation_runs = body$simulation_runs %||% body$simulaciones %||% NULL
+        ),
+        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_COMPARE", conditionMessage(e))
+      )
+      session_set(sid, "calc_muestra_aulas_config", config)
+      session_set(sid, "calc_muestra_aulas_method_comparison", comparison)
+      session_set(sid, "calc_muestra_aulas_export", NULL)
+      list(ok = TRUE, comparison = comparison, state = .cm_state_payload(sid))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/aulas/seleccionar — selecciona M1 y reemplazos
+    # Body: { config?: {...}, frame?: {...}, method_id?: "cube_balanceado" }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/aulas/seleccionar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      frame <- body$frame %||% s$calc_muestra_aulas_frame %||% NULL
+      if (is.null(frame)) {
+        stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de seleccionar.")
+      }
+      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      config_input <- body$config %||% base_config
+      if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
+        config_input$objective <- body$objective_config %||% body$objetivo_representatividad
+      }
+      config <- calc_muestra_aulas_normalize_config(config_input)
+      method_id <- calc_str(body$method_id %||% body$selector_engine %||% body$comparison_method %||% "", "")
+      if (nzchar(method_id)) {
+        config$selector$selector_engine <- .cm_aulas_engine_key(method_id)
+        config$selector$method_family <- .cm_aulas_method_family(config$selector$selector_engine)
+      }
+      selection <- tryCatch(
+        calc_muestra_aulas_seleccionar(frame, config),
+        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_SELECTION", conditionMessage(e))
+      )
+      comparison <- s$calc_muestra_aulas_method_comparison %||% NULL
+      if (!is.null(comparison)) selection$method_comparison <- comparison
+      session_set(sid, "calc_muestra_aulas_config", config)
+      session_set(sid, "calc_muestra_aulas_selection", selection)
+      session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
+      session_set(sid, "calc_muestra_aulas_export", NULL)
+      list(ok = TRUE, selection = selection, state = .cm_state_payload(sid))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/aulas/simular-reemplazos — impacto de reservas
+    # Body: { config?: {...}, frame?: {...}, selection?: {...} }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/aulas/simular-reemplazos",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      frame <- body$frame %||% s$calc_muestra_aulas_frame %||% NULL
+      selection <- body$selection %||% s$calc_muestra_aulas_selection %||% NULL
+      if (is.null(frame) || is.null(selection)) {
+        stop_api(409, "E_SIN_SELECCION_AULAS", "Selecciona aulas antes de simular reemplazos.")
+      }
+      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      config_input <- body$config %||% base_config
+      if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
+        config_input$objective <- body$objective_config %||% body$objetivo_representatividad
+      }
+      config <- calc_muestra_aulas_normalize_config(config_input)
+      replacement <- tryCatch(
+        calc_muestra_aulas_simular_reemplazos(frame, selection, config),
+        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_REPLACEMENTS", conditionMessage(e))
+      )
+      selection$replacement_simulation <- replacement
+      session_set(sid, "calc_muestra_aulas_config", config)
+      session_set(sid, "calc_muestra_aulas_selection", selection)
+      session_set(sid, "calc_muestra_aulas_replacement_simulation", replacement)
+      session_set(sid, "calc_muestra_aulas_export", NULL)
+      list(ok = TRUE, replacement_simulation = replacement, state = .cm_state_payload(sid))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/aulas/exportar — workbook de seleccion
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/aulas/exportar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      frame <- s$calc_muestra_aulas_frame %||% NULL
+      selection <- s$calc_muestra_aulas_selection %||% NULL
+      if (is.null(frame) || is.null(selection)) {
+        stop_api(409, "E_SIN_SELECCION_AULAS", "Construye el marco y selecciona aulas antes de exportar.")
+      }
+      out_path <- tempfile("calc_muestra_aulas_", fileext = ".xlsx")
+      tryCatch(
+        calc_muestra_aulas_exportar_workbook(
+          frame,
+          selection,
+          out_path,
+          comparison = s$calc_muestra_aulas_method_comparison %||% NULL,
+          replacement_simulation = s$calc_muestra_aulas_replacement_simulation %||% NULL
+        ),
+        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_EXPORT", conditionMessage(e))
+      )
+      out_name <- .export_filename(sid, "calc_muestra_aulas_seleccion", "xlsx")
+      meta <- .register_output_file(sid, "calc_muestra_aulas_seleccion", out_path, original_name = out_name)
+      export <- list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size)
+      session_set(sid, "calc_muestra_aulas_export", export)
+      list(ok = TRUE, export = export, state = .cm_state_payload(sid))
     })) |>
 
     # -----------------------------------------------------------------------

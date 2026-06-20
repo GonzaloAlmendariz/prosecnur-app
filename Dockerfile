@@ -84,7 +84,6 @@ RUN R CMD INSTALL --no-multiarch --with-keep.source /app/api
 # se puede sobrescribir con un volume montado en /data.
 RUN mkdir -p /data
 COPY data /data
-VOLUME /data
 
 # Puerto del hosting. HF Spaces usa 7860, Fly.io respeta $PORT (default
 # en internal_port del fly.toml). launch_server.R lee $PORT con fallback.

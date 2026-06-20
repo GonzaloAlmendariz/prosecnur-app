@@ -87,6 +87,32 @@ const PLANTILLAS_POR_TIPO: Record<CalcMuestraMacroFamilia, PlantillaComponente[]
       tecnica: "no_prob_conveniencia",
     },
   ],
+  encuesta_estudiantes: [
+    {
+      label: "Estudiantes universitarios",
+      actor: "Estudiantes universitarios",
+      actor_id: "estudiantes",
+      actor_categoria: "estudiantes",
+      canal_recojo: "aula_qr",
+      tecnica: "prob_conglomerado_multietapico",
+    },
+    {
+      label: "Docentes",
+      actor: "Docentes",
+      actor_id: "docentes",
+      actor_categoria: "docentes",
+      canal_recojo: "online_email",
+      tecnica: "intencion_censal",
+    },
+    {
+      label: "Administrativos",
+      actor: "Personal administrativo",
+      actor_id: "administrativos",
+      actor_categoria: "administrativos",
+      canal_recojo: "online_email",
+      tecnica: "intencion_censal",
+    },
+  ],
   hsvg_universitario: [
     {
       label: "Estudiantes universitarios",

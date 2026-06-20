@@ -91,6 +91,7 @@
 
 .CM_MACRO_FAMILIAS <- c(
   "acreditacion",
+  "encuesta_estudiantes",
   "hsvg_universitario",
   "territorial",
   "listado_telefonico",
@@ -1670,10 +1671,11 @@ calc_muestra_recomendar <- function(diagnostico) {
 #' es vacía (sin datos pre-cargados); el usuario completa N, parámetros y
 #' estratos en la UI. El motor aplica el cuadro maestro automáticamente.
 #'
-#' @param tipo macro_familia: acreditacion, hsvg_universitario, territorial,
+#' @param tipo macro_familia: acreditacion, encuesta_estudiantes,
+#'   hsvg_universitario, territorial,
 #'   linea_base_servicios, listado_telefonico, estudio_propio.
-#' @param variante Opcional: "vacio" (default), "plantilla_pucp" (carga datos
-#'   canónicos PUCP cuando aplica, ej. 15 facultades HSVG).
+#' @param variante Opcional: "vacio" (default), "plantilla_pucp" (alias legacy
+#'   para estudios antiguos con estratos pre-poblados).
 #' @return Lista con macro_familia y componentes iniciales.
 calc_muestra_iniciar_estudio <- function(tipo, variante = "vacio") {
   tipo <- calc_enum(tipo, .CM_MACRO_FAMILIAS, "estudio_propio")
@@ -1682,8 +1684,8 @@ calc_muestra_iniciar_estudio <- function(tipo, variante = "vacio") {
   if (tipo == "acreditacion") {
     return(.cm_iniciar_acreditacion())
   }
-  if (tipo == "hsvg_universitario") {
-    return(.cm_iniciar_hsvg(variante))
+  if (tipo %in% c("encuesta_estudiantes", "hsvg_universitario")) {
+    return(.cm_iniciar_hsvg(variante, macro_familia = if (tipo == "hsvg_universitario") "hsvg_universitario" else "encuesta_estudiantes"))
   }
   if (tipo == "territorial") {
     return(.cm_iniciar_territorial())
@@ -1720,11 +1722,12 @@ calc_muestra_iniciar_estudio <- function(tipo, variante = "vacio") {
   list(macro_familia = "acreditacion", componentes = componentes)
 }
 
-# HSVG universitario: 1 componente estudiantes en aulas.
-.cm_iniciar_hsvg <- function(variante) {
+# Encuesta a estudiantes: 1 componente estudiantes en aulas. `hsvg_universitario`
+# se mantiene solo como alias legacy para proyectos ya creados.
+.cm_iniciar_hsvg <- function(variante, macro_familia = "encuesta_estudiantes") {
   if (identical(variante, "plantilla_pucp")) {
     res <- calc_muestra_aplicar_preset_hsvg()
-    return(list(macro_familia = "hsvg_universitario", componentes = list(res$componente)))
+    return(list(macro_familia = macro_familia, componentes = list(res$componente)))
   }
   comp <- calc_muestra_normalize_componente(list(
     actor = "Estudiantes pregrado",
@@ -1735,7 +1738,7 @@ calc_muestra_iniciar_estudio <- function(tipo, variante = "vacio") {
     marco = list(universo_bruto = 0L, marco_validado = 0L, marco_contactable = 0L,
                  estado = "no_definido", estratos = list())
   ))
-  list(macro_familia = "hsvg_universitario", componentes = list(comp))
+  list(macro_familia = macro_familia, componentes = list(comp))
 }
 
 # Territorial: 1 componente vacío con conglomerados.

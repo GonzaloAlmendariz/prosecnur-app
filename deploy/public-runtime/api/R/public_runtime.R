@@ -78,7 +78,14 @@ session_header <- function(req) {
     space_name = .public_scalar(artifact$space_name, ""),
     repo_id = .public_scalar(artifact$repo_id, ""),
     app_url = .public_scalar(artifact$app_url, ""),
-    space_url = .public_scalar(artifact$space_url, artifact$app_url %||% ""),
+    space_url = .public_scalar(
+      artifact$space_url,
+      artifact$url %||% if (nzchar(.public_scalar(artifact$repo_id, ""))) {
+        sprintf("https://huggingface.co/spaces/%s", .public_scalar(artifact$repo_id, ""))
+      } else {
+        artifact$app_url %||% ""
+      }
+    ),
     sheet_url = .public_scalar(artifact$sheet_url, ""),
     last_used_at = .public_scalar(artifact$last_used_at, artifact$published_at %||% ""),
     publication_sections = artifact$publication_sections %||% list(),

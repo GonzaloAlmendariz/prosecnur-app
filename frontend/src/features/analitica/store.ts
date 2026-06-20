@@ -42,6 +42,33 @@ export type MultibaseTablasConfig = {
   };
 };
 
+export type PanelWaveConfig = {
+  base: string;
+  label: string;
+  suffix: string;
+  order: number;
+};
+
+export type PanelConfig = {
+  key: string;
+  waves: PanelWaveConfig[];
+  nse: {
+    enabled: boolean;
+    variables: string[];
+  };
+  outputs: {
+    codebook: boolean;
+    frecuencias: boolean;
+    auditoria: boolean;
+    cobertura_nse: boolean;
+  };
+  formatos: {
+    sav: BasesSavConfig;
+    csv: BasesCsvConfig;
+    xlsx: BasesXlsxConfig;
+  };
+};
+
 export type SemaforoModo = "grupos" | "degradado_automatico" | "degradado_manual";
 
 // Cada variable de cruce puede tener una lista de categorías excluidas
@@ -200,6 +227,7 @@ export type BasesSavConfig = {
   // el .sav lleva measure / format.spss / display_width embebidos. Activar
   // solo si tu SPSS pierde los atributos al abrir.
   incluir_sps: boolean;
+  multi_select?: MultiSelectMode;
 };
 
 export type BasesCsvConfig = {
@@ -252,6 +280,7 @@ export type AnaliticaConfig = {
   codebook: CodebookConfig;
   frecuencias: FrecuenciasConfig;
   multibase: MultibaseTablasConfig;
+  panel: PanelConfig;
   cruces: CrucesConfig;
   enumeradores: EnumeradoresConfig;
   bases: BasesConfig;
@@ -292,6 +321,25 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     origenes: {
       incluir_porcentajes: true,
       incluir_secciones: true,
+    },
+  },
+  panel: {
+    key: "",
+    waves: [],
+    nse: {
+      enabled: true,
+      variables: ["nse", "nse_inei", "nse_atribuido", "nse_inferencia"],
+    },
+    outputs: {
+      codebook: true,
+      frecuencias: true,
+      auditoria: true,
+      cobertura_nse: true,
+    },
+    formatos: {
+      sav: { incluir_sps: false, multi_select: "dummy_01" },
+      csv: { valores: "etiquetas", separador: ",", multi_select: "dummy_01" },
+      xlsx: { valores: "ambos", multi_select: "dummy_01" },
     },
   },
   cruces: {
@@ -389,6 +437,8 @@ type AnaliticaStore = {
   setCodebook: (patch: Partial<CodebookConfig>) => void;
   setFrecuencias: (patch: Partial<FrecuenciasConfig>) => void;
   setMultibase: (patch: Partial<MultibaseTablasConfig>) => void;
+  setPanel: (patch: Partial<PanelConfig>) => void;
+  setPanelWave: (base: string, patch: Partial<PanelWaveConfig>) => void;
   setCruces: (patch: Partial<CrucesConfig>) => void;
   setEnumeradores: (patch: Partial<EnumeradoresConfig>) => void;
 
@@ -554,6 +604,44 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
         },
       }),
     ),
+
+  setPanel: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          panel: {
+            ...s.config.panel,
+            ...patch,
+            nse: { ...s.config.panel.nse, ...(patch.nse ?? {}) },
+            outputs: { ...s.config.panel.outputs, ...(patch.outputs ?? {}) },
+            formatos: {
+              ...s.config.panel.formatos,
+              ...(patch.formatos ?? {}),
+              sav: { ...s.config.panel.formatos.sav, ...(patch.formatos?.sav ?? {}) },
+              csv: { ...s.config.panel.formatos.csv, ...(patch.formatos?.csv ?? {}) },
+              xlsx: { ...s.config.panel.formatos.xlsx, ...(patch.formatos?.xlsx ?? {}) },
+            },
+          },
+        },
+      }),
+    ),
+
+  setPanelWave: (base, patch) =>
+    set((s) => {
+      const current = s.config.panel.waves;
+      const idx = current.findIndex((wave) => wave.base === base);
+      const fallback: PanelWaveConfig = {
+        base,
+        label: patch.label ?? base,
+        suffix: patch.suffix ?? base,
+        order: patch.order ?? current.length + 1,
+      };
+      const waves = idx >= 0
+        ? current.map((wave) => (wave.base === base ? { ...wave, ...patch, base } : wave))
+        : [...current, { ...fallback, ...patch, base }];
+      return dirty({ config: { ...s.config, panel: { ...s.config.panel, waves } } });
+    }),
 
   setCruces: (patch) =>
     set((s) => dirty({ config: { ...s.config, cruces: { ...s.config.cruces, ...patch } } })),
@@ -730,6 +818,38 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
         ...DEFAULT_CONFIG.multibase.origenes,
         ...((c as Partial<AnaliticaConfig>).multibase?.origenes ?? {}),
       },
+    },
+    panel: {
+      ...DEFAULT_CONFIG.panel,
+      ...((c as Partial<AnaliticaConfig>).panel ?? {}),
+      nse: {
+        ...DEFAULT_CONFIG.panel.nse,
+        ...((c as Partial<AnaliticaConfig>).panel?.nse ?? {}),
+        variables: ((c as Partial<AnaliticaConfig>).panel?.nse?.variables ?? DEFAULT_CONFIG.panel.nse.variables),
+      },
+      outputs: {
+        ...DEFAULT_CONFIG.panel.outputs,
+        ...((c as Partial<AnaliticaConfig>).panel?.outputs ?? {}),
+      },
+      formatos: {
+        ...DEFAULT_CONFIG.panel.formatos,
+        ...((c as Partial<AnaliticaConfig>).panel?.formatos ?? {}),
+        sav: {
+          ...DEFAULT_CONFIG.panel.formatos.sav,
+          ...((c as Partial<AnaliticaConfig>).panel?.formatos?.sav ?? {}),
+        },
+        csv: {
+          ...DEFAULT_CONFIG.panel.formatos.csv,
+          ...((c as Partial<AnaliticaConfig>).panel?.formatos?.csv ?? {}),
+        },
+        xlsx: {
+          ...DEFAULT_CONFIG.panel.formatos.xlsx,
+          ...((c as Partial<AnaliticaConfig>).panel?.formatos?.xlsx ?? {}),
+        },
+      },
+      waves: Array.isArray((c as Partial<AnaliticaConfig>).panel?.waves)
+        ? ((c as Partial<AnaliticaConfig>).panel!.waves as PanelWaveConfig[])
+        : [],
     },
     cruces: {
       ...DEFAULT_CONFIG.cruces,

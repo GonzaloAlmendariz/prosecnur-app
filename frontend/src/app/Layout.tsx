@@ -389,6 +389,7 @@ export default function Layout() {
   const location = useLocation();
   const showFases = isProcesamientoRoute(location.pathname);
   const isProcessing = isProcesamientoRoute(location.pathname);
+  const isHome = location.pathname === "/";
   const policy = routePolicy(location.pathname);
   const routeMotionKey = location.pathname;
   const previousPathRef = useRef(location.pathname);
@@ -433,7 +434,12 @@ export default function Layout() {
         <SessionErrorChip />
       </header>
       <main
-        className={`pulso-main pulso-main--${policy}${isProcessing ? " pulso-main--processing" : ""}`}
+        className={[
+          "pulso-main",
+          `pulso-main--${policy}`,
+          isHome ? "pulso-main--home" : "",
+          isProcessing ? "pulso-main--processing" : "",
+        ].filter(Boolean).join(" ")}
         data-route-policy={policy}
       >
         <SiblingWorkbenchSelector visible={showFases} />

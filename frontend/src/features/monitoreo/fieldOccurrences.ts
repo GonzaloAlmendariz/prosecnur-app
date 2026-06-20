@@ -6,10 +6,20 @@ import type {
   MonitoreoRow,
 } from "../../api/client";
 
-export type OccurrenceUmpAttentionStatus = "reportada_efectiva" | "reportada_no_efectiva" | "revisar_cruce" | "sin_reporte";
+export type OccurrenceUmpAttentionStatus =
+  | "reportada_efectiva"
+  | "reportada_no_efectiva"
+  | "revisar_cruce"
+  | "completa_sin_reporte"
+  | "incompleta_sin_reporte"
+  | "iniciada_sin_reporte"
+  | "sin_reporte";
 
 export type OccurrenceUmpAttentionReason =
   | "sin_reporte"
+  | "iniciada_sin_reporte"
+  | "completa_sin_reporte"
+  | "incompleta_sin_reporte"
   | "ump_no_esperada"
   | "fuera_ruta"
   | "multiples_consolidados"
@@ -38,6 +48,12 @@ export type OccurrenceRouteUmpRow = {
   efectivas: number;
   no_efectivas: number;
   intentos: number;
+  advance_validas: number;
+  advance_meta: number;
+  advance_started: boolean;
+  advance_complete: boolean;
+  advance_quota_status: string;
+  advance_last_activity: string;
   tasa_no_efectiva: number | null;
   ultimo_reporte: string;
   outcomes: OccurrenceOutcomeSummary[];
@@ -69,7 +85,10 @@ const STATUS_PRIORITY: Record<OccurrenceUmpAttentionStatus, number> = {
   revisar_cruce: 0,
   reportada_no_efectiva: 1,
   reportada_efectiva: 2,
-  sin_reporte: 3,
+  completa_sin_reporte: 3,
+  incompleta_sin_reporte: 4,
+  iniciada_sin_reporte: 5,
+  sin_reporte: 6,
 };
 
 function text(value: unknown) {
@@ -93,6 +112,40 @@ function normalizeKey(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+const SPANISH_MONTH_ORDER: Record<string, number> = {
+  enero: 1,
+  febrero: 2,
+  marzo: 3,
+  abril: 4,
+  mayo: 5,
+  junio: 6,
+  julio: 7,
+  agosto: 8,
+  septiembre: 9,
+  setiembre: 9,
+  octubre: 10,
+  noviembre: 11,
+  diciembre: 12,
+};
+
+function occurrenceDateSortValue(value: unknown) {
+  const raw = text(value);
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return Number(`${iso[1]}${iso[2]}${iso[3]}`);
+  const key = normalizeKey(raw);
+  const label = key.match(/^(\d{1,2})_([a-z]+)(?:_(\d{4}))?$/);
+  if (!label) return 0;
+  const day = Number(label[1]);
+  const month = SPANISH_MONTH_ORDER[label[2]] ?? 0;
+  const year = Number(label[3] ?? "0");
+  return year * 10000 + month * 100 + day;
+}
+
+function latestOccurrenceDateLabel(values: unknown[]) {
+  const labels = Array.from(new Set(values.map(text).filter(Boolean)));
+  return labels.sort((a, b) => occurrenceDateSortValue(a) - occurrenceDateSortValue(b) || a.localeCompare(b, "es-PE")).at(-1) ?? "";
 }
 
 function normalizeUmp(value: unknown) {
@@ -212,6 +265,9 @@ function topOutcome(outcomes: OccurrenceOutcomeSummary[]) {
 function normalizedBackendStatus(value: unknown): OccurrenceUmpAttentionStatus | null {
   const raw = normalizeKey(value);
   if (raw === "sin_reporte" || raw === "sin_consolidado") return "sin_reporte";
+  if (raw === "completa_sin_reporte" || raw === "completa_sin_ocurrencias") return "completa_sin_reporte";
+  if (raw === "incompleta_sin_reporte" || raw === "incompleta_sin_ocurrencias") return "incompleta_sin_reporte";
+  if (raw === "iniciada_sin_reporte" || raw === "iniciada_sin_ocurrencias") return "iniciada_sin_reporte";
   if (raw === "reportada_efectiva" || raw === "efectiva" || raw === "consolidado") return "reportada_efectiva";
   if (raw === "reportada_no_efectiva" || raw === "no_efectiva") return "reportada_no_efectiva";
   if (raw === "revisar_cruce" || raw === "fuera_ruta" || raw === "priorizar") return "revisar_cruce";
@@ -225,10 +281,16 @@ function classifyRow(input: {
   hasObservation: boolean;
   noEfectivas: number;
   isUnexpectedUmp: boolean;
+  advanceStarted: boolean;
+  advanceComplete: boolean;
+  advanceMeta: number;
   backendStatus?: unknown;
 }) {
   const reasons: OccurrenceUmpAttentionReason[] = [];
   if (!input.hasReport) reasons.push("sin_reporte");
+  if (!input.hasReport && input.advanceStarted && input.advanceComplete) reasons.push("completa_sin_reporte");
+  else if (!input.hasReport && input.advanceStarted && input.advanceMeta > 0) reasons.push("incompleta_sin_reporte");
+  else if (!input.hasReport && input.advanceStarted) reasons.push("iniciada_sin_reporte");
   if (input.isUnexpectedUmp) reasons.push("ump_no_esperada");
   else if (input.isOutsideRoute) reasons.push("fuera_ruta");
   if (input.hasMultipleReports) reasons.push("multiples_consolidados");
@@ -238,7 +300,10 @@ function classifyRow(input: {
   let status: OccurrenceUmpAttentionStatus = backendStatus ?? "reportada_efectiva";
   if (!backendStatus) {
     if (!input.hasReport) {
-      status = "sin_reporte";
+      if (input.advanceStarted && input.advanceComplete) status = "completa_sin_reporte";
+      else if (input.advanceStarted && input.advanceMeta > 0) status = "incompleta_sin_reporte";
+      else if (input.advanceStarted) status = "iniciada_sin_reporte";
+      else status = "sin_reporte";
     } else if (reasons.includes("fuera_ruta") || reasons.includes("multiples_consolidados")) {
       status = "revisar_cruce";
     } else if (input.noEfectivas > 0) {
@@ -309,6 +374,10 @@ function buildSearchText(row: Omit<OccurrenceRouteUmpRow, "search_text">) {
     row.route_match_message,
     row.dominant_outcome?.label ?? "",
     row.last_report_label,
+    row.advance_validas,
+    row.advance_meta,
+    row.advance_quota_status,
+    row.advance_last_activity,
   ].join(" ").toLocaleLowerCase("es-PE");
 }
 
@@ -333,6 +402,12 @@ function makeRow(params: {
   const noEfectivas = safeInt(summary?.no_efectivas);
   const tasa = numberOrNull(summary?.tasa_no_efectiva);
   const hasReport = summary?.has_report ?? Boolean(summary && reportes > 0);
+  const advanceValidas = safeInt(summary?.avance_validas ?? pick(anchor, ["avance_validas", "validas_avance", "validas"]));
+  const advanceMeta = safeInt(summary?.avance_meta ?? pick(anchor, ["avance_meta", "target", "meta", "entrevistas"]));
+  const advanceLastActivity = text(summary?.avance_ultimo_ingreso ?? pick(anchor, ["avance_ultimo_ingreso", "ultimo_ingreso_avance", "last_record", "ultima_actividad"]));
+  const advanceQuotaStatus = text(summary?.avance_estado_cuota ?? pick(anchor, ["avance_estado_cuota", "estado_cuota_avance", "estado_cuota", "status", "estado"]));
+  const advanceStarted = Boolean(summary?.avance_iniciada) || advanceValidas > 0;
+  const advanceComplete = Boolean(summary?.avance_completa) || (advanceMeta > 0 && advanceValidas >= advanceMeta) || normalizeKey(advanceQuotaStatus) === "completa";
   const hasObservation = params.records.some((record) => text(record.observaciones));
   const hasMultipleReports = reportes > 1;
   const isUnexpectedUmp = params.isOutsideRoute && hasReport && params.expectedBlocks.length === 0 && (
@@ -346,6 +421,9 @@ function makeRow(params: {
     hasObservation,
     noEfectivas,
     isUnexpectedUmp,
+    advanceStarted,
+    advanceComplete,
+    advanceMeta,
     backendStatus: summary?.estado_consolidado,
   });
   const blockUmpValue = anchor ? blockUmp(anchor) : "";
@@ -372,6 +450,12 @@ function makeRow(params: {
     efectivas: safeInt(summary?.efectivas),
     no_efectivas: noEfectivas,
     intentos,
+    advance_validas: advanceValidas,
+    advance_meta: advanceMeta,
+    advance_started: advanceStarted,
+    advance_complete: advanceComplete,
+    advance_quota_status: advanceQuotaStatus,
+    advance_last_activity: advanceLastActivity,
     tasa_no_efectiva: tasa,
     ultimo_reporte: lastReport,
     outcomes,
@@ -490,14 +574,20 @@ export function buildOccurrenceDistrictSummary(
         sum + (row.outcomes.find((item) => item.key === key)?.total ?? 0)
       ), 0),
     }));
-    const noEfectivas = districtRows.reduce((sum, row) => sum + row.no_efectivas, 0);
-    const intentos = districtRows.reduce((sum, row) => sum + row.intentos, 0);
-    const dominant = topOutcome(outcomes);
-    return {
-      distrito,
-      ump_reportadas: districtRows.filter((row) => row.has_report && !row.is_unreconciled).length,
-      ump_sin_reporte: districtRows.filter((row) => !row.has_report && !row.is_unreconciled).length,
-      efectivas: districtRows.reduce((sum, row) => sum + row.efectivas, 0),
+	    const noEfectivas = districtRows.reduce((sum, row) => sum + row.no_efectivas, 0);
+	    const intentos = districtRows.reduce((sum, row) => sum + row.intentos, 0);
+	    const dominant = topOutcome(outcomes);
+	    const missingAdvanceRows = districtRows.filter((row) => row.advance_started && !row.has_report && !row.is_unreconciled);
+	    return {
+	      distrito,
+	      ump_reportadas: districtRows.filter((row) => row.has_report && !row.is_unreconciled).length,
+	      ump_sin_reporte: districtRows.filter((row) => !row.has_report && !row.is_unreconciled).length,
+	      ump_iniciadas_sin_reporte: missingAdvanceRows.length,
+	      ump_completas_sin_reporte: districtRows.filter((row) => row.status === "completa_sin_reporte" && !row.is_unreconciled).length,
+	      ump_incompletas_sin_reporte: districtRows.filter((row) => row.status === "incompleta_sin_reporte" && !row.is_unreconciled).length,
+	      validas_sin_reporte: missingAdvanceRows.reduce((sum, row) => sum + row.advance_validas, 0),
+	      ultimo_ingreso_sin_reporte: latestOccurrenceDateLabel(missingAdvanceRows.map((row) => row.advance_last_activity)),
+	      efectivas: districtRows.reduce((sum, row) => sum + row.efectivas, 0),
       no_efectivas: noEfectivas,
       intentos,
       outcomes,

@@ -675,7 +675,7 @@ export function ImportSurveyMonkeyDialog({
           </button>
         </header>
 
-        <div style={{ padding: 20, overflowY: "auto", flex: 1, fontSize: 14 }}>
+        <div style={{ padding: 20, overflowY: "auto", flex: 1, minHeight: "var(--pulso-operational-min-dialog-body, 240px)", fontSize: 14 }}>
           {loading ? (
             <p style={{ color: "var(--pulso-muted, #6b7280)" }}>Preparando importador…</p>
           ) : error ? (
@@ -940,7 +940,7 @@ function FinalImportReviewModal({
             Al importar se crearán secciones, preguntas, opciones, validaciones y reglas en el XLSForm actual.
           </p>
         </div>
-        <div style={{ padding: 18, display: "grid", gap: 14 }}>
+        <div style={{ padding: 18, display: "grid", gap: 14, maxHeight: "min(520px, calc(100dvh - 180px))", minHeight: "var(--pulso-operational-min-dialog-body, 240px)", overflowY: "auto" }}>
           <div style={{ display: "grid", gap: 7 }}>
             {rows.map(([label, value]) => (
               <div key={label} style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", gap: 10, fontSize: 13 }}>

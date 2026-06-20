@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado
+Reemplazado para Monitoreo por [ADR 0016](0016-monitoreo-solo-google-sheets.md)
 
 ## Fecha
 
@@ -14,6 +14,10 @@ Monitoreo necesita compartir avances con clientes sin convertir Prosecnur en
 SaaS ni exponer la aplicacion local completa. Los casos inmediatos son ACNUR
 acreditacion, con avance por actor, y territorial, con avance por distrito y
 ritmo diario. En ambos casos el cliente solo debe ver un corte agregado.
+
+Nota de vigencia: esta decision queda como registro historico del flujo web. El
+contrato vigente esta en [ADR 0016](0016-monitoreo-solo-google-sheets.md):
+Monitoreo publica solo Google Sheets cliente e interno.
 
 El publicador del dashboard ya usa Hugging Face Spaces, pero ese flujo compila
 la app desde el repo del Space. Para Monitoreo el requerimiento de seguridad es

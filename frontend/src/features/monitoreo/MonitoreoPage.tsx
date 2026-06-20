@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, Dispatch, FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from "react";
+import type { CSSProperties, Dispatch, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from "react";
 import { Link } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
@@ -51,11 +51,14 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   apiPath,
   apiJobStatus,
   apiMonitoreoAcreditacionSeguimiento,
   apiMonitoreoAcreditacionCaseReconciliation,
+  apiMonitoreoAulasImportFromCalcMuestra,
+  apiMonitoreoAulasSync,
   apiMonitoreoClientReportPdf,
   apiMonitoreoConfig,
   apiMonitoreoCierre,
@@ -71,6 +74,8 @@ import {
   apiMonitoreoTerritorialPrewarm,
   apiMonitoreoTerritorialPhase,
   apiMonitoreoTerritorialReconciliationBatch,
+  apiMonitoreoTerritorialSpatialReconciliationDismiss,
+  apiMonitoreoTerritorialSpatialReconciliationDismissPattern,
   apiMonitoreoTerritorialSource,
   apiMonitoreoTerritorialUmpReconciliation,
   apiMonitoreoTerritorialInspectKobo,
@@ -83,7 +88,6 @@ import {
   apiMonitoreoSheetsSource,
   apiMonitoreoSheetsStatus,
   apiMonitoreoSheetsSync,
-  apiMonitoreoPublish,
   apiMonitoreoPublicationSheetsPublish,
   apiMonitoreoSource,
   apiMonitoreoSources,
@@ -102,6 +106,8 @@ import {
   monitoreoClientReportPdfDownloadUrl,
   MonitoreoConfig,
   MonitoreoAcreditacion,
+  MonitoreoAulasConfig,
+  MonitoreoAulasDashboard,
   MonitoreoClientReport,
   MonitoreoAcreditacionReports,
   MonitoreoAcreditacionComponente,
@@ -113,7 +119,6 @@ import {
   MonitoreoAssistedReviewCandidate,
   MonitoreoKoboAssetItem,
   MonitoreoLinkCollector,
-  MonitoreoLastDeploy,
   MonitoreoLastSheetsPublication,
   MonitoreoOperationalCases,
   MonitoreoOperationalEvent,
@@ -139,6 +144,9 @@ import {
   MonitoreoTerritorialDashboard,
   MonitoreoTerritorialRouteSheet,
   MonitoreoTerritorialCodeReconciliation,
+  MonitoreoTerritorialSpatialReconciliationCandidate,
+  MonitoreoTerritorialSpatialReconciliationPattern,
+  MonitoreoTerritorialSpatialReconciliationSummary,
   MonitoreoTerritorialUmpReconciliation,
   MonitoreoTerritorialEnumeratorReconciliationResponse,
   TerritorialInternalReviewCase,
@@ -242,15 +250,9 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
-import {
-  openHuggingFaceTokens,
-  PULSO_HF_DEFAULT_NAMESPACE,
-  PULSO_HF_DEFAULT_TOKEN_ALIAS,
-} from "../../lib/huggingFace";
 import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
 import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
-import type { HfSavedToken } from "../project/types";
 import districtCoverage from "../hojasRuta/limaDistrictCoverage.json";
 import {
   EMPTY_INTERNAL_QUERY_FILTERS,
@@ -301,16 +303,6 @@ const EMPTY_ACREDITACION: MonitoreoAcreditacion = {
     bloqueos: 0,
   },
 };
-
-function slugifySpaceName(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
-}
 
 const EMPTY_OPERATIONAL_MODEL: MonitoreoOperationalModel = {
   schema_version: "monitoreo_operativo_v1",
@@ -623,6 +615,30 @@ const EMPTY_CONFIG: MonitoreoConfig = {
   monitoreo_profile: EMPTY_PROFILE,
   acreditacion: EMPTY_ACREDITACION,
   territorial: EMPTY_TERRITORIAL_CONFIG,
+  aulas_universitarias: {
+    schema: "monitoreo_aulas_universitarias_v1",
+    enabled: false,
+    selection_run_id: "",
+    frame_hash: "",
+    imported_at: "",
+    anonymous_responses: true,
+    source_mapping: {
+      classroom_id_var: "",
+      collector_var: "",
+      link_var: "",
+      date_var: "",
+      status_var: "",
+      valid_statuses: ["completed", "complete", "valid", "aprobado", "aplicada"],
+    },
+    plan: [],
+    quotas: [],
+    variables_control: [],
+    methodology: {},
+    alerts: {
+      min_valid_per_class: 1,
+      warn_partial_under_valid: 5,
+    },
+  },
 };
 
 type SourceDraft = {
@@ -696,9 +712,11 @@ function territorialRouteSheetDraftDefaults(prev: SourceDraft, phase: MonitoreoT
 
 type WorkbenchView = "avance" | "ocurrencias" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
 type TerritorialReportScope = "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full";
+type TerritorialValidationOpenIntent = { tab: TerritorialValidationTab; responseId?: string; token: number };
 type TerritorialBootStatus = "idle" | "loading" | "ready" | "partial" | "error";
 type TerritorialBootStepStatus = "pending" | "loading" | "ready" | "stale" | "error";
 type TerritorialBootStepKey = "fuente" | "hojasRuta" | "validacion" | "consultas" | "avance";
+type TerritorialFlowTone = "ready" | "warning" | "pending" | "loading" | "error" | "base";
 type TerritorialBootStepState = {
   status: TerritorialBootStepStatus;
   label: string;
@@ -787,6 +805,23 @@ const MONITOREO_ROUTES: Array<{
     ],
   },
   {
+    family: "aulas_universitarias",
+    label: "Monitoreo de aulas universitarias",
+    shortLabel: "Aulas",
+    status: "active",
+    icon: CalendarRange,
+    eyebrow: "Disponible en v1",
+    title: "Aulas universitarias",
+    summary: "Agenda, links/QR, avance, reemplazos y brechas para encuestas anonimas en aulas.",
+    details: ["Plan de calc-muestra", "Agenda de aulas", "Reemplazos", "Cuotas y brechas"],
+    sourceRoles: [
+      { label: "Plan", detail: "Aulas titulares y reservas importadas desde calc-muestra" },
+      { label: "Agenda", detail: "Horario, docente, responsable, collector, link y QR" },
+      { label: "Respuestas", detail: "SurveyMonkey, Kobo o Sheets agregadas por aula/link" },
+      { label: "Cierre", detail: "Titulares, reemplazos usados y brechas justificadas" },
+    ],
+  },
+  {
     family: "telefonico",
     label: "Monitoreo telefónico",
     shortLabel: "Telefónico",
@@ -800,22 +835,6 @@ const MONITOREO_ROUTES: Array<{
       { label: "Base de contactos", detail: "Marco telefónico y prioridad" },
       { label: "Registro de llamadas", detail: "Intentos, estados y operador" },
       { label: "Respuestas", detail: "Efectivas, rechazos y no contacto" },
-    ],
-  },
-  {
-    family: "digital_general",
-    label: "Monitoreo digital general",
-    shortLabel: "General",
-    status: "planned",
-    icon: Activity,
-    eyebrow: "Planificado",
-    title: "General",
-    summary: "Seguimiento transversal para encuestas digitales sin reglas específicas de acreditación.",
-    details: ["Encuestas web", "Metas simples", "Calidad", "Exportaciones"],
-    sourceRoles: [
-      { label: "Plataforma", detail: "Encuestas web o capturas externas" },
-      { label: "Metas", detail: "Cuotas simples y cortes básicos" },
-      { label: "Reporte", detail: "Avance, calidad y exportación" },
     ],
   },
 ];
@@ -895,10 +914,18 @@ const WORKBENCH_VIEWS: Array<{
 const TERRITORIAL_WORKBENCH_VIEWS: typeof WORKBENCH_VIEWS = [
   { key: "fuentes", label: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
   { key: "modelo", label: "Manzanas seleccionadas", desc: "Titulares, reemplazos y mapa", icon: Route },
-  { key: "calidad", label: "Validación", desc: "Resumen, GPS, duración y cuotas", icon: ShieldAlert },
+  { key: "calidad", label: "Validación", desc: "GPS, reconciliación, duración y cuotas", icon: ShieldAlert },
   { key: "consultas", label: "Consultas internas", desc: "Registros por validar", icon: Search },
   { key: "avance", label: "Avance territorial", desc: "Distrito, manzana y ritmo", icon: BarChart3 },
   { key: "ocurrencias", label: "Ocurrencias de campo", desc: "Estados y UMP", icon: ClipboardCheck },
+];
+
+const AULAS_WORKBENCH_VIEWS: typeof WORKBENCH_VIEWS = [
+  { key: "fuentes", label: "Fuentes", desc: "Plan, agenda y respuestas", icon: PlugZap },
+  { key: "modelo", label: "Agenda de aulas", desc: "Horario, responsable, links y QR", icon: CalendarRange },
+  { key: "avance", label: "Avance", desc: "Aulas aplicadas, cuotas y brechas", icon: BarChart3 },
+  { key: "calidad", label: "Validación", desc: "Collector, aula, horarios y duplicados", icon: ShieldAlert },
+  { key: "consultas", label: "Consultas", desc: "Trazabilidad aula por aula", icon: Search },
 ];
 
 const TERRITORIAL_BOOT_STEP_DEFS: Array<{
@@ -958,7 +985,9 @@ const TERRITORIAL_BOOT_STEP_DEFS: Array<{
 ];
 
 function workbenchViewsForRoute(route: { family: MonitoreoRouteFamily }) {
-  return route.family === "territorial" ? TERRITORIAL_WORKBENCH_VIEWS : WORKBENCH_VIEWS;
+  if (route.family === "territorial") return TERRITORIAL_WORKBENCH_VIEWS;
+  if (route.family === "aulas_universitarias") return AULAS_WORKBENCH_VIEWS;
+  return WORKBENCH_VIEWS;
 }
 
 const OPERATIONAL_MODEL_MODES: Array<{
@@ -1710,6 +1739,19 @@ function territorialSourcePhase(source: MonitoreoSource | null | undefined): Mon
   return phase === "field" || phase === "pilot" ? phase : "";
 }
 
+function territorialRouteSheetSourceForPhase(
+  sources: MonitoreoSource[],
+  phase: MonitoreoTerritorialPhase,
+): MonitoreoSource | null {
+  const routeSheetSources = sources.filter((item) => item.kind === "google_sheets" && item.role === "hoja_ruta");
+  if (!routeSheetSources.length) return null;
+  return routeSheetSources.find((item) => territorialSourcePhase(item) === phase)
+    ?? routeSheetSources.find((item) => !territorialSourcePhase(item))
+    ?? routeSheetSources.find((item) => item.enabled)
+    ?? routeSheetSources[0]
+    ?? null;
+}
+
 function territorialPhaseSource(config: MonitoreoConfig, phase: MonitoreoTerritorialPhase) {
   const phaseSources = config.territorial.phase_sources ?? EMPTY_TERRITORIAL_CONFIG.phase_sources;
   const item = phaseSources?.[phase];
@@ -2157,6 +2199,31 @@ function mergeTerritorialConfig(value: Partial<MonitoreoConfig["territorial"]> |
   };
 }
 
+function mergeAulasConfig(value: Partial<MonitoreoAulasConfig> | undefined): MonitoreoAulasConfig {
+  const base = EMPTY_CONFIG.aulas_universitarias;
+  const next = { ...base, ...(value ?? {}) };
+  return {
+    ...next,
+    enabled: Boolean(next.enabled),
+    selection_run_id: stringOrEmpty(next.selection_run_id),
+    frame_hash: stringOrEmpty(next.frame_hash),
+    imported_at: stringOrEmpty(next.imported_at),
+    anonymous_responses: next.anonymous_responses !== false,
+    source_mapping: {
+      ...base.source_mapping,
+      ...(next.source_mapping ?? {}),
+      valid_statuses: arrayOrEmpty<string>(next.source_mapping?.valid_statuses).length
+        ? arrayOrEmpty<string>(next.source_mapping?.valid_statuses)
+        : base.source_mapping.valid_statuses,
+    },
+    plan: arrayOrEmpty(next.plan),
+    alerts: {
+      min_valid_per_class: numberOrFallback(next.alerts?.min_valid_per_class, base.alerts.min_valid_per_class),
+      warn_partial_under_valid: numberOrFallback(next.alerts?.warn_partial_under_valid, base.alerts.warn_partial_under_valid),
+    },
+  };
+}
+
 function mergeConfig(config: Partial<MonitoreoConfig> | undefined): MonitoreoConfig {
   const next = { ...EMPTY_CONFIG, ...(config ?? {}) };
   return {
@@ -2175,6 +2242,7 @@ function mergeConfig(config: Partial<MonitoreoConfig> | undefined): MonitoreoCon
     monitoreo_profile: mergeProfile(next.monitoreo_profile),
     acreditacion: mergeAcreditacion(next.acreditacion),
     territorial: mergeTerritorialConfig(next.territorial),
+    aulas_universitarias: mergeAulasConfig(next.aulas_universitarias),
   };
 }
 
@@ -2307,11 +2375,32 @@ function territorialViewNeedsReports(view: WorkbenchView) {
 function territorialReportScopeForView(view: WorkbenchView): TerritorialReportScope {
   if (view === "fuentes") return "source";
   if (view === "modelo") return "full";
-  if (view === "avance") return "advance_summary";
+  if (view === "avance") return "full";
   if (view === "calidad") return "validation_summary";
-  if (view === "consultas") return "full";
+  if (view === "consultas") return "queries_summary";
   if (view === "ocurrencias") return "queries_summary";
   return "full";
+}
+
+function territorialReportScopeForActiveView(
+  view: WorkbenchView,
+  _validationIntent: TerritorialValidationOpenIntent | null,
+): TerritorialReportScope {
+  return territorialReportScopeForView(view);
+}
+
+function territorialReportsCoverRequestedScope(
+  reports: MonitoreoTerritorialDashboard | null,
+  phase: MonitoreoTerritorialPhase,
+  visible: ReturnType<typeof territorialVisiblePhaseSource>,
+  view: WorkbenchView,
+  scope: TerritorialReportScope,
+) {
+  if (scope === "full") {
+    if (!dashboardMatchesVisiblePhaseSource(reports, phase, visible)) return false;
+    return (reports?.report_scope || "full") === "full";
+  }
+  return territorialReportsCoverView(reports, phase, visible, view);
 }
 
 function createTerritorialBootSteps(): TerritorialBootSteps {
@@ -2411,6 +2500,144 @@ function territorialLoadingLabelForView(view: WorkbenchView) {
     default:
       return "Cargando datos territoriales...";
   }
+}
+
+function territorialLoadingPresentation(view: WorkbenchView): {
+  title: string;
+  detail: string;
+  status: string;
+  icon: typeof BarChart3;
+  steps: Array<{ label: string; detail: string; icon: typeof BarChart3 }>;
+} {
+  switch (view) {
+    case "modelo":
+      return {
+        title: "Preparando manzanas seleccionadas",
+        detail: "Cruzando Hojas de Ruta, UMP titulares, reemplazos y cartografía local para abrir el mapa operativo.",
+        status: "Manzanas y mapa",
+        icon: Route,
+        steps: [
+          { label: "Marco territorial", detail: "Titulares y reemplazos", icon: Route },
+          { label: "Cartografía local", detail: "Capas de distrito y zona", icon: MapPin },
+          { label: "Ficha UMP", detail: "Responsables y metas", icon: ContactRound },
+        ],
+      };
+    case "calidad":
+      return {
+        title: "Preparando validación territorial",
+        detail: "Agrupando alertas GPS, sospechas de UMP, duraciones sospechosas y cuotas para revisión operativa.",
+        status: "GPS, reconciliación, tiempo y cuotas",
+        icon: ShieldAlert,
+        steps: [
+          { label: "Geolocalización", detail: "Puntos contra manzanas", icon: MapPin },
+          { label: "Reconciliación UMP", detail: "Sospechas espaciales", icon: Route },
+          { label: "Tiempo y cuotas", detail: "Outliers y sexo/edad", icon: Clock },
+        ],
+      };
+    case "consultas":
+      return {
+        title: "Preparando consultas internas",
+        detail: "Construyendo la tabla de registros, filtros operativos y accesos directos a revisión GPS/duración.",
+        status: "Registros por validar",
+        icon: Search,
+        steps: [
+          { label: "Registro maestro", detail: "Una fila por respuesta", icon: Table2 },
+          { label: "Filtros", detail: "Distrito, UMP y responsable", icon: SlidersHorizontal },
+          { label: "Auditoría UMP", detail: "Cruces y reconciliación", icon: ListChecks },
+        ],
+      };
+    case "avance":
+      return {
+        title: "Preparando avance territorial",
+        detail: "Calculando avance por distrito, manzana, ritmo diario y brechas contra la meta de fase.",
+        status: "Distrito, manzana y ritmo",
+        icon: BarChart3,
+        steps: [
+          { label: "KPIs de fase", detail: "Meta, válidas y brecha", icon: Target },
+          { label: "Avance por UMP", detail: "Titulares y reemplazos", icon: Route },
+          { label: "Ritmo diario", detail: "Serie de campo", icon: CalendarRange },
+        ],
+      };
+    case "ocurrencias":
+      return {
+        title: "Preparando ocurrencias de campo",
+        detail: "Leyendo estados por UMP y señales de atención para seguimiento entre supervisión y campo.",
+        status: "Estados y UMP",
+        icon: ClipboardCheck,
+        steps: [
+          { label: "Estados", detail: "Ocurrencias recibidas", icon: ClipboardCheck },
+          { label: "Resumen UMP", detail: "Pendientes y resueltos", icon: Route },
+          { label: "Sincronización", detail: "Ficha de seguimiento", icon: RefreshCw },
+        ],
+      };
+    default:
+      return {
+        title: "Preparando datos territoriales",
+        detail: "Leyendo los datos locales del proyecto para abrir esta superficie de trabajo.",
+        status: "Datos territoriales",
+        icon: Activity,
+        steps: [
+          { label: "Fuente", detail: "Proyecto local", icon: PlugZap },
+          { label: "Resumen", detail: "Indicadores", icon: BarChart3 },
+          { label: "Vista", detail: "Controles listos", icon: CheckCircle2 },
+        ],
+      };
+  }
+}
+
+function TerritorialLoadingView({
+  view,
+  minHeight = 420,
+}: {
+  view: WorkbenchView;
+  minHeight?: number;
+}) {
+  const meta = territorialLoadingPresentation(view);
+  const Icon = meta.icon;
+  const style = { "--mon-territorial-loading-min-height": `${minHeight}px` } as CSSProperties;
+  return (
+    <section className={`mon-territorial-loading is-${view}`} role="status" aria-live="polite" style={style}>
+      <div className="mon-territorial-loading-shell">
+        <div className="mon-territorial-loading-main">
+          <span className="mon-territorial-loading-icon" aria-hidden="true">
+            <Icon size={19} />
+          </span>
+          <div>
+            <span className="mon-territorial-loading-eyebrow">Preparación local</span>
+            <strong>{meta.title}</strong>
+            <p>{meta.detail}</p>
+          </div>
+          <em>
+            <Loader2 size={14} className="pulso-spin" />
+            {territorialLoadingLabelForView(view)}
+          </em>
+        </div>
+        <div className="mon-territorial-loading-steps" aria-label="Pasos de preparación">
+          {meta.steps.map((step) => {
+            const StepIcon = step.icon;
+            return (
+              <article key={step.label}>
+                <span><StepIcon size={15} /></span>
+                <div>
+                  <strong>{step.label}</strong>
+                  <small>{step.detail}</small>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="mon-territorial-loading-skeleton" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <small className="mon-territorial-loading-foot">{meta.status}</small>
+      </div>
+    </section>
+  );
 }
 
 function logTerritorialViewTiming(details: Record<string, unknown>) {
@@ -2555,7 +2782,7 @@ export default function MonitoreoPage() {
   const [activeModelMode, setActiveModelMode] = useState<OperationalModelMode>("estructura");
   const [explorerIntent, setExplorerIntent] = useState<ExplorerOpenIntent | null>(null);
   const [territorialSelectedResponseId, setTerritorialSelectedResponseId] = useState("");
-  const [territorialValidationIntent, setTerritorialValidationIntent] = useState<{ tab: TerritorialValidationTab; responseId?: string; token: number } | null>(null);
+  const [territorialValidationIntent, setTerritorialValidationIntent] = useState<TerritorialValidationOpenIntent | null>(null);
   const [territorialReviewFilters, setTerritorialReviewFilters] = useState<TerritorialReviewFilters>(EMPTY_TERRITORIAL_REVIEW_FILTERS);
   const selectedRoutePhaseRef = useRef<MonitoreoTerritorialPhase>(EMPTY_TERRITORIAL_CONFIG.active_route_phase);
   const routePhaseTouchedRef = useRef(false);
@@ -2570,6 +2797,7 @@ export default function MonitoreoPage() {
   const territorialReportCacheRef = useRef(new Map<string, MonitoreoTerritorialDashboard>());
   const territorialReportMetaCacheRef = useRef(new Map<string, MonitoreoTerritorialReportCacheMeta>());
   const territorialMapPrepareInFlightRef = useRef(new Set<string>());
+  const territorialValidationIntentSeqRef = useRef(0);
   const stateRequestSeqRef = useRef(0);
   const configRef = useRef<MonitoreoConfig>(EMPTY_CONFIG);
   const activeViewRef = useRef<WorkbenchView>("fuentes");
@@ -2587,9 +2815,19 @@ export default function MonitoreoPage() {
   }, []);
 
   const openTerritorialValidationCase = useCallback((tab: TerritorialValidationTab, responseId?: string) => {
-    if (responseId) setTerritorialSelectedResponseId(responseId);
-    setTerritorialValidationIntent({ tab, responseId, token: Date.now() });
+    const cleanResponseId = stringOrEmpty(responseId).trim();
+    setTerritorialSelectedResponseId(cleanResponseId);
+    setTerritorialValidationIntent({
+      tab,
+      responseId: cleanResponseId || undefined,
+      token: ++territorialValidationIntentSeqRef.current,
+    });
+    setTerritorialViewError((current) => ({ ...current, calidad: "" }));
     setActiveView("calidad");
+  }, []);
+
+  const markTerritorialValidationIntentApplied = useCallback((token: number) => {
+    setTerritorialValidationIntent((current) => (current?.token === token ? null : current));
   }, []);
 
   useEffect(() => {
@@ -2859,7 +3097,7 @@ export default function MonitoreoPage() {
   const territorialBootOwnsContext = route.family === "territorial" &&
     territorialBootMatchesContext &&
     (territorialBoot.status === "loading" || territorialBoot.status === "ready" || territorialBoot.status === "partial" || territorialBoot.status === "error");
-  const activeTerritorialScope = territorialReportScopeForView(activeView);
+  const activeTerritorialScope = territorialReportScopeForActiveView(activeView, territorialValidationIntent);
   const activeTerritorialReportKey = activeTerritorialVisible
     ? territorialReportRequestKey(activeTerritorialPhase, activeTerritorialVisible, activeTerritorialScope)
     : "";
@@ -2867,7 +3105,7 @@ export default function MonitoreoPage() {
     ? territorialReportCacheRef.current.get(activeTerritorialReportKey) ?? null
     : null;
   const rawTerritorialReportsCoverActiveView = activeTerritorialVisible
-    ? territorialReportsCoverView(rawTerritorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView)
+    ? territorialReportsCoverRequestedScope(rawTerritorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView, activeTerritorialScope)
     : false;
   const territorialReports = rawTerritorialReportsCoverActiveView
     ? rawTerritorialReports
@@ -2892,7 +3130,7 @@ export default function MonitoreoPage() {
   const territorialActiveViewLoading = !territorialBootBlocksContent && Boolean(territorialViewLoading[activeView]);
   const territorialActiveViewError = territorialViewError[activeView] ?? "";
   const territorialActiveReportsReady = route.family === "territorial" && activeTerritorialVisible
-    ? territorialReportsCoverView(territorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView)
+    ? territorialReportsCoverRequestedScope(territorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView, activeTerritorialScope)
     : false;
   const territorialReportStatus = route.family === "territorial" && territorialViewNeedsReports(activeView)
     ? territorialReportStatusLabel({
@@ -3193,8 +3431,8 @@ export default function MonitoreoPage() {
     const activePhase = selectedRoutePhaseRef.current;
     const activeHealth = territorialPhaseCoherenceItem(territorialPhaseCoherence, activePhase);
     const visible = territorialVisiblePhaseSource(sources, config, activePhase, activeHealth);
-    const reportsReady = territorialReportsCoverView(territorialReports, activePhase, visible, activeView);
-    const scope = territorialReportScopeForView(activeView);
+    const scope = territorialReportScopeForActiveView(activeView, territorialValidationIntent);
+    const reportsReady = territorialReportsCoverRequestedScope(territorialReports, activePhase, visible, activeView, scope);
     const requestKey = territorialReportRequestKey(activePhase, visible, scope);
     if (reportsReady || territorialViewLoading[activeView] || territorialReportsInFlightRef.current.has(requestKey)) return;
     if (territorialViewError[activeView]) return;
@@ -3254,6 +3492,7 @@ export default function MonitoreoPage() {
     territorialPhaseCoherence,
     territorialBootKey,
     territorialBootBlocksContent,
+    territorialValidationIntent,
     territorialReports,
     territorialViewError,
     territorialViewLoading,
@@ -3573,6 +3812,48 @@ export default function MonitoreoPage() {
     }
   }
 
+  async function dismissTerritorialSpatialCandidate(candidate: MonitoreoTerritorialSpatialReconciliationCandidate, reason = "Descartado desde reconciliación espacial") {
+    resetTerritorialReportRequests();
+    setSavingConfig(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialSpatialReconciliationDismiss({
+        candidate_id: candidate.candidate_id,
+        phase: candidate.phase ?? selectedRoutePhaseRef.current,
+        evidence_hash: candidate.evidence_hash,
+        reason,
+      });
+      applyMonitoreoState(stateWithTerritorialPhase(result.state, selectedRoutePhaseRef.current));
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function dismissTerritorialSpatialPattern(pattern: MonitoreoTerritorialSpatialReconciliationPattern, reason = "Patrón descartado desde reconciliación espacial") {
+    resetTerritorialReportRequests();
+    setSavingConfig(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoTerritorialSpatialReconciliationDismissPattern({
+        pattern_key: pattern.pattern_key,
+        phase: pattern.phase ?? selectedRoutePhaseRef.current,
+        evidence_hash: pattern.evidence_hash,
+        reason,
+      });
+      applyMonitoreoState(stateWithTerritorialPhase(result.state, selectedRoutePhaseRef.current));
+      commitConfig(configWithTerritorialPhase(mergeConfig(result.config), selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError((e as Error).message);
+      throw e;
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
   async function downloadTerritorialEnumeratorTemplate() {
     setTemplatingEnumeratorRoster(true);
     setError("");
@@ -3763,12 +4044,43 @@ export default function MonitoreoPage() {
       setConfig(mergeConfig(result.config));
       setSource(nextRoute.family === "territorial"
         ? { ...DEFAULT_SOURCE, kind: "kobo", label: "Encuesta de Percepción de Comunidad de Acogida - Perú 2026", base_url: "https://kobo.unhcr.org", role: "respuestas" }
+        : nextRoute.family === "aulas_universitarias"
+          ? { ...DEFAULT_SOURCE, kind: "google_sheets", label: "Agenda y respuestas de aulas", role: "respuestas" }
         : DEFAULT_SOURCE);
       setActiveView("fuentes");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setSavingConfig(false);
+    }
+  }
+
+  async function importAulasFromCalcMuestra() {
+    setSavingConfig(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoAulasImportFromCalcMuestra();
+      applyMonitoreoState(result.state);
+      setConfig(mergeConfig(result.state.config));
+      setActiveView("modelo");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function syncAulasUniversitarias() {
+    setSavingSource(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoAulasSync();
+      applyMonitoreoState(result.state);
+      setConfig(mergeConfig(result.state.config));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSavingSource(false);
     }
   }
 
@@ -3860,12 +4172,6 @@ export default function MonitoreoPage() {
     );
   }
 
-  const clientPublicationDeploy = state?.publication?.client_last_deploy?.audience === "client"
-    ? state.publication.client_last_deploy
-    : null;
-  const internalPublicationDeploy = state?.publication?.internal_last_deploy?.audience === "internal"
-    ? state.publication.internal_last_deploy
-    : null;
   const clientPublicationSheets = state?.publication?.client_last_sheets?.audience === "client"
     ? state.publication.client_last_sheets
     : null;
@@ -3906,16 +4212,14 @@ export default function MonitoreoPage() {
 	          loadingRoutePhase={loadingRoutePhase}
 	          routePhaseStatus={routePhaseStatus}
 	          phaseCoherence={territorialPhaseCoherence}
-              showWebPublish
-              publishClientDeploy={clientPublicationDeploy}
-              publishInternalDeploy={internalPublicationDeploy}
+              showOutputsPublish
               publishClientSheets={clientPublicationSheets}
               publishInternalSheets={internalPublicationSheets}
               publishHasSnapshot={!!state?.has_snapshot}
               publishRows={state?.n_rows ?? 0}
               publishRouteLabel={route.shortLabel}
               publishSpreadsheetId={publicationSpreadsheetId}
-              onOpenWebPublish={() => {
+              onOpenOutputs={() => {
                 setOutputsOpen(true);
                 setOutputsMinimized(false);
               }}
@@ -3943,18 +4247,28 @@ export default function MonitoreoPage() {
               sourceTotal={sources.length}
               config={config}
               actions={activeView === "fuentes" ? (
-                <SourceSyncActions
-                  sheetCount={activeSheetSourceIds.length}
-                  surveyMonkeyCount={activeSurveyMonkeySourceIds.length}
-                  koboCount={activeKoboSourceIds.length}
-                  routeFamily={route.family}
-                  totalCount={activeSourceIds.length}
-                  busy={savingSource || Boolean(sourceSyncJob)}
-                  onSyncSheets={() => syncSheetSources(activeSheetSourceIds)}
-                  onSyncSurveyMonkey={() => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey")}
-                  onSyncKobo={() => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo")}
-                  onSyncAll={() => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes")}
-                />
+                route.family === "aulas_universitarias" ? (
+                  <AulasSourceActions
+                    busy={savingConfig || savingSource || Boolean(sourceSyncJob)}
+                    imported={Boolean(config.aulas_universitarias.enabled && config.aulas_universitarias.selection_run_id)}
+                    activeSources={activePrimarySources.length}
+                    onImportFromCalc={importAulasFromCalcMuestra}
+                    onSync={syncAulasUniversitarias}
+                  />
+                ) : (
+                  <SourceSyncActions
+                    sheetCount={activeSheetSourceIds.length}
+                    surveyMonkeyCount={activeSurveyMonkeySourceIds.length}
+                    koboCount={activeKoboSourceIds.length}
+                    routeFamily={route.family}
+                    totalCount={activeSourceIds.length}
+                    busy={savingSource || Boolean(sourceSyncJob)}
+                    onSyncSheets={() => syncSheetSources(activeSheetSourceIds)}
+                    onSyncSurveyMonkey={() => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey")}
+                    onSyncKobo={() => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo")}
+                    onSyncAll={() => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes")}
+                  />
+                )
               ) : null}
             />
           )}
@@ -4014,6 +4328,18 @@ export default function MonitoreoPage() {
 	                  loading={territorialActiveViewLoading}
 	                  error={territorialActiveViewError}
 	                />
+                  ) : route.family === "aulas_universitarias" ? (
+                    <AulasUniversitariasView
+                      view="avance"
+                      config={config.aulas_universitarias}
+                      dashboard={dashboard?.aulas_universitarias_reports ?? null}
+                      sources={sources}
+                      syncedAt={state?.synced_at ?? ""}
+                      nRows={state?.n_rows ?? 0}
+                      busy={savingConfig || savingSource}
+                      onImportFromCalc={importAulasFromCalcMuestra}
+                      onSync={syncAulasUniversitarias}
+                    />
                   ) : (
                     <AvanceView
                       sources={sources}
@@ -4044,6 +4370,18 @@ export default function MonitoreoPage() {
 		                  reviewFilters={territorialReviewFilters}
 		                  onReviewFiltersChange={setTerritorialReviewFilters}
 	                />
+                  ) : route.family === "aulas_universitarias" ? (
+                    <AulasUniversitariasView
+                      view="consultas"
+                      config={config.aulas_universitarias}
+                      dashboard={dashboard?.aulas_universitarias_reports ?? null}
+                      sources={sources}
+                      syncedAt={state?.synced_at ?? ""}
+                      nRows={state?.n_rows ?? 0}
+                      busy={savingConfig || savingSource}
+                      onImportFromCalc={importAulasFromCalcMuestra}
+                      onSync={syncAulasUniversitarias}
+                    />
                   ) : (
                     <ConsultasView
                       reports={dashboard?.acreditacion_reports ?? null}
@@ -4088,6 +4426,18 @@ export default function MonitoreoPage() {
 			                  error={territorialActiveViewError}
 			                  onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
 			                />
+                  ) : route.family === "aulas_universitarias" ? (
+                    <AulasUniversitariasView
+                      view="modelo"
+                      config={config.aulas_universitarias}
+                      dashboard={dashboard?.aulas_universitarias_reports ?? null}
+                      sources={sources}
+                      syncedAt={state?.synced_at ?? ""}
+                      nRows={state?.n_rows ?? 0}
+                      busy={savingConfig || savingSource}
+                      onImportFromCalc={importAulasFromCalcMuestra}
+                      onSync={syncAulasUniversitarias}
+                    />
                   ) : (
                     <OperationalModelPanel
                       mode={activeModelMode}
@@ -4156,6 +4506,18 @@ export default function MonitoreoPage() {
 		                    phaseCoherence={territorialPhaseCoherence}
 		                    onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
 	                  />
+                    ) : route.family === "aulas_universitarias" ? (
+                      <AulasUniversitariasView
+                        view="fuentes"
+                        config={config.aulas_universitarias}
+                        dashboard={dashboard?.aulas_universitarias_reports ?? null}
+                        sources={sources}
+                        syncedAt={state?.synced_at ?? ""}
+                        nRows={state?.n_rows ?? 0}
+                        busy={savingConfig || savingSource}
+                        onImportFromCalc={importAulasFromCalcMuestra}
+                        onSync={syncAulasUniversitarias}
+                      />
                     ) : (
                       <SourcePanel
                         className="mon-fill-panel mon-source-fill-panel"
@@ -4200,10 +4562,28 @@ export default function MonitoreoPage() {
 	                    void refresh().catch(() => undefined);
 	                  }}
 		                  selectedResponseId={territorialSelectedResponseId}
-		                  openIntent={territorialValidationIntent}
+	                  openIntent={territorialValidationIntent}
+	                  onOpenIntentApplied={markTerritorialValidationIntentApplied}
 	                  onSelectResponse={setTerritorialSelectedResponseId}
                       onConfigPatch={patchTerritorialConfig}
+                      onUmpReconcile={reconcileTerritorialUmp}
+                      onBatchReconcile={reconcileTerritorialBatch}
+                      onDismissSpatialCandidate={dismissTerritorialSpatialCandidate}
+                      onDismissSpatialPattern={dismissTerritorialSpatialPattern}
                     />
+                )}
+                {activeView === "calidad" && route.family === "aulas_universitarias" && (
+                  <AulasUniversitariasView
+                    view="calidad"
+                    config={config.aulas_universitarias}
+                    dashboard={dashboard?.aulas_universitarias_reports ?? null}
+                    sources={sources}
+                    syncedAt={state?.synced_at ?? ""}
+                    nRows={state?.n_rows ?? 0}
+                    busy={savingConfig || savingSource}
+                    onImportFromCalc={importAulasFromCalcMuestra}
+                    onSync={syncAulasUniversitarias}
+                  />
                 )}
               </>
             )}
@@ -4215,8 +4595,6 @@ export default function MonitoreoPage() {
           <MonitoreoOutputsSuite
             defaultTitle={config.acreditacion?.estudio?.titulo || route.label || "reporte-monitoreo"}
             routeLabel={route.shortLabel}
-            clientDeploy={clientPublicationDeploy}
-            internalDeploy={internalPublicationDeploy}
             clientSheets={clientPublicationSheets}
             internalSheets={internalPublicationSheets}
             hasSnapshot={!!state?.has_snapshot}
@@ -4233,9 +4611,445 @@ export default function MonitoreoPage() {
   );
 }
 
-function MonitoreoRailWebPublishControl({
-  clientDeploy,
-  internalDeploy,
+function AulasSourceActions({
+  busy,
+  imported,
+  activeSources,
+  onImportFromCalc,
+  onSync,
+}: {
+  busy: boolean;
+  imported: boolean;
+  activeSources: number;
+  onImportFromCalc: () => Promise<void>;
+  onSync: () => Promise<void>;
+}) {
+  return (
+    <div className="mon-aulas-strip-actions" aria-label="Acciones de aulas universitarias">
+      <button
+        type="button"
+        onClick={() => { void onImportFromCalc().catch(() => undefined); }}
+        disabled={busy}
+        title="Importar titulares y reservas desde calc-muestra"
+      >
+        {busy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
+        <span>Importar plan</span>
+      </button>
+      <button
+        type="button"
+        className="is-primary"
+        onClick={() => { void onSync().catch(() => undefined); }}
+        disabled={busy || !imported}
+        title={imported ? `${activeSources} fuentes activas` : "Primero importa un plan de aulas"}
+      >
+        {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+        <span>Sincronizar campo</span>
+      </button>
+    </div>
+  );
+}
+
+function AulasUniversitariasView({
+  view,
+  config,
+  dashboard,
+  sources,
+  syncedAt,
+  nRows,
+  busy,
+  onImportFromCalc,
+  onSync,
+}: {
+  view: WorkbenchView;
+  config: MonitoreoAulasConfig;
+  dashboard: MonitoreoAulasDashboard | null;
+  sources: MonitoreoSource[];
+  syncedAt: string;
+  nRows: number;
+  busy: boolean;
+  onImportFromCalc: () => Promise<void>;
+  onSync: () => Promise<void>;
+}) {
+  const [tableQuery, setTableQuery] = useState("");
+  const plan = dashboard?.agenda?.length ? dashboard.agenda : config.plan;
+  const kpis = dashboard?.kpis ?? {
+    total_aulas: plan.length,
+    aulas_aplicadas: plan.filter((row) => row.operational_status === "aplicada" || row.operational_status === "cerrada").length,
+    respuestas_validas: 0,
+    brechas: 0,
+  };
+  const activeSources = sources.filter((source) => source.enabled);
+  const imported = Boolean(config.enabled && config.selection_run_id);
+  const totalAulas = kpis.total_aulas ?? plan.length;
+  const titularCount = kpis.aulas_titulares ?? plan.filter((row) => String(row.wave).toUpperCase() === "M1").length;
+  const reserveCount = Math.max(0, plan.length - titularCount);
+  const appliedCount = kpis.aulas_aplicadas ?? 0;
+  const validCount = kpis.respuestas_validas ?? 0;
+  const gapCount = kpis.brechas ?? 0;
+  const replacementCount = kpis.reemplazos_usados ?? 0;
+  const representativity = dashboard?.representativity ?? null;
+  const effectiveRepresentativity = Number(representativity?.effective_score ?? kpis.representativity_effective_score ?? Number.NaN);
+  const representativityLoss = Number(representativity?.score_loss ?? kpis.representativity_score_loss ?? Number.NaN);
+  const expectedValid = plan.reduce((sum, row) => sum + (Number(row.expected_valid) || 0), 0);
+  const appliedPct = safePercent(appliedCount, totalAulas);
+  const validPct = expectedValid ? safePercent(validCount, expectedValid) : null;
+  const cutAt = dashboard?.generated_at || syncedAt || config.imported_at;
+  const validationWarnings = dashboard?.validation?.filter((row) => String(row.status ?? "").toLowerCase() !== "ok").length ?? 0;
+  const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(" · ") || "sin fuentes";
+  const pendingOperational = plan.filter((row) => {
+    const status = String(row.operational_status || "");
+    return ["planificada", "contactada", "agendada", "en_campo", "parcial", "reemplazo_pendiente"].includes(status);
+  }).length;
+  const methodologyReady = Boolean(config.frame_hash || Object.keys(config.methodology ?? {}).length);
+  const viewTitle: Record<string, string> = {
+    fuentes: "Fuentes",
+    modelo: "Agenda de aulas",
+    avance: "Avance",
+    calidad: "Validación",
+    consultas: "Consultas",
+  };
+  const viewDetail: Record<string, string> = {
+    fuentes: "Plan importado, agenda Sheets y respuestas agregadas por aula/link.",
+    modelo: "Aulas titulares y reservas con horario, docente, responsable y estado.",
+    avance: "Aulas aplicadas, respuestas validas y brechas por dominio.",
+    calidad: "Consistencia de collector/link/aula y controles para respuestas anonimas.",
+    consultas: "Trazabilidad aula por aula sin exigir identificador personal.",
+  };
+  const table = (() => {
+    if (view === "fuentes") {
+      return {
+        rows: activeSources.map((source) => ({
+          Fuente: source.label || source.id,
+          Tipo: source.kind,
+          Rol: source.role,
+          Estado: source.enabled ? "activa" : "inactiva",
+          Actualizacion: source.last_sync_at || "",
+        })),
+        columns: ["Fuente", "Tipo", "Rol", "Estado", "Actualizacion"],
+        title: "Fuentes operativas",
+        hint: `${activeSources.length.toLocaleString("es-PE")} activas · ${sourceKinds}`,
+        empty: "Sin fuentes activas conectadas.",
+      };
+    }
+    if (view === "avance") {
+      return {
+        rows: dashboard?.avance_por_estrato ?? [],
+        columns: ["stratum", "aulas", "aulas_aplicadas", "respuestas_validas", "brecha", "avance_aulas_pct", "avance_respuestas_pct"],
+        title: "Avance por dominio",
+        hint: "Aulas, respuestas válidas y brecha por estrato operativo",
+        empty: "Sin avance por estrato disponible.",
+      };
+    }
+    if (view === "calidad") {
+      return {
+        rows: dashboard?.validation ?? [],
+        columns: ["check", "status", "detail"],
+        title: "Validación de enlace aula-respuesta",
+        hint: "Collector, link, aula, horarios y privacidad",
+        empty: "Sin validaciones operativas calculadas.",
+      };
+    }
+    if (view === "consultas") {
+      return {
+        rows: plan,
+        columns: ["wave", "classroom_id", "course_name", "faculty", "program", "operational_status", "respuestas_validas", "brecha"],
+        title: "Trazabilidad aula por aula",
+        hint: "Lectura operativa sin reconstruir identidad estudiantil",
+        empty: "Sin aulas en el plan.",
+      };
+    }
+    return {
+      rows: plan,
+      columns: ["wave", "orden", "classroom_id", "course_name", "schedule", "teacher", "responsible", "link", "operational_status", "replacement_for"],
+      title: "Agenda ejecutable",
+      hint: "Titulares M1, reservas, responsables, links y estados de campo",
+      empty: "Sin agenda importada.",
+    };
+  })();
+  const allRows = table.rows as Array<Record<string, unknown>>;
+  const normalizedTableQuery = normalizeMatch(tableQuery);
+  const filteredRows = normalizedTableQuery
+    ? allRows.filter((row) => aulasRowSearchText(row, table.columns).includes(normalizedTableQuery))
+    : allRows;
+  const rows = filteredRows.slice(0, 80);
+  const hiddenRows = Math.max(0, filteredRows.length - rows.length);
+  const kpiCards: Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof CalendarRange; percent?: number | null }> = [
+    { label: "Plan de aulas", value: formatMetric(totalAulas), hint: `${formatMetric(titularCount)} titulares · ${formatMetric(reserveCount)} reservas`, tone: imported ? "base" : "warning", icon: CalendarRange, percent: totalAulas ? 100 : 0 },
+    { label: "Aulas aplicadas", value: formatMetric(appliedCount), hint: `${formatPercentLabel(appliedPct)} del plan`, tone: appliedCount ? "effective" : "warning", icon: CheckCircle2, percent: appliedPct },
+    { label: "Respuestas válidas", value: formatMetric(validCount), hint: expectedValid ? `${formatPercentLabel(validPct)} de rendimiento esperado` : `${formatMetric(nRows)} registros`, tone: validCount ? "effective" : "warning", icon: BarChart3, percent: validPct },
+    { label: "Brecha operativa", value: formatMetric(gapCount), hint: `${formatMetric(replacementCount)} reemplazos usados`, tone: gapCount ? "warning" : "ready", icon: ShieldAlert, percent: totalAulas ? safePercent(totalAulas - Math.min(gapCount, totalAulas), totalAulas) : null },
+    { label: "Representatividad efectiva", value: Number.isFinite(effectiveRepresentativity) ? `${Math.round(effectiveRepresentativity)}/100` : "S/D", hint: Number.isFinite(representativityLoss) ? `pérdida ${representativityLoss.toFixed(1)} pts` : "plan vs campo", tone: Number.isFinite(representativityLoss) && representativityLoss > 10 ? "warning" : "ready", icon: Target, percent: Number.isFinite(effectiveRepresentativity) ? effectiveRepresentativity : null },
+  ];
+  const handoffCards: Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof Layers3 }> = [
+    { label: "Selección", value: imported ? "Conectada" : "Pendiente", hint: config.selection_run_id || "selection_run_id", tone: imported ? "ready" : "warning", icon: Target },
+    { label: "Marco institucional", value: config.frame_hash ? "Hash listo" : "Sin hash", hint: config.frame_hash ? aulasShortId(config.frame_hash) : "requiere marco", tone: config.frame_hash ? "base" : "warning", icon: Link2 },
+    { label: "Metodología", value: methodologyReady ? "Trazable" : "Pendiente", hint: "semilla, cuotas y bitácora", tone: methodologyReady ? "ready" : "warning", icon: FileCheck2 },
+  ];
+  const pipelineSteps: Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof CalendarRange }> = [
+    { label: "Marco", value: config.frame_hash ? "cerrado" : "pendiente", hint: "base madre / dos bases", tone: config.frame_hash ? "ready" : "warning", icon: Layers3 },
+    { label: "Selección", value: imported ? "importada" : "pendiente", hint: "M1 + bolsas", tone: imported ? "ready" : "warning", icon: Target },
+    { label: "Agenda", value: plan.length ? formatMetric(plan.length) : "S/D", hint: `${formatMetric(pendingOperational)} activas`, tone: plan.length ? "base" : "warning", icon: CalendarRange },
+    { label: "Campo", value: appliedCount ? formatMetric(appliedCount) : "sin corte", hint: sourceKinds, tone: appliedCount ? "effective" : "pending", icon: QrCode },
+    { label: "Cierre", value: gapCount ? "brecha" : "controlado", hint: cutAt ? formatDate(cutAt) : "sin corte", tone: gapCount ? "warning" : "ready", icon: ClipboardCheck },
+  ];
+  return (
+    <section className={`mon-aulas-view is-${view}`}>
+      <div className="mon-aulas-commandbar">
+        <div className="mon-aulas-title">
+          <span className="mon-aulas-title-icon" aria-hidden="true"><CalendarRange size={17} /></span>
+          <div>
+            <span className="pulso-section-eyebrow">Monitoreo de aulas universitarias</span>
+            <h3>{viewTitle[view] ?? "Aulas"}</h3>
+            <p>{viewDetail[view] ?? ""}</p>
+          </div>
+        </div>
+        <div className="mon-aulas-actions">
+          <button type="button" className="pulso-button pulso-button--secondary" onClick={() => { void onImportFromCalc().catch(() => undefined); }} disabled={busy}>
+            {busy ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+            <span>Importar plan</span>
+          </button>
+          <button type="button" className="pulso-button" onClick={() => { void onSync().catch(() => undefined); }} disabled={busy || !imported}>
+            {busy ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+            <span>Sincronizar campo</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="mon-aulas-kpis" aria-label="Resumen de aulas universitarias">
+        {kpiCards.map((card) => {
+          const Icon = card.icon;
+          const pct = card.percent == null ? null : Math.max(0, Math.min(100, card.percent));
+          return (
+            <div key={card.label} className={`mon-aulas-kpi is-${card.tone}`} style={{ "--aulas-kpi-progress": `${pct ?? 0}%` } as CSSProperties}>
+              <span className="mon-aulas-kpi-icon" aria-hidden="true"><Icon size={15} /></span>
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <em>{card.hint}</em>
+              {pct == null ? null : <i aria-hidden="true" />}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mon-aulas-operational-grid">
+        <article className="mon-aulas-handoff" aria-label="Conexión entre cálculo de muestra y monitoreo">
+          <header>
+            <span><Link2 size={14} /> Handoff calc-muestra → monitoreo</span>
+            <em className={imported ? "is-ready" : "is-warning"}>{imported ? "conectado" : "pendiente"}</em>
+          </header>
+          <div>
+            {handoffCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <span key={card.label} className={`mon-aulas-handoff-card is-${card.tone}`}>
+                  <Icon size={14} />
+                  <b>{card.label}</b>
+                  <strong>{card.value}</strong>
+                  <small>{card.hint}</small>
+                </span>
+              );
+            })}
+          </div>
+        </article>
+
+        <article className="mon-aulas-pipeline" aria-label="Pipeline operativo de aulas">
+          {pipelineSteps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <span key={step.label} className={`mon-aulas-pipeline-step is-${step.tone}`}>
+                <i aria-hidden="true"><Icon size={14} /></i>
+                <b>{step.label}</b>
+                <strong>{step.value}</strong>
+                <small>{step.hint}</small>
+                {index < pipelineSteps.length - 1 ? <ArrowRight size={13} aria-hidden="true" /> : null}
+              </span>
+            );
+          })}
+        </article>
+	      </div>
+
+	      {representativity ? (
+	        <article className="mon-aulas-representativity" aria-label="Representatividad efectiva del campo">
+	          <header>
+	            <span><Target size={14} /> Representatividad planificada vs efectiva</span>
+	            <em className={representativity.warning ? "is-warning" : "is-ready"}>{representativity.warning || "sin alerta severa"}</em>
+	          </header>
+	          <div>
+	            <span><b>Plan</b><strong>{Number.isFinite(Number(representativity.planned_score)) ? `${Math.round(Number(representativity.planned_score))}/100` : "S/D"}</strong></span>
+	            <span><b>Efectivo</b><strong>{Number.isFinite(Number(representativity.effective_score)) ? `${Math.round(Number(representativity.effective_score))}/100` : "S/D"}</strong></span>
+	            <span><b>Distancia</b><strong>{Number.isFinite(Number(representativity.effective_distance)) ? Number(representativity.effective_distance).toFixed(3) : "S/D"}</strong></span>
+	            <span><b>Aulas efectivas</b><strong>{formatMetric(Number(representativity.effective_aulas ?? 0))}</strong></span>
+	          </div>
+	        </article>
+	      ) : null}
+
+	      <div className="mon-aulas-meta" aria-label="Condiciones de privacidad y publicación">
+        <span><FileCheck2 size={13} /> {config.anonymous_responses ? "Encuesta anónima: no exige student_id" : "Privacidad por revisar"}</span>
+        <span><Layers3 size={13} /> {sourceKinds}</span>
+        <span><ShieldAlert size={13} /> {validationWarnings ? `${validationWarnings} controles con alerta` : "validación operativa OK"}</span>
+        <span><ClipboardCheck size={13} /> Cliente: agregados sin PII</span>
+      </div>
+
+      <section className="mon-aulas-table-shell" aria-label={table.title}>
+        <header className="mon-aulas-table-head">
+          <div>
+            <span className="pulso-section-eyebrow">{table.title}</span>
+            <strong>{table.hint}</strong>
+          </div>
+          <div className="mon-aulas-table-tools">
+            <label className="mon-aulas-search">
+              <Search size={13} aria-hidden="true" />
+              <input
+                type="text"
+                role="searchbox"
+                value={tableQuery}
+                onChange={(event) => setTableQuery(event.target.value)}
+                placeholder="Buscar aula, curso o fuente"
+                aria-label="Buscar aula, curso, fuente o estado"
+              />
+              {tableQuery ? (
+                <button type="button" onClick={() => setTableQuery("")} aria-label="Limpiar busqueda de aulas">
+                  <X size={12} />
+                </button>
+              ) : null}
+            </label>
+            <em>{rows.length.toLocaleString("es-PE")}{hiddenRows ? ` de ${filteredRows.length.toLocaleString("es-PE")}` : ""} filas</em>
+          </div>
+        </header>
+        <div className="mon-aulas-table-wrap">
+          {rows.length ? (
+            <table className="mon-aulas-table">
+              <thead>
+                <tr>
+                  {table.columns.map((column) => <th key={column}>{aulasColumnLabel(column)}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={`aulas-row-${idx}`}>
+                    {table.columns.map((column) => (
+                      <td key={column}>{aulasCellValue(row as Record<string, unknown>, column)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <EmptyState icon={<CalendarRange size={18} />} title={tableQuery ? "Sin coincidencias para la búsqueda." : table.empty} />
+          )}
+        </div>
+      </section>
+    </section>
+  );
+}
+
+const AULAS_STATUS_LABELS: Record<string, string> = {
+  planificada: "Planificada",
+  contactada: "Contactada",
+  agendada: "Agendada",
+  en_campo: "En campo",
+  aplicada: "Aplicada",
+  parcial: "Parcial",
+  sin_acceso: "Sin acceso",
+  cancelada: "Cancelada",
+  reemplazo_pendiente: "Reemplazo pendiente",
+  reemplazada: "Reemplazada",
+  cerrada: "Cerrada",
+  activa: "Activa",
+  inactiva: "Inactiva",
+  ok: "OK",
+  warning: "Alerta",
+  error: "Error",
+};
+
+function aulasShortId(value: unknown, limit = 18) {
+  const text = String(value ?? "").trim();
+  if (!text) return "pendiente";
+  if (text.length <= limit) return text;
+  return `${text.slice(0, 8)}…${text.slice(-6)}`;
+}
+
+function aulasStatusLabel(value: unknown) {
+  const key = String(value ?? "").trim().toLowerCase();
+  return AULAS_STATUS_LABELS[key] ?? String(value ?? "S/D");
+}
+
+function aulasStatusTone(value: unknown): MonitoringSemanticTone {
+  const key = String(value ?? "").trim().toLowerCase();
+  if (["aplicada", "cerrada", "activa", "ok"].includes(key)) return "ready";
+  if (["parcial", "contactada", "agendada", "en_campo"].includes(key)) return "partial";
+  if (["planificada", "reemplazo_pendiente"].includes(key)) return "pending";
+  if (["sin_acceso", "cancelada", "reemplazada", "warning"].includes(key)) return "warning";
+  if (["error", "inactiva"].includes(key)) return "refusal";
+  return "base";
+}
+
+function aulasRowSearchText(row: Record<string, unknown>, columns: string[]) {
+  return normalizeMatch(columns.map((column) => {
+    const value = row[column];
+    if (value == null) return "";
+    if (["operational_status", "status", "Estado"].includes(column)) return aulasStatusLabel(value);
+    return String(value);
+  }).join(" "));
+}
+
+function aulasColumnLabel(column: string) {
+  const labels: Record<string, string> = {
+    stratum: "Estrato",
+    aulas: "Aulas",
+    aulas_aplicadas: "Aplicadas",
+    respuestas_validas: "Válidas",
+    brecha: "Brecha",
+    avance_aulas_pct: "% aulas",
+    avance_respuestas_pct: "% respuestas",
+    classroom_id: "Aula",
+    course_name: "Curso",
+    faculty: "Facultad",
+    program: "Programa",
+    operational_status: "Estado",
+    replacement_for: "Reemplaza a",
+    schedule: "Horario",
+    teacher: "Docente",
+    responsible: "Responsable",
+    link: "Link",
+    wave: "Ola",
+    orden: "Orden",
+    check: "Control",
+    status: "Estado",
+    detail: "Detalle",
+  };
+  return labels[column] ?? column;
+}
+
+function aulasCellValue(row: Record<string, unknown>, column: string) {
+  const value = row[column];
+  if (value == null || value === "") return "—";
+  const columnKey = column.toLowerCase();
+  if (["operational_status", "status", "Estado"].includes(column)) {
+    const tone = aulasStatusTone(value);
+    return <span className={`mon-aulas-badge is-${tone}`}>{aulasStatusLabel(value)}</span>;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return "—";
+    if (columnKey.includes("pct")) return formatPercentLabel(Math.abs(value) <= 1 ? value * 100 : value);
+    return value.toLocaleString("es-PE");
+  }
+  if (typeof value === "boolean") return value ? "Sí" : "No";
+  const text = String(value);
+  if (columnKey.includes("fecha") || column === "Actualizacion" || columnKey.endsWith("_at")) return text ? formatDate(text) : "—";
+  if (columnKey === "link" && /^https?:\/\//i.test(text)) {
+    return (
+      <a className="mon-aulas-table-link" href={text} target="_blank" rel="noreferrer">
+        <ExternalLink size={12} />
+        <span>Abrir</span>
+      </a>
+    );
+  }
+  if (["selection_run_id", "frame_hash", "collector_id"].includes(columnKey)) return aulasShortId(text);
+  return text;
+}
+
+function MonitoreoRailOutputsControl({
   clientSheets,
   internalSheets,
   hasSnapshot,
@@ -4244,8 +5058,6 @@ function MonitoreoRailWebPublishControl({
   spreadsheetId,
   onOpen,
 }: {
-  clientDeploy?: MonitoreoLastDeploy | null;
-  internalDeploy?: MonitoreoLastDeploy | null;
   clientSheets?: MonitoreoLastSheetsPublication | null;
   internalSheets?: MonitoreoLastSheetsPublication | null;
   hasSnapshot: boolean;
@@ -4254,22 +5066,21 @@ function MonitoreoRailWebPublishControl({
   spreadsheetId: string;
   onOpen: () => void;
 }) {
-  const webPublishedCount = [clientDeploy, internalDeploy].filter(Boolean).length;
   const sheetsPublishedCount = [clientSheets, internalSheets].filter(Boolean).length;
   const hasSpreadsheet = Boolean(String(spreadsheetId || "").trim());
   return (
-    <section className="mon-rail-web-publish" aria-label="Publicaciones del corte">
+    <section className="mon-rail-web-publish" aria-label="Salidas Sheets del corte">
       <button
         type="button"
         className="mon-rail-web-publish-trigger"
-        aria-label={`Abrir suite de publicaciones del corte de ${routeLabel}`}
+        aria-label={`Abrir salidas Sheets del corte de ${routeLabel}`}
         onClick={onOpen}
       >
-        <span className="mon-rail-web-publish-trigger-icon"><Globe2 size={14} /></span>
+        <span className="mon-rail-web-publish-trigger-icon"><Table2 size={14} /></span>
         <span className="mon-rail-web-publish-trigger-copy">
-          <span>Publicaciones</span>
+          <span>Salidas Sheets</span>
           <strong>{routeLabel}</strong>
-          <small>{webPublishedCount}/2 web · {sheetsPublishedCount}/2 Sheets{!hasSpreadsheet && !sheetsPublishedCount ? " · sin enlace" : ""}</small>
+          <small>{sheetsPublishedCount}/2 publicadas{!hasSpreadsheet && !sheetsPublishedCount ? " · sin enlace" : ""}</small>
         </span>
         <Maximize2 size={14} className="mon-rail-web-publish-trigger-chevron" />
       </button>
@@ -4284,8 +5095,8 @@ type MonitoreoSheetsPublicationState = {
   spreadsheetId: string;
   updatedAt?: string;
 };
-type MonitoreoOutputChannel = "web" | "sheets";
-type MonitoreoOutputFamily = "territorial" | "accreditation" | "generic";
+type MonitoreoOutputChannel = "sheets";
+type MonitoreoOutputFamily = "territorial" | "accreditation" | "classroom" | "generic";
 type MonitoreoOutputStatusKind = "idle" | "publishing" | "success" | "error";
 type MonitoreoOutputTargetKey = `${MonitoreoPublishAudience}:${MonitoreoOutputChannel}`;
 type MonitoreoOutputPublicationStatus = {
@@ -4323,6 +5134,7 @@ function normalizeMonitoreoSpreadsheetTarget(value?: string | null) {
 function monitoreoOutputFamilyFromLabel(routeLabel: string, defaultTitle = ""): MonitoreoOutputFamily {
   const text = `${routeLabel} ${defaultTitle}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   if (text.includes("territorial") || text.includes("campo")) return "territorial";
+  if (text.includes("aula") || text.includes("estudiante")) return "classroom";
   if (text.includes("acredit")) return "accreditation";
   return "generic";
 }
@@ -4330,30 +5142,30 @@ function monitoreoOutputFamilyFromLabel(routeLabel: string, defaultTitle = ""): 
 function monitoreoOutputArtifactCopy(
   family: MonitoreoOutputFamily,
   audience: MonitoreoPublishAudience,
-  channel: MonitoreoOutputChannel,
+  _channel: MonitoreoOutputChannel,
 ) {
-  const destination = channel === "web" ? "web" : "en Sheets";
+  const destination = "en Sheets";
   if (audience === "internal") {
     return {
-      eyebrow: channel === "web" ? "Web interna" : "Sheets interno",
+      eyebrow: "Sheets interno",
       title: `Interno · Monitoreo operativo ${destination}`,
-      shortTitle: channel === "web" ? "Monitoreo web" : "Monitoreo Sheets",
+      shortTitle: "Monitoreo Sheets",
       description: "Incluye validación, cuotas y auditoría.",
-      detail: channel === "web" ? "HF Space privado para el equipo." : "Pestañas operativas controladas.",
-      button: channel === "web" ? "Publicar monitoreo web" : "Publicar monitoreo Sheets",
-      republish: channel === "web" ? "Actualizar monitoreo web" : "Actualizar monitoreo Sheets",
+      detail: "Pestañas operativas controladas.",
+      button: "Publicar monitoreo Sheets",
+      republish: "Actualizar monitoreo Sheets",
     };
   }
-  const familyTitle = family === "territorial" ? "Reporte de avance territorial" : family === "accreditation" ? "Reporte de avance para cliente" : "Reporte de avance";
-  const description = family === "territorial" ? "Avance por distrito, UMP y cuota." : family === "accreditation" ? "Avance por actor, segmento y día." : "Avance agregado del corte.";
+  const familyTitle = family === "territorial" ? "Reporte de avance territorial" : family === "accreditation" ? "Reporte de avance para cliente" : family === "classroom" ? "Reporte de avance de aulas" : "Reporte de avance";
+  const description = family === "territorial" ? "Avance por distrito, UMP y cuota." : family === "accreditation" ? "Avance por actor, segmento y día." : family === "classroom" ? "Avance agregado, cuotas y brechas por aula." : "Avance agregado del corte.";
   return {
-    eyebrow: channel === "web" ? "Web cliente" : "Sheets cliente",
+    eyebrow: "Sheets cliente",
     title: `Cliente · ${familyTitle} ${destination}`,
-    shortTitle: channel === "web" ? "Reporte web" : "Reporte Sheets",
+    shortTitle: "Reporte Sheets",
     description,
-    detail: channel === "web" ? "HF Space con avance agregado." : "Pestañas ejecutivas de avance.",
-    button: channel === "web" ? "Publicar reporte web" : "Publicar reporte Sheets",
-    republish: channel === "web" ? "Actualizar reporte web" : "Actualizar reporte Sheets",
+    detail: "Pestañas ejecutivas de avance.",
+    button: "Publicar reporte Sheets",
+    republish: "Actualizar reporte Sheets",
   };
 }
 
@@ -4362,11 +5174,15 @@ function MonitoreoOutputPublicationStatusBar({
   ready,
   canPublish,
   fallbackMessage,
+  actionUrl,
+  actionLabel,
 }: {
   status: MonitoreoOutputPublicationStatus;
   ready: boolean;
   canPublish: boolean;
   fallbackMessage: string;
+  actionUrl?: string;
+  actionLabel?: string;
 }) {
   const statusClass = status.kind === "idle" && ready ? "ready" : status.kind;
   const title = status.kind === "publishing"
@@ -4381,6 +5197,10 @@ function MonitoreoOutputPublicationStatusBar({
     ? "Listo para publicar"
     : "Pendiente";
   const detail = status.message || fallbackMessage;
+  const statusDetail = status.detail?.trim() ?? "";
+  const statusDetailIsUrl = /^https?:\/\//i.test(statusDetail);
+  const actionHref = (actionUrl?.trim() || (statusDetailIsUrl ? statusDetail : "")).trim();
+  const secondaryDetail = statusDetail && statusDetail !== detail && statusDetail !== actionHref ? statusDetail : "";
   const Icon = status.kind === "publishing"
     ? Loader2
     : status.kind === "success" || ready
@@ -4427,7 +5247,14 @@ function MonitoreoOutputPublicationStatusBar({
             </button>
           ) : null}
         </span>
-        <small>{detail}</small>
+        {detail ? <small>{detail}</small> : null}
+        {secondaryDetail ? <small className="mon-output-publication-status-detail">{secondaryDetail}</small> : null}
+        {actionHref ? (
+          <a className="mon-output-publication-link" href={actionHref} target="_blank" rel="noreferrer">
+            <ExternalLink size={13} />
+            {actionLabel || "Abrir publicación"}
+          </a>
+        ) : null}
         <span className="mon-output-publication-meter" aria-hidden="true">
           <span />
         </span>
@@ -4439,8 +5266,6 @@ function MonitoreoOutputPublicationStatusBar({
 function MonitoreoOutputsSuite({
   defaultTitle,
   routeLabel,
-  clientDeploy,
-  internalDeploy,
   clientSheets,
   internalSheets,
   hasSnapshot,
@@ -4453,8 +5278,6 @@ function MonitoreoOutputsSuite({
 }: {
   defaultTitle: string;
   routeLabel: string;
-  clientDeploy?: MonitoreoLastDeploy | null;
-  internalDeploy?: MonitoreoLastDeploy | null;
   clientSheets?: MonitoreoLastSheetsPublication | null;
   internalSheets?: MonitoreoLastSheetsPublication | null;
   hasSnapshot: boolean;
@@ -4466,25 +5289,10 @@ function MonitoreoOutputsSuite({
   onPublished: () => void;
 }) {
   const audiences: MonitoreoPublishAudience[] = ["client", "internal"];
+  const channelsForAudience = (_audience: MonitoreoPublishAudience): MonitoreoOutputChannel[] => ["sheets"];
   const [activeAudience, setActiveAudience] = useState<MonitoreoPublishAudience>("client");
-  const [activeChannel, setActiveChannel] = useState<MonitoreoOutputChannel>("web");
-  const [username, setUsername] = useState(clientDeploy?.hf_username ?? internalDeploy?.hf_username ?? "");
-  const [token, setToken] = useState("");
-  const [tokenName, setTokenName] = useState(PULSO_HF_DEFAULT_TOKEN_ALIAS);
-  const [savedTokens, setSavedTokens] = useState<HfSavedToken[]>([]);
-  const [selectedTokenId, setSelectedTokenId] = useState("");
-  const [loadingSettings, setLoadingSettings] = useState(true);
-  const [clientSpaceName, setClientSpaceName] = useState(
-    () => clientDeploy?.space_name ?? slugifySpaceName(`${defaultTitle || "reporte-monitoreo"}-cliente`),
-  );
-  const [internalSpaceName, setInternalSpaceName] = useState(
-    () => internalDeploy?.space_name ?? slugifySpaceName(`${defaultTitle || "reporte-monitoreo"}-interno`),
-  );
-  const [clientPrivate, setClientPrivate] = useState(clientDeploy?.private ?? false);
+  const [activeChannel, setActiveChannel] = useState<MonitoreoOutputChannel>("sheets");
   const [internalConfirmed, setInternalConfirmed] = useState(false);
-  const [publishingAudience, setPublishingAudience] = useState<MonitoreoPublishAudience | null>(null);
-  const [, setWebError] = useState("");
-  const [webResult, setWebResult] = useState<Partial<Record<MonitoreoPublishAudience, { repo_id: string; app_url: string; url: string }>>>({});
   const [spreadsheetIds, setSpreadsheetIds] = useState<Record<MonitoreoPublishAudience, string>>(() => ({
     client: sheetsPublicationStateFromDeploy(clientSheets)?.spreadsheetId || "",
     internal: sheetsPublicationStateFromDeploy(internalSheets)?.spreadsheetId || "",
@@ -4545,56 +5353,15 @@ function MonitoreoOutputsSuite({
   }, [clientSheets, defaultTitle, internalSheets, routeLabel]);
 
   useEffect(() => {
-    setWebError("");
     setSheetsError("");
   }, [activeAudience, activeChannel]);
 
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      if (!window.prosecnurApi?.getHfSettings) {
-        setUsername((current) => current || PULSO_HF_DEFAULT_NAMESPACE);
-        setLoadingSettings(false);
-        return;
-      }
-      try {
-        const settings = await window.prosecnurApi.getHfSettings();
-        if (!alive) return;
-        setUsername((current) => current || settings.default_namespace || settings.recent_destinations?.[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE);
-        const nextTokens = settings.saved_tokens ?? [];
-        setSavedTokens(nextTokens);
-        if (nextTokens.length) {
-          setSelectedTokenId((current) => current || nextTokens[0].id);
-          setToken("");
-          setTokenName(nextTokens[0].name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-        }
-      } catch (_e) {
-        // Fuera de Electron, el usuario llena los campos manualmente.
-      } finally {
-        if (alive) setLoadingSettings(false);
-      }
-    }
-    void load();
-    return () => { alive = false; };
-  }, []);
-
-  async function handleSavedTokenChange(id: string) {
-    setSelectedTokenId(id);
-    setToken("");
-    const saved = savedTokens.find((item) => item.id === id);
-    if (saved) setTokenName(saved.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-  }
-
-  const selectedSavedToken = savedTokens.find((saved) => saved.id === selectedTokenId) ?? null;
   const outputFamily = useMemo(() => monitoreoOutputFamilyFromLabel(routeLabel, defaultTitle), [routeLabel, defaultTitle]);
   const artifactCopy = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => monitoreoOutputArtifactCopy(outputFamily, audience, channel);
   const artifactCopyFromKey = (key: string) => {
     const [audience, channel] = key.split(":") as [MonitoreoPublishAudience, MonitoreoOutputChannel];
     return artifactCopy(audience, channel).title;
   };
-  const hfTokenValid = /^hf_[A-Za-z0-9_]+$/.test(token.trim());
-  const hfCredentialReady = selectedTokenId ? true : hfTokenValid;
-  const spaceValid = (value: string) => /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(value.trim());
   const spreadsheetId = spreadsheetIds[activeAudience] ?? "";
   const setActiveSpreadsheetId = (value: string) => {
     const previousTarget = normalizeMonitoreoSpreadsheetTarget(spreadsheetIds[activeAudience]);
@@ -4617,19 +5384,10 @@ function MonitoreoOutputsSuite({
     if (/^https?:\/\//i.test(raw)) return raw;
     return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(raw)}`;
   };
-  const deployFor = (audience: MonitoreoPublishAudience) => audience === "client" ? clientDeploy : internalDeploy;
-  const spaceFor = (audience: MonitoreoPublishAudience) => audience === "client" ? clientSpaceName : internalSpaceName;
   const audienceLabel = (audience: MonitoreoPublishAudience) => audience === "client" ? "Cliente" : "Interno";
   const audienceSummary = (audience: MonitoreoPublishAudience) => audience === "client"
     ? "Avance agregado para cliente, sin PII ni trazabilidad operativa."
     : "Corte completo para equipo, con PII, GPS, IDs, alertas y auditoría.";
-  const canPublishWeb = (audience: MonitoreoPublishAudience) => (
-    hasSnapshot &&
-    !!username.trim() &&
-    hfCredentialReady &&
-    spaceValid(spaceFor(audience)) &&
-    (audience === "client" || internalConfirmed)
-  );
   const canPublishSheets = (audience: MonitoreoPublishAudience) => (
     hasSnapshot &&
     !!spreadsheetId.trim() &&
@@ -4669,95 +5427,9 @@ function MonitoreoOutputsSuite({
     if (ready) return "La salida ya tiene una publicación previa. Puedes actualizarla con un nuevo corte.";
     if (!hasSnapshot) return "Sincroniza un corte antes de publicar.";
     if (audience === "internal" && !internalConfirmed) return "Confirma explícitamente la salida interna para habilitar la publicación.";
-    if (channel === "web") {
-      if (!username.trim()) return "Define el namespace destino de Hugging Face.";
-      if (!hfCredentialReady) return "Selecciona una credencial HF guardada o pega un token write.";
-      if (!spaceValid(spaceFor(audience))) return "Revisa el nombre del Space: usa minúsculas, números y guiones.";
-      return canPublish ? `${artifactCopy(audience, channel).shortTitle} listo para recibir este corte.` : "Completa la configuración web.";
-    }
     if (!spreadsheetId.trim()) return "Configura el spreadsheet destino de Google Sheets.";
     return canPublish ? `${artifactCopy(audience, channel).shortTitle} listo para actualizar pestañas controladas.` : "Completa la configuración de Sheets.";
   };
-
-  async function resolveHfTokenForPublish() {
-    const pasted = token.trim();
-    if (pasted) return pasted;
-    if (!selectedTokenId) return "";
-    if (!window.prosecnurApi?.getHfToken) {
-      throw new Error("No pude leer la credencial guardada de Hugging Face en esta sesion.");
-    }
-    const saved = await window.prosecnurApi.getHfToken(selectedTokenId);
-    const savedToken = saved?.hf_token?.trim() ?? "";
-    if (!savedToken) {
-      throw new Error("La credencial guardada no pudo descifrarse. Selecciona otro token o pegalo manualmente.");
-    }
-    setTokenName(saved?.name || tokenName || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-    return savedToken;
-  }
-
-  async function publishWeb(audience: MonitoreoPublishAudience) {
-    if (!canPublishWeb(audience) || publishingAudience) return;
-    setPublishingAudience(audience);
-    setWebError("");
-    setPublicationStatus(audience, "web", {
-      kind: "publishing",
-      message: `Preparando ${artifactCopy(audience, "web").title} y credencial HF...`,
-      seen: true,
-    });
-    try {
-      const hfToken = await resolveHfTokenForPublish();
-      setPublicationStatus(audience, "web", {
-        kind: "publishing",
-        message: `Subiendo ${artifactCopy(audience, "web").title} a Hugging Face Spaces...`,
-        seen: true,
-      });
-      const out = await apiMonitoreoPublish({
-        hf_username: username.trim(),
-        hf_token: hfToken,
-        space_name: spaceFor(audience).trim(),
-        audience,
-        private: audience === "internal" ? true : clientPrivate,
-      });
-      if (window.prosecnurApi?.rememberSuccessfulHfToken) {
-        const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
-          id: selectedTokenId || undefined,
-          name: tokenName.trim() || username.trim(),
-          credential_username: savedTokens.find((saved) => saved.id === selectedTokenId)?.hf_username || "",
-          destination_namespace: username.trim(),
-          space_name: spaceFor(audience).trim(),
-          repo_id: out.repo_id,
-          app_url: out.app_url,
-          module: "monitoreo",
-          audience,
-          private: audience === "internal" ? true : clientPrivate,
-          hf_token: hfToken,
-        });
-        setSavedTokens(settings.saved_tokens ?? []);
-      }
-      setWebResult((current) => ({
-        ...current,
-        [audience]: { repo_id: out.repo_id, app_url: out.app_url, url: out.url },
-      }));
-      setPublicationStatus(audience, "web", {
-        kind: "success",
-        message: `HF recibió ${out.repo_id}. El Space aparecerá cuando termine el build.`,
-        detail: out.app_url,
-        seen: !minimizedRef.current,
-      });
-      onPublished();
-      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
-    } catch (e) {
-      const message = (e as Error).message;
-      setWebError(message);
-      setPublicationStatus(audience, "web", {
-        kind: "error",
-        message,
-        seen: !minimizedRef.current,
-      });
-    } finally {
-      setPublishingAudience(null);
-    }
-  }
 
   async function publishSheets(audience: MonitoreoPublishAudience) {
     if (!canPublishSheets(audience) || sheetsBusy) return;
@@ -4806,9 +5478,6 @@ function MonitoreoOutputsSuite({
     }
   }
 
-  const channels: MonitoreoOutputChannel[] = ["web", "sheets"];
-  const activeDeploy = deployFor(activeAudience);
-  const activeWebResult = webResult[activeAudience];
   const activeSheetsResult = sheetsPublished[activeAudience];
   const sheetsTargetMatchesInput = (audience: MonitoreoPublishAudience, publishedId?: string | null) => {
     const target = normalizeMonitoreoSpreadsheetTarget(spreadsheetIds[audience]);
@@ -4818,36 +5487,31 @@ function MonitoreoOutputsSuite({
   const activeSheetsMatchesInput = sheetsTargetMatchesInput(activeAudience);
   const activeSheetsUrl = sheetsUrl();
   const activeIsInternal = activeAudience === "internal";
-  const activeCanPublish = activeChannel === "web" ? canPublishWeb(activeAudience) : canPublishSheets(activeAudience);
-  const activeReady = activeChannel === "web" ? Boolean(activeDeploy || activeWebResult) : activeSheetsMatchesInput;
+  const activeCanPublish = canPublishSheets(activeAudience);
+  const activeReady = activeSheetsMatchesInput;
   const activeStatus = statusForTarget(activeAudience, activeChannel);
-  const activeDisplayStatus: MonitoreoOutputPublicationStatus = activeChannel === "sheets" &&
-    activeStatus.kind === "success" &&
+  const activeDisplayStatus: MonitoreoOutputPublicationStatus = activeStatus.kind === "success" &&
     !sheetsTargetMatchesInput(activeAudience, activeStatus.detail)
     ? { kind: "idle", message: "", updatedAt: activeStatus.updatedAt, seen: true }
     : activeStatus;
   const activePublishing = activeDisplayStatus.kind === "publishing";
-  const anyPublishing = Boolean(publishingAudience || sheetsBusy) ||
+  const anyPublishing = Boolean(sheetsBusy) ||
     Object.values(publicationStatuses).some((status) => status?.kind === "publishing");
   const activeFallbackStatus = fallbackStatusMessage(activeAudience, activeChannel, activeReady, activeCanPublish);
   const activeCopy = artifactCopy(activeAudience, activeChannel);
   const targetReady = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => {
     const status = statusForTarget(audience, channel);
-    if (channel === "web") {
-      return status.kind === "success" || Boolean(deployFor(audience) || webResult[audience]);
-    }
     return (
       (status.kind === "success" && sheetsTargetMatchesInput(audience, status.detail)) ||
       sheetsTargetMatchesInput(audience)
     );
   };
-  const webPublishedCount = audiences.filter((audience) => targetReady(audience, "web")).length;
   const sheetsPublishedCount = audiences.filter((audience) => targetReady(audience, "sheets")).length;
   const targetLabelForStatus = (audience: MonitoreoPublishAudience, channel: MonitoreoOutputChannel) => {
     const status = statusForTarget(audience, channel);
     if (status.kind === "publishing") return "Publicando";
     if (status.kind === "error") return "Error";
-    if (status.kind === "success" && (channel === "web" || sheetsTargetMatchesInput(audience, status.detail))) return "Publicada";
+    if (status.kind === "success" && sheetsTargetMatchesInput(audience, status.detail)) return "Publicada";
     if (targetReady(audience, channel)) return "Publicada";
     return "Pendiente";
   };
@@ -4856,8 +5520,7 @@ function MonitoreoOutputsSuite({
   };
   const publishActiveTarget = () => {
     if (anyPublishing) return;
-    if (activeChannel === "web") void publishWeb(activeAudience);
-    else void publishSheets(activeAudience);
+    void publishSheets(activeAudience);
   };
   const minimizedPublishing = Object.entries(publicationStatuses)
     .find(([, status]) => status?.kind === "publishing") as [MonitoreoOutputTargetKey, MonitoreoOutputPublicationStatus] | undefined;
@@ -4872,7 +5535,7 @@ function MonitoreoOutputsSuite({
     ? `Revisar ${artifactCopyFromKey(minimizedError[0])}`
     : minimizedSuccess
     ? `Listo ${artifactCopyFromKey(minimizedSuccess[0])}`
-    : `${webPublishedCount}/2 web · ${sheetsPublishedCount}/2 Sheets`;
+    : `${sheetsPublishedCount}/2 Sheets`;
 
   if (minimized) {
     return (
@@ -4890,7 +5553,7 @@ function MonitoreoOutputsSuite({
           ) : minimizedState === "error" ? (
             <AlertTriangle size={15} />
           ) : (
-            <Globe2 size={14} />
+            <Table2 size={14} />
           )}
         </span>
         <span>{minimizedState === "publishing" ? "Publicando" : minimizedState === "complete" ? "Listo" : minimizedState === "error" ? "Revisar" : "Salidas"}</span>
@@ -4900,10 +5563,10 @@ function MonitoreoOutputsSuite({
   }
 
   return (
-    <section className="mon-output-suite" role="dialog" aria-label="Suite de publicaciones del corte" aria-modal="false">
+    <section className="mon-output-suite" role="dialog" aria-label="Salidas Sheets del corte" aria-modal="false">
       <header className="mon-output-suite-head">
         <div>
-          <span><Globe2 size={14} /> Publicaciones del corte</span>
+          <span><Table2 size={14} /> Salidas Sheets del corte</span>
           <strong>{routeLabel}</strong>
           <small>{hasSnapshot ? `${formatMetric(nRows)} registros del corte actual` : "Sin corte sincronizado"}</small>
         </div>
@@ -4920,19 +5583,22 @@ function MonitoreoOutputsSuite({
         <div className="mon-output-suite-layout">
           <section className="mon-output-target-picker" aria-label="Seleccion de publicación">
             <header>
-              <span>Publicaciones</span>
-              <strong>Matriz de publicación</strong>
-              <small>{webPublishedCount + sheetsPublishedCount}/4 publicadas</small>
+              <span>Google Sheets</span>
+              <strong>Matriz de salidas</strong>
+              <small>{sheetsPublishedCount}/2 publicadas</small>
             </header>
             <div className="mon-output-target-grid">
               {audiences.map((audience) => (
-                <div key={audience} className={`mon-output-target-row is-${audience}`}>
+                <div
+                  key={audience}
+                  className={`mon-output-target-row is-${audience}`}
+                  style={{ "--mon-output-channel-count": channelsForAudience(audience).length } as CSSProperties}
+                >
                   <div className="mon-output-target-row-label">
                     <span>{audienceLabel(audience)}</span>
-                    <small>{audience === "client" ? "Agregado" : "Completo"}</small>
+                    <small>{audience === "client" ? "Tablas ejecutivas" : "Tablas internas"}</small>
                   </div>
-                  {channels.map((channel) => {
-                    const Icon = channel === "web" ? Globe2 : Table2;
+                  {channelsForAudience(audience).map((channel) => {
                     const ready = targetReady(audience, channel);
                     const status = statusForTarget(audience, channel);
                     const active = activeAudience === audience && activeChannel === channel;
@@ -4947,7 +5613,7 @@ function MonitoreoOutputsSuite({
                           setActiveChannel(channel);
                         }}
                       >
-                        <span><Icon size={13} /> {copy.eyebrow}</span>
+                        <span><Table2 size={13} /> {copy.eyebrow}</span>
                         <strong>{copy.shortTitle}</strong>
                         <small>{targetLabelForStatus(audience, channel)} · {copy.description}</small>
                       </button>
@@ -4962,7 +5628,7 @@ function MonitoreoOutputsSuite({
               <div>
                 <span>{activeCopy.eyebrow}</span>
                 <strong>{activeCopy.title}</strong>
-                <small>{activeChannel === "web" ? `${activeCopy.detail} ${audienceSummary(activeAudience)}` : `${activeCopy.detail} ${targetDescription(activeAudience, "sheets")}`}</small>
+                <small>{activeCopy.detail} {targetDescription(activeAudience, "sheets")} {audienceSummary(activeAudience)}</small>
               </div>
               <em>{activeReady ? "Publicado" : "Pendiente"}</em>
             </header>
@@ -4972,113 +5638,11 @@ function MonitoreoOutputsSuite({
                   <input type="checkbox" checked={internalConfirmed} onChange={(event) => setInternalConfirmed(event.target.checked)} disabled={anyPublishing} />
                   Confirmo que esta salida interna puede contener datos personales, GPS, identificadores, alertas y auditoría completa.
                 </label>
-                <Alert kind="warn">La salida interna puede publicarse por Web y/o Sheets, pero siempre requiere esta confirmación manual.</Alert>
+                <Alert kind="warn">La salida interna se publica sólo en Google Sheets y siempre requiere esta confirmación manual.</Alert>
               </>
             ) : null}
             {!hasSnapshot ? <Alert kind="error">Sincroniza un corte antes de publicar.</Alert> : null}
-            {activeChannel === "web" ? (
-              <div className={`mon-output-web-card is-${activeAudience}`}>
-              <div>
-                <span>{activeCopy.eyebrow}</span>
-                <strong>{activeCopy.title}</strong>
-                <small>{activeCopy.detail}</small>
-              </div>
-              <div className="mon-output-suite-form-grid">
-                {savedTokens.length > 0 ? (
-                  <label className="is-wide">
-                    <span>Token guardado</span>
-                    <select value={selectedTokenId} onChange={(event) => void handleSavedTokenChange(event.target.value)} disabled={anyPublishing || loadingSettings}>
-                      <option value="">Usar otro token...</option>
-                      {savedTokens.map((saved) => (
-                        <option key={saved.id} value={saved.id}>
-                          {saved.name} · {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"} · {saved.masked_token}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                {selectedSavedToken ? (
-                  <div className="mon-output-saved-credential is-wide">
-                    <span>Credencial activa</span>
-                    <strong>{selectedSavedToken.name || "Token HF"}</strong>
-                    <small>{selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · se descifra solo al publicar.</small>
-                  </div>
-                ) : null}
-                <label>
-                  <span>Namespace destino HF</span>
-                  <input value={username} onChange={(event) => setUsername(event.target.value)} disabled={anyPublishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_NAMESPACE} />
-                </label>
-                {!selectedSavedToken ? (
-                  <>
-                    <label>
-                      <span>Token write</span>
-                      <input
-                        className="mon-secret-input is-masked"
-                        value={token}
-                        onChange={(event) => setToken(event.target.value)}
-                        disabled={anyPublishing || loadingSettings}
-                        placeholder="hf_..."
-                        type="text"
-                        autoComplete="off"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        data-form-type="other"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
-                      />
-                    </label>
-                    <label className="is-wide">
-                      <span>Recordar token como</span>
-                      <input value={tokenName} onChange={(event) => setTokenName(event.target.value)} disabled={anyPublishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_TOKEN_ALIAS} />
-                    </label>
-                  </>
-                ) : null}
-                <div className="mon-output-hf-actions is-wide">
-                  <button type="button" onClick={() => setUsername(PULSO_HF_DEFAULT_NAMESPACE)} disabled={anyPublishing || loadingSettings}>
-                    Usar {PULSO_HF_DEFAULT_NAMESPACE}
-                  </button>
-                  <button type="button" onClick={openHuggingFaceTokens}>
-                    <ExternalLink size={13} /> Crear token HF
-                  </button>
-                </div>
-              </div>
-              <label>
-                <span>Nombre del Space</span>
-                <input
-                  value={activeAudience === "client" ? clientSpaceName : internalSpaceName}
-                  onChange={(event) => {
-                    const next = slugifySpaceName(event.target.value);
-                    if (activeAudience === "client") setClientSpaceName(next);
-                    else setInternalSpaceName(next);
-                  }}
-                  disabled={anyPublishing}
-                  placeholder={activeAudience === "client" ? "acnur-avance-cliente" : "acnur-avance-interno"}
-                />
-              </label>
-              {activeAudience === "client" ? (
-                <label className="mon-web-publish-check">
-                  <input type="checkbox" checked={clientPrivate} onChange={(event) => setClientPrivate(event.target.checked)} disabled={anyPublishing} />
-                  Crear Space cliente como privado
-                </label>
-              ) : (
-                <span className="mon-output-channel-lock"><ShieldAlert size={12} /> Privado obligatorio</span>
-              )}
-              <footer className="mon-output-suite-actions">
-                <button type="button" onClick={publishActiveTarget} disabled={!activeCanPublish || anyPublishing}>
-                  {activePublishing ? <Loader2 size={14} className="pulso-spin" /> : <Globe2 size={14} />}
-                  {activeDeploy || activeWebResult ? activeCopy.republish : activeCopy.button}
-                </button>
-              </footer>
-              <MonitoreoOutputPublicationStatusBar
-                status={activeDisplayStatus}
-                ready={activeReady}
-                canPublish={activeCanPublish}
-                fallbackMessage={activeFallbackStatus}
-              />
-              </div>
-            ) : (
-              <div className={`mon-output-sheets-card is-${activeAudience}`}>
+            <div className={`mon-output-sheets-card is-${activeAudience}`}>
               <div>
                 <span>{activeCopy.eyebrow}</span>
                 <strong>{activeCopy.title}</strong>
@@ -5112,289 +5676,12 @@ function MonitoreoOutputsSuite({
                 canPublish={activeCanPublish}
                 fallbackMessage={activeFallbackStatus}
               />
-              </div>
-            )}
-            {!spreadsheetId.trim() && activeChannel === "sheets" ? <Alert kind="warn">Configura el enlace del spreadsheet destino para habilitar la publicación de pestañas.</Alert> : null}
+            </div>
+            {!spreadsheetId.trim() ? <Alert kind="warn">Configura el enlace del spreadsheet destino para habilitar la publicación de pestañas.</Alert> : null}
           </section>
         </div>
       </div>
     </section>
-  );
-}
-
-function MonitoreoWebPublishDialog({
-  audience,
-  defaultTitle,
-  lastDeploy,
-  hasSnapshot,
-  onClose,
-  onPublished,
-}: {
-  audience: MonitoreoPublishAudience;
-  defaultTitle: string;
-  lastDeploy?: MonitoreoLastDeploy | null;
-  hasSnapshot: boolean;
-  onClose: () => void;
-  onPublished: () => void;
-}) {
-  const isInternal = audience === "internal";
-  const [username, setUsername] = useState(lastDeploy?.hf_username ?? "");
-  const [token, setToken] = useState("");
-  const [tokenName, setTokenName] = useState(PULSO_HF_DEFAULT_TOKEN_ALIAS);
-  const [savedTokens, setSavedTokens] = useState<HfSavedToken[]>([]);
-  const [selectedTokenId, setSelectedTokenId] = useState("");
-  const [spaceName, setSpaceName] = useState(
-    () => lastDeploy?.space_name ?? slugifySpaceName(`${defaultTitle || "reporte-monitoreo"}-${isInternal ? "interno" : "cliente"}`),
-  );
-  const [isPrivate, setIsPrivate] = useState(isInternal ? true : lastDeploy?.private ?? false);
-  const [internalConfirmed, setInternalConfirmed] = useState(false);
-  const [loadingSettings, setLoadingSettings] = useState(true);
-  const [publishing, setPublishing] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState<{ repo_id: string; app_url: string; url: string } | null>(null);
-  const selectedSavedToken = savedTokens.find((saved) => saved.id === selectedTokenId) ?? null;
-  const hfCredentialReady = selectedTokenId ? true : /^hf_[A-Za-z0-9_]+$/.test(token.trim());
-
-  const canPublish = useMemo(
-    () => hasSnapshot &&
-      !!username.trim() &&
-      hfCredentialReady &&
-      /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(spaceName.trim()) &&
-      (!isInternal || (isPrivate && internalConfirmed)),
-    [hasSnapshot, username, hfCredentialReady, spaceName, isInternal, isPrivate, internalConfirmed],
-  );
-
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      if (!window.prosecnurApi?.getHfSettings) {
-        setUsername((current) => current || PULSO_HF_DEFAULT_NAMESPACE);
-        setLoadingSettings(false);
-        return;
-      }
-      try {
-        const settings = await window.prosecnurApi.getHfSettings();
-        if (!alive) return;
-        setUsername((current) => current || settings.default_namespace || settings.recent_destinations?.[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE);
-        const nextTokens = settings.saved_tokens ?? [];
-        setSavedTokens(nextTokens);
-        if (nextTokens.length) {
-          setSelectedTokenId((current) => current || nextTokens[0].id);
-          setToken("");
-          setTokenName(nextTokens[0].name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-        }
-      } catch (_e) {
-        // Fuera de Electron, el usuario llena los campos manualmente.
-      } finally {
-        if (alive) setLoadingSettings(false);
-      }
-    }
-    void load();
-    return () => { alive = false; };
-  }, []);
-
-  async function handleSavedTokenChange(id: string) {
-    setSelectedTokenId(id);
-    setToken("");
-    const saved = savedTokens.find((item) => item.id === id);
-    if (saved) setTokenName(saved.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-  }
-
-  async function resolveHfTokenForPublish() {
-    const pasted = token.trim();
-    if (pasted) return pasted;
-    if (!selectedTokenId) return "";
-    if (!window.prosecnurApi?.getHfToken) {
-      throw new Error("No pude leer la credencial guardada de Hugging Face en esta sesion.");
-    }
-    const saved = await window.prosecnurApi.getHfToken(selectedTokenId);
-    const savedToken = saved?.hf_token?.trim() ?? "";
-    if (!savedToken) {
-      throw new Error("La credencial guardada no pudo descifrarse. Selecciona otro token o pegalo manualmente.");
-    }
-    setTokenName(saved?.name || tokenName || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-    return savedToken;
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!canPublish || publishing) return;
-    setPublishing(true);
-    setError("");
-    setResult(null);
-    try {
-      const hfToken = await resolveHfTokenForPublish();
-      const out = await apiMonitoreoPublish({
-        hf_username: username.trim(),
-        hf_token: hfToken,
-        space_name: spaceName.trim(),
-        audience,
-        private: isPrivate,
-      });
-      if (window.prosecnurApi?.rememberSuccessfulHfToken) {
-        const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
-          id: selectedTokenId || undefined,
-          name: tokenName.trim() || username.trim(),
-          credential_username: savedTokens.find((saved) => saved.id === selectedTokenId)?.hf_username || "",
-          destination_namespace: username.trim(),
-          space_name: spaceName.trim(),
-          repo_id: out.repo_id,
-          app_url: out.app_url,
-          module: "monitoreo",
-          audience,
-          private: isPrivate,
-          hf_token: hfToken,
-        });
-        setSavedTokens(settings.saved_tokens ?? []);
-      }
-      setResult({ repo_id: out.repo_id, app_url: out.app_url, url: out.url });
-      onPublished();
-      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  return (
-    <div className="mon-web-publish-backdrop" onClick={publishing ? undefined : onClose}>
-      <form
-        className="mon-web-publish-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="mon-web-publish-title"
-        onClick={(event) => event.stopPropagation()}
-        onSubmit={handleSubmit}
-      >
-        <header className="mon-web-publish-dialog-head">
-          <div>
-            <span><Globe2 size={14} /> Hugging Face Space</span>
-            <h2 id="mon-web-publish-title">{isInternal ? "Publicar vista interna" : "Publicar vista cliente"}</h2>
-            <p>{isInternal
-              ? "Sube un visor privado read-only con datos completos del corte actual."
-              : "Sube un visor read-only con avance agregado del corte actual."}</p>
-          </div>
-          <button type="button" onClick={onClose} disabled={publishing} aria-label="Cerrar">
-            <XCircle size={16} />
-          </button>
-        </header>
-
-        <div className="mon-web-publish-form">
-          {savedTokens.length > 0 && (
-            <label className="is-wide">
-              Token guardado
-              <select
-                value={selectedTokenId}
-                onChange={(event) => void handleSavedTokenChange(event.target.value)}
-                disabled={publishing || loadingSettings}
-              >
-                <option value="">Usar otro token...</option>
-                {savedTokens.map((saved) => (
-                  <option key={saved.id} value={saved.id}>
-                    {saved.name} · {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"} · {saved.masked_token}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {selectedSavedToken ? (
-            <div className="mon-web-publish-saved-credential is-wide">
-              <span>Credencial activa</span>
-              <strong>{selectedSavedToken.name || "Token HF"}</strong>
-              <small>{selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · se descifra solo al publicar.</small>
-            </div>
-          ) : null}
-          <label>
-            Namespace destino HF
-            <input value={username} onChange={(event) => setUsername(event.target.value)} disabled={publishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_NAMESPACE} />
-          </label>
-          {!selectedSavedToken ? (
-            <>
-              <label>
-                Token write
-                <input
-                  className="mon-secret-input is-masked"
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
-                  disabled={publishing || loadingSettings}
-                  placeholder="hf_..."
-                  type="text"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  data-form-type="other"
-                  data-lpignore="true"
-                  data-1p-ignore="true"
-                />
-              </label>
-              <label className="is-wide">
-                Recordar token como
-                <input value={tokenName} onChange={(event) => setTokenName(event.target.value)} disabled={publishing || loadingSettings} placeholder={PULSO_HF_DEFAULT_TOKEN_ALIAS} />
-              </label>
-            </>
-          ) : null}
-          <div className="mon-output-hf-actions is-wide">
-            <button type="button" onClick={() => setUsername(PULSO_HF_DEFAULT_NAMESPACE)} disabled={publishing || loadingSettings}>
-              Usar {PULSO_HF_DEFAULT_NAMESPACE}
-            </button>
-            <button type="button" onClick={openHuggingFaceTokens}>
-              <ExternalLink size={13} /> Crear token HF
-            </button>
-          </div>
-          <label className="is-wide">
-            Nombre del Space
-            <input value={spaceName} onChange={(event) => setSpaceName(slugifySpaceName(event.target.value))} disabled={publishing} placeholder="acnur-avance-territorial" />
-          </label>
-          <label className="mon-web-publish-check">
-            <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} disabled={publishing || isInternal} />
-            Crear como privado
-          </label>
-          {isInternal ? (
-            <label className="mon-web-publish-check is-danger is-wide">
-              <input type="checkbox" checked={internalConfirmed} onChange={(event) => setInternalConfirmed(event.target.checked)} disabled={publishing} />
-              Confirmo que este Space privado incluirá datos personales, GPS, identificadores, alertas y auditoría completa.
-            </label>
-          ) : null}
-        </div>
-
-        {isInternal ? (
-          <Alert kind="warn">
-            La publicación interna contiene información completa de operación y no habilita descargas desde Hugging Face; los ejecutivos tabulares se publican como pestañas controladas en Google Sheets.
-          </Alert>
-        ) : null}
-        {publishing ? (
-          <div className="mon-web-publish-status">
-            <Loader2 size={16} className="pulso-spin" />
-            <span>Subiendo runtime público y snapshot {isInternal ? "completo" : "agregado"}. El build de HF puede tomar algunos minutos.</span>
-          </div>
-        ) : null}
-        {!hasSnapshot ? <Alert kind="error">Sincroniza un corte antes de publicar.</Alert> : null}
-        {error ? <Alert kind="error">{error}</Alert> : null}
-        {result ? (
-          <div className="mon-web-publish-result">
-            <CheckCircle2 size={18} />
-            <div>
-              <strong>{result.repo_id}</strong>
-              <span>HF recibio el Space. La web aparecera cuando termine el build.</span>
-            </div>
-            <a href={result.app_url} target="_blank" rel="noreferrer">
-              <ExternalLink size={13} />
-              Abrir
-            </a>
-          </div>
-        ) : null}
-
-        <footer className="mon-web-publish-dialog-actions">
-          <button type="button" onClick={onClose} disabled={publishing}>Cerrar</button>
-          <button type="submit" disabled={!canPublish || publishing}>
-            {publishing ? <Loader2 size={14} className="pulso-spin" /> : <Globe2 size={14} />}
-            Publicar
-          </button>
-        </footer>
-      </form>
-    </div>
   );
 }
 
@@ -5461,6 +5748,179 @@ function MonitoreoRouteHub({
   );
 }
 
+type TerritorialFlowItem = {
+  view: WorkbenchView;
+  index: number;
+  badge: string;
+  detail: string;
+  tone: TerritorialFlowTone;
+};
+
+function territorialFlowBadge(tone: TerritorialFlowTone) {
+  switch (tone) {
+    case "ready":
+      return "Listo";
+    case "warning":
+      return "Revisar";
+    case "loading":
+      return "Leyendo";
+    case "error":
+      return "Error";
+    case "base":
+      return "En curso";
+    default:
+      return "Pend.";
+  }
+}
+
+function territorialFlowStatusIcon(tone: TerritorialFlowTone): typeof BarChart3 {
+  switch (tone) {
+    case "ready":
+      return CheckCircle2;
+    case "warning":
+    case "error":
+      return AlertTriangle;
+    case "loading":
+      return Loader2;
+    case "base":
+      return Activity;
+    default:
+      return Clock;
+  }
+}
+
+function buildTerritorialFlowItems({
+  dashboard,
+  selectedPhaseLabel,
+  loadingSelectedPhase,
+  loadedPhaseBehind,
+  loadedDashboardPhase,
+  sourceStatus,
+  sourceMessage,
+}: {
+  dashboard: MonitoreoDashboard | null;
+  selectedPhaseLabel: string;
+  loadingSelectedPhase: boolean;
+  loadedPhaseBehind: boolean;
+  loadedDashboardPhase: MonitoreoTerritorialPhase | null;
+  sourceStatus: string;
+  sourceMessage: string;
+}): TerritorialFlowItem[] {
+  const territorial = territorialReportsFromDashboard(dashboard);
+  const kpis = territorial?.kpis ?? null;
+  const sourceValidity = territorial?.source_validity ?? null;
+  const advance = territorial ? territorialAdvanceModel(territorial) : null;
+  const sourceConfigured = Boolean(
+    territorial?.source_coherence?.asset_name ||
+    sourceValidity?.field ||
+    sourceValidity?.effective_count != null,
+  );
+  const sourceTone: TerritorialFlowTone = loadingSelectedPhase
+    ? "loading"
+    : sourceStatus === "error"
+      ? "error"
+      : sourceStatus === "missing_source"
+        ? "warning"
+        : sourceConfigured
+          ? "ready"
+          : "pending";
+  const phaseHint = loadedPhaseBehind && loadedDashboardPhase
+    ? `Tablero previo: ${loadedDashboardPhase === "field" ? "Campo" : "Piloto"}`
+    : `${selectedPhaseLabel} activa`;
+  const blockCount = territorial?.block_progress?.length ?? 0;
+  const meta = numberOrNull(kpis?.meta);
+  const validas = numberOrFallback(advance?.validas, numberOrFallback(sourceValidity?.effective_count, 0));
+  const avancePct = advance?.avance_pct ?? safePercent(validas, meta);
+  const gpsCrossable = numberOrNull(kpis?.gps_crossable) ??
+    (numberOrFallback(kpis?.geo_ok, 0) + numberOrFallback(kpis?.geo_cerca, 0));
+  const geoReview =
+    numberOrFallback(kpis?.geo_revision, 0) +
+    numberOrFallback(kpis?.geo_no_defendible, 0) +
+    numberOrFallback(kpis?.geo_sin_cruce, 0) +
+    numberOrFallback(kpis?.geo_sin_gps, 0);
+  const durationReview = territorial?.internal_queries?.duration_review?.length ?? 0;
+  const incompleteBlocks = territorial?.internal_queries?.incomplete_blocks?.length ?? 0;
+  const farGps = territorial?.internal_queries?.far_gps?.length ?? 0;
+  const laggingDistricts = territorial?.internal_queries?.lagging_districts?.length ?? 0;
+  const queryAlerts = incompleteBlocks + farGps + laggingDistricts;
+  const occurrences = territorial?.field_occurrences ?? null;
+  const occurrenceSummary = occurrences?.summary ?? null;
+  const occurrenceTotal = numberOrNull(occurrenceSummary?.total_records) ?? 0;
+  const occurrenceUmpCount = occurrences?.by_ump?.length ?? numberOrNull(occurrenceSummary?.manzanas_reportadas) ?? 0;
+  const qualityAlerts = geoReview + durationReview;
+  const qualityTone: TerritorialFlowTone = !territorial
+    ? "pending"
+    : qualityAlerts
+      ? "warning"
+      : gpsCrossable > 0
+        ? "ready"
+        : "base";
+  const advanceTone: TerritorialFlowTone = !territorial
+    ? "pending"
+    : !meta
+      ? "warning"
+      : (advance?.brecha ?? 0) <= 0
+        ? "ready"
+        : "base";
+  const items: Array<Omit<TerritorialFlowItem, "index">> = [
+    {
+      view: "fuentes",
+      tone: sourceTone,
+      badge: territorialFlowBadge(sourceTone),
+      detail: sourceValidity?.effective_count != null
+        ? `${formatMetric(sourceValidity.effective_count)} efectivas · ${phaseHint}`
+        : sourceMessage || phaseHint,
+    },
+    {
+      view: "modelo",
+      tone: blockCount ? "ready" : sourceTone === "loading" ? "loading" : "pending",
+      badge: blockCount ? "Listo" : sourceTone === "loading" ? "Leyendo" : "Pend.",
+      detail: blockCount
+        ? `${formatMetric(blockCount)} manzanas · ${meta ? `${formatMetric(meta)} meta` : "meta pendiente"}`
+        : "Hojas de Ruta pendientes",
+    },
+    {
+      view: "calidad",
+      tone: qualityTone,
+      badge: !territorial ? "Pend." : qualityAlerts ? "Revisar" : gpsCrossable > 0 ? "Listo" : "Sin GPS",
+      detail: !territorial
+        ? "Validación pendiente"
+        : qualityAlerts
+          ? `${formatMetric(qualityAlerts)} alertas GPS/duración`
+          : `${formatMetric(gpsCrossable)} GPS cruzables`,
+    },
+    {
+      view: "consultas",
+      tone: !territorial ? "pending" : queryAlerts ? "warning" : "ready",
+      badge: !territorial ? "Pend." : queryAlerts ? "Revisar" : "Listo",
+      detail: !territorial
+        ? "Consultas pendientes"
+        : queryAlerts
+          ? `${formatMetric(queryAlerts)} casos para revisar`
+          : "Sin consultas críticas",
+    },
+    {
+      view: "avance",
+      tone: advanceTone,
+      badge: advanceTone === "ready" ? "Cerrado" : territorialFlowBadge(advanceTone),
+      detail: !territorial
+        ? "Avance pendiente"
+        : meta
+          ? `${formatMetric(validas)} válidas · ${formatPercentLabel(avancePct)}`
+          : `${formatMetric(validas)} válidas · meta pendiente`,
+    },
+    {
+      view: "ocurrencias",
+      tone: !territorial ? "pending" : occurrenceTotal ? "ready" : "pending",
+      badge: !territorial || !occurrenceTotal ? "Pend." : "Listo",
+      detail: occurrenceTotal
+        ? `${formatMetric(occurrenceTotal)} reportes · ${formatMetric(occurrenceUmpCount)} UMP`
+        : "Sin ocurrencias sincronizadas",
+    },
+  ];
+  return items.map((item, index) => ({ ...item, index: index + 1 }));
+}
+
 function MonitoreoRail({
   activeView,
   onChange,
@@ -5474,16 +5934,14 @@ function MonitoreoRail({
 	  loadingRoutePhase,
 	  routePhaseStatus,
 	  phaseCoherence,
-      showWebPublish,
-      publishClientDeploy,
-      publishInternalDeploy,
+      showOutputsPublish,
       publishClientSheets,
       publishInternalSheets,
       publishHasSnapshot,
       publishRows,
       publishRouteLabel,
       publishSpreadsheetId,
-      onOpenWebPublish,
+      onOpenOutputs,
 	  onTerritorialPhaseChange,
 	}: {
   activeView: WorkbenchView;
@@ -5498,16 +5956,14 @@ function MonitoreoRail({
 	  loadingRoutePhase: MonitoreoTerritorialPhase | null;
 	  routePhaseStatus: { status: string; message: string } | null;
 	  phaseCoherence?: MonitoreoTerritorialPhaseCoherence | null;
-      showWebPublish?: boolean;
-      publishClientDeploy?: MonitoreoLastDeploy | null;
-      publishInternalDeploy?: MonitoreoLastDeploy | null;
+      showOutputsPublish?: boolean;
       publishClientSheets?: MonitoreoLastSheetsPublication | null;
       publishInternalSheets?: MonitoreoLastSheetsPublication | null;
       publishHasSnapshot?: boolean;
       publishRows?: number;
       publishRouteLabel?: string;
       publishSpreadsheetId?: string;
-      onOpenWebPublish?: () => void;
+      onOpenOutputs?: () => void;
 	  onTerritorialPhaseChange?: (phase: "pilot" | "field") => Promise<void>;
 	}) {
   const views = workbenchViewsForRoute(route);
@@ -5533,6 +5989,24 @@ function MonitoreoRail({
     { key: "pilot" as const, label: "Piloto", hint: "30 meta" },
     { key: "field" as const, label: "Campo", hint: "1,200 meta" },
   ];
+  const territorialFlow = isTerritorial
+    ? buildTerritorialFlowItems({
+      dashboard,
+      selectedPhaseLabel,
+      loadingSelectedPhase,
+      loadedPhaseBehind,
+      loadedDashboardPhase,
+      sourceStatus,
+      sourceMessage,
+    })
+    : [];
+  const territorialFlowByView = new Map(territorialFlow.map((item) => [item.view, item]));
+  const territorialReadyCount = territorialFlow.filter((item) => item.tone === "ready").length;
+  const territorialReviewCount = territorialFlow.filter((item) => item.tone === "warning" || item.tone === "error").length;
+  const territorialActiveItem = territorialFlowByView.get(activeView);
+  const territorialProgressStyle = {
+    "--mon-flow-progress": `${territorialFlow.length ? Math.round((territorialReadyCount / territorialFlow.length) * 100) : 0}%`,
+  } as CSSProperties;
   return (
     <aside className="mon-workbench-rail pulso-sidebar" aria-label="Flujos de monitoreo">
       <div className="mon-rail-head">
@@ -5540,6 +6014,24 @@ function MonitoreoRail({
         <strong>{route.shortLabel}</strong>
         <small>Tipo único del proyecto</small>
       </div>
+      {isTerritorial ? (
+        <section
+          className={`mon-flow-overview is-${territorialActiveItem?.tone ?? "base"}`}
+          aria-label="Avance del flujo territorial"
+          style={territorialProgressStyle}
+        >
+          <div className="mon-flow-overview-head">
+            <span>Flujo territorial</span>
+            <strong>{territorialReadyCount}/{territorialFlow.length} listos</strong>
+          </div>
+          <div className="mon-flow-track" aria-hidden="true"><span /></div>
+          <small>
+            {territorialReviewCount
+              ? `${territorialReviewCount} requieren revisión`
+              : territorialActiveItem?.detail ?? `${selectedPhaseLabel} activa`}
+          </small>
+        </section>
+      ) : null}
       <div className="mon-rail-section-label">
         <span>Superficies de trabajo</span>
         <em>{views.length} vistas</em>
@@ -5548,37 +6040,46 @@ function MonitoreoRail({
         {views.map((item) => {
           const Icon = item.icon;
           const active = activeView === item.key;
+          const flowItem = territorialFlowByView.get(item.key);
+          const StatusIcon = flowItem ? territorialFlowStatusIcon(flowItem.tone) : CheckCircle2;
           return (
             <button
               key={item.key}
               type="button"
               role="tab"
               aria-selected={active}
+              aria-current={active ? "page" : undefined}
               className={`mon-nav-item is-${item.key}${active ? " is-active" : ""}`}
-              title={`${item.label}: ${item.desc}`}
+              title={flowItem ? `${item.label}: ${item.desc}. ${flowItem.badge}: ${flowItem.detail}` : `${item.label}: ${item.desc}`}
+              aria-label={flowItem ? `${item.label}. ${item.desc}. Estado: ${flowItem.badge}. ${flowItem.detail}` : undefined}
               onClick={() => onChange(item.key)}
             >
               <span className="mon-nav-icon"><Icon size={15} /></span>
               <span className="mon-nav-copy">
                 <strong>{item.label}</strong>
-                <span>{item.desc}</span>
+                <span>{flowItem?.detail ?? item.desc}</span>
               </span>
-              {active && <CheckCircle2 size={13} className="mon-nav-current" />}
+              {flowItem ? (
+                <span className={`mon-nav-status is-${flowItem.tone}${active ? " is-current" : ""}`}>
+                  <StatusIcon size={12} className={flowItem.tone === "loading" ? "pulso-spin" : undefined} />
+                  <small>{flowItem.badge}</small>
+                </span>
+              ) : active ? (
+                <CheckCircle2 size={13} className="mon-nav-current" />
+              ) : null}
             </button>
           );
         })}
       </div>
-      {showWebPublish && onOpenWebPublish ? (
-        <MonitoreoRailWebPublishControl
-          clientDeploy={publishClientDeploy ?? null}
-          internalDeploy={publishInternalDeploy ?? null}
+      {showOutputsPublish && onOpenOutputs ? (
+        <MonitoreoRailOutputsControl
           clientSheets={publishClientSheets ?? null}
           internalSheets={publishInternalSheets ?? null}
           hasSnapshot={Boolean(publishHasSnapshot)}
           nRows={publishRows ?? 0}
           routeLabel={publishRouteLabel || route.shortLabel}
           spreadsheetId={publishSpreadsheetId ?? ""}
-          onOpen={onOpenWebPublish}
+          onOpen={onOpenOutputs}
         />
       ) : null}
       {isTerritorial && onTerritorialPhaseChange ? (
@@ -5632,15 +6133,18 @@ function WorkbenchHead({
   const meta = views.find((item) => item.key === activeView) ?? views[0];
   const Icon = meta.icon;
   const territorial = route.family === "territorial" ? territorialReportsFromDashboard(dashboard) : null;
+  const aulas = route.family === "aulas_universitarias" ? dashboard?.aulas_universitarias_reports ?? null : null;
   const sourceValidity = territorial?.source_validity ?? null;
   const sourceEffectiveCount = numberOrNull(sourceValidity?.effective_count);
   const territorialAdvance = territorial ? territorialAdvanceModel(territorial) : null;
-  const valid = territorialAdvance?.validas ?? numberOrNull(dashboard?.kpis?.valid) ?? 0;
+  const valid = aulas?.kpis?.respuestas_validas ?? territorialAdvance?.validas ?? numberOrNull(dashboard?.kpis?.valid) ?? 0;
   const validityPill = route.family === "territorial" && activeView === "fuentes"
     ? (sourceEffectiveCount == null ? "por definir" : `${sourceEffectiveCount.toLocaleString("es-PE")} efectivas`)
     : `${valid.toLocaleString("es-PE")} válidas`;
   const lastPill = territorial
     ? (territorialAdvance?.meta == null ? "meta por definir" : `${formatMetric(territorialAdvance.meta)} meta`)
+    : aulas
+      ? `${formatMetric(aulas.kpis.total_aulas)} aulas`
     : `${strategyCount} mecanismos`;
   return (
     <header className="mon-workbench-head">
@@ -5902,7 +6406,8 @@ function workbenchClarityItems({
     const advance = territorial ? territorialAdvanceModel(territorial) : null;
     const sourceValidity = territorial?.source_validity ?? null;
     const phase = territorial?.active_route_phase === "field" ? "Campo" : "Piloto";
-    const geoReview = (kpis?.geo_revision ?? 0) + (kpis?.geo_no_defendible ?? 0) + (kpis?.geo_sin_cruce ?? 0);
+    const geoReview = (kpis?.geo_revision ?? 0) + (kpis?.geo_no_defendible ?? 0) + (kpis?.geo_sin_cruce ?? 0) + (kpis?.geo_sin_gps ?? 0);
+    const durationReview = territorial?.internal_queries?.duration_review?.length ?? 0;
     const incompleteBlocks = territorial?.internal_queries?.incomplete_blocks?.length ?? 0;
     const laggingDistricts = territorial?.internal_queries?.lagging_districts?.length ?? 0;
     const occurrences = territorial?.field_occurrences ?? null;
@@ -5942,8 +6447,48 @@ function workbenchClarityItems({
       calidad: [
         { label: "GPS válido", value: formatMetric((kpis?.geo_ok ?? 0) + (kpis?.geo_cerca ?? 0)), hint: "dentro o <=150 m", tone: "effective", icon: MapPin },
         { label: "GPS revisión", value: formatMetric(geoReview), hint: "150 m+, lejos o sin cruce", tone: geoReview ? "warning" : "ready", icon: ShieldAlert },
-        { label: "Validadas", value: formatMetric(advance?.observacion_aprobada ?? 0), hint: "revisadas válidas", tone: advance?.observacion_aprobada ? "ready" : "base", icon: FileCheck2 },
+        { label: "Duración", value: formatMetric(durationReview), hint: "cortas o muy cortas", tone: durationReview ? "warning" : "ready", icon: Clock },
       ],
+    };
+    return byView[activeView];
+  }
+  if (route.family === "aulas_universitarias") {
+    const aulas = dashboard?.aulas_universitarias_reports ?? null;
+    const kpis = aulas?.kpis;
+    const total = kpis?.total_aulas ?? config.aulas_universitarias.plan.length;
+    const applied = kpis?.aulas_aplicadas ?? 0;
+    const gap = kpis?.brechas ?? 0;
+    const replacements = kpis?.reemplazos_usados ?? 0;
+    const cutAt = aulas?.generated_at || config.aulas_universitarias.imported_at;
+    const validationWarnings = aulas?.validation?.filter((row) => String(row.status ?? "").toLowerCase() !== "ok").length ?? 0;
+    const byView: Record<WorkbenchView, Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof BarChart3 }>> = {
+      fuentes: [
+        { label: "Plan", value: config.aulas_universitarias.selection_run_id ? "Importado" : "Pendiente", hint: config.aulas_universitarias.selection_run_id || "calc-muestra", tone: config.aulas_universitarias.selection_run_id ? "ready" : "warning", icon: PlugZap },
+        { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: "agenda y respuestas", tone: activeSources ? "base" : "warning", icon: Layers3 },
+        { label: "Registros", value: formatMetric(nRows), hint: "respuestas agregables", tone: nRows ? "ready" : "warning", icon: ClipboardCheck },
+      ],
+      modelo: [
+        { label: "Aulas", value: formatMetric(total), hint: "titulares y reservas", tone: total ? "base" : "warning", icon: CalendarRange },
+        { label: "Titulares", value: formatMetric(kpis?.aulas_titulares ?? config.aulas_universitarias.plan.filter((row) => row.wave === "M1").length), hint: "M1", tone: "base", icon: Target },
+        { label: "Reemplazos", value: formatMetric(replacements), hint: "usados", tone: replacements ? "warning" : "ready", icon: Route },
+      ],
+      avance: [
+        { label: "Aplicadas", value: formatMetric(applied), hint: total ? `${formatPercentLabel(safePercent(applied, total))}` : "sin plan", tone: applied ? "effective" : "warning", icon: CheckCircle2 },
+        { label: "Válidas", value: formatMetric(kpis?.respuestas_validas ?? 0), hint: "por aula/link", tone: kpis?.respuestas_validas ? "effective" : "warning", icon: BarChart3 },
+        { label: "Brechas", value: formatMetric(gap), hint: "aulas/cuotas", tone: gap ? "warning" : "ready", icon: ShieldAlert },
+      ],
+      calidad: [
+        { label: "Validación", value: validationWarnings ? formatMetric(validationWarnings) : "OK", hint: "collector/link/aula", tone: validationWarnings ? "warning" : "ready", icon: ShieldAlert },
+        { label: "Anonimato", value: config.aulas_universitarias.anonymous_responses ? "Activo" : "Revisar", hint: "sin student_id requerido", tone: config.aulas_universitarias.anonymous_responses ? "ready" : "warning", icon: FileCheck2 },
+        { label: "Hash", value: config.aulas_universitarias.frame_hash ? "Listo" : "Pendiente", hint: "marco institucional", tone: config.aulas_universitarias.frame_hash ? "base" : "warning", icon: Link2 },
+      ],
+      consultas: [
+        { label: "Aulas trazables", value: formatMetric(config.aulas_universitarias.plan.length), hint: "agenda operativa", tone: config.aulas_universitarias.plan.length ? "base" : "warning", icon: Search },
+        { label: "Caídas", value: formatMetric(config.aulas_universitarias.plan.filter((row) => ["sin_acceso", "cancelada", "reemplazada"].includes(String(row.operational_status))).length), hint: "requieren lectura", tone: "warning", icon: AlertTriangle },
+        { label: "Corte", value: cutAt ? "Listo" : "Pendiente", hint: cutAt ? formatDate(cutAt) : "sin sync", tone: cutAt ? "ready" : "warning", icon: RefreshCw },
+      ],
+      ocurrencias: [],
+      telefonico: [],
     };
     return byView[activeView];
   }
@@ -6197,6 +6742,19 @@ type TerritorialDailyDashboardRow = MonitoreoTerritorialDashboard["daily"][numbe
   cumulative_valid: number;
   cumulative_progress_pct: number | null;
   cumulative_gap: number;
+  new_complete_ump: number;
+  cumulative_complete_ump: number;
+  cumulative_complete_ump_pct: number | null;
+};
+
+type TerritorialAdvanceDateScope = {
+  startDate: string;
+  active: boolean;
+  canScope: boolean;
+  availableDates: string[];
+  rowsTotal: number;
+  rowsIncluded: number;
+  pointsIncluded: number;
 };
 
 type TerritorialAttentionItem = {
@@ -6213,6 +6771,117 @@ function territorialObjectiveTotal(advance: ReturnType<typeof territorialAdvance
 
 function territorialObjectiveProgress(validas: number, targetTotal: number) {
   return targetTotal > 0 ? (validas / targetTotal) * 100 : null;
+}
+
+const TERRITORIAL_MONTH_INDEX: Record<string, number> = {
+  enero: 1,
+  ene: 1,
+  febrero: 2,
+  feb: 2,
+  marzo: 3,
+  mar: 3,
+  abril: 4,
+  abr: 4,
+  mayo: 5,
+  may: 5,
+  junio: 6,
+  jun: 6,
+  julio: 7,
+  jul: 7,
+  agosto: 8,
+  ago: 8,
+  septiembre: 9,
+  setiembre: 9,
+  sep: 9,
+  set: 9,
+  octubre: 10,
+  oct: 10,
+  noviembre: 11,
+  nov: 11,
+  diciembre: 12,
+  dic: 12,
+};
+
+function territorialPadDatePart(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function territorialDateKeyFromParts(year: number, month: number, day: number) {
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return "";
+  if (month < 1 || month > 12 || day < 1 || day > 31) return "";
+  return `${year}-${territorialPadDatePart(month)}-${territorialPadDatePart(day)}`;
+}
+
+function territorialDateKeyFromValue(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw || normalizeMatch(raw) === "sin fecha" || normalizeMatch(raw) === "sin_fecha") return "";
+  const iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return territorialDateKeyFromParts(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+  const slash = raw.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/);
+  if (slash) {
+    const yearRaw = slash[3] ? Number(slash[3]) : new Date().getFullYear();
+    const year = yearRaw < 100 ? 2000 + yearRaw : yearRaw;
+    return territorialDateKeyFromParts(year, Number(slash[2]), Number(slash[1]));
+  }
+  const spanish = normalizeMatch(raw).match(/^(\d{1,2})\s+([a-záéíóúñ]+)(?:\s+(\d{2,4}))?/);
+  if (spanish) {
+    const yearRaw = spanish[3] ? Number(spanish[3]) : new Date().getFullYear();
+    const year = yearRaw < 100 ? 2000 + yearRaw : yearRaw;
+    const month = TERRITORIAL_MONTH_INDEX[spanish[2]] ?? 0;
+    return territorialDateKeyFromParts(year, month, Number(spanish[1]));
+  }
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return territorialDateKeyFromParts(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate());
+  }
+  return "";
+}
+
+function territorialResponseDateKey(row: Partial<TerritorialResponseAuditRow>) {
+  return [
+    (row as { advance_date?: unknown }).advance_date,
+    row.submission_date_iso,
+    row.submission_datetime,
+    row.submission_date,
+    row.submission_time,
+  ].map(territorialDateKeyFromValue).find(Boolean) ?? "";
+}
+
+function territorialAdvanceAvailableDates(reports: MonitoreoTerritorialDashboard) {
+  const dates = new Set<string>();
+  territorialRowsForGeoMap(reports).forEach((row) => {
+    const date = territorialResponseDateKey(row);
+    if (date) dates.add(date);
+  });
+  (reports.daily ?? []).forEach((row) => {
+    const date = territorialDateKeyFromValue(row.date);
+    if (date) dates.add(date);
+  });
+  (reports.advance?.daily ?? []).forEach((row) => {
+    const date = territorialDateKeyFromValue(row.date);
+    if (date) dates.add(date);
+  });
+  return Array.from(dates).sort();
+}
+
+function territorialDateFilterLabel(value: string) {
+  if (!value) return "Todo el corte";
+  return formatInternalQueryDateAxisLabel(value);
+}
+
+function territorialResponseIsReview(row: Partial<TerritorialResponseAuditRow>) {
+  const validation = normalizeMatch(row.validation_status);
+  const observation = normalizeMatch(row.observation_status);
+  return validation === "revision" || observation === "en observacion" || observation === "en_observacion";
+}
+
+function territorialUniqueResponseRows(rows: TerritorialResponseAuditRow[]) {
+  const out = new Map<string, TerritorialResponseAuditRow>();
+  rows.forEach((row, index) => {
+    const key = stringOrEmpty(row.response_id).trim() || `row-${row.row_index ?? index}`;
+    if (!out.has(key)) out.set(key, row);
+  });
+  return Array.from(out.values());
 }
 
 function territorialBlockTarget(row: TerritorialBlockProgress) {
@@ -6256,24 +6925,26 @@ function territorialQuotaStatusLabel(status: TerritorialQuotaStatus) {
   return labels[status];
 }
 
+function territorialQuotaProgressMatchesBlock(item: TerritorialQuotaProgressBlock, block: TerritorialBlockProgress) {
+  if (territorialStrictCodesIntersect([item.id_manzana], [block.id_manzana])) return true;
+  const hasTuple = territorialStrictCodesPresent([item.zona]) && territorialStrictCodesPresent([item.manzana]);
+  if (hasTuple) {
+    const ubigeoMatches = !territorialStrictCodesPresent([item.ubigeo])
+      || territorialStrictCodesIntersect([item.ubigeo], [block.ubigeo]);
+    return ubigeoMatches
+      && territorialStrictCodesIntersect([item.zona], [block.zona])
+      && territorialStrictCodesIntersect([item.manzana], [block.manzana]);
+  }
+  return territorialStrictCodesIntersect([item.ump], territorialBlockOperationalValues(block));
+}
+
 function territorialQuotaForBlock(
   reports: MonitoreoTerritorialDashboard,
   block: TerritorialBlockProgress,
 ): TerritorialQuotaProgressBlock | null {
   const blocks = reports.route_quota_progress?.blocks ?? [];
   if (!blocks.length) return null;
-  return blocks.find((item) => {
-    if (territorialStrictCodesIntersect([item.id_manzana], [block.id_manzana])) return true;
-    const hasTuple = territorialStrictCodesPresent([item.zona]) && territorialStrictCodesPresent([item.manzana]);
-    if (hasTuple) {
-      const ubigeoMatches = !territorialStrictCodesPresent([item.ubigeo])
-        || territorialStrictCodesIntersect([item.ubigeo], [block.ubigeo]);
-      return ubigeoMatches
-        && territorialStrictCodesIntersect([item.zona], [block.zona])
-        && territorialStrictCodesIntersect([item.manzana], [block.manzana]);
-    }
-    return territorialStrictCodesIntersect([item.ump], territorialBlockOperationalValues(block));
-  }) ?? null;
+  return blocks.find((item) => territorialQuotaProgressMatchesBlock(item, block)) ?? null;
 }
 
 function territorialQuotaMissingLabel(quota: TerritorialQuotaProgressBlock | null) {
@@ -6618,20 +7289,266 @@ function buildTerritorialDistrictRows(
   ));
 }
 
+function territorialBlockRowsForScope(reports: MonitoreoTerritorialDashboard) {
+  const advanceBlocks = territorialAdvanceModel(reports).block_progress ?? [];
+  if (advanceBlocks.length) return advanceBlocks;
+  if (reports.block_progress?.length) return reports.block_progress;
+  return reports.map?.blocks ?? [];
+}
+
+function territorialScopedMapBlockRows(reports: MonitoreoTerritorialDashboard) {
+  if (reports.map?.blocks?.length) return reports.map.blocks;
+  return territorialBlockRowsForScope(reports);
+}
+
+function buildTerritorialScopedBlockProgress(
+  blocks: TerritorialBlockProgress[],
+  rows: TerritorialResponseAuditRow[],
+) {
+  return blocks.map((block) => {
+    const members = rows.filter((row) => territorialResponseMatchesBlock(row, block));
+    const validas = members.filter(territorialResponseIsEffective).length;
+    const revision = members.filter(territorialResponseIsReview).length;
+    const noDefendibles = Math.max(0, members.length - validas);
+    const target = territorialBlockTarget(block);
+    return {
+      ...block,
+      total: members.length,
+      validas,
+      revision,
+      no_defendibles: noDefendibles,
+      avance_pct: target > 0 ? Math.round((validas / target) * 1000) / 10 : null,
+      brecha: Math.max(0, target - validas),
+    };
+  });
+}
+
+function territorialRowDistrictKey(row: TerritorialResponseAuditRow, blocks: TerritorialBlockProgress[]) {
+  const assignment = resolveTerritorialGeoAssignment(row, blocks);
+  const block = assignment.block;
+  return normalizeTerritorialBlockCode(
+    block?.ubigeo
+      || row.advance_block_ubigeo
+      || row.ubigeo
+      || row.district_code,
+  ) || normalizeMatch(block?.distrito || row.advance_block_distrito || row.distrito);
+}
+
+function buildTerritorialScopedDistrictProgress(
+  districtRows: TerritorialDistrictProgress[],
+  blocks: TerritorialBlockProgress[],
+  rows: TerritorialResponseAuditRow[],
+) {
+  const blockByDistrict = new Map<string, TerritorialBlockProgress[]>();
+  blocks.forEach((block) => {
+    const key = normalizeTerritorialBlockCode(block.ubigeo) || normalizeMatch(block.distrito);
+    if (!key) return;
+    blockByDistrict.set(key, [...(blockByDistrict.get(key) ?? []), block]);
+  });
+  return districtRows.map((district) => {
+    const key = normalizeTerritorialBlockCode(district.ubigeo) || normalizeMatch(district.distrito);
+    const members = rows.filter((row) => territorialRowDistrictKey(row, blocks) === key);
+    const validas = members.filter(territorialResponseIsEffective).length;
+    const revision = members.filter(territorialResponseIsReview).length;
+    const meta = numberOrNull(district.meta);
+    return {
+      ...district,
+      total: members.length,
+      validas,
+      revision,
+      no_defendibles: Math.max(0, members.length - validas),
+      avance_pct: meta && meta > 0 ? Math.round((validas / meta) * 1000) / 10 : null,
+      brecha: meta == null ? null : Math.max(0, meta - validas),
+    };
+  }).filter((row) => {
+    const key = normalizeTerritorialBlockCode(row.ubigeo) || normalizeMatch(row.distrito);
+    return row.total > 0 || row.validas > 0 || (blockByDistrict.get(key)?.length ?? 0) > 0 || (row.meta ?? 0) > 0;
+  });
+}
+
+function territorialScopedQuotaProgress(
+  reports: MonitoreoTerritorialDashboard,
+  scopedBlocks: TerritorialBlockProgress[],
+) {
+  const progress = reports.route_quota_progress;
+  if (!progress?.blocks?.length) return progress;
+  return {
+    ...progress,
+    blocks: progress.blocks.map((quotaBlock) => {
+      const matched = scopedBlocks.find((block) => territorialQuotaProgressMatchesBlock(quotaBlock, block));
+      if (!matched) return quotaBlock;
+      const target = Math.max(1, Math.round(numberOrNull(quotaBlock.target) ?? territorialBlockTarget(matched)));
+      const validas = Math.max(0, Math.round(numberOrNull(matched.validas) ?? 0));
+      const status: TerritorialQuotaStatus = validas >= target ? "complete" : validas > 0 ? "pending" : "missing";
+      return {
+        ...quotaBlock,
+        validas,
+        missing_total: Math.max(0, target - validas),
+        status,
+      };
+    }),
+  };
+}
+
+function territorialMapPointDateKey(point: Partial<TerritorialKoboMapPoint>) {
+  return territorialResponseDateKey(point as Partial<TerritorialResponseAuditRow>);
+}
+
+function buildTerritorialDateScopedReports(
+  reports: MonitoreoTerritorialDashboard,
+  startDate = "",
+): { reports: MonitoreoTerritorialDashboard; scope: TerritorialAdvanceDateScope } {
+  const availableDates = territorialAdvanceAvailableDates(reports);
+  const sourceRows = territorialUniqueResponseRows(territorialRowsForGeoMap(reports));
+  const sourcePoints = reports.map?.points ?? [];
+  const canScope = Boolean(sourceRows.some((row) => territorialResponseDateKey(row)));
+  if (!startDate || !canScope) {
+    return {
+      reports,
+      scope: {
+        startDate,
+        active: false,
+        canScope,
+        availableDates,
+        rowsTotal: sourceRows.length,
+        rowsIncluded: sourceRows.length,
+        pointsIncluded: sourcePoints.length,
+      },
+    };
+  }
+
+  const filteredRows = sourceRows.filter((row) => {
+    const date = territorialResponseDateKey(row);
+    return Boolean(date && date >= startDate);
+  });
+  const includedIds = new Set(filteredRows.map((row) => stringOrEmpty(row.response_id).trim()).filter(Boolean));
+  const filteredPoints = sourcePoints.filter((point) => {
+    const responseId = stringOrEmpty(point.response_id).trim();
+    if (responseId && includedIds.has(responseId)) return true;
+    const date = territorialMapPointDateKey(point);
+    return Boolean(date && date >= startDate);
+  });
+  const scopedBlocks = buildTerritorialScopedBlockProgress(territorialBlockRowsForScope(reports), filteredRows);
+  const scopedMapBlocks = buildTerritorialScopedBlockProgress(territorialScopedMapBlockRows(reports), filteredRows);
+  const scopedDistricts = buildTerritorialScopedDistrictProgress(reports.district_progress ?? [], scopedBlocks, filteredRows);
+  const validas = filteredRows.filter(territorialResponseIsEffective).length;
+  const observacion = filteredRows.filter(territorialResponseIsReview).length;
+  const noValidas = Math.max(0, filteredRows.length - validas);
+  const baseAdvance = territorialAdvanceModel(reports);
+  const meta = territorialObjectiveTotal(baseAdvance);
+  const scopedAdvance = {
+    ...baseAdvance,
+    total_respuestas: filteredRows.length,
+    validas,
+    observacion,
+    no_validas: noValidas,
+    meta,
+    avance_pct: territorialObjectiveProgress(validas, meta),
+    brecha: Math.max(0, meta - validas),
+    district_progress: scopedDistricts,
+    block_progress: scopedBlocks,
+    daily: [],
+  };
+  const scopedReports: MonitoreoTerritorialDashboard = {
+    ...reports,
+    kpis: {
+      ...reports.kpis,
+      total_respuestas: filteredRows.length,
+      consentidas: validas,
+      validas,
+      revision: observacion,
+      no_defendibles: noValidas,
+      avance_pct: scopedAdvance.avance_pct,
+    },
+    advance: scopedAdvance,
+    district_progress: scopedDistricts,
+    block_progress: scopedBlocks,
+    response_audit: filteredRows,
+    daily: [],
+    route_quota_progress: territorialScopedQuotaProgress(reports, scopedBlocks),
+    map: {
+      ...(reports.map ?? { phase: reports.active_route_phase, blocks: [], points: [], alerts: [], legend: [] }),
+      blocks: scopedMapBlocks,
+      points: filteredPoints,
+    },
+  };
+  return {
+    reports: scopedReports,
+    scope: {
+      startDate,
+      active: true,
+      canScope,
+      availableDates,
+      rowsTotal: sourceRows.length,
+      rowsIncluded: filteredRows.length,
+      pointsIncluded: filteredPoints.length,
+    },
+  };
+}
+
 function buildTerritorialDailyRows(
   reports: MonitoreoTerritorialDashboard,
   advance: ReturnType<typeof territorialAdvanceModel>,
   targetTotal: number,
+  umpRows: TerritorialUmpDashboardRow[] = [],
 ): TerritorialDailyDashboardRow[] {
+  const responseRows = territorialUniqueResponseRows(territorialRowsForGeoMap(reports))
+    .filter((row) => territorialResponseDateKey(row));
+  if (responseRows.length && umpRows.length) {
+    const byDate = new Map<string, TerritorialResponseAuditRow[]>();
+    responseRows.forEach((row) => {
+      const date = territorialResponseDateKey(row);
+      byDate.set(date, [...(byDate.get(date) ?? []), row]);
+    });
+    const completed = new Set<string>();
+    const cumulativeByUmp = new Map<string, number>();
+    let cumulative = 0;
+    return Array.from(byDate.keys()).sort().map((date) => {
+      const rowsForDate = byDate.get(date) ?? [];
+      const validas = rowsForDate.filter(territorialResponseIsEffective).length;
+      const revision = rowsForDate.filter(territorialResponseIsReview).length;
+      cumulative += validas;
+      let newComplete = 0;
+      umpRows.forEach((row) => {
+        if (completed.has(row.key)) return;
+        const previous = cumulativeByUmp.get(row.key) ?? 0;
+        const increment = rowsForDate.filter((response) => territorialResponseMatchesUmpRow(row, response) && territorialResponseIsEffective(response)).length;
+        const next = previous + increment;
+        cumulativeByUmp.set(row.key, next);
+        if (next >= row.target) {
+          completed.add(row.key);
+          newComplete += 1;
+        }
+      });
+      const total = rowsForDate.length;
+      return {
+        date,
+        date_label: territorialDateFilterLabel(date),
+        total,
+        validas,
+        revision,
+        no_validas: Math.max(0, total - validas - revision),
+        cumulative_valid: cumulative,
+        cumulative_progress_pct: territorialObjectiveProgress(cumulative, targetTotal),
+        cumulative_gap: Math.max(0, targetTotal - cumulative),
+        new_complete_ump: newComplete,
+        cumulative_complete_ump: completed.size,
+        cumulative_complete_ump_pct: safePercent(completed.size, umpRows.length),
+      };
+    });
+  }
   const sourceRows = reports.daily?.length ? reports.daily : advance.daily ?? [];
   let cumulative = 0;
+  let cumulativeComplete = 0;
   return [...sourceRows]
     .sort((a, b) => compareInternalQueryDateValues(a.date, b.date))
     .map((row) => {
       const total = Math.max(0, Math.round(numberOrNull(row.total) ?? 0));
       const validas = Math.max(0, Math.round(numberOrNull(row.validas) ?? 0));
       const revision = Math.max(0, Math.round(numberOrNull(row.revision) ?? 0));
+      const newComplete = Math.max(0, Math.round(numberOrNull((row as { new_complete_ump?: unknown }).new_complete_ump) ?? 0));
       cumulative += validas;
+      cumulativeComplete += newComplete;
       return {
         ...row,
         total,
@@ -6641,6 +7558,9 @@ function buildTerritorialDailyRows(
         cumulative_valid: cumulative,
         cumulative_progress_pct: territorialObjectiveProgress(cumulative, targetTotal),
         cumulative_gap: Math.max(0, targetTotal - cumulative),
+        new_complete_ump: newComplete,
+        cumulative_complete_ump: cumulativeComplete,
+        cumulative_complete_ump_pct: safePercent(cumulativeComplete, umpRows.length || null),
       };
     });
 }
@@ -6725,24 +7645,28 @@ function buildTerritorialAttentionItems(
   return items.slice(0, 7);
 }
 
-function buildTerritorialAdvanceWorkbench(reports: MonitoreoTerritorialDashboard) {
-  const baseAdvance = territorialAdvanceModel(reports);
+function buildTerritorialAdvanceWorkbench(reports: MonitoreoTerritorialDashboard, startDate = "") {
+  const scoped = buildTerritorialDateScopedReports(reports, startDate);
+  const scopedReports = scoped.reports;
+  const baseAdvance = territorialAdvanceModel(scopedReports);
   const targetTotal = territorialObjectiveTotal(baseAdvance);
   const progressPct = baseAdvance.avance_pct ?? territorialObjectiveProgress(baseAdvance.validas, targetTotal);
-  const mapPoints = Array.isArray(reports.map?.points) ? reports.map.points : [];
-  const mapBlocks = Array.isArray(reports.map?.blocks) ? reports.map.blocks : [];
+  const mapPoints = Array.isArray(scopedReports.map?.points) ? scopedReports.map.points : [];
+  const mapBlocks = Array.isArray(scopedReports.map?.blocks) ? scopedReports.map.blocks : [];
   const advance = {
     ...baseAdvance,
     meta: targetTotal,
     avance_pct: progressPct,
     brecha: Math.max(0, targetTotal - baseAdvance.validas),
   };
-  const umpRows = buildTerritorialUmpRows(reports);
+  const umpRows = buildTerritorialUmpRows(scopedReports);
   const districtRows = buildTerritorialDistrictRows(advance.district_progress, umpRows);
-  const dailyRows = buildTerritorialDailyRows(reports, advance, targetTotal);
+  const dailyRows = buildTerritorialDailyRows(scopedReports, advance, targetTotal, umpRows);
   const umpSummary = summarizeTerritorialUmpRows(umpRows);
   const quotaSummary = summarizeTerritorialQuotaRows(umpRows);
   return {
+    reports: scopedReports,
+    dateScope: scoped.scope,
     advance,
     targetTotal,
     progressPct,
@@ -6751,7 +7675,7 @@ function buildTerritorialAdvanceWorkbench(reports: MonitoreoTerritorialDashboard
     dailyRows,
     umpSummary,
     quotaSummary,
-    attention: buildTerritorialAttentionItems(districtRows, umpRows, reports),
+    attention: buildTerritorialAttentionItems(districtRows, umpRows, scopedReports),
     mapAvailable: Boolean(mapPoints.length || mapBlocks.length),
   };
 }
@@ -6846,6 +7770,350 @@ function useTerritorialAdvanceMapReports(reports: MonitoreoTerritorialDashboard)
   };
 }
 
+function useTerritorialAdvanceRouteCartography(blocks: TerritorialBlockProgress[]) {
+  const routeUbigeos = useMemo(() => (
+    Array.from(new Set(blocks.map((block) => normalizeTerritorialBlockCode(block.ubigeo)).filter(Boolean))).sort()
+  ), [blocks]);
+  const routeUbigeosKey = routeUbigeos.join("|");
+  const [state, setState] = useState<{
+    bundles: Record<string, TerritorialRouteCartographyBundle>;
+    loading: boolean;
+    error: string;
+  }>({ bundles: {}, loading: false, error: "" });
+
+  useEffect(() => {
+    if (!routeUbigeos.length) {
+      setState({ bundles: {}, loading: false, error: "" });
+      return undefined;
+    }
+    let cancelled = false;
+    setState((previous) => ({
+      bundles: Object.fromEntries(routeUbigeos.flatMap((ubigeo) => (
+        previous.bundles[ubigeo] ? [[ubigeo, previous.bundles[ubigeo]]] : []
+      ))),
+      loading: true,
+      error: "",
+    }));
+    Promise.allSettled(routeUbigeos.map(async (ubigeo) => [ubigeo, await loadTerritorialRouteCartography(ubigeo)] as const))
+      .then((results) => {
+        if (cancelled) return;
+        const bundles: Record<string, TerritorialRouteCartographyBundle> = {};
+        results.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const [ubigeo, bundle] = result.value;
+          bundles[ubigeo] = bundle;
+        });
+        setState({
+          bundles,
+          loading: false,
+          error: results.some((result) => result.status === "rejected")
+            ? "No se pudo cargar toda la cartografía de manzanas para Avance."
+            : "",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeUbigeosKey]);
+
+  return state;
+}
+
+function TerritorialAdvanceUnifiedMap({
+  reports,
+  rows,
+  selectedRow,
+  onSelectRow,
+  focusToken,
+  dateScope,
+  layerLoading,
+  layerError,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  rows: TerritorialUmpDashboardRow[];
+  selectedRow: TerritorialUmpDashboardRow | null;
+  onSelectRow: (row: TerritorialUmpDashboardRow) => void;
+  focusToken: number;
+  dateScope: TerritorialAdvanceDateScope;
+  layerLoading: boolean;
+  layerError: string;
+}) {
+  const sourceBlocks = useMemo(() => {
+    const blocks = reports.map?.blocks?.length
+      ? reports.map.blocks
+      : reports.block_progress?.length
+        ? reports.block_progress
+        : territorialAdvanceModel(reports).block_progress ?? [];
+    return blocks.filter((block) => territorialBlockStableKey(block)).sort(territorialRouteBlockComparator);
+  }, [reports]);
+  const cartography = useTerritorialAdvanceRouteCartography(sourceBlocks);
+  const navigation = useTerritorialMapNavigation(
+    TERRITORIAL_LIMA_MAP_WIDTH,
+    TERRITORIAL_LIMA_MAP_HEIGHT,
+    TERRITORIAL_ROUTE_MIN_ZOOM,
+    TERRITORIAL_LIMA_MAP_MAX_ZOOM,
+    1,
+  );
+  const blockFeatures = useMemo(() => (
+    Object.values(cartography.bundles).flatMap((bundle) => bundle.blockMap?.geojson?.features ?? [])
+  ), [cartography.bundles]);
+  const zoneFeatures = useMemo(() => (
+    Object.values(cartography.bundles).flatMap((bundle) => bundle.zoneMap?.geojson?.features ?? [])
+  ), [cartography.bundles]);
+  const routeFeatures = useMemo(() => selectTerritorialMapFeatures(blockFeatures, sourceBlocks), [blockFeatures, sourceBlocks]);
+  const routeZoneKeys = useMemo(() => (
+    new Set(sourceBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean))
+  ), [sourceBlocks]);
+  const points = useMemo(() => territorialKoboMapPoints(reports), [reports]);
+  const responseRows = useMemo(() => territorialUniqueResponseRows(territorialRowsForGeoMap(reports)), [reports]);
+  const rowsById = useMemo(() => (
+    new Map(responseRows.map((row) => [stringOrEmpty(row.response_id).trim(), row]))
+  ), [responseRows]);
+  const mapPoints = useMemo<TerritorialNumberedKoboMapPoint[]>(() => (
+    points.map((point) => {
+      const row = rowsById.get(stringOrEmpty(point.response_id).trim());
+      if (!row) return point;
+      return {
+        ...point,
+        geoDisposition: territorialBuildGeoCase(row, sourceBlocks, point, zoneFeatures).geoDisposition,
+      };
+    })
+  ), [points, rowsById, sourceBlocks, zoneFeatures]);
+  const selectedBlock = useMemo(() => (
+    selectedRow ? territorialFindBlockForUmpRow(selectedRow, sourceBlocks) : null
+  ), [selectedRow, sourceBlocks]);
+  const selectedRouteSet = useMemo(() => (
+    territorialResolveGeoRouteSet(selectedBlock, sourceBlocks)
+  ), [selectedBlock, sourceBlocks]);
+  const selectedRouteKeys = useMemo(() => (
+    new Set(selectedRouteSet.routeBlocks.map(territorialBlockStableKey).filter(Boolean))
+  ), [selectedRouteSet]);
+  const selectedFeature = useMemo(() => {
+    if (!selectedBlock) return null;
+    const selectedKey = territorialBlockStableKey(selectedBlock);
+    return routeFeatures.find((item) => territorialBlockStableKey(item.block) === selectedKey)
+      ?? routeFeatures.find((item) => selectedRouteKeys.has(territorialBlockStableKey(item.block)))
+      ?? null;
+  }, [routeFeatures, selectedBlock, selectedRouteKeys]);
+  const selectedFeatureKey = selectedFeature?.key ?? "";
+  const relatedReplacementKeys = useMemo(() => (
+    selectedRouteSet.replacementBlocks.length
+      ? new Set(selectedRouteSet.replacementBlocks.map(territorialBlockStableKey).filter(Boolean))
+      : territorialRelatedReplacementBlockKeys(selectedBlock, sourceBlocks)
+  ), [selectedBlock, selectedRouteSet.replacementBlocks, sourceBlocks]);
+  const selectedPointIds = useMemo(() => {
+    if (!selectedRow) return new Set<string>();
+    return new Set(responseRows
+      .filter((row) => territorialResponseMatchesUmpRow(selectedRow, row))
+      .map((row) => stringOrEmpty(row.response_id).trim())
+      .filter(Boolean));
+  }, [responseRows, selectedRow]);
+  const selectedPoint = useMemo(() => (
+    selectedPointIds.size
+      ? mapPoints.find((point) => selectedPointIds.has(stringOrEmpty(point.response_id).trim())) ?? null
+      : null
+  ), [mapPoints, selectedPointIds]);
+  const projection = useMemo(() => buildTerritorialMapProjection(
+    mapPoints,
+    TERRITORIAL_LIMA_DISTRICT_FEATURES,
+    routeFeatures.map((item) => item.feature),
+    zoneFeatures,
+  ), [mapPoints, routeFeatures, zoneFeatures]);
+  const selectedLabel = selectedRow
+    ? `${selectedRow.district || "Sin distrito"} · ${selectedRow.ump} · ${selectedRow.blockLabel || "Mz S/D"}`
+    : "Sin UMP seleccionada";
+  const dateLabel = dateScope.active ? `desde ${territorialDateFilterLabel(dateScope.startDate)}` : "todo el corte";
+  const selectedComplete = rows.filter((row) => row.status === "complete").length;
+  const selectedIncomplete = rows.filter((row) => row.status === "incomplete").length;
+  const routeDistricts = useMemo(() => (
+    Array.from(new Set(sourceBlocks.map((block) => normalizeTerritorialBlockCode(block.ubigeo)).filter(Boolean))).sort()
+  ), [sourceBlocks]);
+  const cartographyLoading = layerLoading || cartography.loading;
+  const mapError = layerError || cartography.error;
+  const selectedResponseId = selectedPoint?.response_id ?? "";
+  const routeMapLabels = useMemo<TerritorialRouteMapLabel[]>(() => {
+    if (!projection.hasGeometry) return [];
+    const labels: TerritorialRouteMapLabel[] = [];
+    if (selectedFeature?.centroid && selectedRow) {
+      labels.push({
+        id: `advance-selected-${selectedFeature.key}`,
+        text: `UMP ${selectedRow.ump}`,
+        kind: "active-route-block",
+        priority: 160,
+        anchorPoint: projection.project(selectedFeature.centroid.lon, selectedFeature.centroid.lat),
+        screenOffset: { x: -32, y: -34 },
+      });
+    }
+    routeDistricts.forEach((ubigeo) => {
+      const district = TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => feature.properties.ubigeo === ubigeo);
+      const centroid = district ? territorialDistrictCentroid(district) : null;
+      if (!district || !centroid) return;
+      labels.push({
+        id: `advance-district-${ubigeo}`,
+        text: district.properties.distrito,
+        kind: selectedBlock && normalizeTerritorialBlockCode(selectedBlock.ubigeo) === ubigeo ? "active-district" : "neighbor-district",
+        priority: selectedBlock && normalizeTerritorialBlockCode(selectedBlock.ubigeo) === ubigeo ? 80 : 34,
+        anchorPoint: projection.project(centroid.lon, centroid.lat),
+      });
+    });
+    return labels;
+  }, [projection, routeDistricts, selectedBlock, selectedFeature, selectedRow]);
+  const lastFocusTokenRef = useRef(0);
+  useEffect(() => {
+    if (!projection.hasGeometry) return;
+    if (!focusToken || lastFocusTokenRef.current === focusToken) return;
+    lastFocusTokenRef.current = focusToken;
+    const focus = selectedPoint
+      ? projection.project(selectedPoint.lonValue, selectedPoint.latValue)
+      : selectedFeature?.centroid
+        ? projection.project(selectedFeature.centroid.lon, selectedFeature.centroid.lat)
+        : null;
+    if (!focus) return;
+    navigation.zoomTo(selectedPoint ? 8.4 : 5.8, focus.x, focus.y, { animate: true, durationMs: 440 });
+  }, [focusToken, navigation.zoomTo, projection, selectedFeature?.centroid, selectedFeatureKey, selectedPoint]);
+  const zoomClass = navigation.zoom >= 2.2 ? "is-zoom-blocks" : navigation.zoom >= 1.55 ? "is-zoom-detail" : "is-zoom-general";
+  const zoomFromControl = (factor: number) => {
+    navigation.setZoom(navigation.zoom * factor);
+  };
+  const selectFeatureBlock = (block: TerritorialBlockProgress) => {
+    const row = rows.find((candidate) => territorialUmpRowMatchesBlock(candidate, block))
+      ?? (() => {
+        const routeSet = territorialResolveGeoRouteSet(block, sourceBlocks);
+        const titular = routeSet.titularBlock;
+        return titular ? rows.find((candidate) => territorialUmpRowMatchesBlock(candidate, titular)) : undefined;
+      })();
+    if (row) onSelectRow(row);
+  };
+
+  return (
+    <Tooltip.Provider delayDuration={280} skipDelayDuration={120}>
+      <section className="mon-territorial-advance-map-card" aria-label="Mapa de enjambre y manzanas de Avance territorial">
+        <header className="mon-territorial-advance-map-head">
+          <div>
+            <span><IconMapLayers size={14} /> Mapa de enjambre + manzanas</span>
+            <strong>Todos los distritos</strong>
+            <em>{formatMetric(mapPoints.length)} puntos GPS · {formatMetric(routeFeatures.length || sourceBlocks.length)} manzanas · {dateLabel}</em>
+          </div>
+          <div className="mon-territorial-advance-map-selection">
+            <span>Selección</span>
+            <strong title={selectedLabel}>{selectedLabel}</strong>
+          </div>
+        </header>
+        <div
+          ref={(node) => { navigation.wheelHostRef.current = node; }}
+          className="mon-territorial-map-viewport mon-territorial-advance-map-viewport"
+          {...navigation.handlers}
+        >
+          <div
+            className="mon-territorial-map-tools"
+            aria-label="Controles del mapa"
+            onPointerDown={(event) => event.stopPropagation()}
+            onPointerMove={(event) => event.stopPropagation()}
+            onPointerUp={(event) => event.stopPropagation()}
+          >
+            <TerritorialMapToolButton label="Acercar mapa" onClick={() => zoomFromControl(1.6)}>
+              <Plus size={13} />
+            </TerritorialMapToolButton>
+            <TerritorialMapToolButton label="Alejar mapa" onClick={() => zoomFromControl(0.625)}>
+              <Minus size={13} />
+            </TerritorialMapToolButton>
+            <TerritorialMapToolButton label="Ver todo Lima" onClick={navigation.reset}>
+              <Maximize2 size={13} />
+            </TerritorialMapToolButton>
+            <span className="mon-territorial-map-zoom-readout" aria-label={`Zoom ${navigation.zoom.toFixed(1)}x`}>
+              {navigation.zoom.toFixed(1)}x
+            </span>
+          </div>
+          {projection.hasGeometry ? (
+            <>
+              <TerritorialZoneCanvasLayer
+                projection={projection}
+                zoom={navigation.zoom}
+                pan={navigation.pan}
+                contextFeatures={[]}
+                streetFeatures={[]}
+                districtFeatures={TERRITORIAL_LIMA_DISTRICT_FEATURES}
+                activeDistrictUbigeo={selectedBlock?.ubigeo || ""}
+                zoneFeatures={zoneFeatures}
+                routeZoneKeys={routeZoneKeys}
+                activeZoneKey={selectedBlock ? territorialBlockZoneKey(selectedBlock) : ""}
+                neighborFeatures={[]}
+                focusZoneFeatures={[]}
+                externalNeighborFeatures={[]}
+                selectedFeatures={routeFeatures}
+                selectedBlockKey={selectedFeatureKey}
+                relatedBlockKeys={relatedReplacementKeys}
+                routeAnchorBlockKey={selectedFeatureKey}
+                routeMapLabels={routeMapLabels}
+                koboPoints={mapPoints}
+                selectedPointId={selectedResponseId}
+                mode="route"
+              />
+              <svg
+                className={`mon-territorial-advance-map-hit-layer is-lima-map ${zoomClass}`}
+                viewBox={`0 0 ${TERRITORIAL_LIMA_MAP_WIDTH} ${TERRITORIAL_LIMA_MAP_HEIGHT}`}
+                preserveAspectRatio="none"
+                role="img"
+                aria-label="Mapa interactivo de Lima Metropolitana con manzanas y puntos GPS"
+              >
+                <g transform={navigation.transform}>
+                  {routeFeatures.map((item) => {
+                    const d = territorialFeaturePath(item.feature, projection);
+                    if (!d) return null;
+                    const selected = item.key === selectedFeatureKey;
+                    return (
+                      <path
+                        key={item.key}
+                        d={d}
+                        className={selected ? "is-selected" : ""}
+                        vectorEffect="non-scaling-stroke"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)} · ${item.block.distrito || "Sin distrito"}`}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (navigation.suppressClick()) return;
+                          selectFeatureBlock(item.block);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.preventDefault();
+                          selectFeatureBlock(item.block);
+                        }}
+                      >
+                        <title>{`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)} · ${item.block.distrito || "Sin distrito"}`}</title>
+                      </path>
+                    );
+                  })}
+                </g>
+                <text className="mon-territorial-map-caption" x="18" y={TERRITORIAL_LIMA_MAP_HEIGHT - 18}>
+                  Lima Metropolitana · {formatMetric(routeDistricts.length)} distritos con ruta · rueda/trackpad para mover, Ctrl+rueda para zoom
+                </text>
+              </svg>
+            </>
+          ) : (
+            <EmptyState
+              icon={<MapPin size={18} />}
+              title="Sin capa territorial para el mapa"
+              hint="No hay manzanas o puntos GPS disponibles para dibujar el corte."
+              variant="inline"
+            />
+          )}
+          {cartographyLoading ? <span className="mon-territorial-route-map-loading"><Loader2 size={13} className="pulso-spin" /> Cargando manzanas</span> : null}
+          <div className="mon-territorial-advance-map-footer" aria-label="Resumen del mapa de avance">
+            <span className="is-ready"><strong>{formatMetric(selectedComplete)}</strong><em>UMP completas</em></span>
+            <span className="is-warning"><strong>{formatMetric(selectedIncomplete)}</strong><em>incompletas</em></span>
+            <span><strong>{formatMetric(routeDistricts.length)}</strong><em>distritos ruta</em></span>
+            <span><strong>{formatMetric(points.length)}</strong><em>puntos GPS</em></span>
+          </div>
+        </div>
+        {mapError ? <div className="mon-territorial-map-error">{mapError}</div> : null}
+      </section>
+    </Tooltip.Provider>
+  );
+}
+
 function TerritorialAdvanceView({
   dashboard,
   syncedAt,
@@ -6864,7 +8132,12 @@ function TerritorialAdvanceView({
   const [activeTab, setActiveTab] = useState<TerritorialAdvanceTab>("resumen");
   const [selectedDistrictFilter, setSelectedDistrictFilter] = useState("todos");
   const [focusedUmpKey, setFocusedUmpKey] = useState("");
-  const workbench = useMemo(() => reports ? buildTerritorialAdvanceWorkbench(reports) : null, [reports]);
+  const [startDate, setStartDate] = useState("");
+  const availableDates = useMemo(() => reports ? territorialAdvanceAvailableDates(reports) : [], [reports]);
+  useEffect(() => {
+    if (startDate && availableDates.length && !availableDates.includes(startDate)) setStartDate("");
+  }, [availableDates, startDate]);
+  const workbench = useMemo(() => reports ? buildTerritorialAdvanceWorkbench(reports, startDate) : null, [reports, startDate]);
   useEffect(() => {
     if (!workbench || selectedDistrictFilter === "todos") return;
     const exists = workbench.districtRows.some((row) => territorialDistrictFilterKey(row) === selectedDistrictFilter);
@@ -6874,7 +8147,7 @@ function TerritorialAdvanceView({
     return (
       <div className="mon-stage mon-stage--avance">
         {loading ? (
-          <LoadingBlock label={territorialLoadingLabelForView("avance")} minHeight={420} />
+          <TerritorialLoadingView view="avance" minHeight={420} />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : (
@@ -6887,10 +8160,9 @@ function TerritorialAdvanceView({
       </div>
     );
   }
-  const phaseLabel = reports.active_route_phase === "field" ? "Campo real" : "Piloto operativo";
   const tabs = [
     { key: "resumen" as const, label: "Resumen", value: formatPercentLabel(workbench.progressPct), icon: Target },
-    { key: "ump" as const, label: "Mapa y UMP", value: formatMetric(workbench.umpRows.length), icon: Route },
+    { key: "ump" as const, label: "Mapa y UMP", value: formatMetric(territorialFulfilledUmpCount(workbench.umpSummary)), icon: Route },
     { key: "ritmo" as const, label: "Ritmo diario", value: formatMetric(workbench.dailyRows.length), icon: CalendarRange },
   ];
   return (
@@ -6903,12 +8175,17 @@ function TerritorialAdvanceView({
           actions={<div className="mon-advance-meta"><span>{nRows.toLocaleString("es-PE")} registros</span>{syncedAt && <span>{formatDate(syncedAt)}</span>}</div>}
         >
           <div className="mon-territorial-workbench">
-            <TerritorialAdvanceHero workbench={workbench} phaseLabel={phaseLabel} reports={reports} />
+            <TerritorialAdvanceDateFilterBar
+              scope={workbench.dateScope}
+              startDate={startDate}
+              availableDates={availableDates}
+              onChange={setStartDate}
+            />
             <TerritorialAdvanceTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
             {activeTab === "resumen" && (
               <TerritorialAdvanceSummary
                 workbench={workbench}
-                reports={reports}
+                reports={workbench.reports}
                 selectedDistrict={selectedDistrictFilter}
                 syncedAt={syncedAt}
                 onOpenDistrict={(districtKey) => {
@@ -6925,17 +8202,16 @@ function TerritorialAdvanceView({
             )}
             {activeTab === "ump" && (
               <TerritorialUmpSection
-                reports={reports}
+                reports={workbench.reports}
                 rows={workbench.umpRows}
-                districtRows={workbench.districtRows}
-                summary={workbench.umpSummary}
+                dateScope={workbench.dateScope}
                 districtFilter={selectedDistrictFilter}
                 onDistrictFilterChange={setSelectedDistrictFilter}
                 focusedUmpKey={focusedUmpKey}
                 onFocusedUmpConsumed={() => setFocusedUmpKey("")}
               />
             )}
-            {activeTab === "ritmo" && <TerritorialRhythmSection rows={workbench.dailyRows} targetTotal={workbench.targetTotal} />}
+            {activeTab === "ritmo" && <TerritorialRhythmSection rows={workbench.dailyRows} targetTotal={workbench.targetTotal} dateScope={workbench.dateScope} umpTotal={workbench.umpRows.length} />}
           </div>
         </Panel>
       </div>
@@ -6977,6 +8253,56 @@ function TerritorialAdvanceHero({
           <span><strong>{formatMetric(fulfilledUmp)}</strong><em>UMP completas</em></span>
           <span><strong>{formatMetric(workbench.umpSummary.none)}</strong><em>UMP sin avance</em></span>
         </footer>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceDateFilterBar({
+  scope,
+  startDate,
+  availableDates,
+  onChange,
+}: {
+  scope: TerritorialAdvanceDateScope;
+  startDate: string;
+  availableDates: string[];
+  onChange: (value: string) => void;
+}) {
+  const latestDate = availableDates[availableDates.length - 1] ?? "";
+  const earliestDate = availableDates[0] ?? "";
+  const activeLabel = startDate ? `Desde ${territorialDateFilterLabel(startDate)}` : "Todo el corte";
+  return (
+    <section className={`mon-territorial-datebar${scope.active ? " is-filtered" : ""}`} aria-label="Filtro de fecha para avance territorial">
+      <div className="mon-territorial-datebar-copy">
+        <span><CalendarRange size={14} /> Contar avance desde</span>
+        <strong>{activeLabel}</strong>
+        <em>
+          {scope.canScope
+            ? `${formatMetric(scope.rowsIncluded)} de ${formatMetric(scope.rowsTotal)} registros · ${formatMetric(scope.pointsIncluded)} puntos GPS`
+            : "El corte no trae fecha por registro para recalcular en la app"}
+        </em>
+      </div>
+      <div className="mon-territorial-datebar-controls">
+        <button type="button" className={!startDate ? "is-active" : ""} onClick={() => onChange("")}>
+          Todo
+        </button>
+        {latestDate ? (
+          <button type="button" className={startDate === latestDate ? "is-active" : ""} onClick={() => onChange(latestDate)}>
+            Último día
+          </button>
+        ) : null}
+        <label>
+          <span>Fecha inicial</span>
+          <input
+            type="date"
+            value={startDate}
+            min={earliestDate || undefined}
+            max={latestDate || undefined}
+            disabled={!scope.canScope || !availableDates.length}
+            onChange={(event) => onChange(event.currentTarget.value)}
+          />
+        </label>
       </div>
     </section>
   );
@@ -7701,6 +9027,7 @@ function TerritorialUmpMapNavigator({
   selectedDistrictLabel: string;
   onSelectRow: (row: TerritorialUmpDashboardRow) => void;
 }) {
+  const selectedRow = rows.find((row) => row.key === selectedRowKey) ?? rows[0] ?? null;
   return (
     <aside className="mon-territorial-ump-map-nav" aria-label="Manzanas del mapa">
       <header>
@@ -7710,6 +9037,20 @@ function TerritorialUmpMapNavigator({
         </div>
         <em>{formatMetric(rows.length)}</em>
       </header>
+      {selectedRow ? (
+        <div className="mon-territorial-ump-map-nav-focus" aria-label="Resumen de la manzana seleccionada">
+          <span><MapPin size={12} /> UMP seleccionada</span>
+          <strong>{selectedRow.ump} · {selectedRow.blockLabel}</strong>
+          <em>{selectedRow.district}{selectedRow.zone ? ` · Zona ${selectedRow.zone}` : ""}</em>
+          <dl>
+            <div><dt>Responsable</dt><dd>{selectedRow.responsible || "Sin responsable asignado"}</dd></div>
+            <div><dt>Avance</dt><dd>{formatMetric(selectedRow.valid)} / {formatMetric(selectedRow.target)} · {territorialUmpStatusLabel(selectedRow.status)}</dd></div>
+            <div><dt>Cuota</dt><dd>{selectedRow.quotaStatusLabel}</dd></div>
+            <div><dt>Último</dt><dd>{selectedRow.lastResponseAt || "Sin registro"}</dd></div>
+          </dl>
+          <small>{selectedRow.quotaMissingLabel}</small>
+        </div>
+      ) : null}
       <div>
         {rows.length ? rows.map((row) => {
           const selected = row.key === selectedRowKey;
@@ -7720,13 +9061,41 @@ function TerritorialUmpMapNavigator({
               type="button"
               className={`mon-territorial-ump-map-nav-row is-${row.status}${selected ? " is-selected" : ""}`}
               aria-pressed={selected}
+              title={`UMP ${row.ump} · ${row.blockLabel || "Sin manzana"} · ${row.district || "Sin distrito"} · ${row.responsible || "Sin responsable"} · ${row.quotaStatusLabel}: ${row.quotaMissingLabel} · Último: ${row.lastResponseAt || "Sin registro"}`}
               onClick={() => onSelectRow(row)}
             >
+              <span
+                className="mon-territorial-ump-map-nav-ring"
+                style={{ "--ump-ring": `${Math.min(100, Math.max(0, row.progressPct ?? 0)) * 3.6}deg` } as CSSProperties}
+                aria-hidden="true"
+              >
+                <MapPin size={14} />
+              </span>
               <span>
                 <strong>{row.ump}</strong>
                 <em>{row.blockLabel}{row.zone ? ` · Zona ${row.zone}` : ""}</em>
               </span>
               <b>{row.district}</b>
+              <div className="mon-territorial-ump-map-nav-meta" aria-label="Detalle operativo de la manzana">
+                <small title={row.responsible || "Sin responsable"}>
+                  <ContactRound size={10} />
+                  {row.responsible || "Sin responsable"}
+                </small>
+                <small className={`is-quota-${row.quotaStatus}`} title={row.quotaMissingLabel}>
+                  <ListChecks size={10} />
+                  {row.quotaStatusLabel}
+                </small>
+                <small title={row.lastResponseAt || "Sin registro"}>
+                  <Clock size={10} />
+                  {row.lastResponseAt || "Sin registro"}
+                </small>
+                {(row.observation || row.invalid) ? (
+                  <small className="is-alert" title={`${formatMetric(row.observation)} en observación · ${formatMetric(row.invalid)} no válidas`}>
+                    <AlertTriangle size={10} />
+                    {formatMetric(row.observation)} obs · {formatMetric(row.invalid)} no vál.
+                  </small>
+                ) : null}
+              </div>
               <i><small style={{ width: `${pct}%` }} /></i>
               <footer>
                 <small>{formatMetric(row.valid)} / {formatMetric(row.target)} válidas</small>
@@ -7739,6 +9108,137 @@ function TerritorialUmpMapNavigator({
         )}
       </div>
     </aside>
+  );
+}
+
+function territorialSwarmPointMatchesDistrict(
+  point: TerritorialKoboMapPoint,
+  row: TerritorialResponseAuditRow | undefined,
+  districtFilter: string,
+) {
+  if (districtFilter === "todos") return true;
+  const filterKey = normalizeTerritorialBlockCode(districtFilter) || normalizeMatch(districtFilter);
+  const pointKey = normalizeTerritorialBlockCode(point.ubigeo) || normalizeMatch(point.distrito);
+  const rowKey = row ? (normalizeTerritorialBlockCode(row.ubigeo || row.advance_block_ubigeo) || normalizeMatch(row.distrito || row.advance_block_distrito)) : "";
+  return Boolean(filterKey && (filterKey === pointKey || filterKey === rowKey));
+}
+
+function TerritorialAdvanceSwarmMap({
+  reports,
+  districtFilter,
+  districtLabel,
+  dateScope,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  districtFilter: string;
+  districtLabel: string;
+  dateScope: TerritorialAdvanceDateScope;
+}) {
+  const rows = useMemo(() => territorialUniqueResponseRows(territorialRowsForGeoMap(reports)), [reports]);
+  const rowsById = useMemo(() => new Map(rows.map((row) => [stringOrEmpty(row.response_id).trim(), row])), [rows]);
+  const points = useMemo(() => territorialKoboMapPoints(reports).filter((point) => (
+    territorialSwarmPointMatchesDistrict(point, rowsById.get(stringOrEmpty(point.response_id).trim()), districtFilter)
+  )), [districtFilter, reports, rowsById]);
+  const districtFeatures = useMemo(() => {
+    if (districtFilter === "todos") {
+      const pointUbigeos = new Set(points.map((point) => normalizeTerritorialBlockCode(point.ubigeo)).filter(Boolean));
+      const routeUbigeos = new Set((reports.district_progress ?? []).map((row) => normalizeTerritorialBlockCode(row.ubigeo)).filter(Boolean));
+      const active = TERRITORIAL_LIMA_DISTRICT_FEATURES.filter((feature) => pointUbigeos.has(feature.properties.ubigeo) || routeUbigeos.has(feature.properties.ubigeo));
+      return active.length ? active : TERRITORIAL_LIMA_DISTRICT_FEATURES;
+    }
+    const key = normalizeTerritorialBlockCode(districtFilter) || normalizeMatch(districtFilter);
+    const active = TERRITORIAL_LIMA_DISTRICT_FEATURES.filter((feature) => (
+      feature.properties.ubigeo === key || normalizeMatch(feature.properties.distrito) === key
+    ));
+    return active.length ? active : TERRITORIAL_LIMA_DISTRICT_FEATURES;
+  }, [districtFilter, points, reports.district_progress]);
+  const projection = useMemo(() => buildTerritorialMapProjection(points, districtFeatures), [districtFeatures, points]);
+  const clusters = useMemo(() => {
+    const buckets = new Map<string, {
+      key: string;
+      x: number;
+      y: number;
+      count: number;
+      valid: number;
+      review: number;
+      labels: Set<string>;
+    }>();
+    points.forEach((point) => {
+      const projected = projection.project(point.lonValue, point.latValue);
+      const key = `${Math.round(projected.x / 22)}:${Math.round(projected.y / 22)}`;
+      const row = rowsById.get(stringOrEmpty(point.response_id).trim());
+      const current = buckets.get(key) ?? { key, x: 0, y: 0, count: 0, valid: 0, review: 0, labels: new Set<string>() };
+      current.x += projected.x;
+      current.y += projected.y;
+      current.count += 1;
+      if (row ? territorialResponseIsEffective(row) : point.advance_valid !== false) current.valid += 1;
+      if (row && territorialResponseIsReview(row)) current.review += 1;
+      const district = stringOrEmpty(row?.distrito || point.distrito).trim();
+      if (district) current.labels.add(district);
+      buckets.set(key, current);
+    });
+    return Array.from(buckets.values())
+      .map((cluster) => ({ ...cluster, x: cluster.x / cluster.count, y: cluster.y / cluster.count }))
+      .sort((a, b) => b.count - a.count);
+  }, [points, projection, rowsById]);
+  const totalPoints = points.length;
+  const validPoints = clusters.reduce((sum, cluster) => sum + cluster.valid, 0);
+  const reviewPoints = clusters.reduce((sum, cluster) => sum + cluster.review, 0);
+  const maxCluster = Math.max(1, ...clusters.map((cluster) => cluster.count));
+  const dateLabel = dateScope.active ? `desde ${territorialDateFilterLabel(dateScope.startDate)}` : "todo el corte";
+  return (
+    <section className="mon-territorial-swarm-card" aria-label="Mapa de enjambre de respuestas territoriales">
+      <header>
+        <div>
+          <span><IconKoboPoint size={14} /> Mapa de enjambre</span>
+          <strong>{districtFilter === "todos" ? "Concentración de puntos encuestados" : districtLabel}</strong>
+        </div>
+        <em>{dateLabel}</em>
+      </header>
+      <div className="mon-territorial-swarm-body">
+        {projection.hasGeometry && totalPoints ? (
+          <svg
+            className="mon-territorial-swarm-map"
+            viewBox={`0 0 ${TERRITORIAL_LIMA_MAP_WIDTH} ${TERRITORIAL_LIMA_MAP_HEIGHT}`}
+            role="img"
+            aria-label={`${formatMetric(totalPoints)} puntos GPS agrupados por concentración`}
+          >
+            {districtFeatures.map((feature) => (
+              <path key={feature.properties.ubigeo} d={territorialDistrictPath(feature, projection)} />
+            ))}
+            {clusters.map((cluster) => {
+              const radius = clamp(4 + Math.sqrt(cluster.count / maxCluster) * 18, 5, 24);
+              const validPct = safePercent(cluster.valid, cluster.count) ?? 0;
+              return (
+                <g
+                  key={cluster.key}
+                  className={cluster.review ? "is-review" : validPct >= 70 ? "is-valid" : "is-mixed"}
+                  transform={`translate(${cluster.x.toFixed(1)} ${cluster.y.toFixed(1)})`}
+                >
+                  <title>{`${formatMetric(cluster.count)} puntos · ${formatMetric(cluster.valid)} cuentan · ${Array.from(cluster.labels).slice(0, 2).join(", ") || districtLabel}`}</title>
+                  <circle r={radius + 4} className="is-halo" />
+                  <circle r={radius} className="is-core" />
+                  {cluster.count > 1 ? <text y="3.5">{cluster.count}</text> : null}
+                </g>
+              );
+            })}
+          </svg>
+        ) : (
+          <EmptyState
+            icon={<MapPin size={18} />}
+            title="Sin puntos para el enjambre"
+            hint="El corte filtrado no trae coordenadas GPS visibles."
+            variant="inline"
+          />
+        )}
+        <div className="mon-territorial-swarm-stats" aria-label="Resumen del enjambre">
+          <span><strong>{formatMetric(totalPoints)}</strong><em>puntos GPS</em></span>
+          <span className="is-ready"><strong>{formatMetric(validPoints)}</strong><em>cuentan</em></span>
+          <span className={reviewPoints ? "is-warning" : ""}><strong>{formatMetric(reviewPoints)}</strong><em>por revisar</em></span>
+          <span><strong>{formatMetric(clusters.length)}</strong><em>concentraciones</em></span>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -7765,8 +9265,7 @@ function TerritorialDistrictsSection({
 function TerritorialUmpSection({
   reports,
   rows,
-  districtRows,
-  summary,
+  dateScope,
   districtFilter,
   onDistrictFilterChange,
   focusedUmpKey = "",
@@ -7774,8 +9273,7 @@ function TerritorialUmpSection({
 }: {
   reports: MonitoreoTerritorialDashboard;
   rows: TerritorialUmpDashboardRow[];
-  districtRows: TerritorialDistrictDashboardRow[];
-  summary: ReturnType<typeof summarizeTerritorialUmpRows>;
+  dateScope: TerritorialAdvanceDateScope;
   districtFilter: string;
   onDistrictFilterChange: (districtKey: string) => void;
   focusedUmpKey?: string;
@@ -7788,8 +9286,8 @@ function TerritorialUmpSection({
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedResponseId, setSelectedResponseId] = useState("");
+  const [mapFocusToken, setMapFocusToken] = useState(0);
   const mapState = useTerritorialAdvanceMapReports(reports);
-  const totalUmpCount = summary.complete + summary.incomplete + summary.none;
   const districtLabels = useMemo(() => {
     const labels = new Map<string, string>();
     rows.forEach((row) => {
@@ -7816,7 +9314,6 @@ function TerritorialUmpSection({
       .some((value) => normalizeMatch(value).includes(query));
   }, [districtFilter, quotaStatus, responsible, search, status, zone]);
   const filteredRows = useMemo(() => rows.filter((row) => matchesUmpFilters(row)), [matchesUmpFilters, rows]);
-  const selectedDistrictLabel = districtFilter === "todos" ? "Todos los distritos" : districtLabels.get(districtFilter) || districtFilter;
   const handleDistrictSelect = (districtKey: string) => {
     const nextRow = rows.find((row) => matchesUmpFilters(row, districtKey));
     onDistrictFilterChange(districtKey);
@@ -7839,6 +9336,7 @@ function TerritorialUmpSection({
     if (districtFilter !== districtKey) onDistrictFilterChange(districtKey);
     setSelectedKey(nextRow.key);
     setSelectedResponseId("");
+    setMapFocusToken((token) => token + 1);
     onFocusedUmpConsumed?.();
   }, [districtFilter, focusedUmpKey, onDistrictFilterChange, onFocusedUmpConsumed, rows]);
   useEffect(() => {
@@ -7860,46 +9358,20 @@ function TerritorialUmpSection({
   const selectRow = (row: TerritorialUmpDashboardRow) => {
     setSelectedKey(row.key);
     setSelectedResponseId("");
+    setMapFocusToken((token) => token + 1);
   };
   return (
     <section className="mon-territorial-tab-panel mon-territorial-tab-panel--ump-map" aria-label="Estado operativo de UMP y manzanas">
-      <TerritorialDistrictMapKpiRail
-        rows={districtRows}
-        selectedDistrict={districtFilter}
-        onSelectDistrict={handleDistrictSelect}
+      <TerritorialAdvanceUnifiedMap
+        reports={mapState.reports}
+        rows={rows}
+        selectedRow={selectedRow}
+        onSelectRow={selectRow}
+        focusToken={mapFocusToken}
+        dateScope={dateScope}
+        layerLoading={mapState.loading}
+        layerError={mapState.error}
       />
-      <div className="mon-territorial-ump-map-layout">
-        <div className="mon-territorial-ump-map-pane">
-          <header className="mon-territorial-ump-map-head">
-            <div>
-              <span><MapPin size={14} /> Mapa operativo UMP</span>
-              <strong>{formatMetric(filteredRows.length)} de {formatMetric(totalUmpCount)} manzanas · {formatMetric(mapState.pointsLoaded)} respuestas locales</strong>
-            </div>
-            {mapState.loading && <em><Loader2 size={13} className="pulso-spin" /> Cargando capa</em>}
-          </header>
-          {mapState.error && <Alert kind="warn">{mapState.error}</Alert>}
-          {mapState.blocksLoaded || mapState.pointsLoaded ? (
-            <TerritorialAdvanceValidationMap
-              reports={mapState.reports}
-              row={selectedRow}
-              selectedResponseId={selectedResponseId}
-            />
-          ) : (
-            <EmptyState
-              icon={<MapPin size={18} />}
-              title="Mapa UMP sin capa local"
-              hint="No hay geometría ni puntos cacheados para la fase activa."
-              variant="inline"
-            />
-          )}
-        </div>
-        <TerritorialUmpMapNavigator
-          rows={filteredRows}
-          selectedRowKey={selectedRow?.key ?? ""}
-          selectedDistrictLabel={selectedDistrictLabel}
-          onSelectRow={selectRow}
-        />
-      </div>
       <div className="mon-territorial-ump-toolbar" aria-label="Filtros de UMP">
         <label className="mon-query-search">
           <Search size={14} />
@@ -8020,6 +9492,10 @@ function TerritorialAdvanceValidationMap({
     const mapBlocks = Array.isArray(reports.map?.blocks) ? reports.map.blocks : [];
     return mapBlocks.length ? mapBlocks : reports.block_progress ?? [];
   }, [reports]);
+  const cartography = useTerritorialAdvanceRouteCartography(blocks);
+  const zoneFeatures = useMemo(() => (
+    Object.values(cartography.bundles).flatMap((bundle) => bundle.zoneMap?.geojson?.features ?? [])
+  ), [cartography.bundles]);
   const selectedBlock = useMemo(() => (
     row ? territorialFindBlockForUmpRow(row, blocks) : null
   ), [blocks, row]);
@@ -8040,7 +9516,7 @@ function TerritorialAdvanceValidationMap({
   const selectedBlockCases = useMemo(() => {
     if (!row && !selectedBlock) return [];
     const cases = rows.map((response) => (
-      territorialBuildGeoCase(response, blocks, pointsByResponse.get(response.response_id))
+      territorialBuildGeoCase(response, blocks, pointsByResponse.get(response.response_id), zoneFeatures)
     ));
     const selected = cases.filter((item) => {
       const directMatch = row ? territorialResponseMatchesUmpRow(row, item.row) : false;
@@ -8061,7 +9537,7 @@ function TerritorialAdvanceValidationMap({
       if (aGps !== bGps) return aGps - bGps;
       return (a.row.row_index ?? 0) - (b.row.row_index ?? 0);
     });
-  }, [blocks, pointsByResponse, row, rows, selectedBlock, selectedRouteKeys]);
+  }, [blocks, pointsByResponse, row, rows, selectedBlock, selectedRouteKeys, zoneFeatures]);
   const focusPointId = selectedBlockCases.some((item) => item.row.response_id === selectedResponseId)
     ? selectedResponseId
     : "";
@@ -8181,7 +9657,7 @@ function TerritorialUmpDetailPanel({
   const withGps = responses.filter((response) => response.gps_parseable === true || (Number.isFinite(Number(response.lat)) && Number.isFinite(Number(response.lon)))).length;
   const withoutGps = Math.max(0, responses.length - withGps);
   const outOfRoute = responses.filter((response) => response.geo_estado === "geo_no_defendible").length;
-  const reviewGps = responses.filter((response) => response.geo_estado === "geo_revision" || response.geo_estado === "geo_sin_gps").length;
+  const reviewGps = responses.filter((response) => response.geo_estado === "geo_revision" || response.geo_estado === "geo_sin_cruce" || response.geo_estado === "geo_sin_gps").length;
   return (
     <aside className="mon-territorial-ump-detail" aria-label="Detalle de UMP seleccionada">
       <header>
@@ -8268,9 +9744,13 @@ function TerritorialUmpSelect({
 function TerritorialRhythmSection({
   rows,
   targetTotal,
+  dateScope,
+  umpTotal,
 }: {
   rows: TerritorialDailyDashboardRow[];
   targetTotal: number;
+  dateScope: TerritorialAdvanceDateScope;
+  umpTotal: number;
 }) {
   const chartConfig = useMemo(() => ({
     displayModeBar: false,
@@ -8280,15 +9760,17 @@ function TerritorialRhythmSection({
   }), []);
   const chart = useMemo(() => buildTerritorialDailyChart(rows, targetTotal), [rows, targetTotal]);
   const latest = rows[rows.length - 1] ?? null;
-  const best = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.validas > current.validas ? row : current), null);
+  const best = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.new_complete_ump > current.new_complete_ump ? row : current), null);
+  const pendingUmp = Math.max(0, umpTotal - (latest?.cumulative_complete_ump ?? 0));
+  const dateLabel = dateScope.active ? `desde ${territorialDateFilterLabel(dateScope.startDate)}` : "todo el corte";
   return (
     <section className="mon-territorial-tab-panel" aria-label="Ritmo diario y acumulado">
       <div className="mon-territorial-rhythm-layout">
         <article className="mon-territorial-rhythm-chart">
           <header>
             <div>
-              <span>Ritmo diario</span>
-              <strong>Barras diarias y acumulado hacia {formatMetric(targetTotal)}</strong>
+              <span>Ritmo diario UMP</span>
+              <strong>Nuevas UMP y acumulado · {dateLabel}</strong>
             </div>
             <em>{formatMetric(rows.length)} días</em>
           </header>
@@ -8298,7 +9780,7 @@ function TerritorialRhythmSection({
               layout={chart.layout}
               config={chartConfig}
               height={360}
-              ariaLabel="Respuestas válidas diarias y acumuladas"
+              ariaLabel="UMP completadas por día y acumuladas"
             />
           ) : (
             <EmptyState
@@ -8310,9 +9792,10 @@ function TerritorialRhythmSection({
           )}
         </article>
         <aside className="mon-territorial-rhythm-side" aria-label="Resumen de ritmo diario">
-          <AdvanceMetric label="Acumulado" value={formatMetric(latest?.cumulative_valid ?? 0)} hint={latest ? `${formatPercentLabel(latest.cumulative_progress_pct)} del objetivo` : "sin fechas"} tone="ready" />
-          <AdvanceMetric label="Brecha acumulada" value={formatMetric(latest?.cumulative_gap ?? targetTotal)} hint="pendientes" tone={(latest?.cumulative_gap ?? targetTotal) ? "warning" : "ready"} />
-          <AdvanceMetric label="Mejor día" value={best ? formatMetric(best.validas) : "S/D"} hint={best ? territorialDailyDateLabel(best) : "sin fecha"} tone="base" />
+          <AdvanceMetric label="UMP acumuladas" value={formatMetric(latest?.cumulative_complete_ump ?? 0)} hint={latest ? `${formatPercentLabel(latest.cumulative_complete_ump_pct)} de ${formatMetric(umpTotal)}` : "sin fechas"} tone="ready" />
+          <AdvanceMetric label="Pendientes UMP" value={formatMetric(pendingUmp)} hint="por completar" tone={pendingUmp ? "warning" : "ready"} />
+          <AdvanceMetric label="Mejor día" value={best ? formatMetric(best.new_complete_ump) : "S/D"} hint={best ? territorialDailyDateLabel(best) : "sin fecha"} tone="base" />
+          <AdvanceMetric label="Válidas del corte" value={formatMetric(latest?.cumulative_valid ?? 0)} hint={latest ? `${formatPercentLabel(latest.cumulative_progress_pct)} de respuestas` : "sin fechas"} tone="base" />
         </aside>
       </div>
       <TerritorialDailyDashboardTable rows={rows} />
@@ -8321,6 +9804,7 @@ function TerritorialRhythmSection({
 }
 
 function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], targetTotal: number) {
+  void targetTotal;
   const xLabels = rows.map((row) => territorialDailyDateLabel(row));
   const hoverData = rows.map((row) => [
     territorialDailyDateLabel(row),
@@ -8328,63 +9812,46 @@ function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], target
     row.cumulative_valid,
     row.revision,
     row.no_validas,
-    row.cumulative_progress_pct,
+    row.cumulative_complete_ump_pct,
+    row.new_complete_ump,
+    row.cumulative_complete_ump,
   ]);
-  const y2Max = Math.max(targetTotal, ...rows.map((row) => row.cumulative_valid), 1);
+  const y2Max = Math.max(...rows.map((row) => row.cumulative_complete_ump), 1);
   return {
     data: [
       {
         type: "bar" as const,
-        name: "Válidas",
+        name: "Nuevas UMP",
         x: xLabels,
-        y: rows.map((row) => row.validas),
+        y: rows.map((row) => row.new_complete_ump),
         marker: { color: "#168a55", line: { width: 0 } },
         customdata: hoverData,
-        hovertemplate: "Válidas del día: %{y}<extra></extra>",
-      },
-      {
-        type: "bar" as const,
-        name: "Observación",
-        x: xLabels,
-        y: rows.map((row) => row.revision),
-        marker: { color: "#b7791f", line: { width: 0 } },
-        customdata: hoverData,
-        hovertemplate: "Observación: %{y}<extra></extra>",
-      },
-      {
-        type: "bar" as const,
-        name: "No válidas",
-        x: xLabels,
-        y: rows.map((row) => row.no_validas),
-        marker: { color: "#b42318", line: { width: 0 } },
-        customdata: hoverData,
-        hovertemplate: "No válidas: %{y}<extra></extra>",
+        hovertemplate: "Nuevas UMP: %{y}<br>Válidas del día: %{customdata[1]}<extra></extra>",
       },
       {
         type: "scatter" as const,
         mode: "lines+markers" as const,
-        name: "Acumulado",
+        name: "UMP acumuladas",
         x: xLabels,
-        y: rows.map((row) => row.cumulative_valid),
+        y: rows.map((row) => row.cumulative_complete_ump),
         yaxis: "y2",
         line: { color: "#002457", width: 3, shape: "spline" as const, smoothing: 0.45 },
         marker: { color: "#ffffff", size: 7, line: { color: "#002457", width: 1.8 } },
         customdata: hoverData,
-        hovertemplate: "Acumulado: %{y}<br>Avance: %{customdata[5]:.1f}%<extra></extra>",
+        hovertemplate: "UMP acumuladas: %{y}<br>Avance UMP: %{customdata[5]:.1f}%<extra></extra>",
       },
       {
-        type: "scatter" as const,
-        mode: "lines" as const,
-        name: "Objetivo",
+        type: "bar" as const,
+        name: "Válidas del día",
         x: xLabels,
-        y: rows.map(() => targetTotal),
-        yaxis: "y2",
-        line: { color: "rgba(0, 36, 87, 0.34)", width: 1.6, dash: "dot" as const },
-        hoverinfo: "skip" as const,
+        y: rows.map((row) => row.validas),
+        marker: { color: "rgba(0, 36, 87, 0.16)", line: { width: 0 } },
+        customdata: hoverData,
+        hovertemplate: "Válidas del día: %{y}<br>Acumulado respuestas: %{customdata[2]}<extra></extra>",
       },
     ],
     layout: {
-      barmode: "stack" as const,
+      barmode: "group" as const,
       bargap: rows.length <= 1 ? 0.7 : rows.length <= 7 ? 0.42 : 0.24,
       hovermode: "x unified" as const,
       showlegend: true,
@@ -8417,7 +9884,7 @@ function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], target
         tickfont: { color: "#5f6b7a", size: 10 },
       },
       yaxis2: {
-        title: { text: "Acumulado", font: { color: "#002457", size: 11 } },
+        title: { text: "UMP acumuladas", font: { color: "#002457", size: 11 } },
         overlaying: "y",
         side: "right",
         fixedrange: true,
@@ -8434,8 +9901,8 @@ function TerritorialDailyDashboardTable({ rows }: { rows: TerritorialDailyDashbo
   return (
     <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
       <table className="mon-advance-daily-table" aria-label="Detalle diario territorial">
-        <thead><tr><th>Fecha</th><th>Válidas</th><th>Observación</th><th>No válidas</th><th>Acumulado</th><th>Avance</th></tr></thead>
-        <tbody>{rows.map((row) => <tr key={row.date}><td><strong>{territorialDailyDateLabel(row)}</strong></td><td>{formatMetric(row.validas)}</td><td>{formatMetric(row.revision)}</td><td>{formatMetric(row.no_validas)}</td><td>{formatMetric(row.cumulative_valid)}</td><td>{formatPercentLabel(row.cumulative_progress_pct)}</td></tr>)}</tbody>
+        <thead><tr><th>Fecha</th><th>Nuevas UMP</th><th>UMP acumuladas</th><th>Avance UMP</th><th>Válidas</th><th>Observación</th><th>No válidas</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.date}><td><strong>{territorialDailyDateLabel(row)}</strong></td><td>{formatMetric(row.new_complete_ump)}</td><td>{formatMetric(row.cumulative_complete_ump)}</td><td>{formatPercentLabel(row.cumulative_complete_ump_pct)}</td><td>{formatMetric(row.validas)}</td><td>{formatMetric(row.revision)}</td><td>{formatMetric(row.no_validas)}</td></tr>)}</tbody>
       </table>
     </div>
   );
@@ -8613,7 +10080,6 @@ function TerritorialAdvanceCompositionCard({
   const values = [
     { key: "validada", label: "Cuenta en avance", value: advance.validas, className: "is-validada" },
     { key: "revision", label: "En observación", value: advance.observacion, className: "is-revision" },
-    { key: "aprobada", label: "Visto bueno", value: advance.observacion_aprobada, className: "is-gps" },
     { key: "no_valida", label: "No válidas según criterio", value: advance.no_validas, className: "is-no_defendible" },
   ];
   const max = Math.max(1, ...values.map((item) => item.value || 0));
@@ -8844,11 +10310,7 @@ function TerritorialSourceConsole({
 	  const visibleReports = dashboardIsForVisibleSource ? reports : null;
 	  const coherence = visibleReports?.source_coherence ?? null;
 	  const sourceValidity = visibleReports?.source_validity ?? null;
-  const routeSheetSources = sources.filter((item) => item.kind === "google_sheets" && item.role === "hoja_ruta");
-  const routeSheetSource = routeSheetSources.find((item) => {
-    const phase = territorialSourcePhase(item);
-    return !phase || phase === activePhase;
-  }) ?? routeSheetSources[0] ?? null;
+  const routeSheetSource = territorialRouteSheetSourceForPhase(sources, activePhase);
   const routeSheetReport = visibleReports?.route_sheet ?? null;
   const [assetQuery, setAssetQuery] = useState("");
   const [assets, setAssets] = useState<MonitoreoKoboAssetItem[]>([]);
@@ -9567,6 +11029,7 @@ function TerritorialRouteSheetSourceCard({
   const [range, setRange] = useState(source?.sheet_binding?.range ?? "");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
   const metrics = routeSheet?.metrics ?? null;
   const connected = Boolean(source);
   const headersOk = routeSheet?.headers_ok !== false;
@@ -9625,16 +11088,17 @@ function TerritorialRouteSheetSourceCard({
     setError("");
     if (!spreadsheetId.trim()) {
       setError("Pega el ID o URL del Spreadsheet de Hojas de Ruta.");
+      spreadsheetInputRef.current?.focus();
       return;
     }
     try {
       const payload = sourcePayload();
       if (source) {
         await onUpdateSource(source, payload);
-        setMessage("Fuente actualizada con preset operativo.");
+        setMessage("Enlace actualizado para este proyecto.");
       } else {
         await onAddSheet(payload);
-        setMessage("Fuente de hoja de ruta registrada.");
+        setMessage("Enlace guardado para este proyecto.");
       }
     } catch (err) {
       setError((err as Error).message || "No se pudo guardar la fuente.");
@@ -9686,6 +11150,7 @@ function TerritorialRouteSheetSourceCard({
           <label>
             <span>Spreadsheet</span>
             <input
+              ref={spreadsheetInputRef}
               value={spreadsheetId}
               onChange={(event) => setSpreadsheetId(event.target.value)}
               placeholder="https://docs.google.com/spreadsheets/d/..."
@@ -9701,11 +11166,24 @@ function TerritorialRouteSheetSourceCard({
               disabled={saving || syncing}
             />
           </label>
-          <button type="button" onClick={() => { void saveRouteSheetSource(); }} disabled={saving || syncing || (!dirty && connected)}>
+          <button
+            type="button"
+            onClick={() => { void saveRouteSheetSource(); }}
+            disabled={saving || syncing || (!dirty && connected)}
+            aria-label={connected ? "Actualizar enlace de Hoja de Ruta" : "Conectar Hoja de Ruta"}
+            title={connected ? "Actualizar enlace" : "Conectar"}
+          >
             {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
-            <span>{connected ? "Guardar preset" : "Conectar"}</span>
+            <span>{connected ? "Actualizar enlace" : "Conectar"}</span>
           </button>
-          <button type="button" className="is-primary" onClick={() => { void syncRouteSheetSource(); }} disabled={saving || syncing || !source?.id}>
+          <button
+            type="button"
+            className="is-primary"
+            onClick={() => { void syncRouteSheetSource(); }}
+            disabled={saving || syncing || !source?.id}
+            aria-label="Sincronizar Hoja de Ruta"
+            title="Sincronizar"
+          >
             {syncing ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
             <span>Sincronizar</span>
           </button>
@@ -9908,6 +11386,14 @@ function territorialBuildPendingUmpReconciliationChange(payload: MonitoreoTerrit
     target: route || payload.assigned_block_id || "Sin ruta",
     status: "pending",
   };
+}
+
+function territorialSpatialPatternCandidateIds(pattern?: MonitoreoTerritorialSpatialReconciliationPattern | null) {
+  const raw = (pattern as { candidate_ids?: unknown } | null | undefined)?.candidate_ids;
+  if (Array.isArray(raw)) return raw.map((id) => stringOrEmpty(id)).filter(Boolean);
+  if (typeof raw === "string") return raw ? [raw] : [];
+  if (raw && typeof raw === "object") return Object.values(raw).map((id) => stringOrEmpty(id)).filter(Boolean);
+  return [];
 }
 
 function territorialReconciliationScopeLabel(kind: "code" | "ump", scope: string) {
@@ -13089,7 +14575,7 @@ function TerritorialRouteView({
               )}
             </>
           ) : loading ? (
-            <LoadingBlock label={territorialLoadingLabelForView("modelo")} minHeight={520} />
+            <TerritorialLoadingView view="modelo" minHeight={520} />
           ) : error ? (
             <Alert kind="error">{error}</Alert>
           ) : (
@@ -14794,11 +16280,11 @@ function TerritorialRoutePhaseSummary({ reports }: { reports: MonitoreoTerritori
   );
 }
 
-type TerritorialValidationTab = "resumen" | "geolocalizacion" | "duracion" | "cuotas";
+type TerritorialValidationTab = "geolocalizacion" | "reconciliacion" | "duracion" | "cuotas";
 
-const TERRITORIAL_VALIDATION_TABS: Array<{ key: TerritorialValidationTab; label: string; desc: string; icon: typeof ShieldAlert }> = [
-  { key: "resumen", label: "Resumen", desc: "Válidas y revisión", icon: ShieldAlert },
+const TERRITORIAL_VALIDATION_TABS: Array<{ key: TerritorialValidationTab; label: string; desc: string; icon: LucideIcon }> = [
   { key: "geolocalizacion", label: "Geolocalización", desc: "GPS y manzanas", icon: MapPin },
+  { key: "reconciliacion", label: "Reconciliación UMP", desc: "Sospechas espaciales", icon: Route },
   { key: "duracion", label: "Duración de tiempo", desc: "Mediana, P95 y outliers", icon: Clock },
   { key: "cuotas", label: "Cuotas", desc: "Sexo y edad", icon: Target },
 ];
@@ -14812,8 +16298,13 @@ function TerritorialValidationView({
   onRetry,
   selectedResponseId,
   openIntent,
+  onOpenIntentApplied,
   onSelectResponse,
   onConfigPatch,
+  onUmpReconcile,
+  onBatchReconcile,
+  onDismissSpatialCandidate,
+  onDismissSpatialPattern,
 }: {
   dashboard: MonitoreoDashboard | null;
   config: MonitoreoConfig;
@@ -14822,71 +16313,67 @@ function TerritorialValidationView({
   error?: string;
   onRetry?: () => void;
   selectedResponseId?: string;
-  openIntent?: { tab: TerritorialValidationTab; responseId?: string; token: number } | null;
+  openIntent?: TerritorialValidationOpenIntent | null;
+  onOpenIntentApplied?: (token: number) => void;
   onSelectResponse?: (responseId: string) => void;
   onConfigPatch: (patch: Partial<MonitoreoConfig["territorial"]>) => Promise<void>;
+  onUmpReconcile?: (entry: MonitoreoTerritorialUmpReconciliation) => Promise<void>;
+  onBatchReconcile?: (changes: MonitoreoTerritorialReconciliationBatchChange[]) => Promise<{
+    applied: Array<{ client_id: string }>;
+    failed: Array<{ client_id: string; message: string }>;
+  }>;
+  onDismissSpatialCandidate?: (candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => Promise<void>;
+  onDismissSpatialPattern?: (pattern: MonitoreoTerritorialSpatialReconciliationPattern) => Promise<void>;
 }) {
-  const [activeTab, setActiveTab] = useState<TerritorialValidationTab>("resumen");
+  const [activeTab, setActiveTab] = useState<TerritorialValidationTab>("geolocalizacion");
+  const rawReports = territorialReportsFromDashboard(dashboard);
+  const reportScope = rawReports?.report_scope || "full";
+  const reports = rawReports && (reportScope === "validation_summary" || reportScope === "full") ? rawReports : null;
+
   useEffect(() => {
     if (!openIntent) return;
     setActiveTab(openIntent.tab);
     if (openIntent.responseId) onSelectResponse?.(openIntent.responseId);
   }, [onSelectResponse, openIntent]);
 
-  const rawReports = territorialReportsFromDashboard(dashboard);
-  const reportScope = rawReports?.report_scope || "full";
-  const reports = rawReports && (reportScope === "validation_summary" || reportScope === "full") ? rawReports : null;
+  useEffect(() => {
+    if (!openIntent || !reports) return;
+    const requestedResponseId = stringOrEmpty(openIntent.responseId).trim();
+    if (requestedResponseId) {
+      const exists = reports.response_audit.some((row) => row.response_id === requestedResponseId);
+      if (!exists) return;
+      onSelectResponse?.(requestedResponseId);
+    }
+    onOpenIntentApplied?.(openIntent.token);
+  }, [onOpenIntentApplied, onSelectResponse, openIntent, reportScope, reports]);
+
   if (!reports) {
-    if (loading) return <LoadingBlock label={territorialLoadingLabelForView("calidad")} minHeight={520} />;
+    if (loading) return <TerritorialLoadingView view="calidad" minHeight={520} />;
     if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
     return <EmptyState icon={<ShieldAlert size={18} />} title="Sin validación territorial" hint="Sincroniza respuestas Kobo para auditar consentimiento, edad, duplicados y GPS." />;
   }
   const advance = territorialAdvanceModel(reports);
   const rows = reports.response_audit;
-  const observationRows = rows.filter((row) => row.advance_valid === true && ["en_observacion", "aprobada"].includes(row.observation_status || ""));
-  const geoRows = observationRows.filter(territorialRowHasGeoObservation);
-  const durationRows = observationRows.filter((row) => territorialRowHasDurationObservation(row, config));
+  const validRows = rows.filter((row) => row.advance_valid === true);
+  const geoAlertRows = validRows.filter(territorialRowHasGeoObservation);
+  const durationRows = validRows.filter((row) => territorialRowHasDurationObservation(row, config));
   const quotaSummary = normalizeTerritorialQuotaSummary(reports.route_quota_progress?.summary ?? summarizeTerritorialQuotaProgressBlocks(reports.route_quota_progress?.blocks ?? []));
+  const quotaAlertCount = quotaSummary.pending;
+  const spatialReconciliation = reports.spatial_reconciliation ?? null;
+  const spatialReconciliationCount = (spatialReconciliation?.metrics?.candidates ?? spatialReconciliation?.candidates?.length ?? 0)
+    + (spatialReconciliation?.metrics?.patterns ?? spatialReconciliation?.patterns?.length ?? 0);
   const tabs = TERRITORIAL_VALIDATION_TABS.map((tab) => ({
     ...tab,
     count: tab.key === "geolocalizacion"
-      ? rows.length
-      : tab.key === "duracion"
-        ? durationRows.length
-        : tab.key === "cuotas"
-          ? quotaSummary.in_field + quotaSummary.pending + quotaSummary.missing
-          : observationRows.length,
+      ? geoAlertRows.length
+      : tab.key === "reconciliacion"
+        ? spatialReconciliationCount
+        : tab.key === "duracion"
+          ? durationRows.length
+          : tab.key === "cuotas"
+            ? quotaAlertCount
+            : 0,
   }));
-
-  async function setObservationApproval(row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) {
-    const responseId = stringOrEmpty(row.response_id).trim();
-    if (!responseId) return;
-    const current = config.territorial.validation_decisions ?? EMPTY_TERRITORIAL_CONFIG.validation_decisions;
-    const approvedIds = new Set(arrayOrEmpty<string>(current.approved_response_ids));
-    const approvalReasons = { ...stringRecordOrEmpty(current.approval_reasons) };
-    const approvedAt = { ...stringRecordOrEmpty(current.approved_at) };
-    const approved = row.observation_status === "aprobada" || approvedIds.has(responseId);
-    if (approved) {
-      approvedIds.delete(responseId);
-      delete approvalReasons[responseId];
-      delete approvedAt[responseId];
-    } else {
-      const hasGeoReason = territorialRowHasGeoObservation(row);
-      const hasDurationReason = territorialRowHasDurationObservation(row, config);
-      approvedIds.add(responseId);
-      approvalReasons[responseId] = hasGeoReason && hasDurationReason
-        ? "geolocalizacion_duracion"
-        : hasGeoReason ? "geolocalizacion" : hasDurationReason ? "duracion" : reason;
-      approvedAt[responseId] = new Date().toISOString();
-    }
-    await onConfigPatch({
-      validation_decisions: {
-        approved_response_ids: Array.from(approvedIds),
-        approval_reasons: approvalReasons,
-        approved_at: approvedAt,
-      },
-    });
-  }
 
   function openDurationCaseInGeo(row: TerritorialResponseAuditRow) {
     const responseId = stringOrEmpty(row.response_id).trim();
@@ -14928,40 +16415,27 @@ function TerritorialValidationView({
           })}
         </div>
 
-        {activeTab === "resumen" && (
-          <div className="mon-territorial-validation-tabbody mon-territorial-validation-tabbody--summary">
-            <div className="mon-territorial-validation-grid">
-              <TerritorialValidationChart reports={reports} advance={advance} rows={observationRows} config={config} />
-              <TerritorialGeoBreakdown reports={reports} rows={geoRows} />
-              <TerritorialDurationBreakdown reports={reports} config={config} rows={rows} />
-            </div>
-            <TerritorialObservationList
-              title="Mesa de validación"
-              icon={ShieldAlert}
-              rows={observationRows}
-              config={config}
-              saving={saving}
-              reason="resumen"
-              onApprove={setObservationApproval}
-              selectedResponseId={selectedResponseId}
-              onSelectResponse={onSelectResponse}
-            />
-          </div>
-        )}
-
         {activeTab === "cuotas" && (
           <div className="mon-territorial-validation-tabbody mon-territorial-validation-tabbody--quota">
             <TerritorialQuotaConsistencyPanel reports={reports} />
           </div>
         )}
 
-        {activeTab === "geolocalizacion" && (
+        {(activeTab === "geolocalizacion" || activeTab === "reconciliacion") && (
           <div className="mon-territorial-validation-tabbody">
             <TerritorialValidationGeoWorkbench
+              view={activeTab === "reconciliacion" ? "reconciliation" : "map"}
               reports={reports}
               rows={rows}
               selectedResponseId={selectedResponseId}
               onSelectResponse={onSelectResponse}
+              saving={saving}
+              onUmpReconcile={onUmpReconcile}
+              onBatchReconcile={onBatchReconcile}
+              onDismissSpatialCandidate={onDismissSpatialCandidate}
+              onDismissSpatialPattern={onDismissSpatialPattern}
+              onOpenMap={() => setActiveTab("geolocalizacion")}
+              onOpenReconciliation={() => setActiveTab("reconciliacion")}
             />
           </div>
         )}
@@ -14973,8 +16447,6 @@ function TerritorialValidationView({
               rows={rows}
               reviewRows={durationRows}
               config={config}
-              saving={saving}
-              onApprove={setObservationApproval}
               onOpenGeoCase={openDurationCaseInGeo}
               selectedResponseId={selectedResponseId}
               onSelectResponse={onSelectResponse}
@@ -15290,7 +16762,7 @@ function territorialObservationReasonParts(row: TerritorialResponseAuditRow) {
 function territorialRowHasGeoObservation(row: TerritorialResponseAuditRow) {
   const reasons = territorialObservationReasonParts(row);
   return reasons.some((reason) => reason.startsWith("gps_"))
-    || ["geo_revision", "geo_no_defendible", "geo_sin_gps"].includes(row.geo_estado);
+    || ["geo_revision", "geo_no_defendible", "geo_sin_cruce", "geo_sin_gps"].includes(row.geo_estado);
 }
 
 function territorialRowHasDurationObservation(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
@@ -15306,18 +16778,19 @@ function territorialRowHasDurationObservation(row: TerritorialResponseAuditRow, 
 function observationReasonLabel(value: string) {
   const key = normalizeMatch(value);
   if (key.includes("codigo pulso parece numero encuesta")) return "Código parece Nro. encuesta";
+  if (key.includes("gps_sin_cruce")) return "Sin cruce territorial";
   if (key.includes("gps_sin")) return "Sin GPS";
   if (key.includes("gps_revision")) return "GPS 150-300 m";
   if (key.includes("gps_lejos") || key.includes("gps_no_defendible")) return "GPS fuera del marco";
   if (key.includes("muy_corta")) return "Duración muy corta";
   if (key.includes("corta")) return "Duración corta";
   if (key.includes("duracion")) return "Duración por revisar";
-  if (key.includes("observacion_aprobada")) return "Visto bueno";
+  if (key.includes("observacion_aprobada")) return "Observación histórica";
   return issueShortLabel(value);
 }
 
 function observationStatusLabel(value: string | undefined) {
-  if (value === "aprobada") return "Validada";
+  if (value === "aprobada") return "En observación";
   if (value === "en_observacion") return "En observación";
   if (value === "no_valida") return "No válida";
   return "Sin observación";
@@ -15336,6 +16809,28 @@ function formatDistanceLabel(value: number | null | undefined) {
   return `${Math.round(meters)} m`;
 }
 
+function territorialGpsSourceLabel(value: unknown) {
+  const raw = stringOrEmpty(value).trim();
+  const key = normalizeMatch(raw);
+  if (!raw) return "";
+  if (key === "_geolocation" || key === "geolocation") return "Kobo";
+  if (key === "gps_inicio") return "GPS inicio";
+  if (key === "gps_background") return "GPS fondo";
+  return raw;
+}
+
+function territorialGpsTraceLabel(row: Partial<TerritorialResponseAuditRow>) {
+  const source = territorialGpsSourceLabel(row.gps_effective_source);
+  const primary = territorialGpsSourceLabel(row.gps_primary_source);
+  const accuracy = numberOrNull(row.gps_effective_accuracy_m);
+  const parts = [
+    source ? `fuente ${source}` : "",
+    row.gps_reclassified && primary && source && primary !== source ? `reemplaza ${primary}` : "",
+    accuracy != null ? `prec. ${formatDistanceLabel(accuracy)}` : "",
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
 function territorialShortDurationSeconds(config: MonitoreoConfig) {
   return Math.max(300, config.territorial.min_duration_seconds * 5);
 }
@@ -15346,7 +16841,8 @@ function territorialDistanceBand(row: TerritorialResponseAuditRow) {
   if (row.geo_estado === "geo_cerca") return { key: "geo_cerca", label: "Cerca", detail: "<=150 m" };
   if (row.geo_estado === "geo_revision") return { key: "geo_revision", label: "Revisión", detail: "150-300 m" };
   if (row.geo_estado === "geo_no_defendible") return { key: "geo_no_defendible", label: "Lejos", detail: distance == null ? ">300 m" : formatDistanceLabel(distance) };
-  if (row.geo_estado === "geo_sin_gps") return { key: "geo_sin_gps", label: "Sin GPS", detail: "sin cruce" };
+  if (row.geo_estado === "geo_sin_cruce") return { key: "geo_sin_cruce", label: "Sin cruce", detail: "sin ruta/crosswalk" };
+  if (row.geo_estado === "geo_sin_gps") return { key: "geo_sin_gps", label: "Sin GPS", detail: "sin coordenada" };
   return { key: "geo_sin_gps", label: "S/D", detail: "sin dato" };
 }
 
@@ -15480,6 +16976,29 @@ function territorialRowsForGeoMap(reports: MonitoreoTerritorialDashboard): Terri
       distance_m: numberOrNull(point.distance_m),
       nearest_block_id: stringOrEmpty(point.nearest_block_id),
       nearest_block_type: stringOrEmpty(point.nearest_block_type),
+      gps_primary_source: stringOrEmpty(point.gps_primary_source),
+      gps_primary_lat: numberOrNull(point.gps_primary_lat),
+      gps_primary_lon: numberOrNull(point.gps_primary_lon),
+      gps_primary_altitude: numberOrNull(point.gps_primary_altitude),
+      gps_primary_accuracy_m: numberOrNull(point.gps_primary_accuracy_m),
+      gps_primary_parseable: Boolean(point.gps_primary_parseable),
+      gps_primary_estado: stringOrEmpty(point.gps_primary_estado),
+      gps_primary_distance_m: numberOrNull(point.gps_primary_distance_m),
+      gps_primary_nearest_block_id: stringOrEmpty(point.gps_primary_nearest_block_id),
+      gps_primary_nearest_block_type: stringOrEmpty(point.gps_primary_nearest_block_type),
+      gps_primary_geometry_match: stringOrEmpty(point.gps_primary_geometry_match),
+      gps_effective_source: stringOrEmpty(point.gps_effective_source),
+      gps_effective_lat: numberOrNull(point.gps_effective_lat),
+      gps_effective_lon: numberOrNull(point.gps_effective_lon),
+      gps_effective_altitude: numberOrNull(point.gps_effective_altitude),
+      gps_effective_accuracy_m: numberOrNull(point.gps_effective_accuracy_m),
+      gps_effective_estado: stringOrEmpty(point.gps_effective_estado),
+      gps_effective_distance_m: numberOrNull(point.gps_effective_distance_m),
+      gps_effective_nearest_block_id: stringOrEmpty(point.gps_effective_nearest_block_id),
+      gps_effective_nearest_block_type: stringOrEmpty(point.gps_effective_nearest_block_type),
+      gps_effective_geometry_match: stringOrEmpty(point.gps_effective_geometry_match),
+      gps_reclassified: Boolean(point.gps_reclassified),
+      gps_reclassification_note: stringOrEmpty(point.gps_reclassification_note),
       declared_ump_raw: stringOrEmpty(point.declared_ump_raw),
       declared_ump_normalized: stringOrEmpty(point.declared_ump_normalized),
       advance_block_id: stringOrEmpty(point.advance_block_id),
@@ -15507,6 +17026,7 @@ function territorialGeoSummary(rows: TerritorialResponseAuditRow[]) {
     geo_cerca: 0,
     geo_revision: 0,
     geo_no_defendible: 0,
+    geo_sin_cruce: 0,
     geo_sin_gps: 0,
   };
   rows.forEach((row) => {
@@ -15521,6 +17041,7 @@ function territorialGeoDispositionSummary(rows: TerritorialGeoCase[]) {
     en_zona: 0,
     en_distrito: 0,
     fuera_distrito: 0,
+    sin_cruce: 0,
     sin_gps: 0,
   };
   rows.forEach((item) => {
@@ -15532,7 +17053,8 @@ function territorialGeoDispositionSummary(rows: TerritorialGeoCase[]) {
 function territorialGeoDispositionMeta(value: TerritorialGeoDispositionKey) {
   if (value === "en_zona") return { label: "En zona", shortLabel: "Zona", detail: "dentro de zona" };
   if (value === "en_distrito") return { label: "Fuera de zona", shortLabel: "Fuera zona", detail: "en distrito" };
-  if (value === "fuera_distrito") return { label: "Fuera de zona", shortLabel: "Fuera zona", detail: "fuera de distrito" };
+  if (value === "fuera_distrito") return { label: "Fuera de distrito", shortLabel: "Fuera distrito", detail: "fuera de distrito" };
+  if (value === "sin_cruce") return { label: "Sin cruce territorial", shortLabel: "Sin cruce", detail: "sin ruta/crosswalk" };
   return { label: "Sin GPS", shortLabel: "Sin GPS", detail: "sin coordenada" };
 }
 
@@ -15611,10 +17133,17 @@ function territorialCaseReviewReasons(row: TerritorialResponseAuditRow, config: 
   const out: Array<{ key: string; label: string; detail: string }> = [];
   if (territorialRowHasGeoObservation(row)) {
     const band = territorialDistanceBand(row);
+    const gpsTrace = territorialGpsTraceLabel(row);
     out.push({
       key: `geo-${band.key}`,
-      label: band.key === "geo_no_defendible" ? "GPS fuera del marco" : band.key === "geo_sin_gps" ? "GPS no disponible" : "GPS en revisión",
-      detail: band.detail,
+      label: band.key === "geo_no_defendible"
+        ? "GPS fuera del marco"
+        : band.key === "geo_sin_cruce"
+          ? "Sin cruce territorial"
+          : band.key === "geo_sin_gps"
+            ? "GPS no disponible"
+            : "GPS en revisión",
+      detail: gpsTrace ? `${band.detail} · ${gpsTrace}` : band.detail,
     });
   }
   if (territorialRowHasDurationObservation(row, config)) {
@@ -15638,6 +17167,7 @@ function territorialObservationPriority(row: TerritorialResponseAuditRow, config
   const durationBand = territorialDurationBand(row, config).key;
   let score = 0;
   if (row.geo_estado === "geo_no_defendible") score += 80 + Math.min(40, distance / 1000);
+  if (row.geo_estado === "geo_sin_cruce") score += 68;
   if (row.geo_estado === "geo_sin_gps") score += 65;
   if (row.geo_estado === "geo_revision") score += 45;
   if (durationBand === "muy_corto") score += 70;
@@ -15654,210 +17184,317 @@ function territorialDurationBreakdown(rows: TerritorialResponseAuditRow[], confi
   return counts;
 }
 
-function TerritorialObservationList({
-  title,
-  icon: Icon,
-  rows,
-  config,
-  saving,
-  reason,
-  onApprove,
-  selectedResponseId,
-  onSelectResponse,
-  compact = false,
-}: {
-  title: string;
-  icon: typeof ShieldAlert;
-  rows: TerritorialResponseAuditRow[];
-  config: MonitoreoConfig;
-  saving: boolean;
-  reason: TerritorialValidationTab;
-  onApprove: (row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) => Promise<void>;
-  selectedResponseId?: string;
-  onSelectResponse?: (responseId: string) => void;
-  compact?: boolean;
-}) {
-  const ordered = [...rows].sort((a, b) => {
-    const aApproved = a.observation_status === "aprobada" ? 1 : 0;
-    const bApproved = b.observation_status === "aprobada" ? 1 : 0;
-    if (aApproved !== bApproved) return aApproved - bApproved;
-    return territorialObservationPriority(b, config) - territorialObservationPriority(a, config);
-  });
-  return (
-    <section className={`mon-territorial-observation-list${compact ? " is-compact" : ""}`}>
-      <header>
-        <div>
-          <span><Icon size={14} /> {title}</span>
-          <p>Casos auditables por distrito, encuestador, distancia y duración. El ID queda como trazabilidad, no como lectura principal.</p>
-        </div>
-        <strong>{formatMetric(ordered.length)} casos</strong>
-      </header>
-      {ordered.length ? (
-        <>
-          <div className="mon-territorial-observation-scroll">
-            <table className="mon-territorial-observation-table">
-              <thead>
-                <tr>
-                  <th>Distrito</th>
-                  <th>Caso</th>
-                  <th>Encuestador</th>
-                  <th>Distancia</th>
-                  <th>Duración</th>
-                  <th>Motivo</th>
-                  <th>Estado</th>
-                  <th>Decisión</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordered.map((row) => {
-                  const approved = row.observation_status === "aprobada";
-                  const responseId = row.response_id || `row-${row.row_index}`;
-                  const selected = selectedResponseId && selectedResponseId === row.response_id;
-                  const distanceBand = territorialDistanceBand(row);
-                  const durationBand = territorialDurationBand(row, config);
-                  const reviewReasons = territorialCaseReviewReasons(row, config);
-                  return (
-                    <tr key={`${row.row_index}-${responseId}`} className={`${approved ? "is-approved" : "is-pending"}${selected ? " is-selected" : ""}`}>
-                      <td>
-                        <strong>{row.distrito || row.district_code || "Sin distrito"}</strong>
-                        <small>{row.ubigeo || row.district_code || "sin cruce distrital"}</small>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="mon-territorial-case-id-button"
-                          title={responseId}
-                          onClick={() => {
-                            if (row.response_id) onSelectResponse?.(row.response_id);
-                          }}
-                        >
-                          {shortenMiddle(responseId, 22)}
-                        </button>
-                        <small>{formatTerritorialSubmissionStamp(row) || `Fila ${formatMetric(row.row_index)}`}</small>
-                      </td>
-                      <td>
-                        <strong>{territorialInterviewerLabel(row.submitted_by)}</strong>
-                        <small>{row.nearest_block_id ? `Manzana ${shortenMiddle(row.nearest_block_id, 14)}` : "sin manzana cercana"}</small>
-                      </td>
-                      <td>
-                        <span className={`mon-territorial-band is-${distanceBand.key}`}><IconMapDistance size={13} /> {distanceBand.label}</span>
-                        <small>{formatDistanceLabel(row.distance_m)}</small>
-                      </td>
-                      <td>
-                        {durationBand.hasDuration
-                          ? <span className={`mon-territorial-band ${durationBand.className}`}><Clock size={13} /> {durationBand.label}</span>
-                          : <span className="mon-territorial-duration-empty">No registrada</span>}
-                        <small>{formatDurationLabel(row.duration_seconds)}</small>
-                      </td>
-                      <td>
-                        <span className="mon-territorial-reason-stack">
-                          {reviewReasons.map((item) => (
-                            <em key={item.key}><strong>{item.label}</strong><small>{item.detail}</small></em>
-                          ))}
-                        </span>
-                      </td>
-                      <td>
-                        <em className={`mon-territorial-observation-status is-${row.observation_status ?? "sin_observacion"}`}>{observationStatusLabel(row.observation_status)}</em>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="mon-territorial-observation-action"
-                          disabled={saving || !responseId}
-                          onClick={() => { void onApprove(row, reason).catch(() => undefined); }}
-                        >
-                          {saving ? <Loader2 size={13} className="pulso-spin" /> : approved ? <XCircle size={13} /> : <CheckCircle2 size={13} />}
-                        <span>{approved ? "Quitar" : "Visto bueno"}</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="mon-territorial-observation-end" aria-hidden="true"><span /></div>
-        </>
-      ) : (
-        <div className="mon-territorial-audit-empty">Sin observaciones para este corte.</div>
-      )}
-    </section>
-  );
-}
-
 function TerritorialValidationGeoWorkbench({
+  view = "map",
   reports,
   rows,
   selectedResponseId,
   onSelectResponse,
+  saving = false,
+  onUmpReconcile,
+  onBatchReconcile,
+  onDismissSpatialCandidate,
+  onDismissSpatialPattern,
+  onOpenMap,
+  onOpenReconciliation,
 }: {
+  view?: "map" | "reconciliation";
   reports: MonitoreoTerritorialDashboard;
   rows: TerritorialResponseAuditRow[];
   selectedResponseId?: string;
   onSelectResponse?: (responseId: string) => void;
+  saving?: boolean;
+  onUmpReconcile?: (entry: MonitoreoTerritorialUmpReconciliation) => Promise<void>;
+  onBatchReconcile?: (changes: MonitoreoTerritorialReconciliationBatchChange[]) => Promise<{
+    applied: Array<{ client_id: string }>;
+    failed: Array<{ client_id: string; message: string }>;
+  }>;
+  onDismissSpatialCandidate?: (candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => Promise<void>;
+  onDismissSpatialPattern?: (pattern: MonitoreoTerritorialSpatialReconciliationPattern) => Promise<void>;
+  onOpenMap?: () => void;
+  onOpenReconciliation?: () => void;
 }) {
-  const effectiveRows = useMemo(() => rows.filter(territorialResponseIsEffective), [rows]);
-  const effectiveRowIds = useMemo(() => new Set(effectiveRows.map((row) => row.response_id).filter(Boolean)), [effectiveRows]);
-  const gpsRows = useMemo(() => effectiveRows.filter(territorialResponseHasGps), [effectiveRows]);
-  const routeBlocks = useMemo(() => {
-    const blocks = reports.map.blocks.length ? reports.map.blocks : reports.block_progress;
-    return blocks.filter((block) => territorialBlockStableKey(block)).sort(territorialRouteBlockComparator);
+  const selectedResponseKey = stringOrEmpty(selectedResponseId).trim();
+  const [preparedGeo, setPreparedGeo] = useState<{
+    effectiveRows: TerritorialResponseAuditRow[];
+    gpsRows: TerritorialResponseAuditRow[];
+    routeBlocks: TerritorialBlockProgress[];
+    districtSections: TerritorialGeoDistrictSection[];
+  } | null>(null);
+  const preparationKey = [
+    reports.generated_at || "",
+    reports.report_scope || "",
+    reports.active_route_phase || "",
+    rows.length,
+    selectedResponseKey,
+  ].join("::");
+  const geoSourceBlocks = useMemo(() => {
+    const sourceBlocks = reports.map.blocks.length ? reports.map.blocks : reports.block_progress;
+    return sourceBlocks.filter((block) => territorialBlockStableKey(block)).sort(territorialRouteBlockComparator);
   }, [reports]);
-  const pointsByResponse = useMemo(() => (
-    new Map(territorialKoboMapPoints(reports)
-      .filter((point) => effectiveRowIds.has(point.response_id))
-      .map((point) => [point.response_id, point]))
-  ), [effectiveRowIds, reports]);
-  const enrichedCases = useMemo(() => effectiveRows
-    .slice()
-    .sort((a, b) => {
-      const aGps = territorialResponseHasGps(a) ? 0 : 1;
-      const bGps = territorialResponseHasGps(b) ? 0 : 1;
-      if (aGps !== bGps) return aGps - bGps;
-      return (a.row_index ?? 0) - (b.row_index ?? 0);
-    })
-    .map((row) => territorialBuildGeoCase(row, routeBlocks, pointsByResponse.get(row.response_id))), [effectiveRows, pointsByResponse, routeBlocks]);
-  const districtSections = useMemo(() => territorialGeoBlockSections(enrichedCases), [enrichedCases]);
+  const geoCartography = useTerritorialAdvanceRouteCartography(geoSourceBlocks);
+  const geoZoneFeatures = useMemo(() => (
+    Object.values(geoCartography.bundles).flatMap((bundle) => bundle.zoneMap?.geojson?.features ?? [])
+  ), [geoCartography.bundles]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreparedGeo(null);
+    const prepare = () => {
+      const selectedRow = selectedResponseKey ? rows.find((row) => row.response_id === selectedResponseKey) ?? null : null;
+      const baseRows = rows.filter(territorialResponseIsEffective);
+      const effectiveRows = selectedRow && !baseRows.some((row) => row.response_id === selectedRow.response_id)
+        ? [...baseRows, selectedRow]
+        : baseRows;
+      const effectiveRowIds = new Set(effectiveRows.map((row) => row.response_id).filter(Boolean));
+      const gpsRows = effectiveRows.filter(territorialResponseHasGps);
+      const routeBlocks = geoSourceBlocks;
+      const pointsByResponse = new Map(territorialKoboMapPoints(reports)
+        .filter((point) => effectiveRowIds.has(point.response_id))
+        .map((point) => [point.response_id, point]));
+      const enrichedCases = effectiveRows
+        .slice()
+        .sort((a, b) => {
+          const aGps = territorialResponseHasGps(a) ? 0 : 1;
+          const bGps = territorialResponseHasGps(b) ? 0 : 1;
+          if (aGps !== bGps) return aGps - bGps;
+          return (a.row_index ?? 0) - (b.row_index ?? 0);
+        })
+        .map((row) => territorialBuildGeoCase(row, routeBlocks, pointsByResponse.get(row.response_id), geoZoneFeatures));
+      if (cancelled) return;
+      setPreparedGeo({
+        effectiveRows,
+        gpsRows,
+        routeBlocks,
+        districtSections: territorialGeoBlockSections(enrichedCases),
+      });
+    };
+    const handle = window.setTimeout(prepare, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [geoSourceBlocks, geoZoneFeatures, preparationKey, reports, rows, selectedResponseKey]);
+
+  const effectiveRows = preparedGeo?.effectiveRows ?? [];
+  const gpsRows = preparedGeo?.gpsRows ?? [];
+  const routeBlocks = preparedGeo?.routeBlocks ?? [];
+  const districtSections = preparedGeo?.districtSections ?? [];
+  const geoBlockGroups = useMemo(() => districtSections.flatMap((section) => section.blockGroups), [districtSections]);
   const districtSectionsFocusKey = useMemo(() => (
-    districtSections.flatMap((section) => section.blockGroups.map((group) => group.key)).join("|")
-  ), [districtSections]);
+    geoBlockGroups.map((group) => group.key).join("|")
+  ), [geoBlockGroups]);
   const [selectedGeoBlockKey, setSelectedGeoBlockKey] = useState("");
   const [focusPointId, setFocusPointId] = useState("");
+  const [pendingSpatialReconciliationChanges, setPendingSpatialReconciliationChanges] = useState<TerritorialPendingReconciliationChange[]>([]);
+  const [spatialReconciliationConfirmOpen, setSpatialReconciliationConfirmOpen] = useState(false);
+  const [spatialReconciliationBatchApplying, setSpatialReconciliationBatchApplying] = useState(false);
+  const [spatialReconciliationBatchMessage, setSpatialReconciliationBatchMessage] = useState("");
   const appliedResponseFocusRef = useRef("");
+  const spatialReconciliation = reports.spatial_reconciliation ?? null;
+  const spatialCandidatesById = useMemo(() => new Map((spatialReconciliation?.candidates ?? []).map((candidate) => [candidate.candidate_id, candidate])), [spatialReconciliation]);
+  const spatialContextKey = `${reports.active_route_phase || ""}::${reports.generated_at || ""}::${spatialReconciliation?.metrics?.candidates ?? 0}:${spatialReconciliation?.metrics?.patterns ?? 0}`;
   useEffect(() => {
-    const available = new Set(districtSections.flatMap((section) => section.blockGroups.map((group) => group.key)));
-    if (selectedGeoBlockKey && available.has(selectedGeoBlockKey)) return;
-    setSelectedGeoBlockKey(districtSections[0]?.blockGroups[0]?.key ?? "");
-  }, [districtSections, selectedGeoBlockKey]);
+    if (selectedGeoBlockKey && geoBlockGroups.some((group) => group.key === selectedGeoBlockKey)) return;
+    const fallbackKey = geoBlockGroups[0]?.key ?? "";
+    if (selectedGeoBlockKey !== fallbackKey) setSelectedGeoBlockKey(fallbackKey);
+  }, [geoBlockGroups, selectedGeoBlockKey]);
+  useEffect(() => {
+    setPendingSpatialReconciliationChanges([]);
+    setSpatialReconciliationConfirmOpen(false);
+    setSpatialReconciliationBatchMessage("");
+  }, [spatialContextKey]);
   useEffect(() => {
     const responseId = stringOrEmpty(selectedResponseId).trim();
     if (!responseId) return;
     const focusKey = `${responseId}:${districtSectionsFocusKey}`;
     if (appliedResponseFocusRef.current === focusKey) return;
-    const targetGroup = districtSections
-      .flatMap((section) => section.blockGroups)
-      .find((group) => group.rows.some((item) => item.row.response_id === responseId));
+    const targetGroup = geoBlockGroups.find((group) => group.rows.some((item) => item.row.response_id === responseId));
     if (!targetGroup) return;
     appliedResponseFocusRef.current = focusKey;
     setSelectedGeoBlockKey(targetGroup.key);
     setFocusPointId(responseId);
-  }, [districtSections, districtSectionsFocusKey, selectedResponseId]);
+  }, [districtSectionsFocusKey, geoBlockGroups, selectedResponseId]);
   const selectedBlockGroup = useMemo(() => (
-    districtSections.flatMap((section) => section.blockGroups).find((group) => group.key === selectedGeoBlockKey)
-      ?? districtSections[0]?.blockGroups[0]
+    geoBlockGroups.find((group) => group.key === selectedGeoBlockKey)
+      ?? geoBlockGroups[0]
       ?? null
-  ), [districtSections, selectedGeoBlockKey]);
+  ), [geoBlockGroups, selectedGeoBlockKey]);
   useEffect(() => {
     if (!focusPointId) return;
-    const belongsToSelectedGroup = selectedBlockGroup?.rows.some((item) => item.row.response_id === focusPointId);
-    if (!belongsToSelectedGroup) setFocusPointId("");
-  }, [focusPointId, selectedBlockGroup]);
+    const targetGroup = geoBlockGroups.find((group) => group.rows.some((item) => item.row.response_id === focusPointId));
+    if (!targetGroup) {
+      setFocusPointId("");
+      return;
+    }
+    if (targetGroup.key !== selectedBlockGroup?.key) {
+      setSelectedGeoBlockKey(targetGroup.key);
+    }
+  }, [focusPointId, geoBlockGroups, selectedBlockGroup?.key]);
   const selectGeoBlock = useCallback((key: string) => {
     setSelectedGeoBlockKey(key);
     setFocusPointId("");
   }, []);
+  const focusSpatialCandidate = useCallback((candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => {
+    const responseId = stringOrEmpty(candidate.response_id).trim();
+    if (!responseId) return;
+    onSelectResponse?.(responseId);
+    setFocusPointId(responseId);
+    const targetGroup = geoBlockGroups.find((group) => group.rows.some((item) => item.row.response_id === responseId));
+    if (targetGroup) setSelectedGeoBlockKey(targetGroup.key);
+    if (view === "reconciliation") onOpenMap?.();
+  }, [geoBlockGroups, onOpenMap, onSelectResponse, view]);
+  const stageSpatialReconciliationChange = useCallback((change: TerritorialPendingReconciliationChange) => {
+    setSpatialReconciliationBatchMessage("");
+    setPendingSpatialReconciliationChanges((current) => [
+      ...current.filter((item) => item.id !== change.id),
+      { ...change, status: "pending", error: "" },
+    ]);
+  }, []);
+  const stageSpatialCandidate = useCallback((candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => {
+    if (!candidate.reconciliation) return;
+    stageSpatialReconciliationChange(territorialBuildPendingUmpReconciliationChange(candidate.reconciliation));
+    focusSpatialCandidate(candidate);
+    setSpatialReconciliationBatchMessage("Caso espacial puesto en cola.");
+  }, [focusSpatialCandidate, stageSpatialReconciliationChange]);
+  const stageSpatialPattern = useCallback((pattern: MonitoreoTerritorialSpatialReconciliationPattern) => {
+    const ids = territorialSpatialPatternCandidateIds(pattern);
+    let staged = 0;
+    ids.forEach((id) => {
+      const candidate = spatialCandidatesById.get(id);
+      if (!candidate?.reconciliation) return;
+      stageSpatialReconciliationChange(territorialBuildPendingUmpReconciliationChange(candidate.reconciliation));
+      staged += 1;
+    });
+    if (staged) setSpatialReconciliationBatchMessage(`${formatMetric(staged)} casos del patrón puestos en cola.`);
+  }, [spatialCandidatesById, stageSpatialReconciliationChange]);
+  const discardSpatialReconciliationChanges = useCallback(() => {
+    if (spatialReconciliationBatchApplying) return;
+    setPendingSpatialReconciliationChanges([]);
+    setSpatialReconciliationConfirmOpen(false);
+    setSpatialReconciliationBatchMessage("");
+  }, [spatialReconciliationBatchApplying]);
+  const applySpatialReconciliationChanges = useCallback(async () => {
+    const changes = pendingSpatialReconciliationChanges.filter((change) => change.status !== "saving");
+    if (!changes.length || spatialReconciliationBatchApplying) return;
+    setSpatialReconciliationBatchApplying(true);
+    setSpatialReconciliationBatchMessage("");
+    setPendingSpatialReconciliationChanges((current) => current.map((change) => ({ ...change, status: "saving", error: "" })));
+    const succeeded = new Set<string>();
+    const failed = new Map<string, string>();
+    const applySequentially = async () => {
+      if (!onUmpReconcile) {
+        changes.forEach((change) => failed.set(change.id, "No hay endpoint de reconciliación disponible."));
+        return;
+      }
+      for (const change of changes) {
+        try {
+          if (change.kind === "ump") {
+            await onUmpReconcile(change.payload);
+            succeeded.add(change.id);
+          }
+        } catch (error) {
+          failed.set(change.id, (error as Error).message || String(error));
+        }
+      }
+    };
+    if (onBatchReconcile) {
+      try {
+        const result = await onBatchReconcile(changes.map((change): MonitoreoTerritorialReconciliationBatchChange => ({
+          client_id: change.id,
+          kind: change.kind,
+          reconciliation: change.payload,
+        } as MonitoreoTerritorialReconciliationBatchChange)));
+        result.applied.forEach((item) => succeeded.add(item.client_id));
+        result.failed.forEach((item) => failed.set(item.client_id, item.message || "No se pudo guardar este cambio."));
+      } catch (error) {
+        const message = (error as Error).message || String(error);
+        const canFallback = /HTTP_404|\b404\b|Failed to fetch/i.test(message);
+        if (canFallback) {
+          await applySequentially();
+        } else {
+          changes.forEach((change) => failed.set(change.id, message));
+        }
+      }
+    } else {
+      await applySequentially();
+    }
+    setPendingSpatialReconciliationChanges((current) => current
+      .filter((change) => !succeeded.has(change.id))
+      .map((change) => failed.has(change.id)
+        ? { ...change, status: "error", error: failed.get(change.id) || "No se pudo guardar este cambio." }
+        : { ...change, status: "pending", error: "" }));
+    setSpatialReconciliationBatchApplying(false);
+    if (failed.size) {
+      setSpatialReconciliationBatchMessage(`${formatMetric(succeeded.size)} guardadas · ${formatMetric(failed.size)} con error`);
+      return;
+    }
+    setSpatialReconciliationConfirmOpen(false);
+    setSpatialReconciliationBatchMessage(succeeded.size ? `${formatMetric(succeeded.size)} reconciliaciones guardadas.` : "");
+  }, [onBatchReconcile, onUmpReconcile, pendingSpatialReconciliationChanges, spatialReconciliationBatchApplying]);
+  if (!preparedGeo) {
+    return (
+      <div className={`mon-territorial-validation-geo-workbench${view === "reconciliation" ? " mon-territorial-validation-geo-workbench--reconciliation" : ""}`}>
+        <LoadingBlock label="Preparando mapa GPS y UMP..." minHeight={520} />
+        {view === "map" ? <LoadingBlock label="Agrupando casos geolocalizados..." minHeight={520} /> : null}
+      </div>
+    );
+  }
+  const spatialQueuedIds = new Set(pendingSpatialReconciliationChanges.map((change) => change.id));
+  const spatialCandidateCount = spatialReconciliation?.metrics?.candidates ?? spatialReconciliation?.candidates?.length ?? 0;
+  const spatialPatternCount = spatialReconciliation?.metrics?.patterns ?? spatialReconciliation?.patterns?.length ?? 0;
+  const spatialReviewCount = spatialCandidateCount + spatialPatternCount;
+  const spatialReconciliationContent = (
+    <section className="mon-territorial-validation-geo-spatial" aria-label="Reconciliación espacial de UMP">
+      <TerritorialReconciliationBatchBar
+        changes={pendingSpatialReconciliationChanges}
+        applying={spatialReconciliationBatchApplying}
+        saving={saving}
+        message={spatialReconciliationBatchMessage}
+        hideWhenEmpty
+        onConfirm={() => setSpatialReconciliationConfirmOpen(true)}
+        onDiscard={discardSpatialReconciliationChanges}
+      />
+      <TerritorialReconciliationBatchDialog
+        open={spatialReconciliationConfirmOpen}
+        changes={pendingSpatialReconciliationChanges}
+        applying={spatialReconciliationBatchApplying}
+        message={spatialReconciliationBatchMessage}
+        onOpenChange={setSpatialReconciliationConfirmOpen}
+        onApply={applySpatialReconciliationChanges}
+      />
+      <TerritorialSpatialReconciliationPanel
+        summary={spatialReconciliation}
+        queuedIds={spatialQueuedIds}
+        saving={saving || spatialReconciliationBatchApplying}
+        onStageCandidate={stageSpatialCandidate}
+        onStagePattern={stageSpatialPattern}
+        onDismissCandidate={onDismissSpatialCandidate}
+        onDismissPattern={onDismissSpatialPattern}
+        onFocusCandidate={focusSpatialCandidate}
+      />
+    </section>
+  );
+  if (view === "reconciliation") {
+    return (
+      <div className="mon-territorial-validation-geo-workbench mon-territorial-validation-geo-workbench--reconciliation">
+        {spatialReconciliationContent}
+      </div>
+    );
+  }
   return (
     <div className="mon-territorial-validation-geo-workbench">
+      <section className="mon-territorial-validation-geo-reconciliation-entry" aria-label="Acceso a reconciliación UMP">
+        <div>
+          <span><Route size={14} /> Reconciliación UMP</span>
+          <strong>{spatialReviewCount ? `${formatMetric(spatialReviewCount)} sospechas por revisar` : "Sin sospechas espaciales"}</strong>
+          <p>Revisa casos donde el GPS sugiere otra UMP/manzana sin perder el foco del mapa.</p>
+        </div>
+        <button type="button" onClick={onOpenReconciliation}>
+          <ClipboardCheck size={14} />
+          <span>{spatialReviewCount ? "Abrir reconciliación" : "Ver estado"}</span>
+        </button>
+      </section>
       <TerritorialValidationGeoRouteMap
         reports={reports}
         rows={effectiveRows}
@@ -15873,9 +17510,216 @@ function TerritorialValidationGeoWorkbench({
         focusPointId={focusPointId}
         onSelectBlock={selectGeoBlock}
         onFocusPoint={setFocusPointId}
-        onSelectResponse={onSelectResponse}
       />
     </div>
+  );
+}
+
+function territorialSpatialConfidenceLabel(confidence: string) {
+  const key = normalizeMatch(confidence);
+  if (key === "alta") return "Alta";
+  if (key === "media") return "Media";
+  if (key === "baja") return "Baja";
+  return confidence || "Sin score";
+}
+
+function territorialSpatialBlockLabel({
+  ump,
+  blockId,
+  manzana,
+  district,
+}: {
+  ump?: string;
+  blockId?: string;
+  manzana?: string;
+  district?: string;
+}) {
+  const main = [
+    stringOrEmpty(ump) ? `UMP ${stringOrEmpty(ump)}` : "",
+    stringOrEmpty(manzana) ? `Mz ${stringOrEmpty(manzana)}` : "",
+  ].filter(Boolean).join(" · ");
+  const fallback = stringOrEmpty(blockId) ? `Mz ${stringOrEmpty(blockId)}` : "Sin manzana";
+  const detail = stringOrEmpty(district);
+  return { main: main || fallback, detail };
+}
+
+function TerritorialSpatialImpactPreview({ impact }: { impact?: MonitoreoTerritorialSpatialReconciliationCandidate["impact"] }) {
+  if (!impact) return null;
+  const sourceBreaks = Boolean(impact.source?.would_break_quota);
+  const targetCompletes = Boolean(impact.target?.would_complete_quota);
+  return (
+    <div className="mon-territorial-spatial-impact" aria-label="Impacto preliminar en cuotas">
+      <span>
+        <em>Origen</em>
+        <strong>{formatMetric(impact.source?.before_validas ?? 0)} → {formatMetric(impact.source?.after_validas ?? 0)} / {formatMetric(impact.source?.target ?? 0)}</strong>
+      </span>
+      <span>
+        <em>Destino</em>
+        <strong>{formatMetric(impact.target?.before_validas ?? 0)} → {formatMetric(impact.target?.after_validas ?? 0)} / {formatMetric(impact.target?.target ?? 0)}</strong>
+      </span>
+      {targetCompletes ? <mark className="is-positive">Completa destino</mark> : null}
+      {sourceBreaks ? <mark className="is-danger">Rompe origen</mark> : null}
+    </div>
+  );
+}
+
+function TerritorialSpatialReconciliationPanel({
+  summary,
+  queuedIds,
+  saving,
+  onStageCandidate,
+  onStagePattern,
+  onDismissCandidate,
+  onDismissPattern,
+  onFocusCandidate,
+}: {
+  summary: MonitoreoTerritorialSpatialReconciliationSummary | null;
+  queuedIds: Set<string>;
+  saving: boolean;
+  onStageCandidate: (candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => void;
+  onStagePattern: (pattern: MonitoreoTerritorialSpatialReconciliationPattern) => void;
+  onDismissCandidate?: (candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => Promise<void>;
+  onDismissPattern?: (pattern: MonitoreoTerritorialSpatialReconciliationPattern) => Promise<void>;
+  onFocusCandidate: (candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => void;
+}) {
+  const candidates = summary?.candidates ?? [];
+  const patterns = summary?.patterns ?? [];
+  const metrics = summary?.metrics ?? { candidates: 0, patterns: 0 };
+  const candidatesById = useMemo(() => new Map(candidates.map((candidate) => [candidate.candidate_id, candidate])), [candidates]);
+  const hasCandidates = candidates.length > 0 || patterns.length > 0;
+  const visibleCandidates = candidates.slice(0, 8);
+  const visiblePatterns = patterns.slice(0, 5);
+  const dismissCandidate = useCallback((candidate: MonitoreoTerritorialSpatialReconciliationCandidate) => {
+    if (!onDismissCandidate) return;
+    void onDismissCandidate(candidate);
+  }, [onDismissCandidate]);
+  const dismissPattern = useCallback((pattern: MonitoreoTerritorialSpatialReconciliationPattern) => {
+    if (!onDismissPattern) return;
+    void onDismissPattern(pattern);
+  }, [onDismissPattern]);
+  return (
+    <section className="mon-territorial-spatial-reconciliation-panel">
+      <header>
+        <div>
+          <span><MapPin size={14} /> Reconciliación UMP</span>
+          <strong>{hasCandidates ? `${formatMetric(metrics.candidates ?? candidates.length)} sospechas espaciales` : "Sin sospechas espaciales"}</strong>
+          <p>Casos donde la UMP declarada y el GPS apuntan a otra manzana. La sugerencia no cambia datos hasta que se pone en cola y se confirma.</p>
+        </div>
+        <div className="mon-territorial-spatial-reconciliation-metrics">
+          <span><strong>{formatMetric(metrics.high_confidence ?? 0)}</strong><em>alta confianza</em></span>
+          <span><strong>{formatMetric(metrics.patterns ?? patterns.length)}</strong><em>patrones</em></span>
+          <span><strong>{formatMetric((metrics.dismissed_candidates ?? 0) + (metrics.dismissed_patterns ?? 0))}</strong><em>descartadas</em></span>
+        </div>
+      </header>
+      {!hasCandidates ? (
+        <div className="mon-territorial-spatial-empty">
+          <CheckCircle2 size={18} />
+          <div>
+            <strong>No hay casos para reconciliar en este corte.</strong>
+            <span>{summary?.reason ? `Motor: ${summary.reason}` : "Las UMP declaradas y la evidencia espacial no generan sugerencias pendientes."}</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {visiblePatterns.length ? (
+            <div className="mon-territorial-spatial-patterns" aria-label="Patrones espaciales detectados">
+              {visiblePatterns.map((pattern) => {
+                const candidateIds = territorialSpatialPatternCandidateIds(pattern);
+                const stagedCount = candidateIds.filter((id) => queuedIds.has(territorialPendingUmpReconciliationId(candidatesById.get(id)?.reconciliation ?? {
+                  raw_ump: "",
+                  assigned_block_id: "",
+                  assigned_ump: "",
+                }))).length;
+                return (
+                  <article key={pattern.pattern_key} className={`mon-territorial-spatial-pattern is-${normalizeMatch(pattern.confidence)}`}>
+                    <div>
+                      <span>Patrón · {territorialSpatialConfidenceLabel(pattern.confidence)}</span>
+                      <strong>{formatMetric(pattern.count)} casos: UMP {pattern.raw_ump || pattern.declared_ump || "-"} → UMP {pattern.target_ump || "-"}</strong>
+                      <em>{pattern.responsible || pattern.target_responsible || "Sin responsable"} · {pattern.target_district || "Sin distrito"}</em>
+                    </div>
+                    <div className="mon-territorial-spatial-pattern-actions">
+                      <small>{formatMetric(pattern.score)} pts{stagedCount ? ` · ${formatMetric(stagedCount)} en cola` : ""}</small>
+                      <button type="button" onClick={() => onStagePattern(pattern)} disabled={saving || !candidateIds.length}>
+                        <ClipboardCheck size={13} />
+                        <span>Poner patrón en cola</span>
+                      </button>
+                      <button type="button" onClick={() => dismissPattern(pattern)} disabled={saving || !onDismissPattern}>
+                        <Trash2 size={13} />
+                        <span>Descartar</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+          <div className="mon-territorial-spatial-candidate-grid" aria-label="Casos sugeridos de reconciliación UMP">
+            {visibleCandidates.map((candidate) => {
+              const declared = territorialSpatialBlockLabel({
+                ump: candidate.declared_ump || candidate.raw_ump,
+                blockId: candidate.declared_block_id,
+                manzana: candidate.declared_manzana,
+                district: candidate.declared_district,
+              });
+              const target = territorialSpatialBlockLabel({
+                ump: candidate.target_ump,
+                blockId: candidate.target_block_id,
+                manzana: candidate.target_manzana,
+                district: candidate.target_district,
+              });
+              const pendingId = territorialPendingUmpReconciliationId(candidate.reconciliation);
+              const queued = queuedIds.has(pendingId);
+              return (
+                <article key={candidate.candidate_id} className={`mon-territorial-spatial-candidate is-${normalizeMatch(candidate.confidence)}`}>
+                  <header>
+                    <div>
+                      <span>{territorialSpatialConfidenceLabel(candidate.confidence)} · {formatMetric(candidate.score)} pts</span>
+                      <strong>{candidate.responsible || candidate.target_responsible || "Sin responsable"}</strong>
+                    </div>
+                    <button type="button" onClick={() => onFocusCandidate(candidate)} title="Ver este punto en el mapa">
+                      <MapPin size={14} />
+                      <span>Mapa</span>
+                    </button>
+                  </header>
+                  <div className="mon-territorial-spatial-route">
+                    <div>
+                      <span>Declarado</span>
+                      <strong>{declared.main}</strong>
+                      <em>{declared.detail || candidate.declared_responsible || "Sin detalle"}</em>
+                    </div>
+                    <ArrowRight size={16} />
+                    <div>
+                      <span>Candidato</span>
+                      <strong>{target.main}</strong>
+                      <em>{target.detail || candidate.target_responsible || "Sin detalle"}</em>
+                    </div>
+                  </div>
+                  <div className="mon-territorial-spatial-evidence">
+                    {(candidate.evidence ?? []).slice(0, 4).map((item) => (
+                      <span key={`${candidate.candidate_id}-${item.key}`} className={`is-${item.tone || "neutral"}`}>{item.label}</span>
+                    ))}
+                    {candidate.gps_effective_source ? <span>{territorialGpsSourceLabel(candidate.gps_effective_source)}</span> : null}
+                    {candidate.distance_m != null ? <span>{formatMetric(candidate.distance_m)} m</span> : null}
+                    {candidate.gps_reclassification_note ? <span className="is-positive">{candidate.gps_reclassification_note}</span> : null}
+                  </div>
+                  <TerritorialSpatialImpactPreview impact={candidate.impact} />
+                  <footer>
+                    <button type="button" className="is-primary" onClick={() => onStageCandidate(candidate)} disabled={saving || queued}>
+                      <ClipboardCheck size={13} />
+                      <span>{queued ? "En cola" : "Poner caso en cola"}</span>
+                    </button>
+                    <button type="button" onClick={() => dismissCandidate(candidate)} disabled={saving || !onDismissCandidate}>
+                      <Trash2 size={13} />
+                      <span>Descartar</span>
+                    </button>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -15933,10 +17777,7 @@ function TerritorialValidationGeoRouteMap({
       || blocks[0]?.ubigeo,
   );
   const [blockMap, setBlockMap] = useState<HojasRutaBlockMap | null>(null);
-  const [neighborBlockMaps, setNeighborBlockMaps] = useState<Record<string, HojasRutaBlockMap | null>>({});
   const [zoneMap, setZoneMap] = useState<HojasRutaZoneMap | null>(null);
-  const [streetMap, setStreetMap] = useState<HojasRutaStreetMap | null>(null);
-  const [contextMap, setContextMap] = useState<HojasRutaContextMap | null>(null);
   const [loading, setLoading] = useState(false);
   const [mapError, setMapError] = useState("");
   const navigation = useTerritorialMapNavigation(
@@ -15949,10 +17790,7 @@ function TerritorialValidationGeoRouteMap({
   useEffect(() => {
     if (!selectedUbigeo) {
       setBlockMap(null);
-      setNeighborBlockMaps({});
       setZoneMap(null);
-      setStreetMap(null);
-      setContextMap(null);
       setLoading(false);
       setMapError("");
       return;
@@ -15962,8 +17800,6 @@ function TerritorialValidationGeoRouteMap({
     if (cached) {
       setBlockMap(cached.blockMap);
       setZoneMap(cached.zoneMap);
-      setStreetMap(cached.streetMap);
-      setContextMap(cached.contextMap);
       setLoading(false);
       setMapError(cached.partial ? "No se pudo cargar toda la cartografía contextual para el caso seleccionado." : "");
       return () => { cancelled = true; };
@@ -15972,14 +17808,10 @@ function TerritorialValidationGeoRouteMap({
     setMapError("");
     setBlockMap(null);
     setZoneMap(null);
-    setStreetMap(null);
-    setContextMap(null);
     loadTerritorialRouteCartography(selectedUbigeo).then((bundle) => {
       if (cancelled) return;
       setBlockMap(bundle.blockMap);
       setZoneMap(bundle.zoneMap);
-      setStreetMap(bundle.streetMap);
-      setContextMap(bundle.contextMap);
       setMapError(bundle.partial ? "No se pudo cargar toda la cartografía contextual para el caso seleccionado." : "");
     }).finally(() => {
       if (!cancelled) setLoading(false);
@@ -16026,7 +17858,11 @@ function TerritorialValidationGeoRouteMap({
     ? zoneFeatures.find((feature) => territorialZoneFeatureKey(feature) === selectedZoneKey) ?? null
     : null;
   const activeZoneRouteFeatures = activeRouteSetFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey);
-  const routeZoneKeys = useMemo(() => new Set(districtBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean)), [districtBlocks]);
+  const routeZoneKeys = useMemo(() => {
+    const keys = activeRouteSet.routeBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean);
+    if (selectedZoneKey) keys.push(selectedZoneKey);
+    return new Set(keys);
+  }, [activeRouteSet.routeBlocks, selectedZoneKey]);
   const routeZoneFeatures = useMemo(() => (
     zoneFeatures.filter((feature) => routeZoneKeys.has(territorialZoneFeatureKey(feature)))
   ), [routeZoneKeys, zoneFeatures]);
@@ -16037,20 +17873,23 @@ function TerritorialValidationGeoRouteMap({
     ?? (activePoint ? { lon: activePoint.lonValue, lat: activePoint.latValue } : null)
     ?? (selectedZoneFeature ? territorialZoneCentroid(selectedZoneFeature) : null)
     ?? (districtFeature ? territorialDistrictCentroid(districtFeature) : null);
-  // Keep validation maps scoped to the active district; neighbor context can be
-  // reintroduced later behind an explicit detail action.
+  // Keep district labels quiet here; block silhouettes are sampled below around
+  // the selected UMP and the active GPS point.
   const neighborDistrictFeatures = useMemo<TerritorialDistrictFeature[]>(() => [], []);
-  const externalContextUbigeos = useMemo<string[]>(() => [], []);
-  const externalContextUbigeosKey = externalContextUbigeos.join("|");
-
+  const spatialContextUbigeos = useMemo(() => {
+    const spatialUbigeo = normalizeTerritorialBlockCode(activeSpatialDistrict?.properties.ubigeo);
+    return spatialUbigeo && spatialUbigeo !== selectedUbigeo ? [spatialUbigeo] : [];
+  }, [activeSpatialDistrict?.properties.ubigeo, selectedUbigeo]);
+  const spatialContextUbigeosKey = spatialContextUbigeos.join("|");
+  const [spatialContextBlockMaps, setSpatialContextBlockMaps] = useState<Record<string, HojasRutaBlockMap | null>>({});
   useEffect(() => {
-    if (!selectedUbigeo || !externalContextUbigeos.length) {
-      setNeighborBlockMaps({});
+    if (!spatialContextUbigeos.length) {
+      setSpatialContextBlockMaps({});
       return;
     }
     let cancelled = false;
-    const requestedUbigeos = [...externalContextUbigeos];
-    setNeighborBlockMaps((previous) => requestedUbigeos.reduce<Record<string, HojasRutaBlockMap | null>>((next, ubigeo) => {
+    const requestedUbigeos = [...spatialContextUbigeos];
+    setSpatialContextBlockMaps((previous) => requestedUbigeos.reduce<Record<string, HojasRutaBlockMap | null>>((next, ubigeo) => {
       if (previous[ubigeo]) next[ubigeo] = previous[ubigeo];
       return next;
     }, {}));
@@ -16059,32 +17898,37 @@ function TerritorialValidationGeoRouteMap({
       .catch(() => [ubigeo, null] as const)))
       .then((entries) => {
         if (cancelled) return;
-        setNeighborBlockMaps(Object.fromEntries(entries));
+        setSpatialContextBlockMaps(Object.fromEntries(entries));
       });
     return () => { cancelled = true; };
-  }, [externalContextUbigeosKey, selectedUbigeo]);
-
+  }, [spatialContextUbigeosKey]);
   const routeFeatureKeys = useMemo(() => (
     new Set(activeRouteSetFeatures.map((item) => territorialFeatureStableKey(item.feature)))
   ), [activeRouteSetFeatures]);
   const districtContextFeatures = useMemo(() => (
     blockFeatures.filter((feature) => !routeFeatureKeys.has(territorialFeatureStableKey(feature)))
   ), [blockFeatures, routeFeatureKeys]);
-  const externalDistrictContextFeatures = useMemo(() => (
-    externalContextUbigeos.flatMap((ubigeo) => neighborBlockMaps[ubigeo]?.geojson?.features ?? [])
-  ), [externalContextUbigeos, neighborBlockMaps]);
+  const spatialDistrictContextFeatures = useMemo(() => (
+    spatialContextUbigeos.flatMap((ubigeo) => spatialContextBlockMaps[ubigeo]?.geojson?.features ?? [])
+  ), [spatialContextBlockMaps, spatialContextUbigeos]);
+  const validationContextAnchors = useMemo(() => {
+    const anchors = [...activeRouteSetAnchors];
+    if (activePoint) anchors.push({ lon: activePoint.lonValue, lat: activePoint.latValue });
+    if (activeAnchor) anchors.push(activeAnchor);
+    return anchors;
+  }, [activeAnchor, activePoint, activeRouteSetAnchors]);
   const nearbyContextFeatures = useMemo(() => selectTerritorialRouteRadialContext({
     sameDistrictFeatures: districtContextFeatures,
-    externalDistrictFeatures: externalDistrictContextFeatures,
+    externalDistrictFeatures: spatialDistrictContextFeatures,
     routeFeatures: activeRouteSetFeatures,
     selectedFeature,
     selectedZoneKey,
     anchorPoint: activeAnchor,
-    anchorPoints: activeRouteSetAnchors,
+    anchorPoints: validationContextAnchors,
     radiusMeters: TERRITORIAL_VALIDATION_ROUTE_CONTEXT_RADIUS_M,
-  }), [activeAnchor, activeRouteSetAnchors, activeRouteSetFeatures, districtContextFeatures, externalDistrictContextFeatures, selectedFeature, selectedZoneKey]);
-  const visibleStreetFeatures = useMemo(() => sampleTerritorialStreetFeatures(streetMap?.geojson?.features ?? []), [streetMap]);
-  const visibleContextFeatures = useMemo(() => sampleTerritorialContextFeatures(contextMap?.geojson?.features ?? []), [contextMap]);
+  }), [activeAnchor, activeRouteSetFeatures, districtContextFeatures, selectedFeature, selectedZoneKey, spatialDistrictContextFeatures, validationContextAnchors]);
+  const visibleStreetFeatures = useMemo<HojasRutaStreetMapFeature[]>(() => [], []);
+  const visibleContextFeatures = useMemo<HojasRutaContextMapFeature[]>(() => [], []);
   const mapPoints = selectedCasePoints;
   const projectionFeatures = useMemo(() => {
     const routeSetGeometry = activeRouteSetFeatures.map((item) => item.feature);
@@ -16094,8 +17938,10 @@ function TerritorialValidationGeoRouteMap({
       ...activeZoneRouteFeatures.map((item) => item.feature),
       ...nearbyContextFeatures.projectionFeatures,
     ];
-    if (nearbyContextFeatures.projectionFeatures.length) return nearbyContextFeatures.projectionFeatures;
-    if (activeZoneRouteFeatures.length) return activeZoneRouteFeatures.map((item) => item.feature);
+    if (activeZoneRouteFeatures.length) return [
+      ...activeZoneRouteFeatures.map((item) => item.feature),
+      ...nearbyContextFeatures.projectionFeatures,
+    ];
     if (selectedZoneKey) return blockFeatures.filter((feature) => territorialFeatureZoneKey(feature) === selectedZoneKey).slice(0, 96);
     return blockFeatures.slice(0, 96);
   }, [activeRouteSetFeatures, activeZoneRouteFeatures, blockFeatures, nearbyContextFeatures.projectionFeatures, selectedFeature, selectedZoneKey]);
@@ -16180,7 +18026,7 @@ function TerritorialValidationGeoRouteMap({
         });
       }
     }
-    zoneFeatures.forEach((feature) => {
+    projectionZones.forEach((feature) => {
       const key = territorialZoneFeatureKey(feature);
       const centroid = territorialZoneCentroid(feature);
       if (!key || !centroid) return;
@@ -16195,7 +18041,7 @@ function TerritorialValidationGeoRouteMap({
       });
     });
     return labels;
-  }, [activeAnchor, activeRouteBlockKey, activeRouteSetFeatures, activeRow?.distrito, districtFeature, neighborDistrictFeatures, projection, routeZoneKeys, selectedFeatureKey, selectedZoneKey, zoneFeatures]);
+  }, [activeAnchor, activeRouteBlockKey, activeRouteSetFeatures, activeRow?.distrito, districtFeature, neighborDistrictFeatures, projection, projectionZones, routeZoneKeys, selectedFeatureKey, selectedZoneKey]);
   const autoFocusKeyRef = useRef("");
   const autoFocusDistrictRef = useRef("");
   useEffect(() => {
@@ -16346,8 +18192,9 @@ function TerritorialValidationGeoRouteMap({
             ) : null}
             <div className="mon-territorial-validation-geo-map-footer" aria-label="Resumen GPS y manzanas">
               <span className="is-en_zona"><strong>{formatMetric(geoSummary.en_zona)}</strong><em>En zona</em></span>
-              <span className="is-en_distrito"><strong>{formatMetric(geoSummary.en_distrito)}</strong><em>Fuera zona</em></span>
-              <span className="is-fuera_distrito"><strong>{formatMetric(geoSummary.fuera_distrito)}</strong><em>Fuera distrito</em></span>
+              <span className="is-en_distrito"><strong>{formatMetric(geoSummary.en_distrito)}</strong><em>Fuera de zona</em></span>
+              <span className="is-fuera_distrito"><strong>{formatMetric(geoSummary.fuera_distrito)}</strong><em>Fuera de distrito</em></span>
+              <span className="is-sin_cruce"><strong>{formatMetric(geoSummary.sin_cruce)}</strong><em>Sin cruce</em></span>
               <span className="is-sin_gps"><strong>{formatMetric(geoSummary.sin_gps)}</strong><em>Sin GPS</em></span>
             </div>
           </div>
@@ -16367,7 +18214,6 @@ function TerritorialGeoCaseList({
   focusPointId,
   onSelectBlock,
   onFocusPoint,
-  onSelectResponse,
 }: {
   districtSections: TerritorialGeoDistrictSection[];
   gpsRows: TerritorialResponseAuditRow[];
@@ -16375,35 +18221,88 @@ function TerritorialGeoCaseList({
   focusPointId: string;
   onSelectBlock: (key: string) => void;
   onFocusPoint: (responseId: string) => void;
-  onSelectResponse?: (responseId: string) => void;
 }) {
   const totalRows = useMemo(() => districtSections.reduce((sum, section) => sum + section.caseCount, 0), [districtSections]);
-  const prefersReducedMotion = useReducedMotion();
-  const selectedBlockGroup = useMemo(() => (
-    districtSections.flatMap((section) => section.blockGroups).find((group) => group.key === selectedBlockKey)
-      ?? districtSections[0]?.blockGroups[0]
-      ?? null
-  ), [districtSections, selectedBlockKey]);
+  const focusedCaseRef = useRef<HTMLButtonElement | null>(null);
+  const localFocusPointRef = useRef("");
+  const groupItems = useMemo(() => districtSections.flatMap((section) => {
+    const sectionMeta = section.kind === "outside_frame"
+      ? `${formatMetric(section.caseCount)} casos · punto observable`
+      : section.kind === "without_cross"
+        ? `${formatMetric(section.caseCount)} casos · cruce pendiente`
+        : section.kind === "without_gps"
+          ? `${formatMetric(section.caseCount)} casos · hora registrada`
+          : `${section.ubigeo || "Sin ubigeo"} · ${formatMetric(section.caseCount)} casos · ${formatMetric(section.blockGroups.length)} UMP`;
+    return section.blockGroups.map((group, groupIndex) => ({
+      section,
+      group,
+      sectionMeta,
+      showHeading: groupIndex === 0,
+    }));
+  }), [districtSections]);
   const [expandedBlockKey, setExpandedBlockKey] = useState("");
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const virtualizer = useVirtualizer({
+    count: groupItems.length,
+    getScrollElement: () => scrollRef.current,
+    getItemKey: (index) => groupItems[index]?.group.key ?? index,
+    estimateSize: (index) => {
+      const item = groupItems[index];
+      const headingHeight = item?.showHeading ? 26 : 0;
+      if (!item) return 104 + headingHeight;
+      if (item.group.key !== expandedBlockKey) return 104 + headingHeight;
+      return 92 + headingHeight + item.group.rows.length * 90;
+    },
+    overscan: 8,
+  });
+  const virtualRows = virtualizer.getVirtualItems();
   useEffect(() => {
     setExpandedBlockKey((previous) => {
       if (!previous) return "";
-      const available = new Set(districtSections.flatMap((section) => section.blockGroups.map((group) => group.key)));
-      return available.has(previous) ? previous : "";
+      return groupItems.some((item) => item.group.key === previous) ? previous : "";
     });
-  }, [districtSections]);
-  const toggleBlock = (key: string) => {
-    setExpandedBlockKey((previous) => (previous === key ? "" : key));
-  };
-  const selectBlock = (key: string) => {
+  }, [groupItems]);
+  useEffect(() => {
+    const handle = window.requestAnimationFrame(() => virtualizer.measure());
+    return () => window.cancelAnimationFrame(handle);
+  }, [expandedBlockKey, groupItems, virtualizer]);
+  const toggleBlock = useCallback((key: string) => {
     onSelectBlock(key);
-  };
-  const focusCasePoint = (groupKey: string, responseId: string) => {
+    setExpandedBlockKey((previous) => {
+      const next = previous === key ? "" : key;
+      return next;
+    });
+  }, [onSelectBlock]);
+  const selectBlock = useCallback((key: string) => {
+    onSelectBlock(key);
+  }, [onSelectBlock]);
+  const focusCasePoint = useCallback((groupKey: string, responseId: string) => {
     if (!responseId) return;
+    localFocusPointRef.current = responseId;
     selectBlock(groupKey);
     onFocusPoint(responseId);
-    onSelectResponse?.(responseId);
-  };
+  }, [onFocusPoint, selectBlock]);
+  useEffect(() => {
+    if (!focusPointId) return;
+    const targetIndex = groupItems.findIndex((item) => item.group.rows.some((row) => row.row.response_id === focusPointId));
+    if (targetIndex < 0) return;
+    const localFocus = localFocusPointRef.current === focusPointId;
+    setExpandedBlockKey(groupItems[targetIndex].group.key);
+    window.requestAnimationFrame(() => {
+      if (!localFocus) virtualizer.scrollToIndex(targetIndex, { align: "center" });
+      virtualizer.measure();
+    });
+  }, [focusPointId, groupItems, virtualizer]);
+  useEffect(() => {
+    if (!focusPointId) return undefined;
+    const localFocus = localFocusPointRef.current === focusPointId;
+    const handle = window.setTimeout(() => {
+      if (!localFocus) focusedCaseRef.current?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+      focusedCaseRef.current?.focus({ preventScroll: true });
+      if (localFocus) localFocusPointRef.current = "";
+    }, 280);
+    return () => window.clearTimeout(handle);
+  }, [expandedBlockKey, focusPointId]);
   return (
     <section className="mon-territorial-geo-case-list" aria-label="Todos los casos geolocalizados">
       <header>
@@ -16413,44 +18312,12 @@ function TerritorialGeoCaseList({
         </div>
         <strong>{formatMetric(gpsRows.length)} GPS · {formatMetric(totalRows)} casos</strong>
       </header>
-      {selectedBlockGroup ? (
-        <div className="mon-territorial-geo-selected-case">
-          <div className="mon-territorial-geo-selected-case-main">
-            <span className={`mon-territorial-route-badge ${selectedBlockGroup.block?.tipo_manzana === "reemplazo" ? "is-replacement" : "is-titular"}`}>
-              {selectedBlockGroup.block?.tipo_manzana === "reemplazo" ? "Reemplazo" : "UMP"}
-            </span>
-            <div>
-              <strong>{selectedBlockGroup.blockLabel}</strong>
-              <em>
-                {(selectedBlockGroup.block?.distrito || selectedBlockGroup.rows[0]?.distrito || "Sin distrito")}
-                {selectedBlockGroup.block?.zona ? ` · Zona ${selectedBlockGroup.block.zona}` : ""}
-              </em>
-            </div>
-          </div>
-          <dl>
-            <div><dt>Puntos GPS</dt><dd>{`${formatMetric(selectedBlockGroup.gpsCount)} punto${selectedBlockGroup.gpsCount === 1 ? "" : "s"}`}</dd></div>
-            <div><dt>Zona</dt><dd>{selectedBlockGroup.block?.zona || "S/D"}</dd></div>
-            {selectedBlockGroup.gpsDiagnosticCount ? (
-              <div><dt>Diagnóstico</dt><dd>{formatMetric(selectedBlockGroup.gpsDiagnosticCount)} GPS cerca de otra manzana</dd></div>
-            ) : null}
-            <div className="is-wide"><dt>Responsable</dt><dd>{selectedBlockGroup.responsable}</dd></div>
-          </dl>
-        </div>
-      ) : null}
-      <div className="mon-territorial-geo-case-scroll">
-        {districtSections.map((section) => {
-          const sectionMeta = section.kind === "outside_frame"
-            ? `${formatMetric(section.caseCount)} casos · punto observable`
-            : section.kind === "without_gps"
-              ? `${formatMetric(section.caseCount)} casos · hora registrada`
-              : `${section.ubigeo || "Sin ubigeo"} · ${formatMetric(section.caseCount)} casos · ${formatMetric(section.blockGroups.length)} UMP`;
-          return (
-          <div key={section.key} className={`mon-territorial-geo-district-section is-${section.kind}`}>
-            <div className="mon-territorial-geo-district-heading">
-              <strong>{section.distrito}</strong>
-              <span>{section.kind === "route" ? sectionMeta : `${section.ubigeo} · ${sectionMeta}`}</span>
-            </div>
-            {section.blockGroups.map((group) => {
+      <div ref={scrollRef} className="mon-territorial-geo-case-scroll">
+        <div className="mon-territorial-geo-virtual-list" style={{ height: `${virtualizer.getTotalSize()}px` }}>
+          {virtualRows.map((virtualRow) => {
+            const item = groupItems[virtualRow.index];
+            if (!item) return null;
+            const { section, group, sectionMeta, showHeading } = item;
               const expanded = expandedBlockKey === group.key;
               const selectedGroup = selectedBlockKey === group.key;
               const block = group.titularBlock ?? group.block;
@@ -16471,7 +18338,20 @@ function TerritorialGeoCaseList({
               const riskSummary = territorialGeoGroupRiskSummary(group);
               const casesPanelId = `geo-cases-${group.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
               return (
-                <div key={group.key} className="mon-territorial-geo-district-group">
+                <div
+                  key={virtualRow.key}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className={`mon-territorial-geo-virtual-item mon-territorial-geo-district-section is-${section.kind}${showHeading ? " is-section-start" : ""}`}
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  {showHeading ? (
+                    <div className="mon-territorial-geo-district-heading">
+                      <strong>{section.distrito}</strong>
+                      <span>{section.kind === "route" ? sectionMeta : `${section.ubigeo} · ${sectionMeta}`}</span>
+                    </div>
+                  ) : null}
+                  <div className="mon-territorial-geo-district-group">
                   <div
                     className={`mon-territorial-geo-district-trigger${selectedGroup ? " is-selected" : ""}`}
                   >
@@ -16513,16 +18393,10 @@ function TerritorialGeoCaseList({
                       </span>
                     </button>
                   </div>
-                  <AnimatePresence initial={false}>
                   {expanded ? (
-                    <motion.div
+                    <div
                       id={casesPanelId}
-                      key={`${group.key}-cases`}
                       className="mon-territorial-geo-district-cases"
-                      initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
-                      animate={prefersReducedMotion ? undefined : { height: "auto", opacity: 1 }}
-                      exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
-                      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
                     >
                       {(() => {
                         let gpsPointIndex = 0;
@@ -16549,15 +18423,21 @@ function TerritorialGeoCaseList({
                             : item.spatialDistrito
                               ? `${item.spatialDistrito}${item.spatialUbigeo ? ` · ${item.spatialUbigeo}` : ""}`
                               : `${row.distrito || item.distrito || "Sin distrito"}${row.ubigeo || item.ubigeo ? ` · ${row.ubigeo || item.ubigeo}` : ""}`;
-                          const geoDetail = item.gpsDiagnosticLabel || (hasGps ? dispositionDetail : "sin punto");
+                          const gpsTrace = territorialGpsTraceLabel(row);
+                          const geoDetail = [
+                            item.gpsDiagnosticLabel || (hasGps ? dispositionDetail : "sin punto"),
+                            gpsTrace,
+                          ].filter(Boolean).join(" · ");
                           return (
                             <button
                               type="button"
                               key={`${row.row_index}-${row.response_id || index}`}
+                              ref={focused ? focusedCaseRef : undefined}
+                              data-response-id={row.response_id || undefined}
                               className={`mon-territorial-geo-case-row is-static is-${item.geoDisposition}${hasGps ? "" : " is-no-gps"}${focused ? " is-focused-point" : ""}`}
                               disabled={!rowClickable}
                               aria-pressed={rowClickable ? Boolean(focused) : undefined}
-                              title={codeLabel !== "S/D" ? `Código Pulso: ${codeLabel}` : undefined}
+                              aria-label={codeLabel !== "S/D" ? `${pointLabel}. Código Pulso ${codeLabel}` : pointLabel}
                               onClick={() => {
                                 if (rowClickable) focusCasePoint(group.key, row.response_id);
                               }}
@@ -16589,14 +18469,13 @@ function TerritorialGeoCaseList({
                           );
                         });
                       })()}
-                    </motion.div>
+                    </div>
                   ) : null}
-                  </AnimatePresence>
+                  </div>
                 </div>
               );
-            })}
-          </div>
-        );})}
+          })}
+        </div>
         {!districtSections.length ? (
           <div className="mon-territorial-source-empty">Sin casos para agrupar por UMP declarada.</div>
         ) : null}
@@ -16648,7 +18527,7 @@ type TerritorialGeoBlockGroup = {
 
 type TerritorialGeoDistrictSection = {
   key: string;
-  kind: "route" | "outside_frame" | "without_gps";
+  kind: "route" | "outside_frame" | "without_cross" | "without_gps";
   distrito: string;
   ubigeo: string;
   caseCount: number;
@@ -16689,28 +18568,33 @@ function territorialGeoGroupRiskSummary(group: TerritorialGeoBlockGroup): Territ
     .sort((a, b) => b.distance - a.distance)[0] ?? null;
   const outsideDistrict = group.rows.filter((item) => item.geoDisposition === "fuera_distrito").length;
   const outsideZone = group.rows.filter((item) => item.geoDisposition === "en_distrito").length;
+  const withoutCross = group.rows.filter((item) => item.geoDisposition === "sin_cruce").length;
   const withoutGps = group.rows.filter((item) => item.geoDisposition === "sin_gps").length;
   const nearOtherBlock = group.gpsDiagnosticCount;
+  const farthestDistance = farthest?.distance ?? null;
+  const spatialWarning = Boolean(outsideDistrict || outsideZone);
   const tags: TerritorialGeoGroupRiskSummary["tags"] = [];
 
   if (outsideDistrict) tags.push({ key: "outside-district", label: `${formatMetric(outsideDistrict)} fuera distrito`, tone: "danger" });
   if (outsideZone) tags.push({ key: "outside-zone", label: `${formatMetric(outsideZone)} fuera zona`, tone: "warning" });
-  if (nearOtherBlock) tags.push({ key: "near-other", label: `${formatMetric(nearOtherBlock)} cerca otra Mz`, tone: "warning" });
+  if (nearOtherBlock && spatialWarning) tags.push({ key: "near-other", label: `${formatMetric(nearOtherBlock)} cerca otra Mz`, tone: "warning" });
+  if (withoutCross) tags.push({ key: "without-cross", label: `${formatMetric(withoutCross)} sin cruce`, tone: "warning" });
   if (withoutGps) tags.push({ key: "without-gps", label: `${formatMetric(withoutGps)} sin GPS`, tone: "muted" });
   if (!tags.length) tags.push({ key: "in-zone", label: "GPS en zona", tone: "ready" });
 
-  const farthestDistance = farthest?.distance ?? null;
-  const tone: TerritorialGeoRiskTone = outsideDistrict || (farthestDistance != null && farthestDistance > 900)
+  const tone: TerritorialGeoRiskTone = outsideDistrict
     ? "danger"
-    : outsideZone || nearOtherBlock || (farthestDistance != null && farthestDistance > 300)
+    : outsideZone
       ? "warning"
+      : withoutCross
+        ? "warning"
       : withoutGps && withoutGps === group.rows.length
         ? "muted"
         : "ready";
   return {
     tone,
-    distanceLabel: farthestDistance != null ? formatDistanceLabel(farthestDistance) : withoutGps ? "Sin GPS" : "S/D",
-    distanceHint: farthestDistance != null ? "máx. a UMP declarada" : withoutGps ? "coord. ausente" : "sin distancia",
+    distanceLabel: farthestDistance != null ? formatDistanceLabel(farthestDistance) : withoutCross ? "Sin cruce" : withoutGps ? "Sin GPS" : "S/D",
+    distanceHint: farthestDistance != null ? "máx. a UMP declarada" : withoutCross ? "cruce pendiente" : withoutGps ? "coord. ausente" : "sin distancia",
     tags: tags.slice(0, 3),
   };
 }
@@ -16719,6 +18603,7 @@ function territorialBuildGeoCase(
   row: TerritorialResponseAuditRow,
   blocks: TerritorialBlockProgress[],
   point: TerritorialKoboMapPoint | undefined,
+  zoneFeatures: HojasRutaZoneMapFeature[] = [],
 ): TerritorialGeoCase {
   const assignment = resolveTerritorialGeoAssignment(row, blocks, point);
   const block = assignment.block;
@@ -16726,6 +18611,14 @@ function territorialBuildGeoCase(
   const groupBlock = routeSet.titularBlock ?? block;
   const spatialDistrict = point
     ? TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => territorialPointInDistrictFeature(point.lonValue, point.latValue, feature)) ?? null
+    : null;
+  const spatialZone = point
+    ? zoneFeatures.find((feature) => {
+      const spatialUbigeo = String(spatialDistrict?.properties.ubigeo || "").trim();
+      const featureUbigeo = normalizeTerritorialBlockCode(feature.properties.ubigeo);
+      return (!spatialUbigeo || featureUbigeo === normalizeTerritorialBlockCode(spatialUbigeo))
+        && territorialPointInZoneFeature(point.lonValue, point.latValue, feature);
+    }) ?? null
     : null;
   const distrito = groupBlock?.distrito || block?.distrito || row.distrito || row.district_code || "Sin distrito";
   const ubigeo = normalizeTerritorialBlockCode(groupBlock?.ubigeo || block?.ubigeo || row.ubigeo || row.district_code);
@@ -16738,7 +18631,16 @@ function territorialBuildGeoCase(
     ? `GPS cercano a ${territorialRouteOperationalLabel(assignment.nearestBlock)} · ${territorialPhysicalBlockLabel(assignment.nearestBlock)}`
     : "";
   const spatialUbigeo = spatialDistrict?.properties.ubigeo || "";
-  const geoDisposition = territorialGeoDispositionForCase(row, block, routeSet, spatialDistrict, assignment.nearestMatchesAssigned);
+  const geoDisposition = territorialGeoDispositionForCase(
+    row,
+    block,
+    routeSet,
+    spatialDistrict,
+    spatialZone,
+    zoneFeatures.length > 0,
+    assignment.nearestMatchesAssigned,
+    assignment.nearestBlock,
+  );
   return {
     row,
     block,
@@ -16817,7 +18719,7 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
     section.caseCount += 1;
     if (territorialResponseHasGps(item.row)) group.gpsCount += 1;
     if (item.nearestBlockDiffers) group.gpsDiagnosticCount += 1;
-    if (item.geoDisposition === "en_distrito" || item.geoDisposition === "sin_gps") group.reviewCount += 1;
+    if (item.geoDisposition === "en_distrito" || item.geoDisposition === "sin_cruce" || item.geoDisposition === "sin_gps") group.reviewCount += 1;
     if (item.geoDisposition === "fuera_distrito") group.noDefendibleCount += 1;
     sections.set(sectionMeta.key, section);
   });
@@ -16832,7 +18734,7 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
         .sort(territorialGeoBlockGroupComparator),
     }))
     .sort((a, b) => {
-      const order = { route: 0, outside_frame: 1, without_gps: 2 };
+      const order = { route: 0, outside_frame: 1, without_cross: 2, without_gps: 3 };
       const kindDiff = order[a.kind] - order[b.kind];
       if (kindDiff !== 0) return kindDiff;
       return a.distrito.localeCompare(b.distrito, "es-PE", { numeric: true });
@@ -16840,6 +18742,14 @@ function territorialGeoBlockSections(cases: TerritorialGeoCase[]): TerritorialGe
 }
 
 function territorialGeoCaseSectionMeta(item: TerritorialGeoCase): Pick<TerritorialGeoDistrictSection, "key" | "kind" | "distrito" | "ubigeo"> {
+  if (item.geoDisposition === "sin_cruce") {
+    return {
+      key: "sin-cruce-territorial",
+      kind: "without_cross",
+      distrito: "Sin cruce territorial",
+      ubigeo: "ruta/crosswalk",
+    };
+  }
   if (item.geoDisposition === "sin_gps") {
     return {
       key: "sin-punto-geografico",
@@ -16963,9 +18873,13 @@ function territorialGeoDispositionForCase(
   assignedBlock: TerritorialBlockProgress | null,
   routeSet: TerritorialGeoRouteSet,
   spatialDistrict: TerritorialDistrictFeature | null,
+  spatialZone: HojasRutaZoneMapFeature | null,
+  hasSpatialZoneContext: boolean,
   gpsMatchesAssignedBlock: boolean,
+  nearestBlock: TerritorialBlockProgress | null,
 ): TerritorialGeoDispositionKey {
   if (!territorialResponseHasGps(row)) return "sin_gps";
+  if (row.geo_estado === "geo_sin_cruce") return "sin_cruce";
   const routeUbigeo = normalizeTerritorialBlockCode(routeSet.titularBlock?.ubigeo || assignedBlock?.ubigeo || row.ubigeo || row.district_code);
   const spatialUbigeo = normalizeTerritorialBlockCode(spatialDistrict?.properties.ubigeo);
   if (spatialUbigeo && routeUbigeo && spatialUbigeo !== routeUbigeo) return "fuera_distrito";
@@ -16973,11 +18887,22 @@ function territorialGeoDispositionForCase(
   if (!spatialUbigeo && (row.geo_estado === "geo_no_defendible" || (distance != null && distance > 900))) {
     return "fuera_distrito";
   }
+  const routeZoneKeys = new Set(routeSet.routeBlocks.map(territorialBlockZoneKey).filter(Boolean));
+  const spatialZoneKey = spatialZone ? territorialZoneFeatureKey(spatialZone) : "";
+  if (spatialZoneKey && routeZoneKeys.has(spatialZoneKey)) return "en_zona";
+  if (hasSpatialZoneContext && spatialUbigeo && routeUbigeo && spatialUbigeo === routeUbigeo && routeZoneKeys.size) return "en_distrito";
+
   const routeZones = new Set(routeSet.routeBlocks.map((block) => normalizeTerritorialBlockCode(block.zona)).filter(Boolean));
   const assignedZone = normalizeTerritorialBlockCode(assignedBlock?.zona);
+  const nearestZone = normalizeTerritorialBlockCode(nearestBlock?.zona);
+  const nearestUbigeo = normalizeTerritorialBlockCode(nearestBlock?.ubigeo);
   if (gpsMatchesAssignedBlock && assignedZone && routeZones.has(assignedZone)) return "en_zona";
+  if (!gpsMatchesAssignedBlock && nearestZone && routeZones.has(nearestZone) && (!nearestUbigeo || !routeUbigeo || nearestUbigeo === routeUbigeo)) {
+    return "en_zona";
+  }
+  if (!gpsMatchesAssignedBlock && nearestZone && assignedZone && nearestZone !== assignedZone) return "en_distrito";
   if (gpsMatchesAssignedBlock && (row.geo_estado === "geo_ok" || row.geo_estado === "geo_cerca")) return "en_zona";
-  return "en_distrito";
+  return "en_zona";
 }
 
 function territorialRelatedReplacementBlockKeys(
@@ -17030,18 +18955,17 @@ function TerritorialValidationChart({
 }) {
   const k = reports.kpis;
   const total = Math.max(1, advance.total_respuestas || k.total_respuestas);
-  const cleanAdvance = Math.max(0, advance.validas - advance.observacion - advance.observacion_aprobada);
+  const cleanAdvance = Math.max(0, advance.validas - advance.observacion);
   const geoCases = rows.filter(territorialRowHasGeoObservation).length;
   const durationCases = rows.filter((row) => territorialRowHasDurationObservation(row, config)).length;
   const bothCases = rows.filter((row) => territorialRowHasGeoObservation(row) && territorialRowHasDurationObservation(row, config)).length;
   const reviewOnlyGeo = Math.max(0, geoCases - bothCases);
   const reviewOnlyDuration = Math.max(0, durationCases - bothCases);
   const progressPct = safePercent(advance.validas, total) ?? 0;
-  const defensiblePct = safePercent(cleanAdvance + advance.observacion_aprobada, advance.validas) ?? 0;
+  const defensiblePct = safePercent(cleanAdvance, advance.validas) ?? 0;
   const segments = [
     { key: "validada", label: "Sin revisión", value: cleanAdvance, hint: formatPercentLabel(safePercent(cleanAdvance, total)) },
     { key: "revision", label: "Por revisar", value: advance.observacion, hint: formatPercentLabel(safePercent(advance.observacion, total)) },
-    { key: "aprobada", label: "Validadas", value: advance.observacion_aprobada, hint: formatPercentLabel(safePercent(advance.observacion_aprobada, total)) },
     { key: "no_defendible", label: "No válidas", value: advance.no_validas, hint: formatPercentLabel(safePercent(advance.no_validas, total)) },
   ];
   return (
@@ -17064,7 +18988,7 @@ function TerritorialValidationChart({
         </div>
         <div className="mon-territorial-state-summary">
           <div className="mon-territorial-state-headline">
-            <strong>{formatMetric(cleanAdvance + advance.observacion_aprobada)}</strong>
+            <strong>{formatMetric(cleanAdvance)}</strong>
             <span>válidas sin revisión</span>
             <em>{formatPercentLabel(defensiblePct)} de válidas</em>
           </div>
@@ -17118,10 +19042,11 @@ function TerritorialGeoBreakdown({ reports, rows }: { reports: MonitoreoTerritor
     { key: "geo_cerca", label: "Cerca", range: "hasta 150 m", value: k.geo_cerca },
     { key: "geo_revision", label: "Revisión", range: "150 a 300 m", value: k.geo_revision },
     { key: "geo_no_defendible", label: "Lejos", range: "más de 300 m", value: k.geo_no_defendible },
-    { key: "geo_sin_gps", label: "Sin GPS", range: "sin cruce", value: k.geo_sin_cruce },
+    { key: "geo_sin_cruce", label: "Sin cruce", range: "ruta/crosswalk", value: k.geo_sin_cruce },
+    { key: "geo_sin_gps", label: "Sin GPS", range: "sin coordenada", value: k.geo_sin_gps ?? 0 },
   ];
   const totalGeo = Math.max(1, items.reduce((sum, item) => sum + item.value, 0));
-  const reviewGeo = k.geo_revision + k.geo_no_defendible + k.geo_sin_cruce;
+  const reviewGeo = k.geo_revision + k.geo_no_defendible + k.geo_sin_cruce + (k.geo_sin_gps ?? 0);
   const focus = territorialGeoDistrictFocus(rows);
   return (
     <section className="mon-territorial-audit-card mon-territorial-audit-card--geo" aria-label="Auditoría GPS">
@@ -17361,7 +19286,10 @@ function territorialDurationReviewReasonLabels(row: TerritorialResponseAuditRow,
   } else if (durationBand.key === "corto") {
     reasons.push("Duración corta");
   }
-  if (hasGpsReason && !reasons.some((item) => item.includes("GPS"))) reasons.push("Sin GPS");
+  if (hasGpsReason && !reasons.some((item) => item.includes("GPS"))) {
+    const geoLabel = territorialDistanceBand(row).key === "geo_sin_cruce" ? "Sin cruce territorial" : "Sin GPS";
+    reasons.push(geoLabel);
+  }
   if (territorialMissingResponsibleLabel(territorialResolvedResponsibleLabel(row, false))) reasons.push("Sin encuestador");
   return reasons.length ? reasons : ["Duración por revisar"];
 }
@@ -17477,8 +19405,6 @@ function TerritorialDurationControlView({
   rows,
   reviewRows,
   config,
-  saving,
-  onApprove,
   onOpenGeoCase,
   selectedResponseId,
   onSelectResponse,
@@ -17487,8 +19413,6 @@ function TerritorialDurationControlView({
   rows: TerritorialResponseAuditRow[];
   reviewRows: TerritorialResponseAuditRow[];
   config: MonitoreoConfig;
-  saving: boolean;
-  onApprove: (row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) => Promise<void>;
   onOpenGeoCase: (row: TerritorialResponseAuditRow) => void;
   selectedResponseId?: string;
   onSelectResponse?: (responseId: string) => void;
@@ -17498,6 +19422,14 @@ function TerritorialDurationControlView({
     () => mergeDurationReviewRows(model.shortRows, reviewRows),
     [model.shortRows, reviewRows],
   );
+  const selectedDurationRow = useMemo(() => {
+    const responseId = stringOrEmpty(selectedResponseId).trim();
+    return responseId ? rows.find((row) => row.response_id === responseId) ?? null : null;
+  }, [rows, selectedResponseId]);
+  const durationTableRows = useMemo(
+    () => selectedDurationRow ? mergeDurationReviewRows(durationReviewRows, [selectedDurationRow]) : durationReviewRows,
+    [durationReviewRows, selectedDurationRow],
+  );
   return (
     <div className="mon-duration-control">
       <TerritorialDurationOverview model={model} reviewCount={durationReviewRows.length} />
@@ -17506,10 +19438,8 @@ function TerritorialDurationControlView({
         <TerritorialDurationDailyCard rows={reports.daily} />
       </div>
       <TerritorialDurationReviewTable
-        rows={durationReviewRows}
+        rows={durationTableRows}
         config={config}
-        saving={saving}
-        onApprove={onApprove}
         onOpenGeoCase={onOpenGeoCase}
         selectedResponseId={selectedResponseId}
         onSelectResponse={onSelectResponse}
@@ -17735,34 +19665,40 @@ function TerritorialDurationDailyCard({ rows }: { rows: MonitoreoTerritorialDash
 function TerritorialDurationReviewTable({
   rows,
   config,
-  saving,
-  onApprove,
   onOpenGeoCase,
   selectedResponseId,
   onSelectResponse,
 }: {
   rows: TerritorialResponseAuditRow[];
   config: MonitoreoConfig;
-  saving: boolean;
-  onApprove: (row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) => Promise<void>;
   onOpenGeoCase: (row: TerritorialResponseAuditRow) => void;
   selectedResponseId?: string;
   onSelectResponse?: (responseId: string) => void;
 }) {
+  const selectedResponseKey = stringOrEmpty(selectedResponseId).trim();
+  const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
   const ordered = [...rows].sort((a, b) => {
-    const aApproved = a.observation_status === "aprobada" ? 1 : 0;
-    const bApproved = b.observation_status === "aprobada" ? 1 : 0;
-    if (aApproved !== bApproved) return aApproved - bApproved;
+    const aSelected = selectedResponseKey && a.response_id === selectedResponseKey ? 0 : 1;
+    const bSelected = selectedResponseKey && b.response_id === selectedResponseKey ? 0 : 1;
+    if (aSelected !== bSelected) return aSelected - bSelected;
     return (durationSecondsForRow(a) ?? Infinity) - (durationSecondsForRow(b) ?? Infinity);
   });
+  const orderedSignature = ordered.map((row) => row.response_id || `row-${row.row_index}`).join("|");
+  useEffect(() => {
+    if (!selectedResponseKey) return undefined;
+    const handle = window.setTimeout(() => {
+      selectedRowRef.current?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    }, 60);
+    return () => window.clearTimeout(handle);
+  }, [orderedSignature, selectedResponseKey]);
   return (
     <section className="mon-duration-review" aria-label="Casos con duración por revisar">
       <header>
         <div>
-          <span><ShieldAlert size={14} /> Casos con duración por revisar</span>
-          <strong>{formatMetric(ordered.length)} casos sospechosos</strong>
+          <span><ShieldAlert size={14} /> Registros de duración</span>
+          <strong>{formatMetric(ordered.length)} registros visibles</strong>
         </div>
-        <em>cortas, muy cortas o con señal combinada</em>
+        <em>selección actual, cortas y muy cortas por revisar</em>
       </header>
       {ordered.length ? (
         <div className="mon-duration-review-scroll">
@@ -17776,19 +19712,22 @@ function TerritorialDurationReviewTable({
                 <th>UMP</th>
                 <th>Duración</th>
                 <th>Motivo</th>
-                <th>Decisión</th>
               </tr>
             </thead>
             <tbody>
               {ordered.map((row) => {
-                const approved = row.observation_status === "aprobada";
                 const responseId = row.response_id || `row-${row.row_index}`;
                 const selected = selectedResponseId && selectedResponseId === row.response_id;
                 const durationBand = territorialDurationBand(row, config);
                 const reasons = territorialDurationReviewReasonLabels(row, config);
                 const nearestBlockId = stringOrEmpty(row.nearest_block_id).trim();
                 return (
-                  <tr key={`${row.row_index}-${responseId}`} className={`${approved ? "is-approved" : "is-pending"}${selected ? " is-selected" : ""}`}>
+                  <tr
+                    key={`${row.row_index}-${responseId}`}
+                    ref={selected ? selectedRowRef : undefined}
+                    data-response-id={row.response_id || undefined}
+                    className={selected ? "is-selected" : ""}
+                  >
                     <td>
                       <button
                         type="button"
@@ -17834,17 +19773,6 @@ function TerritorialDurationReviewTable({
                       <span className="mon-duration-reason-stack">
                         {reasons.map((reason) => <em key={reason}>{reason}</em>)}
                       </span>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="mon-territorial-observation-action"
-                        disabled={saving || !responseId}
-                        onClick={() => { void onApprove(row, "duracion").catch(() => undefined); }}
-                      >
-                        {saving ? <Loader2 size={13} className="pulso-spin" /> : approved ? <XCircle size={13} /> : <CheckCircle2 size={13} />}
-                        <span>{approved ? "Quitar" : "Visto bueno"}</span>
-                      </button>
                     </td>
                   </tr>
                 );
@@ -17984,7 +19912,7 @@ function TerritorialQueriesView({
   const reportScope = rawReports?.report_scope || "full";
   const reports = rawReports && (reportScope === "queries_summary" || reportScope === "full") ? rawReports : null;
   if (!reports) {
-    if (loading) return <LoadingBlock label={territorialLoadingLabelForView("consultas")} minHeight={420} />;
+    if (loading) return <TerritorialLoadingView view="consultas" minHeight={420} />;
     if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
     return <EmptyState icon={<Search size={18} />} title="Sin consultas territoriales" hint="Sincroniza Kobo para generar preguntas operativas internas." />;
   }
@@ -18005,7 +19933,7 @@ function TerritorialQueriesView({
 }
 
 type TerritorialReviewTypeFilter = "all" | "record" | "gps" | "duration" | "ump";
-type TerritorialReviewStateFilter = "all" | "sin_observacion" | "pendiente" | "en_observacion" | "visto_bueno";
+type TerritorialReviewStateFilter = "all" | "sin_observacion" | "pendiente" | "en_observacion";
 
 type TerritorialReviewFilters = {
   type: TerritorialReviewTypeFilter;
@@ -18054,17 +19982,26 @@ function TerritorialReviewCasesView({
   const [auditReconciliationConfirmOpen, setAuditReconciliationConfirmOpen] = useState(false);
   const [auditReconciliationBatchApplying, setAuditReconciliationBatchApplying] = useState(false);
   const [auditReconciliationBatchMessage, setAuditReconciliationBatchMessage] = useState("");
-  const cases = useMemo(() => buildTerritorialReviewCases(reports, config), [config, reports]);
-  const masterRows = useMemo(() => buildTerritorialMasterRecordRows(reports.response_audit ?? []), [reports.response_audit]);
-  const masterFilters = useMemo<TerritorialMasterRecordFilters>(() => ({
-    search: filters.search,
-    district: filters.district,
-    responsible: filters.responsible,
-    ump: filters.ump,
-    state: filters.state,
-  }), [filters.district, filters.responsible, filters.search, filters.state, filters.ump]);
+  const reviewSourceRows = useMemo(() => {
+    const auditRows = reports.response_audit ?? [];
+    if (auditRows.length) return auditRows;
+    return territorialReviewCasesAsAuditRows(buildTerritorialReviewCases(reports, config));
+  }, [config, reports]);
+  const masterRows = useMemo(() => buildTerritorialMasterRecordRows(reviewSourceRows), [reviewSourceRows]);
+  const masterFilters = useMemo<TerritorialMasterRecordFilters>(() => {
+    const state: TerritorialMasterRecordFilters["state"] =
+      filters.state === "sin_observacion" || filters.state === "pendiente" || filters.state === "en_observacion"
+        ? filters.state
+        : "all";
+    return {
+      search: filters.search,
+      district: filters.district,
+      responsible: filters.responsible,
+      ump: filters.ump,
+      state,
+    };
+  }, [filters.district, filters.responsible, filters.search, filters.state, filters.ump]);
   const filteredMasterRows = useMemo(() => filterTerritorialMasterRecordRows(masterRows, masterFilters), [masterFilters, masterRows]);
-  const filteredCases = useMemo(() => filterTerritorialReviewCases(cases, filters), [cases, filters]);
   const options = useMemo(() => territorialMasterRecordOptions(masterRows), [masterRows]);
   const summary = useMemo(() => summarizeTerritorialMasterRecordRows(masterRows), [masterRows]);
   const visibleSummary = useMemo(() => summarizeTerritorialMasterRecordRows(filteredMasterRows), [filteredMasterRows]);
@@ -18073,10 +20010,8 @@ function TerritorialReviewCasesView({
     if (!auditBlockOptions.length) return null;
     return auditBlockOptions.find((option) => option.id === selectedAuditBlockId)
       ?? territorialReviewAuditOptionFromFilter(auditBlockOptions, filters.ump)
-      ?? territorialReviewAuditOptionFromCases(auditBlockOptions, filteredCases)
-      ?? auditBlockOptions[0]
       ?? null;
-  }, [auditBlockOptions, filteredCases, filters.ump, selectedAuditBlockId]);
+  }, [auditBlockOptions, filters.ump, selectedAuditBlockId]);
   const auditModel = useMemo(() => buildTerritorialUmpCaseAudit(reports, {
     blockId: selectedAuditOption?.id,
     ump: selectedAuditOption?.ump,
@@ -18087,6 +20022,10 @@ function TerritorialReviewCasesView({
   const reconciliationContextKey = `${reports.active_route_phase || ""}::${reports.source_coherence?.asset_uid || ""}::${reports.generated_at || ""}`;
   const routeSheet = reports.route_sheet ?? null;
   const routeSheetRecommendations = routeSheet?.recommendations?.batch ?? [];
+  const showRouteSheetStrip = Boolean(routeSheet?.connected && routeSheet.headers_ok)
+    || Boolean(routeSheetRecommendations.length)
+    || Boolean(routeSheet?.warnings?.length)
+    || pendingAuditReconciliationChanges.length > 0;
 
   useEffect(() => {
     if (!selectedAuditOption) {
@@ -18226,14 +20165,6 @@ function TerritorialReviewCasesView({
     stageAuditReconciliationChange(territorialBuildPendingUmpReconciliationChange(payload));
   }, [auditModel.phase, auditModel.targetBlock, stageAuditReconciliationChange]);
 
-  const selectAuditForCase = (item: TerritorialInternalReviewCase) => {
-    const option = territorialReviewAuditOptionFromCase(auditBlockOptions, item);
-    if (option) {
-      setSelectedAuditBlockId(option.id);
-      setAuditDrawerOpen(true);
-    }
-  };
-
   return (
     <Panel className="mon-territorial-panel mon-territorial-review-panel" eyebrow="Consultas internas" title={<span className="mon-title-icon"><Search size={16} /> Registros por validar</span>}>
       <section className="mon-territorial-review-hero" aria-label="Resumen de registros consultables">
@@ -18250,12 +20181,14 @@ function TerritorialReviewCasesView({
         </div>
       </section>
 
-      <TerritorialRouteSheetStrip
-        routeSheet={routeSheet}
-        saving={saving}
-        stagedCount={pendingAuditReconciliationChanges.length}
-        onStageRecommendations={stageRouteSheetRecommendations}
-      />
+      {showRouteSheetStrip ? (
+        <TerritorialRouteSheetStrip
+          routeSheet={routeSheet}
+          saving={saving}
+          stagedCount={pendingAuditReconciliationChanges.length}
+          onStageRecommendations={stageRouteSheetRecommendations}
+        />
+      ) : null}
 
       <div className="mon-territorial-review-filterbar" aria-label="Filtros de registros por validar">
         <label className="mon-query-search">
@@ -18272,7 +20205,7 @@ function TerritorialReviewCasesView({
         <TerritorialReviewSelect
           label="Estado"
           value={filters.state}
-          options={["all", "sin_observacion", "pendiente", "en_observacion", "visto_bueno"]}
+          options={["all", "sin_observacion", "pendiente", "en_observacion"]}
           formatOption={territorialReviewStateFilterLabel}
           onChange={(state) => patchFilters({ state: state as TerritorialReviewStateFilter })}
         />
@@ -18315,13 +20248,14 @@ function TerritorialReviewCasesView({
                 <button
                   type="button"
                   className="mon-territorial-review-audit-trigger"
+                  title={`Abrir auditoria de ${selectedAuditOption.label}`}
                   onClick={() => {
                     setSelectedAuditBlockId(selectedAuditOption.id);
                     setAuditDrawerOpen(true);
                   }}
                 >
                   <ListChecks size={13} />
-                  <span>Auditar {selectedAuditOption.label}</span>
+                  <span>Abrir auditoria UMP</span>
                 </button>
               ) : null}
             </div>
@@ -18352,6 +20286,7 @@ function TerritorialReviewCasesView({
                     const responseId = item.responseId.trim();
                     const durationBand = territorialDurationBand(row, config);
                     const gpsBand = territorialDistanceBand(row);
+                    const gpsTrace = territorialGpsTraceLabel(row);
                     const codeLabel = territorialPulsoCodeLabel(row);
                     const hour = normalizeTerritorialHourLabel(item.hourValue);
                     const hourLabel = hour && !isTerritorialMidnightLabel(hour)
@@ -18374,7 +20309,7 @@ function TerritorialReviewCasesView({
                       : "";
                     const interviewerHint = codeLabel !== "S/D" ? `Código ${codeLabel}` : submittedHint || "sin código visible";
                     return (
-                      <tr key={item.id} className={`is-master-record is-${item.state}`}>
+                      <tr key={item.id} data-response-id={responseId || undefined} className={`is-master-record is-${item.state}`}>
                         <td><strong>{item.dateValue ? formatInternalQueryDateAxisLabel(item.dateValue) : "S/D"}</strong><small>{item.rowIndex ? `fila ${formatMetric(item.rowIndex)}` : "respuesta"}</small></td>
                         <td><strong>{hourLabel}</strong><small>{row.submission_time_source || "hora reportada"}</small></td>
                         <td><strong>{/^ump\b/i.test(item.ump) || item.ump === "S/D" ? item.ump : `UMP ${item.ump}`}</strong><small>{row.declared_ump_raw ? `declarada ${row.declared_ump_raw}` : "UMP del corte"}</small></td>
@@ -18385,7 +20320,10 @@ function TerritorialReviewCasesView({
                         <td><span className="mon-territorial-review-demo is-age">{territorialReviewAgeLabel(row)}</span></td>
                         <td><span className={`mon-territorial-review-observed is-duration ${durationClass}`}>{durationLabel}</span></td>
                         <td><span className={`mon-territorial-review-time ${durationClass}`}>{durationStatusLabel}</span><small>{durationBand.detail}</small></td>
-                        <td><span className={`mon-territorial-review-gps is-${gpsBand.key}`}>{gpsBand.label}</span><small>{gpsBand.detail}</small></td>
+                        <td>
+                          <span className={`mon-territorial-review-gps is-${gpsBand.key}`}>{gpsBand.label}</span>
+                          <small title={gpsTrace ? `${gpsBand.detail} · ${gpsTrace}` : gpsBand.detail}>{[gpsBand.detail, gpsTrace].filter(Boolean).join(" · ")}</small>
+                        </td>
                         <td>
                           {responseId ? (
                             <button type="button" className="mon-territorial-review-copy" title={responseId} onClick={() => copyUuid(item.id, responseId)}>
@@ -18962,6 +20900,48 @@ function buildTerritorialReviewCases(
     .sort(territorialReviewCompareCases);
 }
 
+function territorialReviewCasesAsAuditRows(cases: TerritorialInternalReviewCase[]): TerritorialResponseAuditRow[] {
+  return cases.map((item, index) => ({
+    response_id: stringOrEmpty(item.response_id).trim(),
+    row_index: numberOrNull(item.row_index) ?? index + 1,
+    age: numberOrNull(item.age),
+    sex: stringOrEmpty(item.sex).trim(),
+    distrito: stringOrEmpty(item.district).trim(),
+    ubigeo: stringOrEmpty(item.ubigeo).trim(),
+    district_code: stringOrEmpty(item.ubigeo).trim(),
+    nearest_block_id: stringOrEmpty(item.block_id).trim(),
+    nearest_block_type: stringOrEmpty(item.block_type).trim(),
+    advance_block_id: stringOrEmpty(item.block_id).trim(),
+    advance_block_ump: stringOrEmpty(item.ump).trim() || territorialReviewUmpLabel(item),
+    advance_block_manzana: stringOrEmpty(item.manzana).trim() || stringOrEmpty(item.block_id).trim(),
+    advance_block_zona: stringOrEmpty(item.zona).trim(),
+    advance_block_distrito: stringOrEmpty(item.district).trim(),
+    responsible_display: stringOrEmpty(item.responsible).trim(),
+    enumerator_assigned: stringOrEmpty(item.responsible).trim(),
+    submitted_by: stringOrEmpty(item.submitted_by).trim(),
+    pulso_code: stringOrEmpty(item.pulso_code).trim(),
+    pulso_code_raw: stringOrEmpty(item.pulso_code_raw).trim(),
+    pulso_code_recognized: Boolean(item.pulso_code_recognized),
+    pulso_code_reconciled: Boolean(item.pulso_code_reconciled),
+    submission_date_iso: stringOrEmpty(item.submission_date_iso).trim(),
+    submission_date: stringOrEmpty(item.submission_date).trim() || stringOrEmpty(item.submission_date_iso).trim(),
+    submission_hour: stringOrEmpty(item.submission_hour).trim(),
+    submission_datetime: stringOrEmpty(item.submission_datetime).trim(),
+    duration_seconds: numberOrNull(item.duration_seconds),
+    duration_status: stringOrEmpty(item.duration_status).trim(),
+    duration_operational_status: stringOrEmpty(item.duration_operational_status).trim(),
+    duration_operational_label: stringOrEmpty(item.duration_operational_label).trim(),
+    distance_m: numberOrNull(item.distance_m),
+    geo_estado: stringOrEmpty(item.geo_estado).trim(),
+    observation_status: stringOrEmpty(item.observation_status).trim(),
+    validation_status: stringOrEmpty(item.validation_status).trim(),
+    validation_decision: stringOrEmpty(item.validation_decision).trim(),
+    status: territorialReviewStateKey(item),
+    issues: stringOrEmpty(item.issues || item.reason).trim(),
+    observation_reasons: stringOrEmpty(item.reason).trim(),
+  } as TerritorialResponseAuditRow));
+}
+
 function territorialReviewHydrateCaseDemographics(
   item: TerritorialInternalReviewCase,
   auditByResponseId: Map<string, TerritorialResponseAuditRow>,
@@ -19105,6 +21085,7 @@ function territorialReviewNormalizeCase(
 function territorialReviewGpsReason(item: Partial<TerritorialInternalReviewCase | TerritorialResponseAuditRow>) {
   const geo = territorialReviewCodeKey((item as TerritorialInternalReviewCase).geo_estado);
   if (geo === "geo_sin_gps" || geo === "sin_gps") return "gps_sin_gps";
+  if (geo === "geo_sin_cruce") return "gps_sin_cruce";
   if (geo === "geo_no_defendible") return "gps_muy_lejos";
   if (geo === "geo_revision") return "gps_fuera_zona";
   return "gps_por_revisar";
@@ -19162,6 +21143,7 @@ function territorialReviewReasonLabel(item: TerritorialInternalReviewCase) {
   if (reason === "sin_observacion") return "Sin observación";
   if (reason === "registro_no_efectivo") return "No efectiva / fuera de corte";
   if (reason === "gps_muy_lejos") return "GPS muy lejos de la UMP";
+  if (reason === "gps_sin_cruce") return "Sin cruce territorial";
   if (reason === "gps_sin_gps") return "Sin GPS";
   if (reason === "gps_fuera_zona") return "GPS fuera de zona";
   if (reason === "gps_por_revisar") return "GPS por revisar";
@@ -19181,8 +21163,7 @@ function territorialReviewStateKey(item: Partial<TerritorialInternalReviewCase>)
   const observation = territorialReviewCodeKey(item.observation_status);
   const validation = territorialReviewCodeKey(item.validation_status);
   const reason = territorialReviewCodeKey(item.reason);
-  if (status === "visto_bueno" || decision === "visto_bueno" || observation === "aprobada") return "visto_bueno";
-  if (status === "en_observacion" || status === "revision" || observation === "en_observacion" || validation === "revision") return "en_observacion";
+  if (status === "en_observacion" || status === "revision" || observation === "en_observacion" || observation === "aprobada" || validation === "revision" || decision === "visto_bueno") return "en_observacion";
   if (status === "sin_observacion" || reason === "sin_observacion" || territorialReviewTypeKey(item) === "record") return "sin_observacion";
   return "pendiente";
 }
@@ -19191,7 +21172,6 @@ function territorialReviewStateFilterLabel(value: string) {
   if (value === "sin_observacion") return "Sin observación";
   if (value === "pendiente") return "Pendiente";
   if (value === "en_observacion") return "En observación";
-  if (value === "visto_bueno") return "Visto bueno";
   return "Todos";
 }
 
@@ -19270,6 +21250,7 @@ function territorialReviewObservedValue(item: TerritorialInternalReviewCase) {
   }
   if (type === "duration") return formatDurationLabel(item.duration_seconds);
   if (type === "ump") return `${formatMetric(numberOrNull(item.validas) ?? 0)}/${formatMetric(numberOrNull(item.meta) ?? 8)} válidas`;
+  if (territorialReviewCodeKey(item.geo_estado) === "geo_sin_cruce" || territorialReviewCodeKey(item.reason) === "gps_sin_cruce") return "Sin cruce";
   if (territorialReviewCodeKey(item.geo_estado) === "geo_sin_gps" || territorialReviewCodeKey(item.reason) === "gps_sin_gps") return "Sin GPS";
   return formatDistanceLabel(item.distance_m);
 }
@@ -19293,7 +21274,7 @@ function territorialReviewValidationTarget(item: TerritorialInternalReviewCase):
   icon: typeof BarChart3;
 } {
   const type = territorialReviewTypeKey(item);
-  if (type === "record") return { tab: "resumen", label: "Ver registro", icon: FileCheck2 };
+  if (type === "record") return { tab: "geolocalizacion", label: "Ver registro", icon: MapPin };
   if (type === "duration") return { tab: "duracion", label: "Ver duración", icon: Clock };
   if (type === "ump") return { tab: "geolocalizacion", label: "Ver UMP", icon: Route };
   return { tab: "geolocalizacion", label: "Ver en mapa", icon: MapPin };
@@ -19358,7 +21339,7 @@ function isEmptyTerritorialReviewFilters(filters: TerritorialReviewFilters) {
 }
 
 function territorialReviewCompareCases(a: TerritorialInternalReviewCase, b: TerritorialInternalReviewCase) {
-  const stateRank: Record<string, number> = { pendiente: 0, en_observacion: 1, visto_bueno: 2, sin_observacion: 3 };
+  const stateRank: Record<string, number> = { pendiente: 0, en_observacion: 1, sin_observacion: 2 };
   const typeRank: Record<string, number> = { gps: 0, duration: 1, ump: 2, record: 3 };
   const stateDelta = (stateRank[territorialReviewStateKey(a)] ?? 9) - (stateRank[territorialReviewStateKey(b)] ?? 9);
   if (stateDelta !== 0) return stateDelta;
@@ -19457,7 +21438,7 @@ function TerritorialFieldOccurrencesSection({
   const reportScope = rawReports?.report_scope || "full";
   const reports = rawReports && (reportScope === "queries_summary" || reportScope === "full") ? rawReports : null;
   if (!reports) {
-    if (loading) return <LoadingBlock label={territorialLoadingLabelForView("ocurrencias")} minHeight={420} />;
+    if (loading) return <TerritorialLoadingView view="ocurrencias" minHeight={420} />;
     if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
     return <EmptyState icon={<ClipboardCheck size={18} />} title="Sin ocurrencias de campo" hint="Selecciona o sincroniza el formulario de ocurrencias para leer estados por UMP." />;
   }
@@ -19733,7 +21714,15 @@ function TerritorialFieldOccurrencesView({
   const unreconciledUmpCount = routeUmpRows.length - expectedRouteUmpRows.length;
   const reportedUmpCount = expectedRouteUmpRows.filter((row) => row.has_report).length;
   const noReportUmpCount = expectedRouteUmpRows.filter((row) => !row.has_report).length;
-  const observationRows = routeUmpRows.filter((row) => row.status === "sin_reporte" || row.status === "revisar_cruce");
+  const completeNoOccurrenceRows = expectedRouteUmpRows.filter((row) => row.status === "completa_sin_reporte");
+  const incompleteNoOccurrenceRows = expectedRouteUmpRows.filter((row) => row.status === "incompleta_sin_reporte");
+  const startedNoOccurrenceRows = expectedRouteUmpRows.filter((row) => row.advance_started && !row.has_report);
+  const noReportAdvanceValidas = startedNoOccurrenceRows.reduce((sum, row) => sum + row.advance_validas, 0);
+  const noReportAdvanceLast = latestOccurrenceDateLabel(startedNoOccurrenceRows.map((row) => row.advance_last_activity));
+  const completeNoOccurrenceContext = occurrenceRowsAdvanceContext(completeNoOccurrenceRows);
+  const incompleteNoOccurrenceContext = occurrenceRowsAdvanceContext(incompleteNoOccurrenceRows);
+  const startedNoOccurrenceContext = occurrenceRowsAdvanceContext(startedNoOccurrenceRows);
+  const observationRows = routeUmpRows.filter((row) => !row.has_report || row.status === "revisar_cruce");
   const occurrenceTabs = [
     { key: "states" as const, label: "Estados general", value: rateLabel },
     {
@@ -19741,7 +21730,7 @@ function TerritorialFieldOccurrencesView({
       label: "Por UMP",
       value: unreconciledUmpCount
         ? `${formatMetric(reportedUmpCount)}/${formatMetric(expectedRouteUmpRows.length)} · ${formatMetric(unreconciledUmpCount)} sin conciliación`
-        : `${formatMetric(reportedUmpCount)}/${formatMetric(expectedRouteUmpRows.length)} reportadas`,
+        : `${formatMetric(reportedUmpCount)}/${formatMetric(expectedRouteUmpRows.length)} reportadas · ${formatMetric(startedNoOccurrenceRows.length)} sin ocurrencias`,
     },
     { key: "alerts" as const, label: "Observaciones", value: `${formatMetric(observationRows.length)} por revisar` },
   ];
@@ -19779,7 +21768,7 @@ function TerritorialFieldOccurrencesView({
           <span><strong>{formatMetric(summary.total_records)}</strong><em>reportes</em></span>
           <span><strong>{formatMetric(summary.efectivas)}</strong><em>efectivas</em></span>
           <span><strong>{formatMetric(summary.no_efectivas)}</strong><em>{rateLabel}</em></span>
-          <span><strong>{formatMetric(noReportUmpCount)}</strong><em>sin reporte</em></span>
+	          <span><strong>{formatMetric(noReportUmpCount)}</strong><em>{formatMetric(noReportAdvanceValidas)} válidas sin ocurrencias{noReportAdvanceLast ? ` · ${noReportAdvanceLast}` : ""}</em></span>
         </div>
         <div className="mon-field-occurrences-command-actions">
           <button type="button" className="pulso-button" onClick={() => setAssetPickerOpen((current) => !current)} disabled={!!busy}>
@@ -19982,7 +21971,9 @@ function TerritorialFieldOccurrencesView({
           </section>
           <section>
             <header><Route size={15} /><strong>Cobertura</strong></header>
-            <OccurrenceAlertLine label="Sin reporte UMP" value={occurrences?.alerts?.missing_blocks?.length ?? 0} />
+            <OccurrenceAlertLine label="Sin reporte UMP" value={occurrences?.alerts?.missing_blocks?.length ?? 0} hint={startedNoOccurrenceRows.length ? startedNoOccurrenceContext : undefined} />
+            <OccurrenceAlertLine label="Completas sin ocurrencias" value={completeNoOccurrenceRows.length} hint={completeNoOccurrenceRows.length ? completeNoOccurrenceContext : undefined} />
+            <OccurrenceAlertLine label="Incompletas sin ocurrencias" value={incompleteNoOccurrenceRows.length} hint={incompleteNoOccurrenceRows.length ? incompleteNoOccurrenceContext : undefined} />
             <OccurrenceAlertLine label="Con observación" value={occurrences?.alerts?.observations?.length ?? 0} />
             <OccurrenceAlertLine label="Fuera de ruta" value={occurrences?.alerts?.outside_route?.length ?? 0} />
           </section>
@@ -20009,6 +22000,9 @@ const OCCURRENCE_STATUS_META: Record<OccurrenceUmpAttentionStatus, { label: stri
   revisar_cruce: { label: "Cruce por revisar", caption: "UMP o ruta por confirmar" },
   reportada_no_efectiva: { label: "Con reporte no efectivo", caption: "Resultado registrado" },
   reportada_efectiva: { label: "Con reporte efectivo", caption: "Con efectivas" },
+  completa_sin_reporte: { label: "Completa sin reporte", caption: "Cumplió cuota sin ocurrencias" },
+  incompleta_sin_reporte: { label: "Incompleta sin reporte", caption: "Avance pendiente sin ocurrencias" },
+  iniciada_sin_reporte: { label: "Iniciada sin reporte", caption: "Avance sin ocurrencias" },
   sin_reporte: { label: "Sin reporte", caption: "UMP esperada" },
 };
 
@@ -20203,20 +22197,22 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
         <em>Estados consolidados y motivo predominante</em>
       </header>
       <div className="mon-field-occurrences-district-rows">
-        {rows.length ? rows.map((row) => {
-          const intentos = Math.max(0, row.intentos || row.efectivas + row.no_efectivas);
-          const effectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / intentos) * 100)) : 0;
-          const nonEffectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / intentos) * 100)) : 0;
-          const volumePct = Math.max(8, Math.min(100, (intentos / maxIntentos) * 100));
-          const totalUmp = Math.max(1, row.ump_reportadas + row.ump_sin_reporte);
-          const reportedPct = Math.max(0, Math.min(100, (row.ump_reportadas / totalUmp) * 100));
-          const topOutcomes = [...(row.outcomes ?? [])].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 3);
-          const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
-          return (
-            <article key={row.distrito || "sin-distrito"} className="mon-field-occurrences-district-row">
-              <div className="mon-field-occurrences-district-name">
-                <strong>{row.distrito || "Sin distrito"}</strong>
-                <span>{formatMetric(row.ump_reportadas)} reportadas · {formatMetric(row.ump_sin_reporte)} sin reporte</span>
+	        {rows.length ? rows.map((row) => {
+	          const intentos = Math.max(0, row.intentos || row.efectivas + row.no_efectivas);
+	          const effectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / intentos) * 100)) : 0;
+	          const nonEffectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / intentos) * 100)) : 0;
+	          const volumePct = Math.max(8, Math.min(100, (intentos / maxIntentos) * 100));
+	          const totalUmp = Math.max(1, row.ump_reportadas + row.ump_sin_reporte);
+	          const reportedPct = Math.max(0, Math.min(100, (row.ump_reportadas / totalUmp) * 100));
+	          const topOutcomes = [...(row.outcomes ?? [])].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 3);
+	          const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
+	          const validasSinReporte = row.validas_sin_reporte ?? 0;
+	          const ultimoIngresoSinReporte = row.ultimo_ingreso_sin_reporte ?? "";
+	          return (
+	            <article key={row.distrito || "sin-distrito"} className="mon-field-occurrences-district-row">
+	              <div className="mon-field-occurrences-district-name">
+	                <strong>{row.distrito || "Sin distrito"}</strong>
+	                <span>{formatMetric(row.ump_reportadas)} reportadas · {formatMetric(row.ump_completas_sin_reporte ?? 0)} completas sin ocurrencias · {formatMetric(row.ump_incompletas_sin_reporte ?? 0)} incompletas · {formatMetric(validasSinReporte)} válidas{ultimoIngresoSinReporte ? ` · último ingreso ${ultimoIngresoSinReporte}` : ""}</span>
               </div>
               <div className="mon-field-occurrences-district-coverage" aria-label="Cobertura UMP">
                 <span>
@@ -20230,11 +22226,14 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
                   <i className="is-effective" style={{ width: `${effectivePct}%` }} />
                   <i className="is-noneffective" style={{ width: `${nonEffectivePct}%` }} />
                 </span>
-              </div>
-              <div className="mon-field-occurrences-district-counts">
-                <span className="is-effective"><strong>{formatMetric(row.efectivas)}</strong><em>Efectivas</em></span>
-                <span className="is-noneffective"><strong>{formatMetric(row.no_efectivas)}</strong><em>No efectivas</em></span>
-                <span><strong>{rate}</strong><em>Tasa</em></span>
+	              </div>
+	              <div className="mon-field-occurrences-district-counts">
+	                <span className="is-effective"><strong>{formatMetric(row.efectivas)}</strong><em>Efectivas</em></span>
+	                <span className="is-noneffective"><strong>{formatMetric(row.no_efectivas)}</strong><em>No efectivas</em></span>
+	                <span className="is-complete-missing"><strong>{formatMetric(row.ump_completas_sin_reporte ?? 0)}</strong><em>Completas sin ocurrencias</em></span>
+	                <span className="is-incomplete-missing"><strong>{formatMetric(row.ump_incompletas_sin_reporte ?? 0)}</strong><em>Incompletas sin ocurrencias</em></span>
+	                <span className="is-advance-missing"><strong>{formatMetric(validasSinReporte)}</strong><em>Válidas sin ocurrencias{ultimoIngresoSinReporte ? ` · ${ultimoIngresoSinReporte}` : ""}</em></span>
+	                <span><strong>{rate}</strong><em>Tasa</em></span>
               </div>
               <div className="mon-field-occurrences-district-outcomes">
                 {topOutcomes.length ? topOutcomes.map((item) => (
@@ -20257,6 +22256,61 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
       </div>
     </section>
   );
+}
+
+const OCCURRENCE_SPANISH_MONTH_ORDER: Record<string, number> = {
+  enero: 1,
+  febrero: 2,
+  marzo: 3,
+  abril: 4,
+  mayo: 5,
+  junio: 6,
+  julio: 7,
+  agosto: 8,
+  septiembre: 9,
+  setiembre: 9,
+  octubre: 10,
+  noviembre: 11,
+  diciembre: 12,
+};
+
+function occurrenceDateSortValue(value: string) {
+  const raw = String(value ?? "").trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return Number(`${iso[1]}${iso[2]}${iso[3]}`);
+  const key = raw
+    .toLocaleLowerCase("es-PE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const label = key.match(/^(\d{1,2})_([a-z]+)(?:_(\d{4}))?$/);
+  if (!label) return 0;
+  const day = Number(label[1]);
+  const month = OCCURRENCE_SPANISH_MONTH_ORDER[label[2]] ?? 0;
+  const year = Number(label[3] ?? "0");
+  return year * 10000 + month * 100 + day;
+}
+
+function latestOccurrenceDateLabel(values: string[]) {
+  const labels = Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+  return labels.sort((a, b) => occurrenceDateSortValue(a) - occurrenceDateSortValue(b) || a.localeCompare(b, "es-PE")).at(-1) ?? "";
+}
+
+function occurrenceAdvanceProgressLabel(row: Pick<OccurrenceRouteUmpRow, "advance_validas" | "advance_meta">) {
+  return row.advance_meta > 0
+    ? `${formatMetric(row.advance_validas)}/${formatMetric(row.advance_meta)} válidas`
+    : `${formatMetric(row.advance_validas)} válidas`;
+}
+
+function occurrenceRowsAdvanceContext(rows: OccurrenceRouteUmpRow[]) {
+  const validas = rows.reduce((sum, row) => sum + row.advance_validas, 0);
+  const meta = rows.reduce((sum, row) => sum + Math.max(0, row.advance_meta), 0);
+  const latest = latestOccurrenceDateLabel(rows.map((row) => row.advance_last_activity));
+  const progress = meta > 0
+    ? `${formatMetric(validas)}/${formatMetric(meta)} válidas`
+    : `${formatMetric(validas)} válidas`;
+  return latest ? `${progress} · último ingreso ${latest}` : progress;
 }
 
 function OccurrenceUmpWorkspace({
@@ -20302,13 +22356,19 @@ function OccurrenceUmpWorkspace({
   const [detailSide, setDetailSide] = useState<"left" | "right">("right");
   const counts = useMemo(() => {
     const expectedRows = allRows.filter((row) => !row.is_unreconciled);
+    const missingAdvanceRows = expectedRows.filter((row) => row.advance_started && !row.has_report);
     return {
       expected: expectedRows.length,
       reportadas: expectedRows.filter((row) => row.has_report).length,
       efectivas: expectedRows.filter((row) => row.status === "reportada_efectiva").length,
       noEfectivas: expectedRows.filter((row) => row.status === "reportada_no_efectiva").length,
+      completasSinReporte: expectedRows.filter((row) => row.status === "completa_sin_reporte").length,
+      incompletasSinReporte: expectedRows.filter((row) => row.status === "incompleta_sin_reporte").length,
+      iniciadasSinReporte: missingAdvanceRows.length,
+      validasSinReporte: missingAdvanceRows.reduce((sum, row) => sum + row.advance_validas, 0),
+      ultimaSinReporte: latestOccurrenceDateLabel(missingAdvanceRows.map((row) => row.advance_last_activity)),
       sinConciliacion: allRows.filter((row) => row.is_unreconciled).length,
-      sinReporte: expectedRows.filter((row) => row.status === "sin_reporte").length,
+      sinReporte: expectedRows.filter((row) => !row.has_report).length,
     };
   }, [allRows]);
   useEffect(() => {
@@ -20329,11 +22389,14 @@ function OccurrenceUmpWorkspace({
         <div className="mon-field-occurrences-workspace-title">
           <span><Route size={14} /> Cobertura por UMP</span>
           <strong>{coverageSummary}</strong>
-          <em>{formatMetric(counts.reportadas)} reportadas · {formatMetric(counts.sinReporte)} sin reporte</em>
+          <em>{formatMetric(counts.reportadas)} reportadas · {formatMetric(counts.completasSinReporte)} completas sin ocurrencias · {formatMetric(counts.incompletasSinReporte)} incompletas sin ocurrencias</em>
         </div>
         <div className="mon-field-occurrences-workspace-stats" aria-label="Indicadores de cobertura UMP">
           <span className="is-reportada_efectiva"><strong>{formatMetric(counts.efectivas)}</strong><em>efectivas</em></span>
           <span className="is-reportada_no_efectiva"><strong>{formatMetric(counts.noEfectivas)}</strong><em>no efectivas</em></span>
+          <span className="is-completa_sin_reporte"><strong>{formatMetric(counts.completasSinReporte)}</strong><em>completas sin ocurrencias</em></span>
+          <span className="is-incompleta_sin_reporte"><strong>{formatMetric(counts.incompletasSinReporte)}</strong><em>incompletas sin ocurrencias</em></span>
+          <span className="is-iniciada_sin_reporte"><strong>{formatMetric(counts.validasSinReporte)}</strong><em>válidas sin ocurrencias{counts.ultimaSinReporte ? ` · ${counts.ultimaSinReporte}` : ""}</em></span>
           <span className="is-revisar_cruce"><strong>{formatMetric(counts.sinConciliacion)}</strong><em>sin conciliación</em></span>
           <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
         </div>
@@ -20353,6 +22416,9 @@ function OccurrenceUmpWorkspace({
           <option value="reportada_efectiva">Con reporte efectivo</option>
           <option value="reportada_no_efectiva">Con reporte no efectivo</option>
           <option value="revisar_cruce">Cruce por revisar</option>
+          <option value="completa_sin_reporte">Completa sin reporte</option>
+          <option value="incompleta_sin_reporte">Incompleta sin reporte</option>
+          <option value="iniciada_sin_reporte">Iniciada sin reporte</option>
           <option value="sin_reporte">Sin reporte</option>
         </select>
         <select value={districtFilter} onChange={(event) => onDistrictFilter(event.target.value)} aria-label="Filtrar distrito">
@@ -20408,7 +22474,7 @@ function OccurrenceStatusBadge({ status, label }: { status: OccurrenceUmpAttenti
   const meta = OCCURRENCE_STATUS_META[status];
   const icon = status === "reportada_efectiva"
     ? <CheckCircle2 size={12} />
-    : status === "sin_reporte"
+    : status === "sin_reporte" || status === "completa_sin_reporte" || status === "incompleta_sin_reporte" || status === "iniciada_sin_reporte"
       ? <Clock size={12} />
       : status === "reportada_no_efectiva"
         ? <ClipboardCheck size={12} />
@@ -20433,6 +22499,8 @@ function OccurrenceUmpListRow({
   const effectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / row.intentos) * 100)) : 0;
   const nonEffectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / row.intentos) * 100)) : 0;
   const unexpectedUmp = row.is_unreconciled;
+  const missingWithAdvance = !unexpectedUmp && !row.has_report && row.advance_started;
+  const advanceProgress = occurrenceAdvanceProgressLabel(row);
   const title = unexpectedUmp
     ? "UMP sin conciliación"
     : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
@@ -20442,22 +22510,32 @@ function OccurrenceUmpListRow({
   const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
   const resultLabel = unexpectedUmp
     ? "No vinculada a una UMP esperada"
+    : row.status === "completa_sin_reporte"
+      ? "Cuota completa sin registro de ocurrencias"
+      : row.status === "incompleta_sin_reporte"
+        ? "Cuota incompleta sin registro de ocurrencias"
+        : row.status === "iniciada_sin_reporte"
+          ? "Iniciada sin registro de ocurrencias"
     : row.has_report
       ? row.dominant_outcome?.label ?? (row.no_efectivas > 0 ? "No efectiva sin motivo" : "Consolidado efectivo")
       : "Sin reporte registrado";
   const resultMeta = unexpectedUmp
     ? row.route_match_message || `La UMP declarada ${row.ump || "S/D"} queda fuera del marco hasta conciliarse.`
+    : missingWithAdvance
+      ? `${advanceProgress}${row.advance_last_activity ? ` · último ingreso ${row.advance_last_activity}` : ""}`
     : row.has_report
       ? `${formatMetric(row.efectivas)} efectivas · ${formatMetric(row.no_efectivas)} no efectivas · ${rate} no efectiva`
       : "Esperada en hoja de ruta";
-  const sourceMeta = row.has_report
+  const sourceMeta = missingWithAdvance
+    ? `${advanceProgress}${row.advance_last_activity ? ` · ${row.advance_last_activity}` : ""} · ocurrencias pendiente`
+    : row.has_report
     ? `${formatMetric(row.reportes)} reporte${row.reportes === 1 ? "" : "s"} · ${formatMetric(row.intentos)} intento${row.intentos === 1 ? "" : "s"}`
     : "Pendiente de sincronización";
   const resultColor = row.dominant_outcome ? occurrenceOutcomeColor(row.dominant_outcome.key) : "var(--occurrence-status-color)";
   return (
     <button
       type="button"
-      className={`mon-field-occurrences-ump-row is-${row.status} ${selected ? "is-selected" : ""}`}
+      className={`mon-field-occurrences-ump-row is-${row.status} ${missingWithAdvance ? "is-advance-missing" : ""} ${selected ? "is-selected" : ""}`}
       onClick={onSelect}
       role="option"
       aria-selected={selected}
@@ -20523,6 +22601,18 @@ function OccurrenceUmpDetail({
   const nonEffectivePct = Math.max(0, Math.min(100, (row.no_efectivas / total) * 100));
   const topOutcomes = [...row.outcomes].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
   const unexpectedUmp = row.is_unreconciled;
+  const missingWithAdvance = !unexpectedUmp && !row.has_report && row.advance_started;
+  const advanceProgress = occurrenceAdvanceProgressLabel(row);
+  const missingNoticeTitle = row.status === "completa_sin_reporte"
+    ? "UMP completa sin registro de ocurrencias"
+    : row.status === "incompleta_sin_reporte"
+      ? "UMP incompleta sin registro de ocurrencias"
+      : "UMP iniciada sin registro de ocurrencias";
+  const missingNoticeText = row.status === "completa_sin_reporte"
+    ? "Ya cumple la cuota de avance, pero falta el registro operativo de ocurrencias."
+    : row.status === "incompleta_sin_reporte"
+      ? "Ya registra avance válido, todavía no completa cuota y falta el registro operativo de ocurrencias."
+      : "Registra avance territorial válido, pero falta el registro operativo de ocurrencias.";
   const title = unexpectedUmp
     ? "UMP sin conciliación"
     : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
@@ -20533,7 +22623,7 @@ function OccurrenceUmpDetail({
   const districtLabel = row.distrito || (unexpectedUmp ? "UMP sin conciliación" : "Sin distrito");
   return (
     <section
-      className={`mon-field-occurrences-ump-detail is-${row.status} is-${side}`}
+      className={`mon-field-occurrences-ump-detail is-${row.status} ${missingWithAdvance ? "is-advance-missing" : ""} is-${side}`}
       aria-label="Detalle de UMP seleccionada"
       aria-modal="false"
       role="dialog"
@@ -20568,10 +22658,21 @@ function OccurrenceUmpDetail({
         </section>
       ) : null}
 
+      {missingWithAdvance ? (
+        <section className="mon-field-occurrences-detail-notice is-advance-missing">
+          <Clock size={14} />
+          <div>
+            <strong>{missingNoticeTitle}</strong>
+            <span>{missingNoticeText}{row.advance_last_activity ? ` Último ingreso: ${row.advance_last_activity}.` : ""}</span>
+          </div>
+        </section>
+      ) : null}
+
       <div className="mon-field-occurrences-detail-kpis">
         <OccurrenceDetailMetric label="intentos" value={formatMetric(row.intentos)} />
         <OccurrenceDetailMetric label="efectivas" value={formatMetric(row.efectivas)} tone="effective" />
         <OccurrenceDetailMetric label="no efectivas" value={formatMetric(row.no_efectivas)} tone="noneffective" />
+        <OccurrenceDetailMetric label="válidas avance" value={advanceProgress} tone={missingWithAdvance ? "advance" : ""} />
         <OccurrenceDetailMetric label="tasa no efectiva" value={rate} />
       </div>
 
@@ -20599,6 +22700,8 @@ function OccurrenceUmpDetail({
             <p><span>Horario</span><strong>{row.report_window_label}</strong></p>
             <p><span>Responsable</span><strong>{row.responsable || "Sin responsable"}</strong></p>
             <p><span>Distrito</span><strong>{districtLabel}</strong></p>
+            <p><span>Estado cuota avance</span><strong>{row.advance_quota_status || (row.advance_complete ? "Completa" : row.advance_started ? "Cuota pendiente" : "Sin avance")}</strong></p>
+            <p><span>Último ingreso avance</span><strong>{row.advance_last_activity || "Sin ingreso"}</strong></p>
           </div>
         </section>
       </div>
@@ -20606,11 +22709,12 @@ function OccurrenceUmpDetail({
   );
 }
 
-function OccurrenceAlertLine({ label, value }: { label: string; value: number }) {
+function OccurrenceAlertLine({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
     <p className={value ? "is-warning" : "is-ready"}>
       <strong>{formatMetric(value)}</strong>
       <span>{label}</span>
+      {hint ? <small>{hint}</small> : null}
     </p>
   );
 }
@@ -20638,8 +22742,8 @@ const TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT = 24;
 const TERRITORIAL_ROUTE_MIN_ZOOM = 0.7;
 const TERRITORIAL_ROUTE_AUTO_ZOOM = 1.2;
 const TERRITORIAL_VALIDATION_GEO_INITIAL_ZOOM = 2.1;
-const TERRITORIAL_VALIDATION_GEO_BLOCK_ZOOM = 10.5;
-const TERRITORIAL_VALIDATION_GEO_POINT_ZOOM = 18;
+const TERRITORIAL_VALIDATION_GEO_BLOCK_ZOOM = 3.4;
+const TERRITORIAL_VALIDATION_GEO_POINT_ZOOM = 12;
 
 type TerritorialRouteCartographyBundle = {
   blockMap: HojasRutaBlockMap | null;
@@ -20850,7 +22954,7 @@ type TerritorialNumberedKoboMapPoint = TerritorialKoboMapPoint & {
   geoDisposition?: TerritorialGeoDispositionKey;
 };
 
-type TerritorialGeoDispositionKey = "en_zona" | "en_distrito" | "fuera_distrito" | "sin_gps";
+type TerritorialGeoDispositionKey = "en_zona" | "en_distrito" | "fuera_distrito" | "sin_cruce" | "sin_gps";
 
 type TerritorialGeoPoint = [number, number];
 type TerritorialGeoRing = TerritorialGeoPoint[];
@@ -22039,6 +24143,8 @@ function TerritorialMapPanel({
         <span><strong>{formatMetric(k.geo_cerca)}</strong><em>cerca</em></span>
         <span><strong>{formatMetric(k.geo_revision)}</strong><em>revisión</em></span>
         <span><strong>{formatMetric(k.geo_no_defendible)}</strong><em>lejos</em></span>
+        <span><strong>{formatMetric(k.geo_sin_cruce)}</strong><em>sin cruce</em></span>
+        <span><strong>{formatMetric(k.geo_sin_gps ?? 0)}</strong><em>sin GPS</em></span>
       </div>
       <div className="mon-territorial-map-legend">
         {mapLevel === "zone" && <span className="is-route-selected">Manzana seleccionada</span>}
@@ -23072,14 +25178,22 @@ function buildTerritorialMapProjection(
   fallbackFeatures: HojasRutaBlockMapFeature[] = [],
   zoneFeatures: HojasRutaZoneMapFeature[] = [],
 ): TerritorialMapProjection {
-  const coords: TerritorialGeoPoint[] = [];
+  let minLon = Number.POSITIVE_INFINITY;
+  let maxLon = Number.NEGATIVE_INFINITY;
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  const includeCoord = (lon: number, lat: number) => {
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+    minLon = Math.min(minLon, lon);
+    maxLon = Math.max(maxLon, lon);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  };
   districtFeatures.forEach((feature) => {
     territorialDistrictPolygons(feature).forEach((polygon) => {
       polygon.forEach((ring) => {
         ring.forEach((coord) => {
-          const lon = Number(coord[0]);
-          const lat = Number(coord[1]);
-          if (Number.isFinite(lon) && Number.isFinite(lat)) coords.push([lon, lat]);
+          includeCoord(Number(coord[0]), Number(coord[1]));
         });
       });
     });
@@ -23088,9 +25202,7 @@ function buildTerritorialMapProjection(
     territorialFeaturePolygons(feature).forEach((polygon) => {
       polygon.forEach((ring) => {
         ring.forEach((coord) => {
-          const lon = Number(coord[0]);
-          const lat = Number(coord[1]);
-          if (Number.isFinite(lon) && Number.isFinite(lat)) coords.push([lon, lat]);
+          includeCoord(Number(coord[0]), Number(coord[1]));
         });
       });
     });
@@ -23099,17 +25211,15 @@ function buildTerritorialMapProjection(
     territorialZonePolygons(feature).forEach((polygon) => {
       polygon.forEach((ring) => {
         ring.forEach((coord) => {
-          const lon = Number(coord[0]);
-          const lat = Number(coord[1]);
-          if (Number.isFinite(lon) && Number.isFinite(lat)) coords.push([lon, lat]);
+          includeCoord(Number(coord[0]), Number(coord[1]));
         });
       });
     });
   });
   points.forEach((point) => {
-    if (Number.isFinite(point.lonValue) && Number.isFinite(point.latValue)) coords.push([point.lonValue, point.latValue]);
+    includeCoord(point.lonValue, point.latValue);
   });
-  if (!coords.length) {
+  if (!Number.isFinite(minLon) || !Number.isFinite(minLat)) {
     return {
       width: TERRITORIAL_LIMA_MAP_WIDTH,
       height: TERRITORIAL_LIMA_MAP_HEIGHT,
@@ -23117,12 +25227,6 @@ function buildTerritorialMapProjection(
       project: () => ({ x: TERRITORIAL_LIMA_MAP_WIDTH / 2, y: TERRITORIAL_LIMA_MAP_HEIGHT / 2 }),
     };
   }
-  const lons = coords.map((coord) => coord[0]);
-  const lats = coords.map((coord) => coord[1]);
-  const minLon = Math.min(...lons);
-  const maxLon = Math.max(...lons);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
   const spanLon = Math.max(0.0002, maxLon - minLon);
   const spanLat = Math.max(0.0002, maxLat - minLat);
   const padding = 34;
@@ -23599,6 +25703,13 @@ function territorialCanvasGeoPointStyle(value: string) {
       selectedStroke: "rgba(180, 35, 24, 0.92)",
     };
   }
+  if (value === "sin_cruce" || value === "geo_sin_cruce") {
+    return {
+      fill: "rgba(154, 91, 0, 0.96)",
+      halo: "rgba(154, 91, 0, 0.16)",
+      selectedStroke: "rgba(154, 91, 0, 0.9)",
+    };
+  }
   if (value === "sin_gps") {
     return {
       fill: "rgba(102, 112, 133, 0.92)",
@@ -23938,6 +26049,7 @@ function territorialGeoLabel(value: string) {
     geo_cerca: "Cerca <=150 m",
     geo_revision: "Revision 150-300 m",
     geo_no_defendible: "Fuera >300 m",
+    geo_sin_cruce: "Sin cruce territorial",
     geo_sin_gps: "Sin GPS",
   };
   return labels[value] || value || "Sin GPS";
@@ -24246,6 +26358,8 @@ function issueShortLabel(value: string) {
   if (key.includes("consent")) return "consent.";
   if (key.includes("distrito")) return "distrito";
   if (key.includes("gps no defendible")) return "GPS lejos";
+  if (key.includes("gps sin cruce")) return "sin cruce";
+  if (key.includes("gps sin gps")) return "sin GPS";
   if (key.includes("gps revision")) return "GPS rev.";
   if (key.includes("duracion")) return "duración";
   if (key.includes("duplic")) return "duplicado";
@@ -24258,6 +26372,7 @@ function geoStatusLabel(value: string) {
   if (value === "geo_cerca") return "Cerca";
   if (value === "geo_revision") return "Revisión";
   if (value === "geo_no_defendible") return "Fuera";
+  if (value === "geo_sin_cruce") return "Sin cruce";
   if (value === "geo_sin_gps") return "Sin GPS";
   return value || "S/D";
 }
@@ -30402,7 +32517,7 @@ function inferModalityForStratum(title: string): MonitoreoStrategyPhase["modalit
 }
 
 function formatMetric(value: number | null) {
-  return value == null ? "S/D" : value.toLocaleString("es-PE");
+  return value == null || !Number.isFinite(value) ? "S/D" : value.toLocaleString("es-PE");
 }
 
 function stratumContextChips(detail: string) {

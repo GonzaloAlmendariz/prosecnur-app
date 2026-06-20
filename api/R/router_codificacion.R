@@ -138,6 +138,7 @@
   s$analitica_enumeradores_ok <- FALSE
   s$analitica_dim_ok <- FALSE
   s$analitica_multibase_ok <- FALSE
+  s$analitica_panel_ok <- FALSE
   s$analitica_multibase_available <- FALSE
   if (nzchar(active_analitica)) {
     if (is.null(s$analitica_status_por_base) || !is.list(s$analitica_status_por_base)) {
@@ -150,7 +151,7 @@
       "analitica_cruces_ok", "analitica_spss_ok", "analitica_enumeradores_ok",
       "analitica_dim_ok", "analitica_multibase_ok", "analitica_bases_data_ok",
       "analitica_bases_instrumento_ok", "analitica_bases_sav_ok",
-      "analitica_bases_csv_ok", "analitica_bases_xlsx_ok"
+      "analitica_bases_csv_ok", "analitica_bases_xlsx_ok", "analitica_panel_ok"
     )) {
       status[[key]] <- FALSE
     }

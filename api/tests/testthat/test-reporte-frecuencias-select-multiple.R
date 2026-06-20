@@ -151,3 +151,81 @@ test_that("estilos de frecuencias centran columnas n y porcentaje", {
   expect_false(isTRUE(st$freq_body_pct$wrapText))
   expect_false(isTRUE(st$freq_total_pct$wrapText))
 })
+
+test_that("codebook de Analitica conserva dummies select_multiple", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not(exists(".analitica_filter_data", mode = "function"))
+
+  inst <- list(
+    survey = data.frame(
+      type = c("select_multiple dias", "select_one sexo"),
+      name = c("p1", "sexo"),
+      label = c("Dias disponibles", "Sexo"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("dias", "dias", "sexo", "sexo"),
+      name = c("1", "2", "1", "2"),
+      label = c("Lunes", "Martes", "Hombre", "Mujer"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  data <- data.frame(
+    "p1.1" = c(1, 0, 1),
+    "p1.2" = c(0, 1, 1),
+    sexo = c("1", "2", "1"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  for (col in c("p1.1", "p1.2")) {
+    attr(data[[col]], "labels") <- stats::setNames(c("No", "Si"), c("0", "1"))
+  }
+  attr(data[["p1.1"]], "label") <- "Lunes"
+  attr(data[["p1.2"]], "label") <- "Martes"
+  attr(data[["sexo"]], "labels") <- stats::setNames(c("Hombre", "Mujer"), c("1", "2"))
+  attr(data[["sexo"]], "label") <- "Sexo"
+
+  filtered <- .analitica_filter_data(data, inst)
+  expect_equal(names(filtered), c("p1.1", "p1.2", "sexo"))
+
+  filtered_excluded <- .analitica_filter_data(data, inst, excluidas = "p1")
+  expect_false(any(startsWith(names(filtered_excluded), "p1.")))
+  expect_true("sexo" %in% names(filtered_excluded))
+
+  out <- tempfile(fileext = ".xlsx")
+  reporte_codebook(filtered, path_xlsx = out)
+  txt <- paste(unlist(openxlsx::read.xlsx(out, sheet = 1, colNames = FALSE), use.names = FALSE), collapse = " ")
+
+  expect_true(grepl("p1\\.1", txt))
+  expect_true(grepl("Lunes", txt, fixed = TRUE))
+  expect_true(grepl("Si", txt, fixed = TRUE))
+})
+
+test_that("frecuencias de Analitica anexan select_multiple faltantes por base", {
+  skip_if_not(exists(".analitica_append_missing_select_multiple_sections", mode = "function"))
+
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one sexo", "select_multiple redes", "select_multiple redes"),
+      name = c("sexo", "p32", "p34"),
+      label = c("Sexo", "Acciones debate 1", "Acciones debate 2"),
+      group_name = c("perfil", "redes", "redes"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("sexo", "sexo", "redes", "redes"),
+      name = c("1", "2", "1", "2"),
+      label = c("Hombre", "Mujer", "Vio contenido", "Puso me gusta"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  secs <- list("Seccion OLA1" = c("p1_a", "p1_b"))
+  out <- .analitica_append_missing_select_multiple_sections(secs, inst)
+  vars <- unique(unlist(out, use.names = FALSE))
+
+  expect_true(all(c("p32", "p34") %in% vars))
+  expect_false("sexo" %in% vars)
+  expect_true("redes" %in% names(out))
+})

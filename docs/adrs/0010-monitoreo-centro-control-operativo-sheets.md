@@ -24,8 +24,8 @@ Monitoreo se define como un centro de control operativo local con tres capas:
 
 - `core`: fuentes, snapshots, casos, cruces, metas, alertas, auditoria y
   exportaciones.
-- `profiles`: `acreditacion`, `territorial`, `telefonico` y
-  `digital_general`.
+- `profiles`: `acreditacion`, `territorial`, `aulas_universitarias`,
+  `telefonico` y `digital_general`.
 - `surfaces`: Google Sheets, Excel local, SurveyMonkey, Kobo y hojas de ruta.
 
 Cada proyecto `.pulso` de Monitoreo selecciona una sola ruta de perfil. La
@@ -51,7 +51,14 @@ pestanas, rangos, mapeos, perfiles y ultimo snapshot reproducible. Nunca
 persiste tokens OAuth, refresh tokens, secretos de SurveyMonkey/Kobo ni
 credenciales de Google.
 
-El primer perfil rector es `acreditacion`, con variantes:
+Los perfiles activos rectores son:
+
+- `acreditacion`: monitoreo multi-actor o segmentado por carrera.
+- `territorial`: monitoreo de campo con Kobo, Hojas de Ruta y mapas.
+- `aulas_universitarias`: monitoreo de encuestas anonimas en aulas, importado
+  desde seleccion de aulas de `calc-muestra`.
+
+El perfil `acreditacion` tiene variantes:
 
 - `multi_actor`: actores como administrativos, docentes, egresados y
   estudiantes.
