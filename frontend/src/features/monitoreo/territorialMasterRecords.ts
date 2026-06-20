@@ -1,6 +1,6 @@
 import type { TerritorialResponseAuditRow } from "../../api/client";
 
-export type TerritorialMasterRecordState = "sin_observacion" | "pendiente" | "en_observacion" | "visto_bueno";
+export type TerritorialMasterRecordState = "sin_observacion" | "pendiente" | "en_observacion";
 
 export type TerritorialMasterRecordFilters = {
   search: string;
@@ -71,8 +71,7 @@ function masterRecordState(row: TerritorialResponseAuditRow): TerritorialMasterR
   const validation = normalized(row.validation_status);
   const decision = normalized(row.validation_decision);
   const geo = normalized(row.geo_estado);
-  if (status === "visto bueno" || decision === "visto bueno" || observation === "aprobada") return "visto_bueno";
-  if (status === "en observacion" || status === "revision" || observation === "en observacion" || validation === "revision") return "en_observacion";
+  if (status === "en observacion" || status === "revision" || observation === "en observacion" || observation === "aprobada" || validation === "revision" || decision === "visto bueno") return "en_observacion";
   if (geo === "geo revision" || geo === "geo no defendible" || geo === "geo sin gps") return "pendiente";
   if (masterRecordHasDurationReview(row)) return "pendiente";
   return "sin_observacion";
@@ -199,11 +198,10 @@ export function summarizeTerritorialMasterRecordRows(rows: TerritorialMasterReco
     summary.total += 1;
     if (item.state === "sin_observacion") summary.clean += 1;
     if (item.state === "pendiente" || item.state === "en_observacion") summary.review += 1;
-    if (item.state === "visto_bueno") summary.approved += 1;
     const geo = normalized(item.source.geo_estado);
     if (geo === "geo revision" || geo === "geo no defendible" || geo === "geo sin gps") summary.gps += 1;
     if (masterRecordHasDurationReview(item.source)) summary.duration += 1;
     if (normalized(item.responsible).includes("sin responsable")) summary.unassigned += 1;
     return summary;
-  }, { total: 0, clean: 0, review: 0, approved: 0, gps: 0, duration: 0, unassigned: 0 });
+  }, { total: 0, clean: 0, review: 0, gps: 0, duration: 0, unassigned: 0 });
 }

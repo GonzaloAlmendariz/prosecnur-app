@@ -69,8 +69,16 @@
   if (!identical(snapshot$dashboard_cache_key %||% "", .monitoreo_dashboard_cache_key)) return(FALSE)
   snapshot_scope <- .monitoreo_report_scope(snapshot$dashboard_report_scope %||% "full")
   if (!identical(snapshot_scope, .monitoreo_report_scope(report_scope))) return(FALSE)
+  family <- cfg$monitoreo_profile$family %||% ""
+  if (identical(family, "territorial") && report_scope %in% c("full", "validation_summary")) {
+    audit_rows <- snapshot$dashboard$territorial_reports$response_audit %||% list()
+    audit_n <- if (is.data.frame(audit_rows)) nrow(audit_rows) else if (is.list(audit_rows)) length(audit_rows) else 0L
+    expected_n <- if (is.data.frame(data)) nrow(data) else 0L
+    if (expected_n > 0L && audit_n < expected_n) return(FALSE)
+  }
   saved_token <- snapshot$dashboard_cache_token %||% ""
   if (nzchar(saved_token) && identical(saved_token, cache_token)) return(TRUE)
+  if (identical(family, "territorial") && nzchar(saved_token)) return(FALSE)
   if (!is.list(snapshot$config)) return(FALSE)
   snapshot_cfg <- monitoreo_normalize_config(snapshot$config, data)
   identical(.monitoreo_dashboard_config_json(snapshot_cfg), .monitoreo_dashboard_config_json(cfg))
@@ -112,6 +120,9 @@
   }
   if (isTRUE(include_reports) && !is.null(dashboard$territorial_reports)) {
     out$territorial_reports <- dashboard$territorial_reports
+  }
+  if (isTRUE(include_reports) && !is.null(dashboard$aulas_universitarias_reports)) {
+    out$aulas_universitarias_reports <- dashboard$aulas_universitarias_reports
   }
   out
 }
@@ -726,7 +737,7 @@
 }
 
 .monitoreo_territorial_map_cache_schema <- "monitoreo_territorial_map_cache_v1"
-.monitoreo_territorial_gps_points_schema <- "gps_points_declared_ump_v4"
+.monitoreo_territorial_gps_points_schema <- "gps_points_declared_ump_v6_effective_gps_cross_status"
 .monitoreo_territorial_map_cache_layers <- c("route_geometry", "gps_points")
 
 .monitoreo_cache_digest <- function(value) {
@@ -950,7 +961,7 @@
   effective_mask <- .monitoreo_territorial_effective_mask(data, tcfg, consent_yes)
   geo$advance_valid <- effective_mask %in% TRUE
   geo$validation_status <- ifelse(geo$advance_valid, "validada", "no_defendible")
-  geo$observation_status <- ifelse(geo$advance_valid & geo$geo_estado %in% c("geo_revision", "geo_no_defendible", "geo_sin_gps"), "en_observacion", ifelse(geo$advance_valid, "sin_observacion", "no_valida"))
+  geo$observation_status <- ifelse(geo$advance_valid & geo$geo_estado %in% c("geo_revision", "geo_no_defendible", "geo_sin_cruce", "geo_sin_gps"), "en_observacion", ifelse(geo$advance_valid, "sin_observacion", "no_valida"))
   submission_time_pick <- .monitoreo_territorial_submission_time_values(data, tcfg)
   submission_time <- submission_time_pick$values
   date_values <- .monitoreo_parse_time_vec(submission_time)
@@ -979,6 +990,14 @@
     "age", "sex",
     "lat", "lon", "gps_parseable", "geo_estado", "distance_m",
     "nearest_block_id", "nearest_block_type", "geometry_match",
+    "gps_primary_source", "gps_primary_lat", "gps_primary_lon", "gps_primary_altitude",
+    "gps_primary_accuracy_m", "gps_primary_parseable", "gps_primary_estado",
+    "gps_primary_distance_m", "gps_primary_nearest_block_id", "gps_primary_nearest_block_type",
+    "gps_primary_geometry_match", "gps_effective_source", "gps_effective_lat",
+    "gps_effective_lon", "gps_effective_altitude", "gps_effective_accuracy_m",
+    "gps_effective_estado", "gps_effective_distance_m", "gps_effective_nearest_block_id",
+    "gps_effective_nearest_block_type", "gps_effective_geometry_match", "gps_reclassified",
+    "gps_reclassification_note",
     "declared_ump_raw", "declared_ump_normalized", "advance_block_id",
     "advance_block_ump", "advance_block_ubigeo", "advance_block_distrito",
     "advance_block_zona", "advance_block_manzana", "advance_block_type",
@@ -1175,7 +1194,7 @@
   context
 }
 
-.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v15"
+.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v16"
 .monitoreo_territorial_report_cache_limit <- 18L
 
 .monitoreo_territorial_report_cache_key_info <- function(sid, snapshot, data, cfg, report_scope = "full") {
@@ -2154,7 +2173,7 @@
     if (is.null(dashboard$territorial_reports) || !is.list(dashboard$territorial_reports)) {
       dashboard$territorial_reports <- list()
     }
-    dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg)
+    dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg, dashboard$territorial_reports)
   }
   territorial_phase_coherence <- if (identical(family, "territorial")) {
     .monitoreo_territorial_phase_coherence(
@@ -2188,6 +2207,18 @@
   if (identical(family, "acreditacion")) {
     dashboard <- .monitoreo_acreditacion_repair_cached_dashboard(dashboard)
   }
+  if (identical(family, "aulas_universitarias")) {
+    aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+    aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
+    aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
+    if (is.null(dashboard) || !is.list(dashboard)) {
+      dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
+    }
+    dashboard$aulas_universitarias_reports <- aulas_dashboard
+    dashboard$kpis$aulas_total <- aulas_dashboard$kpis$total_aulas %||% 0L
+    dashboard$kpis$aulas_aplicadas <- aulas_dashboard$kpis$aulas_aplicadas %||% 0L
+    dashboard$kpis$respuestas_validas_aulas <- aulas_dashboard$kpis$respuestas_validas %||% 0L
+  }
   .monitoreo_log_timing("state", list(
     family = family,
     scope = report_scope,
@@ -2210,7 +2241,7 @@
     sources = sources,
     config = cfg,
     monitoreo_profile = cfg$monitoreo_profile %||% monitoreo_normalize_profile(list()),
-    has_snapshot = nrow(display_data) > 0L,
+    has_snapshot = nrow(display_data) > 0L || (identical(family, "aulas_universitarias") && length((cfg$aulas_universitarias %||% list())$plan %||% list()) > 0L),
     synced_at = snapshot$synced_at %||% "",
     n_rows = as.integer(nrow(display_data)),
     variables = if (nrow(display_data)) monitoreo_variables(display_data) else list(),
@@ -2231,13 +2262,11 @@
     ) else NULL,
     territorial_update_history = .monitoreo_territorial_history(sid),
     publication = list(
-      last_deploy = s$monitoreo_publication$last_deploy %||% NULL,
-      client_last_deploy = s$monitoreo_publication$client_last_deploy %||% NULL,
-      internal_last_deploy = s$monitoreo_publication$internal_last_deploy %||% NULL,
       client_last_sheets = .monitoreo_last_publication_event(s$monitoreo_publication_sheet_events_client %||% list()),
       internal_last_sheets = .monitoreo_last_publication_event(s$monitoreo_publication_sheet_events_internal %||% list())
     ),
     acreditacion = cfg$acreditacion %||% monitoreo_normalize_acreditacion(list()),
+    aulas_universitarias = cfg$aulas_universitarias %||% monitoreo_aulas_default_config(),
     errors = snapshot$errors %||% list()
   )
 }
@@ -2485,6 +2514,52 @@
   tcfg$active_route_phase <- phase
   tcfg$ump_reconciliation <- current
   list(tcfg = tcfg, reconciliation = entry, phase = phase)
+}
+
+.monitoreo_territorial_dismiss_spatial_reconciliation <- function(tcfg = list(),
+                                                                  payload = list(),
+                                                                  phase = NULL,
+                                                                  scope = "candidate") {
+  if (!is.list(payload)) payload <- list()
+  if (!is.list(tcfg)) tcfg <- list()
+  scope <- .monitoreo_scalar(scope, "candidate")
+  if (!scope %in% c("candidate", "pattern")) scope <- "candidate"
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% phase %||% tcfg$active_route_phase, "pilot")
+  candidate_id <- .monitoreo_scalar(payload$candidate_id %||% payload$candidateId %||% payload$id, "")
+  pattern_key <- .monitoreo_scalar(payload$pattern_key %||% payload$patternKey %||% payload$key, "")
+  if (identical(scope, "candidate") && !nzchar(candidate_id)) {
+    stop_api(400, "E_TERRITORIAL_SPATIAL_DISMISS_CANDIDATE", "Falta candidate_id para descartar la sugerencia espacial.")
+  }
+  if (identical(scope, "pattern") && !nzchar(pattern_key)) {
+    stop_api(400, "E_TERRITORIAL_SPATIAL_DISMISS_PATTERN", "Falta pattern_key para descartar el patron espacial.")
+  }
+  evidence_hash <- .monitoreo_scalar(payload$evidence_hash %||% payload$evidenceHash %||% payload$hash, "")
+  entry <- list(
+    candidate_id = candidate_id,
+    pattern_key = pattern_key,
+    phase = phase,
+    reason = .monitoreo_scalar(payload$reason %||% payload$motivo, "Descartado manualmente"),
+    evidence_hash = evidence_hash,
+    dismissed_at = .monitoreo_now_iso(),
+    scope = scope
+  )
+  current <- .monitoreo_territorial_normalize_spatial_reconciliation(
+    tcfg$spatial_reconciliation %||% list(),
+    active_phase = phase
+  )
+  bucket <- if (identical(scope, "candidate")) "dismissed_candidates" else "dismissed_patterns"
+  phase_entries <- current[[phase]][[bucket]] %||% list()
+  phase_entries <- Filter(function(item) {
+    if (!is.list(item)) return(FALSE)
+    if (identical(scope, "candidate")) {
+      return(!identical(.monitoreo_scalar(item$candidate_id, ""), candidate_id))
+    }
+    !identical(.monitoreo_scalar(item$pattern_key, ""), pattern_key)
+  }, phase_entries)
+  current[[phase]][[bucket]] <- c(phase_entries, list(entry))
+  tcfg$active_route_phase <- phase
+  tcfg$spatial_reconciliation <- current
+  list(tcfg = tcfg, dismissal = entry, phase = phase)
 }
 
 .monitoreo_territorial_batch_failure <- function(client_id, kind, err) {
@@ -2905,13 +2980,25 @@
   invisible(history)
 }
 
-.monitoreo_territorial_occurrences_dashboard <- function(sid, cfg) {
+.monitoreo_territorial_occurrences_dashboard <- function(sid, cfg, territorial_reports = NULL) {
   s <- session_get(sid)
   cfg <- monitoreo_normalize_config(cfg %||% s$monitoreo_config %||% list())
   tcfg <- cfg$territorial$field_occurrences %||% list()
   phase <- .monitoreo_scalar(tcfg$route_phase %||% "field", "field")
   if (!phase %in% c("pilot", "field")) phase <- "field"
   context <- .monitoreo_territorial_context(sid, cfg, phase = phase)
+  if (is.null(territorial_reports) || !is.list(territorial_reports)) {
+    snapshot_main <- s$monitoreo_snapshot %||% list()
+    main_data <- if (is.list(snapshot_main) && is.data.frame(snapshot_main$data)) snapshot_main$data else data.frame()
+    territorial_reports <- if (nrow(main_data)) {
+      tryCatch(monitoreo_territorial_reportes(main_data, cfg, list(phase = phase)), error = function(e) NULL)
+    } else {
+      NULL
+    }
+  }
+  if (is.list(territorial_reports)) {
+    context$reports <- territorial_reports
+  }
   snapshot <- s$monitoreo_territorial_occurrences_snapshot %||% list()
   data <- if (is.list(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
   report <- monitoreo_territorial_occurrences_report(data, cfg, context)
@@ -3309,15 +3396,10 @@ mount_monitoreo <- function(pr) {
       published
     })) |>
     plumber::pr_post("/api/monitoreo/publish", wrap_endpoint(function(req, res, ...) {
-      sid <- .monitoreo_session(req, res)
-      parsed <- .monitoreo_parse_body(req)
-      monitoreo_publish_space(
-        sid = sid,
-        hf_username = parsed$hf_username %||% "",
-        hf_token = parsed$hf_token %||% "",
-        space_name = parsed$space_name %||% "",
-        private = isTRUE(parsed$private),
-        audience = .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
+      stop_api(
+        410,
+        "E_MONITOREO_HF_DISABLED",
+        "Monitoreo ya no publica en Hugging Face. Publica las tablas cliente e internas en Google Sheets."
       )
     })) |>
     plumber::pr_post("/api/monitoreo/publication/sheets", wrap_endpoint(function(req, res, ...) {
@@ -3349,7 +3431,7 @@ mount_monitoreo <- function(pr) {
         if (is.null(dashboard$territorial_reports) || !is.list(dashboard$territorial_reports)) {
           dashboard$territorial_reports <- list()
         }
-        dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg)
+        dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg, dashboard$territorial_reports)
       }
       tabs <- monitoreo_publication_sheets_tabs(
         snapshot$data,
@@ -3949,6 +4031,52 @@ mount_monitoreo <- function(pr) {
         failed = failed,
         config = cfg,
         state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "source"),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/spatial-reconciliation/dismiss", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$dismissal %||% parsed$candidate %||% parsed
+      if (!is.list(payload)) payload <- list()
+
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+      dismissed <- .monitoreo_territorial_dismiss_spatial_reconciliation(tcfg, payload, scope = "candidate")
+      cfg$territorial <- monitoreo_territorial_normalize_config(dismissed$tcfg, data)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(
+        ok = TRUE,
+        dismissal = dismissed$dismissal,
+        config = cfg,
+        state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary"),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/spatial-reconciliation/dismiss-pattern", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$dismissal %||% parsed$pattern %||% parsed
+      if (!is.list(payload)) payload <- list()
+
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+      dismissed <- .monitoreo_territorial_dismiss_spatial_reconciliation(tcfg, payload, scope = "pattern")
+      cfg$territorial <- monitoreo_territorial_normalize_config(dismissed$tcfg, data)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(
+        ok = TRUE,
+        dismissal = dismissed$dismissal,
+        config = cfg,
+        state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary"),
         saved_project = !is.null(saved_project)
       )
     })) |>
@@ -4750,6 +4878,163 @@ mount_monitoreo <- function(pr) {
       cfg$operational_model <- op
       cfg <- .monitoreo_store_config(sid, cfg)
       list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/import-from-calc-muestra", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      estudio <- parsed$estudio %||% s$calc_muestra_estudio %||% NULL
+      selection <- parsed$selection %||% s$calc_muestra_aulas_selection %||% NULL
+      frame <- parsed$frame %||% s$calc_muestra_aulas_frame %||% NULL
+      if (is.null(selection)) {
+        stop_api(409, "E_NO_CALC_MUESTRA_AULAS",
+                 "No hay seleccion de aulas de calc-muestra para importar.")
+      }
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      aulas <- tryCatch(
+        monitoreo_aulas_from_calc(estudio, selection, frame, parsed$config %||% cfg$aulas_universitarias %||% list()),
+        error = function(e) stop_api(400, "E_AULAS_IMPORT", conditionMessage(e))
+      )
+      cfg$monitoreo_profile <- monitoreo_normalize_profile(list(
+        family = "aulas_universitarias",
+        variant = "multi_actor",
+        status = "active",
+        route_selected = TRUE,
+        locked_at = .monitoreo_now_iso()
+      ))
+      cfg$aulas_universitarias <- aulas
+      session_set(sid, "monitoreo_aulas_plan", aulas$plan)
+      session_set(sid, "monitoreo_aulas_publication", list(
+        publication_family = "university_classroom_fieldwork",
+        imported_at = aulas$imported_at,
+        selection_run_id = aulas$selection_run_id,
+        frame_hash = aulas$frame_hash
+      ))
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      dashboard <- monitoreo_aulas_dashboard(aulas$plan, data, aulas)
+      session_set(sid, "monitoreo_aulas_snapshot", list(
+        synced_at = .monitoreo_now_iso(),
+        dashboard = dashboard,
+        response_rows = as.integer(nrow(data))
+      ))
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(ok = TRUE, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/config", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      incoming <- parsed$config %||% parsed$aulas_universitarias %||% parsed
+      current <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+      if (!is.list(incoming)) incoming <- list()
+      for (nm in names(incoming)) current[[nm]] <- incoming[[nm]]
+      cfg$aulas_universitarias <- monitoreo_aulas_normalize_config(current)
+      profile <- cfg$monitoreo_profile %||% list()
+      profile$family <- "aulas_universitarias"
+      profile$status <- "active"
+      profile$route_selected <- TRUE
+      cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
+      session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(ok = TRUE, aulas_universitarias = cfg$aulas_universitarias, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/agenda", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      updates <- parsed$updates %||% parsed$agenda %||% parsed$plan %||% parsed
+      plan <- tryCatch(
+        monitoreo_aulas_update_agenda(cfg$aulas_universitarias$plan %||% list(), updates),
+        error = function(e) stop_api(400, "E_AULAS_AGENDA", conditionMessage(e))
+      )
+      cfg$aulas_universitarias$enabled <- TRUE
+      cfg$aulas_universitarias$plan <- plan
+      profile <- cfg$monitoreo_profile %||% list()
+      profile$family <- "aulas_universitarias"
+      profile$status <- "active"
+      profile$route_selected <- TRUE
+      cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
+      session_set(sid, "monitoreo_aulas_plan", plan)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(ok = TRUE, agenda = plan, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/reemplazo", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      plan <- tryCatch(
+        monitoreo_aulas_apply_replacement(
+          cfg$aulas_universitarias$plan %||% list(),
+          parsed$classroom_id %||% parsed$aula_caida %||% parsed$aulaCaida,
+          parsed$replacement_id %||% parsed$reserva_usada %||% parsed$reservaUsada,
+          parsed$reason %||% parsed$motivo %||% "otro",
+          parsed$note %||% parsed$nota %||% ""
+        ),
+        error = function(e) stop_api(400, "E_AULAS_REEMPLAZO", conditionMessage(e))
+      )
+      cfg$aulas_universitarias$enabled <- TRUE
+      cfg$aulas_universitarias$plan <- plan
+      profile <- cfg$monitoreo_profile %||% list()
+      profile$family <- "aulas_universitarias"
+      profile$status <- "active"
+      profile$route_selected <- TRUE
+      cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
+      session_set(sid, "monitoreo_aulas_plan", plan)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(ok = TRUE, agenda = plan, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/sync", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      current_snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(parsed$responses)) {
+        .monitoreo_aulas_df(parsed$responses, "responses")
+      } else if (!is.null(current_snapshot) && is.data.frame(current_snapshot$data)) {
+        current_snapshot$data
+      } else {
+        data.frame()
+      }
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      profile <- cfg$monitoreo_profile %||% list()
+      profile$family <- "aulas_universitarias"
+      profile$status <- "active"
+      profile$route_selected <- TRUE
+      cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
+      cfg$aulas_universitarias$enabled <- TRUE
+      dashboard <- monitoreo_build_dashboard(data, cfg, include_reports = TRUE)
+      snapshot <- current_snapshot %||% list()
+      snapshot$data <- data
+      snapshot$config <- cfg
+      snapshot$dashboard <- dashboard
+      snapshot$synced_at <- .monitoreo_now_iso()
+      session_set(sid, "monitoreo_config", cfg)
+      session_set(sid, "monitoreo_snapshot", snapshot)
+      session_set(sid, "monitoreo_aulas_snapshot", list(
+        synced_at = snapshot$synced_at,
+        dashboard = dashboard$aulas_universitarias_reports %||% list(),
+        response_rows = as.integer(nrow(data))
+      ))
+      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      list(ok = TRUE, synced_at = snapshot$synced_at, dashboard = dashboard$aulas_universitarias_reports, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+    })) |>
+    plumber::pr_get("/api/monitoreo/aulas/state", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      .monitoreo_state_payload(sid)
     })) |>
     plumber::pr_post("/api/monitoreo/import-from-calc-muestra", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

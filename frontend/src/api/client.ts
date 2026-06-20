@@ -153,6 +153,7 @@ export type SessionState = {
   analitica_dim_ok: boolean;
   analitica_multibase_available: boolean;
   analitica_multibase_ok: boolean;
+  analitica_panel_ok: boolean;
   analitica_fuente: string | null;
   analitica_fuente_detalle?: AnaliticaFuenteDetalle | null;
   hojas_ruta_ok: boolean;
@@ -630,7 +631,7 @@ export async function apiCodifSourceSet(source: string) {
   );
 }
 
-export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra";
+export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra" | "graficos_share";
 
 export function isSavLikeFileName(name: string) {
   return /\.sav(?:\s+\d+)?$/i.test(name.trim());
@@ -3851,9 +3852,117 @@ export type MonitoreoTerritorialConfig = {
   enumerator_roster?: MonitoreoTerritorialEnumeratorRoster;
   enumerator_code_reconciliation?: Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialCodeReconciliation[]>>;
   ump_reconciliation?: Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialUmpReconciliation[]>>;
+  spatial_reconciliation?: Partial<Record<MonitoreoTerritorialPhase, {
+    dismissed_candidates?: MonitoreoTerritorialSpatialReconciliationDismissal[];
+    dismissed_patterns?: MonitoreoTerritorialSpatialReconciliationDismissal[];
+  }>>;
   validation_decisions: MonitoreoTerritorialValidationDecisions;
   field_occurrences?: MonitoreoFieldOccurrenceConfig;
 };
+
+export type MonitoreoAulasEstado =
+  | "planificada"
+  | "contactada"
+  | "agendada"
+  | "en_campo"
+  | "aplicada"
+  | "parcial"
+  | "sin_acceso"
+  | "cancelada"
+  | "reemplazo_pendiente"
+  | "reemplazada"
+  | "cerrada"
+  | string;
+
+export type MonitoreoAulasPlanRow = {
+  selection_run_id: string;
+  wave: string;
+  orden: number;
+  classroom_id: string;
+  label: string;
+  course_id: string;
+  course_name: string;
+  section: string;
+  schedule: string;
+  teacher: string;
+  teacher_email: string;
+  faculty: string;
+  program: string;
+  level: string;
+  stratum: string;
+  eligible_n: number;
+  expected_valid: number;
+  link: string;
+  qr: string;
+  collector_id: string;
+  responsible: string;
+  operational_status: MonitoreoAulasEstado;
+  replacement_for: string;
+  replacement_reason: string;
+  replacement_note: string;
+  updated_at: string;
+  [key: string]: string | number | boolean | null | undefined;
+};
+
+export type MonitoreoAulasConfig = {
+  schema: "monitoreo_aulas_universitarias_v1" | string;
+  enabled: boolean;
+  selection_run_id: string;
+  frame_hash: string;
+  imported_at: string;
+  anonymous_responses: boolean;
+  source_mapping: {
+    classroom_id_var: string;
+    collector_var: string;
+    link_var: string;
+    date_var: string;
+    status_var: string;
+    valid_statuses: string[];
+  };
+  plan: MonitoreoAulasPlanRow[];
+  quotas: unknown;
+  variables_control: unknown;
+  methodology: Record<string, unknown>;
+  alerts: {
+    min_valid_per_class: number;
+    warn_partial_under_valid: number;
+  };
+  [key: string]: unknown;
+};
+
+export type MonitoreoAulasDashboard = {
+  schema: "monitoreo_aulas_dashboard_v1" | string;
+  generated_at: string;
+  selection_run_id?: string;
+  frame_hash?: string;
+  anonymous_responses?: boolean;
+  kpis: {
+    total_aulas: number;
+    aulas_titulares?: number;
+    aulas_aplicadas: number;
+    aulas_parciales?: number;
+	    reemplazos_usados?: number;
+	    respuestas_validas: number;
+	    brechas: number;
+	    representativity_effective_score?: number;
+	    representativity_score_loss?: number;
+	  };
+	  agenda: MonitoreoAulasPlanRow[];
+	  avance_por_estrato: MonitoreoRow[];
+	  brechas: MonitoreoRow[];
+	  reemplazos: MonitoreoRow[];
+	  representativity?: {
+	    planned_score?: number;
+	    effective_score?: number;
+	    effective_distance?: number;
+	    score_loss?: number;
+	    planned_aulas?: number;
+	    effective_aulas?: number;
+	    distribution?: MonitoreoRow[];
+	    warning?: string;
+	  };
+	  validation: MonitoreoRow[];
+	};
 
 export type MonitoreoTerritorialCodeReconciliation = {
   response_id?: string;
@@ -3882,6 +3991,120 @@ export type MonitoreoTerritorialUmpReconciliation = {
   note?: string;
   created_at?: string;
   scope?: "response" | "ump_value" | string;
+};
+
+export type MonitoreoTerritorialSpatialReconciliationDismissal = {
+  candidate_id?: string;
+  pattern_key?: string;
+  phase?: MonitoreoTerritorialPhase;
+  reason?: string;
+  evidence_hash?: string;
+  dismissed_at?: string;
+  scope?: "candidate" | "pattern" | string;
+};
+
+export type MonitoreoTerritorialSpatialReconciliationEvidence = {
+  key: string;
+  label: string;
+  tone?: "positive" | "warning" | "danger" | "neutral" | string;
+};
+
+export type MonitoreoTerritorialSpatialQuotaSideImpact = {
+  before_validas: number;
+  after_validas: number;
+  target: number;
+  missing_before: number;
+  missing_after: number;
+  would_break_quota?: boolean;
+  would_complete_quota?: boolean;
+  status_before?: string;
+};
+
+export type MonitoreoTerritorialSpatialQuotaImpact = {
+  source: MonitoreoTerritorialSpatialQuotaSideImpact;
+  target: MonitoreoTerritorialSpatialQuotaSideImpact;
+};
+
+export type MonitoreoTerritorialSpatialReconciliationCandidate = {
+  candidate_id: string;
+  response_id: string;
+  row_index?: number;
+  phase: MonitoreoTerritorialPhase;
+  raw_ump: string;
+  declared_ump?: string;
+  declared_block_id?: string;
+  declared_district?: string;
+  declared_ubigeo?: string;
+  declared_zona?: string;
+  declared_manzana?: string;
+  declared_responsible?: string;
+  target_block_id: string;
+  target_ump?: string;
+  target_district?: string;
+  target_ubigeo?: string;
+  target_zona?: string;
+  target_manzana?: string;
+  target_responsible?: string;
+  responsible?: string;
+  responsible_match?: boolean;
+  responsible_source_match?: boolean;
+  distance_m?: number | null;
+  geo_estado?: string;
+  gps_primary_source?: string;
+  gps_primary_estado?: string;
+  gps_primary_distance_m?: number | null;
+  gps_effective_source?: string;
+  gps_effective_estado?: string;
+  gps_effective_distance_m?: number | null;
+  gps_reclassified?: boolean;
+  gps_reclassification_note?: string;
+  score: number;
+  confidence: "alta" | "media" | "baja" | string;
+  evidence?: MonitoreoTerritorialSpatialReconciliationEvidence[];
+  evidence_hash?: string;
+  pattern_key?: string;
+  impact?: MonitoreoTerritorialSpatialQuotaImpact;
+  reconciliation: MonitoreoTerritorialUmpReconciliation;
+};
+
+export type MonitoreoTerritorialSpatialReconciliationPattern = {
+  pattern_key: string;
+  phase: MonitoreoTerritorialPhase;
+  count: number;
+  candidate_ids: string[];
+  raw_ump?: string;
+  declared_block_id?: string;
+  declared_ump?: string;
+  target_block_id?: string;
+  target_ump?: string;
+  target_manzana?: string;
+  target_district?: string;
+  responsible?: string;
+  target_responsible?: string;
+  score: number;
+  confidence: "alta" | "media" | "baja" | string;
+  evidence_hash?: string;
+  impact?: {
+    target_complete_count?: number;
+    source_break_count?: number;
+    target_missing_after_min?: number;
+  };
+};
+
+export type MonitoreoTerritorialSpatialReconciliationSummary = {
+  schema?: string;
+  reason?: string;
+  candidates: MonitoreoTerritorialSpatialReconciliationCandidate[];
+  patterns: MonitoreoTerritorialSpatialReconciliationPattern[];
+  metrics: {
+    total_candidates?: number;
+    candidates: number;
+    patterns: number;
+    high_confidence?: number;
+    dismissed_candidates?: number;
+    dismissed_patterns?: number;
+    in_queue?: number;
+  };
 };
 
 export type MonitoreoTerritorialReconciliationBatchChange =
@@ -3996,6 +4219,7 @@ export type MonitoreoConfig = {
   monitoreo_profile: MonitoreoProfile;
   acreditacion: MonitoreoAcreditacion;
   territorial: MonitoreoTerritorialConfig;
+  aulas_universitarias: MonitoreoAulasConfig;
 };
 
 export type MonitoreoManualCaseReconciliation = {
@@ -4047,7 +4271,7 @@ export type MonitoreoAssistedReview = {
 };
 
 export type MonitoreoProfile = {
-  family: "acreditacion" | "territorial" | "telefonico" | "digital_general";
+  family: "acreditacion" | "territorial" | "aulas_universitarias" | "telefonico" | "digital_general";
   variant: "multi_actor" | "segmentada_por_carrera";
   status: "active" | "planned" | string;
   route_selected?: boolean;
@@ -4176,7 +4400,15 @@ export type MonitoreoDailyProgressModel = {
 export type MonitoreoPublicationModel = {
   schema: "monitoreo_publication_model_v1" | string;
   audience: "client" | "internal" | string;
-  family: "acreditacion" | "territorial" | "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
+  family:
+    | "acreditacion"
+    | "territorial"
+    | "aulas_universitarias"
+    | "accreditation_monitoring"
+    | "territorial_fieldwork"
+    | "university_classroom_fieldwork"
+    | "generic_monitoring"
+    | string;
   generated_at: string;
   synced_at?: string;
   tab_order?: string[];
@@ -4235,9 +4467,9 @@ export type PublicArtifactDescriptor = {
   module: string;
   public_scope: string;
   audience?: "client" | "internal" | string;
-  profile_family?: "acreditacion" | "territorial" | string;
-  publication_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
-  monitoring_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
+  profile_family?: "acreditacion" | "territorial" | "aulas_universitarias" | string;
+  publication_family?: "accreditation_monitoring" | "territorial_fieldwork" | "university_classroom_fieldwork" | "generic_monitoring" | string;
+  monitoring_family?: "accreditation_monitoring" | "territorial_fieldwork" | "university_classroom_fieldwork" | "generic_monitoring" | string;
   destination?: "hugging_face_space" | "google_sheets" | string;
   source?: string;
   namespace?: string;
@@ -4252,27 +4484,6 @@ export type PublicArtifactDescriptor = {
   published_at?: string;
 };
 
-export type MonitoreoLastDeploy = {
-  repo_id: string;
-  space_name: string;
-  hf_username?: string;
-  url: string;
-  app_url: string;
-  published_at: string;
-  private?: boolean;
-  artifact_kind?: "monitoreo" | string;
-  public_scope?: string;
-  audience?: "client" | "internal" | string;
-  profile_family?: "acreditacion" | "territorial" | string;
-  publication_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
-  monitoring_family?: "accreditation_monitoring" | "territorial_fieldwork" | "generic_monitoring" | string;
-  report_scope?: string;
-  namespace?: string;
-  last_used_at?: string;
-  source?: string;
-  destination?: "hugging_face_space" | string;
-};
-
 export type MonitoreoLastSheetsPublication = {
   ok?: true;
   spreadsheet_id: string;
@@ -4284,33 +4495,6 @@ export type MonitoreoLastSheetsPublication = {
   audience?: "client" | "internal" | string;
   include_targets?: boolean;
   confirmed_full_data?: boolean;
-};
-
-export type MonitoreoPublishRequest = {
-  hf_username: string;
-  hf_token: string;
-  space_name: string;
-  audience?: "client" | "internal";
-  private?: boolean;
-};
-
-export type MonitoreoPublishResponse = {
-  ok: true;
-  repo_id: string;
-  space_name: string;
-  url: string;
-  app_url: string;
-  published_at: string;
-  private?: boolean;
-  artifact_kind: "monitoreo" | string;
-  public_scope?: string;
-  audience?: "client" | "internal" | string;
-  profile_family?: "acreditacion" | "territorial" | string;
-  report_scope?: string;
-  files_uploaded: number;
-  total_bytes: number;
-  project_size: number;
-  uploaded: Array<{ path: string; size: number }>;
 };
 
 export type MonitoreoPublicReportPayload = {
@@ -4548,11 +4732,34 @@ export type TerritorialResponseAuditRow = {
   lat: number | null;
   lon: number | null;
   gps_parseable: boolean;
-  geo_estado: "geo_ok" | "geo_cerca" | "geo_revision" | "geo_no_defendible" | "geo_sin_gps" | string;
+  geo_estado: "geo_ok" | "geo_cerca" | "geo_revision" | "geo_no_defendible" | "geo_sin_cruce" | "geo_sin_gps" | string;
   distance_m: number | null;
   nearest_block_id: string;
   nearest_block_type: string;
   geometry_match?: string;
+  gps_primary_source?: string;
+  gps_primary_lat?: number | null;
+  gps_primary_lon?: number | null;
+  gps_primary_altitude?: number | null;
+  gps_primary_accuracy_m?: number | null;
+  gps_primary_parseable?: boolean;
+  gps_primary_estado?: "geo_ok" | "geo_cerca" | "geo_revision" | "geo_no_defendible" | "geo_sin_cruce" | "geo_sin_gps" | string;
+  gps_primary_distance_m?: number | null;
+  gps_primary_nearest_block_id?: string;
+  gps_primary_nearest_block_type?: string;
+  gps_primary_geometry_match?: string;
+  gps_effective_source?: string;
+  gps_effective_lat?: number | null;
+  gps_effective_lon?: number | null;
+  gps_effective_altitude?: number | null;
+  gps_effective_accuracy_m?: number | null;
+  gps_effective_estado?: "geo_ok" | "geo_cerca" | "geo_revision" | "geo_no_defendible" | "geo_sin_cruce" | "geo_sin_gps" | string;
+  gps_effective_distance_m?: number | null;
+  gps_effective_nearest_block_id?: string;
+  gps_effective_nearest_block_type?: string;
+  gps_effective_geometry_match?: string;
+  gps_reclassified?: boolean;
+  gps_reclassification_note?: string;
   declared_ump_raw?: string;
   declared_ump_normalized?: string;
   advance_block_id?: string;
@@ -4799,7 +5006,7 @@ export type MonitoreoPerformanceMeta = {
 export type TerritorialMapPayload = {
   phase: "pilot" | "field" | string;
   blocks: TerritorialBlockProgress[];
-  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "pulso_code" | "pulso_code_raw" | "pulso_code_normalized" | "enumerator_assigned" | "responsible_display" | "pulso_code_recognized" | "pulso_code_reconciled" | "pulso_code_range_warning" | "submission_time_source" | "submission_date_iso" | "submission_date" | "submission_hour" | "submission_datetime" | "duration_seconds" | "duration_status" | "duration_operational_status" | "duration_operational_label" | "ubigeo" | "distrito" | "age" | "sex" | "lat" | "lon" | "gps_parseable" | "geo_estado" | "distance_m" | "nearest_block_id" | "nearest_block_type" | "declared_ump_raw" | "declared_ump_normalized" | "advance_block_id" | "advance_block_ump" | "advance_block_ubigeo" | "advance_block_distrito" | "advance_block_zona" | "advance_block_manzana" | "advance_block_type" | "advance_block_match" | "advance_block_match_status" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
+  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "pulso_code" | "pulso_code_raw" | "pulso_code_normalized" | "enumerator_assigned" | "responsible_display" | "pulso_code_recognized" | "pulso_code_reconciled" | "pulso_code_range_warning" | "submission_time_source" | "submission_date_iso" | "submission_date" | "submission_hour" | "submission_datetime" | "duration_seconds" | "duration_status" | "duration_operational_status" | "duration_operational_label" | "ubigeo" | "distrito" | "age" | "sex" | "lat" | "lon" | "gps_parseable" | "geo_estado" | "distance_m" | "nearest_block_id" | "nearest_block_type" | "gps_primary_source" | "gps_primary_lat" | "gps_primary_lon" | "gps_primary_altitude" | "gps_primary_accuracy_m" | "gps_primary_parseable" | "gps_primary_estado" | "gps_primary_distance_m" | "gps_primary_nearest_block_id" | "gps_primary_nearest_block_type" | "gps_primary_geometry_match" | "gps_effective_source" | "gps_effective_lat" | "gps_effective_lon" | "gps_effective_altitude" | "gps_effective_accuracy_m" | "gps_effective_estado" | "gps_effective_distance_m" | "gps_effective_nearest_block_id" | "gps_effective_nearest_block_type" | "gps_effective_geometry_match" | "gps_reclassified" | "gps_reclassification_note" | "declared_ump_raw" | "declared_ump_normalized" | "advance_block_id" | "advance_block_ump" | "advance_block_ubigeo" | "advance_block_distrito" | "advance_block_zona" | "advance_block_manzana" | "advance_block_type" | "advance_block_match" | "advance_block_match_status" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
   cache?: MonitoreoTerritorialMapPhaseCacheMeta | null;
   alerts: Array<{ severity: string; code: string; message: string }>;
   legend: Array<{ key: string; label: string }>;
@@ -4918,12 +5125,18 @@ export type MonitoreoFieldOccurrenceUmpSummary = {
   route_match_status?: string;
   route_match_message?: string;
   has_report?: boolean;
-  estado_consolidado?: "sin_reporte" | "reportada_efectiva" | "reportada_no_efectiva" | "revisar_cruce" | string;
+  estado_consolidado?: "sin_reporte" | "iniciada_sin_reporte" | "completa_sin_reporte" | "incompleta_sin_reporte" | "reportada_efectiva" | "reportada_no_efectiva" | "revisar_cruce" | string;
   motivo_principal?: string;
   reportes: number;
   efectivas: number;
   no_efectivas: number;
   intentos: number;
+  avance_validas?: number;
+  avance_meta?: number;
+  avance_iniciada?: boolean;
+  avance_completa?: boolean;
+  avance_estado_cuota?: string;
+  avance_ultimo_ingreso?: string;
   tasa_no_efectiva: number | null;
   ultimo_reporte: string;
   outcomes: Array<{ key: string; label: string; total: number }>;
@@ -4933,6 +5146,11 @@ export type MonitoreoFieldOccurrenceDistrictSummary = {
   distrito: string;
   ump_reportadas: number;
   ump_sin_reporte: number;
+  ump_iniciadas_sin_reporte?: number;
+  ump_completas_sin_reporte?: number;
+  ump_incompletas_sin_reporte?: number;
+  validas_sin_reporte?: number;
+  ultimo_ingreso_sin_reporte?: string;
   efectivas: number;
   no_efectivas: number;
   intentos: number;
@@ -4971,6 +5189,7 @@ export type MonitoreoFieldOccurrenceDashboard = {
   records: MonitoreoFieldOccurrenceRecord[];
   alerts: {
     missing_blocks: MonitoreoRow[];
+    started_missing_ump?: MonitoreoFieldOccurrenceUmpSummary[];
     high_non_effective: MonitoreoFieldOccurrenceRecord[];
     observations: MonitoreoFieldOccurrenceRecord[];
     outside_route: MonitoreoFieldOccurrenceRecord[];
@@ -5186,6 +5405,7 @@ export type MonitoreoTerritorialDashboard = {
     geo_revision: number;
     geo_no_defendible: number;
     geo_sin_cruce: number;
+    geo_sin_gps?: number;
     duration_median: number | null;
     duration_p95: number | null;
   };
@@ -5304,6 +5524,7 @@ export type MonitoreoTerritorialDashboard = {
     alerts?: Array<Record<string, unknown>>;
   };
   route_quota_progress?: TerritorialQuotaProgressPayload;
+  spatial_reconciliation?: MonitoreoTerritorialSpatialReconciliationSummary;
   route_quota_marginals?: {
     blocks: Array<{
       id_manzana?: string;
@@ -5357,6 +5578,7 @@ export type MonitoreoDashboard = {
   inconsistencies: MonitoreoRow[];
   acreditacion_reports?: MonitoreoAcreditacionReports | null;
   territorial_reports?: MonitoreoTerritorialDashboard | null;
+  aulas_universitarias_reports?: MonitoreoAulasDashboard | null;
 };
 
 export type MonitoreoState = {
@@ -5375,13 +5597,11 @@ export type MonitoreoState = {
   monitoreo_perf?: MonitoreoPerformanceMeta | null;
   territorial_update_history?: MonitoreoTerritorialUpdateHistoryEntry[];
   publication?: {
-    last_deploy?: MonitoreoLastDeploy | null;
-    client_last_deploy?: MonitoreoLastDeploy | null;
-    internal_last_deploy?: MonitoreoLastDeploy | null;
     client_last_sheets?: MonitoreoLastSheetsPublication | null;
     internal_last_sheets?: MonitoreoLastSheetsPublication | null;
   };
   acreditacion: MonitoreoAcreditacion;
+  aulas_universitarias?: MonitoreoAulasConfig;
   errors: { source_id?: string; source_label?: string; message: string }[];
 };
 
@@ -5492,16 +5712,6 @@ export async function apiPublicArtifact() {
 export async function apiMonitoreoPublicReport() {
   return handle<MonitoreoPublicReportPayload>(
     await apiFetch("/api/monitoreo/public-report", { headers: headers() }),
-  );
-}
-
-export async function apiMonitoreoPublish(payload: MonitoreoPublishRequest) {
-  return handle<MonitoreoPublishResponse>(
-    await apiFetch("/api/monitoreo/publish", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(payload),
-    }),
   );
 }
 
@@ -5770,6 +5980,48 @@ export async function apiMonitoreoTerritorialReconciliationBatch(changes: Monito
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ changes }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialSpatialReconciliationDismiss(payload: {
+  candidate_id: string;
+  phase?: MonitoreoTerritorialPhase;
+  reason?: string;
+  evidence_hash?: string;
+}) {
+  return handle<{
+    ok: true;
+    dismissal: MonitoreoTerritorialSpatialReconciliationDismissal;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/spatial-reconciliation/dismiss", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialSpatialReconciliationDismissPattern(payload: {
+  pattern_key: string;
+  phase?: MonitoreoTerritorialPhase;
+  reason?: string;
+  evidence_hash?: string;
+}) {
+  return handle<{
+    ok: true;
+    dismissal: MonitoreoTerritorialSpatialReconciliationDismissal;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/spatial-reconciliation/dismiss-pattern", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
     }),
   );
 }
@@ -6066,6 +6318,72 @@ export async function apiMonitoreoImportFromCalcMuestra(estudio?: CalcMuestraEst
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(estudio ? { estudio } : {}),
     }),
+  );
+}
+
+export async function apiMonitoreoAulasImportFromCalcMuestra(payload: {
+  estudio?: CalcMuestraEstudio;
+  selection?: CalcMuestraAulasSelection;
+  frame?: CalcMuestraAulasFrame;
+  config?: Partial<MonitoreoAulasConfig>;
+} = {}) {
+  return handle<{ ok: true; aulas_universitarias: MonitoreoAulasConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/aulas/import-from-calc-muestra", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoAulasConfig(config: Partial<MonitoreoAulasConfig>) {
+  return handle<{ ok: true; aulas_universitarias: MonitoreoAulasConfig; config: MonitoreoConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/aulas/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiMonitoreoAulasAgenda(updates: Partial<MonitoreoAulasPlanRow> | Partial<MonitoreoAulasPlanRow>[]) {
+  return handle<{ ok: true; agenda: MonitoreoAulasPlanRow[]; aulas_universitarias: MonitoreoAulasConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/aulas/agenda", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ updates: Array.isArray(updates) ? updates : [updates] }),
+    }),
+  );
+}
+
+export async function apiMonitoreoAulasReemplazo(payload: {
+  classroom_id: string;
+  replacement_id: string;
+  reason?: string;
+  note?: string;
+}) {
+  return handle<{ ok: true; agenda: MonitoreoAulasPlanRow[]; aulas_universitarias: MonitoreoAulasConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/aulas/reemplazo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoAulasSync(responses?: MonitoreoRow[]) {
+  return handle<{ ok: true; synced_at: string; dashboard: MonitoreoAulasDashboard; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/aulas/sync", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(responses ? { responses } : {}),
+    }),
+  );
+}
+
+export async function apiMonitoreoAulasState() {
+  return handle<MonitoreoState>(
+    await apiFetch("/api/monitoreo/aulas/state", { headers: headers() }),
   );
 }
 
@@ -6616,6 +6934,14 @@ export type SelectedBlock = {
   constante_salto_modo?: HojasRutaRouteJumpMode | string;
   salto_operativo?: number;
   modo_seleccion_vivienda?: string;
+  nse_codigo?: string | number | null;
+  nse_nivel?: string | null;
+  nse_match_method?: string | null;
+  nse_distance_m?: number | null;
+  nse_income_per_capita?: number | null;
+  nse_personas?: number | null;
+  nse_hogares?: number | null;
+  nse_idmz18?: string | null;
 };
 
 export type HojasRutaSamplePreview = {
@@ -7707,6 +8033,139 @@ export async function apiAnaliticaMultibaseTablas() {
   );
 }
 
+export type AnaliticaPanelWaveConfig = {
+  base: string;
+  label?: string;
+  suffix?: string;
+  order?: number;
+};
+
+export type AnaliticaPanelConfig = {
+  key?: string;
+  waves?: AnaliticaPanelWaveConfig[];
+  nse?: {
+    enabled?: boolean;
+    variables?: string[];
+  };
+  outputs?: {
+    codebook?: boolean;
+    frecuencias?: boolean;
+    auditoria?: boolean;
+    cobertura_nse?: boolean;
+  };
+  formatos?: {
+    sav?: BasesSavBody;
+    csv?: BasesCsvBody;
+    xlsx?: BasesXlsxBody;
+  };
+};
+
+export type AnaliticaPanelCandidate = {
+  name: string;
+  normalized?: string;
+  recommended?: boolean;
+  present_bases: number;
+  per_base?: Array<{
+    base: string;
+    present: boolean;
+    n: number;
+    non_missing: number;
+    unique: number;
+    duplicates: number;
+  }>;
+};
+
+export type AnaliticaPanelWaveInfo = {
+  base: string;
+  label: string;
+  suffix: string;
+  order: number;
+  n_filas: number;
+  n_columnas?: number;
+  n_llaves: number;
+  n_llaves_duplicadas: number;
+  n_llaves_vacias: number;
+};
+
+export type AnaliticaPanelSummary = {
+  ok: boolean;
+  available: boolean;
+  key: string;
+  n_bases: number;
+  n_panel_keys: number;
+  n_complete_keys: number;
+  n_incomplete_keys: number;
+  n_duplicate_keys: number;
+  n_audit_rows: number;
+  nse_detected: boolean;
+  waves: AnaliticaPanelWaveInfo[];
+};
+
+export type AnaliticaPanelNseCoverage = {
+  variable_nse: string;
+  casos_con_nse: number;
+  casos_sin_data: number;
+  casos_vacios: number;
+  cobertura: number;
+  observacion: string;
+};
+
+export type AnaliticaPanelInfo = {
+  ok: true;
+  available: boolean;
+  reason?: string;
+  key?: string;
+  candidates?: AnaliticaPanelCandidate[];
+  waves?: AnaliticaPanelWaveInfo[];
+  summary?: AnaliticaPanelSummary;
+  n_bases?: number;
+  fuente?: string;
+};
+
+export async function apiAnaliticaPanelInfo() {
+  return handle<AnaliticaPanelInfo>(
+    await apiFetch("/api/analitica/panel/info", { headers: headers() })
+  );
+}
+
+export async function apiAnaliticaPanelPreview(config?: AnaliticaPanelConfig, rows = 25) {
+  return handle<{
+    ok: true;
+    summary: AnaliticaPanelSummary;
+    preview: Record<string, unknown>[];
+    audit_preview: Record<string, unknown>[];
+    cobertura_nse: AnaliticaPanelNseCoverage[];
+    columns: string[];
+  }>(
+    await apiFetch("/api/analitica/panel/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, rows }),
+    })
+  );
+}
+
+export type AnaliticaPanelExportOptions = {
+  formato?: "paquete" | "xlsx" | "csv" | "sav";
+  valores?: "codigos" | "etiquetas" | "ambos";
+  separador?: "," | ";";
+  multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+  incluir_sps?: boolean;
+};
+
+export async function apiAnaliticaPanelExport(
+  config?: AnaliticaPanelConfig,
+  options: AnaliticaPanelExportOptions = {},
+) {
+  return handle<JobStart>(
+    await apiFetch("/api/analitica/panel/export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, options }),
+    })
+  );
+}
+
 // El backend lee `cruces_vars`, modo, show_sig, etc. del config autosaveado.
 // `cruces` y `modo` quedan opcionales para backcompat con tests manuales.
 export async function apiAnaliticaCruces(cruces?: string, modo?: "estandar" | "dimensiones") {
@@ -7734,7 +8193,10 @@ export async function apiAnaliticaSpss() {
 // no merece la pena callr). Cada uno acepta un body JSON con su
 // sub-config.
 
-export type BasesSavBody = { incluir_sps?: boolean };
+export type BasesSavBody = {
+  incluir_sps?: boolean;
+  multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+};
 export type BasesCsvBody = {
   valores?: "codigos" | "etiquetas";
   separador?: "," | ";";
@@ -8162,6 +8624,221 @@ export async function apiGraficosConfigImport(bundle: unknown) {
       body: JSON.stringify(normalizeGraficosConfigBundle(bundle, { includeLegacyAliases: true })),
     })
   );
+}
+
+export type GraficosShareMissingVariable = {
+  code: string;
+  label: string;
+};
+
+export type GraficosShareSkippedSlide = {
+  slide_id: string;
+  slide_title: string;
+  tipo: string;
+  missing_variables: GraficosShareMissingVariable[];
+};
+
+export type GraficosShareBasePlan = {
+  base_name: string;
+  base_label?: string;
+  action: "replace_graficos_plan" | string;
+  selected_default: boolean;
+  blocking: boolean;
+  current: {
+    n_slides: number;
+    xlsform?: string;
+    data?: string;
+  };
+  incoming: {
+    n_slides_total: number;
+    n_slides_applicable: number;
+    n_slides_skipped: number;
+  };
+  impact: {
+    variables_expected: number;
+    variables_available: number;
+    variables_missing: number;
+    missing_variables: GraficosShareMissingVariable[];
+    skipped_slides: GraficosShareSkippedSlide[];
+    effects: string[];
+  };
+  warnings: string[];
+};
+
+export type GraficosShareInspectResult = {
+  ok: true;
+  package_file_id: string;
+  filename: string;
+  manifest: {
+    version: string;
+    source_project_name: string;
+    source_active_base?: string;
+    created_at: string;
+    n_slides: number;
+    n_assets: number;
+  };
+  summary: {
+    n_bases: number;
+    n_compatible: number;
+    n_blocking: number;
+    n_warnings: number;
+  };
+  default_selected_bases: string[];
+  bases: GraficosShareBasePlan[];
+};
+
+export type GraficosShareExportResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  exported_at: string;
+};
+
+export type GraficosShareImportResult = {
+  ok: true;
+  imported_at: string;
+  applied_bases: Array<{
+    base_name: string;
+    n_slides_applicable: number;
+    n_slides_skipped: number;
+    missing_variables: GraficosShareMissingVariable[];
+    skipped_slides: GraficosShareSkippedSlide[];
+  }>;
+  inspection: GraficosShareInspectResult;
+};
+
+function normalizeShareArray<T = unknown>(value: unknown): T[] {
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+function normalizeGraficosShareInspect(raw: any): GraficosShareInspectResult {
+  const bases = normalizeShareArray<any>(raw.bases).map((base): GraficosShareBasePlan => ({
+    base_name: String(base.base_name ?? ""),
+    base_label: base.base_label == null ? undefined : String(base.base_label),
+    action: String(base.action ?? "replace_graficos_plan"),
+    selected_default: Boolean(base.selected_default),
+    blocking: Boolean(base.blocking),
+    current: {
+      n_slides: Number(base.current?.n_slides ?? 0),
+      xlsform: base.current?.xlsform == null ? undefined : String(base.current.xlsform),
+      data: base.current?.data == null ? undefined : String(base.current.data),
+    },
+    incoming: {
+      n_slides_total: Number(base.incoming?.n_slides_total ?? 0),
+      n_slides_applicable: Number(base.incoming?.n_slides_applicable ?? 0),
+      n_slides_skipped: Number(base.incoming?.n_slides_skipped ?? 0),
+    },
+    impact: {
+      variables_expected: Number(base.impact?.variables_expected ?? 0),
+      variables_available: Number(base.impact?.variables_available ?? 0),
+      variables_missing: Number(base.impact?.variables_missing ?? 0),
+      missing_variables: normalizeShareArray<any>(base.impact?.missing_variables).map((v) => ({
+        code: String(v.code ?? ""),
+        label: String(v.label ?? v.code ?? ""),
+      })),
+      skipped_slides: normalizeShareArray<any>(base.impact?.skipped_slides).map((slide) => ({
+        slide_id: String(slide.slide_id ?? ""),
+        slide_title: String(slide.slide_title ?? "Slide"),
+        tipo: String(slide.tipo ?? ""),
+        missing_variables: normalizeShareArray<any>(slide.missing_variables).map((v) => ({
+          code: String(v.code ?? ""),
+          label: String(v.label ?? v.code ?? ""),
+        })),
+      })),
+      effects: normalizeShareArray<any>(base.impact?.effects).map(String),
+    },
+    warnings: normalizeShareArray<any>(base.warnings).map(String),
+  }));
+
+  return {
+    ok: true,
+    package_file_id: String(raw.package_file_id ?? ""),
+    filename: String(raw.filename ?? ""),
+    manifest: {
+      version: String(raw.manifest?.version ?? ""),
+      source_project_name: String(raw.manifest?.source_project_name ?? ""),
+      source_active_base: raw.manifest?.source_active_base == null ? undefined : String(raw.manifest.source_active_base),
+      created_at: String(raw.manifest?.created_at ?? ""),
+      n_slides: Number(raw.manifest?.n_slides ?? 0),
+      n_assets: Number(raw.manifest?.n_assets ?? 0),
+    },
+    summary: {
+      n_bases: Number(raw.summary?.n_bases ?? bases.length),
+      n_compatible: Number(raw.summary?.n_compatible ?? bases.filter((b) => !b.blocking).length),
+      n_blocking: Number(raw.summary?.n_blocking ?? bases.filter((b) => b.blocking).length),
+      n_warnings: Number(raw.summary?.n_warnings ?? 0),
+    },
+    default_selected_bases: normalizeShareArray<any>(raw.default_selected_bases).map(String),
+    bases,
+  };
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+export async function apiGraficosShareExport() {
+  return handle<GraficosShareExportResult>(
+    await apiFetch("/api/graficos/share/export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    })
+  );
+}
+
+export async function apiGraficosShareInspect(input: File | { file_id?: string; filename?: string; data_base64?: string }) {
+  const payload = typeof File !== "undefined" && input instanceof File
+    ? { filename: input.name, data_base64: await fileToBase64(input) }
+    : input;
+  const raw = await handle<any>(
+    await apiFetch("/api/graficos/share/inspect", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    })
+  );
+  return normalizeGraficosShareInspect(raw);
+}
+
+export async function apiGraficosShareImport(packageFileId: string, selectedBases: string[]) {
+  const raw = await handle<any>(
+    await apiFetch("/api/graficos/share/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ package_file_id: packageFileId, selected_bases: selectedBases }),
+    })
+  );
+  return {
+    ok: true,
+    imported_at: String(raw.imported_at ?? ""),
+    applied_bases: normalizeShareArray<any>(raw.applied_bases).map((base) => ({
+      base_name: String(base.base_name ?? ""),
+      n_slides_applicable: Number(base.n_slides_applicable ?? 0),
+      n_slides_skipped: Number(base.n_slides_skipped ?? 0),
+      missing_variables: normalizeShareArray<any>(base.missing_variables).map((v) => ({
+        code: String(v.code ?? ""),
+        label: String(v.label ?? v.code ?? ""),
+      })),
+      skipped_slides: normalizeShareArray<any>(base.skipped_slides).map((slide) => ({
+        slide_id: String(slide.slide_id ?? ""),
+        slide_title: String(slide.slide_title ?? "Slide"),
+        tipo: String(slide.tipo ?? ""),
+        missing_variables: normalizeShareArray<any>(slide.missing_variables).map((v) => ({
+          code: String(v.code ?? ""),
+          label: String(v.label ?? v.code ?? ""),
+        })),
+      })),
+    })),
+    inspection: normalizeGraficosShareInspect(raw.inspection ?? {}),
+  } as GraficosShareImportResult;
 }
 
 // Paletas sugeridas: el backend devuelve las listas de choices del
@@ -10569,6 +11246,7 @@ export type CalcMuestraModoTrabajo =
 
 export type CalcMuestraMacroFamilia =
   | "acreditacion"
+  | "encuesta_estudiantes"
   | "hsvg_universitario"
   | "territorial"
   | "listado_telefonico"
@@ -10827,6 +11505,78 @@ export type CalcMuestraWorkspaceEscenario = {
   parametros: Partial<CalcMuestraParametros>;
 };
 
+export type CalcMuestraWorkspaceAulasModalidad =
+  | "presencial_aula"
+  | "mixto_aula"
+  | "online_controlado";
+
+export type CalcMuestraWorkspaceAulasSelector =
+  | "pps_balanceado"
+  | "cube_balanceado"
+  | "local_pivotal_balanceado"
+  | "pool_controlado"
+  | "sistematico_pps"
+  | "estratificado_aleatorio"
+  | "manual_auditable";
+
+export type CalcMuestraWorkspaceAulasSizeGroup = {
+  id: string;
+  label: string;
+  min: number;
+  max: number | null;
+  descripcion: string;
+};
+
+export type CalcMuestraAulasObjectiveVariable = {
+  dimension: string;
+  label: string;
+  aula_col: string;
+  student_col?: string;
+  weight: number;
+  tolerance: number;
+  source_preference?: "student" | "aula" | string;
+};
+
+export type CalcMuestraAulasObjectiveConfig = {
+  schema: "calc_muestra_aulas_representativity_objective_v1" | string;
+  primary_unit?: string;
+  variables: CalcMuestraAulasObjectiveVariable[] | MonitoreoRow[];
+  component_weights?: Record<string, number>;
+  duplicate_loss_tolerance?: number;
+  dispersion_tolerance?: number;
+  weight_cv_warn?: number;
+  weight_cv_critical?: number;
+  reserve_depth_target?: number;
+  missing_policy?: string;
+};
+
+export type CalcMuestraWorkspaceAulasConfig = {
+  schema: "calc_muestra_workspace_aulas_v1" | string;
+  modalidad: CalcMuestraWorkspaceAulasModalidad;
+  selector: CalcMuestraWorkspaceAulasSelector;
+  selector_engine?: CalcMuestraWorkspaceAulasSelector | string;
+  method_family?: string;
+  min_elegibles_aula: number;
+  usar_grupos_tamano: boolean;
+  grupos_tamano: CalcMuestraWorkspaceAulasSizeGroup[];
+  estratos_selector: string[];
+  balance_vars?: string[];
+  spread_vars?: string[];
+  candidate_pool_size?: number;
+  simulation_runs?: number;
+  mos_strategy?: string;
+  coordination_mode?: string;
+  bolsas_reemplazo: number;
+  aulas_extra_operativas_default: number;
+  penalizacion_repetidos: number;
+  pps_weight: number;
+  coverage_weight: number;
+  monte_carlo_n: number;
+  semilla: number;
+  objective?: CalcMuestraAulasObjectiveConfig;
+  notas_metodologicas?: string;
+};
+
 export type CalcMuestraWorkspace = {
   version: 2;
   frame_mode: CalcMuestraWorkspaceFrameMode;
@@ -10837,6 +11587,7 @@ export type CalcMuestraWorkspace = {
   variables_control: CalcMuestraWorkspaceVariableControl[];
   escenarios: CalcMuestraWorkspaceEscenario[];
   notas_diseno: string;
+  aulas_config?: CalcMuestraWorkspaceAulasConfig;
 };
 
 export type CalcMuestraEstudio = {
@@ -10865,8 +11616,232 @@ export type CalcMuestraReporteMeta = {
   job_id?: string | null;
 };
 
+export type CalcMuestraAulasFrame = {
+  schema: "calc_muestra_aulas_frame_v1" | string;
+  generated_at: string;
+  input_mode: "base_madre" | "dos_bases" | string;
+  config: Record<string, unknown>;
+  frame_hash: string;
+  population?: MonitoreoRow[];
+  aula_frame: MonitoreoRow[];
+  exclusions?: MonitoreoRow[];
+  audit: MonitoreoRow[];
+  warnings: string[];
+  methodology?: Record<string, unknown>;
+};
+
+export type CalcMuestraAulasSelection = {
+  schema: "calc_muestra_aulas_selection_v1" | string;
+  selection_run_id: string;
+  generated_at: string;
+  frame_hash: string;
+  seed: number;
+  selector: Record<string, unknown>;
+  selector_engine?: string;
+  selector_engine_used?: string;
+  method_family?: string;
+  method_source?: string;
+  official_reference?: string;
+  academic_reference?: string;
+  implementation_reference?: string;
+  probability_source?: string;
+  weight_source?: string;
+  nonresponse_policy?: string;
+  replacement_policy?: string;
+  methodological_warning?: string[];
+  methodological_sources?: MonitoreoRow[];
+  objective_config?: CalcMuestraAulasObjectiveConfig;
+  representativity?: CalcMuestraAulasRepresentativityResult;
+  representativity_score?: number;
+  representativity_distance?: number;
+  selection: MonitoreoRow[];
+  quotas: MonitoreoRow[];
+  summary: MonitoreoRow[];
+  diagnostics?: Record<string, MonitoreoRow[] | undefined>;
+  methodology?: Record<string, unknown>;
+  method_comparison?: CalcMuestraAulasMethodComparison;
+  replacement_simulation?: CalcMuestraAulasReplacementSimulation;
+};
+
+export type CalcMuestraAulasProfileDistribution = {
+  dimension: string;
+  variable?: string;
+  label?: string;
+  category: string;
+  source?: string;
+  frame_n?: number;
+  selected_n?: number;
+  frame_prop?: number;
+  selected_prop?: number;
+  error_balance?: number;
+  abs_error?: number;
+  tolerance?: number;
+  within_tolerance?: boolean;
+  method_id?: string;
+};
+
+export type CalcMuestraAulasRepresentativityMetric = {
+  metric_id: string;
+  metric_group: string;
+  label: string;
+  base_weight?: number;
+  normalized_weight?: number;
+  active?: boolean;
+  score?: number;
+  distance?: number;
+  avg_abs_error?: number;
+  max_abs_error?: number;
+  tolerance?: number;
+  detail?: string;
+  method_id?: string;
+};
+
+export type CalcMuestraAulasSimulationSummary = {
+  method_id: string;
+  requested_runs?: number;
+  executed_runs?: number;
+  score_mean?: number;
+  score_sd?: number;
+  score_p10?: number;
+  score_p90?: number;
+  coverage_mean?: number;
+  duplicate_loss_mean?: number;
+  note?: string;
+};
+
+export type CalcMuestraAulasRepresentativityResult = {
+  schema: "calc_muestra_aulas_representativity_objective_v1" | string;
+  generated_at?: string;
+  objective_config?: CalcMuestraAulasObjectiveConfig;
+  overall_score?: number;
+  representativity_score?: number;
+  weighted_distance?: number;
+  profile_distributions?: CalcMuestraAulasProfileDistribution[] | MonitoreoRow[];
+  metrics?: CalcMuestraAulasRepresentativityMetric[] | MonitoreoRow[];
+  coverage_overlap?: MonitoreoRow[];
+  weight_stability?: MonitoreoRow[];
+  reserve_depth?: MonitoreoRow[];
+  warnings?: string[];
+};
+
+export type CalcMuestraAulasRiskFlag = {
+  code: string;
+  severity: "ok" | "baja" | "media" | "alta" | string;
+  title: string;
+  detail: string;
+  method?: string;
+};
+
+export type CalcMuestraAulasMethodSummary = {
+  method_id: CalcMuestraWorkspaceAulasSelector | string;
+  method_label: string;
+  engine_used?: string;
+  probability_source?: string;
+  balance_score?: number;
+  repeated_students?: number;
+  duplicate_loss?: number;
+  repetition_score?: number;
+  unique_students_covered?: number;
+  coverage_unique_pct?: number;
+  coverage_score?: number;
+  schedule_concentration_delta?: number;
+  concentration_score?: number;
+  reserve_depth_ratio?: number;
+  reserve_score?: number;
+  weight_cv?: number;
+  n_eff_ratio?: number;
+  representativity_score?: number;
+  representativity_distance?: number;
+  overall_score?: number;
+  warnings?: string;
+  operational_reason?: string;
+  methodological_reason?: string;
+};
+
+export type CalcMuestraAulasMethodComparison = {
+  schema: "calc_muestra_aulas_method_comparison_v1" | string;
+  generated_at: string;
+  frame_hash: string;
+  methods: CalcMuestraAulasMethodSummary[];
+  recommendation?: {
+    method_id?: string;
+    method_label?: string;
+    operational_reason?: string;
+    methodological_reason?: string;
+    overall_score?: number;
+    representativity_score?: number;
+    representativity_distance?: number;
+  };
+  objective_config?: CalcMuestraAulasObjectiveConfig;
+  frame_profiles?: CalcMuestraAulasProfileDistribution[] | MonitoreoRow[];
+  method_profiles?: CalcMuestraAulasProfileDistribution[] | MonitoreoRow[];
+  representativity_metrics?: CalcMuestraAulasRepresentativityMetric[] | MonitoreoRow[];
+  simulation_summary?: CalcMuestraAulasSimulationSummary[] | MonitoreoRow[];
+  balance?: MonitoreoRow[];
+  reserve_depth?: MonitoreoRow[];
+  risk_flags?: CalcMuestraAulasRiskFlag[];
+  simulation_runs?: number;
+  notes?: string[];
+};
+
+export type CalcMuestraAulasReplacementSuggestion = {
+  titular_classroom_id: string;
+  titular_label?: string;
+  reserve_classroom_id: string;
+  reserve_label?: string;
+  rank: number;
+  wave: string;
+  match_level: "misma_celda" | "celda_equivalente" | "celda_cercana" | string;
+  score: number;
+  before_score?: number;
+  after_score?: number;
+  score_delta?: number;
+  overlap_delta?: number;
+  eligible_delta?: number;
+  reason?: string;
+  warning?: string;
+};
+
+export type CalcMuestraAulasReplacementImpact = {
+  titular_classroom_id: string;
+  suggested_replacement_id: string;
+  before_score?: number;
+  after_score?: number;
+  score_delta?: number;
+  before_faculty?: string;
+  after_faculty?: string;
+  before_program?: string;
+  after_program?: string;
+  eligible_delta?: number;
+  overlap_delta?: number;
+  balance_effect?: string;
+  warning?: string;
+};
+
+export type CalcMuestraAulasReplacementSimulation = {
+  schema: "calc_muestra_aulas_replacement_simulation_v1" | string;
+  generated_at: string;
+  selection_run_id: string;
+  frame_hash: string;
+  objective_config?: CalcMuestraAulasObjectiveConfig;
+  planned_representativity?: CalcMuestraAulasRepresentativityResult;
+  suggestions: CalcMuestraAulasReplacementSuggestion[];
+  impact: CalcMuestraAulasReplacementImpact[] | MonitoreoRow[];
+  summary?: MonitoreoRow[];
+};
+
+export type CalcMuestraAulasState = {
+  config?: Record<string, unknown>;
+  frame?: CalcMuestraAulasFrame | null;
+  selection?: CalcMuestraAulasSelection | null;
+  method_comparison?: CalcMuestraAulasMethodComparison | null;
+  replacement_simulation?: CalcMuestraAulasReplacementSimulation | null;
+  export?: { ok?: true; file_id: string; filename: string; size: number } | null;
+};
+
 export type CalcMuestraState = {
   estudio: CalcMuestraEstudio;
+  aulas?: CalcMuestraAulasState;
   reporte: CalcMuestraReporteMeta;
 };
 
@@ -10967,6 +11942,85 @@ export async function apiCalcMuestraRecomendar(diagnostico: CalcMuestraDiagnosti
   );
 }
 
+export async function apiCalcMuestraMarcoConfig(config: Record<string, unknown>) {
+  return handle<{ ok: true; config: Record<string, unknown>; state: CalcMuestraState }>(
+    await apiFetch("/api/calc-muestra/marco/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraMarcoConstruir(payload: {
+  base_madre?: MonitoreoRow[];
+  base_madre_file_id?: string;
+  estudiantes?: MonitoreoRow[];
+  estudiantes_file_id?: string;
+  inscripciones?: MonitoreoRow[];
+  inscripciones_file_id?: string;
+  config?: Record<string, unknown>;
+}) {
+  return handle<{ ok: true; frame: CalcMuestraAulasFrame; state: CalcMuestraState }>(
+    await apiFetch("/api/calc-muestra/marco/construir", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCalcMuestraAulasCompararMetodos(payload: {
+  config?: Record<string, unknown>;
+  objective_config?: CalcMuestraAulasObjectiveConfig;
+  frame?: CalcMuestraAulasFrame;
+  methods?: string[];
+  simulation_runs?: number;
+} = {}) {
+  return handle<{ ok: true; comparison: CalcMuestraAulasMethodComparison; state: CalcMuestraState }>(
+    await apiFetch("/api/calc-muestra/aulas/comparar-metodos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCalcMuestraAulasSeleccionar(config?: Record<string, unknown>, frame?: CalcMuestraAulasFrame, methodId?: string, objectiveConfig?: CalcMuestraAulasObjectiveConfig) {
+  return handle<{ ok: true; selection: CalcMuestraAulasSelection; state: CalcMuestraState }>(
+    await apiFetch("/api/calc-muestra/aulas/seleccionar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...(config ? { config } : {}), ...(frame ? { frame } : {}), ...(methodId ? { method_id: methodId } : {}), ...(objectiveConfig ? { objective_config: objectiveConfig } : {}) }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraAulasSimularReemplazos(payload: {
+  config?: Record<string, unknown>;
+  objective_config?: CalcMuestraAulasObjectiveConfig;
+  frame?: CalcMuestraAulasFrame;
+  selection?: CalcMuestraAulasSelection;
+} = {}) {
+  return handle<{ ok: true; replacement_simulation: CalcMuestraAulasReplacementSimulation; state: CalcMuestraState }>(
+    await apiFetch("/api/calc-muestra/aulas/simular-reemplazos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCalcMuestraAulasExportar() {
+  return handle<{ ok: true; export: { ok?: true; file_id: string; filename: string; size: number }; state: CalcMuestraState }>(
+    await apiFetch("/api/calc-muestra/aulas/exportar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
+  );
+}
+
 // ----------------------------------------------------------------------------
 // Inicialización por tipo de estudio (reemplaza los antiguos presets).
 //
@@ -10976,8 +12030,8 @@ export async function apiCalcMuestraRecomendar(diagnostico: CalcMuestraDiagnosti
 //
 // Variante:
 //   - "vacio" (default): solo la estructura, sin datos. Aplica para todos.
-//   - "plantilla_pucp" (solo HSVG): pre-carga los 15 estratos de facultades
-//     con el marco DTI 2025-II como punto de partida editable.
+//   - "plantilla_pucp" (legacy): conserva presets antiguos cuando se reabre
+//     un estudio historico; la ruta activa es `encuesta_estudiantes`.
 // ----------------------------------------------------------------------------
 
 export type CalcMuestraVarianteEstudio = "vacio" | "plantilla_pucp";

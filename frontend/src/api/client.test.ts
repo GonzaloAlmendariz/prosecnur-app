@@ -16,7 +16,6 @@ import {
   apiMonitoreoKoboAssets,
   apiMonitoreoPublicationSheetsPublish,
   apiMonitoreoPublicReport,
-  apiMonitoreoPublish,
   apiMonitoreoState,
   apiMonitoreoSource,
   apiMonitoreoSheetsPublish,
@@ -45,6 +44,9 @@ import {
   apiV2InstrumentoVariablesExcluidasSave,
   apiGraficosPpt,
   apiGraficosPreviewSlide,
+  apiGraficosShareExport,
+  apiGraficosShareImport,
+  apiGraficosShareInspect,
   apiAnaliticaConfigPut,
   apiAnaliticaPreparar,
   apiXlsformEditorExportPdf,
@@ -172,6 +174,117 @@ describe("XLSForm editor PDF client", () => {
 
     expect(result.workbook.paper).toEqual(paperSheet);
     expect(result.summary.paper_rows).toBe(1);
+  });
+});
+
+describe("Graficos share package client", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLocalStorage());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("exports and inspects a portable graphics plan package", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(init?.body ? JSON.parse(String(init.body)) : {});
+      const url = String(input);
+      if (url.endsWith("/share/export")) {
+        return jsonResponse({
+          ok: true,
+          file_id: "pkg-1",
+          filename: "plan.pulso-graficos.zip",
+          size: 1234,
+          exported_at: "2026-06-19T00:00:00Z",
+        });
+      }
+      return jsonResponse({
+        ok: true,
+        package_file_id: "pkg-1",
+        filename: "plan.pulso-graficos.zip",
+        manifest: {
+          version: "graficos-share/1",
+          source_project_name: "Ingenieria",
+          created_at: "2026-06-19T00:00:00Z",
+          n_slides: 4,
+          n_assets: 0,
+        },
+        summary: { n_bases: 2, n_compatible: 2, n_blocking: 0, n_warnings: 1 },
+        default_selected_bases: ["civil", "minas"],
+        bases: [
+          {
+            base_name: "minas",
+            selected_default: true,
+            blocking: false,
+            current: { n_slides: 0 },
+            incoming: { n_slides_total: 4, n_slides_applicable: 3, n_slides_skipped: 1 },
+            impact: {
+              variables_expected: 10,
+              variables_available: 9,
+              variables_missing: 1,
+              missing_variables: [{ code: "p2", label: "Pregunta dos" }],
+              skipped_slides: [
+                {
+                  slide_id: "s2",
+                  slide_title: "Slide P2",
+                  tipo: "p_slide_1_grafico",
+                  missing_variables: [{ code: "p2", label: "Pregunta dos" }],
+                },
+              ],
+              effects: ["Se conserva XLSForm"],
+            },
+            warnings: ["1 slide se omitira por variables no disponibles."],
+          },
+        ],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const exported = await apiGraficosShareExport();
+    const inspected = await apiGraficosShareInspect({ file_id: exported.file_id });
+
+    expect(exported.file_id).toBe("pkg-1");
+    expect(inspected.summary.n_compatible).toBe(2);
+    expect(inspected.bases[0].impact.missing_variables[0]).toEqual({ code: "p2", label: "Pregunta dos" });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/graficos/share/export",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/graficos/share/inspect",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(bodies[1]).toEqual({ file_id: "pkg-1" });
+  });
+
+  test("imports selected bases from a inspected graphics package", async () => {
+    let sentBody: Record<string, unknown> | null = null;
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentBody = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({
+        ok: true,
+        imported_at: "2026-06-19T00:00:00Z",
+        applied_bases: [{ base_name: "civil", n_slides_applicable: 4, n_slides_skipped: 0 }],
+        inspection: {
+          ok: true,
+          package_file_id: "pkg-1",
+          filename: "plan.pulso-graficos.zip",
+          manifest: { version: "graficos-share/1", source_project_name: "Ingenieria", created_at: "", n_slides: 4, n_assets: 0 },
+          summary: { n_bases: 1, n_compatible: 1, n_blocking: 0, n_warnings: 0 },
+          default_selected_bases: ["civil"],
+          bases: [],
+        },
+      });
+    }));
+
+    const imported = await apiGraficosShareImport("pkg-1", ["civil"]);
+
+    expect(imported.applied_bases[0].base_name).toBe("civil");
+    expect(sentBody).toEqual({ package_file_id: "pkg-1", selected_bases: ["civil"] });
   });
 });
 
@@ -621,46 +734,6 @@ describe("Monitoreo client", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/monitoreo/public-report", expect.objectContaining({ headers: expect.any(Object) }));
     expect(result.profile.family).toBe("acreditacion");
-  });
-
-  test("publishes monitoreo web artifact to HF", async () => {
-    let sentInit: RequestInit | undefined;
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      sentInit = init;
-      return jsonResponse({
-        ok: true,
-        repo_id: "pulso/acnur-avance",
-        space_name: "acnur-avance",
-        url: "https://huggingface.co/spaces/pulso/acnur-avance",
-        app_url: "https://pulso-acnur-avance.hf.space",
-        published_at: "2026-06-16T00:00:00Z",
-        artifact_kind: "monitoreo",
-        files_uploaded: 6,
-        total_bytes: 100,
-        project_size: 50,
-        uploaded: [],
-      });
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await apiMonitoreoPublish({
-      hf_username: "pulso",
-      hf_token: "hf_abc",
-      space_name: "acnur-avance",
-      audience: "client",
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/monitoreo/publish",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(JSON.parse(String(sentInit?.body))).toEqual({
-      hf_username: "pulso",
-      hf_token: "hf_abc",
-      space_name: "acnur-avance",
-      audience: "client",
-    });
-    expect(result.artifact_kind).toBe("monitoreo");
   });
 
   test("publishes executive publication tabs to Sheets by audience", async () => {

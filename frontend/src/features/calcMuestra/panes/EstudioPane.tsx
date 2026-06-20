@@ -42,19 +42,19 @@ const TIPOS_ESTUDIO: TipoEstudio[] = [
     componentes: ["Administrativos · online", "Docentes · online", "Estudiantes · aula QR", "Egresados · telefónico"],
   },
   {
-    id: "hsvg_universitario",
+    id: "encuesta_estudiantes",
     label: "Estudiantes universitarios",
-    resumen: "Diseño por facultad y sexo para estudios de opinión estudiantil.",
+    resumen: "Diseño de muestra y selección de aulas para encuestas a estudiantes.",
     detalle:
-      "Genera la mesa de estudiantes con marco por facultad y sexo, lista para calcular una propuesta a nivel universidad y otra a nivel facultad. Si trabajas el caso PUCP, puedes pre-cargar los 15 estratos del marco DTI 2025-II como punto de partida editable.",
+      "Genera la mesa de estudiantes con marco por dominio, sexo u otras variables de control, lista para construir marco de aulas, calcular escenarios y seleccionar titulares/reemplazos.",
     icon: GraduationCap,
-    componentes: ["Estudiantes universitarios · facultad x sexo"],
+    componentes: ["Estudiantes universitarios · aulas/curso-horario"],
     variantes: [
       { id: "vacio", label: "En blanco", descripcion: "Solo la estructura, tú agregas estratos y N." },
       {
         id: "plantilla_pucp",
-        label: "Pre-cargar marco PUCP 2026",
-        descripcion: "15 facultades con N reales DTI 2025-II y parámetros canónicos.",
+        label: "Alias legacy PUCP",
+        descripcion: "Carga estratos legacy solo si estas reabriendo un caso antiguo.",
       },
     ],
   },

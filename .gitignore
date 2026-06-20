@@ -14,8 +14,10 @@ renv/staging/
 
 # Node / frontend
 node_modules/
+.vite/
 frontend/dist/
 frontend/.vite/
+frontend/tmp/
 frontend/tsconfig.tsbuildinfo
 *.log
 
@@ -46,6 +48,7 @@ api/inst/standalone/
 
 # Audit outputs (generados por scripts/ast_corpus_audit.R etc.)
 api/outputs/
+tmp/
 
 # Outputs de revisión y fuentes metodológicas internas (NO van al repo).
 # Contiene documentación interna PULSO (taxonomía 2024-2026, documento

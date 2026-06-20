@@ -490,7 +490,7 @@ HOJAS_RUTA_CALLES_INEI_VERSION <- "inei2017-streets-lima-callao-v1"
 HOJAS_RUTA_CALLES_INEI_SOURCE <- "INEI - Informacion Digital Urbano Censal Ciudad Lima Metropolitana 2017"
 HOJAS_RUTA_CALLES_OSM_VERSION <- "osm-overture-streets-lima-callao-v3"
 HOJAS_RUTA_INEI_OFFICIAL_VERSION <- "inei2017-official-lima-callao-manzanas-v1"
-HOJAS_RUTA_NSE_INEI_VERSION <- "nse-inei2017-lima-manzanas-v1"
+HOJAS_RUTA_NSE_INEI_VERSION <- "nse-geoperu-inei-lima-callao-manzanas-v1"
 HOJAS_RUTA_ZONAS_INEI_VERSION <- "inei2017-zonas-lima-callao-v1"
 
 .hojas_ruta_inst_path <- function(...) {
@@ -541,10 +541,14 @@ hojas_ruta_cartografia_zonas_manifest_path <- function() {
 }
 
 hojas_ruta_nse_inei_path <- function() {
+  path <- .hojas_ruta_inst_path("hojas_ruta", "nse_geoperu_inei_lima_callao_manzanas.csv.gz")
+  if (file.exists(path)) return(path)
   .hojas_ruta_inst_path("hojas_ruta", "nse_inei2017_lima_manzanas.csv.gz")
 }
 
 hojas_ruta_nse_inei_manifest_path <- function() {
+  path <- .hojas_ruta_inst_path("hojas_ruta", "nse_geoperu_inei_lima_callao_manzanas.json")
+  if (file.exists(path)) return(path)
   .hojas_ruta_inst_path("hojas_ruta", "nse_inei2017_lima_manzanas.json")
 }
 
@@ -652,7 +656,7 @@ hojas_ruta_inei_frame <- function(source = "current") {
     normalizePath(path, mustWork = FALSE),
     info$size %||% 0,
     as.numeric(info$mtime %||% 0),
-    "frame-v4-nse-id-lookup",
+    "frame-v5-nse-geoperu-official",
     sep = "|"
   )
   cached <- .hojas_ruta_inei_frame_cache[[key]]
@@ -683,7 +687,11 @@ hojas_ruta_inei_frame <- function(source = "current") {
   nse <- tryCatch(hojas_ruta_nse_inei(), error = function(e) data.frame())
   if (nrow(nse) && "id_manzana_norm" %in% names(nse) && "id_manzana_norm" %in% names(df)) {
     keep <- intersect(
-      c("id_manzana_norm", "nse_codigo", "nse_nivel", "nse_match_method", "nse_distance_m"),
+      c(
+        "id_manzana_norm", "nse_codigo", "nse_nivel", "nse_match_method",
+        "nse_distance_m", "nse_income_per_capita", "nse_personas",
+        "nse_hogares", "nse_idmz18"
+      ),
       names(nse)
     )
     df <- merge(df, nse[keep], by = "id_manzana_norm", all.x = TRUE, sort = FALSE)
@@ -1138,7 +1146,7 @@ hojas_ruta_cartografia_zonas_meta <- function(ubigeo = NULL) {
 hojas_ruta_nse_inei <- function(required = FALSE) {
   path <- hojas_ruta_nse_inei_path()
   if (!file.exists(path)) {
-    if (isTRUE(required)) stop("No se encontro NSE INEI 2017 empaquetado.", call. = FALSE)
+    if (isTRUE(required)) stop("No se encontro NSE oficial GeoPeru/INEI empaquetado.", call. = FALSE)
     return(data.frame())
   }
   df <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE,
@@ -1146,7 +1154,10 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
   if ("ubigeo" %in% names(df)) df$ubigeo <- sprintf("%06s", as.character(df$ubigeo))
   if ("id_manzana" %in% names(df)) df$id_manzana <- as.character(df$id_manzana)
   if ("id_manzana_norm" %in% names(df)) df$id_manzana_norm <- as.character(df$id_manzana_norm)
-  .hojas_ruta_numeric_cols(df, c("nse_codigo", "nse_distance_m", "nse_records_for_manzana"))
+  .hojas_ruta_numeric_cols(df, c(
+    "nse_codigo", "nse_distance_m", "nse_records_for_manzana",
+    "nse_income_per_capita", "nse_personas", "nse_hogares"
+  ))
 }
 
 .hojas_ruta_nse_meta <- function(nse = NULL) {
@@ -1165,20 +1176,26 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
   list(
     ok = ok,
     available = ok,
-    source = "NSE Lima INEI",
-    year = 2017L,
-    version = HOJAS_RUTA_NSE_INEI_VERSION,
-    coverage = "Lima Metropolitana; Callao sin NSE imputado",
+    source = manifest$source %||% "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar",
+    provider = manifest$provider %||% "Instituto Nacional de Estadistica e Informatica (INEI)",
+    distributor = manifest$distributor %||% "Plataforma Nacional de Datos Georreferenciados GeoPeru / IDEP",
+    source_url = manifest$source_url %||% "https://visor.geoperu.gob.pe/?layers=1207",
+    download_url = manifest$download_url %||% "https://descargas.geoperu.gob.pe/peru_estrato_nacional_.zip",
+    year = as.integer(manifest$year %||% 2026L),
+    version = manifest$version %||% HOJAS_RUTA_NSE_INEI_VERSION,
+    coverage = manifest$coverage %||% "Lima Metropolitana y Callao",
     rows = if (ok) as.integer(nrow(nse)) else 0L,
-    matched_blocks = as.integer(manifest$matched_blocks %||% if (ok) length(unique(nse$id_manzana_norm)) else 0L),
+    matched_blocks = as.integer(manifest$matched_blocks %||% manifest$packaged_records %||% if (ok) length(unique(nse$id_manzana_norm)) else 0L),
     input_points = as.integer(manifest$input_points %||% manifest$source_records %||% NA_integer_),
     coverage_rate = as.numeric(manifest$match_rate %||% manifest$coverage_rate %||% NA_real_),
     levels = as.list(levels),
-    callao_available = FALSE,
+    match_methods = manifest$match_methods %||% list(),
+    official = isTRUE(manifest$official),
+    callao_available = isTRUE(manifest$callao_available %||% TRUE),
     manifest_path = normalizePath(manifest_path, mustWork = FALSE),
     path = normalizePath(path, mustWork = FALSE),
     checksum = .hojas_ruta_checksum(path),
-    message = if (ok) "NSE Lima INEI disponible; Callao queda como no disponible, sin imputacion." else "NSE no disponible en el paquete local."
+    message = if (ok) "NSE oficial GeoPeru/INEI disponible para Lima Metropolitana y Callao." else "NSE oficial GeoPeru/INEI no disponible en el paquete local."
   )
 }
 
@@ -5225,7 +5242,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
-    "constante_salto_modo", "modo_seleccion_vivienda"
+    "constante_salto_modo", "modo_seleccion_vivienda",
+    "nse_codigo", "nse_nivel", "nse_match_method", "nse_distance_m",
+    "nse_income_per_capita", "nse_personas", "nse_hogares", "nse_idmz18"
   ), names(blocks_df)), drop = FALSE]
   replacement_public <- replacement_blocks_df[, intersect(c(
     "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
@@ -5238,7 +5257,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "replacement_label", "replacement_fallback",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
-    "constante_salto_modo", "modo_seleccion_vivienda"
+    "constante_salto_modo", "modo_seleccion_vivienda",
+    "nse_codigo", "nse_nivel", "nse_match_method", "nse_distance_m",
+    "nse_income_per_capita", "nse_personas", "nse_hogares", "nse_idmz18"
   ), names(replacement_blocks_df)), drop = FALSE]
   blocking_alert <- any(vapply(alerts, function(x) identical(x$level, "error"), logical(1)))
   list(
@@ -8906,6 +8927,27 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   sprintf("%d-%d", start, end)
 }
 
+.hojas_ruta_workbook_nse_level <- function(block) {
+  .hojas_ruta_clean_text(block$nse_nivel %||% block$NSE)
+}
+
+.hojas_ruta_workbook_nse_code <- function(block) {
+  value <- .hojas_ruta_clean_num(block$nse_codigo)
+  if (is.na(value)) return("")
+  if (abs(value - round(value)) < sqrt(.Machine$double.eps)) {
+    return(as.character(as.integer(round(value))))
+  }
+  format(value, trim = TRUE, scientific = FALSE)
+}
+
+.hojas_ruta_workbook_nse_status <- function(block) {
+  if (nzchar(.hojas_ruta_workbook_nse_level(block)) ||
+      nzchar(.hojas_ruta_workbook_nse_code(block))) {
+    return("Disponible")
+  }
+  "No disponible"
+}
+
 .hojas_ruta_workbook_method_label <- function(method) {
   method <- .hojas_ruta_clean_text(method)
   switch(
@@ -8964,6 +9006,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     Zona = .hojas_ruta_clean_text(block$zona),
     Manzana = .hojas_ruta_clean_text(block$manzana),
     `Codigo manzana` = .hojas_ruta_clean_text(block$id_manzana),
+    NSE = .hojas_ruta_workbook_nse_level(block),
+    `Codigo NSE` = .hojas_ruta_workbook_nse_code(block),
+    `Estado NSE` = .hojas_ruta_workbook_nse_status(block),
     Tipo = if (identical(tipo, "reemplazo")) "Reemplazo" else "Titular",
     `Reemplaza a` = if (identical(tipo, "reemplazo")) .hojas_ruta_workbook_replaces_label(block) else "",
     `Rango encuestas` = .hojas_ruta_range_text(block$rango_inicio, block$rango_fin),
@@ -9065,6 +9110,27 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   ))
   zonas <- zonas[nzchar(gsub("[-[:space:]]", "", zonas))]
   length(zonas)
+}
+
+.hojas_ruta_workbook_nse_flags <- function(df) {
+  if (is.null(df) || !nrow(df)) return(logical(0))
+  level <- trimws(as.character(.hojas_ruta_col(df, "nse_nivel", "")))
+  code <- trimws(as.character(.hojas_ruta_col(df, "nse_codigo", "")))
+  level[is.na(level) | level %in% c("NA", "NaN")] <- ""
+  code[is.na(code) | code %in% c("NA", "NaN")] <- ""
+  nzchar(level) | nzchar(code)
+}
+
+.hojas_ruta_workbook_nse_summary <- function(blocks, replacements) {
+  flags <- c(.hojas_ruta_workbook_nse_flags(blocks), .hojas_ruta_workbook_nse_flags(replacements))
+  total <- length(flags)
+  available <- sum(flags)
+  list(
+    total = as.integer(total),
+    available = as.integer(available),
+    missing = as.integer(total - available),
+    rate = if (total > 0L) available / total else 0
+  )
 }
 
 .hojas_ruta_workbook_quota_table <- function(sample) {
@@ -9220,7 +9286,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   quota_table <- .hojas_ruta_workbook_quota_table(sample)
   generated_at <- format(Sys.time(), "%Y-%m-%d %H:%M")
   route_size <- .hojas_ruta_route_size(sample$config)
-  route_sheet_cols <- max(12L + route_size, ncol(routes))
+  nse_summary <- .hojas_ruta_workbook_nse_summary(blocks, replacement_blocks)
+  route_sheet_cols <- max(15L + route_size, ncol(routes))
 
   openxlsx::addWorksheet(wb, "Resumen", gridLines = FALSE)
   openxlsx::writeData(wb, "Resumen", "Excel operativo de hojas de ruta", startRow = 1, startCol = 1)
@@ -9243,6 +9310,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       "Encuestas de reemplazo",
       "Distritos",
       "Zonas",
+      "Manzanas con NSE",
+      "Manzanas sin NSE",
+      "Cobertura NSE",
       "Encuestas por UMP",
       "Primer tramo",
       "Segundo tramo"
@@ -9254,6 +9324,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       as.character(sum(suppressWarnings(as.integer(.hojas_ruta_col(replacement_blocks, "entrevistas", 0L))), na.rm = TRUE)),
       as.character(length(unique(as.character(.hojas_ruta_col(blocks, "ubigeo", ""))))),
       as.character(.hojas_ruta_workbook_zone_count(blocks, replacement_blocks)),
+      as.character(nse_summary$available),
+      as.character(nse_summary$missing),
+      sprintf("%.1f%%", nse_summary$rate * 100),
       as.character(route_size),
       sprintf("UMP 1: encuestas 1-%d", route_size),
       sprintf("UMP 2: encuestas %d-%d", route_size + 1L, route_size * 2L)
@@ -9301,7 +9374,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       styles,
       titular_rows = titular_rows,
       replacement_rows = replacement_rows,
-      widths = c(8, 18, 10, 12, 24, 13, 24, 16, 11, 11, 18, 15, rep(13, route_size))
+      widths = c(8, 18, 10, 12, 24, 14, 10, 14, 13, 24, 16, 11, 11, 18, 15, rep(13, route_size))
     )
     .hojas_ruta_add_status_validation(wb, "Hojas_de_ruta", routes, start_row)
     .hojas_ruta_add_survey_validation(wb, "Hojas_de_ruta", routes, start_row)
@@ -9320,6 +9393,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
   if (isTRUE(technical)) {
     route_report <- .hojas_ruta_rows_df(route_report %||% list())
+    if (!nrow(route_report)) {
+      route_report <- .hojas_ruta_workbook_technical_route_report(sample)
+    }
     quota_cells <- .hojas_ruta_rows_df(sample$quota$cells %||% list())
     zone_summary <- tryCatch(.hojas_ruta_zone_summary(sample), error = function(e) data.frame())
     sample_size <- sample$config$sample_size %||% list()
@@ -9424,6 +9500,15 @@ hojas_ruta_generar_excel_operativo_integrado <- function(config = list(), result
     Ubigeo = text_value("ubigeo"),
     `Codigo de zona` = text_value("zona"),
     `Codigo de manzana` = text_value("manzana"),
+    NSE = .hojas_ruta_workbook_nse_level(block),
+    `Codigo NSE` = .hojas_ruta_workbook_nse_code(block),
+    `Estado NSE` = .hojas_ruta_workbook_nse_status(block),
+    `Metodo NSE` = text_value("nse_match_method"),
+    `Distancia NSE (m)` = dbl_value("nse_distance_m"),
+    `Ingreso per capita NSE` = dbl_value("nse_income_per_capita"),
+    `Personas NSE` = int_value("nse_personas"),
+    `Hogares NSE` = int_value("nse_hogares"),
+    `IDMZ18 NSE` = text_value("nse_idmz18"),
     `Numero inicio` = int_value("rango_inicio"),
     `Numero fin` = int_value("rango_fin"),
     `Tipo de ruta` = tipo_ruta,
@@ -9448,6 +9533,30 @@ hojas_ruta_generar_excel_operativo_integrado <- function(config = list(), result
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+}
+
+.hojas_ruta_workbook_technical_route_report <- function(sample) {
+  blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
+  replacements <- .hojas_ruta_order_replacements(.hojas_ruta_rows_df(sample$replacement_blocks %||% list()))
+  rows <- list()
+  if (nrow(blocks)) {
+    for (i in seq_len(nrow(blocks))) {
+      block <- as.list(blocks[i, , drop = FALSE])
+      block[] <- lapply(block, function(x) x[[1]])
+      rows[[length(rows) + 1L]] <- .hojas_ruta_delivery_report_row(block, "TITULAR")
+    }
+  }
+  if (nrow(replacements)) {
+    for (i in seq_len(nrow(replacements))) {
+      block <- as.list(replacements[i, , drop = FALSE])
+      block[] <- lapply(block, function(x) x[[1]])
+      rows[[length(rows) + 1L]] <- .hojas_ruta_delivery_report_row(block, "REEMPLAZO")
+    }
+  }
+  if (!length(rows)) return(data.frame())
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
 }
 
 .hojas_ruta_blocks_with_route_ranges <- function(blocks) {

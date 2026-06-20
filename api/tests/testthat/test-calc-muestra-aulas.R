@@ -1,0 +1,382 @@
+test_that("calc-muestra aulas construye el mismo marco desde base madre o dos bases", {
+  estudiantes <- data.frame(
+    student_id = paste0("s", 1:6),
+    facultad = c("FAC1", "FAC1", "FAC1", "FAC2", "FAC2", "FAC2"),
+    programa = c("P1", "P1", "P2", "P3", "P3", "P3"),
+    sexo = c("F", "M", "F", "M", "F", "M"),
+    edad = c(18, 19, 20, 18, 21, 22),
+    condicion = "regular",
+    nivel = "pregrado",
+    stringsAsFactors = FALSE
+  )
+  inscripciones <- data.frame(
+    student_id = c("s1", "s2", "s3", "s3", "s4", "s5", "s6"),
+    aula_id = c("A1", "A1", "A1", "A2", "A2", "A2", "A2"),
+    curso_id = c("C1", "C1", "C1", "C2", "C2", "C2", "C2"),
+    curso = c("Curso 1", "Curso 1", "Curso 1", "Curso 2", "Curso 2", "Curso 2", "Curso 2"),
+    horario = c("L 8", "L 8", "L 8", "M 10", "M 10", "M 10", "M 10"),
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  base_madre <- merge(inscripciones, estudiantes, by = "student_id", all.x = TRUE, sort = FALSE)
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(n_aulas = 2L, strata_cols = list("facultad"))
+  ))
+
+  frame_madre <- calc_muestra_aulas_construir(base_madre = base_madre, config = cfg)
+  frame_dos <- calc_muestra_aulas_construir(estudiantes = estudiantes, inscripciones = inscripciones, config = cfg)
+
+  a <- frame_madre$aula_frame[order(frame_madre$aula_frame$classroom_id), c("classroom_id", "eligible_n", "course_id", "faculty")]
+  b <- frame_dos$aula_frame[order(frame_dos$aula_frame$classroom_id), c("classroom_id", "eligible_n", "course_id", "faculty")]
+  rownames(a) <- NULL
+  rownames(b) <- NULL
+  expect_equal(a, b)
+  expect_equal(frame_madre$audit$value[frame_madre$audit$metric == "population_n"], "6")
+})
+
+test_that("marco reconoce columnas institucionales tipo PUCP 2025", {
+  base <- data.frame(
+    `Código PUCP` = paste0("20", 1:20),
+    Facultad = rep(c("DERECHO", "PSICOLOGÍA"), each = 10),
+    Carrera = rep(c("Derecho", "Psicología"), each = 10),
+    `Nivel curricular` = "pregrado",
+    Condición = "regular",
+    Sexo = rep(c("F", "M"), length.out = 20),
+    Edad = 20,
+    Curso = rep(c("DER101", "PSI101"), each = 10),
+    `Nombre del curso` = rep(c("Derecho Constitucional", "Psicología Social"), each = 10),
+    Horario = rep(c("0201", "0301"), each = 10),
+    `Sesiones y aula` = rep(c("LUN 08:00-10:00 C D101", "MAR 10:00-12:00 C P202"), each = 10),
+    `Modalidad ` = "PRESENCIAL",
+    `Tipo Curso` = "TEORICO",
+    `Condición del curso` = "",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+
+  expect_equal(nrow(frame$population), 20)
+  expect_equal(nrow(frame$aula_frame), 2)
+  expect_true(all(c("DER101", "PSI101") %in% frame$aula_frame$course_id))
+  expect_true(all(c("Derecho Constitucional", "Psicología Social") %in% frame$aula_frame$course_name))
+  expect_true(all(grepl(" C ", frame$aula_frame$label, fixed = TRUE)))
+})
+
+test_that("lector de Excel permite elegir hoja especifica", {
+  skip_if_not_installed("openxlsx")
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Resumen")
+  openxlsx::writeData(wb, "Resumen", data.frame(no = 1))
+  openxlsx::addWorksheet(wb, "MATRICULADO")
+  openxlsx::writeData(wb, "MATRICULADO", data.frame(`Código PUCP` = "2001", Curso = "DER101", check.names = FALSE))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  out <- .cm_aulas_read_table(path, sheet = "MATRICULADO")
+  expect_equal(names(out), c("Código PUCP", "Curso"))
+  expect_equal(out$Curso[[1]], "DER101")
+})
+
+test_that("selector de aulas no selecciona por filas alumno-curso y penaliza repetidos", {
+  base <- data.frame(
+    student_id = c(paste0("s", 1:8), paste0("s", 5:12), paste0("s", 13:17)),
+    aula_id = c(rep("A1", 8), rep("A2", 8), rep("A3", 5)),
+    curso_id = c(rep("C1", 8), rep("C2", 8), rep("C3", 5)),
+    curso = c(rep("Curso 1", 8), rep("Curso 2", 8), rep("Curso 3", 5)),
+    horario = c(rep("L 8", 8), rep("M 10", 8), rep("J 12", 5)),
+    facultad = "FAC1",
+    programa = "P1",
+    sexo = "F",
+    edad = 20,
+    condicion = "regular",
+    nivel = "pregrado",
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 42L,
+      n_aulas = 2L,
+      replacement_waves = 0L,
+      selector_engine = "pool_controlado",
+      candidate_pool_size = 40L,
+      simulation_runs = 40L,
+      monte_carlo_n = 40L,
+      strata_cols = list("facultad"),
+      duplicate_penalty = 3
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+  selected_ids <- selection$selection$classroom_id
+
+  expect_length(unique(selected_ids), 2)
+  expect_true("A3" %in% selected_ids)
+  expect_lte(sum(selection$selection$duplicate_overlap, na.rm = TRUE), 1)
+  expect_true(all(selection$selection$pi_base > 0 & selection$selection$pi_base <= 1))
+  expect_true(all(selection$selection$probability_source == "monte_carlo_after_optimization"))
+  expect_equal(selection$selection$pi_final, selection$selection$pi_mc)
+})
+
+test_that("seleccion de aulas produce auditoria metodologica, pesos y workbook defendible", {
+  skip_if_not_installed("openxlsx")
+  base <- data.frame(
+    student_id = paste0("s", rep(1:48, each = 1)),
+    aula_id = rep(paste0("A", 1:8), each = 6),
+    curso_id = rep(paste0("C", 1:8), each = 6),
+    curso = rep(paste("Curso", 1:8), each = 6),
+    horario = rep(c("L 8", "M 10", "J 12", "V 16"), each = 6, length.out = 48),
+    facultad = rep(c("FAC1", "FAC2"), each = 24),
+    programa = rep(c("P1", "P2", "P3", "P4"), each = 12),
+    sexo = rep(c("F", "M"), length.out = 48),
+    edad = 20,
+    condicion = "regular",
+    nivel = "pregrado",
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 111L,
+      n_aulas = 4L,
+      replacement_waves = 1L,
+      selector_engine = "cube_balanceado",
+      strata_cols = list("facultad"),
+      balance_vars = list("faculty", "program", "sex_top_1"),
+      monte_carlo_n = 10L
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+
+  expect_true("classroom_cluster" %in% selection$methodological_sources$decision_id)
+  expect_true("cube_balanced" %in% selection$methodological_sources$decision_id)
+  expect_true(all(c("pi_base", "pi_design", "pi_final", "weight_classroom", "pi_student", "weight_student") %in% names(selection$selection)))
+  expect_false("student_id" %in% names(selection$selection))
+  expect_equal(selection$selection$weight_classroom, round(1 / selection$selection$pi_final, 6), tolerance = 1e-8)
+  expect_true(is.list(selection$representativity))
+  expect_true(is.numeric(selection$representativity_score))
+  expect_true(nrow(selection$diagnostics$representativity_metrics) > 0)
+  expect_true(nrow(selection$diagnostics$profile_distributions) > 0)
+  expect_true(nrow(selection$diagnostics$balance) > 0)
+  expect_true(nrow(selection$diagnostics$systematic_comparison) > 0)
+
+  path <- tempfile(fileext = ".xlsx")
+  calc_muestra_aulas_exportar_workbook(frame, selection, path)
+  sheets <- openxlsx::getSheetNames(path)
+  expect_true(all(c(
+    "Sustento metodológico",
+    "Perfil del marco",
+    "Perfil seleccionado",
+    "Score de representatividad",
+    "Cobertura y solape",
+    "Reservas por ola",
+    "Probabilidades y pesos",
+    "Diagnóstico de balance",
+    "Olas coordinadas",
+    "No respuesta",
+    "Comparación con sistemático"
+  ) %in% sheets))
+})
+
+test_that("local pivotal registra fallback cuando BalancedSampling no esta disponible", {
+  base <- data.frame(
+    student_id = paste0("s", 1:24),
+    aula_id = rep(paste0("A", 1:6), each = 4),
+    curso_id = rep(paste0("C", 1:6), each = 4),
+    curso = rep(paste("Curso", 1:6), each = 4),
+    horario = rep(c("L 8", "M 10", "J 12"), each = 4, length.out = 24),
+    facultad = rep(c("FAC1", "FAC2"), each = 12),
+    programa = rep(c("P1", "P2"), each = 12),
+    sexo = rep(c("F", "M"), length.out = 24),
+    edad = 20,
+    condicion = "regular",
+    nivel = "pregrado",
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 7L,
+      n_aulas = 3L,
+      replacement_waves = 0L,
+      selector_engine = "local_pivotal_balanceado",
+      strata_cols = list("facultad"),
+      monte_carlo_n = 0L
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+
+  expect_equal(selection$selector_engine, "local_pivotal_balanceado")
+  if (!requireNamespace("BalancedSampling", quietly = TRUE)) {
+    expect_true(any(grepl("fallback|no disponible|fallo", unlist(selection$methodological_warning), ignore.case = TRUE)))
+  }
+  expect_true(all(is.finite(selection$selection$weight_classroom)))
+})
+
+test_that("normalizador acepta configuracion plana de UI", {
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    selector = "pool_controlado",
+    selector_engine = "pool_controlado",
+    min_elegibles_aula = 12L,
+    bolsas_reemplazo = 5L,
+    estratos_selector = list("faculty", "program"),
+    balance_vars = list("faculty", "program", "level"),
+    spread_vars = list("schedule"),
+    candidate_pool_size = 33L,
+    simulation_runs = 44L,
+    semilla = 123L,
+    penalizacion_repetidos = 2.5
+  ))
+
+  expect_equal(cfg$filters$min_eligible_per_class, 12L)
+  expect_equal(cfg$selector$selector_engine, "pool_controlado")
+  expect_equal(cfg$selector$replacement_waves, 5L)
+  expect_equal(unlist(cfg$selector$strata_cols), c("faculty", "program"))
+  expect_equal(unlist(cfg$selector$balance_vars), c("faculty", "program", "level"))
+  expect_equal(unlist(cfg$selector$spread_vars), "schedule")
+  expect_equal(cfg$selector$candidate_pool_size, 33L)
+  expect_equal(cfg$selector$simulation_runs, 44L)
+  expect_equal(cfg$selector$seed, 123L)
+  expect_equal(cfg$selector$duplicate_penalty, 2.5)
+})
+
+test_that("laboratorio compara cuatro motores con métricas y riesgos", {
+  base <- data.frame(
+    student_id = c(paste0("s", 1:60), paste0("s", 1:10)),
+    aula_id = c(rep(paste0("A", 1:10), each = 6), rep(c("A1", "A2"), each = 5)),
+    curso_id = c(rep(paste0("C", 1:10), each = 6), rep(c("C1", "C2"), each = 5)),
+    curso = c(rep(paste("Curso", 1:10), each = 6), rep(c("Curso 1", "Curso 2"), each = 5)),
+    horario = rep(c("mañana", "tarde", "noche"), length.out = 70),
+    facultad = rep(c("FAC1", "FAC2"), length.out = 70),
+    programa = rep(c("P1", "P2", "P3", "P4"), length.out = 70),
+    sexo = rep(c("F", "M"), length.out = 70),
+    edad = 20,
+    condicion = "regular",
+    nivel = rep(c("1", "2", "3"), length.out = 70),
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 101L,
+      n_aulas = 4L,
+      replacement_waves = 1L,
+      strata_cols = list("faculty"),
+      balance_vars = list("faculty", "program", "level", "schedule"),
+      candidate_pool_size = 20L,
+      simulation_runs = 100L,
+      monte_carlo_n = 100L
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  comparison <- calc_muestra_aulas_comparar_metodos(frame, cfg, simulation_runs = 100L)
+
+  method_ids <- vapply(comparison$methods, function(row) row$method_id, character(1))
+  expect_true(all(c("sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado") %in% method_ids))
+  expect_true(all(vapply(comparison$methods, function(row) all(c(
+    "balance_score", "repeated_students", "coverage_unique_pct", "overall_score", "representativity_score",
+    "representativity_distance", "probability_source"
+  ) %in% names(row)), logical(1))))
+  pool <- comparison$methods[[which(method_ids == "pool_controlado")]]
+  expect_equal(pool$probability_source, "monte_carlo_after_optimization")
+  expect_true(is.list(comparison$objective_config))
+  expect_true(nrow(comparison$representativity_metrics) > 0)
+  expect_true(nrow(comparison$frame_profiles) > 0)
+  expect_true(length(comparison$simulation_summary) >= 4)
+  expect_true(nrow(comparison$risk_flags) > 0)
+  expect_true(nzchar(comparison$recommendation$method_id))
+})
+
+test_that("simulador de reemplazos sugiere reservas equivalentes e impacto", {
+  base <- data.frame(
+    student_id = paste0("s", 1:72),
+    aula_id = rep(paste0("A", 1:12), each = 6),
+    curso_id = rep(paste0("C", 1:12), each = 6),
+    curso = rep(paste("Curso", 1:12), each = 6),
+    horario = rep(c("mañana", "tarde", "noche"), length.out = 72),
+    facultad = rep(c("FAC1", "FAC2"), each = 36),
+    programa = rep(c("P1", "P2", "P3"), each = 24),
+    sexo = rep(c("F", "M"), length.out = 72),
+    edad = 20,
+    condicion = "regular",
+    nivel = rep(c("1", "2"), length.out = 72),
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 202L,
+      n_aulas = 4L,
+      replacement_waves = 2L,
+      selector_engine = "cube_balanceado",
+      strata_cols = list("faculty"),
+      balance_vars = list("faculty", "program", "level"),
+      monte_carlo_n = 20L
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+  replacement <- calc_muestra_aulas_simular_reemplazos(frame, selection, cfg)
+
+  expect_true(nrow(replacement$suggestions) > 0)
+  expect_true(all(c(
+    "titular_classroom_id", "reserve_classroom_id", "rank", "match_level", "score",
+    "before_score", "after_score", "score_delta"
+  ) %in% names(replacement$suggestions)))
+  expect_true(nrow(replacement$impact) > 0)
+  expect_true(all(c("before_score", "after_score", "score_delta") %in% names(replacement$impact)))
+  expect_true(any(replacement$suggestions$match_level %in% c("misma_celda", "celda_equivalente")))
+})
+
+test_that("workbook del laboratorio contiene comparador, riesgos y reemplazos", {
+  skip_if_not_installed("openxlsx")
+  base <- data.frame(
+    student_id = paste0("s", 1:48),
+    aula_id = rep(paste0("A", 1:8), each = 6),
+    curso_id = rep(paste0("C", 1:8), each = 6),
+    curso = rep(paste("Curso", 1:8), each = 6),
+    horario = rep(c("mañana", "tarde"), length.out = 48),
+    facultad = rep(c("FAC1", "FAC2"), each = 24),
+    programa = rep(c("P1", "P2"), each = 24),
+    sexo = rep(c("F", "M"), length.out = 48),
+    edad = 20,
+    condicion = "regular",
+    nivel = "pregrado",
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(seed = 303L, n_aulas = 3L, replacement_waves = 1L, strata_cols = list("faculty"), monte_carlo_n = 10L)
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+  comparison <- calc_muestra_aulas_comparar_metodos(frame, cfg, simulation_runs = 20L)
+  replacement <- calc_muestra_aulas_simular_reemplazos(frame, selection, cfg)
+  path <- tempfile(fileext = ".xlsx")
+  calc_muestra_aulas_exportar_workbook(frame, selection, path, comparison = comparison, replacement_simulation = replacement)
+  sheets <- openxlsx::getSheetNames(path)
+  expect_true(all(c(
+    "Comparador de métodos",
+    "Perfil del marco",
+    "Perfil seleccionado",
+    "Score de representatividad",
+    "Simulaciones",
+    "Cobertura y solape",
+    "Reservas por ola",
+    "Probabilidades y pesos",
+    "Sustento metodológico",
+    "Riesgos metodológicos",
+    "Reemplazos sugeridos",
+    "Impacto de reemplazos"
+  ) %in% sheets))
+})

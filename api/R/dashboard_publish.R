@@ -146,13 +146,20 @@
     profile_family = .public_artifact_scalar(artifact$profile_family, ""),
     publication_family = .public_artifact_scalar(artifact$publication_family, artifact$monitoring_family %||% ""),
     monitoring_family = .public_artifact_scalar(artifact$monitoring_family, artifact$publication_family %||% artifact$profile_family %||% ""),
-    destination = .public_artifact_scalar(artifact$destination, if (identical(kind, "monitoreo")) "hugging_face_space" else ""),
+    destination = .public_artifact_scalar(artifact$destination, if (identical(kind, "monitoreo")) "google_sheets" else ""),
     source = .public_artifact_scalar(artifact$source, if (identical(kind, "monitoreo")) "publication_model" else ""),
     namespace = .public_artifact_scalar(artifact$namespace, ""),
     space_name = .public_artifact_scalar(artifact$space_name, ""),
     repo_id = .public_artifact_scalar(artifact$repo_id, ""),
     app_url = .public_artifact_scalar(artifact$app_url, ""),
-    space_url = .public_artifact_scalar(artifact$space_url, artifact$app_url %||% ""),
+    space_url = .public_artifact_scalar(
+      artifact$space_url,
+      artifact$url %||% if (nzchar(.public_artifact_scalar(artifact$repo_id, ""))) {
+        sprintf("https://huggingface.co/spaces/%s", .public_artifact_scalar(artifact$repo_id, ""))
+      } else {
+        artifact$app_url %||% ""
+      }
+    ),
     sheet_url = .public_artifact_scalar(artifact$sheet_url, ""),
     last_used_at = .public_artifact_scalar(artifact$last_used_at, artifact$published_at %||% ""),
     publication_sections = artifact$publication_sections %||% list(),
@@ -176,14 +183,21 @@
   })
 }
 
+.dashboard_publish_artifact_sdk <- function(artifact = NULL) {
+  artifact <- .public_artifact_normalize(artifact)
+  "docker"
+}
+
 .dashboard_publish_render_readme <- function(root, repo_id, space_name, project_name, artifact = NULL) {
   artifact <- .public_artifact_normalize(artifact, project_name %||% space_name)
+  sdk <- .dashboard_publish_artifact_sdk(artifact)
   tpl <- .dashboard_publish_read_template(root, "hf-space-README.md.template")
   if (!nzchar(tpl)) {
     tpl <- paste(
       "---",
       "title: {{SPACE_NAME}}",
-      "sdk: docker",
+      "sdk: {{SDK}}",
+      "{{APP_PORT_LINE}}",
       "emoji: chart_with_upwards_trend",
       "pinned: false",
       "---",
@@ -191,6 +205,21 @@
       "# {{PROJECT_NAME}}",
       "",
       "{{ARTIFACT_LABEL}} publico generado desde Prosecnur.",
+      sep = "\n"
+    )
+  }
+  runtime_note <- if (identical(sdk, "static")) {
+    paste(
+      "> Este Space sirve un artefacto estático generado desde Prosecnur.",
+      "> No ejecuta backend, no sincroniza fuentes y no consume cuota de hardware del Space.",
+      "> La edición, sincronización y republicación se hacen desde la app local de Prosecnur.",
+      sep = "\n"
+    )
+  } else {
+    paste(
+      "> Este Space corre la API REST en R (Plumber) detrás del frontend React.",
+      "> Solo expone endpoints read-only del artefacto publicado. La edición,",
+      "> sincronización y republicación se hacen desde la app local de Prosecnur.",
       sep = "\n"
     )
   }
@@ -213,6 +242,8 @@
   }
   replacements <- list(
     TITLE = space_name,
+    SDK = sdk,
+    APP_PORT_LINE = if (identical(sdk, "docker")) "app_port: 7860" else "",
     SPACE_NAME = space_name,
     REPO_ID = repo_id,
     PROJECT_NAME = project_name %||% space_name,
@@ -229,7 +260,8 @@
     UPDATED_AT = now,
     UPDATED_DATE = format(Sys.Date(), "%Y-%m-%d"),
     PUBLISHED_AT = now,
-    APP_VERSION = app_version
+    APP_VERSION = app_version,
+    RUNTIME_NOTE = runtime_note
   )
   out <- tpl
   for (key in names(replacements)) {
@@ -240,22 +272,11 @@
 
 .dashboard_publish_snapshot <- function(sid, project_name, public_artifact = NULL, public_payload = NULL) {
   s <- session_get(sid)
-  old <- list(
-    project_path = s$project_path,
-    project_dirty = s$project_dirty,
-    project_last_saved_at = s$project_last_saved_at,
-    public_artifact = s$public_artifact,
-    public_artifact_payload = s$public_artifact_payload
-  )
+  original_session <- s
   restore_project <- function() {
     cur <- session_get(sid, required = FALSE)
     if (is.null(cur)) return(invisible(NULL))
-    cur$project_path <- old$project_path
-    cur$project_dirty <- old$project_dirty
-    cur$project_last_saved_at <- old$project_last_saved_at
-    cur$public_artifact <- old$public_artifact
-    cur$public_artifact_payload <- old$public_artifact_payload
-    .session_env[[sid]] <- cur
+    .session_env[[sid]] <- original_session
     invisible(NULL)
   }
   on.exit(restore_project(), add = TRUE)
@@ -286,40 +307,43 @@
 }
 
 .dashboard_publish_prepare_space <- function(sid, repo_id, space_name, artifact = NULL, public_payload = NULL) {
-  root <- .dashboard_publish_root()
   s <- session_get(sid)
   cfg <- .dashboard_config_with_defaults(s$dashboard_config)
   project_name <- cfg$titulo %||% s$estudio$nombre %||% space_name
   artifact <- .public_artifact_normalize(artifact, project_name)
-  snap <- .dashboard_publish_snapshot(sid, project_name, public_artifact = artifact, public_payload = public_payload)
-  manifest <- .dashboard_publish_read_manifest(snap$path)
-  if (!is.null(manifest$project_name) && nzchar(as.character(manifest$project_name))) {
-    project_name <- as.character(manifest$project_name)
-    artifact$title <- .public_artifact_scalar(artifact$title, project_name)
+  if (identical(artifact$kind, "monitoreo")) {
+    stop_api(
+      410,
+      "E_MONITOREO_HF_DISABLED",
+      "Monitoreo ya no publica en Hugging Face. Publica las tablas cliente e internas en Google Sheets."
+    )
+  }
+  root <- .dashboard_publish_root()
+  sdk <- .dashboard_publish_artifact_sdk(artifact)
+  snap <- NULL
+  if (!identical(sdk, "static")) {
+    snap <- .dashboard_publish_snapshot(sid, project_name, public_artifact = artifact, public_payload = public_payload)
+    manifest <- .dashboard_publish_read_manifest(snap$path)
+    if (!is.null(manifest$project_name) && nzchar(as.character(manifest$project_name))) {
+      project_name <- as.character(manifest$project_name)
+      artifact$title <- .public_artifact_scalar(artifact$title, project_name)
+    }
   }
 
   stage <- tempfile("hf_space_")
   dir.create(stage, recursive = TRUE, showWarnings = FALSE)
-  dir.create(file.path(stage, "data"), recursive = TRUE, showWarnings = FALSE)
 
-  if (identical(artifact$kind, "monitoreo")) {
-    .dashboard_publish_copy_public_runtime(root, stage, artifact = artifact)
-    publication_model <- public_payload$monitoreo_report$publication_model %||% NULL
-    if (is.list(publication_model) && exists("render_monitoreo_space", mode = "function")) {
-      render_monitoreo_space(publication_model, file.path(stage, "api", "inst", "www", "space"))
-    }
-  } else {
-    for (file in c("Dockerfile", ".dockerignore")) {
-      src <- file.path(root, file)
-      if (file.exists(src)) file.copy(src, file.path(stage, file), overwrite = TRUE)
-    }
-    .dashboard_publish_copy_dir(file.path(root, "api"), file.path(stage, "api"))
-    .dashboard_publish_copy_dir(file.path(root, "frontend"), file.path(stage, "frontend"))
-    .dashboard_publish_copy_dir(file.path(root, "launcher"), file.path(stage, "launcher"))
-    # NOTA: tsconfig.json vive dentro de frontend/, ya viene en el copy
-    # de arriba. No hay tsconfig en raíz.
+  dir.create(file.path(stage, "data"), recursive = TRUE, showWarnings = FALSE)
+  for (file in c("Dockerfile", ".dockerignore")) {
+    src <- file.path(root, file)
+    if (file.exists(src)) file.copy(src, file.path(stage, file), overwrite = TRUE)
   }
-  file.copy(snap$path, file.path(stage, "data", "proyecto.pulso"), overwrite = TRUE)
+  .dashboard_publish_copy_dir(file.path(root, "api"), file.path(stage, "api"))
+  .dashboard_publish_copy_dir(file.path(root, "frontend"), file.path(stage, "frontend"))
+  .dashboard_publish_copy_dir(file.path(root, "launcher"), file.path(stage, "launcher"))
+  # NOTA: tsconfig.json vive dentro de frontend/, ya viene en el copy
+  # de arriba. No hay tsconfig en raíz.
+  if (!is.null(snap)) file.copy(snap$path, file.path(stage, "data", "proyecto.pulso"), overwrite = TRUE)
   writeLines(
     .dashboard_publish_render_readme(root, repo_id, space_name, project_name, artifact = artifact),
     file.path(stage, "README.md"),
@@ -329,7 +353,16 @@
   files <- list.files(stage, recursive = TRUE, full.names = TRUE, all.files = TRUE, no.. = TRUE)
   files <- files[file.exists(files) & !dir.exists(files)]
   rel <- substring(files, nchar(stage) + 2L)
-  list(stage = stage, files = files, rel = rel, project_size = snap$size, artifact = artifact, artifact_kind = artifact$kind)
+  list(
+    stage = stage,
+    files = files,
+    rel = rel,
+    project_size = if (is.null(snap)) 0L else snap$size,
+    artifact = artifact,
+    artifact_kind = artifact$kind,
+    sdk = sdk,
+    requires_lfs = !identical(sdk, "static")
+  )
 }
 
 .hf_headers <- function(token, content_type = NULL) {
@@ -349,11 +382,13 @@
   stop_api(res$status_code %||% 502L, code, msg)
 }
 
-.hf_create_space <- function(repo_id, token, private = FALSE) {
+.hf_create_space <- function(repo_id, token, private = FALSE, sdk = "docker") {
   .dashboard_publish_require_curl()
   parts <- strsplit(repo_id, "/", fixed = TRUE)[[1]]
   namespace <- parts[1]
   name <- parts[2]
+  sdk <- .public_artifact_scalar(sdk, "docker")
+  if (!sdk %in% c("docker", "static")) sdk <- "docker"
   h <- curl::new_handle()
   do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token, "application/json"))))
   body <- jsonlite::toJSON(
@@ -361,7 +396,7 @@
       name = name,
       organization = namespace,
       type = "space",
-      sdk = "docker",
+      sdk = sdk,
       private = isTRUE(private),
       existOk = TRUE
     ),
@@ -435,7 +470,6 @@
 .hf_lfs_track_patterns <- function() {
   c(
     "data/*.pulso",
-    "api/inst/www/space/publication_model.json",
     "*.pptx",
     "*.xlsx",
     "*.sav"
@@ -468,7 +502,8 @@
 }
 
 .hf_push_space_git <- function(prepared, repo_id, token) {
-  .hf_check_lfs()
+  requires_lfs <- isTRUE(prepared$requires_lfs %||% TRUE)
+  if (requires_lfs) .hf_check_lfs()
   remote <- sprintf("https://huggingface.co/spaces/%s", repo_id)
   askpass <- .hf_git_askpass()
   on.exit(unlink(askpass, force = TRUE), add = TRUE)
@@ -480,15 +515,17 @@
   )
   .git_run(c("init", "-b", "main"), prepared$stage)
   .git_run(c("config", "--local", "credential.helper", ""), prepared$stage)
-  # LFS: trackeamos los binarios que sí necesitamos subir (data/*.pulso)
-  # el JSON del modelo publico si crece sobre 10 MiB, y por las dudas otros
-  # binarios que pudieran colarse (pptx/xlsx/sav).
-  # `git lfs install --local` instala los hooks en este repo solo.
-  .git_run(c("lfs", "install", "--local"), prepared$stage)
-  for (pattern in .hf_lfs_track_patterns()) {
-    .git_run(c("lfs", "track", pattern), prepared$stage)
+  if (requires_lfs) {
+    # LFS: trackeamos los binarios que sí necesitamos subir (data/*.pulso)
+    # el JSON del modelo publico si crece sobre 10 MiB, y por las dudas otros
+    # binarios que pudieran colarse (pptx/xlsx/sav).
+    # `git lfs install --local` instala los hooks en este repo solo.
+    .git_run(c("lfs", "install", "--local"), prepared$stage)
+    for (pattern in .hf_lfs_track_patterns()) {
+      .git_run(c("lfs", "track", pattern), prepared$stage)
+    }
+    .git_run(c("add", ".gitattributes"), prepared$stage)
   }
-  .git_run(c("add", ".gitattributes"), prepared$stage)
   .git_run(c("add", "-A"), prepared$stage)
   commit_label <- if (identical(prepared$artifact_kind %||% "", "monitoreo")) "Deploy monitoreo" else "Deploy dashboard"
   .git_run(c("-c", "user.name=Prosecnur", "-c", "user.email=deploy@prosecnur.local",
@@ -521,7 +558,7 @@
   prepared <- .dashboard_publish_prepare_space(sid, repo_id, space_name, artifact = artifact, public_payload = public_payload)
   on.exit(unlink(prepared$stage, recursive = TRUE, force = TRUE), add = TRUE)
 
-  .hf_create_space(repo_id, hf_token, private = private)
+  .hf_create_space(repo_id, hf_token, private = private, sdk = prepared$sdk %||% "docker")
 
   uploaded <- list()
   total <- 0
@@ -544,7 +581,7 @@
   artifact$space_name <- space_name
   artifact$repo_id <- repo_id
   artifact$app_url <- app_url
-  artifact$space_url <- app_url
+  artifact$space_url <- url
   artifact$last_used_at <- published_at
   artifact$source <- artifact$source %||% if (identical(artifact$kind, "monitoreo")) "publication_model" else "dashboard"
 
@@ -556,6 +593,7 @@
     app_url = app_url,
     published_at = published_at,
     private = isTRUE(private),
+    sdk = prepared$sdk %||% "docker",
     artifact_kind = artifact$kind,
     public_scope = artifact$public_scope,
     audience = artifact$audience %||% "",
@@ -585,6 +623,7 @@
     app_url = out$app_url,
     published_at = out$published_at,
     private = isTRUE(private),
+    sdk = out$sdk %||% "",
     artifact_kind = out$artifact_kind %||% "",
     public_scope = out$public_scope %||% "",
     audience = out$audience %||% "",
@@ -630,86 +669,9 @@ dashboard_publish_space <- function(sid, hf_username, hf_token, space_name, priv
 }
 
 monitoreo_publish_space <- function(sid, hf_username, hf_token, space_name, private = FALSE, audience = "client") {
-  if (is_public_mode()) {
-    stop_api(403, "E_PUBLIC_MODE", "Publicar esta deshabilitado en modo publico.")
-  }
-  audience <- .public_artifact_scalar(tolower(as.character(audience %||% "client")[1]), "client")
-  if (!audience %in% c("client", "internal")) audience <- "client"
-  if (identical(audience, "internal") && !isTRUE(private)) {
-    stop_api(
-      400,
-      "E_MONITOREO_INTERNAL_PRIVATE",
-      "La publicacion interna contiene datos completos y debe crearse como Space privado."
-    )
-  }
-  s <- session_get(sid)
-  snapshot <- s$monitoreo_snapshot %||% NULL
-  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
-  if (!nrow(data)) {
-    stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar el reporte web.")
-  }
-  raw_config <- s$monitoreo_config %||% snapshot$config %||% list()
-  cfg <- monitoreo_normalize_config(raw_config, data)
-  publication_family <- detect_monitoreo_family(config = raw_config, data = data)
-  family <- .monitoreo_publication_engine_family(publication_family)
-  if (!family %in% c("acreditacion", "territorial")) {
-    stop_api(
-      409,
-      "E_MONITOREO_PUBLIC_PROFILE",
-      "Por ahora la publicacion web de Monitoreo soporta acreditacion y territorial."
-    )
-  }
-  title <- .public_artifact_scalar(
-    cfg$acreditacion$estudio$titulo,
-    s$estudio$nombre %||% if (identical(family, "territorial")) "Reporte territorial" else "Reporte de acreditacion"
+  stop_api(
+    410,
+    "E_MONITOREO_HF_DISABLED",
+    "Monitoreo ya no publica en Hugging Face. Publica las tablas cliente e internas en Google Sheets."
   )
-  report_scope <- if (identical(audience, "internal")) {
-    "internal_full"
-  } else if (identical(family, "territorial")) {
-    "advance_summary"
-  } else {
-    "client_report"
-  }
-  public_scope <- if (identical(audience, "internal")) "internal_full" else "aggregate"
-  public_report <- .monitoreo_public_report_payload(sid, audience = audience)
-  publication_model <- public_report$publication_model %||% list()
-  artifact <- list(
-    kind = "monitoreo",
-    module = "monitoreo",
-    title = title,
-    public_scope = public_scope,
-    audience = audience,
-    profile_family = family,
-    publication_family = .monitoreo_publication_family_label(publication_family),
-    monitoring_family = .monitoreo_publication_family_label(publication_family),
-    destination = "hugging_face_space",
-    source = "publication_model",
-    publication_sections = .public_artifact_sections_from_model(publication_model),
-    report_scope = report_scope
-  )
-  out <- .publish_space_common(
-    sid = sid,
-    hf_username = hf_username,
-    hf_token = hf_token,
-    space_name = space_name,
-    private = private,
-    artifact = artifact,
-    public_payload = list(monitoreo_report = public_report)
-  )
-  s <- session_get(sid)
-  publication <- s$monitoreo_publication %||% list()
-  deploy <- .publish_last_deploy_payload(out, hf_username, private)
-  if (identical(audience, "internal")) {
-    publication$internal_last_deploy <- deploy
-  } else {
-    publication$client_last_deploy <- deploy
-    publication$last_deploy <- deploy
-  }
-  if (is.null(publication$last_deploy)) {
-    publication$last_deploy <- publication$client_last_deploy %||% publication$internal_last_deploy %||% NULL
-  }
-  s$monitoreo_publication <- publication
-  s$project_dirty <- TRUE
-  .session_env[[sid]] <- s
-  out
 }

@@ -156,6 +156,73 @@ describe("buildOccurrenceRouteUmpRows", () => {
     expect(rows.some((row) => row.ump === "2" && row.status === "sin_reporte")).toBe(true);
   });
 
+  it("splits UMPs with advance but no occurrence report by quota completion", () => {
+    const occurrences = dashboard({
+      config: {
+        ...dashboard().config,
+        route_choices: [
+          routeChoice({ route_key: "m0001", ump_group: "1", manzana: "0390" }),
+          routeChoice({ route_key: "m0002", ump_group: "2", manzana: "0391" }),
+        ],
+      },
+      records: [],
+      by_ump: [
+        summary({
+          key: "m0001",
+          ump: "1",
+          reportes: 0,
+          efectivas: 0,
+          no_efectivas: 0,
+          intentos: 0,
+          has_report: false,
+          estado_consolidado: "completa_sin_reporte",
+	          avance_validas: 4,
+	          avance_meta: 4,
+	          avance_completa: true,
+	          avance_estado_cuota: "Completa",
+	          avance_ultimo_ingreso: "9 Junio",
+        }),
+        summary({
+          key: "m0002",
+          ump: "2",
+          manzana: "0391",
+          manzana_key: "m0002",
+          route_label: "ATE · Zona 01 · Mz 0391 · UMP 2",
+          reportes: 0,
+          efectivas: 0,
+          no_efectivas: 0,
+          intentos: 0,
+          has_report: false,
+          estado_consolidado: "incompleta_sin_reporte",
+          avance_validas: 2,
+          avance_meta: 4,
+          avance_completa: false,
+          avance_estado_cuota: "Cuota pendiente",
+          avance_ultimo_ingreso: "17 Junio",
+        }),
+      ],
+      by_district: undefined,
+    });
+    const rows = buildOccurrenceRouteUmpRows({ occurrences });
+    const complete = rows.find((row) => row.ump === "1");
+    const incomplete = rows.find((row) => row.ump === "2");
+    const districts = buildOccurrenceDistrictSummary(occurrences, rows);
+    const ate = districts.find((row) => row.distrito === "ATE");
+
+    expect(complete?.status).toBe("completa_sin_reporte");
+    expect(complete?.advance_validas).toBe(4);
+    expect(complete?.advance_complete).toBe(true);
+    expect(complete?.attention_reasons).toContain("completa_sin_reporte");
+    expect(incomplete?.status).toBe("incompleta_sin_reporte");
+    expect(incomplete?.advance_validas).toBe(2);
+    expect(incomplete?.advance_complete).toBe(false);
+    expect(incomplete?.attention_reasons).toContain("incompleta_sin_reporte");
+	    expect(ate?.ump_completas_sin_reporte).toBe(1);
+	    expect(ate?.ump_incompletas_sin_reporte).toBe(1);
+	    expect(ate?.validas_sin_reporte).toBe(6);
+	    expect(ate?.ultimo_ingreso_sin_reporte).toBe("17 Junio");
+	  });
+
   it("keeps high non-effective incidence as reportada no efectiva", () => {
     const highRecord = record({ no_efectivas: 7, efectivas: 2, intentos: 9, tasa_no_efectiva: 0.7777 });
     const rows = buildOccurrenceRouteUmpRows({

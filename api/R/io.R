@@ -1,5 +1,5 @@
 allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza",
-                          "plantilla_codif", "universo_muestra")
+                          "plantilla_codif", "universo_muestra", "graficos_share")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))
@@ -9,7 +9,8 @@ ext_for_kind <- function(kind, original_name) {
   if (identical(kind, "sav") || grepl("\\.sav(?:\\s+\\d+)?$", name, ignore.case = TRUE)) {
     return("sav")
   }
-  if (identical(kind, "sav_bundle") || grepl("\\.zip$", name, ignore.case = TRUE)) {
+  if (identical(kind, "sav_bundle") || identical(kind, "graficos_share") ||
+      grepl("\\.zip$", name, ignore.case = TRUE)) {
     return("zip")
   }
   ext <- tolower(tools::file_ext(name))
@@ -17,7 +18,7 @@ ext_for_kind <- function(kind, original_name) {
     ext <- switch(kind,
       xlsform = "xlsx", data = "xlsx", sav = "sav", sav_bundle = "zip",
       plan_limpieza = "xlsx", plantilla_codif = "xlsx",
-      universo_muestra = "xlsx", "bin"
+      universo_muestra = "xlsx", graficos_share = "zip", "bin"
     )
   }
   ext

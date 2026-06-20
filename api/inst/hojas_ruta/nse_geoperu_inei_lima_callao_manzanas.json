@@ -1,0 +1,63 @@
+{
+  "id": "nse-geoperu-inei-lima-callao-manzanas",
+  "version": "nse-geoperu-inei-lima-callao-manzanas-v1",
+  "source": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar",
+  "provider": "Instituto Nacional de Estadistica e Informatica (INEI)",
+  "distributor": "Plataforma Nacional de Datos Georreferenciados GeoPeru / IDEP",
+  "source_url": "https://visor.geoperu.gob.pe/?layers=1207",
+  "download_url": "https://descargas.geoperu.gob.pe/peru_estrato_nacional_.zip",
+  "wms_url": "https://espacialg.geoperu.gob.pe/geoserver/geoperu/peru_estrato_nacional_/wms?service=WMS&request=GetCapabilities",
+  "layer": "peru_estrato_nacional_",
+  "title": "POBREZA | ESTRATIFICACION SOCIOECONOMICA | INGRESO PERCAPITA DEL HOGAR",
+  "coverage": "Lima Metropolitana y Callao",
+  "year": 2026,
+  "geometry": "manzana",
+  "official": true,
+  "callao_available": true,
+  "fields": {
+    "id": "IDMZ18",
+    "level_code": "ESTR_N1",
+    "level_label": "DESC_INGPE",
+    "income_per_capita": "INGR_PER",
+    "persons": "PERSON",
+    "households": "HOG"
+  },
+  "source_records_metro": 106688,
+  "packaged_records": 118410,
+  "matched_blocks": 118410,
+  "coverage_rate": 1,
+  "levels": {
+    "BAJO": 41539,
+    "MEDIO BAJO": 24083,
+    "MEDIO": 18925,
+    "SIN DATA": 17950,
+    "MEDIO ALTO": 9643,
+    "ALTO": 6270
+  },
+  "level_names": [
+    "BAJO",
+    "MEDIO BAJO",
+    "MEDIO",
+    "SIN DATA",
+    "MEDIO ALTO",
+    "ALTO"
+  ],
+  "match_methods": {
+    "id_manzana_norm": 94747,
+    "nearest_official": 13868,
+    "point_within": 9795
+  },
+  "nearest_distance_m": {
+    "count": 13868,
+    "median": 41.9947,
+    "p90": 333.7358,
+    "p95": 652.8843,
+    "p99": 2731.9297,
+    "max": 7141.8143
+  },
+  "note": "Fuente oficial GeoPeru/IDEP atribuida a INEI. Prosecnur empaqueta Lima Metropolitana y Callao y preserva el metodo de emparejamiento por manzana.",
+  "packaged_at": "2026-06-19T13:54:24Z",
+  "checksum": {
+    "api/inst/hojas_ruta/nse_geoperu_inei_lima_callao_manzanas.csv.gz": "b4c9e1679b6646d87e915eb742cc32e9"
+  }
+}

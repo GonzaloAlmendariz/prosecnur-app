@@ -1631,6 +1631,56 @@
   unique(c(cat$name[cat$categorica], numericas_ok))
 }
 
+.analitica_data_dummy_cols_for_parent <- function(data_names, parent) {
+  parent <- as.character(parent %||% "")[1]
+  if (!nzchar(parent) || !length(data_names)) return(character(0))
+  parent_keys <- unique(c(parent, .analitica_clean_dummy_name(parent)))
+  parent_keys <- parent_keys[nzchar(parent_keys)]
+  if (!length(parent_keys)) return(character(0))
+  prefixes <- as.vector(rbind(paste0(parent_keys, "/"), paste0(parent_keys, ".")))
+  data_lower <- tolower(as.character(data_names))
+  prefix_lower <- tolower(prefixes)
+  hit <- rep(FALSE, length(data_names))
+  for (prefix in prefix_lower) {
+    hit <- hit | startsWith(data_lower, prefix)
+  }
+  data_names[hit]
+}
+
+.analitica_select_multiple_dummy_cols <- function(data, rp_inst, allowed) {
+  if (!is.data.frame(data) || !length(names(data))) return(character(0))
+  cat <- .analitica_catalogo(rp_inst)
+  if (nrow(cat) == 0L || !"tipo" %in% names(cat)) return(character(0))
+  parents <- cat$name[cat$tipo == "select_multiple" & cat$name %in% allowed]
+  parents <- parents[!is.na(parents) & nzchar(parents)]
+  if (!length(parents)) return(character(0))
+  unique(unlist(
+    lapply(parents, function(parent) {
+      .analitica_data_dummy_cols_for_parent(names(data), parent)
+    }),
+    use.names = FALSE
+  ))
+}
+
+.analitica_excluded_data_cols <- function(cols, excluidas) {
+  excluidas <- .as_chr_vec(excluidas)
+  if (!length(cols) || !length(excluidas)) return(rep(FALSE, length(cols)))
+  excluidas <- excluidas[!is.na(excluidas) & nzchar(excluidas)]
+  if (!length(excluidas)) return(rep(FALSE, length(cols)))
+  cols_lower <- tolower(as.character(cols))
+  excluded <- cols %in% excluidas
+  for (ex in excluidas) {
+    ex_keys <- unique(c(ex, .analitica_clean_dummy_name(ex)))
+    ex_keys <- ex_keys[nzchar(ex_keys)]
+    if (!length(ex_keys)) next
+    prefixes <- tolower(as.vector(rbind(paste0(ex_keys, "/"), paste0(ex_keys, "."))))
+    for (prefix in prefixes) {
+      excluded <- excluded | startsWith(cols_lower, prefix)
+    }
+  }
+  excluded
+}
+
 .analitica_filter_sections <- function(secs, rp_inst, numericas = character(0), excluidas = character(0)) {
   allowed <- .analitica_allowed_vars(rp_inst, numericas)
   allowed <- setdiff(allowed, .as_chr_vec(excluidas))
@@ -1664,9 +1714,51 @@
   secs
 }
 
+.analitica_append_missing_select_multiple_sections <- function(secs, rp_inst,
+                                                               numericas = character(0),
+                                                               excluidas = character(0)) {
+  cat <- .analitica_catalogo(rp_inst)
+  if (nrow(cat) == 0L || !"tipo" %in% names(cat)) return(secs)
+  allowed <- setdiff(.analitica_allowed_vars(rp_inst, numericas), .as_chr_vec(excluidas))
+  sm_allowed <- cat$name[cat$tipo == "select_multiple" & cat$name %in% allowed]
+  sm_allowed <- sm_allowed[!is.na(sm_allowed) & nzchar(sm_allowed)]
+  if (!length(sm_allowed)) return(secs)
+
+  present <- unique(as.character(unlist(secs %||% list(), use.names = FALSE)))
+  present <- present[!is.na(present) & nzchar(present)]
+  missing <- setdiff(sm_allowed, present)
+  if (!length(missing)) return(secs)
+
+  auto <- .secciones_desde_instrumento(rp_inst)
+  if (is.null(auto) || !length(auto)) {
+    auto <- list("Select multiple" = missing)
+  } else {
+    auto <- lapply(auto, function(vars) intersect(as.character(vars), missing))
+    auto <- auto[vapply(auto, length, integer(1)) > 0L]
+    if (!length(auto)) auto <- list("Select multiple" = missing)
+  }
+
+  out <- secs
+  if (is.null(out) || !is.list(out)) out <- list()
+  for (key in names(auto)) {
+    vars <- unique(as.character(auto[[key]]))
+    vars <- vars[!is.na(vars) & nzchar(vars)]
+    if (!length(vars)) next
+    if (key %in% names(out)) {
+      out[[key]] <- unique(c(as.character(out[[key]]), vars))
+    } else {
+      out[[key]] <- vars
+    }
+  }
+  out
+}
+
 .analitica_filter_data <- function(data, rp_inst, numericas = character(0), excluidas = character(0)) {
   allowed <- .analitica_allowed_vars(rp_inst, numericas)
-  keep <- setdiff(intersect(names(data), allowed), .as_chr_vec(excluidas))
+  dummy_cols <- .analitica_select_multiple_dummy_cols(data, rp_inst, allowed)
+  wanted <- unique(c(allowed, dummy_cols))
+  keep <- names(data)[names(data) %in% wanted]
+  keep <- keep[!.analitica_excluded_data_cols(keep, excluidas)]
   out <- data[, keep, drop = FALSE]
   for (nm in setdiff(names(attributes(data)), c("names","row.names","class"))) {
     attr(out, nm) <- attr(data, nm)
@@ -2573,6 +2665,20 @@
         incluir_secciones = TRUE
       )
     ),
+    panel = list(
+      key = "",
+      waves = list(),
+      nse = list(
+        enabled = TRUE,
+        variables = as.list(c("nse", "nse_inei", "nse_atribuido", "nse_inferencia"))
+      ),
+      outputs = list(
+        codebook = TRUE,
+        frecuencias = TRUE,
+        auditoria = TRUE,
+        cobertura_nse = TRUE
+      )
+    ),
     cruces = list(
       cruces_vars = list(),
       modo = "estandar",
@@ -2632,6 +2738,8 @@ mount_analitica <- function(pr) {
       s_prev <- session_get(sid)
       prev_fuente <- as.character((.analitica_config_get(sid, s_prev) %||% list())$fuente_preferida %||% "")
       next_fuente <- as.character((cfg %||% list())$fuente_preferida %||% "")
+      prev_panel_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$panel %||% list(), auto_unbox = TRUE, null = "null")
+      next_panel_json <- jsonlite::toJSON((cfg %||% list())$panel %||% list(), auto_unbox = TRUE, null = "null")
       .analitica_config_set(sid, cfg)
       if (!identical(prev_fuente, next_fuente)) {
         .analitica_status_set(sid, "analitica_prep_ok", FALSE)
@@ -2640,11 +2748,14 @@ mount_analitica <- function(pr) {
         .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
         .analitica_status_set(sid, "analitica_spss_ok", FALSE)
         .analitica_status_set(sid, "analitica_dim_ok", FALSE)
+        .analitica_status_set(sid, "analitica_panel_ok", FALSE)
         session_set(sid, "analitica_rp_inst", NULL)
         session_set(sid, "analitica_rp_data", NULL)
         session_set(sid, "analitica_rp_inst_sources", list())
         session_set(sid, "analitica_rp_data_sources", list())
         session_set(sid, "analitica_multibase_available", FALSE)
+      } else if (!identical(as.character(prev_panel_json), as.character(next_panel_json))) {
+        .analitica_status_set(sid, "analitica_panel_ok", FALSE)
       }
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
@@ -2859,6 +2970,7 @@ mount_analitica <- function(pr) {
           secs <- secs_cfg
           if (is.null(secs)) secs <- .secciones_desde_instrumento(rp_inst)
           secs <- .analitica_filter_sections(secs, rp_inst, numericas_arg, excluidas)
+          secs <- .analitica_append_missing_select_multiple_sections(secs, rp_inst, numericas_arg, excluidas)
           reporte_frecuencias(
             data = data_out, instrumento = rp_inst,
             secciones = secs,
@@ -2961,6 +3073,127 @@ mount_analitica <- function(pr) {
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.multibase.tablas")
+    })) |>
+    plumber::pr_get("/api/analitica/panel/info", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      .analitica_panel_info(sid, .analitica_get_config(sid))
+    })) |>
+    plumber::pr_post("/api/analitica/panel/preview", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- list()
+      if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+      }
+      panel_cfg <- parsed$config %||% parsed$panel %||% NULL
+      if (!is.null(panel_cfg)) {
+        cfg_all <- .analitica_get_config(sid)
+        cfg_all$panel <- panel_cfg
+        .analitica_config_set(sid, cfg_all)
+        .analitica_status_set(sid, "analitica_panel_ok", FALSE)
+      }
+      rows <- suppressWarnings(as.integer(parsed$rows %||% 25L))
+      if (is.na(rows) || rows < 1L) rows <- 25L
+      .analitica_panel_preview(sid, panel_cfg, rows = rows)
+    })) |>
+    plumber::pr_post("/api/analitica/panel/export", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- list()
+      if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+      }
+      cfg_all <- .analitica_get_config(sid)
+      panel_cfg <- parsed$config %||% parsed$panel %||% (cfg_all$panel %||% list())
+      panel_options <- .panel_export_options(parsed$options %||% parsed$export %||% parsed)
+      cfg_all$panel <- panel_cfg
+      .analitica_config_set(sid, cfg_all)
+
+      sources <- .analitica_panel_load_sources(sid, cfg_all)
+      panel_probe <- .panel_config_resolve(sources$data_sources, panel_cfg)
+      if (length(sources$data_sources) < 2L) {
+        stop_api(409, "E_PANEL_NEEDS_WAVES", "Base panel requiere al menos dos bases/olas.")
+      }
+      if (!nzchar(panel_probe$key) || !all(vapply(sources$data_sources, function(df) panel_probe$key %in% names(df), logical(1)))) {
+        stop_api(409, "E_PANEL_KEY_MISSING", "Selecciona una llave presente en todas las olas.")
+      }
+      n_panel_bases <- length(sources$data_sources)
+
+      data_path <- job_save_rds(sid, "panel_data_sources", sources$data_sources)
+      inst_path <- job_save_rds(sid, "panel_inst_sources", sources$inst_sources)
+      cfg_path <- job_save_rds(sid, "panel_cfg", panel_cfg)
+      options_path <- job_save_rds(sid, "panel_options", panel_options)
+      overrides_path <- job_save_rds(sid, "panel_bases_overrides", .bases_overrides_parse((cfg_all$bases %||% list())$overrides))
+      result_ext <- if (identical(panel_options$formato, "csv")) {
+        "csv"
+      } else if (identical(panel_options$formato, "sav") && !isTRUE(panel_options$incluir_sps)) {
+        "sav"
+      } else if (identical(panel_options$formato, "sav")) {
+        "zip"
+      } else {
+        "xlsx"
+      }
+      result_kind <- switch(
+        panel_options$formato,
+        paquete = "base_panel",
+        xlsx = "base_panel_wide",
+        csv = "base_panel_wide",
+        sav = if (isTRUE(panel_options$incluir_sps)) "base_panel_sav_bundle" else "base_panel_sav",
+        "base_panel"
+      )
+      job_id <- job_submit(
+        sid = sid,
+        kind = "analitica.panel.export",
+        func = function(data_path, inst_path, cfg_path, options_path, overrides_path, result_path, progress_path = NULL) {
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 10, message = "Cargando olas serializadas...")
+          data_sources <- readRDS(data_path)
+          inst_sources <- readRDS(inst_path)
+          panel_cfg <- readRDS(cfg_path)
+          panel_options <- readRDS(options_path)
+          overrides <- readRDS(overrides_path)
+          report("building", percent = 45, message = "Construyendo base panel wide...")
+          built <- .panel_wide_build(data_sources, inst_sources, panel_cfg)
+          .panel_export_write(built, result_path, options = panel_options, overrides = overrides, progress = report)
+          report("done", percent = 99, message = "Entregable panel generado.")
+          list(summary = built$summary, formato = panel_options$formato)
+        },
+        args = list(
+          data_path = data_path,
+          inst_path = inst_path,
+          cfg_path = cfg_path,
+          options_path = options_path,
+          overrides_path = overrides_path
+        ),
+        result_filename = .export_filename(sid, result_kind, result_ext),
+        on_complete = function(j) {
+          .analitica_status_set(j$sid, "analitica_panel_ok", TRUE)
+          out_name <- .export_filename(j$sid, result_kind, result_ext)
+          meta <- .register_output_file(j$sid, result_kind, j$result_path, original_name = out_name)
+          list(
+            ok = TRUE,
+            n_bases = n_panel_bases,
+            file_id = meta$file_id,
+            filename = meta$original_name,
+            size = meta$size,
+            formato = j$result_data$formato %||% panel_options$formato,
+            summary = j$result_data$summary %||% j$result_data
+          )
+        }
+      )
+      list(ok = TRUE, job_id = job_id, kind = "analitica.panel.export")
     })) |>
     plumber::pr_post("/api/analitica/cruces", wrap_endpoint(function(req, res, cruces = NULL, modo = "estandar") {
       # Cruces lee del config del store: cruces_vars, modo, show_sig, alpha,

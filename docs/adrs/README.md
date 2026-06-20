@@ -33,8 +33,13 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0009](0009-hojas-ruta-fases-piloto-campo-real.md) | Aceptado | 2026-06-04 | Hojas de ruta separa fases piloto y campo real |
 | [0010](0010-monitoreo-centro-control-operativo-sheets.md) | Aceptado | 2026-06-06 | Monitoreo opera como centro de control local con perfiles y Google Sheets |
 | [0011](0011-cache-persistida-mapas-monitoreo-territorial.md) | Aceptado | 2026-06-15 | Monitoreo territorial persiste una cache compacta de mapas por fase |
-| [0012](0012-reportes-monitoreo-publicables.md) | Aceptado | 2026-06-16 | Monitoreo publica reportes web como snapshots agregados sin subir la app completa |
+| [0012](0012-reportes-monitoreo-publicables.md) | Reemplazado por 0016 | 2026-06-16 | Monitoreo publica reportes web como snapshots agregados sin subir la app completa |
 | [0013](0013-importacion-workbook-surveymonkey-offline.md) | Aceptado | 2026-06-16 | SurveyMonkey multibase importa archivos offline contra bases existentes |
-| [0014](0014-publicacion-dual-monitoreo.md) | Aceptado | 2026-06-18 | Monitoreo separa publicaciones cliente e internas por audiencia |
+| [0014](0014-publicacion-dual-monitoreo.md) | Reemplazado por 0016 | 2026-06-18 | Monitoreo separa publicaciones cliente e internas por audiencia |
+| [0015](0015-monitoreo-space-cliente-sheets-interno.md) | Reemplazado por 0016 | 2026-06-19 | Monitoreo publica Space cliente y Sheets separados |
+| [0016](0016-monitoreo-solo-google-sheets.md) | Aceptado | 2026-06-19 | Monitoreo publica solo Google Sheets |
+| [0017](0017-base-panel-analitica.md) | Aceptado | 2026-06-19 | Analitica genera bases panel wide por llave y ola |
+| [0018](0018-paquete-compartible-graficos.md) | Aceptado | 2026-06-19 | Graficos comparte planes editables como paquete portable |
+| [0019](0019-monitoreo-aulas-universitarias.md) | Aceptado | 2026-06-19 | Monitoreo de aulas universitarias separa seleccion muestral y campo |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

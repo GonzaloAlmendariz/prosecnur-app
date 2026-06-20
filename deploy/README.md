@@ -15,7 +15,7 @@ también sirven para hacerlo manual.
 │      ├─ Stage 1: pnpm build (modo público)               │
 │      └─ Stage 2: rocker/r-ver + paquete prosecnurapp     │
 │                                                          │
-│   /data/proyecto.pulso  ← bootstrap (volume / committed) │
+│   /data/proyecto.pulso  ← bootstrap committed or mounted │
 │   :7860                  ← Plumber + frontend            │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -26,10 +26,14 @@ también sirven para hacerlo manual.
   read-only del dashboard (ver `api/R/forbid_mutations.R`).
 - **Bootstrap obligatorio**: `launch_server.R` falla rápido si no encuentra
   un `.pulso` en `PULSO_BOOTSTRAP_PROJECT` (default `/data/proyecto.pulso`).
+  En Hugging Face el `.pulso` viaja dentro de la imagen; no se declara
+  `VOLUME /data` para evitar que el runtime lo tape con un volumen vacío.
 
 ## Targets
 
 ### Hugging Face Spaces (gratis, primera opción)
+
+Para Dashboards generales se usa Docker SDK:
 
 1. Crear Space en [hf.co/spaces](https://huggingface.co/spaces) — SDK
    = Docker, visibility = Public.
@@ -41,6 +45,9 @@ también sirven para hacerlo manual.
      menos lo del `.dockerignore`)
    - `data/proyecto.pulso` (el dump del proyecto a publicar)
 4. HF buildea el Dockerfile (~10-15 min primera vez, ~2 min cached).
+
+Monitoreo no usa este flujo. Sus salidas vigentes son workbooks de Google
+Sheets cliente e interno, publicados desde el modulo Monitoreo.
 
 ### Fly.io (mejor latencia, ~$5/mes si pasa el free tier)
 

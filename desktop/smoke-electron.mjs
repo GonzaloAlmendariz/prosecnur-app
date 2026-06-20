@@ -22,6 +22,42 @@ const AUDIT_MANIFEST = process.env.PULSO_AUDIT_RUN_MANIFEST || "";
 const SCREENSHOT_DIR = process.env.PULSO_AUDIT_SCREENSHOT_DIR ||
   (AUDIT_MANIFEST ? path.join(path.dirname(AUDIT_MANIFEST), "screenshots") : "");
 const CAPTURE_SCREENSHOTS = Boolean(SCREENSHOT_DIR || process.env.SMOKE_CAPTURE_SCREENSHOTS === "true");
+const DEEP_WALK_ROUTES = [
+  "/carga",
+  "/validacion",
+  "/codificacion",
+  "/analitica",
+  "/graficos",
+  "/tablero",
+  "/calc-muestra",
+  "/hojas-ruta",
+  "/monitoreo",
+  "/editor-xlsform"
+];
+const DEEP_WALK_REQUIRED_ROUTES = new Set(["/monitoreo", "/analitica", "/validacion", "/tablero", "/editor-xlsform"]);
+const DEEP_WALK_MAX_ACTIONS = Number(process.env.SMOKE_DEEP_WALK_MAX_ACTIONS || 36);
+const DEEP_WALK_ROUTE_META = {
+  "/carga": { module: "Procesamiento", path: "Carga" },
+  "/validacion": { module: "Procesamiento", path: "Validacion" },
+  "/codificacion": { module: "Procesamiento", path: "Codificacion" },
+  "/analitica": { module: "Procesamiento", path: "Analitica" },
+  "/graficos": { module: "Procesamiento", path: "Graficos" },
+  "/tablero": { module: "Dashboard interactivo", path: "Tablero" },
+  "/calc-muestra": {
+    module: "Calculo de muestra",
+    path: "Acreditacion",
+    activePath: "acreditacion",
+    availablePaths: ["acreditacion", "marco_propio", "opinion_universitaria", "aplicacion_en_aulas"]
+  },
+  "/hojas-ruta": { module: "Hojas de ruta", path: "Campo" },
+  "/monitoreo": {
+    module: "Monitoreo",
+    path: "Aulas universitarias",
+    activePath: "aulas_universitarias",
+    availablePaths: ["acreditacion", "territorial", "aulas_universitarias"]
+  },
+  "/editor-xlsform": { module: "Editor XLSForm", path: "Formulario" }
+};
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -47,6 +83,68 @@ function slug(value) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return text || "home";
+}
+
+function normalizeStringList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value).map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function deepWalkAvailablePaths(route, manifest, fallback) {
+  const coverage = manifest?.coverage || {};
+  if (route === "/monitoreo") {
+    return normalizeStringList(coverage.monitoreo_families).concat(fallback || []);
+  }
+  if (route === "/calc-muestra") {
+    const calc = coverage.calc_muestra || {};
+    return normalizeStringList(calc.macro_families).concat(fallback || []);
+  }
+  return normalizeStringList(fallback);
+}
+
+function deepWalkRouteMeta(route, manifest = {}) {
+  const fallback = DEEP_WALK_ROUTE_META[route] || {
+    module: route.replace(/^\//, "") || "Inicio",
+    path: route || "/"
+  };
+  const availablePaths = Array.from(new Set(deepWalkAvailablePaths(route, manifest, fallback.availablePaths)));
+  return {
+    ...fallback,
+    activePath: fallback.activePath || fallback.path,
+    availablePaths
+  };
+}
+
+function semanticGroupLevel(group) {
+  const label = String(group?.label || "").toLowerCase();
+  const kind = String(group?.kind || "").toLowerCase();
+  if (/superficies|entradas|bloques|secciones|fuentes|explorar por|flujos/.test(label) || kind === "nav") {
+    return "section";
+  }
+  if (/pesta|tab|lecturas|vistas|modo|formato|filtro|orden|inspector/.test(label) || kind === "tablist") {
+    return "tab";
+  }
+  return "section";
+}
+
+function semanticStep(meta, group, itemLabel, state = "visited") {
+  const level = semanticGroupLevel(group);
+  const section = level === "section" ? itemLabel : group.label;
+  const tab = level === "tab" ? itemLabel : "";
+  return {
+    module: meta.module,
+    path: meta.path,
+    section,
+    tab,
+    state,
+    level,
+    group: group.label
+  };
 }
 
 class CdpClient {
@@ -348,6 +446,228 @@ async function captureDashboardCustomize(client, screenshots) {
   return { opened: true, panels: statuses };
 }
 
+async function discoverWalkTargets(client, route) {
+  return evaluate(client, `
+    (() => {
+      const route = ${JSON.stringify(route)};
+      const allowNavLabel = /(entrada|bloque|lectura|vista|superficie|seccion|sección|pestaña|pestana|reporte|paso|modo|formato|pieza|proveedor|inspector|flujo|fuente|evidencia|catálogo|catalogo)/i;
+      const unsafeText = /(sincronizar|exportar|descargar|eliminar|borrar|guardar|publicar|subir|cargar|conectar|importar|generar|crear|aplicar|reconciliar|actualizar\\s+datos|restablecer|cerrar|cancelar|salir|abrir\\s+en|pdf|xlsx|sheets)/i;
+      const textOf = (el) => String(
+        el.getAttribute("aria-label") ||
+        el.getAttribute("title") ||
+        el.innerText ||
+        el.textContent ||
+        ""
+      ).replace(/\\s+/g, " ").trim();
+      const visible = (el) => {
+        if (!el || !(el instanceof HTMLElement)) return false;
+        if (el.hidden || el.getAttribute("aria-hidden") === "true") return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity || 1) === 0) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 1 && rect.height > 1;
+      };
+      const disabled = (el) => Boolean(el.disabled || el.getAttribute("aria-disabled") === "true");
+      const selected = (el) => (
+        el.getAttribute("aria-selected") === "true" ||
+        el.getAttribute("aria-current") === "page" ||
+        el.classList.contains("is-active") ||
+        el.classList.contains("active")
+      );
+      const scope = document.querySelector(".pulso-main") || document.querySelector("main") || document.body;
+      const groups = [];
+      const seenRoots = new Set();
+      let groupIndex = 0;
+      let targetIndex = 0;
+
+      const addGroup = (root, kind, label, itemSelector, options = {}) => {
+        if (!root || seenRoots.has(root) || !visible(root)) return;
+        seenRoots.add(root);
+        const rawItems = Array.from(root.querySelectorAll(itemSelector))
+          .filter((item) => item instanceof HTMLElement && visible(item));
+        const items = [];
+        const seenLabels = new Set();
+        rawItems.forEach((item) => {
+          const label = textOf(item).slice(0, 120);
+          if (!label) return;
+          if (!options.allowUnsafe && unsafeText.test(label) && item.getAttribute("role") !== "tab") return;
+          const keyLabel = label.toLowerCase();
+          if (seenLabels.has(keyLabel)) return;
+          seenLabels.add(keyLabel);
+          const targetId = "smoke-walk-" + (++targetIndex);
+          item.setAttribute("data-smoke-walk-target", targetId);
+          items.push({
+            targetId,
+            label,
+            disabled: disabled(item),
+            selected: selected(item),
+            role: item.getAttribute("role") || item.tagName.toLowerCase(),
+            className: item.className || ""
+          });
+        });
+        if (!items.length) return;
+        const groupId = "group-" + (++groupIndex);
+        groups.push({
+          groupId,
+          route,
+          kind,
+          label: (label || textOf(root) || kind).slice(0, 120),
+          itemCount: items.length,
+          items
+        });
+      };
+
+      scope.querySelectorAll('[role="tablist"]').forEach((root) => {
+        addGroup(
+          root,
+          "tablist",
+          root.getAttribute("aria-label") || "Pestañas",
+          '[role="tab"], button',
+          { allowUnsafe: true }
+        );
+      });
+
+      scope.querySelectorAll('nav[aria-label]').forEach((root) => {
+        const label = root.getAttribute("aria-label") || "";
+        if (!allowNavLabel.test(label)) return;
+        addGroup(root, "nav", label, 'button, [role="button"]');
+      });
+
+      scope.querySelectorAll('.mon-query-template-board, .dash-customize-nav, .pulso-inspector-tabs').forEach((root) => {
+        const label = root.getAttribute("aria-label") || root.querySelector("header strong")?.textContent || "Subsecciones";
+        if (!allowNavLabel.test(label) && !root.classList.contains("mon-query-template-board")) return;
+        addGroup(root, "panel-nav", label, 'button, [role="button"]');
+      });
+
+      return { route, groups };
+    })()
+  `);
+}
+
+async function clickWalkTarget(client, targetId) {
+  return evaluate(client, `
+    (() => {
+      const targetId = ${JSON.stringify(targetId)};
+      const el = Array.from(document.querySelectorAll("[data-smoke-walk-target]"))
+        .find((item) => item.getAttribute("data-smoke-walk-target") === targetId);
+      if (!el) return { clicked: false, reason: "target_not_found" };
+      if (el.disabled || el.getAttribute("aria-disabled") === "true") {
+        return { clicked: false, reason: "target_disabled" };
+      }
+      el.scrollIntoView({ block: "center", inline: "nearest" });
+      el.click();
+      return {
+        clicked: true,
+        label: (el.innerText || el.textContent || el.getAttribute("aria-label") || "").replace(/\\s+/g, " ").trim(),
+        selected: el.getAttribute("aria-selected") === "true" || el.classList.contains("is-active")
+      };
+    })()
+  `);
+}
+
+async function captureDeepRouteWalk(client, route, screenshots, manifest = {}) {
+  const meta = deepWalkRouteMeta(route, manifest);
+  await navigate(client, route);
+  if (route === "/editor-xlsform") {
+    await ensureEditorWorkbook(client);
+  }
+  await waitForRouteReady(client, route);
+  await dismissCoachmarks(client);
+
+  const visited = new Set();
+  const groupsSeen = new Map();
+  const covered = [];
+  const clicks = [];
+  const moduleSectionTabCoverage = [];
+  let lastDiscovery = { route, groups: [] };
+
+  for (let i = 0; i < DEEP_WALK_MAX_ACTIONS; i += 1) {
+    const discovery = await discoverWalkTargets(client, route);
+    lastDiscovery = discovery;
+    for (const group of discovery.groups || []) {
+      const groupKey = `${group.kind}:${group.label}`;
+      const level = semanticGroupLevel(group);
+      groupsSeen.set(groupKey, {
+        kind: group.kind,
+        level,
+        label: group.label,
+        itemCount: Math.max(group.itemCount || 0, groupsSeen.get(groupKey)?.itemCount || 0)
+      });
+      for (const item of group.items || []) {
+        const key = `${groupKey}:${item.label}`;
+        if (item.selected && !visited.has(key)) {
+          const semantic = semanticStep(meta, group, item.label, "initial-active");
+          visited.add(key);
+          covered.push({
+            ...semantic,
+            group: group.label,
+            kind: group.kind,
+            label: item.label,
+            state: "initial-active"
+          });
+          moduleSectionTabCoverage.push(semantic);
+        }
+      }
+    }
+
+    let next = null;
+    for (const group of discovery.groups || []) {
+      const groupKey = `${group.kind}:${group.label}`;
+      for (const item of group.items || []) {
+        const key = `${groupKey}:${item.label}`;
+        if (visited.has(key) || item.disabled || item.selected) continue;
+        next = { group, item, key };
+        break;
+      }
+      if (next) break;
+    }
+    if (!next) break;
+
+    visited.add(next.key);
+    const result = await clickWalkTarget(client, next.item.targetId);
+    await delay(850);
+    await waitForRouteReady(client, route, 6000);
+    const textLength = await evaluate(client, "document.body.innerText.trim().length");
+    const blank = Number(textLength || 0) < 10;
+    const semantic = semanticStep(meta, next.group, next.item.label, "clicked");
+    const step = {
+      ...semantic,
+      group: next.group.label,
+      kind: next.group.kind,
+      label: next.item.label,
+      clicked: Boolean(result.clicked),
+      reason: result.reason || "",
+      blank
+    };
+    clicks.push(step);
+    moduleSectionTabCoverage.push(semantic);
+    await capture(client, `deep-${slug(route)}-${String(clicks.length).padStart(2, "0")}-${slug(next.group.label)}-${slug(next.item.label)}`, route, screenshots);
+    if (!result.clicked || blank) break;
+  }
+
+  const sections = Array.from(new Set(moduleSectionTabCoverage.map((item) => item.section).filter(Boolean)));
+  const tabs = Array.from(new Set(moduleSectionTabCoverage.map((item) => {
+    if (!item.tab) return "";
+    return item.section ? `${item.section} > ${item.tab}` : item.tab;
+  }).filter(Boolean)));
+
+  return {
+    module: meta.module,
+    path: meta.path,
+    activePath: meta.activePath,
+    availablePaths: meta.availablePaths,
+    route,
+    sections,
+    tabs,
+    moduleSectionTabCoverage,
+    groups: Array.from(groupsSeen.values()),
+    covered,
+    clicks,
+    lastGroupCount: (lastDiscovery.groups || []).length,
+    actionCount: clicks.length
+  };
+}
+
 async function main() {
   const manifestBefore = readJson(AUDIT_MANIFEST);
   const wsUrl = await cdpTarget();
@@ -387,6 +707,30 @@ async function main() {
 
   const dashboardTabs = await captureDashboardTabs(client, screenshots);
   const dashboardCustomize = await captureDashboardCustomize(client, screenshots);
+  const deepWalks = [];
+  for (const route of DEEP_WALK_ROUTES) {
+    try {
+      const walk = await captureDeepRouteWalk(client, route, screenshots, manifestBefore);
+      deepWalks.push(walk);
+    } catch (error) {
+      const meta = deepWalkRouteMeta(route, manifestBefore);
+      deepWalks.push({
+        module: meta.module,
+        path: meta.path,
+        activePath: meta.activePath,
+        availablePaths: meta.availablePaths,
+        route,
+        sections: [],
+        tabs: [],
+        moduleSectionTabCoverage: [],
+        groups: [],
+        covered: [],
+        clicks: [],
+        actionCount: 0,
+        error: error.message || String(error)
+      });
+    }
+  }
 
   await navigate(client, "/editor-xlsform");
   await ensureEditorWorkbook(client);
@@ -486,6 +830,23 @@ async function main() {
     failures.push("Editor XLSForm: no hay control final para recuperar el .xlsx exportado");
   }
   if (naInputs.length) failures.push(`Hojas de ruta: inputs con valor NA (${naInputs.length})`);
+  for (const walk of deepWalks) {
+    if (walk.error) {
+      failures.push(`Recorrido profundo ${walk.route}: ${walk.error}`);
+      continue;
+    }
+    const broken = (walk.clicks || []).filter((step) => !step.clicked || step.blank);
+    for (const step of broken) {
+      const locus = [step.module || walk.module, step.path || walk.path, step.section, step.tab].filter(Boolean).join(" > ");
+      failures.push(`Recorrido profundo ${walk.route}: fallo en ${locus || `${step.group} > ${step.label}`}${step.reason ? ` (${step.reason})` : ""}`);
+    }
+    if (DEEP_WALK_REQUIRED_ROUTES.has(walk.route) && !(walk.groups || []).length) {
+      failures.push(`Recorrido profundo ${walk.route}: no se encontraron secciones o pestañas navegables del modulo`);
+    }
+    if (DEEP_WALK_REQUIRED_ROUTES.has(walk.route) && !(walk.actionCount > 0 || (walk.covered || []).length > 1)) {
+      failures.push(`Recorrido profundo ${walk.route}: no se ejercito ninguna seccion/pestaña adicional del modulo`);
+    }
+  }
 
   if (AUDIT_MANIFEST) {
     if (!runtime.sid) failures.push("Auditoria: no hay sid en localStorage");
@@ -516,6 +877,7 @@ async function main() {
         routes: results,
         dashboardTabs,
         dashboardCustomize,
+        deepWalks,
         exportLinks,
         exportControls,
         naInputs,
@@ -526,7 +888,7 @@ async function main() {
     writeJson(AUDIT_MANIFEST, manifestAfter);
   }
 
-  console.log(JSON.stringify({ ok: failures.length === 0, routes: results, dashboardTabs, dashboardCustomize, exportLinks, exportControls, naInputs, runtime, screenshots, failures }, null, 2));
+  console.log(JSON.stringify({ ok: failures.length === 0, routes: results, dashboardTabs, dashboardCustomize, deepWalks, exportLinks, exportControls, naInputs, runtime, screenshots, failures }, null, 2));
   if (failures.length) process.exit(1);
 }
 

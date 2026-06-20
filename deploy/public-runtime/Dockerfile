@@ -27,7 +27,6 @@ RUN R CMD INSTALL --no-multiarch /app/api
 
 RUN mkdir -p /data
 COPY data /data
-VOLUME /data
 
 ENV PORT=7860
 EXPOSE 7860

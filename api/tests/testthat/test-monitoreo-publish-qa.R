@@ -59,7 +59,71 @@ test_that("fixtures QA cubren familias de monitoreo y datos centinela", {
   expect_true(any(!nzchar(accreditation$data$dim_actor)))
 })
 
-test_that("QA de publicaciones genera Spaces y XLSX separados por familia y audiencia", {
+test_that("modelos de publicacion separan Sheets cliente y Sheets interno", {
+  fixture <- monitoreo_publish_qa_fixture("acreditacion")
+  client_publication <- monitoreo_publication_model(
+    fixture$data,
+    fixture$config,
+    audience = "client",
+    dashboard = fixture$dashboard,
+    synced_at = fixture$synced_at
+  )
+  internal_publication <- monitoreo_publication_model(
+    fixture$data,
+    fixture$config,
+    audience = "internal",
+    dashboard = fixture$dashboard,
+    synced_at = fixture$synced_at
+  )
+
+  client_sheets_model <- build_client_sheets_progress_model(client_publication)
+  internal_sheets_model <- build_internal_sheets_monitoring_model(internal_publication)
+  app_visual_model <- extract_app_visual_progress_model(
+    client_publication,
+    .monitoreo_space_config("acreditacion", "client"),
+    "QA Acreditación",
+    fixture$synced_at,
+    "18 jun. 2026"
+  )
+  client_accreditation_table_model <- extract_codegs_accreditation_model(client_publication, audience = "client")
+  internal_accreditation_table_model <- extract_codegs_accreditation_model(internal_publication, audience = "internal")
+
+  expect_true(all(c("progress_hero", "daily_progress", "accumulated_progress", "filters", "tables", "accreditation") %in% names(app_visual_model)))
+  expect_gt(length(app_visual_model$accreditation$actors), 0)
+
+  expect_equal(client_sheets_model$destination, "google_sheets")
+  expect_equal(client_sheets_model$audience, "cliente")
+  expect_equal(client_sheets_model$purpose, "progress_workbook")
+  expect_equal(unlist(client_sheets_model$metadata$tab_order, use.names = FALSE), c("Reporte", "Detalle del avance", "Corte y fuentes"))
+  expect_equal(client_sheets_model$app_visual_progress_model$schema, "monitoreo_app_visual_progress_model_v1")
+  expect_equal(client_sheets_model$accreditation_table_model$schema, "monitoreo_accreditation_table_model_v1")
+  expect_true(all(c("resumen", "avance_por_actor", "avance_por_segmento", "avance_por_canal_fuente", "cobertura_pendientes") %in% names(client_sheets_model)))
+  expect_false(any(c("metas_internas_actor", "monitoreo_telefonico", "alertas_internas", "auditoria_tecnica", "base_tecnica") %in% names(client_sheets_model)))
+  expect_true(all(c("actors", "universe_by_actor", "daily_matrix", "client_report_tables") %in% names(client_accreditation_table_model)))
+  expect_false(any(c("telephone_monitoring", "internal_workbook_tables") %in% names(client_accreditation_table_model)))
+  expect_false(isTRUE(client_accreditation_table_model$source$code_gs$available))
+  expect_equal(client_accreditation_table_model$source$code_gs$status, "No disponible en /mnt/data/Code.gs")
+
+  expect_equal(internal_sheets_model$destination, "google_sheets")
+  expect_equal(internal_sheets_model$audience, "interno")
+  expect_equal(internal_sheets_model$purpose, "operational_workbook")
+  expect_equal(unlist(internal_sheets_model$metadata$tab_order, use.names = FALSE), c("Resumen", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
+  expect_equal(internal_sheets_model$accreditation_table_model$schema, "monitoreo_accreditation_table_model_v1")
+  expect_true(all(c("avance_por_canal_recopilador", "control_seguimiento", "monitoreo_telefonico", "alertas_internas", "auditoria_tecnica", "base_tecnica") %in% names(internal_sheets_model)))
+  expect_gt(length(internal_sheets_model$monitoreo_telefonico$rows), 0)
+  expect_true(all(c("collector_progress", "telephone_monitoring", "internal_workbook_tables") %in% names(internal_accreditation_table_model)))
+  expect_false(isTRUE(internal_accreditation_table_model$source$code_gs$available))
+
+  extraction_map <- monitoreo_publication_extraction_map()
+  extraction_text <- paste(unlist(extraction_map, use.names = FALSE), collapse = "\n")
+  expect_true(all(c("Source", "Concept", "Existing logic/function/component", "Publication model field", "Sheets cliente", "Sheets interno") %in% names(extraction_map)))
+  expect_false("Space cliente" %in% names(extraction_map))
+  expect_true(any(extraction_map$Source == "Monitoreo app"))
+  expect_true(any(extraction_map$Source == "Code.gs acreditación"))
+  expect_false(grepl(.monitoreo_publish_qa_secret_pattern(), extraction_text, ignore.case = TRUE, perl = TRUE))
+})
+
+test_that("QA de publicaciones genera XLSX separados por familia y audiencia", {
   testthat::skip_if_not_installed("openxlsx")
   out_dir <- tempfile("monitoreo_publish_qa_")
   report <- monitoreo_publish_qa_generate(out_dir = out_dir)
@@ -69,20 +133,33 @@ test_that("QA de publicaciones genera Spaces y XLSX separados por familia y audi
     report$artifacts,
     c("territorial-client", "territorial-internal", "acreditacion-client", "acreditacion-internal")
   )
+  expect_true(file.exists(report$extraction_map))
+  expect_true(file.exists(report$logic_parity_map))
 
   for (name in names(report$artifacts)) {
     artifact <- report$artifacts[[name]]
-    expect_true(file.exists(artifact$space_index), info = name)
     expect_true(file.exists(artifact$workbook), info = name)
+    expect_true(file.exists(artifact$sheets_model), info = name)
+    expect_true(file.exists(artifact$app_visual_model), info = name)
+    expect_true(file.exists(artifact$accreditation_table_model), info = name)
     expect_true(isTRUE(artifact$checks$ok), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_app_shell), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_section_navigation), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_section_cards), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_table_search), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_table_reset), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_status_chips), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_interaction_script), info = name)
-    expect_true(isTRUE(artifact$checks$checks$space_has_plotly_like_daily_chart), info = name)
+    expect_true(isTRUE(artifact$checks$checks$sheets_model_exists), info = name)
+    expect_true(isTRUE(artifact$checks$checks$sheets_model_model_shape), info = name)
+    expect_true(isTRUE(artifact$checks$checks$sheets_model_no_secret_like_strings), info = name)
+    expect_true(isTRUE(artifact$checks$checks$sheets_model_no_recommendations), info = name)
+    expect_true(isTRUE(artifact$checks$checks$app_visual_model_exists), info = name)
+    expect_true(isTRUE(artifact$checks$checks$app_visual_model_model_shape), info = name)
+    expect_true(isTRUE(artifact$checks$checks$app_visual_model_client_sections), info = name)
+    expect_true(isTRUE(artifact$checks$checks$accreditation_table_model_exists), info = name)
+    expect_true(isTRUE(artifact$checks$checks$accreditation_table_model_model_shape), info = name)
+    expect_true(isTRUE(artifact$checks$checks$accreditation_table_model_audience_scope), info = name)
+    expect_true(isTRUE(artifact$checks$checks$no_space_rendered), info = name)
+    expect_false(file.exists(artifact$space_index), info = name)
+    if (identical(artifact$audience, "client")) {
+      expect_true(isTRUE(artifact$checks$checks$sheets_model_client_sections), info = name)
+    } else {
+      expect_true(isTRUE(artifact$checks$checks$sheets_model_internal_sections), info = name)
+    }
     expect_true(isTRUE(artifact$checks$checks$daily_progress_exists), info = name)
     expect_true(isTRUE(artifact$checks$checks$cumulative_progress_ok), info = name)
     expect_true(isTRUE(artifact$checks$checks$xlsx_has_freeze), info = name)
@@ -95,41 +172,114 @@ test_that("cliente excluye señales internas y el interno preserva operación co
   testthat::skip_if_not_installed("openxlsx")
   out_dir <- tempfile("monitoreo_publish_qa_")
   report <- monitoreo_publish_qa_generate(out_dir = out_dir)
-  read_artifact <- function(name) {
+  read_workbook_artifact <- function(name) {
     artifact <- report$artifacts[[name]]
-    paste(
-      readLines(artifact$space_index, warn = FALSE),
-      readLines(file.path(artifact$space_dir, "publication_model.json"), warn = FALSE),
-      collapse = "\n"
-    )
+    sheets <- openxlsx::getSheetNames(artifact$workbook)
+    paste(vapply(sheets, function(sheet) {
+      paste(c(sheet, unlist(openxlsx::read.xlsx(artifact$workbook, sheet = sheet, colNames = FALSE), use.names = FALSE)), collapse = "\n")
+    }, character(1)), collapse = "\n")
   }
 
-  territorial_client <- read_artifact("territorial-client")
-  territorial_internal <- read_artifact("territorial-internal")
-  accreditation_client <- read_artifact("acreditacion-client")
-  accreditation_internal <- read_artifact("acreditacion-internal")
-  all_spaces <- paste(territorial_client, territorial_internal, accreditation_client, accreditation_internal, collapse = "\n")
+  territorial_client <- read_workbook_artifact("territorial-client")
+  territorial_internal <- read_workbook_artifact("territorial-internal")
+  accreditation_client <- read_workbook_artifact("acreditacion-client")
+  accreditation_internal <- read_workbook_artifact("acreditacion-internal")
+  all_artifacts <- paste(territorial_client, territorial_internal, accreditation_client, accreditation_internal, collapse = "\n")
 
   expect_false(grepl("TER-RAW|\\+519|GPS y territorio|Casos accionables|Auditoría técnica", territorial_client))
   expect_true(grepl("TER-RAW|\\+519", territorial_internal))
   expect_true(grepl("GPS y territorio", territorial_internal, fixed = TRUE))
   expect_true(grepl("Casos accionables", territorial_internal, fixed = TRUE))
 
-  expect_false(grepl("ACR-RAW|\\+519|Mínimo/meta operativa|Metas internas por actor|Auditoría técnica", accreditation_client))
+  expect_false(grepl("ACR-RAW|\\+519|Mínimo/meta operativa|Mínimo esperado|Metas internas por actor|Mínimos por actor|Auditoría técnica|Trazabilidad del corte", accreditation_client))
   expect_false(grepl("Recomendación|Diagnóstico|Acción sugerida", accreditation_client))
-  expect_true(grepl("ACR-RAW|\\+519", accreditation_internal))
-  expect_true(grepl("Mínimo/meta operativa", accreditation_internal, fixed = TRUE))
-  expect_true(grepl("Metas internas por actor", accreditation_internal, fixed = TRUE))
-  expect_false(grepl("hf_|HF_TOKEN|Authorization|Bearer|secret", all_spaces, ignore.case = TRUE))
+  expect_false(grepl("Registros del corte|Trazabilidad del corte|Auditoría técnica", accreditation_internal))
+  expect_true(grepl("Mínimo esperado", accreditation_internal, fixed = TRUE))
+  expect_true(grepl("Mínimos por actor", accreditation_internal, ignore.case = TRUE))
+  expect_true(grepl("Avance por canal y responsable", accreditation_internal, ignore.case = TRUE))
+  expect_true(grepl("Responsable de carga", accreditation_internal, fixed = TRUE))
+  expect_true(grepl("Seguimiento telefónico", accreditation_internal, ignore.case = TRUE))
+  expect_false(grepl("hf_|HF_TOKEN|Authorization|Bearer|secret", all_artifacts, ignore.case = TRUE))
+})
+
+test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
+  data <- data.frame(
+    CodPulso = c("A1", "A2", "A3", "A4", "A5"),
+    response_status = c("completed", "completed", "partial", "completed", "completed"),
+    date_modified = c(
+      "2026-06-01T10:00:00+00:00",
+      "2026-06-01 11:00:00",
+      "2026-06-02",
+      "2026-06-02T13:00:00Z",
+      "2026-06-03T14:00"
+    ),
+    .source_role = rep("respuestas", 5),
+    .source_label = c(
+      "SurveyMonkey · Estudiantes · Web",
+      "SurveyMonkey · Egresados · Telefónico",
+      "SurveyMonkey · Docentes · Personalizado",
+      "SurveyMonkey · Administrativos · Web",
+      "Correo completos · Egresados"
+    ),
+    .source_id = c("estudiantes-web", "egresados-telefono", "docentes-whatsapp", "administrativos-web", "egresados-correo"),
+    collector_id = c("web-estudiantes", "tel-egresados", "wsp-docentes", "web-admin", "correo-egresados"),
+    collector_name = c("Web estudiantes", "Llamadas Egresados", "WhatsApp docentes", "Administrativos web", "Correo egresados"),
+    collector_type = c("weblink", "phone", "weblink", "weblink", "email"),
+    dim_actor = c("Estudiantes", "Egresados", "Docentes", "Administrativos", "Egresados"),
+    dim_canal = c("Web", "Telefonico", "WhatsApp", "Web", "Web"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "acreditacion", variant = "multi_actor")
+  ), data)
+  dashboard <- monitoreo_build_dashboard(data, cfg)
+
+  client_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "client", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
+  internal_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "internal", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
+  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Corte y fuentes"))
+  expect_equal(names(internal_tabs), c("Resumen", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
+  client_channel <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
+  internal_channel <- paste(unlist(internal_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
+  internal_sources <- paste(unlist(internal_tabs[["Corte y fuentes"]], use.names = FALSE), collapse = "\n")
+
+  expect_true(grepl("Responsable de carga", internal_channel, fixed = TRUE))
+  expect_true(grepl("Canal operativo", internal_channel, fixed = TRUE))
+  expect_true(grepl("Título / fuente", internal_channel, fixed = TRUE))
+  expect_true(grepl("Tipo de responsable", internal_channel, fixed = TRUE))
+  expect_true(grepl("Completas", internal_channel, fixed = TRUE))
+  expect_true(grepl("Web estudiantes (web-estudiantes)", internal_channel, fixed = TRUE))
+  expect_true(grepl("Llamadas Egresados (tel-egresados)", internal_channel, fixed = TRUE))
+  expect_true(grepl("WhatsApp docentes (wsp-docentes)", internal_channel, fixed = TRUE))
+  expect_true(grepl("Correo egresados (correo-egresados)", internal_channel, fixed = TRUE))
+  expect_true(grepl("Enlace web", internal_channel, fixed = TRUE))
+  expect_true(grepl("Telefónico", internal_channel, fixed = TRUE))
+  expect_true(grepl("Correo electrónico", internal_channel, fixed = TRUE))
+  expect_false(grepl("Sin dato|Sin recopilador", internal_channel))
+
+  expect_true(all(vapply(c("2026-06-01", "2026-06-02", "2026-06-03"), function(day) {
+    grepl(day, internal_channel, fixed = TRUE)
+  }, logical(1))))
+  expect_false(grepl("T10:00|T13:00|14:00|\\+00:00|Z", internal_channel))
+  expect_true(grepl("Corte publicado", internal_sources, fixed = TRUE))
+  expect_true(grepl("\\b2026-06-[0-9]{2}\\b", internal_sources))
+  expect_false(grepl("2026-06-18T12:00:00|T[0-9]{2}:[0-9]{2}|\\+00:00|Z", internal_sources))
+  expect_true(grepl("Canal operativo", client_channel, fixed = TRUE))
+  expect_true(grepl("Título / fuente", client_channel, fixed = TRUE))
+  expect_true(grepl("Completas", client_channel, fixed = TRUE))
+  expect_false(grepl("Responsable de carga|Tipo de responsable|web-estudiantes|tel-egresados|collector_id", client_channel))
+  expect_true(grepl("2026-06-01", client_channel, fixed = TRUE))
 })
 
 test_that("progreso diario acumulado es consistente en artefactos QA", {
   out_dir <- tempfile("monitoreo_publish_qa_")
   report <- monitoreo_publish_qa_generate(out_dir = out_dir)
   for (name in names(report$artifacts)) {
-    model <- jsonlite::fromJSON(file.path(report$artifacts[[name]]$space_dir, "publication_model.json"), simplifyVector = FALSE)
-    daily <- model$daily_progress$daily_effective
-    cumulative <- model$daily_progress$cumulative_effective
+    if (!identical(report$artifacts[[name]]$audience, "client")) next
+    model <- jsonlite::fromJSON(report$artifacts[[name]]$sheets_model, simplifyVector = FALSE)
+    app_model <- model$app_visual_progress_model %||% list()
+    daily <- app_model$daily_progress$rows %||% list()
+    cumulative <- app_model$accumulated_progress$rows %||% list()
     expect_gt(length(daily), 0)
     expect_gt(length(cumulative), 0)
     daily_sum <- sum(vapply(daily, function(row) as.numeric(row[["Nuevas UMP efectivas"]] %||% row[["Nuevas efectivas"]] %||% 0), numeric(1)), na.rm = TRUE)
@@ -149,16 +299,21 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
   )
   expect_true(all(c(
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
-    "Tabla maestra", "Resumen territorial", "Ritmo diario", "Ocurrencias de campo"
+    "Tabla maestra", "Resumen territorial", "Ritmo diario", "Ocurrencias de campo", "Casos accionables"
   ) %in% names(tabs)))
   expect_equal(names(tabs)[seq_len(3L)], c("Portada", "Tabla maestra", "Resumen territorial"))
   expect_false("Fuentes y actualización" %in% names(tabs))
-  expect_false("Casos accionables" %in% names(tabs))
   expect_false(any(c("Cuotas por manzana", "Llenado sexo y edad", "Ocurrencias en campo") %in% names(tabs)))
 
   text_tab <- function(tab) paste(unlist(tabs[[tab]], use.names = FALSE), collapse = "\n")
+  cover_text <- text_tab("Portada")
+  expect_true(grepl("Reporte", cover_text, fixed = TRUE))
+  expect_true(grepl("Corte de datos", cover_text, fixed = TRUE))
+  expect_true(grepl("Cobertura territorial", cover_text, fixed = TRUE))
+  expect_true(grepl("Lectura general", cover_text, fixed = TRUE))
+  expect_false(grepl("Perfil|territorial_fieldwork|Fecha y hora de generación|Alertas/casos internos|2026-06-18T", cover_text))
   operational_text <- paste(vapply(
-    c("Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad", "Ocurrencias de campo"),
+    c("Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad", "Ocurrencias de campo", "Casos accionables"),
     text_tab,
     character(1)
   ), collapse = "\n")
@@ -232,6 +387,9 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
   expect_true(all(c("Distrito", "UMP", "Estado", "Reportes") %in% occurrence_rows[[occurrence_filter_index]]))
   expect_true(grepl("ID respuesta", text_tab("GPS y territorio"), fixed = TRUE))
   expect_true(grepl("Estado GPS por respuesta", text_tab("GPS y territorio"), fixed = TRUE))
+  expect_true(grepl("Fuera de zona", text_tab("GPS y territorio"), fixed = TRUE))
+  expect_true(grepl("Fuera de distrito", text_tab("GPS y territorio"), fixed = TRUE))
+  expect_true(grepl("Sin GPS", text_tab("GPS y territorio"), fixed = TRUE))
   expect_false(grepl("Casos con GPS|Casos sin GPS|GPS sospechoso", text_tab("GPS y territorio")))
   expect_false(grepl("Regla aplicada", text_tab("Validación de tiempos"), fixed = TRUE))
   expect_true(grepl("Normal", text_tab("Validación de tiempos"), fixed = TRUE))
@@ -310,9 +468,13 @@ test_that("Sheets territorial usa UMP titular, cuota 8 y reemplazos sin uso no p
   planned <- .monitoreo_publication_block_df(responsible, "Asignación planificada")
   expect_equal(planned$UMP, c("UMP-1", "UMP-2", "UMP-3"))
   expect_equal(planned$Rango, c("1-8", "9-16", "17-24"))
-  expect_true(all(paste("Encuesta", 1:8) %in% names(planned)))
+  expect_true(all(paste("Encuesta", 1:15) %in% names(planned)))
   expect_false("Encuestas extra" %in% names(planned))
+  expect_false(any(c("Reemplazos disponibles", "Fuente asignación") %in% names(planned)))
   expect_equal(planned$`Encuesta 8`[planned$UMP == "UMP-3"], "Pendiente")
+  expect_equal(planned$`Encuesta 9`[planned$UMP == "UMP-3"], "")
+  expect_equal(planned$`Encuesta 9`[planned$UMP == "UMP-2"], "Completa")
+  expect_equal(planned$`Encuesta 10`[planned$UMP == "UMP-2"], "")
   expect_false("UMP asignadas" %in% names(planned))
   expect_false(any(grepl(" estado$", names(planned), ignore.case = TRUE)))
 })
@@ -354,12 +516,19 @@ test_that("formateo Sheets territorial genera estados, secciones y un filtro por
   )
   requests <- .monitoreo_sheets_professional_format_requests(123L, "Cuotas sexo y edad", tabs[["Cuotas sexo y edad"]])
   request_text <- jsonlite::toJSON(requests, auto_unbox = TRUE, null = "null")
+  gps_requests <- .monitoreo_sheets_professional_format_requests(126L, "GPS y territorio", tabs[["GPS y territorio"]])
+  gps_request_text <- jsonlite::toJSON(gps_requests, auto_unbox = TRUE, null = "null")
 
   expect_true(any(vapply(requests, function(request) !is.null(request$mergeCells), logical(1))))
   expect_true(any(vapply(requests, function(request) !is.null(request$addConditionalFormatRule), logical(1))))
   expect_true(grepl("Completa", request_text, fixed = TRUE))
   expect_false(grepl("Excedida|Con exceso|Exceso", request_text))
   expect_true(grepl("No iniciada", request_text, fixed = TRUE))
+  expect_true(grepl("En zona", gps_request_text, fixed = TRUE))
+  expect_true(grepl("Fuera de zona", gps_request_text, fixed = TRUE))
+  expect_true(grepl("Fuera de distrito", gps_request_text, fixed = TRUE))
+  expect_true(grepl("Sin GPS", gps_request_text, fixed = TRUE))
+  expect_false(grepl("Lejos|Revisión|Dentro|Cerca", gps_request_text))
   expect_true(grepl("CUSTOM_FORMULA", request_text, fixed = TRUE))
   expect_false(grepl("TEXT_CONTAINS", request_text, fixed = TRUE))
   expect_false(grepl("ISNUMBER", request_text, fixed = TRUE))
@@ -420,9 +589,13 @@ test_that("formateo Sheets territorial genera estados, secciones y un filtro por
   responsible_headers <- .monitoreo_sheets_table_header_rows(responsible_rows)
   responsible_header_index <- .monitoreo_sheets_filter_header_index("Responsables y rutas", responsible_rows, responsible_headers)
   expect_true("UMP" %in% responsible_rows[[responsible_header_index]])
-  expect_true(all(paste("Encuesta", 1:8) %in% responsible_rows[[responsible_header_index]]))
+  responsible_header <- responsible_rows[[responsible_header_index]]
+  expect_true(all(paste("Encuesta", 1:15) %in% responsible_header))
   expect_false("Encuestas extra" %in% responsible_rows[[responsible_header_index]])
+  expect_false(any(c("Reemplazos disponibles", "Fuente asignación") %in% responsible_header))
   expect_false("UMP asignadas" %in% responsible_rows[[responsible_header_index]])
+  expect_lt(match("Estado UMP", responsible_header), match("Última actividad", responsible_header))
+  expect_equal(match("Última actividad", responsible_header) + 1L, match("Encuesta 1", responsible_header))
   responsible_filters <- Filter(function(request) !is.null(request$setBasicFilter), .monitoreo_sheets_professional_format_requests(125L, "Responsables y rutas", responsible_rows))
   expect_length(responsible_filters, 1L)
   expect_equal(responsible_filters[[1]]$setBasicFilter$filter$range$startRowIndex, responsible_header_index - 1L)

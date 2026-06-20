@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiShutdown, type SessionState } from "../../api/client";
+import { useLayoutPreset, type LayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
 import {
   PROSECNUR_MODULES as MODULES,
@@ -311,6 +312,7 @@ export default function HomePage() {
   const { project } = useProjectShell();
   const location = useLocation();
   const proc = useProcesamientoState();
+  const [layoutPreset] = useLayoutPreset();
   const [exitOpen, setExitOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -322,9 +324,9 @@ export default function HomePage() {
   }, [location.search]);
 
   return (
-    <div className="home-wrap">
+    <div className="home-wrap" data-layout-preset={layoutPreset}>
       <ProjectBar project={project} />
-      <ModulesGrid state={state} proc={proc} />
+      <ModulesGrid state={state} proc={proc} layoutPreset={layoutPreset} />
       <HomeFooter
         version={version}
         onClose={() => setExitOpen(true)}
@@ -536,14 +538,16 @@ function doShutdown() {
 function ModulesGrid({
   state,
   proc,
+  layoutPreset,
 }: {
   state: SessionState | null;
   proc: ModulePhaseState;
+  layoutPreset: LayoutPreset;
 }) {
   const navigate = useNavigate();
   const [focusIndex, setFocusIndex] = useState(0);
   const [motionDirection, setMotionDirection] = useState<ModuleMotionDirection>("forward");
-  const { deckRef, metrics } = useAdaptiveCinemaMetrics();
+  const { deckRef, metrics } = useAdaptiveCinemaMetrics(layoutPreset);
   const focused = MODULES[focusIndex] ?? MODULES[0];
   const FocusIcon = focused.icon;
 
@@ -591,6 +595,7 @@ function ModulesGrid({
       style={focusedStyle}
       data-motion={motionDirection}
       data-density={metrics.density}
+      data-layout-preset={layoutPreset}
       data-focused-module={focused.slug}
       onKeyDown={handleDeckKeyDown}
     >
@@ -753,7 +758,7 @@ function shortModuleLabel(mod: ModuleMeta): string {
   return mod.shortLabel;
 }
 
-function useAdaptiveCinemaMetrics() {
+function useAdaptiveCinemaMetrics(layoutPreset: LayoutPreset) {
   const deckRef = useRef<HTMLDivElement | null>(null);
   const [metrics, setMetrics] = useState<CinemaMetrics>(DEFAULT_CINEMA_METRICS);
 
@@ -765,7 +770,7 @@ function useAdaptiveCinemaMetrics() {
     const update = () => {
       const rect = deck.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
-      const next = computeCinemaMetrics(rect.width, rect.height);
+      const next = computeCinemaMetrics(rect.width, rect.height, layoutPreset);
       setMetrics((current) => (sameCinemaMetrics(current, next) ? current : next));
     };
     const schedule = () => {
@@ -789,26 +794,53 @@ function useAdaptiveCinemaMetrics() {
       window.removeEventListener("orientationchange", schedule);
       observer?.disconnect();
     };
-  }, []);
+  }, [layoutPreset]);
 
   return { deckRef, metrics };
 }
 
-function computeCinemaMetrics(width: number, height: number): CinemaMetrics {
-  const crampedHeight = height < 220 && width < 620;
-  const shortDeck = height < 310;
-  const compact = width < 500 || crampedHeight || shortDeck;
-  const roomy = width > 640 && height > 365;
+function computeCinemaMetrics(
+  width: number,
+  height: number,
+  layoutPreset: LayoutPreset,
+): CinemaMetrics {
+  const presetShort = layoutPreset === "short";
+  const presetCompact =
+    layoutPreset === "portable-compact" ||
+    layoutPreset === "compact" ||
+    presetShort;
+  const presetRoomy = layoutPreset === "large";
+  const presetBalanced = layoutPreset === "portable";
+  const crampedHeight = height < (presetShort ? 250 : 220) && width < 620;
+  const shortDeck = height < (presetShort ? 350 : presetRoomy ? 360 : 335) || presetShort;
+  const compact = presetCompact || width < 500 || crampedHeight || shortDeck;
+  const roomy = !compact && (presetRoomy || (width > 640 && height > 365));
   const density: CinemaDensity = compact ? "compact" : roomy ? "roomy" : "standard";
-  const cardWidth = Math.round(clamp(width * (compact ? 0.68 : 0.5), compact ? 224 : 276, roomy ? 352 : 326));
+  const widthFactor = compact ? 0.64 : presetRoomy ? 0.52 : presetBalanced ? 0.5 : 0.48;
+  const cardWidthMax = compact
+    ? presetShort ? 316 : 334
+    : presetRoomy ? 430 : roomy ? 368 : 334;
+  const cardWidth = Math.round(clamp(
+    width * widthFactor,
+    compact ? 216 : 276,
+    cardWidthMax,
+  ));
   const cardMinHeight = Math.round(
     crampedHeight
       ? clamp(height - 16, 126, 220)
       : shortDeck
-      ? clamp(height - 24, 190, 258)
-      : clamp(height - (compact ? 22 : 30), compact ? 258 : 292, roomy ? 350 : 326),
+      ? clamp(height - (presetShort ? 34 : 24), 180, presetShort ? 226 : 258)
+      : clamp(
+          height - (compact ? 28 : presetRoomy ? 56 : 30),
+          compact ? 248 : 292,
+          presetRoomy ? 430 : roomy ? 366 : 326,
+        ),
   );
-  const cardStep = Math.round(clamp(width * (compact ? 0.3 : 0.32), compact ? 104 : 152, roomy ? 224 : 194));
+  const cardStep = Math.round(clamp(
+    width * (presetShort ? 0.22 : compact ? 0.28 : presetRoomy ? 0.34 : 0.31),
+    presetShort ? 84 : compact ? 96 : 148,
+    compact ? (presetShort ? 112 : 170) : presetRoomy ? 286 : roomy ? 236 : 194,
+  ));
   const cardYOffset = Math.round(clamp(height * 0.026, compact ? 4 : 7, 12));
 
   return {
@@ -816,10 +848,10 @@ function computeCinemaMetrics(width: number, height: number): CinemaMetrics {
     cardMinHeight,
     cardStep,
     cardYOffset,
-    cardRotate: compact ? 2.6 : roomy ? 4.5 : 3.7,
-    cardTilt: compact ? 5 : roomy ? 10 : 7.5,
-    scaleDrop: compact ? 0.1 : roomy ? 0.105 : 0.095,
-    minScale: compact ? 0.74 : 0.72,
+    cardRotate: compact ? 2.2 : roomy ? 4.2 : 3.4,
+    cardTilt: compact ? 4 : roomy ? 9 : 7,
+    scaleDrop: compact ? 0.092 : roomy ? 0.1 : 0.095,
+    minScale: compact ? 0.76 : 0.72,
     hiddenDistance: 1,
     density,
   };

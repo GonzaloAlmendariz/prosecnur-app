@@ -41,16 +41,16 @@ const TIPOS: TipoCard[] = [
     cta: "Usar plantilla",
   },
   {
-    id: "hsvg_universitario",
+    id: "encuesta_estudiantes",
     label: "Estudiantes universitarios",
-    pitch: "Marco por facultad y sexo para estudios de opinión estudiantil universitaria.",
+    pitch: "Marco de estudiantes y selección de aulas para encuestas universitarias anonimas.",
     detalle:
-      "Diseño probabilístico con parámetros canónicos (p, e, deff, sobremuestra). Permite trabajar representatividad a nivel universidad y a nivel facultad, con el marco DTI 2025-II de PUCP como punto de partida.",
+      "Diseño estratificado por dominios, aulas como conglomerados, PPS, reemplazos y exportación directa a Monitoreo de aulas universitarias.",
     icon: GraduationCap,
     action: "iniciar",
     cta: "Usar plantilla",
-    variante: "plantilla_pucp",
-    varianteSubLabel: "Pre-cargar marco PUCP 2026 (15 facultades)",
+    variante: "vacio",
+    varianteSubLabel: "Base madre o dos bases institucionales",
   },
   {
     id: "linea_base_servicios",

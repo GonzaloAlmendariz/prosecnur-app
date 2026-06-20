@@ -63,6 +63,24 @@
   s$monitoreo_dashboard_cache_token <- NULL
   s$monitoreo_dashboard_light_cache <- NULL
   s$monitoreo_dashboard_light_cache_token <- NULL
+  if (!is.null(s$calc_muestra_aulas_frame) && is.list(s$calc_muestra_aulas_frame)) {
+    frame <- s$calc_muestra_aulas_frame
+    if (is.data.frame(frame$aula_frame) && nrow(frame$aula_frame)) {
+      pii_cols <- intersect(c("unique_student_ids"), names(frame$aula_frame))
+      frame$aula_frame[pii_cols] <- NULL
+    }
+    frame$population <- NULL
+    frame$exclusions <- NULL
+    s$calc_muestra_aulas_frame <- frame
+  }
+  if (!is.null(s$calc_muestra_aulas_selection) && is.list(s$calc_muestra_aulas_selection)) {
+    selection <- s$calc_muestra_aulas_selection
+    if (is.data.frame(selection$selection) && nrow(selection$selection)) {
+      pii_cols <- intersect(c("unique_student_ids"), names(selection$selection))
+      selection$selection[pii_cols] <- NULL
+    }
+    s$calc_muestra_aulas_selection <- selection
+  }
   # No limpiar s$monitoreo_territorial_map_cache ni
   # s$monitoreo_snapshot$territorial_report_cache: son caches persistentes,
   # versionadas y acotadas para acelerar Monitoreo territorial al abrir un
@@ -1277,6 +1295,8 @@
     length(bases) > 0L ||
     length(s$monitoreo_sources %||% list()) > 0L ||
     .pulso_snapshot_has_content(s$monitoreo_snapshot %||% NULL) ||
+    .pulso_snapshot_has_content(s$monitoreo_aulas_snapshot %||% NULL) ||
+    length(s$monitoreo_aulas_plan %||% list()) > 0L ||
     length(s$monitoreo_territorial_map_cache %||% list()) > 0L
 }
 

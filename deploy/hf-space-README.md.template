@@ -3,8 +3,8 @@ title: {{TITLE}}
 emoji: 📊
 colorFrom: indigo
 colorTo: blue
-sdk: docker
-app_port: 7860
+sdk: {{SDK}}
+{{APP_PORT_LINE}}
 pinned: false
 license: mit
 short_description: {{SHORT_DESCRIPTION}}
@@ -20,6 +20,4 @@ short_description: {{SHORT_DESCRIPTION}}
 - **Tipo de artefacto**: {{ARTIFACT_KIND}}
 - **Alcance público**: {{PUBLIC_SCOPE}}
 
-> Este Space corre la API REST en R (Plumber) detrás del frontend React.
-> Solo expone endpoints read-only del artefacto publicado. La edición,
-> sincronización y republicación se hacen desde la app local de Prosecnur.
+{{RUNTIME_NOTE}}

@@ -9,6 +9,7 @@
 
 AUDIT_REFERENCE_NAME <- "Auditoria Canonica Prosecnur"
 AUDIT_REFERENCE_BASE <- "auditoria"
+AUDIT_REFERENCE_PANEL_BASE <- "auditoria_ola2"
 
 audit_reference_dir <- function() {
   installed <- system.file("audit_reference", package = "prosecnurapp")
@@ -25,6 +26,7 @@ audit_reference_fixture_paths <- function(dir = audit_reference_dir()) {
     dir = dir,
     xlsform = file.path(dir, "auditoria_canonica_xlsform.xlsx"),
     data = file.path(dir, "auditoria_canonica_data.xlsx"),
+    data_panel = file.path(dir, "auditoria_canonica_data_ola2.xlsx"),
     project = audit_reference_project_path(dir),
     metadata = file.path(dir, "auditoria_canonica_manifest.json")
   )
@@ -336,6 +338,28 @@ audit_reference_fixture_paths <- function(dir = audit_reference_dir()) {
   )
 }
 
+.audit_reference_panel_data <- function(n = 72L) {
+  out <- .audit_reference_data(n)
+  idx <- seq_len(nrow(out))
+  out$fecha <- as.Date(out$fecha) + 28L
+  out$enumerador <- sprintf("E%02d", ((idx + 2L) %% 8L) + 1L)
+  out$satisfaccion <- as.character(pmin(5L, as.integer(out$satisfaccion) + ifelse(idx %% 3L == 0L, 1L, 0L)))
+  out$acuerdo <- as.character(pmax(1L, as.integer(out$acuerdo) - ifelse(idx %% 4L == 0L, 1L, 0L)))
+  out$puntaje <- pmin(100L, suppressWarnings(as.integer(out$puntaje)) + ifelse(idx %% 2L == 0L, 4L, 1L))
+  out$estado <- ifelse(idx %% 17L == 0L, "rejected", ifelse(idx %% 5L == 0L, "approved", "completed"))
+  out$comentario_open <- ifelse(
+    idx %% 6L == 0L,
+    "Se observo mejora respecto a la primera ola.",
+    out$comentario_open
+  )
+  out$recomendacion_open <- ifelse(
+    idx %% 7L == 0L,
+    "Reforzar recordatorios antes de la visita.",
+    out$recomendacion_open
+  )
+  out
+}
+
 .audit_reference_write_workbook <- function(path, sheets) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete openxlsx es necesario para generar la auditoria canonica.", call. = FALSE)
@@ -361,11 +385,13 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
     )
   )
   .audit_reference_write_workbook(paths$data, list(data = .audit_reference_data()))
+  .audit_reference_write_workbook(paths$data_panel, list(data = .audit_reference_panel_data()))
   meta <- list(
     name = AUDIT_REFERENCE_NAME,
     generated_at = .audit_reference_now(),
     xlsform = basename(paths$xlsform),
-    data = basename(paths$data)
+    data = basename(paths$data),
+    data_panel = basename(paths$data_panel)
   )
   writeLines(
     jsonlite::toJSON(meta, auto_unbox = TRUE, pretty = TRUE),
@@ -373,6 +399,78 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
     useBytes = TRUE
   )
   paths
+}
+
+.audit_reference_aulas_base_madre <- function() {
+  n_aulas <- 12L
+  rows_por_aula <- 8L
+  total <- n_aulas * rows_por_aula
+  aula_idx <- rep(seq_len(n_aulas), each = rows_por_aula)
+  student_idx <- seq_len(total)
+  facultades <- c("FAC Ciencias Sociales", "FAC Ingenieria", "FAC Educacion")
+  programas <- c("Sociologia", "Industrial", "Educacion", "Gestion", "Sistemas", "Psicologia")
+  data.frame(
+    student_id = sprintf("ALU%04d", student_idx),
+    aula_id = sprintf("AUL%02d", aula_idx),
+    curso_id = sprintf("CUR%02d", aula_idx),
+    curso = paste("Curso auditoria", aula_idx),
+    horario = .audit_reference_pick(c("L 08:00", "M 10:00", "J 14:00", "V 16:00"), total),
+    seccion = sprintf("%02d", aula_idx),
+    modalidad = "presencial",
+    tipo_sesion = "teoria",
+    docente = sprintf("Docente %02d", aula_idx),
+    correo_docente = sprintf("docente%02d@example.test", aula_idx),
+    facultad = .audit_reference_pick(facultades, total, offset = 1L),
+    programa = .audit_reference_pick(programas, total, offset = 2L),
+    sexo = .audit_reference_pick(c("F", "M"), total),
+    edad = 18L + (student_idx %% 7L),
+    condicion = "regular",
+    nivel = "pregrado",
+    matriculados = rows_por_aula,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+}
+
+.audit_reference_calc_muestra_aulas <- function() {
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(
+      min_eligible_per_class = 4L,
+      require_adult = TRUE,
+      require_undergraduate = TRUE,
+      require_in_person = TRUE
+    ),
+    selector = list(
+      seed = 20260531L,
+      n_aulas = 4L,
+      replacement_waves = 1L,
+      selector_engine = "cube_balanceado",
+      strata_cols = list("faculty"),
+      balance_vars = list("faculty", "program", "sex_top_1"),
+      simulation_runs = 12L,
+      monte_carlo_n = 12L
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(
+    base_madre = .audit_reference_aulas_base_madre(),
+    config = cfg
+  )
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+  comparison <- tryCatch(
+    calc_muestra_aulas_comparar_metodos(frame, cfg, simulation_runs = 12L),
+    error = function(e) NULL
+  )
+  replacement <- tryCatch(
+    calc_muestra_aulas_simular_reemplazos(frame, selection, cfg),
+    error = function(e) NULL
+  )
+  list(
+    config = cfg,
+    frame = frame,
+    selection = selection,
+    method_comparison = comparison,
+    replacement_simulation = replacement
+  )
 }
 
 .audit_reference_calc_muestra <- function() {
@@ -398,6 +496,10 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
       tipo_cliente = "interno",
       descripcion_libre = "Fixture sintetico para auditoria local reproducible."
     ),
+    workspace = list(
+      frame_mode = "acreditacion",
+      escenarios_auditados = as.list(c("acreditacion", "marco_propio", "opinion_universitaria"))
+    ),
     componentes = comps
   ))
   calc_muestra_calcular_estudio(estudio)
@@ -416,6 +518,275 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
       seed = 20260531L
     )),
     error = function(e) list(territorios = territorios, n_objetivo = 24L)
+  )
+}
+
+.audit_reference_hojas_ruta_state <- function() {
+  cfg <- .audit_reference_hojas_ruta_config()
+  population <- tryCatch(hojas_ruta_population_preview_integrado(cfg), error = function(e) NULL)
+  sample_size <- tryCatch(hojas_ruta_sample_size_preview(cfg), error = function(e) NULL)
+  quota <- tryCatch(hojas_ruta_quota_preview_integrado(cfg), error = function(e) NULL)
+  sample <- tryCatch(hojas_ruta_sample_preview_integrado(cfg), error = function(e) NULL)
+  outputs <- .hojas_ruta_workspace_outputs_normalize(list(
+    population = population,
+    sample_size_preview = sample_size,
+    quota = quota,
+    sample = sample
+  ))
+  ui_state <- .hojas_ruta_ui_state_normalize(
+    list(active_stage = if (!is.null(sample) && isTRUE(sample$ok)) "entrega" else "territorio"),
+    cfg
+  )
+  run <- .hojas_ruta_run_normalize(
+    list(
+      config = cfg,
+      ui_state = ui_state,
+      workspace_outputs = outputs,
+      pilot_exclusion_mode = "ignore"
+    ),
+    "field"
+  )
+  list(
+    config = run$config,
+    ui_state = run$ui_state,
+    workspace_outputs = run$workspace_outputs,
+    runs = list(field = run),
+    active_phase = "field"
+  )
+}
+
+.audit_reference_codificacion_state <- function() {
+  comentario_respuestas <- as.list(c(
+    "Necesita seguimiento y comunicacion mas clara.",
+    "La experiencia fue positiva.",
+    "Sin comentario adicional."
+  ))
+  recomendacion_respuestas <- as.list(c(
+    "Mejorar tiempos de respuesta.",
+    "Mantener canales actuales."
+  ))
+  list(
+    familias_draft = list(
+      rows = list(
+        list(
+          tipo = "text",
+          modo_so = "",
+          parent = "comentario_open",
+          parent_label = "Comentario abierto",
+          list_norm = "",
+          parent_col = "comentario_open",
+          text_col = "comentario_open",
+          use = TRUE,
+          q_order = 19L
+        ),
+        list(
+          tipo = "text",
+          modo_so = "",
+          parent = "recomendacion_open",
+          parent_label = "Recomendacion abierta",
+          list_norm = "",
+          parent_col = "recomendacion_open",
+          text_col = "recomendacion_open",
+          use = TRUE,
+          q_order = 26L
+        )
+      ),
+      source = "audit_reference",
+      updated_at = .audit_reference_now()
+    ),
+    familias_generated = TRUE,
+    marcadas = list(comentario_open = TRUE, recomendacion_open = TRUE),
+    respuestas_recod = list(
+      comentario_open = comentario_respuestas,
+      recomendacion_open = recomendacion_respuestas
+    ),
+    grupos_recod = list(
+      comentario_open = list(
+        list(
+          codigo = "101",
+          label = "Seguimiento y comunicacion",
+          etiqueta = "Seguimiento y comunicacion",
+          origen = "audit_reference",
+          respuestas = as.list(c("Necesita seguimiento y comunicacion mas clara."))
+        ),
+        list(
+          codigo = "102",
+          label = "Experiencia positiva o neutra",
+          etiqueta = "Experiencia positiva o neutra",
+          origen = "audit_reference",
+          respuestas = as.list(c("La experiencia fue positiva.", "Sin comentario adicional."))
+        )
+      ),
+      recomendacion_open = list(
+        list(
+          codigo = "201",
+          label = "Mejorar tiempos",
+          etiqueta = "Mejorar tiempos",
+          origen = "audit_reference",
+          respuestas = as.list(c("Mejorar tiempos de respuesta."))
+        ),
+        list(
+          codigo = "202",
+          label = "Mantener canales",
+          etiqueta = "Mantener canales",
+          origen = "audit_reference",
+          respuestas = as.list(c("Mantener canales actuales."))
+        )
+      )
+    ),
+    plantilla_template = TRUE
+  )
+}
+
+.audit_reference_analitica_config <- function() {
+  cfg <- .analitica_default_config()
+  cfg$fuente_preferida <- "originales"
+  cfg$panel$key <- "response_id"
+  cfg$panel$waves <- list(
+    list(base = AUDIT_REFERENCE_BASE, label = "Ola 1", suffix = "ola1", order = 1L),
+    list(base = AUDIT_REFERENCE_PANEL_BASE, label = "Ola 2", suffix = "ola2", order = 2L)
+  )
+  cfg$panel$nse$enabled <- FALSE
+  cfg$panel$outputs <- list(
+    codebook = TRUE,
+    frecuencias = TRUE,
+    auditoria = TRUE,
+    cobertura_nse = FALSE
+  )
+  cfg
+}
+
+.audit_reference_graficos_config <- function(sid) {
+  cfg <- .graficos_default_config(sid)
+  cfg$plan$slides <- list(
+    list(
+      id = "audit-cover",
+      tipo = "p_slide_portada",
+      payload = list(
+        titulo = AUDIT_REFERENCE_NAME,
+        subtitulo = "Auditoria reproducible de modulos Prosecnur"
+      )
+    ),
+    list(
+      id = "audit-section",
+      tipo = "p_slide_seccion",
+      payload = list(
+        titulo = "Resultados sinteticos",
+        subtitulo = "Base auditora"
+      )
+    ),
+    list(
+      id = "audit-satisfaccion",
+      tipo = "p_slide_1_grafico",
+      payload = list(
+        titulo = "Satisfaccion general",
+        grafico = list(
+          graficador = "p_barras",
+          args = list(var = paste0(AUDIT_REFERENCE_BASE, "$satisfaccion"))
+        )
+      )
+    ),
+    list(
+      id = "audit-servicios",
+      tipo = "p_slide_1_grafico",
+      payload = list(
+        titulo = "Servicios usados",
+        grafico = list(
+          graficador = "p_barras",
+          args = list(var = paste0(AUDIT_REFERENCE_BASE, "$servicios"))
+        )
+      )
+    )
+  )
+  cfg$selected_slide_id <- "audit-satisfaccion"
+  cfg$view_mode <- "timeline"
+  cfg
+}
+
+.audit_reference_monitoreo_state <- function(aulas, estudio) {
+  cfg_aulas <- monitoreo_aulas_from_calc(estudio, aulas$selection, aulas$frame, list(
+    source_mapping = list(
+      classroom_id_var = "classroom_id",
+      status_var = "response_status",
+      collector_var = "collector_id",
+      valid_statuses = as.list(c("completed", "valid", "aprobado"))
+    )
+  ))
+  plan_df <- .monitoreo_aulas_df(cfg_aulas$plan, "plan")
+  responses <- if (nrow(plan_df)) {
+    data.frame(
+      response_id = sprintf("AUL-RESP-%03d", seq_len(min(12L, nrow(plan_df) * 2L))),
+      classroom_id = rep(plan_df$classroom_id, each = 2L)[seq_len(min(12L, nrow(plan_df) * 2L))],
+      response_status = .audit_reference_pick(c("completed", "valid", "rejected"), min(12L, nrow(plan_df) * 2L)),
+      collector_id = sprintf("COL-%02d", seq_len(min(12L, nrow(plan_df) * 2L))),
+      synced_at = .audit_reference_now(),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  } else {
+    data.frame()
+  }
+  dashboard_aulas <- monitoreo_aulas_dashboard(cfg_aulas$plan, responses, cfg_aulas)
+  cfg <- monitoreo_normalize_config(
+    list(
+      project_name = AUDIT_REFERENCE_NAME,
+      monitoreo_profile = list(
+        family = "aulas_universitarias",
+        status = "active",
+        route_selected = TRUE
+      ),
+      aulas_universitarias = cfg_aulas
+    ),
+    responses
+  )
+  dashboard <- monitoreo_build_dashboard(responses, cfg, include_reports = TRUE)
+  dashboard$aulas_universitarias_reports <- dashboard_aulas
+  scenarios <- list(
+    acreditacion = tryCatch(monitoreo_publish_qa_fixture("acreditacion"), error = function(e) NULL),
+    territorial = tryCatch(monitoreo_publish_qa_fixture("territorial"), error = function(e) NULL),
+    aulas_universitarias = list(
+      family = "aulas_universitarias",
+      data = responses,
+      config = cfg,
+      dashboard = dashboard_aulas,
+      synced_at = .audit_reference_now()
+    )
+  )
+  list(
+    sources = list(
+      list(
+        id = "audit_aulas",
+        kind = "survey",
+        role = "aulas_universitarias",
+        label = "Aplicacion en aulas - fixture auditoria",
+        enabled = TRUE,
+        updated_at = .audit_reference_now()
+      )
+    ),
+    config = cfg,
+    snapshot = list(
+      synced_at = .audit_reference_now(),
+      data = responses,
+      config = cfg,
+      dashboard = dashboard,
+      variables = if (nrow(responses)) monitoreo_variables(responses) else list(),
+      errors = list()
+    ),
+    aulas_config = cfg_aulas,
+    aulas_plan = cfg_aulas$plan,
+    aulas_dashboard = dashboard_aulas,
+    aulas_snapshot = list(
+      synced_at = .audit_reference_now(),
+      dashboard = dashboard_aulas,
+      response_rows = as.integer(nrow(responses))
+    ),
+    aulas_publication = list(
+      publication_family = "university_classroom_fieldwork",
+      imported_at = cfg_aulas$imported_at,
+      selection_run_id = cfg_aulas$selection_run_id,
+      frame_hash = cfg_aulas$frame_hash
+    ),
+    scenarios = Filter(Negate(is.null), scenarios)
   )
 }
 
@@ -479,12 +850,22 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
     basename(paths$data),
     readBin(paths$data, "raw", n = file.info(paths$data)$size)
   )
+  d2meta <- save_upload(
+    sid,
+    "data",
+    basename(paths$data_panel),
+    readBin(paths$data_panel, "raw", n = file.info(paths$data_panel)$size)
+  )
 
   rp_inst <- reporte_instrumento(path = xmeta$path)
   data_raw <- as.data.frame(readxl::read_excel(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
   data_norm <- normalize_data_for_xlsform(data_raw, rp_inst)
   .carga_assert_data_xlsform_compatible(data_norm, rp_inst)
   rp_data <- reporte_data(data_norm, instrumento = rp_inst)
+  data_panel_raw <- as.data.frame(readxl::read_excel(d2meta$path), stringsAsFactors = FALSE, check.names = FALSE)
+  data_panel_norm <- normalize_data_for_xlsform(data_panel_raw, rp_inst)
+  .carga_assert_data_xlsform_compatible(data_panel_norm, rp_inst)
+  rp_data_panel <- reporte_data(data_panel_norm, instrumento = rp_inst)
   inst_limpieza <- leer_xlsform_limpieza(xmeta$path, verbose = FALSE)
 
   session_set(sid, "instrumento", inst_limpieza)
@@ -505,8 +886,34 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
     n_filas = as.integer(nrow(data_norm)),
     n_columnas = as.integer(ncol(data_norm))
   )
+  estudio_add_base(
+    sid,
+    nombre = AUDIT_REFERENCE_PANEL_BASE,
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = d2meta$file_id,
+    data_ext = d2meta$ext,
+    rp_data = rp_data_panel,
+    rp_inst = rp_inst,
+    n_filas = as.integer(nrow(data_panel_norm)),
+    n_columnas = as.integer(ncol(data_panel_norm)),
+    extra_meta = list(wave_label = "Ola 2", panel_role = "follow_up")
+  )
+  estudio_active_base_set(sid, AUDIT_REFERENCE_BASE)
+  codif <- list()
+  codif[[AUDIT_REFERENCE_BASE]] <- .audit_reference_codificacion_state()
+  session_set(sid, "codif_por_base", codif)
+
   session_set(sid, "analitica_prep_ok", TRUE)
   session_set(sid, "analitica_fuente", "audit_reference:auditoria")
+  .analitica_config_set(sid, .audit_reference_analitica_config())
+  panel_preview <- tryCatch(
+    .analitica_panel_preview(sid, .audit_reference_analitica_config()$panel, rows = 12L),
+    error = function(e) NULL
+  )
+  if (is.list(panel_preview)) {
+    session_set(sid, "analitica_panel_ok", TRUE)
+    session_set(sid, "analitica_panel_preview", panel_preview)
+  }
   session_set(sid, "xlsform_state", .audit_reference_xlsform_editor_state(paths))
 
   .dashboard_import_source(
@@ -531,21 +938,54 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
   session_set(sid, "rp_dim_config", dim_out$dim_cfg)
   session_set(sid, "analitica_dim_ok", TRUE)
 
-  session_set(sid, "calc_muestra_estudio", .audit_reference_calc_muestra())
+  calc_estudio <- .audit_reference_calc_muestra()
+  aulas <- .audit_reference_calc_muestra_aulas()
+  session_set(sid, "calc_muestra_estudio", calc_estudio)
   session_set(sid, "calc_muestra_reporte", list(disponible = FALSE))
+  session_set(sid, "calc_muestra_aulas_config", aulas$config)
+  session_set(sid, "calc_muestra_aulas_frame", aulas$frame)
+  session_set(sid, "calc_muestra_aulas_selection", aulas$selection)
+  session_set(sid, "calc_muestra_aulas_method_comparison", aulas$method_comparison)
+  session_set(sid, "calc_muestra_aulas_replacement_simulation", aulas$replacement_simulation)
 
-  mon <- monitoreo_demo_payload(seed = 20260531L, n = 80L)
+  .graficos_config_set(sid, .audit_reference_graficos_config(sid))
+  .graficos_status_set(sid, "graficos_ppt_ok", FALSE)
+  .graficos_status_set(sid, "graficos_word_ok", FALSE)
+
+  mon <- .audit_reference_monitoreo_state(aulas, calc_estudio)
   session_set(sid, "monitoreo_sources", mon$sources)
   session_set(sid, "monitoreo_config", mon$config)
   session_set(sid, "monitoreo_snapshot", mon$snapshot)
+  session_set(sid, "monitoreo_aulas_plan", mon$aulas_plan)
+  session_set(sid, "monitoreo_aulas_snapshot", mon$aulas_snapshot)
+  session_set(sid, "monitoreo_aulas_publication", mon$aulas_publication)
 
-  session_set(sid, "hojas_ruta_config", .audit_reference_hojas_ruta_config())
-  session_set(sid, "hojas_ruta_ui_state", list(active_stage = "territorio"))
+  hojas <- .audit_reference_hojas_ruta_state()
+  session_set(sid, "hojas_ruta_config", hojas$config)
+  session_set(sid, "hojas_ruta_ui_state", hojas$ui_state)
+  session_set(sid, "hojas_ruta_workspace_outputs", hojas$workspace_outputs)
+  session_set(sid, "hojas_ruta_runs", hojas$runs)
+  session_set(sid, "hojas_ruta_active_phase", hojas$active_phase)
   session_set(sid, "audit_reference", list(
     name = AUDIT_REFERENCE_NAME,
     generated_at = .audit_reference_now(),
     base = AUDIT_REFERENCE_BASE,
-    schema_version = 1L
+    panel_base = AUDIT_REFERENCE_PANEL_BASE,
+    schema_version = 2L,
+    coverage = list(
+      monitoreo_families = as.list(c("acreditacion", "territorial", "aulas_universitarias")),
+      calc_muestra = list(
+        macro_families = as.list(c("acreditacion", "marco_propio", "opinion_universitaria")),
+        aulas_selection = TRUE
+      ),
+      hojas_ruta = list(has_sample = !is.null(hojas$workspace_outputs$sample)),
+      dashboard = TRUE,
+      xlsform_editor = TRUE,
+      graficos_plan = TRUE,
+      codificacion = TRUE,
+      analitica_panel = is.list(panel_preview)
+    ),
+    monitoreo_scenarios = mon$scenarios
   ))
 
   sid
@@ -577,6 +1017,7 @@ audit_reference_build <- function(
     project_sha256 = checksum,
     xlsform_path = normalizePath(paths$xlsform, mustWork = FALSE),
     data_path = normalizePath(paths$data, mustWork = FALSE),
+    data_panel_path = normalizePath(paths$data_panel, mustWork = FALSE),
     app_version = .audit_reference_app_version(),
     git_sha = .audit_reference_git_sha()
   )

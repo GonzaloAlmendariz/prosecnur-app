@@ -127,18 +127,22 @@ test_that("frame oficial INEI 2017 queda disponible sin reemplazar default", {
   expect_true(meta$audit$available)
 })
 
-test_that("NSE Lima INEI y zonas censales oficiales reportan cobertura", {
+test_that("NSE oficial GeoPeru INEI y zonas censales oficiales reportan cobertura", {
   nse <- hojas_ruta_nse_inei(required = TRUE)
-  expect_true(nrow(nse) > 90000L)
+  expect_true(nrow(nse) > 118000L)
   expect_setequal(
     sort(unique(nse$nse_nivel)),
-    c("ALTO", "BAJO", "MEDIO", "MEDIO ALTO", "MEDIO BAJO")
+    c("ALTO", "BAJO", "MEDIO", "MEDIO ALTO", "MEDIO BAJO", "SIN DATA")
   )
-  expect_false(any(grepl("^0701", nse$ubigeo)))
+  expect_true(any(grepl("^0701", nse$ubigeo)))
+  expect_true(any(grepl("^1501", nse$ubigeo)))
   nse_meta <- .hojas_ruta_nse_meta(nse)
   expect_true(nse_meta$available)
-  expect_gte(nse_meta$coverage_rate, 0.98)
-  expect_gte(nse_meta$matched_blocks, 90000L)
+  expect_true(nse_meta$callao_available)
+  expect_true(nse_meta$official)
+  expect_equal(nse_meta$coverage, "Lima Metropolitana y Callao")
+  expect_gte(nse_meta$coverage_rate, 1)
+  expect_gte(nse_meta$matched_blocks, 118000L)
 
   zones <- hojas_ruta_cartografia_zonas_meta()
   expect_true(zones$available)
@@ -1421,6 +1425,10 @@ test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
   report <- openxlsx::read.xlsx(report_path, sheet = "Hojas_de_ruta", startRow = 6)
   expect_equal(nrow(report), res$n_blocks + res$n_replacement_blocks)
   expect_setequal(unique(report$Tipo), c("Titular", "Reemplazo"))
+  expect_true(all(c("NSE", "Codigo.NSE", "Estado.NSE") %in% names(report)))
+  expect_true(all(report$Estado.NSE == "Disponible"))
+  expect_true(any(report$Distrito == "Ventanilla"))
+  expect_true(all(report$Estado.NSE[report$Distrito == "Ventanilla"] == "Disponible"))
   expect_true(all(!is.na(report$Rango.encuestas)))
   expect_true(all(report$Estado == "Pendiente"))
   replacement_report <- report[report$Tipo == "Reemplazo", , drop = FALSE]
@@ -1469,6 +1477,12 @@ test_that("hojas_ruta_write_integrated_workbook tolera metadata opcional vacia",
   expect_true(all(c("Fuente", "Parametros", "Hojas_ruta_tecnica") %in% openxlsx::getSheetNames(out_xlsx)))
   fuente <- openxlsx::read.xlsx(out_xlsx, sheet = "Fuente")
   params <- openxlsx::read.xlsx(out_xlsx, sheet = "Parametros")
+  technical_routes <- openxlsx::read.xlsx(out_xlsx, sheet = "Hojas_ruta_tecnica")
   expect_true(all(c("campo", "valor") %in% names(fuente)))
   expect_true(all(c("parametro", "valor") %in% names(params)))
+  expect_true(all(c(
+    "NSE", "Codigo.NSE", "Estado.NSE", "Metodo.NSE", "Distancia.NSE.(m)",
+    "Ingreso.per.capita.NSE", "Personas.NSE", "Hogares.NSE", "IDMZ18.NSE"
+  ) %in% names(technical_routes)))
+  expect_true(any(technical_routes$Estado.NSE == "Disponible"))
 })

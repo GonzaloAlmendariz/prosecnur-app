@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   Grid3x3,
   GitBranch,
+  GitMerge,
   Layers,
   type LucideIcon,
 } from "lucide-react";
@@ -27,9 +28,10 @@ import { BasesPane } from "./panes/BasesPane";
 import { DimensionesPane } from "./panes/DimensionesPane";
 import { DataReviewPane } from "./panes/DataReviewPane";
 import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
+import { PanelBasePane } from "./panes/PanelBasePane";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
-type Reporte = "datos" | "codebook" | "bases" | "frecuencias" | "multibase" | "cruces" | "dimensiones";
+type Reporte = "datos" | "codebook" | "bases" | "frecuencias" | "multibase" | "panel" | "cruces" | "dimensiones";
 
 type ReporteMeta = {
   key: Reporte;
@@ -44,6 +46,7 @@ const REPORTES: ReporteMeta[] = [
   { key: "bases",        label: "Bases e instrumento", icon: Database,  desc: "Data, XLSForm y exportables" },
   { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Tablas univariadas" },
   { key: "multibase",    label: "Tablas multibase",  icon: GitBranch, desc: "Global y hojas por llave" },
+  { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Wide por persona y ola" },
   { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Tablas 2D con semáforo" },
   { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices 0-100 jerárquicos" },
 ];
@@ -181,6 +184,7 @@ export default function AnaliticaPage() {
                     {active === "bases"        && <BasesPane />}
                     {active === "frecuencias"  && <FrecuenciasPane />}
                     {active === "multibase"    && <MultibaseTablasPane />}
+                    {active === "panel"        && <PanelBasePane />}
                     {active === "cruces"       && <CrucesPane />}
                     {active === "dimensiones"  && <DimensionesPane />}
                   </>
@@ -270,6 +274,7 @@ function reporteDone(reporte: Reporte, state: ReturnType<typeof useSession>["sta
   if (reporte === "bases") return !!state.analitica_spss_ok;
   if (reporte === "frecuencias") return !!state.analitica_frecuencias_ok;
   if (reporte === "multibase") return !!state.analitica_multibase_ok;
+  if (reporte === "panel") return !!state.analitica_panel_ok;
   if (reporte === "cruces") return !!state.analitica_cruces_ok;
   if (reporte === "dimensiones") return !!state.analitica_dim_ok;
   return false;

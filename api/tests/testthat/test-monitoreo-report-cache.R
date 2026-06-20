@@ -200,35 +200,32 @@ test_that("inicio operativo de fase excluye solo registros claramente previos", 
   expect_equal(filtered$`_uuid`, c("despues", "sin-fecha"))
 })
 
-test_that("consultas territoriales incluyen registros limpios ademas de casos por revisar", {
+test_that("consultas territoriales solo incluyen respuestas operativas accionables", {
   audit <- data.frame(
-    response_id = c("ok-1", "sin-gps", "no-efectiva"),
-    row_index = 1:3,
-    distrito = c("SAN JUAN DE MIRAFLORES", "SAN JUAN DE MIRAFLORES", "SAN JUAN DE MIRAFLORES"),
-    ubigeo = rep("150133", 3),
-    declared_ump_raw = c("81", "81", "82"),
-    responsible_display = c("P842 - Persona A", "P842 - Persona A", "P100 - Persona B"),
-    advance_valid = c(TRUE, TRUE, FALSE),
-    source_effective = c(TRUE, TRUE, FALSE),
-    geo_estado = c("geo_ok", "geo_sin_gps", "geo_ok"),
-    duration_status = c("ok", "ok", "ok"),
-    validation_status = c("validada", "revision", "validada"),
-    validation_decision = c("", "", ""),
-    observation_status = c("", "en_observacion", ""),
+    response_id = c("ok-1", "sin-gps", "no-efectiva", "no-efectiva-sin-cruce"),
+    row_index = 1:4,
+    distrito = rep("SAN JUAN DE MIRAFLORES", 4),
+    ubigeo = rep("150133", 4),
+    declared_ump_raw = c("81", "81", "82", "83"),
+    responsible_display = c("P842 - Persona A", "P842 - Persona A", "P100 - Persona B", "P100 - Persona B"),
+    advance_valid = c(TRUE, TRUE, FALSE, FALSE),
+    source_effective = c(TRUE, TRUE, FALSE, FALSE),
+    geo_estado = c("geo_ok", "geo_sin_gps", "geo_ok", "geo_sin_cruce"),
+    duration_status = c("ok", "ok", "ok", "ok"),
+    validation_status = c("validada", "revision", "validada", "no_defendible"),
+    validation_decision = c("", "", "", ""),
+    observation_status = c("", "en_observacion", "", "no_valida"),
     stringsAsFactors = FALSE
   )
 
   cases <- .monitoreo_territorial_internal_review_cases(audit, list(), phase = "field")
   types <- vapply(cases, `[[`, character(1), "type")
   reasons <- vapply(cases, `[[`, character(1), "reason")
-  statuses <- vapply(cases, `[[`, character(1), "status")
 
-  expect_equal(length(cases), nrow(audit))
-  expect_equal(types, c("record", "gps", "record"))
-  expect_equal(reasons[[1]], "sin_observacion")
-  expect_equal(statuses[[1]], "sin_observacion")
-  expect_equal(reasons[[2]], "gps_sin_gps")
-  expect_equal(reasons[[3]], "registro_no_efectivo")
+  expect_equal(length(cases), 1L)
+  expect_equal(types, "gps")
+  expect_equal(reasons, "gps_sin_gps")
+  expect_false(any(reasons %in% c("sin_observacion", "registro_no_efectivo", "gps_sin_cruce")))
 })
 
 test_that("prewarm territorial batch cachea scopes iniciales y prepara GPS una sola vez", {
