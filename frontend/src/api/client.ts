@@ -637,8 +637,14 @@ export function isSavLikeFileName(name: string) {
   return /\.sav(?:\s+\d+)?$/i.test(name.trim());
 }
 
+export function isZipLikeFileName(name: string) {
+  return /\.zip$/i.test(name.trim());
+}
+
 export function uploadKindForDataFile(file: File): UploadKind {
-  return isSavLikeFileName(file.name) ? "sav" : "data";
+  if (isSavLikeFileName(file.name)) return "sav";
+  if (isZipLikeFileName(file.name)) return "sav_bundle";
+  return "data";
 }
 
 export async function apiUpload(file: File, kind: UploadKind) {
@@ -1162,10 +1168,13 @@ export async function apiSurveyMonkeyMultibaseListSurveys(
   q = "",
   limit = 200,
   months = 6,
-  options: { forceRefresh?: boolean } = {},
+  options: { forceRefresh?: boolean; profile_id?: string; connection_profile_id?: string } = {},
 ) {
   const payload: Record<string, unknown> = { q, limit, months };
   if (options.forceRefresh) payload.force_refresh = true;
+  if (options.profile_id || options.connection_profile_id) {
+    payload.profile_id = options.profile_id ?? options.connection_profile_id;
+  }
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/surveys", {
       method: "POST",
@@ -1202,12 +1211,17 @@ export async function apiSurveyMonkeyMultibaseInspectSurvey(
   survey_id: string,
   response_limit = 5,
   base_url = "https://api.surveymonkey.com/v3",
+  options: { profile_id?: string; connection_profile_id?: string } = {},
 ) {
+  const payload: Record<string, unknown> = { survey_id, response_limit, base_url };
+  if (options.profile_id || options.connection_profile_id) {
+    payload.profile_id = options.profile_id ?? options.connection_profile_id;
+  }
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/inspect", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ survey_id, response_limit, base_url }),
+      body: JSON.stringify(payload),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -1262,12 +1276,17 @@ export async function apiSurveyMonkeyMultibaseInspectSurvey(
 export async function apiSurveyMonkeyMultibaseCollectors(
   survey_id: string,
   base_url = "https://api.surveymonkey.com/v3",
+  options: { profile_id?: string; connection_profile_id?: string } = {},
 ) {
+  const payload: Record<string, unknown> = { survey_id, base_url };
+  if (options.profile_id || options.connection_profile_id) {
+    payload.profile_id = options.profile_id ?? options.connection_profile_id;
+  }
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/collectors", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ survey_id, base_url }),
+      body: JSON.stringify(payload),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -3244,6 +3263,53 @@ export async function apiCargaData(file_id: string) {
   );
 }
 
+export type CargaPlatformProvider = "surveymonkey" | "kobo";
+
+export type CargaPlatformImportResult = {
+  ok: true;
+  provider: CargaPlatformProvider;
+  xlsform_file_id: string;
+  data_file_id: string;
+  source: Record<string, unknown>;
+  resumen: Awaited<ReturnType<typeof apiCargaInstrumento>>["resumen"];
+  preview: Awaited<ReturnType<typeof apiCargaData>>["preview"];
+  estudio?: EstudioPayload | null;
+};
+
+export async function apiCargaImportSurveyMonkey(payload: {
+  survey_id: string;
+  title?: string;
+  base_url?: string;
+  connection_profile_id?: string;
+  source_alias?: string;
+  source_channel?: string;
+  response_statuses?: string[];
+  keep_missing_status?: boolean;
+}): Promise<CargaPlatformImportResult> {
+  return handle<CargaPlatformImportResult>(
+    await apiFetch("/api/carga/platform/surveymonkey/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCargaImportKobo(payload: {
+  asset_uid: string;
+  title?: string;
+  base_url?: string;
+  connection_profile_id?: string;
+}): Promise<CargaPlatformImportResult> {
+  return handle<CargaPlatformImportResult>(
+    await apiFetch("/api/carga/platform/kobo/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 export async function apiCargaConfirmChoiceMapping() {
   return handle<{
     ok: true;
@@ -3435,6 +3501,8 @@ export type MonitoreoSource = {
   survey_title?: string;
   base_url?: string;
   connection_profile_id?: string;
+  declared_person_code_var?: string;
+  declared_person_code_label?: string;
   dimensions?: Record<string, string>;
   created_at?: string;
   last_sync_at?: string;
@@ -3531,6 +3599,8 @@ export type MonitoreoLinkCollector = {
   collector_id: string;
   collector_name: string;
   collector_type: string;
+  enabled?: boolean;
+  channel?: string;
   operational_use: MonitoreoCollectorUse;
   modality: MonitoreoStrategyPhase["modality"];
   roster_required: boolean;
@@ -3554,7 +3624,63 @@ export type MonitoreoSurveyMonkeyCollector = MonitoreoLinkCollector & {
   suggested_use: MonitoreoCollectorUse;
   configured_use: MonitoreoCollectorUse;
   url_present: boolean;
+  metadata_source?: "surveymonkey_sync" | "responses_snapshot" | "config" | string;
   warnings: string[];
+};
+
+export type MonitoreoSourceVariableStat = {
+  name: string;
+  label: string;
+  kind?: "pucp" | "cell" | "email" | "name" | "other" | string;
+  non_empty: number;
+  total: number;
+  coverage_pct?: number | null;
+  examples?: string[];
+  score?: number;
+  selected?: boolean;
+};
+
+export type MonitoreoSourceMetadata = {
+  schema?: string;
+  generated_at?: string;
+  source_count?: number;
+  survey_count?: number;
+  sources?: Array<{
+    id: string;
+    kind: MonitoreoSourceKind | string;
+    label: string;
+    survey_id?: string;
+    survey_title?: string;
+    last_sync_at?: string;
+    last_sync_mode?: string;
+    role?: string;
+  }>;
+  surveys?: Record<string, {
+    source_id: string;
+    survey_id: string;
+    title: string;
+    label?: string;
+    actor?: string;
+    channel?: string;
+    response_count?: number;
+    declared_person_code_var?: string;
+    declared_person_code_label?: string;
+    collector_count?: number;
+  }>;
+  collectors?: MonitoreoSurveyMonkeyCollector[];
+  variables_by_source?: Record<string, MonitoreoSourceVariableStat[]>;
+  sync_summary?: Record<string, unknown>;
+  error?: string;
+};
+
+export type MonitoreoChartModels = {
+  schema?: string;
+  generated_at?: string;
+  client?: Record<string, unknown>;
+  internal?: Record<string, unknown>;
+  daily_progress?: MonitoreoDailyProgressModel | Record<string, unknown>;
+  empty_reason?: string;
+  error?: string;
 };
 
 export type MonitoreoOperationalEvent = {
@@ -4264,6 +4390,7 @@ export type MonitoreoAssistedReview = {
   primary_key?: string;
   declared_code?: string;
   declared_email?: string;
+  declared_name?: string;
   candidates?: MonitoreoAssistedReviewCandidate[];
   assignment_candidates?: MonitoreoAssistedReviewCandidate[];
   warnings?: string[];
@@ -4573,6 +4700,49 @@ export type MonitoreoInternalQueryCase = {
   recovery_collector: boolean | string;
   response_row: number;
   duplicate_count: number;
+  duplicate_group_key?: string;
+  duplicate_group_size?: number;
+  counts_in_advance?: boolean | string;
+  duplicate_counting_status?: string;
+  partial_answered_questions?: number;
+  partial_total_questions?: number;
+  partial_completion_pct?: number;
+  partial_last_question?: string;
+  partial_next_question?: string;
+  identity_status?: string;
+  identity_label?: string;
+  channel_key_strategy?: string;
+  channel_key_strategy_label?: string;
+  primary_identity_label?: string;
+  primary_identity_value?: string;
+  secondary_identity_label?: string;
+  secondary_identity_value?: string;
+  review_priority?: number;
+  phone_audit?: {
+    cv_id?: string;
+    final_codpulso?: string;
+    declared_phone?: string;
+    responsible?: string;
+    phone_match_level?: string;
+    phone_number_evidence?: string;
+    recommended_action?: string;
+    link_base?: {
+      record?: string;
+      person_label?: string;
+      case_key?: string;
+      status?: string;
+      responsible?: string;
+      source?: string;
+    };
+    manual_code_base?: {
+      record?: string;
+      person_label?: string;
+      case_key?: string;
+      status?: string;
+      responsible?: string;
+      source?: string;
+    };
+  } | null;
   assisted_review?: MonitoreoAssistedReview | null;
 };
 
@@ -5588,6 +5758,14 @@ export type MonitoreoState = {
   monitoreo_profile?: MonitoreoProfile;
   has_snapshot: boolean;
   synced_at: string;
+  generated_at?: string;
+  generation_version?: string;
+  generation_status?: "complete" | "partial" | "stale" | "failed" | string;
+  source_metadata?: MonitoreoSourceMetadata | null;
+  reports?: Record<string, unknown> | null;
+  chart_models?: MonitoreoChartModels | null;
+  sync_errors?: { source_id?: string; source_label?: string; message: string }[];
+  pending_regeneration?: boolean;
   n_rows: number;
   variables: MonitoreoVariable[];
   dashboard: MonitoreoDashboard | null;
@@ -5627,6 +5805,8 @@ export type MonitoreoSourcePayload = {
   survey_title?: string;
   base_url?: string;
   connection_profile_id?: string;
+  declared_person_code_var?: string;
+  declared_person_code_label?: string;
   dimensions?: Record<string, string>;
 };
 
@@ -8166,6 +8346,16 @@ export async function apiAnaliticaPanelExport(
   );
 }
 
+export async function apiAnaliticaPanelFichaTecnica(config?: AnaliticaPanelConfig) {
+  return handle<MultiBaseResult>(
+    await apiFetch("/api/analitica/panel/ficha-tecnica", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    })
+  );
+}
+
 // El backend lee `cruces_vars`, modo, show_sig, etc. del config autosaveado.
 // `cruces` y `modo` quedan opcionales para backcompat con tests manuales.
 export async function apiAnaliticaCruces(cruces?: string, modo?: "estandar" | "dimensiones") {
@@ -8638,6 +8828,8 @@ export type GraficosShareSkippedSlide = {
   missing_variables: GraficosShareMissingVariable[];
 };
 
+export type GraficosShareAffectedSlide = GraficosShareSkippedSlide;
+
 export type GraficosShareBasePlan = {
   base_name: string;
   base_label?: string;
@@ -8660,6 +8852,7 @@ export type GraficosShareBasePlan = {
     variables_missing: number;
     missing_variables: GraficosShareMissingVariable[];
     skipped_slides: GraficosShareSkippedSlide[];
+    affected_slides: GraficosShareAffectedSlide[];
     effects: string[];
   };
   warnings: string[];
@@ -8704,12 +8897,25 @@ export type GraficosShareImportResult = {
     n_slides_skipped: number;
     missing_variables: GraficosShareMissingVariable[];
     skipped_slides: GraficosShareSkippedSlide[];
+    affected_slides: GraficosShareAffectedSlide[];
   }>;
   inspection: GraficosShareInspectResult;
 };
 
 function normalizeShareArray<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
+}
+
+function normalizeGraficosShareSlideWarnings(value: unknown): GraficosShareAffectedSlide[] {
+  return normalizeShareArray<any>(value).map((slide) => ({
+    slide_id: String(slide.slide_id ?? ""),
+    slide_title: String(slide.slide_title ?? "Slide"),
+    tipo: String(slide.tipo ?? ""),
+    missing_variables: normalizeShareArray<any>(slide.missing_variables).map((v) => ({
+      code: String(v.code ?? ""),
+      label: String(v.label ?? v.code ?? ""),
+    })),
+  }));
 }
 
 function normalizeGraficosShareInspect(raw: any): GraficosShareInspectResult {
@@ -8737,15 +8943,8 @@ function normalizeGraficosShareInspect(raw: any): GraficosShareInspectResult {
         code: String(v.code ?? ""),
         label: String(v.label ?? v.code ?? ""),
       })),
-      skipped_slides: normalizeShareArray<any>(base.impact?.skipped_slides).map((slide) => ({
-        slide_id: String(slide.slide_id ?? ""),
-        slide_title: String(slide.slide_title ?? "Slide"),
-        tipo: String(slide.tipo ?? ""),
-        missing_variables: normalizeShareArray<any>(slide.missing_variables).map((v) => ({
-          code: String(v.code ?? ""),
-          label: String(v.label ?? v.code ?? ""),
-        })),
-      })),
+      skipped_slides: normalizeGraficosShareSlideWarnings(base.impact?.skipped_slides),
+      affected_slides: normalizeGraficosShareSlideWarnings(base.impact?.affected_slides),
       effects: normalizeShareArray<any>(base.impact?.effects).map(String),
     },
     warnings: normalizeShareArray<any>(base.warnings).map(String),
@@ -8827,15 +9026,8 @@ export async function apiGraficosShareImport(packageFileId: string, selectedBase
         code: String(v.code ?? ""),
         label: String(v.label ?? v.code ?? ""),
       })),
-      skipped_slides: normalizeShareArray<any>(base.skipped_slides).map((slide) => ({
-        slide_id: String(slide.slide_id ?? ""),
-        slide_title: String(slide.slide_title ?? "Slide"),
-        tipo: String(slide.tipo ?? ""),
-        missing_variables: normalizeShareArray<any>(slide.missing_variables).map((v) => ({
-          code: String(v.code ?? ""),
-          label: String(v.label ?? v.code ?? ""),
-        })),
-      })),
+      skipped_slides: normalizeGraficosShareSlideWarnings(base.skipped_slides),
+      affected_slides: normalizeGraficosShareSlideWarnings(base.affected_slides),
     })),
     inspection: normalizeGraficosShareInspect(raw.inspection ?? {}),
   } as GraficosShareImportResult;
@@ -10216,6 +10408,7 @@ export type CodifConfigBundle = {
     exported_bases?: string[];
     contains_case_rows?: boolean;
     contains_response_match_values?: boolean;
+    warnings?: string[];
   };
 };
 
@@ -10307,6 +10500,13 @@ export type CodifImportApplyResult = {
   };
 };
 
+export type CodifExcelCategorizationPreview = {
+  ok: true;
+  source_format: "categorization_excel";
+  bundle: CodifConfigBundle;
+  preview: CodifImportPreview;
+};
+
 export async function apiCodifExportJson() {
   return handle<CodifConfigBundle>(
     await apiFetch("/api/codificacion/export-json", { headers: headers() })
@@ -10329,6 +10529,16 @@ export async function apiCodifImportJsonApply(bundle: unknown, selections: Codif
       method: "POST",
       headers: { ...headers(), "Content-Type": "application/json" },
       body: JSON.stringify({ bundle, selections, file_name: fileName ?? "" }),
+    })
+  );
+}
+
+export async function apiCodifImportExcelCategorizationPreview(fileId: string, fileName?: string) {
+  return handle<CodifExcelCategorizationPreview>(
+    await apiFetch("/api/codificacion/import-categorias-excel/preview", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ file_id: fileId, file_name: fileName ?? "" }),
     })
   );
 }
@@ -11557,6 +11767,11 @@ export type CalcMuestraWorkspaceAulasConfig = {
   selector_engine?: CalcMuestraWorkspaceAulasSelector | string;
   method_family?: string;
   min_elegibles_aula: number;
+  accepted_conditions?: string[];
+  require_undergraduate?: boolean;
+  require_adult?: boolean;
+  min_age?: number;
+  require_in_person?: boolean;
   usar_grupos_tamano: boolean;
   grupos_tamano: CalcMuestraWorkspaceAulasSizeGroup[];
   estratos_selector: string[];
@@ -11577,6 +11792,98 @@ export type CalcMuestraWorkspaceAulasConfig = {
   notas_metodologicas?: string;
 };
 
+export type CalcMuestraWorkspaceSourceMode =
+  | "base_madre"
+  | "dos_bases"
+  | "seleccion_existente";
+
+export type CalcMuestraWorkspaceSourceBinding = {
+  id: string;
+  role: "base_madre" | "estudiantes" | "catalogo_curso_horario" | "inscripciones" | "muestra_previa" | "agenda" | string;
+  label: string;
+  status?: "pendiente" | "declarada" | "cargada" | "validada" | "revisar" | string;
+  file_id?: string;
+  file_name?: string;
+  spreadsheet_id?: string;
+  sheet_name?: string;
+  available_sheets?: string[];
+  suggested_sheet?: string;
+  detected_role?: string;
+  compatibility_status?: string;
+  sheet_diagnostics?: CalcMuestraAulasSheetInspectionSheet[];
+  range?: string;
+  rows?: number;
+  columns?: number;
+  notes?: string;
+};
+
+export type CalcMuestraAulasSheetInspectionSheet = {
+  name: string;
+  rows_preview?: number;
+  columns?: number;
+  columns_sample?: string[];
+  role?: string;
+  role_label?: string;
+  confidence?: number;
+};
+
+export type CalcMuestraAulasFileInspection = {
+  type?: "workbook" | "table" | string;
+  sheets: CalcMuestraAulasSheetInspectionSheet[];
+  suggested_sheet?: string;
+  suggested_role?: string;
+  has_base_madre?: boolean;
+  sheet_names?: string[];
+};
+
+export type CalcMuestraWorkspaceVariableMapping = {
+  role: string;
+  label: string;
+  required?: boolean;
+  source_role?: string;
+  column?: string;
+  description?: string;
+};
+
+export type CalcMuestraWorkspaceCategoryValueMapping = {
+  raw: string;
+  label: string;
+  include?: boolean;
+  notes?: string;
+};
+
+export type CalcMuestraWorkspaceCategoryMapping = {
+  role: string;
+  label?: string;
+  source_role?: string;
+  column?: string;
+  values: CalcMuestraWorkspaceCategoryValueMapping[];
+};
+
+export type CalcMuestraWorkspacePublicationConfig = {
+  google_sheets_enabled?: boolean;
+  spreadsheet_id?: string;
+  spreadsheet_url?: string;
+  publication_mode?: "single_spreadsheet_multi_sheet" | "separate_outputs" | string;
+  internal_sheet_name?: string;
+  client_sheet_name?: string;
+  frame_sheet_name?: string;
+  sample_calculation_sheet_name?: string;
+  classroom_selection_sheet_name?: string;
+  replacement_sheet_name?: string;
+  operational_routes_sheet_name?: string;
+  agenda_sheet_name?: string;
+  monitoring_handoff_sheet_name?: string;
+  methodology_sheet_name?: string;
+  include_workbook?: boolean;
+  include_methodology?: boolean;
+  include_frame_audit?: boolean;
+  include_sample_calculation?: boolean;
+  include_classroom_selection?: boolean;
+  include_replacements?: boolean;
+  pii_policy?: "sin_pii_cliente" | "interno_trazabilidad" | string;
+};
+
 export type CalcMuestraWorkspace = {
   version: 2;
   frame_mode: CalcMuestraWorkspaceFrameMode;
@@ -11588,6 +11895,11 @@ export type CalcMuestraWorkspace = {
   escenarios: CalcMuestraWorkspaceEscenario[];
   notas_diseno: string;
   aulas_config?: CalcMuestraWorkspaceAulasConfig;
+  source_mode?: CalcMuestraWorkspaceSourceMode;
+  source_bindings?: CalcMuestraWorkspaceSourceBinding[];
+  variable_mappings?: CalcMuestraWorkspaceVariableMapping[];
+  category_mappings?: CalcMuestraWorkspaceCategoryMapping[];
+  publication_config?: CalcMuestraWorkspacePublicationConfig;
 };
 
 export type CalcMuestraEstudio = {
@@ -11625,7 +11937,10 @@ export type CalcMuestraAulasFrame = {
   population?: MonitoreoRow[];
   aula_frame: MonitoreoRow[];
   exclusions?: MonitoreoRow[];
+  category_profiles?: MonitoreoRow[];
   audit: MonitoreoRow[];
+  catalog_audit?: Record<string, unknown>;
+  relation_audit?: Record<string, unknown>;
   warnings: string[];
   methodology?: Record<string, unknown>;
 };
@@ -11952,13 +12267,34 @@ export async function apiCalcMuestraMarcoConfig(config: Record<string, unknown>)
   );
 }
 
+export async function apiCalcMuestraMarcoInspeccionarArchivo(file_id: string) {
+  return handle<{
+    ok: true;
+    file_id: string;
+    original_name: string;
+    inspection: CalcMuestraAulasFileInspection;
+  }>(
+    await apiFetch("/api/calc-muestra/marco/inspeccionar-archivo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id }),
+    }),
+  );
+}
+
 export async function apiCalcMuestraMarcoConstruir(payload: {
   base_madre?: MonitoreoRow[];
   base_madre_file_id?: string;
+  base_madre_sheet?: string;
   estudiantes?: MonitoreoRow[];
   estudiantes_file_id?: string;
+  estudiantes_sheet?: string;
+  catalogo_curso_horario?: MonitoreoRow[];
+  catalogo_curso_horario_file_id?: string;
+  catalogo_curso_horario_sheet?: string;
   inscripciones?: MonitoreoRow[];
   inscripciones_file_id?: string;
+  inscripciones_sheet?: string;
   config?: Record<string, unknown>;
 }) {
   return handle<{ ok: true; frame: CalcMuestraAulasFrame; state: CalcMuestraState }>(
@@ -12040,7 +12376,7 @@ export async function apiCalcMuestraIniciarEstudio(
   tipo: CalcMuestraMacroFamilia,
   variante: CalcMuestraVarianteEstudio = "vacio",
 ) {
-  return handle<{ ok: true; estudio: CalcMuestraEstudio }>(
+  return handle<{ ok: true; estudio: CalcMuestraEstudio; state?: CalcMuestraState; demo_warning?: string | null }>(
     await apiFetch("/api/calc-muestra/iniciar-estudio", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

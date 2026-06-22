@@ -374,6 +374,55 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
   tryCatch(reporte_instrumento(path = meta$path), error = function(e) NULL)
 }
 
+.carga_single_sav_from_zip <- function(zip_path) {
+  if (!requireNamespace("zip", quietly = TRUE)) {
+    stop_api(500, "E_NO_ZIP", "El paquete R 'zip' no está disponible para leer ZIP con .sav.")
+  }
+  info <- tryCatch(
+    zip::zip_list(zip_path),
+    error = function(e) stop_api(400, "E_CARGA_SAV_ZIP_BAD", paste("No se pudo leer el ZIP:", conditionMessage(e)))
+  )
+  if (!nrow(info) || !"filename" %in% names(info)) {
+    stop_api(400, "E_CARGA_SAV_ZIP_EMPTY", "El ZIP no contiene archivos .sav.")
+  }
+  entries <- info[grepl("\\.sav$", as.character(info$filename), ignore.case = TRUE, useBytes = TRUE), , drop = FALSE]
+  if (!nrow(entries)) {
+    stop_api(400, "E_CARGA_SAV_ZIP_EMPTY", "El ZIP no contiene archivos .sav.")
+  }
+  if (nrow(entries) > 1L) {
+    stop_api(
+      400,
+      "E_CARGA_SAV_ZIP_MULTI",
+      "Este flujo unicarga espera un ZIP con un solo .sav. Para varios .sav usa el flujo multibase."
+    )
+  }
+  entry_name <- as.character(entries$filename[1])
+  con <- NULL
+  tryCatch({
+    con <- unz(zip_path, entry_name, open = "rb")
+    raw <- readBin(con, what = "raw", n = 1024L * 1024L * 1024L)
+    list(filename = basename(entry_name), raw = raw)
+  }, error = function(e) {
+    stop_api(400, "E_CARGA_SAV_ZIP_EXTRACT_FAILED", sprintf(
+      "No se pudo extraer '%s' del ZIP: %s",
+      entry_name,
+      conditionMessage(e)
+    ))
+  }, finally = {
+    if (!is.null(con)) try(close(con), silent = TRUE)
+  })
+}
+
+.carga_resolve_data_upload_meta <- function(sid, meta) {
+  if (!identical(meta$kind, "sav_bundle")) return(meta)
+  extracted <- .carga_single_sav_from_zip(meta$path)
+  original_name <- extracted$filename
+  if (!nzchar(original_name) || !grepl("\\.sav$", original_name, ignore.case = TRUE)) {
+    original_name <- paste0(tools::file_path_sans_ext(meta$original_name %||% "base"), ".sav")
+  }
+  save_upload(sid, "sav", original_name, extracted$raw)
+}
+
 # Auto-init de la base "default" del estudio cuando el flujo single-base
 # (Carga manual sin pasar por demo) sube un instrumento + data. Las features
 # v2 (Validación, Codificación, Analítica multi-base) requieren que exista
@@ -525,6 +574,335 @@ estudio_init_default_base <- function(sid) {
   .register_output_file(sid, "data_normalizada", out_path, original_name = out_name)
 }
 
+.carga_parse_json_body <- function(req) {
+  body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "{}")
+  Encoding(body_raw) <- "UTF-8"
+  if (!nzchar(trimws(body_raw))) body_raw <- "{}"
+  tryCatch(
+    jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+    error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+  )
+}
+
+.carga_slug <- function(x, fallback = "fuente") {
+  value <- trimws(as.character(x %||% "")[1])
+  if (!nzchar(value)) value <- fallback
+  value <- iconv(value, to = "ASCII//TRANSLIT", sub = "")
+  value <- tolower(value)
+  value <- gsub("[^a-z0-9]+", "_", value)
+  value <- gsub("^_+|_+$", "", value)
+  if (!nzchar(value)) fallback else substr(value, 1L, 72L)
+}
+
+.carga_write_xlsx_sheet <- function(df, path, sheet = "datos") {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop_api(500, "E_NO_OPENXLSX", "openxlsx no está disponible para escribir Excel.")
+  }
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, sheet)
+  openxlsx::writeData(wb, sheet, df, withFilter = ncol(df) > 0L && nrow(df) > 0L)
+  openxlsx::freezePane(wb, sheet, firstRow = TRUE)
+  if (ncol(df)) openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.carga_write_xlsform_model <- function(model, path) {
+  if (exists(".sm_mb_write_xlsform_model", mode = "function")) {
+    return(.sm_mb_write_xlsform_model(model, path))
+  }
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop_api(500, "E_NO_OPENXLSX", "openxlsx no está disponible para escribir XLSForm.")
+  }
+  wb <- openxlsx::createWorkbook()
+  for (sheet in c("survey", "choices", "settings")) {
+    df <- model[[sheet]]
+    if (is.null(df)) df <- data.frame()
+    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::writeData(wb, sheet, df)
+    openxlsx::freezePane(wb, sheet, firstRow = TRUE)
+    if (ncol(df)) openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.carga_empty_data_for_instrument <- function(instrumento) {
+  cols <- .carga_data_survey_names(instrumento)
+  if (!length(cols)) return(data.frame())
+  stats::setNames(
+    as.data.frame(rep(list(character()), length(cols)), stringsAsFactors = FALSE, check.names = FALSE),
+    cols
+  )
+}
+
+.carga_scalar_cell <- function(value) {
+  if (is.null(value) || !length(value)) return(NA_character_)
+  if (is.atomic(value)) {
+    out <- as.character(value)
+    out <- out[!is.na(out) & nzchar(out)]
+    if (!length(out)) return(NA_character_)
+    return(paste(out, collapse = " "))
+  }
+  if (is.list(value)) {
+    atomic_items <- unlist(value, recursive = FALSE, use.names = FALSE)
+    if (length(atomic_items) && !any(vapply(atomic_items, is.list, logical(1)))) {
+      out <- as.character(atomic_items)
+      out <- out[!is.na(out) & nzchar(out)]
+      if (length(out)) return(paste(out, collapse = " "))
+    }
+    return(as.character(jsonlite::toJSON(value, auto_unbox = TRUE, null = "null")))
+  }
+  as.character(value)
+}
+
+.carga_kobo_rows_df <- function(rows) {
+  if (is.null(rows) || !length(rows)) return(data.frame())
+  cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
+  cols <- cols[!is.na(cols) & nzchar(cols)]
+  if (!length(cols)) return(data.frame())
+  out <- as.data.frame(
+    stats::setNames(rep(list(rep(NA_character_, length(rows))), length(cols)), cols),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  for (i in seq_along(rows)) {
+    row <- rows[[i]]
+    if (!is.list(row)) next
+    for (nm in intersect(names(row), cols)) {
+      out[[nm]][[i]] <- .carga_scalar_cell(row[[nm]])
+    }
+  }
+  out
+}
+
+.carga_kobo_xlsform_model <- function(detail) {
+  content <- detail$content %||% list()
+  survey <- .carga_kobo_rows_df(content$survey %||% list())
+  choices <- .carga_kobo_rows_df(content$choices %||% list())
+  settings <- .carga_kobo_rows_df(content$settings %||% list())
+  if (!nrow(settings)) {
+    title <- as.character(detail$name %||% detail$settings$name %||% "KoboToolbox")
+    settings <- data.frame(
+      form_title = title,
+      form_id = .carga_slug(title, "kobo_form"),
+      version = format(Sys.Date(), "%Y%m%d"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+  if (nrow(survey) && all(c("type", "select_from_list_name") %in% names(survey))) {
+    type <- trimws(as.character(survey$type %||% ""))
+    list_name <- trimws(as.character(survey$select_from_list_name %||% ""))
+    needs_list <- type %in% c("select_one", "select_multiple") & nzchar(list_name)
+    survey$type[needs_list] <- paste(type[needs_list], list_name[needs_list])
+  }
+  list(survey = survey, choices = choices, settings = settings)
+}
+
+.carga_align_kobo_data <- function(df, rp_inst) {
+  df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+  for (nm in names(df)) {
+    if (is.list(df[[nm]]) && !is.data.frame(df[[nm]])) {
+      df[[nm]] <- vapply(df[[nm]], .carga_scalar_cell, character(1))
+    }
+  }
+  expected <- .carga_data_survey_names(rp_inst)
+  if (!length(expected) || !ncol(df)) return(df)
+  leaf <- function(x) {
+    out <- gsub("^.*[./]", "", as.character(x))
+    tolower(out)
+  }
+  leaf_names <- leaf(names(df))
+  for (var in expected) {
+    if (var %in% names(df)) next
+    hit <- which(leaf_names == tolower(var))
+    if (length(hit) == 1L) df[[var]] <- df[[hit]]
+  }
+  df
+}
+
+.carga_platform_finalize <- function(sid, inst_meta, data_meta, source_meta = list()) {
+  inst <- leer_instrumento_xlsform(inst_meta$path)
+  session_set(sid, "instrumento", inst)
+  session_set(sid, "inst_limpieza", NULL)
+  session_set(sid, "choice_code_maps_confirmed", NULL)
+  preview_inst <- reporte_instrumento(path = inst_meta$path)
+  preview <- read_data_preview(
+    data_meta$path,
+    data_meta$ext,
+    instrumento = preview_inst,
+    choice_code_maps = .carga_editor_choice_code_maps(sid)
+  )
+  .carga_store_choice_code_maps(
+    sid,
+    preview$normalizacion$choice_code_maps %||% list(),
+    confirmed = FALSE
+  )
+  session_set(sid, "data_raw_meta", list(file_id = data_meta$file_id, path = data_meta$path, ext = data_meta$ext))
+  estudio_init_default_base(sid)
+
+  s <- session_get(sid)
+  if (!is.null(s$estudio$bases$default) && length(source_meta)) {
+    meta <- s$estudio$bases$default
+    for (key in names(source_meta)) meta[[key]] <- source_meta[[key]]
+    if (is.null(meta$imported_at) || !nzchar(as.character(meta$imported_at))) {
+      meta$imported_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    }
+    s$estudio$bases$default <- meta
+    s <- .mark_project_dirty(s)
+    .session_env[[sid]] <- s
+  }
+
+  list(
+    resumen = summarize_instrumento(inst),
+    preview = preview,
+    estudio = if (exists(".estudio_payload", mode = "function")) .estudio_payload(sid) else NULL
+  )
+}
+
+.carga_import_surveymonkey <- function(sid, parsed) {
+  survey_id <- trimws(as.character(parsed$survey_id %||% parsed$surveyId %||% ""))
+  if (!nzchar(survey_id)) stop_api(400, "E_SM_SURVEY_REQUIRED", "Selecciona una encuesta SurveyMonkey.")
+  base_url <- trimws(as.character(parsed$base_url %||% parsed$baseUrl %||% "https://api.surveymonkey.com/v3"))
+  profile_id <- parsed$connection_profile_id %||% parsed$profile_id %||% parsed$profileId %||% NULL
+  token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
+  statuses <- as.character(unlist(parsed$response_statuses %||% parsed$responseStatuses %||% list("completed"), use.names = FALSE))
+  statuses <- statuses[!is.na(statuses) & nzchar(statuses)]
+  if (!length(statuses)) statuses <- "completed"
+  keep_missing <- isTRUE(parsed$keep_missing_status %||% parsed$keepMissingStatus)
+
+  details <- sm_api_fetch_survey_details(survey_id, token, base_url = base_url)
+  xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+  downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+  dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+
+  title <- trimws(as.character(details$title %||% parsed$title %||% paste("SurveyMonkey", survey_id)))
+  slug <- .carga_slug(title, paste0("surveymonkey_", survey_id))
+  inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_xlsform.xlsx"))
+  .carga_write_xlsform_model(xls_model, inst_path)
+  inst_meta <- save_upload(sid, "xlsform", paste0(slug, "_xlsform.xlsx"), readBin(inst_path, "raw", n = file.info(inst_path)$size))
+  rp_inst <- reporte_instrumento(path = inst_meta$path)
+
+  payload <- sm_api_fetch_all_responses_bulk(survey_id, token, base_url = base_url)
+  data_df <- sm_multibase_api_responses_to_canonical_data(
+    details = details,
+    responses = payload$data %||% list(),
+    inst = rp_inst,
+    survey_id = survey_id,
+    source_title = title,
+    source_channel = as.character(parsed$source_channel %||% parsed$channel %||% ""),
+    response_statuses = statuses,
+    keep_missing_status = keep_missing
+  )
+  response_filter <- attr(data_df, "sm_response_filter", exact = TRUE) %||% list()
+  data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+  } else {
+    .carga_empty_data_for_instrument(rp_inst)
+  }
+  .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+
+  data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_data.xlsx"))
+  .carga_write_xlsx_sheet(data_df, data_path, "datos")
+  data_meta <- save_upload(sid, "data", paste0(slug, "_data.xlsx"), readBin(data_path, "raw", n = file.info(data_path)$size))
+
+  source_spec <- list(
+    survey_id = survey_id,
+    source_title = title,
+    source_alias = trimws(as.character(parsed$source_alias %||% parsed$label %||% title)),
+    source_channel = as.character(parsed$source_channel %||% parsed$channel %||% ""),
+    response_statuses = as.list(statuses),
+    keep_missing_status = keep_missing,
+    base_url = base_url,
+    connection_profile_id = as.character(profile_id %||% "")
+  )
+  response_filter$kind <- "surveymonkey_api"
+  response_filter$survey_id <- survey_id
+  response_filter$source_title <- title
+  response_filter$imported_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+
+  finalized <- .carga_platform_finalize(sid, inst_meta, data_meta, list(
+    source_kind = "surveymonkey",
+    survey_id = survey_id,
+    source_title = title,
+    source_alias = source_spec$source_alias,
+    source_channel = source_spec$source_channel,
+    response_filter = response_filter,
+    surveymonkey_source_spec = source_spec,
+    surveymonkey_effective_data_file_id = data_meta$file_id
+  ))
+  c(list(
+    ok = TRUE,
+    provider = "surveymonkey",
+    xlsform_file_id = inst_meta$file_id,
+    data_file_id = data_meta$file_id,
+    source = source_spec
+  ), finalized)
+}
+
+.carga_import_kobo <- function(sid, parsed) {
+  asset_uid <- trimws(as.character(parsed$asset_uid %||% parsed$assetUid %||% ""))
+  if (!nzchar(asset_uid)) stop_api(400, "E_KOBO_ASSET_REQUIRED", "Selecciona un proyecto Kobo.")
+  profile_id <- parsed$connection_profile_id %||% parsed$profile_id %||% parsed$profileId %||% NULL
+  base_url <- trimws(as.character(parsed$base_url %||% parsed$baseUrl %||% ""))
+  if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+  if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+  token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
+  detail_url <- sprintf(
+    "%s/api/v2/assets/%s/?format=json",
+    .kobo_api_trim_base_url(base_url),
+    utils::URLencode(asset_uid, reserved = TRUE)
+  )
+  detail <- .kobo_api_fetch_json(detail_url, token)
+  xls_model <- .carga_kobo_xlsform_model(detail)
+
+  downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+  dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+  title <- trimws(as.character(detail$name %||% parsed$title %||% parsed$name %||% paste("Kobo", asset_uid)))
+  slug <- .carga_slug(title, paste0("kobo_", asset_uid))
+  inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_xlsform.xlsx"))
+  .carga_write_xlsform_model(xls_model, inst_path)
+  inst_meta <- save_upload(sid, "xlsform", paste0(slug, "_xlsform.xlsx"), readBin(inst_path, "raw", n = file.info(inst_path)$size))
+  rp_inst <- reporte_instrumento(path = inst_meta$path)
+
+  payload <- kobo_api_fetch_all_asset_data(asset_uid, token, base_url = base_url)
+  data_df <- kobo_api_flatten_results(payload$results %||% list())
+  data_df <- .carga_align_kobo_data(data_df, rp_inst)
+  data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+  } else {
+    .carga_empty_data_for_instrument(rp_inst)
+  }
+  .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+
+  data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_data.xlsx"))
+  .carga_write_xlsx_sheet(data_df, data_path, "datos")
+  data_meta <- save_upload(sid, "data", paste0(slug, "_data.xlsx"), readBin(data_path, "raw", n = file.info(data_path)$size))
+
+  source_meta <- list(
+    kind = "kobo_api",
+    asset_uid = asset_uid,
+    base_url = .kobo_api_trim_base_url(base_url),
+    connection_profile_id = as.character(profile_id %||% ""),
+    source_title = title,
+    total_remote = as.integer(payload$total %||% payload$count %||% nrow(data_df)),
+    imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+  finalized <- .carga_platform_finalize(sid, inst_meta, data_meta, list(
+    source_kind = "kobo",
+    survey_id = asset_uid,
+    source_title = title,
+    source_alias = title,
+    response_filter = source_meta
+  ))
+  c(list(
+    ok = TRUE,
+    provider = "kobo",
+    xlsform_file_id = inst_meta$file_id,
+    data_file_id = data_meta$file_id,
+    source = source_meta
+  ), finalized)
+}
+
 mount_carga <- function(pr) {
   pr |>
     plumber::pr_post("/api/carga/instrumento", wrap_endpoint(function(req, res, file_id = NULL) {
@@ -564,9 +942,11 @@ mount_carga <- function(pr) {
       sid <- session_header(req)
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
       meta <- get_file(sid, file_id)
-      if (!(meta$kind %in% c("data", "sav"))) {
-        stop_api(400, "E_WRONG_KIND", "file must have kind in {'data','sav'}")
+      if (!(meta$kind %in% c("data", "sav", "sav_bundle"))) {
+        stop_api(400, "E_WRONG_KIND", "file must have kind in {'data','sav','sav_bundle'}")
 	      }
+	      meta <- .carga_resolve_data_upload_meta(sid, meta)
+	      file_id <- meta$file_id
 	      preview_inst <- .carga_current_instrumento_for_data(sid)
 	      if (is.null(preview_inst)) {
 	        stop_api(
@@ -635,6 +1015,18 @@ mount_carga <- function(pr) {
       )
     })) |>
 
+    plumber::pr_post("/api/carga/platform/surveymonkey/import", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_import_surveymonkey(sid, parsed)
+    })) |>
+
+    plumber::pr_post("/api/carga/platform/kobo/import", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_import_kobo(sid, parsed)
+    })) |>
+
     # DELETE /api/carga/instrumento — limpia XLSForm cargado.
     # También limpia los artefactos derivados (rp_inst, inst_limpieza,
     # estudio) porque sin instrumento toda la cadena pierde sentido:
@@ -687,7 +1079,7 @@ mount_carga <- function(pr) {
       kept <- list()
       for (fid in names(s$files %||% list())) {
         f <- s$files[[fid]]
-        if (f$kind %in% c("data", "sav")) {
+        if (f$kind %in% c("data", "sav", "sav_bundle")) {
           tryCatch(unlink(f$path, force = TRUE), error = function(e) NULL)
         } else {
           kept[[fid]] <- f

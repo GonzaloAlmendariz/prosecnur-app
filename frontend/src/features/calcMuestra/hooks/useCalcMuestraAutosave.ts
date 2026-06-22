@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
-import { apiCalcMuestraState, apiCalcMuestraEstudioPut } from "../../../api/client";
+import { apiCalcMuestraState, apiCalcMuestraEstudioPut, type CalcMuestraState } from "../../../api/client";
 import { useCalcMuestraStore } from "../store/calcMuestraStore";
 
 // Hidrata el estudio desde el backend al montar y autosave con debounce 2s.
 // Patrón espejo de `useMuestraAulasAutosave.ts`.
-export function useCalcMuestraAutosave() {
+export function useCalcMuestraAutosave(onState?: (state: CalcMuestraState) => void) {
   const { estudio, dirty, hydrated, hydrate, markClean } = useCalcMuestraStore();
   const timerRef = useRef<number | null>(null);
 
@@ -13,7 +13,10 @@ export function useCalcMuestraAutosave() {
     let alive = true;
     apiCalcMuestraState()
       .then((s) => {
-        if (alive) hydrate(s.estudio);
+        if (alive) {
+          hydrate(s.estudio);
+          onState?.(s);
+        }
       })
       .catch((e) => {
         console.warn("[calc-muestra] hydrate fallo:", e);
@@ -22,7 +25,7 @@ export function useCalcMuestraAutosave() {
     return () => {
       alive = false;
     };
-  }, [hydrate]);
+  }, [hydrate, onState]);
 
   // Autosave con debounce
   useEffect(() => {
@@ -45,10 +48,13 @@ export function useCalcMuestraAutosave() {
   useEffect(() => {
     const onSessionChange = () => {
       apiCalcMuestraState()
-        .then((s) => hydrate(s.estudio))
+        .then((s) => {
+          hydrate(s.estudio);
+          onState?.(s);
+        })
         .catch(() => undefined);
     };
     window.addEventListener("pulso:session-changed", onSessionChange);
     return () => window.removeEventListener("pulso:session-changed", onSessionChange);
-  }, [hydrate]);
+  }, [hydrate, onState]);
 }

@@ -15,8 +15,17 @@
   grid-template-columns: 0 minmax(0, 1fr);
   gap: 0;
 }
+.dashboard-scope .dash-resumen-layout[data-sidebar="closed"][data-sidebar-reopenable="true"] {
+  --dash-dim-collapsed-gap: 12px;
+  --dash-dim-collapsed-rail: 44px;
+  grid-template-columns: var(--dash-dim-collapsed-rail) minmax(0, 1fr);
+  gap: var(--dash-dim-collapsed-gap);
+}
 .dashboard-scope .dash-resumen-layout > .dash-sidebar {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   transition:
     opacity var(--dash-dur-modal) var(--dash-ease-in-out),
     transform var(--dash-dur-modal) var(--dash-ease-in-out);
@@ -232,43 +241,41 @@
 .dashboard-scope .dash-dim-vis {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .dashboard-scope .dash-dim-vis-header {
-  align-items: flex-start;
-  border-bottom: 1px solid var(--dash-divider);
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
-  padding-bottom: 10px;
-}
-
-.dashboard-scope .dash-dim-vis-title {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.dashboard-scope .dash-dim-vis-title .dash-cardbox-title {
-  letter-spacing: -0.01em;
+  gap: 10px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0;
 }
 
 .dashboard-scope .dash-dim-vis-segmented {
+  backdrop-filter: saturate(1.14) blur(18px);
+  -webkit-backdrop-filter: saturate(1.14) blur(18px);
   background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--dash-superficie-2) 90%, var(--dash-primario) 10%) 0%,
-      color-mix(in srgb, var(--dash-superficie-2) 98%, var(--dash-primario) 2%) 100%);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 80%, var(--dash-primario) 20%);
-  border-radius: var(--dash-radius-md);
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.76), transparent 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 249, 253, 0.68)),
+    color-mix(in srgb, var(--dash-superficie) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-primario) 18%);
+  border-radius: 999px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    var(--dash-shadow-xs);
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 10px 24px rgba(15, 23, 42, 0.055),
+    0 2px 8px color-mix(in srgb, var(--dash-primario) 8%, transparent);
   display: inline-flex;
-  gap: 2px;
-  padding: 3px;
+  gap: 3px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: none;
+}
+.dashboard-scope .dash-dim-vis-segmented::-webkit-scrollbar {
+  display: none;
 }
 
 .dashboard-scope .dash-dim-vis-segment {
@@ -276,14 +283,15 @@
   appearance: none;
   background: transparent;
   border: 0;
-  border-radius: var(--dash-radius-sm);
+  border-radius: 999px;
   color: var(--dash-texto-suave);
   cursor: pointer;
   display: inline-flex;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 700;
   gap: 6px;
-  padding: 6px 10px;
+  min-height: 32px;
+  padding: 7px 12px;
   position: relative;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
@@ -319,8 +327,14 @@
       var(--dash-primario) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    var(--dash-shadow-xs);
+    0 6px 14px color-mix(in srgb, var(--dash-primario) 18%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.08);
   color: #fff;
+}
+.dashboard-scope .dash-dim-vis-segment:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
 }
 .dashboard-scope .dash-dim-vis-segment > svg {
   flex: 0 0 auto;
@@ -337,6 +351,17 @@
   gap: 12px;
   /* Animación de entrada al cambiar de modo (key={visualMode} fuerza remount). */
   animation: dash-dim-fade-in var(--dash-dur-modal) var(--dash-ease-out);
+}
+
+.dashboard-scope .dash-dim-vis-context {
+  align-items: center;
+  border-top: 1px solid var(--dash-divider);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  min-height: 34px;
+  padding-top: 10px;
 }
 
 /* Stagger de aparición sobre los elementos internos que Plotly genera —
@@ -870,8 +895,8 @@
   flex: 1;
 }
 
-/* Botón flotante para reabrir el sidebar cuando está cerrado.
- * Posicionado absoluto al margen izquierdo del main. */
+/* Botón para reabrir el sidebar cuando está cerrado.
+ * Vive en el riel reservado, nunca sobre el visualizador. */
 .dashboard-scope .dash-resumen-layout > main {
   position: relative;
 }
@@ -887,7 +912,7 @@
   display: inline-flex;
   height: 32px;
   justify-content: center;
-  left: 0;
+  left: calc((var(--dash-dim-collapsed-rail, 44px) + var(--dash-dim-collapsed-gap, 12px)) * -1);
   padding: 0;
   position: absolute;
   top: 0;
@@ -897,6 +922,16 @@
     color var(--dash-dur-hover) var(--dash-ease-out);
   width: 32px;
   z-index: 5;
+}
+@media (max-width: 900px) {
+  .dashboard-scope .dash-resumen-layout[data-sidebar="closed"][data-sidebar-reopenable="true"] {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .dashboard-scope .dash-dim-sidebar-reopen {
+    margin-bottom: 10px;
+    position: static;
+  }
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-dim-sidebar-reopen:hover {
@@ -917,6 +952,17 @@
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+.dashboard-scope .dash-cardbox.dash-dim-vis[data-visual-mode="construccion"] {
+  align-self: start;
+  width: 100%;
+}
+.dashboard-scope .dash-cardbox.dash-dim-vis[data-visual-mode="construccion"] .dash-dim-vis-body {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+.dashboard-scope .dash-cardbox.dash-dim-vis[data-visual-mode="construccion"] .dash-construccion-wrap {
+  min-height: 0;
 }
 
 /* =============================================================================

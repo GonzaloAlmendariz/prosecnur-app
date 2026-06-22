@@ -207,7 +207,9 @@
     stop(sprintf("Graficador no registrado: %s", g$graficador), call. = FALSE)
   }
   fn <- getExportedValue("prosecnurapp", g$graficador)
-  do.call(fn, .clean_rebuild_args(g$args, fn))
+  args <- .graficos_drop_blank_optional_refs(g$args %||% list())
+  if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
+  do.call(fn, .clean_rebuild_args(args, fn))
 }
 
 .graficos_rebuild_slide_json <- function(s, slide_registry = .SLIDE_REGISTRY,
@@ -438,6 +440,53 @@
   if (nzchar(active)) sprintf("Base '%s': %s", active, message) else message
 }
 
+.graficos_blank_ref_value <- function(x) {
+  is.character(x) && (!length(x) || all(!nzchar(trimws(x))))
+}
+
+.graficos_args_missing_required_ref <- function(args) {
+  if (!is.list(args)) return(FALSE)
+  for (arg_name in c("var", "objetivo")) {
+    if (!is.null(args[[arg_name]]) && .graficos_blank_ref_value(args[[arg_name]])) {
+      return(TRUE)
+    }
+  }
+  vars <- args$vars
+  if (is.character(vars) && (!length(vars) || all(!nzchar(trimws(vars))))) return(TRUE)
+  if (is.list(vars) && length(vars)) {
+    has_empty_block <- any(vapply(vars, function(value) {
+      if (is.character(value)) return(!length(value) || all(!nzchar(trimws(value))))
+      if (is.list(value)) return(.graficos_args_missing_required_ref(value))
+      FALSE
+    }, logical(1)))
+    if (has_empty_block) return(TRUE)
+  }
+  if (is.list(args$bloques) && length(args$bloques)) {
+    if (any(vapply(args$bloques, .graficos_args_missing_required_ref, logical(1)))) return(TRUE)
+  }
+  FALSE
+}
+
+.graficos_drop_blank_optional_refs <- function(args) {
+  if (!is.list(args)) return(args)
+  for (arg_name in c("cruces", "cruce", "iter_var")) {
+    if (!is.null(args[[arg_name]]) && .graficos_blank_ref_value(args[[arg_name]])) {
+      args[[arg_name]] <- NULL
+    }
+  }
+  if (is.list(args$bloques) && length(args$bloques)) {
+    args$bloques <- lapply(args$bloques, .graficos_drop_blank_optional_refs)
+  }
+  args
+}
+
+.graficos_blank_graph_element <- function() {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Se requiere el paquete 'ggplot2' para crear placeholders de graficos vacios.", call. = FALSE)
+  }
+  p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
+}
+
 .rebuild_graf <- function(g) {
   if (is.null(g)) return(NULL)
   if (is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
@@ -445,7 +494,9 @@
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
   }
   fn <- getExportedValue("prosecnurapp", g$graficador)
-  do.call(fn, .clean_rebuild_args(g$args, fn))
+  args <- .graficos_drop_blank_optional_refs(g$args %||% list())
+  if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
+  do.call(fn, .clean_rebuild_args(args, fn))
 }
 
 .rebuild_slide <- function(s) {
@@ -1992,7 +2043,9 @@ mount_graficos <- function(pr) {
         if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
         if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
         fn <- getExportedValue("prosecnurapp", g$graficador)
-        args <- promote_graph_title(g$args, fn)
+        args <- .graficos_drop_blank_optional_refs(g$args %||% list())
+        if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
+        args <- promote_graph_title(args, fn)
         args <- args[names(args) %in% names(formals(fn))]
         args <- args[!vapply(args, function(v) {
           is.null(v) ||
@@ -2206,11 +2259,51 @@ mount_graficos <- function(pr) {
             args$titulo <- NULL
             args
           }
+          blank_ref_value <- function(x) {
+            is.character(x) && (!length(x) || all(!nzchar(trimws(x))))
+          }
+          missing_required_ref <- function(args) {
+            if (!is.list(args)) return(FALSE)
+            for (arg_name in c("var", "objetivo")) {
+              if (!is.null(args[[arg_name]]) && blank_ref_value(args[[arg_name]])) return(TRUE)
+            }
+            vars <- args$vars
+            if (is.character(vars) && (!length(vars) || all(!nzchar(trimws(vars))))) return(TRUE)
+            if (is.list(vars) && length(vars)) {
+              if (any(vapply(vars, function(value) {
+                if (is.character(value)) return(!length(value) || all(!nzchar(trimws(value))))
+                if (is.list(value)) return(missing_required_ref(value))
+                FALSE
+              }, logical(1)))) return(TRUE)
+            }
+            if (is.list(args$bloques) && length(args$bloques)) {
+              if (any(vapply(args$bloques, missing_required_ref, logical(1)))) return(TRUE)
+            }
+            FALSE
+          }
+          drop_blank_optional_refs <- function(args) {
+            if (!is.list(args)) return(args)
+            for (arg_name in c("cruces", "cruce", "iter_var")) {
+              if (!is.null(args[[arg_name]]) && blank_ref_value(args[[arg_name]])) args[[arg_name]] <- NULL
+            }
+            if (is.list(args$bloques) && length(args$bloques)) {
+              args$bloques <- lapply(args$bloques, drop_blank_optional_refs)
+            }
+            args
+          }
+          blank_graph_element <- function() {
+            if (!requireNamespace("ggplot2", quietly = TRUE)) {
+              stop("Se requiere el paquete 'ggplot2' para crear placeholders de graficos vacios.")
+            }
+            p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
+          }
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", g$graficador)
-            args <- promote_graph_title(g$args, fn)
+            args <- drop_blank_optional_refs(g$args %||% list())
+            if (missing_required_ref(args)) return(blank_graph_element())
+            args <- promote_graph_title(args, fn)
             args <- args[names(args) %in% names(formals(fn))]
             args <- args[!vapply(args, function(v) {
               is.null(v) ||
@@ -2387,11 +2480,51 @@ mount_graficos <- function(pr) {
             args$titulo <- NULL
             args
           }
+          blank_ref_value <- function(x) {
+            is.character(x) && (!length(x) || all(!nzchar(trimws(x))))
+          }
+          missing_required_ref <- function(args) {
+            if (!is.list(args)) return(FALSE)
+            for (arg_name in c("var", "objetivo")) {
+              if (!is.null(args[[arg_name]]) && blank_ref_value(args[[arg_name]])) return(TRUE)
+            }
+            vars <- args$vars
+            if (is.character(vars) && (!length(vars) || all(!nzchar(trimws(vars))))) return(TRUE)
+            if (is.list(vars) && length(vars)) {
+              if (any(vapply(vars, function(value) {
+                if (is.character(value)) return(!length(value) || all(!nzchar(trimws(value))))
+                if (is.list(value)) return(missing_required_ref(value))
+                FALSE
+              }, logical(1)))) return(TRUE)
+            }
+            if (is.list(args$bloques) && length(args$bloques)) {
+              if (any(vapply(args$bloques, missing_required_ref, logical(1)))) return(TRUE)
+            }
+            FALSE
+          }
+          drop_blank_optional_refs <- function(args) {
+            if (!is.list(args)) return(args)
+            for (arg_name in c("cruces", "cruce", "iter_var")) {
+              if (!is.null(args[[arg_name]]) && blank_ref_value(args[[arg_name]])) args[[arg_name]] <- NULL
+            }
+            if (is.list(args$bloques) && length(args$bloques)) {
+              args$bloques <- lapply(args$bloques, drop_blank_optional_refs)
+            }
+            args
+          }
+          blank_graph_element <- function() {
+            if (!requireNamespace("ggplot2", quietly = TRUE)) {
+              stop("Se requiere el paquete 'ggplot2' para crear placeholders de graficos vacios.")
+            }
+            p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
+          }
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", g$graficador)
-            args <- promote_graph_title(g$args, fn)
+            args <- drop_blank_optional_refs(g$args %||% list())
+            if (missing_required_ref(args)) return(blank_graph_element())
+            args <- promote_graph_title(args, fn)
             args <- args[names(args) %in% names(formals(fn))]
             args <- args[!vapply(args, function(v) {
               is.null(v) ||

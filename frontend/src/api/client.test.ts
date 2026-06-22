@@ -219,13 +219,14 @@ describe("Graficos share package client", () => {
             selected_default: true,
             blocking: false,
             current: { n_slides: 0 },
-            incoming: { n_slides_total: 4, n_slides_applicable: 3, n_slides_skipped: 1 },
+            incoming: { n_slides_total: 4, n_slides_applicable: 4, n_slides_skipped: 0 },
             impact: {
               variables_expected: 10,
               variables_available: 9,
               variables_missing: 1,
               missing_variables: [{ code: "p2", label: "Pregunta dos" }],
-              skipped_slides: [
+              skipped_slides: [],
+              affected_slides: [
                 {
                   slide_id: "s2",
                   slide_title: "Slide P2",
@@ -235,7 +236,7 @@ describe("Graficos share package client", () => {
               ],
               effects: ["Se conserva XLSForm"],
             },
-            warnings: ["1 slide se omitira por variables no disponibles."],
+            warnings: ["1 slide se conservara con variables faltantes vacias."],
           },
         ],
       });
@@ -248,6 +249,10 @@ describe("Graficos share package client", () => {
     expect(exported.file_id).toBe("pkg-1");
     expect(inspected.summary.n_compatible).toBe(2);
     expect(inspected.bases[0].impact.missing_variables[0]).toEqual({ code: "p2", label: "Pregunta dos" });
+    expect(inspected.bases[0].incoming.n_slides_applicable).toBe(4);
+    expect(inspected.bases[0].incoming.n_slides_skipped).toBe(0);
+    expect(inspected.bases[0].impact.affected_slides[0].slide_id).toBe("s2");
+    expect(inspected.bases[0].impact.skipped_slides).toHaveLength(0);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "/api/graficos/share/export",
@@ -268,7 +273,7 @@ describe("Graficos share package client", () => {
       return jsonResponse({
         ok: true,
         imported_at: "2026-06-19T00:00:00Z",
-        applied_bases: [{ base_name: "civil", n_slides_applicable: 4, n_slides_skipped: 0 }],
+        applied_bases: [{ base_name: "civil", n_slides_applicable: 4, n_slides_skipped: 0, affected_slides: [] }],
         inspection: {
           ok: true,
           package_file_id: "pkg-1",

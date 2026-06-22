@@ -26,6 +26,18 @@ function generarId() {
   return `cmp-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function labelCanal(canal: CalcMuestraCanalRecojo) {
+  const labels: Record<CalcMuestraCanalRecojo, string> = {
+    aula_qr: "Aula con QR",
+    online_email: "Correo u online",
+    telefonico: "Telefónico",
+    presencial: "Presencial",
+    mixto: "Mixto",
+    sin_definir: "Canal por definir",
+  };
+  return labels[canal] ?? "Canal por definir";
+}
+
 type PlantillaComponente = {
   label: string;
   actor: string;
@@ -292,7 +304,7 @@ export function ComponentesPane() {
                 title={
                   yaExiste
                     ? `Ya existe un componente "${tpl.actor}". Crearás otro.`
-                    : `Crear componente "${tpl.actor}" (${tpl.canal_recojo.replace("_", " ")})`
+                    : `Crear componente "${tpl.actor}" (${labelCanal(tpl.canal_recojo)})`
                 }
                 style={{
                   display: "inline-flex",

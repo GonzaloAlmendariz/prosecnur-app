@@ -27,7 +27,7 @@
 }
 
 .dashboard-scope .dash-assembly.is-compact .dash-assembly-svg {
-  max-height: min(52vh, 520px);
+  max-height: min(44vh, 440px);
 }
 
 .dashboard-scope .dash-assembly.is-maxed .dash-assembly-svg {

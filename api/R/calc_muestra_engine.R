@@ -248,7 +248,136 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     unidad_muestreo = calc_str(ws$unidad_muestreo, ""),
     variables_control = .cm_normalize_workspace_variables(ws$variables_control),
     escenarios = .cm_normalize_workspace_escenarios(ws$escenarios),
+    source_mode = calc_enum(ws$source_mode, c("base_madre", "dos_bases", "seleccion_existente"), "base_madre"),
+    source_bindings = .cm_normalize_workspace_source_bindings(ws$source_bindings),
+    variable_mappings = .cm_normalize_workspace_variable_mappings(ws$variable_mappings),
+    publication_config = .cm_normalize_workspace_publication_config(ws$publication_config),
+    aulas_config = .cm_normalize_workspace_aulas_config(ws$aulas_config),
     notas_diseno = calc_str(ws$notas_diseno, "")
+  )
+}
+
+.cm_normalize_workspace_source_bindings <- function(items) {
+  if (is.null(items) || !is.list(items) || length(items) == 0L) return(list())
+  statuses <- c("pendiente", "declarada", "cargada", "validada", "revisar")
+  out <- lapply(items, function(item) {
+    if (!is.list(item)) return(NULL)
+    role <- calc_str(item$role, "")
+    label <- calc_str(item$label, "")
+    if (!nzchar(role) && !nzchar(label)) return(NULL)
+    list(
+      id = calc_str(item$id, .cm_random_id()),
+      role = role,
+      label = label,
+      status = calc_enum(item$status, statuses, "pendiente"),
+      file_id = calc_str(item$file_id, ""),
+      file_name = calc_str(item$file_name, ""),
+      spreadsheet_id = calc_str(item$spreadsheet_id, ""),
+      sheet_name = calc_str(item$sheet_name, ""),
+      available_sheets = as.list(unique(stats::na.omit(as.character(unlist(item$available_sheets %||% list(), use.names = FALSE))))),
+      suggested_sheet = calc_str(item$suggested_sheet, ""),
+      detected_role = calc_str(item$detected_role, ""),
+      compatibility_status = calc_str(item$compatibility_status, ""),
+      sheet_diagnostics = item$sheet_diagnostics %||% list(),
+      range = calc_str(item$range, ""),
+      rows = calc_int(item$rows, 0L, min = 0L),
+      columns = calc_int(item$columns, 0L, min = 0L),
+      notes = calc_str(item$notes, "")
+    )
+  })
+  Filter(Negate(is.null), out)
+}
+
+.cm_normalize_workspace_variable_mappings <- function(items) {
+  if (is.null(items) || !is.list(items) || length(items) == 0L) return(list())
+  out <- lapply(items, function(item) {
+    if (!is.list(item)) return(NULL)
+    role <- calc_str(item$role, "")
+    label <- calc_str(item$label, "")
+    if (!nzchar(role) && !nzchar(label)) return(NULL)
+    list(
+      role = role,
+      label = label,
+      required = calc_bool(item$required, FALSE),
+      source_role = calc_str(item$source_role, ""),
+      column = calc_str(item$column, ""),
+      description = calc_str(item$description, "")
+    )
+  })
+  Filter(Negate(is.null), out)
+}
+
+.cm_normalize_workspace_publication_config <- function(cfg) {
+  if (is.null(cfg) || !is.list(cfg)) cfg <- list()
+  list(
+    google_sheets_enabled = calc_bool(cfg$google_sheets_enabled, FALSE),
+    spreadsheet_id = calc_str(cfg$spreadsheet_id, ""),
+    spreadsheet_url = calc_str(cfg$spreadsheet_url, ""),
+    publication_mode = calc_str(cfg$publication_mode, "single_spreadsheet_multi_sheet"),
+    internal_sheet_name = calc_str(cfg$internal_sheet_name, "CalcMuestra_Aulas_Interno"),
+    client_sheet_name = calc_str(cfg$client_sheet_name, "CalcMuestra_Cliente"),
+    frame_sheet_name = calc_str(cfg$frame_sheet_name, "Marco muestral"),
+    sample_calculation_sheet_name = calc_str(cfg$sample_calculation_sheet_name, "Calculo muestral"),
+    classroom_selection_sheet_name = calc_str(cfg$classroom_selection_sheet_name, "Seleccion de aulas"),
+    replacement_sheet_name = calc_str(cfg$replacement_sheet_name, "Aulas de reemplazo"),
+    agenda_sheet_name = calc_str(cfg$agenda_sheet_name, "Agenda de aulas"),
+    methodology_sheet_name = calc_str(cfg$methodology_sheet_name, "Sustento metodologico"),
+    include_workbook = calc_bool(cfg$include_workbook, TRUE),
+    include_methodology = calc_bool(cfg$include_methodology, TRUE),
+    include_frame_audit = calc_bool(cfg$include_frame_audit, TRUE),
+    include_sample_calculation = calc_bool(cfg$include_sample_calculation, TRUE),
+    include_classroom_selection = calc_bool(cfg$include_classroom_selection, TRUE),
+    include_replacements = calc_bool(cfg$include_replacements, TRUE),
+    pii_policy = calc_str(cfg$pii_policy, "sin_pii_cliente")
+  )
+}
+
+.cm_normalize_chr_list <- function(x) {
+  as.list(unique(stats::na.omit(as.character(unlist(x %||% list(), use.names = FALSE)))))
+}
+
+.cm_normalize_workspace_aulas_config <- function(cfg) {
+  if (is.null(cfg) || !is.list(cfg)) return(list())
+  selector_values <- c(
+    "cube_balanceado",
+    "local_pivotal_balanceado",
+    "pool_controlado",
+    "sistematico_pps",
+    "estratificado_aleatorio",
+    "manual_auditable",
+    "pps_balanceado"
+  )
+  modalidad_values <- c("presencial_aula", "mixto_aula", "online_controlado")
+  list(
+    schema = calc_str(cfg$schema, "calc_muestra_workspace_aulas_v1"),
+    modalidad = calc_enum(cfg$modalidad, modalidad_values, "presencial_aula"),
+    selector = calc_enum(cfg$selector, selector_values, "cube_balanceado"),
+    selector_engine = calc_enum(cfg$selector_engine %||% cfg$selector, selector_values, "cube_balanceado"),
+    method_family = calc_str(cfg$method_family, "balanced_probability"),
+    min_elegibles_aula = calc_int(cfg$min_elegibles_aula, 15L, min = 1L, max = 10000L),
+    accepted_conditions = .cm_normalize_chr_list(cfg$accepted_conditions %||% list("regular")),
+    require_undergraduate = calc_bool(cfg$require_undergraduate, TRUE),
+    require_adult = calc_bool(cfg$require_adult, TRUE),
+    min_age = calc_int(cfg$min_age, 18L, min = 0L, max = 120L),
+    require_in_person = calc_bool(cfg$require_in_person, TRUE),
+    usar_grupos_tamano = calc_bool(cfg$usar_grupos_tamano, TRUE),
+    grupos_tamano = cfg$grupos_tamano %||% list(),
+    estratos_selector = .cm_normalize_chr_list(cfg$estratos_selector %||% c("faculty", "sex_top_1", "size_group")),
+    balance_vars = .cm_normalize_chr_list(cfg$balance_vars %||% c("faculty", "sex_top_1", "size_group", "program", "level")),
+    spread_vars = .cm_normalize_chr_list(cfg$spread_vars %||% c("program", "level", "schedule", "size_group")),
+    candidate_pool_size = calc_int(cfg$candidate_pool_size, 500L, min = 1L, max = 100000L),
+    simulation_runs = calc_int(cfg$simulation_runs, 500L, min = 0L, max = 100000L),
+    mos_strategy = calc_str(cfg$mos_strategy, "eligible_yield_winsorized"),
+    coordination_mode = calc_str(cfg$coordination_mode, "permanent_random_number"),
+    bolsas_reemplazo = calc_int(cfg$bolsas_reemplazo, 11L, min = 0L, max = 1000L),
+    aulas_extra_operativas_default = calc_int(cfg$aulas_extra_operativas_default, 1L, min = 0L, max = 1000L),
+    penalizacion_repetidos = calc_num(cfg$penalizacion_repetidos, 1.35, min = 0, max = 100),
+    pps_weight = calc_num(cfg$pps_weight, 0.25, min = 0, max = 100),
+    coverage_weight = calc_num(cfg$coverage_weight, 1, min = 0, max = 100),
+    monte_carlo_n = calc_int(cfg$monte_carlo_n, 500L, min = 0L, max = 100000L),
+    semilla = calc_int(cfg$semilla, 20260619L, min = 0L, max = .Machine$integer.max),
+    objective = cfg$objective %||% list(),
+    notas_metodologicas = calc_str(cfg$notas_metodologicas, "")
   )
 }
 
@@ -1727,7 +1856,27 @@ calc_muestra_iniciar_estudio <- function(tipo, variante = "vacio") {
 .cm_iniciar_hsvg <- function(variante, macro_familia = "encuesta_estudiantes") {
   if (identical(variante, "plantilla_pucp")) {
     res <- calc_muestra_aplicar_preset_hsvg()
-    return(list(macro_familia = macro_familia, componentes = list(res$componente)))
+    aulas_demo <- NULL
+    if (exists("calc_muestra_aulas_demo_hsvg_2025", mode = "function")) {
+      aulas_demo <- tryCatch(
+        calc_muestra_aulas_demo_hsvg_2025(),
+        error = function(e) list(error = conditionMessage(e))
+      )
+    }
+    if (is.list(aulas_demo) && is.null(aulas_demo$error) && !is.null(aulas_demo$frame$population_n)) {
+      demo_n <- calc_int(aulas_demo$frame$population_n, 0L, min = 0L)
+      if (demo_n > 0L) {
+        res$componente$marco$universo_bruto <- demo_n
+        res$componente$marco$marco_validado <- demo_n
+        res$componente$marco$marco_contactable <- demo_n
+        res$componente$marco$notas <- "Marco institucional de referencia 2025-II, sincronizado con la demo de aulas."
+      }
+    }
+    return(list(
+      macro_familia = macro_familia,
+      componentes = list(res$componente),
+      aulas_demo = aulas_demo
+    ))
   }
   comp <- calc_muestra_normalize_componente(list(
     actor = "Estudiantes pregrado",
@@ -1789,10 +1938,10 @@ calc_muestra_iniciar_estudio <- function(tipo, variante = "vacio") {
 }
 
 # ---------------------------------------------------------------------------
-# Plantilla canónica HSVG PUCP — único caso donde tiene sentido pre-cargar
-# datos estructurales (los 15 estratos de facultades con marco DTI 2025-II).
+# Plantilla canónica universitaria — único caso donde tiene sentido pre-cargar
+# datos estructurales de referencia (15 estratos de facultades 2025-II).
 # Se usa solo como punto de partida editable cuando el usuario inicia el
-# estudio HSVG con variante "plantilla_pucp".
+# estudio de estudiantes con variante legacy "plantilla_pucp".
 # ---------------------------------------------------------------------------
 
 #' Aplica el preset HSVG PUCP: 1 componente "estudiantes" con técnica
@@ -1851,7 +2000,7 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       marco_validado    = as.integer(N_total),
       marco_contactable = as.integer(N_total),
       estado            = "validado",
-      notas             = "Marco DTI semestre 2025-II, 15 facultades.",
+      notas             = "Marco institucional de referencia 2025-II, 15 facultades.",
       estratos          = estratos
     ),
     parametros      = tpl$parametros,

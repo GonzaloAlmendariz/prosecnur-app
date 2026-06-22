@@ -1052,7 +1052,8 @@ exportar_cruces_multi <- function(data,
                                   numericas        = NULL,
                                   digits           = 1,
                                   incluir_titulos  = TRUE,
-                                  incluir_secciones = TRUE) {
+                                  incluir_secciones = TRUE,
+                                  ficha_tecnica = NULL) {
 
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
 
@@ -1711,6 +1712,26 @@ exportar_cruces_multi <- function(data,
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 60)
   openxlsx::setColWidths(wb, hoja, cols = 2:200, widths = 16)
 
+  if (!identical(ficha_tecnica, FALSE) && exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    instrumento_ficha <- list(survey = survey, orders_list = orders_list)
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = data,
+        instrumento = instrumento_ficha,
+        reporte = "Cruces",
+        fuente = fuente,
+        hojas = names(wb),
+        detalles = list(
+          "Variables de cruce" = paste(CRUZAR_CON, collapse = ", "),
+          "Significancia estadistica" = if (isTRUE(show_sig)) paste0("Activada; alpha = ", alpha) else "No activada",
+          "Variables numericas declaradas" = if (length(numericas)) paste(numericas, collapse = ", ") else "Ninguna"
+        )
+      ),
+      ficha_tecnica
+    )
+  }
+
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
   message("Cruces exportados a: ", normalizePath(path_xlsx))
   invisible(path_xlsx)
@@ -2095,7 +2116,8 @@ exportar_dimensiones_multi <- function(data,
                                          bajo = "#FFFFFF",
                                          alto = "#F4B183"
                                        ),
-                                       brecha_cortes = c(0, 30)) {
+                                       brecha_cortes = c(0, 30),
+                                       ficha_tecnica = NULL) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
   estilo_metodologia <- match.arg(estilo_metodologia)
   semaforo_modo <- .dim_normalize_semaforo_modo(semaforo_modo)
@@ -3720,6 +3742,26 @@ exportar_dimensiones_multi <- function(data,
     }
   }
 
+  if (!identical(ficha_tecnica, FALSE) && exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    instrumento_ficha <- list(survey = survey, orders_list = orders_list)
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = data,
+        instrumento = instrumento_ficha,
+        reporte = "Cruces de dimensiones",
+        fuente = fuente,
+        hojas = names(wb),
+        detalles = list(
+          "Variable de filas" = fila,
+          "Variables de columnas" = if (length(cruzar_dim)) paste(cruzar_dim, collapse = ", ") else "Solo total",
+          "Semaforo" = if (isTRUE(aplicar_semaforo)) paste0("Activado; cortes ", paste(semaforo_cortes, collapse = ", ")) else "No activado"
+        )
+      ),
+      ficha_tecnica
+    )
+  }
+
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
   message("Cruces (modo dimensiones) exportados a: ", normalizePath(path_xlsx))
   invisible(path_xlsx)
@@ -3869,7 +3911,8 @@ reporte_cruces <- function(
       alto = "#F4B183"
     ),
     brecha_cortes = c(0, 30),
-    tablas           = NULL
+    tablas           = NULL,
+    ficha_tecnica    = NULL
 ) {
   modo <- match.arg(modo)
   estilo_metodologia <- match.arg(estilo_metodologia)
@@ -3974,7 +4017,8 @@ reporte_cruces <- function(
         semaforo_colores = semaforo_colores,
         aplicar_gradiente_brecha = aplicar_gradiente_brecha,
         brecha_colores = brecha_colores,
-        brecha_cortes = brecha_cortes
+        brecha_cortes = brecha_cortes,
+        ficha_tecnica = ficha_tecnica
       )
     )
   }
@@ -3999,6 +4043,7 @@ reporte_cruces <- function(
     numericas                 = numericas,
     digits                    = digits,
     incluir_titulos           = incluir_titulos,
-    incluir_secciones         = incluir_secciones
+    incluir_secciones         = incluir_secciones,
+    ficha_tecnica             = ficha_tecnica
   )
 }

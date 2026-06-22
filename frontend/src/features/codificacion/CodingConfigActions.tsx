@@ -2,9 +2,11 @@ import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, Download, FileJson, ShieldCheck, Upload, X } from "lucide-react";
 import {
+  apiCodifImportExcelCategorizationPreview,
   apiCodifExportJson,
   apiCodifImportJsonApply,
   apiCodifImportJsonPreview,
+  apiUpload,
   CodifConfigImportStrategy,
   CodifImportPreview,
   CodifImportPreviewItem,
@@ -82,7 +84,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           setDialogOpen(true);
         }}
         disabled={disabled}
-        title="Valida un JSON antes de aplicar cambios al proyecto actual."
+        title="Valida un JSON o Excel de categorizaciones antes de aplicar cambios al proyecto actual."
       >
         <Upload size={13} />
         Importar configuración...
@@ -125,10 +127,12 @@ function CodingConfigImportDialog({
     setBundle(null);
     setFileName(file.name);
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const nextPreview = await apiCodifImportJsonPreview(parsed, file.name);
-      setBundle(parsed);
+      const isExcel = /\.xlsx?$/i.test(file.name);
+      const parsed = isExcel ? null : JSON.parse(await file.text());
+      const excelResult = isExcel ? await apiCodifImportExcel(file) : null;
+      const nextBundle = excelResult?.bundle ?? parsed;
+      const nextPreview = excelResult?.preview ?? await apiCodifImportJsonPreview(parsed, file.name);
+      setBundle(nextBundle);
       setPreview(nextPreview);
       const nextSelected: Record<string, boolean> = {};
       const nextStrategies: Record<string, CodifConfigImportStrategy> = {};
@@ -138,12 +142,21 @@ function CodingConfigImportDialog({
       }
       setSelected(nextSelected);
       setStrategies(nextStrategies);
+      const warnings = excelResult?.bundle.metadata?.warnings ?? [];
+      if (warnings.length) {
+        setResult(`${warnings.length} aviso(s) del Excel. Revisa las variables compatibles antes de aplicar.`);
+      }
     } catch (e) {
-      setError(`JSON inválido o no compatible: ${(e as Error).message}`);
+      setError(`Archivo inválido o no compatible: ${(e as Error).message}`);
     } finally {
       setBusy(null);
       if (fileRef.current) fileRef.current.value = "";
     }
+  }
+
+  async function apiCodifImportExcel(file: File) {
+    const uploaded = await apiUpload(file, "plantilla_codif");
+    return apiCodifImportExcelCategorizationPreview(uploaded.file_id, file.name);
   }
 
   async function applyImport() {
@@ -202,17 +215,17 @@ function CodingConfigImportDialog({
         <div className="pulso-codificacion-import-body">
           <div className="pulso-codificacion-import-picker">
             <div>
-              <strong>{fileName || "Selecciona un archivo JSON"}</strong>
-              <span>No incluye filas ni casos. Puede incluir textos únicos normalizados usados como reglas de recodificación.</span>
+              <strong>{fileName || "Selecciona un archivo JSON o Excel"}</strong>
+              <span>JSON portable o Excel con pares respuesta original / recategorización. No importa filas de casos al proyecto.</span>
             </div>
             <button type="button" className="pulso-secondary" disabled={busy !== null} onClick={() => fileRef.current?.click()}>
               <Upload size={13} />
-              {busy === "preview" ? "Validando..." : "Elegir JSON..."}
+              {busy === "preview" ? "Validando..." : "Elegir archivo..."}
             </button>
             <input
               ref={fileRef}
               type="file"
-              accept=".json,application/json"
+              accept=".json,application/json,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
               hidden
               onChange={(e) => void loadFile(e.target.files?.[0])}
             />

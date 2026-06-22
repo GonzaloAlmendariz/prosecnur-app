@@ -176,9 +176,9 @@ function inferirLocal(actor: CalcMuestraActorCategoria, canal: CalcMuestraCanalR
       tecnica_label: "Conveniencia",
       tecnica_tono: "conveniencia",
       minimo: min,
-      minimo_label: `${min.toLocaleString()} (clamp 30–150)`,
-      regla_corta: "N ≥ 301 → clamp(50%, 30, 150)",
-      justificacion: "Egresados con N ≥ 301: regla canónica clamp(N×50%, 30, 150).",
+      minimo_label: `${min.toLocaleString()} (entre 30 y 150)`,
+      regla_corta: "50% con mínimo 30 y tope 150",
+      justificacion: "Para egresados con N mayor a 300, se toma la mitad del grupo, cuidando que la meta no baje de 30 ni supere 150.",
     };
   }
   return {
@@ -186,7 +186,7 @@ function inferirLocal(actor: CalcMuestraActorCategoria, canal: CalcMuestraCanalR
     tecnica_tono: "conveniencia",
     minimo: null,
     minimo_label: "definir manualmente",
-    regla_corta: "Sin regla canónica",
+    regla_corta: "Sin regla automática",
     justificacion: "Actor sin regla automática. Define técnica y meta manualmente en el detalle.",
   };
 }
@@ -352,7 +352,7 @@ export function AcreditacionView({ onAbrirDetalle }: { onAbrirDetalle: (id: stri
                   <div className="cm-acr-min-value">{inf.minimo_label}</div>
                   {calculado && comp.resultado?.n_objetivo !== inf.minimo && (
                     <div className="cm-acr-min-calc">
-                      Cálculo backend: {comp.resultado!.n_objetivo!.toLocaleString()}
+                      Resultado calculado: {comp.resultado!.n_objetivo!.toLocaleString()}
                     </div>
                   )}
                 </div>

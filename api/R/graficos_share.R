@@ -398,40 +398,48 @@
   unique(refs)
 }
 
-.graficos_share_adapt_args_refs <- function(args) {
+.graficos_share_adapt_args_refs <- function(args, missing_keys = character()) {
   if (!is.list(args)) return(args)
+  missing_keys <- unique(vapply(missing_keys, .graficos_share_var_key, character(1)))
+  missing_keys <- missing_keys[nzchar(missing_keys)]
   strip_one <- function(x) {
-    if (is.character(x) && length(x)) .graficos_share_var_code(x) else x
+    if (!is.character(x) || !length(x)) return(x)
+    code <- .graficos_share_var_code(x)
+    if (.graficos_share_var_key(code) %in% missing_keys) "" else code
   }
   for (arg_name in c("var", "cruces", "cruce")) {
     if (!is.null(args[[arg_name]])) args[[arg_name]] <- strip_one(args[[arg_name]])
   }
   if (!is.null(args$vars)) {
     if (is.character(args$vars)) {
-      args$vars <- vapply(args$vars, .graficos_share_var_code, character(1))
+      next_vars <- vapply(args$vars, strip_one, character(1))
+      args$vars <- next_vars[nzchar(next_vars)]
     } else if (is.list(args$vars)) {
       args$vars <- lapply(args$vars, function(value) {
-        if (is.character(value)) vapply(value, .graficos_share_var_code, character(1))
-        else if (is.list(value)) lapply(value, function(v) if (is.character(v)) .graficos_share_var_code(v) else v)
+        if (is.character(value)) {
+          next_vars <- vapply(value, strip_one, character(1))
+          next_vars[nzchar(next_vars)]
+        }
+        else if (is.list(value)) lapply(value, function(v) if (is.character(v)) strip_one(v) else v)
         else value
       })
     }
   }
   if (is.list(args$bloques)) {
     args$bloques <- lapply(args$bloques, function(block) {
-      if (is.list(block)) .graficos_share_adapt_args_refs(block) else block
+      if (is.list(block)) .graficos_share_adapt_args_refs(block, missing_keys = missing_keys) else block
     })
   }
   args
 }
 
-.graficos_share_adapt_slide <- function(slide) {
+.graficos_share_adapt_slide <- function(slide, missing_keys = character()) {
   slide <- as.list(slide)
   payload <- slide$payload %||% list()
   if (is.list(payload)) {
     payload <- lapply(payload, function(slot) {
       if (is.list(slot) && !is.null(slot$graficador)) {
-        slot$args <- .graficos_share_adapt_args_refs(slot$args %||% list())
+        slot$args <- .graficos_share_adapt_args_refs(slot$args %||% list(), missing_keys = missing_keys)
       }
       slot
     })
@@ -518,13 +526,14 @@
   target_keys <- names(target_map)
 
   kept <- list()
-  skipped <- list()
+  affected <- list()
   missing_total <- list()
   for (i in seq_along(slides)) {
     slide <- slides[[i]]
     refs <- .graficos_share_slide_refs(slide)
     ref_keys <- vapply(refs, .graficos_share_var_key, character(1))
     missing_keys <- unique(ref_keys[nzchar(ref_keys) & !(ref_keys %in% target_keys)])
+    missing_vars <- list()
     if (length(missing_keys)) {
       missing_vars <- lapply(missing_keys, function(key) {
         src <- source_var_map[[key]] %||% list(name = key, label = key)
@@ -535,15 +544,14 @@
         missing_total[[key]] <<- item
         item
       })
-      skipped[[length(skipped) + 1L]] <- list(
+      affected[[length(affected) + 1L]] <- list(
         slide_id = as.character(slide$id %||% ""),
         slide_title = .graficos_share_slide_title(slide, i),
         tipo = as.character(slide$tipo %||% ""),
         missing_variables = missing_vars
       )
-    } else {
-      kept[[length(kept) + 1L]] <- .graficos_share_adapt_slide(slide)
     }
+    kept[[length(kept) + 1L]] <- .graficos_share_adapt_slide(slide, missing_keys = missing_keys)
   }
 
   cfg$plan <- list(slides = kept)
@@ -556,14 +564,15 @@
   list(
     config = cfg,
     vars = vars,
-    n_expected_variables = length(unique(vapply(.graficos_share_source_vars_from_map(source_var_map), .graficos_share_var_key, character(1)))),
+    n_expected_variables = length(names(source_var_map)),
     n_available_variables = length(intersect(names(source_var_map), target_keys)),
     n_missing_variables = length(missing_total),
     missing_variables = unname(missing_total),
     n_slides_total = length(slides),
     n_slides_applicable = length(kept),
-    n_slides_skipped = length(skipped),
-    skipped_slides = skipped,
+    n_slides_skipped = 0L,
+    skipped_slides = list(),
+    affected_slides = affected,
     blocking = length(kept) == 0L && length(slides) > 0L
   )
 }
@@ -589,12 +598,12 @@
     current_slides <- .normalize_plan((current_cfg %||% list())$plan)$slides %||% list()
     plan <- .graficos_share_plan_for_base(sid, cfg, base, source_var_map)
     warnings <- character(0)
-    if (plan$n_slides_skipped > 0L) {
+    if (length(plan$affected_slides %||% list()) > 0L) {
       warnings <- c(warnings, sprintf(
-        "%d slide%s se omitira%s por variables no disponibles.",
-        plan$n_slides_skipped,
-        if (plan$n_slides_skipped == 1L) "" else "s",
-        if (plan$n_slides_skipped == 1L) "" else "n"
+        "%d slide%s se conservara%s con variables faltantes vacias.",
+        length(plan$affected_slides %||% list()),
+        if (length(plan$affected_slides %||% list()) == 1L) "" else "s",
+        if (length(plan$affected_slides %||% list()) == 1L) "" else "n"
       ))
     }
     if (isTRUE(plan$blocking)) {
@@ -622,6 +631,7 @@
         variables_missing = plan$n_missing_variables,
         missing_variables = plan$missing_variables,
         skipped_slides = plan$skipped_slides,
+        affected_slides = plan$affected_slides,
         effects = c(
           "Se conserva XLSForm",
           "Se conserva la base de datos",
@@ -753,7 +763,8 @@
       n_slides_applicable = planned$n_slides_applicable,
       n_slides_skipped = planned$n_slides_skipped,
       missing_variables = planned$missing_variables,
-      skipped_slides = planned$skipped_slides
+      skipped_slides = planned$skipped_slides,
+      affected_slides = planned$affected_slides
     )
   }
 

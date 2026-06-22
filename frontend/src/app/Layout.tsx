@@ -430,8 +430,10 @@ export default function Layout() {
           </div>
         )}
         <div className="pulso-app-header-spacer" />
-        <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
-        <SessionErrorChip />
+        <div className="pulso-app-header-actions">
+          <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
+          <SessionErrorChip />
+        </div>
       </header>
       <main
         className={[

@@ -35,6 +35,33 @@ test_that("calc-muestra aulas construye el mismo marco desde base madre o dos ba
   expect_equal(frame_madre$audit$value[frame_madre$audit$metric == "population_n"], "6")
 })
 
+test_that("marco resume aulas con pares coherentes de facultad y carrera", {
+  pair_faculty <- c(rep("FAC_A", 9), rep("FAC_B", 8))
+  pair_program <- c(rep("PROG_X1", 3), rep("PROG_X2", 3), rep("PROG_X3", 3), rep("PROG_Y", 8))
+  base <- data.frame(
+    student_id = paste0("s", seq_along(pair_faculty)),
+    aula_id = "A1",
+    curso_id = "C1",
+    curso = "Curso 1",
+    horario = "H1",
+    facultad = pair_faculty,
+    programa = pair_program,
+    sexo = rep(c("F", "M"), length.out = length(pair_faculty)),
+    edad = 20,
+    condicion = "regular",
+    nivel = "1",
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+
+  expect_equal(nrow(frame$aula_frame), 1)
+  expect_equal(frame$aula_frame$faculty[[1]], "FAC_A")
+  expect_equal(frame$aula_frame$program[[1]], "PROG_X1")
+})
+
 test_that("marco reconoce columnas institucionales tipo PUCP 2025", {
   base <- data.frame(
     `Código PUCP` = paste0("20", 1:20),
@@ -62,6 +89,120 @@ test_that("marco reconoce columnas institucionales tipo PUCP 2025", {
   expect_true(all(c("DER101", "PSI101") %in% frame$aula_frame$course_id))
   expect_true(all(c("Derecho Constitucional", "Psicología Social") %in% frame$aula_frame$course_name))
   expect_true(all(grepl(" C ", frame$aula_frame$label, fixed = TRUE)))
+})
+
+test_that("marco prioriza nivel segun creditos cuando existe junto a nivel curricular", {
+  base <- data.frame(
+    `Código PUCP` = paste0("20", 1:8),
+    Facultad = "ESTUDIOS GENERALES LETRAS",
+    Carrera = "LETRAS",
+    `Nivel curricular` = "1",
+    `Nivel según créditos` = rep(c("1", "2", "3", "4"), each = 2),
+    Condición = "regular",
+    Sexo = rep(c("F", "M"), length.out = 8),
+    Edad = 20,
+    Curso = rep(c("LET101", "LET102"), each = 4),
+    Horario = rep(c("0201", "0301"), each = 4),
+    Modalidad = "PRESENCIAL",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+
+  expect_equal(sort(unique(frame$population$level)), c("1", "2", "3", "4"))
+  level_profile <- frame$category_profiles[frame$category_profiles$role == "level", c("raw", "count")]
+  expect_equal(level_profile$count[match(c("1", "2", "3", "4"), level_profile$raw)], rep(2L, 4))
+})
+
+test_that("marco complementa docentes desde catalogo curso-horario", {
+  base <- data.frame(
+    `Código PUCP` = paste0("20", 1:8),
+    `Correo Pucp` = paste0("est", 1:8, "@example.test"),
+    Facultad = rep(c("DERECHO", "PSICOLOGÍA"), each = 4),
+    Carrera = rep(c("Derecho", "Psicología"), each = 4),
+    `Nivel curricular` = "pregrado",
+    Condición = "regular",
+    Sexo = rep(c("F", "M"), length.out = 8),
+    Edad = 20,
+    Curso = rep(c("DER101", "PSI101"), each = 4),
+    `Nombre del curso` = rep(c("Derecho Constitucional", "Psicología Social"), each = 4),
+    Horario = rep(c("0201", "0301"), each = 4),
+    Modalidad = "PRESENCIAL",
+    `Tipo Curso` = "TEORICO",
+    `Condición del curso` = "",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  catalogo <- data.frame(
+    `Curso-Horario` = c("DER101-0201", "PSI101-0301"),
+    Curso = c("DER101", "PSI101"),
+    `Nombre del curso` = c("Derecho Constitucional", "Psicología Social"),
+    Horario = c("0201", "0301"),
+    Facultad = c("DERECHO", "PSICOLOGÍA"),
+    Carrera = c("Derecho", "Psicología"),
+    Modalidad = "PRESENCIAL",
+    Matriculados = c(40, 35),
+    Docente = c("0001", "0002"),
+    `Nombre de docente` = c("Docente A", "Docente B"),
+    `Correo PUCP` = c("docente.a@example.test", "docente.b@example.test"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(
+    base_madre = base,
+    catalogo_curso_horario = catalogo,
+    config = cfg
+  )
+
+  expect_equal(sort(frame$aula_frame$teacher), c("Docente A", "Docente B"))
+  expect_equal(sort(frame$aula_frame$teacher_email), c("docente.a@example.test", "docente.b@example.test"))
+  expect_false(any(grepl("^est[0-9]+@", frame$aula_frame$teacher_email)))
+  expect_equal(frame$catalog_audit$matched_classrooms, 2L)
+  expect_equal(frame$relation_audit$status, "ok")
+  expect_equal(frame$relation_audit$matched_classrooms, 2L)
+  expect_equal(frame$relation_audit$unmatched_base_classrooms, 0L)
+  expect_equal(frame$relation_audit$match_rate_classrooms, 1)
+})
+
+test_that("marco advierte cuando base y catalogo no empatan completamente", {
+  base <- data.frame(
+    `Código PUCP` = paste0("20", 1:8),
+    Facultad = rep(c("DERECHO", "PSICOLOGÍA"), each = 4),
+    Carrera = rep(c("Derecho", "Psicología"), each = 4),
+    `Nivel curricular` = "pregrado",
+    Condición = "regular",
+    Sexo = rep(c("F", "M"), length.out = 8),
+    Edad = 20,
+    Curso = rep(c("DER101", "PSI101"), each = 4),
+    Horario = rep(c("0201", "0301"), each = 4),
+    Modalidad = "PRESENCIAL",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  catalogo <- data.frame(
+    Curso = c("DER101", "ARQ999"),
+    Horario = c("0201", "9999"),
+    `Nombre de docente` = c("Docente A", "Docente fuera de base"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(
+    base_madre = base,
+    catalogo_curso_horario = catalogo,
+    config = cfg
+  )
+
+  expect_equal(frame$relation_audit$status, "critico")
+  expect_equal(frame$relation_audit$matched_classrooms, 1L)
+  expect_equal(frame$relation_audit$unmatched_base_classrooms, 1L)
+  expect_equal(frame$relation_audit$catalog_only_classrooms, 1L)
+  expect_true(any(grepl("problemas criticos", unlist(frame$warnings), fixed = TRUE)))
 })
 
 test_that("lector de Excel permite elegir hoja especifica", {
@@ -379,4 +520,26 @@ test_that("workbook del laboratorio contiene comparador, riesgos y reemplazos", 
     "Reemplazos sugeridos",
     "Impacto de reemplazos"
   ) %in% sheets))
+})
+
+test_that("demo universitaria 2025 carga marco, seleccion y reemplazos sin PII", {
+  demo <- calc_muestra_aulas_demo_hsvg_2025()
+  frame <- .cm_aulas_as_df(demo$frame$aula_frame)
+  selection <- .cm_aulas_as_df(demo$selection$selection)
+  suggestions <- .cm_aulas_as_df(demo$replacement_simulation$suggestions)
+
+  expect_equal(nrow(frame), 1097)
+  expect_equal(demo$frame$population_n, 22037)
+  expect_equal(sum(selection$wave == "M1"), 170)
+  expect_equal(sum(selection$wave != "M1"), 927)
+  expect_equal(sum(selection$operation_status == "aplicada"), 192)
+  expect_equal(sum(selection$used_as_replacement %in% TRUE), 49)
+  expect_equal(nrow(.cm_aulas_as_df(demo$method_comparison$methods)), 4)
+  expect_equal(demo$method_comparison$recommendation$method_id, "cube_balanceado")
+  expect_true(nrow(suggestions) >= 170)
+  expect_true(all(!nzchar(frame$teacher)))
+  expect_true(all(!nzchar(frame$teacher_email)))
+  expect_false("student_id" %in% names(selection))
+  expect_true(all(grepl("^demo2025_", frame$unique_student_ids)))
+  expect_true(all(is.finite(selection$weight_classroom[selection$wave == "M1"])))
 })

@@ -1004,6 +1004,25 @@
     )
   }
 
+  if (exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = data,
+        instrumento = inst,
+        reporte = "Tablas multibase",
+        cfg = cfg,
+        hojas = names(wb),
+        detalles = list(
+          "Variable de origen" = key_name,
+          "Origenes incluidos" = paste(vapply(key_values, function(kv) kv$label, character(1)), collapse = ", "),
+          "Orden de categorias" = orden
+        )
+      ),
+      list()
+    )
+  }
+
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
   invisible(normalizePath(path_xlsx, winslash = "/"))
 }

@@ -453,6 +453,8 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
             base_url: baseUrls.kobo || koboBaseUrlFromConnection(connections.kobo),
             profile_id: connections.kobo.active_profile_id || undefined,
           }
+        : provider === "surveymonkey"
+          ? { profile_id: connections.surveymonkey.active_profile_id || undefined }
         : {});
       setProviderMessage(provider, result.ok ? "ok" : "error", checkMessage(provider, result));
     } catch (error) {

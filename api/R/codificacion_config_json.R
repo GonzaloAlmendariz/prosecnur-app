@@ -134,12 +134,16 @@ CODIF_CONFIG_SCHEMA_VERSION <- "prosecnur.coding_config.v1"
   list()
 }
 
+.codif_config_has_effective_config <- function(exported) {
+  cfg <- (exported %||% list())$configuration %||% list()
+  length((exported %||% list())$categories %||% list()) > 0L ||
+    length((exported %||% list())$rules %||% list()) > 0L ||
+    length((exported %||% list())$recodes %||% list()) > 0L ||
+    length(cfg$grupos %||% list()) > 0L
+}
+
 .codif_config_row_exportable <- function(row, groups, marked) {
-  isTRUE(row$use) ||
-    isTRUE(marked) ||
-    length(groups %||% list()) > 0L ||
-    nzchar(.codif_config_scalar(row$text_col, "")) ||
-    nzchar(.codif_config_scalar(row$other_dummy_col, ""))
+  length(groups %||% list()) > 0L
 }
 
 .codif_config_sanitize_row <- function(row) {
@@ -432,13 +436,31 @@ codif_config_export <- function(sid) {
   source_base <- .codif_config_norm(exported$base_id)
   norms <- vapply(target_bases, .codif_config_norm, character(1))
   same <- target_bases[norms == source_base]
-  if (identical(source_mode, "multibase") && length(same)) same else target_bases
+  if (!identical(source_mode, "multibase")) return(target_bases)
+  if (length(same)) return(same)
+
+  aliases <- target_bases[vapply(target_bases, function(target_base) {
+    .codif_config_base_matches(source_base, target_base, allow_alias = TRUE)
+  }, logical(1))]
+  if (length(aliases) == 1L) aliases else target_bases
 }
 
-.codif_config_best_match_for_base <- function(sid, bundle, exported, target_base) {
-  inv <- .codif_config_inventory_for_source(sid, target_base)
+.codif_config_base_matches <- function(source_base, target_base, allow_alias = FALSE) {
+  source_norm <- .codif_config_norm(source_base)
+  target_norm <- .codif_config_norm(target_base)
+  if (!nzchar(source_norm) || !nzchar(target_norm)) return(FALSE)
+  if (identical(source_norm, target_norm)) return(TRUE)
+  if (!isTRUE(allow_alias) || nchar(source_norm) < 3L) return(FALSE)
+  if (endsWith(target_norm, paste0("_", source_norm))) return(TRUE)
+  source_tokens <- strsplit(source_norm, "_", fixed = TRUE)[[1]]
+  target_tokens <- strsplit(target_norm, "_", fixed = TRUE)[[1]]
+  all(source_tokens %in% target_tokens)
+}
+
+.codif_config_best_match_for_base <- function(sid, bundle, exported, target_base, inventory = NULL) {
+  inv <- inventory %||% .codif_config_inventory_for_source(sid, target_base)
   if (!length(inv)) return(NULL)
-  same_base <- identical(.codif_config_norm(exported$base_id), .codif_config_norm(target_base))
+  same_base <- .codif_config_base_matches(exported$base_id, target_base, allow_alias = TRUE)
   scored <- lapply(inv, function(candidate) {
     score <- .codif_config_score_candidate(exported, candidate, same_base)
     c(candidate, score)
@@ -449,8 +471,8 @@ codif_config_export <- function(sid) {
   scored[[which.max(scores)]]
 }
 
-.codif_config_match_item <- function(sid, bundle, exported, target_base) {
-  match <- .codif_config_best_match_for_base(sid, bundle, exported, target_base)
+.codif_config_match_item <- function(sid, bundle, exported, target_base, inventory = NULL) {
+  match <- .codif_config_best_match_for_base(sid, bundle, exported, target_base, inventory = inventory)
   match_id <- paste(.codif_config_scalar(exported$id, paste(exported$base_id, exported$name, sep = "::")),
                     target_base, sep = "=>")
   if (is.null(match)) {
@@ -515,11 +537,20 @@ codif_config_export <- function(sid) {
 
 .codif_config_preview_items <- function(sid, bundle) {
   target_bases <- .codif_config_base_names(sid)
+  inventories <- stats::setNames(vector("list", length(target_bases)), target_bases)
+  inventory_loaded <- stats::setNames(rep(FALSE, length(target_bases)), target_bases)
   out <- list()
   for (exported in bundle$variables %||% list()) {
+    if (!.codif_config_has_effective_config(exported)) next
     bases <- .codif_config_candidate_target_bases(bundle, exported, target_bases)
     for (target_base in bases) {
-      out[[length(out) + 1L]] <- .codif_config_match_item(sid, bundle, exported, target_base)
+      if (!isTRUE(inventory_loaded[[target_base]])) {
+        inventories[[target_base]] <- .codif_config_inventory_for_source(sid, target_base)
+        inventory_loaded[[target_base]] <- TRUE
+      }
+      out[[length(out) + 1L]] <- .codif_config_match_item(
+        sid, bundle, exported, target_base, inventory = inventories[[target_base]]
+      )
     }
   }
   out

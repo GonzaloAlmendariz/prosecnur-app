@@ -496,8 +496,8 @@
   .connections_token_status(provider, sid)
 }
 
-.connections_check_surveymonkey <- function(sid = NULL) {
-  token <- .connections_token_require("surveymonkey", sid)
+.connections_check_surveymonkey <- function(sid = NULL, profile_id = NULL) {
+  token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
   tryCatch(
     sm_api_check_token(token),
     error = function(e) list(ok = FALSE, provider = "surveymonkey", error = conditionMessage(e))
@@ -529,7 +529,7 @@
 
 .connections_check <- function(provider, sid = NULL, base_url = NULL, profile_id = NULL) {
   provider <- .connections_normalize_provider(provider)
-  if (identical(provider, "surveymonkey")) return(.connections_check_surveymonkey(sid))
+  if (identical(provider, "surveymonkey")) return(.connections_check_surveymonkey(sid, profile_id = profile_id))
   if (identical(provider, "google_sheets")) {
     probe <- tryCatch(
       monitoreo_sheets_list_spreadsheets(limit = 1L),

@@ -2,7 +2,8 @@
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
 }
 @media (max-width: 900px) {
   .dashboard-scope .dash-base-layout {

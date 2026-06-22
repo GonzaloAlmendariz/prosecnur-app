@@ -88,7 +88,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "editor-xlsform",
     title: "Editor de formularios",
-    shortLabel: "Editor",
+    shortLabel: "Formularios",
     tagline: "Diseña, importa o traduce tu cuestionario",
     blurb:
       "Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm.",
@@ -106,7 +106,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "procesamiento",
     title: "Procesamiento y reportes",
-    shortLabel: "Proceso",
+    shortLabel: "Procesamiento",
     tagline: "Pipeline completo en 5 fases",
     blurb:
       "Flujo completo de 5 fases: carga de data, validación, codificación de abiertas, preparación analítica y generación de reportes PPT/Word listos para entregar.",
@@ -142,7 +142,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "hojas-ruta",
     title: "Hojas de ruta para campo",
-    shortLabel: "Rutas",
+    shortLabel: "Hojas de ruta",
     tagline: "Cuotas, rutas y mapas para enumeradores",
     blurb:
       "Genera hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados. Entrega un ZIP listo para impresión.",
@@ -160,7 +160,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "calc-muestra",
     title: "Cálculo de muestra y marco muestral",
-    shortLabel: "Muestra",
+    shortLabel: "Cálculo de muestra",
     tagline: "Marcos, escenarios y selección de unidades",
     blurb:
       "Diseña el marco muestral, calcula escenarios y prepara la selección operativa de unidades: estudiantes, aulas, actores, manzanas, viviendas o marcos generales. Para el seguimiento del trabajo de campo, el plan se conecta con Monitoreo.",
@@ -178,7 +178,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "enciclopedia",
     title: "Enciclopedia metodológica",
-    shortLabel: "Guía",
+    shortLabel: "Enciclopedia",
     tagline: "Manual técnico de métodos estadísticos de muestreo",
     blurb:
       "Catálogo técnico de los métodos estadísticos de muestreo cuantitativo. Cada ficha documenta definición formal, supuestos, fórmulas aplicables, escenarios de uso, decisiones técnicas y trade-offs frente a alternativas. Cross-link bidireccional con el módulo de Cálculo.",
@@ -196,7 +196,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "recopiladores",
     title: "Generador de recopiladores",
-    shortLabel: "QR",
+    shortLabel: "Recopiladores",
     tagline: "Fichas QR + enlaces a KoboCollect",
     blurb:
       "Genera fichas imprimibles con códigos QR y enlaces personalizados a KoboCollect — una por enumerador, conglomerado o punto de muestreo para autenticar la captura.",
@@ -212,7 +212,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "monitoreo",
     title: "Monitoreo de campo",
-    shortLabel: "Campo",
+    shortLabel: "Monitoreo",
     tagline: "Tablero en vivo del avance de campo",
     blurb:
       "Tablero operativo del avance de campo desde Kobo y SurveyMonkey: metas, calidad, producción y supervisión durante la encuesta.",

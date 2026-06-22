@@ -4690,14 +4690,16 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
+      profile_id <- parsed$connection_profile_id %||% parsed$profile_id %||% parsed$profileId %||% NULL
+      profile_key <- trimws(as.character(profile_id %||% ""))
+      token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
       sm_multibase_list_surveys(
         token,
         q = .sm_mb_scalar(parsed$q, ""),
         limit = suppressWarnings(as.integer(parsed$limit %||% 200L)),
         months = suppressWarnings(as.integer(parsed$months %||% 6L)),
-        sid = sid,
-        force_refresh = isTRUE(parsed$force_refresh)
+        sid = if (nzchar(profile_key)) NULL else sid,
+        force_refresh = isTRUE(parsed$force_refresh) || nzchar(profile_key)
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/inspect", wrap_endpoint(function(req, res, ...) {
@@ -4707,7 +4709,8 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
+      profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
+      token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
       sm_multibase_inspect_survey(
         survey_id = parsed$survey_id %||% parsed$id,
         token = token,
@@ -4722,7 +4725,8 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
+      profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
+      token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
       sm_multibase_collectors(
         survey_id = parsed$survey_id %||% parsed$id,
         token = token,

@@ -140,10 +140,17 @@ export function BasesPanel({
     .map((base) => `${base.nombre}:${base.multi_integrated?.imported_at ?? ""}:${base.multi_integrated?.origin_key_name ?? ""}`)
     .join("|");
   const maxReached = estudio.n_bases >= estudio.max_bases;
-  const canonicalOptions = [
+  const canonicalOptionsRaw = [
     ...(hasSessionXlsform ? [{ fileId: "", label: "XLSForm cargado en Carga/Editor" }] : []),
     ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · XLSForm` })),
   ];
+  const canonicalOptionKeys = new Set<string>();
+  const canonicalOptions = canonicalOptionsRaw.filter((option) => {
+    const key = option.fileId || "session-xlsform";
+    if (canonicalOptionKeys.has(key)) return false;
+    canonicalOptionKeys.add(key);
+    return true;
+  });
 
   useEffect(() => {
     if (estudio.processing_mode === "independent_siblings") {
@@ -273,36 +280,15 @@ export function BasesPanel({
   }
 
   return (
-    <section style={{ marginBottom: 28 }}>
-      {/* Header del estudio — nombre editable + chip de bases */}
-      <header
-        style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 18px",
-          borderRadius: 10,
-          background: "var(--pulso-primary-soft)",
-          border: "1px solid var(--pulso-primary-border)",
-          marginBottom: 16, flexWrap: "wrap",
-        }}
-      >
-        <span
-          aria-hidden="true"
-          style={{
-            width: 36, height: 36, borderRadius: 9,
-            background: "white", color: "var(--pulso-primary)",
-            border: "1px solid var(--pulso-primary-border)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
+    <section className="pulso-multibase-study-shell">
+      <header className="pulso-multibase-study-head">
+        <span className="pulso-multibase-study-icon" aria-hidden="true">
           <Layers size={18} />
         </span>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-primary)" }}>
-            Modo multi
-          </div>
+        <div className="pulso-multibase-study-copy">
+          <div className="pulso-multibase-study-kicker">Carga multibase</div>
           {editingEstudioNombre ? (
-            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2 }}>
+            <div className="pulso-multibase-study-edit">
               <input
                 autoFocus
                 type="text"
@@ -314,13 +300,6 @@ export function BasesPanel({
                 }}
                 onBlur={() => void handleEstudioNombre()}
                 placeholder="Nombre del estudio"
-                style={{
-                  fontSize: 16, fontWeight: 700,
-                  padding: "4px 8px", borderRadius: 6,
-                  border: "1px solid var(--pulso-primary-border)",
-                  background: "white", outline: "none",
-                  minWidth: 220,
-                }}
               />
             </div>
           ) : (
@@ -331,43 +310,17 @@ export function BasesPanel({
                 setEditingEstudioNombre(true);
               }}
               title="Renombrar estudio"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                fontSize: 16, fontWeight: 700, color: "var(--pulso-text)",
-                padding: "2px 6px", borderRadius: 4,
-                border: "1px solid transparent", background: "transparent",
-                cursor: "pointer",
-                transition: "background 120ms ease, border-color 120ms ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "white";
-                e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = "transparent";
-              }}
+              className="pulso-multibase-study-title"
             >
               {(typeof estudio.nombre === "string" && estudio.nombre) || "Sin nombre"}
-              <Pencil size={11} style={{ opacity: 0.6 }} />
+              <Pencil size={11} />
             </button>
           )}
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>
+          <div className="pulso-multibase-study-note">
             Selecciona la estrategia de carga.
           </div>
         </div>
-        <span
-          style={{
-            fontSize: 11, fontWeight: 700,
-            padding: "4px 10px", borderRadius: 999,
-            background: "white",
-            border: "1px solid var(--pulso-primary-border)",
-            color: "var(--pulso-primary)",
-            flexShrink: 0,
-            fontFamily: "ui-monospace, monospace",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
+        <span className="pulso-multibase-study-count">
           {estudio.n_bases} {estudio.n_bases === 1 ? "base" : "bases"}
         </span>
 
@@ -380,26 +333,7 @@ export function BasesPanel({
             onClick={handleDowngrade}
             disabled={!!busy}
             title="Cerrar el modo multi-base — los archivos de esta base quedan en carga simple"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              fontSize: 11, fontWeight: 600,
-              padding: "6px 10px", borderRadius: 7,
-              border: "1px solid var(--pulso-primary-border)",
-              background: "white",
-              color: "var(--pulso-primary)",
-              cursor: busy ? "wait" : "pointer",
-              flexShrink: 0,
-              transition: "background 120ms ease",
-            }}
-            onMouseEnter={(e) => {
-              if (busy) return;
-              e.currentTarget.style.background = "var(--pulso-primary)";
-              e.currentTarget.style.color = "white";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "white";
-              e.currentTarget.style.color = "var(--pulso-primary)";
-            }}
+            className="pulso-multibase-study-action is-primary"
           >
             <ArrowLeft size={11} /> Volver a carga simple
           </button>
@@ -409,28 +343,7 @@ export function BasesPanel({
             onClick={handleDiscardEstudio}
             disabled={!!busy}
             title="Cerrar el estudio y descartar todas las bases"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              fontSize: 11, fontWeight: 600,
-              padding: "6px 10px", borderRadius: 7,
-              border: "1px solid var(--pulso-border)",
-              background: "white",
-              color: "var(--pulso-text-soft)",
-              cursor: busy ? "wait" : "pointer",
-              flexShrink: 0,
-              transition: "border-color 120ms ease, background 120ms ease, color 120ms ease",
-            }}
-            onMouseEnter={(e) => {
-              if (busy) return;
-              e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
-              e.currentTarget.style.background = "var(--pulso-danger-bg)";
-              e.currentTarget.style.color = "var(--pulso-danger-fg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--pulso-border)";
-              e.currentTarget.style.background = "white";
-              e.currentTarget.style.color = "var(--pulso-text-soft)";
-            }}
+            className="pulso-multibase-study-action is-danger"
           >
             <XIcon size={11} /> Cerrar estudio
           </button>
@@ -441,34 +354,40 @@ export function BasesPanel({
         <button
           type="button"
           className={strategy === "separate" ? "is-active" : ""}
+          role="tab"
+          aria-selected={strategy === "separate"}
           onClick={() => setStrategy("separate")}
         >
           <Layers size={15} />
           <span>
             <strong>Mantener bases separadas</strong>
-            <small>Instrumento y data por base.</small>
+            <small>XLSForm y data por base.</small>
           </span>
         </button>
         <button
           type="button"
           className={strategy === "integrated" ? "is-active" : ""}
+          role="tab"
+          aria-selected={strategy === "integrated"}
           onClick={() => setStrategy("integrated")}
         >
           <GitMerge size={15} />
           <span>
-            <strong>Integrar instrumentos hermanos</strong>
-            <small>Un XLSForm común y una data final.</small>
+            <strong>Integrar hermanas</strong>
+            <small>XLSForm común y data final.</small>
           </span>
         </button>
         <button
           type="button"
           className={strategy === "independent" ? "is-active" : ""}
+          role="tab"
+          aria-selected={strategy === "independent"}
           onClick={() => setStrategy("independent")}
         >
           <Cloud size={15} />
           <span>
-            <strong>Bases hermanas independientes</strong>
-            <small>Un XLSForm, data y entregables por encuesta.</small>
+            <strong>Hermanas independientes</strong>
+            <small>Entregables por encuesta.</small>
           </span>
         </button>
       </div>
@@ -2355,7 +2274,7 @@ function SmDecisionCaseAudit({
         </em>
       </summary>
       <div className="pulso-sm-case-filters">
-        <label>
+        <label className={`pulso-sm-filter-toggle${observedOnly ? " is-active" : ""}`}>
           <input
             type="checkbox"
             checked={observedOnly}
@@ -2364,7 +2283,7 @@ function SmDecisionCaseAudit({
           <span>Solo observados</span>
           <small>{observedTotal}</small>
         </label>
-        <label>
+        <label className={`pulso-sm-filter-toggle${nearCompleteOnly ? " is-active" : ""}`}>
           <input
             type="checkbox"
             checked={nearCompleteOnly}
@@ -2396,87 +2315,93 @@ function SmDecisionCaseAudit({
       </div>
       {visible.length ? (
         <div className="pulso-sm-case-audit-table" role="table" aria-label="Casos SurveyMonkey para revisar">
-        <span>Campaña</span>
-        <span>Recopilador</span>
-        <span>Respuesta SurveyMonkey</span>
-        <span>Estado</span>
-        <span title="Obligatorias aplicables respondidas / obligatorias aplicables totales">Resp. aplicables</span>
-        <span>Resultado</span>
-        <span>Acción</span>
-        <span>Motivo</span>
-        {visible.map((row, index) => (
-          <Fragment key={`${row.campania}-${row.case_uid || row.response_id}-${index}`}>
-            <div className="pulso-sm-case-cell" title={row.campania}>{row.campania || "Fuente"}</div>
-            <div className="pulso-sm-case-cell">{row.collector_label || "Recopilador sin nombre"}</div>
-            <div className="pulso-sm-case-cell pulso-sm-case-ids">
-              <strong title={`Respuesta SurveyMonkey ${row.response_id || "-"}`}>Respuesta {row.response_id || "-"}</strong>
-              {row.custom_id ? (
-                <small title="ID del enlace personalizado">ID enlace {row.custom_id}</small>
-              ) : (
-                <small>Sin ID enlace</small>
-              )}
-            </div>
-            <div className="pulso-sm-case-cell">{row.estado || "-"}</div>
-            <div className="pulso-sm-case-cell is-numeric">
-              <SmDecisionCompletionCell row={row} />
-            </div>
-            <div className={`pulso-sm-case-cell is-result${row.incluido === "1" ? " is-included" : ""}`}>
-              {smDecisionCaseDecisionLabel(String(row.decision || ""))}
-            </div>
-            <div className="pulso-sm-case-cell">
-              {(() => {
-                const manuallyIncluded = row.manual || (!!row.case_uid && manualSet.has(row.case_uid));
-                const included = row.incluido === "1";
-                if (!row.case_uid) {
-                  return <span className="pulso-sm-case-action-note">Sin llave</span>;
-                }
-                if (manuallyIncluded) {
+          <div className="pulso-sm-case-audit-head" role="row">
+            <span role="columnheader">Campaña</span>
+            <span role="columnheader">Recopilador</span>
+            <span role="columnheader">Respuesta</span>
+            <span role="columnheader">Estado</span>
+            <span role="columnheader" title="Obligatorias aplicables respondidas / obligatorias aplicables totales">Avance</span>
+            <span role="columnheader">Resultado</span>
+            <span role="columnheader">Acción</span>
+            <span role="columnheader">Motivo</span>
+          </div>
+          {visible.map((row, index) => (
+            <div
+              className={`pulso-sm-case-row${row.observado === true ? " is-observed" : ""}${row.incluido === "1" ? " is-included" : ""}`}
+              role="row"
+              key={`${row.campania}-${row.case_uid || row.response_id}-${index}`}
+            >
+              <div className="pulso-sm-case-cell" role="cell" title={row.campania}>{row.campania || "Fuente"}</div>
+              <div className="pulso-sm-case-cell" role="cell">{row.collector_label || "Recopilador sin nombre"}</div>
+              <div className="pulso-sm-case-cell pulso-sm-case-ids" role="cell">
+                <strong title={`Respuesta SurveyMonkey ${row.response_id || "-"}`}>Respuesta {row.response_id || "-"}</strong>
+                {row.custom_id ? (
+                  <small title="ID del enlace personalizado">ID enlace {row.custom_id}</small>
+                ) : (
+                  <small>Sin ID enlace</small>
+                )}
+              </div>
+              <div className="pulso-sm-case-cell" role="cell">{row.estado || "-"}</div>
+              <div className="pulso-sm-case-cell is-numeric" role="cell">
+                <SmDecisionCompletionCell row={row} />
+              </div>
+              <div className={`pulso-sm-case-cell is-result${row.incluido === "1" ? " is-included" : ""}`} role="cell">
+                {smDecisionCaseDecisionLabel(String(row.decision || ""))}
+              </div>
+              <div className="pulso-sm-case-cell" role="cell">
+                {(() => {
+                  const manuallyIncluded = row.manual || (!!row.case_uid && manualSet.has(row.case_uid));
+                  const included = row.incluido === "1";
+                  if (!row.case_uid) {
+                    return <span className="pulso-sm-case-action-note">Sin llave</span>;
+                  }
+                  if (manuallyIncluded) {
+                    return (
+                      <button
+                        type="button"
+                        className="pulso-sm-case-action is-remove"
+                        disabled={disabled}
+                        onClick={() => toggleManualInclude(row.case_uid, false)}
+                      >
+                        Quitar rescate
+                      </button>
+                    );
+                  }
+                  if (included) {
+                    return <span className="pulso-sm-case-action-note is-included">Incluida</span>;
+                  }
                   return (
                     <button
                       type="button"
-                      className="pulso-sm-case-action is-remove"
+                      className="pulso-sm-case-action"
                       disabled={disabled}
-                      onClick={() => toggleManualInclude(row.case_uid, false)}
+                      onClick={() => toggleManualInclude(row.case_uid, true)}
                     >
-                      Quitar rescate
+                      Incluir caso
                     </button>
                   );
-                }
-                if (included) {
-                  return <span className="pulso-sm-case-action-note is-included">Incluida</span>;
-                }
-                return (
-                  <button
-                    type="button"
-                    className="pulso-sm-case-action"
-                    disabled={disabled}
-                    onClick={() => toggleManualInclude(row.case_uid, true)}
-                  >
-                    Incluir caso
-                  </button>
-                );
-              })()}
-            </div>
-            <div className={`pulso-sm-case-cell pulso-sm-case-review ${row.observado === true ? "is-observed" : "is-normal"}`}>
-              <div className="pulso-sm-case-review-main">
-                {row.nearComplete && <span className="pulso-sm-case-badge is-near">Casi completa</span>}
-                <span>{row.observado === true ? row.motivo || "Requiere revisión" : "Sin observación"}</span>
+                })()}
               </div>
-              {smDecisionDuplicateEvidenceLine(row) && (
-                <div className="pulso-sm-case-evidence">
-                  <strong>Posible duplicado</strong>
-                  <span>{smDecisionDuplicateEvidenceLine(row)}</span>
-                  <span className={`pulso-sm-case-evidence-chip ${smDecisionCompareTone(row.duplicateCodeMatch)}`}>
-                    Código Pulso: {smDecisionCompareLabel(row.duplicateCodeMatch)}
-                  </span>
-                  <span className={`pulso-sm-case-evidence-chip ${smDecisionCompareTone(row.duplicateCareerMatch)}`}>
-                    Carrera: {smDecisionCompareLabel(row.duplicateCareerMatch)}
-                  </span>
+              <div className={`pulso-sm-case-cell pulso-sm-case-review ${row.observado === true ? "is-observed" : "is-normal"}`} role="cell">
+                <div className="pulso-sm-case-review-main">
+                  {row.nearComplete && <span className="pulso-sm-case-badge is-near">Casi completa</span>}
+                  <span>{row.observado === true ? row.motivo || "Requiere revisión" : "Sin observación"}</span>
                 </div>
-              )}
+                {smDecisionDuplicateEvidenceLine(row) && (
+                  <div className="pulso-sm-case-evidence">
+                    <strong>Posible duplicado</strong>
+                    <span>{smDecisionDuplicateEvidenceLine(row)}</span>
+                    <span className={`pulso-sm-case-evidence-chip ${smDecisionCompareTone(row.duplicateCodeMatch)}`}>
+                      Código Pulso: {smDecisionCompareLabel(row.duplicateCodeMatch)}
+                    </span>
+                    <span className={`pulso-sm-case-evidence-chip ${smDecisionCompareTone(row.duplicateCareerMatch)}`}>
+                      Carrera: {smDecisionCompareLabel(row.duplicateCareerMatch)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-          </Fragment>
-        ))}
+          ))}
       </div>
       ) : (
         <div className="pulso-sm-case-empty">
@@ -2946,6 +2871,7 @@ function SmDecisionSuite({
             </button>
             <button
               type="button"
+              className="pulso-sm-decision-primary"
               disabled={disabled || !!busy || !validCollectorIds.length}
               title="Reconstruye y reemplaza completa la base activa con estas fuentes y reglas; no agrega encima."
               onClick={() => void applyToActiveBase()}
@@ -4266,7 +4192,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
   }, [showSurveyCatalog]);
 
   return (
-    <section className="pulso-integrated-panel">
+    <section className="pulso-integrated-panel pulso-sm-independent-workbench">
       <header className="pulso-integrated-head">
         <span className="pulso-sm-multibase-icon" aria-hidden="true"><Cloud size={18} /></span>
         <div>
@@ -4278,10 +4204,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
             cambia manualmente al perfil secundario y actualiza el catálogo.
             Si ya tenías una base trabajada, esa base puede actuar como referencia para sincronizar reglas XLSForm compatibles.
           </p>
-          <div className="pulso-sm-family-meter" aria-label="Resumen de familia independiente">
+          <div className="pulso-sm-family-meter pulso-sm-independent-meter" aria-label="Resumen de familia independiente">
             <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
-            <span>Lógica compartida</span>
-            <span>Procesamiento por base</span>
+            <span>{hasCanonicalReference ? "Plantilla lista" : "Plantilla pendiente"}</span>
+            <span>{hasExistingIndependentBases ? "Actualización disponible" : "Por configurar"}</span>
           </div>
         </div>
       </header>
@@ -4407,7 +4333,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
             <strong>Familia cargada</strong>
             <span>{estudio.n_bases}/{independentMaxBases} bases · listas para procesar por base activa</span>
           </div>
-          <div className="pulso-sm-workbook-import" aria-label="Importar Excel exportado por SurveyMonkey">
+          <div className="pulso-sm-workbook-import is-workbook" aria-label="Importar Excel exportado por SurveyMonkey">
             <div className="pulso-sm-family-config-head">
               <div>
                 <strong>Importar Excel exportado</strong>
@@ -4527,7 +4453,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               </div>
             )}
           </div>
-          <div className="pulso-sm-workbook-import" aria-label="Importar ZIP SAV SurveyMonkey">
+          <div className="pulso-sm-workbook-import is-sav" aria-label="Importar ZIP SAV SurveyMonkey">
             <div className="pulso-sm-family-config-head">
               <div>
                 <strong>Importar ZIP SAV</strong>
@@ -5985,31 +5911,14 @@ function BaseRow({
   const showSourceAlias = !!sourceAlias && sourceAlias !== "NA";
   const showSourceTitle = !!sourceTitle && sourceTitle !== "NA" && sourceTitle !== sourceAlias;
   return (
-    <div
-      style={{
-        display: "flex", alignItems: "center", gap: 14,
-        padding: "14px 16px", borderRadius: 10,
-        border: "1px solid var(--pulso-success-border)",
-        background: "var(--pulso-success-bg)",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 36, height: 36, borderRadius: 9,
-          background: "white",
-          color: "var(--pulso-success-fg)",
-          border: "1px solid var(--pulso-success-border)",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
+    <div className="pulso-base-row">
+      <span className="pulso-base-row-icon" aria-hidden="true">
         <Check size={18} />
       </span>
 
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className="pulso-base-row-main">
         {isRenaming ? (
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <div className="pulso-base-row-rename">
             <input
               autoFocus
               type="text"
@@ -6021,27 +5930,11 @@ function BaseRow({
               }}
               onBlur={onRenameCommit}
               placeholder="nombre (sin $, sin espacios)"
-              style={{
-                fontSize: 14, fontWeight: 700,
-                fontFamily: "ui-monospace, monospace",
-                padding: "4px 8px", borderRadius: 5,
-                border: "1px solid var(--pulso-primary-border)",
-                background: "white", outline: "none",
-                minWidth: 200,
-              }}
             />
           </div>
         ) : (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <code
-              style={{
-                fontSize: 14, fontWeight: 700,
-                fontFamily: "ui-monospace, monospace",
-                color: "var(--pulso-text)",
-              }}
-            >
-              {base.nombre}
-            </code>
+          <div className="pulso-base-row-title">
+            <code>{base.nombre}</code>
             <button
               type="button"
               onClick={onStartRename}
@@ -6049,38 +5942,31 @@ function BaseRow({
               title="Renombrar base"
               aria-label={`Renombrar base ${base.nombre}`}
               className="pulso-icon"
-              style={{ minWidth: 22, minHeight: 22 }}
             >
               <Pencil size={10} />
             </button>
           </div>
         )}
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 14,
-            fontSize: 11, color: "var(--pulso-text-soft)",
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <div className="pulso-base-row-meta">
+          <span>
             <FileSpreadsheet size={12} /> XLSForm cargado
           </span>
           {showSourceAlias && (
-            <span title={sourceAlias} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span title={sourceAlias}>
               <Cloud size={12} /> {sourceAlias}
             </span>
           )}
           {showSourceTitle && (
-            <span title={sourceTitle} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span title={sourceTitle}>
               <Cloud size={12} /> SurveyMonkey: {sourceTitle}
             </span>
           )}
           {filterLabel && (
-            <span title={filterLabel} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span title={filterLabel}>
               <Filter size={12} /> {filterLabel}
             </span>
           )}
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span>
             <Database size={12} />
             {base.n_filas != null && base.n_columnas != null
               ? `${base.n_filas} registros · ${base.n_columnas} cols`
@@ -6090,22 +5976,14 @@ function BaseRow({
         </div>
       </div>
 
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      <div className="pulso-base-row-actions">
         <button
           type="button"
           onClick={onExport}
           disabled={busy}
           title={`Descargar base normalizada de ${base.nombre}`}
           aria-label={`Descargar base normalizada de ${base.nombre}`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 11, fontWeight: 600,
-            padding: "6px 10px", borderRadius: 6,
-            border: "1px solid var(--pulso-primary-border)",
-            background: "white",
-            color: "var(--pulso-primary)",
-            cursor: busy ? "wait" : "pointer",
-          }}
+          className="pulso-base-row-button is-primary"
         >
           <Download size={11} /> Normalizada
         </button>
@@ -6116,26 +5994,7 @@ function BaseRow({
           disabled={busy || isReplacing}
           title={`Reemplazar el XLSForm o la data de ${base.nombre}`}
           aria-label={`Reemplazar archivos de ${base.nombre}`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 11, fontWeight: 600,
-            padding: "6px 10px", borderRadius: 6,
-            border: "1px solid var(--pulso-border)",
-            background: isReplacing ? "var(--pulso-primary-soft)" : "white",
-            color: isReplacing ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-            cursor: busy ? "wait" : "pointer",
-            transition: "border-color 120ms ease, background 120ms ease, color 120ms ease",
-          }}
-          onMouseEnter={(e) => {
-            if (busy || isReplacing) return;
-            e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
-            e.currentTarget.style.color = "var(--pulso-primary)";
-          }}
-          onMouseLeave={(e) => {
-            if (isReplacing) return;
-            e.currentTarget.style.borderColor = "var(--pulso-border)";
-            e.currentTarget.style.color = "var(--pulso-text-soft)";
-          }}
+          className={`pulso-base-row-button${isReplacing ? " is-active" : ""}`}
         >
           <RefreshCw size={11} /> Reemplazar
         </button>
@@ -6146,27 +6005,7 @@ function BaseRow({
           disabled={busy}
           title={`Quitar base ${base.nombre}`}
           aria-label={`Quitar base ${base.nombre}`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 11, fontWeight: 600,
-            padding: "6px 10px", borderRadius: 6,
-            border: "1px solid var(--pulso-border)",
-            background: "white",
-            color: "var(--pulso-text-soft)",
-            cursor: busy ? "wait" : "pointer",
-            transition: "border-color 120ms ease, background 120ms ease, color 120ms ease",
-          }}
-          onMouseEnter={(e) => {
-            if (busy) return;
-            e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
-            e.currentTarget.style.background = "var(--pulso-danger-bg)";
-            e.currentTarget.style.color = "var(--pulso-danger-fg)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--pulso-border)";
-            e.currentTarget.style.background = "white";
-            e.currentTarget.style.color = "var(--pulso-text-soft)";
-          }}
+          className="pulso-base-row-button is-danger"
         >
           <Trash2 size={11} /> Quitar
         </button>
@@ -6230,38 +6069,18 @@ function AddBaseForm({
   }
 
   return (
-    <div
-      style={{
-        marginTop: 14,
-        padding: "18px 20px", borderRadius: 10,
-        border: "1px solid var(--pulso-primary)",
-        background: "white",
-        boxShadow: "var(--pulso-shadow-med)",
-        display: "flex", flexDirection: "column", gap: 14,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "var(--pulso-primary-soft)",
-            color: "var(--pulso-primary)",
-            border: "1px solid var(--pulso-primary-border)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
+    <div className="pulso-base-editor">
+      <div className="pulso-base-editor-head">
+        <span className="pulso-base-editor-icon" aria-hidden="true">
           <Plus size={16} />
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--pulso-text)" }}>
-            Agregar otra base al estudio
-          </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginTop: 2 }}>
+        <div className="pulso-base-editor-copy">
+          <strong>Agregar otra base al estudio</strong>
+          <span>
             Sube el XLSForm y la base de datos. El nombre es opcional — si lo
-            dejas vacío se llamará <code style={{ fontFamily: "ui-monospace, monospace" }}>{autoName}</code>{" "}
+            dejas vacío se llamará <code>{autoName}</code>{" "}
             y podrás renombrarla después.
-          </div>
+          </span>
         </div>
         <button
           type="button"
@@ -6276,46 +6095,37 @@ function AddBaseForm({
       </div>
 
       {/* Nombre (opcional — si vacío, backend auto-nombra). */}
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
-          Nombre de la base <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, opacity: 0.7 }}>(opcional)</span>
+      <label className="pulso-base-form-field">
+        <span>
+          Nombre de la base <em>(opcional)</em>
         </span>
         <input
           type="text"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder={autoName}
-          style={{
-            fontSize: 13, fontFamily: "ui-monospace, monospace",
-            padding: "8px 12px", borderRadius: 7,
-            border: `1px solid ${
-              nombreDuplicado ? "var(--pulso-danger-border)" :
-              nombreTocado && !nombreValido ? "var(--pulso-warn-border)" :
-              "var(--pulso-border)"
-            }`,
-            background: "white", outline: "none",
-          }}
+          className={
+            nombreDuplicado
+              ? "is-invalid"
+              : nombreTocado && !nombreValido
+              ? "is-warning"
+              : ""
+          }
         />
         {nombreDuplicado && (
-          <span style={{ fontSize: 10, color: "var(--pulso-danger-fg)" }}>
+          <small className="is-danger">
             Ya existe una base con ese nombre.
-          </span>
+          </small>
         )}
         {nombreTocado && !nombreValido && !nombreDuplicado && (
-          <span style={{ fontSize: 10, color: "var(--pulso-warn-fg)" }}>
+          <small className="is-warning">
             Usa letras, números y guiones. Sin espacios ni el símbolo $.
-          </span>
+          </small>
         )}
       </label>
 
       {/* Uploaders */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 10,
-        }}
-      >
+      <div className="pulso-base-file-grid">
         <FilePicker
           icon={FileSpreadsheet}
           title="XLSForm"
@@ -6336,10 +6146,10 @@ function AddBaseForm({
 
       {error && <ErrorBlock label="Error al agregar base" detail={error} />}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+      <div className="pulso-base-form-actions">
         {/* Hint explícito sobre qué falta — el botón deshabilitado
             solo no es affordance suficiente. */}
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, minWidth: 200 }}>
+        <div className="pulso-base-form-hint">
           {!puedeAgregar && !uploading && (
             <>
               {!xlsformFile && !dataFile
@@ -6356,12 +6166,11 @@ function AddBaseForm({
             </>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <div className="pulso-base-form-buttons">
           <button
             type="button"
             onClick={onCancel}
             disabled={uploading}
-            style={{ fontSize: 12, padding: "7px 14px" }}
           >
             Cancelar
           </button>
@@ -6370,11 +6179,6 @@ function AddBaseForm({
             className="pulso-primary"
             onClick={handleSubmit}
             disabled={!puedeAgregar}
-            style={{
-              fontSize: 12, padding: "7px 14px",
-              opacity: puedeAgregar ? 1 : 0.55,
-              display: "inline-flex", alignItems: "center", gap: 6,
-            }}
           >
             <Plus size={12} />
             {uploading ? "Subiendo…" : "Agregar base"}
@@ -6428,37 +6232,19 @@ function ReplaceFilesForm({
   }
 
   return (
-    <div
-      style={{
-        marginTop: 8,
-        padding: "14px 16px", borderRadius: 10,
-        border: "1px solid var(--pulso-primary)",
-        background: "white",
-        boxShadow: "var(--pulso-shadow-med)",
-        display: "flex", flexDirection: "column", gap: 12,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: "var(--pulso-primary-soft)",
-            color: "var(--pulso-primary)",
-            border: "1px solid var(--pulso-primary-border)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
+    <div className="pulso-base-editor is-replace">
+      <div className="pulso-base-editor-head">
+        <span className="pulso-base-editor-icon" aria-hidden="true">
           <RefreshCw size={14} />
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
-            Reemplazar archivos de <code style={{ fontFamily: "ui-monospace, monospace" }}>{baseNombre}</code>
-          </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginTop: 2 }}>
+        <div className="pulso-base-editor-copy">
+          <strong>
+            Reemplazar archivos de <code>{baseNombre}</code>
+          </strong>
+          <span>
             Sube el XLSForm, la base de datos, o ambos. Lo que no toques se
             queda igual. La validación y el plan de analítica se invalidan.
-          </div>
+          </span>
         </div>
         <button
           type="button"
@@ -6472,13 +6258,7 @@ function ReplaceFilesForm({
         </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 10,
-        }}
-      >
+      <div className="pulso-base-file-grid">
         <FilePicker
           icon={FileSpreadsheet}
           title="Nuevo XLSForm"
@@ -6499,16 +6279,15 @@ function ReplaceFilesForm({
 
       {error && <ErrorBlock label="Error al reemplazar archivos" detail={error} />}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, minWidth: 200 }}>
+      <div className="pulso-base-form-actions">
+        <div className="pulso-base-form-hint">
           {!puedeReemplazar && !uploading && "Sube al menos uno de los dos archivos para reemplazar."}
         </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <div className="pulso-base-form-buttons">
           <button
             type="button"
             onClick={onCancel}
             disabled={uploading}
-            style={{ fontSize: 12, padding: "7px 14px" }}
           >
             Cancelar
           </button>
@@ -6517,11 +6296,6 @@ function ReplaceFilesForm({
             className="pulso-primary"
             onClick={handleSubmit}
             disabled={!puedeReemplazar}
-            style={{
-              fontSize: 12, padding: "7px 14px",
-              opacity: puedeReemplazar ? 1 : 0.55,
-              display: "inline-flex", alignItems: "center", gap: 6,
-            }}
           >
             <RefreshCw size={12} />
             {uploading ? "Reemplazando…" : "Reemplazar"}
@@ -6547,6 +6321,7 @@ function FilePicker({
   const [dragOver, setDragOver] = useState(false);
   return (
     <label
+      className={`pulso-base-file-picker${file ? " is-ready" : ""}${dragOver ? " is-dragging" : ""}`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => {
@@ -6555,42 +6330,17 @@ function FilePicker({
         const f = e.dataTransfer.files?.[0];
         if (f) onPick(f);
       }}
-      style={{
-        display: "flex", flexDirection: "column", alignItems: "center",
-        gap: 4, padding: "14px 12px", borderRadius: 8,
-        border: `2px dashed ${
-          file ? "var(--pulso-success-border)" :
-          dragOver ? "var(--pulso-primary)" :
-          "var(--pulso-border)"
-        }`,
-        background: file
-          ? "var(--pulso-success-bg)"
-          : dragOver ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
-        cursor: "pointer",
-        textAlign: "center",
-        transition: "border-color 120ms ease, background 120ms ease",
-        minWidth: 0,
-      }}
     >
       {file ? (
-        <Check size={18} color="var(--pulso-success-fg)" />
+        <Check size={18} />
       ) : (
-        <Upload size={18} color={dragOver ? "var(--pulso-primary)" : "var(--pulso-text-soft)"} />
+        <Upload size={18} />
       )}
-      <span
-        style={{
-          fontSize: 12, fontWeight: 600,
-          color: file ? "var(--pulso-success-fg)" : "var(--pulso-text)",
-          display: "inline-flex", alignItems: "center", gap: 5,
-          maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}
-      >
+      <span className="pulso-base-file-picker-title">
         <Icon size={13} />
         {file ? file.name : title}
       </span>
-      <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
-        {acceptLabel}
-      </span>
+      <span className="pulso-base-file-picker-accept">{acceptLabel}</span>
       <input
         type="file"
         accept={accept}

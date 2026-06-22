@@ -268,10 +268,41 @@ export type DatosConfig = {
   value_labels: Record<string, Record<string, string>>;
 };
 
+export type FichaTecnicaConfig = {
+  layout?: "pulso_oficial" | "template" | "simple";
+  tipo_investigacion?: string;
+  estudio?: string;
+  universo_estudio?: string;
+  ambito_geografico?: string;
+  aplicacion_de_encuestas_piloto?: string;
+  aplicacion_de_encuestas?: string;
+  aplicacion_piloto?: string;
+  aplicacion_recojo?: string;
+  marco_muestral?: string;
+  tamano_de_la_muestra?: string;
+  procedimiento_muestreo?: string;
+  nivel_representatividad?: string;
+  ponderacion?: string;
+  instrumento?: string;
+  tecnica_aplicacion?: string;
+  prueba_piloto?: string;
+  supervision_de_mesa?: string;
+  supervision_de_campo?: string;
+  digitacion?: string;
+  supervision_control?: string;
+  digitacion_procesamiento?: string;
+  plan_limpieza?: string;
+  entregables?: string;
+  template_path?: string;
+  hojas_ruta_pulso_path?: string;
+  hojas_ruta_context?: unknown;
+};
+
 export type AnaliticaConfig = {
   // v1 → v2: `bases`; v2 → v3: revisión de metadata de data.
   version: 3;
   fuente_preferida: FuentePreferida;
+  ficha_tecnica: FichaTecnicaConfig;
   secciones: SeccionConfig[];
   numericas: string[];
   // Variables excluidas globalmente de la revisión y reportes de Analítica.
@@ -293,6 +324,7 @@ export type AnaliticaConfig = {
 export const DEFAULT_CONFIG: AnaliticaConfig = {
   version: 3,
   fuente_preferida: "adaptados",
+  ficha_tecnica: { layout: "pulso_oficial" },
   secciones: [],
   numericas: [],
   variables_excluidas: [],
@@ -804,6 +836,7 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
   return {
     ...DEFAULT_CONFIG,
     ...c,
+    ficha_tecnica: { ...DEFAULT_CONFIG.ficha_tecnica, ...((c as Partial<AnaliticaConfig>).ficha_tecnica ?? {}) },
     datos: { ...DEFAULT_CONFIG.datos, ...(c as Partial<AnaliticaConfig>).datos },
     codebook: { ...DEFAULT_CONFIG.codebook, ...(c as Partial<AnaliticaConfig>).codebook },
     frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(c as Partial<AnaliticaConfig>).frecuencias },

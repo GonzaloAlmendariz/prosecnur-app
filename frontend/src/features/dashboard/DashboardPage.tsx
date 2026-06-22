@@ -225,6 +225,10 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
         </div>
       )}
 
+      {editorChromeVisible && (
+        <div className="dash-editor-dashboard-divider" aria-hidden="true" />
+      )}
+
       <DashboardHeader />
       {manifest && (
         <span
@@ -277,7 +281,7 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
         <>
           <nav
             aria-label="Secciones del dashboard"
-            className={`dash-tab-nav-wrap dash-section-rail ${editorChromeVisible ? "is-editor" : "is-public"}`}
+            className="dash-tab-nav-wrap dash-section-rail is-public"
           >
             <TabNav
               tabs={visibleTabs}

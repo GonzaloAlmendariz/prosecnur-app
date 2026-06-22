@@ -84,6 +84,17 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.4.0",
+    date: "2026-06-22",
+    highlights: [
+      "Cálculo de muestra: amplía el flujo de marcos, aulas, acreditación y escenarios con persistencia más robusta.",
+      "Carga: suma entradas directas desde plataformas, mejor soporte para ZIP/SAV y controles de fuentes multibase.",
+      "Codificación y reportes: incorpora importación Excel de categorizaciones y ficha técnica metodológica exportable.",
+      "Dashboard, Analítica, Gráficos y Hojas de ruta: consolida mejoras visuales y operativas acumuladas para el nuevo corte.",
+      "Monitoreo: este corte mantiene fuera los últimos cambios en desarrollo del módulo.",
+    ],
+  },
+  {
     version: "3.3.4",
     date: "2026-06-11",
     highlights: [

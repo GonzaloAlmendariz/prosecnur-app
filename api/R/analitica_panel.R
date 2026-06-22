@@ -146,7 +146,7 @@
     }
     suffixes <<- c(suffixes, suffix)
     label <- .panel_scalar(existing$label %||% paste0("Ola ", order), paste0("Ola ", order))
-    list(base = base, label = label, suffix = suffix, order = order)
+    utils::modifyList(existing, list(base = base, label = label, suffix = suffix, order = order))
   })
   waves <- waves[order(vapply(waves, function(w) as.integer(w$order %||% 0L), integer(1)))]
   unname(waves)
@@ -159,6 +159,8 @@
   if (!nzchar(key) && length(candidates)) key <- candidates[[1]]$name
   list(
     key = key,
+    key_label = .panel_scalar(cfg$key_label %||% cfg$label_key, ""),
+    date_variable = .panel_scalar(cfg$date_variable %||% cfg$fecha_variable %||% cfg$field_date_variable, ""),
     waves = .panel_default_waves(data_sources, cfg),
     include_codebook = .panel_bool((cfg$outputs %||% list())$codebook, TRUE),
     include_frequencies = .panel_bool((cfg$outputs %||% list())$frecuencias, TRUE),
@@ -572,8 +574,11 @@
 .panel_nse_coverage <- function(wide, pcfg) {
   names_norm <- .panel_norm_name(names(wide))
   configured <- .panel_norm_name(pcfg$nse_variables)
-  idx <- grepl("(^|_)nse($|_)", names_norm)
-  if (length(configured)) idx <- idx | names_norm %in% configured
+  idx <- if (length(configured)) {
+    names_norm %in% configured
+  } else {
+    grepl("(^|_)nse($|_)", names_norm)
+  }
   vars <- names(wide)[idx]
   if (!length(vars)) {
     return(data.frame(
@@ -612,6 +617,13 @@
   waves <- lapply(pcfg$waves, function(w) {
     key <- keys_by_wave[[w$base]]
     tab <- table(key, useNA = "no")
+    date_info <- NULL
+    if (exists(".ficha_tecnica_panel_wave_dates", mode = "function")) {
+      date_info <- tryCatch(
+        .ficha_tecnica_panel_wave_dates(data_sources[[w$base]], w, pcfg),
+        error = function(e) NULL
+      )
+    }
     list(
       base = w$base,
       label = w$label,
@@ -619,7 +631,12 @@
       n_filas = nrow(data_sources[[w$base]]),
       n_llaves = length(unique(key[!is.na(key)])),
       n_llaves_duplicadas = sum(tab > 1L),
-      n_llaves_vacias = sum(is.na(key))
+      n_llaves_vacias = sum(is.na(key)),
+      fecha_variable = .panel_scalar((date_info %||% list())$variable, ""),
+      n_fecha_registrada = suppressWarnings(as.integer((date_info %||% list())$n_fecha_registrada %||% NA_integer_)),
+      n_fecha_valida = suppressWarnings(as.integer((date_info %||% list())$n_fecha_valida %||% NA_integer_)),
+      fecha_rango = .panel_scalar((date_info %||% list())$rango, ""),
+      observacion_fecha = .panel_scalar((date_info %||% list())$observacion_fecha, "")
     )
   })
   complete_cols <- paste0("presente_", vapply(pcfg$waves, `[[`, character(1), "suffix"))
@@ -641,6 +658,26 @@
     nse_detected = !identical(as.character(coverage$variable_nse[[1]] %||% ""), "NSE no cargado"),
     waves = waves
   )
+}
+
+.panel_ficha_context <- function(built, data_sources = NULL) {
+  list(
+    panel = built$config %||% list(),
+    summary = built$summary %||% list(),
+    data_sources = data_sources %||% list()
+  )
+}
+
+.panel_ficha_tecnica_with_context <- function(ficha_tecnica, built, data_sources = NULL) {
+  if (identical(ficha_tecnica, FALSE)) return(FALSE)
+  if (is.null(ficha_tecnica) || isTRUE(ficha_tecnica)) ficha_tecnica <- list()
+  if (!is.list(ficha_tecnica)) ficha_tecnica <- list()
+  ficha_tecnica$cfg <- ficha_tecnica$cfg %||% list()
+  ficha_tecnica$cfg$ficha_tecnica <- ficha_tecnica$cfg$ficha_tecnica %||% list()
+  if (is.null(ficha_tecnica$cfg$ficha_tecnica$panel_context)) {
+    ficha_tecnica$cfg$ficha_tecnica$panel_context <- .panel_ficha_context(built, data_sources)
+  }
+  ficha_tecnica
 }
 
 .analitica_panel_load_sources <- function(sid, cfg = NULL) {
@@ -807,13 +844,17 @@
 .analitica_panel_export <- function(sid, path_xlsx, cfg = NULL, progress = NULL) {
   cfg_all <- .analitica_get_config(sid)
   panel_cfg <- cfg %||% (cfg_all %||% list())$panel %||% list()
+  cfg_all$panel <- panel_cfg
   progress <- progress %||% function(...) invisible(NULL)
   progress("loading", percent = 5, message = "Cargando olas del panel...")
   sources <- .analitica_panel_load_sources(sid, cfg_all)
   progress("building", percent = 35, message = "Construyendo base wide y auditoria...")
   built <- .panel_wide_build(sources$data_sources, sources$inst_sources, panel_cfg)
   progress("writing", percent = 75, message = "Escribiendo entregable XLSX...")
-  .panel_write_xlsx(built, path_xlsx)
+  .panel_write_xlsx(built, path_xlsx, ficha_tecnica = list(
+    cfg = cfg_all,
+    fuente = sources$fuente
+  ))
   progress("done", percent = 99, message = "Base panel generada.")
   invisible(built$summary)
 }
@@ -848,7 +889,15 @@
   list(data = data, inst = inst)
 }
 
-.panel_export_wide_xlsx <- function(built, path, valores = "ambos", multi_select = "dummy_01") {
+.panel_ficha_spec <- function(defaults, ficha_tecnica = NULL) {
+  if (identical(ficha_tecnica, FALSE)) return(FALSE)
+  if (is.null(ficha_tecnica) || isTRUE(ficha_tecnica)) return(defaults)
+  if (!is.list(ficha_tecnica)) return(defaults)
+  utils::modifyList(defaults, ficha_tecnica)
+}
+
+.panel_export_wide_xlsx <- function(built, path, valores = "ambos", multi_select = "dummy_01",
+                                    ficha_tecnica = NULL) {
   ctx <- .panel_wide_dataset(built, multi_select)
   data <- ctx$data
   inst <- ctx$inst
@@ -860,7 +909,22 @@
     df_lab <- data
   }
   if (exists(".bases_write_xlsx", mode = "function")) {
-    return(.bases_write_xlsx(df_cod, df_lab, path, valores = valores))
+    return(.bases_write_xlsx(
+      df_cod,
+      df_lab,
+      path,
+      valores = valores,
+      ficha_tecnica = .panel_ficha_spec(list(
+        cfg = list(ficha_tecnica = list(panel_context = .panel_ficha_context(built))),
+        reporte = "Base panel wide",
+        instrumento = inst,
+        detalles = list(
+          "Llave panel" = built$config$key,
+          "Olas incluidas" = paste(vapply(built$config$waves, function(w) as.character(w$label %||% w$suffix %||% ""), character(1)), collapse = ", "),
+          "Tratamiento de select multiple" = multi_select
+        )
+      ), ficha_tecnica)
+    ))
   }
   .analitica_write_plain_xlsx(if (identical(valores, "etiquetas")) df_lab else df_cod, path)
 }
@@ -889,15 +953,17 @@
   invisible(path_sav)
 }
 
-.panel_export_write <- function(built, path, options = list(), overrides = list(), progress = NULL) {
+.panel_export_write <- function(built, path, options = list(), overrides = list(), progress = NULL,
+                                ficha_tecnica = NULL) {
   options <- .panel_export_options(options)
   progress <- progress %||% function(...) invisible(NULL)
   if (identical(options$formato, "paquete")) {
     progress("writing", percent = 82, message = "Escribiendo base, libro de codigos, frecuencias y auditoria...")
-    .panel_write_xlsx(built, path)
+    .panel_write_xlsx(built, path, ficha_tecnica = ficha_tecnica)
   } else if (identical(options$formato, "xlsx")) {
     progress("writing", percent = 82, message = "Escribiendo base panel wide en Excel...")
-    .panel_export_wide_xlsx(built, path, valores = options$valores, multi_select = options$multi_select)
+    .panel_export_wide_xlsx(built, path, valores = options$valores, multi_select = options$multi_select,
+                            ficha_tecnica = ficha_tecnica)
   } else if (identical(options$formato, "csv")) {
     progress("writing", percent = 82, message = "Escribiendo base panel wide en CSV...")
     .panel_export_wide_csv(built, path, valores = options$valores, multi_select = options$multi_select, separador = options$separador)
@@ -922,7 +988,7 @@
   invisible(path)
 }
 
-.panel_write_xlsx <- function(built, path_xlsx) {
+.panel_write_xlsx <- function(built, path_xlsx, ficha_tecnica = NULL) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para generar base panel.", call. = FALSE)
   }
@@ -949,6 +1015,25 @@
     stringsAsFactors = FALSE
   )
   add_table("configuracion", summary_df)
+  if (exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    ficha_tecnica <- .panel_ficha_tecnica_with_context(ficha_tecnica, built)
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = built$base_wide,
+        instrumento = built$inst_wide %||% attr(built$base_wide, "instrumento_reporte", exact = TRUE),
+        reporte = "Paquete de base panel",
+        hojas = names(wb),
+        detalles = list(
+          "Llave panel" = built$config$key,
+          "Olas incluidas" = paste(vapply(built$config$waves, function(w) as.character(w$label %||% w$suffix %||% ""), character(1)), collapse = ", "),
+          "Personas o llaves panel" = built$summary$n_panel_keys,
+          "Casos completos" = built$summary$n_complete_keys
+        )
+      ),
+      ficha_tecnica
+    )
+  }
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
   invisible(path_xlsx)
 }

@@ -818,11 +818,11 @@ export function GraficosHeader({
                             </span>
                             <span>
                               <strong style={jsonIoStyles.cellTitle}>
-                                {base.incoming.n_slides_applicable}/{base.incoming.n_slides_total} slides aplicables
+                                {base.incoming.n_slides_applicable}/{base.incoming.n_slides_total} slides se conservarán
                               </strong>
                               <small style={jsonIoStyles.cellMuted}>
-                                {base.incoming.n_slides_skipped > 0
-                                  ? `${base.incoming.n_slides_skipped} omitido${base.incoming.n_slides_skipped === 1 ? "" : "s"} con aviso`
+                                {missing.length > 0
+                                  ? "variables faltantes quedarán vacías"
                                   : "sin omisiones"}
                               </small>
                             </span>

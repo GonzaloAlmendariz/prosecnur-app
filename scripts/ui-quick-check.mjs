@@ -460,6 +460,7 @@ async function openProjectIntoApi(apiUrl, project, timeoutMs) {
 }
 
 async function installStubApi(context) {
+  let calcMuestraState = stubCalcMuestraState();
   await context.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -473,6 +474,14 @@ async function installStubApi(context) {
       headers,
       body: JSON.stringify(json),
     });
+    const requestJson = async () => {
+      const raw = request.postData() || "{}";
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    };
 
     if (endpoint === "/api/system/health") {
       return fulfillJson({ ok: true, version: "ui-quick-check", prosecnur_version: "stub", time: new Date().toISOString() });
@@ -492,6 +501,31 @@ async function installStubApi(context) {
     if (endpoint === "/api/estudio") {
       return fulfillJson({ has_estudio: false, nombre: null, bases: [], active_base: null, processing_mode: null });
     }
+    if (endpoint === "/api/calc-muestra/state") {
+      return fulfillJson(calcMuestraState);
+    }
+    if (endpoint === "/api/calc-muestra/iniciar-estudio") {
+      const body = await requestJson();
+      calcMuestraState = stubCalcMuestraState(body.tipo || "estudio_propio", body.variante || "vacio");
+      return fulfillJson({ ok: true, estudio: calcMuestraState.estudio, state: calcMuestraState, demo_warning: null });
+    }
+    if (endpoint === "/api/calc-muestra/estudio") {
+      const body = await requestJson();
+      calcMuestraState = {
+        ...calcMuestraState,
+        estudio: normalizeStubCalcMuestraStudy(body.estudio || body || calcMuestraState.estudio),
+        reporte: { disponible: false },
+      };
+      return fulfillJson({ ok: true, estudio: calcMuestraState.estudio });
+    }
+    if (endpoint === "/api/calc-muestra/calcular") {
+      calcMuestraState = {
+        ...calcMuestraState,
+        estudio: stubCalcMuestraCalculatedStudy(calcMuestraState.estudio),
+        reporte: { disponible: false },
+      };
+      return fulfillJson({ ok: true, estudio: calcMuestraState.estudio });
+    }
     if (endpoint === "/api/codificacion/source") {
       return fulfillJson({ source: null, available: [] });
     }
@@ -502,6 +536,212 @@ async function installStubApi(context) {
       },
     }, 404);
   });
+}
+
+function stubCalcMuestraState(tipo = "estudio_propio", variante = "vacio") {
+  const macro = tipo === "hsvg_universitario" ? "encuesta_estudiantes" : tipo;
+  const estudio = normalizeStubCalcMuestraStudy({
+    id: "ui-quick-check-calc-muestra",
+    titulo: macro === "encuesta_estudiantes" ? "Encuesta a estudiantes" : "Estudio sin titulo",
+    macro_familia: macro,
+    componentes: macro === "encuesta_estudiantes" && variante === "plantilla_pucp"
+      ? stubCalcMuestraUniversityComponents(true)
+      : [],
+  });
+  return {
+    estudio,
+    aulas: {
+      config: stubCalcMuestraAulasConfig(),
+      frame: null,
+      selection: null,
+      method_comparison: null,
+      replacement_simulation: null,
+      export: null,
+    },
+    reporte: { disponible: false },
+  };
+}
+
+function normalizeStubCalcMuestraStudy(input = {}) {
+  return {
+    version: Number(input.version || 1),
+    id: stringOrEmpty(input.id) || "ui-quick-check-calc-muestra",
+    titulo: stringOrEmpty(input.titulo) || "Estudio sin titulo",
+    fecha_creacion: input.fecha_creacion || new Date().toISOString(),
+    modo_trabajo: input.modo_trabajo || "estimacion_preliminar",
+    macro_familia: input.macro_familia || "estudio_propio",
+    modo_sensible: Boolean(input.modo_sensible),
+    contexto: {
+      cliente: stringOrEmpty(input.contexto?.cliente),
+      tipo_cliente: stringOrEmpty(input.contexto?.tipo_cliente),
+      descripcion_libre: stringOrEmpty(input.contexto?.descripcion_libre),
+    },
+    componentes: Array.isArray(input.componentes) ? input.componentes : [],
+    workspace: input.workspace ?? null,
+    decision_log: input.decision_log,
+    computado_at: input.computado_at,
+  };
+}
+
+function stubCalcMuestraUniversityComponents(withFrame = false) {
+  const estratos = withFrame
+    ? [
+        { id: "fac-1", label: "Arquitectura", N: 1200, N_a: 620, N_b: 580, n: 0 },
+        { id: "fac-2", label: "Ciencias Sociales", N: 1800, N_a: 980, N_b: 820, n: 0 },
+        { id: "fac-3", label: "Ingenieria", N: 2400, N_a: 880, N_b: 1520, n: 0 },
+      ]
+    : [];
+  const marcoValidado = estratos.reduce((sum, row) => sum + Number(row.N || 0), 0);
+  return [
+    stubCalcMuestraComponent({
+      id: "cmp-ui-universidad",
+      actor: "Muestra con representatividad a nivel universidad",
+      actor_id: "estudiantes_universidad",
+      tecnica: "prob_conglomerado_multietapico",
+      canal_recojo: "aula_qr",
+      marco: { marco_validado: marcoValidado, universo_bruto: marcoValidado, marco_contactable: marcoValidado, estado: withFrame ? "validado" : "bruto", estratos },
+    }),
+    stubCalcMuestraComponent({
+      id: "cmp-ui-facultad",
+      actor: "Muestra con representatividad a nivel facultad",
+      actor_id: "estudiantes_facultad",
+      tecnica: "prob_estratificado_independiente",
+      canal_recojo: "aula_qr",
+      marco: { marco_validado: marcoValidado, universo_bruto: marcoValidado, marco_contactable: marcoValidado, estado: withFrame ? "validado" : "bruto", estratos },
+    }),
+  ];
+}
+
+function stubCalcMuestraComponent(overrides = {}) {
+  const tecnica = overrides.tecnica || "prob_aleatorio_simple";
+  return {
+    id: overrides.id || "cmp-ui",
+    actor: overrides.actor || "Poblacion objetivo",
+    actor_id: overrides.actor_id || "poblacion_objetivo",
+    actor_categoria: overrides.actor_categoria || "otros",
+    canal_recojo: overrides.canal_recojo || "presencial",
+    tecnica,
+    naturaleza: tecnica.startsWith("prob_") || tecnica === "sistematico" ? "prob" : "operativo",
+    origen_tamano: "formula",
+    nivel_respaldo: tecnica.startsWith("prob_") ? "representatividad_estadistica" : "evidencia_descriptiva",
+    marco: {
+      universo_bruto: 0,
+      marco_validado: 0,
+      marco_contactable: 0,
+      estado: "no_definido",
+      notas: "",
+      estratos: [],
+      matriz_operativa: [],
+      ...(overrides.marco || {}),
+    },
+    parametros: {
+      z: 1.96,
+      p: 0.5,
+      e: 0.05,
+      deff: 1,
+      tasa_respuesta: 0.7,
+      oversample_pct: 0.2,
+      cobertura_objetivo: 0.6,
+      promedio_conglomerado: 25,
+      n_minimo_estrato: 30,
+      tope_operativo: 150,
+      ...(overrides.parametros || {}),
+    },
+    meta: {
+      tipo: "objetivo",
+      valor: 0,
+      variable_control: "",
+      sub_cuotas: {},
+      ...(overrides.meta || {}),
+    },
+    resultado: overrides.resultado ?? null,
+  };
+}
+
+function stubCalcMuestraCalculatedStudy(studyInput = {}) {
+  const study = normalizeStubCalcMuestraStudy(studyInput);
+  const componentes = (study.componentes || []).map((comp, index) => {
+    const marcoValidado = Number(comp?.marco?.marco_validado || comp?.marco?.universo_bruto || 6000);
+    const nObjetivo = Number(comp?.meta?.valor || (index === 0 ? 500 : 1200));
+    const oversamplePct = Number(comp?.parametros?.oversample_pct ?? 0.2);
+    const aulasBase = Math.max(1, Math.ceil(nObjetivo / Number(comp?.parametros?.promedio_conglomerado || 25)));
+    return {
+      ...comp,
+      marco: {
+        ...comp.marco,
+        universo_bruto: marcoValidado,
+        marco_validado: marcoValidado,
+        marco_contactable: marcoValidado,
+        estado: "validado",
+      },
+      resultado: {
+        n_teorico: Math.round(nObjetivo * 0.92),
+        n_objetivo: nObjetivo,
+        n_operativo: Math.ceil(nObjetivo * (1 + oversamplePct)),
+        precision_alcanzada: Number(comp?.parametros?.e || 0.05),
+        sobremuestra: Math.ceil(nObjetivo * oversamplePct),
+        origen_tamano: comp.origen_tamano || "formula",
+        tecnica: comp.tecnica || "prob_aleatorio_simple",
+        computado_at: new Date().toISOString(),
+        inferencia: { permitido: true, motivos: null },
+        distribucion_estratos: Array.isArray(comp?.marco?.estratos)
+          ? comp.marco.estratos.map((row) => ({
+              estrato: row.label || row.estrato || "Estrato",
+              N: Number(row.N || 0),
+              n: Math.max(0, Math.round((Number(row.N || 0) / Math.max(1, marcoValidado)) * nObjetivo)),
+            }))
+          : [],
+        aulas_base_total: aulasBase,
+        aulas_total: aulasBase + 8,
+        aulas_extra_total: 8,
+      },
+    };
+  });
+  return {
+    ...study,
+    componentes,
+    computado_at: new Date().toISOString(),
+  };
+}
+
+function stubCalcMuestraAulasConfig() {
+  return {
+    schema: "calc_muestra_workspace_aulas_v1",
+    modalidad: "presencial_aula",
+    selector: "cube_balanceado",
+    selector_engine: "cube_balanceado",
+    method_family: "balanced_probability",
+    min_elegibles_aula: 15,
+    usar_grupos_tamano: true,
+    grupos_tamano: [
+      { id: "G1", label: "G1", min: 15, max: 20, descripcion: "aulas pequenas" },
+      { id: "G2", label: "G2", min: 21, max: 30, descripcion: "aulas medianas" },
+      { id: "G3", label: "G3", min: 31, max: 40, descripcion: "aulas estandar" },
+      { id: "G4", label: "G4", min: 41, max: null, descripcion: "aulas grandes" },
+    ],
+    estratos_selector: ["faculty", "sex_top_1", "size_group"],
+    balance_vars: ["faculty", "program", "level", "schedule", "sex"],
+    spread_vars: ["program", "level", "schedule"],
+    candidate_pool_size: 500,
+    simulation_runs: 500,
+    mos_strategy: "eligible_students_winsorized",
+    coordination_mode: "m1_plus_reserve_waves",
+    bolsas_reemplazo: 2,
+    aulas_extra_operativas_default: 1,
+    penalizacion_repetidos: 0.35,
+    pps_weight: 0.45,
+    coverage_weight: 0.55,
+    monte_carlo_n: 500,
+    semilla: 20260619,
+    objective: {
+      schema: "calc_muestra_aulas_representativity_objective_v1",
+      primary_unit: "estudiantes_unicos_elegibles",
+      variables: [
+        { dimension: "faculty", label: "Facultad", aula_col: "faculty", student_col: "faculty", weight: 0.18, tolerance: 0.025, source_preference: "student" },
+        { dimension: "sex", label: "Sexo", aula_col: "sex_top_1", student_col: "sex", weight: 0.1, tolerance: 0.025, source_preference: "student" },
+      ],
+    },
+  };
 }
 
 function stubSessionState() {
@@ -558,8 +798,8 @@ async function clickNamedControl(page, label, timeoutMs) {
   const shortTimeout = Math.min(2500, timeoutMs);
   const candidates = [
     page.getByRole("tab", { name: startsWithPattern }).first(),
-    page.locator("button").filter({ hasText: pattern }).last(),
-    page.getByRole("button", { name: startsWithPattern }).last(),
+    page.locator("button").filter({ hasText: pattern }).first(),
+    page.getByRole("button", { name: startsWithPattern }).first(),
     page.getByText(pattern).last(),
   ];
   let lastError = null;
