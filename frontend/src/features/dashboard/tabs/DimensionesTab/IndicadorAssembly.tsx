@@ -177,7 +177,7 @@ export function IndicadorAssembly({
   // calculadas a partir del centro.
   const W = 1200;
   const compact = !maxed;
-  const H = maxed ? 880 : 560;
+  const H = maxed ? 880 : 480;
   const cx = W / 2;
   const cy = H / 2;
   const R_INDEX = compact ? 78 : 92; // radio del nodo central (índice)

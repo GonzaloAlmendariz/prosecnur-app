@@ -29,8 +29,9 @@ La importacion se divide en inspeccion y aplicacion:
   sesion, calcula compatibilidad por base y no modifica el plan.
 - `POST /api/graficos/share/import` vuelve a inspeccionar y reemplaza solo la
   configuracion de Graficos de las bases seleccionadas.
-- Si una base no tiene variables requeridas por un slide, se omite ese slide
-  para esa base y se reportan codigo y etiqueta.
+- Si una base no tiene variables requeridas por un slide, se conserva el slide,
+  se dejan vacias solo esas referencias de variable y se reportan codigo y
+  etiqueta para que el usuario pueda completarlas luego.
 
 El `.pulso` destino persiste una auditoria compacta
 `graficos_share_snapshot/1`; el paquete ZIP no se agrega como input canonico del
@@ -48,8 +49,8 @@ antes de aplicar para evitar reemplazos opacos.
 
 ## Cumplimiento
 
-- Tests R verifican exportacion, inspeccion, omision de slides por variable
-  faltante, importacion por base e invalidacion de PPT/Word.
+- Tests R verifican exportacion, inspeccion, retencion de slides con variables
+  faltantes vacias, importacion por base e invalidacion de PPT/Word.
 - Tests frontend verifican el cliente API de exportar, inspeccionar e importar.
 - El paquete no debe contener `state.rds`, data, XLSForms, SAV ni entregables
   generados.

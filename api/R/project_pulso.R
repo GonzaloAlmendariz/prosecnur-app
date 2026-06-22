@@ -1117,6 +1117,44 @@
   invisible(NULL)
 }
 
+# Cálculo de muestra puede declarar bases institucionales antes de construir
+# el marco. Esas bases son inputs canónicos aunque no pertenezcan a
+# s$estudio$bases, así que deben viajar dentro del .pulso.
+.pulso_collect_calc_muestra_fids <- function(s) {
+  out <- character(0)
+  add_fid <- function(value) {
+    value <- as.character(value %||% "")
+    value <- value[!is.na(value) & nzchar(value)]
+    if (length(value)) out <<- c(out, value)
+  }
+  collect_binding <- function(binding) {
+    if (is.null(binding)) return(invisible(NULL))
+    if (is.data.frame(binding)) {
+      if ("file_id" %in% names(binding)) {
+        for (value in binding$file_id) add_fid(value)
+      }
+      if ("fileId" %in% names(binding)) {
+        for (value in binding$fileId) add_fid(value)
+      }
+      return(invisible(NULL))
+    }
+    if (!is.list(binding)) return(invisible(NULL))
+    add_fid(binding$file_id %||% binding$fileId)
+    invisible(NULL)
+  }
+
+  estudio <- s$calc_muestra_estudio %||% NULL
+  workspace <- if (is.list(estudio)) estudio$workspace %||% NULL else NULL
+  bindings <- if (is.list(workspace)) workspace$source_bindings %||% list() else list()
+  if (is.data.frame(bindings)) {
+    collect_binding(bindings)
+  } else if (length(bindings)) {
+    for (binding in bindings) collect_binding(binding)
+  }
+
+  unique(out)
+}
+
 # Recolecta los file_ids que son INPUTS del proyecto — los que el state
 # referencia explícitamente desde sus campos canónicos. Excluye outputs
 # generados por el pipeline (codebooks, reportes, planes exportados,
@@ -1200,6 +1238,7 @@
       out <- c(out, s$dashboard_source$data_file_id)
     }
   }
+  out <- c(out, .pulso_collect_calc_muestra_fids(s))
   # Monitoreo territorial: algunos insumos nacen dentro de Monitoreo, pero
   # luego son referencia canónica del proyecto. Si no viajan en el .pulso,
   # al reabrir quedan referencias colgantes aunque la configuración exista.
@@ -1287,12 +1326,37 @@
   FALSE
 }
 
+.pulso_calc_muestra_has_content <- function(s) {
+  if (is.null(s) || !is.list(s)) return(FALSE)
+  estudio <- s$calc_muestra_estudio %||% NULL
+  if (is.list(estudio)) {
+    macro <- as.character(estudio$macro_familia %||% "")[1]
+    if (isTRUE(nzchar(macro)) && !identical(macro, "estudio_propio")) return(TRUE)
+    if (length(estudio$componentes %||% list()) > 0L) return(TRUE)
+    titulo <- trimws(as.character(estudio$titulo %||% "")[1])
+    if (isTRUE(nzchar(titulo)) && !identical(titulo, "Estudio sin título")) return(TRUE)
+    workspace <- estudio$workspace %||% NULL
+    if (is.list(workspace)) {
+      frame_mode <- as.character(workspace$frame_mode %||% "")[1]
+      if (isTRUE(nzchar(frame_mode)) && !identical(frame_mode, "sin_definir")) return(TRUE)
+      if (length(workspace$source_bindings %||% list()) > 0L) return(TRUE)
+      if (length(workspace$variable_mappings %||% list()) > 0L) return(TRUE)
+      if (length(workspace$publication_config %||% list()) > 0L) return(TRUE)
+    }
+  }
+  !is.null(s$calc_muestra_aulas_frame) ||
+    !is.null(s$calc_muestra_aulas_selection) ||
+    !is.null(s$calc_muestra_aulas_method_comparison) ||
+    !is.null(s$calc_muestra_aulas_replacement_simulation)
+}
+
 .pulso_state_has_project_content <- function(s) {
   if (is.null(s) || !is.list(s)) return(FALSE)
   files <- s$files %||% list()
   bases <- (s$estudio %||% list())$bases %||% list()
   length(files) > 0L ||
     length(bases) > 0L ||
+    .pulso_calc_muestra_has_content(s) ||
     length(s$monitoreo_sources %||% list()) > 0L ||
     .pulso_snapshot_has_content(s$monitoreo_snapshot %||% NULL) ||
     .pulso_snapshot_has_content(s$monitoreo_aulas_snapshot %||% NULL) ||

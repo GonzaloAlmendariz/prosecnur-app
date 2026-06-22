@@ -1902,6 +1902,31 @@ mount_codificacion <- function(pr) {
       selections <- parsed$selections %||% list()
       codif_config_apply_import(sid, bundle, selections, parsed$file_name %||% "")
     })) |>
+    plumber::pr_post("/api/codificacion/import-categorias-excel/preview", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      file_id <- as.character(parsed$file_id %||% "")[1]
+      if (!nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta file_id del Excel de categorizaciones.")
+      meta <- get_file(sid, file_id)
+      if (!tolower(meta$ext %||% "") %in% c("xlsx", "xls")) {
+        stop_api(400, "E_UNSUPPORTED_EXT", "El archivo de categorizaciones debe ser .xlsx o .xls.")
+      }
+      bundle <- codif_config_bundle_from_categorization_xlsx(
+        sid, meta$path, parsed$file_name %||% meta$original_name %||% ""
+      )
+      list(
+        ok = TRUE,
+        source_format = "categorization_excel",
+        bundle = bundle,
+        preview = codif_config_preview_import(sid, bundle, parsed$file_name %||% meta$original_name %||% "")
+      )
+    })) |>
     plumber::pr_get("/api/codificacion/preguntas-abiertas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)

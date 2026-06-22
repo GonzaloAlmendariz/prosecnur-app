@@ -75,10 +75,7 @@
       if (identical(tipo, "sm")) {
         spec <- .dashboard_resolver_sm_spec(v, s$rp_inst, s$rp_data, s = s)
         base$dummies <- lapply(spec$cols, function(col) {
-          code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "."))),
-                      "", col)
-          code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "/"))),
-                      "", code)
+          code <- as.character(spec$code_by_col[[col]] %||% col)
           opt_label <- as.character(spec$map_code_to_label[[code]] %||% code)
           list(
             name = col,
@@ -118,33 +115,39 @@
 .dashboard_base_datos_expand_cols <- function(s, variables) {
   cols <- character(0)
   labels <- character(0)
+  dummy_cols <- character(0)
   for (v in variables) {
     tipo <- .dashboard_tipo_pregunta(v, s$rp_inst, s$rp_data)
     base_label <- .obtener_label_var(v, s$rp_inst, s$rp_data)
     if (identical(tipo, "sm")) {
       spec <- .dashboard_resolver_sm_spec(v, s$rp_inst, s$rp_data, s = s)
       for (col in spec$cols) {
-        code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "."))),
-                    "", col)
-        code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "/"))),
-                    "", code)
+        code <- as.character(spec$code_by_col[[col]] %||% col)
         opt_lbl <- as.character(spec$map_code_to_label[[code]] %||% code)
+        if (identical(spec$storage, "raw")) next
         cols <- c(cols, col)
         labels <- c(labels, paste0(base_label, " — ", opt_lbl))
+        dummy_cols <- c(dummy_cols, col)
+      }
+      if (identical(spec$storage, "raw") && spec$raw_col %in% names(s$rp_data)) {
+        cols <- c(cols, spec$raw_col)
+        labels <- c(labels, base_label)
       }
     } else if (v %in% names(s$rp_data)) {
       cols <- c(cols, v)
       labels <- c(labels, base_label)
     }
   }
-  list(cols = cols, labels = labels)
+  list(cols = cols, labels = labels, dummy_cols = dummy_cols)
 }
 
 # Mapea el valor de una celda a su etiqueta (modo "etiquetas").
 # Para SO usa choices; para SM dummy convierte 1/0 a "Sí"/"No".
-.dashboard_cell_to_label <- function(value, var, rp_inst) {
+.dashboard_cell_to_label <- function(value, var, rp_inst, is_dummy = NULL) {
   if (is.na(value) || (is.character(value) && !nzchar(value))) return(NA_character_)
-  is_dummy <- grepl("\\.[A-Za-z0-9_\\-]+$|/[A-Za-z0-9_\\-]+$", var)
+  if (is.null(is_dummy)) {
+    is_dummy <- grepl("\\.[A-Za-z0-9_\\-]+$|/[A-Za-z0-9_\\-]+$", var)
+  }
   if (is_dummy) {
     x <- suppressWarnings(as.numeric(as.character(value)))
     if (!is.na(x) && x == 1) return("Sí")
@@ -152,6 +155,23 @@
     return(as.character(value))
   }
   ch <- .dashboard_choices_for_var(var, rp_inst)
+  sv <- rp_inst$survey
+  if (!is.null(sv) && all(c("name", "type") %in% names(sv))) {
+    i <- which(!is.na(sv$name) & sv$name == var)[1]
+    is_sm_raw <- !is.na(i) && grepl("^select_multiple(\\s|$)", as.character(sv$type[i]))
+    if (isTRUE(is_sm_raw)) {
+      tokens <- .dashboard_sm_raw_tokens(value)[[1]]
+      if (!length(tokens)) return(NA_character_)
+      if (is.null(ch)) return(paste(tokens, collapse = ", "))
+      map <- stats::setNames(
+        vapply(ch$items, function(it) as.character(it$etiqueta %||% it$codigo), character(1)),
+        vapply(ch$items, function(it) as.character(it$codigo), character(1))
+      )
+      labels <- unname(map[tokens])
+      labels[is.na(labels) | !nzchar(labels)] <- tokens[is.na(labels) | !nzchar(labels)]
+      return(paste(labels, collapse = ", "))
+    }
+  }
   if (is.null(ch)) return(as.character(value))
   hit <- Filter(function(it) identical(as.character(it$codigo), as.character(value)),
                 ch$items)
@@ -176,6 +196,7 @@
   spec <- .dashboard_base_datos_expand_cols(s, variables)
   cols <- spec$cols
   labels <- spec$labels
+  dummy_cols <- as.character(spec$dummy_cols %||% character(0))
   if (!length(cols)) {
     return(list(rows = list(), columnas = list(), total = 0L))
   }
@@ -188,7 +209,7 @@
       colname <- cols[k]
       df[[colname]] <- vapply(
         df[[colname]],
-        function(v) .dashboard_cell_to_label(v, colname, s$rp_inst),
+        function(v) .dashboard_cell_to_label(v, colname, s$rp_inst, is_dummy = colname %in% dummy_cols),
         character(1)
       )
     }

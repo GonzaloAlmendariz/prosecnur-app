@@ -87,9 +87,15 @@
     var(--dash-fondo);
   background-size: auto, 32px 32px, 32px 32px, auto;
   color: var(--dash-texto);
+  display: flex;
+  flex-direction: column;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
     Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .dashboard-scope *,
@@ -133,6 +139,18 @@
   margin-bottom: 8px;
   min-height: 0;
   padding: 4px 0 0;
+}
+
+.dashboard-scope > .dash-admin-toolbar-wrap,
+.dashboard-scope > .dash-editor-dashboard-divider,
+.dashboard-scope > .dash-header,
+.dashboard-scope > .dash-tab-nav-wrap,
+.dashboard-scope > .dash-tab-blocked-hints {
+  flex: 0 0 auto;
+}
+
+.dashboard-scope.dashboard-scope--reader {
+  height: 100%;
 }
 .dashboard-scope .dash-header-logos {
   align-items: center;
@@ -204,11 +222,6 @@
 .dashboard-scope .dash-tab-nav-wrap::-webkit-scrollbar {
   display: none;
 }
-.dashboard-scope .dash-section-rail.is-editor {
-  --dash-rail-accent: var(--dash-editor-accent);
-  --dash-rail-accent-soft: var(--dash-editor-accent-soft);
-  --dash-rail-accent-ring: var(--dash-editor-ring);
-}
 .dashboard-scope .dash-tab-nav {
   backdrop-filter: saturate(1.14) blur(18px);
   -webkit-backdrop-filter: saturate(1.14) blur(18px);
@@ -220,11 +233,10 @@
   background:
     radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.78), transparent 68%),
     var(--dash-editor-material);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 72%, var(--dash-rail-accent) 28%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 84%, var(--dash-rail-accent) 16%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 14px 34px rgba(15, 23, 42, 0.09),
-    0 4px 10px color-mix(in srgb, var(--dash-rail-accent) 10%, transparent);
+    0 8px 22px rgba(15, 23, 42, 0.045);
   position: relative;
   isolation: isolate;
 }
@@ -262,8 +274,8 @@
   border-radius: 999px;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 8px 18px color-mix(in srgb, var(--dash-rail-accent) 24%, transparent),
-    var(--dash-shadow-sm);
+    0 5px 12px color-mix(in srgb, var(--dash-rail-accent) 14%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.07);
   content: "";
   height: var(--dash-tab-pill-h, 0);
   left: 0;
@@ -346,7 +358,13 @@
   cursor: not-allowed;
 }
 .dashboard-scope .dash-section-workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .dashboard-scope .dash-section-title {
@@ -413,7 +431,16 @@
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
+}
+.dashboard-scope .dash-section-workspace > .dash-resumen-layout,
+.dashboard-scope .dash-section-workspace > .dash-base-layout {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 @media (max-width: 900px) {
   .dashboard-scope .dash-resumen-layout {
@@ -426,16 +453,28 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   position: static;
+  scrollbar-gutter: stable;
 }
-.dashboard-scope .dash-resumen-layout > main { min-width: 0; }
+.dashboard-scope .dash-resumen-layout > main,
+.dashboard-scope .dash-base-layout > main {
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
 
 /* Modo lector/publicable: el contexto izquierdo permanece estable y el
  * desplazamiento principal vive en la zona derecha del dashboard. */
 @media (min-width: 901px) {
   .dashboard-scope.dashboard-scope--reader .dash-resumen-layout {
-    --dash-reader-workspace-height: clamp(420px, calc(100dvh - 190px), 980px);
+    --dash-reader-workspace-height: 100%;
     align-items: stretch;
     height: var(--dash-reader-workspace-height);
     min-height: 0;
@@ -444,14 +483,12 @@
 
   .dashboard-scope.dashboard-scope--reader .dash-resumen-layout > .dash-sidebar {
     align-self: stretch;
-    max-height: var(--dash-reader-workspace-height);
+    max-height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-right: 2px;
-    position: sticky;
     scrollbar-gutter: stable;
-    top: 0;
   }
 
   .dashboard-scope.dashboard-scope--reader .dash-resumen-layout > main {

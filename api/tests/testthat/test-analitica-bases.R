@@ -692,6 +692,36 @@ test_that(".bases_write_xlsx valores='codigos' produce 1 hoja única", {
   expect_equal(sheets, "datos")
 })
 
+test_that(".bases_write_xlsx puede agregar ficha tecnica analitica", {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) skip("openxlsx no disponible")
+  skip_if_not(exists(".analitica_add_ficha_tecnica_from_spec", mode = "function"))
+
+  inst <- .fixture_inst()
+  df <- .fixture_data()
+
+  out_path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(out_path), add = TRUE)
+
+  .bases_write_xlsx(
+    df,
+    df,
+    out_path,
+    valores = "codigos",
+    ficha_tecnica = list(
+      instrumento = inst,
+      reporte = "Base de datos analitica"
+    )
+  )
+
+  sheets <- openxlsx::getSheetNames(out_path)
+  expect_equal(sheets, c("datos", "Ficha tecnica"))
+  ficha <- openxlsx::read.xlsx(out_path, sheet = "Ficha tecnica", colNames = FALSE)
+  ficha_text <- paste(unlist(ficha, use.names = FALSE), collapse = " ")
+  expect_match(ficha_text, "FICHA TECNICA")
+  expect_match(ficha_text, "Tamano de la muestra")
+  expect_match(ficha_text, "Base de datos analitica")
+})
+
 # ============================================================================
 test_that(".bases_write_csv produce CSV UTF-8 leíble", {
   inst <- .fixture_inst()

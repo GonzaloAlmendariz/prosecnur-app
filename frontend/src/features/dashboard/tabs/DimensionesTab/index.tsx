@@ -29,6 +29,7 @@ import type {
   DashboardDimFodaPayload,
   DashboardDimMatrizPayload,
   DashboardDimPayload,
+  DashboardDimScoreRow,
   DashboardDimSeccionesPayload,
   DashboardFiltro,
 } from "../../../../api/client";
@@ -105,6 +106,7 @@ export function DimensionesTab() {
   // El sidebar entero queda fuera del flujo en Construcción (se oculta sin
   // dejar columna vacía en el grid) o cuando el usuario lo colapsó.
   const sidebarOpen = !isConstruccion && !sidebarCollapsed;
+  const sidebarReopenable = !isConstruccion && !sidebarOpen;
 
   const objetivos = useMemo(() => {
     if (!catalogo) return [];
@@ -198,7 +200,11 @@ export function DimensionesTab() {
   }
 
   return (
-    <div className="dash-resumen-layout" data-sidebar={sidebarOpen ? "open" : "closed"}>
+    <div
+      className="dash-resumen-layout"
+      data-sidebar={sidebarOpen ? "open" : "closed"}
+      data-sidebar-reopenable={sidebarReopenable ? "true" : "false"}
+    >
       {/* ───── Sidebar unificado ─────
           Un solo card con secciones apiladas y header propio (incluye el
           toggle de colapso). Reemplaza el viejo split en dos cards
@@ -219,10 +225,10 @@ export function DimensionesTab() {
 
       {/* ───── Main — VisualizadorCard ───── */}
       <main>
-        {/* Botón flotante para reabrir el sidebar cuando el usuario lo
+        {/* Botón en riel para reabrir el sidebar cuando el usuario lo
             cerró manualmente. No aparece en Construcción (ahí el sidebar
             se oculta por diseño y no hay nada que reabrir). */}
-        {!isConstruccion && !sidebarOpen && (
+        {sidebarReopenable && (
           <button
             type="button"
             className="dash-dim-sidebar-reopen"
@@ -838,91 +844,76 @@ function VisualizadorCard({
   incluirTotalEfectivo: boolean;
 }) {
   const visualMode: DashboardDimVisualMode = dim.visualMode;
+  const radarAvailable = !payload?.ready || dimRadarAvailable(payload);
+  const effectiveVisualMode: DashboardDimVisualMode =
+    visualMode === "radar" && !radarAvailable ? "barras" : visualMode;
   const isApilado =
     desgloseLayout === "apilado" &&
     dim.iterarOn &&
     Boolean(dim.iterarVar) &&
-    visualMode !== "construccion" &&
-    visualMode !== "foda" &&
-    visualMode !== "matriz";
+    effectiveVisualMode !== "construccion" &&
+    effectiveVisualMode !== "foda" &&
+    effectiveVisualMode !== "matriz";
   const fodaVista = useDashboardStore((s) => s.config.foda_vista ?? "conductores");
   const fodaVistaIsLectura = fodaVista === "lectura";
   const fs = useFullscreen();
   const maxed = fs.maxed;
   const fsTitle =
-    visualMode === "heatmap"
+    effectiveVisualMode === "heatmap"
       ? "Heatmap"
-      : visualMode === "barras"
+      : effectiveVisualMode === "barras"
       ? "Scores por dimensión"
-      : visualMode === "radar"
+      : effectiveVisualMode === "radar"
       ? "Radar de dimensiones"
-      : visualMode === "construccion"
+      : effectiveVisualMode === "construccion"
       ? "Construcción del indicador"
-      : visualMode === "matriz"
+      : effectiveVisualMode === "matriz"
       ? "Matriz por unidad"
       : "Matriz FODA";
+  const showDimContext = Boolean(payload && payload.ready && !isApilado);
+  const showIterStepper = Boolean(!isApilado && dim.iterarOn && dim.iterarVar);
 
   return (
-    <section className="dash-cardbox dash-dim-vis">
+    <section className="dash-cardbox dash-dim-vis" data-visual-mode={effectiveVisualMode}>
+      <h2 className="pulso-sr-only">{fsTitle}</h2>
       <div className="dash-dim-vis-header">
-        <div className="dash-dim-vis-title">
-          <h2 className="dash-cardbox-title">
-            {visualMode === "heatmap"
-              ? "Heatmap"
-              : visualMode === "radar"
-              ? "Radar de dimensiones"
-              : visualMode === "foda"
-              ? "Matriz FODA"
-              : visualMode === "matriz"
-              ? "Matriz por unidad"
-              : visualMode === "construccion"
-              ? "Construcción del indicador"
-              : "Scores por dimensión"}
-          </h2>
-          {payload && payload.ready && !isApilado && <SubtituloDim payload={payload} />}
-          {!isApilado && dim.iterarOn && dim.iterarVar && (
-            <IterStepper
-              variable={dim.iterarVar}
-              level={dim.iterarLevel}
-              onLevel={(l) => setDim({ iterarLevel: l })}
-            />
-          )}
-        </div>
         <div className="dash-dim-vis-segmented" role="tablist" aria-label="Modo de visualización">
           {dim.modo === "general" && (
             <SegmentedItem
-              active={visualMode === "construccion"}
+              active={effectiveVisualMode === "construccion"}
               onClick={() => setDim({ visualMode: "construccion" })}
               icon={<Blocks size={13} />}
               label="Construcción"
             />
           )}
           <SegmentedItem
-            active={visualMode === "heatmap"}
+            active={effectiveVisualMode === "heatmap"}
             onClick={() => setDim({ visualMode: "heatmap" })}
             icon={<Grid3x3 size={13} />}
             label="Heatmap"
           />
           <SegmentedItem
-            active={visualMode === "barras"}
+            active={effectiveVisualMode === "barras"}
             onClick={() => setDim({ visualMode: "barras" })}
             icon={<BarChart3 size={13} />}
             label="Barras"
           />
           <SegmentedItem
-            active={visualMode === "radar"}
+            active={effectiveVisualMode === "radar"}
             onClick={() => setDim({ visualMode: "radar" })}
+            disabled={!radarAvailable}
             icon={<Compass size={13} />}
             label="Radar"
+            title={!radarAvailable ? "Radar disponible con 3 o más dimensiones" : undefined}
           />
           <SegmentedItem
-            active={visualMode === "foda"}
+            active={effectiveVisualMode === "foda"}
             onClick={() => setDim({ visualMode: "foda" })}
             icon={<ScatterChart size={13} />}
             label="FODA"
           />
           <SegmentedItem
-            active={visualMode === "matriz"}
+            active={effectiveVisualMode === "matriz"}
             onClick={() => setDim({ visualMode: "matriz" })}
             icon={<Grid3x3 size={13} />}
             label="Matriz"
@@ -931,15 +922,29 @@ function VisualizadorCard({
         </div>
       </div>
 
+      {(showDimContext || showIterStepper) && (
+        <div className="dash-dim-vis-context">
+          {showDimContext && payload && <SubtituloDim payload={payload} />}
+          {showIterStepper && (
+            <IterStepper
+              variable={dim.iterarVar}
+              level={dim.iterarLevel}
+              onLevel={(l) => setDim({ iterarLevel: l })}
+            />
+          )}
+        </div>
+      )}
+
       <FullscreenScope ctx={fs} title={fsTitle}>
         <div
-          key={visualMode}
+          key={effectiveVisualMode}
           className={`dash-dim-vis-body ${maxed ? "dash-dim-fullscreen-content" : ""}`}
+          data-visual-mode={effectiveVisualMode}
         >
           {isApilado ? (
             <StackedDesglose
               variable={dim.iterarVar}
-              visualMode={visualMode}
+              visualMode={effectiveVisualMode}
               modo={dim.modo}
               objetivo={dim.objetivo}
               cruce={cruceEfectivo}
@@ -947,7 +952,7 @@ function VisualizadorCard({
               filtros={filtrosActivos}
               maxed={maxed}
             />
-          ) : visualMode === "matriz" ? (
+          ) : effectiveVisualMode === "matriz" ? (
             // Matriz por unidad — fetch independiente, igual que FODA. Si
             // el usuario no eligió aún variables en Personalizar, mostramos
             // un empty state con CTA en vez de un error críptico.
@@ -967,7 +972,7 @@ function VisualizadorCard({
             ) : (
               <MatrizUnidadesView payload={matriz} />
             )
-          ) : visualMode === "foda" ? (
+          ) : effectiveVisualMode === "foda" ? (
             // Lectura es una vista pedagógica que NO depende del payload
             // del backend — cortocircuitamos los gates de loading/error
             // para que se renderice instantáneamente al hacer click.
@@ -985,14 +990,14 @@ function VisualizadorCard({
               <FodaView payload={foda} maxed={maxed} />
             )
           ) : payloadLoading && !payload ? (
-            <DimSkeleton mode={visualMode} />
+            <DimSkeleton mode={effectiveVisualMode} />
           ) : payloadError ? (
             <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
           ) : !payload || !payload.ready ? (
-            <DimSkeleton mode={visualMode} />
+            <DimSkeleton mode={effectiveVisualMode} />
           ) : payload.error ? (
             <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
-          ) : visualMode === "construccion" ? (
+          ) : effectiveVisualMode === "construccion" ? (
             // Construcción es estrictamente plana: pasamos los valores
             // EFECTIVOS (cruce/incluirTotal/iter neutralizados) desde el
             // padre vía props, NO los del store crudo. Esto evita que el
@@ -1005,10 +1010,10 @@ function VisualizadorCard({
               incluirTotal={false}
               maxed={maxed}
             />
-          ) : visualMode === "heatmap" ? (
+          ) : effectiveVisualMode === "heatmap" ? (
             <HeatmapView payload={payload} />
           ) : (
-            <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />
+            <MainPlotView payload={payload} visualMode={effectiveVisualMode} maxed={maxed} />
           )}
         </div>
       </FullscreenScope>
@@ -1254,19 +1259,26 @@ function SegmentedItem({
   onClick,
   icon,
   label,
+  disabled = false,
+  title,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={active}
+      aria-disabled={disabled}
+      disabled={disabled}
       className={`dash-dim-vis-segment ${active ? "is-active" : ""}`}
       onClick={onClick}
+      title={title}
     >
       {icon}
       <span>{label}</span>
@@ -1376,6 +1388,61 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       </div>
     </>
   );
+}
+
+function dimPlotAxes(payload: DashboardDimPayload): string[] {
+  return payload.axis_order_plot?.length
+    ? [...payload.axis_order_plot]
+    : uniqueOrdered((payload.score_plot ?? []).map((r) => r.axis_label));
+}
+
+function isDimTotalScoreRow(row: DashboardDimScoreRow): boolean {
+  return (
+    row.axis_var === "__total_cruce__" ||
+    row.tipo === "total_cruce" ||
+    row.axis_label === "Total cruce"
+  );
+}
+
+function radarSyntheticAxisLabel(payload: DashboardDimPayload, axes: string[]): string {
+  const objective = String(payload.objective ?? "").trim();
+  const label = objective || "Total";
+  return axes.includes(label) ? "Total" : label;
+}
+
+function dimRadarAvailable(payload: DashboardDimPayload): boolean {
+  const axes = dimPlotAxes(payload);
+  if (axes.length >= 3) return true;
+  if (axes.length !== 2) return false;
+  return (payload.score_heat ?? []).some(isDimTotalScoreRow);
+}
+
+function buildRadarPlotData(
+  payload: DashboardDimPayload,
+  rows: DashboardDimScoreRow[],
+  groups: string[],
+): { axes: string[]; rows: DashboardDimScoreRow[] } {
+  const axes = dimPlotAxes(payload);
+  if (axes.length !== 2) return { axes, rows };
+
+  const totalRows = (payload.score_heat ?? []).filter((row) => {
+    if (!isDimTotalScoreRow(row)) return false;
+    return !groups.length || groups.includes(row.grupo);
+  });
+  if (!totalRows.length) return { axes, rows };
+
+  const syntheticLabel = radarSyntheticAxisLabel(payload, axes);
+  const syntheticRows: DashboardDimScoreRow[] = totalRows.map((row) => ({
+    ...row,
+    axis_var: "__radar_total__",
+    axis_label: syntheticLabel,
+    tipo: "radar_total",
+  }));
+
+  return {
+    axes: [axes[0], syntheticLabel, axes[1]],
+    rows: [...rows, ...syntheticRows],
+  };
 }
 
 // =============================================================================
@@ -1504,16 +1571,16 @@ function MainPlotView({
   }
 
   // ── Modo RADAR ─────────────────────────────────────────────────────────
+  const radarData = buildRadarPlotData(payload, rows, groups);
+
   // Si está animado, ordenar axes por score desc del primer grupo (Total).
   const radarAxes = (() => {
-    const fallback = payload.axis_order_plot?.length
-      ? [...payload.axis_order_plot]
-      : uniqueOrdered(rows.map((r) => r.axis_label));
+    const fallback = radarData.axes;
     if (!radarAnimado) return fallback;
     const refGroup = groups[0];
     const scoreByAxis = new Map<string, number>();
     for (const axis of fallback) {
-      const row = rows.find((r) => r.axis_label === axis && r.grupo === refGroup);
+      const row = radarData.rows.find((r) => r.axis_label === axis && r.grupo === refGroup);
       scoreByAxis.set(axis, row?.score_round ?? -Infinity);
     }
     return [...fallback].sort((a, b) => (scoreByAxis.get(b)! - scoreByAxis.get(a)!));
@@ -1527,7 +1594,7 @@ function MainPlotView({
             key={g}
             axes={radarAxes}
             groups={[g]}
-            rows={rows}
+            rows={radarData.rows}
             groupColors={groupColors}
             radarMin={radarMin}
             radarMax={radarMax}
@@ -1555,7 +1622,7 @@ function MainPlotView({
         <RadarPlot
           axes={radarAxes}
           groups={[activeGroup]}
-          rows={rows}
+          rows={radarData.rows}
           groupColors={groupColors}
           radarMin={radarMin}
           radarMax={radarMax}
@@ -1571,7 +1638,7 @@ function MainPlotView({
     <RadarPlot
       axes={radarAxes}
       groups={groups}
-      rows={rows}
+      rows={radarData.rows}
       groupColors={groupColors}
       radarMin={radarMin}
       radarMax={radarMax}
@@ -1774,7 +1841,7 @@ function RadarPlot({
     const color = groupColors[g] ?? "#0E3B74";
     return {
       type: "scatterpolar" as const,
-      mode: "lines+markers",
+      mode: "lines",
       name: g,
       theta: closedTheta,
       r: closedR,
@@ -1782,7 +1849,6 @@ function RadarPlot({
       fillcolor: colorToRgba(color, 0.1),
       opacity: 1,
       line: { color, width: 3.2, shape: "linear" as const },
-      marker: { color, size: 7, line: { color: "#fff", width: 1.2 } },
       hovertemplate: `<b>${g}</b><br>%{theta}: %{r:.0f}<extra></extra>`,
     };
   });
@@ -3341,7 +3407,7 @@ function ConstruccionView({
             easing: "cubic-in-out",
           },
         }}
-        height={620}
+        height={maxed ? 620 : 480}
         ariaLabel={`Construcción del indicador ${payload.objective ?? ""}`}
         onReady={handlePlotReady}
       />

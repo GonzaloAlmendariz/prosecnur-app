@@ -848,7 +848,7 @@
 # use) y la fila 2 son los labels de variable (legible). Los datos
 # empiezan en la fila 3. El analista puede ocultar la fila 2 desde Excel
 # si prefiere una tabla plana.
-.bases_write_xlsx <- function(df_cod, df_lab, path, valores = "ambos") {
+.bases_write_xlsx <- function(df_cod, df_lab, path, valores = "ambos", ficha_tecnica = NULL) {
   wb <- openxlsx::createWorkbook()
 
   escribir_hoja <- function(sheet_name, data) {
@@ -886,6 +886,26 @@
     escribir_hoja("datos", df_lab)
   } else {
     escribir_hoja("datos", df_cod)
+  }
+
+  if (!identical(ficha_tecnica, FALSE) &&
+      !is.null(ficha_tecnica) &&
+      exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    data_ref <- if (identical(valores, "codigos")) df_cod else df_lab
+    instrumento <- attr(data_ref, "instrumento_reporte", exact = TRUE)
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = data_ref,
+        instrumento = instrumento,
+        reporte = "Base de datos",
+        hojas = names(wb),
+        detalles = list(
+          "Formato de valores" = valores
+        )
+      ),
+      ficha_tecnica
+    )
   }
 
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)

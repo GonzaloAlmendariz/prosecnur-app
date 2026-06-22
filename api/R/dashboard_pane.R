@@ -289,6 +289,72 @@
   )
 }
 
+.dashboard_regex_escape <- function(x) {
+  gsub("([\\W])", "\\\\\\1", as.character(x), perl = TRUE)
+}
+
+# Contrato unico para dummies de select_multiple. El normalizador puede dejar
+# columnas como `var.opcion`, `var/opcion` o `var_opcion`; el dashboard debe
+# resolver las tres formas de manera consistente en Resumen, Relaciones y Base.
+.dashboard_sm_dummy_specs <- function(var_madre, df) {
+  empty <- data.frame(
+    col = character(0),
+    code = character(0),
+    separator = character(0),
+    stringsAsFactors = FALSE
+  )
+  if (is.null(df) || !length(names(df)) || is.na(var_madre) || !nzchar(var_madre)) {
+    return(empty)
+  }
+
+  rx <- paste0("^", .dashboard_regex_escape(var_madre), "([\\./_])(.+)$")
+  data_names <- names(df)
+  matches <- regexec(rx, data_names, perl = TRUE)
+  parts <- regmatches(data_names, matches)
+  keep <- lengths(parts) == 3L
+  if (!any(keep)) return(empty)
+
+  cols <- data_names[keep]
+  seps <- vapply(parts[keep], function(x) x[[2]], character(1))
+  codes <- vapply(parts[keep], function(x) x[[3]], character(1))
+  valid <- nzchar(codes)
+
+  # En la variante con guion bajo, `<var>_recod` es una madre analitica
+  # escalar creada por Codificacion, no una dummy de opcion. Las dummies
+  # recodificadas siguen estando soportadas como `<var>.recod.N`,
+  # `<var>/recod/N` o `<var>_<codigo>_recod`.
+  valid <- valid & !(seps == "_" & tolower(codes) == "recod")
+  if (!any(valid)) return(empty)
+
+  data.frame(
+    col = cols[valid],
+    code = codes[valid],
+    separator = seps[valid],
+    stringsAsFactors = FALSE
+  )
+}
+
+.dashboard_sm_raw_tokens <- function(x) {
+  lapply(as.character(x), function(value) {
+    if (is.na(value)) return(character(0))
+    value <- trimws(value)
+    if (!nzchar(value) || identical(value, "NA")) return(character(0))
+    tokens <- unlist(strsplit(value, "[[:space:],;|]+", perl = TRUE), use.names = FALSE)
+    tokens <- trimws(tokens)
+    tokens[!is.na(tokens) & nzchar(tokens)]
+  })
+}
+
+.dashboard_sm_raw_codes <- function(x) {
+  sort(unique(unlist(.dashboard_sm_raw_tokens(x), use.names = FALSE)))
+}
+
+.dashboard_sm_raw_has_code <- function(x, code) {
+  code <- as.character(code %||% "")[1]
+  if (!nzchar(code)) return(rep(FALSE, length(x)))
+  vapply(.dashboard_sm_raw_tokens(x), function(tokens) code %in% tokens, logical(1))
+}
+
 # Helper utilitario — para SM, devuelve las columnas dummy presentes en
 # data y un mapeo code→label desde choices. Espejo de
 # `resolver_var_spec` mencionado en interactivo_resumen.R:1322.
@@ -318,16 +384,22 @@
 }
 
 .dashboard_resolver_sm_spec <- function(var_madre, rp_inst, df, s = NULL) {
-  cols <- character(0)
-  prefix <- paste0(var_madre, ".")
-  cols <- grep(paste0("^", gsub("([\\W])", "\\\\\\1", prefix)),
-               names(df), value = TRUE)
-  separator <- "."
-  if (!length(cols)) {
-    prefix2 <- paste0(var_madre, "/")
-    cols <- grep(paste0("^", gsub("([\\W])", "\\\\\\1", prefix2)),
-                 names(df), value = TRUE)
-    if (length(cols)) separator <- "/"
+  dummy_specs <- .dashboard_sm_dummy_specs(var_madre, df)
+  cols <- as.character(dummy_specs$col)
+  code_by_col <- stats::setNames(as.character(dummy_specs$code), cols)
+  separator_by_col <- stats::setNames(as.character(dummy_specs$separator), cols)
+  separator <- if (length(separator_by_col)) as.character(separator_by_col[[1]]) else "."
+  code_of <- function(col) {
+    code <- code_by_col[[col]]
+    if (is.null(code) || is.na(code) || !nzchar(code)) {
+      return(sub(
+        paste0("^", .dashboard_regex_escape(var_madre), "([\\./_])"),
+        "",
+        col,
+        perl = TRUE
+      ))
+    }
+    as.character(code)
   }
 
   map_code_to_label <- list()
@@ -352,6 +424,27 @@
           }
         }
       }
+    }
+  }
+
+  if (!length(cols) && var_madre %in% names(df)) {
+    raw_codes <- names(map_code_to_label)
+    if (!length(raw_codes)) raw_codes <- .dashboard_sm_raw_codes(df[[var_madre]])
+    raw_codes <- as.character(raw_codes)
+    raw_codes <- raw_codes[!is.na(raw_codes) & nzchar(raw_codes)]
+    if (length(raw_codes)) {
+      raw_cols <- paste0(var_madre, "__raw__", raw_codes)
+      raw_code_by_col <- stats::setNames(raw_codes, raw_cols)
+      return(list(
+        cols = raw_cols,
+        map_code_to_label = map_code_to_label,
+        separator = "raw",
+        code_by_col = as.list(raw_code_by_col),
+        separator_by_col = as.list(stats::setNames(rep("raw", length(raw_cols)), raw_cols)),
+        storage = "raw",
+        raw_col = var_madre,
+        raw_codes = as.list(raw_codes)
+      ))
     }
   }
 
@@ -384,7 +477,6 @@
   #   - "recod.N"          — N-ésima dummy recod
   #   - "<algo>_recod"     — convención del módulo Codif (parent/code_recod)
   if (length(cols) > 0) {
-    code_of <- function(col) substring(col, nchar(var_madre) + nchar(separator) + 1L)
     rx_recod <- "^recod(\\.[0-9]+)?$|_recod$"
     for (col in cols) {
       code <- code_of(col)
@@ -413,7 +505,7 @@
   }
   if (has_recod && length(cols) > 0) {
     is_recod_col <- vapply(cols, function(col) {
-      code <- substring(col, nchar(var_madre) + nchar(separator) + 1L)
+      code <- code_of(col)
       code %in% recod_codes
     }, logical(1))
     if (identical(mode_cfg, "recod")) {
@@ -445,5 +537,16 @@
     }
   }
 
-  list(cols = cols, map_code_to_label = map_code_to_label, separator = separator)
+  code_by_col <- code_by_col[cols]
+  separator_by_col <- separator_by_col[cols]
+  list(
+    cols = cols,
+    map_code_to_label = map_code_to_label,
+    separator = separator,
+    code_by_col = as.list(code_by_col),
+    separator_by_col = as.list(separator_by_col),
+    storage = "dummy",
+    raw_col = NULL,
+    raw_codes = list()
+  )
 }

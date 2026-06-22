@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, SetStateAction } from "react";
-import { BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Download, FileSpreadsheet, FileText, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2 } from "lucide-react";
+import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, CircleHelp, Download, FileSpreadsheet, FileText, Info, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2, X } from "lucide-react";
 import {
   apiHojasRutaBlockMap,
   apiHojasRutaContextMap,
@@ -62,7 +62,7 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
-import { StepMeta, Stepper } from "../../components/Stepper";
+import type { StepMeta } from "../../components/Stepper";
 import { useSession } from "../../lib/SessionContext";
 import districtCoverage from "./limaDistrictCoverage.json";
 import {
@@ -95,6 +95,7 @@ type DistrictFeature = {
 type HojasRutaStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "entrega";
 type HojasRutaMapLevel = HojasRutaUiState["map_level"];
 type HojasRutaBlockLayerMode = "field" | "nse";
+type HojasRutaDeliveryTab = "cuotas" | "titulares" | "reemplazos";
 const HOJAS_RUTA_STAGES: HojasRutaStage[] = ["territorio", "poblacion", "muestra", "manzanas", "entrega"];
 const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
   territorio: 0,
@@ -394,6 +395,12 @@ const fieldStyle: React.CSSProperties = {
   fontSize: 13,
   background: "white",
   color: "var(--pulso-text)",
+};
+
+const compactFieldStyle: React.CSSProperties = {
+  ...fieldStyle,
+  padding: "6px 8px",
+  fontSize: 12,
 };
 
 function formatNumber(value: number | null | undefined) {
@@ -826,6 +833,116 @@ function alertKind(level: HojasRutaAlert["level"]): "info" | "warn" | "error" {
   return "info";
 }
 
+function alertKey(alert: HojasRutaAlert) {
+  return `${alert.level}:${alert.code}:${alert.message}`;
+}
+
+function uniqueAlerts(alerts: HojasRutaAlert[]) {
+  return alerts.filter((alert, index, arr) => (
+    arr.findIndex((item) => item.code === alert.code && item.message === alert.message) === index
+  ));
+}
+
+function alertListSignature(alerts: HojasRutaAlert[]) {
+  return uniqueAlerts(alerts).map(alertKey).join("|");
+}
+
+function compactAlertLabel(alert: HojasRutaAlert) {
+  const message = alert.message.replace(/\s+/g, " ").trim();
+  if (/matriz usa edad/i.test(message)) return "Matriz INEI por distrito";
+  if (/excluyeron/i.test(message) && /piloto/i.test(message)) return "Campo real sin titulares piloto";
+  if (/cuota 0|redonde/i.test(message)) return "Cuotas redondeadas";
+  if (/ruta|manzana/i.test(message) && alert.level === "warn") return "Revisión operativa de manzanas";
+  return message.length > 66 ? `${message.slice(0, 63)}...` : message;
+}
+
+function HojasRutaNoticeChip({
+  alert,
+  onDismiss,
+}: {
+  alert: HojasRutaAlert;
+  onDismiss: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLSpanElement | null>(null);
+  const kind = alertKind(alert.level);
+  const Icon = kind === "error" ? CircleAlert : kind === "warn" ? AlertTriangle : Info;
+  const key = alertKey(alert);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <span ref={rootRef} className={`hojas-ruta-notice-chip is-${kind}`}>
+      <button
+        type="button"
+        className="hojas-ruta-notice-main"
+        aria-expanded={open}
+        aria-label={`Ver detalle del aviso: ${compactAlertLabel(alert)}`}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <Icon size={14} aria-hidden="true" />
+        <span>{compactAlertLabel(alert)}</span>
+      </button>
+      <button
+        type="button"
+        className="hojas-ruta-notice-dismiss"
+        aria-label="Ocultar aviso"
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen(false);
+          onDismiss(key);
+        }}
+      >
+        <X size={12} aria-hidden="true" />
+      </button>
+      {open ? (
+        <span className="hojas-ruta-notice-popover" role="tooltip">
+          <strong>{kind === "warn" ? "Advertencia operativa" : kind === "error" ? "Error de revisión" : "Información del marco"}</strong>
+          <span>{alert.message}</span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function HojasRutaNoticeTray({
+  alerts,
+  dismissed,
+  onDismiss,
+  empty,
+}: {
+  alerts: HojasRutaAlert[];
+  dismissed: string[];
+  onDismiss: (key: string) => void;
+  empty?: React.ReactNode;
+}) {
+  const visibleAlerts = uniqueAlerts(alerts).filter((alert) => !dismissed.includes(alertKey(alert)));
+  if (!visibleAlerts.length) return empty ? <>{empty}</> : null;
+  return (
+    <div className="hojas-ruta-notice-tray" role="status" aria-label="Avisos de la sección">
+      {visibleAlerts.map((alert) => (
+        <HojasRutaNoticeChip key={alertKey(alert)} alert={alert} onDismiss={onDismiss} />
+      ))}
+    </div>
+  );
+}
+
 function StatusPill({ ok, text }: { ok: boolean; text: string }) {
   return (
     <span
@@ -855,6 +972,67 @@ function HeaderSummaryPill({ label, value }: { label: string; value: string }) {
   );
 }
 
+function compactPhaseNotice(message: string) {
+  const match = message.match(/corrida de ([\d.,]+)\s+entrevistas/i);
+  if (match) return `Piloto guardado · ${match[1]} entrevistas`;
+  return message.replace(/\s+/g, " ").trim();
+}
+
+function HojasRutaStageRail({
+  steps,
+  current,
+  onChange,
+}: {
+  steps: StepMeta<HojasRutaStage>[];
+  current: HojasRutaStage;
+  onChange: (stage: HojasRutaStage) => void;
+}) {
+  return (
+    <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
+      <nav className="pulso-phase-pillbar" aria-label="Etapas de hojas de ruta">
+        <ul className="pulso-phase-pill-list">
+          {steps.map((step) => {
+            const active = step.key === current;
+            const done = !!step.done;
+            const Icon = step.icon;
+            return (
+              <li key={step.key} className="pulso-phase-pill-item">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-current={active ? "step" : undefined}
+                  aria-disabled={step.disabled || undefined}
+                  disabled={step.disabled}
+                  title={step.disabled ? step.disabledReason : step.hint}
+                  className={[
+                    "pulso-phase-pill",
+                    active ? "is-active" : "",
+                    done ? "is-done" : "",
+                    step.disabled ? "is-disabled" : "",
+                  ].filter(Boolean).join(" ")}
+                  onClick={() => {
+                    if (!step.disabled) onChange(step.key);
+                  }}
+                >
+                  <span className="pulso-phase-pill-circle" aria-hidden="true" />
+                  <span className="pulso-phase-pill-stack">
+                    <span className="pulso-phase-pill-label">
+                      <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
+                      <Icon size={13} aria-hidden="true" />
+                      {step.label}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
+  );
+}
+
 function PhaseHeaderControl({
   activePhase,
   pilotRun,
@@ -874,8 +1052,12 @@ function PhaseHeaderControl({
   onPhaseChange: (phase: HojasRutaPhase) => void;
   onPilotExclusionModeChange: (mode: HojasRutaPilotExclusionMode) => void;
 }) {
+  const pilotSummary = pilotRun
+    ? `Piloto: ${formatNumber(pilotSample?.total_entrevistas ?? 0)} entrevistas · ${formatNumber(pilotTitularCount)} titulares excluibles`
+    : "";
+
   return (
-    <div className="hojas-ruta-phase-header" aria-label="Fase de aplicación">
+    <div className="hojas-ruta-phase-header" aria-label="Fase de aplicación" title={pilotSummary || undefined}>
       <div className="hojas-ruta-phase-tabs" role="tablist" aria-label="Fase de aplicación de campo">
         <button
           type="button"
@@ -899,22 +1081,25 @@ function PhaseHeaderControl({
         </button>
       </div>
       {pilotRun ? (
-        <div className="hojas-ruta-phase-header-meta">
-          <strong>Piloto: {formatNumber(pilotSample?.total_entrevistas ?? 0)} entrevistas</strong>
-          <span>{formatNumber(pilotTitularCount)} titulares excluibles</span>
-        </div>
+        <span className="hojas-ruta-phase-pilot-badge" title={pilotSummary}>
+          {formatNumber(pilotTitularCount)} titulares
+        </span>
       ) : null}
       {activePhase === "field" && pilotRun ? (
-        <label className="hojas-ruta-phase-policy-select">
-          <span>Uso de piloto</span>
+        <label
+          className="hojas-ruta-phase-policy-select"
+          title="Define si Campo real debe excluir las manzanas titulares que ya se usaron en la corrida piloto."
+        >
+          <span>Regla de piloto</span>
           <select
             value={pilotExclusionMode}
             onChange={(event) => onPilotExclusionModeChange(event.target.value as HojasRutaPilotExclusionMode)}
             disabled={busy === "pilot-exclusion"}
-            title="Define si Campo real bloquea las manzanas titulares de la piloto."
+            aria-label="Regla para usar la corrida piloto en Campo real"
+            title="Define si Campo real debe excluir las manzanas titulares que ya se usaron en la corrida piloto."
           >
-            <option value="exclude_titulars">Excluir titulares piloto</option>
-            <option value="ignore">Ignorar piloto</option>
+            <option value="exclude_titulars">Evita titulares</option>
+            <option value="ignore">No evita piloto</option>
           </select>
         </label>
       ) : activePhase === "pilot" ? (
@@ -976,53 +1161,6 @@ function InlineHelp({ label, text }: { label: string; text: string }) {
   );
 }
 
-function TechnicalDetailItem({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function FrameTechnicalDetails({ frame }: { frame: NonNullable<HojasRutaState["frame_meta"]> }) {
-  const activeLabel = frame.active_source === "inei2017_official" ? "INEI 2017 oficial" : "Actual";
-  const officialLabel = frame.official?.available
-    ? `${Number(frame.official.n_manzanas ?? 0).toLocaleString("es-PE")} manzanas`
-    : "Pendiente";
-  const nseLabel = frame.nse_data?.available
-    ? `Disponible${frame.nse_data.coverage_rate ? ` · ${(frame.nse_data.coverage_rate * 100).toFixed(1)}%` : ""}`
-    : frame.nse_data?.message ?? "No disponible";
-  const zonesLabel = frame.zone_cartography?.available
-    ? `${Number(frame.zone_cartography.zones ?? 0).toLocaleString("es-PE")} zonas`
-    : "Pendiente";
-  const auditLabel = frame.audit?.available
-    ? `${Number(frame.audit.rows ?? 0).toLocaleString("es-PE")} filas auditadas`
-    : frame.audit?.message ?? "Pendiente";
-  return (
-    <details className="hojas-ruta-technical-details">
-      <summary>
-        <strong>Detalle técnico</strong>
-        <span>Fuentes, versiones y cobertura del marco.</span>
-      </summary>
-      <div className="hojas-ruta-technical-grid">
-        <TechnicalDetailItem label="Base poblacional" value={`${frame.age_data?.source ?? "INEI"} ${frame.age_data?.year ?? frame.year}`} />
-        <TechnicalDetailItem label="Frame activo" value={activeLabel} />
-        <TechnicalDetailItem label="Versión del marco" value={frame.version} />
-        <TechnicalDetailItem label="Frame oficial INEI" value={officialLabel} />
-        <TechnicalDetailItem label="Cobertura" value={frame.coverage} />
-        <TechnicalDetailItem label="NSE" value={nseLabel} />
-        <TechnicalDetailItem label="Zonas INEI" value={zonesLabel} />
-        <TechnicalDetailItem label="Auditoría" value={auditLabel} />
-        <TechnicalDetailItem label="Cartografía de manzanas" value={frame.block_cartography?.ok ? cartographyModeLabel(frame.block_cartography.mode) : "Pendiente"} />
-        <TechnicalDetailItem label="Calles" value={frame.street_cartography?.ok ? "INEI 2017 + respaldo OSM" : "Pendiente"} />
-        <TechnicalDetailItem label="Contexto" value={frame.context_cartography?.ok ? "Local + curado" : "Pendiente"} />
-        <TechnicalDetailItem label="Checksum" value={frame.checksum ?? "Sin checksum"} />
-      </div>
-    </details>
-  );
-}
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
@@ -1043,7 +1181,16 @@ type NumericInputProps = Omit<
   step?: number;
   integer?: boolean;
   fallback?: number;
+  allowEmpty?: boolean;
+  onEmptyCommit?: () => void;
 };
+
+function parseNumericDraft(raw: string) {
+  const normalized = raw.trim().replace(",", ".");
+  if (normalized === "" || normalized === "-" || normalized === "." || normalized === "-.") return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function normalizeNumericDraft(
   raw: string,
@@ -1052,10 +1199,12 @@ function normalizeNumericDraft(
     max,
     integer,
     fallback,
-  }: Pick<NumericInputProps, "min" | "max" | "integer" | "fallback">,
+    allowEmpty,
+  }: Pick<NumericInputProps, "min" | "max" | "integer" | "fallback" | "allowEmpty">,
 ) {
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) {
+  const parsed = parseNumericDraft(raw);
+  if (parsed == null) {
+    if (allowEmpty && raw.trim() === "") return null;
     const base = fallback ?? min ?? 0;
     return clampNumericValue(base, { min, max, integer });
   }
@@ -1080,43 +1229,88 @@ function NumericInput({
   step,
   integer = false,
   fallback,
+  allowEmpty = false,
+  onEmptyCommit,
   onBlur,
   onFocus,
+  onKeyDown,
+  className,
+  inputMode,
   ...props
 }: NumericInputProps) {
   const valueText = value == null || !Number.isFinite(Number(value)) ? "" : String(value);
   const [draft, setDraft] = useState(valueText);
   const [editing, setEditing] = useState(false);
+  const skipNextBlurCommitRef = useRef(false);
 
   useEffect(() => {
     if (!editing) setDraft(valueText);
   }, [editing, valueText]);
 
+  const draftParsed = parseNumericDraft(draft);
+  const draftIsTransient = draft.trim() === "" || draft.trim() === "-" || draft.trim() === "." || draft.trim() === "-.";
+  const draftIsInvalid = editing && !draftIsTransient && draftParsed == null;
+  const inputClassName = [
+    "hojas-ruta-numeric-input",
+    editing ? "is-editing" : "",
+    editing && valueText !== draft ? "is-draft" : "",
+    draftIsInvalid ? "is-invalid" : "",
+    className ?? "",
+  ].filter(Boolean).join(" ");
+
+  function commit(raw: string) {
+    const next = normalizeNumericDraft(raw, { min, max, integer, fallback, allowEmpty });
+    setEditing(false);
+    if (next == null) {
+      setDraft("");
+      onEmptyCommit?.();
+      return;
+    }
+    setDraft(String(next));
+    onValueChange(next);
+  }
+
   return (
     <input
       {...props}
-      type="number"
-      min={min}
-      max={max}
-      step={step}
+      type="text"
+      className={inputClassName}
+      inputMode={inputMode ?? (integer ? "numeric" : "decimal")}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={draftParsed ?? undefined}
+      aria-invalid={draftIsInvalid || undefined}
+      data-min={min}
+      data-max={max}
+      data-step={step}
       value={draft}
       onFocus={(event) => {
         setEditing(true);
         onFocus?.(event);
       }}
       onChange={(event) => {
-        const raw = event.target.value;
-        setDraft(raw);
-        if (raw === "" || raw === "-" || raw === "." || raw === "-.") return;
-        const parsed = Number(raw);
-        if (!Number.isFinite(parsed)) return;
-        onValueChange(clampNumericValue(parsed, { min, max, integer }));
+        setDraft(event.target.value);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          skipNextBlurCommitRef.current = true;
+          commit(event.currentTarget.value);
+          event.currentTarget.blur();
+        } else if (event.key === "Escape") {
+          setDraft(valueText);
+          setEditing(false);
+          skipNextBlurCommitRef.current = true;
+          event.currentTarget.blur();
+        }
+        onKeyDown?.(event);
       }}
       onBlur={(event) => {
-        const next = normalizeNumericDraft(event.target.value, { min, max, integer, fallback });
-        setEditing(false);
-        setDraft(String(next));
-        onValueChange(next);
+        if (skipNextBlurCommitRef.current) {
+          skipNextBlurCommitRef.current = false;
+          onBlur?.(event);
+          return;
+        }
+        commit(event.target.value);
         onBlur?.(event);
       }}
     />
@@ -3739,10 +3933,99 @@ function LimaCoverageMap({
 function DistrictShapeIcon({ ubigeo, active }: { ubigeo: string; active?: boolean }) {
   const d = useMemo(() => projectDistrictIcon(ubigeo), [ubigeo]);
   return (
-    <svg viewBox="0 0 48 48" aria-hidden="true" style={{ width: 42, height: 42, display: "block", flex: "0 0 auto" }}>
-      <rect x="0" y="0" width="48" height="48" rx="8" fill={active ? "#dff3ee" : "#f8fafc"} />
-      {d ? <path d={d} fill="#0f766e" stroke="#064e3b" strokeWidth="1.4" fillRule="evenodd" /> : null}
+    <svg
+      viewBox="0 0 48 48"
+      aria-hidden="true"
+      className={`hojas-ruta-district-icon${active ? " is-active" : ""}`}
+      style={{ width: 42, height: 42, display: "block", flex: "0 0 auto" }}
+    >
+      <rect className="hojas-ruta-district-icon-bg" x="0" y="0" width="48" height="48" rx="8" />
+      {d ? <path className="hojas-ruta-district-icon-shape" d={d} strokeWidth="1.4" fillRule="evenodd" /> : null}
     </svg>
+  );
+}
+
+function IncludedDistrictTable({ territories }: { territories: HojasRutaState["territories"] }) {
+  const totalPopulation = territories.reduce((sum, territory) => sum + Number(territory.poblacion || 0), 0);
+  const totalHomes = territories.reduce((sum, territory) => sum + Number(territory.viviendas || 0), 0);
+  const totalBlocks = territories.reduce((sum, territory) => sum + Number(territory.manzanas || 0), 0);
+  const territoryLoadRows = [...territories]
+    .map((territory) => {
+      const population = Number(territory.poblacion || 0);
+      const homes = Number(territory.viviendas || 0);
+      const blocks = Number(territory.manzanas || 0);
+      return {
+        territory,
+        population,
+        populationShare: totalPopulation > 0 ? population / totalPopulation : 0,
+        homesPerBlock: blocks > 0 ? homes / blocks : null,
+        peoplePerBlock: blocks > 0 ? population / blocks : null,
+      };
+    })
+    .sort((a, b) => b.population - a.population);
+
+  return (
+    <div className="hojas-ruta-territory-table-shell">
+      <div className="hojas-ruta-territory-summary" aria-label="Resumen de distritos incluidos">
+        <MiniMetric label="Distritos" value={formatNumber(territories.length)} />
+        <MiniMetric label="Población" value={formatNumber(totalPopulation)} />
+        <MiniMetric label="Viviendas" value={formatNumber(totalHomes)} />
+        <MiniMetric label="Manzanas" value={formatNumber(totalBlocks)} />
+      </div>
+      <div className="hojas-ruta-territory-table-wrap">
+        <table className="hojas-ruta-territory-table">
+          <thead>
+            <tr>
+              <th>Distrito</th>
+              <th>Población</th>
+              <th>Viviendas</th>
+              <th>Manzanas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {territories.map((territory) => (
+              <tr key={territory.ubigeo}>
+                <td>
+                  <div className="hojas-ruta-territory-name">
+                    <DistrictShapeIcon ubigeo={territory.ubigeo} active />
+                    <span>
+                      <strong>{territory.distrito}</strong>
+                      <em>{territory.ubigeo}</em>
+                    </span>
+                  </div>
+                </td>
+                <td className="is-number">{formatNumber(territory.poblacion)}</td>
+                <td className="is-number">{formatNumber(territory.viviendas)}</td>
+                <td className="is-number">{formatNumber(territory.manzanas)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="hojas-ruta-territory-density">
+        <div className="hojas-ruta-section-title is-compact">
+          <strong>Carga territorial</strong>
+          <span>Peso relativo y densidad censal.</span>
+        </div>
+        <div className="hojas-ruta-territory-density-list">
+          {territoryLoadRows.map(({ territory, populationShare, homesPerBlock, peoplePerBlock }) => (
+            <div key={`load:${territory.ubigeo}`} className="hojas-ruta-territory-density-row">
+              <div className="hojas-ruta-territory-density-main">
+                <strong>{territory.distrito}</strong>
+                <span>{formatPercent(territory.poblacion, totalPopulation)} del marco · {formatNumber(territory.manzanas)} mz.</span>
+              </div>
+              <div className="hojas-ruta-territory-density-meter" aria-hidden="true">
+                <i style={{ width: `${Math.max(4, Math.min(100, populationShare * 100))}%` }} />
+              </div>
+              <div className="hojas-ruta-territory-density-values">
+                <em>{homesPerBlock == null ? "S/D" : formatDecimal(homesPerBlock, 1)} viv./mz</em>
+                <em>{peoplePerBlock == null ? "S/D" : formatDecimal(peoplePerBlock, 1)} hab./mz</em>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -4401,28 +4684,23 @@ function AgeRangesEditor({
 }) {
   type DraftRange = { minText: string; maxText: string };
   const rangesSignature = ranges.map((r) => `${r.id}:${r.min}:${r.max ?? "plus"}`).join("|");
-  const [drafts, setDrafts] = useState<DraftRange[]>(() => ranges.map((r) => {
+  const makeDrafts = useCallback(() => ranges.map((r) => {
     const range = normalizeAgeRange(r);
     return {
       minText: String(range.min),
       maxText: range.max == null ? "" : String(range.max),
     };
-  }));
+  }), [ranges]);
+  const [drafts, setDrafts] = useState<DraftRange[]>(makeDrafts);
 
   useEffect(() => {
-    setDrafts(ranges.map((r) => {
-      const range = normalizeAgeRange(r);
-      return {
-        minText: String(range.min),
-        maxText: range.max == null ? "" : String(range.max),
-      };
-    }));
-  }, [rangesSignature]);
+    setDrafts(makeDrafts());
+  }, [makeDrafts, rangesSignature]);
 
   function parseAge(value: string) {
     if (value.trim() === "") return null;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return null;
+    const parsed = parseNumericDraft(value);
+    if (parsed == null || !Number.isFinite(parsed)) return null;
     return Math.max(0, Math.round(parsed));
   }
 
@@ -4444,14 +4722,23 @@ function AgeRangesEditor({
       nextDrafts[index] ?? drafts[index],
       index === ranges.length - 1,
     ));
-    if (nextRanges.some((range) => range == null)) return;
+    if (nextRanges.some((range) => range == null)) return false;
     onChange(nextRanges as HojasRutaAgeRange[]);
+    return true;
   }
 
-  function updateDraft(index: number, patch: Partial<DraftRange>, commit = true) {
+  function updateDraft(index: number, patch: Partial<DraftRange>) {
     const nextDrafts = drafts.map((draft, i) => (i === index ? { ...draft, ...patch } : draft));
     setDrafts(nextDrafts);
-    if (commit) commitDrafts(nextDrafts);
+    return nextDrafts;
+  }
+
+  function commitAgeDrafts(nextDrafts = drafts) {
+    if (!commitDrafts(nextDrafts)) resetDrafts();
+  }
+
+  function resetDrafts() {
+    setDrafts(makeDrafts());
   }
 
   function removeRange(index: number) {
@@ -4475,32 +4762,52 @@ function AgeRangesEditor({
             <span>Rango {index + 1}</span>
           </div>
           <input
-            style={fieldStyle}
-            type="number"
-            min={0}
+            className="hojas-ruta-numeric-input"
+            style={compactFieldStyle}
+            type="text"
+            data-min={0}
             inputMode="numeric"
             placeholder="Desde"
             value={drafts[index]?.minText ?? String(r.min)}
-            onChange={(e) => updateDraft(index, { minText: e.target.value }, e.target.value.trim() !== "")}
-            onBlur={() => commitDrafts(drafts)}
+            onChange={(e) => updateDraft(index, { minText: e.target.value })}
+            onBlur={() => commitAgeDrafts()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                commitAgeDrafts();
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                resetDrafts();
+                e.currentTarget.blur();
+              }
+            }}
             aria-label={`Edad minima ${r.label}`}
           />
           <input
-            style={fieldStyle}
-            type="number"
-            min={r.min}
+            className="hojas-ruta-numeric-input"
+            style={compactFieldStyle}
+            type="text"
+            data-min={r.min}
             inputMode="numeric"
             placeholder={index === ranges.length - 1 ? "A más" : "Hasta"}
             value={drafts[index]?.maxText ?? (r.max == null ? "" : String(r.max))}
-            onChange={(e) => updateDraft(index, { maxText: e.target.value }, e.target.value.trim() !== "")}
-            onBlur={() => commitDrafts(drafts)}
+            onChange={(e) => updateDraft(index, { maxText: e.target.value })}
+            onBlur={() => commitAgeDrafts()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                commitAgeDrafts();
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                resetDrafts();
+                e.currentTarget.blur();
+              }
+            }}
             aria-label={`Edad maxima ${r.label}`}
           />
           {index === ranges.length - 1 ? (
             <button
               type="button"
               className={(drafts[index]?.maxText ?? "") === "" ? "is-active" : ""}
-              onClick={() => updateDraft(index, { maxText: "" })}
+              onClick={() => commitAgeDrafts(updateDraft(index, { maxText: "" }))}
             >
               A más
             </button>
@@ -5802,36 +6109,30 @@ function SampleSizeWorkbench({
                                 <td className="is-strong">{t.distrito}</td>
                                 <td className="is-number">±{districtAlertPct}%</td>
                                 <td className="is-number">
-                                  <input
+                                  <NumericInput
                                     className="hojas-ruta-table-input"
-                                    type="number"
                                     min={0.1}
                                     max={80}
                                     step={0.1}
                                     placeholder="—"
-                                    value={currentMargin != null ? Number((currentMargin * 100).toFixed(2)) : ""}
-                                    onChange={(e) => {
-                                      const raw = e.target.value;
-                                      const value = raw === "" ? null : Math.max(0.001, Number(raw) / 100);
-                                      onMarginOverrideChange(t.ubigeo, value);
-                                    }}
+                                    value={currentMargin != null ? Number((currentMargin * 100).toFixed(2)) : null}
+                                    allowEmpty
+                                    onEmptyCommit={() => onMarginOverrideChange(t.ubigeo, null)}
+                                    onValueChange={(value) => onMarginOverrideChange(t.ubigeo, Math.max(0.001, value / 100))}
                                   />
                                 </td>
                                 <td className="is-number">{settings.design_effect.toFixed(2)}</td>
                                 <td className="is-number">
-                                  <input
+                                  <NumericInput
                                     className="hojas-ruta-table-input"
-                                    type="number"
                                     min={0.1}
                                     max={20}
                                     step={0.1}
                                     placeholder="—"
-                                    value={currentDeff ?? ""}
-                                    onChange={(e) => {
-                                      const raw = e.target.value;
-                                      const value = raw === "" ? null : Math.max(0.1, Number(raw));
-                                      onDeffOverrideChange(t.ubigeo, value);
-                                    }}
+                                    value={currentDeff ?? null}
+                                    allowEmpty
+                                    onEmptyCommit={() => onDeffOverrideChange(t.ubigeo, null)}
+                                    onValueChange={(value) => onDeffOverrideChange(t.ubigeo, Math.max(0.1, value))}
                                   />
                                 </td>
                               </tr>
@@ -6243,6 +6544,10 @@ export default function HojasRutaPage() {
   const [manualReplacementPolicy, setManualReplacementPolicy] = useState<HojasRutaReplacementPolicy>("alternate_zone_same_district");
   const [deliveryBlocksPage, setDeliveryBlocksPage] = useState(0);
   const [deliveryReplacementsPage, setDeliveryReplacementsPage] = useState(0);
+  const [deliveryReviewTab, setDeliveryReviewTab] = useState<HojasRutaDeliveryTab>("cuotas");
+  const [dismissedPhaseNotice, setDismissedPhaseNotice] = useState("");
+  const [dismissedPopulationAlerts, setDismissedPopulationAlerts] = useState<string[]>([]);
+  const [dismissedDeliveryAlerts, setDismissedDeliveryAlerts] = useState<string[]>([]);
   const [randomPdf, setRandomPdf] = useState<HojasRutaRandomPdfResult | null>(null);
   const [randomPreference, setRandomPreference] = useState<HojasRutaRandomPreference>("balanced");
   const [ageDraftMode, setAgeDraftMode] = useState<HojasRutaAgeRangeMode>("manual");
@@ -6480,6 +6785,27 @@ export default function HojasRutaPage() {
   useEffect(() => {
     setRouteWorkbook(null);
   }, [routeWorkbookInvalidationKey]);
+
+  const quotaAlerts = useMemo(
+    () => uniqueAlerts([...(quota?.alerts ?? []), ...(sample?.alerts ?? [])]),
+    [quota, sample],
+  );
+  const populationAlertSignature = useMemo(
+    () => alertListSignature(population?.alerts ?? []),
+    [population],
+  );
+  const deliveryAlertSignature = useMemo(
+    () => alertListSignature(quotaAlerts),
+    [quotaAlerts],
+  );
+
+  useEffect(() => {
+    setDismissedPopulationAlerts([]);
+  }, [populationAlertSignature]);
+
+  useEffect(() => {
+    setDismissedDeliveryAlerts([]);
+  }, [activePhase, deliveryAlertSignature, pilotExclusionMode]);
 
   const selectedBlocksPage = deliveryPageSlice(selectedBlocks, deliveryBlocksPage);
   const replacementBlocksPage = deliveryPageSlice(replacementBlocks, deliveryReplacementsPage);
@@ -7341,102 +7667,92 @@ export default function HojasRutaPage() {
   const currentStage = stageSteps.some((step) => step.key === activeStage && !step.disabled)
     ? activeStage
     : [...stageSteps].reverse().find((step) => !step.disabled)?.key ?? "territorio";
-  const quotaAlerts = [...(quota?.alerts ?? []), ...(sample?.alerts ?? [])]
-    .filter((a, i, arr) => arr.findIndex((x) => x.code === a.code && x.message === a.message) === i);
-  const stageGuide = {
-    territorio: {
-      title: "Elige el marco de campo",
-      copy: "Confirma distritos sin perder el mapa. El resto del generador solo usara el marco confirmado.",
-      next: selectedTerritories.length ? "Siguiente: revisar poblacion" : "Selecciona al menos un distrito",
-    },
-    poblacion: {
-      title: "Revisa a quien representa la muestra",
-      copy: "Aqui decides los cortes de edad y sexo que luego se transforman en cuotas operativas.",
-      next: population?.ok ? "Siguiente: definir muestra" : "Genera la matriz para continuar",
-    },
-    muestra: {
-      title: "Convierte margen de error en cuotas",
-      copy: "Define el N como decision estadistica y confirma que el resultado sea defendible por distrito.",
-      next: quota?.ok ? "Siguiente: seleccionar manzanas" : "Calcula cuotas para continuar",
-    },
-    manzanas: {
-      title: "Aterriza la muestra en territorio",
-      copy: "Elige como repartir entrevistas en manzanas y revisa si la carga de campo queda razonable.",
-      next: sample?.ok ? "Siguiente: revisar entrega" : "Selecciona manzanas para continuar",
-    },
-    entrega: {
-      title: "Ultima revision antes del ZIP",
-      copy: "Comprueba cuotas, manzanas, alertas y contenidos del paquete antes de generar los entregables.",
-      next: result ? "ZIP generado" : "Genera los entregables finales",
-    },
-  } satisfies Record<HojasRutaStage, { title: string; copy: string; next: string }>;
+  const deliveryReviewTabs: Array<{ key: HojasRutaDeliveryTab; label: string; count: number; disabled?: boolean }> = [
+    { key: "cuotas", label: "Cuotas", count: quota?.table.length ?? 0, disabled: !quota },
+    { key: "titulares", label: "Titulares", count: selectedBlocks.length, disabled: !sample },
+    { key: "reemplazos", label: "Reemplazos", count: replacementBlocks.length, disabled: !sample || replacementBlocks.length === 0 },
+  ];
+  const visiblePhaseNotice = phaseNotice?.message && dismissedPhaseNotice !== phaseNotice.message
+    ? phaseNotice.message
+    : "";
+  const chromeToolbar = error || frame?.pilot || phaseNotice?.message || frame?.ok ? (
+    <div className="hojas-ruta-module-chrome">
+      {(error || frame?.pilot) && (
+        <div className="hojas-ruta-alert-stack">
+          {error && <Alert kind="error">{error}</Alert>}
+          {frame?.pilot && (
+            <Alert kind="warn">
+              {frame.note}
+            </Alert>
+          )}
+        </div>
+      )}
+
+      {frame?.ok && (
+        <>
+          <div className="hojas-ruta-commandbar" aria-label="Contexto operativo de hojas de ruta">
+            <div className="hojas-ruta-command-summary" aria-label="Resumen del marco">
+              <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} />
+              <HeaderSummaryPill label="Distritos incluidos" value={formatNumber(selectedTerritories.length)} />
+              <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} />
+              <HeaderSummaryPill label="Manzanas censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} />
+              <div className="hojas-ruta-command-readiness" aria-label="Estado del generador">
+                <ReadinessItem ok={selectedTerritories.length > 0} label="Territorio" value={`${selectedTerritories.length} distritos`} />
+                <ReadinessItem ok={!!population?.ok} label="Población" value={population?.ok ? "lista" : "pendiente"} />
+                <ReadinessItem ok={!!quota?.ok} label="Cuotas" value={quota?.ok ? `${formatNumber(quota.total_asignado)} entrevistas` : "pendientes"} />
+                <ReadinessItem ok={!!sample?.ok} label="Campo" value={sample?.ok ? `${formatNumber(sample.n_blocks)} manzanas` : "pendiente"} />
+              </div>
+            </div>
+
+            {visiblePhaseNotice ? (
+              <div className="hojas-ruta-phase-notice-chip" role="status" title={visiblePhaseNotice}>
+                <Info size={13} aria-hidden="true" />
+                <span>{compactPhaseNotice(visiblePhaseNotice)}</span>
+                <button
+                  type="button"
+                  aria-label="Ocultar aviso de piloto"
+                  onClick={() => setDismissedPhaseNotice(visiblePhaseNotice)}
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+
+            <PhaseHeaderControl
+              activePhase={activePhase}
+              pilotRun={pilotRun}
+              pilotSample={pilotSample}
+              pilotTitularCount={pilotTitularIds.length}
+              pilotExclusionMode={pilotExclusionMode}
+              busy={busy}
+              onPhaseChange={(phase) => void changePhase(phase)}
+              onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
+            />
+          </div>
+
+          <div className="hojas-ruta-stage-rail-wrap">
+            <HojasRutaStageRail
+              steps={stageSteps}
+              current={currentStage}
+              onChange={setActiveStage}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  ) : undefined;
 
   return (
     <PageFrame
       className="hojas-ruta-frame"
-      bodyMode={currentStage === "territorio" || currentStage === "manzanas" || currentStage === "entrega" ? "fill" : "scroll"}
+      bodyMode="fill"
+      scrollOwner="panels"
+      layout="workbench"
+      density="compact"
+      headerMode="sr-only"
       title="Hojas de ruta"
-      lead="Cuotas, manzanas y fichas de campo desde un marco territorial trazable."
       resetScrollKey={currentStage}
-      meta={(
-        <div className="hojas-ruta-header-summary" aria-label="Resumen del marco">
-          <HeaderSummaryPill label="Base" value={frame?.ok ? "Cargada" : "Pendiente"} />
-          <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
-          <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame?.poblacion ?? 0)} />
-          <HeaderSummaryPill label="Manzanas" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame?.n_manzanas ?? 0)} />
-          <PhaseHeaderControl
-            activePhase={activePhase}
-            pilotRun={pilotRun}
-            pilotSample={pilotSample}
-            pilotTitularCount={pilotTitularIds.length}
-            pilotExclusionMode={pilotExclusionMode}
-            busy={busy}
-            onPhaseChange={(phase) => void changePhase(phase)}
-            onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
-          />
-        </div>
-      )}
-      toolbar={
-        error || frame?.pilot || frame?.ok ? (
-          <>
-            {error && <Alert kind="error">{error}</Alert>}
-            {frame?.pilot && (
-              <Alert kind="warn">
-                {frame.note}
-              </Alert>
-            )}
-            {phaseNotice?.message && (
-              <Alert kind="info">
-                {phaseNotice.message}
-              </Alert>
-            )}
-            {frame?.ok && (
-              <>
-                <Stepper<HojasRutaStage>
-                  steps={stageSteps}
-                  current={currentStage}
-                  onChange={setActiveStage}
-                  ariaLabel="Etapas de hojas de ruta"
-                />
-
-                <div className="hojas-ruta-stage-coach">
-                  <div>
-                    <span>{stageGuide[currentStage].next}</span>
-                    <strong>{stageGuide[currentStage].title}</strong>
-                    <p>{stageGuide[currentStage].copy}</p>
-                  </div>
-                  <div className="hojas-ruta-readiness-strip" aria-label="Estado del generador">
-                    <ReadinessItem ok={selectedTerritories.length > 0} label="Territorio" value={`${selectedTerritories.length} dist.`} />
-                    <ReadinessItem ok={!!population?.ok} label="Poblacion" value={population?.ok ? "lista" : "pendiente"} />
-                    <ReadinessItem ok={!!quota?.ok} label="Cuotas" value={quota?.ok ? formatNumber(quota.total_asignado) : "pendiente"} />
-                    <ReadinessItem ok={!!sample?.ok} label="Campo" value={sample?.ok ? `${formatNumber(sample.n_blocks)} mz.` : "pendiente"} />
-                  </div>
-                </div>
-              </>
-            )}
-          </>
-        ) : undefined
-      }
+      toolbar={chromeToolbar}
     >
       <span
         hidden
@@ -7500,13 +7816,14 @@ export default function HojasRutaPage() {
                   <div className="hojas-ruta-cartography-row is-compact">
                     <Layers size={16} color="var(--pulso-primary)" />
                     <div>
-                      <div className="hojas-ruta-side-title is-small">Cartografía de manzanas</div>
+                      <div className="hojas-ruta-cartography-head">
+                        <div className="hojas-ruta-side-title is-small">Cartografía de manzanas</div>
+                      </div>
                       <div className="hojas-ruta-side-copy">
                         {frame.block_cartography?.coverage ?? "Lima Metropolitana y Callao"} · Lima 2017 / Callao 2019
                       </div>
                     </div>
                   </div>
-                  <FrameTechnicalDetails frame={frame} />
                 </section>
 
                 <section className="hojas-ruta-side-section is-flex">
@@ -7547,7 +7864,8 @@ export default function HojasRutaPage() {
                 <Panel
                   title="Configura la población base"
                   eyebrow="Paso 1"
-                  hint="Primero define cómo quieres leer la población INEI 2017. Luego calcula la matriz antes de pasar a muestra."
+                  hint="Define cómo se lee la población INEI 2017 para los distritos confirmados antes de pasar a muestra."
+                  className="hojas-ruta-population-config-panel"
                 >
                   <div className="hojas-ruta-form-grid">
                     <Field label="Agrupar filas por">
@@ -7691,30 +8009,31 @@ export default function HojasRutaPage() {
                       {busy === "population" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
                       Calcular matriz poblacional
                     </button>
-                    <span className="hojas-ruta-soft-text">
-                      Se usarán {formatNumber(selectedTerritories.length)} distrito(s) confirmados. La matriz se desbloquea después de confirmar la configuración de edad.
-                    </span>
                   </div>
                 </Panel>
 
-                <Panel title="Distritos incluidos" eyebrow="Paso 2">
-                  <div className="hojas-ruta-selected-list">
-                    {selectedTerritoryRows.map((t) => (
-                      <div key={t.ubigeo} className="hojas-ruta-selected-row">
-                        <DistrictShapeIcon ubigeo={t.ubigeo} active />
-                        <div>
-                          <strong>{t.distrito}</strong>
-                          <span>{formatNumber(t.poblacion)} personas · {formatNumber(t.viviendas)} viviendas</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <Panel
+                  title="Distritos incluidos"
+                  eyebrow="Paso 2"
+                  className="hojas-ruta-territory-panel"
+                  actions={(
+                    <InlineHelp
+                      label="Marco territorial"
+                      text="Estos son los distritos confirmados del marco. Las UMPs aparecen después, cuando la muestra selecciona identificadores de manzana para campo."
+                    />
+                  )}
+                >
+                  <IncludedDistrictTable territories={selectedTerritoryRows} />
                 </Panel>
               </div>
 
-              {population?.alerts.map((a) => (
-                <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
-              ))}
+              {population?.alerts.length ? (
+                <HojasRutaNoticeTray
+                  alerts={population.alerts}
+                  dismissed={dismissedPopulationAlerts}
+                  onDismiss={(key) => setDismissedPopulationAlerts((prev) => prev.includes(key) ? prev : [...prev, key])}
+                />
+              ) : null}
               <PopulationMatrixPreview
                 population={population}
                 actions={(
@@ -7758,9 +8077,11 @@ export default function HojasRutaPage() {
                 onMarginOverrideChange={setMarginOverride}
               />
 
-              {quotaAlerts.map((a) => (
-                <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
-              ))}
+              <HojasRutaNoticeTray
+                alerts={quotaAlerts}
+                dismissed={dismissedDeliveryAlerts}
+                onDismiss={(key) => setDismissedDeliveryAlerts((prev) => prev.includes(key) ? prev : [...prev, key])}
+              />
               <QuotaMatrixPreview quota={quota} sampleSizePreview={sampleSizePreview} />
             </div>
           )}
@@ -7994,7 +8315,7 @@ export default function HojasRutaPage() {
                 </Panel>
                 {sample && (
                   <Panel
-                    title="Manzanas seleccionadas"
+                    title="UMPs seleccionadas"
                     eyebrow={`${formatNumber(sample.n_blocks)} de campo`}
                   >
                     <div className="hojas-ruta-sampling-mini-summary">
@@ -8023,15 +8344,15 @@ export default function HojasRutaPage() {
                         </div>
                         <div className="hojas-ruta-section-title">
                           <strong>{sampleListTotalLabel}</strong>
-                          <span>{sampleListTab === "titulares" ? "Manzanas titulares seleccionadas para campo." : "Manzanas de reemplazo asociadas al sorteo."}</span>
+                          <span>{sampleListTab === "titulares" ? "Identificadores de manzana titulares seleccionados para campo." : "Identificadores de manzana de reemplazo asociados al sorteo."}</span>
                         </div>
                         <div className="hojas-ruta-review-table-wrap is-sample-list">
                           <table className="hojas-ruta-review-table">
                             <thead>
                               <tr>
                                 {(sampleListTab === "titulares"
-                                  ? ["Distrito", "ID manzana", "Zona", "NSE", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
-                                  : ["Distrito", "ID reemplazo", "Reemplaza", "Zona", "NSE", "Rango", "Viviendas", "Método"]
+                                  ? ["Distrito", "UMP", "Zona", "NSE", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
+                                  : ["Distrito", "UMP reemplazo", "Reemplaza", "Zona", "NSE", "Rango", "Viviendas", "Método"]
                                 ).map((h) => (
                                   <th key={h}>{h}</th>
                                 ))}
@@ -8126,11 +8447,11 @@ export default function HojasRutaPage() {
                         </div>
 
                         {quotaAlerts.length ? (
-                          <div className="hojas-ruta-sample-alerts">
-                            {quotaAlerts.map((a) => (
-                              <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
-                            ))}
-                          </div>
+                          <HojasRutaNoticeTray
+                            alerts={quotaAlerts}
+                            dismissed={dismissedDeliveryAlerts}
+                            onDismiss={(key) => setDismissedDeliveryAlerts((prev) => prev.includes(key) ? prev : [...prev, key])}
+                          />
                         ) : (
                           <div className="hojas-ruta-sample-plain-card is-success">
                             <strong>Sin alertas bloqueantes</strong>
@@ -8138,48 +8459,67 @@ export default function HojasRutaPage() {
                           </div>
                         )}
 
-                        <section className="hojas-ruta-delivery-section">
-                          <div className="hojas-ruta-section-title">
-                            <strong>Cuotas por perfil</strong>
-                            <span>Primeras filas para una revisión rápida.</span>
-                          </div>
-                          <div className="hojas-ruta-review-table-wrap is-delivery">
-                            <table className="hojas-ruta-review-table is-delivery-table is-quota-table">
-                              <colgroup>
-                                {quotaColumns.map((column) => (
-                                  <col key={column} style={{ width: quotaColumnWidth(column, quotaColumns) }} />
-                                ))}
-                              </colgroup>
-                              <thead>
-                                <tr>
-                                  {quotaColumns.map((h) => (
-                                    <th key={h}>{h}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {quota.table.slice(0, 16).map((row, i) => (
-                                  <tr key={i}>
-                                    {quotaColumns.map((c) => {
-                                      const value = row[c];
-                                      return (
-                                        <td key={c} className={reviewCellClass(c, value)}>
-                                          {typeof value === "number" ? formatNumber(value as number) : String(value ?? "")}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </section>
+                        <div className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
+                          {deliveryReviewTabs.map((tab) => (
+                            <button
+                              key={tab.key}
+                              type="button"
+                              role="tab"
+                              aria-selected={deliveryReviewTab === tab.key}
+                              className={deliveryReviewTab === tab.key ? "is-active" : ""}
+                              disabled={tab.disabled}
+                              onClick={() => setDeliveryReviewTab(tab.key)}
+                            >
+                              {tab.label}
+                              <span>{formatNumber(tab.count)}</span>
+                            </button>
+                          ))}
+                        </div>
 
-                        {sample && (
+                        {deliveryReviewTab === "cuotas" && (
                           <section className="hojas-ruta-delivery-section">
                             <div className="hojas-ruta-section-title">
-                              <strong>Manzanas de campo</strong>
-                              <span>Todas las manzanas titulares de todos los distritos seleccionados.</span>
+                              <strong>Cuotas por perfil</strong>
+                              <span>Primeras filas para una revisión rápida.</span>
+                            </div>
+                            <div className="hojas-ruta-review-table-wrap is-delivery">
+                              <table className="hojas-ruta-review-table is-delivery-table is-quota-table">
+                                <colgroup>
+                                  {quotaColumns.map((column) => (
+                                    <col key={column} style={{ width: quotaColumnWidth(column, quotaColumns) }} />
+                                  ))}
+                                </colgroup>
+                                <thead>
+                                  <tr>
+                                    {quotaColumns.map((h) => (
+                                      <th key={h}>{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {quota.table.slice(0, 16).map((row, i) => (
+                                    <tr key={i}>
+                                      {quotaColumns.map((c) => {
+                                        const value = row[c];
+                                        return (
+                                          <td key={c} className={reviewCellClass(c, value)}>
+                                            {typeof value === "number" ? formatNumber(value as number) : String(value ?? "")}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+                        )}
+
+                        {deliveryReviewTab === "titulares" && sample && (
+                          <section className="hojas-ruta-delivery-section">
+                            <div className="hojas-ruta-section-title">
+                              <strong>UMPs de campo</strong>
+                              <span>Identificadores de manzana titulares seleccionados por la muestra aleatoria.</span>
                             </div>
                             <div className="hojas-ruta-review-table-wrap is-delivery">
                               <table className="hojas-ruta-review-table is-delivery-table is-block-table">
@@ -8194,7 +8534,7 @@ export default function HojasRutaPage() {
                                 </colgroup>
                                 <thead>
                                   <tr>
-                                    {["Distrito", "ID manzana", "Zona", "NSE", "Viviendas", "Entrevistas", "Método"].map((h) => (
+                                    {["Distrito", "UMP", "Zona", "NSE", "Viviendas", "Entrevistas", "Método"].map((h) => (
                                       <th key={h}>{h}</th>
                                     ))}
                                   </tr>
@@ -8225,58 +8565,65 @@ export default function HojasRutaPage() {
                             />
                           </section>
                         )}
-                        {sample && replacementBlocks.length ? (
-                          <section className="hojas-ruta-delivery-section">
-                            <div className="hojas-ruta-section-title">
-                              <strong>Manzanas de reemplazo</strong>
-                              <span>Todas las manzanas de reemplazo, trazadas a su titular, zona origen y rango operativo.</span>
-                            </div>
-                            <div className="hojas-ruta-review-table-wrap is-delivery">
-                              <table className="hojas-ruta-review-table is-delivery-table is-replacement-table">
-                                <colgroup>
-                                  <col className="is-district" />
-                                  <col className="is-block-id" />
-                                  <col className="is-zone" />
-                                  <col className="is-nse" />
-                                  <col className="is-replaces" />
-                                  <col className="is-range" />
-                                  <col className="is-households" />
-                                  <col className="is-method" />
-                                </colgroup>
-                                <thead>
-                                  <tr>
-                                    {["Distrito", "ID manzana", "Zona", "NSE", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
-                                      <th key={h}>{h}</th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {replacementBlocksPage.rows.map((b) => (
-                                    <tr key={`replacement:${b.id_manzana}`}>
-                                      <td className="is-strong">{b.distrito}</td>
-                                      <td className="is-code">{b.id_manzana}</td>
-                                      <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
-                                      <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
-                                      <td className="is-code">{b.titular_id_manzana ?? "—"}</td>
-                                      <td className="is-code">{replacementRangeLabel(b)}</td>
-                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                      <td>{methodLabel(b.metodo)}</td>
+
+                        {deliveryReviewTab === "reemplazos" && (
+                          sample && replacementBlocks.length ? (
+                            <section className="hojas-ruta-delivery-section">
+                              <div className="hojas-ruta-section-title">
+                                <strong>UMPs de reemplazo</strong>
+                                <span>Identificadores de manzana de reemplazo, trazados a su titular, zona origen y rango operativo.</span>
+                              </div>
+                              <div className="hojas-ruta-review-table-wrap is-delivery">
+                                <table className="hojas-ruta-review-table is-delivery-table is-replacement-table">
+                                  <colgroup>
+                                    <col className="is-district" />
+                                    <col className="is-block-id" />
+                                    <col className="is-zone" />
+                                    <col className="is-nse" />
+                                    <col className="is-replaces" />
+                                    <col className="is-range" />
+                                    <col className="is-households" />
+                                    <col className="is-method" />
+                                  </colgroup>
+                                  <thead>
+                                    <tr>
+                                      {["Distrito", "UMP", "Zona", "NSE", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
+                                        <th key={h}>{h}</th>
+                                      ))}
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    {replacementBlocksPage.rows.map((b) => (
+                                      <tr key={`replacement:${b.id_manzana}`}>
+                                        <td className="is-strong">{b.distrito}</td>
+                                        <td className="is-code">{b.id_manzana}</td>
+                                        <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
+                                        <td className="is-code">{blockNseLabel(b) || "S/D"}</td>
+                                        <td className="is-code">{b.titular_id_manzana ?? "—"}</td>
+                                        <td className="is-code">{replacementRangeLabel(b)}</td>
+                                        <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                        <td>{methodLabel(b.metodo)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <DeliveryTablePager
+                                total={replacementBlocks.length}
+                                page={replacementBlocksPage.safePage}
+                                pageCount={replacementBlocksPage.pageCount}
+                                start={replacementBlocksPage.start}
+                                end={replacementBlocksPage.end}
+                                label="reemplazos"
+                                onPageChange={setDeliveryReplacementsPage}
+                              />
+                            </section>
+                          ) : (
+                            <div className="hojas-ruta-block-list-empty">
+                              Esta corrida no tiene manzanas de reemplazo configuradas.
                             </div>
-                            <DeliveryTablePager
-                              total={replacementBlocks.length}
-                              page={replacementBlocksPage.safePage}
-                              pageCount={replacementBlocksPage.pageCount}
-                              start={replacementBlocksPage.start}
-                              end={replacementBlocksPage.end}
-                              label="reemplazos"
-                              onPageChange={setDeliveryReplacementsPage}
-                            />
-                          </section>
-                        ) : null}
+                          )
+                        )}
                       </div>
                     )}
                   </Panel>
@@ -8384,7 +8731,7 @@ export default function HojasRutaPage() {
                           </div>
                         ) : !manualReplacementQueryText ? (
                           <div className="hojas-ruta-manual-summary">
-                            <strong>{formatNumber(selectedBlocks.length)} manzanas titulares disponibles</strong>
+                            <strong>{formatNumber(selectedBlocks.length)} UMPs titulares disponibles</strong>
                             <span>{formatNumber(manualReplacementSelectedIds.length)} seleccionada(s)</span>
                           </div>
                         ) : manualReplacementSearchRows.length ? (

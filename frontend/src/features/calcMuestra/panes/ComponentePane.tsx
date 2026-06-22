@@ -183,7 +183,7 @@ export function ComponentePane() {
     <div className="cm-cp-workbench">
       {/* COLUMNA IZQUIERDA · configuración */}
       <div className="cm-cp-config">
-        <Panel eyebrow="1. Identidad del actor" title="¿Quién se encuesta?" hint="El sistema usa esta categoría para aplicar la regla canónica del compendio Marzo 2026.">
+        <Panel eyebrow="1. Identidad del actor" title="¿Quién se encuesta?" hint="Esta categoría ayuda a elegir la técnica y la meta mínima que corresponde.">
           <div className="cm-cp-cards">
             {(Object.keys(ACTOR_META) as CalcMuestraActorCategoria[]).map((id) => {
               const meta = ACTOR_META[id];
@@ -683,7 +683,7 @@ function EstratosPanel({
       title="Estratos por carrera / sub-grupo"
       hint={esConglomerado
         ? "Para conglomerados con aulas: agrega facultades con N, promedio por aula y τ."
-        : "Para conveniencia con estratos: agrega carreras con N. El sistema aplica la regla canónica clamp(N×cobertura, mínimo, tope) por carrera."}
+        : "Para conveniencia con estratos: agrega carreras con N. El sistema calcula una meta por carrera según cobertura, mínimo y tope."}
       actions={
         <button type="button" onClick={() => onChange([...estratos, nuevo()])} className="cm-cp-btn-primary">
           <Plus size={13} /> Agregar

@@ -33,9 +33,9 @@ const TIPOS: TipoCard[] = [
   {
     id: "acreditacion",
     label: "Acreditación universitaria",
-    pitch: "Multi-actor: administrativos, docentes, estudiantes y egresados con técnica asignada por umbral.",
+    pitch: "Para escuchar a administrativos, docentes, estudiantes y egresados sin perder ningún grupo clave.",
     detalle:
-      "Aplica el cuadro maestro PUCP Marzo 2026. El sistema asigna técnica y mínimo automáticamente según el N de cada actor (cortes 250/251 docentes, 3000/3001 estudiantes, 300/301 egresados).",
+      "La mesa propone metas por actor y canal. Si necesitas defender el diseño, deja disponible el criterio que explica cada mínimo.",
     icon: Landmark,
     action: "iniciar",
     cta: "Usar plantilla",
@@ -43,9 +43,9 @@ const TIPOS: TipoCard[] = [
   {
     id: "encuesta_estudiantes",
     label: "Estudiantes universitarios",
-    pitch: "Marco de estudiantes y selección de aulas para encuestas universitarias anonimas.",
+    pitch: "Para pasar de una base de estudiantes a cuotas y aulas concretas para visitar.",
     detalle:
-      "Diseño estratificado por dominios, aulas como conglomerados, PPS, reemplazos y exportación directa a Monitoreo de aulas universitarias.",
+      "Primero ordena la base institucional, luego calcula la muestra y finalmente prepara aulas titulares y reservas para el seguimiento de campo.",
     icon: GraduationCap,
     action: "iniciar",
     cta: "Usar plantilla",
@@ -55,9 +55,9 @@ const TIPOS: TipoCard[] = [
   {
     id: "linea_base_servicios",
     label: "Servicios / línea de base",
-    pitch: "Diseño desde marco operativo: atenciones, servicios, sedes o establecimientos.",
+    pitch: "Para estudios que parten de atenciones, servicios, sedes o establecimientos.",
     detalle:
-      "Para estudios ocasionales tipo GIZ, OPS o RET. Permite calcular n por territorio y distribuir cuotas por servicio cuando el marco son volúmenes operativos.",
+      "Permite calcular cuántos casos necesitas y cómo repartirlos cuando el marco viene de registros operativos o volúmenes de atención.",
     icon: Stethoscope,
     action: "iniciar",
     cta: "Diseñar desde matriz",
@@ -65,9 +65,9 @@ const TIPOS: TipoCard[] = [
   {
     id: "estudio_propio",
     label: "Diseñar desde marco disponible",
-    pitch: "Para estudios nuevos que no encajan en una plantilla conocida.",
+    pitch: "Para estudios nuevos que no encajan en una plantilla ya preparada.",
     detalle:
-      "Empieza sin componentes y arma la propuesta desde unidad de análisis, marco, técnica y distribución. Útil para convocatorias ocasionales con marcos variables.",
+      "Empieza por aclarar a quién representa el estudio, qué información existe y qué resultado necesita el equipo.",
     icon: Wrench,
     action: "iniciar",
     cta: "Armar desde cero",
@@ -76,7 +76,7 @@ const TIPOS: TipoCard[] = [
     label: "Territorial / hogares",
     pitch: "El marco territorial, zonas y rutas se trabajan en Hojas de Ruta.",
     detalle:
-      "Este calculador no duplica el diseño territorial. Para hogares o manzanas, entra a Hojas de Ruta y usa allí el cálculo y la selección de campo.",
+      "Para hogares o manzanas, entra a Hojas de Ruta. Allí se resuelven zonas, recorridos, viviendas, reemplazos y salida de campo.",
     icon: MapPin,
     action: "handoff",
     cta: "Ir a Hojas de Ruta",
@@ -112,9 +112,9 @@ export function OnboardingTipoEstudio({
         <div className="cm-onboarding-eyebrow">Nuevo estudio</div>
         <h2 className="cm-onboarding-title">¿Qué tipo de estudio vas a diseñar?</h2>
         <p className="cm-onboarding-lead">
-          Elige la macro-familia que corresponde al estudio. Cada tipo carga una estructura distinta de
-          componentes y aplica la regla canónica del compendio metodológico PULSO. Puedes cambiar el tipo
-          después; el contenido del estudio actual se reemplaza.
+          Elige el camino que mejor representa el estudio. Cada camino abre una mesa distinta: primero
+          explica la decisión en simple, luego muestra los controles técnicos y finalmente deja el respaldo
+          metodológico. Si necesitas otro camino más adelante, inicia una selección nueva para no mezclar avances.
         </p>
       </header>
 

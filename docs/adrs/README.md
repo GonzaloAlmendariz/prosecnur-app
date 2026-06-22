@@ -41,5 +41,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0017](0017-base-panel-analitica.md) | Aceptado | 2026-06-19 | Analitica genera bases panel wide por llave y ola |
 | [0018](0018-paquete-compartible-graficos.md) | Aceptado | 2026-06-19 | Graficos comparte planes editables como paquete portable |
 | [0019](0019-monitoreo-aulas-universitarias.md) | Aceptado | 2026-06-19 | Monitoreo de aulas universitarias separa seleccion muestral y campo |
+| [0020](0020-ficha-tecnica-contextos-metodologicos.md) | Aceptado | 2026-06-22 | La ficha tecnica compone contexto metodologico desde modulos auxiliares |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

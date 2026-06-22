@@ -60,7 +60,8 @@ reporte_codebook <- function(data,
                              path_xlsx = "codebook_from_data.xlsx",
                              sheet     = "Codebook",
                              ord       = NULL,
-                             codigos_solo_si_presentes = NULL) {
+                             codigos_solo_si_presentes = NULL,
+                             ficha_tecnica = NULL) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `reporte_codebook()`. ",
@@ -88,7 +89,8 @@ reporte_codebook <- function(data,
     outfile = path_xlsx,
     sheet   = sheet,
     df_name = df_name,
-    codigos_solo_si_presentes = codigos_solo_si_presentes
+    codigos_solo_si_presentes = codigos_solo_si_presentes,
+    ficha_tecnica = ficha_tecnica
   )
 }
 
@@ -101,7 +103,8 @@ reporte_codebook <- function(data,
                                     outfile = "codebook_from_data.xlsx",
                                     sheet   = "Codebook",
                                     df_name = "df",
-                                    codigos_solo_si_presentes = NULL) {
+                                    codigos_solo_si_presentes = NULL,
+                                    ficha_tecnica = NULL) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para generar el codebook.",
@@ -335,6 +338,27 @@ reporte_codebook <- function(data,
   openxlsx::setColWidths(wb, sheet, cols = 1, widths = 18)
   openxlsx::setColWidths(wb, sheet, cols = 2, widths = 12)  # códigos
   openxlsx::setColWidths(wb, sheet, cols = 3, widths = 55)  # etiquetas y texto largo
+
+  if (!identical(ficha_tecnica, FALSE) && exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    instrumento <- attr(df, "instrumento_reporte", exact = TRUE)
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = df,
+        instrumento = instrumento,
+        reporte = "Libro de codigos",
+        hojas = names(wb),
+        detalles = list(
+          "Politica de codigos especiales" = if (length(codigos_cond_chr)) {
+            paste(codigos_cond_chr, collapse = ", ")
+          } else {
+            "No configurada"
+          }
+        )
+      ),
+      ficha_tecnica
+    )
+  }
 
   openxlsx::saveWorkbook(wb, outfile, overwrite = TRUE)
   message("Codebook guardado en: ", normalizePath(outfile, winslash = "/"))

@@ -38,7 +38,7 @@ graficos_share_slide <- function(id, title, var) {
     tipo = "p_slide_1_grafico",
     payload = list(
       titulo = title,
-      grafico = list(graficador = "p_barras", args = list(var = var))
+      grafico = list(graficador = "p_barras_apiladas", args = list(var = var))
     )
   )
 }
@@ -49,7 +49,7 @@ graficos_share_copy_package_to_session <- function(from_sid, file_id, to_sid) {
   save_upload(to_sid, "graficos_share", meta$original_name, bytes)
 }
 
-test_that("paquete de graficos se inspecciona y omite slides con variables faltantes por base", {
+test_that("paquete de graficos conserva slides con variables faltantes vacias por base", {
   src <- session_create()
   target <- session_create()
   on.exit(session_delete(src), add = TRUE)
@@ -109,10 +109,13 @@ test_that("paquete de graficos se inspecciona y omite slides con variables falta
   expect_equal(inspection$summary$n_compatible, 2)
   by_base <- setNames(inspection$bases, vapply(inspection$bases, `[[`, character(1), "base_name"))
   expect_equal(by_base$civil$incoming$n_slides_applicable, 2)
-  expect_equal(by_base$minas$incoming$n_slides_applicable, 1)
-  expect_equal(by_base$minas$incoming$n_slides_skipped, 1)
+  expect_equal(by_base$minas$incoming$n_slides_applicable, 2)
+  expect_equal(by_base$minas$incoming$n_slides_skipped, 0)
   expect_equal(by_base$minas$impact$missing_variables[[1]]$code, "p2")
   expect_equal(by_base$minas$impact$missing_variables[[1]]$label, "Pregunta dos")
+  expect_length(by_base$minas$impact$skipped_slides, 0)
+  expect_length(by_base$minas$impact$affected_slides, 1)
+  expect_equal(by_base$minas$impact$affected_slides[[1]]$slide_id, "s-p2")
 
   imported <- .graficos_share_import(target, package_meta$file_id, selected_bases = c("civil", "minas"))
   expect_true(imported$ok)
@@ -120,8 +123,15 @@ test_that("paquete de graficos se inspecciona y omite slides con variables falta
   civil_cfg <- .graficos_config_get_for_base(target, "civil")
   minas_cfg <- .graficos_config_get_for_base(target, "minas")
   expect_equal(length(civil_cfg$plan$slides), 2)
-  expect_equal(length(minas_cfg$plan$slides), 1)
+  expect_equal(length(minas_cfg$plan$slides), 2)
   expect_equal(minas_cfg$plan$slides[[1]]$payload$grafico$args$var, "p1")
+  expect_equal(minas_cfg$plan$slides[[2]]$payload$titulo, "Slide P2")
+  expect_equal(minas_cfg$plan$slides[[2]]$payload$grafico$args$var, "")
+  if (requireNamespace("ggplot2", quietly = TRUE)) {
+    rebuilt_missing_slide <- .graficos_rebuild_slide_json(minas_cfg$plan$slides[[2]])
+    expect_s3_class(rebuilt_missing_slide, "ppt_slide")
+    expect_equal(rebuilt_missing_slide$slots$plot$.element_type, "ggplot_raw")
+  }
 
   s <- session_get(target)
   expect_identical(s$estudio$bases$civil$xlsform_file_id, "target-civil-xls")

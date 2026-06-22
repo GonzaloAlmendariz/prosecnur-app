@@ -18,6 +18,7 @@ import {
   AnaliticaPanelNseCoverage,
   AnaliticaPanelSummary,
   apiAnaliticaPanelExport,
+  apiAnaliticaPanelFichaTecnica,
   apiAnaliticaPanelInfo,
   apiAnaliticaPanelPreview,
 } from "../../../api/client";
@@ -43,6 +44,7 @@ export function PanelBasePane() {
   const setPanel = useAnaliticaStore((s) => s.setPanel);
   const setPanelWave = useAnaliticaStore((s) => s.setPanelWave);
   const packageRun = useReporteRun();
+  const fichaRun = useReporteRun();
   const xlsxRun = useReporteRun();
   const csvRun = useReporteRun();
   const savRun = useReporteRun();
@@ -127,6 +129,10 @@ export function PanelBasePane() {
 
   async function onGeneratePackage() {
     await packageRun.runAsync(() => apiAnaliticaPanelExport(activeConfig, { formato: "paquete" }));
+  }
+
+  async function onGenerateFichaTecnica() {
+    await fichaRun.runSync(() => apiAnaliticaPanelFichaTecnica(activeConfig));
   }
 
   async function onGenerateXlsx() {
@@ -344,6 +350,25 @@ export function PanelBasePane() {
                     onJobDone={packageRun.onJobDone}
                     onJobError={packageRun.onJobError}
                     onJobCancelled={packageRun.onJobCancelled}
+                  />
+                </Section>
+
+                <Section title="Ficha tecnica Word" subtitle="Genera la ficha tecnica metodologica en DOCX usando la plantilla configurada para Prosecnur.">
+                  <GenerateFooter
+                    label="Generar ficha Word"
+                    busy={fichaRun.busy}
+                    jobId={fichaRun.jobId}
+                    fileId={fichaRun.fileId}
+                    downloadName={fichaRun.filename ?? "ficha_tecnica_panel.docx"}
+                    error={fichaRun.error}
+                    onGenerate={onGenerateFichaTecnica}
+                    disabled={disabled}
+                    disabledHint={disabled ? (info?.reason || "Selecciona una llave valida para todas las olas.") : undefined}
+                    perBase={fichaRun.perBase}
+                    onJobDone={fichaRun.onJobDone}
+                    onJobError={fichaRun.onJobError}
+                    onJobCancelled={fichaRun.onJobCancelled}
+                    variant="secondary"
                   />
                 </Section>
 

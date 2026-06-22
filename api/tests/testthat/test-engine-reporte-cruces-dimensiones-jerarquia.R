@@ -228,7 +228,7 @@ test_that("reporte_cruces dimensiones genera hojas jerarquicas reutilizables", {
   expect_true(file.exists(path_xlsx))
 
   wb <- openxlsx::loadWorkbook(path_xlsx)
-  expect_identical(names(wb), c("Metodologia", "Indicadores", "Conductores"))
+  expect_identical(names(wb), c("Metodologia", "Indicadores", "Conductores", "Ficha tecnica"))
 
   meta_sheet <- openxlsx::read.xlsx(path_xlsx, sheet = "Metodologia", colNames = FALSE)
   expect_true(any(grepl("Pregunta 38:", meta_sheet[[1]], fixed = TRUE)))

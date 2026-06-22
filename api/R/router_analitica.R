@@ -1130,7 +1130,8 @@
 .analitica_write_unified_xlsx <- function(df_cod, df_lab, common_df, omitted_df,
                                           bases_df, path, valores = "ambos",
                                           decision_audit_df = NULL,
-                                          decision_case_audit_df = NULL) {
+                                          decision_case_audit_df = NULL,
+                                          ficha_tecnica = NULL) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
   wb <- openxlsx::createWorkbook()
 
@@ -1179,6 +1180,25 @@
   }
   if (!is.null(decision_case_audit_df) && is.data.frame(decision_case_audit_df) && nrow(decision_case_audit_df)) {
     write_meta_sheet("auditoria_sm_casos", decision_case_audit_df)
+  }
+  if (!identical(ficha_tecnica, FALSE) &&
+      !is.null(ficha_tecnica) &&
+      exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    data_ref <- if (identical(valores, "codigos")) df_cod else df_lab
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = data_ref,
+        reporte = "Base unificada",
+        hojas = names(wb),
+        detalles = list(
+          "Bases incluidas" = paste(as.character(bases_df$alias %||% bases_df$base_nombre %||% ""), collapse = ", "),
+          "Variables comunes" = nrow(common_df),
+          "Variables no comunes" = nrow(omitted_df)
+        )
+      ),
+      ficha_tecnica
+    )
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
@@ -1440,7 +1460,15 @@
   .analitica_write_unified_xlsx(df_cod, df_lab, common_df, omitted_df,
                                 bases_df, out_path, valores = valores,
                                 decision_audit_df = decision_audit_df,
-                                decision_case_audit_df = decision_case_audit_df)
+                                decision_case_audit_df = decision_case_audit_df,
+                                ficha_tecnica = list(
+                                  cfg = cfg,
+                                  fuente = fuente,
+                                  detalles = list(
+                                    "Bases incluidas" = paste(as.character(bases_df$alias %||% bases_df$base_nombre %||% ""), collapse = ", "),
+                                    "Politica multi-select" = multi_select
+                                  )
+                                ))
   meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
   list(
     ok = TRUE,
@@ -2632,6 +2660,7 @@
 	    list(
 	      version = 3L,
 	    fuente_preferida = "adaptados",
+	    ficha_tecnica = list(),
 	    secciones = list(),
 	    numericas = list(),
 	    variables_excluidas = list(),
@@ -2908,7 +2937,15 @@ mount_analitica <- function(pr) {
 	          reporte_codebook(
 	            data = data_out,
             path_xlsx = out_path,
-            codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL
+            codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL,
+            ficha_tecnica = list(
+              cfg = cfg,
+              instrumento = reviewed$inst,
+              reporte = "Libro de codigos",
+              detalles = list(
+                "Variables excluidas" = if (length(excluidas)) paste(excluidas, collapse = ", ") else "Ninguna"
+              )
+            )
           )
         }
       )
@@ -2980,7 +3017,15 @@ mount_analitica <- function(pr) {
             incluir_titulos = incluir_titulos,
             incluir_secciones = incluir_secciones,
             codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
-            numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL
+            numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
+            ficha_tecnica = list(
+              cfg = cfg,
+              instrumento = rp_inst,
+              reporte = "Frecuencias",
+              detalles = list(
+                "Secciones activas" = if (!is.null(secs) && length(names(secs))) paste(names(secs), collapse = ", ") else "Todas las disponibles"
+              )
+            )
           )
         }
       )
@@ -3100,6 +3145,75 @@ mount_analitica <- function(pr) {
       if (is.na(rows) || rows < 1L) rows <- 25L
       .analitica_panel_preview(sid, panel_cfg, rows = rows)
     })) |>
+    plumber::pr_post("/api/analitica/panel/ficha-tecnica", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- list()
+      if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+      }
+      cfg_all <- .analitica_get_config(sid)
+      panel_cfg <- parsed$config %||% parsed$panel %||% (cfg_all$panel %||% list())
+      cfg_all$panel <- panel_cfg
+      if (!is.null(parsed$ficha_tecnica) && is.list(parsed$ficha_tecnica)) {
+        cfg_all$ficha_tecnica <- utils::modifyList(cfg_all$ficha_tecnica %||% list(), parsed$ficha_tecnica)
+      }
+      template_path <- parsed$template_path %||% ((cfg_all$ficha_tecnica %||% list())$template_path %||% NULL)
+      .analitica_config_set(sid, cfg_all)
+
+      sources <- .analitica_panel_load_sources(sid, cfg_all)
+      panel_probe <- .panel_config_resolve(sources$data_sources, panel_cfg)
+      if (length(sources$data_sources) < 2L) {
+        stop_api(409, "E_PANEL_NEEDS_WAVES", "Base panel requiere al menos dos bases/olas.")
+      }
+      if (!nzchar(panel_probe$key) || !all(vapply(sources$data_sources, function(df) panel_probe$key %in% names(df), logical(1)))) {
+        stop_api(409, "E_PANEL_KEY_MISSING", "Selecciona una llave presente en todas las olas.")
+      }
+      built <- .panel_wide_build(sources$data_sources, sources$inst_sources, panel_cfg)
+      cfg_ficha <- cfg_all
+      cfg_ficha$ficha_tecnica <- cfg_ficha$ficha_tecnica %||% list()
+      if (is.null(cfg_ficha$ficha_tecnica$panel_context)) {
+        cfg_ficha$ficha_tecnica$panel_context <- .panel_ficha_context(built, sources$data_sources)
+      }
+      s_ficha <- session_get(sid, required = FALSE)
+      if (!is.null(s_ficha$hojas_ruta_workspace_outputs) &&
+          is.null((cfg_ficha$ficha_tecnica %||% list())$hojas_ruta_context) &&
+          is.null((cfg_ficha$ficha_tecnica %||% list())$hojas_ruta_pulso_path)) {
+        cfg_ficha$ficha_tecnica$hojas_ruta_context <- list(
+          hojas_ruta_config = s_ficha$hojas_ruta_config %||% list(),
+          hojas_ruta_workspace_outputs = s_ficha$hojas_ruta_workspace_outputs %||% list()
+        )
+      }
+      out_name <- .export_filename(sid, "ficha_tecnica_panel", "docx")
+      out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+      .analitica_write_ficha_tecnica_docx(
+        path_docx = out_path,
+        data = built$base_wide,
+        instrumento = built$inst_wide,
+        reporte = "Ficha tecnica de base panel",
+        fuente = sources$fuente,
+        cfg = cfg_ficha,
+        template_path = template_path,
+        detalles = list(
+          "Llave panel" = built$config$key,
+          "Olas incluidas" = paste(vapply(built$config$waves, function(w) as.character(w$label %||% w$suffix %||% ""), character(1)), collapse = ", "),
+          "Personas o llaves panel" = built$summary$n_panel_keys,
+          "Casos completos" = built$summary$n_complete_keys
+        )
+      )
+      meta <- .register_output_file(sid, "ficha_tecnica_panel", out_path, original_name = out_name)
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        filename = meta$original_name,
+        size = meta$size,
+        summary = built$summary
+      )
+    })) |>
     plumber::pr_post("/api/analitica/panel/export", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
@@ -3132,6 +3246,10 @@ mount_analitica <- function(pr) {
       cfg_path <- job_save_rds(sid, "panel_cfg", panel_cfg)
       options_path <- job_save_rds(sid, "panel_options", panel_options)
       overrides_path <- job_save_rds(sid, "panel_bases_overrides", .bases_overrides_parse((cfg_all$bases %||% list())$overrides))
+      ficha_path <- job_save_rds(sid, "panel_ficha_tecnica", list(
+        cfg = cfg_all,
+        fuente = sources$fuente
+      ))
       result_ext <- if (identical(panel_options$formato, "csv")) {
         "csv"
       } else if (identical(panel_options$formato, "sav") && !isTRUE(panel_options$incluir_sps)) {
@@ -3152,7 +3270,7 @@ mount_analitica <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "analitica.panel.export",
-        func = function(data_path, inst_path, cfg_path, options_path, overrides_path, result_path, progress_path = NULL) {
+        func = function(data_path, inst_path, cfg_path, options_path, overrides_path, ficha_path, result_path, progress_path = NULL) {
           report <- if (exists("job_progress_writer", mode = "function")) {
             job_progress_writer(progress_path)
           } else {
@@ -3164,9 +3282,12 @@ mount_analitica <- function(pr) {
           panel_cfg <- readRDS(cfg_path)
           panel_options <- readRDS(options_path)
           overrides <- readRDS(overrides_path)
+          ficha_tecnica <- readRDS(ficha_path)
           report("building", percent = 45, message = "Construyendo base panel wide...")
           built <- .panel_wide_build(data_sources, inst_sources, panel_cfg)
-          .panel_export_write(built, result_path, options = panel_options, overrides = overrides, progress = report)
+          ficha_tecnica <- .panel_ficha_tecnica_with_context(ficha_tecnica, built, data_sources)
+          .panel_export_write(built, result_path, options = panel_options, overrides = overrides,
+                              progress = report, ficha_tecnica = ficha_tecnica)
           report("done", percent = 99, message = "Entregable panel generado.")
           list(summary = built$summary, formato = panel_options$formato)
         },
@@ -3175,7 +3296,8 @@ mount_analitica <- function(pr) {
           inst_path = inst_path,
           cfg_path = cfg_path,
           options_path = options_path,
-          overrides_path = overrides_path
+          overrides_path = overrides_path,
+          ficha_path = ficha_path
         ),
         result_filename = .export_filename(sid, result_kind, result_ext),
         on_complete = function(j) {
@@ -3324,7 +3446,15 @@ mount_analitica <- function(pr) {
               brecha_cols = brecha_cols,
               aplicar_semaforo = aplicar_sem,
               semaforo_modo = sem_modo,
-              semaforo_cortes = sem_cortes
+              semaforo_cortes = sem_cortes,
+              ficha_tecnica = list(
+                reporte = if (identical(modo, "dimensiones")) "Cruces de dimensiones" else "Cruces",
+                detalles = list(
+                  "Modo de cruces" = modo,
+                  "Variables de cruce" = paste(cruces_val, collapse = ", "),
+                  "Significancia estadistica" = if (isTRUE(show_sig)) paste0("Activada; alpha = ", alpha) else "No activada"
+                )
+              )
             )
             if (!is.null(sem_colores_vec) && length(sem_colores_vec) == 3L &&
                 all(nchar(sem_colores_vec) > 0L)) {
@@ -3607,7 +3737,21 @@ mount_analitica <- function(pr) {
           df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
           df_lab <- if (valores == "codigos") df_cod
                     else .aplicar_etiquetas(df_base, rp_inst, valores = "etiquetas", multi_select = multi_select)
-          .bases_write_xlsx(df_cod, df_lab, out_path, valores = valores)
+          .bases_write_xlsx(
+            df_cod,
+            df_lab,
+            out_path,
+            valores = valores,
+            ficha_tecnica = list(
+              cfg = cfg,
+              instrumento = rp_inst,
+              reporte = "Base de datos analitica",
+              detalles = list(
+                "Formato de valores" = valores,
+                "Tratamiento de select multiple" = multi_select
+              )
+            )
+          )
         }
       )
       .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)

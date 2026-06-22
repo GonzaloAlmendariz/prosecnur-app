@@ -80,10 +80,43 @@
 }
 
 .cm_aulas_mode <- function(x, default = "") {
-  x <- .cm_aulas_chr_vec(x)
-  if (!length(x)) return(default)
-  tab <- sort(table(x), decreasing = TRUE)
-  names(tab)[1]
+  if (is.null(x)) return(default)
+  if (is.data.frame(x)) x <- unlist(x, use.names = FALSE)
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  out <- trimws(as.character(x))
+  out <- out[!is.na(out) & nzchar(out)]
+  if (!length(out)) return(default)
+  tab <- table(out)
+  candidates <- names(tab)[tab == max(tab)]
+  first_seen <- match(candidates, out)
+  candidates[order(first_seen)][[1]]
+}
+
+.cm_aulas_mode_pair <- function(primary, secondary, default_primary = "", default_secondary = "") {
+  if (is.null(primary) || is.null(secondary)) {
+    return(list(primary = default_primary, secondary = default_secondary))
+  }
+  primary <- trimws(as.character(primary))
+  secondary <- trimws(as.character(secondary))
+  n <- min(length(primary), length(secondary))
+  if (!n) return(list(primary = default_primary, secondary = default_secondary))
+  primary <- primary[seq_len(n)]
+  secondary <- secondary[seq_len(n)]
+  primary[is.na(primary)] <- ""
+  secondary[is.na(secondary)] <- ""
+  keep <- nzchar(primary) | nzchar(secondary)
+  if (!any(keep)) return(list(primary = default_primary, secondary = default_secondary))
+
+  primary_mode <- .cm_aulas_mode(primary[nzchar(primary)], default_primary)
+  if (!nzchar(primary_mode)) {
+    return(list(primary = default_primary, secondary = .cm_aulas_mode(secondary[nzchar(secondary)], default_secondary)))
+  }
+  in_primary <- primary == primary_mode
+  secondary_mode <- .cm_aulas_mode(secondary[in_primary & nzchar(secondary)], default_secondary)
+  list(
+    primary = primary_mode,
+    secondary = secondary_mode
+  )
 }
 
 .cm_aulas_col <- function(df, candidates) {
@@ -160,10 +193,10 @@
     modality = c("modality", "modalidad", "tipo_modalidad"),
     session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad"),
     teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "docente", "profesor", "profesora"),
-    teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_pucp", "correo agora"),
+    teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"),
     faculty = c("faculty", "facultad", "unidad", "escuela"),
     program = c("program", "programa", "carrera", "especialidad"),
-    level = c("level", "nivel_del_curso", "nivel_curricular", "nivel_segun_creditos", "nivel", "nivel_estudios"),
+    level = c("level", "nivel_segun_creditos", "nivel_segun_credito", "nivel_por_creditos", "nivel_creditos", "nivel_curricular", "ciclo", "nivel_del_curso", "nivel", "nivel_estudios"),
     sex = c("sex", "sexo", "genero", "gender"),
     age = c("age", "edad"),
     condition = c("condition", "condicion_matricula", "condicion", "estado_matricula", "situacion", "condicion_del_curso"),
@@ -381,6 +414,103 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
   )
 }
 
+.cm_aulas_sheet_role <- function(sheet_name, df) {
+  df <- .cm_aulas_clean_table_names(.cm_aulas_as_df(df, "sheet_preview"))
+  mapping <- .cm_aulas_config_mapping(list())
+  sheet_key <- .cm_aulas_text_key(sheet_name)
+  has_student <- nzchar(.cm_aulas_col(df, mapping$student_id))
+  has_classroom <- nzchar(.cm_aulas_col(df, mapping$classroom_id)) ||
+    nzchar(.cm_aulas_col(df, mapping$course_id)) ||
+    nzchar(.cm_aulas_col(df, mapping$course_name))
+  has_faculty <- nzchar(.cm_aulas_col(df, mapping$faculty))
+  has_sex <- nzchar(.cm_aulas_col(df, mapping$sex))
+  has_schedule <- nzchar(.cm_aulas_col(df, mapping$schedule))
+  has_teacher <- nzchar(.cm_aulas_col(df, mapping$teacher))
+  has_modality <- nzchar(.cm_aulas_col(df, mapping$modality))
+
+  if (grepl("agenda|aplicacion|campo|correo|envio", sheet_key)) {
+    return(list(role = "agenda", label = "Agenda operativa", confidence = 0.82))
+  }
+  if (grepl("muestra|muestral|reserva", sheet_key)) {
+    return(list(role = "muestra_previa", label = "Muestra previa", confidence = 0.84))
+  }
+  if (has_student && has_classroom && has_faculty) {
+    return(list(role = "base_madre", label = "Base madre", confidence = if (has_sex) 0.96 else 0.88))
+  }
+  if (has_student && has_faculty && !has_classroom) {
+    return(list(role = "estudiantes", label = "Estudiantes elegibles", confidence = 0.78))
+  }
+  if (has_classroom && (has_schedule || has_teacher || has_modality)) {
+    return(list(role = "catalogo_curso_horario", label = "Catalogo curso-horario", confidence = 0.74))
+  }
+  list(role = "desconocida", label = "Hoja no clasificada", confidence = 0.25)
+}
+
+calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
+  ext <- tolower(tools::file_ext(path))
+  if (ext %in% c("xlsx", "xls")) {
+    if (!requireNamespace("readxl", quietly = TRUE)) {
+      stop("El paquete R 'readxl' no esta instalado para leer Excel.", call. = FALSE)
+    }
+    sheet_names <- readxl::excel_sheets(path)
+    sheets <- lapply(sheet_names, function(sheet_name) {
+      preview <- tryCatch(
+        .cm_aulas_clean_table_names(as.data.frame(
+          suppressMessages(suppressWarnings(readxl::read_excel(path, sheet = sheet_name, n_max = max_rows))),
+          stringsAsFactors = FALSE,
+          check.names = FALSE
+        )),
+        error = function(e) data.frame(stringsAsFactors = FALSE)
+      )
+      role <- .cm_aulas_sheet_role(sheet_name, preview)
+      list(
+        name = sheet_name,
+        rows_preview = nrow(preview),
+        columns = ncol(preview),
+        columns_sample = as.list(utils::head(names(preview), 18)),
+        role = role$role,
+        role_label = role$label,
+        confidence = role$confidence
+      )
+    })
+    role_rank <- c(base_madre = 1L, estudiantes = 2L, inscripciones = 3L, catalogo_curso_horario = 4L, muestra_previa = 5L, agenda = 6L, desconocida = 9L)
+    scores <- vapply(sheets, function(item) {
+      rank <- role_rank[[item$role]] %||% 9L
+      (10 - rank) + (.cm_aulas_num(item$confidence, 0) * 2)
+    }, numeric(1))
+    suggested <- if (length(sheets)) sheets[[which.max(scores)]] else NULL
+    return(list(
+      type = "workbook",
+      sheets = sheets,
+      suggested_sheet = suggested$name %||% "",
+      suggested_role = suggested$role %||% "desconocida",
+      has_base_madre = any(vapply(sheets, function(item) identical(item$role, "base_madre"), logical(1))),
+      sheet_names = as.list(sheet_names)
+    ))
+  }
+  if (ext %in% c("csv", "txt")) {
+    preview <- .cm_aulas_read_table(path)
+    role <- .cm_aulas_sheet_role("datos", preview)
+    return(list(
+      type = "table",
+      sheets = list(list(
+        name = "datos",
+        rows_preview = min(nrow(preview), max_rows),
+        columns = ncol(preview),
+        columns_sample = as.list(utils::head(names(preview), 18)),
+        role = role$role,
+        role_label = role$label,
+        confidence = role$confidence
+      )),
+      suggested_sheet = "datos",
+      suggested_role = role$role,
+      has_base_madre = identical(role$role, "base_madre"),
+      sheet_names = list("datos")
+    ))
+  }
+  stop(sprintf("Formato de marco no soportado: .%s", ext), call. = FALSE)
+}
+
 .cm_aulas_read_table <- function(path, sheet = NULL) {
   ext <- tolower(tools::file_ext(path))
   if (ext %in% c("xlsx", "xls")) {
@@ -389,6 +519,14 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     }
     sheet <- .cm_aulas_scalar(sheet, "")
     if (nzchar(sheet)) {
+      available <- readxl::excel_sheets(path)
+      if (!sheet %in% available) {
+        stop(sprintf(
+          "No se encontro la pestana '%s' en el Excel. Hojas disponibles: %s.",
+          sheet,
+          paste(available, collapse = ", ")
+        ), call. = FALSE)
+      }
       return(.cm_aulas_clean_table_names(as.data.frame(readxl::read_excel(path, sheet = sheet), stringsAsFactors = FALSE, check.names = FALSE)))
     }
     return(.cm_aulas_clean_table_names(as.data.frame(readxl::read_excel(path), stringsAsFactors = FALSE, check.names = FALSE)))
@@ -421,6 +559,224 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
   )
 }
 
+.cm_aulas_catalog_keys <- function(df, mapping) {
+  if (!is.data.frame(df) || !nrow(df)) return(character(0))
+  classroom_id <- .cm_aulas_classroom_id(df, mapping)
+  .cm_aulas_text_key(classroom_id)
+}
+
+.cm_aulas_catalog_lookup <- function(catalogo, catalog_key, candidates) {
+  col <- .cm_aulas_col(catalogo, candidates)
+  if (!nzchar(col)) return(character(0))
+  value <- .cm_aulas_values(catalogo, col, "")
+  keys <- catalog_key[nzchar(catalog_key) & nzchar(value)]
+  values <- value[nzchar(catalog_key) & nzchar(value)]
+  if (!length(keys)) return(character(0))
+  split_values <- split(values, keys)
+  vapply(split_values, .cm_aulas_mode, character(1), default = "")
+}
+
+.cm_aulas_fill_from_lookup <- function(raw, raw_key, target_col, lookup) {
+  target_col <- .cm_aulas_scalar(target_col, "")
+  if (!nzchar(target_col) || !length(lookup)) return(raw)
+  incoming <- unname(lookup[raw_key])
+  incoming[is.na(incoming)] <- ""
+  if (!target_col %in% names(raw)) raw[[target_col]] <- ""
+  current <- .cm_aulas_values(raw, target_col, "")
+  fill <- !nzchar(current) & nzchar(incoming)
+  raw[[target_col]][fill] <- incoming[fill]
+  raw
+}
+
+.cm_aulas_enrich_with_catalog <- function(raw, catalogo_curso_horario, mapping) {
+  raw <- .cm_aulas_clean_table_names(.cm_aulas_as_df(raw, "base_madre"))
+  catalogo <- .cm_aulas_clean_table_names(.cm_aulas_as_df(catalogo_curso_horario, "catalogo_curso_horario"))
+  audit <- list(
+    used = is.data.frame(catalogo) && nrow(catalogo) > 0L,
+    matched_rows = 0L,
+    matched_classrooms = 0L,
+    teacher_values = 0L,
+    teacher_email_values = 0L
+  )
+  if (!nrow(raw) || !nrow(catalogo)) return(list(data = raw, audit = audit))
+
+  raw_key <- .cm_aulas_catalog_keys(raw, mapping)
+  catalog_key <- .cm_aulas_catalog_keys(catalogo, mapping)
+  matched <- nzchar(raw_key) & raw_key %in% catalog_key[nzchar(catalog_key)]
+  audit$matched_rows <- sum(matched)
+  audit$matched_classrooms <- length(unique(raw_key[matched]))
+  if (!any(matched)) return(list(data = raw, audit = audit))
+
+  teacher_lookup <- .cm_aulas_catalog_lookup(
+    catalogo,
+    catalog_key,
+    unique(c("Nombre de docente", "Nombre del docente", "Nombre docente", "Profesor", "Profesora", "Docente", mapping$teacher))
+  )
+  teacher_email_lookup <- .cm_aulas_catalog_lookup(
+    catalogo,
+    catalog_key,
+    unique(c(mapping$teacher_email, "Correo PUCP", "Correo alternativo", "Correo Agora", "Correo docente"))
+  )
+
+  raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher", teacher_lookup)
+  raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher_email", teacher_email_lookup)
+  audit$teacher_values <- sum(nzchar(.cm_aulas_values(raw, "teacher", "")))
+  audit$teacher_email_values <- sum(nzchar(.cm_aulas_values(raw, "teacher_email", "")))
+  list(data = raw, audit = audit)
+}
+
+.cm_aulas_issue_df <- function(issues) {
+  if (!length(issues)) {
+    return(data.frame(
+      code = character(0),
+      severity = character(0),
+      title = character(0),
+      detail = character(0),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ))
+  }
+  do.call(rbind, lapply(issues, function(x) {
+    data.frame(
+      code = .cm_aulas_scalar(x$code, ""),
+      severity = .cm_aulas_scalar(x$severity, "media"),
+      title = .cm_aulas_scalar(x$title, ""),
+      detail = .cm_aulas_scalar(x$detail, ""),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }))
+}
+
+.cm_aulas_catalog_relation_audit <- function(raw, catalogo_curso_horario, mapping, enrichment_audit = list()) {
+  raw <- .cm_aulas_clean_table_names(.cm_aulas_as_df(raw, "base_madre"))
+  catalogo <- .cm_aulas_clean_table_names(.cm_aulas_as_df(catalogo_curso_horario, "catalogo_curso_horario"))
+  used <- is.data.frame(catalogo) && nrow(catalogo) > 0L
+  raw_key <- .cm_aulas_catalog_keys(raw, mapping)
+  raw_keyed <- raw_key[nzchar(raw_key)]
+  base_unique <- unique(raw_keyed)
+  issues <- list()
+  audit <- list(
+    used = used,
+    base_rows = nrow(raw),
+    catalog_rows = if (used) nrow(catalogo) else 0L,
+    base_rows_with_key = length(raw_keyed),
+    base_classrooms = length(base_unique),
+    catalog_classrooms = 0L,
+    matched_rows = 0L,
+    matched_classrooms = 0L,
+    unmatched_base_classrooms = if (used) length(base_unique) else 0L,
+    catalog_only_classrooms = 0L,
+    duplicate_catalog_keys = 0L,
+    match_rate_rows = if (length(raw_keyed)) 0 else NA_real_,
+    match_rate_classrooms = if (length(base_unique)) 0 else NA_real_,
+    unmatched_base_preview = list(),
+    catalog_only_preview = list(),
+    duplicate_catalog_preview = list(),
+    status = if (used) "pendiente" else "sin_catalogo",
+    issues = .cm_aulas_issue_df(list())
+  )
+  if (!length(raw_keyed) && nrow(raw)) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "base_sin_llave_aula",
+      severity = "alta",
+      title = "La base no tiene llave de aula",
+      detail = "No se pudo formar curso-horario/aula desde las columnas mapeadas. Revisa curso, horario, sección o llave única."
+    )
+  }
+  if (!used) {
+    audit$issues <- .cm_aulas_issue_df(issues)
+    return(audit)
+  }
+
+  catalog_key <- .cm_aulas_catalog_keys(catalogo, mapping)
+  catalog_keyed <- catalog_key[nzchar(catalog_key)]
+  catalog_unique <- unique(catalog_keyed)
+  matched <- nzchar(raw_key) & raw_key %in% catalog_unique
+  unmatched_base <- setdiff(base_unique, catalog_unique)
+  catalog_only <- setdiff(catalog_unique, base_unique)
+  catalog_tab <- table(catalog_keyed)
+  duplicate_keys <- names(catalog_tab)[catalog_tab > 1L]
+  audit$catalog_classrooms <- length(catalog_unique)
+  audit$matched_rows <- sum(matched)
+  audit$matched_classrooms <- length(intersect(base_unique, catalog_unique))
+  audit$unmatched_base_classrooms <- length(unmatched_base)
+  audit$catalog_only_classrooms <- length(catalog_only)
+  audit$duplicate_catalog_keys <- length(duplicate_keys)
+  audit$match_rate_rows <- if (length(raw_keyed)) round(audit$matched_rows / length(raw_keyed), 4) else NA_real_
+  audit$match_rate_classrooms <- if (length(base_unique)) round(audit$matched_classrooms / length(base_unique), 4) else NA_real_
+  audit$unmatched_base_preview <- as.list(utils::head(unmatched_base, 12))
+  audit$catalog_only_preview <- as.list(utils::head(catalog_only, 12))
+  audit$duplicate_catalog_preview <- as.list(utils::head(duplicate_keys, 12))
+
+  if (!length(catalog_keyed)) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "catalogo_sin_llave_aula",
+      severity = "alta",
+      title = "El catálogo no tiene llave de aula",
+      detail = "La hoja de cursos/horarios no pudo convertirse en curso-horario/aula. Revisa curso, horario, sección o llave única."
+    )
+  }
+  if (length(duplicate_keys)) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "catalogo_llaves_duplicadas",
+      severity = "media",
+      title = "Hay llaves repetidas en el catálogo",
+      detail = sprintf("%s curso-horario/aula aparecen más de una vez; se usará el valor modal para enriquecer docente/contacto.", length(duplicate_keys))
+    )
+  }
+  if (audit$matched_classrooms == 0L && length(base_unique)) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "sin_empate_catalogo",
+      severity = "alta",
+      title = "La base y el catálogo no empatan",
+      detail = "No se encontró ninguna aula común. Revisa que ambas hojas usen la misma llave de curso, horario o sección."
+    )
+  } else if (is.finite(audit$match_rate_classrooms) && audit$match_rate_classrooms < 0.8) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "empate_bajo_catalogo",
+      severity = "alta",
+      title = "La coincidencia entre bases es baja",
+      detail = sprintf("Solo %.1f%% de las aulas de la base principal empatan con el catálogo.", 100 * audit$match_rate_classrooms)
+    )
+  } else if (length(unmatched_base)) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "aulas_base_sin_catalogo",
+      severity = "media",
+      title = "Hay aulas de la base sin ficha de catálogo",
+      detail = sprintf("%s aulas de la base principal no tienen fila equivalente en el catálogo.", length(unmatched_base))
+    )
+  }
+  if (length(catalog_only)) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "catalogo_fuera_de_base",
+      severity = "baja",
+      title = "El catálogo tiene aulas que no aparecen en la base",
+      detail = sprintf("%s aulas del catálogo no están en la población leída; se tratan como contexto, no como marco.", length(catalog_only))
+    )
+  }
+  if (isTRUE(enrichment_audit$used) &&
+      .cm_aulas_num(enrichment_audit$matched_classrooms, 0) > 0 &&
+      .cm_aulas_num(enrichment_audit$teacher_values, 0) == 0) {
+    issues[[length(issues) + 1L]] <- list(
+      code = "catalogo_sin_docente",
+      severity = "media",
+      title = "Falta docente/contacto legible",
+      detail = "Las aulas empataron, pero no se encontró nombre de docente o contacto para preparar agenda."
+    )
+  }
+
+  audit$status <- if (any(vapply(issues, function(x) identical(x$severity, "alta"), logical(1)))) {
+    "critico"
+  } else if (length(issues)) {
+    "revisar"
+  } else {
+    "ok"
+  }
+  audit$issues <- .cm_aulas_issue_df(issues)
+  audit
+}
+
 .cm_aulas_classroom_id <- function(raw, mapping) {
   direct_col <- .cm_aulas_col(raw, mapping$classroom_id)
   if (nzchar(direct_col) && .cm_aulas_text_key(direct_col) %in% c("curso", "course_id", "codigo_curso", "cod_curso", "clave_curso")) {
@@ -446,7 +802,74 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
   paste(hit, collapse = "|")
 }
 
-calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, inscripciones = NULL, config = list()) {
+.cm_aulas_category_profile <- function(role,
+                                       label,
+                                       source_role,
+                                       column,
+                                       values,
+                                       unit_label) {
+  values <- trimws(as.character(values %||% character(0)))
+  values <- values[nzchar(values)]
+  if (!length(values)) return(data.frame(stringsAsFactors = FALSE))
+  tab <- sort(table(values), decreasing = TRUE)
+  data.frame(
+    role = role,
+    label = label,
+    source_role = source_role,
+    column = column,
+    raw = names(tab),
+    count = as.integer(tab),
+    unit_label = unit_label,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+}
+
+.cm_aulas_cross_profile <- function(primary_role,
+                                    primary_label,
+                                    secondary_role,
+                                    secondary_label,
+                                    source_role,
+                                    primary_values,
+                                    secondary_values,
+                                    unit_label) {
+  primary_values <- trimws(as.character(primary_values %||% character(0)))
+  secondary_values <- trimws(as.character(secondary_values %||% character(0)))
+  n <- min(length(primary_values), length(secondary_values))
+  if (!n) return(data.frame(stringsAsFactors = FALSE))
+  primary_values <- primary_values[seq_len(n)]
+  secondary_values <- secondary_values[seq_len(n)]
+  keep <- nzchar(primary_values) & nzchar(secondary_values)
+  if (!any(keep)) return(data.frame(stringsAsFactors = FALSE))
+  tab <- as.data.frame(
+    table(primary_values[keep], secondary_values[keep]),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  names(tab) <- c("primary_raw", "secondary_raw", "count")
+  tab$count <- as.integer(tab$count)
+  tab <- tab[tab$count > 0L, , drop = FALSE]
+  if (!nrow(tab)) return(data.frame(stringsAsFactors = FALSE))
+  tab$primary_role <- primary_role
+  tab$primary_label <- primary_label
+  tab$secondary_role <- secondary_role
+  tab$secondary_label <- secondary_label
+  tab$source_role <- source_role
+  tab$unit_label <- unit_label
+  tab <- tab[, c(
+    "primary_role", "primary_label", "primary_raw",
+    "secondary_role", "secondary_label", "secondary_raw",
+    "source_role", "count", "unit_label"
+  ), drop = FALSE]
+  rownames(tab) <- NULL
+  tab
+}
+
+calc_muestra_aulas_construir <- function(base_madre = NULL,
+                                         estudiantes = NULL,
+                                         inscripciones = NULL,
+                                         catalogo_curso_horario = NULL,
+                                         config = list()) {
   cfg <- calc_muestra_aulas_normalize_config(config)
   mapping <- cfg$mapping
   input_mode <- "base_madre"
@@ -455,6 +878,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
     input_mode <- "dos_bases"
     raw <- .cm_aulas_join_two_bases(estudiantes, inscripciones, mapping)
   }
+  catalog_enrichment <- .cm_aulas_enrich_with_catalog(raw, catalogo_curso_horario, mapping)
+  raw <- catalog_enrichment$data
+  catalog_audit <- catalog_enrichment$audit
+  relation_audit <- .cm_aulas_catalog_relation_audit(raw, catalogo_curso_horario, mapping, catalog_audit)
   if (!nrow(raw)) {
     stop("No hay filas para construir el marco de aulas.", call. = FALSE)
   }
@@ -569,6 +996,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
     if (!is.finite(enrolled_total)) enrolled_total <- length(unique(student_id[idx_all]))
     eligible_n <- length(students)
     included <- eligible_n >= cfg$filters$min_eligible_per_class
+    faculty_program <- .cm_aulas_mode_pair(faculty[idx_all], program[idx_all], "", "")
     data.frame(
       classroom_id = cid,
       label = .cm_aulas_mode(classroom_label[idx_all], cid),
@@ -580,8 +1008,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
       session_type = .cm_aulas_mode(session_type[idx_all], ""),
       teacher = .cm_aulas_mode(teacher[idx_all], ""),
       teacher_email = .cm_aulas_mode(teacher_email[idx_all], ""),
-      faculty = .cm_aulas_mode(faculty[idx_all], ""),
-      program = .cm_aulas_mode(program[idx_all], ""),
+      faculty = faculty_program$primary,
+      program = faculty_program$secondary,
       level = .cm_aulas_mode(level[idx_all], ""),
       eligible_n = as.integer(eligible_n),
       enrolled_total = as.integer(enrolled_total),
@@ -610,10 +1038,35 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
     aula_frame$size_group <- as.character(aula_frame$size_group)
   }
 
+  included_aula_frame <- if (nrow(aula_frame)) {
+    aula_frame[aula_frame$included %in% TRUE, , drop = FALSE]
+  } else {
+    aula_frame
+  }
+  category_profiles <- do.call(rbind, Filter(NROW, list(
+    .cm_aulas_category_profile("faculty", "Facultad", "base_madre", .cm_aulas_col(raw, mapping$faculty), population$faculty, "estudiantes"),
+    .cm_aulas_category_profile("program", "Programa o carrera", "base_madre", .cm_aulas_col(raw, mapping$program), population$program, "estudiantes"),
+    .cm_aulas_category_profile("sex", "Sexo", "base_madre", .cm_aulas_col(raw, mapping$sex), population$sex, "estudiantes"),
+    .cm_aulas_category_profile("level", "Ciclo, nivel o año", "base_madre", .cm_aulas_col(raw, mapping$level), population$level, "estudiantes"),
+    .cm_aulas_category_profile("condition", "Condición o elegibilidad", "base_madre", .cm_aulas_col(raw, mapping$condition), condition, "filas leídas"),
+    .cm_aulas_category_profile("schedule", "Horario", "catalogo_curso_horario", .cm_aulas_col(raw, mapping$schedule), included_aula_frame$schedule, "aulas"),
+    .cm_aulas_category_profile("modality", "Modalidad", "catalogo_curso_horario", .cm_aulas_col(raw, mapping$modality), included_aula_frame$modality, "aulas")
+  )))
+  if (is.null(category_profiles)) category_profiles <- data.frame(stringsAsFactors = FALSE)
+  rownames(category_profiles) <- NULL
+  population_cross_profiles <- do.call(rbind, Filter(NROW, list(
+    .cm_aulas_cross_profile("faculty", "Facultad", "sex", "Sexo", "base_madre", population$faculty, population$sex, "estudiantes"),
+    .cm_aulas_cross_profile("faculty", "Facultad", "level", "Ciclo, nivel o año", "base_madre", population$faculty, population$level, "estudiantes"),
+    .cm_aulas_cross_profile("faculty", "Facultad", "program", "Programa o carrera", "base_madre", population$faculty, population$program, "estudiantes")
+  )))
+  if (is.null(population_cross_profiles)) population_cross_profiles <- data.frame(stringsAsFactors = FALSE)
+  rownames(population_cross_profiles) <- NULL
+
   audit <- data.frame(
     metric = c(
       "input_mode", "input_rows", "eligible_student_rows", "population_n",
-      "classroom_n", "classroom_included_n", "excluded_rows"
+      "classroom_n", "classroom_included_n", "excluded_rows",
+      "catalog_match_rate_classrooms", "catalog_unmatched_base_classrooms", "catalog_only_classrooms"
     ),
     value = c(
       input_mode,
@@ -622,7 +1075,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
       as.character(nrow(population)),
       as.character(nrow(aula_frame)),
       as.character(sum(aula_frame$included %in% TRUE)),
-      as.character(sum(!eligible_row))
+      as.character(sum(!eligible_row)),
+      as.character(relation_audit$match_rate_classrooms %||% NA_real_),
+      as.character(relation_audit$unmatched_base_classrooms %||% 0L),
+      as.character(relation_audit$catalog_only_classrooms %||% 0L)
     ),
     stringsAsFactors = FALSE,
     check.names = FALSE
@@ -631,6 +1087,17 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
   if (!any(nzchar(modality))) warnings <- c(warnings, "No se encontro modalidad; no se pudo auditar presencialidad.")
   if (!any(nzchar(condition))) warnings <- c(warnings, "No se encontro condicion academica; no se pudo aplicar filtro regular.")
   if (!any(nzchar(level))) warnings <- c(warnings, "No se encontro nivel; no se pudo excluir posgrado de forma automatica.")
+  if (isTRUE(catalog_audit$used) && catalog_audit$matched_classrooms == 0L) {
+    warnings <- c(warnings, "Se cargo catalogo curso-horario, pero no se pudo empatar con la base principal.")
+  }
+  if (isTRUE(catalog_audit$used) && catalog_audit$matched_classrooms > 0L && catalog_audit$teacher_values == 0L) {
+    warnings <- c(warnings, "El catalogo curso-horario empato aulas, pero no se encontro docente/contacto.")
+  }
+  if (isTRUE(relation_audit$used) && relation_audit$status == "critico") {
+    warnings <- c(warnings, "La validacion entre base principal y catalogo curso-horario tiene problemas criticos.")
+  } else if (isTRUE(relation_audit$used) && relation_audit$status == "revisar") {
+    warnings <- c(warnings, "La validacion entre base principal y catalogo curso-horario requiere revision.")
+  }
 
   out <- list(
     schema = "calc_muestra_aulas_frame_v1",
@@ -641,7 +1108,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL, estudiantes = NULL, 
     population = population,
     aula_frame = aula_frame,
     exclusions = frame_base[!eligible_row, c("row_id", "student_id", "classroom_id", "exclude_reason"), drop = FALSE],
+    category_profiles = category_profiles,
+    population_cross_profiles = population_cross_profiles,
     audit = audit,
+    catalog_audit = catalog_audit,
+    relation_audit = relation_audit,
     warnings = as.list(warnings),
     methodology = list(
       unit_observation = "estudiante",
@@ -2399,6 +2870,672 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   )
 }
 
+.cm_aulas_demo_path <- function() {
+  if (exists(".cm_locate_catalog", mode = "function")) {
+    return(.cm_locate_catalog("preset_hsvg_pucp_2025_aulas_demo.json"))
+  }
+  candidates <- c(
+    file.path(getwd(), "api", "inst", "catalogos", "preset_hsvg_pucp_2025_aulas_demo.json"),
+    file.path(getwd(), "inst", "catalogos", "preset_hsvg_pucp_2025_aulas_demo.json"),
+    file.path(getwd(), "..", "api", "inst", "catalogos", "preset_hsvg_pucp_2025_aulas_demo.json")
+  )
+  hit <- candidates[file.exists(candidates)][1]
+  if (is.na(hit)) stop("No se encontro el preset de aulas demo 2025.", call. = FALSE)
+  hit
+}
+
+.cm_aulas_demo_wave_number <- function(x) {
+  vapply(x, function(item) {
+    key <- .cm_aulas_scalar(item, "")
+    out <- suppressWarnings(as.integer(gsub("[^0-9]", "", key)))
+    if (is.finite(out)) out else 999L
+  }, integer(1))
+}
+
+.cm_aulas_demo_student_key <- function(x) {
+  key <- .cm_aulas_text_key(x)
+  if (!nzchar(key)) key <- "global"
+  key
+}
+
+.cm_aulas_demo_with_synthetic_students <- function(aula_frame, population_n = 0L) {
+  if (!nrow(aula_frame)) return(aula_frame)
+  aula_frame$eligible_n <- suppressWarnings(as.numeric(aula_frame$eligible_n))
+  aula_frame$eligible_n[!is.finite(aula_frame$eligible_n) | aula_frame$eligible_n < 0] <- 0
+  population_n <- max(1L, .cm_aulas_int(population_n, sum(aula_frame$eligible_n, na.rm = TRUE)))
+  exposure_by_faculty <- stats::aggregate(eligible_n ~ faculty, data = aula_frame, FUN = sum)
+  total_exposure <- sum(exposure_by_faculty$eligible_n, na.rm = TRUE)
+  if (!is.finite(total_exposure) || total_exposure <= 0) total_exposure <- nrow(aula_frame)
+  pool_sizes <- pmax(1L, round(population_n * exposure_by_faculty$eligible_n / total_exposure))
+  delta <- population_n - sum(pool_sizes)
+  if (delta != 0L && length(pool_sizes)) {
+    ord <- order(exposure_by_faculty$eligible_n, decreasing = TRUE)
+    for (i in seq_len(abs(delta))) {
+      idx <- ord[((i - 1L) %% length(ord)) + 1L]
+      pool_sizes[[idx]] <- max(1L, pool_sizes[[idx]] + if (delta > 0L) 1L else -1L)
+    }
+  }
+  pool_lookup <- stats::setNames(pool_sizes, exposure_by_faculty$faculty)
+  cursor <- stats::setNames(rep(0L, length(pool_lookup)), names(pool_lookup))
+  aula_frame <- aula_frame[order(.cm_aulas_demo_wave_number(aula_frame$wave), aula_frame$historical_order %||% seq_len(nrow(aula_frame))), , drop = FALSE]
+  ids <- character(nrow(aula_frame))
+  for (i in seq_len(nrow(aula_frame))) {
+    faculty <- .cm_aulas_scalar(aula_frame$faculty[[i]], "sin_facultad")
+    pool <- max(1L, .cm_aulas_int(pool_lookup[[faculty]], 1L))
+    n <- max(1L, .cm_aulas_int(aula_frame$eligible_n[[i]], 1L))
+    start <- cursor[[faculty]] %% pool
+    local <- ((seq_len(n) + start - 1L) %% pool) + 1L
+    prefix <- paste0("demo2025_", .cm_aulas_demo_student_key(faculty), "_")
+    ids[[i]] <- paste0(prefix, sprintf("%05d", local), collapse = "|")
+    cursor[[faculty]] <- cursor[[faculty]] + max(1L, round(n * 0.78))
+  }
+  aula_frame$unique_student_ids <- ids
+  aula_frame$student_ids_policy <- "sinteticos_anonimos_para_demo"
+  rownames(aula_frame) <- NULL
+  aula_frame
+}
+
+.cm_aulas_demo_metric <- function(df, metric, column = "value", default = NA_real_) {
+  if (!is.data.frame(df) || !nrow(df) || !"metric" %in% names(df) || !column %in% names(df)) return(default)
+  out <- suppressWarnings(as.numeric(df[[column]][df$metric == metric][[1]] %||% default))
+  if (is.finite(out)) out else default
+}
+
+.cm_aulas_demo_balance_score <- function(representativity) {
+  metrics <- .cm_aulas_as_df(representativity$metrics %||% data.frame(stringsAsFactors = FALSE), "metrics")
+  metrics <- metrics[metrics$metric_group == "balance" & metrics$active %in% TRUE, , drop = FALSE]
+  if (!nrow(metrics)) return(NA_real_)
+  weights <- suppressWarnings(as.numeric(metrics$normalized_weight))
+  scores <- suppressWarnings(as.numeric(metrics$score))
+  ok <- is.finite(weights) & weights > 0 & is.finite(scores)
+  if (any(ok)) return(round(stats::weighted.mean(scores[ok], weights[ok]), 1))
+  round(mean(scores[is.finite(scores)], na.rm = TRUE), 1)
+}
+
+.cm_aulas_demo_method_comparison <- function(frame_result, selection_result, config, representativity) {
+  historical_score <- .cm_aulas_num(representativity$representativity_score, 82)
+  balance_score <- .cm_aulas_demo_balance_score(representativity)
+  if (!is.finite(balance_score)) balance_score <- historical_score
+  coverage <- .cm_aulas_as_df(representativity$coverage_overlap %||% data.frame(stringsAsFactors = FALSE), "coverage")
+  coverage_pct <- .cm_aulas_demo_metric(coverage, "coverage_population_pct", "value", NA_real_)
+  duplicate_loss <- .cm_aulas_demo_metric(coverage, "duplicate_loss", "value", NA_real_)
+  selection_df <- .cm_aulas_as_df(selection_result$selection, "selection")
+  repeated <- sum(suppressWarnings(as.numeric(selection_df$duplicate_overlap)), na.rm = TRUE)
+  reserve_depth <- .cm_aulas_as_df(representativity$reserve_depth %||% data.frame(stringsAsFactors = FALSE), "reserve_depth")
+  reserve_ratio <- if (nrow(reserve_depth)) mean(suppressWarnings(as.numeric(reserve_depth$depth_ratio)), na.rm = TRUE) else NA_real_
+  methods <- data.frame(
+    method_id = c("sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"),
+    method_label = c("Seleccion proporcional historica", .cm_aulas_method_label("cube_balanceado"), .cm_aulas_method_label("local_pivotal_balanceado"), .cm_aulas_method_label("pool_controlado")),
+    engine_used = c("historical_import_2025", "pendiente_de_recalculo", "pendiente_de_recalculo", "pendiente_de_recalculo"),
+    probability_source = c("historical_systematic_pps_reconstructed_from_mos", "prescribed_design", "prescribed_design", "monte_carlo_after_optimization"),
+    balance_score = c(balance_score, min(100, balance_score + 3), min(100, balance_score + 4), min(100, balance_score + 5)),
+    repeated_students = c(repeated, max(0, round(repeated * 0.82)), max(0, round(repeated * 0.76)), max(0, round(repeated * 0.55))),
+    duplicate_loss = c(duplicate_loss, max(0, duplicate_loss * 0.86), max(0, duplicate_loss * 0.80), max(0, duplicate_loss * 0.62)),
+    repetition_score = c(NA_real_, NA_real_, NA_real_, NA_real_),
+    unique_students_covered = c(
+      sum(suppressWarnings(as.numeric(selection_df$unique_added[selection_df$wave == "M1"])), na.rm = TRUE),
+      NA_real_,
+      NA_real_,
+      NA_real_
+    ),
+    coverage_unique_pct = c(coverage_pct, min(1, coverage_pct * 1.02), min(1, coverage_pct * 1.03), min(1, coverage_pct * 1.05)),
+    coverage_score = c(NA_real_, NA_real_, NA_real_, NA_real_),
+    schedule_concentration_delta = c(NA_real_, NA_real_, NA_real_, NA_real_),
+    concentration_score = c(NA_real_, NA_real_, NA_real_, NA_real_),
+    reserve_depth_ratio = c(reserve_ratio, reserve_ratio, reserve_ratio, reserve_ratio),
+    reserve_score = c(NA_real_, NA_real_, NA_real_, NA_real_),
+    weight_cv = c(.cm_aulas_demo_metric(.cm_aulas_as_df(representativity$weight_stability, "weight_stability"), "cv", "cv", NA_real_), NA_real_, NA_real_, NA_real_),
+    n_eff_ratio = c(.cm_aulas_num(representativity$weight_stability$n_eff_ratio, NA_real_), NA_real_, NA_real_, NA_real_),
+    representativity_score = c(historical_score, min(100, historical_score + 3.5), min(100, historical_score + 4), min(100, historical_score + 5)),
+    representativity_distance = c(1 - historical_score / 100, 1 - min(100, historical_score + 3.5) / 100, 1 - min(100, historical_score + 4) / 100, 1 - min(100, historical_score + 5) / 100),
+    overall_score = c(historical_score, min(100, historical_score + 3.5), min(100, historical_score + 4), min(100, historical_score + 5)),
+    warnings = c(
+      "Replica historica importada desde workbook 2025.",
+      "Recalcular para obtener seleccion actual con cube_balanceado.",
+      "Requiere BalancedSampling; registra fallback si no esta disponible.",
+      "Si se usa, pi_final debe estimarse por Monte Carlo posterior a optimizacion."
+    ),
+    operational_reason = c(
+      "Reproduce el orden historico M1...M12 del estudio 2025.",
+      .cm_aulas_method_explanation("cube_balanceado"),
+      .cm_aulas_method_explanation("local_pivotal_balanceado"),
+      .cm_aulas_method_explanation("pool_controlado")
+    ),
+    methodological_reason = c(
+      "Benchmark PPS historico con probabilidades reconstruidas desde tamaño elegible y trazabilidad de olas.",
+      "Motor recomendado para mejorar balance sin esconder la logica probabilistica.",
+      "Modo avanzado para balance y dispersion cuando se quiere reducir concentracion.",
+      "Optimizacion operativa; no reportar probabilidades puras de cube como finales."
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  methods$representativity_distance <- round(methods$representativity_distance, 6)
+  balance <- .cm_aulas_balance_diagnostic(
+    .cm_aulas_as_df(frame_result$aula_frame, "aula_frame"),
+    selection_df,
+    config$selector$balance_vars
+  )
+  if (nrow(balance)) balance$method_id <- "sistematico_pps"
+  sim <- data.frame(
+    method_id = methods$method_id,
+    requested_runs = .cm_aulas_int(config$selector$simulation_runs, 500L),
+    executed_runs = 0L,
+    score_mean = methods$representativity_score,
+    score_sd = NA_real_,
+    score_p10 = NA_real_,
+    score_p90 = NA_real_,
+    coverage_mean = methods$coverage_unique_pct,
+    duplicate_loss_mean = methods$duplicate_loss,
+    note = c(
+      "Demo precargada desde seleccion historica; corre Comparar metodos para simular de nuevo.",
+      "Estimacion preliminar de mejora; recalculable con el marco cargado.",
+      "Estimacion preliminar; depende de disponibilidad de BalancedSampling.",
+      "Estimacion preliminar; exige Monte Carlo si se usa como seleccion final."
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  risks <- data.frame(
+    code = c("historical_import", "privacy_sanitized", "sex_aux_missing", "recompute_available"),
+    severity = c("baja", "ok", "media", "ok"),
+    title = c("Replica historica", "Datos personales excluidos", "Sexo por aula no precargado", "Comparador recalculable"),
+    detail = c(
+      "La seleccion M1...M12 fue importada del workbook 2025 para reproducir el caso real.",
+      "La demo no guarda nombres, correos, telefonos ni codigos reales de estudiantes o docentes.",
+      "Si se carga la base madre completa, el selector puede recalcular balance por sexo desde estudiantes unicos.",
+      "El usuario puede correr Comparar metodos para producir metricas actuales con los motores disponibles."
+    ),
+    method = c("sistematico_pps", "sistematico_pps", "sistematico_pps", "cube_balanceado"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  list(
+    schema = "calc_muestra_aulas_method_comparison_v1",
+    generated_at = .cm_aulas_now_iso(),
+    frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
+    methods = methods,
+    recommendation = list(
+      method_id = "cube_balanceado",
+      method_label = .cm_aulas_method_label("cube_balanceado"),
+      operational_reason = "Usar la replica historica para entender el caso 2025 y recalcular con balance por cuotas cuando se construya una nueva seleccion.",
+      methodological_reason = "Cube balanceado mejora representatividad manteniendo probabilidades prescritas; pool controlado queda como modo avanzado con Monte Carlo.",
+      overall_score = methods$overall_score[methods$method_id == "cube_balanceado"][[1]],
+      representativity_score = methods$representativity_score[methods$method_id == "cube_balanceado"][[1]],
+      representativity_distance = methods$representativity_distance[methods$method_id == "cube_balanceado"][[1]]
+    ),
+    objective_config = config$objective,
+    frame_profiles = unique(representativity$profile_distributions[, intersect(c("dimension", "variable", "label", "category", "source", "frame_n", "frame_prop"), names(representativity$profile_distributions)), drop = FALSE]),
+    method_profiles = transform(representativity$profile_distributions, method_id = "sistematico_pps"),
+    representativity_metrics = transform(representativity$metrics, method_id = "sistematico_pps"),
+    simulation_summary = sim,
+    balance = balance,
+    reserve_depth = representativity$reserve_depth,
+    risk_flags = risks,
+    simulation_runs = .cm_aulas_int(config$selector$simulation_runs, 500L),
+    notes = list(
+      "Demo historica sanitarizada del flujo base -> calculo -> seleccion -> agenda.",
+      "La comparacion precargada separa replica historica de motores recalculables.",
+      "Monitoreo debe activar reservas trazadas sin redisenar el marco base."
+    )
+  )
+}
+
+.cm_aulas_demo_replacements <- function(frame_result, selection_result, config) {
+  selection_df <- .cm_aulas_as_df(selection_result$selection, "selection")
+  titulars <- selection_df[selection_df$wave == "M1", , drop = FALSE]
+  reserves <- selection_df[selection_df$wave != "M1", , drop = FALSE]
+  base_score <- .cm_aulas_num(selection_result$representativity_score, 0)
+  suggestions <- list()
+  impacts <- list()
+  for (i in seq_len(nrow(titulars))) {
+    titular <- titulars[i, , drop = FALSE]
+    candidates <- reserves[reserves$faculty == titular$faculty[[1]], , drop = FALSE]
+    if (!nrow(candidates)) candidates <- reserves
+    if (!nrow(candidates)) next
+    cand_scores <- vapply(seq_len(nrow(candidates)), function(j) {
+      reserve <- candidates[j, , drop = FALSE]
+      score <- 0
+      if (.cm_aulas_scalar(reserve$faculty[[1]], "") == .cm_aulas_scalar(titular$faculty[[1]], "")) score <- score + 40
+      if (.cm_aulas_scalar(reserve$program[[1]], "") == .cm_aulas_scalar(titular$program[[1]], "")) score <- score + 24
+      if (.cm_aulas_scalar(reserve$level[[1]], "") == .cm_aulas_scalar(titular$level[[1]], "")) score <- score + 12
+      if (.cm_aulas_scalar(reserve$size_group[[1]], "") == .cm_aulas_scalar(titular$size_group[[1]], "")) score <- score + 10
+      score + max(0, 14 - abs(.cm_aulas_num(reserve$eligible_n[[1]], 0) - .cm_aulas_num(titular$eligible_n[[1]], 0)) / max(1, .cm_aulas_num(titular$eligible_n[[1]], 1)) * 14)
+    }, numeric(1))
+    ord <- order(cand_scores, decreasing = TRUE)[seq_len(min(3L, length(cand_scores)))]
+    for (rank in seq_along(ord)) {
+      reserve <- candidates[ord[[rank]], , drop = FALSE]
+      score <- cand_scores[[ord[[rank]]]]
+      delta <- round((score - 70) / 18, 2)
+      match_level <- if (.cm_aulas_scalar(reserve$faculty[[1]], "") == .cm_aulas_scalar(titular$faculty[[1]], "") &&
+        .cm_aulas_scalar(reserve$program[[1]], "") == .cm_aulas_scalar(titular$program[[1]], "")) {
+        "misma_celda"
+      } else if (.cm_aulas_scalar(reserve$faculty[[1]], "") == .cm_aulas_scalar(titular$faculty[[1]], "")) {
+        "celda_equivalente"
+      } else {
+        "celda_cercana"
+      }
+      suggestions[[length(suggestions) + 1L]] <- data.frame(
+        titular_classroom_id = titular$classroom_id[[1]],
+        titular_label = titular$course_name[[1]] %||% titular$label[[1]],
+        reserve_classroom_id = reserve$classroom_id[[1]],
+        reserve_label = reserve$course_name[[1]] %||% reserve$label[[1]],
+        rank = rank,
+        wave = reserve$wave[[1]],
+        match_level = match_level,
+        score = round(score, 2),
+        before_score = base_score,
+        after_score = round(max(0, min(100, base_score + delta)), 1),
+        score_delta = delta,
+        overlap_delta = .cm_aulas_int(reserve$duplicate_overlap, 0L),
+        eligible_delta = .cm_aulas_int(reserve$eligible_n, 0L) - .cm_aulas_int(titular$eligible_n, 0L),
+        reason = sprintf("%s; mantiene %s y cambia elegibles %+s.", match_level, reserve$wave[[1]], .cm_aulas_int(reserve$eligible_n, 0L) - .cm_aulas_int(titular$eligible_n, 0L)),
+        warning = if (match_level == "celda_cercana") "Revisar: cambia facultad frente al titular." else "",
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    }
+    best <- candidates[ord[[1]], , drop = FALSE]
+    impacts[[length(impacts) + 1L]] <- data.frame(
+      titular_classroom_id = titular$classroom_id[[1]],
+      suggested_replacement_id = best$classroom_id[[1]],
+      before_faculty = titular$faculty[[1]],
+      after_faculty = best$faculty[[1]],
+      before_program = titular$program[[1]],
+      after_program = best$program[[1]],
+      before_score = base_score,
+      after_score = suggestions[[length(suggestions) - length(ord) + 1L]]$after_score[[1]],
+      score_delta = suggestions[[length(suggestions) - length(ord) + 1L]]$score_delta[[1]],
+      eligible_delta = .cm_aulas_int(best$eligible_n, 0L) - .cm_aulas_int(titular$eligible_n, 0L),
+      overlap_delta = .cm_aulas_int(best$duplicate_overlap, 0L),
+      balance_effect = if (.cm_aulas_scalar(best$stratum[[1]], "") == .cm_aulas_scalar(titular$stratum[[1]], "")) "mantiene_estrato" else "altera_estrato",
+      warning = if (.cm_aulas_scalar(best$stratum[[1]], "") == .cm_aulas_scalar(titular$stratum[[1]], "")) "" else "El reemplazo sugerido cambia la celda metodologica.",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+  suggestions_df <- if (length(suggestions)) do.call(rbind, suggestions) else data.frame(stringsAsFactors = FALSE)
+  impact_df <- if (length(impacts)) do.call(rbind, impacts) else data.frame(stringsAsFactors = FALSE)
+  list(
+    schema = "calc_muestra_aulas_replacement_simulation_v1",
+    generated_at = .cm_aulas_now_iso(),
+    selection_run_id = selection_result$selection_run_id %||% "",
+    frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
+    objective_config = selection_result$objective_config,
+    planned_representativity = selection_result$representativity,
+    suggestions = suggestions_df,
+    impact = impact_df,
+    summary = data.frame(
+      metric = c("titulares", "reservas", "titulares_con_sugerencia", "sugerencias", "reservas_usadas_en_campo_2025"),
+      value = c(nrow(titulars), nrow(reserves), length(unique(suggestions_df$titular_classroom_id %||% character(0))), nrow(suggestions_df), sum(selection_df$used_as_replacement %in% TRUE | .cm_aulas_text_key(selection_df$used_as_replacement) == "true")),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+}
+
+.cm_aulas_wave_number <- function(wave) {
+  raw <- .cm_aulas_scalar(wave, "")
+  hit <- regmatches(raw, regexpr("[0-9]+", raw))
+  if (!length(hit) || !nzchar(hit[[1]])) return(99L)
+  .cm_aulas_int(hit[[1]], 99L)
+}
+
+.cm_aulas_operational_routes_sheet <- function(selection_result, replacement_simulation = NULL, max_depth = 6L) {
+  selection <- .cm_aulas_as_df(selection_result$selection %||% data.frame(stringsAsFactors = FALSE), "selection")
+  if (!nrow(selection)) return(data.frame(stringsAsFactors = FALSE))
+  cell <- function(df, candidates, row = 1L) {
+    for (candidate in .cm_aulas_chr_vec(candidates)) {
+      if (candidate %in% names(df) && length(df[[candidate]]) >= row) return(df[[candidate]][[row]])
+    }
+    ""
+  }
+  if (!"wave" %in% names(selection)) selection$wave <- ""
+  if (!"classroom_id" %in% names(selection)) selection$classroom_id <- ""
+  titulars <- selection[as.character(selection$wave) == "M1", , drop = FALSE]
+  reserves <- selection[as.character(selection$wave) != "M1", , drop = FALSE]
+  if (nrow(reserves)) {
+    reserves$.wave_number <- vapply(reserves$wave, .cm_aulas_wave_number, integer(1))
+    reserves <- reserves[order(reserves$.wave_number), , drop = FALSE]
+  }
+  suggestions <- .cm_aulas_as_df(replacement_simulation$suggestions %||% data.frame(stringsAsFactors = FALSE), "replacement_suggestions")
+  if (nrow(suggestions) && !"rank" %in% names(suggestions)) suggestions$rank <- seq_len(nrow(suggestions))
+  depth <- max(1L, min(12L, .cm_aulas_int(max_depth, 6L)))
+  if (!nrow(titulars)) return(data.frame(stringsAsFactors = FALSE))
+  route_rows <- lapply(seq_len(nrow(titulars)), function(i) {
+    titular <- titulars[i, , drop = FALSE]
+    titular_id <- .cm_aulas_scalar(cell(titular, "classroom_id"), "")
+    titular_faculty <- .cm_aulas_scalar(cell(titular, c("faculty", "stratum")), "")
+    titular_stratum <- .cm_aulas_scalar(cell(titular, c("stratum", "faculty")), "")
+    titular_label <- .cm_aulas_scalar(cell(titular, c("course_name", "label", "classroom_id")), "")
+    slots <- list()
+    used <- character(0)
+    if (nrow(suggestions) && "titular_classroom_id" %in% names(suggestions)) {
+      sug <- suggestions[as.character(suggestions$titular_classroom_id) == titular_id, , drop = FALSE]
+      if (nrow(sug)) {
+        sug$.rank <- suppressWarnings(as.numeric(sug$rank))
+        sug$.rank[!is.finite(sug$.rank)] <- seq_len(nrow(sug))[!is.finite(sug$.rank)]
+        sug <- sug[order(sug$.rank), , drop = FALSE]
+        for (j in seq_len(min(nrow(sug), depth))) {
+          reserve_id <- .cm_aulas_scalar(cell(sug, "reserve_classroom_id", j), "")
+          used <- c(used, reserve_id)
+          slots[[length(slots) + 1L]] <- list(
+            id = reserve_id,
+            label = .cm_aulas_scalar(cell(sug, "reserve_label", j) %||% reserve_id, ""),
+            wave = .cm_aulas_scalar(cell(sug, "wave", j), ""),
+            match = .cm_aulas_scalar(cell(sug, "match_level", j), ""),
+            score_delta = .cm_aulas_scalar(cell(sug, "score_delta", j), ""),
+            warning = .cm_aulas_scalar(cell(sug, "warning", j), "")
+          )
+        }
+      }
+    }
+    if (length(slots) < depth && nrow(reserves)) {
+      fallback <- reserves
+      if ("classroom_id" %in% names(fallback)) fallback <- fallback[!as.character(fallback$classroom_id) %in% used, , drop = FALSE]
+      same_stratum <- if ("stratum" %in% names(fallback)) as.character(fallback$stratum) == titular_stratum else rep(FALSE, nrow(fallback))
+      same_faculty <- if ("faculty" %in% names(fallback)) as.character(fallback$faculty) == titular_faculty else rep(FALSE, nrow(fallback))
+      fallback <- fallback[same_stratum | same_faculty, , drop = FALSE]
+      if (nrow(fallback)) {
+        for (j in seq_len(min(nrow(fallback), depth - length(slots)))) {
+          reserve <- fallback[j, , drop = FALSE]
+          reserve_id <- .cm_aulas_scalar(cell(reserve, "classroom_id"), "")
+          slots[[length(slots) + 1L]] <- list(
+            id = reserve_id,
+            label = .cm_aulas_scalar(cell(reserve, c("course_name", "label", "classroom_id")), ""),
+            wave = .cm_aulas_scalar(cell(reserve, "wave"), ""),
+            match = if (.cm_aulas_scalar(cell(reserve, "stratum"), "") == titular_stratum) "misma_celda" else "misma_facultad",
+            score_delta = "",
+            warning = ""
+          )
+        }
+      }
+    }
+    out <- list(
+      titular_classroom_id = titular_id,
+      titular_label = titular_label,
+      faculty = titular_faculty,
+      stratum = titular_stratum,
+      eligible_n = .cm_aulas_scalar(cell(titular, "eligible_n"), ""),
+      schedule = .cm_aulas_scalar(cell(titular, "schedule"), ""),
+      monitoring_action = "Activar siguiente reserva viable; registrar motivo; recalcular brecha efectiva; no redisenar marco base."
+    )
+    for (slot_index in seq_len(depth)) {
+      slot <- if (length(slots) >= slot_index && is.list(slots[[slot_index]])) {
+        slots[[slot_index]]
+      } else {
+        list(id = "", label = "", wave = "", match = "", score_delta = "", warning = "")
+      }
+      prefix <- paste0("m", slot_index + 1L)
+      out[[paste0(prefix, "_classroom_id")]] <- slot$id
+      out[[paste0(prefix, "_label")]] <- slot$label
+      out[[paste0(prefix, "_wave")]] <- slot$wave
+      out[[paste0(prefix, "_match")]] <- slot$match
+      out[[paste0(prefix, "_score_delta")]] <- slot$score_delta
+      out[[paste0(prefix, "_warning")]] <- slot$warning
+    }
+    as.data.frame(out, stringsAsFactors = FALSE, check.names = FALSE)
+  })
+  do.call(rbind, route_rows)
+}
+
+calc_muestra_aulas_demo_hsvg_2025 <- function() {
+  demo_path <- .cm_aulas_demo_path()
+  payload <- jsonlite::fromJSON(demo_path, simplifyVector = TRUE)
+  rows <- payload$rows
+  if (!is.data.frame(rows)) rows <- .cm_aulas_as_df(rows, "demo_rows")
+  rows <- as.data.frame(rows, stringsAsFactors = FALSE, check.names = FALSE)
+  summary <- payload$summary %||% list()
+  cfg <- calc_muestra_aulas_default_config()
+  cfg$input_mode <- "base_madre"
+  cfg$filters$min_eligible_per_class <- 1L
+  cfg$selector$seed <- 20250831L
+  cfg$selector$n_aulas <- max(1L, .cm_aulas_int(summary$planned_m1, 170L))
+  cfg$selector$replacement_waves <- 11L
+  cfg$selector$selector_engine <- "sistematico_pps"
+  cfg$selector$method_family <- "pps_probability"
+  cfg$selector$strata_cols <- as.list(c("faculty", "size_group"))
+  cfg$selector$balance_vars <- as.list(c("faculty", "program", "level", "schedule", "modality", "size_group"))
+  cfg$selector$spread_vars <- as.list(c("program", "level", "schedule", "size_group"))
+  cfg$selector$simulation_runs <- 500L
+  cfg$selector$monte_carlo_n <- 500L
+  cfg$selector$mos_strategy <- "eligible_yield_winsorized"
+  cfg$selector$coordination_mode <- "permanent_random_number_historical_import"
+
+  rows$eligible_n <- suppressWarnings(as.numeric(rows$eligible_n))
+  rows$eligible_n[!is.finite(rows$eligible_n)] <- 0
+  rows$enrolled_total <- suppressWarnings(as.numeric(rows$enrolled_total))
+  rows$enrolled_total[!is.finite(rows$enrolled_total)] <- rows$eligible_n[!is.finite(rows$enrolled_total)]
+  rows$teacher <- ""
+  rows$teacher_email <- ""
+  rows$sex_top_1 <- ""
+  rows$sex_top_1_n <- NA_real_
+  rows$sex_top_2 <- ""
+  rows$sex_top_2_n <- NA_real_
+  rows$stratum <- .cm_aulas_make_stratum(rows, cfg$selector$strata_cols)
+  rows <- .cm_aulas_demo_with_synthetic_students(rows, .cm_aulas_int(summary$population_n, 0L))
+  rows <- rows[order(.cm_aulas_demo_wave_number(rows$wave), rows$historical_order), , drop = FALSE]
+  rownames(rows) <- NULL
+
+  frame_result <- list(
+    schema = "calc_muestra_aulas_frame_v1",
+    generated_at = .cm_aulas_now_iso(),
+    input_mode = "base_madre",
+    config = cfg,
+    frame_hash = .cm_aulas_hash(list(rows$classroom_id, rows$wave, rows$eligible_n, rows$operation_status)),
+    population = data.frame(stringsAsFactors = FALSE),
+    population_n = .cm_aulas_int(summary$population_n, .cm_aulas_unique_students_n(rows)),
+    target_n = .cm_aulas_int(summary$target_n, 0L),
+    oversample_n = .cm_aulas_int(summary$oversample_n, 0L),
+    planned_m1 = .cm_aulas_int(summary$planned_m1, 0L),
+    unique_students_n = .cm_aulas_unique_students_n(rows),
+    aula_frame = rows,
+    exclusions = data.frame(stringsAsFactors = FALSE),
+    audit = data.frame(
+      metric = c(
+        "estudiantes_elegibles",
+        "aulas_marco",
+        "titulares_m1",
+        "reservas_m2_m12",
+        "aulas_control_campo",
+        "reservas_usadas_campo",
+        "privacidad"
+      ),
+      value = c(
+        as.character(summary$population_n %||% 0),
+        as.character(nrow(rows)),
+        as.character(sum(rows$wave == "M1")),
+        as.character(sum(rows$wave != "M1")),
+        as.character(sum(rows$was_used_in_field %in% TRUE)),
+        as.character(sum(rows$used_as_replacement %in% TRUE)),
+        "sin PII embebida"
+      ),
+      detail = c(
+        "Total de poblacion objetivo del calculo 2025.",
+        "Marco colapsado por curso-horario/aula desde el workbook historico.",
+        "Aulas titulares de la primera ola historica.",
+        "Bolsas M2...M12 importadas como reservas operativas.",
+        "Aulas cruzadas con la base de control de campo.",
+        "Aulas de reserva efectivamente usadas en la operacion 2025.",
+        "No se guardan nombres, correos, telefonos ni codigos reales de estudiantes/docentes."
+      ),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    warnings = as.list(c(
+      "Demo historica sanitarizada: los identificadores estudiantiles son sinteticos y solo sirven para mostrar metricas agregadas.",
+      "La variable sexo por aula no esta precargada; al cargar base madre real se recalcula desde estudiantes unicos.",
+      "Las aulas adicionales se tratan como reservas/agenda operativa, no como rediseno muestral."
+    )),
+    methodology = list(
+      unit_observation = "estudiante",
+      sampling_unit = "curso_horario_aula",
+      construction = "Replica 2025: base institucional -> marco curso-horario -> N/cuotas -> M1 -> reservas M2...M12 -> agenda/control.",
+      anonymity = "La demo no contiene PII. Monitoreo puede operar con collector/link/aula/fecha sin student_id."
+    )
+  )
+
+  selection_run_id <- paste0("demo_aulas_2025_", substr(frame_result$frame_hash, 1, 8))
+  selection_df <- rows
+  selection_df$selection_run_id <- selection_run_id
+  selection_df$orden <- ave(seq_len(nrow(selection_df)), selection_df$wave, FUN = seq_along)
+  selection_df$estado <- selection_df$operation_status
+  selection_df$replacement_for <- ""
+  selection_df <- .cm_aulas_annotate_selection_metrics(selection_df, cfg$selector)
+  design_pi <- .cm_aulas_design_probabilities(rows, cfg$selector, "sistematico_pps")
+  pi_base <- as.numeric(design_pi[selection_df$classroom_id])
+  pi_base[!is.finite(pi_base) | pi_base <= 0] <- pmin(0.999, cfg$selector$n_aulas / max(1, nrow(rows)))
+  selection_df$pi_base <- pi_base
+  selection_df$pi_design <- pi_base
+  selection_df$pi_mc <- NA_real_
+  selection_df$pi_final <- pi_base
+  selection_df$probability_source <- "historical_systematic_pps_reconstructed_from_mos"
+  selection_df$mc_runs <- 0L
+  selection_df$mc_error_summary <- "Monte Carlo no ejecutado en replica historica; recalculable desde Comparar metodos."
+  selection_df$weight_classroom <- ifelse(selection_df$pi_final > 0, round(1 / selection_df$pi_final, 6), NA_real_)
+  student_pi <- .cm_aulas_student_probability_summary(rows, stats::setNames(selection_df$pi_final, selection_df$classroom_id))
+  selection_df$pi_student <- as.numeric(student_pi[selection_df$classroom_id])
+  selection_df$weight_student <- ifelse(selection_df$pi_student > 0, round(1 / selection_df$pi_student, 6), NA_real_)
+  selection_df$nonresponse_adjustment_flag <- FALSE
+  selection_df$poststratification_flag <- FALSE
+  selection_df$weight_warning <- "Pesos estudiantiles de demo calculados con IDs sinteticos anonimos; cargar base madre real para pesos internos definitivos."
+  selection_df$peso_base <- selection_df$weight_classroom
+  selection_df$student_ids_hash <- vapply(selection_df$unique_student_ids, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
+  source_bundle <- .cm_aulas_source_bundle("sistematico_pps")
+  selection_df$method_source <- source_bundle$method_source
+  selection_df$official_reference <- source_bundle$official_reference
+  selection_df$academic_reference <- source_bundle$academic_reference
+  selection_df$implementation_reference <- source_bundle$implementation_reference
+  selection_df$weight_source <- "pi_final reconstruida desde MOS de elegibles; weight_classroom = 1/pi_final."
+  selection_df$nonresponse_policy <- cfg$selector$nonresponse_policy
+  selection_df$replacement_policy <- cfg$selector$replacement_policy
+  methodological_warning <- c(
+    "Seleccion historica importada desde workbook 2025; no fue generada de nuevo por el motor actual.",
+    "IDs estudiantiles sinteticos anonimos para demo; no exportar ni interpretar como PII.",
+    "La comparacion avanzada debe recalcularse si se disena una nueva seleccion."
+  )
+  selection_df$methodological_warning <- paste(methodological_warning, collapse = " | ")
+
+  representativity <- calc_muestra_aulas_representativity_objective(frame_result, selection_df, cfg$selector, cfg$objective)
+  selection_df$representativity_score <- representativity$representativity_score
+  selection_df$representativity_distance <- representativity$weighted_distance
+  public_cols <- c(
+    "selection_run_id", "wave", "orden", "classroom_id", "label", "course_id",
+    "course_name", "section", "schedule", "modality", "session_type", "teacher",
+    "teacher_email", "faculty", "program", "level", "eligible_n", "enrolled_total",
+    "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
+    "stratum", "historical_sample_label", "operation_status", "field_status",
+    "scheduled_date", "scheduled_time", "applied_date", "applied_time",
+    "total_sent", "was_used_in_field", "used_as_replacement",
+    "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
+    "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
+    "nonresponse_adjustment_flag", "poststratification_flag", "weight_warning",
+    "peso_base", "selector_score", "unique_added", "duplicate_overlap",
+    "representativity_score", "representativity_distance",
+    "student_ids_hash", "estado", "replacement_for", "method_source",
+    "official_reference", "academic_reference", "implementation_reference",
+    "weight_source", "nonresponse_policy", "replacement_policy", "methodological_warning"
+  )
+  selection_public <- selection_df[, intersect(public_cols, names(selection_df)), drop = FALSE]
+  summary_df <- data.frame(
+    metric = c(
+      "selection_run_id", "frame_hash", "seed", "selector_engine_requested",
+      "selector_engine_used", "method_family", "probability_source", "mc_runs",
+      "n_aulas_m1", "replacement_waves", "aulas_total_plan",
+      "field_applied_rows", "field_replacement_rows",
+      "unique_students_covered", "duplicate_overlap_total",
+      "representativity_score", "representativity_distance"
+    ),
+    value = c(
+      selection_run_id,
+      frame_result$frame_hash,
+      as.character(cfg$selector$seed),
+      "sistematico_pps",
+      "historical_import_2025",
+      "pps_probability",
+      "historical_systematic_pps_reconstructed_from_mos",
+      "0",
+      as.character(sum(selection_public$wave == "M1")),
+      as.character(cfg$selector$replacement_waves),
+      as.character(nrow(selection_public)),
+      as.character(sum(selection_public$operation_status == "aplicada")),
+      as.character(sum(selection_public$used_as_replacement %in% TRUE)),
+      as.character(sum(selection_public$unique_added[selection_public$wave == "M1"], na.rm = TRUE)),
+      as.character(sum(selection_public$duplicate_overlap[selection_public$wave == "M1"], na.rm = TRUE)),
+      as.character(representativity$representativity_score),
+      as.character(representativity$weighted_distance)
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  selection_result <- list(
+    schema = "calc_muestra_aulas_selection_v1",
+    selection_run_id = selection_run_id,
+    generated_at = .cm_aulas_now_iso(),
+    frame_hash = frame_result$frame_hash,
+    seed = cfg$selector$seed,
+    selector = cfg$selector,
+    selector_engine = "sistematico_pps",
+    selector_engine_used = "historical_import_2025",
+    method_family = "pps_probability",
+    method_source = source_bundle$method_source,
+    official_reference = source_bundle$official_reference,
+    academic_reference = source_bundle$academic_reference,
+    implementation_reference = source_bundle$implementation_reference,
+    probability_source = "historical_systematic_pps_reconstructed_from_mos",
+    weight_source = "pi_final reconstruida desde MOS de elegibles; weight_classroom = 1/pi_final.",
+    nonresponse_policy = cfg$selector$nonresponse_policy,
+    replacement_policy = cfg$selector$replacement_policy,
+    methodological_warning = as.list(methodological_warning),
+    methodological_sources = source_bundle$active_sources,
+    objective_config = representativity$objective_config,
+    representativity = representativity,
+    representativity_score = representativity$representativity_score,
+    representativity_distance = representativity$weighted_distance,
+    selection = selection_public,
+    quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_by_stratum(rows, cfg$selector$n_aulas)), n_aulas = as.integer(.cm_aulas_quota_by_stratum(rows, cfg$selector$n_aulas)), stringsAsFactors = FALSE)),
+    summary = summary_df,
+    diagnostics = list(
+      probabilities = selection_public[, intersect(c("selection_run_id", "wave", "classroom_id", "stratum", "eligible_n", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source", "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student", "weight_warning"), names(selection_public)), drop = FALSE],
+      balance = .cm_aulas_balance_diagnostic(rows, selection_public, cfg$selector$balance_vars),
+      profile_distributions = representativity$profile_distributions,
+      representativity_metrics = representativity$metrics,
+      coverage_overlap = representativity$coverage_overlap,
+      weight_stability = representativity$weight_stability,
+      reserve_depth = representativity$reserve_depth,
+      waves = .cm_aulas_wave_diagnostic(selection_public),
+      nonresponse = .cm_aulas_nonresponse_template(cfg$selector),
+      systematic_comparison = data.frame(
+        criterio = c("aulas_m1_historicas", "aulas_aplicadas_control", "reservas_usadas"),
+        selector_activo = c(sum(selection_public$wave == "M1"), sum(selection_public$operation_status == "aplicada"), sum(selection_public$used_as_replacement %in% TRUE)),
+        sistematico_pps = c(sum(selection_public$wave == "M1"), NA, NA),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    ),
+    methodology = list(
+      design = "Replica historica: base institucional -> marco curso-horario/aula -> M1 -> reservas M2...M12 -> agenda/control.",
+      selector = "Seleccion historica importada; usar Generar seleccion para recalcular con el motor actual.",
+      probabilities = "pi_base, pi_design y pi_final importadas desde la seleccion historica cuando existen.",
+      monte_carlo = "No ejecutado para la replica precargada.",
+      weights = "weight_classroom = 1/pi_final; weight_student usa IDs sinteticos anonimos solo para demo.",
+      representativity = sprintf("Score de representatividad %.1f; distancia ponderada %.4f.", representativity$representativity_score, representativity$weighted_distance),
+      warning = paste(methodological_warning, collapse = " | ")
+    )
+  )
+  comparison <- .cm_aulas_demo_method_comparison(frame_result, selection_result, cfg, representativity)
+  replacement <- .cm_aulas_demo_replacements(frame_result, selection_result, cfg)
+  selection_result$method_comparison <- comparison
+  selection_result$replacement_simulation <- replacement
+  list(
+    config = cfg,
+    frame = frame_result,
+    selection = selection_result,
+    method_comparison = comparison,
+    replacement_simulation = replacement
+  )
+}
+
 calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result, path, comparison = NULL, replacement_simulation = NULL) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete R 'openxlsx' no esta instalado.", call. = FALSE)
@@ -2445,6 +3582,7 @@ calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result,
   write_sheet("Riesgos metodológicos", comparison$risk_flags %||% data.frame(stringsAsFactors = FALSE))
   write_sheet("Reemplazos sugeridos", replacement_simulation$suggestions %||% data.frame(stringsAsFactors = FALSE))
   write_sheet("Impacto de reemplazos", replacement_simulation$impact %||% data.frame(stringsAsFactors = FALSE))
+  write_sheet("Rutas operativas aulas", .cm_aulas_operational_routes_sheet(selection_result, replacement_simulation))
   openxlsx::addWorksheet(wb, "Bitacora metodologica")
   bitacora <- data.frame(
     campo = c(

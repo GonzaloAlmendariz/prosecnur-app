@@ -48,7 +48,7 @@ const TIPOS_ESTUDIO: TipoEstudio[] = [
     detalle:
       "Genera la mesa de estudiantes con marco por dominio, sexo u otras variables de control, lista para construir marco de aulas, calcular escenarios y seleccionar titulares/reemplazos.",
     icon: GraduationCap,
-    componentes: ["Estudiantes universitarios · aulas/curso-horario"],
+    componentes: ["Estudiantes universitarios · aulas por curso y horario"],
     variantes: [
       { id: "vacio", label: "En blanco", descripcion: "Solo la estructura, tú agregas estratos y N." },
       {

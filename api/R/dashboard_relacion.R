@@ -22,12 +22,21 @@
     spec <- .dashboard_resolver_sm_spec(var, rp_inst, df, s = s)
     if (!length(spec$cols)) return(list())
     cols <- spec$cols
+    if (identical(spec$storage, "raw")) {
+      return(lapply(cols, function(col) {
+        code <- as.character(spec$code_by_col[[col]] %||% col)
+        label <- as.character(spec$map_code_to_label[[code]] %||% code)
+        list(code = code, label = label, raw_col = spec$raw_col)
+      }))
+    }
     # Filtrar dummies originales vs recod. Cuando ambas conviven en
     # rp_data (típico de variables con grupos_recod creados en el módulo
     # Codificación), `spec$cols` puede listar AMBOS sets — sin filtro
     # niveles_p quedaría duplicado.
-    var_pat <- gsub("([\\W])", "\\\\\\1", var)
-    is_recod_col <- grepl(paste0("^", var_pat, "[\\./]recod[\\./]"), cols, perl = TRUE)
+    is_recod_col <- vapply(cols, function(col) {
+      code <- as.character(spec$code_by_col[[col]] %||% "")
+      grepl("^recod[\\./_]", code, perl = TRUE) || grepl("_recod$", code, perl = TRUE)
+    }, logical(1))
     if (isTRUE(use_recod)) {
       # Si hay dummies recod, usamos solo esas; si no hay (recod via
       # otro mecanismo) caemos a originales para no devolver vacío.
@@ -36,9 +45,9 @@
       cols <- cols[!is_recod_col]
     }
     lapply(cols, function(col) {
-      code <- sub(paste0("^", var_pat, "[\\./]"), "", col, perl = TRUE)
+      code <- as.character(spec$code_by_col[[col]] %||% col)
       raw_code <- code
-      if (isTRUE(use_recod)) code <- sub("^recod[\\./]", "", code, perl = TRUE)
+      if (isTRUE(use_recod)) code <- sub("^recod[\\./_]", "", code, perl = TRUE)
       label <- if (is.list(recod_labels) && nzchar(recod_labels[[code]] %||% "")) {
         as.character(recod_labels[[code]])
       } else {
@@ -157,6 +166,10 @@
 # el code dado de la variable (SO: igualdad; SM: dummy == 1).
 .dashboard_pertenece_a_nivel <- function(df, var, tipo, nivel) {
   if (identical(tipo, "sm")) {
+    raw_col <- as.character(nivel$raw_col %||% "")[1]
+    if (nzchar(raw_col) && raw_col %in% names(df)) {
+      return(.dashboard_sm_raw_has_code(df[[raw_col]], nivel$code))
+    }
     col <- nivel$col_dummy
     if (is.null(col) || !(col %in% names(df))) return(rep(FALSE, nrow(df)))
     x <- suppressWarnings(as.numeric(as.character(df[[col]])))

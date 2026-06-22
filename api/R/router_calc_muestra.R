@@ -211,7 +211,28 @@ mount_calc_muestra <- function(pr) {
       estudio$componentes <- iniciado$componentes
       session_set(sid, "calc_muestra_estudio", estudio)
       session_set(sid, "calc_muestra_reporte", list(disponible = FALSE))
-      list(ok = TRUE, estudio = estudio)
+      aulas_demo <- iniciado$aulas_demo %||% NULL
+      demo_warning <- NULL
+      if (is.list(aulas_demo) && !is.null(aulas_demo$error)) {
+        demo_warning <- aulas_demo$error
+        aulas_demo <- NULL
+      }
+      if (is.list(aulas_demo) && !is.null(aulas_demo$frame) && !is.null(aulas_demo$selection)) {
+        session_set(sid, "calc_muestra_aulas_config", aulas_demo$config %||% calc_muestra_aulas_default_config())
+        session_set(sid, "calc_muestra_aulas_frame", aulas_demo$frame)
+        session_set(sid, "calc_muestra_aulas_selection", aulas_demo$selection)
+        session_set(sid, "calc_muestra_aulas_method_comparison", aulas_demo$method_comparison %||% NULL)
+        session_set(sid, "calc_muestra_aulas_replacement_simulation", aulas_demo$replacement_simulation %||% NULL)
+        session_set(sid, "calc_muestra_aulas_export", NULL)
+      } else {
+        session_set(sid, "calc_muestra_aulas_config", calc_muestra_aulas_default_config())
+        session_set(sid, "calc_muestra_aulas_frame", NULL)
+        session_set(sid, "calc_muestra_aulas_selection", NULL)
+        session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
+        session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
+        session_set(sid, "calc_muestra_aulas_export", NULL)
+      }
+      list(ok = TRUE, estudio = estudio, state = .cm_state_payload(sid), demo_warning = demo_warning)
     })) |>
 
     # -----------------------------------------------------------------------
@@ -248,9 +269,35 @@ mount_calc_muestra <- function(pr) {
     })) |>
 
     # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco/inspeccionar-archivo — lista hojas y roles
+    # Body: { file_id }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco/inspeccionar-archivo",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      file_id <- calc_str(body$file_id %||% body$fileId, "")
+      if (!nzchar(file_id)) {
+        stop_api(400, "E_CALC_MUESTRA_FILE_REQUIRED", "Sube primero un archivo Excel o CSV.")
+      }
+      meta <- get_file(sid, file_id)
+      inspection <- tryCatch(
+        calc_muestra_aulas_inspect_workbook(meta$path),
+        error = function(e) stop_api(400, "E_CALC_MUESTRA_FILE_INSPECT", conditionMessage(e))
+      )
+      list(
+        ok = TRUE,
+        file_id = file_id,
+        original_name = meta$original_name,
+        inspection = inspection
+      )
+    })) |>
+
+    # -----------------------------------------------------------------------
     # POST /api/calc-muestra/marco/construir — construye marco de aulas
     # Body: { base_madre|base_madre_file_id, estudiantes|estudiantes_file_id,
-    #         inscripciones|inscripciones_file_id, config }
+    #         inscripciones|inscripciones_file_id, catalogo_curso_horario,
+    #         config }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/marco/construir",
                      wrap_endpoint(function(req, res, ...) {
@@ -261,11 +308,13 @@ mount_calc_muestra <- function(pr) {
       base_madre <- .cm_table_from_payload(sid, body, "base_madre")
       estudiantes <- .cm_table_from_payload(sid, body, "estudiantes")
       inscripciones <- .cm_table_from_payload(sid, body, "inscripciones")
+      catalogo_curso_horario <- .cm_table_from_payload(sid, body, "catalogo_curso_horario")
       frame <- tryCatch(
         calc_muestra_aulas_construir(
           base_madre = base_madre,
           estudiantes = estudiantes,
           inscripciones = inscripciones,
+          catalogo_curso_horario = catalogo_curso_horario,
           config = config
         ),
         error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))

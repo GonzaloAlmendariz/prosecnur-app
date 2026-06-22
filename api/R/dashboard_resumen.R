@@ -117,11 +117,34 @@
   spec <- .dashboard_resolver_sm_spec(var_madre, rp_inst, df, s = s)
   if (!length(spec$cols)) return(list())
 
+  if (identical(spec$storage, "raw") && nzchar(as.character(spec$raw_col %||% "")) &&
+      spec$raw_col %in% names(df)) {
+    raw_values <- df[[spec$raw_col]]
+    valid <- !is.na(raw_values) & nzchar(trimws(as.character(raw_values))) &
+      trimws(as.character(raw_values)) != "NA"
+    n_total <- sum(valid)
+    return(lapply(spec$cols, function(col) {
+      code <- as.character(spec$code_by_col[[col]] %||% col)
+      label <- as.character(spec$map_code_to_label[[code]] %||% code)
+      selected <- .dashboard_sm_raw_has_code(raw_values, code)
+      n_yes <- sum(selected & valid, na.rm = TRUE)
+      pct_yes <- if (n_total) n_yes / n_total else 0
+      item <- list(
+        code = code,
+        label = label,
+        col_dummy = col,
+        n_yes = as.integer(n_yes),
+        n_total = as.integer(n_total),
+        pct_yes = round(pct_yes, 6)
+      )
+      color <- .dashboard_color_for_label(label, palette)
+      if (!is.null(color)) item$color <- color
+      item
+    }))
+  }
+
   lapply(spec$cols, function(col) {
-    code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(var_madre, "."))),
-                "", col)
-    code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(var_madre, "/"))),
-                "", code)
+    code <- as.character(spec$code_by_col[[col]] %||% col)
     label <- as.character(spec$map_code_to_label[[code]] %||% code)
 
     x <- df[[col]]

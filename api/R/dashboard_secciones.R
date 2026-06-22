@@ -59,8 +59,8 @@
   }
 
   # Filtrar contra columnas presentes en `data`. Para SM, la madre puede
-  # NO existir como columna en df (vienen las dummies var.opt). Mantener
-  # la madre si al menos una dummy `var.opt` o `var/opt` está en df.
+  # NO existir como columna en df (vienen las dummies var.opt, var/opt o
+  # var_opt). Mantener la madre si al menos una dummy está en df.
   sm_madres <- .dashboard_sm_madres(rp_inst)
   out <- lapply(out, function(vs) {
     vs <- unique(vs)
@@ -69,9 +69,7 @@
     if (length(falt)) {
       falt_sm <- intersect(falt, sm_madres)
       falt_sm <- falt_sm[vapply(falt_sm, function(v) {
-        prefix1 <- paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, ".")))
-        prefix2 <- paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "/")))
-        any(grepl(prefix1, names(df))) || any(grepl(prefix2, names(df)))
+        length(.dashboard_sm_dummy_specs(v, df)$col) > 0L
       }, logical(1))]
       keep <- c(keep, falt_sm)
     }

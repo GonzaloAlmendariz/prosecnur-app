@@ -1729,7 +1729,8 @@ exportar_frecuencias_spss <- function(
     numericas = NULL,
     incluir_titulos = TRUE,
     incluir_secciones = TRUE,
-    incluir_porcentajes = TRUE
+    incluir_porcentajes = TRUE,
+    ficha_tecnica = NULL
 ){
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `exportar_frecuencias_spss()`. ",
@@ -1833,6 +1834,26 @@ exportar_frecuencias_spss <- function(
     fila <- fila + 1
   }
 
+  if (!identical(ficha_tecnica, FALSE) && exists(".analitica_add_ficha_tecnica_from_spec", mode = "function")) {
+    instrumento_ficha <- list(survey = survey, orders_list = orders_list)
+    .analitica_add_ficha_tecnica_from_spec(
+      list(
+        wb = wb,
+        data = data,
+        instrumento = instrumento_ficha,
+        reporte = "Frecuencias",
+        fuente = fuente,
+        hojas = names(wb),
+        detalles = list(
+          "Orden de categorias" = orden,
+          "Variables numericas declaradas" = if (length(numericas)) paste(numericas, collapse = ", ") else "Ninguna",
+          "Muestra todas las categorias del instrumento" = if (isTRUE(mostrar_todo)) "Si" else "No"
+        )
+      ),
+      ficha_tecnica
+    )
+  }
+
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
   message("Frecuencias exportadas a: ", normalizePath(path_xlsx, winslash = "/"))
   invisible(normalizePath(path_xlsx, winslash = "/"))
@@ -1862,7 +1883,8 @@ reporte_frecuencias <- function(data,
                                 numericas = NULL,
                                 incluir_titulos = TRUE,
                                 incluir_secciones = TRUE,
-                                incluir_porcentajes = TRUE) {
+                                incluir_porcentajes = TRUE,
+                                ficha_tecnica = NULL) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `reporte_frecuencias()`. ",
@@ -1952,7 +1974,8 @@ reporte_frecuencias <- function(data,
     numericas       = numericas,
     incluir_titulos = incluir_titulos,
     incluir_secciones = incluir_secciones,
-    incluir_porcentajes = incluir_porcentajes
+    incluir_porcentajes = incluir_porcentajes,
+    ficha_tecnica = ficha_tecnica
   )
 
   invisible(normalizePath(path_xlsx, winslash = "/"))

@@ -340,6 +340,81 @@ test_that("load_pulso restaura los archivos físicos con paths correctos", {
   expect_identical(bytes, .tiny_xlsx_bytes())
 })
 
+test_that("build_pulso incluye bases declaradas en calculo de muestra", {
+  sid <- session_create()
+  meta <- save_upload(sid, "data", "base_calc_muestra.xlsx", .tiny_xlsx_bytes())
+  tmp <- tempfile(fileext = ".pulso")
+  stage <- tempfile("pulso_check_")
+  on.exit({
+    unlink(tmp, force = TRUE)
+    unlink(stage, recursive = TRUE, force = TRUE)
+    session_delete(sid)
+  }, add = TRUE)
+
+  session_set(sid, "calc_muestra_estudio", list(
+    macro_familia = "encuesta_estudiantes",
+    titulo = "Encuesta a estudiantes",
+    workspace = list(
+      frame_mode = "opinion_universitaria",
+      source_mode = "base_madre",
+      source_bindings = list(list(
+        id = "src-base-madre",
+        role = "base_madre",
+        label = "Base institucional madre",
+        file_id = meta$file_id,
+        file_name = meta$original_name,
+        sheet_name = "MATRICULADO",
+        status = "cargada"
+      )),
+      variable_mappings = list(list(
+        role = "student_id",
+        label = "Codigo interno de estudiante",
+        required = TRUE,
+        column = "Codigo PUCP"
+      )),
+      aulas_config = list(
+        schema = "calc_muestra_workspace_aulas_v1",
+        min_elegibles_aula = 12L,
+        accepted_conditions = list("regular", "habilitado"),
+        require_undergraduate = TRUE,
+        require_adult = FALSE,
+        min_age = 0L,
+        require_in_person = TRUE
+      )
+    )
+  ))
+
+  build_pulso(sid, tmp, project_name = "Calculo de muestra")
+
+  dir.create(stage, recursive = TRUE)
+  utils::unzip(tmp, exdir = stage)
+  copied <- list.files(file.path(stage, "files"), full.names = FALSE)
+  expect_true(any(startsWith(copied, paste0(meta$file_id, "__"))))
+
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  loaded_s <- session_get(loaded$session_id)
+  loaded_meta <- loaded_s$files[[meta$file_id]]
+  expect_false(is.null(loaded_meta))
+  expect_true(file.exists(loaded_meta$path))
+  expect_equal(
+    loaded_s$calc_muestra_estudio$workspace$source_bindings[[1]]$file_id,
+    meta$file_id
+  )
+  expect_equal(loaded_s$calc_muestra_estudio$workspace$aulas_config$min_elegibles_aula, 12L)
+  expect_equal(unlist(loaded_s$calc_muestra_estudio$workspace$aulas_config$accepted_conditions), c("regular", "habilitado"))
+  expect_false(loaded_s$calc_muestra_estudio$workspace$aulas_config$require_adult)
+})
+
+test_that("calculo de muestra configurado cuenta como contenido del proyecto", {
+  expect_true(.pulso_state_has_project_content(list(
+    calc_muestra_estudio = list(
+      macro_familia = "encuesta_estudiantes",
+      workspace = list(frame_mode = "opinion_universitaria")
+    )
+  )))
+})
+
 test_that("load_pulso repara XLSForm multibase viejo con variantes ya integradas", {
   setup <- .multibase_variant_repair_session()
   on.exit(session_delete(setup$sid))
