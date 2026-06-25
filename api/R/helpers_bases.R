@@ -692,6 +692,19 @@
   ms <- .detect_multiselect(df, rp_inst)
   if (length(ms) == 0L) return(df)
 
+  dummy_label <- function(var_label, option_label) {
+    var_label <- trimws(as.character(var_label %||% ""))
+    option_label <- trimws(as.character(option_label %||% ""))
+    hit <- regmatches(
+      var_label,
+      regexec("^(.*)\\s+\\(([^()]*(?:medici[oó]n|medicion)[^()]*)\\)\\s*$", var_label, ignore.case = TRUE, perl = TRUE)
+    )[[1]]
+    if (length(hit) == 3L && nzchar(trimws(hit[[1]]))) {
+      return(sprintf("%s = %s (%s)", trimws(hit[[2]]), option_label, trimws(hit[[3]])))
+    }
+    sprintf("%s = %s", var_label, option_label)
+  }
+
   # Preserva atributos top-level del data frame.
   top_attrs <- attributes(df)
   keep_attrs <- setdiff(names(top_attrs), c("names", "row.names", "class"))
@@ -733,12 +746,13 @@
       # Filas donde la respuesta original está NA o vacía → NA (no 0).
       na_rows <- is.na(col) | !nzchar(raw)
       dummy[na_rows] <- NA_integer_
-      attr(dummy, "label") <- sprintf("%s = %s", var_label, label)
+      lab_dummy <- dummy_label(var_label, label)
+      attr(dummy, "label") <- lab_dummy
       attr(dummy, "labels") <- stats::setNames(c(0L, 1L), c("No", "Sí"))
       attr(dummy, "measure") <- "nominal"
       attr(dummy, "format.spss") <- "F1.0"
       out[[new_name]] <- haven::labelled_spss(dummy, labels = c("No" = 0, "Sí" = 1))
-      attr(out[[new_name]], "label") <- sprintf("%s = %s", var_label, label)
+      attr(out[[new_name]], "label") <- lab_dummy
       attr(out[[new_name]], "measure") <- "nominal"
       attr(out[[new_name]], "format.spss") <- "F1.0"
     }

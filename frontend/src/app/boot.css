@@ -1,0 +1,478 @@
+:root {
+  --pulso-primary: #002457;
+  --pulso-primary-soft: rgba(0, 36, 87, 0.08);
+  --pulso-primary-border: rgba(0, 36, 87, 0.18);
+  --pulso-surface: #ffffff;
+  --pulso-surface-2: #fafbff;
+  --pulso-bg: #f3f5f9;
+  --pulso-border: #e2e7f0;
+  --pulso-border-strong: #cbd5e4;
+  --pulso-text: #17212f;
+  --pulso-text-soft: #5f6b7a;
+  --pulso-text-faint: #8792a2;
+  --pulso-shadow-high: 0 24px 60px rgba(0, 36, 87, 0.14);
+  --pulso-info-bg: rgba(0, 36, 87, 0.04);
+  --pulso-info-border: rgba(0, 36, 87, 0.18);
+  --pulso-info-fg: #002457;
+  --pulso-danger-bg: #fef2f2;
+  --pulso-danger-border: #fecaca;
+  --pulso-danger-fg: #991b1b;
+  --pulso-success-bg: #dcfce7;
+  --pulso-success-fg: #166534;
+  color: var(--pulso-text);
+  background: var(--pulso-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.boot-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(244, 245, 247, 0.98)),
+    var(--pulso-bg);
+}
+
+.boot-shell.is-warmup {
+  padding: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 250, 0.98)),
+    var(--pulso-bg);
+}
+
+.boot-panel {
+  width: min(920px, 100%);
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  box-shadow: var(--pulso-shadow-high);
+  padding: 28px;
+}
+
+.boot-panel-warmup {
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: clamp(28px, 6vw, 72px);
+  background: transparent;
+}
+
+.boot-brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.boot-kicker {
+  margin: 0 0 6px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.boot-brand h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.boot-status,
+.boot-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.boot-status-warming,
+.boot-status-loading,
+.boot-pill-running {
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.boot-pill-ready {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.boot-pill-error {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.boot-pill-skipped,
+.boot-pill-timeout,
+.boot-pill-pending {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.boot-chooser {
+  display: grid;
+  gap: 18px;
+}
+
+.boot-error {
+  border: 1px solid var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.boot-path-field {
+  display: grid;
+  gap: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.boot-path-field input {
+  width: 100%;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+}
+
+.boot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.boot-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 8px;
+  padding: 0 16px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.boot-button:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+}
+
+.boot-button:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.boot-button-primary {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary);
+  color: #fff;
+}
+
+.boot-button-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pulso-primary) 88%, black);
+}
+
+.boot-recents {
+  border-top: 1px solid var(--pulso-border);
+  padding-top: 18px;
+}
+
+.boot-recents-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.boot-recents-head h2 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.boot-recent-list {
+  display: grid;
+  gap: 8px;
+}
+
+.boot-recent-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--pulso-surface);
+}
+
+.boot-recent-row > button {
+  min-width: 0;
+  border: 0;
+  padding: 4px 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boot-recent-row strong,
+.boot-recent-row span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boot-recent-row span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.boot-recent-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.boot-recent-meta button {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.boot-empty {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.boot-warmup {
+  width: min(680px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: clamp(22px, 4vw, 42px);
+  text-align: center;
+}
+
+.boot-warmup-mark {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.boot-loader {
+  position: relative;
+  width: clamp(150px, 22vw, 230px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.boot-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 90deg, rgba(0, 36, 87, 0), rgba(0, 36, 87, 0.82), rgba(19, 119, 109, 0.76), rgba(0, 36, 87, 0));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  animation: boot-spin 2.8s linear infinite;
+}
+
+.boot-loader-ring-two {
+  inset: 22%;
+  opacity: 0.42;
+  animation-duration: 3.8s;
+  animation-direction: reverse;
+}
+
+.boot-loader-core {
+  width: 36%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 36, 87, 0.14);
+  background: color-mix(in srgb, var(--pulso-surface) 90%, transparent);
+  box-shadow: 0 18px 52px rgba(0, 36, 87, 0.13);
+  animation: boot-breathe 2.6s ease-in-out infinite;
+}
+
+.boot-progress {
+  width: min(480px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+
+.boot-project-name {
+  max-width: min(440px, 100%);
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 14px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boot-progress h1 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: clamp(34px, 6vw, 62px);
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.04;
+}
+
+.boot-progress-percent {
+  color: var(--pulso-primary);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 760;
+}
+
+.boot-progress-track {
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 36, 87, 0.13);
+}
+
+.boot-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--pulso-primary), #13776d);
+  transition: width 280ms ease;
+}
+
+@keyframes boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes boot-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.72;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-loader-ring,
+  .boot-loader-core {
+    animation: none;
+  }
+}
+
+.boot-background-warmup {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 28px));
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--pulso-surface) 94%, transparent);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.boot-background-warmup span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .boot-shell {
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .boot-panel {
+    padding: 20px;
+  }
+
+  .boot-brand,
+  .boot-recent-row {
+    grid-template-columns: 1fr;
+  }
+
+  .boot-brand {
+    display: grid;
+  }
+
+  .boot-actions {
+    display: grid;
+  }
+
+  .boot-button {
+    width: 100%;
+  }
+
+  .boot-recent-meta {
+    justify-content: space-between;
+  }
+}

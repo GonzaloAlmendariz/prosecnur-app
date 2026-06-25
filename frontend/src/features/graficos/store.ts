@@ -46,6 +46,10 @@ export type DebugPh = {
   lwd: number;      // grosor de línea (default 0.6)
 };
 
+export type ScopeRulesConfig = Record<string, unknown> & {
+  coverage_exclusions?: string[];
+};
+
 // UI-state persistido (v3): preferencias visuales del editor v2. No
 // participa del undo/redo (es estado de vista, no de contenido).
 export type ViewMode = "timeline" | "canvas";
@@ -94,6 +98,7 @@ type Snapshot = {
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
+  scopeRules: ScopeRulesConfig;
 };
 
 // Tope del stack. 30 acciones cubre el flujo típico de edición (crear
@@ -111,6 +116,7 @@ type PlanStore = {
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
+  scopeRules: ScopeRulesConfig;
 
   // --- UI-state del editor v2 (persistido pero NO historizado) ---
   viewMode: ViewMode;
@@ -171,6 +177,8 @@ type PlanStore = {
 
   // Debug de placeholders (toggle global)
   setDebugPh: (patch: Partial<DebugPh>) => void;
+  setScopeRules: (rules: ScopeRulesConfig) => void;
+  setCoverageExcluded: (ref: string, excluded: boolean) => void;
 
   // --- Setters UI-state v2 (NO marcan dirty: persisten via autosave junto al resto, pero no historizan) ---
   setViewMode: (mode: ViewMode) => void;
@@ -265,6 +273,7 @@ function snapshotFromState(state: PlanStore): Snapshot {
     iconos: state.iconos,
     overridesReusables: state.overridesReusables,
     debugPh: state.debugPh,
+    scopeRules: state.scopeRules,
   };
 }
 
@@ -292,6 +301,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   iconos: [],
   overridesReusables: [],
   debugPh: DEFAULT_DEBUG_PH,
+  scopeRules: {},
 
   viewMode: "timeline",
   inspectorTab: "content",
@@ -345,6 +355,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     iconos: cfg.iconos ?? [],
     overridesReusables: cfg.overrides_reusables ?? [],
     debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },
+    scopeRules: cfg.scope_rules ?? {},
     viewMode: cfg.view_mode ?? "timeline",
     inspectorTab: cfg.inspector_tab ?? "content",
     density: cfg.density ?? "comfortable",
@@ -501,6 +512,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),
     paletas: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
+    scopeRules: {},
   })),
 
   // ----- Paletas ----------------------------------------------------------
@@ -566,6 +578,29 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => dirty(state, {
       debugPh: { ...state.debugPh, ...patch },
     })),
+
+  setScopeRules: (rules) =>
+    set((state) => dirty(state, {
+      scopeRules: { ...rules },
+    })),
+
+  setCoverageExcluded: (ref, excluded) =>
+    set((state) => {
+      const cleanRef = String(ref ?? "").trim();
+      if (!cleanRef) return state;
+      const current = Array.isArray(state.scopeRules.coverage_exclusions)
+        ? state.scopeRules.coverage_exclusions.map(String)
+        : [];
+      const nextSet = new Set(current);
+      if (excluded) nextSet.add(cleanRef);
+      else nextSet.delete(cleanRef);
+      return dirty(state, {
+        scopeRules: {
+          ...state.scopeRules,
+          coverage_exclusions: Array.from(nextSet),
+        },
+      });
+    }),
 
   // ----- UI-state v2 (NO historizado, marca dirty para autosave) ----------
   setViewMode: (mode) => set({ viewMode: mode, dirty: true }),

@@ -39,13 +39,18 @@ export type TerritorialExecutiveDistributionItem = {
   label: string;
   value: number;
   pct: number;
-  tone: "ready" | "base" | "muted";
+  target: number;
+  missing: number;
+  progressPct: number;
+  tone: "ready" | "warning" | "base" | "muted";
 };
 
 export type TerritorialExecutiveDistribution = {
   status: TerritorialExecutiveDistributionStatus;
   message: string;
   total: number;
+  targetTotal: number;
+  missingTotal: number;
   variable: string;
   items: TerritorialExecutiveDistributionItem[];
 };
@@ -239,6 +244,7 @@ function buildSexDistribution(
   }
 
   const configuredLabels = collectQuotaLabels(reports, "sex").map(normalizeSexLabel);
+  const quota = quotaProgressDistribution(reports, "sex");
   const counts = new Map<string, number>();
   rows.forEach((row) => {
     const label = normalizeSexLabel(row.sex);
@@ -246,14 +252,15 @@ function buildSexDistribution(
   });
 
   if (!rows.length) {
-    const quota = quotaProgressAchievedDistribution(reports, "sex");
     if (quota.total > 0) {
       return {
         status: "ready",
-        message: "Distribución por sexo sobre válidas que cuentan en avance",
+        message: "Avance de cuota por sexo sobre válidas que cuentan en avance",
         total: quota.total,
+        targetTotal: quota.targetTotal,
+        missingTotal: quota.missingTotal,
         variable,
-        items: distributionItems(quota.counts, quota.total, configuredLabels.length ? configuredLabels : quota.labels),
+        items: distributionItems(quota.counts, quota.total, configuredLabels.length ? configuredLabels : quota.labels, quota.buckets),
       };
     }
   }
@@ -262,12 +269,15 @@ function buildSexDistribution(
     return emptyDistribution("empty", "Sin respuestas válidas para distribuir por sexo", variable);
   }
 
+  const items = distributionItems(counts, rows.length, configuredLabels.length ? configuredLabels : quota.labels, quota.buckets);
   return {
     status: "ready",
-    message: "Distribución por sexo sobre válidas que cuentan en avance",
+    message: "Avance de cuota por sexo sobre válidas que cuentan en avance",
     total: rows.length,
+    targetTotal: quota.targetTotal,
+    missingTotal: items.reduce((sum, item) => sum + item.missing, 0),
     variable,
-    items: distributionItems(counts, rows.length, configuredLabels),
+    items,
   };
 }
 
@@ -281,26 +291,30 @@ function buildAgeDistribution(
     return emptyDistribution("missing_variable", "Variable de edad no configurada", variable);
   }
   const ageLabels = collectQuotaLabels(reports, "age");
+  const quota = quotaProgressDistribution(reports, "age");
   if (!ageLabels.length) {
     return emptyDistribution("missing_ranges", "Rangos de edad no configurados", variable);
   }
   if (!rows.length) {
-    const quota = quotaProgressAchievedDistribution(reports, "age");
     if (quota.total > 0) {
       return {
         status: "ready",
-        message: "Distribución por edad sobre válidas que cuentan en avance",
+        message: "Avance de cuota por edad sobre válidas que cuentan en avance",
         total: quota.total,
+        targetTotal: quota.targetTotal,
+        missingTotal: quota.missingTotal,
         variable,
-        items: distributionItems(quota.counts, quota.total, ageLabels.length ? ageLabels : quota.labels),
+        items: distributionItems(quota.counts, quota.total, ageLabels.length ? ageLabels : quota.labels, quota.buckets),
       };
     }
     return {
       status: "empty",
       message: "Sin respuestas válidas para distribuir por edad",
       total: 0,
+      targetTotal: quota.targetTotal,
+      missingTotal: quota.missingTotal,
       variable,
-      items: ageLabels.map((label) => ({ key: normalizeKey(label), label, value: 0, pct: 0, tone: "base" as const })),
+      items: distributionItems(new Map<string, number>(), 0, ageLabels, quota.buckets),
     };
   }
 
@@ -313,12 +327,15 @@ function buildAgeDistribution(
     labelsByKey.set(normalizeKey(label), label);
   });
 
+  const items = distributionItems(counts, rows.length, [...ageLabels, ...Array.from(labelsByKey.values())], quota.buckets);
   return {
     status: "ready",
-    message: "Distribución por edad sobre válidas que cuentan en avance",
+    message: "Avance de cuota por edad sobre válidas que cuentan en avance",
     total: rows.length,
+    targetTotal: quota.targetTotal,
+    missingTotal: items.reduce((sum, item) => sum + item.missing, 0),
     variable,
-    items: distributionItems(counts, rows.length, [...ageLabels, ...Array.from(labelsByKey.values())]),
+    items,
   };
 }
 
@@ -348,7 +365,7 @@ function collectQuotaLabels(reports: MonitoreoTerritorialDashboard, kind: "sex" 
   return out;
 }
 
-function quotaProgressAchievedDistribution(reports: MonitoreoTerritorialDashboard, kind: "sex" | "age") {
+function quotaProgressDistribution(reports: MonitoreoTerritorialDashboard, kind: "sex" | "age") {
   const districtRows = reports.route_quota_progress?.districts ?? [];
   const blockRows = reports.route_quota_progress?.blocks ?? [];
   const expectedTotal = positiveNumber(reports.kpis?.validas);
@@ -361,6 +378,7 @@ function quotaProgressAchievedDistribution(reports: MonitoreoTerritorialDashboar
     ? blockRows
     : districtRows;
   const counts = new Map<string, number>();
+  const bucketMap = new Map<string, { label: string; target: number; achieved: number; missing: number }>();
   const labels: string[] = [];
   const addLabel = (label: string) => {
     if (!label) return;
@@ -371,20 +389,34 @@ function quotaProgressAchievedDistribution(reports: MonitoreoTerritorialDashboar
       const rawLabel = stringOrEmpty(item.label);
       const label = kind === "sex" ? normalizeSexLabel(rawLabel) : rawLabel;
       const value = positiveNumber(item.achieved);
+      const target = positiveNumber(item.target);
+      const missing = positiveNumber(item.missing ?? Math.max(0, target - value));
+      const key = normalizeKey(label || EMPTY_LABEL);
+      const bucket = bucketMap.get(key) ?? { label: label || EMPTY_LABEL, target: 0, achieved: 0, missing: 0 };
+      bucket.target += target;
+      bucket.achieved += value;
+      bucket.missing += missing;
+      bucketMap.set(key, bucket);
       addLabel(label);
       if (value > 0) incrementBy(counts, label || EMPTY_LABEL, value);
     });
   });
+  const buckets = Array.from(bucketMap.values());
+  const total = Array.from(counts.values()).reduce((sum, value) => sum + value, 0);
+  const targetTotal = buckets.reduce((sum, bucket) => sum + bucket.target, 0);
   return {
+    buckets,
     counts,
     labels,
-    total: Array.from(counts.values()).reduce((sum, value) => sum + value, 0),
+    missingTotal: buckets.reduce((sum, bucket) => sum + bucket.missing, 0),
+    targetTotal,
+    total,
   };
 }
 
 type QuotaProgressDistributionRow = {
-  sex?: Array<{ achieved?: number | null }>;
-  age?: Array<{ achieved?: number | null }>;
+  sex?: Array<{ target?: number | null; achieved?: number | null; missing?: number | null }>;
+  age?: Array<{ target?: number | null; achieved?: number | null; missing?: number | null }>;
 };
 
 function quotaProgressRowsTotal(rows: QuotaProgressDistributionRow[] | undefined, kind: "sex" | "age") {
@@ -393,13 +425,19 @@ function quotaProgressRowsTotal(rows: QuotaProgressDistributionRow[] | undefined
   ), 0);
 }
 
-function distributionItems(counts: Map<string, number>, total: number, preferredOrder: string[]): TerritorialExecutiveDistributionItem[] {
+function distributionItems(
+  counts: Map<string, number>,
+  total: number,
+  preferredOrder: string[],
+  quotaBuckets: Array<{ label: string; target: number; achieved: number; missing: number }> = [],
+): TerritorialExecutiveDistributionItem[] {
   const orderedLabels: string[] = [];
   const addLabel = (label: string) => {
     const value = stringOrEmpty(label) || EMPTY_LABEL;
     if (!orderedLabels.some((item) => normalizeKey(item) === normalizeKey(value))) orderedLabels.push(value);
   };
   preferredOrder.forEach(addLabel);
+  quotaBuckets.map((bucket) => bucket.label).forEach(addLabel);
   Array.from(counts.keys()).forEach(addLabel);
   return orderedLabels
     .map((label) => {
@@ -407,15 +445,22 @@ function distributionItems(counts: Map<string, number>, total: number, preferred
       const value = Array.from(counts.entries())
         .filter(([entry]) => normalizeKey(entry) === key)
         .reduce((sum, [, count]) => sum + count, 0);
+      const quota = quotaBuckets.find((bucket) => normalizeKey(bucket.label) === key);
+      const target = positiveNumber(quota?.target);
+      const missing = target > 0 ? Math.max(0, target - value) : positiveNumber(quota?.missing);
+      const progressPct = target > 0 ? pct(value, target) : 0;
       return {
         key,
         label,
         value,
         pct: pct(value, total),
-        tone: label === EMPTY_LABEL ? "muted" as const : "base" as const,
+        target,
+        missing,
+        progressPct,
+        tone: label === EMPTY_LABEL ? "muted" as const : target > 0 && missing <= 0 ? "ready" as const : target > 0 ? "warning" as const : "base" as const,
       };
     })
-    .filter((item) => item.value > 0 || preferredOrder.some((label) => normalizeKey(label) === item.key));
+    .filter((item) => item.value > 0 || item.target > 0 || preferredOrder.some((label) => normalizeKey(label) === item.key));
 }
 
 function emptyDistribution(
@@ -423,7 +468,7 @@ function emptyDistribution(
   message: string,
   variable: string,
 ): TerritorialExecutiveDistribution {
-  return { status, message, total: 0, variable, items: [] };
+  return { status, message, total: 0, targetTotal: 0, missingTotal: 0, variable, items: [] };
 }
 
 function umpPriorityItem(row: TerritorialSummaryUmpRow, tone: "warning" | "base"): TerritorialExecutivePriorityItem {
@@ -483,8 +528,8 @@ function normalizeSexLabel(value: unknown) {
   const raw = stringOrEmpty(value);
   const key = normalizeKey(raw);
   if (!key) return "";
-  if (["h", "hom", "hombre", "male", "masculino", "varon"].includes(key)) return "Hombre";
-  if (["m", "muj", "mujer", "female", "femenino"].includes(key)) return "Mujer";
+  if (["1", "h", "hom", "hombre", "male", "masculino", "masc", "m", "varon"].includes(key)) return "Hombre";
+  if (["2", "muj", "mujer", "female", "femenino", "fem", "f"].includes(key)) return "Mujer";
   return titleCase(raw);
 }
 

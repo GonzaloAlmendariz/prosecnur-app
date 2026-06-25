@@ -388,9 +388,38 @@
            descripcion = "La pregunta que quieres graficar."),
       list(name = "cruces", label = "Dividir por",tipo_input = "variable_opt", grupo = "datos",
            descripcion = "Segunda variable para segmentar (ej. sexo, región). Si la dejas vacía, muestra una serie única."),
+      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
+           default = "instrumento",
+           choices = list(
+             list(value = "instrumento", label = "Orden del instrumento"),
+             list(value = "mayor_menor", label = "Mayor a menor"),
+             list(value = "menor_mayor", label = "Menor a mayor")
+           ),
+           descripcion = "Define si las categorías respetan el orden del formulario o se ordenan por frecuencia."),
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
-           descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N.")
+           descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
+           default = 10,
+           descripcion = "Si hay más categorías, conserva las principales y agrupa el resto como Otros solo en el gráfico."),
+      list(name = "agrupar_resto_en_otros", label = "Agrupar excedente en Otros", tipo_input = "bool", grupo = "filtro",
+           default = TRUE,
+           descripcion = "Cuando se supera el máximo de categorías, combina las opciones restantes en una categoría Otros."),
+      list(name = "otros_al_final", label = "Otros al final", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "Ubica Otro/Otros al final aunque su frecuencia sea alta."),
+      list(name = "etiqueta_otros", label = "Etiqueta Otros", tipo_input = "string", grupo = "textos",
+           default = "Otros",
+           descripcion = "Nombre que recibirá la categoría agregada del excedente."),
+      list(name = "umbral_posicion", label = "Ubicación de etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
+           default = 0.07,
+           descripcion = "Por debajo de este valor relativo, la etiqueta se muestra fuera de la barra para que no se pierda."),
+      list(name = "ancho_max_eje_y", label = "Ancho de texto de etiquetas", tipo_input = "number", grupo = "filtro",
+           default = 30,
+           descripcion = "Cuántos caracteres puede ocupar cada línea de etiquetas antes de envolver el texto."),
+      list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
+           default = 0.36,
+           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")
     ), .args_graf_comunes())
   ),
 
@@ -755,7 +784,7 @@
            default = "#CA5651",
            descripcion = "Hex del color del texto del título. Default Pulso PUCP: rojo principal."),
       list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
-           default = "#85BB85"),
+           default = "#081F5C"),
       list(name = "color_leyenda",     label = "Color de la leyenda",    tipo_input = "color", grupo = "estilo",
            default = "#081F5C"),
       list(name = "color_ejes",        label = "Color de los ejes",      tipo_input = "color", grupo = "estilo",
@@ -813,7 +842,7 @@
            ),
            descripcion = "Define si la columna extra muestra la base o un indicador agregado como Top 2 Box."),
       list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
-           descripcion = "Tamaño del título que va encima de la barra extra (ej. 'TOP 2 BOX')."),
+           descripcion = "Tamaño del título que va encima de la barra extra (ej. 'Top 2 Box')."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Texto que aparece encima de la columna extra. Déjalo vacío para usar el título automático del indicador."),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos",
@@ -827,18 +856,23 @@
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
            default = "white",
            descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
+      list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo",
+           default = "#081F5C",
+           descripcion = "Color alternativo para etiquetas desplazadas. En apiladas Pulso los porcentajes pequeños se conservan dentro del ancho total de la barra."),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro",
            default = 0,
            descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros)."),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.01,
-           descripcion = "Fracción mínima de la barra para que se escriba el valor. Segmentos por debajo quedan sin etiqueta. 0.01 = 1%."),
+           descripcion = "Compatibilidad: el motor ahora muestra todo valor positivo; este umbral solo ayuda a decidir desplazamiento."),
       list(name = "umbral_mostrar_etiqueta", label = "Umbral para mostrar etiqueta", tipo_input = "number", grupo = "filtro",
-           descripcion = "Variante: segmentos muy pequeños pueden tener la etiqueta afuera/desplazada. Este es el corte a partir del cual aparece."),
+           default = 0.035,
+           descripcion = "Segmentos positivos bajo este corte se muestran desplazados dentro de la barra total, no ocultos."),
       list(name = "umbral_etiqueta_normal", label = "Umbral etiqueta normal", tipo_input = "number", grupo = "filtro",
+           default = 0.085,
            descripcion = "A partir de este umbral, la etiqueta va dentro del segmento sin desplazar."),
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "filtro",
-           descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan verticalmente para no superponerse."),
+           descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "desplazamiento_max_etiquetas_peq", label = "Desplazamiento máximo etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
            descripcion = "Cuánto puede moverse (fracción) una etiqueta chica al repelerla. 0.06 es típico."),
 
@@ -866,9 +900,14 @@
       list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo",
            default = 0.40),
       list(name = "legend_espaciado",     label = "Espaciado entre items de leyenda", tipo_input = "number", grupo = "estilo",
-           default = 15),
+           default = 4),
       list(name = "legend_n_por_fila",    label = "Items por fila en leyenda", tipo_input = "number", grupo = "estilo",
            default = 6),
+      list(name = "legend_ancho_rel",     label = "Ancho reservado leyenda", tipo_input = "number", grupo = "estilo",
+           descripcion = "Ancho relativo mínimo para centrar una leyenda compacta en canvas. Déjalo vacío para cálculo automático."),
+      list(name = "legend_gap_npc",       label = "Separación compacta leyenda", tipo_input = "number", grupo = "estilo",
+           default = 0.018,
+           descripcion = "Separación horizontal entre ítems de la leyenda compacta."),
 
       # --- Canvas (anchos y altos internos en pulgadas) ------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas",
@@ -895,8 +934,16 @@
            default = 0.15),
       list(name = "canvas_h_caption_in",    label = "Alto del pie de página (in)", tipo_input = "number", grupo = "canvas",
            default = 0.20),
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
+           descripcion = "Si se define, fuerza el alto interno del panel de barras. Útil para compactar gráficos de pocas filas."),
+      list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas",
+           default = 1,
+           descripcion = "Mínimo de filas virtuales usadas para calcular separación vertical. 1 compacta gráficos con una barra."),
+      list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas",
+           default = 0.08,
+           descripcion = "Espacio interno superior e inferior alrededor del área de barras."),
       list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas",
-           default = 0.46,
+           default = 0.36,
            descripcion = "Altura en pulgadas que ocupa cada fila (categoría). Más = barras más gruesas."),
 
       # --- Grosor de barras ----------------------------------------------
@@ -939,6 +986,7 @@
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
+      list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo"),
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
@@ -1018,10 +1066,14 @@
 	      list(name = "orden_barras",         label = "Orden de barras",       tipo_input = "choice", grupo = "estilo",
 	           default = "instrumento",
 	           choices = list(
-	             list(value = "instrumento", label = "Instrumento"),
+	             list(value = "instrumento", label = "Orden del instrumento"),
 	             list(value = "mayor_menor", label = "Mayor a menor"),
 	             list(value = "menor_mayor", label = "Menor a mayor")
-	           )),
+	           ),
+	           descripcion = "Define si las categorías respetan el orden del formulario o se ordenan por frecuencia."),
+	      list(name = "otros_al_final",       label = "Otros al final",        tipo_input = "bool", grupo = "estilo",
+	           default = TRUE,
+	           descripcion = "Mueve categorías Otro/Otros al final del orden visual aunque su frecuencia sea alta."),
 	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
 
@@ -1030,12 +1082,20 @@
       list(name = "mostrar_ceros",        label = "Mostrar opciones 0%",   tipo_input = "bool",   grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      list(name = "max_categorias",       label = "Máximo de categorías",  tipo_input = "number", grupo = "filtro",
+           default = 10,
+           descripcion = "Número máximo de opciones visibles. Si hay más, conserva las más frecuentes y agrupa el resto como Otros solo en el gráfico."),
+      list(name = "agrupar_resto_en_otros", label = "Agrupar excedente en Otros", tipo_input = "bool", grupo = "filtro",
+           default = TRUE,
+           descripcion = "Agrupa las categorías que exceden el máximo configurado."),
+      list(name = "etiqueta_otros",       label = "Etiqueta Otros",        tipo_input = "string", grupo = "textos",
+           default = "Otros"),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.001),
-      list(name = "umbral_posicion",      label = "Umbral de posición de la etiqueta", tipo_input = "number", grupo = "filtro",
+      list(name = "umbral_posicion",      label = "Ubicación de etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
            default = 0.07,
-           descripcion = "A partir de qué fracción la etiqueta va dentro vs fuera de la barra."),
+           descripcion = "Por debajo de este valor relativo, la etiqueta se muestra fuera de la barra para que no se pierda."),
 
       # --- Barra extra (menos común acá) ---------------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
@@ -1047,7 +1107,7 @@
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
 
       # --- Eje Y / labels -------------------------------------------------
-      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro", default = 30),
+      list(name = "ancho_max_eje_y",      label = "Ancho de texto de etiquetas", tipo_input = "number", grupo = "filtro", default = 30),
       list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas ---------------------------------------------------------
@@ -1296,7 +1356,7 @@
       # --- Tabla derecha: existencia + contenido ------------------------
       list(name = "mostrar_tabla_derecha",label = "Mostrar tabla a la derecha", tipo_input = "bool", grupo = "tabla", default = TRUE),
       list(name = "titulo_tabla",         label = "Título de la tabla",    tipo_input = "string", grupo = "tabla",
-           default = "TOP 2 BOX"),
+           default = "Top 2 Box"),
       list(name = "tabla_digits",         label = "Decimales en tabla",    tipo_input = "number", grupo = "tabla", default = 0),
       list(name = "umbral_rojo_pct",      label = "Umbral rojo (%)",       tipo_input = "number", grupo = "tabla", default = 60,
            descripcion = "Celdas por debajo de este porcentaje se marcan en rojo. 0 = deshabilitado."),
@@ -1506,9 +1566,11 @@
   azul = "#081F5C",
   rojo = "#CA5651",
   verde = "#85BB85",
+  verde_top2 = "#70AD47",
   amarillo = "#EFD25E",
   gris = "#BFBFBF",
   naranja = "#E4A34C",
+  azul_barras = "#081F5C",
   azul_secundario = "#7594CC",
   morado = "#9688D3",
   gris_secundario = "#D8D8D8",
@@ -1532,7 +1594,7 @@
     size_texto_barras = 4.2,
 
     color_titulo      = .PULSO_PPT_COLORS$rojo,
-    color_subtitulo   = .PULSO_PPT_COLORS$verde,
+    color_subtitulo   = .PULSO_PPT_COLORS$azul,
     color_leyenda     = .PULSO_PPT_COLORS$azul,
     color_ejes        = .PULSO_PPT_COLORS$azul,
     color_nota_pie    = .PULSO_PPT_COLORS$azul,
@@ -1543,7 +1605,7 @@
   ),
 
   barras_apiladas = list(
-    color_barra_extra        = .PULSO_PPT_COLORS$azul,
+    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
 
     canvas_w_etiquetas       = 0.12,
     canvas_w_buf_etq_bars    = 0.02,
@@ -1556,30 +1618,39 @@
     canvas_h_legend_in       = 0.15,
     canvas_h_caption_in      = 0.20,
 
-    alto_por_categoria       = 0.46,
+    alto_por_categoria       = 0.36,
+    canvas_min_filas         = 1,
+    canvas_pad_bars_y_in     = 0.06,
 
-    grosor_modo              = "auto",
-    grosor_barras            = 0.6,
-    grosor_barras_mult       = 0.9,
+    grosor_modo              = "manual",
+    grosor_barras            = 0.62,
+    grosor_barras_mult       = 1,
 
     mostrar_valores          = TRUE,
     umbral_etiqueta          = 0.01,
+    umbral_mostrar_etiqueta  = 0.035,
+    umbral_etiqueta_normal   = 0.085,
     decimales                = 0,
 
     mostrar_barra_extra      = TRUE,
 
     legend_key_cm            = 0.40,
-    legend_espaciado         = 15,
+    legend_espaciado         = 4,
     legend_n_por_fila        = 6,
+    legend_gap_npc           = 0.016,
 
     size_barra_extra         = 10.5,
-    size_titulo_extra        = 10.5,
+    size_titulo_extra        = 8.0,
     ancho_max_eje_y          = 15,
     prefijo_barra_extra      = "",
 
-    color_texto_barras       = "white",
-    size_titulos_grupo       = 10.5,
-    repeler_etiquetas_peq    = TRUE
+	    color_texto_barras       = "white",
+	    color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
+	    size_titulos_grupo       = 10.5,
+	    repeler_etiquetas_peq    = TRUE,
+	    desplazamiento_max_etiquetas_peq = 0.07,
+	    etiquetas_peq_factor_ancho = 1.25,
+	    etiquetas_peq_padding = 0.008
   ),
 
   multi_apiladas = list(
@@ -1592,20 +1663,32 @@
     canvas_h_legend_in       = 0.15,
     canvas_h_caption_in      = 0.15,
 
-    alto_por_categoria       = 0.42,
+    alto_por_categoria       = 0.34,
     ancho_max_eje_y          = 30,
+    grosor_modo              = "manual",
+    grosor_barras            = 0.62,
+    grosor_barras_mult       = 1,
 
     mostrar_valores          = TRUE,
     mostrar_ceros            = TRUE,
+    umbral_mostrar_etiqueta  = 0.035,
+    umbral_etiqueta_normal   = 0.085,
     decimales                = 0,
 
     legend_key_cm            = 0.35,
-    legend_espaciado         = 10,
+    legend_espaciado         = 4,
     legend_n_por_fila        = 6,
+    legend_gap_npc           = 0.016,
 
-    color_texto_barras       = "white",
-    size_titulos_grupo       = 10.5
-  ),
+	    color_texto_barras       = "white",
+	    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+	    size_titulo_extra        = 8.0,
+	    color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
+	    size_titulos_grupo       = 10.5,
+	    desplazamiento_max_etiquetas_peq = 0.07,
+	    etiquetas_peq_factor_ancho = 1.25,
+	    etiquetas_peq_padding = 0.008
+	  ),
 
   barras_agrupadas = list(
 	    canvas_w_etiquetas       = 0.36,
@@ -1615,7 +1698,7 @@
 	    canvas_w_extra           = 0,
 
     canvas_h_toprow_in       = 0.10,
-    canvas_h_header_in       = 0.70,
+    canvas_h_header_in       = 0.50,
     canvas_h_legend_in       = 0.00,
     canvas_h_caption_in      = 0.00,
 
@@ -1633,10 +1716,16 @@
 
 	    mostrar_leyenda          = FALSE,
 	    orden_barras             = "instrumento",
+	    max_categorias           = 10,
+	    agrupar_resto_en_otros   = TRUE,
+	    etiqueta_otros           = "Otros",
+	    otros_al_final           = TRUE,
 	    invertir_barras          = TRUE,
 
     size_barra_extra         = 10,
-    colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul)
+    size_subtitulo           = 7,
+    encabezado_separacion_in = 0.11,
+    colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul_barras)
   ),
 
   barras_numericas = list(
@@ -1730,7 +1819,7 @@
     textos_negrita           = c("ejes", "leyenda"),
 
     mostrar_tabla_derecha    = TRUE,
-    titulo_tabla             = "TOP 2 BOX",
+    titulo_tabla             = "Top 2 Box",
     umbral_rojo_pct          = 60,
     tabla_digits             = 0,
     tabla_padding_mm         = 10,
@@ -2073,6 +2162,51 @@
       descripcion = "Incluye categorías definidas en el instrumento aunque no tengan casos. Desactívalo para dejar solo categorías con N.",
       efecto = "En barras agrupadas, oculta o conserva barras de 0%."
     ),
+    orden_barras = list(
+      label = "Orden de barras",
+      descripcion = "Elige si las opciones mantienen el orden del instrumento o se reordenan por frecuencia.",
+      efecto = "Controla el orden visual sin cambiar la data."
+    ),
+    otros_al_final = list(
+      label = "Otros al final",
+      descripcion = "Ubica Otro/Otros al final aunque sea una de las categorías más frecuentes.",
+      efecto = "Mejora la lectura cuando la categoría Otros aparece muy arriba por frecuencia."
+    ),
+    max_categorias = list(
+      label = "Máximo de categorías",
+      descripcion = "Cantidad máxima de opciones visibles. Si hay más, el excedente puede agruparse como Otros solo en el gráfico.",
+      min = 2,
+      max = 30,
+      step = 1,
+      control = "stepper"
+    ),
+    agrupar_resto_en_otros = list(
+      label = "Agrupar excedente en Otros",
+      descripcion = "Combina las categorías que exceden el máximo visible en una opción Otros, sin modificar la base original.",
+      efecto = "Evita gráficos demasiado altos o con opciones marginales."
+    ),
+    etiqueta_otros = list(
+      label = "Etiqueta Otros",
+      descripcion = "Nombre visible para la categoría que agrupa el excedente."
+    ),
+    umbral_posicion = list(
+      label = "Ubicación de etiquetas pequeñas",
+      descripcion = "Por debajo de este valor relativo, la etiqueta se mueve fuera de la barra para que porcentajes como 1% o 2% se lean mejor.",
+      unidad = "%",
+      min = 0,
+      max = 1,
+      step = 0.0001,
+      control = "stepper",
+      efecto = "Decide cuándo una etiqueta va dentro o fuera de la barra."
+    ),
+    color_barra_extra = list(
+      label = "Color de Top/columna extra",
+      descripcion = "Color del indicador lateral, por ejemplo Top 2 Box. El estándar Pulso usa verde para Top 2."
+    ),
+    barra_extra_preset = list(
+      label = "Indicador lateral",
+      descripcion = "Define si la columna adicional muestra Base/N, Total, Top 2 Box, Top 3 Box o Bottom 2 Box."
+    ),
     canvas_h_header_in = list(
       label = "Alto del encabezado",
       descripcion = "Reserva alto interno para título, subtítulo o elementos superiores del gráfico exportado. Ej. 0.45 pulgadas.",
@@ -2102,7 +2236,7 @@
     ),
     canvas_h_toprow_in = list(
       label = "Alto de fila superior",
-      descripcion = "Alto reservado para la fila superior en layouts con tabla o bloques superiores. Ej. 0.35 crea una fila compacta.",
+      descripcion = "Alto reservado encima de las barras para títulos auxiliares como Top 2 Box. Mantén valores bajos para no separar demasiado el gráfico.",
       unidad = "pulgadas",
       min = 0,
       max = 0.8,

@@ -13,7 +13,11 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "useDefineForClassFields": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "lucide-react": ["src/vendor/lucide-react.ts"]
+    }
   },
   "include": ["src"]
 }

@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { ChevronDown, Database } from "lucide-react";
 import * as Select from "@radix-ui/react-select";
 import { useSession } from "../lib/SessionContext";
 import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioBase, type EstudioPayload } from "../api/client";
 import ProjectIndicator from "../features/project/ProjectIndicator";
-import { useProjectShell } from "../features/project/ProjectShell";
+import { useOptionalProjectShell } from "../features/project/ProjectShell";
 import {
   PROSECNUR_ACTIVE_MODULES,
   moduleChromeVars,
 } from "../lib/modules";
+import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
 // activo y errores de sesión solo cuando existen. El topbar de las 5 fases
@@ -401,7 +402,7 @@ export default function Layout() {
         ? "forward"
         : "back"
       : "default";
-  const { project, openStartModal } = useProjectShell();
+  const projectShell = useOptionalProjectShell();
 
   useEffect(() => {
     previousPathRef.current = location.pathname;
@@ -431,7 +432,7 @@ export default function Layout() {
         )}
         <div className="pulso-app-header-spacer" />
         <div className="pulso-app-header-actions">
-          <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
+          {projectShell ? <ProjectIndicator project={projectShell.project} /> : null}
           <SessionErrorChip />
         </div>
       </header>
@@ -451,7 +452,11 @@ export default function Layout() {
             className="pulso-route-surface"
             data-route-motion={routeMotion}
           >
-            <Outlet />
+            <ModuleWarmupBoundary>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <Outlet />
+              </Suspense>
+            </ModuleWarmupBoundary>
           </div>
         </div>
       </main>

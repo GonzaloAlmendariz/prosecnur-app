@@ -35,6 +35,119 @@
   tolower(as.character(x)[1]) %in% c("1", "true", "t", "yes", "si", "sí")
 }
 
+.monitoreo_sync_profile_override <- function(parsed = list(), provider = "surveymonkey") {
+  if (!is.list(parsed)) parsed <- list()
+  provider <- .monitoreo_scalar(provider, "surveymonkey")
+  overrides <- parsed$profile_overrides %||% parsed$profileOverrides %||% list()
+  nested <- ""
+  if (is.list(overrides)) {
+    nested <- .monitoreo_scalar(
+      overrides[[provider]] %||%
+        overrides[[.monitoreo_safe_name(provider)]] %||%
+        overrides$surveyMonkey %||%
+        overrides$surveymonkey %||%
+        overrides$sm,
+      ""
+    )
+  }
+  if (nzchar(nested)) return(nested)
+  if (identical(provider, "surveymonkey")) {
+    return(.monitoreo_scalar(
+      parsed$surveymonkey_profile_id %||%
+        parsed$surveyMonkeyProfileId %||%
+        parsed$survey_monkey_profile_id %||%
+        parsed$sm_profile_id %||%
+        parsed$smProfileId %||%
+        parsed$profile_id %||%
+        parsed$profileId %||%
+        parsed$connection_profile_id %||%
+        parsed$connectionProfileId,
+      ""
+    ))
+  }
+  ""
+}
+
+.monitoreo_source_connection_profile_id <- function(source = list(), parsed = list(), provider = "surveymonkey") {
+  override <- .monitoreo_sync_profile_override(parsed, provider)
+  if (nzchar(override)) return(override)
+  .monitoreo_scalar(source$connection_profile_id %||% source$profile_id, "")
+}
+
+.monitoreo_connection_profile_clean_id <- function(profile_id = "") {
+  if (exists(".connections_profile_clean_id", mode = "function")) {
+    return(.connections_profile_clean_id(profile_id))
+  }
+  profile_id <- trimws(as.character(profile_id %||% "")[1])
+  if (is.na(profile_id)) profile_id <- ""
+  profile_id <- gsub("[^a-zA-Z0-9_-]+", "_", profile_id)
+  gsub("^_+|_+$", "", profile_id)
+}
+
+.monitoreo_surveymonkey_profile_candidates <- function(preferred_profile_id = "") {
+  out <- character(0)
+  add_id <- function(value) {
+    id <- .monitoreo_connection_profile_clean_id(value)
+    if (nzchar(id) && !(id %in% out)) out <<- c(out, id)
+  }
+  add_id(preferred_profile_id)
+  manifest <- if (exists(".connections_load_profile_manifest", mode = "function")) {
+    tryCatch(.connections_load_profile_manifest("surveymonkey"), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  if (is.list(manifest)) {
+    add_id(manifest$default_profile_id)
+    for (profile in manifest$profiles %||% list()) {
+      if (is.list(profile)) add_id(profile$id)
+    }
+  }
+  if (!length(out)) out <- ""
+  out
+}
+
+.monitoreo_surveymonkey_token_candidates <- function(sid = NULL,
+                                                     preferred_profile_id = "",
+                                                     connection_token = "") {
+  out <- list()
+  seen <- character(0)
+  add_candidate <- function(profile_id, token, source = "") {
+    token <- .monitoreo_scalar(token, "")
+    if (!nzchar(token)) return(invisible(NULL))
+    profile_id <- .monitoreo_connection_profile_clean_id(profile_id)
+    key <- paste(nchar(token), token, sep = "::")
+    if (key %in% seen) return(invisible(NULL))
+    seen <<- c(seen, key)
+    out[[length(out) + 1L]] <<- list(
+      profile_id = profile_id,
+      token = token,
+      source = .monitoreo_scalar(source, "")
+    )
+    invisible(NULL)
+  }
+
+  add_candidate(preferred_profile_id, connection_token, "request")
+  for (profile_id in .monitoreo_surveymonkey_profile_candidates(preferred_profile_id)) {
+    token <- if (exists(".connections_token_require", mode = "function")) {
+      tryCatch(
+        .connections_token_require("surveymonkey", sid, profile_id = profile_id),
+        error = function(e) ""
+      )
+    } else {
+      ""
+    }
+    add_candidate(profile_id, token, "profile")
+  }
+  if (!length(out) && exists(".connections_token_require", mode = "function")) {
+    token <- .connections_token_require("surveymonkey", sid, profile_id = preferred_profile_id)
+    add_candidate(preferred_profile_id, token, "required")
+  }
+  if (!length(out)) {
+    stop("Falta token SurveyMonkey guardado.", call. = FALSE)
+  }
+  out
+}
+
 .monitoreo_safe_name <- function(x) {
   x <- tolower(trimws(as.character(x %||% "")))
   x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
@@ -572,12 +685,20 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
 .monitoreo_response_key_label_allowed <- function(name, label) {
   clean <- .monitoreo_text_key(name)
   label_clean <- .monitoreo_text_key(label)
+  label_words <- gsub("[^a-z0-9]+", " ", label_clean)
+  label_compact <- gsub("[^a-z0-9]+", "", label_clean)
   if (!nzchar(label_clean)) return(FALSE)
   if (!grepl("^q[0-9]+$", clean)) return(FALSE)
   optional_contact <- grepl("en caso|desee|resultados|envi|envie|enviar", label_clean) &&
     grepl("mail|correo|email", label_clean)
   if (optional_contact) return(FALSE)
-  grepl("codigo pucp|codigo pulso|codpulso|cod pulso|cod pucp", label_clean)
+  code_word <- grepl("\\b(codigo|cod)\\b", label_words)
+  institutional_code <- isTRUE(code_word) && grepl(
+    "\\b(pucp|puc|puk)\\b|institucional|universitario|docente|estudiante|alumno",
+    label_words
+  )
+  compact_code <- grepl("codigopucp|codigopuc|codigopuk|codpucp|codpuc|codpuk", label_compact)
+  institutional_code || compact_code
 }
 
 .monitoreo_response_key_name_allowed <- function(name, configured = character(0)) {
@@ -589,6 +710,49 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
 .monitoreo_response_generic_question_column <- function(name) {
   clean <- .monitoreo_text_key(name)
   grepl("^q[0-9]+($|_)", clean)
+}
+
+.monitoreo_response_code_value_plausible <- function(value, strict_numeric = FALSE) {
+  code <- toupper(gsub("[^A-Za-z0-9]+", "", as.character(value %||% "")[1]))
+  if (is.na(code) || !nzchar(code)) return(FALSE)
+  if (grepl("^\\d+$", code)) {
+    return(nchar(code) >= 5L && nchar(code) <= 10L)
+  }
+  if (isTRUE(strict_numeric)) return(FALSE)
+  nchar(code) >= 3L && nchar(code) <= 14L
+}
+
+.monitoreo_response_configured_code_value_plausible <- function(value) {
+  code <- toupper(gsub("[^A-Za-z0-9]+", "", as.character(value %||% "")[1]))
+  if (is.na(code) || !nzchar(code)) return(FALSE)
+  if (grepl("^\\d+$", code)) return(nchar(code) >= 1L && nchar(code) <= 12L)
+  nchar(code) >= 2L && nchar(code) <= 14L
+}
+
+.monitoreo_report_key_detail_rank <- function(item = list()) {
+  type <- .monitoreo_scalar(item$type, "")
+  column <- .monitoreo_scalar(item$column, "")
+  label <- .monitoreo_scalar(item$label, "")
+  value <- .monitoreo_scalar(item$value, "")
+  configured <- isTRUE(item$configured)
+  clean <- .monitoreo_text_key(column)
+  label_allowed <- .monitoreo_response_key_label_allowed(column, label)
+  if (identical(type, "codigo") && configured &&
+      .monitoreo_response_code_value_plausible(value, strict_numeric = TRUE)) {
+    return(0L)
+  }
+  if (identical(type, "codigo") && configured) return(1L)
+  if (identical(type, "codigo") && isTRUE(label_allowed) &&
+      .monitoreo_response_code_value_plausible(value, strict_numeric = TRUE)) {
+    return(2L)
+  }
+  if (identical(type, "codigo") && isTRUE(label_allowed)) return(3L)
+  if (identical(type, "codigo") && grepl("cod|codigo|puc|puk", clean)) return(4L)
+  if (identical(type, "email")) return(5L)
+  if (identical(type, "telefono")) return(6L)
+  if (identical(type, "codigo") && grepl("custom_value|cv_id|recipient", clean)) return(7L)
+  if (identical(type, "codigo")) return(8L)
+  99L
 }
 
 monitoreo_acreditacion_case_keys <- function(row, profile = list(), origin = c("universo", "respuesta")) {
@@ -604,13 +768,29 @@ monitoreo_acreditacion_case_keys <- function(row, profile = list(), origin = c("
   )
   keys <- character(0)
   if (is.null(row) || !is.list(row)) return(keys)
+  row_configured_var <- if (identical(origin, "respuesta")) {
+    .monitoreo_scalar(row$.source_declared_person_code_var %||% row[[".source_declared_person_code_var"]], "")
+  } else {
+    ""
+  }
+  row_configured_label <- if (identical(origin, "respuesta")) {
+    .monitoreo_scalar(row$.source_declared_person_code_label %||% row[[".source_declared_person_code_label"]], "")
+  } else {
+    ""
+  }
+  row_configured_clean <- .monitoreo_text_key(row_configured_var)
+  row_configured_text <- .monitoreo_text_key(paste(row_configured_var, row_configured_label))
   for (nm in names(row)) {
     value <- row[[nm]]
     if (is.null(value) || length(value) == 0L || !nzchar(trimws(as.character(value)[1]))) next
     clean <- .monitoreo_text_key(nm)
     if (identical(origin, "respuesta") && clean %in% ignored_response) next
     if (identical(origin, "respuesta")) {
-      if (!.monitoreo_response_key_name_allowed(nm, fields)) next
+      response_key_by_config <- nzchar(row_configured_clean) &&
+        identical(clean, row_configured_clean) &&
+        !grepl("\\bpulso\\b|codpulso|codigo pulso|cod pulso", row_configured_text)
+      if (!.monitoreo_response_key_name_allowed(nm, fields) && !isTRUE(response_key_by_config)) next
+      if (isTRUE(response_key_by_config) && !.monitoreo_response_configured_code_value_plausible(value)) next
     } else if (!.monitoreo_field_match(nm, fields, automatic)) {
       next
     }
@@ -1136,6 +1316,18 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
     if (!modality %in% c("email", "whatsapp", "sms", "telefono", "presencial", "mixto")) {
       modality <- use_to_modality(operational_use)
     }
+    channel <- .monitoreo_scalar(item$channel %||% item$canal, "")
+    if (!nzchar(channel)) {
+      channel <- switch(
+        modality,
+        email = "Correo",
+        whatsapp = "WhatsApp",
+        sms = "SMS",
+        telefono = "Telefónico",
+        presencial = "Ficha QR",
+        "Mixto"
+      )
+    }
     link_collectors[[length(link_collectors) + 1L]] <- list(
       id = .monitoreo_scalar(item$id, paste(source_id, collector_id, sep = "::")),
       source_id = source_id,
@@ -1144,6 +1336,8 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
       collector_id = collector_id,
       collector_name = .monitoreo_scalar(item$collector_name %||% item$label %||% item$nombre, ""),
       collector_type = .monitoreo_scalar(item$collector_type %||% item$tipo_colector, ""),
+      enabled = .monitoreo_bool(item$enabled %||% item$activo %||% item$included %||% item$incluido, TRUE),
+      channel = channel,
       operational_use = operational_use,
       modality = modality,
       roster_required = .monitoreo_bool(item$roster_required %||% item$requiere_base_casos, identical(operational_use, "telefono_asistido"))
@@ -2823,9 +3017,25 @@ monitoreo_default_config <- function(data = NULL) {
     supervision_seed = 20260514,
     monitoreo_profile = monitoreo_normalize_profile(list()),
     acreditacion = monitoreo_normalize_acreditacion(list()),
+    client_report = .monitoreo_client_report_config(list()),
     territorial = monitoreo_territorial_default_config(data),
     aulas_universitarias = monitoreo_aulas_default_config()
   )
+}
+
+.monitoreo_client_report_config <- function(config = list()) {
+  raw <- config$client_report %||% config$clientReport %||% config$reporte_cliente %||% list()
+  if (is.null(raw) || !is.list(raw)) raw <- list()
+  labels_raw <- raw$channel_labels %||% raw$channelLabels %||% raw$alias_canales %||% list()
+  labels <- list()
+  if (is.list(labels_raw) && length(labels_raw)) {
+    for (nm in names(labels_raw)) {
+      key <- .monitoreo_text_key(nm)
+      value <- trimws(.monitoreo_scalar(labels_raw[[nm]], ""))
+      if (nzchar(key) && nzchar(value)) labels[[key]] <- value
+    }
+  }
+  list(channel_labels = labels)
 }
 
 monitoreo_normalize_config <- function(config = list(), data = NULL, previous_config = NULL) {
@@ -2923,6 +3133,7 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     supervision_seed = .monitoreo_int(config$supervision_seed, defaults$supervision_seed),
     monitoreo_profile = profile,
     acreditacion = acreditacion,
+    client_report = .monitoreo_client_report_config(config),
     territorial = territorial,
     aulas_universitarias = aulas
   )
@@ -3218,6 +3429,35 @@ monitoreo_demo_payload <- function(seed = 20260514L, n = 96L) {
   out
 }
 
+.monitoreo_normalize_source_collectors <- function(value = NULL) {
+  if (is.null(value)) return(list())
+  if (is.data.frame(value)) {
+    value <- lapply(seq_len(nrow(value)), function(i) as.list(value[i, , drop = FALSE]))
+  }
+  if (!is.list(value) || !length(value)) return(list())
+  out <- list()
+  for (item in value) {
+    if (!is.list(item)) next
+    collector_id <- .monitoreo_scalar(item$collector_id %||% item$collectorId %||% item$id, "")
+    if (!nzchar(collector_id)) next
+    clean <- list(
+      id = collector_id,
+      collector_id = collector_id,
+      name = .monitoreo_scalar(
+        item$name %||% item$title %||% item$collector_name %||% item$collectorName %||%
+          item$display_name %||% item$displayName %||% item$nickname,
+        ""
+      ),
+      type = .monitoreo_scalar(item$type %||% item$collector_type %||% item$collectorType, ""),
+      url = .monitoreo_scalar(item$url %||% item$href %||% item$web_link %||% item$webLink, ""),
+      response_count = as.integer(.monitoreo_num(item$response_count %||% item$responseCount, 0)),
+      synced_at = .monitoreo_scalar(item$synced_at %||% item$syncedAt %||% item$updated_at %||% item$updatedAt, "")
+    )
+    out[[collector_id]] <- clean
+  }
+  unname(out)
+}
+
 monitoreo_normalize_sources <- function(sources = list()) {
   if (is.null(sources) || !is.list(sources)) return(list())
   if (is.data.frame(sources)) {
@@ -3256,10 +3496,33 @@ monitoreo_normalize_sources <- function(sources = list()) {
       integration_mode = integration_mode,
       sheet_binding = sheet_binding,
       dimensions = .monitoreo_source_dimensions(src),
+      declared_person_code_var = .monitoreo_scalar(
+        src$declared_person_code_var %||%
+          src$declaredPersonCodeVar %||%
+          src$declared_pucp_code_var %||%
+          src$declaredPucpCodeVar %||%
+          src$codigo_pucp_var %||%
+          src$codigoPucpVar %||%
+          src$person_code_var %||%
+          src$personCodeVar,
+        ""
+      ),
+      declared_person_code_label = .monitoreo_scalar(
+        src$declared_person_code_label %||%
+          src$declaredPersonCodeLabel %||%
+          src$declared_pucp_code_label %||%
+          src$declaredPucpCodeLabel %||%
+          src$codigo_pucp_label %||%
+          src$codigoPucpLabel %||%
+          src$person_code_label %||%
+          src$personCodeLabel,
+        ""
+      ),
       created_at = .monitoreo_scalar(src$created_at, .monitoreo_now_iso()),
       last_sync_at = .monitoreo_scalar(src$last_sync_at, ""),
       last_sync_mode = .monitoreo_scalar(src$last_sync_mode %||% src$lastSyncMode, ""),
-      sync_cursor = .monitoreo_normalize_sync_cursor(src$sync_cursor %||% src$syncCursor)
+      sync_cursor = .monitoreo_normalize_sync_cursor(src$sync_cursor %||% src$syncCursor),
+      collectors = .monitoreo_normalize_source_collectors(src$collectors %||% src$survey_collectors %||% src$surveyCollectors)
     )
     out[[item$id]] <- item
   }
@@ -3277,6 +3540,58 @@ monitoreo_upsert_source <- function(sources, source) {
   current
 }
 
+.monitoreo_source_metadata_columns <- function(source = list()) {
+  list(
+    .source_declared_person_code_var = .monitoreo_scalar(
+      source$declared_person_code_var %||%
+        source$declaredPersonCodeVar %||%
+        source$declared_pucp_code_var %||%
+        source$declaredPucpCodeVar %||%
+        source$codigo_pucp_var %||%
+        source$codigoPucpVar,
+      ""
+    ),
+    .source_declared_person_code_label = .monitoreo_scalar(
+      source$declared_person_code_label %||%
+        source$declaredPersonCodeLabel %||%
+        source$declared_pucp_code_label %||%
+        source$declaredPucpCodeLabel %||%
+        source$codigo_pucp_label %||%
+        source$codigoPucpLabel,
+      ""
+    )
+  )
+}
+
+.monitoreo_apply_source_metadata_to_data <- function(data, sources = list()) {
+  if (is.null(data) || !is.data.frame(data)) return(data.frame())
+  if (!nrow(data) || !".source_id" %in% names(data)) return(data)
+  sources <- monitoreo_normalize_sources(sources)
+  if (!length(sources)) return(data)
+  variable_labels <- .monitoreo_variable_label_map(data)
+  source_variable_labels <- .monitoreo_source_variable_label_map(data)
+  metadata_cols <- c(".source_declared_person_code_var", ".source_declared_person_code_label")
+  for (col in metadata_cols) {
+    if (!col %in% names(data)) data[[col]] <- rep("", nrow(data))
+    data[[col]] <- as.character(data[[col]] %||% "")
+    data[[col]][is.na(data[[col]])] <- ""
+  }
+  source_ids <- as.character(data$.source_id %||% "")
+  for (source in sources) {
+    source_id <- .monitoreo_scalar(source$id, "")
+    if (!nzchar(source_id)) next
+    idx <- which(source_ids == source_id)
+    if (!length(idx)) next
+    metadata <- .monitoreo_source_metadata_columns(source)
+    for (col in names(metadata)) {
+      data[[col]][idx] <- .monitoreo_scalar(metadata[[col]], "")
+    }
+  }
+  data <- .monitoreo_restore_variable_labels(data, variable_labels)
+  if (length(source_variable_labels)) attr(data, "monitoreo_source_variable_labels") <- source_variable_labels
+  data
+}
+
 .monitoreo_add_source_columns <- function(data, source) {
   if (is.null(data) || !is.data.frame(data)) data <- data.frame()
   variable_labels <- .monitoreo_variable_label_map(data)
@@ -3289,6 +3604,7 @@ monitoreo_upsert_source <- function(sources, source) {
       .source_role = .monitoreo_scalar(source$role, ""),
       .integration_mode = .monitoreo_scalar(source$integration_mode, "")
     ),
+    .monitoreo_source_metadata_columns(source),
     .monitoreo_dimension_columns(source$dimensions)
   )
   for (nm in names(values)) {
@@ -4628,8 +4944,20 @@ monitoreo_sheets_read_source <- function(source) {
   if (is.finite(value) && value > 0) value else NA_real_
 }
 
-monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
+.monitoreo_sync_mode <- function(value = "full") {
+  mode <- tolower(.monitoreo_scalar(value, "full"))
+  if (mode %in% c("advance", "avance", "responses", "responses_only", "response_only")) return("advance")
+  "full"
+}
+
+.monitoreo_sync_mode_is_advance <- function(value = "full") {
+  identical(.monitoreo_sync_mode(value), "advance")
+}
+
+monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = NULL, connection_token = NULL, sync_mode = "full") {
+  sync_mode <- .monitoreo_sync_mode(sync_mode)
   kind <- .monitoreo_scalar(source$kind, "")
+  connection_token <- .monitoreo_scalar(connection_token, "")
   if (identical(kind, "kobo")) {
     if (!is.null(progress)) progress(0L, 8L, "Kobo: preparando perfil de conexion")
     profile_id <- .monitoreo_scalar(source$connection_profile_id %||% source$profile_id, "")
@@ -4637,7 +4965,7 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
     if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
     if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
     if (!is.null(progress)) progress(1L, 8L, sprintf("Kobo: servidor %s", base_url))
-    token <- .connections_token_require("kobo", profile_id = profile_id, base_url = base_url)
+    token <- if (nzchar(connection_token)) connection_token else .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
     if (!is.null(progress)) progress(2L, 8L, "Kobo: token local encontrado")
     cursor_id <- .monitoreo_kobo_source_cursor_id(source)
     payload <- NULL
@@ -4686,24 +5014,102 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
       remote_total = as.integer(payload$total %||% payload$count %||% nrow(data))
     ))
   } else if (identical(kind, "surveymonkey")) {
-    token <- .connections_token_require("surveymonkey")
-    details <- sm_api_fetch_survey_details(source$survey_id, token, base_url = source$base_url %||% "https://api.surveymonkey.com/v3")
-    source$survey_title <- .monitoreo_scalar(details$title, source$survey_title %||% "")
-    payload <- sm_api_fetch_all_responses_bulk(
-      survey_id = source$survey_id,
-      token = token,
-      since = since,
-      progress = progress,
-      base_url = source$base_url %||% "https://api.surveymonkey.com/v3"
+    advance_mode <- .monitoreo_sync_mode_is_advance(sync_mode)
+    profile_id <- .monitoreo_scalar(source$connection_profile_id %||% source$profile_id, "")
+    base_url <- source$base_url %||% "https://api.surveymonkey.com/v3"
+    token_candidates <- .monitoreo_surveymonkey_token_candidates(
+      sid = sid,
+      preferred_profile_id = profile_id,
+      connection_token = connection_token
     )
-    data <- sm_api_flatten_responses(details, payload$data)
-    data <- sm_api_enrich_response_recipients(
-      data,
-      token = token,
-      base_url = source$base_url %||% "https://api.surveymonkey.com/v3",
-      include_details = TRUE
-    )
-    attr(data, "sync_mode") <- if (is.null(since)) "full" else "incremental"
+    last_error <- NULL
+    data <- NULL
+    selected_profile_id <- profile_id
+    for (candidate in token_candidates) {
+      token <- .monitoreo_scalar(candidate$token, "")
+      candidate_profile_id <- .monitoreo_scalar(candidate$profile_id, "")
+      attempt <- tryCatch({
+        details <- sm_api_fetch_survey_details(source$survey_id, token, base_url = base_url)
+        source$survey_title <- .monitoreo_scalar(details$title, source$survey_title %||% "")
+        collector_sync_error <- ""
+        collectors_meta <- list()
+        if (!advance_mode) {
+          collectors_meta <- tryCatch({
+            collectors <- sm_api_fetch_collectors(source$survey_id, token, base_url = base_url)
+            out <- list()
+            for (collector in collectors$data %||% list()) {
+              collector_id <- .monitoreo_scalar(collector$id %||% collector$collector_id, "")
+              if (!nzchar(collector_id)) next
+              detail <- tryCatch(
+                sm_api_fetch_collector_detail(collector_id, token, base_url = base_url),
+                error = function(e) collector
+              )
+              out[[collector_id]] <- list(
+                id = collector_id,
+                collector_id = collector_id,
+                name = .monitoreo_scalar(
+                  detail$name %||% detail$title %||% detail$collector_name %||% detail$collectorName %||%
+                    detail$display_name %||% detail$displayName %||% detail$nickname %||%
+                    (detail$metadata %||% list())$name %||% (detail$metadata %||% list())$title %||%
+                    (detail$collector %||% list())$name %||% (detail$collector %||% list())$title %||%
+                    collector$name %||% collector$title %||% collector$collector_name %||% collector$collectorName %||%
+                    collector$display_name %||% collector$displayName %||% collector$nickname,
+                  ""
+                ),
+                type = .monitoreo_scalar(detail$type %||% detail$collector_type %||% detail$collectorType %||% collector$type, ""),
+                url = .monitoreo_scalar(detail$url %||% collector$url %||% detail$href %||% collector$href, ""),
+                response_count = as.integer(.monitoreo_num(detail$response_count %||% collector$response_count, 0)),
+                synced_at = .monitoreo_now_iso()
+              )
+            }
+            unname(out)
+          }, error = function(e) {
+            collector_sync_error <<- conditionMessage(e)
+            list()
+          })
+        }
+        payload <- sm_api_fetch_all_responses_bulk(
+          survey_id = source$survey_id,
+          token = token,
+          since = since,
+          progress = progress,
+          base_url = base_url
+        )
+        df <- sm_api_flatten_responses(details, payload$data)
+        df <- sm_api_enrich_response_recipients(
+          df,
+          token = token,
+          base_url = base_url,
+          include_details = !advance_mode
+        )
+        if (!advance_mode) {
+          attr(df, "monitoreo_source_collectors") <- collectors_meta
+          if (nzchar(collector_sync_error)) attr(df, "monitoreo_source_collectors_error") <- collector_sync_error
+        }
+        attr(df, "connection_profile_id") <- candidate_profile_id
+        attr(df, "survey_title") <- source$survey_title
+        df
+      }, error = function(e) {
+        last_error <<- list(profile_id = candidate_profile_id, message = conditionMessage(e))
+        NULL
+      })
+      if (!is.null(attempt)) {
+        data <- attempt
+        selected_profile_id <- candidate_profile_id
+        break
+      }
+    }
+    if (is.null(data)) {
+      msg <- .monitoreo_scalar(last_error$message, "No fue posible sincronizar SurveyMonkey.")
+      profile_msg <- .monitoreo_scalar(last_error$profile_id, "")
+      if (nzchar(profile_msg)) msg <- sprintf("%s (ultimo perfil probado: %s)", msg, profile_msg)
+      stop(msg, call. = FALSE)
+    }
+    if (nzchar(selected_profile_id)) attr(data, "connection_profile_id") <- selected_profile_id
+    survey_title <- .monitoreo_scalar(attr(data, "survey_title", exact = TRUE), "")
+    if (nzchar(survey_title)) source$survey_title <- survey_title
+    if (nzchar(selected_profile_id)) source$connection_profile_id <- selected_profile_id
+    attr(data, "sync_mode") <- if (advance_mode) "advance" else if (is.null(since)) "full" else "incremental"
   } else if (identical(kind, "google_sheets")) {
     data <- monitoreo_sheets_read_source(source)
     attr(data, "sync_mode") <- "full"
@@ -4711,14 +5117,22 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
     stop("Tipo de fuente no soportado.", call. = FALSE)
   }
   sheet_binding <- attr(data, "sheet_binding", exact = TRUE)
+  source_collectors <- attr(data, "monitoreo_source_collectors", exact = TRUE)
+  connection_profile_id <- .monitoreo_scalar(attr(data, "connection_profile_id", exact = TRUE), "")
   if (identical(kind, "surveymonkey") && nzchar(source$survey_title %||% "")) attr(data, "survey_title") <- source$survey_title
   data <- .monitoreo_add_source_columns(data, source)
   if (is.list(sheet_binding)) attr(data, "sheet_binding") <- sheet_binding
+  if (is.list(source_collectors)) attr(data, "monitoreo_source_collectors") <- source_collectors
+  if (nzchar(connection_profile_id)) attr(data, "connection_profile_id") <- connection_profile_id
   data
 }
 
-monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progress_path = NULL, build_dashboard = TRUE) {
+monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progress_path = NULL, build_dashboard = TRUE, sid = NULL, connection_tokens = list(), sync_mode = "full") {
+  sync_mode <- .monitoreo_sync_mode(sync_mode)
   sources <- Filter(function(s) isTRUE(s$enabled), monitoreo_normalize_sources(sources))
+  if (.monitoreo_sync_mode_is_advance(sync_mode)) {
+    sources <- Filter(function(s) .monitoreo_scalar(s$kind, "") %in% c("surveymonkey", "kobo"), sources)
+  }
   if (!length(sources)) stop("Configura al menos una fuente activa de monitoreo.", call. = FALSE)
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
   dfs <- list()
@@ -4791,7 +5205,13 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
              percent = pct,
              message = msg)
     }
-    df <- tryCatch(monitoreo_sync_source(src, since = since, progress = local_progress), error = function(e) {
+    source_token <- .monitoreo_scalar(
+      (connection_tokens %||% list())[[.monitoreo_scalar(src$id, "")]] %||%
+        (connection_tokens %||% list())[[.monitoreo_scalar(src$survey_id, "")]] %||%
+        (connection_tokens %||% list())[[.monitoreo_scalar(src$asset_uid, "")]],
+      ""
+    )
+    df <- tryCatch(monitoreo_sync_source(src, since = since, progress = local_progress, sid = sid, connection_token = source_token, sync_mode = sync_mode), error = function(e) {
       errors[[length(errors) + 1L]] <<- list(source_id = src$id, source_label = src$label, message = conditionMessage(e))
       report("source_error", current = i, total = n_sources,
              percent = max(source_start, min(source_end - 1, source_start + round(source_span * 0.85))),
@@ -4803,6 +5223,12 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
       if (is.list(binding)) sources[[i]]$sheet_binding <- binding
       survey_title <- attr(df, "survey_title", exact = TRUE)
       if (is.character(survey_title) && nzchar(survey_title[[1]] %||% "")) sources[[i]]$survey_title <- survey_title[[1]]
+      connection_profile_id <- .monitoreo_scalar(attr(df, "connection_profile_id", exact = TRUE), "")
+      if (nzchar(connection_profile_id)) sources[[i]]$connection_profile_id <- connection_profile_id
+      source_collectors <- attr(df, "monitoreo_source_collectors", exact = TRUE)
+      if (is.list(source_collectors)) sources[[i]]$collectors <- .monitoreo_normalize_source_collectors(source_collectors)
+      collector_sync_error <- .monitoreo_scalar(attr(df, "monitoreo_source_collectors_error", exact = TRUE), "")
+      if (nzchar(collector_sync_error)) sources[[i]]$collectors_error <- collector_sync_error
       sync_mode <- .monitoreo_scalar(attr(df, "sync_mode", exact = TRUE), "full")
       sync_cursor <- attr(df, "sync_cursor", exact = TRUE)
       if (is.list(sync_cursor)) sources[[i]]$sync_cursor <- .monitoreo_normalize_sync_cursor(sync_cursor)
@@ -4813,6 +5239,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
         kind = .monitoreo_scalar(src$kind, ""),
         mode = sync_mode,
         rows = as.integer(nrow(df)),
+        connection_profile_id = .monitoreo_scalar(sources[[i]]$connection_profile_id, ""),
         cursor = if (is.list(sync_cursor)) .monitoreo_normalize_sync_cursor(sync_cursor) else list()
       )
       dfs[[length(dfs) + 1L]] <- df
@@ -4822,8 +5249,22 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
     }
   }
   if (!length(dfs)) {
-    msg <- if (length(errors)) paste(vapply(errors, `[[`, character(1), "message"), collapse = " | ") else "No se obtuvieron datos."
-    stop(msg, call. = FALSE)
+    report("snapshot", percent = 82, message = "No se pudo actualizar ninguna fuente; se conservara el snapshot anterior.")
+    empty <- data.frame()
+    cfg <- monitoreo_normalize_config(config, empty)
+    return(list(
+      ok = FALSE,
+      synced_at = .monitoreo_now_iso(),
+      n_rows = 0L,
+      n_sources = 0L,
+      errors = errors,
+      data = empty,
+      sources = sources,
+      config = cfg,
+      dashboard = NULL,
+      variables = list(),
+      sync_summary = sync_summary
+    ))
   }
   report("snapshot", percent = 82, message = "Uniendo fuentes en un snapshot local...")
   data <- .monitoreo_bind_rows(dfs)
@@ -4851,6 +5292,436 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
     dashboard = dashboard,
     variables = variables,
     sync_summary = sync_summary
+  )
+}
+
+.monitoreo_snapshot_nonempty_values <- function(x, limit = 6L) {
+  if (is.null(x)) return(character(0))
+  values <- trimws(as.character(x))
+  values <- values[!is.na(values) & nzchar(values)]
+  values <- unique(values)
+  if (!length(values)) return(character(0))
+  raw_limit <- suppressWarnings(as.numeric(limit)[1])
+  limit_n <- if (is.finite(raw_limit)) max(1L, as.integer(raw_limit)) else length(values)
+  values[seq_len(min(length(values), limit_n))]
+}
+
+.monitoreo_snapshot_variable_kind <- function(name, label) {
+  text <- .monitoreo_text_key(paste(name, label))
+  compact <- gsub("[^a-z0-9]+", "", text)
+  if (grepl("pulso|codpulso|codigopulso", compact) && !grepl("pucp|puc|puk", compact)) return("other")
+  if ((grepl("\\b(codigo|cod)\\b", text) && grepl("\\b(pucp|puc|puk)\\b|institucional|universitario|docente|estudiante|alumno", text)) ||
+      grepl("codigopucp|codigopuc|codigopuk|codpucp|codpuc|codpuk", compact)) return("pucp")
+  if (grepl("\\b(celular|telefono|movil|whatsapp|phone|cell)\\b", text)) return("cell")
+  if (grepl("\\b(correo|email|mail)\\b", text)) return("email")
+  if (grepl("\\b(nombre|apellido|persona|nombres)\\b", text)) return("name")
+  "other"
+}
+
+.monitoreo_snapshot_declared_score <- function(name, label, examples, non_empty = 0L, total = 0L) {
+  text <- .monitoreo_text_key(paste(name, label))
+  compact <- gsub("[^a-z0-9]+", "", text)
+  kind <- .monitoreo_snapshot_variable_kind(name, label)
+  score <- 0
+  if (identical(kind, "pucp")) score <- score + 70
+  if (grepl("codigopucp|codigopuc|codigopuk|codpucp|codpuc|codpuk", compact)) score <- score + 50
+  if (grepl("\\bpucp\\b|\\bpuc\\b|\\bpuk\\b", text)) score <- score + 24
+  if (grepl("\\bpulso\\b|codpulso|codigopulso", compact)) score <- score - 120
+  values <- trimws(as.character(examples %||% character(0)))
+  values <- values[nzchar(values)]
+  if (length(values)) {
+    digits <- gsub("\\D+", "", values)
+    plausible <- sum(nchar(digits) >= 5L & nchar(digits) <= 10L)
+    sixish <- sum(nchar(digits) >= 5L & nchar(digits) <= 7L)
+    score <- score + round(34 * plausible / length(values)) + round(16 * sixish / length(values))
+  }
+  total <- suppressWarnings(as.numeric(total)[1])
+  non_empty <- suppressWarnings(as.numeric(non_empty)[1])
+  if (is.finite(total) && total > 0 && is.finite(non_empty)) score <- score + round(18 * min(1, non_empty / total))
+  as.integer(score)
+}
+
+.monitoreo_snapshot_variable_stats_for_source <- function(data, source_id, source = NULL, max_variables = 220L) {
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(list())
+  source_id <- .monitoreo_scalar(source_id, "")
+  if (!nzchar(source_id) || !".source_id" %in% names(data)) return(list())
+  idx <- which(as.character(data$.source_id) == source_id)
+  if (!length(idx)) return(list())
+  df <- data[idx, , drop = FALSE]
+  labels_by_source <- .monitoreo_source_variable_label_map(data)
+  labels <- labels_by_source[[source_id]] %||% .monitoreo_variable_label_map(data)
+  technical <- c(
+    "response_id", "recipient_id", "collector_id", "survey_id", "source_id", "source_label",
+    "ip_address", "analyze_url", "edit_url", "href", "total_time", "date_created",
+    "date_modified", "collection_mode", "custom_variables", "first_name", "last_name"
+  )
+  cols <- names(df)
+  cols <- cols[!startsWith(cols, ".")]
+  cols <- cols[!startsWith(cols, "dim_")]
+  cols <- cols[!(startsWith(cols, "recipient_") & !tolower(cols) %in% c(
+    "recipient_email",
+    "recipient_custom_value",
+    "recipient_cv_id",
+    "recipient_cv_codpulso",
+    "recipient_cv_codigo_pucp",
+    "recipient_cv_cod_pucp"
+  ))]
+  cols <- cols[!tolower(cols) %in% technical]
+  if (!length(cols)) return(list())
+  declared <- .monitoreo_scalar(source$declared_person_code_var %||% "", "")
+  rows <- lapply(cols, function(nm) {
+    values <- df[[nm]]
+    observed <- trimws(as.character(values))
+    non_empty <- sum(!is.na(observed) & nzchar(observed))
+    examples <- .monitoreo_snapshot_nonempty_values(values, limit = 6L)
+    label <- if (is.list(labels) || is.atomic(labels)) {
+      label_names <- names(labels) %||% character(0)
+      if (nm %in% label_names) .monitoreo_scalar(labels[[nm]], "") else ""
+    } else {
+      ""
+    }
+    if (!nzchar(label)) label <- nm
+    kind <- .monitoreo_snapshot_variable_kind(nm, label)
+    score <- .monitoreo_snapshot_declared_score(nm, label, examples, non_empty, nrow(df))
+    list(
+      name = nm,
+      label = label,
+      kind = kind,
+      non_empty = as.integer(non_empty),
+      total = as.integer(nrow(df)),
+      coverage_pct = if (nrow(df) > 0L) as.integer(round(100 * non_empty / nrow(df))) else NA_integer_,
+      examples = as.list(examples),
+      score = score,
+      selected = nzchar(declared) && identical(nm, declared)
+    )
+  })
+  rows <- Filter(function(item) {
+    isTRUE(item$selected) || item$non_empty > 0L || item$kind %in% c("pucp", "cell", "email", "name")
+  }, rows)
+  rows <- rows[order(
+    -vapply(rows, function(item) as.integer(isTRUE(item$selected)), integer(1)),
+    -vapply(rows, function(item) .monitoreo_int(item$score, 0L), integer(1)),
+    vapply(rows, function(item) .monitoreo_scalar(item$label, ""), character(1))
+  )]
+  rows[seq_len(min(length(rows), max_variables))]
+}
+
+.monitoreo_snapshot_collector_config_map <- function(configured) {
+  configured <- configured %||% list()
+  if (is.data.frame(configured)) {
+    configured <- lapply(seq_len(nrow(configured)), function(i) as.list(configured[i, , drop = FALSE]))
+  }
+  out <- list()
+  if (!is.list(configured)) return(out)
+  for (item in configured) {
+    if (!is.list(item)) next
+    source_id <- .monitoreo_scalar(item$source_id, "")
+    collector_id <- .monitoreo_scalar(item$collector_id %||% item$collectorId, "")
+    if (!nzchar(collector_id)) next
+    out[[paste(source_id, collector_id, sep = "::")]] <- item
+    if (is.null(out[[collector_id]])) out[[collector_id]] <- item
+  }
+  out
+}
+
+.monitoreo_snapshot_collector_name_is_technical <- function(value, collector_id = "") {
+  value <- trimws(.monitoreo_scalar(value, ""))
+  collector_id <- trimws(.monitoreo_scalar(collector_id, ""))
+  key <- .monitoreo_text_key(value)
+  if (!nzchar(key)) return(TRUE)
+  if (nzchar(collector_id) && identical(key, .monitoreo_text_key(collector_id))) return(TRUE)
+  if (grepl("^\\d{5,}$", key)) return(TRUE)
+  if (grepl("^(collector|colector|recopilador|enlace|link|web link)\\s*[:#-]?\\s*\\d{4,}$", key)) return(TRUE)
+  FALSE
+}
+
+.monitoreo_snapshot_collector_channel <- function(source, saved = NULL) {
+  saved <- saved %||% list()
+  channel <- .monitoreo_scalar(saved$channel %||% saved$canal, "")
+  if (nzchar(channel)) return(channel)
+  dims <- source$dimensions %||% list()
+  channel <- .monitoreo_scalar(dims$canal %||% dims$channel %||% dims$modalidad %||% source$channel %||% source$canal, "")
+  if (nzchar(channel)) return(channel)
+  text <- .monitoreo_text_key(paste(source$label %||% "", source$survey_title %||% "", source$survey_id %||% ""))
+  if (grepl("whatsapp", text)) return("WhatsApp")
+  if (grepl("telefon|phone", text)) return("Telefónico")
+  if (grepl("qr|presencial|ficha", text)) return("Ficha QR")
+  if (grepl("sms", text)) return("SMS")
+  if (grepl("correo|email|mail|web|online", text)) return("Correo")
+  "Mixto"
+}
+
+.monitoreo_snapshot_collector_use <- function(channel, collector_type = "") {
+  key <- .monitoreo_text_key(paste(channel, collector_type))
+  if (grepl("telefon|phone", key)) return("telefono_asistido")
+  if (grepl("whatsapp", key)) return("enlace_abierto")
+  if (grepl("qr|presencial|ficha", key)) return("presencial_qr")
+  if (grepl("sms", key)) return("sms")
+  if (grepl("correo|email|mail", key)) return("correo_autoaplicado")
+  if (grepl("web|link|enlace", key)) return("enlace_abierto")
+  "sin_clasificar"
+}
+
+.monitoreo_snapshot_collector_modality <- function(channel, use) {
+  key <- .monitoreo_text_key(paste(channel, use))
+  if (grepl("whatsapp", key)) return("whatsapp")
+  if (grepl("sms", key)) return("sms")
+  if (grepl("telefon", key)) return("telefono")
+  if (grepl("qr|presencial|ficha", key)) return("presencial")
+  if (grepl("correo|email|mail", key)) return("email")
+  "mixto"
+}
+
+.monitoreo_snapshot_source_rows <- function(data, source_id, collector_id = "") {
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(data.frame())
+  ok <- rep(TRUE, nrow(data))
+  if (nzchar(source_id) && ".source_id" %in% names(data)) ok <- ok & as.character(data$.source_id) == source_id
+  if (nzchar(collector_id) && "collector_id" %in% names(data)) ok <- ok & as.character(data$collector_id) == collector_id
+  data[ok, , drop = FALSE]
+}
+
+.monitoreo_snapshot_collector_records <- function(data, cfg, sources) {
+  sources <- monitoreo_normalize_sources(sources)
+  saved_map <- .monitoreo_snapshot_collector_config_map((cfg$operational_model %||% list())$link_collectors %||% list())
+  configured_collectors <- (cfg$operational_model %||% list())$link_collectors %||% list()
+  if (is.data.frame(configured_collectors)) {
+    configured_collectors <- lapply(seq_len(nrow(configured_collectors)), function(i) as.list(configured_collectors[i, , drop = FALSE]))
+  }
+  out <- list()
+  for (source in sources) {
+    if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) next
+    source_id <- .monitoreo_scalar(source$id, "")
+    source_rows <- .monitoreo_snapshot_source_rows(data, source_id)
+    collector_ids <- character(0)
+    if (nrow(source_rows) && "collector_id" %in% names(source_rows)) {
+      collector_ids <- .monitoreo_chr_vec(source_rows$collector_id)
+    }
+    source_collectors <- .monitoreo_normalize_source_collectors(source$collectors %||% list())
+    collector_ids <- unique(c(collector_ids, vapply(source_collectors, function(item) .monitoreo_scalar(item$collector_id %||% item$id, ""), character(1))))
+    for (item in configured_collectors) {
+      if (!is.list(item) || !identical(.monitoreo_scalar(item$source_id, ""), source_id)) next
+      collector_ids <- unique(c(collector_ids, .monitoreo_scalar(item$collector_id, "")))
+    }
+    collector_ids <- collector_ids[nzchar(collector_ids)]
+    for (collector_id in collector_ids) {
+      collector_rows <- .monitoreo_snapshot_source_rows(data, source_id, collector_id)
+      remote <- Filter(function(item) identical(.monitoreo_scalar(item$collector_id %||% item$id, ""), collector_id), source_collectors)
+      remote <- if (length(remote)) remote[[1]] else list()
+      saved <- saved_map[[paste(source_id, collector_id, sep = "::")]] %||% saved_map[[collector_id]] %||% list()
+      snapshot_name <- ""
+      for (col in intersect(c("collector_name", "Nombre recopilador", "nombre_recopilador", "Recopilador", "collector"), names(collector_rows))) {
+        values <- .monitoreo_snapshot_nonempty_values(collector_rows[[col]], limit = 1L)
+        if (length(values)) {
+          snapshot_name <- values[[1]]
+          break
+        }
+      }
+      raw_name <- ""
+      for (candidate in c(remote$name, snapshot_name, saved$collector_name, saved$label, saved$nombre)) {
+        candidate <- .monitoreo_scalar(candidate, "")
+        if (nzchar(candidate)) {
+          raw_name <- candidate
+          break
+        }
+      }
+      channel <- .monitoreo_snapshot_collector_channel(source, saved)
+      derived <- paste(Filter(nzchar, c(
+        .monitoreo_scalar((source$dimensions %||% list())$actor %||% (source$dimensions %||% list())$segmento, ""),
+        channel
+      )), collapse = " · ")
+      collector_name <- if (!.monitoreo_snapshot_collector_name_is_technical(raw_name, collector_id)) raw_name else derived
+      if (!nzchar(collector_name)) collector_name <- raw_name
+      if (!nzchar(collector_name)) collector_name <- paste("Recopilador", collector_id)
+      collector_type <- .monitoreo_scalar(remote$type %||% saved$collector_type, "")
+      operational_use <- .monitoreo_scalar(saved$operational_use %||% saved$uso_operativo, "")
+      suggested_use <- .monitoreo_snapshot_collector_use(channel, collector_type)
+      if (!operational_use %in% c("correo_autoaplicado", "telefono_asistido", "presencial_qr", "enlace_abierto", "sms", "mixto", "sin_clasificar")) {
+        operational_use <- suggested_use
+      }
+      modality <- .monitoreo_scalar(saved$modality %||% saved$modalidad, .monitoreo_snapshot_collector_modality(channel, operational_use))
+      recipient_total <- if ("recipient_id" %in% names(collector_rows)) length(.monitoreo_snapshot_nonempty_values(collector_rows$recipient_id, limit = Inf)) else 0L
+      link_count <- if ("recipient_id" %in% names(collector_rows)) recipient_total else 0L
+      out[[length(out) + 1L]] <- list(
+        id = paste(source_id, collector_id, sep = "::"),
+        source_id = source_id,
+        source_label = .monitoreo_scalar(source$label, ""),
+        survey_id = .monitoreo_scalar(source$survey_id, ""),
+        collector_id = collector_id,
+        collector_name = collector_name,
+        collector_type = collector_type,
+        enabled = .monitoreo_bool(saved$enabled %||% saved$activo %||% saved$included %||% saved$incluido, TRUE),
+        channel = channel,
+        operational_use = operational_use,
+        configured_use = operational_use,
+        suggested_use = suggested_use,
+        modality = modality,
+        roster_required = .monitoreo_bool(saved$roster_required %||% saved$requiere_base_casos, identical(operational_use, "telefono_asistido")),
+        response_count = as.integer(nrow(collector_rows)),
+        active_response_count = as.integer(nrow(collector_rows)),
+        recipient_summary = list(
+          available = FALSE,
+          total = as.integer(recipient_total),
+          scanned = 0L,
+          truncated = FALSE,
+          personalized_link_count = as.integer(link_count),
+          mail_status_counts = list(),
+          response_status_counts = if ("response_status" %in% names(collector_rows)) {
+            table_values <- trimws(as.character(collector_rows$response_status %||% character(0)))
+            table_values <- table_values[!is.na(table_values) & nzchar(table_values)]
+            tab <- sort(table(table_values), decreasing = TRUE)
+            stats::setNames(as.list(as.integer(tab)), names(tab))
+          } else {
+            list()
+          }
+        ),
+        url_present = nzchar(.monitoreo_scalar(remote$url, "")),
+        warnings = list(),
+        metadata_source = if (length(remote)) "surveymonkey_sync" else if (nrow(collector_rows)) "responses_snapshot" else "config"
+      )
+    }
+  }
+  out
+}
+
+.monitoreo_snapshot_source_metadata <- function(data, cfg, sources, generated_at = .monitoreo_now_iso(), sync_summary = list()) {
+  sources <- monitoreo_normalize_sources(sources)
+  surveys <- list()
+  variables_by_source <- list()
+  for (source in sources) {
+    source_id <- .monitoreo_scalar(source$id, "")
+    if (!nzchar(source_id)) next
+    source_rows <- .monitoreo_snapshot_source_rows(data, source_id)
+    variables_by_source[[source_id]] <- .monitoreo_snapshot_variable_stats_for_source(data, source_id, source)
+    if (identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) {
+      surveys[[source_id]] <- list(
+        source_id = source_id,
+        survey_id = .monitoreo_scalar(source$survey_id, ""),
+        title = .monitoreo_scalar(source$survey_title %||% source$label, ""),
+        label = .monitoreo_scalar(source$label, ""),
+        actor = .monitoreo_scalar((source$dimensions %||% list())$actor %||% (source$dimensions %||% list())$segmento, ""),
+        channel = .monitoreo_snapshot_collector_channel(source),
+        response_count = as.integer(nrow(source_rows)),
+        declared_person_code_var = .monitoreo_scalar(source$declared_person_code_var, ""),
+        declared_person_code_label = .monitoreo_scalar(source$declared_person_code_label, ""),
+        collector_count = as.integer(length(.monitoreo_normalize_source_collectors(source$collectors %||% list())))
+      )
+    }
+  }
+  list(
+    schema = "monitoreo_source_metadata_v1",
+    generated_at = generated_at,
+    source_count = as.integer(length(sources)),
+    survey_count = as.integer(length(surveys)),
+    sources = lapply(sources, function(source) {
+      list(
+        id = .monitoreo_scalar(source$id, ""),
+        kind = .monitoreo_scalar(source$kind, ""),
+        label = .monitoreo_scalar(source$label, ""),
+        survey_id = .monitoreo_scalar(source$survey_id, ""),
+        survey_title = .monitoreo_scalar(source$survey_title, ""),
+        last_sync_at = .monitoreo_scalar(source$last_sync_at, ""),
+        last_sync_mode = .monitoreo_scalar(source$last_sync_mode, ""),
+        role = .monitoreo_scalar(source$role, "")
+      )
+    }),
+    surveys = surveys,
+    collectors = .monitoreo_snapshot_collector_records(data, cfg, sources),
+    variables_by_source = variables_by_source,
+    sync_summary = sync_summary %||% list()
+  )
+}
+
+.monitoreo_snapshot_report_bundle <- function(dashboard, family = "") {
+  dashboard <- dashboard %||% list()
+  family <- .monitoreo_scalar(family, "")
+  if (identical(family, "territorial")) return(dashboard$territorial_reports %||% list())
+  if (identical(family, "aulas_universitarias")) return(dashboard$aulas_universitarias_reports %||% list())
+  dashboard$acreditacion_reports %||% list()
+}
+
+.monitoreo_snapshot_chart_model_for_audience <- function(data, cfg, dashboard, synced_at, audience = "client") {
+  model <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = audience,
+    include_targets = identical(audience, "internal"),
+    dashboard = dashboard,
+    synced_at = synced_at,
+    context = list(source = "monitoreo_snapshot")
+  )
+  visual <- tryCatch(
+    extract_app_visual_progress_model(model, updated = synced_at, updated_label = synced_at),
+    error = function(e) list(error = conditionMessage(e))
+  )
+  daily <- model$daily_progress %||% list()
+  empty <- daily$empty_state %||% list()
+  empty_reason <- .monitoreo_scalar(empty$general %||% empty$date %||% empty$status %||% "", "")
+  list(
+    schema = "monitoreo_chart_model_audience_v1",
+    audience = audience,
+    generated_at = .monitoreo_scalar(model$generated_at, .monitoreo_now_iso()),
+    family = .monitoreo_scalar(model$family, ""),
+    daily_progress = daily,
+    accreditation_progress = model$accreditation_progress %||% NULL,
+    visual_progress = visual,
+    empty_reason = empty_reason
+  )
+}
+
+.monitoreo_snapshot_chart_models <- function(data, cfg, dashboard, synced_at = "", generated_at = .monitoreo_now_iso()) {
+  client <- tryCatch(
+    .monitoreo_snapshot_chart_model_for_audience(data, cfg, dashboard, synced_at, "client"),
+    error = function(e) list(schema = "monitoreo_chart_model_audience_v1", audience = "client", error = conditionMessage(e), empty_reason = "no se pudo generar modelo cliente")
+  )
+  internal <- tryCatch(
+    .monitoreo_snapshot_chart_model_for_audience(data, cfg, dashboard, synced_at, "internal"),
+    error = function(e) list(schema = "monitoreo_chart_model_audience_v1", audience = "internal", error = conditionMessage(e), empty_reason = "no se pudo generar modelo interno")
+  )
+  list(
+    schema = "monitoreo_chart_models_v1",
+    generated_at = generated_at,
+    client = client,
+    internal = internal,
+    daily_progress = client$daily_progress %||% internal$daily_progress %||% list(),
+    empty_reason = .monitoreo_scalar(client$empty_reason %||% internal$empty_reason, "")
+  )
+}
+
+monitoreo_snapshot_artifacts <- function(data,
+                                         config = list(),
+                                         sources = list(),
+                                         dashboard = NULL,
+                                         synced_at = "",
+                                         errors = list(),
+                                         sync_summary = list(),
+                                         generated_at = .monitoreo_now_iso()) {
+  if (is.null(data) || !is.data.frame(data)) data <- data.frame()
+  cfg <- monitoreo_normalize_config(config, data)
+  if (is.null(dashboard) || !is.list(dashboard)) {
+    dashboard <- tryCatch(monitoreo_build_dashboard(data, cfg, include_reports = TRUE), error = function(e) list(ok = FALSE, error = conditionMessage(e)))
+  }
+  family <- cfg$monitoreo_profile$family %||% detect_monitoreo_family(config = cfg, data = data)
+  source_metadata <- tryCatch(
+    .monitoreo_snapshot_source_metadata(data, cfg, sources, generated_at = generated_at, sync_summary = sync_summary),
+    error = function(e) list(schema = "monitoreo_source_metadata_v1", generated_at = generated_at, error = conditionMessage(e))
+  )
+  reports <- tryCatch(.monitoreo_snapshot_report_bundle(dashboard, family), error = function(e) list(error = conditionMessage(e)))
+  chart_models <- tryCatch(
+    .monitoreo_snapshot_chart_models(data, cfg, dashboard, synced_at = synced_at, generated_at = generated_at),
+    error = function(e) list(schema = "monitoreo_chart_models_v1", generated_at = generated_at, error = conditionMessage(e), empty_reason = "fallo al generar modelos de graficos")
+  )
+  has_errors <- length(errors %||% list()) > 0L ||
+    nzchar(.monitoreo_scalar(source_metadata$error %||% "", "")) ||
+    nzchar(.monitoreo_scalar(chart_models$error %||% "", ""))
+  status <- if (isTRUE(has_errors)) "partial" else "complete"
+  list(
+    generated_at = generated_at,
+    generation_version = "monitoreo_snapshot_v2",
+    generation_status = status,
+    source_metadata = source_metadata,
+    reports = reports,
+    chart_models = chart_models,
+    sync_errors = errors %||% list()
   )
 }
 
@@ -10217,14 +11088,12 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     internal_queries = list()
   )
   if (identical(report_scope, "route_summary")) {
-    out$advance$block_progress <- list()
     out$advance$daily <- list()
-    out$block_progress <- list()
     out$response_audit <- list()
     out$operational_preview <- list()
     out$team <- list()
     out$daily <- list()
-    out$map <- list(phase = phase, blocks = list(), points = list(), alerts = list(), legend = list())
+    out$map <- list(phase = phase, blocks = route_blocks_payload, points = list(), alerts = list(), legend = list())
     out$internal_queries <- list()
   }
   out
@@ -11889,10 +12758,8 @@ monitoreo_territorial_scope_report <- function(report, report_scope = "full") {
     out$operational_preview <- list()
     out$route_quota_progress <- .monitoreo_territorial_quota_empty_payload("route_scope")
     out$spatial_reconciliation <- .monitoreo_territorial_spatial_reconciliation_empty_payload("route_scope")
-    out$advance$block_progress <- list()
     out$advance$daily <- list()
-    out$block_progress <- list()
-    out$map <- list(phase = phase, blocks = list(), points = list(), cache = map_cache, alerts = map_alerts, legend = map_legend)
+    out$map <- list(phase = phase, blocks = out$map$blocks %||% out$route_blocks %||% out$block_progress %||% list(), points = list(), cache = map_cache, alerts = map_alerts, legend = map_legend)
     out$source_coherence$survey_fields <- list()
     out$source_coherence$choices_by_list <- list()
     out$internal_queries <- empty_internal_queries
@@ -11955,7 +12822,7 @@ monitoreo_territorial_map_payload <- function(data, cfg, hojas_ruta_context = NU
   payload
 }
 
-monitoreo_build_dashboard <- function(data, config = list(), include_reports = TRUE, territorial_context = NULL, kobo_schema = NULL, report_scope = "full") {
+monitoreo_build_dashboard <- function(data, config = list(), include_reports = TRUE, territorial_context = NULL, kobo_schema = NULL, report_scope = "full", cached_acreditacion_reports = NULL) {
   if (is.null(data) || !is.data.frame(data)) data <- data.frame()
   cfg <- monitoreo_normalize_config(config, data)
   n <- nrow(data)
@@ -11976,7 +12843,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   inconsistencies <- .monitoreo_inconsistencies(data, cfg, valid, duration)
   family <- cfg$monitoreo_profile$family %||% "acreditacion"
   acreditacion_reports <- if (isTRUE(include_reports) && identical(family, "acreditacion")) {
-    monitoreo_acreditacion_reportes(data, cfg)
+    monitoreo_acreditacion_reportes(data, cfg, report_scope = report_scope, cached_reports = cached_acreditacion_reports)
   } else {
     NULL
   }
@@ -12677,12 +13544,19 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     label_positions <- which(vapply(seq_along(clean_names), function(pos) {
       .monitoreo_column_has_source_key_label(names(df)[[pos]], labels[[pos]], source_label_maps)
     }, logical(1)))
-    positions <- c(positions, label_positions)
+    configured_vars <- if (".source_declared_person_code_var" %in% names(df)) {
+      unique(.monitoreo_text_key(as.character(df$.source_declared_person_code_var %||% "")))
+    } else {
+      character(0)
+    }
+    configured_positions <- match(configured_vars[nzchar(configured_vars)], clean_names)
+    configured_positions <- configured_positions[!is.na(configured_positions)]
+    positions <- c(positions, label_positions, configured_positions)
   }
   positions <- unique(positions)
   out <- vector("list", nrow(df))
   if (!length(positions)) return(out)
-  append_key <- function(row_idx, keys, type, column, label, value) {
+  append_key <- function(row_idx, keys, type, column, label, value, configured = FALSE) {
     keys <- unique(keys[nzchar(sub("^[^:]+:", "", keys))])
     if (!length(keys)) return(NULL)
     display_label <- if (nzchar(label)) label else column
@@ -12692,7 +13566,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
         type = type,
         column = column,
         label = display_label,
-        value = value
+        value = value,
+        configured = isTRUE(configured)
       )))
     }
     invisible(NULL)
@@ -12702,7 +13577,6 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     response_key_by_name <- !identical(origin, "respuesta") || .monitoreo_response_key_name_allowed(names(df)[[pos]], configured)
     response_key_by_label <- identical(origin, "respuesta") &&
       .monitoreo_column_has_source_key_label(names(df)[[pos]], labels[[pos]], source_label_maps)
-    if (identical(origin, "respuesta") && !response_key_by_name && !response_key_by_label) next
     values <- trimws(as.character(df[[pos]] %||% ""))
     values[is.na(values)] <- ""
     idx <- which(nzchar(values))
@@ -12712,15 +13586,25 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       value <- values[[i]]
       row_label <- .monitoreo_row_variable_label(df, i, names(df)[[pos]], labels[[pos]], source_label_maps)
       row_label_clean <- .monitoreo_text_key(row_label)
+      row_configured_var <- if (".source_declared_person_code_var" %in% names(df)) {
+        .monitoreo_scalar(df$.source_declared_person_code_var[[i]], "")
+      } else {
+        ""
+      }
+      row_configured_label <- if (".source_declared_person_code_label" %in% names(df)) {
+        .monitoreo_scalar(df$.source_declared_person_code_label[[i]], "")
+      } else {
+        ""
+      }
+      row_configured_text <- .monitoreo_text_key(paste(row_configured_var, row_configured_label, row_label))
+      row_response_key_by_config <- identical(origin, "respuesta") &&
+        nzchar(row_configured_var) &&
+        identical(.monitoreo_text_key(names(df)[[pos]]), .monitoreo_text_key(row_configured_var)) &&
+        !grepl("\\bpulso\\b|codpulso|codigo pulso|cod pulso", row_configured_text)
       row_response_key_by_label <- identical(origin, "respuesta") &&
         .monitoreo_response_key_label_allowed(names(df)[[pos]], row_label)
-      row_has_source_label <- identical(origin, "respuesta") &&
-        .monitoreo_row_has_source_variable_label(df, i, names(df)[[pos]], source_label_maps)
-      generic_response_label_without_source <- identical(origin, "respuesta") &&
-        .monitoreo_response_generic_question_column(names(df)[[pos]]) &&
-        ".source_id" %in% names(df) &&
-        !isTRUE(row_has_source_label)
-      if (identical(origin, "respuesta") && !response_key_by_name && !row_response_key_by_label) next
+      if (identical(origin, "respuesta") &&
+          !response_key_by_name && !row_response_key_by_config && !row_response_key_by_label) next
       haystack <- paste(clean, row_label_clean)
       is_email_col <- if (identical(origin, "respuesta")) {
         response_key_by_name && grepl("mail|correo|email", clean)
@@ -12728,12 +13612,24 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
         grepl("mail|correo|email", haystack)
       }
       is_phone_col <- grepl("telefono|celular|phone|fono", haystack)
-      is_label_code_col <- !is_explicit_code_col && grepl("codigo|cod|pulso", row_label_clean)
+      is_label_code_col <- !is_explicit_code_col && (
+        grepl("codigo|cod|pulso", row_label_clean) ||
+          isTRUE(row_response_key_by_config)
+      )
       is_code_col <- is_explicit_code_col || is_label_code_col
       code_value_allowed <- TRUE
-      if (isTRUE(generic_response_label_without_source) && !is_explicit_code_col) {
-        generic_code_value <- toupper(gsub("[^A-Za-z0-9]+", "", value))
-        code_value_allowed <- isTRUE(row_response_key_by_label) && nchar(generic_code_value) >= 5L
+      if (identical(origin, "respuesta") && isTRUE(row_response_key_by_config)) {
+        code_value_allowed <- .monitoreo_response_configured_code_value_plausible(value)
+      }
+      if (identical(origin, "respuesta") && isTRUE(is_label_code_col) && !is_explicit_code_col) {
+        code_value_allowed <- (
+          isTRUE(row_response_key_by_config) ||
+            isTRUE(row_response_key_by_label)
+        ) && if (isTRUE(row_response_key_by_config)) {
+          .monitoreo_response_configured_code_value_plausible(value)
+        } else {
+          .monitoreo_response_code_value_plausible(value, strict_numeric = TRUE)
+        }
       }
       keys <- character(0)
       email <- if (is_email_col) .monitoreo_email_key(value) else ""
@@ -12751,7 +13647,12 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       if (is_code_col && isTRUE(code_value_allowed) && (!is_label_code_col || grepl("\\d", value))) {
         code_keys <- .monitoreo_code_keys(value)
         keys <- c(keys, code_keys)
-        append_key(i, code_keys, "codigo", names(df)[[pos]], row_label, value)
+        display_label <- if (isTRUE(row_response_key_by_config)) {
+          if (nzchar(row_configured_label)) row_configured_label else "Código PUCP declarado (configurado)"
+        } else {
+          row_label
+        }
+        append_key(i, code_keys, "codigo", names(df)[[pos]], display_label, value, configured = row_response_key_by_config)
       } else if (!is_code_col && !nzchar(email) && !nzchar(phone) &&
                  (!identical(origin, "respuesta") || response_key_by_name)) {
         code_keys <- .monitoreo_code_keys(value)
@@ -12769,6 +13670,10 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       if (fingerprint %in% seen) next
       seen <- c(seen, fingerprint)
       keep[[length(keep) + 1L]] <- item
+    }
+    if (length(keep) > 1L) {
+      ranks <- vapply(keep, .monitoreo_report_key_detail_rank, integer(1))
+      keep <- keep[order(ranks, seq_along(keep))]
     }
     keep
   })
@@ -12916,9 +13821,33 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   rep(FALSE, nrow(data))
 }
 
-.monitoreo_report_response_reconciled_mask <- function(data, profile = list(), unit = NULL) {
-  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(logical(0))
+.monitoreo_report_reconciliation_context <- function(data, profile = list()) {
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) {
+    return(list(nrow = 0L, response_mask = logical(0), response_keys = list(), phone_conflict = logical(0)))
+  }
   response_mask <- .monitoreo_report_role_mask(data, "respuestas")
+  if (!any(response_mask, na.rm = TRUE)) {
+    return(list(nrow = nrow(data), response_mask = response_mask, response_keys = list(), phone_conflict = logical(0)))
+  }
+  response_rows <- data[response_mask, , drop = FALSE]
+  list(
+    nrow = nrow(data),
+    response_mask = response_mask,
+    response_keys = .monitoreo_report_key_list(response_rows, profile, "respuesta"),
+    phone_conflict = .monitoreo_report_phone_key_conflict_mask(response_rows, profile)
+  )
+}
+
+.monitoreo_report_response_reconciled_mask <- function(data, profile = list(), unit = NULL, context = NULL) {
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(logical(0))
+  context_valid <- is.list(context) &&
+    identical(as.integer(context$nrow %||% NA_integer_), as.integer(nrow(data))) &&
+    length(context$response_mask %||% logical(0)) == nrow(data)
+  response_mask <- if (isTRUE(context_valid)) {
+    context$response_mask
+  } else {
+    .monitoreo_report_role_mask(data, "respuestas")
+  }
   out <- rep(FALSE, nrow(data))
   if (!any(response_mask, na.rm = TRUE)) return(out)
 
@@ -12936,9 +13865,81 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   }
 
   response_rows <- data[response_mask, , drop = FALSE]
-  response_keys <- .monitoreo_report_key_list(response_rows, profile, "respuesta")
+  response_keys <- if (isTRUE(context_valid) && length(context$response_keys %||% list()) == nrow(response_rows)) {
+    context$response_keys
+  } else {
+    .monitoreo_report_key_list(response_rows, profile, "respuesta")
+  }
   out[response_mask] <- vapply(response_keys, .monitoreo_report_has_key, logical(1), key_set = base_keys)
+  phone_conflict <- if (isTRUE(context_valid) && length(context$phone_conflict %||% logical(0)) == nrow(response_rows)) {
+    context$phone_conflict
+  } else {
+    .monitoreo_report_phone_key_conflict_mask(response_rows, profile)
+  }
+  if (length(phone_conflict) == sum(response_mask, na.rm = TRUE) && any(phone_conflict, na.rm = TRUE)) {
+    response_idx <- which(response_mask)
+    out[response_idx[phone_conflict]] <- FALSE
+  }
   .monitoreo_report_apply_reconciliation_decisions(out, data, response_mask, profile)
+}
+
+.monitoreo_report_phone_key_conflict_mask <- function(response_rows, profile = list()) {
+  if (is.null(response_rows) || !is.data.frame(response_rows) || !nrow(response_rows)) return(logical(0))
+  source_label_maps <- .monitoreo_source_variable_label_map(response_rows)
+  clean_names <- .monitoreo_text_key(names(response_rows))
+  global_labels <- .monitoreo_variable_label_map(response_rows)
+  labels <- rep("", length(clean_names))
+  names(labels) <- names(response_rows)
+  if (length(global_labels)) {
+    matched_labels <- global_labels[names(response_rows)]
+    labels[!is.na(matched_labels)] <- matched_labels[!is.na(matched_labels)]
+  }
+  clean_labels <- .monitoreo_text_key(labels)
+
+  first_values_from_positions <- function(positions) {
+    out <- rep("", nrow(response_rows))
+    positions <- unique(positions[positions > 0L & positions <= ncol(response_rows)])
+    if (!length(positions)) return(out)
+    for (pos in positions) {
+      values <- trimws(as.character(response_rows[[pos]] %||% ""))
+      values[is.na(values)] <- ""
+      needs <- !nzchar(out) & nzchar(values)
+      if (any(needs)) out[needs] <- values[needs]
+    }
+    out
+  }
+
+  cv_aliases <- .monitoreo_text_key(c(
+    "cv_id", "custom_value", "recipient_cv_id", "recipient_cv_codpulso", "recipient_custom_value"
+  ))
+  cv_id <- first_values_from_positions(which(clean_names %in% cv_aliases))
+
+  manual_aliases <- .monitoreo_text_key(c(
+    "q0034", "q034", "q34", "codigo pulso final", "código pulso final", "codpulso final"
+  ))
+  manual_positions <- which(clean_names %in% manual_aliases)
+  label_positions <- which(
+    grepl("codigo.*pulso|cod.*pulso", clean_names) |
+      grepl("codigo.*pulso|cod.*pulso", clean_labels)
+  )
+  if (length(source_label_maps)) {
+    source_label_match <- vapply(seq_along(clean_names), function(pos) {
+      any(vapply(source_label_maps, function(label_map) {
+        label <- if (names(response_rows)[[pos]] %in% names(label_map)) {
+          .monitoreo_scalar(label_map[[names(response_rows)[[pos]]]], "")
+        } else {
+          ""
+        }
+        grepl("codigo.*pulso|cod.*pulso", .monitoreo_text_key(label))
+      }, logical(1)))
+    }, logical(1))
+    label_positions <- c(label_positions, which(source_label_match))
+  }
+  manual_code <- first_values_from_positions(c(manual_positions, label_positions))
+  return(vapply(seq_along(cv_id), function(i) {
+    nzchar(cv_id[[i]]) && nzchar(manual_code[[i]]) &&
+      !isTRUE(.monitoreo_internal_code_values_match(cv_id[[i]], manual_code[[i]]))
+  }, logical(1)))
 }
 
 .monitoreo_report_phone_reconciliation <- function(phone, responses, profile = list()) {
@@ -13142,6 +14143,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   units <- .monitoreo_report_units(profile, data)
   roles <- as.character(data$.source_role %||% "")
   states_all <- .monitoreo_report_states(data, profile)
+  reconciliation_context <- .monitoreo_report_reconciliation_context(data, profile)
   rows <- lapply(units, function(unit) {
     unit_mask <- .monitoreo_report_unit_mask(data, unit)
     universe_mask <- unit_mask & roles == "universo"
@@ -13149,7 +14151,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     response_mask <- unit_mask & roles == "respuestas"
     total <- sum(universe_mask, na.rm = TRUE)
     if (!total && sum(sweep_mask, na.rm = TRUE)) total <- sum(sweep_mask, na.rm = TRUE)
-    reconciled_mask <- .monitoreo_report_response_reconciled_mask(data, profile, unit)
+    reconciled_mask <- .monitoreo_report_response_reconciled_mask(data, profile, unit, context = reconciliation_context)
     response_states <- states_all[response_mask]
     response_reconciled <- reconciled_mask[response_mask]
     sweep_states <- states_all[sweep_mask]
@@ -13234,11 +14236,12 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   } else {
     list(Completa = "Efectivas", Parcial = "Parciales", Rechazo = if (use_responses) "Rechazos plataforma" else "Rechazos telefónicos")
   }
+  reconciliation_context <- if (use_responses) .monitoreo_report_reconciliation_context(data, profile) else NULL
   rows <- list()
   for (unit in units) {
     unit_mask <- .monitoreo_report_unit_mask(work, unit)
     reconciled_mask <- if (use_responses) {
-      .monitoreo_report_response_reconciled_mask(data, profile, unit)[response_mask_all]
+      .monitoreo_report_response_reconciled_mask(data, profile, unit, context = reconciliation_context)[response_mask_all]
     } else {
       rep(TRUE, nrow(work))
     }
@@ -13299,8 +14302,9 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   states <- .monitoreo_report_states(work, profile)
   dates <- .monitoreo_report_date_values(work)
   channels <- .monitoreo_report_channel_values(work)
+  reconciliation_context <- if (use_responses) .monitoreo_report_reconciliation_context(data, profile) else NULL
   reconciled <- if (use_responses) {
-    .monitoreo_report_response_reconciled_mask(data, profile)[response_mask_all]
+    .monitoreo_report_response_reconciled_mask(data, profile, context = reconciliation_context)[response_mask_all]
   } else {
     rep(TRUE, nrow(work))
   }
@@ -13331,7 +14335,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   out
 }
 
-.monitoreo_report_daily_source_df <- function(data, profile = list(), by_collector = FALSE) {
+.monitoreo_report_daily_source_df <- function(data, profile = list(), by_collector = FALSE, config = list()) {
   response_mask_all <- .monitoreo_report_role_mask(data, "respuestas")
   use_responses <- any(response_mask_all, na.rm = TRUE)
   work <- if (use_responses) {
@@ -13359,14 +14363,65 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   if (length(collector_ids) != nrow(work)) collector_ids <- rep("", nrow(work))
   if (length(collector_names) != nrow(work)) collector_names <- rep("", nrow(work))
   if (length(collector_types) != nrow(work)) collector_types <- rep("", nrow(work))
+  if (isTRUE(by_collector)) {
+    collector_lookup <- .monitoreo_collector_config_lookup(config)
+    if (length(collector_lookup)) {
+      for (i in seq_len(nrow(work))) {
+        name_override <- .monitoreo_collector_config_value(
+          collector_lookup,
+          source_ids[[i]] %||% "",
+          collector_ids[[i]] %||% "",
+          "collector_name",
+          ""
+        )
+        if (!nzchar(name_override)) {
+          name_override <- .monitoreo_collector_config_value(
+            collector_lookup,
+            source_ids[[i]] %||% "",
+            collector_ids[[i]] %||% "",
+            "name",
+            ""
+          )
+        }
+        if (!nzchar(name_override)) {
+          name_override <- .monitoreo_collector_config_value(
+            collector_lookup,
+            source_ids[[i]] %||% "",
+            collector_ids[[i]] %||% "",
+            "nombre",
+            ""
+          )
+        }
+        if (nzchar(name_override)) collector_names[[i]] <- name_override
+        channel_override <- .monitoreo_collector_config_value(
+          collector_lookup,
+          source_ids[[i]] %||% "",
+          collector_ids[[i]] %||% "",
+          "channel",
+          ""
+        )
+        if (!nzchar(channel_override)) {
+          channel_override <- .monitoreo_collector_config_value(
+            collector_lookup,
+            source_ids[[i]] %||% "",
+            collector_ids[[i]] %||% "",
+            "canal",
+            ""
+          )
+        }
+        if (nzchar(channel_override)) channels[[i]] <- channel_override
+      }
+    }
+  }
   collector_labels <- vapply(seq_len(nrow(work)), function(i) {
     label <- .monitoreo_internal_collector_label(collector_ids[[i]], collector_names[[i]])
     if (identical(label, "Sin recopilador")) "Sin recopilador" else label
   }, character(1))
   collector_keys <- ifelse(nzchar(collector_ids), collector_ids, collector_labels)
   units <- .monitoreo_report_units(profile, data)
+  reconciliation_context <- if (use_responses) .monitoreo_report_reconciliation_context(data, profile) else NULL
   reconciled_global <- if (use_responses) {
-    .monitoreo_report_response_reconciled_mask(data, profile)[response_mask_all]
+    .monitoreo_report_response_reconciled_mask(data, profile, context = reconciliation_context)[response_mask_all]
   } else {
     rep(TRUE, nrow(work))
   }
@@ -13397,7 +14452,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
         }
       }
       reconciled <- if (is.null(unit) || !use_responses) reconciled_global else {
-        .monitoreo_report_response_reconciled_mask(data, profile, unit)[response_mask_all]
+        .monitoreo_report_response_reconciled_mask(data, profile, unit, context = reconciliation_context)[response_mask_all]
       }
       for (state in names(state_rows)) {
         values <- vapply(dates_sorted, function(day) {
@@ -13431,6 +14486,66 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out
+}
+
+.monitoreo_collector_config_entries <- function(config = list()) {
+  if (is.null(config) || !is.list(config)) return(list())
+  op <- config$operational_model %||% config$modelo_operativo %||% list()
+  raw <- op$link_collectors %||% op$collectors %||% op$colectores_enlaces %||% op$colectores %||% list()
+  if (is.data.frame(raw)) {
+    raw <- lapply(seq_len(nrow(raw)), function(i) as.list(raw[i, , drop = FALSE]))
+  }
+  if (!is.list(raw)) return(list())
+  raw
+}
+
+.monitoreo_collector_config_lookup <- function(config = list()) {
+  entries <- .monitoreo_collector_config_entries(config)
+  out <- list()
+  for (item in entries) {
+    if (!is.list(item)) next
+    collector_id <- .monitoreo_scalar(item$collector_id %||% item$collectorId, "")
+    if (!nzchar(collector_id)) next
+    source_id <- .monitoreo_scalar(item$source_id %||% item$fuente_id, "")
+    keys <- unique(c(
+      if (nzchar(source_id)) paste(source_id, collector_id, sep = "::") else character(0),
+      collector_id
+    ))
+    for (key in keys) {
+      if (is.null(out[[key]])) out[[key]] <- item
+    }
+  }
+  out
+}
+
+.monitoreo_collector_config_value <- function(lookup, source_id, collector_id, field, default = "") {
+  if (is.null(lookup) || !is.list(lookup)) return(default)
+  collector_id <- .monitoreo_scalar(collector_id, "")
+  if (!nzchar(collector_id)) return(default)
+  source_id <- .monitoreo_scalar(source_id, "")
+  item <- lookup[[paste(source_id, collector_id, sep = "::")]] %||% lookup[[collector_id]] %||% NULL
+  if (is.null(item) || !is.list(item)) return(default)
+  .monitoreo_scalar(item[[field]], default)
+}
+
+.monitoreo_filter_disabled_collectors <- function(data, config = list()) {
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(data)
+  if (!all(c(".source_id", "collector_id") %in% names(data))) return(data)
+  lookup <- .monitoreo_collector_config_lookup(config)
+  if (!length(lookup)) return(data)
+  roles <- as.character(data$.source_role %||% "")
+  source_ids <- as.character(data$.source_id %||% "")
+  collector_ids <- as.character(data$collector_id %||% "")
+  keep <- rep(TRUE, nrow(data))
+  for (i in seq_len(nrow(data))) {
+    if (!identical(.monitoreo_text_key(roles[[i]]), "respuestas")) next
+    collector_id <- .monitoreo_scalar(collector_ids[[i]], "")
+    if (!nzchar(collector_id)) next
+    item <- lookup[[paste(.monitoreo_scalar(source_ids[[i]], ""), collector_id, sep = "::")]] %||% lookup[[collector_id]] %||% NULL
+    if (is.null(item) || !is.list(item)) next
+    keep[[i]] <- isTRUE(.monitoreo_bool(item$enabled %||% item$activo %||% item$included %||% item$incluido, TRUE))
+  }
+  data[keep, , drop = FALSE]
 }
 
 .monitoreo_client_report_pct <- function(num, den) {
@@ -13504,6 +14619,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   specs <- .monitoreo_report_control_specs(data, profile)
   states_all <- .monitoreo_report_states(data, profile)
   roles <- as.character(data$.source_role %||% "")
+  reconciliation_context <- .monitoreo_report_reconciliation_context(data, profile)
   rows <- list()
 
   for (unit in units) {
@@ -13523,7 +14639,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     base <- data[base_mask, , drop = FALSE]
     responses <- data[response_mask, , drop = FALSE]
     response_states <- states_all[response_mask]
-    reconciled <- .monitoreo_report_response_reconciled_mask(data, profile, unit)[response_mask]
+    reconciled <- .monitoreo_report_response_reconciled_mask(data, profile, unit, context = reconciliation_context)[response_mask]
     response_keys <- .monitoreo_report_key_list(responses, profile, "respuesta")
     completed_keys <- .monitoreo_report_key_set(response_keys[response_states == "Completa" & reconciled])
     partial_keys <- .monitoreo_report_key_set(response_keys[response_states == "Parcial" & reconciled])
@@ -13618,6 +14734,259 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   "Sin recopilador"
 }
 
+.monitoreo_internal_row_value_by_alias <- function(df, row_idx, aliases = character(0), source_label_maps = NULL) {
+  if (is.null(df) || !is.data.frame(df) || row_idx < 1L || row_idx > nrow(df) || !length(names(df))) return("")
+  aliases <- unique(.monitoreo_text_key(.monitoreo_chr_vec(aliases)))
+  aliases <- aliases[nzchar(aliases)]
+  if (!length(aliases)) return("")
+  clean_names <- .monitoreo_text_key(names(df))
+  for (alias in aliases) {
+    idx <- which(clean_names == alias)
+    if (!length(idx)) next
+    for (pos in idx) {
+      value <- .monitoreo_scalar(df[[pos]][[row_idx]], "")
+      if (nzchar(value)) return(value)
+    }
+  }
+  if (is.null(source_label_maps)) source_label_maps <- .monitoreo_source_variable_label_map(df)
+  for (pos in seq_along(names(df))) {
+    label <- .monitoreo_row_variable_label(df, row_idx, names(df)[[pos]], "", source_label_maps)
+    label_key <- .monitoreo_text_key(label)
+    if (!nzchar(label_key) || !label_key %in% aliases) next
+    value <- .monitoreo_scalar(df[[pos]][[row_idx]], "")
+    if (nzchar(value)) return(value)
+  }
+  ""
+}
+
+.monitoreo_internal_row_value_by_label <- function(df, row_idx, pattern = "", source_label_maps = NULL) {
+  if (is.null(df) || !is.data.frame(df) || row_idx < 1L || row_idx > nrow(df) || !length(names(df))) return("")
+  pattern <- .monitoreo_scalar(pattern, "")
+  if (!nzchar(pattern)) return("")
+  if (is.null(source_label_maps)) source_label_maps <- .monitoreo_source_variable_label_map(df)
+  for (column in names(df)) {
+    value <- .monitoreo_scalar(df[[column]][[row_idx]], "")
+    if (!nzchar(value)) next
+    label <- .monitoreo_row_variable_label(df, row_idx, column, "", source_label_maps)
+    haystack <- .monitoreo_text_key(paste(column, label))
+    if (grepl(pattern, haystack)) return(value)
+  }
+  ""
+}
+
+.monitoreo_internal_key_strategy <- function(channel = "", source_label = "", details = list()) {
+  detail_text <- ""
+  if (length(details)) {
+    detail_text <- paste(vapply(details, function(item) {
+      paste(
+        .monitoreo_scalar(item$type, ""),
+        .monitoreo_scalar(item$column, ""),
+        .monitoreo_scalar(item$label, "")
+      )
+    }, character(1)), collapse = " ")
+  }
+  text <- .monitoreo_text_key(paste(channel, source_label, detail_text))
+  if (grepl("telefon|llamada|barrido", text)) return("telefono_enlace_y_codigo_final")
+  if (grepl("whatsapp|wsp", text)) return("pregunta_pucp_whatsapp")
+  if (grepl("qr|presencial|ficha", text)) return("pregunta_pucp_qr")
+  if (grepl("correo|mail|email", text)) return("correo_envio")
+  "llave_configurada"
+}
+
+.monitoreo_internal_strategy_label <- function(strategy = "") {
+  switch(.monitoreo_scalar(strategy, ""),
+    telefono_enlace_y_codigo_final = "Telefónico: enlace personalizado + código final",
+    pregunta_pucp_whatsapp = "WhatsApp: pregunta de código PUCP",
+    pregunta_pucp_qr = "QR presencial: pregunta de código PUCP",
+    correo_envio = "Correo: metadata del envío",
+    llave_configurada = "Llave configurada por fuente",
+    "Llave configurada por fuente"
+  )
+}
+
+.monitoreo_internal_code_values_match <- function(a = "", b = "") {
+  keys_a <- .monitoreo_code_keys(a)
+  keys_b <- .monitoreo_code_keys(b)
+  length(keys_a) && length(keys_b) && any(keys_a %in% keys_b)
+}
+
+.monitoreo_internal_base_phone_values <- function(base = list()) {
+  values <- .monitoreo_internal_base_detail_values(base, "telefono")
+  keys <- unique(unlist(base$all_keys %||% list(), use.names = FALSE))
+  phone_keys <- sub("^telefono:", "", keys[grepl("^telefono:", keys)])
+  unique(vapply(c(values, phone_keys), .monitoreo_phone_key, character(1)))
+}
+
+.monitoreo_internal_phone_distance <- function(a = "", b = "") {
+  a <- .monitoreo_phone_key(a)
+  b <- .monitoreo_phone_key(b)
+  if (!nzchar(a) || !nzchar(b)) return(Inf)
+  if (identical(a, b)) return(0L)
+  if (nchar(a) != nchar(b)) return(Inf)
+  sum(strsplit(a, "")[[1L]] != strsplit(b, "")[[1L]])
+}
+
+.monitoreo_internal_phone_evidence_level <- function(phone = "", base = list()) {
+  phone <- .monitoreo_phone_key(phone)
+  if (!nzchar(phone)) return("sin_telefono")
+  base_phones <- .monitoreo_internal_base_phone_values(base)
+  base_phones <- base_phones[nzchar(base_phones)]
+  if (!length(base_phones)) return("sin_telefono_base")
+  distances <- vapply(base_phones, function(value) .monitoreo_internal_phone_distance(phone, value), numeric(1))
+  if (any(distances == 0, na.rm = TRUE)) return("telefono_exacto")
+  if (any(distances <= 1, na.rm = TRUE)) return("telefono_casi_igual")
+  "telefono_no_coincide"
+}
+
+.monitoreo_internal_base_snapshot <- function(base = list()) {
+  if (is.null(base) || !is.list(base)) {
+    return(list(record = "", person_label = "", case_key = "", status = "", responsible = "", source = ""))
+  }
+  list(
+    record = .monitoreo_scalar(base$identifier, ""),
+    person_label = .monitoreo_scalar(base$person, ""),
+    case_key = .monitoreo_internal_base_official_code(base),
+    status = .monitoreo_scalar(base$status, ""),
+    responsible = .monitoreo_scalar(base$responsible, ""),
+    source = .monitoreo_scalar(base$source, "")
+  )
+}
+
+.monitoreo_internal_phone_audit <- function(response_rows,
+                                            row_idx,
+                                            response_actor = "",
+                                            base = NULL,
+                                            base_index = list(),
+                                            source_label_maps = NULL) {
+  cv_id <- .monitoreo_internal_row_value_by_alias(
+    response_rows,
+    row_idx,
+    c("cv_id", "custom_value", "recipient_cv_id", "recipient_cv_codpulso", "recipient_custom_value"),
+    source_label_maps
+  )
+  manual_code <- .monitoreo_internal_row_value_by_alias(
+    response_rows,
+    row_idx,
+    c("q0034", "q034", "q34", "codigo pulso final", "código pulso final", "codpulso final"),
+    source_label_maps
+  )
+  if (!nzchar(manual_code)) {
+    manual_code <- .monitoreo_internal_row_value_by_label(
+      response_rows,
+      row_idx,
+      "codigo.*pulso|cod.*pulso",
+      source_label_maps
+    )
+  }
+  declared_phone <- .monitoreo_internal_row_value_by_alias(
+    response_rows,
+    row_idx,
+    c("q0035", "q035", "q35", "telefono final", "teléfono final", "celular"),
+    source_label_maps
+  )
+  if (!nzchar(declared_phone)) {
+    declared_phone <- .monitoreo_internal_row_value_by_label(
+      response_rows,
+      row_idx,
+      "celular|telefono|teléfono|phone",
+      source_label_maps
+    )
+  }
+  if (!nzchar(cv_id) && !nzchar(manual_code) && !nzchar(declared_phone)) return(list())
+
+  link_base <- NULL
+  if (nzchar(cv_id)) {
+    for (key in .monitoreo_code_keys(cv_id)) {
+      link_base <- .monitoreo_report_base_index_lookup(base_index, key, response_actor)
+      if (!is.null(link_base)) break
+    }
+  }
+  manual_base <- NULL
+  if (nzchar(manual_code)) {
+    for (key in .monitoreo_code_keys(manual_code)) {
+      manual_base <- .monitoreo_report_base_index_lookup(base_index, key, response_actor)
+      if (!is.null(manual_base)) break
+    }
+  }
+  if (is.null(link_base) && !is.null(base)) link_base <- base
+
+  has_conflict <- nzchar(cv_id) && nzchar(manual_code) &&
+    !isTRUE(.monitoreo_internal_code_values_match(cv_id, manual_code))
+  has_confirmation <- nzchar(cv_id) && nzchar(manual_code) &&
+    isTRUE(.monitoreo_internal_code_values_match(cv_id, manual_code))
+  phone_level <- .monitoreo_internal_phone_evidence_level(declared_phone, link_base %||% base %||% list())
+  if (isTRUE(has_conflict)) {
+    match_level <- "conflicto"
+    recommendation <- "Validar con responsable: el enlace usado y el código final escrito apuntan a personas distintas."
+  } else if (isTRUE(has_confirmation)) {
+    match_level <- "confirmado"
+    recommendation <- "El enlace y el código final coinciden; revisar solo si hay duplicados o teléfono inconsistente."
+  } else if (nzchar(cv_id) && !nzchar(manual_code)) {
+    match_level <- "sin_confirmacion_final"
+    recommendation <- "Cruce por enlace personalizado; falta código final escrito para confirmar la llamada."
+  } else if (!nzchar(cv_id) && nzchar(manual_code)) {
+    match_level <- "codigo_final_sin_enlace"
+    recommendation <- "No hay enlace personalizado usable; el código final puede orientar una conciliación manual."
+  } else {
+    match_level <- "sin_codigo_telefonico"
+    recommendation <- "No se encontró enlace ni código final usable para validar la llamada."
+  }
+
+  primary_base <- .monitoreo_internal_base_snapshot(link_base %||% base %||% list())
+  secondary_base <- .monitoreo_internal_base_snapshot(manual_base %||% list())
+  responsible <- .monitoreo_scalar(primary_base$responsible, "")
+  if (!nzchar(responsible)) responsible <- .monitoreo_scalar(secondary_base$responsible, "")
+  list(
+    cv_id = .monitoreo_scalar(cv_id, ""),
+    final_codpulso = .monitoreo_scalar(manual_code, ""),
+    declared_phone = .monitoreo_scalar(declared_phone, ""),
+    responsible = responsible,
+    phone_match_level = match_level,
+    phone_number_evidence = phone_level,
+    link_base = primary_base,
+    manual_code_base = secondary_base,
+    recommended_action = recommendation
+  )
+}
+
+.monitoreo_internal_identity_status <- function(result = "",
+                                                advancement = "",
+                                                issue_type = "",
+                                                phone_audit = list(),
+                                                partial_info = list()) {
+  if (is.list(phone_audit) && identical(.monitoreo_scalar(phone_audit$phone_match_level, ""), "conflicto")) {
+    return("conflicto_telefonico")
+  }
+  result_key <- .monitoreo_text_key(result)
+  issue_key <- .monitoreo_text_key(issue_type)
+  if (grepl("sin llave", result_key) || issue_key %in% c("sin_llave", "parcial_no_identificable")) return("no_identificable")
+  if (grepl("sin cruce", result_key) || issue_key %in% c("fuera_base", "codigo_fuera_base")) return("fuera_base")
+  if (identical(.monitoreo_scalar(advancement, ""), "partial") &&
+      .monitoreo_int(partial_info$pct %||% 0L, 0L) >= 80L) return("parcial_revisable")
+  if (identical(.monitoreo_scalar(advancement, ""), "effective")) return("identificado")
+  if (identical(.monitoreo_scalar(advancement, ""), "included_review")) return("identificado_con_salvedad")
+  if (identical(.monitoreo_scalar(advancement, ""), "partial")) return("parcial")
+  if (identical(.monitoreo_scalar(advancement, ""), "refusal")) return("rechazo")
+  if (identical(.monitoreo_scalar(advancement, ""), "pending")) return("pendiente_base")
+  "revision"
+}
+
+.monitoreo_internal_identity_label <- function(status = "") {
+  switch(.monitoreo_scalar(status, ""),
+    conflicto_telefonico = "Conflicto telefónico",
+    no_identificable = "Caso no identificable",
+    fuera_base = "Llave fuera de base",
+    parcial_revisable = "Parcial casi completa",
+    duplicado = "Duplicado",
+    identificado = "Persona identificada",
+    identificado_con_salvedad = "Identificada con salvedad",
+    parcial = "Parcial identificable",
+    rechazo = "Rechazo",
+    pendiente_base = "Pendiente en base",
+    "Revisión"
+  )
+}
+
 .monitoreo_internal_is_recovery_collector <- function(collector_id, collector_name, source_label = "") {
   key <- .monitoreo_safe_name(paste(collector_id, collector_name, source_label))
   grepl("faltante|faltantes|recuperacion|recuperacion", key)
@@ -13636,11 +15005,20 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   }
   declared_code <- first_detail("codigo")
   declared_email <- first_detail("email")
+  recipient_email <- ""
   primary_key <- ""
   if (length(details)) {
     primary <- details[[1L]]
     primary_key <- .monitoreo_scalar(primary$value, "")
     if (!nzchar(primary_key)) primary_key <- .monitoreo_scalar(primary$key, "")
+  }
+  if (!is.null(response_rows) && is.data.frame(response_rows) && row_idx >= 1L && row_idx <= nrow(response_rows)) {
+    recipient_email <- .monitoreo_internal_row_value_by_alias(
+      response_rows,
+      row_idx,
+      c("recipient_email", "recipient email", "email del destinatario", "correo destinatario", "correo del destinatario"),
+      source_label_maps
+    )
   }
   if (!nzchar(declared_email) && !is.null(response_rows) && is.data.frame(response_rows) && row_idx >= 1L && row_idx <= nrow(response_rows)) {
     if (is.null(source_label_maps)) source_label_maps <- .monitoreo_source_variable_label_map(response_rows)
@@ -13656,10 +15034,108 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       }
     }
   }
+  declared_name <- ""
+  if (!is.null(response_rows) && is.data.frame(response_rows) && row_idx >= 1L && row_idx <= nrow(response_rows)) {
+    declared_names <- .monitoreo_report_person_values(response_rows[row_idx, , drop = FALSE])
+    declared_name <- .monitoreo_scalar(declared_names[[1]] %||% "", "")
+  }
   list(
     primary_key = primary_key,
     declared_code = declared_code,
-    declared_email = declared_email
+    recipient_email = recipient_email,
+    declared_email = declared_email,
+    declared_name = declared_name
+  )
+}
+
+.monitoreo_internal_real_question_columns <- function(response_rows, source_label_maps = NULL) {
+  if (is.null(response_rows) || !is.data.frame(response_rows) || !length(names(response_rows))) {
+    return(character(0))
+  }
+  if (is.null(source_label_maps)) source_label_maps <- .monitoreo_source_variable_label_map(response_rows)
+  label_map <- .monitoreo_variable_label_map(response_rows)
+  out <- character(0)
+  for (column in names(response_rows)) {
+    clean <- .monitoreo_text_key(column)
+    if (!nzchar(clean) || grepl("^\\.", column)) next
+    label <- if (length(label_map) && column %in% names(label_map)) {
+      .monitoreo_scalar(label_map[[column]], "")
+    } else {
+      ""
+    }
+    source_label <- ""
+    if (length(source_label_maps)) {
+      for (source_map in source_label_maps) {
+        if (!is.list(source_map) || is.null(source_map$labels)) next
+        candidate <- .monitoreo_scalar(source_map$labels[[column]], "")
+        if (nzchar(candidate)) {
+          source_label <- candidate
+          break
+        }
+      }
+    }
+    haystack <- .monitoreo_text_key(paste(column, label, source_label))
+    technical <- grepl(
+      paste(c(
+        "^source", "survey", "response", "collector", "recipient", "custom_value", "cv_id",
+        "metadata", "meta", "ip_address", "ip address", "href", "edit_url", "language",
+        "date_created", "date_modified", "fecha_creacion", "fecha_modificacion",
+        "total_time", "tiempo_total", "status", "estado", "completa", "parcial",
+        "rechazo", "dim_", "actor", "canal", "channel", "source_role", "source_id"
+      ), collapse = "|"),
+      haystack
+    )
+    is_question <- grepl("^q[0-9]+($|_)", clean) || (nzchar(label) && !technical)
+    if (isTRUE(is_question) && !technical) out <- c(out, column)
+  }
+  unique(out)
+}
+
+.monitoreo_internal_partial_diagnostics <- function(response_rows,
+                                                    row_idx,
+                                                    source_label_maps = NULL,
+                                                    question_columns = NULL) {
+  if (is.null(response_rows) || !is.data.frame(response_rows) || row_idx < 1L || row_idx > nrow(response_rows)) {
+    return(list(answered = 0L, total = 0L, pct = 0L, last = "", next_question = ""))
+  }
+  if (is.null(source_label_maps)) source_label_maps <- .monitoreo_source_variable_label_map(response_rows)
+  if (is.null(question_columns)) question_columns <- .monitoreo_internal_real_question_columns(response_rows, source_label_maps)
+  question_columns <- question_columns[question_columns %in% names(response_rows)]
+  if (!length(question_columns)) return(list(answered = 0L, total = 0L, pct = 0L, last = "", next_question = ""))
+  values <- vapply(question_columns, function(column) {
+    .monitoreo_scalar(response_rows[[column]][[row_idx]], "")
+  }, character(1))
+  values <- trimws(values)
+  values_key <- .monitoreo_text_key(values)
+  answered <- nzchar(values) & !values_key %in% c("na", "n a", "n/a", "sd", "s d", "s/d", "sin dato", "sin respuesta")
+  labels <- vapply(question_columns, function(column) {
+    label <- .monitoreo_row_variable_label(response_rows, row_idx, column, "", source_label_maps)
+    if (nzchar(label)) label else column
+  }, character(1))
+  question_keys <- .monitoreo_text_key(labels)
+  column_question_keys <- sub("^q0*([0-9]+).*$", "q\\1", .monitoreo_text_key(question_columns))
+  q_column <- grepl("^q[0-9]+", column_question_keys)
+  question_keys[q_column] <- column_question_keys[q_column]
+  missing_question_key <- !nzchar(question_keys) | is.na(question_keys)
+  question_keys[missing_question_key] <- question_columns[missing_question_key]
+  group_keys <- unique(question_keys)
+  group_answered <- vapply(group_keys, function(key) {
+    any(answered[question_keys == key], na.rm = TRUE)
+  }, logical(1))
+  group_labels <- vapply(group_keys, function(key) {
+    labels[which(question_keys == key)[[1L]]]
+  }, character(1))
+  total <- length(group_keys)
+  answered_count <- sum(group_answered, na.rm = TRUE)
+  last_label <- if (answered_count) group_labels[max(which(group_answered))] else ""
+  next_idx <- which(!group_answered)
+  next_label <- if (length(next_idx)) group_labels[min(next_idx)] else ""
+  list(
+    answered = as.integer(answered_count),
+    total = as.integer(total),
+    pct = as.integer(round(answered_count / max(1L, total) * 100)),
+    last = last_label,
+    next_question = next_label
   )
 }
 
@@ -13696,7 +15172,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
                                                     email_keys = character(0),
                                                     code_keys = character(0),
                                                     declared_email = "",
-                                                    declared_code = "") {
+                                                    declared_code = "",
+                                                    declared_name = "") {
   base_keys <- unique(unlist(base$all_keys %||% list(), use.names = FALSE))
   base_keys <- base_keys[nzchar(base_keys)]
   email_match <- length(email_keys) && any(email_keys %in% base_keys)
@@ -13747,6 +15224,19 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       evidence_label = paste0("Correo similar ", best_email_score, "%"),
       evidence_score = as.integer(best_email_score),
       evidence_fields = "correo"
+    ))
+  }
+  base_name <- .monitoreo_scalar(base$person, "")
+  name_score <- .monitoreo_text_similarity_score(declared_name, base_name)
+  if (nzchar(.monitoreo_text_key(declared_name)) && nzchar(.monitoreo_text_key(base_name)) && name_score >= 88L) {
+    exact_name <- identical(.monitoreo_text_key(declared_name), .monitoreo_text_key(base_name))
+    return(list(
+      match_type = if (exact_name) "name_exact" else "name_similar",
+      match_label = if (exact_name) "Coincidencia por nombre exacto" else "Nombre similar en pendiente",
+      evidence_level = if (exact_name) "exact" else "possible",
+      evidence_label = if (exact_name) "Nombre exacto" else paste0("Nombre similar ", name_score, "%"),
+      evidence_score = as.integer(name_score),
+      evidence_fields = "nombre"
     ))
   }
   list(
@@ -13840,6 +15330,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     (!identical(result, "Cruzó") || !is.null(manual))
   declared_code <- .monitoreo_scalar(evidence$declared_code, "")
   declared_email <- .monitoreo_scalar(evidence$declared_email, "")
+  declared_name <- .monitoreo_scalar(evidence$declared_name, "")
   primary_key <- .monitoreo_scalar(evidence$primary_key, "")
   if (!isTRUE(eligible) && is.null(manual)) return(NULL)
 
@@ -13863,7 +15354,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       email_keys = email_keys,
       code_keys = code_keys,
       declared_email = declared_email,
-      declared_code = declared_code
+      declared_code = declared_code,
+      declared_name = declared_name
     )
     candidates[[length(candidates) + 1L]] <- .monitoreo_internal_base_candidate(
       base,
@@ -13887,7 +15379,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       email_keys = email_keys,
       code_keys = code_keys,
       declared_email = declared_email,
-      declared_code = declared_code
+      declared_code = declared_code,
+      declared_name = declared_name
     )
     candidate <- .monitoreo_internal_base_candidate(
       base,
@@ -13909,8 +15402,12 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
 
   warnings <- character(0)
   has_email_candidate <- any(vapply(candidates, function(item) grepl("email", .monitoreo_scalar(item$match_type, ""), fixed = TRUE), logical(1)))
+  has_name_candidate <- any(vapply(candidates, function(item) grepl("name", .monitoreo_scalar(item$match_type, ""), fixed = TRUE), logical(1)))
   if (has_email_candidate && grepl("sin cruce|sin llave", result_key)) {
     warnings <- c(warnings, "La llave principal no cruza con la base, pero el correo declarado sí cruza con una persona del universo.")
+  }
+  if (has_name_candidate && grepl("sin cruce|sin llave", result_key)) {
+    warnings <- c(warnings, "La llave principal no cruza con la base, pero el nombre declarado es compatible con una persona del universo.")
   }
   for (candidate in candidates) {
     if (!grepl("email", .monitoreo_scalar(candidate$match_type, ""), fixed = TRUE) || !nzchar(declared_code)) next
@@ -13923,11 +15420,11 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   has_pending_evidence <- any(vapply(assignment_candidates, function(item) {
     .monitoreo_scalar(item$evidence_level, "") %in% c("exact", "possible")
   }, logical(1)))
-  if (!length(candidates) && !isTRUE(has_pending_evidence) && (nzchar(declared_code) || nzchar(declared_email) || nzchar(primary_key))) {
-    warnings <- c(warnings, "No se encontró coincidencia por código ni correo en el universo.")
+  if (!length(candidates) && !isTRUE(has_pending_evidence) && (nzchar(declared_code) || nzchar(declared_email) || nzchar(declared_name) || nzchar(primary_key))) {
+    warnings <- c(warnings, "No se encontró coincidencia por código, correo ni nombre en el universo.")
   }
   if (isTRUE(has_pending_evidence)) {
-    warnings <- c(warnings, "Hay personas pendientes del universo con correo o código compatible; revisa estos casos antes de publicar la lista de no respuesta.")
+    warnings <- c(warnings, "Hay personas pendientes del universo con correo, código o nombre compatible; revisa estos casos antes de publicar la lista de no respuesta.")
   }
 
   list(
@@ -13935,6 +15432,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     primary_key = primary_key,
     declared_code = declared_code,
     declared_email = declared_email,
+    declared_name = declared_name,
     candidates = candidates,
     assignment_candidates = assignment_candidates,
     warnings = as.list(unique(warnings)),
@@ -13992,6 +15490,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     sin_llave = "Respuesta sin llave",
     fuera_base = "Llave fuera de base",
     incluido_con_salvedad = "Incluido con salvedad",
+    conflicto_telefonico = "Conflicto telefónico",
     duplicado_caso = "Caso duplicado",
     "Revisión"
   )
@@ -14013,6 +15512,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     sin_llave = "Respuesta sin llave reconciliable; queda fuera hasta identificarla.",
     fuera_base = "Llave detectada fuera de la base; queda fuera hasta corregir o decidir incluir con salvedad.",
     incluido_con_salvedad = "Incluido por decisión auditada pese a no cruzar automáticamente.",
+    conflicto_telefonico = "El enlace personalizado y el código final escrito apuntan a personas distintas; queda fuera hasta validarlo con responsable.",
     "Revisión pendiente."
   )
 }
@@ -14203,6 +15703,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   response_actors <- .monitoreo_report_trace_actor_values(response_rows)
   response_details <- .monitoreo_report_key_details(response_rows, profile, "respuesta")
   response_label_maps <- .monitoreo_source_variable_label_map(response_rows)
+  response_question_columns <- .monitoreo_internal_real_question_columns(response_rows, response_label_maps)
   response_ids <- .monitoreo_report_response_ids(response_rows)
   response_person <- .monitoreo_report_person_values(response_rows)
   source_ids <- if (".source_id" %in% names(response_rows)) trimws(as.character(response_rows$.source_id %||% "")) else rep("", nrow(response_rows))
@@ -14371,6 +15872,87 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     if (!is.null(base) && nzchar(base$person %||% "")) person <- base$person %||% ""
     if (!nzchar(person) && !is.null(base)) person <- base$identifier %||% ""
     if (!nzchar(person)) person <- detail$value %||% detail$key %||% response_id
+    partial_info <- .monitoreo_internal_partial_diagnostics(
+      response_rows,
+      i,
+      source_label_maps = response_label_maps,
+      question_columns = response_question_columns
+    )
+    key_strategy <- .monitoreo_internal_key_strategy(case_channel, source_labels[[i]] %||% "", details)
+    phone_audit <- if (identical(key_strategy, "telefono_enlace_y_codigo_final")) {
+      .monitoreo_internal_phone_audit(
+        response_rows,
+        i,
+        response_actor = response_actors[[i]],
+        base = base,
+        base_index = base_index,
+        source_label_maps = response_label_maps
+      )
+    } else {
+      list()
+    }
+    if (is.list(phone_audit) &&
+        identical(.monitoreo_scalar(phone_audit$phone_match_level, ""), "conflicto")) {
+      decision <- list(
+        label = "Excluido del avance",
+        note = "Revisión telefónica necesaria: el enlace usado y el código final escrito apuntan a personas distintas."
+      )
+      advancement <- "excluded"
+      issue_type <- "conflicto_telefonico"
+      pending_exit <- FALSE
+    }
+    identity_status <- .monitoreo_internal_identity_status(
+      result,
+      advancement,
+      issue_type,
+      phone_audit,
+      partial_info
+    )
+    primary_identity_label <- "Llave usada"
+    primary_identity_value <- detail$value %||% detail$key %||% ""
+    secondary_identity_label <- "Evidencia secundaria"
+    secondary_identity_value <- ""
+    if (identical(key_strategy, "telefono_enlace_y_codigo_final")) {
+      primary_identity_label <- "Enlace usado"
+      primary_identity_value <- .monitoreo_scalar(phone_audit$cv_id %||% "", "")
+      secondary_identity_label <- "Código final"
+      secondary_identity_value <- .monitoreo_scalar(phone_audit$final_codpulso %||% "", "")
+      if (!nzchar(secondary_identity_value)) {
+        secondary_identity_label <- "Celular declarado"
+        secondary_identity_value <- .monitoreo_scalar(phone_audit$declared_phone %||% "", "")
+      }
+    } else if (identical(key_strategy, "correo_envio")) {
+      recipient_email <- .monitoreo_scalar(evidence$recipient_email %||% "", "")
+      declared_email <- .monitoreo_scalar(evidence$declared_email %||% "", "")
+      if (nzchar(recipient_email)) {
+        primary_identity_label <- "Correo del envío"
+        primary_identity_value <- recipient_email
+        secondary_identity_label <- if (nzchar(declared_email) && !identical(.monitoreo_email_key(declared_email), .monitoreo_email_key(recipient_email))) {
+          "Correo declarado"
+        } else {
+          "Código declarado"
+        }
+        secondary_identity_value <- if (identical(secondary_identity_label, "Correo declarado")) declared_email else evidence$declared_code %||% ""
+      } else {
+        primary_identity_label <- if (nzchar(declared_email)) "Correo observado en respuesta" else "Llave usada"
+        primary_identity_value <- if (nzchar(declared_email)) declared_email else primary_identity_value
+        secondary_identity_label <- "Código declarado"
+        secondary_identity_value <- evidence$declared_code %||% ""
+      }
+    } else {
+      primary_identity_label <- if (nzchar(evidence$declared_code %||% "")) "Código PUCP declarado" else "Llave usada"
+      primary_identity_value <- evidence$declared_code %||% primary_identity_value
+      secondary_identity_label <- if (nzchar(evidence$declared_email %||% "")) "Correo declarado" else "Dato complementario"
+      secondary_identity_value <- evidence$declared_email %||% ""
+    }
+    review_priority <- switch(identity_status,
+      conflicto_telefonico = 100L,
+      no_identificable = 90L,
+      fuera_base = 82L,
+      parcial_revisable = 68L,
+      revision = 50L,
+      20L
+    )
     cases[[length(cases) + 1L]] <- data.frame(
       actor = response_actors[[i]],
       person_label = person,
@@ -14395,6 +15977,25 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       pending_exit = pending_exit,
       recovery_collector = recovery_collector,
       response_row = as.integer(response_idx[[i]]),
+      partial_answered_questions = as.integer(partial_info$answered %||% 0L),
+      partial_total_questions = as.integer(partial_info$total %||% 0L),
+      partial_completion_pct = as.integer(partial_info$pct %||% 0L),
+      partial_last_question = partial_info$last %||% "",
+      partial_next_question = partial_info$next_question %||% "",
+      duplicate_group_key = "",
+      duplicate_group_size = 1L,
+      counts_in_advance = FALSE,
+      duplicate_counting_status = "",
+      identity_status = identity_status,
+      identity_label = .monitoreo_internal_identity_label(identity_status),
+      channel_key_strategy = key_strategy,
+      channel_key_strategy_label = .monitoreo_internal_strategy_label(key_strategy),
+      primary_identity_label = primary_identity_label,
+      primary_identity_value = primary_identity_value,
+      secondary_identity_label = secondary_identity_label,
+      secondary_identity_value = secondary_identity_value,
+      review_priority = as.integer(review_priority),
+      phone_audit = I(list(phone_audit %||% list())),
       assisted_review = I(list(assisted_review %||% list())),
       check.names = FALSE,
       stringsAsFactors = FALSE
@@ -14432,6 +16033,25 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
         pending_exit = FALSE,
         recovery_collector = FALSE,
         response_row = NA_integer_,
+        partial_answered_questions = 0L,
+        partial_total_questions = 0L,
+        partial_completion_pct = 0L,
+        partial_last_question = "",
+        partial_next_question = "",
+        duplicate_group_key = "",
+        duplicate_group_size = 1L,
+        counts_in_advance = FALSE,
+        duplicate_counting_status = "",
+        identity_status = "pendiente_base",
+        identity_label = .monitoreo_internal_identity_label("pendiente_base"),
+        channel_key_strategy = "base_sin_respuesta",
+        channel_key_strategy_label = "Base sin respuesta",
+        primary_identity_label = "Llave en base",
+        primary_identity_value = base$key %||% "",
+        secondary_identity_label = "Responsable",
+        secondary_identity_value = base$responsible %||% "",
+        review_priority = 10L,
+        phone_audit = I(list(list())),
         assisted_review = I(list(list())),
         check.names = FALSE,
         stringsAsFactors = FALSE
@@ -14442,15 +16062,38 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
 
   cases_df <- .monitoreo_internal_records_to_df(cases)
   key <- as.character(cases_df$case_key %||% "")
+  fallback <- as.character(cases_df$response_id %||% "")
+  duplicate_group_key <- key
+  missing_duplicate_key <- !nzchar(duplicate_group_key) | is.na(duplicate_group_key)
+  duplicate_group_key[missing_duplicate_key] <- paste0("response:", fallback[missing_duplicate_key])
+  missing_duplicate_key <- !nzchar(duplicate_group_key) | is.na(duplicate_group_key)
+  duplicate_group_key[missing_duplicate_key] <- paste0("row:", seq_len(nrow(cases_df))[missing_duplicate_key])
   duplicate_count <- rep(1L, nrow(cases_df))
-  for (dup_key in unique(key[nzchar(key) & !is.na(key)])) {
-    idx <- which(key == dup_key)
+  for (dup_key in unique(duplicate_group_key[nzchar(duplicate_group_key) & !is.na(duplicate_group_key)])) {
+    idx <- which(duplicate_group_key == dup_key)
     duplicate_count[idx] <- length(idx)
   }
+  cases_df$duplicate_group_key <- duplicate_group_key
+  cases_df$duplicate_group_size <- duplicate_count
   cases_df$duplicate_count <- duplicate_count
   cases_df$issue_type[duplicate_count > 1L & cases_df$issue_type == "efectiva_real"] <- "efectiva_real"
+  duplicate_identity <- duplicate_count > 1L &
+    !as.character(cases_df$identity_status %||% "") %in% c("conflicto_telefonico", "no_identificable", "fuera_base")
+  cases_df$identity_status[duplicate_identity] <- "duplicado"
+  cases_df$identity_label <- vapply(as.character(cases_df$identity_status %||% ""), .monitoreo_internal_identity_label, character(1))
+  review_priority <- suppressWarnings(as.integer(cases_df$review_priority %||% 0L))
+  review_priority[!is.finite(review_priority)] <- 0L
+  cases_df$review_priority <- pmax(review_priority, ifelse(duplicate_count > 1L, 72L, 0L))
 
   deduped <- .monitoreo_internal_deduplicate_cases(cases_df)
+  row_id <- paste(cases_df$response_id %||% "", cases_df$case_key %||% "", cases_df$response_row %||% "", sep = "\r")
+  kept_id <- paste(deduped$response_id %||% "", deduped$case_key %||% "", deduped$response_row %||% "", sep = "\r")
+  cases_df$counts_in_advance <- cases_df$advancement %in% c("effective", "included_review") & row_id %in% kept_id
+  cases_df$duplicate_counting_status <- ifelse(
+    cases_df$counts_in_advance,
+    "Cuenta en avance",
+    ifelse(cases_df$duplicate_group_size > 1L, "No cuenta por duplicado o estado", "No cuenta")
+  )
   pending_exit_df <- deduped[deduped$pending_exit %in% TRUE | deduped$pending_exit == "TRUE", , drop = FALSE]
   issues_df <- .monitoreo_internal_case_issues(cases_df)
   flow <- .monitoreo_internal_flow(deduped)
@@ -14471,14 +16114,17 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   )
 }
 
-.monitoreo_client_report_model <- function(data, config = list(), generated_at = NULL) {
+.monitoreo_client_report_model <- function(data, config = list(), generated_at = NULL, detail = c("full", "advance_summary")) {
+  detail <- match.arg(detail)
+  summary_only <- identical(detail, "advance_summary")
   cfg <- monitoreo_normalize_config(config, data)
+  data <- .monitoreo_filter_disabled_collectors(data, cfg)
   profile <- cfg$monitoreo_profile %||% monitoreo_normalize_profile(list())
   resumen <- .monitoreo_report_summary_df(data, profile)
   avance_general <- .monitoreo_report_daily_df(data, profile, FALSE)
-  avance_fuente <- .monitoreo_report_daily_source_df(data, profile)
-  avance_recopilador <- .monitoreo_report_daily_source_df(data, profile, by_collector = TRUE)
-  controles <- .monitoreo_report_control_distribution_df(data, profile)
+  avance_fuente <- .monitoreo_report_daily_source_df(data, profile, config = cfg)
+  avance_recopilador <- if (isTRUE(summary_only)) data.frame() else .monitoreo_report_daily_source_df(data, profile, by_collector = TRUE, config = cfg)
+  controles <- if (isTRUE(summary_only)) data.frame() else .monitoreo_report_control_distribution_df(data, profile)
   if (is.null(generated_at) || !nzchar(as.character(generated_at))) generated_at <- .monitoreo_now_iso()
 
   if (!nrow(resumen)) {
@@ -14499,6 +16145,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       sources = list(),
       collector_sources = list(),
       controls = list(),
+      client_report = cfg$client_report %||% .monitoreo_client_report_config(list()),
       has_targets = FALSE,
       sheets = list()
     ))
@@ -14605,6 +16252,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
         if (is.null(current)) {
           current <- c(
             list(
+              source_id = as.character(source_progress$source_id[[i]] %||% ""),
               Actor = as.character(source_progress$Actor[[i]] %||% "Sin actor"),
               Canal = as.character(source_progress$Canal[[i]] %||% "Sin canal"),
               Fuente = as.character(source_progress$Fuente[[i]] %||% "Encuesta")
@@ -14643,7 +16291,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       do.call(rbind, lapply(source_map, function(row) as.data.frame(row, check.names = FALSE, stringsAsFactors = FALSE)))
     } else {
       base_cols <- list(
-        Actor = character(), Canal = character(), Fuente = character()
+        source_id = character(), Actor = character(), Canal = character(), Fuente = character()
       )
       collector_cols <- if (isTRUE(include_collector)) list(Recopilador = character(), collector_id = character(), `Tipo recopilador` = character()) else list()
       as.data.frame(c(base_cols, collector_cols, list(
@@ -14660,7 +16308,11 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     out
   }
   sources_df <- build_source_summary(avance_fuente, include_collector = FALSE)
-  collector_sources_df <- build_source_summary(avance_recopilador, include_collector = TRUE)
+  collector_sources_df <- if (isTRUE(summary_only)) {
+    build_source_summary(data.frame(), include_collector = TRUE)
+  } else {
+    build_source_summary(avance_recopilador, include_collector = TRUE)
+  }
 
   controls_df <- controles
   if (!nrow(controls_df)) controls_df <- data.frame(
@@ -14708,6 +16360,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     sources = .monitoreo_report_records(sources_df),
     collector_sources = .monitoreo_report_records(collector_sources_df),
     controls = .monitoreo_report_records(controls_df),
+    client_report = cfg$client_report %||% .monitoreo_client_report_config(list()),
     has_targets = any(!is.na(actor_df$Meta)),
     sheets = list()
   )
@@ -14807,8 +16460,82 @@ monitoreo_acreditacion_client_report_sheets <- function(model, include_targets =
   )
 }
 
-monitoreo_acreditacion_client_report_model <- function(data, config = list()) {
-  .monitoreo_client_report_model(data, config)
+monitoreo_acreditacion_client_report_model <- function(data, config = list(), detail = c("full", "advance_summary")) {
+  .monitoreo_client_report_model(data, config, detail = match.arg(detail))
+}
+
+.monitoreo_pdf_add_internal_links <- function(pdf_path, links) {
+  links <- links %||% list()
+  if (!length(links) || !file.exists(pdf_path)) return(invisible(FALSE))
+  if (!requireNamespace("jsonlite", quietly = TRUE)) return(invisible(FALSE))
+
+  python_candidates <- c(
+    Sys.getenv("PROSECNUR_PDF_PYTHON", ""),
+    file.path(Sys.getenv("HOME", ""), ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "python", "bin", "python3"),
+    unname(Sys.which("python3"))
+  )
+  python_candidates <- python_candidates[nzchar(python_candidates) & file.exists(python_candidates)]
+  python_candidates <- python_candidates[file.access(python_candidates, 1) == 0]
+  if (!length(python_candidates)) return(invisible(FALSE))
+
+  script <- c(
+    "import json, os, sys",
+    "try:",
+    "    from pypdf import PdfReader, PdfWriter",
+    "except Exception:",
+    "    sys.exit(7)",
+    "pdf_path, links_path = sys.argv[1], sys.argv[2]",
+    "with open(links_path, 'r', encoding='utf-8') as handle:",
+    "    links = json.load(handle)",
+    "reader = PdfReader(pdf_path)",
+    "writer = PdfWriter()",
+    "for page in reader.pages:",
+    "    writer.add_page(page)",
+    "page_count = len(writer.pages)",
+    "for link in links:",
+    "    try:",
+    "        source = int(link.get('source_page_index', -1))",
+    "        target = int(link.get('target_page_index', -1))",
+    "        if source < 0 or source >= page_count or target < 0 or target >= page_count:",
+    "            continue",
+    "        page = writer.pages[source]",
+    "        width = float(page.mediabox.width)",
+    "        height = float(page.mediabox.height)",
+    "        x0 = max(0.0, min(1.0, float(link.get('x0', 0))))",
+    "        y0 = max(0.0, min(1.0, float(link.get('y0', 0))))",
+    "        x1 = max(0.0, min(1.0, float(link.get('x1', 0))))",
+    "        y1 = max(0.0, min(1.0, float(link.get('y1', 0))))",
+    "        if x1 <= x0 or y1 <= y0:",
+    "            continue",
+    "        rect = [x0 * width, y0 * height, x1 * width, y1 * height]",
+    "        annotation = {",
+    "            '/Type': '/Annot',",
+    "            '/Subtype': '/Link',",
+    "            '/Rect': rect,",
+    "            '/Border': [0, 0, 0],",
+    "            '/Dest': {'target_page_index': target, 'fit': '/Fit', 'fit_args': []},",
+    "        }",
+    "        writer.add_annotation(source, annotation)",
+    "    except Exception:",
+    "        continue",
+    "tmp_path = pdf_path + '.links.tmp'",
+    "with open(tmp_path, 'wb') as handle:",
+    "    writer.write(handle)",
+    "os.replace(tmp_path, pdf_path)"
+  )
+
+  links_path <- tempfile(fileext = ".json")
+  script_path <- tempfile(fileext = ".py")
+  on.exit(unlink(c(links_path, script_path), force = TRUE), add = TRUE)
+  jsonlite::write_json(links, links_path, auto_unbox = TRUE, null = "null")
+  writeLines(script, script_path, useBytes = TRUE)
+
+  result <- tryCatch(
+    system2(python_candidates[[1]], c(script_path, normalizePath(pdf_path, mustWork = TRUE), links_path), stdout = TRUE, stderr = TRUE),
+    error = function(e) structure(character(), status = 1L)
+  )
+  status <- attr(result, "status")
+  invisible(is.null(status) || identical(as.integer(status), 0L))
 }
 
 monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include_targets = FALSE, title = NULL) {
@@ -14825,156 +16552,529 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     out[!is.finite(out)] <- 0
     out
   }
+  one_num <- function(x, default = 0) {
+    out <- num(x)
+    if (!length(out)) return(default)
+    out[[1]]
+  }
   pct_label <- function(x) {
     x <- suppressWarnings(as.numeric(x))
     if (!is.finite(x)) return("S/D")
     sprintf("%.1f%%", if (abs(x) <= 1) x * 100 else x)
   }
-  fmt <- function(x) formatC(as.integer(round(num(x))), big.mark = ",", format = "d")
+  fmt <- function(x) formatC(as.integer(round(one_num(x))), big.mark = ",", format = "d")
+  fmt_sum <- function(x) formatC(as.integer(round(sum(num(x), na.rm = TRUE))), big.mark = ",", format = "d")
+  pct_value <- function(num_value, den_value) {
+    .monitoreo_client_report_pct(one_num(num_value), one_num(den_value))
+  }
+  ellipsize <- function(x, max_chars = 64) {
+    x <- as.character(x %||% "")
+    x[is.na(x)] <- ""
+    vapply(x, function(item) {
+      if (nchar(item, type = "width") <= max_chars) return(item)
+      paste0(substr(item, 1L, max(1L, max_chars - 3L)), "...")
+    }, character(1))
+  }
   actors <- records_df(model$actors)
   daily_general <- records_df(model$daily_general)
   daily_actor <- records_df(model$daily_actor)
   sources <- records_df(model$sources)
+  channel_aliases <- model$client_report$channel_labels %||%
+    model$presentation$channel_labels %||%
+    model$channel_labels %||%
+    list()
+  channel_alias <- function(value) {
+    raw <- as.character(value %||% "")
+    if (!nzchar(raw) || is.na(raw)) raw <- "Sin canal"
+    key <- .monitoreo_text_key(raw)
+    label <- trimws(.monitoreo_scalar(channel_aliases[[key]], ""))
+    if (nzchar(label)) label else raw
+  }
   total_effective <- sum(num(actors$Efectivas), na.rm = TRUE)
-  total_partial <- sum(num(actors$Parciales), na.rm = TRUE)
-  total_refusal <- sum(num(actors$`Rechazos plataforma`), na.rm = TRUE)
   total_universe <- sum(num(actors$Universo), na.rm = TRUE)
-  report_title <- title %||% model$title %||% "Reporte de avance para cliente"
+  total_pending <- max(0, total_universe - total_effective)
+  report_title <- title %||% "Reporte de avance"
   generated_at <- as.character(model$generated_at %||% "")
   pretty_stamp <- function(x) {
     parsed <- .monitoreo_parse_time_vec(x)
-    if (length(parsed) && !is.na(parsed[[1]])) return(format(parsed[[1]], "%d/%m/%y, %H:%M"))
+    if (length(parsed) && !is.na(parsed[[1]])) {
+      local_tz <- Sys.getenv("TZ", "")
+      if (!nzchar(local_tz)) local_tz <- "America/Lima"
+      month_labels <- c("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+      local_day <- as.POSIXlt(parsed[[1]], tz = local_tz)
+      return(sprintf("%02d %s %d", local_day$mday, month_labels[[local_day$mon + 1L]], local_day$year + 1900L))
+    }
     x
   }
-  pretty_day <- function(x) {
+  pretty_day <- function(x, stacked = TRUE) {
     parsed <- suppressWarnings(as.Date(as.character(x)))
-    ifelse(is.na(parsed), as.character(x), format(parsed, "%d/%m"))
+    month_labels <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    out <- ifelse(
+      is.na(parsed),
+      as.character(x),
+      paste(month_labels[as.integer(format(parsed, "%m"))], as.integer(format(parsed, "%d")))
+    )
+    if (isTRUE(stacked)) out <- gsub(" ", "\n", out, fixed = TRUE)
+    out
   }
   generated_label <- pretty_stamp(generated_at)
+  pulso_logo_path <- function() {
+    candidates <- c(
+      system.file("hojas_ruta", "assets", "logo_pulso.png", package = "prosecnurapp"),
+      file.path(getwd(), "api", "inst", "hojas_ruta", "assets", "logo_pulso.png"),
+      file.path(getwd(), "api", "inst", "manuales_qmd", "files_manuales", "img", "logo_pulso.png"),
+      file.path(getwd(), "inst", "hojas_ruta", "assets", "logo_pulso.png")
+    )
+    candidates <- candidates[nzchar(candidates) & file.exists(candidates)]
+    if (length(candidates)) candidates[[1]] else ""
+  }
 
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
   grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69, onefile = TRUE)
-  on.exit(grDevices::dev.off(), add = TRUE)
+  pdf_device <- grDevices::dev.cur()
+  pdf_closed <- FALSE
+  close_pdf <- function() {
+    if (isTRUE(pdf_closed)) return(invisible(NULL))
+    tryCatch(
+      {
+        if (identical(grDevices::dev.cur(), pdf_device)) {
+          grDevices::dev.off()
+        } else {
+          grDevices::dev.off(pdf_device)
+        }
+      },
+      error = function(e) NULL
+    )
+    pdf_closed <<- TRUE
+    invisible(NULL)
+  }
+  on.exit(close_pdf(), add = TRUE)
 
-  draw_header <- function(section = "") {
-    graphics::par(mar = c(0, 0, 0, 0))
-    graphics::plot.new()
-    graphics::rect(0, 0.92, 1, 1, col = "#f7fafc", border = NA)
-    graphics::text(0.06, 0.965, report_title, adj = c(0, 0.5), cex = 1.18, font = 2, col = "#0f2341")
-    if (nzchar(section)) graphics::text(0.06, 0.93, section, adj = c(0, 0.5), cex = 0.78, col = "#657389")
-    graphics::text(0.94, 0.95, generated_label, adj = c(1, 0.5), cex = 0.62, col = "#657389")
+  ink <- "#152033"
+  muted <- "#667085"
+  faint <- "#98a2b3"
+  panel <- "#ffffff"
+  canvas <- "#f6f8fb"
+  border <- "#d8e1ee"
+  grid_line <- "#e9eef6"
+  accent <- "#be123c"
+  effective <- "#168a55"
+  navy <- "#06346f"
+
+  page_no <- 0L
+  pdf_links <- list()
+  add_pdf_link <- function(target_page_index, x, y, w, h, label = "") {
+    if (!is.finite(target_page_index) || target_page_index < 0) return(invisible(NULL))
+    pdf_links[[length(pdf_links) + 1L]] <<- list(
+      source_page_index = as.integer(max(0L, page_no - 1L)),
+      target_page_index = as.integer(target_page_index),
+      x0 = as.numeric(x),
+      y0 = as.numeric(y),
+      x1 = as.numeric(x + w),
+      y1 = as.numeric(y + h),
+      label = as.character(label %||% "")
+    )
+    invisible(NULL)
   }
-  metric_box <- function(x, y, w, h, label, value, hint = "", border = "#d9e2ef") {
-    graphics::rect(x, y, x + w, y + h, col = "#ffffff", border = border, lwd = 1.2)
-    graphics::text(x + 0.025, y + h - 0.03, toupper(label), adj = c(0, 1), cex = 0.55, font = 2, col = "#64748b")
-    graphics::text(x + 0.025, y + h * 0.48, value, adj = c(0, 0.5), cex = 1.24, font = 2, col = "#162033")
-    if (nzchar(hint)) graphics::text(x + 0.025, y + 0.025, hint, adj = c(0, 0), cex = 0.58, col = "#657389")
+  rr <- function(x, y, w, h, fill = panel, col = border, lwd = 1, r = 0.016) {
+    grid::grid.roundrect(
+      x = grid::unit(x + w / 2, "npc"),
+      y = grid::unit(y + h / 2, "npc"),
+      width = grid::unit(w, "npc"),
+      height = grid::unit(h, "npc"),
+      r = grid::unit(r, "snpc"),
+      gp = grid::gpar(fill = fill, col = col, lwd = lwd)
+    )
   }
-  draw_trend <- function(df, x0, y0, w, h, title = "Efectivas por fecha") {
+  txt <- function(label, x, y, size = 9, col = ink, face = "plain", just = c("left", "center"),
+                  rot = 0, lineheight = 1.05) {
+    label <- as.character(label %||% "")
+    grid::grid.text(
+      label,
+      x = grid::unit(x, "npc"),
+      y = grid::unit(y, "npc"),
+      just = just,
+      rot = rot,
+      gp = grid::gpar(fontsize = size, col = col, fontface = face, lineheight = lineheight)
+    )
+  }
+  line <- function(x0, y0, x1, y1, col = border, lwd = 1, lty = 1) {
+    grid::grid.segments(
+      x0 = grid::unit(x0, "npc"),
+      y0 = grid::unit(y0, "npc"),
+      x1 = grid::unit(x1, "npc"),
+      y1 = grid::unit(y1, "npc"),
+      gp = grid::gpar(col = col, lwd = lwd, lty = lty)
+    )
+  }
+  rect <- function(x, y, w, h, fill, col = NA, lwd = 1) {
+    grid::grid.rect(
+      x = grid::unit(x + w / 2, "npc"),
+      y = grid::unit(y + h / 2, "npc"),
+      width = grid::unit(w, "npc"),
+      height = grid::unit(h, "npc"),
+      gp = grid::gpar(fill = fill, col = col, lwd = lwd)
+    )
+  }
+  draw_chip <- function(x, y, label, fill = "#ffffff", col = border, text_col = ink, w = NULL) {
+    label <- as.character(label %||% "")
+    width <- w %||% max(0.072, min(0.22, 0.022 + nchar(label, type = "width") * 0.006))
+    rr(x, y - 0.015, width, 0.03, fill = fill, col = col, lwd = 0.8, r = 0.014)
+    txt(label, x + width / 2, y, size = 6.6, col = text_col, face = "bold", just = c("center", "center"))
+    invisible(width)
+  }
+  draw_pulso_logo <- function(x, y, height = 0.036) {
+    logo_aspect <- 1078 / 423
+    logo_width <- height * logo_aspect * (11.69 / 8.27)
+    path <- pulso_logo_path()
+    if (nzchar(path) && requireNamespace("png", quietly = TRUE)) {
+      img <- tryCatch(png::readPNG(path), error = function(e) NULL)
+      if (!is.null(img)) {
+        grid::grid.raster(
+          img,
+          x = grid::unit(x + logo_width / 2, "npc"),
+          y = grid::unit(y, "npc"),
+          width = grid::unit(logo_width, "npc"),
+          height = grid::unit(height, "npc"),
+          interpolate = TRUE
+        )
+        return(invisible(logo_width))
+      }
+    }
+    txt("PULSO", x, y + 0.006, size = 10.8, col = navy, face = "bold", just = c("left", "center"))
+    txt("PUCP", x, y - 0.013, size = 6.2, col = muted, face = "bold", just = c("left", "center"))
+    invisible(0.085)
+  }
+  draw_page <- function(section = "") {
+    page_no <<- page_no + 1L
+    grid::grid.newpage()
+    rect(0, 0, 1, 1, canvas, col = NA)
+    rect(0, 0.925, 1, 0.075, "#ffffff", col = NA)
+    line(0.045, 0.925, 0.955, 0.925, col = border, lwd = 0.8)
+    logo_w <- draw_pulso_logo(0.055, 0.960, height = 0.032)
+    title_x <- 0.055 + logo_w + 0.018
+    txt(ellipsize(report_title, 64), title_x, 0.958, size = 12.2, col = ink, face = "bold")
+    txt(generated_label, 0.945, 0.958, size = 7.2, col = muted, face = "bold", just = c("right", "center"))
+    txt("Avance", 0.055, 0.025, size = 6.2, col = faint, face = "bold")
+    txt(paste("Pagina", page_no), 0.945, 0.025, size = 6.2, col = faint, just = c("right", "center"))
+  }
+  metric_box <- function(x, y, w, h, label, value, hint = "", tone = "neutral") {
+    tones <- list(
+      effective = c("#f0fdf4", "#91d8ad", effective),
+      progress = c("#fff7ed", "#f0d2a4", "#9a5b10"),
+      base = c("#f8fbff", "#d9e3f0", navy),
+      neutral = c("#ffffff", border, ink)
+    )
+    pal <- tones[[tone]] %||% tones$neutral
+    rr(x, y, w, h, fill = pal[[1]], col = pal[[2]], lwd = 1.1, r = 0.016)
+    txt(label, x + 0.018, y + h - 0.025, size = 7.0, col = muted, face = "bold", just = c("left", "top"))
+    txt(value, x + 0.018, y + h * 0.40, size = 20, col = ink, face = "bold")
+    if (nzchar(hint)) txt(hint, x + 0.018, y + 0.023, size = 6.2, col = muted, face = "bold", just = c("left", "bottom"))
+    rect(x, y, 0.0045, h, pal[[3]], col = NA)
+  }
+  actor_metric_tile <- function(x, y, w, h, label, value, tone = "neutral") {
+    tones <- list(
+      effective = c("#f0fdf4", "#b8e6ca", effective),
+      progress = c("#fff8ed", "#ead7b6", "#9a5b10"),
+      base = c("#f8fbff", "#d9e3f0", navy),
+      neutral = c("#ffffff", "#e4ebf4", ink)
+    )
+    pal <- tones[[tone]] %||% tones$neutral
+    rr(x, y, w, h, fill = pal[[1]], col = pal[[2]], lwd = 0.85, r = 0.012)
+    rect(x, y, 0.0038, h, pal[[3]], col = NA)
+    txt(label, x + 0.012, y + h - 0.012, size = 4.9, col = muted, face = "bold", just = c("left", "top"))
+    txt(value, x + 0.012, y + 0.012, size = 10.8, col = ink, face = "bold", just = c("left", "bottom"))
+  }
+  draw_actor_overview_card <- function(row, x, y, w, h, target_page_index = NULL) {
+    actor <- as.character(row$Actor[[1]] %||% "")
+    universo <- one_num(row$Universo[[1]])
+    efectivas <- one_num(row$Efectivas[[1]])
+    sin_respuesta <- max(0, universo - efectivas)
+    pct <- if (universo > 0) min(1, efectivas / universo) else 0
+    rr(x, y, w, h, fill = "#ffffff", col = border, lwd = 1.1, r = 0.018)
+    rect(x, y + h - 0.006, w, 0.006, effective, col = NA)
+    txt(ellipsize(actor, 32), x + 0.018, y + h - 0.034, size = 11.0, col = ink, face = "bold", just = c("left", "top"))
+    draw_chip(x + w - 0.118, y + h - 0.034, "Ver detalle", fill = "#f8fbff", col = "#d9e3f0", text_col = navy, w = 0.100)
+    txt(paste(fmt(efectivas), "de", fmt(universo)), x + 0.018, y + h - 0.067, size = 7.0, col = muted, face = "bold", just = c("left", "center"))
+    txt(pct_label(pct), x + w - 0.020, y + h - 0.067, size = 9.0, col = ink, face = "bold", just = c("right", "center"))
+    rr(x + 0.018, y + h - 0.092, w - 0.036, 0.015, fill = "#edf2f8", col = NA, lwd = 0, r = 0.008)
+    if (pct > 0) rr(x + 0.018, y + h - 0.092, max(0.008, (w - 0.036) * pct), 0.015, fill = effective, col = NA, lwd = 0, r = 0.008)
+    tile_gap <- 0.010
+    tile_w <- (w - 0.046 - tile_gap) / 2
+    tile_h <- 0.057
+    actor_metric_tile(x + 0.018, y + 0.080, tile_w, tile_h, "Efectivas", fmt(efectivas), "effective")
+    actor_metric_tile(x + 0.028 + tile_w, y + 0.080, tile_w, tile_h, "Total", fmt(universo), "base")
+    actor_metric_tile(x + 0.018, y + 0.018, tile_w, tile_h, "Sin respuesta", fmt(sin_respuesta), "progress")
+    actor_metric_tile(x + 0.028 + tile_w, y + 0.018, tile_w, tile_h, "Avance", pct_label(pct), "effective")
+    if (!is.null(target_page_index)) add_pdf_link(target_page_index, x, y, w, h, actor)
+  }
+  draw_actor_overview_page <- function(df) {
+    draw_page()
+    txt("Avance por actor", 0.055, 0.855, size = 18, col = ink, face = "bold")
+    txt("Selecciona un grupo para ver su detalle diario y sus canales.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
     if (!nrow(df)) {
-      graphics::rect(x0, y0, x0 + w, y0 + h, col = "#f8fafc", border = "#d9e2ef")
-      graphics::text(x0 + w / 2, y0 + h / 2, "Sin fechas disponibles", cex = 0.8, col = "#657389")
+      rr(0.055, 0.520, 0.890, 0.160, fill = "#ffffff", col = border, lwd = 1.1)
+      txt("Sin actores reportados.", 0.500, 0.600, size = 8.5, col = muted, just = c("center", "center"))
       return(invisible(NULL))
     }
+    max_cards <- min(nrow(df), 6L)
+    cols <- if (max_cards == 1L) 1L else 2L
+    rows <- ceiling(max_cards / cols)
+    gap_x <- 0.026
+    gap_y <- 0.026
+    card_w <- if (cols == 1L) 0.890 else (0.890 - gap_x) / 2
+    card_h <- min(0.245, (0.690 - gap_y * (rows - 1L)) / rows)
+    top_y <- 0.795
+    for (i in seq_len(max_cards)) {
+      row_i <- floor((i - 1L) / cols)
+      col_i <- (i - 1L) %% cols
+      x <- 0.055 + col_i * (card_w + gap_x)
+      y <- top_y - (row_i + 1L) * card_h - row_i * gap_y
+      draw_actor_overview_card(df[i, , drop = FALSE], x, y, card_w, card_h, target_page_index = i)
+    }
+    if (nrow(df) > max_cards) {
+      txt(paste("+", nrow(df) - max_cards, "grupos adicionales en el detalle"), 0.055, 0.090, size = 6.5, col = muted, face = "bold")
+    }
+  }
+  draw_effective_trend <- function(df, x0, y0, w, h, title = "Avance diario", subtitle = "") {
+    if (!nrow(df)) {
+      rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
+      txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
+      txt("Sin datos para mostrar.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    if ("Fecha" %in% names(df)) {
+      ord <- order(suppressWarnings(as.Date(as.character(df$Fecha))), as.character(df$Fecha))
+      df <- df[ord, , drop = FALSE]
+    }
     values <- num(df$Efectivas)
-    partials <- if ("Parciales" %in% names(df)) num(df$Parciales) else rep(0, length(values))
-    refusals <- if ("Rechazos plataforma" %in% names(df)) num(df$`Rechazos plataforma`) else rep(0, length(values))
     accum <- if ("Acumulado" %in% names(df)) num(df$Acumulado) else cumsum(values)
     n <- length(values)
-    ymax_bar <- max(values + partials + refusals, 1)
+    if (!n || max(values, accum, na.rm = TRUE) <= 0) {
+      rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
+      txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
+      txt("Sin datos para mostrar.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    ymax_bar <- max(values, 1)
     ymax_line <- max(accum, 1)
-    graphics::rect(x0, y0, x0 + w, y0 + h, col = "#ffffff", border = "#d9e2ef")
-    graphics::text(x0 + 0.018, y0 + h - 0.026, title, adj = c(0, 1), cex = 0.74, font = 2, col = "#0f2341")
-    chart_x0 <- x0 + 0.04
-    chart_y0 <- y0 + 0.08
-    chart_w <- w - 0.08
+    bar_axis_ticks <- pretty(c(0, ymax_bar), n = 4)
+    bar_axis_ticks <- bar_axis_ticks[bar_axis_ticks >= 0]
+    if (!length(bar_axis_ticks)) bar_axis_ticks <- c(0, ymax_bar)
+    bar_axis_max <- max(max(bar_axis_ticks, na.rm = TRUE), ymax_bar, 1)
+    line_axis_ticks <- pretty(c(0, ymax_line), n = 4)
+    line_axis_ticks <- line_axis_ticks[line_axis_ticks >= 0]
+    if (!length(line_axis_ticks)) line_axis_ticks <- c(0, ymax_line)
+    line_axis_max <- max(max(line_axis_ticks, na.rm = TRUE), ymax_line, 1)
+    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
+    txt(title, x0 + 0.02, y0 + h - 0.030, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
+    if (nzchar(subtitle)) txt(subtitle, x0 + 0.02, y0 + h - 0.054, size = 6.8, col = muted, face = "bold", just = c("left", "top"))
+    draw_chip(x0 + w - 0.245, y0 + h - 0.034, "Efectivas", fill = "#eefaf3", col = "#b6e4c8", text_col = effective, w = 0.09)
+    draw_chip(x0 + w - 0.145, y0 + h - 0.034, "Acumulado", fill = "#eef4ff", col = "#c7d7f2", text_col = navy, w = 0.10)
+    chart_x0 <- x0 + 0.055
+    chart_y0 <- y0 + 0.075
+    chart_w <- w - 0.105
     chart_h <- h - 0.16
-    for (k in seq(0, 1, length.out = 5)) {
+    bar_ticks <- sort(unique(bar_axis_ticks))
+    bar_ticks <- bar_ticks[bar_ticks >= 0 & bar_ticks <= bar_axis_max]
+    if (length(bar_ticks) > 6L) {
+      bar_ticks <- bar_ticks[unique(round(seq(1, length(bar_ticks), length.out = 6L)))]
+    }
+    if (!length(bar_ticks) || length(unique(round(bar_ticks))) < 2L) bar_ticks <- c(0, ymax_bar)
+    for (tick in bar_ticks) {
+      k <- if (bar_axis_max > 0) tick / bar_axis_max else 0
       y <- chart_y0 + chart_h * k
-      graphics::segments(chart_x0, y, chart_x0 + chart_w, y, col = "#e8eef6", lwd = 0.6)
+      line(chart_x0, y, chart_x0 + chart_w, y, col = grid_line, lwd = 0.55)
+      txt(fmt(tick), chart_x0 - 0.014, y, size = 5.8, col = faint, just = c("right", "center"))
     }
+    txt(fmt(line_axis_max), chart_x0 + chart_w + 0.014, chart_y0 + chart_h, size = 5.8, col = "#43608b", just = c("left", "center"))
+    txt("0", chart_x0 + chart_w + 0.014, chart_y0, size = 5.8, col = "#43608b", just = c("left", "center"))
     xs <- if (n == 1L) chart_x0 + chart_w / 2 else chart_x0 + chart_w * (seq_len(n) - 1) / (n - 1)
-    bar_w <- min(0.035, chart_w / max(4, n) * 0.58)
+    bar_w <- min(0.032, chart_w / max(4, n) * 0.60)
     for (i in seq_len(n)) {
-      y_start <- chart_y0
-      bh <- chart_h * values[[i]] / ymax_bar
-      graphics::rect(xs[[i]] - bar_w / 2, y_start, xs[[i]] + bar_w / 2, y_start + bh, col = "#168a55", border = NA)
-      y_start <- y_start + bh
-      ph <- chart_h * partials[[i]] / ymax_bar
-      if (ph > 0) graphics::rect(xs[[i]] - bar_w / 2, y_start, xs[[i]] + bar_w / 2, y_start + ph, col = "#b97611", border = NA)
-      y_start <- y_start + ph
-      rh <- chart_h * refusals[[i]] / ymax_bar
-      if (rh > 0) graphics::rect(xs[[i]] - bar_w / 2, y_start, xs[[i]] + bar_w / 2, y_start + rh, col = "#a61d4f", border = NA)
+      bh <- chart_h * values[[i]] / bar_axis_max
+      if (bh > 0) rect(xs[[i]] - bar_w / 2, chart_y0, bar_w, bh, effective, col = NA)
+      if (values[[i]] > 0 && n <= 18L) txt(fmt(values[[i]]), xs[[i]], chart_y0 + bh + 0.014, size = 5.6, col = effective, face = "bold", just = c("center", "bottom"))
     }
-    ys <- chart_y0 + chart_h * accum / ymax_line
-    if (n > 1L) graphics::lines(xs, ys, col = "#002f6c", lwd = 2.1)
-    graphics::points(xs, ys, pch = 21, bg = "#ffffff", col = "#002f6c", cex = 0.75, lwd = 1.3)
-    labels <- pretty_day(as.character(df$Fecha %||% seq_len(n)))
-    keep <- unique(round(seq(1, n, length.out = min(6, n))))
-    graphics::text(xs[keep], chart_y0 - 0.025, labels[keep], srt = 28, adj = 1, cex = 0.48, col = "#64748b")
+    ys <- chart_y0 + chart_h * accum / line_axis_max
+    if (n > 1L) {
+      grid::grid.lines(
+        x = grid::unit(xs, "npc"),
+        y = grid::unit(ys, "npc"),
+        gp = grid::gpar(col = navy, lwd = 1.65, lineend = "round", linejoin = "round")
+      )
+    }
+    grid::grid.points(
+      x = grid::unit(xs, "npc"),
+      y = grid::unit(ys, "npc"),
+      pch = 21,
+      size = grid::unit(2.8, "mm"),
+      gp = grid::gpar(col = navy, fill = "#ffffff", lwd = 1)
+    )
+    label_dates <- if ("Fecha" %in% names(df)) suppressWarnings(as.Date(as.character(df$Fecha))) else rep(as.Date(NA), n)
+    label_weekday <- suppressWarnings(as.POSIXlt(label_dates)$wday)
+    accum_keep <- which(!is.na(label_weekday) & label_weekday == 1L)
+    if (!length(accum_keep)) accum_keep <- n
+    for (i in accum_keep) {
+      if (!is.finite(accum[[i]]) || accum[[i]] <= 0) next
+      label <- fmt(accum[[i]])
+      y_label <- min(chart_y0 + chart_h + 0.012, ys[[i]] + 0.018)
+      txt(label, xs[[i]], y_label, size = 4.8, col = navy, face = "bold", just = c("center", "bottom"))
+    }
+    labels <- pretty_day(as.character(df$Fecha %||% seq_len(n)), stacked = TRUE)
+    keep <- if (n <= 28L) seq_len(n) else unique(round(seq(1, n, length.out = 28L)))
+    txt(labels[keep], xs[keep], chart_y0 - 0.034, size = if (n <= 20L) 5.7 else 5.1,
+        col = muted, just = c("center", "center"), rot = 0, lineheight = 0.86)
     invisible(NULL)
   }
 
-  draw_header("Resumen ejecutivo")
-  graphics::text(0.06, 0.84, "Seguimiento de avance por actor", adj = c(0, 0.5), cex = 1.45, font = 2, col = "#111827")
-  graphics::text(0.06, 0.805, "Reporte limpio para cliente: efectivas, parciales, rechazos de plataforma, evolución diaria y fuentes exactas.", adj = c(0, 0.5), cex = 0.78, col = "#536174")
-  metric_box(0.06, 0.70, 0.20, 0.085, "Efectivas", fmt(total_effective), "respuestas completas", "#8bd5b5")
-  metric_box(0.285, 0.70, 0.20, 0.085, "Parciales", fmt(total_partial), "avance no cerrado", "#d7a33a")
-  metric_box(0.51, 0.70, 0.20, 0.085, "Rechazos", fmt(total_refusal), "plataforma", "#ce7fa0")
-  metric_box(0.735, 0.70, 0.20, 0.085, "Avance", pct_label(.monitoreo_client_report_pct(total_effective, total_universe)), "sobre universo", "#8bd5b5")
-  draw_trend(daily_general, 0.06, 0.43, 0.88, 0.22, "Avance diario y efectivas acumuladas")
-  if (nrow(actors)) {
-    y <- 0.36
-    graphics::text(0.06, y, "Resumen por actor", adj = c(0, 0.5), cex = 0.85, font = 2, col = "#0f2341")
-    y <- y - 0.035
-    graphics::rect(0.06, y - 0.018, 0.94, y + 0.018, col = "#f4f7fb", border = NA)
-    headers <- if (isTRUE(include_targets)) c("Actor", "Universo", "Efectivas", "Parciales", "Rechazos", "Avance", "Meta") else c("Actor", "Universo", "Efectivas", "Parciales", "Rechazos", "Avance")
-    xs <- if (length(headers) == 7) c(0.08, 0.36, 0.48, 0.59, 0.70, 0.81, 0.90) else c(0.08, 0.40, 0.53, 0.66, 0.78, 0.89)
-    for (i in seq_along(headers)) graphics::text(xs[[i]], y, headers[[i]], adj = c(0, 0.5), cex = 0.58, font = 2, col = "#64748b")
-    y <- y - 0.04
-    for (i in seq_len(min(nrow(actors), 10L))) {
-      row <- actors[i, , drop = FALSE]
-      vals <- if (isTRUE(include_targets)) {
-        c(row$Actor, fmt(row$Universo), fmt(row$Efectivas), fmt(row$Parciales), fmt(row$`Rechazos plataforma`), pct_label(row$`Avance universo`), if ("Meta" %in% names(row) && !is.na(row$Meta)) fmt(row$Meta) else "S/M")
-      } else {
-        c(row$Actor, fmt(row$Universo), fmt(row$Efectivas), fmt(row$Parciales), fmt(row$`Rechazos plataforma`), pct_label(row$`Avance universo`))
-      }
-      for (j in seq_along(vals)) graphics::text(xs[[j]], y, vals[[j]], adj = c(0, 0.5), cex = 0.58, col = "#182235")
-      graphics::segments(0.06, y - 0.022, 0.94, y - 0.022, col = "#edf2f7", lwd = 0.6)
-      y <- y - 0.04
+  draw_actor_board <- function(df, x0, y0, w, h, title = "Avance por grupo") {
+    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
+    txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
+    if (!nrow(df)) {
+      txt("Sin actores reportados.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    rows <- df[seq_len(min(nrow(df), 8L)), , drop = FALSE]
+    row_h <- min(0.052, (h - 0.078) / max(1, nrow(rows)))
+    label_x <- x0 + 0.02
+    bar_x <- x0 + 0.245
+    metric_x <- x0 + w - 0.150
+    bar_w <- max(0.260, metric_x - bar_x - 0.034)
+    y <- y0 + h - 0.084
+    for (i in seq_len(nrow(rows))) {
+      universo <- one_num(rows$Universo[[i]])
+      efectivas <- one_num(rows$Efectivas[[i]])
+      pct <- if (universo > 0) min(1, efectivas / universo) else 0
+      pending <- max(0, universo - efectivas)
+      txt(ellipsize(rows$Actor[[i]], 26), label_x, y + 0.014, size = 7.3, col = ink, face = "bold")
+      txt(paste(fmt(efectivas), "de", fmt(universo)), label_x, y - 0.007, size = 5.8, col = muted, face = "bold")
+      rr(bar_x, y - 0.006, bar_w, 0.017, fill = "#eaf0f7", col = NA, lwd = 0, r = 0.008)
+      if (pct > 0) rr(bar_x, y - 0.006, max(0.006, bar_w * pct), 0.017, fill = effective, col = NA, lwd = 0, r = 0.008)
+      txt(pct_label(pct), metric_x, y + 0.012, size = 7.0, col = ink, face = "bold", just = c("left", "center"))
+      txt(paste(fmt(pending), "sin respuesta"), metric_x + 0.072, y + 0.012, size = 5.3, col = muted, face = "bold", just = c("left", "center"))
+      line(x0 + 0.02, y - row_h / 2, x0 + w - 0.02, y - row_h / 2, col = grid_line, lwd = 0.55)
+      y <- y - row_h
+    }
+    if (nrow(df) > nrow(rows)) txt(paste("+", nrow(df) - nrow(rows), "actores adicionales"), x0 + 0.02, y0 + 0.025, size = 6.2, col = muted, face = "bold")
+  }
+  channel_summary <- function(df) {
+    df <- .monitoreo_workbook_df(df)
+    if (!nrow(df)) return(list(rows = data.frame(), top_label = "", top_value = 0, top_share = NA_real_, last_date = ""))
+    df$.__eff <- num(df$Efectivas)
+    df <- df[df$.__eff > 0, , drop = FALSE]
+    if (!nrow(df)) return(list(rows = data.frame(), top_label = "", top_value = 0, top_share = NA_real_, last_date = ""))
+    channel <- vapply(as.character(df$Canal %||% ""), channel_alias, character(1))
+    grouped <- stats::aggregate(
+      df$.__eff,
+      by = list(Canal = channel),
+      FUN = sum
+    )
+    names(grouped)[names(grouped) == "x"] <- "Efectivas"
+    grouped <- grouped[order(-grouped$Efectivas, grouped$Canal), , drop = FALSE]
+    total <- sum(grouped$Efectivas, na.rm = TRUE)
+    date_values <- as.character(df$`Última efectiva` %||% df$`Última respuesta` %||% "")
+    date_values <- date_values[nzchar(date_values) & !is.na(date_values)]
+    list(
+      rows = grouped,
+      top_label = as.character(grouped$Canal[[1]] %||% ""),
+      top_value = one_num(grouped$Efectivas[[1]]),
+      top_share = if (total > 0) grouped$Efectivas[[1]] / total else NA_real_,
+      last_date = if (length(date_values)) date_values[[length(date_values)]] else ""
+    )
+  }
+  draw_channel_effective_table <- function(df, x0, y0, w, h, title = "Por canal") {
+    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
+    txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
+    summary <- channel_summary(df)
+    grouped <- summary$rows
+    if (!nrow(grouped)) {
+      txt("Sin datos para mostrar.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    rows <- grouped[seq_len(min(nrow(grouped), max(1L, floor((h - 0.065) / 0.032)))), , drop = FALSE]
+    max_eff <- max(num(rows$Efectivas), 1)
+    y <- y0 + h - 0.066
+    for (k in seq_len(nrow(rows))) {
+      rr(x0 + 0.020, y - 0.014, w - 0.040, 0.029, fill = "#fbfdff", col = "#e8eef6", lwd = 0.55, r = 0.009)
+      txt(ellipsize(rows$Canal[[k]], 28), x0 + 0.036, y + 0.003, size = 7.0, col = ink, face = "bold")
+      bar_x <- x0 + 0.260
+      bar_w <- w - 0.430
+      rr(bar_x, y - 0.003, bar_w, 0.010, fill = "#edf2f8", col = NA, lwd = 0, r = 0.005)
+      rr(bar_x, y - 0.003, max(0.006, bar_w * one_num(rows$Efectivas[[k]]) / max_eff), 0.010, fill = effective, col = NA, lwd = 0, r = 0.005)
+      txt(fmt(rows$Efectivas[[k]]), x0 + w - 0.050, y + 0.002, size = 8.0, col = ink, face = "bold", just = c("right", "center"))
+      y <- y - 0.032
+    }
+    if (nrow(grouped) > nrow(rows)) {
+      txt(paste("+", nrow(grouped) - nrow(rows), "canales adicionales"), x0 + 0.030, y0 + 0.022, size = 6.0, col = muted, face = "bold")
+    }
+  }
+  draw_actor_reading_box <- function(df, x0, y0, w, h) {
+    summary <- channel_summary(df)
+    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
+    txt("Lectura del corte", x0 + 0.02, y0 + h - 0.024, size = 8.5, col = ink, face = "bold", just = c("left", "top"))
+    if (!nrow(summary$rows)) {
+      txt("Sin respuestas efectivas registradas.", x0 + 0.02, y0 + 0.030, size = 7, col = muted, face = "bold")
+      return(invisible(NULL))
+    }
+    total <- sum(num(summary$rows$Efectivas), na.rm = TRUE)
+    tiles <- list(
+      list(label = "Mayor aporte", value = summary$top_label, hint = paste(fmt(summary$top_value), "efectivas")),
+      list(label = "Participacion", value = pct_label(summary$top_share), hint = "del total del grupo"),
+      list(label = "Ultima efectiva", value = if (nzchar(summary$last_date)) gsub("\n", " ", pretty_day(summary$last_date, stacked = FALSE), fixed = TRUE) else "S/D", hint = paste(fmt(total), "efectivas"))
+    )
+    tile_w <- (w - 0.060) / 3
+    for (i in seq_along(tiles)) {
+      x <- x0 + 0.020 + (i - 1) * (tile_w + 0.010)
+      rr(x, y0 + 0.016, tile_w, h - 0.052, fill = "#fbfdff", col = "#e8eef6", lwd = 0.55, r = 0.010)
+      txt(tiles[[i]]$label, x + 0.012, y0 + h - 0.041, size = 5.3, col = muted, face = "bold", just = c("left", "top"))
+      txt(ellipsize(tiles[[i]]$value, 22), x + 0.012, y0 + 0.038, size = 7.5, col = ink, face = "bold", just = c("left", "center"))
+      txt(tiles[[i]]$hint, x + 0.012, y0 + 0.023, size = 5.3, col = muted, face = "bold", just = c("left", "center"))
     }
   }
 
   if (nrow(actors)) {
+    draw_actor_overview_page(actors)
     for (i in seq_len(nrow(actors))) {
       actor <- as.character(actors$Actor[[i]])
       actor_daily_df <- daily_actor[daily_actor$Actor == actor, , drop = FALSE]
       actor_sources <- sources[sources$Actor == actor, , drop = FALSE]
-      draw_header(paste("Actor:", actor))
-      graphics::text(0.06, 0.84, actor, adj = c(0, 0.5), cex = 1.45, font = 2, col = "#111827")
-      metric_box(0.06, 0.73, 0.20, 0.085, "Efectivas", fmt(actors$Efectivas[[i]]), "plataforma completa", "#8bd5b5")
-      metric_box(0.285, 0.73, 0.20, 0.085, "Parciales", fmt(actors$Parciales[[i]]), "avance no cerrado", "#d7a33a")
-      metric_box(0.51, 0.73, 0.20, 0.085, "Rechazos", fmt(actors$`Rechazos plataforma`[[i]]), "plataforma", "#ce7fa0")
+      universo <- one_num(actors$Universo[[i]])
+      efectivas <- one_num(actors$Efectivas[[i]])
+      pendientes <- max(0, universo - efectivas)
+      draw_page()
+      txt(ellipsize(actor, 58), 0.055, 0.855, size = 18, col = ink, face = "bold")
+      metric_box(0.055, 0.715, 0.205, 0.086, "Efectivas", fmt(efectivas), "", "effective")
+      metric_box(0.280, 0.715, 0.205, 0.086, "Total", fmt(universo), "", "base")
+      metric_box(0.505, 0.715, 0.205, 0.086, "Sin respuesta", fmt(pendientes), "", "progress")
       if (isTRUE(include_targets)) {
-        metric_box(0.735, 0.73, 0.20, 0.085, "Meta", if (!is.na(actors$Meta[[i]])) fmt(actors$Meta[[i]]) else "S/M", "opcional", "#d9e2ef")
+        metric_box(0.730, 0.715, 0.205, 0.086, "Meta", if (!is.na(actors$Meta[[i]])) fmt(actors$Meta[[i]]) else "S/M", "", "neutral")
       } else {
-        metric_box(0.735, 0.73, 0.20, 0.085, "Universo", fmt(actors$Universo[[i]]), "casos base", "#d9e2ef")
+        metric_box(0.730, 0.715, 0.205, 0.086, "Avance", pct_label(pct_value(efectivas, universo)), "", "effective")
       }
-      draw_trend(actor_daily_df, 0.06, 0.44, 0.88, 0.22, "Avance diario del actor")
-      graphics::text(0.06, 0.36, "Fuentes incluidas", adj = c(0, 0.5), cex = 0.85, font = 2, col = "#0f2341")
-      y <- 0.315
-      if (nrow(actor_sources)) {
-        for (k in seq_len(min(nrow(actor_sources), 6L))) {
-          graphics::rect(0.06, y - 0.023, 0.94, y + 0.023, col = if (k %% 2) "#ffffff" else "#f8fafc", border = "#e6edf5")
-          graphics::text(0.08, y + 0.006, as.character(actor_sources$Fuente[[k]]), adj = c(0, 0.5), cex = 0.58, font = 2, col = "#182235")
-          graphics::text(0.08, y - 0.010, paste(as.character(actor_sources$Canal[[k]]), "·", fmt(actor_sources$Efectivas[[k]]), "efectivas ·", fmt(actor_sources$Parciales[[k]]), "parciales ·", fmt(actor_sources$`Rechazos plataforma`[[k]]), "rechazos"), adj = c(0, 0.5), cex = 0.52, col = "#64748b")
-          y <- y - 0.052
-        }
-      } else {
-        graphics::text(0.08, y, "Sin fuentes de plataforma con efectivas para este actor.", adj = c(0, 0.5), cex = 0.62, col = "#64748b")
-      }
+      draw_effective_trend(actor_daily_df, 0.055, 0.405, 0.890, 0.265, "Avance diario")
+      draw_channel_effective_table(actor_sources, 0.055, 0.220, 0.890, 0.135, "Por canal")
+      draw_actor_reading_box(actor_sources, 0.055, 0.105, 0.890, 0.090)
     }
   }
+
+  draw_page()
+  txt("Avance general", 0.055, 0.855, size = 18, col = ink, face = "bold")
+  txt("Vista agregada del corte luego del detalle por actor.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
+  metric_box(0.055, 0.715, 0.205, 0.086, "Efectivas", fmt(total_effective), "", "effective")
+  metric_box(0.280, 0.715, 0.205, 0.086, "Total", fmt(total_universe), "", "base")
+  metric_box(0.505, 0.715, 0.205, 0.086, "Sin respuesta", fmt(total_pending), "", "progress")
+  metric_box(0.730, 0.715, 0.205, 0.086, "Avance", pct_label(.monitoreo_client_report_pct(total_effective, total_universe)), "", "effective")
+  draw_effective_trend(
+    daily_general,
+    0.055, 0.430, 0.890, 0.240,
+    "Avance diario"
+  )
+  if (nrow(actors)) {
+    draw_actor_board(actors, 0.055, 0.110, 0.890, 0.270, "Avance por grupo")
+  }
+  close_pdf()
+  if (length(pdf_links)) .monitoreo_pdf_add_internal_links(output_file, pdf_links)
   invisible(output_file)
 }
 
@@ -15420,18 +17520,90 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   utils::head(out, 300L)
 }
 
-monitoreo_acreditacion_reportes <- function(data, config = list()) {
+monitoreo_acreditacion_reportes <- function(data, config = list(), report_scope = "full", cached_reports = NULL) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(NULL)
   cfg <- monitoreo_normalize_config(config, data)
+  data <- .monitoreo_filter_disabled_collectors(data, cfg)
   profile <- cfg$monitoreo_profile %||% monitoreo_normalize_profile(list())
   if (!identical(profile$family, "acreditacion")) return(NULL)
+  report_scope <- .monitoreo_scalar(report_scope, "full")
+  if (!report_scope %in% c("source", "advance_summary", "queries_summary", "full")) report_scope <- "full"
+
+  cached_reports <- cached_reports %||% list()
+  cached_client_report <- cached_reports$client_report %||% NULL
+  if (identical(report_scope, "source")) {
+    return(list(
+      schema = "apps_script_acreditacion_v1",
+      generated_at = .monitoreo_now_iso(),
+      report_scope = report_scope,
+      reference_tabs = as.list(c("Resumen", "Avance por encuesta", "Reporte cliente")),
+      internal_queries = list(),
+      client_report = cached_client_report %||% list(
+        schema = "monitoreo_client_report_v1",
+        generated_at = .monitoreo_now_iso(),
+        title = "Reporte de avance para cliente",
+        summary = list(),
+        actors = list(),
+        daily_general = list(),
+        daily_actor = list(),
+        sources = list(),
+        collector_sources = list(),
+        controls = list(),
+        client_report = cfg$client_report %||% .monitoreo_client_report_config(list()),
+        has_targets = FALSE,
+        sheets = list()
+      ),
+      sheets = cached_reports$sheets %||% list()
+    ))
+  }
+  if (identical(report_scope, "advance_summary")) {
+    client_report <- cached_client_report %||% .monitoreo_client_report_model(data, cfg, detail = "advance_summary")
+    cached_sheets <- cached_reports$sheets %||% list()
+    client_sheets <- monitoreo_acreditacion_client_report_sheets(client_report, include_targets = FALSE)
+    sheets <- if (length(cached_sheets)) cached_sheets else client_sheets
+    return(list(
+      schema = "apps_script_acreditacion_v1",
+      generated_at = .monitoreo_now_iso(),
+      report_scope = report_scope,
+      reference_tabs = as.list(c("Resumen", "Avance por encuesta", "Reporte cliente")),
+      internal_queries = cached_reports$internal_queries %||% list(),
+      client_report = client_report,
+      sheets = sheets
+    ))
+  }
+  if (identical(report_scope, "queries_summary")) {
+    internal_queries <- cached_reports$internal_queries %||% .monitoreo_acreditacion_internal_queries(data, profile)
+    return(list(
+      schema = "apps_script_acreditacion_v1",
+      generated_at = .monitoreo_now_iso(),
+      report_scope = report_scope,
+      reference_tabs = as.list(c("Consultas internas", "Reconciliacion")),
+      internal_queries = internal_queries,
+      client_report = cached_client_report %||% list(
+        schema = "monitoreo_client_report_v1",
+        generated_at = .monitoreo_now_iso(),
+        title = "Reporte de avance",
+        summary = list(),
+        actors = list(),
+        daily_general = list(),
+        daily_actor = list(),
+        sources = list(),
+        collector_sources = list(),
+        controls = list(),
+        client_report = cfg$client_report %||% .monitoreo_client_report_config(list()),
+        has_targets = FALSE,
+        sheets = list()
+      ),
+      sheets = cached_reports$sheets %||% list()
+    ))
+  }
 
   resumen <- .monitoreo_report_summary_df(data, profile)
   avance_efectivo <- .monitoreo_report_daily_df(data, profile, TRUE)
   avance_general <- .monitoreo_report_daily_df(data, profile, FALSE)
   avance_canal <- .monitoreo_report_daily_channel_df(data, profile)
-  avance_fuente <- .monitoreo_report_daily_source_df(data, profile)
-  avance_recopilador <- .monitoreo_report_daily_source_df(data, profile, by_collector = TRUE)
+  avance_fuente <- .monitoreo_report_daily_source_df(data, profile, config = cfg)
+  avance_recopilador <- .monitoreo_report_daily_source_df(data, profile, by_collector = TRUE, config = cfg)
   distribucion <- .monitoreo_report_distribution_df(data, profile)
   variables_control <- .monitoreo_report_control_distribution_df(data, profile)
   alertas <- .monitoreo_report_alerts_df(data, profile)
@@ -20562,6 +22734,40 @@ build_daily_status_table <- function(data,
   out
 }
 
+.monitoreo_acreditacion_status_table_from_client_daily <- function(daily_general = NULL) {
+  df <- .monitoreo_workbook_df(daily_general)
+  if (!nrow(df)) return(data.frame())
+  date_col <- .monitoreo_report_col(df, c("Fecha", "fecha", "date"))
+  if (!nzchar(date_col)) return(data.frame())
+  dates <- .monitoreo_daily_parse_date_vec(df[[date_col]])
+  status_specs <- list(
+    list(label = "Respondió", cols = c("Efectivas", "Respondió", "Respondio", "Completas", "Completas válidas")),
+    list(label = "Parcial", cols = c("Parciales", "Parcial")),
+    list(label = "Rechazo", cols = c("Rechazos plataforma", "Rechazos", "Rechazo"))
+  )
+  rows <- list()
+  for (spec in status_specs) {
+    col <- .monitoreo_report_col(df, spec$cols)
+    if (!nzchar(col)) next
+    values <- suppressWarnings(as.numeric(df[[col]]))
+    values[!is.finite(values)] <- 0
+    keep <- nzchar(dates) & dates != "Sin fecha" & values > 0
+    if (!any(keep, na.rm = TRUE)) next
+    rows[[length(rows) + 1L]] <- data.frame(
+      Fecha = dates[keep],
+      Estado = spec$label,
+      Casos = as.integer(values[keep]),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+  if (!length(rows)) return(data.frame())
+  out <- do.call(rbind, rows)
+  out <- out[order(out$Fecha, out$Estado), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
 build_daily_effective_table <- function(data,
                                         date_col = NULL,
                                         status_col = NULL,
@@ -21346,6 +23552,13 @@ build_daily_progress_model <- function(data, config = list(), family = "generic"
     dates = dates,
     statuses = statuses
   )
+  if (identical(family_key, "acreditacion") && !nrow(by_date_status)) {
+    by_date_status <- .monitoreo_acreditacion_status_table_from_client_daily(
+      (reports$client_report %||% list())$daily_general %||%
+        reports$daily_general %||%
+        (reports$sheets %||% list())$daily_general
+    )
+  }
   frame_daily <- .monitoreo_daily_frame_progress(
     frames$avance_diario,
     family_key,

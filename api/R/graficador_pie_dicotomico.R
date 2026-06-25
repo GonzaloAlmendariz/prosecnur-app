@@ -187,6 +187,7 @@ graficar_pie <- function(
     debug_ph_bordes = FALSE,
     debug_ph_col     = "#8A2BE2",
     debug_ph_lwd        = 2.8,
+    font_family = "Arial",
 
     # Exportación
     exportar    = c("rplot", "png", "ppt", "word"),
@@ -206,6 +207,8 @@ graficar_pie <- function(
   pos_nota_pie       <- match.arg(pos_nota_pie)
   leyenda_posicion   <- match.arg(leyenda_posicion)
   exportar           <- match.arg(exportar)
+  font_family <- as.character(font_family %||% "Arial")[1]
+  if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
 
   textos_negrita <- textos_negrita %||% character(0)
   # Aliases para mantener compat con planes/QMDs que usen tokens
@@ -348,7 +351,7 @@ graficar_pie <- function(
       limits = c(0, r_lab),
       expand = ggplot2::expansion(mult = c(0, 0))
     ) +
-    ggplot2::theme_void() +
+    ggplot2::theme_void(base_family = font_family) +
     ggplot2::theme(
       plot.background  = ggplot2::element_rect(fill = color_fondo, color = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, color = NA),
@@ -374,6 +377,7 @@ graficar_pie <- function(
           ggplot2::aes(x = r_text, y = y_mid, label = pct_txt),
           color       = color_etiquetas_pct,
           size        = size_etiquetas_pct,
+          family      = font_family,
           fontface    = ff,
           hjust       = 0.5,
           vjust       = 0.5,
@@ -421,6 +425,7 @@ graficar_pie <- function(
         x        = th1$x, y = y_tit,
         hjust    = th1$h, vjust = 0.5,
         fontface = if ("titulo" %in% textos_negrita) "bold" else "plain",
+        fontfamily = font_family,
         size     = size_titulo,
         colour   = color_titulo
       ) +
@@ -429,6 +434,7 @@ graficar_pie <- function(
         x        = th2$x, y = y_sub,
         hjust    = th2$h, vjust = 0.5,
         fontface = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
+        fontfamily = font_family,
         size     = size_subtitulo,
         colour   = color_subtitulo
       )
@@ -440,6 +446,7 @@ graficar_pie <- function(
         x        = ch$x, y = 0.5,
         hjust    = ch$h, vjust = 0.5,
         fontface = if ("caption" %in% textos_negrita) "bold" else "plain",
+        fontfamily = font_family,
         size     = size_nota_pie,
         colour   = color_nota_pie
       )
@@ -462,6 +469,7 @@ graficar_pie <- function(
           legend.text  = ggplot2::element_text(
             color = color_leyenda,
             size  = size_leyenda,
+            family = font_family,
             face  = if ("leyenda" %in% textos_negrita) "bold" else "plain"
           ),
 

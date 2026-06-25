@@ -1,0 +1,41 @@
+.mon-shell-fallback,
+.mon-shell-error {
+  min-height: min(520px, calc(100vh - 180px));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--pulso-text);
+}
+
+.mon-shell-fallback__mark,
+.mon-shell-error > svg {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-module-monitoring-border);
+  border-radius: 14px;
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-shell-fallback > div:last-child,
+.mon-shell-error > div {
+  display: grid;
+  gap: 4px;
+}
+
+.mon-shell-fallback strong,
+.mon-shell-error strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.mon-shell-fallback span,
+.mon-shell-error span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}

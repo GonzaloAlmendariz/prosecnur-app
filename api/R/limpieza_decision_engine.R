@@ -28,6 +28,7 @@
   s$analitica_enumeradores_ok <- FALSE
   s$analitica_dim_ok <- FALSE
   s$analitica_multibase_ok <- FALSE
+  s$analitica_ficha_tecnica_ok <- FALSE
   s$analitica_multibase_available <- FALSE
   s$graficos_ppt_ok <- FALSE
   s$graficos_word_ok <- FALSE

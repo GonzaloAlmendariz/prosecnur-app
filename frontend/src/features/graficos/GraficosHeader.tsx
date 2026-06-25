@@ -16,6 +16,8 @@ import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { DEFAULT_DEBUG_PH, usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
+import { PlanCoverageBadge } from "./PlanCoverageBadge";
+import { SuggestedPlanButton } from "./SuggestedPlanButton";
 import { usePlanValidator } from "./usePlanValidator";
 import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
 import { useProjectShell } from "../project/ProjectShell";
@@ -722,6 +724,8 @@ export function GraficosHeader({
 
         <UndoRedoButtons />
         <PlanHealthBadge />
+        <PlanCoverageBadge />
+        <SuggestedPlanButton />
         <DebugPhToggle />
 
         <div style={jsonIoStyles.wrap}>

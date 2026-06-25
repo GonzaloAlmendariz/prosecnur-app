@@ -310,6 +310,9 @@ test_that("seleccion de aulas produce auditoria metodologica, pesos y workbook d
   calc_muestra_aulas_exportar_workbook(frame, selection, path)
   sheets <- openxlsx::getSheetNames(path)
   expect_true(all(c(
+    "Aulas titulares",
+    "Reemplazos por titular",
+    "Reserva extra",
     "Sustento metodológico",
     "Perfil del marco",
     "Perfil seleccionado",
@@ -322,6 +325,60 @@ test_that("seleccion de aulas produce auditoria metodologica, pesos y workbook d
     "No respuesta",
     "Comparación con sistemático"
   ) %in% sheets))
+})
+
+test_that("seleccion de aulas arma cadenas de reemplazo por titular y reserva extra", {
+  base <- data.frame(
+    student_id = paste0("s", 1:70),
+    aula_id = rep(paste0("A", 1:14), each = 5),
+    curso_id = rep(paste0("C", 1:14), each = 5),
+    curso = rep(paste("Curso", 1:14), each = 5),
+    horario = rep(c("mañana", "tarde", "noche"), length.out = 70),
+    facultad = rep(rep(c("FAC1", "FAC2"), each = 35), length.out = 70),
+    programa = rep(c("P1", "P2", "P3", "P4"), length.out = 70),
+    sexo = rep(c("F", "M"), length.out = 70),
+    edad = 20,
+    condicion = "regular",
+    nivel = rep(c("1", "2"), length.out = 70),
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 515L,
+      n_aulas = 4L,
+      replacement_waves = 2L,
+      selector_engine = "sistematico_pps",
+      strata_cols = list("faculty"),
+      balance_vars = list("faculty", "program", "level"),
+      monte_carlo_n = 10L
+    )
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+  rows <- .cm_aulas_as_df(selection$selection)
+
+  titulars <- rows[rows$sample_role == "titular", , drop = FALSE]
+  reserves <- rows[rows$sample_role == "chain_reserve", , drop = FALSE]
+  extra <- rows[rows$sample_role == "extra_reserve_pool", , drop = FALSE]
+
+  expect_equal(nrow(titulars), 4)
+  expect_true(all(nzchar(titulars$selection_slot_id)))
+  expect_true("operational_code" %in% names(rows))
+  expect_equal(length(unique(rows$operational_code[nzchar(rows$operational_code)])), sum(nzchar(rows$operational_code)))
+  expect_true(all(grepl("^AULA [0-9]+$", titulars$operational_code)))
+  expect_true(all(reserves$replacement_for %in% titulars$classroom_id))
+  expect_true(all(reserves$selection_slot_id %in% titulars$selection_slot_id))
+  expect_true(all(grepl("^R[0-9]+\\.[0-9]+$", reserves$operational_code)))
+  expect_true(all(reserves$titular_operational_code %in% titulars$operational_code))
+  expect_equal(length(unique(reserves$classroom_id)), nrow(reserves))
+  expect_true(all(table(reserves$replacement_for) <= 2L))
+  expect_gt(nrow(extra), 0)
+  expect_true(all(extra$probability_source == "extra_pool_not_selected"))
+  expect_true(all(is.na(extra$weight_classroom)))
+  expect_true(nrow(selection$diagnostics$replacement_chains) >= nrow(titulars))
+  expect_true(nrow(selection$diagnostics$extra_reserve_pool) == nrow(extra))
 })
 
 test_that("local pivotal registra fallback cuando BalancedSampling no esta disponible", {
@@ -507,6 +564,9 @@ test_that("workbook del laboratorio contiene comparador, riesgos y reemplazos", 
   calc_muestra_aulas_exportar_workbook(frame, selection, path, comparison = comparison, replacement_simulation = replacement)
   sheets <- openxlsx::getSheetNames(path)
   expect_true(all(c(
+    "Aulas titulares",
+    "Reemplazos por titular",
+    "Reserva extra",
     "Comparador de métodos",
     "Perfil del marco",
     "Perfil seleccionado",

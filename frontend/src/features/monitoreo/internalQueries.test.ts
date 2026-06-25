@@ -15,6 +15,11 @@ import {
   normalizeInternalQueries,
   summarizeInternalCases,
 } from "./internalQueries";
+import {
+  bestCollectorName,
+  collectorPrimaryDisplayName,
+  collectorSecondaryDisplayMeta,
+} from "./core/acreditacionSources";
 
 describe("internalQueries", () => {
   const model: MonitoreoInternalQueries = {
@@ -275,6 +280,70 @@ describe("internalQueries", () => {
     expect(filtered[0].response_id).toBe("r1");
   });
 
+  it("normalizes phone audit evidence and exposes it as reviewable search context", () => {
+    const normalized = normalizeInternalQueries({
+      ...model,
+      cases: [
+        {
+          ...model.cases[0],
+          actor: "Egresados",
+          person_label: "Persona enlace 1108",
+          case_key: "codigo:1108",
+          response_id: "r-phone",
+          channel: "Telefónico",
+          collector_name: "Silbia Cruzado",
+          identity_status: "conflicto_telefonico",
+          identity_label: "Conflicto telefónico",
+          channel_key_strategy: "telefono_enlace_y_codigo_final",
+          channel_key_strategy_label: "Telefónico: enlace personalizado + código final",
+          primary_identity_label: "Enlace usado",
+          primary_identity_value: "1108",
+          secondary_identity_label: "Código final",
+          secondary_identity_value: "1109",
+          review_priority: 100,
+          phone_audit: {
+            cv_id: "1108",
+            final_codpulso: "1109",
+            declared_phone: "934069828",
+            responsible: "Silbia Cruzado",
+            phone_match_level: "conflicto",
+            phone_number_evidence: "telefono_casi_igual",
+            recommended_action: "Validar con responsable.",
+            link_base: {
+              record: "1108",
+              person_label: "Persona enlace 1108",
+              case_key: "1108",
+              status: "Efectivo",
+              responsible: "Silbia Cruzado",
+              source: "Barrido telefonico",
+            },
+            manual_code_base: {
+              record: "1109",
+              person_label: "Persona codigo 1109",
+              case_key: "1109",
+              status: "No contesta",
+              responsible: "Martha Villanueva",
+              source: "Barrido telefonico",
+            },
+          },
+        },
+      ],
+    });
+
+    const reviewable = filterInternalQueryCases(normalized.cases, {
+      ...EMPTY_INTERNAL_QUERY_FILTERS,
+      state: "reviewable",
+    });
+    const searched = filterInternalQueryCases(normalized.cases, {
+      ...EMPTY_INTERNAL_QUERY_FILTERS,
+      search: "telefono 1109 Martha conflicto Silbia",
+    });
+
+    expect(reviewable).toHaveLength(1);
+    expect(searched).toHaveLength(1);
+    expect(normalized.cases[0].phone_audit?.manual_code_base?.responsible).toBe("Martha Villanueva");
+  });
+
   it("formats valid dates and keeps undated records explicit", () => {
     const normalized = normalizeInternalQueries({
       ...model,
@@ -303,6 +372,37 @@ describe("internalQueries", () => {
     expect(internalQueryCollectorDisplayLabel(normalized.cases[0])).toBe("Enlace QR aula");
     expect(internalQueryCollectorValue(normalized.cases[1])).toBe("Web Link 1");
     expect(internalQueryCollectorDisplayLabel(normalized.cases[1])).toBe("Correo Docentes");
+  });
+
+  it("uses human collector labels before technical SurveyMonkey ids", () => {
+    expect(collectorPrimaryDisplayName({
+      source_label: "SurveyMonkey · Docentes · WhatsApp",
+      collector_id: "439964780",
+      collector_name: "WhatsApp Docentes PUCP",
+      channel: "WhatsApp",
+    })).toBe("WhatsApp Docentes PUCP");
+    expect(collectorPrimaryDisplayName({
+      source_label: "SurveyMonkey · Docentes · WhatsApp",
+      collector_id: "439964780",
+      collector_name: "Enlace 439964780",
+      channel: "WhatsApp",
+    }, {
+      sourceActor: "Docentes",
+      sourceChannel: "WhatsApp",
+      channel: "WhatsApp",
+    })).toBe("Docentes · WhatsApp");
+    expect(collectorSecondaryDisplayMeta({ collector_id: "439964780", collector_name: "Enlace 439964780" })).toBe("ID técnico 439964780");
+  });
+
+  it("keeps fresh human collector names ahead of saved generated labels", () => {
+    expect(bestCollectorName(
+      { collector_id: "464762371", collector_name: "Aula H-205" },
+      { collector_id: "464762371", collector_name: "Recopilador Estudiantes · Ficha QR" },
+    )).toBe("Aula H-205");
+    expect(bestCollectorName(
+      { collector_id: "464762371", collector_name: "Enlace 464762371" },
+      { collector_id: "464762371", collector_name: "Aulas faltantes" },
+    )).toBe("Aulas faltantes");
   });
 
   it("groups operational query templates by the five entry blocks", () => {

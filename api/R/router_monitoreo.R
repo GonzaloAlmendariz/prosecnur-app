@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260617-acreditacion-collector-daily-q0004-v1"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260621-acreditacion-source-metadata-v3"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
@@ -78,10 +78,31 @@
   }
   saved_token <- snapshot$dashboard_cache_token %||% ""
   if (nzchar(saved_token) && identical(saved_token, cache_token)) return(TRUE)
-  if (identical(family, "territorial") && nzchar(saved_token)) return(FALSE)
+  if (nzchar(saved_token)) return(FALSE)
+  if (identical(family, "acreditacion")) return(FALSE)
   if (!is.list(snapshot$config)) return(FALSE)
   snapshot_cfg <- monitoreo_normalize_config(snapshot$config, data)
   identical(.monitoreo_dashboard_config_json(snapshot_cfg), .monitoreo_dashboard_config_json(cfg))
+}
+
+.monitoreo_invalidate_dashboard_caches <- function(sid, snapshot = NULL) {
+  s <- session_get(sid)
+  for (scope in c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "full")) {
+    s[[paste("monitoreo_dashboard_cache", scope, sep = "_")]] <- NULL
+    s[[paste("monitoreo_dashboard_cache_token", scope, sep = "_")]] <- NULL
+  }
+  s$monitoreo_dashboard_cache <- NULL
+  s$monitoreo_dashboard_cache_token <- NULL
+  s$monitoreo_dashboard_light_cache <- NULL
+  s$monitoreo_dashboard_light_cache_token <- NULL
+  if (is.null(snapshot)) snapshot <- s$monitoreo_snapshot %||% NULL
+  if (is.list(snapshot)) {
+    snapshot$dashboard_cache_token <- NULL
+    snapshot$dashboard_report_scope <- NULL
+    s$monitoreo_snapshot <- snapshot
+  }
+  .session_env[[sid]] <- s
+  invisible(snapshot)
 }
 
 .monitoreo_session <- function(req, res = NULL) {
@@ -266,7 +287,9 @@
   embedded <- s$public_artifact_payload$monitoreo_report %||% NULL
   if (is.list(embedded)) return(embedded)
   snapshot <- s$monitoreo_snapshot %||% NULL
+  sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
   data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  data <- .monitoreo_apply_source_metadata_to_data(data, sources)
   if (!nrow(data)) {
     stop_api(409, "E_NO_MONITOREO_DATA", "No hay un corte de monitoreo publicado.")
   }
@@ -1194,7 +1217,7 @@
   context
 }
 
-.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v16"
+.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v17"
 .monitoreo_territorial_report_cache_limit <- 18L
 
 .monitoreo_territorial_report_cache_key_info <- function(sid, snapshot, data, cfg, report_scope = "full") {
@@ -1694,6 +1717,80 @@
   result
 }
 
+.monitoreo_territorial_map_prepare_job <- function(session_path,
+                                                   phase = NULL,
+                                                   layers = NULL,
+                                                   force = FALSE,
+                                                   progress_path = NULL) {
+  s <- readRDS(session_path)
+  sid <- .monitoreo_scalar(s$id, "")
+  if (!nzchar(sid)) stop("Sesion invalida para preparar mapa territorial.", call. = FALSE)
+  .session_env[[sid]] <- s
+  report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
+  report("prepare", current = 0L, total = 1L, percent = 5, message = "Preparando mapa territorial...")
+
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% snapshot$config %||% list(), data)
+  family <- cfg$monitoreo_profile$family %||% "acreditacion"
+  if (!identical(family, "territorial")) {
+    stop("La preparacion de mapa requiere un monitoreo territorial.", call. = FALSE)
+  }
+  active_phase <- .monitoreo_territorial_phase(phase %||% cfg$territorial$active_route_phase, "pilot")
+  layer_vec <- intersect(.monitoreo_chr_vec(layers %||% .monitoreo_territorial_map_cache_layers), .monitoreo_territorial_map_cache_layers)
+  if (!length(layer_vec)) layer_vec <- .monitoreo_territorial_map_cache_layers
+
+  report("running", current = 1L, total = length(layer_vec), percent = 45, message = "Preparando capas del mapa...")
+  meta <- .monitoreo_territorial_prepare_map_cache(
+    sid,
+    cfg,
+    data,
+    phase = active_phase,
+    layers = layer_vec,
+    force = isTRUE(force)
+  )
+  report("done", current = length(layer_vec), total = length(layer_vec), percent = 100, message = "Mapa territorial listo.")
+
+  s_final <- session_get(sid)
+  list(
+    ok = TRUE,
+    phase = active_phase,
+    layers = as.list(layer_vec),
+    map_cache = meta,
+    session_patch = list(
+      territorial_map_cache = s_final$monitoreo_territorial_map_cache %||% NULL
+    )
+  )
+}
+
+attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- ".monitoreo_territorial_map_prepare_job"
+
+.monitoreo_territorial_map_prepare_public_result <- function(result) {
+  if (!is.list(result)) return(result)
+  result$session_patch <- NULL
+  result
+}
+
+.monitoreo_territorial_map_prepare_on_complete <- function(j) {
+  result <- j$result_data
+  if (!is.list(result)) return(result)
+  patch <- result$session_patch %||% list()
+  s_current <- session_get(j$sid, required = FALSE)
+  if (!is.null(s_current)) {
+    incoming_map_cache <- patch$territorial_map_cache %||% NULL
+    if (is.list(incoming_map_cache)) {
+      merged_map_cache <- .monitoreo_territorial_map_cache_merge(
+        s_current$monitoreo_territorial_map_cache %||% list(),
+        incoming_map_cache,
+        phase = result$phase %||% NULL
+      )
+      session_set(j$sid, "monitoreo_territorial_map_cache", merged_map_cache)
+      tryCatch(.monitoreo_autosave_project_if_open(j$sid), error = function(e) NULL)
+    }
+  }
+  .monitoreo_territorial_map_prepare_public_result(result)
+}
+
 .monitoreo_territorial_context <- function(sid, cfg = list(), phase = NULL) {
   s <- session_get(sid)
   tcfg <- cfg$territorial %||% monitoreo_territorial_default_config()
@@ -1738,7 +1835,7 @@
   )
 }
 
-.monitoreo_dashboard_for_session <- function(sid, data, cfg, include_reports = TRUE, report_scope = "full") {
+.monitoreo_dashboard_for_session <- function(sid, data, cfg, include_reports = TRUE, report_scope = "full", cached_acreditacion_reports = NULL) {
   family <- cfg$monitoreo_profile$family %||% "acreditacion"
   territorial_context <- NULL
   kobo_schema <- NULL
@@ -1762,7 +1859,8 @@
     include_reports = include_reports,
     territorial_context = territorial_context,
     kobo_schema = kobo_schema,
-    report_scope = report_scope
+    report_scope = report_scope,
+    cached_acreditacion_reports = cached_acreditacion_reports
   )
 }
 
@@ -2064,6 +2162,7 @@
   sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
   snapshot <- s$monitoreo_snapshot %||% NULL
   data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  data <- .monitoreo_apply_source_metadata_to_data(data, sources)
   cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
   family <- cfg$monitoreo_profile$family %||% "acreditacion"
   territorial_light_state <- identical(family, "territorial") && !isTRUE(include_reports)
@@ -2073,6 +2172,25 @@
   }
   cache_token <- .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
   dashboard <- if (isTRUE(territorial_light_state)) NULL else snapshot$dashboard %||% NULL
+  cached_acreditacion_reports <- if (
+    isTRUE(include_reports) &&
+      identical(family, "acreditacion") &&
+      report_scope %in% c("source", "advance_summary", "queries_summary") &&
+      is.list(snapshot) &&
+      is.list(snapshot$dashboard) &&
+      is.list(snapshot$dashboard$acreditacion_reports) &&
+      .monitoreo_snapshot_dashboard_valid(
+        snapshot,
+        display_data,
+        cfg,
+        .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full"),
+        report_scope = "full"
+      )
+  ) {
+    snapshot$dashboard$acreditacion_reports
+  } else {
+    NULL
+  }
   should_build_dashboard <- !isTRUE(territorial_light_state) && (
     nrow(display_data) > 0L ||
       (isTRUE(include_reports) && identical(family, "territorial"))
@@ -2122,7 +2240,14 @@
         )
       } else {
         build_started_at <- Sys.time()
-        dashboard <- .monitoreo_dashboard_for_session(sid, data, cfg, include_reports = include_reports, report_scope = report_scope)
+        dashboard <- .monitoreo_dashboard_for_session(
+          sid,
+          data,
+          cfg,
+          include_reports = include_reports,
+          report_scope = report_scope,
+          cached_acreditacion_reports = cached_acreditacion_reports
+        )
         dashboard_build_ms <- .monitoreo_timing_ms(build_started_at)
         dashboard_source <- "build"
         payload_size <- if (isTRUE(include_reports) && identical(family, "territorial")) {
@@ -2236,6 +2361,7 @@
   if (isTRUE(territorial_report_cache_built)) {
     tryCatch(.monitoreo_autosave_project_if_open(sid), error = function(e) NULL)
   }
+  include_snapshot_artifacts <- isTRUE(include_reports) && !identical(family, "territorial")
   list(
     ok = TRUE,
     sources = sources,
@@ -2243,6 +2369,14 @@
     monitoreo_profile = cfg$monitoreo_profile %||% monitoreo_normalize_profile(list()),
     has_snapshot = nrow(display_data) > 0L || (identical(family, "aulas_universitarias") && length((cfg$aulas_universitarias %||% list())$plan %||% list()) > 0L),
     synced_at = snapshot$synced_at %||% "",
+    generated_at = snapshot$generated_at %||% snapshot$synced_at %||% "",
+    generation_version = snapshot$generation_version %||% "",
+    generation_status = snapshot$generation_status %||% if (nrow(display_data) > 0L) "stale" else "",
+    source_metadata = if (isTRUE(include_snapshot_artifacts)) snapshot$source_metadata %||% NULL else NULL,
+    reports = if (isTRUE(include_snapshot_artifacts)) snapshot$reports %||% NULL else NULL,
+    chart_models = if (isTRUE(include_snapshot_artifacts)) snapshot$chart_models %||% NULL else NULL,
+    sync_errors = snapshot$sync_errors %||% snapshot$errors %||% list(),
+    pending_regeneration = isTRUE(snapshot$pending_regeneration),
     n_rows = as.integer(nrow(display_data)),
     variables = if (nrow(display_data)) monitoreo_variables(display_data) else list(),
     dashboard = .monitoreo_public_dashboard(dashboard, include_reports = include_reports),
@@ -2274,15 +2408,24 @@
 .monitoreo_store_config <- function(sid, cfg, rebuild_dashboard = TRUE) {
   s <- session_get(sid)
   snapshot <- s$monitoreo_snapshot %||% NULL
-  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  raw_data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
+  data <- .monitoreo_apply_source_metadata_to_data(raw_data, sources)
   cfg <- monitoreo_normalize_config(cfg, data)
   session_set(sid, "monitoreo_config", cfg)
   if (isTRUE(rebuild_dashboard) && !is.null(snapshot) && nrow(data)) {
     snapshot$config <- cfg
     snapshot$dashboard <- .monitoreo_dashboard_for_session(sid, data, cfg)
     snapshot$dashboard_cache_key <- .monitoreo_dashboard_cache_key
+    snapshot$dashboard_cache_token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg, report_scope = "full")
+    snapshot$dashboard_report_scope <- "full"
+    if (nzchar(.monitoreo_scalar(snapshot$generated_at, ""))) {
+      snapshot$generation_status <- "stale"
+      snapshot$pending_regeneration <- TRUE
+    }
     session_set(sid, "monitoreo_snapshot", snapshot)
   }
+  .monitoreo_invalidate_dashboard_caches(sid)
   cfg
 }
 
@@ -2714,6 +2857,20 @@
     role = parsed$role %||% parsed$rol %||% NULL,
     integration_mode = parsed$integration_mode %||% parsed$integrationMode %||% NULL,
     sheet_binding = parsed$sheet_binding %||% parsed$sheetBinding %||% parsed,
+    declared_person_code_var = parsed$declared_person_code_var %||%
+      parsed$declaredPersonCodeVar %||%
+      parsed$declared_pucp_code_var %||%
+      parsed$declaredPucpCodeVar %||%
+      parsed$codigo_pucp_var %||%
+      parsed$codigoPucpVar %||%
+      "",
+    declared_person_code_label = parsed$declared_person_code_label %||%
+      parsed$declaredPersonCodeLabel %||%
+      parsed$declared_pucp_code_label %||%
+      parsed$declaredPucpCodeLabel %||%
+      parsed$codigo_pucp_label %||%
+      parsed$codigoPucpLabel %||%
+      "",
     dimensions = parsed$dimensions %||% parsed$dimensiones %||% list(
       actor = parsed$actor %||% "",
       servicio = parsed$servicio %||% "",
@@ -3026,6 +3183,42 @@
   data[[column]][ok]
 }
 
+.monitoreo_snapshot_first_text <- function(data, aliases, source_id = "", collector_id = "") {
+  aliases <- unique(.monitoreo_chr_vec(aliases))
+  aliases <- aliases[nzchar(aliases)]
+  if (is.null(data) || !is.data.frame(data) || !nrow(data) || !length(aliases)) return("")
+  for (column in intersect(aliases, names(data))) {
+    values <- as.character(.monitoreo_snapshot_values(data, column, source_id, collector_id))
+    values <- trimws(values[!is.na(values) & nzchar(trimws(values))])
+    if (length(values)) return(values[[1]])
+  }
+  ""
+}
+
+.monitoreo_collector_label_is_technical <- function(value, collector_id = "") {
+  value <- trimws(.monitoreo_scalar(value, ""))
+  collector_id <- trimws(.monitoreo_scalar(collector_id, ""))
+  label <- tolower(iconv(value, to = "ASCII//TRANSLIT", sub = ""))
+  id <- tolower(iconv(collector_id, to = "ASCII//TRANSLIT", sub = ""))
+  if (!nzchar(label)) return(TRUE)
+  if (nzchar(id) && identical(label, id)) return(TRUE)
+  if (grepl("^\\d{5,}$", label)) return(TRUE)
+  if (grepl("^(id\\s*)?(collector|colector|recopilador|enlace|link|web link)\\s*[:#-]?\\s*\\d{4,}$", label)) return(TRUE)
+  if (grepl("^(collector|colector|recopilador)\\s*[:#-]?\\s*[a-z0-9_-]{5,}$", label) && grepl("\\d", label)) return(TRUE)
+  if (grepl("^recopilador\\s+.+\\s*[·.-]\\s*(correo|whatsapp|telefonico|ficha\\s*qr|qr|sms|mixto|web)$", label)) return(TRUE)
+  FALSE
+}
+
+.monitoreo_best_collector_name <- function(primary, fallback = "", collector_id = "") {
+  primary <- trimws(.monitoreo_scalar(primary, ""))
+  fallback <- trimws(.monitoreo_scalar(fallback, ""))
+  collector_id <- trimws(.monitoreo_scalar(collector_id, ""))
+  if (nzchar(primary) && !.monitoreo_collector_label_is_technical(primary, collector_id)) return(primary)
+  if (nzchar(fallback) && !.monitoreo_collector_label_is_technical(fallback, collector_id)) return(fallback)
+  if (nzchar(primary)) return(primary)
+  fallback
+}
+
 .monitoreo_snapshot_unique_count <- function(data, column, source_id = "", collector_id = "") {
   values <- as.character(.monitoreo_snapshot_values(data, column, source_id, collector_id))
   values <- trimws(values[!is.na(values) & nzchar(trimws(values))])
@@ -3085,12 +3278,52 @@
   out
 }
 
+.monitoreo_public_collector_source_channel <- function(source) {
+  dims <- source$dimensions %||% list()
+  channel <- .monitoreo_scalar(
+    dims$canal %||% dims$channel %||% dims$modalidad %||% source$channel %||% source$canal,
+    ""
+  )
+  if (nzchar(channel)) return(channel)
+  text <- .monitoreo_text_key(paste(source$label %||% "", source$survey_id %||% ""))
+  if (grepl("whatsapp", text)) return("WhatsApp")
+  if (grepl("telefon|phone", text)) return("Telefónico")
+  if (grepl("qr|presencial|ficha", text)) return("Ficha QR")
+  if (grepl("sms", text)) return("SMS")
+  if (grepl("correo|email|mail|web|online", text)) return("Correo")
+  ""
+}
+
+.monitoreo_public_collector_modality_from_channel <- function(channel) {
+  key <- .monitoreo_text_key(channel)
+  if (grepl("whatsapp", key)) return("whatsapp")
+  if (grepl("sms", key)) return("sms")
+  if (grepl("telefon", key)) return("telefono")
+  if (grepl("qr|presencial|ficha", key)) return("presencial")
+  if (grepl("correo|email|mail|web|online", key)) return("email")
+  "mixto"
+}
+
 .monitoreo_public_collector <- function(source, collector, detail, recipient_summary, saved, data) {
   detail <- detail %||% list()
   saved <- saved %||% list()
   collector_id <- .monitoreo_scalar(detail$id %||% collector$id %||% collector$collector_id, "")
   collector_type <- tolower(.monitoreo_scalar(detail$type %||% collector$type, ""))
-  collector_name <- .monitoreo_scalar(detail$name %||% collector$name, collector_id)
+  raw_collector_name <- .monitoreo_scalar(
+    detail$name %||%
+      detail$title %||%
+      detail$collector_name %||%
+      detail$display_name %||%
+      detail$nickname %||%
+      collector$name %||%
+      collector$title %||%
+      collector$collector_name %||%
+      collector$display_name %||%
+      collector$nickname,
+    ""
+  )
+  saved_collector_name <- .monitoreo_scalar(saved$collector_name %||% saved$label %||% saved$nombre, "")
+  collector_name <- .monitoreo_best_collector_name(raw_collector_name, saved_collector_name, collector_id)
   url_present <- nzchar(.monitoreo_scalar(detail$url %||% collector$url, ""))
   active_response_count <- .monitoreo_snapshot_count(data, .monitoreo_scalar(source$id, ""), collector_id)
   suggested_use <- .monitoreo_collector_suggest_use(collector_type, recipient_summary, url_present)
@@ -3107,6 +3340,18 @@
   if (!modality %in% c("email", "whatsapp", "sms", "telefono", "presencial", "mixto")) {
     modality <- .monitoreo_collector_use_modality(configured_use)
   }
+  channel <- .monitoreo_scalar(saved$channel %||% saved$canal, "")
+  source_channel <- .monitoreo_public_collector_source_channel(source)
+  if (!nzchar(channel)) {
+    channel <- source_channel
+  }
+  if (!nzchar(channel)) {
+    channel <- switch(modality, email = "Correo", whatsapp = "WhatsApp", sms = "SMS", telefono = "Telefónico", presencial = "Ficha QR", "Mixto")
+  }
+  if (identical(modality, "mixto") && nzchar(source_channel)) {
+    modality <- .monitoreo_public_collector_modality_from_channel(channel)
+  }
+  enabled <- .monitoreo_bool(saved$enabled %||% saved$activo %||% saved$included %||% saved$incluido, TRUE)
   roster_required <- .monitoreo_bool(saved$roster_required %||% saved$requiere_base_casos, identical(configured_use, "telefono_asistido"))
   response_count <- suppressWarnings(as.integer(detail$response_count %||% collector$response_count %||% 0L))
   warnings <- character(0)
@@ -3125,6 +3370,8 @@
     collector_id = collector_id,
     collector_name = collector_name,
     collector_type = collector_type,
+    enabled = enabled,
+    channel = channel,
     operational_use = configured_use,
     configured_use = configured_use,
     suggested_use = suggested_use,
@@ -3134,8 +3381,124 @@
     active_response_count = active_response_count,
     url_present = url_present,
     recipient_summary = recipient_summary,
+    metadata_source = "surveymonkey_sync",
     warnings = as.list(unique(warnings))
   )
+}
+
+monitoreo_sync_job_runner <- function(sources_path,
+                                      cfg_path,
+                                      connection_tokens_path = NULL,
+                                      since = NULL,
+                                      sid = NULL,
+                                      sync_mode = "full",
+                                      progress_path = NULL) {
+  sources <- readRDS(sources_path)
+  cfg <- readRDS(cfg_path)
+  sync_mode <- .monitoreo_sync_mode(sync_mode)
+  connection_tokens <- if (!is.null(connection_tokens_path) && file.exists(connection_tokens_path)) {
+    readRDS(connection_tokens_path)
+  } else {
+    list()
+  }
+  sync_fun <- if (exists("monitoreo_sync_sources", mode = "function")) {
+    monitoreo_sync_sources
+  } else {
+    getFromNamespace("monitoreo_sync_sources", "prosecnurapp")
+  }
+  sync_args <- list(
+    sources = sources,
+    config = cfg,
+    since = since,
+    progress_path = progress_path,
+    build_dashboard = FALSE
+  )
+  sync_formals <- tryCatch(names(formals(sync_fun)), error = function(e) character(0))
+  if ("sid" %in% sync_formals) sync_args$sid <- sid
+  if ("connection_tokens" %in% sync_formals) sync_args$connection_tokens <- connection_tokens
+  if ("sync_mode" %in% sync_formals) sync_args$sync_mode <- sync_mode
+  do.call(sync_fun, sync_args)
+}
+
+monitoreo_client_report_pdf_job_runner <- function(model_path,
+                                                   include_targets = FALSE,
+                                                   result_path = NULL,
+                                                   progress_path = NULL) {
+  report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
+  report("prepare", percent = 15, message = "Preparando reporte a cliente...")
+  model <- readRDS(model_path)
+  report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
+  monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
+  report("export", percent = 95, message = "Guardando PDF...")
+  list(ok = TRUE, size = as.numeric(file.info(result_path)$size %||% 0), filename = basename(result_path))
+}
+
+.monitoreo_fetch_surveymonkey_collectors_for_source <- function(sid, source) {
+  if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) return(list())
+  survey_id <- .monitoreo_scalar(source$survey_id, "")
+  if (!nzchar(survey_id)) return(list())
+  base_url <- .monitoreo_scalar(source$base_url, "https://api.surveymonkey.com/v3")
+  profile_id <- .monitoreo_scalar(source$connection_profile_id %||% source$profile_id, "")
+  token_candidates <- tryCatch(
+    .monitoreo_surveymonkey_token_candidates(
+      sid = sid,
+      preferred_profile_id = profile_id,
+      connection_token = ""
+    ),
+    error = function(e) list()
+  )
+  for (candidate in token_candidates) {
+    token <- .monitoreo_scalar(candidate$token, "")
+    if (!nzchar(token)) next
+    fetched <- tryCatch({
+      collectors <- sm_api_fetch_collectors(survey_id, token, base_url = base_url)
+      out <- list()
+      for (collector in collectors$data %||% list()) {
+        collector_id <- .monitoreo_scalar(collector$id %||% collector$collector_id, "")
+        if (!nzchar(collector_id)) next
+        detail <- tryCatch(
+          sm_api_fetch_collector_detail(collector_id, token, base_url = base_url),
+          error = function(e) collector
+        )
+        out[[collector_id]] <- list(
+          id = collector_id,
+          collector_id = collector_id,
+          name = .monitoreo_scalar(
+            detail$name %||% detail$title %||% detail$collector_name %||% detail$collectorName %||%
+              detail$display_name %||% detail$displayName %||% detail$nickname %||%
+              collector$name %||% collector$title %||% collector$collector_name %||% collector$collectorName %||%
+              collector$display_name %||% collector$displayName %||% collector$nickname,
+            ""
+          ),
+          type = .monitoreo_scalar(detail$type %||% detail$collector_type %||% detail$collectorType %||% collector$type, ""),
+          url = .monitoreo_scalar(detail$url %||% collector$url %||% detail$href %||% collector$href, ""),
+          response_count = as.integer(.monitoreo_num(detail$response_count %||% collector$response_count, 0)),
+          synced_at = .monitoreo_now_iso()
+        )
+      }
+      .monitoreo_normalize_source_collectors(unname(out))
+    }, error = function(e) NULL)
+    if (is.list(fetched) && length(fetched)) return(fetched)
+  }
+  list()
+}
+
+.monitoreo_hydrate_missing_surveymonkey_collectors <- function(sid, sources, synced_source_ids = character(0), sync_summary = list()) {
+  sources <- monitoreo_normalize_sources(sources)
+  if (!length(sources)) return(sources)
+  synced_source_ids <- as.character(synced_source_ids %||% character(0))
+  for (i in seq_along(sources)) {
+    source <- sources[[i]]
+    source_id <- .monitoreo_scalar(source$id, "")
+    if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) next
+    if (length(synced_source_ids) && !source_id %in% synced_source_ids) next
+    summary <- (sync_summary %||% list())[[source_id]] %||% list()
+    if (identical(.monitoreo_scalar(summary$mode, ""), "advance")) next
+    if (length(.monitoreo_normalize_source_collectors(source$collectors %||% list()))) next
+    collectors <- .monitoreo_fetch_surveymonkey_collectors_for_source(sid, source)
+    if (length(collectors)) sources[[i]]$collectors <- collectors
+  }
+  sources
 }
 
 mount_monitoreo <- function(pr) {
@@ -3309,7 +3672,8 @@ mount_monitoreo <- function(pr) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
       s <- session_get(sid)
-      sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
+      sources_before <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
+      sources <- sources_before
       sources <- Filter(function(src) identical(src$kind, "google_sheets") && isTRUE(src$enabled), sources)
       if (length(parsed$source_ids %||% list())) {
         wanted <- .monitoreo_chr_vec(parsed$source_ids)
@@ -3321,11 +3685,25 @@ mount_monitoreo <- function(pr) {
       }
       cfg <- .monitoreo_request_config(parsed$config %||% NULL, s$monitoreo_config %||% list(), data.frame())
       result <- tryCatch(
-        monitoreo_sync_sources(sources, cfg, since = NULL),
+        monitoreo_sync_sources(sources, cfg, since = NULL, sid = sid),
         error = .monitoreo_sheets_stop
       )
-      current_cfg <- .monitoreo_request_config(NULL, session_get(sid)$monitoreo_config %||% list(), result$data)
-      result$config <- monitoreo_normalize_config(result$config, result$data, previous_config = current_cfg)
+      s_current <- session_get(sid)
+      prev_snapshot <- s_current$monitoreo_snapshot %||% NULL
+      prev_data <- if (!is.null(prev_snapshot) && is.data.frame(prev_snapshot$data)) prev_snapshot$data else data.frame()
+      synced_source_ids <- .monitoreo_sync_successful_source_ids(
+        result$sync_summary %||% list(),
+        result$data
+      )
+      incremental_source_ids <- .monitoreo_sync_incremental_source_ids(result$sync_summary %||% list())
+      combined_data <- .monitoreo_merge_sync_result_data(
+        prev_data,
+        result$data,
+        synced_source_ids = synced_source_ids,
+        incremental_source_ids = incremental_source_ids
+      )
+      current_cfg <- .monitoreo_request_config(NULL, s_current$monitoreo_config %||% list(), combined_data)
+      result$config <- monitoreo_normalize_config(result$config, combined_data, previous_config = current_cfg)
       current_family <- current_cfg$monitoreo_profile$family %||% ""
       result_family <- result$config$monitoreo_profile$family %||% ""
       if (identical(result_family, "territorial") && identical(current_family, "territorial")) {
@@ -3338,23 +3716,56 @@ mount_monitoreo <- function(pr) {
           previous = current_cfg$territorial
         )
       }
-      result$dashboard <- .monitoreo_dashboard_for_session(sid, result$data, result$config)
-      snapshot <- list(
+      result$dashboard <- .monitoreo_dashboard_for_session(sid, combined_data, result$config)
+      synced_sources <- monitoreo_normalize_sources(result$sources %||% list())
+      sources_now <- sources_before
+      if (length(synced_sources)) {
+        source_ids_now <- vapply(sources_now, function(src) .monitoreo_scalar(src$id, ""), character(1))
+        for (src in synced_sources) {
+          sid_src <- .monitoreo_scalar(src$id, "")
+          if (!nzchar(sid_src)) next
+          idx <- match(sid_src, source_ids_now)
+          if (!is.na(idx) && is.finite(idx) && idx > 0L) {
+            sources_now[[idx]] <- utils::modifyList(sources_now[[idx]], src)
+          } else {
+            sources_now[[length(sources_now) + 1L]] <- src
+            source_ids_now <- c(source_ids_now, sid_src)
+          }
+        }
+      }
+      ids <- synced_source_ids
+      if (!length(ids)) ids <- unique(as.character(result$data$.source_id %||% character(0)))
+      sources_now <- lapply(sources_now, function(src) {
+        sid_src <- .monitoreo_scalar(src$id, "")
+        if (nzchar(sid_src) && sid_src %in% ids) src$last_sync_at <- result$synced_at
+        src
+      })
+      artifacts <- monitoreo_snapshot_artifacts(
+        combined_data,
+        result$config,
+        sources = sources_now,
+        dashboard = result$dashboard,
         synced_at = result$synced_at,
-        data = result$data,
+        errors = result$errors,
+        sync_summary = result$sync_summary %||% list()
+      )
+      snapshot <- c(list(
+        synced_at = result$synced_at,
+        data = combined_data,
         config = result$config,
         dashboard = result$dashboard,
-        variables = result$variables,
+        variables = if (nrow(combined_data)) monitoreo_variables(combined_data) else list(),
         errors = result$errors
-      )
-      session_set(sid, "monitoreo_sources", result$sources)
+      ), artifacts)
+      session_set(sid, "monitoreo_sources", sources_now)
       session_set(sid, "monitoreo_config", result$config)
       session_set(sid, "monitoreo_snapshot", snapshot)
+      tryCatch(.monitoreo_autosave_project_if_open(sid), error = function(e) NULL)
       list(
         ok = TRUE,
         synced_at = result$synced_at,
-        n_rows = as.integer(result$n_rows),
-        n_sources = as.integer(result$n_sources),
+        n_rows = as.integer(nrow(combined_data)),
+        n_sources = as.integer(length(sources_now)),
         state = .monitoreo_state_payload(sid)
       )
     })) |>
@@ -3465,18 +3876,12 @@ mount_monitoreo <- function(pr) {
       model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
       filename <- .export_filename(sid, "reporte_cliente_monitoreo", "pdf")
+      pdf_job_runner <- monitoreo_client_report_pdf_job_runner
+      attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_client_report_pdf_job_runner"
       job_id <- job_submit(
         sid = sid,
         kind = "monitoreo.client_report_pdf",
-        func = function(model_path, include_targets = FALSE, result_path = NULL, progress_path = NULL) {
-          report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
-          report("prepare", percent = 15, message = "Preparando reporte a cliente...")
-          model <- readRDS(model_path)
-          report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
-          monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
-          report("export", percent = 95, message = "Guardando PDF...")
-          list(ok = TRUE, size = as.numeric(file.info(result_path)$size %||% 0), filename = basename(result_path))
-        },
+        func = pdf_job_runner,
         args = list(model_path = model_path, include_targets = include_targets),
         result_filename = filename,
         on_complete = function(j) {
@@ -4091,7 +4496,7 @@ mount_monitoreo <- function(pr) {
       layer <- .monitoreo_scalar(layer, "full")
       if (!layer %in% c("route_geometry", "gps_points", "full")) layer <- "full"
       allow_stale <- .monitoreo_bool(allow_stale, TRUE)
-      prepare_missing <- .monitoreo_bool(prepare, TRUE)
+      prepare_missing <- .monitoreo_bool(prepare, FALSE)
       if (identical(layer, "route_geometry")) {
         if (isTRUE(prepare_missing)) {
           .monitoreo_territorial_prepare_map_cache(sid, cfg, data, phase = phase, layers = "route_geometry")
@@ -4179,15 +4584,42 @@ mount_monitoreo <- function(pr) {
       layers <- .monitoreo_chr_vec(parsed$layers %||% parsed$layer %||% .monitoreo_territorial_map_cache_layers)
       layers <- intersect(layers, .monitoreo_territorial_map_cache_layers)
       if (!length(layers)) layers <- .monitoreo_territorial_map_cache_layers
-      meta <- .monitoreo_territorial_prepare_map_cache(
-        sid,
-        cfg,
-        data,
-        phase = phase,
-        layers = layers,
-        force = .monitoreo_bool(parsed$force, TRUE)
+      cache <- .monitoreo_territorial_map_cache_get(sid)
+      phase_cache <- cache$phases[[phase]] %||% list()
+      if (!isTRUE(.monitoreo_bool(parsed$force, FALSE))) {
+        ready <- all(vapply(layers, function(layer) {
+          entry <- phase_cache[[layer]] %||% NULL
+          is.list(entry) && identical(.monitoreo_scalar(entry$status, ""), "valid")
+        }, logical(1)))
+        if (isTRUE(ready)) {
+          public <- list(
+            ok = TRUE,
+            phase = phase,
+            layers = as.list(layers),
+            map_cache = .monitoreo_territorial_map_cache_meta(sid, cfg, data)
+          )
+          job_id <- job_submit_completed(
+            sid = sid,
+            kind = "monitoreo.territorial_map_prepare",
+            result_data = public
+          )
+          return(list(ok = TRUE, job_id = job_id, kind = "monitoreo.territorial_map_prepare", cache_hit = TRUE))
+        }
+      }
+      session_path <- job_save_rds(sid, "monitoreo_territorial_map_prepare_session", s)
+      job_id <- job_submit(
+        sid = sid,
+        kind = "monitoreo.territorial_map_prepare",
+        func = .monitoreo_territorial_map_prepare_job,
+        args = list(
+          session_path = session_path,
+          phase = phase,
+          layers = layers,
+          force = .monitoreo_bool(parsed$force, FALSE)
+        ),
+        on_complete = .monitoreo_territorial_map_prepare_on_complete
       )
-      list(ok = TRUE, phase = phase, layers = as.list(layers), map_cache = meta)
+      list(ok = TRUE, job_id = job_id, kind = "monitoreo.territorial_map_prepare")
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/occurrences/config", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -4641,11 +5073,17 @@ mount_monitoreo <- function(pr) {
           }
           for (collector_id in collector_ids) {
             saved <- saved_map[[paste(source$id, collector_id, sep = "::")]] %||% saved_map[[collector_id]] %||% list()
-            fallback_name <- if (nzchar(.monitoreo_scalar(saved$collector_name %||% saved$label, ""))) {
-              .monitoreo_scalar(saved$collector_name %||% saved$label, "")
-            } else {
-              paste("Colector", collector_id)
-            }
+            snapshot_name <- .monitoreo_snapshot_first_text(
+              data,
+              c(
+                "collector_name", "Nombre recopilador", "nombre_recopilador", "Nombre del recopilador",
+                "Recopilador", "recopilador", "Collector Name", "Collector", "collector"
+              ),
+              .monitoreo_scalar(source$id, ""),
+              collector_id
+            )
+            saved_name <- .monitoreo_scalar(saved$collector_name %||% saved$label %||% saved$nombre, "")
+            fallback_name <- .monitoreo_best_collector_name(snapshot_name, saved_name, collector_id)
             collector <- list(
               id = collector_id,
               name = fallback_name,
@@ -4663,7 +5101,8 @@ mount_monitoreo <- function(pr) {
           next
         }
 
-        token <- .connections_token_require("surveymonkey", sid)
+        profile_id <- .monitoreo_source_connection_profile_id(source, parsed, "surveymonkey")
+        token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
         collectors <- tryCatch(
           sm_api_fetch_collectors(source$survey_id, token, base_url = source$base_url %||% "https://api.surveymonkey.com/v3"),
           error = function(e) stop_api(400, "E_SM_COLLECTORS", conditionMessage(e))
@@ -4716,15 +5155,47 @@ mount_monitoreo <- function(pr) {
       source <- .monitoreo_source_from_payload(parsed)
       kind <- source$kind
       label_raw <- attr(source, "label_raw", exact = TRUE) %||% ""
-      validation <- .monitoreo_validate_source(source, sid)
+      previous_sources <- session_get(sid)$monitoreo_sources %||% list()
+      previous_match <- NULL
+      for (candidate in previous_sources) {
+        if (!is.list(candidate)) next
+        same_id <- nzchar(source$id %||% "") && identical(.monitoreo_scalar(candidate$id, ""), source$id)
+        same_survey <- nzchar(source$survey_id %||% "") && identical(.monitoreo_scalar(candidate$survey_id, ""), source$survey_id)
+        if (isTRUE(same_id) || isTRUE(same_survey)) {
+          previous_match <- candidate
+          break
+        }
+      }
+      if (identical(kind, "surveymonkey") && !nzchar(source$survey_title %||% "") && !is.null(previous_match)) {
+        source$survey_title <- .monitoreo_scalar(previous_match$survey_title %||% previous_match$label, "")
+      }
+      local_surveymonkey_update <- identical(kind, "surveymonkey") &&
+        !isTRUE(.monitoreo_bool(parsed$validate %||% parsed$force_validate %||% parsed$forceValidate, FALSE)) &&
+        (nzchar(source$survey_title %||% "") || !is.null(previous_match))
+      validation <- if (isTRUE(local_surveymonkey_update)) {
+        list(
+          ok = TRUE,
+          title = .monitoreo_scalar(source$survey_title %||% source$label, ""),
+          responses_scope = list(ok = NA, skipped = TRUE, reason = "local_source_update")
+        )
+      } else {
+        .monitoreo_validate_source(source, sid)
+      }
       if (identical(kind, "surveymonkey") && !nzchar(source$survey_title %||% "") && nzchar(validation$title %||% "")) {
         source$survey_title <- validation$title
       }
       if (identical(kind, "surveymonkey") && !nzchar(label_raw) && nzchar(validation$title %||% "")) {
         source$label <- validation$title
       }
-      sources <- monitoreo_upsert_source(session_get(sid)$monitoreo_sources %||% list(), source)
+      sources <- monitoreo_upsert_source(previous_sources, source)
       session_set(sid, "monitoreo_sources", sources)
+      snapshot <- session_get(sid)$monitoreo_snapshot %||% NULL
+      if (is.list(snapshot) && nzchar(.monitoreo_scalar(snapshot$generated_at, ""))) {
+        snapshot$generation_status <- "stale"
+        snapshot$pending_regeneration <- TRUE
+        session_set(sid, "monitoreo_snapshot", snapshot)
+      }
+      .monitoreo_invalidate_dashboard_caches(sid)
       list(ok = TRUE, source = source, validation = validation, state = .monitoreo_state_payload(sid))
     })) |>
     plumber::pr_post("/api/monitoreo/sources", wrap_endpoint(function(req, res, ...) {
@@ -4746,7 +5217,18 @@ mount_monitoreo <- function(pr) {
         source <- .monitoreo_source_from_payload(item)
         kind <- source$kind
         label_raw <- attr(source, "label_raw", exact = TRUE) %||% ""
-        validation <- .monitoreo_validate_source(source, sid)
+        local_surveymonkey_update <- identical(kind, "surveymonkey") &&
+          !isTRUE(.monitoreo_bool(item$validate %||% item$force_validate %||% item$forceValidate, FALSE)) &&
+          nzchar(source$survey_title %||% "")
+        validation <- if (isTRUE(local_surveymonkey_update)) {
+          list(
+            ok = TRUE,
+            title = .monitoreo_scalar(source$survey_title %||% source$label, ""),
+            responses_scope = list(ok = NA, skipped = TRUE, reason = "local_source_import")
+          )
+        } else {
+          .monitoreo_validate_source(source, sid)
+        }
         if (identical(kind, "surveymonkey") && !nzchar(source$survey_title %||% "") && nzchar(validation$title %||% "")) {
           source$survey_title <- validation$title
         }
@@ -4758,6 +5240,13 @@ mount_monitoreo <- function(pr) {
         validations[[source$id %||% as.character(length(validations) + 1L)]] <- validation
       }
       session_set(sid, "monitoreo_sources", sources)
+      snapshot <- session_get(sid)$monitoreo_snapshot %||% NULL
+      if (is.list(snapshot) && nzchar(.monitoreo_scalar(snapshot$generated_at, ""))) {
+        snapshot$generation_status <- "stale"
+        snapshot$pending_regeneration <- TRUE
+        session_set(sid, "monitoreo_snapshot", snapshot)
+      }
+      .monitoreo_invalidate_dashboard_caches(sid)
       list(ok = TRUE, sources = added, validations = validations, state = .monitoreo_state_payload(sid))
     })) |>
     plumber::pr_post("/api/monitoreo/config", wrap_endpoint(function(req, res, ...) {
@@ -4766,6 +5255,7 @@ mount_monitoreo <- function(pr) {
       s <- session_get(sid)
       snapshot <- s$monitoreo_snapshot %||% NULL
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      data <- .monitoreo_apply_source_metadata_to_data(data, monitoreo_normalize_sources(s$monitoreo_sources %||% list()))
       cfg <- .monitoreo_request_config(parsed$config %||% parsed, s$monitoreo_config %||% list(), data)
       cfg <- .monitoreo_store_config(sid, cfg)
       list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid))
@@ -4784,6 +5274,7 @@ mount_monitoreo <- function(pr) {
       s <- session_get(sid)
       snapshot <- s$monitoreo_snapshot %||% NULL
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      data <- .monitoreo_apply_source_metadata_to_data(data, monitoreo_normalize_sources(s$monitoreo_sources %||% list()))
       if (!nrow(data)) stop_api(409, "E_MONITOREO_NO_SNAPSHOT", "No hay snapshot local de monitoreo para auditar el caso.")
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
       profile <- cfg$monitoreo_profile %||% monitoreo_normalize_profile(list())
@@ -5101,6 +5592,7 @@ mount_monitoreo <- function(pr) {
     plumber::pr_post("/api/monitoreo/sync", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
+      sync_mode <- .monitoreo_sync_mode(parsed$sync_mode %||% parsed$syncMode %||% parsed$mode %||% "full")
       s <- session_get(sid)
       sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
       if (length(parsed$source_ids %||% list())) {
@@ -5108,25 +5600,53 @@ mount_monitoreo <- function(pr) {
         sources <- Filter(function(src) src$id %in% wanted, sources)
       }
       sources <- Filter(function(src) !identical(.monitoreo_scalar(src$role, ""), "ocurrencias_campo"), sources)
+      if (.monitoreo_sync_mode_is_advance(sync_mode)) {
+        sources <- Filter(function(src) .monitoreo_scalar(src$kind, "") %in% c("surveymonkey", "kobo"), sources)
+      }
       if (!length(sources)) {
-        stop_api(409, "E_NO_MONITOREO_SOURCES", "No hay fuentes activas de encuesta principal para sincronizar.")
+        message <- if (.monitoreo_sync_mode_is_advance(sync_mode)) {
+          "No hay fuentes activas de respuestas para actualizar avance."
+        } else {
+          "No hay fuentes activas de encuesta principal para sincronizar."
+        }
+        stop_api(409, "E_NO_MONITOREO_SOURCES", message)
       }
       cfg <- .monitoreo_request_config(parsed$config %||% NULL, s$monitoreo_config %||% list(), data.frame())
       since <- parsed$since %||% NULL
+      connection_tokens <- list()
+      for (src in sources) {
+        source_id <- .monitoreo_scalar(src$id, "")
+        if (!nzchar(source_id)) next
+        kind <- .monitoreo_scalar(src$kind, "")
+        profile_id <- .monitoreo_source_connection_profile_id(src, parsed, kind)
+        token <- if (identical(kind, "surveymonkey")) {
+          tryCatch(.connections_token_require("surveymonkey", sid, profile_id = profile_id), error = function(e) "")
+        } else if (identical(kind, "kobo")) {
+          base_url <- .monitoreo_scalar(src$base_url, "")
+          if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+          if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+          tryCatch(.connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url), error = function(e) "")
+        } else {
+          ""
+        }
+        if (nzchar(token)) connection_tokens[[source_id]] <- token
+      }
       sources_path <- job_save_rds(sid, "monitoreo_sources", sources)
       cfg_path <- job_save_rds(sid, "monitoreo_config", cfg)
+      connection_tokens_path <- job_save_rds(sid, "monitoreo_connection_tokens", connection_tokens)
+      sync_job_runner <- monitoreo_sync_job_runner
+      attr(sync_job_runner, "prosecnur_job_function_name") <- "monitoreo_sync_job_runner"
       job_id <- job_submit(
         sid = sid,
         kind = "monitoreo.sync",
-        func = function(sources_path, cfg_path, since = NULL, progress_path = NULL) {
-          sources <- readRDS(sources_path)
-          cfg <- readRDS(cfg_path)
-          monitoreo_sync_sources(sources, cfg, since = since, progress_path = progress_path, build_dashboard = FALSE)
-        },
-	        args = list(sources_path = sources_path, cfg_path = cfg_path, since = since),
+	        func = sync_job_runner,
+	        args = list(sources_path = sources_path, cfg_path = cfg_path, connection_tokens_path = connection_tokens_path, since = since, sid = sid, sync_mode = sync_mode),
 	        on_complete = function(j) {
+	          complete_report <- if (!is.null(j$progress_path)) job_progress_writer(j$progress_path) else function(...) invisible(NULL)
+	          tryCatch(unlink(connection_tokens_path), error = function(e) NULL)
 	          result <- j$result_data
 	          family <- result$config$monitoreo_profile$family %||% ""
+	          complete_report("merge", percent = 82, message = "Uniendo respuestas nuevas...")
 	          synced_source_ids <- .monitoreo_sync_successful_source_ids(
 	            result$sync_summary %||% list(),
 	            result$data
@@ -5156,17 +5676,8 @@ mount_monitoreo <- function(pr) {
 	              previous = current_cfg$territorial
 	            )
 	          }
-	          result$dashboard <- .monitoreo_dashboard_for_session(j$sid, combined_data, result$config)
-	          snapshot <- list(
-	            synced_at = result$synced_at,
-	            data = combined_data,
-	            config = result$config,
-	            dashboard = result$dashboard,
-	            variables = if (nrow(combined_data)) monitoreo_variables(combined_data) else list(),
-	            errors = result$errors
-	          )
+	          report_scope <- if (.monitoreo_sync_mode_is_advance(sync_mode)) "advance_summary" else "full"
 	          session_set(j$sid, "monitoreo_config", result$config)
-	          session_set(j$sid, "monitoreo_snapshot", snapshot)
 	          s_now <- session_get(j$sid)
 	          synced_sources <- monitoreo_normalize_sources(result$sources %||% list())
 	          sources_now <- monitoreo_normalize_sources(s_now$monitoreo_sources %||% list())
@@ -5190,7 +5701,62 @@ mount_monitoreo <- function(pr) {
 	            if (src$id %in% ids) src$last_sync_at <- result$synced_at
 	            src
 	          })
+	          sources_now <- .monitoreo_hydrate_missing_surveymonkey_collectors(
+	            j$sid,
+	            sources_now,
+	            synced_source_ids = ids,
+	            sync_summary = result$sync_summary %||% list()
+	          )
 	          session_set(j$sid, "monitoreo_sources", sources_now)
+	          dashboard_data <- .monitoreo_apply_source_metadata_to_data(combined_data, sources_now)
+	          complete_report("dashboard", percent = 90, message = if (identical(report_scope, "advance_summary")) {
+	            "Preparando avance y gráficos..."
+	          } else {
+	            "Preparando tablero local..."
+	          })
+	          result$dashboard <- .monitoreo_dashboard_for_session(
+	            j$sid,
+	            dashboard_data,
+	            result$config,
+	            include_reports = TRUE,
+	            report_scope = report_scope
+	          )
+	          artifacts <- monitoreo_snapshot_artifacts(
+	            dashboard_data,
+	            result$config,
+	            sources = sources_now,
+	            dashboard = result$dashboard,
+	            synced_at = result$synced_at,
+	            errors = result$errors,
+	            sync_summary = result$sync_summary %||% list()
+	          )
+	          display_data_for_token <- if (identical(family, "territorial")) {
+	            .monitoreo_territorial_filter_data_for_phase(dashboard_data, result$config)
+	          } else {
+	            dashboard_data
+	          }
+	          dashboard_cache_token <- .monitoreo_dashboard_cache_token(
+	            list(synced_at = result$synced_at),
+	            display_data_for_token,
+	            result$config,
+	            report_scope = report_scope
+	          )
+	          snapshot <- c(list(
+	            synced_at = result$synced_at,
+	            data = combined_data,
+	            config = result$config,
+	            dashboard = result$dashboard,
+	            dashboard_cache_key = .monitoreo_dashboard_cache_key,
+	            dashboard_cache_token = dashboard_cache_token,
+	            dashboard_report_scope = report_scope,
+	            variables = if (nrow(dashboard_data)) monitoreo_variables(dashboard_data) else list(),
+	            errors = result$errors
+	          ), artifacts)
+	          session_set(j$sid, "monitoreo_snapshot", snapshot)
+	          session_set(j$sid, paste("monitoreo_dashboard_cache", report_scope, sep = "_"), result$dashboard)
+	          session_set(j$sid, paste("monitoreo_dashboard_cache_token", report_scope, sep = "_"), dashboard_cache_token)
+	          complete_report("save", percent = 98, message = "Guardando cambios del proyecto...")
+	          tryCatch(.monitoreo_autosave_project_if_open(j$sid), error = function(e) NULL)
 	          if (identical(family, "territorial")) {
 	            synced_kobo <- Filter(function(src) {
 	              identical(src$kind, "kobo") &&
@@ -5219,12 +5785,14 @@ mount_monitoreo <- function(pr) {
 	            ok = TRUE,
 	            synced_at = result$synced_at,
 	            n_rows = as.integer(if (identical(family, "territorial")) {
-	              nrow(.monitoreo_territorial_filter_data_for_phase(combined_data, result$config))
+	              nrow(.monitoreo_territorial_filter_data_for_phase(dashboard_data, result$config))
 	            } else {
-	              nrow(combined_data)
+	              nrow(dashboard_data)
 	            }),
             n_sources = as.integer(result$n_sources),
 	            dashboard = .monitoreo_public_dashboard(result$dashboard),
+            sync_mode = sync_mode,
+            report_scope = report_scope,
             errors = result$errors,
             sync_summary = result$sync_summary %||% list()
           )

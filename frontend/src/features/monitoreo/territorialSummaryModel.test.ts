@@ -146,9 +146,15 @@ describe("territorialSummaryModel", () => {
 
     expect(summary.effectiveResponses).toBe(2);
     expect(summary.sex.total).toBe(2);
+    expect(summary.sex.targetTotal).toBe(16);
+    expect(summary.sex.missingTotal).toBe(14);
     expect(summary.sex.items.find((item) => item.label === "Hombre")?.value).toBe(1);
+    expect(summary.sex.items.find((item) => item.label === "Hombre")?.target).toBe(8);
+    expect(summary.sex.items.find((item) => item.label === "Hombre")?.missing).toBe(7);
     expect(summary.sex.items.find((item) => item.label === "Mujer")?.value).toBe(1);
     expect(summary.age.total).toBe(2);
+    expect(summary.age.targetTotal).toBe(16);
+    expect(summary.age.missingTotal).toBe(14);
     expect(summary.age.items.find((item) => item.label === "18-29")?.value).toBe(1);
     expect(summary.age.items.find((item) => item.label === "30-44")?.value).toBe(1);
   });
@@ -237,6 +243,25 @@ describe("territorialSummaryModel", () => {
     expect(summary.sex.items.find((item) => item.label === "Mujer")?.value).toBe(1);
     expect(summary.age.items.find((item) => item.label === "18-29")?.value).toBe(1);
     expect(summary.age.items.find((item) => item.label === "30-44")?.value).toBe(1);
+  });
+
+  it("normalizes numeric Kobo sex codes into quota labels", () => {
+    const summary = buildTerritorialExecutiveSummary({
+      reports: makeReports({
+        response_audit: [
+          { row_index: 1, response_id: "r1", advance_valid: true, sex: "1", age: 22 },
+          { row_index: 2, response_id: "r2", advance_valid: true, sex: "2", age: 38 },
+        ] as MonitoreoTerritorialDashboard["response_audit"],
+      }),
+      districtRows: [],
+      umpRows: [],
+    });
+
+    expect(summary.sex.items.map((item) => item.label)).toEqual(["Hombre", "Mujer"]);
+    expect(summary.sex.items.find((item) => item.label === "Hombre")?.value).toBe(1);
+    expect(summary.sex.items.find((item) => item.label === "Mujer")?.value).toBe(1);
+    expect(summary.sex.items.some((item) => item.label === "1" || item.label === "2")).toBe(false);
+    expect(summary.sex.missingTotal).toBe(14);
   });
 
   it("returns explicit missing variable and missing age-range states", () => {

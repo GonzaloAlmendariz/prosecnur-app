@@ -33,7 +33,7 @@ if (typeof window !== "undefined") {
 }
 
 export function useVariables(): {
-  sources: { name: string; variables: VarInfo[] }[];
+  sources: { name: string; source_kind?: string; variables: VarInfo[] }[];
   multi: boolean;
   variables: VarWithSource[];  // lista plana con `source` anotado
   loading: boolean;
@@ -88,6 +88,7 @@ export function useVariables(): {
     const sourceName = safeText(source.name, "default");
     return {
       name: sourceName,
+      source_kind: source.source_kind,
       variables: (source.variables ?? []).map((variable) => normalizeVarInfo(variable)),
     };
   });

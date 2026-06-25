@@ -744,7 +744,9 @@ p_slide_2_graficos_poblacion <- function(
     izquierda,
     derecha,
     titulo = NULL,
+    texto = " ",
     icono = NULL,
+    base = NULL,
     meta = list()
 ) {
   .ppt_chk_element(izquierda, "izquierda")
@@ -753,6 +755,7 @@ p_slide_2_graficos_poblacion <- function(
   .ppt_chk_meta(meta)
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  base <- .ppt_norm_text_like(base, nm = "base", blank = NULL)
 
   .ppt_as_slide(list(
     .slide_type = "poblacion_2",
@@ -761,7 +764,9 @@ p_slide_2_graficos_poblacion <- function(
       title = titulo,
       left  = izquierda,
       right = derecha,
-      icon  = icono
+      text  = .ppt_norm_text1(texto, blank = " "),
+      icon  = icono,
+      base  = base
     ),
     meta = meta
   ))

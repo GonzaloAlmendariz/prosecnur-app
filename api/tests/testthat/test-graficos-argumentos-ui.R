@@ -145,6 +145,11 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
 	  expect_false(isTRUE(by_name_agr$mostrar_ceros$default))
 	  expect_equal(by_name_agr$orden_barras$tipo_input, "choice")
 	  expect_equal(by_name_agr$orden_barras$default, "instrumento")
+  expect_equal(by_name_agr$orden_barras$choices[[1]]$label, "Orden del instrumento")
+  expect_equal(by_name_agr$otros_al_final$default, TRUE)
+  expect_equal(by_name_agr$max_categorias$default, 10)
+  expect_equal(by_name_agr$agrupar_resto_en_otros$default, TRUE)
+  expect_match(by_name_agr$umbral_posicion$label, "etiquetas pequeñas")
 
   registry <- .graficos_registry_payload()
   grafs <- stats::setNames(registry$graficadores, vapply(registry$graficadores, `[[`, character(1), "name"))
@@ -152,6 +157,94 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   by_name_graf_agr <- stats::setNames(args_agr, vapply(args_agr, `[[`, character(1), "name"))
   expect_equal(by_name_graf_agr$mostrar_ceros$tipo_input, "bool")
   expect_false(isTRUE(by_name_graf_agr$mostrar_ceros$default))
+  expect_equal(by_name_graf_agr$orden_barras$tipo_input, "choice")
+  expect_equal(by_name_graf_agr$orden_barras$default, "instrumento")
+  expect_equal(by_name_graf_agr$max_categorias$default, 10)
+  expect_equal(by_name_graf_agr$canvas_w_etiquetas$label, "Espacio para etiquetas")
+})
+
+test_that("barras agrupadas respetan orden, Otros al final y maximo de categorias", {
+  df_order <- data.frame(
+    categoria = c("A", "Otros", "B", "C"),
+    N = c(10, 80, 30, 20),
+    pct = c(0.10, 0.80, 0.30, 0.20),
+    stringsAsFactors = FALSE
+  )
+
+  p_instr <- graficar_barras_agrupadas(
+    data = df_order,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    orden_barras = "instrumento",
+    otros_al_final = TRUE,
+    mostrar_barra_extra = FALSE
+  )
+  expect_equal(levels(p_instr$data$categoria), c("A", "B", "C", "Otros"))
+
+  p_freq <- graficar_barras_agrupadas(
+    data = df_order,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    orden_barras = "mayor_menor",
+    otros_al_final = TRUE,
+    mostrar_barra_extra = FALSE
+  )
+  expect_equal(levels(p_freq$data$categoria), c("B", "C", "A", "Otros"))
+
+  df_many <- data.frame(
+    categoria = paste0("C", 1:12),
+    N = rep(1, 12),
+    pct = seq(0.12, 0.01, length.out = 12),
+    stringsAsFactors = FALSE
+  )
+  p_limited <- graficar_barras_agrupadas(
+    data = df_many,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    max_categorias = 5,
+    agrupar_resto_en_otros = TRUE,
+    orden_barras = "mayor_menor",
+    otros_al_final = TRUE,
+    mostrar_barra_extra = FALSE
+  )
+  expect_equal(levels(p_limited$data$categoria), c("C1", "C2", "C3", "C4", "Otros"))
+  expect_equal(unique(p_limited$data$N[p_limited$data$categoria == "Otros"]), 8)
+  expect_equal(unique(p_limited$data$.valor[p_limited$data$categoria == "Otros"]), sum(df_many$pct[5:12]))
+})
+
+test_that("barras agrupadas mantienen etiquetas pequenas visibles fuera de barra", {
+  df <- data.frame(
+    categoria = c("Minimo", "Medio"),
+    N = c(100, 100),
+    pct = c(0.01, 0.10),
+    stringsAsFactors = FALSE
+  )
+
+  p <- graficar_barras_agrupadas(
+    data = df,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    mostrar_valores = TRUE,
+    mostrar_barra_extra = FALSE,
+    umbral_etiqueta = 0.001,
+    umbral_posicion = 0.07
+  )
+
+  text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
+  value_layer <- text_layers[[1]]
+  row_min <- value_layer$data[value_layer$data$lab == "1%", , drop = FALSE]
+  expect_equal(nrow(row_min), 1)
+  expect_false(row_min$inside)
+  expect_gt(row_min$valor_label, row_min$.valor_plot + 0.02)
+  expect_equal(row_min$col_label, "#081F5C")
 })
 
 test_that("paletas configuradas llegan al ambiente y pintan barras apiladas", {
@@ -385,13 +478,18 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_agrupadas$prefijo_barra_extra, "")
 	  expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$canvas_w_etiquetas, 0.36)
   expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$barras_agrupadas$mostrar_ceros))
-  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "TOP 2 BOX")
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, 8.0)
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, 8.0)
+  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "Top 2 Box")
 })
 
 test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   expect_equal(.PULSO_PPT_COLORS$azul, "#081F5C")
   expect_equal(.PULSO_PPT_COLORS$rojo, "#CA5651")
   expect_equal(.PULSO_PPT_COLORS$verde, "#85BB85")
+  expect_equal(.PULSO_PPT_COLORS$verde_top2, "#70AD47")
   expect_equal(.PULSO_PPT_COLORS$amarillo, "#EFD25E")
   expect_equal(.PULSO_PPT_COLORS$gris, "#BFBFBF")
 
@@ -405,7 +503,7 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 10.5)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 10)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$verde)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_numericas$colores_series$Media, .PULSO_PPT_COLORS$azul)
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$tabla_header_fill, .PULSO_PPT_COLORS$azul)
@@ -573,7 +671,7 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   slide_files <- grep("^ppt/slides/slide[0-9]+\\.xml$", unzip(out, list = TRUE)$Name, value = TRUE)
   xml <- paste(unlist(lapply(unzip(out, files = slide_files, exdir = tempdir()), readLines, warn = FALSE)), collapse = " ")
 
-  expect_true(grepl("TOP 2 BOX", xml, fixed = TRUE))
+  expect_true(grepl("Top 2 Box", xml, fixed = TRUE))
   expect_false(grepl("N =", xml, fixed = TRUE))
   expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })

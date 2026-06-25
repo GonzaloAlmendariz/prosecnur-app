@@ -230,6 +230,20 @@ Section "Motor estadistico R" SecR
 
   DetailPrint "Instalando R 4.5.1 (puede tomar 1-2 minutos)..."
   CreateDirectory "$LOCALAPPDATA\Prosecnur"
+  CreateDirectory "$LOCALAPPDATA\Prosecnur\logs"
+
+  ; Si una ejecucion anterior fallo a mitad de camino, el directorio puede
+  ; existir sin Rscript.exe. Lo limpiamos antes de reintentar para evitar que
+  ; el instalador de R aborte sobre archivos parciales o bloqueados.
+  ${If} ${FileExists} "$LOCALAPPDATA\Prosecnur\R"
+    DetailPrint "Limpiando instalacion parcial de R..."
+    RMDir /r "$LOCALAPPDATA\Prosecnur\R"
+    Sleep 500
+    ${If} ${FileExists} "$LOCALAPPDATA\Prosecnur\R"
+      MessageBox MB_ICONSTOP "No se pudo limpiar una instalacion parcial de R en $LOCALAPPDATA\Prosecnur\R. Cierra Prosecnur, revisa que ningun antivirus tenga archivos en cuarentena y vuelve a intentar."
+      Abort
+    ${EndIf}
+  ${EndIf}
 
   ; Buscar el R-*-win.exe que el bundle copio a $INSTDIR\runtime\r-installer.
   FindFirst $0 $1 "$INSTDIR\runtime\r-installer\R-*-win.exe"
@@ -241,10 +255,24 @@ Section "Motor estadistico R" SecR
   StrCpy $2 "$INSTDIR\runtime\r-installer\$1"
   FindClose $0
 
-  ; Inno Setup flags: silencioso total, sin reinicio, ruta forzada.
-  ExecWait '"$2" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR="$LOCALAPPDATA\Prosecnur\R"' $3
+  StrCpy $4 "$LOCALAPPDATA\Prosecnur\logs\r-install.log"
+  Delete "$4"
+  DetailPrint "Log de instalacion de R: $4"
+
+  ; Inno Setup flags: instalacion silenciosa, sin reinicio, por usuario y ruta
+  ; forzada. No usamos /SUPPRESSMSGBOXES: si R encuentra un error real, conviene
+  ; que Windows muestre el mensaje original en vez de abortar sin contexto.
+  ExecWait '"$2" /VERYSILENT /SP- /NORESTART /CURRENTUSER /DIR="$LOCALAPPDATA\Prosecnur\R" /LOG="$4"' $3
   ${If} $3 != 0
-    MessageBox MB_ICONSTOP "No se pudo instalar R (codigo $3). Revisa que tu antivirus no haya bloqueado el instalador y vuelve a intentar."
+    ${If} $3 == 5
+      MessageBox MB_ICONSTOP "El instalador de R se interrumpio durante la instalacion (codigo 5). Revisa el detalle en $4. Si aparece un bloqueo de seguridad, permite Prosecnur-Setup.exe y $1 en tu antivirus y vuelve a intentar."
+    ${Else}
+      MessageBox MB_ICONSTOP "No se pudo instalar R (codigo $3). Revisa el detalle en $4 y vuelve a intentar."
+    ${EndIf}
+    Abort
+  ${EndIf}
+  ${IfNot} ${FileExists} "$LOCALAPPDATA\Prosecnur\R\bin\Rscript.exe"
+    MessageBox MB_ICONSTOP "El instalador de R termino sin errores, pero no se encontro $LOCALAPPDATA\Prosecnur\R\bin\Rscript.exe. Revisa el detalle en $4 y vuelve a intentar."
     Abort
   ${EndIf}
   DetailPrint "R 4.5.1 instalado correctamente."

@@ -81,6 +81,24 @@ mount_proyecto <- function(pr) {
       res$setHeader("X-Pulso-Session", result$session_id)
       result
     })) |>
+    plumber::pr_post("/api/project/warmup", wrap_endpoint(function(req, res, mode = NULL, budget_ms = NULL, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = TRUE),
+                 error = function(e) list())
+      } else list()
+      .project_warmup_start(
+        sid = sid,
+        mode = mode %||% body$mode %||% "full",
+        budget_ms = budget_ms %||% body$budget_ms %||% body$budgetMs %||% .project_warmup_default_budget_ms,
+        modules = body$modules %||% body$module_ids %||% body$moduleIds %||% NULL
+      )
+    })) |>
+    plumber::pr_get("/api/project/warmup-plan", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      .project_warmup_plan(sid)
+    })) |>
     plumber::pr_post("/api/project/close", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       project_close(sid)

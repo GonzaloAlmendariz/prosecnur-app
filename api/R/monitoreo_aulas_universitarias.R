@@ -190,7 +190,14 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   n <- nrow(df)
   out <- data.frame(
     selection_run_id = get(c("selection_run_id", "run_id"), ""),
+    operational_code = get(c("operational_code", "codigo_operativo", "codigo_aula_operativa"), ""),
+    titular_operational_code = get(c("titular_operational_code", "codigo_aula_titular"), ""),
+    replacement_chain_code = get(c("replacement_chain_code", "codigo_reemplazo", "codigo_cadena_reemplazo"), ""),
+    operational_sequence = getn(c("operational_sequence", "secuencia_operativa"), NA_real_),
+    selection_slot_id = get(c("selection_slot_id", "slot_id", "id_match"), ""),
+    sample_role = get(c("sample_role", "rol_muestra"), ""),
     wave = get(c("wave", "ola"), "M1"),
+    replacement_order = getn(c("replacement_order", "orden_reemplazo"), NA_real_),
     orden = getn(c("orden", "order"), seq_len(n)),
     classroom_id = get(c("classroom_id", "aula_id", "codigo_aula"), ""),
     label = get(c("label", "aula", "salon"), ""),
@@ -214,6 +221,11 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     replacement_for = get(c("replacement_for", "reemplazo_de"), ""),
     replacement_reason = get(c("replacement_reason", "motivo_reemplazo"), ""),
     replacement_note = get(c("replacement_note", "nota_reemplazo"), ""),
+    equivalence_level = get(c("equivalence_level", "nivel_equivalencia"), ""),
+    chain_score = getn(c("chain_score", "score_cadena"), NA_real_),
+    chain_depth = getn(c("chain_depth", "profundidad_cadena"), NA_real_),
+    activation_weight_status = get(c("activation_weight_status", "estado_peso_activacion"), ""),
+    analysis_weight_warning = get(c("analysis_weight_warning", "alerta_peso_analitico"), ""),
     representativity_score = getn(c("representativity_score", "score_representatividad"), NA_real_),
     representativity_distance = getn(c("representativity_distance", "distancia_representatividad"), NA_real_),
     pi_final = getn(c("pi_final", "probabilidad_final"), NA_real_),
@@ -222,14 +234,45 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+  missing_role <- !nzchar(out$sample_role)
+  out$sample_role[missing_role] <- ifelse(out$wave[missing_role] == "M1", "titular", ifelse(nzchar(out$replacement_for[missing_role]), "chain_reserve", "chain_reserve"))
+  out$sample_role <- gsub(" ", "_", .monitoreo_text_key(out$sample_role), fixed = TRUE)
+  out$replacement_order[!is.finite(out$replacement_order)] <- suppressWarnings(as.numeric(gsub("[^0-9]", "", out$wave[!is.finite(out$replacement_order)]))) - 1
   out$operational_status <- vapply(out$operational_status, .monitoreo_aulas_status, character(1))
   out$replacement_reason <- vapply(out$replacement_reason, function(x) if (nzchar(x)) .monitoreo_aulas_reason(x) else "", character(1))
   out$expected_valid[!is.finite(out$expected_valid)] <- out$eligible_n[!is.finite(out$expected_valid)]
   out$eligible_n[!is.finite(out$eligible_n)] <- 0
   out$expected_valid[!is.finite(out$expected_valid)] <- 0
+  missing_code <- !nzchar(out$operational_code)
+  slot_number <- suppressWarnings(as.integer(gsub("[^0-9]", "", out$selection_slot_id)))
+  slot_number[!is.finite(slot_number)] <- out$orden[!is.finite(slot_number)]
+  out$operational_code[missing_code & out$sample_role == "titular"] <- paste("AULA", slot_number[missing_code & out$sample_role == "titular"])
+  reserve_missing <- missing_code & out$sample_role == "chain_reserve"
+  if (any(reserve_missing)) {
+    rep_order <- out$replacement_order
+    rep_order[!is.finite(rep_order) | rep_order <= 0] <- suppressWarnings(as.numeric(gsub("[^0-9]", "", out$wave[!is.finite(rep_order) | rep_order <= 0]))) - 1
+    rep_order[!is.finite(rep_order) | rep_order <= 0] <- 1
+    out$operational_code[reserve_missing] <- sprintf("R%s.%s", slot_number[reserve_missing], rep_order[reserve_missing])
+  }
+  extra_missing <- missing_code & out$sample_role == "extra_reserve_pool"
+  if (any(extra_missing)) out$operational_code[extra_missing] <- paste("EXTRA", seq_len(sum(extra_missing)))
+  missing_titular_code <- !nzchar(out$titular_operational_code) & out$sample_role %in% c("titular", "chain_reserve")
+  out$titular_operational_code[missing_titular_code] <- paste("AULA", slot_number[missing_titular_code])
+  missing_replacement_code <- !nzchar(out$replacement_chain_code) & out$sample_role == "chain_reserve"
+  out$replacement_chain_code[missing_replacement_code] <- out$operational_code[missing_replacement_code]
   out <- out[nzchar(out$classroom_id), , drop = FALSE]
   rownames(out) <- NULL
   .monitoreo_aulas_records(out)
+}
+
+.monitoreo_aulas_plan_index <- function(plan_df, classroom_id = "", operational_code = "") {
+  classroom_id <- .monitoreo_scalar(classroom_id, "")
+  operational_code <- .monitoreo_scalar(operational_code, "")
+  idx <- if (nzchar(classroom_id)) which(plan_df$classroom_id == classroom_id) else integer(0)
+  if (!length(idx) && nzchar(operational_code) && "operational_code" %in% names(plan_df)) {
+    idx <- which(plan_df$operational_code == operational_code)
+  }
+  idx
 }
 
 monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list()) {
@@ -358,6 +401,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     ))
   }
   plan_df <- .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan_df), "plan")
+  tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
+  if (!nrow(tracked_df)) tracked_df <- plan_df
   status <- plan_df$operational_status
   valid_response <- .monitoreo_aulas_valid_response(responses, cfg)
   response_classroom <- .monitoreo_aulas_response_classroom(responses, cfg)
@@ -370,15 +415,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   plan_df$respuestas_validas[is.na(plan_df$respuestas_validas)] <- 0L
   plan_df$brecha <- pmax(0, suppressWarnings(as.numeric(plan_df$expected_valid)) - plan_df$respuestas_validas)
   plan_df$brecha[!is.finite(plan_df$brecha)] <- 0
+  tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
+  if (!nrow(tracked_df)) tracked_df <- plan_df
 
   advance <- stats::aggregate(
-    cbind(aulas = rep(1L, nrow(plan_df)), respuestas_validas = plan_df$respuestas_validas, brecha = plan_df$brecha) ~ stratum,
-    data = plan_df,
+    cbind(aulas = rep(1L, nrow(tracked_df)), respuestas_validas = tracked_df$respuestas_validas, brecha = tracked_df$brecha) ~ stratum,
+    data = tracked_df,
     FUN = sum
   )
   applied_by_stratum <- stats::aggregate(
     aplicada ~ stratum,
-    data = data.frame(stratum = plan_df$stratum, aplicada = status %in% c("aplicada", "cerrada", "parcial"), stringsAsFactors = FALSE),
+    data = data.frame(stratum = tracked_df$stratum, aplicada = tracked_df$operational_status %in% c("aplicada", "cerrada", "parcial"), stringsAsFactors = FALSE),
     FUN = sum
   )
   advance <- merge(advance, applied_by_stratum, by = "stratum", all.x = TRUE, sort = FALSE)
@@ -386,9 +433,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   advance$avance_aulas_pct <- ifelse(advance$aulas > 0, round(100 * advance$aulas_aplicadas / advance$aulas, 1), NA_real_)
   advance$avance_respuestas_pct <- ifelse((advance$respuestas_validas + advance$brecha) > 0, round(100 * advance$respuestas_validas / (advance$respuestas_validas + advance$brecha), 1), NA_real_)
 
-  brechas <- plan_df[plan_df$brecha > 0 | plan_df$operational_status %in% c("sin_acceso", "cancelada", "reemplazo_pendiente"), , drop = FALSE]
-  replacements <- plan_df[nzchar(plan_df$replacement_for) | plan_df$operational_status %in% c("reemplazada", "reemplazo_pendiente"), , drop = FALSE]
-  representativity <- .monitoreo_aulas_effective_representativity(plan_df, cfg)
+  brechas <- tracked_df[tracked_df$brecha > 0 | tracked_df$operational_status %in% c("sin_acceso", "cancelada", "reemplazo_pendiente"), , drop = FALSE]
+  replacements <- tracked_df[nzchar(tracked_df$replacement_for) | tracked_df$operational_status %in% c("reemplazada", "reemplazo_pendiente"), , drop = FALSE]
+  representativity <- .monitoreo_aulas_effective_representativity(tracked_df, cfg)
 
   collector_col <- .monitoreo_aulas_col(responses, c(cfg$source_mapping$collector_var, "collector_id", "collector", "link", "aula_id", "classroom_id"))
   collector_values <- if (nzchar(collector_col)) .monitoreo_aulas_values(responses, collector_col, "") else character(0)
@@ -419,11 +466,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     frame_hash = cfg$frame_hash,
     anonymous_responses = isTRUE(cfg$anonymous_responses),
     kpis = list(
-      total_aulas = as.integer(nrow(plan_df)),
-      aulas_titulares = as.integer(sum(plan_df$wave == "M1")),
-      aulas_aplicadas = as.integer(sum(status %in% c("aplicada", "cerrada"))),
-      aulas_parciales = as.integer(sum(status == "parcial")),
-      reemplazos_usados = as.integer(sum(nzchar(plan_df$replacement_for) & status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
+      total_aulas = as.integer(nrow(tracked_df)),
+      aulas_titulares = as.integer(sum(tracked_df$wave == "M1")),
+      aulas_aplicadas = as.integer(sum(tracked_df$operational_status %in% c("aplicada", "cerrada"))),
+      aulas_parciales = as.integer(sum(tracked_df$operational_status == "parcial")),
+      reemplazos_usados = as.integer(sum(nzchar(tracked_df$replacement_for) & tracked_df$operational_status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
       respuestas_validas = as.integer(sum(valid_response)),
       brechas = as.integer(sum(plan_df$brecha > 0)),
       representativity_effective_score = representativity$effective_score,
@@ -446,11 +493,20 @@ monitoreo_aulas_update_agenda <- function(current, updates = list()) {
     id_col <- .monitoreo_aulas_col(upd_df, c("aula_id", "codigo_aula", "id"))
     if (nzchar(id_col)) names(upd_df)[names(upd_df) == id_col] <- "classroom_id"
   }
-  if (!"classroom_id" %in% names(upd_df)) stop("Las actualizaciones requieren classroom_id.", call. = FALSE)
+  if (!"classroom_id" %in% names(upd_df)) upd_df$classroom_id <- ""
+  if (!"operational_code" %in% names(upd_df)) {
+    code_col <- .monitoreo_aulas_col(upd_df, c("codigo_operativo", "codigo_aula_operativa"))
+    if (nzchar(code_col)) names(upd_df)[names(upd_df) == code_col] <- "operational_code"
+  }
+  if (!"operational_code" %in% names(upd_df)) upd_df$operational_code <- ""
+  if (!any(nzchar(upd_df$classroom_id) | nzchar(upd_df$operational_code))) {
+    stop("Las actualizaciones requieren classroom_id u operational_code.", call. = FALSE)
+  }
   for (i in seq_len(nrow(upd_df))) {
     cid <- .monitoreo_scalar(upd_df$classroom_id[[i]], "")
-    if (!nzchar(cid)) next
-    idx <- which(plan_df$classroom_id == cid)
+    code <- .monitoreo_scalar(upd_df$operational_code[[i]], "")
+    if (!nzchar(cid) && !nzchar(code)) next
+    idx <- .monitoreo_aulas_plan_index(plan_df, cid, code)
     if (!length(idx)) next
     row <- upd_df[i, , drop = FALSE]
     for (nm in names(row)) {
@@ -472,17 +528,18 @@ monitoreo_aulas_apply_replacement <- function(current, classroom_id, replacement
   if (!nzchar(classroom_id) || !nzchar(replacement_id)) {
     stop("Se requiere aula caida y aula de reemplazo.", call. = FALSE)
   }
-  idx_old <- which(plan_df$classroom_id == classroom_id)
-  idx_new <- which(plan_df$classroom_id == replacement_id)
+  idx_old <- .monitoreo_aulas_plan_index(plan_df, classroom_id, classroom_id)
+  idx_new <- .monitoreo_aulas_plan_index(plan_df, replacement_id, replacement_id)
   if (!length(idx_old)) stop("No se encontro el aula caida en el plan.", call. = FALSE)
   if (!length(idx_new)) stop("No se encontro el aula de reemplazo en el plan.", call. = FALSE)
+  old_classroom_id <- .monitoreo_scalar(plan_df$classroom_id[[idx_old[[1]]]], classroom_id)
   reason <- .monitoreo_aulas_reason(reason)
   plan_df$operational_status[idx_old] <- "reemplazada"
   plan_df$replacement_reason[idx_old] <- reason
   plan_df$replacement_note[idx_old] <- .monitoreo_scalar(note, "")
   plan_df$updated_at[idx_old] <- .monitoreo_now_iso()
   plan_df$operational_status[idx_new] <- "agendada"
-  plan_df$replacement_for[idx_new] <- classroom_id
+  plan_df$replacement_for[idx_new] <- old_classroom_id
   plan_df$replacement_reason[idx_new] <- reason
   plan_df$replacement_note[idx_new] <- .monitoreo_scalar(note, "")
   plan_df$updated_at[idx_new] <- .monitoreo_now_iso()

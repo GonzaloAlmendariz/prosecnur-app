@@ -11,11 +11,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  FilePlus2,
-  FolderOpen,
   Power,
-  Folder,
-  Clock,
   Settings2,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -27,9 +23,6 @@ import {
   homeModuleVars,
   type ProsecnurModuleMeta,
 } from "../../lib/modules";
-import { useProjectShell } from "../project/ProjectShell";
-import type { RecentProject } from "../project/types";
-import type { UseProjectReturn } from "../project/useProject";
 import { ExitDialog } from "./ExitDialog";
 import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import {
@@ -43,10 +36,9 @@ import {
 // Procesamiento. El layout y el peso visual reflejan esa independencia.
 //
 // Layout:
-//   1. ProjectBar — proyecto activo + recientes en una consola compacta.
-//   2. ModulesDeck — carrusel cinematográfico con detalle visible.
-//   3. Footer — atribución, notas, cerrar.
-//   4. Drawer lateral derecho — historial completo de release notes.
+//   1. ModulesDeck — carrusel cinematográfico con detalle visible.
+//   2. Footer — atribución, notas, cerrar.
+//   3. Drawer lateral derecho — historial completo de release notes.
 //
 // Los estilos viven en `app/theme.css` con prefijo `.home-*`.
 // El motion reusa los tokens centralizados (--motion-dur-*, --motion-ease-out).
@@ -69,9 +61,9 @@ type CinemaMetrics = {
 };
 
 const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
-  cardWidth: 344,
-  cardMinHeight: 342,
-  cardStep: 220,
+  cardWidth: 372,
+  cardMinHeight: 398,
+  cardStep: 236,
   cardYOffset: 10,
   cardRotate: 4.5,
   cardTilt: 10,
@@ -320,7 +312,6 @@ function computeMeta(
 // =====================================================================
 export default function HomePage() {
   const { state, version } = useSession();
-  const { project } = useProjectShell();
   const location = useLocation();
   const proc = useProcesamientoState();
   const [layoutPreset] = useLayoutPreset();
@@ -336,7 +327,6 @@ export default function HomePage() {
 
   return (
     <div className="home-wrap" data-layout-preset={layoutPreset}>
-      <ProjectBar project={project} />
       <ModulesGrid state={state} proc={proc} layoutPreset={layoutPreset} />
       <HomeFooter
         version={version}
@@ -359,169 +349,6 @@ export default function HomePage() {
       )}
     </div>
   );
-}
-
-// =====================================================================
-// ProjectBar — barra superior con estado del proyecto + recientes
-// Reemplaza el StartModal bloqueante: si hay proyecto, muestra info;
-// si no hay, muestra CTA con "Nuevo / Abrir". Los recientes viven al
-// costado siempre que existan.
-// =====================================================================
-function ProjectBar({ project }: { project: UseProjectReturn }) {
-  const hasProject = project.status.has_project;
-  const recents = project.recents.slice(0, 4);
-
-  return (
-    <section
-      className={`home-projbar ${recents.length > 0 ? "has-recents" : ""}`}
-      aria-label="Proyecto y recientes"
-    >
-      {hasProject ? (
-        <ActiveProjectCard project={project} />
-      ) : (
-        <StartProjectCard project={project} />
-      )}
-      {recents.length > 0 && (
-        <RecentsList recents={recents} project={project} />
-      )}
-    </section>
-  );
-}
-
-function ActiveProjectCard({ project }: { project: UseProjectReturn }) {
-  const { name, last_saved_at, dirty } = project.status;
-  const savedLabel = useMemo(() => {
-    if (dirty) return "Cambios sin guardar";
-    if (!last_saved_at) return "Listo para trabajar";
-    return `Guardado ${formatRelative(last_saved_at)}`;
-  }, [dirty, last_saved_at]);
-  const dotClass = dirty ? "is-dirty" : last_saved_at ? "is-saved" : "";
-
-  return (
-    <div className="home-proj-card is-active">
-      <div className="home-proj-icon" aria-hidden="true">
-        <Folder size={22} strokeWidth={1.8} />
-      </div>
-      <div className="home-proj-body">
-        <span className="home-proj-name">{name ?? "Sin nombre"}</span>
-        <span className="home-proj-meta">
-          <span className={`home-proj-meta-dot ${dotClass}`} aria-hidden="true" />
-          {savedLabel}
-        </span>
-      </div>
-      <div className="home-proj-actions">
-        <button
-          type="button"
-          className="home-proj-btn home-proj-btn--ghost"
-          onClick={() => void project.open()}
-          disabled={project.busy}
-        >
-          <FolderOpen size={14} />
-          Cambiar
-        </button>
-        <button
-          type="button"
-          className="home-proj-btn home-proj-btn--primary"
-          onClick={() => void project.newProject()}
-          disabled={project.busy}
-        >
-          <FilePlus2 size={14} />
-          Nuevo
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function StartProjectCard({ project }: { project: UseProjectReturn }) {
-  return (
-    <div className="home-proj-card is-empty">
-      <div className="home-proj-icon home-proj-icon--accent" aria-hidden="true">
-        <FolderOpen size={22} strokeWidth={1.8} />
-      </div>
-      <div className="home-proj-body">
-        <span className="home-proj-name">Crear o abrir proyecto</span>
-        <span className="home-proj-meta">
-          Trabaja sobre un archivo <code>.pulso</code> nuevo o existente.
-        </span>
-      </div>
-      <div className="home-proj-actions">
-        <button
-          type="button"
-          className="home-proj-btn home-proj-btn--ghost"
-          onClick={() => void project.open()}
-          disabled={project.busy}
-        >
-          <FolderOpen size={14} />
-          Abrir
-        </button>
-        <button
-          type="button"
-          className="home-proj-btn home-proj-btn--primary"
-          onClick={() => void project.newProject()}
-          disabled={project.busy}
-        >
-          <FilePlus2 size={14} />
-          Nuevo proyecto
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function RecentsList({
-  recents,
-  project,
-}: {
-  recents: RecentProject[];
-  project: UseProjectReturn;
-}) {
-  return (
-    <div className="home-recents">
-      <div className="home-recents-head">
-        <Clock size={13} strokeWidth={1.8} aria-hidden="true" />
-        <span>Proyectos recientes</span>
-      </div>
-      <ul className="home-recents-list">
-        {recents.map((r) => (
-          <li key={r.path}>
-            <button
-              type="button"
-              className="home-recent-item"
-              onClick={() => void project.open(r.path)}
-              disabled={project.busy}
-              title={r.path}
-            >
-              <span className="home-recent-name">{r.name}</span>
-              <span className="home-recent-meta">
-                {formatRelative(r.opened_at)}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// Formato relativo simple en español ("hace 2 horas", "hace 3 días", …).
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diffSec = Math.max(0, Math.round((now - then) / 1000));
-  if (diffSec < 60) return "hace un momento";
-  const min = Math.round(diffSec / 60);
-  if (min < 60) return `hace ${min} min`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `hace ${hr} h`;
-  const day = Math.round(hr / 24);
-  if (day < 7) return `hace ${day} ${day === 1 ? "día" : "días"}`;
-  const week = Math.round(day / 7);
-  if (week < 5) return `hace ${week} ${week === 1 ? "semana" : "semanas"}`;
-  const month = Math.round(day / 30);
-  if (month < 12) return `hace ${month} ${month === 1 ? "mes" : "meses"}`;
-  const year = Math.round(day / 365);
-  return `hace ${year} ${year === 1 ? "año" : "años"}`;
 }
 
 function doShutdown() {
@@ -824,13 +651,14 @@ function computeCinemaMetrics(
   const presetBalanced = layoutPreset === "portable";
   const crampedHeight = height < (presetShort ? 250 : 220) && width < 620;
   const shortDeck = height < (presetShort ? 350 : presetRoomy ? 360 : 335) || presetShort;
+  const tallDeck = height >= 560 && width >= 680;
   const compact = presetCompact || width < 500 || crampedHeight || shortDeck;
-  const roomy = !compact && (presetRoomy || (width > 640 && height > 365));
+  const roomy = !compact && (presetRoomy || tallDeck || (width > 640 && height > 365));
   const density: CinemaDensity = compact ? "compact" : roomy ? "roomy" : "standard";
-  const widthFactor = compact ? 0.64 : presetRoomy ? 0.52 : presetBalanced ? 0.5 : 0.48;
+  const widthFactor = compact ? 0.64 : presetRoomy ? 0.54 : presetBalanced ? 0.52 : tallDeck ? 0.51 : 0.48;
   const cardWidthMax = compact
     ? presetShort ? 316 : 334
-    : presetRoomy ? 430 : roomy ? 368 : 334;
+    : presetRoomy ? 456 : tallDeck ? 420 : roomy ? 380 : 340;
   const cardWidth = Math.round(clamp(
     width * widthFactor,
     compact ? 216 : 276,
@@ -842,25 +670,25 @@ function computeCinemaMetrics(
       : shortDeck
       ? clamp(height - (presetShort ? 34 : 24), 180, presetShort ? 226 : 258)
       : clamp(
-          height - (compact ? 28 : presetRoomy ? 56 : 30),
+          height - (compact ? 28 : presetRoomy ? 72 : tallDeck ? 86 : 30),
           compact ? 248 : 292,
-          presetRoomy ? 430 : roomy ? 366 : 326,
+          presetRoomy ? 520 : tallDeck ? 470 : roomy ? 390 : 326,
         ),
   );
   const cardStep = Math.round(clamp(
-    width * (presetShort ? 0.22 : compact ? 0.28 : presetRoomy ? 0.34 : 0.31),
+    width * (presetShort ? 0.22 : compact ? 0.28 : presetRoomy ? 0.35 : tallDeck ? 0.33 : 0.31),
     presetShort ? 84 : compact ? 96 : 148,
-    compact ? (presetShort ? 112 : 170) : presetRoomy ? 286 : roomy ? 236 : 194,
+    compact ? (presetShort ? 112 : 170) : presetRoomy ? 312 : tallDeck ? 286 : roomy ? 246 : 194,
   ));
-  const cardYOffset = Math.round(clamp(height * 0.026, compact ? 4 : 7, 12));
+  const cardYOffset = Math.round(clamp(height * 0.024, compact ? 4 : 7, tallDeck ? 16 : 12));
 
   return {
     cardWidth,
     cardMinHeight,
     cardStep,
     cardYOffset,
-    cardRotate: compact ? 2.2 : roomy ? 4.2 : 3.4,
-    cardTilt: compact ? 4 : roomy ? 9 : 7,
+    cardRotate: compact ? 2.2 : tallDeck ? 4.6 : roomy ? 4.2 : 3.4,
+    cardTilt: compact ? 4 : tallDeck ? 10 : roomy ? 9 : 7,
     scaleDrop: compact ? 0.092 : roomy ? 0.1 : 0.095,
     minScale: compact ? 0.76 : 0.72,
     hiddenDistance: 1,

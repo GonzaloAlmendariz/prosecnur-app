@@ -59,6 +59,7 @@ export type PanelConfig = {
   outputs: {
     codebook: boolean;
     frecuencias: boolean;
+    cruces: boolean;
     auditoria: boolean;
     cobertura_nse: boolean;
   };
@@ -273,7 +274,10 @@ export type FichaTecnicaConfig = {
   tipo_investigacion?: string;
   estudio?: string;
   universo_estudio?: string;
+  base_analisis?: string;
+  criterios_inclusion?: string;
   ambito_geografico?: string;
+  distritos_seleccionados?: string;
   aplicacion_de_encuestas_piloto?: string;
   aplicacion_de_encuestas?: string;
   aplicacion_piloto?: string;
@@ -296,6 +300,9 @@ export type FichaTecnicaConfig = {
   template_path?: string;
   hojas_ruta_pulso_path?: string;
   hojas_ruta_context?: unknown;
+  calc_muestra_pulso_path?: string;
+  calc_muestra_context?: unknown;
+  panel_context?: unknown;
 };
 
 export type AnaliticaConfig = {
@@ -365,6 +372,7 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     outputs: {
       codebook: true,
       frecuencias: true,
+      cruces: false,
       auditoria: true,
       cobertura_nse: true,
     },
@@ -466,6 +474,7 @@ type AnaliticaStore = {
   setDatosValueLabel: (name: string, code: string, label: string) => void;
   clearDatosVariable: (name: string) => void;
 
+  setFichaTecnica: (patch: Partial<FichaTecnicaConfig>) => void;
   setCodebook: (patch: Partial<CodebookConfig>) => void;
   setFrecuencias: (patch: Partial<FrecuenciasConfig>) => void;
   setMultibase: (patch: Partial<MultibaseTablasConfig>) => void;
@@ -615,6 +624,14 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
         config: { ...s.config, datos: { variable_labels, value_labels } },
       });
     }),
+
+  setFichaTecnica: (patch) =>
+    set((s) => dirty({
+      config: {
+        ...s.config,
+        ficha_tecnica: { ...s.config.ficha_tecnica, ...patch },
+      },
+    })),
 
   setCodebook: (patch) =>
     set((s) => dirty({ config: { ...s.config, codebook: { ...s.config.codebook, ...patch } } })),

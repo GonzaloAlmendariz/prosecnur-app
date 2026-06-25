@@ -321,6 +321,22 @@ calc_muestra_aulas_default_config <- function() {
       simulation_runs = 500L,
       mos_strategy = "eligible_yield_winsorized",
       coordination_mode = "permanent_random_number",
+      replacement_depth_strategy = "max_complete_chains_by_cell",
+      min_replacements_per_titular = 1L,
+      max_replacements_per_titular = 11L,
+      extra_pool_policy = "leftover_after_chains",
+      replacement_equivalence_vars = as.list(c("faculty", "program", "level", "size_group", "modality", "sex_top_1", "schedule")),
+      replacement_score_weights = list(
+        faculty = 35,
+        program = 22,
+        level = 12,
+        size_group = 8,
+        modality = 7,
+        sex_top_1 = 6,
+        schedule = 4,
+        eligible_n = 10,
+        active_overlap = -18
+      ),
       duplicate_penalty = 1.35,
       pps_weight = 0.25,
       coverage_weight = 1,
@@ -403,6 +419,12 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       simulation_runs = max(0L, simulation_runs),
       mos_strategy = .cm_aulas_scalar(selector$mos_strategy %||% selector$estrategia_tamano %||% config$mos_strategy, defaults$selector$mos_strategy),
       coordination_mode = .cm_aulas_scalar(selector$coordination_mode %||% selector$modo_coordinacion %||% config$coordination_mode, defaults$selector$coordination_mode),
+      replacement_depth_strategy = .cm_aulas_scalar(selector$replacement_depth_strategy %||% selector$estrategia_profundidad_reemplazos %||% config$replacement_depth_strategy, defaults$selector$replacement_depth_strategy),
+      min_replacements_per_titular = max(0L, .cm_aulas_int(selector$min_replacements_per_titular %||% selector$min_reemplazos_por_titular %||% config$min_replacements_per_titular, defaults$selector$min_replacements_per_titular)),
+      max_replacements_per_titular = max(0L, .cm_aulas_int(selector$max_replacements_per_titular %||% selector$max_reemplazos_por_titular %||% config$max_replacements_per_titular, defaults$selector$max_replacements_per_titular)),
+      extra_pool_policy = .cm_aulas_scalar(selector$extra_pool_policy %||% selector$politica_reserva_extra %||% config$extra_pool_policy, defaults$selector$extra_pool_policy),
+      replacement_equivalence_vars = as.list(.cm_aulas_chr_vec(selector$replacement_equivalence_vars %||% selector$variables_equivalencia_reemplazo %||% config$replacement_equivalence_vars %||% defaults$selector$replacement_equivalence_vars)),
+      replacement_score_weights = selector$replacement_score_weights %||% selector$pesos_reemplazo %||% config$replacement_score_weights %||% defaults$selector$replacement_score_weights,
       duplicate_penalty = max(0, .cm_aulas_num(selector$duplicate_penalty %||% selector$penalizacion_repetidos %||% config$penalizacion_repetidos, defaults$selector$duplicate_penalty)),
       pps_weight = max(0, .cm_aulas_num(selector$pps_weight %||% config$pps_weight, defaults$selector$pps_weight)),
       coverage_weight = max(0, .cm_aulas_num(selector$coverage_weight %||% config$coverage_weight, defaults$selector$coverage_weight)),
@@ -1599,24 +1621,339 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   .cm_aulas_select_once_engine(aula_frame, selector, engine, seed)
 }
 
-.cm_aulas_select_waves <- function(aula_frame, selector, engine, waves, seed = NULL, objective = NULL) {
-  selected_global <- character(0)
-  rows <- list()
-  warnings <- character(0)
-  used <- character(0)
-  for (wave_idx in seq_along(waves)) {
-    wave <- waves[[wave_idx]]
-    candidates <- aula_frame[!aula_frame$classroom_id %in% selected_global, , drop = FALSE]
-    if (!nrow(candidates)) break
-    picked <- .cm_aulas_select_once_dispatch(candidates, selector, engine, seed = if (is.null(seed)) NULL else seed + wave_idx * 1009L, objective = objective)
-    if (!nrow(picked)) next
-    warnings <- c(warnings, attr(picked, "warnings") %||% character(0))
-    used <- c(used, attr(picked, "engine_used") %||% engine)
-    picked$wave <- wave
-    selected_global <- unique(c(selected_global, picked$classroom_id))
-    rows[[length(rows) + 1L]] <- picked
+.cm_aulas_role_values <- function(df) {
+  if (!nrow(df)) return(character(0))
+  if ("sample_role" %in% names(df)) {
+    role <- .cm_aulas_values(df, "sample_role", "")
+    role[nzchar(role)] <- .cm_aulas_text_key(role[nzchar(role)])
+    return(role)
   }
-  out <- if (length(rows)) do.call(rbind, rows) else aula_frame[0, , drop = FALSE]
+  if ("wave" %in% names(df)) {
+    wave <- .cm_aulas_values(df, "wave", "")
+    return(ifelse(wave == "M1", "titular", "chain_reserve"))
+  }
+  rep("titular", nrow(df))
+}
+
+.cm_aulas_selection_slot_ids <- function(n, prefix = "slot") {
+  sprintf("%s_%03d", prefix, seq_len(max(0L, as.integer(n))))
+}
+
+.cm_aulas_slot_number <- function(slot_id, fallback = NA_integer_) {
+  raw <- .cm_aulas_scalar(slot_id, "")
+  hit <- regmatches(raw, regexpr("[0-9]+", raw))
+  if (!length(hit) || !nzchar(hit[[1]])) return(as.integer(fallback))
+  out <- suppressWarnings(as.integer(hit[[1]]))
+  if (!is.finite(out)) as.integer(fallback) else out
+}
+
+.cm_aulas_assign_operational_codes <- function(df) {
+  df <- .cm_aulas_as_df(df, "selection_df")
+  if (!nrow(df)) return(df)
+  if (!"wave" %in% names(df)) df$wave <- ""
+  if (!"classroom_id" %in% names(df)) df$classroom_id <- ""
+  if (!"selection_slot_id" %in% names(df)) df$selection_slot_id <- ""
+  if (!"replacement_order" %in% names(df)) {
+    df$replacement_order <- ifelse(df$wave == "M1", 0L, vapply(df$wave, .cm_aulas_wave_number, integer(1)) - 1L)
+  }
+  if (!"replacement_for" %in% names(df)) df$replacement_for <- ""
+  roles <- .cm_aulas_role_values(df)
+  titular_idx <- which(roles == "titular" | as.character(df$wave) == "M1")
+  if (length(titular_idx)) {
+    missing_slot <- !nzchar(as.character(df$selection_slot_id[titular_idx]))
+    if (any(missing_slot)) {
+      df$selection_slot_id[titular_idx[missing_slot]] <- .cm_aulas_selection_slot_ids(length(titular_idx))[missing_slot]
+    }
+  }
+  slot_lookup <- stats::setNames(integer(0), character(0))
+  titular_lookup <- stats::setNames(character(0), character(0))
+  if (length(titular_idx)) {
+    slot_ids <- as.character(df$selection_slot_id[titular_idx])
+    slot_numbers <- vapply(seq_along(slot_ids), function(i) .cm_aulas_slot_number(slot_ids[[i]], i), integer(1))
+    slot_lookup <- stats::setNames(slot_numbers, slot_ids)
+    titular_lookup <- stats::setNames(slot_ids, as.character(df$classroom_id[titular_idx]))
+  }
+  extra_idx <- which(roles == "extra_reserve_pool")
+  chain_idx <- which(roles == "chain_reserve" & !seq_len(nrow(df)) %in% titular_idx)
+  if (length(chain_idx)) {
+    missing_slot <- !nzchar(as.character(df$selection_slot_id[chain_idx]))
+    replacement_for <- as.character(df$replacement_for[chain_idx])
+    from_titular <- unname(titular_lookup[replacement_for])
+    fillable <- missing_slot & !is.na(from_titular) & nzchar(from_titular)
+    if (any(fillable)) df$selection_slot_id[chain_idx[fillable]] <- from_titular[fillable]
+  }
+  operational_code <- rep("", nrow(df))
+  titular_operational_code <- rep("", nrow(df))
+  replacement_chain_code <- rep("", nrow(df))
+  operational_sequence <- rep(NA_integer_, nrow(df))
+  if (length(titular_idx)) {
+    for (pos in seq_along(titular_idx)) {
+      i <- titular_idx[[pos]]
+      slot <- as.character(df$selection_slot_id[[i]])
+      slot_num <- .cm_aulas_slot_number(slot, pos)
+      code <- paste("AULA", slot_num)
+      operational_sequence[[i]] <- slot_num
+      operational_code[[i]] <- code
+      titular_operational_code[[i]] <- code
+    }
+  }
+  if (length(chain_idx)) {
+    for (i in chain_idx) {
+      slot <- as.character(df$selection_slot_id[[i]])
+      slot_num <- .cm_aulas_slot_number(slot, NA_integer_)
+      if (!is.finite(slot_num)) {
+        replacement_for <- .cm_aulas_scalar(df$replacement_for[[i]], "")
+        mapped_slot <- if (nzchar(replacement_for) && replacement_for %in% names(titular_lookup)) titular_lookup[[replacement_for]] else ""
+        slot_num <- .cm_aulas_slot_number(mapped_slot, NA_integer_)
+      }
+      order <- suppressWarnings(as.integer(df$replacement_order[[i]]))
+      if (!is.finite(order) || order <= 0L) order <- max(1L, .cm_aulas_wave_number(df$wave[[i]]) - 1L)
+      if (is.finite(slot_num)) {
+        code <- sprintf("R%s.%s", slot_num, order)
+        operational_sequence[[i]] <- slot_num
+        titular_operational_code[[i]] <- paste("AULA", slot_num)
+        replacement_chain_code[[i]] <- code
+        operational_code[[i]] <- code
+      }
+    }
+  }
+  if (length(extra_idx)) {
+    for (pos in seq_along(extra_idx)) {
+      i <- extra_idx[[pos]]
+      operational_sequence[[i]] <- pos
+      operational_code[[i]] <- paste("EXTRA", pos)
+    }
+  }
+  df$operational_code <- operational_code
+  df$titular_operational_code <- titular_operational_code
+  df$replacement_chain_code <- replacement_chain_code
+  df$operational_sequence <- operational_sequence
+  df
+}
+
+.cm_aulas_reconstruct_chains_from_order <- function(df) {
+  df <- .cm_aulas_as_df(df, "selection_df")
+  if (!nrow(df)) return(df)
+  if (!"wave" %in% names(df)) df$wave <- ""
+  if (!"classroom_id" %in% names(df)) df$classroom_id <- ""
+  if (!"sample_role" %in% names(df)) df$sample_role <- ""
+  label <- if ("historical_sample_label" %in% names(df)) .cm_aulas_text_key(df$historical_sample_label) else rep("", nrow(df))
+  no_seleccionado <- grepl("no_seleccionado|no seleccionado", label)
+  missing_role <- !nzchar(as.character(df$sample_role))
+  df$sample_role[missing_role] <- ifelse(
+    no_seleccionado[missing_role],
+    "extra_reserve_pool",
+    ifelse(as.character(df$wave[missing_role]) == "M1", "titular", "chain_reserve")
+  )
+  if (!"selection_slot_id" %in% names(df)) df$selection_slot_id <- ""
+  if (!"replacement_order" %in% names(df)) df$replacement_order <- NA_integer_
+  if (!"replacement_for" %in% names(df)) df$replacement_for <- ""
+  order_values <- if ("historical_order" %in% names(df)) suppressWarnings(as.numeric(df$historical_order)) else seq_len(nrow(df))
+  order_values[!is.finite(order_values)] <- seq_len(nrow(df))[!is.finite(order_values)]
+  ord <- order(order_values, seq_len(nrow(df)))
+  current_slot <- ""
+  current_titular <- ""
+  slot_count <- 0L
+  roles <- .cm_aulas_role_values(df)
+  for (idx in ord) {
+    role <- roles[[idx]]
+    if (role == "titular" || as.character(df$wave[[idx]]) == "M1") {
+      slot_count <- slot_count + 1L
+      current_slot <- tail(.cm_aulas_selection_slot_ids(slot_count), 1)
+      current_titular <- .cm_aulas_scalar(df$classroom_id[[idx]], "")
+      df$selection_slot_id[[idx]] <- current_slot
+      df$replacement_order[[idx]] <- 0L
+      df$replacement_for[[idx]] <- ""
+    } else if (role == "chain_reserve") {
+      if (nzchar(current_slot)) df$selection_slot_id[[idx]] <- current_slot
+      if (nzchar(current_titular)) df$replacement_for[[idx]] <- current_titular
+      df$replacement_order[[idx]] <- max(1L, .cm_aulas_wave_number(df$wave[[idx]]) - 1L)
+    } else if (role == "extra_reserve_pool") {
+      df$selection_slot_id[[idx]] <- ""
+      df$replacement_for[[idx]] <- ""
+      df$replacement_order[[idx]] <- NA_integer_
+    }
+  }
+  df
+}
+
+.cm_aulas_bind_rows_fill <- function(rows) {
+  rows <- rows[vapply(rows, function(x) is.data.frame(x) && nrow(x), logical(1))]
+  if (!length(rows)) return(data.frame(stringsAsFactors = FALSE))
+  all_names <- unique(unlist(lapply(rows, names), use.names = FALSE))
+  rows <- lapply(rows, function(df) {
+    missing <- setdiff(all_names, names(df))
+    for (nm in missing) df[[nm]] <- NA
+    df[, all_names, drop = FALSE]
+  })
+  do.call(rbind, rows)
+}
+
+.cm_aulas_match_level <- function(titular, reserve) {
+  same <- function(col) {
+    col %in% names(titular) && col %in% names(reserve) &&
+      identical(.cm_aulas_scalar(titular[[col]][[1]], ""), .cm_aulas_scalar(reserve[[col]][[1]], ""))
+  }
+  if (same("stratum") || (same("faculty") && same("program") && same("level"))) return("misma_celda")
+  if (same("faculty") && (same("program") || same("level") || same("size_group"))) return("celda_equivalente")
+  if (same("faculty")) return("misma_facultad")
+  "celda_cercana"
+}
+
+.cm_aulas_active_students_without_titular <- function(titulars, titular_idx) {
+  if (!nrow(titulars)) return(character(0))
+  keep <- setdiff(seq_len(nrow(titulars)), titular_idx)
+  unique(unlist(lapply(keep, function(i) .cm_aulas_student_ids(titulars$unique_student_ids[[i]])), use.names = FALSE))
+}
+
+.cm_aulas_pick_chain_reserve <- function(titular, candidates, titulars, titular_idx, selector, strict_cell = FALSE) {
+  if (!nrow(candidates)) return(list(index = NA_integer_, score = NULL, match_level = "sin_reserva"))
+  same_stratum <- if ("stratum" %in% names(candidates) && "stratum" %in% names(titular)) {
+    .cm_aulas_values(candidates, "stratum", "") == .cm_aulas_scalar(titular$stratum[[1]], "")
+  } else {
+    rep(FALSE, nrow(candidates))
+  }
+  same_faculty <- if ("faculty" %in% names(candidates) && "faculty" %in% names(titular)) {
+    .cm_aulas_values(candidates, "faculty", "") == .cm_aulas_scalar(titular$faculty[[1]], "")
+  } else {
+    rep(FALSE, nrow(candidates))
+  }
+  pool_idx <- if (any(same_stratum)) {
+    which(same_stratum)
+  } else if (!isTRUE(strict_cell) && any(same_faculty)) {
+    which(same_faculty)
+  } else if (!isTRUE(strict_cell)) {
+    seq_len(nrow(candidates))
+  } else {
+    integer(0)
+  }
+  if (!length(pool_idx)) return(list(index = NA_integer_, score = NULL, match_level = "sin_reserva"))
+  active_ids <- .cm_aulas_active_students_without_titular(titulars, titular_idx)
+  scores <- lapply(pool_idx, function(i) .cm_aulas_replacement_score(titular, candidates[i, , drop = FALSE], active_ids, selector))
+  values <- vapply(scores, function(x) x$score, numeric(1))
+  best_pos <- which.max(values)
+  best_idx <- pool_idx[[best_pos]]
+  list(
+    index = best_idx,
+    score = scores[[best_pos]],
+    match_level = .cm_aulas_match_level(titular, candidates[best_idx, , drop = FALSE])
+  )
+}
+
+.cm_aulas_build_replacement_chains <- function(aula_frame, titulars, selector, seed = NULL) {
+  if (!nrow(titulars)) return(aula_frame[0, , drop = FALSE])
+  if (!is.null(seed)) set.seed(seed)
+  max_depth <- min(
+    max(0L, .cm_aulas_int(selector$replacement_waves, 0L)),
+    max(0L, .cm_aulas_int(selector$max_replacements_per_titular, selector$replacement_waves %||% 0L))
+  )
+  if (max_depth <= 0L) return(aula_frame[0, , drop = FALSE])
+  candidates <- aula_frame[!aula_frame$classroom_id %in% titulars$classroom_id, , drop = FALSE]
+  if (!nrow(candidates)) return(aula_frame[0, , drop = FALSE])
+  candidates$.candidate_random <- stats::runif(nrow(candidates))
+  candidates <- candidates[order(candidates$stratum, -candidates$eligible_n, candidates$.candidate_random), , drop = FALSE]
+  candidates$.candidate_random <- NULL
+  rows <- list()
+  used_ids <- character(0)
+  for (depth in seq_len(max_depth)) {
+    for (i in seq_len(nrow(titulars))) {
+      available <- candidates[!candidates$classroom_id %in% used_ids, , drop = FALSE]
+      if (!nrow(available)) break
+      titular <- titulars[i, , drop = FALSE]
+      strict_cell <- identical(.cm_aulas_scalar(selector$replacement_depth_strategy, ""), "max_complete_chains_by_cell") &&
+        depth > max(1L, .cm_aulas_int(selector$min_replacements_per_titular, 1L))
+      pick <- .cm_aulas_pick_chain_reserve(titular, available, titulars, i, selector, strict_cell = strict_cell)
+      if (!is.finite(pick$index)) next
+      reserve <- available[pick$index, , drop = FALSE]
+      reserve$wave <- paste0("M", depth + 1L)
+      reserve$sample_role <- "chain_reserve"
+      reserve$replacement_order <- depth
+      reserve$replacement_for <- titular$classroom_id[[1]]
+      reserve$selection_slot_id <- titular$selection_slot_id[[1]]
+      reserve$chain_score <- pick$score$score
+      reserve$equivalence_level <- pick$match_level
+      reserve$replacement_impact_score <- pick$score$score
+      reserve$chain_depth <- max_depth
+      reserve$activation_weight_status <- "reserve_conditional"
+      reserve$analysis_weight_warning <- "Reserva condicional: usar peso analitico final solo si se activa en campo y se ajusta no respuesta."
+      reserve$active_overlap <- pick$score$overlap
+      reserve$titular_overlap <- pick$score$titular_overlap
+      reserve$eligible_delta_vs_titular <- pick$score$eligible_delta
+      rows[[length(rows) + 1L]] <- reserve
+      used_ids <- c(used_ids, reserve$classroom_id[[1]])
+    }
+  }
+  if (!length(rows)) return(aula_frame[0, , drop = FALSE])
+  out <- .cm_aulas_bind_rows_fill(rows)
+  rownames(out) <- NULL
+  out
+}
+
+.cm_aulas_extra_reserve_pool <- function(aula_frame, titulars, reserves, selector) {
+  policy <- .cm_aulas_text_key(selector$extra_pool_policy %||% "leftover_after_chains")
+  if (policy %in% c("none", "sin_reserva_extra", "no")) return(aula_frame[0, , drop = FALSE])
+  used <- unique(c(titulars$classroom_id, reserves$classroom_id))
+  extra <- aula_frame[!aula_frame$classroom_id %in% used, , drop = FALSE]
+  if (!nrow(extra)) return(extra)
+  extra$wave <- "Extra"
+  extra$sample_role <- "extra_reserve_pool"
+  extra$replacement_order <- NA_integer_
+  extra$replacement_for <- ""
+  extra$selection_slot_id <- ""
+  extra$chain_score <- NA_real_
+  extra$equivalence_level <- "reserva_extra"
+  extra$replacement_impact_score <- NA_real_
+  extra$chain_depth <- NA_integer_
+  extra$activation_weight_status <- "not_selected_extra_pool"
+  extra$analysis_weight_warning <- "Reserva extra: no forma parte de M1 ni de una cadena priorizada; no usar peso analitico salvo decision metodologica documentada."
+  extra$active_overlap <- NA_integer_
+  extra$titular_overlap <- NA_integer_
+  extra$eligible_delta_vs_titular <- NA_real_
+  extra
+}
+
+.cm_aulas_select_waves <- function(aula_frame, selector, engine, waves, seed = NULL, objective = NULL) {
+  waves <- .cm_aulas_chr_vec(waves)
+  include_reserves <- length(waves) > 1L || .cm_aulas_int(selector$replacement_waves, 0L) > 0L
+  titulars <- .cm_aulas_select_once_dispatch(aula_frame, selector, engine, seed = if (is.null(seed)) NULL else seed + 1009L, objective = objective)
+  warnings <- attr(titulars, "warnings") %||% character(0)
+  used <- attr(titulars, "engine_used") %||% engine
+  if (!nrow(titulars)) {
+    out <- aula_frame[0, , drop = FALSE]
+    attr(out, "engine_used") <- if (length(used)) paste(unique(used), collapse = "|") else engine
+    attr(out, "warnings") <- unique(warnings)
+    return(out)
+  }
+  titulars$wave <- "M1"
+  titulars$sample_role <- "titular"
+  titulars$replacement_order <- 0L
+  titulars$replacement_for <- ""
+  titulars$selection_slot_id <- .cm_aulas_selection_slot_ids(nrow(titulars))
+  titulars$chain_score <- titulars$selector_score %||% NA_real_
+  titulars$equivalence_level <- "titular"
+  titulars$replacement_impact_score <- NA_real_
+  titulars$chain_depth <- 0L
+  titulars$activation_weight_status <- "titular_ready"
+  titulars$analysis_weight_warning <- ""
+  titulars$active_overlap <- 0L
+  titulars$titular_overlap <- 0L
+  titulars$eligible_delta_vs_titular <- 0
+
+  reserves <- if (isTRUE(include_reserves)) {
+    .cm_aulas_build_replacement_chains(aula_frame, titulars, selector, seed = if (is.null(seed)) NULL else seed + 2003L)
+  } else {
+    aula_frame[0, , drop = FALSE]
+  }
+  if (nrow(reserves) && "selection_slot_id" %in% names(reserves)) {
+    depth_lookup <- table(reserves$selection_slot_id)
+    titulars$chain_depth <- as.integer(depth_lookup[titulars$selection_slot_id])
+    titulars$chain_depth[!is.finite(titulars$chain_depth)] <- 0L
+  }
+  extra <- if (isTRUE(include_reserves)) .cm_aulas_extra_reserve_pool(aula_frame, titulars, reserves, selector) else aula_frame[0, , drop = FALSE]
+  rows <- list(titulars)
+  if (nrow(reserves)) rows[[length(rows) + 1L]] <- reserves
+  if (nrow(extra)) rows[[length(rows) + 1L]] <- extra
+  out <- .cm_aulas_bind_rows_fill(rows)
   rownames(out) <- NULL
   attr(out, "engine_used") <- if (length(used)) paste(unique(used), collapse = "|") else engine
   attr(out, "warnings") <- unique(warnings)
@@ -1648,6 +1985,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   counts <- stats::setNames(rep(0L, nrow(aula_frame)), aula_frame$classroom_id)
   for (i in seq_len(runs)) {
     sim <- .cm_aulas_select_waves(aula_frame, sim_selector, engine, waves, seed = selector$seed + i * 7919L, objective = objective)
+    sim <- sim[.cm_aulas_role_values(sim) != "extra_reserve_pool", , drop = FALSE]
     counts[unique(sim$classroom_id)] <- counts[unique(sim$classroom_id)] + 1L
   }
   pi <- counts / runs
@@ -1922,6 +2260,8 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   aula_frame <- .cm_aulas_prepare_frame(frame_result, list(selector = selector %||% frame_result$config$selector %||% list()))
   selection_df <- .cm_aulas_as_df(selection_df, "selection_df")
   if (!"wave" %in% names(selection_df)) selection_df$wave <- "M1"
+  roles <- .cm_aulas_role_values(selection_df)
+  selection_df <- selection_df[roles != "extra_reserve_pool", , drop = FALSE]
   if (!nrow(selection_df)) stop("Se requiere una seleccion para calcular representatividad.", call. = FALSE)
 
   profile_rows <- list()
@@ -2186,7 +2526,8 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   if (!nrow(selection_df)) return(data.frame(stringsAsFactors = FALSE))
   titular <- stats::aggregate(classroom_id ~ stratum, data = selection_df[selection_df$wave == "M1", , drop = FALSE], FUN = length)
   names(titular)[names(titular) == "classroom_id"] <- "titulares"
-  reserves <- selection_df[selection_df$wave != "M1", , drop = FALSE]
+  roles <- .cm_aulas_role_values(selection_df)
+  reserves <- selection_df[selection_df$wave != "M1" & roles != "extra_reserve_pool", , drop = FALSE]
   if (nrow(reserves)) {
     reserve <- stats::aggregate(classroom_id ~ stratum, data = reserves, FUN = length)
     names(reserve)[names(reserve) == "classroom_id"] <- "reservas"
@@ -2197,6 +2538,57 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   out$reservas[!is.finite(out$reservas)] <- 0
   out$depth_ratio <- round(out$reservas / pmax(1, out$titulares), 4)
   out
+}
+
+.cm_aulas_replacement_chains_table <- function(selection_df) {
+  selection_df <- .cm_aulas_as_df(selection_df, "selection_df")
+  if (!nrow(selection_df)) return(data.frame(stringsAsFactors = FALSE))
+  cell <- function(df, nm, row = 1L, default = "") {
+    for (candidate in .cm_aulas_chr_vec(nm)) {
+      if (candidate %in% names(df) && length(df[[candidate]]) >= row) return(df[[candidate]][[row]])
+    }
+    default
+  }
+  roles <- .cm_aulas_role_values(selection_df)
+  if (!"selection_slot_id" %in% names(selection_df)) selection_df$selection_slot_id <- ""
+  titulars <- selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE]
+  reserves <- selection_df[roles == "chain_reserve", , drop = FALSE]
+  if (!nrow(titulars)) return(data.frame(stringsAsFactors = FALSE))
+  rows <- list()
+  for (i in seq_len(nrow(titulars))) {
+    titular <- titulars[i, , drop = FALSE]
+    slot <- .cm_aulas_scalar(titular$selection_slot_id[[1]], "")
+    linked <- reserves[reserves$selection_slot_id == slot | reserves$replacement_for == titular$classroom_id[[1]], , drop = FALSE]
+    if (nrow(linked)) {
+      ord <- suppressWarnings(as.numeric(linked$replacement_order))
+      ord[!is.finite(ord)] <- vapply(linked$wave[!is.finite(ord)], .cm_aulas_wave_number, integer(1)) - 1L
+      linked <- linked[order(ord), , drop = FALSE]
+    }
+    rows[[length(rows) + 1L]] <- data.frame(
+      selection_slot_id = slot,
+      titular_operational_code = .cm_aulas_scalar(cell(titular, "operational_code"), ""),
+      titular_classroom_id = cell(titular, "classroom_id"),
+      titular_label = .cm_aulas_scalar(cell(titular, "course_name") %||% cell(titular, "label") %||% cell(titular, "classroom_id"), ""),
+      faculty = .cm_aulas_scalar(cell(titular, "faculty") %||% cell(titular, "stratum"), ""),
+      stratum = .cm_aulas_scalar(cell(titular, "stratum"), ""),
+      replacement_count = as.integer(nrow(linked)),
+      chain_depth = as.integer(nrow(linked)),
+      first_replacement_code = if (nrow(linked)) .cm_aulas_scalar(cell(linked, c("operational_code", "replacement_chain_code")), "") else "",
+      first_replacement_id = if (nrow(linked)) cell(linked, "classroom_id") else "",
+      first_replacement_match = if (nrow(linked)) .cm_aulas_scalar(cell(linked, "equivalence_level"), "") else "",
+      warning = if (nrow(linked)) "" else "Sin reemplazo encadenado disponible.",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+  do.call(rbind, rows)
+}
+
+.cm_aulas_extra_pool_table <- function(selection_df) {
+  selection_df <- .cm_aulas_as_df(selection_df, "selection_df")
+  if (!nrow(selection_df)) return(data.frame(stringsAsFactors = FALSE))
+  roles <- .cm_aulas_role_values(selection_df)
+  selection_df[roles == "extra_reserve_pool", , drop = FALSE]
 }
 
 .cm_aulas_risk_flags <- function(aula_frame, selection_df, selector, engine, engine_used, warnings, balance, concentration) {
@@ -2479,21 +2871,32 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
   merge(public, lookup, by = "classroom_id", all.x = TRUE, sort = FALSE, suffixes = c("", "_frame"))
 }
 
-.cm_aulas_replacement_score <- function(titular, reserve) {
+.cm_aulas_replacement_score <- function(titular, reserve, active_student_ids = character(0), selector = list()) {
   ids_t <- .cm_aulas_student_ids(titular$unique_student_ids[[1]] %||% titular$unique_student_ids_frame[[1]] %||% "")
   ids_r <- .cm_aulas_student_ids(reserve$unique_student_ids[[1]] %||% reserve$unique_student_ids_frame[[1]] %||% "")
-  overlap <- length(intersect(ids_t, ids_r))
+  overlap <- length(intersect(ids_r, .cm_aulas_chr_vec(active_student_ids)))
+  titular_overlap <- length(intersect(ids_t, ids_r))
   eligible_t <- .cm_aulas_num(titular$eligible_n[[1]], 0)
   eligible_r <- .cm_aulas_num(reserve$eligible_n[[1]], 0)
+  weights <- selector$replacement_score_weights %||% list()
+  w <- function(name, default) .cm_aulas_num(weights[[name]], default)
   score <- 0
-  if (identical(.cm_aulas_scalar(titular$faculty[[1]], ""), .cm_aulas_scalar(reserve$faculty[[1]], ""))) score <- score + 35
-  if (identical(.cm_aulas_scalar(titular$program[[1]], ""), .cm_aulas_scalar(reserve$program[[1]], ""))) score <- score + 25
-  if (identical(.cm_aulas_scalar(titular$level[[1]], ""), .cm_aulas_scalar(reserve$level[[1]], ""))) score <- score + 12
-  if (identical(.cm_aulas_scalar(titular$size_group[[1]], ""), .cm_aulas_scalar(reserve$size_group[[1]], ""))) score <- score + 8
-  if (identical(.cm_aulas_scalar(titular$schedule[[1]], ""), .cm_aulas_scalar(reserve$schedule[[1]], ""))) score <- score + 6
-  score <- score + max(0, 12 - abs(eligible_t - eligible_r) / max(1, eligible_t) * 12)
-  score <- score - min(20, overlap * 2)
-  list(score = round(score, 2), overlap = overlap, eligible_delta = eligible_r - eligible_t)
+  if (identical(.cm_aulas_scalar(titular$faculty[[1]], ""), .cm_aulas_scalar(reserve$faculty[[1]], ""))) score <- score + w("faculty", 35)
+  if (identical(.cm_aulas_scalar(titular$program[[1]], ""), .cm_aulas_scalar(reserve$program[[1]], ""))) score <- score + w("program", 22)
+  if (identical(.cm_aulas_scalar(titular$level[[1]], ""), .cm_aulas_scalar(reserve$level[[1]], ""))) score <- score + w("level", 12)
+  if (identical(.cm_aulas_scalar(titular$size_group[[1]], ""), .cm_aulas_scalar(reserve$size_group[[1]], ""))) score <- score + w("size_group", 8)
+  if (identical(.cm_aulas_scalar(titular$modality[[1]], ""), .cm_aulas_scalar(reserve$modality[[1]], ""))) score <- score + w("modality", 7)
+  if (identical(.cm_aulas_scalar(titular$sex_top_1[[1]], ""), .cm_aulas_scalar(reserve$sex_top_1[[1]], ""))) score <- score + w("sex_top_1", 6)
+  if (identical(.cm_aulas_scalar(titular$schedule[[1]], ""), .cm_aulas_scalar(reserve$schedule[[1]], ""))) score <- score + w("schedule", 4)
+  eligible_component <- w("eligible_n", 10)
+  score <- score + max(0, eligible_component - abs(eligible_t - eligible_r) / max(1, eligible_t) * eligible_component)
+  score <- score + w("active_overlap", -18) * min(1, overlap / max(1, length(ids_r)))
+  list(
+    score = round(score, 2),
+    overlap = overlap,
+    titular_overlap = titular_overlap,
+    eligible_delta = eligible_r - eligible_t
+  )
 }
 
 calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result, config = list()) {
@@ -2505,17 +2908,29 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
   aula_frame <- .cm_aulas_prepare_frame(frame_result, cfg)
   selection_df <- .cm_aulas_selection_private(selection_result, aula_frame)
   if (!nrow(selection_df)) stop("La seleccion no contiene aulas.", call. = FALSE)
-  titulars <- selection_df[selection_df$wave == "M1", , drop = FALSE]
-  reserves <- selection_df[selection_df$wave != "M1", , drop = FALSE]
+  if (!"selection_slot_id" %in% names(selection_df)) selection_df$selection_slot_id <- ""
+  if (!"replacement_order" %in% names(selection_df)) selection_df$replacement_order <- vapply(selection_df$wave, .cm_aulas_wave_number, integer(1)) - 1L
+  selection_df <- .cm_aulas_assign_operational_codes(selection_df)
+  roles <- .cm_aulas_role_values(selection_df)
+  titulars <- selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE]
+  reserves <- selection_df[roles == "chain_reserve", , drop = FALSE]
   before_obj <- calc_muestra_aulas_representativity_objective(frame_result, selection_df, cfg$selector, objective)
   suggestions <- list()
   impact <- list()
   for (i in seq_len(nrow(titulars))) {
     titular <- titulars[i, , drop = FALSE]
     candidates <- reserves
+    if ("selection_slot_id" %in% names(candidates) && "selection_slot_id" %in% names(titular)) {
+      tied <- candidates[candidates$selection_slot_id == titular$selection_slot_id[[1]], , drop = FALSE]
+      if (nrow(tied)) candidates <- tied
+    } else if ("replacement_for" %in% names(candidates)) {
+      tied <- candidates[candidates$replacement_for == titular$classroom_id[[1]], , drop = FALSE]
+      if (nrow(tied)) candidates <- tied
+    }
     if (!nrow(candidates)) next
     scores <- lapply(seq_len(nrow(candidates)), function(j) {
-      local_score <- .cm_aulas_replacement_score(titular, candidates[j, , drop = FALSE])
+      active_ids <- .cm_aulas_active_students_without_titular(titulars, i)
+      local_score <- .cm_aulas_replacement_score(titular, candidates[j, , drop = FALSE], active_ids, cfg$selector)
       after_selection <- selection_df
       old_idx <- which(after_selection$classroom_id == titular$classroom_id[[1]] & after_selection$wave == "M1")[1]
       if (is.finite(old_idx)) {
@@ -2536,8 +2951,10 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
       }
       local_score
     })
+    replacement_order <- if ("replacement_order" %in% names(candidates)) suppressWarnings(as.numeric(candidates$replacement_order)) else rep(NA_real_, nrow(candidates))
+    replacement_order[!is.finite(replacement_order)] <- vapply(candidates$wave[!is.finite(replacement_order)], .cm_aulas_wave_number, integer(1)) - 1L
     score_values <- vapply(scores, function(x) if (is.finite(x$after_score)) x$after_score else x$score, numeric(1))
-    ord <- order(score_values, decreasing = TRUE)
+    ord <- order(replacement_order, -score_values, na.last = TRUE)
     ord <- ord[seq_len(min(3L, length(ord)))]
     for (rank in seq_along(ord)) {
       reserve <- candidates[ord[[rank]], , drop = FALSE]
@@ -2551,12 +2968,17 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
         "celda_cercana"
       }
       suggestions[[length(suggestions) + 1L]] <- data.frame(
+        selection_slot_id = titular$selection_slot_id[[1]] %||% "",
+        titular_operational_code = titular$operational_code[[1]] %||% "",
         titular_classroom_id = titular$classroom_id[[1]],
         titular_label = titular$course_name[[1]] %||% titular$label[[1]] %||% "",
+        reserve_operational_code = reserve$operational_code[[1]] %||% "",
+        replacement_chain_code = reserve$replacement_chain_code[[1]] %||% "",
         reserve_classroom_id = reserve$classroom_id[[1]],
         reserve_label = reserve$course_name[[1]] %||% reserve$label[[1]] %||% "",
         rank = rank,
         wave = reserve$wave[[1]],
+        replacement_order = reserve$replacement_order[[1]] %||% rank,
         match_level = match_level,
         score = score$score,
         before_score = score$before_score,
@@ -2573,7 +2995,10 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
     best <- candidates[ord[[1]], , drop = FALSE]
     best_score <- scores[[ord[[1]]]]
     impact[[length(impact) + 1L]] <- data.frame(
+      selection_slot_id = titular$selection_slot_id[[1]] %||% "",
+      titular_operational_code = titular$operational_code[[1]] %||% "",
       titular_classroom_id = titular$classroom_id[[1]],
+      replacement_operational_code = best$operational_code[[1]] %||% "",
       suggested_replacement_id = best$classroom_id[[1]],
       before_faculty = titular$faculty[[1]] %||% "",
       after_faculty = best$faculty[[1]] %||% "",
@@ -2730,7 +3155,31 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   selection_df$selection_run_id <- selection_run_id
   selection_df$orden <- ave(seq_len(nrow(selection_df)), selection_df$wave, FUN = seq_along)
   selection_df$estado <- "planificada"
-  selection_df$replacement_for <- ""
+  if (!"sample_role" %in% names(selection_df)) {
+    selection_df$sample_role <- ifelse(selection_df$wave == "M1", "titular", "chain_reserve")
+  }
+  selection_df$sample_role <- .cm_aulas_role_values(selection_df)
+  if (!"selection_slot_id" %in% names(selection_df)) selection_df$selection_slot_id <- ""
+  if (!"replacement_order" %in% names(selection_df)) selection_df$replacement_order <- ifelse(selection_df$wave == "M1", 0L, vapply(selection_df$wave, .cm_aulas_wave_number, integer(1)) - 1L)
+  if (!"replacement_for" %in% names(selection_df)) selection_df$replacement_for <- ""
+  if (!"chain_score" %in% names(selection_df)) selection_df$chain_score <- NA_real_
+  if (!"equivalence_level" %in% names(selection_df)) selection_df$equivalence_level <- ifelse(selection_df$wave == "M1", "titular", "")
+  if (!"replacement_impact_score" %in% names(selection_df)) selection_df$replacement_impact_score <- NA_real_
+  if (!"chain_depth" %in% names(selection_df)) selection_df$chain_depth <- NA_integer_
+  if (!"activation_weight_status" %in% names(selection_df)) selection_df$activation_weight_status <- ifelse(selection_df$wave == "M1", "titular_ready", "reserve_conditional")
+  if (!"analysis_weight_warning" %in% names(selection_df)) selection_df$analysis_weight_warning <- ""
+  extra_idx <- selection_df$sample_role == "extra_reserve_pool"
+  if (any(extra_idx)) {
+    selection_df$probability_source[extra_idx] <- "extra_pool_not_selected"
+    selection_df$pi_final[extra_idx] <- 0
+    selection_df$weight_classroom[extra_idx] <- NA_real_
+    selection_df$pi_student[extra_idx] <- NA_real_
+    selection_df$weight_student[extra_idx] <- NA_real_
+    selection_df$peso_base[extra_idx] <- NA_real_
+    selection_df$activation_weight_status[extra_idx] <- "not_selected_extra_pool"
+    selection_df$analysis_weight_warning[extra_idx] <- "Reserva extra no seleccionada; solo usar si se documenta una activacion excepcional."
+    selection_df$weight_warning[extra_idx] <- selection_df$analysis_weight_warning[extra_idx]
+  }
   selection_df$student_ids_hash <- vapply(selection_df$unique_student_ids, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
   selection_df$method_source <- .cm_aulas_source_bundle(engine)$method_source
   selection_df$official_reference <- .cm_aulas_source_bundle(engine)$official_reference
@@ -2760,9 +3209,13 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   representativity <- calc_muestra_aulas_representativity_objective(frame_result, selection_df, selector, objective)
   selection_df$representativity_score <- representativity$representativity_score
   selection_df$representativity_distance <- representativity$weighted_distance
+  selection_df <- .cm_aulas_assign_operational_codes(selection_df)
 
   public_cols <- c(
-    "selection_run_id", "wave", "orden", "classroom_id", "label", "course_id",
+    "selection_run_id", "operational_code", "titular_operational_code",
+    "replacement_chain_code", "operational_sequence",
+    "selection_slot_id", "sample_role", "wave", "replacement_order",
+    "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
     "teacher_email", "faculty", "program", "level", "eligible_n", "enrolled_total",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
@@ -2770,7 +3223,10 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
     "nonresponse_adjustment_flag", "poststratification_flag", "weight_warning",
     "peso_base", "selector_score", "unique_added", "duplicate_overlap",
-    "representativity_score", "representativity_distance",
+    "active_overlap", "titular_overlap", "eligible_delta_vs_titular",
+    "representativity_score", "representativity_distance", "chain_score",
+    "equivalence_level", "replacement_impact_score", "chain_depth",
+    "activation_weight_status", "analysis_weight_warning",
     "student_ids_hash", "estado", "replacement_for", "method_source",
     "official_reference", "academic_reference", "implementation_reference",
     "weight_source", "nonresponse_policy", "replacement_policy", "methodological_warning"
@@ -2783,6 +3239,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
       "selection_run_id", "frame_hash", "seed", "selector_engine_requested",
       "selector_engine_used", "method_family", "probability_source", "mc_runs",
       "n_aulas_m1", "replacement_waves", "aulas_total_plan",
+      "reemplazos_encadenados", "reserva_extra",
       "unique_students_covered", "duplicate_overlap_total",
       "representativity_score", "representativity_distance"
     ),
@@ -2798,6 +3255,8 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
       as.character(sum(selection_public$wave == "M1")),
       as.character(selector$replacement_waves),
       as.character(nrow(selection_public)),
+      as.character(sum(selection_public$sample_role == "chain_reserve", na.rm = TRUE)),
+      as.character(sum(selection_public$sample_role == "extra_reserve_pool", na.rm = TRUE)),
       as.character(sum(selection_public$unique_added, na.rm = TRUE)),
       as.character(sum(selection_public$duplicate_overlap, na.rm = TRUE)),
       as.character(representativity$representativity_score),
@@ -2807,10 +3266,13 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
     check.names = FALSE
   )
   probabilities <- selection_public[, intersect(c(
-    "selection_run_id", "wave", "classroom_id", "stratum", "eligible_n",
+    "selection_run_id", "operational_code", "titular_operational_code",
+    "replacement_chain_code", "operational_sequence",
+    "selection_slot_id", "sample_role", "wave", "replacement_order",
+    "classroom_id", "replacement_for", "stratum", "eligible_n",
     "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student",
-    "weight_student", "weight_warning"
+    "weight_student", "activation_weight_status", "weight_warning", "analysis_weight_warning"
   ), names(selection_public)), drop = FALSE]
   balance <- .cm_aulas_balance_diagnostic(aula_frame, selection_df, selector$balance_vars)
   waves_diag <- .cm_aulas_wave_diagnostic(selection_df)
@@ -2854,6 +3316,8 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
       coverage_overlap = coverage_overlap,
       weight_stability = weight_stability,
       reserve_depth = representativity$reserve_depth,
+      replacement_chains = .cm_aulas_replacement_chains_table(selection_public),
+      extra_reserve_pool = .cm_aulas_extra_pool_table(selection_public),
       waves = waves_diag,
       nonresponse = nonresponse,
       systematic_comparison = systematic_comparison
@@ -3083,14 +3547,21 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
 
 .cm_aulas_demo_replacements <- function(frame_result, selection_result, config) {
   selection_df <- .cm_aulas_as_df(selection_result$selection, "selection")
-  titulars <- selection_df[selection_df$wave == "M1", , drop = FALSE]
-  reserves <- selection_df[selection_df$wave != "M1", , drop = FALSE]
+  roles <- .cm_aulas_role_values(selection_df)
+  titulars <- selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE]
+  reserves <- selection_df[roles == "chain_reserve", , drop = FALSE]
   base_score <- .cm_aulas_num(selection_result$representativity_score, 0)
   suggestions <- list()
   impacts <- list()
   for (i in seq_len(nrow(titulars))) {
     titular <- titulars[i, , drop = FALSE]
-    candidates <- reserves[reserves$faculty == titular$faculty[[1]], , drop = FALSE]
+    candidates <- reserves[reserves$selection_slot_id == titular$selection_slot_id[[1]] | reserves$replacement_for == titular$classroom_id[[1]], , drop = FALSE]
+    if (nrow(candidates)) {
+      ord_chain <- suppressWarnings(as.numeric(candidates$replacement_order))
+      ord_chain[!is.finite(ord_chain)] <- vapply(candidates$wave[!is.finite(ord_chain)], .cm_aulas_wave_number, integer(1)) - 1L
+      candidates <- candidates[order(ord_chain), , drop = FALSE]
+    }
+    if (!nrow(candidates)) candidates <- reserves[reserves$faculty == titular$faculty[[1]], , drop = FALSE]
     if (!nrow(candidates)) candidates <- reserves
     if (!nrow(candidates)) next
     cand_scores <- vapply(seq_len(nrow(candidates)), function(j) {
@@ -3116,12 +3587,17 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
         "celda_cercana"
       }
       suggestions[[length(suggestions) + 1L]] <- data.frame(
+        selection_slot_id = titular$selection_slot_id[[1]] %||% "",
+        titular_operational_code = titular$operational_code[[1]] %||% "",
         titular_classroom_id = titular$classroom_id[[1]],
         titular_label = titular$course_name[[1]] %||% titular$label[[1]],
+        reserve_operational_code = reserve$operational_code[[1]] %||% "",
+        replacement_chain_code = reserve$replacement_chain_code[[1]] %||% "",
         reserve_classroom_id = reserve$classroom_id[[1]],
         reserve_label = reserve$course_name[[1]] %||% reserve$label[[1]],
         rank = rank,
         wave = reserve$wave[[1]],
+        replacement_order = reserve$replacement_order[[1]] %||% rank,
         match_level = match_level,
         score = round(score, 2),
         before_score = base_score,
@@ -3137,7 +3613,10 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
     }
     best <- candidates[ord[[1]], , drop = FALSE]
     impacts[[length(impacts) + 1L]] <- data.frame(
+      selection_slot_id = titular$selection_slot_id[[1]] %||% "",
+      titular_operational_code = titular$operational_code[[1]] %||% "",
       titular_classroom_id = titular$classroom_id[[1]],
+      replacement_operational_code = best$operational_code[[1]] %||% "",
       suggested_replacement_id = best$classroom_id[[1]],
       before_faculty = titular$faculty[[1]],
       after_faculty = best$faculty[[1]],
@@ -3192,8 +3671,9 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   }
   if (!"wave" %in% names(selection)) selection$wave <- ""
   if (!"classroom_id" %in% names(selection)) selection$classroom_id <- ""
-  titulars <- selection[as.character(selection$wave) == "M1", , drop = FALSE]
-  reserves <- selection[as.character(selection$wave) != "M1", , drop = FALSE]
+  roles <- .cm_aulas_role_values(selection)
+  titulars <- selection[roles == "titular" | as.character(selection$wave) == "M1", , drop = FALSE]
+  reserves <- selection[roles == "chain_reserve", , drop = FALSE]
   if (nrow(reserves)) {
     reserves$.wave_number <- vapply(reserves$wave, .cm_aulas_wave_number, integer(1))
     reserves <- reserves[order(reserves$.wave_number), , drop = FALSE]
@@ -3221,6 +3701,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
           used <- c(used, reserve_id)
           slots[[length(slots) + 1L]] <- list(
             id = reserve_id,
+            operational_code = .cm_aulas_scalar(cell(sug, c("reserve_operational_code", "replacement_chain_code"), j), ""),
             label = .cm_aulas_scalar(cell(sug, "reserve_label", j) %||% reserve_id, ""),
             wave = .cm_aulas_scalar(cell(sug, "wave", j), ""),
             match = .cm_aulas_scalar(cell(sug, "match_level", j), ""),
@@ -3233,6 +3714,13 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
     if (length(slots) < depth && nrow(reserves)) {
       fallback <- reserves
       if ("classroom_id" %in% names(fallback)) fallback <- fallback[!as.character(fallback$classroom_id) %in% used, , drop = FALSE]
+      if ("selection_slot_id" %in% names(fallback) && "selection_slot_id" %in% names(titular)) {
+        tied <- fallback[as.character(fallback$selection_slot_id) == .cm_aulas_scalar(cell(titular, "selection_slot_id"), ""), , drop = FALSE]
+        if (nrow(tied)) fallback <- tied
+      } else if ("replacement_for" %in% names(fallback)) {
+        tied <- fallback[as.character(fallback$replacement_for) == titular_id, , drop = FALSE]
+        if (nrow(tied)) fallback <- tied
+      }
       same_stratum <- if ("stratum" %in% names(fallback)) as.character(fallback$stratum) == titular_stratum else rep(FALSE, nrow(fallback))
       same_faculty <- if ("faculty" %in% names(fallback)) as.character(fallback$faculty) == titular_faculty else rep(FALSE, nrow(fallback))
       fallback <- fallback[same_stratum | same_faculty, , drop = FALSE]
@@ -3242,6 +3730,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
           reserve_id <- .cm_aulas_scalar(cell(reserve, "classroom_id"), "")
           slots[[length(slots) + 1L]] <- list(
             id = reserve_id,
+            operational_code = .cm_aulas_scalar(cell(reserve, c("operational_code", "replacement_chain_code")), ""),
             label = .cm_aulas_scalar(cell(reserve, c("course_name", "label", "classroom_id")), ""),
             wave = .cm_aulas_scalar(cell(reserve, "wave"), ""),
             match = if (.cm_aulas_scalar(cell(reserve, "stratum"), "") == titular_stratum) "misma_celda" else "misma_facultad",
@@ -3252,6 +3741,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
       }
     }
     out <- list(
+      titular_operational_code = .cm_aulas_scalar(cell(titular, c("operational_code", "titular_operational_code")), ""),
       titular_classroom_id = titular_id,
       titular_label = titular_label,
       faculty = titular_faculty,
@@ -3267,6 +3757,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
         list(id = "", label = "", wave = "", match = "", score_delta = "", warning = "")
       }
       prefix <- paste0("m", slot_index + 1L)
+      out[[paste0(prefix, "_operational_code")]] <- slot$operational_code %||% ""
       out[[paste0(prefix, "_classroom_id")]] <- slot$id
       out[[paste0(prefix, "_label")]] <- slot$label
       out[[paste0(prefix, "_wave")]] <- slot$wave
@@ -3381,6 +3872,7 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
   selection_df$orden <- ave(seq_len(nrow(selection_df)), selection_df$wave, FUN = seq_along)
   selection_df$estado <- selection_df$operation_status
   selection_df$replacement_for <- ""
+  selection_df <- .cm_aulas_reconstruct_chains_from_order(selection_df)
   selection_df <- .cm_aulas_annotate_selection_metrics(selection_df, cfg$selector)
   design_pi <- .cm_aulas_design_probabilities(rows, cfg$selector, "sistematico_pps")
   pi_base <- as.numeric(design_pi[selection_df$classroom_id])
@@ -3392,6 +3884,11 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
   selection_df$probability_source <- "historical_systematic_pps_reconstructed_from_mos"
   selection_df$mc_runs <- 0L
   selection_df$mc_error_summary <- "Monte Carlo no ejecutado en replica historica; recalculable desde Comparar metodos."
+  demo_extra_idx <- selection_df$sample_role == "extra_reserve_pool"
+  if (any(demo_extra_idx)) {
+    selection_df$probability_source[demo_extra_idx] <- "extra_pool_not_selected"
+    selection_df$pi_final[demo_extra_idx] <- 0
+  }
   selection_df$weight_classroom <- ifelse(selection_df$pi_final > 0, round(1 / selection_df$pi_final, 6), NA_real_)
   student_pi <- .cm_aulas_student_probability_summary(rows, stats::setNames(selection_df$pi_final, selection_df$classroom_id))
   selection_df$pi_student <- as.numeric(student_pi[selection_df$classroom_id])
@@ -3400,6 +3897,11 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
   selection_df$poststratification_flag <- FALSE
   selection_df$weight_warning <- "Pesos estudiantiles de demo calculados con IDs sinteticos anonimos; cargar base madre real para pesos internos definitivos."
   selection_df$peso_base <- selection_df$weight_classroom
+  if (any(demo_extra_idx)) {
+    selection_df$pi_student[demo_extra_idx] <- NA_real_
+    selection_df$weight_student[demo_extra_idx] <- NA_real_
+    selection_df$peso_base[demo_extra_idx] <- NA_real_
+  }
   selection_df$student_ids_hash <- vapply(selection_df$unique_student_ids, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
   source_bundle <- .cm_aulas_source_bundle("sistematico_pps")
   selection_df$method_source <- source_bundle$method_source
@@ -3419,8 +3921,12 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
   representativity <- calc_muestra_aulas_representativity_objective(frame_result, selection_df, cfg$selector, cfg$objective)
   selection_df$representativity_score <- representativity$representativity_score
   selection_df$representativity_distance <- representativity$weighted_distance
+  selection_df <- .cm_aulas_assign_operational_codes(selection_df)
   public_cols <- c(
-    "selection_run_id", "wave", "orden", "classroom_id", "label", "course_id",
+    "selection_run_id", "operational_code", "titular_operational_code",
+    "replacement_chain_code", "operational_sequence",
+    "selection_slot_id", "sample_role", "wave", "replacement_order",
+    "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
     "teacher_email", "faculty", "program", "level", "eligible_n", "enrolled_total",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
@@ -3549,6 +4055,11 @@ calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result,
   openxlsx::writeData(wb, "Marco aulas", .cm_aulas_as_df(frame_result$aula_frame, "aula_frame"))
   openxlsx::addWorksheet(wb, "Seleccion")
   openxlsx::writeData(wb, "Seleccion", .cm_aulas_as_df(selection_result$selection, "selection"))
+  selection_df <- .cm_aulas_as_df(selection_result$selection, "selection")
+  roles <- .cm_aulas_role_values(selection_df)
+  write_sheet("Aulas titulares", selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE])
+  write_sheet("Reemplazos por titular", selection_result$diagnostics$replacement_chains %||% .cm_aulas_replacement_chains_table(selection_df))
+  write_sheet("Reserva extra", selection_result$diagnostics$extra_reserve_pool %||% .cm_aulas_extra_pool_table(selection_df))
   openxlsx::addWorksheet(wb, "Auditoria marco")
   openxlsx::writeData(wb, "Auditoria marco", .cm_aulas_as_df(frame_result$audit, "audit"))
   openxlsx::addWorksheet(wb, "Resumen seleccion")

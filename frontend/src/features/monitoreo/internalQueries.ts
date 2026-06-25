@@ -516,9 +516,47 @@ export function internalCaseSearchText(item: MonitoreoInternalQueryCase) {
     item.decision,
 	    item.issue_type,
 	    item.rule,
+    item.duplicate_group_key,
+    item.duplicate_group_size,
+    item.duplicate_counting_status,
+    item.identity_status,
+    item.identity_label,
+    item.channel_key_strategy,
+    item.channel_key_strategy_label,
+    item.primary_identity_label,
+    item.primary_identity_value,
+    item.secondary_identity_label,
+    item.secondary_identity_value,
+    item.review_priority,
+    item.phone_audit?.cv_id,
+    item.phone_audit?.final_codpulso,
+    item.phone_audit?.declared_phone,
+    item.phone_audit?.responsible,
+    item.phone_audit?.phone_match_level,
+    item.phone_audit?.phone_number_evidence,
+    item.phone_audit?.recommended_action,
+    item.phone_audit?.link_base?.record,
+    item.phone_audit?.link_base?.person_label,
+    item.phone_audit?.link_base?.case_key,
+    item.phone_audit?.link_base?.status,
+    item.phone_audit?.link_base?.responsible,
+    item.phone_audit?.link_base?.source,
+    item.phone_audit?.manual_code_base?.record,
+    item.phone_audit?.manual_code_base?.person_label,
+    item.phone_audit?.manual_code_base?.case_key,
+    item.phone_audit?.manual_code_base?.status,
+    item.phone_audit?.manual_code_base?.responsible,
+    item.phone_audit?.manual_code_base?.source,
+    item.counts_in_advance ? "cuenta avance conteo" : "",
+    item.partial_answered_questions,
+    item.partial_total_questions,
+    item.partial_completion_pct,
+    item.partial_last_question,
+    item.partial_next_question,
     item.assisted_review?.primary_key,
     item.assisted_review?.declared_code,
     item.assisted_review?.declared_email,
+    item.assisted_review?.declared_name,
     ...(item.assisted_review?.warnings ?? []),
     ...(item.assisted_review?.candidates ?? []).flatMap((candidate) => [
       candidate.person_label,
@@ -551,6 +589,44 @@ export function internalCaseSearchText(item: MonitoreoInternalQueryCase) {
   ].join(" ");
 }
 
+function normalizePhoneAudit(value: MonitoreoInternalQueryCase["phone_audit"]): MonitoreoInternalQueryCase["phone_audit"] {
+  if (!value || typeof value !== "object") return null;
+  const normalizeBase = (base: NonNullable<MonitoreoInternalQueryCase["phone_audit"]>["link_base"]) => {
+    if (!base || typeof base !== "object") return undefined;
+    const record = cleanString(base.record);
+    const person_label = cleanString(base.person_label);
+    const case_key = cleanString(base.case_key);
+    const status = cleanString(base.status);
+    const responsible = cleanString(base.responsible);
+    const source = cleanString(base.source);
+    if (!record && !person_label && !case_key && !status && !responsible && !source) return undefined;
+    return { record, person_label, case_key, status, responsible, source };
+  };
+  const normalized = {
+    cv_id: cleanString(value.cv_id),
+    final_codpulso: cleanString(value.final_codpulso),
+    declared_phone: cleanString(value.declared_phone),
+    responsible: cleanString(value.responsible),
+    phone_match_level: cleanString(value.phone_match_level),
+    phone_number_evidence: cleanString(value.phone_number_evidence),
+    recommended_action: cleanString(value.recommended_action),
+    link_base: normalizeBase(value.link_base),
+    manual_code_base: normalizeBase(value.manual_code_base),
+  };
+  const hasPayload = [
+    normalized.cv_id,
+    normalized.final_codpulso,
+    normalized.declared_phone,
+    normalized.responsible,
+    normalized.phone_match_level,
+    normalized.phone_number_evidence,
+    normalized.recommended_action,
+    normalized.link_base?.record,
+    normalized.manual_code_base?.record,
+  ].some(Boolean);
+  return hasPayload ? normalized : null;
+}
+
 function normalizeInternalCase(value: MonitoreoInternalQueryCase): MonitoreoInternalQueryCase {
   return {
     actor: cleanString(value.actor),
@@ -577,6 +653,25 @@ function normalizeInternalCase(value: MonitoreoInternalQueryCase): MonitoreoInte
     recovery_collector: boolish(value.recovery_collector),
     response_row: numberish(value.response_row),
     duplicate_count: Math.max(1, numberish(value.duplicate_count, 1)),
+    duplicate_group_key: cleanString(value.duplicate_group_key),
+    duplicate_group_size: Math.max(1, numberish(value.duplicate_group_size ?? value.duplicate_count, 1)),
+    counts_in_advance: boolish(value.counts_in_advance),
+    duplicate_counting_status: cleanString(value.duplicate_counting_status),
+    partial_answered_questions: numberish(value.partial_answered_questions),
+    partial_total_questions: numberish(value.partial_total_questions),
+    partial_completion_pct: numberish(value.partial_completion_pct),
+    partial_last_question: cleanString(value.partial_last_question),
+    partial_next_question: cleanString(value.partial_next_question),
+    identity_status: cleanString(value.identity_status),
+    identity_label: cleanString(value.identity_label),
+    channel_key_strategy: cleanString(value.channel_key_strategy),
+    channel_key_strategy_label: cleanString(value.channel_key_strategy_label),
+    primary_identity_label: cleanString(value.primary_identity_label),
+    primary_identity_value: cleanString(value.primary_identity_value),
+    secondary_identity_label: cleanString(value.secondary_identity_label),
+    secondary_identity_value: cleanString(value.secondary_identity_value),
+    review_priority: numberish(value.review_priority),
+    phone_audit: normalizePhoneAudit(value.phone_audit),
     assisted_review: normalizeAssistedReview(value.assisted_review),
   };
 }
@@ -623,13 +718,14 @@ function normalizeAssistedReview(value: MonitoreoAssistedReview | null | undefin
   } : null;
   const warnings = arrayOrEmpty<string>(value.warnings).map(cleanString).filter(Boolean);
   const hasPayload = boolish(value.eligible) || candidates.length || assignmentCandidates.length || warnings.length || manual ||
-    cleanString(value.primary_key) || cleanString(value.declared_code) || cleanString(value.declared_email);
+    cleanString(value.primary_key) || cleanString(value.declared_code) || cleanString(value.declared_email) || cleanString(value.declared_name);
   if (!hasPayload) return null;
   return {
     eligible: boolish(value.eligible),
     primary_key: cleanString(value.primary_key),
     declared_code: cleanString(value.declared_code),
     declared_email: cleanString(value.declared_email),
+    declared_name: cleanString(value.declared_name),
     candidates,
     assignment_candidates: assignmentCandidates,
     warnings,
@@ -695,12 +791,14 @@ function matchesSearchTokens(text: string, normalizedQuery: string) {
 function internalCaseMatchesState(item: MonitoreoInternalQueryCase, state: string) {
   if (state === "reviewable") return internalCaseIsReviewable(item);
   if (state === "non_effective") return item.advancement !== "effective";
-  return item.advancement === state || item.platform_state === state || item.issue_type === state;
+  return item.advancement === state || item.platform_state === state || item.issue_type === state || item.identity_status === state;
 }
 
 function internalCaseIsReviewable(item: MonitoreoInternalQueryCase) {
   const issueType = normalizeSearch(item.issue_type);
   const baseResult = normalizeSearch(item.base_result);
+  const identityStatus = normalizeSearch(item.identity_status);
+  const phoneMatch = normalizeSearch(item.phone_audit?.phone_match_level);
   const review = item.assisted_review;
   return Boolean(
     review?.eligible ||
@@ -711,6 +809,8 @@ function internalCaseIsReviewable(item: MonitoreoInternalQueryCase) {
     issueType === "fuera base" ||
     issueType === "sin llave" ||
     issueType === "incluido con salvedad" ||
+    ["conflicto telefonico", "no identificable", "fuera base", "duplicado", "parcial revisable"].includes(identityStatus) ||
+    phoneMatch.includes("conflicto") ||
     baseResult.includes("sin cruce") ||
     baseResult.includes("sin llave"),
   );

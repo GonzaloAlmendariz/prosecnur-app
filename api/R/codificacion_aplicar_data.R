@@ -540,6 +540,15 @@ ppra_sm_parent_recod <- function(df, parent, path_instrumento, path_plantilla,
   }
 
   # overrides clásico desde plantilla
+  classic_is_other <- .normcode(classic) == "other"
+  if ("label" %in% names(ch)) {
+    lab_norm_for_other <- .normcode(ch$label)
+    classic_is_other <- classic_is_other |
+      startsWith(lab_norm_for_other, "other") |
+      startsWith(lab_norm_for_other, "otro")
+  }
+  names(classic_is_other) <- classic
+  classic_text_override <- rep(FALSE, nrow(df_work))
   if (!is.null(tpl)) {
     for (code in classic) {
       rc1 <- paste0(parent, "/", code, "_RECOD")
@@ -547,7 +556,11 @@ ppra_sm_parent_recod <- function(df, parent, path_instrumento, path_plantilla,
       if (rc1 %in% tnames || rc2 %in% tnames) {
         v <- if (rc1 %in% tnames) tmp[[rc1]] else tmp[[rc2]]
         v <- .norm01(v)
-        w1 <- which(!is.na(v) & v==1L); if (length(w1)) mat[w1, code] <- 1L
+        w1 <- which(!is.na(v) & v==1L)
+        if (length(w1)) {
+          mat[w1, code] <- 1L
+          if (!isTRUE(classic_is_other[[code]])) classic_text_override[w1] <- TRUE
+        }
         w0 <- which(!is.na(v) & v==0L); if (length(w0)) mat[w0, code] <- 0L
       }
     }
@@ -624,7 +637,8 @@ ppra_sm_parent_recod <- function(df, parent, path_instrumento, path_plantilla,
     # ve en <parent>_recod algo como "70 4" (el 70 Otros viejo + el 4
     # Polideportivo nuevo) cuando espera "4" sólo. Las filas sin text libre
     # (no marcaron Otros) preservan su comportamiento anterior.
-    if (has_text_per_row[i] && length(new_tokens[[i]] %||% character(0)) > 0L &&
+    if (has_text_per_row[i] &&
+        (isTRUE(classic_text_override[i]) || length(new_tokens[[i]] %||% character(0)) > 0L) &&
         length(other_col_idx) > 0L) {
       for (j in other_col_idx) {
         if (!is.na(mat[i, j]) && mat[i, j] == 1L) mat[i, j] <- 0L

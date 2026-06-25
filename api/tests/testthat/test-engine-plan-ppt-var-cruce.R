@@ -839,14 +839,13 @@ test_that("graficar_barras_apiladas separa horizontalmente etiquetas pequenas", 
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
-  peq_layers <- Filter(function(layer) {
-    "lab" %in% names(layer$data) &&
-      identical(sort(as.character(layer$data$lab)), c("1%", "2%", "3%"))
-  }, text_layers)
+  expect_length(text_layers, 1)
 
-  expect_length(peq_layers, 1)
+  layer_data <- text_layers[[1]]$data
+  expect_setequal(as.character(layer_data$lab), c("1%", "2%", "3%", "94%"))
 
-  peq_data <- peq_layers[[1]]$data[order(peq_layers[[1]]$data$x_center), , drop = FALSE]
+  peq_data <- layer_data[layer_data$lab %in% c("1%", "2%", "3%"), , drop = FALSE]
+  peq_data <- peq_data[order(peq_data$x_center), , drop = FALSE]
   x_orig <- peq_data$x_center
   x_adj <- peq_data$x_label
 
@@ -885,13 +884,19 @@ test_that("graficar_barras_apiladas permite desactivar repulsion de etiquetas pe
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
-  peq_layers <- Filter(function(layer) {
-    "lab" %in% names(layer$data) &&
-      identical(sort(as.character(layer$data$lab)), c("1%", "2%", "3%"))
-  }, text_layers)
+  expect_length(text_layers, 1)
+  layer_data <- text_layers[[1]]$data
+  peq_data <- layer_data[layer_data$lab %in% c("1%", "2%", "3%"), , drop = FALSE]
 
-  expect_length(peq_layers, 1)
-  expect_equal(peq_layers[[1]]$data$x_label, peq_layers[[1]]$data$x_center)
+  row_1 <- peq_data[peq_data$lab == "1%", , drop = FALSE]
+  expect_equal(nrow(row_1), 1)
+  expect_gt(row_1$x_label, row_1$x_center)
+  expect_gte(row_1$x_label, 0)
+  expect_lte(row_1$x_label, 1)
+  expect_equal(row_1$.col_label, "white")
+
+  rows_mid <- peq_data[peq_data$lab %in% c("2%", "3%"), , drop = FALSE]
+  expect_equal(rows_mid$x_label, rows_mid$x_center)
 })
 
 test_that("graficar_barras_apiladas admite umbrales explicitos de mostrar y tamano normal", {
@@ -923,13 +928,20 @@ test_that("graficar_barras_apiladas admite umbrales explicitos de mostrar y tama
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
-  labels_por_layer <- lapply(text_layers, function(layer) sort(as.character(layer$data$lab)))
-  todas_las_labels <- sort(unlist(labels_por_layer, use.names = FALSE))
+  layer_data <- dplyr::bind_rows(lapply(text_layers, function(layer) layer$data))
+  todas_las_labels <- sort(as.character(layer_data$lab))
 
-  expect_equal(todas_las_labels, c("2.0%", "6.0%", "91.1%"))
-  expect_false(any(todas_las_labels == "0.9%"))
-  expect_true(any(vapply(labels_por_layer, identical, logical(1), c("2.0%"))))
-  expect_true(any(vapply(labels_por_layer, identical, logical(1), c("6.0%", "91.1%"))))
+  expect_equal(todas_las_labels, c("0.9%", "2.0%", "6.0%", "91.1%"))
+  expect_true(all(layer_data[layer_data$lab %in% c("0.9%", "2.0%"), ".tamano_etq"] == "peq"))
+  expect_true(all(layer_data[layer_data$lab %in% c("6.0%", "91.1%"), ".tamano_etq"] == "grande"))
+
+  row_09 <- layer_data[layer_data$lab == "0.9%", , drop = FALSE]
+  expect_equal(nrow(row_09), 1)
+  expect_true(row_09$.label_fuera)
+  expect_gt(row_09$x_label, row_09$x_center)
+  expect_gte(row_09$x_label, 0)
+  expect_lte(row_09$x_label, 1)
+  expect_equal(row_09$.col_label, "white")
 })
 
 test_that("graficar_barras_apiladas repela etiquetas pequenas con umbrales explicitos", {
@@ -961,14 +973,13 @@ test_that("graficar_barras_apiladas repela etiquetas pequenas con umbrales expli
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
-  peq_layers <- Filter(function(layer) {
-    "lab" %in% names(layer$data) &&
-      identical(sort(as.character(layer$data$lab)), c("1%", "2%", "3%"))
-  }, text_layers)
+  expect_length(text_layers, 1)
 
-  expect_length(peq_layers, 1)
+  layer_data <- text_layers[[1]]$data
+  expect_setequal(as.character(layer_data$lab), c("1%", "2%", "3%", "94%"))
 
-  peq_data <- peq_layers[[1]]$data[order(peq_layers[[1]]$data$x_center), , drop = FALSE]
+  peq_data <- layer_data[layer_data$lab %in% c("1%", "2%", "3%"), , drop = FALSE]
+  peq_data <- peq_data[order(peq_data$x_center), , drop = FALSE]
   x_orig <- peq_data$x_center
   x_adj <- peq_data$x_label
 
@@ -1283,6 +1294,7 @@ test_that("graficar_barras_apiladas invierte tambien las etiquetas del eje Y", {
       exportar = "rplot",
       mostrar_barra_extra = FALSE,
       debug_ph_bordes = FALSE,
+      font_family = "sans",
       invertir_barras = invertir_barras
     )
 

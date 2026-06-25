@@ -2739,6 +2739,234 @@
   )
 }
 
+.analitica_json_body <- function(req) {
+  body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+  if (!nzchar(body_raw)) return(list())
+  Encoding(body_raw) <- "UTF-8"
+  tryCatch(
+    jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+    error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+  )
+}
+
+.analitica_ficha_field_defs <- function() {
+  list(
+    list(key = "tipo_investigacion", label = "Tipo de investigación", group = "Diseño", min_lines = 2L,
+         hint = "Describe el enfoque del estudio en términos metodológicos, sin referencias internas al sistema."),
+    list(key = "estudio", label = "Estudio", group = "Identificación", min_lines = 1L,
+         hint = "Nombre público del estudio o investigación."),
+    list(key = "universo_estudio", label = "Universo de estudio", group = "Diseño", min_lines = 2L,
+         hint = "Población objetivo a la que se refiere la medición."),
+    list(key = "base_analisis", aliases = c("base_de_analisis"), label = "Base de análisis", group = "Diseño", min_lines = 3L,
+         hint = "Unidad de análisis, mediciones incluidas y alcance del archivo final."),
+    list(key = "criterios_inclusion", aliases = c("criterios_de_inclusion"), label = "Criterios de inclusión", group = "Diseño", min_lines = 3L,
+         hint = "Condiciones que debía cumplir una persona, vivienda o punto muestral para formar parte del estudio."),
+    list(key = "ambito_geografico", label = "Ámbito geográfico", group = "Cobertura", min_lines = 2L,
+         hint = "Territorio cubierto por la investigación."),
+    list(key = "distritos_seleccionados", aliases = c("distritos_muestra", "distritos"), label = "Distritos seleccionados", group = "Cobertura", min_lines = 2L,
+         hint = "Distritos o zonas efectivamente considerados en el diseño."),
+    list(key = "aplicacion_recojo", aliases = c("aplicacion_de_encuestas", "aplicacion_del_recojo_de_informacion"), label = "Aplicación de encuestas", group = "Campo", min_lines = 2L,
+         hint = "Periodo o forma de recojo reportable para la ficha."),
+    list(key = "marco_muestral", label = "Marco muestral", group = "Muestra", min_lines = 4L,
+         hint = "Fuente y unidades usadas para seleccionar la muestra."),
+    list(key = "tamano_de_la_muestra", aliases = c("tamano_muestra"), label = "Tamaño de la muestra", group = "Muestra", min_lines = 3L,
+         hint = "Tamaño programado y/o efectivo de la muestra, según corresponda."),
+    list(key = "procedimiento_muestreo", aliases = c("procedimiento_de_muestreo"), label = "Procedimiento de muestreo", group = "Muestra", min_lines = 6L,
+         hint = "Etapas del diseño muestral, redactadas como procedimiento académico."),
+    list(key = "nivel_representatividad", aliases = c("nivel_de_representatividad"), label = "Nivel de representatividad", group = "Muestra", min_lines = 3L,
+         hint = "Alcance inferencial, nivel de confianza y margen estimado si están documentados."),
+    list(key = "ponderacion", label = "Ponderación", group = "Muestra", min_lines = 2L,
+         hint = "Criterio de ponderación o ausencia de ponderación, si corresponde."),
+    list(key = "instrumento", label = "Instrumento", group = "Instrumento", min_lines = 3L,
+         hint = "Tipo de cuestionario y rasgos generales del instrumento."),
+    list(key = "tecnica_aplicacion", aliases = c("tecnica_de_aplicacion"), label = "Técnica de aplicación", group = "Campo", min_lines = 2L,
+         hint = "Modalidad de aplicación usada en campo."),
+    list(key = "supervision_control", aliases = c("supervision_de_mesa", "supervision_de_campo"), label = "Supervisión y control de calidad", group = "Procesamiento", min_lines = 2L,
+         hint = "Controles sustantivos aplicados a la información."),
+    list(key = "digitacion_procesamiento", aliases = c("digitacion"), label = "Digitación / procesamiento", group = "Procesamiento", min_lines = 2L,
+         hint = "Proceso de digitación, consistencia y preparación de bases."),
+    list(key = "plan_limpieza", aliases = c("plan_de_limpieza_de_datos_y_consistencia"), label = "Plan de limpieza de datos y consistencia", group = "Procesamiento", min_lines = 3L,
+         hint = "Criterios de revisión, anonimización y tratamiento de inconsistencias."),
+    list(key = "entregables", label = "Entregables", group = "Entrega", min_lines = 2L,
+         hint = "Archivos metodológicos y analíticos que se entregarán.")
+  )
+}
+
+.analitica_ficha_lookup <- function(ft, key, aliases = character(0)) {
+  keys <- unique(c(key, aliases))
+  for (k in keys) {
+    value <- .ficha_tecnica_scalar((ft %||% list())[[k]], "")
+    if (nzchar(value)) return(value)
+  }
+  ""
+}
+
+.analitica_ficha_number <- function(x) {
+  if (is.null(x) || length(x) == 0L) return(NA_real_)
+  out <- suppressWarnings(as.numeric(x[[1]]))
+  if (!is.finite(out)) NA_real_ else out
+}
+
+.analitica_ficha_fmt_int <- function(x) {
+  x <- .analitica_ficha_number(x)
+  if (!is.finite(x)) return("")
+  format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
+}
+
+.analitica_ficha_fmt_pct <- function(x) {
+  x <- .analitica_ficha_number(x)
+  if (!is.finite(x)) return("")
+  if (abs(x) <= 1) x <- x * 100
+  sprintf("%.1f%%", x)
+}
+
+.analitica_ficha_panel_build <- function(sid, cfg) {
+  if (!exists(".analitica_panel_load_sources", mode = "function") ||
+      !exists(".panel_wide_build", mode = "function") ||
+      !exists(".panel_ficha_context", mode = "function")) {
+    return(NULL)
+  }
+  sources <- tryCatch(.analitica_panel_load_sources(sid, cfg), error = function(e) NULL)
+  if (is.null(sources) || length(sources$data_sources %||% list()) < 2L) return(NULL)
+  built <- tryCatch(.panel_wide_build(sources$data_sources, sources$inst_sources, cfg$panel %||% list()), error = function(e) NULL)
+  if (is.null(built)) return(NULL)
+  list(built = built, sources = sources)
+}
+
+.analitica_ficha_contextual_cfg <- function(sid, cfg) {
+  cfg <- cfg %||% .analitica_get_config(sid)
+  cfg$ficha_tecnica <- cfg$ficha_tecnica %||% list()
+  ft <- cfg$ficha_tecnica
+  s <- session_get(sid, required = FALSE)
+
+  if (!is.null(s$hojas_ruta_workspace_outputs) &&
+      is.null(ft$hojas_ruta_context) &&
+      is.null(ft$hojas_ruta_pulso_path)) {
+    ft$hojas_ruta_context <- list(
+      hojas_ruta_config = s$hojas_ruta_config %||% list(),
+      hojas_ruta_workspace_outputs = s$hojas_ruta_workspace_outputs %||% list()
+    )
+  }
+
+  if (!is.null(s$calc_muestra_estudio) &&
+      is.null(ft$calc_muestra_context) &&
+      is.null(ft$calc_muestra_pulso_path)) {
+    ft$calc_muestra_context <- list(calc_muestra_estudio = s$calc_muestra_estudio)
+  }
+
+  if (is.null(ft$panel_context)) {
+    panel_bundle <- .analitica_ficha_panel_build(sid, cfg)
+    if (!is.null(panel_bundle)) {
+      ft$panel_context <- .panel_ficha_context(panel_bundle$built, panel_bundle$sources$data_sources)
+    }
+  }
+
+  cfg$ficha_tecnica <- ft
+  cfg
+}
+
+.analitica_ficha_suggestions_cfg <- function(cfg) {
+  cfg_suggest <- cfg %||% list()
+  cfg_suggest$ficha_tecnica <- cfg_suggest$ficha_tecnica %||% list()
+  defs <- .analitica_ficha_field_defs()
+  for (def in defs) {
+    for (k in unique(c(def$key, def$aliases %||% character(0)))) {
+      cfg_suggest$ficha_tecnica[[k]] <- NULL
+    }
+  }
+  if (exists(".ficha_tecnica_cfg_with_hojas_ruta", mode = "function")) {
+    cfg_suggest <- .ficha_tecnica_cfg_with_hojas_ruta(cfg_suggest)
+  }
+  cfg_suggest
+}
+
+.analitica_ficha_kpis <- function(cfg) {
+  ft <- (cfg %||% list())$ficha_tecnica %||% list()
+  out <- list()
+  add <- function(label, value, source, detail = "") {
+    value <- .ficha_tecnica_scalar(value, "")
+    if (!nzchar(value)) return(NULL)
+    out[[length(out) + 1L]] <<- list(label = label, value = value, source = source, detail = detail)
+    invisible(NULL)
+  }
+
+  hr <- if (exists(".ficha_tecnica_hojas_ruta_summary", mode = "function")) {
+    tryCatch(.ficha_tecnica_hojas_ruta_summary(ft$hojas_ruta_context %||% ft$hojas_ruta_pulso_path), error = function(e) NULL)
+  } else NULL
+  calc <- if (exists(".ficha_tecnica_calc_muestra_summary", mode = "function")) {
+    tryCatch(.ficha_tecnica_calc_muestra_summary(ft$calc_muestra_context %||% ft$calc_muestra_pulso_path), error = function(e) NULL)
+  } else NULL
+  panel <- if (exists(".ficha_tecnica_panel_summary", mode = "function")) {
+    tryCatch(.ficha_tecnica_panel_summary(ft$panel_context), error = function(e) NULL)
+  } else NULL
+
+  if (!is.null(hr)) {
+    add("Manzanas titulares", .analitica_ficha_fmt_int(hr$n_blocks), "Hojas de ruta", "Unidades primarias seleccionadas")
+    add("Manzanas de reemplazo", .analitica_ficha_fmt_int(hr$n_replacements), "Hojas de ruta", "Reemplazos territoriales documentados")
+    add("Encuestas programadas", .analitica_ficha_fmt_int(hr$total_interviews), "Hojas de ruta", "Carga total prevista por rutas")
+    add("Distritos", .analitica_ficha_fmt_int(hr$n_districts), "Hojas de ruta", "Cobertura distrital registrada")
+    add("Margen estimado", .analitica_ficha_fmt_pct(hr$margin_total_estimated), "Hojas de ruta", "Precisión esperada del diseño")
+  }
+  if (!is.null(calc)) {
+    add("Componentes muestrales", .analitica_ficha_fmt_int(calc$n_componentes), "Cálculo de muestra", "Componentes definidos en el cálculo")
+    add("Muestra calculada", .analitica_ficha_fmt_int(calc$total_n_objetivo), "Cálculo de muestra", "Total previsto por el cálculo")
+  }
+  if (!is.null(panel)) {
+    add("Personas longitudinales", .analitica_ficha_fmt_int(panel$n_panel_keys), "Base panel", "Llaves únicas consolidadas")
+    add("Casos completos", .analitica_ficha_fmt_int(panel$n_complete_keys), "Base panel", "Personas presentes en todas las mediciones")
+    add("Mediciones", .analitica_ficha_fmt_int(length(panel$waves %||% list())), "Base panel", "Bases integradas longitudinalmente")
+  }
+  out
+}
+
+.analitica_ficha_sources <- function(cfg) {
+  ft <- (cfg %||% list())$ficha_tecnica %||% list()
+  hr_ok <- !is.null(ft$hojas_ruta_context) || nzchar(.ficha_tecnica_scalar(ft$hojas_ruta_pulso_path, ""))
+  calc_ok <- !is.null(ft$calc_muestra_context) || nzchar(.ficha_tecnica_scalar(ft$calc_muestra_pulso_path, ""))
+  panel_ok <- !is.null(ft$panel_context)
+  list(
+    list(key = "hojas_ruta", label = "Hojas de ruta", available = isTRUE(hr_ok),
+         detail = if (isTRUE(hr_ok)) "Diseño territorial, rutas y distribución operativa disponibles." else "Sin contexto de rutas en la sesión."),
+    list(key = "calc_muestra", label = "Cálculo de muestra", available = isTRUE(calc_ok),
+         detail = if (isTRUE(calc_ok)) "Parámetros muestrales disponibles." else "Sin cálculo de muestra asociado."),
+    list(key = "panel", label = "Base longitudinal", available = isTRUE(panel_ok),
+         detail = if (isTRUE(panel_ok)) "Resumen de mediciones y cobertura panel disponible." else "Sin base panel consolidable en la sesión.")
+  )
+}
+
+.analitica_ficha_info <- function(sid, cfg = NULL) {
+  cfg_ctx <- .analitica_ficha_contextual_cfg(sid, cfg %||% .analitica_get_config(sid))
+  cfg_suggest <- .analitica_ficha_suggestions_cfg(cfg_ctx)
+  current_ft <- cfg_ctx$ficha_tecnica %||% list()
+  suggest_ft <- cfg_suggest$ficha_tecnica %||% list()
+  defs <- .analitica_ficha_field_defs()
+  fields <- lapply(defs, function(def) {
+    aliases <- def$aliases %||% character(0)
+    value <- .analitica_ficha_lookup(current_ft, def$key, aliases)
+    suggested <- .analitica_ficha_lookup(suggest_ft, def$key, aliases)
+    list(
+      key = def$key,
+      label = def$label,
+      group = def$group,
+      hint = def$hint %||% "",
+      min_lines = def$min_lines %||% 2L,
+      value = value,
+      suggested = suggested,
+      has_suggestion = nzchar(suggested)
+    )
+  })
+  subtables <- names((cfg_suggest$ficha_tecnica %||% list())$subtables %||% list())
+  appendices <- names((cfg_suggest$ficha_tecnica %||% list())$appendices %||% list())
+  list(
+    ok = TRUE,
+    fields = fields,
+    kpis = .analitica_ficha_kpis(cfg_suggest),
+    sources = .analitica_ficha_sources(cfg_ctx),
+    tables = list(subtables = as.list(subtables), appendices = as.list(appendices)),
+    layout = .ficha_tecnica_scalar(current_ft$layout, "pulso_oficial")
+  )
+}
+
 mount_analitica <- function(pr) {
   pr |>
     plumber::pr_get("/api/analitica/config", wrap_endpoint(function(req, res) {
@@ -2769,6 +2997,8 @@ mount_analitica <- function(pr) {
       next_fuente <- as.character((cfg %||% list())$fuente_preferida %||% "")
       prev_panel_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$panel %||% list(), auto_unbox = TRUE, null = "null")
       next_panel_json <- jsonlite::toJSON((cfg %||% list())$panel %||% list(), auto_unbox = TRUE, null = "null")
+      prev_ficha_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$ficha_tecnica %||% list(), auto_unbox = TRUE, null = "null")
+      next_ficha_json <- jsonlite::toJSON((cfg %||% list())$ficha_tecnica %||% list(), auto_unbox = TRUE, null = "null")
       .analitica_config_set(sid, cfg)
       if (!identical(prev_fuente, next_fuente)) {
         .analitica_status_set(sid, "analitica_prep_ok", FALSE)
@@ -2778,6 +3008,7 @@ mount_analitica <- function(pr) {
         .analitica_status_set(sid, "analitica_spss_ok", FALSE)
         .analitica_status_set(sid, "analitica_dim_ok", FALSE)
         .analitica_status_set(sid, "analitica_panel_ok", FALSE)
+        .analitica_status_set(sid, "analitica_ficha_tecnica_ok", FALSE)
         session_set(sid, "analitica_rp_inst", NULL)
         session_set(sid, "analitica_rp_data", NULL)
         session_set(sid, "analitica_rp_inst_sources", list())
@@ -2785,6 +3016,9 @@ mount_analitica <- function(pr) {
         session_set(sid, "analitica_multibase_available", FALSE)
       } else if (!identical(as.character(prev_panel_json), as.character(next_panel_json))) {
         .analitica_status_set(sid, "analitica_panel_ok", FALSE)
+        .analitica_status_set(sid, "analitica_ficha_tecnica_ok", FALSE)
+      } else if (!identical(as.character(prev_ficha_json), as.character(next_ficha_json))) {
+        .analitica_status_set(sid, "analitica_ficha_tecnica_ok", FALSE)
       }
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
@@ -2897,6 +3131,66 @@ mount_analitica <- function(pr) {
       if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "El JSON no trae 'config'.")
       .analitica_config_set(sid, cfg)
       list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_get("/api/analitica/ficha-tecnica/info", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      .analitica_ficha_info(sid, .analitica_get_config(sid))
+    })) |>
+    plumber::pr_post("/api/analitica/ficha-tecnica/export", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .analitica_json_body(req)
+      cfg <- .analitica_get_config(sid)
+      if (!is.null(parsed$ficha_tecnica) && is.list(parsed$ficha_tecnica)) {
+        cfg$ficha_tecnica <- utils::modifyList(cfg$ficha_tecnica %||% list(), parsed$ficha_tecnica)
+      }
+      template_path <- parsed$template_path %||% ((cfg$ficha_tecnica %||% list())$template_path %||% NULL)
+      cfg <- .analitica_ficha_contextual_cfg(sid, cfg)
+      .analitica_config_set(sid, cfg)
+
+      panel_bundle <- .analitica_ficha_panel_build(sid, cfg)
+      if (!is.null(panel_bundle)) {
+        data_ficha <- panel_bundle$built$base_wide
+        inst_ficha <- panel_bundle$built$inst_wide
+        fuente <- panel_bundle$sources$fuente
+        detalles <- list(
+          "Base de análisis" = "Base longitudinal consolidada",
+          "Mediciones incluidas" = paste(
+            vapply(panel_bundle$built$config$waves, function(w) {
+              as.character(w$label %||% w$suffix %||% "")
+            }, character(1)),
+            collapse = ", "
+          )
+        )
+      } else {
+        ctx <- .load_rp_data(sid)
+        reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
+        data_ficha <- reviewed$data
+        inst_ficha <- reviewed$inst
+        fuente <- ctx$fuente
+        detalles <- list("Base de análisis" = "Base analítica preparada")
+      }
+
+      out_name <- .export_filename(sid, "ficha_tecnica", "docx")
+      out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+      .analitica_write_ficha_tecnica_docx(
+        path_docx = out_path,
+        data = data_ficha,
+        instrumento = inst_ficha,
+        reporte = "Ficha técnica",
+        fuente = fuente,
+        cfg = cfg,
+        template_path = template_path,
+        detalles = detalles
+      )
+      meta <- .register_output_file(sid, "ficha_tecnica", out_path, original_name = out_name)
+      .analitica_status_set(sid, "analitica_ficha_tecnica_ok", TRUE)
+      list(
+        ok = TRUE,
+        n_bases = 1L,
+        file_id = meta$file_id,
+        filename = meta$original_name,
+        size = meta$size
+      )
     })) |>
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -3168,10 +3462,10 @@ mount_analitica <- function(pr) {
       sources <- .analitica_panel_load_sources(sid, cfg_all)
       panel_probe <- .panel_config_resolve(sources$data_sources, panel_cfg)
       if (length(sources$data_sources) < 2L) {
-        stop_api(409, "E_PANEL_NEEDS_WAVES", "Base panel requiere al menos dos bases/olas.")
+        stop_api(409, "E_PANEL_NEEDS_WAVES", "Base panel requiere al menos dos bases/mediciones.")
       }
       if (!nzchar(panel_probe$key) || !all(vapply(sources$data_sources, function(df) panel_probe$key %in% names(df), logical(1)))) {
-        stop_api(409, "E_PANEL_KEY_MISSING", "Selecciona una llave presente en todas las olas.")
+        stop_api(409, "E_PANEL_KEY_MISSING", "Selecciona una llave presente en todas las mediciones.")
       }
       built <- .panel_wide_build(sources$data_sources, sources$inst_sources, panel_cfg)
       cfg_ficha <- cfg_all
@@ -3200,7 +3494,7 @@ mount_analitica <- function(pr) {
         template_path = template_path,
         detalles = list(
           "Llave panel" = built$config$key,
-          "Olas incluidas" = paste(vapply(built$config$waves, function(w) as.character(w$label %||% w$suffix %||% ""), character(1)), collapse = ", "),
+          "Mediciones incluidas" = paste(vapply(built$config$waves, function(w) as.character(w$label %||% w$suffix %||% ""), character(1)), collapse = ", "),
           "Personas o llaves panel" = built$summary$n_panel_keys,
           "Casos completos" = built$summary$n_complete_keys
         )
@@ -3234,10 +3528,10 @@ mount_analitica <- function(pr) {
       sources <- .analitica_panel_load_sources(sid, cfg_all)
       panel_probe <- .panel_config_resolve(sources$data_sources, panel_cfg)
       if (length(sources$data_sources) < 2L) {
-        stop_api(409, "E_PANEL_NEEDS_WAVES", "Base panel requiere al menos dos bases/olas.")
+        stop_api(409, "E_PANEL_NEEDS_WAVES", "Base panel requiere al menos dos bases/mediciones.")
       }
       if (!nzchar(panel_probe$key) || !all(vapply(sources$data_sources, function(df) panel_probe$key %in% names(df), logical(1)))) {
-        stop_api(409, "E_PANEL_KEY_MISSING", "Selecciona una llave presente en todas las olas.")
+        stop_api(409, "E_PANEL_KEY_MISSING", "Selecciona una llave presente en todas las mediciones.")
       }
       n_panel_bases <- length(sources$data_sources)
 
@@ -3256,6 +3550,8 @@ mount_analitica <- function(pr) {
         "sav"
       } else if (identical(panel_options$formato, "sav")) {
         "zip"
+      } else if (identical(panel_options$formato, "paquete")) {
+        "zip"
       } else {
         "xlsx"
       }
@@ -3265,6 +3561,10 @@ mount_analitica <- function(pr) {
         xlsx = "base_panel_wide",
         csv = "base_panel_wide",
         sav = if (isTRUE(panel_options$incluir_sps)) "base_panel_sav_bundle" else "base_panel_sav",
+        libro_codigos = "base_panel_libro_codigos",
+        frecuencias = "base_panel_frecuencias",
+        cruces = "base_panel_cruces",
+        auditoria = "base_panel_auditoria",
         "base_panel"
       )
       job_id <- job_submit(
@@ -3276,7 +3576,7 @@ mount_analitica <- function(pr) {
           } else {
             function(...) invisible(NULL)
           }
-          report("loading", percent = 10, message = "Cargando olas serializadas...")
+          report("loading", percent = 10, message = "Cargando mediciones serializadas...")
           data_sources <- readRDS(data_path)
           inst_sources <- readRDS(inst_path)
           panel_cfg <- readRDS(cfg_path)

@@ -25,7 +25,7 @@
   .read_data_any(meta)
 }
 
-.hojas_ruta_ui_state_normalize <- function(ui = list(), cfg = NULL) {
+.hojas_ruta_ui_state_normalize <- function(ui = list(), cfg = NULL, frame_summary = NULL) {
   if (is.null(ui) || !is.list(ui)) ui <- list()
   if (is.null(cfg)) cfg <- hojas_ruta_integrada_normalize_config(list())
 
@@ -34,8 +34,19 @@
                                      "territorio")
   if (!active_stage %in% stages) active_stage <- "territorio"
 
-  frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) NULL)
-  allowed_ubigeos <- if (!is.null(frame)) unique(frame$ubigeo) else character(0)
+  if (is.null(frame_summary)) {
+    frame_summary <- tryCatch(
+      hojas_ruta_inei_frame_summary(cfg$frame_source %||% "current"),
+      error = function(e) NULL
+    )
+  }
+  allowed_ubigeos <- if (!is.null(frame_summary)) {
+    unique(vapply(frame_summary$territories %||% list(), function(item) {
+      as.character(item$ubigeo %||% "")
+    }, character(1)))
+  } else {
+    character(0)
+  }
 
   confirmed <- .hojas_ruta_chr_vec(cfg$territorios %||% list())
   draft <- .hojas_ruta_chr_vec(
@@ -49,9 +60,20 @@
     map_ubigeo <- ""
   }
   map_zona <- .hojas_ruta_scalar(ui$map_zona %||% ui$mapZona, "")
-  if (nzchar(map_zona) && !is.null(frame) && nrow(frame) && nzchar(map_ubigeo)) {
-    allowed_zones <- unique(as.character(frame$zona[frame$ubigeo == map_ubigeo]))
-    if (!map_zona %in% allowed_zones) map_zona <- ""
+  if (nzchar(map_zona) && nzchar(map_ubigeo)) {
+    zones_by_ubigeo <- frame_summary$zones_by_ubigeo %||% list()
+    allowed_zones <- as.character(zones_by_ubigeo[[map_ubigeo]] %||% character(0))
+    if (length(allowed_zones)) {
+      if (!map_zona %in% allowed_zones) map_zona <- ""
+    } else {
+      frame <- tryCatch(hojas_ruta_inei_frame(cfg$frame_source %||% "current"), error = function(e) NULL)
+      if (!is.null(frame) && nrow(frame)) {
+        allowed_zones <- unique(as.character(frame$zona[frame$ubigeo == map_ubigeo]))
+        if (!map_zona %in% allowed_zones) map_zona <- ""
+      } else {
+        map_zona <- ""
+      }
+    }
   } else if (!nzchar(map_ubigeo)) {
     map_zona <- ""
   }
@@ -104,6 +126,27 @@
       .hojas_ruta_list_get(outputs, "samplePreview") %||% NULL
   )
   Filter(Negate(is.null), out)
+}
+
+.hojas_ruta_payload_has_rows <- function(x) {
+  if (is.null(x)) return(FALSE)
+  if (is.data.frame(x)) return(nrow(x) > 0L)
+  if (is.list(x)) return(length(x) > 0L)
+  length(x) > 0L
+}
+
+.hojas_ruta_workspace_outputs_has_data <- function(outputs = list()) {
+  outputs <- .hojas_ruta_workspace_outputs_normalize(outputs)
+  sample <- outputs$sample %||% list()
+  has_sample_blocks <- .hojas_ruta_payload_has_rows(sample$blocks %||% NULL) ||
+    .hojas_ruta_payload_has_rows(sample$replacement_blocks %||% NULL) ||
+    .hojas_ruta_payload_has_rows(sample$sample %||% NULL)
+  has_sample_meta <- !is.null(sample$total_entrevistas) || !is.null(sample$total_manzanas)
+  has_sample_blocks ||
+    isTRUE(has_sample_meta) ||
+    .hojas_ruta_payload_has_rows(outputs$quota %||% NULL) ||
+    .hojas_ruta_payload_has_rows(outputs$population %||% NULL) ||
+    .hojas_ruta_payload_has_rows(outputs$sample_size_preview %||% NULL)
 }
 
 .hojas_ruta_phase_normalize <- function(phase = NULL, default = "field") {
@@ -362,13 +405,90 @@
   current
 }
 
+.hojas_ruta_warmup_ubigeos <- function(ui_state = list(),
+                                       cfg = list(),
+                                       runs = list(),
+                                       frame_summary = NULL,
+                                       max_ubigeos = 8L) {
+  run_values <- if (is.list(runs)) unname(runs) else list()
+  candidates <- c(
+    as.character(ui_state$map_ubigeo %||% ""),
+    unlist(ui_state$draft_territories %||% list(), use.names = FALSE),
+    unlist(cfg$territorios %||% list(), use.names = FALSE),
+    unlist(lapply(run_values, function(run) {
+      if (!is.list(run)) return(character(0))
+      run_ui <- run$ui_state %||% list()
+      run_cfg <- run$config %||% list()
+      run_outputs <- run$workspace_outputs %||% run$outputs %||% list()
+      c(
+        run_ui$map_ubigeo %||% "",
+        unlist(run_ui$draft_territories %||% list(), use.names = FALSE),
+        unlist(run_cfg$territorios %||% list(), use.names = FALSE),
+        unlist(lapply(run_outputs$sample$blocks %||% list(), function(block) block$ubigeo %||% ""), use.names = FALSE),
+        unlist(lapply(run_outputs$sample$replacement_blocks %||% list(), function(block) block$ubigeo %||% ""), use.names = FALSE)
+      )
+    }), use.names = FALSE)
+  )
+  candidates <- unique(trimws(as.character(candidates)))
+  candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
+  if (!length(candidates)) {
+    candidates <- unique(vapply(frame_summary$territories %||% list(), function(item) {
+      as.character(item$ubigeo %||% "")
+    }, character(1)))
+    candidates <- candidates[nzchar(candidates)]
+  }
+  max_ubigeos <- suppressWarnings(as.integer(max_ubigeos %||% 8L))
+  if (!length(max_ubigeos) || !is.finite(max_ubigeos[[1]]) || max_ubigeos[[1]] <= 0L) max_ubigeos <- 8L
+  max_ubigeos <- max_ubigeos[[1]]
+  candidates[seq_len(min(length(candidates), max_ubigeos))]
+}
+
+.hojas_ruta_warmup_targets_payload <- function(sid, max_ubigeos = 8L) {
+  active <- .hojas_ruta_active_run(sid)
+  s <- active$session
+  cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
+  frame_summary <- tryCatch(
+    hojas_ruta_inei_frame_summary(cfg$frame_source %||% "current"),
+    error = function(e) NULL
+  )
+  ui_state <- .hojas_ruta_ui_state_normalize(
+    active$run$ui_state %||% list(),
+    cfg,
+    frame_summary = frame_summary
+  )
+  workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(active$run$workspace_outputs %||% list())
+  bases <- names(s$estudio$bases %||% list())
+  ubigeos <- .hojas_ruta_warmup_ubigeos(
+    ui_state = ui_state,
+    cfg = cfg,
+    runs = s$hojas_ruta_runs %||% list(),
+    frame_summary = frame_summary,
+    max_ubigeos = max_ubigeos
+  )
+  list(
+    ok = TRUE,
+    frame_ok = !is.null(frame_summary),
+    has_data = length(bases) > 0L ||
+      !is.null(s$rp_data) ||
+      length(s$rp_data_sources %||% list()) > 0L ||
+      .hojas_ruta_workspace_outputs_has_data(workspace_outputs),
+    active_phase = active$phase,
+    ubigeos = as.list(ubigeos),
+    territories_count = length(frame_summary$territories %||% list())
+  )
+}
+
 .hojas_ruta_state_payload <- function(sid) {
   data <- tryCatch(.hojas_ruta_data_activa(sid), error = function(e) NULL)
   active <- .hojas_ruta_active_run(sid)
   s <- active$session
   legacy_cfg <- hojas_ruta_normalize_config(active$run$config %||% list())
   cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
-  ui_state <- .hojas_ruta_ui_state_normalize(active$run$ui_state %||% list(), cfg)
+  frame_summary <- tryCatch(
+    hojas_ruta_inei_frame_summary(cfg$frame_source %||% "current"),
+    error = function(e) NULL
+  )
+  ui_state <- .hojas_ruta_ui_state_normalize(active$run$ui_state %||% list(), cfg, frame_summary = frame_summary)
   workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(active$run$workspace_outputs %||% list())
   reporte_meta_raw <- s$hojas_ruta_reporte_decisional %||% list(disponible = FALSE)
   reporte_meta <- list(
@@ -378,13 +498,17 @@
     job_id       = reporte_meta_raw$job_id %||% NULL
   )
   has_sample_size <- !is.null(workspace_outputs$sample_size_preview)
-  frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) NULL)
-  frame_meta <- if (!is.null(frame)) .hojas_ruta_frame_meta(frame) else list(ok = FALSE)
-  territories <- if (!is.null(frame)) .hojas_ruta_territories(frame) else list()
+  has_workspace_outputs <- .hojas_ruta_workspace_outputs_has_data(workspace_outputs)
+  frame_meta <- if (!is.null(frame_summary)) {
+    .hojas_ruta_frame_meta_from_summary(frame_summary, cfg$frame_source %||% "current")
+  } else {
+    list(ok = FALSE)
+  }
+  territories <- frame_summary$territories %||% list()
   if (is.null(data)) {
     return(list(
       ok = isTRUE(frame_meta$ok),
-      has_data = FALSE,
+      has_data = has_workspace_outputs,
       cache_dir = hojas_ruta_cache_dir(),
       config = legacy_cfg,
       integrated_config = cfg,
@@ -424,9 +548,21 @@
 
 mount_hojas_ruta <- function(pr) {
   pr |>
+    plumber::pr_get("/api/hojas-ruta/warmup-targets", wrap_endpoint(function(req, res, max_ubigeos = NULL, ...) {
+      sid <- session_header(req)
+      .hojas_ruta_warmup_targets_payload(sid, max_ubigeos = max_ubigeos %||% 8L)
+    })) |>
     plumber::pr_get("/api/hojas-ruta/state", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
-      .hojas_ruta_state_payload(sid)
+      started_at <- Sys.time()
+      out <- .hojas_ruta_state_payload(sid)
+      message(sprintf(
+        "[hojas_ruta] state has_data=%s territories=%s total_ms=%s",
+        isTRUE(out$has_data),
+        length(out$territories %||% list()),
+        as.integer(round(as.numeric(difftime(Sys.time(), started_at, units = "secs")) * 1000))
+      ))
+      out
     })) |>
     plumber::pr_post("/api/hojas-ruta/config", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

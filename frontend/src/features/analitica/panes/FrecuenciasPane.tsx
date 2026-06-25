@@ -159,7 +159,7 @@ export function FrecuenciasPane() {
                 <span>
                   <span className="analitica-control-title">Mostrar catálogo completo</span>
                   <span className="analitica-control-copy">
-                    Incluye opciones sin respuestas para reportes comparables entre olas.
+                    Incluye opciones sin respuestas para reportes comparables entre mediciones.
                   </span>
                 </span>
               </label>

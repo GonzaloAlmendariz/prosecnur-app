@@ -32,7 +32,13 @@ function getSession(): string | null {
 }
 
 function setSession(id: string) {
+  const prev = getSession();
   localStorage.setItem(SESSION_KEY, id);
+  if (prev !== id && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("pulso:session-changed", {
+      detail: { old_sid: prev, new_sid: id },
+    }));
+  }
 }
 
 function headers(extra: Record<string, string> = {}): Record<string, string> {
@@ -45,7 +51,6 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 async function handle<T>(res: Response): Promise<T> {
   const sidHeader = res.headers.get("X-Pulso-Session");
   if (sidHeader) {
-    const prev = getSession();
     setSession(sidHeader);
     // Cuando el backend cambia el sid (típicamente al cargar un demo o
     // al responder a /api/session si la sesión vieja ya no existía),
@@ -54,11 +59,6 @@ async function handle<T>(res: Response): Promise<T> {
     // Sin esto, al cambiar de demo el frontend quedaba con variables,
     // presets y templates del demo anterior porque los caches son por
     // módulo y nadie los reciclaba.
-    if (prev && prev !== sidHeader && typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("pulso:session-changed", {
-        detail: { old_sid: prev, new_sid: sidHeader },
-      }));
-    }
   }
   if (!res.ok) {
     const raw = await res.text().catch(() => "");
@@ -154,6 +154,7 @@ export type SessionState = {
   analitica_multibase_available: boolean;
   analitica_multibase_ok: boolean;
   analitica_panel_ok: boolean;
+  analitica_ficha_tecnica_ok: boolean;
   analitica_fuente: string | null;
   analitica_fuente_detalle?: AnaliticaFuenteDetalle | null;
   hojas_ruta_ok: boolean;
@@ -4002,7 +4003,14 @@ export type MonitoreoAulasEstado =
 
 export type MonitoreoAulasPlanRow = {
   selection_run_id: string;
+  operational_code?: string;
+  titular_operational_code?: string;
+  replacement_chain_code?: string;
+  operational_sequence?: number;
+  selection_slot_id?: string;
+  sample_role?: "titular" | "chain_reserve" | "extra_reserve_pool" | string;
   wave: string;
+  replacement_order?: number;
   orden: number;
   classroom_id: string;
   label: string;
@@ -4026,6 +4034,11 @@ export type MonitoreoAulasPlanRow = {
   replacement_for: string;
   replacement_reason: string;
   replacement_note: string;
+  equivalence_level?: string;
+  chain_score?: number;
+  chain_depth?: number;
+  activation_weight_status?: string;
+  analysis_weight_warning?: string;
   updated_at: string;
   [key: string]: string | number | boolean | null | undefined;
 };
@@ -4344,8 +4357,13 @@ export type MonitoreoConfig = {
   supervision_seed: number;
   monitoreo_profile: MonitoreoProfile;
   acreditacion: MonitoreoAcreditacion;
+  client_report: MonitoreoClientReportConfig;
   territorial: MonitoreoTerritorialConfig;
   aulas_universitarias: MonitoreoAulasConfig;
+};
+
+export type MonitoreoClientReportConfig = {
+  channel_labels?: Record<string, string>;
 };
 
 export type MonitoreoManualCaseReconciliation = {
@@ -4486,6 +4504,7 @@ export type MonitoreoClientReport = {
   daily_general: MonitoreoRow[];
   daily_actor: MonitoreoRow[];
   sources: MonitoreoRow[];
+  collector_sources?: MonitoreoRow[];
   controls?: MonitoreoRow[];
   has_targets: boolean;
   sheets?: MonitoreoReportSheet[];
@@ -4794,6 +4813,7 @@ export type MonitoreoInternalQueries = {
 
 export type MonitoreoAcreditacionReports = {
   schema: string;
+  report_scope?: "source" | "advance_summary" | "queries_summary" | "full" | string;
   generated_at: string;
   reference_tabs: string[];
   internal_queries?: MonitoreoInternalQueries | null;
@@ -5788,7 +5808,10 @@ export type MonitoreoSyncResult = {
   synced_at: string;
   n_rows: number;
   n_sources: number;
+  sync_mode?: "full" | "advance" | string;
+  report_scope?: string;
   dashboard: MonitoreoDashboard;
+  sync_summary?: Record<string, unknown>;
   errors: { source_id?: string; source_label?: string; message: string }[];
 };
 
@@ -5872,15 +5895,90 @@ export type MonitoreoAcreditacionSeguimientoPayload = {
   bolsa_operativa?: MonitoreoAcreditacionBolsa[];
 };
 
-export async function apiMonitoreoState(options: { includeReports?: boolean; reportScope?: string } = {}) {
+type MonitoreoStateRequestOptions = {
+  includeReports?: boolean;
+  reportScope?: string;
+  warmupCache?: boolean;
+  force?: boolean;
+};
+
+type WarmMonitoreoStateCacheItem = {
+  promise?: Promise<MonitoreoState>;
+  value?: MonitoreoState;
+  expiresAt: number;
+  usesRemaining: number;
+};
+
+const MONITOREO_STATE_WARM_CACHE_MS = 30000;
+const monitoreoStateWarmCache = new Map<string, WarmMonitoreoStateCacheItem>();
+
+function monitoreoStateWarmCacheKey(options: MonitoreoStateRequestOptions) {
+  return [
+    getSession() ?? "",
+    options.includeReports == null ? "auto" : options.includeReports ? "reports" : "light",
+    options.reportScope ?? "",
+  ].join("|");
+}
+
+function clearMonitoreoStateWarmCache() {
+  monitoreoStateWarmCache.clear();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pulso:session-changed", clearMonitoreoStateWarmCache);
+  window.addEventListener("pulso:session-lost", clearMonitoreoStateWarmCache);
+}
+
+export async function apiMonitoreoState(options: MonitoreoStateRequestOptions = {}) {
   const params = new URLSearchParams();
   if (options.includeReports != null) params.set("include_reports", options.includeReports ? "1" : "0");
   if (options.reportScope) params.set("report_scope", options.reportScope);
   const query = params.toString();
   const path = query ? `/api/monitoreo/state?${query}` : "/api/monitoreo/state";
-  return handle<MonitoreoState>(
+  const cacheKey = monitoreoStateWarmCacheKey(options);
+  if (options.force) {
+    monitoreoStateWarmCache.clear();
+  }
+  const cached = monitoreoStateWarmCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    if (cached.value && !options.warmupCache) {
+      cached.usesRemaining -= 1;
+      if (cached.usesRemaining <= 0) monitoreoStateWarmCache.delete(cacheKey);
+      return cached.value;
+    }
+    if (cached.promise) return cached.promise;
+  } else if (cached) {
+    monitoreoStateWarmCache.delete(cacheKey);
+  }
+
+  const promise = handle<MonitoreoState>(
     await apiFetch(path, { headers: headers() }),
-  );
+  ).then((value) => {
+    if (options.warmupCache) {
+      monitoreoStateWarmCache.set(cacheKey, {
+        value,
+        expiresAt: Date.now() + MONITOREO_STATE_WARM_CACHE_MS,
+        usesRemaining: 2,
+      });
+    } else {
+      const current = monitoreoStateWarmCache.get(cacheKey);
+      if (current?.promise === promise) monitoreoStateWarmCache.delete(cacheKey);
+    }
+    return value;
+  }, (error) => {
+    const current = monitoreoStateWarmCache.get(cacheKey);
+    if (current?.promise === promise) monitoreoStateWarmCache.delete(cacheKey);
+    throw error;
+  });
+
+  if (options.warmupCache) {
+    monitoreoStateWarmCache.set(cacheKey, {
+      promise,
+      expiresAt: Date.now() + MONITOREO_STATE_WARM_CACHE_MS,
+      usesRemaining: 2,
+    });
+  }
+  return promise;
 }
 
 export async function apiPublicArtifact() {
@@ -6342,7 +6440,7 @@ export async function apiMonitoreoTerritorialMapPrepare(options: {
   layers?: Array<"route_geometry" | "gps_points">;
   force?: boolean;
 } = {}) {
-  return handle<{ ok: true; phase: "pilot" | "field" | string; layers: string[]; map_cache: MonitoreoTerritorialMapCacheMeta }>(
+  return handle<JobStart & { cache_hit?: boolean }>(
     await apiFetch("/api/monitoreo/territorial/map/prepare", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -7345,6 +7443,15 @@ export type HojasRutaState = {
   reporte_decisional_listo_para_generar?: boolean;
 };
 
+export type HojasRutaWarmupTargets = {
+  ok: boolean;
+  frame_ok: boolean;
+  has_data: boolean;
+  active_phase?: HojasRutaPhase;
+  ubigeos: string[];
+  territories_count: number;
+};
+
 export type HojasRutaPreview = HojasRutaState & {
   config_issues: HojasRutaIssue[];
   n_umps: number;
@@ -7417,6 +7524,15 @@ export type HojasRutaRandomPdfResult = {
 export async function apiHojasRutaState() {
   return handle<HojasRutaState>(
     await apiFetch("/api/hojas-ruta/state", { headers: headers() }),
+  );
+}
+
+export async function apiHojasRutaWarmupTargets(options: { maxUbigeos?: number } = {}) {
+  const params = new URLSearchParams();
+  if (options.maxUbigeos != null) params.set("max_ubigeos", String(options.maxUbigeos));
+  const qs = params.toString();
+  return handle<HojasRutaWarmupTargets>(
+    await apiFetch(`/api/hojas-ruta/warmup-targets${qs ? `?${qs}` : ""}`, { headers: headers() }),
   );
 }
 
@@ -8213,6 +8329,59 @@ export async function apiAnaliticaMultibaseTablas() {
   );
 }
 
+export type AnaliticaFichaTecnicaField = {
+  key: string;
+  label: string;
+  group: string;
+  hint?: string;
+  min_lines?: number;
+  value?: string;
+  suggested?: string;
+  has_suggestion?: boolean;
+};
+
+export type AnaliticaFichaTecnicaKpi = {
+  label: string;
+  value: string;
+  source: string;
+  detail?: string;
+};
+
+export type AnaliticaFichaTecnicaSource = {
+  key: string;
+  label: string;
+  available: boolean;
+  detail?: string;
+};
+
+export type AnaliticaFichaTecnicaInfo = {
+  ok: true;
+  fields: AnaliticaFichaTecnicaField[];
+  kpis: AnaliticaFichaTecnicaKpi[];
+  sources: AnaliticaFichaTecnicaSource[];
+  tables?: {
+    subtables?: string[];
+    appendices?: string[];
+  };
+  layout?: "pulso_oficial" | "template" | "simple" | string;
+};
+
+export async function apiAnaliticaFichaTecnicaInfo() {
+  return handle<AnaliticaFichaTecnicaInfo>(
+    await apiFetch("/api/analitica/ficha-tecnica/info", { headers: headers() })
+  );
+}
+
+export async function apiAnaliticaFichaTecnicaExport(ficha_tecnica?: Record<string, unknown>) {
+  return handle<MultiBaseResult>(
+    await apiFetch("/api/analitica/ficha-tecnica/export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ficha_tecnica }),
+    })
+  );
+}
+
 export type AnaliticaPanelWaveConfig = {
   base: string;
   label?: string;
@@ -8230,6 +8399,7 @@ export type AnaliticaPanelConfig = {
   outputs?: {
     codebook?: boolean;
     frecuencias?: boolean;
+    cruces?: boolean;
     auditoria?: boolean;
     cobertura_nse?: boolean;
   };
@@ -8326,7 +8496,7 @@ export async function apiAnaliticaPanelPreview(config?: AnaliticaPanelConfig, ro
 }
 
 export type AnaliticaPanelExportOptions = {
-  formato?: "paquete" | "xlsx" | "csv" | "sav";
+  formato?: "paquete" | "xlsx" | "csv" | "sav" | "libro_codigos" | "frecuencias" | "cruces" | "auditoria";
   valores?: "codigos" | "etiquetas" | "ambos";
   separador?: "," | ";";
   multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
@@ -8668,6 +8838,21 @@ export type VarInfo = {
   list_name?: string;
   choices?: { name: string; label: string }[];
   scale_signature?: string;
+  graphable?: boolean;
+  exclusion_reason?: string;
+  is_recoded?: boolean;
+  raw_parent?: string | null;
+  preferred_variable?: string | null;
+  covered_by?: string | null;
+  integrated_in?: string | null;
+  is_preferred?: boolean;
+  data_available?: boolean;
+  n_non_empty?: number;
+  source_kind?: string;
+  group_path?: string;
+  section_reliable?: boolean;
+  status?: string;
+  coverage_countable?: boolean;
 };
 
 export async function apiGraficosRegistry() {
@@ -9146,7 +9331,7 @@ export async function apiGraficosPreviewRenderer() {
 // Cuando hay una sola base, `multi` es false y el frontend puede mostrar
 // los pickers sin dropdown de fuente.
 export type VariablesBySource = {
-  sources: { name: string; variables: VarInfo[] }[];
+  sources: { name: string; source_kind?: string; variables: VarInfo[] }[];
   multi: boolean;
   active_base?: string | null;
   processing_mode?: string | null;
@@ -9155,6 +9340,74 @@ export type VariablesBySource = {
 export async function apiGraficosVariables() {
   return handle<VariablesBySource>(
     await apiFetch("/api/graficos/variables", { headers: headers() })
+  );
+}
+
+export type GraficosCoverageStatus =
+  | "cubierta"
+  | "sin_usar"
+  | "no_graficable"
+  | "cubierta_por_recodificada"
+  | "integrada_en_otra_variable"
+  | "excluida_intencionalmente"
+  | "vacía"
+  | string;
+
+export type GraficosCoverageVariable = VarInfo & {
+  status: GraficosCoverageStatus;
+  coverage_countable?: boolean;
+};
+
+export type GraficosCoverageSource = {
+  name: string;
+  source_kind?: string;
+  variables: GraficosCoverageVariable[];
+};
+
+export type GraficosCoverageSummary = {
+  total_variables: number;
+  graphable_variables: number;
+  included_graphable: number;
+  unused_graphable: number;
+  not_graphable: number;
+  empty: number;
+  covered_by_recod: number;
+  integrated: number;
+  excluded_intentionally: number;
+  included_refs: number;
+};
+
+export type GraficosCoverageResponse = {
+  ok: true;
+  summary: GraficosCoverageSummary;
+  sources: GraficosCoverageSource[];
+  warnings: string[];
+};
+
+export type GraficosSuggestedPlanResponse = {
+  ok: true;
+  plan: PlanJson;
+  coverage: GraficosCoverageResponse;
+  warnings: string[];
+};
+
+export async function apiGraficosPlanCoverage(plan: PlanJson, config?: unknown) {
+  return handle<GraficosCoverageResponse>(
+    await apiFetch("/api/graficos/plan/coverage", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ plan, config }),
+    })
+  );
+}
+
+export async function apiGraficosPlanSugerido(config?: unknown) {
+  return handle<GraficosSuggestedPlanResponse>(
+    await apiFetch("/api/graficos/plan/sugerido", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    })
   );
 }
 
@@ -10406,6 +10659,19 @@ export type CodifConfigBundle = {
     source?: string;
     notes?: string;
     exported_bases?: string[];
+    normalization?: {
+      adopted_text_duplicates?: Array<{
+        base_id: string;
+        parent: string;
+        text_col: string;
+        mode_so: string;
+        child: string;
+        parent_groups_before: number;
+        child_groups: number;
+        parent_groups_after: number;
+        action: string;
+      }>;
+    };
     contains_case_rows?: boolean;
     contains_response_match_values?: boolean;
     warnings?: string[];
@@ -10420,6 +10686,8 @@ export type CodifImportPreviewItem = {
     name: string;
     label: string;
     type: string;
+    mode_so?: string;
+    text_col?: string;
   };
   target: {
     base_id: string;
@@ -10451,6 +10719,21 @@ export type CodifImportPreview = {
     exported_at?: string;
     mode?: string;
     variables: number;
+    variables_after_normalization?: number;
+    variables_effective_after_normalization?: number;
+    normalization?: {
+      adopted_text_duplicates?: Array<{
+        base_id: string;
+        parent: string;
+        text_col: string;
+        mode_so: string;
+        child: string;
+        parent_groups_before: number;
+        child_groups: number;
+        parent_groups_after: number;
+        action: string;
+      }>;
+    };
   };
   target: {
     project_label?: string;
@@ -11112,8 +11395,22 @@ export async function apiProjectOpen(path: string) {
   );
 }
 
-// Cierra el proyecto sin cerrar la sesión — vuelve a modo efímero
-// preservando los datos cargados.
+export async function apiProjectWarmup(options: { mode?: "full"; budget_ms?: number; modules?: string[] } = {}) {
+  return handle<JobStart>(
+    await apiFetch("/api/project/warmup", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        mode: options.mode ?? "full",
+        budget_ms: options.budget_ms ?? 60000,
+        ...(options.modules?.length ? { modules: options.modules } : {}),
+      }),
+    })
+  );
+}
+
+// Cierra el proyecto activo. BootGate escucha el evento del hook de proyecto
+// y desmonta la suite para que no haya rutas principales sin .pulso.
 export async function apiProjectClose() {
   return handle<{ ok: true }>(
     await apiFetch("/api/project/close", {
@@ -11781,6 +12078,12 @@ export type CalcMuestraWorkspaceAulasConfig = {
   simulation_runs?: number;
   mos_strategy?: string;
   coordination_mode?: string;
+  replacement_depth_strategy?: "max_complete_chains_by_cell" | string;
+  min_replacements_per_titular?: number;
+  max_replacements_per_titular?: number;
+  extra_pool_policy?: "leftover_after_chains" | "none" | string;
+  replacement_equivalence_vars?: string[];
+  replacement_score_weights?: Record<string, number>;
   bolsas_reemplazo: number;
   aulas_extra_operativas_default: number;
   penalizacion_repetidos: number;
@@ -12100,12 +12403,17 @@ export type CalcMuestraAulasMethodComparison = {
 };
 
 export type CalcMuestraAulasReplacementSuggestion = {
+  selection_slot_id?: string;
+  titular_operational_code?: string;
   titular_classroom_id: string;
   titular_label?: string;
+  reserve_operational_code?: string;
+  replacement_chain_code?: string;
   reserve_classroom_id: string;
   reserve_label?: string;
   rank: number;
   wave: string;
+  replacement_order?: number;
   match_level: "misma_celda" | "celda_equivalente" | "celda_cercana" | string;
   score: number;
   before_score?: number;
@@ -12118,7 +12426,10 @@ export type CalcMuestraAulasReplacementSuggestion = {
 };
 
 export type CalcMuestraAulasReplacementImpact = {
+  selection_slot_id?: string;
+  titular_operational_code?: string;
   titular_classroom_id: string;
+  replacement_operational_code?: string;
   suggested_replacement_id: string;
   before_score?: number;
   after_score?: number;

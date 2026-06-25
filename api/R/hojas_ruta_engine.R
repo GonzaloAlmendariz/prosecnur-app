@@ -638,7 +638,71 @@ hojas_ruta_contexto_curado_path <- function() {
 }
 
 .hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
+.hojas_ruta_inei_frame_summary_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_age_simple_cache <- new.env(parent = emptyenv())
+.hojas_ruta_inei_frame_summary_cache_version <- "summary-v2-territories-zones"
+
+.hojas_ruta_frame_summary_signature <- function(source, path, info) {
+  paste(
+    .hojas_ruta_inei_frame_summary_cache_version,
+    source,
+    normalizePath(path, mustWork = FALSE),
+    info$size %||% 0,
+    as.numeric(info$mtime %||% 0),
+    sep = "|"
+  )
+}
+
+.hojas_ruta_frame_summary_disk_path <- function(source, path, info) {
+  dir <- file.path(hojas_ruta_cache_dir(), "frame_summary")
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  stamp <- paste(
+    source,
+    tools::file_path_sans_ext(basename(path)),
+    info$size %||% 0,
+    as.integer(round(as.numeric(info$mtime %||% 0))),
+    .hojas_ruta_inei_frame_summary_cache_version,
+    sep = "-"
+  )
+  stamp <- gsub("[^A-Za-z0-9_.-]", "_", stamp)
+  file.path(dir, paste0(stamp, ".json"))
+}
+
+.hojas_ruta_frame_summary_read_disk <- function(cache_file, signature) {
+  if (!file.exists(cache_file)) return(NULL)
+  out <- tryCatch(
+    jsonlite::fromJSON(cache_file, simplifyVector = FALSE),
+    error = function(e) NULL
+  )
+  if (!is.list(out)) return(NULL)
+  if (!identical(as.character(out$summary_signature %||% ""), signature)) return(NULL)
+  out
+}
+
+.hojas_ruta_frame_summary_write_disk <- function(cache_file, summary) {
+  tryCatch({
+    dir.create(dirname(cache_file), recursive = TRUE, showWarnings = FALSE)
+    jsonlite::write_json(
+      summary,
+      cache_file,
+      auto_unbox = TRUE,
+      null = "null",
+      na = "null",
+      pretty = FALSE
+    )
+  }, error = function(e) NULL)
+  invisible(cache_file)
+}
+
+.hojas_ruta_frame_zones_by_ubigeo <- function(df) {
+  if (is.null(df) || !nrow(df) || !"ubigeo" %in% names(df) || !"zona" %in% names(df)) {
+    return(list())
+  }
+  ubigeo <- sprintf("%06s", as.character(df$ubigeo))
+  zona <- sprintf("%05s", as.character(df$zona))
+  split_zones <- split(zona[nzchar(zona)], ubigeo[nzchar(ubigeo)])
+  lapply(split_zones, function(values) as.list(sort(unique(values))))
+}
 
 #' Leer el marco territorial empaquetado para hojas de ruta
 #'
@@ -698,6 +762,61 @@ hojas_ruta_inei_frame <- function(source = "current") {
   }
   .hojas_ruta_inei_frame_cache[[key]] <- df
   df
+}
+
+hojas_ruta_inei_frame_summary <- function(source = "current") {
+  source <- .hojas_ruta_normalize_frame_source(source, require_available = TRUE)
+  path <- hojas_ruta_inei_frame_path(source)
+  if (!file.exists(path)) {
+    stop("No se encontro el marco INEI 2017 empaquetado.", call. = FALSE)
+  }
+  info <- file.info(path)
+  key <- .hojas_ruta_frame_summary_signature(source, path, info)
+  cached <- .hojas_ruta_inei_frame_summary_cache[[key]]
+  if (!is.null(cached)) return(cached)
+  cache_file <- .hojas_ruta_frame_summary_disk_path(source, path, info)
+  cached_disk <- .hojas_ruta_frame_summary_read_disk(cache_file, key)
+  if (!is.null(cached_disk)) {
+    .hojas_ruta_inei_frame_summary_cache[[key]] <- cached_disk
+    return(cached_disk)
+  }
+
+  df <- utils::read.csv(
+    path,
+    stringsAsFactors = FALSE,
+    check.names = FALSE,
+    fileEncoding = "UTF-8"
+  )
+  required <- c(
+    "ubigeo", "departamento", "provincia", "distrito",
+    "id_manzana", "viviendas", "poblacion", "zona"
+  )
+  missing <- setdiff(required, names(df))
+  if (length(missing)) {
+    stop("El marco INEI 2017 no tiene columnas requeridas: ",
+         paste(missing, collapse = ", "), call. = FALSE)
+  }
+  df$ubigeo <- sprintf("%06s", as.character(df$ubigeo))
+  df <- .hojas_ruta_numeric_cols(df, c("viviendas", "poblacion"))
+  territories <- .hojas_ruta_territories(df)
+  zones_by_ubigeo <- .hojas_ruta_frame_zones_by_ubigeo(df)
+  out <- list(
+    cache_schema = .hojas_ruta_inei_frame_summary_cache_version,
+    summary_signature = key,
+    source = source,
+    path = normalizePath(path, mustWork = FALSE),
+    n_departamentos = if (nrow(df)) length(unique(df$departamento)) else 0L,
+    n_provincias = if (nrow(df)) length(unique(paste(df$departamento, df$provincia))) else 0L,
+    n_distritos = if (nrow(df)) length(unique(df$ubigeo)) else 0L,
+    n_manzanas = as.integer(nrow(df)),
+    viviendas = if (nrow(df)) as.integer(sum(df$viviendas, na.rm = TRUE)) else 0L,
+    poblacion = if (nrow(df)) as.integer(sum(df$poblacion, na.rm = TRUE)) else 0L,
+    territories = territories,
+    zones_by_ubigeo = zones_by_ubigeo
+  )
+  .hojas_ruta_frame_summary_write_disk(cache_file, out)
+  .hojas_ruta_inei_frame_summary_cache[[key]] <- out
+  out
 }
 
 #' Leer edad simple oficial INEI 2017 empaquetada
@@ -1160,7 +1279,7 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
   ))
 }
 
-.hojas_ruta_nse_meta <- function(nse = NULL) {
+.hojas_ruta_nse_meta <- function(nse = NULL, load_data = TRUE) {
   path <- hojas_ruta_nse_inei_path()
   manifest_path <- hojas_ruta_nse_inei_manifest_path()
   manifest <- if (file.exists(manifest_path)) {
@@ -1168,14 +1287,21 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
   } else {
     NULL
   }
-  if (is.null(nse)) {
+  if (is.null(nse) && isTRUE(load_data)) {
     nse <- if (file.exists(path)) tryCatch(hojas_ruta_nse_inei(), error = function(e) data.frame()) else data.frame()
+  } else if (is.null(nse)) {
+    nse <- data.frame()
   }
-  ok <- file.exists(path) && is.data.frame(nse) && nrow(nse) > 0L
-  levels <- if (ok && "nse_nivel" %in% names(nse)) sort(unique(as.character(nse$nse_nivel))) else character(0)
+  available <- file.exists(path)
+  ok <- available && (isFALSE(load_data) || (is.data.frame(nse) && nrow(nse) > 0L))
+  levels <- if (isTRUE(load_data) && ok && "nse_nivel" %in% names(nse)) {
+    sort(unique(as.character(nse$nse_nivel)))
+  } else {
+    unlist(manifest$levels %||% list(), use.names = FALSE)
+  }
   list(
     ok = ok,
-    available = ok,
+    available = available,
     source = manifest$source %||% "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar",
     provider = manifest$provider %||% "Instituto Nacional de Estadistica e Informatica (INEI)",
     distributor = manifest$distributor %||% "Plataforma Nacional de Datos Georreferenciados GeoPeru / IDEP",
@@ -1184,8 +1310,8 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
     year = as.integer(manifest$year %||% 2026L),
     version = manifest$version %||% HOJAS_RUTA_NSE_INEI_VERSION,
     coverage = manifest$coverage %||% "Lima Metropolitana y Callao",
-    rows = if (ok) as.integer(nrow(nse)) else 0L,
-    matched_blocks = as.integer(manifest$matched_blocks %||% manifest$packaged_records %||% if (ok) length(unique(nse$id_manzana_norm)) else 0L),
+    rows = as.integer(manifest$rows %||% manifest$packaged_records %||% if (isTRUE(load_data) && ok) nrow(nse) else 0L),
+    matched_blocks = as.integer(manifest$matched_blocks %||% manifest$packaged_records %||% if (isTRUE(load_data) && ok) length(unique(nse$id_manzana_norm)) else 0L),
     input_points = as.integer(manifest$input_points %||% manifest$source_records %||% NA_integer_),
     coverage_rate = as.numeric(manifest$match_rate %||% manifest$coverage_rate %||% NA_real_),
     levels = as.list(levels),
@@ -2787,6 +2913,37 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
   )
 }
 
+.hojas_ruta_frame_source_meta_light <- function(source = "current", summary = NULL) {
+  source_raw <- trimws(tolower(as.character(source %||% "current")[[1]]))
+  source_raw <- gsub("-", "_", source_raw, fixed = TRUE)
+  requested_official <- source_raw %in% c("inei", "official", "inei2017", "inei_2017", "inei2017_official")
+  source <- if (requested_official) "inei2017_official" else "current"
+  path <- if (requested_official) hojas_ruta_inei_official_frame_path() else hojas_ruta_inei_frame_path("current")
+  exists <- file.exists(path)
+  full_frame <- requested_official || grepl("manzanas_full[.]csv[.]gz$", basename(path))
+  has_summary <- is.list(summary) && identical(summary$source %||% source, source)
+  list(
+    ok = exists,
+    available = exists,
+    id = source,
+    source = if (requested_official) "INEI 2017 oficial Lima Metropolitana y Callao" else HOJAS_RUTA_INEI_SOURCE,
+    year = 2017L,
+    version = if (requested_official) HOJAS_RUTA_INEI_OFFICIAL_VERSION else HOJAS_RUTA_INEI_VERSION,
+    packaged_at = if (requested_official) NA_character_ else "2026-05-03",
+    checksum = .hojas_ruta_checksum(path),
+    coverage = if (full_frame) "Lima Metropolitana y Callao" else "Piloto Lima/Callao",
+    pilot = !full_frame,
+    granularity = if (full_frame) "manzana_urbana" else "manzana_piloto",
+    path = normalizePath(path, mustWork = FALSE),
+    n_departamentos = as.integer(if (has_summary) summary$n_departamentos %||% 0L else 0L),
+    n_provincias = as.integer(if (has_summary) summary$n_provincias %||% 0L else 0L),
+    n_distritos = as.integer(if (has_summary) summary$n_distritos %||% 0L else 0L),
+    n_manzanas = as.integer(if (has_summary) summary$n_manzanas %||% 0L else 0L),
+    viviendas = as.integer(if (has_summary) summary$viviendas %||% 0L else 0L),
+    poblacion = as.integer(if (has_summary) summary$poblacion %||% 0L else 0L)
+  )
+}
+
 .hojas_ruta_frame_meta <- function(frame = hojas_ruta_inei_frame(), active_source = "current") {
   active_source <- .hojas_ruta_normalize_frame_source(active_source, require_available = FALSE)
   path <- hojas_ruta_inei_frame_path(active_source)
@@ -2822,6 +2979,64 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     ),
     age_data = .hojas_ruta_age_simple_meta(age),
     nse_data = .hojas_ruta_nse_meta(),
+    zone_cartography = hojas_ruta_cartografia_zonas_meta(),
+    audit = hojas_ruta_frame_audit_meta(),
+    block_cartography = hojas_ruta_cartografia_manzanas_meta(),
+    street_cartography = hojas_ruta_cartografia_calles_meta(),
+    context_cartography = hojas_ruta_cartografia_contexto_meta(),
+    methods = .hojas_ruta_sampling_methods(),
+    note = if (full_frame) {
+      paste(
+        "Marco local completo para Lima Metropolitana y Callao urbano.",
+        "El frame actual sigue siendo el default; el frame oficial INEI 2017 queda disponible para auditoria y activacion controlada."
+      )
+    } else {
+      paste(
+        "Marco empaquetado para el piloto funcional Lima/Callao.",
+        "Las cuotas por edad/sexo usan edad simple oficial INEI REDATAM cuando esta disponible;",
+        "las manzanas siguen limitadas al piloto hasta activar el frame oficial validado."
+      )
+    }
+  )
+}
+
+.hojas_ruta_frame_meta_from_summary <- function(summary = hojas_ruta_inei_frame_summary(),
+                                                active_source = "current") {
+  active_source <- .hojas_ruta_normalize_frame_source(active_source, require_available = FALSE)
+  path <- hojas_ruta_inei_frame_path(active_source)
+  current_summary <- if (identical(summary$source %||% "current", "current")) summary else NULL
+  official_summary <- if (identical(summary$source %||% "current", "inei2017_official")) summary else NULL
+  current_meta <- .hojas_ruta_frame_source_meta_light("current", current_summary)
+  official_meta <- .hojas_ruta_frame_source_meta_light("inei2017_official", official_summary)
+  active_meta <- if (identical(active_source, "inei2017_official")) official_meta else current_meta
+  full_frame <- isFALSE(active_meta$pilot)
+  list(
+    ok = TRUE,
+    active_source = active_source,
+    source = active_meta$source,
+    year = active_meta$year,
+    version = active_meta$version,
+    packaged_at = active_meta$packaged_at,
+    checksum = active_meta$checksum,
+    coverage = active_meta$coverage,
+    pilot = active_meta$pilot,
+    granularity = active_meta$granularity,
+    path = normalizePath(path, mustWork = FALSE),
+    n_departamentos = as.integer(summary$n_departamentos %||% 0L),
+    n_provincias = as.integer(summary$n_provincias %||% 0L),
+    n_distritos = as.integer(summary$n_distritos %||% 0L),
+    n_manzanas = as.integer(summary$n_manzanas %||% 0L),
+    viviendas = as.integer(summary$viviendas %||% 0L),
+    poblacion = as.integer(summary$poblacion %||% 0L),
+    current = current_meta,
+    official = official_meta,
+    frame = list(
+      current = current_meta,
+      official = official_meta,
+      active_source = active_source
+    ),
+    age_data = .hojas_ruta_age_simple_meta(data.frame()),
+    nse_data = .hojas_ruta_nse_meta(load_data = FALSE),
     zone_cartography = hojas_ruta_cartografia_zonas_meta(),
     audit = hojas_ruta_frame_audit_meta(),
     block_cartography = hojas_ruta_cartografia_manzanas_meta(),

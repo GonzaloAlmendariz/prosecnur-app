@@ -87,6 +87,7 @@ export function useGraficosAutosave() {
   const inspectorTab = usePlanStore((s) => s.inspectorTab);
   const density = usePlanStore((s) => s.density);
   const canvasViewport = usePlanStore((s) => s.canvasViewport);
+  const scopeRules = usePlanStore((s) => s.scopeRules);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrate = usePlanStore((s) => s.hydrate);
@@ -147,6 +148,7 @@ export function useGraficosAutosave() {
         density,
         canvas_viewport: canvasViewport,
         scope_rules: {
+          ...scopeRules,
           global: { presets, paletas, overrides_reusables: overridesReusables, debug_ph: debugPh },
         },
       };
@@ -164,6 +166,7 @@ export function useGraficosAutosave() {
     plan, presets, wPresets, selectedSlideId,
     paletas, iconos, overridesReusables, debugPh,
     viewMode, inspectorTab, density, canvasViewport,
+    scopeRules,
     dirty, hydrated, markClean,
   ]);
 }

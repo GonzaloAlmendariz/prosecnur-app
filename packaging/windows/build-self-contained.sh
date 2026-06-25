@@ -12,6 +12,7 @@ OUT_DIR="$DIST_ROOT/$PACKAGE_NAME"
 ZIP_PATH="$DIST_ROOT/${PACKAGE_NAME}-self-contained.zip"
 INSTALLER_PATH="$DIST_ROOT/Prosecnur-Setup.exe"
 ASSETS_DIR="$DIST_ROOT/windows-installer-assets"
+COPY_TREE="$ROOT/scripts/copy-tree.sh"
 
 R_VERSION="${PROSECNUR_R_VERSION:-4.5.1}"
 ELECTRON_VERSION="${PROSECNUR_ELECTRON_VERSION:-$(node -p "require('./desktop/package.json').devDependencies.electron.replace(/^[^0-9.]*/, '')")}"
@@ -67,7 +68,7 @@ $IM_CMD "$ASSETS_DIR/wizard.png" -background white -alpha remove -alpha off BMP3
 $IM_CMD "$ASSETS_DIR/header.png" -background white -alpha remove -alpha off BMP3:"$ASSETS_DIR/header.bmp"
 
 echo "[Prosecnur] Build frontend..."
-make build
+make build-if-stale
 
 mkdir -p "$CACHE_DIR/r-installer" "$CACHE_DIR/r-packages" "$CACHE_DIR/electron"
 
@@ -94,9 +95,9 @@ rm -rf "$STAGING" "$OUT_DIR" "$ZIP_PATH" "$INSTALLER_PATH"
 mkdir -p "$STAGING/Internals" "$STAGING/runtime/electron" "$STAGING/runtime/r-installer" "$STAGING/runtime/r-packages" "$STAGING/assets"
 
 echo "[Prosecnur] Armando Internals..."
-rsync -a --delete --exclude ".DS_Store" --exclude "tests" api/ "$STAGING/Internals/api/"
-rsync -a --delete --exclude ".DS_Store" launcher/ "$STAGING/Internals/launcher/"
-rsync -a --delete --exclude ".DS_Store" --exclude "node_modules" desktop/ "$STAGING/Internals/desktop/"
+bash "$COPY_TREE" api "$STAGING/Internals/api" ".DS_Store" "tests"
+bash "$COPY_TREE" launcher "$STAGING/Internals/launcher" ".DS_Store"
+bash "$COPY_TREE" desktop "$STAGING/Internals/desktop" ".DS_Store" "node_modules"
 
 # node_modules solo prod de desktop. electron-updater es runtime dep ahora,
 # si no esta el require() en main.cjs falla. Resolvemos en una carpeta
@@ -110,7 +111,7 @@ cp desktop/package.json "$DESKTOP_PROD/"
 cp desktop/pnpm-lock.yaml "$DESKTOP_PROD/"
 (cd "$DESKTOP_PROD" && pnpm install --prod --silent --ignore-scripts --node-linker=hoisted)
 mkdir -p "$STAGING/Internals/desktop/node_modules"
-rsync -a "$DESKTOP_PROD/node_modules/" "$STAGING/Internals/desktop/node_modules/"
+bash "$COPY_TREE" "$DESKTOP_PROD/node_modules" "$STAGING/Internals/desktop/node_modules" ".DS_Store"
 rm -rf "$DESKTOP_PROD"
 
 mkdir -p "$STAGING/Internals/offline-r"
@@ -119,7 +120,7 @@ cp packaging/windows/install-r-deps-offline.R "$STAGING/Internals/offline-r/inst
 echo "[Prosecnur] Armando runtime..."
 unzip -q "$CACHE_DIR/electron/$ELECTRON_ZIP" -d "$STAGING/runtime/electron"
 cp "$CACHE_DIR/r-installer/$R_INSTALLER" "$STAGING/runtime/r-installer/$R_INSTALLER"
-rsync -a --delete "$CACHE_DIR/r-packages/" "$STAGING/runtime/r-packages/"
+bash "$COPY_TREE" "$CACHE_DIR/r-packages" "$STAGING/runtime/r-packages" ".DS_Store"
 
 cp packaging/windows/Prosecnur.bat "$STAGING/Prosecnur.bat"
 cp "$ASSETS_DIR/prosecnur.ico" "$STAGING/assets/prosecnur.ico"

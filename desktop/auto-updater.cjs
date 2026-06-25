@@ -24,17 +24,21 @@ try {
 }
 const { dialog } = require("electron");
 
+function log(logger, message) {
+  if (logger) logger(`${message}\n`);
+}
+
 function setupAutoUpdater({ logger, onUpdateAvailable } = {}) {
   if (loadError) {
-    if (logger) logger(`[updater] no se pudo cargar electron-updater: ${loadError.message}`);
+    log(logger, `[updater] no se pudo cargar electron-updater: ${loadError.message}`);
     return null;
   }
   if (!require("electron").app.isPackaged) {
-    if (logger) logger("[updater] App en modo dev, updater deshabilitado.");
+    log(logger, "[updater] App en modo dev, updater deshabilitado.");
     return null;
   }
   if (process.env.PROSECNUR_DISABLE_UPDATER === "1") {
-    if (logger) logger("[updater] Deshabilitado via PROSECNUR_DISABLE_UPDATER=1.");
+    log(logger, "[updater] Deshabilitado via PROSECNUR_DISABLE_UPDATER=1.");
     return null;
   }
 
@@ -43,9 +47,9 @@ function setupAutoUpdater({ logger, onUpdateAvailable } = {}) {
   // configura solo. Aca solo redirigimos al logger de la app si nos lo pasaron.
   if (logger) {
     autoUpdater.logger = {
-      info: (m) => logger(`[updater] ${m}`),
-      warn: (m) => logger(`[updater] WARN ${m}`),
-      error: (m) => logger(`[updater] ERROR ${m}`),
+      info: (m) => log(logger, `[updater] ${m}`),
+      warn: (m) => log(logger, `[updater] WARN ${m}`),
+      error: (m) => log(logger, `[updater] ERROR ${m}`),
       debug: () => {},
     };
   }
@@ -79,13 +83,13 @@ function setupAutoUpdater({ logger, onUpdateAvailable } = {}) {
   autoUpdater.on("error", (err) => {
     // Errores de red son comunes (offline, firewall, GitHub caido). No los
     // mostramos al usuario, solo log — la app sigue funcionando.
-    if (logger) logger(`[updater] error: ${err && err.message ? err.message : err}`);
+    log(logger, `[updater] error: ${err && err.message ? err.message : err}`);
   });
 
   // Esperamos un poco antes del primer check para que la UI termine de cargar.
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch((err) => {
-      if (logger) logger(`[updater] checkForUpdates fallo: ${err && err.message ? err.message : err}`);
+      log(logger, `[updater] checkForUpdates fallo: ${err && err.message ? err.message : err}`);
     });
   }, 8000);
 

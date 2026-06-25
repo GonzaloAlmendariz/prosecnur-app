@@ -64,32 +64,6 @@
   list(items = items, signature = signature)
 }
 
-.graficos_extract_vars_from_inst <- function(rp_inst) {
-  if (is.null(rp_inst)) return(list())
-  survey <- rp_inst$survey
-  if (is.null(survey) || !is.data.frame(survey) || !nrow(survey)) return(list())
-  choices <- rp_inst$choices %||% rp_inst$choices_raw %||% NULL
-  vs <- list()
-  for (i in seq_len(nrow(survey))) {
-    tb <- as.character(survey$type_base[i] %||% survey$type[i] %||% "")
-    if (tb %in% .graficos_var_skip_types) next
-    nm <- as.character(survey$name[i] %||% "")
-    if (!nzchar(nm)) next
-    list_name <- .graficos_list_name_for_row(survey, i)
-    choice_meta <- .graficos_choices_for_list(choices, list_name)
-    vs[[length(vs) + 1L]] <- list(
-      name = nm,
-      label = as.character(survey$label[i] %||% nm),
-      tipo = tb,
-      seccion = as.character(survey$group_name[i] %||% ""),
-      list_name = list_name,
-      choices = choice_meta$items,
-      scale_signature = choice_meta$signature
-    )
-  }
-  vs
-}
-
 .graficos_all_inst_sources <- function(sid) {
   if (exists(".pulso_rebuild_estudio_runtime_sources", mode = "function")) {
     tryCatch(.pulso_rebuild_estudio_runtime_sources(sid), error = function(e) FALSE)
@@ -108,13 +82,26 @@
 }
 
 .graficos_variables_sources_payload <- function(sid, scoped = TRUE) {
-  inst_sources <- if (isTRUE(scoped)) {
-    .graficos_processing_sources(sid)$inst_sources
+  processing_sources <- if (isTRUE(scoped)) {
+    .graficos_processing_sources(sid)
   } else {
-    .graficos_all_inst_sources(sid)
+    list(data_sources = .graficos_all_data_sources(sid), inst_sources = .graficos_all_inst_sources(sid))
   }
+  inst_sources <- processing_sources$inst_sources %||% list()
+  data_sources <- processing_sources$data_sources %||% list()
+  source_kinds <- .graficos_source_kind_map(sid)
   sources <- lapply(names(inst_sources), function(nm) {
-    list(name = nm, variables = .graficos_extract_vars_from_inst(inst_sources[[nm]]))
+    kind <- .graficos_scalar_chr(source_kinds[[nm]] %||% "", "")
+    list(
+      name = nm,
+      source_kind = .graficos_simplify_source_kind(kind),
+      variables = .graficos_extract_vars_from_inst(
+        inst_sources[[nm]],
+        data = data_sources[[nm]] %||% NULL,
+        source_name = nm,
+        source_kind = kind
+      )
+    )
   })
   list(
     sources = sources,

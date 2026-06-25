@@ -28,14 +28,15 @@ function formatPhase(phase?: string) {
     case "source": return "Fuente";
     case "source_done": return "Fuente lista";
     case "source_error": return "Fuente con error";
-    case "kobo_connect": return "Conectando Kobo";
-    case "kobo_fetch": return "Descargando Kobo";
-    case "kobo_parse": return "Procesando Kobo";
-    case "survey_fetch": return "Descargando SurveyMonkey";
-    case "sheets_fetch": return "Leyendo Sheets";
+    case "kobo_connect": return "Conectando cuenta";
+    case "kobo_fetch": return "Leyendo respuestas";
+    case "kobo_parse": return "Ordenando datos";
+    case "survey_fetch": return "Leyendo respuestas";
+    case "sheets_fetch": return "Leyendo hojas";
     case "snapshot": return "Uniendo datos";
-    case "config": return "Recalculando";
-    case "dashboard": return "Armando tablero";
+    case "config": return "Preparando corte";
+    case "dashboard": return "Preparando gráficos";
+    case "hydrate": return "Actualizando pantalla";
     case "variables": return "Variables";
     case "merge": return "Integrando";
     case "save": return "Guardando";
@@ -51,6 +52,31 @@ function formatPhase(phase?: string) {
     case "done": return "Listo";
     default: return phase ?? "";
   }
+}
+
+function formatMessage(message?: string, phase?: string) {
+  const raw = (message ?? "").trim();
+  const normalized = raw.toLowerCase();
+  if (!raw) return formatPhase(phase) || "Trabajando...";
+  if (normalized.includes("token local")) return "Cuenta lista. Buscando respuestas nuevas...";
+  if (normalized.includes("servidor")) return "Conectando con la fuente de datos...";
+  if (normalized.includes("perfil de conexion") || normalized.includes("preparando perfil")) {
+    return "Preparando conexión...";
+  }
+  if (normalized.includes("buscando registros nuevos")) return "Buscando respuestas nuevas...";
+  if (normalized.includes("descargando respuestas completas")) return "Leyendo respuestas guardadas...";
+  if (normalized.includes("respuestas recibidas")) {
+    return raw.replace(/^Kobo:\s*/i, "");
+  }
+  if (normalized.includes("normalizando") || normalized.includes("fechas y campos")) {
+    return "Ordenando las respuestas para la pantalla...";
+  }
+  if (normalized.includes("uniendo fuentes") || normalized.includes("combinando snapshot")) {
+    return "Uniendo respuestas en el proyecto...";
+  }
+  if (normalized.includes("recalculando variables")) return "Preparando el corte actualizado...";
+  if (normalized.includes("reconstruyendo tablero")) return "Preparando gráficos y resúmenes...";
+  return raw.replace(/^(Kobo|SurveyMonkey):\s*/i, "");
 }
 
 export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCancelled }: Props<T>) {
@@ -84,7 +110,7 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
     const counterTxt = progress?.current != null && progress?.total != null
       ? `${progress.current}/${progress.total}`
       : null;
-    const messageTxt = progress?.message ?? phase;
+    const messageTxt = formatMessage(progress?.message, progress?.phase);
 
     return (
       <div className="job-progress">

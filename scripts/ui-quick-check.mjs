@@ -42,6 +42,7 @@ function parseArgs(argv) {
     viewports: [],
     layoutPreset: process.env.UI_QA_LAYOUT_PRESET || "auto",
     waitSelector: ".pulso-page-frame, [data-audit-ready], .pulso-shell",
+    postClickWaitSelector: "",
     timeoutMs: DEFAULT_TIMEOUT_MS,
     frontendPort: Number(process.env.UI_QA_FRONTEND_PORT || process.env.VITE_DEV_PORT || "5174"),
     apiPort: Number(process.env.UI_QA_API_PORT || process.env.PULSO_PORT || "8788"),
@@ -50,6 +51,8 @@ function parseArgs(argv) {
     keepServers: false,
     failOnIssues: false,
     fullPage: false,
+    focusedWarmup: process.env.UI_QA_FULL_WARMUP === "1" ? false : true,
+    prefetchRouteData: process.env.UI_QA_PREFETCH_ROUTE_DATA === "1",
     clickTabs: [],
     name: "quick",
     routeProvided: false,
@@ -81,6 +84,8 @@ function parseArgs(argv) {
       out.layoutPreset = next();
     } else if (arg === "--wait-selector") {
       out.waitSelector = next();
+    } else if (arg === "--post-click-wait-selector") {
+      out.postClickWaitSelector = next();
     } else if (arg === "--timeout-ms") {
       out.timeoutMs = Number(next());
     } else if (arg === "--frontend-port") {
@@ -101,6 +106,12 @@ function parseArgs(argv) {
       out.failOnIssues = true;
     } else if (arg === "--full-page") {
       out.fullPage = true;
+    } else if (arg === "--focused-warmup") {
+      out.focusedWarmup = true;
+    } else if (arg === "--full-warmup") {
+      out.focusedWarmup = false;
+    } else if (arg === "--prefetch-route-data") {
+      out.prefetchRouteData = true;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -161,10 +172,15 @@ Opciones:
   --api auto|stub|real      Default auto: stub sin proyecto, real con proyecto.
   --out DIR                 Carpeta de reporte. Default: tmp/visual-qa/quick/<timestamp>.
   --click-tab TEXT          Hace click en una pestaña/control antes de capturar. Puede repetirse.
+  --post-click-wait-selector CSS
+                              Selector que debe existir después de los clicks.
   --headed                  Abre navegador visible de Playwright.
   --keep-servers            Deja los servidores levantados al terminar.
   --fail-on-issues          Sale con código 1 si hay overflow/clipping/errores detectados.
   --full-page               Además de la captura del viewport, guarda captura full page.
+  --focused-warmup          Carga solo warmups asociados a las rutas capturadas (default).
+  --full-warmup             Usa el warmup global completo de la app.
+  --prefetch-route-data     Hace prefetch best-effort del reporte de la ruta antes de abrirla.
 
 El reporte marca scrollJails cuando un contenedor de layout tiene contenido
 vertical inaccesible por falta de scroll propio o ancestro scrollable.
@@ -352,9 +368,11 @@ async function startStack(opts, logDir) {
   };
 
   if (opts.urlProvided) {
+    console.log(`[ui-quick-check] usando frontend existente: ${opts.url}`);
     started.url = opts.url;
     started.apiUrl = opts.apiUrl || new URL(opts.url).origin;
     if (opts.project) {
+      console.log(`[ui-quick-check] abriendo proyecto en API existente: ${opts.project}`);
       const setup = await openProjectIntoApi(started.apiUrl, opts.project, opts.timeoutMs);
       started.session = setup.session;
       started.projectStatus = setup.projectStatus;
@@ -365,6 +383,7 @@ async function startStack(opts, logDir) {
   if (opts.api === "real") {
     started.apiPort = await findFreePort(opts.apiPort);
     started.apiUrl = `http://127.0.0.1:${started.apiPort}`;
+    console.log(`[ui-quick-check] iniciando API real en ${started.apiUrl}`);
     started.api = spawnLogged("Rscript", ["launcher/launch.R"], {
       cwd: REPO_ROOT,
       name: "api",
@@ -383,6 +402,7 @@ async function startStack(opts, logDir) {
       expectJson: true,
     });
     if (opts.project) {
+      console.log(`[ui-quick-check] cargando proyecto: ${opts.project}`);
       const setup = await takeBootstrapSession(started.apiUrl, opts.timeoutMs);
       started.session = setup.session;
       started.projectStatus = setup.projectStatus;
@@ -391,6 +411,7 @@ async function startStack(opts, logDir) {
 
   started.frontendPort = await findFreePort(opts.frontendPort);
   started.url = `http://127.0.0.1:${started.frontendPort}/`;
+  console.log(`[ui-quick-check] iniciando Vite en ${started.url}`);
   const viteBin = path.join(FRONTEND_DIR, "node_modules", ".bin", process.platform === "win32" ? "vite.cmd" : "vite");
   const hasViteBin = await fileExists(viteBin);
   const viteCommand = hasViteBin ? viteBin : "npm";
@@ -413,6 +434,7 @@ async function startStack(opts, logDir) {
     timeoutMs: opts.timeoutMs,
     label: "Vite",
   });
+  console.log("[ui-quick-check] stack listo");
   return started;
 }
 
@@ -782,9 +804,10 @@ function stubSessionState() {
   };
 }
 
-function routeUrl(base, route) {
+function routeUrl(base, route, project = "") {
   const url = new URL(base);
   url.pathname = route;
+  if (project) url.searchParams.set("devPulso", project);
   return url.toString();
 }
 
@@ -792,10 +815,88 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function warmupModuleIdsForRoutes(routes) {
+  const ids = new Set(["home"]);
+  for (const route of routes) {
+    const normalized = normalizeRoute(route).replace(/\/+$/, "") || "/";
+    if (normalized === "/" || normalized === "/home") {
+      ids.add("home");
+    } else if (normalized === "/procesamiento") {
+      ids.add("procesamiento");
+    } else if (normalized.startsWith("/carga")) {
+      ids.add("carga");
+    } else if (normalized.startsWith("/validacion")) {
+      ids.add("validacion");
+    } else if (normalized.startsWith("/codificacion")) {
+      ids.add("codificacion");
+    } else if (normalized.startsWith("/analitica")) {
+      ids.add("analitica");
+    } else if (normalized.startsWith("/graficos")) {
+      ids.add("graficos");
+      ids.add("graficos_datos");
+      ids.add("plotly");
+      ids.add("html_to_image");
+    } else if (normalized.startsWith("/hojas-ruta")) {
+      ids.add("hojas_ruta");
+      ids.add("hojas_ruta_datos");
+    } else if (normalized.startsWith("/calc-muestra")) {
+      ids.add("calc_muestra");
+    } else if (normalized.startsWith("/muestra")) {
+      ids.add("muestra");
+    } else if (normalized.startsWith("/monitoreo")) {
+      ids.add("monitoreo");
+    } else if (normalized.startsWith("/dashboard")) {
+      ids.add("dashboard");
+      ids.add("dashboard_datos");
+      ids.add("html_to_image");
+    } else if (normalized.startsWith("/xlsform")) {
+      ids.add("editor_xlsform");
+    } else if (normalized.startsWith("/enciclopedia")) {
+      ids.add("enciclopedia");
+    }
+  }
+  return Array.from(ids);
+}
+
+function monitoreoReportScopeForClickTabs(clickTabs = []) {
+  const labels = clickTabs.map((value) => String(value || "").toLowerCase());
+  if (labels.some((label) => label.includes("validaci") || label.includes("geolocal") || label.includes("gps"))) {
+    return "validation_summary";
+  }
+  if (labels.some((label) => label.includes("reconcili") || label.includes("explorador") || label.includes("consulta"))) {
+    return "queries_summary";
+  }
+  if (labels.some((label) => label.includes("avance") || label.includes("actor") || label.includes("encuesta"))) {
+    return "advance_summary";
+  }
+  if (labels.some((label) => label.includes("fuentes") || label.includes("recopil"))) {
+    return "source";
+  }
+  return "source";
+}
+
+async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
+  if (!stack?.apiUrl || !stack?.session) return;
+  const normalized = normalizeRoute(route).replace(/\/+$/, "") || "/";
+  if (normalized.startsWith("/monitoreo")) {
+    const reportScope = monitoreoReportScopeForClickTabs(clickTabs);
+    console.log(`[ui-quick-check] prefetch ${normalized} report_scope=${reportScope}`);
+    const prefetchTimeoutMs = Math.min(timeoutMs, Number(process.env.UI_QA_PREFETCH_TIMEOUT_MS || "12000"));
+    const prefetched = await apiRequest(
+      stack.apiUrl,
+      `/api/monitoreo/state?include_reports=1&report_scope=${encodeURIComponent(reportScope)}`,
+      { session: stack.session, timeoutMs: prefetchTimeoutMs },
+    ).catch((error) => ({ ok: false, status: "timeout", error: error?.message || String(error) }));
+    if (!prefetched.ok) {
+      console.log(`[ui-quick-check] prefetch omitido: ${prefetched.status || "error"}`);
+    }
+  }
+}
+
 async function clickNamedControl(page, label, timeoutMs) {
   const pattern = new RegExp(escapeRegExp(label), "i");
   const startsWithPattern = new RegExp(`^\\s*${escapeRegExp(label)}(?:\\s|$)`, "i");
-  const shortTimeout = Math.min(2500, timeoutMs);
+  const shortTimeout = Math.min(9000, timeoutMs);
   const candidates = [
     page.getByRole("tab", { name: startsWithPattern }).first(),
     page.locator("button").filter({ hasText: pattern }).first(),
@@ -817,16 +918,34 @@ async function clickNamedControl(page, label, timeoutMs) {
 async function runCaptures(opts, stack) {
   const browser = await chromium.launch({ headless: !opts.headed });
   const results = [];
+  const focusedWarmupModuleIds = opts.focusedWarmup ? warmupModuleIdsForRoutes(opts.routes) : [];
   try {
     for (const viewport of opts.viewports) {
       const context = await browser.newContext({ viewport });
-      await context.addInitScript(({ layoutPreset, session }) => {
+      await context.addInitScript(({ layoutPreset, session, focusedWarmup, warmupModuleIds }) => {
         window.localStorage.setItem("pulso.layoutPreset", layoutPreset);
         if (session) window.localStorage.setItem("pulso.sessionId", session);
-      }, { layoutPreset: opts.layoutPreset, session: stack.session || "" });
+        if (focusedWarmup) {
+          window.localStorage.setItem("pulso.visualQaWarmup", "1");
+          window.localStorage.setItem("pulso.visualQaWarmupModuleIds", warmupModuleIds.join(","));
+          window.localStorage.setItem("pulso.visualQaSkipBackendWarmup", "1");
+        } else {
+          window.localStorage.removeItem("pulso.visualQaWarmup");
+          window.localStorage.removeItem("pulso.visualQaWarmupModuleIds");
+          window.localStorage.removeItem("pulso.visualQaSkipBackendWarmup");
+        }
+      }, {
+        layoutPreset: opts.layoutPreset,
+        session: stack.session || "",
+        focusedWarmup: opts.focusedWarmup,
+        warmupModuleIds: focusedWarmupModuleIds,
+      });
       if (opts.api === "stub") await installStubApi(context);
 
       for (const route of opts.routes) {
+        if (opts.api === "real" && opts.prefetchRouteData) {
+          await prefetchRouteDataForQa(stack, route, opts.timeoutMs, opts.clickTabs);
+        }
         const page = await context.newPage();
         const consoleMessages = [];
         const pageErrors = [];
@@ -851,16 +970,26 @@ async function runCaptures(opts, stack) {
           }
         });
 
-        const target = routeUrl(stack.url, route);
+        const target = routeUrl(stack.url, route, opts.project || "");
+        console.log(`[ui-quick-check] capturando ${target} @ ${viewportName(viewport)} preset=${opts.layoutPreset}`);
         await page.goto(target, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
-        await page.waitForLoadState("networkidle", { timeout: opts.timeoutMs }).catch(() => {});
+        await page.waitForLoadState("networkidle", { timeout: Math.min(5000, opts.timeoutMs) }).catch(() => {});
+        let waitSelectorMatched = true;
         if (opts.waitSelector) {
-          await page.locator(opts.waitSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {});
+          await page.locator(opts.waitSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {
+            waitSelectorMatched = false;
+          });
         }
         for (const tab of opts.clickTabs) {
           await clickNamedControl(page, tab, opts.timeoutMs);
-          await page.waitForLoadState("networkidle", { timeout: opts.timeoutMs }).catch(() => {});
+          await page.waitForLoadState("networkidle", { timeout: Math.min(5000, opts.timeoutMs) }).catch(() => {});
           await page.waitForTimeout(250);
+        }
+        let postClickWaitSelectorMatched = true;
+        if (opts.postClickWaitSelector) {
+          await page.locator(opts.postClickWaitSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {
+            postClickWaitSelectorMatched = false;
+          });
         }
         await page.waitForTimeout(250);
 
@@ -881,6 +1010,8 @@ async function runCaptures(opts, stack) {
           pageErrors,
           apiErrors,
           resourceErrors,
+          waitSelectorMatched,
+          postClickWaitSelectorMatched,
           ...dom,
         });
         await page.close();
@@ -1042,7 +1173,7 @@ async function inspectDom(page, { projectMode }) {
     }
 
     const globalOverflowX = body ? body.scrollWidth > window.innerWidth + 2 : false;
-    const noProjectText = /\bSin proyecto\b/i.test(text);
+    const noProjectText = /\bSin proyecto\b/i.test(text) || /Selecciona un proyecto\s+\.pulso/i.test(text);
     const rootClasses = String(root.getAttribute("class") || "");
     return {
       title: document.title,
@@ -1082,6 +1213,8 @@ function summarize(results, opts) {
   const apiErrors = opts.api === "real" ? results.flatMap((item) => item.apiErrors || []) : [];
   const resourceErrors = results.flatMap((item) => item.resourceErrors || []);
   const projectMisses = results.filter((item) => item.projectLoaded === false);
+  const waitSelectorMisses = results.filter((item) => item.waitSelectorMatched === false);
+  const postClickWaitSelectorMisses = results.filter((item) => item.postClickWaitSelectorMatched === false);
   return {
     captures: results.length,
     screenshots: results.map((item) => item.screenshot),
@@ -1093,6 +1226,7 @@ function summarize(results, opts) {
     apiErrors: apiErrors.length,
     resourceErrors: resourceErrors.length,
     projectMisses: projectMisses.length,
+    waitSelectorMisses: waitSelectorMisses.length + postClickWaitSelectorMisses.length,
     ok: visualIssues.length === 0 &&
       scrollJails.length === 0 &&
       globalOverflow.length === 0 &&
@@ -1100,7 +1234,9 @@ function summarize(results, opts) {
       consoleErrors.length === 0 &&
       apiErrors.length === 0 &&
       resourceErrors.length === 0 &&
-      projectMisses.length === 0,
+      projectMisses.length === 0 &&
+      waitSelectorMisses.length === 0 &&
+      postClickWaitSelectorMisses.length === 0,
   };
 }
 
@@ -1139,6 +1275,7 @@ async function main() {
         api: opts.api,
         project: opts.project || null,
         headed: opts.headed,
+        prefetchRouteData: opts.prefetchRouteData,
       },
       stack: {
         url: stack.url,
@@ -1162,7 +1299,7 @@ async function main() {
     if (stack.apiUrl) console.log(`[ui-quick-check] api: ${stack.apiUrl}`);
     if (stack.session) console.log(`[ui-quick-check] session: ${stack.session}`);
     for (const shot of summary.screenshots) console.log(`[ui-quick-check] screenshot: ${shot}`);
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} scrollJails=${summary.scrollJails} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} scrollJails=${summary.scrollJails} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();

@@ -329,8 +329,8 @@
 #'   Se mantiene por compatibilidad y actúa como alias de `umbral_etiqueta_normal`.
 #' @param umbral_etiqueta_peq Umbral mínimo de proporción para mostrar una etiqueta pequena.
 #'   Se mantiene por compatibilidad y actúa como alias de `umbral_mostrar_etiqueta`.
-#' @param umbral_mostrar_etiqueta Umbral mínimo de proporción para mostrar cualquier etiqueta interna.
-#'   Los valores por debajo de este umbral no se etiquetan.
+#' @param umbral_mostrar_etiqueta Umbral de proporción para reubicar etiquetas pequeñas.
+#'   Los valores positivos por debajo de este umbral se etiquetan dentro del ancho total de la barra.
 #' @param umbral_etiqueta_normal Umbral mínimo de proporción para usar una etiqueta de tamano normal.
 #'   Los valores entre `umbral_mostrar_etiqueta` y este umbral se muestran como etiquetas pequenas.
 #'
@@ -350,8 +350,8 @@
 #' @param color_leyenda,size_leyenda Estilos de texto de leyenda.
 #' @param color_texto_barras,size_texto_barras,size_texto_barras_peq Estilos de etiquetas internas.
 #' @param etiquetas_uniformes Si `TRUE`, activa modo uniforme de etiquetas:
-#'   no separa entre etiquetas grandes/pequenas, usa un único umbral de visibilidad
-#'   (`umbral_mostrar_etiqueta` efectivo) y aplica el repelido con sesgo hacia el centro.
+#'   no separa entre etiquetas grandes/pequenas, muestra todo valor positivo
+#'   y aplica el repelido dentro del ancho total de la barra.
 #' @param repeler_etiquetas_peq Si `TRUE`, intenta separar horizontalmente las etiquetas pequenas
 #'   cuando se superponen, manteniendolas cerca de su centro original. En modo uniforme,
 #'   este repelido se aplica a todas las etiquetas visibles.
@@ -408,6 +408,10 @@
 #' @param legend_key_cm Tamaño de “key” de la leyenda.
 #' @param legend_espaciado Espaciado lateral del texto de leyenda (pt).
 #' @param legend_n_por_fila Número de ítems por fila en la leyenda.
+#' @param legend_ancho_rel Ancho relativo mínimo reservado para la leyenda
+#'   manual compacta en canvas. Si es `NULL`, se calcula con las etiquetas.
+#' @param legend_gap_npc Separación horizontal entre ítems de leyenda manual
+#'   compacta, en coordenadas normalizadas del canvas.
 #'
 #' @param encabezado_desplazamiento_in Ajuste vertical del encabezado (in).
 #' @param encabezado_separacion_in Separación vertical entre título y subtítulo (in).
@@ -481,13 +485,14 @@ graficar_barras_apiladas <- function(
     color_leyenda         = "#000000",
     size_leyenda          = 8,
     color_texto_barras    = "white",
+    color_texto_barras_fuera = NULL,
     size_texto_barras     = 3,
     size_texto_barras_peq = NULL,
     etiquetas_uniformes   = FALSE,
     repeler_etiquetas_peq = TRUE,
-    desplazamiento_max_etiquetas_peq = 0.05,
-    etiquetas_peq_factor_ancho = 1,
-    etiquetas_peq_padding = 0.003,
+    desplazamiento_max_etiquetas_peq = 0.07,
+    etiquetas_peq_factor_ancho = 1.25,
+    etiquetas_peq_padding = 0.008,
     etiquetas_peq_max_iter = 16L,
     etiquetas_peq_sesgo_derecha = 0.5,
     etiquetas_peq_confinadas = FALSE,
@@ -500,6 +505,7 @@ graficar_barras_apiladas <- function(
     color_titulos_grupo   = NULL,
     size_titulos_grupo    = NULL,
     color_fondo           = NA,
+    font_family           = "Arial",
 
     grosor_barras         = 0.7,
     extra_derecha_rel     = 0.10,
@@ -542,8 +548,8 @@ graficar_barras_apiladas <- function(
     canvas_h_panel_in     = NULL,
     canvas_h_panel_in_min = 0,
     canvas_h_toprow_in    = 0.18,
-    canvas_min_filas      = 2L,
-    canvas_pad_bars_y_in  = 0.12,
+    canvas_min_filas      = 1L,
+    canvas_pad_bars_y_in  = 0.08,
 
     # ==========================
     # CONTROL DE GROSOR
@@ -557,6 +563,8 @@ graficar_barras_apiladas <- function(
     legend_key_cm         = 0.30,
     legend_espaciado      = 0.20,
     legend_n_por_fila     = 6L,
+    legend_ancho_rel      = NULL,
+    legend_gap_npc        = 0.018,
 
     # ==========================
     # AJUSTES POSICIONALES
@@ -614,6 +622,8 @@ graficar_barras_apiladas <- function(
   pos_nota_pie       <- match.arg(pos_nota_pie)
   grosor_modo        <- match.arg(grosor_modo)
   leyenda_posicion   <- match.arg(leyenda_posicion)
+  font_family <- as.character(font_family %||% "Arial")[1]
+  if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
   if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
   legend_pos_gg <- switch(
     leyenda_posicion,
@@ -627,24 +637,37 @@ graficar_barras_apiladas <- function(
   legend_is_top  <- identical(leyenda_posicion, "arriba")
   legend_is_side <- leyenda_posicion %in% c("derecha", "izquierda")
 
+  legend_ancho_rel <- suppressWarnings(as.numeric(legend_ancho_rel)[1])
+  if (!is.finite(legend_ancho_rel) || is.na(legend_ancho_rel) || legend_ancho_rel <= 0) {
+    legend_ancho_rel <- NA_real_
+  } else {
+    legend_ancho_rel <- max(0.15, min(0.98, legend_ancho_rel))
+  }
+  legend_gap_npc <- suppressWarnings(as.numeric(legend_gap_npc)[1])
+  if (!is.finite(legend_gap_npc) || is.na(legend_gap_npc) || legend_gap_npc < 0) {
+    legend_gap_npc <- 0.018
+  }
+  legend_gap_npc <- min(0.12, legend_gap_npc)
+
 
   # normalizaciones
   decimales <- suppressWarnings(as.integer(decimales))
   if (length(decimales) < 1L || !is.finite(decimales[1]) || decimales[1] < 0L) decimales <- 0L else decimales <- decimales[1]
   size_texto_barras_peq <- size_texto_barras_peq %||% size_texto_barras
+  color_texto_barras_fuera <- color_texto_barras_fuera %||% color_ejes %||% "#081F5C"
   etiquetas_uniformes <- isTRUE(etiquetas_uniformes)
   repeler_etiquetas_peq <- isTRUE(repeler_etiquetas_peq)
   desplazamiento_max_etiquetas_peq <- suppressWarnings(as.numeric(desplazamiento_max_etiquetas_peq)[1])
   if (!is.finite(desplazamiento_max_etiquetas_peq) || is.na(desplazamiento_max_etiquetas_peq) || desplazamiento_max_etiquetas_peq < 0) {
-    desplazamiento_max_etiquetas_peq <- 0.05
+    desplazamiento_max_etiquetas_peq <- 0.07
   }
   etiquetas_peq_factor_ancho <- suppressWarnings(as.numeric(etiquetas_peq_factor_ancho)[1])
   if (!is.finite(etiquetas_peq_factor_ancho) || is.na(etiquetas_peq_factor_ancho) || etiquetas_peq_factor_ancho <= 0) {
-    etiquetas_peq_factor_ancho <- 1
+    etiquetas_peq_factor_ancho <- 1.25
   }
   etiquetas_peq_padding <- suppressWarnings(as.numeric(etiquetas_peq_padding)[1])
   if (!is.finite(etiquetas_peq_padding) || is.na(etiquetas_peq_padding) || etiquetas_peq_padding < 0) {
-    etiquetas_peq_padding <- 0.003
+    etiquetas_peq_padding <- 0.008
   }
   etiquetas_peq_max_iter <- suppressWarnings(as.integer(etiquetas_peq_max_iter)[1])
   if (!is.finite(etiquetas_peq_max_iter) || is.na(etiquetas_peq_max_iter) || etiquetas_peq_max_iter < 1L) {
@@ -705,7 +728,7 @@ graficar_barras_apiladas <- function(
   }
 
   pulso_azul  <- "#002768"
-  pulso_verde <- "#5BAF31"
+  pulso_verde <- "#70AD47"
 
   # validaciones
   if (!var_categoria %in% names(data)) stop("`var_categoria` no existe en `data`.", call. = FALSE)
@@ -943,7 +966,7 @@ graficar_barras_apiladas <- function(
       xlim = c(0, x_max_bars),
       clip = "off"
     ) +
-    ggplot2::theme_minimal(base_size = 9) +
+    ggplot2::theme_minimal(base_size = 9, base_family = font_family) +
     ggplot2::theme(
       panel.grid.major = ggplot2::element_blank(),
       panel.grid.minor = ggplot2::element_blank(),
@@ -1013,11 +1036,19 @@ graficar_barras_apiladas <- function(
       dplyr::ungroup()
 
     if (isTRUE(etiquetas_uniformes)) {
+      label_offset <- 0.018
       df_lab <- df_lab |>
         dplyr::mutate(
-          .mostrar = .valor_plot >= umbral_mostrar_etiqueta_eff,
+          .mostrar = .valor_plot > 0,
+          .label_fuera = .mostrar & .valor_plot <= umbral_mostrar_etiqueta_eff,
           .size_label = size_texto_barras,
-          x_label = x_center
+          x_label = dplyr::case_when(
+            .label_fuera & x_left <= 0.5 ~ pmin(0.985, pmax(0.015, x_center + label_offset / 2)),
+            .label_fuera                 ~ pmax(0.015, pmin(0.985, x_center - label_offset / 2)),
+            TRUE                          ~ x_center
+          ),
+          .hjust_label = 0.5,
+          .col_label = color_texto_barras
         ) |>
         dplyr::filter(.mostrar, is.finite(x_center))
 
@@ -1028,7 +1059,7 @@ graficar_barras_apiladas <- function(
         for (idx in idx_por_cat) {
           if (length(idx) < 2L) next
           df_lab$x_label[idx] <- .repel_label_positions_apiladas(
-            x = df_lab$x_center[idx],
+            x = df_lab$x_label[idx],
             labels = df_lab$lab[idx],
             label_size = df_lab$.size_label[idx],
             movable = rep(TRUE, length(idx)),
@@ -1052,24 +1083,36 @@ graficar_barras_apiladas <- function(
             mapping = ggplot2::aes(
               x = x_label,
               y = if (usar_y_numerico) .data$.y_plot else .data[[var_categoria]],
-              label = lab
+              label = lab,
+              colour = .data$.col_label,
+              hjust = .data$.hjust_label
             ),
-            color   = color_texto_barras,
             size    = size_texto_barras,
+            family  = font_family,
             fontface = if ("porcentajes" %in% textos_negrita) "bold" else "plain",
-            inherit.aes = FALSE
-          )
+            inherit.aes = FALSE,
+            show.legend = FALSE
+          ) +
+          ggplot2::scale_colour_identity(guide = "none")
       }
     } else {
+      label_offset <- 0.018
       df_lab <- df_lab |>
         dplyr::mutate(
           .tamano_etq = dplyr::case_when(
             .valor_plot >= umbral_etiqueta_normal_eff  ~ "grande",
-            .valor_plot >= umbral_mostrar_etiqueta_eff ~ "peq",
+            .valor_plot > 0                            ~ "peq",
             TRUE                                        ~ "ninguna"
           ),
           .size_label = dplyr::if_else(.tamano_etq == "grande", size_texto_barras, size_texto_barras_peq),
-          x_label = x_center
+          .label_fuera = .tamano_etq == "peq" & .valor_plot <= umbral_mostrar_etiqueta_eff,
+          x_label = dplyr::case_when(
+            .label_fuera & x_left <= 0.5 ~ pmin(0.985, pmax(0.015, x_center + label_offset / 2)),
+            .label_fuera                 ~ pmax(0.015, pmin(0.985, x_center - label_offset / 2)),
+            TRUE                          ~ x_center
+          ),
+          .hjust_label = 0.5,
+          .col_label = color_texto_barras
         ) |>
         dplyr::filter(.tamano_etq != "ninguna", is.finite(x_center))
 
@@ -1081,7 +1124,7 @@ graficar_barras_apiladas <- function(
         for (idx in idx_por_cat) {
           if (length(idx) < 2L) next
           df_lab$x_label[idx] <- .repel_label_positions_apiladas(
-            x = df_lab$x_center[idx],
+            x = df_lab$x_label[idx],
             labels = df_lab$lab[idx],
             label_size = df_lab$.size_label[idx],
             movable = df_lab$.tamano_etq[idx] == "peq",
@@ -1097,38 +1140,25 @@ graficar_barras_apiladas <- function(
         }
       }
 
-      df_lab_grande <- df_lab[df_lab$.tamano_etq == "grande", , drop = FALSE]
-      df_lab_peq    <- df_lab[df_lab$.tamano_etq == "peq",    , drop = FALSE]
-
-      if (nrow(df_lab_grande) > 0) {
+      if (nrow(df_lab) > 0) {
         p_bars <- p_bars +
           ggplot2::geom_text(
-            data    = df_lab_grande,
+            data    = df_lab,
             mapping = ggplot2::aes(
               x = x_label,
               y = if (usar_y_numerico) .data$.y_plot else .data[[var_categoria]],
-              label = lab
+              label = lab,
+              colour = .data$.col_label,
+              size = .data$.size_label,
+              hjust = .data$.hjust_label
             ),
-            color   = color_texto_barras,
-            size    = size_texto_barras,
+            family = font_family,
             fontface = if ("porcentajes" %in% textos_negrita) "bold" else "plain",
-            inherit.aes = FALSE
-          )
-      }
-      if (nrow(df_lab_peq) > 0) {
-        p_bars <- p_bars +
-          ggplot2::geom_text(
-            data    = df_lab_peq,
-            mapping = ggplot2::aes(
-              x = x_label,
-              y = if (usar_y_numerico) .data$.y_plot else .data[[var_categoria]],
-              label = lab
-            ),
-            color   = color_texto_barras,
-            size    = size_texto_barras_peq,
-            fontface = if ("porcentajes" %in% textos_negrita) "bold" else "plain",
-            inherit.aes = FALSE
-          )
+            inherit.aes = FALSE,
+            show.legend = FALSE
+          ) +
+          ggplot2::scale_colour_identity(guide = "none") +
+          ggplot2::scale_size_identity(guide = "none")
       }
     }
   }
@@ -1172,6 +1202,7 @@ graficar_barras_apiladas <- function(
       legend.text = ggplot2::element_text(
         color = color_leyenda,
         size  = size_leyenda,
+        family = font_family,
         face  = if ("leyenda" %in% textos_negrita) "bold" else "plain",
         margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
       ),
@@ -1247,7 +1278,7 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_top2(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "TOP 2 BOX"
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "Top 2 Box"
 
       } else if (barra_extra_preset == "top3box") {
 
@@ -1255,7 +1286,7 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_top3(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "TOP 3 BOX"
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "Top 3 Box"
 
       } else if (barra_extra_preset == "bottom2box") {
 
@@ -1263,11 +1294,15 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_bottom2(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "BOTTOM 2 BOX"
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "Bottom 2 Box"
       }
 
       df_wide_extra$valor_extra <- df_wide_extra$valor_extra * 100
-      color_barra_extra_int <- pulso_verde
+      if (is.null(color_barra_extra) || !nzchar(trimws(as.character(color_barra_extra)[1]))) {
+        color_barra_extra_int <- pulso_verde
+      } else {
+        color_barra_extra_int <- as.character(color_barra_extra)[1]
+      }
       fontface_barra_extra  <- "bold"
     }
   }
@@ -1372,7 +1407,7 @@ graficar_barras_apiladas <- function(
       plot.background  = ggplot2::element_rect(fill = color_fondo, color = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, color = NA),
       # Margen lateral para que etiquetas al borde no se corten visualmente.
-      plot.margin      = ggplot2::margin(0, 4, 0, 4)
+      plot.margin      = ggplot2::margin(0, 4, 0, 18)
     )
 
   .ph_border <- function(x, y, w, h) {
@@ -1465,8 +1500,8 @@ graficar_barras_apiladas <- function(
   top_in <- canvas_h_toprow_in %||% 0
   if (!is.finite(top_in) || is.na(top_in) || top_in < 0) top_in <- 0
   if (isTRUE(mostrar_barra_extra) && !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
-    # Reserva mínima para que el título de barra extra no quede comprimido.
-    top_in <- max(top_in, (size_titulo_extra %||% 9) * 0.022)
+    # Reserva mínima compacta para que el título de barra extra no aleje el gráfico.
+    top_in <- max(top_in, max(0.09, (size_titulo_extra %||% 9) * 0.012))
   }
   top_in <- min(top_in, h_panel_in * 0.45)
   top_h  <- if (top_in > 0) top_in / h_total_in else 0
@@ -1525,6 +1560,7 @@ graficar_barras_apiladas <- function(
         vjust = 0.5,
         size  = size_titulo,
         colour= color_titulo,
+        family = font_family,
         fontface = if ("titulo" %in% textos_negrita) "bold" else "plain"
       )
     }
@@ -1537,7 +1573,8 @@ graficar_barras_apiladas <- function(
         hjust = hjust_titulo,
         vjust = 0.5,
         size  = size_subtitulo,
-        colour= color_subtitulo
+        colour= color_subtitulo,
+        family = font_family
       )
     }
 
@@ -1564,6 +1601,7 @@ graficar_barras_apiladas <- function(
         vjust    = 0.5,
         size     = size_titulo_extra,
         colour   = color_barra_extra_int,
+        family = font_family,
         fontface = "bold"
       )
     }
@@ -1661,6 +1699,7 @@ graficar_barras_apiladas <- function(
         vjust    = 0.5,
         size     = size_titulos_grupo,
         colour   = color_titulos_grupo,
+        family = font_family,
         fontface = "bold"
       )
     }
@@ -1680,6 +1719,7 @@ graficar_barras_apiladas <- function(
       vjust    = 0.5,
       size     = size_ejes,
       colour   = color_ejes,
+      family = font_family,
       fontface = fontface_etq
     )
   }
@@ -1696,6 +1736,7 @@ graficar_barras_apiladas <- function(
         vjust    = 0.5,
         size     = size_barra_extra,
         colour   = color_barra_extra_int,
+        family = font_family,
         fontface = fontface_barra_extra
       )
     }
@@ -1745,12 +1786,21 @@ graficar_barras_apiladas <- function(
         idx_row <- which(row_ids == r)
         n_row <- length(idx_row)
         if (!n_row) next
-        slot_w <- 0.96 / max(1L, n_row)
-        x_origin <- 0.02
+        labels_row <- labels_manual[idx_row]
+        label_chars <- nchar(gsub("\\s+", " ", gsub("\n", " ", labels_row)), type = "width")
+        text_w <- pmax(0.030, label_chars * size_leyenda * 0.00105)
+        item_w <- key_w + key_gap + text_w
+        slot_gap <- legend_gap_npc
+        slot_w <- max(item_w, na.rm = TRUE)
+        row_w <- slot_w * n_row + slot_gap * max(0L, n_row - 1L)
+        if (is.finite(legend_ancho_rel)) row_w <- max(row_w, legend_ancho_rel)
+        row_w <- max(0.12, min(0.98, row_w))
+        slot_w <- (row_w - slot_gap * max(0L, n_row - 1L)) / max(1L, n_row)
+        x_origin <- 0.5 - row_w / 2
         y_row <- y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg
         for (j in seq_along(idx_row)) {
           idx <- idx_row[j]
-          x_left <- x_origin + (j - 1L) * slot_w
+          x_left <- x_origin + (j - 1L) * (slot_w + slot_gap)
           canvas <- canvas + ggplot2::annotate(
             "rect",
             xmin = x_left,
@@ -1766,6 +1816,7 @@ graficar_barras_apiladas <- function(
             y = y_row,
             size = size_leyenda,
             color = color_leyenda,
+            family = font_family,
             fontface = fontface_ley,
             hjust = 0,
             vjust = 0.5
@@ -1802,6 +1853,7 @@ graficar_barras_apiladas <- function(
       hjust = hjust_caption,
       vjust = 0.5,
       size  = size_nota_pie,
+      family = font_family,
       colour= color_nota_pie
     )
     if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_caption0, 1, caption_h)
