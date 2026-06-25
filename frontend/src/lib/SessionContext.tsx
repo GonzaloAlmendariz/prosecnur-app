@@ -24,8 +24,13 @@ type Ctx = {
 
 const SessionContext = createContext<Ctx | null>(null);
 
+function initialStoredSessionId() {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem("pulso.sessionId") ?? "";
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [sessionId, setSessionId] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string>(initialStoredSessionId);
   const [version, setVersion] = useState<string>("…");
   const [state, setState] = useState<SessionState | null>(null);
   const [error, setError] = useState<string>("");

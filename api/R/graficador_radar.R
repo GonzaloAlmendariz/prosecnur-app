@@ -215,7 +215,7 @@ graficar_radar <- function(
     # TABLA (derecha)
     # -------------------------------------------------------------------------
     mostrar_tabla_derecha = FALSE,
-    titulo_tabla = "TOP 2 BOX",
+    titulo_tabla = "Top 2 Box",
     umbral_rojo_pct = 60,
     tabla_digits = 0L,
 
@@ -427,7 +427,7 @@ graficar_radar <- function(
   # ---------------------------------------------------------------------------
 
   # A) construir data.frame (texto) para la tabla
-  .make_tabla_ttb_df <- function(df_plot, ejes, grupos, digits = 0L, titulo_left = "TOP 2 BOX") {
+  .make_tabla_ttb_df <- function(df_plot, ejes, grupos, digits = 0L, titulo_left = "Top 2 Box") {
     digits <- suppressWarnings(as.integer(digits))
     if (!is.finite(digits) || digits < 0L) digits <- 0L
 

@@ -1117,10 +1117,13 @@ test_that("perfil acreditacion genera reportes tipo Apps Script desde snapshot S
     dashboard_cache_key = .monitoreo_dashboard_cache_key
   )
   cache_token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg)
+  snapshot$dashboard_cache_token <- cache_token
+  snapshot$dashboard_report_scope <- "full"
   expect_true(.monitoreo_snapshot_dashboard_valid(snapshot, data, cfg, cache_token))
   stale_snapshot <- snapshot
   stale_snapshot$config <- modifyList(cfg, list(status_var = "otro_estado"))
-  expect_false(.monitoreo_snapshot_dashboard_valid(stale_snapshot, data, cfg, cache_token))
+  stale_token <- .monitoreo_dashboard_cache_token(stale_snapshot, data, stale_snapshot$config)
+  expect_false(.monitoreo_snapshot_dashboard_valid(stale_snapshot, data, stale_snapshot$config, stale_token))
   expect_equal(vapply(reports$sheets, `[[`, character(1), "id"), c(
     "resumen",
     "monitoreo_telefonico",
@@ -1161,6 +1164,69 @@ test_that("perfil acreditacion genera reportes tipo Apps Script desde snapshot S
   expect_equal(detail_block$rows[[1]]$Intentos, 3L)
   expect_equal(detail_block$rows[[1]]$`Ratio insistencia`, 0.75)
   expect_true(length(reports$sheets[[4]]$blocks[[1]]$rows) >= 1L)
+})
+
+test_that("perfil acreditacion usa payload minimo para scope source", {
+  data <- data.frame(
+    CodPulso = c("C1", "C2", "C3"),
+    Status = c("Efectivo", "No barrido", "Rechazo"),
+    Responsable = c("Ana", "Ana", "Luis"),
+    Fecha = c("2026-06-01", "2026-06-01", "2026-06-02"),
+    .source_role = rep("barrido", 3),
+    .source_label = rep("Barrido carrera - Civil", 3),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "segmentada_por_carrera",
+      segments = list(list(id = "Civil", label = "Civil", actor = "Egresados")),
+      minimums = list(Civil = 2)
+    )
+  ), data)
+
+  reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "source")
+  expect_equal(reports$report_scope, "source")
+  expect_equal(reports$internal_queries, list())
+  expect_equal(reports$sheets, list())
+  expect_equal(reports$client_report$sources, list())
+  expect_equal(reports$client_report$daily_actor, list())
+
+  dashboard <- monitoreo_build_dashboard(data, cfg, include_reports = TRUE, report_scope = "source")
+  expect_equal(dashboard$acreditacion_reports$report_scope, "source")
+  expect_equal(dashboard$acreditacion_reports$client_report$sources, list())
+})
+
+test_that("perfil acreditacion usa payload liviano para consultas internas", {
+  data <- data.frame(
+    CodPulso = c("C1", "C2", "C1", "C3"),
+    Status = c("Pendiente", "Pendiente", "completed", "partial"),
+    Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-03"),
+    .source_role = c("universo", "universo", "respuestas", "respuestas"),
+    .source_label = c("Base carrera - Civil", "Base carrera - Civil", "Encuesta Civil - Correo", "Encuesta Civil - Correo"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "segmentada_por_carrera",
+      segments = list(list(id = "Civil", label = "Civil", actor = "Egresados")),
+      minimums = list(Civil = 2)
+    )
+  ), data)
+
+  reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "queries_summary")
+  expect_equal(reports$report_scope, "queries_summary")
+  expect_equal(reports$client_report$sources, list())
+  expect_equal(reports$sheets, list())
+  expect_equal(reports$internal_queries$schema, "monitoreo_acreditacion_internal_queries_v1")
+  expect_true(length(reports$internal_queries$cases) > 0L)
+
+  dashboard <- monitoreo_build_dashboard(data, cfg, include_reports = TRUE, report_scope = "queries_summary")
+  expect_equal(dashboard$acreditacion_reports$report_scope, "queries_summary")
+  expect_true(length(dashboard$acreditacion_reports$internal_queries$cases) > 0L)
 })
 
 test_that("perfil acreditacion separa rechazos por origen y reconoce fechas de plataforma", {
@@ -1533,6 +1599,202 @@ test_that("perfil acreditacion permite decision auditada de incluir respuestas s
   }))
 }
 
+test_that("perfil acreditacion prioriza codigo PUCP declarado sobre ids tecnicos SurveyMonkey", {
+  data <- data.frame(
+    `Código PUCP` = c("203102", "", ""),
+    Nombre = c("Docente PUC", "", ""),
+    custom_value = c("", "115118926233", "11511922214"),
+    q0005 = c("", "203102", "999999"),
+    response_id = c("", "115118926233", "11511922214"),
+    response_status = c("", "completed", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00", "2026-06-13T11:00:00+00:00"),
+    .source_role = c("universo", "respuestas", "respuestas"),
+    .source_label = c(
+      "Base · Docentes",
+      "SurveyMonkey · Docentes · WhatsApp",
+      "SurveyMonkey · Docentes · WhatsApp"
+    ),
+    .source_id = c("base-docentes", "sm-docentes-whatsapp", "sm-docentes-whatsapp"),
+    dim_actor = c("Docentes", "Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data <- .monitoreo_set_source_variable_labels(data, "sm-docentes-whatsapp", c(
+    q0005 = "Código PUK declarado por el docente"
+  ))
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    variant = "multi_actor",
+    units = list(list(id = "Docentes", label = "Docentes")),
+    key_rules = list(
+      universe_fields = c("Código PUCP"),
+      response_fields = c("custom_value", "Código PUC", "Código PUK"),
+      automatic_detection = FALSE
+    )
+  ))
+
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  matched <- reviewed[reviewed$response_id == "115118926233", , drop = FALSE]
+  outside <- reviewed[reviewed$response_id == "11511922214", , drop = FALSE]
+  trace <- .monitoreo_report_reconciliation_trace_df(data, profile)
+  traced_outside <- trace[trace$response_id == "11511922214", , drop = FALSE]
+
+  expect_equal(matched$base_result, "Cruzó")
+  expect_equal(matched$case_key, "codigo:203102")
+  expect_equal(matched$person_label, "Docente PUC")
+  expect_equal(outside$base_result, "Sin cruce")
+  expect_equal(outside$case_key, "codigo:999999")
+  expect_equal(outside$assisted_review[[1]]$primary_key, "999999")
+  expect_equal(outside$assisted_review[[1]]$declared_code, "999999")
+  expect_equal(traced_outside$`Columna respuesta`, "q0005")
+  expect_equal(traced_outside$`Valor respuesta`, "999999")
+})
+
+test_that("perfil acreditacion no cruza codigo PUCP por inferencia estructural sin variable configurada", {
+  data <- data.frame(
+    `Código PUCP` = c("00003629", ""),
+    Nombre = c("Docente WhatsApp", ""),
+    q0001 = c("", "Sí"),
+    q0002 = c("", "jcdextre@pucp.edu.pe"),
+    q0003 = c("", "00003629"),
+    q0004 = c("", "80"),
+    response_id = c("", "115118926233"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_kind = c("google_sheets", "surveymonkey"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · Personalizado"),
+    .source_id = c("base-docentes", "sm-contabilidad-docentes-personalizado"),
+    dim_actor = c("Docentes", "Docentes"),
+    dim_canal = c("", "WhatsApp"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(data, "variable_labels") <- c(
+    q0002 = "En caso desee que se le envíen los resultados del estudio, indique un correo electrónico",
+    q0003 = "¿Cuántos años tiene en la actualidad?",
+    q0004 = "¿Cuál es su código PUCP ?"
+  )
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    variant = "multi_actor",
+    units = list(list(id = "Docentes", label = "Docentes")),
+    key_rules = list(
+      universe_fields = c("Código PUCP"),
+      response_fields = c("Código PUCP"),
+      automatic_detection = FALSE
+    )
+  ))
+
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  response_case <- reviewed[reviewed$response_id == "115118926233", , drop = FALSE]
+  trace <- .monitoreo_report_reconciliation_trace_df(data, profile)
+  traced <- trace[trace$response_id == "115118926233", , drop = FALSE]
+
+  expect_equal(response_case$base_result, "Sin llave")
+  expect_equal(response_case$case_key, "")
+  expect_equal(response_case$person_label, "")
+  expect_equal(traced$Resultado, "Sin llave")
+  expect_equal(traced$`Columna respuesta`, "")
+  expect_equal(traced$`Valor respuesta`, "")
+})
+
+test_that("perfil acreditacion usa variable PUCP configurada por fuente SurveyMonkey", {
+  data <- data.frame(
+    `Código PUCP` = c("00003629", ""),
+    Nombre = c("Docente configurado", ""),
+    q0001 = c("", "Sí"),
+    q0002 = c("", "docente@pucp.edu.pe"),
+    q0003 = c("", "00003629"),
+    q0004 = c("", "80"),
+    response_id = c("", "115118926233"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_kind = c("google_sheets", "surveymonkey"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · Correo"),
+    .source_id = c("base-docentes", "sm-docentes-correo"),
+    dim_actor = c("Docentes", "Docentes"),
+    dim_canal = c("", "Correo"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(data, "variable_labels") <- c(
+    q0002 = "En caso desee que se le envíen los resultados del estudio, indique un correo electrónico",
+    q0003 = "¿Cuántos años tiene en la actualidad?",
+    q0004 = "¿Cuál es su código PUCP ?"
+  )
+  data <- .monitoreo_apply_source_metadata_to_data(data, list(list(
+    id = "sm-docentes-correo",
+    kind = "surveymonkey",
+    label = "SurveyMonkey · Docentes · Correo",
+    enabled = TRUE,
+    declared_person_code_var = "q0003",
+    declared_person_code_label = "Código PUCP declarado por el docente",
+    role = "respuestas"
+  )))
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    variant = "multi_actor",
+    units = list(list(id = "Docentes", label = "Docentes")),
+    key_rules = list(
+      universe_fields = c("Código PUCP"),
+      response_fields = c("Código PUCP"),
+      automatic_detection = FALSE
+    )
+  ))
+
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  matched <- reviewed[reviewed$response_id == "115118926233", , drop = FALSE]
+  trace <- .monitoreo_report_reconciliation_trace_df(data, profile)
+  traced <- trace[trace$response_id == "115118926233", , drop = FALSE]
+
+  expect_equal(matched$base_result, "Cruzó")
+  expect_equal(matched$case_key, "codigo:00003629")
+  expect_equal(matched$person_label, "Docente configurado")
+  expect_equal(traced$`Columna respuesta`, "q0003")
+  expect_equal(traced$`Etiqueta respuesta`, "Código PUCP declarado por el docente")
+})
+
+test_that("perfil acreditacion no usa codigo Pulso del encuestador como codigo PUCP", {
+  data <- data.frame(
+    `Código PUCP` = c("203102", ""),
+    q0006 = c("", "203102"),
+    response_id = c("", "r-codigo-pulso"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · WhatsApp"),
+    .source_id = c("base-docentes", "sm-docentes-whatsapp"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data <- .monitoreo_set_source_variable_labels(data, "sm-docentes-whatsapp", c(
+    q0006 = "Código Pulso del encuestador"
+  ))
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    variant = "multi_actor",
+    units = list(list(id = "Docentes", label = "Docentes")),
+    key_rules = list(
+      universe_fields = c("Código PUCP"),
+      response_fields = c("Código PUCP"),
+      automatic_detection = FALSE
+    )
+  ))
+
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  response_case <- reviewed[reviewed$response_id == "r-codigo-pulso", , drop = FALSE]
+  trace <- .monitoreo_report_reconciliation_trace_df(data, profile)
+  traced <- trace[trace$response_id == "r-codigo-pulso", , drop = FALSE]
+
+  expect_equal(response_case$base_result, "Sin llave")
+  expect_equal(response_case$case_key, "")
+  expect_equal(response_case$assisted_review[[1]]$declared_code, "")
+  expect_equal(traced$Resultado, "Sin llave")
+})
+
 test_that("perfil acreditacion sugiere candidato por correo exacto sin incluir automaticamente", {
   data <- .monitoreo_test_assisted_review_data()
   profile <- .monitoreo_test_assisted_review_profile()
@@ -1590,6 +1852,63 @@ test_that("perfil acreditacion marca pendiente por correo similar sin incluir au
   expect_equal(assisted$assignment_candidates[[1]]$match_type, "email_similar")
   expect_equal(assisted$assignment_candidates[[1]]$evidence_level, "possible")
   expect_true(assisted$assignment_candidates[[1]]$evidence_score >= 72L)
+})
+
+test_that("perfil acreditacion sugiere reconciliacion por nombre exacto sin incluir automaticamente", {
+  data <- data.frame(
+    CodPulso = c("00002849", ""),
+    Nombre = c("Javier Rosas", "Javier Rosas"),
+    correo = c("javier.rosas@pucp.edu.pe", ""),
+    cv_id = c("", "99999999"),
+    response_id = c("", "r-javier-nombre"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · WhatsApp"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-javier-nombre", , drop = FALSE]
+  assisted <- reviewed$assisted_review[[1]]
+
+  expect_equal(reviewed$base_result, "Sin cruce")
+  expect_equal(reviewed$advancement, "excluded")
+  expect_equal(assisted$declared_name, "Javier Rosas")
+  expect_equal(length(assisted$assignment_candidates), 1L)
+  expect_equal(assisted$assignment_candidates[[1]]$match_type, "name_exact")
+  expect_equal(assisted$assignment_candidates[[1]]$evidence_level, "exact")
+  expect_equal(assisted$assignment_candidates[[1]]$person_label, "Javier Rosas")
+})
+
+test_that("perfil acreditacion sugiere reconciliacion por nombre similar sin incluir automaticamente", {
+  data <- data.frame(
+    CodPulso = c("00002849", ""),
+    Nombre = c("Javier Rosas", "Javier Rosa"),
+    correo = c("javier.rosas@pucp.edu.pe", ""),
+    cv_id = c("", "99999999"),
+    response_id = c("", "r-javier-nombre-similar"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-13T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · WhatsApp"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- .monitoreo_test_assisted_review_profile()
+  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-javier-nombre-similar", , drop = FALSE]
+  assisted <- reviewed$assisted_review[[1]]
+
+  expect_equal(reviewed$base_result, "Sin cruce")
+  expect_equal(reviewed$advancement, "excluded")
+  expect_equal(length(assisted$assignment_candidates), 1L)
+  expect_equal(assisted$assignment_candidates[[1]]$match_type, "name_similar")
+  expect_equal(assisted$assignment_candidates[[1]]$evidence_level, "possible")
+  expect_true(assisted$assignment_candidates[[1]]$evidence_score >= 88L)
 })
 
 test_that("perfil acreditacion no sugiere candidatos fuera del actor", {
@@ -1983,6 +2302,45 @@ test_that("perfil acreditacion cruza respuestas por email de destinatario Survey
   expect_equal(matched$`Columna base`, "email")
 })
 
+test_that("perfil acreditacion distingue recipient_email de correo observado", {
+  data <- data.frame(
+    email = c("destinatario@pucp.edu.pe", "observado@pucp.edu.pe", "", ""),
+    recipient_email = c("", "", "destinatario@pucp.edu.pe", ""),
+    email_address = c("", "", "", "observado@pucp.edu.pe"),
+    recipient_id = c("", "", "10691362291", ""),
+    response_id = c("", "", "r-recipient", "r-observed"),
+    response_status = c("", "", "completed", "completed"),
+    date_modified = c("", "", "2026-06-01T10:00:00+00:00", "2026-06-01T11:00:00+00:00"),
+    .source_role = c("universo", "universo", "respuestas", "respuestas"),
+    .source_label = c("Base · Administrativos", "Base · Administrativos", "SurveyMonkey · Administrativos · Correo", "SurveyMonkey · Administrativos · Correo"),
+    dim_actor = c("Administrativos", "Administrativos", "Administrativos", "Administrativos"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    variant = "multi_actor",
+    units = list(list(id = "Administrativos", label = "Administrativos")),
+    key_rules = list(
+      universe_fields = c("email"),
+      response_fields = c("recipient_email", "email_address", "cv_id"),
+      automatic_detection = FALSE
+    )
+  ))
+
+  cases <- .monitoreo_acreditacion_internal_queries(data, profile)$cases
+  recipient <- Filter(function(item) identical(item$response_id, "r-recipient"), cases)[[1]]
+  observed <- Filter(function(item) identical(item$response_id, "r-observed"), cases)[[1]]
+
+  expect_equal(recipient$base_result, "Cruzó")
+  expect_equal(recipient$primary_identity_label, "Correo del envío")
+  expect_equal(recipient$primary_identity_value, "destinatario@pucp.edu.pe")
+
+  expect_equal(observed$base_result, "Cruzó")
+  expect_equal(observed$primary_identity_label, "Correo observado en respuesta")
+  expect_equal(observed$primary_identity_value, "observado@pucp.edu.pe")
+})
+
 test_that("perfil acreditacion no usa canales como unidades cuando existe dim_actor", {
   data <- data.frame(
     CodPulso = c("A1", "A2", "A3", "A4", "A5"),
@@ -2044,6 +2402,61 @@ test_that("perfil acreditacion no usa canales como unidades cuando existe dim_ac
   expect_true("Llamadas Egresados (tel-egresados)" %in% collector_df$Recopilador)
   expect_true("Correo egresados (correo-egresados)" %in% collector_df$Recopilador)
   expect_equal(sum(collector_df$Actor == "Egresados"), 2L)
+})
+
+test_that("avance diario por recopilador prioriza nombre humano configurado", {
+  data <- data.frame(
+    CodigoPUCP = c("000001", "000001"),
+    cv_id = c("", "000001"),
+    response_status = c("", "completed"),
+    date_modified = c("", "2026-06-21T10:00:00+00:00"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · Ficha QR"),
+    .source_id = c("base-docentes", "sm-docentes-qr"),
+    collector_id = c("", "464762324"),
+    collector_name = c("", ""),
+    dim_actor = c("Docentes", "Docentes"),
+    dim_canal = c("", "Ficha QR"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Docentes", label = "Docentes")),
+      key_rules = list(
+        universe_fields = c("CodigoPUCP"),
+        response_fields = c("cv_id"),
+        automatic_detection = FALSE
+      )
+    ),
+    operational_model = list(
+      link_collectors = list(list(
+        source_id = "sm-docentes-qr",
+        source_label = "SurveyMonkey · Docentes · Ficha QR",
+        survey_id = "survey-docentes",
+        collector_id = "464762324",
+        collector_name = "Aula 201",
+        collector_type = "weblink",
+        enabled = TRUE,
+        channel = "Ficha QR",
+        operational_use = "presencial_qr",
+        modality = "presencial",
+        roster_required = FALSE
+      ))
+    )
+  ), data)
+
+  collector_df <- .monitoreo_report_daily_source_df(
+    data,
+    cfg$monitoreo_profile,
+    by_collector = TRUE,
+    config = cfg
+  )
+
+  expect_true("Aula 201 (464762324)" %in% collector_df$Recopilador)
+  expect_false("464762324" %in% collector_df$Recopilador)
 })
 
 test_that("reporte cliente usa solo efectivas y omite metadata operacional", {
@@ -5189,6 +5602,303 @@ test_that("modelo de avance diario maneja vacios y desagrega territorial por dis
   expect_false("-" %in% responsible_ump$Encuestador)
 })
 
+test_that("snapshot de monitoreo persiste metadata por fuente y modelos de graficos", {
+  sources <- monitoreo_normalize_sources(list(
+    list(
+      id = "sm_admin",
+      kind = "surveymonkey",
+      label = "Acreditacion Contabilidad PUCP - Administrativos",
+      survey_id = "s_admin",
+      dimensions = list(actor = "Administrativos", canal = "Correo"),
+      collectors = list(list(id = "c_admin", name = "Administrativos - Correo", type = "email"))
+    ),
+    list(
+      id = "sm_doc",
+      kind = "surveymonkey",
+      label = "Acreditacion Contabilidad PUCP - Docentes Personalizado",
+      survey_id = "s_doc",
+      dimensions = list(actor = "Docentes", canal = "WhatsApp"),
+      collectors = list(list(id = "c_doc", name = "Aulas faltantes", type = "weblink"))
+    )
+  ))
+  admin <- data.frame(
+    response_id = c("a1", "a2", "a3"),
+    collector_id = c("c_admin", "c_admin", "c_admin"),
+    recipient_id = c("ra1", "ra2", "ra3"),
+    fecha = c("2026-06-17", "2026-06-18", "2026-06-18"),
+    status = c("completed", "partial", "rejected"),
+    q0001 = c("100001", "100002", ""),
+    q0002 = c("999111222", "", "999333444"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(admin, "variable_labels") <- c(q0001 = "Código PUCP", q0002 = "Celular")
+  admin <- .monitoreo_add_source_columns(admin, sources[[1]])
+  doc <- data.frame(
+    response_id = c("d1", "d2"),
+    collector_id = c("c_doc", "c_doc"),
+    recipient_id = c("", ""),
+    fecha = c("2026-06-18", "2026-06-19"),
+    status = c("completed", "completed"),
+    q0001 = c("200001", ""),
+    q0002 = c("988111222", "988333444"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(doc, "variable_labels") <- c(q0001 = "¿Cuál es su código PUCP?", q0002 = "Celular")
+  doc <- .monitoreo_add_source_columns(doc, sources[[2]])
+  data <- .monitoreo_bind_rows(list(admin, doc))
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "acreditacion", route_selected = TRUE),
+    date_var = "fecha",
+    status_var = "status",
+    valid_statuses = c("completed"),
+    goals = list(
+      list(filters = list(dim_actor = "Administrativos"), meta = 3L),
+      list(filters = list(dim_actor = "Docentes"), meta = 2L)
+    )
+  ), data)
+  dashboard <- monitoreo_build_dashboard(data, cfg)
+  artifacts <- monitoreo_snapshot_artifacts(
+    data,
+    cfg,
+    sources = sources,
+    dashboard = dashboard,
+    synced_at = "2026-06-21T12:00:00Z"
+  )
+
+  expect_equal(artifacts$generation_version, "monitoreo_snapshot_v2")
+  expect_equal(artifacts$generation_status, "complete")
+  admin_vars <- artifacts$source_metadata$variables_by_source$sm_admin
+  doc_vars <- artifacts$source_metadata$variables_by_source$sm_doc
+  admin_code <- Filter(function(item) identical(item$name, "q0001"), admin_vars)[[1]]
+  doc_code <- Filter(function(item) identical(item$name, "q0001"), doc_vars)[[1]]
+  expect_equal(admin_code$non_empty, 2L)
+  expect_equal(admin_code$total, 3L)
+  expect_equal(doc_code$non_empty, 1L)
+  expect_equal(doc_code$total, 2L)
+  expect_true(any(vapply(artifacts$source_metadata$collectors, function(item) identical(item$collector_name, "Aulas faltantes"), logical(1))))
+  expect_true(length(artifacts$chart_models$daily_progress$daily_effective) > 0L)
+})
+
+test_that("snapshot de monitoreo marca parcial sin borrar modelos generados", {
+  source <- monitoreo_normalize_sources(list(list(
+    id = "sm_admin",
+    kind = "surveymonkey",
+    label = "Acreditacion",
+    survey_id = "s_admin",
+    dimensions = list(actor = "Administrativos", canal = "Correo")
+  )))[[1]]
+  data <- data.frame(
+    response_id = "a1",
+    collector_id = "c_admin",
+    fecha = "2026-06-17",
+    status = "completed",
+    q0001 = "100001",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(data, "variable_labels") <- c(q0001 = "Código PUCP")
+  data <- .monitoreo_add_source_columns(data, source)
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "acreditacion", route_selected = TRUE),
+    date_var = "fecha",
+    status_var = "status",
+    valid_statuses = c("completed")
+  ), data)
+  dashboard <- monitoreo_build_dashboard(data, cfg)
+  artifacts <- monitoreo_snapshot_artifacts(
+    data,
+    cfg,
+    sources = list(source),
+    dashboard = dashboard,
+    synced_at = "2026-06-21T12:00:00Z",
+    errors = list(list(source_id = "sm_admin", message = "HTTP 401"))
+  )
+
+  expect_equal(artifacts$generation_status, "partial")
+  expect_equal(artifacts$sync_errors[[1]]$message, "HTTP 401")
+  expect_true(length(artifacts$chart_models$daily_progress$daily_effective) > 0L)
+})
+
+test_that("perfil alternativo de SurveyMonkey se resuelve sin mutar la fuente", {
+  source <- list(
+    id = "sm_admin",
+    kind = "surveymonkey",
+    connection_profile_id = "perfil_original"
+  )
+
+  profile_id <- .monitoreo_source_connection_profile_id(
+    source,
+    list(surveymonkey_profile_id = "perfil_alterno"),
+    "surveymonkey"
+  )
+  expect_equal(profile_id, "perfil_alterno")
+  expect_equal(source$connection_profile_id, "perfil_original")
+
+  nested_profile_id <- .monitoreo_source_connection_profile_id(
+    source,
+    list(profile_overrides = list(surveymonkey = "perfil_nested")),
+    "surveymonkey"
+  )
+  expect_equal(nested_profile_id, "perfil_nested")
+
+  expect_equal(
+    .monitoreo_source_connection_profile_id(source, list(profile_id = "ignorado"), "kobo"),
+    "perfil_original"
+  )
+})
+
+.with_mocked_monitoreo_binding <- function(name, value) {
+  target_env <- environment(monitoreo_sync_source)
+  had_previous <- exists(name, envir = target_env, inherits = FALSE)
+  previous <- if (had_previous) get(name, envir = target_env) else NULL
+  was_locked <- had_previous && bindingIsLocked(name, target_env)
+  if (was_locked) unlockBinding(name, target_env)
+  assign(name, value, envir = target_env)
+  if (was_locked) lockBinding(name, target_env)
+
+  function() {
+    exists_now <- exists(name, envir = target_env, inherits = FALSE)
+    is_locked <- exists_now && bindingIsLocked(name, target_env)
+    if (is_locked) unlockBinding(name, target_env)
+    if (had_previous) {
+      assign(name, previous, envir = target_env)
+    } else if (exists_now) {
+      rm(list = name, envir = target_env)
+    }
+    if (was_locked && exists(name, envir = target_env, inherits = FALSE)) {
+      lockBinding(name, target_env)
+    }
+  }
+}
+
+test_that("sync SurveyMonkey prueba perfil alternativo y persiste nombres de recopiladores", {
+  calls <- character(0)
+  restores <- list(
+    .with_mocked_monitoreo_binding(".connections_load_profile_manifest", function(provider) {
+      list(
+        default_profile_id = "perfil_roto",
+        profiles = list(
+          list(id = "perfil_roto", alias = "Secundario"),
+          list(id = "perfil_ok", alias = "Principal")
+        )
+      )
+    }),
+    .with_mocked_monitoreo_binding(".connections_token_require", function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
+      if (identical(as.character(profile_id %||% ""), "perfil_ok")) "token_ok" else "token_roto"
+    }),
+    .with_mocked_monitoreo_binding("sm_api_fetch_survey_details", function(survey_id, token, base_url = "https://api.surveymonkey.com/v3") {
+      calls <<- c(calls, paste("details", token, sep = ":"))
+      if (identical(token, "token_roto")) stop("Token rechazado por SurveyMonkey (HTTP 401).", call. = FALSE)
+      list(title = "Acreditacion Contabilidad PUCP Estudiantes", pages = list())
+    }),
+    .with_mocked_monitoreo_binding("sm_api_fetch_collectors", function(survey_id, token, base_url = "https://api.surveymonkey.com/v3") {
+      expect_equal(token, "token_ok")
+      list(ok = TRUE, total = 1L, data = list(list(id = "464762371", type = "weblink")))
+    }),
+    .with_mocked_monitoreo_binding("sm_api_fetch_collector_detail", function(collector_id, token, base_url = "https://api.surveymonkey.com/v3") {
+      expect_equal(token, "token_ok")
+      list(id = collector_id, name = "Aulas faltantes", type = "weblink")
+    }),
+    .with_mocked_monitoreo_binding("sm_api_fetch_all_responses_bulk", function(survey_id, token, since = NULL, progress = NULL, base_url = "https://api.surveymonkey.com/v3") {
+      expect_equal(token, "token_ok")
+      list(data = list(list(id = "r1")))
+    }),
+    .with_mocked_monitoreo_binding("sm_api_flatten_responses", function(details, responses) {
+      data.frame(
+        response_id = "r1",
+        collector_id = "464762371",
+        recipient_id = "",
+        response_status = "completed",
+        fecha = "2026-06-21",
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    }),
+    .with_mocked_monitoreo_binding("sm_api_enrich_response_recipients", function(data, token, base_url = "https://api.surveymonkey.com/v3", include_details = TRUE) {
+      data
+    })
+  )
+  on.exit(invisible(lapply(rev(restores), function(restore) restore())), add = TRUE)
+
+  result <- monitoreo_sync_sources(
+    list(list(
+      id = "sm_estudiantes_qr",
+      kind = "surveymonkey",
+      enabled = TRUE,
+      label = "Acreditacion Contabilidad PUCP Estudiantes",
+      survey_id = "527327742",
+      dimensions = list(actor = "Estudiantes", canal = "Ficha QR")
+    )),
+    list(monitoreo_profile = list(family = "acreditacion")),
+    build_dashboard = FALSE
+  )
+
+  expect_true(result$ok)
+  expect_equal(result$n_rows, 1L)
+  expect_true(any(calls == "details:token_roto"))
+  expect_true(any(calls == "details:token_ok"))
+  expect_equal(result$sources[[1]]$connection_profile_id, "perfil_ok")
+  expect_equal(result$sources[[1]]$collectors[[1]]$name, "Aulas faltantes")
+  expect_equal(result$sync_summary$sm_estudiantes_qr$connection_profile_id, "perfil_ok")
+})
+
+test_that("sync sin fuentes disponibles devuelve resultado parcial preservable", {
+  result <- monitoreo_sync_sources(
+    list(list(
+      id = "sm_error",
+      kind = "surveymonkey",
+      enabled = TRUE,
+      label = "SurveyMonkey sin credencial",
+      survey_id = "survey_error",
+      dimensions = list(actor = "Docentes", canal = "WhatsApp")
+    )),
+    list(monitoreo_profile = list(family = "acreditacion")),
+    build_dashboard = FALSE
+  )
+
+  expect_false(result$ok)
+  expect_equal(nrow(result$data), 0L)
+  expect_length(result$errors, 1L)
+  expect_equal(result$n_sources, 0L)
+})
+
+test_that("modo avance solo sincroniza fuentes de respuestas", {
+  expect_equal(.monitoreo_sync_mode("advance"), "advance")
+  expect_equal(.monitoreo_sync_mode("responses_only"), "advance")
+  expect_equal(.monitoreo_sync_mode("full"), "full")
+  expect_equal(.monitoreo_sync_mode("otro"), "full")
+
+  result <- monitoreo_sync_sources(
+    list(
+      list(
+        id = "sheet_base",
+        kind = "google_sheets",
+        enabled = TRUE,
+        label = "Base Sheets",
+        role = "universo"
+      ),
+      list(
+        id = "sm_error",
+        kind = "surveymonkey",
+        enabled = TRUE,
+        label = "SurveyMonkey sin credencial",
+        survey_id = "survey_error",
+        dimensions = list(actor = "Docentes", canal = "WhatsApp")
+      )
+    ),
+    list(monitoreo_profile = list(family = "acreditacion")),
+    build_dashboard = FALSE,
+    sync_mode = "advance"
+  )
+
+  expect_false(result$ok)
+  expect_equal(result$n_sources, 0L)
+  expect_length(result$errors, 1L)
+  expect_equal(result$errors[[1]]$source_id, "sm_error")
+})
+
 test_that("clasificacion operacional de duracion usa umbrales centralizados", {
   tcfg <- list(min_duration_seconds = 60, max_duration_seconds = 7200)
   expect_equal(.monitoreo_publication_duration_label("", NA_real_, tcfg), "")
@@ -5203,4 +5913,110 @@ test_that("clasificacion operacional de duracion usa umbrales centralizados", {
   expect_equal(.monitoreo_publication_duration_label("larga", NA_real_, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("extrema", NA_real_, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("sin_dato", NA_real_, tcfg), "")
+})
+
+test_that("llave PUCP declarada por fuente entra al cruce aunque el codigo sea corto", {
+  data <- data.frame(
+    `.source_id` = c("base-docentes", "sm-docentes-wa"),
+    `.source_kind` = c("google_sheets", "surveymonkey"),
+    `.source_role` = c("universo", "respuestas"),
+    `.source_label` = c("Base Docentes", "SurveyMonkey Docentes WhatsApp"),
+    dim_actor = c("Docentes", "Docentes"),
+    `Código PUCP` = c("64", NA),
+    `Apellidos y nombres` = c("Docente Prueba", NA),
+    response_id = c(NA, "r-64"),
+    response_status = c(NA, "completed"),
+    q0003 = c(NA, "64"),
+    `.source_declared_person_code_var` = c("", "q0003"),
+    `.source_declared_person_code_label` = c("", "Código PUCP declarado"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    segments = list(list(id = "docentes", label = "Docentes", actor = "Docentes"))
+  ))
+  queries <- .monitoreo_acreditacion_internal_queries(data, profile)
+  response <- Filter(function(item) identical(item$response_id, "r-64"), queries$cases)[[1]]
+  expect_equal(response$base_result, "Cruzó")
+  expect_equal(response$advancement, "effective")
+  expect_equal(response$case_key, "codigo:64")
+})
+
+test_that("diagnostico parcial agrupa subcolumnas de una misma pregunta", {
+  rows <- data.frame(
+    response_id = "r-parcial",
+    q0001 = "Si",
+    q0002__opcion_a = "A",
+    q0002__opcion_b = "",
+    q0003 = "",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  info <- .monitoreo_internal_partial_diagnostics(rows, 1L)
+  expect_equal(info$total, 3L)
+  expect_equal(info$answered, 2L)
+  expect_equal(info$pct, 67L)
+})
+
+test_that("auditoria telefonica distingue enlace usado y codigo final escrito", {
+  data <- data.frame(
+    `.source_id` = c("barrido-egresados", "barrido-egresados", "sm-phone", "sm-phone"),
+    `.source_kind` = c("google_sheets", "google_sheets", "surveymonkey", "surveymonkey"),
+    `.source_role` = c("universo", "universo", "respuestas", "respuestas"),
+    `.source_label` = c("Barrido telefonico", "Barrido telefonico", "SurveyMonkey Egresados Telefonico", "SurveyMonkey Egresados Telefonico"),
+    dim_actor = c("Egresados", "Egresados", "Egresados", "Egresados"),
+    dim_canal = c("Telefónico", "Telefónico", "Telefónico", "Telefónico"),
+    CodPulso = c("1108", "1109", NA, NA),
+    `Código PUCP` = c("20176240", "20180351", NA, NA),
+    `Apellidos y nombres` = c("Persona enlace 1108", "Persona codigo 1109", NA, NA),
+    Responsable = c("Silbia Cruzado", "Martha Villanueva", NA, NA),
+    `TELÉFONO 1` = c("934069829", "987497598", NA, NA),
+    Status = c("Efectivo", "No contesta", NA, NA),
+    response_id = c(NA, NA, "r-conflict", "r-ok"),
+    response_status = c(NA, NA, "completed", "completed"),
+    cv_id = c(NA, NA, "1108", "1109"),
+    q0034 = c(NA, NA, "1109", "1109"),
+    q0035 = c(NA, NA, "934069828", "987497598"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  profile <- monitoreo_normalize_profile(list(
+    family = "acreditacion",
+    key_rules = list(
+      universe_fields = c("CodPulso", "Código PUCP", "TELÉFONO 1"),
+      response_fields = c("cv_id")
+    ),
+    units = list(list(id = "Egresados", label = "Egresados", actor = "Egresados"))
+  ))
+
+  cases <- .monitoreo_acreditacion_internal_queries(data, profile)$cases
+  conflict <- Filter(function(item) identical(item$response_id, "r-conflict"), cases)[[1]]
+  ok <- Filter(function(item) identical(item$response_id, "r-ok"), cases)[[1]]
+
+  expect_equal(conflict$base_result, "Cruzó")
+  expect_equal(conflict$identity_status, "conflicto_telefonico")
+  expect_equal(conflict$phone_audit$cv_id, "1108")
+  expect_equal(conflict$phone_audit$final_codpulso, "1109")
+  expect_equal(conflict$phone_audit$responsible, "Silbia Cruzado")
+  expect_equal(conflict$phone_audit$link_base$case_key, "1108")
+  expect_equal(conflict$phone_audit$manual_code_base$case_key, "1109")
+  expect_equal(conflict$phone_audit$phone_match_level, "conflicto")
+  expect_equal(conflict$phone_audit$phone_number_evidence, "telefono_casi_igual")
+  expect_equal(conflict$decision, "Excluido del avance")
+  expect_equal(conflict$advancement, "excluded")
+  expect_false(isTRUE(conflict$counts_in_advance))
+
+  expect_equal(ok$identity_status, "identificado")
+  expect_equal(ok$phone_audit$phone_match_level, "confirmado")
+  expect_equal(ok$phone_audit$phone_number_evidence, "telefono_exacto")
+  expect_true(isTRUE(ok$counts_in_advance))
+
+  reconciled <- .monitoreo_report_response_reconciled_mask(data, profile)
+  expect_false(isTRUE(reconciled[which(data$response_id == "r-conflict")]))
+  expect_true(isTRUE(reconciled[which(data$response_id == "r-ok")]))
+
+  summary <- .monitoreo_report_summary_df(data, profile)
+  egresados <- summary[summary$Unidad == "Egresados", , drop = FALSE]
+  expect_equal(egresados$Efectivas, 1)
 })

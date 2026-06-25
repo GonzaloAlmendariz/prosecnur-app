@@ -120,7 +120,7 @@
     slots  = list(
       title = list(type = "title", type_idx = NULL),
       plot  = list(type = "pic",   type_idx = NULL),
-      base  = list(type = "body",  type_idx = 2),
+      base  = list(type = "body",  type_idx = 2, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       right = list(type = "body",  type_idx = 3)
     )
   ),
@@ -137,7 +137,7 @@
       title      = list(type = "title", type_idx = NULL),
       left       = list(type = "pic",   type_idx = 2),
       right      = list(type = "pic",   type_idx = 1),
-      base       = list(type = "body",  type_idx = 2),
+      base       = list(type = "body",  type_idx = 2, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       right_text = list(type = "body",  type_idx = 3)
     )
   ),
@@ -153,9 +153,9 @@
     layout = "1_Grafico_narrativo",
     slots  = list(
       title  = list(type = "title", type_idx = 1),
-      text   = list(type = "body",  type_idx = 2),
-      plot   = list(type = "pic",   type_idx = 1),
-      base   = list(type = "body",  type_idx = 3),
+      text   = list(type = "body",  type_idx = 2, loc = list(left = 0.55, top = 1.10, width = 12.10, height = 0.38)),
+      plot   = list(type = "pic",   type_idx = 1, loc = list(left = 0.55, top = 1.55, width = 12.10, height = 5.22)),
+      base   = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer = list(type = "body",  type_idx = 4)
     )
   ),
@@ -171,10 +171,10 @@
     layout = "1_Graficos_2columnas_narrativo",
     slots  = list(
       title  = list(type = "title", type_idx = 1),
-      text   = list(type = "body",  type_idx = 2),
-      left   = list(type = "pic",   type_idx = 2),
-      right  = list(type = "pic",   type_idx = 1),
-      base   = list(type = "body",  type_idx = 3),
+      text   = list(type = "body",  type_idx = 2, loc = list(left = 0.55, top = 1.10, width = 12.10, height = 0.38)),
+      left   = list(type = "pic",   type_idx = 2, loc = list(left = 0.55, top = 1.58, width = 5.95, height = 5.14)),
+      right  = list(type = "pic",   type_idx = 1, loc = list(left = 7.05, top = 1.58, width = 5.95, height = 5.14)),
+      base   = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer = list(type = "body",  type_idx = 4)
     )
   ),
@@ -194,7 +194,7 @@
       up_right     = list(type = "pic",   type_idx = 1),
       bottom_left  = list(type = "pic",   type_idx = 4),
       bottom_right = list(type = "pic",   type_idx = 3),
-      base         = list(type = "body",  type_idx = 2),
+      base         = list(type = "body",  type_idx = 2, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer       = list(type = "body",  type_idx = 3)
     )
   ),
@@ -215,7 +215,7 @@
       bottom_left  = list(type = "pic",   type_idx = 3),
       bottom_right = list(type = "pic",   type_idx = 4),
 
-      base         = list(type = "body",  type_idx = 3),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       icon         = list(type = "body",  type_idx = 2)
     )
   ),
@@ -231,9 +231,11 @@
     layout = "poblacion_2",
     slots  = list(
       title = list(type = "title", type_idx = 1),
-      left  = list(type = "body",  type_idx = 2),
-      right = list(type = "body",  type_idx = 3),
-      icon  = list(type = "body",  type_idx = 4)
+      text  = list(type = "body",  type_idx = 2, loc = list(left = 0.55, top = 1.10, width = 12.10, height = 0.38)),
+      left  = list(type = "body",  type_idx = 2, loc = list(left = 0.50, top = 1.62, width = 5.15, height = 5.05)),
+      right = list(type = "body",  type_idx = 3, loc = list(left = 7.68, top = 1.62, width = 5.15, height = 5.05)),
+      icon  = list(type = "body",  type_idx = 4),
+      base  = list(type = "body",  type_idx = NULL, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
     )
   ),
 
@@ -295,7 +297,7 @@
       title  = list(type = "title", type_idx = 1),
       text   = list(type = "body",  type_idx = 2),
       plot   = list(type = "pic",   type_idx = 1),
-      base   = list(type = "body",  type_idx = 3),
+      base   = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer = list(type = "body",  type_idx = 4)
     )
   ),
@@ -313,7 +315,7 @@
       title  = list(type = "title", type_idx = 1),
       text   = list(type = "body",  type_idx = 2),
       plot   = list(type = "pic",   type_idx = 1),
-      base   = list(type = "body",  type_idx = 3),
+      base   = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer = list(type = "body",  type_idx = 4)
     )
   ),
@@ -334,7 +336,7 @@
       plot1  = list(type = "pic",   type_idx = 1),
       plot2  = list(type = "pic",   type_idx = 2),
 
-      base   = list(type = "body",  type_idx = 3),
+      base   = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer = list(type = "body",  type_idx = 4)
     )
   ),
@@ -355,7 +357,7 @@
       plot1  = list(type = "pic",   type_idx = 1),
       plot2  = list(type = "pic",   type_idx = 2),
 
-      base   = list(type = "body",  type_idx = 3),
+      base   = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       footer = list(type = "body",  type_idx = 4)
     )
   )

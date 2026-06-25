@@ -20,6 +20,7 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
     density: state.density,
     canvas_viewport: state.canvasViewport,
     scope_rules: {
+      ...state.scopeRules,
       global: {
         presets: state.presets,
         paletas: state.paletas,

@@ -85,17 +85,62 @@ seed_codif_config_session <- function(base_defs, with_project = FALSE) {
   sid
 }
 
-codif_config_row_p36 <- function() {
+codif_config_row_p36 <- function(modo_so = "padre") {
   list(
     use = TRUE,
     tipo = "select_one",
-    modo_so = "padre",
+    modo_so = modo_so,
     parent = "p36",
     parent_label = "Código Pulso",
     list_norm = "yesno",
     parent_col = "p36",
     text_col = "p36_other",
     other_dummy_col = "",
+    q_order = 1L
+  )
+}
+
+codif_config_row_text <- function(parent, label = parent) {
+  list(
+    use = TRUE,
+    tipo = "text",
+    modo_so = "",
+    parent = parent,
+    parent_label = label,
+    list_norm = "",
+    parent_col = parent,
+    text_col = parent,
+    other_dummy_col = "",
+    q_order = 1L
+  )
+}
+
+codif_config_row_integer <- function(parent, label = parent) {
+  list(
+    use = TRUE,
+    tipo = "integer",
+    modo_so = "",
+    parent = parent,
+    parent_label = label,
+    list_norm = "",
+    parent_col = parent,
+    text_col = "",
+    other_dummy_col = "",
+    q_order = 1L
+  )
+}
+
+codif_config_row_select_multiple_with_other <- function(parent, text_col, label = parent) {
+  list(
+    use = TRUE,
+    tipo = "select_multiple",
+    modo_so = "",
+    parent = parent,
+    parent_label = label,
+    list_norm = "",
+    parent_col = parent,
+    text_col = text_col,
+    other_dummy_col = paste0(parent, "/99"),
     q_order = 1L
   )
 }
@@ -141,6 +186,39 @@ test_that("codificacion export omite filas sin configuracion efectiva", {
   expect_length(bundle$variables, 0)
 })
 
+test_that("codificacion export respeta padre-hijo y textos independientes", {
+  sid <- seed_codif_config_session(list(base_a = list(
+    rows = list(
+      codif_config_row_p36(),
+      codif_config_row_text("p36_other", "Otro código Pulso"),
+      codif_config_row_text("p10", "Texto independiente"),
+      codif_config_row_integer("p40", "Edad"),
+      codif_config_row_select_multiple_with_other("p19", "p19_other", "IA usada"),
+      codif_config_row_text("p19_other", "Otra IA")
+    ),
+    groups = list(
+      p36_other = codif_config_groups_p36("Otro integrado al padre"),
+      p10 = codif_config_groups_p36("Texto solo"),
+      p40 = codif_config_groups_p36("Edad agrupada"),
+      p19_other = codif_config_groups_p36("SM integrado al padre")
+    )
+  )))
+
+  bundle <- codif_config_export(sid)
+  exported_names <- vapply(bundle$variables, function(v) v$name, character(1))
+  rows <- lapply(bundle$variables, function(v) v$configuration$familias_row)
+  by_name <- stats::setNames(rows, exported_names)
+
+  expect_setequal(exported_names, c("p36", "p10", "p40", "p19"))
+  expect_equal(by_name$p36$tipo, "select_one")
+  expect_equal(by_name$p36$modo_so, "padre")
+  expect_equal(by_name$p36$text_col, "p36_other")
+  expect_equal(by_name$p10$tipo, "text")
+  expect_equal(by_name$p40$tipo, "integer")
+  expect_equal(by_name$p19$tipo, "select_multiple")
+  expect_equal(by_name$p19$text_col, "p19_other")
+})
+
 test_that("codificacion import rechaza schema invalido", {
   sid <- seed_codif_config_session(list(base_a = list(inst = make_codif_config_inst())))
 
@@ -165,6 +243,96 @@ test_that("codificacion import detecta variables compatibles", {
 
   expect_equal(preview$summary$n_compatible, 1L)
   expect_equal(preview$items[[1]]$status, "compatible")
+})
+
+test_that("codificacion import no marca conflicto por draft sin grupos", {
+  source_sid <- seed_codif_config_session(list(base_a = list(
+    rows = list(codif_config_row_p36()),
+    groups = list(p36 = codif_config_groups_p36())
+  )))
+  target_sid <- seed_codif_config_session(list(base_a = list(
+    inst = make_codif_config_inst(),
+    rows = list(codif_config_row_p36()),
+    groups = list()
+  )))
+  bundle <- codif_config_export(source_sid)
+
+  preview <- codif_config_preview_import(target_sid, bundle)
+
+  expect_equal(preview$summary$n_compatible, 1L)
+  expect_equal(preview$summary$n_conflicts, 0L)
+  expect_equal(preview$items[[1]]$status, "compatible")
+})
+
+test_that("codificacion import ignora duplicados text adoptados en bundles antiguos", {
+  source_sid <- seed_codif_config_session(list(base_a = list(
+    rows = list(codif_config_row_p36()),
+    groups = list(p36_other = codif_config_groups_p36("Integrada"))
+  )))
+  target_sid <- seed_codif_config_session(list(base_a = list(
+    inst = make_codif_config_inst(),
+    rows = list()
+  )))
+  bundle <- codif_config_export(source_sid)
+  duplicate <- bundle$variables[[1]]
+  duplicate$id <- "base_a::p36_other"
+  duplicate$name <- "p36_other"
+  duplicate$type <- "text"
+  duplicate$configuration$familias_row <- codif_config_row_text("p36_other", "Otro código Pulso")
+  bundle$variables <- c(bundle$variables, list(duplicate))
+
+  preview <- codif_config_preview_import(target_sid, bundle)
+
+  expect_equal(length(preview$items), 1L)
+  expect_equal(preview$items[[1]]$source$name, "p36")
+  expect_equal(preview$summary$n_compatible, 1L)
+  expect_equal(preview$source$variables, 2L)
+  expect_equal(preview$source$variables_after_normalization, 1L)
+  expect_equal(preview$source$normalization$adopted_text_duplicates[[1]]$text_col, "p36_other")
+})
+
+test_that("codificacion import conserva modo hijo al deduplicar text adoptado", {
+  source_sid <- seed_codif_config_session(list(base_a = list(
+    rows = list(codif_config_row_p36("hijo")),
+    groups = list(p36_other = codif_config_groups_p36("Hijo integrado"))
+  )))
+  target_sid <- seed_codif_config_session(list(base_a = list(
+    inst = make_codif_config_inst(),
+    rows = list()
+  )))
+  bundle <- codif_config_export(source_sid)
+  duplicate <- bundle$variables[[1]]
+  duplicate$id <- "base_a::p36_other"
+  duplicate$name <- "p36_other"
+  duplicate$type <- "text"
+  duplicate$configuration$familias_row <- codif_config_row_text("p36_other", "Otro código Pulso")
+  bundle$variables <- c(bundle$variables, list(duplicate))
+
+  preview <- codif_config_preview_import(target_sid, bundle)
+
+  expect_equal(length(preview$items), 1L)
+  expect_equal(preview$items[[1]]$source$name, "p36")
+  expect_equal(preview$items[[1]]$source$mode_so, "hijo")
+  expect_equal(preview$source$normalization$adopted_text_duplicates[[1]]$mode_so, "hijo")
+})
+
+test_that("codificacion import conserva text other solitaria", {
+  source_sid <- seed_codif_config_session(list(base_a = list(
+    rows = list(codif_config_row_text("p36_other", "Otro código Pulso")),
+    groups = list(p36_other = codif_config_groups_p36("Solitaria"))
+  )))
+  target_sid <- seed_codif_config_session(list(base_a = list(
+    inst = make_codif_config_inst(),
+    rows = list()
+  )))
+  bundle <- codif_config_export(source_sid)
+
+  preview <- codif_config_preview_import(target_sid, bundle)
+
+  expect_equal(length(preview$items), 1L)
+  expect_equal(preview$items[[1]]$source$name, "p36_other")
+  expect_equal(preview$source$variables_after_normalization, 1L)
+  expect_length(preview$source$normalization$adopted_text_duplicates, 0)
 })
 
 test_that("codificacion import ignora variables sin configuracion efectiva", {
@@ -220,6 +388,40 @@ test_that("codificacion import no sobrescribe sin seleccion explicita", {
   expect_equal(preview$summary$n_conflicts, 1L)
   expect_error(codif_config_apply_import(target_sid, bundle, list()), "Selecciona")
   expect_equal(codif_snapshot(target_sid, "base_a")$grupos_recod$p36[[1]]$etiqueta, "Actual")
+})
+
+test_that("codificacion import JSON preserva variables fuera de la seleccion", {
+  source_sid <- seed_codif_config_session(list(base_a = list(
+    rows = list(codif_config_row_p36()),
+    groups = list(p36 = codif_config_groups_p36("Importada"))
+  )))
+  target_sid <- seed_codif_config_session(list(base_a = list(
+    inst = make_codif_config_inst(),
+    rows = list(codif_config_row_p36(), codif_config_row_integer("p40", "Edad")),
+    groups = list(
+      p36 = codif_config_groups_p36("Actual"),
+      p40 = codif_config_groups_p36("No tocar")
+    ),
+    marcadas = list(p36 = TRUE, p40 = TRUE),
+    respuestas = list(p40 = list("25"))
+  )))
+  bundle <- codif_config_export(source_sid)
+  preview <- codif_config_preview_import(target_sid, bundle)
+  item <- preview$items[[1]]
+
+  result <- codif_config_apply_import(
+    target_sid,
+    bundle,
+    list(list(match_id = item$match_id, strategy = "replace")),
+    "solo-p36.json"
+  )
+
+  target <- codif_snapshot(target_sid, "base_a")
+  expect_equal(result$summary$variables_imported, 1L)
+  expect_equal(target$grupos_recod$p36[[1]]$etiqueta, "Importada")
+  expect_equal(target$grupos_recod$p40[[1]]$etiqueta, "No tocar")
+  expect_equal(target$respuestas_recod$p40, list("25"))
+  expect_true(isTRUE(target$marcadas$p40))
 })
 
 test_that("codificacion import multibase aplica solo bases compatibles", {
@@ -342,6 +544,44 @@ test_that("codificacion importa categorizaciones desde Excel por hoja y pares re
   expect_equal(length(codif_snapshot(target_sid, "ingenieria_de_minas")$grupos_recod$p23), 2L)
   expect_equal(length(codif_snapshot(target_sid, "ingenieria_de_minas")$grupos_recod$p24_1), 2L)
   expect_null(codif_snapshot(target_sid, "ingenieria_civil")$grupos_recod$p23)
+})
+
+test_that("codificacion import Excel preserva variables fuera de la seleccion", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_industrial = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(codif_config_row_text("p24_2", "Función 2:")),
+      groups = list(p24_2 = codif_config_groups_p36("Funcion previa")),
+      marcadas = list(p24_2 = TRUE),
+      respuestas = list(p24_2 = list("Gestion previa"))
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Industrial")
+  openxlsx::writeData(wb, "Industrial", data.frame(
+    "Puesto Actual" = c("Analista PCP", "Jefe de operaciones"),
+    "Categoría de puesto" = c("Analistas e Ingenieros", "Jefaturas"),
+    check.names = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  bundle <- codif_config_bundle_from_categorization_xlsx(target_sid, path, "categorias.xlsx")
+  preview <- codif_config_preview_import(target_sid, bundle, "categorias.xlsx")
+  result <- codif_config_apply_import(
+    target_sid,
+    bundle,
+    lapply(preview$items, function(item) list(match_id = item$match_id, strategy = "replace")),
+    "categorias.xlsx"
+  )
+
+  target <- codif_snapshot(target_sid, "ingenieria_industrial")
+  expect_equal(result$summary$variables_imported, 1L)
+  expect_equal(length(target$grupos_recod$p23), 2L)
+  expect_equal(target$grupos_recod$p24_2[[1]]$etiqueta, "Funcion previa")
+  expect_equal(target$respuestas_recod$p24_2, list("Gestion previa"))
+  expect_true(isTRUE(target$marcadas$p24_2))
 })
 
 test_that("codificacion export/import roundtrip conserva estructura equivalente", {

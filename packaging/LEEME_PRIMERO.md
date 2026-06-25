@@ -57,6 +57,8 @@ Revisa los logs:
 
 - **macOS**: `~/Library/Logs/Prosecnur/` (setup.log + desktop.log)
 - **Windows**: `%LOCALAPPDATA%\Prosecnur\logs\`
+  - `r-install.log`: detalle del instalador de R.
+  - `setup-offline.log`: preparación del runtime y paquetes offline.
 
 Desde la ventana de la app, el menú **Ayuda → Abrir carpeta de logs**
 los abre directo.

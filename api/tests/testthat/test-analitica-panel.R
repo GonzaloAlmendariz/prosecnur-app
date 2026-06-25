@@ -56,26 +56,37 @@ test_that("base panel genera wide, auditoria y frecuencias con select_multiple",
 
   info_cfg <- .panel_config_resolve(data_sources, list())
   expect_equal(info_cfg$key, "numero_encuesta")
-  expect_equal(vapply(info_cfg$waves, `[[`, character(1), "suffix"), c("ola1", "ola2"))
+  expect_equal(vapply(info_cfg$waves, `[[`, character(1), "suffix"), c("med1", "med2"))
 
   built <- .panel_wide_build(data_sources, inst_sources, list())
 
-  expect_true(all(c("numero_encuesta", "p21_ola1", "p21_ola2", "p_multi.1_ola1", "p_multi.2_ola2") %in% names(built$base_wide)))
+  expect_true(all(c("numero_encuesta", "p21_med1", "p21_med2", "p_multi.1_med1", "p_multi.2_med2") %in% names(built$base_wide)))
   expect_equal(built$summary$n_panel_keys, 4)
   expect_equal(built$summary$n_complete_keys, 2)
   expect_true(any(built$audit$tipo == "llave_duplicada"))
-  expect_true(any(built$audit$tipo == "ola_faltante"))
+  expect_true(any(built$audit$tipo == "medicion_faltante"))
   expect_true(any(built$frequencies$variable_original == "p_multi"))
   expect_true(any(grepl("SIN DATA", built$cobertura_nse$observacion, fixed = TRUE)))
 
   out <- tempfile(fileext = ".xlsx")
   .panel_write_xlsx(built, out)
   expect_true(file.exists(out))
-  expect_true(all(c("base_wide", "libro_codigos", "frecuencias", "auditoria_panel", "cobertura_nse", "configuracion", "Ficha tecnica") %in% openxlsx::getSheetNames(out)))
+  expect_true(all(c("base_wide", "libro_codigos", "libro_codigos_detalle", "frecuencias", "frecuencias_detalle", "cruces", "auditoria_panel", "cobertura_nse", "configuracion") %in% openxlsx::getSheetNames(out)))
+  expect_false("Ficha tecnica" %in% openxlsx::getSheetNames(out))
+  codebook_sheet <- openxlsx::read.xlsx(out, sheet = "libro_codigos")
+  freq_sheet <- openxlsx::read.xlsx(out, sheet = "frecuencias")
+  cruces_sheet <- openxlsx::read.xlsx(out, sheet = "cruces")
+  audit_sheet <- openxlsx::read.xlsx(out, sheet = "auditoria_panel")
+  expect_true(all(c("Variable.base", "Variable.Primera.medición", "Variable.Segunda.medición") %in% names(codebook_sheet)))
+  expect_true(all(c("Variable.base", "n.Primera.medición", "%.Segunda.medición") %in% names(freq_sheet)))
+  expect_true(all(c("Variable.base", "Primera.categoría", "Segunda.categoría", "n") %in% names(cruces_sheet)))
+  expect_false("ola" %in% names(codebook_sheet))
+  expect_true(any(audit_sheet$tipo == "medicion_faltante"))
 
   out_ficha <- tempfile(fileext = ".xlsx")
   .panel_write_xlsx(built, out_ficha, ficha_tecnica = list(
     cfg = list(ficha_tecnica = list(
+      adjuntar_a_xlsx = TRUE,
       estudio = "Estudio panel desde Prosecnur",
       plan_limpieza = "Plan de limpieza configurado desde Prosecnur"
     ))
@@ -86,14 +97,14 @@ test_that("base panel genera wide, auditoria y frecuencias con select_multiple",
 
   out_wide <- tempfile(fileext = ".xlsx")
   .panel_export_wide_xlsx(built, out_wide, valores = "ambos", multi_select = "dummy_01")
-  expect_equal(openxlsx::getSheetNames(out_wide), c("codigos", "etiquetas", "Ficha tecnica"))
+  expect_equal(openxlsx::getSheetNames(out_wide), c("codigos", "etiquetas"))
   wide_head <- openxlsx::readWorkbook(out_wide, sheet = "codigos", colNames = FALSE, rows = 1)
-  expect_true(any(unlist(wide_head, use.names = FALSE) == "p21_ola1"))
+  expect_true(any(unlist(wide_head, use.names = FALSE) == "p21_med1"))
 
   out_csv <- tempfile(fileext = ".csv")
   .panel_export_wide_csv(built, out_csv, valores = "etiquetas", multi_select = "dummy_01")
   expect_true(file.exists(out_csv))
-  expect_true(grepl("p21_ola1", readLines(out_csv, n = 1, warn = FALSE)))
+  expect_true(grepl("p21_med1", readLines(out_csv, n = 1, warn = FALSE)))
 
   old_writer <- Sys.getenv("PROSECNUR_SAV_WRITER", unset = NA_character_)
   Sys.setenv(PROSECNUR_SAV_WRITER = "haven")
@@ -104,14 +115,192 @@ test_that("base panel genera wide, auditoria y frecuencias con select_multiple",
   .panel_export_wide_sav(built, out_sav)
   expect_true(file.exists(out_sav))
   sav_read <- haven::read_sav(out_sav)
-  expect_true(all(c("numero_encuesta", "p21_ola1", "p21_ola2") %in% names(sav_read)))
-  expect_false("canales_ola1" %in% names(sav_read))
-  expect_true(all(c("canales_ola1___1", "canales_ola1___2") %in% names(sav_read)))
-  expect_equal(attr(sav_read$canales_ola1___1, "label", exact = TRUE), "[Ola 1] Canales usados = TV")
-  expect_equal(attr(sav_read$canales_ola1___1, "labels", exact = TRUE)[["Sí"]], 1)
+  expect_true(all(c("numero_encuesta", "p21_med1", "p21_med2") %in% names(sav_read)))
+  expect_false("canales_med1" %in% names(sav_read))
+  expect_true(all(c("canales_med1___1", "canales_med1___2") %in% names(sav_read)))
+  expect_equal(attr(sav_read$canales_med1___1, "label", exact = TRUE), "Canales usados = TV (Primera medición)")
+  expect_equal(attr(sav_read$canales_med1___1, "labels", exact = TRUE)[["Sí"]], 1)
 })
 
-test_that("ficha tecnica panel documenta procedimiento, n por ola y fechas", {
+test_that("paquete panel genera cruces configurados por sexo, NSE y distrito", {
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "select_one sexo", "select_one nse", "select_one distrito", "select_one yesno"),
+      name = c("numero_encuesta", "sexo_obs", "nse_inei", "distrito", "p1"),
+      label = c("Numero de encuesta", "Sexo observado", "NSE atribuido por INEI", "Distrito", "Pregunta sustantiva"),
+      list_name = c("", "sexo", "nse", "distrito", "yesno"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("sexo", "sexo", "nse", "nse", "nse", "distrito", "distrito", "yesno", "yesno"),
+      name = c("1", "2", "A", "B", "SIN DATA", "150101", "070101", "1", "2"),
+      label = c("Hombre", "Mujer", "Alto", "Medio", "SIN DATA", "Lima", "Callao", "Si", "No"),
+      stringsAsFactors = FALSE
+    )
+  )
+  med1 <- data.frame(
+    numero_encuesta = c("1", "2", "3"),
+    sexo_obs = c("1", "2", "2"),
+    nse_inei = c("A", "B", "SIN DATA"),
+    distrito = c("150101", "070101", "150101"),
+    p1 = c("1", "1", "2"),
+    stringsAsFactors = FALSE
+  )
+  med2 <- data.frame(
+    numero_encuesta = c("1", "2", "3"),
+    sexo_obs = c("1", "2", "2"),
+    nse_inei = c("A", "B", "B"),
+    distrito = c("150101", "070101", "150101"),
+    p1 = c("2", "1", "2"),
+    stringsAsFactors = FALSE
+  )
+  labels <- list(
+    sexo_obs = c(Hombre = "1", Mujer = "2"),
+    nse_inei = c(Alto = "A", Medio = "B", `SIN DATA` = "SIN DATA"),
+    distrito = c(Lima = "150101", Callao = "070101"),
+    p1 = c(Si = "1", No = "2")
+  )
+  for (v in names(labels)) {
+    attr(med1[[v]], "labels") <- labels[[v]]
+    attr(med2[[v]], "labels") <- labels[[v]]
+  }
+
+  built <- .panel_wide_build(
+    list(primera = med1, segunda = med2),
+    list(primera = inst, segunda = inst),
+    list(
+      outputs = list(cruces = TRUE),
+      cross_vars = list(
+        sexo = list(name = "sexo_obs_med1", label = "Sexo observado"),
+        nse = list(name = "nse_inei_med1", label = "NSE atribuido por INEI", exclude_levels = c("SIN DATA")),
+        distrito = list(name = "distrito_med1", label = "Distrito")
+      )
+    )
+  )
+  out <- tempfile(fileext = ".xlsx")
+  .panel_write_xlsx(built, out)
+  sheets <- openxlsx::getSheetNames(out)
+  expect_true(all(c("cruces", "cruces_sexo", "cruces_nse", "cruces_distrito", "cruces_longitudinales") %in% sheets))
+  cruces <- openxlsx::read.xlsx(out, sheet = "cruces")
+  cruces_sexo <- openxlsx::read.xlsx(out, sheet = "cruces_sexo")
+  cruces_nse <- openxlsx::read.xlsx(out, sheet = "cruces_nse")
+  cruces_distrito <- openxlsx::read.xlsx(out, sheet = "cruces_distrito")
+  expect_true(all(c("cruce", "Variable.de.cruce", "Categoría.de.cruce", "Opción", "n") %in% names(cruces)))
+  expect_true(any(cruces$cruce == "sexo"))
+  expect_true(any(cruces$cruce == "nse"))
+  expect_true(any(cruces$cruce == "distrito"))
+  expect_true(any(cruces_sexo$Variable.de.cruce == "Sexo observado"))
+  expect_true(any(cruces_nse$Variable.de.cruce == "NSE atribuido por INEI"))
+  expect_false(any(cruces$Categoría.de.cruce == "SIN DATA"))
+  expect_false(any(cruces_nse$Categoría.de.cruce == "SIN DATA"))
+  expect_true(any(cruces_distrito$Variable.de.cruce == "Distrito"))
+  expect_true(any(cruces_distrito$Categoría.de.cruce == "Lima"))
+
+  out_codebook <- tempfile(fileext = ".xlsx")
+  .panel_export_write(built, out_codebook, options = list(formato = "libro_codigos"), ficha_tecnica = FALSE)
+  expect_true(file.exists(out_codebook))
+  expect_true("Codebook" %in% openxlsx::getSheetNames(out_codebook))
+  codebook_export <- openxlsx::read.xlsx(out_codebook, sheet = "Codebook", colNames = FALSE)
+  expect_true(any(codebook_export$X1 == "p1_med1", na.rm = TRUE))
+  expect_true(any(as.matrix(codebook_export) == "p1_med2", na.rm = TRUE))
+  expect_true(any(codebook_export$X1 == "Atributos estándar", na.rm = TRUE))
+  expect_true(any(codebook_export$X3 == "Pregunta sustantiva (Primera medición)", na.rm = TRUE))
+  expect_true(any(as.matrix(codebook_export) == "Pregunta sustantiva (Segunda medición)", na.rm = TRUE))
+
+  out_freq <- tempfile(fileext = ".xlsx")
+  .panel_export_write(built, out_freq, options = list(formato = "frecuencias"), ficha_tecnica = FALSE)
+  expect_true(file.exists(out_freq))
+  expect_true("Frecuencias" %in% openxlsx::getSheetNames(out_freq))
+
+  out_cross <- tempfile(fileext = ".xlsx")
+  .panel_export_write(built, out_cross, options = list(formato = "cruces"), ficha_tecnica = FALSE)
+  expect_true(file.exists(out_cross))
+  expect_equal(openxlsx::getSheetNames(out_cross), "Cruces")
+  cross_export <- openxlsx::read.xlsx(out_cross, sheet = "Cruces", colNames = FALSE)
+  expect_identical(cross_export$X1[[1]], "CRUCES")
+  expect_false(any(cross_export == "SIN DATA", na.rm = TRUE))
+
+  out_audit <- tempfile(fileext = ".xlsx")
+  .panel_export_write(built, out_audit, options = list(formato = "auditoria"), ficha_tecnica = FALSE)
+  expect_true(file.exists(out_audit))
+  expect_true("auditoria_panel" %in% openxlsx::getSheetNames(out_audit))
+
+  skip_if_not_installed("zip")
+  old_writer <- Sys.getenv("PROSECNUR_SAV_WRITER", unset = NA_character_)
+  Sys.setenv(PROSECNUR_SAV_WRITER = "haven")
+  on.exit({
+    if (is.na(old_writer)) Sys.unsetenv("PROSECNUR_SAV_WRITER") else Sys.setenv(PROSECNUR_SAV_WRITER = old_writer)
+  }, add = TRUE)
+  out_zip <- tempfile(fileext = ".zip")
+  .panel_export_write(built, out_zip, options = list(formato = "paquete"), ficha_tecnica = FALSE)
+  expect_true(file.exists(out_zip))
+  entries <- utils::unzip(out_zip, list = TRUE)$Name
+  expect_true(all(c(
+    "01_base_panel_wide.xlsx",
+    "01_base_panel_wide.csv",
+    "01_base_panel_wide.sav",
+    "01_niveles_medida.sps",
+    "02_libro_codigos.xlsx",
+    "03_frecuencias.xlsx",
+    "04_cruces.xlsx",
+    "05_auditoria_panel.xlsx"
+  ) %in% entries))
+
+  unzip_dir <- tempfile("panel_package_check_")
+  dir.create(unzip_dir)
+  utils::unzip(out_zip, files = c("02_libro_codigos.xlsx", "04_cruces.xlsx"), exdir = unzip_dir)
+  expect_identical(openxlsx::getSheetNames(file.path(unzip_dir, "02_libro_codigos.xlsx")), "Codebook")
+  expect_identical(openxlsx::getSheetNames(file.path(unzip_dir, "04_cruces.xlsx")), "Cruces")
+  packaged_codebook <- openxlsx::read.xlsx(file.path(unzip_dir, "02_libro_codigos.xlsx"), sheet = "Codebook", colNames = FALSE)
+  packaged_crosses <- openxlsx::read.xlsx(file.path(unzip_dir, "04_cruces.xlsx"), sheet = "Cruces", colNames = FALSE)
+  expect_true(any(as.matrix(packaged_codebook) == "p1_med2", na.rm = TRUE))
+  expect_identical(as.character(packaged_crosses[1, 1, drop = TRUE]), "CRUCES")
+})
+
+test_that("resumen de instrumento cuenta solo preguntas hechas al entrevistado", {
+  inst <- list(
+    survey = data.frame(
+      type = c(
+        "text", "select_one si_no", "integer", "select_one sexo",
+        "select_one grupo", "select_one nse", "select_one educ", "select_one si_no"
+      ),
+      name = c(
+        "numero_encuesta", "consentimiento", "p1", "sexo_obs",
+        "grupo", "nse_asignado", "educacion", "telefono"
+      ),
+      label = c(
+        "Numero de encuesta", "Consentimiento", "Edad declarada", "Sexo observado",
+        "Grupo de tratamiento", "NSE asignado", "Nivel educativo", "Telefono"
+      ),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame()
+  )
+  summary <- .panel_instrument_summary(
+    list(ola_1 = inst),
+    list(waves = list(list(base = "ola_1", label = "Medición 1")))
+  )
+  expect_equal(summary$items_cuestionario, 6)
+  expect_equal(summary$preguntas_entrevistado, 3)
+  expect_equal(summary$preguntas_numeradas_entrevistado, 1)
+  expect_equal(summary$campos_no_preguntados, 3)
+  expect_equal(
+    .ficha_tecnica_panel_instrumento_text(list(instrumentos = summary)),
+    "\u2022 La primera medición: 1 pregunta."
+  )
+
+  summary_revisado <- .panel_instrument_summary(
+    list(ola_1 = inst),
+    list(waves = list(list(base = "ola_1", label = "Medición 1", question_count = 28L)))
+  )
+  expect_equal(summary_revisado$preguntas_reportadas, 28L)
+  expect_equal(
+    .ficha_tecnica_panel_instrumento_text(list(instrumentos = summary_revisado)),
+    "\u2022 La primera medición: 28 preguntas."
+  )
+})
+
+test_that("ficha tecnica panel documenta procedimiento, n por medicion y fechas", {
   inst <- list(
     survey = data.frame(
       type = c("text", "text"),
@@ -125,6 +314,7 @@ test_that("ficha tecnica panel documenta procedimiento, n por ola y fechas", {
     ola_1 = data.frame(
       numero_encuesta = c("1", "2", "3"),
       fecha = c("01.05.26", "02.05.26", "03.05.26"),
+      distrito = c("Callao", "Lima", "Lima"),
       p1 = c("a", "b", "c"),
       stringsAsFactors = FALSE,
       check.names = FALSE
@@ -132,6 +322,7 @@ test_that("ficha tecnica panel documenta procedimiento, n por ola y fechas", {
     ola_2 = data.frame(
       numero_encuesta = c("1", "3"),
       fecha = c("10.06.26", "12.06.26"),
+      distrito = c("Callao", "Lima"),
       p1 = c("d", "e"),
       stringsAsFactors = FALSE,
       check.names = FALSE
@@ -145,15 +336,26 @@ test_that("ficha tecnica panel documenta procedimiento, n por ola y fechas", {
   rows <- .ficha_tecnica_docx_rows(cfg = cfg)
   aplicacion <- rows$Detalle[rows$Campo == "Aplicación de encuestas"][[1]]
   expect_true(grepl("El recojo se realizó en dos momentos de campo.", aplicacion, fixed = TRUE))
-  expect_true(grepl("panel de dos olas", aplicacion, fixed = TRUE))
-  expect_true(grepl("La primera ola registró 3 encuestas", aplicacion, fixed = TRUE))
-  expect_true(grepl("La segunda ola registró 2 encuestas", aplicacion, fixed = TRUE))
-  expect_true(grepl("01 de mayo de 2026 al 03 de mayo de 2026", aplicacion, fixed = TRUE))
-  expect_true(grepl("10 de junio de 2026 al 12 de junio de 2026", aplicacion, fixed = TRUE))
+  expect_true(grepl("panel longitudinal con dos mediciones sucesivas", aplicacion, fixed = TRUE))
+  expect_true(grepl("La primera medición registró 3 encuestas", aplicacion, fixed = TRUE))
+  expect_true(grepl("La segunda medición registró 2 encuestas", aplicacion, fixed = TRUE))
   expect_false(grepl("numero_encuesta", aplicacion, fixed = TRUE))
   expect_false(grepl("llave", aplicacion, fixed = TRUE))
   expect_false(grepl("n=", aplicacion, fixed = TRUE))
+  instrumento_txt <- rows$Detalle[rows$Campo == "Instrumento"][[1]]
+  expect_true(grepl("• La primera medición: 1 pregunta.", instrumento_txt, fixed = TRUE))
+  expect_true(grepl("• La segunda medición: 1 pregunta.", instrumento_txt, fixed = TRUE))
+  expect_false(grepl("selección única", instrumento_txt, fixed = TRUE))
+  expect_false(grepl("cuestionarios en papel", instrumento_txt, fixed = TRUE))
+  expect_false(grepl("XLSForm", instrumento_txt, fixed = TRUE))
+  expect_false(grepl("numero_encuesta", instrumento_txt, fixed = TRUE))
   expect_true("aplicacion_de_encuestas" %in% names((cfg$ficha_tecnica %||% list())$subtables))
+  expect_true(all(c("distribucion_medicion_1", "distribucion_medicion_2") %in% names((cfg$ficha_tecnica %||% list())$appendices)))
+  appendices <- (cfg$ficha_tecnica %||% list())$appendices
+  district_columns <- grep("^Distrito", names(appendices$distribucion_medicion_1$data), value = TRUE)
+  first_order <- unlist(appendices$distribucion_medicion_1$data[district_columns], use.names = FALSE)
+  second_order <- unlist(appendices$distribucion_medicion_2$data[district_columns], use.names = FALSE)
+  expect_equal(second_order, first_order)
 
   skip_if_not_installed("officer")
   skip_if_not_installed("flextable")
@@ -167,18 +369,28 @@ test_that("ficha tecnica panel documenta procedimiento, n por ola y fechas", {
     instrumento = built$inst_wide
   )
   txt <- officer::docx_summary(officer::read_docx(out_docx))$text
-  expect_true(any(grepl("Estructura de aplicación por ola", txt, fixed = TRUE)))
-  expect_true(any(grepl("panel de dos olas", txt, fixed = TRUE)))
+  expect_true(any(grepl("Estructura de aplicación por medición", txt, fixed = TRUE)))
+  expect_true(any(grepl("panel longitudinal con dos mediciones sucesivas", txt, fixed = TRUE)))
   expect_true(any(grepl("Encuestas realizadas", txt, fixed = TRUE)))
   expect_true(any(grepl("Personas entrevistadas", txt, fixed = TRUE)))
+  expect_true(any(grepl("• La primera medición: 1 pregunta.", txt, fixed = TRUE)))
+  expect_true(any(grepl("• La segunda medición: 1 pregunta.", txt, fixed = TRUE)))
   expect_true(any(grepl("01 de mayo de 2026 al 03 de mayo de 2026", txt, fixed = TRUE)))
   expect_true(any(grepl("10 de junio de 2026 al 12 de junio de 2026", txt, fixed = TRUE)))
+  expect_true(sum(grepl("^Distribución$", txt)) >= 2L)
+  expect_true(any(grepl("Primera medición: distribución de encuestas realizadas por distrito.", txt, fixed = TRUE)))
+  expect_true(any(grepl("Segunda medición: distribución de encuestas realizadas por distrito.", txt, fixed = TRUE)))
+  expect_true(any(grepl("Callao", txt, fixed = TRUE)))
+  expect_true(any(grepl("Lima", txt, fixed = TRUE)))
+  expect_false(any(grepl("Distribución agregada", txt, fixed = TRUE)))
   expect_false(any(grepl("numero_encuesta", txt, fixed = TRUE)))
+  expect_false(any(grepl("XLSForm", txt, fixed = TRUE)))
   expect_false(any(grepl("p=", txt, fixed = TRUE)))
   expect_false(any(grepl("n registros", txt, fixed = TRUE)))
   expect_false(any(grepl("n llaves", txt, fixed = TRUE)))
   expect_false(any(grepl("configuracion analitica", txt, fixed = TRUE)))
   expect_false(any(grepl("configuración analítica", txt, fixed = TRUE)))
+  expect_false(any(grepl("\\bolas?\\b", txt, ignore.case = TRUE)))
 })
 
 test_that("base panel respeta toggles de hojas auxiliares", {
@@ -194,7 +406,7 @@ test_that("base panel respeta toggles de hojas auxiliares", {
   )
   out <- tempfile(fileext = ".xlsx")
   .panel_write_xlsx(built, out)
-  expect_equal(openxlsx::getSheetNames(out), c("base_wide", "configuracion", "Ficha tecnica"))
+  expect_equal(openxlsx::getSheetNames(out), c("base_wide", "configuracion"))
 })
 
 test_that("ficha tecnica puede tomar marco muestral desde un .pulso de hojas de ruta", {
@@ -281,9 +493,10 @@ test_that("ficha tecnica puede tomar marco muestral desde un .pulso de hojas de 
   expect_true(any(grepl("Manzanas urbanas", txt, fixed = TRUE)))
   expect_true(any(grepl("Selección aleatoria con probabilidad proporcional al tamaño", txt, fixed = TRUE)))
   expect_true(any(grepl("recorrido operativo controlado", txt, fixed = TRUE)))
-  expect_true(any(grepl("Distribución agregada de la muestra por distrito", txt, fixed = TRUE)))
-  expect_true(any(grepl("CALLAO", txt, fixed = TRUE)))
-  expect_true(any(grepl("LIMA", txt, fixed = TRUE)))
+  expect_true(any(grepl("^Distribución$", txt)))
+  expect_false(any(grepl("Distribución agregada de la muestra por distrito", txt, fixed = TRUE)))
+  expect_true(any(grepl("Callao", txt, fixed = TRUE)))
+  expect_true(any(grepl("Lima", txt, fixed = TRUE)))
   expect_true(any(grepl("Encuestas", txt, fixed = TRUE)))
   expect_false(any(grepl("computadora", txt, fixed = TRUE)))
   expect_false(any(grepl("conveniencia", txt, fixed = TRUE)))
@@ -388,7 +601,8 @@ test_that("ficha tecnica Word usa formato Pulso oficial por defecto", {
     path_docx = out,
     cfg = list(ficha_tecnica = list(
       estudio = "Estudio panel Polarizacion",
-      aplicacion_de_encuestas = "Dos olas de campo consolidadas por numero de encuesta.",
+      campos_omitidos = c("Aplicación de encuestas piloto"),
+      aplicacion_de_encuestas = "Dos mediciones de campo consolidadas por numero de encuesta.",
       ponderacion = "No recalculada en este entregable.",
       supervision_de_mesa = "Revision de inconsistencias desde Prosecnur.",
       digitacion = "Digitalizacion desde cuestionario en papel.",
@@ -399,6 +613,7 @@ test_that("ficha tecnica Word usa formato Pulso oficial por defecto", {
   txt <- officer::docx_summary(officer::read_docx(out))$text
   expect_true(any(grepl("FICHA TÉCNICA", txt, fixed = TRUE)))
   expect_true(any(grepl("Aplicación de encuestas", txt, fixed = TRUE)))
+  expect_false(any(grepl("Aplicación de encuestas piloto", txt, fixed = TRUE)))
   expect_true(any(grepl("No recalculada en este entregable.", txt, fixed = TRUE)))
   expect_true(any(grepl("Digitalizacion desde cuestionario en papel.", txt, fixed = TRUE)))
 })

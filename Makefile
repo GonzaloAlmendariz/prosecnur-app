@@ -19,11 +19,12 @@ AUDIT_PROJECT ?= $(REPO_ROOT)/api/inst/audit_reference/prosecnur_audit_reference
 PULSO_PORT ?= 8787
 VITE_DEV_PORT ?= 5173
 PROSECNUR_VITE_URL ?= http://localhost:$(VITE_DEV_PORT)
+NODE_UV_THREADPOOL_SIZE ?= 64
 QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -100,7 +101,7 @@ dev-electron-vite:
 	  VITE_DEV_PORT="$(VITE_DEV_PORT)" \
 	  PULSO_PORT="$(PULSO_PORT)" \
 	  VITE_API_PROXY_TARGET="http://127.0.0.1:$(PULSO_PORT)" \
-	  pnpm dev -- --host 127.0.0.1 & \
+	  UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm dev -- --host 127.0.0.1 & \
 	  vite_pid=$$!; \
 	  cleanup() { \
 	    kill $$vite_pid 2>/dev/null || true; \
@@ -186,7 +187,7 @@ audit-reference-smoke:
 
 build:
 	@started=$$(date +%s); \
-	  cd frontend && pnpm build; \
+	  cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build; \
 	  cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
 	  elapsed=$$(( $$(date +%s) - started )); \
 	  echo "✓ Frontend compilado en $${elapsed}s."
@@ -201,7 +202,7 @@ build-if-stale:
 	  elif [ "$$status" = "1" ]; then \
 	    echo "→ Compilando frontend de producción..."; \
 	    build_started=$$(date +%s); \
-	    cd frontend && pnpm build; \
+	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build; \
 	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
 	    build_elapsed=$$(( $$(date +%s) - build_started )); \
 	    total_elapsed=$$(( $$(date +%s) - started )); \
@@ -211,13 +212,37 @@ build-if-stale:
 	    exit "$$status"; \
 	  fi
 
+build-if-stale-fast:
+	@started=$$(date +%s); \
+	  status=0; \
+	  node scripts/frontend-build-status.mjs --check || status=$$?; \
+	  check_elapsed=$$(( $$(date +%s) - started )); \
+	  if [ "$$status" = "0" ]; then \
+	    echo "✓ Check frontend completado en $${check_elapsed}s."; \
+	  elif [ "$$status" = "1" ]; then \
+	    echo "→ Compilando frontend de desarrollo rápido..."; \
+	    build_started=$$(date +%s); \
+	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build:fast; \
+	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
+	    build_elapsed=$$(( $$(date +%s) - build_started )); \
+	    total_elapsed=$$(( $$(date +%s) - started )); \
+	    echo "✓ Frontend dev compilado en $${build_elapsed}s (total $${total_elapsed}s)."; \
+	    echo "ℹ Typecheck estricto omitido en desktop-fast; usa 'pnpm --dir frontend typecheck' o 'make build' para release."; \
+	  else \
+	    echo "✗ No se pudo evaluar el estado del frontend (codigo $$status)." >&2; \
+	    exit "$$status"; \
+	  fi
+
+dev-port-preflight:
+	@node scripts/dev-port-preflight.mjs --ports 8787,8788,8789
+
 desktop: build
 	cd desktop && env -u ELECTRON_RUN_AS_NODE pnpm start
 
-desktop-fast: build-if-stale
+desktop-fast: dev-port-preflight build-if-stale-fast
 	cd desktop && env -u ELECTRON_RUN_AS_NODE pnpm start
 
-package-local: build
+package-local: build-if-stale
 	@APP_VERSION=$$(awk -F': *' '/^Version:/ {print $$2; exit}' api/DESCRIPTION); \
 	  test -n "$$APP_VERSION" || (echo "ERROR: no pude leer Version: de api/DESCRIPTION"; exit 1); \
 	  echo "[Prosecnur] Empaquetando version: $$APP_VERSION"
@@ -234,16 +259,16 @@ package-local: build
 	mkdir -p "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals"
 	mkdir -p "$(PACKAGE_STAGING)/Internals"
 	# Copia del template del .app (Info.plist + Contents/MacOS/Prosecnur bash).
-	rsync -a --delete --exclude ".DS_Store" Prosecnur.app/ "$(PACKAGE_STAGING)/Prosecnur.app/"
+	bash scripts/copy-tree.sh Prosecnur.app "$(PACKAGE_STAGING)/Prosecnur.app" ".DS_Store"
 	# Fuentes embebidas dentro del .app (modo packaged usa Resources/Internals).
-	rsync -a --delete --exclude ".DS_Store" --exclude "tests" api/ "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/api/"
-	rsync -a --delete --exclude ".DS_Store" launcher/ "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/launcher/"
-	rsync -a --delete --exclude ".DS_Store" --exclude "node_modules" desktop/ "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/desktop/"
+	bash scripts/copy-tree.sh api "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/api" ".DS_Store" "tests"
+	bash scripts/copy-tree.sh launcher "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/launcher" ".DS_Store"
+	bash scripts/copy-tree.sh desktop "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/desktop" ".DS_Store" "node_modules"
 	# Fuentes para el launcher Windows (.bat). Las espeja al lado del .bat.
 	cp Prosecnur.bat "$(PACKAGE_STAGING)/Prosecnur.bat"
-	rsync -a --delete --exclude ".DS_Store" --exclude "tests" api/ "$(PACKAGE_STAGING)/Internals/api/"
-	rsync -a --delete --exclude ".DS_Store" launcher/ "$(PACKAGE_STAGING)/Internals/launcher/"
-	rsync -a --delete --exclude ".DS_Store" --exclude "node_modules" desktop/ "$(PACKAGE_STAGING)/Internals/desktop/"
+	bash scripts/copy-tree.sh api "$(PACKAGE_STAGING)/Internals/api" ".DS_Store" "tests"
+	bash scripts/copy-tree.sh launcher "$(PACKAGE_STAGING)/Internals/launcher" ".DS_Store"
+	bash scripts/copy-tree.sh desktop "$(PACKAGE_STAGING)/Internals/desktop" ".DS_Store" "node_modules"
 	# Docs
 	cp LICENSE "$(PACKAGE_STAGING)/LICENSE"
 	cp README.md "$(PACKAGE_STAGING)/README_DESARROLLO.md"

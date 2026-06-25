@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ArgMetadata } from "../../api/client";
-import { ARGUMENT_HINT_BY_NAME, resolveArgumentDescription } from "./ArgField";
+import { ARGUMENT_HINT_BY_NAME, resolveArgumentDescription, resolveDisplayFallback } from "./ArgField";
 
 describe("resolveArgumentDescription", () => {
   const baseMeta = (override: Partial<ArgMetadata>): ArgMetadata => ({
@@ -171,5 +171,73 @@ describe("resolveArgumentDescription", () => {
 
     expect(text).toContain("Ajusta el valor numérico");
     expect(text).toContain("Ajuste manual avanzado");
+  });
+
+  test("explica orden y agrupación de barras con lenguaje de PPT", () => {
+    const orderText = resolveArgumentDescription(
+      baseMeta({
+        name: "orden_barras",
+        label: "Orden de barras",
+        tipo_input: "choice",
+        grupo: "estilo",
+      }),
+      { forText: true },
+    );
+    expect(orderText).toContain("orden del instrumento");
+    expect(orderText).toContain("frecuencia");
+
+    const maxText = resolveArgumentDescription(
+      baseMeta({
+        name: "max_categorias",
+        label: "Máximo de categorías",
+        tipo_input: "number",
+        grupo: "filtro",
+      }),
+      { forNumber: true },
+    );
+    expect(maxText).toContain("evitar gráficos demasiado altos");
+  });
+
+  test("explica etiquetas pequeñas y Top 2 Box", () => {
+    const thresholdText = resolveArgumentDescription(
+      baseMeta({
+        name: "umbral_posicion",
+        label: "Ubicación de etiquetas pequeñas",
+        tipo_input: "number",
+        grupo: "filtro",
+      }),
+      { forNumber: true },
+    );
+    expect(thresholdText).toContain("etiqueta pequeña");
+    expect(thresholdText).toContain("fuera de la barra");
+
+    const top2Text = resolveArgumentDescription(
+      baseMeta({
+        name: "top2box",
+        label: "Mostrar Top 2",
+        tipo_input: "bool",
+        grupo: "filtro",
+      }),
+      { forText: true },
+    );
+    expect(top2Text).toContain("dos categorías superiores");
+  });
+});
+
+describe("resolveDisplayFallback", () => {
+  const meta = (override: Partial<ArgMetadata>): ArgMetadata => ({
+    name: "otros_al_final",
+    label: "Otros al final",
+    tipo_input: "bool",
+    grupo: "estilo",
+    ...override,
+  });
+
+  test("usa el valor heredado cuando existe", () => {
+    expect(resolveDisplayFallback(meta({ default: true }), false)).toBe(false);
+  });
+
+  test("usa el default de metadata cuando no hay valor heredado", () => {
+    expect(resolveDisplayFallback(meta({ default: true }), undefined)).toBe(true);
   });
 });

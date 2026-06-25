@@ -11,6 +11,9 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
     frame_hash = "hash_test",
     selection = data.frame(
       selection_run_id = "sel_test",
+      operational_code = c("AULA 1", "AULA 2", "R1.1"),
+      titular_operational_code = c("AULA 1", "AULA 2", "AULA 1"),
+      replacement_chain_code = c("", "", "R1.1"),
       wave = c("M1", "M1", "M2"),
       orden = c(1, 2, 1),
       classroom_id = c("A1", "A2", "A3"),
@@ -35,6 +38,7 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
   expect_true(cfg$enabled)
   expect_equal(cfg$selection_run_id, "sel_test")
   expect_length(cfg$plan, 3)
+  expect_equal(cfg$plan[[1]]$operational_code, "AULA 1")
 
   responses <- data.frame(
     classroom_id = c("A1", "A1", "A2", "A9"),
@@ -55,6 +59,9 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
 test_that("Agenda de aulas cambia estados y aplica reemplazos", {
   plan <- monitoreo_aulas_normalize_plan(data.frame(
     selection_run_id = "sel_test",
+    operational_code = c("AULA 1", "R1.1"),
+    titular_operational_code = c("AULA 1", "AULA 1"),
+    replacement_chain_code = c("", "R1.1"),
     wave = c("M1", "M2"),
     orden = c(1, 1),
     classroom_id = c("A1", "A2"),
@@ -66,7 +73,7 @@ test_that("Agenda de aulas cambia estados y aplica reemplazos", {
   ))
 
   updated <- monitoreo_aulas_update_agenda(plan, data.frame(
-    classroom_id = "A1",
+    operational_code = "AULA 1",
     operational_status = "agendada",
     responsible = "Campo 1",
     link = "https://example.test/a1",
@@ -76,7 +83,7 @@ test_that("Agenda de aulas cambia estados y aplica reemplazos", {
   expect_equal(updated_df$operational_status[updated_df$classroom_id == "A1"], "agendada")
   expect_equal(updated_df$responsible[updated_df$classroom_id == "A1"], "Campo 1")
 
-  replaced <- monitoreo_aulas_apply_replacement(updated, "A1", "A2", "baja_asistencia", "Se activo reserva")
+  replaced <- monitoreo_aulas_apply_replacement(updated, "AULA 1", "R1.1", "baja_asistencia", "Se activo reserva")
   replaced_df <- .monitoreo_aulas_df(replaced)
   expect_equal(replaced_df$operational_status[replaced_df$classroom_id == "A1"], "reemplazada")
   expect_equal(replaced_df$replacement_for[replaced_df$classroom_id == "A2"], "A1")

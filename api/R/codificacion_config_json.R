@@ -146,6 +146,124 @@ CODIF_CONFIG_SCHEMA_VERSION <- "prosecnur.coding_config.v1"
   length(groups %||% list()) > 0L
 }
 
+.codif_config_exported_key <- function(exported) {
+  paste(.codif_config_norm(exported$base_id), .codif_config_norm(exported$name), sep = "::")
+}
+
+.codif_config_adopted_text_keys <- function(variables) {
+  out <- character()
+  for (exported in variables %||% list()) {
+    if (!.codif_config_has_effective_config(exported)) next
+    row <- ((exported %||% list())$configuration %||% list())$familias_row %||% list()
+    tipo <- .codif_config_scalar(row$tipo, .codif_config_scalar(exported$type, ""))
+    text_col <- .codif_config_scalar(row$text_col, "")
+    if (!tipo %in% c("select_one", "select_multiple") || !nzchar(text_col)) next
+    out <- c(out, paste(.codif_config_norm(exported$base_id), .codif_config_norm(text_col), sep = "::"))
+  }
+  unique(out[nzchar(out)])
+}
+
+.codif_config_is_adopted_text_duplicate <- function(exported, adopted_keys) {
+  if (!length(adopted_keys)) return(FALSE)
+  row <- ((exported %||% list())$configuration %||% list())$familias_row %||% list()
+  tipo <- .codif_config_scalar(row$tipo, .codif_config_scalar(exported$type, ""))
+  identical(tipo, "text") && .codif_config_exported_key(exported) %in% adopted_keys
+}
+
+.codif_config_merge_records_missing <- function(existing, incoming, key = "code") {
+  existing <- existing %||% list()
+  incoming <- incoming %||% list()
+  existing_keys <- vapply(existing, function(x) .codif_config_scalar(x[[key]], ""), character(1))
+  out <- existing
+  for (item in incoming) {
+    item_key <- .codif_config_scalar(item[[key]], "")
+    if (!nzchar(item_key) || item_key %in% existing_keys) next
+    out[[length(out) + 1L]] <- item
+    existing_keys <- c(existing_keys, item_key)
+  }
+  out
+}
+
+.codif_config_merge_recoded_values <- function(existing, incoming) {
+  vals <- unique(c(
+    as.character(unlist(existing %||% list(), use.names = FALSE)),
+    as.character(unlist(incoming %||% list(), use.names = FALSE))
+  ))
+  vals <- vals[!is.na(vals) & nzchar(vals)]
+  as.list(vals)
+}
+
+.codif_config_absorb_duplicate_text <- function(parent, child) {
+  if (is.null(parent$configuration) || !is.list(parent$configuration)) parent$configuration <- list()
+  parent_cfg <- parent$configuration %||% list()
+  child_cfg <- child$configuration %||% list()
+  parent_groups <- parent_cfg$grupos %||% list()
+  child_groups <- child_cfg$grupos %||% list()
+  merged_groups <- .codif_config_merge_groups_missing(parent_groups, child_groups)
+
+  parent$categories <- .codif_config_merge_records_missing(parent$categories, child$categories, "code")
+  parent$rules <- .codif_config_merge_records_missing(parent$rules, child$rules, "code")
+  parent$recodes <- .codif_config_merge_records_missing(parent$recodes, child$recodes, "code")
+  parent$configuration$grupos <- merged_groups
+  parent$configuration$respuestas_recod <- .codif_config_merge_recoded_values(
+    parent_cfg$respuestas_recod,
+    child_cfg$respuestas_recod
+  )
+  parent$configuration$marcada <- isTRUE(parent_cfg$marcada) || isTRUE(child_cfg$marcada)
+  parent
+}
+
+.codif_config_normalize_variables <- function(variables) {
+  variables <- variables %||% list()
+  if (!length(variables)) {
+    return(list(variables = list(), adopted_text_duplicates = list()))
+  }
+
+  keys <- vapply(variables, .codif_config_exported_key, character(1))
+  drop <- rep(FALSE, length(variables))
+  adopted <- list()
+
+  for (i in seq_along(variables)) {
+    exported <- variables[[i]]
+    row <- ((exported %||% list())$configuration %||% list())$familias_row %||% list()
+    tipo <- .codif_config_scalar(row$tipo, .codif_config_scalar(exported$type, ""))
+    text_col <- .codif_config_scalar(row$text_col, "")
+    if (!tipo %in% c("select_one", "select_multiple") || !nzchar(text_col)) next
+
+    child_key <- paste(.codif_config_norm(exported$base_id), .codif_config_norm(text_col), sep = "::")
+    child_idx <- which(keys == child_key)[1]
+    if (is.na(child_idx) || child_idx == i) next
+    child <- variables[[child_idx]]
+    if (!.codif_config_is_adopted_text_duplicate(child, child_key)) next
+
+    before_groups <- length(((variables[[i]]$configuration %||% list())$grupos %||% list()))
+    child_groups <- length(((child$configuration %||% list())$grupos %||% list()))
+    variables[[i]] <- .codif_config_absorb_duplicate_text(variables[[i]], child)
+    after_groups <- length(((variables[[i]]$configuration %||% list())$grupos %||% list()))
+    drop[[child_idx]] <- TRUE
+    adopted[[length(adopted) + 1L]] <- list(
+      base_id = .codif_config_scalar(exported$base_id, ""),
+      parent = .codif_config_scalar(exported$name, ""),
+      text_col = text_col,
+      mode_so = .codif_config_scalar(row$modo_so, ""),
+      child = .codif_config_scalar(child$name, ""),
+      parent_groups_before = as.integer(before_groups),
+      child_groups = as.integer(child_groups),
+      parent_groups_after = as.integer(after_groups),
+      action = if (after_groups > before_groups) "absorbed_child_groups" else "deduplicated_child"
+    )
+  }
+
+  list(
+    variables = variables[!drop],
+    adopted_text_duplicates = adopted
+  )
+}
+
+.codif_config_filter_adopted_text_duplicates <- function(variables) {
+  .codif_config_normalize_variables(variables)$variables
+}
+
 .codif_config_sanitize_row <- function(row) {
   keep <- c(
     "use", "q_order", "tipo", "modo_so", "modo_so_explicit",
@@ -274,6 +392,8 @@ codif_config_export <- function(sid) {
       variables[[length(variables) + 1L]] <- .codif_config_export_variable(sid, source, row, state, inst)
     }
   }
+  normalized <- .codif_config_normalize_variables(variables)
+  variables <- normalized$variables
   list(
     ok = TRUE,
     schema_version = CODIF_CONFIG_SCHEMA_VERSION,
@@ -288,6 +408,9 @@ codif_config_export <- function(sid) {
       source = "prosecnur",
       notes = "",
       exported_bases = as.list(sources),
+      normalization = list(
+        adopted_text_duplicates = normalized$adopted_text_duplicates
+      ),
       contains_case_rows = FALSE,
       contains_response_match_values = TRUE
     )
@@ -335,20 +458,12 @@ codif_config_export <- function(sid) {
 
 .codif_config_target_var_has_state <- function(sid, source, var_name) {
   st <- codif_snapshot(sid, source)
-  rows <- (st$familias_draft %||% list())$rows %||% list()
-  row_has_state <- any(vapply(rows, function(row) {
-    parent <- .codif_config_scalar(row$parent, "")
-    parent_col <- .codif_config_scalar(row$parent_col, "")
-    text_col <- .codif_config_scalar(row$text_col, "")
-    (var_name %in% c(parent, parent_col, text_col)) &&
-      (isTRUE(row$use) || nzchar(text_col) || nzchar(.codif_config_scalar(row$other_dummy_col, "")))
-  }, logical(1)))
   groups <- st$grupos_recod %||% list()
   has_groups <- !is.null(groups[[var_name]]) && length(groups[[var_name]]) > 0L
   recod <- st$respuestas_recod %||% list()
   has_recod <- !is.null(recod[[var_name]]) && length(recod[[var_name]]) > 0L
   marked <- isTRUE((st$marcadas %||% list())[[var_name]])
-  isTRUE(row_has_state || has_groups || has_recod || marked)
+  isTRUE(has_groups || has_recod || marked)
 }
 
 .codif_config_existing_groups_for_target <- function(sid, source, var_name) {
@@ -483,7 +598,9 @@ codif_config_export <- function(sid) {
         base_id = .codif_config_scalar(exported$base_id, ""),
         name = .codif_config_scalar(exported$name, ""),
         label = .codif_config_scalar(exported$label, ""),
-        type = .codif_config_scalar(exported$type, "")
+        type = .codif_config_scalar(exported$type, ""),
+        mode_so = .codif_config_scalar(exported$mode_so, ""),
+        text_col = .codif_config_scalar(exported$text_col, "")
       ),
       target = list(base_id = target_base, name = "", label = "", type = ""),
       status = "missing",
@@ -511,7 +628,9 @@ codif_config_export <- function(sid) {
       base_id = .codif_config_scalar(exported$base_id, ""),
       name = .codif_config_scalar(exported$name, ""),
       label = .codif_config_scalar(exported$label, ""),
-      type = .codif_config_scalar(exported$type, "")
+      type = .codif_config_scalar(exported$type, ""),
+      mode_so = .codif_config_scalar(exported$mode_so, ""),
+      text_col = .codif_config_scalar(exported$text_col, "")
     ),
     target = list(
       base_id = target_base,
@@ -540,7 +659,8 @@ codif_config_export <- function(sid) {
   inventories <- stats::setNames(vector("list", length(target_bases)), target_bases)
   inventory_loaded <- stats::setNames(rep(FALSE, length(target_bases)), target_bases)
   out <- list()
-  for (exported in bundle$variables %||% list()) {
+  variables <- .codif_config_filter_adopted_text_duplicates(bundle$variables %||% list())
+  for (exported in variables) {
     if (!.codif_config_has_effective_config(exported)) next
     bases <- .codif_config_candidate_target_bases(bundle, exported, target_bases)
     for (target_base in bases) {
@@ -576,6 +696,10 @@ codif_config_export <- function(sid) {
 
 codif_config_preview_import <- function(sid, bundle, file_name = "") {
   .codif_config_validate_bundle(bundle)
+  normalized <- .codif_config_normalize_variables(bundle$variables %||% list())
+  effective_normalized <- normalized$variables[
+    vapply(normalized$variables %||% list(), .codif_config_has_effective_config, logical(1))
+  ]
   items <- .codif_config_preview_items(sid, bundle)
   list(
     ok = TRUE,
@@ -585,7 +709,12 @@ codif_config_preview_import <- function(sid, bundle, file_name = "") {
       project_label = .codif_config_scalar(bundle$project_label, ""),
       exported_at = .codif_config_scalar(bundle$exported_at, ""),
       mode = .codif_config_scalar(bundle$mode, ""),
-      variables = as.integer(length(bundle$variables %||% list()))
+      variables = as.integer(length(bundle$variables %||% list())),
+      variables_after_normalization = as.integer(length(normalized$variables %||% list())),
+      variables_effective_after_normalization = as.integer(length(effective_normalized %||% list())),
+      normalization = list(
+        adopted_text_duplicates = normalized$adopted_text_duplicates
+      )
     ),
     target = list(
       project_label = .codif_config_project_label(sid),

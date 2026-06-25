@@ -139,6 +139,7 @@
   s$analitica_dim_ok <- FALSE
   s$analitica_multibase_ok <- FALSE
   s$analitica_panel_ok <- FALSE
+  s$analitica_ficha_tecnica_ok <- FALSE
   s$analitica_multibase_available <- FALSE
   if (nzchar(active_analitica)) {
     if (is.null(s$analitica_status_por_base) || !is.list(s$analitica_status_por_base)) {
@@ -151,7 +152,8 @@
       "analitica_cruces_ok", "analitica_spss_ok", "analitica_enumeradores_ok",
       "analitica_dim_ok", "analitica_multibase_ok", "analitica_bases_data_ok",
       "analitica_bases_instrumento_ok", "analitica_bases_sav_ok",
-      "analitica_bases_csv_ok", "analitica_bases_xlsx_ok", "analitica_panel_ok"
+      "analitica_bases_csv_ok", "analitica_bases_xlsx_ok", "analitica_panel_ok",
+      "analitica_ficha_tecnica_ok"
     )) {
       status[[key]] <- FALSE
     }
@@ -1183,7 +1185,8 @@ isTRUE_vec <- function(x) {
 # reconoce la nueva columna por el patrón del nombre técnico (prosecnur
 # docs "En select_multiple, la columna nueva puede quedar antes o después
 # de Control / notas; el adaptador la reconoce por el nombre técnico").
-.patch_sm_sheet <- function(wb, sheet, parent_col, text_col, grupos, data_df) {
+.patch_sm_sheet <- function(wb, sheet, parent_col, text_col, grupos, data_df,
+                            other_dummy_col = "") {
   h <- .read_sheet_headers(wb, sheet)
   if (is.null(h)) return(invisible(FALSE))
   if (is.na(h$uuid_idx) || !nzchar(text_col)) return(invisible(FALSE))
@@ -1193,13 +1196,29 @@ isTRUE_vec <- function(x) {
 
   # Map codigo existente → col_idx en la hoja (lee las <parent>/<N>_recod).
   tech_row <- h$tech_row
+  label_row <- if (!is.null(h$df) && nrow(h$df) >= 2L) {
+    as.character(h$df[2, , drop = TRUE])
+  } else {
+    rep("", length(tech_row))
+  }
+  label_row[is.na(label_row)] <- ""
   existing_code_to_col <- list()
+  other_code_to_col <- list()
   rx <- sprintf("^\\Q%s\\E/([^/]+)_recod$", parent_col)
   for (j in seq_along(tech_row)) {
     m <- regmatches(tech_row[j], regexec(rx, tech_row[j], perl = TRUE))[[1]]
     if (length(m) >= 2L && nzchar(m[2]) && m[2] != "ejemplo") {
       existing_code_to_col[[m[2]]] <- j
+      label_norm <- .normalize_text(label_row[j])[1]
+      code_norm <- .normalize_text(m[2])[1]
+      if (startsWith(label_norm, "otro") || startsWith(label_norm, "other") || identical(code_norm, "other")) {
+        other_code_to_col[[m[2]]] <- j
+      }
     }
+  }
+  other_dummy_code <- sub("^.*[/._]", "", as.character(other_dummy_col %||% ""))
+  if (nzchar(other_dummy_code) && !is.null(existing_code_to_col[[other_dummy_code]])) {
+    other_code_to_col[[other_dummy_code]] <- existing_code_to_col[[other_dummy_code]]
   }
 
   # Índice de la última columna ocupada en row 1 (para append de columnas
@@ -1253,6 +1272,14 @@ isTRUE_vec <- function(x) {
       # si no a la nueva. Si nada, skip.
       col_idx <- existing_code_to_col[[codigo]] %||% new_code_to_col[[codigo]]
       if (is.null(col_idx)) next
+      if (!codigo %in% names(other_code_to_col) && length(other_code_to_col)) {
+        for (other_col_idx in other_code_to_col) {
+          openxlsx::writeData(
+            wb, sheet = sheet, x = 0L,
+            startCol = other_col_idx, startRow = i, colNames = FALSE
+          )
+        }
+      }
       openxlsx::writeData(
         wb, sheet = sheet, x = 1L,
         startCol = col_idx, startRow = i, colNames = FALSE
@@ -1428,7 +1455,10 @@ isTRUE_vec <- function(x) {
       sheet <- parent
       pc <- if (nzchar(parent_col)) parent_col else parent
       if (!nzchar(text_col)) { skipped <- c(skipped, parent); next }
-      ok <- .patch_sm_sheet(wb, sheet, pc, text_col, grupos, data_df)
+      ok <- .patch_sm_sheet(
+        wb, sheet, pc, text_col, grupos, data_df,
+        other_dummy_col = as.character(row$other_dummy_col %||% "")
+      )
       if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
     } else {
       skipped <- c(skipped, parent)

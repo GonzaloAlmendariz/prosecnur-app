@@ -37667,6 +37667,17 @@ button.mon-acr-requirement-metric:active {
   overflow: hidden;
 }
 
+.mon-territorial-route-atlas > .mon-territorial-route-summary-hero {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.mon-territorial-route-atlas > .mon-territorial-route-summary-hero .mon-territorial-route-summary-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: stretch;
+}
+
 .mon-territorial-route-atlas-map-panel,
 .mon-territorial-route-atlas-rail,
 .mon-territorial-route-district-coverage,
@@ -38142,6 +38153,20 @@ button.mon-acr-requirement-metric:active {
   grid-template-columns: minmax(360px, clamp(380px, 29vw, 460px)) minmax(0, 1fr);
   gap: 10px;
   overflow: hidden;
+}
+
+.mon-territorial-route-table-workspace {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.mon-territorial-route-table-workspace .mon-territorial-route-sidebar {
+  grid-template-columns: minmax(360px, 0.58fr) minmax(360px, 0.42fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .mon-territorial-route-sidebar {

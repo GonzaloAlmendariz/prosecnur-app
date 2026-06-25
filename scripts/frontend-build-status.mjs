@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import crypto from "node:crypto";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SCRIPT_VERSION = 1;
+const SCRIPT_VERSION = 2;
 const STAMP_SCHEMA = "prosecnur_frontend_build_stamp_v1";
 const ENV_KEYS = ["VITE_BASE_PATH", "VITE_PULSO_PUBLIC_MODE"];
 const IGNORE_FILE_NAMES = new Set([".DS_Store"]);
@@ -102,8 +103,8 @@ async function fingerprintInputs() {
   hash.update(`env:${JSON.stringify(env)}\n`);
 
   for (const file of files) {
-    const bytes = await fs.readFile(file);
-    const fileHash = sha256(bytes);
+    const st = fsSync.statSync(file);
+    const fileHash = `${st.size}:${Math.floor(st.mtimeMs)}`;
     const key = rel(file);
     fileHashes[key] = fileHash;
     hash.update(`${key}\0${fileHash}\n`);

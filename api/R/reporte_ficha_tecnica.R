@@ -143,7 +143,10 @@ if (!exists("%||%", mode = "function")) {
       "Tipo de investigacion",
       "Estudio",
       "Universo de estudio",
+      "Base de analisis",
+      "Criterios de inclusion",
       "Ambito geografico",
+      "Distritos seleccionados",
       "Aplicacion piloto",
       "Aplicacion del recojo de informacion",
       "Marco muestral",
@@ -162,7 +165,10 @@ if (!exists("%||%", mode = "function")) {
       .ficha_tecnica_cfg(cfg, "tipo_investigacion", "Estudio cuantitativo documentado a partir de bases de encuesta procesadas."),
       estudio,
       .ficha_tecnica_cfg(cfg, "universo_estudio", "No documentado en la ficha metodológica disponible."),
+      .ficha_tecnica_cfg(cfg, "base_analisis", "No documentado en la ficha metodológica disponible."),
+      .ficha_tecnica_cfg(cfg, "criterios_inclusion", "No documentado en la ficha metodológica disponible."),
       .ficha_tecnica_cfg(cfg, "ambito_geografico", "No documentado en la ficha metodológica disponible."),
+      .ficha_tecnica_cfg(cfg, "distritos_seleccionados", "No documentado en la ficha metodológica disponible."),
       .ficha_tecnica_cfg(cfg, "aplicacion_piloto", "No documentado en la ficha metodológica disponible."),
       .ficha_tecnica_cfg(
         cfg,
@@ -189,7 +195,10 @@ if (!exists("%||%", mode = "function")) {
       "Campo descriptivo editable; no reemplaza la documentacion metodologica completa del estudio.",
       if (identical(estudio, "No documentado en la ficha metodológica disponible.")) "Pendiente de completar en la ficha metodológica." else "Tomado de la documentación metodológica o del instrumento.",
       "Pendiente si el proyecto no registra ficha metodologica.",
+      "Pendiente si el proyecto no registra base de análisis.",
+      "Pendiente si el proyecto no registra criterios de elegibilidad.",
       "Pendiente si el proyecto no registra ficha metodologica.",
+      "Pendiente si el proyecto no registra distritos de la muestra.",
       "Pendiente si no corresponde o no fue documentado.",
       "Pendiente si el proyecto no registra periodo de campo.",
       "Pendiente si el proyecto no registra marco muestral.",
@@ -249,7 +258,10 @@ if (!exists("%||%", mode = "function")) {
     "Tipo de investigaci\u00f3n",
     "Estudio",
     "Universo de estudio",
+    "Base de an\u00e1lisis",
+    "Criterios de inclusi\u00f3n",
     "\u00c1mbito geogr\u00e1fico",
+    "Distritos seleccionados",
     "Aplicaci\u00f3n de encuestas piloto",
     "Aplicaci\u00f3n de encuestas",
     "Marco muestral",
@@ -273,7 +285,10 @@ if (!exists("%||%", mode = "function")) {
     tipo_de_investigacion = c("tipo_de_investigacion"),
     estudio = c("estudio"),
     universo_de_estudio = c("universo_de_estudio"),
+    base_de_analisis = c("base_de_analisis", "base_analisis"),
+    criterios_de_inclusion = c("criterios_de_inclusion", "criterios_inclusion"),
     ambito_geografico = c("ambito_geografico"),
+    distritos_seleccionados = c("distritos_seleccionados", "distritos_muestra", "distritos"),
     aplicacion_de_encuestas_piloto = c("aplicacion_de_encuestas_piloto", "aplicacion_piloto"),
     aplicacion_de_encuestas = c("aplicacion_de_encuestas", "aplicacion_del_recojo_de_informacion", "aplicacion_recojo"),
     marco_muestral = c("marco_muestral"),
@@ -329,6 +344,8 @@ if (!exists("%||%", mode = "function")) {
   ft <- (cfg %||% list())$ficha_tecnica %||% list()
   extra_keys <- c(
     "aplicacion_de_encuestas_piloto", "aplicacion_de_encuestas",
+    "base_de_analisis", "base_analisis", "criterios_de_inclusion", "criterios_inclusion",
+    "distritos_seleccionados", "distritos_muestra", "distritos",
     "tamano_de_la_muestra", "ponderacion", "supervision_de_mesa", "supervision_de_campo",
     "tecnica_de_aplicacion", "tecnica_aplicacion", "digitacion", "entregables"
   )
@@ -337,7 +354,7 @@ if (!exists("%||%", mode = "function")) {
     if (nzchar(value)) values[[key]] <- value
   }
   labels <- .ficha_tecnica_docx_labels()
-  data.frame(
+  out <- data.frame(
     Campo = labels,
     Detalle = vapply(labels, function(label) {
       key <- .ficha_tecnica_norm_field(label)
@@ -346,6 +363,14 @@ if (!exists("%||%", mode = "function")) {
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+  omitted <- .ficha_tecnica_chr_vec(
+    ft$campos_omitidos %||% ft$omit_fields %||% ft$ocultar_campos %||% ft$hidden_fields
+  )
+  omitted <- .ficha_tecnica_norm_field(omitted)
+  if (length(omitted)) {
+    out <- out[!(.ficha_tecnica_norm_field(out$Campo) %in% omitted), , drop = FALSE]
+  }
+  out
 }
 
 .ficha_tecnica_xml_escape <- function(x) {
@@ -423,6 +448,8 @@ if (!exists("%||%", mode = "function")) {
     )
   }
 
+  target_dir <- normalizePath(dirname(path_docx), mustWork = TRUE)
+  path_docx <- file.path(target_dir, basename(path_docx))
   if (file.exists(path_docx)) unlink(path_docx)
   old <- setwd(tmp)
   on.exit(setwd(old), add = TRUE)
@@ -467,8 +494,8 @@ if (!exists("%||%", mode = "function")) {
     paste0(
       '<w:tc>',
       '<w:tcPr><w:tcW w:w="%s" w:type="dxa"/>%s',
-      '<w:tcMar><w:top w:w="70" w:type="dxa"/><w:left w:w="90" w:type="dxa"/>',
-      '<w:bottom w:w="70" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar>',
+      '<w:tcMar><w:top w:w="70" w:type="dxa"/><w:left w:w="150" w:type="dxa"/>',
+      '<w:bottom w:w="70" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>',
       '<w:vAlign w:val="center"/></w:tcPr>',
       '<w:p><w:pPr><w:jc w:val="%s"/></w:pPr>',
       '<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>',
@@ -486,13 +513,23 @@ if (!exists("%||%", mode = "function")) {
   )
 }
 
-.ficha_tecnica_nested_table_xml <- function(df, widths = NULL, font_size = 14L) {
+.ficha_tecnica_nested_table_xml <- function(df, widths = NULL, font_size = 14L, indent = 180L) {
   if (!is.data.frame(df) || !nrow(df) || !ncol(df)) return(NULL)
   df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+  indent <- suppressWarnings(as.integer(indent))
+  if (!is.finite(indent) || indent < 0L) indent <- 0L
+  table_width <- max(5600L, 7200L - indent)
   if (is.null(widths) || length(widths) != ncol(df)) {
-    widths <- rep(floor(7200 / ncol(df)), ncol(df))
+    widths <- rep(floor(table_width / ncol(df)), ncol(df))
   }
   widths <- as.integer(widths)
+  total_width <- sum(widths, na.rm = TRUE)
+  if (is.finite(total_width) && total_width > table_width) {
+    widths <- pmax(260L, floor(widths * table_width / total_width))
+    width_delta <- table_width - sum(widths, na.rm = TRUE)
+    widths[[length(widths)]] <- widths[[length(widths)]] + width_delta
+  }
+  table_width <- sum(widths, na.rm = TRUE)
   headers <- names(df)
   grid <- paste(sprintf('<w:gridCol w:w="%s"/>', widths), collapse = "")
   header_cells <- paste(vapply(seq_along(headers), function(j) {
@@ -517,7 +554,8 @@ if (!exists("%||%", mode = "function")) {
   paste0(
     '<w:tbl xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">',
     '<w:tblPr>',
-    '<w:tblW w:w="7200" w:type="dxa"/>',
+    sprintf('<w:tblW w:w="%s" w:type="dxa"/>', as.integer(table_width)),
+    sprintf('<w:tblInd w:w="%s" w:type="dxa"/>', as.integer(indent)),
     '<w:tblLayout w:type="fixed"/>',
     '<w:tblBorders>',
     '<w:top w:val="single" w:sz="4" w:space="0" w:color="7F7F7F"/>',
@@ -540,6 +578,7 @@ if (!exists("%||%", mode = "function")) {
   if (!requireNamespace("xml2", quietly = TRUE) || !requireNamespace("zip", quietly = TRUE)) {
     stop("Para insertar subtablas en la ficha tecnica Word se requieren xml2 y zip.", call. = FALSE)
   }
+  path_docx <- normalizePath(path_docx, mustWork = TRUE)
   tmp <- tempfile("ficha_nested_docx_")
   dir.create(tmp, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(tmp, recursive = TRUE, force = TRUE), add = TRUE)
@@ -563,7 +602,7 @@ if (!exists("%||%", mode = "function")) {
         caption_xml <- sprintf(
           paste0(
             '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">',
-            '<w:pPr><w:spacing w:before="120" w:after="60"/></w:pPr>',
+            '<w:pPr><w:spacing w:before="120" w:after="60"/><w:ind w:left="180"/></w:pPr>',
             '<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>',
             '<w:sz w:val="16"/><w:color w:val="002060"/><w:b/></w:rPr>',
             '<w:t xml:space="preserve">%s</w:t></w:r></w:p>'
@@ -575,7 +614,8 @@ if (!exists("%||%", mode = "function")) {
       table_xml <- .ficha_tecnica_nested_table_xml(
         nested_df,
         widths = spec$widths %||% NULL,
-        font_size = spec$font_size %||% 14L
+        font_size = spec$font_size %||% 14L,
+        indent = spec$indent %||% 180L
       )
       if (!is.null(table_xml)) {
         xml2::xml_add_child(cells[[2]], xml2::xml_root(xml2::read_xml(table_xml)))
@@ -610,6 +650,7 @@ if (!exists("%||%", mode = "function")) {
   ft <- flextable::bg(ft, j = 1, bg = gray, part = "body")
   ft <- flextable::bold(ft, bold = FALSE, part = "all")
   ft <- flextable::padding(ft, padding.top = 6, padding.bottom = 6, padding.left = 6, padding.right = 6, part = "all")
+  ft <- flextable::padding(ft, j = 2, padding.left = 10, part = "body")
   ft <- flextable::line_spacing(ft, space = 1.03, part = "all")
   ft <- flextable::align(ft, align = "left", part = "all")
   ft <- flextable::valign(ft, j = 1, valign = "center", part = "body")
@@ -673,7 +714,11 @@ if (!exists("%||%", mode = "function")) {
   first <- TRUE
   for (spec in appendices) {
     if (!isTRUE(first)) {
-      doc <- officer::body_add_par(doc, "", style = "Normal")
+      if (isTRUE(spec$page_break_before)) {
+        doc <- officer::body_add_break(doc)
+      } else {
+        doc <- officer::body_add_par(doc, "", style = "Normal")
+      }
     }
     first <- FALSE
     title <- .ficha_tecnica_scalar(spec$title, "")
@@ -718,8 +763,10 @@ if (!exists("%||%", mode = "function")) {
   groups <- list(
     labels[1:8],
     labels[9],
-    labels[10:13],
-    labels[14:length(labels)]
+    labels[10:11],
+    labels[12],
+    labels[13:16],
+    labels[17:length(labels)]
   )
   out <- lapply(groups, function(group_labels) {
     idx <- match(group_labels, rows$Campo)
@@ -862,6 +909,51 @@ if (!exists("%||%", mode = "function")) {
   x <- suppressWarnings(as.numeric(x))
   if (!is.finite(x)) return(fallback)
   sprintf("%.0f%%", x * 100)
+}
+
+.ficha_tecnica_title_case_es <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  x <- x[!is.na(x) & nzchar(x)]
+  if (!length(x)) return(character(0))
+  official_names <- c(
+    san_martin_de_porres = "San Martín de Porres",
+    villa_maria_del_triunfo = "Villa María del Triunfo",
+    jesus_maria = "Jesús María",
+    rimac = "Rímac",
+    brena = "Breña"
+  )
+  keys <- .ficha_tecnica_norm_field(x)
+  out <- tools::toTitleCase(tolower(x))
+  out <- vapply(seq_along(out), function(i) {
+    mapped <- unname(official_names[keys[[i]]])
+    if (!is.na(mapped) && nzchar(mapped)) return(mapped)
+    out[[i]]
+  }, character(1), USE.NAMES = FALSE)
+  vapply(out, function(value) {
+    parts <- strsplit(value, "\\s+", perl = TRUE)[[1]]
+    if (length(parts) > 1L) {
+      lower_words <- c("De", "Del", "La", "Las", "Los", "Y")
+      hit <- seq_along(parts) > 1L & parts %in% lower_words
+      parts[hit] <- tolower(parts[hit])
+    }
+    paste(parts, collapse = " ")
+  }, character(1), USE.NAMES = FALSE)
+}
+
+.ficha_tecnica_join_sentence <- function(x) {
+  x <- unique(trimws(as.character(x %||% "")))
+  x <- x[!is.na(x) & nzchar(x)]
+  if (!length(x)) return("")
+  if (length(x) == 1L) return(x[[1]])
+  if (length(x) == 2L) return(paste(x, collapse = " y "))
+  paste0(paste(x[-length(x)], collapse = ", "), " y ", x[[length(x)]])
+}
+
+.ficha_tecnica_district_names <- function(distribution) {
+  if (!is.data.frame(distribution) || !nrow(distribution) || !"distrito" %in% names(distribution)) {
+    return(character(0))
+  }
+  .ficha_tecnica_title_case_es(distribution$distrito)
 }
 
 .ficha_tecnica_first_nonempty <- function(...) {
@@ -1298,7 +1390,7 @@ if (!exists("%||%", mode = "function")) {
     observacion <- .ficha_tecnica_first_nonempty(
       wave$observacion_fecha,
       wave$date_observation,
-      "Rango declarado en la configuración metodológica de la ola."
+      "Rango declarado en la configuración metodológica de la medición."
     )
     if (nzchar(var) && var %in% names(df)) {
       raw <- df[[var]]
@@ -1338,7 +1430,7 @@ if (!exists("%||%", mode = "function")) {
       n_fecha_registrada = 0L,
       n_fecha_valida = 0L,
       rango = "",
-      observacion_fecha = "No se detectó una variable de fecha para esta ola."
+      observacion_fecha = "No se detectó una variable de fecha para esta medición."
     ))
   }
   raw <- df[[var]]
@@ -1367,6 +1459,107 @@ if (!exists("%||%", mode = "function")) {
     rango = range,
     observacion_fecha = if (length(obs)) paste(obs, collapse = " ") else "Rango inferido desde la variable de fecha registrada en la base."
   )
+}
+
+.ficha_tecnica_panel_measurement_label <- function(i) {
+  labels <- c(
+    "Primera medición", "Segunda medición", "Tercera medición",
+    "Cuarta medición", "Quinta medición", "Sexta medición"
+  )
+  if (i <= length(labels)) labels[[i]] else sprintf("Medición %s", .ficha_tecnica_fmt_int(i))
+}
+
+.ficha_tecnica_distribution_standardize <- function(distribution) {
+  if (!is.data.frame(distribution) && is.list(distribution)) {
+    distribution <- .ficha_tecnica_list_rows(distribution)
+  }
+  if (!is.data.frame(distribution) || !nrow(distribution)) return(data.frame())
+  normalized <- stats::setNames(.ficha_tecnica_norm_field(names(distribution)), names(distribution))
+  district_col <- names(normalized)[normalized %in% c(
+    "distrito", "distrito_nombre", "nombre_distrito", "distrito_asignado",
+    "territorio", "ambito"
+  )][1]
+  count_col <- names(normalized)[normalized %in% c(
+    "entrevistas", "encuestas", "casos", "n", "frecuencia", "total"
+  )][1]
+  pct_col <- names(normalized)[normalized %in% c(
+    "porcentaje", "pct", "peso", "proporcion"
+  )][1]
+  if (is.na(district_col) || !nzchar(district_col)) return(data.frame())
+  out <- data.frame(
+    distrito = trimws(as.character(distribution[[district_col]])),
+    stringsAsFactors = FALSE
+  )
+  out$distrito[is.na(out$distrito) | !nzchar(out$distrito)] <- "Sin distrito asignado"
+  if (!is.na(count_col) && nzchar(count_col)) {
+    out$entrevistas <- suppressWarnings(as.numeric(distribution[[count_col]]))
+  } else {
+    out$entrevistas <- 1
+  }
+  out$entrevistas[is.na(out$entrevistas)] <- 0
+  out <- stats::aggregate(entrevistas ~ distrito, data = out, sum, na.rm = TRUE)
+  out <- out[out$entrevistas > 0, , drop = FALSE]
+  if (!nrow(out)) return(data.frame())
+  if (!is.na(pct_col) && nzchar(pct_col) && nrow(out) == nrow(distribution)) {
+    pct_values <- suppressWarnings(as.numeric(distribution[[pct_col]]))
+    if (any(is.finite(pct_values))) {
+      pct_df <- data.frame(
+        distrito = trimws(as.character(distribution[[district_col]])),
+        porcentaje = pct_values,
+        stringsAsFactors = FALSE
+      )
+      pct_df$distrito[is.na(pct_df$distrito) | !nzchar(pct_df$distrito)] <- "Sin distrito asignado"
+      pct_df <- stats::aggregate(porcentaje ~ distrito, data = pct_df, sum, na.rm = TRUE)
+      out$porcentaje <- pct_df$porcentaje[match(out$distrito, pct_df$distrito)]
+    }
+  }
+  if (!"porcentaje" %in% names(out) || all(!is.finite(out$porcentaje))) {
+    total <- sum(out$entrevistas, na.rm = TRUE)
+    out$porcentaje <- if (total > 0) out$entrevistas / total else NA_real_
+  }
+  out <- out[order(-out$entrevistas, out$distrito), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.ficha_tecnica_panel_district_column <- function(df) {
+  if (!is.data.frame(df) || !ncol(df)) return("")
+  normalized <- stats::setNames(.ficha_tecnica_norm_field(names(df)), names(df))
+  priority <- c(
+    "distrito", "distrito_nombre", "nombre_distrito", "distrito_asignado",
+    "distrito_encuesta", "distrito_residencia"
+  )
+  for (candidate in priority) {
+    hit <- names(normalized)[normalized == candidate]
+    if (length(hit)) return(hit[[1]])
+  }
+  hit <- names(normalized)[grepl("^distrito($|_)", normalized)]
+  if (length(hit)) hit[[1]] else ""
+}
+
+.ficha_tecnica_panel_distribution <- function(df = NULL, wave = list()) {
+  explicit <- wave$district_distribution %||%
+    wave$distribucion_distrito %||%
+    wave$distribucion_distrital %||%
+    wave$distribucion %||%
+    NULL
+  explicit <- .ficha_tecnica_distribution_standardize(explicit)
+  if (is.data.frame(explicit) && nrow(explicit)) return(explicit)
+
+  col <- .ficha_tecnica_panel_district_column(df)
+  if (!nzchar(col) || !col %in% names(df)) return(data.frame())
+  raw <- trimws(as.character(df[[col]]))
+  has_district <- !is.na(raw) & nzchar(raw)
+  if (!any(has_district)) return(data.frame())
+  raw[!has_district] <- "Sin distrito asignado"
+  tab <- as.data.frame(table(raw, useNA = "no"), stringsAsFactors = FALSE)
+  names(tab) <- c("distrito", "entrevistas")
+  tab$entrevistas <- as.numeric(tab$entrevistas)
+  total <- sum(tab$entrevistas, na.rm = TRUE)
+  tab$porcentaje <- if (total > 0) tab$entrevistas / total else NA_real_
+  tab <- tab[order(-tab$entrevistas, tab$distrito), , drop = FALSE]
+  rownames(tab) <- NULL
+  tab
 }
 
 .ficha_tecnica_panel_summary <- function(context = NULL) {
@@ -1402,7 +1595,7 @@ if (!exists("%||%", mode = "function")) {
     waves_cfg <- lapply(seq_along(data_sources), function(i) {
       list(
         base = names(data_sources)[[i]],
-        label = sprintf("Ola %s", i),
+        label = sprintf("Medición %s", i),
         suffix = paste0("ola", i)
       )
     })
@@ -1444,14 +1637,19 @@ if (!exists("%||%", mode = "function")) {
         wave$observacion,
         wave$observacion_fecha,
         if (!is.null(wave$date_start) || !is.null(wave$fecha_inicio) || !is.null(wave$fecha_rango)) {
-          "Rango declarado en la configuración metodológica de la ola."
+          "Rango declarado en la configuración metodológica de la medición."
         } else {
-          "No se cargó la data de la ola para inferir fechas."
+          "No se cargó la data de la medición para inferir fechas."
         }
       )
     )
+    district_distribution <- if (is.data.frame(df)) {
+      .ficha_tecnica_panel_distribution(df, wave)
+    } else {
+      .ficha_tecnica_panel_distribution(NULL, wave)
+    }
     list(
-      ola = .ficha_tecnica_first_nonempty(wave$label, sprintf("Ola %s", i)),
+      ola = .ficha_tecnica_first_nonempty(wave$label, sprintf("Medición %s", i)),
       base = base,
       suffix = .ficha_tecnica_first_nonempty(wave$suffix, paste0("ola", i)),
       n_filas = n_filas,
@@ -1465,7 +1663,8 @@ if (!exists("%||%", mode = "function")) {
         wave$descripcion_publica,
         if (i == 1L) "Primera medición del estudio." else "Medición de seguimiento del panel."
       ),
-      observacion = .ficha_tecnica_scalar(dates$observacion_fecha, "")
+      observacion = .ficha_tecnica_scalar(dates$observacion_fecha, ""),
+      district_distribution = district_distribution
     )
   })
   wave_table <- do.call(rbind, lapply(rows, function(row) {
@@ -1490,8 +1689,41 @@ if (!exists("%||%", mode = "function")) {
     n_waves = length(rows),
     n_panel_keys = panel_keys,
     n_complete_keys = complete,
-    n_incomplete_keys = incomplete
+    n_incomplete_keys = incomplete,
+    instrumentos = summary$instrumentos %||% context$instrumentos %||% NULL
   )
+}
+
+.ficha_tecnica_panel_instrumento_text <- function(summary) {
+  instrumentos <- summary$instrumentos %||% NULL
+  if (!is.data.frame(instrumentos) || !nrow(instrumentos)) return("")
+  ordinal <- function(i) {
+    labels <- c(
+      "La primera medición", "La segunda medición", "La tercera medición",
+      "La cuarta medición", "La quinta medición", "La sexta medición"
+    )
+    if (i <= length(labels)) labels[[i]] else sprintf("La medición %s", .ficha_tecnica_fmt_int(i))
+  }
+  question_label <- function(n) {
+    n <- suppressWarnings(as.numeric(n))
+    if (!is.finite(n)) return("")
+    sprintf("%s %s", .ficha_tecnica_fmt_int(n), if (identical(round(n), 1)) "pregunta" else "preguntas")
+  }
+  wave_bits <- vapply(seq_len(nrow(instrumentos)), function(i) {
+    row <- instrumentos[i, , drop = FALSE]
+    total <- suppressWarnings(as.numeric(
+      row$preguntas_reportadas %||%
+        row$preguntas_numeradas_entrevistado %||%
+        row$preguntas_entrevistado %||%
+        row$items_cuestionario %||%
+        NA
+    ))
+    value <- question_label(total)
+    if (!nzchar(value)) return("")
+    sprintf("\u2022 %s: %s.", ordinal(i), value)
+  }, character(1))
+  wave_bits <- wave_bits[nzchar(wave_bits)]
+  paste(wave_bits, collapse = "\n")
 }
 
 .ficha_tecnica_panel_texts <- function(summary) {
@@ -1499,10 +1731,8 @@ if (!exists("%||%", mode = "function")) {
   wave_bits <- vapply(seq_along(summary$waves), function(i) {
     row <- summary$waves[[i]]
     encuestas <- .ficha_tecnica_fmt_int_blank(row$n_filas)
-    periodo <- .ficha_tecnica_scalar(row$rango, "")
-    periodo_txt <- if (nzchar(periodo)) sprintf(", del %s", periodo) else ""
     ordinal <- if (i == 1L) "primera" else if (i == 2L) "segunda" else paste0("medición ", i)
-    sprintf("La %s ola registró %s encuestas%s", ordinal, encuestas, periodo_txt)
+    sprintf("La %s medición registró %s encuestas", ordinal, encuestas)
   }, character(1))
   complete_txt <- if (is.finite(summary$n_complete_keys)) {
     sprintf(
@@ -1513,7 +1743,7 @@ if (!exists("%||%", mode = "function")) {
     "La base longitudinal permite comparar las mediciones disponibles para cada participante"
   }
   incomplete_txt <- if (is.finite(summary$n_incomplete_keys)) {
-    sprintf("y registra %s participantes con información disponible en una sola ola", .ficha_tecnica_fmt_int(summary$n_incomplete_keys))
+    sprintf("y registra %s participantes con información disponible en una sola medición", .ficha_tecnica_fmt_int(summary$n_incomplete_keys))
   } else {
     ""
   }
@@ -1523,29 +1753,88 @@ if (!exists("%||%", mode = "function")) {
   } else {
     .ficha_tecnica_fmt_int(summary$n_waves)
   }
+  base_text <- sprintf(
+    "%s. %s.",
+    paste(wave_bits, collapse = ". "),
+    followup_txt
+  )
   text <- sprintf(
     paste0(
-      "El estudio se organizó como un panel de %s olas, orientado a comparar respuestas de las mismas personas ",
-      "en dos momentos del proceso electoral. Para preservar la lectura longitudinal, las respuestas de cada ola ",
+      "El estudio se organizó como un panel longitudinal con %s mediciones sucesivas, orientado a comparar respuestas de las mismas personas ",
+      "en distintos momentos del proceso electoral. Para preservar la lectura longitudinal, las respuestas de cada medición ",
       "se conservan separadas en la base de análisis y no se combinan en un único valor. %s. %s."
     ),
     n_waves_label,
     paste(wave_bits, collapse = ". "),
     followup_txt
   )
-  list(aplicacion_de_encuestas = text)
+  out <- list(
+    base_de_analisis = paste(
+      "Base longitudinal de análisis, construida con una fila por participante y variables conservadas por medición.",
+      base_text
+    ),
+    aplicacion_de_encuestas = text
+  )
+  instrumento <- .ficha_tecnica_panel_instrumento_text(summary)
+  if (nzchar(instrumento)) out$instrumento <- instrumento
+  out
 }
 
 .ficha_tecnica_panel_subtables <- function(summary) {
   if (is.null(summary) || !is.data.frame(summary$table) || !nrow(summary$table)) return(list())
   list(
     aplicacion_de_encuestas = list(
-      title = "Estructura de aplicación por ola",
+      title = "Estructura de aplicación por medición",
       data = summary$table,
       widths = c(900, 1100, 1200, 1800, 2150),
       font_size = 12L
     )
   )
+}
+
+.ficha_tecnica_distribution_reorder <- function(distribution, reference_order = character(0)) {
+  if (!is.data.frame(distribution) || !nrow(distribution) || !"distrito" %in% names(distribution)) {
+    return(distribution)
+  }
+  reference_order <- trimws(as.character(reference_order %||% character(0)))
+  reference_order <- reference_order[!is.na(reference_order) & nzchar(reference_order)]
+  if (!length(reference_order)) return(distribution)
+  reference_key <- .ficha_tecnica_norm_field(reference_order)
+  current_key <- .ficha_tecnica_norm_field(distribution$distrito)
+  rank <- match(current_key, reference_key)
+  missing_rank <- is.na(rank)
+  if (any(missing_rank)) {
+    rank[missing_rank] <- length(reference_key) + seq_len(sum(missing_rank))
+  }
+  distribution[order(rank), , drop = FALSE]
+}
+
+.ficha_tecnica_panel_appendices <- function(summary) {
+  if (is.null(summary) || !length(summary$waves)) return(list())
+  appendices <- list()
+  reference_order <- character(0)
+  for (i in seq_along(summary$waves)) {
+    distribution <- summary$waves[[i]]$district_distribution %||% data.frame()
+    if (is.data.frame(distribution) && nrow(distribution)) {
+      if (!length(reference_order)) {
+        reference_order <- as.character(distribution$distrito %||% character(0))
+      } else {
+        distribution <- .ficha_tecnica_distribution_reorder(distribution, reference_order)
+      }
+    }
+    table <- .ficha_tecnica_compact_distribution_table(distribution, groups = 2L)
+    if (!is.data.frame(table) || !nrow(table)) next
+    label <- .ficha_tecnica_panel_measurement_label(i)
+    key <- paste0("distribucion_medicion_", i)
+    appendices[[key]] <- list(
+      title = "Distribución",
+      note = sprintf("%s: distribución de encuestas realizadas por distrito.", label),
+      data = table,
+      font_size = 8.1,
+      page_break_before = i > 1L
+    )
+  }
+  appendices
 }
 
 .ficha_tecnica_read_pulso_state <- function(path) {
@@ -1685,7 +1974,11 @@ if (!exists("%||%", mode = "function")) {
       chunk <- rbind(chunk, chunk[NA_integer_, , drop = FALSE])
     }
     prefix <- if (groups > 1L) paste0(" ", group) else ""
-    cols[[paste0("Distrito", prefix)]] <- as.character(chunk$distrito)
+    district_values <- as.character(chunk$distrito)
+    district_hit <- !is.na(district_values) & nzchar(trimws(district_values))
+    district_values[district_hit] <- .ficha_tecnica_title_case_es(district_values[district_hit])
+    district_values[is.na(district_values)] <- ""
+    cols[[paste0("Distrito", prefix)]] <- district_values
     cols[[paste0("Encuestas", prefix)]] <- as.character(chunk$entrevistas)
     cols[[paste0("%", prefix)]] <- vapply(chunk$porcentaje, .ficha_tecnica_fmt_pct, character(1))
   }
@@ -1795,7 +2088,7 @@ if (!exists("%||%", mode = "function")) {
     subtables$procedimiento_de_muestreo <- list(
       title = "Etapas del diseño muestral",
       data = stages,
-      widths = c(820, 1320, 5060),
+      widths = c(940, 1260, 4820),
       font_size = 15L
     )
   }
@@ -1808,7 +2101,7 @@ if (!exists("%||%", mode = "function")) {
   table <- .ficha_tecnica_compact_distribution_table(summary$district_distribution, groups = 2L)
   if (is.data.frame(table) && nrow(table)) {
     appendices$distribucion_distrito <- list(
-      title = "Distribución agregada de la muestra por distrito",
+      title = "Distribución",
       note = "La tabla resume la cantidad de encuestas programadas por distrito y su peso relativo sobre el total de la muestra.",
       data = table,
       font_size = 8.1
@@ -1853,6 +2146,26 @@ if (!exists("%||%", mode = "function")) {
   } else {
     "La selección quedó documentada para permitir la auditoría de la muestra desde el mismo marco."
   }
+  district_names <- .ficha_tecnica_district_names(summary$district_distribution)
+  district_count <- length(district_names)
+  district_list <- .ficha_tecnica_join_sentence(district_names)
+  distritos <- if (district_count > 0L && nzchar(district_list)) {
+    sprintf(
+      "%s distritos seleccionados: %s.",
+      .ficha_tecnica_fmt_int(district_count),
+      district_list
+    )
+  } else {
+    ""
+  }
+  criterios <- sprintf(
+    paste0(
+      "Se incluyeron personas de 18 años o más, residentes en viviendas ubicadas en las manzanas seleccionadas ",
+      "dentro del ámbito del estudio. La entrevista se aplicó a una persona elegible por vivienda, con control ",
+      "operativo de %s."
+    ),
+    quota_label
+  )
   ambito <- if (nzchar(summary$coverage)) {
     sprintf(
       "%s. La muestra se distribuyó en %s unidades territoriales de trabajo, con manzanas titulares ubicadas en %s distritos.",
@@ -1911,24 +2224,40 @@ if (!exists("%||%", mode = "function")) {
     replacement_label,
     quota_label
   )
-  representatividad_bits <- c(
-    if (is.finite(summary$margin_total_estimated)) sprintf("margen de error total estimado de ±%s", .ficha_tecnica_fmt_pct(summary$margin_total_estimated)) else NULL,
-    if (is.finite(summary$confidence_level)) sprintf("nivel de confianza de %s", .ficha_tecnica_fmt_pct(summary$confidence_level)) else NULL
-  )
-  nivel <- if (length(representatividad_bits)) {
+  margen_txt <- if (is.finite(summary$margin_total_estimated)) {
+    sprintf("un margen de error total estimado de ±%s", .ficha_tecnica_fmt_pct(summary$margin_total_estimated))
+  } else {
+    ""
+  }
+  confianza_txt <- if (is.finite(summary$confidence_level)) {
+    sprintf("un nivel de confianza de %s", .ficha_tecnica_fmt_pct(summary$confidence_level))
+  } else {
+    ""
+  }
+  precision_txt <- paste(c(margen_txt, confianza_txt)[nzchar(c(margen_txt, confianza_txt))], collapse = ", con ")
+  nivel <- if (nzchar(precision_txt)) {
+    total_muestra <- summary$total_interviews %||% summary$n_objetivo
+    total_muestra_txt <- if (is.finite(suppressWarnings(as.numeric(total_muestra)))) {
+      sprintf("muestra programada inicial de %s entrevistas", .ficha_tecnica_fmt_int(total_muestra))
+    } else {
+      "muestra programada inicial"
+    }
     sprintf(
       paste0(
         "La muestra permite reportar resultados para Lima Metropolitana y Callao, dentro del conjunto de distritos incluidos ",
-        "en el diseño muestral. Para el total de la muestra programada, la precisión esperada se expresa mediante un %s, ",
+        "en el diseño muestral. Para la %s, la precisión total estimada corresponde a %s, ",
         "bajo el supuesto de máxima heterogeneidad."
       ),
-      paste(representatividad_bits, collapse = " y ")
+      total_muestra_txt,
+      precision_txt
     )
   } else {
     ""
   }
   out <- list(
+    criterios_de_inclusion = criterios,
     ambito_geografico = ambito,
+    distritos_seleccionados = distritos,
     marco_muestral = marco,
     tamano_de_la_muestra = tamano,
     procedimiento_muestreo = procedimiento
@@ -1965,11 +2294,14 @@ if (!exists("%||%", mode = "function")) {
   panel_summary <- .ficha_tecnica_panel_summary(panel_context)
   panel_texts <- .ficha_tecnica_panel_texts(panel_summary)
   panel_subtables <- .ficha_tecnica_panel_subtables(panel_summary)
+  panel_appendices <- .ficha_tecnica_panel_appendices(panel_summary)
   texts <- utils::modifyList(calc_texts, texts)
   texts <- utils::modifyList(texts, panel_texts)
   subtables <- utils::modifyList(calc_subtables, subtables)
   subtables <- utils::modifyList(subtables, panel_subtables)
   appendices <- utils::modifyList(calc_appendices, appendices)
+  if (length(panel_appendices)) appendices$distribucion_distrito <- NULL
+  appendices <- utils::modifyList(appendices, panel_appendices)
   if (!length(texts) && !length(subtables) && !length(appendices)) return(cfg)
   for (key in names(texts)) {
     current <- .ficha_tecnica_scalar(ft[[key]], "")
@@ -1977,7 +2309,8 @@ if (!exists("%||%", mode = "function")) {
     if (!nzchar(value)) next
     if (identical(key, "aplicacion_de_encuestas") && nzchar(current)) {
       current_norm <- .ficha_tecnica_norm_field(current)
-      has_panel_text <- grepl("base_final_se_construye_en_formato_ancho", current_norm, fixed = TRUE)
+      has_panel_text <- grepl("panel|medicion", current_norm) &&
+        grepl("primera_medicion|segunda_medicion|dos_mediciones", current_norm)
       if (!has_panel_text) ft[[key]] <- paste(current, value, sep = "\n\n")
     } else if (!nzchar(current)) {
       ft[[key]] <- value

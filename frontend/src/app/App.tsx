@@ -3,26 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { SessionProvider } from "../lib/SessionContext";
 import Layout from "./Layout";
 import { SessionLostBanner } from "./SessionLostBanner";
-import HomePage from "../features/home/HomePage";
-import ProcesamientoEntry from "../features/home/ProcesamientoEntry";
-import CargaPage from "../features/carga/CargaPage";
-import ValidacionPage from "../features/validacion/ValidacionPage";
-import CodificacionPage from "../features/codificacion/CodificacionPage";
-import PreguntaDetalle from "../features/codificacion/PreguntaDetalle";
-import AnaliticaPage from "../features/analitica/AnaliticaPage";
-import GraficosPage from "../features/graficos/GraficosPage";
-import HojasRutaPage from "../features/hojasRuta/HojasRutaPage";
-import MuestraHub from "../features/muestra/MuestraHub";
-import EnciclopediaHome from "../features/enciclopedia/EnciclopediaHome";
-import FichaMetodologica from "../features/enciclopedia/FichaMetodologica";
-import CalcMuestraPage from "../features/calcMuestra/CalcMuestraPage";
-import MonitoreoPage from "../features/monitoreo/MonitoreoPage";
 import ProjectShell from "../features/project/ProjectShell";
-import XlsformEditorPage from "../features/xlsformEditor/XlsformEditorPage";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
 import { LoadingBlock } from "../components/States";
-import PublicArtifactApp from "./PublicArtifactApp";
+import MonitoreoPage from "virtual:monitoreo-page";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
 import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
@@ -35,6 +20,10 @@ const DashboardPage = lazyWithReload(
   () => import("../features/dashboard/DashboardPage"),
   "DashboardPage",
 );
+const PublicArtifactApp = lazyWithReload(
+  () => import("./PublicArtifactApp"),
+  "PublicArtifactApp",
+);
 const ROUTER_BASENAME =
   import.meta.env.BASE_URL && import.meta.env.BASE_URL !== "/"
     ? import.meta.env.BASE_URL.replace(/\/$/, "")
@@ -43,6 +32,63 @@ const ROUTER_BASENAME =
 // Instalar el log sink antes que cualquier render — captura console.*,
 // window.error y unhandledrejection desde el primer momento.
 installLogSink();
+
+const HomePage = lazyWithReload(
+  () => import("../features/home/HomePage"),
+  "HomePage",
+);
+const ProcesamientoEntry = lazyWithReload(
+  () => import("../features/home/ProcesamientoEntry"),
+  "ProcesamientoEntry",
+);
+const CargaPage = lazyWithReload(
+  () => import("../features/carga/CargaPage"),
+  "CargaPage",
+);
+const ValidacionPage = lazyWithReload(
+  () => import("../features/validacion/ValidacionPage"),
+  "ValidacionPage",
+);
+const CodificacionPage = lazyWithReload(
+  () => import("../features/codificacion/CodificacionPage"),
+  "CodificacionPage",
+);
+const PreguntaDetalle = lazyWithReload(
+  () => import("../features/codificacion/PreguntaDetalle"),
+  "PreguntaDetalle",
+);
+const AnaliticaPage = lazyWithReload(
+  () => import("../features/analitica/AnaliticaPage"),
+  "AnaliticaPage",
+);
+const GraficosPage = lazyWithReload(
+  () => import("../features/graficos/GraficosPage"),
+  "GraficosPage",
+);
+const HojasRutaPage = lazyWithReload(
+  () => import("../features/hojasRuta/HojasRutaPage"),
+  "HojasRutaPage",
+);
+const MuestraHub = lazyWithReload(
+  () => import("../features/muestra/MuestraHub"),
+  "MuestraHub",
+);
+const EnciclopediaHome = lazyWithReload(
+  () => import("../features/enciclopedia/EnciclopediaHome"),
+  "EnciclopediaHome",
+);
+const FichaMetodologica = lazyWithReload(
+  () => import("../features/enciclopedia/FichaMetodologica"),
+  "FichaMetodologica",
+);
+const CalcMuestraPage = lazyWithReload(
+  () => import("../features/calcMuestra/CalcMuestraPage"),
+  "CalcMuestraPage",
+);
+const XlsformEditorPage = lazyWithReload(
+  () => import("../features/xlsformEditor/XlsformEditorPage"),
+  "XlsformEditorPage",
+);
 
 export default function App() {
   useApplyLayoutPreset();
@@ -61,7 +107,9 @@ export default function App() {
         <SessionProvider>
           <SessionLostBanner />
           <div className="pulso-public-shell">
-            <PublicArtifactApp />
+            <Suspense fallback={<LoadingBlock label="Cargando publicacion..." />}>
+              <PublicArtifactApp />
+            </Suspense>
             <footer className="pulso-public-footer">
               <span>Elaborado con Prosecnur</span>
               <span className="pulso-public-footer-dot" aria-hidden="true" />
@@ -80,39 +128,34 @@ export default function App() {
         <ProjectShell>
           <SessionLostBanner />
           <BrowserRouter basename={ROUTER_BASENAME}>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<HomePage />} />
-              {/* Entry point del módulo "Procesamiento" — redirige a la
-                  fase actionable según el estado del estudio. */}
-              <Route path="/procesamiento" element={<ProcesamientoEntry />} />
-              <Route path="/carga" element={<CargaPage />} />
-              <Route path="/validacion" element={<ValidacionPage />} />
-              <Route path="/codificacion" element={<CodificacionPage />} />
-              <Route path="/codificacion/preguntas/:parent" element={<PreguntaDetalle />} />
-              <Route path="/analitica" element={<AnaliticaPage />} />
-              <Route path="/graficos" element={<GraficosPage />} />
-              <Route path="/hojas-ruta" element={<HojasRutaPage />} />
-              <Route path="/calc-muestra" element={<CalcMuestraPage />} />
-              <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
-              <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
-              <Route path="/enciclopedia" element={<EnciclopediaHome />} />
-              <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
-              <Route path="/muestra" element={<MuestraHub />} />
-              <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra" replace />} />
-              <Route path="/monitoreo" element={<MonitoreoPage />} />
-              <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
-              <Route
-                path="/tablero"
-                element={
-                  <Suspense fallback={<LoadingBlock label="Cargando dashboard…" />}>
-                    <DashboardPage />
-                  </Suspense>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
+            <Suspense fallback={<LoadingBlock label="Abriendo modulo..." />}>
+              <Routes>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<HomePage />} />
+                  {/* Entry point del módulo "Procesamiento" — redirige a la
+                      fase actionable según el estado del estudio. */}
+                  <Route path="/procesamiento" element={<ProcesamientoEntry />} />
+                  <Route path="/carga" element={<CargaPage />} />
+                  <Route path="/validacion" element={<ValidacionPage />} />
+                  <Route path="/codificacion" element={<CodificacionPage />} />
+                  <Route path="/codificacion/preguntas/:parent" element={<PreguntaDetalle />} />
+                  <Route path="/analitica" element={<AnaliticaPage />} />
+                  <Route path="/graficos" element={<GraficosPage />} />
+                  <Route path="/hojas-ruta" element={<HojasRutaPage />} />
+                  <Route path="/calc-muestra" element={<CalcMuestraPage />} />
+                  <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
+                  <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
+                  <Route path="/enciclopedia" element={<EnciclopediaHome />} />
+                  <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
+                  <Route path="/muestra" element={<MuestraHub />} />
+                  <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra" replace />} />
+                  <Route path="/monitoreo" element={<MonitoreoPage />} />
+                  <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
+                  <Route path="/tablero" element={<DashboardPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </ProjectShell>
       </SessionProvider>

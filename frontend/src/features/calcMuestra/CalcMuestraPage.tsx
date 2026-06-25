@@ -146,13 +146,13 @@ type GuideStatus = "ready" | "working" | "pending";
 type ClassroomLabTab = "marco" | "objetivo" | "metodo" | "laboratorio" | "seleccion" | "reemplazos" | "auditoria";
 
 const CLASSROOM_LAB_TABS: Array<{ id: ClassroomLabTab; label: string; detail: string; icon: typeof Database }> = [
-  { id: "marco", label: "Base de aulas", detail: "Revisa de dónde saldrá la muestra", icon: Database },
-  { id: "objetivo", label: "Cuota y objetivos", detail: "Define cuántas aulas cubrir", icon: Target },
-  { id: "metodo", label: "Método recomendado", detail: "Compara formas de balancear", icon: Settings2 },
-  { id: "laboratorio", label: "Prueba de balance", detail: "Revisa estabilidad, pesos y desvíos", icon: BarChart3 },
-  { id: "seleccion", label: "Aulas titulares", detail: "Genera el primer grupo y reservas", icon: Table2 },
-  { id: "reemplazos", label: "Reservas", detail: "Ensaya reemplazos equivalentes", icon: RefreshCw },
-  { id: "auditoria", label: "Auditoría", detail: "Consulta sustento y fórmulas", icon: FileText },
+  { id: "marco", label: "Marco de aulas", detail: "Base convertida en curso-horario", icon: Database },
+  { id: "objetivo", label: "Objetivo de muestra", detail: "Cuotas y aulas necesarias", icon: Target },
+  { id: "metodo", label: "Comparar métodos", detail: "Elegir la opción más representativa", icon: Settings2 },
+  { id: "laboratorio", label: "Simulación", detail: "Estabilidad y repetidos", icon: BarChart3 },
+  { id: "seleccion", label: "Aulas titulares", detail: "Aulas que se intentan primero", icon: Table2 },
+  { id: "reemplazos", label: "Reemplazos por aula", detail: "Rutas Rn.1, Rn.2...", icon: RefreshCw },
+  { id: "auditoria", label: "Sustento técnico", detail: "Campos, pesos y fuentes", icon: FileText },
 ];
 
 function guidedStatusLabel(status: GuideStatus) {
@@ -282,6 +282,22 @@ const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = {
   simulation_runs: 500,
   mos_strategy: "eligible_yield_winsorized",
   coordination_mode: "permanent_random_number",
+  replacement_depth_strategy: "max_complete_chains_by_cell",
+  min_replacements_per_titular: 1,
+  max_replacements_per_titular: 11,
+  extra_pool_policy: "leftover_after_chains",
+  replacement_equivalence_vars: ["faculty", "program", "level", "size_group", "modality", "sex_top_1", "schedule"],
+  replacement_score_weights: {
+    faculty: 35,
+    program: 22,
+    level: 12,
+    size_group: 8,
+    modality: 7,
+    sex_top_1: 6,
+    schedule: 4,
+    eligible_n: 10,
+    active_overlap: -18,
+  },
   bolsas_reemplazo: 11,
   aulas_extra_operativas_default: 1,
   penalizacion_repetidos: 1.35,
@@ -315,8 +331,8 @@ const UNIVERSITY_SOURCE_MODE_OPTIONS: Array<{
   {
     id: "seleccion_existente",
     label: "Selección previa + agenda",
-    detail: "Para leer una muestra ya trabajada, reservas y agenda operativa sin rediseñar silenciosamente el marco.",
-    cards: ["muestra", "reserva", "agenda", "campo"],
+    detail: "Para leer una muestra ya trabajada, reemplazos y agenda operativa sin rediseñar silenciosamente el marco.",
+    cards: ["muestra", "reemplazos", "agenda", "campo"],
   },
 ];
 
@@ -329,7 +345,7 @@ const UNIVERSITY_SOURCE_BINDING_DEFAULTS: Record<CalcMuestraWorkspaceSourceMode,
     { id: "src-cursos", role: "catalogo_curso_horario", label: "Catálogo de cursos y horarios", status: "pendiente", sheet_name: "CURSO Y HORARIO", notes: "Curso, horario, aula, docente y cupos. Completa la lectura cuando existe." },
   ],
   seleccion_existente: [
-    { id: "src-muestra", role: "muestra_previa", label: "Muestra seleccionada", status: "pendiente", sheet_name: "Muestra", notes: "Titulares M1 y reservas si existen." },
+    { id: "src-muestra", role: "muestra_previa", label: "Muestra seleccionada", status: "pendiente", sheet_name: "Muestra", notes: "Aulas titulares y reemplazos si existen." },
     { id: "src-agenda", role: "agenda", label: "Agenda de aulas", status: "pendiente", sheet_name: "BD Agenda", notes: "Docente, fecha, responsable, estado y aplicación." },
   ],
 };
@@ -385,7 +401,7 @@ const UNIVERSITY_AULAS_SELECTOR_OPTIONS: Array<{
   {
     id: "pool_controlado",
     label: "Optimizar repetidos",
-    detail: "Elige entre muestras candidatas para reducir solape; exige simulación para probabilidades finales.",
+    detail: "Elige entre muestras candidatas para reducir estudiantes repetidos; exige simulación para probabilidades finales.",
   },
   {
     id: "sistematico_pps",
@@ -649,7 +665,7 @@ const FRAME_CARDS: Array<{
     guidance: [
       { prompt: "¿A quién representa?", answer: "Estudiantes matriculados", detail: "La base se ordena por facultad, sexo y aulas disponibles.", icon: Users },
       { prompt: "¿Qué se calcula?", answer: "Entrevistas y cuotas", detail: "Define metas por universidad y por facultad antes de seleccionar aulas.", icon: SlidersHorizontal },
-      { prompt: "¿Qué queda listo?", answer: "Aulas titulares y reservas", detail: "El plan queda trazable para seguimiento de campo.", icon: FileText },
+      { prompt: "¿Qué queda listo?", answer: "Aulas titulares y reemplazos", detail: "El plan queda trazable para seguimiento de campo.", icon: FileText },
     ],
     icon: Grid3X3,
   },
@@ -881,7 +897,7 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
       { id: "definicion", label: "Definición", detail: "estudio y contrato de datos", icon: ClipboardList, targetId: "cmv2-section-university-setup" },
       { id: "marco", label: "Marco institucional", shortLabel: "Marco", detail: "base principal o dos hojas", icon: Database, targetId: "cmv2-section-university-marco" },
       { id: "calculo", label: "Cálculo", detail: "n final y ajustes", icon: Calculator, targetId: "cmv2-section-university-calculo" },
-      { id: "aulas", label: "Aulas y selección", shortLabel: "Aulas", detail: "selector, reservas y cuotas", icon: Grid3X3, targetId: "cmv2-section-university-aulas" },
+      { id: "aulas", label: "Aulas y selección", shortLabel: "Aulas", detail: "selector, reemplazos y cuotas", icon: Grid3X3, targetId: "cmv2-section-university-aulas" },
       { id: "salidas", label: "Salida", detail: "reporte y seguimiento", icon: Route, targetId: "cmv2-section-university-salidas" },
     ];
   }
@@ -975,6 +991,12 @@ function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["aulas_con
     simulation_runs: Math.max(0, Math.round(safeNumber(raw.simulation_runs, DEFAULT_UNIVERSITY_AULAS_CONFIG.simulation_runs))),
     mos_strategy: raw.mos_strategy ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.mos_strategy,
     coordination_mode: raw.coordination_mode ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.coordination_mode,
+    replacement_depth_strategy: raw.replacement_depth_strategy ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.replacement_depth_strategy,
+    min_replacements_per_titular: Math.max(0, Math.round(safeNumber(raw.min_replacements_per_titular, DEFAULT_UNIVERSITY_AULAS_CONFIG.min_replacements_per_titular))),
+    max_replacements_per_titular: Math.max(0, Math.round(safeNumber(raw.max_replacements_per_titular, DEFAULT_UNIVERSITY_AULAS_CONFIG.max_replacements_per_titular))),
+    extra_pool_policy: raw.extra_pool_policy ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.extra_pool_policy,
+    replacement_equivalence_vars: raw.replacement_equivalence_vars?.length ? raw.replacement_equivalence_vars : DEFAULT_UNIVERSITY_AULAS_CONFIG.replacement_equivalence_vars,
+    replacement_score_weights: raw.replacement_score_weights ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.replacement_score_weights,
     bolsas_reemplazo: Math.max(0, Math.round(safeNumber(raw.bolsas_reemplazo, DEFAULT_UNIVERSITY_AULAS_CONFIG.bolsas_reemplazo))),
     aulas_extra_operativas_default: Math.max(0, Math.round(safeNumber(raw.aulas_extra_operativas_default, DEFAULT_UNIVERSITY_AULAS_CONFIG.aulas_extra_operativas_default))),
     penalizacion_repetidos: Math.max(0, safeNumber(raw.penalizacion_repetidos, DEFAULT_UNIVERSITY_AULAS_CONFIG.penalizacion_repetidos)),
@@ -1414,14 +1436,19 @@ function classroomSelectionRowsForState(aulasState: CalcMuestraAulasState | null
 }
 
 function classroomM1RowsForState(aulasState: CalcMuestraAulasState | null) {
-  return classroomSelectionRowsForState(aulasState).filter((row) => classroomRowText(row, ["wave"]) === "M1");
+  return classroomSelectionRowsForState(aulasState).filter((row) => classroomRowText(row, ["sample_role"]) === "titular" || classroomRowText(row, ["wave"]) === "M1");
 }
 
 function classroomReserveRowsForState(aulasState: CalcMuestraAulasState | null) {
   return classroomSelectionRowsForState(aulasState).filter((row) => {
     const wave = classroomRowText(row, ["wave"]);
-    return Boolean(wave && wave !== "M1");
+    const role = classroomRowText(row, ["sample_role"]);
+    return role === "chain_reserve" || Boolean(wave && wave !== "M1" && role !== "extra_reserve_pool");
   });
+}
+
+function classroomExtraReserveRowsForState(aulasState: CalcMuestraAulasState | null) {
+  return classroomSelectionRowsForState(aulasState).filter((row) => classroomRowText(row, ["sample_role"]) === "extra_reserve_pool");
 }
 
 function classroomSelectionReady(aulasState: CalcMuestraAulasState | null) {
@@ -1529,7 +1556,7 @@ function chromeTokensForDesk({
       { label: "Tipo", value: "Estudiantes", tone: "path" },
       { label: "Base", value: marcoTotal ? `${fmtInt(marcoTotal)} est.` : estratos.length ? `${fmtInt(estratos.length)} dominios` : "por validar", tone: marcoTotal ? "ready" : "working" },
       { label: "Cálculo", value: target ? `${fmtInt(target)} objetivo` : hasResult ? "calculado" : "pendiente", tone: target || hasResult ? "ready" : "working" },
-      { label: "Aulas", value: selectionReady ? "titulares + reserva" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
+      { label: "Aulas", value: selectionReady ? "titulares + reemplazos" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
     ];
   }
 
@@ -1628,8 +1655,8 @@ function contextChecksForDesk({
       return [
         { label: "Cuotas", value: hasResult ? "calculadas" : "pendientes", ready: hasResult, icon: Target },
         { label: "Métodos", value: comparisonReady ? "comparados" : "por correr", ready: comparisonReady, icon: Settings2 },
-        { label: "Selección", value: selectionReady ? "titulares + reserva" : "pendiente", ready: selectionReady, icon: Grid3X3 },
-        { label: "Reservas", value: replacementReady ? "simuladas" : "pendiente", ready: replacementReady, icon: RefreshCw },
+        { label: "Aulas titulares", value: selectionReady ? "plan listo" : "pendiente", ready: selectionReady, icon: Grid3X3 },
+        { label: "Reemplazos", value: replacementReady ? "probados" : "pendiente", ready: replacementReady, icon: RefreshCw },
       ];
     }
     if (activeSection === "salidas") {
@@ -1776,8 +1803,10 @@ function sidebarTabsForDeskSection({
     }
     if (activeSection === "marco") {
       return [
-        { id: "marco-poblacion", label: "Población", detail: "composición del universo", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
-        { id: "marco-aulas", label: "Aulas", detail: "aulas y elegibles", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
+        { id: "marco-poblacion", label: "Población", detail: "solo estudiantes elegibles", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
+        { id: "marco-aulas", label: "Aulas", detail: "solo curso-horario", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
+        { id: "marco-validacion", label: "Consistencia", detail: "bases relacionadas", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-validacion" },
+        { id: "marco-cruces", label: "Cruces", detail: "facultad por controles", icon: BarChart3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-cruces" },
       ];
     }
     if (activeSection === "calculo") {
@@ -1801,11 +1830,11 @@ function sidebarTabsForDeskSection({
     if (activeSection === "salidas") {
       const deliverablesReady = hasResult && selectionReady && publicationConfigured;
       return [
-        { id: "salidas-guia", label: "Checklist", detail: "cálculo, M1 y reservas", icon: Route, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady), targetId: "cmv2-local-salidas-guia" },
+        { id: "salidas-guia", label: "Checklist", detail: "cálculo, titulares y reemplazos", icon: Route, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady), targetId: "cmv2-local-salidas-guia" },
         { id: "salidas-entregables", label: "Entregables", detail: "Excel, Sheets y privacidad", icon: FileText, status: guideStatus(deliverablesReady, hasResult && selectionReady), targetId: "cmv2-local-salidas-entregables" },
         { id: "salidas-resultados", label: "Excel y hojas", detail: "tablas de cierre", icon: BarChart3, status: guideStatus(hasResult), targetId: "cmv2-local-salidas-resultados" },
         { id: "salidas-monitoreo", label: "Seguimiento", detail: "aulas para campo", icon: Grid3X3, status: guideStatus(selectionReady, comparisonReady), targetId: "cmv2-local-salidas-monitoreo" },
-        { id: "salidas-reservas", label: "Reservas", detail: "reemplazos auditables", icon: RefreshCw, status: guideStatus(replacementReady, selectionReady), targetId: "cmv2-local-salidas-reservas" },
+        { id: "salidas-reservas", label: "Reemplazos", detail: "rutas auditables por aula", icon: RefreshCw, status: guideStatus(replacementReady, selectionReady), targetId: "cmv2-local-salidas-reservas" },
       ];
     }
   }
@@ -3313,38 +3342,6 @@ function OpinionUniversitariaDeskRevamp({
     onWorkspace(syncedWorkspace);
   }, [facultyComp, needsSync, onSetComponentes, onWorkspace, syncedWorkspace, totalComp]);
 
-  function setUniversityPair(nextTotal: CalcMuestraComponente, nextFaculty: CalcMuestraComponente) {
-    const nextWorkspace = universityWorkspace(syncedWorkspace, nextTotal, nextFaculty);
-    onSetComponentes([nextTotal, nextFaculty]);
-    onWorkspace(nextWorkspace);
-  }
-
-  function updateSharedEstratos(estratos: CalcMuestraEstrato[]) {
-    const nextTotalEstratos = withUniversityEstratoDefaults(estratos, "universidad");
-    const nextFacultyEstratos = withUniversityEstratoDefaults(estratos, "facultad");
-    const totalMarco = nextTotalEstratos.reduce((sum, e) => sum + safeNumber(e.N), 0);
-    const marcoTotal = {
-      ...totalComp.marco,
-      estratos: nextTotalEstratos,
-      universo_bruto: totalMarco,
-      marco_validado: totalMarco,
-      marco_contactable: totalMarco,
-      estado: "validado" as const,
-    };
-    const marcoFaculty = {
-      ...facultyComp.marco,
-      estratos: nextFacultyEstratos,
-      universo_bruto: totalMarco,
-      marco_validado: totalMarco,
-      marco_contactable: totalMarco,
-      estado: "validado" as const,
-    };
-    setUniversityPair(
-      { ...totalComp, marco: marcoTotal, resultado: null },
-      { ...facultyComp, marco: marcoFaculty, resultado: null },
-    );
-  }
-
   function setDraftTarget(componentId: string, value: number) {
     setDraftTargets((prev) => ({ ...prev, [componentId]: Math.max(0, Math.round(value)) }));
   }
@@ -3497,19 +3494,6 @@ function OpinionUniversitariaDeskRevamp({
 
         {selectedSection === "aulas" && (
           <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-label="Aulas y selección">
-            {showLocalTab("marco") && <div id="cmv2-local-aulas-guia">
-              <UniversityGuidedBrief
-                section="aulas"
-                workspace={syncedWorkspace}
-                totalComp={totalComp}
-                facultyComp={facultyComp}
-                marcoReady={marcoReady}
-                calculationReady={calculationReady}
-                comparisonReady={comparisonReady}
-                selectionReady={selectionReady}
-                replacementReady={replacementReady}
-              />
-            </div>}
             <UniversityClassroomSelectionPanel
               workspace={syncedWorkspace}
               totalComp={totalComp}
@@ -3522,23 +3506,6 @@ function OpinionUniversitariaDeskRevamp({
               onSelectMethod={onSeleccionarAulas}
               onSimulateReplacements={onSimularReemplazos}
             />
-            {showLocalTab("objetivo") && <section id="cmv2-local-aulas-cuotas" className="cmv2-panel cmv2-university-edit-panel">
-              <div className="cmv2-panel-head">
-                <span className="cmv2-eyebrow">Cuotas de cálculo</span>
-                <strong>Facultades, sexo y supuestos estadísticos</strong>
-              </div>
-              <div className="cmv2-university-edit-layout">
-                <UniversityRevampFacultadesTable
-                  estratos={totalComp.marco.estratos ?? []}
-                  onEstratos={updateSharedEstratos}
-                />
-                <UniversityRevampParametrosPanel
-                  totalComp={totalComp}
-                  facultyComp={facultyComp}
-                  onComponente={onComponente}
-                />
-              </div>
-            </section>}
           </div>
         )}
 
@@ -3713,7 +3680,7 @@ function UniversityRevampBlueprint({
     },
     {
       label: "Aulas",
-      value: selectionReady ? `${fmtInt(aulasCalculadas)} previstas` : `M1 + M2-M${aulasConfig.bolsas_reemplazo + 1}`,
+      value: selectionReady ? `${fmtInt(aulasCalculadas)} previstas` : `titulares + R1-R${aulasConfig.bolsas_reemplazo}`,
       detail: `${selectorLabel}, repetidos y tamaño`,
       tone: selectionReady ? "ready" : hasResultados ? "working" : "neutral",
       icon: Layers3,
@@ -3729,7 +3696,7 @@ function UniversityRevampBlueprint({
   const checks: Array<{ label: string; value: string; ready: boolean; icon: typeof Database }> = [
     { label: "Unidad", value: "estudiante por curso y horario", ready: marcoReady, icon: Table2 },
     { label: "Cuotas", value: hasSexo ? "facultad x sexo" : "sexo pendiente", ready: hasSexo, icon: Target },
-    { label: "Aulas", value: selectionReady ? "titulares y reservas" : "curso y horario", ready: selectionReady, icon: Grid3X3 },
+    { label: "Aulas", value: selectionReady ? "titulares y reemplazos" : "curso y horario", ready: selectionReady, icon: Grid3X3 },
     { label: "Trazabilidad", value: "registro y bitácora", ready: hasResultados, icon: CheckCircle2 },
   ];
 
@@ -3820,7 +3787,7 @@ function UniversityGuidedBrief({
       : "requiere marco";
   const definitionReady = Boolean(workspace.fuente_marco || workspace.marco_disponible);
   const selectionLabel = selectionReady
-    ? replacementReady ? "titulares y reservas generadas" : "titulares M1 generados"
+    ? replacementReady ? "titulares y reemplazos generados" : "titulares generados"
     : comparisonReady ? "método elegido, falta selección" : "requiere comparación";
   const replacementLabel = replacementReady ? "simulación lista" : selectionReady ? "lista para simular" : "requiere selección";
   const sourceLabel = workspace.fuente_marco || "registro académico o equivalente";
@@ -3875,7 +3842,7 @@ function UniversityGuidedBrief({
       items: [
         { label: "Entrada", title: "marco validado", detail: "Toma los totales por facultad y sexo desde la base institucional.", status: guideStatus(marcoReady, definitionReady) },
         { label: "Decisión", title: quotaLabel, detail: "Aplica error, confianza, deff, sobremuestra y rendimiento esperado.", status: guideStatus(calculationReady, marcoReady) },
-        { label: "Salida", title: "N por facultad", detail: "Ese N se traduce luego a aulas titulares y reservas equivalentes.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Salida", title: "N por facultad", detail: "Ese N se traduce luego a aulas titulares y reemplazos equivalentes.", status: guideStatus(calculationReady, marcoReady) },
       ],
       checks: [
         { label: "Marco", value: marcoReady ? "validado" : "pendiente", status: guideStatus(marcoReady, definitionReady) },
@@ -3886,19 +3853,19 @@ function UniversityGuidedBrief({
     },
     aulas: {
       eyebrow: "Guía de sección",
-      title: calculationReady ? "El N se traduce en aulas titulares y reservas" : "Primero calcula N antes de seleccionar aulas",
+      title: calculationReady ? "El N se traduce en aulas titulares y reemplazos" : "Primero calcula N antes de seleccionar aulas",
       lead: "El laboratorio compara métodos, evita concentración y repetidos, y deja una selección trazable para que Monitoreo solo ejecute el plan.",
       status: guideStatus(selectionReady, calculationReady),
       items: [
-        { label: "Entrada", title: calculationReady ? "N/cuotas calculadas" : "N/cuotas pendientes", detail: "La selección de aulas parte del objetivo por facultad, no de una lista suelta.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Entrada", title: calculationReady ? "Tamaño y cuotas calculadas" : "Tamaño y cuotas pendientes", detail: "La selección de aulas parte del objetivo por facultad, no de una lista suelta.", status: guideStatus(calculationReady, marcoReady) },
         { label: "Decisión", title: comparisonReady ? "métodos comparados" : "comparar métodos", detail: "Los métodos sistemático, balanceado, disperso y optimizado se evalúan con el mismo objetivo.", status: guideStatus(comparisonReady, calculationReady) },
-        { label: "Salida", title: selectionLabel, detail: "La muestra titular va primero; las reservas reemplazan sin rediseñar.", status: guideStatus(selectionReady, comparisonReady) },
+        { label: "Salida", title: selectionLabel, detail: "La muestra titular va primero; los reemplazos se activan sin rediseñar.", status: guideStatus(selectionReady, comparisonReady) },
       ],
       checks: [
         { label: "Marco de aulas", value: "curso, horario y aula", status: guideStatus(marcoReady, definitionReady) },
         { label: "Cuotas", value: calculationReady ? quotaLabel : "requiere cálculo", status: guideStatus(calculationReady, marcoReady) },
         { label: "Selección", value: selectionLabel, status: guideStatus(selectionReady, comparisonReady) },
-        { label: "Reservas", value: replacementLabel, status: guideStatus(replacementReady, selectionReady) },
+        { label: "Reemplazos", value: replacementLabel, status: guideStatus(replacementReady, selectionReady) },
       ],
     },
     salidas: {
@@ -3907,14 +3874,14 @@ function UniversityGuidedBrief({
       lead: "La app debe dejar evidencia metodológica y un plan operativo claro, sin mostrar datos personales fuera del equipo ni rediseñar el marco durante campo.",
       status: guideStatus(selectionReady && calculationReady, marcoReady),
       items: [
-        { label: "Entrada", title: calculationReady ? "cálculo listo" : "cálculo pendiente", detail: "Toma escenarios, cuotas, titulares, reservas y advertencias metodológicas.", status: guideStatus(calculationReady, marcoReady) },
-        { label: "Entrega", title: calculationReady ? "reporte y anexos" : "reporte pendiente", detail: "Incluye perfil del marco, score, probabilidades, pesos, riesgos y sustento.", status: guideStatus(calculationReady, marcoReady) },
-        { label: "Seguimiento", title: "plan de aulas", detail: "Monitoreo agenda y activa reservas; no cambia silenciosamente el diseño.", status: guideStatus(selectionReady, calculationReady) },
+        { label: "Entrada", title: calculationReady ? "cálculo listo" : "cálculo pendiente", detail: "Toma escenarios, cuotas, titulares, reemplazos y advertencias metodológicas.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Entrega", title: calculationReady ? "reporte y anexos" : "reporte pendiente", detail: "Incluye perfil del marco, calidad de representatividad, probabilidades, pesos, riesgos y sustento.", status: guideStatus(calculationReady, marcoReady) },
+        { label: "Seguimiento", title: "plan de aulas", detail: "Monitoreo agenda y activa reemplazos; no cambia silenciosamente el diseño.", status: guideStatus(selectionReady, calculationReady) },
       ],
       checks: [
         { label: "Reporte", value: calculationReady ? "preparable" : "requiere cálculo", status: guideStatus(calculationReady, marcoReady) },
         { label: "Plan de aulas", value: selectionReady ? "disponible" : "pendiente", status: guideStatus(selectionReady, calculationReady) },
-        { label: "Reservas", value: replacementLabel, status: guideStatus(replacementReady, selectionReady) },
+        { label: "Reemplazos", value: replacementLabel, status: guideStatus(replacementReady, selectionReady) },
         { label: "Privacidad", value: "datos protegidos", status: "ready" },
       ],
     },
@@ -4042,7 +4009,7 @@ function UniversityStudySetupPanel({
         <div>
           <small>Unidad de selección</small>
           <strong>curso, horario y aula</strong>
-          <span>Las aulas titulares y reservas se derivan del marco de cursos y horarios.</span>
+          <span>Las aulas titulares y sus reemplazos se derivan del marco de cursos y horarios.</span>
         </div>
       </div>
       <div className="cmv2-university-field-strip" aria-label="Variables mínimas esperadas">
@@ -4121,7 +4088,7 @@ function UniversityDefinitionReadinessPanel({
             : targetN <= 0
               ? "Pasa a Cálculo para fijar N, cuotas y aulas esperadas."
               : !m1Rows.length
-                ? "Pasa a Aulas para comparar métodos y generar M1."
+                ? "Pasa a Aulas para comparar métodos y elegir aulas titulares."
                 : "Configura salidas y deja listo el pase a Monitoreo.";
   const readiness: Array<{
     label: string;
@@ -4183,7 +4150,7 @@ function UniversityDefinitionReadinessPanel({
     { label: "Entender", value: "variables + elegibilidad", ready: mappingsReady && eligibilityReady },
     { label: "Construir", value: "marco auditable", ready: Boolean(frame) },
     { label: "Calcular", value: "N y cuotas", ready: targetN > 0 },
-    { label: "Seleccionar", value: "M1 y reservas", ready: m1Rows.length > 0 },
+    { label: "Seleccionar", value: "titulares y reemplazos", ready: m1Rows.length > 0 },
     { label: "Publicar", value: "Excel/Sheets", ready: deliverablesReady },
   ];
 
@@ -5367,6 +5334,26 @@ function UniversityFrameCrossesPanel({
   const facultySex = universityFacultySexCross(totalComp, populationRows, workspace);
   const facultyLevel = buildCrossTable(populationRows, ["faculty", "facultad", "unidad_academica"], ["level", "nivel", "ciclo", "anio"], 10, 99, { primary: labelFor("faculty"), secondary: labelFor("level"), rowSort: "faculty", columnSort: "ordinal" });
   const facultySize = buildCrossTable(classroomRows, ["faculty", "facultad", "unidad_academica"], ["size_group"], 10, 6, { rowSort: "faculty", columnSort: "ordinal" });
+  const crossCards = [
+    {
+      label: "Cuotas de población",
+      value: facultySex.rows.length ? "sexo por facultad listo" : "falta sexo o facultad",
+      detail: "Sirve para revisar si cada facultad tiene una composición esperada antes de calcular cuotas.",
+      ready: facultySex.rows.length > 0,
+    },
+    {
+      label: "Estructura académica",
+      value: facultyLevel.rows.length ? "ciclo por facultad listo" : "falta ciclo o nivel",
+      detail: "Ayuda a detectar concentraciones por ciclo cuando el marco trae esa columna.",
+      ready: facultyLevel.rows.length > 0,
+    },
+    {
+      label: "Capacidad de aulas",
+      value: facultySize.rows.length ? "tamaño por facultad listo" : "requiere aulas válidas",
+      detail: "Muestra si una facultad tiene aulas pequeñas, medianas o grandes para sostener reemplazos.",
+      ready: facultySize.rows.length > 0,
+    },
+  ];
   return (
     <section className="cmv2-panel cmv2-frame-cross-panel">
       <div className="cmv2-panel-head">
@@ -5377,11 +5364,22 @@ function UniversityFrameCrossesPanel({
         <span className="cmv2-pill-soft">tablas + mapa de calor</span>
       </div>
       {frame || totalComp.marco.estratos?.length ? (
-        <div className="cmv2-cross-grid">
-          <CrossTablePanel title="Facultad por sexo" subtitle="estudiantes únicos elegibles" table={facultySex} />
-          <CrossTablePanel title="Facultad por ciclo/nivel" subtitle="estructura académica" table={facultyLevel} />
-          <CrossTablePanel title="Facultad por tamaño de aula" subtitle="aulas seleccionables" table={facultySize} />
-        </div>
+        <>
+          <div className="cmv2-cross-brief-grid" aria-label="Lectura guiada de cruces del marco">
+            {crossCards.map((card) => (
+              <article key={card.label} className={card.ready ? "is-ready" : "is-working"}>
+                <small>{card.label}</small>
+                <strong>{card.value}</strong>
+                <span>{card.detail}</span>
+              </article>
+            ))}
+          </div>
+          <div className="cmv2-cross-grid">
+            <CrossTablePanel title="Facultad por sexo" subtitle="estudiantes únicos elegibles" table={facultySex} />
+            <CrossTablePanel title="Facultad por ciclo/nivel" subtitle="estructura académica" table={facultyLevel} />
+            <CrossTablePanel title="Facultad por tamaño de aula" subtitle="aulas seleccionables" table={facultySize} />
+          </div>
+        </>
       ) : (
         <ClassroomEmptyState
           icon={Grid3X3}
@@ -6558,7 +6556,7 @@ function ClassroomFrameDashboard({
   const scopeOptions: Array<{ id: ClassroomDashboardScope; label: string; disabled?: boolean }> = [
     { id: "poblacion", label: "Población" },
     { id: "aulas", label: "Aulas elegibles", disabled: !classroomRows.length },
-    { id: "seleccion", label: "Selección M1", disabled: !m1Rows.length },
+    { id: "seleccion", label: "Aulas titulares", disabled: !m1Rows.length },
   ];
   const scopeLabel = scopeOptions.find((item) => item.id === scope)?.label ?? "Población";
   const graphedRows = scope === "poblacion"
@@ -6567,7 +6565,7 @@ function ClassroomFrameDashboard({
   const dashboardTitle = scope === "aulas"
     ? "Aulas y elegibles del marco de aplicación"
     : scope === "seleccion"
-      ? "Selección M1 y reservas operativas"
+      ? "Aulas titulares y reemplazos operativos"
       : "Población, composición académica y elegibilidad";
   const dashboardKpis = scope === "poblacion"
     ? [
@@ -6580,7 +6578,7 @@ function ClassroomFrameDashboard({
       ]
     : scope === "seleccion"
       ? [
-          { label: "Aulas M1", value: (isGeneral ? m1Rows.length : filteredM1Rows.length) ? fmtInt(isGeneral ? m1Rows.length : filteredM1Rows.length) : "pendiente" },
+          { label: "Aulas titulares", value: (isGeneral ? m1Rows.length : filteredM1Rows.length) ? fmtInt(isGeneral ? m1Rows.length : filteredM1Rows.length) : "pendiente" },
           { label: "Elegibles esperados", value: classroomEligibleTotal ? fmtInt(classroomEligibleTotal) : "pendiente" },
           { label: "Promedio por aula", value: Number.isFinite(classroomAverageEligible) ? classroomAverageEligible.toFixed(1).replace(".", ",") : "pendiente" },
           { label: "Facultades cubiertas", value: classroomFacultyCount ? fmtInt(classroomFacultyCount) : "pendiente" },
@@ -6741,7 +6739,7 @@ function ClassroomFrameDashboard({
         <span><small>Lectura</small><strong>{selectedFacultyLabel}</strong></span>
         <span><small>Base de gráficos</small><strong>{scopeLabel}</strong></span>
         <span>
-          <small>{scope === "poblacion" ? "Población visible" : scope === "seleccion" ? "Aulas M1 visibles" : "Aulas visibles"}</small>
+          <small>{scope === "poblacion" ? "Población visible" : scope === "seleccion" ? "Aulas titulares visibles" : "Aulas visibles"}</small>
           <strong>{graphedRows ? fmtInt(graphedRows) : populationN ? fmtInt(populationN) : "pendiente"}</strong>
         </span>
       </div>
@@ -6786,7 +6784,7 @@ function ClassroomFrameDashboard({
           </>
         ) : (
           <>
-            <ClassroomPlotCard title={scope === "seleccion" ? "Aulas M1 por facultad" : "Aulas disponibles por facultad"} subtitle="curso-horario como unidad de intervención">
+            <ClassroomPlotCard title={scope === "seleccion" ? "Aulas titulares por facultad" : "Aulas disponibles por facultad"} subtitle="curso-horario como unidad de intervención">
               <ClassroomBarPlot
                 rows={facultyRows}
                 ariaLabel="Aulas disponibles por facultad"
@@ -6797,7 +6795,7 @@ function ClassroomFrameDashboard({
                 onRowClick={(row) => setProgramFocusFaculty(row.label)}
               />
             </ClassroomPlotCard>
-            <ClassroomPlotCard title={scope === "seleccion" ? "Aulas M1 por carrera principal" : "Aulas por carrera principal"} subtitle={classroomProgramSubtitle}>
+            <ClassroomPlotCard title={scope === "seleccion" ? "Aulas titulares por carrera principal" : "Aulas por carrera principal"} subtitle={classroomProgramSubtitle}>
               <ClassroomBarPlot rows={programRows} ariaLabel={`Aulas por carrera principal en ${selectedFacultyLabel}`} unit="aulas" total={programRowsTotal} emptyState={dashboardEmptyStates.program} />
             </ClassroomPlotCard>
             <ClassroomPlotCard title="Sexo por aula" subtitle="aporte esperado de hombres y mujeres en cada aula">
@@ -6894,9 +6892,9 @@ function UniversityPublicationConfigPanel({
             {[
               ["frame_sheet_name", "Marco muestral", "base leída, exclusiones y marco operativo"],
               ["sample_calculation_sheet_name", "Cálculo muestral", "N, cuotas y supuestos de cálculo"],
-              ["classroom_selection_sheet_name", "Selección de aulas", "titulares M1, probabilidades y pesos"],
-              ["replacement_sheet_name", "Aulas de reemplazo", "reservas M2...Mk e impacto"],
-              ["operational_routes_sheet_name", "Rutas operativas", "titular M1 y cadena M2, M3... para campo"],
+              ["classroom_selection_sheet_name", "Selección de aulas", "aulas titulares, probabilidades y pesos"],
+              ["replacement_sheet_name", "Aulas de reemplazo", "reemplazos por titular e impacto"],
+              ["operational_routes_sheet_name", "Rutas operativas", "titular y cadena Rn.1, Rn.2... para campo"],
               ["agenda_sheet_name", "Agenda de aulas", "hoja preparada para coordinación de campo"],
               ["monitoring_handoff_sheet_name", "Plan para Monitoreo", "estado, enlace, QR y reemplazo usado"],
               ["methodology_sheet_name", "Sustento", "fuentes, advertencias y bitácora"],
@@ -6920,7 +6918,7 @@ function UniversityPublicationConfigPanel({
             ["include_frame_audit", "Auditoría del marco", "exclusiones, columnas y consistencia"],
             ["include_sample_calculation", "Cálculo muestral", "N, cuotas, escenarios y supuestos"],
             ["include_classroom_selection", "Selección de aulas", selectionReady ? "titulares y probabilidades listas" : "pendiente de selección"],
-            ["include_replacements", "Reservas y reemplazos", replacementReady ? "impacto disponible" : "pendiente de simulación"],
+            ["include_replacements", "Reemplazos por aula", replacementReady ? "impacto disponible" : "pendiente de simulación"],
           ].map(([key, label, detail]) => (
             <label key={key}>
               <input
@@ -8020,12 +8018,12 @@ function UniversityCalculationWorkflowPanel({
         : !comparisonReady
           ? {
               label: "Pasar a Aulas",
-              detail: "Con N y cuotas listas, compara motores de selección para decidir M1 y reservas.",
+              detail: "Con tamaño y cuotas listas, compara métodos para decidir aulas titulares y reemplazos.",
             }
           : !selectionReady
             ? {
                 label: "Elegir selección",
-                detail: "La comparación ya existe; falta fijar titulares M1 y bolsas M2...Mk.",
+                detail: "La comparación ya existe; falta fijar aulas titulares y sus rutas de reemplazo.",
               }
             : {
                 label: "Preparar salidas",
@@ -8066,15 +8064,15 @@ function UniversityCalculationWorkflowPanel({
     {
       label: "Propuestas",
       value: targetN ? `${fmtInt(targetN)} casos · ${targetAulas ? fmtInt(targetAulas) : "—"} aulas` : "pendiente",
-      detail: "Aquí se fija el N y la traducción a aulas antes de elegir titulares y reservas.",
+      detail: "Aquí se fija el N y la traducción a aulas antes de elegir titulares y reemplazos.",
       ready: calculationReady,
       working: marcoReady,
       icon: Calculator,
     },
     {
       label: "Selección posterior",
-      value: selectionReady ? "M1 y reservas listas" : comparisonReady ? "métodos comparados" : "pendiente",
-      detail: "La pestaña Aulas usa este resultado como objetivo; no recalcula el N muestral.",
+      value: selectionReady ? "titulares y reemplazos listos" : comparisonReady ? "métodos comparados" : "pendiente",
+      detail: "La pestaña Aulas usa este tamaño como objetivo; no recalcula la muestra.",
       ready: selectionReady,
       working: comparisonReady,
       icon: Grid3X3,
@@ -8188,7 +8186,7 @@ function UniversityCalculationScenarioPanel({
                   <Metric label="n final" value={summary.finalN ? fmtInt(summary.finalN) : "pendiente"} />
                   <Metric label="Con sobremuestra" value={summary.operative ? fmtInt(summary.operative) : "pendiente"} />
                   <Metric label="Aulas base" value={summary.aulasBase ? fmtInt(summary.aulasBase) : "pendiente"} />
-                  <Metric label="Aulas + reserva" value={summary.aulasTotal ? fmtInt(summary.aulasTotal) : "pendiente"} />
+                  <Metric label="Aulas con reemplazos" value={summary.aulasTotal ? fmtInt(summary.aulasTotal) : "pendiente"} />
                 </div>
               </article>
             ))}
@@ -8222,7 +8220,7 @@ function UniversityCalculationScenarioPanel({
                         <th>Facultad</th>
                         <th>Cuota</th>
                         <th>Aulas base</th>
-                        <th>Reservas</th>
+                        <th>Reemplazos</th>
                         <th>Total</th>
                       </tr>
                     </thead>
@@ -8240,7 +8238,7 @@ function UniversityCalculationScenarioPanel({
                   </table>
                 </div>
               ) : (
-                <p>La conversión a aulas aparece cuando el cálculo ya conoce cuota, rendimiento esperado y reservas operativas.</p>
+                <p>La conversión a aulas aparece cuando el cálculo ya conoce cuota, rendimiento esperado y reemplazos operativos.</p>
               )}
             </article>
           </div>
@@ -8276,18 +8274,18 @@ function UniversityCalculationAssumptionGuide({
     {
       label: "Campo",
       value: `sobremuestra ${fmtPct(totalComp.parametros.oversample_pct)} · respuesta ${fmtPct(totalComp.parametros.tasa_respuesta)}`,
-      detail: "La sobremuestra cubre no respuesta esperada; no reemplaza las reservas M2...Mk.",
+      detail: "La sobremuestra cubre no respuesta esperada; no reemplaza las rutas de reemplazo por aula.",
       icon: Users,
     },
     {
-      label: "Aulas",
+      label: "Rendimiento por aula",
       value: `${totalComp.parametros.promedio_conglomerado} por aula · tau ${totalComp.parametros.tau}`,
       detail: "Define cuántos estudiantes efectivos esperamos captar por curso y horario.",
       icon: Grid3X3,
     },
     {
-      label: "Reservas",
-      value: `${aulasConfig.bolsas_reemplazo} bolsas · +${aulasConfig.aulas_extra_operativas_default} por celda`,
+      label: "Reemplazos",
+      value: `${aulasConfig.bolsas_reemplazo} niveles · +${aulasConfig.aulas_extra_operativas_default} extra por dominio`,
       detail: "Son aulas equivalentes para campo; Monitoreo las activa sin rediseñar el marco.",
       icon: RefreshCw,
     },
@@ -8352,13 +8350,13 @@ function UniversityCalculationAssumptionsPanel({
           <span className="cmv2-eyebrow">Ajustes del cálculo</span>
           <strong>Supuestos que mueven N y aulas</strong>
         </div>
-        <span className="cmv2-pill-soft">se aplican antes de seleccionar M1</span>
+        <span className="cmv2-pill-soft">antes de elegir aulas titulares</span>
       </div>
       <div className="cmv2-classroom-stat-grid">
         <Metric label="N universidad" value={totalTarget ? fmtInt(totalTarget) : "pendiente"} />
         <Metric label="N facultades" value={facultyTarget ? fmtInt(facultyTarget) : "pendiente"} />
         <Metric label="Aulas base" value={aulasBase ? fmtInt(aulasBase) : "pendiente"} />
-        <Metric label="Aulas + reserva" value={aulasTotal ? fmtInt(aulasTotal) : "pendiente"} />
+        <Metric label="Aulas con reemplazos" value={aulasTotal ? fmtInt(aulasTotal) : "pendiente"} />
       </div>
       <div className="cmv2-university-edit-layout">
         <UniversityRevampParametrosPanel
@@ -8370,12 +8368,12 @@ function UniversityCalculationAssumptionsPanel({
           <div className="is-ok">
             <small>Orden correcto</small>
             <strong>primero cuotas, luego aulas</strong>
-            <span>El N por facultad se fija aquí; la pestaña Aulas convierte ese objetivo en cursos, horarios y reservas.</span>
+            <span>El tamaño por facultad se fija aquí; la pestaña Aulas convierte ese objetivo en cursos, horarios y reemplazos.</span>
           </div>
           <div className="is-media">
             <small>Impacto operativo</small>
             <strong>sobremuestra no es reserva</strong>
-            <span>La sobremuestra protege respuesta esperada; las bolsas M2...Mk son reemplazos trazables para campo.</span>
+            <span>La sobremuestra protege respuesta esperada; las rutas Rn.1, Rn.2... son reemplazos trazables para campo.</span>
           </div>
           <div className="is-media">
             <small>Supuestos sensibles</small>
@@ -8412,7 +8410,8 @@ function UniversityOutputWorkflowPanel({
   const publication = workspace.publication_config ?? {};
   const selectionRows = rowsFrom<Record<string, unknown>>(aulasState?.selection?.selection);
   const m1Rows = selectionRows.filter((row) => classroomRowText(row, ["wave"]) === "M1");
-  const reserveRows = selectionRows.filter((row) => classroomRowText(row, ["wave"]) !== "M1");
+  const reserveRows = selectionRows.filter((row) => classroomRowText(row, ["sample_role"]) === "chain_reserve" || (classroomRowText(row, ["wave"]) !== "M1" && classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool"));
+  const extraReserveRows = selectionRows.filter((row) => classroomRowText(row, ["sample_role"]) === "extra_reserve_pool");
   const totalN = Math.max(safeNumber(totalComp.resultado?.n_objetivo, 0), safeNumber(facultyComp.resultado?.n_objetivo, 0));
   const workbookConfigured = publication.include_workbook !== false;
   const sheetsConfigured = Boolean(publication.google_sheets_enabled || publication.spreadsheet_id || publication.spreadsheet_url);
@@ -8422,7 +8421,7 @@ function UniversityOutputWorkflowPanel({
     ? "Calcular muestra para habilitar tablas de N y cuotas."
     : !selectionReady
       ? comparisonReady
-        ? "Fijar selección M1 desde el método recomendado."
+        ? "Fijar aulas titulares desde el método recomendado."
         : "Ir a Aulas y comparar métodos antes de exportar selección."
       : !sheetsReady
         ? "Configurar si los entregables saldrán a Excel local, Sheets interno o Sheets cliente."
@@ -8452,16 +8451,16 @@ function UniversityOutputWorkflowPanel({
     },
     {
       label: "Selección de aulas",
-      value: m1Rows.length ? `${fmtInt(m1Rows.length)} titulares M1` : comparisonReady ? "método comparado" : "pendiente",
+      value: m1Rows.length ? `${fmtInt(m1Rows.length)} titulares` : comparisonReady ? "método comparado" : "pendiente",
       detail: "Titulares, probabilidades, pesos, balance y advertencias metodológicas.",
       ready: selectionReady,
       working: comparisonReady,
       icon: Grid3X3,
     },
     {
-      label: "Reservas equivalentes",
-      value: reserveRows.length ? `${fmtInt(reserveRows.length)} reservas` : "pendiente",
-      detail: "Bolsas M2...Mk y simulación de impacto antes/después de reemplazar.",
+      label: "Reemplazos por titular",
+      value: reserveRows.length ? `${fmtInt(reserveRows.length)} reemplazos` : "pendiente",
+      detail: extraReserveRows.length ? `Rutas Rn.1, Rn.2... y ${fmtInt(extraReserveRows.length)} aulas en reserva extra separada.` : "Rutas Rn.1, Rn.2... y simulación de impacto antes/después de reemplazar.",
       ready: replacementReady,
       working: selectionReady,
       icon: RefreshCw,
@@ -8495,8 +8494,8 @@ function UniversityOutputWorkflowPanel({
       <div className="cmv2-calculation-dashboard">
         <Metric label="Excel de trabajo" value={workbookReady ? "preparado" : workbookConfigured ? "configurado" : "pendiente"} />
         <Metric label="Sheets" value={sheetsReady ? "preparado" : sheetsConfigured ? "configurado" : "opcional"} />
-        <Metric label="Titulares M1" value={m1Rows.length ? fmtInt(m1Rows.length) : "pendiente"} />
-        <Metric label="Reservas" value={reserveRows.length ? fmtInt(reserveRows.length) : "pendiente"} />
+        <Metric label="Aulas titulares" value={m1Rows.length ? fmtInt(m1Rows.length) : "pendiente"} />
+        <Metric label="Reemplazos" value={reserveRows.length ? fmtInt(reserveRows.length) : "pendiente"} />
       </div>
       <div className="cmv2-next-step-card">
         <span><ArrowRight size={16} /></span>
@@ -8563,19 +8562,19 @@ function UniversityOutputReadinessPanel({
       label: "Comparador de métodos",
       sheet: "Comparador de métodos",
       ready: comparisonReady,
-      detail: "Score de representatividad, solape, cobertura, balance y recomendación.",
+      detail: "Calidad de representatividad, repetidos, cobertura, balance y recomendación.",
     },
     {
-      label: "Selección M1",
+      label: "Aulas titulares",
       sheet: publication.classroom_selection_sheet_name || "Selección de aulas",
       ready: selectionReady,
-      detail: "Aulas titulares, probabilidades, pesos, semilla y hash del marco.",
+      detail: "Aulas que se intentan primero, probabilidades, pesos, semilla y firma del marco.",
     },
     {
-      label: "Reservas y reemplazos",
+      label: "Reemplazos por titular",
       sheet: publication.replacement_sheet_name || "Reemplazos sugeridos",
       ready: replacementReady,
-      detail: "Bolsas M2...Mk e impacto antes/después de activar una reserva.",
+      detail: "Rutas Rn.1, Rn.2... e impacto antes/después de activar un reemplazo.",
     },
     {
       label: "Sustento metodológico",
@@ -8629,7 +8628,7 @@ function UniversityMonitoringHandoffPanel({ aulasState }: { aulasState: CalcMues
   const methodLabel = selectionReady && selection
     ? classroomMethodLabel(selection.selector_engine_used ?? selection.selector_engine ?? "")
     : comparisonReady
-      ? "comparado, falta M1"
+      ? "comparado, faltan titulares"
       : comparison?.recommendation?.method_label ?? "pendiente";
   return (
     <section className="cmv2-panel cmv2-university-results">
@@ -8641,14 +8640,14 @@ function UniversityMonitoringHandoffPanel({ aulasState }: { aulasState: CalcMues
         <span className="cmv2-pill-soft">Monitoreo no rediseña la muestra</span>
       </div>
       <div className="cmv2-classroom-stat-grid">
-        <Metric label="Titulares M1" value={m1Rows.length ? fmtInt(m1Rows.length) : "pendiente"} />
-        <Metric label="Reservas" value={reserveRows.length ? fmtInt(reserveRows.length) : "pendiente"} />
+        <Metric label="Aulas titulares" value={m1Rows.length ? fmtInt(m1Rows.length) : "pendiente"} />
+        <Metric label="Aulas reemplazo" value={reserveRows.length ? fmtInt(reserveRows.length) : "pendiente"} />
         <Metric label="Método" value={methodLabel} />
-        <Metric label="Reemplazos" value={replacementReady ? "simulados" : replacementSimulation ? "sin sugerencias" : "pendiente"} />
+        <Metric label="Simulación" value={replacementReady ? "disponible" : replacementSimulation ? "sin sugerencias" : "pendiente"} />
       </div>
       <div className="cmv2-classroom-flow">
         {[
-          { label: "Diseño cerrado", value: "titulares + reservas", detail: "Calc-Muestra entrega selección, semilla, hash, probabilidades y advertencias." },
+          { label: "Diseño cerrado", value: "titulares + reemplazos", detail: "Calc-Muestra entrega selección, semilla, hash, probabilidades y advertencias." },
           { label: "Agenda operativa", value: "docente, horario y responsable", detail: "Monitoreo completa contacto, fecha, link/QR, aplicador y estado del aula." },
           { label: "Campo", value: "estados y no respuesta", detail: "Se registra aplicada, parcial, caída o reemplazada sin alterar el diseño base." },
           { label: "Cierre", value: "muestra efectiva vs marco", detail: "El tablero reporta pérdida o recuperación de representatividad por reemplazos usados." },
@@ -8669,7 +8668,7 @@ function UniversityMonitoringHandoffPanel({ aulasState }: { aulasState: CalcMues
         <ClassroomEmptyState
           icon={Grid3X3}
           title="Plan de aulas pendiente"
-          detail="Genera selección en Aulas para que Monitoreo reciba titulares, reservas y trazabilidad metodológica."
+          detail="Genera selección en Aulas para que Monitoreo reciba titulares, reemplazos y trazabilidad metodológica."
         />
       )}
     </section>
@@ -8685,14 +8684,14 @@ function UniversityReservesOutputPanel({ aulasState }: { aulasState: CalcMuestra
     <section className="cmv2-panel cmv2-university-results">
       <div className="cmv2-panel-head">
         <div>
-          <span className="cmv2-eyebrow">Reservas y reemplazos</span>
-          <strong>{replacementReady ? "Bolsas M2...Mk listas para campo" : "Bolsas M2...Mk pendientes de simulación"}</strong>
+          <span className="cmv2-eyebrow">Reemplazos por aula</span>
+          <strong>{replacementReady ? "Rutas Rn.1, Rn.2... listas para campo" : "Rutas de reemplazo pendientes de simulación"}</strong>
         </div>
-        <span className="cmv2-pill-soft">reservas equivalentes, no rediseño</span>
+        <span className="cmv2-pill-soft">reemplazos equivalentes, no rediseño</span>
       </div>
       <div className="cmv2-classroom-stat-grid">
-        <Metric label="Aulas reserva" value={reserveRows.length ? fmtInt(reserveRows.length) : "pendiente"} />
-        <Metric label="Olas" value={waves.length ? waves.join(", ") : "pendiente"} />
+        <Metric label="Aulas reemplazo" value={reserveRows.length ? fmtInt(reserveRows.length) : "pendiente"} />
+        <Metric label="Rutas internas" value={waves.length ? waves.join(", ") : "pendiente"} />
         <Metric label="Simulación" value={replacementReady ? "disponible" : replacementSimulation ? "sin sugerencias" : "pendiente"} />
         <Metric label="Uso en campo" value="Monitoreo activa" />
       </div>
@@ -8703,8 +8702,8 @@ function UniversityReservesOutputPanel({ aulasState }: { aulasState: CalcMuestra
       ) : (
         <ClassroomEmptyState
           icon={RefreshCw}
-          title="Reservas pendientes"
-          detail="Genera selección y simula reemplazos para ver qué aula reserva conviene activar si una titular cae."
+          title="Reemplazos pendientes"
+          detail="Genera selección y simula reemplazos para ver qué aula conviene activar si una titular cae."
         />
       )}
     </section>
@@ -8839,15 +8838,15 @@ function ClassroomLabGuide({
     },
     objetivo: {
       title: "Traduce la cuota calculada en criterios de selección",
-      lead: "Aquí se define cómo convertir cuotas por facultad en aulas, reservas y restricciones operativas sin cambiar el diseño base.",
+      lead: "Aquí se define cómo convertir cuotas por facultad en aulas, reemplazos y restricciones operativas sin cambiar el diseño base.",
       input: quotaLabel,
-      decision: "cuánto peso dar a balance, repetidos, tamaño de aula y reservas",
+      decision: "cuánto peso dar a balance, repetidos, tamaño de aula y reemplazos",
       output: "objetivo listo para comparar métodos",
       status: guideStatus(quotaReady, frameReady),
     },
     metodo: {
       title: "Compara métodos con el mismo objetivo",
-      lead: "La app debe poder explicar por qué un método gana: mejor balance, menos concentración, menos repetidos o mejor profundidad de reservas.",
+      lead: "La app debe poder explicar por qué un método gana: mejor balance, menos concentración, menos repetidos o mejor profundidad de reemplazos.",
       input: quotaReady ? "base de aulas y cuota calculada" : "requiere cuota calculada",
       decision: `usar ${recommendedMethodLabel || "un método comparable"}`,
       output: "recomendación defendible",
@@ -8862,19 +8861,19 @@ function ClassroomLabGuide({
       status: guideStatus(comparisonReady, quotaReady),
     },
     seleccion: {
-      title: "Convierte el método elegido en titulares y reservas",
-      lead: "Esta pestaña muestra la propuesta que realmente pasará a campo: titulares, reservas, brechas y trazabilidad aula por aula.",
+      title: "Convierte el método elegido en titulares y reemplazos",
+      lead: "Esta pestaña muestra la propuesta que realmente pasará a campo: titulares, reemplazos, brechas y trazabilidad aula por aula.",
       input: comparisonReady ? "método recomendado o elegido" : "requiere comparación",
-      decision: selectionReady ? `${fmtInt(m1Count)} titulares y ${fmtInt(reserveCount)} reservas` : "generar selección",
+      decision: selectionReady ? `${fmtInt(m1Count)} titulares y ${fmtInt(reserveCount)} reemplazos` : "generar selección",
       output: "plan de aulas para seguimiento",
       status: guideStatus(selectionReady, comparisonReady),
     },
     reemplazos: {
       title: "Prepara reemplazos equivalentes antes de campo",
-      lead: "Las reservas se ordenan por equivalencia, balance, solape y riesgo para que Monitoreo no rediseñe sobre la marcha.",
-      input: selectionReady ? "titulares y reservas" : "requiere selección",
+      lead: "Los reemplazos se ordenan por equivalencia, balance, repetidos y riesgo para que Monitoreo no rediseñe sobre la marcha.",
+      input: selectionReady ? "titulares y reemplazos" : "requiere selección",
       decision: replacementReady ? "impacto antes/después disponible" : "simular reemplazos",
-      output: "reservas sugeridas por aula no aplicada",
+      output: "reemplazos sugeridos por aula no aplicada",
       status: guideStatus(replacementReady, selectionReady),
     },
     auditoria: {
@@ -8899,6 +8898,264 @@ function ClassroomLabGuide({
         <em><b>Necesita:</b> {guide.input}</em>
         <em><b>Define:</b> {guide.decision}</em>
         <em><b>Deja listo:</b> {guide.output}</em>
+      </div>
+    </div>
+  );
+}
+
+function ClassroomFrameSelectionSummaryPanel({
+  frameReady,
+  frameRows,
+  uniqueStudents,
+  targetForDisplay,
+  m1ForDisplay,
+  config,
+  objectiveVariables,
+  selectorFields,
+  frameHash,
+}: {
+  frameReady: boolean;
+  frameRows: Array<Record<string, unknown>>;
+  uniqueStudents: number;
+  targetForDisplay: number;
+  m1ForDisplay: number;
+  config: CalcMuestraWorkspaceAulasConfig;
+  objectiveVariables: Array<Record<string, unknown>>;
+  selectorFields: string[];
+  frameHash?: string | null;
+}) {
+  const activeVariables = objectiveVariables
+    .filter((row) => row.active !== false)
+    .map((row) => classroomRowText(row, ["label", "dimension", "metric_id"]))
+    .filter(Boolean)
+    .slice(0, 6);
+  const activeFields = selectorFields.length ? selectorFields : config.estratos_selector.map(selectorFieldLabel);
+  return (
+    <>
+      <div className="cmv2-classroom-tab-note">
+        <span><Database size={15} /></span>
+        <div>
+          <strong>Esta pestaña no vuelve a explorar el universo.</strong>
+          <em>Resume qué parte del marco entra al selector. Los gráficos de población y aulas quedan en Marco; aquí se revisa si el marco ya está listo para decidir aulas titulares.</em>
+        </div>
+      </div>
+      <div className="cmv2-classroom-readiness-map" aria-label="Preparación del selector de aulas">
+        <article className={frameReady ? "is-ready" : "is-pending"}>
+          <small>Marco para seleccionar</small>
+          <strong>{frameRows.length ? `${fmtInt(frameRows.length)} aulas` : "pendiente"}</strong>
+          <span>{frameReady ? "Base colapsada a curso-horario/aula." : "Primero construye o importa el marco de aplicación."}</span>
+        </article>
+        <article className={uniqueStudents ? "is-ready" : "is-pending"}>
+          <small>Población que representa</small>
+          <strong>{uniqueStudents ? `${fmtInt(uniqueStudents)} estudiantes` : "pendiente"}</strong>
+          <span>La calidad se mide sobre estudiantes únicos elegibles, no sobre filas repetidas.</span>
+        </article>
+        <article className={targetForDisplay ? "is-ready" : "is-working"}>
+          <small>Objetivo calculado</small>
+          <strong>{targetForDisplay ? `${fmtInt(targetForDisplay)} encuestas` : "falta cálculo"}</strong>
+          <span>El N por dominio se define en Cálculo y luego se traduce a aulas.</span>
+        </article>
+        <article className={m1ForDisplay ? "is-ready" : "is-working"}>
+          <small>Aulas titulares estimadas</small>
+          <strong>{m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"}</strong>
+          <span>Será la primera cadena que Monitoreo intentará aplicar.</span>
+        </article>
+      </div>
+      <div className="cmv2-classroom-readiness-columns">
+        <article>
+          <small>Variables que cuidará el selector</small>
+          <div className="cmv2-classroom-chip-list">
+            {(activeVariables.length ? activeVariables : ["facultad", "sexo esperado", "tamaño de aula"]).map((field) => <span key={field}>{field}</span>)}
+          </div>
+        </article>
+        <article>
+          <small>Criterios operativos activos</small>
+          <div className="cmv2-classroom-chip-list">
+            {(activeFields.length ? activeFields : ["facultad", "sexo esperado"]).slice(0, 7).map((field) => <span key={field}>{field}</span>)}
+            <span>{config.min_elegibles_aula}+ elegibles por aula</span>
+            <span>R1-R{config.bolsas_reemplazo}</span>
+          </div>
+        </article>
+        <article>
+          <small>Trazabilidad</small>
+          <strong>{frameHash ? String(frameHash).slice(0, 10) : "firma pendiente"}</strong>
+          <span>La selección conserva semilla, firma del marco y reglas usadas para poder replicarse.</span>
+        </article>
+      </div>
+    </>
+  );
+}
+
+function ClassroomObjectiveTranslationPanel({
+  facultades,
+  objectiveVariables,
+  targetForDisplay,
+  m1ForDisplay,
+  extraOperativo,
+  config,
+}: {
+  facultades: CalcMuestraEstrato[];
+  objectiveVariables: Array<Record<string, unknown>>;
+  targetForDisplay: number;
+  m1ForDisplay: number;
+  extraOperativo: number;
+  config: CalcMuestraWorkspaceAulasConfig;
+}) {
+  const activeVariables = objectiveVariables.filter((row) => row.active !== false);
+  const quotaRows = facultades
+    .filter((row) => {
+      const record = row as unknown as Record<string, unknown>;
+      return safeNumber(row.N, 0) > 0 || safeNumber(record.n_total, 0) > 0 || safeNumber(row.cuota_fija, 0) > 0;
+    })
+    .slice(0, 5);
+  const expectedYield = targetForDisplay > 0 && m1ForDisplay > 0 ? targetForDisplay / m1ForDisplay : 0;
+  return (
+    <div className="cmv2-classroom-objective-panel">
+      <div className="cmv2-classroom-objective-strip" aria-label="Traducción del objetivo a aulas">
+        <article>
+          <small>Objetivo de entrevistas</small>
+          <strong>{targetForDisplay ? fmtInt(targetForDisplay) : "pendiente"}</strong>
+          <span>Viene de Cálculo y sus cuotas.</span>
+        </article>
+        <article>
+          <small>Aulas titulares necesarias</small>
+          <strong>{m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"}</strong>
+          <span>{expectedYield ? `Rinde aprox. ${fmtInt(expectedYield)} estudiantes por aula.` : "Se estima cuando exista N y rendimiento."}</span>
+        </article>
+        <article>
+          <small>Reemplazos por titular</small>
+          <strong>R1-R{config.bolsas_reemplazo}</strong>
+          <span>Alternativas parecidas asociadas a cada aula titular.</span>
+        </article>
+        <article>
+          <small>Reserva extra</small>
+          <strong>{fmtInt(extraOperativo)}</strong>
+          <span>Refuerzo operativo separado de la muestra titular.</span>
+        </article>
+      </div>
+      <div className="cmv2-classroom-objective-columns">
+        <article>
+          <small>Dominios con cuota</small>
+          {quotaRows.length ? quotaRows.map((row) => {
+            const record = row as unknown as Record<string, unknown>;
+            const label = classroomRowText(record, ["label", "nombre", "id"]) || "Dominio";
+            const quota = safeNumber(record.n_total, 0) || safeNumber(row.cuota_fija, 0) || safeNumber(row.N, 0);
+            return (
+              <span key={row.id ?? label}>
+                <b>{label}</b>
+                <em>{fmtInt(quota)}</em>
+              </span>
+            );
+          }) : <p>Cuando calcules el tamaño por facultad, aquí aparecerán los principales dominios que deben sostener la muestra.</p>}
+        </article>
+        <article>
+          <small>Pesos del objetivo</small>
+          {(activeVariables.length ? activeVariables : [{ label: "facultad", weight: 0.18 }, { label: "sexo esperado", weight: 0.1 }, { label: "cobertura única", weight: 0.1 }]).slice(0, 6).map((row) => (
+            <span key={classroomRowText(row, ["label", "dimension"])}>
+              <b>{classroomRowText(row, ["label", "dimension"]) || "variable"}</b>
+              <em>{fmtPct(classroomRowNumber(row, ["weight"]))}</em>
+            </span>
+          ))}
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function ClassroomSelectionPreparationPanel({
+  frameReady,
+  comparisonReady,
+  recommendedMethodLabel,
+  frameCount,
+  targetForDisplay,
+  m1ForDisplay,
+}: {
+  frameReady: boolean;
+  comparisonReady: boolean;
+  recommendedMethodLabel: string;
+  frameCount: number;
+  targetForDisplay: number;
+  m1ForDisplay: number;
+}) {
+  return (
+    <div className="cmv2-classroom-preparation-panel">
+      <div className="cmv2-classroom-tab-note">
+        <span><Table2 size={15} /></span>
+        <div>
+          <strong>Esta pestaña se llena recién cuando existe una selección.</strong>
+          <em>Antes de seleccionar, muestra el estado de preparación sin repetir los gráficos de Marco. La revisión descriptiva vive en Marco; aquí se decide qué aulas serán titulares.</em>
+        </div>
+      </div>
+      <div className="cmv2-classroom-readiness-map">
+        <article className={frameReady ? "is-ready" : "is-pending"}>
+          <small>1. Marco listo</small>
+          <strong>{frameCount ? `${fmtInt(frameCount)} aulas` : "pendiente"}</strong>
+          <span>Una fila por aula o curso-horario seleccionable.</span>
+        </article>
+        <article className={targetForDisplay ? "is-ready" : "is-working"}>
+          <small>2. Tamaño definido</small>
+          <strong>{targetForDisplay ? `${fmtInt(targetForDisplay)} entrevistas` : "pendiente"}</strong>
+          <span>El cálculo fija cuánto se necesita representar.</span>
+        </article>
+        <article className={comparisonReady ? "is-ready" : "is-working"}>
+          <small>3. Método comparado</small>
+          <strong>{comparisonReady ? recommendedMethodLabel : "por comparar"}</strong>
+          <span>La app elige la opción con mejor balance y menos repetidos.</span>
+        </article>
+        <article className={m1ForDisplay ? "is-ready" : "is-working"}>
+          <small>4. Aulas titulares</small>
+          <strong>{m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"}</strong>
+          <span>Después aparecerán códigos AULA n y sus razones de selección.</span>
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function ClassroomReplacementBlueprintPanel({
+  depth,
+  titularCount,
+  reserveCount,
+  extraReserveCount,
+}: {
+  depth: number;
+  titularCount: number;
+  reserveCount: number;
+  extraReserveCount: number;
+}) {
+  const routeDepth = Math.max(1, Math.min(5, depth || 3));
+  const replacementCodes = Array.from({ length: routeDepth }, (_, index) => `R5.${index + 1}`);
+  return (
+    <div className="cmv2-classroom-replacement-blueprint">
+      <div className="cmv2-classroom-route-preview" aria-label="Ejemplo de cadena de reemplazos">
+        <span className="is-primary">AULA 5</span>
+        {replacementCodes.map((code) => (
+          <span key={code}>
+            <ArrowRight size={13} />
+            <b>{code}</b>
+          </span>
+        ))}
+        <span>
+          <ArrowRight size={13} />
+          <b>Reserva extra</b>
+        </span>
+      </div>
+      <div className="cmv2-classroom-readiness-map">
+        <article className={titularCount ? "is-ready" : "is-working"}>
+          <small>Aulas titulares</small>
+          <strong>{titularCount ? fmtInt(titularCount) : "pendiente"}</strong>
+          <span>Cada titular tendrá su propia ruta de reemplazos.</span>
+        </article>
+        <article className={reserveCount ? "is-ready" : "is-working"}>
+          <small>Reemplazos asociados</small>
+          <strong>{reserveCount ? fmtInt(reserveCount) : "pendiente"}</strong>
+          <span>No son una bolsa suelta: pertenecen a una titular específica.</span>
+        </article>
+        <article className={extraReserveCount ? "is-ready" : "is-working"}>
+          <small>Reserva extra</small>
+          <strong>{extraReserveCount ? fmtInt(extraReserveCount) : "pendiente"}</strong>
+          <span>Solo se usa cuando la cadena no alcanza o la celda queda frágil.</span>
+        </article>
       </div>
     </div>
   );
@@ -8980,26 +9237,27 @@ function UniversityClassroomSelectionPanel({
   const facultyTarget = safeNumber(facultyComp.resultado?.n_objetivo, 0);
   const totalTarget = safeNumber(totalComp.resultado?.n_objetivo, 0);
   const frameTarget = safeNumber((frame as Record<string, unknown> | null)?.target_n, 0);
-  const targetForDisplay = Math.max(facultyTarget, totalTarget);
+  const targetForDisplay = Math.max(facultyTarget, totalTarget, frameTarget);
   const calculatedQuotaEstimate = targetForDisplay > 0 ? Math.max(referenciaBase, safeNumber((frame as Record<string, unknown> | null)?.planned_m1, 0)) : 0;
   const m1ForDisplay = selectionReady ? m1Rows.length : calculatedQuotaEstimate;
-  const hasCalculatedQuota = targetForDisplay > 0;
-  const labQuotaLabel = hasCalculatedQuota ? `${fmtInt(targetForDisplay)} entrevistas objetivo` : "N/cuotas pendientes";
+  const hasCalculatedQuota = targetForDisplay > 0 || selectionReady;
+  const quotaStatusLabel = targetForDisplay > 0 ? "calculadas" : selectionReady ? "precargadas" : "pendiente";
+  const labQuotaLabel = targetForDisplay > 0 ? `${fmtInt(targetForDisplay)} entrevistas objetivo` : selectionReady ? `${fmtInt(m1Rows.length)} aulas titulares precargadas` : "tamaño y cuotas pendientes";
   const steps = [
     { label: "Base institucional", value: "estudiante por curso y horario", detail: "un estudiante puede aparecer en varios cursos" },
     { label: "Marco de aulas", value: frameRows.length ? `${fmtInt(frameRows.length)} aulas` : "curso y horario", detail: "una fila por aula seleccionable" },
     { label: "N por facultad", value: facultyTarget ? fmtInt(facultyTarget) : frameTarget ? `${fmtInt(frameTarget)} precargado` : "pendiente", detail: facultyTarget ? "viene de la pestaña Cálculo" : "requiere calcular antes de seleccionar" },
-    { label: "Aulas por facultad", value: m1ForDisplay ? `${fmtInt(m1ForDisplay)} M1` : "pendiente", detail: "cuota / rendimiento esperado" },
+    { label: "Aulas por facultad", value: m1ForDisplay ? `${fmtInt(m1ForDisplay)} titulares` : "pendiente", detail: "cuota / rendimiento esperado" },
     { label: "Comparador", value: comparisonReady ? "métodos evaluados" : "por correr", detail: "sistemático, balanceado, dispersión y optimización" },
     { label: "Selección", value: selectionReady ? `${fmtInt(m1Rows.length)} titulares` : comparisonReady ? engineOption.label : "pendiente", detail: "balance, cobertura y repetidos" },
-    { label: "Reservas", value: `M2-M${config.bolsas_reemplazo + 1}`, detail: "bolsas equivalentes priorizadas" },
+    { label: "Reemplazos", value: `R1-R${config.bolsas_reemplazo}`, detail: "rutas equivalentes por aula titular" },
   ];
   const auditRows = [
     { label: "Diseño probabilístico", value: engineOption.label, detail: "Aulas con probabilidad conocida y balance por variables auxiliares." },
     { label: "Optimización operativa", value: config.selector_engine === "pool_controlado" ? `${fmtInt(config.candidate_pool_size)} candidatas` : "sin post-selección", detail: "Si se elige entre candidatas, las probabilidades finales salen de simulación." },
-    { label: "Probabilidades y pesos", value: `${fmtInt(config.simulation_runs)} corridas`, detail: "Produce probabilidades de selección y pesos revisables para aulas y estudiantes agregados." },
+    { label: "Probabilidades y pesos", value: `${fmtInt(config.simulation_runs)} corridas`, detail: "Produce la probabilidad usada para pesos de aulas y estudiantes agregados." },
     { label: "Fuentes", value: "oficiales + académicas", detail: "PISA/NAEP/UN/Eurostat/AAPOR, cube method y paquetes R documentados." },
-    { label: "Reservas", value: `M2-M${config.bolsas_reemplazo + 1}`, detail: "Reemplazos trazables; no se mezclan con sobremuestra ni rediseño del marco." },
+    { label: "Reemplazos", value: `R1-R${config.bolsas_reemplazo}`, detail: "Reemplazos trazables; no se mezclan con sobremuestra ni rediseño del marco." },
   ];
   const topGaps = visibleProfiles
     .filter((row) => Number.isFinite(safeNumber(row.abs_error, Number.NaN)))
@@ -9047,7 +9305,7 @@ function UniversityClassroomSelectionPanel({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Selección de aulas</span>
-          <strong>Laboratorio guiado: marco, método, simulación y reservas</strong>
+          <strong>Del objetivo de muestra a aulas titulares y reemplazos trazables</strong>
         </div>
         <div className="cmv2-classroom-badges" aria-label="Trazabilidad del selector">
           <span className={frame?.frame_hash ? "is-ready" : "is-pending"}>{frame?.frame_hash ? "Reproducible" : "Sin firma"}</span>
@@ -9059,12 +9317,12 @@ function UniversityClassroomSelectionPanel({
       </div>
 
       <div className="cmv2-classroom-kpis">
-        <Metric label="N/cuotas" value={hasCalculatedQuota ? "calculadas" : "pendiente"} />
-        <Metric label="M1 desde cuotas" value={m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"} />
-        <Metric label="Representatividad" value={Number.isFinite(currentRepresentativityScore) ? classroomScore(currentRepresentativityScore) : "pendiente"} />
-        <Metric label="Bolsas reserva" value={`M2-M${config.bolsas_reemplazo + 1}`} />
+        <Metric label="Tamaño y cuotas" value={quotaStatusLabel} />
+        <Metric label="Aulas titulares" value={m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"} />
+        <Metric label="Calidad representativa" value={Number.isFinite(currentRepresentativityScore) ? classroomScore(currentRepresentativityScore) : "pendiente"} />
+        <Metric label="Reemplazos por aula" value={`R1-R${config.bolsas_reemplazo}`} />
         <Metric label={selectionReady ? "Aulas en lista" : "Aulas del marco"} value={planTotal ? fmtInt(planTotal) : "sin marco"} />
-        <Metric label="+ aulas operativas" value={fmtInt(extraOperativo)} />
+        <Metric label="Aulas extra" value={fmtInt(extraOperativo)} />
       </div>
 
       <div className="cmv2-classroom-commandbar" aria-label="Acciones del laboratorio de aulas">
@@ -9074,11 +9332,11 @@ function UniversityClassroomSelectionPanel({
         </button>
         <button type="button" className="cmv2-primary" onClick={() => runSelection()} disabled={Boolean(busy) || !comparisonReady}>
           {busy === "Seleccionando aulas" ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
-          Generar selección
+          Seleccionar aulas titulares
         </button>
         <button type="button" className="cmv2-ghost" onClick={runReplacementSimulation} disabled={Boolean(busy) || !selectionReady}>
           {busy === "Simulando reemplazos" ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-          Simular reemplazos
+          Probar reemplazos
         </button>
         {comparison?.recommendation && (
           <span className="cmv2-classroom-recommendation">
@@ -9123,7 +9381,17 @@ function UniversityClassroomSelectionPanel({
                   </div>
                 ))}
               </div>
-              <ClassroomFrameDashboard frame={frame} totalComp={totalComp} selection={selection} workspace={workspace} compact />
+              <ClassroomFrameSelectionSummaryPanel
+                frameReady={frameReady}
+                frameRows={frameRows}
+                uniqueStudents={framePopulationCount}
+                targetForDisplay={targetForDisplay}
+                m1ForDisplay={m1ForDisplay}
+                config={config}
+                objectiveVariables={objectiveVariables as Array<Record<string, unknown>>}
+                selectorFields={selectorFields}
+                frameHash={frame?.frame_hash ? String(frame.frame_hash) : null}
+              />
               <div className="cmv2-classroom-methods">
                 <article>
                   <small>Unidad seleccionable</small>
@@ -9132,45 +9400,18 @@ function UniversityClassroomSelectionPanel({
                 </article>
                 <article>
                   <small>Repetidos</small>
-                  <strong>Control de solape</strong>
+                  <strong>Evitar estudiantes repetidos</strong>
                   <span>Si un estudiante aparece en varios cursos, el selector lo controla desde el marco institucional.</span>
                 </article>
                 <article>
-                  <small>Reservas</small>
-                  <strong>M2...Mk no son encuestas extra</strong>
+                  <small>Reemplazos</small>
+                  <strong>No son encuestas extra</strong>
                   <span>Son reemplazos equivalentes; el extra operativo se presupuesta y se mapea por separado.</span>
                 </article>
                 <article>
                   <small>Campo anónimo</small>
                   <strong>No exige identificación personal</strong>
                   <span>La trazabilidad de campo cruza collector, link, aula, fecha y estado operativo.</span>
-                </article>
-              </div>
-              <div className="cmv2-subhead">
-                <span className="cmv2-eyebrow">Perfil marco vs muestra</span>
-                <strong>Distribuciones que gobernarán la selección</strong>
-              </div>
-              <ProfileBalanceChart rows={visibleProfiles} />
-              <div className="cmv2-classroom-insumo-grid" aria-label="Formatos de insumo esperados">
-                <article>
-                  <small>Entrada institucional</small>
-                  <strong>Estudiantes matriculados</strong>
-                  <span>Puede venir como estudiante por curso y horario con identificador, facultad, carrera, sexo, condición, curso, horario y modalidad.</span>
-                </article>
-                <article>
-                  <small>Catálogo operativo</small>
-                  <strong>Curso y horario</strong>
-                  <span>Puede venir separado con curso, horario, sesiones, aula, docente, contacto, matriculados totales y población elegible.</span>
-                </article>
-                <article>
-                  <small>Selección previa</small>
-                  <strong>Muestra + agenda</strong>
-                  <span>Si ya existe selección, Prosecnur debe leer titulares, reservas, envío de correos y agenda sin recalcular silenciosamente.</span>
-                </article>
-                <article>
-                  <small>Campo</small>
-                  <strong>Aulas agendadas y adicionales</strong>
-                  <span>Monitoreo recibe estados, llamadas, fechas, aplicadores, QR/collector y reemplazos usados.</span>
                 </article>
               </div>
             </div>
@@ -9206,8 +9447,16 @@ function UniversityClassroomSelectionPanel({
             <div className="cmv2-classroom-lab-main">
               <div className="cmv2-subhead">
                 <span className="cmv2-eyebrow">Objetivo</span>
-                <strong>Del N por facultad a aulas titulares y reservas</strong>
+                <strong>Del N por facultad a aulas titulares y reemplazos</strong>
               </div>
+              <ClassroomObjectiveTranslationPanel
+                facultades={facultades}
+                objectiveVariables={objectiveVariables as Array<Record<string, unknown>>}
+                targetForDisplay={targetForDisplay}
+                m1ForDisplay={m1ForDisplay}
+                extraOperativo={extraOperativo}
+                config={config}
+              />
               <div className="cmv2-classroom-control-grid">
                 <label className="cmv2-compact-field cmv2-classroom-field-wide">
                   <span>Modalidad</span>
@@ -9233,9 +9482,9 @@ function UniversityClassroomSelectionPanel({
                   <em>Descarta cursos demasiado pequeños para sostener una aplicación presencial.</em>
                 </div>
                 <div className="cmv2-compact-field">
-                  <span>Bolsas de reemplazo</span>
+                  <span>Reemplazos por aula</span>
                   <NumberCell value={config.bolsas_reemplazo} min={0} step={1} onChange={(v) => updateConfig({ bolsas_reemplazo: Math.round(v) })} />
-                  <em>Crea M2, M3... como alternativas equivalentes para campo.</em>
+                  <em>Crea Rn.1, Rn.2... como alternativas equivalentes para cada aula titular.</em>
                 </div>
                 <div className="cmv2-compact-field">
                   <span>Extra operativo por estrato</span>
@@ -9296,7 +9545,7 @@ function UniversityClassroomSelectionPanel({
               </div>
               <div className="cmv2-classroom-note">
                 <CheckCircle2 size={15} />
-                <span>Primero se calcula el N necesario por facultad; después se traduce ese objetivo a aulas titulares M1 y reservas M2...Mk con profundidad suficiente para el monitoreo.</span>
+                <span>Primero se calcula el tamaño necesario por facultad; después se traduce ese objetivo a aulas titulares y reemplazos suficientes para monitoreo.</span>
               </div>
               <RepresentativityMetricGrid metrics={representativityMetrics} />
             </aside>
@@ -9325,7 +9574,7 @@ function UniversityClassroomSelectionPanel({
                       <small>{methodId === "cube_balanceado" ? "Recomendado" : methodId === "sistematico_pps" ? "Benchmark" : methodId === "pool_controlado" ? "Optimización" : "Avanzado"}</small>
                       <strong>{option?.label ?? classroomMethodLabel(methodId)}</strong>
                       <span>{option?.detail ?? classroomMethodReason(methodId)}</span>
-                      {compared && <em>Representatividad {classroomScore(compared.representativity_score ?? compared.overall_score)} · pérdida {fmtPct(compared.duplicate_loss ?? 0)}</em>}
+                  {compared && <em>Calidad {classroomScore(compared.representativity_score ?? compared.overall_score)} · repetidos {fmtPct(compared.duplicate_loss ?? 0)}</em>}
                     </button>
                   );
                 })}
@@ -9382,7 +9631,7 @@ function UniversityClassroomSelectionPanel({
               <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
               <div className="cmv2-classroom-note">
                 <Settings2 size={15} />
-                <span>El PPS queda como base auditable. El método balanceado es el motor recomendado cuando hay variables auxiliares; el pool controlado mejora solape pero obliga a estimar probabilidades finales por simulación.</span>
+                <span>El PPS queda como base auditable. El método balanceado es el motor recomendado cuando hay variables auxiliares; el pool controlado reduce estudiantes repetidos pero obliga a estimar probabilidades finales por simulación.</span>
               </div>
             </aside>
           </div>
@@ -9393,7 +9642,7 @@ function UniversityClassroomSelectionPanel({
             <div className="cmv2-classroom-lab-main">
               <div className="cmv2-subhead">
                 <span className="cmv2-eyebrow">Simulación</span>
-                <strong>Estabilidad del score, cobertura y duplicación</strong>
+                <strong>Estabilidad, cobertura y estudiantes repetidos</strong>
               </div>
               {!comparison || !comparisonMethods.length ? (
                 <ClassroomEmptyState
@@ -9408,7 +9657,6 @@ function UniversityClassroomSelectionPanel({
                 <>
                   <SimulationSummaryPanel rows={simulationRows} />
                   <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
-                  <ProfileBalanceChart rows={visibleProfiles} />
                 </>
               )}
             </div>
@@ -9424,15 +9672,22 @@ function UniversityClassroomSelectionPanel({
             <div className="cmv2-classroom-lab-main">
               <div className="cmv2-subhead">
                 <span className="cmv2-eyebrow">Selección propuesta</span>
-                <strong>Titulares M1, reservas y trazabilidad</strong>
+                  <strong>Aulas titulares, reemplazos y trazabilidad</strong>
               </div>
               {!selectionReady ? (
                 <>
-                  <ClassroomFrameDashboard frame={frame} totalComp={totalComp} selection={selection} workspace={workspace} compact />
+                  <ClassroomSelectionPreparationPanel
+                    frameReady={frameReady}
+                    comparisonReady={comparisonReady}
+                    recommendedMethodLabel={comparison?.recommendation?.method_label ?? classroomMethodLabel(recommendedMethodId)}
+                    frameCount={frameRows.length}
+                    targetForDisplay={targetForDisplay}
+                    m1ForDisplay={m1ForDisplay}
+                  />
                   <ClassroomEmptyState
                     icon={Table2}
                     title="Todavía no hay selección"
-                    detail="Genera una selección desde el método recomendado o desde una tarjeta del comparador. El tablero anterior muestra qué estructura del marco se va a representar."
+                    detail="Genera una selección desde el método recomendado o desde una tarjeta del comparador. Aquí aparecerán titulares, brechas, razones de selección y estudiantes repetidos."
                     actionLabel="Generar selección"
                     onAction={() => runSelection()}
                     disabled={Boolean(busy) || !comparisonReady}
@@ -9441,13 +9696,12 @@ function UniversityClassroomSelectionPanel({
               ) : (
                 <>
                   <div className="cmv2-classroom-stat-grid">
-                    <Metric label="Titulares M1" value={fmtInt(m1Rows.length)} />
-                    <Metric label="Reservas" value={fmtInt(reserveRows.length)} />
-                    <Metric label="Score representativo" value={classroomScore(selection?.representativity_score)} />
-                    <Metric label="Método usado" value={classroomMethodLabel(selection?.selector_engine_used ?? selection?.selector_engine ?? engineOption.label)} />
-                    <Metric label="Probabilidad" value={selection?.probability_source ?? "diseño"} />
+                    <Metric label="Aulas titulares" value={fmtInt(m1Rows.length)} />
+                    <Metric label="Reemplazos" value={fmtInt(reserveRows.length)} />
+                    <Metric label="Calidad representativa" value={classroomScore(selection?.representativity_score)} />
+                  <Metric label="Método usado" value={classroomMethodLabel(selection?.selector_engine_used ?? selection?.selector_engine ?? engineOption.label)} />
+                    <Metric label="Probabilidad usada" value={selection?.probability_source ?? "diseño"} />
                   </div>
-                  {!m1Rows.length && <ClassroomFrameDashboard frame={frame} totalComp={totalComp} selection={selection} workspace={workspace} compact />}
                   <CoverageOverlapPanel rows={coverageRows} />
                   <ClassroomSelectionRationaleDashboard rows={m1Rows} workspace={workspace} />
                   <ProfileBalanceChart rows={visibleProfiles} />
@@ -9471,11 +9725,11 @@ function UniversityClassroomSelectionPanel({
         )}
 
         {activeLabTab === "reemplazos" && (
-          <div className="cmv2-classroom-lab-grid">
+          <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--routes">
             <div className="cmv2-classroom-lab-main">
               <div className="cmv2-subhead">
                 <span className="cmv2-eyebrow">Reemplazos</span>
-                <strong>Reservas equivalentes y efecto esperado</strong>
+                <strong>Reemplazos equivalentes y efecto esperado</strong>
               </div>
               {selectionReady && (
                 <ClassroomReplacementChainPanel
@@ -9484,12 +9738,19 @@ function UniversityClassroomSelectionPanel({
                   depth={Math.min(6, Math.max(1, config.bolsas_reemplazo || 6))}
                 />
               )}
-              {(!selectionReady || !m1Rows.length) && <ClassroomFrameDashboard frame={frame} totalComp={totalComp} selection={selection} workspace={workspace} compact />}
+              {(!selectionReady || !m1Rows.length) && (
+                <ClassroomReplacementBlueprintPanel
+                  depth={config.bolsas_reemplazo}
+                  titularCount={m1Rows.length}
+                  reserveCount={reserveRows.length}
+                  extraReserveCount={classroomExtraReserveRowsForState(aulasState).length}
+                />
+              )}
               {!replacementReady || !replacementSimulation ? (
                 <ClassroomEmptyState
                   icon={RefreshCw}
                   title="Simulación pendiente"
-                  detail="Después de generar una selección, simula reservas sugeridas por celda, balance, solape y tamaño efectivo."
+                  detail="Después de generar una selección, simula reemplazos sugeridos por celda, balance, repetidos y tamaño efectivo."
                   actionLabel="Simular reemplazos"
                   onAction={runReplacementSimulation}
                   disabled={Boolean(busy) || !selectionReady}
@@ -9501,7 +9762,7 @@ function UniversityClassroomSelectionPanel({
             <aside className="cmv2-classroom-lab-side">
               <div className="cmv2-classroom-note">
                 <Route size={15} />
-                <span>Calc-Muestra propone titulares y reservas; Monitoreo solo activa reservas, registra motivos y recalcula brechas sin rediseñar silenciosamente el marco base.</span>
+                <span>Calc-Muestra propone titulares y reemplazos; Monitoreo solo activa reemplazos, registra motivos y recalcula brechas sin rediseñar silenciosamente el marco base.</span>
               </div>
               <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
             </aside>
@@ -9563,8 +9824,8 @@ function UniversityClassroomSelectionPanel({
         {selectionReady && replacementReady ? <CheckCircle2 size={15} /> : <CirclePendingIcon />}
         <span>
           {selectionReady && replacementReady
-            ? "El cálculo de muestra define cuota y sobremuestra; la selección de aulas arma M1 y reservas equivalentes. Prosecnur conserva internamente versión del marco, código de reproducción y bitácora para Monitoreo."
-            : "Para cerrar esta mesa faltan artefactos operativos: calcula N, compara métodos, genera M1 y simula reservas antes de entregar a Monitoreo."}
+            ? "El cálculo de muestra define cuota y sobremuestra; la selección de aulas arma titulares y reemplazos equivalentes. Prosecnur conserva internamente versión del marco, código de reproducción y bitácora para Monitoreo."
+            : "Para cerrar esta mesa faltan artefactos operativos: calcula tamaño, compara métodos, selecciona aulas titulares y prueba reemplazos antes de entregar a Monitoreo."}
         </span>
       </div>
     </section>
@@ -9724,14 +9985,14 @@ function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows?: Arra
     <div className="cmv2-selection-rationale">
       <div className="cmv2-subhead">
         <span className="cmv2-eyebrow">Por qué estas aulas</span>
-        <strong>Lectura operativa de M1 antes de monitoreo</strong>
+        <strong>Lectura operativa de las aulas titulares antes de monitoreo</strong>
       </div>
       <div className="cmv2-selection-rationale-grid">
-        <ClassroomPlotCard title="M1 por facultad" subtitle="elegibles esperados en titulares">
-          <ClassroomBarPlot rows={facultyRows} ariaLabel="Titulares M1 por facultad" unit="elegibles" height={235} />
+        <ClassroomPlotCard title="Titulares por facultad" subtitle="elegibles esperados en titulares">
+          <ClassroomBarPlot rows={facultyRows} ariaLabel="Aulas titulares por facultad" unit="elegibles" height={235} />
         </ClassroomPlotCard>
-        <ClassroomPlotCard title="Sexo por aula M1" subtitle="aporte esperado de titulares">
-          <ClassroomSexCompositionPlot rows={classroomSexRows} ariaLabel="Sexo esperado por aula titular M1" height={260} />
+        <ClassroomPlotCard title="Sexo esperado por aula titular" subtitle="aporte esperado de titulares">
+          <ClassroomSexCompositionPlot rows={classroomSexRows} ariaLabel="Sexo esperado por aula titular" height={260} />
         </ClassroomPlotCard>
       </div>
       <div className="cmv2-classroom-table-wrap">
@@ -9748,6 +10009,7 @@ function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows?: Arra
             {topRows.map((row, index) => (
               <tr key={`${classroomRowText(row, ["classroom_id"])}-${index}`}>
                 <td>
+                  <span className="cmv2-table-code">{classroomOperationalCode(row, `AULA ${index + 1}`)}</span>
                   <strong>{classroomRowText(row, ["course_name", "label", "classroom_id"])}</strong>
                   <small>{classroomRowText(row, ["classroom_id", "schedule"])}</small>
                 </td>
@@ -9771,8 +10033,11 @@ function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows?: Arra
 
 type ClassroomReplacementSlot = {
   id: string;
+  code: string;
+  titularCode: string;
   label: string;
   wave: string;
+  order: number;
   match: string;
   scoreDelta: number;
   warning: string;
@@ -9780,6 +10045,7 @@ type ClassroomReplacementSlot = {
 
 type ClassroomReplacementChain = {
   titularId: string;
+  code: string;
   titularLabel: string;
   faculty: string;
   stratum: string;
@@ -9792,59 +10058,137 @@ function classroomWaveNumber(wave: string) {
   return match ? Number(match[1]) : 99;
 }
 
+function classroomPlanLabel(row: Record<string, unknown>) {
+  const role = classroomRowText(row, ["sample_role"]);
+  const wave = classroomRowText(row, ["wave"]);
+  if (role === "titular" || wave === "M1") return "Titular";
+  if (role === "extra_reserve_pool") return "Extra";
+  const order = classroomRowNumber(row, ["replacement_order"]);
+  if (order > 0) return `Reemplazo ${fmtInt(order)}`;
+  const waveNumber = classroomWaveNumber(wave);
+  if (waveNumber > 1 && waveNumber < 99) return `Reemplazo ${fmtInt(waveNumber - 1)}`;
+  return wave || "Plan";
+}
+
+function classroomReplacementRouteLabel(wave: string | undefined, rank?: number) {
+  const numericRank = safeNumber(rank, 0);
+  if (numericRank > 0) return `Reemplazo ${fmtInt(numericRank)}`;
+  const waveNumber = classroomWaveNumber(String(wave ?? ""));
+  if (waveNumber > 1 && waveNumber < 99) return `Reemplazo ${fmtInt(waveNumber - 1)}`;
+  return String(wave ?? "Ruta");
+}
+
+function classroomSlotNumber(slotId: string, fallback: number) {
+  const match = String(slotId ?? "").match(/(\d+)/);
+  const parsed = match ? Number(match[1]) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function classroomOperationalCode(row: Record<string, unknown>, fallback: string) {
+  return classroomRowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
+}
+
+function classroomReplacementMatchLabel(value: string) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  const labels: Record<string, string> = {
+    misma_celda: "Mantiene la celda",
+    celda_cercana: "Celda cercana",
+    misma_facultad: "Misma facultad",
+    mismo_dominio: "Mismo dominio",
+    mismo_programa: "Mismo programa",
+    cambia_programa: "Cambia programa",
+    cambia_carrera: "Cambia carrera",
+    cambia_nivel: "Cambia nivel",
+    baja_equivalencia: "Baja equivalencia",
+    sin_reserva: "Sin reemplazo viable",
+  };
+  const fallback = normalized.replace(/_/g, " ");
+  return labels[normalized] ?? (fallback || "equivalencia pendiente");
+}
+
+function classroomReplacementSlotTone(value: string, warning?: string) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (warning) return "is-warning";
+  if (["misma_celda", "mismo_programa", "mismo_dominio"].includes(normalized)) return "is-strong";
+  if (["celda_cercana", "misma_facultad"].includes(normalized)) return "is-good";
+  return "is-soft";
+}
+
+function classroomReplacementWarningText(value: string, status: string, match: string) {
+  const warning = String(value ?? "").trim();
+  if (!warning) return "";
+  const normalizedStatus = String(status ?? "").trim().toLowerCase();
+  const normalizedMatch = String(match ?? "").trim().toLowerCase();
+  const isExpectedReserve = normalizedStatus === "reserve_conditional";
+  const isMethodologicallyClose = ["misma_celda", "mismo_programa", "mismo_dominio", "celda_cercana", "misma_facultad"].includes(normalizedMatch);
+  return isExpectedReserve && isMethodologicallyClose ? "" : warning;
+}
+
 function classroomReplacementChains(
   selectionRows: Array<Record<string, unknown>>,
   simulation?: CalcMuestraAulasReplacementSimulation | null,
   depth = 6,
 ): ClassroomReplacementChain[] {
-  const titulars = selectionRows.filter((row) => classroomRowText(row, ["wave"]) === "M1");
+  const titulars = selectionRows.filter((row) => classroomRowText(row, ["sample_role"]) === "titular" || classroomRowText(row, ["wave"]) === "M1");
   const reserves = selectionRows
-    .filter((row) => classroomRowText(row, ["wave"]) !== "M1")
-    .sort((a, b) => classroomWaveNumber(classroomRowText(a, ["wave"])) - classroomWaveNumber(classroomRowText(b, ["wave"])));
+    .filter((row) => classroomRowText(row, ["sample_role"]) === "chain_reserve" || (classroomRowText(row, ["wave"]) !== "M1" && classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool"))
+    .sort((a, b) => safeNumber(a.replacement_order, classroomWaveNumber(classroomRowText(a, ["wave"]))) - safeNumber(b.replacement_order, classroomWaveNumber(classroomRowText(b, ["wave"]))));
   const suggestions = rowsFrom<CalcMuestraAulasReplacementSuggestion>(simulation?.suggestions);
-  return titulars.slice(0, 24).map((titular) => {
+  return titulars.slice(0, 24).map((titular, titularIndex) => {
     const titularId = classroomRowText(titular, ["classroom_id"]);
+    const slotId = classroomRowText(titular, ["selection_slot_id"]);
+    const slotNumber = classroomSlotNumber(slotId, titularIndex + 1);
+    const titularCode = classroomOperationalCode(titular, `AULA ${slotNumber}`);
     const faculty = classroomRowText(titular, ["faculty", "stratum"]);
     const stratum = classroomRowText(titular, ["stratum", "faculty"]);
-    const used = new Set<string>();
-    const fromSuggestions = suggestions
+    const suggestionByReserveId = new Map(suggestions
       .filter((item) => item.titular_classroom_id === titularId)
       .sort((a, b) => safeNumber(a.rank, 99) - safeNumber(b.rank, 99))
-      .map((item) => {
-        used.add(item.reserve_classroom_id);
-        return {
-          id: item.reserve_classroom_id,
-          label: item.reserve_label || item.reserve_classroom_id,
-          wave: item.wave,
-          match: item.match_level,
-          scoreDelta: safeNumber(item.score_delta, 0),
-          warning: item.warning ?? "",
-        };
-      });
-    const fallback = reserves
+      .map((item) => [item.reserve_classroom_id, item] as const));
+    const tiedReserves = reserves.filter((reserve) => {
+      const reserveId = classroomRowText(reserve, ["classroom_id"]);
+      if (!reserveId) return false;
+      return Boolean((slotId && classroomRowText(reserve, ["selection_slot_id"]) === slotId) || classroomRowText(reserve, ["replacement_for"]) === titularId);
+    });
+    const fallbackSource = tiedReserves.length ? tiedReserves : reserves;
+    const slotsFromPlan = fallbackSource
       .filter((reserve) => {
         const reserveId = classroomRowText(reserve, ["classroom_id"]);
-        if (!reserveId || used.has(reserveId)) return false;
+        if (!reserveId) return false;
+        if (tiedReserves.length) return true;
         const sameStratum = stratum && classroomRowText(reserve, ["stratum", "faculty"]) === stratum;
         const sameFaculty = faculty && classroomRowText(reserve, ["faculty", "stratum"]) === faculty;
         return sameStratum || sameFaculty;
       })
-      .slice(0, Math.max(0, depth - fromSuggestions.length))
-      .map((reserve) => ({
-        id: classroomRowText(reserve, ["classroom_id"]),
-        label: classroomRowText(reserve, ["course_name", "label", "classroom_id"]),
-        wave: classroomRowText(reserve, ["wave"]),
-        match: classroomRowText(reserve, ["stratum"]) === stratum ? "misma_celda" : "misma_facultad",
-        scoreDelta: 0,
-        warning: "",
-      }));
+      .slice(0, depth)
+      .map((reserve) => {
+        const reserveId = classroomRowText(reserve, ["classroom_id"]);
+        const suggestion = suggestionByReserveId.get(reserveId);
+        const match = classroomRowText(reserve, ["equivalence_level"]) || (classroomRowText(reserve, ["stratum"]) === stratum ? "misma_celda" : "misma_facultad");
+        return {
+          id: reserveId,
+          code: classroomOperationalCode(reserve, `R${slotNumber}.${classroomRowNumber(reserve, ["replacement_order"]) || Math.max(1, classroomWaveNumber(classroomRowText(reserve, ["wave"])) - 1)}`),
+          titularCode: classroomRowText(reserve, ["titular_operational_code"]) || titularCode,
+          label: classroomRowText(reserve, ["course_name", "label", "classroom_id"]),
+          wave: classroomRowText(reserve, ["wave"]),
+          order: classroomRowNumber(reserve, ["replacement_order"]) || classroomWaveNumber(classroomRowText(reserve, ["wave"])),
+          match: suggestion?.match_level || match,
+          scoreDelta: safeNumber(suggestion?.score_delta, classroomRowNumber(reserve, ["replacement_impact_score", "chain_score"])),
+          warning: suggestion?.warning || classroomReplacementWarningText(
+            classroomRowText(reserve, ["analysis_weight_warning"]),
+            classroomRowText(reserve, ["activation_weight_status"]),
+            match,
+          ),
+        };
+      });
     return {
       titularId,
+      code: titularCode,
       titularLabel: classroomRowText(titular, ["course_name", "label", "classroom_id"]),
       faculty,
       stratum,
       eligible: classroomRowNumber(titular, ["eligible_n"]),
-      slots: [...fromSuggestions, ...fallback].slice(0, depth),
+      slots: slotsFromPlan.slice(0, depth),
     };
   });
 }
@@ -9860,13 +10204,14 @@ function ClassroomReplacementChainPanel({
 }) {
   const rows = rowsFrom<Record<string, unknown>>(selectionRows);
   const chains = classroomReplacementChains(rows, simulation, depth);
+  const extraPool = rows.filter((row) => classroomRowText(row, ["sample_role"]) === "extra_reserve_pool").length;
   const maxDepth = Math.max(1, Math.min(depth, 6));
   if (!chains.length) {
     return (
       <ClassroomEmptyState
         icon={Route}
         title="Cadena de reemplazos pendiente"
-        detail="Genera la selección para ver M1 y sus reservas sucesivas M2, M3 y siguientes."
+        detail="Genera la selección para ver cada aula titular y sus reemplazos Rn.1, Rn.2 y siguientes."
       />
     );
   }
@@ -9874,53 +10219,59 @@ function ClassroomReplacementChainPanel({
     <div className="cmv2-replacement-chain-panel">
       <div className="cmv2-subhead">
         <span className="cmv2-eyebrow">Rutas operativas</span>
-        <strong>Del aula titular al reemplazo del reemplazo</strong>
+        <strong>Códigos de aula titular y reemplazos asociados</strong>
+        <small>Estos códigos viajan a agenda, Excel/Sheets y Monitoreo para activar reemplazos sin cambiar el diseño.</small>
       </div>
       <div className="cmv2-replacement-chain-summary">
         <Metric label="Titulares con ruta" value={fmtInt(chains.length)} />
-        <Metric label="Máx. profundidad" value={`M2-M${maxDepth + 1}`} />
-        <Metric label="Fuente" value={simulation ? "simulada" : "reservas del plan"} />
+        <Metric label="Código operativo" value="AULA n / Rn.k" />
+        <Metric label="Reemplazos por ruta" value={`R1-R${maxDepth}`} />
+        <Metric label="Aulas extra" value={extraPool ? fmtInt(extraPool) : "sin extra"} />
       </div>
-      <div className="cmv2-classroom-table-wrap cmv2-replacement-chain-table-wrap">
-        <table className="cmv2-table cmv2-classroom-table cmv2-replacement-chain-table">
-          <thead>
-            <tr>
-              <th>M1 titular</th>
-              {Array.from({ length: maxDepth }, (_, index) => <th key={index}>M{index + 2}</th>)}
-              <th>Uso en Monitoreo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {chains.map((chain) => (
-              <tr key={chain.titularId}>
-                <td>
-                  <strong>{chain.titularLabel}</strong>
-                  <small>{chain.faculty} · {fmtInt(chain.eligible)} elegibles</small>
-                </td>
-                {Array.from({ length: maxDepth }, (_, index) => {
-                  const slot = chain.slots[index];
+      <div className="cmv2-backend-field-strip" aria-label="Campos internos usados en rutas de reemplazo">
+        <span>Código visible <code>operational_code</code></span>
+        <span>Aula titular <code>titular_operational_code</code></span>
+        <span>Cadena <code>replacement_chain_code</code></span>
+      </div>
+      <div className="cmv2-chain-route-list">
+        {chains.map((chain) => (
+          <article key={chain.titularId} className="cmv2-chain-route-card">
+            <div className="cmv2-chain-route-head">
+              <div className="cmv2-chain-titular">
+                <span className="cmv2-chain-code">{chain.code}</span>
+                <strong>{chain.titularLabel}</strong>
+                <small>{chain.faculty} · {fmtInt(chain.eligible)} elegibles</small>
+              </div>
+              <div className="cmv2-chain-monitoring-note">
+                <strong>Activación ordenada</strong>
+                <small>Si cae {chain.code}, Monitoreo toma el primer reemplazo viable y registra el motivo.</small>
+              </div>
+            </div>
+            <div className="cmv2-chain-route-slots" aria-label={`Reemplazos para ${chain.titularLabel}`}>
+              {Array.from({ length: maxDepth }, (_, index) => {
+                const slot = chain.slots[index];
+                if (!slot) {
                   return (
-                    <td key={index}>
-                      {slot ? (
-                        <>
-                          <strong>{slot.label}</strong>
-                          <small>{slot.match} · {slot.wave}{slot.scoreDelta ? ` · ${classroomNumberText({ value: slot.scoreDelta }, ["value"])}` : ""}</small>
-                          {slot.warning && <em>{slot.warning}</em>}
-                        </>
-                      ) : (
-                        <span className="cmv2-classroom-muted">sin reserva</span>
-                      )}
-                    </td>
+                    <span key={index} className="cmv2-chain-empty-slot">
+                      <b>M{index + 2}</b>
+                      sin reemplazo
+                    </span>
                   );
-                })}
-                <td>
-                  Activar siguiente reserva viable, registrar motivo y recalcular brecha efectiva.
-                  <small>No rediseñar el marco base.</small>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                }
+                return (
+                  <div key={slot.id || index} className={`cmv2-chain-slot ${classroomReplacementSlotTone(slot.match, slot.warning)}`}>
+                    <span>
+                      <strong>{slot.label}</strong>
+                      <b>{slot.code || (slot.order ? `R${slot.order}` : slot.wave)}</b>
+                    </span>
+                    <small>{classroomReplacementMatchLabel(slot.match)} · reemplaza {slot.titularCode}{slot.scoreDelta ? ` · impacto ${classroomNumberText({ value: slot.scoreDelta }, ["value"])}` : ""}</small>
+                    {slot.warning && <em>{slot.warning}</em>}
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );
@@ -9934,8 +10285,9 @@ function ClassroomOperationalHandoffPanel({
   replacementSimulation?: CalcMuestraAulasReplacementSimulation | null;
 }) {
   const selectionRows = rowsFrom<Record<string, unknown>>(selection?.selection);
-  const titulares = selectionRows.filter((row) => classroomRowText(row, ["wave"]) === "M1").length;
-  const reservas = selectionRows.filter((row) => classroomRowText(row, ["wave"]) !== "M1").length;
+  const titulares = selectionRows.filter((row) => classroomRowText(row, ["sample_role"]) === "titular" || classroomRowText(row, ["wave"]) === "M1").length;
+  const reservas = selectionRows.filter((row) => classroomRowText(row, ["sample_role"]) === "chain_reserve" || (classroomRowText(row, ["wave"]) !== "M1" && classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool")).length;
+  const reservaExtra = selectionRows.filter((row) => classroomRowText(row, ["sample_role"]) === "extra_reserve_pool").length;
   const sugerencias = rowsFrom<CalcMuestraAulasReplacementSuggestion>(replacementSimulation?.suggestions).length;
   return (
     <div className="cmv2-handoff-map">
@@ -9944,10 +10296,10 @@ function ClassroomOperationalHandoffPanel({
         <strong>Qué recibe el seguimiento de aulas</strong>
       </div>
       {[
-        ["Plan", `${fmtInt(titulares)} M1`, "aulas titulares, cuota, probabilidad y peso"],
-        ["Reservas", `${fmtInt(reservas)} aulas`, "M2...Mk ordenadas por equivalencia metodológica"],
+        ["Plan", `${fmtInt(titulares)} AULA`, "titulares con código operativo, cuota, probabilidad y peso"],
+        ["Reemplazos", `${fmtInt(reservas)} Rn.k`, reservaExtra ? `reemplazos por titular; ${fmtInt(reservaExtra)} aulas quedan como reserva extra` : "reemplazos ordenados por parecido con el aula titular"],
         ["Agenda", "collector/link/QR", "docente/contacto, horario, responsable y estado"],
-        ["Campo", `${fmtInt(sugerencias)} sugerencias`, "caída, motivo, reserva usada e impacto de representatividad"],
+        ["Campo", `${fmtInt(sugerencias)} sugerencias`, "caída, motivo, reemplazo usado e impacto de representatividad"],
       ].map(([label, value, detail], index) => (
         <article key={label}>
           <span>{index + 1}</span>
@@ -10001,7 +10353,7 @@ function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimulationSum
         <span><BarChart3 size={16} /></span>
         <div>
           <strong>Simulación pendiente</strong>
-          <em>Corre el comparador para estimar estabilidad de score, cobertura y pérdida por repetidos.</em>
+          <em>Corre el comparador para estimar estabilidad, cobertura y pérdida por estudiantes repetidos.</em>
         </div>
       </div>
     );
@@ -10045,7 +10397,7 @@ function MethodSummaryCard({
       <div className="cmv2-classroom-quality-metrics">
         <span><strong>{classroomScore(method.representativity_score ?? method.overall_score)}</strong> representatividad</span>
         <span><strong>{classroomScore(method.balance_score)}</strong> balance</span>
-        <span><strong>{fmtPct(method.duplicate_loss ?? 0)}</strong> pérdida rep.</span>
+        <span><strong>{fmtPct(method.duplicate_loss ?? 0)}</strong> repetidos</span>
         <span><strong>{fmtPct(method.coverage_unique_pct ?? 0)}</strong> cobertura</span>
       </div>
       <button type="button" className={active ? "cmv2-primary" : "cmv2-ghost"} onClick={onSelect}>
@@ -10076,7 +10428,7 @@ function ClassroomRecommendation({
       <small>Recomendación del laboratorio</small>
       <strong>{comparison.recommendation.method_label ?? classroomMethodLabel(comparison.recommendation.method_id ?? "")}</strong>
       <span>{comparison.recommendation.operational_reason}</span>
-      <b>Score {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
+      <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
       <em>{comparison.recommendation.methodological_reason}</em>
     </div>
   );
@@ -10168,21 +10520,22 @@ function ClassroomSelectionTable({ rows }: { rows?: Array<Record<string, unknown
       <table className="cmv2-table cmv2-classroom-table">
         <thead>
           <tr>
-            <th>Ola</th>
-            <th>Aula</th>
+            <th>Plan</th>
+            <th>Código y aula</th>
             <th>Facultad / programa</th>
             <th>Horario</th>
             <th>Elegibles</th>
-            <th>Probabilidad final</th>
-            <th>Peso de aula</th>
-            <th>Solape</th>
+            <th>Prob. usada</th>
+            <th>Peso</th>
+            <th>Repetidos</th>
           </tr>
         </thead>
         <tbody>
           {tableRows.map((row, index) => (
             <tr key={`${classroomRowText(row, ["classroom_id"])}-${index}`}>
-              <td>{classroomRowText(row, ["wave"])}</td>
+              <td>{classroomPlanLabel(row)}<small>{classroomRowText(row, ["wave"])}</small></td>
               <td>
+                <span className="cmv2-table-code">{classroomOperationalCode(row, classroomRowText(row, ["wave"]) === "M1" ? `AULA ${index + 1}` : classroomRowText(row, ["wave"]))}</span>
                 <strong>{classroomRowText(row, ["course_name", "label", "classroom_id"])}</strong>
                 <small>{classroomRowText(row, ["field_status", "operation_status", "estado", "classroom_id"])}</small>
               </td>
@@ -10208,7 +10561,7 @@ function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, unknown>>
     .slice(0, 8)
     .map((row, index) => ({
       id: classroomRowText(row, ["classroom_id"]) || `aula-${index}`,
-      label: classroomRowText(row, ["course_name", "label", "classroom_id"]) || `Aula ${index + 1}`,
+      label: classroomOperationalCode(row, `AULA ${index + 1}`),
       overlap: classroomRowNumber(row, ["duplicate_overlap"]),
       x: 36 + (index % 2) * 128,
       y: 36 + Math.floor(index / 2) * 54,
@@ -10217,13 +10570,13 @@ function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, unknown>>
   return (
     <div className="cmv2-classroom-overlap-graph">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Solape</span>
+        <span className="cmv2-eyebrow">Repetidos</span>
         <strong>Aulas titulares</strong>
       </div>
       {!visible.length ? (
-        <span className="cmv2-classroom-muted">Genera selección para ver concentración de repetidos.</span>
+        <span className="cmv2-classroom-muted">Genera selección para ver si las aulas comparten muchos estudiantes.</span>
       ) : (
-        <svg viewBox="0 0 230 250" role="img" aria-label="Grafo simple de solape entre aulas">
+        <svg viewBox="0 0 230 250" role="img" aria-label="Grafo simple de estudiantes repetidos entre aulas">
           {visible.slice(1).map((item, index) => (
             <line
               key={`line-${item.id}`}
@@ -10257,7 +10610,7 @@ function ClassroomReplacementTables({ simulation }: { simulation: CalcMuestraAul
     return (
       <ClassroomEmptyState
         icon={RefreshCw}
-        title="Sin reservas sugeridas"
+        title="Sin reemplazos sugeridos"
         detail="La simulación existe, pero no trae sugerencias compatibles con este estado. Vuelve a simular reemplazos con la selección actual."
       />
     );
@@ -10268,27 +10621,29 @@ function ClassroomReplacementTables({ simulation }: { simulation: CalcMuestraAul
         <table className="cmv2-table cmv2-classroom-table">
           <thead>
             <tr>
-              <th>Aula caída</th>
-              <th>Reserva sugerida</th>
-              <th>Ola</th>
+              <th>Si cae</th>
+              <th>Usar reemplazo</th>
+              <th>Ruta</th>
               <th>Equivalencia</th>
-              <th>Score repr.</th>
-              <th>Delta</th>
-              <th>Solape</th>
+              <th>Representatividad</th>
+              <th>Cambio</th>
+              <th>Repetidos</th>
             </tr>
           </thead>
           <tbody>
             {suggestions.map((item) => (
               <tr key={`${item.titular_classroom_id}-${item.reserve_classroom_id}-${item.rank}`}>
                 <td>
+                  <span className="cmv2-table-code">{item.titular_operational_code || "AULA"}</span>
                   {item.titular_label || item.titular_classroom_id}
                   <small>{item.titular_classroom_id}</small>
                 </td>
                 <td>
+                  <span className="cmv2-table-code">{item.reserve_operational_code || item.replacement_chain_code || `R${item.rank}`}</span>
                   {item.reserve_label || item.reserve_classroom_id}
                   <small>{item.reserve_classroom_id}</small>
                 </td>
-                <td>{item.wave}</td>
+                <td>{classroomReplacementRouteLabel(item.wave, item.rank)}<small>{item.wave}</small></td>
                 <td>{item.match_level}</td>
                 <td>{classroomScore(item.after_score ?? item.score)}</td>
                 <td>{classroomNumberText(item as unknown as Record<string, unknown>, ["score_delta"])}</td>
@@ -10312,18 +10667,24 @@ function ClassroomImpactTable({ rows }: { rows?: Array<Record<string, unknown>> 
         <thead>
           <tr>
             <th>Titular</th>
-            <th>Reserva</th>
-            <th>Score</th>
-            <th>Balance</th>
-            <th>Elegibles</th>
+            <th>Reemplazo</th>
+            <th>Representatividad</th>
+            <th>Efecto en cuotas</th>
+            <th>Cambio de elegibles</th>
             <th>Advertencia</th>
           </tr>
         </thead>
         <tbody>
           {visible.map((row, index) => (
             <tr key={index}>
-              <td>{classroomRowText(row, ["titular_classroom_id"])}</td>
-              <td>{classroomRowText(row, ["suggested_replacement_id"])}</td>
+              <td>
+                <span className="cmv2-table-code">{classroomRowText(row, ["titular_operational_code"]) || "AULA"}</span>
+                {classroomRowText(row, ["titular_classroom_id"])}
+              </td>
+              <td>
+                <span className="cmv2-table-code">{classroomRowText(row, ["replacement_operational_code"]) || "R"}</span>
+                {classroomRowText(row, ["suggested_replacement_id"])}
+              </td>
               <td>{classroomScore(classroomRowNumber(row, ["after_score"]))}<small>{classroomNumberText(row, ["score_delta"])}</small></td>
               <td>{classroomRowText(row, ["balance_effect"])}</td>
               <td>{classroomNumberText(row, ["eligible_delta"])}</td>

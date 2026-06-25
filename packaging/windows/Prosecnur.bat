@@ -43,14 +43,28 @@ if not exist "%ELECTRON_EXE%" (
 
 if not exist "%R_HOME_LOCAL%\bin\Rscript.exe" (
   echo [%date% %time%] Instalando R local en %R_HOME_LOCAL% >> "%SETUP_LOG%"
+  if exist "%R_HOME_LOCAL%" (
+    echo [%date% %time%] Limpiando instalacion parcial de R en %R_HOME_LOCAL% >> "%SETUP_LOG%"
+    rmdir /s /q "%R_HOME_LOCAL%" >> "%SETUP_LOG%" 2>&1
+    if exist "%R_HOME_LOCAL%" (
+      msg * /time:60 "No se pudo limpiar una instalacion parcial de R. Revisa %SETUP_LOG%"
+      exit /b 1
+    )
+  )
   for %%F in ("%R_INSTALLER_DIR%\R-*-win.exe") do set "R_INSTALLER=%%~fF"
   if not defined R_INSTALLER (
     msg * /time:60 "No se encontro el instalador de R en runtime\r-installer."
     exit /b 1
   )
-  "%R_INSTALLER%" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR="%R_HOME_LOCAL%" >> "%SETUP_LOG%" 2>&1
+  set "R_INSTALL_LOG=%LOG_DIR%\r-install.log"
+  if exist "%R_INSTALL_LOG%" del /f /q "%R_INSTALL_LOG%" >nul 2>&1
+  "%R_INSTALLER%" /VERYSILENT /SP- /NORESTART /CURRENTUSER /DIR="%R_HOME_LOCAL%" /LOG="%R_INSTALL_LOG%" >> "%SETUP_LOG%" 2>&1
   if errorlevel 1 (
-    msg * /time:60 "No se pudo instalar R local. Revisa %SETUP_LOG%"
+    msg * /time:60 "No se pudo instalar R local. Revisa %SETUP_LOG% y %R_INSTALL_LOG%"
+    exit /b 1
+  )
+  if not exist "%R_HOME_LOCAL%\bin\Rscript.exe" (
+    msg * /time:60 "R termino de instalarse, pero no se encontro Rscript.exe. Revisa %R_INSTALL_LOG%"
     exit /b 1
   )
 )

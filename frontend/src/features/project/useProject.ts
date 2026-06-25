@@ -23,6 +23,7 @@ import { flushHojasRutaWorkspaceIfHydrated } from "../hojasRuta/configSnapshot";
 import type { RecentProject } from "./types";
 
 const POLL_INTERVAL_MS = 30_000;
+const BOOT_PROJECT_STATUS_KEY = "pulso.bootProject";
 
 function dirname(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
@@ -40,8 +41,54 @@ const EMPTY_STATUS: ProjectStatus = {
   last_saved_at: null,
 };
 
+function projectNameFromPath(path: string) {
+  const normalized = path.replace(/\\/g, "/");
+  const base = normalized.split("/").filter(Boolean).pop() ?? path;
+  return base.replace(/\.pulso$/i, "");
+}
+
+function readBootProjectStatus(): ProjectStatus {
+  if (typeof window === "undefined") return EMPTY_STATUS;
+  try {
+    const raw = window.sessionStorage.getItem(BOOT_PROJECT_STATUS_KEY);
+    if (!raw) return EMPTY_STATUS;
+    const parsed = JSON.parse(raw) as { path?: unknown; name?: unknown };
+    if (typeof parsed.path !== "string" || !parsed.path.trim()) return EMPTY_STATUS;
+    return {
+      has_project: true,
+      path: parsed.path,
+      name: typeof parsed.name === "string" && parsed.name.trim()
+        ? parsed.name
+        : projectNameFromPath(parsed.path),
+      dirty: false,
+      last_saved_at: null,
+    };
+  } catch {
+    return EMPTY_STATUS;
+  }
+}
+
+function rememberProjectStatus(status: ProjectStatus) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!status.has_project || !status.path) {
+      window.sessionStorage.removeItem(BOOT_PROJECT_STATUS_KEY);
+      return;
+    }
+    window.sessionStorage.setItem(
+      BOOT_PROJECT_STATUS_KEY,
+      JSON.stringify({
+        path: status.path,
+        name: status.name ?? projectNameFromPath(status.path),
+      }),
+    );
+  } catch {
+    // La sesión en memoria del backend sigue siendo la fuente de verdad.
+  }
+}
+
 export function useProject(sessionId?: string) {
-  const [status, setStatus] = useState<ProjectStatus>(EMPTY_STATUS);
+  const [status, setStatus] = useState<ProjectStatus>(() => readBootProjectStatus());
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
@@ -50,6 +97,7 @@ export function useProject(sessionId?: string) {
     if (!sessionId) return;
     try {
       const s = await apiProjectStatus();
+      rememberProjectStatus(s);
       setStatus(s);
     } catch (e) {
       // Falla silenciosa — el polling reintenta.
@@ -210,9 +258,13 @@ export function useProject(sessionId?: string) {
     setBusy(true);
     try {
       await apiProjectClose();
+      rememberProjectStatus(EMPTY_STATUS);
       await refresh();
+      window.dispatchEvent(new CustomEvent("pulso:project-closed"));
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     } finally {
       setBusy(false);
     }

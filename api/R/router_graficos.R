@@ -134,12 +134,76 @@
     )
 }
 
+.graficos_builtin_icon_plot <- function(ref) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Se requiere el paquete 'ggplot2' para renderizar iconos integrados.", call. = FALSE)
+  }
+  if (!requireNamespace("grid", quietly = TRUE)) {
+    stop("Se requiere el paquete 'grid' para renderizar iconos integrados.", call. = FALSE)
+  }
+
+  ref <- tolower(trimws(as.character(ref %||% "")[1]))
+  kind <- sub("^builtin:", "", ref)
+  if (!kind %in% c("users", "personas", "poblacion")) {
+    stop(sprintf("Icono integrado no reconocido: '%s'.", ref), call. = FALSE)
+  }
+
+  blue <- "#002060"
+  light <- "#9DC3E6"
+  grob <- grid::grobTree(
+    grid::circleGrob(
+      x = 0.50, y = 0.50, r = 0.48,
+      gp = grid::gpar(fill = blue, col = NA)
+    ),
+    grid::circleGrob(
+      x = 0.30, y = 0.57, r = 0.105,
+      gp = grid::gpar(fill = light, col = NA, alpha = 0.95)
+    ),
+    grid::roundrectGrob(
+      x = 0.30, y = 0.34, width = 0.28, height = 0.24,
+      r = grid::unit(0.07, "npc"),
+      gp = grid::gpar(fill = light, col = NA, alpha = 0.95)
+    ),
+    grid::circleGrob(
+      x = 0.70, y = 0.57, r = 0.105,
+      gp = grid::gpar(fill = light, col = NA, alpha = 0.95)
+    ),
+    grid::roundrectGrob(
+      x = 0.70, y = 0.34, width = 0.28, height = 0.24,
+      r = grid::unit(0.07, "npc"),
+      gp = grid::gpar(fill = light, col = NA, alpha = 0.95)
+    ),
+    grid::circleGrob(
+      x = 0.50, y = 0.64, r = 0.125,
+      gp = grid::gpar(fill = "white", col = NA)
+    ),
+    grid::roundrectGrob(
+      x = 0.50, y = 0.38, width = 0.38, height = 0.30,
+      r = grid::unit(0.09, "npc"),
+      gp = grid::gpar(fill = "white", col = NA)
+    )
+  )
+
+  ggplot2::ggplot() +
+    ggplot2::annotation_custom(grob, xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      plot.margin = ggplot2::margin(0, 0, 0, 0)
+    )
+}
+
 .graficos_rebuild_icon <- function(x, icon_registry = list()) {
   if (.graficos_is_blank_json_value(x)) return(NULL)
   if (inherits(x, "ppt_element")) return(x)
 
   ref <- .graficos_icon_ref(x)
   if (!nzchar(ref)) return(NULL)
+  if (grepl("^builtin:", ref, ignore.case = TRUE)) {
+    return(p_ggplot_raw(.graficos_builtin_icon_plot(ref)))
+  }
 
   path <- icon_registry[[ref]] %||% ref
   if (!file.exists(path)) {
@@ -1841,6 +1905,45 @@ mount_graficos <- function(pr) {
       # multi=true.
       sid <- session_header(req)
       .graficos_variables_sources_payload(sid, scoped = TRUE)
+    })) |>
+    plumber::pr_post("/api/graficos/plan/coverage", wrap_endpoint(function(req, res, ...) {
+      # Diagnostico vivo de cobertura del plan de graficos. No bloquea
+      # exportacion: informa cuantas variables graficables estan cubiertas,
+      # cuales quedan sin usar y cuales fueron excluidas por tipo/recodificacion.
+      sid <- session_header(req)
+      session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+      } else {
+        list()
+      }
+      .graficos_plan_coverage(
+        sid,
+        plan = parsed$plan %||% NULL,
+        config = parsed$config %||% NULL
+      )
+    })) |>
+    plumber::pr_post("/api/graficos/plan/sugerido", wrap_endpoint(function(req, res, ...) {
+      # Genera una propuesta de plan sin persistirla. La UI muestra
+      # previsualizacion y solo aplica si el usuario confirma.
+      sid <- session_header(req)
+      session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+      } else {
+        list()
+      }
+      .graficos_suggested_plan(sid, config = parsed$config %||% NULL)
     })) |>
     plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
       # Devuelve todas las listas de choices del instrumento con sus

@@ -662,6 +662,99 @@ reporte_ppt_plan <- function(
     props[1, , drop = FALSE]
   }
 
+  .is_slide_title_spec <- function(spec) {
+    if (is.null(spec) || is.null(spec$type)) return(FALSE)
+    type <- as.character(spec$type)[1]
+    type %in% c("title", "ctrTitle")
+  }
+
+  .is_body_text_spec <- function(spec) {
+    label <- as.character(spec$ph_label %||% "")[1]
+    nzchar(label) && grepl(":text$", label)
+  }
+
+  .is_note_text_spec <- function(spec) {
+    label <- as.character(spec$ph_label %||% "")[1]
+    nzchar(label) && grepl(":(base|footer|right|right_text)$", label)
+  }
+
+  .styled_slide_title <- function(text, spec) {
+    base_args <- presets$base$args %||% list()
+    font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+    font_family <- as.character(font_family)[1]
+    if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
+
+    font_size <- suppressWarnings(as.numeric(base_args$size_titulo_slide %||% 24)[1])
+    if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 24
+
+    color <- base_args$color_titulo %||% "#CA5651"
+    color <- as.character(color)[1]
+    if (is.na(color) || !nzchar(trimws(color))) color <- "#CA5651"
+
+    align <- if (identical(as.character(spec$type)[1], "ctrTitle")) "center" else "left"
+    officer::fpar(
+      officer::ftext(
+        toupper(as.character(text)[1]),
+        prop = officer::fp_text(
+          color = color,
+          font.size = font_size,
+          font.family = font_family,
+          bold = TRUE
+        )
+      ),
+      fp_p = officer::fp_par(text.align = align, line_spacing = 1)
+    )
+  }
+
+  .styled_body_text <- function(text) {
+    base_args <- presets$base$args %||% list()
+    font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+    font_family <- as.character(font_family)[1]
+    if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
+
+    font_size <- suppressWarnings(as.numeric(base_args$size_cuerpo_slide %||% 14)[1])
+    if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 14
+    font_size <- max(12, min(14, font_size))
+
+    officer::fpar(
+      officer::ftext(
+        as.character(text)[1],
+        prop = officer::fp_text(
+          color = base_args$color_nota_pie %||% "#081F5C",
+          font.size = font_size,
+          font.family = font_family,
+          bold = FALSE
+        )
+      ),
+      fp_p = officer::fp_par(text.align = "justify", line_spacing = 1)
+    )
+  }
+
+  .styled_note_text <- function(text, spec = NULL) {
+    base_args <- presets$base$args %||% list()
+    font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+    font_family <- as.character(font_family)[1]
+    if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
+
+    font_size <- suppressWarnings(as.numeric(base_args$size_nota_pie %||% 10)[1])
+    if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 10
+    align <- as.character((spec %||% list())$align %||% "left")[1]
+    if (is.na(align) || !nzchar(trimws(align))) align <- "left"
+
+    officer::fpar(
+      officer::ftext(
+        as.character(text)[1],
+        prop = officer::fp_text(
+          color = base_args$color_nota_pie %||% "#081F5C",
+          font.size = font_size,
+          font.family = font_family,
+          bold = FALSE
+        )
+      ),
+      fp_p = officer::fp_par(text.align = align, line_spacing = 1)
+    )
+  }
+
   .ph_with_strict <- function(doc, value, spec) {
     if (is.null(spec) || is.null(spec$type)) {
       stop("Placeholder spec invalido (NULL o sin $type).", call. = FALSE)
@@ -694,26 +787,51 @@ reporte_ppt_plan <- function(
       master_name <- master
     }
 
-    props <- officer::layout_properties(
-      doc,
-      layout = layout_name,
-      master = master_name
-    )
+    explicit_loc <- spec$loc %||% NULL
+    if (!is.null(explicit_loc)) {
+      if (is.numeric(explicit_loc) && length(explicit_loc) >= 4L) {
+        explicit_loc <- list(
+          left = explicit_loc[[1]],
+          top = explicit_loc[[2]],
+          width = explicit_loc[[3]],
+          height = explicit_loc[[4]]
+        )
+      }
+      required_loc <- c("left", "top", "width", "height")
+      if (!is.list(explicit_loc) || !all(required_loc %in% names(explicit_loc))) {
+        stop("`spec$loc` debe incluir left, top, width y height.", call. = FALSE)
+      }
+      loc <- officer::ph_location(
+        left = as.numeric(explicit_loc$left),
+        top = as.numeric(explicit_loc$top),
+        width = as.numeric(explicit_loc$width),
+        height = as.numeric(explicit_loc$height),
+        newlabel = spec$ph_label %||% "",
+        rotation = as.numeric(explicit_loc$rotation %||% 0)
+      )
+      target_loc <- loc
+    } else {
+      props <- officer::layout_properties(
+        doc,
+        layout = layout_name,
+        master = master_name
+      )
 
-    props <- .select_placeholder_props(props, spec, layout_name, master_name)
+      props <- .select_placeholder_props(props, spec, layout_name, master_name)
 
-    loc <- officer::ph_location(
-      left = props$offx[[1]],
-      top = props$offy[[1]],
-      width = props$cx[[1]],
-      height = props$cy[[1]],
-      newlabel = props$ph_label[[1]] %||% "",
-      rotation = props$rotation[[1]]
-    )
+      loc <- officer::ph_location(
+        left = props$offx[[1]],
+        top = props$offy[[1]],
+        width = props$cx[[1]],
+        height = props$cy[[1]],
+        newlabel = props$ph_label[[1]] %||% "",
+        rotation = props$rotation[[1]]
+      )
 
-    target_type <- props$type[[1]] %||% spec$type
-    target_type_idx <- props$type_idx[[1]] %||% type_idx
-    target_loc <- .ph_loc(target_type, type_idx = target_type_idx)
+      target_type <- props$type[[1]] %||% spec$type
+      target_type_idx <- props$type_idx[[1]] %||% type_idx
+      target_loc <- .ph_loc(target_type, type_idx = target_type_idx)
+    }
 
     .ph_with_dml_safe <- function(doc, value, location) {
       img_directory <- tempfile("rvg-img-")
@@ -768,6 +886,16 @@ reporte_ppt_plan <- function(
         value = xml2::as_xml_document(dml_xml),
         location = location
       )
+    }
+
+    if (is.character(value) && length(value) == 1L && nzchar(trimws(value))) {
+      if (.is_slide_title_spec(spec)) {
+        value <- .styled_slide_title(value, spec)
+      } else if (.is_body_text_spec(spec)) {
+        value <- .styled_body_text(value)
+      } else if (.is_note_text_spec(spec)) {
+        value <- .styled_note_text(value, spec = spec)
+      }
     }
 
     out <- tryCatch(
@@ -1801,6 +1929,55 @@ reporte_ppt_plan <- function(
     officer::ph_with(doc, value = value, location = loc)
   }
 
+  .ph_with_styled_text <- function(
+      doc,
+      text,
+      spec,
+      color = NULL,
+      font_size = NULL,
+      bold = TRUE,
+      align = "center",
+      top_offset = 0,
+      height = NULL
+  ) {
+    text <- as.character(text %||% "")[1]
+    if (!nzchar(trimws(text))) return(doc)
+
+    props <- .placeholder_props_current(doc, spec)
+    base_args <- presets$base$args %||% list()
+
+    font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+    font_family <- as.character(font_family)[1]
+    if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
+
+    if (is.null(font_size)) {
+      font_size <- suppressWarnings(as.numeric(base_args$size_subtitulo_slide %||% base_args$size_subtitulo %||% 16)[1])
+    }
+    if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 16
+
+    color <- color %||% base_args$color_subtitulo %||% "#081F5C"
+    color <- as.character(color)[1]
+    if (is.na(color) || !nzchar(trimws(color))) color <- "#081F5C"
+
+    loc <- officer::ph_location(
+      left = props$offx[[1]],
+      top = props$offy[[1]] + top_offset,
+      width = props$cx[[1]],
+      height = height %||% props$cy[[1]],
+      newlabel = props$ph_label[[1]] %||% "",
+      rotation = props$rotation[[1]]
+    )
+
+    fp_txt <- officer::fp_text(
+      color = color,
+      font.size = font_size,
+      font.family = font_family,
+      bold = isTRUE(bold)
+    )
+    value <- officer::fpar(officer::ftext(text, prop = fp_txt), fp_p = officer::fp_par(text.align = align))
+    officer::ph_with(doc, value = value, location = loc)
+  }
+
   # ---------------------------------------------------------------------------
   # 5) Renders
   # ---------------------------------------------------------------------------
@@ -2025,6 +2202,19 @@ reporte_ppt_plan <- function(
     .plot_note_from(plot_obj, fallback = fallback)
   }
 
+  .format_n_caption <- function(n_values) {
+    n_values <- suppressWarnings(as.numeric(n_values))
+    n_values <- n_values[is.finite(n_values) & !is.na(n_values) & n_values > 0]
+    if (!length(n_values)) return(NULL)
+    n_values <- unique(round(n_values))
+    n_values <- sort(n_values)
+    fmt <- function(x) format(x, big.mark = ",", scientific = FALSE, trim = TRUE)
+    if (length(n_values) == 1L) {
+      return(paste0("Base: ", fmt(n_values[[1]]), " egresados"))
+    }
+    paste0("Base: ", fmt(min(n_values)), "-", fmt(max(n_values)), " egresados")
+  }
+
   .force_canvas_args <- function(fun, args) {
     fml <- tryCatch(names(formals(fun)), error = function(e) character(0))
     if ("usar_canvas" %in% fml) args$usar_canvas <- TRUE
@@ -2203,9 +2393,13 @@ reporte_ppt_plan <- function(
       isTRUE(overrides$word_ocultar_etiqueta_categoria %||%
                preset_args$word_ocultar_etiqueta_categoria %||%
                TRUE)
+    ocultar_categoria <- isTRUE(overrides$ocultar_etiqueta_categoria %||%
+                                  preset_args$ocultar_etiqueta_categoria %||%
+                                  FALSE) ||
+      ocultar_categoria_word
 
     df_wide <- tibble::tibble(
-      categoria = if (ocultar_categoria_word) "" else .title_of_var(var),
+      categoria = if (ocultar_categoria) "" else .title_of_var(var),
       N         = N_total
     )
     for (i in seq_along(cols_pct)) df_wide[[cols_pct[i]]] <- pct_int[i] / 100
@@ -2227,7 +2421,7 @@ reporte_ppt_plan <- function(
       colores_grupos   = colores_grupos,
       titulo           = NULL,
       subtitulo        = NULL,
-      nota_pie         = NULL
+      nota_pie         = .format_n_caption(N_total)
     )
 
     # merge: base_args <- preset_args <- overrides (overrides manda)
@@ -2298,7 +2492,13 @@ reporte_ppt_plan <- function(
         base_args$top2box_labels <- el$top2box_labels
       }
       if (is.null(base_args$titulo_barra_extra) || !nzchar(base_args$titulo_barra_extra)) {
-        base_args$titulo_barra_extra <- "TOP 2 BOX"
+        base_args$titulo_barra_extra <- "Top 2 Box"
+      }
+      col_extra <- as.character(base_args$color_barra_extra %||% "")[1]
+      if (is.na(col_extra)) col_extra <- ""
+      col_extra <- trimws(col_extra)
+      if (!nzchar(col_extra) || identical(toupper(col_extra), "#081F5C")) {
+        base_args$color_barra_extra <- "#70AD47"
       }
 
       base_args
@@ -2431,8 +2631,16 @@ reporte_ppt_plan <- function(
         (!is.null(block_overrides$barra_extra_preset) &&
            !identical(block_overrides$barra_extra_preset, "ninguno"))
 
+      min_rows <- block_overrides$canvas_min_filas %||%
+        preset_args_multi$canvas_min_filas %||%
+        preset_args_single$canvas_min_filas %||%
+        1L
+      min_rows <- suppressWarnings(as.numeric(min_rows)[1])
+      if (!is.finite(min_rows) || is.na(min_rows) || min_rows < 1) min_rows <- 1
+      n_rows_eff <- max(1, n_rows, min_rows)
+
       0.85 +
-        (0.90 * max(1, n_rows)) +
+        (0.90 * n_rows_eff) +
         (0.18 * title_lines) +
         if (isTRUE(show_legend)) 0.70 else 0 +
         if (isTRUE(show_extra)) 0.25 else 0
@@ -2604,7 +2812,7 @@ reporte_ppt_plan <- function(
         colores_grupos   = colores_grupos,
         titulo           = NULL,
         subtitulo        = NULL,
-        nota_pie         = NULL
+        nota_pie         = .format_n_caption(N_by_v)
       )
 
       base_args <- .apply_top2box_alias(base_args)
@@ -2767,7 +2975,7 @@ reporte_ppt_plan <- function(
         colores_grupos   = colores_grupos,
         titulo           = NULL,
         subtitulo        = NULL,
-        nota_pie         = NULL
+        nota_pie         = .format_n_caption(df_block$N)
       )
 
       base_args <- .apply_top2box_alias(base_args)
@@ -3073,7 +3281,7 @@ reporte_ppt_plan <- function(
         colores_grupos         = colores_grupos,
         titulo                 = NULL,
         subtitulo              = NULL,
-        nota_pie               = NULL,
+        nota_pie               = .format_n_caption(df_block$N),
         usar_canvas            = TRUE,
         canvas_w_grupo         = if (!sin_grupo_word) 0.24 else 0,
         canvas_w_buf_grupo_etq = if (!sin_grupo_word) 0.03 else 0,
@@ -3168,7 +3376,7 @@ reporte_ppt_plan <- function(
       umbral_barra        = 0,
       titulo              = NULL,
       subtitulo           = NULL,
-      nota_pie            = NULL
+      nota_pie            = .format_n_caption(N_total)
     )
 
     preset_args <- preset_args %||% list()
@@ -3225,7 +3433,7 @@ reporte_ppt_plan <- function(
       colores_categorias = colores_grupos,
       titulo         = NULL,
       subtitulo      = NULL,
-      nota_pie       = NULL
+      nota_pie       = .format_n_caption(sum(df_long$n, na.rm = TRUE))
     )
 
     preset_args <- preset_args %||% list()
@@ -4480,7 +4688,17 @@ reporte_ppt_plan <- function(
 
         # opcionales (solo si vienen)
         if (!is.null(sub) && nzchar(trimws(sub))) {
-          doc <- .ph_with_strict(doc, sub, contract$slots$subtitle)
+          doc <- .ph_with_styled_text(
+            doc,
+            sub,
+            contract$slots$subtitle,
+            color = (presets$base$args %||% list())$color_subtitulo %||% "#081F5C",
+            font_size = (presets$base$args %||% list())$size_subtitulo_slide %||% 16,
+            bold = TRUE,
+            align = "center",
+            top_offset = 0.28,
+            height = 0.42
+          )
         }
         if (!is.null(dt) && nzchar(trimws(dt))) {
           doc <- .ph_with_strict(doc, dt, contract$slots$date)
@@ -5840,6 +6058,13 @@ reporte_ppt_plan <- function(
           doc <- .ph_with_strict(doc, as.character(title_slide)[1], contract$slots$title)
         }
 
+        tx <- slots$text %||% NULL
+        if (!is.null(tx) && nzchar(trimws(as.character(tx)[1]))) {
+          doc <- .ph_with_strict(doc, as.character(tx)[1], contract$slots$text)
+        } else if (!is.null(contract$slots$text)) {
+          doc <- .ph_with_strict(doc, " ", contract$slots$text)
+        }
+
         # left y right: body 2 (izquierda) y body 3 (derecha)
         doc <- .ph_with_strict(doc, rvg::dml(ggobj = pL, bg = "transparent"), contract$slots$left)
         doc <- .ph_with_strict(doc, rvg::dml(ggobj = pR, bg = "transparent"), contract$slots$right)
@@ -5859,6 +6084,11 @@ reporte_ppt_plan <- function(
             rvg::dml(ggobj = p_icon, bg = "transparent"),
             contract$slots$icon
           )
+        }
+
+        base_txt <- slots$base %||% NULL
+        if (!is.null(base_txt) && nzchar(trimws(as.character(base_txt)[1]))) {
+          doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
         }
       }
 

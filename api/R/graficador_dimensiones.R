@@ -904,7 +904,7 @@
 }
 
 #' @keywords internal
-.dim_make_table_df <- function(payload, titulo_left = "TOP 2 BOX", digits = 0L) {
+.dim_make_table_df <- function(payload, titulo_left = "Top 2 Box", digits = 0L) {
   digits <- suppressWarnings(as.integer(digits))
   if (!is.finite(digits) || digits < 0L) digits <- 0L
 
@@ -930,7 +930,7 @@
   out <- as.data.frame(wide)
   out[[1]] <- as.character(out[[1]])
   for (j in 2:ncol(out)) out[[j]] <- fmt_pct(out[[j]])
-  names(out)[1] <- as.character(titulo_left %||% "TOP 2 BOX")[1]
+  names(out)[1] <- as.character(titulo_left %||% "Top 2 Box")[1]
   out
 }
 
@@ -2580,7 +2580,7 @@ graficar_radar_tabla_dimensiones <- function(
     titulo = NULL,
     subtitulo = NULL,
     nota_pie = NULL,
-    titulo_tabla = "TOP 2 BOX",
+    titulo_tabla = "Top 2 Box",
     ...
 ) {
   modo <- match.arg(modo)

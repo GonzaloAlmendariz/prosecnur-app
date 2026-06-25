@@ -126,7 +126,7 @@ session_header <- function(req) {
 .ESTUDIO_ANALITICA_STATUS_KEYS <- c(
   "analitica_prep_ok", "analitica_codebook_ok", "analitica_frecuencias_ok",
   "analitica_cruces_ok", "analitica_spss_ok", "analitica_enumeradores_ok",
-  "analitica_dim_ok", "analitica_multibase_ok", "analitica_panel_ok", "analitica_bases_data_ok",
+  "analitica_dim_ok", "analitica_multibase_ok", "analitica_panel_ok", "analitica_ficha_tecnica_ok", "analitica_bases_data_ok",
   "analitica_bases_instrumento_ok", "analitica_bases_sav_ok",
   "analitica_bases_csv_ok", "analitica_bases_xlsx_ok"
 )
@@ -816,6 +816,7 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
   s$analitica_dim_ok <- FALSE
   s$analitica_multibase_ok <- FALSE
   s$analitica_panel_ok <- FALSE
+  s$analitica_ficha_tecnica_ok <- FALSE
   s$analitica_multibase_available <- FALSE
   s$graficos_ppt_ok <- FALSE
   s$graficos_word_ok <- FALSE

@@ -18,7 +18,7 @@
 #     se toman al siguiente arranque sin re-empaquetar.
 #
 # PACKAGED MODE extra:
-#   - Rsync del desktop/ al runtime de Application Support.
+#   - Refresco del desktop/ al runtime de Application Support.
 #   - pnpm install del runtime si falta.
 #   - Electron corre desde el runtime — snapshot congelado.
 
@@ -59,6 +59,69 @@ fail_dialog() {
 
 notify() {
   /usr/bin/osascript -e "display notification \"$1\" with title \"Prosecnur\"" >/dev/null 2>&1 || true
+}
+
+copy_tree_without_xattrs() {
+  local src="$1"
+  local dst="$2"
+  shift 2
+  local excludes=("$@" ".DS_Store" ".Rhistory" ".RData" ".Ruserdata")
+
+  should_skip_rel() {
+    local rel="$1"
+    local part
+    local pattern
+    [ "$rel" = "." ] && return 1
+    IFS="/" read -r -a parts <<< "$rel"
+    for part in "${parts[@]}"; do
+      for pattern in "$@"; do
+        if [ "$part" = "$pattern" ]; then
+          return 0
+        fi
+      done
+    done
+    return 1
+  }
+
+  mkdir -p "$dst"
+  local item
+  local rel
+
+  while IFS= read -r -d "" item; do
+    rel="${item#"$src"}"
+    rel="${rel#/}"
+    [ -z "$rel" ] && rel="."
+    if should_skip_rel "$rel" "${excludes[@]}"; then
+      continue
+    fi
+    if [ "$rel" = "." ]; then
+      mkdir -p "$dst"
+    else
+      mkdir -p "$dst/$rel"
+    fi
+  done < <(find "$src" -type d -print0)
+
+  while IFS= read -r -d "" item; do
+    rel="${item#"$src"}"
+    rel="${rel#/}"
+    if should_skip_rel "$rel" "${excludes[@]}"; then
+      continue
+    fi
+    mkdir -p "$(dirname "$dst/$rel")"
+    rm -f "$dst/$rel"
+    ln -s "$(readlink "$item")" "$dst/$rel"
+  done < <(find "$src" -type l -print0)
+
+  while IFS= read -r -d "" item; do
+    rel="${item#"$src"}"
+    rel="${rel#/}"
+    if should_skip_rel "$rel" "${excludes[@]}"; then
+      continue
+    fi
+    mkdir -p "$(dirname "$dst/$rel")"
+    COPYFILE_DISABLE=1 cp "$item" "$dst/$rel" </dev/null
+    chmod "$(stat -f "%Lp" "$item" 2>/dev/null || stat -c "%a" "$item" 2>/dev/null || echo 644)" "$dst/$rel" 2>/dev/null || true
+  done < <(find "$src" -type f -print0)
 }
 
 # ---------- 1. Toolchain checks ---------------------------------------------
@@ -189,15 +252,11 @@ if [ "$MODE" = "dev" ]; then
   exec pnpm --dir "$DESKTOP_DIR" start >> "$LOG_FILE" 2>&1
 
 else
-  # PACKAGED: rsync a runtime de Application Support + pnpm install si falta.
-  if ! command -v rsync >/dev/null 2>&1; then
-    fail_dialog "No se encontró rsync. Viene con macOS — verifica tu sistema."
-    exit 1
-  fi
+  # PACKAGED: refresca el runtime de Application Support + pnpm install si falta.
   RUNTIME_DESKTOP="$RUNTIME_ROOT/desktop-runtime"
   mkdir -p "$RUNTIME_DESKTOP"
-  rsync -a --delete --exclude ".DS_Store" --exclude "node_modules" \
-    "$INTERNALS/desktop/" "$RUNTIME_DESKTOP/" >> "$SETUP_LOG" 2>&1
+  find "$RUNTIME_DESKTOP" -mindepth 1 -maxdepth 1 ! -name "node_modules" -exec rm -rf {} + >> "$SETUP_LOG" 2>&1 || true
+  copy_tree_without_xattrs "$INTERNALS/desktop" "$RUNTIME_DESKTOP" ".DS_Store" "node_modules" >> "$SETUP_LOG" 2>&1
 
   if [ ! -d "$RUNTIME_DESKTOP/node_modules/electron" ]; then
     notify "Instalando runtime de escritorio (primera vez)."

@@ -101,6 +101,14 @@ job_submit <- function(sid,
         library(prosecnurapp, quietly = TRUE, warn.conflicts = FALSE)
       ))
     }
+    job_function_name <- attr(.__job_inner_func__, "prosecnur_job_function_name", exact = TRUE)
+    if (!is.null(job_function_name) && nzchar(as.character(job_function_name)[1])) {
+      fresh_func <- tryCatch(
+        get(as.character(job_function_name)[1], envir = asNamespace("prosecnurapp"), inherits = FALSE),
+        error = function(e) NULL
+      )
+      if (is.function(fresh_func)) .__job_inner_func__ <- fresh_func
+    }
     inner_formals <- tryCatch(names(formals(.__job_inner_func__)), error = function(e) NULL)
     if (!is.null(inner_formals) &&
         !("..." %in% inner_formals) &&

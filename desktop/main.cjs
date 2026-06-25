@@ -53,7 +53,6 @@ process.on("unhandledRejection", (reason) => {
   app.exit(1);
 });
 
-const { setupAutoUpdater } = require("./auto-updater.cjs");
 const { bootstrapMacRuntime } = require("./mac-bootstrap.cjs");
 
 const APP_NAME = "Prosecnur";
@@ -87,6 +86,12 @@ if (SMOKE_CDP_PORT && /^\d+$/.test(SMOKE_CDP_PORT)) {
 // seteada. Así cerramos el CSRF local: otra pestaña del navegador del
 // usuario no puede tumbar el backend adivinando el puerto.
 const SHUTDOWN_TOKEN = randomUUID();
+
+function setupAutoUpdaterIfEnabled(options) {
+  if (ELECTRON_DEV) return;
+  const { setupAutoUpdater } = require("./auto-updater.cjs");
+  setupAutoUpdater(options);
+}
 
 let mainWindow = null;
 let backend = null;
@@ -1682,7 +1687,7 @@ if (!gotLock) {
     installCsp();
     createMenu();
     createWindow();
-    setupAutoUpdater({ logger: writeLog });
+    setupAutoUpdaterIfEnabled({ logger: writeLog });
   });
 
   app.on("window-all-closed", () => {

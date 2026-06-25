@@ -83,7 +83,7 @@ export function ArgField({
   // valor del preset en el input pero con styling gris.
   const isInherited = argState === "inherited";
   const hasOwnValue = value !== undefined && value !== null && (value !== "" || allowsEmptyStringValue(meta));
-  const displayValue: ArgValue = hasOwnValue ? value : inheritedValue;
+  const displayValue: ArgValue = hasOwnValue ? value : resolveDisplayFallback(meta, inheritedValue);
   const labelId = useId();
   const description = resolveArgumentDescription(meta);
   const descriptionId = `${labelId}-description`;
@@ -128,6 +128,11 @@ export function ArgField({
 
 function allowsEmptyStringValue(meta: ArgMetadata): boolean {
   return meta.tipo_input === "string" || meta.tipo_input === "textarea";
+}
+
+export function resolveDisplayFallback(meta: ArgMetadata, inheritedValue?: ArgValue): ArgValue {
+  if (inheritedValue !== undefined && inheritedValue !== null) return inheritedValue;
+  return meta.default;
 }
 
 // ---- Copy + estado de origen --------------------------------------------
@@ -944,14 +949,14 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   alto: "Altura principal del área dibujada.",
   canvas_w_etiquetas: "Espacio destinado a etiquetas dentro del gráfico.",
   canvas_h_etiquetas: "Espacio destinado para etiquetas verticales.",
-  ancho_max_eje_y: "Ancho útil para mostrar etiquetas del eje Y.",
+  ancho_max_eje_y: "Cantidad de caracteres por línea antes de envolver etiquetas largas.",
   wrap_y: "Largo máximo de texto antes de cortar en varias líneas.",
   wrap_ejes: "Largo máximo de texto antes de cortar etiquetas de eje.",
   alto_por_categoria: "Altura base por cada categoría o fila.",
   n_top: "Cantidad de elementos principales que se muestran.",
   top_n: "Cantidad de elementos destacados en la vista.",
-  top2box: "Cantidad de elementos para el análisis top2box.",
-  top2box_labels: "Texto visible para cada tramo del bloque top2box.",
+  top2box: "Muestra el porcentaje agregado de las dos categorías superiores de una escala ordinal.",
+  top2box_labels: "Define qué categorías cuentan como Top 2 cuando la escala no usa las dos últimas opciones.",
   tipo_rango: "Define el modo de clasificación por rangos.",
   debug_lw: "Controla marcadores de diagnóstico de layout.",
   debug_ph_bordes: "Muestra bordes de ayuda para validar espacios del gráfico.",
@@ -982,7 +987,7 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   color_titulo: "Color del texto del título.",
   color_subtitulo: "Color del texto secundario.",
   color_nota_pie: "Color del texto de nota o pie.",
-  color_barra_extra: "Color de la barra extra o apoyo visual.",
+  color_barra_extra: "Color del indicador adicional, como Top 2 Box.",
   color_texto_barras: "Color de los textos de las barras.",
   color_ejes: "Color de ejes y marcas principales.",
   color_leyenda: "Color de leyenda y textos de referencia.",
@@ -999,21 +1004,26 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   canvas_h_header_in: "Sangría interna del encabezado.",
   canvas_h_legend: "Altura para el área de leyenda.",
   canvas_h_title: "Altura disponible para el título.",
-  canvas_h_toprow_in: "Margen interno para la fila superior.",
+  canvas_h_toprow_in: "Altura reservada encima de las barras para títulos auxiliares como Top 2 Box.",
   canvas_h_legend_in: "Margen interno para leyenda.",
   canvas_h_legend_bottom: "Altura base para leyenda inferior.",
   canvas_pad_top: "Margen superior interno del canvas.",
   canvas_w_extra: "Ancho adicional de reserva del canvas.",
   bar_ra_extra: "Ajuste para el bloque de barras extra.",
   bar_rrra_extra: "Ajusta separación extra del bloque de barras.",
-  barra_extra_preset: "Reserva visual para la barra extra.",
+  barra_extra_preset: "Elige si la columna adicional muestra Base/N, Top 2 Box u otro indicador.",
   donat_hole: "Ajusta la proporción del vacío en gráficos de dona.",
   angle_x: "Ángulo de inclinación para barras/elementos del eje X.",
-  invertir_barras: "Invierte la dirección de visualización de barras.",
+  invertir_barras: "Invierte el orden visual cuando el motor dibuja la primera categoría abajo.",
+  orden_barras: "Permite respetar el orden del instrumento o reordenar por frecuencia.",
+  max_categorias: "Limita cuántas opciones se muestran para evitar gráficos demasiado altos.",
+  agrupar_resto_en_otros: "Agrupa solo en el gráfico las opciones que exceden el máximo visible.",
+  otros_al_final: "Mantiene Otro/Otros al final aunque tenga muchos casos.",
+  etiqueta_otros: "Nombre visible para el grupo agregado de opciones restantes.",
   invertir_leyenda: "Invierte la posición y orden de leyenda.",
   orden: "Ajusta el orden de presentación de elementos.",
   ordenar_categorias: "Ordena categorías según estrategia definida.",
-  legend_espaciado: "Espaciado entre ítems y bloques de leyenda.",
+  legend_espaciado: "Espaciado entre ítems de leyenda; valores menores compactan la leyenda.",
   legend_key_cm: "Tamaño visual de símbolos de leyenda.",
   legend_key_spacing_x_cm: "Espacio horizontal entre los símbolos de leyenda.",
   legend_n_por_fila: "Cantidad de entradas por fila en la leyenda.",
@@ -1061,7 +1071,7 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   limites: "Ajusta límites mínimos o máximos de interpretación.",
   metrica: "Métrica o variable que se calcula para este bloque.",
   mostrar_etiquetas_pct: "Activa o desactiva etiquetas de porcentaje.",
-  umbral_posicion: "Posición del umbral visual dentro del bloque.",
+  umbral_posicion: "Controla cuándo una etiqueta pequeña se mueve fuera de la barra para leerse mejor.",
   umbral_etiqueta: "Nivel mínimo para mostrar una etiqueta especial.",
   umbral_etiqueta_normal: "Referencia de etiqueta para estado normal.",
   umbral_mostrar_etiqueta: "Activa etiqueta al cruzar este umbral.",

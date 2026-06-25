@@ -8,7 +8,7 @@ import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { autoUpdate, flip, FloatingPortal, offset, shift, useFloating } from "@floating-ui/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "./lightMotion";
 import {
   Activity,
   AlertTriangle,
@@ -254,6 +254,7 @@ import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
 import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
 import districtCoverage from "../hojasRuta/limaDistrictCoverage.json";
+import { MonitoreoModuleChrome } from "./shell/MonitoreoModuleChrome";
 import {
   EMPTY_INTERNAL_QUERY_FILTERS,
   INTERNAL_QUERY_BLOCKS,
@@ -281,6 +282,7 @@ import {
   type InternalQueryTemplate,
 } from "./internalQueries";
 import "./monitoreo.css";
+import "./shell/monitoreoShell.css";
 
 const EMPTY_ACREDITACION: MonitoreoAcreditacion = {
   enabled: false,
@@ -614,6 +616,7 @@ const EMPTY_CONFIG: MonitoreoConfig = {
   supervision_seed: 20260514,
   monitoreo_profile: EMPTY_PROFILE,
   acreditacion: EMPTY_ACREDITACION,
+  client_report: { channel_labels: {} },
   territorial: EMPTY_TERRITORIAL_CONFIG,
   aulas_universitarias: {
     schema: "monitoreo_aulas_universitarias_v1",
@@ -735,6 +738,13 @@ type TerritorialBootState = {
 type OperationalModelMode = "estructura" | "enlaces" | "casos" | "estrategias" | "reglas";
 type QualityMode = "conciliacion" | "reglas" | "equipo";
 type InternalQueryMode = InternalQueryEvidenceMode;
+type MonitoreoLocalTabDefinition = {
+  key: string;
+  label: string;
+  desc: string;
+  icon: typeof BarChart3;
+  aliases?: string[];
+};
 type ExplorerOpenIntent = {
   id: number;
   filters: Partial<InternalQueryFilters>;
@@ -913,7 +923,7 @@ const WORKBENCH_VIEWS: Array<{
 
 const TERRITORIAL_WORKBENCH_VIEWS: typeof WORKBENCH_VIEWS = [
   { key: "fuentes", label: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
-  { key: "modelo", label: "Manzanas seleccionadas", desc: "Titulares, reemplazos y mapa", icon: Route },
+  { key: "modelo", label: "UMPs", desc: "Orden, responsables y manzanas", icon: Route },
   { key: "calidad", label: "Validación", desc: "GPS, reconciliación, duración y cuotas", icon: ShieldAlert },
   { key: "consultas", label: "Consultas internas", desc: "Registros por validar", icon: Search },
   { key: "avance", label: "Avance territorial", desc: "Distrito, manzana y ritmo", icon: BarChart3 },
@@ -950,9 +960,9 @@ const TERRITORIAL_BOOT_STEP_DEFS: Array<{
     key: "hojasRuta",
     view: "modelo",
     scope: "route_summary",
-    label: "Manzanas seleccionadas",
-    loadingDetail: "Preparando manzanas seleccionadas",
-    readyDetail: "Manzanas listas",
+    label: "UMPs",
+    loadingDetail: "Preparando tablero UMP",
+    readyDetail: "UMPs listas",
     icon: Route,
   },
   {
@@ -988,6 +998,104 @@ function workbenchViewsForRoute(route: { family: MonitoreoRouteFamily }) {
   if (route.family === "territorial") return TERRITORIAL_WORKBENCH_VIEWS;
   if (route.family === "aulas_universitarias") return AULAS_WORKBENCH_VIEWS;
   return WORKBENCH_VIEWS;
+}
+
+function localTabsForWorkbenchView(route: { family: MonitoreoRouteFamily }, view: WorkbenchView): MonitoreoLocalTabDefinition[] {
+  if (route.family === "territorial") {
+    const territorialTabs: Record<WorkbenchView, MonitoreoLocalTabDefinition[]> = {
+      fuentes: [
+        { key: "form", label: "Formulario", desc: "Kobo y corte local", icon: PlugZap },
+        { key: "filter", label: "Filtro y distritos", desc: "Efectivas y alcance", icon: SlidersHorizontal },
+        { key: "roster", label: "Encuestadores", desc: "Códigos Pulso", icon: ContactRound },
+        { key: "reconciliation", label: "Reconciliación", desc: "Códigos y UMP", icon: Link2 },
+        { key: "history", label: "Historial", desc: "Eventos del corte", icon: Clock },
+      ],
+      modelo: [
+        { key: "resumen", label: "Dashboard UMP", desc: "Cobertura y responsables", icon: BarChart3, aliases: ["Dashboard"] },
+        { key: "tabla", label: "Tabla UMP", desc: "Orden, manzanas y responsables", icon: Table2, aliases: ["Tabla"] },
+      ],
+      calidad: [
+        { key: "geolocalizacion", label: "Geolocalización", desc: "GPS y cartografía", icon: MapPin },
+        { key: "reconciliacion", label: "Reconciliación UMP", desc: "Sospechas espaciales", icon: Route },
+        { key: "duracion", label: "Duración de tiempo", desc: "Outliers de tiempo", icon: Clock },
+        { key: "cuotas", label: "Cuotas", desc: "Marginales y brechas", icon: Target },
+      ],
+      consultas: [
+        { key: "registro", label: "Registro", desc: "Tabla principal", icon: Table2, aliases: ["Registros por validar"] },
+        { key: "gps", label: "GPS por revisar", desc: "Distancia y cruce", icon: MapPin },
+        { key: "duracion", label: "Duración por revisar", desc: "Tiempos cortos", icon: Clock },
+        { key: "responsable", label: "Cruce responsable", desc: "UMP y equipo", icon: ContactRound },
+      ],
+      avance: [
+        { key: "resumen", label: "Resumen", desc: "KPI territorial", icon: BarChart3 },
+        { key: "ump", label: "Mapa y UMP", desc: "Ritmo por manzana", icon: Route },
+        { key: "ritmo", label: "Ritmo diario", desc: "Tendencia del corte", icon: CalendarRange },
+      ],
+      ocurrencias: [
+        { key: "states", label: "Estados general", desc: "Efectivas y no efectivas", icon: ClipboardCheck },
+        { key: "ump", label: "Por UMP", desc: "Seguimiento territorial", icon: Route },
+        { key: "alerts", label: "Observaciones", desc: "Casos por revisar", icon: ShieldAlert },
+      ],
+      telefonico: [],
+    };
+    return territorialTabs[view] ?? [];
+  }
+
+  if (route.family === "aulas_universitarias") {
+    const aulasTabs: Record<WorkbenchView, MonitoreoLocalTabDefinition[]> = {
+      fuentes: [
+        { key: "plan", label: "Plan", desc: "Calc-muestra", icon: CalendarRange },
+        { key: "agenda", label: "Agenda", desc: "Aulas y responsables", icon: Table2 },
+        { key: "respuestas", label: "Respuestas", desc: "Fuentes activas", icon: PlugZap },
+      ],
+      modelo: [
+        { key: "agenda", label: "Agenda", desc: "Horario y aula", icon: CalendarRange },
+        { key: "links", label: "Links y QR", desc: "Recopiladores", icon: QrCode },
+        { key: "reemplazos", label: "Reemplazos", desc: "Reservas usadas", icon: Route },
+      ],
+      avance: [
+        { key: "resumen", label: "Resumen", desc: "Aulas aplicadas", icon: BarChart3 },
+        { key: "cuotas", label: "Cuotas", desc: "Brechas", icon: Target },
+        { key: "ritmo", label: "Ritmo", desc: "Aplicación diaria", icon: CalendarRange },
+      ],
+      calidad: [
+        { key: "collector", label: "Collector", desc: "Link y aula", icon: Link2 },
+        { key: "horarios", label: "Horarios", desc: "Cruce agenda", icon: Clock },
+        { key: "duplicados", label: "Duplicados", desc: "Respuestas repetidas", icon: ShieldAlert },
+      ],
+      consultas: [
+        { key: "trazabilidad", label: "Trazabilidad", desc: "Aula por aula", icon: Search },
+        { key: "estado", label: "Estado operativo", desc: "Caídas y reemplazos", icon: ClipboardCheck },
+      ],
+      ocurrencias: [],
+      telefonico: [],
+    };
+    return aulasTabs[view] ?? [];
+  }
+
+  const acreditacionTabs: Record<WorkbenchView, MonitoreoLocalTabDefinition[]> = {
+    fuentes: [
+      { key: "survey", label: "Encuestas", desc: "SurveyMonkey/Kobo", icon: QrCode },
+      { key: "sheets", label: "Sheets", desc: "Universo y barrido", icon: Table2 },
+      { key: "activas", label: "Fuentes activas", desc: "Estado del paquete", icon: PlugZap },
+    ],
+    modelo: OPERATIONAL_MODEL_MODES.map((item) => ({ ...item, key: item.key })),
+    consultas: INTERNAL_QUERY_MODES.map((item) => ({ ...item, key: item.key })),
+    telefonico: [
+      { key: "resumen", label: "Resumen", desc: "Barrido telefónico", icon: PhoneCall },
+      { key: "responsables", label: "Responsables", desc: "Equipo y carga", icon: ContactRound },
+      { key: "alertas", label: "Alertas", desc: "No efectivos", icon: ShieldAlert },
+    ],
+    avance: [
+      { key: "resumen", label: "Resumen", desc: "Avance general", icon: BarChart3 },
+      { key: "actores", label: "Actores", desc: "Brechas por unidad", icon: Layers3 },
+      { key: "encuestas", label: "Encuestas", desc: "Fuentes y canales", icon: QrCode },
+      { key: "detalle", label: "Detalle", desc: "Controles y salidas", icon: Table2 },
+    ],
+    calidad: QUALITY_MODES.map((item) => ({ ...item, key: item.key })),
+    ocurrencias: [],
+  };
+  return acreditacionTabs[view] ?? [];
 }
 
 const OPERATIONAL_MODEL_MODES: Array<{
@@ -2488,7 +2596,7 @@ function territorialReportRequestKey(
 function territorialLoadingLabelForView(view: WorkbenchView) {
   switch (view) {
     case "modelo":
-      return "Cargando manzanas seleccionadas...";
+      return "Cargando UMPs...";
     case "avance":
       return "Cargando avance territorial...";
     case "consultas":
@@ -2512,14 +2620,14 @@ function territorialLoadingPresentation(view: WorkbenchView): {
   switch (view) {
     case "modelo":
       return {
-        title: "Preparando manzanas seleccionadas",
-        detail: "Cruzando Hojas de Ruta, UMP titulares, reemplazos y cartografía local para abrir el mapa operativo.",
-        status: "Manzanas y mapa",
+        title: "Preparando UMPs",
+        detail: "Cruzando Hojas de Ruta, UMP titulares, reemplazos y responsables para abrir el tablero operativo.",
+        status: "UMPs, responsables y manzanas",
         icon: Route,
         steps: [
           { label: "Marco territorial", detail: "Titulares y reemplazos", icon: Route },
-          { label: "Cartografía local", detail: "Capas de distrito y zona", icon: MapPin },
-          { label: "Ficha UMP", detail: "Responsables y metas", icon: ContactRound },
+          { label: "Responsables", detail: "Equipo y asignación", icon: ContactRound },
+          { label: "Ficha UMP", detail: "Manzanas y metas", icon: Table2 },
         ],
       };
     case "calidad":
@@ -2653,12 +2761,11 @@ function territorialReportStatusLabel(input: {
   hasLocalCache: boolean;
 }) {
   if (input.error) return "Reintentar";
-  if (input.loading && input.reportsReady) return "Actualizando resumen";
   if (input.reportsReady && (input.hasLocalCache || input.meta?.cache_hit || input.meta?.cache_source === "project" || input.meta?.cache_source === "snapshot")) {
     return "Cargado desde proyecto";
   }
-  if (input.loading) return "Actualizando resumen";
   if (input.reportsReady) return "Resumen listo";
+  if (input.loading) return "Actualizando resumen";
   return "Reporte pendiente";
 }
 
@@ -3132,6 +3239,7 @@ export default function MonitoreoPage() {
   const territorialActiveReportsReady = route.family === "territorial" && activeTerritorialVisible
     ? territorialReportsCoverRequestedScope(territorialReports, activeTerritorialPhase, activeTerritorialVisible, activeView, activeTerritorialScope)
     : false;
+  const territorialActiveViewHydrating = territorialActiveViewLoading && !territorialActiveReportsReady;
   const territorialReportStatus = route.family === "territorial" && territorialViewNeedsReports(activeView)
     ? territorialReportStatusLabel({
         reportsReady: territorialActiveReportsReady,
@@ -3143,16 +3251,16 @@ export default function MonitoreoPage() {
     : "";
   const territorialReportStatusTone = territorialActiveViewError
     ? "error"
-    : territorialActiveViewLoading
-      ? "loading"
-      : territorialActiveReportsReady
-        ? "ready"
+    : territorialActiveReportsReady
+      ? "ready"
+      : territorialActiveViewLoading
+        ? "loading"
         : "pending";
   const showTerritorialReportStatus = route.family === "territorial" &&
     territorialViewNeedsReports(activeView) &&
     Boolean(territorialReportStatus) &&
     !territorialBootBlocksContent &&
-    (!territorialActiveReportsReady || territorialActiveViewLoading || Boolean(territorialActiveViewError));
+    (!territorialActiveReportsReady || Boolean(territorialActiveViewError));
 
   useEffect(() => {
     if (route.family !== "territorial") {
@@ -4182,6 +4290,37 @@ export default function MonitoreoPage() {
     clientPublicationSheets?.spreadsheet_id ||
     internalPublicationSheets?.spreadsheet_id ||
     "";
+  const chromeBusy = savingConfig || savingSource || savingAcreditacion || Boolean(sourceSyncJob);
+  const chromeGeneratedAt =
+    route.family === "territorial"
+      ? dashboard?.territorial_reports?.generated_at ?? ""
+      : route.family === "aulas_universitarias"
+        ? dashboard?.aulas_universitarias_reports?.generated_at ?? ""
+        : dashboard?.acreditacion_reports?.generated_at ?? state?.synced_at ?? "";
+  const chromeGenerationStatus = showTerritorialReportStatus ? territorialReportStatusTone : "";
+  const activeTerritorialReportPayloadSize = Number(activeTerritorialReportMeta?.payload_size);
+  const activeTerritorialReportSizeKb = Number.isFinite(activeTerritorialReportPayloadSize) && activeTerritorialReportPayloadSize > 0
+    ? Math.round(activeTerritorialReportPayloadSize / 1024)
+    : null;
+  const chromeSyncAllDisabled = route.family === "aulas_universitarias"
+    ? false
+    : !activeSourceIds.length;
+  const chromeSyncAdvanceDisabled = route.family === "territorial"
+    ? !activeTerritorialKoboSourceIds.length
+    : route.family === "aulas_universitarias"
+      ? false
+      : !activeSourceIds.length;
+  const syncChromeAdvance = () => {
+    if (route.family === "aulas_universitarias") return syncAulasUniversitarias();
+    if (route.family === "territorial") {
+      return syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`);
+    }
+    return syncExternalSources(activeSourceIds, "Actualizando avance");
+  };
+  const syncChromeAll = () => {
+    if (route.family === "aulas_universitarias") return syncAulasUniversitarias();
+    return syncExternalSources(activeSourceIds, "Actualizando todas las fuentes");
+  };
 
   return (
     <PageFrame
@@ -4197,6 +4336,32 @@ export default function MonitoreoPage() {
         data-audit-has-dashboard={dashboard ? "true" : "false"}
       />
       {error && <Alert kind="error">{error}</Alert>}
+
+      <MonitoreoModuleChrome
+        routes={MONITOREO_ROUTES}
+        route={route}
+        routeSelected={routeSelected}
+        activeView={activeView}
+        saving={chromeBusy}
+        syncedAt={state?.synced_at ?? ""}
+        generatedAt={chromeGeneratedAt}
+        generationStatus={chromeGenerationStatus}
+        pendingRegeneration={territorialReportStatusTone === "pending"}
+        sourceTotal={activePrimarySources.length}
+        activeSources={activePrimarySources.length}
+        nRows={state?.n_rows ?? 0}
+        hasSnapshot={Boolean(state?.has_snapshot)}
+        syncing={Boolean(sourceSyncJob)}
+        syncDisabled={chromeSyncAllDisabled}
+        syncLabel="Todo"
+        syncTitle="Actualizar todas las fuentes activas"
+        onSyncAll={syncChromeAll}
+        advanceSyncDisabled={chromeSyncAdvanceDisabled}
+        advanceSyncLabel="Avance"
+        advanceSyncTitle="Actualizar avance"
+        onSyncAdvance={syncChromeAdvance}
+        onViewChange={setActiveView}
+      />
 
       <section className="mon-workbench pulso-split-view" aria-label="Mesa de trabajo de monitoreo">
         <MonitoreoRail
@@ -4275,8 +4440,8 @@ export default function MonitoreoPage() {
           {showTerritorialReportStatus && (
             <div className={`mon-territorial-report-status is-${territorialReportStatusTone}`}>
               <span>{territorialReportStatus}</span>
-              {activeTerritorialReportMeta?.payload_size ? (
-                <small>{Math.round(activeTerritorialReportMeta.payload_size / 1024)} KB</small>
+              {activeTerritorialReportSizeKb !== null ? (
+                <small>{activeTerritorialReportSizeKb} KB</small>
               ) : null}
             </div>
           )}
@@ -4325,7 +4490,7 @@ export default function MonitoreoPage() {
 	                  dashboard={dashboard}
 	                  syncedAt={state?.synced_at ?? ""}
 	                  nRows={state?.n_rows ?? 0}
-	                  loading={territorialActiveViewLoading}
+	                  loading={territorialActiveViewHydrating}
 	                  error={territorialActiveViewError}
 	                />
                   ) : route.family === "aulas_universitarias" ? (
@@ -4356,7 +4521,7 @@ export default function MonitoreoPage() {
                   route.family === "territorial" ? (
 	                <TerritorialQueriesView
 	                  dashboard={dashboard}
-	                  loading={territorialActiveViewLoading}
+	                  loading={territorialActiveViewHydrating}
 	                  error={territorialActiveViewError}
 	                  onRetry={() => {
 	                    setTerritorialViewError((current) => ({ ...current, consultas: "" }));
@@ -4399,7 +4564,7 @@ export default function MonitoreoPage() {
                 {activeView === "ocurrencias" && route.family === "territorial" && (
                   <TerritorialFieldOccurrencesSection
                     dashboard={dashboard}
-                    loading={territorialActiveViewLoading}
+                    loading={territorialActiveViewHydrating}
                     error={territorialActiveViewError}
                     onRetry={() => {
                       setTerritorialViewError((current) => ({ ...current, ocurrencias: "" }));
@@ -4422,7 +4587,7 @@ export default function MonitoreoPage() {
 		                  saving={savingConfig}
 			                  syncing={Boolean(sourceSyncJob)}
 			                  phaseCoherence={territorialPhaseCoherence}
-			                  loading={territorialActiveViewLoading}
+			                  loading={territorialActiveViewHydrating}
 			                  error={territorialActiveViewError}
 			                  onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
 			                />
@@ -4555,7 +4720,7 @@ export default function MonitoreoPage() {
 	                  dashboard={dashboard}
 	                  config={config}
 	                  saving={savingConfig}
-	                  loading={territorialActiveViewLoading}
+	                  loading={territorialActiveViewHydrating}
 	                  error={territorialActiveViewError}
 	                  onRetry={() => {
 	                    setTerritorialViewError((current) => ({ ...current, calidad: "" }));
@@ -5965,8 +6130,16 @@ function MonitoreoRail({
       publishSpreadsheetId?: string;
       onOpenOutputs?: () => void;
 	  onTerritorialPhaseChange?: (phase: "pilot" | "field") => Promise<void>;
-	}) {
+}) {
   const views = workbenchViewsForRoute(route);
+  const activeSection = views.find((item) => item.key === activeView) ?? views[0];
+  const ActiveSectionIcon = activeSection?.icon ?? route.icon;
+  const localTabs = localTabsForWorkbenchView(route, activeView);
+  const localTabSignature = `${route.family}:${activeView}:${localTabs.map((item) => item.key).join(",")}`;
+  const [activeLocalTab, setActiveLocalTab] = useState(localTabs[0]?.key ?? "");
+  useEffect(() => {
+    setActiveLocalTab(localTabs[0]?.key ?? "");
+  }, [localTabSignature]);
   const territorial = route.family === "territorial" ? territorialReportsFromDashboard(dashboard) : null;
   const isTerritorial = route.family === "territorial";
 		  const activePhase = selectedRoutePhase;
@@ -6007,6 +6180,21 @@ function MonitoreoRail({
   const territorialProgressStyle = {
     "--mon-flow-progress": `${territorialFlow.length ? Math.round((territorialReadyCount / territorialFlow.length) * 100) : 0}%`,
   } as CSSProperties;
+  function activateLocalTab(tab: MonitoreoLocalTabDefinition) {
+    setActiveLocalTab(tab.key);
+    window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
+      detail: { view: activeView, key: tab.key, label: tab.label },
+    }));
+    const content = document.querySelector(`.mon-workbench-content--${activeView}`);
+    const normalizedLabels = [tab.label, ...(tab.aliases ?? [])].map((label) => normalizeMatch(label)).filter(Boolean);
+    if (!content || !normalizedLabels.length) return;
+    const candidates = Array.from(content.querySelectorAll<HTMLElement>("button[role='tab'], [role='tab'] button, button"));
+    const target = candidates.find((candidate) => {
+      const text = normalizeMatch(candidate.textContent ?? "");
+      return normalizedLabels.some((label) => text === label || text.includes(label));
+    });
+    target?.click();
+  }
   return (
     <aside className="mon-workbench-rail pulso-sidebar" aria-label="Flujos de monitoreo">
       <div className="mon-rail-head">
@@ -6033,15 +6221,20 @@ function MonitoreoRail({
         </section>
       ) : null}
       <div className="mon-rail-section-label">
-        <span>Superficies de trabajo</span>
-        <em>{views.length} vistas</em>
+        <span>Pestañas locales</span>
+        <em>{localTabs.length} modos</em>
       </div>
-      <div className="mon-workbench-nav" role="tablist" aria-orientation="vertical">
-        {views.map((item) => {
+      {activeSection ? (
+        <div className="mon-section-current-card">
+          <span>{route.shortLabel} · sección</span>
+          <strong><ActiveSectionIcon size={13} /> {activeSection.label}</strong>
+          <small>{territorialActiveItem?.detail ?? activeSection.desc}</small>
+        </div>
+      ) : null}
+      <div className="mon-section-local-tabs" role="tablist" aria-orientation="vertical" aria-label={`Pestañas locales de ${activeSection?.label ?? route.shortLabel}`}>
+        {localTabs.length ? localTabs.map((item) => {
           const Icon = item.icon;
-          const active = activeView === item.key;
-          const flowItem = territorialFlowByView.get(item.key);
-          const StatusIcon = flowItem ? territorialFlowStatusIcon(flowItem.tone) : CheckCircle2;
+          const active = activeLocalTab === item.key;
           return (
             <button
               key={item.key}
@@ -6049,27 +6242,27 @@ function MonitoreoRail({
               role="tab"
               aria-selected={active}
               aria-current={active ? "page" : undefined}
-              className={`mon-nav-item is-${item.key}${active ? " is-active" : ""}`}
-              title={flowItem ? `${item.label}: ${item.desc}. ${flowItem.badge}: ${flowItem.detail}` : `${item.label}: ${item.desc}`}
-              aria-label={flowItem ? `${item.label}. ${item.desc}. Estado: ${flowItem.badge}. ${flowItem.detail}` : undefined}
-              onClick={() => onChange(item.key)}
+              className={`mon-nav-item is-${activeView}-${item.key}${active ? " is-active" : ""}`}
+              title={`${item.label}: ${item.desc}`}
+              onClick={() => activateLocalTab(item)}
             >
               <span className="mon-nav-icon"><Icon size={15} /></span>
               <span className="mon-nav-copy">
                 <strong>{item.label}</strong>
-                <span>{flowItem?.detail ?? item.desc}</span>
+                <span>{item.desc}</span>
               </span>
-              {flowItem ? (
-                <span className={`mon-nav-status is-${flowItem.tone}${active ? " is-current" : ""}`}>
-                  <StatusIcon size={12} className={flowItem.tone === "loading" ? "pulso-spin" : undefined} />
-                  <small>{flowItem.badge}</small>
-                </span>
-              ) : active ? (
-                <CheckCircle2 size={13} className="mon-nav-current" />
-              ) : null}
+              {active ? <CheckCircle2 size={13} className="mon-nav-current" /> : null}
             </button>
           );
-        })}
+        }) : (
+          <span className="mon-nav-item is-empty">
+            <span className="mon-nav-icon"><ActiveSectionIcon size={15} /></span>
+            <span className="mon-nav-copy">
+              <strong>{activeSection?.label ?? route.shortLabel}</strong>
+              <span>{activeSection?.desc ?? "Sin pestañas locales"}</span>
+            </span>
+          </span>
+        )}
       </div>
       {showOutputsPublish && onOpenOutputs ? (
         <MonitoreoRailOutputsControl
@@ -14387,7 +14580,7 @@ function formatTerritorialHistoryDate(value: string) {
   return text.charAt(0).toLocaleUpperCase("es-PE") + text.slice(1);
 }
 
-type TerritorialRouteWorkbenchTab = "resumen" | "mapa";
+type TerritorialRouteWorkbenchTab = "resumen" | "tabla";
 
 function TerritorialRouteView({
   config,
@@ -14430,7 +14623,7 @@ function TerritorialRouteView({
     .sort(territorialRouteBlockComparator), [routeBlocks]);
   const [selectedBlockKey, setSelectedBlockKey] = useState("");
   const [inspectedBlockKey, setInspectedBlockKey] = useState("");
-  const [activeRouteTab, setActiveRouteTab] = useState<TerritorialRouteWorkbenchTab>("mapa");
+  const [activeRouteTab, setActiveRouteTab] = useState<TerritorialRouteWorkbenchTab>("resumen");
 
   useEffect(() => {
     if (!titularBlocks.length) {
@@ -14499,9 +14692,9 @@ function TerritorialRouteView({
     <div className="mon-stage mon-stage--modelo">
       <Panel className="mon-territorial-panel mon-territorial-route-panel">
         <div className="mon-territorial-route-workbench">
-          <section className="mon-territorial-route-command" aria-label="Resumen de manzanas seleccionadas">
+          <section className="mon-territorial-route-command" aria-label="Resumen de UMPs">
             <div className="mon-territorial-route-title">
-              <span><Route size={15} /> Manzanas seleccionadas</span>
+              <span><Route size={15} /> UMPs</span>
               <strong title={activeFormName}>{activeFormName || "Formulario Kobo activo"}</strong>
               <em>{territorialPhaseLabel(activePhase)} · {visibleSource.assetUid || "sin asset"} · {activeVersion}</em>
             </div>
@@ -14518,7 +14711,7 @@ function TerritorialRouteView({
           </section>
           {visibleReports ? (
             <>
-              <div className="mon-territorial-route-tabs" role="tablist" aria-label="Vistas de manzanas seleccionadas">
+              <div className="mon-territorial-route-tabs" role="tablist" aria-label="Vistas de UMP">
                 <button
                   type="button"
                   className={activeRouteTab === "resumen" ? "is-active" : ""}
@@ -14527,17 +14720,17 @@ function TerritorialRouteView({
                   onClick={() => setActiveRouteTab("resumen")}
                 >
                   <BarChart3 size={14} />
-                  <span>Resumen</span>
+                  <span>Dashboard UMP</span>
                 </button>
                 <button
                   type="button"
-                  className={activeRouteTab === "mapa" ? "is-active" : ""}
+                  className={activeRouteTab === "tabla" ? "is-active" : ""}
                   role="tab"
-                  aria-selected={activeRouteTab === "mapa"}
-                  onClick={() => setActiveRouteTab("mapa")}
+                  aria-selected={activeRouteTab === "tabla"}
+                  onClick={() => setActiveRouteTab("tabla")}
                 >
-                  <MapPin size={14} />
-                  <span>Mapa y ficha</span>
+                  <Table2 size={14} />
+                  <span>Tabla UMP</span>
                 </button>
               </div>
 	              {activeRouteTab === "resumen" ? (
@@ -14550,8 +14743,8 @@ function TerritorialRouteView({
 	                  activePhase={activePhase}
 	                />
               ) : (
-                <div className="mon-territorial-route-map-workspace">
-                  <aside className="mon-territorial-route-sidebar" aria-label="Lista y ficha técnica de manzanas">
+                <div className="mon-territorial-route-table-workspace">
+                  <aside className="mon-territorial-route-sidebar" aria-label="Lista y ficha técnica de UMP">
                     <TerritorialRouteBlockTable
                       blocks={routeBlocks}
                       selectedBlockKey={selectedBlockKey}
@@ -14564,13 +14757,6 @@ function TerritorialRouteView({
                       block={inspectedBlock}
                     />
                   </aside>
-                  <TerritorialRouteAdaptiveMap
-                    blocks={routeBlocks}
-                    selectedBlockKey={selectedBlockKey}
-                    inspectedBlockKey={inspectedBlockKey}
-                    onSelectBlock={selectRouteTitularBlock}
-                    onInspectBlock={inspectRouteBlock}
-                  />
                 </div>
               )}
             </>
@@ -14609,30 +14795,23 @@ function TerritorialRouteSummary({
   return (
     <section className="mon-territorial-route-summary-tab" aria-label="Resumen de manzanas seleccionadas">
       <div className="mon-territorial-route-atlas">
-        <section className="mon-territorial-route-atlas-map-panel" aria-label="Atlas de cobertura territorial">
-          <header>
-            <span><MapPin size={13} /> Atlas territorial</span>
-            <strong>{formatMetric(coverage.totals.zones)} zonas seleccionadas en {formatMetric(coverage.totals.districts)} distritos</strong>
-          </header>
-          <TerritorialRouteCoverageMap coverage={coverage} />
-        </section>
-
-        <aside className="mon-territorial-route-atlas-rail" aria-label="Indicadores y composición demográfica">
-          <div className="mon-territorial-route-atlas-phase">
-            <span><BarChart3 size={13} /> {territorialPhaseLabel(activePhase)}</span>
-            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
-            <div className="mon-territorial-route-summary-progress" aria-label="Avance contra meta de fase">
-              <span>
-                <strong>{formatMetric(responseCount)}</strong>
-                <em>respuestas Kobo</em>
-              </span>
-              <i style={{ "--route-progress": `${progressPct ?? 0}%` } as CSSProperties}>
-                <b />
-              </i>
-              <small>{progressPct == null ? "Meta de fase por definir" : `${progressPct}% de ${formatMetric(routeMeta)} entrevistas`}</small>
-            </div>
+        <section className="mon-territorial-route-summary-hero" aria-label="Dashboard de UMP">
+          <div>
+            <span><Route size={13} /> Dashboard UMP</span>
+            <strong>{formatMetric(coverage.totals.titulares)} UMP titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <em>{formatMetric(coverage.totals.zones)} zonas seleccionadas en {formatMetric(coverage.totals.districts)} distritos. Esta sección evita cargar mapas para mantener la navegación ligera.</em>
           </div>
-          <div className="mon-territorial-route-atlas-kpis" aria-label="Indicadores principales">
+          <div className="mon-territorial-route-summary-progress" aria-label="Avance contra meta de fase">
+            <span>
+              <strong>{formatMetric(responseCount)}</strong>
+              <em>respuestas Kobo</em>
+            </span>
+            <i style={{ "--route-progress": `${progressPct ?? 0}%` } as CSSProperties}>
+              <b />
+            </i>
+            <small>{progressPct == null ? "Meta de fase por definir" : `${progressPct}% de ${formatMetric(routeMeta)} entrevistas`}</small>
+          </div>
+          <div className="mon-territorial-route-summary-metrics" aria-label="Indicadores UMP">
             {cards.map((item) => (
               <TerritorialRouteKpiCard
                 key={item.label}
@@ -14642,6 +14821,14 @@ function TerritorialRouteSummary({
                 icon={item.icon}
               />
             ))}
+          </div>
+        </section>
+
+        <aside className="mon-territorial-route-atlas-rail" aria-label="Indicadores y composición demográfica">
+          <div className="mon-territorial-route-atlas-phase">
+            <span><BarChart3 size={13} /> {territorialPhaseLabel(activePhase)}</span>
+            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <small>{formatMetric(coverage.totals.operationalBlocks)} manzanas operativas · {formatMetric(coverage.totals.zones)} zonas</small>
           </div>
           <TerritorialRouteBucketBars title="Sexo" buckets={coverage.sexTotals} empty="Sin cuotas por sexo" />
           <TerritorialRouteBucketBars title="Rango de edad" buckets={coverage.ageTotals} empty="Sin cuotas por edad" />
@@ -16289,6 +16476,10 @@ const TERRITORIAL_VALIDATION_TABS: Array<{ key: TerritorialValidationTab; label:
   { key: "cuotas", label: "Cuotas", desc: "Sexo y edad", icon: Target },
 ];
 
+function isTerritorialValidationTab(value: unknown): value is TerritorialValidationTab {
+  return value === "geolocalizacion" || value === "reconciliacion" || value === "duracion" || value === "cuotas";
+}
+
 function TerritorialValidationView({
   dashboard,
   config,
@@ -16347,33 +16538,27 @@ function TerritorialValidationView({
     onOpenIntentApplied?.(openIntent.token);
   }, [onOpenIntentApplied, onSelectResponse, openIntent, reportScope, reports]);
 
+  useEffect(() => {
+    function handleLocalTab(event: Event) {
+      const detail = (event as CustomEvent<{ view?: WorkbenchView; key?: unknown }>).detail;
+      if (detail?.view !== "calidad" || !isTerritorialValidationTab(detail.key)) return;
+      setActiveTab(detail.key);
+    }
+
+    window.addEventListener("prosecnur:monitoreo-local-tab", handleLocalTab);
+    return () => window.removeEventListener("prosecnur:monitoreo-local-tab", handleLocalTab);
+  }, []);
+
   if (!reports) {
     if (loading) return <TerritorialLoadingView view="calidad" minHeight={520} />;
     if (error) return <TerritorialViewError message={error} onRetry={onRetry} />;
     return <EmptyState icon={<ShieldAlert size={18} />} title="Sin validación territorial" hint="Sincroniza respuestas Kobo para auditar consentimiento, edad, duplicados y GPS." />;
   }
-  const advance = territorialAdvanceModel(reports);
   const rows = reports.response_audit;
   const validRows = rows.filter((row) => row.advance_valid === true);
-  const geoAlertRows = validRows.filter(territorialRowHasGeoObservation);
   const durationRows = validRows.filter((row) => territorialRowHasDurationObservation(row, config));
-  const quotaSummary = normalizeTerritorialQuotaSummary(reports.route_quota_progress?.summary ?? summarizeTerritorialQuotaProgressBlocks(reports.route_quota_progress?.blocks ?? []));
-  const quotaAlertCount = quotaSummary.pending;
-  const spatialReconciliation = reports.spatial_reconciliation ?? null;
-  const spatialReconciliationCount = (spatialReconciliation?.metrics?.candidates ?? spatialReconciliation?.candidates?.length ?? 0)
-    + (spatialReconciliation?.metrics?.patterns ?? spatialReconciliation?.patterns?.length ?? 0);
-  const tabs = TERRITORIAL_VALIDATION_TABS.map((tab) => ({
-    ...tab,
-    count: tab.key === "geolocalizacion"
-      ? geoAlertRows.length
-      : tab.key === "reconciliacion"
-        ? spatialReconciliationCount
-        : tab.key === "duracion"
-          ? durationRows.length
-          : tab.key === "cuotas"
-            ? quotaAlertCount
-            : 0,
-  }));
+  const activeTabMeta = TERRITORIAL_VALIDATION_TABS.find((tab) => tab.key === activeTab) ?? TERRITORIAL_VALIDATION_TABS[0]!;
+  const ActiveTabIcon = activeTabMeta.icon;
 
   function openDurationCaseInGeo(row: TerritorialResponseAuditRow) {
     const responseId = stringOrEmpty(row.response_id).trim();
@@ -16383,38 +16568,7 @@ function TerritorialValidationView({
 
   return (
     <div className="mon-stage mon-stage--calidad">
-      <Panel className="mon-territorial-panel" eyebrow="Validación" title={<span className="mon-title-icon"><ShieldAlert size={16} /> Respuestas válidas</span>}>
-        <div className="mon-territorial-source-grid">
-          <AdvanceMetric label="Válidas" value={formatMetric(advance.validas)} hint="incluye revisión" tone="ready" />
-          <AdvanceMetric label="Por revisar" value={formatMetric(advance.observacion)} hint="dentro de válidas" tone={advance.observacion ? "warning" : "ready"} />
-          <AdvanceMetric label="Geolocalización" value={formatMetric(reports.kpis.gps_crossable)} hint="casos con GPS" tone={reports.kpis.geo_revision || reports.kpis.geo_no_defendible ? "warning" : "ready"} />
-          <AdvanceMetric label="Duración" value={formatMetric(durationRows.length)} hint="cortas o muy cortas" tone={durationRows.length ? "warning" : "ready"} />
-        </div>
-
-        <div className="mon-territorial-validation-tabs" role="tablist" aria-label="Pestañas de validación territorial">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const selected = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                className={selected ? "is-active" : ""}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                <Icon size={14} />
-                <span>
-                  <strong>{tab.label}</strong>
-                  <em>{tab.desc}</em>
-                </span>
-                <small>{formatMetric(tab.count)}</small>
-              </button>
-            );
-          })}
-        </div>
-
+      <Panel className="mon-territorial-panel" eyebrow="Validación" title={<span className="mon-title-icon"><ActiveTabIcon size={16} /> {activeTabMeta.label}</span>}>
         {activeTab === "cuotas" && (
           <div className="mon-territorial-validation-tabbody mon-territorial-validation-tabbody--quota">
             <TerritorialQuotaConsistencyPanel reports={reports} />

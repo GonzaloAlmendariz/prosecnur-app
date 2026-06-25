@@ -87,6 +87,14 @@
 #' @param orden_barras Criterio para ordenar categorias: `"instrumento"`
 #'   mantiene el orden recibido; `"mayor_menor"` y `"menor_mayor"` ordenan por
 #'   el valor porcentual agregado de cada categoria.
+#' @param max_categorias Número máximo de categorías visibles. Si se define y
+#'   hay más categorías, conserva las principales y agrega el resto en `"Otros"`
+#'   solo para el gráfico.
+#' @param agrupar_resto_en_otros Si `TRUE`, agrupa las categorías excedentes
+#'   cuando `max_categorias` aplica.
+#' @param etiqueta_otros Etiqueta usada para el grupo agregado del resto.
+#' @param otros_al_final Si `TRUE`, ubica `"Otro"`/`"Otros"` al final del orden
+#'   visual aunque su frecuencia sea alta.
 #' @param invertir_leyenda Si `TRUE`, invierte el orden de la leyenda.
 #' @param invertir_barras Si `TRUE`, invierte el orden de las categorias.
 #' @param invertir_series Si `TRUE`, invierte el orden de las series.
@@ -181,24 +189,25 @@ graficar_barras_agrupadas <- function(
     pos_nota_pie              = c("derecha", "izquierda", "centro"),
 
     # Estilo
-    color_titulo              = "#004B8D",
+    color_titulo              = "#081F5C",
     size_titulo               = 11,
-    color_subtitulo           = "#004B8D",
+    color_subtitulo           = "#081F5C",
     size_subtitulo            = 9,
     face_subtitulo            = "italic",
-    color_nota_pie            = "#004B8D",
+    color_nota_pie            = "#081F5C",
     size_nota_pie             = 8,
-    color_leyenda             = "#004B8D",
+    color_leyenda             = "#081F5C",
     size_leyenda              = 8,
     color_texto_barras        = "white",
-    color_texto_barras_fuera  = "#004B8D",
+    color_texto_barras_fuera  = "#081F5C",
     size_texto_barras         = 3,
-    color_barra_extra         = "#004B8D",
+    color_barra_extra         = "#081F5C",
     size_barra_extra          = 3,
-    color_ejes                = "#004B8D",
+    color_ejes                = "#081F5C",
     size_ejes                 = 9,
     usar_eje_libre            = FALSE,
     color_fondo               = NA,
+    font_family               = "Arial",
 
     grosor_barras             = 0.6,
     extra_derecha_rel         = 0.25,
@@ -208,6 +217,10 @@ graficar_barras_agrupadas <- function(
 	    mostrar_leyenda           = TRUE,
 	    leyenda_posicion          = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
 	    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor"),
+	    max_categorias            = NULL,
+	    agrupar_resto_en_otros    = TRUE,
+	    etiqueta_otros            = "Otros",
+	    otros_al_final            = TRUE,
 	    invertir_leyenda          = FALSE,
 	    invertir_barras           = FALSE,
 	    invertir_series           = FALSE,
@@ -277,6 +290,8 @@ graficar_barras_agrupadas <- function(
 	  pos_nota_pie <- match.arg(pos_nota_pie)
 	  leyenda_posicion <- match.arg(leyenda_posicion)
 	  orden_barras <- match.arg(orden_barras)
+  font_family <- as.character(font_family %||% "Arial")[1]
+  if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
   if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
   legend_pos_gg <- switch(
     leyenda_posicion,
@@ -319,6 +334,62 @@ graficar_barras_agrupadas <- function(
   }
 
   df <- data
+  df[[var_categoria]] <- as.character(df[[var_categoria]])
+
+  .is_otros_label <- function(x) {
+    y <- iconv(as.character(x %||% ""), from = "", to = "ASCII//TRANSLIT")
+    y <- tolower(trimws(y))
+    y <- gsub("[^a-z]+", "", y)
+    y %in% c("otro", "otros", "otra", "otras", "other", "others")
+  }
+
+  etiqueta_otros <- as.character(etiqueta_otros %||% "Otros")[1]
+  if (is.na(etiqueta_otros) || !nzchar(trimws(etiqueta_otros))) etiqueta_otros <- "Otros"
+
+  max_categorias_eff <- suppressWarnings(as.integer(max_categorias)[1])
+  if (!is.finite(max_categorias_eff) || is.na(max_categorias_eff) || max_categorias_eff < 2L) {
+    max_categorias_eff <- NA_integer_
+  }
+
+  if (!is.na(max_categorias_eff) &&
+      isTRUE(agrupar_resto_en_otros) &&
+      nrow(df) > max_categorias_eff) {
+
+    cat_vals <- as.character(df[[var_categoria]])
+    pct_mat <- as.data.frame(lapply(
+      df[, cols_porcentaje, drop = FALSE],
+      function(z) suppressWarnings(as.numeric(z))
+    ))
+    totales_cat <- rowSums(pct_mat, na.rm = TRUE)
+    idx_no_otros <- which(!.is_otros_label(cat_vals))
+
+    keep_n <- max(0L, max_categorias_eff - 1L)
+    idx_keep <- integer(0)
+    if (length(idx_no_otros) && keep_n > 0L) {
+      idx_ord <- idx_no_otros[order(-totales_cat[idx_no_otros], seq_along(idx_no_otros))]
+      idx_keep <- head(idx_ord, keep_n)
+    }
+
+    idx_resto <- setdiff(seq_len(nrow(df)), idx_keep)
+    if (length(idx_resto)) {
+      df_keep <- df[idx_keep, , drop = FALSE]
+      df_otros <- df[idx_resto[1], , drop = FALSE]
+      df_otros[[var_categoria]] <- etiqueta_otros
+
+      n_vals <- suppressWarnings(as.numeric(df[[var_n]][idx_resto]))
+      df_otros[[var_n]] <- if (all(!is.finite(n_vals) | is.na(n_vals))) {
+        df[[var_n]][idx_resto[1]]
+      } else {
+        sum(n_vals, na.rm = TRUE)
+      }
+
+      for (cc in cols_porcentaje) {
+        df_otros[[cc]] <- sum(suppressWarnings(as.numeric(df[[cc]][idx_resto])), na.rm = TRUE)
+      }
+
+      df <- rbind(df_keep, df_otros)
+    }
+  }
 
   # ---------------------------------------------------------------------------
   # 1) Ancho -> largo
@@ -377,6 +448,10 @@ graficar_barras_agrupadas <- function(
 	      ord_df$pos
 	    ), , drop = FALSE]
 	    cat_lvls <- ord_df$categoria
+	  }
+	  if (isTRUE(otros_al_final) && length(cat_lvls) > 1L) {
+	    idx_otros <- .is_otros_label(cat_lvls)
+	    if (any(idx_otros)) cat_lvls <- c(cat_lvls[!idx_otros], cat_lvls[idx_otros])
 	  }
 	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
@@ -461,6 +536,7 @@ graficar_barras_agrupadas <- function(
     if (!is.finite(umbral_posicion_eff) || umbral_posicion_eff <= 0) umbral_posicion_eff <- 0.15
 
     offset_lab <- if (orientacion == "vertical") base_max * 0.03 else base_max * 0.015
+    offset_lab_small <- if (orientacion == "vertical") base_max * 0.04 else base_max * 0.026
 
     df_lab$inside <- !is.na(df_lab$.valor_plot) & df_lab$.valor_plot >= umbral_posicion_eff & df_lab$lab != ""
 
@@ -468,7 +544,11 @@ graficar_barras_agrupadas <- function(
     df_lab$valor_label[df_lab$inside & !is.na(df_lab$inside)] <-
       df_lab$.valor_plot[df_lab$inside & !is.na(df_lab$inside)] / 2
     mask_outside <- !is.na(df_lab$.valor_plot) & !is.na(df_lab$inside) & !df_lab$inside & df_lab$.valor_plot > 0
-    df_lab$valor_label[mask_outside] <- df_lab$.valor_plot[mask_outside] + offset_lab
+    df_lab$valor_label[mask_outside] <- df_lab$.valor_plot[mask_outside] + ifelse(
+      df_lab$.valor_plot[mask_outside] <= 0.02,
+      offset_lab_small,
+      offset_lab
+    )
     mask_zero_label <- mostrar_ceros & !is.na(df_lab$.valor_plot) & df_lab$.valor_plot <= 0 & df_lab$lab != ""
     df_lab$valor_label[mask_zero_label] <- offset_lab
 
@@ -492,6 +572,7 @@ graficar_barras_agrupadas <- function(
         position    = ggplot2::position_dodge(width = width_dodge),
         vjust       = 0.5,
         size        = size_texto_barras_eff,
+        family      = font_family,
         fontface    = if ("porcentajes" %in% textos_negrita) "bold" else "plain",
         show.legend = FALSE
       ) +
@@ -599,6 +680,7 @@ graficar_barras_agrupadas <- function(
         vjust       = 0.5,
         size        = size_barra_extra,
         color       = color_barra_extra,
+        family      = font_family,
         fontface    = if ("barra_extra" %in% textos_negrita) "bold" else "plain"
       )
 
@@ -618,6 +700,7 @@ graficar_barras_agrupadas <- function(
             vjust       = -1.2,
             size        = size_barra_extra,
             color       = color_barra_extra,
+            family      = font_family,
             fontface    = "bold"
           )
       }
@@ -641,7 +724,7 @@ graficar_barras_agrupadas <- function(
     p <- p + ggplot2::theme(legend.position = "none")
   }
 
-  base_theme <- ggplot2::theme_minimal(base_size = 9) +
+  base_theme <- ggplot2::theme_minimal(base_size = 9, base_family = font_family) +
     ggplot2::theme(
       panel.grid.major.y = ggplot2::element_blank(),
       panel.grid.minor   = ggplot2::element_blank(),
@@ -653,24 +736,28 @@ graficar_barras_agrupadas <- function(
       legend.text        = ggplot2::element_text(
         color = color_leyenda,
         size  = size_leyenda,
+        family = font_family,
         face  = if ("leyenda" %in% textos_negrita) "bold" else "plain"
       ),
       plot.title         = ggplot2::element_text(
         hjust = hjust_titulo,
         color = color_titulo,
         size  = size_titulo,
+        family = font_family,
         face  = if ("titulo" %in% textos_negrita) "bold" else "plain"
       ),
       plot.subtitle      = ggplot2::element_text(
         hjust = hjust_titulo,
         color = color_subtitulo,
         size  = size_subtitulo,
+        family = font_family,
         face  = face_subtitulo %||% "italic"
       ),
       plot.caption       = ggplot2::element_text(
         hjust = hjust_caption,
         color = color_nota_pie,
-        size  = size_nota_pie
+        size  = size_nota_pie,
+        family = font_family
       ),
       plot.background    = ggplot2::element_rect(fill = color_fondo, color = NA),
       panel.background   = ggplot2::element_rect(fill = color_fondo, color = NA),
@@ -753,6 +840,7 @@ graficar_barras_agrupadas <- function(
       legend.text     = ggplot2::element_text(
         color = color_leyenda,
         size  = size_leyenda,
+        family = font_family,
         face  = if ("leyenda" %in% textos_negrita) "bold" else "plain",
         margin = ggplot2::margin(r = legend_espaciado, unit = "pt")
       ),
@@ -940,6 +1028,7 @@ graficar_barras_agrupadas <- function(
         vjust = 0.5,
         size  = size_titulo,
         colour= color_titulo,
+        family = font_family,
         fontface = if ("titulo" %in% textos_negrita) "bold" else "plain"
       )
     }
@@ -952,6 +1041,7 @@ graficar_barras_agrupadas <- function(
         vjust    = 0.5,
         size     = size_subtitulo,
         colour   = color_subtitulo,
+        family = font_family,
         fontface = face_subtitulo %||% "italic"
       )
     }
@@ -978,6 +1068,7 @@ graficar_barras_agrupadas <- function(
         vjust    = 0,
         size     = size_barra_extra,
         colour   = color_barra_extra,
+        family = font_family,
         fontface = "bold"
       )
     }
@@ -1005,6 +1096,7 @@ graficar_barras_agrupadas <- function(
       vjust    = 0.5,
       size     = size_ejes,
       colour   = color_ejes,
+      family = font_family,
       fontface = fontface_etq
     )
   }
@@ -1022,6 +1114,7 @@ graficar_barras_agrupadas <- function(
         vjust    = 0.5,
         size     = size_barra_extra,
         colour   = color_barra_extra,
+        family = font_family,
         fontface = fontface_extra
       )
     }
@@ -1083,6 +1176,7 @@ graficar_barras_agrupadas <- function(
       hjust = hjust_caption,
       vjust = 0.5,
       size  = size_nota_pie,
+      family = font_family,
       colour= color_nota_pie
     )
     if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_caption0, 1, caption_h)
