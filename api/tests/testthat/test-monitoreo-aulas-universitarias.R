@@ -27,6 +27,11 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
       level = "pregrado",
       stratum = c("FAC1", "FAC1", "FAC2"),
       eligible_n = c(30, 25, 20),
+      expected_valid = c(10, 10, 8),
+      sex_top_1 = c("F", "M", "F"),
+      sex_top_1_n = c(18, 14, 12),
+      sex_top_2 = c("M", "F", "M"),
+      sex_top_2_n = c(12, 11, 8),
       representativity_score = c(92, 91, 88),
       representativity_distance = c(0.08, 0.09, 0.12),
       stringsAsFactors = FALSE
@@ -34,15 +39,34 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
     representativity = list(overall_score = 90, weighted_distance = 0.1),
     methodology = list(selector = "test")
   )
-  cfg <- monitoreo_aulas_from_calc(list(titulo = "Encuesta estudiantes"), selection)
+  frame <- list(
+    frame_hash = "hash_test",
+    population_cross_profiles = data.frame(
+      primary_role = "faculty",
+      primary_label = "Facultad",
+      primary_raw = c("FAC1", "FAC1", "FAC2", "FAC2"),
+      secondary_role = "sex",
+      secondary_label = "Sexo",
+      secondary_raw = c("F", "M", "F", "M"),
+      source_role = "base_madre",
+      count = c(60, 40, 30, 20),
+      unit_label = "estudiantes",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  cfg <- monitoreo_aulas_from_calc(list(titulo = "Encuesta estudiantes"), selection, frame)
   expect_true(cfg$enabled)
   expect_equal(cfg$selection_run_id, "sel_test")
   expect_length(cfg$plan, 3)
   expect_equal(cfg$plan[[1]]$operational_code, "AULA 1")
+  expect_true(is.list(cfg$quotas$sex_by_faculty))
 
   responses <- data.frame(
     classroom_id = c("A1", "A1", "A2", "A9"),
     response_status = c("completed", "valid", "rejected", "completed"),
+    faculty = c("FAC1", "FAC1", "FAC1", "FAC2"),
+    sex = c("F", "M", "M", "F"),
     stringsAsFactors = FALSE
   )
   cfg$source_mapping$classroom_id_var <- "classroom_id"
@@ -53,6 +77,9 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
   expect_equal(dashboard$kpis$respuestas_validas, 3)
   expect_true(is.list(dashboard$representativity))
   expect_true(is.finite(dashboard$kpis$representativity_effective_score))
+  expect_true(length(dashboard$quotas_sex_faculty) >= 4)
+  expect_true(dashboard$kpis$quota_cells_pending > 0)
+  expect_true(length(dashboard$course_status) >= 3)
   expect_true(any(vapply(dashboard$validation, function(row) identical(row$check, "student_id_required") && identical(row$status, "ok"), logical(1))))
 })
 

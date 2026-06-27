@@ -154,6 +154,7 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
   }
   if (view === "consultas") {
     const rows = [
+      ...((dashboard.course_status ?? []) as Array<Record<string, unknown>>),
       ...((dashboard.reemplazos ?? []) as Array<Record<string, unknown>>),
       ...((dashboard.brechas ?? []) as Array<Record<string, unknown>>),
     ];
@@ -167,18 +168,20 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
       </section>
     );
   }
-  const avanceRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
+  const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+  const avanceRows = (quotaRows.length ? quotaRows : dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   return (
     <div className="mon-profile-stack">
       <div className="mon-profile-stat-row">
         <StatTile label="Aulas" value={fmt(dashboard.kpis.total_aulas)} />
         <StatTile label="Aplicadas" value={fmt(dashboard.kpis.aulas_aplicadas)} tone="good" />
         <StatTile label="Validas" value={fmt(dashboard.kpis.respuestas_validas)} tone="good" />
+        <StatTile label="Cuotas sexo/facultad" value={fmt(dashboard.kpis.quota_cells_ok ?? 0) + "/" + fmt(dashboard.kpis.quota_cells ?? quotaRows.length)} tone={(dashboard.kpis.quota_cells_pending ?? 0) ? "warn" : "good"} />
         <StatTile label="Brechas" value={fmt(dashboard.kpis.brechas)} tone={dashboard.kpis.brechas ? "warn" : "good"} />
       </div>
       <section className="mon-profile-panel">
         <div className="mon-profile-panel-head">
-          <h3>Avance por estrato</h3>
+          <h3>{quotaRows.length ? "Cuota sexo por facultad" : "Avance por estrato"}</h3>
           <span>{fmt(avanceRows.length)} filas</span>
         </div>
         <DataTable rows={avanceRows} empty="No hay avance por estrato preparado." />

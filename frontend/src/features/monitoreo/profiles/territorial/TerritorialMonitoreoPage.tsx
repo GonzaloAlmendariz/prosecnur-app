@@ -5,6 +5,7 @@ import {
   BarChart3,
   CheckCircle2,
   DatabaseZap,
+  Download,
   MapPinned,
   Maximize2,
   Minus,
@@ -36,6 +37,7 @@ import {
   territorialReportsCoverView,
   territorialSourceKeyFromState,
 } from "../../core/reportScopeCache";
+import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import type { MonitoreoReportScope } from "../types";
 import "./territorialProfile.css";
 
@@ -56,6 +58,13 @@ const VIEW_ICONS: Partial<Record<WorkbenchView, typeof Route>> = {
   avance: BarChart3,
   ocurrencias: MapPinned,
 };
+const TERRITORIAL_ADVANCE_TABS = [
+  { key: "resumen", label: "Resumen", detail: "KPI territorial", icon: BarChart3 },
+  { key: "ump", label: "UMP", detail: "Ritmo por manzana", icon: Route },
+  { key: "ritmo", label: "Ritmo", detail: "Tendencia diaria", icon: DatabaseZap },
+  { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
+] as const;
+type TerritorialAdvanceLocalTab = typeof TERRITORIAL_ADVANCE_TABS[number]["key"];
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -124,6 +133,10 @@ function withTerritorialPhase(state: MonitoreoState, phase: MonitoreoTerritorial
 
 function reportsFromState(state: MonitoreoState | null) {
   return state?.dashboard?.territorial_reports ?? null;
+}
+
+function territorialReportKpis(reports: MonitoreoTerritorialDashboard | null | undefined) {
+  return reports?.kpis ?? {};
 }
 
 function StatTile({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "good" | "warn" | "danger" }) {
@@ -405,10 +418,10 @@ function ValidationView({ reports }: { reports: MonitoreoTerritorialDashboard | 
   return (
     <div className="ter-stack">
       <div className="ter-stat-row">
-        <StatTile label="GPS en zona" value={fmt(reports.kpis.geo_ok)} tone="good" />
-        <StatTile label="GPS por revisar" value={fmt(reports.kpis.geo_revision)} tone="warn" />
-        <StatTile label="Sin GPS" value={fmt(reports.kpis.geo_sin_gps ?? 0)} />
-        <StatTile label="Duración p95" value={reports.kpis.duration_p95 == null ? "S/D" : `${fmt(reports.kpis.duration_p95)} min`} />
+        <StatTile label="GPS en zona" value={fmt(territorialReportKpis(reports).geo_ok)} tone="good" />
+        <StatTile label="GPS por revisar" value={fmt(territorialReportKpis(reports).geo_revision)} tone="warn" />
+        <StatTile label="Sin GPS" value={fmt(territorialReportKpis(reports).geo_sin_gps ?? 0)} />
+        <StatTile label="Duración p95" value={territorialReportKpis(reports).duration_p95 == null ? "S/D" : `${fmt(territorialReportKpis(reports).duration_p95)} min`} />
       </div>
       <section className="ter-panel">
         <div className="ter-panel-head">
@@ -516,9 +529,9 @@ function AdvanceView({ reports }: { reports: MonitoreoTerritorialDashboard | nul
   return (
     <div className="ter-stack">
       <div className="ter-stat-row">
-        <StatTile label="Válidas" value={fmt(reports.kpis.validas)} tone="good" />
-        <StatTile label="Meta" value={fmt(reports.kpis.meta, "S/D")} />
-        <StatTile label="Avance" value={pct(reports.kpis.avance_pct)} tone="good" />
+        <StatTile label="Válidas" value={fmt(territorialReportKpis(reports).validas)} tone="good" />
+        <StatTile label="Meta" value={fmt(territorialReportKpis(reports).meta, "S/D")} />
+        <StatTile label="Avance" value={pct(territorialReportKpis(reports).avance_pct)} tone="good" />
         <StatTile label="Brecha" value={fmt(reports.advance?.brecha, "S/D")} tone="warn" />
       </div>
       <section className="ter-panel">
@@ -564,7 +577,7 @@ function OccurrencesView({ reports }: { reports: MonitoreoTerritorialDashboard |
     <div className="ter-stack">
       <div className="ter-stat-row">
         <StatTile label="Ocurrencias" value={fmt((occurrences as { total?: number } | null | undefined)?.total, "S/D")} />
-        <StatTile label="Registros campo" value={fmt(reports?.kpis.total_respuestas, "S/D")} />
+        <StatTile label="Registros campo" value={fmt(territorialReportKpis(reports).total_respuestas, "S/D")} />
         <StatTile label="Equipo" value={fmt(reports?.team?.length ?? 0)} />
       </div>
       <section className="ter-panel">
@@ -577,11 +590,36 @@ function OccurrencesView({ reports }: { reports: MonitoreoTerritorialDashboard |
   );
 }
 
-function renderView(view: WorkbenchView, reports: MonitoreoTerritorialDashboard | null) {
+function renderView(
+  view: WorkbenchView,
+  reports: MonitoreoTerritorialDashboard | null,
+  options: {
+    activeAdvanceTab?: TerritorialAdvanceLocalTab;
+    state?: MonitoreoState | null;
+    onPublished?: () => void;
+  } = {},
+) {
   if (view === "fuentes") return <SourceView reports={reports} />;
   if (view === "modelo") return <RouteView reports={reports} />;
   if (view === "calidad") return <ValidationView reports={reports} />;
   if (view === "consultas") return <QueriesView reports={reports} />;
+  if (view === "avance" && options.activeAdvanceTab === "salidas") {
+    const state = options.state;
+    return (
+      <MonitoreoOutputsWorkbench
+        family="territorial"
+        routeLabel="Territorial"
+        defaultTitle="reporte-territorial"
+        config={state?.config}
+        clientSheets={state?.publication?.client_last_sheets ?? null}
+        internalSheets={state?.publication?.internal_last_sheets ?? null}
+        hasSnapshot={Boolean(state?.has_snapshot)}
+        nRows={state?.n_rows ?? 0}
+        syncedAt={state?.synced_at ?? ""}
+        onPublished={options.onPublished}
+      />
+    );
+  }
   if (view === "avance") return <AdvanceView reports={reports} />;
   if (view === "ocurrencias") return <OccurrencesView reports={reports} />;
   return null;
@@ -590,6 +628,7 @@ function renderView(view: WorkbenchView, reports: MonitoreoTerritorialDashboard 
 export default function TerritorialMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
+  const [activeAdvanceTab, setActiveAdvanceTab] = useState<TerritorialAdvanceLocalTab>("resumen");
   const [phase, setPhase] = useState<MonitoreoTerritorialPhase>("field");
   const [loadingView, setLoadingView] = useState<WorkbenchView | "initial" | "background" | null>("initial");
   const [error, setError] = useState("");
@@ -703,10 +742,15 @@ export default function TerritorialMonitoreoPage() {
     () => visibleViews.find((item) => item.key === activeView) ?? visibleViews[0] ?? TERRITORIAL_WORKBENCH_VIEWS[0],
     [activeView, visibleViews],
   );
-  const headerValidas = reports?.kpis.validas ?? state?.dashboard?.kpis.valid ?? null;
-  const headerMeta = reports?.kpis.meta ?? state?.dashboard?.kpis.target ?? null;
-  const headerAvance = reports?.kpis.avance_pct ?? state?.dashboard?.kpis.avance_pct ?? null;
+  const reportKpis = territorialReportKpis(reports);
+  const dashboardKpis = state?.dashboard?.kpis ?? {};
+  const headerValidas = reportKpis.validas ?? dashboardKpis.valid ?? null;
+  const headerMeta = reportKpis.meta ?? dashboardKpis.target ?? null;
+  const headerAvance = reportKpis.avance_pct ?? dashboardKpis.avance_pct ?? null;
   const cacheMeta = state?.territorial_report_cache;
+  const refreshCurrentView = useCallback(() => {
+    void loadScope(preferredScope, activeView, true);
+  }, [activeView, loadScope, preferredScope]);
 
   return (
     <div className="mon-page ter-page" style={MODULE_TONES.monitoreo as CSSProperties}>
@@ -777,6 +821,30 @@ export default function TerritorialMonitoreoPage() {
               <StatTile label="Avance" value={pct(headerAvance)} />
             </div>
           </div>
+          {activeView === "avance" ? (
+            <div className="ter-local-tabs" role="tablist" aria-label="Pestañas de avance territorial">
+              {TERRITORIAL_ADVANCE_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeAdvanceTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={active ? "is-active" : ""}
+                    onClick={() => setActiveAdvanceTab(tab.key)}
+                  >
+                    <Icon size={14} />
+                    <span>
+                      <strong>{tab.label}</strong>
+                      <em>{tab.detail}</em>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
           {error && (
             <div className="ter-inline-error">
@@ -788,7 +856,7 @@ export default function TerritorialMonitoreoPage() {
           {loadingView === activeView || loadingView === "initial" ? (
             <EmptyPanel icon={RefreshCw} title="Preparando vista" detail="Leyendo caché local del proyecto..." />
           ) : (
-            renderView(activeView, reports)
+            renderView(activeView, reports, { activeAdvanceTab, state, onPublished: refreshCurrentView })
           )}
         </section>
       </main>

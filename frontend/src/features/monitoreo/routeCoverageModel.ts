@@ -89,6 +89,15 @@ export function normalizeRouteBlockCode(value: unknown) {
     .replace(/[^A-Z0-9]/g, "");
 }
 
+export function normalizeRouteUmpKey(value: unknown) {
+  const normalized = normalizeRouteSearchText(value)
+    .replace(/^(?:u\s*m\s*p|ump|manzana|manz|mz|mza)\s*/, "")
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9]/g, "");
+  if (/^\d+$/.test(normalized)) return stripLeftZeros(normalized);
+  return normalized;
+}
+
 export function routeBlockStableKey(block: TerritorialBlockProgress) {
   return [
     normalizeRouteBlockCode(block.ubigeo),
@@ -116,7 +125,7 @@ export function routeOperationalLabel(block: TerritorialBlockProgress) {
   if (block.tipo_manzana === "reemplazo") {
     const primary = routePrimaryUmpLabel(block);
     const replacement = routeReplacementLabel(block);
-    return primary === "UMP por definir" ? replacement : `${primary}-${replacement}`;
+    return primary === "UMP por definir" ? replacement : `${primary} · ${replacement}`;
   }
   return routePrimaryUmpLabel(block);
 }
@@ -270,7 +279,11 @@ function routeSearchNeedles(query: unknown) {
   const withoutLeadingZeroes = normalized.replace(/\b0+(\d+)/g, "$1");
   const compact = normalized.replace(/\s+/g, "");
   const compactWithoutLeadingZeroes = withoutLeadingZeroes.replace(/\s+/g, "");
-  return Array.from(new Set([normalized, withoutLeadingZeroes, compact, compactWithoutLeadingZeroes].filter(Boolean)));
+  if (/^ump(?:\s|\d|$)/.test(normalized)) {
+    return Array.from(new Set([normalized, withoutLeadingZeroes, compact, compactWithoutLeadingZeroes].filter(Boolean)));
+  }
+  const umpKey = normalizeRouteUmpKey(query);
+  return Array.from(new Set([normalized, withoutLeadingZeroes, compact, compactWithoutLeadingZeroes, umpKey].filter(Boolean)));
 }
 
 function routeBlockSearchHaystack(block: TerritorialBlockProgress) {
@@ -296,7 +309,8 @@ function routeBlockSearchHaystack(block: TerritorialBlockProgress) {
   const normalized = values.map(normalizeRouteSearchText).filter(Boolean);
   const compact = normalized.map((value) => value.replace(/\s+/g, ""));
   const noLeadingZeroes = normalized.map((value) => value.replace(/\b0+(\d+)/g, "$1"));
-  return Array.from(new Set([...normalized, ...compact, ...noLeadingZeroes])).join(" ");
+  const umpKeys = values.map(normalizeRouteUmpKey).filter(Boolean);
+  return Array.from(new Set([...normalized, ...compact, ...noLeadingZeroes, ...umpKeys])).join(" ");
 }
 
 function routeUmpNumber(block: TerritorialBlockProgress) {

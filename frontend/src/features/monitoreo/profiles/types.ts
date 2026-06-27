@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { WorkbenchView } from "../core/monitoreoRegistry";
 
-export type MonitoreoFamilyId = "acreditacion" | "territorial" | "aulas_universitarias";
+export type MonitoreoFamilyId = "acreditacion" | "territorial" | "aulas_universitarias" | "telefonico";
 
 export type MonitoreoReportScope =
   | "source"

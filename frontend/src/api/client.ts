@@ -1917,7 +1917,7 @@ export async function apiMultiIntegratedDraftGet() {
   return normalizeMultiIntegratedDraft(raw.draft);
 }
 
-export async function apiMultiIntegratedDraftSave(draft: MultiIntegratedDraft, persistProject = true) {
+export async function apiMultiIntegratedDraftSave(draft: MultiIntegratedDraft, persistProject = false) {
   const raw = await handle<{ ok: true; draft?: unknown; project?: { saved?: boolean; error?: string; reason?: string; saved_at?: string } }>(
     await apiFetch("/api/multi/integrated/draft", {
       method: "PUT",
@@ -1932,7 +1932,7 @@ export async function apiMultiIntegratedDraftSave(draft: MultiIntegratedDraft, p
   };
 }
 
-export async function apiMultiIntegratedDraftClear(persistProject = true) {
+export async function apiMultiIntegratedDraftClear(persistProject = false) {
   return handle<{ ok: true }>(
     await apiFetch(`/api/multi/integrated/draft?persist_project=${persistProject ? "true" : "false"}`, {
       method: "DELETE",
@@ -3266,12 +3266,27 @@ export async function apiCargaData(file_id: string) {
 
 export type CargaPlatformProvider = "surveymonkey" | "kobo";
 
+export type KoboSourceSpec = {
+  asset_uid: string;
+  base_url: string;
+  connection_profile_id: string;
+  version_id: string;
+  date_modified: string;
+  deployment_active: boolean;
+  total_remote: number;
+  imported_at: string;
+  xlsform_file_id: string;
+  data_file_id: string;
+  source_title?: string;
+  source_alias?: string;
+};
+
 export type CargaPlatformImportResult = {
   ok: true;
   provider: CargaPlatformProvider;
   xlsform_file_id: string;
   data_file_id: string;
-  source: Record<string, unknown>;
+  source: Record<string, unknown> | KoboSourceSpec;
   resumen: Awaited<ReturnType<typeof apiCargaInstrumento>>["resumen"];
   preview: Awaited<ReturnType<typeof apiCargaData>>["preview"];
   estudio?: EstudioPayload | null;
@@ -3307,6 +3322,60 @@ export async function apiCargaImportKobo(payload: {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+function normalizeKoboAssets(raw: unknown) {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const arr = Array.isArray(r.assets) ? r.assets as Record<string, unknown>[] : [];
+  return {
+    ok: true as const,
+    count: Number(r.count ?? arr.length),
+    assets: arr
+      .map((item): MonitoreoKoboAssetItem => ({
+        uid: String(item.uid ?? ""),
+        name: String(item.name ?? item.uid ?? ""),
+        version_id: item.version_id == null || item.version_id === "NA" ? "" : String(item.version_id),
+        date_modified: item.date_modified == null || item.date_modified === "NA" ? null : String(item.date_modified),
+        deployment_active: item.deployment_active === true,
+      }))
+      .filter((item) => item.uid),
+  };
+}
+
+export async function apiCargaKoboAssets(
+  base_url = "https://kf.kobotoolbox.org",
+  limit = 100,
+  options: { profile_id?: string; connection_profile_id?: string } = {},
+) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/carga/platform/kobo/assets", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        base_url,
+        limit,
+        profile_id: options.profile_id ?? options.connection_profile_id ?? "",
+      }),
+    }),
+  );
+  return normalizeKoboAssets(raw);
+}
+
+export async function apiCargaKoboDetectedSource() {
+  return handle<(KoboSourceSpec & {
+    ok: true;
+    detected: true;
+    provider: "kobo";
+    phase: string;
+    name: string;
+  }) | {
+    ok: false;
+    detected: false;
+  }>(
+    await apiFetch("/api/carga/platform/kobo/detected-source", {
+      headers: headers(),
     }),
   );
 }
@@ -3983,6 +4052,8 @@ export type MonitoreoTerritorialConfig = {
     dismissed_candidates?: MonitoreoTerritorialSpatialReconciliationDismissal[];
     dismissed_patterns?: MonitoreoTerritorialSpatialReconciliationDismissal[];
   }>>;
+  operational_adjustments?: Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialOperationalAdjustment[]>>;
+  production_annulments?: Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialProductionAnnulment[]>>;
   validation_decisions: MonitoreoTerritorialValidationDecisions;
   field_occurrences?: MonitoreoFieldOccurrenceConfig;
 };
@@ -4081,13 +4152,21 @@ export type MonitoreoAulasDashboard = {
     aulas_aplicadas: number;
     aulas_parciales?: number;
 	    reemplazos_usados?: number;
+	    respuestas_total?: number;
 	    respuestas_validas: number;
+	    filter_passed?: number;
+	    filter_rejected?: number;
 	    brechas: number;
+	    quota_cells?: number;
+	    quota_cells_ok?: number;
+	    quota_cells_pending?: number;
 	    representativity_effective_score?: number;
 	    representativity_score_loss?: number;
 	  };
 	  agenda: MonitoreoAulasPlanRow[];
+	  course_status?: MonitoreoRow[];
 	  avance_por_estrato: MonitoreoRow[];
+	  quotas_sex_faculty?: MonitoreoRow[];
 	  brechas: MonitoreoRow[];
 	  reemplazos: MonitoreoRow[];
 	  representativity?: {
@@ -4244,6 +4323,181 @@ export type MonitoreoTerritorialSpatialReconciliationSummary = {
     dismissed_patterns?: number;
     in_queue?: number;
   };
+};
+
+export type MonitoreoTerritorialOperationalAdjustment = {
+  id?: string;
+  phase?: MonitoreoTerritorialPhase | string;
+  status?: "active" | "reverted" | string;
+  created_at?: string;
+  reverted_at?: string;
+  created_by?: string;
+  district: string;
+  ubigeo?: string;
+  sex: string;
+  age_group: string;
+  source_block_id: string;
+  source_ump?: string;
+  source_manzana?: string;
+  source_responsible?: string;
+  target_block_id: string;
+  target_ump?: string;
+  target_manzana?: string;
+  target_responsible?: string;
+  target_latest_activity?: string;
+  source_response_ids: string[];
+  count: number;
+  completion_package?: boolean;
+  package_id?: string;
+  package_index?: number;
+  package_movements?: number;
+  package_target_missing?: number;
+  adjustments?: MonitoreoTerritorialOperationalAdjustment[];
+  deficit_ids?: string[];
+  max_distance_km?: number | null;
+  reason?: string;
+  note?: string;
+  source_latest_activity?: string;
+  latest_activity?: string;
+  distance_km?: number | null;
+};
+
+export type MonitoreoTerritorialOperationalAdjustmentDeficit = {
+  id: string;
+  phase?: MonitoreoTerritorialPhase | string;
+  district: string;
+  ubigeo?: string;
+  sex: string;
+  age_group: string;
+  target_block_id: string;
+  target_ump?: string;
+  target_manzana?: string;
+  target_responsible?: string;
+  target_latest_activity?: string;
+  missing: number;
+  active_adjustments?: number;
+  status?: string;
+  match_status?: "eligible" | "blocked" | string;
+};
+
+export type MonitoreoTerritorialOperationalAdjustmentSurplus = {
+  id: string;
+  phase?: MonitoreoTerritorialPhase | string;
+  district: string;
+  ubigeo?: string;
+  sex: string;
+  age_group: string;
+  source_block_id: string;
+  source_ump?: string;
+  source_manzana?: string;
+  source_responsible?: string;
+  count: number;
+  response_ids?: string[];
+  source_latest_activity?: string;
+  latest_activity?: string;
+};
+
+export type MonitoreoTerritorialOperationalAdjustmentSuggestion = MonitoreoTerritorialOperationalAdjustment & {
+  id: string;
+  reason: string;
+};
+
+export type MonitoreoTerritorialOperationalAdjustmentsPayload = {
+  schema: "monitoreo_territorial_operational_adjustments_v1" | string;
+  reason?: string;
+  summary?: {
+    active?: number;
+    reverted?: number;
+    operational_gain?: number;
+    pending_cells?: number;
+    eligible_surplus?: number;
+    suggestions?: number;
+    blocked_cells?: number;
+  };
+  deficits?: MonitoreoTerritorialOperationalAdjustmentDeficit[];
+  surplus?: MonitoreoTerritorialOperationalAdjustmentSurplus[];
+  suggestions?: MonitoreoTerritorialOperationalAdjustmentSuggestion[];
+  applied?: MonitoreoTerritorialOperationalAdjustment[];
+};
+
+export type MonitoreoTerritorialProductionAnnulmentImpact = {
+  schema?: string;
+  responsible_key?: string;
+  responsible_label?: string;
+  responses_excluded?: number;
+  valid_responses_excluded?: number;
+  umps_affected?: number;
+  blocks_affected?: number;
+  before?: {
+    total_responses?: number;
+    valid_responses?: number;
+    progress_pct?: number | null;
+  };
+  after?: {
+    total_responses?: number;
+    valid_responses?: number;
+    progress_pct?: number | null;
+  };
+  blocks?: Array<{
+    id_manzana?: string;
+    ump?: string;
+    manzana?: string;
+    distrito?: string;
+    tipo_manzana?: string;
+    responsable?: string;
+    respuestas_anuladas?: number;
+    validas_anuladas?: number;
+    estado_antes?: string;
+    estado_despues?: string;
+    validas_antes?: number;
+    validas_despues?: number;
+    meta?: number;
+    brecha_despues?: number;
+  }>;
+  rows?: MonitoreoRow[];
+};
+
+export type MonitoreoTerritorialProductionAnnulment = {
+  id: string;
+  phase?: MonitoreoTerritorialPhase | string;
+  status?: "active" | "reverted" | string;
+  scope?: "all_production" | string;
+  responsible_key: string;
+  responsible_label: string;
+  reason?: string;
+  note?: string;
+  created_at?: string;
+  created_by?: string;
+  reverted_at?: string;
+  reverted_by?: string;
+  revert_reason?: string;
+  impact?: MonitoreoTerritorialProductionAnnulmentImpact;
+};
+
+export type MonitoreoTerritorialProductionAnnulmentsPayload = {
+  schema?: string;
+  phase?: MonitoreoTerritorialPhase | string;
+  summary?: {
+    active?: number;
+    reverted?: number;
+    annulled_responses?: number;
+    affected_umps?: number;
+    affected_blocks?: number;
+  };
+  responsibles?: Array<{
+    key: string;
+    label: string;
+    pulso_code?: string;
+    responses?: number;
+    valid_responses?: number;
+    umps?: number;
+    districts?: string;
+    latest_activity?: string;
+    status?: "activo" | "anulado" | string;
+  }>;
+  entries?: MonitoreoTerritorialProductionAnnulment[];
+  rows?: MonitoreoRow[];
+  affected_blocks?: MonitoreoTerritorialProductionAnnulmentImpact["blocks"];
 };
 
 export type MonitoreoTerritorialReconciliationBatchChange =
@@ -4799,6 +5053,7 @@ export type MonitoreoInternalQueryFlow = {
 export type MonitoreoInternalQueries = {
   schema: string;
   cases: MonitoreoInternalQueryCase[];
+  case_rollup?: MonitoreoInternalQueryCase[];
   totals: {
     actor: MonitoreoInternalQueryTotal[];
     date: MonitoreoInternalQueryTotal[];
@@ -4950,6 +5205,7 @@ export type TerritorialResponseAuditRow = {
   gps_effective_geometry_match?: string;
   gps_reclassified?: boolean;
   gps_reclassification_note?: string;
+  gps_nearest_differs_operational?: boolean;
   declared_ump_raw?: string;
   declared_ump_normalized?: string;
   advance_block_id?: string;
@@ -5715,6 +5971,8 @@ export type MonitoreoTerritorialDashboard = {
   };
   route_quota_progress?: TerritorialQuotaProgressPayload;
   spatial_reconciliation?: MonitoreoTerritorialSpatialReconciliationSummary;
+  operational_adjustments?: MonitoreoTerritorialOperationalAdjustmentsPayload;
+  production_annulments?: MonitoreoTerritorialProductionAnnulmentsPayload;
   route_quota_marginals?: {
     blocks: Array<{
       id_manzana?: string;
@@ -6145,21 +6403,7 @@ export async function apiMonitoreoKoboAssets(
       }),
     }),
   );
-  const r = (raw ?? {}) as Record<string, unknown>;
-  const arr = Array.isArray(r.assets) ? r.assets as Record<string, unknown>[] : [];
-  return {
-    ok: true as const,
-    count: Number(r.count ?? arr.length),
-    assets: arr
-      .map((item): MonitoreoKoboAssetItem => ({
-        uid: String(item.uid ?? ""),
-        name: String(item.name ?? item.uid ?? ""),
-        version_id: item.version_id == null || item.version_id === "NA" ? "" : String(item.version_id),
-        date_modified: item.date_modified == null || item.date_modified === "NA" ? null : String(item.date_modified),
-        deployment_active: item.deployment_active === true,
-      }))
-      .filter((item) => item.uid),
-  };
+  return normalizeKoboAssets(raw);
 }
 
 export type MonitoreoTerritorialKoboInspection = {
@@ -6297,6 +6541,131 @@ export async function apiMonitoreoTerritorialSpatialReconciliationDismissPattern
     saved_project?: boolean;
   }>(
     await apiFetch("/api/monitoreo/territorial/spatial-reconciliation/dismiss-pattern", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOperationalAdjustmentApply(
+  adjustment: MonitoreoTerritorialOperationalAdjustment,
+) {
+  return handle<{
+    ok: true;
+    adjustment: MonitoreoTerritorialOperationalAdjustment;
+    adjustments?: MonitoreoTerritorialOperationalAdjustment[];
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/operational-adjustments/apply", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ adjustment }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOperationalAdjustmentReset(payload: {
+  phase?: MonitoreoTerritorialPhase | string;
+  reason?: string;
+} = {}) {
+  return handle<{
+    ok: true;
+    phase: MonitoreoTerritorialPhase | string;
+    active_before: number;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/operational-adjustments/reset", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOperationalAdjustmentRevert(payload: {
+  id: string;
+  phase?: MonitoreoTerritorialPhase;
+  reason?: string;
+}) {
+  return handle<{
+    ok: true;
+    adjustment_id: string;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/operational-adjustments/revert", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialProductionAnnulmentPreview(payload: {
+  phase?: MonitoreoTerritorialPhase;
+  responsible_key: string;
+  responsible_label?: string;
+  reason?: string;
+  note?: string;
+}) {
+  return handle<{
+    ok: true;
+    annulment_id: string;
+    impact: MonitoreoTerritorialProductionAnnulmentImpact;
+    production_annulments?: MonitoreoTerritorialProductionAnnulmentsPayload;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/annulments/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialProductionAnnulmentApply(payload: {
+  phase?: MonitoreoTerritorialPhase;
+  responsible_key: string;
+  responsible_label?: string;
+  reason: string;
+  note?: string;
+}) {
+  return handle<{
+    ok: true;
+    annulment_id: string;
+    annulment?: MonitoreoTerritorialProductionAnnulment;
+    impact: MonitoreoTerritorialProductionAnnulmentImpact;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/annulments/apply", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialProductionAnnulmentRevert(payload: {
+  id: string;
+  phase?: MonitoreoTerritorialPhase;
+  reason?: string;
+}) {
+  return handle<{
+    ok: true;
+    annulment_id: string;
+    impact?: MonitoreoTerritorialProductionAnnulmentImpact | Record<string, unknown>;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/annulments/revert", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -8821,6 +9190,9 @@ export type GraficadorMetadata = {
   icono_ui: string;
   // "dimensiones" indica que requiere reporte_dimensiones() ejecutado primero
   requisito?: string;
+  feature_kind?: string;
+  available?: boolean;
+  disabled_reason?: string;
   args: ArgMetadata[];
   args_extra: string[];
 };
@@ -8964,6 +9336,26 @@ export type TemplateMeta = {
 export async function apiGraficosTemplates() {
   return handle<{ templates: TemplateMeta[] }>(
     await apiFetch("/api/graficos/templates", { headers: headers() })
+  );
+}
+
+// Perfiles visuales de presentación. No modifican el plan de slides:
+// aplican presets PPT, paletas, overrides y reglas de alcance al estado actual.
+export type PptStyleProfileMeta = {
+  name: string;
+  titulo_humano: string;
+  descripcion: string;
+  icono_ui: string;
+  preview_colors: string[];
+  presets: Record<string, Record<string, unknown>>;
+  paletas?: Record<string, Record<string, string>>;
+  overrides_reusables?: OverrideDefaultEntry[];
+  scope_rules?: Record<string, unknown>;
+};
+
+export async function apiGraficosPptStyleProfiles() {
+  return handle<{ style_profiles: PptStyleProfileMeta[] }>(
+    await apiFetch("/api/graficos/ppt-style-profiles", { headers: headers() })
   );
 }
 
@@ -11373,6 +11765,33 @@ export async function apiProjectSave(path: string | null = null, projectName?: s
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
+    })
+  );
+}
+
+export async function apiProjectDuplicate(payload: {
+  source_path?: string | null;
+  target_path: string;
+  project_name?: string;
+  open_copy?: boolean;
+  overwrite?: boolean;
+}) {
+  return handle<{
+    ok: true;
+    duplicated: true;
+    path: string;
+    source_path: string;
+    target_path: string;
+    project_name: string;
+    opened: boolean;
+    session_id: string;
+    size: number;
+    saved_at: string;
+  }>(
+    await apiFetch("/api/project/duplicate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
     })
   );
 }

@@ -6,8 +6,8 @@ Fecha: 2026-06-24
 
 ## Contexto
 
-Monitoreo concentra tres familias activas (`acreditacion`, `territorial` y
-`aulas_universitarias`) dentro de una misma entrada de navegacion. El archivo
+Monitoreo concentra cuatro familias activas (`acreditacion`, `territorial`,
+`aulas_universitarias` y `telefonico`) dentro de una misma entrada de navegacion. El archivo
 frontend principal de Monitoreo crecio hasta mezclar shell, mapas, validacion,
 avance, consultas, aulas y acreditacion, lo que genera chunks grandes y hace
 que el arranque de desarrollo pague costos que no siempre corresponden al
@@ -26,12 +26,19 @@ navegacion. Internamente, el frontend debe organizarse por perfiles dinamicos:
 - `acreditacion`
 - `territorial`
 - `aulas_universitarias`
+- `telefonico`
 
 Cada perfil declara sus vistas y scopes de datos en un contrato propio. El
 warmup y los preloads deben resolver la familia desde `monitoreo_profile.family`
 para preparar solo el perfil activo del proyecto. Territorial mantiene vistas
 separables para fuentes, manzanas/mapa, avance, validacion, consultas y
 ocurrencias.
+
+La ruta `/monitoreo` debe montar una entrada liviana (`MonitoreoShell`) que
+resuelva el perfil activo antes de cargar la UI de familia. El workbench
+heredado de `MonitoreoPage.tsx` puede seguir existiendo como fallback durante la
+transicion, pero no debe ser importado de forma estatica por `AppSuite` ni por
+el warmup principal del modulo.
 
 Vite debe declarar chunks manuales para dependencias pesadas y fronteras de
 Monitoreo: Plotly, tablas/interacciones, cartografia, core de Monitoreo,
@@ -88,6 +95,10 @@ esta probando una API distinta.
   estricto.
 - `frontend/src/features/monitoreo/profiles/registry.ts` debe exponer loaders
   dinamicos por familia activa.
+- `frontend/src/app/App.tsx` debe montar `MonitoreoShell` para `/monitoreo` y
+  no importar directamente `virtual:monitoreo-page`.
+- `frontend/src/app/warmupRegistry.ts` debe precargar la entrada liviana de
+  Monitoreo y dejar que el contrato de familia decida que UI pesada cargar.
 - El warmup de cartografia territorial no debe importar
   `MonitoreoPage.tsx`.
 - `frontend/vite.config.ts` debe declarar chunks manuales para Plotly,

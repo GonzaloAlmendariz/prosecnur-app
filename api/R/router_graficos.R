@@ -467,20 +467,27 @@
       src
     }
   }
+  finalize_sources <- function(src) {
+    src <- normalize_sources(src)
+    if (exists(".graficos_add_virtual_koica_group_sources", mode = "function")) {
+      src <- tryCatch(.graficos_add_virtual_koica_group_sources(sid, src), error = function(e) src)
+    }
+    src
+  }
 
   sources <- .graficos_raw_processing_sources(sid)
   valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
-  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(normalize_sources(valid))
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(finalize_sources(valid))
 
   if (.graficos_rebuild_runtime_sources(sid)) {
     sources <- .graficos_raw_processing_sources(sid)
     valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
-    if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(normalize_sources(valid))
+    if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(finalize_sources(valid))
   }
 
   legacy <- .graficos_legacy_mirror_sources(sid)
   valid <- .graficos_filter_valid_sources(legacy$data_sources, legacy$inst_sources)
-  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(normalize_sources(valid))
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(finalize_sources(valid))
 
   list(data_sources = list(), inst_sources = list())
 }
@@ -1758,7 +1765,19 @@ mount_graficos <- function(pr) {
       # con titulo_humano, descripcion, icono_ui, categoria y args (cada
       # uno con label, tipo_input, grupo, descripcion, choices si aplica).
       # El frontend construye toda la UI de edición a partir de esto.
-      .graficos_registry_payload()
+      sid <- session_header(req)
+      capabilities <- list()
+      if (!is.null(sid) && exists(".graficos_territorial_coverage_capabilities", mode = "function")) {
+        capabilities$territorial_coverage <- tryCatch(
+          .graficos_territorial_coverage_capabilities(sid),
+          error = function(e) list(
+            has_coverage_maps = FALSE,
+            available = FALSE,
+            disabled_reason = "Mapa de cobertura disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial."
+          )
+        )
+      }
+      .graficos_registry_payload(capabilities = capabilities)
     })) |>
     plumber::pr_get("/api/graficos/templates", wrap_endpoint(function(req, res) {
       # Catálogo de planes pre-armados (plan mínimo, reporte ejecutivo,
@@ -1767,6 +1786,12 @@ mount_graficos <- function(pr) {
       # Los `plan.slides[*].id` son placeholder — el frontend los regenera
       # al aplicar el template para evitar colisiones con slides existentes.
       .templates_payload()
+    })) |>
+    plumber::pr_get("/api/graficos/ppt-style-profiles", wrap_endpoint(function(req, res) {
+      # Catálogo de estilos visuales de presentación. A diferencia de
+      # /templates, estos perfiles no crean slides: aplican presets PPT,
+      # paletas y overrides al plan actual.
+      .ppt_style_profiles_payload()
     })) |>
     plumber::pr_get("/api/graficos/preview-renderer", wrap_endpoint(function(req, res) {
       c(list(ok = TRUE), .preview_renderer_status())

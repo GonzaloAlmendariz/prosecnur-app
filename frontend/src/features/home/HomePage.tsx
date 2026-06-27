@@ -15,7 +15,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiShutdown, type SessionState } from "../../api/client";
+import type { SessionState } from "../../api/client";
 import { useLayoutPreset, type LayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
 import {
@@ -23,7 +23,7 @@ import {
   homeModuleVars,
   type ProsecnurModuleMeta,
 } from "../../lib/modules";
-import { ExitDialog } from "./ExitDialog";
+import { useProjectShell } from "../project/ProjectShell";
 import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import {
   type ReleaseNote,
@@ -312,10 +312,10 @@ function computeMeta(
 // =====================================================================
 export default function HomePage() {
   const { state, version } = useSession();
+  const { requestAppExit } = useProjectShell();
   const location = useLocation();
   const proc = useProcesamientoState();
   const [layoutPreset] = useLayoutPreset();
-  const [exitOpen, setExitOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -330,7 +330,7 @@ export default function HomePage() {
       <ModulesGrid state={state} proc={proc} layoutPreset={layoutPreset} />
       <HomeFooter
         version={version}
-        onClose={() => setExitOpen(true)}
+        onClose={requestAppExit}
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
@@ -341,32 +341,8 @@ export default function HomePage() {
         onClose={() => setSettingsOpen(false)}
       />
 
-      {exitOpen && (
-        <ExitDialog
-          onCancel={() => setExitOpen(false)}
-          onConfirm={doShutdown}
-        />
-      )}
     </div>
   );
-}
-
-function doShutdown() {
-  apiShutdown()
-    .then(() => {
-      try {
-        window.close();
-      } catch {
-        /* ignore */
-      }
-    })
-    .catch(() => {
-      try {
-        window.close();
-      } catch {
-        /* ignore */
-      }
-    });
 }
 
 // =====================================================================

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   apiCreateSession,
   apiProjectClose,
+  apiProjectDuplicate,
   apiProjectOpen,
   apiProjectSave,
   apiProjectStatus,
@@ -45,6 +46,12 @@ function projectNameFromPath(path: string) {
   const normalized = path.replace(/\\/g, "/");
   const base = normalized.split("/").filter(Boolean).pop() ?? path;
   return base.replace(/\.pulso$/i, "");
+}
+
+function duplicateDefaultName(name: string | null | undefined): string {
+  const clean = (name ?? "").trim();
+  if (/acnur/i.test(clean)) return "copia prueba ACNUR";
+  return `copia prueba ${clean || "Proyecto"}`;
 }
 
 function readBootProjectStatus(): ProjectStatus {
@@ -93,15 +100,17 @@ export function useProject(sessionId?: string) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const refresh = useCallback(async () => {
-    if (!sessionId) return;
+  const refresh = useCallback(async (): Promise<ProjectStatus | null> => {
+    if (!sessionId) return null;
     try {
       const s = await apiProjectStatus();
       rememberProjectStatus(s);
       setStatus(s);
+      return s;
     } catch (e) {
       // Falla silenciosa — el polling reintenta.
       // No spamear UI cuando el backend está reiniciando.
+      return null;
     }
   }, [sessionId]);
 
@@ -119,7 +128,7 @@ export function useProject(sessionId?: string) {
   }, []);
 
   // Polling regular del status para mantener el header actualizado (last
-  // saved hace X min, dirty cuando vuelve a TRUE tras autosave, etc.).
+  // saved hace X min, dirty cuando los modulos marcan cambios pendientes).
   useEffect(() => {
     void refresh();
     void refreshRecents();
@@ -239,6 +248,46 @@ export function useProject(sessionId?: string) {
     }
   }, [status.name, status.path, refresh, refreshRecents]);
 
+  const duplicate = useCallback(async (defaultName?: string, pathOpt?: string) => {
+    const electronApi = window.prosecnurApi;
+    setError("");
+    if (!status.has_project) {
+      setError("No hay proyecto abierto para duplicar.");
+      return null;
+    }
+    setBusy(true);
+    try {
+      let path: string | null = pathOpt ?? null;
+      if (!path) {
+        if (!electronApi) {
+          throw new Error("Pasa un path al .pulso o usa la app de escritorio.");
+        }
+        path = await electronApi.saveProjectDialog(
+          defaultName ?? duplicateDefaultName(status.name),
+          { defaultPath: dirname(status.path) },
+        );
+      }
+      if (!path) return null;
+      await flushGraficosConfigIfHydrated();
+      await flushHojasRutaWorkspaceIfHydrated();
+      const r = await apiProjectDuplicate({
+        target_path: path,
+        project_name: projectNameFromPath(path),
+        open_copy: true,
+        overwrite: false,
+      });
+      if (electronApi) await electronApi.pushRecentProject(r.path);
+      await refresh();
+      await refreshRecents();
+      return r;
+    } catch (e) {
+      setError((e as Error).message);
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, [status.has_project, status.name, status.path, refresh, refreshRecents]);
+
   const removeRecent = useCallback(async (path: string) => {
     const electronApi = window.prosecnurApi;
     if (!electronApi) {
@@ -280,12 +329,13 @@ export function useProject(sessionId?: string) {
       newProject,
       save,
       saveAs,
+      duplicate,
       close,
       removeRecent,
       refresh,
       refreshRecents,
     }),
-    [status, recents, busy, error, open, newProject, save, saveAs, close, removeRecent, refresh, refreshRecents],
+    [status, recents, busy, error, open, newProject, save, saveAs, duplicate, close, removeRecent, refresh, refreshRecents],
   );
 }
 

@@ -81,6 +81,10 @@ function safePercent(part: number | null | undefined, total: number | null | und
   return (part / total) * 100;
 }
 
+function stateValueLabel(value: number, total: number) {
+  return `${formatMetric(value)} (${formatPercent(safePercent(value, total))})`;
+}
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "Sin fecha";
   const date = new Date(value);
@@ -395,7 +399,7 @@ function PublicationModelLanding({ model }: { model: MonitoreoPublicationModel }
         labelKeys={isAccreditation ? ["Actor", "Segmento", "Indicador"] : ["Distrito", "distrito", "UMP", "Manzana", "Indicador"]}
         doneKeys={["Efectivas", "Válidas", "Validas", "Casos efectivos", "total"]}
         targetKeys={isAccreditation && !isInternal ? ["Universo", "Total"] : ["Mínimo/meta operativa", "Mínimo/meta", "Minimo/meta", "Referencia operativa", "Meta", "Cuota", "target", "Universo", "Total"]}
-        targetLabel={isAccreditation && !isInternal ? "Universo" : "Referencia"}
+        targetLabel={isAccreditation && !isInternal ? "Base reportada" : "Referencia"}
         percentKeys={isAccreditation && !isInternal ? ["% avance universo", "% cobertura", "% avance", "avance_pct"] : ["% sobre mínimo", "% avance mínimo", "% avance minimo", "% avance universo", "% cobertura", "% avance", "avance_pct", "% cumplimiento"]}
       />
       <PublicationDailyProgress model={model} isAccreditation={isAccreditation} isInternal={isInternal} />
@@ -833,19 +837,76 @@ function MetricGrid({ metrics }: { metrics: PublicMetric[] }) {
   );
 }
 
+type AccreditationStateSummary = {
+  universe: number;
+  effective: number;
+  partial: number;
+  refusal: number;
+  unanswered: number;
+  reference: number | null;
+  referenceLabel: string;
+};
+
+function accreditationState(row: MonitoreoRow | Record<string, unknown>): AccreditationStateSummary {
+  const universe = rowNumber(row, ["Universo", "Total"]) ?? 0;
+  const effective = rowNumber(row, ["Efectivas", "Completas", "Validas", "Válidas"]) ?? 0;
+  const partial = rowNumber(row, ["Parciales"]) ?? 0;
+  const refusal = rowNumber(row, ["Rechazo", "Rechazos plataforma", "Rechazos"]) ?? 0;
+  const rawUnanswered = rowNumber(row, ["Sin respuesta"]);
+  const unanswered = rawUnanswered ?? Math.max(0, universe - effective - partial - refusal);
+  const reference = rowNumber(row, ["Referencia operativa", "Meta", "Mínimo", "Minimo"]);
+  const referenceLabel = rowText(row, ["Referencia etiqueta"], "Mínimo a alcanzar");
+  return {
+    universe: Math.max(0, universe),
+    effective: Math.max(0, effective),
+    partial: Math.max(0, partial),
+    refusal: Math.max(0, refusal),
+    unanswered: Math.max(0, unanswered),
+    reference: reference != null && Number.isFinite(reference) && reference > 0 ? reference : null,
+    referenceLabel,
+  };
+}
+
+function accreditationTotals(actors: MonitoreoRow[], summaryRows: MonitoreoRow[] = []): AccreditationStateSummary {
+  const totals = actors.reduce<AccreditationStateSummary>((acc, row) => {
+    const state = accreditationState(row);
+    acc.universe += state.universe;
+    acc.effective += state.effective;
+    acc.partial += state.partial;
+    acc.refusal += state.refusal;
+    acc.unanswered += state.unanswered;
+    if (state.reference) acc.reference = (acc.reference ?? 0) + state.reference;
+    acc.referenceLabel = state.referenceLabel || acc.referenceLabel;
+    return acc;
+  }, { universe: 0, effective: 0, partial: 0, refusal: 0, unanswered: 0, reference: null, referenceLabel: "Mínimo a alcanzar" });
+
+  if (!actors.length) {
+    totals.universe = metricNumber(summaryRows, "Universo") ?? 0;
+    totals.effective = metricNumber(summaryRows, "Efectivas") ?? 0;
+    totals.partial = metricNumber(summaryRows, "Parciales") ?? 0;
+    totals.refusal = metricNumber(summaryRows, "Rechazo") ?? metricNumber(summaryRows, "Rechazos plataforma") ?? 0;
+    totals.unanswered = metricNumber(summaryRows, "Sin respuesta") ?? Math.max(0, totals.universe - totals.effective - totals.partial - totals.refusal);
+  }
+  if (totals.universe > 0 && totals.unanswered <= 0) {
+    totals.unanswered = Math.max(0, totals.universe - totals.effective - totals.partial - totals.refusal);
+  }
+  return totals;
+}
+
 function AccreditationReport({ payload }: { payload: MonitoreoPublicReportPayload }) {
   const report = payload.accreditation!;
   const actors = report.actors ?? [];
   const daily = report.daily_general ?? [];
   const sources = report.sources ?? [];
   const metrics = useMemo<PublicMetric[]>(() => {
-    const universe = actors.reduce((sum, row) => sum + (rowNumber(row, ["Universo"]) ?? 0), 0);
-    const effective = actors.reduce((sum, row) => sum + (rowNumber(row, ["Efectivas"]) ?? 0), 0);
-    const pending = Math.max(0, universe - effective);
+    const totals = accreditationTotals(actors, report.summary);
+    const referenceHint = totals.reference ? `${totals.referenceLabel}: ${formatMetric(totals.reference)}` : `${actors.length.toLocaleString("es-PE")} actores`;
     return [
-      { label: "Efectivas", value: formatMetric(effective || metricNumber(report.summary, "Efectivas")), hint: `${formatPercent(safePercent(effective, universe))} del universo`, tone: "ready" },
-      { label: "Universo", value: formatMetric(universe || metricNumber(report.summary, "Universo")), hint: `${actors.length.toLocaleString("es-PE")} actores`, tone: "base" },
-      { label: "Pendientes", value: formatMetric(pending), hint: "contra universo", tone: pending ? "warning" : "ready" },
+      { label: "Efectivas", value: stateValueLabel(totals.effective, totals.universe), hint: "sobre la base reportada", tone: "ready" },
+      { label: "Parciales", value: stateValueLabel(totals.partial, totals.universe), hint: "sobre la base reportada", tone: totals.partial ? "warning" : "base" },
+      { label: "Rechazo", value: stateValueLabel(totals.refusal, totals.universe), hint: "sobre la base reportada", tone: totals.refusal ? "danger" : "base" },
+      { label: "Sin respuesta", value: stateValueLabel(totals.unanswered, totals.universe), hint: "sobre la base reportada", tone: totals.unanswered ? "warning" : "ready" },
+      { label: "Base reportada", value: formatMetric(totals.universe), hint: referenceHint, tone: "base" },
     ];
   }, [actors, report.summary]);
 
@@ -1070,22 +1131,41 @@ function ActorProgress({ actors }: { actors: MonitoreoRow[] }) {
       <div className="mon-public-progress-list">
         {actors.map((row) => {
           const actor = rowText(row, ["Actor"], "Sin actor");
-          const effective = rowNumber(row, ["Efectivas"]) ?? 0;
-          const universe = rowNumber(row, ["Universo"]) ?? 0;
-          const progress = rowNumber(row, ["Avance universo"]) ?? safePercent(effective, universe) ?? 0;
-          const pending = Math.max(0, universe - effective);
+          const state = accreditationState(row);
+          const progress = rowNumber(row, ["Avance universo"]) ?? safePercent(state.effective, state.universe) ?? 0;
+          const total = Math.max(1, state.universe || state.effective + state.partial + state.refusal + state.unanswered);
+          const states = [
+            { key: "effective", label: "Efectivas", value: state.effective },
+            { key: "partial", label: "Parciales", value: state.partial },
+            { key: "refusal", label: "Rechazo", value: state.refusal },
+            { key: "unanswered", label: "Sin respuesta", value: state.unanswered },
+          ];
           return (
             <section key={actor} className="mon-public-progress-card">
               <header>
                 <strong>{actor}</strong>
                 <span>{formatPercent(progress)}</span>
               </header>
-              <div className="mon-public-meter"><i style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} /></div>
+              <div className="mon-public-state-meter" aria-label={`${actor}: estado de respuesta`}>
+                {states.map((item) => {
+                  const share = total > 0 ? Math.max(0, (item.value / total) * 100) : 0;
+                  return (
+                    <i key={item.key} className={`is-${item.key}`} style={{ width: `${share}%` }}>
+                      {share >= 3 ? <span>{share >= 8 ? `${item.label} ${formatPercent(share)}` : formatPercent(share)}</span> : null}
+                    </i>
+                  );
+                })}
+              </div>
               <dl>
-                <div><dt>Efectivas</dt><dd>{formatMetric(effective)}</dd></div>
-                <div><dt>Universo</dt><dd>{formatMetric(universe)}</dd></div>
-                <div><dt>Pendientes</dt><dd>{formatMetric(pending)}</dd></div>
+                <div><dt>Efectivas</dt><dd>{stateValueLabel(state.effective, total)}</dd></div>
+                <div><dt>Parciales</dt><dd>{stateValueLabel(state.partial, total)}</dd></div>
+                <div><dt>Rechazo</dt><dd>{stateValueLabel(state.refusal, total)}</dd></div>
+                <div><dt>Sin respuesta</dt><dd>{stateValueLabel(state.unanswered, total)}</dd></div>
               </dl>
+              <p className="mon-public-progress-note">
+                Base reportada: {formatMetric(state.universe)}
+                {state.reference ? ` · ${state.referenceLabel}: ${formatMetric(state.reference)}` : ""}
+              </p>
             </section>
           );
         })}

@@ -65,6 +65,9 @@ function normalizeGraficadorMetadata(graf: GraficadorMetadata): GraficadorMetada
     descripcion: safeText(graf.descripcion),
     icono_ui: safeText(graf.icono_ui, "BarChart"),
     requisito: safeText(graf.requisito),
+    feature_kind: safeText(graf.feature_kind),
+    available: graf.available !== false,
+    disabled_reason: safeText(graf.disabled_reason),
     args: Array.isArray(graf.args) ? graf.args.map(normalizeArgMetadata) : [],
     args_extra: Array.isArray(graf.args_extra) ? graf.args_extra.map((arg) => safeText(arg)).filter(Boolean) : [],
   };

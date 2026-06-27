@@ -252,6 +252,61 @@
   line-height: 1.45;
 }
 
+.ter-local-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: -2px 0 8px;
+}
+
+.ter-local-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  color: var(--pulso-text);
+  text-align: left;
+  background: var(--pulso-surface);
+}
+
+.ter-local-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 36%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 8%, var(--pulso-surface));
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.ter-local-tabs svg {
+  flex: 0 0 auto;
+  color: var(--module-accent, var(--pulso-module-monitoring));
+}
+
+.ter-local-tabs span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ter-local-tabs strong,
+.ter-local-tabs em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ter-local-tabs strong {
+  font-size: 13px;
+}
+
+.ter-local-tabs em {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+}
+
 .ter-kpi-strip,
 .ter-stat-row {
   display: grid;

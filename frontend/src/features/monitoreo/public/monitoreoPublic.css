@@ -761,6 +761,54 @@
   background: linear-gradient(90deg, var(--pulso-success-fg), var(--pulso-module-dashboard));
 }
 
+.mon-public-state-meter {
+  height: 20px;
+  display: flex;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border) 70%, white);
+}
+
+.mon-public-state-meter i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+}
+
+.mon-public-state-meter span {
+  overflow: hidden;
+  padding: 0 5px;
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.mon-public-state-meter .is-effective {
+  background: #168a55;
+}
+
+.mon-public-state-meter .is-partial {
+  background: #b7791f;
+}
+
+.mon-public-state-meter .is-refusal {
+  background: #be123c;
+}
+
+.mon-public-state-meter .is-unanswered {
+  background: #98a2b3;
+}
+
+.mon-public-state-meter .is-unanswered span {
+  color: var(--pulso-text);
+}
+
 .mon-public-progress-card dl {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -782,6 +830,13 @@
   font-size: 13px;
   font-weight: 820;
   font-variant-numeric: tabular-nums;
+}
+
+.mon-public-progress-note {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 750;
 }
 
 .mon-public-table-wrap {

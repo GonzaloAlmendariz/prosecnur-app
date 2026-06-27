@@ -2,13 +2,23 @@ import { useEffect, useState } from "react";
 import { apiGraficosRegistry, Registry, SlideMetadata, GraficadorMetadata } from "../../api/client";
 import { normalizeGraficosRegistry } from "./metadataSanitizers";
 
-// Hook que carga y cachea el registry de slides + graficadores. Los
-// datos son inmutables para una misma versión de prosecnur, así que
-// los cacheamos a nivel módulo: una sola request por tab, compartida
-// entre todos los componentes que la necesiten.
-
-let cache: Registry | null = null;
+// Hook que carga el registry de slides + graficadores. El catálogo base es
+// estable, pero algunas capacidades dependen del proyecto abierto (por ejemplo,
+// mapas territoriales), así que solo deduplicamos requests concurrentes.
 let pending: Promise<Registry> | null = null;
+
+function requestRegistry() {
+  if (!pending) {
+    const request = apiGraficosRegistry().then((r) => normalizeGraficosRegistry(r));
+    pending = request;
+    request.then(() => {
+      if (pending === request) pending = null;
+    }, () => {
+      if (pending === request) pending = null;
+    });
+  }
+  return pending;
+}
 
 export function useGraficosRegistry(): {
   registry: Registry | null;
@@ -17,29 +27,28 @@ export function useGraficosRegistry(): {
   loading: boolean;
   error: string;
 } {
-  const [registry, setRegistry] = useState<Registry | null>(cache);
-  const [loading, setLoading] = useState<boolean>(!cache);
+  const [registry, setRegistry] = useState<Registry | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    if (cache) return;
-    if (!pending) {
-      pending = apiGraficosRegistry().then((r) => {
-        const normalized = normalizeGraficosRegistry(r);
-        cache = normalized;
-        pending = null;
-        return normalized;
-      });
-    }
-    pending
+    let alive = true;
+    setLoading(true);
+    setError("");
+    requestRegistry()
       .then((r) => {
+        if (!alive) return;
         setRegistry(r);
         setLoading(false);
       })
       .catch((e) => {
+        if (!alive) return;
         setError((e as Error).message);
         setLoading(false);
       });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Pre-calculamos maps name → metadata para lookups O(1) en los
@@ -55,6 +64,5 @@ export function useGraficosRegistry(): {
 }
 
 export function invalidateRegistry() {
-  cache = null;
   pending = null;
 }

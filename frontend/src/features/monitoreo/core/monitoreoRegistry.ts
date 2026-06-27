@@ -103,16 +103,17 @@ export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
     family: "telefonico",
     label: "Monitoreo telefónico",
     shortLabel: "Telefónico",
-    status: "planned",
+    status: "active",
     icon: PhoneCall,
-    eyebrow: "Planificado",
+    eyebrow: "Disponible en v1",
     title: "Telefónico",
-    summary: "Operación de llamadas, intentos, operadores, estados de contacto y cierre de muestra.",
-    details: ["Call center", "Intentos", "Operadores", "No efectivos"],
+    summary: "Operación de llamadas conectada a marco muestral, base de barrido, responsables y cuotas por segmento.",
+    details: ["Marco muestral", "Barrido telefónico", "Ratio de insistencia", "Metas por segmento"],
     sourceRoles: [
-      { label: "Base de contactos", detail: "Marco telefónico y prioridad" },
-      { label: "Registro de llamadas", detail: "Intentos, estados y operador" },
-      { label: "Respuestas", detail: "Efectivas, rechazos y no contacto" },
+      { label: "Marco muestral", detail: "Universo contactable, segmentos y metas" },
+      { label: "Base de barrido", detail: "Responsables, intentos, estados y prioridad" },
+      { label: "Respuestas", detail: "Efectivas, rechazos, parciales y plataforma" },
+      { label: "Cuotas", detail: "Avance por segmento y brechas operativas" },
     ],
   },
 ];
@@ -120,7 +121,7 @@ export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
 export const WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Sheets, encuestas y recopiladores", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas, mecanismos y barrido", icon: ListChecks },
-  { key: "consultas", label: "Explorador", shortLabel: "Explorador", desc: "Universo, casos y trazabilidad", icon: Search },
+  { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Casos, cruces y trazabilidad", icon: Search },
   { key: "telefonico", label: "Monitoreo telefónico", shortLabel: "Teléfono", desc: "Modelo, barrido y supervisión", icon: PhoneCall },
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cumplimiento y brechas", icon: BarChart3 },
 ];

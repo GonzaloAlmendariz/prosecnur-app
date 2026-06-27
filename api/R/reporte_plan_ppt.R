@@ -680,26 +680,65 @@ reporte_ppt_plan <- function(
 
   .styled_slide_title <- function(text, spec) {
     base_args <- presets$base$args %||% list()
-    font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+    is_cover_title <- identical(as.character(spec$type)[1], "ctrTitle")
+
+    font_family <- if (is_cover_title) {
+      base_args$font_family_titulo_portada %||% base_args$font_family_portada %||%
+        base_args$font_family_ppt %||% base_args$font_family
+    } else {
+      base_args$font_family_ppt %||% base_args$font_family
+    }
+    font_family <- font_family %||% "Arial"
     font_family <- as.character(font_family)[1]
     if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
 
-    font_size <- suppressWarnings(as.numeric(base_args$size_titulo_slide %||% 24)[1])
+    font_size_value <- if (is_cover_title) {
+      base_args$size_titulo_portada %||% base_args$title_cover_size %||% base_args$size_titulo_slide
+    } else {
+      base_args$size_titulo_slide
+    }
+    font_size <- suppressWarnings(as.numeric(font_size_value %||% 24)[1])
     if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 24
 
-    color <- base_args$color_titulo %||% "#CA5651"
+    color <- if (is_cover_title) {
+      base_args$color_titulo_portada %||% base_args$title_cover_color %||% base_args$color_titulo
+    } else {
+      base_args$color_titulo
+    }
+    color <- color %||% "#CA5651"
     color <- as.character(color)[1]
     if (is.na(color) || !nzchar(trimws(color))) color <- "#CA5651"
 
-    align <- if (identical(as.character(spec$type)[1], "ctrTitle")) "center" else "left"
+    align <- if (is_cover_title) "center" else "left"
+    uppercase_title <- if (is_cover_title) {
+      base_args$mayusculas_titulo_portada %||% base_args$uppercase_title_cover %||%
+        base_args$mayusculas_titulo_slide %||% base_args$uppercase_title_slide
+    } else {
+      base_args$mayusculas_titulo_slide %||% base_args$uppercase_title_slide
+    }
+    uppercase_title <- uppercase_title %||% TRUE
+    uppercase_title <- isTRUE(uppercase_title)
+
+    bold_title <- if (is_cover_title) {
+      base_args$bold_titulo_portada %||% base_args$title_cover_bold %||%
+        base_args$bold_titulo_slide %||% base_args$title_slide_bold
+    } else {
+      base_args$bold_titulo_slide %||% base_args$title_slide_bold
+    }
+    bold_title <- bold_title %||% TRUE
+    bold_title <- isTRUE(bold_title)
+
+    title_text <- as.character(text)[1]
+    if (uppercase_title) title_text <- toupper(title_text)
+
     officer::fpar(
       officer::ftext(
-        toupper(as.character(text)[1]),
+        title_text,
         prop = officer::fp_text(
           color = color,
           font.size = font_size,
           font.family = font_family,
-          bold = TRUE
+          bold = bold_title
         )
       ),
       fp_p = officer::fp_par(text.align = align, line_spacing = 1)
@@ -919,6 +958,58 @@ reporte_ppt_plan <- function(
       )
     }
     out
+  }
+
+  .resolve_partner_logo_path <- function(path = NULL) {
+    raw <- path %||% ""
+    raw <- as.character(raw)[1]
+    candidates <- character(0)
+    if (nzchar(trimws(raw))) candidates <- c(candidates, raw)
+    candidates <- c(
+      candidates,
+      system.file("hojas_ruta/assets/logo_pulso.png", package = "prosecnurapp"),
+      system.file("hojas_ruta/assets/logo_pulso.png", package = "prosecnur"),
+      file.path(getwd(), "api", "inst", "hojas_ruta", "assets", "logo_pulso.png"),
+      file.path(getwd(), "inst", "hojas_ruta", "assets", "logo_pulso.png")
+    )
+    candidates <- candidates[nzchar(candidates)]
+    hit <- candidates[file.exists(candidates)][1]
+    if (is.na(hit) || !nzchar(hit)) "" else normalizePath(hit, winslash = "/", mustWork = TRUE)
+  }
+
+  .add_partner_footer_logo <- function(doc) {
+    base_args <- presets$base$args %||% list()
+    enabled <- base_args$partner_logo_footer %||% base_args$logo_pulso_footer %||% FALSE
+    if (!isTRUE(enabled)) return(doc)
+
+    logo_path <- .resolve_partner_logo_path(base_args$partner_logo_path %||% base_args$logo_pulso_path %||% NULL)
+    if (!nzchar(logo_path)) return(doc)
+
+    logo_h <- suppressWarnings(as.numeric(base_args$partner_logo_height %||% base_args$logo_pulso_height %||% 0.42)[1])
+    if (!is.finite(logo_h) || is.na(logo_h) || logo_h <= 0) logo_h <- 0.42
+    logo_w <- suppressWarnings(as.numeric(base_args$partner_logo_width %||% base_args$logo_pulso_width %||% (logo_h * 1078 / 423))[1])
+    if (!is.finite(logo_w) || is.na(logo_w) || logo_w <= 0) logo_w <- logo_h * 1078 / 423
+
+    slide_dims <- tryCatch(officer::slide_size(doc), error = function(e) NULL)
+    slide_h <- suppressWarnings(as.numeric(slide_dims$height %||% 7.5)[1])
+    if (!is.finite(slide_h) || is.na(slide_h) || slide_h <= 0) slide_h <- 7.5
+
+    logo_left <- suppressWarnings(as.numeric(base_args$partner_logo_left %||% base_args$logo_pulso_left %||% 0.46)[1])
+    logo_top <- suppressWarnings(as.numeric(base_args$partner_logo_top %||% base_args$logo_pulso_top %||% (slide_h - logo_h - 0.22))[1])
+    if (!is.finite(logo_left) || is.na(logo_left)) logo_left <- 0.46
+    if (!is.finite(logo_top) || is.na(logo_top)) logo_top <- slide_h - logo_h - 0.22
+
+    officer::ph_with(
+      doc,
+      value = officer::external_img(src = logo_path, width = logo_w, height = logo_h, alt = "PULSO PUCP"),
+      location = officer::ph_location(
+        left = logo_left,
+        top = logo_top,
+        width = logo_w,
+        height = logo_h,
+        newlabel = "PULSO PUCP footer logo"
+      )
+    )
   }
 
   .style_value <- function(style, name, default) {
@@ -1935,6 +2026,7 @@ reporte_ppt_plan <- function(
       spec,
       color = NULL,
       font_size = NULL,
+      font_family = NULL,
       bold = TRUE,
       align = "center",
       top_offset = 0,
@@ -1946,7 +2038,7 @@ reporte_ppt_plan <- function(
     props <- .placeholder_props_current(doc, spec)
     base_args <- presets$base$args %||% list()
 
-    font_family <- base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
+    font_family <- font_family %||% base_args$font_family_ppt %||% base_args$font_family %||% "Arial"
     font_family <- as.character(font_family)[1]
     if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
 
@@ -2336,6 +2428,24 @@ reporte_ppt_plan <- function(
   # --- Renderer para ggplot crudo (p_ggplot_raw) ---
   .render_ggplot_raw <- function(el, preset_args = list()) {
     el$gg
+  }
+
+  .render_mapa_cobertura_territorial <- function(el, preset_args = list()) {
+    if (!exists("graficar_mapa_cobertura_territorial", mode = "function", inherits = TRUE)) {
+      stop("No existe `graficar_mapa_cobertura_territorial()` en el entorno/paquete.", call. = FALSE)
+    }
+    overrides <- el$overrides %||% list()
+    args <- .merge_args(
+      list(
+        contexto = el$contexto %||% list(),
+        titulo = el$title_slide %||% NULL
+      ),
+      preset_args %||% list(),
+      overrides
+    )
+    fun <- graficar_mapa_cobertura_territorial
+    args <- .keep_formals(fun, args)
+    suppressWarnings(do.call(fun, args))
   }
 
   .render_barras_apiladas <- function(el, preset_args) {
@@ -4621,6 +4731,26 @@ reporte_ppt_plan <- function(
       PPT_CONTRACT$slide_1$slots$base  <- slide_1_slots_by_layout[[layout_graficos]]$base
       PPT_CONTRACT$slide_1$slots$right <- slide_1_slots_by_layout[[layout_graficos]]$right
     }
+    slide_1_plot_height_cm <- suppressWarnings(as.numeric(
+      (presets$base$args$slide_1_plot_height_cm %||%
+        presets$base$args$alto_placeholder_1_grafico_cm %||%
+        NA_real_)[1]
+    ))
+    if (is.finite(slide_1_plot_height_cm) && slide_1_plot_height_cm > 0) {
+      layout_props <- officer::layout_properties(doc, layout = layout_graficos, master = master)
+      plot_props <- .select_placeholder_props(
+        layout_props,
+        PPT_CONTRACT$slide_1$slots$plot,
+        layout_graficos,
+        master
+      )
+      PPT_CONTRACT$slide_1$slots$plot$loc <- list(
+        left = plot_props$offx[[1]],
+        top = plot_props$offy[[1]],
+        width = plot_props$cx[[1]],
+        height = slide_1_plot_height_cm / 2.54
+      )
+    }
     PPT_CONTRACT$slide_2$layout     <- layout_doble
     if (!is.na(layout_narrativo1)) PPT_CONTRACT$slide_1_narrativo$layout <- layout_narrativo1
     if (!is.na(layout_narrativo2)) PPT_CONTRACT$slide_2_narrativo$layout <- layout_narrativo2
@@ -4688,16 +4818,19 @@ reporte_ppt_plan <- function(
 
         # opcionales (solo si vienen)
         if (!is.null(sub) && nzchar(trimws(sub))) {
+          base_args <- presets$base$args %||% list()
           doc <- .ph_with_styled_text(
             doc,
             sub,
             contract$slots$subtitle,
-            color = (presets$base$args %||% list())$color_subtitulo %||% "#081F5C",
-            font_size = (presets$base$args %||% list())$size_subtitulo_slide %||% 16,
+            color = base_args$color_subtitulo_portada %||% base_args$color_subtitulo %||% "#081F5C",
+            font_size = base_args$size_subtitulo_portada %||% base_args$size_subtitulo_slide %||% 16,
+            font_family = base_args$font_family_subtitulo_portada %||% base_args$font_family_portada %||%
+              base_args$font_family_ppt %||% base_args$font_family,
             bold = TRUE,
             align = "center",
-            top_offset = 0.28,
-            height = 0.42
+            top_offset = base_args$top_offset_subtitulo_portada %||% 0.28,
+            height = base_args$height_subtitulo_portada %||% 0.42
           )
         }
         if (!is.null(dt) && nzchar(trimws(dt))) {
@@ -4848,6 +4981,14 @@ reporte_ppt_plan <- function(
         title_height <- .style_num(style, "title_height", 0.55, min = 0.2)
         title_size <- .style_num(style, "title_size", 24, min = 8)
         title_color <- as.character(.style_value(style, "title_color", "#CA5651"))[1]
+        uppercase_title <- .style_value(
+          style,
+          "mayusculas_titulo",
+          FALSE
+        )
+        uppercase_title <- isTRUE(uppercase_title)
+        title_text <- as.character(title_slide)[1]
+        if (uppercase_title) title_text <- toupper(title_text)
 
         title_prop <- officer::fp_text(
           color = title_color,
@@ -4856,7 +4997,7 @@ reporte_ppt_plan <- function(
           font.family = as.character(style$font_family)[1]
         )
         title_value <- officer::fpar(
-          officer::ftext(as.character(title_slide)[1], prop = title_prop),
+          officer::ftext(title_text, prop = title_prop),
           fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
         )
         doc <- officer::ph_with(
@@ -5110,6 +5251,7 @@ reporte_ppt_plan <- function(
 
         if (is.null(right_txt) || !nzchar(trimws(right_txt))) right_txt <- " "
         doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
+        doc <- .add_partner_footer_logo(doc)
       }
 
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(

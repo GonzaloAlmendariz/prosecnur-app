@@ -44,5 +44,9 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0020](0020-ficha-tecnica-contextos-metodologicos.md) | Aceptado | 2026-06-22 | La ficha tecnica compone contexto metodologico desde modulos auxiliares |
 | [0021](0021-arranque-con-proyecto-y-warm-start.md) | Aceptado | 2026-06-24 | Prosecnur arranca con proyecto obligatorio y warm start local |
 | [0022](0022-monitoreo-perfiles-frontend-dinamicos.md) | Aceptado | 2026-06-24 | Monitoreo usa perfiles frontend dinamicos y desktop-fast evita typecheck estricto |
+| [0023](0023-acnur-kobo-mapas-cobertura-graficos.md) | Aceptado | 2026-06-25 | ACNUR Kobo y mapas de cobertura entran al motor de Graficos |
+| [0024](0024-monitoreo-subsanaciones-operativas.md) | Aceptado | 2026-06-25 | Monitoreo territorial guarda subsanaciones operativas auditables |
+| [0025](0025-monitoreo-anulacion-produccion-territorial.md) | Aceptado | 2026-06-26 | Monitoreo territorial permite anular produccion localmente |
+| [0026](0026-guardado-explicito-guardia-salida.md) | Aceptado | 2026-06-26 | Prosecnur guarda `.pulso` explicitamente y protege salidas con guardia comun |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

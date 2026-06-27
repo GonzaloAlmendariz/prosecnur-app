@@ -44,11 +44,12 @@ si solo cambia `data/proyecto.pulso`.
 Monitoreo se publica desde `Monitoreo -> Salidas` exclusivamente a Google
 Sheets:
 
-- `Cliente / Sheets`: avance agregado para acreditacion o territorial.
+- `Cliente / Sheets`: avance agregado para acreditacion, territorial,
+  telefonico o aulas universitarias.
 - `Interno / Sheets`: workbook operativo con confirmacion manual.
 
-Cuando exista monitoreo telefonico, debe agregarse como otra familia de tablas
-Sheets. No debe agregarse como Space ni como flujo HF.
+Monitoreo telefonico se publica como otra familia de tablas Sheets. No debe
+agregarse como Space ni como flujo HF.
 
 ## Logs de build
 

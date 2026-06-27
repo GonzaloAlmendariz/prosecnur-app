@@ -720,6 +720,123 @@ estudio_init_default_base <- function(sid) {
   df
 }
 
+.carga_chr1 <- function(x, default = "") {
+  if (is.null(x) || !length(x)) return(default)
+  out <- as.character(x[[1]] %||% default)
+  if (is.na(out)) default else trimws(out)
+}
+
+.carga_bool1 <- function(x, default = FALSE) {
+  if (is.null(x) || !length(x)) return(default)
+  if (is.logical(x)) return(isTRUE(x[[1]]))
+  txt <- tolower(trimws(as.character(x[[1]])))
+  if (txt %in% c("true", "1", "yes", "si", "s")) TRUE else if (txt %in% c("false", "0", "no", "n")) FALSE else default
+}
+
+.carga_kobo_assets <- function(sid, parsed = list()) {
+  profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||%
+    parsed$profile_id %||% parsed$profileId %||% NULL
+  base_url <- .carga_chr1(parsed$base_url %||% parsed$baseUrl, "")
+  if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+  if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+  token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
+  kobo_api_fetch_assets(
+    token,
+    base_url = base_url,
+    limit = parsed$limit %||% 100L
+  )
+}
+
+.carga_kobo_source_spec <- function(asset_uid,
+                                    base_url,
+                                    profile_id,
+                                    detail,
+                                    payload,
+                                    inst_meta,
+                                    data_meta,
+                                    imported_at) {
+  deployment <- detail$deployment %||% list()
+  version_id <- .carga_chr1(
+    detail$version_id %||%
+      detail$deployed_version_id %||%
+      detail$deployment__version_id %||%
+      detail$latest_deployed_version_id %||%
+      deployment$version_id,
+    ""
+  )
+  deployment_active <- detail$deployment__active %||%
+    detail$deployment_active %||%
+    deployment$active %||%
+    FALSE
+  list(
+    asset_uid = asset_uid,
+    base_url = .kobo_api_trim_base_url(base_url),
+    connection_profile_id = .carga_chr1(profile_id, ""),
+    version_id = version_id,
+    date_modified = .carga_chr1(detail$date_modified %||% detail$dateModified, ""),
+    deployment_active = .carga_bool1(deployment_active, FALSE),
+    total_remote = as.integer(payload$total %||% payload$count %||% 0L),
+    imported_at = imported_at,
+    xlsform_file_id = .carga_chr1(inst_meta$file_id, ""),
+    data_file_id = .carga_chr1(data_meta$file_id, "")
+  )
+}
+
+.carga_kobo_detected_source <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(list(ok = FALSE, detected = FALSE))
+  cfg <- s$monitoreo_config %||% list()
+  tcfg <- cfg$territorial %||% list()
+  phase <- .carga_chr1(tcfg$active_route_phase %||% cfg$active_phase, "field")
+  if (!phase %in% c("field", "pilot")) phase <- "field"
+
+  phase_sources <- tcfg$phase_sources %||% tcfg$phaseSources %||% list()
+  phase_source <- phase_sources[[phase]] %||% phase_sources$field %||% phase_sources$pilot %||% list()
+  schemas <- s$monitoreo_kobo_schemas %||% list()
+  schema <- schemas[[phase]] %||% s$monitoreo_kobo_schema %||% list()
+
+  asset_uid <- .carga_chr1(
+    phase_source$asset_uid %||% phase_source$assetUid %||%
+      schema$asset_uid %||% schema$assetUid %||%
+      tcfg$asset_uid %||% tcfg$assetUid,
+    ""
+  )
+  if (!nzchar(asset_uid)) return(list(ok = FALSE, detected = FALSE))
+
+  base_url <- .carga_chr1(
+    phase_source$base_url %||% phase_source$baseUrl %||%
+      schema$base_url %||% schema$baseUrl %||%
+      tcfg$base_url %||% tcfg$baseUrl,
+    ""
+  )
+  if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+  profile_id <- phase_source$connection_profile_id %||% phase_source$connectionProfileId %||%
+    phase_source$profile_id %||% phase_source$profileId %||% NULL
+  title <- .carga_chr1(
+    schema$name %||% schema$title %||% phase_source$source_title %||%
+      phase_source$title %||% tcfg$kobo_asset_name,
+    asset_uid
+  )
+
+  list(
+    ok = TRUE,
+    detected = TRUE,
+    provider = "kobo",
+    phase = phase,
+    asset_uid = asset_uid,
+    name = title,
+    source_title = title,
+    base_url = .kobo_api_trim_base_url(base_url),
+    connection_profile_id = .carga_chr1(profile_id, ""),
+    version_id = .carga_chr1(schema$version_id %||% schema$versionId, ""),
+    date_modified = .carga_chr1(schema$date_modified %||% schema$dateModified, ""),
+    deployment_active = .carga_bool1(schema$deployment_active %||% schema$deploymentActive, FALSE),
+    imported_at = "",
+    xlsform_file_id = "",
+    data_file_id = ""
+  )
+}
+
 .carga_platform_finalize <- function(sid, inst_meta, data_meta, source_meta = list()) {
   inst <- leer_instrumento_xlsform(inst_meta$path)
   session_set(sid, "instrumento", inst)
@@ -878,28 +995,37 @@ estudio_init_default_base <- function(sid) {
   .carga_write_xlsx_sheet(data_df, data_path, "datos")
   data_meta <- save_upload(sid, "data", paste0(slug, "_data.xlsx"), readBin(data_path, "raw", n = file.info(data_path)$size))
 
-  source_meta <- list(
-    kind = "kobo_api",
+  imported_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  source_spec <- .carga_kobo_source_spec(
     asset_uid = asset_uid,
-    base_url = .kobo_api_trim_base_url(base_url),
-    connection_profile_id = as.character(profile_id %||% ""),
-    source_title = title,
-    total_remote = as.integer(payload$total %||% payload$count %||% nrow(data_df)),
-    imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    base_url = base_url,
+    profile_id = profile_id,
+    detail = detail,
+    payload = payload,
+    inst_meta = inst_meta,
+    data_meta = data_meta,
+    imported_at = imported_at
   )
+  source_meta <- c(list(
+    kind = "kobo_api",
+    source_title = title,
+    source_alias = title
+  ), source_spec)
   finalized <- .carga_platform_finalize(sid, inst_meta, data_meta, list(
     source_kind = "kobo",
     survey_id = asset_uid,
     source_title = title,
     source_alias = title,
-    response_filter = source_meta
+    response_filter = source_meta,
+    kobo_source_spec = source_spec,
+    kobo_effective_data_file_id = data_meta$file_id
   ))
   c(list(
     ok = TRUE,
     provider = "kobo",
     xlsform_file_id = inst_meta$file_id,
     data_file_id = data_meta$file_id,
-    source = source_meta
+    source = source_spec
   ), finalized)
 }
 
@@ -1019,6 +1145,17 @@ mount_carga <- function(pr) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
       .carga_import_surveymonkey(sid, parsed)
+    })) |>
+
+    plumber::pr_get("/api/carga/platform/kobo/detected-source", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      .carga_kobo_detected_source(sid)
+    })) |>
+
+    plumber::pr_post("/api/carga/platform/kobo/assets", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_kobo_assets(sid, parsed)
     })) |>
 
     plumber::pr_post("/api/carga/platform/kobo/import", wrap_endpoint(function(req, res, ...) {

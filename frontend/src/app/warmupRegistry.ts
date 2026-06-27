@@ -339,13 +339,13 @@ async function warmupMonitoreoLocalData() {
     return { family, profile: familyProfile?.chunk, phases, scopes };
   }
 
-  if (family === "acreditacion") {
+  if (family === "acreditacion" || family === "telefonico") {
     await withTimeout(
-      "Monitoreo acreditación",
-      api.apiMonitoreoState({ includeReports: true, reportScope: "advance_summary", warmupCache: true }).catch(() => null),
+      family === "telefonico" ? "Monitoreo telefónico" : "Monitoreo acreditación",
+      api.apiMonitoreoState({ includeReports: true, reportScope: family === "telefonico" ? "full" : "advance_summary", warmupCache: true }).catch(() => null),
       45000,
     );
-    return { family, profile: familyProfile?.chunk, scope: "advance_summary" };
+    return { family, profile: familyProfile?.chunk, scope: family === "telefonico" ? "full" : "advance_summary" };
   }
 
   if (family === "aulas_universitarias") {
@@ -454,7 +454,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   {
     id: "monitoreo",
     label: "Monitoreo",
-    load: () => import("virtual:monitoreo-page"),
+    load: () => import("../features/monitoreo/MonitoreoShell"),
   },
   {
     id: "monitoreo_datos",

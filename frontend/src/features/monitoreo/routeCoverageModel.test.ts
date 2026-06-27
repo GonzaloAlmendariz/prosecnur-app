@@ -3,7 +3,9 @@ import type { TerritorialBlockProgress } from "../../api/client";
 import {
   buildTerritorialRouteCoverageModel,
   filterTerritorialRouteBlocks,
+  normalizeRouteUmpKey,
   routeBlockStableKey,
+  routeOperationalLabel,
 } from "./routeCoverageModel";
 
 function makeBlock(overrides: Partial<TerritorialBlockProgress>): TerritorialBlockProgress {
@@ -57,11 +59,29 @@ describe("routeCoverageModel", () => {
     ];
 
     expect(filterTerritorialRouteBlocks(blocks, { query: "UMP 089" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
+    expect(filterTerritorialRouteBlocks(blocks, { query: "ump89" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
+    expect(filterTerritorialRouteBlocks(blocks, { query: "UMP-090" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[1])]);
     expect(filterTerritorialRouteBlocks(blocks, { query: "89" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { query: "0590" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { query: "705-712" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { query: "juan acisclo" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[0])]);
     expect(filterTerritorialRouteBlocks(blocks, { districtFilter: "150140", query: "sur" }).map(routeBlockStableKey)).toEqual([routeBlockStableKey(blocks[1])]);
+  });
+
+  it("normalizes equivalent UMP labels to the same key", () => {
+    expect(normalizeRouteUmpKey("50")).toBe("50");
+    expect(normalizeRouteUmpKey("UMP 50")).toBe("50");
+    expect(normalizeRouteUmpKey("ump50")).toBe("50");
+    expect(normalizeRouteUmpKey("UMP-050")).toBe("50");
+  });
+
+  it("labels replacement manzanas as the replacement of the base UMP", () => {
+    expect(routeOperationalLabel(makeBlock({
+      tipo_manzana: "reemplazo",
+      replacement_order: 1,
+      titular_hoja_num: 50,
+      ump: "50",
+    }))).toBe("UMP 50 · R1");
   });
 
   it("builds coverage totals by district, zones, sex and age", () => {

@@ -432,7 +432,13 @@ export default function Layout() {
         )}
         <div className="pulso-app-header-spacer" />
         <div className="pulso-app-header-actions">
-          {projectShell ? <ProjectIndicator project={projectShell.project} /> : null}
+          {projectShell ? (
+            <ProjectIndicator
+              project={projectShell.project}
+              onOpenProjectViewer={projectShell.openProjectViewer}
+              onRequestSelector={projectShell.requestProjectSelector}
+            />
+          ) : null}
           <SessionErrorChip />
         </div>
       </header>

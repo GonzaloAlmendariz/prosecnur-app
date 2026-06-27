@@ -4,8 +4,6 @@ import {
   apiAnaliticaDimensionesBuild,
   apiAnaliticaDimensionesPreview,
   apiAnaliticaDimensionesStatus,
-  apiProjectSave,
-  apiProjectStatus,
   DimensionesCobertura,
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
@@ -120,14 +118,7 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
       await refresh();
       const p = await apiAnaliticaDimensionesPreview();
       setCobertura(p.preview.cobertura);
-      // Disparar guardado del .pulso en silencio para persistir el resultado
-      // sin esperar al autosave (5 min). Solo si hay un proyecto activo.
-      try {
-        const status = await apiProjectStatus();
-        if (status.has_project) await apiProjectSave(null);
-      } catch {
-        /* no-bloqueante */
-      }
+      window.dispatchEvent(new Event("pulso:project-status-changed"));
     } catch (e) {
       setStatusErr((e as Error).message);
     } finally {
