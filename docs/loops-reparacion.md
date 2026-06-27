@@ -1,4 +1,4 @@
-# Codex Iterative Repair Loop
+# Loops de reparación
 
 This protocol is the default way to repair Prosecnur bugs without drifting into
 large, hard-to-review changes. Use it for Monitoreo, Form Editor, Sampling,
@@ -160,8 +160,8 @@ and the smallest next unblocker.
   `tryCatch` and normalized errors through `api/R/errors.R` when applicable.
 - Future UI repairs must rebalance the screen after the fix. Do not leave empty
   voids, floating controls, duplicated hierarchy, or collage-like layouts.
-- In modules with variable selectors, Codex may suggest candidates but must not
-  autoselect them or block manual user selection.
+- In modules with variable selectors, the repair agent may suggest candidates
+  but must not autoselect them or block manual user selection.
 - In Monitoreo, preserve the separation between active titular UMP and inspected
   block/manzana. Do not recalculate the base sampling design from Monitoreo.
 - Keep changes local-first. Do not add external dependencies or network calls
