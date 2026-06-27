@@ -1,9 +1,9 @@
-# Prosecnur Codex Instructions
+# Loops de reparación
 
-This repository uses the internal repair protocol in
-[`docs/codex/repair_loop.md`](docs/codex/repair_loop.md).
+This repository uses the internal repair protocol
+[`Loops de reparación`](docs/loops-reparacion.md).
 
-Before changing product code, Codex must:
+Before changing product code, repair work must:
 
 - inspect the current repo state and preserve unrelated user changes;
 - write a scope lock with the affected module, intended files, explicitly
