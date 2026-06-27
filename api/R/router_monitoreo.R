@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260621-acreditacion-source-metadata-v3"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260626-territorial-subsanada-package-v1"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
@@ -73,8 +73,10 @@
   if (identical(family, "territorial") && report_scope %in% c("full", "validation_summary")) {
     audit_rows <- snapshot$dashboard$territorial_reports$response_audit %||% list()
     audit_n <- if (is.data.frame(audit_rows)) nrow(audit_rows) else if (is.list(audit_rows)) length(audit_rows) else 0L
+    annulled_rows <- snapshot$dashboard$territorial_reports$production_annulments$rows %||% list()
+    annulled_n <- if (is.data.frame(annulled_rows)) nrow(annulled_rows) else if (is.list(annulled_rows)) length(annulled_rows) else 0L
     expected_n <- if (is.data.frame(data)) nrow(data) else 0L
-    if (expected_n > 0L && audit_n < expected_n) return(FALSE)
+    if (expected_n > 0L && (audit_n + annulled_n) < expected_n) return(FALSE)
   }
   saved_token <- snapshot$dashboard_cache_token %||% ""
   if (nzchar(saved_token) && identical(saved_token, cache_token)) return(TRUE)
@@ -331,6 +333,17 @@
   if (identical(family, "acreditacion")) {
     reports <- dashboard$acreditacion_reports %||% list()
     client <- reports$client_report %||% monitoreo_acreditacion_client_report_model(data, cfg)
+    client_actor_records <- .monitoreo_public_select_records(client$actors, c(
+      "Actor", "Universo", "Efectivas", "Parciales", "Rechazos plataforma",
+      "Rechazo", "Sin respuesta plataforma", "Sin respuesta", "Referencia operativa",
+      "Referencia etiqueta", "Avance universo", "Primer día", "Última efectiva",
+      "Origen avance"
+    ))
+    client_actor_records <- lapply(client_actor_records, function(row) {
+      row$Rechazo <- row$Rechazo %||% row$`Rechazos plataforma` %||% 0L
+      row$`Rechazos plataforma` <- NULL
+      row
+    })
     base$generated_at <- .monitoreo_scalar(client$generated_at, base$generated_at)
     base$accreditation <- list(
       schema = "monitoreo_public_accreditation_report_v1",
@@ -338,11 +351,7 @@
       generated_at = .monitoreo_scalar(client$generated_at, base$generated_at),
       has_targets = FALSE,
       summary = .monitoreo_public_select_records(client$summary, c("Indicador", "Valor")),
-      actors = .monitoreo_public_select_records(client$actors, c(
-        "Actor", "Universo", "Efectivas", "Parciales", "Rechazos plataforma",
-        "Sin respuesta plataforma", "Sin respuesta", "Avance universo",
-        "Primer día", "Última efectiva", "Origen avance"
-      )),
+      actors = client_actor_records,
       daily_general = .monitoreo_public_select_records(client$daily_general, c(
         "Fecha", "Efectivas", "Total respuestas", "Acumulado"
       )),
@@ -883,7 +892,8 @@
     "submission_time_var", "start_var", "end_var", "duration_var",
     "platform_effective_var", "platform_effective_values", "variable_refs",
     "valid_statuses", "district_crosswalk", "geo_thresholds_m",
-    "validation_decisions", "enumerator_roster", "enumerator_code_reconciliation", "ump_reconciliation"
+    "validation_decisions", "enumerator_roster", "enumerator_code_reconciliation",
+    "ump_reconciliation", "production_annulments"
   ), names(tcfg))]
   .monitoreo_cache_digest(list(
     schema = .monitoreo_territorial_map_cache_schema,
@@ -1217,7 +1227,7 @@
   context
 }
 
-.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v17"
+.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v20"
 .monitoreo_territorial_report_cache_limit <- 18L
 
 .monitoreo_territorial_report_cache_key_info <- function(sid, snapshot, data, cfg, report_scope = "full") {
@@ -1785,7 +1795,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
         phase = result$phase %||% NULL
       )
       session_set(j$sid, "monitoreo_territorial_map_cache", merged_map_cache)
-      tryCatch(.monitoreo_autosave_project_if_open(j$sid), error = function(e) NULL)
+      tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
     }
   }
   .monitoreo_territorial_map_prepare_public_result(result)
@@ -2174,7 +2184,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   dashboard <- if (isTRUE(territorial_light_state)) NULL else snapshot$dashboard %||% NULL
   cached_acreditacion_reports <- if (
     isTRUE(include_reports) &&
-      identical(family, "acreditacion") &&
+      family %in% c("acreditacion", "telefonico") &&
       report_scope %in% c("source", "advance_summary", "queries_summary") &&
       is.list(snapshot) &&
       is.list(snapshot$dashboard) &&
@@ -2329,7 +2339,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   if (!is.null(territorial_map_cache) && is.list(dashboard) && is.list(dashboard$territorial_reports)) {
     dashboard$territorial_reports$map_cache <- territorial_map_cache$active %||% territorial_map_cache
   }
-  if (identical(family, "acreditacion")) {
+  if (family %in% c("acreditacion", "telefonico")) {
     dashboard <- .monitoreo_acreditacion_repair_cached_dashboard(dashboard)
   }
   if (identical(family, "aulas_universitarias")) {
@@ -2359,7 +2369,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     territorial_report_cache_meta$total_ms <- .monitoreo_timing_ms(started_at)
   }
   if (isTRUE(territorial_report_cache_built)) {
-    tryCatch(.monitoreo_autosave_project_if_open(sid), error = function(e) NULL)
+    tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
   }
   include_snapshot_artifacts <- isTRUE(include_reports) && !identical(family, "territorial")
   list(
@@ -2453,15 +2463,13 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   monitoreo_normalize_config(merged, data, previous_config = previous)
 }
 
-.monitoreo_autosave_project_if_open <- function(sid) {
+.monitoreo_mark_project_dirty_if_open <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(NULL)
   project_path <- .monitoreo_scalar(s$project_path, "")
-  if (!nzchar(project_path) || !exists("build_pulso", mode = "function")) return(NULL)
-  tryCatch(
-    build_pulso(sid, project_path),
-    error = function(e) NULL
-  )
+  if (!nzchar(project_path)) return(NULL)
+  session_set(sid, "project_dirty", TRUE)
+  NULL
 }
 
 .monitoreo_territorial_code_reconciliation_context <- function(tcfg = list()) {
@@ -2703,6 +2711,442 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   tcfg$active_route_phase <- phase
   tcfg$spatial_reconciliation <- current
   list(tcfg = tcfg, dismissal = entry, phase = phase)
+}
+
+.monitoreo_territorial_apply_operational_adjustment <- function(tcfg = list(),
+                                                                payload = list(),
+                                                                phase = NULL) {
+  if (!is.list(payload)) payload <- list()
+  if (!is.list(tcfg)) tcfg <- list()
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% phase %||% tcfg$active_route_phase, "field")
+  response_ids <- .monitoreo_chr_vec(payload$source_response_ids %||% payload$response_ids %||% payload$responseIds %||% list())
+  source_block_id <- .monitoreo_scalar(payload$source_block_id %||% payload$sourceBlockId, "")
+  target_block_id <- .monitoreo_scalar(payload$target_block_id %||% payload$targetBlockId, "")
+  district <- .monitoreo_scalar(payload$district %||% payload$distrito, "")
+  sex <- .monitoreo_scalar(payload$sex %||% payload$sexo, "")
+  age_group <- .monitoreo_scalar(payload$age_group %||% payload$ageGroup %||% payload$rango_edad, "")
+  count <- .monitoreo_int(payload$count %||% payload$n %||% length(response_ids), 0L)
+  if (!nzchar(source_block_id) || !nzchar(target_block_id)) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_BLOCKS", "Falta la manzana origen o destino para la subsanacion operativa.")
+  }
+  if (identical(.monitoreo_safe_name(source_block_id), .monitoreo_safe_name(target_block_id))) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_SAME_BLOCK", "La subsanacion debe mover excedente hacia otra manzana.")
+  }
+  if (!nzchar(district) || !nzchar(sex) || !nzchar(age_group)) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_CELL", "La subsanacion requiere distrito, sexo y rango de edad.")
+  }
+  if (count <= 0L || !length(response_ids)) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_RESPONSES", "La subsanacion necesita al menos una respuesta excedente defendible.")
+  }
+  current <- .monitoreo_territorial_normalize_operational_adjustments(
+    tcfg$operational_adjustments %||% list(),
+    active_phase = phase
+  )
+  active_response_ids <- unique(unlist(lapply(current[[phase]] %||% list(), function(item) {
+    if (!identical(.monitoreo_scalar(item$status, "active"), "active")) return(character(0))
+    .monitoreo_chr_vec(item$source_response_ids %||% list())
+  }), use.names = FALSE))
+  active_response_ids <- active_response_ids[nzchar(active_response_ids)]
+  duplicated_ids <- intersect(response_ids, active_response_ids)
+  if (length(duplicated_ids)) {
+    stop_api(409, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_DUPLICATE", "Una o mas respuestas ya fueron usadas en otra subsanacion activa.")
+  }
+  entry <- .monitoreo_territorial_normalize_operational_adjustment_entry(
+    modifyList(payload, list(status = "active", phase = phase, source_response_ids = as.list(response_ids), count = count)),
+    phase = phase
+  )
+  if (is.null(entry)) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_INVALID", "No se pudo normalizar la subsanacion operativa.")
+  }
+  phase_entries <- current[[phase]] %||% list()
+  phase_entries <- Filter(function(item) {
+    !identical(.monitoreo_scalar(item$id, ""), entry$id)
+  }, phase_entries)
+  current[[phase]] <- c(phase_entries, list(entry))
+  tcfg$active_route_phase <- phase
+  tcfg$operational_adjustments <- current
+  list(tcfg = tcfg, adjustment = entry, phase = phase)
+}
+
+.monitoreo_territorial_apply_operational_adjustment_package <- function(tcfg = list(),
+                                                                        payload = list(),
+                                                                        phase = NULL) {
+  if (!is.list(payload)) payload <- list()
+  adjustments <- payload$adjustments %||% payload$movements %||% payload$componentes %||% list()
+  if (!is.list(adjustments) || !length(adjustments)) {
+    return(.monitoreo_territorial_apply_operational_adjustment(tcfg, payload, phase = phase))
+  }
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% phase %||% tcfg$active_route_phase, "field")
+  package_id <- .monitoreo_scalar(payload$id %||% payload$package_id %||% payload$packageId, "")
+  if (!nzchar(package_id)) {
+    package_seed <- paste(
+      phase,
+      paste(vapply(adjustments, function(item) {
+        if (!is.list(item)) return("")
+        paste(
+          .monitoreo_scalar(item$source_block_id %||% item$sourceBlockId, ""),
+          .monitoreo_scalar(item$target_block_id %||% item$targetBlockId, ""),
+          paste(.monitoreo_chr_vec(item$source_response_ids %||% item$response_ids %||% item$responseIds %||% list()), collapse = "|"),
+          sep = "::"
+        )
+      }, character(1)), collapse = "||"),
+      sep = "::"
+    )
+    package_id <- paste0("oppkg_", substr(digest::digest(package_seed, algo = "sha1"), 1, 16))
+  }
+  package_note <- .monitoreo_scalar(payload$note %||% payload$nota %||% "", "")
+  package_reason <- .monitoreo_scalar(payload$reason %||% payload$motivo %||% "Paquete de subsanacion operativa", "Paquete de subsanacion operativa")
+  applied_items <- list()
+  current_tcfg <- tcfg
+  for (idx in seq_along(adjustments)) {
+    item <- adjustments[[idx]]
+    if (!is.list(item)) next
+    item <- modifyList(item, list(
+      phase = phase,
+      package_id = package_id,
+      completion_package = TRUE,
+      package_index = as.integer(idx),
+      reason = package_reason,
+      note = package_note
+    ))
+    applied <- .monitoreo_territorial_apply_operational_adjustment(current_tcfg, item, phase = phase)
+    current_tcfg <- applied$tcfg
+    applied_items[[length(applied_items) + 1L]] <- applied$adjustment
+  }
+  if (!length(applied_items)) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_PACKAGE_EMPTY", "El paquete de subsanacion no contiene movimientos validos.")
+  }
+  package_entry <- modifyList(payload, list(
+    phase = phase,
+    status = "active",
+    package_id = package_id,
+    applied_adjustment_ids = as.list(vapply(applied_items, function(item) .monitoreo_scalar(item$id, ""), character(1))),
+    adjustments = applied_items,
+    count = as.integer(sum(vapply(applied_items, function(item) .monitoreo_int(item$count, 0L), integer(1)), na.rm = TRUE)),
+    note = package_note,
+    reason = package_reason
+  ))
+  list(tcfg = current_tcfg, adjustment = package_entry, adjustments = applied_items, phase = phase)
+}
+
+.monitoreo_territorial_reset_operational_adjustments <- function(tcfg = list(),
+                                                                 payload = list(),
+                                                                 phase = NULL) {
+  if (!is.list(tcfg)) tcfg <- list()
+  if (!is.list(payload)) payload <- list()
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% phase %||% tcfg$active_route_phase, "field")
+  current <- .monitoreo_territorial_normalize_operational_adjustments(
+    tcfg$operational_adjustments %||% list(),
+    active_phase = phase
+  )
+  active_before <- sum(vapply(current[[phase]] %||% list(), function(item) {
+    identical(.monitoreo_scalar(item$status, "active"), "active")
+  }, logical(1)), na.rm = TRUE)
+  current[[phase]] <- list()
+  tcfg$active_route_phase <- phase
+  tcfg$operational_adjustments <- current
+  list(tcfg = tcfg, phase = phase, active_before = as.integer(active_before))
+}
+
+.monitoreo_territorial_revert_operational_adjustment <- function(tcfg = list(),
+                                                                 payload = list(),
+                                                                 phase = NULL) {
+  if (!is.list(payload)) payload <- list()
+  if (!is.list(tcfg)) tcfg <- list()
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% phase %||% tcfg$active_route_phase, "field")
+  id <- .monitoreo_scalar(payload$id %||% payload$adjustment_id %||% payload$adjustmentId, "")
+  if (!nzchar(id)) {
+    stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_ID", "Falta el identificador de la subsanacion.")
+  }
+  current <- .monitoreo_territorial_normalize_operational_adjustments(
+    tcfg$operational_adjustments %||% list(),
+    active_phase = phase
+  )
+  found <- FALSE
+  current[[phase]] <- lapply(current[[phase]] %||% list(), function(item) {
+    if (!identical(.monitoreo_scalar(item$id, ""), id)) return(item)
+    found <<- TRUE
+    item$status <- "reverted"
+    item$reverted_at <- .monitoreo_now_iso()
+    item$revert_reason <- .monitoreo_scalar(payload$reason %||% payload$motivo, "Revertida desde Consultas")
+    item
+  })
+  if (!found) {
+    stop_api(404, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_NOT_FOUND", "No se encontro la subsanacion para revertir.")
+  }
+  tcfg$active_route_phase <- phase
+  tcfg$operational_adjustments <- current
+  list(tcfg = tcfg, adjustment_id = id, phase = phase)
+}
+
+.monitoreo_territorial_annulment_entry_from_payload <- function(tcfg = list(),
+                                                                payload = list(),
+                                                                phase = NULL,
+                                                                require_reason = FALSE) {
+  if (!is.list(payload)) payload <- list()
+  if (!is.list(tcfg)) tcfg <- list()
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% phase %||% tcfg$active_route_phase, "field")
+  responsible_label <- .monitoreo_scalar(
+    payload$responsible_label %||% payload$responsibleLabel %||% payload$responsible %||% payload$responsable,
+    ""
+  )
+  responsible_key_raw <- .monitoreo_scalar(
+    payload$responsible_key %||% payload$responsibleKey %||% payload$responsible_id %||% payload$responsibleId,
+    ""
+  )
+  responsible_key <- .monitoreo_territorial_production_annulment_key(
+    if (nzchar(responsible_key_raw)) responsible_key_raw else responsible_label
+  )
+  if (!nzchar(responsible_key)) {
+    stop_api(400, "E_TERRITORIAL_PRODUCTION_ANNULMENT_RESPONSIBLE", "Selecciona un Responsable Pulso para anular su produccion.")
+  }
+  reason <- .monitoreo_scalar(payload$reason %||% payload$motivo, "")
+  if (isTRUE(require_reason) && !nzchar(trimws(reason))) {
+    stop_api(400, "E_TERRITORIAL_PRODUCTION_ANNULMENT_REASON", "La anulacion requiere un motivo obligatorio.")
+  }
+  if (!nzchar(responsible_label)) responsible_label <- responsible_key
+  created_at <- .monitoreo_scalar(payload$created_at %||% payload$createdAt, .monitoreo_now_iso())
+  entry <- .monitoreo_territorial_normalize_production_annulment_entry(
+    modifyList(payload, list(
+      status = "active",
+      phase = phase,
+      responsible_key = responsible_key,
+      responsible_label = responsible_label,
+      reason = reason,
+      created_at = created_at
+    )),
+    phase = phase
+  )
+  if (is.null(entry)) {
+    stop_api(400, "E_TERRITORIAL_PRODUCTION_ANNULMENT_INVALID", "No se pudo preparar la anulacion.")
+  }
+  list(entry = entry, phase = phase, responsible_key = responsible_key)
+}
+
+.monitoreo_territorial_annulment_report_dashboard <- function(sid, data, cfg, report_scope = "validation_summary") {
+  .monitoreo_dashboard_for_session(
+    sid,
+    data,
+    cfg,
+    include_reports = TRUE,
+    report_scope = report_scope
+  )
+}
+
+.monitoreo_territorial_production_annulment_filter_rows <- function(rows, entry) {
+  rows <- .monitoreo_territorial_rows_df(rows)
+  if (!nrow(rows)) return(rows)
+  key <- .monitoreo_scalar(entry$responsible_key, "")
+  if (!nzchar(key)) return(rows[0, , drop = FALSE])
+  candidates <- .monitoreo_territorial_responsible_candidate_keys(rows)
+  keep <- if (length(candidates)) apply(candidates, 1, function(row) any(row %in% key)) else rep(FALSE, nrow(rows))
+  rows[keep, , drop = FALSE]
+}
+
+.monitoreo_territorial_production_annulment_block_state <- function(reports = list()) {
+  blocks <- .monitoreo_territorial_rows_df(reports$route_quota_progress$blocks %||% reports$block_progress %||% list())
+  if (!nrow(blocks)) return(blocks)
+  ensure_col <- function(name, default = "") {
+    if (!name %in% names(blocks)) blocks[[name]] <<- default
+  }
+  ensure_col("id_manzana", "")
+  ensure_col("ump", "")
+  ensure_col("manzana", "")
+  ensure_col("distrito", "")
+  ensure_col("zona", "")
+  ensure_col("tipo_manzana", "")
+  ensure_col("responsable", "")
+  ensure_col("status", "")
+  ensure_col("validas", 0L)
+  ensure_col("target", 0L)
+  ensure_col("missing_total", 0L)
+  blocks
+}
+
+.monitoreo_territorial_production_annulment_impact <- function(before_dashboard = list(),
+                                                              after_dashboard = list(),
+                                                              entry = list()) {
+  before_reports <- before_dashboard$territorial_reports %||% list()
+  after_reports <- after_dashboard$territorial_reports %||% list()
+  rows <- .monitoreo_territorial_production_annulment_filter_rows(after_reports$production_annulments$rows %||% list(), entry)
+  response_ids <- unique(as.character(rows$response_id %||% ""))
+  response_ids <- response_ids[nzchar(response_ids)]
+  umps <- unique(.monitoreo_territorial_annulment_ump(rows))
+  umps <- umps[nzchar(umps)]
+  row_block_keys <- .monitoreo_territorial_annulment_block(rows)
+  block_ids <- unique(row_block_keys)
+  block_ids <- block_ids[nzchar(block_ids)]
+  before_blocks <- .monitoreo_territorial_production_annulment_block_state(before_reports)
+  after_blocks <- .monitoreo_territorial_production_annulment_block_state(after_reports)
+  block_row <- function(df, id) {
+    if (!is.data.frame(df) || !nrow(df)) return(list())
+    ids <- as.character(df$id_manzana %||% "")
+    hit <- which(ids %in% id)
+    if (!length(hit)) return(list())
+    as.list(df[hit[[1]], , drop = FALSE])
+  }
+  block_impact <- lapply(block_ids, function(id) {
+    before <- block_row(before_blocks, id)
+    after <- block_row(after_blocks, id)
+    row_hit <- rows[row_block_keys %in% id, , drop = FALSE]
+    has_route_state <- length(before) > 0L || length(after) > 0L
+    list(
+      id_manzana = id,
+      ump = .monitoreo_scalar(.monitoreo_territorial_annulment_format_ump(before$ump %||% after$ump %||% .monitoreo_territorial_annulment_ump(row_hit)[[1]] %||% "")[[1]], ""),
+      manzana = .monitoreo_scalar(before$manzana %||% after$manzana %||% .monitoreo_territorial_annulment_manzana(row_hit)[[1]] %||% "", ""),
+      distrito = .monitoreo_scalar(before$distrito %||% after$distrito %||% .monitoreo_territorial_annulment_district(row_hit)[[1]] %||% "", ""),
+      tipo_manzana = .monitoreo_scalar(before$tipo_manzana %||% after$tipo_manzana %||% "", ""),
+      responsable = .monitoreo_scalar(before$responsable %||% after$responsable %||% row_hit$responsible_display[[1]] %||% "", ""),
+      respuestas_anuladas = as.integer(nrow(row_hit)),
+      validas_anuladas = as.integer(sum(row_hit$source_effective %in% TRUE, na.rm = TRUE)),
+      estado_antes = .monitoreo_scalar(before$status %||% if (!has_route_state) "sin_cruce_ruta" else "", ""),
+      estado_despues = .monitoreo_scalar(after$status %||% if (!has_route_state) "sin_cruce_ruta" else "", ""),
+      validas_antes = as.integer(.monitoreo_int(before$validas %||% 0L, 0L)),
+      validas_despues = as.integer(.monitoreo_int(after$validas %||% 0L, 0L)),
+      meta = as.integer(.monitoreo_int(before$target %||% after$target %||% 0L, 0L)),
+      brecha_despues = as.integer(.monitoreo_int(after$missing_total %||% 0L, 0L))
+    )
+  })
+  list(
+    schema = "territorial.production_annulment_impact.v1",
+    responsible_key = .monitoreo_scalar(entry$responsible_key, ""),
+    responsible_label = .monitoreo_scalar(entry$responsible_label, ""),
+    responses_excluded = as.integer(length(response_ids)),
+    valid_responses_excluded = as.integer(sum(rows$source_effective %in% TRUE, na.rm = TRUE)),
+    umps_affected = as.integer(length(umps)),
+    blocks_affected = as.integer(length(block_ids)),
+    before = list(
+      total_responses = as.integer(before_reports$kpis$total_respuestas %||% 0L),
+      valid_responses = as.integer(before_reports$kpis$validas %||% 0L),
+      progress_pct = before_reports$kpis$avance_pct %||% NA_real_
+    ),
+    after = list(
+      total_responses = as.integer(after_reports$kpis$total_respuestas %||% 0L),
+      valid_responses = as.integer(after_reports$kpis$validas %||% 0L),
+      progress_pct = after_reports$kpis$avance_pct %||% NA_real_
+    ),
+    blocks = block_impact,
+    rows = .monitoreo_df_records(rows)
+  )
+}
+
+.monitoreo_territorial_preview_production_annulment <- function(sid, payload = list()) {
+  s <- session_get(sid)
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+  tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+  prepared <- .monitoreo_territorial_annulment_entry_from_payload(tcfg, payload, require_reason = FALSE)
+  current <- .monitoreo_territorial_normalize_production_annulments(
+    tcfg$production_annulments %||% list(),
+    active_phase = prepared$phase
+  )
+  preview_entry <- prepared$entry
+  preview_entry$id <- paste0("preview_", substr(digest::digest(paste(prepared$phase, prepared$responsible_key, Sys.time()), algo = "sha1"), 1, 12))
+  preview_entry$impact <- list()
+  current[[prepared$phase]] <- c(current[[prepared$phase]] %||% list(), list(preview_entry))
+  cfg_after <- cfg
+  cfg_after$territorial$active_route_phase <- prepared$phase
+  cfg_after$territorial$production_annulments <- current
+  before_dashboard <- .monitoreo_territorial_annulment_report_dashboard(sid, data, cfg, report_scope = "validation_summary")
+  after_dashboard <- .monitoreo_territorial_annulment_report_dashboard(sid, data, cfg_after, report_scope = "validation_summary")
+  impact <- .monitoreo_territorial_production_annulment_impact(before_dashboard, after_dashboard, preview_entry)
+  list(
+    ok = TRUE,
+    annulment_id = preview_entry$id,
+    impact = impact,
+    production_annulments = after_dashboard$territorial_reports$production_annulments %||% list()
+  )
+}
+
+.monitoreo_territorial_apply_production_annulment <- function(sid, payload = list()) {
+  s <- session_get(sid)
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+  tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+  prepared <- .monitoreo_territorial_annulment_entry_from_payload(tcfg, payload, require_reason = TRUE)
+  current <- .monitoreo_territorial_normalize_production_annulments(
+    tcfg$production_annulments %||% list(),
+    active_phase = prepared$phase
+  )
+  active_duplicate <- any(vapply(current[[prepared$phase]] %||% list(), function(item) {
+    identical(.monitoreo_scalar(item$status, ""), "active") &&
+      identical(.monitoreo_scalar(item$responsible_key, ""), prepared$responsible_key)
+  }, logical(1)))
+  if (isTRUE(active_duplicate)) {
+    stop_api(409, "E_TERRITORIAL_PRODUCTION_ANNULMENT_DUPLICATE", "Ese Responsable Pulso ya tiene una anulacion activa.")
+  }
+  cfg_after <- cfg
+  current[[prepared$phase]] <- c(current[[prepared$phase]] %||% list(), list(prepared$entry))
+  cfg_after$territorial$active_route_phase <- prepared$phase
+  cfg_after$territorial$production_annulments <- current
+  before_dashboard <- .monitoreo_territorial_annulment_report_dashboard(sid, data, cfg, report_scope = "validation_summary")
+  after_dashboard <- .monitoreo_territorial_annulment_report_dashboard(sid, data, cfg_after, report_scope = "validation_summary")
+  impact <- .monitoreo_territorial_production_annulment_impact(before_dashboard, after_dashboard, prepared$entry)
+  prepared$entry$impact <- impact
+  current[[prepared$phase]][[length(current[[prepared$phase]])]] <- prepared$entry
+  cfg$territorial$active_route_phase <- prepared$phase
+  cfg$territorial$production_annulments <- current
+  cfg$territorial <- monitoreo_territorial_normalize_config(cfg$territorial, data)
+  cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+  .monitoreo_territorial_invalidate_map_cache(sid, phase = prepared$phase, layers = "gps_points", reason = "production_annulment_apply")
+  saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+  list(
+    ok = TRUE,
+    annulment_id = prepared$entry$id,
+    impact = impact,
+    annulment = prepared$entry,
+    config = cfg,
+    state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary"),
+    saved_project = !is.null(saved_project)
+  )
+}
+
+.monitoreo_territorial_revert_production_annulment <- function(sid, payload = list()) {
+  if (!is.list(payload)) payload <- list()
+  s <- session_get(sid)
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+  tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+  phase <- .monitoreo_territorial_phase(payload$phase %||% payload$fase %||% tcfg$active_route_phase, "field")
+  id <- .monitoreo_scalar(payload$id %||% payload$annulment_id %||% payload$annulmentId, "")
+  if (!nzchar(id)) {
+    stop_api(400, "E_TERRITORIAL_PRODUCTION_ANNULMENT_ID", "Falta el identificador de la anulacion.")
+  }
+  current <- .monitoreo_territorial_normalize_production_annulments(
+    tcfg$production_annulments %||% list(),
+    active_phase = phase
+  )
+  found <- FALSE
+  current[[phase]] <- lapply(current[[phase]] %||% list(), function(item) {
+    if (!identical(.monitoreo_scalar(item$id, ""), id)) return(item)
+    found <<- TRUE
+    item$status <- "reverted"
+    item$reverted_at <- .monitoreo_now_iso()
+    item$reverted_by <- "local"
+    item$revert_reason <- .monitoreo_scalar(payload$reason %||% payload$motivo, "Revertida desde Anulacion")
+    item
+  })
+  if (!found) {
+    stop_api(404, "E_TERRITORIAL_PRODUCTION_ANNULMENT_NOT_FOUND", "No se encontro la anulacion para revertir.")
+  }
+  cfg$territorial$active_route_phase <- phase
+  cfg$territorial$production_annulments <- current
+  cfg$territorial <- monitoreo_territorial_normalize_config(cfg$territorial, data)
+  cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+  .monitoreo_territorial_invalidate_map_cache(sid, phase = phase, layers = "gps_points", reason = "production_annulment_revert")
+  saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+  state <- .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary")
+  list(
+    ok = TRUE,
+    annulment_id = id,
+    impact = list(schema = "territorial.production_annulment_revert.v1", restored = TRUE),
+    config = cfg,
+    state = state,
+    saved_project = !is.null(saved_project)
+  )
 }
 
 .monitoreo_territorial_batch_failure <- function(client_id, kind, err) {
@@ -3011,8 +3455,34 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de generar el reporte a cliente.")
   }
   cfg <- monitoreo_normalize_config(cfg, snapshot$data)
+  publication_family <- detect_monitoreo_family(config = cfg, data = snapshot$data)
+  engine_family <- .monitoreo_publication_engine_family(publication_family)
+  if (identical(engine_family, "territorial")) {
+    dashboard <- snapshot$dashboard %||% NULL
+    reports <- if (is.list(dashboard)) dashboard$territorial_reports %||% list() else list()
+    if (!length(reports) || is.null(reports$advance)) {
+      dashboard <- monitoreo_build_dashboard(
+        snapshot$data,
+        cfg,
+        include_reports = TRUE,
+        report_scope = "advance_summary"
+      )
+    }
+    model <- monitoreo_publication_model(
+      snapshot$data,
+      cfg,
+      audience = "internal",
+      include_targets = include_targets,
+      dashboard = dashboard,
+      synced_at = snapshot$synced_at %||% "",
+      context = list(family = publication_family)
+    )
+    model$report_kind <- "territorial_advance_pdf"
+    return(model)
+  }
   model <- monitoreo_acreditacion_client_report_model(snapshot$data, cfg)
   model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = isTRUE(include_targets))
+  model$report_kind <- "acreditacion_client_report_pdf"
   model
 }
 
@@ -3425,10 +3895,17 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
                                                    result_path = NULL,
                                                    progress_path = NULL) {
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
-  report("prepare", percent = 15, message = "Preparando reporte a cliente...")
+  report("prepare", percent = 15, message = "Preparando reporte...")
   model <- readRDS(model_path)
-  report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
-  monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
+  report_kind <- .monitoreo_scalar(model$report_kind, "")
+  family <- .monitoreo_publication_family_key(model$family %||% "")
+  if (identical(report_kind, "territorial_advance_pdf") || identical(family, "territorial")) {
+    report("render", percent = 55, message = "Renderizando avance territorial...")
+    monitoreo_territorial_advance_report_pdf(model, result_path, include_targets = include_targets)
+  } else {
+    report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
+    monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
+  }
   report("export", percent = 95, message = "Guardando PDF...")
   list(ok = TRUE, size = as.numeric(file.info(result_path)$size %||% 0), filename = basename(result_path))
 }
@@ -3607,7 +4084,7 @@ mount_monitoreo <- function(pr) {
             is.list(item) && !isTRUE(item$cache_hit)
           }, logical(1))) || !isTRUE(result$map_cache$skipped)
           if (isTRUE(should_autosave_cache)) {
-            tryCatch(.monitoreo_autosave_project_if_open(j$sid), error = function(e) NULL)
+            tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
           }
           public <- .monitoreo_territorial_prewarm_public_result(result)
           public$state <- tryCatch(
@@ -3760,7 +4237,7 @@ mount_monitoreo <- function(pr) {
       session_set(sid, "monitoreo_sources", sources_now)
       session_set(sid, "monitoreo_config", result$config)
       session_set(sid, "monitoreo_snapshot", snapshot)
-      tryCatch(.monitoreo_autosave_project_if_open(sid), error = function(e) NULL)
+      tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
       list(
         ok = TRUE,
         synced_at = result$synced_at,
@@ -3875,12 +4352,14 @@ mount_monitoreo <- function(pr) {
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
-      filename <- .export_filename(sid, "reporte_cliente_monitoreo", "pdf")
+      is_territorial_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "territorial_advance_pdf") ||
+        identical(.monitoreo_publication_family_key(model$family %||% ""), "territorial")
+      filename <- .export_filename(sid, if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo" else "reporte_cliente_monitoreo", "pdf")
       pdf_job_runner <- monitoreo_client_report_pdf_job_runner
       attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_client_report_pdf_job_runner"
       job_id <- job_submit(
         sid = sid,
-        kind = "monitoreo.client_report_pdf",
+        kind = if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else "monitoreo.client_report_pdf",
         func = pdf_job_runner,
         args = list(model_path = model_path, include_targets = include_targets),
         result_filename = filename,
@@ -3890,7 +4369,8 @@ mount_monitoreo <- function(pr) {
               disponible = TRUE,
               path = j$result_path,
               generated_at = format(j$finished_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-              include_targets = include_targets
+              include_targets = include_targets,
+              report_kind = model$report_kind %||% ""
             ))
           }
           j$result_data
@@ -3900,9 +4380,10 @@ mount_monitoreo <- function(pr) {
         disponible = FALSE,
         job_id = job_id,
         generated_at = NULL,
-        include_targets = include_targets
+        include_targets = include_targets,
+        report_kind = model$report_kind %||% ""
       ))
-      list(ok = TRUE, job_id = job_id, kind = "monitoreo.client_report_pdf")
+      list(ok = TRUE, job_id = job_id, kind = if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else "monitoreo.client_report_pdf")
     })) |>
     plumber::pr_get("/api/monitoreo/client-report/pdf/download", wrap_endpoint(function(req, res, sid = NULL, inline = NULL, ...) {
       effective_sid <- session_header(req)
@@ -4184,7 +4665,7 @@ mount_monitoreo <- function(pr) {
 	        layers = "gps_points",
 	        reason = if (isTRUE(source_changed)) "territorial_source_changed" else "territorial_source_applied"
 	      )
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         source = source,
@@ -4218,7 +4699,7 @@ mount_monitoreo <- function(pr) {
 	        "field_start_at", "fieldStartAt", "campo_start_at", "campoStartAt", "inicio_campo_at", "inicioCampoAt",
 	        "pilot_start_at", "pilotStartAt", "inicio_piloto_at", "inicioPilotoAt"
 	      ))
-	      saved_project <- if (isTRUE(should_autosave)) .monitoreo_autosave_project_if_open(sid) else NULL
+	      saved_project <- if (isTRUE(should_autosave)) .monitoreo_mark_project_dirty_if_open(sid) else NULL
 	      list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
 	    })) |>
     plumber::pr_post("/api/monitoreo/territorial/enumerators/upload", wrap_endpoint(function(req, res, file = NULL, code_var = NULL, ump_var = NULL, code_format = NULL, ...) {
@@ -4271,7 +4752,7 @@ mount_monitoreo <- function(pr) {
       profile$status <- "active"
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile, acreditacion = cfg$acreditacion)
       cfg <- .monitoreo_store_config(sid, cfg)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         enumerator_roster = cfg$territorial$enumerator_roster,
@@ -4346,7 +4827,7 @@ mount_monitoreo <- function(pr) {
         layers = "gps_points",
         reason = "enumerator_code_reconciliation"
       )
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         reconciliation = entry,
@@ -4380,7 +4861,7 @@ mount_monitoreo <- function(pr) {
         layers = "gps_points",
         reason = "ump_reconciliation"
       )
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         reconciliation = entry,
@@ -4429,7 +4910,7 @@ mount_monitoreo <- function(pr) {
           reason = "territorial_reconciliation_batch"
         )
       }
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         applied = applied,
@@ -4453,7 +4934,7 @@ mount_monitoreo <- function(pr) {
       dismissed <- .monitoreo_territorial_dismiss_spatial_reconciliation(tcfg, payload, scope = "candidate")
       cfg$territorial <- monitoreo_territorial_normalize_config(dismissed$tcfg, data)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         dismissal = dismissed$dismissal,
@@ -4476,7 +4957,7 @@ mount_monitoreo <- function(pr) {
       dismissed <- .monitoreo_territorial_dismiss_spatial_reconciliation(tcfg, payload, scope = "pattern")
       cfg$territorial <- monitoreo_territorial_normalize_config(dismissed$tcfg, data)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         dismissal = dismissed$dismissal,
@@ -4484,6 +4965,98 @@ mount_monitoreo <- function(pr) {
         state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary"),
         saved_project = !is.null(saved_project)
       )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/operational-adjustments/apply", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$adjustment %||% parsed$suggestion %||% parsed
+      if (!is.list(payload)) payload <- list()
+
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+      applied <- .monitoreo_territorial_apply_operational_adjustment_package(tcfg, payload)
+      cfg$territorial <- monitoreo_territorial_normalize_config(applied$tcfg, data)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        adjustment = applied$adjustment,
+        adjustments = applied$adjustments %||% list(applied$adjustment),
+        config = cfg,
+        state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary"),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/operational-adjustments/reset", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$adjustment %||% parsed
+      if (!is.list(payload)) payload <- list()
+
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+      reset <- .monitoreo_territorial_reset_operational_adjustments(tcfg, payload)
+      cfg$territorial <- monitoreo_territorial_normalize_config(reset$tcfg, data)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        phase = reset$phase,
+        active_before = reset$active_before,
+        config = cfg,
+        state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary"),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/operational-adjustments/revert", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$adjustment %||% parsed
+      if (!is.list(payload)) payload <- list()
+
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      tcfg <- cfg$territorial %||% monitoreo_territorial_default_config(data)
+      reverted <- .monitoreo_territorial_revert_operational_adjustment(tcfg, payload)
+      cfg$territorial <- monitoreo_territorial_normalize_config(reverted$tcfg, data)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        adjustment_id = reverted$adjustment_id,
+        config = cfg,
+        state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary"),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/annulments/preview", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$annulment %||% parsed
+      if (!is.list(payload)) payload <- list()
+      .monitoreo_territorial_preview_production_annulment(sid, payload)
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/annulments/apply", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$annulment %||% parsed
+      if (!is.list(payload)) payload <- list()
+      .monitoreo_territorial_apply_production_annulment(sid, payload)
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/annulments/revert", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      payload <- parsed$annulment %||% parsed
+      if (!is.list(payload)) payload <- list()
+      .monitoreo_territorial_revert_production_annulment(sid, payload)
     })) |>
     plumber::pr_get("/api/monitoreo/territorial/map", wrap_endpoint(function(req, res, phase = NULL, ubigeo = NULL, layer = NULL, hash = NULL, allow_stale = NULL, prepare = NULL, ...) {
       sid <- .monitoreo_session(req, res)
@@ -4680,7 +5253,7 @@ mount_monitoreo <- function(pr) {
         cfg$territorial <- monitoreo_territorial_normalize_config(tcfg, data)
       }
       cfg <- .monitoreo_store_config(sid, cfg)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         config = cfg,
@@ -4788,7 +5361,7 @@ mount_monitoreo <- function(pr) {
         status = "ok",
         message = "XLSForm de ocurrencias generado desde Hojas de Ruta."
       ))
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
         file = meta,
@@ -5354,7 +5927,7 @@ mount_monitoreo <- function(pr) {
       )
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile, acreditacion = cfg$acreditacion)
       cfg <- .monitoreo_store_config(sid, cfg)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, decision = decision, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_post("/api/monitoreo/collectors/config", wrap_endpoint(function(req, res, ...) {
@@ -5410,7 +5983,7 @@ mount_monitoreo <- function(pr) {
         dashboard = dashboard,
         response_rows = as.integer(nrow(data))
       ))
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/config", wrap_endpoint(function(req, res, ...) {
@@ -5432,7 +6005,7 @@ mount_monitoreo <- function(pr) {
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
       session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, aulas_universitarias = cfg$aulas_universitarias, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/agenda", wrap_endpoint(function(req, res, ...) {
@@ -5456,7 +6029,7 @@ mount_monitoreo <- function(pr) {
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
       session_set(sid, "monitoreo_aulas_plan", plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, agenda = plan, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/reemplazo", wrap_endpoint(function(req, res, ...) {
@@ -5485,7 +6058,7 @@ mount_monitoreo <- function(pr) {
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
       session_set(sid, "monitoreo_aulas_plan", plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, agenda = plan, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/sync", wrap_endpoint(function(req, res, ...) {
@@ -5520,7 +6093,7 @@ mount_monitoreo <- function(pr) {
         dashboard = dashboard$aulas_universitarias_reports %||% list(),
         response_rows = as.integer(nrow(data))
       ))
-      saved_project <- .monitoreo_autosave_project_if_open(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, synced_at = snapshot$synced_at, dashboard = dashboard$aulas_universitarias_reports, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_get("/api/monitoreo/aulas/state", wrap_endpoint(function(req, res, ...) {
@@ -5756,7 +6329,7 @@ mount_monitoreo <- function(pr) {
 	          session_set(j$sid, paste("monitoreo_dashboard_cache", report_scope, sep = "_"), result$dashboard)
 	          session_set(j$sid, paste("monitoreo_dashboard_cache_token", report_scope, sep = "_"), dashboard_cache_token)
 	          complete_report("save", percent = 98, message = "Guardando cambios del proyecto...")
-	          tryCatch(.monitoreo_autosave_project_if_open(j$sid), error = function(e) NULL)
+	          tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
 	          if (identical(family, "territorial")) {
 	            synced_kobo <- Filter(function(src) {
 	              identical(src$kind, "kobo") &&

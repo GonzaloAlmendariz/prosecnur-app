@@ -1,70 +1,30 @@
 import type { MonitoreoFamilyId, MonitoreoFamilyModule } from "./types";
 
-const LEGACY_PAGE_LOADER: MonitoreoFamilyModule["loadPage"] = () => import("virtual:monitoreo-page");
+type FamilyProfileModule = { default: MonitoreoFamilyModule };
 
-const FAMILY_PROFILES = {
-  acreditacion: {
-    family: "acreditacion",
-    chunk: "monitoreo-original",
-    label: "Acreditacion",
-    views: ["fuentes", "modelo", "consultas", "telefonico", "avance"],
-    loadPage: LEGACY_PAGE_LOADER,
-    warmupScopes: ["source", "advance_summary", "queries_summary"],
-    reportScopes: {
-      fuentes: "source",
-      consultas: "queries_summary",
-      telefonico: "advance_summary",
-      avance: "advance_summary",
-    },
-  },
-  territorial: {
-    family: "territorial",
-    chunk: "monitoreo-original",
-    label: "Territorial",
-    views: ["fuentes", "modelo", "calidad", "consultas", "avance", "ocurrencias"],
-    loadPage: LEGACY_PAGE_LOADER,
-    warmupScopes: ["source", "route_summary", "validation_summary", "advance_summary", "queries_summary"],
-    reportScopes: {
-      fuentes: "source",
-      modelo: "route_summary",
-      avance: "advance_summary",
-      calidad: "validation_summary",
-      consultas: "queries_summary",
-      ocurrencias: "queries_summary",
-    },
-  },
-  aulas_universitarias: {
-    family: "aulas_universitarias",
-    chunk: "monitoreo-original",
-    label: "Aulas universitarias",
-    views: ["fuentes", "modelo", "avance", "calidad", "consultas"],
-    loadPage: LEGACY_PAGE_LOADER,
-    warmupScopes: ["source", "advance_summary", "validation_summary", "queries_summary"],
-    reportScopes: {
-      fuentes: "source",
-      modelo: "source",
-      avance: "advance_summary",
-      calidad: "validation_summary",
-      consultas: "queries_summary",
-    },
-  },
-} satisfies Record<MonitoreoFamilyId, MonitoreoFamilyModule>;
+const FAMILY_PROFILE_LOADERS: Record<MonitoreoFamilyId, () => Promise<FamilyProfileModule>> = {
+  acreditacion: () => import("./acreditacion"),
+  territorial: () => import("./territorial"),
+  aulas_universitarias: () => import("./aulas"),
+  telefonico: () => import("./telefonico"),
+};
 
 export function normalizeMonitoreoFamily(value: unknown): MonitoreoFamilyId | null {
-  if (value === "acreditacion" || value === "territorial" || value === "aulas_universitarias") {
+  if (value === "acreditacion" || value === "territorial" || value === "aulas_universitarias" || value === "telefonico") {
     return value;
   }
   return null;
 }
 
 export function monitoreoFamilyLoaders() {
-  return FAMILY_PROFILES;
+  return FAMILY_PROFILE_LOADERS;
 }
 
 export async function preloadMonitoreoFamily(value: unknown): Promise<MonitoreoFamilyModule | null> {
   const family = normalizeMonitoreoFamily(value);
   if (!family) return null;
-  return FAMILY_PROFILES[family];
+  const module = await FAMILY_PROFILE_LOADERS[family]();
+  return module.default;
 }
 
 export async function loadMonitoreoFamilyPage(value: unknown) {

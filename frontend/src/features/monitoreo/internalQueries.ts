@@ -14,7 +14,9 @@ export type InternalQueryFilters = {
   channel: string;
   collector: string;
   source: string;
+  response: string;
   state: string;
+  crossing: string;
 };
 
 export type InternalQueryEvidenceMode = "efectivas" | "casos" | "faltantes" | "duplicados" | "diferencias";
@@ -234,12 +236,15 @@ export const EMPTY_INTERNAL_QUERY_FILTERS: InternalQueryFilters = {
   channel: "",
   collector: "",
   source: "",
+  response: "",
   state: "",
+  crossing: "",
 };
 
 const EMPTY_INTERNAL_QUERIES: MonitoreoInternalQueries = {
   schema: "monitoreo_acreditacion_internal_queries_v1",
   cases: [],
+  case_rollup: [],
   totals: {
     actor: [],
     date: [],
@@ -268,6 +273,7 @@ export function normalizeInternalQueries(value: MonitoreoInternalQueries | null 
   return {
     schema: cleanString(value.schema) || EMPTY_INTERNAL_QUERIES.schema,
     cases: arrayOrEmpty(value.cases).map(normalizeInternalCase),
+    case_rollup: arrayOrEmpty(value.case_rollup).map(normalizeInternalCase),
     totals: {
       actor: arrayOrEmpty(value.totals?.actor).map(normalizeInternalTotal),
       date: arrayOrEmpty(value.totals?.date).map(normalizeInternalTotal),
@@ -299,7 +305,9 @@ export function filterInternalQueryCases(cases: MonitoreoInternalQueryCase[], fi
     if (filters.channel && item.channel !== filters.channel) return false;
     if (filters.collector && internalQueryCollectorValue(item) !== filters.collector) return false;
     if (filters.source && item.source_label !== filters.source) return false;
+    if (filters.response && internalCaseResponseStateValue(item) !== filters.response) return false;
     if (filters.state && !internalCaseMatchesState(item, filters.state)) return false;
+    if (filters.crossing && internalCaseCrossingValue(item) !== filters.crossing) return false;
     if (!q) return true;
     return matchesSearchTokens(internalCaseSearchText(item), q);
   });
@@ -312,6 +320,8 @@ export function internalQueryOptions(cases: MonitoreoInternalQueryCase[]) {
     channels: uniqueSorted(cases.map((item) => item.channel)),
     collectors: uniqueSorted(cases.map(internalQueryCollectorValue)),
     sources: uniqueSorted(cases.map((item) => item.source_label)),
+    responseStates: uniqueSorted(cases.map(internalCaseResponseStateValue), (a, b) => internalCaseResponseStateLabel(a).localeCompare(internalCaseResponseStateLabel(b), "es")),
+    crossings: uniqueSorted(cases.map(internalCaseCrossingValue), (a, b) => internalCaseCrossingLabel(a).localeCompare(internalCaseCrossingLabel(b), "es")),
     states: uniqueSorted([
       ...(cases.some(internalCaseIsReviewable) ? ["reviewable"] : []),
       ...(cases.some((item) => item.advancement !== "effective") ? ["non_effective"] : []),
@@ -415,6 +425,49 @@ export function internalQueryIssueTone(item: MonitoreoInternalQueryIssue): "dang
 
 export function internalQueryTotalLabel(item: MonitoreoInternalQueryTotal, key: "actor" | "date" | "channel" | "source" | "collector") {
   return cleanString(item[key]) || "Sin dato";
+}
+
+export function internalCaseResponseStateValue(item: Pick<MonitoreoInternalQueryCase, "platform_state" | "advancement">) {
+  const platform = normalizeSearch(item.platform_state);
+  const advancement = normalizeSearch(item.advancement);
+  const key = platform || advancement;
+  if (key.includes("completa") || key.includes("completed") || key === "effective") return "complete";
+  if (key.includes("parcial") || key.includes("partial")) return "partial";
+  if (key.includes("rechazo") || key.includes("refusal")) return "refusal";
+  if (key.includes("sin respuesta") || key === "pending") return "pending";
+  return cleanString(item.platform_state || item.advancement) || "pending";
+}
+
+export function internalCaseResponseStateLabel(value: string) {
+  const key = normalizeSearch(value);
+  if (key === "complete") return "Completa";
+  if (key === "partial") return "Parcial";
+  if (key === "refusal") return "Rechazo";
+  if (key === "pending") return "Sin respuesta";
+  return cleanString(value) || "Sin respuesta";
+}
+
+export function internalCaseCrossingValue(item: Pick<MonitoreoInternalQueryCase, "base_result" | "issue_type" | "identity_status">) {
+  const base = normalizeSearch(item.base_result);
+  const issue = normalizeSearch(item.issue_type);
+  const identity = normalizeSearch(item.identity_status);
+  if (!base && !issue && !identity) return "sin_base";
+  if (base.includes("correo") || base.includes("email")) return "cruzo_correo";
+  if (base === "cruzo" || base.startsWith("cruzo") || base.includes("cruce exacto") || base.includes("en base")) return "cruzo_llave";
+  if (base.includes("sin llave") || issue.includes("sin llave") || identity.includes("sin llave")) return "sin_llave";
+  if (base.includes("sin cruce") || base.includes("fuera") || issue.includes("fuera base") || identity.includes("fuera base")) return "sin_cruce";
+  if (base.includes("sin base")) return "sin_base";
+  return cleanString(item.base_result) || "sin_base";
+}
+
+export function internalCaseCrossingLabel(value: string) {
+  const key = normalizeSearch(value);
+  if (key === "cruzo llave" || key === "cruzo_llave") return "Cruzó por llave";
+  if (key === "cruzo correo" || key === "cruzo_correo") return "Cruzó por correo";
+  if (key === "sin llave" || key === "sin_llave") return "Sin llave";
+  if (key === "sin cruce" || key === "sin_cruce") return "Sin cruce";
+  if (key === "sin base" || key === "sin_base") return "Sin base";
+  return cleanString(value) || "Sin base";
 }
 
 export function parseInternalQueryDate(value: unknown): Date | null {

@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   apiAnaliticaConfigGet,
   apiAnaliticaConfigPut,
-  apiProjectSave,
-  apiProjectStatus,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars } from "./store";
@@ -16,8 +14,8 @@ import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars
 //   agenda un POST /api/analitica/config con debounce de 2s.
 // - Tras guardar exitosamente, markClean para que el UI pueda reflejar
 //   "Guardado ✓".
-// - Si hay un `.pulso` abierto, persistimos también el proyecto activo:
-//   el backend guarda `analitica_config` dentro del ActiveState serializado.
+// - Si hay un `.pulso` abierto, el backend marca el proyecto como pendiente;
+//   el archivo se escribe solo cuando el usuario guarda explícitamente.
 
 const DEBOUNCE_MS = 2000;
 
@@ -136,33 +134,13 @@ export function useAnaliticaAutosave() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // 2) Autosave debounced.
-  const projectSaveChain = useRef<Promise<void>>(Promise.resolve());
-
-  const saveActivePulso = useCallback(async () => {
-    const run = projectSaveChain.current.then(async () => {
-      try {
-        const status = await apiProjectStatus();
-        if (status.has_project) {
-          await apiProjectSave(null);
-          window.dispatchEvent(new Event("pulso:project-status-changed"));
-        }
-      } catch {
-        // Si falla, el backend mantiene project_dirty=TRUE; el autosave
-        // global del proyecto o un guardado manual lo reintentará.
-      }
-    });
-    projectSaveChain.current = run.catch(() => undefined);
-    await run;
-  }, []);
-
   useEffect(() => {
     if (!sessionId || !hydrated || !dirty) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       try {
         await apiAnaliticaConfigPut(config);
-        await saveActivePulso();
+        window.dispatchEvent(new Event("pulso:project-status-changed"));
         markClean();
       } catch {
         // Silencioso: el próximo cambio reintenta. Podemos mostrar un
@@ -172,5 +150,5 @@ export function useAnaliticaAutosave() {
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [config, dirty, hydrated, markClean, saveActivePulso, sessionId]);
+  }, [config, dirty, hydrated, markClean, sessionId]);
 }

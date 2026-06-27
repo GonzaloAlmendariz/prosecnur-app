@@ -7,7 +7,6 @@ import ProjectShell from "../features/project/ProjectShell";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
 import { LoadingBlock } from "../components/States";
-import MonitoreoPage from "virtual:monitoreo-page";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
 import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
@@ -89,6 +88,10 @@ const XlsformEditorPage = lazyWithReload(
   () => import("../features/xlsformEditor/XlsformEditorPage"),
   "XlsformEditorPage",
 );
+const MonitoreoShell = lazyWithReload(
+  () => import("../features/monitoreo/MonitoreoShell"),
+  "MonitoreoShell",
+);
 
 export default function App() {
   useApplyLayoutPreset();
@@ -149,7 +152,7 @@ export default function App() {
                   <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
                   <Route path="/muestra" element={<MuestraHub />} />
                   <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra" replace />} />
-                  <Route path="/monitoreo" element={<MonitoreoPage />} />
+                  <Route path="/monitoreo" element={<MonitoreoShell />} />
                   <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
                   <Route path="/tablero" element={<DashboardPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,12 +1,10 @@
-import { ChevronDown, Layers, Loader2, Save, Sigma } from "lucide-react";
+import { ChevronDown, Layers, Loader2, Sigma } from "lucide-react";
 import { IconAI } from "../../../../lib/icons";
 import { useEffect, useState } from "react";
 import {
   apiAnaliticaConfigPut,
   apiAnaliticaDimensionesBuild,
   apiAnaliticaVariables,
-  apiProjectSave,
-  apiProjectStatus,
   VariableInstrumento,
 } from "../../../../api/client";
 import { useSession } from "../../../../lib/SessionContext";
@@ -34,7 +32,6 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confetti, setConfetti] = useState(false);
-  const [savedToProject, setSavedToProject] = useState(false);
   const [resultado, setResultado] = useState<{
     n_filas: number;
     n_idx: number;
@@ -60,21 +57,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
       setResultado({ n_filas: r.n_filas, n_idx: r.n_idx, n_sub: r.n_sub });
       setConfetti(true);
       await refresh();
-
-      // Guardar el .pulso inmediatamente para que la config + el output
-      // queden persistidos sin esperar al autosave (cada 5 min). Solo si
-      // hay un .pulso activo — en sesión efímera no aplica.
-      try {
-        const status = await apiProjectStatus();
-        if (status.has_project) {
-          await apiProjectSave(null);
-          setSavedToProject(true);
-        }
-      } catch {
-        // No bloqueante: si el guardado falla, el usuario verá el toast
-        // de éxito de generación pero sin "Guardado en .pulso". Igualmente
-        // el autosave intentará de nuevo más tarde.
-      }
+      window.dispatchEvent(new Event("pulso:project-status-changed"));
 
       // Esperar al final de la animación y delegar al padre.
       window.setTimeout(() => {
@@ -207,20 +190,6 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
             <>
               <strong>¡Listo!</strong> {resultado.n_filas.toLocaleString("es-PE")} filas,{" "}
               {resultado.n_sub} bloques, {resultado.n_idx} índices.
-              {savedToProject && (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    marginLeft: 8,
-                    color: "var(--pulso-success-fg, #15803d)",
-                    fontWeight: 600,
-                  }}
-                >
-                  <Save size={11} /> Guardado en tu .pulso
-                </span>
-              )}
             </>
           ) : (
             <>

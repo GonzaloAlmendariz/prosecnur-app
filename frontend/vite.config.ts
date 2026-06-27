@@ -50,7 +50,7 @@ function manualChunks(id: string) {
   if (normalized.includes("/node_modules/react/") || normalized.includes("/node_modules/react-dom/") || normalized.includes("/node_modules/react-router-dom/")) {
     return "vendor-react";
   }
-  if (normalized.includes("/src/features/monitoreo/MonitoreoShell.")) return "monitoreo-shell";
+  if (normalized.includes("/src/features/monitoreo/MonitoreoShell")) return "monitoreo-shell";
   if (normalized.includes("/src/features/monitoreo/core/") || normalized.includes("/src/features/monitoreo/shell/")) return "monitoreo-core";
   if (
     normalized.includes("/src/features/monitoreo/profiles/territorial/") ||
@@ -58,6 +58,7 @@ function manualChunks(id: string) {
   ) {
     return "monitoreo-territorial";
   }
+  if (normalized.includes("/src/features/monitoreo/profiles/telefonico/")) return "monitoreo-telefonico";
   if (normalized.includes("/src/features/monitoreo/profiles/acreditacion/")) return "monitoreo-acreditacion";
   if (normalized.includes("/src/features/monitoreo/profiles/aulas/")) return "monitoreo-aulas";
   if (normalized.endsWith("/src/features/hojasRuta/limaDistrictCoverage.json")) return "maps-geometria";

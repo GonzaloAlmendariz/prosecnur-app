@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   Clock,
   ContactRound,
+  Download,
   Link2,
   MapPin,
   PhoneCall,
@@ -100,6 +101,7 @@ export function localTabsForSection({
         { key: "resumen", label: "Resumen", detail: "KPI territorial", icon: BarChart3 },
         { key: "ump", label: "UMP", detail: "Ritmo por manzana", icon: Route },
         { key: "ritmo", label: "Ritmo", detail: "Tendencia diaria", icon: Activity },
+        { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
       ]),
       ocurrencias: controlledTabs([
         { key: "states", label: "Estados", detail: "Composición general", icon: ClipboardCheck },
@@ -120,6 +122,7 @@ export function localTabsForSection({
       { key: "actores", label: "Actores", detail: "Actor y segmento", icon: ContactRound },
       { key: "encuestas", label: "Encuestas", detail: "Canal y encuesta", icon: ClipboardCheck },
       { key: "detalle", label: "Detalle", detail: "Tabla operativa", icon: Table2 },
+      { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
     ]),
     telefonico: controlledTabs([
       { key: "resumen", label: "Resumen", detail: "Barrido telefónico", icon: PhoneCall },

@@ -80,6 +80,96 @@
   stop("`", nm, "` debe ser `character(1)`, `p_text()` o NULL.", call. = FALSE)
 }
 
+.ppt_parse_technical_table_rows <- function(filas) {
+  clean <- function(x) {
+    x <- as.character(x)
+    x[is.na(x)] <- ""
+    trimws(x)
+  }
+
+  normalize_df <- function(df) {
+    df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+    if (ncol(df) < 2L) {
+      stop("`filas` debe tener al menos dos columnas: etiqueta y detalle.", call. = FALSE)
+    }
+    df <- df[, seq_len(2L), drop = FALSE]
+    names(df) <- c("criterio", "detalle")
+    df$criterio <- clean(df$criterio)
+    df$detalle <- clean(df$detalle)
+    df <- df[nzchar(df$criterio) | nzchar(df$detalle), , drop = FALSE]
+    if (!nrow(df)) {
+      stop("`filas` debe contener al menos una fila con texto.", call. = FALSE)
+    }
+    df
+  }
+
+  parse_lines <- function(lines) {
+    lines <- clean(lines)
+    lines <- unlist(strsplit(lines, "\\r?\\n", perl = TRUE), use.names = FALSE)
+    lines <- clean(lines)
+    lines <- lines[nzchar(lines)]
+    if (!length(lines)) {
+      stop("`filas` debe contener al menos una fila con texto.", call. = FALSE)
+    }
+    rows <- lapply(lines, function(line) {
+      parts <- regexpr("\\s*[:|\\t]\\s*", line, perl = TRUE)
+      if (parts[[1]] > 0L) {
+        start <- parts[[1]]
+        len <- attr(parts, "match.length")[[1]]
+        criterio <- substr(line, 1L, start - 1L)
+        detalle <- substr(line, start + len, nchar(line))
+      } else {
+        criterio <- ""
+        detalle <- line
+      }
+      data.frame(
+        criterio = clean(criterio),
+        detalle = clean(detalle),
+        stringsAsFactors = FALSE
+      )
+    })
+    normalize_df(do.call(rbind, rows))
+  }
+
+  if (is.data.frame(filas)) return(normalize_df(filas))
+  if (is.character(filas)) return(parse_lines(filas))
+
+  if (is.list(filas)) {
+    if (all(c("criterio", "detalle") %in% names(filas))) {
+      return(normalize_df(data.frame(
+        criterio = unlist(filas$criterio, use.names = FALSE),
+        detalle = unlist(filas$detalle, use.names = FALSE),
+        stringsAsFactors = FALSE
+      )))
+    }
+    if (all(c("campo", "valor") %in% names(filas))) {
+      return(normalize_df(data.frame(
+        criterio = unlist(filas$campo, use.names = FALSE),
+        detalle = unlist(filas$valor, use.names = FALSE),
+        stringsAsFactors = FALSE
+      )))
+    }
+    if (length(filas) && all(vapply(filas, is.list, logical(1)))) {
+      row_value <- function(row, named, pos) {
+        val <- row[[named]] %||% NULL
+        if (!is.null(val)) return(val)
+        if (length(row) >= pos) return(row[[pos]])
+        ""
+      }
+      rows <- lapply(filas, function(row) {
+        data.frame(
+          criterio = clean(row$criterio %||% row$campo %||% row_value(row, "criterio", 1L)),
+          detalle = clean(row$detalle %||% row$valor %||% row_value(row, "detalle", 2L)),
+          stringsAsFactors = FALSE
+        )
+      })
+      return(normalize_df(do.call(rbind, rows)))
+    }
+  }
+
+  stop("`filas` debe ser un data.frame, una lista de filas o texto en formato 'Campo: valor'.", call. = FALSE)
+}
+
 .ppt_as_slide <- function(slide) {
   class(slide) <- c("ppt_slide", "list")
   slide
@@ -227,39 +317,7 @@ p_slide_tabla_tecnica <- function(
   titulo <- .ppt_norm_text1(titulo)
   if (is.null(titulo)) stop("`titulo` debe ser un texto no vacio.", call. = FALSE)
 
-  if (!is.data.frame(filas)) {
-    stop("`filas` debe ser un data.frame/tibble con al menos dos columnas.", call. = FALSE)
-  }
-  if (ncol(filas) < 2L) {
-    stop("`filas` debe tener al menos dos columnas: etiqueta y detalle.", call. = FALSE)
-  }
-
-  if (ncol(filas) == 2L) {
-    filas <- as.data.frame(filas[, seq_len(2L), drop = FALSE], stringsAsFactors = FALSE)
-    names(filas) <- c("criterio", "detalle")
-    filas$criterio <- as.character(filas$criterio)
-    filas$detalle <- as.character(filas$detalle)
-    filas$criterio[is.na(filas$criterio)] <- ""
-    filas$detalle[is.na(filas$detalle)] <- ""
-    filas$criterio <- trimws(filas$criterio)
-    filas$detalle <- trimws(filas$detalle)
-    filas <- filas[nzchar(filas$criterio) | nzchar(filas$detalle), , drop = FALSE]
-    if (!nrow(filas)) {
-      stop("`filas` debe contener al menos una fila con texto.", call. = FALSE)
-    }
-  } else {
-    filas <- as.data.frame(filas, stringsAsFactors = FALSE, check.names = FALSE)
-    for (j in seq_along(filas)) {
-      col <- as.character(filas[[j]])
-      col[is.na(col)] <- ""
-      filas[[j]] <- trimws(col)
-    }
-    keep <- apply(filas, 1, function(r) any(nzchar(r)))
-    filas <- filas[keep, , drop = FALSE]
-    if (!nrow(filas)) {
-      stop("`filas` debe contener al menos una fila con texto.", call. = FALSE)
-    }
-  }
+  filas <- .ppt_parse_technical_table_rows(filas)
 
   body_base <- .ppt_norm_text_like(pie, nm = "pie", blank = NULL)
 

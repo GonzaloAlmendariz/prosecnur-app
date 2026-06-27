@@ -53,6 +53,92 @@ mount_proyecto <- function(pr) {
       allow_empty <- isTRUE(allow_empty_overwrite) || isTRUE(body$allow_empty_overwrite)
       build_pulso(sid, requested_path, project_name = proj_name, allow_empty_overwrite = allow_empty)
     })) |>
+    plumber::pr_post("/api/project/duplicate", wrap_endpoint(function(req, res, source_path = NULL, target_path = NULL, project_name = NULL, open_copy = TRUE, overwrite = FALSE, ...) {
+      current_sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = TRUE),
+                 error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e)))
+      } else list()
+
+      requested_target <- as.character(target_path %||% body$target_path %||% body$targetPath %||% body$path %||% NA_character_)
+      if (is.na(requested_target) || !nzchar(requested_target)) {
+        stop_api(400, "E_NO_TARGET_PATH", "Pasa 'target_path' en el body con la ruta de la copia .pulso.")
+      }
+      if (!grepl("\\.pulso$", requested_target, ignore.case = TRUE)) {
+        requested_target <- paste0(requested_target, ".pulso")
+      }
+
+      requested_source <- as.character(source_path %||% body$source_path %||% body$sourcePath %||% NA_character_)
+      if (is.na(requested_source) || !nzchar(requested_source)) requested_source <- NA_character_
+      if (!is.na(requested_source) && !file.exists(requested_source)) {
+        stop_api(404, "E_SOURCE_NOT_FOUND", sprintf("No existe el proyecto origen: %s", requested_source))
+      }
+
+      if (!is.na(requested_source) &&
+          identical(normalizePath(requested_source, mustWork = FALSE), normalizePath(requested_target, mustWork = FALSE))) {
+        stop_api(400, "E_DUPLICATE_SAME_PATH", "La copia debe guardarse en una ruta distinta al origen.")
+      }
+
+      should_overwrite <- isTRUE(overwrite) || isTRUE(body$overwrite)
+      if (file.exists(requested_target) && !should_overwrite) {
+        stop_api(409, "E_TARGET_EXISTS", sprintf("Ya existe '%s'. Pasa overwrite=true para reemplazarlo.", requested_target))
+      }
+      if (file.exists(requested_target) && should_overwrite) {
+        unlink(requested_target, force = TRUE)
+      }
+
+      proj_name <- as.character(project_name %||% body$project_name %||% body$projectName %||% NA_character_)
+      if (is.na(proj_name) || !nzchar(proj_name)) {
+        proj_name <- tools::file_path_sans_ext(basename(requested_target))
+      }
+
+      open_target <- isTRUE(open_copy) && !isFALSE(body$open_copy) && !isFALSE(body$openCopy)
+      sid_to_save <- current_sid
+      source_for_response <- requested_source
+      if (!is.na(requested_source)) {
+        loaded <- load_pulso(requested_source)
+        sid_to_save <- loaded$session_id
+        source_for_response <- normalizePath(requested_source, mustWork = FALSE)
+      } else {
+        s_current <- session_get(current_sid)
+        source_for_response <- as.character(s_current$project_path %||% "")
+      }
+
+      result <- build_pulso(
+        sid_to_save,
+        requested_target,
+        project_name = proj_name,
+        allow_empty_overwrite = TRUE
+      )
+
+      session_id_out <- sid_to_save
+      if (isTRUE(open_target) && !is.null(current_sid) && nzchar(current_sid)) {
+        if (!identical(sid_to_save, current_sid)) {
+          loaded_copy <- session_get(sid_to_save, required = FALSE)
+          if (!is.null(loaded_copy)) {
+            loaded_copy$id <- current_sid
+            .session_env[[current_sid]] <- loaded_copy
+            if (exists(sid_to_save, envir = .session_env, inherits = FALSE)) {
+              rm(list = sid_to_save, envir = .session_env)
+            }
+          }
+        }
+        session_id_out <- current_sid
+        res$setHeader("X-Pulso-Session", current_sid)
+      } else if (!is.null(session_id_out) && nzchar(session_id_out)) {
+        res$setHeader("X-Pulso-Session", session_id_out)
+      }
+
+      c(result, list(
+        duplicated = TRUE,
+        source_path = source_for_response,
+        target_path = result$path,
+        project_name = proj_name,
+        opened = isTRUE(open_target),
+        session_id = session_id_out
+      ))
+    })) |>
     plumber::pr_post("/api/project/open", wrap_endpoint(function(req, res, path = NULL, ...) {
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       body <- if (nzchar(body_raw)) {

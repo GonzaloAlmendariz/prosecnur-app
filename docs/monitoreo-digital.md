@@ -49,16 +49,18 @@ Los perfiles son especializaciones del motor, no modulos separados:
 
 - `acreditacion`: v1 implementable de punta a punta.
 - `territorial`: activo para Kobo + Hojas de Ruta.
-- `telefonico`: planificado como perfil especializado.
+- `telefonico`: activo como perfil especializado de llamadas, barrido y cuotas.
+- `aulas_universitarias`: activo para encuestas aplicadas en cursos-horario.
 - `digital_general`: planificado como tablero general.
 
 `config.acreditacion` se mantiene como vista de compatibilidad, pero el modelo
 canonico nuevo es `monitoreo_profile`.
 
 Cada proyecto `.pulso` tiene una sola ruta de monitoreo. La UI inicia en un hub
-de decision donde el usuario elige `acreditacion`, `territorial`, `telefonico`
-o `digital_general`. `acreditacion` y `territorial` tienen flujo activo; las
-otras rutas quedan visibles como planificadas. Una vez seleccionada una ruta,
+de decision donde el usuario elige `acreditacion`, `territorial`, `telefonico`,
+`aulas_universitarias` o `digital_general`. `acreditacion`, `territorial`,
+`telefonico` y `aulas_universitarias` tienen flujo activo; las otras rutas
+quedan visibles como planificadas. Una vez seleccionada una ruta,
 el flujo posterior queda gobernado por ese perfil y cambiarlo implica crear un
 proyecto nuevo o reiniciar el monitoreo, porque fuentes, reglas, reportes y
 snapshot pertenecen a ese tipo unico.
@@ -100,9 +102,10 @@ Google Sheets, con dos destinos controlados por tipo de monitoreo:
   completo, incluyendo PII, GPS, IDs, alertas, auditoria y casos accionables
   cuando el perfil lo requiere.
 
-Las familias vigentes son acreditacion y territorial. Monitoreo telefonico debe
-entrar como una nueva familia de tablas Sheets cuando se implemente, no como
-canal web.
+Las familias vigentes son acreditacion, territorial, telefonico y aulas
+universitarias. Monitoreo telefonico entra como una familia operativa propia y
+reutiliza los bloques de barrido, insistencia y campo-vs-plataforma de
+acreditacion cuando el estudio es puramente telefonico.
 
 Toda salida interna exige confirmacion manual explicita en Prosecnur antes de
 subir el corte completo fuera de la maquina local. No hay autosync remoto: cada
@@ -208,6 +211,51 @@ Reglas principales:
 - validacion de encuestas por segmento y canal;
 - alerta cuando hay respuestas en correo y telefonico para el mismo caso.
 
+## Perfil `telefonico`
+
+El perfil `telefonico` cubre estudios cuyo centro operativo es la llamada,
+aunque puedan tener respuestas de plataforma asociadas. Reutiliza la logica de
+la seccion telefonica de acreditacion: barrido, responsables, estados,
+intentos, no contesta, reintentos, campo contra plataforma y casos pendientes.
+
+Fuentes esperadas:
+
+- marco muestral o base trabajada con segmento y meta;
+- base de barrido telefonico con responsable, estado, intentos y fecha;
+- respuestas de plataforma cuando existen;
+- metas por segmento.
+
+Reglas principales:
+
+- avance por segmento contra meta;
+- ratio de insistencia para no contesta;
+- responsables con casos no barridos o reintentables;
+- conciliacion entre efectiva telefonica y respuesta completa/parcial de
+  plataforma;
+- salidas Sheets separadas de acreditacion cuando el proyecto se declara como
+  telefonico.
+
+## Perfil `aulas_universitarias`
+
+El perfil `aulas_universitarias` se conecta directamente con el modulo
+`calc-muestra`. El calculador entrega `selection_run_id`, hash del marco,
+aulas titulares, reservas, probabilidades, pesos, variables auxiliares y cuotas
+del diseno; Monitoreo controla agenda, aplicacion, respuestas y cierre.
+
+Reglas principales:
+
+- seguimiento por curso-horario/aula con estado operativo, responsable,
+  collector/link, respuestas totales, respuestas validas, pasan filtro, no
+  pasan filtro y brecha;
+- actualizacion rapida de la bandeja de curso-horario desde la agenda local o
+  las fuentes sincronizadas;
+- cuota sexo por facultad derivada del diseno de calc-muestra y contrastada con
+  respuestas validas observadas;
+- representatividad efectiva planificada contra campo, incluyendo perdida de
+  score y alertas de distancia;
+- cliente recibe solo avance agregado, cuotas y brechas sin PII; interno puede
+  ver agenda, links, reemplazos y trazabilidad operativa.
+
 ## Alertas canónicas de acreditacion
 
 Monitoreo debe producir alertas equivalentes a las reglas operativas de los
@@ -253,10 +301,10 @@ Fixture `acreditacion_segmentada_por_carrera`:
 La pantalla `Monitoreo operativo` debe:
 
 - abrir con un hub inicial de rutas: `Acreditacion`, `Territorial`,
-  `Telefonico`, `General`;
+  `Telefonico`, `Aulas`, `General`;
 - indicar que cada proyecto tiene un tipo unico de monitoreo;
-- habilitar completo `Acreditacion` y `Territorial`, y mostrar las otras rutas
-  como planificadas;
+- habilitar completo `Acreditacion`, `Territorial`, `Telefonico` y `Aulas`, y
+  mostrar las otras rutas como planificadas;
 - bloquear la mesa posterior a la ruta elegida y mostrar la ruta activa como
   insignia, no como selector editable;
 - indicar que campo edita en Sheets y Prosecnur audita y reporta;

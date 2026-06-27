@@ -8,6 +8,7 @@ import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgG
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
+import { PptStyleProfilesPanel } from "./PptStyleProfilesPanel";
 // La edición de presets usa solo controles catalogados. Si un argumento
 // no tiene metadata visual, no se expone como campo editable.
 
@@ -69,7 +70,9 @@ export function PresetsEditor() {
   const hasChanges = !presetArgsEqual(current, defaultForPreset);
 
   return (
-    <div className="pulso-gv2-presets-editor">
+    <div className="pulso-gv2-presets-stack">
+      <PptStyleProfilesPanel />
+      <div className="pulso-gv2-presets-editor">
       {/* Sidebar — lista de tipos de preset */}
       <aside
         className="pulso-gv2-presets-sidebar"
@@ -192,6 +195,7 @@ export function PresetsEditor() {
         />
         <PresetBody meta={meta} values={current} />
       </section>
+      </div>
     </div>
   );
 }

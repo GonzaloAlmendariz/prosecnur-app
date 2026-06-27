@@ -4,6 +4,8 @@ import {
   Download, Info, Loader2, RefreshCw, Search, ShieldCheck, Trash2, Upload,
 } from "lucide-react";
 import {
+  apiCargaKoboAssets,
+  apiCargaKoboDetectedSource,
   apiCargaImportKobo,
   apiCargaImportSurveyMonkey,
   apiCargaData,
@@ -16,7 +18,6 @@ import {
   apiEstudioGet,
   apiEstudioInit,
   apiInstrumentoEstructura,
-  apiMonitoreoKoboAssets,
   apiQuitarData,
   apiQuitarInstrumento,
   apiSurveyMonkeyMultibaseListSurveys,
@@ -27,6 +28,7 @@ import {
   ChoiceCodeMapReview,
   ConnectionTokenState,
   EstudioPayload,
+  KoboSourceSpec,
   MonitoreoKoboAssetItem,
   NormalizedExportFormat,
   Pregunta,
@@ -60,6 +62,13 @@ type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 
 type IconCmp = typeof Database;
 type SourceMode = "files" | "platform";
+type DetectedKoboSource = KoboSourceSpec & {
+  ok: true;
+  detected: true;
+  provider: "kobo";
+  phase: string;
+  name: string;
+};
 
 function providerLabel(provider: CargaPlatformProvider) {
   return provider === "kobo" ? "KoboToolbox" : "SurveyMonkey";
@@ -170,6 +179,7 @@ export default function CargaPage() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [platformError, setPlatformError] = useState("");
   const [platformMessage, setPlatformMessage] = useState("");
+  const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
 
   async function onQuitar(kind: "xlsform" | "data") {
     const label = kind === "xlsform" ? "el XLSForm" : "la base de datos";
@@ -250,9 +260,20 @@ export default function CargaPage() {
   useEffect(() => {
     let alive = true;
     setConnectionsLoading(true);
-    apiConnectionsList()
-      .then((result) => {
-        if (alive) setConnections(result.connections);
+    Promise.allSettled([apiConnectionsList(), apiCargaKoboDetectedSource()])
+      .then(([connectionsResult, koboHintResult]) => {
+        if (!alive) return;
+        if (connectionsResult.status === "fulfilled") {
+          setConnections(connectionsResult.value.connections);
+        } else {
+          setPlatformError((connectionsResult.reason as Error).message);
+        }
+        if (koboHintResult.status === "fulfilled" && koboHintResult.value.ok && koboHintResult.value.detected) {
+          setDetectedKoboSource(koboHintResult.value);
+          if (koboHintResult.value.connection_profile_id) {
+            setSelectedKoboProfileId(koboHintResult.value.connection_profile_id);
+          }
+        }
       })
       .catch((e) => {
         if (alive) setPlatformError((e as Error).message);
@@ -295,7 +316,7 @@ export default function CargaPage() {
           return;
         }
         const baseUrl = activeKoboProfile?.base_url || koboConnection.active_profile_base_url || "https://kf.kobotoolbox.org";
-        const result = await apiMonitoreoKoboAssets(baseUrl, 100, {
+        const result = await apiCargaKoboAssets(baseUrl, 100, {
           profile_id: activeKoboProfile?.id || "",
         });
         const query = platformQuery.trim().toLowerCase();
@@ -362,6 +383,53 @@ export default function CargaPage() {
         applyPlatformImportResult(result);
         setPlatformMessage(`${asset.name} quedó cargado como XLSForm + data.`);
       }
+      await refresh();
+    } catch (e: unknown) {
+      setPlatformError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function seedDetectedKoboAsset(source: DetectedKoboSource) {
+    setPlatformProvider("kobo");
+    setSelectedAssetUid(source.asset_uid);
+    setPlatformQuery(source.name || source.source_title || "");
+    setKoboAssets((prev) => {
+      const exists = prev.some((asset) => asset.uid === source.asset_uid);
+      const detectedAsset: MonitoreoKoboAssetItem = {
+        uid: source.asset_uid,
+        name: source.name || source.source_title || source.asset_uid,
+        version_id: source.version_id || "",
+        date_modified: source.date_modified || null,
+        deployment_active: source.deployment_active === true,
+      };
+      return exists ? prev : [detectedAsset, ...prev];
+    });
+  }
+
+  async function onImportDetectedKoboSource() {
+    const source = detectedKoboSource;
+    if (!source) return;
+    setError("");
+    setPlatformError("");
+    setPlatformMessage("");
+    setSourceMode("platform");
+    seedDetectedKoboAsset(source);
+    if (!koboConnection?.has_token) {
+      setPlatformError("Conecta KoboToolbox en Configuración para importar la fuente detectada.");
+      return;
+    }
+    setBusy(`Importando ${source.name || source.asset_uid} desde KoboToolbox…`);
+    try {
+      const result = await apiCargaImportKobo({
+        asset_uid: source.asset_uid,
+        title: source.name || source.source_title,
+        base_url: source.base_url || activeKoboProfile?.base_url || "https://kobo.unhcr.org",
+        connection_profile_id: source.connection_profile_id || activeKoboProfile?.id || "",
+      });
+      applyPlatformImportResult(result);
+      setPlatformMessage(`${source.name || source.asset_uid} quedó cargado como XLSForm + data.`);
       await refresh();
     } catch (e: unknown) {
       setPlatformError((e as Error).message);
@@ -714,6 +782,19 @@ export default function CargaPage() {
             </div>
           </div>
 
+          {sourceMode === "files" && detectedKoboSource && (
+            <DetectedKoboSourceCallout
+              source={detectedKoboSource}
+              busy={!!busy}
+              hasConnection={koboConnection?.has_token === true}
+              onImport={() => void onImportDetectedKoboSource()}
+              onReview={() => {
+                setSourceMode("platform");
+                seedDetectedKoboAsset(detectedKoboSource);
+              }}
+            />
+          )}
+
           {sourceMode === "platform" && (
             <PlatformImportPanel
               provider={platformProvider}
@@ -754,6 +835,8 @@ export default function CargaPage() {
               busy={!!busy}
               error={platformError}
               message={platformMessage}
+              detectedKoboSource={detectedKoboSource}
+              onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
               onImport={() => void onPlatformImport()}
             />
           )}
@@ -959,6 +1042,58 @@ function NormalizedExportActions({
   );
 }
 
+function DetectedKoboSourceCallout({
+  source,
+  busy,
+  hasConnection,
+  compact = false,
+  onImport,
+  onReview,
+}: {
+  source: DetectedKoboSource;
+  busy: boolean;
+  hasConnection: boolean;
+  compact?: boolean;
+  onImport: () => void;
+  onReview: () => void;
+}) {
+  return (
+    <section className={`pulso-kobo-detected${compact ? " is-compact" : ""}`} aria-label="Fuente Kobo detectada">
+      <span className="pulso-kobo-detected-icon" aria-hidden="true">
+        <CloudDownload size={16} />
+      </span>
+      <div className="pulso-kobo-detected-copy">
+        <strong>Fuente Kobo detectada</strong>
+        <span>
+          {source.name || source.source_title || source.asset_uid}
+          {source.base_url ? ` · ${source.base_url.replace(/^https?:\/\//, "")}` : ""}
+          {source.phase ? ` · fase ${source.phase}` : ""}
+        </span>
+      </div>
+      <div className="pulso-kobo-detected-actions">
+        <button
+          type="button"
+          className="pulso-kobo-detected-secondary"
+          onClick={onReview}
+          disabled={busy}
+        >
+          Revisar
+        </button>
+        <button
+          type="button"
+          className="pulso-kobo-detected-primary"
+          onClick={onImport}
+          disabled={busy || !hasConnection}
+          title={hasConnection ? "Importar fuente Kobo detectada" : "Conecta KoboToolbox en Configuración"}
+        >
+          {busy ? <Loader2 size={14} className="pulso-spin" /> : <CloudDownload size={14} />}
+          Importar fuente detectada
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function PlatformImportPanel({
   provider,
   onProviderChange,
@@ -986,6 +1121,8 @@ function PlatformImportPanel({
   busy,
   error,
   message,
+  detectedKoboSource,
+  onImportDetectedKoboSource,
   onImport,
 }: {
   provider: CargaPlatformProvider;
@@ -1014,6 +1151,8 @@ function PlatformImportPanel({
   busy: boolean;
   error: string;
   message: string;
+  detectedKoboSource: DetectedKoboSource | null;
+  onImportDetectedKoboSource: () => void;
   onImport: () => void;
 }) {
   const isSurveyMonkey = provider === "surveymonkey";
@@ -1114,6 +1253,20 @@ function PlatformImportPanel({
           />
           <span>Incluir parciales</span>
         </label>
+      )}
+
+      {!isSurveyMonkey && detectedKoboSource && (
+        <DetectedKoboSourceCallout
+          source={detectedKoboSource}
+          busy={busy}
+          hasConnection={hasConnection}
+          compact
+          onImport={onImportDetectedKoboSource}
+          onReview={() => {
+            onQueryChange(detectedKoboSource.name || detectedKoboSource.source_title || "");
+            onAssetSelect(detectedKoboSource.asset_uid);
+          }}
+        />
       )}
 
       {error && <div className="pulso-platform-alert is-error">{error}</div>}

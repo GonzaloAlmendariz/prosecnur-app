@@ -101,6 +101,408 @@
   kind
 }
 
+.graficos_acnur_koica_districts <- function() {
+  list(
+    list(ubigeo = "150132", distrito = "San Juan de Lurigancho", short = "SJL", group = "intervencion"),
+    list(ubigeo = "150135", distrito = "San Martin de Porres", short = "SMP", group = "intervencion"),
+    list(ubigeo = "150108", distrito = "Chorrillos", short = "Chorrillos", group = "intervencion"),
+    list(ubigeo = "150103", distrito = "Ate", short = "Ate", group = "comparacion"),
+    list(ubigeo = "150133", distrito = "San Juan de Miraflores", short = "SJM", group = "comparacion"),
+    list(ubigeo = "150117", distrito = "Los Olivos", short = "Los Olivos", group = "comparacion")
+  )
+}
+
+.graficos_records_df <- function(rows) {
+  if (is.null(rows)) return(data.frame())
+  if (is.data.frame(rows)) return(as.data.frame(rows, stringsAsFactors = FALSE, check.names = FALSE))
+  if (!is.list(rows) || !length(rows)) return(data.frame())
+  cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
+  cols <- cols[!is.na(cols) & nzchar(cols)]
+  if (!length(cols)) return(data.frame())
+  out <- as.data.frame(stats::setNames(rep(list(rep(NA_character_, length(rows))), length(cols)), cols),
+                       stringsAsFactors = FALSE, check.names = FALSE)
+  scalar <- function(x) {
+    if (is.null(x) || !length(x)) return(NA_character_)
+    if (is.atomic(x)) return(as.character(x[[1]]))
+    if (is.list(x) && length(x) == 1L && is.atomic(x[[1]])) return(as.character(x[[1]]))
+    as.character(jsonlite::toJSON(x, auto_unbox = TRUE, null = "null"))
+  }
+  for (i in seq_along(rows)) {
+    row <- rows[[i]]
+    if (!is.list(row)) next
+    for (nm in intersect(names(row), cols)) out[[nm]][[i]] <- scalar(row[[nm]])
+  }
+  out
+}
+
+.graficos_first_col <- function(df, candidates) {
+  if (is.null(df) || !is.data.frame(df) || !ncol(df)) return("")
+  hit <- candidates[candidates %in% names(df)][1]
+  if (length(hit) && !is.na(hit)) hit else ""
+}
+
+.graficos_ubigeo6 <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  x[is.na(x)] <- ""
+  x <- gsub("[^0-9]", "", x)
+  ifelse(nzchar(x), sprintf("%06d", suppressWarnings(as.integer(x))), "")
+}
+
+.graficos_territorial_reports <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(list())
+  snapshot <- s$monitoreo_snapshot %||% list()
+  candidates <- list(
+    snapshot$dashboard$territorial_reports,
+    snapshot$territorial_reports,
+    snapshot$dashboard,
+    s$monitoreo_territorial_dashboard,
+    s$monitoreo_dashboard$territorial_reports
+  )
+  cache_entries <- snapshot$territorial_report_cache$entries %||% list()
+  if (length(cache_entries)) {
+    candidates <- c(lapply(cache_entries, function(entry) entry$dashboard %||% list()), candidates)
+  }
+  for (cand in candidates) {
+    if (is.list(cand) && (
+      length(cand$response_audit %||% list()) ||
+        length(cand$route_blocks %||% list()) ||
+        length(cand$block_progress %||% list()) ||
+        length(cand$map$points %||% list()) ||
+        length(cand$map$blocks %||% list()) ||
+        length(cand$advance$block_progress %||% list())
+    )) return(cand)
+  }
+  list()
+}
+
+.graficos_payload_has_rows <- function(x) {
+  if (is.null(x)) return(FALSE)
+  if (is.data.frame(x)) return(nrow(x) > 0L)
+  if (is.list(x)) return(length(x) > 0L)
+  length(x) > 0L
+}
+
+.graficos_hojas_outputs_have_data <- function(outputs = list()) {
+  if (exists(".hojas_ruta_workspace_outputs_has_data", mode = "function")) {
+    ok <- tryCatch(.hojas_ruta_workspace_outputs_has_data(outputs), error = function(e) NA)
+    if (!is.na(ok)) return(isTRUE(ok))
+  }
+  if (!is.list(outputs) || !length(outputs)) return(FALSE)
+  sample <- outputs$sample %||% outputs$sample_preview %||% outputs$samplePreview %||% list()
+  .graficos_payload_has_rows(sample$blocks %||% NULL) ||
+    .graficos_payload_has_rows(sample$replacement_blocks %||% NULL) ||
+    .graficos_payload_has_rows(sample$sample %||% NULL) ||
+    .graficos_payload_has_rows(outputs$quota %||% NULL) ||
+    .graficos_payload_has_rows(outputs$population %||% NULL) ||
+    .graficos_payload_has_rows(outputs$sample_size_preview %||% outputs$sampleSizePreview %||% NULL) ||
+    !is.null(sample$total_entrevistas) ||
+    !is.null(sample$total_manzanas)
+}
+
+.graficos_has_hojas_ruta <- function(sid) {
+  if (is.null(sid) || !nzchar(sid)) return(FALSE)
+  if (exists(".hojas_ruta_ensure_runs", mode = "function")) {
+    tryCatch(.hojas_ruta_ensure_runs(sid), error = function(e) NULL)
+  }
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(FALSE)
+  candidates <- list(s$hojas_ruta_workspace_outputs %||% NULL)
+  runs <- s$hojas_ruta_runs %||% list()
+  if (is.list(runs) && length(runs)) {
+    candidates <- c(
+      candidates,
+      lapply(runs, function(run) run$workspace_outputs %||% run$workspaceOutputs %||% run$outputs %||% list())
+    )
+  }
+  any(vapply(candidates, .graficos_hojas_outputs_have_data, logical(1))) || isTRUE(s$hojas_ruta_ok)
+}
+
+.graficos_has_monitoreo_territorial <- function(sid) {
+  if (is.null(sid) || !nzchar(sid)) return(FALSE)
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(FALSE)
+  reports <- .graficos_territorial_reports(sid)
+  has_territorial_state <- length(s$monitoreo_snapshot %||% list()) ||
+    length(s$monitoreo_territorial_dashboard %||% list()) ||
+    length((s$monitoreo_dashboard %||% list())$territorial_reports %||% list())
+  has_territorial_rows <- .graficos_payload_has_rows(reports$response_audit %||% NULL) ||
+    .graficos_payload_has_rows(reports$block_progress %||% NULL) ||
+    .graficos_payload_has_rows(reports$route_blocks %||% NULL) ||
+    .graficos_payload_has_rows((reports$map %||% list())$points %||% NULL) ||
+    .graficos_payload_has_rows((reports$map %||% list())$blocks %||% NULL) ||
+    .graficos_payload_has_rows((reports$advance %||% list())$block_progress %||% NULL)
+  isTRUE(has_territorial_state) && isTRUE(has_territorial_rows)
+}
+
+.graficos_territorial_coverage_capabilities <- function(sid) {
+  has_hojas <- .graficos_has_hojas_ruta(sid)
+  has_monitoreo <- .graficos_has_monitoreo_territorial(sid)
+  missing <- character(0)
+  if (!has_hojas) missing <- c(missing, "Hojas de Ruta")
+  if (!has_monitoreo) missing <- c(missing, "Monitoreo territorial")
+  available <- isTRUE(has_hojas) && isTRUE(has_monitoreo)
+  list(
+    has_hojas_ruta = has_hojas,
+    has_monitoreo_territorial = has_monitoreo,
+    has_coverage_maps = available,
+    available = available,
+    disabled_reason = if (available) "" else paste0(
+      "Mapa de cobertura disponible cuando el proyecto tenga ",
+      paste(missing, collapse = " y "),
+      "."
+    )
+  )
+}
+
+.graficos_zone_sets <- function(reports) {
+  audit <- .graficos_records_df(reports$response_audit %||% reports$map$points %||% list())
+  routes <- .graficos_records_df(
+    reports$route_blocks %||% reports$map$blocks %||% reports$block_progress %||% reports$advance$block_progress %||% list()
+  )
+  zone_key <- function(df, ubigeo_cols, zone_cols, effective_only = FALSE) {
+    if (!nrow(df)) return(character(0))
+    ucol <- .graficos_first_col(df, ubigeo_cols)
+    zcol <- .graficos_first_col(df, zone_cols)
+    if (!nzchar(ucol) || !nzchar(zcol)) return(character(0))
+    keep <- rep(TRUE, nrow(df))
+    if (isTRUE(effective_only)) {
+      av_col <- .graficos_first_col(df, c("advance_valid", "source_effective"))
+      st_col <- .graficos_first_col(df, c("validation_status", "advance_status", "Estado"))
+      if (nzchar(av_col)) {
+        keep <- keep & tolower(as.character(df[[av_col]])) %in% c("true", "1", "validada", "si", "yes")
+      }
+      if (nzchar(st_col)) {
+        keep <- keep & tolower(as.character(df[[st_col]])) %in% c("validada", "validado")
+      }
+    }
+    ub <- .graficos_ubigeo6(df[[ucol]])
+    zn <- trimws(as.character(df[[zcol]]))
+    unique(paste(ub[keep], zn[keep], sep = "::"))
+  }
+  list(
+    effective = zone_key(
+      audit,
+      ubigeo_cols = c("advance_block_ubigeo", "ubigeo", "district_code"),
+      zone_cols = c("advance_block_zona", "zona", "zone"),
+      effective_only = TRUE
+    ),
+    route = zone_key(
+      routes,
+      ubigeo_cols = c("advance_block_ubigeo", "ubigeo", "district_code"),
+      zone_cols = c("advance_block_zona", "zona", "zone"),
+      effective_only = FALSE
+    )
+  )
+}
+
+.graficos_geojson_zone_code <- function(feature) {
+  props <- feature$properties %||% list()
+  .graficos_scalar_chr(
+    props$zona %||% props$ZONA %||% props$zona_censal %||% props$CODZONA %||% props$codzona %||% props$id,
+    ""
+  )
+}
+
+.graficos_geojson_rings_payload <- function(geometry) {
+  rings <- if (exists(".hojas_ruta_geometry_rings", mode = "function")) {
+    tryCatch(.hojas_ruta_geometry_rings(geometry), error = function(e) list())
+  } else {
+    list()
+  }
+  lapply(rings, function(mat) {
+    mat <- as.matrix(mat)
+    list(
+      x = unname(as.numeric(mat[, 1])),
+      y = unname(as.numeric(mat[, 2]))
+    )
+  })
+}
+
+.graficos_coverage_map_context <- function(sid, scope = c("district", "overview_koica"), ubigeo = NULL) {
+  scope <- match.arg(scope)
+  districts <- .graficos_acnur_koica_districts()
+  reports <- .graficos_territorial_reports(sid)
+  zone_sets <- .graficos_zone_sets(reports)
+  selected <- if (identical(scope, "district")) {
+    Filter(function(x) identical(x$ubigeo, .graficos_ubigeo6(ubigeo)), districts)
+  } else {
+    districts
+  }
+  if (!length(selected)) selected <- districts
+  zones <- list()
+  summary <- list()
+  alerts <- list()
+  for (district in selected) {
+    payload <- tryCatch(hojas_ruta_zone_map_preview(district$ubigeo), error = function(e) {
+      alerts[[length(alerts) + 1L]] <<- list(level = "warn", code = "zone_map_failed", message = conditionMessage(e))
+      NULL
+    })
+    features <- payload$geojson$features %||% list()
+    route_n <- 0L
+    effective_n <- 0L
+    for (feature in features) {
+      zona <- .graficos_geojson_zone_code(feature)
+      key <- paste(district$ubigeo, zona, sep = "::")
+      is_effective <- key %in% zone_sets$effective
+      is_route <- key %in% zone_sets$route
+      if (is_route) route_n <- route_n + 1L
+      if (is_effective) effective_n <- effective_n + 1L
+      status <- if (is_effective) {
+        "efectiva"
+      } else if (is_route) {
+        "intervencion"
+      } else if (identical(scope, "overview_koica") && identical(district$group, "comparacion")) {
+        "comparacion"
+      } else {
+        "no_intervenido"
+      }
+      rings <- .graficos_geojson_rings_payload(feature$geometry)
+      if (!length(rings)) next
+      zones[[length(zones) + 1L]] <- list(
+        ubigeo = district$ubigeo,
+        distrito = district$distrito,
+        group = district$group,
+        zona = zona,
+        status = status,
+        rings = rings
+      )
+    }
+    summary[[length(summary) + 1L]] <- list(
+      ubigeo = district$ubigeo,
+      distrito = district$distrito,
+      grupo = district$group,
+      zonas_ruta = route_n,
+      zonas_efectivas = effective_n
+    )
+  }
+  title <- if (identical(scope, "overview_koica")) {
+    "Overview territorial KOICA"
+  } else {
+    paste("Cobertura efectiva -", selected[[1]]$distrito)
+  }
+  list(
+    scope = scope,
+    ubigeo = if (identical(scope, "district")) selected[[1]]$ubigeo else "",
+    distrito = if (identical(scope, "district")) selected[[1]]$distrito else "",
+    titulo = title,
+    subtitle = "Zonas sombreadas segun ruta e informacion validada",
+    caption = "Fuente: Hojas de Ruta y Monitoreo territorial Prosecnur.",
+    zones = zones,
+    summary = summary,
+    alerts = alerts
+  )
+}
+
+.graficos_koica_crosswalk <- function(sid) {
+  districts <- .graficos_acnur_koica_districts()
+  rows <- lapply(districts, function(d) {
+    data.frame(
+      ubigeo = d$ubigeo,
+      distrito = d$distrito,
+      group = d$group,
+      kobo_code = "",
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  s <- session_get(sid, required = FALSE)
+  cfg <- (s$monitoreo_config %||% list())$territorial %||% list()
+  cw <- cfg$district_crosswalk %||% cfg$districtCrosswalk %||% list()
+  cw_df <- .graficos_records_df(cw)
+  if (nrow(cw_df) && all(c("ubigeo", "kobo_code") %in% names(cw_df))) {
+    for (i in seq_len(nrow(out))) {
+      hit <- which(.graficos_ubigeo6(cw_df$ubigeo) == out$ubigeo)[1]
+      if (!is.na(hit)) out$kobo_code[[i]] <- .graficos_norm_text_key(cw_df$kobo_code[[hit]])
+    }
+  }
+  out
+}
+
+.graficos_detect_district_values <- function(df, sid) {
+  n <- if (is.data.frame(df)) nrow(df) else 0L
+  if (!n) return(list(ubigeo = rep("", 0L), distrito = rep("", 0L), group = rep("", 0L)))
+  cw <- .graficos_koica_crosswalk(sid)
+  col <- .graficos_first_col(df, c(
+    "advance_block_ubigeo", "ubigeo", "district_code", "Core/M5_district",
+    "M5_district", "district", "distrito", "Distrito"
+  ))
+  raw <- if (nzchar(col)) as.character(df[[col]]) else rep("", n)
+  raw_key <- .graficos_norm_text_key(raw)
+  ub <- .graficos_ubigeo6(raw)
+  for (i in seq_along(raw_key)) {
+    if (nzchar(ub[[i]])) next
+    hit <- which(cw$kobo_code == raw_key[[i]] | .graficos_norm_text_key(cw$distrito) == raw_key[[i]])[1]
+    if (!is.na(hit)) ub[[i]] <- cw$ubigeo[[hit]]
+  }
+  match_idx <- match(ub, cw$ubigeo)
+  distrito <- ifelse(!is.na(match_idx), cw$distrito[match_idx], "Otros distritos")
+  group <- ifelse(!is.na(match_idx) & cw$group[match_idx] == "intervencion", "Intervencion KOICA",
+                  ifelse(!is.na(match_idx) & cw$group[match_idx] == "comparacion", "Comparacion KOICA", "Otros distritos"))
+  list(ubigeo = ub, distrito = distrito, group = group)
+}
+
+.graficos_add_virtual_koica_group_sources <- function(sid, sources) {
+  ds <- sources$data_sources %||% list()
+  inst <- sources$inst_sources %||% list()
+  if (!length(ds) || !length(inst)) return(sources)
+  for (nm in intersect(names(ds), names(inst))) {
+    df <- ds[[nm]]
+    rp_inst <- inst[[nm]]
+    if (!is.data.frame(df) || is.null(rp_inst$survey) || !is.data.frame(rp_inst$survey)) next
+    detected <- .graficos_detect_district_values(df, sid)
+    if (!"__koica_group" %in% names(df)) df$`__koica_group` <- detected$group
+    if (!"__district" %in% names(df)) df$`__district` <- detected$distrito
+    survey <- rp_inst$survey
+    choices <- rp_inst$choices %||% rp_inst$choices_raw %||% data.frame()
+    add_survey <- function(name, label, list_name) {
+      if (name %in% as.character(survey$name %||% character())) return()
+      row <- survey[0, , drop = FALSE]
+      if (!nrow(row)) {
+        row <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(survey))), names(survey))),
+                             stringsAsFactors = FALSE, check.names = FALSE)
+      } else {
+        row <- row[1, , drop = FALSE]
+      }
+      if ("type" %in% names(row)) row$type <- paste("select_one", list_name)
+      if ("type_base" %in% names(row)) row$type_base <- "select_one"
+      if ("name" %in% names(row)) row$name <- name
+      if ("label" %in% names(row)) row$label <- label
+      if ("list_name" %in% names(row)) row$list_name <- list_name
+      survey <<- rbind(survey, row[, names(survey), drop = FALSE])
+    }
+    add_choices <- function(list_name, values) {
+      if (!is.data.frame(choices) || !"list_name" %in% names(choices) || !"name" %in% names(choices)) return()
+      if (any(as.character(choices$list_name %||% "") == list_name)) return()
+      lab_col <- .graficos_choices_label_col(choices)
+      for (value in values) {
+        row <- choices[0, , drop = FALSE]
+        if (!nrow(row)) {
+          row <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(choices))), names(choices))),
+                               stringsAsFactors = FALSE, check.names = FALSE)
+        } else {
+          row <- row[1, , drop = FALSE]
+        }
+        row$list_name <- list_name
+        row$name <- value
+        if (!is.na(lab_col) && lab_col %in% names(row)) row[[lab_col]] <- value
+        choices <<- rbind(choices, row[, names(choices), drop = FALSE])
+      }
+    }
+    add_survey("__koica_group", "Grupo KOICA", "__koica_group_list")
+    add_survey("__district", "Distrito", "__district_list")
+    add_choices("__koica_group_list", c("Intervencion KOICA", "Comparacion KOICA", "Otros distritos"))
+    add_choices("__district_list", unique(as.character(detected$distrito)))
+    rp_inst$survey <- survey
+    rp_inst$choices <- choices
+    ds[[nm]] <- df
+    inst[[nm]] <- rp_inst
+  }
+  sources$data_sources <- ds
+  sources$inst_sources <- inst
+  sources
+}
+
 .graficos_group_path_for_row <- function(survey, i) {
   for (col in c("group_path", "path", "group_label", "group_name", "seccion", "section")) {
     if (col %in% names(survey)) {
@@ -230,6 +632,7 @@
     if (tb %in% .graficos_var_skip_types) next
     nm <- as.character(survey$name[i] %||% "")
     if (!nzchar(nm)) next
+    if (startsWith(nm, "__")) next
     list_name <- .graficos_list_name_for_row(survey, i)
     choice_meta <- .graficos_choices_for_list(choices, list_name)
     section <- as.character(survey$group_name[i] %||% "")
@@ -389,20 +792,32 @@
     n >= 3L && n <= 7L
 }
 
-.graficos_chart_for_var <- function(v, ref) {
+.graficos_chart_for_var <- function(v, ref, profile_id = "", comparison_ref = NULL) {
   n_choices <- .graficos_var_choice_n(v)
   label <- .graficos_scalar_chr(v$label, ref)
   tipo <- .graficos_base_type(v$tipo)
+  acnur_profile <- identical(.graficos_scalar_chr(profile_id, ""), "acnur_kobo_cruncher_plus")
+  comparison_ref <- .graficos_scalar_chr(comparison_ref, "")
+  add_comparison <- function(args) {
+    if (nzchar(comparison_ref)) args$cruces <- comparison_ref
+    args
+  }
+  if (isTRUE(acnur_profile)) {
+    return(list(
+      graficador = "p_barras_agrupadas",
+      args = add_comparison(list(var = ref, titulo = label, mostrar_ceros = FALSE))
+    ))
+  }
   if (identical(tipo, "select_multiple")) {
-    return(list(graficador = "p_barras_agrupadas", args = list(var = ref, titulo = label, mostrar_ceros = FALSE)))
+    return(list(graficador = "p_barras_agrupadas", args = add_comparison(list(var = ref, titulo = label, mostrar_ceros = FALSE))))
   }
   if (n_choices == 2L) {
     return(list(graficador = "p_pie", args = list(var = ref, titulo = label)))
   }
   if (n_choices > 8L) {
-    return(list(graficador = "p_barras_agrupadas", args = list(var = ref, titulo = label, mostrar_ceros = FALSE)))
+    return(list(graficador = "p_barras_agrupadas", args = add_comparison(list(var = ref, titulo = label, mostrar_ceros = FALSE))))
   }
-  list(graficador = "p_barras_apiladas", args = list(var = ref, titulo = label))
+  list(graficador = "p_barras_apiladas", args = add_comparison(list(var = ref, titulo = label)))
 }
 
 .graficos_plan_slide_id <- local({
@@ -465,11 +880,153 @@
   slides
 }
 
+.graficos_ref_for_source <- function(source, name) {
+  name <- .graficos_scalar_chr(name, "")
+  if (!nzchar(name)) return("")
+  if (!identical(.graficos_scalar_chr(source, "default"), "default")) paste0(source, "$", name) else name
+}
+
+.graficos_comparison_ref <- function(source, comparison_mode = "none") {
+  mode <- .graficos_scalar_chr(comparison_mode, "none")
+  if (identical(mode, "koica_group")) return(.graficos_ref_for_source(source, "__koica_group"))
+  if (identical(mode, "district")) return(.graficos_ref_for_source(source, "__district"))
+  ""
+}
+
+.graficos_acnur_intro_slides <- function(sid, include_coverage_maps = TRUE) {
+  slides <- list(
+    list(
+      id = .graficos_plan_slide_id("acnur"),
+      tipo = "p_slide_portada",
+      payload = list(
+        titulo = "ACNUR KOICA",
+        subtitulo = "Resultados Kobo + mapas de cobertura territorial",
+        fecha = format(Sys.Date(), "%Y"),
+        subtexto = "Plantilla Prosecnur original inspirada en estructura Kobo-style"
+      )
+    ),
+    list(
+      id = .graficos_plan_slide_id("acnur"),
+      tipo = "p_slide_texto",
+      payload = list(
+        titulo = "Ficha tecnica",
+        texto = c(
+          "Fuente: KoboToolbox UNHCR.",
+          "Instrumento: XLSForm + submissions normalizadas.",
+          "Procesamiento: Motor Prosecnur.",
+          "Cobertura: Hojas de Ruta + Monitoreo territorial."
+        ),
+        bullets = "",
+        base = ""
+      )
+    ),
+    list(
+      id = .graficos_plan_slide_id("acnur"),
+      tipo = "p_slide_texto",
+      payload = list(
+        titulo = "Diseno de intervencion y comparacion",
+        texto = c(
+          "Intervencion KOICA: San Juan de Lurigancho, San Martin de Porres y Chorrillos.",
+          "Comparacion KOICA: Ate, San Juan de Miraflores y Los Olivos."
+        ),
+        bullets = "",
+        base = ""
+      )
+    )
+  )
+  if (isTRUE(include_coverage_maps)) {
+    overview_context <- .graficos_coverage_map_context(sid, scope = "overview_koica")
+    slides[[length(slides) + 1L]] <- list(
+      id = .graficos_plan_slide_id("map"),
+      tipo = "p_slide_1_grafico_narrativo",
+      payload = list(
+        titulo = "Overview territorial KOICA",
+        texto = "",
+        grafico = list(
+          graficador = "p_mapa_cobertura_territorial",
+          args = list(scope = "overview_koica", titulo = "Overview territorial KOICA", contexto = overview_context)
+        ),
+        base = "",
+        pie = "",
+        etiqueta = ""
+      )
+    )
+    for (district in .graficos_acnur_koica_districts()) {
+      ctx <- .graficos_coverage_map_context(sid, scope = "district", ubigeo = district$ubigeo)
+      title <- paste("Cobertura efectiva -", district$distrito)
+      slides[[length(slides) + 1L]] <- list(
+        id = .graficos_plan_slide_id("map"),
+        tipo = "p_slide_1_grafico_narrativo",
+        payload = list(
+          titulo = title,
+          texto = "",
+          grafico = list(
+            graficador = "p_mapa_cobertura_territorial",
+            args = list(scope = "district", ubigeo = district$ubigeo, titulo = title, contexto = ctx)
+          ),
+          base = "",
+          pie = "",
+          etiqueta = ""
+        )
+      )
+    }
+  }
+  slides[[length(slides) + 1L]] <- list(id = .graficos_plan_slide_id("idx"), tipo = "p_slide_indice", payload = list())
+  slides
+}
+
+.graficos_pack_acnur_graphs <- function(graphs, section_title = "") {
+  lapply(graphs, function(item) {
+    list(
+      id = .graficos_plan_slide_id("auto"),
+      tipo = "p_slide_1_grafico_narrativo",
+      payload = list(
+        titulo = item$title,
+        texto = "",
+        grafico = item$graf,
+        base = "",
+        pie = "",
+        etiqueta = ""
+      )
+    )
+  })
+}
+
 .graficos_suggested_plan <- function(sid, config = NULL) {
+  raw_cfg <- config %||% list()
   cfg <- .graficos_effective_config(sid, config)
+  profile_id <- .graficos_scalar_chr(raw_cfg$profile_id %||% raw_cfg$profileId %||% cfg$profile_id, "")
+  include_value <- raw_cfg$include_coverage_maps %||% raw_cfg$includeCoverageMaps %||% cfg$include_coverage_maps
+  comparison_value <- raw_cfg$comparison_mode %||% raw_cfg$comparisonMode %||% cfg$comparison_mode
+  include_explicit <- !is.null(raw_cfg$include_coverage_maps) ||
+    !is.null(raw_cfg$includeCoverageMaps) ||
+    !is.null(cfg$include_coverage_maps)
+  comparison_explicit <- !is.null(raw_cfg$comparison_mode) ||
+    !is.null(raw_cfg$comparisonMode) ||
+    !is.null(cfg$comparison_mode)
+  coverage_caps <- .graficos_territorial_coverage_capabilities(sid)
+  include_coverage_maps <- isTRUE(include_value)
+  comparison_mode <- .graficos_scalar_chr(comparison_value, "")
+  if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
+    if (!include_explicit) include_coverage_maps <- isTRUE(coverage_caps$has_coverage_maps)
+    if (!comparison_mode %in% c("koica_group", "district", "none")) comparison_mode <- "koica_group"
+    if (!comparison_explicit || !nzchar(comparison_mode)) comparison_mode <- "koica_group"
+  }
+  requested_coverage_maps <- isTRUE(include_coverage_maps)
+  if (requested_coverage_maps && !isTRUE(coverage_caps$has_coverage_maps)) {
+    include_coverage_maps <- FALSE
+  }
+  if (!nzchar(comparison_mode)) comparison_mode <- "none"
   coverage <- .graficos_plan_coverage(sid, plan = list(slides = list()), config = cfg)
   warnings <- coverage$warnings %||% list()
-  slides <- list()
+  if (requested_coverage_maps && !isTRUE(coverage_caps$has_coverage_maps)) {
+    warnings <- c(warnings, coverage_caps$disabled_reason)
+  }
+  slides <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
+    .graficos_acnur_intro_slides(sid, include_coverage_maps = include_coverage_maps)
+  } else {
+    list()
+  }
 
   for (src in coverage$sources %||% list()) {
     source <- .graficos_scalar_chr(src$name, "default")
@@ -542,16 +1099,24 @@
       }
 
       simple <- list()
+      comparison_ref <- .graficos_comparison_ref(source, comparison_mode)
       for (idx in which(!used)) {
         v <- section_vars[[idx]]
         ref <- .graficos_scalar_chr(v$name)
         if (!identical(source, "default")) ref <- paste0(source, "$", ref)
         simple[[length(simple) + 1L]] <- list(
           title = .graficos_scalar_chr(v$label, ref),
-          graf = .graficos_chart_for_var(v, ref)
+          graf = .graficos_chart_for_var(v, ref, profile_id = profile_id, comparison_ref = comparison_ref)
         )
       }
-      slides <- c(slides, .graficos_pack_simple_graphs(simple, section_title = if (identical(section, "Variables sugeridas")) "" else section))
+      slides <- c(
+        slides,
+        if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
+          .graficos_pack_acnur_graphs(simple, section_title = if (identical(section, "Variables sugeridas")) "" else section)
+        } else {
+          .graficos_pack_simple_graphs(simple, section_title = if (identical(section, "Variables sugeridas")) "" else section)
+        }
+      )
     }
   }
 

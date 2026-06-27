@@ -97,6 +97,9 @@ let mainWindow = null;
 let backend = null;
 let backendStopping = false;
 let backendPort = null;
+let rendererCloseGuardReady = false;
+let closeConfirmed = false;
+let closeRequestPending = false;
 // Flag que marca cuando matamos el proceso adrede (por ej. durante
 // reintentos por bind error) para que el watchdog del exit handler no
 // muestre dialog de error en esos casos esperados.
@@ -825,6 +828,21 @@ function registerIpcHandlers() {
   ipcMain.handle("hf:saveDefaultNamespace", (_event, args = {}) => saveHfDefaultNamespace(args));
 
   ipcMain.handle("hf:forgetDestination", (_event, args = {}) => forgetHfDestination(args));
+
+  ipcMain.on("app:closeGuardReady", (_event, ready) => {
+    rendererCloseGuardReady = Boolean(ready);
+  });
+
+  ipcMain.handle("app:confirmClose", async () => {
+    closeConfirmed = true;
+    closeRequestPending = false;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close();
+      return true;
+    }
+    app.quit();
+    return true;
+  });
 }
 
 // Helper para enviar comandos del menú al renderer. Se usa desde
@@ -833,6 +851,20 @@ function sendMenuCommand(command) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("menu:command", command);
   }
+}
+
+function requestAppCloseFromRenderer() {
+  if (!mainWindow || mainWindow.isDestroyed() || !rendererCloseGuardReady) {
+    closeConfirmed = true;
+    app.quit();
+    return;
+  }
+  if (closeRequestPending) return;
+  closeRequestPending = true;
+  mainWindow.webContents.send("app:close-request");
+  setTimeout(() => {
+    closeRequestPending = false;
+  }, 1000);
 }
 
 // Construye el submenú "Abrir reciente" del menú Archivo. Si no hay
@@ -1427,7 +1459,11 @@ function createMenu() {
         { role: "hide" },
         { role: "hideOthers" },
         { type: "separator" },
-        { role: "quit" }
+        {
+          label: "Salir",
+          accelerator: "CmdOrCtrl+Q",
+          click: () => requestAppCloseFromRenderer()
+        }
       ]
     }] : []),
     {
@@ -1470,7 +1506,11 @@ function createMenu() {
           }
         },
         { type: "separator" },
-        { role: "quit", label: "Salir" }
+        {
+          label: "Salir",
+          accelerator: process.platform === "darwin" ? undefined : "CmdOrCtrl+Q",
+          click: () => requestAppCloseFromRenderer()
+        }
       ]
     },
     {
@@ -1622,8 +1662,14 @@ async function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => mainWindow.show());
+  mainWindow.on("close", (event) => {
+    if (closeConfirmed || !rendererCloseGuardReady) return;
+    event.preventDefault();
+    requestAppCloseFromRenderer();
+  });
   mainWindow.on("closed", () => {
     mainWindow = null;
+    rendererCloseGuardReady = false;
   });
 
   hardenWindowNavigation(mainWindow);
@@ -1695,6 +1741,11 @@ if (!gotLock) {
   });
 
   app.on("before-quit", (event) => {
+    if (!closeConfirmed && rendererCloseGuardReady) {
+      event.preventDefault();
+      requestAppCloseFromRenderer();
+      return;
+    }
     if (backend && !backendStopping) {
       event.preventDefault();
       stopBackend().finally(() => app.quit());

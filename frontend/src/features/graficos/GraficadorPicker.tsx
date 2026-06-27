@@ -35,6 +35,10 @@ const CATEGORIAS: Categoria[] = [
     label: "Dimensiones e índices",
     predicate: (g) => g.requisito === "dimensiones",
   },
+  {
+    label: "Territorio y cobertura",
+    predicate: (g) => g.requisito === "territorial_coverage" || g.feature_kind === "territorial_coverage",
+  },
 ];
 
 export default function GraficadorPicker({
@@ -57,6 +61,7 @@ export default function GraficadorPicker({
       .map((cat) => ({
         label: cat.label,
         items: registry.graficadores
+          .filter((g) => g.available !== false)
           .filter(cat.predicate)
           .filter((g) => {
             if (!q) return true;
@@ -168,13 +173,14 @@ function GraficadorCard({
   onPick: (g: GraficadorMetadata) => void;
 }) {
   const requiereDim = graf.requisito === "dimensiones";
+  const requiereTerritorio = graf.requisito === "territorial_coverage" || graf.feature_kind === "territorial_coverage";
   const dimReady = requiereDim && dimOk;
   const dimMissing = requiereDim && !dimOk;
   return (
     <button
       type="button"
       onClick={() => onPick(graf)}
-      className={`pulso-gv2-graf-card ${requiereDim ? "requires-dimensions" : ""}`}
+      className={`pulso-gv2-graf-card ${requiereDim ? "requires-dimensions" : ""} ${requiereTerritorio ? "requires-territory" : ""}`}
     >
       <span className="pulso-gv2-graf-card-icon">
         <GraficadorTypeIcon name={graf.name} iconoUi={graf.icono_ui} size={25} />
@@ -193,6 +199,11 @@ function GraficadorCard({
       {dimMissing && (
         <span className="pulso-gv2-graf-card-badge">
           Requiere dimensiones · ve a Analítica
+        </span>
+      )}
+      {requiereTerritorio && (
+        <span className="pulso-gv2-graf-card-badge is-ready">
+          Hojas de Ruta + Monitoreo
         </span>
       )}
     </button>

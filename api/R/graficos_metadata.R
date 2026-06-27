@@ -464,6 +464,32 @@
     ), .args_graf_comunes())
   ),
 
+  p_mapa_cobertura_territorial = list(
+    titulo_humano = "Mapa de cobertura territorial",
+    descripcion   = "Mapa distrital con zonas de aplicación. Disponible cuando el proyecto tiene Hojas de Ruta y Monitoreo territorial.",
+    icono_ui      = "Map",
+    requisito     = "territorial_coverage",
+    feature_kind  = "territorial_coverage",
+    args = list(
+      list(name = "scope", label = "Alcance", tipo_input = "choice", grupo = "datos",
+           default = "district",
+           choices = list(
+             list(value = "district", label = "Distrito"),
+             list(value = "overview_koica", label = "Overview KOICA")
+           )),
+      list(name = "ubigeo", label = "UBIGEO", tipo_input = "string", grupo = "datos",
+           descripcion = "Código distrital cuando el alcance es distrito."),
+      list(name = "unit", label = "Unidad", tipo_input = "choice", grupo = "datos",
+           default = "zonas",
+           choices = list(list(value = "zonas", label = "Zonas"), list(value = "manzanas", label = "Manzanas"))),
+      list(name = "coverage_mode", label = "Cobertura", tipo_input = "choice", grupo = "datos",
+           default = "efectivas",
+           choices = list(list(value = "efectivas", label = "Efectivas"), list(value = "rutas", label = "Rutas"))),
+      list(name = "mostrar_manzanas", label = "Contornear manzanas", tipo_input = "bool", grupo = "estilo",
+           default = FALSE)
+    )
+  ),
+
   p_pie = list(
     titulo_humano = "Gráfico de torta",
     descripcion   = "Pie chart clásico con porcentajes. Útil para variables con pocas categorías.",
@@ -1983,6 +2009,198 @@
   )
 )
 
+# ===========================================================================
+# ESTILOS VISUALES DE PRESENTACION (PPT)
+# ===========================================================================
+#
+# A diferencia de los templates, estos perfiles no crean ni eliminan slides.
+# Solo aplican un paquete visual al plan actual: presets PPT, paletas y
+# overrides reutilizables. Sirven para que un informe armado manualmente pueda
+# adoptar una linea grafica institucional sin reconstruir el plan.
+
+.ACNUR_PPT_COLORS <- list(
+  blue = "#0072BC",
+  navy = "#18375F",
+  green = "#00B398",
+  text = "#1A1A1A",
+  gray = "#666666",
+  control = "#CBCBCB",
+  red = "#EF4A60",
+  yellow = "#FAEB00",
+  footer = "#CCCCCC"
+)
+
+.PPT_STYLE_PROFILES <- list(
+  acnur_kobo_cruncher_plus = list(
+    titulo_humano = "ACNUR KOICA - Kobo-style + mapas",
+    descripcion = paste(
+      "Linea visual ACNUR para reportes Kobo/KOICA: portada azul,",
+      "titulos limpios, barras comparativas azul/gris, logo PULSO en footer",
+      "y altura optimizada para mapas de cobertura."
+    ),
+    icono_ui = "Map",
+    preview_colors = unname(c(
+      .ACNUR_PPT_COLORS$blue,
+      .ACNUR_PPT_COLORS$navy,
+      .ACNUR_PPT_COLORS$green,
+      .ACNUR_PPT_COLORS$control,
+      .ACNUR_PPT_COLORS$yellow
+    )),
+    presets = list(
+      base = list(
+        font_family = "Arial",
+        font_family_ppt = "Arial",
+        font_family_portada = "Arial",
+        font_family_titulo_portada = "Arial",
+        font_family_subtitulo_portada = "Arial",
+        formato = "Base: %s",
+        sufijo_auto = "encuestas",
+        size_titulo = 13.5,
+        size_titulo_slide = 22.5,
+        size_subtitulo = 12,
+        size_subtitulo_slide = 15,
+        size_cuerpo_slide = 13,
+        size_leyenda = 9.5,
+        size_ejes = 9.2,
+        size_nota_pie = 9,
+        size_texto_barras = 3.6,
+        size_titulo_portada = 50,
+        size_subtitulo_portada = 22,
+        top_offset_subtitulo_portada = 0.58,
+        height_subtitulo_portada = 0.50,
+        color_titulo = .ACNUR_PPT_COLORS$text,
+        color_subtitulo = .ACNUR_PPT_COLORS$navy,
+        color_leyenda = .ACNUR_PPT_COLORS$text,
+        color_ejes = .ACNUR_PPT_COLORS$gray,
+        color_nota_pie = .ACNUR_PPT_COLORS$text,
+        color_titulo_portada = "#FFFFFF",
+        color_subtitulo_portada = .ACNUR_PPT_COLORS$yellow,
+        mayusculas_titulo_slide = FALSE,
+        mayusculas_titulo_portada = TRUE,
+        bold_titulo_slide = FALSE,
+        bold_titulo_portada = TRUE,
+        slide_1_plot_height_cm = 13.40,
+        partner_logo_footer = TRUE,
+        partner_logo_path = "api/inst/hojas_ruta/assets/logo_pulso.png",
+        partner_logo_left = 0.46,
+        partner_logo_height = 0.60,
+        textos_negrita = c("leyenda", "valores")
+      ),
+      barras_agrupadas = list(
+        usar_canvas = FALSE,
+        canvas_w_etiquetas = 0.33,
+        canvas_w_bars = 0.62,
+        canvas_h_toprow_in = 0.08,
+        canvas_h_header_in = 0.40,
+        canvas_h_legend_in = 0.10,
+        canvas_h_caption_in = 0.10,
+        alto_por_categoria = 0.34,
+        ancho_max_eje_y = 32,
+        mostrar_valores = TRUE,
+        mostrar_ceros = FALSE,
+        decimales = 1,
+        umbral_etiqueta = 0.001,
+        umbral_posicion = 0.055,
+        mostrar_barra_extra = FALSE,
+        mostrar_leyenda = TRUE,
+        orden_barras = "instrumento",
+        invertir_barras = TRUE,
+        color_texto_barras_fuera = .ACNUR_PPT_COLORS$navy,
+        colores_series = list(
+          Intervencion = .ACNUR_PPT_COLORS$blue,
+          Intervención = .ACNUR_PPT_COLORS$blue,
+          Comparacion = .ACNUR_PPT_COLORS$control,
+          Comparación = .ACNUR_PPT_COLORS$control,
+          Porcentaje = .ACNUR_PPT_COLORS$blue
+        )
+      ),
+      barras_apiladas = list(
+        mostrar_barra_extra = FALSE,
+        mostrar_valores = TRUE,
+        color_texto_barras = "white",
+        color_texto_barras_fuera = .ACNUR_PPT_COLORS$navy,
+        decimales = 0,
+        legend_key_cm = 0.35,
+        legend_espaciado = 5,
+        legend_n_por_fila = 5,
+        canvas_h_legend_in = 0.12,
+        canvas_h_caption_in = 0.12
+      ),
+      multi_apiladas = list(
+        mostrar_valores = TRUE,
+        mostrar_ceros = FALSE,
+        color_texto_barras = "white",
+        color_texto_barras_fuera = .ACNUR_PPT_COLORS$navy,
+        decimales = 0,
+        legend_key_cm = 0.35,
+        legend_espaciado = 5,
+        legend_n_por_fila = 5,
+        canvas_h_legend_in = 0.12,
+        canvas_h_caption_in = 0.12
+      ),
+      barras_numericas = list(
+        orientacion = "vertical",
+        mostrar_valores = TRUE,
+        color_texto_barras = "white",
+        color_n_sobre_barras = .ACNUR_PPT_COLORS$blue,
+        colores_series = list(Media = .ACNUR_PPT_COLORS$blue)
+      ),
+      pie = list(
+        tipo_pie = "donut",
+        leyenda_posicion = "derecha",
+        size_leyenda = 9.5,
+        color_etiquetas_pct = "white",
+        etiquetas_negrita = TRUE,
+        mostrar_etiquetas_pct = TRUE,
+        canvas_w_legend_right = 0.32
+      ),
+      donut = list(
+        tipo_pie = "donut",
+        donut_hole = 0.62,
+        leyenda_posicion = "derecha",
+        size_leyenda = 9.5,
+        mostrar_etiquetas_pct = TRUE,
+        color_etiquetas_pct = "white",
+        etiquetas_negrita = TRUE
+      )
+    ),
+    paletas = list(
+      yesno = list("Si" = .ACNUR_PPT_COLORS$blue, "Sí" = .ACNUR_PPT_COLORS$blue, "No" = .ACNUR_PPT_COLORS$control),
+      likert = list(
+        "Totalmente en desacuerdo" = "#D7DDE5",
+        "En desacuerdo" = .ACNUR_PPT_COLORS$control,
+        "Ni de acuerdo ni en desacuerdo" = "#8FA0B1",
+        "De acuerdo" = .ACNUR_PPT_COLORS$green,
+        "Totalmente de acuerdo" = .ACNUR_PPT_COLORS$blue
+      )
+    ),
+    overrides_reusables = list(
+      list(
+        id = "ovr-acnur-agrupadas-par",
+        nombre = "ACNUR · comparativo por par",
+        tipo_preset = "barras_agrupadas",
+        args = list(
+          usar_canvas = FALSE,
+          mostrar_leyenda = TRUE,
+          invertir_barras = TRUE,
+          alto_por_categoria = 0.34,
+          canvas_h_header_in = 0.36,
+          canvas_h_caption_in = 0.10,
+          colores_series = list(
+            Intervencion = .ACNUR_PPT_COLORS$blue,
+            Intervención = .ACNUR_PPT_COLORS$blue,
+            Comparacion = .ACNUR_PPT_COLORS$control,
+            Comparación = .ACNUR_PPT_COLORS$control
+          )
+        )
+      )
+    ),
+    scope_rules = list(
+      global = list(profile_id = "acnur_kobo_cruncher_plus")
+    )
+  )
+)
+
 # ---- Normalización UI de args de graficadores -----------------------------
 #
 # La metadata histórica expone muchos nombres cercanos al motor R
@@ -2411,6 +2629,33 @@
     )
   ),
 
+  acnur_kobo_cruncher_plus = list(
+    titulo_humano = "ACNUR KOICA - Kobo-style + mapas",
+    descripcion   = "Plantilla Prosecnur original para Kobo/ACNUR: portada, ficha técnica, diseño KOICA, mapas de cobertura al inicio y resultados por begin_group.",
+    icono_ui      = "Map",
+    n_slides      = 6L,
+    plan = list(
+      slides = list(
+        list(id = "tpl-acnur-1", tipo = "p_slide_portada",
+             payload = list(titulo = "ACNUR KOICA", subtitulo = "Resultados Kobo + mapas de cobertura territorial", fecha = "", subtexto = "")),
+        list(id = "tpl-acnur-2", tipo = "p_slide_texto",
+             payload = list(
+               titulo = "Ficha tecnica",
+               texto = c("Fuente: KoboToolbox.", "Procesamiento: Motor Prosecnur."),
+               bullets = "",
+               base = ""
+             )),
+        list(id = "tpl-acnur-3", tipo = "p_slide_texto",
+             payload = list(titulo = "Diseno KOICA", texto = "Intervencion y comparacion territorial.", bullets = "", base = "")),
+        list(id = "tpl-acnur-4", tipo = "p_slide_1_grafico_narrativo",
+             payload = list(titulo = "Overview territorial KOICA", texto = "", grafico = NULL, base = "", pie = "", etiqueta = "")),
+        list(id = "tpl-acnur-5", tipo = "p_slide_indice", payload = list()),
+        list(id = "tpl-acnur-6", tipo = "p_slide_seccion",
+             payload = list(titulo = "Resultados", subtitulo = "", introduccion_word = ""))
+      )
+    )
+  ),
+
   reporte_ejecutivo = list(
     titulo_humano = "Reporte ejecutivo (10 slides)",
     descripcion   = "Portada + índice + 2 bloques temáticos, cada uno con separador, slide narrativo, un gráfico y una comparativa de dos gráficos. Estructura típica para devolver hallazgos a stakeholders.",
@@ -2583,6 +2828,25 @@
   list(templates = templates)
 }
 
+# Serializa estilos visuales de presentacion para la UI del Plan PPT.
+.ppt_style_profiles_payload <- function() {
+  profiles <- lapply(names(.PPT_STYLE_PROFILES), function(nm) {
+    meta <- .PPT_STYLE_PROFILES[[nm]]
+    list(
+      name = nm,
+      titulo_humano = as.character(meta$titulo_humano %||% nm),
+      descripcion = as.character(meta$descripcion %||% ""),
+      icono_ui = as.character(meta$icono_ui %||% "Palette"),
+      preview_colors = meta$preview_colors %||% character(0),
+      presets = meta$presets %||% list(),
+      paletas = meta$paletas %||% list(),
+      overrides_reusables = meta$overrides_reusables %||% list(),
+      scope_rules = meta$scope_rules %||% list()
+    )
+  })
+  list(style_profiles = profiles)
+}
+
 # ===========================================================================
 # API helpers
 # ===========================================================================
@@ -2615,7 +2879,13 @@
 
 # Serializa el metadata completo a una lista lista para JSON (lo usa el
 # endpoint /api/graficos/registry).
-.graficos_registry_payload <- function() {
+.graficos_registry_payload <- function(capabilities = list()) {
+  coverage_caps <- capabilities$territorial_coverage %||% list()
+  coverage_available <- isTRUE(coverage_caps$has_coverage_maps %||% coverage_caps$available)
+  coverage_reason <- as.character(
+    coverage_caps$disabled_reason %||%
+      "Disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial."
+  )
   slides <- lapply(names(.SLIDES_META), function(nm) {
     meta <- .SLIDES_META[[nm]]
     # Recuperar formals reales de la función de prosecnur para documentar
@@ -2642,12 +2912,23 @@
     formals_names <- if (!is.null(fn)) names(formals(fn)) else character(0)
     curated_names <- vapply(meta$args, function(a) as.character(a$name), character(1))
     args_extra <- setdiff(formals_names, curated_names)
+    requisito <- as.character(meta$requisito %||% "")
+    feature_kind <- as.character(meta$feature_kind %||% requisito)
+    available <- TRUE
+    disabled_reason <- ""
+    if (identical(requisito, "territorial_coverage") || identical(feature_kind, "territorial_coverage")) {
+      available <- coverage_available
+      disabled_reason <- if (available) "" else coverage_reason
+    }
     list(
       name          = nm,
       titulo_humano = as.character(meta$titulo_humano %||% nm),
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "BarChart"),
-      requisito     = as.character(meta$requisito %||% ""),
+      requisito     = requisito,
+      feature_kind  = feature_kind,
+      available     = available,
+      disabled_reason = disabled_reason,
       args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )

@@ -1047,7 +1047,7 @@
   )
 }
 
-.mi_persist_project_quietly <- function(sid) {
+.mi_persist_project_if_requested <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s) || is.null(s$project_path) || !nzchar(s$project_path)) {
     return(list(saved = FALSE, reason = "no_project"))
@@ -1063,7 +1063,7 @@
 .mi_store_draft <- function(sid, draft, persist_project = FALSE) {
   payload <- .mi_draft_payload(draft)
   session_set(sid, "multi_integrated_draft", payload)
-  project <- if (isTRUE(persist_project)) .mi_persist_project_quietly(sid) else list(saved = FALSE, reason = "not_requested")
+  project <- if (isTRUE(persist_project)) .mi_persist_project_if_requested(sid) else list(saved = FALSE, reason = "not_requested")
   list(ok = TRUE, draft = payload, project = project)
 }
 
@@ -1429,7 +1429,7 @@ mount_multi_integrated <- function(pr) {
       }
       persist_project <- .mi_scalar(persist_project, "") %in% c("TRUE", "true", "1", "yes", "si")
       session_set(sid, "multi_integrated_draft", NULL)
-      project <- if (isTRUE(persist_project)) .mi_persist_project_quietly(sid) else list(saved = FALSE, reason = "not_requested")
+      project <- if (isTRUE(persist_project)) .mi_persist_project_if_requested(sid) else list(saved = FALSE, reason = "not_requested")
       list(ok = TRUE, draft = NULL, project = project)
     })) |>
     plumber::pr_post("/api/multi/integrated/audit", wrap_endpoint(function(req, res, ...) {

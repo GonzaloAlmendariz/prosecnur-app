@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GraficadorRef, PlanJson, Slide, SlideType } from "../../api/client";
+import type { GraficadorRef, PlanJson, PptStyleProfileMeta, Slide, SlideType } from "../../api/client";
 import { createDefaultWordPresets, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
@@ -148,6 +148,7 @@ type PlanStore = {
   updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
   setWPresets: (wPresets: Record<string, Record<string, unknown>>) => void;
+  applyPptStyleProfile: (profile: PptStyleProfileMeta) => void;
   // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
   // (o undefined después de merge), borra ese arg para que el backend
   // use el default. Usado por PresetsEditor para actualizar un arg a la vez.
@@ -290,6 +291,60 @@ function dirty<T extends object>(state: PlanStore, partial: T): T & {
 } {
   const past = [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
   return { ...partial, dirty: true, past, future: [] };
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergeDeepRecord(
+  base: Record<string, unknown> = {},
+  patch: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    if (isPlainRecord(out[key]) && isPlainRecord(value)) {
+      out[key] = mergeDeepRecord(out[key] as Record<string, unknown>, value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function mergePresetMaps(
+  base: Record<string, Record<string, unknown>>,
+  patch: Record<string, Record<string, unknown>> = {},
+): Record<string, Record<string, unknown>> {
+  const out: Record<string, Record<string, unknown>> = { ...base };
+  for (const [presetName, args] of Object.entries(patch)) {
+    out[presetName] = mergeDeepRecord(out[presetName] ?? {}, args ?? {}) as Record<string, unknown>;
+  }
+  return out;
+}
+
+function mergePaletas(
+  base: Record<string, PaletaPorLista>,
+  patch: Record<string, Record<string, string>> = {},
+): Record<string, PaletaPorLista> {
+  const out: Record<string, PaletaPorLista> = { ...base };
+  for (const [listName, paleta] of Object.entries(patch)) {
+    out[listName] = { ...(out[listName] ?? {}), ...(paleta ?? {}) };
+  }
+  return out;
+}
+
+function mergeOverrides(current: OverrideReusable[], incoming: OverrideReusable[] = []): OverrideReusable[] {
+  if (!incoming.length) return current;
+  const order = current.map((item) => item.id);
+  const byId = new Map<string, OverrideReusable>();
+  for (const item of current) byId.set(item.id, item);
+  for (const item of incoming) {
+    if (!item?.id) continue;
+    if (!byId.has(item.id)) order.push(item.id);
+    byId.set(item.id, item);
+  }
+  return order.map((id) => byId.get(id)).filter(Boolean) as OverrideReusable[];
 }
 
 export const usePlanStore = create<PlanStore>((set) => ({
@@ -459,6 +514,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setPresets: (presets) => set((state) => dirty(state, { presets })),
   setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
+
+  applyPptStyleProfile: (profile) =>
+    set((state) => dirty(state, {
+      presets: mergePresetMaps(state.presets, profile.presets ?? {}),
+      paletas: mergePaletas(state.paletas, profile.paletas ?? {}),
+      overridesReusables: mergeOverrides(
+        state.overridesReusables,
+        (profile.overrides_reusables ?? []) as OverrideReusable[],
+      ),
+      scopeRules: mergeDeepRecord(
+        state.scopeRules,
+        profile.scope_rules ?? {},
+      ) as ScopeRulesConfig,
+    })),
 
   setPresetArg: (tipo, arg, value) => {
     set((state) => {

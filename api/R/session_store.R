@@ -21,8 +21,8 @@ session_create <- function() {
     data_raw = NULL,
     # Campos del archivo de proyecto .pulso. Si project_path es NULL la
     # sesión está en modo efímero (los cambios no se persisten). Cuando
-    # hay un .pulso abierto, cada mutación de estado marca project_dirty
-    # y el autosave del frontend dispara build_pulso cada 5 min.
+    # hay un .pulso abierto, cada mutación de estado marca project_dirty.
+    # El archivo se escribe solo por guardado explicito del usuario.
     project_path = NULL,
     project_dirty = FALSE,
     project_last_saved_at = NULL

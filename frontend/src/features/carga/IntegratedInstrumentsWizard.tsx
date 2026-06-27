@@ -416,9 +416,9 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
     setDraftStatus("saving");
     setDraftError("");
     try {
-      const result = await apiMultiIntegratedDraftSave(draft, true);
+      const result = await apiMultiIntegratedDraftSave(draft, false);
       if (epoch !== draftEpochRef.current) {
-        await apiMultiIntegratedDraftClear(true).catch(() => undefined);
+        await apiMultiIntegratedDraftClear(false).catch(() => undefined);
         return;
       }
       if (result.project?.error) throw new Error(result.project.error);
@@ -683,7 +683,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
       setDraftLoaded(false);
       latestDraftRef.current = null;
       setDraftStatus("idle");
-      void apiMultiIntegratedDraftClear(true).catch(() => undefined);
+      void apiMultiIntegratedDraftClear(false).catch(() => undefined);
     } catch (e) {
       setError((e as Error).message);
       void persistDraft(draftPayload);

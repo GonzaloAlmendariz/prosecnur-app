@@ -966,8 +966,8 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
     return(.project_warmup_public_result(result))
   }
   changed <- .project_warmup_merge_session_patch(j$sid, result$session_patch %||% list())
-  if (isTRUE(changed) && exists(".monitoreo_autosave_project_if_open", mode = "function")) {
-    tryCatch(.monitoreo_autosave_project_if_open(j$sid), error = function(e) NULL)
+  if (isTRUE(changed) && exists(".monitoreo_mark_project_dirty_if_open", mode = "function")) {
+    tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
   }
   .project_warmup_public_result(result)
 }

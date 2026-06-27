@@ -954,7 +954,7 @@ mount_xlsform_editor <- function(pr) {
     plumber::pr_post("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
       # Guarda/actualiza el state del editor xlsform en la sesión.
       # Body: { workbook: {...}, source: {...}, hallazgos: [...], saved_at: <ts> }
-      # Marca el proyecto como dirty para que el autosave del .pulso lo recoja.
+      # Marca el proyecto como dirty para que el guardado explicito del .pulso lo recoja.
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
         sid <- session_create()

@@ -141,6 +141,9 @@ export type ProsecnurApi = {
     recent_destinations: HfSavedDestination[];
   }>;
   onMenuCommand: (callback: (command: string) => void) => () => void;
+  onAppCloseRequest?: (callback: () => void) => () => void;
+  confirmAppClose?: () => Promise<boolean>;
+  setAppCloseGuardReady?: (ready: boolean) => void;
 };
 
 declare global {

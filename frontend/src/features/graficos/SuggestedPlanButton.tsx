@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, GitMerge, Loader2, Sparkles, X } from "lucide-react";
+import { Check, GitMerge, Loader2, Map, Sparkles, X } from "lucide-react";
 import {
   apiGraficosPlanSugerido,
   type GraficosSuggestedPlanResponse,
@@ -8,6 +8,7 @@ import {
 } from "../../api/client";
 import { usePlanStore } from "./store";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
+import { usePptStyleProfiles } from "./usePptStyleProfiles";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -26,10 +27,15 @@ function clonePlanWithFreshIds(plan: PlanJson): PlanJson {
 export function SuggestedPlanButton() {
   const currentPlan = usePlanStore((s) => s.plan);
   const loadPlan = usePlanStore((s) => s.loadPlan);
+  const applyPptStyleProfile = usePlanStore((s) => s.applyPptStyleProfile);
+  const { profiles: styleProfiles } = usePptStyleProfiles();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
+  const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
+  const [includeCoverageMaps, setIncludeCoverageMaps] = useState(true);
+  const [comparisonMode, setComparisonMode] = useState<"koica_group" | "district" | "none">("koica_group");
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,7 +59,17 @@ export function SuggestedPlanButton() {
     setBusy(true);
     setError("");
     try {
-      const next = await apiGraficosPlanSugerido(buildGraficosConfigFromStore());
+      const config = buildGraficosConfigFromStore();
+      const next = await apiGraficosPlanSugerido({
+        ...config,
+        ...(profileId === "acnur_kobo_cruncher_plus"
+          ? {
+              profile_id: profileId,
+              include_coverage_maps: includeCoverageMaps,
+              comparison_mode: comparisonMode,
+            }
+          : {}),
+      });
       setResult(next);
     } catch (e) {
       setResult(null);
@@ -66,6 +82,7 @@ export function SuggestedPlanButton() {
   function replacePlan() {
     if (!result) return;
     loadPlan(clonePlanWithFreshIds(result.plan));
+    applySelectedStyleProfile();
     setOpen(false);
   }
 
@@ -73,7 +90,14 @@ export function SuggestedPlanButton() {
     if (!result) return;
     const suggested = clonePlanWithFreshIds(result.plan);
     loadPlan({ slides: [...currentPlan.slides, ...suggested.slides] });
+    applySelectedStyleProfile();
     setOpen(false);
+  }
+
+  function applySelectedStyleProfile() {
+    if (profileId !== "acnur_kobo_cruncher_plus") return;
+    const profile = styleProfiles.find((p) => p.name === profileId);
+    if (profile) applyPptStyleProfile(profile);
   }
 
   const summary = result?.coverage?.summary;
@@ -100,6 +124,51 @@ export function SuggestedPlanButton() {
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar">
               <X size={13} />
             </button>
+          </div>
+
+          <div className="pulso-gv2-suggest-options" aria-label="Opciones del plan sugerido">
+            <div className="pulso-gv2-suggest-profile" role="radiogroup" aria-label="Perfil de plantilla">
+              <button
+                type="button"
+                className={profileId === "auto" ? "is-active" : ""}
+                aria-pressed={profileId === "auto"}
+                onClick={() => setProfileId("auto")}
+              >
+                <Sparkles size={13} /> Automático
+              </button>
+              <button
+                type="button"
+                className={profileId === "acnur_kobo_cruncher_plus" ? "is-active" : ""}
+                aria-pressed={profileId === "acnur_kobo_cruncher_plus"}
+                onClick={() => setProfileId("acnur_kobo_cruncher_plus")}
+              >
+                <Map size={13} /> ACNUR/Kobo + mapas
+              </button>
+            </div>
+
+            {profileId === "acnur_kobo_cruncher_plus" && (
+              <div className="pulso-gv2-suggest-acnur">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={includeCoverageMaps}
+                    onChange={(e) => setIncludeCoverageMaps(e.target.checked)}
+                  />
+                  Mapas de cobertura al inicio
+                </label>
+                <label>
+                  Comparar por
+                  <select
+                    value={comparisonMode}
+                    onChange={(e) => setComparisonMode(e.target.value as "koica_group" | "district" | "none")}
+                  >
+                    <option value="koica_group">grupo KOICA</option>
+                    <option value="district">distrito</option>
+                    <option value="none">sin cruce</option>
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
 
           {busy && (

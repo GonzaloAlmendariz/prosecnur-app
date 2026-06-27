@@ -205,13 +205,21 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     course_name = get(c("course_name", "curso", "nombre_curso"), ""),
     section = get(c("section", "seccion"), ""),
     schedule = get(c("schedule", "horario"), ""),
+    modality = get(c("modality", "modalidad"), ""),
+    session_type = get(c("session_type", "tipo_sesion", "tipo_sesión"), ""),
     teacher = get(c("teacher", "docente"), ""),
     teacher_email = get(c("teacher_email", "correo_docente"), ""),
     faculty = get(c("faculty", "facultad"), ""),
     program = get(c("program", "programa", "carrera"), ""),
     level = get(c("level", "nivel"), ""),
+    size_group = get(c("size_group", "grupo_tamano", "grupo_tamaño"), ""),
+    sex_top_1 = get(c("sex_top_1", "sexo_principal", "sexo_top_1"), ""),
+    sex_top_1_n = getn(c("sex_top_1_n", "n_sexo_principal", "sexo_top_1_n"), 0),
+    sex_top_2 = get(c("sex_top_2", "sexo_secundario", "sexo_top_2"), ""),
+    sex_top_2_n = getn(c("sex_top_2_n", "n_sexo_secundario", "sexo_top_2_n"), 0),
     stratum = get(c("stratum", "estrato"), "global"),
     eligible_n = getn(c("eligible_n", "elegibles"), 0),
+    enrolled_total = getn(c("enrolled_total", "matriculados", "total_matriculados"), 0),
     expected_valid = getn(c("expected_valid", "meta_aula", "eligible_n"), 0),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
@@ -230,6 +238,10 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     representativity_distance = getn(c("representativity_distance", "distancia_representatividad"), NA_real_),
     pi_final = getn(c("pi_final", "probabilidad_final"), NA_real_),
     weight_classroom = getn(c("weight_classroom", "peso_aula"), NA_real_),
+    weight_student = getn(c("weight_student", "peso_estudiante"), NA_real_),
+    probability_source = get(c("probability_source", "fuente_probabilidad"), ""),
+    nonresponse_policy = get(c("nonresponse_policy", "politica_no_respuesta"), ""),
+    methodological_warning = get(c("methodological_warning", "advertencia_metodologica"), ""),
     updated_at = get(c("updated_at", "actualizado_en"), ""),
     stringsAsFactors = FALSE,
     check.names = FALSE
@@ -240,6 +252,9 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   out$replacement_order[!is.finite(out$replacement_order)] <- suppressWarnings(as.numeric(gsub("[^0-9]", "", out$wave[!is.finite(out$replacement_order)]))) - 1
   out$operational_status <- vapply(out$operational_status, .monitoreo_aulas_status, character(1))
   out$replacement_reason <- vapply(out$replacement_reason, function(x) if (nzchar(x)) .monitoreo_aulas_reason(x) else "", character(1))
+  out$sex_top_1_n[!is.finite(out$sex_top_1_n)] <- 0
+  out$sex_top_2_n[!is.finite(out$sex_top_2_n)] <- 0
+  out$enrolled_total[!is.finite(out$enrolled_total)] <- 0
   out$expected_valid[!is.finite(out$expected_valid)] <- out$eligible_n[!is.finite(out$expected_valid)]
   out$eligible_n[!is.finite(out$eligible_n)] <- 0
   out$expected_valid[!is.finite(out$expected_valid)] <- 0
@@ -285,9 +300,26 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   cfg$imported_at <- .monitoreo_now_iso()
   cfg$plan <- plan
   cfg$quotas <- selection$quotas %||% cfg$quotas
+  if (is.list(frame)) {
+    cross <- frame$population_cross_profiles %||% frame$cross_profiles %||% NULL
+    category <- frame$category_profiles %||% NULL
+    quota_bundle <- list(
+      strata = selection$quotas %||% list(),
+      sex_by_faculty = cross,
+      category_profiles = category,
+      profile_distributions = selection$diagnostics$profile_distributions %||% selection$representativity$profile_distributions %||% list()
+    )
+    quota_names <- names(cfg$quotas)
+    if (is.list(cfg$quotas) && length(cfg$quotas) && !is.null(quota_names) && any(nzchar(quota_names))) {
+      cfg$quotas <- modifyList(quota_bundle, cfg$quotas)
+    } else {
+      cfg$quotas <- quota_bundle
+    }
+  }
   cfg$methodology <- list(
     calc_muestra = selection$methodology %||% list(),
     representativity = selection$representativity %||% list(),
+    objective_config = selection$objective_config %||% selection$representativity$objective_config %||% list(),
     frame_hash = cfg$frame_hash,
     selection_run_id = cfg$selection_run_id,
     source = "calc-muestra"
@@ -385,6 +417,191 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   .monitoreo_aulas_values(data, col, "")
 }
 
+.monitoreo_aulas_filter_passed <- function(data, valid_response) {
+  if (!is.data.frame(data) || !nrow(data)) return(logical(0))
+  col <- .monitoreo_aulas_col(data, c(
+    "filter_passed", "pasa_filtro", "apto", "elegible", "eligible",
+    "screening_status", "estado_filtro", "consent", "consentimiento"
+  ))
+  if (!nzchar(col) || !col %in% names(data)) return(valid_response %in% TRUE)
+  key <- .monitoreo_text_key(as.character(data[[col]] %||% ""))
+  passed <- key %in% c(
+    "1", "true", "t", "si", "sí", "yes", "y", "apto", "aprobado",
+    "eligible", "elegible", "pasa", "passed", "valid", "valido", "válido",
+    "acepta", "consiente", "consent"
+  )
+  rejected <- key %in% c(
+    "0", "false", "f", "no", "n", "no_apto", "no elegible", "no_elegible",
+    "rechazado", "rejected", "fail", "failed", "no pasa", "no_pasa"
+  )
+  passed[!passed & !rejected & valid_response %in% TRUE] <- TRUE
+  passed
+}
+
+.monitoreo_aulas_named_counts <- function(keys, mask = NULL) {
+  keys <- trimws(as.character(keys %||% character(0)))
+  if (is.null(mask)) mask <- rep(TRUE, length(keys))
+  mask <- mask %in% TRUE & nzchar(keys)
+  if (!length(keys) || !any(mask)) return(integer(0))
+  table(keys[mask])
+}
+
+.monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom) {
+  if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
+  total_counts <- .monitoreo_aulas_named_counts(response_classroom)
+  valid_counts <- .monitoreo_aulas_named_counts(response_classroom, valid_response)
+  filter_passed <- .monitoreo_aulas_filter_passed(responses, valid_response)
+  passed_counts <- .monitoreo_aulas_named_counts(response_classroom, filter_passed)
+  rejected_counts <- .monitoreo_aulas_named_counts(response_classroom, !filter_passed & nzchar(response_classroom))
+
+  rows <- plan_df
+  rows$responses_total <- as.integer(total_counts[rows$classroom_id])
+  rows$responses_total[is.na(rows$responses_total)] <- 0L
+  rows$respuestas_validas <- as.integer(valid_counts[rows$classroom_id])
+  rows$respuestas_validas[is.na(rows$respuestas_validas)] <- 0L
+  rows$filter_passed <- as.integer(passed_counts[rows$classroom_id])
+  rows$filter_passed[is.na(rows$filter_passed)] <- 0L
+  rows$filter_rejected <- as.integer(rejected_counts[rows$classroom_id])
+  rows$filter_rejected[is.na(rows$filter_rejected)] <- 0L
+  rows$brecha <- pmax(0, suppressWarnings(as.numeric(rows$expected_valid)) - rows$respuestas_validas)
+  rows$brecha[!is.finite(rows$brecha)] <- 0
+  rows$application_state <- ifelse(
+    rows$operational_status %in% c("aplicada", "cerrada") | rows$respuestas_validas >= rows$expected_valid & rows$expected_valid > 0,
+    "cerrando",
+    ifelse(rows$responses_total > 0 | rows$operational_status %in% c("en_campo", "parcial"), "en_aplicacion",
+           ifelse(rows$operational_status %in% c("agendada", "contactada"), "lista", "pendiente"))
+  )
+  cols <- intersect(c(
+    "operational_code", "titular_operational_code", "wave", "classroom_id",
+    "course_name", "section", "schedule", "faculty", "program", "level",
+    "responsible", "collector_id", "operational_status", "application_state",
+    "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
+    "filter_passed", "filter_rejected", "brecha", "link", "updated_at"
+  ), names(rows))
+  out <- rows[, cols, drop = FALSE]
+  priority <- match(out$application_state, c("en_aplicacion", "lista", "pendiente", "cerrando"), nomatch = 5L)
+  out <- out[order(priority, -out$brecha, out$faculty, out$schedule, out$operational_code), , drop = FALSE]
+  .monitoreo_aulas_records(out, max_rows = 500L)
+}
+
+.monitoreo_aulas_quota_source_df <- function(cfg) {
+  quotas <- cfg$quotas %||% list()
+  if (!is.list(quotas)) return(data.frame(stringsAsFactors = FALSE))
+  raw <- quotas$sex_by_faculty %||% quotas$sexo_facultad %||% quotas$population_cross_profiles %||% list()
+  df <- tryCatch(.monitoreo_aulas_df(raw, "cuotas sexo facultad"), error = function(e) data.frame(stringsAsFactors = FALSE))
+  if (!nrow(df)) return(df)
+  primary_role <- .monitoreo_aulas_values(df, .monitoreo_aulas_col(df, c("primary_role", "rol_primario")), "")
+  secondary_role <- .monitoreo_aulas_values(df, .monitoreo_aulas_col(df, c("secondary_role", "rol_secundario")), "")
+  keep <- .monitoreo_text_key(primary_role) %in% c("faculty", "facultad") &
+    .monitoreo_text_key(secondary_role) %in% c("sex", "sexo", "genero", "género")
+  if (any(keep)) df <- df[keep, , drop = FALSE]
+  df
+}
+
+.monitoreo_aulas_plan_sex_faculty_targets <- function(plan_df) {
+  if (!is.data.frame(plan_df) || !nrow(plan_df)) return(data.frame(stringsAsFactors = FALSE))
+  rows <- list()
+  for (i in seq_len(nrow(plan_df))) {
+    faculty <- .monitoreo_scalar(plan_df$faculty[[i]] %||% plan_df$stratum[[i]], "Sin facultad")
+    expected <- .monitoreo_num(plan_df$expected_valid[[i]] %||% plan_df$eligible_n[[i]], 0)
+    sex1 <- .monitoreo_scalar(plan_df$sex_top_1[[i]] %||% "", "")
+    sex2 <- .monitoreo_scalar(plan_df$sex_top_2[[i]] %||% "", "")
+    n1 <- .monitoreo_num(plan_df$sex_top_1_n[[i]] %||% 0, 0)
+    n2 <- .monitoreo_num(plan_df$sex_top_2_n[[i]] %||% 0, 0)
+    total <- n1 + n2
+    if (!nzchar(sex1) || total <= 0 || expected <= 0) next
+    rows[[length(rows) + 1L]] <- data.frame(faculty = faculty, sex = sex1, target = expected * n1 / total, stringsAsFactors = FALSE)
+    if (nzchar(sex2) && n2 > 0) {
+      rows[[length(rows) + 1L]] <- data.frame(faculty = faculty, sex = sex2, target = expected * n2 / total, stringsAsFactors = FALSE)
+    }
+  }
+  if (!length(rows)) return(data.frame(stringsAsFactors = FALSE))
+  df <- do.call(rbind, rows)
+  agg <- stats::aggregate(target ~ faculty + sex, data = df, FUN = sum)
+  agg$target <- as.integer(round(agg$target))
+  agg$source <- "plan_sex_top"
+  agg
+}
+
+.monitoreo_aulas_quota_targets <- function(plan_df, cfg) {
+  quota_df <- .monitoreo_aulas_quota_source_df(cfg)
+  if (nrow(quota_df)) {
+    faculty_col <- .monitoreo_aulas_col(quota_df, c("primary_raw", "faculty", "facultad"))
+    sex_col <- .monitoreo_aulas_col(quota_df, c("secondary_raw", "sex", "sexo", "genero"))
+    count_col <- .monitoreo_aulas_col(quota_df, c("count", "n", "N", "conteo"))
+    if (nzchar(faculty_col) && nzchar(sex_col) && nzchar(count_col)) {
+      src <- data.frame(
+        faculty = .monitoreo_aulas_values(quota_df, faculty_col, "Sin facultad"),
+        sex = .monitoreo_aulas_values(quota_df, sex_col, "Sin dato"),
+        frame_n = .monitoreo_aulas_num_values(quota_df, count_col, 0),
+        stringsAsFactors = FALSE
+      )
+      src <- src[src$frame_n > 0 & nzchar(src$faculty) & nzchar(src$sex), , drop = FALSE]
+      if (nrow(src)) {
+        expected_df <- data.frame(
+          faculty = as.character(plan_df$faculty %||% plan_df$stratum %||% "Sin facultad"),
+          expected_valid = suppressWarnings(as.numeric(plan_df$expected_valid %||% 0)),
+          stringsAsFactors = FALSE
+        )
+        expected_df$expected_valid[!is.finite(expected_df$expected_valid)] <- 0
+        expected_by_faculty <- stats::aggregate(expected_valid ~ faculty, data = expected_df, FUN = sum)
+        names(expected_by_faculty) <- c("faculty", "expected_total")
+        totals <- stats::aggregate(frame_n ~ faculty, data = src, FUN = sum)
+        names(totals) <- c("faculty", "frame_total")
+        src <- merge(src, totals, by = "faculty", all.x = TRUE, sort = FALSE)
+        src <- merge(src, expected_by_faculty, by = "faculty", all.x = TRUE, sort = FALSE)
+        src$expected_total[!is.finite(src$expected_total)] <- 0
+        src$target <- ifelse(src$frame_total > 0, round(src$expected_total * src$frame_n / src$frame_total), 0)
+        src$source <- "calc_muestra_faculty_sex"
+        return(src[, c("faculty", "sex", "target", "frame_n", "source"), drop = FALSE])
+      }
+    }
+  }
+  .monitoreo_aulas_plan_sex_faculty_targets(plan_df)
+}
+
+.monitoreo_aulas_response_faculty_values <- function(responses, plan_df, response_classroom) {
+  if (!is.data.frame(responses) || !nrow(responses)) return(character(0))
+  faculty_col <- .monitoreo_aulas_col(responses, c("faculty", "facultad", "unidad", "escuela"))
+  faculty <- if (nzchar(faculty_col)) .monitoreo_aulas_values(responses, faculty_col, "") else rep("", nrow(responses))
+  if (is.data.frame(plan_df) && nrow(plan_df) && length(response_classroom)) {
+    lookup <- stats::setNames(as.character(plan_df$faculty %||% plan_df$stratum %||% ""), as.character(plan_df$classroom_id %||% ""))
+    missing <- !nzchar(faculty) & nzchar(response_classroom)
+    faculty[missing] <- as.character(lookup[response_classroom[missing]] %||% "")
+    faculty[is.na(faculty)] <- ""
+  }
+  faculty
+}
+
+.monitoreo_aulas_quota_sex_faculty <- function(plan_df, responses, cfg, valid_response, response_classroom) {
+  targets <- .monitoreo_aulas_quota_targets(plan_df, cfg)
+  if (!is.data.frame(targets) || !nrow(targets)) return(list())
+  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
+  faculty <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
+  sex <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
+  if (!length(sex)) {
+    observed <- data.frame(faculty = character(0), sex = character(0), observed = integer(0), stringsAsFactors = FALSE)
+  } else {
+    keep <- valid_response %in% TRUE & nzchar(faculty) & nzchar(sex)
+    observed <- if (any(keep)) {
+      stats::aggregate(rep(1L, sum(keep)), by = list(faculty = faculty[keep], sex = sex[keep]), FUN = sum)
+    } else {
+      data.frame(faculty = character(0), sex = character(0), x = integer(0), stringsAsFactors = FALSE)
+    }
+    if (nrow(observed)) names(observed)[names(observed) == "x"] <- "observed"
+  }
+  out <- merge(targets, observed, by = c("faculty", "sex"), all.x = TRUE, sort = FALSE)
+  out$observed[is.na(out$observed)] <- 0L
+  target_num <- suppressWarnings(as.numeric(out$target))
+  target_num[!is.finite(target_num)] <- 0
+  out$target <- as.integer(pmax(0L, round(target_num)))
+  out$missing <- as.integer(pmax(0L, out$target - out$observed))
+  out$progress_pct <- ifelse(out$target > 0L, round(100 * out$observed / out$target, 1), NA_real_)
+  out$status <- ifelse(out$target <= 0L, "sin_meta", ifelse(out$observed >= out$target, "cumplida", ifelse(out$observed > 0L, "en_riesgo", "pendiente")))
+  out <- out[order(out$status != "en_riesgo", out$status != "pendiente", -out$missing, out$faculty, out$sex), , drop = FALSE]
+  .monitoreo_aulas_records(out, max_rows = 240L)
+}
+
 monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list()) {
   cfg <- monitoreo_aulas_normalize_config(config)
   plan_df <- .monitoreo_aulas_df(plan %||% cfg$plan, "plan")
@@ -417,6 +634,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   plan_df$brecha[!is.finite(plan_df$brecha)] <- 0
   tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- plan_df
+  course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom)
+  quotas_sex_faculty <- .monitoreo_aulas_quota_sex_faculty(plan_df, responses, cfg, valid_response, response_classroom)
 
   advance <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)), respuestas_validas = tracked_df$respuestas_validas, brecha = tracked_df$brecha) ~ stratum,
@@ -439,21 +658,24 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
 
   collector_col <- .monitoreo_aulas_col(responses, c(cfg$source_mapping$collector_var, "collector_id", "collector", "link", "aula_id", "classroom_id"))
   collector_values <- if (nzchar(collector_col)) .monitoreo_aulas_values(responses, collector_col, "") else character(0)
+  quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_collectors", "effective_representativity"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_collectors", "effective_representativity", "sex_faculty_quota"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
       if (length(valid_response) && any(valid_response & !nzchar(response_classroom))) "warning" else "ok",
       if (length(collector_values) && any(duplicated(collector_values[nzchar(collector_values)]))) "review" else "ok",
-      if (nzchar(representativity$warning %||% "")) "warning" else "ok"
+      if (nzchar(representativity$warning %||% "")) "warning" else "ok",
+      if (length(quota_status) && any(quota_status %in% c("pendiente", "en_riesgo"))) "warning" else "ok"
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
       "No se exige identificador personal de estudiante.",
       as.character(sum(valid_response & !nzchar(response_classroom))),
       as.character(sum(duplicated(collector_values[nzchar(collector_values)]))),
-      if (nzchar(representativity$warning %||% "")) representativity$warning else sprintf("Score efectivo %.1f.", representativity$effective_score %||% NA_real_)
+      if (nzchar(representativity$warning %||% "")) representativity$warning else sprintf("Score efectivo %.1f.", representativity$effective_score %||% NA_real_),
+      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable."
     ),
     stringsAsFactors = FALSE,
     check.names = FALSE
@@ -472,12 +694,20 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       aulas_parciales = as.integer(sum(tracked_df$operational_status == "parcial")),
       reemplazos_usados = as.integer(sum(nzchar(tracked_df$replacement_for) & tracked_df$operational_status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
       respuestas_validas = as.integer(sum(valid_response)),
+      respuestas_total = as.integer(length(response_classroom)),
+      filter_passed = as.integer(sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE)),
+      filter_rejected = as.integer(max(0L, length(response_classroom) - sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE))),
       brechas = as.integer(sum(plan_df$brecha > 0)),
+      quota_cells = as.integer(length(quotas_sex_faculty)),
+      quota_cells_ok = as.integer(sum(quota_status == "cumplida")),
+      quota_cells_pending = as.integer(sum(quota_status %in% c("pendiente", "en_riesgo"))),
       representativity_effective_score = representativity$effective_score,
       representativity_score_loss = representativity$score_loss
     ),
     agenda = .monitoreo_aulas_records(plan_df),
+    course_status = course_status,
     avance_por_estrato = .monitoreo_aulas_records(advance),
+    quotas_sex_faculty = quotas_sex_faculty,
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
     representativity = representativity,

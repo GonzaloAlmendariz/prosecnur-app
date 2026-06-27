@@ -11,6 +11,7 @@
 //   window.prosecnurApi.getRecentProjects()
 //   window.prosecnurApi.pushRecentProject(path)
 //   window.prosecnurApi.onMenuCommand(callback)  // recibe 'project:save' etc.
+//   window.prosecnurApi.onAppCloseRequest(callback)
 //
 // Cada función es un wrapper de `ipcRenderer.invoke('handler', args)` que
 // el main resuelve con `ipcMain.handle('handler', ...)`. Patrón
@@ -86,5 +87,19 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
     ipcRenderer.on("menu:command", handler);
     // Devolver un cleanup function para useEffect.
     return () => ipcRenderer.removeListener("menu:command", handler);
+  },
+
+  // El main process intercepta X/Cmd+Q/Salir y pide al renderer que decida
+  // si debe guardar antes. El renderer confirma cuando ya puede cerrar.
+  onAppCloseRequest: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("app:close-request", handler);
+    return () => ipcRenderer.removeListener("app:close-request", handler);
+  },
+
+  confirmAppClose: () => ipcRenderer.invoke("app:confirmClose"),
+
+  setAppCloseGuardReady: (ready) => {
+    ipcRenderer.send("app:closeGuardReady", Boolean(ready));
   }
 });
