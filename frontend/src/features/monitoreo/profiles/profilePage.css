@@ -2714,7 +2714,7 @@
 }
 
 .mon-collector-card--channel {
-  grid-template-columns: minmax(190px, 0.88fr) minmax(190px, 0.72fr) minmax(410px, 1.35fr);
+  grid-template-columns: minmax(190px, 0.82fr) minmax(190px, 0.7fr) minmax(460px, 1.48fr);
 }
 
 .mon-collector-card--channel .mon-collector-channel-line,
@@ -2723,7 +2723,7 @@
 }
 
 .mon-collector-controls--channel {
-  grid-template-columns: minmax(108px, 1fr) minmax(94px, 0.82fr) minmax(94px, 0.82fr) minmax(72px, auto);
+  grid-template-columns: minmax(132px, 1.08fr) minmax(108px, 0.9fr) minmax(108px, 0.9fr) minmax(72px, auto);
 }
 
 .mon-collector-channel-line {

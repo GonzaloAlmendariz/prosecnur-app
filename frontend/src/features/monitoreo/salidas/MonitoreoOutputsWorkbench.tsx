@@ -185,14 +185,39 @@ function emptyEvidencePackStatuses(): Record<OutputAudience, EvidencePackStatus>
 function operationalPackageDetail(result?: MonitoreoTerritorialOperationalPackageReviewResult | null) {
   const coverage = result?.review?.coverage;
   if (!coverage) return "";
+  const applicationPlan = result?.review?.application_plan ?? result?.application_plan;
   const missingUmps = Array.isArray(coverage.missing_ump_items) ? coverage.missing_ump_items.length : 0;
   const missingTachas = Number(coverage.missing_tachas ?? 0);
   const incompleteRows = Number(coverage.incomplete_rows ?? 0);
+  const applyBlockedRows = Number(applicationPlan?.blocked_rows ?? 0);
   return [
     `${fmt(missingUmps)} UMP faltantes`,
     `${fmt(missingTachas)} tachas faltantes`,
     `${fmt(incompleteRows)} filas incompletas`,
-  ].join(" · ");
+    applyBlockedRows > 0 ? `${fmt(applyBlockedRows)} filas sin payload aplicable` : "",
+    applicationPlan?.payload_ready ? "payload aplicable listo" : "",
+  ].filter(Boolean).join(" · ");
+}
+
+function operationalPackageApplyBlocked(result: MonitoreoTerritorialOperationalPackageReviewResult) {
+  const applicationPlan = result.review?.application_plan ?? result.application_plan;
+  return result.status === "review_ready" &&
+    applicationPlan?.payload_ready === false &&
+    Number(applicationPlan.blocked_rows ?? 0) > 0;
+}
+
+function operationalPackageStatusKind(result: MonitoreoTerritorialOperationalPackageReviewResult): OperationalPackageStatus["kind"] {
+  if (result.status === "missing_package") return "missing";
+  if (result.status === "blocked" || operationalPackageApplyBlocked(result)) return "blocked";
+  if (result.status === "review_ready") return "ready";
+  return "ready";
+}
+
+function operationalPackageMessage(result: MonitoreoTerritorialOperationalPackageReviewResult, kind: OperationalPackageStatus["kind"]) {
+  if (kind === "ready") return "Revisión lista; la publicación sigue bloqueada hasta aplicar y revalidar.";
+  if (kind === "missing") return "Falta el paquete operacional validado.";
+  if (operationalPackageApplyBlocked(result)) return "Paquete revisable, pero faltan campos para aplicar con seguridad.";
+  return "Paquete operacional incompleto para revisión.";
 }
 
 function JobStatusLine({
@@ -482,21 +507,11 @@ export function MonitoreoOutputsWorkbench({
         project: defaultTitle || routeLabel,
         ...(config ? { config } : {}),
       });
-      const statusKind: OperationalPackageStatus["kind"] = result.status === "review_ready"
-        ? "ready"
-        : result.status === "missing_package"
-          ? "missing"
-          : result.status === "blocked"
-            ? "blocked"
-            : "ready";
+      const statusKind = operationalPackageStatusKind(result);
       setOperationalReview(result);
       setOperationalReviewStatus({
         kind: statusKind,
-        message: statusKind === "ready"
-          ? "Revisión lista; la publicación sigue bloqueada hasta aplicar y revalidar."
-          : statusKind === "missing"
-            ? "Falta el paquete operacional validado."
-            : "Paquete operacional incompleto para revisión.",
+        message: operationalPackageMessage(result, statusKind),
         detail: operationalPackageDetail(result),
       });
     } catch (e) {
