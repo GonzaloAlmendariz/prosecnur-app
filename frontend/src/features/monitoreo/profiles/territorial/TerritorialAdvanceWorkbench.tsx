@@ -1,0 +1,2621 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CalendarRange,
+  CheckCircle2,
+  ContactRound,
+  FileCheck2,
+  Layers3,
+  ListChecks,
+  Loader2,
+  MapPin,
+  Maximize2,
+  Minus,
+  Plus,
+  Route,
+  Search,
+} from "lucide-react";
+import { apiMonitoreoTerritorialMap } from "../../../../api/client";
+import type {
+  HojasRutaContextMapFeature,
+  HojasRutaBlockMapFeature,
+  HojasRutaStreetMapFeature,
+  HojasRutaZoneMapFeature,
+  MonitoreoTerritorialDashboard,
+  MonitoreoTerritorialMapPhaseCacheMeta,
+  TerritorialBlockProgress,
+  TerritorialDistrictProgress,
+  TerritorialResponseAuditRow,
+} from "../../../../api/client";
+import { EmptyState } from "../../../../components/States";
+import { PlotlyChart } from "../../../../lib/PlotlyChart";
+import {
+  buildTerritorialRouteCoverageModel,
+} from "../../routeCoverageModel";
+import {
+  LIMA_DISTRICT_FEATURES,
+  LIMA_MAP_HEIGHT,
+  LIMA_MAP_WIDTH,
+  TerritorialRouteCoverageMap,
+  buildTerritorialMapProjection,
+  loadTerritorialRouteCartography,
+  sampleTerritorialContextFeatures,
+  sampleTerritorialStreetFeatures,
+  selectTerritorialMapFeatures,
+  territorialBlockZoneKey,
+  territorialContextClass,
+  territorialContextFeaturePath,
+  territorialBlockStableKey,
+  territorialDistrictPath,
+  territorialFeatureZoneKey,
+  territorialFeaturePath,
+  territorialStreetPath,
+  territorialZoneFeatureKey,
+  territorialZonePath,
+  territorialEffectiveRouteBlocks,
+  territorialRouteBlockIsReplacement,
+  type TerritorialSelectedMapFeature,
+} from "./TerritorialRouteCoverageAtlas";
+
+type TerritorialAdvanceTab = "resumen" | "ump" | "ritmo";
+
+type AdvanceSummary = {
+  total: number;
+  validas: number;
+  observacion: number;
+  noValidas: number;
+  meta: number | null;
+  brecha: number;
+  avancePct: number | null;
+};
+
+type DistributionItem = {
+  key: string;
+  label: string;
+  value: number;
+  pct: number;
+  tone: "ready" | "warning" | "muted";
+};
+
+type TerritorialDailyDashboardRow = MonitoreoTerritorialDashboard["daily"][number] & {
+  no_validas: number;
+  cumulative_valid: number;
+  cumulative_progress_pct: number | null;
+  cumulative_gap: number;
+  new_complete_ump: number;
+  cumulative_complete_ump: number;
+  cumulative_complete_ump_pct: number | null;
+};
+
+type TerritorialAdvanceGeoDisposition = "en_zona" | "en_distrito" | "fuera_distrito" | "sin_cruce" | "sin_gps";
+type TerritorialAdvanceUmpStatus = "complete" | "incomplete" | "none";
+type TerritorialAdvanceQuotaStatus = "complete" | "in_field" | "pending" | "missing" | "not_configured";
+
+type TerritorialAdvanceKoboPoint = MonitoreoTerritorialDashboard["map"]["points"][number] & {
+  latValue: number;
+  lonValue: number;
+  geoDisposition: TerritorialAdvanceGeoDisposition;
+};
+
+type TerritorialAdvanceBlockMatchIndex = {
+  exact: Set<string>;
+  district: Set<string>;
+};
+
+const ADVANCE_TAB_FALLBACK: TerritorialAdvanceTab = "resumen";
+const ADVANCE_GPS_LEGEND = [
+  { key: "geo_ok", label: "Dentro" },
+  { key: "geo_cerca", label: "Cerca" },
+  { key: "geo_revision", label: "Revisión" },
+  { key: "geo_no_defendible", label: "Lejos" },
+  { key: "geo_sin_cruce", label: "Sin cruce" },
+  { key: "geo_sin_gps", label: "Sin GPS" },
+] as const;
+
+export function TerritorialAdvanceWorkbench({
+  activeLocalTab,
+  reports,
+  syncedAt,
+  onLocalTabChange,
+}: {
+  activeLocalTab?: string;
+  reports: MonitoreoTerritorialDashboard | null;
+  syncedAt?: string;
+  onLocalTabChange?: (tab: string) => void;
+}) {
+  const [startDate, setStartDate] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("todos");
+  const [focusedUmp, setFocusedUmp] = useState("");
+  const tab = isAdvanceTab(activeLocalTab) ? activeLocalTab : ADVANCE_TAB_FALLBACK;
+  const blocks = useMemo(() => blockRows(reports), [reports]);
+  const dailyTargetTotal = useMemo(() => advanceObjectiveTotal(reports), [reports]);
+  const dailyRows = useMemo(() => buildTerritorialDailyRows(reports, dailyTargetTotal, blocks), [blocks, dailyTargetTotal, reports]);
+  const availableDates = useMemo(() => dailyRows.map((row) => row.date).filter(Boolean), [dailyRows]);
+  const scopedDailyRows = useMemo(() => (
+    startDate ? dailyRows.filter((row) => row.date >= startDate) : dailyRows
+  ), [dailyRows, startDate]);
+  const dateScope = {
+    active: Boolean(startDate),
+    startDate,
+    canScope: availableDates.length > 0,
+    rowsIncluded: scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.total), 0),
+    rowsTotal: dailyRows.reduce((sum, row) => sum + numberOrZero(row.total), 0),
+  };
+  const advance = useMemo(() => buildAdvanceSummary(reports, scopedDailyRows, Boolean(startDate)), [reports, scopedDailyRows, startDate]);
+  const districts = useMemo(() => districtRows(reports), [reports]);
+  const mapLayers = useTerritorialAdvanceMapLayers(reports, blocks);
+  const distributions = useMemo(() => buildAdvanceDistributions(reports), [reports]);
+  const criterionLabel = reports?.source_validity?.field_label || reports?.source_validity?.field || "criterio configurado";
+  const phaseLabel = reports?.active_route_phase === "pilot" ? "Piloto operativo" : "Campo real";
+  const cutLabel = syncedAt || reports?.generated_at ? formatDate(syncedAt || reports?.generated_at || "") : "Sin corte";
+
+  if (!reports) {
+    return (
+      <div className="mon-stage mon-stage--avance">
+        <section className="mon-territorial-panel mon-territorial-review-panel">
+          <div className="mon-territorial-audit-empty">Sin avance territorial hidratado para este corte.</div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mon-stage mon-stage--avance">
+      <div className="mon-stage-stack mon-stage-stack--dashboard">
+        <section className="mon-advance-panel mon-territorial-panel" aria-label="Tablero de campo territorial">
+          <TerritorialAdvanceDateFilterBar
+            scope={dateScope}
+            startDate={startDate}
+            availableDates={availableDates}
+            onChange={setStartDate}
+          />
+
+          {tab === "resumen" ? (
+            <TerritorialAdvanceSummary
+              advance={advance}
+              blocks={blocks}
+              criterionLabel={criterionLabel}
+              cutLabel={cutLabel}
+              districts={districts}
+              distributions={distributions}
+              phaseLabel={phaseLabel}
+              selectedDistrict={districtFilter}
+              onOpenDistrict={(key) => {
+                setDistrictFilter(key);
+                setFocusedUmp("");
+                onLocalTabChange?.("ump");
+              }}
+              onOpenUmp={(districtKey, umpKey) => {
+                setDistrictFilter(districtKey || "todos");
+                setFocusedUmp(umpKey);
+                onLocalTabChange?.("ump");
+              }}
+            />
+          ) : null}
+
+          {tab === "ump" ? (
+            <TerritorialAdvanceUmpSection
+              reports={reports}
+              blocks={blocks}
+              mapReports={mapLayers.reports ?? reports}
+              gpsLayerLoading={mapLayers.loading}
+              gpsLayerError={mapLayers.error}
+              districtFilter={districtFilter}
+              focusedUmp={focusedUmp}
+              onDistrictFilterChange={setDistrictFilter}
+            />
+          ) : null}
+
+          {tab === "ritmo" ? (
+            <TerritorialAdvanceRhythmSection
+              rows={scopedDailyRows}
+              targetTotal={dailyTargetTotal || advance.meta || advance.validas + advance.brecha}
+              dateScope={dateScope}
+              umpTotal={blocks.length}
+            />
+          ) : null}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function TerritorialAdvanceDateFilterBar({
+  scope,
+  startDate,
+  availableDates,
+  onChange,
+}: {
+  scope: { active: boolean; startDate: string; canScope: boolean; rowsIncluded: number; rowsTotal: number };
+  startDate: string;
+  availableDates: string[];
+  onChange: (value: string) => void;
+}) {
+  const latestDate = availableDates[availableDates.length - 1] ?? "";
+  const earliestDate = availableDates[0] ?? "";
+  const activeLabel = startDate ? `Desde ${dateFilterLabel(startDate)}` : "Todo el corte";
+  return (
+    <section className={`mon-territorial-datebar${scope.active ? " is-filtered" : ""}`} aria-label="Filtro de fecha para avance territorial">
+      <div className="mon-territorial-datebar-copy">
+        <span><CalendarRange size={14} /> Contar avance desde</span>
+        <strong>{activeLabel}</strong>
+        <em>
+          {scope.canScope
+            ? `${formatMetric(scope.rowsIncluded)} de ${formatMetric(scope.rowsTotal)} registros diarios`
+            : "El corte no trae fecha diaria para recalcular en la app"}
+        </em>
+      </div>
+      <div className="mon-territorial-datebar-controls">
+        <button type="button" className={!startDate ? "is-active" : ""} onClick={() => onChange("")}>
+          Todo
+        </button>
+        {latestDate ? (
+          <button type="button" className={startDate === latestDate ? "is-active" : ""} onClick={() => onChange(latestDate)}>
+            Último día
+          </button>
+        ) : null}
+        <label>
+          <span>Fecha inicial</span>
+          <input
+            type="date"
+            value={startDate}
+            min={earliestDate || undefined}
+            max={latestDate || undefined}
+            disabled={!scope.canScope || !availableDates.length}
+            onChange={(event) => onChange(event.currentTarget.value)}
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceSummary({
+  advance,
+  blocks,
+  criterionLabel,
+  cutLabel,
+  districts,
+  distributions,
+  phaseLabel,
+  selectedDistrict,
+  onOpenDistrict,
+  onOpenUmp,
+}: {
+  advance: AdvanceSummary;
+  blocks: TerritorialBlockProgress[];
+  criterionLabel: string;
+  cutLabel: string;
+  districts: TerritorialDistrictProgress[];
+  distributions: { sex: DistributionItem[]; age: DistributionItem[] };
+  phaseLabel: string;
+  selectedDistrict: string;
+  onOpenDistrict: (districtKey: string) => void;
+  onOpenUmp: (districtKey: string, umpKey: string) => void;
+}) {
+  const umpStack = summarizeUmp(blocks);
+  const priorities = buildAdvancePriorities(districts, blocks);
+  return (
+    <section className="mon-territorial-tab-panel mon-territorial-exec" aria-label="Resumen ejecutivo de avance territorial">
+      <TerritorialAdvanceHero advance={advance} criterionLabel={criterionLabel} umpComplete={umpStack.complete} umpNone={umpStack.none} />
+      <header className="mon-territorial-exec-commandbar">
+        <div>
+          <span><MapPin size={14} /> Vista ejecutiva territorial</span>
+          <strong>Resumen de avance</strong>
+        </div>
+        <div className="mon-territorial-exec-commandbar-meta" aria-label="Contexto del corte">
+          <span>{phaseLabel}</span>
+          <span>Corte {cutLabel}</span>
+          <span>{formatMetric(advance.validas)} válidas en avance</span>
+          {selectedDistrict !== "todos" ? <span>Distrito filtrado</span> : null}
+        </div>
+      </header>
+      <div className="mon-territorial-exec-canvas">
+        <div className="mon-territorial-exec-side">
+          <TerritorialExecutiveProgressPanel advance={advance} criterionLabel={criterionLabel} cutLabel={cutLabel} districtCount={districts.length} />
+          <TerritorialExecutiveUmpPanel stack={umpStack} />
+        </div>
+        <TerritorialExecutiveDistrictBoard
+          rows={districts}
+          selectedDistrict={selectedDistrict}
+          onOpenDistrict={onOpenDistrict}
+        />
+        <TerritorialExecutiveDemographics sex={distributions.sex} age={distributions.age} />
+        <TerritorialExecutivePriorities groups={priorities} onOpenDistrict={onOpenDistrict} onOpenUmp={onOpenUmp} />
+        <TerritorialExecutiveOperationalCut advance={advance} criterionLabel={criterionLabel} />
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceHero({
+  advance,
+  criterionLabel,
+  umpComplete,
+  umpNone,
+}: {
+  advance: AdvanceSummary;
+  criterionLabel: string;
+  umpComplete: number;
+  umpNone: number;
+}) {
+  const pct = clamp(advance.avancePct ?? 0, 0, 100);
+  return (
+    <section className="mon-territorial-overview-hero" aria-label="Resumen general de avance territorial">
+      <div className="mon-territorial-overview-copy">
+        <span>Avance territorial</span>
+        <strong>{formatMetric(advance.validas)} válidas de {formatMetric(advance.meta)} · {formatPercentLabel(advance.avancePct)}</strong>
+        <p>{formatMetric(advance.brecha)} pendientes para llegar al objetivo. Avance según {criterionLabel}; UMP por declaración configurada.</p>
+      </div>
+      <div className="mon-territorial-objective-meter" aria-label="Avance hacia el objetivo territorial">
+        <header>
+          <span>Objetivo territorial</span>
+          <strong>{formatPercentLabel(advance.avancePct)}</strong>
+        </header>
+        <div className="mon-territorial-objective-track">
+          <i style={{ width: `${pct}%` }} />
+        </div>
+        <footer>
+          <span><strong>{formatMetric(advance.validas)}</strong><em>Válidas</em></span>
+          <span><strong>{formatMetric(advance.brecha)}</strong><em>Pendientes</em></span>
+          <span><strong>{formatMetric(umpComplete)}</strong><em>UMP completas</em></span>
+          <span><strong>{formatMetric(umpNone)}</strong><em>UMP sin avance</em></span>
+        </footer>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveProgressPanel({
+  advance,
+  criterionLabel,
+  cutLabel,
+  districtCount,
+}: {
+  advance: AdvanceSummary;
+  criterionLabel: string;
+  cutLabel: string;
+  districtCount: number;
+}) {
+  const pct = clamp(advance.avancePct ?? 0, 0, 100);
+  return (
+    <section className="mon-territorial-exec-progress" aria-label="Estado general del campo">
+      <div className="mon-territorial-exec-progress-main">
+        <div>
+          <span>Estado general del campo</span>
+          <strong>{formatMetric(advance.validas)}</strong>
+          <em>válidas actuales</em>
+        </div>
+        <figure
+          className="mon-territorial-exec-ring"
+          style={{ "--exec-ring": `${pct * 3.6}deg` } as CSSProperties}
+          aria-label={`${formatPercentLabel(advance.avancePct)} de avance territorial`}
+        >
+          <strong>{formatPercentLabel(advance.avancePct)}</strong>
+          <span>avance</span>
+        </figure>
+      </div>
+      <div className="mon-territorial-exec-progress-track">
+        <i style={{ width: `${pct}%` }} />
+      </div>
+      <dl className="mon-territorial-exec-progress-facts">
+        <div><dt>Objetivo</dt><dd>{formatMetric(advance.meta)}</dd></div>
+        <div><dt>Pendientes</dt><dd>{formatMetric(advance.brecha)}</dd></div>
+        <div><dt>Distritos</dt><dd>{formatMetric(districtCount)}</dd></div>
+        <div><dt>Corte</dt><dd>{cutLabel}</dd></div>
+      </dl>
+      <p>Avance calculado con {criterionLabel}. Los estados técnicos explican el corte, pero no compiten con el cumplimiento territorial.</p>
+    </section>
+  );
+}
+
+function TerritorialExecutiveUmpPanel({ stack }: { stack: ReturnType<typeof summarizeUmp> }) {
+  const segments = [
+    { key: "complete", label: "Completas", value: stack.complete, tone: "ready" },
+    { key: "incomplete", label: "Incompletas", value: stack.incomplete, tone: "warning" },
+    { key: "none", label: "Sin avance", value: stack.none, tone: "muted" },
+  ];
+  return (
+    <section className="mon-territorial-exec-ump" aria-label="Estado de UMP y manzanas">
+      <header>
+        <span><Route size={14} /> Estado UMP</span>
+        <strong>{formatMetric(stack.complete)} de {formatMetric(stack.total)} completas</strong>
+      </header>
+      <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
+        {segments.map((segment) => (
+          <i
+            key={segment.key}
+            className={`is-${segment.key}`}
+            role="listitem"
+            style={{ "--exec-stack-size": `${Math.max(segment.value ? 5 : 0, safePercent(segment.value, stack.total) ?? 0)}%` } as CSSProperties}
+            title={`${segment.label}: ${formatMetric(segment.value)}`}
+          />
+        ))}
+      </div>
+      <div className="mon-territorial-exec-ump-grid">
+        {segments.map((segment) => (
+          <span key={segment.key} className={`is-${segment.tone}`}>
+            <strong>{formatMetric(segment.value)}</strong>
+            <em>{segment.label}</em>
+          </span>
+        ))}
+      </div>
+      <div className="mon-territorial-exec-ump-state-list" aria-label="Detalle porcentual por estado UMP">
+        {segments.map((segment) => {
+          const pct = safePercent(segment.value, stack.total) ?? 0;
+          return (
+            <div key={segment.key} className={`is-${segment.tone}`}>
+              <header>
+                <span>{segment.label}</span>
+                <strong>{formatMetric(segment.value)} · {formatPercentLabel(pct)}</strong>
+              </header>
+              <i aria-hidden="true"><em style={{ width: `${pct}%` }} /></i>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveDistrictBoard({
+  rows,
+  selectedDistrict,
+  onOpenDistrict,
+}: {
+  rows: TerritorialDistrictProgress[];
+  selectedDistrict: string;
+  onOpenDistrict: (districtKey: string) => void;
+}) {
+  const ordered = [...rows].sort((a, b) => (
+    numberOrZero(a.avance_pct) - numberOrZero(b.avance_pct)
+    || numberOrZero(b.brecha) - numberOrZero(a.brecha)
+    || stringOrEmpty(a.distrito).localeCompare(stringOrEmpty(b.distrito), "es-PE")
+  ));
+  return (
+    <section className="mon-territorial-exec-districts" aria-label="Avance por distrito">
+      <header>
+        <div>
+          <span><BarChart3 size={14} /> Avance por distrito</span>
+          <strong>Lectura territorial dominante</strong>
+        </div>
+        <em>{formatMetric(rows.filter((row) => numberOrZero(row.validas) > 0).length)} con avance</em>
+      </header>
+      <div className="mon-territorial-exec-district-grid">
+        {ordered.map((row) => {
+          const key = districtKey(row);
+          const selected = selectedDistrict !== "todos" && key === selectedDistrict;
+          return (
+            <button
+              key={key || row.distrito}
+              type="button"
+              className={`mon-territorial-exec-district-card is-${districtTone(row)}${selected ? " is-selected" : ""}`}
+              aria-pressed={selected}
+              onClick={() => key && onOpenDistrict(key)}
+            >
+              <DistrictShapeIcon label={row.distrito} active={selected || districtTone(row) === "ready"} warning={districtTone(row) === "open"} />
+              <div className="mon-territorial-exec-district-body">
+                <header>
+                  <span>{row.ubigeo || "S/U"}</span>
+                  <strong>{row.distrito || "Sin distrito"}</strong>
+                </header>
+                <div className="mon-territorial-exec-district-metrics">
+                  <dl>
+                    <div><dt>Válidas</dt><dd>{formatMetric(row.validas)} / {formatMetric(row.meta)}</dd></div>
+                    <div><dt>Brecha</dt><dd>{formatMetric(row.brecha)}</dd></div>
+                    <div><dt>Revisión</dt><dd>{formatMetric(row.revision)}</dd></div>
+                  </dl>
+                  <i aria-hidden="true"><em style={{ width: `${clamp(row.avance_pct ?? 0, 0, 100)}%` }} /></i>
+                </div>
+                <b className="mon-territorial-exec-district-pct">{formatPercentLabel(row.avance_pct)}</b>
+                <footer>
+                  <span className="is-ready">{formatMetric(row.validas)} válidas</span>
+                  <span className="is-warning">{formatMetric(row.brecha)} brecha</span>
+                  <span>{formatMetric(row.total)} total</span>
+                </footer>
+              </div>
+            </button>
+          );
+        })}
+        {!ordered.length ? <p className="mon-territorial-audit-empty">Sin distritos en el corte de avance.</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveDemographics({
+  sex,
+  age,
+}: {
+  sex: DistributionItem[];
+  age: DistributionItem[];
+}) {
+  return (
+    <section className="mon-territorial-exec-demographics" aria-label="Distribución del campo válido por sexo y edad">
+      <header>
+        <span><Layers3 size={14} /> Distribución del campo válido</span>
+        <strong>Solo respuestas que cuentan en avance</strong>
+      </header>
+      <div>
+        <DistributionPanel title="Distribución por sexo" items={sex} mode="donut" />
+        <DistributionPanel title="Distribución por edad" items={age} mode="bars" />
+      </div>
+    </section>
+  );
+}
+
+function DistributionPanel({ title, items, mode }: { title: string; items: DistributionItem[]; mode: "donut" | "bars" }) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  const first = items[0];
+  return (
+    <article className={`mon-territorial-exec-distribution is-${items.length ? "ready" : "empty"}`}>
+      <header>
+        <span>{title}</span>
+        <em>{items.length ? "Kobo válido" : "Sin variable"}</em>
+      </header>
+      {items.length && mode === "donut" ? (
+        <div className="mon-territorial-exec-sex-chart">
+          <figure
+            className="mon-territorial-exec-sex-ring"
+            style={{ "--exec-ring": `${(first?.pct ?? 0) * 3.6}deg` } as CSSProperties}
+            aria-label={`${formatMetric(total)} respuestas válidas`}
+          >
+            <strong>{formatMetric(total)}</strong>
+            <span>válidas</span>
+          </figure>
+          <DistributionList items={items} />
+        </div>
+      ) : items.length ? (
+        <DistributionList items={items} bars />
+      ) : (
+        <div className="mon-territorial-exec-empty">
+          <strong>Sin distribución disponible</strong>
+          <span>La distribución aparecerá cuando existan respuestas válidas con sexo/edad.</span>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function DistributionList({ items, bars = false }: { items: DistributionItem[]; bars?: boolean }) {
+  return (
+    <div className={`mon-territorial-exec-distribution-list${bars ? " is-bars" : ""}`}>
+      {items.map((item) => (
+        <span key={item.key} className={`is-${item.tone}`}>
+          <i style={{ width: `${Math.max(item.value ? 5 : 0, item.pct)}%` }} />
+          <strong>{item.label}</strong>
+          <em>{formatMetric(item.value)} · {formatPercentLabel(item.pct)}</em>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TerritorialExecutivePriorities({
+  groups,
+  onOpenDistrict,
+  onOpenUmp,
+}: {
+  groups: ReturnType<typeof buildAdvancePriorities>;
+  onOpenDistrict: (districtKey: string) => void;
+  onOpenUmp: (districtKey: string, umpKey: string) => void;
+}) {
+  return (
+    <section className="mon-territorial-exec-priorities" aria-label="Prioridades de avance">
+      <header>
+        <span><AlertTriangle size={14} /> Prioridades de avance</span>
+        <strong>Frentes pendientes conectados con Mapa y UMP</strong>
+      </header>
+      <div className="mon-territorial-exec-priority-groups">
+        {groups.map((group) => (
+          <article key={group.key} className={`is-${group.key}`}>
+            <header>
+              <strong>{group.label}</strong>
+              <em>{group.items.length ? formatMetric(group.items.length) : "0"}</em>
+            </header>
+            <div>
+              {group.items.length ? group.items.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`mon-territorial-exec-priority is-${item.tone}`}
+                  onClick={() => {
+                    if (item.type === "district") onOpenDistrict(item.districtKey);
+                    else onOpenUmp(item.districtKey, item.umpKey);
+                  }}
+                >
+                  <span>
+                    <strong>{item.title}</strong>
+                    <em>{item.detail}</em>
+                  </span>
+                  <b>{formatMetric(item.gap)}</b>
+                  <i><small style={{ width: `${Math.max(4, item.progressPct)}%` }} /></i>
+                </button>
+              )) : (
+                <span className="mon-territorial-exec-priority-empty">{group.emptyLabel}</span>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialExecutiveOperationalCut({
+  advance,
+  criterionLabel,
+}: {
+  advance: AdvanceSummary;
+  criterionLabel: string;
+}) {
+  const items = [
+    { key: "valid", label: "Cuentan en avance", value: advance.validas, tone: "ready", hint: "válidas actuales" },
+    { key: "review", label: "En observación", value: advance.observacion, tone: "warning", hint: "no bloquea avance" },
+    { key: "invalid", label: "No cuentan según criterio", value: advance.noValidas, tone: "muted", hint: criterionLabel },
+  ];
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  return (
+    <section className="mon-territorial-exec-cut" aria-label="Corte operativo">
+      <header>
+        <span><FileCheck2 size={14} /> Corte operativo</span>
+        <strong>Qué entra y qué queda separado</strong>
+      </header>
+      <div className="mon-territorial-exec-cut-stack" aria-label="Distribución del corte operativo">
+        {items.map((item) => (
+          <i
+            key={item.key}
+            className={`is-${item.tone}`}
+            style={{ "--exec-stack-size": `${Math.max(item.value ? 5 : 0, safePercent(item.value, total) ?? 0)}%` } as CSSProperties}
+            title={`${item.label}: ${formatMetric(item.value)}`}
+          />
+        ))}
+      </div>
+      <div>
+        {items.map((item) => (
+          <span key={item.key} className={`is-${item.tone}`}>
+            <strong>{formatMetric(item.value)}</strong>
+            <em>{item.label}</em>
+            <small>{item.hint}</small>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function useTerritorialAdvanceMapLayers(
+  reports: MonitoreoTerritorialDashboard | null,
+  blocks: TerritorialBlockProgress[],
+) {
+  const [layerState, setLayerState] = useState<{
+    points: MonitoreoTerritorialDashboard["map"]["points"];
+    loading: boolean;
+    error: string;
+    cache: MonitoreoTerritorialMapPhaseCacheMeta | null;
+  }>({ points: [], loading: false, error: "", cache: null });
+  const phase = reports?.active_route_phase === "field" ? "field" : "pilot";
+  const reportPointCount = reports?.map?.points?.length ?? 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!reports) {
+      setLayerState({ points: [], loading: false, error: "", cache: null });
+      return () => { cancelled = true; };
+    }
+    if (reportPointCount > 0) {
+      setLayerState((current) => ({ ...current, loading: false, error: "" }));
+      return () => { cancelled = true; };
+    }
+    setLayerState((current) => ({ ...current, loading: true, error: "" }));
+    const loadGpsPoints = async () => {
+      const cached = await apiMonitoreoTerritorialMap({ phase, layer: "gps_points", allowStale: true, prepare: false });
+      const status = typeof cached.cache === "object" && cached.cache && "status" in cached.cache
+        ? String(cached.cache.status || "")
+        : "";
+      if (status === "valid" && cached.payload.points?.length) return cached;
+      return apiMonitoreoTerritorialMap({ phase, layer: "gps_points", allowStale: true, prepare: true });
+    };
+    loadGpsPoints()
+      .then((gpsLayer) => {
+        if (cancelled) return;
+        setLayerState({
+          points: gpsLayer.payload.points ?? [],
+          loading: false,
+          error: "",
+          cache: gpsLayer.cache as MonitoreoTerritorialMapPhaseCacheMeta | null,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLayerState((current) => ({
+          ...current,
+          loading: false,
+          error: "No se pudo cargar la capa cacheada de puntos GPS para Avance.",
+        }));
+      });
+    return () => { cancelled = true; };
+  }, [phase, reportPointCount, reports]);
+
+  const composedReports = useMemo(() => {
+    if (!reports) return null;
+    const sourcePoints = reports.map?.points?.length ? reports.map.points : layerState.points;
+    return {
+      ...reports,
+      map: {
+        ...(reports.map ?? { phase, blocks: [], points: [], alerts: [], legend: [] }),
+        phase,
+        blocks: reports.map?.blocks?.length ? reports.map.blocks : blocks,
+        points: sourcePoints,
+        cache: reports.map?.cache ?? layerState.cache ?? null,
+      },
+    };
+  }, [blocks, layerState.cache, layerState.points, phase, reports]);
+
+  return {
+    reports: composedReports,
+    loading: layerState.loading,
+    error: layerState.error,
+    pointsLoaded: composedReports?.map.points.length ?? 0,
+  };
+}
+
+function TerritorialAdvanceUmpSection({
+  reports,
+  mapReports,
+  gpsLayerLoading,
+  gpsLayerError,
+  blocks,
+  districtFilter,
+  focusedUmp,
+  onDistrictFilterChange,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  mapReports: MonitoreoTerritorialDashboard;
+  gpsLayerLoading: boolean;
+  gpsLayerError: string;
+  blocks: TerritorialBlockProgress[];
+  districtFilter: string;
+  focusedUmp: string;
+  onDistrictFilterChange: (value: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<TerritorialAdvanceUmpStatus | "todos">("todos");
+  const [quotaFilter, setQuotaFilter] = useState<TerritorialAdvanceQuotaStatus | "todos">("todos");
+  const [zoneFilter, setZoneFilter] = useState("todos");
+  const [responsibleFilter, setResponsibleFilter] = useState("todos");
+  const [selectedKey, setSelectedKey] = useState("");
+  const [selectedResponseId, setSelectedResponseId] = useState("");
+  const [mapFocusToken, setMapFocusToken] = useState(0);
+  const sourceBlocks = useMemo(() => {
+    const mapBlocks = Array.isArray(reports.map?.blocks) ? reports.map.blocks : [];
+    const source = mapBlocks.length ? mapBlocks : blocks;
+    return source.filter((row) => territorialBlockStableKey(row));
+  }, [blocks, reports]);
+  const districts = useMemo(() => ["todos", ...uniqueNonEmpty(sourceBlocks.map((row) => districtKey(row)))], [sourceBlocks]);
+  const zones = useMemo(() => ["todos", ...uniqueNonEmpty(sourceBlocks.map((row) => stringOrEmpty(row.zona)))], [sourceBlocks]);
+  const responsibles = useMemo(() => ["todos", ...uniqueNonEmpty(sourceBlocks.map((row) => stringOrEmpty(row.responsable)))], [sourceBlocks]);
+  const phaseLabel = reports.active_route_phase === "field" ? "Campo real" : "Piloto operativo";
+  const gpsPoints = useMemo(() => territorialAdvanceKoboMapPoints(mapReports), [mapReports]);
+  const visible = useMemo(() => {
+    const search = normalizeMatch(query);
+    return sourceBlocks.filter((row) => {
+      if (districtFilter !== "todos" && districtKey(row) !== districtFilter) return false;
+      if (statusFilter !== "todos" && blockStatus(row) !== statusFilter) return false;
+      if (quotaFilter !== "todos" && blockQuotaStatus(row) !== quotaFilter) return false;
+      if (zoneFilter !== "todos" && stringOrEmpty(row.zona) !== zoneFilter) return false;
+      if (responsibleFilter !== "todos" && stringOrEmpty(row.responsable) !== responsibleFilter) return false;
+      if (!search) return true;
+      return normalizeMatch([row.ump, row.distrito, row.zona, row.manzana, row.responsable, row.id_manzana].filter(Boolean).join(" ")).includes(search);
+    }).sort(compareBlocks);
+  }, [districtFilter, query, quotaFilter, responsibleFilter, sourceBlocks, statusFilter, zoneFilter]);
+  useEffect(() => {
+    if (!focusedUmp) return;
+    setQuery(focusedUmp);
+    setStatusFilter("todos");
+    setQuotaFilter("todos");
+    setZoneFilter("todos");
+    setResponsibleFilter("todos");
+    const focused = sourceBlocks.find((row) => (
+      normalizeMatch(row.ump) === normalizeMatch(focusedUmp)
+      || normalizeMatch(row.id_manzana) === normalizeMatch(focusedUmp)
+      || advanceBlockStableKey(row) === focusedUmp
+    ));
+    if (focused) {
+      setSelectedKey(advanceBlockStableKey(focused));
+      setMapFocusToken((token) => token + 1);
+    }
+  }, [focusedUmp, sourceBlocks]);
+  useEffect(() => {
+    if (!visible.length) {
+      setSelectedKey("");
+      return;
+    }
+    if (!selectedKey || !visible.some((row) => advanceBlockStableKey(row) === selectedKey)) {
+      setSelectedKey(advanceBlockStableKey(visible[0]));
+    }
+  }, [selectedKey, visible]);
+  const selected = visible.find((row) => advanceBlockStableKey(row) === selectedKey) ?? visible[0] ?? null;
+  const routeCoverage = useMemo(() => buildTerritorialRouteCoverageModel(sourceBlocks, reports), [sourceBlocks, reports]);
+  const effectiveRouteBlocks = useMemo(() => territorialEffectiveRouteBlocks(sourceBlocks, reports), [sourceBlocks, reports]);
+  const effectiveRouteZoneCount = useMemo(() => (
+    new Set(effectiveRouteBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean)).size
+  ), [effectiveRouteBlocks]);
+  const visibleBlockIndex = useMemo(() => buildAdvanceBlockMatchIndex(visible), [visible]);
+  const selectedBlockIndex = useMemo(() => buildAdvanceBlockMatchIndex(selected ? [selected] : []), [selected]);
+  const visibleGpsExactPoints = useMemo(() => (
+    gpsPoints.filter((point) => territorialAdvancePointMatchesIndex(point, visibleBlockIndex, false))
+  ), [gpsPoints, visibleBlockIndex]);
+  const visibleGpsPoints = useMemo(() => (
+    visibleGpsExactPoints.length
+      ? visibleGpsExactPoints
+      : gpsPoints.filter((point) => territorialAdvancePointMatchesIndex(point, visibleBlockIndex, true))
+  ), [gpsPoints, visibleBlockIndex, visibleGpsExactPoints]);
+  const selectedGpsExactPoints = useMemo(() => (
+    gpsPoints.filter((point) => territorialAdvancePointMatchesIndex(point, selectedBlockIndex, false))
+  ), [gpsPoints, selectedBlockIndex]);
+  const selectedGpsPoints = useMemo(() => (
+    selectedGpsExactPoints.length
+      ? selectedGpsExactPoints
+      : gpsPoints.filter((point) => territorialAdvancePointMatchesIndex(point, selectedBlockIndex, true))
+  ), [gpsPoints, selectedBlockIndex, selectedGpsExactPoints]);
+  const mapGpsPoints = selectedGpsExactPoints.length ? selectedGpsExactPoints : visibleGpsPoints;
+  const gpsSummary = useMemo(() => summarizeAdvanceGpsPoints(visibleGpsPoints), [visibleGpsPoints]);
+  useEffect(() => {
+    const visibleResponseIds = new Set(visibleGpsPoints.map((point) => stringOrEmpty(point.response_id)).filter(Boolean));
+    if (selectedResponseId && visibleResponseIds.has(selectedResponseId)) return;
+    if (selectedResponseId) setSelectedResponseId("");
+  }, [selectedResponseId, visibleGpsPoints]);
+  const selectedDistrictLabel = districtFilter === "todos"
+    ? "Todos los distritos"
+    : visible.find((row) => districtKey(row) === districtFilter)?.distrito || districtFilter;
+  const selectBlock = (row: TerritorialBlockProgress, focusMap = true) => {
+    setSelectedKey(advanceBlockStableKey(row));
+    if (focusMap) setMapFocusToken((token) => token + 1);
+  };
+  return (
+    <section className="mon-territorial-tab-panel mon-territorial-tab-panel--ump-map" aria-label="Mapa y UMP territorial">
+      <section className="mon-territorial-route-atlas-map-panel mon-territorial-advance-zone-panel" aria-label="Mapa territorial de zonas con cierre sin puntos GPS">
+        <header>
+          <span><MapPin size={13} /> Zonas con cierre</span>
+          <strong>{formatMetric(effectiveRouteZoneCount)} zonas · {formatMetric(effectiveRouteBlocks.length)} UMP completas</strong>
+        </header>
+        <TerritorialRouteCoverageMap coverage={routeCoverage} blocks={sourceBlocks} reports={reports} mode="effective-zones" />
+      </section>
+      <div className="mon-territorial-ump-toolbar" aria-label="Filtros de UMP">
+        <label className="mon-query-search">
+          <Search size={14} />
+          <input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Buscar UMP, manzana, distrito o responsable..." />
+        </label>
+        <TerritorialAdvanceUmpSelect
+          label="Distrito"
+          value={districtFilter}
+          options={districts}
+          onChange={onDistrictFilterChange}
+          formatOption={(value) => value === "todos" ? "Todos" : value}
+        />
+        <TerritorialAdvanceUmpSelect
+          label="Estado"
+          value={statusFilter}
+          options={["todos", "complete", "incomplete", "none"]}
+          onChange={(value) => setStatusFilter(value as TerritorialAdvanceUmpStatus | "todos")}
+          formatOption={(value) => value === "todos" ? "Todos" : blockStatusLabel(value)}
+        />
+        <TerritorialAdvanceUmpSelect
+          label="Cuota"
+          value={quotaFilter}
+          options={["todos", "complete", "in_field", "pending", "missing", "not_configured"]}
+          onChange={(value) => setQuotaFilter(value as TerritorialAdvanceQuotaStatus | "todos")}
+          formatOption={(value) => value === "todos" ? "Todas" : blockQuotaStatusLabel(value as TerritorialAdvanceQuotaStatus)}
+        />
+        <TerritorialAdvanceUmpSelect
+          label="Zona"
+          value={zoneFilter}
+          options={zones}
+          onChange={setZoneFilter}
+          formatOption={(value) => value === "todos" ? "Todas" : `Zona ${value}`}
+        />
+        <TerritorialAdvanceUmpSelect
+          label="Responsable"
+          value={responsibleFilter}
+          options={responsibles}
+          onChange={setResponsibleFilter}
+        />
+      </div>
+      <div className="mon-territorial-ump-map-layout">
+        <section className="mon-territorial-ump-map-pane" aria-label="Mapa territorial interactivo de UMP">
+          <header className="mon-territorial-ump-map-head">
+            <div>
+              <span><MapPin size={14} /> Mapa UMP</span>
+              <strong>{selected ? advanceBlockLabel(selected) : "Sin UMP seleccionada"}</strong>
+              <em>{visible.length ? `${formatMetric(visible.length)} manzanas filtradas · ${formatMetric(visibleGpsPoints.length)} puntos GPS · ${selectedDistrictLabel} · ${phaseLabel}` : "Sin manzanas con los filtros activos"}</em>
+            </div>
+          </header>
+          <TerritorialAdvanceUmpMap
+            blocks={sourceBlocks}
+            visibleBlocks={visible}
+            selectedBlock={selected}
+            gpsPoints={visibleGpsPoints}
+            mapGpsPoints={mapGpsPoints}
+            gpsSummary={gpsSummary}
+            selectedPointId={selectedResponseId}
+            gpsLayerLoading={gpsLayerLoading}
+            gpsLayerError={gpsLayerError}
+            focusToken={mapFocusToken}
+            onSelectBlock={selectBlock}
+            onSelectPoint={(point) => {
+              setSelectedResponseId(stringOrEmpty(point.response_id));
+              const matchingBlock = visible.find((block) => territorialAdvancePointMatchesIndex(point, buildAdvanceBlockMatchIndex([block]), false));
+              if (matchingBlock) selectBlock(matchingBlock, false);
+            }}
+          />
+        </section>
+        <TerritorialUmpMapNavigator
+          blocks={visible}
+          selectedBlockKey={selected ? advanceBlockStableKey(selected) : ""}
+          selectedDistrictLabel={selectedDistrictLabel}
+          onSelectBlock={selectBlock}
+        />
+      </div>
+      <div className="mon-territorial-ump-support-grid">
+        <section className="mon-territorial-ump-detail" aria-label="Detalle de UMP seleccionada">
+          {selected ? (
+            <>
+              <header>
+                <span><MapPin size={14} /> UMP seleccionada</span>
+                <strong>{selected.ump || selected.id_manzana || "Sin UMP"}</strong>
+                <em>{selected.distrito || "Sin distrito"}{selected.zona ? ` · Zona ${selected.zona}` : ""}</em>
+              </header>
+              <div className="mon-territorial-ump-detail-status">
+                <span className={`mon-territorial-ump-status is-${blockStatus(selected)}`}>{blockStatusLabel(blockStatus(selected))}</span>
+                <strong>{formatMetric(selected.validas)} / {formatMetric(selected.meta)} válidas</strong>
+              </div>
+              <dl className="mon-territorial-ump-detail-grid">
+                <div><dt>Responsable</dt><dd>{selected.responsable || "Sin responsable asignado"}</dd></div>
+                <div><dt>Manzana</dt><dd>{selected.manzana || selected.id_manzana || "S/D"}</dd></div>
+                <div><dt>Brecha</dt><dd>{formatMetric(selected.brecha)}</dd></div>
+                <div><dt>Revisión</dt><dd>{formatMetric(selected.revision)}</dd></div>
+              </dl>
+              <div className="mon-territorial-ump-gps-strip" aria-label="Lectura operativa de manzana seleccionada">
+                <span><strong>{formatMetric(selected.validas)}</strong><em>válidas</em></span>
+                <span><strong>{formatMetric(selected.meta)}</strong><em>meta</em></span>
+                <span><strong>{formatMetric(selected.brecha)}</strong><em>brecha</em></span>
+                <span><strong>{formatMetric(selectedGpsPoints.length)}</strong><em>GPS</em></span>
+              </div>
+              <TerritorialUmpGpsResponses
+                rows={selectedGpsPoints}
+                selectedResponseId={selectedResponseId}
+                loading={gpsLayerLoading}
+                onSelect={(point) => setSelectedResponseId(stringOrEmpty(point.response_id))}
+              />
+            </>
+          ) : (
+            <div className="mon-territorial-audit-empty">Sin manzanas con esos filtros.</div>
+          )}
+        </section>
+        <div className="mon-territorial-ump-table-wrap">
+          <table className="mon-territorial-ump-table" aria-label="Tabla operativa de UMP y manzanas">
+            <thead>
+              <tr>
+                <th>UMP / manzana</th>
+                <th>Avance</th>
+                <th>Estado</th>
+                <th>Cuota</th>
+                <th>Responsable</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((row) => {
+                const status = blockStatus(row);
+                const quotaStatus = blockQuotaStatus(row);
+                const rowKey = advanceBlockStableKey(row);
+                const selectedRow = rowKey === selectedKey;
+                return (
+                  <tr key={rowKey} className={selectedRow ? "is-selected" : ""} onClick={() => selectBlock(row)}>
+                    <td>
+                      <strong>{row.ump || "S/D"}</strong>
+                      <small>{[row.distrito || "Sin distrito", row.zona ? `Zona ${row.zona}` : "", row.manzana ? `Mz ${row.manzana}` : row.id_manzana].filter(Boolean).join(" · ")}</small>
+                    </td>
+                    <td>
+                      <span className="mon-territorial-progress-cell">
+                        <strong>{formatMetric(row.validas)} / {formatMetric(row.meta)}</strong>
+                        <small>{formatMetric(numberOrZero(row.revision) + numberOrZero(row.no_defendibles))} por revisar/no defendibles</small>
+                        <i style={{ width: `${Math.min(100, Math.max(4, numberOrZero(row.avance_pct)))}%` }} />
+                      </span>
+                    </td>
+                    <td><span className={`mon-territorial-ump-status is-${status}`}>{blockStatusLabel(status)}</span></td>
+                    <td>
+                      <span className={`mon-territorial-ump-status mon-territorial-quota-status is-${quotaStatus}`}>{blockQuotaStatusLabel(quotaStatus)}</span>
+                      <small>{blockQuotaHint(row)}</small>
+                    </td>
+                    <td>{row.responsable || "Sin responsable"}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="mon-territorial-ump-row-action"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectBlock(row);
+                        }}
+                      >
+                        Seleccionar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!visible.length ? (
+                <tr><td colSpan={6}>Sin UMP con esos filtros.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialUmpGpsResponses({
+  rows,
+  selectedResponseId,
+  loading,
+  onSelect,
+}: {
+  rows: TerritorialAdvanceKoboPoint[];
+  selectedResponseId: string;
+  loading: boolean;
+  onSelect: (point: TerritorialAdvanceKoboPoint) => void;
+}) {
+  const visibleRows = rows.slice(0, 80);
+  return (
+    <section className="mon-territorial-ump-responses" aria-label="Respuestas GPS de la UMP seleccionada">
+      <header>
+        <span><MapPin size={14} /> GPS Kobo</span>
+        <strong>{loading ? "Cargando puntos..." : `${formatMetric(rows.length)} puntos vinculados`}</strong>
+      </header>
+      <div>
+        {visibleRows.length ? visibleRows.map((point, index) => {
+          const responseId = stringOrEmpty(point.response_id) || `gps-${index + 1}`;
+          const selected = responseId === selectedResponseId;
+          return (
+            <button
+              key={responseId}
+              type="button"
+              className={`mon-territorial-ump-response${selected ? " is-selected" : ""}`}
+              aria-pressed={selected}
+              onClick={() => onSelect(point)}
+            >
+              <span className={point.geoDisposition === "sin_gps" ? "is-no-gps" : ""}>{geoDispositionShortLabel(point.geoDisposition)}</span>
+              <strong>{responseId}</strong>
+              <em>{territorialAdvancePointDetail(point)}</em>
+              <small>{formatDistanceLabel(point.distance_m)}</small>
+            </button>
+          );
+        }) : (
+          <p>{loading ? "Cargando capa cacheada de GPS." : "No hay respuestas GPS vinculadas a la UMP seleccionada."}</p>
+        )}
+        {rows.length > visibleRows.length ? (
+          <p>{formatMetric(rows.length - visibleRows.length)} puntos adicionales ocultos para mantener la lista fluida.</p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceUmpSelect({
+  label,
+  value,
+  options,
+  onChange,
+  formatOption,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  formatOption?: (value: string) => string;
+}) {
+  return (
+    <label className="mon-territorial-ump-select">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.currentTarget.value)}>
+        {options.map((option) => (
+          <option key={option} value={option}>{formatOption ? formatOption(option) : (option === "todos" ? "Todos" : option)}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function TerritorialAdvanceUmpMap({
+  blocks,
+  visibleBlocks,
+  selectedBlock,
+  gpsPoints,
+  mapGpsPoints,
+  gpsSummary,
+  selectedPointId,
+  gpsLayerLoading,
+  gpsLayerError,
+  focusToken,
+  onSelectBlock,
+  onSelectPoint,
+}: {
+  blocks: TerritorialBlockProgress[];
+  visibleBlocks: TerritorialBlockProgress[];
+  selectedBlock: TerritorialBlockProgress | null;
+  gpsPoints: TerritorialAdvanceKoboPoint[];
+  mapGpsPoints: TerritorialAdvanceKoboPoint[];
+  gpsSummary: ReturnType<typeof summarizeAdvanceGpsPoints>;
+  selectedPointId: string;
+  gpsLayerLoading: boolean;
+  gpsLayerError: string;
+  focusToken: number;
+  onSelectBlock: (block: TerritorialBlockProgress, focusMap?: boolean) => void;
+  onSelectPoint: (point: TerritorialAdvanceKoboPoint) => void;
+}) {
+  const ubigeos = useMemo(() => uniqueNonEmpty(blocks.map((block) => normalizeMapCode(block.ubigeo))), [blocks]);
+  const [blockFeaturesByUbigeo, setBlockFeaturesByUbigeo] = useState<Record<string, HojasRutaBlockMapFeature[]>>({});
+  const [zoneFeaturesByUbigeo, setZoneFeaturesByUbigeo] = useState<Record<string, HojasRutaZoneMapFeature[]>>({});
+  const [streetFeaturesByUbigeo, setStreetFeaturesByUbigeo] = useState<Record<string, HojasRutaStreetMapFeature[]>>({});
+  const [contextFeaturesByUbigeo, setContextFeaturesByUbigeo] = useState<Record<string, HojasRutaContextMapFeature[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [richLayerLoading, setRichLayerLoading] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const [richLayerError, setRichLayerError] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
+
+  useEffect(() => {
+    const missing = ubigeos.filter((ubigeo) => ubigeo && (!blockFeaturesByUbigeo[ubigeo] || !zoneFeaturesByUbigeo[ubigeo]));
+    if (!missing.length) return;
+    let cancelled = false;
+    setLoading(true);
+    setMapError("");
+    Promise.allSettled(missing.map(async (ubigeo) => [ubigeo, await loadTerritorialRouteCartography(ubigeo)] as const))
+      .then((results) => {
+        if (cancelled) return;
+        const next: Record<string, HojasRutaBlockMapFeature[]> = {};
+        const nextZones: Record<string, HojasRutaZoneMapFeature[]> = {};
+        results.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const [ubigeo, bundle] = result.value;
+          next[ubigeo] = bundle.blockMap?.geojson?.features ?? [];
+          nextZones[ubigeo] = bundle.zoneMap?.geojson?.features ?? [];
+        });
+        if (Object.keys(next).length) setBlockFeaturesByUbigeo((current) => ({ ...current, ...next }));
+        if (Object.keys(nextZones).length) setZoneFeaturesByUbigeo((current) => ({ ...current, ...nextZones }));
+        if (results.some((result) => result.status === "rejected")) {
+          setMapError("No se pudo cargar toda la cartografía de Hojas de Ruta para Avance.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [blockFeaturesByUbigeo, ubigeos, zoneFeaturesByUbigeo]);
+
+  const allBlockFeatures = useMemo(() => (
+    ubigeos.flatMap((ubigeo) => blockFeaturesByUbigeo[ubigeo] ?? [])
+  ), [blockFeaturesByUbigeo, ubigeos]);
+  const allZoneFeatures = useMemo(() => (
+    ubigeos.flatMap((ubigeo) => zoneFeaturesByUbigeo[ubigeo] ?? [])
+  ), [ubigeos, zoneFeaturesByUbigeo]);
+  const selectedFeatures = useMemo(() => selectTerritorialMapFeatures(allBlockFeatures, blocks), [allBlockFeatures, blocks]);
+  const visibleKeys = useMemo(() => new Set(visibleBlocks.map(advanceBlockStableKey)), [visibleBlocks]);
+  const visibleFeatures = useMemo(() => (
+    selectedFeatures.filter((item) => visibleKeys.has(advanceBlockStableKey(item.block)))
+  ), [selectedFeatures, visibleKeys]);
+  const mapFeatures = visibleFeatures.length ? visibleFeatures : selectedFeatures;
+  const activeUbigeos = useMemo(() => new Set((visibleBlocks.length ? visibleBlocks : blocks).map((block) => normalizeMapCode(block.ubigeo)).filter(Boolean)), [blocks, visibleBlocks]);
+  const richLayerUbigeos = useMemo(() => {
+    const selectedUbigeo = normalizeMapCode(selectedBlock?.ubigeo);
+    if (selectedUbigeo) return [selectedUbigeo];
+    return Array.from(activeUbigeos).slice(0, 1);
+  }, [activeUbigeos, selectedBlock]);
+  const activeZoneKeys = useMemo(() => (
+    new Set((visibleBlocks.length ? visibleBlocks : blocks).map(territorialBlockZoneKey).filter(Boolean))
+  ), [blocks, visibleBlocks]);
+  const visibleZoneFeatures = useMemo(() => (
+    allZoneFeatures
+      .filter((feature) => activeZoneKeys.has(territorialZoneFeatureKey(feature)))
+      .slice(0, 90)
+  ), [activeZoneKeys, allZoneFeatures]);
+  const neighborFeatures = useMemo(() => {
+    const selectedFeatureRefs = new Set(mapFeatures.map((item) => item.feature));
+    const candidates = allBlockFeatures.filter((feature) => (
+      !selectedFeatureRefs.has(feature)
+      && activeZoneKeys.has(territorialFeatureZoneKey(feature))
+    ));
+    if (candidates.length <= 180) return candidates;
+    const step = Math.ceil(candidates.length / 180);
+    return candidates.filter((_, index) => index % step === 0).slice(0, 180);
+  }, [activeZoneKeys, allBlockFeatures, mapFeatures]);
+  const visibleStreetFeatures = useMemo(() => (
+    sampleTerritorialStreetFeatures(richLayerUbigeos.flatMap((ubigeo) => streetFeaturesByUbigeo[ubigeo] ?? []))
+  ), [richLayerUbigeos, streetFeaturesByUbigeo]);
+  const visibleContextFeatures = useMemo(() => (
+    sampleTerritorialContextFeatures(richLayerUbigeos.flatMap((ubigeo) => contextFeaturesByUbigeo[ubigeo] ?? []))
+  ), [contextFeaturesByUbigeo, richLayerUbigeos]);
+  const activeDistrictFeatures = useMemo(() => (
+    LIMA_DISTRICT_FEATURES.filter((feature) => activeUbigeos.has(normalizeMapCode(feature.properties.ubigeo)))
+  ), [activeUbigeos]);
+  const projection = useMemo(() => buildTerritorialMapProjection(
+    activeDistrictFeatures.length ? activeDistrictFeatures : LIMA_DISTRICT_FEATURES,
+    mapFeatures.map((item) => item.feature),
+    visibleZoneFeatures,
+    28,
+    mapGpsPoints.map((point) => ({ lon: point.lonValue, lat: point.latValue })),
+  ), [activeDistrictFeatures, mapFeatures, mapGpsPoints, visibleZoneFeatures]);
+  const selectedBlockKey = selectedBlock ? advanceBlockStableKey(selectedBlock) : "";
+  const selectedFeature = useMemo(() => (
+    selectedBlockKey
+      ? selectedFeatures.find((item) => advanceBlockStableKey(item.block) === selectedBlockKey) ?? null
+      : null
+  ), [selectedBlockKey, selectedFeatures]);
+  const selectedPoint = useMemo(() => (
+    selectedFeature ? featureCentroid(selectedFeature.feature, projection) : null
+  ), [projection, selectedFeature]);
+  const selectedGpsPoint = useMemo(() => (
+    selectedPointId
+      ? gpsPoints.find((point) => stringOrEmpty(point.response_id) === selectedPointId) ?? null
+      : null
+  ), [gpsPoints, selectedPointId]);
+  const selectedGpsMapPoint = useMemo(() => (
+    selectedGpsPoint ? projection.project(selectedGpsPoint.lonValue, selectedGpsPoint.latValue) : null
+  ), [projection, selectedGpsPoint]);
+  const completeCount = visibleBlocks.filter((block) => blockStatus(block) === "complete").length;
+  const incompleteCount = visibleBlocks.filter((block) => blockStatus(block) === "incomplete").length;
+  const transform = `translate(${pan.x.toFixed(1)} ${pan.y.toFixed(1)}) scale(${zoom.toFixed(3)})`;
+  const zoomClass = zoom >= 2.4 ? "is-zoom-blocks" : zoom >= 1.5 ? "is-zoom-detail" : "is-zoom-general";
+  const pointScale = 1 / Math.max(1, zoom);
+  const hasVisibleMapGeometry = mapFeatures.length > 0;
+  const hasVisibleRichLayers = visibleStreetFeatures.length > 0 || visibleContextFeatures.length > 0;
+  const blockingMapLoading = loading && !hasVisibleMapGeometry;
+  const blockingRichLayerLoading = richLayerLoading && !hasVisibleRichLayers;
+  const backgroundMapLoading = loading && hasVisibleMapGeometry;
+  const backgroundRichLayerLoading = richLayerLoading && hasVisibleRichLayers;
+
+  useEffect(() => {
+    const missing = richLayerUbigeos.filter((ubigeo) => ubigeo && (!streetFeaturesByUbigeo[ubigeo] || !contextFeaturesByUbigeo[ubigeo]));
+    if (!missing.length) return;
+    let cancelled = false;
+    setRichLayerLoading(true);
+    setRichLayerError("");
+    Promise.allSettled(missing.map(async (ubigeo) => [ubigeo, await loadTerritorialRouteCartography(ubigeo, { includeRichLayers: true })] as const))
+      .then((results) => {
+        if (cancelled) return;
+        const nextStreets: Record<string, HojasRutaStreetMapFeature[]> = {};
+        const nextContext: Record<string, HojasRutaContextMapFeature[]> = {};
+        results.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const [ubigeo, bundle] = result.value;
+          nextStreets[ubigeo] = bundle.streetMap?.geojson?.features ?? [];
+          nextContext[ubigeo] = bundle.contextMap?.geojson?.features ?? [];
+        });
+        if (Object.keys(nextStreets).length) setStreetFeaturesByUbigeo((current) => ({ ...current, ...nextStreets }));
+        if (Object.keys(nextContext).length) setContextFeaturesByUbigeo((current) => ({ ...current, ...nextContext }));
+        if (results.some((result) => result.status === "rejected")) {
+          setRichLayerError("No se pudieron cargar todas las capas de calles/contexto para la UMP seleccionada.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRichLayerLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [contextFeaturesByUbigeo, richLayerUbigeos, streetFeaturesByUbigeo]);
+
+  useEffect(() => {
+    if (!selectedPoint || !focusToken) return;
+    const nextZoom = clamp(Math.max(zoom, 3.1), 1, 7);
+    setZoom(nextZoom);
+    setPan({
+      x: LIMA_MAP_WIDTH / 2 - selectedPoint.x * nextZoom,
+      y: LIMA_MAP_HEIGHT / 2 - selectedPoint.y * nextZoom,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusToken, selectedPoint?.x, selectedPoint?.y]);
+
+  useEffect(() => {
+    if (!selectedGpsMapPoint || !selectedPointId) return;
+    const nextZoom = clamp(Math.max(zoom, 4.2), 1, 7);
+    setZoom(nextZoom);
+    setPan({
+      x: LIMA_MAP_WIDTH / 2 - selectedGpsMapPoint.x * nextZoom,
+      y: LIMA_MAP_HEIGHT / 2 - selectedGpsMapPoint.y * nextZoom,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPointId, selectedGpsMapPoint?.x, selectedGpsMapPoint?.y]);
+
+  const resetMap = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+  const zoomBy = (factor: number) => {
+    const nextZoom = clamp(zoom * factor, 0.8, 7);
+    setZoom(nextZoom);
+  };
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: pan.x,
+      panY: pan.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const scaleX = LIMA_MAP_WIDTH / Math.max(1, rect.width);
+    const scaleY = LIMA_MAP_HEIGHT / Math.max(1, rect.height);
+    setPan({
+      x: drag.panX + (event.clientX - drag.startX) * scaleX,
+      y: drag.panY + (event.clientY - drag.startY) * scaleY,
+    });
+  };
+  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+  };
+  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (event.ctrlKey || event.metaKey) {
+      zoomBy(event.deltaY < 0 ? 1.18 : 0.84);
+      return;
+    }
+    setPan((current) => ({
+      x: current.x - event.deltaX * 0.65,
+      y: current.y - event.deltaY * 0.65,
+    }));
+  };
+
+  return (
+    <section className="mon-territorial-advance-map-card" aria-label="Mapa de manzanas UMP en Avance">
+      <header className="mon-territorial-advance-map-head">
+        <div>
+          <span><MapPin size={14} /> Mapa territorial</span>
+          <strong>{selectedBlock ? advanceBlockLabel(selectedBlock) : "Todos los distritos"}</strong>
+          <em>{formatMetric(mapFeatures.length)} manzanas con geometría · {formatMetric(mapGpsPoints.length)} puntos GPS en mapa · {formatMetric(gpsPoints.length)} GPS visibles · {formatMetric(activeUbigeos.size)} distritos filtrados</em>
+        </div>
+        <div className="mon-territorial-advance-map-selection">
+          <span>Selección</span>
+          <strong title={selectedGpsPoint ? territorialAdvancePointDetail(selectedGpsPoint) : selectedBlock ? advanceBlockDetail(selectedBlock) : undefined}>
+            {selectedGpsPoint
+              ? territorialAdvancePointDetail(selectedGpsPoint)
+              : selectedBlock ? advanceBlockDetail(selectedBlock) : "Sin UMP seleccionada"}
+          </strong>
+        </div>
+      </header>
+      <div
+        className="mon-territorial-map-viewport mon-territorial-advance-map-viewport"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onWheel={onWheel}
+      >
+        <div className="mon-territorial-map-tools" aria-label="Controles del mapa" onPointerDown={(event) => event.stopPropagation()}>
+          <button type="button" aria-label="Acercar mapa" onClick={() => zoomBy(1.45)}><Plus size={13} /></button>
+          <button type="button" aria-label="Alejar mapa" onClick={() => zoomBy(0.69)}><Minus size={13} /></button>
+          <button type="button" aria-label="Ver todo el mapa" onClick={resetMap}><Maximize2 size={13} /></button>
+          <span className="mon-territorial-map-zoom-readout">{zoom.toFixed(1)}x</span>
+        </div>
+        {projection.hasGeometry ? (
+          <svg
+            className={`mon-territorial-advance-map-hit-layer is-lima-map ${zoomClass}`}
+            viewBox={`0 0 ${LIMA_MAP_WIDTH} ${LIMA_MAP_HEIGHT}`}
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Mapa interactivo de manzanas territoriales de Avance"
+          >
+            <g transform={transform}>
+              <g className="mon-territorial-map-context-features" aria-label="Contexto territorial">
+                {visibleContextFeatures.map((feature, index) => {
+                  const d = territorialContextFeaturePath(feature, projection);
+                  return d ? (
+                    <path
+                      key={`context-feature-${feature.properties.id ?? feature.id ?? index}`}
+                      d={d}
+                      className={`is-${territorialContextClass(feature)}`}
+                      vectorEffect="non-scaling-stroke"
+                    >
+                      <title>{feature.properties.display_name || feature.properties.name || feature.properties.feature_class || "Contexto territorial"}</title>
+                    </path>
+                  ) : null;
+                })}
+              </g>
+              <g className="mon-territorial-route-coverage-context" aria-label="Bordes de Lima Metropolitana">
+                {LIMA_DISTRICT_FEATURES.map((feature) => {
+                  const d = territorialDistrictPath(feature, projection);
+                  return d ? <path key={`context-${feature.properties.ubigeo}`} d={d} vectorEffect="non-scaling-stroke" /> : null;
+                })}
+              </g>
+              <g className="mon-territorial-route-coverage-districts" aria-label="Distritos activos">
+                {activeDistrictFeatures.map((feature, index) => {
+                  const d = territorialDistrictPath(feature, projection);
+                  const color = districtColor(index);
+                  return d ? (
+                    <path
+                      key={feature.properties.ubigeo}
+                      d={d}
+                      className="is-active"
+                      vectorEffect="non-scaling-stroke"
+                      style={{ "--route-district-color": color } as CSSProperties}
+                    >
+                      <title>{feature.properties.distrito}</title>
+                    </path>
+                  ) : null;
+                })}
+              </g>
+              <g className="mon-territorial-map-zones" aria-label="Zonas de Hoja de Ruta">
+                {visibleZoneFeatures.map((feature, index) => {
+                  const d = territorialZonePath(feature, projection);
+                  const zona = stringOrEmpty(feature.properties.zona_label || feature.properties.zona || "Zona");
+                  return d ? (
+                    <path
+                      key={`zone-${territorialZoneFeatureKey(feature) || index}`}
+                      d={d}
+                      className="is-selected-zone"
+                      vectorEffect="non-scaling-stroke"
+                    >
+                      <title>{zona}</title>
+                    </path>
+                  ) : null;
+                })}
+              </g>
+              <g className="mon-territorial-map-streets" aria-label="Calles principales de Hoja de Ruta">
+                {visibleStreetFeatures.map((feature, index) => {
+                  const d = territorialStreetPath(feature, projection);
+                  return d ? (
+                    <path
+                      key={`street-${feature.properties.id ?? feature.id ?? index}`}
+                      d={d}
+                      className={feature.properties.class_group === "major" ? "is-major" : ""}
+                      vectorEffect="non-scaling-stroke"
+                    >
+                      <title>{feature.properties.display_name || feature.properties.name || "Via local"}</title>
+                    </path>
+                  ) : null;
+                })}
+              </g>
+              <g
+                className="mon-territorial-map-neighbor-blocks"
+                aria-label="Manzanas vecinas de referencia"
+                style={{ opacity: zoom >= 2.4 ? 0.5 : zoom >= 1.5 ? 0.28 : 0.16 }}
+              >
+                {neighborFeatures.map((feature, index) => {
+                  const d = territorialFeaturePath(feature, projection);
+                  return d ? (
+                    <path
+                      key={`neighbor-${territorialFeatureZoneKey(feature)}-${index}`}
+                      d={d}
+                      className="mon-territorial-map-context-block"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ) : null;
+                })}
+              </g>
+              <g className="mon-territorial-route-coverage-blocks" aria-label="Manzanas seleccionadas">
+                {mapFeatures.map((item, index) => (
+                  <TerritorialAdvanceUmpMapBlock
+                    key={item.key}
+                    feature={item}
+                    index={index}
+                    projection={projection}
+                    selected={advanceBlockStableKey(item.block) === selectedBlockKey}
+                    muted={!visibleKeys.has(advanceBlockStableKey(item.block))}
+                    onSelect={onSelectBlock}
+                  />
+                ))}
+              </g>
+              <g className="mon-territorial-map-point-hit-layer" aria-label="Puntos GPS Kobo">
+                {mapGpsPoints.map((point, index) => {
+                  const projected = projection.project(point.lonValue, point.latValue);
+                  const pointId = stringOrEmpty(point.response_id) || `gps-${index + 1}`;
+                  const selected = selectedPointId === pointId;
+                  const coreRadius = selected ? 3.6 : point.geoDisposition === "en_zona" ? 2.8 : 3;
+                  return (
+                    <g
+                      key={pointId}
+                      className={`mon-territorial-map-point-node ${advancePointGeoClass(point)} is-${point.geoDisposition}${selected ? " is-selected" : ""}`}
+                      transform={`translate(${projected.x.toFixed(2)} ${projected.y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectPoint(point);
+                      }}
+                    >
+                      <circle className="mon-territorial-map-point-hit mon-territorial-map-point-hit-area" r="6.2" />
+                      {selected ? <circle className="mon-territorial-map-point-focus" r="6.1" /> : null}
+                      <circle className="mon-territorial-map-point-core" r={coreRadius} />
+                      <title>{territorialAdvancePointDetail(point)}</title>
+                    </g>
+                  );
+                })}
+              </g>
+            </g>
+            <text className="mon-territorial-route-coverage-caption" x="18" y={LIMA_MAP_HEIGHT - 18}>
+              Rueda/trackpad mueve el mapa · Ctrl+rueda o botones para zoom · click en manzana o GPS enfoca detalle
+            </text>
+          </svg>
+        ) : (
+          <div className="mon-territorial-route-map-placeholder">
+            <span><MapPin size={18} /></span>
+            <strong>Sin geometría territorial</strong>
+            <em>El corte no trae cartografía de Hojas de Ruta para las manzanas filtradas.</em>
+          </div>
+        )}
+        {blockingMapLoading ? <span className="mon-territorial-route-map-loading"><Loader2 size={13} className="pulso-spin" /> Cargando manzanas</span> : null}
+        {blockingRichLayerLoading ? <span className="mon-territorial-route-map-loading is-context"><Loader2 size={13} className="pulso-spin" /> Cargando calles</span> : null}
+        {gpsLayerLoading ? <span className="mon-territorial-route-map-loading is-gps"><Loader2 size={13} className="pulso-spin" /> Cargando GPS</span> : null}
+        <div
+          className="mon-territorial-map-legend mon-territorial-advance-map-legend"
+          aria-label="Leyenda GPS y capas de mapa UMP"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <span className="is-map-legend-section">GPS Kobo</span>
+          {ADVANCE_GPS_LEGEND.map((item) => (
+            <span key={item.key} className={`is-gps-state is-${item.key}`}>{item.label}</span>
+          ))}
+          <span className="is-map-legend-section">Ruta</span>
+          <span className="is-route-selected">Manzana seleccionada</span>
+          <span className="is-map-context">Hoja de Ruta: {formatMetric(visibleZoneFeatures.length)} zonas · {formatMetric(visibleStreetFeatures.length)} vías · {formatMetric(visibleContextFeatures.length)} contexto</span>
+          <span className="is-map-level">{formatMetric(neighborFeatures.length)} vecinas</span>
+          {backgroundMapLoading ? <span className="is-map-level">Completando manzanas</span> : null}
+          {backgroundRichLayerLoading ? <span className="is-map-level">Completando calles</span> : null}
+        </div>
+        <TerritorialAdvanceMapInspectorContent
+          selectedPoint={selectedGpsPoint}
+          selectedBlock={selectedBlock}
+          hasSelectedGeometry={Boolean(selectedFeature)}
+        />
+        <div className="mon-territorial-advance-map-footer" aria-label="Resumen del mapa UMP">
+          <span className="is-ready"><strong>{formatMetric(completeCount)}</strong><em>completas</em></span>
+          <span className="is-warning"><strong>{formatMetric(incompleteCount)}</strong><em>incompletas</em></span>
+          <span><strong>{formatMetric(gpsSummary.en_zona)}</strong><em>GPS en zona</em></span>
+          <span><strong>{formatMetric(gpsSummary.en_distrito)}</strong><em>GPS fuera zona</em></span>
+          <span><strong>{formatMetric(gpsSummary.fuera_distrito + gpsSummary.sin_cruce + gpsSummary.sin_gps)}</strong><em>GPS revisión</em></span>
+          <span><strong>{formatMetric(mapFeatures.length)}</strong><em>manzanas mapa</em></span>
+        </div>
+      </div>
+      {mapError ? <div className="mon-territorial-map-error">{mapError}</div> : null}
+      {richLayerError ? <div className="mon-territorial-map-error">{richLayerError}</div> : null}
+      {gpsLayerError ? <div className="mon-territorial-map-error">{gpsLayerError}</div> : null}
+    </section>
+  );
+}
+
+function TerritorialAdvanceMapInspectorContent({
+  selectedPoint,
+  selectedBlock,
+  hasSelectedGeometry,
+}: {
+  selectedPoint: TerritorialAdvanceKoboPoint | null;
+  selectedBlock: TerritorialBlockProgress | null;
+  hasSelectedGeometry: boolean;
+}) {
+  if (selectedPoint) {
+    const distance = selectedPoint.gps_effective_distance_m ?? selectedPoint.gps_primary_distance_m ?? selectedPoint.distance_m;
+    const accuracy = selectedPoint.gps_effective_accuracy_m ?? selectedPoint.gps_primary_accuracy_m;
+    const pointDetails = [
+      ["Fecha Kobo", advancePointSubmissionLabel(selectedPoint)],
+      ["Lat", selectedPoint.latValue.toFixed(6)],
+      ["Lon", selectedPoint.lonValue.toFixed(6)],
+      ["Distrito espacial", selectedPoint.advance_block_distrito || selectedPoint.distrito || "sin cruce espacial"],
+      ["Zona espacial", selectedPoint.advance_block_zona || "fuera de zona"],
+      ["UMP declarada", selectedPoint.declared_ump_normalized || selectedPoint.advance_block_ump || selectedPoint.declared_ump_raw || "sin UMP declarada"],
+      ["Manzana UMP", selectedPoint.advance_block_manzana || selectedPoint.advance_block_id || "sin manzana"],
+      ["Distancia", formatDistanceLabel(distance)],
+      ["GPS", geoDispositionLabel(selectedPoint.geoDisposition)],
+      ["Fuente GPS", selectedPoint.gps_effective_source || selectedPoint.gps_primary_source || "GPS efectivo"],
+      ["Precision", formatDistanceLabel(accuracy)],
+      ["Manzana cercana", selectedPoint.gps_effective_nearest_block_id || selectedPoint.gps_primary_nearest_block_id || selectedPoint.nearest_block_id || "sin manzana"],
+    ];
+    const alerts = stringOrEmpty(selectedPoint.issues || selectedPoint.observation_reasons || selectedPoint.gps_reclassification_note)
+      .split(";")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return (
+      <section
+        className="mon-territorial-inspector-card mon-territorial-advance-map-inspector is-point"
+        aria-label="Detalle auditado de punto GPS en Avance"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <span><CheckCircle2 size={14} /> Punto GPS Kobo</span>
+          <strong title={stringOrEmpty(selectedPoint.response_id)}>{stringOrEmpty(selectedPoint.response_id) || "sin id"}</strong>
+        </header>
+        <dl>
+          {pointDetails.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd title={value}>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mon-territorial-inspector-alerts">
+          <span>Observacion espacial</span>
+          <p>{alerts.length ? alerts.join(", ") : selectedPoint.gps_reclassified ? "GPS reclasificado para el corte operativo." : "Sin alertas registradas."}</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (selectedBlock) {
+    const status = blockStatus(selectedBlock);
+    const blockDetails = [
+      ["Operativo", advanceBlockLabel(selectedBlock)],
+      ["Tipo", territorialRouteBlockIsReplacement(selectedBlock) ? "Reemplazo" : "Titular"],
+      ["Distrito", selectedBlock.distrito || "sin distrito"],
+      ["Zona", selectedBlock.zona || "sin zona"],
+      ["Manzana fisica", selectedBlock.manzana || selectedBlock.id_manzana || "S/D"],
+      ["Responsable", selectedBlock.responsable || "sin responsable"],
+      ["Meta", formatMetric(selectedBlock.meta)],
+      ["Validas", formatMetric(selectedBlock.validas)],
+      ["Revision", formatMetric(selectedBlock.revision)],
+      ["Brecha", formatMetric(selectedBlock.brecha)],
+      ["Avance", formatPercentLabel(progressPctForBlock(selectedBlock))],
+      ["Geometria", hasSelectedGeometry ? "cartografia cargada" : "sin geometria cargada"],
+    ];
+    return (
+      <section
+        className="mon-territorial-inspector-card mon-territorial-advance-map-inspector is-block"
+        aria-label="Detalle auditado de manzana UMP en Avance"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <span><Route size={14} /> Manzana Hoja de Ruta</span>
+          <strong title={advanceBlockDetail(selectedBlock)}>{advanceBlockDetail(selectedBlock)}</strong>
+        </header>
+        <dl>
+          {blockDetails.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd title={value}>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mon-territorial-inspector-alerts">
+          <span>Estado operativo</span>
+          <p>{blockStatusLabel(status)} con {formatMetric(selectedBlock.validas)} validas y {formatMetric(selectedBlock.brecha)} pendientes frente a la meta UMP.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className="mon-territorial-inspector-card mon-territorial-advance-map-inspector is-empty"
+      aria-label="Detalle auditado del mapa UMP en Avance"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <header>
+        <span><MapPin size={14} /> Inspector territorial</span>
+        <strong>Sin seleccion</strong>
+      </header>
+      <div className="mon-territorial-inspector-alerts">
+        <span>Accion</span>
+        <p>Click en una manzana o en un punto GPS para revisar coordenadas, distancia y estado territorial.</p>
+      </div>
+    </section>
+  );
+}
+
+function TerritorialAdvanceUmpMapBlock({
+  feature,
+  index,
+  projection,
+  selected,
+  muted,
+  onSelect,
+}: {
+  feature: TerritorialSelectedMapFeature;
+  index: number;
+  projection: ReturnType<typeof buildTerritorialMapProjection>;
+  selected: boolean;
+  muted: boolean;
+  onSelect: (block: TerritorialBlockProgress, focusMap?: boolean) => void;
+}) {
+  const d = territorialFeaturePath(feature.feature, projection);
+  if (!d) return null;
+  const replacement = territorialRouteBlockIsReplacement(feature.block);
+  const className = [
+    replacement ? "is-replacement" : "is-titular",
+    selected ? "is-selected" : "",
+    muted ? "is-muted" : "",
+  ].filter(Boolean).join(" ");
+  return (
+    <path
+      d={d}
+      className={className}
+      vectorEffect="non-scaling-stroke"
+      style={{ "--route-block-color": districtColor(index) } as CSSProperties}
+      role="button"
+      tabIndex={0}
+      aria-label={advanceBlockDetail(feature.block)}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(feature.block, true);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onSelect(feature.block, true);
+      }}
+    >
+      <title>{advanceBlockDetail(feature.block)}</title>
+    </path>
+  );
+}
+
+function TerritorialUmpMapNavigator({
+  blocks,
+  selectedBlockKey,
+  selectedDistrictLabel,
+  onSelectBlock,
+}: {
+  blocks: TerritorialBlockProgress[];
+  selectedBlockKey: string;
+  selectedDistrictLabel: string;
+  onSelectBlock: (block: TerritorialBlockProgress, focusMap?: boolean) => void;
+}) {
+  const selectedBlock = blocks.find((block) => advanceBlockStableKey(block) === selectedBlockKey) ?? blocks[0] ?? null;
+  return (
+    <aside className="mon-territorial-ump-map-nav" aria-label="Manzanas del mapa">
+      <header>
+        <div>
+          <span><Route size={14} /> Manzanas</span>
+          <strong>{selectedDistrictLabel}</strong>
+        </div>
+        <em>{formatMetric(blocks.length)}</em>
+      </header>
+      <div>
+        {selectedBlock ? (
+          <div className="mon-territorial-ump-map-nav-focus" aria-label="Resumen de la manzana seleccionada">
+            <span><MapPin size={12} /> UMP seleccionada</span>
+            <strong>{advanceBlockLabel(selectedBlock)}</strong>
+            <em>{advanceBlockDetail(selectedBlock)}</em>
+            <dl>
+              <div><dt>Responsable</dt><dd>{selectedBlock.responsable || "Sin responsable"}</dd></div>
+              <div><dt>Avance</dt><dd>{formatMetric(selectedBlock.validas)} / {formatMetric(selectedBlock.meta)}</dd></div>
+              <div><dt>Brecha</dt><dd>{formatMetric(selectedBlock.brecha)}</dd></div>
+              <div><dt>Estado</dt><dd>{blockStatusLabel(blockStatus(selectedBlock))}</dd></div>
+            </dl>
+          </div>
+        ) : null}
+        {blocks.length ? blocks.map((block) => {
+          const key = advanceBlockStableKey(block);
+          const selected = key === selectedBlockKey;
+          const status = blockStatus(block);
+          const pct = clamp(progressPctForBlock(block), 0, 100);
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`mon-territorial-ump-map-nav-row is-${status}${selected ? " is-selected" : ""}`}
+              aria-pressed={selected}
+              title={advanceBlockDetail(block)}
+              onClick={() => onSelectBlock(block, true)}
+            >
+              <span
+                className="mon-territorial-ump-map-nav-ring"
+                style={{ "--ump-ring": `${pct * 3.6}deg` } as CSSProperties}
+                aria-hidden="true"
+              >
+                <MapPin size={14} />
+              </span>
+              <span>
+                <strong>{block.ump || block.id_manzana || "S/D"}</strong>
+                <em>{block.zona ? `Zona ${block.zona}` : "Zona S/D"} · {block.manzana ? `Mz ${block.manzana}` : "Mz S/D"}</em>
+              </span>
+              <b>{block.distrito || "Sin distrito"}</b>
+              <div className="mon-territorial-ump-map-nav-meta" aria-label="Detalle operativo de la manzana">
+                <small title={block.responsable || "Sin responsable"}>
+                  <ContactRound size={10} />
+                  {block.responsable || "Sin responsable"}
+                </small>
+                <small title={`${formatMetric(block.validas)} / ${formatMetric(block.meta)} válidas`}>
+                  <ListChecks size={10} />
+                  {formatMetric(block.validas)} / {formatMetric(block.meta)}
+                </small>
+                {numberOrZero(block.revision) ? (
+                  <small className="is-alert" title={`${formatMetric(block.revision)} en revisión`}>
+                    <AlertTriangle size={10} />
+                    {formatMetric(block.revision)} revisión
+                  </small>
+                ) : null}
+              </div>
+              <i><small style={{ width: `${Math.max(4, pct)}%` }} /></i>
+              <footer>
+                <small>{blockStatusLabel(status)}</small>
+                <small>{formatPercentLabel(pct)}</small>
+              </footer>
+            </button>
+          );
+        }) : (
+          <p>No hay manzanas con esos filtros.</p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function advanceBlockStableKey(block: TerritorialBlockProgress) {
+  return territorialBlockStableKey(block)
+    || [block.ubigeo, block.zona, block.manzana, block.id_manzana, block.ump, block.responsable]
+      .map((value) => normalizeMapCode(value))
+      .filter(Boolean)
+      .join(":")
+    || `ump:${normalizeMatch(advanceBlockDetail(block))}`;
+}
+
+function advanceBlockLabel(block: TerritorialBlockProgress) {
+  const ump = stringOrEmpty(block.ump || block.territorio_muestral || block.hoja_num).trim();
+  const blockLabel = block.manzana ? `Mz ${block.manzana}` : block.id_manzana ? `Mz ${block.id_manzana}` : "Mz S/D";
+  return ump ? `UMP ${ump} · ${blockLabel}` : blockLabel;
+}
+
+function advanceBlockDetail(block: TerritorialBlockProgress) {
+  return [
+    block.distrito || "Sin distrito",
+    block.zona ? `Zona ${block.zona}` : "",
+    block.manzana ? `Mz ${block.manzana}` : block.id_manzana || "",
+    block.responsable || "Sin responsable",
+  ].filter(Boolean).join(" · ");
+}
+
+function progressPctForBlock(block: TerritorialBlockProgress) {
+  const explicit = numberOrNull(block.avance_pct);
+  if (explicit != null) return explicit;
+  return safePercent(numberOrZero(block.validas), numberOrNull(block.meta)) ?? 0;
+}
+
+function districtColor(index: number) {
+  const colors = ["#0f766e", "#be123c", "#2563eb", "#c2410c", "#7c3aed", "#0891b2", "#a16207", "#4f46e5"];
+  return colors[Math.abs(index) % colors.length];
+}
+
+function normalizeMapCode(value: unknown) {
+  return stringOrEmpty(value).trim().toUpperCase().replace(/[^A-Z0-9]+/g, "");
+}
+
+function featureCentroid(feature: HojasRutaBlockMapFeature, projection: ReturnType<typeof buildTerritorialMapProjection>) {
+  const points = flattenFeaturePoints(feature);
+  if (!points.length) return null;
+  const total = points.reduce((acc, point) => ({ lon: acc.lon + point.lon, lat: acc.lat + point.lat }), { lon: 0, lat: 0 });
+  return projection.project(total.lon / points.length, total.lat / points.length);
+}
+
+function flattenFeaturePoints(feature: HojasRutaBlockMapFeature): Array<{ lon: number; lat: number }> {
+  const points: Array<{ lon: number; lat: number }> = [];
+  const walk = (value: unknown) => {
+    if (!Array.isArray(value)) return;
+    if (value.length >= 2 && Number.isFinite(Number(value[0])) && Number.isFinite(Number(value[1]))) {
+      points.push({ lon: Number(value[0]), lat: Number(value[1]) });
+      return;
+    }
+    value.forEach(walk);
+  };
+  walk(feature.geometry?.coordinates);
+  return points;
+}
+
+function territorialAdvanceKoboMapPoints(reports: MonitoreoTerritorialDashboard): TerritorialAdvanceKoboPoint[] {
+  const rowsById = new Map((reports.response_audit ?? []).map((row) => [stringOrEmpty(row.response_id), row]));
+  return (reports.map?.points ?? [])
+    .map((point, index): TerritorialAdvanceKoboPoint | null => {
+      const row = rowsById.get(stringOrEmpty(point.response_id));
+      const latValue = numberOrNull(point.gps_effective_lat ?? point.gps_primary_lat ?? point.lat ?? row?.gps_effective_lat ?? row?.gps_primary_lat ?? row?.lat);
+      const lonValue = numberOrNull(point.gps_effective_lon ?? point.gps_primary_lon ?? point.lon ?? row?.gps_effective_lon ?? row?.gps_primary_lon ?? row?.lon);
+      if (latValue == null || lonValue == null) return null;
+      const geoEstado = stringOrEmpty(point.geo_estado || point.gps_effective_estado || point.gps_primary_estado || row?.geo_estado || "geo_ok");
+      return {
+        ...point,
+        response_id: stringOrEmpty(point.response_id || row?.response_id || `gps-${index + 1}`),
+        submitted_by: stringOrEmpty(point.submitted_by || row?.submitted_by),
+        responsible_display: stringOrEmpty(point.responsible_display || row?.responsible_display || row?.enumerator_assigned),
+        lat: latValue,
+        lon: lonValue,
+        latValue,
+        lonValue,
+        geo_estado: geoEstado,
+        geoDisposition: geoDispositionFromRaw(geoEstado),
+      };
+    })
+    .filter((point): point is TerritorialAdvanceKoboPoint => point !== null);
+}
+
+function buildAdvanceBlockMatchIndex(blocks: TerritorialBlockProgress[]): TerritorialAdvanceBlockMatchIndex {
+  const exact = new Set<string>();
+  const district = new Set<string>();
+  const addExact = (kind: string, value: unknown) => {
+    const key = normalizeMapCode(value);
+    if (key) exact.add(`${kind}:${key}`);
+  };
+  const addDistrict = (kind: string, value: unknown) => {
+    const key = kind === "label" ? normalizeMatch(value) : normalizeMapCode(value);
+    if (key) district.add(`${kind}:${key}`);
+  };
+  blocks.forEach((block) => {
+    addExact("block", advanceBlockStableKey(block));
+    addExact("block", block.id_manzana);
+    addExact("ump", block.ump);
+    addExact("ump", block.territorio_muestral);
+    const locationKey = [
+      normalizeMapCode(block.ubigeo),
+      normalizeMapCode(block.zona),
+      normalizeMapCode(block.manzana || block.id_manzana),
+    ].filter(Boolean).join(":");
+    if (locationKey) exact.add(`loc:${locationKey}`);
+    addDistrict("ubigeo", block.ubigeo);
+    addDistrict("label", block.distrito);
+  });
+  return { exact, district };
+}
+
+function territorialAdvancePointMatchesIndex(
+  point: TerritorialAdvanceKoboPoint,
+  index: TerritorialAdvanceBlockMatchIndex,
+  includeDistrict: boolean,
+) {
+  if (!index.exact.size && !index.district.size) return false;
+  for (const key of territorialAdvancePointExactKeys(point)) {
+    if (index.exact.has(key)) return true;
+  }
+  if (!includeDistrict) return false;
+  for (const key of territorialAdvancePointDistrictKeys(point)) {
+    if (index.district.has(key)) return true;
+  }
+  return false;
+}
+
+function territorialAdvancePointExactKeys(point: TerritorialAdvanceKoboPoint) {
+  const keys = new Set<string>();
+  const add = (kind: string, value: unknown) => {
+    const key = normalizeMapCode(value);
+    if (key) keys.add(`${kind}:${key}`);
+  };
+  add("block", point.advance_block_id);
+  add("block", point.nearest_block_id);
+  add("block", point.gps_effective_nearest_block_id);
+  add("block", point.gps_primary_nearest_block_id);
+  add("ump", point.advance_block_ump);
+  add("ump", point.declared_ump_normalized);
+  add("ump", point.declared_ump_raw);
+  const locationKey = [
+    normalizeMapCode(point.advance_block_ubigeo || point.ubigeo),
+    normalizeMapCode(point.advance_block_zona),
+    normalizeMapCode(point.advance_block_manzana),
+  ].filter(Boolean).join(":");
+  if (locationKey) keys.add(`loc:${locationKey}`);
+  return keys;
+}
+
+function territorialAdvancePointDistrictKeys(point: TerritorialAdvanceKoboPoint) {
+  const keys = new Set<string>();
+  const addCode = (value: unknown) => {
+    const key = normalizeMapCode(value);
+    if (key) keys.add(`ubigeo:${key}`);
+  };
+  const addLabel = (value: unknown) => {
+    const key = normalizeMatch(value);
+    if (key) keys.add(`label:${key}`);
+  };
+  addCode(point.advance_block_ubigeo);
+  addCode(point.ubigeo);
+  addLabel(point.advance_block_distrito);
+  addLabel(point.distrito);
+  return keys;
+}
+
+function summarizeAdvanceGpsPoints(points: TerritorialAdvanceKoboPoint[]) {
+  return points.reduce((acc, point) => {
+    acc[point.geoDisposition] += 1;
+    return acc;
+  }, { en_zona: 0, en_distrito: 0, fuera_distrito: 0, sin_cruce: 0, sin_gps: 0 });
+}
+
+function geoDispositionFromRaw(value: unknown): TerritorialAdvanceGeoDisposition {
+  const key = normalizeMatch(value);
+  if (key.includes("sin gps")) return "sin_gps";
+  if (key.includes("sin cruce")) return "sin_cruce";
+  if (key.includes("no defendible") || key.includes("fuera distrito")) return "fuera_distrito";
+  if (key.includes("revision") || key.includes("cerca")) return "en_distrito";
+  return "en_zona";
+}
+
+function geoDispositionShortLabel(value: TerritorialAdvanceGeoDisposition) {
+  if (value === "en_zona") return "OK";
+  if (value === "en_distrito") return "Rev.";
+  if (value === "fuera_distrito") return "Fuera";
+  if (value === "sin_cruce") return "Cruce";
+  return "S/GPS";
+}
+
+function geoDispositionLabel(value: TerritorialAdvanceGeoDisposition) {
+  if (value === "en_zona") return "GPS dentro de zona";
+  if (value === "en_distrito") return "GPS fuera de zona";
+  if (value === "fuera_distrito") return "GPS fuera de distrito";
+  if (value === "sin_cruce") return "Sin cruce territorial";
+  return "Sin coordenada GPS";
+}
+
+function advancePointGeoClass(point: TerritorialAdvanceKoboPoint) {
+  const key = normalizeMatch(point.geo_estado || point.gps_effective_estado || point.gps_primary_estado);
+  if (key.includes("geo ok")) return "is-geo_ok";
+  if (key.includes("geo cerca")) return "is-geo_cerca";
+  if (key.includes("geo revision")) return "is-geo_revision";
+  if (key.includes("geo no defendible")) return "is-geo_no_defendible";
+  if (key.includes("geo sin cruce")) return "is-geo_sin_cruce";
+  if (key.includes("geo sin gps") || point.geoDisposition === "sin_gps") return "is-geo_sin_gps";
+  if (point.geoDisposition === "en_distrito") return "is-geo_cerca";
+  if (point.geoDisposition === "fuera_distrito") return "is-geo_no_defendible";
+  if (point.geoDisposition === "sin_cruce") return "is-geo_sin_cruce";
+  return "is-geo_ok";
+}
+
+function territorialAdvancePointDetail(point: TerritorialAdvanceKoboPoint) {
+  const ump = stringOrEmpty(point.declared_ump_normalized || point.advance_block_ump || point.declared_ump_raw).trim() || "UMP S/D";
+  const place = stringOrEmpty(point.advance_block_distrito || point.distrito || point.advance_block_ubigeo || point.ubigeo).trim() || "Sin distrito";
+  const responsible = stringOrEmpty(point.responsible_display || point.enumerator_assigned || point.submitted_by).trim() || "Sin responsable";
+  return `${ump} · ${place} · ${responsible} · ${geoDispositionLabel(point.geoDisposition)}`;
+}
+
+function advancePointSubmissionLabel(point: TerritorialAdvanceKoboPoint) {
+  const value = stringOrEmpty(point.submission_datetime || point.submission_date_iso || point.submission_date || point.submission_time_source);
+  return value ? formatDate(value) : "sin fecha";
+}
+
+function formatDistanceLabel(value: unknown) {
+  const distance = numberOrNull(value);
+  if (distance == null) return "S/D";
+  if (distance < 1) return "<1 m";
+  if (distance < 1000) return `${Math.round(distance)} m`;
+  return `${(distance / 1000).toFixed(1)} km`;
+}
+
+function TerritorialAdvanceRhythmSection({
+  rows,
+  targetTotal,
+  dateScope,
+  umpTotal,
+}: {
+  rows: TerritorialDailyDashboardRow[];
+  targetTotal: number;
+  dateScope: { active: boolean; startDate: string };
+  umpTotal: number;
+}) {
+  const chartConfig = useMemo(() => ({
+    displayModeBar: false,
+    doubleClick: false,
+    responsive: true,
+    scrollZoom: false,
+  }), []);
+  const chart = useMemo(() => buildTerritorialDailyChart(rows, targetTotal), [rows, targetTotal]);
+  const latest = rows[rows.length - 1] ?? null;
+  const best = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.validas > current.validas ? row : current), null);
+  const pendingValid = Math.max(0, targetTotal - (latest?.cumulative_valid ?? 0));
+  const pendingUmp = Math.max(0, umpTotal - (latest?.cumulative_complete_ump ?? 0));
+  const dateLabel = dateScope.active ? `desde ${dateFilterLabel(dateScope.startDate)}` : "todo el corte";
+  return (
+    <section className="mon-territorial-tab-panel" aria-label="Ritmo diario y acumulado">
+      <div className="mon-territorial-rhythm-layout">
+        <article className="mon-territorial-rhythm-chart">
+          <header>
+            <div>
+              <span><CalendarRange size={14} /> Ritmo diario válido</span>
+              <strong>Válidas diarias y acumulado contra meta · {dateLabel}</strong>
+            </div>
+            <em>{formatMetric(rows.length)} días</em>
+          </header>
+          {rows.length ? (
+            <PlotlyChart
+              data={chart.data}
+              layout={chart.layout}
+              config={chartConfig}
+              height={360}
+              ariaLabel="UMP completadas por día y acumuladas"
+            />
+          ) : (
+            <EmptyState
+              icon={<CalendarRange size={18} />}
+              title="Sin ritmo diario"
+              hint="No hay fechas suficientes en las respuestas locales para construir barras diarias y acumulado."
+              variant="inline"
+            />
+          )}
+        </article>
+        <aside className="mon-territorial-rhythm-side" aria-label="Resumen de ritmo diario">
+          <AdvanceMetric label="Válidas acumuladas" value={formatMetric(latest?.cumulative_valid ?? 0)} hint={latest ? `${formatPercentLabel(latest.cumulative_progress_pct)} de la meta` : "sin fechas"} tone="ready" />
+          <AdvanceMetric label="Brecha meta" value={formatMetric(pendingValid)} hint={`meta ${formatMetric(targetTotal)}`} tone={pendingValid ? "warning" : "ready"} />
+          <AdvanceMetric label="Mejor día válido" value={best ? formatMetric(best.validas) : "S/D"} hint={best ? territorialDailyDateLabel(best) : "sin fecha"} tone="base" />
+          <AdvanceMetric label="UMP completas" value={formatMetric(latest?.cumulative_complete_ump ?? 0)} hint={latest ? `${formatMetric(pendingUmp)} pendientes de ${formatMetric(umpTotal)}` : "sin fechas"} tone="base" />
+        </aside>
+      </div>
+      <TerritorialDailyDashboardTable rows={rows} />
+    </section>
+  );
+}
+
+function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], targetTotal: number) {
+  const xLabels = rows.map((row) => territorialDailyDateLabel(row));
+  const hoverData = rows.map((row) => [
+    territorialDailyDateLabel(row),
+    row.validas,
+    row.cumulative_valid,
+    row.revision,
+    row.no_validas,
+    row.cumulative_complete_ump_pct,
+    row.new_complete_ump,
+    row.cumulative_complete_ump,
+  ]);
+  const y2Max = Math.max(targetTotal, ...rows.map((row) => row.cumulative_valid), 1);
+  return {
+    data: [
+      {
+        type: "bar" as const,
+        name: "Válidas del día",
+        x: xLabels,
+        y: rows.map((row) => row.validas),
+        marker: { color: "#0f766e", line: { width: 0 } },
+        customdata: hoverData,
+        hovertemplate: "Válidas del día: %{y}<br>Acumulado válido: %{customdata[2]}<extra></extra>",
+      },
+      {
+        type: "scatter" as const,
+        mode: "lines+markers" as const,
+        name: "Válidas acumuladas",
+        x: xLabels,
+        y: rows.map((row) => row.cumulative_valid),
+        yaxis: "y2",
+        line: { color: "#be123c", width: 3, shape: "spline" as const, smoothing: 0.45 },
+        marker: { color: "#ffffff", size: 7, line: { color: "#be123c", width: 1.8 } },
+        customdata: hoverData,
+        hovertemplate: `Válidas acumuladas: %{y}<br>Meta: ${formatMetric(targetTotal)}<extra></extra>`,
+      },
+      {
+        type: "bar" as const,
+        name: "UMP completadas",
+        x: xLabels,
+        y: rows.map((row) => row.new_complete_ump),
+        marker: { color: "rgba(100, 116, 139, 0.24)", line: { width: 0 } },
+        customdata: hoverData,
+        hovertemplate: "UMP completadas: %{y}<br>UMP acumuladas: %{customdata[7]}<extra></extra>",
+      },
+    ],
+    layout: {
+      barmode: "group" as const,
+      bargap: rows.length <= 1 ? 0.7 : rows.length <= 7 ? 0.42 : 0.24,
+      hovermode: "x unified" as const,
+      showlegend: true,
+      legend: { orientation: "h" as const, x: 0, y: 1.08, font: { size: 11, color: "#5f6b7a" } },
+      margin: { l: 48, r: 66, t: 34, b: rows.length > 7 ? 62 : 44 },
+      paper_bgcolor: "transparent",
+      plot_bgcolor: "transparent",
+      hoverlabel: {
+        align: "left" as const,
+        bgcolor: "#ffffff",
+        bordercolor: "rgba(15, 23, 42, 0.12)",
+        font: { color: "#17212f", size: 12 },
+      },
+      xaxis: {
+        type: "category",
+        fixedrange: true,
+        showgrid: false,
+        zeroline: false,
+        tickangle: rows.length > 7 ? -32 : 0,
+        tickfont: { color: "#5f6b7a", size: 10 },
+        automargin: true,
+      },
+      yaxis: {
+        title: { text: "Por día", font: { color: "#5f6b7a", size: 11 } },
+        fixedrange: true,
+        rangemode: "tozero",
+        showline: false,
+        zeroline: false,
+        gridcolor: "rgba(15, 23, 42, 0.08)",
+        tickfont: { color: "#5f6b7a", size: 10 },
+      },
+      yaxis2: {
+        title: { text: "Acumulado válido", font: { color: "#be123c", size: 11 } },
+        overlaying: "y",
+        side: "right",
+        fixedrange: true,
+        range: [0, Math.ceil(y2Max * 1.08)],
+        showgrid: false,
+        zeroline: false,
+        tickfont: { color: "#be123c", size: 10 },
+      },
+    },
+  };
+}
+
+function TerritorialDailyDashboardTable({ rows }: { rows: TerritorialDailyDashboardRow[] }) {
+  return (
+    <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
+      <table className="mon-advance-daily-table" aria-label="Detalle diario territorial">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Nuevas UMP</th>
+            <th>UMP acumuladas</th>
+            <th>Avance UMP</th>
+            <th>Válidas</th>
+            <th>Observación</th>
+            <th>No válidas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.date}>
+              <th scope="row"><strong>{territorialDailyDateLabel(row)}</strong></th>
+              <td>{formatMetric(row.new_complete_ump)}</td>
+              <td>{formatMetric(row.cumulative_complete_ump)}</td>
+              <td>{formatPercentLabel(row.cumulative_complete_ump_pct)}</td>
+              <td>{formatMetric(row.validas)}</td>
+              <td>{formatMetric(row.revision)}</td>
+              <td>{formatMetric(row.no_validas)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AdvanceMetric({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone: "base" | "target" | "ready" | "warning";
+}) {
+  return (
+    <span className={`mon-advance-metric is-${tone}`}>
+      <em>{label}</em>
+      <strong>{value}</strong>
+      <small>{hint}</small>
+    </span>
+  );
+}
+
+function buildAdvanceSummary(
+  reports: MonitoreoTerritorialDashboard | null,
+  scopedDailyRows: Array<{ total: number; validas: number; revision: number }>,
+  scoped: boolean,
+): AdvanceSummary {
+  const base = reports?.advance ?? null;
+  const kpis = reports?.kpis;
+  const meta = numberOrNull(base?.meta ?? kpis?.meta);
+  if (scoped && scopedDailyRows.length) {
+    const total = scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.total), 0);
+    const validas = scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.validas), 0);
+    const observacion = scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.revision), 0);
+    const noValidas = Math.max(0, total - validas - observacion);
+    const brecha = meta == null ? 0 : Math.max(0, meta - validas);
+    return { total, validas, observacion, noValidas, meta, brecha, avancePct: safePercent(validas, meta) };
+  }
+  const total = numberOrZero(base?.total_respuestas ?? kpis?.total_respuestas);
+  const validas = numberOrZero(base?.validas ?? kpis?.validas);
+  const observacion = numberOrZero(base?.observacion ?? kpis?.revision);
+  const noValidas = numberOrZero(base?.no_validas ?? kpis?.no_defendibles);
+  const brecha = numberOrZero(base?.brecha ?? (meta == null ? 0 : Math.max(0, meta - validas)));
+  return {
+    total,
+    validas,
+    observacion,
+    noValidas,
+    meta,
+    brecha,
+    avancePct: numberOrNull(base?.avance_pct ?? kpis?.avance_pct),
+  };
+}
+
+function buildAdvanceDistributions(reports: MonitoreoTerritorialDashboard | null) {
+  const rows = (reports?.response_audit ?? []).filter((row) => rowCountsInAdvance(row));
+  return {
+    sex: distributionFromRows(rows, (row) => stringOrEmpty(row.sex).trim() || "S/D"),
+    age: distributionFromRows(rows, (row) => ageGroup(row.age)),
+  };
+}
+
+function distributionFromRows(rows: TerritorialResponseAuditRow[], getKey: (row: TerritorialResponseAuditRow) => string): DistributionItem[] {
+  const counts = new Map<string, number>();
+  rows.forEach((row) => {
+    const key = getKey(row);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  const total = rows.length;
+  return Array.from(counts.entries())
+    .map(([key, value]) => ({ key, label: prettyLabel(key), value, pct: safePercent(value, total) ?? 0, tone: "ready" as const }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es"));
+}
+
+function buildAdvancePriorities(districts: TerritorialDistrictProgress[], blocks: TerritorialBlockProgress[]) {
+  const districtItems = [...districts]
+    .filter((row) => numberOrZero(row.brecha) > 0)
+    .sort((a, b) => numberOrZero(b.brecha) - numberOrZero(a.brecha))
+    .slice(0, 5)
+    .map((row) => ({
+      key: `district-${districtKey(row)}`,
+      type: "district" as const,
+      districtKey: districtKey(row),
+      title: row.distrito || "Sin distrito",
+      detail: `${formatMetric(row.validas)} / ${formatMetric(row.meta)} válidas`,
+      gap: numberOrZero(row.brecha),
+      progressPct: clamp(row.avance_pct ?? 0, 0, 100),
+      tone: "warning" as const,
+    }));
+  const blockItems = [...blocks]
+    .filter((row) => blockStatus(row) !== "complete")
+    .sort((a, b) => numberOrZero(b.brecha) - numberOrZero(a.brecha))
+    .slice(0, 5)
+    .map((row) => ({
+      key: `ump-${row.id_manzana || row.ump}`,
+      type: "ump" as const,
+      districtKey: districtKey(row),
+      umpKey: row.ump || row.id_manzana,
+      title: row.ump || row.id_manzana || "UMP sin código",
+      detail: `${row.distrito || "Sin distrito"} · ${row.responsable || "Sin responsable"}`,
+      gap: numberOrZero(row.brecha ?? Math.max(0, numberOrZero(row.meta) - numberOrZero(row.validas))),
+      progressPct: clamp(row.avance_pct ?? safePercent(row.validas, row.meta) ?? 0, 0, 100),
+      tone: blockStatus(row) === "none" ? "muted" as const : "warning" as const,
+    }));
+  return [
+    { key: "districts", label: "Distritos con brecha", emptyLabel: "Sin distritos rezagados", items: districtItems },
+    { key: "ump", label: "UMP pendientes", emptyLabel: "Sin UMP pendientes", items: blockItems },
+  ];
+}
+
+function DistrictShapeIcon({ label, active, warning }: { label: string; active: boolean; warning: boolean }) {
+  const initials = stringOrEmpty(label).split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "SD";
+  return (
+    <svg className="mon-territorial-district-shape" viewBox="0 0 72 72" role="img" aria-label={label || "Distrito"}>
+      <rect x="8" y="8" width="56" height="56" rx="18" />
+      <circle cx="36" cy="36" r={active ? 20 : warning ? 17 : 14} />
+      <text x="36" y="40" textAnchor="middle">{initials}</text>
+    </svg>
+  );
+}
+
+function rowCountsInAdvance(row: TerritorialResponseAuditRow) {
+  if (row.advance_valid === true) return true;
+  if (row.advance_status === "validada" || row.validation_status === "validada") return true;
+  return row.source_effective === true && row.observation_status !== "no_valida";
+}
+
+function advanceObjectiveTotal(reports: MonitoreoTerritorialDashboard | null) {
+  const explicit = numberOrNull(reports?.advance?.meta ?? reports?.kpis?.meta);
+  if (explicit != null && explicit > 0) return explicit;
+  const validas = numberOrZero(reports?.advance?.validas ?? reports?.kpis?.validas);
+  const brecha = numberOrZero(reports?.advance?.brecha);
+  return Math.max(validas + brecha, validas, 0);
+}
+
+function buildTerritorialDailyRows(
+  reports: MonitoreoTerritorialDashboard | null,
+  targetTotal: number,
+  blocks: TerritorialBlockProgress[],
+): TerritorialDailyDashboardRow[] {
+  const rows = reports?.daily?.length ? reports.daily : reports?.advance?.daily ?? [];
+  let cumulativeValid = 0;
+  let cumulativeCompleteUmp = 0;
+  return [...rows]
+    .filter((row) => row.date)
+    .sort((a, b) => stringOrEmpty(a.date).localeCompare(stringOrEmpty(b.date), "es", { numeric: true }))
+    .map((row) => {
+      const source = row as MonitoreoTerritorialDashboard["daily"][number] & Partial<TerritorialDailyDashboardRow>;
+      const total = Math.max(0, Math.round(numberOrZero(source.total)));
+      const validas = Math.max(0, Math.round(numberOrZero(source.validas)));
+      const revision = Math.max(0, Math.round(numberOrZero(source.revision)));
+      const noValidas = Math.max(0, Math.round(numberOrNull(source.no_validas) ?? (total - validas - revision)));
+      const explicitCumulativeValid = numberOrNull(source.cumulative_valid);
+      cumulativeValid = explicitCumulativeValid == null
+        ? cumulativeValid + validas
+        : Math.max(0, Math.round(explicitCumulativeValid));
+      const newCompleteUmp = Math.max(0, Math.round(numberOrNull(source.new_complete_ump) ?? 0));
+      const explicitCumulativeCompleteUmp = numberOrNull(source.cumulative_complete_ump);
+      cumulativeCompleteUmp = explicitCumulativeCompleteUmp == null
+        ? cumulativeCompleteUmp + newCompleteUmp
+        : Math.max(0, Math.round(explicitCumulativeCompleteUmp));
+      return {
+        ...source,
+        total,
+        validas,
+        revision,
+        no_validas: noValidas,
+        cumulative_valid: cumulativeValid,
+        cumulative_progress_pct: numberOrNull(source.cumulative_progress_pct) ?? safePercent(cumulativeValid, targetTotal || null),
+        cumulative_gap: Math.max(0, Math.round(numberOrNull(source.cumulative_gap) ?? (targetTotal - cumulativeValid))),
+        new_complete_ump: newCompleteUmp,
+        cumulative_complete_ump: cumulativeCompleteUmp,
+        cumulative_complete_ump_pct: numberOrNull(source.cumulative_complete_ump_pct) ?? safePercent(cumulativeCompleteUmp, blocks.length || null),
+      };
+    });
+}
+
+function districtRows(reports: MonitoreoTerritorialDashboard | null) {
+  return reports?.advance?.district_progress?.length ? reports.advance.district_progress : reports?.district_progress ?? [];
+}
+
+function blockRows(reports: MonitoreoTerritorialDashboard | null) {
+  return reports?.advance?.block_progress?.length
+    ? reports.advance.block_progress
+    : reports?.block_progress?.length
+      ? reports.block_progress
+      : reports?.route_blocks ?? [];
+}
+
+function summarizeUmp(blocks: TerritorialBlockProgress[]) {
+  const total = blocks.length;
+  const complete = blocks.filter((row) => blockStatus(row) === "complete").length;
+  const none = blocks.filter((row) => blockStatus(row) === "none").length;
+  const incomplete = Math.max(0, total - complete - none);
+  return { total, complete, incomplete, none };
+}
+
+function blockStatus(row: TerritorialBlockProgress) {
+  const validas = numberOrZero(row.validas);
+  const meta = numberOrNull(row.meta);
+  if (meta != null && validas >= meta) return "complete";
+  if (validas <= 0) return "none";
+  return "incomplete";
+}
+
+function blockStatusLabel(status: string) {
+  if (status === "complete") return "Completa";
+  if (status === "none") return "Sin avance";
+  return "Incompleta";
+}
+
+function blockQuotaStatus(row: TerritorialBlockProgress): TerritorialAdvanceQuotaStatus {
+  const meta = numberOrNull(row.meta);
+  const validas = numberOrZero(row.validas);
+  const brecha = numberOrNull(row.brecha);
+  if (meta == null || meta <= 0) return "not_configured";
+  if (validas >= meta || (brecha != null && brecha <= 0)) return "complete";
+  if (validas > 0) return "in_field";
+  if (brecha != null && brecha > 0) return "missing";
+  return "pending";
+}
+
+function blockQuotaStatusLabel(status: TerritorialAdvanceQuotaStatus) {
+  const labels: Record<TerritorialAdvanceQuotaStatus, string> = {
+    complete: "Completa",
+    in_field: "En campo",
+    pending: "Cuota pendiente",
+    missing: "No iniciada",
+    not_configured: "Sin cuota",
+  };
+  return labels[status];
+}
+
+function blockQuotaHint(row: TerritorialBlockProgress) {
+  const meta = numberOrNull(row.meta);
+  if (meta == null || meta <= 0) return "Meta no configurada";
+  const brecha = Math.max(0, Math.round(numberOrZero(row.brecha)));
+  if (brecha <= 0) return "Cuota cerrada";
+  return `Faltan ${formatMetric(brecha)}`;
+}
+
+function compareBlocks(a: TerritorialBlockProgress, b: TerritorialBlockProgress) {
+  const statusRank: Record<string, number> = { incomplete: 0, none: 1, complete: 2 };
+  return (statusRank[blockStatus(a)] ?? 9) - (statusRank[blockStatus(b)] ?? 9)
+    || stringOrEmpty(a.distrito).localeCompare(stringOrEmpty(b.distrito), "es", { numeric: true })
+    || stringOrEmpty(a.ump).localeCompare(stringOrEmpty(b.ump), "es", { numeric: true });
+}
+
+function districtTone(row: TerritorialDistrictProgress) {
+  if (numberOrZero(row.brecha) <= 0) return "ready";
+  if (numberOrZero(row.validas) <= 0) return "empty";
+  return "open";
+}
+
+function districtKey(row: { ubigeo?: string; distrito?: string }) {
+  return stringOrEmpty(row.ubigeo).trim() || stringOrEmpty(row.distrito).trim();
+}
+
+function ageGroup(value: unknown) {
+  const age = numberOrNull(value);
+  if (age == null) return "S/D";
+  if (age < 25) return "18-24";
+  if (age < 35) return "25-34";
+  if (age < 45) return "35-44";
+  if (age < 55) return "45-54";
+  if (age < 65) return "55-64";
+  return "65+";
+}
+
+function prettyLabel(value: string) {
+  const raw = stringOrEmpty(value).trim();
+  if (!raw) return "S/D";
+  if (raw.toLowerCase() === "m") return "Hombre";
+  if (raw.toLowerCase() === "f") return "Mujer";
+  return raw;
+}
+
+function isAdvanceTab(value: unknown): value is TerritorialAdvanceTab {
+  return value === "resumen" || value === "ump" || value === "ritmo";
+}
+
+function safePercent(value: number | null | undefined, total: number | null | undefined) {
+  if (value == null || total == null || total <= 0) return null;
+  return Math.min(100, (value / total) * 100);
+}
+
+function formatPercentLabel(value: number | null | undefined) {
+  return value == null || !Number.isFinite(value) ? "S/M" : `${Math.round(value)}%`;
+}
+
+function formatMetric(value: unknown, fallback = "0") {
+  const number = numberOrNull(value);
+  if (number == null) return fallback;
+  return new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 }).format(number);
+}
+
+function numberOrZero(value: unknown) {
+  return numberOrNull(value) ?? 0;
+}
+
+function numberOrNull(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function stringOrEmpty(value: unknown) {
+  return value == null ? "" : String(value);
+}
+
+function normalizeMatch(value: unknown) {
+  return stringOrEmpty(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function uniqueNonEmpty(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function shortDate(value: string) {
+  if (!value) return "S/D";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
+}
+
+function dateFilterLabel(value: string) {
+  return shortDate(value);
+}
+
+function territorialDailyDateLabel(row: Pick<TerritorialDailyDashboardRow, "date" | "date_label">) {
+  return stringOrEmpty(row.date_label).trim() || shortDate(row.date);
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value || "Sin corte";
+  return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
+}

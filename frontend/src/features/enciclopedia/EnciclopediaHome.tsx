@@ -131,8 +131,9 @@ function CatalogoPane({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(250px, 100%), 1fr))",
           gap: 10,
+          minWidth: 0,
         }}
       >
         {filtradas.map((m) => {
@@ -150,6 +151,8 @@ function CatalogoPane({
                 background: "var(--pulso-surface)",
                 display: "grid",
                 gap: 8,
+                minWidth: 0,
+                overflow: "hidden",
                 transition: "border-color 160ms ease, box-shadow 160ms ease",
               }}
               onMouseEnter={(e) => {
@@ -161,10 +164,10 @@ function CatalogoPane({
                 e.currentTarget.style.boxShadow = "";
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-                <h3 style={{ margin: 0, color: "var(--pulso-primary)", fontSize: 14, fontWeight: 700 }}>{m.nombre_tecnico}</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", minWidth: 0 }}>
+                <h3 style={{ minWidth: 0, margin: 0, color: "var(--pulso-primary)", fontSize: 14, fontWeight: 700, overflowWrap: "anywhere" }}>{m.nombre_tecnico}</h3>
                 {m.implementada_en_calculador && (
-                  <span style={{ ...chip, background: "var(--pulso-success-bg)", color: "var(--pulso-success-fg)", whiteSpace: "nowrap" }}>
+                  <span style={{ ...chip, flex: "0 1 auto", minWidth: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", background: "var(--pulso-success-bg)", color: "var(--pulso-success-fg)", whiteSpace: "nowrap" }}>
                     En calculador
                   </span>
                 )}

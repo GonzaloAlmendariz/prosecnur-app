@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260626-territorial-subsanada-package-v1"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260628-acreditacion-strict-base-v1"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
@@ -22,7 +22,7 @@
 
 .monitoreo_report_scope <- function(value = "full") {
   scope <- .monitoreo_scalar(value, "full")
-  if (!scope %in% c("light", "source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "full")) scope <- "full"
+  if (!scope %in% c("light", "source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")) scope <- "full"
   scope
 }
 
@@ -89,7 +89,7 @@
 
 .monitoreo_invalidate_dashboard_caches <- function(sid, snapshot = NULL) {
   s <- session_get(sid)
-  for (scope in c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "full")) {
+  for (scope in c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")) {
     s[[paste("monitoreo_dashboard_cache", scope, sep = "_")]] <- NULL
     s[[paste("monitoreo_dashboard_cache_token", scope, sep = "_")]] <- NULL
   }
@@ -229,6 +229,471 @@
     400,
     "E_MONITOREO_INTERNAL_CONFIRMATION",
     sprintf("Confirma manualmente que la %s interna contiene datos completos antes de publicarla.", channel)
+  )
+}
+
+.monitoreo_publication_project_label <- function(parsed = list(), s = list(), cfg = list()) {
+  values <- list(
+    parsed$project,
+    parsed$project_name,
+    parsed$projectName,
+    cfg$project_name,
+    cfg$nombre_proyecto,
+    cfg$nombre,
+    cfg$study_name,
+    cfg$titulo,
+    s$estudio$nombre
+  )
+  for (value in values) {
+    label <- trimws(.monitoreo_scalar(value, ""))
+    if (nzchar(label)) return(label)
+  }
+  project_path <- .monitoreo_scalar(s$project_path, "")
+  if (nzchar(project_path)) return(tools::file_path_sans_ext(basename(project_path)))
+  "Proyecto Monitoreo"
+}
+
+.monitoreo_publication_source_label <- function(s = list(), snapshot = list(), cfg = list(), parsed = list()) {
+  requested <- trimws(.monitoreo_scalar(parsed$source %||% parsed$fuente, ""))
+  if (nzchar(requested)) return(requested)
+  sources <- s$monitoreo_sources %||% snapshot$sources %||% cfg$sources %||% cfg$fuentes %||% list()
+  if (is.data.frame(sources)) sources <- .monitoreo_df_records(sources)
+  labels <- character(0)
+  if (is.list(sources) && length(sources)) {
+    labels <- vapply(sources, function(item) {
+      if (is.list(item)) {
+        return(.monitoreo_scalar(
+          item$title %||% item$name %||% item$label %||% item$id %||% item$source_id %||% item$kind,
+          ""
+        ))
+      }
+      .monitoreo_scalar(item, "")
+    }, character(1))
+  }
+  labels <- unique(labels[!is.na(labels) & nzchar(trimws(labels))])
+  if (length(labels)) {
+    shown <- utils::head(labels, 3L)
+    suffix <- if (length(labels) > 3L) sprintf(" +%d", length(labels) - 3L) else ""
+    return(paste0(paste(shown, collapse = ", "), suffix))
+  }
+  "Motor canónico Prosecnur"
+}
+
+.monitoreo_publication_tab_columns <- function(tabs = list()) {
+  columns <- character(0)
+  if (!is.list(tabs) || !length(tabs)) return(columns)
+  for (tab in tabs) {
+    if (is.data.frame(tab)) {
+      columns <- c(columns, names(tab))
+    } else if (is.list(tab)) {
+      columns <- c(columns, names(tab))
+    }
+  }
+  columns <- as.character(columns)
+  unique(columns[!is.na(columns) & nzchar(trimws(columns))])
+}
+
+.monitoreo_publication_report_scope <- function(engine_family = "acreditacion", audience = "client") {
+  audience <- .monitoreo_public_audience(audience)
+  engine_family <- .monitoreo_publication_engine_family(engine_family)
+  if (identical(audience, "internal")) return("full")
+  if (identical(engine_family, "territorial")) "advance_summary" else "full"
+}
+
+.monitoreo_publication_preflight_from_tabs <- function(tabs,
+                                                       family = "acreditacion",
+                                                       audience = "client",
+                                                       project = "",
+                                                       cut = "",
+                                                       source = "",
+                                                       confirmed_full_data = FALSE,
+                                                       canonical_counts = list(required = FALSE),
+                                                       drift = list(status = "not_checked"),
+                                                       performance = list(),
+                                                       evidence = list(),
+                                                       format_validation = list(ok = TRUE, evidence = TRUE, available = TRUE),
+                                                       pdf_validation = list(required = FALSE)) {
+  required_tabs <- unname(.monitoreo_publication_sheet_tab_names(family, audience))
+  present_tabs <- names(tabs %||% list())
+  completeness <- list(
+    ok = length(present_tabs) > 0L,
+    n_tabs = as.integer(length(present_tabs))
+  )
+  monitoreo_deliverables_preflight(
+    family = family,
+    audience = audience,
+    project = project,
+    cut = cut,
+    source = source,
+    confirmed_full_data = confirmed_full_data,
+    completeness = completeness,
+    canonical_counts = canonical_counts %||% list(required = FALSE),
+    sheets = list(required = required_tabs, present = present_tabs, evidence = TRUE),
+    format_validation = format_validation %||% list(ok = TRUE, evidence = TRUE, available = TRUE),
+    pdf_validation = pdf_validation %||% list(required = FALSE),
+    drift = drift %||% list(status = "not_checked"),
+    performance = performance %||% list(),
+    client_columns = .monitoreo_publication_tab_columns(tabs),
+    evidence = evidence %||% list()
+  )
+}
+
+.monitoreo_publication_preflight_bundle <- function(sid,
+                                                    s,
+                                                    snapshot,
+                                                    parsed = list(),
+                                                    audience = NULL,
+                                                    spreadsheet_id = "") {
+  if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
+    stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de revisar o publicar el ejecutivo en Sheets.")
+  }
+  started <- Sys.time()
+  audience <- .monitoreo_public_audience(audience %||% parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
+  raw_config <- parsed$config %||% s$monitoreo_config %||% snapshot$config %||% list()
+  cfg <- monitoreo_normalize_config(raw_config, snapshot$data)
+  include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
+  publication_family <- detect_monitoreo_family(config = raw_config, data = snapshot$data)
+  engine_family <- .monitoreo_publication_engine_family(publication_family)
+  report_scope <- .monitoreo_publication_report_scope(engine_family, audience)
+  dashboard <- .monitoreo_dashboard_for_session(
+    sid,
+    snapshot$data,
+    cfg,
+    include_reports = TRUE,
+    report_scope = report_scope
+  )
+  if (identical(engine_family, "territorial") && identical(audience, "internal")) {
+    if (is.null(dashboard$territorial_reports) || !is.list(dashboard$territorial_reports)) {
+      dashboard$territorial_reports <- list()
+    }
+    dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg, dashboard$territorial_reports)
+  }
+  spreadsheet_id <- .monitoreo_scalar(spreadsheet_id, "")
+  spreadsheet_url <- if (nzchar(spreadsheet_id)) paste0("https://docs.google.com/spreadsheets/d/", spreadsheet_id, "/edit") else ""
+  tabs <- monitoreo_publication_sheets_tabs(
+    snapshot$data,
+    cfg,
+    audience = audience,
+    include_targets = include_targets,
+    dashboard = dashboard,
+    synced_at = snapshot$synced_at %||% "",
+    context = list(session_id = sid, spreadsheet_id = spreadsheet_id, spreadsheet_url = spreadsheet_url, family = publication_family)
+  )
+  elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
+  performance <- parsed$performance %||% parsed$performance_items %||% list()
+  if (!is.list(performance)) performance <- list()
+  performance <- c(performance, list(list(
+    name = "publication_preflight_model",
+    elapsed_sec = round(elapsed, 3L),
+    threshold_sec = 30
+  )))
+  preflight <- .monitoreo_publication_preflight_from_tabs(
+    tabs,
+    family = publication_family,
+    audience = audience,
+    project = .monitoreo_publication_project_label(parsed, s, cfg),
+    cut = .monitoreo_scalar(snapshot$synced_at %||% snapshot$generated_at, .monitoreo_now_iso()),
+    source = .monitoreo_publication_source_label(s, snapshot, cfg, parsed),
+    confirmed_full_data = .monitoreo_publication_confirmed_full_data(parsed),
+    canonical_counts = parsed$canonical_counts %||% parsed$canonicalCounts %||% list(required = FALSE),
+    drift = parsed$drift %||% parsed$reference_drift %||% list(status = "not_checked"),
+    performance = performance,
+    evidence = list(
+      n_rows = as.integer(nrow(snapshot$data)),
+      n_tabs = as.integer(length(tabs)),
+      tabs = as.list(names(tabs)),
+      spreadsheet_id = spreadsheet_id,
+      spreadsheet_url = spreadsheet_url
+    ),
+    format_validation = parsed$format_validation %||% parsed$formatValidation %||% list(ok = TRUE, evidence = TRUE, available = TRUE),
+    pdf_validation = parsed$pdf_validation %||% parsed$pdfValidation %||% list(required = FALSE)
+  )
+  list(
+    audience = audience,
+    cfg = cfg,
+    include_targets = include_targets,
+    publication_family = publication_family,
+    engine_family = engine_family,
+    report_scope = report_scope,
+    dashboard = dashboard,
+    tabs = tabs,
+    preflight = preflight
+  )
+}
+
+.monitoreo_publication_evidence_slug <- function(value, fallback = "monitoreo") {
+  value <- trimws(.monitoreo_scalar(value, fallback))
+  if (!nzchar(value)) value <- fallback
+  value <- iconv(value, from = "", to = "ASCII//TRANSLIT", sub = "")
+  value <- tolower(value)
+  value <- gsub("[^a-z0-9]+", "-", value)
+  value <- gsub("^-+|-+$", "", value)
+  if (!nzchar(value)) fallback else value
+}
+
+.monitoreo_publication_evidence_zip_dir <- function(out_dir, zip_path) {
+  entries <- list.files(out_dir, recursive = TRUE, all.files = FALSE, no.. = TRUE)
+  if (!length(entries)) {
+    stop_api(500, "E_MONITOREO_EVIDENCE_EMPTY", "El evidence pack no contiene archivos para comprimir.")
+  }
+  old <- getwd()
+  on.exit(setwd(old), add = TRUE)
+  dir.create(dirname(zip_path), recursive = TRUE, showWarnings = FALSE)
+  if (file.exists(zip_path)) unlink(zip_path, force = TRUE)
+  setwd(out_dir)
+  zip::zip(zipfile = zip_path, files = entries)
+  zip_path
+}
+
+.monitoreo_publication_evidence_pack <- function(sid,
+                                                 s,
+                                                 snapshot,
+                                                 parsed = list(),
+                                                 audience = NULL,
+                                                 spreadsheet_id = "") {
+  started <- Sys.time()
+  bundle <- .monitoreo_publication_preflight_bundle(
+    sid,
+    s,
+    snapshot,
+    parsed,
+    audience = audience,
+    spreadsheet_id = spreadsheet_id
+  )
+  project_slug <- .monitoreo_publication_evidence_slug(bundle$preflight$project, "monitoreo")
+  audience_slug <- .monitoreo_publication_evidence_slug(bundle$audience, "client")
+  cut_slug <- .monitoreo_publication_evidence_slug(bundle$preflight$cut, format(Sys.Date(), "%Y-%m-%d"))
+  out_dir <- file.path("tmp", "qa", "monitoreo-deliverables", paste(project_slug, audience_slug, cut_slug, sep = "-"))
+  if (dir.exists(out_dir)) unlink(out_dir, recursive = TRUE, force = TRUE)
+
+  xlsx_started <- Sys.time()
+  xlsx_name <- paste(project_slug, audience_slug, "publication.xlsx", sep = "-")
+  xlsx_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), xlsx_name))
+  monitoreo_publication_workbook(
+    snapshot$data,
+    bundle$cfg,
+    path = xlsx_path,
+    audience = bundle$audience,
+    include_targets = bundle$include_targets,
+    context = list(
+      session_id = sid,
+      spreadsheet_id = spreadsheet_id,
+      spreadsheet_url = if (nzchar(spreadsheet_id)) paste0("https://docs.google.com/spreadsheets/d/", spreadsheet_id, "/edit") else "",
+      family = bundle$publication_family
+    ),
+    dashboard = bundle$dashboard,
+    synced_at = snapshot$synced_at %||% "",
+    sheets = bundle$tabs
+  )
+  xlsx_elapsed <- as.numeric(difftime(Sys.time(), xlsx_started, units = "secs"))
+
+  format_validation <- parsed$format_validation %||% parsed$formatValidation %||% list()
+  format_validation$schema <- "monitoreo_publication_format_validation_v1"
+  format_validation$ok <- isTRUE(format_validation$ok %||% TRUE)
+  format_validation$evidence <- TRUE
+  format_validation$workbook <- "generated.xlsx"
+  format_validation$workbook_exists <- file.exists(xlsx_path)
+  format_validation$tabs <- as.list(names(bundle$tabs))
+  format_validation$n_tabs <- as.integer(length(bundle$tabs))
+  data_validation <- parsed$data_validation %||% parsed$dataValidation %||% list()
+  data_validation$schema <- "monitoreo_publication_data_validation_v1"
+  data_validation$ok <- !identical(bundle$preflight$status, "blocked")
+  data_validation$preflight_status <- bundle$preflight$status
+  data_validation$preflight_score <- bundle$preflight$score
+  data_validation$audience <- bundle$audience
+  data_validation$family <- bundle$publication_family
+  data_validation$rows <- as.integer(nrow(snapshot$data))
+  data_validation$blocking_issues <- bundle$preflight$blocking_issues %||% list()
+  data_validation$warnings <- bundle$preflight$warnings %||% list()
+  total_elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
+  raw_performance <- parsed$performance %||% parsed$performance_items %||% list()
+  performance_items <- if (is.list(raw_performance) && is.list(raw_performance$items)) raw_performance$items else raw_performance
+  if (!is.list(performance_items)) performance_items <- list()
+  performance <- list(
+    schema = "monitoreo_publication_evidence_performance_v1",
+    generated_at = .monitoreo_now_iso(),
+    items = c(
+      performance_items,
+      list(
+        list(name = "publication_evidence_workbook", elapsed_sec = round(xlsx_elapsed, 3L), threshold_sec = 30),
+        list(name = "publication_evidence_pack", elapsed_sec = round(total_elapsed, 3L), threshold_sec = 60)
+      )
+    )
+  )
+
+  pack <- monitoreo_deliverables_evidence_pack(
+    out_dir = out_dir,
+    preflight = bundle$preflight,
+    generated_xlsx = xlsx_path,
+    generated_pdf = parsed$generated_pdf %||% parsed$generatedPdf %||% parsed$pdf_path %||% parsed$pdfPath %||% NULL,
+    format_validation = format_validation,
+    data_validation = data_validation,
+    performance = performance
+  )
+
+  zip_filename <- paste(project_slug, audience_slug, "evidence-pack", cut_slug, sep = "-")
+  zip_filename <- paste0(zip_filename, ".zip")
+  zip_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), zip_filename))
+  .monitoreo_publication_evidence_zip_dir(pack$out_dir, zip_path)
+  meta <- .register_output_file(sid, "monitoreo_publication_evidence_pack", zip_path, original_name = zip_filename)
+  list(
+    ok = TRUE,
+    audience = bundle$audience,
+    family = bundle$publication_family,
+    report_scope = bundle$report_scope,
+    tabs = names(bundle$tabs),
+    preflight = bundle$preflight,
+    evidence_pack = pack,
+    zip = list(file_id = meta$file_id, filename = meta$original_name, size = meta$size),
+    file_id = meta$file_id,
+    filename = meta$original_name,
+    size = meta$size
+  )
+}
+
+.monitoreo_territorial_package_rows_from_file <- function(sid, file_id) {
+  file_id <- .monitoreo_scalar(file_id, "")
+  if (!nzchar(file_id)) return(data.frame())
+  meta <- get_file(sid, file_id)
+  ext <- tolower(.monitoreo_scalar(meta$ext %||% tools::file_ext(meta$original_name %||% meta$path), ""))
+  if (identical(ext, "csv")) {
+    return(utils::read.csv(meta$path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
+  }
+  if (ext %in% c("xlsx", "xls")) {
+    if (!requireNamespace("openxlsx", quietly = TRUE)) {
+      stop_api(500, "E_TERRITORIAL_PACKAGE_XLSX_READER", "El paquete XLSX requiere el paquete R 'openxlsx'.")
+    }
+    return(openxlsx::read.xlsx(meta$path, sheet = 1))
+  }
+  stop_api(
+    400,
+    "E_TERRITORIAL_PACKAGE_FILE_TYPE",
+    "El paquete operacional debe ser CSV o XLSX."
+  )
+}
+
+.monitoreo_territorial_package_rows_from_payload <- function(sid, parsed = list()) {
+  if (!is.list(parsed)) parsed <- list()
+  rows <- parsed[["package_rows"]] %||% parsed[["packageRows"]] %||% parsed[["rows"]] %||% parsed[["package"]]
+  if (!is.null(rows)) return(.monitoreo_workbook_df(rows))
+  file_id <- parsed[["package_file_id"]] %||% parsed[["packageFileId"]] %||% parsed[["file_id"]] %||% parsed[["fileId"]]
+  .monitoreo_territorial_package_rows_from_file(sid, file_id)
+}
+
+.monitoreo_territorial_drift_from_payload <- function(parsed = list(),
+                                                      out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                      source = "",
+                                                      cut = "",
+                                                      project = "") {
+  if (!is.list(parsed)) parsed <- list()
+  drift <- parsed[["drift"]] %||% parsed[["reference_drift"]] %||% parsed[["referenceDrift"]]
+  if (is.list(drift) && length(drift)) return(drift)
+
+  expected_umps <- parsed[["expected_umps"]] %||% parsed[["expectedUmps"]]
+  metrics <- parsed[["metrics"]] %||% parsed[["reference_metrics"]] %||% parsed[["referenceMetrics"]]
+  if (!is.null(expected_umps) || !is.null(metrics)) {
+    return(monitoreo_deliverables_territorial_drift_report(
+      expected_umps = .monitoreo_workbook_df(expected_umps %||% data.frame()),
+      metrics = .monitoreo_workbook_df(metrics %||% data.frame()),
+      out_dir = out_dir,
+      source = source,
+      cut = cut,
+      project = project
+    ))
+  }
+
+  drift_rows <- parsed[["drift_rows"]] %||% parsed[["driftRows"]]
+  drift_file_id <- parsed[["drift_file_id"]] %||% parsed[["driftFileId"]]
+  if (!is.null(drift_rows) || !is.null(drift_file_id)) {
+    rows <- if (!is.null(drift_rows)) {
+      .monitoreo_workbook_df(drift_rows)
+    } else {
+      .monitoreo_territorial_package_rows_from_file(parsed$sid %||% "", drift_file_id)
+    }
+    return(list(
+      schema = "monitoreo_deliverables_territorial_drift_report_v1",
+      generated_at = .monitoreo_now_iso(),
+      status = .monitoreo_scalar(parsed$drift_status %||% parsed$driftStatus, "blocked"),
+      blocks_publication = .monitoreo_bool(parsed$blocks_publication %||% parsed$blocksPublication, TRUE),
+      rows = .monitoreo_df_records(rows),
+      required_operational_package = parsed[["required_operational_package"]] %||%
+        parsed[["requiredOperationalPackage"]] %||%
+        list(tachas = .monitoreo_int(parsed[["required_tachas"]] %||% parsed[["requiredTachas"]], 0L))
+    ))
+  }
+
+  stop_api(
+    400,
+    "E_TERRITORIAL_PACKAGE_DRIFT_REQUIRED",
+    "Adjunta el drift report, sus filas, o expected_umps/metrics antes de revisar el paquete operacional."
+  )
+}
+
+.monitoreo_territorial_operational_package_review_payload <- function(sid,
+                                                                      parsed = list(),
+                                                                      s = NULL) {
+  if (!is.list(parsed)) parsed <- list()
+  s <- s %||% session_get(sid)
+  raw_cfg <- parsed$config %||% s$monitoreo_config %||% list()
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  cfg <- monitoreo_normalize_config(raw_cfg, data)
+  source <- .monitoreo_scalar(parsed$source %||% parsed$fuente %||% "Referencia validada territorial", "")
+  cut <- .monitoreo_scalar(parsed$cut %||% parsed$corte %||% snapshot$synced_at %||% snapshot$generated_at, "")
+  project <- .monitoreo_publication_project_label(parsed, s, cfg)
+  out_dir <- parsed$out_dir %||% parsed$outDir %||% file.path(
+    "tmp",
+    "qa",
+    "monitoreo-deliverables",
+    paste(
+      .monitoreo_publication_evidence_slug(project, "territorial"),
+      "operational-package-review",
+      .monitoreo_publication_evidence_slug(cut, format(Sys.Date(), "%Y-%m-%d")),
+      sep = "-"
+    )
+  )
+  out_dir <- normalizePath(out_dir, mustWork = FALSE)
+  drift_payload <- parsed
+  drift_payload$sid <- sid
+  drift <- .monitoreo_territorial_drift_from_payload(
+    drift_payload,
+    out_dir = out_dir,
+    source = source,
+    cut = cut,
+    project = project
+  )
+  package_rows <- .monitoreo_territorial_package_rows_from_payload(sid, parsed)
+  review <- monitoreo_deliverables_territorial_operational_package_review(
+    package_rows = package_rows,
+    drift = drift,
+    out_dir = out_dir,
+    source = source,
+    cut = cut,
+    project = project
+  )
+  template_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-template.csv")
+  review_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.csv")
+  json_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.json")
+  md_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.md")
+  template_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_template", review$template_csv, original_name = template_name)
+  review_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_csv", review$review_csv, original_name = review_name)
+  json_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_json", review$json, original_name = json_name)
+  md_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_md", review$markdown, original_name = md_name)
+  files <- list(
+    template = list(file_id = template_meta$file_id, filename = template_meta$original_name, size = template_meta$size),
+    review_csv = list(file_id = review_meta$file_id, filename = review_meta$original_name, size = review_meta$size),
+    report_json = list(file_id = json_meta$file_id, filename = json_meta$original_name, size = json_meta$size),
+    report_md = list(file_id = md_meta$file_id, filename = md_meta$original_name, size = md_meta$size)
+  )
+  list(
+    ok = TRUE,
+    review = review,
+    files = files,
+    status = review$status,
+    publication_gate = review$publication_gate,
+    blocks_publication = review$blocks_publication,
+    safe_to_apply = review$safe_to_apply,
+    would_mutate_pulso = FALSE
   )
 }
 
@@ -1227,7 +1692,7 @@
   context
 }
 
-.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v20"
+.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v24"
 .monitoreo_territorial_report_cache_limit <- 18L
 
 .monitoreo_territorial_report_cache_key_info <- function(sid, snapshot, data, cfg, report_scope = "full") {
@@ -1466,11 +1931,20 @@
 .monitoreo_territorial_prewarm_scopes <- function(sid,
                                                   phase = NULL,
                                                   scopes = NULL,
-                                                  progress_path = NULL) {
-  report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
+                                                  progress_path = NULL,
+                                                  progress = NULL) {
+  report <- if (is.function(progress)) {
+    progress
+  } else if (!is.null(progress_path)) {
+    job_progress_writer(progress_path)
+  } else {
+    function(...) invisible(NULL)
+  }
   s <- session_get(sid)
   snapshot <- s$monitoreo_snapshot %||% NULL
+  sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
   data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  data <- .monitoreo_apply_source_metadata_to_data(data, sources)
   cfg <- monitoreo_normalize_config(s$monitoreo_config %||% snapshot$config %||% list(), data)
   family <- cfg$monitoreo_profile$family %||% "acreditacion"
   if (!identical(family, "territorial")) {
@@ -1978,6 +2452,52 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   .kobo_api_fetch_json(url, token)
 }
 
+.monitoreo_kobo_deployment_detail <- function(asset_uid, token, base_url) {
+  uid <- trimws(as.character(asset_uid %||% "")[1])
+  if (!nzchar(uid)) stop_api(400, "E_KOBO_ASSET", "Falta asset_uid de Kobo.")
+  url <- sprintf(
+    "%s/api/v2/assets/%s/deployment/?format=json",
+    .kobo_api_trim_base_url(base_url),
+    utils::URLencode(uid, reserved = TRUE)
+  )
+  .kobo_api_fetch_json(url, token)
+}
+
+.monitoreo_kobo_resolve_survey_link <- function(asset_uid, token, base_url) {
+  uid <- trimws(as.character(asset_uid %||% "")[1])
+  base_url <- .kobo_api_trim_base_url(base_url)
+  detail <- .monitoreo_kobo_asset_detail(uid, token, base_url)
+  deployment <- tryCatch(
+    .monitoreo_kobo_deployment_detail(uid, token, base_url),
+    error = function(e) list()
+  )
+  landing_url <- kobo_api_asset_url(uid, base_url = base_url)
+  survey_url <- kobo_api_survey_url(uid, base_url = base_url, detail = detail, deployment = deployment)
+  if (!nzchar(survey_url)) survey_url <- landing_url
+  list(
+    ok = TRUE,
+    asset_uid = uid,
+    name = .monitoreo_scalar(detail$name %||% detail$label %||% detail$title, uid),
+    base_url = base_url,
+    survey_url = survey_url,
+    landing_url = landing_url,
+    version_id = .monitoreo_scalar(
+      detail$version_id %||%
+        detail$deployed_version_id %||%
+        detail$deployment__version_id %||%
+        deployment$version_id,
+      ""
+    ),
+    deployment_active = isTRUE(
+      detail$deployment__active %||%
+        detail$deployment_active %||%
+        deployment$active %||%
+        FALSE
+    ),
+    resolved_from = if (identical(survey_url, landing_url)) "landing" else "deployment"
+  )
+}
+
 .monitoreo_kobo_schema_from_asset <- function(detail) {
   survey <- detail$content$survey %||% list()
   choices <- detail$content$choices %||% list()
@@ -2185,7 +2705,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   cached_acreditacion_reports <- if (
     isTRUE(include_reports) &&
       family %in% c("acreditacion", "telefonico") &&
-      report_scope %in% c("source", "advance_summary", "queries_summary") &&
+      report_scope %in% c("source", "advance_summary", "queries_summary", "phone_summary") &&
       is.list(snapshot) &&
       is.list(snapshot$dashboard) &&
       is.list(snapshot$dashboard$acreditacion_reports) &&
@@ -4290,6 +4810,75 @@ mount_monitoreo <- function(pr) {
         "Monitoreo ya no publica en Hugging Face. Publica las tablas cliente e internas en Google Sheets."
       )
     })) |>
+    plumber::pr_post("/api/monitoreo/publication/preflight", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
+      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
+      bundle <- .monitoreo_publication_preflight_bundle(
+        sid,
+        s,
+        snapshot,
+        parsed,
+        audience = audience,
+        spreadsheet_id = spreadsheet_id
+      )
+      event_key <- paste0("monitoreo_publication_preflight_events_", audience)
+      session_set(sid, event_key, c(
+        s[[event_key]] %||% list(),
+        list(list(
+          generated_at = bundle$preflight$generated_at,
+          audience = audience,
+          family = bundle$publication_family,
+          status = bundle$preflight$status,
+          score = bundle$preflight$score,
+          tabs = names(bundle$tabs)
+        ))
+      ))
+      list(
+        ok = TRUE,
+        audience = audience,
+        family = bundle$publication_family,
+        report_scope = bundle$report_scope,
+        tabs = names(bundle$tabs),
+        preflight = bundle$preflight
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/publication/evidence-pack", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
+      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
+      result <- .monitoreo_publication_evidence_pack(
+        sid,
+        s,
+        snapshot,
+        parsed,
+        audience = audience,
+        spreadsheet_id = spreadsheet_id
+      )
+      event_key <- paste0("monitoreo_publication_evidence_pack_events_", audience)
+      current <- session_get(sid)
+      session_set(sid, event_key, c(
+        current[[event_key]] %||% list(),
+        list(list(
+          generated_at = result$preflight$generated_at,
+          audience = audience,
+          family = result$family,
+          status = result$preflight$status,
+          score = result$preflight$score,
+          tabs = result$tabs,
+          file_id = result$file_id,
+          filename = result$filename,
+          size = result$size
+        ))
+      ))
+      result
+    })) |>
     plumber::pr_post("/api/monitoreo/publication/sheets", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
@@ -4299,37 +4888,25 @@ mount_monitoreo <- function(pr) {
         stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar el ejecutivo en Sheets.")
       }
       audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
-      .monitoreo_require_internal_publication_confirmation(audience, parsed, channel = "publicacion Sheets")
-      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data)
-      include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para publicar el ejecutivo en Sheets.")
-      spreadsheet_url <- paste0("https://docs.google.com/spreadsheets/d/", spreadsheet_id, "/edit")
-      publication_family <- detect_monitoreo_family(config = parsed$config %||% s$monitoreo_config %||% list(), data = snapshot$data)
-      engine_family <- .monitoreo_publication_engine_family(publication_family)
-      report_scope <- if (identical(audience, "internal")) "full" else if (identical(engine_family, "territorial")) "advance_summary" else "full"
-      dashboard <- .monitoreo_dashboard_for_session(
+      bundle <- .monitoreo_publication_preflight_bundle(
         sid,
-        snapshot$data,
-        cfg,
-        include_reports = TRUE,
-        report_scope = report_scope
-      )
-      if (identical(engine_family, "territorial") && identical(audience, "internal")) {
-        if (is.null(dashboard$territorial_reports) || !is.list(dashboard$territorial_reports)) {
-          dashboard$territorial_reports <- list()
-        }
-        dashboard$territorial_reports$field_occurrences <- .monitoreo_territorial_occurrences_dashboard(sid, cfg, dashboard$territorial_reports)
-      }
-      tabs <- monitoreo_publication_sheets_tabs(
-        snapshot$data,
-        cfg,
+        s,
+        snapshot,
+        parsed,
         audience = audience,
-        include_targets = include_targets,
-        dashboard = dashboard,
-        synced_at = snapshot$synced_at %||% "",
-        context = list(session_id = sid, spreadsheet_id = spreadsheet_id, spreadsheet_url = spreadsheet_url, family = publication_family)
+        spreadsheet_id = spreadsheet_id
       )
+      if (identical(bundle$preflight$status, "blocked")) {
+        stop_api(
+          409,
+          "E_MONITOREO_PREFLIGHT_BLOCKED",
+          "El preflight de entregables bloquea esta publicación.",
+          details = list(preflight = bundle$preflight)
+        )
+      }
+      tabs <- bundle$tabs
       published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
       event_key <- paste0("monitoreo_publication_sheet_events_", audience)
       session_set(sid, event_key, c(
@@ -4337,11 +4914,12 @@ mount_monitoreo <- function(pr) {
         list(c(published, list(
           audience = audience,
           tabs = names(tabs),
-          include_targets = include_targets,
-          confirmed_full_data = identical(audience, "internal")
+          include_targets = bundle$include_targets,
+          confirmed_full_data = .monitoreo_publication_confirmed_full_data(parsed),
+          preflight = bundle$preflight$scorecard
         )))
       ))
-      c(published, list(audience = audience))
+      c(published, list(audience = audience, preflight = bundle$preflight$scorecard))
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/pdf", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -4428,6 +5006,18 @@ mount_monitoreo <- function(pr) {
         base_url = base_url,
         limit = parsed$limit %||% 100L
       )
+    })) |>
+    plumber::pr_post("/api/monitoreo/kobo/survey-link", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      asset_uid <- .monitoreo_scalar(parsed$asset_uid %||% parsed$assetUid %||% parsed$uid, "")
+      if (!nzchar(asset_uid)) stop_api(400, "E_KOBO_ASSET", "Selecciona un formulario Kobo.")
+      profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
+      base_url <- .monitoreo_scalar(parsed$base_url %||% parsed$baseUrl, "")
+      if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+      if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+      token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
+      .monitoreo_kobo_resolve_survey_link(asset_uid, token, base_url)
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/inspect-kobo", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -4965,6 +5555,25 @@ mount_monitoreo <- function(pr) {
         state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary"),
         saved_project = !is.null(saved_project)
       )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/operational-package/review", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      result <- .monitoreo_territorial_operational_package_review_payload(sid, parsed, s)
+      session_set(sid, "monitoreo_territorial_operational_package_review_events", c(
+        s$monitoreo_territorial_operational_package_review_events %||% list(),
+        list(list(
+          generated_at = result$review$generated_at,
+          status = result$status,
+          publication_gate = result$publication_gate,
+          blocks_publication = result$blocks_publication,
+          safe_to_apply = result$safe_to_apply,
+          template_file_id = result$files$template$file_id,
+          review_file_id = result$files$review_csv$file_id
+        ))
+      ))
+      result
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/operational-adjustments/apply", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

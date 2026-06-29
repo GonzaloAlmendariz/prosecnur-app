@@ -32,7 +32,7 @@ activo. Cerrar proyecto vuelve al `BootGate`.
 Se agrega `POST /api/project/warmup` con contrato:
 
 ```json
-{ "mode": "full", "budget_ms": 90000 }
+{ "mode": "full", "budget_ms": 320000 }
 ```
 
 La respuesta inmediata es:
@@ -49,16 +49,18 @@ arquitectura, como las caches territoriales de Monitoreo.
 
 ## Consecuencias
 
-La espera inicial puede crecer por defecto hasta 90 segundos. El warmup no
+La espera inicial puede crecer por defecto hasta 320 segundos cuando el proyecto
+justifica una hidratacion real, especialmente en Monitoreo. El warmup no
 precarga todos los modulos indiscriminadamente: primero calcula un plan liviano
 segun el contenido del `.pulso` y prepara el nucleo mas los modulos probables
 del proyecto. Los modulos no incluidos cargan bajo demanda la primera vez que se
 abren, con pantalla de carga propia.
 
-Los proyectos con Monitoreo de acreditacion preparan el scope compacto
-`advance_summary` durante el warmup para que Avance, tarjetas, grafico general
-y lectura por actores no paguen ese costo en el primer ingreso. Este scope no
-sincroniza fuentes externas, no genera entregables y no persiste secretos.
+Los proyectos con Monitoreo de acreditacion preparan los scopes compactos
+`source`, `advance_summary`, `queries_summary` y `phone_summary` durante el
+warmup para que Fuentes, Avance, Consultas y Telefonico no paguen esos costos en
+el primer ingreso. Estos scopes no sincronizan fuentes externas, no generan
+entregables y no persisten secretos.
 
 El proyecto pasa a ser obligatorio para el uso normal de escritorio. Esto
 reduce estados efimeros ambiguos y alinea el arranque con el formato `.pulso`.

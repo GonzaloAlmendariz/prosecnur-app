@@ -44,7 +44,10 @@ test_that("project warmup implementation does not call external sync, full repor
   expect_false(grepl("build_pulso\\s*\\(", source_text))
   expect_false(grepl("\\.register_output_file\\s*\\(", source_text))
   expect_false(grepl("report_scope\\s*=\\s*[\"']full[\"']", source_text))
-  expect_true(grepl("report_scope\\s*=\\s*[\"']advance_summary[\"']", source_text))
+  expect_true(grepl("report_scope\\s*=\\s*scope", source_text))
+  expect_true(grepl("[\"']advance_summary[\"']", source_text))
+  expect_true(grepl("[\"']queries_summary[\"']", source_text))
+  expect_true(grepl("[\"']phone_summary[\"']", source_text))
 })
 
 test_that("project warmup plan selects concrete profile modules", {

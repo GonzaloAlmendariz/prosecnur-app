@@ -13,6 +13,13 @@ Before changing product code, repair work must:
 - validate again and record evidence in the iteration contract;
 - stop when the documented stopping rule is met.
 
+Use skill-style routing for repairs: name when the loop applies, which
+category/source of truth controls the task, and what output checklist proves the
+work is complete.
+
+Loops.so CLI/API/LMX tooling is optional and only applies to explicit Loops
+platform tasks. It is not part of the default Prosecnur baseline.
+
 Prosecnur is a local-first desktop app: Electron + React/Vite/TypeScript +
 R/Plumber in `api/`, with portable `.pulso` projects and secrets kept outside
 `.pulso`. Do not reference or modify the deprecated `../prosecnur/` directory.

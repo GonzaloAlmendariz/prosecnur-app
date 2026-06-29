@@ -39,3 +39,115 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
 }
+
+.pulso-main:has(.mon-territorial-compare) {
+  max-width: none;
+}
+
+.pulso-route-surface:has(.mon-territorial-compare) {
+  overflow: auto;
+}
+
+.mon-territorial-compare {
+  min-height: calc(100vh - 104px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  color: var(--pulso-text);
+  overflow: auto;
+}
+
+.mon-territorial-compare__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, var(--pulso-module-monitoring-soft));
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-territorial-compare__bar > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mon-territorial-compare__bar span,
+.mon-territorial-compare__bar small,
+.mon-territorial-compare__pane-head span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.mon-territorial-compare__bar strong,
+.mon-territorial-compare__pane-head strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-compare__grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, var(--mon-compare-desktop-width, 1440px));
+  gap: 10px;
+  width: max-content;
+  min-width: max-content;
+}
+
+.mon-territorial-compare__pane {
+  width: var(--mon-compare-desktop-width, 1440px);
+  min-width: var(--mon-compare-desktop-width, 1440px);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  overflow: hidden;
+}
+
+.mon-territorial-compare__pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface) 86%, var(--pulso-module-monitoring-soft));
+}
+
+.mon-territorial-compare__viewport {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--pulso-bg);
+}
+
+.mon-territorial-compare__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--pulso-bg);
+}
+
+@media (max-width: 1180px) {
+  .mon-territorial-compare__viewport {
+    min-height: 820px;
+  }
+}

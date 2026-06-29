@@ -8,6 +8,26 @@ import { preloadMonitoreoFamily, normalizeMonitoreoFamily } from "./profiles/reg
 import type { MonitoreoFamilyId, MonitoreoFamilyModule } from "./profiles/types";
 import "./MonitoreoShell.css";
 
+type ForcedMonitoreoSurface = "legacy-territorial" | "territorial-modular" | "acreditacion-modular";
+
+const FORCED_SURFACE_LABELS: Record<ForcedMonitoreoSurface, string> = {
+  "legacy-territorial": "Territorial canonico",
+  "territorial-modular": "Territorial modular",
+  "acreditacion-modular": "Acreditacion modular",
+};
+
+function forcedMonitoreoSurfaceFromUrl(): ForcedMonitoreoSurface | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("monitoreoSurface");
+  return value === "legacy-territorial" || value === "territorial-modular" || value === "acreditacion-modular" ? value : null;
+}
+
+function loadForcedMonitoreoSurface(surface: ForcedMonitoreoSurface) {
+  if (surface === "legacy-territorial") return import("./MonitoreoPage");
+  if (surface === "acreditacion-modular") return import("./profiles/acreditacion/AcreditacionMonitoreoPage");
+  return import("./profiles/territorial/TerritorialMonitoreoPage");
+}
+
 function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
   return normalizeMonitoreoFamily(
     state?.monitoreo_profile?.family ?? state?.config?.monitoreo_profile?.family,
@@ -33,10 +53,28 @@ export default function MonitoreoShell() {
   const [profile, setProfile] = useState<MonitoreoFamilyModule | null>(null);
   const [Page, setPage] = useState<ComponentType | null>(null);
   const [error, setError] = useState("");
+  const forcedSurface = useMemo(() => forcedMonitoreoSurfaceFromUrl(), []);
 
   useEffect(() => {
     let cancelled = false;
     setError("");
+
+    if (forcedSurface) {
+      setState(null);
+      setProfile(null);
+      setPage(null);
+      loadForcedMonitoreoSurface(forcedSurface)
+        .then((pageModule) => {
+          if (!cancelled) setPage(() => pageModule.default);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setError((e as Error).message);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     apiMonitoreoState({ includeReports: false, warmupCache: true })
       .then(async (next) => {
         if (cancelled) return;
@@ -56,9 +94,12 @@ export default function MonitoreoShell() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [forcedSurface]);
 
-  const label = useMemo(() => profile?.label ?? (state ? familyFromState(state) : "Monitoreo"), [profile, state]);
+  const label = useMemo(
+    () => (forcedSurface ? FORCED_SURFACE_LABELS[forcedSurface] : profile?.label ?? (state ? familyFromState(state) : "Monitoreo")),
+    [forcedSurface, profile, state],
+  );
 
   if (error) {
     return (

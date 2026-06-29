@@ -40,9 +40,11 @@ duplicacion sana cuando dos dominios necesitan reglas parecidas pero no iguales.
 - Nuevas funciones R deben ubicarse cerca del dominio o en helpers compartidos
   solo si son realmente transversales.
 - Una dependencia directa entre modulos debe tener contrato documentado.
-- La enciclopedia metodologica se trata como modulo read-only: expone
+- La enciclopedia metodologica se trata como biblioteca read-only: expone
   `/api/enciclopedia/*`, vive en `frontend/src/features/enciclopedia` y sus
-  catalogos no deben mutar estado de proyecto.
+  catalogos no deben mutar estado de proyecto. Desde ADR 0027 ya no es el
+  modulo principal; queda subordinada a Diseno del estudio y Calculo de
+  muestra.
 
 ## Notas
 

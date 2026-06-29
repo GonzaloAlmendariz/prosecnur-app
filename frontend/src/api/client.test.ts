@@ -14,6 +14,9 @@ import {
   apiMonitoreoConfig,
   apiMonitoreoDemo,
   apiMonitoreoKoboAssets,
+  apiMonitoreoKoboSurveyLink,
+  apiMonitoreoPublicationEvidencePack,
+  apiMonitoreoPublicationPreflight,
   apiMonitoreoPublicationSheetsPublish,
   apiMonitoreoPublicReport,
   apiMonitoreoState,
@@ -23,6 +26,7 @@ import {
   apiMonitoreoSync,
   apiMonitoreoTerritorialMap,
   apiMonitoreoTerritorialMapPrepare,
+  apiMonitoreoTerritorialOperationalPackageReview,
   apiMonitoreoTerritorialPhase,
   apiMonitoreoTerritorialReconciliationBatch,
   apiMonitoreoTerritorialSource,
@@ -58,6 +62,7 @@ import {
   apiXlsformEditorSmListSurveys,
   apiXlsformEditorSmTokenLoad,
   apiXlsformEditorSmTokenSave,
+  invalidateMonitoreoStateWarmCache,
   type MonitoreoConfig,
   type XlsformEditorWorkbook,
 } from "./client";
@@ -662,6 +667,7 @@ describe("Connections client", () => {
 describe("Monitoreo client", () => {
   beforeEach(() => {
     vi.stubGlobal("localStorage", makeLocalStorage());
+    invalidateMonitoreoStateWarmCache();
   });
 
   afterEach(() => {
@@ -692,6 +698,7 @@ describe("Monitoreo client", () => {
     await apiMonitoreoState({ includeReports: true, reportScope: "route_summary" });
     await apiMonitoreoState({ includeReports: true, reportScope: "validation_summary" });
     await apiMonitoreoState({ includeReports: true, reportScope: "queries_summary" });
+    await apiMonitoreoState({ includeReports: true, reportScope: "phone_summary" });
 
     expect(urls).toEqual([
       "/api/monitoreo/state",
@@ -700,6 +707,106 @@ describe("Monitoreo client", () => {
       "/api/monitoreo/state?include_reports=1&report_scope=route_summary",
       "/api/monitoreo/state?include_reports=1&report_scope=validation_summary",
       "/api/monitoreo/state?include_reports=1&report_scope=queries_summary",
+      "/api/monitoreo/state?include_reports=1&report_scope=phone_summary",
+    ]);
+  });
+
+  test("reuses resolved warm monitoring state cache for repeated warmup requests", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ok: true,
+        sources: [],
+        config: {},
+        has_snapshot: false,
+        synced_at: "",
+        n_rows: 0,
+        variables: [],
+        dashboard: null,
+        errors: [],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = await apiMonitoreoState({ includeReports: false, warmupCache: true });
+    const second = await apiMonitoreoState({ includeReports: false, warmupCache: true });
+
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/state?include_reports=0",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  test("dedupes in-flight warm monitoring state requests", async () => {
+    const body = {
+      ok: true,
+      sources: [],
+      config: {},
+      has_snapshot: false,
+      synced_at: "",
+      n_rows: 0,
+      variables: [],
+      dashboard: null,
+      errors: [],
+    };
+    const resolvers: Array<(value: Response) => void> = [];
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => {
+      resolvers.push(resolve);
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstPromise = apiMonitoreoState({ includeReports: false, warmupCache: true });
+    const secondPromise = apiMonitoreoState({ includeReports: false, warmupCache: true });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolvers[0]?.(jsonResponse(body));
+    const [first, second] = await Promise.all([firstPromise, secondPromise]);
+
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/state?include_reports=0",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  test("invalidates warm monitoring state cache after mutations", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/monitoreo/territorial/phase")) {
+        return jsonResponse({
+          ok: true,
+          config: {},
+          active_route_phase: "field",
+          phase_source_status: "configured",
+          message: "ok",
+        });
+      }
+      return jsonResponse({
+        ok: true,
+        sources: [],
+        config: {},
+        has_snapshot: false,
+        synced_at: "",
+        n_rows: 0,
+        variables: [],
+        dashboard: null,
+        errors: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = await apiMonitoreoState({ includeReports: false, warmupCache: true });
+    const second = await apiMonitoreoState({ includeReports: false, warmupCache: true });
+    await apiMonitoreoTerritorialPhase("field");
+    const third = await apiMonitoreoState({ includeReports: false, warmupCache: true });
+
+    expect(second).toBe(first);
+    expect(third).not.toBe(first);
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
+      "/api/monitoreo/state?include_reports=0",
+      "/api/monitoreo/territorial/phase",
+      "/api/monitoreo/state?include_reports=0",
     ]);
   });
 
@@ -775,6 +882,170 @@ describe("Monitoreo client", () => {
     expect(result.controlled_tabs).toContain("Base técnica");
   });
 
+  test("runs executive publication preflight before Sheets publishing", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        audience: "internal",
+        family: "acreditacion",
+        report_scope: "full",
+        tabs: ["Resumen", "Corte y fuentes"],
+        preflight: {
+          schema: "monitoreo_deliverables_preflight_v1",
+          generated_at: "2026-06-29T00:00:00Z",
+          family: "acreditacion",
+          audience: "internal",
+          project: "ACRDCONTA",
+          cut: "2026-06-29T00:00:00Z",
+          source: "Motor canónico Prosecnur",
+          status: "ready",
+          score: 100,
+          blocking_issues: [],
+          warnings: [],
+          scorecard: { status: "ready", score: 100, blocking_count: 0, warning_count: 0 },
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoPublicationPreflight("sheet_exec", {
+      audience: "internal",
+      includeTargets: true,
+      confirmedFullData: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/publication/preflight",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      spreadsheet_id: "sheet_exec",
+      audience: "internal",
+      include_targets: true,
+      confirmed_full_data: true,
+    });
+    expect(result.preflight.status).toBe("ready");
+    expect(result.tabs).toContain("Resumen");
+  });
+
+  test("creates executive publication evidence pack download by audience", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        audience: "internal",
+        family: "acreditacion",
+        report_scope: "full",
+        tabs: ["Resumen", "Corte y fuentes"],
+        preflight: {
+          schema: "monitoreo_deliverables_preflight_v1",
+          generated_at: "2026-06-29T00:00:00Z",
+          family: "acreditacion",
+          audience: "internal",
+          project: "ACRDCONTA",
+          cut: "2026-06-29T00:00:00Z",
+          source: "Motor canónico Prosecnur",
+          status: "ready",
+          score: 100,
+          blocking_issues: [],
+          warnings: [],
+          scorecard: { status: "ready", score: 100, blocking_count: 0, warning_count: 0 },
+        },
+        evidence_pack: {
+          schema: "monitoreo_deliverables_evidence_pack_result_v1",
+          report_json: "tmp/qa/monitoreo-deliverables/acrdconta-internal/report.json",
+          report_md: "tmp/qa/monitoreo-deliverables/acrdconta-internal/report.md",
+          artifacts: { generated_xlsx: "generated.xlsx" },
+        },
+        zip: { file_id: "pack-file", filename: "acrdconta-internal-evidence-pack.zip", size: 1234 },
+        file_id: "pack-file",
+        filename: "acrdconta-internal-evidence-pack.zip",
+        size: 1234,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoPublicationEvidencePack("sheet_exec", {
+      audience: "internal",
+      includeTargets: true,
+      confirmedFullData: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/publication/evidence-pack",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      spreadsheet_id: "sheet_exec",
+      audience: "internal",
+      include_targets: true,
+      confirmed_full_data: true,
+    });
+    expect(result.file_id).toBe("pack-file");
+    expect(result.download_url).toContain("/api/files/pack-file/download");
+    expect(result.evidence_pack.artifacts?.generated_xlsx).toBe("generated.xlsx");
+  });
+
+  test("reviews territorial operational package without applying it", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        status: "review_ready",
+        publication_gate: "operational_package_review_ready",
+        blocks_publication: true,
+        safe_to_apply: true,
+        would_mutate_pulso: false,
+        review: {
+          schema: "monitoreo_deliverables_territorial_operational_package_review_v1",
+          status: "review_ready",
+          publication_gate: "operational_package_review_ready",
+          blocks_publication: true,
+          safe_to_apply: true,
+          would_mutate_pulso: false,
+          coverage: { package_rows: 2, missing_ump_items: [], missing_tachas: 0, incomplete_rows: 0 },
+        },
+        files: {
+          template: { file_id: "template-file", filename: "acnurcg-operational-package-template.csv", size: 120 },
+          review_csv: { file_id: "review-file", filename: "acnurcg-operational-package-review.csv", size: 240 },
+          report_json: { file_id: "review-json", filename: "acnurcg-operational-package-review.json", size: 320 },
+          report_md: { file_id: "review-md", filename: "acnurcg-operational-package-review.md", size: 180 },
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoTerritorialOperationalPackageReview({
+      packageRows: [{ package_item: "ump_subsanada:UMP 101" }],
+      driftRows: [{ required_package_item: "ump_subsanada:UMP 101", blocks_publication: true }],
+      requiredOperationalPackage: { tachas: 0 },
+      source: "Sheet validado ACNURCG",
+      cut: "2026-06-26",
+      project: "ACNURCG",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/territorial/operational-package/review",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      package_rows: [{ package_item: "ump_subsanada:UMP 101" }],
+      drift_rows: [{ required_package_item: "ump_subsanada:UMP 101", blocks_publication: true }],
+      required_operational_package: { tachas: 0 },
+      source: "Sheet validado ACNURCG",
+      cut: "2026-06-26",
+      project: "ACNURCG",
+    });
+    expect(result.safe_to_apply).toBe(true);
+    expect(result.would_mutate_pulso).toBe(false);
+    expect(result.files?.template?.download_url).toContain("/api/files/template-file/download");
+    expect(result.files?.review_csv?.download_url).toContain("/api/files/review-file/download");
+  });
+
   test("lists Kobo assets with selected connection profile", async () => {
     let sentInit: RequestInit | undefined;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -806,6 +1077,48 @@ describe("Monitoreo client", () => {
       profile_id: "kobo_unhcr",
     });
     expect(result.assets[0]).toMatchObject({ uid: "asset_unhcr", deployment_active: true });
+  });
+
+  test("resolves Kobo survey link without exposing token", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        asset_uid: "asset_unhcr",
+        name: "UNHCR demo",
+        base_url: "https://kobo.unhcr.org",
+        survey_url: "https://ee.kobotoolbox.org/x/abc123",
+        landing_url: "https://kobo.unhcr.org/#/forms/asset_unhcr/landing",
+        version_id: "v1",
+        deployment_active: true,
+        resolved_from: "deployment",
+        token: "plain-secret-should-never-be-used",
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoKoboSurveyLink({
+      asset_uid: "asset_unhcr",
+      base_url: "https://kobo.unhcr.org",
+      connection_profile_id: "kobo_unhcr",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/kobo/survey-link",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      asset_uid: "asset_unhcr",
+      base_url: "https://kobo.unhcr.org",
+      profile_id: "kobo_unhcr",
+    });
+    expect(result).toMatchObject({
+      asset_uid: "asset_unhcr",
+      survey_url: "https://ee.kobotoolbox.org/x/abc123",
+      resolved_from: "deployment",
+    });
+    expect(result as Record<string, unknown>).not.toHaveProperty("token");
   });
 
   test("saves a SurveyMonkey source without forcing a second token flow", async () => {
@@ -2080,6 +2393,53 @@ describe("Monitoreo client", () => {
       layers: ["route_geometry", "gps_points"],
       force: true,
     });
+  });
+
+  test("dedupes in-flight territorial map layer requests", async () => {
+    const body = {
+      ok: true,
+      phase: "field",
+      layers: ["gps_points"],
+      payload: { phase: "field", blocks: [], points: [], alerts: [], legend: [] },
+    };
+    const resolvers: Array<(value: Response) => void> = [];
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => {
+      resolvers.push(resolve);
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstPromise = apiMonitoreoTerritorialMap({
+      phase: "field",
+      layer: "gps_points",
+      allowStale: true,
+      prepare: false,
+    });
+    const secondPromise = apiMonitoreoTerritorialMap({
+      phase: "field",
+      layer: "gps_points",
+      allowStale: true,
+      prepare: false,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolvers[0]?.(jsonResponse(body));
+    const [first, second] = await Promise.all([firstPromise, secondPromise]);
+
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/territorial/map?phase=field&layer=gps_points&allow_stale=1&prepare=0",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+
+    const thirdPromise = apiMonitoreoTerritorialMap({
+      phase: "field",
+      layer: "gps_points",
+      allowStale: true,
+      prepare: false,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    resolvers[1]?.(jsonResponse(body));
+    await thirdPromise;
   });
 
   test("loads demo data through its own endpoint", async () => {

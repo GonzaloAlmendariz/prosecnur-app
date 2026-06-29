@@ -299,7 +299,7 @@ function computeMeta(
     case "calc-muestra":
       return null;
     case "recopiladores":
-      return "Próximamente";
+      return null;
     case "monitoreo":
       return null;
     default:

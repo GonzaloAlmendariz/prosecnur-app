@@ -4683,6 +4683,42 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   out
 }
 
+.hojas_ruta_operational_code <- function(block, tipo = NULL) {
+  scalar <- function(name) {
+    value <- block[[name]]
+    if (is.null(value) || !length(value)) return(NULL)
+    value[[1]]
+  }
+  int_value <- function(...) {
+    values <- list(...)
+    for (value in values) {
+      if (is.null(value) || !length(value)) next
+      parsed <- suppressWarnings(as.integer(value[[1]]))
+      if (!is.na(parsed) && parsed > 0L) return(parsed)
+    }
+    NA_integer_
+  }
+  route_type <- as.character(tipo %||% scalar("tipo_manzana") %||% "")
+  is_replacement <- identical(route_type, "reemplazo")
+  if (is_replacement) {
+    titular <- int_value(
+      scalar("titular_hoja_num"),
+      scalar("titular_orden_seleccion"),
+      scalar("hoja_num"),
+      scalar("orden_seleccion")
+    )
+    order <- int_value(scalar("replacement_order"))
+    if (!is.na(titular)) {
+      if (!is.na(order) && order > 1L) return(sprintf("R %d.%d", titular, order))
+      return(sprintf("R %d", titular))
+    }
+    return("R")
+  }
+  ump <- int_value(scalar("hoja_num"), scalar("orden_seleccion"))
+  if (!is.na(ump)) return(sprintf("UMP %d", ump))
+  "UMP"
+}
+
 .hojas_ruta_apply_replacement_route_ranges <- function(replacements, titulars) {
   if (is.null(replacements) || !nrow(replacements)) return(replacements)
   if (!"hoja_num" %in% names(replacements)) {
@@ -7450,11 +7486,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
                                    paper_w = 11.69, paper_h = 8.27)
   is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
   grid::grid.text(
-    if (is_replacement) {
-      sprintf("Mapa de contexto · Reemplazo R%d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
-    } else {
-      sprintf("Mapa de contexto · UMP %d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
-    },
+    sprintf("Mapa de contexto · %s", .hojas_ruta_operational_code(block)),
     x = 0.5, y = 0.95, gp = grid::gpar(fontsize = 15, fontface = "bold", col = "black")
   )
   grid::grid.text(
@@ -7677,11 +7709,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
                                    paper_w = 11.69, paper_h = 8.27)
   is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
   grid::grid.text(
-    if (is_replacement) {
-      sprintf("Mapa de zona · Reemplazo R%d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
-    } else {
-      sprintf("Mapa de zona · UMP %d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
-    },
+    sprintf("Mapa de zona · %s", .hojas_ruta_operational_code(block)),
     x = 0.5, y = 0.95, gp = grid::gpar(fontsize = 15, fontface = "bold", col = "black")
   )
   grid::grid.text(
@@ -8504,23 +8532,23 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   rows <- utils::head(rows, 14L)
   if (nrow(rows)) {
-    tipo <- if ("tipo_manzana" %in% names(rows)) {
-      ifelse(as.character(rows$tipo_manzana) == "reemplazo", "R", "T")
-    } else {
-      rep("T", nrow(rows))
-    }
+    codigo <- vapply(seq_len(nrow(rows)), function(i) {
+      row <- as.list(rows[i, , drop = FALSE])
+      row[] <- lapply(row, function(x) x[[1]])
+      .hojas_ruta_operational_code(row)
+    }, character(1), USE.NAMES = FALSE)
     rango <- if (all(c("rango_inicio", "rango_fin") %in% names(rows))) {
       paste0(as.character(rows$rango_inicio), "-", as.character(rows$rango_fin))
     } else {
       as.character(rows$entrevistas %||% "")
     }
     tbl <- cbind(
-      Tipo = tipo,
+      Codigo = codigo,
       Manzana = as.character(rows$manzana %||% rows$id_manzana),
       Rango = rango,
       Viviendas = as.character(rows$viviendas %||% "")
     )
-    data <- rbind(c("Tipo", "Manzana", "Rango", "Viviendas"), tbl)
+    data <- rbind(c("Codigo", "Manzana", "Rango", "Viviendas"), tbl)
     grey <- matrix(FALSE, nrow(data), ncol(data))
     grey[1, ] <- TRUE
     font <- matrix("plain", nrow(data), ncol(data))
@@ -8529,7 +8557,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       data,
       x = side_x,
       y = 0.58,
-      col_widths = c(0.04, 0.085, 0.06, 0.08),
+      col_widths = c(0.055, 0.07, 0.06, 0.08),
       row_heights = rep(0.026, nrow(data)),
       grey_cells = grey,
       font_size = 7.4,
@@ -8656,31 +8684,39 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     rows <- rows[order(tipo_sort, rows$orden_seleccion, rows$id_manzana), , drop = FALSE]
   }
   rows <- utils::head(rows, 14L)
-  tipo <- if ("tipo_manzana" %in% names(rows)) {
-    ifelse(as.character(rows$tipo_manzana) == "reemplazo", "R", "T")
-  } else {
-    rep("T", nrow(rows))
+  row_as_list <- function(i) {
+    row <- as.list(rows[i, , drop = FALSE])
+    row[] <- lapply(row, function(x) x[[1]])
+    row
   }
+  codigo <- vapply(seq_len(nrow(rows)), function(i) {
+    .hojas_ruta_operational_code(row_as_list(i))
+  }, character(1), USE.NAMES = FALSE)
   rango <- if (all(c("rango_inicio", "rango_fin") %in% names(rows))) {
     paste0(as.character(rows$rango_inicio), "-", as.character(rows$rango_fin))
   } else {
     as.character(rows$entrevistas)
   }
-  reemplaza <- if ("titular_id_manzana" %in% names(rows)) {
-    value <- as.character(rows$titular_id_manzana)
-    value[is.na(value) | !nzchar(value)] <- "-"
-    value
-  } else {
-    rep("-", nrow(rows))
-  }
+  reemplaza <- vapply(seq_len(nrow(rows)), function(i) {
+    row <- row_as_list(i)
+    if (!identical(as.character(row$tipo_manzana %||% ""), "reemplazo")) return("-")
+    titular_code <- .hojas_ruta_operational_code(
+      list(
+        tipo_manzana = "titular",
+        hoja_num = row$titular_hoja_num %||% row$titular_orden_seleccion
+      )
+    )
+    titular_id <- .hojas_ruta_short_manzana_id(row$titular_id_manzana %||% "")
+    if (nzchar(titular_id)) sprintf("%s / %s", titular_code, titular_id) else titular_code
+  }, character(1), USE.NAMES = FALSE)
   tbl <- cbind(
-    Tipo = tipo,
+    Codigo = codigo,
     Manzana = as.character(rows$manzana),
     Rango = rango,
     Reemplaza = reemplaza
   )
   if (nrow(tbl)) {
-    data <- rbind(c("Tipo", "Manzana", "Rango", "Reemplaza"), tbl)
+    data <- rbind(c("Codigo", "Manzana", "Rango", "Reemplaza"), tbl)
     grey <- matrix(FALSE, nrow(data), ncol(data))
     grey[1, ] <- TRUE
     font <- matrix("plain", nrow(data), ncol(data))
@@ -8689,7 +8725,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       data,
       x = side_x,
       y = 0.58,
-      col_widths = c(0.04, 0.07, 0.055, 0.10),
+      col_widths = c(0.055, 0.06, 0.055, 0.095),
       row_heights = rep(0.026, nrow(data)),
       grey_cells = grey,
       font_size = 7.4,
@@ -8700,12 +8736,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
   grid::grid.rect(x = side_x + 0.012, y = 0.12, width = 0.018, height = 0.018,
                   gp = grid::gpar(fill = "#bdbdbd", col = "black", lwd = 1.0))
-  grid::grid.text("Titular",
+  grid::grid.text("UMP titular",
                   x = side_x + 0.03, y = 0.12, just = c("left", "center"),
                   gp = grid::gpar(fontsize = 7.5, col = "black"))
   grid::grid.rect(x = side_x + 0.012, y = 0.092, width = 0.018, height = 0.018,
                   gp = grid::gpar(fill = "#dbeafe", col = "#1d4ed8", lwd = 1.0))
-  grid::grid.text("Reemplazo",
+  grid::grid.text("R reemplazo",
                   x = side_x + 0.03, y = 0.092, just = c("left", "center"),
                   gp = grid::gpar(fontsize = 7.5, col = "#1d4ed8"))
   grid::grid.rect(x = side_x + 0.012, y = 0.064, width = 0.018, height = 0.018,
@@ -8736,6 +8772,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   viviendas <- as.integer(block$viviendas %||% 0L)
   entrevistas <- max(1L, as.integer(block$entrevistas %||% 1L))
   is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
+  route_code <- .hojas_ruta_operational_code(block)
   replacement_label <- as.character(block$replacement_label %||% "")
   if (!nzchar(replacement_label) ||
       grepl("^Reemplazo( [0-9]+ de [0-9]+)?( de [0-9]+ a [0-9]+)?$", replacement_label)) {
@@ -8779,9 +8816,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   # Titulo y subtitulo: jerarquia tipografica clara.
   grid::grid.text(
     if (is_replacement) {
-      sprintf("Ficha de reemplazo · R%d", hoja_num)
+      sprintf("Ficha de reemplazo · %s", route_code)
     } else {
-      sprintf("Ficha de trabajo de campo · UMP %d", hoja_num)
+      sprintf("Ficha de trabajo de campo · %s", route_code)
     },
     x = 0.085, y = 0.905, just = c("left", "center"),
     gp = grid::gpar(fontsize = 14, fontface = "bold", col = "black")
@@ -8898,7 +8935,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   grid::grid.text("Pulso PUCP · Ficha de trabajo de campo",
                   x = 0.085, y = 0.038, just = c("left", "center"),
                   gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  grid::grid.text(if (is_replacement) sprintf("REEMPLAZO R%d · %d-%d", hoja_num, start, end) else sprintf("UMP %d", hoja_num),
+  grid::grid.text(if (is_replacement) sprintf("REEMPLAZO %s · %d-%d", route_code, start, end) else route_code,
                   x = 0.5, y = 0.038,
                   gp = grid::gpar(fontsize = 7.5, fontface = "bold", col = "#4a4a4a"))
   grid::grid.text(format(Sys.Date(), "%d/%m/%Y"),

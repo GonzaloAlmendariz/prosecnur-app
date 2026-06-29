@@ -109,3 +109,19 @@ esta probando una API distinta.
 Relacionado con ADR 0010 (Monitoreo como centro de control operativo), ADR
 0011 (cache persistida de mapas territoriales), ADR 0019 (Monitoreo de aulas
 universitarias) y ADR 0021 (arranque con proyecto y warm start local).
+
+### Evidencia 2026-06-27
+
+Primer loop de modularizacion real: `/monitoreo` conserva `MonitoreoShell`
+como entrada liviana y los perfiles `territorial` y `acreditacion` siguen
+cargando el fallback historico `MonitoreoPage.tsx`. Se extrajo solo el chrome
+visual del workbench a `MonitoreoWorkbenchChrome`, preservando las clases
+`mon-workbench-*` y sin mover logica de negocio, backend, schemas `.pulso` ni
+conectores.
+
+Segundo loop de modularizacion territorial: el perfil `territorial` ya carga
+`TerritorialMonitoreoPage` y deja de importar el fallback historico
+`MonitoreoPage.tsx`. La pagina territorial reutiliza `MonitoreoModuleChrome` y
+`MonitoreoWorkbenchChrome` para conservar el chrome canonico de Monitoreo; el
+perfil `acreditacion` permanece en el fallback historico. No se modificaron
+backend, schemas `.pulso`, conectores ni scopes de reportes.

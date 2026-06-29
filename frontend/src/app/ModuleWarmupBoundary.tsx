@@ -122,6 +122,14 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     messages: ["Revisando marco", "Preparando calculo", "Abriendo modulo"],
   },
   {
+    key: "recopiladores",
+    title: "Fichas QR",
+    moduleTo: "/recopiladores",
+    frontend: ["recopiladores"],
+    backend: ["project", "monitoreo"],
+    messages: ["Leyendo agenda", "Preparando fichas", "Abriendo modulo"],
+  },
+  {
     key: "dashboard",
     title: "Dashboard",
     moduleTo: "/tablero",
@@ -146,6 +154,14 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     backend: ["project", "enciclopedia"],
     messages: ["Leyendo catalogo", "Preparando fichas", "Abriendo biblioteca"],
   },
+  {
+    key: "diseno-estudio",
+    title: "Diseño del estudio",
+    moduleTo: "/diseno-estudio",
+    frontend: ["diseno_estudio", "enciclopedia"],
+    backend: ["project"],
+    messages: ["Leyendo expediente", "Preparando bitacora", "Abriendo diseno"],
+  },
 ];
 
 function cleanPathname(pathname: string) {
@@ -166,6 +182,8 @@ function warmupProfileForPath(pathname: string) {
   if (path === "/calc-muestra" || path === "/diseno-muestra") {
     return MODULE_PROFILES.find((profile) => profile.key === "calc-muestra") ?? null;
   }
+  if (path === "/recopiladores") return MODULE_PROFILES.find((profile) => profile.key === "recopiladores") ?? null;
+  if (path === "/diseno-estudio") return MODULE_PROFILES.find((profile) => profile.key === "diseno-estudio") ?? null;
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;
   if (path === "/editor-xlsform") return MODULE_PROFILES.find((profile) => profile.key === "editor-xlsform") ?? null;
   if (path === "/enciclopedia" || path.startsWith("/enciclopedia/")) {

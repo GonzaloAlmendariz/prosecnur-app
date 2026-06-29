@@ -1,5 +1,36 @@
 source("setup-load-all.R")
 
+.monitoreo_publish_qa_pdf_text <- function(pdf_path) {
+  candidates <- c(
+    Sys.getenv("PROSECNUR_PDF_PYTHON", ""),
+    file.path(Sys.getenv("HOME", ""), ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "python", "bin", "python3"),
+    unname(Sys.which("python3"))
+  )
+  candidates <- candidates[nzchar(candidates) & file.exists(candidates)]
+  candidates <- candidates[file.access(candidates, 1) == 0]
+  if (!length(candidates)) return(NULL)
+  script <- tempfile(fileext = ".py")
+  on.exit(unlink(script, force = TRUE), add = TRUE)
+  writeLines(c(
+    "import sys",
+    "try:",
+    "    from pypdf import PdfReader",
+    "except Exception:",
+    "    sys.exit(7)",
+    "reader = PdfReader(sys.argv[1])",
+    "print('\\n'.join((page.extract_text() or '') for page in reader.pages))"
+  ), script, useBytes = TRUE)
+  for (python in candidates) {
+    out <- tryCatch(
+      system2(python, c(script, normalizePath(pdf_path, mustWork = TRUE)), stdout = TRUE, stderr = TRUE),
+      error = function(e) structure(character(), status = 1L)
+    )
+    status <- attr(out, "status")
+    if (is.null(status) || identical(as.integer(status), 0L)) return(paste(out, collapse = "\n"))
+  }
+  NULL
+}
+
 test_that("publicacion Sheets no reutiliza fuentes Google Sheets como destino", {
   source_sheet <- "1SOURCEaaaaaaaaaaaaaaaaaaaaaa"
   client_sheet <- "1CLIENTbbbbbbbbbbbbbbbbbbbbbb"
@@ -42,6 +73,227 @@ test_that("publicacion Sheets no reutiliza fuentes Google Sheets como destino", 
     ""
   )
   expect_equal(.monitoreo_extract_spreadsheet_id(paste0("https://docs.google.com/open?id=", client_sheet)), client_sheet)
+})
+
+test_that("PDF cliente acreditacion declara corte, fuentes y criterio canonico", {
+  fixture <- monitoreo_publish_qa_fixture("acreditacion")
+  model <- monitoreo_acreditacion_client_report_model(fixture$data, fixture$config)
+  model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = FALSE)
+  pdf_path <- tempfile(fileext = ".pdf")
+  out <- monitoreo_acreditacion_client_report_pdf(model, pdf_path, include_targets = FALSE)
+
+  expect_equal(out, pdf_path)
+  expect_true(file.exists(pdf_path))
+  expect_gt(file.info(pdf_path)$size, 1000)
+
+  pdf_text <- .monitoreo_publish_qa_pdf_text(pdf_path)
+  testthat::skip_if(is.null(pdf_text), "No PDF text extractor available")
+  expect_true(grepl("Corte y fuentes", pdf_text, fixed = TRUE))
+  expect_true(grepl("Fuente de verdad", pdf_text, fixed = TRUE))
+  expect_true(grepl("Fuentes de respuestas", pdf_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey", pdf_text, fixed = TRUE))
+  expect_true(grepl("base oficial", pdf_text, ignore.case = TRUE))
+  expect_true(grepl("Apps Script viejo", pdf_text, fixed = TRUE))
+})
+
+test_that("rechazos telefonicos no inflan rechazo cliente canonico", {
+  data <- data.frame(
+    CodPulso = c("A1", "A2", "A3", "A1", "A2", ""),
+    cv_id = c("", "", "", "", "", "A3"),
+    Status = c("", "", "", "Rechazo", "Efectivo", ""),
+    response_status = c("", "", "", "", "", "completed"),
+    `Acepta participar` = c("", "", "", "", "", "No"),
+    date_modified = c("", "", "", "2026-06-01", "2026-06-01", "2026-06-02T10:00:00+00:00"),
+    .source_role = c(rep("universo", 3), rep("barrido", 2), "respuestas"),
+    .source_label = c(
+      rep("Base - Egresados", 3),
+      rep("Barrido telefonico - Egresados", 2),
+      "SurveyMonkey - Egresados - Correo"
+    ),
+    dim_actor = rep("Egresados", 6),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Egresados", label = "Egresados")),
+      key_rules = list(
+        universe_fields = c("CodPulso"),
+        response_fields = c("cv_id"),
+        automatic_detection = FALSE
+      ),
+      rejection_rules = list(list(
+        question_patterns = c("acepta participar"),
+        rejection_answers = c("no")
+      ))
+    )
+  ), data)
+
+  dashboard <- monitoreo_build_dashboard(data, cfg)
+  resumen <- dashboard$acreditacion_reports$sheets[[1]]$blocks[[1]]$rows[[1]]
+  expect_equal(resumen$Rechazos, 1L)
+  expect_equal(resumen$`Rechazos plataforma`, 1L)
+  expect_equal(resumen$`Rechazos telefónicos`, 1L)
+
+  publication <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "client",
+    dashboard = dashboard,
+    synced_at = "2026-06-02T10:00:00Z"
+  )
+  client_model <- build_client_sheets_progress_model(publication)
+  actor_rows <- .monitoreo_workbook_df(client_model$avance_por_actor$rows)
+
+  expect_equal(as.integer(actor_rows$Rechazo[actor_rows$Actor == "Egresados"]), 1L)
+  expect_false("Rechazos telefónicos" %in% names(actor_rows))
+  expect_false("Rechazos plataforma" %in% names(actor_rows))
+})
+
+test_that("rechazos solo telefonicos quedan fuera de matrices cliente", {
+  data <- data.frame(
+    CodPulso = c("A1", "A2", "A3", "A1", "A2", "A3"),
+    Status = c("", "", "", "Rechazo", "Rechazo", "Efectivo"),
+    Fecha = c("", "", "", "2026-06-01", "2026-06-01", "2026-06-02"),
+    Responsable = c("", "", "", "Ana", "Luis", "Ana"),
+    .source_role = c(rep("universo", 3), rep("barrido", 3)),
+    .source_label = c(
+      rep("Base - Egresados", 3),
+      rep("Barrido telefonico - Egresados", 3)
+    ),
+    dim_actor = rep("Egresados", 6),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Egresados", label = "Egresados")),
+      key_rules = list(
+        universe_fields = c("CodPulso"),
+        automatic_detection = FALSE
+      )
+    )
+  ), data)
+
+  dashboard <- monitoreo_build_dashboard(data, cfg)
+  resumen <- dashboard$acreditacion_reports$sheets[[1]]$blocks[[1]]$rows[[1]]
+  expect_equal(resumen$Rechazos, 0L)
+  expect_equal(resumen$`Rechazos plataforma`, 0L)
+  expect_equal(resumen$`Rechazos telefónicos`, 2L)
+
+  publication <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "client",
+    dashboard = dashboard,
+    synced_at = "2026-06-02T10:00:00Z"
+  )
+  client_model <- build_client_sheets_progress_model(publication)
+  actor_rows <- .monitoreo_workbook_df(client_model$avance_por_actor$rows)
+  daily_rows <- .monitoreo_workbook_df(client_model$avance_diario$rows)
+  channel_rows <- .monitoreo_workbook_df(client_model$avance_por_canal_fuente$rows)
+
+  expect_equal(as.integer(actor_rows$Rechazo[actor_rows$Actor == "Egresados"]), 0L)
+  expect_equal(sum(as.integer(daily_rows$Rechazos), na.rm = TRUE), 0L)
+  expect_equal(sum(as.integer(channel_rows$`Rechazos plataforma`), na.rm = TRUE), 0L)
+})
+
+test_that("fallback generico de rechazo no pisa estados telefonicos", {
+  actors <- data.frame(
+    Actor = "Egresados",
+    Universo = 3L,
+    Efectivas = 1L,
+    Parciales = 0L,
+    Rechazos = 2L,
+    `Rechazos telefónicos` = 2L,
+    `Sin respuesta` = 2L,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  daily_general <- data.frame(
+    Fecha = "2026-06-01",
+    Efectivas = 1L,
+    Parciales = 0L,
+    Rechazos = 2L,
+    `Rechazos telefónicos` = 2L,
+    Acumulado = 1L,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  daily_actor <- data.frame(
+    Fecha = "2026-06-01",
+    Actor = "Egresados",
+    Efectivas = 1L,
+    Parciales = 0L,
+    Rechazos = 2L,
+    `Rechazos telefónicos` = 2L,
+    Acumulado = 1L,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  frames <- list(actors = actors, daily_general = daily_general, daily_actor = daily_actor)
+
+  totals <- .monitoreo_publication_accreditation_totals(frames)
+  actor_rows <- .monitoreo_publication_accreditation_actor_df(frames, audience = "client")
+  daily_rows <- .monitoreo_publication_accreditation_daily_df(frames, audience = "client")
+  status_rows <- .monitoreo_acreditacion_status_table_from_client_daily(daily_general)
+
+  expect_equal(totals$refusals, 0)
+  expect_equal(as.integer(actor_rows$Rechazo[[1]]), 0L)
+  expect_equal(sum(as.integer(daily_rows$Rechazos), na.rm = TRUE), 0L)
+  expect_false("Rechazo" %in% as.character(status_rows$Estado %||% character(0)))
+
+  platform_frames <- frames
+  platform_frames$actors$`Rechazos plataforma` <- 1L
+  expect_equal(.monitoreo_publication_accreditation_totals(platform_frames)$refusals, 1)
+})
+
+test_that("PDF cliente territorial usa conteos del Sheets cliente", {
+  fixture <- monitoreo_publish_qa_fixture("territorial")
+  model <- monitoreo_publication_model(
+    fixture$data,
+    fixture$config,
+    audience = "client",
+    dashboard = fixture$dashboard,
+    synced_at = fixture$synced_at,
+    context = list()
+  )
+  client_tabs <- monitoreo_publication_sheets_tabs(
+    fixture$data,
+    fixture$config,
+    audience = "client",
+    dashboard = fixture$dashboard,
+    synced_at = fixture$synced_at,
+    context = list()
+  )
+  district_rows <- client_tabs[["Avance por distrito"]][-1]
+  district_effective <- vapply(district_rows, function(row) {
+    suppressWarnings(as.numeric(row[["Efectivas"]] %||% NA_real_))
+  }, numeric(1))
+  expected_total <- sum(district_effective, na.rm = TRUE)
+
+  pdf_path <- tempfile(fileext = ".pdf")
+  out <- monitoreo_territorial_advance_report_pdf(model, pdf_path, include_targets = FALSE)
+
+  expect_equal(out, pdf_path)
+  expect_true(file.exists(pdf_path))
+  expect_gt(file.info(pdf_path)$size, 1000)
+
+  pdf_text <- .monitoreo_publish_qa_pdf_text(pdf_path)
+  testthat::skip_if(is.null(pdf_text), "No PDF text extractor available")
+  expect_true(grepl("Documento de avance", pdf_text, fixed = TRUE))
+  expect_true(grepl("Avance del recojo territorial", pdf_text, fixed = TRUE))
+  expect_true(grepl("Corte 18 jun. 2026", pdf_text, fixed = TRUE))
+  expect_true(grepl("Fuente: información de campo", pdf_text, fixed = TRUE))
+  expect_true(grepl(paste0("ENCUESTAS\n", expected_total), pdf_text, fixed = TRUE))
+  for (value in district_effective) {
+    expect_true(grepl(paste0("ENCUESTAS\n", as.integer(value)), pdf_text, fixed = TRUE))
+  }
+  expect_false(grepl("TER-RAW|GPS y territorio|Casos accionables|Auditoría técnica|_uuid|\\.source_id", pdf_text))
 })
 
 test_that("fixtures QA cubren familias de monitoreo y datos centinela", {
@@ -164,8 +416,98 @@ test_that("QA de publicaciones genera XLSX separados por familia y audiencia", {
     expect_true(isTRUE(artifact$checks$checks$cumulative_progress_ok), info = name)
     expect_true(isTRUE(artifact$checks$checks$xlsx_has_freeze), info = name)
     expect_true(isTRUE(artifact$checks$checks$xlsx_has_filter), info = name)
+    expect_true(isTRUE(artifact$checks$checks$xlsx_hydrated_sheets), info = name)
+    expect_true(isTRUE(artifact$checks$checks$xlsx_sheet_min_rows), info = name)
+    expect_true(isTRUE(artifact$checks$checks$xlsx_sheet_min_cols), info = name)
+    expect_true(isTRUE(artifact$checks$checks$xlsx_required_sections), info = name)
+    expect_true(isTRUE(artifact$checks$checks$xlsx_no_missing_parts), info = name)
     expect_identical(openxlsx::getSheetNames(artifact$workbook), unlist(artifact$tab_order, use.names = FALSE))
   }
+
+  territorial_internal <- report$artifacts[["territorial-internal"]]
+  occurrences_text <- paste(unlist(openxlsx::read.xlsx(
+    territorial_internal$workbook,
+    sheet = "Ocurrencias de campo",
+    colNames = FALSE,
+    skipEmptyRows = FALSE,
+    skipEmptyCols = FALSE
+  ), use.names = FALSE), collapse = "\n")
+  expect_true(grepl("RESUMEN DE OCURRENCIAS", occurrences_text, fixed = TRUE))
+  expect_true(grepl("RANKING POR CATEGORÍA", occurrences_text, fixed = TRUE))
+  expect_true(grepl("ESTADO POR UMP", occurrences_text, fixed = TRUE))
+  expect_false(grepl("Estado\\nSin dato", occurrences_text))
+})
+
+test_that("workbook reutiliza tabs precomputadas sin recalcularlas", {
+  testthat::skip_if_not_installed("openxlsx")
+  fixture <- monitoreo_publish_qa_fixture("territorial")
+  tabs <- monitoreo_publication_sheets_tabs(
+    fixture$data,
+    fixture$config,
+    audience = "internal",
+    dashboard = fixture$dashboard,
+    synced_at = fixture$synced_at
+  )
+  out <- tempfile(fileext = ".xlsx")
+
+  target_env <- environment(monitoreo_publication_workbook)
+  previous <- get("monitoreo_publication_sheets_tabs", envir = target_env)
+  was_locked <- bindingIsLocked("monitoreo_publication_sheets_tabs", target_env)
+  if (was_locked) unlockBinding("monitoreo_publication_sheets_tabs", target_env)
+  assign("monitoreo_publication_sheets_tabs", function(...) stop("tabs should be precomputed", call. = FALSE), envir = target_env)
+  if (was_locked) lockBinding("monitoreo_publication_sheets_tabs", target_env)
+  on.exit({
+    if (bindingIsLocked("monitoreo_publication_sheets_tabs", target_env)) {
+      unlockBinding("monitoreo_publication_sheets_tabs", target_env)
+    }
+    assign("monitoreo_publication_sheets_tabs", previous, envir = target_env)
+    if (was_locked) lockBinding("monitoreo_publication_sheets_tabs", target_env)
+  }, add = TRUE)
+
+  expect_equal(
+    monitoreo_publication_workbook(
+      fixture$data,
+      fixture$config,
+      path = out,
+      audience = "internal",
+      dashboard = fixture$dashboard,
+      synced_at = fixture$synced_at,
+      sheets = tabs
+    ),
+    out
+  )
+  expect_true(file.exists(out))
+  expect_identical(openxlsx::getSheetNames(out), names(tabs))
+  checks <- .monitoreo_publish_qa_xlsx_checks(
+    out,
+    .monitoreo_publish_qa_expected_tabs("territorial", "internal"),
+    "internal",
+    family = "territorial"
+  )
+  expect_true(all(vapply(checks, isTRUE, logical(1))))
+})
+
+test_that("cache territorial interna conserva tablas comunes", {
+  fixture <- monitoreo_publish_qa_fixture("territorial")
+  reports <- fixture$dashboard$territorial_reports
+  reports$config <- fixture$config
+
+  routes <- .monitoreo_publication_territorial_route_rows_df(reports)
+  audit <- .monitoreo_publication_territorial_audit_with_groups(reports, routes)
+  quota <- .monitoreo_publication_territorial_ump_quota_df(reports)
+  route_blocks <- .monitoreo_publication_gps_route_blocks_df(reports)
+  gps <- .monitoreo_publication_gps_df(reports, "internal")
+  master <- .monitoreo_publication_territorial_master_df(fixture$data, reports)
+
+  cached_reports <- reports
+  cached_reports$.publication_cache <- .monitoreo_publication_territorial_common_cache(reports)
+
+  expect_equal(.monitoreo_publication_territorial_route_rows_df(cached_reports), routes)
+  expect_equal(.monitoreo_publication_territorial_audit_with_groups(cached_reports), audit)
+  expect_equal(.monitoreo_publication_territorial_ump_quota_df(cached_reports), quota)
+  expect_equal(.monitoreo_publication_gps_route_blocks_df(cached_reports), route_blocks)
+  expect_equal(.monitoreo_publication_gps_df(cached_reports, "internal"), gps)
+  expect_equal(.monitoreo_publication_territorial_master_df(fixture$data, cached_reports), master)
 })
 
 test_that("cliente excluye señales internas y el interno preserva operación completa", {
@@ -203,7 +545,7 @@ test_that("cliente excluye señales internas y el interno preserva operación co
 })
 
 test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
-  data <- data.frame(
+  responses <- data.frame(
     CodPulso = c("A1", "A2", "A3", "A4", "A5"),
     response_status = c("completed", "completed", "partial", "completed", "completed"),
     date_modified = c(
@@ -230,6 +572,16 @@ test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+  base <- responses
+  base$response_status <- ""
+  base$date_modified <- ""
+  base$.source_role <- "universo"
+  base$.source_label <- paste("Universo", base$dim_actor)
+  base$.source_id <- paste0("universo-", seq_len(nrow(base)))
+  base$collector_id <- ""
+  base$collector_name <- ""
+  base$collector_type <- ""
+  data <- rbind(base, responses)
   cfg <- monitoreo_normalize_config(list(
     monitoreo_profile = list(family = "acreditacion", variant = "multi_actor")
   ), data)
@@ -301,7 +653,12 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
     "Tabla maestra", "Resumen territorial", "Ritmo diario", "Ocurrencias de campo", "Casos accionables"
   ) %in% names(tabs)))
-  expect_equal(names(tabs)[seq_len(3L)], c("Portada", "Tabla maestra", "Resumen territorial"))
+  expect_equal(names(tabs), c(
+    "Portada", "Resumen territorial", "Ritmo diario", "Tabla maestra",
+    "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
+    "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
+    "Base técnica", "Auditoría técnica", "Casos accionables", "Anulaciones"
+  ))
   expect_false("Fuentes y actualización" %in% names(tabs))
   expect_false(any(c("Cuotas por manzana", "Llenado sexo y edad", "Ocurrencias en campo") %in% names(tabs)))
 
@@ -356,15 +713,16 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
   quota_headers <- .monitoreo_sheets_table_header_rows(quota_rows)
   quota_header_index <- .monitoreo_sheets_filter_header_index("Cuotas sexo y edad", quota_rows, quota_headers)
   quota_header <- quota_rows[[quota_header_index]]
-  expect_equal(match("Último ingreso", quota_header), match("Manzana", quota_header) + 1L)
+  expect_equal(match("Último ingreso", quota_header), match("UMP titular", quota_header) + 1L)
   expect_true(grepl("TARJETAS EJECUTIVAS", text_tab("Resumen territorial"), fixed = TRUE))
-  expect_true(grepl("Efectivas poblacionales", text_tab("Resumen territorial"), fixed = TRUE))
-  expect_true(grepl("UMP falta cuota", text_tab("Resumen territorial"), fixed = TRUE))
+  expect_true(grepl("Encuestas válidas", text_tab("Resumen territorial"), fixed = TRUE))
+  expect_true(grepl("Cuota pendiente", text_tab("Resumen territorial"), fixed = TRUE))
   expect_true(grepl("UMP pendientes", text_tab("Resumen territorial"), fixed = TRUE))
-  expect_false(grepl("UMP por aplicar|UMP con exceso|UMP no iniciadas|Completa con exceso|Excedida|exceso", text_tab("Resumen territorial")))
+  expect_true(grepl("UMP no iniciadas", text_tab("Resumen territorial"), fixed = TRUE))
+  expect_false(grepl("UMP por aplicar|UMP con exceso|Completa con exceso|Excedida|exceso", text_tab("Resumen territorial")))
   expect_true(grepl("TOTAL", text_tab("Resumen territorial"), fixed = TRUE))
   expect_true(grepl("PRODUCCIÓN POR ENCUESTADOR", text_tab("Resumen territorial"), fixed = TRUE))
-  expect_true(grepl("UMP completas cumpliendo cuota", text_tab("Resumen territorial"), fixed = TRUE))
+  expect_true(grepl("UMP cerradas por titular o reemplazo", text_tab("Resumen territorial"), fixed = TRUE))
   expect_false(grepl("MATRIZ DIARIA POR ESTADO|Estado / Fecha", text_tab("Ritmo diario")))
   expect_true(grepl("UMP FINALIZADAS POR DÍA", text_tab("Ritmo diario"), fixed = TRUE))
   expect_true(grepl("UMP finalizadas en el día", text_tab("Ritmo diario"), fixed = TRUE))
@@ -444,37 +802,43 @@ test_that("Sheets territorial usa UMP titular, cuota 8 y reemplazos sin uso no p
   )
 
   quota <- .monitoreo_publication_territorial_quota_df(reports)
-  expect_equal(nrow(quota), 3L)
-  expect_equal(quota$`Cuota esperada`[quota$UMP == "UMP-1"], 8L)
-  expect_equal(quota$`Estado cuota`[quota$UMP == "UMP-1"], "Completa")
+  expect_equal(nrow(quota), 4L)
+  quota_titular <- quota[quota$Tipo == "Titular", , drop = FALSE]
+  quota_replacement <- quota[quota$Tipo == "Reemplazo", , drop = FALSE]
+  expect_equal(nrow(quota_titular), 3L)
+  expect_equal(quota_titular$`Cuota esperada`[quota_titular$UMP == "UMP-1"], 8L)
+  expect_equal(quota_titular$`Estado cuota`[quota_titular$UMP == "UMP-1"], "Completa")
+  expect_equal(quota_replacement$`Estado cuota`, "No iniciada")
   expect_equal(quota$`Estado cuota`[quota$UMP == "UMP-2"], "Completa")
   expect_equal(quota$`Cumple cuota`[quota$UMP == "UMP-2"], "Sí")
   expect_equal(quota$`Estado cuota`[quota$UMP == "UMP-3"], "No iniciada")
 
   routes <- .monitoreo_publication_territorial_routes_df(reports)
-  expect_true(any(routes$Tipo == "Reemplazo sin uso"))
-  expect_false(any(routes$Tipo == "Reemplazo sin uso" & routes$`Estado UMP` == "No iniciada"))
+  expect_true(any(routes$Tipo == "Reemplazo"))
+  expect_true(any(routes$`Estado reemplazo` == "Reemplazo sin uso"))
+  expect_true(any(routes$Tipo == "Reemplazo" & routes$`Estado UMP` == "Reemplazo sin uso"))
   titulares <- routes[routes$Tipo == "Titular", , drop = FALSE]
   expect_equal(titulares$`UMP titular`, c("UMP-1", "UMP-2", "UMP-3"))
   expect_equal(titulares$Rango, c("1-8", "9-16", "17-24"))
-  expect_equal(routes$Rango[routes$Tipo == "Reemplazo sin uso"], "1-8")
+  expect_equal(routes$Rango[routes$`Estado reemplazo` == "Reemplazo sin uso"], "1-8")
 
   summary <- .monitoreo_publication_route_summary_df(routes)
-  expect_equal(as.integer(summary$Valor[summary$Indicador == "UMP completas"]), 2L)
+  expect_equal(as.integer(summary$Valor[summary$Indicador == "UMP efectivas"]), 2L)
   expect_equal(as.integer(summary$Valor[summary$Indicador == "UMP no iniciadas"]), 1L)
   expect_equal(as.integer(summary$Valor[summary$Indicador == "Reemplazos disponibles"]), 1L)
 
   responsible <- .monitoreo_publication_responsible_routes_df(reports)
   planned <- .monitoreo_publication_block_df(responsible, "Asignación planificada")
-  expect_equal(planned$UMP, c("UMP-1", "UMP-2", "UMP-3"))
+  expect_equal(planned$UMP, c("UMP 1", "UMP 2", "UMP 3"))
   expect_equal(planned$Rango, c("1-8", "9-16", "17-24"))
   expect_true(all(paste("Encuesta", 1:15) %in% names(planned)))
   expect_false("Encuestas extra" %in% names(planned))
-  expect_false(any(c("Reemplazos disponibles", "Fuente asignación") %in% names(planned)))
-  expect_equal(planned$`Encuesta 8`[planned$UMP == "UMP-3"], "Pendiente")
-  expect_equal(planned$`Encuesta 9`[planned$UMP == "UMP-3"], "")
-  expect_equal(planned$`Encuesta 9`[planned$UMP == "UMP-2"], "Completa")
-  expect_equal(planned$`Encuesta 10`[planned$UMP == "UMP-2"], "")
+  expect_true(all(c("Reemplazos disponibles", "Reemplazos usados", "Reemplazos") %in% names(planned)))
+  expect_false("Fuente asignación" %in% names(planned))
+  expect_equal(planned$`Encuesta 8`[planned$UMP == "UMP 3"], "Pendiente")
+  expect_equal(planned$`Encuesta 9`[planned$UMP == "UMP 3"], "")
+  expect_equal(planned$`Encuesta 9`[planned$UMP == "UMP 2"], "Completa")
+  expect_equal(planned$`Encuesta 10`[planned$UMP == "UMP 2"], "")
   expect_false("UMP asignadas" %in% names(planned))
   expect_false(any(grepl(" estado$", names(planned), ignore.case = TRUE)))
 })
@@ -544,7 +908,7 @@ test_that("formateo Sheets territorial genera estados, secciones y un filtro por
     `Estado cuota` = c("Completa", "En campo", "Cuota pendiente", "No iniciada"),
     check.names = FALSE
   ))
-  expect_equal(quota_status_summary$`Estado cuota`, c("Completas", "En campo", "Cuota pendiente", "No iniciada"))
+  expect_equal(quota_status_summary$`Estado cuota`, c("Completas", "Subsanadas", "En campo", "Cuota pendiente", "No iniciada"))
   expect_false(any(quota_status_summary$`Estado cuota` %in% c("Falta cuota", "Pendiente")))
   expect_equal(.monitoreo_publication_date_label_scalar("2026-06-16"), "16 Junio")
   expect_equal(.monitoreo_publication_latest_date_label(c("15 Junio", "2026-06-16", "14 de Junio")), "16 Junio")
@@ -592,7 +956,8 @@ test_that("formateo Sheets territorial genera estados, secciones y un filtro por
   responsible_header <- responsible_rows[[responsible_header_index]]
   expect_true(all(paste("Encuesta", 1:15) %in% responsible_header))
   expect_false("Encuestas extra" %in% responsible_rows[[responsible_header_index]])
-  expect_false(any(c("Reemplazos disponibles", "Fuente asignación") %in% responsible_header))
+  expect_true(all(c("Reemplazos disponibles", "Reemplazos usados", "Reemplazos") %in% responsible_header))
+  expect_false("Fuente asignación" %in% responsible_header)
   expect_false("UMP asignadas" %in% responsible_rows[[responsible_header_index]])
   expect_lt(match("Estado UMP", responsible_header), match("Última actividad", responsible_header))
   expect_equal(match("Última actividad", responsible_header) + 1L, match("Encuesta 1", responsible_header))

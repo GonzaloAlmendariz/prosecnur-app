@@ -5,14 +5,12 @@ const acreditacionProfile: MonitoreoFamilyModule = {
   chunk: "monitoreo-acreditacion",
   label: "Acreditacion",
   views: ["fuentes", "modelo", "consultas", "telefonico", "avance"],
-  // Mantener acreditación en la experiencia canónica completa de Monitoreo,
-  // la misma superficie donde vive territorial.
-  loadPage: () => import("../../MonitoreoPage"),
-  warmupScopes: ["source", "advance_summary", "queries_summary"],
+  loadPage: () => import("./AcreditacionMonitoreoPage"),
+  warmupScopes: ["source", "advance_summary", "queries_summary", "phone_summary"],
   reportScopes: {
     fuentes: "source",
     consultas: "queries_summary",
-    telefonico: "full",
+    telefonico: "phone_summary",
     avance: "advance_summary",
   },
 };

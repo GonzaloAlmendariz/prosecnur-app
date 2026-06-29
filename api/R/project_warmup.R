@@ -21,7 +21,7 @@
   "enciclopedia"
 )
 
-.project_warmup_default_budget_ms <- 90000L
+.project_warmup_default_budget_ms <- 320000L
 
 .project_warmup_budget_ms <- function(budget_ms = .project_warmup_default_budget_ms) {
   value <- suppressWarnings(as.numeric(budget_ms %||% .project_warmup_default_budget_ms))
@@ -85,6 +85,76 @@
   setTimeLimit(elapsed = seconds, transient = TRUE)
   on.exit(setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE), add = TRUE)
   force(expr)
+}
+
+.project_warmup_child_progress <- function(progress_path, task_index, total_tasks, module = "") {
+  report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
+  total_tasks <- max(1L, as.integer(total_tasks %||% 1L))
+  task_index <- max(1L, min(total_tasks, as.integer(task_index %||% 1L)))
+  start_pct <- 5 + 90 * (task_index - 1L) / total_tasks
+  end_pct <- 5 + 90 * task_index / total_tasks
+  function(phase = "running", current = NULL, total = NULL, percent = NULL, message = NULL) {
+    child_pct <- suppressWarnings(as.numeric(percent %||% NA_real_))
+    if (!is.finite(child_pct) && !is.null(current) && !is.null(total)) {
+      current_num <- suppressWarnings(as.numeric(current))
+      total_num <- suppressWarnings(as.numeric(total))
+      if (is.finite(current_num) && is.finite(total_num) && total_num > 0) {
+        child_pct <- 100 * current_num / total_num
+      }
+    }
+    if (!is.finite(child_pct)) child_pct <- 0
+    child_pct <- max(0, min(100, child_pct))
+    mapped_pct <- round(start_pct + (end_pct - start_pct) * child_pct / 100)
+    report(
+      phase = phase,
+      current = current,
+      total = total,
+      percent = mapped_pct,
+      message = message %||% sprintf("Preparando %s...", module)
+    )
+  }
+}
+
+.project_warmup_phase_progress <- function(progress, phase_index, phase_total, phase_label = "") {
+  if (!is.function(progress)) return(NULL)
+  phase_total <- max(1L, as.integer(phase_total %||% 1L))
+  phase_index <- max(1L, min(phase_total, as.integer(phase_index %||% 1L)))
+  function(phase = "running", current = NULL, total = NULL, percent = NULL, message = NULL) {
+    child_pct <- suppressWarnings(as.numeric(percent %||% NA_real_))
+    if (!is.finite(child_pct) && !is.null(current) && !is.null(total)) {
+      current_num <- suppressWarnings(as.numeric(current))
+      total_num <- suppressWarnings(as.numeric(total))
+      if (is.finite(current_num) && is.finite(total_num) && total_num > 0) {
+        child_pct <- 100 * current_num / total_num
+      }
+    }
+    if (!is.finite(child_pct)) child_pct <- 0
+    child_pct <- max(0, min(100, child_pct))
+    mapped_pct <- round(100 * ((phase_index - 1L) + child_pct / 100) / phase_total)
+    progress(
+      phase = phase,
+      current = current,
+      total = total,
+      percent = mapped_pct,
+      message = message %||% phase_label
+    )
+  }
+}
+
+.project_warmup_monitoreo_cache_patch <- function(sid, scopes = character(0)) {
+  s <- session_get(sid)
+  patch <- list(
+    monitoreo_dashboard_light_cache = s$monitoreo_dashboard_light_cache %||% NULL,
+    monitoreo_dashboard_light_cache_token = s$monitoreo_dashboard_light_cache_token %||% NULL
+  )
+  for (scope in unique(as.character(scopes))) {
+    if (!nzchar(scope)) next
+    cache_field <- paste("monitoreo_dashboard_cache", scope, sep = "_")
+    token_field <- paste("monitoreo_dashboard_cache_token", scope, sep = "_")
+    patch[[cache_field]] <- s[[cache_field]] %||% NULL
+    patch[[token_field]] <- s[[token_field]] %||% NULL
+  }
+  patch
 }
 
 .project_warmup_session_summary <- function(sid) {
@@ -399,7 +469,7 @@
   invisible(changed)
 }
 
-.project_warmup_monitoreo_territorial <- function(sid) {
+.project_warmup_monitoreo_territorial <- function(sid, progress = NULL) {
   family <- .project_warmup_monitoreo_family(sid)
   if (!identical(family, "territorial")) {
     return(.project_warmup_skip("El proyecto no usa perfil territorial."))
@@ -422,12 +492,24 @@
 
   results <- setNames(vector("list", length(phases)), phases)
   on.exit(.project_warmup_restore_territorial_phase(sid, original_phase), add = TRUE)
-  for (phase in phases) {
+  for (idx in seq_along(phases)) {
+    phase <- phases[[idx]]
+    phase_progress <- .project_warmup_phase_progress(
+      progress,
+      phase_index = idx,
+      phase_total = length(phases),
+      phase_label = if (identical(phase, "field")) {
+        "Preparando seguimiento de campo..."
+      } else {
+        "Preparando seguimiento piloto..."
+      }
+    )
     results[[phase]] <- .monitoreo_territorial_prewarm_scopes(
       sid,
       phase = phase,
       scopes = scopes,
-      progress_path = NULL
+      progress_path = NULL,
+      progress = phase_progress
     )
   }
   .project_warmup_restore_territorial_phase(sid, original_phase)
@@ -458,7 +540,20 @@
   )
 }
 
-.project_warmup_monitoreo <- function(sid, remaining_ms = .project_warmup_default_budget_ms) {
+.project_warmup_monitoreo_scope_message <- function(scope, family = "") {
+  if (identical(scope, "source")) return("Leyendo fuentes de Monitoreo...")
+  if (identical(scope, "advance_summary")) return("Preparando avance y cuotas...")
+  if (identical(scope, "queries_summary")) return("Preparando consultas de revisión...")
+  if (identical(scope, "phone_summary")) return("Preparando tablero telefónico...")
+  if (identical(scope, "route_summary")) return("Ordenando hojas de ruta...")
+  if (identical(scope, "validation_summary")) return("Revisando validaciones...")
+  if (identical(family, "territorial")) return("Preparando Monitoreo territorial...")
+  "Preparando Monitoreo..."
+}
+
+.project_warmup_monitoreo <- function(sid,
+                                      remaining_ms = .project_warmup_default_budget_ms,
+                                      progress = NULL) {
   if (!exists(".monitoreo_state_payload", mode = "function")) {
     return(.project_warmup_skip("Modulo no disponible."))
   }
@@ -469,6 +564,16 @@
   family <- .project_warmup_monitoreo_family(sid)
   if (identical(family, "acreditacion")) {
     started_at <- Sys.time()
+    scopes <- c("source", "advance_summary", "queries_summary", "phone_summary")
+    if (is.function(progress)) {
+      progress(
+        phase = "running",
+        current = 0L,
+        total = length(scopes),
+        percent = 2,
+        message = "Preparando Monitoreo..."
+      )
+    }
     light_state <- tryCatch(
       .project_warmup_with_elapsed_limit(
         .monitoreo_state_payload(sid, include_reports = FALSE),
@@ -477,37 +582,90 @@
       ),
       error = function(e) NULL
     )
-    state <- .project_warmup_with_elapsed_limit(
-      .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary"),
-      remaining_ms - .project_warmup_elapsed_ms(started_at),
-      reserve_ms = 1500L
-    )
-    reports <- state$dashboard$acreditacion_reports %||% list()
-    client_report <- reports$client_report %||% list()
-    summary <- client_report$summary %||% list()
-    actors <- client_report$actors %||% list()
-    daily_general <- client_report$daily_general %||% list()
-    s_final <- session_get(sid)
+    last_state <- light_state
+    scope_results <- lapply(seq_along(scopes), function(idx) {
+      scope <- scopes[[idx]]
+      if (is.function(progress)) {
+        progress(
+          phase = "running",
+          current = idx,
+          total = length(scopes),
+          percent = round(100 * (idx - 0.5) / max(length(scopes), 1L)),
+          message = .project_warmup_monitoreo_scope_message(scope, family)
+        )
+      }
+      scope_started <- Sys.time()
+      remaining_scope_ms <- remaining_ms - .project_warmup_elapsed_ms(started_at)
+      if (!is.finite(remaining_scope_ms) || remaining_scope_ms <= 2000L) {
+        return(list(
+          scope = scope,
+          status = "timeout",
+          elapsed_ms = .project_warmup_elapsed_ms(scope_started),
+          message = "Sin tiempo suficiente para hidratar este scope antes de entrar a Monitoreo."
+        ))
+      }
+      tryCatch({
+        state <- .project_warmup_with_elapsed_limit(
+          .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = scope),
+          remaining_scope_ms,
+          reserve_ms = 1500L
+        )
+        last_state <<- state
+        reports <- state$dashboard$acreditacion_reports %||% list()
+        client_report <- reports$client_report %||% list()
+        list(
+          scope = reports$report_scope %||% scope,
+          status = "ready",
+          elapsed_ms = .project_warmup_elapsed_ms(scope_started),
+          n_rows = as.integer(state$n_rows %||% light_state$n_rows %||% 0L),
+          summary_ready = length(client_report$summary %||% list()) > 0L,
+          actors_ready = length(client_report$actors %||% list()) > 0L,
+          daily_general_ready = length(client_report$daily_general %||% list()) > 0L
+        )
+      }, error = function(e) {
+        message <- conditionMessage(e)
+        list(
+          scope = scope,
+          status = if (grepl("tiempo|time limit|elapsed", message, ignore.case = TRUE)) "timeout" else "error",
+          elapsed_ms = .project_warmup_elapsed_ms(scope_started),
+          message = .project_warmup_compact(message, 220)
+        )
+      })
+    })
+    scope_status <- vapply(scope_results, function(item) as.character(item$status %||% ""), character(1))
+    ready <- all(scope_status == "ready")
+    if (is.function(progress)) {
+      progress(
+        phase = if (isTRUE(ready)) "done" else "running",
+        current = length(scopes),
+        total = length(scopes),
+        percent = 100,
+        message = if (isTRUE(ready)) "Monitoreo listo para entrar." else "Monitoreo parcialmente preparado."
+      )
+    }
     return(list(
-      status = "ready",
-      message = "Avance de monitoreo preparado.",
+      status = if (ready) "ready" else if (any(scope_status == "ready")) "timeout" else "error",
+      message = if (ready) "Monitoreo de acreditacion preparado." else "Monitoreo de acreditacion quedo parcialmente preparado.",
       details = list(
-      family = family,
-      scope = reports$report_scope %||% "advance_summary",
-      n_rows = as.integer(state$n_rows %||% light_state$n_rows %||% 0L),
-      summary_ready = length(summary) > 0L,
-      actors_ready = length(actors) > 0L,
-      daily_general_ready = length(daily_general) > 0L
+        family = family,
+        scopes = unname(scope_results),
+        ready_scopes = unname(vapply(scope_results, function(item) as.character(item$scope %||% ""), character(1))[scope_status == "ready"]),
+        pending_scopes = unname(vapply(scope_results, function(item) as.character(item$scope %||% ""), character(1))[scope_status != "ready"]),
+        n_rows = as.integer(last_state$n_rows %||% light_state$n_rows %||% 0L)
       ),
       session_patch = list(
-        monitoreo = list(
-          monitoreo_dashboard_light_cache = s_final$monitoreo_dashboard_light_cache %||% NULL,
-          monitoreo_dashboard_light_cache_token = s_final$monitoreo_dashboard_light_cache_token %||% NULL,
-          monitoreo_dashboard_cache_advance_summary = s_final$monitoreo_dashboard_cache_advance_summary %||% NULL,
-          monitoreo_dashboard_cache_token_advance_summary = s_final$monitoreo_dashboard_cache_token_advance_summary %||% NULL
-        )
+        monitoreo = .project_warmup_monitoreo_cache_patch(sid, scopes)
       )
     ))
+  }
+  if (is.function(progress)) {
+    progress(
+      phase = "done",
+      current = 1L,
+      total = 1L,
+      percent = 100,
+      message = "Monitoreo listo para entrar."
+    )
   }
   .project_warmup_ready("Configuracion local de monitoreo disponible.", list(
     family = family,
@@ -657,15 +815,15 @@
     list(
       id = "monitoreo",
       module = "Monitoreo",
-      run = function(sid, remaining_ms) {
-        .project_warmup_monitoreo(sid, remaining_ms = remaining_ms)
+      run = function(sid, remaining_ms, progress = NULL) {
+        .project_warmup_monitoreo(sid, remaining_ms = remaining_ms, progress = progress)
       }
     ),
     list(
       id = "monitoreo_territorial",
       module = "Monitoreo territorial",
-      run = function(sid, remaining_ms) {
-        .project_warmup_monitoreo_territorial(sid)
+      run = function(sid, remaining_ms, progress = NULL) {
+        .project_warmup_monitoreo_territorial(sid, progress = progress)
       }
     ),
     list(
@@ -719,10 +877,14 @@
   )
 }
 
-.project_warmup_execute_task <- function(task, sid, remaining_ms) {
+.project_warmup_execute_task <- function(task, sid, remaining_ms, progress = NULL) {
   task_started <- Sys.time()
   tryCatch({
-    raw <- task$run(sid, remaining_ms)
+    raw <- if ("progress" %in% names(formals(task$run))) {
+      task$run(sid, remaining_ms, progress = progress)
+    } else {
+      task$run(sid, remaining_ms)
+    }
     status <- as.character(raw$status %||% "ready")
     if (!status %in% c("ready", "skipped", "timeout", "error")) status <- "ready"
     details <- raw$details %||% raw
@@ -800,11 +962,29 @@
       percent = round(5 + 90 * (idx - 1) / max(total, 1L)),
       message = sprintf("Preparando %s...", tasks[[idx]]$module)
     )
-    executed <- .project_warmup_execute_task(tasks[[idx]], sid, remaining_ms = remaining)
+    task_progress <- .project_warmup_child_progress(
+      progress_path,
+      task_index = idx,
+      total_tasks = total,
+      module = tasks[[idx]]$module
+    )
+    executed <- .project_warmup_execute_task(
+      tasks[[idx]],
+      sid,
+      remaining_ms = remaining,
+      progress = task_progress
+    )
     results[[tasks[[idx]]$id]] <- executed$item
     if (is.list(executed$session_patch) && length(executed$session_patch)) {
       session_patch[[tasks[[idx]]$id]] <- executed$session_patch
     }
+    report(
+      "running",
+      current = idx,
+      total = total,
+      percent = round(5 + 90 * idx / max(total, 1L)),
+      message = sprintf("%s preparado.", tasks[[idx]]$module)
+    )
   }
 
   status_values <- vapply(results, function(item) as.character(item$status %||% ""), character(1))
@@ -872,7 +1052,9 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
       "monitoreo_dashboard_cache_advance_summary",
       "monitoreo_dashboard_cache_token_advance_summary",
       "monitoreo_dashboard_cache_queries_summary",
-      "monitoreo_dashboard_cache_token_queries_summary"
+      "monitoreo_dashboard_cache_token_queries_summary",
+      "monitoreo_dashboard_cache_phone_summary",
+      "monitoreo_dashboard_cache_token_phone_summary"
     )
     territorial_keys <- c("territorial_report_cache", "territorial_map_cache")
     if (any(monitoreo_keys %in% names(value))) {
@@ -914,7 +1096,9 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
       "monitoreo_dashboard_cache_advance_summary",
       "monitoreo_dashboard_cache_token_advance_summary",
       "monitoreo_dashboard_cache_queries_summary",
-      "monitoreo_dashboard_cache_token_queries_summary"
+      "monitoreo_dashboard_cache_token_queries_summary",
+      "monitoreo_dashboard_cache_phone_summary",
+      "monitoreo_dashboard_cache_token_phone_summary"
     )
     for (key in cache_keys) {
       if (key %in% names(monitoreo) && !is.null(monitoreo[[key]])) {

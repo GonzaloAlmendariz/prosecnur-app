@@ -40,6 +40,10 @@ const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaUiState["active_stage"], number> =
 
 const HOJAS_RUTA_PHASES: HojasRutaPhase[] = ["pilot", "field"];
 const HOJAS_RUTA_DETAILED_CARTOGRAPHY_WARMUP = false;
+const MONITOREO_FULL_PROFILE_WARMUP_TIMEOUT_MS = 300000;
+const MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS = 220000;
+const MONITOREO_TERRITORIAL_SCOPE_TIMEOUT_MS = 180000;
+const MONITOREO_TERRITORIAL_MAP_TIMEOUT_MS = 120000;
 const MONITOREO_TERRITORIAL_SCOPES = [
   "source",
   "route_summary",
@@ -317,12 +321,12 @@ async function warmupMonitoreoLocalData() {
 
     await withTimeout("Monitoreo territorial", settleAllLimited(phases, async (phase) => {
       const job = await api.apiMonitoreoTerritorialPrewarm({ phase, scopes }).catch(() => null);
-      if (job?.job_id) await waitForWarmupJob(api, job.job_id, 30000).catch(() => null);
-    }, 1), 28000);
+      if (job?.job_id) await waitForWarmupJob(api, job.job_id, MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS).catch(() => null);
+    }, 1), MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS);
 
     await withTimeout("Scopes de monitoreo", settleAllLimited(scopes, async (reportScope) => {
       await api.apiMonitoreoState({ includeReports: true, reportScope }).catch(() => null);
-    }, 1), 22000);
+    }, 1), MONITOREO_TERRITORIAL_SCOPE_TIMEOUT_MS);
 
     if (activePhase !== "pilot") {
       await withTimeout("Mapas de monitoreo", settleAllLimited(phases, async (phase) => {
@@ -334,18 +338,37 @@ async function warmupMonitoreoLocalData() {
         await settleAllLimited([...MONITOREO_TERRITORIAL_MAP_LAYERS], async (layer) => {
           await api.apiMonitoreoTerritorialMap({ phase, layer, allowStale: true, prepare: true }).catch(() => null);
         }, 1);
-      }, 1), 22000);
+      }, 1), MONITOREO_TERRITORIAL_MAP_TIMEOUT_MS);
     }
     return { family, profile: familyProfile?.chunk, phases, scopes };
   }
 
-  if (family === "acreditacion" || family === "telefonico") {
+  if (family === "acreditacion") {
+    const scopes = familyProfile?.warmupScopes?.length
+      ? [...familyProfile.warmupScopes]
+      : ["source", "advance_summary", "queries_summary", "phone_summary"];
     await withTimeout(
-      family === "telefonico" ? "Monitoreo telefónico" : "Monitoreo acreditación",
-      api.apiMonitoreoState({ includeReports: true, reportScope: family === "telefonico" ? "full" : "advance_summary", warmupCache: true }).catch(() => null),
+      "Monitoreo acreditación",
+      settleAllLimited(scopes, async (reportScope) => {
+        await api.apiMonitoreoState({ includeReports: true, reportScope, warmupCache: true }).catch(() => null);
+      }, 1),
+      MONITOREO_FULL_PROFILE_WARMUP_TIMEOUT_MS,
+    );
+    return { family, profile: familyProfile?.chunk, scopes };
+  }
+
+  if (family === "telefonico") {
+    const scopes = familyProfile?.warmupScopes?.length
+      ? [...familyProfile.warmupScopes]
+      : ["source", "advance_summary", "phone_summary"];
+    await withTimeout(
+      "Monitoreo telefónico",
+      settleAllLimited(scopes, async (reportScope) => {
+        await api.apiMonitoreoState({ includeReports: true, reportScope, warmupCache: true }).catch(() => null);
+      }, 1),
       45000,
     );
-    return { family, profile: familyProfile?.chunk, scope: family === "telefonico" ? "full" : "advance_summary" };
+    return { family, profile: familyProfile?.chunk, scopes };
   }
 
   if (family === "aulas_universitarias") {
@@ -452,6 +475,11 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     load: () => import("../features/calcMuestra/CalcMuestraPage"),
   },
   {
+    id: "recopiladores",
+    label: "Fichas QR",
+    load: () => import("../features/recopiladores/RecopiladoresPage"),
+  },
+  {
     id: "monitoreo",
     label: "Monitoreo",
     load: () => import("../features/monitoreo/MonitoreoShell"),
@@ -483,6 +511,11 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
       import("../features/enciclopedia/EnciclopediaHome"),
       import("../features/enciclopedia/FichaMetodologica"),
     ]),
+  },
+  {
+    id: "diseno_estudio",
+    label: "Diseño del estudio",
+    load: () => import("../features/disenoEstudio/DisenoEstudioPage"),
   },
   {
     id: "plotly",

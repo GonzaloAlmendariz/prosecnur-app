@@ -57,8 +57,12 @@ const VIEWPORT_PATHS = new Set([
   "/editor-xlsform",
   "/tablero",
   "/calc-muestra",
+  "/diseno-estudio",
+  "/recopiladores",
   "/hojas-ruta",
   "/monitoreo",
+  "/monitoreo/comparar-territorial",
+  "/monitoreo/comparar-acreditacion",
 ]);
 
 function routePolicy(pathname: string): "viewport" | "legacy-scroll" {

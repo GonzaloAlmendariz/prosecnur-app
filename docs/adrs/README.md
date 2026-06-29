@@ -48,5 +48,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0024](0024-monitoreo-subsanaciones-operativas.md) | Aceptado | 2026-06-25 | Monitoreo territorial guarda subsanaciones operativas auditables |
 | [0025](0025-monitoreo-anulacion-produccion-territorial.md) | Aceptado | 2026-06-26 | Monitoreo territorial permite anular produccion localmente |
 | [0026](0026-guardado-explicito-guardia-salida.md) | Aceptado | 2026-06-26 | Prosecnur guarda `.pulso` explicitamente y protege salidas con guardia comun |
+| [0027](0027-diseno-estudio-bitacora-viva.md) | Aceptado | 2026-06-28 | Diseno del estudio reemplaza Enciclopedia como expediente y bitacora viva |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

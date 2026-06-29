@@ -39,6 +39,26 @@
   )
 }
 
+.monitoreo_report_cache_test_schema <- function(asset_uid = "asset_pilot") {
+  list(
+    asset_uid = asset_uid,
+    name = paste("Kobo", asset_uid),
+    version_id = "v-test",
+    deployment_active = TRUE,
+    survey_count = 2L,
+    choices_count = 1L,
+    district_list_name = "district",
+    district_choices = list(list(name = "sjm", label = "SAN JUAN DE MIRAFLORES")),
+    survey_fields = list(
+      list(name = "Core/M5_district", type = "select_one district", label = "Distrito"),
+      list(name = "Core/E1_age", type = "integer", label = "Edad")
+    ),
+    choices_by_list = list(
+      district = list(list(name = "sjm", label = "SAN JUAN DE MIRAFLORES"))
+    )
+  )
+}
+
 .monitoreo_report_cache_test_session <- function(phase = "pilot") {
   sid <- session_create()
   data <- .monitoreo_report_cache_test_data(if (identical(phase, "field")) "src_field" else "src_pilot")
@@ -58,6 +78,10 @@
     asset_uid = if (identical(phase, "field")) "asset_field" else "asset_pilot",
     dimensions = list(territorial_phase = phase)
   )))
+  session_set(sid, "monitoreo_kobo_schemas", list(
+    pilot = .monitoreo_report_cache_test_schema("asset_pilot"),
+    field = .monitoreo_report_cache_test_schema("asset_field")
+  ))
   session_set(sid, "hojas_ruta_runs", .monitoreo_report_cache_test_routes())
   sid
 }
@@ -77,6 +101,38 @@ test_that("cache persistida de reportes territoriales sirve hits por fase y scop
   expect_equal(first$territorial_report_cache$cache_source, "build")
   expect_false(isTRUE(first$territorial_report_cache$cache_hit))
   expect_equal(first$dashboard$territorial_reports$report_scope, "route_summary")
+  expect_equal(first$dashboard$territorial_reports$source_coherence$survey_count, 2L)
+  expect_equal(first$dashboard$territorial_reports$source_coherence$choices_count, 1L)
+  expect_identical(first$dashboard$territorial_reports$source_coherence$survey_fields, list())
+  expect_identical(first$dashboard$territorial_reports$source_coherence$choices_by_list, list())
+  expect_gt(length(first$dashboard$territorial_reports$route_blocks), 0L)
+  expect_gt(length(first$dashboard$territorial_reports$block_progress), 0L)
+  expect_identical(first$dashboard$territorial_reports$advance$district_progress, list())
+  expect_identical(first$dashboard$territorial_reports$advance$block_progress, list())
+  expect_identical(first$dashboard$territorial_reports$map$blocks, list())
+  expect_identical(first$dashboard$territorial_reports$ump_declared_summary$rows, list())
+  expect_identical(first$dashboard$territorial_reports$ump_declared_summary$route_options, list())
+  expect_identical(first$dashboard$territorial_reports$enumerator_code_summary, list())
+
+  advance <- .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary")
+  expect_equal(advance$dashboard$territorial_reports$report_scope, "advance_summary")
+  expect_gt(length(advance$dashboard$territorial_reports$daily), 0L)
+  expect_equal(advance$dashboard$territorial_reports$daily[[1]]$date, "2026-06-01")
+  expect_equal(advance$dashboard$territorial_reports$daily[[1]]$total, 2L)
+  expect_true(
+    advance$dashboard$territorial_reports$daily[[1]]$validas +
+      advance$dashboard$territorial_reports$daily[[1]]$revision <=
+      advance$dashboard$territorial_reports$daily[[1]]$total
+  )
+  expect_gt(length(advance$dashboard$territorial_reports$advance$daily), 0L)
+  expect_identical(advance$dashboard$territorial_reports$response_audit, list())
+  expect_identical(advance$dashboard$territorial_reports$map$blocks, list())
+  expect_identical(advance$dashboard$territorial_reports$map$points, list())
+
+  source_scope <- .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "source")
+  expect_equal(source_scope$dashboard$territorial_reports$report_scope, "source")
+  expect_equal(length(source_scope$dashboard$territorial_reports$source_coherence$survey_fields), 2L)
+  expect_equal(length(source_scope$dashboard$territorial_reports$source_coherence$choices_by_list$district), 1L)
 
   cache <- session_get(sid)$monitoreo_snapshot$territorial_report_cache
   expect_identical(cache$schema, .monitoreo_territorial_report_cache_schema)

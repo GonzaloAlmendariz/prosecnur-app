@@ -10,6 +10,7 @@ import { autoUpdate, flip, FloatingPortal, offset, shift, useFloating } from "@f
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion, useReducedMotion } from "./lightMotion";
 import { MonitoreoOutputsWorkbench } from "./salidas/MonitoreoOutputsWorkbench";
+import { TerritorialOutputsPanel } from "./profiles/territorial/TerritorialOutputsPanel";
 import {
   Activity,
   AlertTriangle,
@@ -266,6 +267,7 @@ import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
 import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
 import districtCoverage from "../hojasRuta/limaDistrictCoverage.json";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead } from "./components";
 import { MonitoreoModuleChrome } from "./shell/MonitoreoModuleChrome";
 import {
   EMPTY_INTERNAL_QUERY_FILTERS,
@@ -832,18 +834,18 @@ const MONITOREO_ROUTES: Array<{
   },
   {
     family: "aulas_universitarias",
-    label: "Monitoreo de aulas universitarias",
+    label: "Monitoreo de aplicación en aulas",
     shortLabel: "Aulas",
     status: "active",
     icon: CalendarRange,
     eyebrow: "Disponible en v1",
-    title: "Aulas universitarias",
-    summary: "Agenda, links/QR, avance, reemplazos y brechas para encuestas anonimas en aulas.",
-    details: ["Plan de calc-muestra", "Agenda de aulas", "Reemplazos", "Cuotas y brechas"],
+    title: "Aplicación en aulas",
+    summary: "Aplicación en aulas para estudios de hostigamiento: agenda, QR/Kobo, avance, reemplazos y brechas.",
+    details: ["Muestra de aulas", "Fichas QR/PDF", "Agenda de aplicacion", "Cuotas y brechas"],
     sourceRoles: [
-      { label: "Plan", detail: "Aulas titulares y reservas importadas desde calc-muestra" },
-      { label: "Agenda", detail: "Horario, docente, responsable, collector, link y QR" },
-      { label: "Respuestas", detail: "SurveyMonkey, Kobo o Sheets agregadas por aula/link" },
+      { label: "Plan", detail: "Titulares y reservas importadas desde el cálculo de muestra de aulas" },
+      { label: "Fichas QR", detail: "Enlace de Kobo, QR, Word/PDF y consolidado por selección" },
+      { label: "Respuestas", detail: "Kobo o Sheets agregadas por aula/link del estudio de hostigamiento" },
       { label: "Cierre", detail: "Titulares, reemplazos usados y brechas justificadas" },
     ],
   },
@@ -2464,6 +2466,20 @@ function acreditacionReportsCoverQueries(
   return Boolean(queries?.case_rollup?.length || queries?.cases?.length);
 }
 
+function acreditacionReportsCoverPhone(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+) {
+  if (!hasMonitoreoAcreditacionReports(reports)) return false;
+  const scope = reports.report_scope || "full";
+  if (scope !== "full") return false;
+  const sheet = reports.sheets.find((item) => item.id === "monitoreo_telefonico");
+  if (!sheet) return false;
+  return sheet.blocks.some((block) => (
+    ["resumen_telefonico", "produccion_dia", "avance_efectivo_dia"].includes(block.id)
+    && block.rows.length > 0
+  ));
+}
+
 function hasMonitoreoTerritorialReports(
   reports: MonitoreoTerritorialDashboard | null | undefined,
 ): reports is MonitoreoTerritorialDashboard {
@@ -2953,6 +2969,7 @@ export default function MonitoreoPage() {
   const configRef = useRef<MonitoreoConfig>(EMPTY_CONFIG);
   const activeViewRef = useRef<WorkbenchView>("fuentes");
   const acreditacionQueriesInFlightRef = useRef(false);
+  const acreditacionPhoneInFlightRef = useRef(false);
   const [territorialReportCacheVersion, setTerritorialReportCacheVersion] = useState(0);
 
   const commitConfig = useCallback((next: MonitoreoConfig) => {
@@ -3344,6 +3361,29 @@ export default function MonitoreoPage() {
       .finally(() => {
         acreditacionQueriesInFlightRef.current = false;
         if (!cancelled && activeViewRef.current === "consultas") setAcreditacionQueriesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [acreditacionReports, activeView, applyMonitoreoState, route.family, state?.has_snapshot, state?.n_rows]);
+
+  useEffect(() => {
+    if (!state || (!state.has_snapshot && !(state.n_rows > 0))) return;
+    if ((route.family !== "acreditacion" && route.family !== "telefonico") || activeView !== "telefonico") return;
+    if (acreditacionReportsCoverPhone(acreditacionReports)) return;
+    if (acreditacionPhoneInFlightRef.current) return;
+    let cancelled = false;
+    acreditacionPhoneInFlightRef.current = true;
+    void apiMonitoreoState({ includeReports: true, reportScope: "full" })
+      .then((next) => {
+        if (cancelled || activeViewRef.current !== "telefonico") return;
+        applyMonitoreoState(next);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled && activeViewRef.current === "telefonico") setError((e as Error).message);
+      })
+      .finally(() => {
+        acreditacionPhoneInFlightRef.current = false;
       });
     return () => {
       cancelled = true;
@@ -4580,35 +4620,37 @@ export default function MonitoreoPage() {
         onViewChange={setActiveView}
       />
 
-      <section className="mon-workbench pulso-split-view" aria-label="Mesa de trabajo de monitoreo">
-        <MonitoreoRail
-          activeView={activeView}
-          onChange={setActiveView}
-          syncedAt={state?.synced_at ?? ""}
-          config={config}
-          dashboard={dashboard}
-	          route={route}
-	          savingPhase={savingConfig}
-	          selectedRoutePhase={selectedRoutePhase}
-	          loadedDashboardPhase={loadedDashboardPhase}
-	          loadingRoutePhase={loadingRoutePhase}
-	          routePhaseStatus={routePhaseStatus}
-	          phaseCoherence={territorialPhaseCoherence}
-              showOutputsPublish
-              publishClientSheets={clientPublicationSheets}
-              publishInternalSheets={internalPublicationSheets}
-              publishHasSnapshot={!!state?.has_snapshot}
-              publishRows={state?.n_rows ?? 0}
-              publishRouteLabel={route.shortLabel}
-              publishSpreadsheetId={publicationSpreadsheetId}
-              onOpenOutputs={openOutputsTab}
-              onLocalTabChange={handleMonitoreoLocalTabChange}
-	          onTerritorialPhaseChange={(phase) => patchTerritorialConfig({ active_route_phase: phase })}
-	        />
-        <main
-          className={`mon-workbench-main pulso-content-area${route.family === "territorial" ? " is-territorial" : ""}${showTerritorialReportStatus ? " has-report-status" : ""}`}
-          aria-live="polite"
-        >
+      <MonitoreoWorkbenchChrome
+        activeView={activeView}
+        isTerritorial={route.family === "territorial"}
+        hasReportStatus={showTerritorialReportStatus}
+        rail={(
+          <MonitoreoRail
+            activeView={activeView}
+            onChange={setActiveView}
+            syncedAt={state?.synced_at ?? ""}
+            config={config}
+            dashboard={dashboard}
+            route={route}
+            savingPhase={savingConfig}
+            selectedRoutePhase={selectedRoutePhase}
+            loadedDashboardPhase={loadedDashboardPhase}
+            loadingRoutePhase={loadingRoutePhase}
+            routePhaseStatus={routePhaseStatus}
+            phaseCoherence={territorialPhaseCoherence}
+            showOutputsPublish
+            publishClientSheets={clientPublicationSheets}
+            publishInternalSheets={internalPublicationSheets}
+            publishHasSnapshot={!!state?.has_snapshot}
+            publishRows={state?.n_rows ?? 0}
+            publishRouteLabel={route.shortLabel}
+            publishSpreadsheetId={publicationSpreadsheetId}
+            onOpenOutputs={openOutputsTab}
+            onLocalTabChange={handleMonitoreoLocalTabChange}
+            onTerritorialPhaseChange={(phase) => patchTerritorialConfig({ active_route_phase: phase })}
+          />
+        )}
+        head={(
           <WorkbenchHead
             activeView={activeView}
             route={route}
@@ -4617,50 +4659,51 @@ export default function MonitoreoPage() {
             activeSources={activePrimarySources.length}
             strategyCount={config.strategy_phases.length}
           />
-          {route.family !== "territorial" && (
-            <WorkbenchClarityStrip
-              activeView={activeView}
-              route={route}
-              dashboard={dashboard}
-              nRows={state?.n_rows ?? 0}
-              activeSources={activePrimarySources.length}
-              sourceTotal={sources.length}
-              config={config}
-              actions={activeView === "fuentes" ? (
-                route.family === "aulas_universitarias" ? (
-                  <AulasSourceActions
-                    busy={savingConfig || savingSource || Boolean(sourceSyncJob)}
-                    imported={Boolean(config.aulas_universitarias.enabled && config.aulas_universitarias.selection_run_id)}
-                    activeSources={activePrimarySources.length}
-                    onImportFromCalc={importAulasFromCalcMuestra}
-                    onSync={syncAulasUniversitarias}
-                  />
-                ) : (
-                  <SourceSyncActions
-                    sheetCount={activeSheetSourceIds.length}
-                    surveyMonkeyCount={activeSurveyMonkeySourceIds.length}
-                    koboCount={activeKoboSourceIds.length}
-                    routeFamily={route.family}
-                    totalCount={activeSourceIds.length}
-                    busy={savingSource || Boolean(sourceSyncJob)}
-                    onSyncSheets={() => syncSheetSources(activeSheetSourceIds)}
-                    onSyncSurveyMonkey={() => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey")}
-                    onSyncKobo={() => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo")}
-                    onSyncAll={() => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes")}
-                  />
-                )
-              ) : null}
-            />
-          )}
-          {showTerritorialReportStatus && (
-            <div className={`mon-territorial-report-status is-${territorialReportStatusTone}`}>
-              <span>{territorialReportStatus}</span>
-              {activeTerritorialReportSizeKb !== null ? (
-                <small>{activeTerritorialReportSizeKb} KB</small>
-              ) : null}
-            </div>
-          )}
-          <div className={`mon-workbench-content mon-workbench-content--${activeView}`}>
+        )}
+        clarity={route.family !== "territorial" ? (
+          <WorkbenchClarityStrip
+            activeView={activeView}
+            route={route}
+            dashboard={dashboard}
+            nRows={state?.n_rows ?? 0}
+            activeSources={activePrimarySources.length}
+            sourceTotal={sources.length}
+            config={config}
+            actions={activeView === "fuentes" ? (
+              route.family === "aulas_universitarias" ? (
+                <AulasSourceActions
+                  busy={savingConfig || savingSource || Boolean(sourceSyncJob)}
+                  imported={Boolean(config.aulas_universitarias.enabled && config.aulas_universitarias.selection_run_id)}
+                  activeSources={activePrimarySources.length}
+                  onImportFromCalc={importAulasFromCalcMuestra}
+                  onSync={syncAulasUniversitarias}
+                />
+              ) : (
+                <SourceSyncActions
+                  sheetCount={activeSheetSourceIds.length}
+                  surveyMonkeyCount={activeSurveyMonkeySourceIds.length}
+                  koboCount={activeKoboSourceIds.length}
+                  routeFamily={route.family}
+                  totalCount={activeSourceIds.length}
+                  busy={savingSource || Boolean(sourceSyncJob)}
+                  onSyncSheets={() => syncSheetSources(activeSheetSourceIds)}
+                  onSyncSurveyMonkey={() => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey")}
+                  onSyncKobo={() => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo")}
+                  onSyncAll={() => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes")}
+                />
+              )
+            ) : null}
+          />
+        ) : null}
+        status={showTerritorialReportStatus ? (
+          <div className={`mon-territorial-report-status is-${territorialReportStatusTone}`}>
+            <span>{territorialReportStatus}</span>
+            {activeTerritorialReportSizeKb !== null ? (
+              <small>{activeTerritorialReportSizeKb} KB</small>
+            ) : null}
+          </div>
+        ) : null}
+      >
             {territorialBootBlocksContent ? (
               <TerritorialBootPanel
                 boot={territorialBoot}
@@ -4985,9 +5028,7 @@ export default function MonitoreoPage() {
                 )}
               </>
             )}
-          </div>
-        </main>
-      </section>
+      </MonitoreoWorkbenchChrome>
     </PageFrame>
   );
 }
@@ -6616,24 +6657,20 @@ function WorkbenchHead({
     ? (territorialAdvance?.meta == null ? "meta por definir" : `${formatMetric(territorialAdvance.meta)} meta`)
     : aulas
       ? `${formatMetric(aulas.kpis.total_aulas)} aulas`
-    : `${strategyCount} mecanismos`;
+      : `${strategyCount} mecanismos`;
   return (
-    <header className="mon-workbench-head">
-      <span aria-hidden="true" className="mon-workbench-head-icon">
-        <Icon size={17} />
-      </span>
-      <div className="mon-workbench-head-copy">
-        <span className="pulso-section-eyebrow">{route.shortLabel} · flujo actual</span>
-        <h2>{meta.label}</h2>
-        <p>{meta.desc}</p>
-      </div>
-      <div className="mon-workbench-pills" aria-label="Resumen operativo">
-        <span>{activeSources} fuentes</span>
-        <span>{nRows ? nRows.toLocaleString("es-PE") : "0"} registros</span>
-        <span>{validityPill}</span>
-        <span>{lastPill}</span>
-      </div>
-    </header>
+    <MonitoreoWorkbenchHead
+      icon={Icon}
+      eyebrow={`${route.shortLabel} · flujo actual`}
+      title={meta.label}
+      detail={meta.desc}
+      pills={[
+        `${activeSources} fuentes`,
+        `${nRows ? nRows.toLocaleString("es-PE") : "0"} registros`,
+        validityPill,
+        lastPill,
+      ]}
+    />
   );
 }
 
@@ -8697,10 +8734,7 @@ function TerritorialAdvanceView({
               onChange={setStartDate}
             />}
             {activeTab === "salidas" && (
-              <MonitoreoOutputsWorkbench
-                family="territorial"
-                routeLabel="Territorial"
-                defaultTitle="reporte-territorial"
+              <TerritorialOutputsPanel
                 config={config}
                 clientSheets={clientSheets}
                 internalSheets={internalSheets}

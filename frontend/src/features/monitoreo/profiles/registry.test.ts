@@ -20,14 +20,22 @@ describe("monitoreo profile registry", () => {
     }
   });
 
-  test("mantiene telefonico como perfil ligero sin cargar aulas o territorial", async () => {
+  test("mantiene telefonico alineado con el flujo canonico de acreditacion", async () => {
     const profile = await preloadMonitoreoFamily("telefonico");
 
     expect(profile?.chunk).toBe("monitoreo-telefonico");
-    expect(profile?.views[0]).toBe("telefonico");
-    expect(profile?.views).toEqual(["telefonico", "avance", "modelo", "fuentes"]);
-    expect(profile?.warmupScopes).toEqual(["source", "advance_summary"]);
-    expect(profile?.reportScopes?.telefonico).toBe("full");
-    expect(profile?.reportScopes?.modelo).toBe("source");
+    expect(profile?.views).toEqual(["fuentes", "modelo", "consultas", "telefonico", "avance"]);
+    expect(profile?.warmupScopes).toEqual(["source", "advance_summary", "queries_summary", "phone_summary"]);
+    expect(profile?.reportScopes?.telefonico).toBe("phone_summary");
+    expect(profile?.reportScopes?.consultas).toBe("queries_summary");
+    expect(profile?.reportScopes?.modelo).toBe("advance_summary");
+  });
+
+  test("declara warmup liviano para acreditacion", async () => {
+    const profile = await preloadMonitoreoFamily("acreditacion");
+
+    expect(profile?.chunk).toBe("monitoreo-acreditacion");
+    expect(profile?.warmupScopes).toEqual(["source", "advance_summary", "queries_summary", "phone_summary"]);
+    expect(profile?.warmupScopes).not.toContain("full");
   });
 });
