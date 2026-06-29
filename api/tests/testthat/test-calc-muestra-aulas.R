@@ -62,6 +62,58 @@ test_that("marco resume aulas con pares coherentes de facultad y carrera", {
   expect_equal(frame$aula_frame$program[[1]], "PROG_X1")
 })
 
+test_that("dos bases prioriza facultad y carrera del estudiante sobre las del curso", {
+  estudiantes <- data.frame(
+    student_id = paste0("s", 1:6),
+    Facultad = "CIENCIAS SOCIALES",
+    Carrera = "CIENCIA POLITICA Y GOBIERNO",
+    Sexo = rep(c("F", "M"), length.out = 6),
+    Edad = 20,
+    Condicion = "regular",
+    `Nivel según créditos` = "5",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  inscripciones <- data.frame(
+    student_id = paste0("s", 1:6),
+    aula_id = "A1",
+    Curso = "ART101",
+    Horario = "0501",
+    Facultad = "ARTES ESCENICAS",
+    Carrera = "DANZA",
+    Modalidad = "PRESENCIAL",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(
+    estudiantes = estudiantes,
+    inscripciones = inscripciones,
+    config = cfg
+  )
+
+  expect_true(all(frame$population$faculty == "CIENCIAS SOCIALES"))
+  expect_true(all(frame$population$program == "CIENCIA POLITICA Y GOBIERNO"))
+  expect_equal(frame$aula_frame$faculty[[1]], "CIENCIAS SOCIALES")
+  expect_equal(frame$aula_frame$program[[1]], "CIENCIA POLITICA Y GOBIERNO")
+
+  faculty_program <- frame$population_cross_profiles[
+    frame$population_cross_profiles$primary_role == "faculty" &
+      frame$population_cross_profiles$secondary_role == "program",
+    ,
+    drop = FALSE
+  ]
+  expect_true(any(
+    faculty_program$primary_raw == "CIENCIAS SOCIALES" &
+      faculty_program$secondary_raw == "CIENCIA POLITICA Y GOBIERNO"
+  ))
+  expect_false(any(
+    faculty_program$primary_raw == "ARTES ESCENICAS" &
+      faculty_program$secondary_raw == "CIENCIA POLITICA Y GOBIERNO"
+  ))
+})
+
 test_that("marco reconoce columnas institucionales tipo PUCP 2025", {
   base <- data.frame(
     `Código PUCP` = paste0("20", 1:20),

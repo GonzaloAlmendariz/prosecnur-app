@@ -1256,22 +1256,70 @@
 
 .cmv2-university-contract-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
 
-.cmv2-university-contract-cards > div {
+.cmv2-university-contract-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon label index"
+    "title title title"
+    "detail detail detail";
+  gap: 5px 8px;
   min-width: 0;
-  min-height: 96px;
+  min-height: 112px;
   padding: 10px;
   border: 1px solid #e1e8f0;
   border-radius: 8px;
-  background: #fbfdff;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
 }
 
-.cmv2-university-contract-cards small {
+.cmv2-university-contract-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 27px;
+  right: -8px;
+  width: 8px;
+  height: 1px;
+  background: #dbe4ef;
+}
+
+.cmv2-university-contract-step i {
+  grid-area: icon;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 18%, #dbe4ef);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cmv2-accent) 7%, #fff);
+  color: var(--cmv2-accent);
+  font-style: normal;
+}
+
+.cmv2-university-contract-step-index {
+  grid-area: index;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: #f3f6fa;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.cmv2-university-contract-step > small {
+  grid-area: label;
   display: block;
+  align-self: center;
   color: var(--cmv2-accent-fg);
   font-size: 10px;
   font-weight: 900;
@@ -1279,18 +1327,18 @@
   text-transform: uppercase;
 }
 
-.cmv2-university-contract-cards strong {
+.cmv2-university-contract-step > strong {
+  grid-area: title;
   display: block;
-  margin-top: 5px;
   color: var(--pulso-text);
   font-size: 13px;
   font-weight: 900;
   line-height: 1.2;
 }
 
-.cmv2-university-contract-cards span {
+.cmv2-university-contract-step > span:not(.cmv2-university-contract-step-index) {
+  grid-area: detail;
   display: block;
-  margin-top: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
@@ -4069,6 +4117,79 @@
   gap: 8px;
 }
 
+.cmv2-university-results .aulas-flow {
+  margin: 0;
+}
+
+.cmv2-classroom-handoff-bridge {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.cmv2-classroom-handoff-bridge article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 34%, #dfe8f2);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), transparent),
+    color-mix(in srgb, #fff 88%, var(--cmv2-accent-soft) 12%);
+}
+
+.cmv2-classroom-handoff-bridge article > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: 9px;
+  background: var(--cmv2-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cmv2-classroom-handoff-bridge small,
+.cmv2-classroom-handoff-bridge strong,
+.cmv2-classroom-handoff-bridge em {
+  display: block;
+  min-width: 0;
+}
+
+.cmv2-classroom-handoff-bridge small {
+  color: var(--cmv2-accent-fg);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.08;
+  text-transform: uppercase;
+}
+
+.cmv2-classroom-handoff-bridge strong {
+  margin-top: 3px;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.cmv2-classroom-handoff-bridge em {
+  margin-top: 4px;
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-style: normal;
+  font-weight: 730;
+  line-height: 1.32;
+}
+
 .cmv2-classroom-step {
   position: relative;
   display: grid;
@@ -5764,6 +5885,61 @@
   font-style: normal;
   font-weight: 730;
   line-height: 1.3;
+}
+
+.cmv2-handoff-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 80%, var(--cmv2-accent-soft) 20%);
+}
+
+.cmv2-handoff-action small,
+.cmv2-handoff-action strong,
+.cmv2-handoff-action em {
+  display: block;
+  min-width: 0;
+}
+
+.cmv2-handoff-action small {
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.cmv2-handoff-action strong {
+  margin-top: 3px;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.cmv2-handoff-action em {
+  margin-top: 3px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 740;
+  line-height: 1.35;
+}
+
+.cmv2-handoff-link {
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.cmv2-handoff-link.is-muted {
+  border-color: #d8e1ec;
+  background: #fff;
+  color: var(--pulso-text-soft);
 }
 
 .cmv2-classroom-empty {
@@ -9057,7 +9233,12 @@
     grid-template-columns: 1fr;
   }
 
+  .cmv2-university-contract-step:not(:last-child)::after {
+    display: none;
+  }
+
   .cmv2-university-flow,
+  .cmv2-classroom-handoff-bridge,
   .cmv2-classroom-flow,
   .cmv2-classroom-methods,
   .cmv2-classroom-insumo-grid {
@@ -9372,6 +9553,7 @@
   .cmv2-formula-layout,
   .cmv2-formula-metrics,
   .cmv2-university-flow,
+  .cmv2-classroom-handoff-bridge,
   .cmv2-classroom-flow,
   .cmv2-classroom-kpis,
   .cmv2-classroom-methods,

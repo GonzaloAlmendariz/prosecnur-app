@@ -223,6 +223,10 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     expected_valid = getn(c("expected_valid", "meta_aula", "eligible_n"), 0),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
+    word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),
+    pdf_link = get(c("pdf_link", "pdf_url", "pdf", "ficha_pdf"), ""),
+    package_label = get(c("package_label", "selection_label", "seleccion", "muestra"), ""),
+    package_status = get(c("package_status", "estado_paquete"), ""),
     collector_id = get(c("collector_id", "collector", "collectorId"), ""),
     responsible = get(c("responsible", "responsable"), ""),
     operational_status = get(c("operational_status", "estado", "estado_operativo"), "planificada"),
@@ -742,7 +746,7 @@ monitoreo_aulas_update_agenda <- function(current, updates = list()) {
     for (nm in names(row)) {
       if (!nm %in% names(plan_df)) next
       value <- .monitoreo_scalar(row[[nm]], "")
-      if (!nzchar(value) && !nm %in% c("link", "qr", "collector_id", "responsible", "replacement_note")) next
+      if (!nzchar(value) && !nm %in% c("link", "qr", "word_link", "pdf_link", "package_label", "package_status", "collector_id", "responsible", "replacement_note")) next
       plan_df[idx, nm] <- value
     }
     plan_df$operational_status[idx] <- .monitoreo_aulas_status(plan_df$operational_status[idx], plan_df$operational_status[idx])

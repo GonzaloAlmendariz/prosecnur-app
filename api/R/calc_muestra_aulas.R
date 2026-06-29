@@ -194,8 +194,16 @@
     session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad"),
     teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "docente", "profesor", "profesora"),
     teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"),
-    faculty = c("faculty", "facultad", "unidad", "escuela"),
-    program = c("program", "programa", "carrera", "especialidad"),
+    faculty = c(
+      "faculty", "facultad_estudiante", "facultad_alumno", "facultad_de_matricula",
+      "facultad_matricula", "nombrefac", "nombre_facultad", "facultad",
+      "unidad_academica_estudiante", "unidad_academica_alumno", "unidad", "escuela"
+    ),
+    program = c(
+      "program", "programa", "carrera_estudiante", "carrera_alumno",
+      "programa_estudiante", "programa_alumno", "nombreesp",
+      "especialidad_estudiante", "especialidad_alumno", "carrera", "especialidad"
+    ),
     level = c("level", "nivel_segun_creditos", "nivel_segun_credito", "nivel_por_creditos", "nivel_creditos", "nivel_curricular", "ciclo", "nivel_del_curso", "nivel", "nivel_estudios"),
     sex = c("sex", "sexo", "genero", "gender"),
     age = c("age", "edad"),

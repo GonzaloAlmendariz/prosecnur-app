@@ -51,7 +51,11 @@ function manualChunks(id: string) {
     return "vendor-react";
   }
   if (normalized.includes("/src/features/monitoreo/MonitoreoShell")) return "monitoreo-shell";
-  if (normalized.includes("/src/features/monitoreo/core/") || normalized.includes("/src/features/monitoreo/shell/")) return "monitoreo-core";
+  if (
+    normalized.includes("/src/features/monitoreo/components/") ||
+    normalized.includes("/src/features/monitoreo/core/") ||
+    normalized.includes("/src/features/monitoreo/shell/")
+  ) return "monitoreo-core";
   if (
     normalized.includes("/src/features/monitoreo/profiles/territorial/") ||
     normalized.includes("/src/features/monitoreo/territorial/")

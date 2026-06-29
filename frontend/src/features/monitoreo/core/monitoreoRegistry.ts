@@ -84,18 +84,18 @@ export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
   },
   {
     family: "aulas_universitarias",
-    label: "Monitoreo de aulas universitarias",
+    label: "Monitoreo de aplicación en aulas",
     shortLabel: "Aulas",
     status: "active",
     icon: CalendarRange,
     eyebrow: "Disponible en v1",
-    title: "Aulas universitarias",
-    summary: "Agenda, links/QR, avance, reemplazos y brechas para encuestas anonimas en aulas.",
-    details: ["Plan de calc-muestra", "Agenda de aulas", "Reemplazos", "Cuotas y brechas"],
+    title: "Aplicación en aulas",
+    summary: "Monitoreo de la aplicación en aulas para estudios de hostigamiento: agenda, QR/Kobo, avance, reemplazos y brechas.",
+    details: ["Muestra de aulas", "Fichas QR/PDF", "Agenda de aplicación", "Cuotas y brechas"],
     sourceRoles: [
-      { label: "Plan", detail: "Aulas titulares y reservas importadas desde calc-muestra" },
-      { label: "Agenda", detail: "Horario, docente, responsable, collector, link y QR" },
-      { label: "Respuestas", detail: "SurveyMonkey, Kobo o Sheets agregadas por aula/link" },
+      { label: "Plan", detail: "Titulares y reservas importadas desde el cálculo de muestra de aulas" },
+      { label: "Fichas QR", detail: "Enlace de Kobo, QR, Word/PDF y consolidado por selección de aulas" },
+      { label: "Respuestas", detail: "Kobo o Sheets agregadas por aula y enlace del estudio de hostigamiento" },
       { label: "Cierre", detail: "Titulares, reemplazos usados y brechas justificadas" },
     ],
   },
@@ -137,7 +137,7 @@ export const TERRITORIAL_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
 
 export const AULAS_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Plan, agenda y respuestas", icon: PlugZap },
-  { key: "modelo", label: "Agenda de aulas", shortLabel: "Agenda", desc: "Horario, responsable, links y QR", icon: CalendarRange },
+  { key: "modelo", label: "Agenda de aulas", shortLabel: "Agenda", desc: "Horario, responsable, enlaces y QR", icon: CalendarRange },
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Aulas aplicadas, cuotas y brechas", icon: BarChart3 },
   { key: "calidad", label: "Validación", shortLabel: "Validación", desc: "Collector, aula, horarios y duplicados", icon: ShieldAlert },
   { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Trazabilidad aula por aula", icon: Search },
@@ -146,7 +146,7 @@ export const AULAS_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
 export const OPERATIONAL_MODEL_MODES: OperationalModelModeDefinition[] = [
   { key: "estructura", label: "Metas y modalidades", desc: "Por corte: meta y mecanismos", icon: Layers3 },
   { key: "casos", label: "Base de barrido", desc: "Responsables, intentos y estados", icon: ContactRound },
-  { key: "enlaces", label: "Enlaces y envíos", desc: "Correo, QR y links", icon: Link2 },
+  { key: "enlaces", label: "Enlaces y envíos", desc: "Correo, QR y enlaces", icon: Link2 },
   { key: "reglas", label: "Estados válidos", desc: "Qué cuenta como avance", icon: SlidersHorizontal },
   { key: "estrategias", label: "Calendario", desc: "Mecanismos por semana", icon: Route },
 ];

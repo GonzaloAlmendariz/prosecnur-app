@@ -22,6 +22,56 @@ stopping rule is met.
 - Canonical audit project flow: see `docs/auditoria-canonica.md`.
 - PPTX preview renderer notes: see `docs/pptx-preview-renderer.md`.
 
+## Skill Pattern To Reuse
+
+The installed Loops skills are useful as a workflow pattern, not as a required
+dependency. Reuse their structure for Prosecnur repair work:
+
+- **When to use:** state the trigger in plain language before acting. Example:
+  "Use this loop when a concrete bug, regression, failed check, or broken UI
+  state has been named."
+- **Working style:** prefer current local evidence over memory, keep secrets out
+  of logs and files, use structured output for tool results when it feeds the
+  next step, and choose the smallest command that answers the question.
+- **Category routing:** route the task to the right source of truth before
+  editing. Frontend repairs use `frontend/package.json` and nearby tests;
+  backend repairs use `api/DESCRIPTION`, `api/R/`, and `api/tests/testthat/`;
+  architecture repairs use `docs/arquitectura-prosecnur.md` and ADRs; UI
+  repairs use browser or screenshot evidence when available; external-tool
+  repairs use that tool's own help/docs and stay outside the default baseline.
+- **Output checklist:** finish with changed files, validation evidence,
+  residual risk, and whether product behavior, architecture, persistence,
+  secrets, or external services were touched.
+
+If a domain needs its own repeated repair rules later, add a short section using
+this same shape instead of expanding the loop into a long playbook.
+
+## Optional Loops.so Tooling
+
+Loops.so CLI/API/LMX tooling is optional and only applies to explicit Loops
+platform tasks. It is not part of the default Prosecnur baseline.
+
+Use them inside a repair loop only when the task explicitly involves Loops
+CLI/API/LMX/email work, or when a Loops-specific integration needs exact command
+or payload context.
+
+When Loops tooling is in scope:
+
+- prefer `loops agent-context` for current CLI command shapes;
+- use `~/.local/bin/loops` if `loops` is not on the shell `PATH`;
+- keep API keys outside this repo, `.pulso`, docs, fixtures, and logs;
+- prefer keyring-backed `loops auth login` or an external `LOOPS_API_KEY`;
+- use `loops auth status` or `loops api-key` only when credential validation is
+  explicitly needed;
+- record every Loops command in the iteration contract, including whether it
+  made a network call;
+- treat Loops API calls as user-triggered external operations, never as a
+  default local repair check.
+
+If the repair does not involve Loops platform behavior, do not run Loops
+commands. The name "Loops de reparación" refers to this repository workflow,
+not to a required dependency on Loops.so.
+
 ## Verified Validation Surface
 
 These commands and paths exist in this repo at the time this guide was added.
@@ -116,6 +166,8 @@ or the command is clearly unrelated. If skipped, record why.
   the environment permits.
 - Data/pipeline: use a small fixture or sample. Do not run heavy production
   data unless the user explicitly asks.
+- Loops.so: never part of the default baseline. Use only for Loops-specific
+  tasks and document the command, credential source, and network behavior.
 
 ## Iteration Contract
 

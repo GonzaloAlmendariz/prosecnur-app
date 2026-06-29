@@ -104,11 +104,18 @@ test_that("Agenda de aulas cambia estados y aplica reemplazos", {
     operational_status = "agendada",
     responsible = "Campo 1",
     link = "https://example.test/a1",
+    word_link = "https://drive.test/ficha-a1.docx",
+    pdf_link = "https://drive.test/ficha-a1.pdf",
+    package_label = "M1",
+    package_status = "listo_para_pdf",
     stringsAsFactors = FALSE
   ))
   updated_df <- .monitoreo_aulas_df(updated)
   expect_equal(updated_df$operational_status[updated_df$classroom_id == "A1"], "agendada")
   expect_equal(updated_df$responsible[updated_df$classroom_id == "A1"], "Campo 1")
+  expect_equal(updated_df$word_link[updated_df$classroom_id == "A1"], "https://drive.test/ficha-a1.docx")
+  expect_equal(updated_df$pdf_link[updated_df$classroom_id == "A1"], "https://drive.test/ficha-a1.pdf")
+  expect_equal(updated_df$package_label[updated_df$classroom_id == "A1"], "M1")
 
   replaced <- monitoreo_aulas_apply_replacement(updated, "AULA 1", "R1.1", "baja_asistencia", "Se activo reserva")
   replaced_df <- .monitoreo_aulas_df(replaced)

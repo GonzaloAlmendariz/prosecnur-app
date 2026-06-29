@@ -9,6 +9,7 @@ export type MonitoreoReportScope =
   | "advance_summary"
   | "validation_summary"
   | "queries_summary"
+  | "phone_summary"
   | "full";
 
 export type MonitoreoFamilyModule = {

@@ -22,6 +22,12 @@ export function apiPath(path: string): string {
 
 async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   if (typeof input === "string") {
+    const method = String(init?.method ?? "GET").toUpperCase();
+    if (!["GET", "HEAD", "OPTIONS"].includes(method) && /^\/?api\/monitoreo(?:\/|$)/.test(input)) {
+      invalidateMonitoreoStateWarmCache();
+    }
+  }
+  if (typeof input === "string") {
     return globalThis.fetch(apiPath(input), init);
   }
   return globalThis.fetch(input, init);
@@ -3595,10 +3601,31 @@ export type MonitoreoKoboAssetItem = {
   deployment_active: boolean;
 };
 
+export type MonitoreoKoboSurveyLink = {
+  ok: true;
+  asset_uid: string;
+  name: string;
+  base_url: string;
+  survey_url: string;
+  landing_url: string;
+  version_id: string;
+  deployment_active: boolean;
+  resolved_from: string;
+};
+
 export type MonitoreoGoal = {
   filters: Record<string, string>;
   meta: number;
   meta_pct?: number | null;
+};
+
+export type MonitoreoReportWeekday = "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado" | "domingo";
+
+export type MonitoreoStrategyReportException = {
+  week: number | null;
+  weekday: MonitoreoReportWeekday | "";
+  date?: string;
+  note?: string;
 };
 
 export type MonitoreoStrategyPhase = {
@@ -3607,6 +3634,10 @@ export type MonitoreoStrategyPhase = {
   modality: "email" | "whatsapp" | "sms" | "telefono" | "presencial" | "mixto";
   start_week: number | null;
   end_week: number | null;
+  start_date?: string;
+  end_date?: string;
+  client_report_weekday?: MonitoreoReportWeekday | "";
+  client_report_exceptions?: MonitoreoStrategyReportException[];
   target_rule: string;
   kpi_focus: string[];
   kpi_modules: string[];
@@ -4099,6 +4130,10 @@ export type MonitoreoAulasPlanRow = {
   expected_valid: number;
   link: string;
   qr: string;
+  word_link?: string;
+  pdf_link?: string;
+  package_label?: string;
+  package_status?: string;
   collector_id: string;
   responsible: string;
   operational_status: MonitoreoAulasEstado;
@@ -4418,6 +4453,77 @@ export type MonitoreoTerritorialOperationalAdjustmentsPayload = {
   surplus?: MonitoreoTerritorialOperationalAdjustmentSurplus[];
   suggestions?: MonitoreoTerritorialOperationalAdjustmentSuggestion[];
   applied?: MonitoreoTerritorialOperationalAdjustment[];
+};
+
+export type MonitoreoTerritorialOperationalPackageFile = {
+  file_id: string;
+  filename: string;
+  size?: number;
+  download_url?: string;
+};
+
+export type MonitoreoTerritorialOperationalPackageReview = {
+  schema: "monitoreo_deliverables_territorial_operational_package_review_v1" | string;
+  generated_at?: string;
+  project?: string;
+  source?: string;
+  cut?: string;
+  status: "missing_package" | "blocked" | "review_ready" | string;
+  publication_gate?: "critical_reference_drift" | "operational_package_review_ready" | "ready" | string;
+  blocks_publication?: boolean;
+  would_mutate_pulso?: boolean;
+  safe_to_apply?: boolean;
+  application_plan?: {
+    schema?: "monitoreo_deliverables_territorial_application_plan_v1" | string;
+    would_mutate_pulso?: boolean;
+    status?: "missing_package" | "blocked" | "ready" | string;
+    payload_ready?: boolean;
+    ready_rows?: number;
+    blocked_rows?: number;
+    rows?: Array<{
+      package_item?: string;
+      item_type?: string;
+      safe_adjustment_action?: string;
+      application_status?: "blocked_review_fields" | "blocked_missing_apply_payload" | "ready_to_apply" | string;
+      missing_fields?: string[];
+      endpoint?: string;
+    }>;
+  };
+  required?: {
+    ump_items?: string[];
+    tachas?: number;
+    fields?: string[];
+  };
+  coverage?: {
+    package_rows?: number;
+    reviewable_rows?: number;
+    missing_ump_items?: string[];
+    extra_ump_items?: string[];
+    missing_tachas?: number;
+    incomplete_rows?: number;
+  };
+  review_csv?: string;
+  template_csv?: string;
+  json?: string;
+  markdown?: string;
+  rows?: Array<Record<string, unknown>>;
+};
+
+export type MonitoreoTerritorialOperationalPackageReviewResult = {
+  ok: true;
+  review: MonitoreoTerritorialOperationalPackageReview;
+  files?: {
+    template?: MonitoreoTerritorialOperationalPackageFile;
+    review_csv?: MonitoreoTerritorialOperationalPackageFile;
+    report_json?: MonitoreoTerritorialOperationalPackageFile;
+    report_md?: MonitoreoTerritorialOperationalPackageFile;
+  };
+  status: MonitoreoTerritorialOperationalPackageReview["status"];
+  publication_gate?: string;
+  blocks_publication?: boolean;
+  safe_to_apply?: boolean;
+  application_plan?: MonitoreoTerritorialOperationalPackageReview["application_plan"];
+  would_mutate_pulso?: boolean;
 };
 
 export type MonitoreoTerritorialProductionAnnulmentImpact = {
@@ -5068,7 +5174,7 @@ export type MonitoreoInternalQueries = {
 
 export type MonitoreoAcreditacionReports = {
   schema: string;
-  report_scope?: "source" | "advance_summary" | "queries_summary" | "full" | string;
+  report_scope?: "source" | "advance_summary" | "queries_summary" | "phone_summary" | "full" | string;
   generated_at: string;
   reference_tabs: string[];
   internal_queries?: MonitoreoInternalQueries | null;
@@ -5408,7 +5514,7 @@ export type MonitoreoTerritorialReportCacheMeta = {
   key?: string;
   phase?: "pilot" | "field" | string;
   source_id?: string;
-  report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full" | string;
+  report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "phone_summary" | "full" | string;
   snapshot_hash?: string;
   route_hash?: string;
   config_hash?: string;
@@ -5419,7 +5525,7 @@ export type MonitoreoTerritorialReportCacheMeta = {
 };
 
 export type MonitoreoTerritorialPrewarmScopeResult = {
-  scope: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full" | string;
+  scope: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "phone_summary" | "full" | string;
   status: "ready" | "error" | "stale" | string;
   cache_hit?: boolean;
   cache_source?: "session" | "snapshot" | "project" | "build" | "error" | string;
@@ -5830,7 +5936,7 @@ export type TerritorialQuotaProgressPayload = {
 
 export type MonitoreoTerritorialDashboard = {
   schema: string;
-  report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full" | string;
+  report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "phone_summary" | "full" | string;
   generated_at: string;
   active_route_phase: "pilot" | "field" | string;
   phase_note: string;
@@ -6143,6 +6249,66 @@ export type MonitoreoSheetsPublishResult = {
   mode: "controlled_write";
 };
 
+export type MonitoreoDeliverablesIssue = {
+  code: string;
+  severity?: "blocking" | "warning" | string;
+  message: string;
+  evidence?: unknown;
+};
+
+export type MonitoreoDeliverablesPreflight = {
+  schema: "monitoreo_deliverables_preflight_v1" | string;
+  generated_at: string;
+  family: "acreditacion" | "territorial" | "aulas_universitarias" | "telefonico" | string;
+  audience: "client" | "internal" | string;
+  project: string;
+  cut: string;
+  source: string;
+  status: "ready" | "warnings" | "blocked" | string;
+  score: number;
+  blocking_issues: MonitoreoDeliverablesIssue[];
+  warnings: MonitoreoDeliverablesIssue[];
+  checks?: Record<string, boolean | string | number | null>;
+  evidence?: unknown;
+  scorecard?: {
+    status: "ready" | "warnings" | "blocked" | string;
+    score: number;
+    blocking_count: number;
+    warning_count: number;
+  };
+};
+
+export type MonitoreoPublicationPreflightResult = {
+  ok: true;
+  audience: "client" | "internal" | string;
+  family: string;
+  report_scope?: string;
+  tabs: string[];
+  preflight: MonitoreoDeliverablesPreflight;
+};
+
+export type MonitoreoPublicationEvidencePackResult = MonitoreoPublicationPreflightResult & {
+  evidence_pack: {
+    schema: "monitoreo_deliverables_evidence_pack_result_v1" | string;
+    out_dir?: string;
+    report_json?: string;
+    report_md?: string;
+    format_validation?: string;
+    data_validation?: string;
+    performance?: string;
+    artifacts?: Record<string, unknown>;
+  };
+  zip?: {
+    file_id: string;
+    filename: string;
+    size?: number;
+  };
+  file_id: string;
+  filename: string;
+  size?: number;
+  download_url?: string;
+};
+
 export type MonitoreoAcreditacionSeguimientoPayload = {
   id: string;
   n_efectivo?: number;
@@ -6170,6 +6336,20 @@ type WarmMonitoreoStateCacheItem = {
 const MONITOREO_STATE_WARM_CACHE_MS = 30000;
 const monitoreoStateWarmCache = new Map<string, WarmMonitoreoStateCacheItem>();
 
+type MonitoreoTerritorialMapResponse = {
+  ok: true;
+  layer?: "route_geometry" | "gps_points" | "full" | string;
+  not_modified?: boolean;
+  cache?: MonitoreoTerritorialMapCacheLayerMeta | MonitoreoTerritorialMapPhaseCacheMeta;
+  payload: TerritorialMapPayload & {
+    features?: unknown[];
+    bounds?: Record<string, number | string | null>;
+    ump_index?: Array<Record<string, unknown>>;
+  };
+};
+
+const monitoreoTerritorialMapInflight = new Map<string, Promise<MonitoreoTerritorialMapResponse>>();
+
 function monitoreoStateWarmCacheKey(options: MonitoreoStateRequestOptions) {
   return [
     getSession() ?? "",
@@ -6178,8 +6358,13 @@ function monitoreoStateWarmCacheKey(options: MonitoreoStateRequestOptions) {
   ].join("|");
 }
 
-function clearMonitoreoStateWarmCache() {
+export function invalidateMonitoreoStateWarmCache() {
   monitoreoStateWarmCache.clear();
+  monitoreoTerritorialMapInflight.clear();
+}
+
+function clearMonitoreoStateWarmCache() {
+  invalidateMonitoreoStateWarmCache();
 }
 
 if (typeof window !== "undefined") {
@@ -6199,9 +6384,11 @@ export async function apiMonitoreoState(options: MonitoreoStateRequestOptions = 
   }
   const cached = monitoreoStateWarmCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    if (cached.value && !options.warmupCache) {
-      cached.usesRemaining -= 1;
-      if (cached.usesRemaining <= 0) monitoreoStateWarmCache.delete(cacheKey);
+    if (cached.value) {
+      if (!options.warmupCache) {
+        cached.usesRemaining -= 1;
+        if (cached.usesRemaining <= 0) monitoreoStateWarmCache.delete(cacheKey);
+      }
       return cached.value;
     }
     if (cached.promise) return cached.promise;
@@ -6209,21 +6396,21 @@ export async function apiMonitoreoState(options: MonitoreoStateRequestOptions = 
     monitoreoStateWarmCache.delete(cacheKey);
   }
 
-  const promise = handle<MonitoreoState>(
-    await apiFetch(path, { headers: headers() }),
-  ).then((value) => {
-    if (options.warmupCache) {
-      monitoreoStateWarmCache.set(cacheKey, {
-        value,
-        expiresAt: Date.now() + MONITOREO_STATE_WARM_CACHE_MS,
-        usesRemaining: 2,
-      });
-    } else {
-      const current = monitoreoStateWarmCache.get(cacheKey);
-      if (current?.promise === promise) monitoreoStateWarmCache.delete(cacheKey);
-    }
-    return value;
-  }, (error) => {
+  const promise = apiFetch(path, { headers: headers() })
+    .then((res) => handle<MonitoreoState>(res))
+    .then((value) => {
+      if (options.warmupCache) {
+        monitoreoStateWarmCache.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + MONITOREO_STATE_WARM_CACHE_MS,
+          usesRemaining: 2,
+        });
+      } else {
+        const current = monitoreoStateWarmCache.get(cacheKey);
+        if (current?.promise === promise) monitoreoStateWarmCache.delete(cacheKey);
+      }
+      return value;
+    }, (error) => {
     const current = monitoreoStateWarmCache.get(cacheKey);
     if (current?.promise === promise) monitoreoStateWarmCache.delete(cacheKey);
     throw error;
@@ -6255,7 +6442,7 @@ export async function apiMonitoreoPublicationSheetsPublish(
   spreadsheetId = "",
   options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
 ) {
-  return handle<MonitoreoSheetsPublishResult & { audience?: "client" | "internal" | string }>(
+  return handle<MonitoreoSheetsPublishResult & { audience?: "client" | "internal" | string; preflight?: MonitoreoDeliverablesPreflight["scorecard"] }>(
     await apiFetch("/api/monitoreo/publication/sheets", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -6268,6 +6455,45 @@ export async function apiMonitoreoPublicationSheetsPublish(
       }),
     }),
   );
+}
+
+export async function apiMonitoreoPublicationPreflight(
+  spreadsheetId = "",
+  options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
+) {
+  return handle<MonitoreoPublicationPreflightResult>(
+    await apiFetch("/api/monitoreo/publication/preflight", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        spreadsheet_id: spreadsheetId,
+        audience: options.audience ?? "client",
+        include_targets: !!options.includeTargets,
+        ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
+        ...(options.config ? { config: options.config } : {}),
+      }),
+    }),
+  );
+}
+
+export async function apiMonitoreoPublicationEvidencePack(
+  spreadsheetId = "",
+  options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
+) {
+  const result = await handle<MonitoreoPublicationEvidencePackResult>(
+    await apiFetch("/api/monitoreo/publication/evidence-pack", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        spreadsheet_id: spreadsheetId,
+        audience: options.audience ?? "client",
+        include_targets: !!options.includeTargets,
+        ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
+        ...(options.config ? { config: options.config } : {}),
+      }),
+    }),
+  );
+  return result.file_id ? { ...result, download_url: downloadUrl(result.file_id) } : result;
 }
 
 export async function apiMonitoreoTerritorialPrewarm(options: { phase?: string; scopes?: string[] } = {}) {
@@ -6404,6 +6630,37 @@ export async function apiMonitoreoKoboAssets(
     }),
   );
   return normalizeKoboAssets(raw);
+}
+
+export async function apiMonitoreoKoboSurveyLink(payload: {
+  asset_uid: string;
+  base_url?: string;
+  profile_id?: string;
+  connection_profile_id?: string;
+}): Promise<MonitoreoKoboSurveyLink> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/monitoreo/kobo/survey-link", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        asset_uid: payload.asset_uid,
+        base_url: payload.base_url ?? "",
+        profile_id: payload.profile_id ?? payload.connection_profile_id ?? "",
+      }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    asset_uid: String(r.asset_uid ?? payload.asset_uid ?? ""),
+    name: String(r.name ?? ""),
+    base_url: String(r.base_url ?? payload.base_url ?? ""),
+    survey_url: String(r.survey_url ?? ""),
+    landing_url: String(r.landing_url ?? ""),
+    version_id: String(r.version_id ?? ""),
+    deployment_active: r.deployment_active === true,
+    resolved_from: String(r.resolved_from ?? ""),
+  };
 }
 
 export type MonitoreoTerritorialKoboInspection = {
@@ -6546,6 +6803,59 @@ export async function apiMonitoreoTerritorialSpatialReconciliationDismissPattern
       body: JSON.stringify(payload),
     }),
   );
+}
+
+function withOperationalPackageDownloadUrls(
+  result: MonitoreoTerritorialOperationalPackageReviewResult,
+): MonitoreoTerritorialOperationalPackageReviewResult {
+  if (!result.files) return result;
+  const withUrl = (file?: MonitoreoTerritorialOperationalPackageFile) =>
+    file?.file_id ? { ...file, download_url: downloadUrl(file.file_id) } : file;
+  return {
+    ...result,
+    files: {
+      ...result.files,
+      template: withUrl(result.files.template),
+      review_csv: withUrl(result.files.review_csv),
+      report_json: withUrl(result.files.report_json),
+      report_md: withUrl(result.files.report_md),
+    },
+  };
+}
+
+export async function apiMonitoreoTerritorialOperationalPackageReview(payload: {
+  packageRows?: Array<Record<string, unknown>>;
+  packageFileId?: string;
+  drift?: Record<string, unknown>;
+  driftRows?: Array<Record<string, unknown>>;
+  requiredOperationalPackage?: Record<string, unknown>;
+  expectedUmps?: Array<Record<string, unknown>>;
+  metrics?: Array<Record<string, unknown>>;
+  source?: string;
+  cut?: string;
+  project?: string;
+  config?: Partial<MonitoreoConfig>;
+} = {}) {
+  const result = await handle<MonitoreoTerritorialOperationalPackageReviewResult>(
+    await apiFetch("/api/monitoreo/territorial/operational-package/review", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        ...(payload.packageRows ? { package_rows: payload.packageRows } : {}),
+        ...(payload.packageFileId ? { package_file_id: payload.packageFileId } : {}),
+        ...(payload.drift ? { drift: payload.drift } : {}),
+        ...(payload.driftRows ? { drift_rows: payload.driftRows } : {}),
+        ...(payload.requiredOperationalPackage ? { required_operational_package: payload.requiredOperationalPackage } : {}),
+        ...(payload.expectedUmps ? { expected_umps: payload.expectedUmps } : {}),
+        ...(payload.metrics ? { metrics: payload.metrics } : {}),
+        ...(payload.source ? { source: payload.source } : {}),
+        ...(payload.cut ? { cut: payload.cut } : {}),
+        ...(payload.project ? { project: payload.project } : {}),
+        ...(payload.config ? { config: payload.config } : {}),
+      }),
+    }),
+  );
+  return withOperationalPackageDownloadUrls(result);
 }
 
 export async function apiMonitoreoTerritorialOperationalAdjustmentApply(
@@ -6789,19 +7099,19 @@ export async function apiMonitoreoTerritorialMap(options: {
   if (typeof options.allowStale === "boolean") params.set("allow_stale", options.allowStale ? "1" : "0");
   if (typeof options.prepare === "boolean") params.set("prepare", options.prepare ? "1" : "0");
   const qs = params.toString();
-  return handle<{
-    ok: true;
-    layer?: "route_geometry" | "gps_points" | "full" | string;
-    not_modified?: boolean;
-    cache?: MonitoreoTerritorialMapCacheLayerMeta | MonitoreoTerritorialMapPhaseCacheMeta;
-    payload: TerritorialMapPayload & {
-      features?: unknown[];
-      bounds?: Record<string, number | string | null>;
-      ump_index?: Array<Record<string, unknown>>;
-    };
-  }>(
-    await apiFetch(`/api/monitoreo/territorial/map${qs ? `?${qs}` : ""}`, { headers: headers() }),
-  );
+  const path = `/api/monitoreo/territorial/map${qs ? `?${qs}` : ""}`;
+  const inflightKey = `${getSession() ?? ""}|${path}`;
+  const inflight = monitoreoTerritorialMapInflight.get(inflightKey);
+  if (inflight) return inflight;
+  const promise = apiFetch(path, { headers: headers() })
+    .then((res) => handle<MonitoreoTerritorialMapResponse>(res))
+    .finally(() => {
+      if (monitoreoTerritorialMapInflight.get(inflightKey) === promise) {
+        monitoreoTerritorialMapInflight.delete(inflightKey);
+      }
+    });
+  monitoreoTerritorialMapInflight.set(inflightKey, promise);
+  return promise;
 }
 
 export async function apiMonitoreoTerritorialMapPrepare(options: {
@@ -13142,6 +13452,152 @@ export function calcMuestraReporteDescargarUrl(opts: { inline?: boolean } = {}):
   if (opts.inline) params.set("inline", "1");
   const qs = params.toString();
   return apiPath(`/api/calc-muestra/reporte/descargar${qs ? `?${qs}` : ""}`);
+}
+
+// ============================================================================
+// Diseño del estudio
+// ============================================================================
+
+export type DisenoEstudioSourceState = "ready" | "active" | "pending" | "warning";
+export type DisenoEstudioBitacoraTone = "nota" | "decision" | "riesgo" | "bloqueo" | "avance";
+
+export type DisenoEstudioProtocol = {
+  title: string;
+  client: string;
+  client_type: string;
+  description: string;
+  processing_mode: string;
+  active_base: string;
+  bases_count: number;
+  instruments_count: number;
+  records_count: number;
+  variables_count: number;
+  sample_components_count: number;
+  sample_target_n: number;
+  sample_operational_n: number;
+  classroom_units_count: number;
+  route_phase: string;
+  route_outputs_count: number;
+  monitoring_family: string;
+  monitoring_sources_count: number;
+  project_file: string;
+};
+
+export type DisenoEstudioReadiness = {
+  score: number;
+  ready_count: number;
+  total_count: number;
+  pending_count: number;
+  active_count: number;
+  warning_count: number;
+};
+
+export type DisenoEstudioSource = {
+  id: string;
+  label: string;
+  route: string;
+  state: DisenoEstudioSourceState;
+  summary: string;
+  evidence: string[];
+  owner: string;
+  category: string;
+};
+
+export type DisenoEstudioDecision = {
+  title: string;
+  detail: string;
+  source: string;
+  tone: string;
+};
+
+export type DisenoEstudioRisk = {
+  title: string;
+  detail: string;
+  route: string;
+  severity: "ready" | "warning" | "danger" | string;
+};
+
+export type DisenoEstudioNextAction = {
+  label: string;
+  route: string;
+  reason: string;
+  state: DisenoEstudioSourceState;
+};
+
+export type DisenoEstudioBitacoraEntry = {
+  id: string;
+  module_id: string;
+  tone: DisenoEstudioBitacoraTone;
+  title: string;
+  body: string;
+  occurred_at: string;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+};
+
+export type DisenoEstudioTimelineItem = DisenoEstudioBitacoraEntry & {
+  kind: "manual" | "auto" | string;
+  route: string;
+  source: string;
+};
+
+export type DisenoEstudioLibrary = {
+  available: boolean;
+  methodologies_count: number;
+  study_families_count: number;
+  updated_at: string;
+  source: string;
+};
+
+export type DisenoEstudioState = {
+  ok: true;
+  schema: "diseno_estudio_state_v1" | string;
+  generated_at: string;
+  protocol: DisenoEstudioProtocol;
+  readiness: DisenoEstudioReadiness;
+  sources: DisenoEstudioSource[];
+  decisions: DisenoEstudioDecision[];
+  risks: DisenoEstudioRisk[];
+  next_actions: DisenoEstudioNextAction[];
+  bitacora: DisenoEstudioBitacoraEntry[];
+  timeline: DisenoEstudioTimelineItem[];
+  library: DisenoEstudioLibrary;
+};
+
+export type DisenoEstudioBitacoraInput = {
+  id?: string;
+  module_id?: string;
+  tone?: DisenoEstudioBitacoraTone;
+  title: string;
+  body: string;
+  occurred_at?: string;
+  tags?: string[];
+};
+
+export async function apiDisenoEstudioState() {
+  return handle<DisenoEstudioState>(
+    await apiFetch("/api/diseno-estudio/state", { headers: headers() }),
+  );
+}
+
+export async function apiDisenoEstudioBitacoraUpsert(entry: DisenoEstudioBitacoraInput) {
+  return handle<DisenoEstudioState>(
+    await apiFetch("/api/diseno-estudio/bitacora", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ entry }),
+    }),
+  );
+}
+
+export async function apiDisenoEstudioBitacoraDelete(id: string) {
+  return handle<DisenoEstudioState>(
+    await apiFetch(`/api/diseno-estudio/bitacora/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
 }
 
 // ============================================================================

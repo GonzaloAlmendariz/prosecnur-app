@@ -33,6 +33,7 @@ import {
   ChevronRight,
   ChevronUp,
   CircleDot,
+  ClipboardList,
   FilePen,
   FolderOpen,
   GitBranch,
@@ -113,6 +114,7 @@ export const IconMonitor = Activity;
 export const IconHome = Home;
 export const IconSample = Calculator;
 export const IconEncyclopedia = Library;
+export const IconStudyDesign = ClipboardList;
 
 // ── Monitoreo territorial / auditoría cartográfica ─────────────────────
 export const IconMapZoomIn = ZoomIn;

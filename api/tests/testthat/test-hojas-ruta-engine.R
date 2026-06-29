@@ -976,6 +976,31 @@ test_that("etiqueta ordinal de reemplazo aparece solo cuando hay varios por titu
   expect_equal(ordered$id_manzana, c("RB1", "RA1", "RA2"))
 })
 
+test_that("codigo operativo UMP/R usa la UMP titular y el orden de reemplazo", {
+  expect_equal(
+    .hojas_ruta_operational_code(list(tipo_manzana = "titular", hoja_num = 3L)),
+    "UMP 3"
+  )
+  expect_equal(
+    .hojas_ruta_operational_code(list(
+      tipo_manzana = "reemplazo",
+      hoja_num = 99L,
+      titular_hoja_num = 3L,
+      replacement_order = 1L
+    )),
+    "R 3"
+  )
+  expect_equal(
+    .hojas_ruta_operational_code(list(
+      tipo_manzana = "reemplazo",
+      hoja_num = 99L,
+      titular_hoja_num = 3L,
+      replacement_order = 2L
+    )),
+    "R 3.2"
+  )
+})
+
 test_that("reemplazos puntuales generan PDF unificado para titulares seleccionadas", {
   testthat::skip_if_not_installed("qpdf")
   cfg <- hojas_ruta_integrada_normalize_config(list(
@@ -1006,6 +1031,18 @@ test_that("reemplazos puntuales generan PDF unificado para titulares seleccionad
   expect_equal(replacements$replacement_total, c(2L, 2L))
   expect_true(all(grepl("^Remplazo [12]/2 de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
   expect_equal(as.character(replacements$titular_id_manzana), rep(titular_id, 2))
+  replacement_codes <- vapply(seq_len(nrow(replacements)), function(i) {
+    row <- as.list(replacements[i, , drop = FALSE])
+    row[] <- lapply(row, function(x) x[[1]])
+    .hojas_ruta_operational_code(row)
+  }, character(1), USE.NAMES = FALSE)
+  expect_equal(
+    replacement_codes,
+    c(
+      sprintf("R %d", as.integer(replacements$titular_hoja_num[[1]])),
+      sprintf("R %d.2", as.integer(replacements$titular_hoja_num[[1]]))
+    )
+  )
 })
 
 test_that("hojas_ruta_sample_preview_integrado permite cero reemplazos", {

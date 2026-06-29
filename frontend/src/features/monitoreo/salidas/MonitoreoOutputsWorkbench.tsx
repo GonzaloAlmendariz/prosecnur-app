@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   AlertTriangle,
+  Archive,
   CheckCircle2,
   Download,
   ExternalLink,
@@ -13,18 +14,34 @@ import {
 import {
   apiJobStatus,
   apiMonitoreoClientReportPdf,
+  apiMonitoreoPublicationEvidencePack,
+  apiMonitoreoPublicationPreflight,
   apiMonitoreoPublicationSheetsPublish,
+  apiMonitoreoTerritorialOperationalPackageReview,
   monitoreoClientReportPdfDownloadUrl,
   type JobSnapshot,
   type MonitoreoConfig,
+  type MonitoreoDeliverablesPreflight,
   type MonitoreoLastSheetsPublication,
+  type MonitoreoPublicationEvidencePackResult,
+  type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
 type OutputFamily = "acreditacion" | "territorial";
 type PublicationStatus = {
-  kind: "idle" | "publishing" | "success" | "error";
+  kind: "idle" | "checking" | "publishing" | "success" | "error";
+  message: string;
+  detail?: string;
+};
+type EvidencePackStatus = {
+  kind: "idle" | "generating" | "ready" | "warnings" | "blocked" | "error";
+  message: string;
+  detail?: string;
+};
+type OperationalPackageStatus = {
+  kind: "idle" | "reviewing" | "missing" | "ready" | "blocked" | "error";
   message: string;
   detail?: string;
 };
@@ -49,6 +66,14 @@ function fmt(value: unknown, fallback = "0") {
   const n = Number(value);
   if (Number.isFinite(n)) return new Intl.NumberFormat("es-PE").format(n);
   return String(value);
+}
+
+function formatBytes(value?: number) {
+  if (!Number.isFinite(value)) return "";
+  const n = Number(value);
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
+  return `${n} B`;
 }
 
 function formatDate(value?: string) {
@@ -124,10 +149,50 @@ function audienceDetail(audience: OutputAudience) {
 }
 
 function statusLabel(status: PublicationStatus, ready: boolean) {
+  if (status.kind === "checking") return "Revisión";
   if (status.kind === "publishing") return "Publicando";
   if (status.kind === "error") return "Error";
   if (status.kind === "success" || ready) return "Publicada";
   return "Pendiente";
+}
+
+function preflightHeading(preflight?: MonitoreoDeliverablesPreflight | null) {
+  if (!preflight) return "Preflight";
+  if (preflight.status === "blocked") return "Preflight bloqueado";
+  if (preflight.status === "warnings") return "Preflight con advertencias";
+  return "Preflight listo";
+}
+
+function preflightDetail(preflight?: MonitoreoDeliverablesPreflight | null) {
+  if (!preflight) return "";
+  const blocking = preflight.scorecard?.blocking_count ?? preflight.blocking_issues?.length ?? 0;
+  const warnings = preflight.scorecard?.warning_count ?? preflight.warnings?.length ?? 0;
+  return `${Math.round(Number(preflight.score) || 0)}/100 · ${blocking} bloqueos · ${warnings} advertencias`;
+}
+
+function preflightIssues(preflight?: MonitoreoDeliverablesPreflight | null) {
+  if (!preflight) return [];
+  return [...(preflight.blocking_issues ?? []), ...(preflight.warnings ?? [])].slice(0, 3);
+}
+
+function emptyEvidencePackStatuses(): Record<OutputAudience, EvidencePackStatus> {
+  return {
+    client: { kind: "idle", message: "" },
+    internal: { kind: "idle", message: "" },
+  };
+}
+
+function operationalPackageDetail(result?: MonitoreoTerritorialOperationalPackageReviewResult | null) {
+  const coverage = result?.review?.coverage;
+  if (!coverage) return "";
+  const missingUmps = Array.isArray(coverage.missing_ump_items) ? coverage.missing_ump_items.length : 0;
+  const missingTachas = Number(coverage.missing_tachas ?? 0);
+  const incompleteRows = Number(coverage.incomplete_rows ?? 0);
+  return [
+    `${fmt(missingUmps)} UMP faltantes`,
+    `${fmt(missingTachas)} tachas faltantes`,
+    `${fmt(incompleteRows)} filas incompletas`,
+  ].join(" · ");
 }
 
 function JobStatusLine({
@@ -237,7 +302,21 @@ export function MonitoreoOutputsWorkbench({
     client: { kind: "idle", message: "" },
     internal: { kind: "idle", message: "" },
   });
+  const [preflights, setPreflights] = useState<Record<OutputAudience, MonitoreoDeliverablesPreflight | null>>({
+    client: null,
+    internal: null,
+  });
+  const [evidencePacks, setEvidencePacks] = useState<Record<OutputAudience, MonitoreoPublicationEvidencePackResult | null>>({
+    client: null,
+    internal: null,
+  });
+  const [evidenceStatuses, setEvidenceStatuses] = useState<Record<OutputAudience, EvidencePackStatus>>(() => emptyEvidencePackStatuses());
+  const [operationalReview, setOperationalReview] = useState<MonitoreoTerritorialOperationalPackageReviewResult | null>(null);
+  const [operationalReviewStatus, setOperationalReviewStatus] = useState<OperationalPackageStatus>({ kind: "idle", message: "" });
   const [publishing, setPublishing] = useState<OutputAudience | null>(null);
+  const [preflighting, setPreflighting] = useState<OutputAudience | null>(null);
+  const [evidencePacking, setEvidencePacking] = useState<OutputAudience | null>(null);
+  const [reviewingOperationalPackage, setReviewingOperationalPackage] = useState(false);
   const seedRef = useRef("");
 
   useEffect(() => {
@@ -255,6 +334,11 @@ export function MonitoreoOutputsWorkbench({
       internal: internalInitial?.spreadsheetId || "",
     });
     setStatuses({ client: { kind: "idle", message: "" }, internal: { kind: "idle", message: "" } });
+    setPreflights({ client: null, internal: null });
+    setEvidencePacks({ client: null, internal: null });
+    setEvidenceStatuses(emptyEvidencePackStatuses());
+    setOperationalReview(null);
+    setOperationalReviewStatus({ kind: "idle", message: "" });
   }, [clientInitial, defaultTitle, internalInitial, routeLabel]);
 
   const activeTarget = spreadsheetIds[activeAudience] ?? "";
@@ -265,14 +349,164 @@ export function MonitoreoOutputsWorkbench({
   );
   const activeUrl = spreadsheetUrl(activeTarget);
   const activeStatus = statuses[activeAudience];
+  const activePreflight = preflights[activeAudience];
+  const activeEvidencePack = evidencePacks[activeAudience];
+  const activeEvidenceStatus = evidenceStatuses[activeAudience];
+  const showOperationalPackageReview = family === "territorial" && activeAudience === "internal";
   const canGeneratePdf = hasSnapshot && nRows > 0 && !pdfJobId;
+  const canPreflightSheets = hasSnapshot &&
+    Boolean(activeTarget.trim()) &&
+    !publishing &&
+    !preflighting &&
+    !evidencePacking &&
+    !reviewingOperationalPackage;
   const canPublishSheets = hasSnapshot &&
     Boolean(activeTarget.trim()) &&
     !publishing &&
+    !preflighting &&
+    !evidencePacking &&
+    !reviewingOperationalPackage &&
     (activeAudience === "client" || internalConfirmed);
+  const canGenerateEvidencePack = hasSnapshot &&
+    !publishing &&
+    !preflighting &&
+    !evidencePacking &&
+    !reviewingOperationalPackage &&
+    (activeAudience === "client" || internalConfirmed);
+  const canReviewOperationalPackage = showOperationalPackageReview &&
+    hasSnapshot &&
+    internalConfirmed &&
+    !publishing &&
+    !preflighting &&
+    !evidencePacking &&
+    !reviewingOperationalPackage;
 
   const updateStatus = (audience: OutputAudience, status: PublicationStatus) => {
     setStatuses((current) => ({ ...current, [audience]: status }));
+  };
+
+  const requestPreflight = async (audience: OutputAudience) => {
+    const target = spreadsheetIds[audience] ?? "";
+    if (!hasSnapshot || !target.trim()) return null;
+    setPreflighting(audience);
+    try {
+      const result = await apiMonitoreoPublicationPreflight(target.trim(), {
+        audience,
+        includeTargets,
+        confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
+        ...(config ? { config } : {}),
+      });
+      setPreflights((current) => ({ ...current, [audience]: result.preflight }));
+      return result.preflight;
+    } catch (e) {
+      updateStatus(audience, { kind: "error", message: (e as Error).message });
+      return null;
+    } finally {
+      setPreflighting(null);
+    }
+  };
+
+  const reviewPreflight = async () => {
+    if (!canPreflightSheets) return;
+    const audience = activeAudience;
+    updateStatus(audience, { kind: "checking", message: `Revisando preflight ${audienceLabel(audience).toLowerCase()}...` });
+    const preflight = await requestPreflight(audience);
+    if (!preflight) return;
+    if (preflight.status === "blocked") {
+      updateStatus(audience, { kind: "error", message: "Preflight bloqueado. Revisa los bloqueos antes de publicar." });
+    } else if (preflight.status === "warnings") {
+      updateStatus(audience, { kind: "idle", message: "Preflight con advertencias. La publicación queda bajo revisión." });
+    } else {
+      updateStatus(audience, { kind: "idle", message: "Preflight listo para publicar." });
+    }
+  };
+
+  const generateEvidencePack = async () => {
+    if (!canGenerateEvidencePack) return;
+    const audience = activeAudience;
+    setEvidencePacking(audience);
+    setEvidencePacks((current) => ({ ...current, [audience]: null }));
+    setEvidenceStatuses((current) => ({
+      ...current,
+      [audience]: { kind: "generating", message: `Generando paquete QA ${audienceLabel(audience).toLowerCase()}...` },
+    }));
+    try {
+      const result = await apiMonitoreoPublicationEvidencePack(activeTarget.trim(), {
+        audience,
+        includeTargets,
+        confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
+        ...(config ? { config } : {}),
+      });
+      const preflightStatus = result.preflight?.status ?? "ready";
+      const statusKind: EvidencePackStatus["kind"] = preflightStatus === "blocked"
+        ? "blocked"
+        : preflightStatus === "warnings"
+          ? "warnings"
+          : "ready";
+      setPreflights((current) => ({ ...current, [audience]: result.preflight }));
+      setEvidencePacks((current) => ({ ...current, [audience]: result }));
+      setEvidenceStatuses((current) => ({
+        ...current,
+        [audience]: {
+          kind: statusKind,
+          message: statusKind === "blocked"
+            ? "Paquete QA generado con preflight bloqueado."
+            : statusKind === "warnings"
+              ? "Paquete QA generado con advertencias."
+              : "Paquete QA listo.",
+          detail: [result.filename, formatBytes(result.size)].filter(Boolean).join(" · "),
+        },
+      }));
+    } catch (e) {
+      setEvidenceStatuses((current) => ({
+        ...current,
+        [audience]: { kind: "error", message: (e as Error).message },
+      }));
+    } finally {
+      setEvidencePacking(null);
+    }
+  };
+
+  const reviewOperationalPackage = async () => {
+    if (!canReviewOperationalPackage) return;
+    setReviewingOperationalPackage(true);
+    setOperationalReview(null);
+    setOperationalReviewStatus({
+      kind: "reviewing",
+      message: "Revisando paquete operacional territorial...",
+    });
+    try {
+      const result = await apiMonitoreoTerritorialOperationalPackageReview({
+        source: "Referencia territorial validada",
+        cut: syncedAt || "",
+        project: defaultTitle || routeLabel,
+        ...(config ? { config } : {}),
+      });
+      const statusKind: OperationalPackageStatus["kind"] = result.status === "review_ready"
+        ? "ready"
+        : result.status === "missing_package"
+          ? "missing"
+          : result.status === "blocked"
+            ? "blocked"
+            : "ready";
+      setOperationalReview(result);
+      setOperationalReviewStatus({
+        kind: statusKind,
+        message: statusKind === "ready"
+          ? "Revisión lista; la publicación sigue bloqueada hasta aplicar y revalidar."
+          : statusKind === "missing"
+            ? "Falta el paquete operacional validado."
+            : "Paquete operacional incompleto para revisión.",
+        detail: operationalPackageDetail(result),
+      });
+    } catch (e) {
+      setOperationalReviewStatus({
+        kind: "error",
+        message: (e as Error).message,
+      });
+    } finally {
+      setReviewingOperationalPackage(false);
+    }
   };
 
   const generatePdf = async () => {
@@ -292,8 +526,15 @@ export function MonitoreoOutputsWorkbench({
     if (!canPublishSheets) return;
     const audience = activeAudience;
     setPublishing(audience);
-    updateStatus(audience, { kind: "publishing", message: `Actualizando Sheets ${audienceLabel(audience).toLowerCase()}...` });
+    updateStatus(audience, { kind: "checking", message: `Revisando preflight ${audienceLabel(audience).toLowerCase()}...` });
     try {
+      const preflight = await requestPreflight(audience);
+      if (!preflight) return;
+      if (preflight.status === "blocked") {
+        updateStatus(audience, { kind: "error", message: "Preflight bloqueado. No se publicó en Sheets." });
+        return;
+      }
+      updateStatus(audience, { kind: "publishing", message: `Actualizando Sheets ${audienceLabel(audience).toLowerCase()}...` });
       const out = await apiMonitoreoPublicationSheetsPublish(activeTarget.trim(), {
         audience,
         includeTargets,
@@ -327,6 +568,12 @@ export function MonitoreoOutputsWorkbench({
   const snapshotHint = hasSnapshot
     ? `${fmt(nRows)} registros${syncedAt ? ` · corte ${formatDate(syncedAt)}` : ""}`
     : "Sin corte sincronizado";
+  const operationalFiles = [
+    { key: "template", label: "Plantilla", file: operationalReview?.files?.template },
+    { key: "review_csv", label: "Revisión CSV", file: operationalReview?.files?.review_csv },
+    { key: "report_json", label: "Reporte JSON", file: operationalReview?.files?.report_json },
+    { key: "report_md", label: "Reporte MD", file: operationalReview?.files?.report_md },
+  ].filter((item) => item.file?.download_url);
 
   return (
     <section className={`mon-outputs-workbench ${className}`} aria-label="Salidas de monitoreo">
@@ -341,8 +588,13 @@ export function MonitoreoOutputsWorkbench({
             <input
               type="checkbox"
               checked={includeTargets}
-              onChange={(event) => setIncludeTargets(event.target.checked)}
-              disabled={!hasSnapshot || Boolean(pdfJobId) || Boolean(publishing)}
+                  onChange={(event) => {
+                    setIncludeTargets(event.target.checked);
+                    setPreflights({ client: null, internal: null });
+                    setEvidencePacks({ client: null, internal: null });
+                    setEvidenceStatuses(emptyEvidencePackStatuses());
+                  }}
+              disabled={!hasSnapshot || Boolean(pdfJobId) || Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || reviewingOperationalPackage}
             />
             <span>Incluir metas</span>
           </label>
@@ -428,8 +680,15 @@ export function MonitoreoOutputsWorkbench({
                 <input
                   type="checkbox"
                   checked={internalConfirmed}
-                  onChange={(event) => setInternalConfirmed(event.target.checked)}
-                  disabled={Boolean(publishing)}
+                  onChange={(event) => {
+                    setInternalConfirmed(event.target.checked);
+                    setPreflights((current) => ({ ...current, internal: null }));
+                    setEvidencePacks((current) => ({ ...current, internal: null }));
+                    setEvidenceStatuses((current) => ({ ...current, internal: { kind: "idle", message: "" } }));
+                    setOperationalReview(null);
+                    setOperationalReviewStatus({ kind: "idle", message: "" });
+                  }}
+                  disabled={Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || reviewingOperationalPackage}
                 />
                 <span>Confirmo que esta salida interna puede incluir datos personales, GPS, IDs y auditoría.</span>
               </label>
@@ -442,12 +701,111 @@ export function MonitoreoOutputsWorkbench({
                   const next = event.target.value;
                   setSpreadsheetIds((current) => ({ ...current, [activeAudience]: next }));
                   updateStatus(activeAudience, { kind: "idle", message: "" });
+                  setPreflights((current) => ({ ...current, [activeAudience]: null }));
+                  setEvidencePacks((current) => ({ ...current, [activeAudience]: null }));
+                  setEvidenceStatuses((current) => ({ ...current, [activeAudience]: { kind: "idle", message: "" } }));
                 }}
-                disabled={Boolean(publishing)}
+                disabled={Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || reviewingOperationalPackage}
                 placeholder="https://docs.google.com/spreadsheets/d/..."
               />
             </label>
+            {activePreflight || preflighting === activeAudience ? (
+              <div className={`mon-outputs-preflight is-${preflighting === activeAudience ? "checking" : activePreflight?.status ?? "idle"}`}>
+                <div className="mon-outputs-preflight__summary">
+                  <span>
+                    {preflighting === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : activePreflight?.status === "blocked" ? <ShieldAlert size={14} /> : activePreflight?.status === "warnings" ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+                  </span>
+                  <div>
+                    <strong>{preflighting === activeAudience ? "Revisando preflight" : preflightHeading(activePreflight)}</strong>
+                    <small>{preflighting === activeAudience ? "Generando contrato de salida..." : preflightDetail(activePreflight)}</small>
+                  </div>
+                </div>
+                {preflightIssues(activePreflight).length ? (
+                  <ul>
+                    {preflightIssues(activePreflight).map((issue) => (
+                      <li key={`${issue.code}-${issue.message}`}>
+                        <strong>{issue.code}</strong>
+                        <span>{issue.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+            {activeEvidenceStatus.kind !== "idle" || activeEvidencePack ? (
+              <div className={`mon-outputs-evidence is-${activeEvidenceStatus.kind}`} role="status" aria-live="polite">
+                <div className="mon-outputs-evidence__summary">
+                  <span>
+                    {evidencePacking === activeAudience
+                      ? <Loader2 size={14} className="pulso-spin" />
+                      : activeEvidenceStatus.kind === "blocked"
+                        ? <ShieldAlert size={14} />
+                        : activeEvidenceStatus.kind === "warnings"
+                          ? <AlertTriangle size={14} />
+                          : activeEvidenceStatus.kind === "error"
+                            ? <AlertTriangle size={14} />
+                            : <Archive size={14} />}
+                  </span>
+                  <div>
+                    <strong>Paquete QA</strong>
+                    <small>{activeEvidenceStatus.message}</small>
+                    {activeEvidenceStatus.detail ? <small>{activeEvidenceStatus.detail}</small> : null}
+                  </div>
+                </div>
+                {activeEvidencePack?.download_url ? (
+                  <a className="mon-outputs-download" href={activeEvidencePack.download_url} download>
+                    <Download size={14} />
+                    Descargar evidencia
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            {showOperationalPackageReview && (operationalReviewStatus.kind !== "idle" || operationalReview) ? (
+              <div className={`mon-outputs-operational is-${operationalReviewStatus.kind}`} role="status" aria-live="polite">
+                <div className="mon-outputs-operational__summary">
+                  <span>
+                    {reviewingOperationalPackage
+                      ? <Loader2 size={14} className="pulso-spin" />
+                      : operationalReviewStatus.kind === "ready"
+                        ? <CheckCircle2 size={14} />
+                        : operationalReviewStatus.kind === "error"
+                          ? <AlertTriangle size={14} />
+                          : <ShieldAlert size={14} />}
+                  </span>
+                  <div>
+                    <strong>Paquete operacional territorial</strong>
+                    <small>{operationalReviewStatus.message}</small>
+                    {operationalReviewStatus.detail ? <small>{operationalReviewStatus.detail}</small> : null}
+                    <small>Solo revisión; no modifica .pulso.</small>
+                  </div>
+                </div>
+                {operationalFiles.length ? (
+                  <div className="mon-outputs-operational__files" aria-label="Archivos del paquete operacional">
+                    {operationalFiles.map((item) => (
+                      <a key={item.key} className="mon-outputs-download" href={item.file?.download_url} download>
+                        <Download size={14} />
+                        {item.label}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="mon-outputs-sheets-actions">
+              {showOperationalPackageReview ? (
+                <button type="button" className="mon-outputs-secondary" onClick={() => { void reviewOperationalPackage(); }} disabled={!canReviewOperationalPackage}>
+                  {reviewingOperationalPackage ? <Loader2 size={14} className="pulso-spin" /> : <ShieldAlert size={14} />}
+                  Revisar paquete operacional
+                </button>
+              ) : null}
+              <button type="button" className="mon-outputs-secondary" onClick={() => { void reviewPreflight(); }} disabled={!canPreflightSheets}>
+                {preflighting === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <ShieldAlert size={14} />}
+                Revisar preflight
+              </button>
+              <button type="button" className="mon-outputs-secondary" onClick={() => { void generateEvidencePack(); }} disabled={!canGenerateEvidencePack}>
+                {evidencePacking === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <Archive size={14} />}
+                Paquete QA
+              </button>
               <button type="button" onClick={() => { void publishSheets(); }} disabled={!canPublishSheets}>
                 {publishing === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
                 {activeReady ? "Actualizar Sheets" : "Publicar Sheets"}

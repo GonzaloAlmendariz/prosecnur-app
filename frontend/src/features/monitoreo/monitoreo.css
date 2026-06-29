@@ -7297,6 +7297,54 @@
   right: 12px;
 }
 
+.mon-territorial-advance-map-viewport .mon-territorial-route-map-loading.is-gps {
+  top: 130px;
+}
+
+.mon-territorial-advance-map-viewport .mon-territorial-route-map-loading.is-context {
+  top: 94px;
+}
+
+.mon-territorial-advance-map-legend {
+  position: absolute;
+  z-index: 4;
+  top: 166px;
+  right: 12px;
+  width: min(430px, calc(100% - 24px));
+  max-height: 118px;
+  align-content: flex-start;
+  justify-content: flex-end;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 64%, #fff);
+  border-radius: 13px;
+  background: color-mix(in srgb, #ffffff 84%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 14px 30px rgba(15, 23, 42, 0.10);
+  padding: 8px;
+  pointer-events: auto;
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.mon-territorial-advance-map-legend span {
+  min-height: 22px;
+  background: color-mix(in srgb, #fff 78%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+.mon-territorial-advance-map-legend::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mon-territorial-advance-map-legend::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border-strong) 56%, transparent);
+  background-clip: padding-box;
+}
+
 .mon-territorial-advance-map-hit-layer {
   position: absolute;
   inset: 0;
@@ -7331,6 +7379,55 @@
   stroke-width: 2.2;
 }
 
+.mon-territorial-advance-map-viewport .mon-territorial-map-point-hit-layer,
+.mon-territorial-advance-map-viewport .mon-territorial-map-point-node {
+  pointer-events: auto;
+}
+
+.mon-territorial-advance-map-viewport .mon-territorial-map-point-hit-area {
+  fill: transparent;
+  stroke: transparent;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.mon-territorial-advance-map-inspector {
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  left: 12px;
+  width: min(370px, calc(100% - 24px));
+  max-height: min(342px, calc(100% - 156px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+}
+
+.mon-territorial-advance-map-inspector.is-point {
+  top: auto;
+  bottom: 104px;
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 62%, var(--pulso-border));
+}
+
+.mon-territorial-advance-map-inspector.is-block {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 46%, var(--pulso-border));
+}
+
+.mon-territorial-advance-map-inspector.is-empty {
+  max-height: 180px;
+}
+
+.mon-territorial-advance-map-inspector::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mon-territorial-advance-map-inspector::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border-strong) 58%, transparent);
+  background-clip: padding-box;
+}
+
 .mon-territorial-advance-map-footer {
   position: absolute;
   z-index: 3;
@@ -7338,7 +7435,7 @@
   bottom: 12px;
   left: 12px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(112px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 8px;
   pointer-events: none;
 }
@@ -8175,9 +8272,11 @@
   --ump-nav-color: var(--pulso-text-soft);
   width: 100%;
   min-width: 0;
+  min-height: 96px;
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
   gap: 5px;
+  align-items: start;
   border: 1px solid color-mix(in srgb, var(--ump-nav-color) 20%, var(--pulso-border));
   border-radius: 10px;
   background: #fff;
@@ -8885,6 +8984,19 @@
   .mon-territorial-advance-map-footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .mon-territorial-advance-map-inspector {
+    width: min(330px, calc(100% - 24px));
+    max-height: min(240px, calc(100% - 150px));
+  }
+
+  .mon-territorial-advance-map-inspector.is-point {
+    bottom: 96px;
+  }
+
+  .mon-territorial-advance-map-inspector dl {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -8947,6 +9059,17 @@
 
   .mon-territorial-advance-map-footer {
     grid-template-columns: 1fr;
+  }
+
+  .mon-territorial-advance-map-inspector {
+    top: 58px;
+    width: min(300px, calc(100% - 20px));
+    max-height: 190px;
+  }
+
+  .mon-territorial-advance-map-inspector.is-point {
+    top: auto;
+    bottom: 92px;
   }
 
   .mon-territorial-advance-tabs button {
@@ -9231,16 +9354,80 @@
   pointer-events: all;
 }
 
+.mon-territorial-validation-geo-context-blocks {
+  opacity: 0.64;
+  pointer-events: none;
+}
+
+.mon-territorial-validation-geo-map-viewport svg.is-zoom-detail .mon-territorial-validation-geo-context-blocks {
+  opacity: 0.76;
+}
+
+.mon-territorial-validation-geo-map-viewport svg.is-zoom-blocks .mon-territorial-validation-geo-context-blocks {
+  opacity: 0.88;
+}
+
+.mon-territorial-validation-geo-context-block {
+  stroke-width: 0.48;
+}
+
+.mon-territorial-validation-geo-context-block.is-focus-zone {
+  fill: rgba(14, 116, 144, 0.105);
+  stroke: rgba(14, 116, 144, 0.36);
+}
+
+.mon-territorial-validation-geo-context-block.is-neighbor {
+  fill: rgba(255, 255, 255, 0.2);
+  stroke: rgba(100, 116, 139, 0.28);
+}
+
+.mon-territorial-validation-geo-context-block.is-neighbor.is-cross-zone {
+  fill: rgba(245, 158, 11, 0.07);
+  stroke: rgba(180, 83, 9, 0.36);
+  stroke-dasharray: 2.5 2.5;
+}
+
+.mon-territorial-validation-geo-map-viewport .mon-territorial-map-streets path {
+  stroke: rgba(100, 116, 139, 0.10);
+  stroke-width: 0.78;
+}
+
+.mon-territorial-validation-geo-map-viewport .mon-territorial-map-streets path.is-major {
+  stroke: rgba(71, 85, 105, 0.18);
+  stroke-width: 1.05;
+}
+
+.mon-territorial-validation-geo-street-labels {
+  pointer-events: none;
+}
+
+.mon-territorial-validation-geo-street-labels text {
+  fill: rgba(51, 65, 85, 0.74);
+  stroke: rgba(255, 255, 255, 0.96);
+  stroke-width: 1.55;
+  paint-order: stroke;
+  font-size: 3.25px;
+  font-weight: 880;
+  letter-spacing: 0;
+}
+
+.mon-territorial-validation-geo-street-labels text.is-major {
+  fill: rgba(15, 23, 42, 0.84);
+  font-size: 3.7px;
+  font-weight: 940;
+}
+
 .mon-territorial-validation-geo-map-footer {
   position: absolute;
   right: 12px;
   bottom: 12px;
+  left: 12px;
   z-index: 5;
-  width: min(640px, calc(100% - 24px));
+  width: auto;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
   pointer-events: none;
 }
 
@@ -9262,7 +9449,7 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
     0 10px 24px rgba(15, 23, 42, 0.10);
-  padding: 7px 8px;
+  padding: 6px 7px;
   backdrop-filter: blur(8px);
 }
 
@@ -9279,7 +9466,7 @@
 .mon-territorial-validation-geo-map-footer strong {
   grid-area: value;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 920;
   line-height: 1;
 }
@@ -9289,7 +9476,7 @@
   min-width: 0;
   overflow: visible;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 8.4px;
   font-style: normal;
   font-weight: 800;
   line-height: 1.15;
@@ -9992,6 +10179,10 @@
     0 10px 22px rgba(109, 40, 217, 0.08);
 }
 
+.mon-territorial-geo-district-trigger.is-expanded {
+  border-color: color-mix(in srgb, #0e7490 36%, var(--pulso-border));
+}
+
 .mon-territorial-geo-district-expander,
 .mon-territorial-geo-district-main {
   min-width: 0;
@@ -10104,6 +10295,12 @@
   line-height: 1;
   padding: 0 6px;
   white-space: nowrap;
+}
+
+.mon-territorial-geo-district-count.is-selected-ump {
+  border-color: color-mix(in srgb, #0e7490 34%, var(--pulso-border));
+  background: color-mix(in srgb, #0e7490 8%, #fff);
+  color: #155e75;
 }
 
 .mon-territorial-geo-district-risk {
@@ -10249,6 +10446,60 @@
   gap: 6px;
   overflow: hidden;
   will-change: height, opacity;
+}
+
+.mon-territorial-geo-district-cases.has-child-context {
+  padding-left: 28px;
+}
+
+.mon-territorial-geo-district-cases.is-selected-ump {
+  position: relative;
+}
+
+.mon-territorial-geo-district-cases.is-selected-ump::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 12px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, color-mix(in srgb, #0e7490 76%, #fff), color-mix(in srgb, #168a55 72%, #fff));
+}
+
+.mon-territorial-geo-child-context {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, #0e7490 26%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #0e7490 7%, #fff), rgba(255, 255, 255, 0.92)),
+    #fff;
+  color: #155e75;
+  font-size: 9px;
+  font-weight: 850;
+  padding: 6px 8px;
+}
+
+.mon-territorial-geo-child-context span,
+.mon-territorial-geo-child-context strong {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-geo-child-context strong {
+  flex: 0 0 auto;
+  color: #334155;
+  font-size: 8.5px;
+  text-transform: uppercase;
 }
 
 .mon-territorial-geo-replacement-strip {
@@ -10675,6 +10926,56 @@
     0 10px 22px color-mix(in srgb, var(--geo-row-color) 12%, transparent);
 }
 
+.mon-territorial-geo-case-row.is-inside-block {
+  border-color: color-mix(in srgb, #168a55 30%, var(--pulso-border));
+}
+
+.mon-territorial-geo-case-row.is-outside-block {
+  border-color: color-mix(in srgb, #b7791f 28%, var(--pulso-border));
+}
+
+.mon-territorial-geo-case-row.is-district-block {
+  border-color: color-mix(in srgb, #b42318 30%, var(--pulso-border));
+}
+
+.mon-territorial-geo-case-fit {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, currentColor 20%, var(--pulso-border));
+  border-radius: 999px;
+  font-size: 8.2px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 3px 6px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-territorial-geo-case-fit.is-inside {
+  background: color-mix(in srgb, #168a55 8%, #fff);
+  color: #168a55;
+}
+
+.mon-territorial-geo-case-fit.is-outside {
+  background: color-mix(in srgb, #b7791f 8%, #fff);
+  color: #9a6700;
+}
+
+.mon-territorial-geo-case-fit.is-associated {
+  background: color-mix(in srgb, #0e7490 7%, #fff);
+  color: #0e7490;
+}
+
+.mon-territorial-geo-case-fit.is-district {
+  background: color-mix(in srgb, #b42318 8%, #fff);
+  color: #991b1b;
+}
+
 .mon-territorial-geo-scroll-end {
   min-height: 30px;
   display: flex;
@@ -10688,7 +10989,19 @@
   text-transform: uppercase;
 }
 
-@media (max-width: 1320px) {
+@media (max-width: 1320px) and (min-width: 1121px) {
+  .mon-territorial-validation-geo-workbench {
+    --route-main-height: clamp(500px, calc(100vh - 300px), 620px);
+    grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
+    gap: 10px;
+  }
+
+  .mon-territorial-geo-case-list {
+    height: var(--route-main-height);
+  }
+}
+
+@media (max-width: 1120px) {
   .mon-territorial-validation-geo-workbench {
     --route-main-height: 680px;
     grid-template-columns: 1fr;
@@ -15195,12 +15508,14 @@
 }
 
 .mon-territorial-map-point-node.is-geo_ok .mon-territorial-map-point-core,
+.mon-territorial-map-point-node.is-en_zona .mon-territorial-map-point-core,
 .mon-territorial-map-legend span.is-geo_ok::before {
   fill: #168a55;
   background: #168a55;
 }
 
 .mon-territorial-map-point-node.is-geo_cerca .mon-territorial-map-point-core,
+.mon-territorial-map-point-node.is-en_distrito .mon-territorial-map-point-core,
 .mon-territorial-map-legend span.is-geo_cerca::before {
   fill: #0e7490;
   background: #0e7490;
@@ -15213,18 +15528,21 @@
 }
 
 .mon-territorial-map-point-node.is-geo_no_defendible .mon-territorial-map-point-core,
+.mon-territorial-map-point-node.is-fuera_distrito .mon-territorial-map-point-core,
 .mon-territorial-map-legend span.is-geo_no_defendible::before {
   fill: #b42318;
   background: #b42318;
 }
 
 .mon-territorial-map-point-node.is-geo_sin_cruce .mon-territorial-map-point-core,
+.mon-territorial-map-point-node.is-sin_cruce .mon-territorial-map-point-core,
 .mon-territorial-map-legend span.is-geo_sin_cruce::before {
   fill: #9a5b00;
   background: #9a5b00;
 }
 
 .mon-territorial-map-point-node.is-geo_sin_gps .mon-territorial-map-point-core,
+.mon-territorial-map-point-node.is-sin_gps .mon-territorial-map-point-core,
 .mon-territorial-map-legend span.is-geo_sin_gps::before {
   fill: #667085;
   background: #667085;
@@ -27774,6 +28092,621 @@ button.mon-acr-requirement-metric:active {
   grid-template-columns: minmax(140px, 1fr) 116px minmax(120px, 0.9fr) 32px;
 }
 
+.mon-calendar-field-plan {
+  gap: 12px;
+}
+
+.mon-calendar-field-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mon-calendar-field-head > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-calendar-field-head span,
+.mon-calendar-phase-card label > span {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 780;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.mon-calendar-field-head strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.mon-calendar-field-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.mon-calendar-field-actions button,
+.mon-calendar-suggestion-card button {
+  min-height: 28px;
+  padding: 4px 9px;
+}
+
+.mon-calendar-field-actions button:disabled,
+.mon-calendar-date-quick button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.mon-calendar-field-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.mon-calendar-timeline-panel {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring-border) 56%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-module-monitoring-soft) 42%, #fff 58%), #fff 72%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  padding: 10px;
+}
+
+.mon-calendar-timeline-panel.is-empty {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff);
+}
+
+.mon-calendar-timeline-head {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mon-calendar-timeline-head > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-calendar-timeline-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.mon-calendar-timeline-head strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.mon-calendar-timeline-kpis {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mon-calendar-timeline-kpis span,
+.mon-calendar-date-badge,
+.mon-calendar-phase-date-summary span,
+.mon-calendar-date-quick button {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.1;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.mon-calendar-timeline-kpis span.is-ready,
+.mon-calendar-date-badge.is-ready,
+.mon-calendar-timeline-bar.is-ready {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-calendar-timeline-kpis span.is-warning,
+.mon-calendar-date-badge.is-partial,
+.mon-calendar-timeline-bar.is-partial {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-calendar-date-badge.is-empty,
+.mon-calendar-timeline-bar.is-empty {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.mon-calendar-date-badge.is-invalid,
+.mon-calendar-timeline-bar.is-invalid {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-calendar-timeline-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.mon-calendar-timeline-grid {
+  min-width: max(640px, calc(var(--calendar-day-count) * 38px));
+  display: grid;
+  gap: 6px;
+}
+
+.mon-calendar-timeline-days,
+.mon-calendar-timeline-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--calendar-day-count), minmax(0, 1fr));
+  gap: 3px;
+}
+
+.mon-calendar-timeline-day {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  line-height: 1.1;
+  padding: 3px 0 3px 5px;
+}
+
+.mon-calendar-timeline-day strong {
+  color: var(--pulso-text);
+  font-size: 10px;
+}
+
+.mon-calendar-timeline-day span {
+  text-transform: capitalize;
+}
+
+.mon-calendar-timeline-lanes {
+  display: grid;
+  gap: 5px;
+}
+
+.mon-calendar-timeline-row {
+  min-height: 34px;
+  align-items: stretch;
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(15, 23, 42, 0.04) 0 1px,
+      transparent 1px calc(100% / max(1, var(--calendar-day-count)))
+    );
+}
+
+.mon-calendar-timeline-bar {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-text);
+  padding: 5px 8px;
+  box-shadow: var(--pulso-shadow-low);
+  overflow: hidden;
+}
+
+.mon-calendar-timeline-bar strong,
+.mon-calendar-timeline-bar span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-calendar-timeline-bar strong {
+  font-size: 11px;
+}
+
+.mon-calendar-timeline-bar span {
+  font-size: 10px;
+  opacity: 0.86;
+}
+
+.mon-calendar-timeline-empty,
+.mon-calendar-timeline-note {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.mon-calendar-timeline-note {
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  padding-top: 8px;
+}
+
+.mon-calendar-suggestion-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 8px;
+}
+
+.mon-calendar-suggestion-card,
+.mon-calendar-phase-card {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-surface-2) 54%, #fff 46%));
+  padding: 9px;
+}
+
+.mon-calendar-suggestion-card header,
+.mon-calendar-phase-card header {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mon-calendar-suggestion-card header > span,
+.mon-calendar-phase-card header span {
+  flex: 0 0 auto;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 10px;
+  font-weight: 780;
+  line-height: 1.1;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.mon-calendar-suggestion-card strong,
+.mon-calendar-phase-card strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.mon-calendar-suggestion-card p {
+  min-height: 30px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.mon-calendar-suggestion-metrics {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mon-calendar-suggestion-metrics span {
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 740;
+  line-height: 1.1;
+  padding: 3px 7px;
+}
+
+.mon-calendar-phase-list {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.mon-calendar-phase-card header > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-calendar-phase-card.is-partial {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 72%, var(--pulso-border));
+}
+
+.mon-calendar-phase-card.is-ready {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 64%, var(--pulso-border));
+}
+
+.mon-calendar-phase-card.is-invalid {
+  border-color: var(--pulso-danger-border);
+}
+
+.mon-calendar-phase-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-calendar-phase-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mon-calendar-phase-date-summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 68%, #fff);
+  padding: 6px 7px;
+}
+
+.mon-calendar-phase-date-summary em {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.mon-calendar-phase-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(136px, 0.65fr) repeat(2, minmax(118px, 0.52fr));
+  gap: 7px;
+  align-items: end;
+}
+
+.mon-calendar-phase-grid label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.mon-calendar-phase-grid input,
+.mon-calendar-phase-grid select {
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-text);
+  font-size: 12px;
+  padding: 6px 9px;
+}
+
+.mon-calendar-phase-grid select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--pulso-text-soft) 50%) calc(100% - 15px) 52% / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--pulso-text-soft) 50%, transparent 50%) calc(100% - 10px) 52% / 5px 5px no-repeat,
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-surface-2) 50%, #fff 50%));
+  padding-right: 30px;
+}
+
+.mon-calendar-phase-wide {
+  grid-column: span 2;
+}
+
+.mon-calendar-date-editor {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  align-items: end;
+}
+
+.mon-calendar-date-quick {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mon-calendar-date-quick button {
+  min-height: 24px;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-standard),
+    border-color var(--motion-dur-fast) var(--motion-ease-standard),
+    background var(--motion-dur-fast) var(--motion-ease-standard);
+}
+
+.mon-calendar-date-quick button:hover:not(:disabled) {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-calendar-date-quick button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.mon-calendar-report-editor {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring-border) 42%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 28%, #fff);
+  padding: 8px;
+}
+
+.mon-calendar-report-rule {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto;
+  gap: 7px;
+  align-items: end;
+}
+
+.mon-calendar-report-rule label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.mon-calendar-report-rule button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 740;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.mon-calendar-report-preview {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mon-calendar-report-preview span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 6px;
+  row-gap: 1px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-text);
+  padding: 5px 7px;
+}
+
+.mon-calendar-report-preview span.is-exception {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 66%, #fff);
+}
+
+.mon-calendar-report-preview strong {
+  grid-row: span 2;
+  align-self: center;
+  color: var(--pulso-module-monitoring);
+  font-size: 11px;
+  font-weight: 820;
+}
+
+.mon-calendar-report-preview em,
+.mon-calendar-report-preview small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-calendar-report-preview em {
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.mon-calendar-report-preview small {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+}
+
+.mon-calendar-report-empty {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.mon-calendar-report-exceptions {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.mon-calendar-report-exceptions article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 74px minmax(126px, 0.8fr) minmax(132px, 0.8fr) minmax(160px, 1fr) 30px;
+  gap: 6px;
+  align-items: end;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-border) 56%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 36%, #fff);
+  padding: 7px;
+}
+
+.mon-calendar-report-exceptions label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.mon-calendar-report-exceptions .mon-icon-action {
+  align-self: end;
+}
+
+.mon-calendar-report-exception-note {
+  min-width: 0;
+}
+
 .mon-event-row {
   grid-template-columns: minmax(150px, 1fr) 112px minmax(100px, 0.8fr);
 }
@@ -35253,6 +36186,11 @@ button.mon-acr-requirement-metric:active {
   .mon-acr-model-actor-grid,
   .mon-acr-model-actor-metrics,
   .mon-acr-model-minimum-editor,
+  .mon-calendar-field-summary,
+  .mon-calendar-phase-grid,
+  .mon-calendar-date-editor,
+  .mon-calendar-report-rule,
+  .mon-calendar-report-exceptions article,
   .mon-strategy-row,
   .mon-goal-row,
   .mon-form--two,
@@ -35379,6 +36317,25 @@ button.mon-acr-requirement-metric:active {
   .mon-acr-close-controls {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .mon-calendar-field-head,
+  .mon-calendar-phase-card header,
+  .mon-calendar-phase-card header > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mon-calendar-field-actions {
+    justify-content: flex-start;
+  }
+
+  .mon-calendar-phase-wide {
+    grid-column: 1;
+  }
+
+  .mon-calendar-report-rule button {
+    justify-self: start;
   }
 
   .mon-commandbar,
@@ -38705,6 +39662,11 @@ button.mon-acr-requirement-metric:active {
   color: var(--pulso-text);
 }
 
+.mon-territorial-route-coverage-legend em.is-gps {
+  --route-district-color: #0e7490;
+  color: var(--pulso-text);
+}
+
 .mon-territorial-route-coverage-legend span b {
   min-width: 0;
   overflow: hidden;
@@ -39370,7 +40332,7 @@ button.mon-acr-requirement-metric:active {
   min-height: var(--route-main-height);
 }
 
-@media (max-width: 1320px) {
+@media (max-width: 1120px) {
   .mon-territorial-validation-geo-workbench {
     min-height: 0;
   }
@@ -44839,6 +45801,424 @@ button.mon-acr-requirement-metric:active {
     0 10px 24px rgba(15, 23, 42, 0.042);
 }
 
+.mon-territorial-source-console.is-tab-filter {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.mon-territorial-source-console.is-tab-filter .mon-territorial-source-command {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.48fr) minmax(146px, auto);
+  min-height: 72px;
+}
+
+.mon-territorial-source-workgrid--filter {
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  align-items: start;
+}
+
+.mon-territorial-source-workgrid--filter .mon-territorial-filter-config-summary {
+  grid-column: 1 / -1;
+  min-height: 236px;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 8px;
+  border-color: color-mix(in srgb, var(--pulso-success-border) 38%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 90%, var(--pulso-success-bg)), rgba(248, 250, 252, 0.9)),
+    #fff;
+}
+
+.mon-territorial-filter-config-summary header,
+.mon-territorial-filter-config-summary p,
+.mon-territorial-filter-config-state,
+.mon-territorial-filter-config-actions {
+  min-width: 0;
+}
+
+.mon-territorial-filter-config-summary header {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+}
+
+.mon-territorial-filter-config-summary header span {
+  justify-content: flex-start;
+}
+
+.mon-territorial-filter-config-summary header strong {
+  max-width: 100%;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.12;
+  text-align: left;
+  white-space: normal;
+}
+
+.mon-territorial-filter-config-summary p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 740;
+  line-height: 1.3;
+}
+
+.mon-territorial-filter-config-summary p span,
+.mon-territorial-filter-config-summary p small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-territorial-filter-config-summary p small {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mon-territorial-filter-config-state {
+  grid-column: 1 / -1;
+  min-height: 72px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 52%, var(--pulso-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 34%, #fff);
+  padding: 12px;
+}
+
+.mon-territorial-filter-config-state.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 58%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 36%, #fff);
+}
+
+.mon-territorial-filter-config-state span {
+  width: fit-content;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-success-fg);
+  font-size: 9px;
+  font-weight: 890;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.mon-territorial-filter-config-state.is-warning span {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-territorial-filter-config-state strong,
+.mon-territorial-filter-config-state em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-territorial-filter-config-state strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 880;
+  line-height: 1.15;
+}
+
+.mon-territorial-filter-config-state em {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.mon-territorial-filter-config-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 72%, #fff);
+  padding-top: 10px;
+}
+
+.mon-territorial-filter-config-actions button {
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 28%, var(--pulso-border));
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pulso-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 820;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.mon-territorial-filter-config-actions button:last-of-type {
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 56%, var(--pulso-border));
+  background: var(--pulso-primary);
+  color: #fff;
+}
+
+.mon-territorial-filter-config-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mon-territorial-filter-config-actions small {
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.mon-territorial-source-workgrid--reconciliation {
+  min-height: 0;
+  height: 100%;
+}
+
+.mon-territorial-reconciliation-console {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.mon-territorial-reconciliation-panels {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.48fr) minmax(0, 0.52fr);
+  gap: 12px;
+}
+
+.mon-territorial-reconciliation-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 20%, var(--pulso-border));
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.86)),
+    #fff;
+  padding: 12px;
+}
+
+.mon-territorial-reconciliation-panel > header {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mon-territorial-reconciliation-panel > header span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 880;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-panel > header strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 860;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-metrics {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.mon-territorial-reconciliation-metrics span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 8px;
+}
+
+.mon-territorial-reconciliation-metrics span.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 54%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 28%, #fff);
+}
+
+.mon-territorial-reconciliation-metrics strong,
+.mon-territorial-reconciliation-metrics em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-metrics strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.mon-territorial-reconciliation-metrics em {
+  color: var(--pulso-text-soft);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-list {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.mon-territorial-reconciliation-list article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(76px, 0.28fr) minmax(0, 0.44fr) minmax(0, 0.52fr) minmax(0, 0.48fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 42%, var(--pulso-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 20%, #fff);
+  padding: 9px;
+}
+
+.mon-territorial-reconciliation-list article.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 58%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, #fff);
+}
+
+.mon-territorial-reconciliation-list article.is-danger {
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 58%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg) 30%, #fff);
+}
+
+.mon-territorial-reconciliation-list article > span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-success-fg);
+  font-size: 9px;
+  font-weight: 880;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-list article.is-warning > span {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-territorial-reconciliation-list article.is-danger > span {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-territorial-reconciliation-list strong,
+.mon-territorial-reconciliation-list em,
+.mon-territorial-reconciliation-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-list strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 880;
+}
+
+.mon-territorial-reconciliation-list em,
+.mon-territorial-reconciliation-list small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 720;
+}
+
+.mon-territorial-source-workgrid--filter .mon-territorial-source-card:not(.mon-territorial-filter-config-summary) {
+  min-height: 344px;
+}
+
+.mon-territorial-source-workgrid--filter .mon-territorial-operational-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mon-territorial-source-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.mon-territorial-source-field span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mon-territorial-source-field select {
+  min-width: 0;
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 24%, var(--pulso-border));
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 730;
+  padding: 7px 9px;
+}
+
+.mon-territorial-source-field select:focus {
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 68%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary-soft) 42%, transparent);
+  outline: none;
+}
+
 .mon-territorial-form-picker:not(.is-selected),
 .mon-territorial-history {
   min-height: 294px;
@@ -45574,6 +46954,10 @@ button.mon-acr-requirement-metric:active {
     grid-template-columns: 1fr;
   }
 
+  .mon-territorial-source-workgrid--filter {
+    grid-template-columns: minmax(0, 0.58fr) minmax(0, 0.42fr);
+  }
+
   .mon-territorial-form-picker,
   .mon-territorial-history {
     min-height: 0;
@@ -45591,6 +46975,10 @@ button.mon-acr-requirement-metric:active {
 @media (max-width: 1180px) {
   .mon-territorial-source-command,
   .mon-field-occurrences-source {
+    grid-template-columns: 1fr;
+  }
+
+  .mon-territorial-source-workgrid--filter {
     grid-template-columns: 1fr;
   }
 
@@ -47717,7 +49105,7 @@ button.mon-acr-requirement-metric:active {
 .mon-field-occurrences-workspace-filters {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(128px, 0.22fr));
+  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(148px, 0.24fr));
   gap: 7px;
 }
 
@@ -47755,7 +49143,11 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-field-occurrences-workspace-filters select {
+  max-width: 100%;
+  overflow: hidden;
   padding: 0 26px 0 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mon-field-occurrences-search:focus-within,
@@ -48880,6 +50272,363 @@ button.mon-acr-requirement-metric:active {
   overflow: auto;
 }
 
+.mon-stage--ocurrencias .mon-field-occurrences-body.is-alerts {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.mon-field-occurrences-alerts-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 84%, #fff);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.88)),
+    #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+  padding: 10px;
+  overflow: hidden;
+}
+
+.mon-field-occurrences-alerts-panel > header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.mon-field-occurrences-alerts-panel > header div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-field-occurrences-alerts-panel > header span,
+.mon-field-occurrences-alerts-panel > header em {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 880;
+  letter-spacing: 0.045em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-alerts-panel > header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-field-occurrences-alerts-panel > header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: 920;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-alerts-panel > header b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border: 1px solid color-mix(in srgb, var(--occurrence-review-color) 28%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--occurrence-review-color) 7%, #fff);
+  color: color-mix(in srgb, var(--occurrence-review-color) 76%, var(--pulso-text));
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-alerts-toolbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.34fr);
+  gap: 8px;
+}
+
+.mon-field-occurrences-alert-search,
+.mon-field-occurrences-alerts-toolbar select {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pulso-text);
+  font: inherit;
+}
+
+.mon-field-occurrences-alert-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+}
+
+.mon-field-occurrences-alert-search svg {
+  color: var(--pulso-text-soft);
+}
+
+.mon-field-occurrences-alert-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.mon-field-occurrences-alerts-toolbar select {
+  appearance: none;
+  padding: 0 34px 0 10px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--pulso-text-soft) 50%) calc(100% - 15px) 15px / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--pulso-text-soft) 50%, transparent 50%) calc(100% - 10px) 15px / 5px 5px no-repeat,
+    #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mon-field-occurrences-alert-list {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.mon-field-occurrences-alert-list > em {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 760;
+  text-align: center;
+}
+
+.mon-field-occurrences-alert-row {
+  --occurrence-alert-color: var(--occurrence-review-color);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--occurrence-alert-color) 22%, var(--pulso-border));
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--occurrence-alert-color) 5%, #fff));
+  padding: 9px;
+}
+
+.mon-field-occurrences-alert-row.is-missing {
+  --occurrence-alert-color: var(--occurrence-missing-color);
+}
+
+.mon-field-occurrences-alert-row.is-observations {
+  --occurrence-alert-color: var(--occurrence-review-color);
+}
+
+.mon-field-occurrences-alert-row.is-outside_route {
+  --occurrence-alert-color: var(--pulso-danger-fg);
+}
+
+.mon-field-occurrences-alert-row.is-high_non_effective {
+  --occurrence-alert-color: var(--occurrence-noneffective-color);
+}
+
+.mon-field-occurrences-alert-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--occurrence-alert-color) 10%, #fff);
+  color: color-mix(in srgb, var(--occurrence-alert-color) 82%, var(--pulso-text));
+}
+
+.mon-field-occurrences-alert-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-field-occurrences-alert-row span,
+.mon-field-occurrences-alert-row em,
+.mon-field-occurrences-alert-row p,
+.mon-field-occurrences-alert-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-field-occurrences-alert-row > div > span {
+  color: color-mix(in srgb, var(--occurrence-alert-color) 70%, var(--pulso-text-soft));
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-alert-row strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 920;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-alert-row em,
+.mon-field-occurrences-alert-row p {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 760;
+  line-height: 1.24;
+}
+
+.mon-field-occurrences-alert-row p {
+  margin: 2px 0 0;
+  white-space: normal;
+}
+
+.mon-field-occurrences-alert-row > b {
+  justify-self: end;
+  max-width: 138px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--occurrence-alert-color) 24%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--occurrence-alert-color) 7%, #fff);
+  color: color-mix(in srgb, var(--occurrence-alert-color) 78%, var(--pulso-text));
+  font-size: 9.5px;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: 5px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-side.is-alert-summary {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.mon-field-occurrences-history header {
+  justify-content: space-between;
+}
+
+.mon-field-occurrences-history header em {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mon-field-occurrences-history-list {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  max-height: 260px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.mon-field-occurrences-history-list article {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 68%, #fff);
+  padding: 8px;
+}
+
+.mon-field-occurrences-history-list article > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mon-field-occurrences-history-list strong,
+.mon-field-occurrences-history-list span,
+.mon-field-occurrences-history-list p,
+.mon-field-occurrences-history-list small {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+}
+
+.mon-field-occurrences-history-list strong {
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-history-list span {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-history-list p,
+.mon-field-occurrences-history-list small,
+.mon-field-occurrences-history-list > em {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.mon-field-occurrences-history-list small {
+  white-space: normal;
+}
+
 @media (max-width: 1420px) {
   .mon-stage--ocurrencias .mon-field-occurrences-command,
   .mon-field-occurrences-workspace-head,
@@ -48949,6 +50698,7 @@ button.mon-acr-requirement-metric:active {
   .mon-field-occurrences-workspace-stats,
   .mon-field-occurrences-detail-kpis,
   .mon-field-occurrences-district-counts,
+  .mon-stage--ocurrencias .mon-field-occurrences-body.is-alerts,
   .mon-stage--ocurrencias .mon-field-occurrences-body.is-side-only .mon-field-occurrences-side {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -51961,7 +53711,7 @@ button.mon-acr-requirement-metric:active {
 
 /* Territorial Fuente/Formulario: keep the selected form inside the useful height. */
 .mon-territorial-source-console.is-tab-form {
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   overflow: hidden;
   border-color: var(--pulso-border);

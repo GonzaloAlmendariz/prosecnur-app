@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { AlertCircle, CalendarRange, CheckCircle2, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertCircle, CalendarRange, CheckCircle2, QrCode, RefreshCw } from "lucide-react";
 import {
   apiMonitoreoState,
   type MonitoreoAulasDashboard,
   type MonitoreoRow,
   type MonitoreoState,
 } from "../../../../api/client";
+import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { AULAS_WORKBENCH_VIEWS, type WorkbenchView } from "../../core/monitoreoRegistry";
 import type { MonitoreoReportScope } from "../types";
@@ -27,6 +29,36 @@ function pct(value: unknown) {
   return `${Math.round(n)}%`;
 }
 
+function columnLabel(column: string) {
+  const labels: Record<string, string> = {
+    operational_code: "Código de ficha",
+    label: "Aula",
+    course_name: "Curso",
+    section: "Sección",
+    schedule: "Horario",
+    link: "Enlace Kobo",
+    package_status: "Ficha PDF",
+    responsible: "Responsable",
+    collector_id: "Origen",
+    classroom_id: "ID de aula",
+    teacher: "Docente",
+    faculty: "Facultad",
+    program: "Carrera",
+  };
+  return labels[column] ?? column.replaceAll("_", " ");
+}
+
+function packageStatusText(value: unknown) {
+  const status = String(value ?? "").trim().toLowerCase();
+  if (!status) return "";
+  const labels: Record<string, string> = {
+    pdf_preparado: "PDF preparado",
+    listo_para_pdf: "Listo para PDF",
+    pendiente_enlace: "Falta enlace",
+  };
+  return labels[status] ?? String(value);
+}
+
 function scopeForView(view: WorkbenchView): MonitoreoReportScope {
   if (view === "calidad") return "validation_summary";
   if (view === "consultas") return "queries_summary";
@@ -42,6 +74,8 @@ function rowValue(row: Record<string, unknown>, key: string) {
   const value = row[key];
   if (value == null) return "";
   if (typeof value === "boolean") return value ? "Si" : "No";
+  if (key === "package_status") return packageStatusText(value);
+  if (key === "link") return String(value).trim() ? "Guardado" : "";
   return String(value);
 }
 
@@ -76,7 +110,7 @@ function DataTable({
     <div className="mon-profile-table-wrap">
       <table className="mon-profile-table">
         <thead>
-          <tr>{columns.map((column) => <th key={column}>{column.replaceAll("_", " ")}</th>)}</tr>
+          <tr>{columns.map((column) => <th key={column}>{columnLabel(column)}</th>)}</tr>
         </thead>
         <tbody>
           {rows.slice(0, 80).map((row, index) => (
@@ -104,6 +138,107 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   return (dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>;
 }
 
+function cleanCell(value: unknown) {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function hasCell(row: Record<string, unknown>, keys: string[]) {
+  return keys.some((key) => cleanCell(row[key]).length > 0);
+}
+
+function packagePrepared(row: Record<string, unknown>) {
+  const status = cleanCell(row.package_status).toLowerCase();
+  return hasCell(row, ["pdf_link", "pdf_url", "pdf", "ficha_pdf"]) || status === "pdf_preparado";
+}
+
+function handoffSummary(dashboard: MonitoreoAulasDashboard | null) {
+  const rows = agendaRows(dashboard);
+  const kpiTotal = Number(dashboard?.kpis.total_aulas ?? 0);
+  const total = rows.length || (Number.isFinite(kpiTotal) ? kpiTotal : 0);
+  const linked = rows.filter((row) => hasCell(row, ["link", "url", "collector_link"])).length;
+  const pdf = rows.filter(packagePrepared).length;
+  const word = rows.filter((row) => hasCell(row, ["word_link", "word_url", "word", "docx", "ficha_word"])).length;
+  return { rows, total, linked, pdf, word };
+}
+
+function coverageLabel(done: number, total: number, unit = "aulas") {
+  if (!total) return "pendiente";
+  return `${fmt(done)}/${fmt(total)} ${unit}`;
+}
+
+function metricTone(done: number, total: number): AulasFlowMetric["tone"] {
+  if (!total) return "neutral";
+  if (done >= total) return "ready";
+  if (done > 0) return "current";
+  return "warning";
+}
+
+function aulasFlowMetrics(dashboard: MonitoreoAulasDashboard | null): AulasFlowMetric[] {
+  const handoff = handoffSummary(dashboard);
+  const applied = Number(dashboard?.kpis.aulas_aplicadas ?? 0);
+  const totalAulas = handoff.total || Number(dashboard?.kpis.total_aulas ?? 0);
+  return [
+    { label: "Plan", value: dashboard?.selection_run_id ? "importado" : "pendiente", tone: dashboard?.selection_run_id ? "ready" : "warning" },
+    { label: "Kobo + QR", value: coverageLabel(handoff.linked, handoff.total), tone: metricTone(handoff.linked, handoff.total) },
+    {
+      label: "Fichas PDF",
+      value: handoff.pdf ? coverageLabel(handoff.pdf, handoff.total, "fichas") : handoff.linked ? "por generar" : "pendiente",
+      tone: handoff.pdf ? metricTone(handoff.pdf, handoff.total) : handoff.linked ? "current" : "warning",
+    },
+    { label: "Aplicadas", value: coverageLabel(applied, totalAulas), tone: metricTone(applied, totalAulas) },
+    { label: "Brechas", value: fmt(dashboard?.kpis.brechas), tone: dashboard?.kpis.brechas ? "warning" : "ready" },
+  ];
+}
+
+function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
+  const handoff = handoffSummary(dashboard);
+  const cards = [
+    {
+      label: "Plan de muestra",
+      value: dashboard?.selection_run_id ? "importado" : "pendiente",
+      detail: `${fmt(handoff.total)} aulas de la selección del cálculo de muestra`,
+      tone: dashboard?.selection_run_id ? "ready" : "waiting",
+    },
+    {
+      label: "Kobo + QR",
+      value: coverageLabel(handoff.linked, handoff.total),
+      detail: "enlace de aplicación guardado por curso-horario",
+      tone: metricTone(handoff.linked, handoff.total) === "ready" ? "ready" : handoff.linked ? "current" : "waiting",
+    },
+    {
+      label: "Fichas PDF",
+      value: handoff.pdf ? coverageLabel(handoff.pdf, handoff.total, "fichas") : handoff.linked ? "listas para preparar" : "pendiente",
+      detail: handoff.word ? `${fmt(handoff.word)} fichas Word enlazadas` : "QR, Word y PDF se preparan desde Fichas QR",
+      tone: handoff.pdf ? "ready" : handoff.linked ? "current" : "waiting",
+    },
+    {
+      label: "Monitoreo",
+      value: handoff.linked ? "trazable" : "sin enlaces",
+      detail: "lee agenda y enlaces; no recalcula la muestra",
+      tone: handoff.linked ? "ready" : "waiting",
+    },
+  ];
+
+  return (
+    <section className="mon-profile-panel mon-aulas-handoff-panel">
+      <div className="mon-profile-panel-head">
+        <h3>Aplicación en aulas</h3>
+        <span>muestra, fichas QR y monitoreo</span>
+      </div>
+      <div className="mon-aulas-handoff-grid">
+        {cards.map((card) => (
+          <article key={card.label} className={`is-${card.tone}`}>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            <p>{card.detail}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard | null) {
   if (!dashboard) {
     return <EmptyPanel title="Resumen pendiente" detail="Todavia no hay dashboard local preparado para aulas." />;
@@ -127,17 +262,20 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
   }
   if (view === "modelo") {
     return (
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Agenda de aulas</h3>
-          <span>{fmt(dashboard.agenda?.length ?? 0)} aulas</span>
-        </div>
-        <DataTable
-          rows={agendaRows(dashboard)}
-          empty="No hay agenda importada para aulas."
-          preferredColumns={["operational_code", "label", "course_name", "section", "schedule", "responsable", "collector_name"]}
-        />
-      </section>
+      <div className="mon-profile-stack">
+        <HandoffTracePanel dashboard={dashboard} />
+        <section className="mon-profile-panel">
+          <div className="mon-profile-panel-head">
+            <h3>Agenda de aulas</h3>
+            <span>{fmt(dashboard.agenda?.length ?? 0)} aulas</span>
+          </div>
+          <DataTable
+            rows={agendaRows(dashboard)}
+            empty="No hay agenda importada para aulas."
+            preferredColumns={["operational_code", "label", "course_name", "section", "schedule", "link", "package_status", "responsible", "collector_id"]}
+          />
+        </section>
+      </div>
     );
   }
   if (view === "calidad") {
@@ -225,12 +363,12 @@ export default function AulasMonitoreoPage() {
   }, [activeView, loadView]);
 
   return (
-    <div className="mon-profile-page" style={MODULE_TONES.monitoreo as CSSProperties}>
+    <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
       <header className="mon-profile-topbar">
         <div className="mon-profile-brand">
           <span className="mon-profile-brand__icon"><CalendarRange size={18} /></span>
           <div>
-            <strong>Aulas universitarias</strong>
+            <strong>Aplicación en aulas</strong>
             <span>{fmt(state?.n_rows)} registros</span>
           </div>
         </div>
@@ -248,6 +386,10 @@ export default function AulasMonitoreoPage() {
           })}
         </nav>
         <div className="mon-profile-actions">
+          <Link to="/recopiladores">
+            <QrCode size={14} />
+            Fichas QR
+          </Link>
           <button type="button" onClick={() => void loadView(activeView, true)}>
             <RefreshCw size={14} />
             Actualizar vista
@@ -258,7 +400,7 @@ export default function AulasMonitoreoPage() {
       <main className="mon-profile-workbench">
         <aside className="mon-profile-sidebar">
           <div className="mon-profile-context">
-            <span>PATH ACTIVO</span>
+            <span>SECCIÓN ACTIVA</span>
             <strong>Aulas</strong>
             <small>{activeDef.label}</small>
           </div>
@@ -274,7 +416,7 @@ export default function AulasMonitoreoPage() {
         <section className="mon-profile-content">
           <div className="mon-profile-head">
             <div>
-              <span>Aulas universitarias · flujo actual</span>
+              <span>Hostigamiento en aulas · flujo actual</span>
               <h2>{activeDef.label}</h2>
               <p>{activeDef.desc}</p>
             </div>
@@ -284,6 +426,16 @@ export default function AulasMonitoreoPage() {
               <StatTile label="Representatividad" value={pct(dashboard?.kpis.representativity_effective_score)} />
             </div>
           </div>
+          <AulasApplicationFlow
+            tone="monitoreo"
+            current="monitoreo"
+            compact
+            title="Seguimiento del estudio de hostigamiento en aulas"
+            summary="Este monitoreo lee el plan del cálculo de muestra de aulas y los enlaces QR/PDF del estudio de hostigamiento para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
+            metrics={aulasFlowMetrics(dashboard)}
+            secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de aulas" }}
+            action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
+          />
           {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
           {loading ? <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." /> : renderAulasView(activeView, dashboard)}
         </section>

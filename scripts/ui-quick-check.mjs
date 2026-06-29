@@ -43,6 +43,7 @@ function parseArgs(argv) {
     layoutPreset: process.env.UI_QA_LAYOUT_PRESET || "auto",
     waitSelector: ".pulso-page-frame, [data-audit-ready], .pulso-shell",
     postClickWaitSelector: "",
+    waitAfterClickSelector: "",
     timeoutMs: DEFAULT_TIMEOUT_MS,
     frontendPort: Number(process.env.UI_QA_FRONTEND_PORT || process.env.VITE_DEV_PORT || "5174"),
     apiPort: Number(process.env.UI_QA_API_PORT || process.env.PULSO_PORT || "8788"),
@@ -86,6 +87,8 @@ function parseArgs(argv) {
       out.waitSelector = next();
     } else if (arg === "--post-click-wait-selector") {
       out.postClickWaitSelector = next();
+    } else if (arg === "--wait-after-click-selector") {
+      out.waitAfterClickSelector = next();
     } else if (arg === "--timeout-ms") {
       out.timeoutMs = Number(next());
     } else if (arg === "--frontend-port") {
@@ -172,6 +175,8 @@ Opciones:
   --api auto|stub|real      Default auto: stub sin proyecto, real con proyecto.
   --out DIR                 Carpeta de reporte. Default: tmp/visual-qa/quick/<timestamp>.
   --click-tab TEXT          Hace click en una pestaña/control antes de capturar. Puede repetirse.
+  --wait-after-click-selector CSS
+                              Selector opcional a esperar después de cada click.
   --post-click-wait-selector CSS
                               Selector que debe existir después de los clicks.
   --headed                  Abre navegador visible de Playwright.
@@ -983,6 +988,9 @@ async function runCaptures(opts, stack) {
         for (const tab of opts.clickTabs) {
           await clickNamedControl(page, tab, opts.timeoutMs);
           await page.waitForLoadState("networkidle", { timeout: Math.min(5000, opts.timeoutMs) }).catch(() => {});
+          if (opts.waitAfterClickSelector) {
+            await page.locator(opts.waitAfterClickSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {});
+          }
           await page.waitForTimeout(250);
         }
         let postClickWaitSelectorMatched = true;

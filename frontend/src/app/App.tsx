@@ -72,6 +72,10 @@ const MuestraHub = lazyWithReload(
   () => import("../features/muestra/MuestraHub"),
   "MuestraHub",
 );
+const DisenoEstudioPage = lazyWithReload(
+  () => import("../features/disenoEstudio/DisenoEstudioPage"),
+  "DisenoEstudioPage",
+);
 const EnciclopediaHome = lazyWithReload(
   () => import("../features/enciclopedia/EnciclopediaHome"),
   "EnciclopediaHome",
@@ -84,6 +88,10 @@ const CalcMuestraPage = lazyWithReload(
   () => import("../features/calcMuestra/CalcMuestraPage"),
   "CalcMuestraPage",
 );
+const RecopiladoresPage = lazyWithReload(
+  () => import("../features/recopiladores/RecopiladoresPage"),
+  "RecopiladoresPage",
+);
 const XlsformEditorPage = lazyWithReload(
   () => import("../features/xlsformEditor/XlsformEditorPage"),
   "XlsformEditorPage",
@@ -91,6 +99,10 @@ const XlsformEditorPage = lazyWithReload(
 const MonitoreoShell = lazyWithReload(
   () => import("../features/monitoreo/MonitoreoShell"),
   "MonitoreoShell",
+);
+const MonitoreoTerritorialCompare = lazyWithReload(
+  () => import("../features/monitoreo/MonitoreoTerritorialCompare"),
+  "MonitoreoTerritorialCompare",
 );
 
 export default function App() {
@@ -146,12 +158,16 @@ export default function App() {
                   <Route path="/graficos" element={<GraficosPage />} />
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
+                  <Route path="/recopiladores" element={<RecopiladoresPage />} />
+                  <Route path="/diseno-estudio" element={<DisenoEstudioPage />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/enciclopedia" element={<EnciclopediaHome />} />
                   <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
                   <Route path="/muestra" element={<MuestraHub />} />
-                  <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra" replace />} />
+                  <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra?mesa=aulas" replace />} />
+                  <Route path="/monitoreo/comparar-territorial" element={<MonitoreoTerritorialCompare />} />
+                  <Route path="/monitoreo/comparar-acreditacion" element={<MonitoreoTerritorialCompare />} />
                   <Route path="/monitoreo" element={<MonitoreoShell />} />
                   <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
                   <Route path="/tablero" element={<DashboardPage />} />
