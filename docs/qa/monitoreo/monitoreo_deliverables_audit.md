@@ -839,9 +839,13 @@ Iteration 24
   equivalent JSON payload). `review_ready` still means the package is complete
   enough to review; `safe_to_apply` now becomes true only when endpoint payload
   is also ready. The template CSV now includes the endpoint payload columns.
+  Salidas now reads `application_plan` too, so a package that is reviewable but
+  missing apply payload appears as blocked instead of visually ready.
 - Files changed: `api/R/monitoreo_engine.R`,
   `api/tests/testthat/test-monitoreo-deliverables.R`,
-  `frontend/src/api/client.ts`, this QA evidence,
+  `frontend/src/api/client.ts`,
+  `frontend/src/features/monitoreo/salidas/MonitoreoOutputsWorkbench.tsx`,
+  this QA evidence,
   `docs/qa/monitoreo/monitoreo_deliverables_roadmap.md`, and
   `docs/qa/monitoreo/monitoreo_sheets_pdf_matrix.md`.
 - Validation command: baseline before change:

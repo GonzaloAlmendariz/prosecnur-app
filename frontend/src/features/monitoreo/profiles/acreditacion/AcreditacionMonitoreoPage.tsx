@@ -3600,7 +3600,7 @@ function phoneDailyPoints(rows: Array<Record<string, unknown>>) {
     return { date, effective, partial, refusals, total: effective + partial + refusals };
   }).filter((point) => {
     const dateKey = normalizeSourceMatch(point.date);
-    if (["fecha", "dia", "día", "date"].includes(dateKey)) return false;
+    if (["fecha", "echa", "dia", "día", "date"].includes(dateKey)) return false;
     return point.total > 0 || point.effective > 0;
   });
 }

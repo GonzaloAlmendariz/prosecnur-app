@@ -51,6 +51,8 @@ Artefactos:
 - Intento con perfiles reales pesados: `tmp/perf/monitoreo-hydration-heavy-timeout/report.json`.
 - Reporte fixture corregido: `tmp/perf/monitoreo-hydration-fixtures/report.json`.
 - Capturas fixture corregidas: `tmp/perf/monitoreo-hydration-fixtures/aulas_universitarias/screenshots/` y `tmp/perf/monitoreo-hydration-fixtures/telefonico/screenshots/`.
+- Cobertura all Aulas/Telefonico: `tmp/perf/monitoreo-aulas-telefonico-all-v3/report.json`.
+- Paridad Telefonico con Acreditacion/Telefono corregida: `tmp/perf/monitoreo-telefonico-parity-v4/report.json`.
 - Warmup backend Acreditacion 240 s: `tmp/perf/acreditacion-backend-full-warmup/summary.json`.
 - Warmup backend Acreditacion 320 s: `tmp/perf/acreditacion-backend-full-warmup-320/summary.json`.
 - Lecturas post-warmup Acreditacion: `tmp/perf/acreditacion-backend-full-warmup-320/state-cache-summary-second-pass.json`.
@@ -69,8 +71,8 @@ Nota: el helper `finiteMs()` fue corregido despues del intento pesado para que `
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Territorial | BootGate real 118.570 s; job `project.warmup` 108.789 s completo; sesion focalizada final 110.410 s (`open` 1.311 s + warmup 109.099 s) | topbar/sidebar 0.007 s en BootGate real; sesion focalizada visual 0.221 s, topbar/sidebar 0.228 s, entry data 3.118 s | 3/24 tabs declaradas medidas; 3/3 criticas hidratadas (`Fuente/Formulario`, `Avance/Resumen`, `Avance/Mapa y UMP`); detalle UMP profundo 6/6 probes OK, sin loaders | mapa visible frio 11.670 s; detalle UMP profundo 54.468 s; `source` 1.559 s, `advance_summary` 5.337 s | `Avance/Mapa y UMP` warm 1.204 s | 3 state requests, 0 duplicados; mapas/cartografia 16 requests, sin duplicados por URL; sin `full`; `source`/`advance_summary` cache hit post-warmup | false |
 | Acreditacion | backend warmup completo en 251.981 s con presupuesto 320 s | UI post-warmup visible 2.465 s; audit `monitoreo-acreditacion`, dashboard true | 4/4 scopes criticos backend | `queries_summary` sigue pesado por payload 19.8 MB | pendiente medir tabs all | 5 requests de estado, 4 scopes criticos | false |
-| Aulas universitarias | 4.775 s | 0.283 s | 3/5 | 0.719 s | 0.339 s | 3 | false |
-| Telefonico | 3.876 s | 0.176 s | 3/8 | 0.937 s | 0.773 s | 5 | false |
+| Aulas universitarias | 4.952 s | 0.377 s | 5/5 all declaradas | 1.980 s | 0.358 s | 5 | false |
+| Telefonico | 9.070 s | 0.531 s | 8/8 all declaradas | 9.189 s | 0.804 s | 5 | false |
 
 ## Scopes observados
 
@@ -81,10 +83,11 @@ Nota: el helper `finiteMs()` fue corregido despues del intento pesado para que `
 
 ## Lectura
 
-- Es valido aceptar mas tiempo en la apertura inicial del proyecto si BootGate/ProjectShell hidrata Monitoreo durante esa fase. En las fixtures, la preparacion inicial queda en 3.9-4.8 s y el ingreso posterior a `/monitoreo` queda por debajo de 1.2 s para tabs criticas.
+- Es valido aceptar mas tiempo en la apertura inicial del proyecto si BootGate/ProjectShell hidrata Monitoreo durante esa fase. En las fixtures all, Aulas queda lista en 5/5 tabs con 2.357 s post-visual; Telefonico queda funcionalmente correcto en 8/8 tabs, pero la hidratacion completa sube a 9.720 s por `queries_summary`.
 - Acreditacion ahora tiene evidencia backend de hidratacion completa en apertura con ACRDCONTA: 320 s alcanzo para `source`, `advance_summary`, `queries_summary` y `phone_summary`; despues del warmup, la entrada visual a `/monitoreo` marco dashboard listo en 2.465 s.
 - Territorial ya tiene evidencia backend completa con presupuesto ampliado, entrada final mejorada, mapa visible `Avance/Mapa y UMP` frio/warm y detalle UMP profundo sin loaders. No se debe afirmar que tabs `all` estan rapidas porque solo se midieron tabs criticas y el detalle UMP profundo aun tarda 54.468 s en cargar capas ricas/GPS.
 - No se debe afirmar que Acreditacion esta cerrada en paridad total hasta remedir tabs `all`; la evidencia actual prueba warmup backend completo, entrada visual post-warmup y lecturas post-warmup mas rapidas.
+- No se debe afirmar que Telefonico esta optimizado: la paridad con Acreditacion/Telefono ya esta corregida y `Consultas/Casos` pasa, pero el costo de la cobertura all todavia requiere otra vuelta de performance.
 - El cache en vuelo del cliente evita duplicar solicitudes simultaneas warmup/shell para la misma clave `includeReports + reportScope + session`.
 
 ## Contrato de iteracion
@@ -100,13 +103,14 @@ Nota: el helper `finiteMs()` fue corregido despues del intento pesado para que `
 | 7 | El harness marcaba `Avance/Mapa y UMP` como fallo porque esperaba el footer del mapa UMP profundo, pero el tab ahora abre con el mapa canonico de `Zonas con cierre` en el primer viewport. | Separar `advance_map_hydrated` para el mapa visible real del tab y agregar `advance_map_detail_hydrated` para el detalle UMP profundo con scroll explicito. | `tmp/perf/territorial-map-probe-contract-v1/report.json`: sesion ACNURCG 114.642 s de preparacion, visual 0.680 s, `Avance/Mapa y UMP` frio 15.986 s, warm 1.361 s, 3 state requests, 0 duplicados, `full=false`; detalle UMP profundo conserva loaders locales 45 s. |
 | 8 | El detalle UMP repetia requests de GPS y block/zone para el mismo ubigeo, y el probe aun penalizaba una vista ya cargada por umbral de datos del mapa/inspector. | Agregar in-flight dedupe para `apiMonitoreoTerritorialMap()`, reutilizar cartografia basica al cargar capas ricas en `loadTerritorialRouteCartography()`, y ajustar el probe del detalle al nucleo visible del mapa/inspector. | `tmp/perf/territorial-map-detail-ready-v3/report.json`: mapa/cartografia baja de 20 a 16 requests, sin duplicados por URL; detalle UMP profundo OK a 54.468 s, loading 0, visual 872; warm map 1.204 s; 3 state requests, `full=false`. |
 | 9 | Con la carga inicial mas larga, el porcentaje de BootGate podia sentirse irregular si cambiaba la fuente de progreso o si una fase larga seguia activa. | Mantener el porcentaje visible como avance monotónico durante warmup/background y mostrar `N de M pasos` + porcentaje real en el paso backend activo. | `pnpm --dir frontend exec tsc --noEmit --pretty false` y `git diff --check` pasan; cambio limitado a `frontend/src/app/BootGate.tsx` y registro QA. |
+| 10 | Telefonico no estaba alineado con el contrato visual de Acreditacion/Telefono: reutilizaba la pagina canonica, pero declaraba menos secciones/scopes y `Consultas/Casos` podia quedarse visualmente en `Telefono`. | Alinear `frontend/src/features/monitoreo/profiles/telefonico/index.ts` con las secciones canonicas `Fuentes`, `Modelo`, `Consultas`, `Telefono`, `Avance`; agregar `queries_summary` a warmup/report scopes; normalizar reportes parciales en `AcreditacionMonitoreoPage.tsx`. | `tmp/perf/monitoreo-telefonico-parity-v4/report.json`: 8/8 tabs declaradas hidratadas, `Consultas/Casos` OK con 63 datos/21 visuales/6 filas, 5 state requests, 0 duplicados, `full=false`, 0 errores page/resource. |
 
 ## Regla de parada
 
 Esta iteracion se detiene cuando:
 
 - el dedupe de cache queda probado;
-- Aulas y Telefonico quedan medidos con capturas y sin full scope;
+- Aulas y Telefonico quedan medidos con capturas all en fixtures y sin full scope; Telefonico queda funcionalmente alineado con Acreditacion/Telefono, con performance all pendiente de optimizar;
 - Territorial queda con warmup backend completo, loading mapeado, entrada critica post-warmup, mapa visible y detalle UMP profundo medidos; tabs all y costo de capas ricas/GPS quedan pendientes. Acreditacion queda con warmup backend completo pero tabs all pendiente;
 - las matrices QA registran evidencia y limitaciones;
 - la validacion automatica disponible queda ejecutada o justificada.

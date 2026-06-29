@@ -31,8 +31,8 @@ Referencias auditadas: `frontend/src/app/BootGate.tsx`, `frontend/src/app/boot.c
 | Apertura de proyecto | `bootApiProjectWarmup()` y `warmupFrontendModules()` alimentan estado de BootGate. | progreso real disponible |
 | Warmup Monitoreo | `warmupMonitoreoLocalData()` lee estado light y scopes por familia. | prepara datos antes de entrar al modulo |
 | Dedupe de cache | `apiMonitoreoState()` comparte promesas en vuelo para la misma clave. | evita duplicacion simultanea warmup/shell |
-| Entrada post-proyecto Aulas | fixture: visual 0.283 s, tabs criticas 1.002 s. | medido OK |
-| Entrada post-proyecto Telefonico | fixture: visual 0.176 s, tabs criticas 1.113 s. | medido OK |
+| Entrada post-proyecto Aulas | fixture all: visual 0.377 s, 5/5 tabs declaradas en 2.357 s, retorno warm 0.358 s, 5 state requests, sin full scope. | medido OK |
+| Entrada post-proyecto Telefonico | fixture all/paridad: visual 0.531 s, primera vista hidratada 4.276 s, 8/8 tabs declaradas en 9.720 s, retorno warm 0.804 s, 5 state requests, sin full scope. | funcional OK; tiempo all a optimizar |
 | Entrada post-proyecto Territorial | BootGate real 118.570 s; topbar/sidebar 0.007 s; entry data 2.711 s; `source` 1.624 s; `advance_summary` 5.179 s; resumen de avance 8.318 s; 0 duplicados y sin full scope. | OK para entrada critica; mapa/footer pendiente |
 | Entrada post-proyecto Territorial, mapa critico | Sesion focalizada ACNURCG: preparacion 110.410 s, visual 0.221 s, entry data 3.118 s, `Avance/Resumen` 8.853 s, `Avance/Mapa y UMP` 11.670 s, detalle UMP profundo 54.468 s, retorno warm 1.204 s; 3 state requests, 0 duplicados, sin full scope. | OK para mapa visible y detalle profundo sin loaders; costo de capas ricas/GPS sigue alto |
 | Warmup inicial Acreditacion 240 s | ACRDCONTA: `source` y `advance_summary` listos; `queries_summary` y `phone_summary` pendientes. | parcial, no suficiente |
@@ -47,19 +47,20 @@ Referencias auditadas: `frontend/src/app/BootGate.tsx`, `frontend/src/app/boot.c
 
 - La carga inicial comunica progreso y ahora tiene presupuesto suficiente para completar Acreditacion y Territorial reales en backend. Territorial reutiliza cache al entrar; algunos payloads grandes aun pueden tardar varios segundos por transferencia/render.
 - BootGate tiene mensajes de error y estados de timeout, pero esta auditoria no verifico un flujo visual de reintento especifico para Monitoreo.
-- Las fixtures pequenas validan sensacion post-proyecto; no representan el costo real de ACRDCONTA/ACNURCG.
+- Las fixtures pequenas validan sensacion post-proyecto; no representan el costo real de ACRDCONTA/ACNURCG. En Telefonico, aun siendo fixture, `queries_summary` ya muestra que las fases largas deben comunicarse con progreso claro y mensajes de trabajo real.
 
 ## Recomendaciones
 
 1. Mantener el modelo de espera inicial larga: Acreditacion requiere alrededor de 252 s y Territorial puede requerir 70-120 s segun cache/metadatos para quedar completo en backend con proyectos reales.
 2. Mantener mensajes de progreso orientados a trabajo: fuentes, rutas, mapas, avance, validaciones, consultas y telefono; evitar jerga como backend/cache en la pantalla principal.
 3. Exponer en UI cuando un tab esta usando un scope caro y permitir que el resto del workbench quede interactivo.
-4. Ampliar el harness a `--tab-scope all` despues de resolver los cuellos reales.
+4. Usar mas hitos de progreso durante cargas de 5-10 s: "preparando consultas", "ordenando casos", "actualizando tablero telefonico" y "dejando el perfil listo" son mensajes entendibles para usuario no tecnico.
+5. Ampliar el harness a `--tab-scope all` en Territorial/Acreditacion despues de resolver los cuellos reales.
 
 ## Checklist de salida
 
 - BootGate no queda en blanco: auditado por codigo y screenshots previas.
 - Progreso no es decorativo: conectado a backend/frontend warmup.
-- Post-proyecto rapido en fixtures: medido.
+- Post-proyecto rapido en fixtures: Aulas medido OK; Telefonico medido funcionalmente OK, con tiempo all a optimizar.
 - Post-proyecto rapido en proyectos reales: Acreditacion demostrado para entrada inicial post-warmup; Territorial demostrado para entrada critica post-warmup, mapa visible `Avance/Mapa y UMP` y detalle UMP profundo sin loaders; tabs all y costo de capas ricas/GPS pendientes.
 - Regla de honestidad: no afirmar que Monitoreo esta rapido hasta remedir Territorial y Acreditacion con JSON completo.
