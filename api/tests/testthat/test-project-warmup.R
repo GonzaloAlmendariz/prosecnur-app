@@ -72,6 +72,69 @@ test_that("project warmup plan selects concrete profile modules", {
   expect_true("hojas_ruta_datos" %in% frontend_modules)
 })
 
+test_that("project warmup recognizes telefonico family aliases", {
+  aliases <- c("telefonico", "telefónico", "telephone", "phone", "telephone_monitoring", "monitoreo_telefonico")
+  observed <- vapply(aliases, function(family) {
+    sid <- session_create()
+    on.exit(session_delete(sid), add = TRUE)
+    session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+    session_set(sid, "monitoreo_config", list(
+      monitoreo_profile = list(family = family)
+    ))
+    .project_warmup_monitoreo_family(sid)
+  }, character(1))
+
+  expect_equal(unname(observed), rep("telefonico", length(aliases)))
+})
+
+test_that("project warmup prepares telefonico compact scopes before entering the app", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  session_set(sid, "monitoreo_config", list(
+    monitoreo_profile = list(family = "telephone_monitoring")
+  ))
+
+  env <- environment(.project_warmup_monitoreo)
+  original <- get(".monitoreo_state_payload", envir = env)
+  was_locked <- bindingIsLocked(".monitoreo_state_payload", env)
+  if (was_locked) unlockBinding(".monitoreo_state_payload", env)
+  called_scopes <- character()
+  assign(".monitoreo_state_payload", function(sid, include_reports = FALSE, report_scope = NULL, ...) {
+    if (isTRUE(include_reports)) called_scopes <<- c(called_scopes, report_scope)
+    list(
+      ok = TRUE,
+      n_rows = 17L,
+      dashboard = list(
+        acreditacion_reports = list(
+          report_scope = report_scope %||% "light",
+          client_report = list(
+            summary = list(list(total = 17L)),
+            actors = list(),
+            daily_general = list()
+          )
+        )
+      )
+    )
+  }, envir = env)
+  on.exit({
+    if (bindingIsLocked(".monitoreo_state_payload", env)) {
+      unlockBinding(".monitoreo_state_payload", env)
+    }
+    assign(".monitoreo_state_payload", original, envir = env)
+    if (was_locked) lockBinding(".monitoreo_state_payload", env)
+  }, add = TRUE)
+  if (was_locked) lockBinding(".monitoreo_state_payload", env)
+
+  result <- .project_warmup_monitoreo(sid, remaining_ms = 60000)
+
+  expect_equal(result$status, "ready")
+  expect_equal(result$message, "Monitoreo telefónico preparado.")
+  expect_equal(result$details$family, "telefonico")
+  expect_equal(called_scopes, c("source", "advance_summary", "queries_summary", "phone_summary"))
+  expect_equal(result$details$ready_scopes, called_scopes)
+})
+
 test_that("territorial warmup keeps hojas ruta complete out when only cartography is needed", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)

@@ -43,6 +43,21 @@ Capturar evidencia desde la ventana Electron ya abierta:
 make audit-reference-smoke
 ```
 
+Generar todas las semillas minimas por familia:
+
+```bash
+make audit-projects-build
+```
+
+Generar, abrir o auditar visualmente una familia:
+
+```bash
+make audit-project-build PROJECT=territorial_lima_manzanas
+make audit-project-run PROJECT=acreditacion_multiactor
+make audit-project-visual-matrix PROJECT=procesamiento_multibase
+make audit-project-deliverables PROJECT=telefonico_cuotas
+```
+
 Por defecto, la auditoria usa el puerto local `8799` para el backend y el
 puerto CDP `9334` para Electron. Se pueden cambiar con `AUDIT_PORT` y
 `AUDIT_CDP_PORT`. `desktop-audit` usa un `userData` de Electron propio de la
@@ -62,6 +77,58 @@ outputs/audit-runs/<timestamp>/
     01-home.png
     ...
 ```
+
+Las semillas por familia se generan en:
+
+```text
+outputs/audit-projects/seeds/<slug>/
+  <slug>.pulso
+  inputs/
+    <slug>_xlsform.xlsx
+    <slug>_<base>_data.xlsx
+  manifest.json
+```
+
+Los entregables de familia se generan fuera del `.pulso`:
+
+```text
+outputs/audit-projects/deliverables/<slug>/
+  report.json
+  manifest.json
+  validation-report.html
+  *-evidence-pack.zip
+  ...
+```
+
+## Flujo Real De Encuesta Con Campo
+
+Los proyectos canonicos declaran `audit_project$canonical_flow` y
+`audit_project$module_order` en el mismo orden metodologico que deberia leer el
+analista dentro de la app:
+
+1. `diseno_planificacion`: alcance, objetivos, poblacion, actores, metodologia,
+   cronograma, responsables, hitos y productos.
+2. `diseno_muestral`: marco, estratos, cuotas, conglomerados, aulas, manzanas o
+   actores, tamano de muestra, titulares y reemplazos.
+3. `instrumento`: cuestionario, XLSForm, SurveyMonkey/Kobo, logica, saltos,
+   constraints, diagnosticos y versiones.
+4. `preparacion_operativa_campo`: hojas de ruta, fichas QR, recopiladores,
+   materiales, paquetes imprimibles y enlaces.
+5. `levantamiento_monitoreo`: fuentes activas, sincronizacion con
+   Kobo/SurveyMonkey/Sheets, avance, calidad, alertas, reemplazos y
+   subsanaciones.
+6. `carga_consolidacion_data`: bases recibidas o sincronizadas, normalizacion,
+   estudio multibase y trazabilidad de archivos fuente.
+7. `validacion_limpieza`: auditoria de instrumento/data, reglas,
+   inconsistencias, revision de casos, decisiones y base final validada.
+8. `codificacion`: preguntas abiertas, familias, codigos, grupos y aplicacion a
+   la base adaptada.
+9. `analitica`: codebook, frecuencias, cruces, dimensiones, bases finales y
+   panel wide cuando aplica.
+10. `productos_analisis`: graficos, reportes PPT/Word/PDF, dashboard
+    interactivo y HTML autosuficiente cuando aplica.
+11. `cierre_auditoria_general`: expediente, evidencias por etapa, entregables,
+    pendientes, riesgos y trazabilidad final.
 
 `audit-run.json` es la fuente de verdad de la corrida. Debe contener, como
 minimo:
@@ -112,6 +179,49 @@ La semilla incluye:
   modulo -> path/familia -> seccion -> pestana. En rutas con familias
   canonicas, como Monitoreo y Muestra, tambien reporta `activePath` y
   `availablePaths`, sin activar acciones destructivas o de exportacion.
+
+La matriz de proyectos canonicos agrega:
+
+- `territorial_lima_manzanas`: distritos, UMP, manzanas, Kobo-like rows, GPS,
+  duraciones, cuotas, tachas/subsanaciones, Hojas de ruta y paquetes de
+  evidencia.
+- `acreditacion_multiactor`: estudiantes, docentes, egresados y empleadores,
+  SurveyMonkey/Kobo/Sheets simulados, correo, llamada, enlaces personalizados,
+  parciales, rechazos y sin respuesta.
+- `procesamiento_multibase`: tres bases sinteticas SurveyMonkey/Kobo/Sheets,
+  XLSForm comun, panel/waves, validacion, limpieza, codificacion, analitica,
+  graficos, dashboard y exportaciones CSV/XLSX/SAV/HTML/ZIP.
+- `telefonico_cuotas`: barrido telefonico, responsables, intentos, estados,
+  cuotas por distrito/grupo, no contesta, rechazo, cita y efectiva.
+
+Cada familia incluye fuentes Google Sheets simuladas con `spreadsheet_id`,
+pestana, rango y modo de integracion, pero sin OAuth, tokens ni credenciales.
+Esto permite probar visualmente los flujos de monitores que trabajan conectados
+a Sheets sin depender de red o cuentas reales.
+
+## Playwright
+
+`make audit-project-visual-matrix PROJECT=<slug>` usa `scripts/ui-quick-check.mjs`
+con Playwright, API real y el `.pulso` generado. Recorre las rutas canonicas en
+orden de proyecto:
+
+- `/diseno-estudio`
+- `/plan-trabajo`
+- `/calc-muestra`
+- `/editor-xlsform`
+- `/hojas-ruta`
+- `/recopiladores`
+- `/monitoreo`
+- `/carga`
+- `/validacion`
+- `/codificacion`
+- `/analitica`
+- `/graficos`
+- `/tablero`
+
+La matriz usa viewports desktop y portables, `--fail-on-issues` y prefetch de
+datos de ruta cuando aplica. Es la via preferida para detectar overflow,
+clipping, pantallas vacias, errores de hidratacion y regresiones entre modulos.
 
 Las integraciones salientes reales (SurveyMonkey, Kobo, Hugging Face) no se
 ejecutan en la auditoria automatica. Solo se verifica que sus superficies

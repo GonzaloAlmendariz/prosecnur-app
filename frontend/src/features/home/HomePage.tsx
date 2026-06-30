@@ -19,7 +19,7 @@ import type { SessionState } from "../../api/client";
 import { useLayoutPreset, type LayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
 import {
-  PROSECNUR_MODULES as MODULES,
+  PROSECNUR_PRIMARY_MODULES as MODULES,
   homeModuleVars,
   type ProsecnurModuleMeta,
 } from "../../lib/modules";

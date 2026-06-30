@@ -15,6 +15,7 @@ describe("warmup registry", () => {
       "hojas_ruta_cartografia",
       "muestra",
       "calc_muestra",
+      "plan_trabajo",
       "monitoreo",
       "monitoreo_datos",
       "dashboard",

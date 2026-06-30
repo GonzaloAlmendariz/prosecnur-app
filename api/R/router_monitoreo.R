@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260628-acreditacion-strict-base-v1"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260629-acreditacion-phone-alerts-v1"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
@@ -293,10 +293,12 @@
   unique(columns[!is.na(columns) & nzchar(trimws(columns))])
 }
 
-.monitoreo_publication_report_scope <- function(engine_family = "acreditacion", audience = "client") {
+.monitoreo_publication_report_scope <- function(family = "acreditacion", audience = "client") {
   audience <- .monitoreo_public_audience(audience)
-  engine_family <- .monitoreo_publication_engine_family(engine_family)
+  family_key <- .monitoreo_publication_family_key(family)
+  engine_family <- .monitoreo_publication_engine_family(family_key)
   if (identical(audience, "internal")) return("full")
+  if (identical(family_key, "telefonico")) return("phone_summary")
   if (identical(engine_family, "territorial")) "advance_summary" else "full"
 }
 
@@ -312,7 +314,8 @@
                                                        performance = list(),
                                                        evidence = list(),
                                                        format_validation = list(ok = TRUE, evidence = TRUE, available = TRUE),
-                                                       pdf_validation = list(required = FALSE)) {
+                                                       pdf_validation = list(required = FALSE),
+                                                       operational_package_review = NULL) {
   required_tabs <- unname(.monitoreo_publication_sheet_tab_names(family, audience))
   present_tabs <- names(tabs %||% list())
   completeness <- list(
@@ -332,10 +335,43 @@
     format_validation = format_validation %||% list(ok = TRUE, evidence = TRUE, available = TRUE),
     pdf_validation = pdf_validation %||% list(required = FALSE),
     drift = drift %||% list(status = "not_checked"),
+    operational_package_review = operational_package_review,
     performance = performance %||% list(),
     client_columns = .monitoreo_publication_tab_columns(tabs),
     evidence = evidence %||% list()
   )
+}
+
+.monitoreo_publication_reference_drift_from_request <- function(sid,
+                                                                parsed = list(),
+                                                                out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                                source = "",
+                                                                cut = "",
+                                                                project = "") {
+  if (!is.list(parsed)) parsed <- list()
+  drift <- parsed$drift %||%
+    parsed$reference_drift %||%
+    parsed$referenceDrift
+  if (is.list(drift) && length(drift)) return(drift)
+
+  drift_file_id <- parsed$drift_file_id %||%
+    parsed$driftFileId %||%
+    parsed$reference_drift_file_id %||%
+    parsed$referenceDriftFileId
+  if (!is.null(drift_file_id)) {
+    drift_payload <- parsed
+    drift_payload$sid <- sid
+    drift_payload$drift_file_id <- drift_file_id
+    return(.monitoreo_territorial_drift_from_payload(
+      drift_payload,
+      out_dir = out_dir,
+      source = source,
+      cut = cut,
+      project = project
+    ))
+  }
+
+  list(status = "not_checked")
 }
 
 .monitoreo_publication_preflight_bundle <- function(sid,
@@ -354,14 +390,17 @@
   include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
   publication_family <- detect_monitoreo_family(config = raw_config, data = snapshot$data)
   engine_family <- .monitoreo_publication_engine_family(publication_family)
-  report_scope <- .monitoreo_publication_report_scope(engine_family, audience)
-  dashboard <- .monitoreo_dashboard_for_session(
-    sid,
-    snapshot$data,
-    cfg,
-    include_reports = TRUE,
-    report_scope = report_scope
-  )
+  report_scope <- .monitoreo_publication_report_scope(publication_family, audience)
+  dashboard <- snapshot$dashboard %||% NULL
+  if (is.null(dashboard) || !is.list(dashboard)) {
+    dashboard <- .monitoreo_dashboard_for_session(
+      sid,
+      snapshot$data,
+      cfg,
+      include_reports = TRUE,
+      report_scope = report_scope
+    )
+  }
   if (identical(engine_family, "territorial") && identical(audience, "internal")) {
     if (is.null(dashboard$territorial_reports) || !is.list(dashboard$territorial_reports)) {
       dashboard$territorial_reports <- list()
@@ -370,6 +409,28 @@
   }
   spreadsheet_id <- .monitoreo_scalar(spreadsheet_id, "")
   spreadsheet_url <- if (nzchar(spreadsheet_id)) paste0("https://docs.google.com/spreadsheets/d/", spreadsheet_id, "/edit") else ""
+  project_label <- .monitoreo_publication_project_label(parsed, s, cfg)
+  cut_label <- .monitoreo_scalar(snapshot$synced_at %||% snapshot$generated_at, .monitoreo_now_iso())
+  source_label <- .monitoreo_publication_source_label(s, snapshot, cfg, parsed)
+  drift <- .monitoreo_publication_reference_drift_from_request(
+    sid,
+    parsed,
+    out_dir = file.path(
+      "tmp",
+      "qa",
+      "monitoreo-deliverables",
+      paste(
+        .monitoreo_publication_evidence_slug(project_label, "project"),
+        .monitoreo_publication_evidence_slug(audience, "audience"),
+        .monitoreo_publication_evidence_slug(cut_label, format(Sys.Date(), "%Y-%m-%d")),
+        "preflight-reference",
+        sep = "-"
+      )
+    ),
+    source = source_label,
+    cut = cut_label,
+    project = project_label
+  )
   tabs <- monitoreo_publication_sheets_tabs(
     snapshot$data,
     cfg,
@@ -391,12 +452,17 @@
     tabs,
     family = publication_family,
     audience = audience,
-    project = .monitoreo_publication_project_label(parsed, s, cfg),
-    cut = .monitoreo_scalar(snapshot$synced_at %||% snapshot$generated_at, .monitoreo_now_iso()),
-    source = .monitoreo_publication_source_label(s, snapshot, cfg, parsed),
+    project = project_label,
+    cut = cut_label,
+    source = source_label,
     confirmed_full_data = .monitoreo_publication_confirmed_full_data(parsed),
     canonical_counts = parsed$canonical_counts %||% parsed$canonicalCounts %||% list(required = FALSE),
-    drift = parsed$drift %||% parsed$reference_drift %||% list(status = "not_checked"),
+    drift = drift,
+    operational_package_review = parsed$operational_package_review %||%
+      parsed$operationalPackageReview %||%
+      parsed$package_review %||%
+      parsed$packageReview %||%
+      NULL,
     performance = performance,
     evidence = list(
       n_rows = as.integer(nrow(snapshot$data)),
@@ -528,8 +594,42 @@
     generated_pdf = parsed$generated_pdf %||% parsed$generatedPdf %||% parsed$pdf_path %||% parsed$pdfPath %||% NULL,
     format_validation = format_validation,
     data_validation = data_validation,
+    reference_validation = parsed$reference_validation %||% parsed$referenceValidation %||% NULL,
+    cut_snapshot = parsed$cut_snapshot %||% parsed$cutSnapshot %||% NULL,
+    operational_package_status = parsed$operational_package_status %||% parsed$operationalPackageStatus %||% NULL,
+    publication_decision = parsed$publication_decision %||% parsed$publicationDecision %||% NULL,
     performance = performance
   )
+
+  pack_file_specs <- list(
+    operational_package_request_csv = list(
+      path = pack$operational_package_request_csv,
+      kind = "monitoreo_publication_operational_package_request_csv",
+      filename = paste(project_slug, audience_slug, "operational-package-request.csv", sep = "-")
+    ),
+    operational_package_request = list(
+      path = pack$operational_package_request,
+      kind = "monitoreo_publication_operational_package_request_json",
+      filename = paste(project_slug, audience_slug, "operational-package-request.json", sep = "-")
+    ),
+    operational_package_status = list(
+      path = pack$operational_package_status,
+      kind = "monitoreo_publication_operational_package_status",
+      filename = paste(project_slug, audience_slug, "operational-package-status.json", sep = "-")
+    ),
+    publication_decision = list(
+      path = pack$publication_decision,
+      kind = "monitoreo_publication_decision",
+      filename = paste(project_slug, audience_slug, "publication-decision.json", sep = "-")
+    )
+  )
+  pack_files <- lapply(pack_file_specs, function(spec) {
+    path <- .monitoreo_scalar(spec$path, "")
+    if (!nzchar(path) || !file.exists(path)) return(NULL)
+    file_meta <- .register_output_file(sid, spec$kind, path, original_name = spec$filename)
+    list(file_id = file_meta$file_id, filename = file_meta$original_name, size = file_meta$size)
+  })
+  pack_files <- pack_files[!vapply(pack_files, is.null, logical(1))]
 
   zip_filename <- paste(project_slug, audience_slug, "evidence-pack", cut_slug, sep = "-")
   zip_filename <- paste0(zip_filename, ".zip")
@@ -544,6 +644,7 @@
     tabs = names(bundle$tabs),
     preflight = bundle$preflight,
     evidence_pack = pack,
+    files = pack_files,
     zip = list(file_id = meta$file_id, filename = meta$original_name, size = meta$size),
     file_id = meta$file_id,
     filename = meta$original_name,
@@ -669,7 +770,12 @@
     out_dir = out_dir,
     source = source,
     cut = cut,
-    project = project
+    project = project,
+    reference_audit_probe = parsed$reference_audit_probe %||%
+      parsed$referenceAuditProbe %||%
+      parsed$audit_probe %||%
+      parsed$auditProbe %||%
+      NULL
   )
   template_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-template.csv")
   review_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.csv")
@@ -692,6 +798,9 @@
     status = review$status,
     publication_gate = review$publication_gate,
     blocks_publication = review$blocks_publication,
+    apply_ready = review$apply_ready,
+    requires_revalidation = review$requires_revalidation,
+    publication_ready = review$publication_ready,
     safe_to_apply = review$safe_to_apply,
     would_mutate_pulso = FALSE
   )
@@ -765,7 +874,7 @@
   publication_family <- detect_monitoreo_family(config = s$monitoreo_config %||% snapshot$config %||% list(), data = data)
   family <- .monitoreo_publication_engine_family(publication_family)
   audience <- .monitoreo_public_audience(audience %||% s$public_artifact$audience %||% "client")
-  report_scope <- if (identical(audience, "internal")) "full" else if (identical(family, "territorial")) "advance_summary" else "full"
+  report_scope <- .monitoreo_publication_report_scope(publication_family, audience)
   dashboard <- .monitoreo_dashboard_for_session(
     sid,
     data,
@@ -3846,6 +3955,61 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   source
 }
 
+.monitoreo_source_match <- function(sources, source) {
+  if (!is.list(sources) || !is.list(source)) return(NULL)
+  source_id <- .monitoreo_scalar(source$id, "")
+  survey_id <- .monitoreo_scalar(source$survey_id, "")
+  for (candidate in sources) {
+    if (!is.list(candidate)) next
+    same_id <- nzchar(source_id) && identical(.monitoreo_scalar(candidate$id, ""), source_id)
+    same_survey <- nzchar(survey_id) && identical(.monitoreo_scalar(candidate$survey_id, ""), survey_id)
+    if (isTRUE(same_id) || isTRUE(same_survey)) return(candidate)
+  }
+  NULL
+}
+
+.monitoreo_preserve_source_operational_metadata <- function(source, previous = NULL) {
+  if (!is.list(source) || !is.list(previous)) return(source)
+  source$created_at <- .monitoreo_scalar(previous$created_at, source$created_at %||% .monitoreo_now_iso())
+  if (!nzchar(.monitoreo_scalar(source$last_sync_at, ""))) {
+    source$last_sync_at <- .monitoreo_scalar(previous$last_sync_at, "")
+  }
+  if (!nzchar(.monitoreo_scalar(source$last_sync_mode, ""))) {
+    source$last_sync_mode <- .monitoreo_scalar(previous$last_sync_mode %||% previous$lastSyncMode, "")
+  }
+  if (!nzchar(.monitoreo_scalar(source$declared_person_code_var, ""))) {
+    source$declared_person_code_var <- .monitoreo_scalar(
+      previous$declared_person_code_var %||%
+        previous$declaredPersonCodeVar %||%
+        previous$declared_pucp_code_var %||%
+        previous$declaredPucpCodeVar %||%
+        previous$codigo_pucp_var %||%
+        previous$codigoPucpVar,
+      ""
+    )
+  }
+  if (!nzchar(.monitoreo_scalar(source$declared_person_code_label, ""))) {
+    source$declared_person_code_label <- .monitoreo_scalar(
+      previous$declared_person_code_label %||%
+        previous$declaredPersonCodeLabel %||%
+        previous$declared_pucp_code_label %||%
+        previous$declaredPucpCodeLabel %||%
+        previous$codigo_pucp_label %||%
+        previous$codigoPucpLabel,
+      ""
+    )
+  }
+  if (!length(source$sync_cursor %||% list())) {
+    source$sync_cursor <- .monitoreo_normalize_sync_cursor(previous$sync_cursor %||% previous$syncCursor)
+  }
+  if (!length(source$collectors %||% list())) {
+    source$collectors <- .monitoreo_normalize_source_collectors(
+      previous$collectors %||% previous$survey_collectors %||% previous$surveyCollectors
+    )
+  }
+  source
+}
+
 .monitoreo_sheets_stop <- function(e) {
   stop_api(400, "E_GOOGLE_SHEETS", conditionMessage(e))
 }
@@ -4000,9 +4164,42 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     model$report_kind <- "territorial_advance_pdf"
     return(model)
   }
-  model <- monitoreo_acreditacion_client_report_model(snapshot$data, cfg)
+  dashboard <- snapshot$dashboard %||% NULL
+  reports <- if (is.list(dashboard)) dashboard$acreditacion_reports %||% list() else list()
+  model <- reports$client_report %||% NULL
+  if (is.null(model) || !is.list(model) || !length(model$actors %||% list())) {
+    model <- monitoreo_acreditacion_client_report_model(snapshot$data, cfg)
+  }
   model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = isTRUE(include_targets))
   model$report_kind <- "acreditacion_client_report_pdf"
+  model
+}
+
+.monitoreo_production_report_model_for_snapshot <- function(snapshot, cfg, include_targets = FALSE) {
+  if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
+    stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de generar el reporte de producción.")
+  }
+  cfg <- monitoreo_normalize_config(cfg, snapshot$data)
+  publication_family <- detect_monitoreo_family(config = cfg, data = snapshot$data)
+  dashboard <- snapshot$dashboard %||% NULL
+  if (is.null(dashboard) || !is.list(dashboard)) {
+    dashboard <- monitoreo_build_dashboard(
+      snapshot$data,
+      cfg,
+      include_reports = TRUE,
+      report_scope = .monitoreo_publication_report_scope(publication_family, "internal")
+    )
+  }
+  model <- monitoreo_publication_model(
+    snapshot$data,
+    cfg,
+    audience = "internal",
+    include_targets = include_targets,
+    dashboard = dashboard,
+    synced_at = snapshot$synced_at %||% "",
+    context = list(family = publication_family)
+  )
+  model$report_kind <- "production_report_pdf"
   model
 }
 
@@ -4430,6 +4627,21 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
   list(ok = TRUE, size = as.numeric(file.info(result_path)$size %||% 0), filename = basename(result_path))
 }
 
+monitoreo_production_report_pdf_job_runner <- function(model_path,
+                                                       include_targets = FALSE,
+                                                       report_title = NULL,
+                                                       result_path = NULL,
+                                                       progress_path = NULL) {
+  report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
+  report("prepare", percent = 15, message = "Preparando producción...")
+  model <- readRDS(model_path)
+  report("render", percent = 55, message = "Renderizando PDF de producción...")
+  title <- .monitoreo_scalar(report_title %||% model$display_title %||% "", "")
+  monitoreo_production_report_pdf(model, result_path, title = if (nzchar(title)) title else NULL)
+  report("export", percent = 95, message = "Guardando PDF...")
+  list(ok = TRUE, size = as.numeric(file.info(result_path)$size %||% 0), filename = basename(result_path))
+}
+
 .monitoreo_fetch_surveymonkey_collectors_for_source <- function(sid, source) {
   if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) return(list())
   survey_id <- .monitoreo_scalar(source$survey_id, "")
@@ -4496,6 +4708,100 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
     if (length(collectors)) sources[[i]]$collectors <- collectors
   }
   sources
+}
+
+.monitoreo_acreditacion_apply_case_reconciliation <- function(data, config = list(), payload = list()) {
+  if (!is.list(payload)) payload <- list()
+  response_id <- .monitoreo_scalar(payload$response_id %||% payload$responseId, "")
+  action <- .monitoreo_scalar(payload$action %||% payload$accion, "")
+  if (!nzchar(response_id)) stop_api(400, "E_MONITOREO_RESPONSE_ID", "Falta response_id para guardar la decision.")
+  if (!action %in% c("keep_excluded", "include_with_caveat")) {
+    stop_api(400, "E_MONITOREO_DECISION_ACTION", "action debe ser keep_excluded o include_with_caveat.")
+  }
+  if (!is.data.frame(data) || !nrow(data)) {
+    stop_api(409, "E_MONITOREO_NO_SNAPSHOT", "No hay snapshot local de monitoreo para auditar el caso.")
+  }
+
+  cfg <- monitoreo_normalize_config(config %||% list(), data)
+  profile <- cfg$monitoreo_profile %||% monitoreo_normalize_profile(list())
+  queries <- .monitoreo_acreditacion_internal_queries(data, profile)
+  cases <- queries$cases %||% list()
+  hits <- Filter(function(item) identical(.monitoreo_scalar(item$response_id, ""), response_id), cases)
+  if (!length(hits)) stop_api(404, "E_MONITOREO_CASE_NOT_FOUND", "No se encontro el response_id en los casos del corte.")
+  item <- hits[[1]]
+  assisted <- item$assisted_review %||% list()
+  reviewable_case <- .monitoreo_text_key(item$base_result %||% "") %in% c("sin cruce", "sin llave") ||
+    .monitoreo_text_key(item$issue_type %||% "") %in% c("fuera_base", "sin_llave", "incluido_con_salvedad")
+  if (!isTRUE(assisted$eligible) && is.null(assisted$manual_decision) && !isTRUE(reviewable_case)) {
+    stop_api(409, "E_MONITOREO_CASE_NOT_REVIEWABLE", "Este caso no tiene evidencia secundaria para revision asistida.")
+  }
+
+  note <- .monitoreo_scalar(payload$note %||% payload$nota, "")
+  candidate_id <- .monitoreo_scalar(payload$candidate_id %||% payload$candidateId %||% payload$assigned_case_key, "")
+  selected <- NULL
+  if (identical(action, "include_with_caveat")) {
+    state_key <- .monitoreo_text_key(item$platform_state %||% "")
+    if (!state_key %in% c("completa", "parcial")) {
+      stop_api(409, "E_MONITOREO_CASE_NOT_VALIDATABLE", "Solo una respuesta completa o parcial revisable puede incluirse con salvedad en el avance.")
+    }
+    if (!nzchar(candidate_id)) stop_api(400, "E_MONITOREO_CANDIDATE_REQUIRED", "Selecciona una persona del universo para incluir con salvedad.")
+    candidates <- c(assisted$candidates %||% list(), assisted$assignment_candidates %||% list())
+    matches <- Filter(function(candidate) {
+      identical(.monitoreo_scalar(candidate$candidate_id, ""), candidate_id) ||
+        identical(.monitoreo_scalar(candidate$case_key, ""), candidate_id)
+    }, candidates)
+    if (!length(matches)) stop_api(400, "E_MONITOREO_CANDIDATE_INVALID", "La coincidencia seleccionada ya no existe en el universo actual.")
+    selected <- matches[[1]]
+    if (isTRUE(.monitoreo_bool(selected$already_effective %||% selected$already_answered, FALSE))) {
+      stop_api(409, "E_MONITOREO_CANDIDATE_ALREADY_ANSWERED", "La persona seleccionada ya tiene una respuesta reconciliada; selecciona una persona pendiente del universo.")
+    }
+    warnings <- .monitoreo_chr_vec(assisted$warnings %||% list())
+    has_contradiction <- any(grepl("codigo declarado no coincide|código declarado no coincide", .monitoreo_text_key(warnings)))
+    selected_evidence_level <- .monitoreo_scalar(selected$evidence_level, "")
+    manual_assignment <- identical(.monitoreo_scalar(selected$match_type, ""), "manual_pending") ||
+      selected_evidence_level %in% c("", "manual")
+    weak_assignment <- selected_evidence_level %in% c("possible")
+    partial_assignment <- identical(state_key, "parcial")
+    if ((isTRUE(partial_assignment) || isTRUE(has_contradiction) || isTRUE(manual_assignment) || isTRUE(weak_assignment)) && !nzchar(note)) {
+      stop_api(400, "E_MONITOREO_NOTE_REQUIRED", "Agrega una nota para incluir con salvedad cuando la asignacion no nace de una coincidencia exacta o cuando codigo y correo se contradicen.")
+    }
+  }
+
+  recon <- profile$reconciliation_decisions %||% list()
+  include_ids <- unique(.monitoreo_chr_vec(recon$include_response_ids))
+  exclude_ids <- unique(.monitoreo_chr_vec(recon$exclude_response_ids))
+  if (identical(action, "include_with_caveat")) {
+    include_ids <- unique(c(include_ids, response_id))
+    exclude_ids <- setdiff(exclude_ids, response_id)
+  } else {
+    include_ids <- setdiff(include_ids, response_id)
+    exclude_ids <- unique(c(exclude_ids, response_id))
+  }
+  manual <- .monitoreo_normalize_manual_case_reconciliations(recon$manual_case_reconciliations %||% list())
+  decision <- list(
+    response_id = response_id,
+    actor = .monitoreo_scalar(item$actor, ""),
+    action = action,
+    declared_code = .monitoreo_scalar(assisted$declared_code, ""),
+    declared_email = .monitoreo_scalar(assisted$declared_email, ""),
+    assigned_person_label = if (is.null(selected)) "" else .monitoreo_scalar(selected$person_label, ""),
+    assigned_case_key = if (is.null(selected)) "" else .monitoreo_scalar(selected$case_key, ""),
+    assigned_base_source = if (is.null(selected)) "" else .monitoreo_scalar(selected$base_source, ""),
+    assigned_base_row = if (is.null(selected)) 0L else .monitoreo_int(selected$base_row, 0L),
+    match_type = if (is.null(selected)) "none" else .monitoreo_scalar(selected$match_type, ""),
+    previous_status = .monitoreo_scalar(item$advancement, ""),
+    new_status = if (identical(action, "include_with_caveat")) "included_with_caveat" else "excluded",
+    note = note,
+    decided_at = .monitoreo_now_iso()
+  )
+  manual[[response_id]] <- decision
+  profile$reconciliation_decisions <- list(
+    include_response_ids = as.list(include_ids),
+    exclude_response_ids = as.list(exclude_ids),
+    manual_case_reconciliations = manual
+  )
+  cfg$monitoreo_profile <- monitoreo_normalize_profile(profile, acreditacion = cfg$acreditacion)
+  list(config = cfg, decision = decision, case = item, selected = selected)
 }
 
 mount_monitoreo <- function(pr) {
@@ -4983,6 +5289,80 @@ mount_monitoreo <- function(pr) {
       }
       if (is.null(meta) || !isTRUE(meta$disponible) || is.null(meta$path) || !file.exists(meta$path)) {
         stop_api(404, "E_NO_REPORTE_CLIENTE", "No hay PDF de reporte a cliente generado todavía.")
+      }
+      n <- file.info(meta$path)$size
+      bytes <- readBin(meta$path, what = "raw", n = n)
+      res$setHeader("Content-Type", "application/pdf")
+      res$setHeader("Content-Length", as.character(n))
+      modo <- if (is.character(inline) && length(inline) >= 1L && inline[[1]] %in% c("1", "true", "TRUE")) "inline" else "attachment"
+      res$setHeader("Content-Disposition", sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$body <- bytes
+      res
+    })) |>
+    plumber::pr_post("/api/monitoreo/production-report/pdf", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
+      include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
+      model <- .monitoreo_production_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
+      report_title <- .monitoreo_scalar(parsed$title %||% parsed$report_title %||% parsed$reportTitle, "")
+      if (nzchar(report_title)) model$display_title <- report_title
+      model_path <- job_save_rds(sid, "monitoreo_production_report_model", model)
+      filename <- .export_filename(sid, "produccion_responsable_monitoreo", "pdf")
+      pdf_job_runner <- monitoreo_production_report_pdf_job_runner
+      attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_production_report_pdf_job_runner"
+      job_id <- job_submit(
+        sid = sid,
+        kind = "monitoreo.production_report_pdf",
+        func = pdf_job_runner,
+        args = list(model_path = model_path, include_targets = include_targets, report_title = report_title),
+        result_filename = filename,
+        on_complete = function(j) {
+          if (identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
+            session_set(j$sid, "monitoreo_production_report_pdf", list(
+              disponible = TRUE,
+              path = j$result_path,
+              generated_at = format(j$finished_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+              include_targets = include_targets,
+              title = report_title,
+              report_kind = model$report_kind %||% ""
+            ))
+          }
+          j$result_data
+        }
+      )
+      session_set(sid, "monitoreo_production_report_pdf", list(
+        disponible = FALSE,
+        job_id = job_id,
+        generated_at = NULL,
+        include_targets = include_targets,
+        title = report_title,
+        report_kind = model$report_kind %||% ""
+      ))
+      list(ok = TRUE, job_id = job_id, kind = "monitoreo.production_report_pdf")
+    })) |>
+    plumber::pr_get("/api/monitoreo/production-report/pdf/download", wrap_endpoint(function(req, res, sid = NULL, inline = NULL, ...) {
+      effective_sid <- session_header(req)
+      if ((is.null(effective_sid) || !nzchar(effective_sid)) && is.character(sid) && length(sid) >= 1L && nzchar(sid[[1]])) {
+        effective_sid <- sid[[1]]
+      }
+      s <- session_get(effective_sid)
+      meta <- s$monitoreo_production_report_pdf %||% NULL
+      if (is.null(meta) || !isTRUE(meta$disponible) || is.null(meta$path) || !file.exists(meta$path)) {
+        if (!is.null(meta$job_id)) {
+          j <- tryCatch(job_poll(meta$job_id), error = function(e) NULL)
+          if (!is.null(j) && identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
+            meta$path <- j$result_path
+            meta$disponible <- TRUE
+            meta$generated_at <- format(j$finished_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+            session_set(effective_sid, "monitoreo_production_report_pdf", meta)
+          }
+        }
+      }
+      if (is.null(meta) || !isTRUE(meta$disponible) || is.null(meta$path) || !file.exists(meta$path)) {
+        stop_api(404, "E_NO_PRODUCCION_PDF", "No hay PDF de producción generado todavía.")
       }
       n <- file.info(meta$path)$size
       bytes <- readBin(meta$path, what = "raw", n = n)
@@ -6338,16 +6718,7 @@ mount_monitoreo <- function(pr) {
       kind <- source$kind
       label_raw <- attr(source, "label_raw", exact = TRUE) %||% ""
       previous_sources <- session_get(sid)$monitoreo_sources %||% list()
-      previous_match <- NULL
-      for (candidate in previous_sources) {
-        if (!is.list(candidate)) next
-        same_id <- nzchar(source$id %||% "") && identical(.monitoreo_scalar(candidate$id, ""), source$id)
-        same_survey <- nzchar(source$survey_id %||% "") && identical(.monitoreo_scalar(candidate$survey_id, ""), source$survey_id)
-        if (isTRUE(same_id) || isTRUE(same_survey)) {
-          previous_match <- candidate
-          break
-        }
-      }
+      previous_match <- .monitoreo_source_match(previous_sources, source)
       if (identical(kind, "surveymonkey") && !nzchar(source$survey_title %||% "") && !is.null(previous_match)) {
         source$survey_title <- .monitoreo_scalar(previous_match$survey_title %||% previous_match$label, "")
       }
@@ -6369,6 +6740,7 @@ mount_monitoreo <- function(pr) {
       if (identical(kind, "surveymonkey") && !nzchar(label_raw) && nzchar(validation$title %||% "")) {
         source$label <- validation$title
       }
+      source <- .monitoreo_preserve_source_operational_metadata(source, previous_match)
       sources <- monitoreo_upsert_source(previous_sources, source)
       session_set(sid, "monitoreo_sources", sources)
       snapshot <- session_get(sid)$monitoreo_snapshot %||% NULL
@@ -6378,7 +6750,7 @@ mount_monitoreo <- function(pr) {
         session_set(sid, "monitoreo_snapshot", snapshot)
       }
       .monitoreo_invalidate_dashboard_caches(sid)
-      list(ok = TRUE, source = source, validation = validation, state = .monitoreo_state_payload(sid))
+      list(ok = TRUE, source = source, validation = validation, state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "source"))
     })) |>
     plumber::pr_post("/api/monitoreo/sources", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -6399,9 +6771,13 @@ mount_monitoreo <- function(pr) {
         source <- .monitoreo_source_from_payload(item)
         kind <- source$kind
         label_raw <- attr(source, "label_raw", exact = TRUE) %||% ""
+        previous_match <- .monitoreo_source_match(sources, source)
+        if (identical(kind, "surveymonkey") && !nzchar(source$survey_title %||% "") && !is.null(previous_match)) {
+          source$survey_title <- .monitoreo_scalar(previous_match$survey_title %||% previous_match$label, "")
+        }
         local_surveymonkey_update <- identical(kind, "surveymonkey") &&
           !isTRUE(.monitoreo_bool(item$validate %||% item$force_validate %||% item$forceValidate, FALSE)) &&
-          nzchar(source$survey_title %||% "")
+          (nzchar(source$survey_title %||% "") || !is.null(previous_match))
         validation <- if (isTRUE(local_surveymonkey_update)) {
           list(
             ok = TRUE,
@@ -6417,6 +6793,7 @@ mount_monitoreo <- function(pr) {
         if (identical(kind, "surveymonkey") && !nzchar(label_raw) && nzchar(validation$title %||% "")) {
           source$label <- validation$title
         }
+        source <- .monitoreo_preserve_source_operational_metadata(source, previous_match)
         sources <- monitoreo_upsert_source(sources, source)
         added[[length(added) + 1L]] <- source
         validations[[source$id %||% as.character(length(validations) + 1L)]] <- validation
@@ -6429,7 +6806,7 @@ mount_monitoreo <- function(pr) {
         session_set(sid, "monitoreo_snapshot", snapshot)
       }
       .monitoreo_invalidate_dashboard_caches(sid)
-      list(ok = TRUE, sources = added, validations = validations, state = .monitoreo_state_payload(sid))
+      list(ok = TRUE, sources = added, validations = validations, state = .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "source"))
     })) |>
     plumber::pr_post("/api/monitoreo/config", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -6457,87 +6834,10 @@ mount_monitoreo <- function(pr) {
       snapshot <- s$monitoreo_snapshot %||% NULL
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
       data <- .monitoreo_apply_source_metadata_to_data(data, monitoreo_normalize_sources(s$monitoreo_sources %||% list()))
-      if (!nrow(data)) stop_api(409, "E_MONITOREO_NO_SNAPSHOT", "No hay snapshot local de monitoreo para auditar el caso.")
-      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
-      profile <- cfg$monitoreo_profile %||% monitoreo_normalize_profile(list())
-      queries <- .monitoreo_acreditacion_internal_queries(data, profile)
-      cases <- queries$cases %||% list()
-      hits <- Filter(function(item) identical(.monitoreo_scalar(item$response_id, ""), response_id), cases)
-      if (!length(hits)) stop_api(404, "E_MONITOREO_CASE_NOT_FOUND", "No se encontro el response_id en los casos del corte.")
-      item <- hits[[1]]
-      assisted <- item$assisted_review %||% list()
-      reviewable_case <- .monitoreo_text_key(item$base_result %||% "") %in% c("sin cruce", "sin llave") ||
-        .monitoreo_text_key(item$issue_type %||% "") %in% c("fuera_base", "sin_llave", "incluido_con_salvedad")
-      if (!isTRUE(assisted$eligible) && is.null(assisted$manual_decision) && !isTRUE(reviewable_case)) {
-        stop_api(409, "E_MONITOREO_CASE_NOT_REVIEWABLE", "Este caso no tiene evidencia secundaria para revision asistida.")
-      }
-
-      note <- .monitoreo_scalar(payload$note %||% payload$nota, "")
-      candidate_id <- .monitoreo_scalar(payload$candidate_id %||% payload$candidateId %||% payload$assigned_case_key, "")
-      selected <- NULL
-      if (identical(action, "include_with_caveat")) {
-        if (!identical(.monitoreo_text_key(item$platform_state %||% ""), "completa")) {
-          stop_api(409, "E_MONITOREO_CASE_NOT_COMPLETE", "Solo una respuesta completa puede incluirse con salvedad en el avance.")
-        }
-        if (!nzchar(candidate_id)) stop_api(400, "E_MONITOREO_CANDIDATE_REQUIRED", "Selecciona una persona del universo para incluir con salvedad.")
-        candidates <- c(assisted$candidates %||% list(), assisted$assignment_candidates %||% list())
-        matches <- Filter(function(candidate) {
-          identical(.monitoreo_scalar(candidate$candidate_id, ""), candidate_id) ||
-            identical(.monitoreo_scalar(candidate$case_key, ""), candidate_id)
-        }, candidates)
-        if (!length(matches)) stop_api(400, "E_MONITOREO_CANDIDATE_INVALID", "La coincidencia seleccionada ya no existe en el universo actual.")
-        selected <- matches[[1]]
-        if (isTRUE(.monitoreo_bool(selected$already_effective %||% selected$already_answered, FALSE))) {
-          stop_api(409, "E_MONITOREO_CANDIDATE_ALREADY_ANSWERED", "La persona seleccionada ya tiene una respuesta reconciliada; selecciona una persona pendiente del universo.")
-        }
-        warnings <- .monitoreo_chr_vec(assisted$warnings %||% list())
-        has_contradiction <- any(grepl("codigo declarado no coincide|código declarado no coincide", .monitoreo_text_key(warnings)))
-        selected_evidence_level <- .monitoreo_scalar(selected$evidence_level, "")
-        manual_assignment <- identical(.monitoreo_scalar(selected$match_type, ""), "manual_pending") ||
-          selected_evidence_level %in% c("", "manual")
-        weak_assignment <- selected_evidence_level %in% c("possible")
-        if ((isTRUE(has_contradiction) || isTRUE(manual_assignment) || isTRUE(weak_assignment)) && !nzchar(note)) {
-          stop_api(400, "E_MONITOREO_NOTE_REQUIRED", "Agrega una nota para incluir con salvedad cuando la asignacion no nace de una coincidencia exacta o cuando codigo y correo se contradicen.")
-        }
-      }
-
-      recon <- profile$reconciliation_decisions %||% list()
-      include_ids <- unique(.monitoreo_chr_vec(recon$include_response_ids))
-      exclude_ids <- unique(.monitoreo_chr_vec(recon$exclude_response_ids))
-      if (identical(action, "include_with_caveat")) {
-        include_ids <- unique(c(include_ids, response_id))
-        exclude_ids <- setdiff(exclude_ids, response_id)
-      } else {
-        include_ids <- setdiff(include_ids, response_id)
-        exclude_ids <- unique(c(exclude_ids, response_id))
-      }
-      manual <- .monitoreo_normalize_manual_case_reconciliations(recon$manual_case_reconciliations %||% list())
-      decision <- list(
-        response_id = response_id,
-        actor = .monitoreo_scalar(item$actor, ""),
-        action = action,
-        declared_code = .monitoreo_scalar(assisted$declared_code, ""),
-        declared_email = .monitoreo_scalar(assisted$declared_email, ""),
-        assigned_person_label = if (is.null(selected)) "" else .monitoreo_scalar(selected$person_label, ""),
-        assigned_case_key = if (is.null(selected)) "" else .monitoreo_scalar(selected$case_key, ""),
-        assigned_base_source = if (is.null(selected)) "" else .monitoreo_scalar(selected$base_source, ""),
-        assigned_base_row = if (is.null(selected)) 0L else .monitoreo_int(selected$base_row, 0L),
-        match_type = if (is.null(selected)) "none" else .monitoreo_scalar(selected$match_type, ""),
-        previous_status = .monitoreo_scalar(item$advancement, ""),
-        new_status = if (identical(action, "include_with_caveat")) "included_with_caveat" else "excluded",
-        note = note,
-        decided_at = .monitoreo_now_iso()
-      )
-      manual[[response_id]] <- decision
-      profile$reconciliation_decisions <- list(
-        include_response_ids = as.list(include_ids),
-        exclude_response_ids = as.list(exclude_ids),
-        manual_case_reconciliations = manual
-      )
-      cfg$monitoreo_profile <- monitoreo_normalize_profile(profile, acreditacion = cfg$acreditacion)
-      cfg <- .monitoreo_store_config(sid, cfg)
+      applied <- .monitoreo_acreditacion_apply_case_reconciliation(data, s$monitoreo_config %||% list(), payload)
+      cfg <- .monitoreo_store_config(sid, applied$config)
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
-      list(ok = TRUE, decision = decision, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+      list(ok = TRUE, decision = applied$decision, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_post("/api/monitoreo/collectors/config", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

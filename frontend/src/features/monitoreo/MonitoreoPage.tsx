@@ -238,6 +238,15 @@ import {
   type TerritorialUmpAuditModel,
 } from "./territorialCaseAuditModel";
 import {
+  TERRITORIAL_DURATION_SHORT_SECONDS,
+  TERRITORIAL_DURATION_VERY_SHORT_SECONDS,
+  type TerritorialDurationOperationalKey,
+  territorialDurationIsReviewStatus,
+  territorialDurationOperationalStatusFromValues,
+  territorialDurationReviewPriority,
+  territorialDurationReviewReasonKey,
+} from "./territorialDuration";
+import {
   buildTerritorialMasterRecordRows,
   filterTerritorialMasterRecordRows,
   summarizeTerritorialMasterRecordRows,
@@ -1036,14 +1045,14 @@ function localTabsForWorkbenchView(route: { family: MonitoreoRouteFamily }, view
       calidad: [
         { key: "geolocalizacion", label: "Geolocalización", desc: "GPS y cartografía", icon: MapPin },
         { key: "reconciliacion", label: "Reconciliación UMP", desc: "Sospechas espaciales", icon: Route },
-        { key: "duracion", label: "Duración de tiempo", desc: "Outliers de tiempo", icon: Clock },
+        { key: "duracion", label: "Duración de tiempo", desc: "Normal, corta y muy corta", icon: Clock },
         { key: "cuotas", label: "Cuotas", desc: "Marginales y brechas", icon: Target },
         { key: "anulacion", label: "Anulación", desc: "Tacha auditada", icon: Trash2 },
       ],
       consultas: [
         { key: "registro", label: "Registro", desc: "Tabla principal", icon: Table2, aliases: ["Registros por validar"] },
-        { key: "gps", label: "GPS por revisar", desc: "Distancia y cruce", icon: MapPin },
-        { key: "duracion", label: "Duración por revisar", desc: "Tiempos cortos", icon: Clock },
+        { key: "gps", label: "GPS con señal", desc: "Distancia y cruce", icon: MapPin },
+        { key: "duracion", label: "Tiempo corto/muy corto", desc: "Normal, corta y muy corta", icon: Clock },
         { key: "responsable", label: "Cruce responsable", desc: "UMP y equipo", icon: ContactRound },
         { key: "subsanaciones", label: "Subsanaciones", desc: "Excedentes y brechas", icon: ArrowRight },
       ],
@@ -1056,7 +1065,7 @@ function localTabsForWorkbenchView(route: { family: MonitoreoRouteFamily }, view
       ocurrencias: [
         { key: "states", label: "Estados general", desc: "Efectivas y no efectivas", icon: ClipboardCheck },
         { key: "ump", label: "Por UMP", desc: "Seguimiento territorial", icon: Route },
-        { key: "alerts", label: "Observaciones", desc: "Casos por revisar", icon: ShieldAlert },
+        { key: "alerts", label: "Observaciones", desc: "Señales operativas", icon: ShieldAlert },
       ],
       telefonico: [],
     };
@@ -1126,6 +1135,62 @@ function emitMonitoreoLocalTabActive(view: WorkbenchView, key: string) {
   window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab-active", {
     detail: { view, key },
   }));
+}
+
+function compactRailLastUpdateValue(value: string) {
+  const parts = value.split(",");
+  if (parts.length < 2) return value;
+  const date = parts[0].trim();
+  const time = parts.slice(1).join(",").trim()
+    .replace(/\s+a\.\s*m\./i, " a.m.")
+    .replace(/\s+p\.\s*m\./i, " p.m.");
+  if (!date || !time) return value;
+  return (
+    <>
+      <span className="mon-rail-sync-date">{date}</span>
+      <span className="mon-rail-sync-time">{time}</span>
+    </>
+  );
+}
+
+function comparisonSearchParams() {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search);
+}
+
+function workbenchViewFromComparisonParam(value: string | null): WorkbenchView | null {
+  const normalized = normalizeMatch(value);
+  if (!normalized) return null;
+  if (normalized === "avance") return "avance";
+  if (normalized === "ocurrencias") return "ocurrencias";
+  if (normalized === "consultas" || normalized === "consulta") return "consultas";
+  if (normalized === "modelo" || normalized === "modelo operativo") return "modelo";
+  if (normalized === "fuentes" || normalized === "fuente") return "fuentes";
+  if (normalized.includes("telefon") || normalized === "phone") return "telefonico";
+  if (normalized === "calidad" || normalized === "validacion") return "calidad";
+  return null;
+}
+
+function initialWorkbenchViewFromLocation(defaultView: WorkbenchView) {
+  const params = comparisonSearchParams();
+  const requestedView = workbenchViewFromComparisonParam(params?.get("compareView") ?? null);
+  return requestedView ?? defaultView;
+}
+
+function comparisonTabKeyForView(view: WorkbenchView, localTabs: MonitoreoLocalTabDefinition[]) {
+  const params = comparisonSearchParams();
+  const requestedTab = normalizeMatch(params?.get("compareTab") ?? "");
+  if (!requestedTab) return "";
+  const requestedView = workbenchViewFromComparisonParam(params?.get("compareView") ?? null);
+  if (requestedView && requestedView !== view) return "";
+  const target = localTabs.find((tab) => {
+    const labels = [tab.key, tab.label, ...(tab.aliases ?? [])];
+    return labels.some((label) => {
+      const normalized = normalizeMatch(label);
+      return normalized === requestedTab || normalized.includes(requestedTab) || requestedTab.includes(normalized);
+    });
+  });
+  return target?.key ?? "";
 }
 
 const OPERATIONAL_MODEL_MODES: Array<{
@@ -2471,7 +2536,7 @@ function acreditacionReportsCoverPhone(
 ) {
   if (!hasMonitoreoAcreditacionReports(reports)) return false;
   const scope = reports.report_scope || "full";
-  if (scope !== "full") return false;
+  if (scope !== "full" && scope !== "phone_summary") return false;
   const sheet = reports.sheets.find((item) => item.id === "monitoreo_telefonico");
   if (!sheet) return false;
   return sheet.blocks.some((block) => (
@@ -2692,7 +2757,7 @@ function territorialLoadingPresentation(view: WorkbenchView): {
     case "calidad":
       return {
         title: "Preparando validación territorial",
-        detail: "Agrupando alertas GPS, sospechas de UMP, duraciones sospechosas y cuotas para revisión operativa.",
+        detail: "Agrupando GPS, UMP, estados de duración y cuotas para lectura operativa.",
         status: "GPS, reconciliación, tiempo y cuotas",
         icon: ShieldAlert,
         steps: [
@@ -2704,7 +2769,7 @@ function territorialLoadingPresentation(view: WorkbenchView): {
     case "consultas":
       return {
         title: "Preparando consultas internas",
-        detail: "Construyendo la tabla de registros, filtros operativos y accesos directos a revisión GPS/duración.",
+        detail: "Construyendo la tabla de registros, filtros operativos y accesos directos a GPS y estados de tiempo.",
         status: "Registros por validar",
         icon: Search,
         steps: [
@@ -2752,6 +2817,46 @@ function territorialLoadingPresentation(view: WorkbenchView): {
   }
 }
 
+function territorialLoadingPreview(view: WorkbenchView) {
+  switch (view) {
+    case "modelo":
+      return [
+        { label: "Marco", value: "Titulares + R", detail: "rutas y reemplazos", tone: "route" },
+        { label: "Equipo", value: "Responsables", detail: "códigos y asignación", tone: "team" },
+        { label: "Ficha", value: "UMP / Mz", detail: "metas por manzana", tone: "sheet" },
+        { label: "Salida", value: "Tablero", detail: "se abre al terminar", tone: "ready" },
+      ];
+    case "calidad":
+      return [
+        { label: "GPS", value: "Manzana", detail: "punto contra ruta", tone: "route" },
+        { label: "Tiempo", value: "3 estados", detail: "normal/corta/muy corta", tone: "team" },
+        { label: "Cuotas", value: "Sexo/edad", detail: "brechas operativas", tone: "sheet" },
+        { label: "Casos", value: "Prioridad", detail: "señales primero", tone: "ready" },
+      ];
+    case "avance":
+      return [
+        { label: "Avance", value: "Distrito", detail: "meta y brecha", tone: "route" },
+        { label: "UMP", value: "Completas", detail: "titulares/reemplazos", tone: "team" },
+        { label: "Ritmo", value: "Diario", detail: "serie del corte", tone: "sheet" },
+        { label: "Salidas", value: "PDF/Sheets", detail: "preparación local", tone: "ready" },
+      ];
+    case "consultas":
+      return [
+        { label: "Registro", value: "Maestro", detail: "una fila por caso", tone: "route" },
+        { label: "Filtros", value: "Distrito/UMP", detail: "foco operativo", tone: "team" },
+        { label: "Tiempo", value: "3 estados", detail: "normal/corta/muy corta", tone: "sheet" },
+        { label: "Auditoría", value: "UMP", detail: "cruces y señales", tone: "ready" },
+      ];
+    default:
+      return [
+        { label: "Fuente", value: "Local", detail: "proyecto .pulso", tone: "route" },
+        { label: "Resumen", value: "KPIs", detail: "indicadores", tone: "team" },
+        { label: "Vista", value: "Controles", detail: "panel activo", tone: "sheet" },
+        { label: "Estado", value: "Listo", detail: "sin tocar Kobo", tone: "ready" },
+      ];
+  }
+}
+
 function TerritorialLoadingView({
   view,
   minHeight = 420,
@@ -2760,6 +2865,7 @@ function TerritorialLoadingView({
   minHeight?: number;
 }) {
   const meta = territorialLoadingPresentation(view);
+  const preview = territorialLoadingPreview(view);
   const Icon = meta.icon;
   const style = { "--mon-territorial-loading-min-height": `${minHeight}px` } as CSSProperties;
   return (
@@ -2793,15 +2899,16 @@ function TerritorialLoadingView({
             );
           })}
         </div>
-        <div className="mon-territorial-loading-skeleton" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
+        <div className="mon-territorial-loading-preview" aria-label="Lectura previa de la superficie">
+          {preview.map((item) => (
+            <span key={`${item.label}-${item.value}`} className={`is-${item.tone}`}>
+              <em>{item.label}</em>
+              <strong>{item.value}</strong>
+              <small>{item.detail}</small>
+            </span>
+          ))}
         </div>
-        <small className="mon-territorial-loading-foot">{meta.status}</small>
+        <small className="mon-territorial-loading-foot">{meta.status} · preparación local</small>
       </div>
     </section>
   );
@@ -2944,7 +3051,7 @@ export default function MonitoreoPage() {
   const [sourceSyncJob, setSourceSyncJob] = useState<SourceSyncJobState | null>(null);
   const [sourceSyncRateLimitNotice, setSourceSyncRateLimitNotice] = useState<SourceSyncRateLimitNotice | null>(null);
   const [sample, setSample] = useState<MonitoreoRow[]>([]);
-  const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
+  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialWorkbenchViewFromLocation("fuentes"));
   const [activeModelMode, setActiveModelMode] = useState<OperationalModelMode>("estructura");
   const [explorerIntent, setExplorerIntent] = useState<ExplorerOpenIntent | null>(null);
   const [territorialSelectedResponseId, setTerritorialSelectedResponseId] = useState("");
@@ -2967,7 +3074,7 @@ export default function MonitoreoPage() {
   const territorialValidationIntentSeqRef = useRef(0);
   const stateRequestSeqRef = useRef(0);
   const configRef = useRef<MonitoreoConfig>(EMPTY_CONFIG);
-  const activeViewRef = useRef<WorkbenchView>("fuentes");
+  const activeViewRef = useRef<WorkbenchView>(activeView);
   const acreditacionQueriesInFlightRef = useRef(false);
   const acreditacionPhoneInFlightRef = useRef(false);
   const [territorialReportCacheVersion, setTerritorialReportCacheVersion] = useState(0);
@@ -3088,16 +3195,44 @@ export default function MonitoreoPage() {
     setLoadedDashboardPhase(incomingDashboardPhase);
     setRoutePhaseStatus(shouldProtectPhase ? territorialPhaseSourceStatus(nextState.config, authoritativePhase) : null);
     setState((current) => {
+      const currentAcreditacionReports = hasMonitoreoAcreditacionReports(current?.dashboard?.acreditacion_reports)
+        ? current.dashboard.acreditacion_reports
+        : null;
+      const incomingAcreditacionReports = hasMonitoreoAcreditacionReports(nextState.dashboard?.acreditacion_reports)
+        ? nextState.dashboard.acreditacion_reports
+        : null;
+      const shouldPreservePhoneReports =
+        !shouldProtectPhase &&
+        (family === "acreditacion" || family === "telefonico") &&
+        activeViewRef.current === "telefonico" &&
+        acreditacionReportsCoverPhone(currentAcreditacionReports) &&
+        !acreditacionReportsCoverPhone(incomingAcreditacionReports);
+      const shouldPreserveQueryReports =
+        !shouldProtectPhase &&
+        (family === "acreditacion" || family === "telefonico") &&
+        activeViewRef.current === "consultas" &&
+        acreditacionReportsCoverQueries(currentAcreditacionReports) &&
+        !acreditacionReportsCoverQueries(incomingAcreditacionReports);
+      const shouldPreserveAcreditacionReports = shouldPreservePhoneReports || shouldPreserveQueryReports;
+      const viewSafeNextState = shouldPreserveAcreditacionReports && nextState.dashboard
+        ? {
+            ...nextState,
+            dashboard: {
+              ...nextState.dashboard,
+              acreditacion_reports: currentAcreditacionReports,
+            },
+          }
+        : nextState;
       if (shouldProtectPhase && !incomingDashboardPhase && current?.dashboard?.territorial_reports) {
-        return { ...nextState, dashboard: current.dashboard };
+        return { ...viewSafeNextState, dashboard: current.dashboard };
       }
       if (shouldProtectPhase && incomingDashboardPhase && incomingDashboardPhase !== authoritativePhase) {
         const currentDashboardPhase = dashboardTerritorialPhase(current?.dashboard);
         if (currentDashboardPhase === authoritativePhase) {
-          return { ...nextState, dashboard: current?.dashboard ?? nextState.dashboard };
+          return { ...viewSafeNextState, dashboard: current?.dashboard ?? viewSafeNextState.dashboard };
         }
       }
-      return nextState;
+      return viewSafeNextState;
     });
     commitConfig(nextState.config);
   }, [commitConfig, rememberTerritorialReport, setAuthoritativeRoutePhase]);
@@ -3374,7 +3509,7 @@ export default function MonitoreoPage() {
     if (acreditacionPhoneInFlightRef.current) return;
     let cancelled = false;
     acreditacionPhoneInFlightRef.current = true;
-    void apiMonitoreoState({ includeReports: true, reportScope: "full" })
+    void apiMonitoreoState({ includeReports: true, reportScope: "phone_summary" })
       .then((next) => {
         if (cancelled || activeViewRef.current !== "telefonico") return;
         applyMonitoreoState(next);
@@ -6441,10 +6576,11 @@ function MonitoreoRail({
   const ActiveSectionIcon = activeSection?.icon ?? route.icon;
   const localTabs = localTabsForWorkbenchView(route, activeView);
   const localTabSignature = `${route.family}:${activeView}:${localTabs.map((item) => item.key).join(",")}`;
-  const [activeLocalTab, setActiveLocalTab] = useState(localTabs[0]?.key ?? "");
+  const initialLocalTab = comparisonTabKeyForView(activeView, localTabs) || localTabs[0]?.key || "";
+  const [activeLocalTab, setActiveLocalTab] = useState(initialLocalTab);
   useEffect(() => {
-    setActiveLocalTab(localTabs[0]?.key ?? "");
-  }, [localTabSignature]);
+    setActiveLocalTab(comparisonTabKeyForView(activeView, localTabs) || localTabs[0]?.key || "");
+  }, [activeView, localTabSignature]);
   const territorial = route.family === "territorial" ? territorialReportsFromDashboard(dashboard) : null;
   const isTerritorial = route.family === "territorial";
 		  const activePhase = selectedRoutePhase;
@@ -6515,7 +6651,7 @@ function MonitoreoRail({
     return () => window.removeEventListener("prosecnur:monitoreo-local-tab-active", handleLocalTabActive);
   }, [activeView, localTabSignature]);
   return (
-    <aside className="mon-workbench-rail pulso-sidebar" aria-label="Flujos de monitoreo">
+    <aside className="mon-workbench-rail pulso-sidebar is-collapsible" aria-label="Flujos de monitoreo">
       <div className="mon-rail-head">
         <span className="pulso-section-eyebrow">Ruta activa</span>
         <strong>{route.shortLabel}</strong>
@@ -6561,8 +6697,10 @@ function MonitoreoRail({
               role="tab"
               aria-selected={active}
               aria-current={active ? "page" : undefined}
+              aria-label={`${item.label}: ${item.desc}`}
               className={`mon-nav-item is-${activeView}-${item.key}${active ? " is-active" : ""}`}
-              title={`${item.label}: ${item.desc}`}
+              data-rail-label={item.label}
+              data-rail-tip={`${item.label} · ${item.desc}`}
               onClick={() => activateLocalTab(item)}
             >
               <span className="mon-nav-icon"><Icon size={15} /></span>
@@ -6574,7 +6712,11 @@ function MonitoreoRail({
             </button>
           );
         }) : (
-          <span className="mon-nav-item is-empty">
+          <span
+            className="mon-nav-item is-empty"
+            data-rail-label={activeSection?.label ?? route.shortLabel}
+            data-rail-tip={`${activeSection?.label ?? route.shortLabel} · ${activeSection?.desc ?? "Sin pestañas locales"}`}
+          >
             <span className="mon-nav-icon"><ActiveSectionIcon size={15} /></span>
             <span className="mon-nav-copy">
               <strong>{activeSection?.label ?? route.shortLabel}</strong>
@@ -6617,9 +6759,9 @@ function MonitoreoRail({
 	        </div>
       ) : null}
       <div className="mon-rail-status" aria-label="Última actualización del monitoreo">
-        <div className={`mon-rail-sync${syncedAt ? " is-ready" : ""}`}>
+        <div className={`mon-rail-sync is-last-update${syncedAt ? " is-ready" : ""}`}>
           <span>Última actualización</span>
-          <strong>{syncedAt ? formatDate(syncedAt) : "Sin actualización"}</strong>
+          <strong>{syncedAt ? compactRailLastUpdateValue(formatDate(syncedAt)) : "Sin actualización"}</strong>
         </div>
       </div>
     </aside>
@@ -6916,6 +7058,13 @@ function workbenchClarityItems({
     const phase = territorial?.active_route_phase === "field" ? "Campo" : "Piloto";
     const geoReview = (kpis?.geo_revision ?? 0) + (kpis?.geo_no_defendible ?? 0) + (kpis?.geo_sin_cruce ?? 0) + (kpis?.geo_sin_gps ?? 0);
     const durationReview = territorial?.internal_queries?.duration_review?.length ?? 0;
+    const durationRows = (territorial?.response_audit ?? [])
+      .filter((row) => row.advance_valid !== false && durationSecondsForRow(row) != null);
+    const durationCounts = durationRows.reduce((acc, row) => {
+      const status = territorialDurationOperationalStatus(row, config);
+      acc[status] += 1;
+      return acc;
+    }, { normal: 0, corto: 0, muy_corto: 0 });
     const incompleteBlocks = territorial?.internal_queries?.incomplete_blocks?.length ?? 0;
     const laggingDistricts = territorial?.internal_queries?.lagging_districts?.length ?? 0;
     const occurrences = territorial?.field_occurrences ?? null;
@@ -6949,8 +7098,8 @@ function workbenchClarityItems({
       ],
       telefonico: [
         { label: "Equipo", value: formatMetric(territorial?.team?.length ?? 0), hint: "enumeradores Kobo", tone: territorial?.team?.length ? "base" : "warning", icon: ContactRound },
-        { label: "Mediana", value: formatDurationLabel(kpis?.duration_median ?? null), hint: "por encuesta", tone: "ready", icon: Clock },
-        { label: "P95", value: formatDurationLabel(kpis?.duration_p95 ?? null), hint: "outliers visibles", tone: (kpis?.duration_p95 ?? 0) > config.territorial.max_duration_seconds ? "warning" : "base", icon: Activity },
+        { label: "Corta", value: formatMetric(durationCounts.corto), hint: "2 a <5 min", tone: durationCounts.corto ? "warning" : "ready", icon: Clock },
+        { label: "Muy corta", value: formatMetric(durationCounts.muy_corto), hint: "<2 min", tone: durationCounts.muy_corto ? "refusal" : "ready", icon: Activity },
       ],
       calidad: [
         { label: "GPS válido", value: formatMetric((kpis?.geo_ok ?? 0) + (kpis?.geo_cerca ?? 0)), hint: "dentro o <=150 m", tone: "effective", icon: MapPin },
@@ -17029,7 +17178,7 @@ type TerritorialProductionAnnulmentRequest = {
 const TERRITORIAL_VALIDATION_TABS: Array<{ key: TerritorialValidationTab; label: string; desc: string; icon: LucideIcon }> = [
   { key: "geolocalizacion", label: "Geolocalización", desc: "GPS y manzanas", icon: MapPin },
   { key: "reconciliacion", label: "Reconciliación UMP", desc: "Sospechas espaciales", icon: Route },
-  { key: "duracion", label: "Duración de tiempo", desc: "Mediana, P95 y outliers", icon: Clock },
+  { key: "duracion", label: "Duración de tiempo", desc: "Normal, corta y muy corta", icon: Clock },
   { key: "cuotas", label: "Cuotas", desc: "Sexo y edad", icon: Target },
   { key: "anulacion", label: "Anulación", desc: "Tacha auditada", icon: Trash2 },
 ];
@@ -17841,7 +17990,7 @@ function observationReasonLabel(value: string) {
   if (key.includes("gps_lejos") || key.includes("gps_no_defendible")) return "GPS fuera del marco";
   if (key.includes("muy_corta")) return "Duración muy corta";
   if (key.includes("corta")) return "Duración corta";
-  if (key.includes("duracion")) return "Duración por revisar";
+  if (key.includes("duracion")) return "Tiempo corto/muy corto";
   if (key.includes("observacion_aprobada")) return "Observación histórica";
   return issueShortLabel(value);
 }
@@ -17889,7 +18038,8 @@ function territorialGpsTraceLabel(row: Partial<TerritorialResponseAuditRow>) {
 }
 
 function territorialShortDurationSeconds(config: MonitoreoConfig) {
-  return Math.max(300, config.territorial.min_duration_seconds * 5);
+  void config;
+  return TERRITORIAL_DURATION_SHORT_SECONDS;
 }
 
 function territorialDistanceBand(row: TerritorialResponseAuditRow) {
@@ -18117,27 +18267,11 @@ function territorialGeoDispositionMeta(value: TerritorialGeoDispositionKey) {
 
 function territorialDurationStatusFromSeconds(seconds: number | null, config: MonitoreoConfig) {
   if (seconds == null) return "sin_dato";
-  if (seconds < config.territorial.min_duration_seconds) return "muy_corta";
-  if (seconds < territorialShortDurationSeconds(config)) return "corta";
+  if (seconds < TERRITORIAL_DURATION_VERY_SHORT_SECONDS) return "muy_corta";
+  if (seconds < TERRITORIAL_DURATION_SHORT_SECONDS) return "corta";
   if (seconds > Math.max(config.territorial.max_duration_seconds * 3, 12 * 3600)) return "extrema";
   if (seconds > config.territorial.max_duration_seconds) return "larga";
   return "esperada";
-}
-
-type TerritorialDurationOperationalKey = "normal" | "corto" | "muy_corto";
-
-function territorialDurationOperationalStatusFromRaw(value: unknown): TerritorialDurationOperationalKey {
-  const key = normalizeMatch(value).replace(/\s+/g, "_");
-  if (key === "muy_corta" || key === "muy_corto") return "muy_corto";
-  if (key === "corta" || key === "corto") return "corto";
-  return "normal";
-}
-
-function territorialDurationOperationalStatusFromSeconds(seconds: number | null, config: MonitoreoConfig): TerritorialDurationOperationalKey {
-  if (seconds == null) return "normal";
-  if (seconds < config.territorial.min_duration_seconds) return "muy_corto";
-  if (seconds < territorialShortDurationSeconds(config)) return "corto";
-  return "normal";
 }
 
 function territorialDurationHasEvaluableTime(
@@ -18153,19 +18287,14 @@ function territorialDurationHasEvaluableTime(
 }
 
 function territorialDurationOperationalStatus(row: Partial<TerritorialResponseAuditRow | TerritorialInternalReviewCase>, config: MonitoreoConfig): TerritorialDurationOperationalKey {
+  void config;
   const seconds = numberOrNull(row.duration_seconds);
-  const direct = normalizeMatch(row.duration_operational_status).replace(/\s+/g, "_");
-  if (direct === "corto" || direct === "muy_corto") return direct;
-  const label = normalizeMatch(row.duration_operational_label);
-  if (label === "muy corto") return "muy_corto";
-  if (label === "corto") return "corto";
-  const raw = normalizeMatch(row.duration_status).replace(/\s+/g, "_");
-  if (["muy_corta", "muy_corto", "corta", "corto", "esperada", "larga", "extrema"].includes(raw)) {
-    return territorialDurationOperationalStatusFromRaw(raw);
-  }
-  if (seconds != null) return territorialDurationOperationalStatusFromSeconds(seconds, config);
-  if (direct === "normal" || label === "normal") return "normal";
-  return "normal";
+  return territorialDurationOperationalStatusFromValues({
+    seconds,
+    durationStatus: row.duration_status,
+    durationOperationalStatus: row.duration_operational_status,
+    durationOperationalLabel: row.duration_operational_label,
+  });
 }
 
 function territorialDurationOperationalClassName(key: TerritorialDurationOperationalKey) {
@@ -18178,10 +18307,10 @@ function territorialDurationBand(row: TerritorialResponseAuditRow, config: Monit
   }
   const key = territorialDurationOperationalStatus(row, config);
   if (key === "muy_corto") {
-    return { key, label: "Muy corto", detail: `< ${formatDurationLabel(config.territorial.min_duration_seconds)}`, className: territorialDurationOperationalClassName(key), hasDuration: true };
+    return { key, label: "Muy corta", detail: `< ${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)}`, className: territorialDurationOperationalClassName(key), hasDuration: true };
   }
   if (key === "corto") {
-    return { key, label: "Corto", detail: `< ${formatDurationLabel(territorialShortDurationSeconds(config))}`, className: territorialDurationOperationalClassName(key), hasDuration: true };
+    return { key, label: "Corta", detail: `${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)}-${formatDurationLabel(TERRITORIAL_DURATION_SHORT_SECONDS)}`, className: territorialDurationOperationalClassName(key), hasDuration: true };
   }
   return { key, label: "Normal", detail: "sin alerta operativa", className: territorialDurationOperationalClassName(key), hasDuration: true };
 }
@@ -18207,7 +18336,7 @@ function territorialCaseReviewReasons(row: TerritorialResponseAuditRow, config: 
     const band = territorialDurationBand(row, config);
     out.push({
       key: `duration-${band.key}`,
-      label: band.key === "muy_corto" ? "Duración muy corta" : "Duración corta",
+      label: band.key === "muy_corto" ? "Muy corta" : "Corta",
       detail: band.detail,
     });
   }
@@ -20179,15 +20308,15 @@ function TerritorialDurationBreakdown({
   const reviewPct = shortPct + veryShortPct;
   const shortThreshold = territorialShortDurationSeconds(config);
   const items = [
-    { key: "normal", label: "Normal", detail: "sin alerta operativa", value: normal, className: "is-duration-normal" },
-    { key: "corto", label: "Corto", detail: `menos de ${formatDurationLabel(shortThreshold)}`, value: counts.corto, className: "is-duration-corto" },
-    { key: "muy_corto", label: "Muy corto", detail: `menos de ${formatDurationLabel(config.territorial.min_duration_seconds)}`, value: counts.muy_corto, className: "is-duration-muy-corto" },
+    { key: "normal", label: "Normal", detail: `>= ${formatDurationLabel(shortThreshold)}`, value: normal, className: "is-duration-normal" },
+    { key: "corto", label: "Corta", detail: `${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)} a < ${formatDurationLabel(shortThreshold)}`, value: counts.corto, className: "is-duration-corto" },
+    { key: "muy_corto", label: "Muy corta", detail: `< ${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)}`, value: counts.muy_corto, className: "is-duration-muy-corto" },
   ];
   return (
     <section className="mon-territorial-audit-card mon-territorial-audit-card--duration" aria-label="Auditoría de duración">
       <header>
         <span><Clock size={14} /> Duración de tiempo</span>
-        <strong>{formatDurationLabel(reports.kpis.duration_median)} mediana</strong>
+        <strong>{formatMetric(priority)} cortas/muy cortas</strong>
       </header>
       <div className="mon-territorial-duration-hero">
         <div
@@ -20201,13 +20330,13 @@ function TerritorialDurationBreakdown({
         >
           <span>
             <strong>{formatMetric(priority)}</strong>
-            <em>revisión</em>
+            <em>señales</em>
           </span>
         </div>
         <div className="mon-territorial-duration-copy">
-          <span><strong>{formatDurationLabel(reports.kpis.duration_p95)}</strong><em>P95 referencial</em></span>
-          <span><strong>menos de {formatDurationLabel(shortThreshold)}</strong><em>umbral corto</em></span>
           <span><strong>{formatMetric(normal)}</strong><em>normal</em></span>
+          <span><strong>{formatMetric(counts.corto)}</strong><em>corta</em></span>
+          <span><strong>{formatMetric(counts.muy_corto)}</strong><em>muy corta</em></span>
         </div>
       </div>
       <div className="mon-territorial-duration-lanes">
@@ -20226,42 +20355,35 @@ function TerritorialDurationBreakdown({
   );
 }
 
-const TERRITORIAL_DURATION_VISUAL_CAP_SECONDS = 90 * 60;
-
-const TERRITORIAL_DURATION_HISTOGRAM_BINS = [
-  { start: 0, end: 60, label: "0-1 min" },
-  { start: 60, end: 180, label: "1-3 min" },
-  { start: 180, end: 300, label: "3-5 min" },
-  { start: 300, end: 600, label: "5-10 min" },
-  { start: 600, end: 900, label: "10-15 min" },
-  { start: 900, end: 1200, label: "15-20 min" },
-  { start: 1200, end: 1800, label: "20-30 min" },
-  { start: 1800, end: 3600, label: "30-60 min" },
-  { start: 3600, end: 5400, label: "60-90 min" },
-];
-
-type TerritorialDurationHistogramBin = {
-  key: string;
+type TerritorialDurationCategorySummary = {
+  key: TerritorialDurationOperationalKey;
   label: string;
-  start: number;
-  end: number;
+  detail: string;
   count: number;
-  pct: number;
-  tone: "base" | "short" | "very-short";
+  className: string;
+  caption: string;
 };
 
 type TerritorialDurationEnumeratorSummary = {
   key: string;
   label: string;
   total: number;
-  median: number | null;
-  p95: number | null;
   normal: number;
   short: number;
   veryShort: number;
-  review: number;
+  outsideNormal: number;
   lastRecord: string;
   unassigned: boolean;
+};
+
+type TerritorialDurationDailyStatusSummary = {
+  key: string;
+  dateValue: string;
+  dateLabel: string;
+  total: number;
+  normal: number;
+  short: number;
+  veryShort: number;
 };
 
 type TerritorialDurationModel = {
@@ -20270,44 +20392,17 @@ type TerritorialDurationModel = {
   normalRows: TerritorialResponseAuditRow[];
   shortRows: TerritorialResponseAuditRow[];
   veryShortRows: TerritorialResponseAuditRow[];
-  overflowRows: TerritorialResponseAuditRow[];
-  histogramRows: TerritorialResponseAuditRow[];
-  bins: TerritorialDurationHistogramBin[];
-  median: number | null;
-  p95: number | null;
-  maxBinCount: number;
-  visualCapSeconds: number;
+  reviewRows: TerritorialResponseAuditRow[];
+  categories: TerritorialDurationCategorySummary[];
+  dailyStatuses: TerritorialDurationDailyStatusSummary[];
   shortThresholdSeconds: number;
+  veryShortThresholdSeconds: number;
   enumerators: TerritorialDurationEnumeratorSummary[];
 };
 
 function durationSecondsForRow(row: TerritorialResponseAuditRow) {
   const seconds = numberOrNull(row.duration_seconds);
   return seconds != null && Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
-}
-
-function percentileFromSorted(values: number[], percentile: number) {
-  if (!values.length) return null;
-  if (values.length === 1) return values[0];
-  const position = (values.length - 1) * percentile;
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  if (lower === upper) return values[lower];
-  const weight = position - lower;
-  return values[lower] * (1 - weight) + values[upper] * weight;
-}
-
-function territorialDurationIsShort(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
-  return territorialDurationOperationalStatus(row, config) === "corto" || territorialDurationOperationalStatus(row, config) === "muy_corto";
-}
-
-function territorialDurationIsVeryShort(row: TerritorialResponseAuditRow, config: MonitoreoConfig) {
-  return territorialDurationOperationalStatus(row, config) === "muy_corto";
-}
-
-function territorialDurationExceedsVisualCap(row: TerritorialResponseAuditRow, visualCapSeconds: number) {
-  const seconds = durationSecondsForRow(row);
-  return seconds != null && seconds > visualCapSeconds;
 }
 
 function territorialResolvedResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = true) {
@@ -20337,18 +20432,18 @@ function territorialDurationReviewReasonLabels(row: TerritorialResponseAuditRow,
   const durationBand = territorialDurationBand(row, config);
   const hasGpsReason = territorialRowHasGeoObservation(row);
   if (hasGpsReason && ["muy_corto", "corto"].includes(durationBand.key)) {
-    reasons.push("Duración y GPS a revisar");
+    reasons.push(durationBand.key === "muy_corto" ? "Muy corta + GPS" : "Corta + GPS");
   } else if (durationBand.key === "muy_corto") {
-    reasons.push("Muy corto");
+    reasons.push("Muy corta");
   } else if (durationBand.key === "corto") {
-    reasons.push("Duración corta");
+    reasons.push("Corta");
   }
   if (hasGpsReason && !reasons.some((item) => item.includes("GPS"))) {
     const geoLabel = territorialDistanceBand(row).key === "geo_sin_cruce" ? "Sin cruce territorial" : "Sin GPS";
     reasons.push(geoLabel);
   }
   if (territorialMissingResponsibleLabel(territorialResolvedResponsibleLabel(row, false))) reasons.push("Sin encuestador");
-  return reasons.length ? reasons : ["Duración por revisar"];
+  return reasons.length ? reasons : ["Estado de tiempo"];
 }
 
 function buildTerritorialDurationEnumeratorRows(
@@ -20368,82 +20463,99 @@ function buildTerritorialDurationEnumeratorRows(
     groups.set(key, current);
   });
   return Array.from(groups.entries()).map(([key, item]) => {
-    const values = item.rows
-      .map(durationSecondsForRow)
-      .filter((value): value is number => value != null)
-      .sort((a, b) => a - b);
-    const normal = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "normal").length;
-    const short = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "corto").length;
-    const veryShort = item.rows.filter((row) => territorialDurationIsVeryShort(row, config)).length;
-    const review = short + veryShort;
+  const normal = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "normal").length;
+  const short = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "corto").length;
+  const veryShort = item.rows.filter((row) => territorialDurationOperationalStatus(row, config) === "muy_corto").length;
+    const outsideNormal = short + veryShort;
     return {
       key,
       label: item.label,
       total: item.rows.length,
-      median: percentileFromSorted(values, 0.5),
-      p95: percentileFromSorted(values, 0.95),
       normal,
       short,
       veryShort,
-      review,
+      outsideNormal,
       lastRecord: territorialLatestRecordLabel(item.rows),
       unassigned: item.unassigned,
     };
   }).sort((a, b) => {
     const unassignedRank = Number(a.unassigned) - Number(b.unassigned);
     if (unassignedRank !== 0) return unassignedRank;
-    return b.review - a.review || b.veryShort - a.veryShort || b.total - a.total || a.label.localeCompare(b.label, "es");
+    return b.outsideNormal - a.outsideNormal || b.veryShort - a.veryShort || b.total - a.total || a.label.localeCompare(b.label, "es");
   });
 }
 
+function buildTerritorialDurationDailyRows(
+  rows: TerritorialResponseAuditRow[],
+  config: MonitoreoConfig,
+): TerritorialDurationDailyStatusSummary[] {
+  const groups = new Map<string, TerritorialDurationDailyStatusSummary>();
+  rows.forEach((row) => {
+    const dateValue = territorialDurationDailyDateValue(row);
+    const key = dateValue || "sin_fecha";
+    const current = groups.get(key) ?? {
+      key,
+      dateValue: key,
+      dateLabel: territorialDurationDailyDateLabelFromValue(key),
+      total: 0,
+      normal: 0,
+      short: 0,
+      veryShort: 0,
+    };
+    current.total += 1;
+    const status = territorialDurationOperationalStatus(row, config);
+    if (status === "muy_corto") current.veryShort += 1;
+    else if (status === "corto") current.short += 1;
+    else current.normal += 1;
+    groups.set(key, current);
+  });
+  return Array.from(groups.values()).sort((a, b) => compareInternalQueryDateValues(a.dateValue, b.dateValue));
+}
+
 function buildTerritorialDurationModel(rows: TerritorialResponseAuditRow[], config: MonitoreoConfig): TerritorialDurationModel {
-  const visualCapSeconds = Math.max(
-    territorialShortDurationSeconds(config),
-    Math.min(config.territorial.max_duration_seconds || TERRITORIAL_DURATION_VISUAL_CAP_SECONDS, TERRITORIAL_DURATION_VISUAL_CAP_SECONDS),
-  );
   const validRows = rows.filter(territorialResponseIsEffective);
   const rowsWithDuration = validRows.filter((row) => durationSecondsForRow(row) != null);
-  const values = rowsWithDuration
-    .map(durationSecondsForRow)
-    .filter((value): value is number => value != null)
-    .sort((a, b) => a - b);
-  const histogramRows = rowsWithDuration.filter((row) => (durationSecondsForRow(row) ?? Infinity) <= visualCapSeconds);
-  const histogramValues = histogramRows.map(durationSecondsForRow).filter((value): value is number => value != null);
-  const bins = TERRITORIAL_DURATION_HISTOGRAM_BINS
-    .filter((bin) => bin.start < visualCapSeconds)
-    .map((bin) => ({ ...bin, end: Math.min(bin.end, visualCapSeconds) }))
-    .filter((bin) => bin.end > bin.start)
-    .map((bin, index, allBins) => {
-      const isLast = index === allBins.length - 1;
-      const count = histogramValues.filter((value) => value >= bin.start && (isLast ? value <= bin.end : value < bin.end)).length;
-      const pct = safePercent(count, Math.max(1, histogramValues.length)) ?? 0;
-      const tone: TerritorialDurationHistogramBin["tone"] = bin.end <= config.territorial.min_duration_seconds
-        ? "very-short"
-        : bin.end <= territorialShortDurationSeconds(config) ? "short" : "base";
-      return {
-        key: `${bin.start}-${bin.end}`,
-        label: bin.label,
-        start: bin.start,
-        end: bin.end,
-        count,
-        pct,
-        tone,
-      };
-    });
+  const normalRows = rowsWithDuration.filter((row) => territorialDurationOperationalStatus(row, config) === "normal");
+  const shortRows = rowsWithDuration.filter((row) => territorialDurationOperationalStatus(row, config) === "corto");
+  const veryShortRows = rowsWithDuration.filter((row) => territorialDurationOperationalStatus(row, config) === "muy_corto");
+  const reviewRows = rowsWithDuration.filter((row) => territorialDurationIsReviewStatus(territorialDurationOperationalStatus(row, config)));
+  const categories: TerritorialDurationCategorySummary[] = [
+    {
+      key: "normal",
+      label: "Normal",
+      detail: `>= ${formatDurationLabel(TERRITORIAL_DURATION_SHORT_SECONDS)}`,
+      count: normalRows.length,
+      className: "is-normal",
+      caption: "Tiempo suficiente para considerar la entrevista esperada.",
+    },
+    {
+      key: "corto",
+      label: "Corta",
+      detail: `${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)} a < ${formatDurationLabel(TERRITORIAL_DURATION_SHORT_SECONDS)}`,
+      count: shortRows.length,
+      className: "is-short",
+      caption: "Estado Corta: debajo de 5 min y desde 2 min.",
+    },
+    {
+      key: "muy_corto",
+      label: "Muy corta",
+      detail: `< ${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)}`,
+      count: veryShortRows.length,
+      className: "is-very-short",
+      caption: "Prioridad alta por tiempo demasiado breve.",
+    },
+  ];
   return {
     validRows,
     rowsWithDuration,
-    normalRows: rowsWithDuration.filter((row) => territorialDurationOperationalStatus(row, config) === "normal"),
-    shortRows: rowsWithDuration.filter((row) => territorialDurationIsShort(row, config)),
-    veryShortRows: rowsWithDuration.filter((row) => territorialDurationIsVeryShort(row, config)),
-    overflowRows: rowsWithDuration.filter((row) => territorialDurationExceedsVisualCap(row, visualCapSeconds)),
-    histogramRows,
-    bins,
-    median: percentileFromSorted(values, 0.5),
-    p95: percentileFromSorted(values, 0.95),
-    maxBinCount: Math.max(1, ...bins.map((bin) => bin.count)),
-    visualCapSeconds,
+    normalRows,
+    shortRows,
+    veryShortRows,
+    reviewRows,
+    categories,
+    dailyStatuses: buildTerritorialDurationDailyRows(rowsWithDuration, config),
     shortThresholdSeconds: territorialShortDurationSeconds(config),
+    veryShortThresholdSeconds: TERRITORIAL_DURATION_VERY_SHORT_SECONDS,
     enumerators: buildTerritorialDurationEnumeratorRows(rowsWithDuration, config),
   };
 }
@@ -20475,9 +20587,11 @@ function TerritorialDurationControlView({
   onSelectResponse?: (responseId: string) => void;
 }) {
   const model = useMemo(() => buildTerritorialDurationModel(rows, config), [rows, config]);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const didResetScrollRef = useRef(false);
   const durationReviewRows = useMemo(
-    () => mergeDurationReviewRows(model.shortRows, reviewRows),
-    [model.shortRows, reviewRows],
+    () => mergeDurationReviewRows(model.reviewRows, reviewRows),
+    [model.reviewRows, reviewRows],
   );
   const selectedDurationRow = useMemo(() => {
     const responseId = stringOrEmpty(selectedResponseId).trim();
@@ -20487,12 +20601,18 @@ function TerritorialDurationControlView({
     () => selectedDurationRow ? mergeDurationReviewRows(durationReviewRows, [selectedDurationRow]) : durationReviewRows,
     [durationReviewRows, selectedDurationRow],
   );
+  useEffect(() => {
+    if (didResetScrollRef.current) return;
+    scrollAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    didResetScrollRef.current = true;
+  }, []);
   return (
     <div className="mon-duration-control">
-      <TerritorialDurationOverview model={model} reviewCount={durationReviewRows.length} />
-      <div className="mon-duration-workbench-grid">
-        <TerritorialDurationHistogram model={model} />
-        <TerritorialDurationDailyCard rows={reports.daily} />
+      <TerritorialDurationOverview model={model} />
+      <div ref={scrollAreaRef} className="mon-duration-scroll-area">
+        <div className="mon-duration-workbench-grid">
+        <TerritorialDurationCategoriesPanel model={model} />
+        <TerritorialDurationDailyCard rows={model.dailyStatuses} />
       </div>
       <TerritorialDurationReviewTable
         rows={durationTableRows}
@@ -20504,92 +20624,68 @@ function TerritorialDurationControlView({
       <div className="mon-duration-lower-grid">
         <TerritorialDurationEnumeratorTable rows={model.enumerators} />
       </div>
+      </div>
     </div>
   );
 }
 
-function TerritorialDurationOverview({ model, reviewCount }: { model: TerritorialDurationModel; reviewCount: number }) {
+function TerritorialDurationOverview({ model }: { model: TerritorialDurationModel }) {
   return (
     <section className="mon-duration-overview" aria-label="Resumen de duración de encuestas">
       <div>
         <span><Clock size={14} /> Duración de encuestas</span>
         <strong>
-          {formatMetric(model.rowsWithDuration.length)} con tiempo · {formatMetric(reviewCount)} por revisar · Mediana {formatDurationLabel(model.median)} · P95 {formatDurationLabel(model.p95)}
+          {formatMetric(model.rowsWithDuration.length)} entrevistas con tiempo · {formatMetric(model.normalRows.length)} normales · {formatMetric(model.shortRows.length)} cortas · {formatMetric(model.veryShortRows.length)} muy cortas
         </strong>
       </div>
       <dl>
-        <span><dt>Mediana</dt><dd>{formatDurationLabel(model.median)}</dd></span>
-        <span><dt>P95</dt><dd>{formatDurationLabel(model.p95)}</dd></span>
         <span><dt>Normal</dt><dd>{formatMetric(model.normalRows.length)}</dd></span>
-        <span className={model.shortRows.length ? "is-warning" : ""}><dt>Por revisar</dt><dd>{formatMetric(model.shortRows.length)}</dd></span>
+        <span className={model.shortRows.length ? "is-warning" : ""}><dt>Corta</dt><dd>{formatMetric(model.shortRows.length)}</dd></span>
+        <span className={model.veryShortRows.length ? "is-danger" : ""}><dt>Muy corta</dt><dd>{formatMetric(model.veryShortRows.length)}</dd></span>
       </dl>
     </section>
   );
 }
 
-function TerritorialDurationHistogram({ model }: { model: TerritorialDurationModel }) {
-  const marker = (value: number | null) => value == null
-    ? null
-    : `${Math.max(0, Math.min(100, (value / model.visualCapSeconds) * 100))}%`;
-  const p95Outside = model.p95 != null && model.p95 > model.visualCapSeconds;
-  const markers = [
-    { key: "short", label: `Umbral corto: ${formatDurationLabel(model.shortThresholdSeconds)}`, value: model.shortThresholdSeconds, className: "is-short", visible: true },
-    { key: "median", label: `Mediana: ${formatDurationLabel(model.median)}`, value: model.median, className: "is-median", visible: model.median == null || model.median <= model.visualCapSeconds },
-    { key: "p95", label: `P95: ${formatDurationLabel(model.p95)}`, value: model.p95, className: "is-p95", visible: !p95Outside },
-  ].filter((item) => item.value != null && item.visible);
+function TerritorialDurationCategoriesPanel({ model }: { model: TerritorialDurationModel }) {
+  const total = Math.max(1, model.rowsWithDuration.length);
   return (
-    <section className="mon-duration-panel mon-duration-histogram" aria-label="Distribución de duración en minutos">
+    <section className="mon-duration-panel mon-duration-categories" aria-label="Tres categorías operativas de duración">
       <header>
         <div>
-          <span><BarChart3 size={14} /> Distribución de duración</span>
-          <strong>{formatMetric(model.histogramRows.length)} dentro de {formatDurationLabel(model.visualCapSeconds)}</strong>
+          <span><Clock size={14} /> Calidad del tiempo</span>
+          <strong>Normal · Corta (&lt;5 min) · Muy corta (&lt;2 min)</strong>
         </div>
-        <em>{model.overflowRows.length ? `${formatMetric(model.overflowRows.length)} fuera de escala` : "escala completa"}</em>
+        <em>{model.reviewRows.length ? `${formatMetric(model.reviewRows.length)} cortas/muy cortas` : "todo normal"}</em>
       </header>
-      <div className="mon-duration-histogram-body">
-        {model.bins.map((bin) => (
-          <article key={bin.key} className={`is-${bin.tone}`}>
-            <span>{bin.label}</span>
-            <div>
-              <i style={{ width: `${Math.max(bin.count ? 5 : 0, (bin.count / model.maxBinCount) * 100)}%` }} />
+      <div className="mon-duration-category-grid">
+        {model.categories.map((category) => (
+          <article key={category.key} className={category.className}>
+            <span><i /> {category.label}</span>
+            <strong>{formatMetric(category.count)}</strong>
+            <em>{category.detail}</em>
+            <div aria-hidden="true">
+              <i style={{ width: `${Math.max(category.count ? 5 : 0, (category.count / total) * 100)}%` }} />
             </div>
-            <strong>{formatMetric(bin.count)}</strong>
+            <p>{category.caption}</p>
           </article>
         ))}
       </div>
-      <div className="mon-duration-ruler" aria-label="Marcadores de duración con valores explícitos">
-        <span>0</span>
-        <span>{formatDurationLabel(model.visualCapSeconds)}</span>
-        {markers.map((item) => {
-          const left = marker(item.value);
-          if (!left) return null;
-          return (
-            <b key={item.key} className={item.className} style={{ left }} title={item.label}>
-              <i />
-              <em>{item.label}</em>
-            </b>
-          );
-        })}
+      <div className="mon-duration-rule-row" aria-label="Reglas operativas de duración">
+        <span><strong>Muy corta</strong><b>&lt; {formatDurationLabel(model.veryShortThresholdSeconds)}</b></span>
+        <span><strong>Corta</strong><b>{formatDurationLabel(model.veryShortThresholdSeconds)} a &lt; {formatDurationLabel(model.shortThresholdSeconds)}</b></span>
+        <span><strong>Normal</strong><b>&ge; {formatDurationLabel(model.shortThresholdSeconds)}</b></span>
       </div>
-      {(p95Outside || model.overflowRows.length > 0) && (
-        <div className="mon-duration-histogram-notes" aria-label="Notas del histograma de duración">
-          {p95Outside && <span className="is-p95">P95 fuera del histograma principal: {formatDurationLabel(model.p95)}</span>}
-          {model.overflowRows.length > 0 && (
-            <span>{formatMetric(model.overflowRows.length)} registros quedan fuera de la escala visible del histograma.</span>
-          )}
-        </div>
-      )}
     </section>
   );
 }
 
 type TerritorialDurationDailyHover = {
   dateLabel: string;
-  validas: number;
-  revision: number;
   total: number;
-  remainder: number;
-  reviewPct: number | null;
+  normal: number;
+  short: number;
+  veryShort: number;
   x: number;
 };
 
@@ -20608,9 +20704,9 @@ function TerritorialDurationDailyTooltip({ item }: { item: TerritorialDurationDa
       style={{ "--duration-daily-tooltip-x": `${item.x}%` } as CSSProperties}
     >
       <strong>{item.dateLabel}</strong>
-      <span>Válidas: {formatMetric(item.validas)}</span>
-      <span>Por revisar: {formatMetric(item.revision)}</span>
-      {item.remainder > 0 && <span>Otros: {formatMetric(item.remainder)}</span>}
+      <span>Normal: {formatMetric(item.normal)}</span>
+      <span>Corta: {formatMetric(item.short)}</span>
+      <span>Muy corta: {formatMetric(item.veryShort)}</span>
       <em>Total: {formatMetric(item.total)}</em>
     </span>
   );
@@ -20625,38 +20721,39 @@ function territorialDailyScaleMax(value: number) {
   return Math.ceil(normalized / step) * step * magnitude;
 }
 
-function TerritorialDurationDailyCard({ rows }: { rows: MonitoreoTerritorialDashboard["daily"] }) {
-  const ordered = [...rows].sort((a, b) => compareInternalQueryDateValues(a.date, b.date)).slice(-14);
+function TerritorialDurationDailyCard({ rows }: { rows: TerritorialDurationDailyStatusSummary[] }) {
+  const ordered = [...rows].sort((a, b) => compareInternalQueryDateValues(a.dateValue, b.dateValue)).slice(-14);
   const maxTotal = Math.max(1, ...ordered.map((row) => row.total || 0));
   const scaleMax = territorialDailyScaleMax(maxTotal);
   const scaleMid = Math.round(scaleMax / 2);
   const periodTotals = ordered.reduce((acc, row) => {
     acc.total += Math.max(0, row.total || 0);
-    acc.validas += Math.max(0, row.validas || 0);
-    acc.revision += Math.max(0, row.revision || 0);
+    acc.normal += Math.max(0, row.normal || 0);
+    acc.short += Math.max(0, row.short || 0);
+    acc.veryShort += Math.max(0, row.veryShort || 0);
     return acc;
-  }, { total: 0, validas: 0, revision: 0 });
+  }, { total: 0, normal: 0, short: 0, veryShort: 0 });
   const [hover, setHover] = useState<TerritorialDurationDailyHover | null>(null);
-  const showHover = (target: HTMLElement, row: MonitoreoTerritorialDashboard["daily"][number]) => {
-    const validas = Math.max(0, row.validas || 0);
-    const revision = Math.max(0, row.revision || 0);
+  const showHover = (target: HTMLElement, row: TerritorialDurationDailyStatusSummary) => {
+    const normal = Math.max(0, row.normal || 0);
+    const short = Math.max(0, row.short || 0);
+    const veryShort = Math.max(0, row.veryShort || 0);
     const total = Math.max(0, row.total || 0);
     setHover({
-      dateLabel: territorialDailyDateLabel(row),
-      validas,
-      revision,
+      dateLabel: row.dateLabel,
       total,
-      remainder: Math.max(0, total - validas - revision),
-      reviewPct: safePercent(revision, total),
+      normal,
+      short,
+      veryShort,
       x: durationDailyHoverX(target),
     });
   };
   return (
-    <section className="mon-duration-panel mon-duration-daily" aria-label="Ritmo diario de respuestas válidas">
+    <section className="mon-duration-panel mon-duration-daily" aria-label="Ritmo diario por estado de duración">
       <header>
         <div>
-          <span><CalendarRange size={14} /> Ritmo diario de respuestas válidas</span>
-          <strong>{formatMetric(periodTotals.total)} respuestas · {formatMetric(periodTotals.validas)} válidas · {formatMetric(periodTotals.revision)} por revisar</strong>
+          <span><CalendarRange size={14} /> Ritmo por estado</span>
+          <strong>{formatMetric(periodTotals.normal)} normales · {formatMetric(periodTotals.short)} cortas · {formatMetric(periodTotals.veryShort)} muy cortas</strong>
         </div>
         <em>{formatMetric(ordered.length)} días</em>
       </header>
@@ -20669,21 +20766,24 @@ function TerritorialDurationDailyCard({ rows }: { rows: MonitoreoTerritorialDash
         <div className="mon-duration-daily-rows">
         {ordered.map((row) => {
           const total = Math.max(0, row.total || 0);
-          const validas = Math.max(0, row.validas || 0);
-          const revision = Math.max(0, row.revision || 0);
-          const remainder = Math.max(0, total - validas - revision);
+          const normal = Math.max(0, row.normal || 0);
+          const short = Math.max(0, row.short || 0);
+          const veryShort = Math.max(0, row.veryShort || 0);
           const totalWidth = Math.max(total ? 7 : 0, safePercent(total, scaleMax) ?? 0);
-          const validPct = Math.max(validas ? 2 : 0, safePercent(validas, Math.max(1, total)) ?? 0);
-          const reviewPct = Math.max(revision ? 2 : 0, safePercent(revision, Math.max(1, total)) ?? 0);
-          const remainderPct = Math.max(remainder ? 2 : 0, 100 - validPct - reviewPct);
-          const reviewRate = safePercent(revision, total);
-          const dateLabel = territorialDailyDateLabel(row);
-          const tooltipLabel = `${dateLabel}. Válidas: ${formatMetric(validas)}. Por revisar: ${formatMetric(revision)}. Total: ${formatMetric(total)}.`;
+          const normalPct = Math.max(normal ? 2 : 0, safePercent(normal, Math.max(1, total)) ?? 0);
+          const shortPct = Math.max(short ? 2 : 0, safePercent(short, Math.max(1, total)) ?? 0);
+          const veryShortPct = Math.max(veryShort ? 2 : 0, safePercent(veryShort, Math.max(1, total)) ?? 0);
+          const tooltipLabel = `${row.dateLabel}. Normal: ${formatMetric(normal)}. Corta: ${formatMetric(short)}. Muy corta: ${formatMetric(veryShort)}. Total: ${formatMetric(total)}.`;
+          const stateLabel = veryShort
+            ? `${formatMetric(veryShort)} muy corta${veryShort === 1 ? "" : "s"}`
+            : short
+              ? `${formatMetric(short)} corta${short === 1 ? "" : "s"}`
+              : "normal";
           return (
             <article
-              key={row.date}
+              key={row.key}
               tabIndex={0}
-              className={revision ? "has-review" : ""}
+              className={veryShort ? "has-very-short" : short ? "has-short" : ""}
               aria-label={tooltipLabel}
               title={tooltipLabel}
               onMouseEnter={(event) => showHover(event.currentTarget, row)}
@@ -20691,19 +20791,19 @@ function TerritorialDurationDailyCard({ rows }: { rows: MonitoreoTerritorialDash
               onMouseLeave={() => setHover(null)}
               onBlur={() => setHover(null)}
             >
-              <time dateTime={row.date || undefined}>{dateLabel}</time>
+              <time dateTime={row.dateValue === "sin_fecha" ? undefined : row.dateValue}>{row.dateLabel}</time>
               <div className="mon-duration-daily-track-shell">
                 <div className="mon-duration-daily-track" style={{ width: `${Math.min(100, totalWidth)}%` }}>
-                  {validas > 0 && <i className="is-valid" style={{ width: `${Math.min(100, validPct)}%` }} />}
-                  {revision > 0 && <i className="is-review" style={{ width: `${Math.min(100, reviewPct)}%` }} />}
-                  {remainder > 0 && <i className="is-other" style={{ width: `${Math.max(0, Math.min(100, remainderPct))}%` }} />}
+                  {normal > 0 && <i className="is-normal" style={{ width: `${Math.min(100, normalPct)}%` }} />}
+                  {short > 0 && <i className="is-short" style={{ width: `${Math.min(100, shortPct)}%` }} />}
+                  {veryShort > 0 && <i className="is-very-short" style={{ width: `${Math.min(100, veryShortPct)}%` }} />}
                 </div>
               </div>
               <div className="mon-duration-daily-value">
                 <strong>{formatMetric(total)}</strong>
-                <small>{formatMetric(validas)} V · {formatMetric(revision)} R</small>
+                <small>{formatMetric(normal)} N · {formatMetric(short)} C · {formatMetric(veryShort)} MC</small>
               </div>
-              <em className={revision ? "is-warning" : "is-ready"}>{formatPercentLabel(reviewRate)} revisar</em>
+              <em className={veryShort ? "is-danger" : short ? "is-warning" : "is-ready"}>{stateLabel}</em>
             </article>
           );
         })}
@@ -20711,9 +20811,9 @@ function TerritorialDurationDailyCard({ rows }: { rows: MonitoreoTerritorialDash
         </div>
       </div>
       <footer>
-        <span><i className="is-valid" /> Válidas</span>
-        <span><i className="is-review" /> Por revisar</span>
-        <span><i className="is-other" /> Otros del total</span>
+        <span><i className="is-normal" /> Normal</span>
+        <span><i className="is-short" /> Corta</span>
+        <span><i className="is-very-short" /> Muy corta</span>
       </footer>
     </section>
   );
@@ -20732,30 +20832,20 @@ function TerritorialDurationReviewTable({
   selectedResponseId?: string;
   onSelectResponse?: (responseId: string) => void;
 }) {
-  const selectedResponseKey = stringOrEmpty(selectedResponseId).trim();
-  const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
   const ordered = [...rows].sort((a, b) => {
-    const aSelected = selectedResponseKey && a.response_id === selectedResponseKey ? 0 : 1;
-    const bSelected = selectedResponseKey && b.response_id === selectedResponseKey ? 0 : 1;
-    if (aSelected !== bSelected) return aSelected - bSelected;
+    const aPriority = territorialDurationReviewPriority(territorialDurationOperationalStatus(a, config));
+    const bPriority = territorialDurationReviewPriority(territorialDurationOperationalStatus(b, config));
+    if (aPriority !== bPriority) return aPriority - bPriority;
     return (durationSecondsForRow(a) ?? Infinity) - (durationSecondsForRow(b) ?? Infinity);
   });
-  const orderedSignature = ordered.map((row) => row.response_id || `row-${row.row_index}`).join("|");
-  useEffect(() => {
-    if (!selectedResponseKey) return undefined;
-    const handle = window.setTimeout(() => {
-      selectedRowRef.current?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
-    }, 60);
-    return () => window.clearTimeout(handle);
-  }, [orderedSignature, selectedResponseKey]);
   return (
-    <section className="mon-duration-review" aria-label="Casos con duración por revisar">
+    <section className="mon-duration-review" aria-label="Casos por estado de duración">
       <header>
         <div>
-          <span><ShieldAlert size={14} /> Registros de duración</span>
+          <span><ShieldAlert size={14} /> Casos de tiempo corto</span>
           <strong>{formatMetric(ordered.length)} registros visibles</strong>
         </div>
-        <em>selección actual, cortas y muy cortas por revisar</em>
+        <em>muy corta primero, luego corta</em>
       </header>
       {ordered.length ? (
         <div className="mon-duration-review-scroll">
@@ -20768,7 +20858,7 @@ function TerritorialDurationReviewTable({
                 <th>Distrito</th>
                 <th>UMP</th>
                 <th>Duración</th>
-                <th>Motivo</th>
+                <th>Estado operativo</th>
               </tr>
             </thead>
             <tbody>
@@ -20781,7 +20871,6 @@ function TerritorialDurationReviewTable({
                 return (
                   <tr
                     key={`${row.row_index}-${responseId}`}
-                    ref={selected ? selectedRowRef : undefined}
                     data-response-id={row.response_id || undefined}
                     className={selected ? "is-selected" : ""}
                   >
@@ -20838,7 +20927,7 @@ function TerritorialDurationReviewTable({
           </table>
         </div>
       ) : (
-        <div className="mon-territorial-audit-empty">Sin duraciones cortas por revisar.</div>
+        <div className="mon-territorial-audit-empty">Sin entrevistas cortas o muy cortas en este corte.</div>
       )}
     </section>
   );
@@ -20859,12 +20948,9 @@ function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDuratio
             <tr>
               <th>Encuestador</th>
               <th>Total</th>
-              <th>Mediana</th>
-              <th>P95</th>
               <th>Normal</th>
-              <th>Corto</th>
-              <th>Muy corto</th>
-              <th>Revisar</th>
+              <th>Corta</th>
+              <th>Muy corta</th>
               <th>Último</th>
             </tr>
           </thead>
@@ -20873,12 +20959,9 @@ function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDuratio
               <tr key={row.key} className={row.unassigned ? "is-unassigned" : ""}>
                 <td><strong>{row.label}</strong></td>
                 <td>{formatMetric(row.total)}</td>
-                <td>{formatDurationLabel(row.median)}</td>
-                <td>{formatDurationLabel(row.p95)}</td>
                 <td>{formatMetric(row.normal)}</td>
                 <td>{formatMetric(row.short)}</td>
                 <td>{formatMetric(row.veryShort)}</td>
-                <td>{formatMetric(row.review)}</td>
                 <td>{row.lastRecord}</td>
               </tr>
             ))}
@@ -20890,23 +20973,33 @@ function TerritorialDurationEnumeratorTable({ rows }: { rows: TerritorialDuratio
 }
 
 function TerritorialDurationCard({ reports }: { reports: MonitoreoTerritorialDashboard }) {
-  const median = reports.kpis.duration_median ?? 0;
-  const p95 = reports.kpis.duration_p95 ?? 0;
-  const medianPct = Math.min(100, safePercent(median, 7200) ?? 0);
-  const p95Pct = Math.min(100, safePercent(p95, 7200) ?? 0);
+  const rowsWithDuration = (reports.response_audit ?? [])
+    .filter((row) => row.advance_valid !== false && durationSecondsForRow(row) != null);
+  const counts = rowsWithDuration.reduce((acc, row) => {
+    const status = territorialDurationOperationalStatus(row, EMPTY_CONFIG);
+    acc[status] += 1;
+    return acc;
+  }, { normal: 0, corto: 0, muy_corto: 0 });
+  const total = Math.max(1, rowsWithDuration.length);
+  const outsideNormal = counts.corto + counts.muy_corto;
+  const normalPct = safePercent(counts.normal, total) ?? 0;
+  const shortPct = safePercent(counts.corto, total) ?? 0;
+  const veryShortPct = safePercent(counts.muy_corto, total) ?? 0;
   return (
     <section className="mon-territorial-chart-card is-duration" aria-label="Duración de encuestas">
       <header>
         <span><Clock size={14} /> Duración</span>
-        <strong>{formatDurationLabel(median)} mediana</strong>
+        <strong>{formatMetric(outsideNormal)} cortas/muy cortas</strong>
       </header>
       <div className="mon-territorial-duration-scale">
-        <span><i style={{ width: `${medianPct}%` }} /></span>
-        <span className="is-p95"><i style={{ width: `${p95Pct}%` }} /></span>
+        <span><i style={{ width: `${normalPct}%` }} /></span>
+        <span className="is-short"><i style={{ width: `${shortPct}%` }} /></span>
+        <span className="is-p95"><i style={{ width: `${veryShortPct}%` }} /></span>
       </div>
       <div className="mon-territorial-audit-legend">
-        <span><strong>{formatDurationLabel(median)}</strong><em>mediana</em></span>
-        <span><strong>{formatDurationLabel(p95)}</strong><em>P95</em></span>
+        <span><strong>{formatMetric(counts.normal)}</strong><em>normal</em></span>
+        <span><strong>{formatMetric(counts.corto)}</strong><em>corta</em></span>
+        <span><strong>{formatMetric(counts.muy_corto)}</strong><em>muy corta</em></span>
       </div>
     </section>
   );
@@ -21303,8 +21396,14 @@ function TerritorialReviewCasesView({
         </div>
         <div className="mon-territorial-review-metrics">
           <TerritorialReviewMetric icon={FileCheck2} label="Sin observación" value={summary.clean} tone="ready" />
-          <TerritorialReviewMetric icon={MapPin} label="GPS por revisar" value={summary.gps} tone={summary.gps ? "warning" : "ready"} />
-          <TerritorialReviewMetric icon={Clock} label="Duración por revisar" value={summary.duration} tone={summary.duration ? "warning" : "ready"} />
+          <TerritorialReviewMetric icon={MapPin} label="GPS con señal" value={summary.gps} tone={summary.gps ? "warning" : "ready"} />
+          <TerritorialReviewMetric
+            icon={Clock}
+            label="Tiempo corto/muy corto"
+            value={summary.duration}
+            tone={summary.duration ? "warning" : "ready"}
+            hint={summary.duration ? `${formatMetric(summary.durationShort)} corta · ${formatMetric(summary.durationVeryShort)} muy corta` : "todo normal"}
+          />
           <TerritorialReviewMetric icon={ContactRound} label="Cruce responsable" value={summary.unassigned} tone={summary.unassigned ? "warning" : "ready"} hint={summary.unassigned ? "sin responsable" : "resuelto"} />
         </div>
       </section>
@@ -21383,7 +21482,7 @@ function TerritorialReviewCasesView({
               <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
             </div>
             <div className="mon-territorial-review-table-tools">
-              <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} por revisar · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración</em>
+              <em>{formatMetric(visibleSummary.durationNormal)} normal · {formatMetric(visibleSummary.durationShort)} corta · {formatMetric(visibleSummary.durationVeryShort)} muy corta · {formatMetric(visibleSummary.gps)} GPS</em>
               {selectedAuditOption ? (
                 <button
                   type="button"
@@ -22629,9 +22728,7 @@ function territorialReviewDurationReason(
   config: MonitoreoConfig,
 ) {
   const status = territorialDurationOperationalStatus(item, config);
-  if (status === "muy_corto") return "duracion_menor_1_min";
-  if (status === "corto") return "duracion_menor_5_min";
-  return "duracion_por_revisar";
+  return territorialDurationReviewReasonKey(status);
 }
 
 function territorialReviewDurationIsActionable(
@@ -22680,9 +22777,9 @@ function territorialReviewReasonLabel(item: TerritorialInternalReviewCase) {
   if (reason === "gps_sin_gps") return "Sin GPS";
   if (reason === "gps_fuera_zona") return "GPS fuera de zona";
   if (reason === "gps_por_revisar") return "GPS por revisar";
-  if (reason === "duracion_menor_1_min") return "Menor a 1 min";
+  if (reason === "duracion_menor_1_min" || reason === "duracion_menor_2_min") return "Menor a 2 min";
   if (reason === "duracion_menor_5_min") return "Menor a 5 min";
-  if (reason === "duracion_por_revisar") return "Duración por revisar";
+  if (reason === "duracion_por_revisar") return "Tiempo corto/muy corto";
   if (reason === "ump_iniciada_incompleta") return "UMP iniciada incompleta";
   if (reason === "hoja_ruta_sin_respuesta") return "Asignada sin primera encuesta";
   if (reason === "hoja_ruta_posible_ump_errada") return "Posible UMP mal llenada";
@@ -27802,8 +27899,8 @@ function TerritorialTeamTable({ rows }: { rows: MonitoreoTerritorialDashboard["t
   return (
     <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
       <table className="mon-advance-daily-table" aria-label="Producción por enumerador">
-        <thead><tr><th>Enumerador</th><th>Total</th><th>Válidas</th><th>Revisión</th><th>No válidas</th><th>Mediana</th></tr></thead>
-        <tbody>{rows.map((row) => <tr key={row.submitted_by}><td><strong>{row.submitted_by}</strong></td><td>{formatMetric(row.total)}</td><td>{formatMetric(row.validas)}</td><td>{formatMetric(row.revision)}</td><td>{formatMetric(row.no_defendibles)}</td><td>{formatDurationLabel(row.duration_median)}</td></tr>)}</tbody>
+        <thead><tr><th>Enumerador</th><th>Total</th><th>Normal</th><th>Corta</th><th>Muy corta</th><th>Último</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.submitted_by}><td><strong>{row.submitted_by}</strong></td><td>{formatMetric(row.total)}</td><td>{formatMetric(row.duration_normal ?? 0)}</td><td>{formatMetric(row.duration_short ?? 0)}</td><td>{formatMetric(row.duration_very_short ?? 0)}</td><td>{row.last_record || "S/D"}</td></tr>)}</tbody>
       </table>
     </div>
   );
@@ -27930,6 +28027,26 @@ function territorialDailyDateLabel(row: MonitoreoTerritorialDashboard["daily"][n
   return formatInternalQueryDateAxisLabel(date === "sin_fecha" ? "" : date);
 }
 
+function territorialDurationDailyDateValue(row: TerritorialResponseAuditRow) {
+  const candidates = [
+    row.submission_date_iso,
+    row.submission_date,
+    row.submission_datetime,
+    row.submission_time,
+  ];
+  for (const candidate of candidates) {
+    const raw = stringOrEmpty(candidate).trim();
+    if (!raw || raw === "sin_fecha") continue;
+    const datePart = raw.includes("T") ? raw.split("T")[0] : raw.split(/\s+/)[0];
+    if (datePart) return datePart;
+  }
+  return "sin_fecha";
+}
+
+function territorialDurationDailyDateLabelFromValue(value: string) {
+  return value === "sin_fecha" ? "S/D" : formatInternalQueryDateAxisLabel(value);
+}
+
 function issueShortLabel(value: string) {
   const key = normalizeMatch(value);
   if (key.includes("codigo pulso parece numero encuesta")) return "cód. no Pulso";
@@ -27980,7 +28097,7 @@ function TelefonicoView({
   onBuildSample: () => void;
 }) {
   const reports = dashboard?.acreditacion_reports ?? null;
-  const [activeLocalTab, setActiveLocalTab] = useState<PhoneLocalTab>("resumen");
+  const [activeLocalTab, setActiveLocalTab] = useState<PhoneLocalTab>(() => initialPhoneLocalTabFromLocation());
   const selectPhoneLocalTab = useCallback((tab: PhoneLocalTab) => {
     const next = phoneLocalTabFromOpsTab(phoneOpsTabFromLocalTab(tab));
     setActiveLocalTab(next);
@@ -28035,6 +28152,11 @@ function TelefonicoView({
 
 type PhoneOpsTab = "resumen" | "dia" | "responsables" | "pendientes";
 type PhoneLocalTab = PhoneOpsTab | "alertas";
+
+function initialPhoneLocalTabFromLocation(): PhoneLocalTab {
+  const localTab = comparisonTabKeyForView("telefonico", localTabsForWorkbenchView({ family: "acreditacion" }, "telefonico"));
+  return isPhoneLocalTab(localTab) ? localTab : "resumen";
+}
 
 function isPhoneLocalTab(value: unknown): value is PhoneLocalTab {
   return value === "resumen"
@@ -28512,8 +28634,8 @@ function PhoneStatusStorageSummary({
         </div>
         {barHover && <PhoneBarTooltip item={barHover} />}
       </div>
-      <div className="mon-phone-status-rank" aria-label="Estados telefónicos principales">
-        {statuses.slice(0, 6).map((status) => (
+      <div className="mon-phone-status-rank" aria-label="Todos los estados telefónicos de la base">
+        {statuses.map((status) => (
           <span
             key={`${status.key}-rank`}
             className={`is-${status.tone}`}
@@ -29215,9 +29337,8 @@ function PhoneStatusBars({
 
 function PhoneDailyTrend({ rows }: { rows: MonitoreoRow[] }) {
   const points = buildPhoneDailyPoints(rows);
-  const datedPoints = points.filter((point) => point.date);
   const loosePoints = points.filter((point) => !point.date);
-  const series = datedPoints.length ? datedPoints : points;
+  const series = points;
   const pointTotal = (point: PhoneDailyPoint) => point.effective + point.partial + point.refusals;
   let runningTotal = 0;
   const chartRows = series.map((point) => {
@@ -29237,7 +29358,7 @@ function PhoneDailyTrend({ rows }: { rows: MonitoreoRow[] }) {
   const bestPoint = chartRows.reduce<(PhoneDailyPoint & { dailyTotal: number; cumulativeTotal: number }) | null>((best, point) => (
     !best || point.dailyTotal > best.dailyTotal ? point : best
   ), null);
-  const lastPoint = chartRows[chartRows.length - 1] ?? null;
+  const lastPoint = [...chartRows].reverse().find((point) => point.date) ?? chartRows[chartRows.length - 1] ?? null;
   const xLabels = chartRows.map((point) => point.axisLabel || point.label);
   const hoverData = chartRows.map((point) => [
     point.label,
@@ -29479,6 +29600,13 @@ function phoneResponsibleRawName(row: MonitoreoRow) {
   return String(reportRowValue(row, ["responsable", "encuestador", "owner"]) ?? "").trim();
 }
 
+function phoneResponsibleActorName(row: MonitoreoRow) {
+  const actor = String(reportRowValue(row, ["actor", "unidad"]) ?? "").trim();
+  const key = normalizeMatch(actor);
+  if (!key || key.includes("sin actor")) return "";
+  return actor;
+}
+
 function isUnassignedPhoneResponsible(value: unknown) {
   const key = normalizeMatch(value);
   return !key
@@ -29497,8 +29625,10 @@ function isUnassignedPhoneResponsibleRow(row: MonitoreoRow) {
 
 function phoneResponsibleDisplayName(row: MonitoreoRow, index?: number) {
   const raw = phoneResponsibleRawName(row);
-  if (raw) return raw;
-  return index == null ? "Sin responsable" : `Responsable ${index + 1}`;
+  const base = raw || (index == null ? "Sin responsable" : `Responsable ${index + 1}`);
+  const actor = phoneResponsibleActorName(row);
+  if (actor && normalizeMatch(base) !== normalizeMatch(actor)) return `${base} · ${actor}`;
+  return base;
 }
 
 function phoneResponsibleMetrics(row: MonitoreoRow) {

@@ -30,11 +30,11 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
   const [filter, setFilter] = useState<TerritorialQuotaConsistencyFilter | null>(null);
   const [showReplacements, setShowReplacements] = useState(true);
   const replacementCount = useMemo(
-    () => blocks.filter((block) => stringOrEmpty(block.tipo_manzana).toLowerCase() === "reemplazo").length,
+    () => blocks.filter(territorialQuotaBlockIsReplacement).length,
     [blocks],
   );
   const visibleBlocks = useMemo(
-    () => blocks.filter((block) => showReplacements || stringOrEmpty(block.tipo_manzana).toLowerCase() !== "reemplazo"),
+    () => blocks.filter((block) => showReplacements || !territorialQuotaBlockIsReplacement(block)),
     [blocks, showReplacements],
   );
   const summary = useMemo(() => summarizeTerritorialQuotaProgressBlocks(visibleBlocks), [visibleBlocks]);
@@ -55,6 +55,8 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
           block.ump,
           block.responsable,
           block.responsible,
+          territorialQuotaReplacementShortLabel(block),
+          territorialQuotaBlockTypeLabel(block),
           territorialQuotaStatusLabel(status),
           ...(block.sex ?? []).map((item) => item.label),
           ...(block.age ?? []).map((item) => item.label),
@@ -342,7 +344,7 @@ function territorialQuotaBlockActivityLabel(block: TerritorialQuotaProgressBlock
 
 function compareTerritorialQuotaBlocks(a: TerritorialQuotaProgressBlock, b: TerritorialQuotaProgressBlock) {
   return compareTerritorialUmpValues(a.ump, b.ump)
-    || (stringOrEmpty(a.tipo_manzana) === "reemplazo" ? 1 : 0) - (stringOrEmpty(b.tipo_manzana) === "reemplazo" ? 1 : 0)
+    || (territorialQuotaBlockIsReplacement(a) ? 1 : 0) - (territorialQuotaBlockIsReplacement(b) ? 1 : 0)
     || stringOrEmpty(a.id_manzana).localeCompare(stringOrEmpty(b.id_manzana), "es-PE", { numeric: true });
 }
 
@@ -414,20 +416,69 @@ function territorialQuotaItemMissingTotal(rows: TerritorialQuotaProgressBlock["s
 }
 
 function territorialQuotaBlockPrimaryLabel(block: TerritorialQuotaProgressBlock) {
-  const ump = stringOrEmpty(block.ump).trim();
-  if (ump) return `UMP ${ump}`;
+  const ump = territorialQuotaPrimaryUmpLabel(block);
+  const replacementLabel = territorialQuotaBlockIsReplacement(block) ? territorialQuotaReplacementShortLabel(block) : "";
+  if (replacementLabel) return ump ? `${ump} · ${replacementLabel}` : replacementLabel;
+  if (ump) return ump;
   if (block.zona || block.manzana) return `Z${block.zona || "S/D"} · M${block.manzana || "S/D"}`;
   return block.id_manzana || "Manzana sin código";
 }
 
 function territorialQuotaBlockSecondaryLabel(block: TerritorialQuotaProgressBlock) {
+  const blockLabel = territorialQuotaBlockIsReplacement(block)
+    ? territorialQuotaReplacementShortLabel(block) || territorialQuotaPhysicalBlockLabel(block)
+    : territorialQuotaPhysicalBlockLabel(block);
   const parts = [
     block.distrito || "Sin distrito",
     block.zona ? `Zona ${block.zona}` : "",
-    block.manzana ? `Mz ${block.manzana}` : "",
-    block.tipo_manzana === "reemplazo" ? "Reemplazo" : "Titular",
+    blockLabel,
+    territorialQuotaBlockTypeLabel(block),
   ].filter(Boolean);
   return parts.join(" · ");
+}
+
+function territorialQuotaBlockIsReplacement(block: TerritorialQuotaProgressBlock) {
+  return normalizeMatch(block.tipo_manzana) === "reemplazo";
+}
+
+function territorialQuotaBlockTypeLabel(block: TerritorialQuotaProgressBlock) {
+  return territorialQuotaBlockIsReplacement(block) ? "Reemplazo" : "Titular";
+}
+
+function territorialQuotaPhysicalBlockLabel(block: TerritorialQuotaProgressBlock) {
+  if (block.manzana) return `Mz ${block.manzana}`;
+  if (block.id_manzana) return `Mz ${block.id_manzana}`;
+  return "Mz S/D";
+}
+
+function territorialQuotaPrimaryUmpLabel(block: TerritorialQuotaProgressBlock) {
+  const raw = stringOrEmpty(block.ump).trim();
+  if (!raw) return "";
+  if (!territorialQuotaBlockIsReplacement(block)) return `UMP ${raw.replace(/^UMP\s+/i, "")}`;
+  const titular = raw
+    .replace(/^UMP\s+/i, "")
+    .split(/\s*·\s*/)
+    .find((part) => !/^R\s*[0-9]/i.test(part))
+    ?.trim();
+  return titular ? `UMP ${titular.replace(/^UMP\s+/i, "")}` : "";
+}
+
+function territorialQuotaReplacementShortLabel(block: TerritorialQuotaProgressBlock) {
+  const order = numberOrNull(block.replacement_order);
+  if (order != null && order > 0) return `R ${formatReplacementOrder(order)}`;
+  const values = [block.replacement_label, block.ump];
+  for (const value of values) {
+    const raw = stringOrEmpty(value).trim();
+    const match = raw.match(/\b(?:R|Reemplazo)\s*([0-9]+(?:[.,][0-9]+)?)/i);
+    if (match) return `R ${match[1].replace(",", ".")}`;
+  }
+  return stringOrEmpty(block.replacement_label).trim();
+}
+
+function formatReplacementOrder(value: unknown) {
+  const number = numberOrNull(value);
+  if (number == null) return stringOrEmpty(value).trim();
+  return new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 }).format(number);
 }
 
 function territorialQuotaItemTone(item: TerritorialQuotaProgressBlock["sex"][number]) {

@@ -24,11 +24,13 @@ describe("monitoreo profile registry", () => {
     const profile = await preloadMonitoreoFamily("telefonico");
 
     expect(profile?.chunk).toBe("monitoreo-telefonico");
-    expect(profile?.views).toEqual(["fuentes", "modelo", "consultas", "telefonico", "avance"]);
-    expect(profile?.warmupScopes).toEqual(["source", "advance_summary", "queries_summary", "phone_summary"]);
+    expect(profile?.views).toEqual(["fuentes", "modelo", "telefonico", "avance"]);
+    expect(profile?.warmupScopes).toEqual(["source", "phone_summary", "advance_summary"]);
+    expect(profile?.reportScopes?.fuentes).toBe("source");
+    expect(profile?.reportScopes?.modelo).toBe("phone_summary");
     expect(profile?.reportScopes?.telefonico).toBe("phone_summary");
-    expect(profile?.reportScopes?.consultas).toBe("queries_summary");
-    expect(profile?.reportScopes?.modelo).toBe("advance_summary");
+    expect(profile?.reportScopes?.avance).toBe("advance_summary");
+    expect(profile?.reportScopes?.consultas).toBeUndefined();
   });
 
   test("declara warmup liviano para acreditacion", async () => {

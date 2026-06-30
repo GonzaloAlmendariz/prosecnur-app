@@ -150,6 +150,13 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_agr$max_categorias$default, 10)
   expect_equal(by_name_agr$agrupar_resto_en_otros$default, TRUE)
   expect_match(by_name_agr$umbral_posicion$label, "etiquetas pequeñas")
+  expect_equal(by_name_agr$excluir_opciones$tipo_input, "codigos_list")
+
+  expect_true("nube_palabras" %in% names(presets))
+  nube <- presets$nube_palabras$args
+  by_name_nube <- stats::setNames(nube, vapply(nube, `[[`, character(1), "name"))
+  expect_equal(by_name_nube$max_palabras$default, 40)
+  expect_equal(by_name_nube$min_chars$default, 3)
 
   registry <- .graficos_registry_payload()
   grafs <- stats::setNames(registry$graficadores, vapply(registry$graficadores, `[[`, character(1), "name"))
@@ -161,6 +168,11 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_graf_agr$orden_barras$default, "instrumento")
   expect_equal(by_name_graf_agr$max_categorias$default, 10)
   expect_equal(by_name_graf_agr$canvas_w_etiquetas$label, "Espacio para etiquetas")
+  expect_true("p_nube_palabras" %in% names(grafs))
+  expect_equal(
+    stats::setNames(grafs$p_nube_palabras$args, vapply(grafs$p_nube_palabras$args, `[[`, character(1), "name"))$var$tipo_input,
+    "variable"
+  )
 })
 
 test_that("barras agrupadas respetan orden, Otros al final y maximo de categorias", {
@@ -476,12 +488,12 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
 
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_apiladas$prefijo_barra_extra, "")
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_agrupadas$prefijo_barra_extra, "")
-	  expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$canvas_w_etiquetas, 0.36)
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$canvas_w_etiquetas, 0.45)
   expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$barras_agrupadas$mostrar_ceros))
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, 8.0)
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, 8.0)
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, 12)
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, 12)
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "Top 2 Box")
 })
 
@@ -494,14 +506,14 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   expect_equal(.PULSO_PPT_COLORS$gris, "#BFBFBF")
 
   expect_equal(.PRESETS_DEFAULT_PULSO$base$font_family, "Arial")
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_titulo, 14)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_titulo, 18)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_titulo_slide, 24)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo, 14)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo, 18)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo_slide, 16)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_cuerpo_slide, 14)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 10.5)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 10.5)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 10)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_cuerpo_slide, 16)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 15)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 15)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 12)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
@@ -518,6 +530,7 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
     stringsAsFactors = FALSE
   )
   expect_equal(.reporte_plan_labels_for_levels("likert", c("1", "2"), choices), c("Nada", "Mucho"))
+  expect_equal(.reporte_plan_legend_labels_for_levels("likert", c("1", "2"), choices), c("1 Nada", "2 Mucho"))
 })
 
 test_that("metadata principal no expone editores tecnicos JSON", {
@@ -610,6 +623,95 @@ test_that("leyenda_posicion cambia el placeholder de leyenda en canvas", {
   i_bottom <- png::readPNG(f_bottom)
   i_top <- png::readPNG(f_top)
   expect_gt(sum(abs(i_bottom - i_top)), 10000)
+})
+
+test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
+  df_apiladas <- data.frame(
+    categoria = "Item",
+    N = 25,
+    pct_1 = 0.64,
+    pct_2 = 0.36,
+    n_1 = 16,
+    n_2 = 9,
+    stringsAsFactors = FALSE
+  )
+
+  p_apiladas <- graficar_barras_apiladas(
+    data = df_apiladas,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_grupos = c(pct_1 = "Si", pct_2 = "No"),
+    cols_n = c(pct_1 = "n_1", pct_2 = "n_2"),
+    mostrar_n_en_etiquetas = TRUE,
+    mostrar_valores = TRUE,
+    etiquetas_uniformes = TRUE,
+    umbral_mostrar_etiqueta = 0.01,
+    decimales = 0
+  )
+
+  labs_apiladas <- unlist(lapply(
+    Filter(function(layer) inherits(layer$geom, "GeomText"), p_apiladas$layers),
+    function(layer) if ("lab" %in% names(layer$data)) as.character(layer$data$lab) else character()
+  ))
+  expect_setequal(labs_apiladas, c("64% (16)", "36% (9)"))
+
+  p_apiladas_umbral <- graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Item",
+      N = 100,
+      pct_1 = 0.01,
+      pct_2 = 0.19,
+      pct_3 = 0.80,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
+    etiquetas_grupos = c(pct_1 = "Bajo", pct_2 = "Medio", pct_3 = "Alto"),
+    mostrar_valores = TRUE,
+    etiquetas_uniformes = TRUE,
+    umbral_ocultar_etiqueta = 0.035,
+    decimales = 0
+  )
+  labs_apiladas_umbral <- unlist(lapply(
+    Filter(function(layer) inherits(layer$geom, "GeomText"), p_apiladas_umbral$layers),
+    function(layer) if ("lab" %in% names(layer$data)) as.character(layer$data$lab) else character()
+  ))
+  expect_false("1%" %in% labs_apiladas_umbral)
+  expect_true(all(c("19%", "80%") %in% labs_apiladas_umbral))
+
+  df_agrupadas <- data.frame(
+    categoria = c("Bajo", "Medio", "Alto"),
+    N = 25,
+    pct = c(0.09, 0.17, 0.42),
+    n = c(16, 31, 76),
+    stringsAsFactors = FALSE
+  )
+
+  p_agrupadas <- graficar_barras_agrupadas(
+    data = df_agrupadas,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    cols_n = c(pct = "n"),
+    mostrar_n_en_etiquetas = TRUE,
+    mostrar_valores = TRUE,
+    umbral_etiqueta = 0,
+    decimales = 0
+  )
+
+  labs_agrupadas <- unlist(lapply(
+    Filter(function(layer) inherits(layer$geom, "GeomText"), p_agrupadas$layers),
+    function(layer) if ("lab" %in% names(layer$data)) as.character(layer$data$lab) else character()
+  ))
+  expect_true(all(c("9% (16)", "17% (31)", "42% (76)") %in% labs_agrupadas))
+
+  layer_agrupadas <- Filter(function(layer) inherits(layer$geom, "GeomText"), p_agrupadas$layers)[[1]]$data
+  expect_false(layer_agrupadas$inside[layer_agrupadas$lab == "9% (16)"])
+  expect_false(layer_agrupadas$inside[layer_agrupadas$lab == "17% (31)"])
+  expect_true(layer_agrupadas$inside[layer_agrupadas$lab == "42% (76)"])
 })
 
 test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {

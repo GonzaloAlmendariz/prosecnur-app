@@ -7,19 +7,19 @@ import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioBase, type EstudioP
 import ProjectIndicator from "../features/project/ProjectIndicator";
 import { useOptionalProjectShell } from "../features/project/ProjectShell";
 import {
-  PROSECNUR_ACTIVE_MODULES,
+  PROSECNUR_PRIMARY_ACTIVE_MODULES,
   moduleChromeVars,
 } from "../lib/modules";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
-// activo y errores de sesión solo cuando existen. El topbar de las 5 fases
+// activo y errores de sesión solo cuando existen. El topbar de las etapas 6-10
 // (Carga → Gráficos) aparece SOLO cuando
-// el usuario está dentro del módulo "Procesamiento de XLSForm" — el
+// el usuario está dentro del módulo de carga, limpieza y análisis — el
 // Home (`/`) no lo muestra porque es un menú de módulos a nivel superior,
 // no una fase del procesamiento.
 
-// Rutas que forman parte del módulo "Procesamiento de XLSForm".
+// Rutas que forman parte del tramo de carga, limpieza, analítica y productos.
 // Cuando la pathname actual matchea alguna, el topbar de fases se
 // despliega. Estrictas (no prefix) para evitar que rutas futuras como
 // `/hojas-de-ruta` arrastren el topbar por accidente.
@@ -32,7 +32,7 @@ const PROCESAMIENTO_PATHS = [
   "/graficos",
 ];
 
-const MODULE_SWITCHER_ITEMS = PROSECNUR_ACTIVE_MODULES;
+const MODULE_SWITCHER_ITEMS = PROSECNUR_PRIMARY_ACTIVE_MODULES;
 
 function isProcesamientoRoute(pathname: string): boolean {
   return PROCESAMIENTO_PATHS.some(
@@ -57,6 +57,7 @@ const VIEWPORT_PATHS = new Set([
   "/editor-xlsform",
   "/tablero",
   "/calc-muestra",
+  "/plan-trabajo",
   "/diseno-estudio",
   "/recopiladores",
   "/hojas-ruta",
@@ -80,34 +81,34 @@ function useNavItems(): NavItem[] {
   const hasAnalitica = !!state?.analitica_prep_ok;
 
   return [
-    { to: "/carga", n: 1, label: "Carga", done: hasXlsform && hasData },
+    { to: "/carga", n: 6, label: "Carga", done: hasXlsform && hasData },
     {
       to: "/validacion",
-      n: 2,
+      n: 7,
       label: "Validación",
       done: !!state?.auditoria_run,
-      blockedReason: hasXlsform ? undefined : "Bloqueada: carga un XLSForm en la Fase 1.",
+      blockedReason: hasXlsform ? undefined : "Bloqueada: carga un XLSForm en la etapa 6.",
     },
     {
       to: "/codificacion",
-      n: 3,
+      n: 8,
       label: "Codificación",
       done: !!state?.codif_aplicado,
-      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: carga XLSForm y data en la Fase 1.",
+      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación en la etapa 6.",
     },
     {
       to: "/analitica",
-      n: 4,
+      n: 9,
       label: "Analítica",
       done: hasAnalitica,
-      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: carga XLSForm y data en la Fase 1.",
+      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación en la etapa 6.",
     },
     {
       to: "/graficos",
-      n: 5,
+      n: 10,
       label: "Gráficos",
       done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok,
-      blockedReason: hasAnalitica ? undefined : "Bloqueada: prepara Analítica en la Fase 4.",
+      blockedReason: hasAnalitica ? undefined : "Bloqueada: prepara Analítica en la etapa 9.",
     },
   ];
 }
@@ -184,6 +185,9 @@ function SessionErrorChip() {
 
 function activeModuleRoute(pathname: string): string {
   if (isProcesamientoRoute(pathname)) return "/procesamiento";
+  if (pathname === "/plan-trabajo" || pathname.startsWith("/plan-trabajo/")) {
+    return "/diseno-estudio";
+  }
   const match = MODULE_SWITCHER_ITEMS
     .filter((item) => item.to !== "/")
     .find((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
@@ -420,10 +424,10 @@ export default function Layout() {
           <ModuleSwitcher />
         </div>
         {showFases && (
-          <div className="pulso-phase-rail" aria-label="Contexto de procesamiento">
+          <div className="pulso-phase-rail" aria-label="Contexto de carga, validación y productos">
             <span className="pulso-phase-separator" aria-hidden="true" />
             <nav
-              aria-label="Fases de procesamiento"
+              aria-label="Etapas 6 a 10 del proyecto"
               className="pulso-phase-pillbar"
             >
               <ul className="pulso-phase-pill-list">

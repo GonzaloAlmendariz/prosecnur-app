@@ -68,6 +68,7 @@ function parseArgs(argv) {
     out: path.join("tmp", "visual-qa", "monitoreo-visual-parity"),
     timeoutMs: 240000,
     waitAfterReadyMs: 4000,
+    noFrameAbortMs: 45000,
     maxTabs: 0,
     viewport: { width: 3000, height: 1100 },
     only: [],
@@ -82,6 +83,7 @@ function parseArgs(argv) {
     else if (arg === "--out") opts.out = next();
     else if (arg === "--timeout-ms") opts.timeoutMs = Number(next());
     else if (arg === "--wait-after-ready-ms") opts.waitAfterReadyMs = Number(next());
+    else if (arg === "--no-frame-abort-ms") opts.noFrameAbortMs = Number(next());
     else if (arg === "--max-tabs") opts.maxTabs = Number(next());
     else if (arg === "--viewport") opts.viewport = parseViewport(next());
     else if (arg === "--only") opts.only.push(next());
@@ -113,6 +115,8 @@ node scripts/monitoreo-visual-parity-check.mjs \\
 Captura el comparador canonico vs modular en orden seccion/pestana.
 Usa --only "Avance/Mapa y UMP" para repetir una pestaña concreta.
 Si pasas --session, el navegador usa esa sesión y no reabre el .pulso vía devPulso.
+La captura agrega qaWarmup=skip para evitar que el BootGate general bloquee el comparador.
+Si no aparecen iframes tras --no-frame-abort-ms, clasifica la corrida como falla ambiental.
 No declara paridad automaticamente: produce PNGs y report.json para revision.
 `);
 }
@@ -169,9 +173,36 @@ function comparisonPath(profile) {
 function comparisonUrl(opts, view, tab) {
   const url = new URL(comparisonPath(opts.profile), `${opts.url}/`);
   if (!opts.session) url.searchParams.set("devPulso", opts.project);
+  url.searchParams.set("qaWarmup", "skip");
   url.searchParams.set("compareView", view);
   url.searchParams.set("compareTab", tab);
   return url.toString();
+}
+
+function comparisonReportScope(opts, view) {
+  if (opts.profile !== "acreditacion") return "";
+  const key = normalizeLabel(view);
+  if (key.includes("telefon")) return "phone_summary";
+  if (key.includes("consulta")) return "queries_summary";
+  if (key.includes("avance")) return "advance_summary";
+  if (key.includes("fuente")) return "source";
+  return "";
+}
+
+async function prefetchComparisonScope(opts, view) {
+  const scope = comparisonReportScope(opts, view);
+  if (!scope || !opts.session) return;
+  const url = new URL("/api/monitoreo/state", `${opts.url}/`);
+  url.searchParams.set("include_reports", "1");
+  url.searchParams.set("report_scope", scope);
+  const response = await fetch(url, {
+    headers: { "X-Pulso-Session": opts.session },
+    signal: AbortSignal.timeout(Math.min(opts.timeoutMs, 90000)),
+  });
+  if (!response.ok) {
+    throw new Error(`Prefetch ${scope} fallo con HTTP ${response.status}`);
+  }
+  await response.arrayBuffer();
 }
 
 function loadingReason(text) {
@@ -265,6 +296,8 @@ function hydrationForFrame(text, target) {
           /EFECTIVAS\s*([0-9.,]+)/i,
           /([0-9.,]+)\s+d[ií]as? con/i,
           /Total diario\s*([0-9.,]+)/i,
+          /([0-9.,]+)\s+cortes diarios/i,
+          /TOTAL PERIODO\s*([0-9.,]+)/i,
         ]);
       if (!hasDaily) blockers.push("Serie diaria no hidratada");
     }
@@ -338,7 +371,24 @@ async function dismissPendingChangesDialogs(page) {
   }
 }
 
-async function waitForComparisonReady(page, timeoutMs, target) {
+function environmentIssueFromText(text) {
+  if (/ERR_CONNECTION_REFUSED|ERR_EMPTY_RESPONSE|ERR_CONNECTION_RESET/i.test(text)) return "frontend_unavailable";
+  return "";
+}
+
+function navigationEnvironmentIssue(error) {
+  return environmentIssueFromText(String(error || "")) || "navigation_failed";
+}
+
+function comparisonEnvironmentIssue(frames, consoleErrors, waitResult, navigationError = "") {
+  if (frames.length) return "";
+  const transportIssue = environmentIssueFromText(`${navigationError}\n${consoleErrors.join("\n")}`);
+  if (transportIssue) return transportIssue;
+  if (waitResult?.environment_issue) return waitResult.environment_issue;
+  return "no_comparison_frames";
+}
+
+async function waitForComparisonReady(page, timeoutMs, target, opts = {}) {
   const started = performance.now();
   page.__monitoreoTarget = target;
   while (performance.now() - started < timeoutMs) {
@@ -347,12 +397,23 @@ async function waitForComparisonReady(page, timeoutMs, target) {
     if (frames.length >= 2 && frames.every((frame) => frame.hydration.ready)) {
       return { ready: true, wait_ms: Math.round(performance.now() - started), frames };
     }
+    if (!frames.length && opts.noFrameAbortMs > 0 && performance.now() - started >= opts.noFrameAbortMs) {
+      return {
+        ready: false,
+        wait_ms: Math.round(performance.now() - started),
+        frames,
+        environment_issue: "no_comparison_frames",
+      };
+    }
     await sleep(1000);
   }
+  const frames = await frameSummaries(page);
+  const ready = frames.length >= 2 && frames.every((frame) => frame.hydration.ready);
   return {
-    ready: false,
+    ready,
     wait_ms: Math.round(performance.now() - started),
-    frames: await frameSummaries(page),
+    frames,
+    environment_issue: frames.length ? "" : "no_comparison_frames",
   };
 }
 
@@ -387,15 +448,31 @@ async function main() {
     const url = comparisonUrl(opts, view, tab);
     page.__monitoreoTarget = { view, tab };
     const started = performance.now();
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
-    const ready = await waitForComparisonReady(page, opts.timeoutMs, { view, tab });
+    await prefetchComparisonScope(opts, view).catch((error) => {
+      console.warn(`[monitoreo-visual-parity] prefetch ${view}/${tab}: ${error.message}`);
+    });
+    let navigationError = "";
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs }).catch((error) => {
+      navigationError = String(error?.message || error).slice(0, 800);
+    });
+    const ready = navigationError
+      ? {
+          ready: false,
+          wait_ms: Math.round(performance.now() - started),
+          frames: [],
+          environment_issue: navigationEnvironmentIssue(navigationError),
+        }
+      : await waitForComparisonReady(page, opts.timeoutMs, { view, tab }, { noFrameAbortMs: opts.noFrameAbortMs });
     await sleep(opts.waitAfterReadyMs);
     await dismissPendingChangesDialogs(page);
     await sleep(750);
     await dismissPendingChangesDialogs(page);
     const finalFrames = await frameSummaries(page);
     await page.screenshot({ path: screenshot, fullPage: false });
-    const isReady = ready.ready && finalFrames.length >= 2 && finalFrames.every((frame) => frame.hydration.ready);
+    const finalReady = finalFrames.length >= 2 && finalFrames.every((frame) => frame.hydration.ready);
+    const isReady = ready.ready || finalReady;
+    const frames = finalFrames.length ? finalFrames : ready.frames;
+    const environmentIssue = comparisonEnvironmentIssue(frames, consoleErrors, ready, navigationError);
     results.push({
       index: index + 1,
       label,
@@ -406,13 +483,16 @@ async function main() {
       ready: isReady,
       wait_ms: ready.wait_ms,
       total_ms: Math.round(performance.now() - started),
-      frame_count: finalFrames.length || ready.frames.length,
-      frames: finalFrames.length ? finalFrames : ready.frames,
+      frame_count: frames.length,
+      environment_issue: environmentIssue,
+      navigation_error: navigationError,
+      frames,
       page_errors: pageErrors,
       console_errors: consoleErrors,
     });
     await page.close();
-    console.log(`${String(captureIndex + 1).padStart(2, "0")}/${selectedTabs.length} ${isReady ? "ready" : "timeout"} ${label} -> ${screenshot}`);
+    const status = isReady ? "ready" : environmentIssue ? `environment:${environmentIssue}` : "timeout";
+    console.log(`${String(captureIndex + 1).padStart(2, "0")}/${selectedTabs.length} ${status} ${label} -> ${screenshot}`);
   }
   await browser.close();
   const report = {
@@ -422,8 +502,10 @@ async function main() {
     session: opts.session || null,
     url: opts.url,
     viewport: opts.viewport,
+    no_frame_abort_ms: opts.noFrameAbortMs,
     captured: results.length,
     ready: results.filter((item) => item.ready).length,
+    environment_issues: results.filter((item) => item.environment_issue).length,
     results,
   };
   await fs.writeFile(path.join(opts.out, "report.json"), JSON.stringify(report, null, 2));

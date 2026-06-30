@@ -1,4 +1,9 @@
 import type { TerritorialResponseAuditRow } from "../../api/client";
+import {
+  type TerritorialDurationOperationalKey,
+  territorialDurationIsReviewStatus,
+  territorialDurationOperationalStatusFromValues,
+} from "./territorialDuration";
 
 export type TerritorialMasterRecordState = "sin_observacion" | "pendiente" | "en_observacion";
 
@@ -77,17 +82,27 @@ function masterRecordState(row: TerritorialResponseAuditRow): TerritorialMasterR
   return "sin_observacion";
 }
 
-function masterRecordDurationReviewKey(row: TerritorialResponseAuditRow) {
+function masterRecordHasEvaluableDuration(row: TerritorialResponseAuditRow) {
+  const seconds = stableNumber(row.duration_seconds);
+  if (seconds != null && seconds >= 0) return true;
   for (const value of [row.duration_operational_status, row.duration_operational_label, row.duration_status]) {
     const key = normalizedToken(value);
-    if (key === "muy_corta" || key === "muy_corto") return "muy_corto";
-    if (key === "corta" || key === "corto") return "corto";
+    if (["muy_corta", "muy_corto", "corta", "corto", "esperada", "larga", "extrema", "normal"].includes(key)) return true;
   }
-  return "";
+  return false;
+}
+
+function masterRecordDurationState(row: TerritorialResponseAuditRow): TerritorialDurationOperationalKey {
+  return territorialDurationOperationalStatusFromValues({
+    seconds: stableNumber(row.duration_seconds),
+    durationStatus: row.duration_status,
+    durationOperationalStatus: row.duration_operational_status,
+    durationOperationalLabel: row.duration_operational_label,
+  });
 }
 
 function masterRecordHasDurationReview(row: TerritorialResponseAuditRow) {
-  return Boolean(masterRecordDurationReviewKey(row));
+  return territorialDurationIsReviewStatus(masterRecordDurationState(row));
 }
 
 function masterRecordUmp(row: TerritorialResponseAuditRow) {
@@ -200,8 +215,14 @@ export function summarizeTerritorialMasterRecordRows(rows: TerritorialMasterReco
     if (item.state === "pendiente" || item.state === "en_observacion") summary.review += 1;
     const geo = normalized(item.source.geo_estado);
     if (geo === "geo revision" || geo === "geo no defendible" || geo === "geo sin gps") summary.gps += 1;
+    if (masterRecordHasEvaluableDuration(item.source)) {
+      const durationState = masterRecordDurationState(item.source);
+      if (durationState === "muy_corto") summary.durationVeryShort += 1;
+      else if (durationState === "corto") summary.durationShort += 1;
+      else summary.durationNormal += 1;
+    }
     if (masterRecordHasDurationReview(item.source)) summary.duration += 1;
     if (normalized(item.responsible).includes("sin responsable")) summary.unassigned += 1;
     return summary;
-  }, { total: 0, clean: 0, review: 0, gps: 0, duration: 0, unassigned: 0 });
+  }, { total: 0, clean: 0, review: 0, gps: 0, duration: 0, durationNormal: 0, durationShort: 0, durationVeryShort: 0, unassigned: 0 });
 }

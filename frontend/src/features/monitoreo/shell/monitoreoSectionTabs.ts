@@ -94,7 +94,7 @@ export function localTabsForSection({
       calidad: controlledTabs([
         { key: "geolocalizacion", label: "Geolocalización", detail: "GPS y cartografía", icon: MapPin },
         { key: "reconciliacion", label: "Reconciliación", detail: "UMP y códigos", icon: Link2 },
-        { key: "duracion", label: "Duración", detail: "Outliers de tiempo", icon: Clock },
+        { key: "duracion", label: "Duración", detail: "Normal, corta y muy corta", icon: Clock },
         { key: "cuotas", label: "Cuotas", detail: "Marginales y brechas", icon: Target },
       ]),
       avance: controlledTabs([
@@ -106,7 +106,7 @@ export function localTabsForSection({
       ocurrencias: controlledTabs([
         { key: "states", label: "Estados", detail: "Composición general", icon: ClipboardCheck },
         { key: "ump", label: "Por UMP", detail: "Atención por manzana", icon: Route },
-        { key: "alerts", label: "Observaciones", detail: "Revisión operativa", icon: AlertTriangle },
+        { key: "alerts", label: "Observaciones", detail: "Señales operativas", icon: AlertTriangle },
       ]),
     };
     return byView[activeView] ?? [];

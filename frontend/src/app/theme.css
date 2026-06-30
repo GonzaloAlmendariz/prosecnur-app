@@ -117,6 +117,9 @@
   --pulso-module-sample: #7c3aed;
   --pulso-module-sample-soft: rgba(124, 58, 237, 0.13);
   --pulso-module-sample-border: rgba(124, 58, 237, 0.32);
+  --pulso-module-workplan: #b45309;
+  --pulso-module-workplan-soft: rgba(180, 83, 9, 0.13);
+  --pulso-module-workplan-border: rgba(180, 83, 9, 0.3);
   --pulso-module-encyclopedia: #a16207;
   --pulso-module-encyclopedia-soft: rgba(161, 98, 7, 0.13);
   --pulso-module-encyclopedia-border: rgba(161, 98, 7, 0.3);
@@ -531,11 +534,15 @@ button.pulso-secondary:hover:not(:disabled) {
 }
 
 .pulso-graficos-blocked {
-  height: 100%;
-  min-height: var(--pulso-operational-min-panel);
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: auto;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 input, textarea, select {
@@ -2447,9 +2454,9 @@ a { color: var(--pulso-primary); }
 
 @media (max-width: 1180px) {
   .pulso-module-dock {
-    max-width: min(290px, 32vw);
-    overflow-x: auto;
-    overflow-y: hidden;
+    width: min(354px, 42vw);
+    max-width: min(354px, 42vw);
+    overflow: visible;
   }
 
   .pulso-brand-wordmark {

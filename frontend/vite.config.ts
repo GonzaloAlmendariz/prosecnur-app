@@ -54,6 +54,7 @@ function manualChunks(id: string) {
   if (
     normalized.includes("/src/features/monitoreo/components/") ||
     normalized.includes("/src/features/monitoreo/core/") ||
+    normalized.includes("/src/features/monitoreo/salidas/") ||
     normalized.includes("/src/features/monitoreo/shell/")
   ) return "monitoreo-core";
   if (

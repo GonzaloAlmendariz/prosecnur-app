@@ -89,7 +89,7 @@
 .diseno_bitacora_modules <- c(
   "diseno-estudio", "editor-xlsform", "carga", "validacion", "codificacion",
   "analitica", "graficos", "dashboard", "calc-muestra", "hojas-ruta",
-  "recopiladores", "monitoreo", "proyecto"
+  "plan-trabajo", "recopiladores", "monitoreo", "proyecto"
 )
 
 .diseno_bitacora_entry <- function(entry = list()) {
@@ -264,6 +264,10 @@
   aulas_selection <- s$calc_muestra_aulas_selection %||% list()
   aulas_rows <- .diseno_count_records_anywhere(aulas_selection)
   hojas_outputs <- s$hojas_ruta_workspace_outputs %||% list()
+  plan <- s$plan_trabajo %||% list()
+  plan_tasks <- plan$tasks %||% list()
+  plan_milestones <- plan$milestones %||% list()
+  plan_windows <- plan$windows %||% list()
   monitoreo_sources <- s$monitoreo_sources %||% list()
   mon_cfg <- s$monitoreo_config %||% list()
   mon_profile <- mon_cfg$monitoreo_profile %||% mon_cfg$profile %||% list()
@@ -285,6 +289,10 @@
     classroom_units_count = as.integer(aulas_rows),
     route_phase = .diseno_scalar(s$hojas_ruta_active_phase, ""),
     route_outputs_count = length(hojas_outputs),
+    workplan_title = .diseno_scalar(plan$title, ""),
+    workplan_tasks_count = length(plan_tasks),
+    workplan_milestones_count = length(plan_milestones),
+    workplan_windows_count = length(plan_windows),
     monitoring_family = .diseno_scalar(mon_profile$family %||% mon_cfg$family, ""),
     monitoring_sources_count = length(monitoreo_sources),
     project_file = .diseno_file_basename(s$project_path)
@@ -315,6 +323,8 @@
   has_hojas <- .diseno_has_content(s$hojas_ruta_config) ||
     .diseno_has_content(s$hojas_ruta_workspace_outputs) ||
     .diseno_has_content(s$hojas_ruta_runs)
+  has_plan <- .diseno_has_content(s$plan_trabajo) &&
+    length((s$plan_trabajo %||% list())$tasks %||% list()) > 0L
   has_recop <- .diseno_has_content(s$monitoreo_aulas_publication) ||
     .diseno_has_content(s$monitoreo_aulas_plan)
   has_mon <- .diseno_has_content(s$monitoreo_sources) ||
@@ -384,6 +394,12 @@
       category = "campo"
     ),
     .diseno_status(
+      "plan-trabajo", "Plan de trabajo", "/plan-trabajo", if (has_plan) "ready" else "pending",
+      if (has_plan) sprintf("%d actividad(es), %d hito(s) y %d ventana(s) sincronizables.", protocol$workplan_tasks_count, protocol$workplan_milestones_count, protocol$workplan_windows_count) else "Sin cronograma operativo importado.",
+      c(.diseno_scalar(protocol$workplan_title, ""), if (has_plan) "Cronograma normalizado" else ""),
+      category = "campo"
+    ),
+    .diseno_status(
       "recopiladores", "Fichas QR", "/recopiladores", if (has_recop) "ready" else if (has_aulas) "active" else "pending",
       if (has_recop) "Agenda o publicacion de fichas de aulas conectada." else if (has_aulas) "Seleccion de aulas lista para preparar fichas." else "Requiere seleccion de aulas.",
       c(if (has_recop) "Agenda de aulas" else "", if (has_aulas) "Plan desde Calculo de muestra" else ""),
@@ -414,6 +430,9 @@
   }
   if (.diseno_has_content(s$hojas_ruta_workspace_outputs)) {
     add("Territorio operativo documentado", "Hojas de ruta aporta configuracion, fase y salidas territoriales para campo.", "Hojas de ruta", "ready")
+  }
+  if (protocol$workplan_tasks_count > 0L) {
+    add("Cronograma operativo importado", sprintf("Plan de Trabajo aporta %d actividad(es) y %d hito(s) para comparar planificado contra ejecutado.", protocol$workplan_tasks_count, protocol$workplan_milestones_count), "Plan de trabajo", "ready")
   }
   if (.diseno_has_content(s$monitoreo_snapshot) || .diseno_has_content(s$monitoreo_sources)) {
     add("Corte de campo conectable", "Monitoreo aporta fuentes, snapshot o familia operativa para controlar avance.", "Monitoreo", "ready")

@@ -1033,6 +1033,15 @@ p_slide_6_graficos_poblacion <- function(
   filtros
 }
 
+.ppt_norm_chr_vec_arg <- function(x, nm) {
+  if (is.null(x)) return(NULL)
+  if (!is.character(x)) stop("`", nm, "` debe ser NULL o character().", call. = FALSE)
+  x <- trimws(as.character(x))
+  x <- x[!is.na(x) & nzchar(x)]
+  if (!length(x)) return(NULL)
+  unique(x)
+}
+
 #' @title Barras agrupadas (1 variable)
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion,
 #'   por ejemplo `list(region = "Lima", sexo = c("Mujer", "Otro"))`.
@@ -1042,7 +1051,7 @@ p_slide_6_graficos_poblacion <- function(
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
-p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL) {
+p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     stop("`var` debe ser character(1) no vacio.", call. = FALSE)
   }
@@ -1064,6 +1073,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
     stop("`mostrar_ceros` debe ser NULL o logical(1).", call. = FALSE)
   }
   filtros <- .ppt_norm_filters(filtros)
+  excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -1071,6 +1081,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
     title_slide   = titulo,
     cruces        = cruces,
     mostrar_ceros = mostrar_ceros,
+    excluir_opciones = excluir_opciones,
     overrides     = overrides,
     base          = base,
     filtros       = filtros
@@ -1086,7 +1097,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
-p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list()) {
+p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     stop("`var` debe ser character(1) no vacio.", call. = FALSE)
   }
@@ -1104,12 +1115,14 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
   if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
   if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
   filtros <- .ppt_norm_filters(filtros)
+  excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
 
   el <- list(
     .element_type = "barras_apiladas",
     var           = var,
     title_slide   = titulo,
     cruces        = cruces,
+    excluir_opciones = excluir_opciones,
     overrides     = overrides,
     base          = base,
     filtros       = filtros
@@ -1153,6 +1166,7 @@ p_barras_multiapiladas <- function(
     top2box_codes  = NULL,
     top2box_labels = NULL,
     titulos_grupo  = NULL,
+    numerar_oe = NULL,
     overrides = list(),
     base = list(),
     filtros = list()
@@ -1172,6 +1186,11 @@ p_barras_multiapiladas <- function(
 
   modo <- match.arg(modo)
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
+
+  if (!is.null(numerar_oe) &&
+      (!is.logical(numerar_oe) || length(numerar_oe) != 1L || is.na(numerar_oe))) {
+    stop("`numerar_oe` debe ser NULL o logical(1).", call. = FALSE)
+  }
 
   if (!is.null(cruces)) {
     if (!is.character(cruces) || length(cruces) != 1L || !nzchar(trimws(cruces))) {
@@ -1264,6 +1283,7 @@ p_barras_multiapiladas <- function(
         top2box_codes = block[["top2box_codes", exact = TRUE]] %||% NULL,
         top2box_labels = block[["top2box_labels", exact = TRUE]] %||% NULL,
         titulos_grupo = block[["titulos_grupo", exact = TRUE]] %||% NULL,
+        numerar_oe = block[["numerar_oe", exact = TRUE]] %||% numerar_oe,
         overrides = overrides_block,
         base = base_block,
         filtros = filtros_block
@@ -1288,6 +1308,7 @@ p_barras_multiapiladas <- function(
       top2box_codes  = NULL,
       top2box_labels = NULL,
       titulos_grupo  = NULL,
+      numerar_oe     = numerar_oe,
       overrides      = overrides,
       base           = base,
       filtros        = filtros
@@ -1316,6 +1337,7 @@ p_barras_multiapiladas <- function(
       top2box_codes  = top2box_codes,
       top2box_labels = top2box_labels,
       titulos_grupo  = NULL,
+      numerar_oe     = numerar_oe,
       overrides      = overrides,
       base           = base,
       filtros        = filtros
@@ -1370,6 +1392,7 @@ p_barras_multiapiladas <- function(
       top2box_codes  = top2box_codes,
       top2box_labels = top2box_labels,
       titulos_grupo  = titulos_grupo,
+      numerar_oe     = numerar_oe,
       overrides      = overrides,
       base           = base,
       filtros        = filtros
@@ -1398,6 +1421,7 @@ p_barras_multiapiladas <- function(
     top2box_codes  = top2box_codes,
     top2box_labels = top2box_labels,
     titulos_grupo  = NULL,
+    numerar_oe     = numerar_oe,
     overrides      = overrides,
     base           = base,
     filtros        = filtros
@@ -1457,6 +1481,52 @@ p_donut <- function(var, titulo = NULL, overrides = list(), base = list(), filtr
   el <- list(
     .element_type = "donut",
     var           = var,
+    title_slide   = titulo,
+    overrides     = overrides,
+    base          = base,
+    filtros       = filtros
+  )
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
+#' @title Nube de palabras
+#' @param var Variable de texto abierto.
+#' @param parent_var Variable madre que habilita la opcion Otro/Otros.
+#' @param titulo Titulo opcional.
+#' @param filtros Lista nombrada de filtros por igualdad/inclusion.
+#' @return Objeto `"ppt_element"`.
+#' @family reporte
+#' @export
+p_nube_palabras <- function(
+    var,
+    parent_var = NULL,
+    titulo = NULL,
+    overrides = list(),
+    base = list(),
+    filtros = list()
+) {
+  if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
+    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+  }
+  var <- trimws(var)
+
+  if (!is.null(parent_var)) {
+    if (!is.character(parent_var) || length(parent_var) != 1L || !nzchar(trimws(parent_var))) {
+      stop("`parent_var` debe ser NULL o character(1) no vacio.", call. = FALSE)
+    }
+    parent_var <- trimws(parent_var)
+  }
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  filtros <- .ppt_norm_filters(filtros)
+
+  el <- list(
+    .element_type = "nube_palabras",
+    var           = var,
+    parent_var    = parent_var,
     title_slide   = titulo,
     overrides     = overrides,
     base          = base,

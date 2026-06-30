@@ -42,7 +42,17 @@ const MAP_HEIGHT = 620;
 const VALIDATION_FOCUS_ZONE_CONTEXT_LIMIT = 96;
 const VALIDATION_NEIGHBOR_CONTEXT_LIMIT = 140;
 const VALIDATION_NEIGHBOR_CONTEXT_RADIUS_M = 500;
-const VALIDATION_SELECTED_GROUP_ZOOM = 3.4;
+const VALIDATION_SELECTED_GROUP_ZOOM = 3.1;
+const VALIDATION_SELECTED_BLOCK_CLICK_ZOOM = 3.85;
+const VALIDATION_SELECTED_POINT_ZOOM = 4.2;
+const VALIDATION_MAP_MIN_ZOOM = 0.85;
+const VALIDATION_MAP_MAX_ZOOM = 5;
+const VALIDATION_MAP_ANIMATION_MS = 520;
+const VALIDATION_MAP_CONTROL_ANIMATION_MS = 260;
+const VALIDATION_WHEEL_PAN_SENSITIVITY = 0.24;
+const VALIDATION_WHEEL_PAN_MAX = 24;
+const VALIDATION_WHEEL_ZOOM_SENSITIVITY = 0.0042;
+const VALIDATION_WHEEL_ZOOM_MAX_DELTA = 32;
 
 type TerritorialValidationGeoWorkbenchProps = {
   reports: MonitoreoTerritorialDashboard;
@@ -79,6 +89,11 @@ type TerritorialMapProjection = {
   height: number;
   hasGeometry: boolean;
   project: (lon: number, lat: number) => { x: number; y: number };
+};
+
+type TerritorialMapViewportState = {
+  zoom: number;
+  pan: { x: number; y: number };
 };
 
 type TerritorialStreetLabelAnchor = {
@@ -841,9 +856,12 @@ function TerritorialValidationGeoRouteMap({
   zoneFeatures: HojasRutaZoneMapFeature[];
   onFocusPoint: (responseId: string) => void;
 }) {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const initialViewport = useMemo<TerritorialMapViewportState>(() => ({ zoom: 1, pan: { x: 0, y: 0 } }), []);
+  const [viewport, setViewport] = useState<TerritorialMapViewportState>(initialViewport);
+  const viewportRef = useRef<TerritorialMapViewportState>(initialViewport);
+  const animationFrameRef = useRef<number | null>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const { zoom, pan } = viewport;
   const selectedFeatures = useMemo(() => (
     selectTerritorialMapFeatures(blockFeatures, selectedGroup?.routeBlocks ?? [])
   ), [blockFeatures, selectedGroup]);
@@ -864,18 +882,33 @@ function TerritorialValidationGeoRouteMap({
   const districtFeatures = useMemo(() => (
     LIMA_DISTRICT_FEATURES.filter((feature) => activeUbigeos.has(normalizeRouteBlockCode(feature.properties.ubigeo)))
   ), [activeUbigeos]);
+  const operationalDispositionByResponseId = useMemo(() => {
+    const dispositions = new Map<string, TerritorialGeoDispositionKey>();
+    groups.forEach((group) => group.rows.forEach((item) => {
+      if (item.row.response_id) dispositions.set(item.row.response_id, item.geoDisposition);
+    }));
+    return dispositions;
+  }, [groups]);
+  const operationalMapPoints = useMemo(() => (
+    mapPoints.map((point) => {
+      const disposition = operationalDispositionByResponseId.get(String(point.response_id || ""));
+      return disposition && disposition !== point.geoDisposition
+        ? { ...point, geoDisposition: disposition }
+        : point;
+    })
+  ), [mapPoints, operationalDispositionByResponseId]);
   const selectedResponseIds = useMemo(() => (
     new Set((selectedGroup?.rows ?? []).map((item) => item.row.response_id).filter(Boolean))
   ), [selectedGroup]);
   const visiblePoints = useMemo(() => {
-    const selectedGroupPoints = mapPoints.filter((point) => selectedResponseIds.has(point.response_id));
+    const selectedGroupPoints = operationalMapPoints.filter((point) => selectedResponseIds.has(point.response_id));
     if (selectedGroupPoints.length) return selectedGroupPoints;
     const selectedDistrict = normalizeRouteBlockCode(selectedGroup?.block?.ubigeo);
-    const filtered = mapPoints.filter((point) => (
+    const filtered = operationalMapPoints.filter((point) => (
       selectedDistrict && normalizeRouteBlockCode(point.ubigeo) === selectedDistrict
     ));
-    return filtered.length ? filtered : mapPoints;
-  }, [mapPoints, selectedGroup, selectedResponseIds]);
+    return filtered.length ? filtered : operationalMapPoints;
+  }, [operationalMapPoints, selectedGroup, selectedResponseIds]);
   const selectedDistrict = normalizeRouteBlockCode(
     selectedBlock?.ubigeo
       || selectedGroup?.routeBlocks[0]?.ubigeo
@@ -933,6 +966,8 @@ function TerritorialValidationGeoRouteMap({
       .slice(0, zoom >= 3.2 ? 12 : 7)
   ), [projection, streetFeatures, zoom]);
   const hasVisibleRichLayers = streetFeatures.length > 0 || contextFeatures.length > 0;
+  const blockingMapLoading = loading && !projection.hasGeometry;
+  const backgroundMapLoading = loading && projection.hasGeometry;
   const blockingRichLayerLoading = richLayerLoading && !hasVisibleRichLayers;
   const geoSummary = useMemo(() => summarizeGeoCases(groups.flatMap((group) => group.rows)), [groups]);
   const selectedBlockPoint = useMemo(() => (
@@ -960,41 +995,78 @@ function TerritorialValidationGeoRouteMap({
   const zoomClass = zoom >= 2.4 ? "is-zoom-blocks" : zoom >= 1.35 ? "is-zoom-detail" : "is-zoom-general";
   const transform = `translate(${pan.x.toFixed(1)} ${pan.y.toFixed(1)}) scale(${zoom.toFixed(3)})`;
   const pointScale = 1 / Math.max(1, zoom);
+  const commitViewport = useCallback((next: TerritorialMapViewportState) => {
+    viewportRef.current = next;
+    setViewport(next);
+  }, []);
+  const stopViewportAnimation = useCallback(() => {
+    if (animationFrameRef.current == null) return;
+    window.cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+  }, []);
+  const animateViewportTo = useCallback((target: TerritorialMapViewportState, duration = VALIDATION_MAP_ANIMATION_MS) => {
+    stopViewportAnimation();
+    const start = viewportRef.current;
+    const next = territorialMapViewportWithZoom(target, target.zoom);
+    const distance = Math.abs(start.zoom - next.zoom) + Math.abs(start.pan.x - next.pan.x) + Math.abs(start.pan.y - next.pan.y);
+    if (duration <= 0 || distance < 0.5 || territorialPrefersReducedMotion()) {
+      commitViewport(next);
+      return;
+    }
+    const startedAt = window.performance.now();
+    const step = (timestamp: number) => {
+      const progress = clamp((timestamp - startedAt) / duration, 0, 1);
+      const eased = territorialMapViewportEase(progress);
+      commitViewport({
+        zoom: lerp(start.zoom, next.zoom, eased),
+        pan: {
+          x: lerp(start.pan.x, next.pan.x, eased),
+          y: lerp(start.pan.y, next.pan.y, eased),
+        },
+      });
+      if (progress < 1) {
+        animationFrameRef.current = window.requestAnimationFrame(step);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+    animationFrameRef.current = window.requestAnimationFrame(step);
+  }, [commitViewport, stopViewportAnimation]);
+  const zoomBy = useCallback((factor: number, anchor = { x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2 }, animated = true) => {
+    const next = territorialMapZoomAt(viewportRef.current, factor, anchor);
+    if (animated) {
+      animateViewportTo(next, VALIDATION_MAP_CONTROL_ANIMATION_MS);
+      return;
+    }
+    stopViewportAnimation();
+    commitViewport(next);
+  }, [animateViewportTo, commitViewport, stopViewportAnimation]);
+
+  useEffect(() => () => stopViewportAnimation(), [stopViewportAnimation]);
 
   useEffect(() => {
     if (!projection.hasGeometry || !selectedGroupPoint || focusPointId) return;
-    const nextZoom = VALIDATION_SELECTED_GROUP_ZOOM;
-    setZoom(nextZoom);
-    setPan({
-      x: MAP_WIDTH / 2 - selectedGroupPoint.x * nextZoom,
-      y: MAP_HEIGHT / 2 - selectedGroupPoint.y * nextZoom,
-    });
-  }, [focusPointId, projection.hasGeometry, selectedGroup?.key, selectedGroupPoint?.x, selectedGroupPoint?.y]);
+    animateViewportTo(territorialMapViewportForPoint(selectedGroupPoint, VALIDATION_SELECTED_GROUP_ZOOM));
+  }, [animateViewportTo, focusPointId, projection.hasGeometry, selectedGroup?.key, selectedGroupPoint?.x, selectedGroupPoint?.y]);
 
   useEffect(() => {
     if (!projection.hasGeometry || !selectedGpsMapPoint || !focusPointId) return;
-    const nextZoom = 4.2;
-    setZoom(nextZoom);
-    setPan({
-      x: MAP_WIDTH / 2 - selectedGpsMapPoint.x * nextZoom,
-      y: MAP_HEIGHT / 2 - selectedGpsMapPoint.y * nextZoom,
-    });
-  }, [focusPointId, projection.hasGeometry, selectedGpsMapPoint?.x, selectedGpsMapPoint?.y]);
+    animateViewportTo(territorialMapViewportForPoint(selectedGpsMapPoint, VALIDATION_SELECTED_POINT_ZOOM));
+  }, [animateViewportTo, focusPointId, projection.hasGeometry, selectedGpsMapPoint?.x, selectedGpsMapPoint?.y]);
 
   const resetMap = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-  const zoomBy = (factor: number) => {
-    setZoom((value) => clamp(value * factor, 0.85, 7));
+    animateViewportTo({ zoom: 1, pan: { x: 0, y: 0 } }, VALIDATION_MAP_CONTROL_ANIMATION_MS);
   };
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    stopViewportAnimation();
+    const current = viewportRef.current;
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      panX: pan.x,
-      panY: pan.y,
+      panX: current.pan.x,
+      panY: current.pan.y,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -1004,24 +1076,46 @@ function TerritorialValidationGeoRouteMap({
     const rect = event.currentTarget.getBoundingClientRect();
     const scaleX = MAP_WIDTH / Math.max(1, rect.width);
     const scaleY = MAP_HEIGHT / Math.max(1, rect.height);
-    setPan({
-      x: drag.panX + (event.clientX - drag.startX) * scaleX,
-      y: drag.panY + (event.clientY - drag.startY) * scaleY,
+    commitViewport({
+      ...viewportRef.current,
+      pan: {
+        x: drag.panX + (event.clientX - drag.startX) * scaleX,
+        y: drag.panY + (event.clientY - drag.startY) * scaleY,
+      },
     });
   };
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
   };
   const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     event.preventDefault();
+    const delta = territorialNormalizedWheelDelta(event);
+    const rect = event.currentTarget.getBoundingClientRect();
+    const anchor = {
+      x: (event.clientX - rect.left) * (MAP_WIDTH / Math.max(1, rect.width)),
+      y: (event.clientY - rect.top) * (MAP_HEIGHT / Math.max(1, rect.height)),
+    };
     if (event.ctrlKey || event.metaKey) {
-      zoomBy(event.deltaY < 0 ? 1.18 : 0.84);
+      const zoomDelta = clamp(delta.y || delta.x, -VALIDATION_WHEEL_ZOOM_MAX_DELTA, VALIDATION_WHEEL_ZOOM_MAX_DELTA);
+      zoomBy(Math.exp(-zoomDelta * VALIDATION_WHEEL_ZOOM_SENSITIVITY), anchor, false);
       return;
     }
-    setPan((current) => ({
-      x: current.x - event.deltaX * 0.65,
-      y: current.y - event.deltaY * 0.65,
-    }));
+    stopViewportAnimation();
+    const panDeltaX = event.shiftKey && Math.abs(delta.x) < 1 ? delta.y : delta.x;
+    const panDeltaY = event.shiftKey && Math.abs(delta.x) < 1 ? 0 : delta.y;
+    const current = viewportRef.current;
+    commitViewport({
+      ...current,
+      pan: {
+        x: current.pan.x - clamp(panDeltaX * VALIDATION_WHEEL_PAN_SENSITIVITY, -VALIDATION_WHEEL_PAN_MAX, VALIDATION_WHEEL_PAN_MAX),
+        y: current.pan.y - clamp(panDeltaY * VALIDATION_WHEEL_PAN_SENSITIVITY, -VALIDATION_WHEEL_PAN_MAX, VALIDATION_WHEEL_PAN_MAX),
+      },
+    });
   };
 
   return (
@@ -1168,15 +1262,43 @@ function TerritorialValidationGeoRouteMap({
                   const d = territorialFeaturePath(item.feature, projection);
                   if (!d) return null;
                   const replacement = isReplacementBlock(item.block);
+                  const blockCenter = territorialFeatureCentroid(item.feature, projection);
+                  const zoomToBlock = () => {
+                    if (blockCenter) {
+                      animateViewportTo(territorialMapViewportForPoint(blockCenter, VALIDATION_SELECTED_BLOCK_CLICK_ZOOM));
+                    }
+                  };
                   return (
-                    <path
+                    <g
                       key={item.key}
-                      d={d}
-                      className={`mon-territorial-map-selected-block ${replacement ? "is-replacement" : "is-titular"} is-selected`}
-                      vectorEffect="non-scaling-stroke"
+                      className="mon-territorial-map-selected-block-node"
+                      role="button"
+                      tabIndex={0}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        zoomToBlock();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        zoomToBlock();
+                      }}
                     >
                       <title>{`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)}`}</title>
-                    </path>
+                      <path
+                        d={d}
+                        className="mon-territorial-map-selected-block-hit"
+                        vectorEffect="non-scaling-stroke"
+                        aria-hidden="true"
+                      />
+                      <path
+                        d={d}
+                        className={`mon-territorial-map-selected-block ${replacement ? "is-replacement" : "is-titular"} is-selected`}
+                        vectorEffect="non-scaling-stroke"
+                        aria-hidden="true"
+                      />
+                    </g>
                   );
                 })}
               </g>
@@ -1185,10 +1307,11 @@ function TerritorialValidationGeoRouteMap({
                   const projected = projection.project(point.lonValue, point.latValue);
                   const selected = focusPointId && point.response_id === focusPointId;
                   const disposition = point.geoDisposition ?? geoDispositionFromRaw(point.geo_estado);
+                  const stateClass = territorialGpsStateClass(disposition, disposition);
                   return (
                     <g
                       key={point.response_id || `gps-${index}`}
-                      className={`mon-territorial-map-point-node ${territorialGpsStateClass(point.geo_estado, disposition)} is-${disposition}${selected ? " is-selected" : ""}`}
+                      className={`mon-territorial-map-point-node ${stateClass} is-${disposition}${selected ? " is-selected" : ""}`}
                       transform={`translate(${projected.x.toFixed(2)} ${projected.y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
@@ -1196,7 +1319,7 @@ function TerritorialValidationGeoRouteMap({
                         if (point.response_id) onFocusPoint(point.response_id);
                       }}
                     >
-                      <circle className="mon-territorial-map-point-hit mon-territorial-map-point-hit-area" r="8" />
+                      <circle className="mon-territorial-map-point-hit mon-territorial-map-point-hit-area" r="10.5" />
                       <circle className="mon-territorial-map-point-focus" r={selected ? "6.8" : "5.4"} />
                       <circle className="mon-territorial-map-point-core" r={selected ? "4.2" : "3.2"} />
                       <title>{`${point.declared_ump_normalized || point.advance_block_ump || "UMP S/D"} · ${point.responsible_display || point.submitted_by || "Sin responsable"}`}</title>
@@ -1206,7 +1329,7 @@ function TerritorialValidationGeoRouteMap({
               </g>
             </g>
             <text className="mon-territorial-map-caption" x="18" y={MAP_HEIGHT - 18}>
-              {`${selectedLabel} · arrastra para mover · Ctrl+rueda o botones para zoom · ${formatMetric(visiblePoints.length)} puntos visibles · ${formatMetric(routeBlocks.length)} manzanas`}
+              {`${selectedLabel} · arrastra o usa trackpad para mover · Ctrl/Cmd+rueda para zoom suave · ${formatMetric(visiblePoints.length)} puntos visibles · ${formatMetric(routeBlocks.length)} manzanas`}
             </text>
           </svg>
         ) : (
@@ -1216,9 +1339,14 @@ function TerritorialValidationGeoRouteMap({
             <em>No hay cartografia o puntos GPS para dibujar en este corte.</em>
           </div>
         )}
-        {loading ? (
+        {blockingMapLoading ? (
           <span className="mon-territorial-route-map-loading">
             <Loader2 size={13} className="pulso-spin" /> Cargando cartografia
+          </span>
+        ) : null}
+        {backgroundMapLoading ? (
+          <span className="mon-territorial-route-map-status">
+            Completando cartografia local
           </span>
         ) : null}
         {blockingRichLayerLoading ? (
@@ -1269,7 +1397,9 @@ function TerritorialGeoCaseList({
       const group = item?.group;
       if (!group) return 104 + headingHeight;
       if (item.key !== expandedKey) return 104 + headingHeight;
-      return 128 + headingHeight + group.rows.length * 86;
+      const listWidth = scrollRef.current?.clientWidth ?? 0;
+      const rowHeight = listWidth <= 520 ? 184 : listWidth <= 720 ? 112 : 88;
+      return 148 + headingHeight + group.rows.length * rowHeight;
     },
     overscan: 8,
   });
@@ -1281,6 +1411,15 @@ function TerritorialGeoCaseList({
   useEffect(() => {
     const handle = window.requestAnimationFrame(() => virtualizer.measure());
     return () => window.cancelAnimationFrame(handle);
+  }, [expandedKey, groupItems, virtualizer]);
+  useEffect(() => {
+    if (!expandedKey) return undefined;
+    const targetIndex = groupItems.findIndex((item) => item.key === expandedKey);
+    if (targetIndex < 0) return undefined;
+    const handle = window.setTimeout(() => {
+      virtualizer.scrollToIndex(targetIndex, { align: "start" });
+    }, 90);
+    return () => window.clearTimeout(handle);
   }, [expandedKey, groupItems, virtualizer]);
   useEffect(() => {
     if (!focusPointId) return;
@@ -1780,6 +1919,64 @@ function summarizeGeoCases(cases: TerritorialGpsCase[]) {
     acc[item.geoDisposition] += 1;
     return acc;
   }, { en_zona: 0, en_distrito: 0, fuera_distrito: 0, sin_cruce: 0, sin_gps: 0 });
+}
+
+function territorialMapViewportForPoint(point: { x: number; y: number }, zoom: number): TerritorialMapViewportState {
+  const clampedZoom = clamp(zoom, VALIDATION_MAP_MIN_ZOOM, VALIDATION_MAP_MAX_ZOOM);
+  return {
+    zoom: clampedZoom,
+    pan: {
+      x: MAP_WIDTH / 2 - point.x * clampedZoom,
+      y: MAP_HEIGHT / 2 - point.y * clampedZoom,
+    },
+  };
+}
+
+function territorialMapViewportWithZoom(viewport: TerritorialMapViewportState, zoom: number): TerritorialMapViewportState {
+  return {
+    zoom: clamp(zoom, VALIDATION_MAP_MIN_ZOOM, VALIDATION_MAP_MAX_ZOOM),
+    pan: viewport.pan,
+  };
+}
+
+function territorialMapZoomAt(
+  viewport: TerritorialMapViewportState,
+  factor: number,
+  anchor: { x: number; y: number },
+): TerritorialMapViewportState {
+  const nextZoom = clamp(viewport.zoom * factor, VALIDATION_MAP_MIN_ZOOM, VALIDATION_MAP_MAX_ZOOM);
+  const currentZoom = Math.max(0.001, viewport.zoom);
+  const worldX = (anchor.x - viewport.pan.x) / currentZoom;
+  const worldY = (anchor.y - viewport.pan.y) / currentZoom;
+  return {
+    zoom: nextZoom,
+    pan: {
+      x: anchor.x - worldX * nextZoom,
+      y: anchor.y - worldY * nextZoom,
+    },
+  };
+}
+
+function territorialNormalizedWheelDelta(event: ReactWheelEvent<HTMLDivElement>) {
+  const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 120 : 1;
+  return {
+    x: event.deltaX * multiplier,
+    y: event.deltaY * multiplier,
+  };
+}
+
+function territorialPrefersReducedMotion() {
+  return typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function territorialMapViewportEase(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function lerp(start: number, end: number, progress: number) {
+  return start + (end - start) * progress;
 }
 
 function buildTerritorialMapProjection(

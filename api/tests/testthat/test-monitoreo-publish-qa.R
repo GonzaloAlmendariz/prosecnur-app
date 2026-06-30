@@ -96,6 +96,234 @@ test_that("PDF cliente acreditacion declara corte, fuentes y criterio canonico",
   expect_true(grepl("Apps Script viejo", pdf_text, fixed = TRUE))
 })
 
+test_that("ACRDCONTA compacto genera 270/157/5/0/108 desde base canonica", {
+  bridges <- data.frame(
+    codigo_alumno = c("20171936", "20161132", "20196161", "20151697", "20134925", "20098175", "20150215", "20166117", "20167338"),
+    CodPulso = c("1233", "1018", "1190", "1024", "1001", "1000", "1012", "1011", "1116"),
+    stringsAsFactors = FALSE
+  )
+  n <- 270L
+  base <- data.frame(
+    CodPulso = sprintf("CP%03d", seq_len(n)),
+    codigo_alumno = sprintf("20%06d", seq_len(n)),
+    correo = sprintf("egresado%03d@conta.test", seq_len(n)),
+    telefono = sprintf("988%06d", seq_len(n)),
+    response_status = "",
+    cv_id = "",
+    email = "",
+    Status = "",
+    Fecha = "",
+    date_modified = "",
+    `Acepta participar` = "",
+    .source_role = "universo",
+    .source_label = "BBDD oficial - Egresados",
+    dim_actor = "Egresados",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  base$CodPulso[seq_len(nrow(bridges))] <- bridges$CodPulso
+  base$codigo_alumno[seq_len(nrow(bridges))] <- bridges$codigo_alumno
+
+  response_rows <- function(idx, status, key_col = "codigo_alumno", source = "SurveyMonkey - Egresados - Web") {
+    key_values <- base[[key_col]][idx]
+    data.frame(
+      CodPulso = "",
+      codigo_alumno = if (identical(key_col, "codigo_alumno")) key_values else "",
+      correo = "",
+      telefono = if (identical(key_col, "telefono")) key_values else "",
+      response_status = status,
+      cv_id = if (identical(key_col, "cv_id")) key_values else "",
+      email = if (identical(key_col, "correo")) key_values else "",
+      Status = status,
+      Fecha = "",
+      date_modified = sprintf("2026-06-%02dT10:00:00+00:00", ((seq_along(idx) - 1L) %% 15L) + 1L),
+      `Acepta participar` = "Si",
+      .source_role = "respuestas",
+      .source_label = source,
+      dim_actor = "Egresados",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+
+  completed <- response_rows(seq_len(157L), "completed")
+  partial <- response_rows(158L:162L, "partial")
+  bridge_dupes <- response_rows(seq_len(nrow(bridges)), "completed", "cv_id", "SurveyMonkey - Egresados - Telefonico")
+  bridge_dupes$cv_id <- bridges$CodPulso
+  email_dupes <- response_rows(1:3, "completed", "correo", "SurveyMonkey - Egresados - Correo")
+  outside_base <- data.frame(
+    CodPulso = "",
+    codigo_alumno = "",
+    correo = "",
+    telefono = "",
+    response_status = c("completed", "partial", "completed"),
+    cv_id = c("OUT001", "OUT002", "OUT003"),
+    email = "",
+    Status = c("completed", "partial", "completed"),
+    Fecha = "",
+    date_modified = c("2026-06-16T10:00:00+00:00", "2026-06-16T11:00:00+00:00", "2026-06-16T12:00:00+00:00"),
+    `Acepta participar` = c("Si", "Si", "No"),
+    .source_role = "respuestas",
+    .source_label = "SurveyMonkey - Egresados - Web",
+    dim_actor = "Egresados",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data <- rbind(base, completed, partial, bridge_dupes, email_dupes, outside_base)
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Egresados", label = "Egresados")),
+      key_rules = list(
+        universe_fields = c("codigo_alumno", "CodPulso", "correo", "telefono"),
+        response_fields = c("codigo_alumno", "cv_id", "email", "telefono"),
+        automatic_detection = FALSE
+      ),
+      rejection_rules = list(list(
+        question_patterns = c("acepta participar"),
+        rejection_answers = c("no")
+      ))
+    )
+  ), data)
+
+  client_report <- monitoreo_acreditacion_client_report_model(data, cfg, detail = "advance_summary")
+  report_actor <- .monitoreo_workbook_df(client_report$actors)
+  expect_gt(sum(data$.source_role == "respuestas"), 162L)
+  expect_equal(as.integer(report_actor$Universo[report_actor$Actor == "Egresados"]), 270L)
+  expect_equal(as.integer(report_actor$Efectivas[report_actor$Actor == "Egresados"]), 157L)
+  expect_equal(as.integer(report_actor$Parciales[report_actor$Actor == "Egresados"]), 5L)
+  expect_equal(as.integer(report_actor$`Rechazos plataforma`[report_actor$Actor == "Egresados"]), 0L)
+  expect_equal(as.integer(report_actor$`Sin respuesta`[report_actor$Actor == "Egresados"]), 108L)
+  expect_equal(round(as.numeric(report_actor$`Avance universo`[report_actor$Actor == "Egresados"]) * 100, 1), 58.1)
+
+  reports <- list(client_report = client_report, sheets = list())
+  client_publication <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "client",
+    dashboard = list(acreditacion_reports = reports),
+    synced_at = "2026-06-16T12:00:00Z"
+  )
+  internal_publication <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "internal",
+    dashboard = list(acreditacion_reports = reports),
+    synced_at = "2026-06-16T12:00:00Z"
+  )
+  client_rows <- .monitoreo_workbook_df(build_client_sheets_progress_model(client_publication)$avance_por_actor$rows)
+  internal_rows <- .monitoreo_workbook_df(build_internal_sheets_monitoring_model(internal_publication)$avance_por_actor$rows)
+  client_effective_col <- if ("Completas" %in% names(client_rows)) "Completas" else "Efectivas"
+
+  expect_equal(as.integer(client_rows$Universo[client_rows$Actor == "Egresados"]), 270L)
+  expect_equal(as.integer(client_rows[[client_effective_col]][client_rows$Actor == "Egresados"]), 157L)
+  expect_equal(as.integer(client_rows$Parciales[client_rows$Actor == "Egresados"]), 5L)
+  expect_equal(as.integer(client_rows$Rechazo[client_rows$Actor == "Egresados"]), 0L)
+  expect_equal(as.integer(client_rows$`Sin respuesta`[client_rows$Actor == "Egresados"]), 108L)
+  expect_equal(as.numeric(client_rows$`% avance universo`[client_rows$Actor == "Egresados"]), 58.1)
+  expect_equal(as.integer(internal_rows$Universo[internal_rows$Actor == "Egresados"]), 270L)
+  expect_equal(as.integer(internal_rows$Efectivas[internal_rows$Actor == "Egresados"]), 157L)
+  expect_equal(as.integer(internal_rows$Parciales[internal_rows$Actor == "Egresados"]), 5L)
+  expect_equal(as.integer(internal_rows$Rechazo[internal_rows$Actor == "Egresados"]), 0L)
+  expect_equal(as.integer(internal_rows$Pendientes[internal_rows$Actor == "Egresados"]), 108L)
+
+  client_tabs <- monitoreo_publication_sheets_tabs(
+    data,
+    cfg,
+    audience = "client",
+    dashboard = list(acreditacion_reports = reports),
+    synced_at = "2026-06-16T12:00:00Z"
+  )
+  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Corte y fuentes"))
+  report_text <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
+  detail_text <- paste(unlist(client_tabs[["Detalle del avance"]], use.names = FALSE), collapse = "\n")
+  source_text <- paste(unlist(client_tabs[["Corte y fuentes"]], use.names = FALSE), collapse = "\n")
+
+  expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", report_text, fixed = TRUE))
+  expect_true(grepl("AVANCE POR ACTOR", report_text, fixed = TRUE))
+  expect_true(grepl("Egresados", report_text, fixed = TRUE))
+  expect_true(grepl("Completas", report_text, fixed = TRUE))
+  expect_true(grepl("Parciales", report_text, fixed = TRUE))
+  expect_true(grepl("Sin respuesta", report_text, fixed = TRUE))
+  expect_true(grepl("RITMO GENERAL", detail_text, fixed = TRUE))
+  expect_true(grepl("Completas acumuladas", detail_text, fixed = TRUE))
+  expect_true(grepl("157", detail_text, fixed = TRUE))
+  expect_true(grepl("FUENTES DEL CORTE", source_text, fixed = TRUE))
+  expect_true(grepl("BBDD oficial - Egresados", source_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Web", source_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Telefonico", source_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Correo", source_text, fixed = TRUE))
+
+  internal_tabs <- monitoreo_publication_sheets_tabs(
+    data,
+    cfg,
+    audience = "internal",
+    dashboard = list(acreditacion_reports = reports),
+    synced_at = "2026-06-16T12:00:00Z"
+  )
+  expect_equal(names(internal_tabs), c("Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
+  internal_summary <- paste(unlist(internal_tabs[["Resumen"]], use.names = FALSE), collapse = "\n")
+  internal_progress <- paste(unlist(internal_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
+  internal_sources <- paste(unlist(internal_tabs[["Corte y fuentes"]], use.names = FALSE), collapse = "\n")
+
+  expect_true(grepl("Equipo interno", internal_summary, fixed = TRUE))
+  expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", internal_summary, fixed = TRUE))
+  expect_true(grepl("VISTA GENERAL", internal_summary, fixed = TRUE))
+  expect_true(grepl("AVANCE POR ACTOR", internal_summary, fixed = TRUE))
+  expect_true(grepl("Egresados", internal_summary, fixed = TRUE))
+  expect_true(grepl("RITMO GENERAL", internal_progress, fixed = TRUE))
+  expect_true(grepl("RITMO POR ACTOR", internal_progress, fixed = TRUE))
+  expect_true(grepl("Completas acumuladas", internal_progress, fixed = TRUE))
+  expect_true(grepl("FUENTES DEL CORTE", internal_sources, fixed = TRUE))
+  expect_true(grepl("CAMPOS USADOS PARA EL CORTE", internal_sources, fixed = TRUE))
+  expect_true(grepl("BBDD oficial - Egresados", internal_sources, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Web", internal_sources, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Telefonico", internal_sources, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Correo", internal_sources, fixed = TRUE))
+
+  if (requireNamespace("openxlsx", quietly = TRUE)) {
+    client_xlsx <- tempfile(fileext = ".xlsx")
+    internal_xlsx <- tempfile(fileext = ".xlsx")
+
+    expect_equal(monitoreo_publication_workbook_from_tabs(client_tabs, client_xlsx, audience = "client"), client_xlsx)
+    expect_equal(monitoreo_publication_workbook_from_tabs(internal_tabs, internal_xlsx, audience = "internal"), internal_xlsx)
+    expect_true(file.exists(client_xlsx))
+    expect_true(file.exists(internal_xlsx))
+    expect_identical(openxlsx::getSheetNames(client_xlsx), names(client_tabs))
+    expect_identical(openxlsx::getSheetNames(internal_xlsx), names(internal_tabs))
+
+    assert_xlsx_checks <- function(path, expected_tabs, audience) {
+      checks <- .monitoreo_publish_qa_xlsx_checks(path, expected_tabs, audience, family = "acreditacion")
+      for (check_name in names(checks)) {
+        expect_true(isTRUE(checks[[check_name]]), info = paste(audience, check_name))
+      }
+    }
+    assert_xlsx_checks(client_xlsx, names(client_tabs), "client")
+    assert_xlsx_checks(internal_xlsx, names(internal_tabs), "internal")
+
+    client_xlsx_text <- paste(unlist(openxlsx::read.xlsx(
+      client_xlsx,
+      sheet = "Reporte",
+      colNames = FALSE,
+      skipEmptyRows = FALSE,
+      skipEmptyCols = FALSE
+    ), use.names = FALSE), collapse = "\n")
+    internal_xlsx_text <- paste(unlist(openxlsx::read.xlsx(
+      internal_xlsx,
+      sheet = "Resumen",
+      colNames = FALSE,
+      skipEmptyRows = FALSE,
+      skipEmptyCols = FALSE
+    ), use.names = FALSE), collapse = "\n")
+
+    expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", client_xlsx_text, fixed = TRUE))
+    expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", internal_xlsx_text, fixed = TRUE))
+    expect_false(grepl("145 de 270", client_xlsx_text, fixed = TRUE))
+    expect_false(grepl("145 de 270", internal_xlsx_text, fixed = TRUE))
+  }
+})
+
 test_that("rechazos telefonicos no inflan rechazo cliente canonico", {
   data <- data.frame(
     CodPulso = c("A1", "A2", "A3", "A1", "A2", ""),
@@ -200,6 +428,71 @@ test_that("rechazos solo telefonicos quedan fuera de matrices cliente", {
   expect_equal(as.integer(actor_rows$Rechazo[actor_rows$Actor == "Egresados"]), 0L)
   expect_equal(sum(as.integer(daily_rows$Rechazos), na.rm = TRUE), 0L)
   expect_equal(sum(as.integer(channel_rows$`Rechazos plataforma`), na.rm = TRUE), 0L)
+})
+
+test_that("path telefonico conserva estados operativos sin pasarlos al cliente", {
+  data <- data.frame(
+    CodPulso = c("A1", "A2", "A3", "A1", "A2", "A3"),
+    Status = c("", "", "", "Rechazo", "No contesta", "Efectivo"),
+    Fecha = c("", "", "", "2026-06-01", "2026-06-01", "2026-06-02"),
+    Responsable = c("", "", "", "Ana", "Luis", "Ana"),
+    .source_role = c(rep("universo", 3), rep("barrido", 3)),
+    .source_label = c(
+      rep("Base - Egresados", 3),
+      rep("Barrido telefonico - Egresados", 3)
+    ),
+    dim_actor = rep("Egresados", 6),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "telefonico",
+      variant = "multi_actor",
+      units = list(list(id = "Egresados", label = "Egresados")),
+      key_rules = list(
+        universe_fields = c("CodPulso"),
+        automatic_detection = FALSE
+      )
+    )
+  ), data)
+
+  dashboard <- monitoreo_build_dashboard(data, cfg)
+  reports <- dashboard$acreditacion_reports
+  phone_sheet <- reports$sheets[[which(vapply(reports$sheets, function(sheet) identical(sheet$id, "monitoreo_telefonico"), logical(1)))]]
+  phone_blocks <- stats::setNames(phone_sheet$blocks, vapply(phone_sheet$blocks, `[[`, character(1), "id"))
+  status_rows <- .monitoreo_internal_records_to_df(phone_blocks$estatus_telefonico$rows)
+  daily_rows <- .monitoreo_internal_records_to_df(phone_blocks$avance_efectivo_dia$rows)
+
+  expect_true(all(c("Efectivo", "No contesta", "Rechazo") %in% status_rows$Estatus))
+  expect_equal(sum(as.integer(daily_rows$`Rechazos telefónicos`), na.rm = TRUE), 1L)
+
+  internal_publication <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "internal",
+    dashboard = dashboard,
+    synced_at = "2026-06-02T10:00:00Z"
+  )
+  internal_model <- build_internal_sheets_monitoring_model(internal_publication)
+
+  expect_true("monitoreo_telefonico" %in% names(internal_model))
+  internal_phone_rows <- .monitoreo_workbook_df(internal_model$monitoreo_telefonico$rows)
+  expect_true(any(internal_phone_rows$Estatus == "Rechazo", na.rm = TRUE))
+  expect_gte(sum(as.integer(internal_phone_rows$`Rechazos telefónicos`), na.rm = TRUE), 1L)
+
+  client_publication <- monitoreo_publication_model(
+    data,
+    cfg,
+    audience = "client",
+    dashboard = dashboard,
+    synced_at = "2026-06-02T10:00:00Z"
+  )
+  client_model <- build_client_sheets_progress_model(client_publication)
+  client_text <- as.character(jsonlite::toJSON(client_model, auto_unbox = TRUE, null = "null"))
+
+  expect_false("monitoreo_telefonico" %in% names(client_model))
+  expect_false(grepl("Rechazos telef", client_text))
 })
 
 test_that("fallback generico de rechazo no pisa estados telefonicos", {
@@ -359,9 +652,9 @@ test_that("modelos de publicacion separan Sheets cliente y Sheets interno", {
   expect_equal(internal_sheets_model$destination, "google_sheets")
   expect_equal(internal_sheets_model$audience, "interno")
   expect_equal(internal_sheets_model$purpose, "operational_workbook")
-  expect_equal(unlist(internal_sheets_model$metadata$tab_order, use.names = FALSE), c("Resumen", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
+  expect_equal(unlist(internal_sheets_model$metadata$tab_order, use.names = FALSE), c("Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
   expect_equal(internal_sheets_model$accreditation_table_model$schema, "monitoreo_accreditation_table_model_v1")
-  expect_true(all(c("avance_por_canal_recopilador", "control_seguimiento", "monitoreo_telefonico", "alertas_internas", "auditoria_tecnica", "base_tecnica") %in% names(internal_sheets_model)))
+  expect_true(all(c("produccion_responsable", "avance_por_canal_recopilador", "control_seguimiento", "monitoreo_telefonico", "alertas_internas", "auditoria_tecnica", "base_tecnica") %in% names(internal_sheets_model)))
   expect_gt(length(internal_sheets_model$monitoreo_telefonico$rows), 0)
   expect_true(all(c("collector_progress", "telephone_monitoring", "internal_workbook_tables") %in% names(internal_accreditation_table_model)))
   expect_false(isTRUE(internal_accreditation_table_model$source$code_gs$available))
@@ -487,6 +780,40 @@ test_that("workbook reutiliza tabs precomputadas sin recalcularlas", {
   expect_true(all(vapply(checks, isTRUE, logical(1))))
 })
 
+test_that("XLSX marca celdas largas antes de truncamiento silencioso", {
+  testthat::skip_if_not_installed("openxlsx")
+  trace_unit <- '{"case_key":"ACRDCONTA","evidence_label":"validacion","source":"SurveyMonkey"}'
+  long_trace <- paste(rep(trace_unit, 900L), collapse = "")
+  original_chars <- nchar(long_trace, type = "chars", allowNA = FALSE)
+  tabs <- list(
+    Seguimiento = list(
+      "SEGUIMIENTO OPERATIVO",
+      c("Campo", "Valor"),
+      c("Traza interna", long_trace)
+    )
+  )
+  out <- tempfile(fileext = ".xlsx")
+
+  expect_warning(
+    monitoreo_publication_workbook_from_tabs(tabs, out, audience = "internal"),
+    NA
+  )
+  values <- unlist(openxlsx::read.xlsx(
+    out,
+    sheet = "Seguimiento",
+    colNames = FALSE,
+    skipEmptyRows = FALSE,
+    skipEmptyCols = FALSE
+  ), use.names = FALSE)
+  values <- as.character(values)
+  values[is.na(values)] <- ""
+  text <- paste(values, collapse = "\n")
+
+  expect_true(grepl("[Truncado para XLSX:", text, fixed = TRUE))
+  expect_true(grepl(sprintf("%s caracteres originales", original_chars), text, fixed = TRUE))
+  expect_lte(max(nchar(values, type = "chars", allowNA = FALSE)), .monitoreo_xlsx_max_cell_chars())
+})
+
 test_that("cache territorial interna conserva tablas comunes", {
   fixture <- monitoreo_publish_qa_fixture("territorial")
   reports <- fixture$dashboard$territorial_reports
@@ -544,6 +871,33 @@ test_that("cliente excluye señales internas y el interno preserva operación co
   expect_false(grepl("hf_|HF_TOKEN|Authorization|Bearer|secret", all_artifacts, ignore.case = TRUE))
 })
 
+test_that("Seguimiento interno separa brecha mínima y estados telefónicos", {
+  tracking <- data.frame(
+    Unidad = c("Egresados", "Estudiantes"),
+    Universo = c(270, 180),
+    Mínimo = c(160, ""),
+    Completas = c(157, 131),
+    Parciales = c(5, 3),
+    `Rechazos plataforma` = c(0, 0),
+    `Rechazos telefónicos` = c(4, 2),
+    `Sin respuesta` = c(108, 46),
+    check.names = FALSE
+  )
+
+  presented <- .monitoreo_publication_accreditation_present_df(
+    tracking,
+    audience = "internal",
+    purpose = "control_seguimiento"
+  )
+
+  expect_true("Brecha mínimo" %in% names(presented))
+  expect_equal(as.character(presented$`Brecha mínimo`[[1]]), "3")
+  expect_equal(as.character(presented$`Brecha mínimo`[[2]]), "")
+  expect_equal(as.character(presented$`Rechazos plataforma`[[1]]), "0")
+  expect_equal(as.character(presented$`Rechazos telefónicos`[[1]]), "4")
+  expect_lt(match("Brecha mínimo", names(presented)), match("Estado", names(presented), nomatch = length(presented) + 1L))
+})
+
 test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
   responses <- data.frame(
     CodPulso = c("A1", "A2", "A3", "A4", "A5"),
@@ -590,7 +944,7 @@ test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
   client_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "client", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
   internal_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "internal", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
   expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Corte y fuentes"))
-  expect_equal(names(internal_tabs), c("Resumen", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
+  expect_equal(names(internal_tabs), c("Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
   client_channel <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
   internal_channel <- paste(unlist(internal_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
   internal_sources <- paste(unlist(internal_tabs[["Corte y fuentes"]], use.names = FALSE), collapse = "\n")
@@ -654,7 +1008,7 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
     "Tabla maestra", "Resumen territorial", "Ritmo diario", "Ocurrencias de campo", "Casos accionables"
   ) %in% names(tabs)))
   expect_equal(names(tabs), c(
-    "Portada", "Resumen territorial", "Ritmo diario", "Tabla maestra",
+    "Portada", "Resumen territorial", "Producción", "Ritmo diario", "Tabla maestra",
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
     "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
     "Base técnica", "Auditoría técnica", "Casos accionables", "Anulaciones"

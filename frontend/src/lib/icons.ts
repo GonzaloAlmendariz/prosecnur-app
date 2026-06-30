@@ -36,6 +36,7 @@ import {
   ClipboardList,
   FilePen,
   FolderOpen,
+  GanttChart,
   GitBranch,
   Home,
   Layers3,
@@ -115,6 +116,7 @@ export const IconHome = Home;
 export const IconSample = Calculator;
 export const IconEncyclopedia = Library;
 export const IconStudyDesign = ClipboardList;
+export const IconWorkPlan = GanttChart;
 
 // ── Monitoreo territorial / auditoría cartográfica ─────────────────────
 export const IconMapZoomIn = ZoomIn;

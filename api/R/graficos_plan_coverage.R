@@ -625,22 +625,27 @@
   survey <- rp_inst$survey
   if (is.null(survey) || !is.data.frame(survey) || !nrow(survey)) return(list())
   choices <- rp_inst$choices %||% rp_inst$choices_raw %||% NULL
+  type_base <- if ("type_base" %in% names(survey)) survey[["type_base"]] else rep(NA_character_, nrow(survey))
+  type <- if ("type" %in% names(survey)) survey[["type"]] else rep("", nrow(survey))
+  name <- if ("name" %in% names(survey)) survey[["name"]] else rep("", nrow(survey))
+  label <- if ("label" %in% names(survey)) survey[["label"]] else name
+  group_name <- if ("group_name" %in% names(survey)) survey[["group_name"]] else rep("", nrow(survey))
   vs <- list()
   for (i in seq_len(nrow(survey))) {
-    tb <- as.character(survey$type_base[i] %||% survey$type[i] %||% "")
+    tb <- as.character(type_base[i] %||% type[i] %||% "")
     tb <- .graficos_base_type(tb)
     if (tb %in% .graficos_var_skip_types) next
-    nm <- as.character(survey$name[i] %||% "")
+    nm <- as.character(name[i] %||% "")
     if (!nzchar(nm)) next
     if (startsWith(nm, "__")) next
     list_name <- .graficos_list_name_for_row(survey, i)
     choice_meta <- .graficos_choices_for_list(choices, list_name)
-    section <- as.character(survey$group_name[i] %||% "")
+    section <- as.character(group_name[i] %||% "")
     group_path <- .graficos_group_path_for_row(survey, i)
     n_non_empty <- .graficos_var_non_empty_n(data, nm)
     vs[[length(vs) + 1L]] <- list(
       name = nm,
-      label = as.character(survey$label[i] %||% nm),
+      label = as.character(label[i] %||% nm),
       tipo = tb,
       seccion = section,
       list_name = list_name,
@@ -1013,14 +1018,14 @@
     if (!comparison_explicit || !nzchar(comparison_mode)) comparison_mode <- "koica_group"
   }
   requested_coverage_maps <- isTRUE(include_coverage_maps)
-  if (requested_coverage_maps && !isTRUE(coverage_caps$has_coverage_maps)) {
-    include_coverage_maps <- FALSE
-  }
   if (!nzchar(comparison_mode)) comparison_mode <- "none"
   coverage <- .graficos_plan_coverage(sid, plan = list(slides = list()), config = cfg)
   warnings <- coverage$warnings %||% list()
   if (requested_coverage_maps && !isTRUE(coverage_caps$has_coverage_maps)) {
-    warnings <- c(warnings, coverage_caps$disabled_reason)
+    warnings <- c(
+      warnings,
+      "Mapas de cobertura incluidos como referencia; la cobertura efectiva se completara cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial."
+    )
   }
   slides <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
     .graficos_acnur_intro_slides(sid, include_coverage_maps = include_coverage_maps)

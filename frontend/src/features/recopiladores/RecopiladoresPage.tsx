@@ -1873,6 +1873,7 @@ export default function RecopiladoresPage() {
                 key={section.id}
                 type="button"
                 className={activeSection === section.id ? "is-active" : ""}
+                title={`${section.label}: ${section.detail}`}
                 onClick={() => changeSection(section.id)}
               >
                 <span>{index + 1}</span>
@@ -1929,6 +1930,9 @@ export default function RecopiladoresPage() {
                   key={tab.id}
                   type="button"
                   className={activeTab === tab.id ? "is-active" : ""}
+                  aria-label={`${tab.label}: ${tab.detail}`}
+                  data-rec-tip={`${tab.label} · ${tab.detail}`}
+                  title={`${tab.label}: ${tab.detail}`}
                   onClick={() => setActiveTab(tab.id)}
                 >
                   <span>{index + 1}</span>

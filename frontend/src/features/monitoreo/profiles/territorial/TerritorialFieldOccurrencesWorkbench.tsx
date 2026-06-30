@@ -694,7 +694,7 @@ export function TerritorialFieldOccurrencesWorkbench({
   if (!reports) {
     return (
       <section className="mon-stage mon-stage--ocurrencias">
-        <Panel className="mon-territorial-panel mon-field-occurrences" eyebrow="Ocurrencias de campo" title="Estados reportados por UMP">
+        <Panel className="mon-territorial-panel mon-field-occurrences">
           <div className="mon-field-occurrences-setup">
             <header>
               <div>
@@ -711,11 +711,7 @@ export function TerritorialFieldOccurrencesWorkbench({
 
   return (
     <section className="mon-stage mon-stage--ocurrencias">
-      <Panel
-        className="mon-territorial-panel mon-field-occurrences"
-        eyebrow="Ocurrencias de campo"
-        title={<span className="mon-title-icon"><ClipboardCheck size={16} /> Estados reportados por UMP</span>}
-      >
+      <Panel className="mon-territorial-panel mon-field-occurrences">
         <section className={`mon-field-occurrences-command ${active ? "is-active" : "is-empty"}`} aria-label="Formulario y acciones de ocurrencias">
           <div className="mon-field-occurrences-command-source">
             <span>{active ? "Formulario Kobo activo" : "Formulario por seleccionar"}</span>

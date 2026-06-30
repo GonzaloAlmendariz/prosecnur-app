@@ -43,8 +43,11 @@ duplicacion sana cuando dos dominios necesitan reglas parecidas pero no iguales.
 - La enciclopedia metodologica se trata como biblioteca read-only: expone
   `/api/enciclopedia/*`, vive en `frontend/src/features/enciclopedia` y sus
   catalogos no deben mutar estado de proyecto. Desde ADR 0027 ya no es el
-  modulo principal; queda subordinada a Diseno del estudio y Calculo de
-  muestra.
+  modulo principal; queda subordinada a Diseno del estudio, Calculo de
+  muestra y Plan de trabajo.
+- Plan de trabajo es el modulo operativo para cronogramas, hitos y ventanas
+  planificadas. Sus contratos son sincronicos: publica expectativas y lee
+  evidencia de otros modulos, sin mutarlos directamente.
 
 ## Notas
 

@@ -88,6 +88,10 @@ const CalcMuestraPage = lazyWithReload(
   () => import("../features/calcMuestra/CalcMuestraPage"),
   "CalcMuestraPage",
 );
+const PlanTrabajoPage = lazyWithReload(
+  () => import("../features/planTrabajo/PlanTrabajoPage"),
+  "PlanTrabajoPage",
+);
 const RecopiladoresPage = lazyWithReload(
   () => import("../features/recopiladores/RecopiladoresPage"),
   "RecopiladoresPage",
@@ -158,6 +162,7 @@ export default function App() {
                   <Route path="/graficos" element={<GraficosPage />} />
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
+                  <Route path="/plan-trabajo" element={<PlanTrabajoPage />} />
                   <Route path="/recopiladores" element={<RecopiladoresPage />} />
                   <Route path="/diseno-estudio" element={<DisenoEstudioPage />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
