@@ -16,6 +16,9 @@ const requireFromFrontend = createRequire(new URL("../frontend/package.json", im
 const { chromium } = requireFromFrontend("@playwright/test");
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.UI_QA_TIMEOUT_MS || "30000");
+const DEFAULT_PREFETCH_TIMEOUT_MS = Number(process.env.UI_QA_PREFETCH_TIMEOUT_MS || "90000");
+const DEFAULT_CLICK_TIMEOUT_MS = Number(process.env.UI_QA_CLICK_TIMEOUT_MS || "30000");
+const HEAVY_MONITOREO_SCOPES = new Set(["advance_summary", "queries_summary", "phone_summary", "validation_summary"]);
 const PROCESSING_ROUTES = ["/carga", "/validacion", "/codificacion", "/analitica"];
 const LAYOUT_VIEWPORTS = [
   { width: 1710, height: 1107 },
@@ -886,7 +889,8 @@ async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
   if (normalized.startsWith("/monitoreo")) {
     const reportScope = monitoreoReportScopeForClickTabs(clickTabs);
     console.log(`[ui-quick-check] prefetch ${normalized} report_scope=${reportScope}`);
-    const prefetchTimeoutMs = Math.min(timeoutMs, Number(process.env.UI_QA_PREFETCH_TIMEOUT_MS || "12000"));
+    const scopeDefaultTimeout = HEAVY_MONITOREO_SCOPES.has(reportScope) ? DEFAULT_PREFETCH_TIMEOUT_MS : 12000;
+    const prefetchTimeoutMs = Math.min(timeoutMs, scopeDefaultTimeout);
     const prefetched = await apiRequest(
       stack.apiUrl,
       `/api/monitoreo/state?include_reports=1&report_scope=${encodeURIComponent(reportScope)}`,
@@ -901,7 +905,7 @@ async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
 async function clickNamedControl(page, label, timeoutMs) {
   const pattern = new RegExp(escapeRegExp(label), "i");
   const startsWithPattern = new RegExp(`^\\s*${escapeRegExp(label)}(?:\\s|$)`, "i");
-  const shortTimeout = Math.min(9000, timeoutMs);
+  const clickTimeout = Math.min(timeoutMs, DEFAULT_CLICK_TIMEOUT_MS);
   const candidates = [
     page.getByRole("tab", { name: startsWithPattern }).first(),
     page.locator("button").filter({ hasText: pattern }).first(),
@@ -911,7 +915,7 @@ async function clickNamedControl(page, label, timeoutMs) {
   let lastError = null;
   for (const locator of candidates) {
     try {
-      await locator.click({ timeout: shortTimeout });
+      await locator.click({ timeout: clickTimeout });
       return;
     } catch (error) {
       lastError = error;
@@ -975,7 +979,7 @@ async function runCaptures(opts, stack) {
           }
         });
 
-        const target = routeUrl(stack.url, route, opts.project || "");
+        const target = routeUrl(stack.url, route, stack.session ? "" : (opts.project || ""));
         console.log(`[ui-quick-check] capturando ${target} @ ${viewportName(viewport)} preset=${opts.layoutPreset}`);
         await page.goto(target, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
         await page.waitForLoadState("networkidle", { timeout: Math.min(5000, opts.timeoutMs) }).catch(() => {});

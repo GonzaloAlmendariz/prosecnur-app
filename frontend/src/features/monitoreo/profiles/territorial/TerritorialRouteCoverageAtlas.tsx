@@ -118,8 +118,8 @@ export function TerritorialRouteCoverageAtlas({
         <section className="mon-territorial-route-summary-hero" aria-label="Cobertura de UMP">
           <div>
             <span><Route size={13} /> Cobertura</span>
-            <strong>{formatMetric(coverage.totals.titulares)} UMP titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
-            <em>{formatMetric(coverage.totals.zones)} zonas seleccionadas en {formatMetric(coverage.totals.districts)} distritos, con lectura general ligera y sin puntos GPS.</em>
+            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <em>{formatMetric(coverage.totals.zones)} zonas en {formatMetric(coverage.totals.districts)} distritos. Lectura territorial sin puntos GPS.</em>
           </div>
           <div className="mon-territorial-route-summary-progress" aria-label="Avance contra meta de fase">
             <span>
@@ -1130,7 +1130,7 @@ function territorialDistrictCentroid(feature: TerritorialDistrictFeature) {
   return count ? { lon: lonTotal / count, lat: latTotal / count } : null;
 }
 
-function buildDistrictShapePath(feature: TerritorialDistrictFeature) {
+export function buildDistrictShapePath(feature: TerritorialDistrictFeature) {
   const coords = territorialDistrictPolygons(feature).flat(2);
   if (!coords.length) return "";
   let minLon = Infinity;

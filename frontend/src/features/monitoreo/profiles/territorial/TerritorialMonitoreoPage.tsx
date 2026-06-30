@@ -55,6 +55,7 @@ import {
   type WorkbenchView,
   type WorkbenchViewDefinition,
 } from "../../core/monitoreoRegistry";
+import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
 import {
   monitoreoScopeCache,
   reportScopesForTerritorialView,
@@ -119,14 +120,14 @@ const TERRITORIAL_LOCAL_TABS = {
   calidad: [
     { key: "geolocalizacion", label: "Geolocalización", detail: "GPS y cartografía", icon: MapPin },
     { key: "reconciliacion", label: "Reconciliación UMP", detail: "Sospechas espaciales", icon: Route },
-    { key: "duracion", label: "Duración de tiempo", detail: "Outliers de tiempo", icon: Clock },
+    { key: "duracion", label: "Duración de tiempo", detail: "Normal, corta y muy corta", icon: Clock },
     { key: "cuotas", label: "Cuotas", detail: "Marginales y brechas", icon: Target },
     { key: "anulacion", label: "Anulación", detail: "Tacha auditada", icon: Trash2 },
   ],
   consultas: [
     { key: "registro", label: "Registro", detail: "Tabla principal", icon: Table2 },
-    { key: "gps", label: "GPS por revisar", detail: "Distancia y cruce", icon: MapPin },
-    { key: "duracion", label: "Duración por revisar", detail: "Tiempos cortos", icon: Clock },
+    { key: "gps", label: "GPS con señal", detail: "Distancia y cruce", icon: MapPin },
+    { key: "duracion", label: "Tiempo corto/muy corto", detail: "Normal, corta y muy corta", icon: Clock },
     { key: "responsable", label: "Cruce responsable", detail: "UMP y equipo", icon: ContactRound },
     { key: "subsanaciones", label: "Subsanaciones", detail: "Excedentes y brechas", icon: ArrowRight },
   ],
@@ -139,7 +140,7 @@ const TERRITORIAL_LOCAL_TABS = {
   ocurrencias: [
     { key: "states", label: "Estados general", detail: "Efectivas y no efectivas", icon: ClipboardCheck },
     { key: "ump", label: "Por UMP", detail: "Seguimiento territorial", icon: Route },
-    { key: "alerts", label: "Observaciones", detail: "Casos por revisar", icon: ShieldAlert },
+    { key: "alerts", label: "Observaciones", detail: "Señales operativas", icon: ShieldAlert },
   ],
   telefonico: [],
 } satisfies Record<WorkbenchView, readonly TerritorialLocalTabDefinition[]>;
@@ -165,6 +166,19 @@ function pct(value: unknown) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "S/D";
   return `${Math.round(n)}%`;
+}
+
+function territorialOperationalDurationLabel(row: Partial<TerritorialResponseAuditRow>) {
+  const seconds = Number(row.duration_seconds);
+  const status = territorialDurationOperationalStatusFromValues({
+    seconds: Number.isFinite(seconds) ? seconds : null,
+    durationStatus: row.duration_status,
+    durationOperationalStatus: row.duration_operational_status,
+    durationOperationalLabel: row.duration_operational_label,
+  });
+  if (status === "muy_corto") return "Muy corta";
+  if (status === "corto") return "Corta";
+  return "Normal";
 }
 
 function nullableMetric(value: unknown) {
@@ -238,19 +252,6 @@ function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem
     default:
       return item.status || "Sin diagnóstico";
   }
-}
-
-function territorialSourceName(
-  state: MonitoreoState | null,
-  phase: MonitoreoTerritorialPhase,
-  health: MonitoreoTerritorialPhaseCoherenceItem | null,
-) {
-  const phaseSource = state?.config?.territorial?.phase_sources?.[phase];
-  return health?.asset_name
-    || phaseSource?.kobo_asset_name
-    || phaseSource?.asset_uid
-    || phaseSource?.source_id
-    || "Sin formulario aplicado";
 }
 
 function territorialReportCacheLabel(
@@ -400,7 +401,6 @@ function TerritorialWorkbenchRail({
   phase,
   pilotPhaseHealth,
   reportReady,
-  sourceName,
   syncedAt,
 }: {
   activeDef: WorkbenchViewDefinition;
@@ -416,7 +416,6 @@ function TerritorialWorkbenchRail({
   phase: MonitoreoTerritorialPhase;
   pilotPhaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
   reportReady: boolean;
-  sourceName: string;
   syncedAt: string;
 }) {
   const ActiveIcon = VIEW_ICONS[activeView] ?? activeDef.icon ?? Route;
@@ -491,24 +490,10 @@ function TerritorialWorkbenchRail({
       statusAriaLabel="Estado territorial y última actualización"
       statusItems={[
         {
-          label: "Fuente activa",
-          value: sourceName,
-          detail: activePhaseHealth
-            ? `${fmt(activePhaseHealth.local_rows)} locales · ${fmt(activePhaseHealth.snapshot_total_rows)} snapshot`
-            : "Sin diagnóstico de coherencia",
-          ready: Boolean(activePhaseHealth?.source_exists),
-        },
-        {
           label: "Última actualización",
           value: syncedAt ? formatDate(syncedAt) : "Sin actualización",
           detail: activePhaseHealth?.last_sync_at ? `Fuente ${formatDate(activePhaseHealth.last_sync_at)}` : "Memoria local",
           ready: Boolean(syncedAt),
-        },
-        {
-          label: "Reporte territorial",
-          value: reportCacheLabel,
-          detail: reportCacheDetail || "Sin caché de reporte",
-          ready: reportReady,
         },
       ]}
       summary={summary}
@@ -615,7 +600,7 @@ function territorialLoadingPresentation(view: WorkbenchView): {
     case "calidad":
       return {
         title: "Preparando validación territorial",
-        detail: "Agrupando alertas GPS, sospechas de UMP, duraciones sospechosas y cuotas para revisión operativa.",
+        detail: "Agrupando GPS, UMP, estados de duración y cuotas para lectura operativa.",
         status: "GPS, reconciliación, tiempo y cuotas",
         icon: ShieldAlert,
         steps: [
@@ -627,7 +612,7 @@ function territorialLoadingPresentation(view: WorkbenchView): {
     case "consultas":
       return {
         title: "Preparando consultas internas",
-        detail: "Construyendo la tabla de registros, filtros operativos y accesos directos a revisión GPS/duración.",
+        detail: "Construyendo la tabla de registros, filtros operativos y accesos directos a GPS y estados de tiempo.",
         status: "Registros por validar",
         icon: Search,
         steps: [
@@ -675,6 +660,46 @@ function territorialLoadingPresentation(view: WorkbenchView): {
   }
 }
 
+function territorialLoadingPreview(view: WorkbenchView) {
+  switch (view) {
+    case "modelo":
+      return [
+        { label: "Marco", value: "Titulares + R", detail: "rutas y reemplazos", tone: "route" },
+        { label: "Equipo", value: "Responsables", detail: "códigos y asignación", tone: "team" },
+        { label: "Ficha", value: "UMP / Mz", detail: "metas por manzana", tone: "sheet" },
+        { label: "Salida", value: "Tablero", detail: "se abre al terminar", tone: "ready" },
+      ];
+    case "calidad":
+      return [
+        { label: "GPS", value: "Manzana", detail: "punto contra ruta", tone: "route" },
+        { label: "Tiempo", value: "3 estados", detail: "normal/corta/muy corta", tone: "team" },
+        { label: "Cuotas", value: "Sexo/edad", detail: "brechas operativas", tone: "sheet" },
+        { label: "Casos", value: "Prioridad", detail: "señales primero", tone: "ready" },
+      ];
+    case "avance":
+      return [
+        { label: "Avance", value: "Distrito", detail: "meta y brecha", tone: "route" },
+        { label: "UMP", value: "Completas", detail: "titulares/reemplazos", tone: "team" },
+        { label: "Ritmo", value: "Diario", detail: "serie del corte", tone: "sheet" },
+        { label: "Salidas", value: "PDF/Sheets", detail: "preparación local", tone: "ready" },
+      ];
+    case "consultas":
+      return [
+        { label: "Registro", value: "Maestro", detail: "una fila por caso", tone: "route" },
+        { label: "Filtros", value: "Distrito/UMP", detail: "foco operativo", tone: "team" },
+        { label: "Tiempo", value: "3 estados", detail: "normal/corta/muy corta", tone: "sheet" },
+        { label: "Auditoría", value: "UMP", detail: "cruces y señales", tone: "ready" },
+      ];
+    default:
+      return [
+        { label: "Fuente", value: "Local", detail: "proyecto .pulso", tone: "route" },
+        { label: "Resumen", value: "KPIs", detail: "indicadores", tone: "team" },
+        { label: "Vista", value: "Controles", detail: "panel activo", tone: "sheet" },
+        { label: "Estado", value: "Listo", detail: "sin tocar Kobo", tone: "ready" },
+      ];
+  }
+}
+
 function TerritorialLoadingView({
   view,
   minHeight = 420,
@@ -683,6 +708,7 @@ function TerritorialLoadingView({
   minHeight?: number;
 }) {
   const meta = territorialLoadingPresentation(view);
+  const preview = territorialLoadingPreview(view);
   const Icon = meta.icon;
   const style = { "--mon-territorial-loading-min-height": `${minHeight}px` } as CSSProperties;
   return (
@@ -716,15 +742,16 @@ function TerritorialLoadingView({
             );
           })}
         </div>
-        <div className="mon-territorial-loading-skeleton" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
+        <div className="mon-territorial-loading-preview" aria-label="Lectura previa de la superficie">
+          {preview.map((item) => (
+            <span key={`${item.label}-${item.value}`} className={`is-${item.tone}`}>
+              <em>{item.label}</em>
+              <strong>{item.value}</strong>
+              <small>{item.detail}</small>
+            </span>
+          ))}
         </div>
-        <small className="mon-territorial-loading-foot">{meta.status}</small>
+        <small className="mon-territorial-loading-foot">{meta.status} · preparación local</small>
       </div>
     </section>
   );
@@ -1086,7 +1113,7 @@ function ValidationView({
     <div className="ter-stack">
       <div className="ter-stat-row">
         <StatTile label="GPS en zona" value={fmt(territorialReportKpis(reports).geo_ok)} tone="good" />
-        <StatTile label="GPS por revisar" value={fmt(territorialReportKpis(reports).geo_revision)} tone="warn" />
+        <StatTile label="GPS con señal" value={fmt(territorialReportKpis(reports).geo_revision)} tone="warn" />
         <StatTile label="Sin GPS" value={fmt(territorialReportKpis(reports).geo_sin_gps ?? 0)} />
         <StatTile label="Duración p95" value={territorialReportKpis(reports).duration_p95 == null ? "S/D" : `${fmt(territorialReportKpis(reports).duration_p95)} min`} />
       </div>
@@ -1126,7 +1153,7 @@ function ValidationView({
             { key: "ump", label: "UMP", render: (row) => row.declared_ump_normalized || row.declared_ump_raw || "" },
             { key: "distrito", label: "Distrito", render: (row) => row.distrito },
             { key: "gps", label: "GPS", render: (row) => row.geo_estado },
-            { key: "duracion", label: "Duración", render: (row) => row.duration_operational_label || row.duration_status || "" },
+            { key: "duracion", label: "Tiempo", render: (row) => territorialOperationalDurationLabel(row) },
             { key: "responsable", label: "Responsable", render: (row) => row.responsible_display || row.submitted_by || "" },
           ]}
         />
@@ -1339,6 +1366,8 @@ export default function TerritorialMonitoreoPage() {
   const [mutationBusy, setMutationBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlightRef = useRef(new Set<string>());
+  const scopeStateCacheRef = useRef(new Map<string, MonitoreoState>());
+  const stateRef = useRef<MonitoreoState | null>(null);
   const activeViewRef = useRef<WorkbenchView>("fuentes");
   const activeLocalTabsRef = useRef<Partial<Record<WorkbenchView, string>>>(activeLocalTabs);
   const [pendingScopes, setPendingScopes] = useState<Set<string>>(() => new Set());
@@ -1378,6 +1407,35 @@ export default function TerritorialMonitoreoPage() {
   const reportReady = Boolean(reports && territorialReportsCoverSelection(reports, activeView, activeLocalTab));
 
   useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const scopeStateKey = useCallback((scope: MonitoreoReportScope, phaseValue = phase, sourceValue = sourceKey) => (
+    `${phaseValue}|${sourceValue}|${scope}`
+  ), [phase, sourceKey]);
+
+  const rememberScopeState = useCallback((next: MonitoreoState) => {
+    const entry = monitoreoScopeCache.putTerritorialState(next);
+    const nextReports = reportsFromState(next);
+    if (!nextReports) return entry;
+    const rawPhase = nextReports.active_route_phase || next.config?.territorial?.active_route_phase;
+    const nextPhase: MonitoreoTerritorialPhase = rawPhase === "pilot" || rawPhase === "field" ? rawPhase : phase;
+    const nextSource = territorialSourceKeyFromState(next, nextPhase);
+    const nextScope = (nextReports.report_scope || "full") as MonitoreoReportScope;
+    scopeStateCacheRef.current.set(scopeStateKey(nextScope, nextPhase, nextSource), next);
+    if (nextScope === "full") {
+      (["source", "route_summary", "advance_summary", "validation_summary", "queries_summary"] as MonitoreoReportScope[])
+        .forEach((alias) => scopeStateCacheRef.current.set(scopeStateKey(alias, nextPhase, nextSource), next));
+    }
+    return entry;
+  }, [phase, scopeStateKey]);
+
+  const clearScopeStateCache = useCallback(() => {
+    scopeStateCacheRef.current.clear();
+    monitoreoScopeCache.clear();
+  }, []);
+
+  useEffect(() => {
     activeViewRef.current = activeView;
   }, [activeView]);
 
@@ -1386,14 +1444,23 @@ export default function TerritorialMonitoreoPage() {
   }, [activeLocalTabs]);
 
   const loadScope = useCallback(async (scope: MonitoreoReportScope, viewForLoading?: WorkbenchView, force = false) => {
-    const key = `${phase}|${sourceKey}|${scope}`;
+    const key = scopeStateKey(scope);
+    if (!force) {
+      const cachedState = scopeStateCacheRef.current.get(key);
+      if (cachedState) {
+        setState(withTerritorialPhase(cachedState, phase));
+        setError("");
+        return cachedState;
+      }
+      if (monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope })) return stateRef.current;
+    }
     if (inFlightRef.current.has(key)) return null;
     inFlightRef.current.add(key);
     markScopePending(key, true);
     if (viewForLoading) setLoadingView(viewForLoading);
     try {
       const next = await apiMonitoreoState({ includeReports: true, reportScope: scope, warmupCache: !force, force });
-      monitoreoScopeCache.putTerritorialState(next);
+      rememberScopeState(next);
       setState(next);
       setError("");
       return next;
@@ -1405,7 +1472,7 @@ export default function TerritorialMonitoreoPage() {
       markScopePending(key, false);
       if (viewForLoading) setLoadingView(null);
     }
-  }, [markScopePending, phase, sourceKey]);
+  }, [markScopePending, phase, rememberScopeState, scopeStateKey, sourceKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1427,9 +1494,29 @@ export default function TerritorialMonitoreoPage() {
         const nextLocalTab = activeLocalTabsRef.current[nextView] ?? defaultLocalTabForView(nextView);
         setActiveView(nextView);
         const scope = scopeForPhaseViewTab(nextPhase, nextView, nextLocalTab);
+        const cached = monitoreoScopeCache.getTerritorial({
+          phase: nextPhase,
+          source: territorialSourceKeyFromState(nextState, nextPhase),
+          scope,
+        });
+        if (cached && nextState.dashboard) {
+          const hydratedFromCache = {
+            ...nextState,
+            dashboard: {
+              ...nextState.dashboard,
+              ok: nextState.dashboard.ok ?? true,
+              territorial_reports: cached.reports,
+            },
+            territorial_report_cache: cached.meta ?? nextState.territorial_report_cache,
+          } satisfies MonitoreoState;
+          rememberScopeState(hydratedFromCache);
+          setState(hydratedFromCache);
+          setLoadingView(null);
+          return;
+        }
         const hydrated = await apiMonitoreoState({ includeReports: true, reportScope: scope, warmupCache: true });
         if (cancelled) return;
-        monitoreoScopeCache.putTerritorialState(hydrated);
+        rememberScopeState(hydrated);
         setState(hydrated);
         setLoadingView(null);
       })
@@ -1548,16 +1635,16 @@ export default function TerritorialMonitoreoPage() {
   const pilotPhaseHealth = territorialPhaseHealthForState(state, "pilot");
   const fieldPhaseHealth = territorialPhaseHealthForState(state, "field");
   const activePhaseHealth = phase === "pilot" ? pilotPhaseHealth : fieldPhaseHealth;
-  const activeSourceName = territorialSourceName(state, phase, activePhaseHealth);
   const refreshCurrentView = useCallback(() => {
     void loadScope(preferredScope, activeView, true);
   }, [activeView, loadScope, preferredScope]);
   const applyTerritorialPageState = useCallback((next: MonitoreoState) => {
     const withPhase = withTerritorialPhase(next, phase);
-    monitoreoScopeCache.putTerritorialState(withPhase);
+    clearScopeStateCache();
+    rememberScopeState(withPhase);
     setState(withPhase);
     setError("");
-  }, [phase]);
+  }, [clearScopeStateCache, phase, rememberScopeState]);
   const applyOperationalAdjustment = useCallback(async (
     adjustment: MonitoreoTerritorialOperationalAdjustment,
   ) => {
@@ -1622,20 +1709,21 @@ export default function TerritorialMonitoreoPage() {
       if (!phaseResult?.ok) throw new Error(`No se pudo seleccionar ${labelForPhase(nextPhase)}.`);
       setPhase(nextPhase);
       setActiveView(nextView);
+      clearScopeStateCache();
       const hydrated = await apiMonitoreoState({
         includeReports: true,
         reportScope: scopeForPhaseViewTab(nextPhase, nextView, nextLocalTab),
         warmupCache: true,
       });
       const nextState = withTerritorialPhase(hydrated, nextPhase);
-      monitoreoScopeCache.putTerritorialState(nextState);
+      rememberScopeState(nextState);
       setState(nextState);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoadingView(null);
     }
-  }, [activeLocalTabs, activeView, phase]);
+  }, [activeLocalTabs, activeView, clearScopeStateCache, phase, rememberScopeState]);
   const primarySources = state?.sources.filter((source) => source.role !== "ocurrencias_campo") ?? [];
   const activeSources = primarySources.filter((source) => source.enabled).length;
   const sourceTotal = primarySources.length;
@@ -1705,7 +1793,6 @@ export default function TerritorialMonitoreoPage() {
             phase={phase}
             pilotPhaseHealth={pilotPhaseHealth}
             reportReady={reportReady}
-            sourceName={activeSourceName}
             syncedAt={state?.synced_at ?? ""}
           />
         )}

@@ -126,6 +126,13 @@ export const WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cumplimiento y brechas", icon: BarChart3 },
 ];
 
+export const TELEFONICO_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
+  { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Universo y barrido", icon: PlugZap },
+  { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas y cuotas telefónicas", icon: ListChecks },
+  { key: "telefonico", label: "Llamadas", shortLabel: "Llamadas", desc: "Estados, barrido y supervisión", icon: PhoneCall },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Ritmo, cuotas, reportes y entregables", icon: BarChart3 },
+];
+
 export const TERRITORIAL_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "fuentes", label: "Fuente", shortLabel: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
   { key: "modelo", label: "UMPs", shortLabel: "UMPs", desc: "Orden, responsables y manzanas", icon: Route },
@@ -154,5 +161,6 @@ export const OPERATIONAL_MODEL_MODES: OperationalModelModeDefinition[] = [
 export function workbenchViewsForRoute(route: Pick<MonitoreoRouteDefinition, "family">) {
   if (route.family === "territorial") return TERRITORIAL_WORKBENCH_VIEWS;
   if (route.family === "aulas_universitarias") return AULAS_WORKBENCH_VIEWS;
+  if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
   return WORKBENCH_VIEWS;
 }

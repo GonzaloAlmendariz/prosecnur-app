@@ -74,3 +74,7 @@ Costos y riesgos:
 
 Relaciona y actualiza ADR 0006 sobre modulos por dominio y ADR 0020 sobre ficha
 tecnica desde contextos metodologicos.
+
+ADR 0028 agrega Plan de trabajo como modulo operativo de cronogramas. Diseno
+del estudio conserva la bitacora y el expediente; Plan de trabajo queda a cargo
+de la verdad planificada y la comparacion sincronica con evidencia ejecutada.

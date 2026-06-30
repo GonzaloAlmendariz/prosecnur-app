@@ -362,12 +362,13 @@ export function TerritorialModelWorkbench({
   const replacementCount = routeOverview?.replacement_count ?? Math.max(0, blocks.length - titularBlocks.length);
   const crossedDistricts = routeOverview?.district_count ?? reports?.district_progress?.length ?? 0;
   const responsibleCount = reports?.responsible_summary?.configured ? reports.responsible_summary.distinct_count : null;
+  const responsibleHint = responsibleCount == null ? "por configurar" : responsibleCount > 0 ? "detectados" : "sin asignar";
   const progressPct = routeMeta && routeMeta > 0 ? Math.min(100, Math.max(0, Math.round((responseCount / routeMeta) * 100))) : null;
   const cards: RouteMetricCard[] = [
     { label: "Titulares", value: fmt(titularBlocks.length || reports?.block_progress.length || 0), hint: "manzanas seleccionadas", icon: Route },
     { label: "Reemplazos", value: fmt(replacementCount), hint: `${routeOverview?.replacement_per_route == null ? "Por definir" : fmt(routeOverview.replacement_per_route)} por titular`, icon: Link2 },
     { label: "Distritos", value: fmt(crossedDistricts), hint: "con manzanas", icon: MapPin },
-    { label: "Responsables", value: responsibleCount == null ? "Por definir" : fmt(responsibleCount), hint: reports?.responsible_summary?.field_label || config?.territorial.submitted_by_var || "Variable por definir", icon: ContactRound },
+    { label: "Responsables", value: responsibleCount == null ? "Por definir" : fmt(responsibleCount), hint: responsibleHint, icon: ContactRound },
     { label: "Respuestas Kobo", value: fmt(responseCount), hint: "sincronizadas", icon: ClipboardCheck },
     { label: "Meta fase", value: routeMeta == null ? "Por definir" : fmt(routeMeta), hint: "entrevistas previstas", icon: Target },
   ];
@@ -430,7 +431,12 @@ export function TerritorialModelWorkbench({
                   }}
                   onInspectBlock={setInspectedBlockKey}
                 />
-                <RouteBlockContext reports={reports} block={inspectedBlock} />
+                <RouteBlockContext
+                  reports={reports}
+                  block={inspectedBlock}
+                  routeBlocks={selectedRouteSet.routeBlocks}
+                  onInspectBlock={setInspectedBlockKey}
+                />
               </aside>
             </div>
           ) : (
@@ -692,9 +698,13 @@ function RouteBlockTable({
 function RouteBlockContext({
   reports,
   block,
+  routeBlocks,
+  onInspectBlock,
 }: {
   reports: MonitoreoTerritorialDashboard | null;
   block: TerritorialBlockProgress | null;
+  routeBlocks: TerritorialBlockProgress[];
+  onInspectBlock: (key: string) => void;
 }) {
   const quota = findQuotaForBlock(reports, block);
   const assignmentRows = reports?.route_sheet?.assignments?.filter((row) => (
@@ -707,6 +717,8 @@ function RouteBlockContext({
       )
     )
   )) ?? [];
+  const inspectedKey = routeBlockStableKey(block);
+  const familyBlocks = routeBlocks.length ? routeBlocks : block ? [block] : [];
   return (
     <section className="mon-territorial-route-context-card" aria-label="Ficha operativa de manzana">
       <header>
@@ -732,43 +744,74 @@ function RouteBlockContext({
               <span><em>Avance</em><strong>{block.avance_pct == null ? "S/D" : `${fmt(block.avance_pct)}%`}</strong></span>
             </div>
           </div>
+          {familyBlocks.length > 1 ? (
+            <div className="mon-territorial-route-context-family" aria-label="Ruta UMP titular y reemplazos">
+              <header>
+                <span><Route size={12} /> Ruta UMP</span>
+                <strong>{fmt(familyBlocks.length)} manzanas</strong>
+              </header>
+              <div>
+                {familyBlocks.map((item) => {
+                  const key = routeBlockStableKey(item);
+                  const replacement = item.tipo_manzana === "reemplazo";
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`mon-territorial-route-context-family-row${key === inspectedKey ? " is-active" : ""}${replacement ? " is-replacement" : " is-titular"}`}
+                      onClick={() => onInspectBlock(key)}
+                    >
+                      <span className={`mon-territorial-route-badge ${replacement ? "is-replacement" : "is-titular"}`}>{replacement ? routeReplacementLabel(item) : "Titular"}</span>
+                      <strong>{routeOperationalLabel(item)}</strong>
+                      <em>{physicalBlockLabel(item)} · Zona {item.zona || "S/D"}</em>
+                      <small>{replacement ? `Reemplazo de ${routePrimaryUmpLabel(item)}` : `Rango ${routeRangeLabel(item)}`}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
           <div className="mon-territorial-route-context-tables">
-            <section className="mon-territorial-route-mini-table">
-              <header><span>Asignaciones hoja</span><strong>{fmt(assignmentRows.length)} filas</strong></header>
-              {assignmentRows.length ? (
-                <div>
-                  <table>
-                    <thead><tr><th>Encuestador</th><th>Estado</th><th>Válidas</th></tr></thead>
-                    <tbody>
-                      {assignmentRows.slice(0, 8).map((row, index) => (
-                        <tr key={`${row.source_row ?? index}-${row.encuestador ?? ""}`}>
-                          <td>{row.encuestador || row.expected_code || "S/D"}</td>
-                          <td>{row.estado || row.match_status || "S/D"}</td>
-                          <td>{fmt(row.validas ?? row.response_count ?? 0)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : <p>Sin asignaciones cruzadas para esta manzana.</p>}
-            </section>
-            <section className="mon-territorial-route-mini-table mon-territorial-route-quota-marginals">
-              <header><span>Cuotas requeridas</span><strong>{quota?.total == null ? "No disponible" : `${fmt(quota.total)} cuotas`}</strong></header>
-              {quota ? (
-                <div className="mon-territorial-route-quota-body">
-                  <div className="mon-territorial-route-quota-chips">
-                    {quota.sex_totals.slice(0, 2).map((row) => <span key={row.label}><em>{row.label}</em><strong>{fmt(row.value)}</strong></span>)}
-                    <span className="is-total"><em>Total</em><strong>{fmt(quota.total)}</strong></span>
+            <details className="mon-territorial-route-context-details" open={assignmentRows.length > 0}>
+              <summary><span>Asignaciones hoja</span><strong>{fmt(assignmentRows.length)} filas</strong></summary>
+              <section className="mon-territorial-route-mini-table">
+                {assignmentRows.length ? (
+                  <div>
+                    <table>
+                      <thead><tr><th>Encuestador</th><th>Estado</th><th>Válidas</th></tr></thead>
+                      <tbody>
+                        {assignmentRows.slice(0, 8).map((row, index) => (
+                          <tr key={`${row.source_row ?? index}-${row.encuestador ?? ""}`}>
+                            <td>{row.encuestador || row.expected_code || "S/D"}</td>
+                            <td>{row.estado || row.match_status || "S/D"}</td>
+                            <td>{fmt(row.validas ?? row.response_count ?? 0)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <table>
-                    <thead><tr><th>Rango edad</th><th>Total</th></tr></thead>
-                    <tbody>
-                      {quota.age_totals.slice(0, 6).map((row) => <tr key={row.label}><th scope="row">{row.label}</th><td>{fmt(row.value)}</td></tr>)}
-                    </tbody>
-                  </table>
-                </div>
-              ) : <p>No disponible en la fuente.</p>}
-            </section>
+                ) : <p>Sin asignaciones cruzadas para esta manzana.</p>}
+              </section>
+            </details>
+            <details className="mon-territorial-route-context-details" open={Boolean(quota)}>
+              <summary><span>Cuotas requeridas</span><strong>{quota?.total == null ? "No disponible" : `${fmt(quota.total)} cuotas`}</strong></summary>
+              <section className="mon-territorial-route-mini-table mon-territorial-route-quota-marginals">
+                {quota ? (
+                  <div className="mon-territorial-route-quota-body">
+                    <div className="mon-territorial-route-quota-chips">
+                      {quota.sex_totals.slice(0, 2).map((row) => <span key={row.label}><em>{row.label}</em><strong>{fmt(row.value)}</strong></span>)}
+                      <span className="is-total"><em>Total</em><strong>{fmt(quota.total)}</strong></span>
+                    </div>
+                    <table>
+                      <thead><tr><th>Rango edad</th><th>Total</th></tr></thead>
+                      <tbody>
+                        {quota.age_totals.slice(0, 6).map((row) => <tr key={row.label}><th scope="row">{row.label}</th><td>{fmt(row.value)}</td></tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p>No disponible en la fuente.</p>}
+              </section>
+            </details>
           </div>
         </div>
       ) : (

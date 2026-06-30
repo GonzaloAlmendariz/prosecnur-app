@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
 import {
   apiJobStatus,
@@ -48,20 +48,61 @@ import {
   type SurveyMonkeyMultibaseListItem,
 } from "../../../../api/client";
 import { MODULE_TONES } from "../../../../lib/modules";
+import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { MONITOREO_ROUTES, WORKBENCH_VIEWS, workbenchViewsForRoute, type WorkbenchView } from "../../core/monitoreoRegistry";
+import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import {
   filterInternalQueryCases,
+  compareInternalQueryDateValues,
+  formatInternalQueryDateLabel,
   internalCaseCrossingLabel,
   internalCaseCrossingValue,
   internalCaseResponseStateLabel,
   internalCaseResponseStateValue,
   internalQueryCollectorDisplayLabel,
+  internalQueryCollectorValue,
   normalizeInternalQueries,
   summarizeInternalCases,
 } from "../../internalQueries";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
+import {
+  ACREDITACION_PHONE_ALERT_RULES,
+  acreditacionQualityActionLabel,
+  acreditacionQualityLevelLabel,
+  acreditacionQualityPriorityValue,
+  acreditacionQualityStatusLabel,
+  buildAcreditacionPhoneRealAlertModel,
+  buildAcreditacionPhoneSupervisionModel,
+  type AcreditacionPhoneSupervisionPriorityGroup,
+  type AcreditacionPhoneSupervisionModel,
+  type AcreditacionQualityAlertItem,
+} from "./AcreditacionPhoneAlerts";
+import { upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
+import {
+  buildAcreditacionPhoneDailyPoints,
+  buildAcreditacionPhoneDailyTableRows,
+  phoneDailyTableColumns,
+  type AcreditacionPhoneDailyPoint,
+} from "./AcreditacionPhoneDailyTrend";
+import {
+  acreditacionActorOptions,
+  acreditacionCollectorCountForSource,
+  acreditacionCollectorsForSource,
+  acreditacionSourceChannel,
+  acreditacionSourceResponseCount,
+  acreditacionSourceWithOperationalMetadata,
+  acreditacionSweepSourceForChannel,
+  acreditacionSweepSources,
+  buildAcreditacionPhoneSourceContract,
+  buildAcreditacionTelephoneChannels,
+  acreditacionSurveySourceName,
+  buildAcreditacionActiveSourcesSummary,
+  type AcreditacionCollectorRow,
+  type AcreditacionPhoneSourceSlot,
+  type AcreditacionTelephoneChannel,
+} from "./AcreditacionSourcesModel";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
@@ -70,11 +111,13 @@ import "../profilePage.css";
 const ACREDITACION_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "acreditacion") ?? MONITOREO_ROUTES[0];
 const TELEFONICO_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
 const ACREDITACION_SOURCE_TABS = [
-  { key: "survey", label: "Encuestas", detail: "SurveyMonkey/Kobo", icon: QrCode },
-  { key: "sheets", label: "Sheets", detail: "Universo y barrido", icon: Table2 },
+  { key: "survey", label: "Encuestas en plataforma", detail: "SurveyMonkey/Kobo", icon: QrCode },
+  { key: "sheets", label: "Bases en Sheets", detail: "Universo por actor", icon: Table2 },
+  { key: "collectors", label: "Recopiladores", detail: "Inclusion y alias", icon: ContactRound },
   { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
 ] as const;
 type AcreditacionSourceTab = typeof ACREDITACION_SOURCE_TABS[number]["key"];
+const ACREDITACION_DEFAULT_ACTORS = ["Estudiantes", "Docentes", "Egresados", "Administrativos", "Empleadores"];
 type AcreditacionSourcePresetKey = "base_trabajada" | "barrido_telefonico" | "respuestas_surveymonkey";
 type AcreditacionSourcePreset = {
   key: AcreditacionSourcePresetKey;
@@ -92,25 +135,25 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
   {
     key: "base_trabajada",
     icon: Layers3,
-    label: "Base trabajada",
+    label: "Base de universo",
     service: "Google Sheets",
-    detail: "URL_HOJA_UNIVERSO con BASES_POR_ACTOR: actores o actor principal abierto por carrera.",
-    bullets: ["Pestañas universo", "Actores y segmentos", "Variables de control"],
+    detail: "Excel o Google Sheet que define el universo/base telefónica y sus variables de cuota.",
+    bullets: ["Universo contactable", "Variables de cuota", "Población objetivo"],
     provider: "google_sheets",
     role: "universo",
-    sourceLabel: "Base trabajada",
-    sheetLabel: "Pestaña de actor o carrera",
+    sourceLabel: "Base de universo",
+    sheetLabel: "Pestaña de universo",
   },
   {
     key: "barrido_telefonico",
     icon: PhoneCall,
     label: "Barrido telefónico",
     service: "Google Sheets",
-    detail: "MONITOREOS_TELEFONICOS y PUENTE_UNIVERSO_BARRIDO: casos, CodPulso y enlace personalizado.",
-    bullets: ["Pestaña barrido", "Correos web completos", "Columnas por alias"],
+    detail: "Hoja operativa donde viven asignaciones, responsables, intentos, estados y fechas de llamada.",
+    bullets: ["Asignaciones", "Responsables", "Estados e intentos"],
     provider: "google_sheets",
     role: "barrido",
-    sourceLabel: "Barrido telefónico - Egresados",
+    sourceLabel: "Barrido telefónico",
     sheetLabel: "Pestaña de barrido",
   },
   {
@@ -125,27 +168,27 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
     sourceLabel: "Respuestas SurveyMonkey",
   },
 ];
-const ACREDITACION_MODEL_TABS = [
-  { key: "estructura", label: "Metas y modalidades", detail: "Por corte: meta y mecanismos", icon: Layers3 },
-  { key: "casos", label: "Base de barrido", detail: "Responsables, intentos y estados", icon: ContactRound },
-  { key: "enlaces", label: "Enlaces y envíos", detail: "Correo, QR y links", icon: Link2 },
-  { key: "reglas", label: "Estados válidos", detail: "Qué cuenta como avance", icon: SlidersHorizontal },
-  { key: "estrategias", label: "Calendario", detail: "Mecanismos por semana", icon: Route },
+export const ACREDITACION_MODEL_TABS = [
+  { key: "estructura", label: "Modelo operativo", detail: "Metas por actor", icon: Target },
+  { key: "estrategias", label: "Cronograma", detail: "Campo y reportes", icon: CalendarRange },
+  { key: "resumen", label: "Resumen", detail: "Lectura de Fuentes", icon: BarChart3 },
 ] as const;
-type AcreditacionModelTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
-const ACREDITACION_CONSULTA_TABS = [
-  { key: "casos", label: "Casos", detail: "Estado, llave y cruce", icon: Search },
-  { key: "efectivas", label: "Efectivas", detail: "Total defendible", icon: CheckCircle2 },
-  { key: "faltantes", label: "Faltantes", detail: "Quién deja de estar pendiente", icon: Route },
-  { key: "duplicados", label: "Duplicados", detail: "Evitar doble conteo", icon: Link2 },
-  { key: "diferencias", label: "Diferencias", detail: "Explicar por qué no cuadra", icon: ShieldAlert },
+type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
+type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
+export const ACREDITACION_CONSULTA_TABS = [
+  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: QrCode },
+  { key: "base", label: "Estado de la base", detail: "Actor por actor", icon: Table2 },
+  { key: "cruces", label: "Cruces efectivos", detail: "Razón de cruce", icon: Link2 },
+  { key: "subsanacion", label: "Subsanación", detail: "Decisión auditada", icon: ShieldAlert },
 ] as const;
-type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
-const ACREDITACION_PHONE_TABS = [
+export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
+export const ACREDITACION_PHONE_TABS = [
   { key: "resumen", label: "Resumen", detail: "Barrido telefónico", icon: PhoneCall },
   { key: "dia", label: "Día", detail: "Efectivas y rechazos", icon: CalendarRange },
+  { key: "incidencia", label: "Incidencias de la base", detail: "Sin efectiva e insistencia", icon: AlertCircle },
   { key: "responsables", label: "Responsables", detail: "Equipo y carga", icon: ContactRound },
-  { key: "alertas", label: "Alertas", detail: "No efectivos", icon: ShieldAlert },
+  { key: "alertas", label: "Alertas", detail: "Alertas reales", icon: ShieldAlert },
+  { key: "supervision", label: "Supervisión telefónica", detail: "Control y muestra", icon: ClipboardCheck },
 ] as const;
 type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
 const ACREDITACION_ADVANCE_TABS = [
@@ -165,6 +208,10 @@ type AcreditacionCaseReconciliationPayload = {
   candidate_id?: string;
   note?: string;
 };
+
+function isTelefonicoMonitoreoState(state?: MonitoreoState | null) {
+  return (state?.monitoreo_profile?.family ?? state?.config?.monitoreo_profile?.family) === "telefonico";
+}
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -408,15 +455,59 @@ function AcreditacionMetric({ label, value, hint }: { label: string; value: numb
   );
 }
 
-function AcreditacionModelActorSummaryCard({ card }: { card: AcreditacionActorCard }) {
+function AcreditacionModelActorSummaryCard({
+  card,
+  saving,
+  onSaveGoal,
+}: {
+  card: AcreditacionActorCard;
+  saving?: boolean;
+  onSaveGoal?: (actor: string, meta: number, metaPct: number | null) => Promise<void>;
+}) {
   const connectedMechanisms = card.mechanisms.filter((item) => item.role !== "Universo");
   const baseMechanisms = card.mechanisms.filter((item) => item.role === "Universo" || item.role === "Barrido");
   const responseMechanisms = card.mechanisms.filter((item) => item.role === "Respuestas");
-  const channels = Array.from(new Set(connectedMechanisms.map((item) => item.channel || item.role).filter(Boolean)));
+  const channels = Array.from(new Set(connectedMechanisms.map((item) => {
+    if (!item.channel) return item.role;
+    const label = acreditacionChannelLabel(item.channel);
+    return label === "Sin canal" ? item.role : label;
+  }).filter(Boolean)));
   const statusTone = card.meta == null ? "warning" : card.statusTone === "complete" ? "ready" : "base";
   const metaPct = card.meta != null && card.universe > 0
     ? Math.round((card.meta / card.universe) * 1000) / 10
     : null;
+  const [minimumDraft, setMinimumDraft] = useState(card.meta == null ? "" : String(card.meta));
+  const [pctDraft, setPctDraft] = useState(metaPct == null ? "" : String(metaPct));
+  const nextMinimum = Math.max(0, Math.round(Number(minimumDraft) || 0));
+  const nextPct = pctDraft.trim() ? Math.max(0, Math.min(100, Number(pctDraft) || 0)) : null;
+  const canSaveGoal = Boolean(onSaveGoal && card.actor.trim());
+
+  useEffect(() => {
+    setMinimumDraft(card.meta == null ? "" : String(card.meta));
+    setPctDraft(metaPct == null ? "" : String(metaPct));
+  }, [card.id, card.meta, metaPct]);
+
+  const updateMinimumDraft = (value: string) => {
+    setMinimumDraft(value);
+    if (card.universe > 0) {
+      const minimum = Math.max(0, Math.round(Number(value) || 0));
+      const percent = Math.round((minimum / card.universe) * 1000) / 10;
+      setPctDraft(String(Math.max(0, Math.min(100, percent))));
+    }
+  };
+
+  const updatePctDraft = (value: string) => {
+    setPctDraft(value);
+    if (card.universe > 0) {
+      const percent = Math.max(0, Math.min(100, Number(value) || 0));
+      setMinimumDraft(String(Math.round((card.universe * percent) / 100)));
+    }
+  };
+
+  const saveGoal = () => {
+    if (!onSaveGoal) return;
+    void onSaveGoal(card.actor, nextMinimum, nextPct);
+  };
   const renderMechanism = (item: AcreditacionActorMechanism) => {
     const Icon = mechanismIcon(item.modality);
     return (
@@ -445,13 +536,28 @@ function AcreditacionModelActorSummaryCard({ card }: { card: AcreditacionActorCa
       <div className="mon-acr-model-minimum-editor" aria-label={`Meta de ${card.actor}`}>
         <label>
           <span>Mínimo N</span>
-          <input type="number" min={0} value={card.meta ?? ""} disabled readOnly />
+          <input
+            type="number"
+            min={0}
+            value={minimumDraft}
+            onChange={(event) => updateMinimumDraft(event.currentTarget.value)}
+            disabled={saving || !canSaveGoal}
+          />
         </label>
         <label>
           <span>% universo</span>
-          <input type="number" min={0} max={100} value={metaPct == null ? "" : metaPct} disabled readOnly />
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={pctDraft}
+            onChange={(event) => updatePctDraft(event.currentTarget.value)}
+            disabled={saving || !canSaveGoal || card.universe <= 0}
+          />
         </label>
-        <button type="button" className="is-adjust" disabled>Ajustar</button>
+        <button type="button" className="is-adjust" onClick={saveGoal} disabled={saving || !canSaveGoal}>
+          {saving ? "Guardando" : "Ajustar"}
+        </button>
       </div>
       <div className="mon-acr-model-channel-strip">
         {channels.length ? channels.map((channel) => <span key={channel}>{channel}</span>) : <span>Sin canal</span>}
@@ -522,6 +628,12 @@ function platformQuestionLabel(variable: MonitoreoVariable) {
   if (directLabel && directLabel !== name) return directLabel;
   const [code, rawLabel] = name.split("__", 2);
   return rawLabel ? humanizeQuestionSlug(rawLabel) : code;
+}
+
+function compactSelectLabel(value: string, maxLength = 68) {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 function platformQuestionOptions(variables: MonitoreoVariable[]): PlatformRejectionQuestionOption[] {
@@ -673,7 +785,9 @@ function AcreditacionPlatformRejectionEditor({
               >
                 <option value="">Seleccionar pregunta</option>
                 {withCurrentQuestionOption(questionOptions, draft.question).map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option key={option.value} value={option.value} title={option.label}>
+                    {compactSelectLabel(option.label)}
+                  </option>
                 ))}
               </select>
             </label>
@@ -712,10 +826,12 @@ function AcreditacionPlatformRejectionEditor({
 function AcreditacionCanonicalModelWorkbench({
   reports,
   state,
+  activeTab = "estructura",
   onStateChange,
 }: {
   reports?: MonitoreoAcreditacionReports | null;
   state?: MonitoreoState | null;
+  activeTab?: AcreditacionModelTab;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const client = reports?.client_report;
@@ -746,15 +862,83 @@ function AcreditacionCanonicalModelWorkbench({
   const totals = advanceTotals(cards);
   const goalSummary = actorGoalSummary(cards);
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled);
+  const sourceSummary = buildAcreditacionActiveSourcesSummary(state?.sources ?? [], state?.config?.operational_model.link_collectors ?? []);
+  const telephoneChannels = buildAcreditacionTelephoneChannels(state?.sources ?? [], state?.config?.operational_model.link_collectors ?? []);
+  const activeSheetBases = activeSources.filter((source) => source.kind === "google_sheets" && source.role === "universo").length;
   const surveyCount = activeSources.filter((source) => source.kind === "surveymonkey" && (source.role === "respuestas" || !source.role || Boolean(source.survey_id))).length;
-  const sweepCount = activeSources.filter((source) => {
-    const role = normalizeSourceMatch(source.role);
-    const label = normalizeSourceMatch(source.label);
-    return source.kind === "google_sheets" && (role.includes("barrido") || label.includes("barrido") || label.includes("telefon"));
-  }).length;
+  const sweepCount = acreditacionSweepSources(activeSources).length;
   const mechanismTotal = surveyCount + sweepCount || cards.reduce((sum, card) => sum + card.mechanisms.filter((item) => item.role !== "Universo").length, 0);
-  const validRuleCount = (state?.config?.valid_statuses ?? []).length || (state?.config?.operational_model?.state_rules ?? []).length;
   const metaTotal = cards.reduce((sum, card) => sum + (card.meta ?? 0), 0);
+  const goalActorKey = preferredGoalVariable((state?.variables ?? []).map((variable) => variable.name)) || "dim_actor";
+  const [goalSavingActor, setGoalSavingActor] = useState("");
+  const [goalStatus, setGoalStatus] = useState<AcreditacionActionStatus>(null);
+  const [quotaStatus, setQuotaStatus] = useState<AcreditacionActionStatus>(null);
+  const scheduleDraft = acreditacionScheduleDraftFromPhases(state?.config?.strategy_phases ?? []);
+  const scheduleWindow = calendarWeekRangeLabel(scheduleDraft.startWeek, scheduleDraft.startWeek + scheduleDraft.durationWeeks - 1);
+  const reportWeekdayLabel = calendarReportWeekdayLabel(scheduleDraft.reportWeekday);
+  const phoneQuotaReportRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
+  const isPhoneModel = isTelefonicoMonitoreoState(state);
+  const activeVisibleTab: AcreditacionModelVisibleTab = activeTab === "estrategias" || activeTab === "resumen" ? activeTab : "estructura";
+  const modelCopy = activeVisibleTab === "estrategias"
+    ? {
+      eyebrow: "Cronograma operativo",
+      title: "Campo y reportes",
+      hint: "Configura semanas de campo, fechas opcionales y día de entrega del reporte de avance.",
+    }
+    : activeVisibleTab === "resumen"
+      ? {
+        eyebrow: "Resumen metodológico",
+        title: "Lectura de Fuentes",
+        hint: "Revisa el estado de encuestas, bases y barrido sin editar canales ni fuentes desde Modelo.",
+      }
+      : isPhoneModel
+        ? {
+          eyebrow: "Modelo telefónico",
+          title: "Cuotas por variable",
+          hint: "Define metas de encuestas válidas, base telefónica, brecha y categorías sin base.",
+        }
+      : {
+        eyebrow: "Modelo operativo",
+        title: "Metas por actor",
+        hint: "Define la meta de cada actor. Fuentes conserva canales, barrido, enlaces y filtro de efectiva.",
+      };
+
+  const saveActorGoal = useCallback(async (actor: string, meta: number, metaPct: number | null) => {
+    if (!state?.config) return;
+    setGoalSavingActor(actor);
+    setGoalStatus({ tone: "info", message: `Guardando meta de ${actor}...` });
+    try {
+      const result = await apiMonitoreoConfig({
+        ...state.config,
+        goals: upsertAcreditacionActorGoal({
+          goals: state.config.goals ?? [],
+          actor,
+          meta,
+          metaPct,
+          goalKey: goalActorKey,
+        }),
+      });
+      onStateChange?.(result.state);
+      setGoalStatus({ tone: "success", message: `Meta de ${actor} actualizada.` });
+    } catch (error) {
+      setGoalStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setGoalSavingActor("");
+    }
+  }, [goalActorKey, onStateChange, state?.config]);
+  const savePhoneQuotaPatch = useCallback((patch: Partial<MonitoreoConfig>) => {
+    if (!state?.config) return;
+    const nextConfig = { ...state.config, ...patch };
+    setQuotaStatus({ tone: "info", message: "Guardando cuotas telefónicas..." });
+    void apiMonitoreoConfig(nextConfig)
+      .then((result) => {
+        onStateChange?.(result.state);
+        setQuotaStatus({ tone: "success", message: "Cuotas telefónicas actualizadas." });
+      })
+      .catch((error) => {
+        setQuotaStatus({ tone: "error", message: (error as Error).message });
+      });
+  }, [onStateChange, state?.config]);
 
   if (!reports) {
     return <EmptyPanel title="Modelo pendiente" detail="Todavía no hay reporte local preparado para reconstruir metas, mecanismos y barrido." />;
@@ -769,56 +953,194 @@ function AcreditacionCanonicalModelWorkbench({
       >
         <header className="pulso-panel-header">
           <div className="pulso-panel-heading">
-            <span className="pulso-panel-eyebrow">Modelo operativo</span>
-            <h2 className="pulso-panel-title"><span className="mon-title-icon"><Target size={16} /> Meta por actor</span></h2>
-            <p className="pulso-panel-hint">Actores, metas, mecanismos, barrido y regla válida desde el corte hidratado.</p>
+            <span className="pulso-panel-eyebrow">{modelCopy.eyebrow}</span>
+            <h2 className="pulso-panel-title"><span className="mon-title-icon"><Target size={16} /> {modelCopy.title}</span></h2>
+            <p className="pulso-panel-hint">{modelCopy.hint}</p>
           </div>
           <div className="mon-acr-model-actions">
             <span>{fmt(cards.length)} actores</span>
-            <span>{fmt(surveyCount)} encuestas</span>
-            <span>{fmt(sweepCount)} barrido</span>
             <span>{goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} sin meta` : "Metas listas"}</span>
-            <span>{fmt(mechanismTotal)} canales</span>
+            <span>{scheduleWindow}</span>
+            <span>{reportWeekdayLabel}</span>
           </div>
         </header>
+        {goalStatus ? <span className={`mon-acr-model-action-status is-${goalStatus.tone}`}>{goalStatus.message}</span> : null}
         <div className="mon-acr-model-map" aria-label="Mapa operativo de acreditación">
           <AcreditacionActorDashboardTile label="Actores" value={fmt(cards.length)} hint="modelo base" tone="base" />
           <AcreditacionActorDashboardTile label="Universo" value={fmt(totals.universe)} hint="desde Sheets" tone="ready" />
           <AcreditacionActorDashboardTile label="Meta actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
-          <AcreditacionActorDashboardTile label="Canales" value={fmt(mechanismTotal)} hint="SurveyMonkey y barrido" tone="base" />
+          <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
         </div>
-        <div className="mon-acr-model-flow" aria-label="Relación meta mecanismo barrido regla válida">
-          <span className={goalSummary.missingMeta ? "is-warning" : "is-ready"}>
-            <Target size={14} />
-            <strong>Meta</strong>
-            <em>{goalSummary.configured ? "meta por actor listas" : "metas pendientes"}</em>
-          </span>
-          <span className={mechanismTotal ? "is-ready" : "is-warning"}>
-            <Route size={14} />
-            <strong>Mecanismo</strong>
-            <em>{mechanismTotal ? `${fmt(mechanismTotal)} fuentes conectadas` : "sin mecanismo de avance"}</em>
-          </span>
-          <span className={sweepCount ? "is-ready" : "is-warning"}>
-            <PhoneCall size={14} />
-            <strong>Barrido</strong>
-            <em>{sweepCount ? `${fmt(sweepCount)} hoja${sweepCount === 1 ? "" : "s"} de barrido` : "falta barrido telefónico"}</em>
-          </span>
-          <span className={validRuleCount ? "is-ready" : "is-warning"}>
-            <SlidersHorizontal size={14} />
-            <strong>Regla válida</strong>
-            <em>{validRuleCount ? `${fmt(validRuleCount)} estados configurados` : "definir avance"}</em>
-          </span>
-        </div>
-        <AcreditacionPlatformRejectionEditor state={state} variables={state?.variables ?? []} onStateChange={onStateChange} />
-        <div className="mon-acr-model-actor-grid">
-          {cards.length ? cards.map((card) => (
-            <AcreditacionModelActorSummaryCard key={card.id} card={card} />
-          )) : (
-            <EmptyPanel title="Sin actores detectados" detail="Carga la base trabajada para armar el modelo por actor." />
-          )}
-        </div>
+        {activeVisibleTab === "estructura" && isPhoneModel && state?.config ? (
+          <>
+            <AcreditacionPhoneQuotaEditor
+              draft={state.config}
+              variables={state.variables ?? []}
+              quotaRows={phoneQuotaReportRows}
+              onPatchConfig={savePhoneQuotaPatch}
+            />
+            {quotaStatus ? <span className={`mon-acr-model-action-status is-${quotaStatus.tone}`}>{quotaStatus.message}</span> : null}
+          </>
+        ) : null}
+        {activeVisibleTab === "estructura" && !isPhoneModel ? (
+          <div className="mon-acr-model-actor-grid">
+            {cards.length ? cards.map((card) => (
+              <AcreditacionModelActorSummaryCard
+                key={card.id}
+                card={card}
+                saving={goalSavingActor === card.actor}
+                onSaveGoal={saveActorGoal}
+              />
+            )) : (
+              <EmptyPanel title="Sin actores detectados" detail="Carga la base trabajada para armar el modelo por actor." />
+            )}
+          </div>
+        ) : null}
+        {activeVisibleTab === "estrategias" ? (
+          <AcreditacionFieldSchedulePanel config={state?.config ?? null} onStateChange={onStateChange} />
+        ) : null}
+        {activeVisibleTab === "resumen" ? (
+          <section className="mon-contract-block mon-contract-block--wide" aria-label="Resumen de Fuentes para Modelo">
+            <div className="mon-contract-block-head">
+              <span>Resumen de Fuentes</span>
+              <span className="mon-contract-counter">Solo lectura</span>
+            </div>
+            <div className="mon-acr-active-kpis">
+              <StatTile label="Encuestas activas" value={fmt(sourceSummary.activeSurveys)} tone={sourceSummary.activeSurveys ? "good" : "warn"} />
+              <StatTile label="Bases Sheets" value={fmt(activeSheetBases)} tone={activeSheetBases ? "good" : "warn"} />
+              <StatTile label="Barrido" value={fmt(sweepCount)} tone={sweepCount ? "good" : "neutral"} />
+              <StatTile label="Canales tel." value={fmt(telephoneChannels.length)} tone={telephoneChannels.length ? "good" : "neutral"} />
+            </div>
+            <p className="mon-profile-muted">
+              Canales, recopiladores, barrido, enlaces y filtro de efectiva se editan en Fuentes. Modelo solo los resume para contextualizar las metas y el cronograma.
+            </p>
+          </section>
+        ) : null}
       </section>
     </div>
+  );
+}
+
+function AcreditacionFieldSchedulePanel({
+  config,
+  onStateChange,
+}: {
+  config: MonitoreoConfig | null;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const [draft, setDraft] = useState<AcreditacionFieldScheduleDraft>(() => (
+    acreditacionScheduleDraftFromPhases(config?.strategy_phases ?? [])
+  ));
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+
+  useEffect(() => {
+    setDraft(acreditacionScheduleDraftFromPhases(config?.strategy_phases ?? []));
+  }, [config?.strategy_phases]);
+
+  if (!config) {
+    return <EmptyPanel title="Cronograma pendiente" detail="La configuración local todavía no está disponible para editar semanas y reportes." />;
+  }
+
+  const previewPhase = acreditacionScheduleDraftFromPhases(upsertAcreditacionFieldSchedulePhase(config.strategy_phases ?? [], draft));
+  const previewWindow = calendarWeekRangeLabel(previewPhase.startWeek, previewPhase.startWeek + previewPhase.durationWeeks - 1);
+  const dateWindow = draft.startDate || draft.endDate
+    ? [draft.startDate || "inicio pendiente", draft.endDate || "fin pendiente"].join(" a ")
+    : "Fechas opcionales";
+
+  const patchDraft = (patch: Partial<AcreditacionFieldScheduleDraft>) => {
+    setDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const saveSchedule = async () => {
+    setSaving(true);
+    setStatus({ tone: "info", message: "Guardando cronograma de campo..." });
+    try {
+      const result = await apiMonitoreoConfig({
+        ...config,
+        strategy_phases: upsertAcreditacionFieldSchedulePhase(config.strategy_phases ?? [], draft),
+      });
+      onStateChange?.(result.state);
+      setDraft(acreditacionScheduleDraftFromPhases(result.config.strategy_phases ?? []));
+      setStatus({ tone: "success", message: "Cronograma de campo actualizado." });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="mon-contract-block mon-contract-block--wide" aria-label="Cronograma operativo de acreditación">
+      <div className="mon-contract-block-head">
+        <span>Cronograma de campo</span>
+        <button type="button" onClick={() => { void saveSchedule(); }} disabled={saving}>
+          {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
+          Guardar cronograma
+        </button>
+      </div>
+      <div className="mon-acr-active-kpis">
+        <StatTile label="Ventana" value={previewWindow} tone="good" />
+        <StatTile label="Semanas" value={fmt(draft.durationWeeks)} tone={draft.durationWeeks ? "good" : "warn"} />
+        <StatTile label="Fechas" value={dateWindow} tone={draft.startDate && draft.endDate ? "good" : "neutral"} />
+        <StatTile label="Reporte" value={calendarReportWeekdayLabel(draft.reportWeekday)} tone={draft.reportWeekday ? "good" : "warn"} />
+      </div>
+      <div className="mon-form mon-form--two">
+        <label>
+          <span>Semana inicio</span>
+          <input
+            type="number"
+            min={1}
+            value={draft.startWeek}
+            disabled={saving}
+            onChange={(event) => patchDraft({ startWeek: positiveInteger(event.currentTarget.value, 1) })}
+          />
+        </label>
+        <label>
+          <span>Cantidad de semanas</span>
+          <input
+            type="number"
+            min={1}
+            value={draft.durationWeeks}
+            disabled={saving}
+            onChange={(event) => patchDraft({ durationWeeks: positiveInteger(event.currentTarget.value, 1) })}
+          />
+        </label>
+        <label>
+          <span>Fecha campo inicio</span>
+          <input
+            type="date"
+            value={draft.startDate}
+            disabled={saving}
+            onChange={(event) => patchDraft({ startDate: event.currentTarget.value })}
+          />
+        </label>
+        <label>
+          <span>Fecha campo fin</span>
+          <input
+            type="date"
+            min={draft.startDate || undefined}
+            value={draft.endDate}
+            disabled={saving}
+            onChange={(event) => patchDraft({ endDate: event.currentTarget.value })}
+          />
+        </label>
+        <label>
+          <span>Día de reporte de avance</span>
+          <select
+            value={draft.reportWeekday}
+            disabled={saving}
+            onChange={(event) => patchDraft({ reportWeekday: event.currentTarget.value as MonitoreoReportWeekday | "" })}
+          >
+            <option value="">Sin día definido</option>
+            {CALENDAR_REPORT_WEEKDAYS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
+    </section>
   );
 }
 
@@ -843,8 +1165,19 @@ function AcreditacionModelWorkbench({
   onCerrar?: (planRefuerzo: string, aprobarBrechas: boolean) => Promise<void>;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
-  const componentes = acreditacion?.componentes ?? [];
-  const cards = acreditacion?.dashboard.cards ?? [];
+  if (String(activeTab) === "estructura") {
+    return <AcreditacionCanonicalModelWorkbench reports={reports} state={state} activeTab={activeTab} onStateChange={onStateChange} />;
+  }
+
+  if (!acreditacion?.enabled) {
+    return <AcreditacionCanonicalModelWorkbench reports={reports} state={state} activeTab={activeTab} onStateChange={onStateChange} />;
+  }
+  if (String(activeTab) === "resumen" || String(activeTab) === "estrategias") {
+    return <AcreditacionCanonicalModelWorkbench reports={reports} state={state} activeTab={activeTab} onStateChange={onStateChange} />;
+  }
+
+  const componentes = acreditacion.componentes ?? [];
+  const cards = acreditacion.dashboard.cards ?? [];
   const [activeId, setActiveId] = useState(componentes[0]?.id ?? "");
   const selected = componentes.find((comp) => comp.id === activeId) ?? componentes[0] ?? null;
   const selectedCard = cards.find((card) => card.id === selected?.id) ?? cards[0] ?? null;
@@ -877,9 +1210,6 @@ function AcreditacionModelWorkbench({
   }, [acreditacion?.plan_refuerzo, acreditacion?.aprobacion_metodologica]);
 
   if (!acreditacion?.enabled) {
-    if (activeTab === "estructura") {
-      return <AcreditacionCanonicalModelWorkbench reports={reports} state={state} onStateChange={onStateChange} />;
-    }
     return (
       <AcreditacionModelConfigWorkbench
         state={state}
@@ -933,7 +1263,7 @@ function AcreditacionModelWorkbench({
       "n efectivo": component.seguimiento.n_efectivo,
       "Meta": component.meta.n_objetivo ?? "S/M",
       "Email": component.seguimiento.intentos_canal.email,
-      "WhatsApp": component.seguimiento.intentos_canal.whatsapp,
+      "Enlace": component.seguimiento.intentos_canal.whatsapp,
       "SMS": component.seguimiento.intentos_canal.sms,
       "Teléfono": component.seguimiento.intentos_canal.telefono,
       "Presencial": component.seguimiento.intentos_canal.presencial,
@@ -993,7 +1323,7 @@ function AcreditacionModelWorkbench({
               rows={componentes.map((component) => ({
                 Actor: component.actor,
                 Email: component.seguimiento.intentos_canal.email,
-                WhatsApp: component.seguimiento.intentos_canal.whatsapp,
+                Enlace: component.seguimiento.intentos_canal.whatsapp,
                 SMS: component.seguimiento.intentos_canal.sms,
                 Telefono: component.seguimiento.intentos_canal.telefono,
                 Presencial: component.seguimiento.intentos_canal.presencial,
@@ -1038,7 +1368,7 @@ function AcreditacionModelWorkbench({
     );
   }
 
-  if (activeTab === "estrategias") {
+  if (String(activeTab) === "__legacy_estrategias__") {
     return (
       <div className="mon-acr-model">
         <div className="mon-profile-stat-row">
@@ -1254,29 +1584,26 @@ function AcreditacionModelWorkbench({
 
 const MODEL_MODALITY_OPTIONS: Array<{ value: MonitoreoStrategyPhase["modality"]; label: string }> = [
   { value: "email", label: "Correo" },
-  { value: "whatsapp", label: "WhatsApp" },
+  { value: "whatsapp", label: "Enlace" },
   { value: "sms", label: "SMS" },
   { value: "telefono", label: "Teléfono" },
   { value: "presencial", label: "Presencial / QR" },
   { value: "mixto", label: "Mixto" },
 ];
 
-type AcreditacionChannelToneKey = "web" | "correo" | "telefono" | "presencial" | "whatsapp" | "sms" | "mixto" | "desconocido";
+type AcreditacionChannelToneKey = "correo" | "telefono" | "presencial" | "enlace" | "desconocido";
 
 const ACREDITACION_CHANNEL_OPTIONS: Array<{
   value: string;
   label: string;
   key: AcreditacionChannelToneKey;
   modality: MonitoreoStrategyPhase["modality"];
+  icon: typeof Link2;
 }> = [
-  { value: "Correo", label: "Correo", key: "correo", modality: "email" },
-  { value: "Telefónico", label: "Telefónico", key: "telefono", modality: "telefono" },
-  { value: "WhatsApp", label: "WhatsApp", key: "whatsapp", modality: "whatsapp" },
-  { value: "SMS", label: "SMS", key: "sms", modality: "sms" },
-  { value: "Ficha QR", label: "Ficha QR", key: "presencial", modality: "presencial" },
-  { value: "Enlace abierto", label: "Web/link", key: "web", modality: "mixto" },
-  { value: "Mixto", label: "Mixto/refuerzo", key: "mixto", modality: "mixto" },
-  { value: "Desconocido", label: "Desconocido", key: "desconocido", modality: "mixto" },
+  { value: "Correo", label: "Correo", key: "correo", modality: "email", icon: Mail },
+  { value: "Presencial (Ficha QR)", label: "Ficha QR", key: "presencial", modality: "presencial", icon: QrCode },
+  { value: "Enlace personalizado (Whatsapp)", label: "Enlace", key: "enlace", modality: "whatsapp", icon: Link2 },
+  { value: "Telefónico", label: "Telefónico", key: "telefono", modality: "telefono", icon: PhoneCall },
 ];
 
 const MODEL_COLLECTOR_USE_OPTIONS: Array<{
@@ -1288,11 +1615,11 @@ const MODEL_COLLECTOR_USE_OPTIONS: Array<{
 }> = [
   { value: "correo_autoaplicado", label: "Correo autoaplicado", modality: "email", channel: "Correo", icon: Mail },
   { value: "telefono_asistido", label: "Teléfono asistido", modality: "telefono", channel: "Telefónico", icon: PhoneCall },
-  { value: "presencial_qr", label: "Presencial QR", modality: "presencial", channel: "Ficha QR", icon: QrCode },
-  { value: "enlace_abierto", label: "Enlace abierto", modality: "mixto", channel: "Enlace abierto", icon: Link2 },
-  { value: "sms", label: "SMS", modality: "sms", channel: "SMS", icon: ContactRound },
-  { value: "mixto", label: "Mixto/refuerzo", modality: "mixto", channel: "Mixto", icon: Route },
-  { value: "sin_clasificar", label: "Sin clasificar", modality: "mixto", channel: "Desconocido", icon: SlidersHorizontal },
+  { value: "presencial_qr", label: "Ficha QR", modality: "presencial", channel: "Presencial (Ficha QR)", icon: QrCode },
+  { value: "enlace_abierto", label: "Enlace", modality: "whatsapp", channel: "Enlace personalizado (Whatsapp)", icon: Link2 },
+  { value: "sms", label: "SMS", modality: "sms", channel: "Enlace personalizado (Whatsapp)", icon: ContactRound },
+  { value: "mixto", label: "Refuerzo operativo", modality: "mixto", channel: "Correo", icon: Route },
+  { value: "sin_clasificar", label: "Sin clasificar", modality: "mixto", channel: "Correo", icon: SlidersHorizontal },
 ];
 
 const MODEL_ROSTER_SOURCE_OPTIONS = [
@@ -1404,6 +1731,67 @@ const CALENDAR_REPORT_WEEKDAYS: Array<{ value: MonitoreoReportWeekday; label: st
 ];
 const CALENDAR_REPORT_WEEKDAY_INDEX = new Map(CALENDAR_REPORT_WEEKDAYS.map((item) => [item.value, item.index]));
 const CALENDAR_REPORT_WEEKDAY_LABEL = new Map(CALENDAR_REPORT_WEEKDAYS.map((item) => [item.value, item.label]));
+const ACREDITACION_FIELD_PHASE_ID = "acreditacion-campo";
+
+export type AcreditacionFieldScheduleDraft = {
+  startWeek: number;
+  durationWeeks: number;
+  startDate: string;
+  endDate: string;
+  reportWeekday: MonitoreoReportWeekday | "";
+};
+
+function positiveInteger(value: unknown, fallback: number) {
+  const parsed = Math.round(Number(value));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function acreditacionPrimarySchedulePhase(phases: MonitoreoStrategyPhase[]) {
+  return phases.find((phase) => phase.id === ACREDITACION_FIELD_PHASE_ID) ?? phases[0] ?? null;
+}
+
+export function acreditacionScheduleDraftFromPhases(phases: MonitoreoStrategyPhase[]): AcreditacionFieldScheduleDraft {
+  const phase = acreditacionPrimarySchedulePhase(phases);
+  const startWeek = positiveInteger(phase?.start_week, 1);
+  const endWeek = Math.max(startWeek, positiveInteger(phase?.end_week ?? phase?.start_week, startWeek));
+  return {
+    startWeek,
+    durationWeeks: Math.max(1, endWeek - startWeek + 1),
+    startDate: phase?.start_date ?? "",
+    endDate: phase?.end_date ?? "",
+    reportWeekday: normalizeCalendarReportWeekday(phase?.client_report_weekday),
+  };
+}
+
+export function upsertAcreditacionFieldSchedulePhase(
+  phases: MonitoreoStrategyPhase[],
+  draft: AcreditacionFieldScheduleDraft,
+) {
+  const existingIndex = phases.findIndex((phase) => phase.id === ACREDITACION_FIELD_PHASE_ID);
+  const targetIndex = existingIndex >= 0 ? existingIndex : phases.length ? 0 : -1;
+  const existing = targetIndex >= 0 ? phases[targetIndex] : null;
+  const startWeek = positiveInteger(draft.startWeek, 1);
+  const durationWeeks = positiveInteger(draft.durationWeeks, 1);
+  const nextPhase: MonitoreoStrategyPhase = {
+    id: existing?.id || ACREDITACION_FIELD_PHASE_ID,
+    stratum: existing?.stratum || "Acreditación",
+    modality: existing?.modality || "mixto",
+    start_week: startWeek,
+    end_week: startWeek + durationWeeks - 1,
+    start_date: draft.startDate,
+    end_date: draft.endDate,
+    client_report_weekday: normalizeCalendarReportWeekday(draft.reportWeekday),
+    client_report_exceptions: existing?.client_report_exceptions ?? [],
+    target_rule: existing?.target_rule || "Cumplir metas por actor en campo",
+    kpi_focus: existing?.kpi_focus?.length ? existing.kpi_focus : ["meta actor", "avance efectivo", "faltantes"],
+    kpi_modules: existing?.kpi_modules ?? ["progress"],
+    breakdown_vars: existing?.breakdown_vars ?? [],
+    attempts_var: existing?.attempts_var ?? "",
+    outcome_var: existing?.outcome_var ?? "",
+  };
+  if (targetIndex < 0) return [nextPhase];
+  return phases.map((phase, index) => index === targetIndex ? nextPhase : phase);
+}
 
 function parseCalendarIsoDate(value: string | null | undefined) {
   const match = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1488,6 +1876,12 @@ function calendarReportWeekdayLabel(value: MonitoreoReportWeekday | "" | null | 
   return normalized ? CALENDAR_REPORT_WEEKDAY_LABEL.get(normalized) ?? normalized : "Sin reporte";
 }
 
+function calendarReportWeekdayFromDate(value: string | null | undefined): MonitoreoReportWeekday | "" {
+  const parsed = parseAcreditacionDailyDate(value);
+  if (!parsed) return "";
+  return CALENDAR_REPORT_WEEKDAYS.find((item) => item.index === parsed.getDay())?.value ?? "";
+}
+
 function calendarReportExceptions(phase: MonitoreoStrategyPhase): MonitoreoStrategyReportException[] {
   return (phase.client_report_exceptions ?? []).map((item) => ({
     week: Number.isFinite(Number(item.week)) && Number(item.week) > 0 ? Number(item.week) : null,
@@ -1557,6 +1951,35 @@ function calendarReportScheduleRows(phase: MonitoreoStrategyPhase): Acreditacion
       });
     });
   return rows;
+}
+
+function acreditacionReportWeekdayFromPhases(phases: MonitoreoStrategyPhase[] = []) {
+  const primary = acreditacionPrimarySchedulePhase(phases);
+  const primaryWeekday = normalizeCalendarReportWeekday(primary?.client_report_weekday);
+  if (primaryWeekday) return primaryWeekday;
+  for (const phase of phases) {
+    const weekday = normalizeCalendarReportWeekday(phase.client_report_weekday);
+    if (weekday) return weekday;
+    const exceptionWeekday = calendarReportExceptions(phase).map((item) => normalizeCalendarReportWeekday(item.weekday)).find(Boolean);
+    if (exceptionWeekday) return exceptionWeekday;
+  }
+  return "";
+}
+
+function acreditacionReportCutsFromPhases(phases: MonitoreoStrategyPhase[] = []): AcreditacionDailyReportCut[] {
+  const rows = phases.flatMap((phase) => calendarReportScheduleRows(phase));
+  const byDate = new Map<string, AcreditacionDailyReportCut>();
+  rows.forEach((row) => {
+    if (!row.date) return;
+    const weekday = calendarReportWeekdayLabel(row.weekday);
+    const label = row.week ? `S${fmt(row.week)} · ${weekday}` : weekday;
+    byDate.set(row.date, { date: row.date, label });
+  });
+  return Array.from(byDate.values()).sort((a, b) => {
+    const aTime = dateOnlyTime(parseAcreditacionDailyDate(a.date)) ?? 0;
+    const bTime = dateOnlyTime(parseAcreditacionDailyDate(b.date)) ?? 0;
+    return aTime - bTime || a.label.localeCompare(b.label, "es");
+  });
 }
 
 function calendarPhaseDateRangeLabel(phase: MonitoreoStrategyPhase) {
@@ -1819,14 +2242,351 @@ function splitCalendarTokens(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
+const PHONE_QUOTA_ACTOR_FILTER_KEYS = new Set([
+  "actor",
+  "dim actor",
+  "unidad",
+  "publico objetivo",
+  "público objetivo",
+]);
+
+export type AcreditacionPhoneQuotaEditorRow = {
+  key: string;
+  variable: string;
+  variableLabel: string;
+  value: string;
+  universe: number;
+  meta: number | null;
+  effective: number;
+  partial: number;
+  refusals: number;
+  unswept: number;
+  gap: number | null;
+  requiredSuccessPct: number | null;
+  nonEffectiveMargin: number | null;
+  source: "base" | "configured";
+};
+
+function phoneQuotaIsActorFilterKey(key: string) {
+  return PHONE_QUOTA_ACTOR_FILTER_KEYS.has(normalizeSourceMatch(key));
+}
+
+function phoneQuotaGoalHasActor(goal: MonitoreoGoal) {
+  return Object.keys(goal.filters ?? {}).some(phoneQuotaIsActorFilterKey);
+}
+
+function phoneQuotaGoalValue(goal: MonitoreoGoal, variable: string) {
+  return String(goal.filters?.[variable] ?? "").trim();
+}
+
+function phoneQuotaGoalTotal(goals: MonitoreoGoal[], variable: string) {
+  return goals.reduce((sum, goal) => (
+    !phoneQuotaGoalHasActor(goal) && phoneQuotaGoalValue(goal, variable)
+      ? sum + Math.max(0, Number(goal.meta) || 0)
+      : sum
+  ), 0);
+}
+
+function phoneQuotaGoalVariables(goals: MonitoreoGoal[] = []) {
+  const names = goals.flatMap((goal) => (
+    phoneQuotaGoalHasActor(goal)
+      ? []
+      : Object.keys(goal.filters ?? {}).filter((key) => String(goal.filters?.[key] ?? "").trim())
+  ));
+  return uniqueDisplayValues(names);
+}
+
+function phoneQuotaUpsertGoal(goals: MonitoreoGoal[], variable: string, value: string, meta: number, keepZero = false) {
+  const cleanValue = value.trim();
+  const cleanMeta = Math.max(0, Number(meta) || 0);
+  const next = goals.filter((goal) => {
+    if (phoneQuotaGoalHasActor(goal)) return true;
+    return phoneQuotaGoalValue(goal, variable) !== cleanValue;
+  });
+  if (cleanValue && (cleanMeta > 0 || keepZero)) {
+    next.push({ filters: { [variable]: cleanValue }, meta: cleanMeta });
+  }
+  return next;
+}
+
+function phoneQuotaRemoveGoal(goals: MonitoreoGoal[], variable: string, value: string) {
+  const cleanValue = value.trim();
+  return goals.filter((goal) => {
+    if (phoneQuotaGoalHasActor(goal)) return true;
+    return phoneQuotaGoalValue(goal, variable) !== cleanValue;
+  });
+}
+
+function phoneQuotaVariableOptions(variables: MonitoreoVariable[], controlVars: string[], rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []) {
+  const names = uniqueDisplayValues([
+    ...controlVars,
+    ...rows.map((row) => phoneRowValue(row, ["Variable", "Variable control", "variable_control", "Variable cuota", "Variable de cuota", "Corte"], "")),
+    ...phoneQuotaGoalVariables(goals),
+    ...variables.map((variable) => variable.name),
+  ]).filter((name) => (
+    phoneQuotaGoalVariables(goals).includes(name)
+    || variables.some((variable) => variable.name === name)
+    || rows.some((row) => normalizeSourceMatch(phoneRowValue(row, ["Variable"], "")) === normalizeSourceMatch(name))
+  ));
+  const preferred = names.filter((name) => ["sede", "distrito", "dim_segmento", "segmento", "dim_actor"].includes(normalizeSourceMatch(name)));
+  const rest = names.filter((name) => !preferred.includes(name));
+  return [...preferred, ...rest];
+}
+
+function preferredPhoneQuotaVariable(variables: MonitoreoVariable[], controlVars: string[], rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []) {
+  const options = phoneQuotaVariableOptions(variables, controlVars, rows, goals);
+  return options.find((name) => normalizeSourceMatch(name) === "sede")
+    ?? options.find((name) => controlVars.includes(name))
+    ?? options[0]
+    ?? "";
+}
+
+export function buildAcreditacionPhoneQuotaEditorRows({
+  variable,
+  variables,
+  goals,
+  quotaRows,
+}: {
+  variable: string;
+  variables: MonitoreoVariable[];
+  goals: MonitoreoGoal[];
+  quotaRows: Array<Record<string, unknown>>;
+}): AcreditacionPhoneQuotaEditorRow[] {
+  if (!variable) return [];
+  const variableMeta = variables.find((item) => item.name === variable);
+  const reportRows = quotaRows.map((row) => {
+    const rawVariable = phoneRowValue(row, ["Variable", "Variable control", "variable_control", "Variable cuota", "Variable de cuota", "Corte"], "");
+    return {
+      actor: phoneRowValue(row, ["Actor", "Unidad", "Público objetivo", "Publico objetivo"], "Total") || "Total",
+      variable: rawVariable,
+      value: phoneRowValue(row, ["Valor", "Categoria", "Categoría", "Nivel", "Segmento", "Grupo", "Etiqueta"], ""),
+      universe: phoneRowNumber(row, ["Universo", "Base", "Población", "Poblacion", "Población objetivo", "Poblacion objetivo", "Total", "Casos"], 0),
+      meta: phoneRowOptionalNumber(row, ["Meta", "Cuota", "Objetivo", "Mínimo", "Minimo"]),
+      effective: phoneRowNumber(row, ["Efectivas", "Completas", "Efectivas telefónicas", "Efectivas telefonicas"], 0),
+      partial: phoneRowNumber(row, ["Parciales", "Parcial"], 0),
+      refusals: phoneRowNumber(row, ["Rechazos telefónicos", "Rechazos telefonicos", "Rechazos", "Rechazo"], 0),
+      unswept: phoneRowNumber(row, ["No barridos", "Por barrer"], 0),
+    };
+  }).filter((row) => row.variable === variable && row.value);
+  const hasTotalRows = reportRows.some((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor)));
+  const sourceRows = hasTotalRows ? reportRows.filter((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor))) : reportRows;
+  const byValue = new Map<string, Omit<AcreditacionPhoneQuotaEditorRow, "key" | "variableLabel" | "requiredSuccessPct" | "nonEffectiveMargin" | "source">>();
+  sourceRows.forEach((row) => {
+    const current = byValue.get(row.value) ?? {
+      variable,
+      value: row.value,
+      universe: 0,
+      meta: null,
+      effective: 0,
+      partial: 0,
+      refusals: 0,
+      unswept: 0,
+      gap: null,
+    };
+    current.universe += row.universe;
+    current.effective += row.effective;
+    current.partial += row.partial;
+    current.refusals += row.refusals;
+    current.unswept += row.unswept;
+    if (row.meta != null) current.meta = (current.meta ?? 0) + row.meta;
+    byValue.set(row.value, current);
+  });
+  const goalValues = new Map<string, number>();
+  goals.forEach((goal) => {
+    if (phoneQuotaGoalHasActor(goal)) return;
+    const value = phoneQuotaGoalValue(goal, variable);
+    if (!value) return;
+    goalValues.set(value, (goalValues.get(value) ?? 0) + Math.max(0, Number(goal.meta) || 0));
+  });
+  const values = uniqueDisplayValues([
+    ...Array.from(byValue.keys()),
+    ...(variableMeta?.values ?? []),
+    ...Array.from(goalValues.keys()),
+  ]);
+  const variableLabel = phoneQuotaVariableLabel(variable);
+  return values.map((value) => {
+    const base = byValue.get(value) ?? {
+      variable,
+      value,
+      universe: 0,
+      meta: null,
+      effective: 0,
+      partial: 0,
+      refusals: 0,
+      unswept: 0,
+      gap: null,
+    };
+    const meta = goalValues.has(value) ? goalValues.get(value)! : base.meta;
+    const gap = meta != null ? Math.max(0, meta - base.effective) : null;
+    const requiredSuccessPct = meta != null && base.universe > 0 ? safePercentValue(meta, base.universe) : null;
+    const nonEffectiveMargin = meta != null && base.universe > 0 ? base.universe - meta : null;
+    return {
+      ...base,
+      key: `${normalizeSourceMatch(variable)}-${normalizeSourceMatch(value)}`,
+      variableLabel,
+      meta,
+      gap,
+      requiredSuccessPct,
+      nonEffectiveMargin,
+      source: base.universe > 0 ? "base" as const : "configured" as const,
+    };
+  }).sort((a, b) => (
+    (b.meta ?? 0) - (a.meta ?? 0)
+    || b.universe - a.universe
+    || a.value.localeCompare(b.value, "es", { numeric: true })
+  ));
+}
+
+function AcreditacionPhoneQuotaEditor({
+  draft,
+  variables,
+  quotaRows,
+  onPatchConfig,
+}: {
+  draft: MonitoreoConfig;
+  variables: MonitoreoVariable[];
+  quotaRows: Array<Record<string, unknown>>;
+  onPatchConfig: (patch: Partial<MonitoreoConfig>) => void;
+}) {
+  const [newValue, setNewValue] = useState("");
+  const variableOptions = phoneQuotaVariableOptions(variables, draft.control_vars, quotaRows, draft.goals);
+  const [activeVariable, setActiveVariable] = useState(() => preferredPhoneQuotaVariable(variables, draft.control_vars, quotaRows, draft.goals));
+
+  useEffect(() => {
+    if (!activeVariable || !variableOptions.includes(activeVariable)) {
+      setActiveVariable(preferredPhoneQuotaVariable(variables, draft.control_vars, quotaRows, draft.goals));
+    }
+  }, [activeVariable, draft.control_vars, draft.goals, quotaRows, variableOptions, variables]);
+
+  const rows = buildAcreditacionPhoneQuotaEditorRows({
+    variable: activeVariable,
+    variables,
+    goals: draft.goals,
+    quotaRows,
+  });
+  const quotaTotal = activeVariable ? phoneQuotaGoalTotal(draft.goals, activeVariable) : 0;
+  const totalUniverse = rows.reduce((sum, row) => sum + row.universe, 0);
+  const totalEffective = rows.reduce((sum, row) => sum + row.effective, 0);
+  const totalGap = rows.reduce((sum, row) => sum + (row.gap ?? 0), 0);
+  const rowsWithoutBase = rows.filter((row) => row.meta != null && row.meta > 0 && row.universe <= 0).length;
+
+  const patchGoals = (goals: MonitoreoGoal[]) => {
+    const nextControlVars = activeVariable && !draft.control_vars.includes(activeVariable)
+      ? [...draft.control_vars, activeVariable]
+      : draft.control_vars;
+    const nextTotal = activeVariable ? phoneQuotaGoalTotal(goals, activeVariable) : 0;
+    onPatchConfig({
+      goals,
+      control_vars: nextControlVars,
+      objetivo_total: nextTotal > 0 ? nextTotal : draft.objetivo_total,
+    });
+  };
+  const updateMeta = (value: string, meta: number, keepZero = false) => {
+    if (!activeVariable) return;
+    patchGoals(phoneQuotaUpsertGoal(draft.goals, activeVariable, value, meta, keepZero));
+  };
+  const removeValue = (value: string) => {
+    if (!activeVariable) return;
+    patchGoals(phoneQuotaRemoveGoal(draft.goals, activeVariable, value));
+  };
+  const addCategory = () => {
+    const value = newValue.trim();
+    if (!activeVariable || !value) return;
+    updateMeta(value, 0, true);
+    setNewValue("");
+  };
+
+  return (
+    <section className="mon-contract-block mon-contract-block--wide mon-phone-quota-editor">
+      <div className="mon-phone-quota-editor-head">
+        <div>
+          <span>Cuotas telefónicas</span>
+          <strong>Objetivo visual por variable</strong>
+          <small>Calcula universo, tasa requerida, brecha y margen no efectivo desde la base telefónica.</small>
+        </div>
+        <div className="mon-phone-quota-editor-controls">
+          <label>
+            <span>Variable</span>
+            <select value={activeVariable} onChange={(event) => setActiveVariable(event.target.value)}>
+              <option value="">Seleccionar</option>
+              {variableOptions.map((name) => <option key={name} value={name}>{phoneQuotaVariableLabel(name)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Objetivo total</span>
+            <input
+              type="number"
+              min={0}
+              value={draft.objetivo_total ?? (quotaTotal || "")}
+              onChange={(event) => onPatchConfig({ objetivo_total: event.target.value ? Number(event.target.value) : null })}
+            />
+          </label>
+        </div>
+      </div>
+      <div className="mon-phone-quota-editor-summary" aria-label="Resumen de cuotas telefónicas editables">
+        <span><em>Meta cuotas</em><strong>{quotaTotal ? fmt(quotaTotal) : "S/M"}</strong></span>
+        <span><em>Base telefónica</em><strong>{fmt(totalUniverse)}</strong></span>
+        <span><em>Efectivas</em><strong>{fmt(totalEffective)}</strong></span>
+        <span className={totalGap ? "is-warning" : "is-ready"}><em>Brecha</em><strong>{fmt(totalGap)}</strong></span>
+        <span className={rowsWithoutBase ? "is-warning" : "is-ready"}><em>Sin base</em><strong>{fmt(rowsWithoutBase)}</strong></span>
+      </div>
+      <div className="mon-phone-quota-editor-add">
+        <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={`Nuevo valor de ${activeVariable ? phoneQuotaVariableLabel(activeVariable).toLowerCase() : "variable"}`} />
+        <button type="button" onClick={addCategory} disabled={!activeVariable || !newValue.trim()}><Plus size={13} /> Agregar categoría</button>
+      </div>
+      {rows.length ? (
+        <div className="mon-phone-quota-editor-list">
+          {rows.map((row) => {
+            const progressPct = row.meta && row.meta > 0 ? safePercentValue(row.effective, row.meta) ?? 0 : safePercentValue(row.effective, row.universe) ?? 0;
+            const marginLabel = row.nonEffectiveMargin == null
+              ? "Sin base"
+              : row.nonEffectiveMargin >= 0
+                ? `${fmt(row.nonEffectiveMargin)} no efectivas posibles`
+                : `${fmt(Math.abs(row.nonEffectiveMargin))} base faltante`;
+            return (
+              <article key={row.key} className={`mon-phone-quota-editor-row ${row.source === "configured" ? "is-configured" : ""} ${row.gap ? "is-gap" : "is-ready"}`}>
+                <header>
+                  <div>
+                    <span>{row.variableLabel}</span>
+                    <strong>{row.value}</strong>
+                  </div>
+                  <button type="button" aria-label={`Quitar cuota ${row.value}`} onClick={() => removeValue(row.value)}>
+                    <XCircle size={14} />
+                  </button>
+                </header>
+                <div className="mon-phone-quota-editor-row-grid">
+                  <span><em>Universo</em><strong>{fmt(row.universe)}</strong></span>
+                  <label>
+                    <span>Meta</span>
+                    <input type="number" min={0} value={row.meta ?? 0} onChange={(event) => updateMeta(row.value, Number(event.target.value) || 0, true)} />
+                  </label>
+                  <span><em>Efectivas</em><strong>{fmt(row.effective)}</strong></span>
+                  <span><em>Brecha</em><strong>{row.gap == null ? "S/M" : fmt(row.gap)}</strong></span>
+                  <span><em>Tasa requerida</em><strong>{row.requiredSuccessPct == null ? "S/B" : formatPercentLabel(row.requiredSuccessPct)}</strong></span>
+                  <span><em>Margen</em><strong>{marginLabel}</strong></span>
+                </div>
+                <i aria-hidden="true" style={{ "--phone-quota-editor-pct": `${Math.max(2, Math.min(100, progressPct))}%` } as CSSProperties} />
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <EmptyPanel title="Sin categorías de cuota" detail="Selecciona una variable de control o agrega una categoría para definir metas telefónicas." />
+      )}
+    </section>
+  );
+}
+
 function AcreditacionModelConfigWorkbench({
   state,
   activeTab,
   onStateChange,
+  showHeader = true,
 }: {
   state?: MonitoreoState | null;
   activeTab: AcreditacionModelTab;
   onStateChange?: (state: MonitoreoState) => void;
+  showHeader?: boolean;
 }) {
   const [draft, setDraft] = useState<MonitoreoConfig | null>(() => state?.config ?? null);
   const [saving, setSaving] = useState(false);
@@ -1860,7 +2620,7 @@ function AcreditacionModelConfigWorkbench({
       const sourceLabel = normalizeSourceMatch(source.label);
       return sourceActor === actorKey || sourceLabel.includes(actorKey);
     });
-    const channels = uniqueDisplayValues(actorSources.map(sourceChannelLabel));
+    const channels = uniqueDisplayValues(actorSources.map((source) => acreditacionChannelLabel(sourceChannelLabel(source))));
     const meta = calendarGoalForActor(actor, draft.goals, goalActorKey);
     return {
       actor,
@@ -1876,6 +2636,13 @@ function AcreditacionModelConfigWorkbench({
   const calendarWindow = calendarWeekWindowLabel(draft.strategy_phases, suggestedCalendarEnd);
   const calendarDateWindow = calendarDateWindowLabel(draft.strategy_phases);
   const plannedActorCount = uniqueDisplayValues(draft.strategy_phases.map((phase) => phase.stratum)).length || calendarActorPlans.length;
+  const modelReports = reportsFromState(state);
+  const phoneQuotaReportRows = modelReports
+    ? rowsForSheetBlock(modelReports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
+    : [];
+  const showPhoneQuotaEditor = normalizeSourceMatch(draft.monitoreo_profile?.family ?? "").includes("telefon")
+    || phoneQuotaReportRows.length > 0
+    || draft.operational_model.link_collectors.some((collector) => normalizeSourceMatch(collector.channel ?? "").includes("telefon"));
 
   const patchConfig = (patch: Partial<MonitoreoConfig>) => {
     setDraft((current) => current ? { ...current, ...patch } : current);
@@ -1977,55 +2744,39 @@ function AcreditacionModelConfigWorkbench({
   if (activeTab === "casos") {
     return (
       <div className="mon-acr-model mon-acr-model-config">
-        {header}
-        <section className="mon-contract-block mon-contract-block--wide">
-          <div className="mon-contract-block-head">
-            <span>Base de barrido</span>
-            <label className="mon-switch-line">
-              <input
-                type="checkbox"
-                checked={Boolean(model.cases.enabled)}
-                onChange={(event) => patchCases({ enabled: event.target.checked })}
-              />
-              <span>Usar barrido operativo</span>
-            </label>
-          </div>
-          <div className="mon-form mon-form--two">
-            <AcreditacionVarSelect label="Identificador" value={model.cases.case_id_var} vars={variableNames} onChange={(value) => patchCases({ case_id_var: value })} />
-            <AcreditacionVarSelect label="Persona o caso" value={model.cases.person_label_var} vars={variableNames} onChange={(value) => patchCases({ person_label_var: value })} />
-            <AcreditacionVarSelect label="Estado reportado" value={model.cases.status_var} vars={variableNames} onChange={(value) => patchCases({ status_var: value })} />
-            <label>
-              <span>Origen del barrido</span>
-              <select
-                value={model.cases.roster_source}
-                onChange={(event) => patchCases({ roster_source: event.target.value as MonitoreoConfig["operational_model"]["cases"]["roster_source"] })}
-              >
-                {MODEL_ROSTER_SOURCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="mon-profile-grid">
-            <AcreditacionVariableChipPicker label="Campos de contacto" vars={variableNames} selected={model.cases.contact_vars} onChange={(contact_vars) => patchCases({ contact_vars })} />
-            <AcreditacionVariableChipPicker label="Campos sensibles" vars={variableNames} selected={model.cases.sensitive_vars} onChange={(sensitive_vars) => patchCases({ sensitive_vars })} />
-          </div>
-        </section>
+        {showHeader ? header : null}
+        <AcreditacionSweepBaseWorkbench
+          sources={sources}
+          config={draft}
+          cases={model.cases}
+          variableNames={variableNames}
+          onCasesChange={patchCases}
+          onStateChange={onStateChange}
+        />
       </div>
     );
   }
 
   if (activeTab === "enlaces") {
+    const collectorSummary = buildAcreditacionActiveSourcesSummary(sources, draft.operational_model.link_collectors);
     return (
       <div className="mon-acr-model mon-acr-model-config">
-        {header}
-        <AcreditacionChannelSelectorMatrix
-          sources={sources}
-          config={draft}
-          onConfigChange={setDraft}
-          onStateChange={(nextState) => {
-            setDraft(nextState.config);
-            onStateChange?.(nextState);
-          }}
-        />
+        {showHeader ? header : null}
+        <section className="mon-profile-panel mon-acr-model-router-note">
+          <div className="mon-profile-panel-head">
+            <h3>Enlaces operativos</h3>
+            <span>{fmt(collectorSummary.includedCollectors)} recopiladores incluidos</span>
+          </div>
+          <p className="mon-profile-muted">
+            La clasificacion editable de recopiladores vive en Fuentes, dentro de la pestaña Recopiladores. Este modelo conserva la relacion guardada para metas, reglas y avance.
+          </p>
+          <div className="mon-acr-active-kpis">
+            <StatTile label="Encuestas activas" value={fmt(collectorSummary.activeSurveys)} tone={collectorSummary.activeSurveys ? "good" : "warn"} />
+            <StatTile label="Actores con encuesta" value={fmt(collectorSummary.actorsWithSurvey.length)} tone={collectorSummary.actorsWithSurvey.length ? "good" : "warn"} />
+            <StatTile label="Incluidos" value={fmt(collectorSummary.includedCollectors)} tone={collectorSummary.includedCollectors ? "good" : "neutral"} />
+            <StatTile label="Sin metadata" value={fmt(collectorSummary.missingCollectorMetadata)} tone={collectorSummary.missingCollectorMetadata ? "warn" : "good"} />
+          </div>
+        </section>
         <section className="mon-profile-panel">
           <div className="mon-profile-panel-head">
             <h3>Fuentes disponibles para mecanismos</h3>
@@ -2037,7 +2788,7 @@ function AcreditacionModelConfigWorkbench({
               Servicio: source.kind,
               Rol: source.role || "respuestas",
               Actor: sourceActorLabel(source),
-              Canal: sourceChannelLabel(source),
+              Canal: acreditacionChannelLabel(sourceChannelLabel(source)),
               ID: source.id,
             }))}
             empty="Sin fuentes activas para enlazar mecanismos."
@@ -2051,7 +2802,7 @@ function AcreditacionModelConfigWorkbench({
   if (activeTab === "reglas") {
     return (
       <div className="mon-acr-model mon-acr-model-config">
-        {header}
+        {showHeader ? header : null}
         <section className="mon-contract-block mon-contract-block--wide">
           <div className="mon-contract-block-head">
             <span>Estados válidos y reglas de avance</span>
@@ -2140,7 +2891,7 @@ function AcreditacionModelConfigWorkbench({
     };
     return (
       <div className="mon-acr-model mon-acr-model-config">
-        {header}
+        {showHeader ? header : null}
         <section className="mon-contract-block mon-contract-block--wide mon-calendar-field-plan">
           <div className="mon-calendar-field-head">
             <div>
@@ -2407,7 +3158,7 @@ function AcreditacionModelConfigWorkbench({
 
   return (
     <div className="mon-acr-model mon-acr-model-config">
-      {header}
+      {showHeader ? header : null}
       <section className="mon-contract-block mon-contract-block--wide">
         <div className="mon-contract-block-head">
           <span>Cortes, metas y variables</span>
@@ -2436,6 +3187,14 @@ function AcreditacionModelConfigWorkbench({
           <AcreditacionVariableChipPicker label="Campos críticos" vars={variableNames} selected={draft.critical_vars} onChange={(critical_vars) => patchConfig({ critical_vars })} />
         </div>
       </section>
+      {showPhoneQuotaEditor ? (
+        <AcreditacionPhoneQuotaEditor
+          draft={draft}
+          variables={variables}
+          quotaRows={phoneQuotaReportRows}
+          onPatchConfig={patchConfig}
+        />
+      ) : null}
       <section className="mon-contract-block mon-contract-block--wide">
         <div className="mon-contract-block-head">
           <span>Metas por corte / estrato</span>
@@ -2444,6 +3203,210 @@ function AcreditacionModelConfigWorkbench({
         <AcreditacionGoalsEditor goals={draft.goals} vars={variableNames} onUpdate={updateGoal} onRemove={removeGoal} />
       </section>
     </div>
+  );
+}
+
+function AcreditacionSweepBaseWorkbench({
+  sources,
+  config,
+  cases,
+  variableNames,
+  onCasesChange,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  config: MonitoreoConfig;
+  cases: MonitoreoConfig["operational_model"]["cases"];
+  variableNames: string[];
+  onCasesChange: (patch: Partial<MonitoreoConfig["operational_model"]["cases"]>) => void;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const [selectedByChannel, setSelectedByChannel] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState("");
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+  const sweepPreset = ACREDITACION_SOURCE_PRESETS.find((preset) => preset.key === "barrido_telefonico") ?? ACREDITACION_SOURCE_PRESETS[1];
+  const telephoneChannels = useMemo(
+    () => buildAcreditacionTelephoneChannels(sources, config.operational_model.link_collectors),
+    [config.operational_model.link_collectors, sources],
+  );
+  const sweepSourceCandidates = useMemo(() => acreditacionSweepSources(sources), [sources]);
+  const selectableSweepSources = sweepSourceCandidates.filter((source) => source.enabled);
+  const confirmedChannels = telephoneChannels.filter((channel) => (
+    Boolean(acreditacionSweepSourceForChannel(sweepSourceCandidates, channel))
+  ));
+  const sourceOptions = selectableSweepSources.length ? selectableSweepSources : sweepSourceCandidates;
+
+  const confirmSweepBase = async (channel: AcreditacionTelephoneChannel) => {
+    const matched = acreditacionSweepSourceForChannel(sweepSourceCandidates, channel);
+    const sourceId = selectedByChannel[channel.key] ?? matched?.id ?? "";
+    const source = sweepSourceCandidates.find((item) => item.id === sourceId) ?? null;
+    if (!source) {
+      setStatus({ tone: "error", message: "Selecciona o registra una hoja de barrido antes de confirmar." });
+      return;
+    }
+    setSavingKey(channel.key);
+    setStatus({ tone: "info", message: `Confirmando barrido para ${channel.actor}...` });
+    try {
+      const result = await apiMonitoreoSource(sourcePayloadFromExisting(source, {
+        enabled: true,
+        role: "barrido",
+        integration_mode: source.integration_mode || "connected_read",
+        dimensions: cleanSourceDimensions({
+          ...source.dimensions,
+          actor: channel.actor,
+          segmento: channel.actor,
+          canal: "Telefónico",
+          channel: "Telefónico",
+          servicio: "Barrido telefónico",
+          sheet_name: source.sheet_binding?.sheet_name ?? source.dimensions?.sheet_name,
+          survey_id: channel.surveyId || undefined,
+          survey_source_id: channel.sourceId || undefined,
+          source_id: channel.sourceId || undefined,
+          collector_id: channel.collectorId || undefined,
+          collector_name: channel.collectorName || undefined,
+        }),
+      }));
+      onStateChange?.(result.state);
+      setSelectedByChannel((current) => ({ ...current, [channel.key]: result.source.id }));
+      onCasesChange({ enabled: true, roster_source: "external_local" });
+      setStatus({ tone: "success", message: `Base de barrido confirmada para ${channel.actor}.` });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setSavingKey("");
+    }
+  };
+
+  return (
+    <>
+      <section className="mon-contract-block mon-contract-block--wide">
+        <div className="mon-contract-block-head">
+          <span>Base de barrido</span>
+          <label className="mon-switch-line">
+            <input
+              type="checkbox"
+              checked={Boolean(cases.enabled)}
+              onChange={(event) => onCasesChange({ enabled: event.target.checked })}
+            />
+            <span>Usar barrido operativo</span>
+          </label>
+        </div>
+        <div className="mon-acr-active-kpis" aria-label="Resumen de base de barrido">
+          <StatTile label="Canales telefónicos" value={fmt(telephoneChannels.length)} tone={telephoneChannels.length ? "good" : "warn"} />
+          <StatTile label="Bases de barrido" value={fmt(sweepSourceCandidates.length)} tone={sweepSourceCandidates.length ? "good" : "warn"} />
+          <StatTile label="Confirmadas" value={`${fmt(confirmedChannels.length)}/${fmt(telephoneChannels.length)}`} tone={telephoneChannels.length && confirmedChannels.length === telephoneChannels.length ? "good" : "warn"} />
+        </div>
+        <p className="mon-profile-muted">
+          Los canales telefónicos salen de Enlaces y envíos. La base de barrido se confirma contra una fuente Google Sheets con rol barrido para que el modelo sepa qué hoja alimenta responsables, intentos y estados.
+        </p>
+        {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
+        <div className="mon-profile-grid">
+          <AcreditacionSheetSourceEditor preset={sweepPreset} sources={sweepSourceCandidates} onStateChange={onStateChange} />
+          <section className="mon-profile-panel">
+            <div className="mon-profile-panel-head">
+              <h3>Campos operativos</h3>
+              <span>{cases.enabled ? "Activo" : "Pendiente"}</span>
+            </div>
+            <div className="mon-form mon-form--two">
+              <AcreditacionVarSelect label="Identificador" value={cases.case_id_var} vars={variableNames} onChange={(value) => onCasesChange({ case_id_var: value })} />
+              <AcreditacionVarSelect label="Persona o caso" value={cases.person_label_var} vars={variableNames} onChange={(value) => onCasesChange({ person_label_var: value })} />
+              <AcreditacionVarSelect label="Estado reportado" value={cases.status_var} vars={variableNames} onChange={(value) => onCasesChange({ status_var: value })} />
+              <label>
+                <span>Origen del barrido</span>
+                <select
+                  value={cases.roster_source}
+                  onChange={(event) => onCasesChange({ roster_source: event.target.value as MonitoreoConfig["operational_model"]["cases"]["roster_source"] })}
+                >
+                  {MODEL_ROSTER_SOURCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="mon-profile-grid">
+              <AcreditacionVariableChipPicker label="Campos de contacto" vars={variableNames} selected={cases.contact_vars} onChange={(contact_vars) => onCasesChange({ contact_vars })} />
+              <AcreditacionVariableChipPicker label="Campos sensibles" vars={variableNames} selected={cases.sensitive_vars} onChange={(sensitive_vars) => onCasesChange({ sensitive_vars })} />
+            </div>
+          </section>
+        </div>
+      </section>
+      <section className="mon-contract-block mon-contract-block--wide mon-channel-selector-matrix" aria-label="Canales telefónicos con base de barrido">
+        <div className="mon-contract-block-head">
+          <span>Canales telefónicos definidos en Enlaces y envíos</span>
+          <span className="mon-contract-counter">{fmt(confirmedChannels.length)} confirmados</span>
+        </div>
+        {!telephoneChannels.length ? (
+          <EmptyPanel title="Sin canales telefónicos" detail="Clasifica al menos un recopilador como Teléfono asistido o Barrido en Enlaces y envíos." />
+        ) : (
+          <div className="mon-collector-list">
+            {telephoneChannels.map((channel) => {
+              const matched = acreditacionSweepSourceForChannel(sweepSourceCandidates, channel);
+              const selectedId = selectedByChannel[channel.key] ?? matched?.id ?? "";
+              const selectedSource = sourceOptions.find((source) => source.id === selectedId) ?? matched ?? null;
+              const dimensions = sourceDimensionEntries(selectedSource?.dimensions).slice(0, 5);
+              return (
+                <article key={channel.key} className={`mon-collector-card mon-collector-card--channel is-${matched ? "telefono" : "mixto"}`}>
+                  <div className="mon-collector-title">
+                    <span className="mon-collector-use-icon"><PhoneCall size={14} /></span>
+                    <div>
+                      <strong>{channel.actor}</strong>
+                      <em>{channel.collectorName} · {channel.sourceName}</em>
+                    </div>
+                    <span className="mon-collector-chip">{matched ? "Base confirmada" : "Por confirmar"}</span>
+                  </div>
+                  <div className="mon-collector-metrics">
+                    <AcreditacionCollectorMetric label="Respuestas" value={channel.responseCount} tone={channel.responseCount ? "ready" : "neutral"} />
+                    <AcreditacionCollectorMetric label="Barrido" value={matched ? 1 : 0} tone={matched ? "ready" : "warning"} />
+                    <AcreditacionCollectorMetric label="Hoja" value={selectedSource?.sheet_binding?.sheet_name ? 1 : 0} tone={selectedSource?.sheet_binding?.sheet_name ? "ready" : "neutral"} />
+                  </div>
+                  <div className="mon-collector-controls mon-collector-controls--channel">
+                    <label>
+                      <span>Base de barrido</span>
+                      <select
+                        value={selectedId}
+                        onChange={(event) => setSelectedByChannel((current) => ({ ...current, [channel.key]: event.currentTarget.value }))}
+                        disabled={Boolean(savingKey)}
+                      >
+                        <option value="">Sin base confirmada</option>
+                        {sourceOptions.map((source) => (
+                          <option key={source.id} value={source.id}>
+                            {[source.label || source.id, source.sheet_binding?.sheet_name, sourceActorLabel(source)].filter(Boolean).join(" · ")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="pulso-primary"
+                      onClick={() => { void confirmSweepBase(channel); }}
+                      disabled={savingKey === channel.key || !selectedId}
+                    >
+                      {savingKey === channel.key ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                      Confirmar selección
+                    </button>
+                  </div>
+                  <div className="mon-collector-channel-line">
+                    <AcreditacionChannelBadge channel={channel.channel} />
+                    <span>{channel.collectorId || channel.sourceId} · {channel.collectorType}</span>
+                  </div>
+                  {selectedSource ? (
+                    <div className="mon-source-dim-badges">
+                      <span>{selectedSource.sheet_binding?.sheet_name || "Pestaña pendiente"}</span>
+                      {sourceSpreadsheetUrl(selectedSource) ? (
+                        <a href={sourceSpreadsheetUrl(selectedSource)} target="_blank" rel="noreferrer">
+                          {sourceSpreadsheetDisplay(selectedSource)}
+                        </a>
+                      ) : null}
+                      {dimensions.map(([key, value]) => <span key={`${channel.key}-${key}`}>{dimensionLabel(key)}: {value}</span>)}
+                    </div>
+                  ) : (
+                    <div className="mon-sm-empty">Registra una hoja de barrido arriba para asociarla a este canal.</div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </>
   );
 }
 
@@ -2711,8 +3674,9 @@ function prettyModelLabel(value: string) {
     .replace(/\bpartial\b/i, "Parcial");
 }
 
-function scopeForView(view: WorkbenchView): MonitoreoReportScope {
+function scopeForView(view: WorkbenchView, family?: string): MonitoreoReportScope {
   if (view === "telefonico") return "phone_summary";
+  if (view === "modelo" && family === "telefonico") return "phone_summary";
   if (view === "consultas") return "queries_summary";
   if (view === "modelo") return "advance_summary";
   if (view === "fuentes") return "source";
@@ -2763,11 +3727,11 @@ function rowValue(row: Record<string, unknown>, key: string) {
   return String(value);
 }
 
-function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = []) {
+function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = [], maxColumns = 8) {
   const seen = new Set<string>();
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row))]
     .filter((key) => key && !key.startsWith("_") && !seen.has(key) && (seen.add(key), true));
-  return keys.slice(0, 8);
+  return keys.slice(0, maxColumns);
 }
 
 function rowsFromSheets(sheets: MonitoreoReportSheet[] = [], terms: string[] = []) {
@@ -2821,6 +3785,14 @@ function phoneRowRatioPct(row: Record<string, unknown>, keys: string[]) {
   return Math.abs(value) <= 1 ? value * 100 : value;
 }
 
+function phoneQuotaVariableLabel(value: string) {
+  const raw = String(value ?? "").trim();
+  const cleaned = raw
+    .replace(/^(dim|dimension|variable|var|control)[_\s-]+/i, "")
+    .trim();
+  return humanizeQuestionSlug(cleaned || raw || "Variable");
+}
+
 function phoneSummaryValue(rows: Array<Record<string, unknown>>, labelNeedle: string) {
   const wanted = normalizeSourceMatch(labelNeedle);
   const row = rows.find((item) => normalizeSourceMatch(phoneRowValue(item, ["Indicador", "Metrica", "Métrica", "Variable"])).includes(wanted));
@@ -2852,7 +3824,11 @@ function phoneStatusPalette(label: string) {
 }
 
 function phoneResponsibleName(row: Record<string, unknown>, index = 0) {
-  return phoneRowValue(row, ["Responsable", "Encuestador", "Owner"], "") || `Responsable ${index + 1}`;
+  const base = phoneRowValue(row, ["Responsable", "Encuestador", "Owner"], "") || `Responsable ${index + 1}`;
+  const actor = phoneRowValue(row, ["Actor", "Unidad"], "");
+  const actorKey = normalizeSourceMatch(actor);
+  if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base} · ${actor}`;
+  return base;
 }
 
 function phoneIsUnassignedResponsible(value: string) {
@@ -2880,6 +3856,158 @@ function phoneResponsibleMetrics(row: Record<string, unknown>) {
   };
 }
 
+const ACREDITACION_PHONE_SUPERVISION_SAMPLE_RATE = 0.3;
+
+type AcreditacionPhoneSupervisionControlRow = {
+  key: string;
+  responsible: string;
+  actor: string;
+  effective: number;
+  target: number;
+  observed: number;
+  gap: number;
+  coveragePct: number | null;
+  priorityCases: number;
+  source: "read" | "proposed";
+};
+
+export type AcreditacionPhoneSupervisionControlPlan = {
+  hasReadBase: boolean;
+  rows: AcreditacionPhoneSupervisionControlRow[];
+  tableRows: Array<Record<string, unknown>>;
+  exportRows: Array<Record<string, unknown>>;
+  totalEffective: number;
+  targetTotal: number;
+  observedTotal: number;
+  selectedTotal: number;
+  gapTotal: number;
+  coveragePct: number | null;
+};
+
+export function buildAcreditacionPhoneSupervisionControlPlan({
+  responsibleRows,
+  sampleRows,
+  priorityGroups,
+  fallbackEffective = 0,
+}: {
+  responsibleRows: Array<Record<string, unknown>>;
+  sampleRows: Array<Record<string, unknown>>;
+  priorityGroups: AcreditacionPhoneSupervisionPriorityGroup[];
+  fallbackEffective?: number;
+}): AcreditacionPhoneSupervisionControlPlan {
+  const hasReadBase = sampleRows.length > 0;
+  const observedByResponsible = new Map<string, { responsible: string; observed: number }>();
+  sampleRows.forEach((row, index) => {
+    const responsible = phoneSupervisionBaseResponsibleName(row, index);
+    const key = normalizeSourceMatch(responsible);
+    const observed = phoneRowOptionalNumber(row, ["Casos", "Muestra", "Seleccionados", "Casos supervision", "Casos supervisión", "N"]) ?? 1;
+    const current = observedByResponsible.get(key) ?? { responsible, observed: 0 };
+    current.observed += Math.max(0, observed);
+    observedByResponsible.set(key, current);
+  });
+
+  const priorityByResponsible = new Map<string, number>();
+  priorityGroups.forEach((group) => {
+    priorityByResponsible.set(normalizeSourceMatch(group.title), group.count);
+  });
+
+  const rowsByResponsible = new Map<string, AcreditacionPhoneSupervisionControlRow>();
+  responsibleRows
+    .filter((row, index) => !phoneIsUnassignedResponsible(phoneSupervisionBaseResponsibleName(row, index)))
+    .forEach((row, index) => {
+      const responsible = phoneSupervisionBaseResponsibleName(row, index);
+      const key = normalizeSourceMatch(responsible) || `responsable-${index}`;
+      const actor = phoneRowValue(row, ["Actor", "Unidad"], "");
+      const metrics = phoneResponsibleMetrics(row);
+      const effective = Math.max(0, metrics.effective);
+      const target = effective > 0 ? Math.ceil(effective * ACREDITACION_PHONE_SUPERVISION_SAMPLE_RATE) : 0;
+      const observed = observedByResponsible.get(key)?.observed ?? 0;
+      rowsByResponsible.set(key, {
+        key,
+        responsible,
+        actor,
+        effective,
+        target,
+        observed,
+        gap: Math.max(0, target - observed),
+        coveragePct: target > 0 ? safePercentValue(observed, target) : null,
+        priorityCases: priorityByResponsible.get(key) ?? 0,
+        source: hasReadBase ? "read" : "proposed",
+      });
+    });
+
+  observedByResponsible.forEach((item, key) => {
+    if (rowsByResponsible.has(key)) return;
+    rowsByResponsible.set(key, {
+      key,
+      responsible: item.responsible,
+      actor: "",
+      effective: 0,
+      target: item.observed,
+      observed: item.observed,
+      gap: 0,
+      coveragePct: 100,
+      priorityCases: priorityByResponsible.get(key) ?? 0,
+      source: "read",
+    });
+  });
+
+  if (!rowsByResponsible.size && fallbackEffective > 0) {
+    const target = Math.ceil(fallbackEffective * ACREDITACION_PHONE_SUPERVISION_SAMPLE_RATE);
+    rowsByResponsible.set("equipo-telefonico", {
+      key: "equipo-telefonico",
+      responsible: "Equipo telefónico",
+      actor: "Todos",
+      effective: fallbackEffective,
+      target,
+      observed: 0,
+      gap: hasReadBase ? target : target,
+      coveragePct: hasReadBase ? 0 : null,
+      priorityCases: priorityGroups.reduce((sum, group) => sum + group.count, 0),
+      source: hasReadBase ? "read" : "proposed",
+    });
+  }
+
+  const rows = Array.from(rowsByResponsible.values()).sort((a, b) => (
+    b.gap - a.gap
+    || b.priorityCases - a.priorityCases
+    || b.target - a.target
+    || a.responsible.localeCompare(b.responsible, "es")
+  ));
+  const totalEffective = rows.reduce((sum, row) => sum + row.effective, 0);
+  const targetTotal = rows.reduce((sum, row) => sum + row.target, 0);
+  const observedTotal = rows.reduce((sum, row) => sum + row.observed, 0);
+  const selectedTotal = hasReadBase ? observedTotal : targetTotal;
+  const gapTotal = hasReadBase ? rows.reduce((sum, row) => sum + row.gap, 0) : targetTotal;
+  const tableRows = rows.map((row) => ({
+    Responsable: row.responsible,
+    Actor: row.actor || "Todos",
+    Efectivas: row.effective,
+    "Objetivo 30%": row.target,
+    [hasReadBase ? "Base leída" : "Base propuesta"]: hasReadBase ? row.observed : row.target,
+    "Por completar": row.gap,
+    Cobertura: row.coveragePct == null ? (hasReadBase ? "S/M" : "Propuesta") : formatPercentLabel(row.coveragePct),
+    Prioridad: row.priorityCases,
+  }));
+
+  return {
+    hasReadBase,
+    rows,
+    tableRows,
+    exportRows: hasReadBase ? sampleRows : tableRows,
+    totalEffective,
+    targetTotal,
+    observedTotal,
+    selectedTotal,
+    gapTotal,
+    coveragePct: targetTotal > 0 ? safePercentValue(observedTotal, targetTotal) : null,
+  };
+}
+
+function phoneSupervisionBaseResponsibleName(row: Record<string, unknown>, index: number) {
+  return phoneRowValue(row, ["Responsable", "Encuestador", "Operador", "Agente", "Owner"], "") || `Responsable ${index + 1}`;
+}
+
 function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<string, unknown>>>) {
   const byResponsible = new Map<string, Record<string, unknown>>();
   const applyNumber = (target: Record<string, unknown>, label: string, value: number | null) => {
@@ -2888,10 +4016,13 @@ function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<
 
   rowGroups.flat().forEach((row, index) => {
     const name = phoneResponsibleName(row, index);
+    const baseName = phoneRowValue(row, ["Responsable", "Encuestador", "Owner"], "") || name;
+    const actor = phoneRowValue(row, ["Actor", "Unidad"], "");
     const key = normalizeSourceMatch(name);
     if (!key) return;
-    const current = byResponsible.get(key) ?? { Responsable: name };
-    current.Responsable = String(current.Responsable ?? name) || name;
+    const current = byResponsible.get(key) ?? { Responsable: baseName };
+    current.Responsable = String(current.Responsable ?? baseName) || baseName;
+    if (actor) current.Actor = actor;
     applyNumber(current, "Casos asignados", phoneRowOptionalNumber(row, ["Casos asignados", "Total telefonico", "Total telefónico", "Asignados"]));
     applyNumber(current, "Barridos", phoneRowOptionalNumber(row, ["Barridos", "Casos barridos"]));
     applyNumber(current, "No barridos", phoneRowOptionalNumber(row, ["No barridos", "Por barrer"]));
@@ -2951,23 +4082,237 @@ function phoneOperationTotals(
   };
 }
 
-function AcreditacionPhoneMetricCard({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: number | null | undefined;
-  hint: string;
-  tone: "ready" | "success" | "warning" | "risk" | "neutral" | "swept";
-}) {
+export type AcreditacionPhoneQuotaRow = {
+  key: string;
+  actor: string;
+  variable: string;
+  value: string;
+  universe: number;
+  meta: number | null;
+  effective: number;
+  partial: number;
+  refusals: number;
+  unswept: number;
+  advancePct: number | null;
+  gap: number | null;
+  status: string;
+};
+
+export function phoneQuotaRowsForPanel(rows: Array<Record<string, unknown>>): AcreditacionPhoneQuotaRow[] {
+  const mapped = rows.map((row, index) => {
+    const actor = phoneRowValue(row, [
+      "Actor",
+      "Unidad",
+      "Público objetivo",
+      "Publico objetivo",
+      "Actor específico",
+      "Actor especifico",
+      "Segmento actor",
+    ], "Todos") || "Todos";
+    const variable = phoneQuotaVariableLabel(phoneRowValue(row, [
+      "Variable",
+      "Variable control",
+      "variable_control",
+      "Variable cuota",
+      "Variable de cuota",
+      "Corte",
+      "Dimensión",
+      "Dimension",
+    ], "") || "Variable");
+    const value = phoneRowValue(row, ["Valor", "Categoria", "Categoría", "Nivel", "Segmento", "Grupo", "Etiqueta"], `Valor ${index + 1}`);
+    const universe = phoneRowNumber(row, ["Universo", "Base", "Población", "Poblacion", "Población objetivo", "Poblacion objetivo", "Total", "Casos"], 0);
+    const meta = phoneRowOptionalNumber(row, ["Meta", "Cuota", "Objetivo", "Mínimo", "Minimo"]);
+    const effective = phoneRowNumber(row, ["Efectivas", "Completas", "Efectivas telefónicas", "Efectivas telefonicas"], 0);
+    const partial = phoneRowNumber(row, ["Parciales", "Parcial"], 0);
+    const refusals = phoneRowNumber(row, ["Rechazos telefónicos", "Rechazos telefonicos", "Rechazos", "Rechazo"], 0);
+    const unswept = phoneRowNumber(row, ["No barridos", "Por barrer"], Math.max(0, universe - effective - partial - refusals));
+    const advancePct = phoneRowRatioPct(row, ["Avance meta", "% avance meta", "Cumplimiento", "% cumplimiento"])
+      ?? (meta != null ? safePercentValue(effective, meta) : safePercentValue(effective, universe));
+    const gap = phoneRowOptionalNumber(row, ["Brecha", "Faltante", "Por completar"])
+      ?? (meta != null ? Math.max(0, meta - effective) : null);
+    const status = phoneRowValue(row, ["Estado cuota", "Estado", "Status"], "") || (gap != null ? (gap > 0 ? "Brecha" : "Cumple") : "Sin meta");
+    return {
+      key: `${normalizeSourceMatch(actor)}-${normalizeSourceMatch(variable)}-${normalizeSourceMatch(value)}-${index}`,
+      actor,
+      variable,
+      value,
+      universe,
+      meta,
+      effective,
+      partial,
+      refusals,
+      unswept,
+      advancePct,
+      gap,
+      status,
+    };
+  }).filter((row) => row.value && (row.universe > 0 || (row.meta != null && row.meta > 0)));
+  const totalKeys = new Set(mapped
+    .filter((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor)) && row.meta != null)
+    .map((row) => `${normalizeSourceMatch(row.variable)}\r${normalizeSourceMatch(row.value)}`));
+  return mapped
+    .filter((row) => !totalKeys.has(`${normalizeSourceMatch(row.variable)}\r${normalizeSourceMatch(row.value)}`) || ["total", "todos"].includes(normalizeSourceMatch(row.actor)))
+    .sort((a, b) => (
+      (["total", "todos"].includes(normalizeSourceMatch(a.actor)) ? -1 : 0) - (["total", "todos"].includes(normalizeSourceMatch(b.actor)) ? -1 : 0)
+      ||
+      a.actor.localeCompare(b.actor, "es")
+      || a.variable.localeCompare(b.variable, "es")
+      || (b.gap ?? -1) - (a.gap ?? -1)
+      || b.universe - a.universe
+      || a.value.localeCompare(b.value, "es", { numeric: true })
+    ));
+}
+
+function phoneQuotaStatusTone(status: string, gap: number | null) {
+  const key = normalizeSourceMatch(status);
+  if (key.includes("cumple") || key.includes("completa") || gap === 0) return "ready";
+  if (key.includes("sin meta")) return "base";
+  return "warning";
+}
+
+function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unknown>> }) {
+  const quotaRows = phoneQuotaRowsForPanel(rows);
+  const variables = uniqueDisplayValues(quotaRows.map((row) => row.variable));
+  const [activeVariable, setActiveVariable] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (activeVariable && !variables.includes(activeVariable)) setActiveVariable("");
+  }, [activeVariable, variables]);
+  if (!quotaRows.length) {
+    return (
+      <section className="mon-phone-quota-panel is-empty" aria-label="Cuotas telefónicas por variable">
+        <EmptyPanel title="Sin cuotas por variable" detail="Define una variable de control en la base de público objetivo para leer cuotas telefónicas por categoría." />
+      </section>
+    );
+  }
+
+  const visibleRows = activeVariable ? quotaRows.filter((row) => row.variable === activeVariable) : quotaRows;
+  const groups = Array.from(visibleRows.reduce((acc, row) => {
+    const key = normalizeSourceMatch(row.actor) || "todos";
+    const current = acc.get(key) ?? { actor: row.actor, rows: [] as AcreditacionPhoneQuotaRow[] };
+    current.rows.push(row);
+    acc.set(key, current);
+    return acc;
+  }, new Map<string, { actor: string; rows: AcreditacionPhoneQuotaRow[] }>()).values());
+  const variableTotals = variables.map((variable) => {
+    const rowsForVariable = quotaRows.filter((row) => row.variable === variable);
+    return {
+      universe: rowsForVariable.reduce((sum, row) => sum + row.universe, 0),
+      meta: rowsForVariable.reduce((sum, row) => sum + (row.meta ?? 0), 0),
+      effective: rowsForVariable.reduce((sum, row) => sum + row.effective, 0),
+      gap: rowsForVariable.reduce((sum, row) => sum + (row.gap ?? 0), 0),
+    };
+  });
+  const totalUniverse = activeVariable
+    ? visibleRows.reduce((sum, row) => sum + row.universe, 0)
+    : Math.max(0, ...variableTotals.map((item) => item.universe));
+  const totalMeta = activeVariable
+    ? visibleRows.reduce((sum, row) => sum + (row.meta ?? 0), 0)
+    : Math.max(0, ...variableTotals.map((item) => item.meta));
+  const totalEffective = activeVariable
+    ? visibleRows.reduce((sum, row) => sum + row.effective, 0)
+    : Math.max(0, ...variableTotals.map((item) => item.effective));
+  const totalGap = activeVariable
+    ? visibleRows.reduce((sum, row) => sum + (row.gap ?? 0), 0)
+    : Math.max(0, ...variableTotals.map((item) => item.gap));
+  const detailId = "mon-phone-quota-detail";
+
   return (
-    <span className={`mon-phone-metric is-${tone}`}>
-      <em>{label}</em>
-      <strong>{formatMetric(value)}</strong>
-      <small>{hint}</small>
-    </span>
+    <section className="mon-phone-quota-panel" aria-label="Cuotas telefónicas por variable">
+      <header className="mon-phone-ops-head mon-phone-quota-head">
+        <div>
+          <span>Cuotas telefónicas</span>
+          <strong>Opcional · Base objetivo por variable</strong>
+          <small>{formatMetric(groups.length)} actor{groups.length === 1 ? "" : "es"} · {formatMetric(variables.length)} variable{variables.length === 1 ? "" : "s"}</small>
+        </div>
+        <div className="mon-phone-quota-actions">
+          <em>Opcional · {formatMetric(visibleRows.length)} categoría{visibleRows.length === 1 ? "" : "s"}</em>
+          <button
+            type="button"
+            className={`mon-phone-quota-toggle ${expanded ? "is-open" : ""}`}
+            aria-expanded={expanded}
+            aria-controls={detailId}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            <ChevronDown size={14} />
+            <span>{expanded ? "Ocultar detalle" : "Ver detalle"}</span>
+          </button>
+        </div>
+      </header>
+      <div className="mon-phone-quota-summary" aria-label="Resumen de cuotas telefónicas">
+        <span><em>Universo</em><strong>{formatMetric(totalUniverse)}</strong></span>
+        <span className={totalMeta ? "is-target" : "is-base"}><em>Meta</em><strong>{totalMeta ? formatMetric(totalMeta) : "Sin meta"}</strong></span>
+        <span className="is-ready"><em>Efectivas</em><strong>{formatMetric(totalEffective)}</strong></span>
+        <span className={totalGap ? "is-warning" : "is-ready"}><em>Brecha</em><strong>{formatMetric(totalGap)}</strong></span>
+      </div>
+      {expanded ? (
+        <div id={detailId} className="mon-phone-quota-detail">
+          {variables.length > 1 ? (
+            <div className="mon-phone-quota-filter">
+              <span>Variable</span>
+              <div className="mon-phone-quota-tabs" role="tablist" aria-label="Variable de cuota telefónica">
+                <button
+                  type="button"
+                  className={!activeVariable ? "is-active" : ""}
+                  onClick={() => setActiveVariable("")}
+                >
+                  Todas
+                </button>
+                {variables.map((variable) => (
+                  <button
+                    key={variable}
+                    type="button"
+                    className={variable === activeVariable ? "is-active" : ""}
+                    onClick={() => setActiveVariable(variable)}
+                  >
+                    {variable}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mon-phone-quota-single">
+              <span>Variable</span>
+              <strong>{variables[0] ?? "Variable"}</strong>
+            </div>
+          )}
+          <div className="mon-phone-quota-grid">
+            {groups.map((group) => (
+              <article key={group.actor} className="mon-phone-quota-actor">
+                <header>
+                  <strong>{group.actor}</strong>
+                  <em>{formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
+                </header>
+                <div className="mon-phone-quota-rows">
+                  {group.rows.map((row) => {
+                    const pctValue = row.advancePct ?? 0;
+                    const tone = phoneQuotaStatusTone(row.status, row.gap);
+                    return (
+                      <section key={row.key} className={`mon-phone-quota-row is-${tone}`}>
+                        <div className="mon-phone-quota-row-head">
+                          <span>{row.variable}</span>
+                          <strong>{row.value}</strong>
+                        </div>
+                        <div className="mon-phone-quota-row-metrics">
+                          <span>{formatMetric(row.effective)} efectivas</span>
+                          <span>{row.meta == null ? "sin meta" : `${formatMetric(row.meta)} meta`}</span>
+                        </div>
+                        <i aria-hidden="true" style={{ "--phone-quota-pct": `${Math.max(2, Math.min(100, pctValue))}%` } as CSSProperties} />
+                        <footer>
+                          <span>{formatPercentLabel(row.advancePct)}</span>
+                          <span>{row.gap == null ? "Sin meta" : `${formatMetric(row.gap)} faltan`}</span>
+                          <span>{formatMetric(row.unswept)} por barrer</span>
+                        </footer>
+                      </section>
+                    );
+                  })}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -2977,6 +4322,15 @@ function AcreditacionPhoneStorage({ totals }: { totals: ReturnType<typeof phoneO
     { key: "swept", label: "Barridos", value: totals.swept, pct: safePercentValue(totals.swept, total) ?? 0, hint: "de la base" },
     { key: "unswept", label: "Por barrer", value: totals.unswept, pct: safePercentValue(totals.unswept, total) ?? 0, hint: "de la base" },
   ].filter((item) => item.value > 0);
+  let segmentOffset = 0;
+  const positionedSegments = segments.map((segment) => {
+    const segmentPct = Math.max(0, Math.min(100, segment.pct));
+    const start = segmentOffset;
+    segmentOffset += segmentPct;
+    return { ...segment, pct: segmentPct, center: Math.max(6, Math.min(94, start + segmentPct / 2)) };
+  });
+  const [hoveredSegmentKey, setHoveredSegmentKey] = useState("");
+  const hoveredSegment = positionedSegments.find((segment) => segment.key === hoveredSegmentKey) ?? null;
   return (
     <div className="mon-phone-storage" aria-label="Distribución telefónica">
       <div className="mon-phone-storage-head">
@@ -2988,16 +4342,32 @@ function AcreditacionPhoneStorage({ totals }: { totals: ReturnType<typeof phoneO
       </div>
       <div className="mon-phone-storage-bar-wrap">
         <div className="mon-phone-storage-bar" role="list" aria-label={`${formatMetric(totals.swept)} barridos y ${formatMetric(totals.unswept)} por barrer`}>
-          {segments.length ? segments.map((segment) => (
+          {positionedSegments.length ? positionedSegments.map((segment) => (
             <i
               key={segment.key}
               role="listitem"
+              tabIndex={0}
               className={`is-${segment.key}`}
+              aria-label={`${segment.label}: ${formatMetric(segment.value)} (${phonePercentLabel(segment.pct)} ${segment.hint})`}
               title={`${segment.label}: ${formatMetric(segment.value)} (${phonePercentLabel(segment.pct)})`}
-              style={{ "--phone-storage-size": `${Math.max(0, Math.min(100, segment.pct))}%` } as CSSProperties}
+              onBlur={() => setHoveredSegmentKey("")}
+              onFocus={() => setHoveredSegmentKey(segment.key)}
+              onMouseEnter={() => setHoveredSegmentKey(segment.key)}
+              onMouseLeave={() => setHoveredSegmentKey("")}
+              style={{ "--phone-storage-size": `${segment.pct}%` } as CSSProperties}
             />
           )) : <i className="is-empty" style={{ "--phone-storage-size": "100%" } as CSSProperties} />}
         </div>
+        {hoveredSegment ? (
+          <div
+            className="mon-phone-bar-tooltip"
+            style={{ "--phone-bar-tooltip-x": `${hoveredSegment.center}%` } as CSSProperties}
+          >
+            <strong>{hoveredSegment.label}</strong>
+            <span>{formatMetric(hoveredSegment.value)} casos</span>
+            <em>{phonePercentLabel(hoveredSegment.pct)} {hoveredSegment.hint}</em>
+          </div>
+        ) : null}
       </div>
       <div className="mon-phone-flow" aria-label="Embudo operativo del barrido">
         {[
@@ -3037,6 +4407,16 @@ function AcreditacionPhoneStatusStorage({
     return { key: `${normalizeSourceMatch(label)}-${index}`, label, value, tone: phoneStatusTone(label), palette };
   }).filter((item) => item.value > 0);
   const base = Math.max(0, items.reduce((sum, item) => sum + item.value, 0) || total);
+  const rankedItems = [...items].sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es"));
+  let statusOffset = 0;
+  const positionedItems = items.map((item) => {
+    const pctValue = Math.max(0, Math.min(100, safePercentValue(item.value, base) ?? 0));
+    const start = statusOffset;
+    statusOffset += pctValue;
+    return { ...item, pctValue, center: Math.max(6, Math.min(94, start + pctValue / 2)) };
+  });
+  const [hoveredStatusKey, setHoveredStatusKey] = useState("");
+  const hoveredStatus = positionedItems.find((item) => item.key === hoveredStatusKey) ?? null;
   if (!items.length) return <EmptyPanel title="Sin estados telefónicos" detail="El corte todavía no trae la distribución de estados del barrido." />;
   return (
     <div className="mon-phone-storage mon-phone-storage--statuses" aria-label="Estados telefónicos">
@@ -3049,26 +4429,39 @@ function AcreditacionPhoneStatusStorage({
       </div>
       <div className="mon-phone-storage-bar-wrap">
         <div className="mon-phone-storage-bar mon-phone-status-stack" role="list" aria-label="Distribución de estados telefónicos">
-          {items.map((item) => {
-            const pctValue = safePercentValue(item.value, base) ?? 0;
-            return (
-              <i
-                key={item.key}
-                role="listitem"
-                className={`is-${item.tone}`}
-                title={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(pctValue)})`}
-                style={{
-                  "--phone-storage-size": `${Math.max(0, Math.min(100, pctValue))}%`,
-                  "--phone-status-color": item.palette.color,
-                  "--phone-status-color-hi": item.palette.highlight,
-                } as CSSProperties}
-              />
-            );
-          })}
+          {positionedItems.map((item) => (
+            <i
+              key={item.key}
+              role="listitem"
+              tabIndex={0}
+              className={`is-${item.tone}`}
+              aria-label={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(item.pctValue)} del barrido)`}
+              title={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(item.pctValue)})`}
+              onBlur={() => setHoveredStatusKey("")}
+              onFocus={() => setHoveredStatusKey(item.key)}
+              onMouseEnter={() => setHoveredStatusKey(item.key)}
+              onMouseLeave={() => setHoveredStatusKey("")}
+              style={{
+                "--phone-storage-size": `${item.pctValue}%`,
+                "--phone-status-color": item.palette.color,
+                "--phone-status-color-hi": item.palette.highlight,
+              } as CSSProperties}
+            />
+          ))}
         </div>
+        {hoveredStatus ? (
+          <div
+            className="mon-phone-bar-tooltip"
+            style={{ "--phone-bar-tooltip-x": `${hoveredStatus.center}%` } as CSSProperties}
+          >
+            <strong>{hoveredStatus.label}</strong>
+            <span>{formatMetric(hoveredStatus.value)} casos</span>
+            <em>{phonePercentLabel(hoveredStatus.pctValue)} del barrido</em>
+          </div>
+        ) : null}
       </div>
-      <div className="mon-phone-status-rank" aria-label="Estados telefónicos principales">
-        {items.sort((a, b) => b.value - a.value).slice(0, 6).map((item) => {
+      <div className="mon-phone-status-rank" aria-label="Todos los estados telefónicos de la base">
+        {rankedItems.map((item) => {
           const pctValue = safePercentValue(item.value, base) ?? 0;
           return (
             <span
@@ -3079,6 +4472,7 @@ function AcreditacionPhoneStatusStorage({
                 "--phone-status-rank-color": item.palette.color,
                 "--phone-status-rank-hi": item.palette.highlight,
               } as CSSProperties}
+              title={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(pctValue)})`}
             >
               <strong>{item.label}</strong>
               <em>{formatMetric(item.value)}</em>
@@ -3138,7 +4532,7 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
             </footer>
           </article>
         );
-      }) : <EmptyPanel title="Sin responsables" detail="No hay filas de responsables para este corte telefónico." />}
+      }) : <EmptyPanel title="Sin responsables" detail="La base está cargada; falta asignar responsables antes de evaluar producción." />}
       {unassignedRows.length ? (
         <aside className="mon-phone-unassigned">
           <AlertCircle size={16} />
@@ -3222,94 +4616,26 @@ function AcreditacionPhoneIncidenceInsights({ rows }: { rows: Array<Record<strin
   );
 }
 
-function AcreditacionPhoneStatusByResponsiblePanel({ rows }: { rows: Array<Record<string, unknown>> }) {
-  const grouped = new Map<string, Array<{ label: string; value: number; pct: number; palette: ReturnType<typeof phoneStatusPalette> }>>();
-  rows.forEach((row, index) => {
-    const name = phoneResponsibleName(row, index);
-    if (phoneIsUnassignedResponsible(name)) return;
-    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"], "Sin estado");
-    const value = phoneRowNumber(row, ["Casos", "Valor", "Total"], 0);
-    if (value <= 0) return;
-    const current = grouped.get(name) ?? [];
-    current.push({
-      label,
-      value,
-      pct: phoneRowRatioPct(row, ["% responsable", "% del responsable"]) ?? 0,
-      palette: phoneStatusPalette(label),
-    });
-    grouped.set(name, current);
-  });
-  const groups = Array.from(grouped.entries()).map(([name, items]) => {
-    const total = items.reduce((sum, item) => sum + item.value, 0);
-    return {
-      name,
-      total,
-      items: items.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es")),
-    };
-  }).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "es"));
-  if (!groups.length) return null;
-  return (
-    <article className="mon-phone-ops-card mon-phone-ops-card--statuses">
-      <header className="mon-phone-ops-head">
-        <div>
-          <span>Estados por responsable</span>
-          <strong>Distribución telefónica del equipo</strong>
-        </div>
-        <em>{formatMetric(groups.length)} responsables</em>
-      </header>
-      <div className="mon-phone-status-owner-list">
-        {groups.slice(0, 6).map((group) => (
-          <section key={group.name}>
-            <header>
-              <strong>{group.name}</strong>
-              <em>{formatMetric(group.total)} casos</em>
-            </header>
-            <div className="mon-phone-status-owner-stack" aria-label={`Estados telefónicos de ${group.name}`}>
-              {group.items.map((item) => {
-                const pctValue = item.pct || safePercentValue(item.value, group.total) || 0;
-                return (
-                  <i
-                    key={`${group.name}-${item.label}`}
-                    title={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(pctValue)})`}
-                    style={{
-                      "--phone-status-owner-size": `${Math.max(3, Math.min(100, pctValue))}%`,
-                      "--phone-status-owner-color": item.palette.color,
-                    } as CSSProperties}
-                  />
-                );
-              })}
-            </div>
-            <footer>
-              {group.items.slice(0, 4).map((item) => (
-                <span key={`${group.name}-${item.label}-legend`}>
-                  <i style={{ "--phone-status-owner-color": item.palette.color } as CSSProperties} />
-                  {item.label}: {formatMetric(item.value)}
-                </span>
-              ))}
-            </footer>
-          </section>
-        ))}
-      </div>
-    </article>
-  );
-}
-
-function AcreditacionPhoneOperationalInsights({
+function AcreditacionPhoneIncidenceSection({
   responsibleRows,
-  statusByResponsibleRows,
 }: {
   responsibleRows: Array<Record<string, unknown>>;
-  statusByResponsibleRows: Array<Record<string, unknown>>;
 }) {
   const hasIncidence = responsibleRows.some((row) => {
     const metrics = phoneResponsibleMetrics(row);
     return metrics.swept != null || metrics.nonEffective != null || metrics.incidencePct != null;
   });
-  if (!hasIncidence && !statusByResponsibleRows.length) return null;
+  if (!hasIncidence) {
+    return (
+      <EmptyPanel
+        title="Sin incidencia de base"
+        detail="Aún no hay llamadas barridas. Primero asigna responsables y sincroniza estados de llamada."
+      />
+    );
+  }
   return (
-    <section className="mon-phone-ops-insights" aria-label="Indicadores operativos del barrido telefónico">
+    <section className="mon-phone-ops-insights" aria-label="Incidencia de la base telefónica">
       <AcreditacionPhoneIncidenceInsights rows={responsibleRows} />
-      <AcreditacionPhoneStatusByResponsiblePanel rows={statusByResponsibleRows} />
     </section>
   );
 }
@@ -3396,6 +4722,311 @@ function phoneAttemptCountLabel(value: number) {
   return value === 1 ? "1 intento" : `${formatMetric(value)} intentos`;
 }
 
+function AcreditacionPhoneSupervisionBoard({
+  reports,
+  alertRows,
+  responsibleRows,
+  pendingRows,
+  insistenceRows,
+  detailRows,
+  reattemptRows,
+  totals,
+  fallbackEffective,
+}: {
+  reports: MonitoreoAcreditacionReports;
+  alertRows: Array<Record<string, unknown>>;
+  responsibleRows: Array<Record<string, unknown>>;
+  pendingRows: Array<Record<string, unknown>>;
+  insistenceRows: Array<Record<string, unknown>>;
+  detailRows: Array<Record<string, unknown>>;
+  reattemptRows: Array<Record<string, unknown>>;
+  totals: ReturnType<typeof phoneOperationTotals>;
+  fallbackEffective: number;
+}) {
+  const sampleRows = acreditacionPhoneControlSampleRows(reports);
+  const model = buildAcreditacionPhoneSupervisionModel({ alertRows, pendingRows, insistenceRows, reattemptRows });
+  const controlPlan = buildAcreditacionPhoneSupervisionControlPlan({
+    responsibleRows,
+    sampleRows,
+    priorityGroups: model.priorityGroups,
+    fallbackEffective: Math.max(totals.effective, fallbackEffective),
+  });
+  const operationalControlCount = model.activeAlerts.length || controlPlan.gapTotal || detailRows.length || totals.incidents;
+  const handleExport = () => {
+    downloadRowsAsCsv(
+      controlPlan.exportRows,
+      `base-barrido-supervision-${controlPlan.hasReadBase ? "leida" : "propuesta"}-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  };
+  return (
+    <div className="mon-phone-supervision-shell" aria-label="Supervisión telefónica">
+      <section className={`mon-phone-supervision-hero is-${model.highest}`} aria-label="Resumen de supervisión telefónica">
+        <div className="mon-phone-supervision-lead">
+          <span>
+            {model.highest === "ok" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+            {acreditacionQualityStatusLabel(model.highest)}
+          </span>
+          <strong>{controlPlan.targetTotal ? "Base de supervisión" : "Sin producción efectiva"}</strong>
+          <p>30% por responsable, cruzado con alertas y conciliación.</p>
+        </div>
+        <div className="mon-phone-supervision-metrics">
+          <span className={controlPlan.totalEffective ? "is-base" : "is-warning"}><em>Producción</em><strong>{formatMetric(controlPlan.totalEffective || totals.effective)}</strong><small>efectivas</small></span>
+          <span className={controlPlan.targetTotal ? "is-ready" : "is-warning"}><em>Objetivo 30%</em><strong>{formatMetric(controlPlan.targetTotal)}</strong><small>casos control</small></span>
+          <span className={controlPlan.hasReadBase ? "is-ready" : "is-warning"}><em>Base</em><strong>{formatMetric(controlPlan.selectedTotal)}</strong><small>{controlPlan.hasReadBase ? "leída" : "propuesta"}</small></span>
+          <span className={operationalControlCount ? "is-warning" : "is-ready"}><em>Control general</em><strong>{formatMetric(operationalControlCount)}</strong><small>observaciones</small></span>
+        </div>
+      </section>
+
+      <div className="mon-phone-supervision-grid">
+        <div className="mon-phone-supervision-primary">
+          <AcreditacionPhoneSupervisionSamplePlan plan={controlPlan} onExport={handleExport} />
+        </div>
+        <aside className="mon-phone-supervision-aside">
+          <AcreditacionPhoneSupervisionPriorityPanel groups={model.priorityGroups} />
+          <AcreditacionPhoneSupervisionBaseState plan={controlPlan} sampleRows={sampleRows} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function AcreditacionPhoneSupervisionSamplePlan({
+  plan,
+  onExport,
+}: {
+  plan: AcreditacionPhoneSupervisionControlPlan;
+  onExport: () => void;
+}) {
+  return (
+    <section className="mon-phone-supervision-plan" aria-label="Base de barrido de supervisión">
+      <header className="mon-phone-ops-head">
+        <div>
+          <span>Base de barrido de supervisión</span>
+          <strong>{plan.hasReadBase ? "Lectura de base cargada" : "Propuesta 30% por responsable"}</strong>
+        </div>
+        <button type="button" className="mon-phone-supervision-export" onClick={onExport} disabled={!plan.exportRows.length}>
+          <Download size={13} />
+          Exportar CSV
+        </button>
+      </header>
+      <div className="mon-phone-supervision-plan-strip" aria-label="Resumen de muestra de supervisión">
+        <span><em>Responsables</em><strong>{formatMetric(plan.rows.length)}</strong></span>
+        <span><em>Objetivo</em><strong>{formatMetric(plan.targetTotal)}</strong></span>
+        <span><em>{plan.hasReadBase ? "Leídos" : "Propuestos"}</em><strong>{formatMetric(plan.selectedTotal)}</strong></span>
+        <span className={plan.gapTotal ? "is-warning" : "is-ready"}><em>{plan.hasReadBase ? "Brecha" : "Por generar"}</em><strong>{formatMetric(plan.gapTotal)}</strong></span>
+      </div>
+      <DataTable
+        rows={plan.tableRows}
+        empty="No hay efectivas por responsable para proponer una base de supervisión."
+        preferredColumns={["Responsable", "Actor", "Efectivas", "Objetivo 30%", plan.hasReadBase ? "Base leída" : "Base propuesta", "Por completar", "Cobertura", "Prioridad"]}
+        maxColumns={8}
+      />
+    </section>
+  );
+}
+
+function AcreditacionPhoneSupervisionBaseState({
+  plan,
+  sampleRows,
+}: {
+  plan: AcreditacionPhoneSupervisionControlPlan;
+  sampleRows: Array<Record<string, unknown>>;
+}) {
+  const status = plan.hasReadBase ? "Base leída" : "Base propuesta";
+  return (
+    <section className="mon-phone-supervision-source" aria-label="Estado de base de supervisión">
+      <header className="mon-phone-ops-head">
+        <div>
+          <span>Lectura y entregable</span>
+          <strong>{status}</strong>
+        </div>
+        <em>{plan.hasReadBase ? `${formatMetric(sampleRows.length)} filas` : "CSV local"}</em>
+      </header>
+      <div className="mon-phone-supervision-source-list">
+        <span>
+          <strong>{plan.hasReadBase ? "Lectura" : "Definición"}</strong>
+          <em>{plan.hasReadBase ? "bloque muestra_control" : "objetivo 30% por responsable"}</em>
+        </span>
+        <span>
+          <strong>Entregables</strong>
+          <em>{plan.hasReadBase ? "lista para publicar" : "requiere generación formal"}</em>
+        </span>
+        <span>
+          <strong>Cobertura</strong>
+          <em>{plan.coveragePct == null ? "Sin lectura" : formatPercentLabel(plan.coveragePct)}</em>
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function AcreditacionPhoneSupervisionPriorityPanel({ groups }: { groups: AcreditacionPhoneSupervisionModel["priorityGroups"] }) {
+  return (
+    <section className="mon-phone-supervision-priority" aria-label="Prioridades de supervisión telefónica">
+      <header className="mon-phone-ops-head">
+        <div>
+          <span>Prioridad operativa</span>
+          <strong>Qué revisar primero</strong>
+        </div>
+        <em>{formatMetric(groups.length)} foco{groups.length === 1 ? "" : "s"}</em>
+      </header>
+      <div>
+        {groups.length ? groups.map((group) => (
+          <article key={group.key} className={`is-${group.tone}`}>
+            <span>{acreditacionQualityStatusLabel(group.tone)}</span>
+            <strong>{group.title}</strong>
+            <p>{group.detail}</p>
+            <em>{formatMetric(group.count)} caso{group.count === 1 ? "" : "s"}</em>
+          </article>
+        )) : (
+          <EmptyPanel title="Sin prioridades telefónicas" detail="No hay alertas activas de llamadas, responsables o barrido." />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function AcreditacionPhoneQualityAlertsPanel({
+  model,
+  generatedAt,
+}: {
+  model: AcreditacionPhoneSupervisionModel;
+  generatedAt: string;
+}) {
+  const visibleAlerts = model.activeAlerts;
+  const signalRows = acreditacionPhoneAlertSignalRows(visibleAlerts);
+  const observationCount = visibleAlerts.length;
+  const impactedCases = model.activeAlertCount;
+  const observationLabel = observationCount === 1 ? "observación" : "observaciones";
+  const heroTitle = observationCount
+    ? `${formatMetric(observationCount)} ${observationLabel} localizada${observationCount === 1 ? "" : "s"}`
+    : "No hay observaciones telefónicas activas";
+  const heroCopy = observationCount
+    ? `Impactan ${formatMetric(impactedCases)} caso${impactedCases === 1 ? "" : "s"} y separan preparación, asignación y calidad antes de pasar a supervisión.`
+    : "El reporte canónico no trae señales de enlace, duración, asignación o conciliación plataforma-barrido.";
+  const summary = [
+    { label: "Observaciones", value: formatMetric(observationCount), hint: observationCount ? "filas agregadas" : "sin pendientes", tone: model.highest },
+    { label: "Casos impactados", value: formatMetric(impactedCases), hint: impactedCases ? "requieren lectura" : "sin impacto", tone: impactedCases ? model.highest : "ok" },
+    { label: "Prioridad", value: acreditacionQualityPriorityValue(model.highest), hint: observationCount ? "nivel más alto" : "lista", tone: model.highest },
+  ];
+  return (
+    <section className={`mon-quality-alert-panel is-${model.highest}`} aria-label="Observaciones telefónicas accionables">
+      <header className="mon-quality-section-head">
+        <div>
+          <span>Alertas telefónicas</span>
+          <strong><ShieldAlert size={16} /> Observaciones de llamadas y asignación</strong>
+        </div>
+        <div className="mon-quality-alert-meta">
+          <span>{generatedAt ? formatDate(generatedAt) : "Sin sincronizar"}</span>
+          <span>{formatMetric(observationCount)} activa{observationCount === 1 ? "" : "s"}</span>
+        </div>
+      </header>
+      <div className="mon-quality-alert-hero">
+        <div className="mon-quality-alert-lead">
+          <span className="mon-quality-alert-chip">
+            {model.highest === "ok" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+            {acreditacionQualityStatusLabel(model.highest)}
+          </span>
+          <strong>{heroTitle}</strong>
+          <p>{heroCopy}</p>
+        </div>
+        <div className="mon-quality-alert-stats">
+          {summary.map((item) => (
+            <span key={item.label} className={`is-${item.tone}`}>
+              <em>{item.label}</em>
+              <strong>{item.value}</strong>
+              <small>{item.hint}</small>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mon-quality-alert-layout">
+        <div className="mon-quality-alert-list" aria-label="Observaciones localizadas">
+          {visibleAlerts.length ? visibleAlerts.map((alert) => (
+            <AcreditacionPhoneQualityAlertCard key={alert.id} alert={alert} />
+          )) : (
+            <EmptyPanel title="Sin observaciones telefónicas" detail="El bloque canónico de alertas no trae señales de llamadas o asignación para este corte." />
+          )}
+        </div>
+
+        <aside className="mon-quality-alert-where" aria-label="Ubicación de observaciones">
+          <div>
+            <span>Dónde revisar primero</span>
+            <strong>{model.locations.length ? `${model.locations.length} punto${model.locations.length === 1 ? "" : "s"}` : "Sin puntos pendientes"}</strong>
+          </div>
+          {model.locations.length ? (
+            <div className="mon-quality-alert-where-list">
+              {model.locations.map((location) => (
+                <div key={location.where} className={`is-${location.tone}`}>
+                  <span>
+                    <strong>{location.where}</strong>
+                    <em>{formatMetric(location.count)} caso{location.count === 1 ? "" : "s"}</em>
+                  </span>
+                  <i style={{ "--quality-location-pct": `${location.percent}%` } as CSSProperties} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>El barrido telefónico no muestra observaciones pendientes.</p>
+          )}
+          <div className="mon-quality-alert-rulebook" aria-label="Reglas de alerta telefónica">
+            <span>Señales entrenadas</span>
+            {ACREDITACION_PHONE_ALERT_RULES.map((rule) => {
+              const active = signalRows.find((row) => row.kind === rule.kind);
+              return (
+                <div key={rule.kind} className={active ? "is-active" : ""}>
+                  <strong>{rule.label}</strong>
+                  <em>{active ? `${formatMetric(active.count)} caso${active.count === 1 ? "" : "s"}` : "vigilada"}</em>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function acreditacionPhoneAlertSignalRows(alerts: AcreditacionQualityAlertItem[]) {
+  const rows = new Map<string, { kind: string; label: string; count: number }>();
+  alerts.forEach((alert) => {
+    const current = rows.get(alert.signal.kind) ?? { kind: alert.signal.kind, label: alert.signal.label, count: 0 };
+    current.count += alert.count ?? 1;
+    rows.set(alert.signal.kind, current);
+  });
+  return Array.from(rows.values()).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
+}
+
+function AcreditacionPhoneQualityAlertCard({ alert }: { alert: AcreditacionQualityAlertItem }) {
+  return (
+    <article className={`mon-quality-alert-card is-${alert.tone}`}>
+      <div className="mon-quality-alert-card-head">
+        <span>{acreditacionQualityLevelLabel(alert.level, alert.tone)}</span>
+        <span>{alert.signal.label}</span>
+        {alert.count != null && <em>{formatMetric(alert.count)} caso{alert.count === 1 ? "" : "s"}</em>}
+      </div>
+      <strong>{alert.title}</strong>
+      <p>{alert.detail}</p>
+      <span className="mon-quality-alert-action">
+        <ClipboardCheck size={13} />
+        {acreditacionQualityActionLabel(alert)}
+      </span>
+      <div className="mon-quality-alert-foot">
+        <span><Route size={13} /> {alert.where}</span>
+        {alert.code && <span>Código {alert.code}</span>}
+        {alert.total != null && alert.count != null && alert.total > 0 && (
+          <span>{formatPercentLabel(safePercentValue(alert.count, alert.total))} del grupo</span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function acreditacionPhoneControlSampleRows(reports: MonitoreoAcreditacionReports) {
+  return rowsForSheetBlock(reports, "monitoreo_telefonico", ["muestra_control", "muestra_supervision", "control_sample"]);
+}
+
 function AcreditacionPhonePendingInsistence({
   pendingRows,
   insistenceRows,
@@ -3471,7 +5102,7 @@ function AcreditacionPhonePendingInsistence({
   const unassignedPending = pendingRows.filter((row, index) => phoneIsUnassignedResponsible(phoneResponsibleName(row, index)));
   const unassignedCases = unassignedPending.reduce((sum, row) => sum + phoneRowNumber(row, ["No barridos", "Por barrer", "Casos asignados"], 0), 0);
 
-  if (!rows.length) return <EmptyPanel title="Sin pendientes telefónicos" detail="Vuelve a sincronizar el barrido para calcular pendientes, insistencia y reintentos." />;
+  if (!rows.length) return <EmptyPanel title="Sin pendientes telefónicos" detail="Los no-contactos, insistencias y reintentos aparecerán después de sincronizar estados de llamada." />;
   return (
     <article className="mon-phone-ops-card mon-phone-ops-card--pending-workbench">
       <header className="mon-phone-ops-head">
@@ -3591,18 +5222,203 @@ function AcreditacionPhonePendingInsistence({
   );
 }
 
-function phoneDailyPoints(rows: Array<Record<string, unknown>>) {
-  return rows.map((row, index) => {
-    const date = phoneRowValue(row, ["Fecha", "Dia", "Día"], `Día ${index + 1}`);
-    const effective = phoneRowNumber(row, ["Efectivas", "Casos"], 0);
-    const partial = phoneRowNumber(row, ["Parciales", "Parcial"], 0);
-    const refusals = phoneRowNumber(row, ["Rechazos telefonicos", "Rechazos telefónicos", "Rechazos", "Rechazo"], 0);
-    return { date, effective, partial, refusals, total: effective + partial + refusals };
-  }).filter((point) => {
-    const dateKey = normalizeSourceMatch(point.date);
-    if (["fecha", "echa", "dia", "día", "date"].includes(dateKey)) return false;
-    return point.total > 0 || point.effective > 0;
+function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unknown>> }) {
+  const points = buildAcreditacionPhoneDailyPoints(rows);
+  const loosePoints = points.filter((point) => !point.date);
+  const series = points;
+  const pointTotal = (point: AcreditacionPhoneDailyPoint) => point.effective + point.partial + point.refusals;
+  let runningTotal = 0;
+  const chartRows = series.map((point) => {
+    const dailyTotal = pointTotal(point);
+    runningTotal += dailyTotal;
+    return {
+      ...point,
+      dailyTotal,
+      cumulativeTotal: runningTotal,
+    };
   });
+  const totalPeriod = chartRows[chartRows.length - 1]?.cumulativeTotal ?? 0;
+  const averagePerDay = chartRows.length ? totalPeriod / chartRows.length : 0;
+  const averageLabel = averagePerDay.toLocaleString("es-PE", {
+    maximumFractionDigits: averagePerDay < 10 ? 1 : 0,
+  });
+  const bestPoint = chartRows.reduce<(AcreditacionPhoneDailyPoint & { dailyTotal: number; cumulativeTotal: number }) | null>((best, point) => (
+    !best || point.dailyTotal > best.dailyTotal ? point : best
+  ), null);
+  const lastPoint = [...chartRows].reverse().find((point) => point.date) ?? chartRows[chartRows.length - 1] ?? null;
+  const xLabels = chartRows.map((point) => point.axisLabel || point.label);
+  const hoverData = chartRows.map((point) => [
+    point.label,
+    point.effective,
+    point.partial,
+    point.refusals,
+    point.dailyTotal,
+    point.cumulativeTotal,
+  ]);
+  const chartData = [
+    {
+      type: "bar" as const,
+      name: "Efectivas",
+      x: xLabels,
+      y: chartRows.map((point) => point.effective),
+      marker: { color: "#168a55", line: { width: 0 } },
+      customdata: hoverData,
+      hovertemplate: "Efectivas: %{y}<extra></extra>",
+    },
+    {
+      type: "bar" as const,
+      name: "Parciales",
+      x: xLabels,
+      y: chartRows.map((point) => point.partial),
+      marker: { color: "#c47a00", line: { width: 0 } },
+      customdata: hoverData,
+      hovertemplate: "Parciales: %{y}<extra></extra>",
+    },
+    {
+      type: "bar" as const,
+      name: "Rechazos telefónicos",
+      x: xLabels,
+      y: chartRows.map((point) => point.refusals),
+      marker: { color: "#a61d4f", line: { width: 0 } },
+      customdata: hoverData,
+      hovertemplate: "Rechazos telefónicos: %{y}<extra></extra>",
+    },
+    {
+      type: "scatter" as const,
+      mode: "lines+markers" as const,
+      name: "Acumulado",
+      x: xLabels,
+      y: chartRows.map((point) => point.cumulativeTotal),
+      yaxis: "y2",
+      line: { color: "#17212f", width: 3, shape: "spline" as const, smoothing: 0.45 },
+      marker: {
+        color: "#ffffff",
+        size: 8,
+        line: { color: "#17212f", width: 2 },
+      },
+      customdata: hoverData,
+      hovertemplate: "Total día: %{customdata[4]}<br>Acumulado: %{customdata[5]}<extra></extra>",
+    },
+  ];
+  const chartLayout = {
+    barmode: "stack" as const,
+    bargap: chartRows.length <= 1 ? 0.72 : chartRows.length <= 7 ? 0.42 : 0.24,
+    hovermode: "x unified" as const,
+    showlegend: false,
+    margin: { l: 48, r: 58, t: 14, b: chartRows.length > 7 ? 70 : 48 },
+    paper_bgcolor: "transparent",
+    plot_bgcolor: "transparent",
+    hoverlabel: {
+      align: "left" as const,
+      bgcolor: "#ffffff",
+      bordercolor: "rgba(15, 23, 42, 0.12)",
+      font: { color: "#17212f", size: 12 },
+    },
+    xaxis: {
+      type: "category",
+      fixedrange: true,
+      showgrid: false,
+      zeroline: false,
+      tickangle: chartRows.length > 7 ? -32 : 0,
+      tickfont: { color: "#5f6b7a", size: 10 },
+      automargin: true,
+    },
+    yaxis: {
+      title: { text: "Casos/día", font: { color: "#5f6b7a", size: 11 } },
+      fixedrange: true,
+      rangemode: "tozero",
+      showline: false,
+      zeroline: false,
+      gridcolor: "rgba(15, 23, 42, 0.08)",
+      tickfont: { color: "#5f6b7a", size: 10 },
+    },
+    yaxis2: {
+      title: { text: "Acumulado", font: { color: "#17212f", size: 11 } },
+      overlaying: "y",
+      side: "right",
+      fixedrange: true,
+      rangemode: "tozero",
+      showgrid: false,
+      zeroline: false,
+      tickfont: { color: "#17212f", size: 10 },
+    },
+  };
+  const chartConfig = {
+    displayModeBar: false,
+    doubleClick: false,
+    responsive: true,
+    scrollZoom: false,
+  };
+  if (!points.length) {
+    return (
+      <EmptyPanel
+        title="Sin avance diario"
+        detail="Cuando el corte traiga fecha de llamada o respuesta, aquí aparecerá el ritmo diario."
+      />
+    );
+  }
+  return (
+    <div className="mon-phone-trend" aria-label="Composición temporal de respuestas por día">
+      <header className="mon-phone-trend-head">
+        <div>
+          <span>Producción temporal</span>
+          <strong>Ritmo diario y acumulado</strong>
+        </div>
+        <div className="mon-phone-trend-legend" aria-label="Series">
+          <span className="is-effective">Efectivas</span>
+          <span className="is-partial">Parciales</span>
+          <span className="is-refusal">Rechazos telefónicos</span>
+          <span className="is-cumulative">Acumulado</span>
+        </div>
+      </header>
+
+      <div className="mon-phone-trend-metrics">
+        <span className="is-total">
+          <em>Total periodo</em>
+          <strong>{formatMetric(totalPeriod)}</strong>
+          <small>respuestas registradas</small>
+        </span>
+        <span className="is-average">
+          <em>Promedio/día</em>
+          <strong>{averageLabel}</strong>
+          <small>{formatMetric(chartRows.length)} cortes diarios</small>
+        </span>
+        <span className="is-best">
+          <em>Mejor día</em>
+          <strong>{bestPoint ? formatMetric(bestPoint.dailyTotal) : "S/D"}</strong>
+          <small>{bestPoint?.label ?? "Sin fecha"}</small>
+        </span>
+        <span className="is-last">
+          <em>Último corte</em>
+          <strong>{lastPoint ? formatMetric(lastPoint.dailyTotal) : "S/D"}</strong>
+          <small>{lastPoint?.label ?? "Sin fecha"}</small>
+        </span>
+      </div>
+
+      <div className="mon-phone-trend-chart">
+        <PlotlyChart
+          data={chartData}
+          layout={chartLayout}
+          config={chartConfig}
+          height={340}
+          ariaLabel="Producción telefónica diaria y acumulada"
+        />
+      </div>
+
+      {loosePoints.length > 0 && (
+        <div className="mon-phone-trend-loose">
+          {loosePoints.map((point) => (
+            <span key={`loose-${point.rawLabel}`}>
+              <strong>{point.label}</strong>
+              <em>
+                {formatMetric(point.effective)} efectivas · {formatMetric(point.partial)} parciales · {formatMetric(point.refusals)} rechazos telefónicos
+              </em>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function phoneDailyBlockForPanel(reports: MonitoreoAcreditacionReports): MonitoreoReportBlock | null {
@@ -3637,12 +5453,15 @@ function phoneDailyBlockForPanel(reports: MonitoreoAcreditacionReports): Monitor
 function AcreditacionPhoneOperationsWorkbench({
   reports,
   activeTab,
+  fallbackEffective = 0,
 }: {
   reports: MonitoreoAcreditacionReports;
   activeTab: AcreditacionPhoneTab;
+  fallbackEffective?: number;
 }) {
   const summaryRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]);
   const statusRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
+  const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   const responsibleRows = mergeAcreditacionPhoneResponsibleRows(
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["operacion_responsable"]),
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["efectivos_responsable"]),
@@ -3653,9 +5472,11 @@ function AcreditacionPhoneOperationsWorkbench({
   const insistenceRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["insistencia_no_contesta"]);
   const detailRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["detalle_no_contesta"]);
   const reattemptRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["reintentos_responsable"]);
-  const statusByResponsibleRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_responsable"]);
+  const alertRows = rowsForSheetBlock(reports, "alertas", ["alertas"]);
   const dailyBlock = phoneDailyBlockForPanel(reports);
   const dailyRows = dailyBlock?.rows ?? [];
+  const dailyTableRows = buildAcreditacionPhoneDailyTableRows(dailyRows);
+  const dailyTablePreferredColumns = phoneDailyTableColumns(dailyTableRows);
   const queries = normalizeInternalQueries(reports.internal_queries);
   const queryCases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
   const fallbackStatusRows = groupedCaseRows(queryCases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
@@ -3667,6 +5488,7 @@ function AcreditacionPhoneOperationsWorkbench({
   const visibleStatusRows = statusRows.length ? statusRows : fallbackStatusRows;
   const visibleResponsibleRows = responsibleRows.length ? responsibleRows : fallbackResponsibleRows;
   const totals = phoneOperationTotals(summaryRows, visibleStatusRows, visibleResponsibleRows, dailyRows);
+  const reportEffectiveFallback = Math.max(stateFromReports(reports).effective, fallbackEffective);
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
 
   return (
@@ -3686,57 +5508,46 @@ function AcreditacionPhoneOperationsWorkbench({
           {generatedAt ? <span>{generatedAt}</span> : null}
         </div>
       </header>
-      <div className="mon-phone-hero">
-        <div className="mon-phone-hero-copy">
-          <span>Lectura operativa</span>
-          <strong>{formatMetric(totals.total)} personas en la base telefónica</strong>
-          <p>{formatMetric(totals.swept)} barridos · {formatMetric(totals.responsables)} responsables · insistencia y estados telefónicos separados de la plataforma general.</p>
-        </div>
-        <div className="mon-phone-kpis">
-          <AcreditacionPhoneMetricCard label="Efectivas tel." value={totals.effective} hint="operativas" tone="success" />
-          <AcreditacionPhoneMetricCard label="Por barrer" value={totals.unswept} hint={`${phonePercentLabel(totals.unsweptPct)} del total`} tone={totals.unswept ? "warning" : "ready"} />
-          <AcreditacionPhoneMetricCard label="Sin efectiva" value={totals.incidents} hint={`${phonePercentLabel(totals.incidentRatio)} del barrido`} tone={totals.incidents ? "warning" : "ready"} />
-        </div>
-      </div>
       <div className="mon-phone-tabbody">
         {activeTab === "dia" ? (
-          <div className="mon-phone-layout">
-            <AcreditacionAdvanceDailyMini points={phoneDailyPoints(dailyRows)} title="Ritmo diario telefónico" variant="source" />
-            <DataTable rows={dailyRows} empty="No hay serie diaria telefónica preparada para este corte." />
+          <div className="mon-phone-layout mon-phone-layout--alerts">
+            <AcreditacionPhoneDailyTrend rows={dailyRows} />
+            <DataTable
+              rows={dailyTableRows}
+              empty="No hay serie diaria telefónica preparada para este corte."
+              preferredColumns={dailyTablePreferredColumns}
+              maxColumns={Math.max(8, dailyTablePreferredColumns.length)}
+            />
           </div>
         ) : activeTab === "responsables" ? (
           <div className="mon-phone-layout">
             <AcreditacionPhoneResponsibleCards rows={visibleResponsibleRows} />
             <DataTable rows={visibleResponsibleRows} empty="No hay seguimiento por responsable para este corte." />
           </div>
+        ) : activeTab === "incidencia" ? (
+          <div className="mon-phone-layout">
+            <AcreditacionPhoneIncidenceSection responsibleRows={visibleResponsibleRows} />
+            <AcreditacionPhonePendingInsistence pendingRows={pendingRows} insistenceRows={insistenceRows} detailRows={detailRows} reattemptRows={reattemptRows} />
+            <DataTable
+              rows={[...pendingRows, ...insistenceRows, ...reattemptRows, ...detailRows]}
+              empty="No hay pendientes, insistencia o detalle de no contacto para este corte."
+            />
+          </div>
         ) : activeTab === "alertas" ? (
           <div className="mon-phone-layout">
-            <AcreditacionPhonePendingInsistence pendingRows={pendingRows} insistenceRows={insistenceRows} detailRows={detailRows} reattemptRows={reattemptRows} />
-            <DataTable rows={[...pendingRows, ...insistenceRows, ...reattemptRows, ...detailRows]} empty="No hay alertas telefónicas para este corte." />
+            <AcreditacionPhoneQualityAlertsPanel model={buildAcreditacionPhoneRealAlertModel({ alertRows })} generatedAt={reports.generated_at} />
+          </div>
+        ) : activeTab === "supervision" ? (
+          <div className="mon-phone-layout">
+            <AcreditacionPhoneSupervisionBoard reports={reports} alertRows={alertRows} responsibleRows={visibleResponsibleRows} pendingRows={pendingRows} insistenceRows={insistenceRows} detailRows={detailRows} reattemptRows={reattemptRows} totals={totals} fallbackEffective={reportEffectiveFallback} />
           </div>
         ) : (
           <div className="mon-phone-layout mon-phone-layout--summary">
             <section className="mon-phone-overview-grid" aria-label="Resumen de barrido telefónico">
               <AcreditacionPhoneStorage totals={totals} />
               <AcreditacionPhoneStatusStorage rows={visibleStatusRows} total={totals.total} />
+              <AcreditacionPhoneQuotaPanel rows={quotaRows} />
             </section>
-            <AcreditacionPhoneOperationalInsights responsibleRows={visibleResponsibleRows} statusByResponsibleRows={statusByResponsibleRows} />
-            <div className="mon-profile-grid">
-              <section className="mon-profile-panel mon-profile-panel--compact-table">
-                <div className="mon-profile-panel-head">
-                  <h3>Resumen telefónico</h3>
-                  <span>{formatMetric(summaryRows.length)} filas</span>
-                </div>
-                <DataTable rows={summaryRows} empty="No hay bloque telefónico preparado." />
-              </section>
-              <section className="mon-profile-panel mon-profile-panel--compact-table">
-                <div className="mon-profile-panel-head">
-                  <h3>Estados telefónicos</h3>
-                  <span>{formatMetric(visibleStatusRows.length)} estados</span>
-                </div>
-                <DataTable rows={visibleStatusRows} empty="No hay distribución de estados telefónicos." />
-              </section>
-            </div>
           </div>
         )}
       </div>
@@ -3744,8 +5555,8 @@ function AcreditacionPhoneOperationsWorkbench({
   );
 }
 
-function renderPhoneView(reports: MonitoreoAcreditacionReports, activeTab: AcreditacionPhoneTab = "resumen") {
-  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} />;
+function renderPhoneView(reports: MonitoreoAcreditacionReports, activeTab: AcreditacionPhoneTab = "resumen", fallbackEffective = 0) {
+  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} />;
 }
 
 function normalizeSourceMatch(value: unknown) {
@@ -3787,21 +5598,15 @@ function sourceActorLabel(source: MonitoreoSource) {
 }
 
 function sourceChannelLabel(source: MonitoreoSource) {
-  return String(
-    source.dimensions?.canal
-    ?? source.dimensions?.channel
-    ?? source.dimensions?.modalidad
-    ?? source.dimensions?.medio
-    ?? "",
-  ).trim() || (source.kind === "google_sheets" ? "Base" : "Sin canal");
+  return acreditacionSourceChannel(source) || (source.kind === "google_sheets" ? "Base" : "Sin canal");
 }
 
 function sourceExternalId(source: MonitoreoSource) {
   if (source.kind === "surveymonkey") return source.survey_id || source.id;
   if (source.kind === "kobo") return source.asset_uid || source.id;
   return [
-    source.sheet_binding?.spreadsheet_id,
-    source.sheet_binding?.sheet_name,
+    sourceSheetField(source, "spreadsheet_id"),
+    sourceSheetField(source, "sheet_name"),
   ].filter(Boolean).join(" / ") || source.id;
 }
 
@@ -3811,8 +5616,23 @@ function shortenMiddle(value: string, maxLength: number) {
   return `${value.slice(0, edge)}...${value.slice(-edge)}`;
 }
 
+function sourceFlatField(source: MonitoreoSource, key: string) {
+  const value = (source as unknown as Record<string, unknown>)[key];
+  return String(value ?? "").trim();
+}
+
+function sourceSheetField(source: MonitoreoSource, key: "spreadsheet_id" | "sheet_name" | "range" | "last_read_at" | "row_count") {
+  const binding = source.sheet_binding as unknown as Record<string, unknown> | undefined;
+  return String(binding?.[key] ?? sourceFlatField(source, key) ?? "").trim();
+}
+
+function sourceRowCount(source: MonitoreoSource) {
+  const raw = Number(sourceSheetField(source, "row_count"));
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
 function sourceSpreadsheetUrl(source: MonitoreoSource) {
-  const raw = String(source.sheet_binding?.spreadsheet_id ?? "").trim();
+  const raw = sourceSheetField(source, "spreadsheet_id");
   if (!raw) return "";
   if (/^https?:\/\//i.test(raw)) return raw;
   const embeddedId = raw.match(/spreadsheets\/d\/([^/?#]+)/i)?.[1];
@@ -3821,7 +5641,7 @@ function sourceSpreadsheetUrl(source: MonitoreoSource) {
 }
 
 function sourceSpreadsheetDisplay(source: MonitoreoSource) {
-  const raw = String(source.sheet_binding?.spreadsheet_id ?? "").trim();
+  const raw = sourceSheetField(source, "spreadsheet_id");
   const embeddedId = raw.match(/spreadsheets\/d\/([^/?#]+)/i)?.[1];
   const value = embeddedId || raw;
   return value ? shortenMiddle(value.replace(/^https?:\/\//i, ""), 42) : "Abrir spreadsheet";
@@ -3829,7 +5649,33 @@ function sourceSpreadsheetDisplay(source: MonitoreoSource) {
 
 function sourceSyncLabel(source: MonitoreoSource) {
   if (!source.enabled) return "Inactiva";
-  return source.last_sync_at ? formatDate(source.last_sync_at) : "Sin sync";
+  const stamps = [
+    source.last_sync_at,
+    sourceSheetField(source, "last_read_at"),
+    source.sync_cursor?.updated_at,
+    ...(source.collectors ?? []).flatMap((collector) => [collector.last_sync_at, collector.synced_at]),
+  ].filter((value): value is string => Boolean(value));
+  if (!stamps.length) return "Sin sync";
+  const [latest] = stamps.sort((a, b) => {
+    const left = new Date(a).getTime();
+    const right = new Date(b).getTime();
+    return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
+  });
+  return formatDate(latest);
+}
+
+function actorInitialLabel(value: string) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized || normalizeSourceMatch(normalized) === "sin actor") return "?";
+  const words = normalized
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const letters = words.length > 1
+    ? words.slice(0, 2).map((word) => word.charAt(0)).join("")
+    : (words[0] ?? normalized).slice(0, 2);
+  return letters.toLocaleUpperCase("es-PE");
 }
 
 function sourcesForPreset(sources: MonitoreoSource[], preset: AcreditacionSourcePreset) {
@@ -3867,7 +5713,7 @@ function sourceRowsForTable(sources: MonitoreoSource[]) {
     Servicio: sourceProviderLabel(source.kind),
     Rol: source.role || "respuestas",
     Actor: sourceActorLabel(source),
-    Canal: sourceChannelLabel(source),
+    Canal: acreditacionChannelLabel(sourceChannelLabel(source)),
     Estado: source.enabled ? "Activa" : "Inactiva",
     "Ultimo sync": sourceSyncLabel(source),
     ID: sourceExternalId(source),
@@ -3920,6 +5766,14 @@ function dimensionLabel(key: string) {
 }
 
 function sourcePayloadFromExisting(source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>): MonitoreoSourcePayload {
+  const fallbackSheetBinding = sourceSheetField(source, "spreadsheet_id")
+    ? {
+      spreadsheet_id: sourceSheetField(source, "spreadsheet_id"),
+      sheet_name: sourceSheetField(source, "sheet_name"),
+      header_row: Number(source.sheet_binding?.header_row ?? 1),
+      range: sourceSheetField(source, "range"),
+    }
+    : undefined;
   return {
     id: source.id,
     kind: source.kind,
@@ -3927,7 +5781,7 @@ function sourcePayloadFromExisting(source: MonitoreoSource, patch: Partial<Monit
     enabled: source.enabled,
     role: source.role,
     integration_mode: source.integration_mode,
-    sheet_binding: source.sheet_binding,
+    sheet_binding: source.sheet_binding ?? fallbackSheetBinding,
     asset_uid: source.asset_uid,
     survey_id: source.survey_id,
     survey_title: source.survey_title,
@@ -3968,7 +5822,102 @@ function collectorChannelForUse(value: MonitoreoCollectorUse) {
 function channelOptionForValue(value: unknown) {
   const key = acreditacionChannelKey(String(value ?? ""));
   return ACREDITACION_CHANNEL_OPTIONS.find((option) => option.key === key)
-    ?? ACREDITACION_CHANNEL_OPTIONS[ACREDITACION_CHANNEL_OPTIONS.length - 1];
+    ?? ACREDITACION_CHANNEL_OPTIONS[0];
+}
+
+function channelVisualForValue(value: unknown, emptyLabel = "Elegir canal") {
+  const raw = String(value ?? "").trim();
+  const key = acreditacionChannelKey(raw);
+  if (key === "desconocido") {
+    return {
+      key,
+      label: raw || emptyLabel,
+      icon: SlidersHorizontal,
+    };
+  }
+  const option = ACREDITACION_CHANNEL_OPTIONS.find((item) => item.key === key) ?? ACREDITACION_CHANNEL_OPTIONS[0];
+  return {
+    key: option.key,
+    label: option.label,
+    icon: option.icon,
+  };
+}
+
+function AcreditacionChannelSelect({
+  value,
+  onChange,
+  disabled,
+  allowEmpty = false,
+  label = "Canal",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  allowEmpty?: boolean;
+  label?: string;
+}) {
+  const visual = channelVisualForValue(value);
+  const Icon = visual.icon;
+  const selectValue = allowEmpty ? value : channelOptionForValue(value).value;
+  return (
+    <label className="mon-channel-select mon-channel-select-field">
+      <span>{label}</span>
+      <div className={`mon-channel-select-control is-${visual.key}`} data-channel={visual.key}>
+        <span className="mon-channel-select-icon" aria-hidden="true">
+          <Icon size={14} />
+        </span>
+        <select
+          value={selectValue}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          disabled={disabled}
+          aria-label={label}
+        >
+          {allowEmpty ? <option value="">Elegir canal</option> : null}
+          {ACREDITACION_CHANNEL_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </div>
+    </label>
+  );
+}
+
+function AcreditacionChannelDeclarationPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const current = channelOptionForValue(value).value;
+  return (
+    <div className="mon-acr-channel-declare-field">
+      <span>Canal base</span>
+      <div className="mon-acr-channel-choice-strip" role="radiogroup" aria-label="Canal base de la encuesta">
+        {ACREDITACION_CHANNEL_OPTIONS.map((option) => {
+          const Icon = option.icon;
+          const active = option.value === current;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`is-${option.key}${active ? " is-active" : ""}`}
+              aria-pressed={active}
+              aria-label={option.label}
+              title={option.label}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+            >
+              <Icon size={13} />
+              <span>{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function acreditacionChannelModality(value: unknown): MonitoreoStrategyPhase["modality"] {
@@ -4065,11 +6014,18 @@ function AcreditacionChannelSelectorMatrix({
     }
     return out;
   }, [config.operational_model.link_collectors]);
+  const sourceChannelById = useMemo(() => new Map(
+    surveySources.map((source) => [
+      source.id,
+      sourceChannels[source.id] || channelOptionForValue(sourceChannelLabel(source)).value,
+    ]),
+  ), [sourceChannels, surveySources]);
 
   const mergedItems = useMemo(() => items.map((item) => {
     const saved = configuredMap.get(`${item.source_id}::${item.collector_id}`);
     const operationalUse = normalizeCollectorUse(saved?.operational_use ?? item.operational_use ?? item.configured_use ?? item.suggested_use);
-    const channel = String(saved?.channel || item.channel || collectorChannelForUse(operationalUse)).trim() || "Desconocido";
+    const sourceChannel = sourceChannelById.get(item.source_id);
+    const channel = String(saved?.channel || item.channel || sourceChannel || collectorChannelForUse(operationalUse)).trim() || "Desconocido";
     return {
       ...item,
       ...saved,
@@ -4079,7 +6035,7 @@ function AcreditacionChannelSelectorMatrix({
       modality: normalizeModelModality(saved?.modality ?? item.modality ?? acreditacionChannelModality(channel)),
       roster_required: saved?.roster_required ?? item.roster_required ?? operationalUse === "telefono_asistido",
     };
-  }), [configuredMap, items]);
+  }), [configuredMap, items, sourceChannelById]);
 
   const summary = useMemo(() => {
     const recipients = mergedItems.reduce((sum, item) => sum + collectorNumber(item.recipient_summary?.total), 0);
@@ -4284,18 +6240,11 @@ function AcreditacionChannelSelectorMatrix({
                       <em>{sourceActorLabel(source)} · {sourceExternalId(source)}</em>
                     </div>
                   </div>
-                  <label>
-                    <span>Canal</span>
-                    <select
-                      value={selected}
-                      onChange={(event) => setSourceChannels((current) => ({ ...current, [source.id]: event.currentTarget.value }))}
-                      disabled={saving != null}
-                    >
-                      {ACREDITACION_CHANNEL_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <AcreditacionChannelSelect
+                    value={selected}
+                    onChange={(channel) => setSourceChannels((current) => ({ ...current, [source.id]: channel }))}
+                    disabled={saving != null}
+                  />
                 </article>
               );
             })}
@@ -4355,17 +6304,10 @@ function AcreditacionChannelSelectorMatrix({
                         ))}
                       </select>
                     </label>
-                    <label>
-                      <span>Canal</span>
-                      <select
-                        value={channelOptionForValue(channel).value}
-                        onChange={(event) => updateCollector(item, { channel: event.currentTarget.value })}
-                      >
-                        {ACREDITACION_CHANNEL_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <AcreditacionChannelSelect
+                      value={channelOptionForValue(channel).value}
+                      onChange={(channelValue) => updateCollector(item, { channel: channelValue })}
+                    />
                     <label>
                       <span>Modalidad</span>
                       <select
@@ -4410,18 +6352,19 @@ function AcreditacionChannelSelectorMatrix({
 
 function inferAcreditacionSurveyChannel(survey: SurveyMonkeyMultibaseListItem) {
   const text = normalizeSourceMatch(`${survey.title} ${survey.nickname ?? ""}`);
-  if (text.includes("telefon")) return "Telefónico";
-  if (text.includes("whatsapp")) return "WhatsApp";
-  if (text.includes("sms")) return "SMS";
-  if (text.includes("presencial") || text.includes("qr")) return "Ficha QR";
+  const institutionalActor = text.includes("docent") || text.includes("administr");
   if (text.includes("correo") || text.includes("email") || text.includes("mail")) return "Correo";
+  if (text.includes("telefon")) return "Telefónico";
+  if (text.includes("presencial") || text.includes("qr")) return "Presencial (Ficha QR)";
+  if (institutionalActor && !text.includes("whatsapp") && !text.includes("sms")) return "Correo";
+  if (text.includes("whatsapp") || text.includes("sms") || text.includes("web") || text.includes("link") || text.includes("enlace")) return "Enlace personalizado (Whatsapp)";
   if (text.includes("egresad")) return "Telefónico";
   return "Correo";
 }
 
 function inferAcreditacionSurveyActor(survey: SurveyMonkeyMultibaseListItem) {
   const text = normalizeSourceMatch(`${survey.title} ${survey.nickname ?? ""}`);
-  const actor = ["Administrativos", "Docentes", "Egresados", "Estudiantes", "Empleadores"].find((option) => (
+  const actor = ACREDITACION_DEFAULT_ACTORS.find((option) => (
     text.includes(normalizeSourceMatch(option))
   ));
   return actor ?? "Sin actor";
@@ -4445,6 +6388,7 @@ function jobErrorMessage(error: unknown) {
 function AcreditacionSourceStatusStrip({
   sources,
   reports,
+  status,
   busy,
   onSyncSheets,
   onSyncSurvey,
@@ -4452,6 +6396,7 @@ function AcreditacionSourceStatusStrip({
 }: {
   sources: MonitoreoSource[];
   reports: MonitoreoAcreditacionReports;
+  status?: AcreditacionActionStatus;
   busy: boolean;
   onSyncSheets: () => Promise<void>;
   onSyncSurvey: () => Promise<void>;
@@ -4464,6 +6409,7 @@ function AcreditacionSourceStatusStrip({
   const sweepCount = sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[1]).length;
   return (
     <section className="mon-acr-source-status-strip" aria-label="Estado de fuentes de acreditación">
+      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
       <header>
         <span>Fuentes</span>
         <strong>Paquete de acreditación</strong>
@@ -4902,14 +6848,14 @@ function AcreditacionSurveySourcePicker({
     setActors((prev) => {
       const next = { ...prev };
       surveys.forEach((survey) => {
-        if (next[survey.id] == null) next[survey.id] = inferAcreditacionSurveyActor(survey);
+        if (next[survey.id] == null) next[survey.id] = "";
       });
       return next;
     });
     setChannels((prev) => {
       const next = { ...prev };
       surveys.forEach((survey) => {
-        if (next[survey.id] == null) next[survey.id] = inferAcreditacionSurveyChannel(survey);
+        if (next[survey.id] == null) next[survey.id] = "";
       });
       return next;
     });
@@ -4952,9 +6898,9 @@ function AcreditacionSurveySourcePicker({
   };
 
   const payloadForSurvey = (survey: SurveyMonkeyMultibaseListItem): MonitoreoSourcePayload => {
-    const actor = actors[survey.id] || inferAcreditacionSurveyActor(survey);
-    const channel = channels[survey.id] || inferAcreditacionSurveyChannel(survey);
-    const label = labels[survey.id] || ["SurveyMonkey", actor, channel].filter(Boolean).join(" · ") || survey.title;
+    const actor = actors[survey.id] || "";
+    const channel = channels[survey.id] || "";
+    const label = labels[survey.id] || surveyMonkeyDisplayTitle(survey) || survey.title;
     return {
       kind: "surveymonkey",
       label,
@@ -4966,7 +6912,7 @@ function AcreditacionSurveySourcePicker({
       dimensions: cleanSourceDimensions({
         actor,
         segmento: actor,
-        carrera: actor === "Sin actor" ? "" : actor,
+        carrera: actor,
         canal: channel,
         servicio: "Respuestas SurveyMonkey",
         survey_title: survey.title,
@@ -5105,21 +7051,18 @@ function AcreditacionSurveySourcePicker({
                   <span>{selectedSurvey.date_modified ? formatDate(selectedSurvey.date_modified) : "Sin fecha de modificación"}</span>
                 </div>
                 <label className="mon-source-name-field">
-                  <span>Nombre de base</span>
-                  <input value={labels[selectedSurvey.id] ?? ""} onChange={(event) => setLabels((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder="Nombre visible" />
+                  <span>Nombre real en plataforma</span>
+                  <input value={labels[selectedSurvey.id] ?? ""} onChange={(event) => setLabels((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder={selectedSurvey.title || "Nombre visible"} />
                 </label>
                 <label className="mon-source-name-field">
                   <span>Actor / carrera</span>
                   <input value={actors[selectedSurvey.id] ?? ""} onChange={(event) => setActors((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder="Actor" />
                 </label>
-                <label className="mon-source-name-field">
-                  <span>Canal</span>
-                  <select value={channels[selectedSurvey.id] ?? ""} onChange={(event) => setChannels((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))}>
-                    {["Correo", "Telefónico", "WhatsApp", "SMS", "Ficha QR", "Presencial"].map((channel) => (
-                      <option key={channel} value={channel}>{channel}</option>
-                    ))}
-                  </select>
-                </label>
+                <AcreditacionChannelSelect
+                  value={channels[selectedSurvey.id] ?? ""}
+                  onChange={(channel) => setChannels((prev) => ({ ...prev, [selectedSurvey.id]: channel }))}
+                  allowEmpty
+                />
                 <div className="mon-sm-result-actions">
                   <button type="button" onClick={() => { void inspectSurvey(selectedSurvey); }} disabled={Boolean(busy) || inspections[selectedSurvey.id]?.loading}>
                     {inspections[selectedSurvey.id]?.loading ? <Loader2 size={14} className="pulso-spin" /> : <Eye size={14} />}
@@ -5211,11 +7154,813 @@ function AcreditacionSurveyInspectionCard({
   );
 }
 
-function AcreditacionConfiguredSourcesList({
+function AcreditacionActorAssignableField({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const currentKey = normalizeSourceMatch(value);
+  const visibleOptions = options.slice(0, 8);
+  return (
+    <div className="mon-acr-actor-field">
+      <label>
+        <span>Actor</span>
+        <input
+          value={value}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          placeholder="Escribir actor o elegir sugerencia"
+          disabled={disabled}
+        />
+      </label>
+      {visibleOptions.length ? (
+        <div className="mon-acr-actor-choice-row" aria-label="Actores sugeridos">
+          {visibleOptions.map((actor) => {
+            const active = normalizeSourceMatch(actor) === currentKey;
+            return (
+              <button
+                key={actor}
+                type="button"
+                className={active ? "is-active" : ""}
+                onClick={() => onChange(actor)}
+                disabled={disabled}
+              >
+                {active ? <CheckCircle2 size={12} /> : null}
+                {actor}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AcreditacionPlatformSurveySourcesView({
+  sources,
+  config,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  config?: MonitoreoConfig;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const surveySources = sources.filter((source) => source.kind === "surveymonkey");
+  const linkCollectors = config?.operational_model.link_collectors ?? [];
+  const configuredActorOptions = acreditacionActorOptions(surveySources);
+  const actorOptions = acreditacionActorOptions(surveySources, ACREDITACION_DEFAULT_ACTORS);
+  const [drafts, setDrafts] = useState<Record<string, { actor: string; channel: string }>>({});
+  const [savingId, setSavingId] = useState("");
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+
+  useEffect(() => {
+    setDrafts(Object.fromEntries(surveySources.map((source) => [
+      source.id,
+      {
+        actor: sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source),
+        channel: channelOptionForValue(sourceChannelLabel(source)).value,
+      },
+    ])));
+  }, [surveySources.map((source) => `${source.id}:${sourceActorLabel(source)}:${sourceChannelLabel(source)}`).join("|")]);
+
+  const declarationGroups = useMemo(() => {
+    const groups = new Map<string, { actor: string; sources: MonitoreoSource[] }>();
+    surveySources.forEach((source) => {
+      const actor = drafts[source.id]?.actor || sourceActorLabel(source);
+      const key = normalizeSourceMatch(actor) || source.id;
+      const group = groups.get(key) ?? { actor, sources: [] };
+      group.sources.push(source);
+      groups.set(key, group);
+    });
+    return Array.from(groups.values()).map((group) => {
+      const channels = new Map<string, ReturnType<typeof channelVisualForValue> & { count: number }>();
+      group.sources.forEach((source) => {
+        const channel = channelVisualForValue(drafts[source.id]?.channel || sourceChannelLabel(source), "Canal sin declarar");
+        const current = channels.get(channel.key);
+        channels.set(channel.key, current ? { ...current, count: current.count + 1 } : { ...channel, count: 1 });
+      });
+      return { ...group, channels: Array.from(channels.values()) };
+    });
+  }, [drafts, surveySources]);
+
+  async function saveSurvey(source: MonitoreoSource) {
+    const draft = drafts[source.id];
+    if (!draft) return;
+    setSavingId(source.id);
+    setStatus({ tone: "info", message: `Guardando declaracion de ${acreditacionSurveySourceName(source)}...` });
+    try {
+      const result = await apiMonitoreoSource(sourcePayloadFromExisting(source, {
+        label: acreditacionSurveySourceName(source),
+        enabled: source.enabled,
+        dimensions: cleanSourceDimensions({
+          ...source.dimensions,
+          actor: draft.actor,
+          segmento: draft.actor,
+          carrera: draft.actor,
+          canal: draft.channel,
+          servicio: "Respuestas SurveyMonkey",
+          survey_title: source.survey_title,
+        }),
+      }));
+      onStateChange?.(result.state);
+      setStatus({ tone: "success", message: `${result.source.label || source.id} quedo declarada.` });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setSavingId("");
+    }
+  }
+
+  return (
+    <div className="mon-acr-source-view mon-acr-platform-surveys">
+      {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
+      <details className="mon-acr-source-disclosure" open={!surveySources.length}>
+        <summary>
+          <span><Plus size={14} /> Agregar o actualizar encuestas</span>
+          <em>{surveySources.length ? "Catalogo cerrado por defecto" : "Sin encuestas configuradas"}</em>
+        </summary>
+        <AcreditacionSurveySourcePicker
+          sources={surveySources}
+          onStateChange={onStateChange}
+        />
+      </details>
+
+      <section className="mon-acr-object-surface" aria-label="Encuestas en plataforma configuradas">
+        <div className="mon-acr-object-surface-head">
+          <div>
+            <span>Encuestas en plataforma</span>
+            <strong>{fmt(surveySources.length)} fuente{surveySources.length === 1 ? "" : "s"} SurveyMonkey</strong>
+          </div>
+          <em>{fmt(configuredActorOptions.length)} actores detectados</em>
+        </div>
+        {declarationGroups.length ? (
+          <div className="mon-acr-survey-declaration-map" aria-label="Declarador de encuestas por actor y canal">
+            <header>
+              <span><Route size={14} /> Declaración actor-canal</span>
+              <strong>Qué actor usa qué encuesta y por qué canal</strong>
+            </header>
+            <div className="mon-acr-survey-declaration-list">
+              {declarationGroups.map((group) => (
+                <article key={normalizeSourceMatch(group.actor) || group.actor}>
+                  <div className="mon-acr-survey-declaration-main">
+                    <ContactRound size={14} />
+                    <span>
+                      <small>Actor</small>
+                      <strong>{group.actor}</strong>
+                    </span>
+                    <em>{fmt(group.sources.length)} encuesta{group.sources.length === 1 ? "" : "s"}</em>
+                  </div>
+                  <div className="mon-acr-survey-declaration-surveys">
+                    {group.sources.slice(0, 3).map((source) => {
+                      const channel = channelVisualForValue(drafts[source.id]?.channel || sourceChannelLabel(source), "Canal sin declarar");
+                      const Icon = channel.icon;
+                      return (
+                        <span key={source.id} className={`is-${channel.key}`}>
+                          <Icon size={12} />
+                          <strong>{acreditacionSurveySourceName(source)}</strong>
+                          <small>{channel.label}</small>
+                        </span>
+                      );
+                    })}
+                    {group.sources.length > 3 ? <span className="is-more">+{fmt(group.sources.length - 3)} más</span> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <div className="mon-acr-survey-card-grid">
+          {surveySources.map((source) => {
+            const draft = drafts[source.id] ?? {
+              actor: sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source),
+              channel: channelOptionForValue(sourceChannelLabel(source)).value,
+            };
+            const collectorCount = acreditacionCollectorCountForSource(source, linkCollectors);
+            const collectorRows = acreditacionCollectorsForSource(source, linkCollectors);
+            const overrideCount = collectorRows.filter((row) => (
+              row.saved?.channel
+              && acreditacionChannelKey(row.saved.channel) !== acreditacionChannelKey(draft.channel)
+            )).length;
+            const inheritedCount = Math.max(0, collectorRows.length - overrideCount);
+            const sourceActor = draft.actor || sourceActorLabel(source);
+            const actorInitial = actorInitialLabel(sourceActor);
+            const responseCount = acreditacionSourceResponseCount(source, linkCollectors);
+            const channel = channelVisualForValue(draft.channel, "Canal sin declarar");
+            const ChannelIcon = channel.icon;
+            const dirty = draft.actor !== (sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source))
+              || draft.channel !== channelOptionForValue(sourceChannelLabel(source)).value;
+            return (
+              <article key={source.id} className={`mon-acr-source-object-card${source.enabled ? "" : " is-disabled"}`}>
+                <div className="mon-acr-source-object-main">
+                  <span className="mon-acr-source-object-icon" role="img" aria-label={`Actor ${sourceActor}`}>
+                    {actorInitial}
+                  </span>
+                  <div>
+                    <strong>{acreditacionSurveySourceName(source)}</strong>
+                    <em>{source.survey_id || source.id}</em>
+                  </div>
+                  <span className={source.enabled ? "is-ready" : "is-muted"}>{source.enabled ? "Activa" : "Inactiva"}</span>
+                </div>
+                <div className="mon-acr-source-object-metrics">
+                  <span><small>Recopiladores</small><strong>{fmt(collectorCount)}</strong></span>
+                  <span><small>Ultimo sync</small><strong>{sourceSyncLabel(source)}</strong></span>
+                  <span><small>Respuestas</small><strong>{fmt(responseCount)}</strong></span>
+                </div>
+                <div className="mon-acr-source-object-routing" aria-label="Declaración operativa de la encuesta">
+                  <AcreditacionActorAssignableField
+                    value={draft.actor}
+                    options={actorOptions}
+                    disabled={Boolean(savingId)}
+                    onChange={(actor) => setDrafts((current) => ({ ...current, [source.id]: { ...draft, actor } }))}
+                  />
+                  <AcreditacionChannelDeclarationPicker
+                    value={draft.channel}
+                    disabled={Boolean(savingId)}
+                    onChange={(nextChannel) => setDrafts((current) => ({ ...current, [source.id]: { ...draft, channel: nextChannel } }))}
+                  />
+                  <div className="mon-acr-source-inheritance">
+                    <span className={`is-${channel.key}`}><ChannelIcon size={13} /> Base {channel.label}</span>
+                    <span><CheckCircle2 size={13} /> {fmt(inheritedCount)} heredan</span>
+                    <span><ShieldAlert size={13} /> {fmt(overrideCount)} excepciones</span>
+                  </div>
+                  <button type="button" onClick={() => { void saveSurvey(source); }} disabled={Boolean(savingId) || !dirty}>
+                    {savingId === source.id ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+                    Guardar declaración
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+          {!surveySources.length ? (
+            <div className="mon-acr-empty-state">
+              <QrCode size={18} />
+              <strong>Sin encuestas conectadas</strong>
+              <span>Agrega encuestas desde el catalogo y despues asigna cada una al actor correcto.</span>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AcreditacionSheetsByActorView({
   sources,
   onStateChange,
 }: {
   sources: MonitoreoSource[];
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const surveySources = sources.filter((source) => source.kind === "surveymonkey");
+  const baseSources = sources.filter((source) => source.kind === "google_sheets" && source.role === "universo");
+  const sweepSources = sources.filter((source) => source.kind === "google_sheets" && source.role === "barrido");
+  const [manualActor, setManualActor] = useState("");
+  const [manualActors, setManualActors] = useState<string[]>([]);
+  const actorOptions = acreditacionActorOptions([...surveySources, ...baseSources], manualActors);
+  const [selectedActor, setSelectedActor] = useState(actorOptions[0] ?? "");
+  const selectedSource = baseSources.find((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(selectedActor)) ?? null;
+  const [spreadsheetId, setSpreadsheetId] = useState("");
+  const [sheetName, setSheetName] = useState("");
+  const [range, setRange] = useState("");
+  const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
+  const [busy, setBusy] = useState<"inspect" | "save" | null>(null);
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+
+  useEffect(() => {
+    if (!selectedActor && actorOptions.length) setSelectedActor(actorOptions[0]);
+  }, [actorOptions, selectedActor]);
+
+  useEffect(() => {
+    setSpreadsheetId(selectedSource?.sheet_binding?.spreadsheet_id ?? "");
+    setSheetName(selectedSource?.sheet_binding?.sheet_name ?? "");
+    setRange(selectedSource?.sheet_binding?.range ?? "");
+    setInspection(null);
+    setStatus(null);
+  }, [selectedSource?.id, selectedActor]);
+
+  async function inspectSheets() {
+    if (!spreadsheetId.trim()) {
+      setStatus({ tone: "error", message: "Pega el Spreadsheet ID o URL antes de leer pestañas." });
+      return;
+    }
+    setBusy("inspect");
+    setStatus({ tone: "info", message: "Leyendo pestañas desde Google Sheets..." });
+    try {
+      const result = await apiMonitoreoSheetsInspect({
+        spreadsheet_id: spreadsheetId.trim(),
+        sheet_name: sheetName.trim(),
+        header_row: 1,
+        range: range.trim(),
+      });
+      setInspection(result);
+      setStatus({ tone: "success", message: `${fmt(result.sheets.length)} pestañas detectadas en ${result.title || "Spreadsheet"}.` });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveActorSheet() {
+    if (!selectedActor.trim() || !spreadsheetId.trim() || !sheetName.trim()) {
+      setStatus({ tone: "error", message: "Actor, Spreadsheet y pestaña son obligatorios." });
+      return;
+    }
+    setBusy("save");
+    setStatus({ tone: "info", message: selectedSource ? "Guardando base por actor..." : "Registrando base por actor..." });
+    try {
+      const result = await apiMonitoreoSheetsSource({
+        id: selectedSource?.id,
+        kind: "google_sheets",
+        label: `Base ${selectedActor.trim()}`,
+        enabled: true,
+        role: "universo",
+        integration_mode: "connected_read",
+        sheet_binding: {
+          spreadsheet_id: spreadsheetId.trim(),
+          sheet_name: sheetName.trim(),
+          header_row: 1,
+          range: range.trim(),
+        },
+        dimensions: cleanSourceDimensions({
+          actor: selectedActor.trim(),
+          carrera: selectedActor.trim(),
+          segmento: selectedActor.trim(),
+          canal: "Base",
+          servicio: "Base en Sheets",
+          sheet_name: sheetName.trim(),
+        }),
+      });
+      onStateChange?.(result.state);
+      setStatus({ tone: "success", message: `Base ${selectedActor.trim()} quedo vinculada.` });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function addManualActor() {
+    const label = manualActor.trim();
+    if (!label) return;
+    setManualActors((current) => acreditacionActorOptions([], [...current, label]));
+    setSelectedActor(label);
+    setManualActor("");
+  }
+
+  return (
+    <div className="mon-acr-source-view mon-acr-sheets-by-actor">
+      {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
+      <section className="mon-acr-object-surface">
+        <div className="mon-acr-object-surface-head">
+          <div>
+            <span>Bases en Sheets</span>
+            <strong>Una base por actor requerido</strong>
+          </div>
+          <em>{fmt(baseSources.length)}/{fmt(actorOptions.length)} actores vinculados</em>
+        </div>
+        <div className="mon-acr-actor-source-layout">
+          <div className="mon-acr-actor-rail" aria-label="Actores para bases Sheets">
+            <div className="mon-acr-manual-actor">
+              <input
+                value={manualActor}
+                onChange={(event) => setManualActor(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") addManualActor();
+                }}
+                placeholder="Agregar actor manual"
+              />
+              <button type="button" onClick={addManualActor} disabled={!manualActor.trim()}>
+                <Plus size={14} />
+              </button>
+            </div>
+            {actorOptions.map((actor) => {
+              const actorSource = baseSources.find((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(actor));
+              return (
+                <button
+                  key={actor}
+                  type="button"
+                  className={`mon-acr-actor-sheet-card${actor === selectedActor ? " is-active" : ""}${actorSource ? " is-ready" : ""}`}
+                  onClick={() => setSelectedActor(actor)}
+                >
+                  <span>{actorSource ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}</span>
+                  <strong>{actor}</strong>
+                  <em>{actorSource?.sheet_binding?.sheet_name || "Base pendiente"}</em>
+                </button>
+              );
+            })}
+            {!actorOptions.length ? (
+              <div className="mon-sm-empty">Configura actores en Encuestas en plataforma o agrega uno manualmente.</div>
+            ) : null}
+          </div>
+          <div className="mon-acr-actor-sheet-editor">
+            <div className="mon-acr-sheet-adjustment-head">
+              <div>
+                <span>{selectedSource ? "Base vinculada" : "Base pendiente"}</span>
+                <strong>{selectedActor || "Selecciona un actor"}</strong>
+              </div>
+            </div>
+            <div className="mon-acr-sheet-form">
+              <label>
+                <span>Spreadsheet</span>
+                <input value={spreadsheetId} onChange={(event) => setSpreadsheetId(event.currentTarget.value)} placeholder="https://docs.google.com/spreadsheets/d/..." disabled={Boolean(busy) || !selectedActor} />
+              </label>
+              <label>
+                <span>Pestaña del actor</span>
+                <input value={sheetName} onChange={(event) => setSheetName(event.currentTarget.value)} placeholder={selectedActor || "Actor"} disabled={Boolean(busy) || !selectedActor} />
+              </label>
+              <label>
+                <span>Rango</span>
+                <input value={range} onChange={(event) => setRange(event.currentTarget.value)} placeholder="Opcional" disabled={Boolean(busy) || !selectedActor} />
+              </label>
+              <div className="mon-acr-sheet-actions">
+                <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !selectedActor}>
+                  {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
+                  Leer pestañas
+                </button>
+                <button type="button" onClick={() => { void saveActorSheet(); }} disabled={Boolean(busy) || !selectedActor || !spreadsheetId.trim() || !sheetName.trim()}>
+                  {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+                  Confirmar base
+                </button>
+              </div>
+            </div>
+            {inspection ? (
+              <div className="mon-acr-sheet-inspection">
+                <div className="mon-acr-sheet-inspection-head">
+                  <strong>{inspection.title || inspection.spreadsheet_id}</strong>
+                  <span>{fmt(inspection.sheets.length)} pestañas · {fmt(inspection.headers.length)} encabezados</span>
+                </div>
+                <div className="mon-acr-sheet-tabs">
+                  {inspection.sheets.slice(0, 14).map((sheet) => (
+                    <button key={sheet.title} type="button" onClick={() => setSheetName(sheet.title)}>
+                      {sheet.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <details className="mon-acr-source-disclosure">
+        <summary>
+          <span><PhoneCall size={14} /> Barrido telefónico</span>
+          <em>{sweepSources.length ? `${fmt(sweepSources.length)} fuente${sweepSources.length === 1 ? "" : "s"}` : "Opcional si existe"}</em>
+        </summary>
+        <AcreditacionSheetSourceEditor
+          preset={ACREDITACION_SOURCE_PRESETS[1]}
+          sources={sweepSources}
+          onStateChange={onStateChange}
+        />
+      </details>
+    </div>
+  );
+}
+
+function collectorConfigFromRow(row: AcreditacionCollectorRow, patch: Partial<MonitoreoLinkCollector> = {}): MonitoreoLinkCollector {
+  const operationalUse = normalizeCollectorUse(patch.operational_use ?? row.saved?.operational_use ?? row.operationalUse);
+  const channel = String(patch.channel ?? row.saved?.channel ?? row.channel ?? collectorChannelForUse(operationalUse)).trim() || "Sin clasificar";
+  const collectorName = String(patch.collector_name ?? (row.alias || row.saved?.collector_name || row.platformName || row.collectorId)).trim();
+  return {
+    id: row.saved?.id || row.key,
+    source_id: row.sourceId,
+    source_label: row.sourceName,
+    survey_id: row.surveyId,
+    collector_id: row.collectorId,
+    collector_name: collectorName,
+    collector_type: row.collectorType,
+    enabled: patch.enabled ?? row.enabled,
+    channel,
+    operational_use: operationalUse,
+    modality: normalizeModelModality(patch.modality ?? row.saved?.modality ?? row.modality ?? acreditacionChannelModality(channel)),
+    roster_required: patch.roster_required ?? row.saved?.roster_required ?? row.rosterRequired,
+  };
+}
+
+function AcreditacionCollectorsSourceView({
+  sources,
+  config,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  config?: MonitoreoConfig;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const surveySources = sources.filter((source) => source.kind === "surveymonkey" && source.enabled);
+  const configuredCollectors = config?.operational_model.link_collectors ?? [];
+  const [selectedSourceId, setSelectedSourceId] = useState(surveySources[0]?.id ?? "");
+  const [draftCollectors, setDraftCollectors] = useState<MonitoreoLinkCollector[]>(configuredCollectors);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+
+  useEffect(() => {
+    setDraftCollectors(configuredCollectors);
+  }, [configuredCollectors.map((collector) => `${collector.source_id}:${collector.collector_id}:${collector.enabled}:${collector.collector_name}:${collector.channel}:${collector.operational_use}`).join("|")]);
+
+  useEffect(() => {
+    if (!selectedSourceId && surveySources.length) setSelectedSourceId(surveySources[0].id);
+    if (selectedSourceId && surveySources.length && !surveySources.some((source) => source.id === selectedSourceId)) setSelectedSourceId(surveySources[0].id);
+  }, [selectedSourceId, surveySources]);
+
+  const selectedSource = surveySources.find((source) => source.id === selectedSourceId) ?? surveySources[0] ?? null;
+  const selectedHasMetadata = Boolean(selectedSource?.collectors?.length);
+  const collectorRows = selectedSource && selectedHasMetadata
+    ? acreditacionCollectorsForSource(selectedSource, draftCollectors).filter((row) => row.hasPlatformMetadata)
+    : [];
+  const selectedSavedCount = selectedSource
+    ? draftCollectors.filter((collector) => collector.source_id === selectedSource.id || collector.survey_id === selectedSource.survey_id).length
+    : 0;
+
+  function updateCollector(row: AcreditacionCollectorRow, patch: Partial<MonitoreoLinkCollector>) {
+    const next = collectorConfigFromRow(row, patch);
+    setDraftCollectors((current) => [
+      ...current.filter((collector) => `${collector.source_id}::${collector.collector_id}` !== `${next.source_id}::${next.collector_id}`),
+      next,
+    ]);
+  }
+
+  async function saveCollectors() {
+    setSaving(true);
+    setStatus({ tone: "info", message: "Guardando recopiladores incluidos, alias y uso operativo..." });
+    try {
+      const result = await apiMonitoreoCollectorsConfig(draftCollectors);
+      onStateChange?.(result.state);
+      setStatus({ tone: "success", message: "Cambios de recopiladores confirmados." });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mon-acr-source-view mon-acr-collectors-view">
+      {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
+      <section className="mon-acr-object-surface">
+        <div className="mon-acr-object-surface-head">
+          <div>
+            <span>Recopiladores</span>
+            <strong>{selectedSource ? acreditacionSurveySourceName(selectedSource) : "Sin encuesta activa"}</strong>
+          </div>
+          <button type="button" className="pulso-primary" onClick={() => { void saveCollectors(); }} disabled={saving || !surveySources.length}>
+            {saving ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+            Confirmar cambios
+          </button>
+        </div>
+        <div className="mon-acr-collector-picker">
+          {surveySources.map((source) => {
+            const count = acreditacionCollectorCountForSource(source, draftCollectors);
+            const hasMetadata = Boolean(source.collectors?.length);
+            const channel = sourceChannelLabel(source);
+            return (
+              <button
+                key={source.id}
+                type="button"
+                className={`${source.id === selectedSource?.id ? "is-active" : ""}${hasMetadata ? "" : " is-missing"}`}
+                onClick={() => setSelectedSourceId(source.id)}
+              >
+                <AcreditacionChannelBadge channel={channel} />
+                <span>
+                  <strong>{acreditacionSurveySourceName(source)}</strong>
+                  <em>{sourceActorLabel(source)} · {sourceExternalId(source)}</em>
+                </span>
+                <b>{hasMetadata ? `${fmt(count)} recopiladores` : "Sin metadata"}</b>
+              </button>
+            );
+          })}
+          {!surveySources.length ? <div className="mon-sm-empty">No hay encuestas SurveyMonkey activas.</div> : null}
+        </div>
+        {selectedSource && !selectedHasMetadata ? (
+          <div className="mon-acr-metadata-missing">
+            <AlertCircle size={16} />
+            <div>
+              <strong>Falta metadata real de recopiladores</strong>
+              <span>Ejecuta Actualizar todo para guardar los nombres reales de plataforma. No se muestran nombres inventados desde IDs o alias antiguos.</span>
+              {selectedSavedCount ? <em>{fmt(selectedSavedCount)} relaciones guardadas se usaran en Avance.</em> : null}
+            </div>
+          </div>
+        ) : null}
+        <div className="mon-acr-collector-list">
+          {collectorRows.map((row) => {
+            const operationalUse = normalizeCollectorUse(row.saved?.operational_use ?? row.operationalUse);
+            const useOption = collectorUseOption(operationalUse);
+            const UseIcon = useOption.icon;
+            return (
+              <article key={row.key} className={`mon-collector-card mon-acr-collector-row is-${row.modality}${row.enabled ? "" : " is-disabled"}`}>
+                <div className="mon-collector-title">
+                  <span className="mon-collector-use-icon"><UseIcon size={14} /></span>
+                  <div>
+                    <strong>{row.platformName}</strong>
+                    <em>{row.alias ? `Alias: ${row.alias}` : "Sin alias operativo"}</em>
+                  </div>
+                  <span className="mon-collector-chip">{collectorTypeLabel(row.collectorType)}</span>
+                </div>
+                <div className="mon-collector-metrics">
+                  <AcreditacionCollectorMetric label="Respuestas" value={row.responseCount} tone={row.responseCount ? "ready" : "neutral"} />
+                  <AcreditacionCollectorMetric label="Uso" value={row.enabled ? 1 : 0} tone={row.enabled ? "ready" : "warning"} />
+                  <AcreditacionCollectorMetric label="Alias" value={row.alias ? 1 : 0} />
+                  <AcreditacionCollectorMetric label="Barrido" value={row.rosterRequired ? 1 : 0} />
+                </div>
+                <div className="mon-collector-controls mon-acr-collector-controls">
+                  <label className="mon-switch-line">
+                    <input
+                      type="checkbox"
+                      checked={row.enabled}
+                      onChange={(event) => updateCollector(row, { enabled: event.currentTarget.checked })}
+                    />
+                    <span>
+                      <strong>{row.enabled ? "Incluido" : "Excluido"}</strong>
+                      <em>{row.enabled ? "Cuenta en este canal" : "No participa"}</em>
+                    </span>
+                  </label>
+                  <label>
+                    <span>Alias</span>
+                    <input
+                      value={row.alias}
+                      onChange={(event) => updateCollector(row, { collector_name: event.currentTarget.value })}
+                      placeholder="Alias opcional"
+                    />
+                  </label>
+                  <label>
+                    <span>Uso</span>
+                    <select
+                      value={operationalUse}
+                      onChange={(event) => updateCollector(row, { operational_use: event.currentTarget.value as MonitoreoCollectorUse })}
+                    >
+                      {MODEL_COLLECTOR_USE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <AcreditacionChannelSelect
+                    value={channelOptionForValue(row.saved?.channel ?? row.channel).value}
+                    onChange={(channel) => updateCollector(row, { channel })}
+                  />
+                </div>
+              </article>
+            );
+          })}
+          {selectedHasMetadata && !collectorRows.length ? (
+            <div className="mon-sm-empty">Esta encuesta no tiene recopiladores persistidos.</div>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AcreditacionActiveSourcesView({
+  sources,
+  config,
+  reportSources,
+  state,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  config?: MonitoreoConfig;
+  reportSources: Array<Record<string, unknown>>;
+  state?: MonitoreoState | null;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const linkCollectors = config?.operational_model.link_collectors ?? [];
+  const summary = buildAcreditacionActiveSourcesSummary(sources, linkCollectors);
+  const surveySources = sources.filter((source) => source.kind === "surveymonkey" && source.enabled);
+  const sheetSources = sources.filter((source) => source.kind === "google_sheets" && source.enabled);
+  const activeRows = sourceRowsForTable(sources.filter((source) => source.enabled));
+  const packageRows = sourcePackageRows(sources);
+
+  return (
+    <div className="mon-acr-source-view mon-acr-active-sources">
+      <section className="mon-acr-active-hero">
+        <div>
+          <span>Fuentes activas</span>
+          <strong>{fmt(summary.activeSurveys + summary.activeSheetBases)} piezas alimentando monitoreo</strong>
+          <p>Resumen operativo de lo que se usara para nutrir avance, actores, bases y recopiladores.</p>
+        </div>
+        <div className="mon-acr-active-kpis">
+          <StatTile label="Encuestas" value={fmt(summary.activeSurveys)} tone={summary.activeSurveys ? "good" : "warn"} />
+          <StatTile label="Bases actor" value={fmt(summary.activeSheetBases)} tone={summary.missingSheetActors.length ? "warn" : "good"} />
+          <StatTile label="Recop. incluidos" value={fmt(summary.includedCollectors)} tone={summary.includedCollectors ? "good" : "neutral"} />
+          <StatTile label="Ultimo sync" value={summary.lastSync ? formatDate(summary.lastSync) : "Sin sync"} tone={summary.lastSync ? "good" : "warn"} />
+        </div>
+      </section>
+      <div className="mon-acr-active-grid">
+        <section className="mon-acr-object-surface">
+          <div className="mon-acr-object-surface-head">
+            <div>
+              <span>Actores y cobertura</span>
+              <strong>{fmt(summary.actorsWithSurvey.length)} actores con encuesta</strong>
+            </div>
+            <em>{summary.missingSheetActors.length ? `${fmt(summary.missingSheetActors.length)} bases faltantes` : "Bases alineadas"}</em>
+          </div>
+          <div className="mon-acr-active-actor-list">
+            {summary.actorsWithSurvey.map((actor) => {
+              const hasSheet = summary.actorsWithSheet.some((sheetActor) => normalizeSourceMatch(sheetActor) === normalizeSourceMatch(actor));
+              const actorSurveys = surveySources.filter((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(actor));
+              return (
+                <article key={actor} className={hasSheet ? "is-ready" : "is-warning"}>
+                  <strong>{actor}</strong>
+                  <span>{fmt(actorSurveys.length)} encuesta{actorSurveys.length === 1 ? "" : "s"}</span>
+                  <em>{hasSheet ? "Base Sheets vinculada" : "Falta base Sheets"}</em>
+                </article>
+              );
+            })}
+            {!summary.actorsWithSurvey.length ? <div className="mon-sm-empty">Sin actores activos desde encuestas.</div> : null}
+          </div>
+        </section>
+        <section className="mon-acr-object-surface">
+          <div className="mon-acr-object-surface-head">
+            <div>
+              <span>Recopiladores</span>
+              <strong>{fmt(summary.includedCollectors)} incluidos · {fmt(summary.excludedCollectors)} excluidos</strong>
+            </div>
+            <em>{summary.missingCollectorMetadata ? `${fmt(summary.missingCollectorMetadata)} sin metadata` : "Metadata real lista"}</em>
+          </div>
+          <div className="mon-acr-active-source-list">
+            {surveySources.map((source) => {
+              const rows = acreditacionCollectorsForSource(source, linkCollectors);
+              return (
+                <article key={source.id}>
+                  <strong>{acreditacionSurveySourceName(source)}</strong>
+                  <span>{sourceActorLabel(source)} · {fmt(rows.filter((row) => row.enabled).length)} incluidos</span>
+                  <em>{source.collectors?.length ? `${fmt(source.collectors.length)} nombres reales` : "Falta Actualizar todo"}</em>
+                </article>
+              );
+            })}
+            {!surveySources.length ? <div className="mon-sm-empty">Sin encuestas activas.</div> : null}
+          </div>
+        </section>
+        <section className="mon-acr-object-surface">
+          <div className="mon-acr-object-surface-head">
+            <div>
+              <span>Bases Sheets vinculadas</span>
+              <strong>{fmt(sheetSources.length)} fuente{sheetSources.length === 1 ? "" : "s"}</strong>
+            </div>
+            <em>{state?.has_snapshot ? "Snapshot local listo" : "Sin snapshot"}</em>
+          </div>
+          <div className="mon-acr-active-source-list">
+            {sheetSources.map((source) => (
+              <article key={source.id}>
+                <strong>{source.label || sourceActorLabel(source)}</strong>
+                <span>{source.sheet_binding?.sheet_name || "Sin pestaña"} · {sourceActorLabel(source)}</span>
+                <em>{sourceSyncLabel(source)}</em>
+              </article>
+            ))}
+            {!sheetSources.length ? <div className="mon-sm-empty">Sin bases Sheets activas.</div> : null}
+          </div>
+        </section>
+      </div>
+      <details className="mon-acr-source-disclosure">
+        <summary>
+          <span><Table2 size={14} /> Detalle tecnico</span>
+          <em>{fmt(activeRows.length)} fuentes activas</em>
+        </summary>
+        <div className="mon-profile-grid">
+          <section className="mon-profile-panel">
+            <div className="mon-profile-panel-head">
+              <h3>Cobertura fija</h3>
+              <span>{fmt(packageRows.length)} piezas</span>
+            </div>
+            <DataTable rows={packageRows} empty="No hay cobertura de fuentes para acreditacion." preferredColumns={["Pieza", "Servicio", "Configuradas", "Activas", "Estado", "Ultimo sync"]} />
+          </section>
+          <section className="mon-profile-panel">
+            <div className="mon-profile-panel-head">
+              <h3>Fuentes configuradas</h3>
+              <span>{fmt(activeRows.length)} activas</span>
+            </div>
+            <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]} />
+          </section>
+          <section className="mon-profile-panel">
+            <div className="mon-profile-panel-head">
+              <h3>Fuentes del reporte</h3>
+              <span>{fmt(reportSources.length)} filas</span>
+            </div>
+            <DataTable rows={reportSources} empty="El reporte no declaro fuentes para este corte." />
+          </section>
+        </div>
+        <AcreditacionConfiguredSourcesList
+          sources={sources}
+          syncFallback={state?.synced_at ?? state?.generated_at}
+          onStateChange={onStateChange}
+        />
+      </details>
+    </div>
+  );
+}
+
+function AcreditacionConfiguredSourcesList({
+  sources,
+  syncFallback,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  syncFallback?: string;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const [savingId, setSavingId] = useState("");
@@ -5251,6 +7996,8 @@ function AcreditacionConfiguredSourcesList({
         {sources.map((source) => {
           const dims = sourceDimensionEntries(source.dimensions);
           const saving = savingId === source.id;
+          const syncLabel = sourceSyncLabel(source);
+          const displayedSync = syncLabel === "Sin sync" && source.enabled && syncFallback ? formatDate(syncFallback) : syncLabel;
           return (
             <div key={source.id} className={`mon-source-item${source.enabled ? "" : " is-disabled"}`}>
               <div className="mon-source-main">
@@ -5285,7 +8032,7 @@ function AcreditacionConfiguredSourcesList({
                 ) : null}
               </div>
               <span>{saving ? "Guardando..." : sourceExternalId(source)}</span>
-              {source.enabled ? <em>{source.last_sync_at ? formatDate(source.last_sync_at) : "Sin sync"}</em> : <em>Inactiva</em>}
+              <em>{displayedSync}</em>
             </div>
           );
         })}
@@ -5443,6 +8190,147 @@ function AcreditacionSourcePackageConsole({
   );
 }
 
+function AcreditacionPhoneSourceSlotCard({
+  slot,
+  icon,
+  syncFallback,
+  rowFallback = 0,
+}: {
+  slot: AcreditacionPhoneSourceSlot;
+  icon: ReactNode;
+  syncFallback?: string;
+  rowFallback?: number;
+}) {
+  const active = slot.sources.filter((source) => source.enabled);
+  const primary = active[0] ?? slot.sources[0] ?? null;
+  const statusLabel = slot.status === "ready" ? "Lista" : slot.status === "inactive" ? "Inactiva" : "Pendiente";
+  const statusDetail = slot.key === "universo"
+    ? "define la base y las cuotas"
+    : "define responsables y estados";
+  const rows = slot.sources.reduce((sum, source) => sum + sourceRowCount(source), 0) || rowFallback;
+  const syncLabel = primary ? sourceSyncLabel(primary) : "Sin sync";
+  const displayedSync = syncLabel === "Sin sync" && slot.ready && syncFallback ? formatDate(syncFallback) : syncLabel;
+  return (
+    <article className={`mon-phone-source-slot is-${slot.status}`}>
+      <div className="mon-phone-source-slot-main">
+        <span className="mon-phone-source-slot-icon">{icon}</span>
+        <div>
+          <strong>{slot.label}</strong>
+          <em>{slot.purpose}</em>
+        </div>
+        <span className="mon-phone-source-slot-status">{statusLabel}</span>
+      </div>
+      <div className="mon-phone-source-slot-data">
+        <span>
+          <em>Fuente</em>
+          {primary ? <strong>{primary.label || primary.id}</strong> : <strong>Sin fuente vinculada</strong>}
+        </span>
+        <span>
+          <em>Spreadsheet</em>
+          {primary && sourceSpreadsheetUrl(primary) ? (
+            <a href={sourceSpreadsheetUrl(primary)} target="_blank" rel="noreferrer" title={sourceSpreadsheetUrl(primary)}>
+              {sourceSpreadsheetDisplay(primary)}
+            </a>
+          ) : (
+            <strong>Enlace pendiente</strong>
+          )}
+        </span>
+        <span>
+          <em>Pestaña / rango</em>
+          <strong>{primary ? [sourceSheetField(primary, "sheet_name"), sourceSheetField(primary, "range")].filter(Boolean).join(" · ") || "Sin pestaña" : "Pendiente"}</strong>
+        </span>
+        <span>
+          <em>Lectura</em>
+          <strong>{slot.sources.length ? `${fmt(active.length)}/${fmt(slot.sources.length)} activas` : statusDetail}</strong>
+        </span>
+        <span>
+          <em>Filas</em>
+          <strong>{rows ? fmt(rows) : slot.ready ? "Listo" : "S/D"}</strong>
+        </span>
+        <span>
+          <em>Último sync</em>
+          <strong>{displayedSync}</strong>
+        </span>
+      </div>
+      <div className="mon-phone-source-slot-tags" aria-label={`Columnas esperadas para ${slot.label}`}>
+        {slot.expected.map((item) => <i key={item}>{item}</i>)}
+      </div>
+    </article>
+  );
+}
+
+function AcreditacionPhoneSourcesContractPanel({
+  sources,
+  syncedAt,
+  nRows = 0,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  syncedAt?: string;
+  nRows?: number;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const contract = buildAcreditacionPhoneSourceContract(sources);
+  const basePreset = ACREDITACION_SOURCE_PRESETS[0];
+  const sweepPreset = ACREDITACION_SOURCE_PRESETS[1];
+  const missingLabel = contract.missing.length
+    ? contract.missing.map((item) => item === "universo" ? "base de universo" : "barrido").join(" y ")
+    : "contrato completo";
+  return (
+    <section className={`mon-phone-source-contract${contract.ready ? " is-ready" : " has-missing"}`} aria-label="Contrato de fuentes telefónicas">
+      <header className="mon-phone-source-contract-head">
+        <div>
+          <span><PlugZap size={14} /> Fuentes telefónicas</span>
+          <strong>Base de universo y barrido son fuentes distintas</strong>
+          <p>La base define a quién se puede llamar y las cuotas; el barrido define asignaciones, responsables, intentos, estados y fechas.</p>
+        </div>
+        <em>{contract.ready ? "Listo para monitoreo" : `Falta ${missingLabel}`}</em>
+      </header>
+      <div className="mon-phone-source-contract-grid">
+        <AcreditacionPhoneSourceSlotCard
+          slot={contract.universe}
+          icon={<Layers3 size={15} />}
+          rowFallback={nRows}
+          syncFallback={syncedAt}
+        />
+        <AcreditacionPhoneSourceSlotCard
+          slot={contract.sweep}
+          icon={<PhoneCall size={15} />}
+          syncFallback={syncedAt}
+        />
+      </div>
+      {!contract.ready ? (
+        <div className="mon-phone-source-contract-alert">
+          <AlertCircle size={15} />
+          <span>
+            {contract.universe.ready
+              ? "La base de universo ya está vinculada. Falta registrar la hoja de barrido con responsables, estados e intentos."
+              : "Primero vincula la base de universo y luego el barrido telefónico para separar población objetivo de operación diaria."}
+          </span>
+        </div>
+      ) : null}
+      <details className="mon-phone-source-editors" open={!contract.ready}>
+        <summary>
+          <span><Table2 size={14} /> Configurar Google Sheets</span>
+          <em>{contract.ready ? "Editar fuentes" : "Completar fuentes"}</em>
+        </summary>
+        <div className="mon-phone-source-editor-grid">
+          <AcreditacionSheetSourceEditor
+            preset={basePreset}
+            sources={contract.universe.sources}
+            onStateChange={onStateChange}
+          />
+          <AcreditacionSheetSourceEditor
+            preset={sweepPreset}
+            sources={contract.sweep.sources}
+            onStateChange={onStateChange}
+          />
+        </div>
+      </details>
+    </section>
+  );
+}
+
 function AcreditacionSourcesWorkbench({
   reports,
   state,
@@ -5455,66 +8343,20 @@ function AcreditacionSourcesWorkbench({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const client = reports.client_report;
-  const reportSources = client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"]);
+  const reportSources = (client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"])) as Array<Record<string, unknown>>;
   const configuredSources = state?.sources ?? [];
-  const [activePresetKey, setActivePresetKey] = useState<AcreditacionSourcePresetKey>(
-    activeTab === "sheets" ? "base_trabajada" : "respuestas_surveymonkey",
+  const operationalSources = useMemo(
+    () => configuredSources.map((source) => acreditacionSourceWithOperationalMetadata(source, state?.source_metadata)),
+    [configuredSources, state?.source_metadata],
   );
   const [syncBusy, setSyncBusy] = useState<"sheets" | "survey" | "all" | null>(null);
   const [syncStatus, setSyncStatus] = useState<AcreditacionActionStatus>(null);
-  useEffect(() => {
-    if (activeTab === "survey") setActivePresetKey("respuestas_surveymonkey");
-    if (activeTab === "sheets" && activePresetKey === "respuestas_surveymonkey") setActivePresetKey("base_trabajada");
-  }, [activePresetKey, activeTab]);
-
-  const configuredRows = sourceRowsForTable(configuredSources);
-  const surveySources = configuredSources.filter((source) => source.kind !== "google_sheets");
-  const sheetSources = configuredSources.filter((source) => source.kind === "google_sheets");
-  const activeSources = configuredSources.filter((source) => source.enabled);
+  const surveySources = operationalSources.filter((source) => source.kind === "surveymonkey");
+  const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
+  const activeSources = operationalSources.filter((source) => source.enabled);
   const activeSurveySources = surveySources.filter((source) => source.enabled && source.kind === "surveymonkey");
   const activeSheetSources = sheetSources.filter((source) => source.enabled);
-  const packageRows = sourcePackageRows(configuredSources);
-  const activePreset = ACREDITACION_SOURCE_PRESETS.find((preset) => preset.key === activePresetKey) ?? ACREDITACION_SOURCE_PRESETS[0];
-  const activePresetSources = sourcesForPreset(configuredSources, activePreset);
-  const activePresetRows = sourceRowsForTable(activePresetSources);
-  const activePresetActors = uniqueDisplayValues(activePresetSources.map(sourceActorLabel));
-  const activePresetChannels = uniqueDisplayValues(activePresetSources.map(sourceChannelLabel));
-  const sheetLinkRows = sheetSources.map((source) => ({
-    Fuente: source.label || source.id,
-    Spreadsheet: sourceSpreadsheetDisplay(source),
-    Pestaña: source.sheet_binding?.sheet_name || "Sin pestaña",
-    Rango: source.sheet_binding?.range || "A:Z",
-    Enlace: sourceSpreadsheetUrl(source),
-    Estado: source.enabled ? "Activa" : "Inactiva",
-  }));
-  const snapshotRows = [
-    { Indicador: "Registros locales", Valor: fmt(state?.n_rows ?? 0), Evidencia: state?.has_snapshot ? "Snapshot disponible" : "Sin snapshot" },
-    { Indicador: "Corte sincronizado", Valor: state?.synced_at ? state.synced_at : "Sin corte", Evidencia: reports.report_scope ?? "source" },
-    { Indicador: "Fuentes configuradas", Valor: fmt(configuredSources.length), Evidencia: `${fmt(configuredSources.filter((source) => source.enabled).length)} activas` },
-    { Indicador: "Paquete acreditación", Valor: `${fmt(packageRows.filter((row) => row.Estado === "Lista").length)}/${fmt(packageRows.length)}`, Evidencia: activePreset.label },
-    { Indicador: "Último sync paquete", Valor: mostRecentSyncLabel(activeSources), Evidencia: activeSources.length ? "fuentes activas" : "sin fuentes activas" },
-  ];
-  const surveyRows = sourceRowsForTable(surveySources);
-  const sheetRows = sourceRowsForTable(sheetSources);
-  const sheetSummaryRows = reports.sheets.map((sheet) => ({
-    Hoja: sheet.title || sheet.id,
-    ID: sheet.id,
-    Bloques: sheet.blocks.length,
-    Filas: sheet.blocks.reduce((acc, block) => acc + block.rows.length, 0),
-  }));
-  const activeRows = sourceRowsForTable(activeSources);
-  const sourceEditor = activePreset.provider === "google_sheets" ? (
-    <AcreditacionSheetSourceEditor
-      preset={activePreset}
-      sources={activePresetSources}
-      onStateChange={onStateChange}
-    />
-  ) : (
-    <AcreditacionSurveySourcePicker
-      sources={activeSurveySources}
-      onStateChange={onStateChange}
-    />
-  );
+  const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
 
   const syncSheets = async () => {
     const sourceIds = activeSheetSources.map((source) => source.id);
@@ -5536,7 +8378,7 @@ function AcreditacionSourcesWorkbench({
     }
   };
 
-  const syncExternal = async (kind: "survey" | "all", sourceIds: string[], label: string) => {
+  const syncExternal = async (kind: "survey" | "all", sourceIds: string[], label: string, syncMode: "full" | "advance" = "full") => {
     if (!sourceIds.length) {
       setSyncStatus({ tone: "error", message: "No hay fuentes activas para actualizar." });
       return;
@@ -5544,7 +8386,7 @@ function AcreditacionSourcesWorkbench({
     setSyncBusy(kind);
     setSyncStatus({ tone: "info", message: `${label}: creando job local...` });
     try {
-      const start = await apiMonitoreoSync(undefined, sourceIds);
+      const start = await apiMonitoreoSync(undefined, sourceIds, { syncMode });
       setSyncStatus({ tone: "info", message: `${label}: job ${start.job_id} en ejecución.` });
       await waitForSourceSyncJob(start.job_id);
       const next = await apiMonitoreoState({
@@ -5563,55 +8405,36 @@ function AcreditacionSourcesWorkbench({
     }
   };
 
-  const sourceConsole = (
-    <AcreditacionSourcePackageConsole
-      sources={configuredSources}
-      activePresetKey={activePresetKey}
+  const sourceStatus = (
+    <AcreditacionSourceStatusStrip
+      sources={operationalSources}
+      reports={reports}
       status={syncStatus}
       busy={Boolean(syncBusy)}
-      onSelectPreset={setActivePresetKey}
       onSyncSheets={syncSheets}
-      onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), "Actualización SurveyMonkey")}
-      onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualización completa")}
+      onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), "Actualizacion SurveyMonkey", "full")}
+      onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualizacion completa", "full")}
     />
   );
+  const phoneSourceContract = isPhoneSourceModel ? (
+    <AcreditacionPhoneSourcesContractPanel
+      sources={operationalSources}
+      syncedAt={state?.synced_at ?? reports.generated_at}
+      nRows={state?.n_rows ?? 0}
+      onStateChange={onStateChange}
+    />
+  ) : null;
 
   if (activeTab === "survey") {
     return (
       <div className="mon-profile-stack">
-        {sourceConsole}
-        {sourceEditor}
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>{activePreset.label}</h3>
-            <span>{fmt(activePresetSources.length)} fuentes · {fmt(activePresetActors.length || activePresetChannels.length)} cortes</span>
-          </div>
-          <DataTable
-            rows={activePresetRows}
-            empty="No hay respuestas SurveyMonkey configuradas para el paquete de acreditación."
-            preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]}
-          />
-        </section>
-        <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Encuestas y recopiladores</h3>
-              <span>{fmt(surveyRows.length)} fuentes</span>
-            </div>
-            <DataTable
-              rows={surveyRows}
-              empty="No hay fuentes SurveyMonkey/Kobo configuradas para este corte."
-              preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]}
-            />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes del reporte</h3>
-              <span>{fmt(reportSources.length)} filas</span>
-            </div>
-            <DataTable rows={reportSources as Array<Record<string, unknown>>} empty="El reporte no declaro fuentes para este corte." />
-          </section>
-        </div>
+        {sourceStatus}
+        {phoneSourceContract}
+        <AcreditacionPlatformSurveySourcesView
+          sources={operationalSources}
+          config={state?.config}
+          onStateChange={onStateChange}
+        />
       </div>
     );
   }
@@ -5619,89 +8442,49 @@ function AcreditacionSourcesWorkbench({
   if (activeTab === "sheets") {
     return (
       <div className="mon-profile-stack">
-        {sourceConsole}
-        {sourceEditor}
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Cobertura del paquete</h3>
-            <span>{fmt(packageRows.filter((row) => row.Estado === "Lista").length)} piezas listas</span>
-          </div>
-          <DataTable
-            rows={packageRows}
-            empty="No hay paquete de fuentes configurado."
-            preferredColumns={["Pieza", "Servicio", "Rol", "Configuradas", "Activas", "Estado", "Ultimo sync"]}
+        {sourceStatus}
+        {phoneSourceContract}
+        {isPhoneSourceModel ? (
+          <AcreditacionConfiguredSourcesList
+            sources={operationalSources}
+            syncFallback={state?.synced_at ?? reports.generated_at}
+            onStateChange={onStateChange}
           />
-        </section>
-        <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Sheets configuradas</h3>
-              <span>{fmt(sheetRows.length)} fuentes</span>
-            </div>
-            <DataTable
-              rows={sheetRows}
-              empty="No hay Sheets configuradas para universo, barrido o respuestas."
-              preferredColumns={["Fuente", "Servicio", "Rol", "Actor", "Estado", "Ultimo sync", "ID"]}
-            />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Vínculos Sheets</h3>
-              <span>{fmt(sheetLinkRows.length)} enlaces</span>
-            </div>
-            <DataTable
-              rows={sheetLinkRows.length ? sheetLinkRows : sheetSummaryRows}
-              empty="No hay vínculos Sheets configurados para este scope."
-              preferredColumns={["Fuente", "Spreadsheet", "Pestaña", "Rango", "Estado", "Enlace"]}
-            />
-          </section>
-        </div>
+        ) : (
+          <AcreditacionSheetsByActorView
+            sources={operationalSources}
+            onStateChange={onStateChange}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (activeTab === "collectors") {
+    return (
+      <div className="mon-profile-stack">
+        {sourceStatus}
+        {phoneSourceContract}
+        <AcreditacionCollectorsSourceView
+          sources={operationalSources}
+          config={state?.config}
+          onStateChange={onStateChange}
+        />
       </div>
     );
   }
 
   return (
     <div className="mon-profile-stack">
-      {sourceConsole}
-      <AcreditacionConfiguredSourcesList sources={configuredSources} onStateChange={onStateChange} />
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Cobertura fija</h3>
-          <span>{fmt(packageRows.length)} piezas</span>
-        </div>
-        <DataTable
-          rows={packageRows}
-          empty="No hay cobertura de fuentes para acreditación."
-          preferredColumns={["Pieza", "Servicio", "Rol", "Configuradas", "Activas", "Estado", "Ultimo sync"]}
-        />
-      </section>
-      <div className="mon-profile-grid">
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Fuentes del reporte</h3>
-            <span>{fmt(reportSources.length)} filas</span>
-          </div>
-          <DataTable rows={reportSources as Array<Record<string, unknown>>} empty="El reporte no declaro fuentes para este corte." />
-        </section>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Fuentes configuradas</h3>
-            <span>{fmt(configuredRows.length)} fuentes</span>
-          </div>
-          <DataTable
-            rows={activeRows.length ? activeRows : configuredRows}
-            empty="No hay fuentes configuradas en la sesión."
-            preferredColumns={["Fuente", "Servicio", "Rol", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]}
-          />
-        </section>
-      </div>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Corte local</h3>
-          <span>{state?.has_snapshot ? "snapshot listo" : "sin snapshot"}</span>
-        </div>
-        <DataTable rows={snapshotRows} empty="Sin evidencia de corte local." />
-      </section>
+      {sourceStatus}
+      {phoneSourceContract}
+      <AcreditacionActiveSourcesView
+        sources={operationalSources}
+        config={state?.config}
+        reportSources={reportSources}
+        state={state}
+        onStateChange={onStateChange}
+      />
     </div>
   );
 }
@@ -5719,13 +8502,15 @@ function DataTable({
   rows,
   empty,
   preferredColumns = [],
+  maxColumns = 8,
 }: {
   rows: Array<Record<string, unknown>>;
   empty: string;
   preferredColumns?: string[];
+  maxColumns?: number;
 }) {
   if (!rows.length) return <p className="mon-profile-muted">{empty}</p>;
-  const columns = compactColumns(rows, preferredColumns);
+  const columns = compactColumns(rows, preferredColumns, maxColumns);
   return (
     <div className="mon-profile-table-wrap">
       <table className="mon-profile-table">
@@ -5744,9 +8529,31 @@ function DataTable({
   );
 }
 
+function downloadRowsAsCsv(rows: Array<Record<string, unknown>>, filename: string) {
+  if (!rows.length || typeof document === "undefined" || typeof URL === "undefined" || typeof Blob === "undefined") return;
+  const columns = compactColumns(rows, [], 60);
+  const csv = [
+    columns.join(","),
+    ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")),
+  ].join("\n");
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value: unknown) {
+  const raw = value == null ? "" : String(value);
+  return `"${raw.replace(/"/g, "\"\"")}"`;
+}
+
 type AcreditacionCaseFilters = {
   search: string;
   actor: string;
+  date: string;
   channel: string;
   source: string;
   collector: string;
@@ -5757,6 +8564,7 @@ type AcreditacionCaseFilters = {
 const EMPTY_CASE_FILTERS: AcreditacionCaseFilters = {
   search: "",
   actor: "",
+  date: "",
   channel: "",
   source: "",
   collector: "",
@@ -5789,7 +8597,7 @@ function caseMatchesFilters(item: MonitoreoInternalQueryCase, filters: Acreditac
   return filterInternalQueryCases([item], {
     search: filters.search,
     actor: filters.actor,
-    date: "",
+    date: filters.date,
     channel: filters.channel,
     collector: filters.collector,
     source: filters.source,
@@ -5797,6 +8605,18 @@ function caseMatchesFilters(item: MonitoreoInternalQueryCase, filters: Acreditac
     state: "",
     crossing: filters.crossing,
   }).length > 0;
+}
+
+function consultaFiltersForTab(filters: AcreditacionCaseFilters, tab: AcreditacionConsultaTab): AcreditacionCaseFilters {
+  if (tab === "base") {
+    return {
+      ...EMPTY_CASE_FILTERS,
+      search: filters.search,
+      actor: filters.actor,
+      response: filters.response,
+    };
+  }
+  return filters;
 }
 
 function countCaseOptions(
@@ -5830,7 +8650,7 @@ function caseSourceValue(item: MonitoreoInternalQueryCase) {
 }
 
 function caseCollectorValue(item: MonitoreoInternalQueryCase) {
-  return internalQueryCollectorDisplayLabel(item) || item.collector_id || "";
+  return internalQueryCollectorValue(item) || item.collector_id || "";
 }
 
 function caseToneClass(item: MonitoreoInternalQueryCase) {
@@ -5844,6 +8664,71 @@ function caseToneClass(item: MonitoreoInternalQueryCase) {
 function caseWithoutCrossing(item: MonitoreoInternalQueryCase) {
   const crossing = internalCaseCrossingValue(item);
   return crossing === "sin_cruce" || crossing === "sin_llave" || crossing === "sin_base";
+}
+
+function caseHasPlatformResponse(item: MonitoreoInternalQueryCase) {
+  return Boolean(String(item.response_id || "").trim());
+}
+
+function caseResponseSortTime(item: MonitoreoInternalQueryCase) {
+  const raw = String(item.response_datetime || item.date || "").trim();
+  if (!raw || normalizeCaseSearch(raw).includes("sin fecha")) return 0;
+  const date = raw.includes("T") || raw.includes(":") ? new Date(raw) : new Date(`${raw}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+export function caseResponseDateTimeLabel(item: MonitoreoInternalQueryCase) {
+  const rawDateTime = String(item.response_datetime || "").trim();
+  if (rawDateTime) {
+    const date = new Date(rawDateTime);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
+    }
+    return rawDateTime;
+  }
+  const rawDate = String(item.date || "").trim();
+  if (!rawDate) return "Sin fecha";
+  return formatInternalQueryDateLabel(rawDate);
+}
+
+export function caseResponseTimeDetailLabel(item: MonitoreoInternalQueryCase) {
+  const rawDateTime = String(item.response_datetime || "").trim();
+  if (!rawDateTime) return "Sin hora registrada";
+  const date = new Date(rawDateTime);
+  if (Number.isNaN(date.getTime())) return "Hora no normalizada";
+  return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+}
+
+function comparePlatformCases(a: MonitoreoInternalQueryCase, b: MonitoreoInternalQueryCase) {
+  return caseResponseSortTime(b) - caseResponseSortTime(a) ||
+    String(b.response_row ?? "").localeCompare(String(a.response_row ?? ""), "es", { numeric: true }) ||
+    caseDisplayName(a).localeCompare(caseDisplayName(b), "es");
+}
+
+export function caseIsSubsanacionCandidate(item: MonitoreoInternalQueryCase) {
+  return caseHasPlatformResponse(item) && caseWithoutCrossing(item);
+}
+
+export function caseIsActionableSubsanacion(item: MonitoreoInternalQueryCase) {
+  const response = internalCaseResponseStateValue(item);
+  return caseIsSubsanacionCandidate(item) && (response === "complete" || response === "partial");
+}
+
+function caseSubsanacionActionLabel(item: MonitoreoInternalQueryCase) {
+  if (caseIsActionableSubsanacion(item)) return "Subsanar";
+  if (internalCaseResponseStateValue(item) === "refusal") return "No accionable";
+  if (internalCaseResponseStateValue(item) === "pending") return "Sin respuesta";
+  return assistedReviewVisible(item) ? "Revisar" : "Explicar";
+}
+
+function caseSubsanacionActionDetail(item: MonitoreoInternalQueryCase) {
+  if (caseIsActionableSubsanacion(item)) {
+    return "Respuesta completa o parcial sin cruce: puede vincularse con evidencia y nota.";
+  }
+  if (internalCaseResponseStateValue(item) === "refusal") {
+    return "Rechazo no identificable: queda explicado, no se puede asignar al universo sin evidencia.";
+  }
+  return "No hay respuesta efectiva que mover al avance.";
 }
 
 function caseIsAuditable(item: MonitoreoInternalQueryCase) {
@@ -5917,6 +8802,192 @@ function caseSecondaryEvidence(item: MonitoreoInternalQueryCase) {
   if (phone?.declared_phone) return `Celular declarado: ${phone.declared_phone}`;
   if (phone?.manual_code_base?.case_key) return `Código manual: ${phone.manual_code_base.case_key}`;
   return "";
+}
+
+type AcreditacionCaseKeyEvidenceTone = "primary" | "secondary" | "base";
+
+type AcreditacionCaseKeyEvidenceRow = {
+  label: string;
+  value: string;
+  tone: AcreditacionCaseKeyEvidenceTone;
+};
+
+function cleanCaseKeyText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function caseKeyStrategyFallbackLabel(item: MonitoreoInternalQueryCase) {
+  const key = normalizeCaseSearch([
+    item.channel_key_strategy,
+    item.channel_key_strategy_label,
+    item.channel,
+    item.collector_name,
+    item.source_label,
+  ].join(" "));
+  if (key.includes("telefon")) return "Telefónico: enlace personalizado + código final";
+  if (key.includes("whatsapp")) return "WhatsApp: pregunta de código PUCP";
+  if (key.includes("qr") || key.includes("presencial") || key.includes("ficha")) return "QR presencial: pregunta de código PUCP";
+  if (key.includes("correo") || key.includes("email") || key.includes("mail")) return "Correo: metadata del envío";
+  if (key.includes("enlace") || key.includes("web") || key.includes("link") || key.includes("sms")) return "Enlace: pregunta de código PUCP";
+  return "Llave configurada por fuente";
+}
+
+function caseKeyStrategyHint(item: MonitoreoInternalQueryCase) {
+  const strategyKey = normalizeCaseSearch([
+    item.channel_key_strategy,
+    item.channel_key_strategy_label,
+  ].join(" "));
+  const channel = acreditacionChannelDisplay(item.channel || item.source_label);
+  if (strategyKey.includes("llave configurada") || strategyKey.includes("configurada")) {
+    return `Primero llave configurada para ${channel}; usar auxiliares para explicar o subsanar.`;
+  }
+  const key = normalizeCaseSearch([
+    item.channel_key_strategy,
+    item.channel_key_strategy_label,
+    item.channel,
+    item.collector_name,
+    item.source_label,
+  ].join(" "));
+  if (key.includes("telefon")) return "Primero enlace personalizado; si no cruza, revisar código final y celular declarado.";
+  if (key.includes("correo") || key.includes("email") || key.includes("mail")) return "Primero correo o metadata de envío; código declarado queda como apoyo.";
+  if (key.includes("qr") || key.includes("presencial") || key.includes("ficha")) return "Primero código PUCP declarado en ficha QR; revisar digitación si queda sin cruce.";
+  if (key.includes("whatsapp") || key.includes("enlace") || key.includes("web") || key.includes("link") || key.includes("sms")) return "Primero código PUCP declarado en el enlace; usar correo o nombre como apoyo.";
+  return "Primero variable de llave configurada; usar auxiliares para explicar o subsanar.";
+}
+
+export function caseKeyTraceSummary(item: MonitoreoInternalQueryCase) {
+  const phone = item.phone_audit;
+  const channelLabel = acreditacionChannelDisplay(item.channel || item.source_label);
+  const strategyLabelRaw = cleanCaseKeyText(item.channel_key_strategy_label) || caseKeyStrategyFallbackLabel(item);
+  const strategyLabel = normalizeCaseSearch(strategyLabelRaw).includes("llave configurada") && channelLabel !== "Sin canal"
+    ? `${channelLabel}: llave configurada por fuente`
+    : strategyLabelRaw;
+  const primaryLabel = cleanCaseKeyText(item.primary_identity_label || item.identity_label) || (
+    normalizeCaseSearch(strategyLabel).includes("telefon") ? "Enlace usado" : "Llave leída"
+  );
+  const primaryValue = cleanCaseKeyText(item.primary_identity_value) ||
+    cleanCaseKeyText(phone?.cv_id) ||
+    cleanCaseKeyText(item.case_key);
+  const secondaryLabel = cleanCaseKeyText(item.secondary_identity_label) || "Evidencia auxiliar";
+  const secondaryValue = cleanCaseKeyText(item.secondary_identity_value) ||
+    cleanCaseKeyText(phone?.final_codpulso) ||
+    cleanCaseKeyText(phone?.declared_phone) ||
+    cleanCaseKeyText(phone?.manual_code_base?.case_key);
+  const baseValue = cleanCaseKeyText(item.base_record) ||
+    cleanCaseKeyText(item.base_source) ||
+    internalCaseCrossingLabel(internalCaseCrossingValue(item));
+  const rows: AcreditacionCaseKeyEvidenceRow[] = [];
+  const seen = new Set<string>();
+  const addRow = (label: string, value: string, tone: AcreditacionCaseKeyEvidenceTone) => {
+    const normalizedValue = cleanCaseKeyText(value);
+    if (!normalizedValue) return;
+    const id = `${normalizeCaseSearch(label)}:${normalizeCaseSearch(normalizedValue)}`;
+    if (seen.has(id)) return;
+    seen.add(id);
+    rows.push({ label, value: normalizedValue, tone });
+  };
+  if (primaryValue) {
+    addRow(primaryLabel, primaryValue, "primary");
+  } else {
+    rows.push({ label: primaryLabel, value: "Sin llave declarada", tone: "primary" });
+  }
+  addRow(secondaryLabel, secondaryValue, "secondary");
+  addRow("Base / cruce", baseValue, "base");
+  return {
+    strategyLabel,
+    strategyHint: caseKeyStrategyHint(item),
+    channelLabel,
+    primaryEvidence: rows[0] ? `${rows[0].label}: ${rows[0].value}` : "Sin evidencia primaria",
+    secondaryEvidence: rows[1] ? `${rows[1].label}: ${rows[1].value}` : "",
+    evidenceRows: rows,
+  };
+}
+
+type AcreditacionSubsanacionGuideTone = "ready" | "warning" | "blocked" | "done";
+
+function assistedReviewCandidateCountForCase(item: MonitoreoInternalQueryCase) {
+  const seen = new Set<string>();
+  [...(item.assisted_review?.candidates ?? []), ...(item.assisted_review?.assignment_candidates ?? [])].forEach((candidate) => {
+    const id = cleanCaseKeyText(candidate.candidate_id || candidate.case_key || candidate.base_record || candidate.person_label);
+    if (id) seen.add(id);
+  });
+  return seen.size;
+}
+
+export function acreditacionSubsanacionCaseGuide(item: MonitoreoInternalQueryCase | null) {
+  if (!item) {
+    return {
+      tone: "warning" as AcreditacionSubsanacionGuideTone,
+      badge: "Sin selección",
+      title: "Elige un caso accionable",
+      detail: "Empieza por una completa o parcial sin cruce; luego revisa llave, evidencia auxiliar y decisión.",
+      primaryAction: "Seleccionar caso",
+      steps: ["Abrir accionable", "Leer llave por canal", "Decidir con constancia"],
+    };
+  }
+  const trace = caseKeyTraceSummary(item);
+  const response = internalCaseResponseStateValue(item);
+  const manual = item.assisted_review?.manual_decision ?? null;
+  const candidateCount = assistedReviewCandidateCountForCase(item);
+  const hasDeclaredKey = !normalizeCaseSearch(trace.primaryEvidence).includes("sin llave declarada");
+  if (manual) {
+    return {
+      tone: "done" as AcreditacionSubsanacionGuideTone,
+      badge: "Con constancia",
+      title: manual.action === "include_with_caveat" ? "Ya fue incluida con salvedad" : "Ya quedó excluida",
+      detail: manual.note || "Revisa la persona asignada y la nota registrada antes de cambiar la decisión.",
+      primaryAction: "Auditar decisión registrada",
+      steps: ["Revisar persona asignada", "Leer nota", "Mantener trazabilidad"],
+    };
+  }
+  if (caseIsActionableSubsanacion(item)) {
+    if (candidateCount > 0) {
+      return {
+        tone: "ready" as AcreditacionSubsanacionGuideTone,
+        badge: `${fmt(candidateCount)} coincidencia${candidateCount === 1 ? "" : "s"}`,
+        title: "Puede decidirse con evidencia",
+        detail: "Compara la llave del canal con las coincidencias. Si la persona es correcta, confirma e incluye con salvedad; si no, mantenla excluida.",
+        primaryAction: "Elegir persona o mantener excluida",
+        steps: ["Confirmar llave", "Comparar candidato", "Guardar decisión"],
+      };
+    }
+    if (!hasDeclaredKey && trace.secondaryEvidence) {
+      return {
+        tone: "warning" as AcreditacionSubsanacionGuideTone,
+        badge: "Falta llave",
+        title: "Primero identifica con evidencia auxiliar",
+        detail: "No hay llave principal declarada. Usa correo, nombre u otra evidencia para buscar a la persona antes de incluirla.",
+        primaryAction: "Buscar coincidencia antes de incluir",
+        steps: ["Usar correo/nombre", "Buscar en universo", "Decidir con nota"],
+      };
+    }
+    return {
+      tone: "warning" as AcreditacionSubsanacionGuideTone,
+      badge: caseCountsLabel(item),
+      title: "Revisar llave antes de decidir",
+      detail: "Hay una respuesta completa o parcial sin cruce, pero no hay coincidencia automática confiable.",
+      primaryAction: "Verificar llave o mantener excluida",
+      steps: ["Leer llave usada", "Contrastar base", "Guardar constancia"],
+    };
+  }
+  if (response === "refusal") {
+    return {
+      tone: "blocked" as AcreditacionSubsanacionGuideTone,
+      badge: "No accionable",
+      title: "No se asigna al universo",
+      detail: "Un rechazo sin identificación no debe moverse al avance. Déjalo explicado salvo que exista evidencia externa documentada.",
+      primaryAction: "Mantener excluida",
+      steps: ["Leer motivo", "Confirmar no identificación", "Dejar constancia"],
+    };
+  }
+  return {
+    tone: "blocked" as AcreditacionSubsanacionGuideTone,
+    badge: "Explicativo",
+    title: "Solo explica la diferencia",
+    detail: "Este caso ayuda a entender la brecha, pero no trae una respuesta asignable al avance.",
+    primaryAction: "Revisar sin incluir",
+    steps: ["Leer estado", "Revisar evidencia", "Mantener fuera del avance"],
+  };
 }
 
 function casePhoneAction(item: MonitoreoInternalQueryCase) {
@@ -6116,10 +9187,13 @@ function AcreditacionAssistedReviewBlock({
 
   const platformComplete = normalizeCaseSearch(internalCaseResponseStateLabel(internalCaseResponseStateValue(item))).includes("completa") ||
     normalizeCaseSearch(item.platform_state).includes("completa");
+  const platformPartial = internalCaseResponseStateValue(item) === "partial" ||
+    normalizeCaseSearch(item.platform_state).includes("parcial");
+  const validatableState = platformComplete || platformPartial;
   const selectedCandidate = assignmentOptions.find((candidate) => assistedCandidateId(candidate) === selectedCandidateId) ?? null;
   const selectedEvidenceLevel = selectedCandidate ? assistedCandidateEvidenceLevel(selectedCandidate) : "";
   const contradiction = warnings.some((warning) => normalizeCaseSearch(warning).includes("codigo declarado no coincide"));
-  const noteRequired = Boolean(contradiction || (selectedCandidate && selectedEvidenceLevel !== "exact"));
+  const noteRequired = Boolean(platformPartial || contradiction || (selectedCandidate && selectedEvidenceLevel !== "exact"));
   const assignmentQuery = normalizeCaseSearch(assignmentSearch);
   const candidateMatchesSearch = (candidate: MonitoreoAssistedReviewCandidate) => {
     if (!assignmentQuery) return true;
@@ -6144,18 +9218,20 @@ function AcreditacionAssistedReviewBlock({
     ? evidenceRows.filter((candidate) => assistedReviewFlagTruthy(candidate.already_effective) && candidateMatchesSearch(candidate))
     : [];
   const selectedCandidatePayloadId = selectedCandidate ? (selectedCandidate.candidate_id || selectedCandidate.case_key || "") : "";
-  const includeDisabled = !onDecision || !selectedCandidate || !selectedCandidatePayloadId || !platformComplete || busy || !assignmentConfirmed || (noteRequired && !note.trim());
+  const includeDisabled = !onDecision || !selectedCandidate || !selectedCandidatePayloadId || !validatableState || busy || !assignmentConfirmed || (noteRequired && !note.trim());
   const keepDisabled = !onDecision || busy || !item.response_id;
-  const includeHint = !platformComplete
-    ? "Solo una respuesta completa puede incluirse con salvedad."
+  const includeHint = !validatableState
+    ? "Solo una respuesta completa o una parcial revisable puede incluirse con salvedad."
     : !selectedCandidate
       ? "Selecciona una persona pendiente del universo para incluir con salvedad."
       : !selectedCandidatePayloadId
         ? "La coincidencia no tiene un identificador guardable."
       : !assignmentConfirmed
         ? "Confirma esta asignación antes de guardar."
-        : noteRequired && !note.trim()
-          ? "Agrega una nota para documentar la evidencia o contradicción."
+      : noteRequired && !note.trim()
+          ? platformPartial
+            ? "Agrega una nota para documentar por qué la parcial cuenta con validación explícita."
+            : "Agrega una nota para documentar la evidencia o contradicción."
           : "";
   const decisionNotes = assistedReviewDecisionNotes(warnings, evidenceRows, selectedCandidate);
   const declaredCode = review?.declared_code || review?.primary_key || item.case_key || "S/D";
@@ -6537,7 +9613,7 @@ function AcreditacionConsultaTabs({
 function AcreditacionCrucesView({ cases }: { cases: MonitoreoInternalQueryCase[] }) {
   const crossingRows = groupedCaseRows(cases, internalCaseCrossingValue, internalCaseCrossingLabel);
   const actorRows = groupedCaseRows(cases, (item) => item.actor || "Sin actor", (value) => value);
-  const sourceRows = groupedCaseRows(cases, (item) => item.source_label || item.channel || "Sin fuente", (value) => value);
+  const sourceRows = groupedCaseRows(cases, (item) => item.source_label || acreditacionChannelDisplay(item.channel, "Sin fuente"), (value) => value);
   return (
     <div className="mon-acr-insight-grid">
       <section className="mon-profile-panel">
@@ -6674,7 +9750,7 @@ function AcreditacionReconciliacionView({
                           <small>{caseSecondaryEvidence(item) || internalCaseCrossingLabel(internalCaseCrossingValue(item))}</small>
                         </td>
                         <td>
-                          <strong>{phoneAction || item.base_status || item.channel || "Sin acción telefónica"}</strong>
+                          <strong>{phoneAction || item.base_status || acreditacionChannelDisplay(item.channel, "Sin acción telefónica")}</strong>
                           <small>{item.source_label || "Sin fuente"} · {internalQueryCollectorDisplayLabel(item)}</small>
                         </td>
                         <td>
@@ -6707,34 +9783,39 @@ function AcreditacionReconciliacionView({
   );
 }
 
-function acreditacionRowsForConsultaTab(cases: MonitoreoInternalQueryCase[], tab: AcreditacionConsultaTab) {
-  if (tab === "efectivas") {
-    return cases.filter((item) => caseCountsInAdvance(item) === true || item.advancement === "effective");
+export function acreditacionRowsForConsultaTab(cases: MonitoreoInternalQueryCase[], tab: AcreditacionConsultaTab) {
+  if (tab === "plataforma") {
+    return cases.filter(caseHasPlatformResponse).sort(comparePlatformCases);
   }
-  if (tab === "faltantes") {
-    return cases.filter((item) => explicitBoolean(item.pending_exit) === true || item.advancement === "pending" || item.issue_type === "sin_respuesta");
+  if (tab === "cruces") {
+    return cases.filter(caseHasPlatformResponse).sort((a, b) => (
+      Number(caseWithoutCrossing(b)) - Number(caseWithoutCrossing(a)) ||
+      Number(b.review_priority ?? 0) - Number(a.review_priority ?? 0) ||
+      comparePlatformCases(a, b)
+    ));
   }
-  if (tab === "duplicados") {
-    return cases.filter((item) => Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1 || item.issue_type === "duplicado_caso");
-  }
-  if (tab === "diferencias") {
-    return cases
-      .filter((item) => (
-        assistedReviewVisible(item) ||
-        caseNeedsReconciliationReview(item) ||
-        item.advancement !== "effective" ||
-        !["", "efectiva_real"].includes(String(item.issue_type || ""))
-      ))
-      .sort((a, b) => Number(assistedReviewVisible(b)) - Number(assistedReviewVisible(a)) ||
-        Number(caseNeedsReconciliationReview(b)) - Number(caseNeedsReconciliationReview(a)) ||
-        Number(b.review_priority ?? 0) - Number(a.review_priority ?? 0));
+  if (tab === "subsanacion") {
+    return cases.filter(caseIsSubsanacionCandidate).sort((a, b) => (
+      Number(caseIsActionableSubsanacion(b)) - Number(caseIsActionableSubsanacion(a)) ||
+      Number(assistedReviewVisible(b)) - Number(assistedReviewVisible(a)) ||
+      Number(b.review_priority ?? 0) - Number(a.review_priority ?? 0) ||
+      comparePlatformCases(a, b)
+    ));
   }
   return cases;
 }
 
+export function acreditacionConsultaShowsCutStatusStrip(tab: AcreditacionConsultaTab) {
+  return tab === "cruces";
+}
+
 function acreditacionIssuesForConsultaTab(issues: MonitoreoInternalQueryIssue[], tab: AcreditacionConsultaTab) {
-  if (tab === "duplicados") return issues.filter((issue) => issue.issue_type === "duplicado_caso");
-  if (tab === "diferencias") return issues.filter((issue) => issue.issue_type !== "duplicado_caso");
+  if (tab === "subsanacion") {
+    return issues.filter((issue) => {
+      const key = normalizeCaseSearch(issue.issue_type);
+      return key.includes("sin llave") || key.includes("fuera base") || key.includes("sin cruce");
+    });
+  }
   return issues;
 }
 
@@ -6745,40 +9826,40 @@ function acreditacionQueryAnswerCopy(
   activeFilters: boolean,
 ) {
   const scope = activeFilters ? "con los filtros activos" : "en este corte";
-  if (tab === "efectivas") {
+  if (tab === "plataforma") {
     return {
-      icon: CheckCircle2,
-      tone: "effective",
-      heading: "Efectivas reales y canales",
-      title: `${fmt(summary.effective)} efectivas reales ${scope}.`,
-      detail: `${fmt(summary.pending)} sin respuesta, ${fmt(summary.partial)} parciales y ${fmt(summary.refusal)} rechazos quedan separados del avance.`,
+      icon: QrCode,
+      tone: "base",
+      heading: "Registros recibidos",
+      title: `${formatCaseLabel(summary.total)} de plataforma ${scope}.`,
+      detail: "Ordenados por última respuesta, separando estado, actor, hora y cruce con la base.",
     };
   }
-  if (tab === "faltantes") {
+  if (tab === "base") {
     return {
-      icon: Route,
+      icon: Table2,
       tone: "pending",
-      heading: "Salida de pendientes",
-      title: `${formatCaseLabel(summary.pending)} sigue${summary.pending === 1 ? "" : "n"} sin respuesta ${scope}.`,
-      detail: `${formatCaseLabel(summary.pendingExit)} sale${summary.pendingExit === 1 ? "" : "n"} de pendientes por respuesta válida reconciliada.`,
+      heading: "Estado de la base",
+      title: `${formatCaseLabel(summary.total)} del universo ${scope}.`,
+      detail: `${fmt(summary.effective)} completas, ${fmt(summary.partial)} parciales, ${fmt(summary.refusal)} rechazos y ${fmt(summary.pending)} sin respuesta.`,
     };
   }
-  if (tab === "duplicados") {
+  if (tab === "cruces") {
     return {
       icon: Link2,
       tone: "warning",
-      heading: "Duplicados y conteo único",
-      title: `${formatCaseLabel(summary.duplicates)} duplicado${summary.duplicates === 1 ? "" : "s"} visible${summary.duplicates === 1 ? "" : "s"}.`,
-      detail: "La mesa cuenta una sola respuesta por llave: completa primero; la fecha más reciente desempata.",
+      heading: "Cruce y no cruce",
+      title: `${formatCaseLabel(summary.total)} explicado${summary.total === 1 ? "" : "s"} ${scope}.`,
+      detail: "Cada fila muestra por qué cruzó, por qué no cruzó, si el no cruce es esperable o si requiere subsanación.",
     };
   }
-  if (tab === "diferencias") {
+  if (tab === "subsanacion") {
     return {
       icon: ShieldAlert,
       tone: "partial",
-      heading: "Diferencias y explicación",
-      title: `${formatCaseLabel(summary.partial + summary.refusal + summary.review)} explica${summary.partial + summary.refusal + summary.review === 1 ? "" : "n"} descuadres ${scope}.`,
-      detail: "Sin respuesta, parciales, rechazos, sin llave y fuera de base se separan antes de comparar con avance o reporte.",
+      heading: "Subsanación auditada",
+      title: `${formatCaseLabel(summary.total)} sin cruce ${scope}.`,
+      detail: "Las completas/parciales pueden resolverse con candidato y nota; los rechazos no identificables quedan documentados.",
     };
   }
   return {
@@ -6848,18 +9929,94 @@ function caseDimensionRows(
     .sort((a, b) => Number(b.Total) - Number(a.Total) || String(a[label]).localeCompare(String(b[label]), "es"));
 }
 
+type AcreditacionCaseBreakdownDimension = "actor" | "source" | "channel" | "date" | "collector";
+
+type AcreditacionCaseBreakdownRow = {
+  value: string;
+  label: string;
+  total: number;
+  effective: number;
+  partial: number;
+  refusal: number;
+  pending: number;
+  review: number;
+};
+
+function acreditacionCaseBreakdownValue(item: MonitoreoInternalQueryCase, dimension: AcreditacionCaseBreakdownDimension) {
+  if (dimension === "actor") return item.actor || "";
+  if (dimension === "source") return caseSourceValue(item);
+  if (dimension === "channel") return caseChannelValue(item);
+  if (dimension === "date") return item.date || "";
+  return caseCollectorValue(item);
+}
+
+function acreditacionCaseBreakdownLabel(value: string, dimension: AcreditacionCaseBreakdownDimension) {
+  if (!value) return "Sin dato";
+  if (dimension === "channel") return acreditacionChannelLabel(value);
+  if (dimension === "collector") return internalQueryCollectorDisplayLabel(value);
+  return value;
+}
+
+function acreditacionCaseBreakdownRows(
+  cases: MonitoreoInternalQueryCase[],
+  dimension: AcreditacionCaseBreakdownDimension,
+): AcreditacionCaseBreakdownRow[] {
+  const groups = new Map<string, MonitoreoInternalQueryCase[]>();
+  cases.forEach((item) => {
+    const value = acreditacionCaseBreakdownValue(item, dimension);
+    const key = value || "__missing__";
+    const bucket = groups.get(key) ?? [];
+    bucket.push(item);
+    groups.set(key, bucket);
+  });
+  return Array.from(groups.entries())
+    .map(([key, rows]) => {
+      const value = key === "__missing__" ? "" : key;
+      const summary = summarizeInternalCases(rows);
+      return {
+        value,
+        label: acreditacionCaseBreakdownLabel(value, dimension),
+        total: summary.total,
+        effective: summary.effective,
+        partial: summary.partial,
+        refusal: summary.refusal,
+        pending: summary.pending,
+        review: summary.review,
+      };
+    })
+    .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "es"));
+}
+
+function acreditacionQueryDonutBackground(segments: Array<{ value: number; color: string }>) {
+  const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0);
+  if (!total) return "conic-gradient(#dbe2ec 0deg 360deg)";
+  let start = 0;
+  const parts = segments
+    .filter((segment) => segment.value > 0)
+    .map((segment) => {
+      const end = start + (segment.value / total) * 360;
+      const part = `${segment.color} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`;
+      start = end;
+      return part;
+    });
+  return `conic-gradient(${parts.join(", ")})`;
+}
+
 function AcreditacionConsultaStatusStrip({
   reports,
   model,
   officialCases,
+  sources = [],
 }: {
   reports: MonitoreoAcreditacionReports;
   model: ReturnType<typeof normalizeInternalQueries>;
   officialCases: MonitoreoInternalQueryCase[];
+  sources?: MonitoreoSource[];
 }) {
   const summary = summarizeInternalCases(officialCases);
   const auditSummary = summarizeInternalCases(model.cases);
-  const sources = reports.sheets?.length ?? 0;
+  const caseSources = new Set(officialCases.map(caseSourceValue).filter(Boolean));
+  const sourceCount = sources.length || caseSources.size || reports.sheets?.length || 0;
   const actors = new Set([...officialCases, ...model.cases].map((item) => item.actor).filter(Boolean)).size;
   const missingKey = model.cases.filter((item) => internalCaseCrossingValue(item) === "sin_llave").length;
   const issueCount = model.issues.reduce((sum, issue) => sum + Number(issue.count || 1), 0);
@@ -6868,7 +10025,7 @@ function AcreditacionConsultaStatusStrip({
       <header>
         <span>Estado del corte</span>
         <strong>Corte listo para explorar casos</strong>
-        <p>{`Corte ${formatDate(reports.generated_at)}. ${fmt(sources)} hojas · ${formatCaseLabel(officialCases.length)} en universo · ${formatCaseLabel(model.cases.length)} auditables.`}</p>
+        <p>{`Corte ${formatDate(reports.generated_at)}. ${fmt(sourceCount)} fuentes · ${formatCaseLabel(officialCases.length)} en universo · ${formatCaseLabel(model.cases.length)} auditables.`}</p>
       </header>
       <div className="mon-query-status-metrics">
         <span className={officialCases.length ? "is-base" : "is-warning"}>
@@ -6883,10 +10040,10 @@ function AcreditacionConsultaStatusStrip({
           <strong>{fmt(summary.total)}</strong>
           <small>{fmt(summary.pending)} sin respuesta · {fmt(missingKey)} sin llave</small>
         </span>
-        <span className={sources ? "is-base" : "is-warning"}>
+        <span className={sourceCount ? "is-base" : "is-warning"}>
           <PlugZap size={14} />
           <em>Fuentes</em>
-          <strong>{fmt(sources)}</strong>
+          <strong>{fmt(sourceCount)}</strong>
           <small>{fmt(reports.reference_tabs?.length ?? 0)} pestañas de referencia</small>
         </span>
         <span className={issueCount || auditSummary.duplicates ? "is-warning" : "is-ready"}>
@@ -6928,12 +10085,91 @@ function AcreditacionQuerySelect({
   );
 }
 
+function AcreditacionPlatformCapsuleSelect({
+  label,
+  value,
+  options,
+  allLabel,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string; count: number }>;
+  allLabel: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={`mon-acr-platform-filter-pill${value ? " is-active" : ""}`}>
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">{allLabel}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {compactSelectLabel(option.label, 34)} ({fmt(option.count)})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function AcreditacionPlatformFilterCapsules({
+  filters,
+  actorOptions,
+  channelOptions,
+  dateOptions,
+  sourceOptions,
+  collectorOptions,
+  responseOptions,
+  crossingOptions,
+  activeFilters,
+  onFilter,
+  onClear,
+}: {
+  filters: AcreditacionCaseFilters;
+  actorOptions: Array<{ value: string; label: string; count: number }>;
+  channelOptions: Array<{ value: string; label: string; count: number }>;
+  dateOptions: Array<{ value: string; label: string; count: number }>;
+  sourceOptions: Array<{ value: string; label: string; count: number }>;
+  collectorOptions: Array<{ value: string; label: string; count: number }>;
+  responseOptions: Array<{ value: string; label: string; count: number }>;
+  crossingOptions: Array<{ value: string; label: string; count: number }>;
+  activeFilters: boolean;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mon-acr-platform-filters" aria-label="Filtros de registros en plataforma">
+      <label className={`mon-acr-platform-search-pill${filters.search ? " is-active" : ""}`}>
+        <Search size={14} />
+        <input
+          value={filters.search}
+          onChange={(event) => onFilter({ search: event.target.value })}
+          placeholder="Buscar código, nombre, correo o response_id"
+        />
+      </label>
+      <AcreditacionPlatformCapsuleSelect label="Actor" value={filters.actor} options={actorOptions} allLabel="Todos" onChange={(actor) => onFilter({ actor })} />
+      <AcreditacionPlatformCapsuleSelect label="Respuesta" value={filters.response} options={responseOptions} allLabel="Todas" onChange={(response) => onFilter({ response })} />
+      <AcreditacionPlatformCapsuleSelect label="Cruce" value={filters.crossing} options={crossingOptions} allLabel="Todos" onChange={(crossing) => onFilter({ crossing })} />
+      <AcreditacionPlatformCapsuleSelect label="Fecha" value={filters.date} options={dateOptions} allLabel="Todas" onChange={(date) => onFilter({ date })} />
+      <AcreditacionPlatformCapsuleSelect label="Canal" value={filters.channel} options={channelOptions} allLabel="Todos" onChange={(channel) => onFilter({ channel })} />
+      <AcreditacionPlatformCapsuleSelect label="Fuente" value={filters.source} options={sourceOptions} allLabel="Todas" onChange={(source) => onFilter({ source })} />
+      <AcreditacionPlatformCapsuleSelect label="Recopilador" value={filters.collector} options={collectorOptions} allLabel="Todos" onChange={(collector) => onFilter({ collector })} />
+      <button type="button" className="mon-acr-platform-clear-pill" onClick={onClear} disabled={!activeFilters} title="Limpiar filtros">
+        <XCircle size={14} />
+        <span>Limpiar</span>
+      </button>
+    </div>
+  );
+}
+
 function AcreditacionCaseExplorerToolbar({
   summary,
   allSummary,
   filters,
   actorOptions,
   channelOptions,
+  dateOptions,
   sourceOptions,
   collectorOptions,
   responseOptions,
@@ -6947,6 +10183,7 @@ function AcreditacionCaseExplorerToolbar({
   filters: AcreditacionCaseFilters;
   actorOptions: Array<{ value: string; label: string; count: number }>;
   channelOptions: Array<{ value: string; label: string; count: number }>;
+  dateOptions: Array<{ value: string; label: string; count: number }>;
   sourceOptions: Array<{ value: string; label: string; count: number }>;
   collectorOptions: Array<{ value: string; label: string; count: number }>;
   responseOptions: Array<{ value: string; label: string; count: number }>;
@@ -6972,6 +10209,7 @@ function AcreditacionCaseExplorerToolbar({
           />
         </label>
         <AcreditacionQuerySelect label="Actor" value={filters.actor} options={actorOptions} allLabel="Todos" onChange={(actor) => onFilter({ actor })} />
+        <AcreditacionQuerySelect label="Fecha" value={filters.date} options={dateOptions} allLabel="Todas" onChange={(date) => onFilter({ date })} />
         <AcreditacionQuerySelect label="Canal" value={filters.channel} options={channelOptions} allLabel="Todos" onChange={(channel) => onFilter({ channel })} />
         <AcreditacionQuerySelect label="Fuente" value={filters.source} options={sourceOptions} allLabel="Todas" onChange={(source) => onFilter({ source })} />
         <AcreditacionQuerySelect label="Recopilador" value={filters.collector} options={collectorOptions} allLabel="Todos" onChange={(collector) => onFilter({ collector })} />
@@ -6988,12 +10226,10 @@ function AcreditacionCaseExplorerToolbar({
 
 function AcreditacionPendingRiskStrip({
   cases,
-  activeActor,
   onReview,
 }: {
   cases: MonitoreoInternalQueryCase[];
-  activeActor: string;
-  onReview: (actor: string) => void;
+  onReview: () => void;
 }) {
   if (!cases.length) return null;
   const actorCounts = cases.reduce<Map<string, number>>((acc, item) => {
@@ -7002,7 +10238,6 @@ function AcreditacionPendingRiskStrip({
     return acc;
   }, new Map());
   const actorEntries = Array.from(actorCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"));
-  const targetActor = activeActor && actorCounts.has(activeActor) ? activeActor : actorEntries[0]?.[0] ?? "";
   const exactCount = cases.reduce((sum, item) => sum + (item.assisted_review?.assignment_candidates ?? []).filter((candidate) => assistedCandidateEvidenceLevel(candidate) === "exact").length, 0);
   const possibleCount = cases.reduce((sum, item) => sum + (item.assisted_review?.assignment_candidates ?? []).filter((candidate) => assistedCandidateEvidenceLevel(candidate) === "possible").length, 0);
   return (
@@ -7018,8 +10253,8 @@ function AcreditacionPendingRiskStrip({
         ))}
       </ul>
       <small>{fmt(exactCount)} exactas · {fmt(possibleCount)} similares</small>
-      <button type="button" onClick={() => targetActor && onReview(targetActor)} disabled={!targetActor}>
-        Revisar {targetActor || "casos"}
+      <button type="button" onClick={onReview}>
+        Ver casos revisables
       </button>
     </section>
   );
@@ -7076,6 +10311,81 @@ function AcreditacionTraceStep({
       <strong>{value}</strong>
       <small>{hint}</small>
     </span>
+  );
+}
+
+function AcreditacionCaseKeyTrace({ item }: { item: MonitoreoInternalQueryCase }) {
+  const trace = caseKeyTraceSummary(item);
+  return (
+    <section className="mon-case-key-trace" aria-label="Llave por canal">
+      <header>
+        <span><KeyRound size={14} /> Llave por canal</span>
+        <strong>{trace.strategyLabel}</strong>
+        <em>{trace.channelLabel}</em>
+      </header>
+      <div className="mon-case-key-evidence">
+        {trace.evidenceRows.map((row) => (
+          <span key={`${row.label}-${row.value}`} className={`is-${row.tone}`}>
+            <em>{row.label}</em>
+            <strong>{row.value}</strong>
+          </span>
+        ))}
+      </div>
+      <p>{trace.strategyHint}</p>
+    </section>
+  );
+}
+
+function AcreditacionSubsanacionCoach({ item }: { item: MonitoreoInternalQueryCase }) {
+  const guide = acreditacionSubsanacionCaseGuide(item);
+  return (
+    <section className={`mon-acr-subsanacion-coach is-${guide.tone}`} aria-label="Qué hacer ahora">
+      <header>
+        <span><Target size={14} /> Qué hacer ahora</span>
+        <em>{guide.badge}</em>
+        <strong>{guide.title}</strong>
+        <p>{guide.detail}</p>
+      </header>
+      <div>
+        {guide.steps.map((step, index) => (
+          <span key={step}>
+            <em>{index + 1}</em>
+            <strong>{step}</strong>
+          </span>
+        ))}
+      </div>
+      <small><CheckCircle2 size={13} /> {guide.primaryAction}</small>
+    </section>
+  );
+}
+
+function AcreditacionSubsanacionWorkflow({
+  actionable,
+  explanatory,
+  manual,
+}: {
+  actionable: number;
+  explanatory: number;
+  manual: number;
+}) {
+  return (
+    <div className="mon-acr-subsanacion-workflow" aria-label="Ruta de decisión de subsanación">
+      <span className="is-warning">
+        <em>1</em>
+        <strong>Prioriza</strong>
+        <small>{fmt(actionable)} accionables</small>
+      </span>
+      <span className="is-base">
+        <em>2</em>
+        <strong>Comprueba</strong>
+        <small>llave y auxiliares</small>
+      </span>
+      <span className={manual ? "is-effective" : explanatory ? "is-refusal" : "is-base"}>
+        <em>3</em>
+        <strong>Decide</strong>
+        <small>{manual ? `${fmt(manual)} con constancia` : `${fmt(explanatory)} explicativos`}</small>
+      </span>
+    </div>
   );
 }
 
@@ -7140,7 +10450,7 @@ function AcreditacionCasesTable({
                 </td>
                 <td>
                   <span>{internalQueryCollectorDisplayLabel(item)}</span>
-                  <small>{item.channel || "Sin canal"}</small>
+                  <small>{acreditacionChannelDisplay(item.channel)}</small>
                 </td>
               </tr>
             );
@@ -7160,10 +10470,12 @@ function AcreditacionCaseDetail({
   item,
   busyId = "",
   onDecision,
+  showSubsanacionGuide = false,
 }: {
   item: MonitoreoInternalQueryCase | null;
   busyId?: string;
   onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
+  showSubsanacionGuide?: boolean;
 }) {
   if (!item) {
     return (
@@ -7196,6 +10508,10 @@ function AcreditacionCaseDetail({
         </div>
       </section>
 
+      {showSubsanacionGuide ? <AcreditacionSubsanacionCoach item={item} /> : null}
+
+      <AcreditacionCaseKeyTrace item={item} />
+
       {showAssisted ? (
         <AcreditacionAssistedReviewBlock
           item={item}
@@ -7221,7 +10537,7 @@ function AcreditacionCaseDetail({
           icon={<Route size={14} />}
           label="Canal operativo / recopilador"
           value={internalQueryCollectorDisplayLabel(item)}
-          hint={item.channel || item.source_label || "Sin canal"}
+          hint={item.channel ? acreditacionChannelDisplay(item.channel) : item.source_label || "Sin canal"}
         />
         <AcreditacionTraceStep
           icon={<SlidersHorizontal size={14} />}
@@ -7237,11 +10553,772 @@ function AcreditacionCaseDetail({
         <div><dt>Cuenta avance</dt><dd>{caseCountsLabel(item)}</dd></div>
         <div><dt>Responsable/recopilador</dt><dd>{internalQueryCollectorDisplayLabel(item)}</dd></div>
         <div><dt>Response ID</dt><dd>{item.response_id || "Sin response_id"}</dd></div>
-        <div><dt>Fecha respuesta</dt><dd>{item.date || "Sin fecha"}</dd></div>
-        <div><dt>Fila fuente</dt><dd>{item.response_row ? fmt(item.response_row) : "S/D"}</dd></div>
+        <div><dt>Fecha y hora</dt><dd>{caseResponseDateTimeLabel(item)}</dd></div>
+        <div><dt>Hora respuesta</dt><dd>{caseResponseTimeDetailLabel(item)}</dd></div>
         <div><dt>Duplicados</dt><dd>{Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1 ? fmt(item.duplicate_count ?? item.duplicate_group_size) : "No"}</dd></div>
       </dl>
     </aside>
+  );
+}
+
+function AcreditacionQueryBreakdownCard({
+  title,
+  dimension,
+  rows,
+  icon,
+  onSelect,
+}: {
+  title: string;
+  dimension: AcreditacionCaseBreakdownDimension;
+  rows: AcreditacionCaseBreakdownRow[];
+  icon: ReactNode;
+  onSelect: (value: string) => void;
+}) {
+  const limitedRows = rows.slice(0, 10);
+  const totals = rows.reduce((acc, row) => ({
+    total: acc.total + row.total,
+    effective: acc.effective + row.effective,
+    partial: acc.partial + row.partial,
+    refusal: acc.refusal + row.refusal,
+    pending: acc.pending + row.pending,
+    review: acc.review + row.review,
+  }), { total: 0, effective: 0, partial: 0, refusal: 0, pending: 0, review: 0 });
+  const effectivePct = safePercentValue(totals.effective, totals.total);
+  const donutSegments = [
+    { value: totals.effective, color: "#168a55" },
+    { value: totals.partial, color: "#b97611" },
+    { value: totals.refusal, color: "#a61d4f" },
+    { value: totals.pending, color: "#7a8796" },
+    { value: totals.review, color: "#5f6b7a" },
+  ];
+
+  if (!limitedRows.length) {
+    return (
+      <section className="mon-query-chart-card">
+        <header><span>{icon}{title}</span></header>
+        <div className="mon-query-breakdown-empty">
+          <EmptyPanel title="Sin datos" detail="No hay casos con este filtro." />
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mon-query-chart-card">
+      <header>
+        <span>{icon}{title}</span>
+        <em>{formatCaseLabel(totals.total)}</em>
+      </header>
+      <div className="mon-query-chart-legend" aria-label="Series del desglose">
+        <span className="is-effective">Efectivas</span>
+        <span className="is-partial">Parciales</span>
+        <span className="is-refusal">Rechazos</span>
+        <span>Sin respuesta</span>
+        <span className="is-review">Revisión</span>
+      </div>
+      <div className="mon-query-breakdown">
+        <div
+          className="mon-query-donut"
+          style={{ "--query-donut-bg": acreditacionQueryDonutBackground(donutSegments) } as CSSProperties}
+          aria-label={`${formatPercentLabel(effectivePct)} de efectivas`}
+        >
+          <span>{formatPercentLabel(effectivePct)}</span>
+          <em>efectivas</em>
+        </div>
+        <div className="mon-query-breakdown-table-wrap">
+          <table className="mon-query-breakdown-table">
+            <thead>
+              <tr>
+                <th>{title.replace(/^Por\s+/i, "")}</th>
+                <th>Total</th>
+                <th>Efec.</th>
+                <th>Parc.</th>
+                <th>Rech.</th>
+                <th>Sin resp.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {limitedRows.map((row) => (
+                <tr key={`${dimension}-${row.value || "sin-dato"}`}>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => row.value && onSelect(row.value)}
+                      disabled={!row.value}
+                      title={row.value ? "Filtrar por este valor" : "Sin valor filtrable"}
+                    >
+                      {row.label}
+                    </button>
+                  </td>
+                  <td>{fmt(row.total)}</td>
+                  <td>{fmt(row.effective)}</td>
+                  <td>{fmt(row.partial)}</td>
+                  <td>{fmt(row.refusal)}</td>
+                  <td>{fmt(row.pending)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {rows.length > limitedRows.length ? (
+            <p>{fmt(rows.length - limitedRows.length)} valores adicionales disponibles con filtros.</p>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AcreditacionDistributionView({
+  cases,
+  selectedCase,
+  onCaseSelect,
+  onFilter,
+  busyId,
+  onDecision,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  busyId?: string;
+  onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
+}) {
+  const byActor = acreditacionCaseBreakdownRows(cases, "actor");
+  const bySource = acreditacionCaseBreakdownRows(cases, "source");
+  const byChannel = acreditacionCaseBreakdownRows(cases, "channel");
+  return (
+    <div className="mon-query-grid mon-query-grid--distribution">
+      <div className="mon-query-chart-grid">
+        <AcreditacionQueryBreakdownCard
+          title="Por actor"
+          dimension="actor"
+          rows={byActor}
+          icon={<ContactRound size={15} />}
+          onSelect={(actor) => onFilter({ actor })}
+        />
+        <AcreditacionQueryBreakdownCard
+          title="Por fuente/base"
+          dimension="source"
+          rows={bySource}
+          icon={<Layers3 size={15} />}
+          onSelect={(source) => onFilter({ source })}
+        />
+        <AcreditacionQueryBreakdownCard
+          title="Por canal"
+          dimension="channel"
+          rows={byChannel}
+          icon={<Route size={15} />}
+          onSelect={(channel) => onFilter({ channel })}
+        />
+      </div>
+
+      <AcreditacionCasesWorkspace
+        cases={cases}
+        selectedCase={selectedCase}
+        onCaseSelect={onCaseSelect}
+        title="Casos dentro de la distribución"
+        busyId={busyId}
+        onDecision={onDecision}
+      />
+    </div>
+  );
+}
+
+function AcreditacionEffectivesView({
+  cases,
+  selectedCase,
+  onCaseSelect,
+  onFilter,
+  busyId,
+  onDecision,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  busyId?: string;
+  onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
+}) {
+  const summary = summarizeInternalCases(cases);
+  const byDate = acreditacionCaseBreakdownRows(cases, "date");
+  const byChannel = acreditacionCaseBreakdownRows(cases, "channel");
+  const byCollector = acreditacionCaseBreakdownRows(cases, "collector");
+  return (
+    <div className="mon-query-grid mon-query-grid--effectives">
+      <section className="mon-query-kpi-strip" aria-label="Indicadores de efectivas">
+        <span className="is-effective"><em>Efectivas reales</em><strong>{fmt(summary.effective)}</strong><small>completas válidas</small></span>
+        <span className="is-partial"><em>Parciales</em><strong>{fmt(summary.partial)}</strong><small>no inflan avance</small></span>
+        <span className="is-refusal"><em>Rechazos</em><strong>{fmt(summary.refusal)}</strong><small>consentimiento u otro filtro</small></span>
+        <span className="is-warning"><em>Sin respuesta</em><strong>{fmt(summary.pending)}</strong><small>en base</small></span>
+      </section>
+
+      <div className="mon-query-chart-grid">
+        <AcreditacionQueryBreakdownCard
+          title="Por fecha"
+          dimension="date"
+          rows={byDate}
+          icon={<CalendarRange size={15} />}
+          onSelect={(date) => onFilter({ date })}
+        />
+        <AcreditacionQueryBreakdownCard
+          title="Por canal"
+          dimension="channel"
+          rows={byChannel}
+          icon={<Route size={15} />}
+          onSelect={(channel) => onFilter({ channel })}
+        />
+        <AcreditacionQueryBreakdownCard
+          title="Por recopilador"
+          dimension="collector"
+          rows={byCollector}
+          icon={<QrCode size={15} />}
+          onSelect={(collector) => onFilter({ collector })}
+        />
+      </div>
+
+      <AcreditacionCasesWorkspace
+        cases={cases}
+        selectedCase={selectedCase}
+        onCaseSelect={onCaseSelect}
+        title="Casos efectivos"
+        busyId={busyId}
+        onDecision={onDecision}
+      />
+    </div>
+  );
+}
+
+function AcreditacionPendingExitView({
+  cases,
+  selectedCase,
+  onCaseSelect,
+  onFilter,
+  busyId,
+  onDecision,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  busyId?: string;
+  onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
+}) {
+  const visibleSelectedCase = selectedCase && cases.some((item) => caseIdentity(item) === caseIdentity(selectedCase))
+    ? selectedCase
+    : cases[0] ?? null;
+  return (
+    <div className="mon-query-grid mon-query-grid--pending">
+      <section className={`mon-query-flow-panel${cases.length ? "" : " is-empty-flow"}`} aria-label="Flujo de salida de pendientes">
+        <header className="mon-query-section-head">
+          <div>
+            <span>Faltantes y barrido</span>
+            <strong><Route size={16} /> Base operativa → respuesta → avance</strong>
+          </div>
+          <em>{formatCaseLabel(cases.length)}</em>
+        </header>
+        {cases.length ? (
+          <DataTable
+            rows={caseDimensionRows(cases, "actor", "Actor")}
+            empty="No hay flujo por actor para este corte."
+          />
+        ) : (
+          <EmptyPanel
+            title="Sin flujo disponible"
+            detail="No hay casos recuperados desde faltantes o barrido con los filtros activos."
+          />
+        )}
+      </section>
+      <AcreditacionCasesWorkspace
+        cases={cases}
+        selectedCase={visibleSelectedCase}
+        onCaseSelect={onCaseSelect}
+        title="Casos que salen de pendientes"
+        busyId={busyId}
+        onDecision={onDecision}
+        showDetailWhenEmpty={false}
+      />
+    </div>
+  );
+}
+
+function AcreditacionPlatformRecordsView({
+  cases,
+  selectedCase,
+  filters,
+  actorOptions,
+  channelOptions,
+  dateOptions,
+  sourceOptions,
+  collectorOptions,
+  responseOptions,
+  crossingOptions,
+  activeFilters,
+  onCaseSelect,
+  onFilter,
+  onClear,
+  onJumpToSubsanacion,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  filters: AcreditacionCaseFilters;
+  actorOptions: Array<{ value: string; label: string; count: number }>;
+  channelOptions: Array<{ value: string; label: string; count: number }>;
+  dateOptions: Array<{ value: string; label: string; count: number }>;
+  sourceOptions: Array<{ value: string; label: string; count: number }>;
+  collectorOptions: Array<{ value: string; label: string; count: number }>;
+  responseOptions: Array<{ value: string; label: string; count: number }>;
+  crossingOptions: Array<{ value: string; label: string; count: number }>;
+  activeFilters: boolean;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  onClear: () => void;
+  onJumpToSubsanacion: (item: MonitoreoInternalQueryCase) => void;
+}) {
+  const visible = cases.slice(0, 160);
+  const selectedId = selectedCase ? caseIdentity(selectedCase) : "";
+  return (
+    <div className="mon-acr-platform-grid">
+      <section className="mon-query-table-panel mon-acr-platform-table-panel" aria-label="Registros en plataforma">
+        <header className="mon-query-section-head">
+          <div>
+            <span>Registros en plataforma</span>
+            <strong><QrCode size={16} /> Respuestas por última actualización</strong>
+          </div>
+          <em>{fmt(cases.length)} filas</em>
+        </header>
+        <AcreditacionPlatformFilterCapsules
+          filters={filters}
+          actorOptions={actorOptions}
+          channelOptions={channelOptions}
+          dateOptions={dateOptions}
+          sourceOptions={sourceOptions}
+          collectorOptions={collectorOptions}
+          responseOptions={responseOptions}
+          crossingOptions={crossingOptions}
+          activeFilters={activeFilters}
+          onFilter={onFilter}
+          onClear={onClear}
+        />
+        {visible.length ? (
+          <div className="mon-query-table-wrap">
+            <table className="mon-query-table mon-acr-platform-table">
+              <thead>
+                <tr>
+                  <th>Actor / caso</th>
+                  <th>Respuesta</th>
+                  <th>Fecha y hora</th>
+                  <th>Canal / fuente</th>
+                  <th>Cruce</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((item) => {
+                  const id = caseIdentity(item);
+                  const selected = id === selectedId;
+                  const canOpenSubsanacion = caseIsSubsanacionCandidate(item);
+                  const trace = caseKeyTraceSummary(item);
+                  return (
+                    <tr key={id} className={`is-${caseToneValue(item)}${selected ? " is-selected" : ""}`}>
+                      <td>
+                        <button type="button" onClick={() => onCaseSelect(item)}>
+                          <strong>{caseDisplayName(item)}</strong>
+                          <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"}</small>
+                        </button>
+                      </td>
+                      <td>
+                        <CaseStatusPill value={internalCaseResponseStateValue(item)} />
+                        <small>{item.response_id || "sin response_id"}</small>
+                      </td>
+	                      <td>
+	                        <span>{caseResponseDateTimeLabel(item)}</span>
+	                        <small>{caseResponseTimeDetailLabel(item)}</small>
+	                      </td>
+                      <td>
+                        <span>{acreditacionChannelLabel(item.channel || item.source_label)}</span>
+                        <small>{[trace.strategyLabel, item.source_label, internalQueryCollectorDisplayLabel(item)].filter(Boolean).join(" · ")}</small>
+                      </td>
+                      <td>
+                        <CaseCrossingPill value={internalCaseCrossingValue(item)} />
+                        <small>{item.base_record || item.base_source || item.base_result || "Sin base"}</small>
+                      </td>
+                      <td>
+                        {canOpenSubsanacion ? (
+                          <button type="button" className="mon-acr-table-action" onClick={() => onJumpToSubsanacion(item)}>
+                            <ShieldAlert size={13} />
+                            <span>{caseSubsanacionActionLabel(item)}</span>
+                          </button>
+                        ) : (
+                          <span className="mon-acr-action-muted">Sin subsanación</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyPanel title="Sin registros de plataforma" detail="No hay respuestas de plataforma con los filtros activos." />
+        )}
+        {cases.length > visible.length ? <p className="mon-query-table-more">Mostrando {fmt(visible.length)} de {fmt(cases.length)} registros. Usa filtros para acotar.</p> : null}
+      </section>
+    </div>
+  );
+}
+
+function AcreditacionBaseStateChips({
+  value,
+  options,
+  allCount,
+  onChange,
+}: {
+  value: string;
+  options: Array<{ value: string; label: string; count: number }>;
+  allCount: number;
+  onChange: (value: string) => void;
+}) {
+  const ordered = ["complete", "partial", "refusal", "pending"];
+  const optionMap = new Map(options.map((option) => [option.value, option]));
+  const visibleOptions = ordered
+    .map((key) => optionMap.get(key) ?? { value: key, label: internalCaseResponseStateLabel(key), count: 0 });
+  return (
+    <section className="mon-acr-state-capsules" aria-label="Filtro por estado de respuesta en base">
+      <button type="button" className={!value ? "is-active" : ""} aria-pressed={!value} onClick={() => onChange("")}>
+        <span>Todos</span>
+        <em>{fmt(allCount)}</em>
+      </button>
+      {visibleOptions.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={`${value === option.value ? "is-active " : ""}is-${option.value}`}
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+        >
+          <span>{option.label}</span>
+          <em>{fmt(option.count)}</em>
+        </button>
+      ))}
+    </section>
+  );
+}
+
+function AcreditacionBaseCapsuleSelect({
+  label,
+  value,
+  options,
+  allLabel,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string; count: number }>;
+  allLabel: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={`mon-acr-base-filter-pill${value ? " is-active" : ""}`}>
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">{allLabel}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {compactSelectLabel(option.label, 34)} ({fmt(option.count)})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function AcreditacionBaseFilterBar({
+  filters,
+  actorOptions,
+  responseOptions,
+  responseAllCount,
+  activeFilters,
+  onFilter,
+  onClear,
+}: {
+  filters: AcreditacionCaseFilters;
+  actorOptions: Array<{ value: string; label: string; count: number }>;
+  responseOptions: Array<{ value: string; label: string; count: number }>;
+  responseAllCount: number;
+  activeFilters: boolean;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mon-acr-base-filters" aria-label="Filtros de estado de la base">
+      <label className={`mon-acr-base-search-pill${filters.search ? " is-active" : ""}`}>
+        <Search size={14} />
+        <input
+          value={filters.search}
+          onChange={(event) => onFilter({ search: event.target.value })}
+          placeholder="Buscar nombre, código o correo en la base"
+        />
+      </label>
+      <AcreditacionBaseCapsuleSelect
+        label="Actor"
+        value={filters.actor}
+        options={actorOptions}
+        allLabel="Todos los actores"
+        onChange={(actor) => onFilter({ actor })}
+      />
+      <AcreditacionBaseStateChips
+        value={filters.response}
+        options={responseOptions}
+        allCount={responseAllCount}
+        onChange={(response) => onFilter({ response })}
+      />
+      <button type="button" className="mon-acr-base-clear-pill" onClick={onClear} disabled={!activeFilters} title="Limpiar filtros">
+        <XCircle size={14} />
+        <span>Limpiar</span>
+      </button>
+    </div>
+  );
+}
+
+function AcreditacionBaseStatusView({
+  cases,
+  selectedCase,
+  filters,
+  actorOptions,
+  responseOptions,
+  responseAllCount,
+  activeFilters,
+  onCaseSelect,
+  onFilter,
+  onClear,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  filters: AcreditacionCaseFilters;
+  actorOptions: Array<{ value: string; label: string; count: number }>;
+  responseOptions: Array<{ value: string; label: string; count: number }>;
+  responseAllCount: number;
+  activeFilters: boolean;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  onClear: () => void;
+}) {
+  const visible = cases;
+  const selectedId = selectedCase ? caseIdentity(selectedCase) : "";
+  return (
+    <div className="mon-acr-base-grid">
+      <section className="mon-query-table-panel mon-acr-base-table-panel" aria-label="Estado de la base por actor">
+        <header className="mon-query-section-head">
+          <div>
+            <span>Estado de la base</span>
+            <strong><Table2 size={16} /> Universo persona por persona</strong>
+          </div>
+          <em>{fmt(cases.length)} casos</em>
+        </header>
+        <AcreditacionBaseFilterBar
+          filters={filters}
+          actorOptions={actorOptions}
+          responseOptions={responseOptions}
+          responseAllCount={responseAllCount}
+          activeFilters={activeFilters}
+          onFilter={onFilter}
+          onClear={onClear}
+        />
+        {visible.length ? (
+          <div className="mon-query-table-wrap">
+            <table className="mon-query-table mon-acr-base-table">
+              <thead>
+                <tr>
+                  <th>Persona / código</th>
+                  <th>Actor</th>
+                  <th>Estado respuesta</th>
+                  <th>Última respuesta</th>
+                  <th>Cruce</th>
+                  <th>Avance final</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((item) => {
+                  const id = caseIdentity(item);
+                  const selected = id === selectedId;
+                  return (
+                    <tr key={id} className={`is-${caseToneValue(item)}${selected ? " is-selected" : ""}`}>
+                      <td>
+                        <button type="button" onClick={() => onCaseSelect(item)}>
+                          <strong>{caseDisplayName(item)}</strong>
+                          <small>{item.case_key || item.base_record || "sin código"}</small>
+                        </button>
+                      </td>
+                      <td>{item.actor || "Sin actor"}</td>
+                      <td><CaseStatusPill value={internalCaseResponseStateValue(item)} /></td>
+                      <td>
+                        <span>{caseHasPlatformResponse(item) ? caseResponseDateTimeLabel(item) : "Sin respuesta"}</span>
+                        <small>{item.response_id || item.base_status || "Pendiente en base"}</small>
+                      </td>
+                      <td>
+                        <CaseCrossingPill value={internalCaseCrossingValue(item)} />
+                        <small>{item.base_source || item.base_result || "Sin base"}</small>
+                      </td>
+                      <td>
+                        <span>{advancementLabel(item.advancement)}</span>
+                        <small>{caseCountsLabel(item)}</small>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyPanel title="Sin casos de base" detail="No hay filas del universo con los filtros activos." />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AcreditacionCrossingsView({
+  cases,
+  selectedCase,
+  onCaseSelect,
+  onJumpToSubsanacion,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onJumpToSubsanacion: (item: MonitoreoInternalQueryCase) => void;
+}) {
+  const visible = cases.slice(0, 160);
+  const selectedId = selectedCase ? caseIdentity(selectedCase) : "";
+  return (
+    <div className="mon-acr-crossing-grid">
+      <section className="mon-query-table-panel" aria-label="Cruces efectivos">
+        <header className="mon-query-section-head">
+          <div>
+            <span>Cruces efectivos</span>
+            <strong><Link2 size={16} /> Razón de cruce o no cruce</strong>
+            <small>Duplicados, diferencias y respuestas fuera de base se leen aquí sin mezclar conteo final con explicación técnica.</small>
+          </div>
+          <em>{fmt(cases.length)} registros</em>
+        </header>
+        {visible.length ? (
+          <div className="mon-query-table-wrap">
+            <table className="mon-query-table mon-acr-crossing-table">
+              <thead>
+                <tr>
+                  <th>Caso</th>
+                  <th>Cruce</th>
+                  <th>Razón</th>
+                  <th>Evidencia</th>
+                  <th>Decisión / acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((item) => {
+                  const id = caseIdentity(item);
+                  const selected = id === selectedId;
+                  const explanation = buildCaseCrossingExplanation(item);
+                  const canOpenSubsanacion = caseIsSubsanacionCandidate(item);
+                  const trace = caseKeyTraceSummary(item);
+                  return (
+                    <tr key={id} className={`is-${explanation.tone}${selected ? " is-selected" : ""}`}>
+                      <td>
+                        <button type="button" onClick={() => onCaseSelect(item)}>
+                          <strong>{caseDisplayName(item)}</strong>
+                          <small>{item.actor || "Sin actor"} · {item.response_id || item.case_key || "sin llave"}</small>
+                        </button>
+                      </td>
+                      <td>
+                        <CaseCrossingPill value={internalCaseCrossingValue(item)} />
+                        <small>{internalCaseResponseStateLabel(internalCaseResponseStateValue(item))}</small>
+                      </td>
+                      <td>
+                        <strong>{explanation.title}</strong>
+                        <small>{explanation.detail}</small>
+                      </td>
+                      <td>
+                        <span>{trace.primaryEvidence}</span>
+                        <small>{[trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(" · ")}</small>
+                      </td>
+                      <td>
+                        <strong>{explanation.decisionLabel}</strong>
+                        <small>{explanation.action}</small>
+                        {canOpenSubsanacion ? (
+                          <button type="button" className="mon-acr-inline-action" onClick={() => onJumpToSubsanacion(item)}>
+                            {caseSubsanacionActionLabel(item)}
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyPanel title="Sin registros de plataforma" detail="No hay cruces para los filtros activos." />
+        )}
+      </section>
+      <AcreditacionCaseDetail item={selectedCase} />
+    </div>
+  );
+}
+
+function AcreditacionSubsanacionView({
+  cases,
+  selectedCase,
+  busyId,
+  onCaseSelect,
+  onDecision,
+}: {
+  cases: MonitoreoInternalQueryCase[];
+  selectedCase: MonitoreoInternalQueryCase | null;
+  busyId?: string;
+  onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
+  onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
+}) {
+  const actionable = cases.filter(caseIsActionableSubsanacion);
+  const explanatory = cases.filter((item) => !caseIsActionableSubsanacion(item));
+  const manual = cases.filter((item) => item.assisted_review?.manual_decision).length;
+  const selectedVisible = selectedCase && cases.some((item) => caseIdentity(item) === caseIdentity(selectedCase)) ? selectedCase : cases[0] ?? null;
+  return (
+    <div className="mon-acr-subsanacion-grid">
+      <section className="mon-query-issues-panel" aria-label="Lista de subsanación">
+        <header className="mon-query-section-head">
+          <div>
+            <span>Subsanación</span>
+            <strong><ShieldAlert size={16} /> Bandeja de decisión</strong>
+            <small>Trabaja primero las completas/parciales sin cruce; cada caso debe terminar incluido con salvedad o explicado.</small>
+          </div>
+          <em>{fmt(cases.length)} casos</em>
+        </header>
+        <AcreditacionSubsanacionWorkflow actionable={actionable.length} explanatory={explanatory.length} manual={manual} />
+        {cases.length ? (
+          <div className="mon-acr-subsanacion-list">
+            {[{ title: "Accionables", rows: actionable }, { title: "Explicativos", rows: explanatory }].map((group) => (
+              <section key={group.title}>
+                <span>{group.title}</span>
+                {group.rows.length ? group.rows.slice(0, 80).map((item) => {
+                  const selected = selectedVisible && caseIdentity(selectedVisible) === caseIdentity(item);
+                  const trace = caseKeyTraceSummary(item);
+                  return (
+                    <button key={caseIdentity(item)} type="button" className={selected ? "is-active" : ""} onClick={() => onCaseSelect(item)}>
+                      <strong>{caseDisplayName(item)}</strong>
+                      <small>{item.actor || "Sin actor"} · {caseSubsanacionActionDetail(item)}</small>
+                      <span className="mon-acr-subsanacion-key">{trace.strategyLabel} · {trace.primaryEvidence}</span>
+                      <em>{caseSubsanacionActionLabel(item)}</em>
+                    </button>
+                  );
+                }) : <p>Sin casos en este grupo.</p>}
+              </section>
+            ))}
+          </div>
+        ) : (
+          <EmptyPanel title="Sin no cruces" detail="No hay casos sin cruce con los filtros activos." />
+        )}
+      </section>
+      <AcreditacionCaseDetail item={selectedVisible} busyId={busyId} onDecision={onDecision} showSubsanacionGuide />
+    </div>
   );
 }
 
@@ -7252,6 +11329,7 @@ function AcreditacionCasesWorkspace({
   title = "Casos trazables",
   busyId = "",
   onDecision,
+  showDetailWhenEmpty = true,
 }: {
   cases: MonitoreoInternalQueryCase[];
   selectedCase: MonitoreoInternalQueryCase | null;
@@ -7259,9 +11337,11 @@ function AcreditacionCasesWorkspace({
   title?: string;
   busyId?: string;
   onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
+  showDetailWhenEmpty?: boolean;
 }) {
+  const showDetail = Boolean(selectedCase || showDetailWhenEmpty);
   return (
-    <div className="mon-query-cases-workspace">
+    <div className={`mon-query-cases-workspace${showDetail ? "" : " mon-query-cases-workspace--no-detail"}`}>
       <section className="mon-query-table-panel" aria-label={title}>
         <div className="mon-query-table-head-stack">
           <header className="mon-query-section-head">
@@ -7274,7 +11354,7 @@ function AcreditacionCasesWorkspace({
         </div>
         <AcreditacionCasesTable cases={cases} selectedCase={selectedCase} onCaseSelect={onCaseSelect} />
       </section>
-      <AcreditacionCaseDetail item={selectedCase} busyId={busyId} onDecision={onDecision} />
+      {showDetail ? <AcreditacionCaseDetail item={selectedCase} busyId={busyId} onDecision={onDecision} /> : null}
     </div>
   );
 }
@@ -7283,99 +11363,104 @@ function AcreditacionConsultaBody({
   activeTab,
   modeCases,
   selectedCase,
-  modeIssues,
-  model,
+  filters,
+  actorOptions,
+  channelOptions,
+  dateOptions,
+  sourceOptions,
+  collectorOptions,
+  responseOptions,
+  crossingOptions,
+  responseAllCount,
+  activeFilters,
   onCaseSelect,
   onFilter,
+  onClear,
+  onJumpToSubsanacion,
   busyId,
   onDecision,
 }: {
   activeTab: AcreditacionConsultaTab;
   modeCases: MonitoreoInternalQueryCase[];
   selectedCase: MonitoreoInternalQueryCase | null;
-  modeIssues: MonitoreoInternalQueryIssue[];
-  model: ReturnType<typeof normalizeInternalQueries>;
+  filters: AcreditacionCaseFilters;
+  actorOptions: Array<{ value: string; label: string; count: number }>;
+  channelOptions: Array<{ value: string; label: string; count: number }>;
+  dateOptions: Array<{ value: string; label: string; count: number }>;
+  sourceOptions: Array<{ value: string; label: string; count: number }>;
+  collectorOptions: Array<{ value: string; label: string; count: number }>;
+  responseOptions: Array<{ value: string; label: string; count: number }>;
+  crossingOptions: Array<{ value: string; label: string; count: number }>;
+  responseAllCount: number;
+  activeFilters: boolean;
   onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
   onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
+  onClear: () => void;
+  onJumpToSubsanacion: (item: MonitoreoInternalQueryCase) => void;
   busyId?: string;
   onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
 }) {
-  if (activeTab === "duplicados" || activeTab === "diferencias") {
-    const title = activeTab === "duplicados" ? "Duplicados y conteo único" : "Diferencias y explicación";
-    const Icon = activeTab === "duplicados" ? Link2 : ShieldAlert;
-    const hint = activeTab === "duplicados"
-      ? "Casos donde una persona o llave puede tener más de una respuesta."
-      : "Parciales, rechazos, sin llave, fuera de base y diferencias entre fuentes.";
+  if (activeTab === "base") {
     return (
-      <div className="mon-query-grid mon-query-grid--issues">
-        <section className="mon-query-issues-panel" aria-label={title}>
-          <header className="mon-query-section-head">
-            <div>
-              <span>Auditoría</span>
-              <strong><Icon size={16} /> {title}</strong>
-              <small>{hint}</small>
-            </div>
-            <em>{fmt(modeIssues.length)} alertas</em>
-          </header>
-          <AcreditacionIssueList issues={modeIssues} onFilter={onFilter} />
-        </section>
-        <AcreditacionCasesWorkspace
-          cases={modeCases}
-          selectedCase={selectedCase}
-          onCaseSelect={onCaseSelect}
-          title="Casos vinculados"
-          busyId={busyId}
-          onDecision={onDecision}
-        />
-      </div>
+      <AcreditacionBaseStatusView
+        cases={modeCases}
+        selectedCase={selectedCase}
+        filters={filters}
+        actorOptions={actorOptions}
+        responseOptions={responseOptions}
+        responseAllCount={responseAllCount}
+        activeFilters={activeFilters}
+        onFilter={onFilter}
+        onClear={onClear}
+        onCaseSelect={onCaseSelect}
+      />
     );
   }
-  if (activeTab === "efectivas") {
-    const summary = summarizeInternalCases(modeCases);
+  if (activeTab === "cruces") {
     return (
-      <div className="mon-query-grid mon-query-grid--effectives">
-        <section className="mon-query-kpi-strip" aria-label="Indicadores de efectivas">
-          <span className="is-effective"><em>Efectivas reales</em><strong>{fmt(summary.effective)}</strong><small>completas válidas</small></span>
-          <span className="is-partial"><em>Parciales</em><strong>{fmt(summary.partial)}</strong><small>no inflan avance</small></span>
-          <span className="is-refusal"><em>Rechazos</em><strong>{fmt(summary.refusal)}</strong><small>consentimiento u otro filtro</small></span>
-          <span className="is-warning"><em>Sin respuesta</em><strong>{fmt(summary.pending)}</strong><small>en base</small></span>
-        </section>
-        <AcreditacionCasesWorkspace cases={modeCases} selectedCase={selectedCase} onCaseSelect={onCaseSelect} title="Casos efectivos" />
-      </div>
+      <AcreditacionCrossingsView
+        cases={modeCases}
+        selectedCase={selectedCase}
+        onCaseSelect={onCaseSelect}
+        onJumpToSubsanacion={onJumpToSubsanacion}
+      />
     );
   }
-  if (activeTab === "faltantes") {
+  if (activeTab === "subsanacion") {
     return (
-      <div className="mon-query-grid mon-query-grid--pending">
-        <section className="mon-query-flow-panel" aria-label="Flujo de salida de pendientes">
-          <header className="mon-query-section-head">
-            <div>
-              <span>Faltantes y barrido</span>
-              <strong><Route size={16} /> Base operativa → respuesta → avance</strong>
-            </div>
-            <em>{formatCaseLabel(modeCases.length)}</em>
-          </header>
-          <DataTable
-            rows={caseDimensionRows(model.cases, "actor", "Actor")}
-            empty="No hay flujo por actor para este corte."
-          />
-        </section>
-        <AcreditacionCasesWorkspace cases={modeCases} selectedCase={selectedCase} onCaseSelect={onCaseSelect} title="Casos que salen de pendientes" />
-      </div>
+      <AcreditacionSubsanacionView
+        cases={modeCases}
+        selectedCase={selectedCase}
+        onCaseSelect={onCaseSelect}
+        busyId={busyId}
+        onDecision={onDecision}
+      />
     );
   }
   return (
-    <AcreditacionCasesWorkspace
+    <AcreditacionPlatformRecordsView
       cases={modeCases}
       selectedCase={selectedCase}
+      filters={filters}
+      actorOptions={actorOptions}
+      channelOptions={channelOptions}
+      dateOptions={dateOptions}
+      sourceOptions={sourceOptions}
+      collectorOptions={collectorOptions}
+      responseOptions={responseOptions}
+      crossingOptions={crossingOptions}
+      activeFilters={activeFilters}
       onCaseSelect={onCaseSelect}
-      title={activeTab === "casos" ? "Casos dentro de la distribución" : "Casos trazables"}
+      onFilter={onFilter}
+      onClear={onClear}
+      onJumpToSubsanacion={onJumpToSubsanacion}
     />
   );
 }
 
 function AcreditacionConsultasPanel({
   reports,
+  sources = [],
   activeTab: controlledActiveTab,
   onActiveTabChange,
   caseReconciliationBusyId = "",
@@ -7383,6 +11468,7 @@ function AcreditacionConsultasPanel({
   onCaseReconciliationDecision,
 }: {
   reports: MonitoreoAcreditacionReports;
+  sources?: MonitoreoSource[];
   activeTab?: AcreditacionConsultaTab;
   onActiveTabChange?: (tab: AcreditacionConsultaTab) => void;
   caseReconciliationBusyId?: string;
@@ -7393,20 +11479,21 @@ function AcreditacionConsultasPanel({
   const officialCases = useMemo(() => (
     model.case_rollup?.length ? model.case_rollup : model.cases
   ), [model.case_rollup, model.cases]);
-  const [fallbackActiveTab, setFallbackActiveTab] = useState<AcreditacionConsultaTab>("casos");
+  const [fallbackActiveTab, setFallbackActiveTab] = useState<AcreditacionConsultaTab>("plataforma");
   const setActiveTab = onActiveTabChange ?? setFallbackActiveTab;
   const activeTab = controlledActiveTab ?? fallbackActiveTab;
-  const auditMode = activeTab === "duplicados" || activeTab === "diferencias";
-  const explorerCases = auditMode ? model.cases : officialCases;
+  const explorerCases = activeTab === "base" ? officialCases : model.cases;
   const [filters, setFilters] = useState<AcreditacionCaseFilters>({ ...EMPTY_CASE_FILTERS });
+  const activeCaseFilters = useMemo(() => consultaFiltersForTab(filters, activeTab), [activeTab, filters]);
   const [selectedId, setSelectedId] = useState("");
-  const filteredCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, filters)), [explorerCases, filters]);
-  const actorFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...filters, actor: "" })), [explorerCases, filters]);
-  const channelFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...filters, channel: "" })), [explorerCases, filters]);
-  const sourceFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...filters, source: "" })), [explorerCases, filters]);
-  const collectorFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...filters, collector: "" })), [explorerCases, filters]);
-  const responseFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...filters, response: "" })), [explorerCases, filters]);
-  const crossingFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...filters, crossing: "" })), [explorerCases, filters]);
+  const filteredCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, activeCaseFilters)), [activeCaseFilters, explorerCases]);
+  const actorFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, actor: "" })), [activeCaseFilters, explorerCases]);
+  const dateFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, date: "" })), [activeCaseFilters, explorerCases]);
+  const channelFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, channel: "" })), [activeCaseFilters, explorerCases]);
+  const sourceFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, source: "" })), [activeCaseFilters, explorerCases]);
+  const collectorFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, collector: "" })), [activeCaseFilters, explorerCases]);
+  const responseFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, response: "" })), [activeCaseFilters, explorerCases]);
+  const crossingFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, crossing: "" })), [activeCaseFilters, explorerCases]);
   const actorOptions = useMemo(
     () => countCaseOptions(actorFacetCases, (item) => item.actor),
     [actorFacetCases],
@@ -7415,12 +11502,20 @@ function AcreditacionConsultasPanel({
     () => countCaseOptions(channelFacetCases, caseChannelValue),
     [channelFacetCases],
   );
+  const dateOrder = useMemo(
+    () => Array.from(new Set(dateFacetCases.map((item) => item.date).filter(Boolean))).sort(compareInternalQueryDateValues),
+    [dateFacetCases],
+  );
+  const dateOptions = useMemo(
+    () => countCaseOptions(dateFacetCases, (item) => item.date, formatInternalQueryDateLabel, dateOrder),
+    [dateFacetCases, dateOrder],
+  );
   const sourceOptions = useMemo(
     () => countCaseOptions(sourceFacetCases, caseSourceValue),
     [sourceFacetCases],
   );
   const collectorOptions = useMemo(
-    () => countCaseOptions(collectorFacetCases, caseCollectorValue),
+    () => countCaseOptions(collectorFacetCases, caseCollectorValue, internalQueryCollectorDisplayLabel),
     [collectorFacetCases],
   );
   const responseOptions = useMemo(
@@ -7432,21 +11527,36 @@ function AcreditacionConsultasPanel({
     [crossingFacetCases],
   );
   const modeCases = useMemo(() => acreditacionRowsForConsultaTab(filteredCases, activeTab), [activeTab, filteredCases]);
-  const modeIssues = useMemo(() => acreditacionIssuesForConsultaTab(model.issues, activeTab), [activeTab, model.issues]);
+  const allModeCases = useMemo(() => acreditacionRowsForConsultaTab(explorerCases, activeTab), [activeTab, explorerCases]);
   const summary = useMemo(() => summarizeInternalCases(modeCases), [modeCases]);
-  const allSummary = useMemo(() => summarizeInternalCases(explorerCases), [explorerCases]);
+  const allSummary = useMemo(() => summarizeInternalCases(allModeCases), [allModeCases]);
   const selectedCase = modeCases.find((item) => caseIdentity(item) === selectedId) ?? modeCases[0] ?? null;
+  const responseAllCount = responseOptions.reduce((sum, option) => sum + option.count, 0);
+  const platformTabFilters = useMemo(() => consultaFiltersForTab(filters, "plataforma"), [filters]);
+  const baseTabFilters = useMemo(() => consultaFiltersForTab(filters, "base"), [filters]);
+  const filteredPlatformCases = useMemo(
+    () => model.cases.filter((item) => caseMatchesFilters(item, platformTabFilters)),
+    [model.cases, platformTabFilters],
+  );
+  const filteredOfficialCases = useMemo(
+    () => officialCases.filter((item) => caseMatchesFilters(item, baseTabFilters)),
+    [baseTabFilters, officialCases],
+  );
   const queryTabCounts = useMemo<Record<AcreditacionConsultaTab, number>>(() => ({
-    casos: filteredCases.length,
-    efectivas: acreditacionRowsForConsultaTab(filteredCases, "efectivas").length,
-    faltantes: acreditacionRowsForConsultaTab(filteredCases, "faltantes").length,
-    duplicados: acreditacionRowsForConsultaTab(filteredCases, "duplicados").length,
-    diferencias: acreditacionRowsForConsultaTab(filteredCases, "diferencias").length + model.issues.length,
-  }), [filteredCases, model.issues.length]);
-  const activeFilters = Object.values(filters).some(Boolean);
-  const pendingRiskCases = useMemo(() => filteredCases.filter(assistedReviewVisible), [filteredCases]);
+    plataforma: acreditacionRowsForConsultaTab(filteredPlatformCases, "plataforma").length,
+    base: filteredOfficialCases.length,
+    cruces: acreditacionRowsForConsultaTab(filteredPlatformCases, "cruces").length,
+    subsanacion: acreditacionRowsForConsultaTab(filteredPlatformCases, "subsanacion").length,
+  }), [filteredOfficialCases.length, filteredPlatformCases]);
+  const activeFilters = Object.values(activeCaseFilters).some(Boolean);
+  const pendingRiskCases = useMemo(() => (
+    filteredPlatformCases.filter((item) => caseIsActionableSubsanacion(item) || assistedReviewVisible(item))
+  ), [filteredPlatformCases]);
   const queryAnswer = acreditacionQueryAnswerCopy(activeTab, summary, allSummary, activeFilters);
   const QueryAnswerIcon = queryAnswer.icon;
+  const isTableOnlyTab = activeTab === "plataforma" || activeTab === "base";
+  const showCutStatusStrip = acreditacionConsultaShowsCutStatusStrip(activeTab);
+  const compactStage = !showCutStatusStrip && controlledActiveTab;
   const patchFilters = (patch: Partial<AcreditacionCaseFilters>) => {
     setFilters((current) => ({ ...current, ...patch }));
     setSelectedId("");
@@ -7456,51 +11566,87 @@ function AcreditacionConsultasPanel({
     setSelectedId("");
   };
   return (
-    <div className="mon-stage mon-stage--consultas mon-acr-cases mon-acr-cases--canonical">
-      <AcreditacionConsultaStatusStrip reports={reports} model={model} officialCases={officialCases} />
+    <div className={`mon-stage mon-stage--consultas mon-acr-cases mon-acr-cases--canonical${compactStage ? " is-no-cut-strip" : ""}`}>
+      {showCutStatusStrip ? <AcreditacionConsultaStatusStrip reports={reports} model={model} officialCases={officialCases} sources={sources} /> : null}
       {controlledActiveTab ? null : <AcreditacionConsultaTabs active={activeTab} counts={queryTabCounts} onChange={setActiveTab} />}
 
-      <section className="mon-case-explorer" aria-label="Explorador de casos del monitoreo">
-        <section className={`mon-query-answer is-${queryAnswer.tone}`} aria-label="Lectura activa del explorador">
-          <span><QueryAnswerIcon size={16} /> {queryAnswer.heading}</span>
-          <strong>{queryAnswer.title}</strong>
-          <p>{queryAnswer.detail}</p>
-        </section>
-        <AcreditacionCaseExplorerToolbar
-          summary={summary}
-          allSummary={allSummary}
-          filters={filters}
-          actorOptions={actorOptions}
-          channelOptions={channelOptions}
-          sourceOptions={sourceOptions}
-          collectorOptions={collectorOptions}
-          responseOptions={responseOptions}
-          crossingOptions={crossingChipOptions}
-          activeFilters={activeFilters}
-          onFilter={patchFilters}
-          onClear={clearFilters}
-        />
-        <div className="mon-acr-explorer-meta-row">
-          <AcreditacionPendingRiskStrip
-            cases={pendingRiskCases}
-            activeActor={filters.actor}
-            onReview={(actor) => patchFilters({ actor, search: "", crossing: "" })}
+      <section className={`mon-case-explorer${isTableOnlyTab ? " is-platform-table-only" : ""}`} aria-label="Explorador de casos del monitoreo">
+        {isTableOnlyTab ? null : (
+          <section className={`mon-query-answer is-${queryAnswer.tone}`} aria-label="Lectura activa del explorador">
+            <span><QueryAnswerIcon size={16} /> {queryAnswer.heading}</span>
+            <strong>{queryAnswer.title}</strong>
+            <p>{queryAnswer.detail}</p>
+          </section>
+        )}
+        {isTableOnlyTab ? null : (
+          <AcreditacionCaseExplorerToolbar
+            summary={summary}
+            allSummary={allSummary}
+            filters={activeCaseFilters}
+            actorOptions={actorOptions}
+            channelOptions={channelOptions}
+            dateOptions={dateOptions}
+            sourceOptions={sourceOptions}
+            collectorOptions={collectorOptions}
+            responseOptions={responseOptions}
+            crossingOptions={crossingChipOptions}
+            activeFilters={activeFilters}
+            onFilter={patchFilters}
+            onClear={clearFilters}
           />
-          {caseReconciliationStatus ? (
-            <span className={`mon-acr-model-action-status is-${caseReconciliationStatus.tone}`}>
-              {caseReconciliationStatus.message}
-            </span>
-          ) : null}
-        </div>
+        )}
+        {isTableOnlyTab && !caseReconciliationStatus ? null : (
+          <div className="mon-acr-explorer-meta-row">
+            {isTableOnlyTab ? null : (
+              <AcreditacionPendingRiskStrip
+                cases={pendingRiskCases}
+                onReview={() => {
+                  setActiveTab("subsanacion");
+                  setFilters((current) => ({
+                    ...current,
+                    actor: "",
+                    search: "",
+                    crossing: "",
+                  }));
+                  setSelectedId("");
+                }}
+              />
+            )}
+            {caseReconciliationStatus ? (
+              <span className={`mon-acr-model-action-status is-${caseReconciliationStatus.tone}`}>
+                {caseReconciliationStatus.message}
+              </span>
+            ) : null}
+          </div>
+        )}
         <div className="mon-case-explorer-body">
           <AcreditacionConsultaBody
             activeTab={activeTab}
             modeCases={modeCases}
             selectedCase={selectedCase}
-            modeIssues={modeIssues}
-            model={model}
+            filters={activeCaseFilters}
+            actorOptions={actorOptions}
+            channelOptions={channelOptions}
+            dateOptions={dateOptions}
+            sourceOptions={sourceOptions}
+            collectorOptions={collectorOptions}
+            responseOptions={responseOptions}
+            crossingOptions={crossingChipOptions}
+            responseAllCount={responseAllCount}
+            activeFilters={activeFilters}
             onCaseSelect={(item) => setSelectedId(caseIdentity(item))}
             onFilter={patchFilters}
+            onClear={clearFilters}
+            onJumpToSubsanacion={(item) => {
+              setActiveTab("subsanacion");
+              setFilters((current) => ({
+                ...current,
+                actor: item.actor || current.actor,
+                crossing: "",
+                search: item.response_id || item.case_key || caseDisplayName(item),
+              }));
+              setSelectedId(caseIdentity(item));
+            }}
             busyId={caseReconciliationBusyId}
             onDecision={onCaseReconciliationDecision}
           />
@@ -7510,7 +11656,7 @@ function AcreditacionConsultasPanel({
   );
 }
 
-type AcreditacionAdvanceCard = {
+export type AcreditacionAdvanceCard = {
   id: string;
   actor: string;
   universe: number;
@@ -7549,6 +11695,20 @@ type AcreditacionAdvanceDailyPoint = {
   total: number;
 };
 
+type AcreditacionDailyReportCut = {
+  date: string;
+  label: string;
+  isFallback?: boolean;
+};
+
+type AcreditacionDailyChartRow = AcreditacionAdvanceDailyPoint & {
+  x: number;
+  axisLabel: string;
+  displayLabel: string;
+  dailyTotal: number;
+  cumulative: number;
+};
+
 type AcreditacionAdvanceDailySeries = {
   id: string;
   label: string;
@@ -7557,6 +11717,7 @@ type AcreditacionAdvanceDailySeries = {
   sourceId?: string;
   collectorId?: string;
   collector?: string;
+  collectorDisplay?: string;
   points: AcreditacionAdvanceDailyPoint[];
   completed: number;
   partial: number;
@@ -7677,7 +11838,7 @@ function advanceGoalForActor(actor: string, goals: MonitoreoGoal[]) {
   return direct && Number.isFinite(Number(direct.meta)) ? Number(direct.meta) : null;
 }
 
-function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []): AcreditacionAdvanceCard[] {
+export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []): AcreditacionAdvanceCard[] {
   return rows.map((row, index) => {
     const actor = rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`);
     const universe = rowNumber(row, ["Base reportada", "Universo", "Total", "Base", "Casos"], 0);
@@ -7690,13 +11851,14 @@ function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: Monit
     const goalMeta = advanceGoalForActor(actor, goals);
     const meta = Number.isFinite(rowMeta) && rowMeta > 0 ? rowMeta : goalMeta;
     const missing = meta != null ? Math.max(0, meta - effective) : null;
-    const progress = meta != null ? safePercentValue(effective, meta) : null;
-    const coverage = safePercentValue(effective, universe);
+    const progress = safePercentValue(effective, universe);
+    const coverage = progress;
+    const targetProgress = meta != null ? safePercentValue(effective, meta) : null;
     const statusTone: AcreditacionAdvanceCard["statusTone"] = meta == null
       ? "muted"
-      : (progress ?? 0) >= 100
+      : missing === 0
         ? "complete"
-        : (progress ?? 0) >= 70
+        : (targetProgress ?? 0) >= 70
           ? "steady"
           : "low";
     return {
@@ -7718,6 +11880,53 @@ function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: Monit
     const bNeeds = b.meta == null ? 1 : 0;
     return aNeeds - bNeeds || b.effective - a.effective || a.actor.localeCompare(b.actor, "es");
   });
+}
+
+function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[]) {
+  const withMeta = rows.filter((row) => row.meta != null && row.meta > 0);
+  const variables = uniqueDisplayValues((withMeta.length ? withMeta : rows).map((row) => row.variable));
+  const priority = ["sede", "distrito", "grupo", "segmento", "actor"];
+  return variables.find((variable) => priority.includes(normalizeSourceMatch(variable)))
+    ?? variables[0]
+    ?? "";
+}
+
+export function phoneQuotaAdvanceCardsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceCard[] {
+  const quotaRows = phoneQuotaRowsForPanel(rows);
+  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const sourceRows = (variable ? quotaRows.filter((row) => row.variable === variable) : quotaRows)
+    .filter((row) => row.meta != null || row.universe > 0);
+  return sourceRows.map((row, index) => {
+    const meta = row.meta != null ? Math.max(0, Number(row.meta) || 0) : null;
+    const missing = meta != null ? Math.max(0, meta - row.effective) : null;
+    const targetProgress = meta != null ? safePercentValue(row.effective, meta) : null;
+    const coverage = safePercentValue(row.effective, row.universe);
+    const statusTone: AcreditacionAdvanceCard["statusTone"] = meta == null
+      ? "muted"
+      : missing === 0
+        ? "complete"
+        : (targetProgress ?? 0) >= 70
+          ? "steady"
+          : "low";
+    return {
+      id: `phone-quota-${normalizeSourceMatch(row.variable)}-${normalizeSourceMatch(row.value) || index}`,
+      actor: row.value,
+      universe: row.universe,
+      effective: row.effective,
+      partial: row.partial,
+      refusals: row.refusals,
+      pending: row.unswept,
+      meta,
+      missing,
+      progress: targetProgress,
+      coverage,
+      statusTone,
+    };
+  }).sort((a, b) => (
+    (b.missing ?? -1) - (a.missing ?? -1)
+    || b.universe - a.universe
+    || a.actor.localeCompare(b.actor, "es", { numeric: true })
+  ));
 }
 
 function advanceTotals(cards: AcreditacionAdvanceCard[]) {
@@ -7750,6 +11959,132 @@ function dailyPointTotals(points: AcreditacionAdvanceDailyPoint[]) {
     refusals: acc.refusals + point.refusals,
     total: acc.total + point.total,
   }), { effective: 0, partial: 0, refusals: 0, total: 0 });
+}
+
+function dailyPointTotalValue(point: AcreditacionAdvanceDailyPoint) {
+  return point.total || point.effective + point.partial + point.refusals;
+}
+
+function dateOnlyTime(value: Date | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function compactAdvanceDateTickLabel(value: string) {
+  const parsed = parseAcreditacionDailyDate(value);
+  if (!parsed) return shortAdvanceDateLabel(value);
+  const month = parsed.toLocaleDateString("es-PE", { month: "short" }).replace(".", "").toLowerCase();
+  return `${month}<br>${String(parsed.getDate()).padStart(2, "0")}`;
+}
+
+function mergeAcreditacionDailyPoints(points: AcreditacionAdvanceDailyPoint[]) {
+  const byDate = new Map<string, AcreditacionAdvanceDailyPoint>();
+  points.forEach((point) => {
+    const parsed = parseAcreditacionDailyDate(point.date);
+    const key = parsed ? calendarIsoDate(parsed) : point.date;
+    const existing = byDate.get(key) ?? { date: key, effective: 0, partial: 0, refusals: 0, total: 0 };
+    existing.effective += point.effective;
+    existing.partial += point.partial;
+    existing.refusals += point.refusals;
+    existing.total += dailyPointTotalValue(point);
+    byDate.set(key, existing);
+  });
+  return sortAcreditacionDailyPoints(Array.from(byDate.values()));
+}
+
+function expandAcreditacionDailyCalendar(
+  points: AcreditacionAdvanceDailyPoint[],
+  reportCuts: AcreditacionDailyReportCut[] = [],
+) {
+  const merged = mergeAcreditacionDailyPoints(points);
+  const dated = merged
+    .map((point) => ({ point, time: dateOnlyTime(parseAcreditacionDailyDate(point.date)) }))
+    .filter((item): item is { point: AcreditacionAdvanceDailyPoint; time: number } => item.time != null);
+  if (dated.length < 2) return merged;
+  const byTime = new Map(dated.map((item) => [item.time, item.point]));
+  const first = dated[0].time;
+  const lastData = dated.at(-1)?.time ?? first;
+  const cutTimes = reportCuts
+    .map((cut) => dateOnlyTime(parseAcreditacionDailyDate(cut.date)))
+    .filter((time): time is number => time != null && time >= first && time <= lastData + CALENDAR_DAY_MS);
+  const last = Math.max(lastData, ...cutTimes, first);
+  const totalDays = Math.round((last - first) / CALENDAR_DAY_MS) + 1;
+  if (totalDays <= 1 || totalDays > 180) return merged;
+  const expanded: AcreditacionAdvanceDailyPoint[] = [];
+  for (let index = 0; index < totalDays; index += 1) {
+    const time = first + index * CALENDAR_DAY_MS;
+    const existing = byTime.get(time);
+    if (existing) {
+      expanded.push(existing);
+    } else {
+      expanded.push({ date: calendarIsoDate(new Date(time)), effective: 0, partial: 0, refusals: 0, total: 0 });
+    }
+  }
+  return expanded;
+}
+
+function dailyCutsForChart(
+  points: AcreditacionDailyChartRow[],
+  reportCuts: AcreditacionDailyReportCut[] = [],
+  fallbackCutDate?: string,
+) {
+  if (!points.length) return [];
+  const dated = points
+    .map((point) => ({ point, time: dateOnlyTime(parseAcreditacionDailyDate(point.date)) }))
+    .filter((item): item is { point: AcreditacionDailyChartRow; time: number } => item.time != null);
+  if (!dated.length) return [];
+  const cuts = reportCuts.length
+    ? reportCuts
+    : fallbackCutDate
+      ? [{ date: fallbackCutDate, label: "Corte disponible", isFallback: true }]
+      : [];
+  const seen = new Set<number>();
+  return cuts.flatMap((cut) => {
+    const cutTime = dateOnlyTime(parseAcreditacionDailyDate(cut.date));
+    if (cutTime == null) return [];
+    const match = dated.find((item) => item.time >= cutTime) ?? dated.at(-1);
+    if (!match || seen.has(match.point.x)) return [];
+    seen.add(match.point.x);
+    return [{
+      ...cut,
+      x: match.point.x,
+      point: match.point,
+      label: cut.label || formatDate(cut.date || match.point.date || ""),
+    }];
+  });
+}
+
+function weeklyCutsForChart(
+  points: AcreditacionDailyChartRow[],
+  reportWeekday: MonitoreoReportWeekday | "" | null | undefined,
+) {
+  const weekday = normalizeCalendarReportWeekday(reportWeekday);
+  const weekdayIndex = weekday ? CALENDAR_REPORT_WEEKDAY_INDEX.get(weekday) : null;
+  if (weekdayIndex == null) return [];
+  const label = calendarReportWeekdayLabel(weekday);
+  return points.flatMap((point) => {
+    const parsed = parseAcreditacionDailyDate(point.date);
+    if (!parsed || parsed.getDay() !== weekdayIndex) return [];
+    return [{
+      date: point.date,
+      label,
+      isFallback: false,
+      x: point.x,
+      point,
+    }];
+  });
+}
+
+function sparseDailyChartRows<T extends { x: number }>(rows: T[], minGap: number, maxRows: number) {
+  const out: T[] = [];
+  rows.sort((a, b) => a.x - b.x).forEach((row) => {
+    if (out.length >= maxRows) return;
+    if (out.some((item) => Math.abs(item.x - row.x) < minGap)) return;
+    out.push(row);
+  });
+  return out;
 }
 
 function acreditacionReportRowValue(row: Record<string, unknown>, candidates: string[]) {
@@ -7831,16 +12166,25 @@ function acreditacionSurveyStateTone(state: string): "completed" | "partial" | "
 function parseAcreditacionDailyDate(value: unknown) {
   const text = String(value ?? "").trim();
   if (!text) return null;
-  const direct = new Date(text);
-  if (!Number.isNaN(direct.getTime())) return direct;
+  const yearFirst = text.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (yearFirst) {
+    const year = Number(yearFirst[1]);
+    const month = Number(yearFirst[2]);
+    const day = Number(yearFirst[3]);
+    const parsed = new Date(year, month - 1, day);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
   const match = text.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
-  if (!match) return null;
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const rawYear = match[3] ? Number(match[3]) : new Date().getFullYear();
-  const year = rawYear < 100 ? 2000 + rawYear : rawYear;
-  const parsed = new Date(year, month - 1, day);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const rawYear = match[3] ? Number(match[3]) : new Date().getFullYear();
+    const year = rawYear < 100 ? 2000 + rawYear : rawYear;
+    const parsed = new Date(year, month - 1, day);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const direct = new Date(text);
+  return Number.isNaN(direct.getTime()) ? null : direct;
 }
 
 function sortAcreditacionDailyPoints(points: AcreditacionAdvanceDailyPoint[]) {
@@ -8340,6 +12684,112 @@ function groupAcreditacionCollectorsBySource(series: AcreditacionAdvanceDailySer
   return grouped;
 }
 
+function collectorDisplayLookupKey(sourceKey: string, collectorKey: string) {
+  return `${sourceKey}\r${collectorKey}`;
+}
+
+function isTechnicalAcreditacionCollectorLabel(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return false;
+  const key = normalizeSourceMatch(text);
+  return /^\d{6,}$/.test(text)
+    || /^[a-f0-9]{10,}$/i.test(text)
+    || /^(collector|colector|web|link)[-_]?\d+$/i.test(text)
+    || key === "web link"
+    || key === "weblink";
+}
+
+function acreditacionCollectorDisplayFromRow(row: AcreditacionCollectorRow) {
+  return [
+    row.alias,
+    row.platformName,
+    row.saved?.collector_name,
+    row.platform?.name,
+    row.platform?.collector_name,
+  ].map((value) => String(value ?? "").trim())
+    .find((value) => value && !isTechnicalAcreditacionCollectorLabel(value)) ?? "";
+}
+
+function buildAcreditacionCollectorDisplayIndex(
+  sources: MonitoreoSource[],
+  linkCollectors: MonitoreoLinkCollector[] = [],
+) {
+  const index = new Map<string, string>();
+  sources.forEach((source) => {
+    acreditacionCollectorsForSource(source, linkCollectors).forEach((collector) => {
+      const display = acreditacionCollectorDisplayFromRow(collector);
+      if (!display) return;
+      const sourceKeys = uniqueNormalizedKeys([
+        source.id,
+        source.survey_id,
+        source.label,
+        source.survey_title,
+        source.dimensions?.survey_title,
+        collector.sourceId,
+        collector.surveyId,
+        collector.sourceName,
+      ]);
+      const collectorKeys = uniqueNormalizedKeys([
+        collector.collectorId,
+        collector.alias,
+        collector.platformName,
+        collector.saved?.collector_name,
+        collector.platform?.name,
+        collector.platform?.collector_name,
+      ]);
+      collectorKeys.forEach((collectorKey) => {
+        if (!index.has(collectorKey)) index.set(collectorKey, display);
+      });
+      sourceKeys.forEach((sourceKey) => {
+        collectorKeys.forEach((collectorKey) => {
+          index.set(collectorDisplayLookupKey(sourceKey, collectorKey), display);
+        });
+      });
+    });
+  });
+  return index;
+}
+
+function resolveAcreditacionCollectorDisplay(
+  series: AcreditacionAdvanceDailySeries,
+  displayIndex: Map<string, string>,
+  index: number,
+) {
+  const sourceKeys = uniqueNormalizedKeys([series.sourceId, series.label]);
+  const collectorKeys = uniqueNormalizedKeys([series.collectorId, series.collector]);
+  for (const sourceKey of sourceKeys) {
+    for (const collectorKey of collectorKeys) {
+      const match = displayIndex.get(collectorDisplayLookupKey(sourceKey, collectorKey));
+      if (match) return match;
+    }
+  }
+  for (const collectorKey of collectorKeys) {
+    const match = displayIndex.get(collectorKey);
+    if (match) return match;
+  }
+  const raw = String(series.collector ?? "").trim();
+  if (raw && !isTechnicalAcreditacionCollectorLabel(raw)) return raw;
+  return `Recopilador ${index + 1}`;
+}
+
+function applyAcreditacionCollectorDisplayNames(
+  series: AcreditacionAdvanceDailySeries[],
+  sources: MonitoreoSource[],
+  linkCollectors: MonitoreoLinkCollector[] = [],
+) {
+  const displayIndex = buildAcreditacionCollectorDisplayIndex(sources, linkCollectors);
+  return series.map((item, index) => ({
+    ...item,
+    collectorDisplay: resolveAcreditacionCollectorDisplay(item, displayIndex, index),
+  }));
+}
+
+function acreditacionCollectorSeriesDisplayName(series: AcreditacionAdvanceDailySeries) {
+  return series.collectorDisplay
+    || (series.collector && !isTechnicalAcreditacionCollectorLabel(series.collector) ? series.collector : "")
+    || "Recopilador";
+}
+
 function acreditacionCollectorsForSurvey(
   row: AcreditacionAdvanceSurveyRow,
   grouped: Map<string, AcreditacionAdvanceDailySeries[]>,
@@ -8585,9 +13035,19 @@ function actorCardsForDashboard({
   }));
 }
 
+function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports): AcreditacionActorCard[] {
+  const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
+  return phoneQuotaAdvanceCardsFromRows(quotaRows).map((card) => ({
+    ...card,
+    status: actorStatusLabel(card),
+    mechanisms: [],
+    dailyPoints: [],
+  }));
+}
+
 function shortAdvanceDateLabel(value: string) {
-  const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) {
+  const parsed = parseAcreditacionDailyDate(value);
+  if (parsed) {
     return parsed.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
   }
   const dayFirst = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
@@ -8595,6 +13055,13 @@ function shortAdvanceDateLabel(value: string) {
   const yearFirst = value.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
   if (yearFirst) return `${yearFirst[3].padStart(2, "0")}/${yearFirst[2].padStart(2, "0")}`;
   return value.length > 6 ? value.slice(5) : value;
+}
+
+function paddedAdvanceAxisMax(value: number) {
+  if (value <= 0) return undefined;
+  if (value <= 8) return Math.ceil(value * 1.25);
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(value)) - 1);
+  return Math.ceil((value * 1.16) / magnitude) * magnitude;
 }
 
 function AcreditacionAdvanceMetric({
@@ -8619,8 +13086,10 @@ function AcreditacionAdvanceMetric({
 
 function AcreditacionAdvanceStorage({
   cards,
+  scopeLabel = "actor",
 }: {
   cards: AcreditacionAdvanceCard[];
+  scopeLabel?: string;
 }) {
   const totals = advanceTotals(cards);
   const universe = Math.max(0, totals.universe);
@@ -8638,21 +13107,21 @@ function AcreditacionAdvanceStorage({
           <span>Universo de avance</span>
           <strong>{fmt(universe)} casos</strong>
         </div>
-        <div className="mon-advance-actor-breakdown" aria-label="Casos por actor">
-          {actorUniverse.map((card) => (
-            <span
-              key={`${card.id}-universe`}
-              title={`${card.actor}: ${fmt(card.universe)} casos (${pctFrom(card.universe, universe)})`}
-              style={{ "--advance-actor-size": `${Math.max(0, Math.min(100, safePercentValue(card.universe, universe) ?? 0))}%` } as CSSProperties}
-            >
-              <em>{card.actor}</em>
-              <strong>{fmt(card.universe)}</strong>
-              <i aria-hidden="true" />
-            </span>
-          ))}
-        </div>
         <em>{pctFrom(totals.effective, universe)} efectivas</em>
       </header>
+      <div className="mon-advance-actor-breakdown" aria-label={`Casos por ${scopeLabel.toLowerCase()}`}>
+        {actorUniverse.map((card) => (
+          <span
+            key={`${card.id}-universe`}
+            title={`${card.actor}: ${fmt(card.universe)} casos (${pctFrom(card.universe, universe)})`}
+            style={{ "--advance-actor-size": `${Math.max(0, Math.min(100, safePercentValue(card.universe, universe) ?? 0))}%` } as CSSProperties}
+          >
+            <em>{card.actor}</em>
+            <strong>{fmt(card.universe)}</strong>
+            <i aria-hidden="true" />
+          </span>
+        ))}
+      </div>
       <div className="mon-advance-storage-chart">
         <div className="mon-advance-storage-bar" role="list" aria-label={`${fmt(totals.effective)} efectivas de ${fmt(universe)} casos base`}>
           {segments.some((segment) => segment.value > 0)
@@ -8686,61 +13155,296 @@ function AcreditacionAdvanceDailyMini({
   points,
   title = "Ritmo general del estudio",
   variant = "general",
+  cutDate,
+  reportCuts = [],
+  reportWeekday = "",
 }: {
   points: AcreditacionAdvanceDailyPoint[];
   title?: string;
   variant?: "general" | "actor" | "source";
+  cutDate?: string;
+  reportCuts?: AcreditacionDailyReportCut[];
+  reportWeekday?: MonitoreoReportWeekday | "";
 }) {
-  const totals = dailyPointTotals(points);
-  const visiblePoints = points.filter((point) => point.total || point.effective || point.partial || point.refusals).slice(-18);
-  const rows = [
-    { key: "effective", label: "Efectivas", total: totals.effective, values: visiblePoints.map((point) => point.effective) },
-    { key: "partial", label: "Parciales", total: totals.partial, values: visiblePoints.map((point) => point.partial) },
-    { key: "refusals", label: "Rechazos", total: totals.refusals, values: visiblePoints.map((point) => point.refusals) },
-    { key: "total", label: "Total", total: totals.total, values: visiblePoints.map((point) => point.total) },
+  const orderedSourcePoints = mergeAcreditacionDailyPoints(sortAcreditacionDailyPoints(points));
+  const orderedPoints = expandAcreditacionDailyCalendar(orderedSourcePoints, reportCuts);
+  const totals = dailyPointTotals(orderedSourcePoints);
+  const visibleLimit = variant === "general" ? 42 : variant === "actor" ? 35 : 30;
+  let cumulative = 0;
+  const allChartRows = orderedPoints.map((point) => {
+    const dailyTotal = dailyPointTotalValue(point);
+    cumulative += dailyTotal;
+    return {
+      ...point,
+      x: 0,
+      axisLabel: compactAdvanceDateTickLabel(point.date),
+      displayLabel: shortAdvanceDateLabel(point.date),
+      dailyTotal,
+      cumulative,
+    };
+  });
+  const visiblePoints = allChartRows.slice(-visibleLimit);
+  const chartRows = visiblePoints.map((point, index) => ({ ...point, x: index }));
+  const hasDailySignal = totals.total > 0 && chartRows.some((point) => dailyPointTotalValue(point) > 0);
+  const lastPoint = chartRows.at(-1) ?? null;
+  const bestPoint = chartRows.reduce<typeof chartRows[number] | null>((best, point) => (
+    !best || point.dailyTotal > best.dailyTotal ? point : best
+  ), null);
+  const average = chartRows.length ? totals.total / chartRows.length : 0;
+  const resolvedReportWeekday = normalizeCalendarReportWeekday(reportWeekday) || calendarReportWeekdayFromDate(cutDate);
+  const datedCuts = dailyCutsForChart(chartRows, reportCuts);
+  const inferredWeeklyCuts = datedCuts.length ? [] : weeklyCutsForChart(chartRows, resolvedReportWeekday);
+  const cuts = datedCuts.length ? datedCuts : inferredWeeklyCuts.length ? inferredWeeklyCuts : dailyCutsForChart(chartRows, [], cutDate);
+  const cutXSet = new Set(cuts.map((cut) => cut.x));
+  const tickEvery = chartRows.length > 40 ? 7 : chartRows.length > 28 ? 5 : chartRows.length > 16 ? 3 : chartRows.length > 10 ? 2 : 1;
+  const tickRows = chartRows.filter((point, index) => (
+    index === 0 || index === chartRows.length - 1 || index % tickEvery === 0 || cutXSet.has(point.x)
+  ));
+  const cumulativeCandidates = Array.from(new Map([
+    ...(chartRows.length <= 14 ? ([chartRows[0]].filter(Boolean) as typeof chartRows) : []),
+    ...cuts.map((cut) => cut.point),
+    ...([chartRows.at(-1)].filter(Boolean) as typeof chartRows),
+  ].map((point) => [point.x, point])).values());
+  const cumulativeLabelRows = sparseDailyChartRows(
+    cumulativeCandidates,
+    variant === "general" ? 3 : 4,
+    variant === "general" ? 8 : 5,
+  );
+  const showDenseDailyLabels = variant === "general"
+    ? chartRows.length <= 42
+    : chartRows.length <= 24;
+  const dailyLabelCandidates = showDenseDailyLabels
+    ? chartRows.filter((point) => point.dailyTotal > 0)
+    : Array.from(new Map([
+      ...(bestPoint && bestPoint.dailyTotal > 0 ? [bestPoint] : []),
+      ...(lastPoint && lastPoint.dailyTotal > 0 ? [lastPoint] : []),
+      ...cuts.map((cut) => cut.point).filter((point) => point.dailyTotal > 0),
+    ].map((point) => [point.x, point])).values());
+  const dailyLabelRows = sparseDailyChartRows(
+    dailyLabelCandidates,
+    showDenseDailyLabels ? 1 : variant === "general" ? 2 : 3,
+    showDenseDailyLabels ? Math.min(42, dailyLabelCandidates.length) : variant === "general" ? 8 : 5,
+  );
+  const dateLabelRows = chartRows;
+  const chartBottomMargin = variant === "general" ? 86 : variant === "actor" ? 78 : 72;
+  const maxDaily = chartRows.reduce((max, point) => Math.max(max, point.dailyTotal), 0);
+  const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
+  const dailyAxisMax = paddedAdvanceAxisMax(maxDaily);
+  const cumulativeAxisMax = paddedAdvanceAxisMax(maxCumulative);
+  const hoverData = chartRows.map((point) => [
+    point.date,
+    point.effective,
+    point.partial,
+    point.refusals,
+    point.dailyTotal,
+    point.cumulative,
+  ]);
+  const hoverTemplate = [
+    "<b>%{customdata[0]}</b>",
+    "Efectivas %{customdata[1]} · Parciales %{customdata[2]} · Rechazos %{customdata[3]}",
+    "Total día <b>%{customdata[4]}</b> · Acumulado <b>%{customdata[5]}</b>",
+    "<extra></extra>",
+  ].join("<br>");
+  const chartData = [
+    {
+      type: "bar" as const,
+      name: "Efectivas",
+      x: chartRows.map((point) => point.x),
+      y: chartRows.map((point) => point.effective),
+      marker: { color: "#168a55", line: { color: "rgba(255, 255, 255, 0.72)", width: 0.8 } },
+      customdata: hoverData,
+      hovertemplate: hoverTemplate,
+    },
+    {
+      type: "bar" as const,
+      name: "Parciales",
+      x: chartRows.map((point) => point.x),
+      y: chartRows.map((point) => point.partial),
+      marker: { color: "#b97611", line: { color: "rgba(255, 255, 255, 0.72)", width: 0.8 } },
+      customdata: hoverData,
+      hovertemplate: hoverTemplate,
+    },
+    {
+      type: "bar" as const,
+      name: "Rechazos",
+      x: chartRows.map((point) => point.x),
+      y: chartRows.map((point) => point.refusals),
+      marker: { color: "#a61d4f", line: { color: "rgba(255, 255, 255, 0.72)", width: 0.8 } },
+      customdata: hoverData,
+      hovertemplate: hoverTemplate,
+    },
+    {
+      type: "scatter" as const,
+      mode: "lines+markers" as const,
+      name: "Acumulado total",
+      x: chartRows.map((point) => point.x),
+      y: chartRows.map((point) => point.cumulative),
+      yaxis: "y2",
+      line: { color: "#17212f", width: 3, shape: "spline" as const, smoothing: 0.45 },
+      marker: {
+        color: "#ffffff",
+        size: variant === "general" ? 8 : 6,
+        line: { color: "#17212f", width: 2 },
+      },
+      customdata: hoverData,
+      hovertemplate: hoverTemplate,
+    },
   ];
+  const chartLayout = {
+    barmode: "stack" as const,
+    bargap: chartRows.length <= 1 ? 0.72 : chartRows.length <= 7 ? 0.42 : 0.24,
+    dragmode: false as const,
+    font: {
+      family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      color: "#17212f",
+    },
+    hovermode: "closest" as const,
+    showlegend: false,
+    margin: { l: 48, r: 58, t: 36, b: chartBottomMargin },
+    paper_bgcolor: "transparent",
+    plot_bgcolor: "transparent",
+    hoverlabel: {
+      align: "left" as const,
+      bgcolor: "#ffffff",
+      bordercolor: "rgba(15, 23, 42, 0.12)",
+      font: { color: "#17212f", size: 12, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+    },
+    shapes: [
+      ...cuts.map((cut) => ({
+        type: "line" as const,
+        xref: "x" as const,
+        yref: "paper" as const,
+        x0: cut.x,
+        x1: cut.x,
+        y0: 0,
+        y1: 1,
+        line: {
+          color: cut.isFallback ? "rgba(190, 18, 60, 0.5)" : "rgba(15, 58, 117, 0.32)",
+          width: cut.isFallback ? 1.4 : 1,
+          dash: cut.isFallback ? "dash" : "dot",
+        },
+      })),
+    ],
+    annotations: [
+      ...cumulativeLabelRows.map((point) => ({
+        x: point.x,
+        y: 1.08,
+        xref: "x" as const,
+        yref: "paper" as const,
+        text: fmt(point.cumulative),
+        showarrow: false,
+        font: { color: "#0f3a75", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+      })),
+      ...dailyLabelRows.map((point) => ({
+        x: point.x,
+        y: -0.08,
+        xref: "x" as const,
+        yref: "paper" as const,
+        text: fmt(point.dailyTotal),
+        showarrow: false,
+        xanchor: "center" as const,
+        yanchor: "middle" as const,
+        font: { color: "#168a55", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+      })),
+      ...dateLabelRows.map((point) => ({
+        x: point.x,
+        y: -0.22,
+        xref: "x" as const,
+        yref: "paper" as const,
+        text: point.axisLabel,
+        showarrow: false,
+        xanchor: "center" as const,
+        yanchor: "top" as const,
+        align: "center" as const,
+        font: { color: "#5f6b7a", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+      })),
+    ],
+    xaxis: {
+      fixedrange: true,
+      showgrid: false,
+      zeroline: false,
+      range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
+      tickangle: 0,
+      tickvals: tickRows.map((point) => point.x),
+      ticktext: tickRows.map((point) => point.axisLabel),
+      showticklabels: false,
+      ticks: "",
+      automargin: true,
+    },
+    yaxis: {
+      title: { text: "Respuestas/día", font: { color: "#5f6b7a", size: 11 } },
+      fixedrange: true,
+      range: dailyAxisMax ? [0, dailyAxisMax] : undefined,
+      rangemode: "tozero",
+      showline: false,
+      zeroline: false,
+      gridcolor: "rgba(15, 23, 42, 0.06)",
+      tickfont: { color: "#5f6b7a", size: 10 },
+    },
+    yaxis2: {
+      title: { text: "Acumulado", font: { color: "#17212f", size: 11 } },
+      overlaying: "y",
+      side: "right",
+      fixedrange: true,
+      range: cumulativeAxisMax ? [0, cumulativeAxisMax] : undefined,
+      rangemode: "tozero",
+      showgrid: false,
+      zeroline: false,
+      tickfont: { color: "#17212f", size: 10 },
+    },
+  };
+  const chartConfig = {
+    displayModeBar: false,
+    doubleClick: false,
+    responsive: true,
+    scrollZoom: false,
+  };
+  const averageLabel = average ? average.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "S/D";
+  const chartHeight = variant === "general" ? 360 : 300;
   return (
     <article className={`mon-advance-daily-mini is-${variant}`}>
       <header>
         <div>
           <span>Avance diario</span>
           <strong>{title}</strong>
-          <em>{fmt(points.length)} días con corte · {fmt(totals.total)} respuestas</em>
+          <em>{fmt(orderedSourcePoints.filter((point) => dailyPointTotalValue(point) > 0).length)} días con respuesta · {fmt(totals.total)} respuestas · {averageLabel}/día</em>
         </div>
-        <div className="mon-advance-daily-mini-kpis">
-          <span className="is-effective"><em>Efectivas</em><strong>{fmt(totals.effective)}</strong></span>
-          <span className="is-partial"><em>Parciales</em><strong>{fmt(totals.partial)}</strong></span>
-          <span className="is-refusals"><em>Rechazos</em><strong>{fmt(totals.refusals)}</strong></span>
+        <div className="mon-advance-daily-mini-tools">
+          <div className="mon-advance-daily-mini-kpis">
+            <span className="is-effective"><em>Efectivas</em><strong>{fmt(totals.effective)}</strong></span>
+            <span className="is-partial"><em>Parciales</em><strong>{fmt(totals.partial)}</strong></span>
+            <span className="is-refusals"><em>Rechazos</em><strong>{fmt(totals.refusals)}</strong></span>
+          </div>
+          {hasDailySignal ? (
+            <div className="mon-advance-daily-legend" aria-label="Leyenda de avance diario">
+              <span className="is-completed">Efectivas</span>
+              <span className="is-partial">Parciales</span>
+              <span className="is-refusals">Rechazos</span>
+              <span className="is-cumulative">Acumulado</span>
+            </div>
+          ) : null}
         </div>
       </header>
-      <div className="mon-advance-daily-legend">
-        <span className="is-completed">Efectivas</span>
-        <span className="is-partial">Parciales</span>
-        <span className="is-refusals">Rechazos</span>
-        <span className="is-cumulative">Total diario</span>
-      </div>
-      {visiblePoints.length ? (
-        <div className="mon-advance-daily-table-wrap">
-          <table className="mon-advance-daily-table" aria-label="Detalle diario de avance">
-            <thead>
-              <tr>
-                <th>Estado</th>
-                {visiblePoints.map((point, index) => <th key={`head-${index}-${point.date}`} title={point.date}>{shortAdvanceDateLabel(point.date)}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.key} className={`is-${row.key}`}>
-                  <th><span>{row.label}</span><em>{fmt(row.total)}</em></th>
-                  {row.values.map((value, index) => <td key={`${row.key}-${index}-${visiblePoints[index]?.date ?? "sin-fecha"}`}>{fmt(value)}</td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {hasDailySignal ? (
+        <div className="mon-advance-daily-board">
+          <div className="mon-advance-line-chart">
+            <PlotlyChart
+              data={chartData}
+              layout={chartLayout}
+              config={chartConfig}
+              height={chartHeight}
+              ariaLabel={`Avance diario y acumulado: ${title}`}
+            />
+          </div>
         </div>
       ) : (
-        <EmptyPanel title="Sin ritmo diario" detail="El corte todavía no trae una serie diaria para graficar avance." />
+        <EmptyPanel title="Sin ritmo diario" detail="El corte todavía no trae respuestas fechadas para graficar avance." />
       )}
+      {orderedPoints.length > visiblePoints.length ? (
+        <div className="mon-advance-daily-loose">
+          <span><strong>{fmt(visiblePoints.length)} de {fmt(orderedPoints.length)}</strong><em> días calendario visibles en el gráfico</em></span>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -8819,12 +13523,14 @@ function AcreditacionActorMechanismRow({
   const Icon = mechanismIcon(item.modality);
   const pctValue = safePercentValue(item.observed ?? 0, universe ?? null);
   const kind = mechanismKind(item);
+  const channelLabel = item.channel ? acreditacionChannelLabel(item.channel) : "";
+  const visibleChannel = channelLabel && channelLabel !== "Sin canal" ? channelLabel : "";
   return (
     <div className={`mon-actor-mechanism is-${item.modality} is-${kind}`}>
       <span className="mon-actor-mechanism-icon"><Icon size={13} /></span>
       <div>
         <strong>{item.label}</strong>
-        <span>{item.provider} · {item.role}{item.channel ? ` · ${item.channel}` : ""}</span>
+        <span>{item.provider} · {item.role}{visibleChannel ? ` · ${visibleChannel}` : ""}</span>
       </div>
       <em>
         {item.observed == null ? "S/D" : fmt(item.observed)}
@@ -8835,7 +13541,19 @@ function AcreditacionActorMechanismRow({
   );
 }
 
-function AcreditacionActorProgressCardView({ card }: { card: AcreditacionActorCard }) {
+function AcreditacionActorProgressCardView({
+  card,
+  cutDate,
+  reportCuts = [],
+  reportWeekday = "",
+  scopeLabel = "Actor",
+}: {
+  card: AcreditacionActorCard;
+  cutDate?: string;
+  reportCuts?: AcreditacionDailyReportCut[];
+  reportWeekday?: MonitoreoReportWeekday | "";
+  scopeLabel?: string;
+}) {
   const totalProgress = card.progress ?? card.coverage ?? safePercentValue(card.effective, card.universe);
   const dial = Math.max(0, Math.min(100, totalProgress ?? 0)) * 3.6;
   const completedPct = safePercentValue(card.effective, card.universe) ?? 0;
@@ -8860,7 +13578,7 @@ function AcreditacionActorProgressCardView({ card }: { card: AcreditacionActorCa
     >
       <header className="mon-actor-card-head">
         <div>
-          <span>Actor</span>
+          <span>{scopeLabel}</span>
           <strong>{card.actor}</strong>
         </div>
         <em>{card.status}</em>
@@ -8903,7 +13621,14 @@ function AcreditacionActorProgressCardView({ card }: { card: AcreditacionActorCa
         </div>
       </div>
       {card.dailyPoints.length ? (
-        <AcreditacionAdvanceDailyMini points={card.dailyPoints} title={card.actor} variant="actor" />
+        <AcreditacionAdvanceDailyMini
+          points={card.dailyPoints}
+          title={card.actor}
+          variant="actor"
+          cutDate={cutDate}
+          reportCuts={reportCuts}
+          reportWeekday={reportWeekday}
+        />
       ) : null}
       <div className="mon-actor-mechanisms" aria-label={`Fuentes y avance de ${card.actor}`}>
         <AcreditacionActorMechanismGroup
@@ -8915,7 +13640,7 @@ function AcreditacionActorProgressCardView({ card }: { card: AcreditacionActorCa
           {baseMechanisms.length ? baseMechanisms.map((item) => (
             <AcreditacionActorMechanismRow key={item.id} item={item} universe={card.universe} />
           )) : (
-            <div className="mon-actor-mechanism-empty">Sin base registrada para este actor.</div>
+            <div className="mon-actor-mechanism-empty">Sin base registrada para esta unidad.</div>
           )}
         </AcreditacionActorMechanismGroup>
         <AcreditacionActorMechanismGroup
@@ -8950,7 +13675,9 @@ function AcreditacionAdvanceActorsWorkbench({
 }) {
   const allowedActors = new Set(actorRows.map((row, index) => normalizeSourceMatch(rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`))));
   const actorDailySeries = buildAcreditacionAdvanceDailySeries(reports, "avance_general_dia", "Unidad", allowedActors);
-  const cards = actorCardsForDashboard({
+  const isPhoneModel = isTelefonicoMonitoreoState(state);
+  const phoneQuotaCards = useMemo(() => phoneQuotaCardsForDashboard(reports), [reports]);
+  const cards = isPhoneModel && phoneQuotaCards.length ? phoneQuotaCards : actorCardsForDashboard({
     actorRows,
     sourceRows,
     dailyRows,
@@ -8959,11 +13686,26 @@ function AcreditacionAdvanceActorsWorkbench({
     sources: state?.sources ?? [],
     progressRows: state?.dashboard?.progress ?? [],
   });
+  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
   const totals = advanceTotals(cards);
   const goals = actorGoalSummary(cards);
   const completionPct = safePercentValue(totals.effective, totals.universe);
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
   const mechanismTotal = cards.reduce((sum, card) => sum + card.mechanisms.length, 0);
+  const unitCountLabel = scopeLabel === "Sede"
+    ? `${fmt(cards.length)} sede${cards.length === 1 ? "" : "s"}`
+    : `${fmt(cards.length)} actor${cards.length === 1 ? "" : "es"}`;
+  const mechanismSummary = scopeLabel === "Sede"
+    ? `${fmt(cards.filter((card) => card.meta != null).length)} metas`
+    : `${fmt(mechanismTotal)} mecanismos`;
+  const reportCuts = useMemo(
+    () => acreditacionReportCutsFromPhases(state?.config?.strategy_phases ?? []),
+    [state?.config?.strategy_phases],
+  );
+  const reportWeekday = useMemo(
+    () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
+    [state?.config?.strategy_phases],
+  );
   return (
     <section
       className="pulso-panel mon-fill-panel mon-strata-dashboard mon-actor-dashboard"
@@ -8973,31 +13715,38 @@ function AcreditacionAdvanceActorsWorkbench({
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
           <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> Avance por actor</span></h2>
-          <p className="pulso-panel-hint">Universo, meta, brecha y fuentes por actor institucional.</p>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> Avance por {scopeLabel.toLowerCase()}</span></h2>
+          <p className="pulso-panel-hint">Universo, meta, brecha y fuentes por {scopeLabel.toLowerCase()}.</p>
         </div>
         <div className="pulso-panel-actions mon-actor-dashboard-actions">
-          <span>{fmt(cards.length)} actores</span>
-          <span>{fmt(mechanismTotal)} mecanismos</span>
+          <span>{unitCountLabel}</span>
+          <span>{mechanismSummary}</span>
           {generatedAt ? <span>{generatedAt}</span> : null}
         </div>
       </header>
       <div className="mon-advance-hero mon-advance-hero--actors">
         <div className="mon-advance-hero-copy">
-          <span>Corte por actor</span>
+          <span>Corte por {scopeLabel.toLowerCase()}</span>
           <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>Lee cada actor como una unidad operativa: universo/base, meta, avance real y mecanismos que alimentan el corte.</p>
+          <p>Lee cada {scopeLabel.toLowerCase()} como una unidad operativa: universo/base, meta, avance real y mecanismos que alimentan el corte.</p>
         </div>
         <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label="Actores" value={fmt(cards.length)} hint={`${fmt(mechanismTotal)} mecanismos`} tone="base" />
-          <AcreditacionAdvanceMetric label="Metas actor" value={actorGoalValue(goals)} hint={actorGoalHint(goals)} tone={actorGoalTone(goals)} />
+          <AcreditacionAdvanceMetric label={scopeLabel === "Sede" ? "Sedes" : "Actores"} value={fmt(cards.length)} hint={mechanismSummary} tone="base" />
+          <AcreditacionAdvanceMetric label={`Metas ${scopeLabel.toLowerCase()}`} value={actorGoalValue(goals)} hint={actorGoalHint(goals)} tone={actorGoalTone(goals)} />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${formatPercentLabel(completionPct)} del universo`} tone="ready" />
           <AcreditacionAdvanceMetric label="Pendientes" value={fmt(totals.pending)} hint={`${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`} tone={totals.pending ? "warning" : "base"} />
         </div>
       </div>
       <div className="mon-actor-grid">
         {cards.length ? cards.map((card) => (
-          <AcreditacionActorProgressCardView key={card.id} card={card} />
+          <AcreditacionActorProgressCardView
+            key={card.id}
+            card={card}
+            cutDate={reports.generated_at}
+            reportCuts={reportCuts}
+            reportWeekday={reportWeekday}
+            scopeLabel={scopeLabel}
+          />
         )) : (
           <EmptyPanel title="Sin cortes operativos" detail="El reporte de avance aún no trae actores para mostrar metas, fuentes y brechas." />
         )}
@@ -9010,35 +13759,36 @@ function acreditacionChannelKey(value: string): AcreditacionChannelToneKey {
   const normalized = normalizeSourceMatch(value);
   if (!normalized || normalized === "sin canal" || normalized === "sin dato" || normalized === "desconocido") return "desconocido";
   if (normalized.includes("telefon")) return "telefono";
-  if (normalized.includes("whatsapp")) return "whatsapp";
-  if (normalized.includes("sms")) return "sms";
   if (normalized.includes("presencial") || normalized.includes("qr")) return "presencial";
-  if (normalized.includes("web") || normalized.includes("link") || normalized.includes("enlace")) return "web";
   if (normalized.includes("correo") || normalized.includes("email") || normalized.includes("mail")) return "correo";
-  if (normalized.includes("mixto") || normalized.includes("refuerzo")) return "mixto";
-  return "mixto";
+  if (normalized.includes("whatsapp") || normalized.includes("sms") || normalized.includes("web") || normalized.includes("link") || normalized.includes("enlace")) return "enlace";
+  return "desconocido";
 }
 
-function acreditacionChannelLabel(value: string) {
+export function acreditacionChannelLabel(value: string) {
   const key = acreditacionChannelKey(value);
-  if (key === "web") return "Web/link";
   if (key === "correo") return "Correo";
   if (key === "telefono") return "Telefónico";
   if (key === "presencial") return "Ficha QR";
-  if (key === "whatsapp") return "WhatsApp";
-  if (key === "sms") return "SMS";
-  if (key === "desconocido") return "Desconocido";
-  const label = String(value ?? "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Mixto";
+  if (key === "enlace") return "Enlace";
+  return "Sin canal";
+}
+
+function acreditacionChannelDisplay(value: unknown, fallback = "Sin canal") {
+  const raw = String(value ?? "").trim();
+  if (!raw) return fallback;
+  const label = acreditacionChannelLabel(raw);
+  return label === "Sin canal" ? raw : label;
 }
 
 function AcreditacionChannelBadge({ channel }: { channel: string }) {
   const key = acreditacionChannelKey(channel);
-  const Icon = key === "telefono" ? PhoneCall : key === "presencial" ? QrCode : key === "whatsapp" || key === "sms" ? ContactRound : key === "correo" ? Mail : key === "web" ? Link2 : Route;
+  const option = ACREDITACION_CHANNEL_OPTIONS.find((item) => item.key === key);
+  const Icon = option?.icon ?? Route;
   return (
     <span className={`mon-channel-badge is-${key}`}>
       <Icon size={12} />
-      {acreditacionChannelLabel(channel)}
+      {option?.label ?? acreditacionChannelLabel(channel)}
     </span>
   );
 }
@@ -9222,14 +13972,23 @@ function AcreditacionAdvanceSurveyDailyChart({
   row,
   daily,
   collectorSeries,
+  cutDate,
+  reportCuts = [],
+  reportWeekday = "",
 }: {
   actor: string;
   row: AcreditacionAdvanceSurveyRow;
   daily: AcreditacionAdvanceDailySeries | null;
   collectorSeries: AcreditacionAdvanceDailySeries[];
+  cutDate?: string;
+  reportCuts?: AcreditacionDailyReportCut[];
+  reportWeekday?: MonitoreoReportWeekday | "";
 }) {
   const collectors = useMemo(
-    () => [...collectorSeries].sort((a, b) => b.total - a.total || (a.collector ?? a.label).localeCompare(b.collector ?? b.label, "es")),
+    () => [...collectorSeries].sort((a, b) => (
+      b.total - a.total
+      || acreditacionCollectorSeriesDisplayName(a).localeCompare(acreditacionCollectorSeriesDisplayName(b), "es")
+    )),
     [collectorSeries],
   );
   const [selectedCollectorId, setSelectedCollectorId] = useState("total");
@@ -9257,8 +14016,8 @@ function AcreditacionAdvanceSurveyDailyChart({
           <select value={selectValue} onChange={(event) => setSelectedCollectorId(event.currentTarget.value)}>
             {daily ? <option value="total">Encuesta completa</option> : null}
             {collectors.map((item) => (
-              <option key={item.id} value={item.id}>
-                {(item.collector || item.label || "Sin recopilador")} · {fmt(item.total)}
+              <option key={item.id} value={item.id} title={item.collectorId ? `ID ${item.collectorId}` : undefined}>
+                {acreditacionCollectorSeriesDisplayName(item)} · {fmt(item.total)}
               </option>
             ))}
           </select>
@@ -9266,9 +14025,12 @@ function AcreditacionAdvanceSurveyDailyChart({
         </label>
       ) : null}
       <AcreditacionAdvanceDailyMini
-        title={isCollector ? `${active.collector || "Sin recopilador"} · ${row.title}` : row.title}
+        title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)} · ${row.title}` : row.title}
         points={active.points}
         variant="source"
+        cutDate={cutDate}
+        reportCuts={reportCuts}
+        reportWeekday={reportWeekday}
       />
       <div className="mon-advance-daily-foot">
         <span><strong>{actor}</strong> · {acreditacionChannelLabel(row.channel)}</span>
@@ -9283,11 +14045,17 @@ function AcreditacionAdvanceSurveyCard({
   max,
   daily,
   collectorSeries,
+  cutDate,
+  reportCuts = [],
+  reportWeekday = "",
 }: {
   row: AcreditacionAdvanceSurveyRow;
   max: number;
   daily: AcreditacionAdvanceDailySeries | null;
   collectorSeries: AcreditacionAdvanceDailySeries[];
+  cutDate?: string;
+  reportCuts?: AcreditacionDailyReportCut[];
+  reportWeekday?: MonitoreoReportWeekday | "";
 }) {
   const width = row.total > 0 ? Math.max(3, Math.min(100, safePercentValue(row.total, max) ?? 0)) : 0;
   return (
@@ -9321,6 +14089,9 @@ function AcreditacionAdvanceSurveyCard({
         row={row}
         daily={daily}
         collectorSeries={collectorSeries}
+        cutDate={cutDate}
+        reportCuts={reportCuts}
+        reportWeekday={reportWeekday}
       />
     </article>
   );
@@ -9353,12 +14124,17 @@ function AcreditacionAdvanceSurveysWorkbench({
     ];
     const fromRows = buildAcreditacionDailyCollectorSeriesFromRows(fallbackRows);
     const fromCases = buildAcreditacionDailyCollectorSeriesFromInternalQueries(reports);
-    return fromReport.length
+    const rawSeries = fromReport.length
       ? fromReport
       : fromRows.length
         ? fromRows
         : fromCases;
-  }, [reports]);
+    return applyAcreditacionCollectorDisplayNames(
+      rawSeries,
+      state?.sources ?? [],
+      state?.config?.operational_model?.link_collectors ?? [],
+    );
+  }, [reports, state?.config?.operational_model?.link_collectors, state?.sources]);
   const rows = useMemo(() => mergeAcreditacionSurveyRowsWithDailySeries(
     buildAcreditacionSurveyRows(sourceRows, state?.sources ?? []),
     sourceDailySeries,
@@ -9373,6 +14149,14 @@ function AcreditacionAdvanceSurveysWorkbench({
   const totalRefusals = rows.reduce((sum, row) => sum + row.refusals, 0);
   const totalCollectors = collectorDailySeries.length;
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
+  const reportCuts = useMemo(
+    () => acreditacionReportCutsFromPhases(state?.config?.strategy_phases ?? []),
+    [state?.config?.strategy_phases],
+  );
+  const reportWeekday = useMemo(
+    () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
+    [state?.config?.strategy_phases],
+  );
   return (
     <section
       className="pulso-panel mon-fill-panel mon-advance-panel mon-advance-surveys"
@@ -9430,6 +14214,9 @@ function AcreditacionAdvanceSurveysWorkbench({
                       max={max}
                       daily={daily}
                       collectorSeries={collectorSeries}
+                      cutDate={reports.generated_at}
+                      reportCuts={reportCuts}
+                      reportWeekday={reportWeekday}
                     />
                   );
                 })}
@@ -9444,13 +14231,13 @@ function AcreditacionAdvanceSurveysWorkbench({
   );
 }
 
-function AcreditacionAdvanceFocus({ cards }: { cards: AcreditacionAdvanceCard[] }) {
+function AcreditacionAdvanceFocus({ cards, scopeLabel = "Actor" }: { cards: AcreditacionAdvanceCard[]; scopeLabel?: string }) {
   const ranked = [...cards].sort((a, b) => (b.missing ?? -1) - (a.missing ?? -1) || b.universe - a.universe).slice(0, 5);
   const totals = advanceTotals(cards);
   return (
-    <section className="mon-advance-focus" aria-label="Actores y brechas">
+    <section className="mon-advance-focus" aria-label={`${scopeLabel}s y brechas`}>
       <header>
-        <span>Actor</span>
+        <span>{scopeLabel}</span>
         <strong>{totals.brechas ? `${fmt(totals.brechas)} con brecha` : `${fmt(totals.metas)} metas cubiertas`}</strong>
       </header>
       <div>
@@ -9472,7 +14259,7 @@ function AcreditacionAdvanceFocus({ cards }: { cards: AcreditacionAdvanceCard[] 
             </article>
           );
         }) : (
-          <EmptyPanel title="Sin actores" detail="No hay cortes por actor para priorizar brechas." />
+          <EmptyPanel title={`Sin ${scopeLabel.toLowerCase()}s`} detail={`No hay cortes por ${scopeLabel.toLowerCase()} para priorizar brechas.`} />
         )}
       </div>
     </section>
@@ -10074,11 +14861,28 @@ function AcreditacionAdvanceSummaryWorkbench({
   actorRows: Array<Record<string, unknown>>;
   dailyRows: Array<Record<string, unknown>>;
 }) {
-  const cards = useMemo(() => advanceCardsFromRows(actorRows, state?.config.goals ?? []), [actorRows, state?.config.goals]);
+  const isPhoneModel = isTelefonicoMonitoreoState(state);
+  const phoneQuotaCards = useMemo(() => phoneQuotaAdvanceCardsFromRows(
+    rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
+  ), [reports]);
+  const cards = useMemo(() => (
+    isPhoneModel && phoneQuotaCards.length
+      ? phoneQuotaCards
+      : advanceCardsFromRows(actorRows, state?.config.goals ?? [])
+  ), [actorRows, isPhoneModel, phoneQuotaCards, state?.config.goals]);
+  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
   const dailyPoints = useMemo(() => dailyPointsFromRows(dailyRows), [dailyRows]);
   const totals = advanceTotals(cards);
   const completionPct = safePercentValue(totals.effective, totals.universe);
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
+  const reportCuts = useMemo(
+    () => acreditacionReportCutsFromPhases(state?.config?.strategy_phases ?? []),
+    [state?.config?.strategy_phases],
+  );
+  const reportWeekday = useMemo(
+    () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
+    [state?.config?.strategy_phases],
+  );
   return (
     <section className="pulso-panel mon-advance-panel" aria-label="Resumen canónico de avance">
       <header className="pulso-panel-header">
@@ -10096,19 +14900,24 @@ function AcreditacionAdvanceSummaryWorkbench({
         <div className="mon-advance-hero-copy">
           <span>Corte sincronizado</span>
           <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>Distingue universo, metas por actor y respuestas de plataforma para leer el avance sin mezclar fuentes.</p>
+          <p>Distingue universo, metas por {scopeLabel.toLowerCase()} y respuestas de plataforma para leer el avance sin mezclar fuentes.</p>
         </div>
         <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label="Metas actor" value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} con brecha` : "sin brecha"} tone={totals.brechas ? "target" : "ready"} />
+          <AcreditacionAdvanceMetric label={`Metas ${scopeLabel.toLowerCase()}`} value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} con brecha` : "sin brecha"} tone={totals.brechas ? "target" : "ready"} />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${completionPct == null ? "S/D" : pct(completionPct)} del universo`} tone="ready" />
           <AcreditacionAdvanceMetric label="Pendientes" value={fmt(totals.pending)} hint={`${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`} tone={totals.pending ? "warning" : "base"} />
         </div>
       </div>
       <div className="mon-advance-tabbody">
         <div className="mon-advance-summary-grid">
-          <AcreditacionAdvanceStorage cards={cards} />
-          <AcreditacionAdvanceDailyMini points={dailyPoints} />
-          <AcreditacionAdvanceFocus cards={cards} />
+          <AcreditacionAdvanceDailyMini
+            points={dailyPoints}
+            cutDate={reports.generated_at}
+            reportCuts={reportCuts}
+            reportWeekday={reportWeekday}
+          />
+          <AcreditacionAdvanceStorage cards={cards} scopeLabel={scopeLabel} />
+          <AcreditacionAdvanceFocus cards={cards} scopeLabel={scopeLabel} />
         </div>
       </div>
     </section>
@@ -10122,6 +14931,47 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
       <strong>{title}</strong>
       <p>{detail}</p>
     </div>
+  );
+}
+
+function AcreditacionLoadingPanel({ view, label }: { view: WorkbenchView; label: string }) {
+  const items = view === "consultas"
+    ? [
+      { icon: Search, label: "Cruces", value: "plataforma/base" },
+      { icon: Table2, label: "Casos", value: "actor y canal" },
+      { icon: ShieldAlert, label: "Alertas", value: "subsanación" },
+    ]
+    : [
+      { icon: RefreshCw, label: "Cache", value: "local" },
+      { icon: Table2, label: "Corte", value: "reportes" },
+      { icon: CheckCircle2, label: "Vista", value: label },
+    ];
+
+  return (
+    <section className={`mon-acr-loading-card is-${view}`} aria-live="polite" aria-label={`Preparando ${label}`}>
+      <div className="mon-acr-loading-card__copy">
+        <span><Loader2 size={14} className="pulso-spin" /> Preparando {label}</span>
+        <strong>Actualizando cache local</strong>
+        <p>{view === "consultas" ? "Leyendo trazabilidad, cruces y revisión asistida." : "Leyendo el corte disponible para esta sección."}</p>
+      </div>
+      <div className="mon-acr-loading-card__items" aria-hidden="true">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <span key={`${item.label}-${item.value}`}>
+              <Icon size={13} />
+              <em>{item.label}</em>
+              <strong>{item.value}</strong>
+            </span>
+          );
+        })}
+      </div>
+      <div className="mon-acr-loading-card__skeleton" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+    </section>
   );
 }
 
@@ -10140,6 +14990,7 @@ function renderAcreditacionView(
     caseReconciliationStatus?: AcreditacionActionStatus;
     onSaveSeguimiento?: (payload: MonitoreoAcreditacionSeguimientoPayload) => Promise<void>;
     onCerrar?: (planRefuerzo: string, aprobarBrechas: boolean) => Promise<void>;
+    onConsultaTabChange?: (tab: AcreditacionConsultaTab) => void;
     onCaseReconciliationDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
     state?: MonitoreoState | null;
     onStateChange?: (state: MonitoreoState) => void;
@@ -10198,8 +15049,9 @@ function renderAcreditacionView(
     return (
       <AcreditacionConsultasPanel
         reports={reports}
-        activeTab={options.activeConsultaTab ?? "casos"}
-        onActiveTabChange={() => undefined}
+        sources={options.state?.sources ?? []}
+        activeTab={options.activeConsultaTab ?? "plataforma"}
+        onActiveTabChange={options.onConsultaTabChange}
         caseReconciliationBusyId={options.caseReconciliationBusyId}
         caseReconciliationStatus={options.caseReconciliationStatus}
         onCaseReconciliationDecision={options.onCaseReconciliationDecision}
@@ -10207,10 +15059,13 @@ function renderAcreditacionView(
     );
   }
   if (view === "telefonico") {
-    return renderPhoneView(reports, options.activePhoneTab ?? "resumen");
+    return renderPhoneView(reports, options.activePhoneTab ?? "resumen", num(options.state?.dashboard?.kpis?.valid, 0));
   }
   const actorRows = client?.actors?.length ? client.actors : rowsFromSheets(reports.sheets, ["actor", "avance", "brecha"]);
-  const dailyRows = client?.daily_general ?? [];
+  const phoneDailyRows = isTelefonicoMonitoreoState(options.state)
+    ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["avance_efectivo_dia", "produccion_dia"])
+    : [];
+  const dailyRows = client?.daily_general?.length ? client.daily_general : phoneDailyRows;
   const sourceRows = client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"]);
   const controlRows = client?.controls?.length ? client.controls : rowsFromSheets(reports.sheets, ["control", "segmento", "meta"]);
   if (view === "avance" && options.activeAdvanceTab === "actores") {
@@ -10376,13 +15231,48 @@ function AcreditacionWorkbenchHead({
   );
 }
 
-function AcreditacionSemanticStatusLegend() {
+export function acreditacionPhoneStatusLegendItems(rows: Array<Record<string, unknown>>) {
+  return rows.map((row, index) => {
+    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`);
+    const value = phoneRowNumber(row, ["Casos", "Valor", "Total"], 0);
+    const tone = phoneStatusTone(label);
+    const palette = phoneStatusPalette(label);
+    return {
+      key: `${normalizeSourceMatch(label) || "estado"}-${index}`,
+      label,
+      value,
+      tone,
+      palette,
+    };
+  }).filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es"));
+}
+
+function phoneSemanticToneClass(tone: ReturnType<typeof phoneStatusTone>) {
+  if (tone === "good") return "is-effective";
+  if (tone === "warn") return "is-partial";
+  if (tone === "risk") return "is-refusal";
+  if (tone === "unswept") return "is-pending";
+  return "is-assignment";
+}
+
+function AcreditacionSemanticStatusLegend({ rows }: { rows: Array<Record<string, unknown>> }) {
+  const items = acreditacionPhoneStatusLegendItems(rows);
+  if (!items.length) return null;
   return (
-    <div className="mon-semantic-legend" aria-label="Leyenda semántica">
-      <span className="is-effective">Efectivas</span>
-      <span className="is-partial">Parciales</span>
-      <span className="is-refusal">Rechazos</span>
-      <span className="is-pending">Sin respuesta</span>
+    <div className="mon-semantic-legend is-phone" aria-label="Estados de la base telefónica">
+      {items.map((item) => (
+        <span
+          key={item.key}
+          className={phoneSemanticToneClass(item.tone)}
+          style={{ "--clarity-accent": item.palette.color } as CSSProperties}
+          title={`${item.label}: ${fmt(item.value)}`}
+        >
+          <i aria-hidden="true" />
+          <em>{item.label}</em>
+          <strong>{fmt(item.value)}</strong>
+        </span>
+      ))}
     </div>
   );
 }
@@ -10404,7 +15294,28 @@ function AcreditacionClarityStrip({
   const cases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
   const caseSummary = summarizeInternalCases(cases);
   const issueCount = queries.issues.reduce((acc, issue) => acc + (num(issue.count, 1) || 1), 0);
+  const phoneSummaryRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]) : [];
   const phoneRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico", "estatus_telefonico"]) : [];
+  const phoneStatusSheetRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]) : [];
+  const phoneStatusRows = phoneStatusSheetRows.length
+    ? phoneStatusSheetRows
+    : groupedCaseRows(cases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
+  const phoneStatusTotal = phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0);
+  const phoneBaseFromReport = phoneSummaryValue(phoneSummaryRows, "total telefonico")
+    ?? phoneSummaryValue(phoneSummaryRows, "total telefónico")
+    ?? phoneStatusTotal;
+  const phoneBaseTotal = phoneBaseFromReport
+    || summary.universe
+    || state?.n_rows
+    || 0;
+  const phonePendingTotal = phoneSummaryValue(phoneSummaryRows, "no barridos") ?? summary.unanswered;
+  const platformCaseCount = cases.length;
+  const platformHasReport = Boolean(
+    platformCaseCount ||
+      reports?.client_report?.actors?.length ||
+      reports?.client_report?.sources?.length ||
+      reports?.client_report?.daily_general?.length,
+  );
   const actorRows = reports?.client_report?.actors ?? [];
   const configuredGoals = state?.config?.goals?.filter((goal) => Number(goal.meta) > 0).length ?? 0;
   const bloqueos = state?.acreditacion?.dashboard?.bloqueos ?? 0;
@@ -10430,17 +15341,18 @@ function AcreditacionClarityStrip({
       { label: "Alertas", value: fmt(issueCount), hint: "casos de revisión", tone: issueCount ? "warning" : "ready", icon: ShieldAlert },
     ],
     telefonico: [
-      { label: "Bloques tel.", value: fmt(phoneRows.length), hint: "resumen y estados", tone: phoneRows.length ? "base" : "warning", icon: PhoneCall },
-      { label: "Casos", value: cases.length ? fmt(cases.length) : "S/D", hint: "trazabilidad persona", tone: cases.length ? "ready" : "warning", icon: Search },
-      { label: "Sin respuesta", value: fmt(summary.unanswered), hint: "pendiente operativo", tone: summary.unanswered ? "pending" : "ready", icon: AlertCircle },
+      { label: "Base tel.", value: phoneBaseTotal ? fmt(phoneBaseTotal) : "Pendiente", hint: phoneRows.length ? "base de barrido" : "requiere corte", tone: phoneBaseTotal ? "base" : "warning", icon: PhoneCall },
+      { label: "Kobo/plataforma", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: platformCaseCount ? "casos trazados" : "cruce no cargado", tone: platformHasReport ? "ready" : "warning", icon: Search },
+      { label: "Por barrer", value: fmt(phonePendingTotal), hint: "operación telefónica", tone: phonePendingTotal ? "pending" : "ready", icon: AlertCircle },
     ],
     ocurrencias: [],
     calidad: [],
   };
   const items = itemsByView[activeView] ?? itemsByView.fuentes;
+  const clarityLabel = activeView === "telefonico" ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
 
   return (
-    <section className={`mon-clarity-strip is-${activeView}`} aria-label="Lectura operativa de acreditación">
+    <section className={`mon-clarity-strip is-${activeView}`} aria-label={clarityLabel}>
       <div className="mon-clarity-items">
         {items.map((item) => {
           const Icon = item.icon;
@@ -10456,7 +15368,7 @@ function AcreditacionClarityStrip({
           );
         })}
       </div>
-      <AcreditacionSemanticStatusLegend />
+      {activeView === "telefonico" ? <AcreditacionSemanticStatusLegend rows={phoneStatusRows} /> : null}
     </section>
   );
 }
@@ -10466,15 +15378,16 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const route = isPhone ? TELEFONICO_ROUTE : ACREDITACION_ROUTE;
   const profileLabel = isPhone ? "Monitoreo telefónico" : "Acreditación";
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>(isPhone ? "telefonico" : "fuentes");
-  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>("survey");
+  const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
+  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(isPhone ? "sheets" : "survey");
   const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>("estructura");
-  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>("casos");
+  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>("plataforma");
   const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>("resumen");
   const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>("resumen");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
+  const [sourceSyncing, setSourceSyncing] = useState(false);
   const [actionStatus, setActionStatus] = useState<AcreditacionActionStatus>(null);
   const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
   const [caseReconciliationStatus, setCaseReconciliationStatus] = useState<AcreditacionActionStatus>(null);
@@ -10482,48 +15395,79 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const loadSeqRef = useRef(0);
   const initialLoadStartedRef = useRef(false);
   const warmedScopesRef = useRef(new Set<string>());
+  const stateByScopeRef = useRef(new Map<string, MonitoreoState>());
+  const scopeCacheEpochRef = useRef(0);
 
+  const routeWorkbenchViews = useMemo(() => workbenchViewsForRoute(route), [route]);
   const activeDef = useMemo(
-    () => WORKBENCH_VIEWS.find((item) => item.key === activeView) ?? WORKBENCH_VIEWS[0],
-    [activeView],
+    () => routeWorkbenchViews.find((item) => item.key === activeView)
+      ?? WORKBENCH_VIEWS.find((item) => item.key === activeView)
+      ?? routeWorkbenchViews[0]
+      ?? WORKBENCH_VIEWS[0],
+    [activeView, routeWorkbenchViews],
   );
   const reports = reportsFromState(state);
-  const kpis = state?.dashboard?.kpis ?? null;
-  const acreditacionState = useMemo(
-    () => stateFromReports(reports, num(kpis?.total ?? state?.n_rows, 0), num(kpis?.valid, 0), activeView === "modelo" || activeView === "avance"),
-    [activeView, kpis?.total, kpis?.valid, reports, state?.n_rows],
-  );
-
   const prefetchBackgroundScopes = useCallback((view: WorkbenchView) => {
-    const activeScope = scopeForView(view);
+    const activeScope = scopeForView(view, route.family);
     const scopes = [activeScope, ...ACREDITACION_BACKGROUND_SCOPES]
       .filter((scope, index, all) => scope !== "full" && all.indexOf(scope) === index);
     scopes.forEach((scope, index) => {
+      if (stateByScopeRef.current.has(scope)) {
+        warmedScopesRef.current.add(scope);
+        return;
+      }
       if (warmedScopesRef.current.has(scope)) return;
       warmedScopesRef.current.add(scope);
+      const cacheEpoch = scopeCacheEpochRef.current;
       window.setTimeout(() => {
         void apiMonitoreoState({
           includeReports: true,
           reportScope: scope,
           warmupCache: true,
+        }).then((next) => {
+          if (cacheEpoch !== scopeCacheEpochRef.current) return;
+          stateByScopeRef.current.set(scope, next);
         }).catch(() => {
+          if (cacheEpoch !== scopeCacheEpochRef.current) return;
           warmedScopesRef.current.delete(scope);
         });
       }, 240 + index * 180);
     });
+  }, [route.family]);
+
+  const clearScopeStateCache = useCallback(() => {
+    scopeCacheEpochRef.current += 1;
+    stateByScopeRef.current.clear();
+    warmedScopesRef.current.clear();
   }, []);
 
   const loadView = useCallback(async (view: WorkbenchView, force = false) => {
     const seq = ++loadSeqRef.current;
+    const reportScope = scopeForView(view, route.family);
+    if (force) {
+      clearScopeStateCache();
+    } else {
+      const cachedState = stateByScopeRef.current.get(reportScope);
+      if (cachedState) {
+        setState(cachedState);
+        setError("");
+        setLoading(false);
+        warmedScopesRef.current.add(reportScope);
+        prefetchBackgroundScopes(view);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const next = await apiMonitoreoState({
         includeReports: true,
-        reportScope: scopeForView(view),
+        reportScope,
         warmupCache: !force,
         force,
       });
       if (seq !== loadSeqRef.current || view !== activeViewRef.current) return;
+      stateByScopeRef.current.set(reportScope, next);
+      warmedScopesRef.current.add(reportScope);
       setState(next);
       setError("");
       prefetchBackgroundScopes(view);
@@ -10533,7 +15477,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     } finally {
       if (seq === loadSeqRef.current) setLoading(false);
     }
-  }, [prefetchBackgroundScopes]);
+  }, [clearScopeStateCache, prefetchBackgroundScopes, route.family]);
 
   useEffect(() => {
     activeViewRef.current = activeView;
@@ -10547,12 +15491,20 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const refreshCurrentView = useCallback(() => {
     void loadView(activeView, true);
   }, [activeView, loadView]);
+  const applyStateChange = useCallback((nextState: MonitoreoState) => {
+    clearScopeStateCache();
+    setState(nextState);
+    const reportScope = scopeForView(activeViewRef.current, route.family);
+    stateByScopeRef.current.set(reportScope, nextState);
+    warmedScopesRef.current.add(reportScope);
+  }, [clearScopeStateCache, route.family]);
   const saveSeguimiento = useCallback(async (payload: MonitoreoAcreditacionSeguimientoPayload) => {
     setSavingAcreditacion(true);
     setError("");
     setActionStatus(null);
     try {
       const result = await apiMonitoreoAcreditacionSeguimiento(payload);
+      clearScopeStateCache();
       setState(result.state);
       setActionStatus({ tone: "success", message: "Avance registrado en el seguimiento." });
     } catch (e) {
@@ -10562,13 +15514,14 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     } finally {
       setSavingAcreditacion(false);
     }
-  }, []);
+  }, [clearScopeStateCache]);
   const closeAcreditacion = useCallback(async (planRefuerzo: string, aprobarBrechas: boolean) => {
     setSavingAcreditacion(true);
     setError("");
     setActionStatus(null);
     try {
       const result = await apiMonitoreoCierre({ plan_refuerzo: planRefuerzo, aprobar_brechas: aprobarBrechas });
+      clearScopeStateCache();
       setState(result.state);
       setActionStatus({ tone: "success", message: "Cierre de acreditación actualizado." });
     } catch (e) {
@@ -10578,7 +15531,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     } finally {
       setSavingAcreditacion(false);
     }
-  }, []);
+  }, [clearScopeStateCache]);
   const saveCaseReconciliationDecision = useCallback(async (payload: AcreditacionCaseReconciliationPayload) => {
     const responseId = payload.response_id.trim();
     if (!responseId) return;
@@ -10587,6 +15540,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     setError("");
     try {
       const result = await apiMonitoreoAcreditacionCaseReconciliation({ ...payload, response_id: responseId });
+      clearScopeStateCache();
       setState(result.state);
       const next = await apiMonitoreoState({
         includeReports: true,
@@ -10594,6 +15548,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         warmupCache: false,
         force: true,
       });
+      stateByScopeRef.current.set("queries_summary", next);
+      warmedScopesRef.current.add("queries_summary");
       setState(next);
       setCaseReconciliationStatus({
         tone: "success",
@@ -10608,11 +15564,55 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     } finally {
       setCaseReconciliationBusyId("");
     }
-  }, []);
+  }, [clearScopeStateCache]);
+  const runProfileSourceSync = useCallback(async (syncMode: "full" | "advance") => {
+    const currentSources = state?.sources ?? [];
+    const sourceIds = currentSources
+      .filter((source) => {
+        if (!source.enabled) return false;
+        if (syncMode === "full") return true;
+        return (source.kind === "surveymonkey" || source.kind === "kobo") && (source.role === "respuestas" || !source.role);
+      })
+      .map((source) => source.id);
+    if (!sourceIds.length) {
+      const message = syncMode === "full"
+        ? "No hay fuentes activas para actualizar."
+        : "No hay fuentes de respuesta activas para actualizar avance.";
+      setError(message);
+      setActionStatus({ tone: "error", message });
+      return;
+    }
+    setSourceSyncing(true);
+    setError("");
+    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
+    try {
+      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
+      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
+      await waitForSourceSyncJob(start.job_id);
+      clearScopeStateCache();
+      const reportScope = scopeForView(activeViewRef.current, route.family);
+      const next = await apiMonitoreoState({
+        includeReports: true,
+        reportScope,
+        warmupCache: false,
+        force: true,
+      });
+      stateByScopeRef.current.set(reportScope, next);
+      warmedScopesRef.current.add(reportScope);
+      setState(next);
+      setActionStatus({ tone: "success", message: syncMode === "full" ? "Actualizacion completa lista; recopiladores persistidos si la API devolvio metadata." : "Avance actualizado usando la relacion guardada de recopiladores." });
+    } catch (e) {
+      const message = (e as Error).message;
+      setError(message);
+      setActionStatus({ tone: "error", message });
+    } finally {
+      setSourceSyncing(false);
+    }
+  }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = activeSourceCount(state);
-  const chromeBusy = savingAcreditacion || Boolean(caseReconciliationBusyId);
-  const refreshTitle = loading ? "Actualizando vista..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
+  const chromeBusy = savingAcreditacion || sourceSyncing || Boolean(caseReconciliationBusyId);
+  const refreshTitle = sourceSyncing ? "Sincronizando fuentes..." : loading ? "Actualizando vista..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
   const activeLocalTab = activeView === "fuentes"
     ? activeSourceTab
     : activeView === "modelo"
@@ -10624,6 +15624,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           : activeView === "avance"
             ? activeAdvanceTab
             : "";
+  const hideWorkbenchStatus = activeView === "consultas" && (activeConsultaTab === "plataforma" || activeConsultaTab === "base");
   const changeLocalTab = useCallback((view: WorkbenchView, tab: AcreditacionLocalTabKey) => {
     if (view === "fuentes" && ACREDITACION_SOURCE_TABS.some((item) => item.key === tab)) {
       setActiveSourceTab(tab as AcreditacionSourceTab);
@@ -10672,15 +15673,15 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           activeSources={activeSources}
           nRows={state?.n_rows ?? 0}
           hasSnapshot={Boolean(state?.has_snapshot)}
-          syncing={loading}
-          syncDisabled={loading}
+          syncing={loading || sourceSyncing}
+          syncDisabled={loading || sourceSyncing}
           syncLabel="Todo"
-          syncTitle="Actualizar vista y corte local"
-          onSyncAll={() => loadView(activeView, true)}
-          advanceSyncDisabled={loading}
+          syncTitle="Actualizar todas las fuentes activas"
+          onSyncAll={() => { void runProfileSourceSync("full"); }}
+          advanceSyncDisabled={loading || sourceSyncing}
           advanceSyncLabel="Avance"
           advanceSyncTitle={refreshTitle}
-          onSyncAdvance={() => loadView(activeView, true)}
+          onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
           onViewChange={(view) => {
             if (view === activeView) return;
             activeViewRef.current = view;
@@ -10692,6 +15693,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
 
         <MonitoreoWorkbenchChrome
           activeView={activeView}
+          ariaLabel={`Mesa de trabajo de acreditación: ${activeDef.label}`}
           className="is-acreditacion"
           rail={(
             <AcreditacionWorkbenchRail
@@ -10703,14 +15705,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               reports={reports}
             />
           )}
-          head={(
-            <AcreditacionWorkbenchHead
-              route={route}
-              activeView={activeView}
-              state={state}
-              reports={reports}
-            />
-          )}
+          head={null}
           clarity={(
             <AcreditacionClarityStrip
               activeView={activeView}
@@ -10718,16 +15713,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               reports={reports}
             />
           )}
-          status={(
-            activeView === "fuentes" || activeView === "modelo" ? null : (
-              <div className="mon-acr-workbench-status">
-                <EstadoProgresoCompact summary={acreditacionState} label={isPhone ? "Estado telefónico" : "Estado + progreso"} />
-              </div>
-            )
-          )}
+          status={null}
         >
           {loading ? (
-            <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
+            <AcreditacionLoadingPanel view={activeView} label={activeDef.label} />
           ) : renderAcreditacionView(activeView, reports, {
             activeSourceTab,
             activeModelTab,
@@ -10740,9 +15729,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             caseReconciliationStatus,
             onSaveSeguimiento: saveSeguimiento,
             onCerrar: closeAcreditacion,
+            onConsultaTabChange: setActiveConsultaTab,
             onCaseReconciliationDecision: saveCaseReconciliationDecision,
             state,
-            onStateChange: setState,
+            onStateChange: applyStateChange,
             onPublished: refreshCurrentView,
             routeLabel: profileLabel,
             savingAcreditacion,

@@ -638,7 +638,7 @@ export async function apiCodifSourceSet(source: string) {
   );
 }
 
-export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra" | "graficos_share";
+export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra" | "graficos_share" | "monitoreo_operational_package" | "monitoreo_reference_drift" | "plan_trabajo";
 
 export function isSavLikeFileName(name: string) {
   return /\.sav(?:\s+\d+)?$/i.test(name.trim());
@@ -3564,6 +3564,25 @@ export type MonitoreoSheetBinding = {
   snapshot_hash: string;
 };
 
+export type MonitoreoSourceCollector = {
+  id?: string;
+  source_id?: string;
+  source_label?: string;
+  survey_id?: string;
+  collector_id: string;
+  collector_name?: string;
+  name?: string;
+  collector_type?: string;
+  type?: string;
+  enabled?: boolean;
+  response_count?: number;
+  active_response_count?: number;
+  last_sync_at?: string;
+  synced_at?: string;
+  metadata_source?: string;
+  [key: string]: unknown;
+};
+
 export type MonitoreoSource = {
   id: string;
   kind: MonitoreoSourceKind;
@@ -3580,6 +3599,7 @@ export type MonitoreoSource = {
   declared_person_code_var?: string;
   declared_person_code_label?: string;
   dimensions?: Record<string, string>;
+  collectors?: MonitoreoSourceCollector[];
   created_at?: string;
   last_sync_at?: string;
   last_sync_mode?: "full" | "incremental" | string;
@@ -4472,6 +4492,9 @@ export type MonitoreoTerritorialOperationalPackageReview = {
   publication_gate?: "critical_reference_drift" | "operational_package_review_ready" | "ready" | string;
   blocks_publication?: boolean;
   would_mutate_pulso?: boolean;
+  apply_ready?: boolean;
+  requires_revalidation?: boolean;
+  publication_ready?: boolean;
   safe_to_apply?: boolean;
   application_plan?: {
     schema?: "monitoreo_deliverables_territorial_application_plan_v1" | string;
@@ -4521,6 +4544,9 @@ export type MonitoreoTerritorialOperationalPackageReviewResult = {
   status: MonitoreoTerritorialOperationalPackageReview["status"];
   publication_gate?: string;
   blocks_publication?: boolean;
+  apply_ready?: boolean;
+  requires_revalidation?: boolean;
+  publication_ready?: boolean;
   safe_to_apply?: boolean;
   application_plan?: MonitoreoTerritorialOperationalPackageReview["application_plan"];
   would_mutate_pulso?: boolean;
@@ -5060,6 +5086,7 @@ export type MonitoreoInternalQueryCase = {
   case_key: string;
   response_id: string;
   date: string;
+  response_datetime?: string;
   source_id: string;
   source_label: string;
   channel: string;
@@ -5843,6 +5870,12 @@ export type TerritorialQuotaProgressBlock = {
   manzana?: string;
   tipo_manzana?: string;
   ump?: string | number | null;
+  titular_id_manzana?: string;
+  titular_manzana?: string;
+  titular_hoja_num?: string | number | null;
+  replacement_order?: string | number | null;
+  replacement_total?: string | number | null;
+  replacement_label?: string;
   responsable?: string;
   responsible?: string;
   configured: boolean;
@@ -6293,10 +6326,23 @@ export type MonitoreoPublicationEvidencePackResult = MonitoreoPublicationPreflig
     out_dir?: string;
     report_json?: string;
     report_md?: string;
+    manifest?: string;
+    cut_snapshot?: string;
+    operational_package_status?: string;
+    operational_package_request?: string;
+    operational_package_request_csv?: string;
+    publication_decision?: string;
     format_validation?: string;
     data_validation?: string;
+    reference_validation?: string;
     performance?: string;
     artifacts?: Record<string, unknown>;
+  };
+  files?: {
+    operational_package_request_csv?: MonitoreoTerritorialOperationalPackageFile;
+    operational_package_request?: MonitoreoTerritorialOperationalPackageFile;
+    operational_package_status?: MonitoreoTerritorialOperationalPackageFile;
+    publication_decision?: MonitoreoTerritorialOperationalPackageFile;
   };
   zip?: {
     file_id: string;
@@ -6438,62 +6484,79 @@ export async function apiMonitoreoPublicReport() {
   );
 }
 
+type MonitoreoPublicationRequestOptions = {
+  audience?: "client" | "internal";
+  includeTargets?: boolean;
+  confirmedFullData?: boolean;
+  config?: Partial<MonitoreoConfig>;
+  referenceDriftFileId?: string;
+  operationalPackageReview?: MonitoreoTerritorialOperationalPackageReview | MonitoreoTerritorialOperationalPackageReviewResult | Record<string, unknown>;
+};
+
+function monitoreoPublicationRequestBody(spreadsheetId: string, options: MonitoreoPublicationRequestOptions = {}) {
+  return {
+    spreadsheet_id: spreadsheetId,
+    audience: options.audience ?? "client",
+    include_targets: !!options.includeTargets,
+    ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
+    ...(options.config ? { config: options.config } : {}),
+    ...(options.referenceDriftFileId ? { reference_drift_file_id: options.referenceDriftFileId } : {}),
+    ...(options.operationalPackageReview ? { operational_package_review: options.operationalPackageReview } : {}),
+  };
+}
+
 export async function apiMonitoreoPublicationSheetsPublish(
   spreadsheetId = "",
-  options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
+  options: MonitoreoPublicationRequestOptions = {},
 ) {
   return handle<MonitoreoSheetsPublishResult & { audience?: "client" | "internal" | string; preflight?: MonitoreoDeliverablesPreflight["scorecard"] }>(
     await apiFetch("/api/monitoreo/publication/sheets", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        spreadsheet_id: spreadsheetId,
-        audience: options.audience ?? "client",
-        include_targets: !!options.includeTargets,
-        ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
-        ...(options.config ? { config: options.config } : {}),
-      }),
+      body: JSON.stringify(monitoreoPublicationRequestBody(spreadsheetId, options)),
     }),
   );
 }
 
 export async function apiMonitoreoPublicationPreflight(
   spreadsheetId = "",
-  options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
+  options: MonitoreoPublicationRequestOptions = {},
 ) {
   return handle<MonitoreoPublicationPreflightResult>(
     await apiFetch("/api/monitoreo/publication/preflight", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        spreadsheet_id: spreadsheetId,
-        audience: options.audience ?? "client",
-        include_targets: !!options.includeTargets,
-        ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
-        ...(options.config ? { config: options.config } : {}),
-      }),
+      body: JSON.stringify(monitoreoPublicationRequestBody(spreadsheetId, options)),
     }),
   );
 }
 
 export async function apiMonitoreoPublicationEvidencePack(
   spreadsheetId = "",
-  options: { audience?: "client" | "internal"; includeTargets?: boolean; confirmedFullData?: boolean; config?: Partial<MonitoreoConfig> } = {},
+  options: MonitoreoPublicationRequestOptions = {},
 ) {
   const result = await handle<MonitoreoPublicationEvidencePackResult>(
     await apiFetch("/api/monitoreo/publication/evidence-pack", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        spreadsheet_id: spreadsheetId,
-        audience: options.audience ?? "client",
-        include_targets: !!options.includeTargets,
-        ...(options.confirmedFullData != null ? { confirmed_full_data: !!options.confirmedFullData } : {}),
-        ...(options.config ? { config: options.config } : {}),
-      }),
+      body: JSON.stringify(monitoreoPublicationRequestBody(spreadsheetId, options)),
     }),
   );
-  return result.file_id ? { ...result, download_url: downloadUrl(result.file_id) } : result;
+  const withUrl = (file?: MonitoreoTerritorialOperationalPackageFile) =>
+    file?.file_id ? { ...file, download_url: downloadUrl(file.file_id) } : file;
+  return {
+    ...result,
+    ...(result.file_id ? { download_url: downloadUrl(result.file_id) } : {}),
+    ...(result.files ? {
+      files: {
+        ...result.files,
+        operational_package_request_csv: withUrl(result.files.operational_package_request_csv),
+        operational_package_request: withUrl(result.files.operational_package_request),
+        operational_package_status: withUrl(result.files.operational_package_status),
+        publication_decision: withUrl(result.files.publication_decision),
+      },
+    } : {}),
+  };
 }
 
 export async function apiMonitoreoTerritorialPrewarm(options: { phase?: string; scopes?: string[] } = {}) {
@@ -6601,6 +6664,31 @@ export function monitoreoClientReportPdfDownloadUrl(opts: { inline?: boolean } =
   if (opts.inline) params.set("inline", "1");
   const qs = params.toString();
   return apiPath(`/api/monitoreo/client-report/pdf/download${qs ? `?${qs}` : ""}`);
+}
+
+export async function apiMonitoreoProductionReportPdf(
+  options: { includeTargets?: boolean; config?: Partial<MonitoreoConfig>; title?: string } = {},
+) {
+  return handle<JobStart>(
+    await apiFetch("/api/monitoreo/production-report/pdf", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        include_targets: !!options.includeTargets,
+        ...(options.title ? { title: options.title } : {}),
+        ...(options.config ? { config: options.config } : {}),
+      }),
+    }),
+  );
+}
+
+export function monitoreoProductionReportPdfDownloadUrl(opts: { inline?: boolean } = {}): string {
+  const sid = localStorage.getItem(SESSION_KEY);
+  const params = new URLSearchParams();
+  if (sid) params.set("sid", sid);
+  if (opts.inline) params.set("inline", "1");
+  const qs = params.toString();
+  return apiPath(`/api/monitoreo/production-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
 
 export async function apiMonitoreoDemo(options: { seed?: number; n?: number } = {}) {
@@ -6828,7 +6916,9 @@ export async function apiMonitoreoTerritorialOperationalPackageReview(payload: {
   packageFileId?: string;
   drift?: Record<string, unknown>;
   driftRows?: Array<Record<string, unknown>>;
+  driftFileId?: string;
   requiredOperationalPackage?: Record<string, unknown>;
+  requiredTachas?: number;
   expectedUmps?: Array<Record<string, unknown>>;
   metrics?: Array<Record<string, unknown>>;
   source?: string;
@@ -6845,7 +6935,9 @@ export async function apiMonitoreoTerritorialOperationalPackageReview(payload: {
         ...(payload.packageFileId ? { package_file_id: payload.packageFileId } : {}),
         ...(payload.drift ? { drift: payload.drift } : {}),
         ...(payload.driftRows ? { drift_rows: payload.driftRows } : {}),
+        ...(payload.driftFileId ? { drift_file_id: payload.driftFileId } : {}),
         ...(payload.requiredOperationalPackage ? { required_operational_package: payload.requiredOperationalPackage } : {}),
+        ...(payload.requiredTachas !== undefined ? { required_tachas: payload.requiredTachas } : {}),
         ...(payload.expectedUmps ? { expected_umps: payload.expectedUmps } : {}),
         ...(payload.metrics ? { metrics: payload.metrics } : {}),
         ...(payload.source ? { source: payload.source } : {}),
@@ -7364,7 +7456,11 @@ export async function apiMonitoreoCierre(options: { plan_refuerzo?: string; apro
   );
 }
 
-export async function apiMonitoreoSync(config?: Partial<MonitoreoConfig>, sourceIds: string[] = []) {
+export async function apiMonitoreoSync(
+  config?: Partial<MonitoreoConfig>,
+  sourceIds: string[] = [],
+  options: { syncMode?: "full" | "advance" | string } = {},
+) {
   return handle<JobStart>(
     await apiFetch("/api/monitoreo/sync", {
       method: "POST",
@@ -7372,6 +7468,7 @@ export async function apiMonitoreoSync(config?: Partial<MonitoreoConfig>, source
       body: JSON.stringify({
         ...(config ? { config } : {}),
         ...(sourceIds.length ? { source_ids: sourceIds } : {}),
+        ...(options.syncMode ? { sync_mode: options.syncMode } : {}),
       }),
     }),
   );
@@ -13455,6 +13552,140 @@ export function calcMuestraReporteDescargarUrl(opts: { inline?: boolean } = {}):
 }
 
 // ============================================================================
+// Plan de trabajo
+// ============================================================================
+
+export type PlanTrabajoTaskStatus = "planned" | "active" | "done" | "blocked" | "risk" | string;
+export type PlanTrabajoTaskKind = "activity" | "milestone" | "deliverable" | "fieldwork_window" | string;
+
+export type PlanTrabajoSource = {
+  file_id: string;
+  original_name: string;
+  uploaded_at: string;
+  sheets: string[];
+} | null;
+
+export type PlanTrabajoTask = {
+  id: string;
+  sheet: string;
+  row: number;
+  phase: string;
+  activity: string;
+  responsible: string;
+  product: string;
+  status: PlanTrabajoTaskStatus;
+  kind: PlanTrabajoTaskKind;
+  start_date: string;
+  end_date: string;
+  start_day_index: number;
+  end_day_index: number;
+  duration_days: number;
+  grid_start_col: number;
+  grid_end_col: number;
+  sync_targets: string[];
+  notes: string;
+};
+
+export type PlanTrabajoWindow = {
+  module_id: string;
+  task_count: number;
+  start_date: string;
+  end_date: string;
+  activities: string[];
+};
+
+export type PlanTrabajoSyncWindow = PlanTrabajoWindow & {
+  evidence_state: "planned_only" | "evidence_available" | string;
+  direction: "sync" | string;
+};
+
+export type PlanTrabajoPlan = {
+  ok: true;
+  schema: "plan_trabajo_v1" | string;
+  title: string;
+  source: PlanTrabajoSource;
+  updated_at: string;
+  tasks: PlanTrabajoTask[];
+  phases: string[];
+  milestones: PlanTrabajoTask[];
+  windows: PlanTrabajoWindow[];
+  warnings: string[];
+};
+
+export type PlanTrabajoState = {
+  ok: true;
+  schema: "plan_trabajo_state_v1" | string;
+  generated_at: string;
+  plan: PlanTrabajoPlan;
+  readiness: {
+    score: number;
+    task_count: number;
+    milestone_count: number;
+    window_count: number;
+  };
+  sync: PlanTrabajoSyncWindow[];
+};
+
+export type PlanTrabajoExport = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  ext: string;
+  download_url: string;
+};
+
+export type PlanTrabajoTaskPatch = Partial<Pick<
+  PlanTrabajoTask,
+  "activity" | "responsible" | "product" | "phase" | "start_date" | "end_date" | "status" | "notes"
+>>;
+
+export async function apiPlanTrabajoState() {
+  return handle<PlanTrabajoState>(
+    await apiFetch("/api/plan-trabajo/state", { headers: headers() }),
+  );
+}
+
+export async function apiPlanTrabajoImport(fileId: string) {
+  return handle<PlanTrabajoState>(
+    await apiFetch("/api/plan-trabajo/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id: fileId }),
+    }),
+  );
+}
+
+export async function apiPlanTrabajoTaskUpdate(id: string, task: PlanTrabajoTaskPatch) {
+  return handle<PlanTrabajoState>(
+    await apiFetch(`/api/plan-trabajo/tasks/${encodeURIComponent(id)}`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ task }),
+    }),
+  );
+}
+
+export async function apiPlanTrabajoExport() {
+  const result = await handle<Omit<PlanTrabajoExport, "download_url">>(
+    await apiFetch("/api/plan-trabajo/export", {
+      method: "POST",
+      headers: headers(),
+    }),
+  );
+  return { ...result, download_url: downloadUrl(result.file_id) };
+}
+
+export async function apiPlanTrabajoReset() {
+  return handle<PlanTrabajoState>(
+    await apiFetch("/api/plan-trabajo", {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+}
+
+// ============================================================================
 // Diseño del estudio
 // ============================================================================
 
@@ -13478,6 +13709,10 @@ export type DisenoEstudioProtocol = {
   classroom_units_count: number;
   route_phase: string;
   route_outputs_count: number;
+  workplan_title: string;
+  workplan_tasks_count: number;
+  workplan_milestones_count: number;
+  workplan_windows_count: number;
   monitoring_family: string;
   monitoring_sources_count: number;
   project_file: string;

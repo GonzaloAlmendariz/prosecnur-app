@@ -16,6 +16,9 @@ AUDIT_PORT ?= 8799
 AUDIT_CDP_PORT ?= 9334
 AUDIT_RUNS_DIR ?= $(REPO_ROOT)/outputs/audit-runs
 AUDIT_PROJECT ?= $(REPO_ROOT)/api/inst/audit_reference/prosecnur_audit_reference.pulso
+AUDIT_PROJECTS_DIR ?= $(REPO_ROOT)/outputs/audit-projects/seeds
+AUDIT_PROJECT_DELIVERABLES_DIR ?= $(REPO_ROOT)/outputs/audit-projects/deliverables
+PROJECT ?= territorial_lima_manzanas
 PULSO_PORT ?= 8787
 VITE_DEV_PORT ?= 5173
 PROSECNUR_VITE_URL ?= http://localhost:$(VITE_DEV_PORT)
@@ -24,7 +27,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -48,6 +51,11 @@ help:
 	@echo "  audit-reference-run   Run dev stack with an isolated audit project copy"
 	@echo "  desktop-audit         Run Electron with the audit project + CDP smoke port"
 	@echo "  audit-reference-smoke Capture canonical audit screenshots from Electron"
+	@echo "  audit-projects-build  Generate all canonical family audit .pulso seeds"
+	@echo "  audit-project-build   Generate one family audit seed; use PROJECT=<slug>"
+	@echo "  audit-project-run     Run dev stack with one isolated family audit project"
+	@echo "  audit-project-visual-matrix Run ui-quick-check across canonical routes"
+	@echo "  audit-project-deliverables Generate family deliverables/evidence report"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
 	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP + Setup.exe + latest.yml"
 	@echo "  package-mac-dmg  Generate macOS .dmg (arm64 + x64) + latest-mac.yml"
@@ -184,6 +192,39 @@ audit-reference-smoke:
 	  PULSO_AUDIT_SCREENSHOT_DIR="$$SCREENSHOT_DIR" \
 	  SMOKE_CDP_URL="$${SMOKE_CDP_URL:-http://127.0.0.1:$(AUDIT_CDP_PORT)/json/list}" \
 	  node desktop/smoke-electron.mjs
+
+audit-projects-build:
+	Rscript api/scripts/audit_project_build.R --all --out "$(AUDIT_PROJECTS_DIR)"
+
+audit-project-build:
+	@test -n "$(PROJECT)" || (echo "uso: make audit-project-build PROJECT=territorial_lima_manzanas"; exit 1)
+	Rscript api/scripts/audit_project_build.R --project "$(PROJECT)" --out "$(AUDIT_PROJECTS_DIR)"
+
+audit-project-run: audit-project-build
+	@RUN_MANIFEST="$$(Rscript api/scripts/audit_project_prepare_run.R --project "$(PROJECT)" --seed "$(AUDIT_PROJECTS_DIR)/$(PROJECT)/$(PROJECT).pulso" --root "$(AUDIT_RUNS_DIR)")"; \
+	  PROJECT_PATH="$$(Rscript -e 'cat(jsonlite::fromJSON(commandArgs(TRUE)[1])$$project_path)' "$$RUN_MANIFEST")"; \
+	  echo "[audit-project] run manifest: $$RUN_MANIFEST"; \
+	  echo "[audit-project] project copy: $$PROJECT_PATH"; \
+	  PULSO_PORT="$(AUDIT_PORT)" \
+	  PULSO_BOOTSTRAP_PROJECT="$$PROJECT_PATH" \
+	  PULSO_AUDIT_PROJECT="$$PROJECT_PATH" \
+	  PULSO_AUDIT_RUN_MANIFEST="$$RUN_MANIFEST" \
+	  PULSO_OPEN_BROWSER=false \
+	  VITE_API_PROXY_TARGET="http://127.0.0.1:$(AUDIT_PORT)" \
+	  $(MAKE) -j2 dev-api dev-frontend
+
+audit-project-visual-matrix:
+	@test -n "$(PROJECT)" || (echo "uso: make audit-project-visual-matrix PROJECT=territorial_lima_manzanas"; exit 1)
+	@if [ ! -f "$(AUDIT_PROJECTS_DIR)/$(PROJECT)/$(PROJECT).pulso" ]; then \
+	  Rscript api/scripts/audit_project_build.R --project "$(PROJECT)" --out "$(AUDIT_PROJECTS_DIR)"; \
+	fi
+	@$(MAKE) ui-quick-check \
+	  PULSO="$(AUDIT_PROJECTS_DIR)/$(PROJECT)/$(PROJECT).pulso" \
+	  UI_QA_ARGS='--route /diseno-estudio --route /plan-trabajo --route /calc-muestra --route /editor-xlsform --route /hojas-ruta --route /recopiladores --route /monitoreo --route /carga --route /validacion --route /codificacion --route /analitica --route /graficos --route /tablero --viewport 1440x900 --viewport 1280x720 --viewport 1024x640 --layout-preset auto --fail-on-issues --prefetch-route-data $(UI_QA_ARGS)'
+
+audit-project-deliverables: audit-project-build
+	@test -n "$(PROJECT)" || (echo "uso: make audit-project-deliverables PROJECT=territorial_lima_manzanas"; exit 1)
+	Rscript api/scripts/audit_project_deliverables.R --project "$(PROJECT)" --out "$(AUDIT_PROJECT_DELIVERABLES_DIR)/$(PROJECT)" --seed "$(AUDIT_PROJECTS_DIR)/$(PROJECT)/$(PROJECT).pulso"
 
 build:
 	@started=$$(date +%s); \

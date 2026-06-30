@@ -319,6 +319,11 @@
 #' @param etiquetas_leyenda Vector opcional con etiquetas visibles solo para la
 #'   leyenda. Puede venir nombrado por las etiquetas finales de
 #'   `etiquetas_grupos` o tener el mismo largo y orden que la escala.
+#' @param cols_n Vector opcional que mapea cada columna de porcentaje a una
+#'   columna de frecuencia absoluta. Si no tiene nombres, debe tener el mismo
+#'   largo y orden que `cols_porcentaje`.
+#' @param mostrar_n_en_etiquetas Si `TRUE`, agrega la frecuencia entre parentesis
+#'   a las etiquetas de porcentaje, por ejemplo `9% (16)`.
 #'
 #' @param escala_valor Indica la escala de los porcentajes en `cols_porcentaje`:
 #'   `"proporcion_1"` para `0–1` o `"proporcion_100"` para `0–100`.
@@ -333,6 +338,8 @@
 #'   Los valores positivos por debajo de este umbral se etiquetan dentro del ancho total de la barra.
 #' @param umbral_etiqueta_normal Umbral mínimo de proporción para usar una etiqueta de tamano normal.
 #'   Los valores entre `umbral_mostrar_etiqueta` y este umbral se muestran como etiquetas pequenas.
+#' @param umbral_ocultar_etiqueta Umbral de proporción bajo el cual se oculta solo
+#'   la etiqueta de porcentaje, manteniendo visible el segmento de la barra.
 #'
 #' @param mostrar_barra_extra Si `TRUE`, dibuja una columna extra a la derecha (por defecto, basada en `var_n`).
 #' @param barra_extra_preset Tipo de barra/indicador extra: `"ninguno"`, `"totales"`, `"top2box"`, `"top3box"` o `"bottom2box"`.
@@ -455,6 +462,8 @@ graficar_barras_apiladas <- function(
     cols_porcentaje,
     etiquetas_grupos,
     etiquetas_leyenda     = NULL,
+    cols_n                = NULL,
+    mostrar_n_en_etiquetas = FALSE,
     escala_valor          = c("proporcion_1", "proporcion_100"),
     colores_grupos        = NULL,
     mostrar_valores       = TRUE,
@@ -463,6 +472,7 @@ graficar_barras_apiladas <- function(
     umbral_etiqueta_peq   = NULL,
     umbral_mostrar_etiqueta = NULL,
     umbral_etiqueta_normal  = NULL,
+    umbral_ocultar_etiqueta = 0,
     mostrar_barra_extra   = TRUE,
     barra_extra_preset    = c("ninguno", "totales", "top2box", "top3box", "bottom2box"),
     prefijo_barra_extra   = NULL,
@@ -703,6 +713,11 @@ graficar_barras_apiladas <- function(
     "umbral_etiqueta_normal",
     default = NULL
   )
+  umbral_ocultar_etiqueta_eff <- normalizar_umbral_prop(
+    if (missing(umbral_ocultar_etiqueta)) NULL else umbral_ocultar_etiqueta,
+    "umbral_ocultar_etiqueta",
+    default = 0
+  )
 
   usa_umbrales_explicitos <- !is.null(umbral_mostrar_etiqueta) || !is.null(umbral_etiqueta_normal)
   if (usa_umbrales_explicitos) {
@@ -742,6 +757,35 @@ graficar_barras_apiladas <- function(
   if (!all(names(etiquetas_grupos) %in% cols_porcentaje)) {
     stop("Los names de `etiquetas_grupos` deben coincidir con `cols_porcentaje`.", call. = FALSE)
   }
+  cols_n_map <- NULL
+  if (!is.null(cols_n)) {
+    if (is.list(cols_n) && !is.data.frame(cols_n)) cols_n <- unlist(cols_n, use.names = TRUE)
+    cols_n <- as.character(cols_n)
+    cols_n <- cols_n[nzchar(trimws(cols_n))]
+    if (length(cols_n)) {
+      nm_cols_n <- names(cols_n)
+      if (is.null(nm_cols_n) || !all(nzchar(trimws(nm_cols_n)))) {
+        if (length(cols_n) != length(cols_porcentaje)) {
+          stop("`cols_n` sin nombres debe tener el mismo largo que `cols_porcentaje`.", call. = FALSE)
+        }
+        names(cols_n) <- cols_porcentaje
+      }
+      names(cols_n) <- trimws(names(cols_n))
+      cols_n <- trimws(cols_n)
+      if (!all(names(cols_n) %in% cols_porcentaje)) {
+        stop("Los names de `cols_n` deben coincidir con `cols_porcentaje`.", call. = FALSE)
+      }
+      if (!all(cols_porcentaje %in% names(cols_n))) {
+        faltan_map <- cols_porcentaje[!cols_porcentaje %in% names(cols_n)]
+        stop("`cols_n` no define frecuencia para: ", paste(faltan_map, collapse = ", "), call. = FALSE)
+      }
+      faltan_n <- unname(cols_n)[!unname(cols_n) %in% names(data)]
+      if (length(faltan_n)) {
+        stop("Faltan columnas de frecuencia en `data`: ", paste(faltan_n, collapse = ", "), call. = FALSE)
+      }
+      cols_n_map <- cols_n[cols_porcentaje]
+    }
+  }
   usar_grupos_canvas <- isTRUE(usar_canvas) &&
     is.character(var_grupo_id) && length(var_grupo_id) == 1L && nzchar(trimws(var_grupo_id))
   if (usar_grupos_canvas) {
@@ -760,6 +804,9 @@ graficar_barras_apiladas <- function(
   size_titulos_grupo  <- size_titulos_grupo  %||% size_ejes
 
   df <- data
+  row_id_col <- ".pulso_tmp_row_id"
+  while (row_id_col %in% names(df)) row_id_col <- paste0(row_id_col, "_")
+  df[[row_id_col]] <- seq_len(nrow(df))
   cat_map <- df |>
     dplyr::mutate(
       .cat_id    = as.character(.data[[var_categoria]]),
@@ -777,7 +824,7 @@ graficar_barras_apiladas <- function(
   # 1) Ancho -> Largo
   # ---------------------------------------------------------------------------
   df_long <- df |>
-    dplyr::select(dplyr::all_of(c(var_categoria, var_n, cols_porcentaje))) |>
+    dplyr::select(dplyr::all_of(c(row_id_col, var_categoria, var_n, cols_porcentaje))) |>
     tidyr::pivot_longer(
       cols      = dplyr::all_of(cols_porcentaje),
       names_to  = ".col_pct",
@@ -787,8 +834,24 @@ graficar_barras_apiladas <- function(
 
   if (!is.numeric(df_long$.valor)) stop("Las columnas de porcentaje deben ser numéricas.", call. = FALSE)
 
-  df_long$.valor_plot <- if (escala_valor == "proporcion_100") df_long$.valor / 100 else df_long$.valor
+  df_long$.valor_raw_plot <- if (escala_valor == "proporcion_100") df_long$.valor / 100 else df_long$.valor
+  df_long$.valor_plot <- df_long$.valor_raw_plot
   df_long$.valor_plot[!is.finite(df_long$.valor_plot) | is.na(df_long$.valor_plot)] <- 0
+
+  if (!is.null(cols_n_map)) {
+    n_long <- do.call(rbind, lapply(cols_porcentaje, function(col_pct) {
+      data.frame(
+        .pulso_tmp_join_id = df[[row_id_col]],
+        .col_pct = col_pct,
+        .n_label_val = suppressWarnings(as.numeric(df[[cols_n_map[[col_pct]]]])),
+        stringsAsFactors = FALSE
+      )
+    }))
+    names(n_long)[names(n_long) == ".pulso_tmp_join_id"] <- row_id_col
+    df_long <- dplyr::left_join(df_long, n_long, by = c(row_id_col, ".col_pct"))
+  } else if (isTRUE(mostrar_n_en_etiquetas)) {
+    df_long$.n_label_val <- suppressWarnings(as.numeric(df_long[[var_n]]) * df_long$.valor_raw_plot)
+  }
 
   # Normalizar por categoría a suma 1
   df_long <- df_long |>
@@ -1027,6 +1090,14 @@ graficar_barras_apiladas <- function(
       paste0(out, "%")
     }
 
+    .fmt_count_label <- function(x) {
+      x <- suppressWarnings(as.numeric(x))
+      out <- rep("", length(x))
+      ok <- is.finite(x) & !is.na(x)
+      out[ok] <- format(round(x[ok]), big.mark = ",", scientific = FALSE, trim = TRUE)
+      out
+    }
+
     df_lab <- df_lab |>
       dplyr::group_by(.data[[var_categoria]]) |>
       dplyr::mutate(
@@ -1035,11 +1106,17 @@ graficar_barras_apiladas <- function(
       ) |>
       dplyr::ungroup()
 
+    if (isTRUE(mostrar_n_en_etiquetas) && ".n_label_val" %in% names(df_lab)) {
+      n_txt <- .fmt_count_label(df_lab$.n_label_val)
+      has_n <- nzchar(n_txt) & !is.na(df_lab$lab) & nzchar(df_lab$lab)
+      df_lab$lab[has_n] <- paste0(df_lab$lab[has_n], " (", n_txt[has_n], ")")
+    }
+
     if (isTRUE(etiquetas_uniformes)) {
       label_offset <- 0.018
       df_lab <- df_lab |>
         dplyr::mutate(
-          .mostrar = .valor_plot > 0,
+          .mostrar = .valor_plot > umbral_ocultar_etiqueta_eff,
           .label_fuera = .mostrar & .valor_plot <= umbral_mostrar_etiqueta_eff,
           .size_label = size_texto_barras,
           x_label = dplyr::case_when(
@@ -1101,7 +1178,7 @@ graficar_barras_apiladas <- function(
         dplyr::mutate(
           .tamano_etq = dplyr::case_when(
             .valor_plot >= umbral_etiqueta_normal_eff  ~ "grande",
-            .valor_plot > 0                            ~ "peq",
+            .valor_plot > umbral_ocultar_etiqueta_eff  ~ "peq",
             TRUE                                        ~ "ninguna"
           ),
           .size_label = dplyr::if_else(.tamano_etq == "grande", size_texto_barras, size_texto_barras_peq),

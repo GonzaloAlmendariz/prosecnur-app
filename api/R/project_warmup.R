@@ -551,6 +551,13 @@
   "Preparando Monitoreo..."
 }
 
+.project_warmup_monitoreo_compact_scopes <- function(family = "") {
+  if (family %in% c("acreditacion", "telefonico")) {
+    return(c("source", "advance_summary", "queries_summary", "phone_summary"))
+  }
+  character(0)
+}
+
 .project_warmup_monitoreo <- function(sid,
                                       remaining_ms = .project_warmup_default_budget_ms,
                                       progress = NULL) {
@@ -562,9 +569,11 @@
     return(.project_warmup_skip("Sin configuracion local de monitoreo."))
   }
   family <- .project_warmup_monitoreo_family(sid)
-  if (identical(family, "acreditacion")) {
+  compact_scopes <- .project_warmup_monitoreo_compact_scopes(family)
+  if (length(compact_scopes)) {
     started_at <- Sys.time()
-    scopes <- c("source", "advance_summary", "queries_summary", "phone_summary")
+    scopes <- compact_scopes
+    family_label <- if (identical(family, "telefonico")) "telefónico" else "de acreditacion"
     if (is.function(progress)) {
       progress(
         phase = "running",
@@ -645,7 +654,7 @@
     }
     return(list(
       status = if (ready) "ready" else if (any(scope_status == "ready")) "timeout" else "error",
-      message = if (ready) "Monitoreo de acreditacion preparado." else "Monitoreo de acreditacion quedo parcialmente preparado.",
+      message = if (ready) sprintf("Monitoreo %s preparado.", family_label) else sprintf("Monitoreo %s quedo parcialmente preparado.", family_label),
       details = list(
         family = family,
         scopes = unname(scope_results),

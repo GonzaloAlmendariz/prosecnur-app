@@ -146,6 +146,10 @@ function comparisonSurfaceUrl(surface: ComparisonSurface) {
   if (currentParams.get("qaWarmup") === "skip") {
     url.searchParams.set("qaWarmup", "skip");
   }
+  for (const targetParam of ["compareView", "compareTab"]) {
+    const targetValue = currentParams.get(targetParam);
+    if (targetValue) url.searchParams.set(targetParam, targetValue);
+  }
   return `${url.pathname}${url.search}`;
 }
 

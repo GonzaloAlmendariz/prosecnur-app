@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import {
   AlertTriangle,
-  BarChart3,
   CalendarRange,
   CheckCircle2,
   ContactRound,
@@ -27,6 +26,9 @@ import type {
   MonitoreoTerritorialMapPhaseCacheMeta,
   TerritorialBlockProgress,
   TerritorialDistrictProgress,
+  TerritorialQuotaProgressBlock,
+  TerritorialQuotaProgressDistrict,
+  TerritorialQuotaProgressItem,
   TerritorialResponseAuditRow,
 } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
@@ -40,6 +42,7 @@ import {
   LIMA_MAP_WIDTH,
   TerritorialRouteCoverageMap,
   buildTerritorialMapProjection,
+  buildDistrictShapePath,
   loadTerritorialRouteCartography,
   sampleTerritorialContextFeatures,
   sampleTerritorialStreetFeatures,
@@ -77,6 +80,47 @@ type DistributionItem = {
   value: number;
   pct: number;
   tone: "ready" | "warning" | "muted";
+};
+
+type DemographicQuotaBucket = {
+  key: string;
+  label: string;
+  target: number;
+  achieved: number;
+  missing: number;
+  pct: number | null;
+  tone: "ready" | "warning" | "muted";
+};
+
+type DemographicQuotaDistrict = {
+  key: string;
+  label: string;
+  target: number;
+  achieved: number;
+  missing: number;
+  pct: number | null;
+  sexMissing: number;
+  ageMissing: number;
+  demographicMissing: number;
+  sex: DemographicQuotaBucket[];
+  age: DemographicQuotaBucket[];
+};
+
+type DemographicQuotaProgress = {
+  configured: boolean;
+  summary: {
+    target: number;
+    achieved: number;
+    missing: number;
+    pct: number | null;
+    completeBuckets: number;
+    totalBuckets: number;
+    districtsWithGap: number;
+    districtCount: number;
+  };
+  sex: DemographicQuotaBucket[];
+  age: DemographicQuotaBucket[];
+  districts: DemographicQuotaDistrict[];
 };
 
 type TerritorialDailyDashboardRow = MonitoreoTerritorialDashboard["daily"][number] & {
@@ -125,28 +169,17 @@ export function TerritorialAdvanceWorkbench({
   syncedAt?: string;
   onLocalTabChange?: (tab: string) => void;
 }) {
-  const [startDate, setStartDate] = useState("");
   const [districtFilter, setDistrictFilter] = useState("todos");
   const [focusedUmp, setFocusedUmp] = useState("");
   const tab = isAdvanceTab(activeLocalTab) ? activeLocalTab : ADVANCE_TAB_FALLBACK;
   const blocks = useMemo(() => blockRows(reports), [reports]);
   const dailyTargetTotal = useMemo(() => advanceObjectiveTotal(reports), [reports]);
   const dailyRows = useMemo(() => buildTerritorialDailyRows(reports, dailyTargetTotal, blocks), [blocks, dailyTargetTotal, reports]);
-  const availableDates = useMemo(() => dailyRows.map((row) => row.date).filter(Boolean), [dailyRows]);
-  const scopedDailyRows = useMemo(() => (
-    startDate ? dailyRows.filter((row) => row.date >= startDate) : dailyRows
-  ), [dailyRows, startDate]);
-  const dateScope = {
-    active: Boolean(startDate),
-    startDate,
-    canScope: availableDates.length > 0,
-    rowsIncluded: scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.total), 0),
-    rowsTotal: dailyRows.reduce((sum, row) => sum + numberOrZero(row.total), 0),
-  };
-  const advance = useMemo(() => buildAdvanceSummary(reports, scopedDailyRows, Boolean(startDate)), [reports, scopedDailyRows, startDate]);
+  const advance = useMemo(() => buildAdvanceSummary(reports), [reports]);
   const districts = useMemo(() => districtRows(reports), [reports]);
   const mapLayers = useTerritorialAdvanceMapLayers(reports, blocks);
   const distributions = useMemo(() => buildAdvanceDistributions(reports), [reports]);
+  const demographicQuota = useMemo(() => buildDemographicQuotaProgress(reports), [reports]);
   const criterionLabel = reports?.source_validity?.field_label || reports?.source_validity?.field || "criterio configurado";
   const phaseLabel = reports?.active_route_phase === "pilot" ? "Piloto operativo" : "Campo real";
   const cutLabel = syncedAt || reports?.generated_at ? formatDate(syncedAt || reports?.generated_at || "") : "Sin corte";
@@ -165,13 +198,6 @@ export function TerritorialAdvanceWorkbench({
     <div className="mon-stage mon-stage--avance">
       <div className="mon-stage-stack mon-stage-stack--dashboard">
         <section className="mon-advance-panel mon-territorial-panel" aria-label="Tablero de campo territorial">
-          <TerritorialAdvanceDateFilterBar
-            scope={dateScope}
-            startDate={startDate}
-            availableDates={availableDates}
-            onChange={setStartDate}
-          />
-
           {tab === "resumen" ? (
             <TerritorialAdvanceSummary
               advance={advance}
@@ -180,6 +206,7 @@ export function TerritorialAdvanceWorkbench({
               cutLabel={cutLabel}
               districts={districts}
               distributions={distributions}
+              demographicQuota={demographicQuota}
               phaseLabel={phaseLabel}
               selectedDistrict={districtFilter}
               onOpenDistrict={(key) => {
@@ -210,9 +237,8 @@ export function TerritorialAdvanceWorkbench({
 
           {tab === "ritmo" ? (
             <TerritorialAdvanceRhythmSection
-              rows={scopedDailyRows}
+              rows={dailyRows}
               targetTotal={dailyTargetTotal || advance.meta || advance.validas + advance.brecha}
-              dateScope={dateScope}
               umpTotal={blocks.length}
             />
           ) : null}
@@ -222,62 +248,13 @@ export function TerritorialAdvanceWorkbench({
   );
 }
 
-function TerritorialAdvanceDateFilterBar({
-  scope,
-  startDate,
-  availableDates,
-  onChange,
-}: {
-  scope: { active: boolean; startDate: string; canScope: boolean; rowsIncluded: number; rowsTotal: number };
-  startDate: string;
-  availableDates: string[];
-  onChange: (value: string) => void;
-}) {
-  const latestDate = availableDates[availableDates.length - 1] ?? "";
-  const earliestDate = availableDates[0] ?? "";
-  const activeLabel = startDate ? `Desde ${dateFilterLabel(startDate)}` : "Todo el corte";
-  return (
-    <section className={`mon-territorial-datebar${scope.active ? " is-filtered" : ""}`} aria-label="Filtro de fecha para avance territorial">
-      <div className="mon-territorial-datebar-copy">
-        <span><CalendarRange size={14} /> Contar avance desde</span>
-        <strong>{activeLabel}</strong>
-        <em>
-          {scope.canScope
-            ? `${formatMetric(scope.rowsIncluded)} de ${formatMetric(scope.rowsTotal)} registros diarios`
-            : "El corte no trae fecha diaria para recalcular en la app"}
-        </em>
-      </div>
-      <div className="mon-territorial-datebar-controls">
-        <button type="button" className={!startDate ? "is-active" : ""} onClick={() => onChange("")}>
-          Todo
-        </button>
-        {latestDate ? (
-          <button type="button" className={startDate === latestDate ? "is-active" : ""} onClick={() => onChange(latestDate)}>
-            Último día
-          </button>
-        ) : null}
-        <label>
-          <span>Fecha inicial</span>
-          <input
-            type="date"
-            value={startDate}
-            min={earliestDate || undefined}
-            max={latestDate || undefined}
-            disabled={!scope.canScope || !availableDates.length}
-            onChange={(event) => onChange(event.currentTarget.value)}
-          />
-        </label>
-      </div>
-    </section>
-  );
-}
-
 function TerritorialAdvanceSummary({
   advance,
   blocks,
   criterionLabel,
   cutLabel,
   districts,
+  demographicQuota,
   distributions,
   phaseLabel,
   selectedDistrict,
@@ -289,6 +266,7 @@ function TerritorialAdvanceSummary({
   criterionLabel: string;
   cutLabel: string;
   districts: TerritorialDistrictProgress[];
+  demographicQuota: DemographicQuotaProgress;
   distributions: { sex: DistributionItem[]; age: DistributionItem[] };
   phaseLabel: string;
   selectedDistrict: string;
@@ -297,18 +275,18 @@ function TerritorialAdvanceSummary({
 }) {
   const umpStack = summarizeUmp(blocks);
   const priorities = buildAdvancePriorities(districts, blocks);
+  const activeDistricts = districts.filter((row) => numberOrZero(row.validas) > 0).length;
   return (
-    <section className="mon-territorial-tab-panel mon-territorial-exec" aria-label="Resumen ejecutivo de avance territorial">
-      <TerritorialAdvanceHero advance={advance} criterionLabel={criterionLabel} umpComplete={umpStack.complete} umpNone={umpStack.none} />
+    <section className="mon-territorial-tab-panel mon-territorial-exec mon-territorial-tab-panel--summary" aria-label="Resumen ejecutivo de avance territorial">
       <header className="mon-territorial-exec-commandbar">
         <div>
-          <span><MapPin size={14} /> Vista ejecutiva territorial</span>
-          <strong>Resumen de avance</strong>
+          <span><MapPin size={14} /> Corte territorial</span>
+          <strong>{phaseLabel} · {cutLabel}</strong>
         </div>
         <div className="mon-territorial-exec-commandbar-meta" aria-label="Contexto del corte">
-          <span>{phaseLabel}</span>
-          <span>Corte {cutLabel}</span>
-          <span>{formatMetric(advance.validas)} válidas en avance</span>
+          <span>{formatMetric(advance.validas)} válidas</span>
+          <span>{formatPercentLabel(advance.avancePct)} avance</span>
+          <span>{formatMetric(activeDistricts)} distritos con avance</span>
           {selectedDistrict !== "todos" ? <span>Distrito filtrado</span> : null}
         </div>
       </header>
@@ -322,47 +300,9 @@ function TerritorialAdvanceSummary({
           selectedDistrict={selectedDistrict}
           onOpenDistrict={onOpenDistrict}
         />
-        <TerritorialExecutiveDemographics sex={distributions.sex} age={distributions.age} />
+        <TerritorialExecutiveDemographics sex={distributions.sex} age={distributions.age} quotaProgress={demographicQuota} />
         <TerritorialExecutivePriorities groups={priorities} onOpenDistrict={onOpenDistrict} onOpenUmp={onOpenUmp} />
         <TerritorialExecutiveOperationalCut advance={advance} criterionLabel={criterionLabel} />
-      </div>
-    </section>
-  );
-}
-
-function TerritorialAdvanceHero({
-  advance,
-  criterionLabel,
-  umpComplete,
-  umpNone,
-}: {
-  advance: AdvanceSummary;
-  criterionLabel: string;
-  umpComplete: number;
-  umpNone: number;
-}) {
-  const pct = clamp(advance.avancePct ?? 0, 0, 100);
-  return (
-    <section className="mon-territorial-overview-hero" aria-label="Resumen general de avance territorial">
-      <div className="mon-territorial-overview-copy">
-        <span>Avance territorial</span>
-        <strong>{formatMetric(advance.validas)} válidas de {formatMetric(advance.meta)} · {formatPercentLabel(advance.avancePct)}</strong>
-        <p>{formatMetric(advance.brecha)} pendientes para llegar al objetivo. Avance según {criterionLabel}; UMP por declaración configurada.</p>
-      </div>
-      <div className="mon-territorial-objective-meter" aria-label="Avance hacia el objetivo territorial">
-        <header>
-          <span>Objetivo territorial</span>
-          <strong>{formatPercentLabel(advance.avancePct)}</strong>
-        </header>
-        <div className="mon-territorial-objective-track">
-          <i style={{ width: `${pct}%` }} />
-        </div>
-        <footer>
-          <span><strong>{formatMetric(advance.validas)}</strong><em>Válidas</em></span>
-          <span><strong>{formatMetric(advance.brecha)}</strong><em>Pendientes</em></span>
-          <span><strong>{formatMetric(umpComplete)}</strong><em>UMP completas</em></span>
-          <span><strong>{formatMetric(umpNone)}</strong><em>UMP sin avance</em></span>
-        </footer>
       </div>
     </section>
   );
@@ -404,7 +344,7 @@ function TerritorialExecutiveProgressPanel({
         <div><dt>Objetivo</dt><dd>{formatMetric(advance.meta)}</dd></div>
         <div><dt>Pendientes</dt><dd>{formatMetric(advance.brecha)}</dd></div>
         <div><dt>Distritos</dt><dd>{formatMetric(districtCount)}</dd></div>
-        <div><dt>Corte</dt><dd>{cutLabel}</dd></div>
+        <div className="is-cutoff"><dt>Corte</dt><dd>{cutLabel}</dd></div>
       </dl>
       <p>Avance calculado con {criterionLabel}. Los estados técnicos explican el corte, pero no compiten con el cumplimiento territorial.</p>
     </section>
@@ -412,6 +352,7 @@ function TerritorialExecutiveProgressPanel({
 }
 
 function TerritorialExecutiveUmpPanel({ stack }: { stack: ReturnType<typeof summarizeUmp> }) {
+  const pending = Math.max(0, stack.incomplete + stack.none);
   const segments = [
     { key: "complete", label: "Completas", value: stack.complete, tone: "ready" },
     { key: "incomplete", label: "Incompletas", value: stack.incomplete, tone: "warning" },
@@ -421,18 +362,30 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: ReturnType<typeof summ
     <section className="mon-territorial-exec-ump" aria-label="Estado de UMP y manzanas">
       <header>
         <span><Route size={14} /> Estado UMP</span>
-        <strong>{formatMetric(stack.complete)} de {formatMetric(stack.total)} completas</strong>
+        <strong>{formatMetric(stack.complete)} completas · {formatMetric(pending)} faltan</strong>
       </header>
       <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
-        {segments.map((segment) => (
-          <i
-            key={segment.key}
-            className={`is-${segment.key}`}
-            role="listitem"
-            style={{ "--exec-stack-size": `${Math.max(segment.value ? 5 : 0, safePercent(segment.value, stack.total) ?? 0)}%` } as CSSProperties}
-            title={`${segment.label}: ${formatMetric(segment.value)}`}
-          />
-        ))}
+        {segments.map((segment) => {
+          const pct = safePercent(segment.value, stack.total) ?? 0;
+          const width = Math.max(segment.value ? 5 : 0, pct);
+          const className = [
+            `is-${segment.key}`,
+            pct < 18 ? "is-compact" : "",
+            pct < 8 ? "is-tiny" : "",
+          ].filter(Boolean).join(" ");
+          return (
+            <span
+              key={segment.key}
+              className={className}
+              role="listitem"
+              style={{ "--exec-stack-size": `${width}%` } as CSSProperties}
+              title={`${segment.label}: ${formatMetric(segment.value)} · ${formatPercentLabel(pct)}`}
+            >
+              <strong>{formatMetric(segment.value)}</strong>
+              <em>{segment.label}</em>
+            </span>
+          );
+        })}
       </div>
       <div className="mon-territorial-exec-ump-grid">
         {segments.map((segment) => (
@@ -476,13 +429,6 @@ function TerritorialExecutiveDistrictBoard({
   ));
   return (
     <section className="mon-territorial-exec-districts" aria-label="Avance por distrito">
-      <header>
-        <div>
-          <span><BarChart3 size={14} /> Avance por distrito</span>
-          <strong>Lectura territorial dominante</strong>
-        </div>
-        <em>{formatMetric(rows.filter((row) => numberOrZero(row.validas) > 0).length)} con avance</em>
-      </header>
       <div className="mon-territorial-exec-district-grid">
         {ordered.map((row) => {
           const key = districtKey(row);
@@ -495,7 +441,12 @@ function TerritorialExecutiveDistrictBoard({
               aria-pressed={selected}
               onClick={() => key && onOpenDistrict(key)}
             >
-              <DistrictShapeIcon label={row.distrito} active={selected || districtTone(row) === "ready"} warning={districtTone(row) === "open"} />
+              <DistrictShapeIcon
+                ubigeo={row.ubigeo}
+                label={row.distrito}
+                active={selected || districtTone(row) === "ready"}
+                warning={districtTone(row) === "open"}
+              />
               <div className="mon-territorial-exec-district-body">
                 <header>
                   <span>{row.ubigeo || "S/U"}</span>
@@ -528,21 +479,118 @@ function TerritorialExecutiveDistrictBoard({
 function TerritorialExecutiveDemographics({
   sex,
   age,
+  quotaProgress,
 }: {
   sex: DistributionItem[];
   age: DistributionItem[];
+  quotaProgress: DemographicQuotaProgress;
 }) {
+  if (quotaProgress.configured) {
+    const summary = quotaProgress.summary;
+    return (
+      <section className="mon-territorial-exec-demographics" aria-label="Avance agregado por cuotas de sexo y edad">
+        <header>
+          <span><Layers3 size={14} /> Cuotas agregadas sexo/edad</span>
+          <strong>{formatMetric(summary.achieved)} / {formatMetric(summary.target)} meta sexo/edad · {formatMetric(summary.missing)} brecha</strong>
+        </header>
+        <div className="mon-territorial-exec-demographics-grid">
+          <article className="mon-territorial-demographic-summary" aria-label="Meta demográfica agregada">
+            <header>
+              <span>Meta sexo/edad</span>
+              <em>{formatMetric(summary.districtCount)} distritos</em>
+            </header>
+            <div className="mon-territorial-demographic-summary-main">
+              <strong>{formatPercentLabel(summary.pct)}</strong>
+              <span>{formatMetric(summary.achieved)} de {formatMetric(summary.target)} casos</span>
+              <i aria-hidden="true"><em style={{ width: `${clamp(summary.pct ?? 0, 0, 100)}%` }} /></i>
+            </div>
+            <dl>
+              <div><dt>Brecha total</dt><dd>{formatMetric(summary.missing)}</dd></div>
+              <div><dt>Segmentos cerrados</dt><dd>{formatMetric(summary.completeBuckets)} / {formatMetric(summary.totalBuckets)}</dd></div>
+              <div><dt>Distritos con brecha</dt><dd>{formatMetric(summary.districtsWithGap)}</dd></div>
+            </dl>
+          </article>
+          <div className="mon-territorial-demographic-panels">
+            <DemographicQuotaPanel title="Hombres y mujeres" items={quotaProgress.sex} />
+            <DemographicQuotaPanel title="Rangos de edad" items={quotaProgress.age} />
+          </div>
+          <DemographicDistrictPanel rows={quotaProgress.districts} />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="mon-territorial-exec-demographics" aria-label="Distribución del campo válido por sexo y edad">
       <header>
         <span><Layers3 size={14} /> Distribución del campo válido</span>
         <strong>Solo respuestas que cuentan en avance</strong>
       </header>
-      <div>
+      <div className="mon-territorial-exec-demographics-grid is-distribution">
         <DistributionPanel title="Distribución por sexo" items={sex} mode="donut" />
         <DistributionPanel title="Distribución por edad" items={age} mode="bars" />
       </div>
     </section>
+  );
+}
+
+function DemographicQuotaPanel({ title, items }: { title: string; items: DemographicQuotaBucket[] }) {
+  const missing = items.reduce((sum, item) => sum + item.missing, 0);
+  return (
+    <article className="mon-territorial-demographic-quota">
+      <header>
+        <span>{title}</span>
+        <em>{formatMetric(missing)} faltan</em>
+      </header>
+      <div className="mon-territorial-demographic-quota-list">
+        {items.length ? items.map((item) => (
+          <span key={item.key} className={`is-${item.tone}`}>
+            <i aria-hidden="true"><em style={{ width: `${clamp(item.pct ?? 0, 0, 100)}%` }} /></i>
+            <strong>{item.label}</strong>
+            <em>{formatMetric(item.achieved)} / {formatMetric(item.target)} · faltan {formatMetric(item.missing)}</em>
+          </span>
+        )) : (
+          <span className="is-muted">
+            <strong>Sin metas</strong>
+            <em>No hay cuotas para esta dimensión</em>
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function DemographicDistrictPanel({ rows }: { rows: DemographicQuotaDistrict[] }) {
+  const ordered = [...rows].sort((a, b) => (
+    b.demographicMissing - a.demographicMissing
+    || b.missing - a.missing
+    || a.label.localeCompare(b.label, "es-PE")
+  ));
+  return (
+    <article className="mon-territorial-demographic-districts" aria-label="Cuotas agregadas por distrito">
+      <header>
+        <span>Distritos</span>
+        <em>{formatMetric(ordered.length)} con cuota</em>
+      </header>
+      <div>
+        {ordered.length ? ordered.map((row) => (
+          <article key={row.key} className={row.demographicMissing > 0 ? "is-warning" : "is-ready"}>
+            <header>
+              <strong>{row.label}</strong>
+              <em>{formatPercentLabel(row.pct)}</em>
+            </header>
+            <i aria-hidden="true"><em style={{ width: `${clamp(row.pct ?? 0, 0, 100)}%` }} /></i>
+            <footer>
+              <span>{formatMetric(row.achieved)} / {formatMetric(row.target)}</span>
+              <span>Sexo {formatMetric(row.sexMissing)}</span>
+              <span>Edad {formatMetric(row.ageMissing)}</span>
+            </footer>
+          </article>
+        )) : (
+          <span className="mon-territorial-audit-empty">Sin cuotas distritales disponibles.</span>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -606,7 +654,7 @@ function TerritorialExecutivePriorities({
     <section className="mon-territorial-exec-priorities" aria-label="Prioridades de avance">
       <header>
         <span><AlertTriangle size={14} /> Prioridades de avance</span>
-        <strong>Frentes pendientes conectados con Mapa y UMP</strong>
+        <strong>UMP y distritos ordenados por brecha</strong>
       </header>
       <div className="mon-territorial-exec-priority-groups">
         {groups.map((group) => (
@@ -630,7 +678,7 @@ function TerritorialExecutivePriorities({
                     <strong>{item.title}</strong>
                     <em>{item.detail}</em>
                   </span>
-                  <b>{formatMetric(item.gap)}</b>
+                  <b><small>faltan</small>{formatMetric(item.gap)}</b>
                   <i><small style={{ width: `${Math.max(4, item.progressPct)}%` }} /></i>
                 </button>
               )) : (
@@ -1168,7 +1216,9 @@ function TerritorialAdvanceUmpMap({
   const [richLayerError, setRichLayerError] = useState("");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const suppressMapClickRef = useRef(false);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number; moved: boolean } | null>(null);
 
   useEffect(() => {
     const missing = ubigeos.filter((ubigeo) => ubigeo && (!blockFeaturesByUbigeo[ubigeo] || !zoneFeaturesByUbigeo[ubigeo]));
@@ -1335,19 +1385,42 @@ function TerritorialAdvanceUmpMap({
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
-  const zoomBy = (factor: number) => {
+  const zoomAt = (factor: number, anchor?: { clientX: number; clientY: number }, target?: HTMLDivElement | null) => {
     const nextZoom = clamp(zoom * factor, 0.8, 7);
+    if (nextZoom === zoom) return;
+    const rect = (target ?? viewportRef.current)?.getBoundingClientRect();
+    if (!rect) {
+      setZoom(nextZoom);
+      return;
+    }
+    const anchorX = anchor?.clientX ?? rect.left + rect.width / 2;
+    const anchorY = anchor?.clientY ?? rect.top + rect.height / 2;
+    const svgX = (anchorX - rect.left) * (LIMA_MAP_WIDTH / Math.max(1, rect.width));
+    const svgY = (anchorY - rect.top) * (LIMA_MAP_HEIGHT / Math.max(1, rect.height));
+    const mapX = (svgX - pan.x) / zoom;
+    const mapY = (svgY - pan.y) / zoom;
     setZoom(nextZoom);
+    setPan({
+      x: svgX - mapX * nextZoom,
+      y: svgY - mapY * nextZoom,
+    });
+  };
+  const zoomBy = (factor: number) => {
+    zoomAt(factor);
   };
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       panX: pan.x,
       panY: pan.y,
+      moved: false,
     };
+    suppressMapClickRef.current = false;
     event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
   };
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
@@ -1355,18 +1428,30 @@ function TerritorialAdvanceUmpMap({
     const rect = event.currentTarget.getBoundingClientRect();
     const scaleX = LIMA_MAP_WIDTH / Math.max(1, rect.width);
     const scaleY = LIMA_MAP_HEIGHT / Math.max(1, rect.height);
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.hypot(deltaX, deltaY) > 3) drag.moved = true;
     setPan({
-      x: drag.panX + (event.clientX - drag.startX) * scaleX,
-      y: drag.panY + (event.clientY - drag.startY) * scaleY,
+      x: drag.panX + deltaX * scaleX,
+      y: drag.panY + deltaY * scaleY,
     });
   };
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+    const drag = dragRef.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    suppressMapClickRef.current = drag.moved;
+    dragRef.current = null;
   };
-  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+  const onMapClickCapture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!suppressMapClickRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressMapClickRef.current = false;
+  };
+  const onWheel = (event: WheelEvent) => {
     event.preventDefault();
     if (event.ctrlKey || event.metaKey) {
-      zoomBy(event.deltaY < 0 ? 1.18 : 0.84);
+      zoomAt(event.deltaY < 0 ? 1.18 : 0.84, { clientX: event.clientX, clientY: event.clientY }, viewportRef.current);
       return;
     }
     setPan((current) => ({
@@ -1374,6 +1459,13 @@ function TerritorialAdvanceUmpMap({
       y: current.y - event.deltaY * 0.65,
     }));
   };
+
+  useEffect(() => {
+    const node = viewportRef.current;
+    if (!node) return undefined;
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [onWheel]);
 
   return (
     <section className="mon-territorial-advance-map-card" aria-label="Mapa de manzanas UMP en Avance">
@@ -1393,12 +1485,13 @@ function TerritorialAdvanceUmpMap({
         </div>
       </header>
       <div
+        ref={viewportRef}
         className="mon-territorial-map-viewport mon-territorial-advance-map-viewport"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onWheel={onWheel}
+        onClickCapture={onMapClickCapture}
       >
         <div className="mon-territorial-map-tools" aria-label="Controles del mapa" onPointerDown={(event) => event.stopPropagation()}>
           <button type="button" aria-label="Acercar mapa" onClick={() => zoomBy(1.45)}><Plus size={13} /></button>
@@ -1525,7 +1618,6 @@ function TerritorialAdvanceUmpMap({
                       key={pointId}
                       className={`mon-territorial-map-point-node ${advancePointGeoClass(point)} is-${point.geoDisposition}${selected ? " is-selected" : ""}`}
                       transform={`translate(${projected.x.toFixed(2)} ${projected.y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
-                      onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation();
                         onSelectPoint(point);
@@ -1541,7 +1633,7 @@ function TerritorialAdvanceUmpMap({
               </g>
             </g>
             <text className="mon-territorial-route-coverage-caption" x="18" y={LIMA_MAP_HEIGHT - 18}>
-              Rueda/trackpad mueve el mapa · Ctrl+rueda o botones para zoom · click en manzana o GPS enfoca detalle
+              Arrastra o usa trackpad para moverte · Ctrl+rueda o botones para zoom · click enfoca detalle
             </text>
           </svg>
         ) : (
@@ -1570,7 +1662,7 @@ function TerritorialAdvanceUmpMap({
           {backgroundMapLoading ? <span className="is-map-level">Completando manzanas</span> : null}
           {backgroundRichLayerLoading ? <span className="is-map-level">Completando calles</span> : null}
         </div>
-        <TerritorialAdvanceMapInspectorContent
+        <TerritorialAdvanceMapFocusStrip
           selectedPoint={selectedGpsPoint}
           selectedBlock={selectedBlock}
           hasSelectedGeometry={Boolean(selectedFeature)}
@@ -1591,7 +1683,7 @@ function TerritorialAdvanceUmpMap({
   );
 }
 
-function TerritorialAdvanceMapInspectorContent({
+function TerritorialAdvanceMapFocusStrip({
   selectedPoint,
   selectedBlock,
   hasSelectedGeometry,
@@ -1602,107 +1694,52 @@ function TerritorialAdvanceMapInspectorContent({
 }) {
   if (selectedPoint) {
     const distance = selectedPoint.gps_effective_distance_m ?? selectedPoint.gps_primary_distance_m ?? selectedPoint.distance_m;
-    const accuracy = selectedPoint.gps_effective_accuracy_m ?? selectedPoint.gps_primary_accuracy_m;
-    const pointDetails = [
-      ["Fecha Kobo", advancePointSubmissionLabel(selectedPoint)],
-      ["Lat", selectedPoint.latValue.toFixed(6)],
-      ["Lon", selectedPoint.lonValue.toFixed(6)],
-      ["Distrito espacial", selectedPoint.advance_block_distrito || selectedPoint.distrito || "sin cruce espacial"],
-      ["Zona espacial", selectedPoint.advance_block_zona || "fuera de zona"],
-      ["UMP declarada", selectedPoint.declared_ump_normalized || selectedPoint.advance_block_ump || selectedPoint.declared_ump_raw || "sin UMP declarada"],
-      ["Manzana UMP", selectedPoint.advance_block_manzana || selectedPoint.advance_block_id || "sin manzana"],
-      ["Distancia", formatDistanceLabel(distance)],
-      ["GPS", geoDispositionLabel(selectedPoint.geoDisposition)],
-      ["Fuente GPS", selectedPoint.gps_effective_source || selectedPoint.gps_primary_source || "GPS efectivo"],
-      ["Precision", formatDistanceLabel(accuracy)],
-      ["Manzana cercana", selectedPoint.gps_effective_nearest_block_id || selectedPoint.gps_primary_nearest_block_id || selectedPoint.nearest_block_id || "sin manzana"],
-    ];
-    const alerts = stringOrEmpty(selectedPoint.issues || selectedPoint.observation_reasons || selectedPoint.gps_reclassification_note)
-      .split(";")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const pointId = stringOrEmpty(selectedPoint.response_id) || "sin id";
+    const declared = selectedPoint.declared_ump_normalized
+      || selectedPoint.advance_block_ump
+      || selectedPoint.declared_ump_raw
+      || "UMP sin declarar";
     return (
       <section
-        className="mon-territorial-inspector-card mon-territorial-advance-map-inspector is-point"
-        aria-label="Detalle auditado de punto GPS en Avance"
+        className="mon-territorial-advance-map-focus-strip is-point"
+        aria-label="Punto GPS enfocado en el mapa de Avance"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <header>
-          <span><CheckCircle2 size={14} /> Punto GPS Kobo</span>
-          <strong title={stringOrEmpty(selectedPoint.response_id)}>{stringOrEmpty(selectedPoint.response_id) || "sin id"}</strong>
-        </header>
-        <dl>
-          {pointDetails.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd title={value}>{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mon-territorial-inspector-alerts">
-          <span>Observacion espacial</span>
-          <p>{alerts.length ? alerts.join(", ") : selectedPoint.gps_reclassified ? "GPS reclasificado para el corte operativo." : "Sin alertas registradas."}</p>
-        </div>
+        <span><CheckCircle2 size={13} /> GPS Kobo</span>
+        <strong title={pointId}>{pointId}</strong>
+        <em title={territorialAdvancePointDetail(selectedPoint)}>{declared} · {advancePointSubmissionLabel(selectedPoint)}</em>
+        <b>{geoDispositionLabel(selectedPoint.geoDisposition)} · {formatDistanceLabel(distance)}</b>
       </section>
     );
   }
 
   if (selectedBlock) {
     const status = blockStatus(selectedBlock);
-    const blockDetails = [
-      ["Operativo", advanceBlockLabel(selectedBlock)],
-      ["Tipo", territorialRouteBlockIsReplacement(selectedBlock) ? "Reemplazo" : "Titular"],
-      ["Distrito", selectedBlock.distrito || "sin distrito"],
-      ["Zona", selectedBlock.zona || "sin zona"],
-      ["Manzana fisica", selectedBlock.manzana || selectedBlock.id_manzana || "S/D"],
-      ["Responsable", selectedBlock.responsable || "sin responsable"],
-      ["Meta", formatMetric(selectedBlock.meta)],
-      ["Validas", formatMetric(selectedBlock.validas)],
-      ["Revision", formatMetric(selectedBlock.revision)],
-      ["Brecha", formatMetric(selectedBlock.brecha)],
-      ["Avance", formatPercentLabel(progressPctForBlock(selectedBlock))],
-      ["Geometria", hasSelectedGeometry ? "cartografia cargada" : "sin geometria cargada"],
-    ];
+    const pct = clamp(progressPctForBlock(selectedBlock), 0, 100);
     return (
       <section
-        className="mon-territorial-inspector-card mon-territorial-advance-map-inspector is-block"
-        aria-label="Detalle auditado de manzana UMP en Avance"
+        className={`mon-territorial-advance-map-focus-strip is-${status}`}
+        aria-label="Manzana UMP enfocada en el mapa de Avance"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <header>
-          <span><Route size={14} /> Manzana Hoja de Ruta</span>
-          <strong title={advanceBlockDetail(selectedBlock)}>{advanceBlockDetail(selectedBlock)}</strong>
-        </header>
-        <dl>
-          {blockDetails.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd title={value}>{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mon-territorial-inspector-alerts">
-          <span>Estado operativo</span>
-          <p>{blockStatusLabel(status)} con {formatMetric(selectedBlock.validas)} validas y {formatMetric(selectedBlock.brecha)} pendientes frente a la meta UMP.</p>
-        </div>
+        <span><Route size={13} /> UMP foco</span>
+        <strong title={advanceBlockDetail(selectedBlock)}>{advanceBlockLabel(selectedBlock)}</strong>
+        <em title={advanceBlockDetail(selectedBlock)}>{advanceBlockDetail(selectedBlock)}</em>
+        <b>{formatMetric(selectedBlock.validas)} / {formatMetric(selectedBlock.meta)} válidas · {formatMetric(selectedBlock.brecha)} pendientes · {hasSelectedGeometry ? "con geometría" : "sin geometría"}</b>
+        <i aria-hidden="true"><small style={{ width: `${Math.max(4, pct)}%` }} /></i>
       </section>
     );
   }
 
   return (
     <section
-      className="mon-territorial-inspector-card mon-territorial-advance-map-inspector is-empty"
-      aria-label="Detalle auditado del mapa UMP en Avance"
+      className="mon-territorial-advance-map-focus-strip is-empty"
+      aria-label="Ayuda de selección del mapa UMP en Avance"
       onPointerDown={(event) => event.stopPropagation()}
     >
-      <header>
-        <span><MapPin size={14} /> Inspector territorial</span>
-        <strong>Sin seleccion</strong>
-      </header>
-      <div className="mon-territorial-inspector-alerts">
-        <span>Accion</span>
-        <p>Click en una manzana o en un punto GPS para revisar coordenadas, distancia y estado territorial.</p>
-      </div>
+      <span><MapPin size={13} /> Selección</span>
+      <strong>Sin UMP seleccionada</strong>
+      <em>Click en una manzana o punto GPS para enfocar detalle.</em>
     </section>
   );
 }
@@ -1739,7 +1776,6 @@ function TerritorialAdvanceUmpMapBlock({
       role="button"
       tabIndex={0}
       aria-label={advanceBlockDetail(feature.block)}
-      onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
         onSelect(feature.block, true);
@@ -2084,12 +2120,10 @@ function formatDistanceLabel(value: unknown) {
 function TerritorialAdvanceRhythmSection({
   rows,
   targetTotal,
-  dateScope,
   umpTotal,
 }: {
   rows: TerritorialDailyDashboardRow[];
   targetTotal: number;
-  dateScope: { active: boolean; startDate: string };
   umpTotal: number;
 }) {
   const chartConfig = useMemo(() => ({
@@ -2103,15 +2137,14 @@ function TerritorialAdvanceRhythmSection({
   const best = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.validas > current.validas ? row : current), null);
   const pendingValid = Math.max(0, targetTotal - (latest?.cumulative_valid ?? 0));
   const pendingUmp = Math.max(0, umpTotal - (latest?.cumulative_complete_ump ?? 0));
-  const dateLabel = dateScope.active ? `desde ${dateFilterLabel(dateScope.startDate)}` : "todo el corte";
   return (
-    <section className="mon-territorial-tab-panel" aria-label="Ritmo diario y acumulado">
+    <section className="mon-territorial-tab-panel mon-territorial-tab-panel--rhythm" aria-label="Ritmo diario y acumulado">
       <div className="mon-territorial-rhythm-layout">
         <article className="mon-territorial-rhythm-chart">
           <header>
             <div>
               <span><CalendarRange size={14} /> Ritmo diario válido</span>
-              <strong>Válidas diarias y acumulado contra meta · {dateLabel}</strong>
+              <strong>Válidas diarias y acumulado contra meta · todo el corte</strong>
             </div>
             <em>{formatMetric(rows.length)} días</em>
           </header>
@@ -2238,30 +2271,77 @@ function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], target
 }
 
 function TerritorialDailyDashboardTable({ rows }: { rows: TerritorialDailyDashboardRow[] }) {
+  if (!rows.length) return null;
+  const latest = rows[rows.length - 1] ?? null;
+  const matrix = [
+    {
+      key: "validas",
+      label: "Válidas",
+      tone: "effective",
+      total: rows.reduce((sum, row) => sum + row.validas, 0),
+      values: rows.map((row) => row.validas),
+    },
+    {
+      key: "acumuladas",
+      label: "Acumuladas",
+      tone: "total",
+      total: latest?.cumulative_valid ?? 0,
+      values: rows.map((row) => row.cumulative_valid),
+      always: true,
+    },
+    {
+      key: "brecha",
+      label: "Brecha meta",
+      tone: "partial",
+      total: latest?.cumulative_gap ?? 0,
+      values: rows.map((row) => row.cumulative_gap),
+      always: true,
+    },
+    {
+      key: "revision",
+      label: "Observación",
+      tone: "partial",
+      total: rows.reduce((sum, row) => sum + row.revision, 0),
+      values: rows.map((row) => row.revision),
+    },
+    {
+      key: "no_validas",
+      label: "No válidas",
+      tone: "refusals",
+      total: rows.reduce((sum, row) => sum + row.no_validas, 0),
+      values: rows.map((row) => row.no_validas),
+    },
+    {
+      key: "ump",
+      label: "UMP completadas",
+      tone: "ump",
+      total: latest?.cumulative_complete_ump ?? 0,
+      values: rows.map((row) => row.new_complete_ump),
+    },
+  ].filter((item) => item.always || item.values.some((value) => value > 0));
   return (
     <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
-      <table className="mon-advance-daily-table" aria-label="Detalle diario territorial">
+      <table className="mon-advance-daily-table" aria-label="Matriz diaria territorial por estado y fecha">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Nuevas UMP</th>
-            <th>UMP acumuladas</th>
-            <th>Avance UMP</th>
-            <th>Válidas</th>
-            <th>Observación</th>
-            <th>No válidas</th>
+            <th>Estado</th>
+            {rows.map((row) => (
+              <th key={row.date}>{territorialDailyDateLabel(row)}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.date}>
-              <th scope="row"><strong>{territorialDailyDateLabel(row)}</strong></th>
-              <td>{formatMetric(row.new_complete_ump)}</td>
-              <td>{formatMetric(row.cumulative_complete_ump)}</td>
-              <td>{formatPercentLabel(row.cumulative_complete_ump_pct)}</td>
-              <td>{formatMetric(row.validas)}</td>
-              <td>{formatMetric(row.revision)}</td>
-              <td>{formatMetric(row.no_validas)}</td>
+          {matrix.map((item) => (
+            <tr key={item.key} className={`is-${item.tone}`}>
+              <th scope="row">
+                <span>{item.label}</span>
+                <em>{formatMetric(item.total)}</em>
+              </th>
+              {item.values.map((value, index) => (
+                <td key={`${item.key}-${rows[index]?.date ?? index}`} className={value > 0 ? "is-filled" : ""}>
+                  {formatMetric(value)}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -2290,22 +2370,10 @@ function AdvanceMetric({
   );
 }
 
-function buildAdvanceSummary(
-  reports: MonitoreoTerritorialDashboard | null,
-  scopedDailyRows: Array<{ total: number; validas: number; revision: number }>,
-  scoped: boolean,
-): AdvanceSummary {
+function buildAdvanceSummary(reports: MonitoreoTerritorialDashboard | null): AdvanceSummary {
   const base = reports?.advance ?? null;
   const kpis = reports?.kpis;
   const meta = numberOrNull(base?.meta ?? kpis?.meta);
-  if (scoped && scopedDailyRows.length) {
-    const total = scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.total), 0);
-    const validas = scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.validas), 0);
-    const observacion = scopedDailyRows.reduce((sum, row) => sum + numberOrZero(row.revision), 0);
-    const noValidas = Math.max(0, total - validas - observacion);
-    const brecha = meta == null ? 0 : Math.max(0, meta - validas);
-    return { total, validas, observacion, noValidas, meta, brecha, avancePct: safePercent(validas, meta) };
-  }
   const total = numberOrZero(base?.total_respuestas ?? kpis?.total_respuestas);
   const validas = numberOrZero(base?.validas ?? kpis?.validas);
   const observacion = numberOrZero(base?.observacion ?? kpis?.revision);
@@ -2328,6 +2396,192 @@ function buildAdvanceDistributions(reports: MonitoreoTerritorialDashboard | null
     sex: distributionFromRows(rows, (row) => stringOrEmpty(row.sex).trim() || "S/D"),
     age: distributionFromRows(rows, (row) => ageGroup(row.age)),
   };
+}
+
+function buildDemographicQuotaProgress(reports: MonitoreoTerritorialDashboard | null): DemographicQuotaProgress {
+  const quota = reports?.route_quota_progress;
+  const empty = emptyDemographicQuotaProgress();
+  if (!quota?.configured) return empty;
+  const districts = quota.districts?.length
+    ? quota.districts.map(demographicDistrictFromQuotaDistrict)
+    : demographicDistrictsFromQuotaBlocks(quota.blocks ?? []);
+  const activeDistricts = districts.filter((row) => row.target > 0 || row.sex.length || row.age.length);
+  const sex = aggregateDemographicBuckets(activeDistricts.flatMap((row) => row.sex), "sex");
+  const age = aggregateDemographicBuckets(activeDistricts.flatMap((row) => row.age), "age");
+  const allBuckets = activeDistricts.flatMap((row) => [...row.sex, ...row.age]).filter((item) => item.target > 0);
+  const target = activeDistricts.reduce((sum, row) => sum + row.target, 0);
+  const achieved = activeDistricts.reduce((sum, row) => sum + row.achieved, 0);
+  const missing = activeDistricts.reduce((sum, row) => sum + row.missing, 0);
+  const configured = target > 0 || sex.length > 0 || age.length > 0;
+  if (!configured) return empty;
+  return {
+    configured,
+    summary: {
+      target,
+      achieved,
+      missing,
+      pct: safePercent(achieved, target),
+      completeBuckets: allBuckets.filter((item) => item.missing <= 0).length,
+      totalBuckets: allBuckets.length,
+      districtsWithGap: activeDistricts.filter((row) => row.demographicMissing > 0 || row.missing > 0).length,
+      districtCount: activeDistricts.length,
+    },
+    sex,
+    age,
+    districts: activeDistricts,
+  };
+}
+
+function emptyDemographicQuotaProgress(): DemographicQuotaProgress {
+  return {
+    configured: false,
+    summary: {
+      target: 0,
+      achieved: 0,
+      missing: 0,
+      pct: null,
+      completeBuckets: 0,
+      totalBuckets: 0,
+      districtsWithGap: 0,
+      districtCount: 0,
+    },
+    sex: [],
+    age: [],
+    districts: [],
+  };
+}
+
+function demographicDistrictFromQuotaDistrict(row: TerritorialQuotaProgressDistrict): DemographicQuotaDistrict {
+  const sex = normalizeDemographicQuotaItems(row.sex ?? [], "sex");
+  const age = normalizeDemographicQuotaItems(row.age ?? [], "age");
+  const target = quotaTargetValue(row.target, sex, age);
+  const achieved = Math.max(0, Math.round(numberOrNull(row.validas) ?? quotaAchievedFallback(sex, age)));
+  const missing = Math.max(0, Math.round(numberOrNull(row.missing_total) ?? (target - achieved)));
+  const sexMissing = Math.max(0, Math.round(numberOrNull(row.sex_missing_total) ?? sex.reduce((sum, item) => sum + item.missing, 0)));
+  const ageMissing = Math.max(0, Math.round(numberOrNull(row.age_missing_total) ?? age.reduce((sum, item) => sum + item.missing, 0)));
+  const demographicMissing = Math.max(0, Math.round(numberOrNull(row.demographic_missing_total) ?? (sexMissing + ageMissing)));
+  const label = stringOrEmpty(row.distrito).trim() || "Sin distrito";
+  return {
+    key: districtKey(row) || normalizeMatch(label) || label,
+    label,
+    target,
+    achieved,
+    missing,
+    pct: safePercent(achieved, target),
+    sexMissing,
+    ageMissing,
+    demographicMissing,
+    sex,
+    age,
+  };
+}
+
+function demographicDistrictsFromQuotaBlocks(blocks: TerritorialQuotaProgressBlock[]): DemographicQuotaDistrict[] {
+  const groups = new Map<string, TerritorialQuotaProgressBlock[]>();
+  blocks
+    .filter((row) => row?.configured && normalizeMatch(row.tipo_manzana) !== "reemplazo")
+    .forEach((row) => {
+      const key = districtKey(row) || normalizeMatch(row.distrito) || "sin_distrito";
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    });
+  return Array.from(groups.entries()).map(([key, rows]) => {
+    const first = rows[0];
+    const sex = aggregateDemographicBuckets(rows.flatMap((row) => normalizeDemographicQuotaItems(row.sex ?? [], "sex")), "sex");
+    const age = aggregateDemographicBuckets(rows.flatMap((row) => normalizeDemographicQuotaItems(row.age ?? [], "age")), "age");
+    const target = rows.reduce((sum, row) => sum + quotaTargetValue(row.target, normalizeDemographicQuotaItems(row.sex ?? [], "sex"), normalizeDemographicQuotaItems(row.age ?? [], "age")), 0);
+    const achieved = rows.reduce((sum, row) => sum + Math.max(0, Math.round(numberOrZero(row.validas))), 0);
+    const missing = rows.reduce((sum, row) => sum + Math.max(0, Math.round(numberOrNull(row.missing_total) ?? (numberOrZero(row.target) - numberOrZero(row.validas)))), 0);
+    const sexMissing = sex.reduce((sum, item) => sum + item.missing, 0);
+    const ageMissing = age.reduce((sum, item) => sum + item.missing, 0);
+    return {
+      key,
+      label: stringOrEmpty(first?.distrito).trim() || "Sin distrito",
+      target,
+      achieved,
+      missing,
+      pct: safePercent(achieved, target),
+      sexMissing,
+      ageMissing,
+      demographicMissing: sexMissing + ageMissing,
+      sex,
+      age,
+    };
+  });
+}
+
+function normalizeDemographicQuotaItems(items: TerritorialQuotaProgressItem[], dimension: "sex" | "age"): DemographicQuotaBucket[] {
+  return (items ?? [])
+    .map((item, index) => {
+      const label = prettyLabel(stringOrEmpty(item?.label).trim() || "Sin dato");
+      const target = Math.max(0, Math.round(numberOrZero(item?.target)));
+      const achieved = Math.max(0, Math.round(numberOrZero(item?.achieved)));
+      const missing = Math.max(0, Math.round(numberOrNull(item?.missing) ?? (target - achieved)));
+      return {
+        key: `${dimension}-${normalizeMatch(label) || index}`,
+        label,
+        target,
+        achieved,
+        missing,
+        pct: safePercent(achieved, target),
+        tone: demographicQuotaTone(target, achieved, missing),
+      };
+    })
+    .filter((item) => item.target > 0 || item.achieved > 0 || item.missing > 0)
+    .sort((a, b) => demographicBucketOrder(a.label, dimension) - demographicBucketOrder(b.label, dimension)
+      || a.label.localeCompare(b.label, "es-PE", { numeric: true }));
+}
+
+function aggregateDemographicBuckets(items: DemographicQuotaBucket[], dimension: "sex" | "age"): DemographicQuotaBucket[] {
+  const grouped = new Map<string, DemographicQuotaBucket>();
+  items.forEach((item) => {
+    const key = normalizeMatch(item.label) || item.key;
+    const current = grouped.get(key);
+    if (!current) {
+      grouped.set(key, { ...item, key: `${dimension}-${key}` });
+      return;
+    }
+    current.target += item.target;
+    current.achieved += item.achieved;
+    current.missing += item.missing;
+    current.pct = safePercent(current.achieved, current.target);
+    current.tone = demographicQuotaTone(current.target, current.achieved, current.missing);
+  });
+  return Array.from(grouped.values())
+    .sort((a, b) => demographicBucketOrder(a.label, dimension) - demographicBucketOrder(b.label, dimension)
+      || a.label.localeCompare(b.label, "es-PE", { numeric: true }));
+}
+
+function quotaTargetValue(explicit: unknown, sex: DemographicQuotaBucket[], age: DemographicQuotaBucket[]) {
+  const target = numberOrNull(explicit);
+  if (target != null && target > 0) return Math.round(target);
+  const sexTarget = sex.reduce((sum, item) => sum + item.target, 0);
+  if (sexTarget > 0) return sexTarget;
+  return age.reduce((sum, item) => sum + item.target, 0);
+}
+
+function quotaAchievedFallback(sex: DemographicQuotaBucket[], age: DemographicQuotaBucket[]) {
+  const sexAchieved = sex.reduce((sum, item) => sum + item.achieved, 0);
+  if (sexAchieved > 0) return sexAchieved;
+  return age.reduce((sum, item) => sum + item.achieved, 0);
+}
+
+function demographicQuotaTone(target: number, achieved: number, missing: number): DemographicQuotaBucket["tone"] {
+  if (target <= 0 && achieved <= 0) return "muted";
+  if (missing <= 0) return "ready";
+  return "warning";
+}
+
+function demographicBucketOrder(label: string, dimension: "sex" | "age") {
+  const key = normalizeMatch(label);
+  if (dimension === "sex") {
+    if (key === "hombre" || key === "masculino") return 0;
+    if (key === "mujer" || key === "femenino") return 1;
+    if (key === "sin dato" || key === "sd") return 9;
+    return 5;
+  }
+  if (key === "sin dato" || key === "sd") return 999;
+  const match = label.match(/\d+/);
+  return match ? Number(match[0]) : 998;
 }
 
 function distributionFromRows(rows: TerritorialResponseAuditRow[], getKey: (row: TerritorialResponseAuditRow) => string): DistributionItem[] {
@@ -2378,13 +2632,28 @@ function buildAdvancePriorities(districts: TerritorialDistrictProgress[], blocks
   ];
 }
 
-function DistrictShapeIcon({ label, active, warning }: { label: string; active: boolean; warning: boolean }) {
+function DistrictShapeIcon({ ubigeo, label, active, warning }: { ubigeo?: string; label: string; active: boolean; warning: boolean }) {
   const initials = stringOrEmpty(label).split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "SD";
+  const normalized = normalizeMapCode(ubigeo);
+  const feature = normalized
+    ? LIMA_DISTRICT_FEATURES.find((item) => normalizeMapCode(item.properties.ubigeo) === normalized)
+    : null;
+  const districtPath = feature ? buildDistrictShapePath(feature) : "";
   return (
-    <svg className="mon-territorial-district-shape" viewBox="0 0 72 72" role="img" aria-label={label || "Distrito"}>
-      <rect x="8" y="8" width="56" height="56" rx="18" />
-      <circle cx="36" cy="36" r={active ? 20 : warning ? 17 : 14} />
-      <text x="36" y="40" textAnchor="middle">{initials}</text>
+    <svg
+      className={`mon-territorial-district-shape${active ? " is-active" : ""}${warning ? " is-warning" : ""}${districtPath ? "" : " is-fallback"}`}
+      viewBox="0 0 48 48"
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={label || "Distrito"}
+    >
+      <rect x="2.5" y="2.5" width="43" height="43" rx="12" />
+      {districtPath ? <path d={districtPath} /> : (
+        <>
+          <circle cx="24" cy="24" r={active ? 15 : warning ? 13 : 11} />
+          <text x="24" y="27" textAnchor="middle">{initials}</text>
+        </>
+      )}
     </svg>
   );
 }
@@ -2604,10 +2873,6 @@ function shortDate(value: string) {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
-}
-
-function dateFilterLabel(value: string) {
-  return shortDate(value);
 }
 
 function territorialDailyDateLabel(row: Pick<TerritorialDailyDashboardRow, "date" | "date_label">) {

@@ -314,6 +314,17 @@ render_var_cruce_multisource_plot <- function(vars, titulos_grupo = NULL, cruces
   )$rendered[[1]]
 }
 
+.ppt_plan_text_labels <- function(p) {
+  gb <- ggplot2::ggplot_build(p)
+  unique(unlist(lapply(gb$data, function(x) {
+    hits <- character(0)
+    for (nm in c("label", "lab", "text", "palabra")) {
+      if (nm %in% names(x)) hits <- c(hits, as.character(x[[nm]]))
+    }
+    hits
+  })))
+}
+
 test_that("p_barras_multiapiladas valida modo var_cruce", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
@@ -510,6 +521,426 @@ test_that("barras agrupadas oculta opciones 0 por defecto y permite mostrarlas",
   expect_true(all(c("A", "B") %in% labels_default))
   expect_false("C" %in% labels_default)
   expect_true("C" %in% labels_with_zero)
+})
+
+test_that("objetivos educacionales se numeran como OE por orden visible", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    oe1 = c("1", "2", "2", "1"),
+    oe2 = c("2", "2", "1", "2"),
+    region = c("Lima", "Lima", "Callao", "Callao"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$oe1, "label") <- "Formula soluciones de ingenieria civil"
+  attr(dat$oe2, "label") <- "Gestiona proyectos con enfoque sostenible"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("oe1", "oe2", "region"),
+      type = c("select_one lst_oe", "select_one lst_oe", "select_one lst_region"),
+      list_name = c("lst_oe", "lst_oe", "lst_region"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c(rep("lst_oe", 2), rep("lst_region", 2)),
+      name = c("1", "2", "Lima", "Callao"),
+      label = c("En desacuerdo", "De acuerdo", "Lima", "Callao"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        titulo = "Objetivos Educacionales",
+        grafico = p_barras_multiapiladas(
+          modo = "var_cruce",
+          vars = c("oe1", "oe2"),
+          cruces = "region"
+        )
+      )
+    ),
+    presets = p_presets(multi_apiladas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    path_ppt = out_ppt,
+    mensajes_progreso = FALSE
+  )
+
+  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(slide_xml, "OE 1: Formula soluciones de ingenieria", fixed = TRUE)
+  expect_match(slide_xml, "OE 2: Gestiona proyectos con enfoque", fixed = TRUE)
+
+  rendered <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        titulo = "Objetivos Educacionales",
+        grafico = p_barras_multiapiladas(
+          modo = "var_cruce",
+          vars = c("oe1", "oe2"),
+          cruces = "region"
+        )
+      )
+    ),
+    presets = p_presets(multi_apiladas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+  labels <- gsub("\\s+", " ", .ppt_plan_text_labels(rendered$rendered[[1]]))
+  expect_true("OE 1: Formula soluciones de ingenieria civil" %in% labels)
+  expect_true("OE 2: Gestiona proyectos con enfoque sostenible" %in% labels)
+})
+
+test_that("objetivos educacionales continuan numeracion desde sufijo de variable", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p13_4 = c("3", "4", "4", "3"),
+    p13_5 = c("4", "4", "3", "4"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p13_4, "label") <- "Contribuye a la creacion de empresas"
+  attr(dat$p13_5, "label") <- "Reconoce responsabilidades eticas y profesionales"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p13_4", "p13_5"),
+      type = c("select_one lst_p13", "select_one lst_p13"),
+      list_name = c("lst_p13", "lst_p13"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = rep("lst_p13", 2),
+      name = c("3", "4"),
+      label = c("3", "Totalmente util 4"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        titulo = "Objetivos Educacionales",
+        grafico = p_barras_multiapiladas(
+          modo = "var",
+          vars = c("p13_4", "p13_5"),
+          titulo = "Objetivos educacionales de la carrera"
+        )
+      )
+    ),
+    presets = p_presets(multi_apiladas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    path_ppt = out_ppt,
+    mensajes_progreso = FALSE
+  )
+
+  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(slide_xml, "OE 4: Contribuye a la creacion de empresas", fixed = TRUE)
+  expect_match(slide_xml, "OE 5: Reconoce responsabilidades eticas", fixed = TRUE)
+  expect_false(grepl("OE 1: Contribuye a la creacion de empresas", slide_xml, fixed = TRUE))
+})
+
+test_that("barras agrupadas excluyen egresados sin grado y recalculan porcentajes", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    grado = c("bach", "bach", "sin"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$grado, "label") <- "Grado alcanzado"
+
+  inst <- list(
+    survey = data.frame(
+      name = "grado",
+      type = "select_one lst_grado",
+      list_name = "lst_grado",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_grado",
+      name = c("bach", "sin"),
+      label = c("Bachiller", "Egresado/a (Sin grado aún)"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        grafico = p_barras_agrupadas("grado")
+      )
+    ),
+    presets = p_presets(
+      barras_agrupadas = list(
+        usar_canvas = TRUE,
+        mostrar_leyenda = FALSE,
+        excluir_opciones = c(
+          "Egresados sin grado",
+          "Egresado sin grado",
+          "Egresada sin grado",
+          "Egresado/a (Sin grado aún)",
+          "Egresado/a (Sin grado aun)"
+        )
+      )
+    ),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  labels <- .ppt_plan_text_labels(out$rendered[[1]])
+  expect_true("bach" %in% labels)
+  expect_false("sin" %in% labels)
+  expect_true("Base: 2 egresados" %in% labels)
+})
+
+test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abiertas", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p12 = c("1", "99", "99", "2", "1"),
+    p12_other = c("", "puentes verdes", "laboratorio vial", "", "texto fuera"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p12, "label") <- "Actividad preferida"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_other"),
+      type = c("select_one lst_p12", "text"),
+      list_name = c("lst_p12", NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_p12",
+      name = c("1", "2", "99"),
+      label = c("Talleres", "Visitas", "Otros"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 2L)
+  expect_identical(out$plan[[2]]$title, "Otros: Actividad preferida")
+  expect_identical(out$plan[[2]]$.slide_type, "text_slide")
+
+  txt <- out$plan[[2]]$slots$text
+  expect_true(grepl("\u2022 puentes verdes", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 laboratorio vial", txt, fixed = TRUE))
+  expect_false(grepl("texto fuera", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
+
+  out_off <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    auto_otros_slides = FALSE,
+    mensajes_progreso = FALSE
+  )
+  expect_length(out_off$plan, 1L)
+})
+
+test_that("slide Otros lista solo respuestas aun no categorizadas", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p12 = c("99", "99", "99", "1"),
+    p12_recod = c("1", "99", "", ""),
+    p12_other = c("ya categorizado", "queda otro", "sin recod", "texto fuera"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p12, "label") <- "Actividad preferida"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_recod", "p12_other"),
+      type = c("select_one lst_p12", "select_one lst_p12_recod", "text"),
+      list_name = c("lst_p12", "lst_p12_recod", NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c(rep("lst_p12", 2), rep("lst_p12_recod", 2)),
+      name = c("1", "99", "1", "99"),
+      label = c("Talleres", "Otros", "Talleres", "Otros"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 2L)
+  txt <- out$plan[[2]]$slots$text
+  expect_false(grepl("ya categorizado", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 queda otro", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 sin recod", txt, fixed = TRUE))
+  expect_false(grepl("texto fuera", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
+})
+
+test_that("slide Otros no se genera si el campo abierto esta vacio", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p12 = c("1", "99", "99"),
+    p12_other = c("", " ", NA),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p12, "label") <- "Actividad preferida"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_other"),
+      type = c("select_one lst_p12", "text"),
+      list_name = c("lst_p12", NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_p12",
+      name = c("1", "99"),
+      label = c("Talleres", "Otros"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 1L)
+})
+
+test_that("slide Otros no se genera si el campo abierto queda vacio tras limpieza", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p12 = c("99", "99", "99"),
+    p12_other = c("...", "https://example.com", "+51 999 999 999"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p12, "label") <- "Actividad preferida"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_other"),
+      type = c("select_one lst_p12", "text"),
+      list_name = c("lst_p12", NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_p12",
+      name = "99",
+      label = "Otros",
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 1L)
+})
+
+test_that("slide Otros respeta fuente y filtros del grafico original", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  docentes <- data.frame(
+    p12 = c("99", "99", "1"),
+    p12_other = c("puentes costa", "laboratorio andino", ""),
+    region = c("Lima", "Cusco", "Lima"),
+    stringsAsFactors = FALSE
+  )
+  estudiantes <- data.frame(
+    p12 = c("99", "1"),
+    p12_other = c("texto estudiante", ""),
+    region = c("Lima", "Lima"),
+    stringsAsFactors = FALSE
+  )
+  attr(docentes$p12, "label") <- "Actividad preferida"
+  attr(estudiantes$p12, "label") <- "Actividad preferida"
+
+  survey <- data.frame(
+    name = c("p12", "p12_other", "region"),
+    type = c("select_one lst_p12", "text", "select_one lst_region"),
+    list_name = c("lst_p12", NA_character_, "lst_region"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c(rep("lst_p12", 2), rep("lst_region", 2)),
+    name = c("1", "99", "Lima", "Cusco"),
+    label = c("Talleres", "Otros", "Lima", "Cusco"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(survey = survey, choices = choices, orders_list = NULL)
+
+  out <- reporte_ppt_plan(
+    data = list(docentes = docentes, estudiantes = estudiantes),
+    instrumento = list(docentes = inst, estudiantes = inst),
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        grafico = p_barras_agrupadas("docentes$p12", filtros = list(region = "Lima"))
+      )
+    ),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 2L)
+  expect_equal(out$plan[[2]]$meta$source, "docentes")
+  txt <- out$plan[[2]]$slots$text
+  expect_true(grepl("\u2022 puentes costa", txt, fixed = TRUE))
+  expect_false(grepl("laboratorio andino", txt, fixed = TRUE))
+  expect_false(grepl("texto estudiante", txt, fixed = TRUE))
 })
 
 test_that("reporte_ppt_plan acepta referencias fuente$var en graficos simples", {
@@ -1447,4 +1878,70 @@ test_that("p_radar_tabla modo box acepta vars como lista multi-fuente", {
       mensajes_progreso = FALSE
     )
   )
+})
+
+test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p1 = c("1", "1", "2", "2", "2"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p1, "label") <- "Pregunta"
+
+  inst <- list(
+    survey = data.frame(
+      name = "p1",
+      type = "select_one likert",
+      list_name = "likert",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = rep("likert", 2),
+      name = c("1", "2"),
+      label = c("Nada util", "Totalmente util"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  plan <- list(
+    diapo_001 = p_slide_1_grafico(grafico = p_barras_apiladas("p1")),
+    diapo_002 = p_slide_1_grafico(grafico = p_barras_agrupadas("p1"))
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = plan,
+    presets = p_presets(
+      barras_apiladas = list(
+        usar_canvas = FALSE,
+        mostrar_barra_extra = FALSE,
+        etiquetas_uniformes = TRUE
+      ),
+      barras_agrupadas = list(
+        usar_canvas = FALSE,
+        mostrar_barra_extra = FALSE
+      )
+    ),
+    path_ppt = out_ppt,
+    mensajes_progreso = FALSE
+  )
+
+  slide_dir <- tempfile("ppt_slides_")
+  dir.create(slide_dir)
+  unzip(out_ppt, files = c("ppt/slides/slide1.xml", "ppt/slides/slide2.xml"), exdir = slide_dir)
+  slide1_xml <- paste(readLines(file.path(slide_dir, "ppt/slides/slide1.xml"), warn = FALSE), collapse = " ")
+  slide2_xml <- paste(readLines(file.path(slide_dir, "ppt/slides/slide2.xml"), warn = FALSE), collapse = " ")
+
+  expect_true(grepl("40%", slide1_xml, fixed = TRUE))
+  expect_true(grepl("60%", slide1_xml, fixed = TRUE))
+  expect_false(grepl("40% (2)", slide1_xml, fixed = TRUE))
+  expect_false(grepl("60% (3)", slide1_xml, fixed = TRUE))
+
+  expect_true(grepl("40% (2)", slide2_xml, fixed = TRUE))
+  expect_true(grepl("60% (3)", slide2_xml, fixed = TRUE))
 })

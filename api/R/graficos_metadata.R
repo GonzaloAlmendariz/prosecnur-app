@@ -399,6 +399,8 @@
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
            default = 10,
            descripcion = "Si hay más categorías, conserva las principales y agrupa el resto como Otros solo en el gráfico."),
@@ -431,7 +433,9 @@
       list(name = "var",    label = "Variable",    tipo_input = "variable",     grupo = "datos",
            descripcion = "Variable categórica, típicamente de escala (Likert)."),
       list(name = "cruces", label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
-           descripcion = "Si la eliges, cada barra es un grupo de la variable de cruce.")
+           descripcion = "Si la eliges, cada barra es un grupo de la variable de cruce."),
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles.")
     ), .args_graf_comunes())
   ),
 
@@ -455,12 +459,30 @@
       list(name = "cruces",        label = "Variable de cruce", tipo_input = "variable_opt", grupo = "datos"),
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
            descripcion = "Solo en modo 'Variables × cruce'. Formato: 'clave=Título'. Una línea por bloque."),
+      list(name = "numerar_oe",     label = "Numerar OE", tipo_input = "bool", grupo = "textos",
+           descripcion = "Si se activa, antepone OE 1:, OE 2:, etc. a los grupos visibles. Vacío = detección automática por contexto."),
       list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
            descripcion = "Combina las dos mejores categorías (ej. 'Muy de acuerdo' + 'De acuerdo') en una barra extra."),
       list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
            descripcion = "Qué etiquetas cuentan como Top 2. Si está vacío, se toman las dos últimas de la escala."),
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80.")
+    ), .args_graf_comunes())
+  ),
+
+  p_nube_palabras = list(
+    titulo_humano = "Nube de palabras",
+    descripcion   = "Nube visual de términos frecuentes en respuestas abiertas. Útil para campos Otro/Otros y comentarios breves.",
+    icono_ui      = "Cloud",
+    args = c(list(
+      list(name = "var", label = "Variable de texto", tipo_input = "variable", grupo = "datos",
+           descripcion = "Campo abierto que se usará para tokenizar las respuestas."),
+      list(name = "parent_var", label = "Variable madre", tipo_input = "variable_opt", grupo = "datos",
+           descripcion = "Pregunta cerrada que habilita el campo abierto, cuando existe."),
+      list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro",
+           default = 40),
+      list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro",
+           default = 3)
     ), .args_graf_comunes())
   ),
 
@@ -741,11 +763,11 @@
 # PRESETS (estilo global por tipo de graficador)
 # ===========================================================================
 #
-# `p_presets` acepta 13 bloques de tipo: `base` (se hereda a todos
+# `p_presets` acepta bloques de tipo: `base` (se hereda a todos
 # los graficadores) + un bloque por cada tipo de gráfico (barras_apiladas,
 # multi_apiladas, barras_agrupadas, barras_numericas, boxplot, media_rango,
-# pie, donut, radar_tabla, dim_heatmap, dim_heatmap_criterios, dim_radar,
-# dim_foda). Cada bloque es `list(args = list(...))`; los `args` se pasan
+# nube_palabras, pie, donut, radar_tabla, dim_heatmap,
+# dim_heatmap_criterios, dim_radar, dim_foda). Cada bloque es `list(args = list(...))`; los `args` se pasan
 # a la función del graficador correspondiente.
 #
 # Este catálogo cura los args MÁS útiles para estilo global: tipografía,
@@ -851,6 +873,9 @@
 
       # --- Negritas -------------------------------------------------------
       .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra")),
+
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
 
       # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
@@ -1008,6 +1033,9 @@
       # --- Negritas -------------------------------------------------------
       .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra", "titulos_grupo")),
 
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
+
       # --- Textos / tamaños ---------------------------------------------
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
@@ -1108,6 +1136,8 @@
       list(name = "mostrar_ceros",        label = "Mostrar opciones 0%",   tipo_input = "bool",   grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias",       label = "Máximo de categorías",  tipo_input = "number", grupo = "filtro",
            default = 10,
            descripcion = "Número máximo de opciones visibles. Si hay más, conserva las más frecuentes y agrupa el resto como Otros solo en el gráfico."),
@@ -1147,6 +1177,24 @@
       list(name = "canvas_h_legend_in",     label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "canvas_h_caption_in",    label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas", default = 0.48)
+    )
+  ),
+
+  # =========================================================================
+  # NUBE DE PALABRAS
+  # =========================================================================
+  nube_palabras = list(
+    titulo_humano = "Nube de palabras",
+    descripcion   = "Estilo global para nubes de palabras de respuestas abiertas. Se usa de forma automática en slides Otros.",
+    icono_ui      = "Cloud",
+    args = list(
+      list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro", default = 40),
+      list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro", default = 3),
+      list(name = "colores_palabras", label = "Colores de palabras", tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Paleta cíclica para colorear los términos."),
+      list(name = "size_titulo", label = "Tamaño título", tipo_input = "number", grupo = "estilo", default = 16),
+      list(name = "size_subtitulo", label = "Tamaño subtítulo", tipo_input = "number", grupo = "estilo", default = 12),
+      list(name = "size_nota_pie", label = "Tamaño nota al pie", tipo_input = "number", grupo = "estilo", default = 10)
     )
   ),
 
@@ -1603,21 +1651,34 @@
   blanco = "#FFFFFF"
 )
 
+.PULSO_PPT_EXCLUIR_SIN_GRADO <- c(
+  "Egresados sin grado",
+  "Egresado sin grado",
+  "Egresada sin grado",
+  "Egresado/a sin grado",
+  "Egresados/as sin grado",
+  "Egresado/a (Sin grado)",
+  "Egresado/a (Sin grado aún)",
+  "Egresado/a (Sin grado aun)"
+)
+
 .PRESETS_DEFAULT_PULSO <- list(
 
   base = list(
     formato           = "Base: %s",
     sufijo_auto       = "respuestas",
 
-    size_titulo       = 14,
+    size_titulo       = 18,
     size_titulo_slide = 24,
-    size_subtitulo    = 14,
+    size_subtitulo    = 18,
     size_subtitulo_slide = 16,
-    size_cuerpo_slide = 14,
-    size_leyenda      = 10.5,
-    size_ejes         = 10.5,
-    size_nota_pie     = 10,
-    size_texto_barras = 4.2,
+    size_cuerpo_slide = 16,
+    size_leyenda      = 15,
+    size_ejes         = 15,
+    size_nota_pie     = 12,
+    size_texto_barras = 5.6,
+    slide_1_narrativo_plot_top_cm = 1.75,
+    slide_1_narrativo_plot_height_cm = 11.45,
 
     color_titulo      = .PULSO_PPT_COLORS$rojo,
     color_subtitulo   = .PULSO_PPT_COLORS$azul,
@@ -1633,18 +1694,18 @@
   barras_apiladas = list(
     color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
 
-    canvas_w_etiquetas       = 0.12,
+    canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0.02,
-    canvas_w_bars            = 0.60,
+    canvas_w_bars            = 0.54,
     canvas_w_buf_bars_extra  = 0.02,
     canvas_w_extra           = 0.12,
 
     canvas_h_toprow_in       = 0.10,
     canvas_h_header_in       = 0.15,
-    canvas_h_legend_in       = 0.15,
-    canvas_h_caption_in      = 0.20,
+    canvas_h_legend_in       = 0.28,
+    canvas_h_caption_in      = 0.26,
 
-    alto_por_categoria       = 0.36,
+    alto_por_categoria       = 0.46,
     canvas_min_filas         = 1,
     canvas_pad_bars_y_in     = 0.06,
 
@@ -1665,32 +1726,33 @@
     legend_n_por_fila        = 6,
     legend_gap_npc           = 0.016,
 
-    size_barra_extra         = 10.5,
-    size_titulo_extra        = 8.0,
-    ancho_max_eje_y          = 15,
+    size_barra_extra         = 14.5,
+    size_titulo_extra        = 12,
+    ancho_max_eje_y          = 22,
     prefijo_barra_extra      = "",
 
-	    color_texto_barras       = "white",
-	    color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
-	    size_titulos_grupo       = 10.5,
-	    repeler_etiquetas_peq    = TRUE,
-	    desplazamiento_max_etiquetas_peq = 0.07,
-	    etiquetas_peq_factor_ancho = 1.25,
-	    etiquetas_peq_padding = 0.008
+    color_texto_barras       = "white",
+    color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
+    size_titulos_grupo       = 14,
+    repeler_etiquetas_peq    = TRUE,
+    desplazamiento_max_etiquetas_peq = 0.07,
+    etiquetas_peq_factor_ancho = 1.25,
+    etiquetas_peq_padding = 0.008,
+    excluir_opciones      = .PULSO_PPT_EXCLUIR_SIN_GRADO
   ),
 
   multi_apiladas = list(
-    canvas_w_etiquetas       = 0.22,
-    canvas_w_bars            = 0.60,
+    canvas_w_etiquetas       = 0.36,
+    canvas_w_bars            = 0.46,
     canvas_w_extra           = 0.10,
 
     canvas_h_toprow_in       = 0.10,
     canvas_h_header_in       = 0.15,
-    canvas_h_legend_in       = 0.15,
-    canvas_h_caption_in      = 0.15,
+    canvas_h_legend_in       = 0.28,
+    canvas_h_caption_in      = 0.22,
 
-    alto_por_categoria       = 0.34,
-    ancho_max_eje_y          = 30,
+    alto_por_categoria       = 0.50,
+    ancho_max_eje_y          = 40,
     grosor_modo              = "manual",
     grosor_barras            = 0.62,
     grosor_barras_mult       = 1,
@@ -1706,30 +1768,34 @@
     legend_n_por_fila        = 6,
     legend_gap_npc           = 0.016,
 
-	    color_texto_barras       = "white",
-	    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
-	    size_titulo_extra        = 8.0,
-	    color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
-	    size_titulos_grupo       = 10.5,
-	    desplazamiento_max_etiquetas_peq = 0.07,
-	    etiquetas_peq_factor_ancho = 1.25,
-	    etiquetas_peq_padding = 0.008
-	  ),
+    color_texto_barras       = "white",
+    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+    size_titulo_extra        = 12,
+    color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
+    size_titulos_grupo       = 14,
+    size_ejes                = 16.5,
+    size_leyenda             = 14,
+    size_barra_extra         = 14.5,
+    desplazamiento_max_etiquetas_peq = 0.07,
+    etiquetas_peq_factor_ancho = 1.25,
+    etiquetas_peq_padding = 0.008,
+    excluir_opciones      = .PULSO_PPT_EXCLUIR_SIN_GRADO
+  ),
 
   barras_agrupadas = list(
-	    canvas_w_etiquetas       = 0.36,
-	    canvas_w_buf_etq_bars    = 0.03,
-	    canvas_w_bars            = 0.61,
-	    canvas_w_buf_bars_extra  = 0,
-	    canvas_w_extra           = 0,
+    canvas_w_etiquetas       = 0.45,
+    canvas_w_buf_etq_bars    = 0.03,
+    canvas_w_bars            = 0.52,
+    canvas_w_buf_bars_extra  = 0,
+    canvas_w_extra           = 0,
 
     canvas_h_toprow_in       = 0.10,
     canvas_h_header_in       = 0.50,
     canvas_h_legend_in       = 0.00,
     canvas_h_caption_in      = 0.00,
 
-	    alto_por_categoria       = 0.35,
-    ancho_max_eje_y          = 30,
+    alto_por_categoria       = 0.46,
+    ancho_max_eje_y          = 38,
 
     mostrar_valores          = TRUE,
     mostrar_ceros            = FALSE,
@@ -1740,18 +1806,40 @@
     mostrar_barra_extra      = FALSE,
     prefijo_barra_extra      = "",
 
-	    mostrar_leyenda          = FALSE,
-	    orden_barras             = "instrumento",
-	    max_categorias           = 10,
-	    agrupar_resto_en_otros   = TRUE,
-	    etiqueta_otros           = "Otros",
-	    otros_al_final           = TRUE,
-	    invertir_barras          = TRUE,
+    mostrar_leyenda          = FALSE,
+    orden_barras             = "instrumento",
+    max_categorias           = 10,
+    agrupar_resto_en_otros   = TRUE,
+    etiqueta_otros           = "Otros",
+    otros_al_final           = TRUE,
+    invertir_barras          = TRUE,
 
-    size_barra_extra         = 10,
-    size_subtitulo           = 7,
+    size_barra_extra         = 14.5,
+    size_subtitulo           = 13,
     encabezado_separacion_in = 0.11,
-    colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul_barras)
+    colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul_barras),
+    excluir_opciones         = .PULSO_PPT_EXCLUIR_SIN_GRADO
+  ),
+
+  nube_palabras = list(
+    max_palabras             = 40,
+    min_chars                = 3,
+    seed                     = 123,
+    font_family              = "Arial",
+    size_titulo              = 16,
+    size_subtitulo           = 12,
+    size_nota_pie            = 10,
+    color_titulo             = .PULSO_PPT_COLORS$rojo,
+    color_subtitulo          = .PULSO_PPT_COLORS$azul,
+    color_nota_pie           = .PULSO_PPT_COLORS$azul,
+    colores_palabras         = c(
+      .PULSO_PPT_COLORS$azul,
+      .PULSO_PPT_COLORS$rojo,
+      .PULSO_PPT_COLORS$verde,
+      .PULSO_PPT_COLORS$amarillo,
+      .PULSO_PPT_COLORS$azul_secundario,
+      .PULSO_PPT_COLORS$morado
+    )
   ),
 
   barras_numericas = list(
@@ -1764,12 +1852,12 @@
 
     mostrar_valores          = TRUE,
     color_texto_barras       = "white",
-    size_texto_barras        = 4.4,
+    size_texto_barras        = 5.2,
     mostrar_eje_y            = FALSE,
 
     mostrar_n_sobre_barras   = TRUE,
     prefijo_n_sobre_barras   = "N = ",
-    size_n_sobre_barras      = 3.6,
+    size_n_sobre_barras      = 4.2,
     color_n_sobre_barras     = .PULSO_PPT_COLORS$azul,
     colores_series           = list(Media = .PULSO_PPT_COLORS$azul)
   ),
@@ -1783,7 +1871,7 @@
     etiquetas_negrita        = TRUE,
 
     leyenda_posicion         = "abajo",
-    size_leyenda             = 10.5,
+    size_leyenda             = 12,
     tamano_key_cm            = 0.45,
     espaciado_vertical_cm    = 0.30,
     ncol_leyenda_bajo        = 2,

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import type { ReactNode } from "react";
+import { Fragment, useEffect } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CheckCircle2 } from "lucide-react";
 
@@ -48,6 +48,31 @@ function joinClasses(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function isLastUpdateLabel(label: string) {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .includes("ultima actualizacion");
+}
+
+function compactLastUpdateValue(value: ReactNode) {
+  if (typeof value !== "string") return value;
+  const parts = value.split(",");
+  if (parts.length < 2) return value;
+  const date = parts[0].trim();
+  const time = parts.slice(1).join(",").trim()
+    .replace(/\s+a\.\s*m\./i, " a.m.")
+    .replace(/\s+p\.\s*m\./i, " p.m.");
+  if (!date || !time) return value;
+  return (
+    <>
+      <span className="mon-rail-sync-date">{date}</span>
+      <span className="mon-rail-sync-time">{time}</span>
+    </>
+  );
+}
+
 export function MonitoreoWorkbenchRail({
   activeLocalTab,
   activeSection,
@@ -72,6 +97,8 @@ export function MonitoreoWorkbenchRail({
   const ActiveIcon = activeSection.icon;
   const resolvedModeCountLabel = modeCountLabel ?? (localTabs.length ? `${localTabs.length} modos` : "1 modo");
   const localTabSignature = localTabs.map((tab) => tab.key).join(",");
+  const emptyRailLabel = typeof routeLabel === "string" ? routeLabel : activeSection.label;
+  const emptyRailDetail = typeof emptyDetail === "string" ? emptyDetail : activeSection.desc;
 
   useEffect(() => {
     const activeTab = localTabs.find((tab) => tab.key === activeLocalTab);
@@ -105,7 +132,7 @@ export function MonitoreoWorkbenchRail({
   }
 
   return (
-    <aside className={joinClasses("mon-workbench-rail pulso-sidebar", className)} aria-label={ariaLabel}>
+    <aside className={joinClasses("mon-workbench-rail pulso-sidebar is-collapsible", className)} aria-label={ariaLabel}>
       <div className="mon-rail-head">
         <span className="pulso-section-eyebrow">{headerEyebrow}</span>
         <strong>{routeShortLabel}</strong>
@@ -124,31 +151,45 @@ export function MonitoreoWorkbenchRail({
         <small>{activeSection.desc}</small>
       </div>
       <div className="mon-section-local-tabs" role="tablist" aria-orientation="vertical" aria-label={`Pestañas locales de ${activeSection.label}`}>
-        {localTabs.length ? localTabs.map((tab) => {
+        {localTabs.length ? localTabs.map((tab, index) => {
           const Icon = tab.icon;
           const active = activeLocalTab === tab.key;
+          const tabStyle = {
+            "--mon-nav-index": index,
+            "--mon-nav-tip-y": `${19 + index * 44}px`,
+          } as CSSProperties;
           return (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-current={active ? "page" : undefined}
-              className={`mon-nav-item is-${activeView}-${tab.key}${active ? " is-active" : ""}`}
-              title={`${tab.label}: ${tab.detail}`}
-              onClick={() => activateLocalTab(tab)}
-            >
-              <span className="mon-nav-icon"><Icon size={15} /></span>
-              <span className="mon-nav-copy">
-                <strong>{tab.label}</strong>
-                <span>{tab.detail}</span>
-              </span>
-              {active ? <CheckCircle2 size={13} className="mon-nav-current" /> : null}
-            </button>
+            <Fragment key={tab.key}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={active}
+                aria-current={active ? "page" : undefined}
+                aria-label={`${tab.label}: ${tab.detail}`}
+                className={`mon-nav-item is-${activeView}-${tab.key}${active ? " is-active" : ""}`}
+                data-rail-label={tab.label}
+                data-rail-tip={`${tab.label} · ${tab.detail}`}
+                style={tabStyle}
+                onClick={() => activateLocalTab(tab)}
+              >
+                <span className="mon-nav-icon"><Icon size={15} /></span>
+                <span className="mon-nav-copy">
+                  <strong>{tab.label}</strong>
+                  <span>{tab.detail}</span>
+                </span>
+                {active ? <CheckCircle2 size={13} className="mon-nav-current" /> : null}
+              </button>
+              <span className="mon-nav-tip" style={tabStyle} aria-hidden="true">{tab.label} · {tab.detail}</span>
+            </Fragment>
           );
         }) : (
-          <span className="mon-nav-item is-empty">
+          <span
+            className="mon-nav-item is-empty"
+            data-rail-label={emptyRailLabel}
+            data-rail-tip={`${emptyRailLabel} · ${emptyRailDetail}`}
+          >
             <span className="mon-nav-icon"><ActiveIcon size={15} /></span>
+            <span className="mon-nav-tip" aria-hidden="true">{emptyRailLabel} · {emptyRailDetail}</span>
             <span className="mon-nav-copy">
               <strong>{routeLabel ?? activeSection.label}</strong>
               <span>{emptyDetail ?? activeSection.desc}</span>
@@ -161,16 +202,24 @@ export function MonitoreoWorkbenchRail({
 
       {statusItems.length ? (
         <div className="mon-rail-status" aria-label={statusAriaLabel}>
-          {statusItems.map((item) => (
-            <div
-              key={item.label}
-              className={joinClasses("mon-rail-sync", item.ready && "is-ready", item.className)}
-            >
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              {item.detail ? <small>{item.detail}</small> : null}
-            </div>
-          ))}
+          {statusItems.map((item) => {
+            const isLastUpdate = isLastUpdateLabel(item.label);
+            return (
+              <div
+                key={item.label}
+                className={joinClasses(
+                  "mon-rail-sync",
+                  item.ready && "is-ready",
+                  isLastUpdate && "is-last-update",
+                  item.className,
+                )}
+              >
+                <span>{item.label}</span>
+                <strong>{isLastUpdate ? compactLastUpdateValue(item.value) : item.value}</strong>
+                {item.detail ? <small>{item.detail}</small> : null}
+              </div>
+            );
+          })}
         </div>
       ) : null}
     </aside>

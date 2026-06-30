@@ -42,6 +42,13 @@ function formatChromeDate(value: string) {
   return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
 }
 
+type ChromeGenerationInfo = {
+  label: string;
+  value: string;
+  tone: "ready" | "partial" | "stale" | "failed";
+  title: string;
+};
+
 export function MonitoreoModuleChrome({
   routes,
   route,
@@ -70,24 +77,56 @@ export function MonitoreoModuleChrome({
 }: MonitoreoModuleChromeProps) {
   const activeRoutes = routes.filter((item) => item.status === "active").length;
   const views = route ? workbenchViewsForRoute(route) : [];
+  const RouteIcon = route?.icon ?? Activity;
   const statusLabel = route
     ? routeSelected
-      ? "Path fijado"
-      : "Path por elegir"
+      ? "Modo fijado"
+      : "Modo por elegir"
     : `${activeRoutes} tipos disponibles`;
   const cutLabel = syncedAt ? "Listo" : hasSnapshot ? "Snapshot" : "Sin corte";
-  const generationLabel = (() => {
-    if (pendingRegeneration || generationStatus === "stale") return "Pendiente de regenerar";
+  const generationInfo: ChromeGenerationInfo | null = (() => {
+    if (pendingRegeneration || generationStatus === "stale") {
+      return {
+        label: "Estado",
+        value: "Pendiente",
+        tone: "stale",
+        title: "Pendiente de regenerar",
+      };
+    }
     if (generationStatus === "partial") {
       const first = syncErrors.find((item) => item?.message)?.message ?? "";
-      return first ? `Parcial: ${first}` : "Parcial";
+      return {
+        label: "Estado",
+        value: "Parcial",
+        tone: "partial",
+        title: first ? `Parcial: ${first}` : "Parcial",
+      };
     }
-    if (generationStatus === "failed") return "Regeneración fallida";
-    if (generatedAt) return `Regenerado ${formatChromeDate(generatedAt)}`;
-    return "";
+    if (generationStatus === "failed") {
+      return {
+        label: "Estado",
+        value: "Fallida",
+        tone: "failed",
+        title: "Regeneración fallida",
+      };
+    }
+    if (generatedAt) {
+      const formatted = formatChromeDate(generatedAt);
+      return {
+        label: "Regenerado",
+        value: formatted,
+        tone: "ready",
+        title: `Regenerado ${formatted}`,
+      };
+    }
+    return null;
   })();
   const sectionRail = routeSelected && route ? (
-    <div className="mon-section-rail-wrap" aria-label="Secciones de monitoreo">
+    <div
+      className={`mon-section-rail-wrap${views.length === 1 ? " is-single-section" : ""}`}
+      aria-label="Secciones de monitoreo"
+      data-view-count={views.length}
+    >
       <nav className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
         <ol className="pulso-phase-pill-list">
           {views.map((item, index) => {
@@ -125,11 +164,21 @@ export function MonitoreoModuleChrome({
 
   return (
     <div className="mon-module-chrome" data-audit-chrome="monitoring">
-      <div className={`mon-commandbar${sectionRail ? " has-section-rail" : ""}`} aria-label="Contexto operativo de monitoreo">
-        <div className="mon-command-summary" aria-label="Resumen del path">
-          <span className="mon-command-token is-path">
-            <small>Path</small>
-            <strong>{route?.shortLabel ?? "Sin definir"}</strong>
+      <div
+        className={`mon-commandbar${sectionRail ? " has-section-rail" : ""}`}
+        aria-label="Contexto operativo de monitoreo"
+        data-route-family={route?.family ?? "none"}
+        data-view-count={views.length}
+      >
+        <div className="mon-command-summary mon-command-side" aria-label="Resumen del modo de monitoreo">
+          <span className="mon-command-token is-mode">
+            <span className="mon-command-mode-icon" aria-hidden="true">
+              <RouteIcon size={15} />
+            </span>
+            <span className="mon-command-token-copy">
+              <small>Modo</small>
+              <strong>{route?.shortLabel ?? "Sin definir"}</strong>
+            </span>
           </span>
           <span className="mon-command-token">
             <small>Activas</small>
@@ -151,9 +200,9 @@ export function MonitoreoModuleChrome({
 
         {sectionRail}
 
-        <div className="mon-command-current" aria-live="polite">
+        <div className="mon-command-current mon-command-side" aria-live="polite">
           {!routeSelected ? (
-            <span>
+            <span className="mon-command-status">
               {saving ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
               {statusLabel}
             </span>
@@ -194,9 +243,10 @@ export function MonitoreoModuleChrome({
                   ) : null}
                 </div>
               ) : null}
-              {generationLabel ? (
-                <span className={`mon-command-generation is-${generationStatus || "unknown"}${pendingRegeneration ? " is-stale" : ""}`} title={generationLabel}>
-                  {generationLabel}
+              {generationInfo ? (
+                <span className={`mon-command-token mon-command-generation is-${generationInfo.tone}`} title={generationInfo.title}>
+                  <small>{generationInfo.label}</small>
+                  <strong>{generationInfo.value}</strong>
                 </span>
               ) : null}
               <span className="mon-command-token">

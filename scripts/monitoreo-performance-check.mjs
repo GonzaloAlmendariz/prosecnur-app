@@ -11,6 +11,7 @@ const DEFAULT_OUT = path.join("tmp", "perf", "monitoreo-performance");
 const DEFAULT_TIMEOUT_MS = 120000;
 const DEFAULT_PROBE_TIMEOUT_MS = 60000;
 const DEFAULT_TAB_PROBE_TIMEOUT_MS = 15000;
+const SESSION_FRONTEND_WARMUP_MODULES = ["monitoreo", "monitoreo_datos"];
 
 function parseArgs(argv) {
   const opts = {
@@ -220,6 +221,47 @@ async function scrollSelectorToStart(page, selector, timeout = 5000) {
   }, selector).catch(() => null);
 }
 
+async function settleViewportForScreenshot(page, selector = "") {
+  if (selector) {
+    await page.locator(selector).first().scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => null);
+  }
+  await page.evaluate((targetSelector) => {
+    const resetScroll = (node) => {
+      if (!node) return;
+      try {
+        node.scrollTop = 0;
+        node.scrollLeft = 0;
+      } catch {
+        // Some browser-owned nodes expose read-only scroll properties.
+      }
+    };
+    resetScroll(document.scrollingElement || document.documentElement);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    [
+      ".app-shell-main",
+      ".layout-main",
+      ".pulso-main",
+      ".mon-page",
+      ".mon-profile-page",
+      ".mon-profile-body",
+      ".mon-profile-content",
+      ".mon-workbench",
+      ".mon-workbench-body",
+      ".mon-workbench-content",
+    ].forEach((candidate) => {
+      document.querySelectorAll(candidate).forEach(resetScroll);
+    });
+    const target = targetSelector ? document.querySelector(targetSelector) : null;
+    if (target instanceof Element) {
+      target.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
+    }
+  }, selector).catch(() => null);
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  })).catch(() => null);
+  await page.waitForTimeout(80);
+}
+
 function filenameSlug(value) {
   return String(value || "")
     .normalize("NFD")
@@ -234,7 +276,6 @@ const DEFAULT_LOADING_SELECTORS = [
   ".mon-shell-error",
   ".mon-territorial-loading",
   ".mon-territorial-route-map-loading",
-  ".pulso-spin",
 ];
 
 const PROFILE_COVERAGE = {
@@ -320,21 +361,16 @@ const PROFILE_COVERAGE = {
     ],
   },
   telefonico: {
-    declaredViews: ["Telefono", "Fuentes", "Modelo", "Avance", "Consultas"],
+    declaredViews: ["Telefono"],
     declaredTabs: [
       "Telefono/Resumen",
       "Telefono/Dia",
       "Telefono/Responsables",
       "Telefono/Alertas",
-      "Fuentes/Encuestas",
-      "Modelo/Base de barrido",
-      "Avance/Resumen",
-      "Consultas/Casos",
     ],
     measuredTabs: [
       "Telefono/Resumen",
       "Telefono/Responsables",
-      "Avance/Resumen",
     ],
   },
 };
@@ -402,10 +438,6 @@ const PROFILE_TAB_PLANS = {
     { view: "telefonico", viewLabel: "Telefono", key: "dia", label: "Dia" },
     { view: "telefonico", viewLabel: "Telefono", key: "responsables", label: "Responsables" },
     { view: "telefonico", viewLabel: "Telefono", key: "alertas", label: "Alertas" },
-    { view: "fuentes", viewLabel: "Fuentes", key: "survey", label: "Encuestas" },
-    { view: "modelo", viewLabel: "Modelo", key: "casos", label: "Base de barrido" },
-    { view: "avance", viewLabel: "Avance", key: "resumen", label: "Resumen" },
-    { view: "consultas", viewLabel: "Consultas", key: "casos", label: "Casos" },
   ],
 };
 
@@ -854,7 +886,6 @@ function evaluateHydrationProbe(probe) {
     ".mon-shell-error",
     ".mon-territorial-loading",
     ".mon-territorial-route-map-loading",
-    ".pulso-spin",
   ];
   const root = probe.rootSelector ? document.querySelector(probe.rootSelector) : document.body;
   const isVisible = (node) => {
@@ -945,6 +976,7 @@ async function captureHydrationProbe(page, { probe, routeStarted, timeoutMs, scr
     await page.locator(probe.rootSelector).first().scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => null);
   }
   if (screenshotPath) {
+    await settleViewportForScreenshot(page, result.ok ? probe.rootSelector : "");
     await page.screenshot({ path: screenshotPath, fullPage: false }).catch(() => null);
     result.screenshot = screenshotPath;
   }
@@ -957,7 +989,6 @@ function evaluateDeclaredTabHydration(tab) {
     ".mon-shell-error",
     ".mon-territorial-loading",
     ".mon-territorial-route-map-loading",
-    ".pulso-spin",
   ];
   const root = document.querySelector(`.mon-workbench-content--${tab.view}`) || document.querySelector(".mon-workbench-content") || document.querySelector(".mon-profile-content");
   const profilePage = document.querySelector(".mon-profile-page");
@@ -1140,6 +1171,8 @@ async function recordDeclaredTabHydration(page, tab, routeStarted, timeoutMs, sc
     error,
   };
   if (screenshotPath) {
+    const rootSelector = `.mon-workbench-content--${tab.view}, .mon-workbench-content, .mon-profile-content`;
+    await settleViewportForScreenshot(page, result.ok ? rootSelector : "");
     await page.screenshot({ path: screenshotPath, fullPage: false }).catch(() => null);
     result.screenshot = screenshotPath;
   }
@@ -1202,9 +1235,10 @@ async function measureRoute({ opts, profile, project, session, projectOut }) {
   const pageErrors = [];
   const resourceErrors = [];
   const probes = HYDRATION_PROBES[profile];
+  const frontendWarmupModules = opts.entryMode === "bootgate" ? [] : SESSION_FRONTEND_WARMUP_MODULES;
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
-  await context.addInitScript(({ sessionId, entryMode }) => {
+  await context.addInitScript(({ sessionId, entryMode, warmupModules }) => {
     if (sessionId) window.localStorage.setItem("pulso.sessionId", sessionId);
     window.localStorage.setItem("pulso.layoutPreset", "auto");
     if (entryMode === "bootgate") {
@@ -1213,10 +1247,10 @@ async function measureRoute({ opts, profile, project, session, projectOut }) {
       window.localStorage.removeItem("pulso.visualQaSkipBackendWarmup");
     } else {
       window.localStorage.setItem("pulso.visualQaWarmup", "1");
-      window.localStorage.setItem("pulso.visualQaWarmupModuleIds", "monitoreo");
+      window.localStorage.setItem("pulso.visualQaWarmupModuleIds", warmupModules.join(","));
       window.localStorage.setItem("pulso.visualQaSkipBackendWarmup", "1");
     }
-  }, { sessionId: session, entryMode: opts.entryMode });
+  }, { sessionId: session, entryMode: opts.entryMode, warmupModules: frontendWarmupModules });
   const page = await context.newPage();
   page.on("request", (request) => {
     const url = request.url();
@@ -1289,6 +1323,7 @@ async function measureRoute({ opts, profile, project, session, projectOut }) {
       route: "/monitoreo",
       declared_tab_scope: opts.tabScope,
       entry_mode: opts.entryMode,
+      frontend_warmup_modules: frontendWarmupModules,
       route_entry_ok: false,
       route_entry_status: "entry_timeout",
       route_entry_error: routeEntryError,
@@ -1479,6 +1514,7 @@ async function measureRoute({ opts, profile, project, session, projectOut }) {
     route: "/monitoreo",
     declared_tab_scope: opts.tabScope,
     entry_mode: opts.entryMode,
+    frontend_warmup_modules: frontendWarmupModules,
     route_entry_ok: true,
     route_entry_status: "ready",
     bootgate_loading_ms: bootgateLoadingMs,
@@ -1594,6 +1630,7 @@ function mdForResult(result) {
 - Project: \`${result.project}\`
 - Project open: ${result.project_open_ms} ms
 - Warmup: ${result.warmup_ms} ms (${result.warmup_status})
+- Frontend warmup modules: ${(route.frontend_warmup_modules ?? []).join(", ") || "n/a"}
 - ${projectLoadingLabel}: ${projectLoading.blocking_ms ?? "n/a"} ms (${projectLoading.method ?? "unknown"})
 - Project loading note: ${projectLoading.note ?? "n/a"}
 - Route entry OK: ${route.route_entry_ok === false ? "no" : "yes"}

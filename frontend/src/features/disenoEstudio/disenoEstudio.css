@@ -130,7 +130,7 @@
 
 .diseno-icon-button:active,
 .diseno-entry-actions button:active,
-.diseno-section-rail button:active,
+.diseno-section-rail :is(button, a):active,
 .diseno-primary-button:active,
 .diseno-secondary-button:active {
   transform: scale(0.97);
@@ -138,7 +138,7 @@
 
 .diseno-icon-button:focus-visible,
 .diseno-entry-actions button:focus-visible,
-.diseno-section-rail button:focus-visible,
+.diseno-section-rail :is(button, a):focus-visible,
 .diseno-primary-button:focus-visible,
 .diseno-secondary-button:focus-visible,
 .diseno-compose :is(input, select, textarea):focus-visible {
@@ -171,7 +171,7 @@
   display: none;
 }
 
-.diseno-section-rail button {
+.diseno-section-rail :is(button, a) {
   min-height: 30px;
   display: inline-flex;
   align-items: center;
@@ -184,6 +184,7 @@
   background: transparent;
   font-size: 12px;
   font-weight: 720;
+  text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -193,7 +194,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.diseno-section-rail button:hover:not(.is-active) {
+.diseno-section-rail :is(button, a):hover:not(.is-active) {
   color: var(--diseno-accent);
   background: var(--pulso-surface);
 }

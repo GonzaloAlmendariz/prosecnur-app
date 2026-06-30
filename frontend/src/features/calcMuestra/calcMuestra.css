@@ -7631,14 +7631,14 @@
 
 .cmv2-frame-grid--routes {
   flex: 1 1 auto;
-  height: clamp(350px, calc(100vh - 348px), 640px);
+  height: auto;
   min-height: 0;
-  grid-auto-rows: minmax(0, 1fr);
-  align-content: stretch;
+  grid-auto-rows: minmax(386px, auto);
+  align-content: flex-start;
 }
 
 .cmv2-frame-grid--routes .cmv2-frame-card {
-  height: 100%;
+  height: auto;
   overflow: hidden;
 }
 

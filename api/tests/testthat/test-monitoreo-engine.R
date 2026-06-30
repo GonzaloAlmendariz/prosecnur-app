@@ -1359,12 +1359,15 @@ test_that("perfil acreditacion usa payload liviano para consultas internas", {
 
 test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   data <- data.frame(
-    CodPulso = c("C1", "C2", "C3", "C1"),
-    Status = c("Completa", "No contesta", "No barrido", "completed"),
-    Responsable = c("Ana", "Luis", "Ana", ""),
-    Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-01"),
-    .source_role = c("barrido", "barrido", "barrido", "respuestas"),
+    CodPulso = c("C1", "C2", "C3", "C4", "C1"),
+    Status = c("Completa", "No contesta", "No barrido", "Rechazo", "completed"),
+    Responsable = c("Ana", "Luis", "Ana", "Luis", ""),
+    Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-02", "2026-06-01"),
+    Distrito = c("Lima", "Callao", "Lima", "Callao", "Lima"),
+    Grupo = c("Egresados 2020", "Egresados 2020", "Egresados 2021", "Egresados 2021", "Egresados 2020"),
+    .source_role = c("barrido", "barrido", "barrido", "barrido", "respuestas"),
     .source_label = c(
+      "Barrido telefonico - Civil",
       "Barrido telefonico - Civil",
       "Barrido telefonico - Civil",
       "Barrido telefonico - Civil",
@@ -1379,6 +1382,11 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
       variant = "segmentada_por_carrera",
       segments = list(list(id = "Civil", label = "Civil", actor = "Egresados")),
       minimums = list(Civil = 2)
+    ),
+    control_vars = c("Distrito"),
+    goals = list(
+      list(filters = list(Distrito = "Lima"), meta = 2L),
+      list(filters = list(Distrito = "Callao"), meta = 2L)
     )
   ), data)
 
@@ -1386,13 +1394,214 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   expect_equal(reports$report_scope, "phone_summary")
   expect_equal(reports$internal_queries, list())
   expect_equal(reports$client_report$sources, list())
-  expect_length(reports$sheets, 1L)
+  expect_length(reports$sheets, 2L)
   expect_equal(reports$sheets[[1]]$id, "monitoreo_telefonico")
+  expect_equal(reports$sheets[[2]]$id, "alertas")
   expect_true(any(vapply(reports$sheets[[1]]$blocks, function(block) block$id == "resumen_telefonico", logical(1))))
+  expect_true(any(vapply(reports$sheets[[2]]$blocks, function(block) block$id == "alertas", logical(1))))
+  phone_blocks <- stats::setNames(reports$sheets[[1]]$blocks, vapply(reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  status_rows <- .monitoreo_internal_records_to_df(phone_blocks$estatus_telefonico$rows)
+  daily_rows <- .monitoreo_internal_records_to_df(phone_blocks$avance_efectivo_dia$rows)
+  responsible_rows <- .monitoreo_internal_records_to_df(phone_blocks$operacion_responsable$rows)
+  quota_rows <- .monitoreo_internal_records_to_df(phone_blocks$cuotas_variable$rows)
+  total_quota_rows <- quota_rows[quota_rows$Actor == "Total", , drop = FALSE]
+  expect_true(all(c("No contesta", "No barrido", "Rechazo") %in% status_rows$Estatus))
+  expect_equal(daily_rows$`Rechazos telefónicos`[daily_rows$Fecha == "2026-06-02"], 1L)
+  expect_equal(responsible_rows$`Rechazos telefónicos`[responsible_rows$Responsable == "Luis"], 1L)
+  expect_equal(sort(unique(quota_rows$Variable)), "Distrito")
+  expect_equal(as.integer(total_quota_rows$Meta[total_quota_rows$Valor == "Lima"]), 2L)
+  expect_equal(as.integer(total_quota_rows$`No barridos`[total_quota_rows$Valor == "Lima"]), 1L)
 
   dashboard <- monitoreo_build_dashboard(data, cfg, include_reports = TRUE, report_scope = "phone_summary")
   expect_equal(dashboard$acreditacion_reports$report_scope, "phone_summary")
   expect_equal(dashboard$acreditacion_reports$sheets[[1]]$id, "monitoreo_telefonico")
+  expect_equal(dashboard$acreditacion_reports$sheets[[2]]$id, "alertas")
+
+  phone_path_cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "telefonico",
+      variant = "segmentada_por_carrera",
+      segments = list(list(id = "Civil", label = "Civil", actor = "Egresados")),
+      minimums = list(Civil = 2)
+    ),
+    control_vars = c("Distrito"),
+    goals = list(
+      list(filters = list(Distrito = "Lima"), meta = 2L),
+      list(filters = list(Distrito = "Callao"), meta = 2L)
+    )
+  ), data)
+  phone_path_reports <- monitoreo_acreditacion_reportes(data, phone_path_cfg, report_scope = "phone_summary")
+  phone_path_blocks <- stats::setNames(phone_path_reports$sheets[[1]]$blocks, vapply(phone_path_reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  phone_path_daily <- .monitoreo_internal_records_to_df(phone_path_blocks$avance_efectivo_dia$rows)
+  phone_path_quota <- .monitoreo_internal_records_to_df(phone_path_blocks$cuotas_variable$rows)
+  expect_equal(phone_path_reports$report_scope, "phone_summary")
+  expect_equal(phone_path_reports$sheets[[1]]$id, "monitoreo_telefonico")
+  expect_equal(sum(phone_path_daily$`Rechazos telefónicos`, na.rm = TRUE), 1L)
+  expect_equal(phone_path_quota[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")], quota_rows[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")])
+
+  phone_advance_reports <- monitoreo_acreditacion_reportes(data, phone_path_cfg, report_scope = "advance_summary")
+  phone_advance_sheet <- Filter(function(sheet) identical(sheet$id, "monitoreo_telefonico"), phone_advance_reports$sheets)[[1]]
+  phone_advance_blocks <- stats::setNames(phone_advance_sheet$blocks, vapply(phone_advance_sheet$blocks, `[[`, character(1), "id"))
+  phone_advance_quota <- .monitoreo_internal_records_to_df(phone_advance_blocks$cuotas_variable$rows)
+  expect_equal(phone_advance_reports$report_scope, "advance_summary")
+  expect_true("cuotas_variable" %in% names(phone_advance_blocks))
+  expect_equal(phone_advance_quota[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")], quota_rows[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")])
+})
+
+test_that("perfil acreditacion calcula cuotas telefonicas desde poblacion del actor", {
+  data <- data.frame(
+    response_id = paste0("R", 1:6),
+    response_status = c("completed", "partial", "disqualified", "not_responded", "completed", "partial"),
+    dim_actor = c("Egresados", "Egresados", "Egresados", "Egresados", "Docentes", "Docentes"),
+    Distrito = c("Lima", "Lima", "Callao", "Lima", "Centro", "Centro"),
+    Carrera = c("Ingenieria", "Ingenieria", "Ingenieria", "Ingenieria", "Tiempo completo", "Tiempo parcial"),
+    telefono_contacto = c("999111111", "999222222", "999333333", "999444444", "999555555", "999666666"),
+    .source_role = rep("respuestas", 6),
+    .source_id = c(rep("src_egresados_tel", 4), rep("src_docentes_correo", 2)),
+    .source_label = c(rep("Egresados telefono asistido", 4), rep("Docentes correo", 2)),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(
+        list(id = "Egresados", label = "Egresados"),
+        list(id = "Docentes", label = "Docentes")
+      )
+    ),
+    operational_model = list(link_collectors = list(list(
+      source_id = "src_egresados_tel",
+      actor = "Egresados",
+      channel = "Telefónico",
+      operational_use = "telefono_asistido",
+      roster_required = TRUE
+    ))),
+    control_vars = c("Distrito"),
+    goals = list(
+      list(filters = list(Actor = "Egresados", Distrito = "Lima"), meta = 3L),
+      list(filters = list(Actor = "Egresados", Distrito = "Callao"), meta = 1L)
+    )
+  ), data)
+
+  reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "phone_summary")
+  blocks <- stats::setNames(reports$sheets[[1]]$blocks, vapply(reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  summary_rows <- .monitoreo_internal_records_to_df(blocks$resumen_telefonico$rows)
+  quota_rows <- .monitoreo_internal_records_to_df(blocks$cuotas_variable$rows)
+  district_rows <- quota_rows[quota_rows$Variable == "Distrito", , drop = FALSE]
+
+  expect_equal(as.integer(summary_rows$Casos[summary_rows$Indicador == "Total telefónico"]), 4L)
+  expect_equal(sort(unique(quota_rows$Actor)), "Egresados")
+  expect_true("Distrito" %in% unique(quota_rows$Variable))
+  expect_false(any(district_rows$Valor == "Centro"))
+  expect_equal(as.integer(district_rows$Universo[district_rows$Valor == "Lima"]), 3L)
+  expect_equal(as.integer(district_rows$Meta[district_rows$Valor == "Lima"]), 3L)
+  expect_equal(as.integer(district_rows$Efectivas[district_rows$Valor == "Lima"]), 1L)
+  expect_equal(as.integer(district_rows$Parciales[district_rows$Valor == "Lima"]), 1L)
+  expect_equal(as.integer(district_rows$`No barridos`[district_rows$Valor == "Lima"]), 1L)
+  expect_equal(as.integer(district_rows$`Rechazos telefónicos`[district_rows$Valor == "Callao"]), 1L)
+})
+
+test_that("monitoreo telefonico materializa cuotas globales por variable sin duplicarlas por actor", {
+  data <- data.frame(
+    CodPulso = c("SJL-1", "SJL-2", "SMP-1", "CER-1"),
+    Status = c("Efectivo", "No barrido", "No contesta", "Rechazo"),
+    telefono = c("999111111", "999222222", "999333333", "999444444"),
+    sede = c("San Juan de Lurigancho (SJL)", "San Juan de Lurigancho (SJL)", "San Martín de Porres (SMP)", "Cercado de Lima"),
+    dim_actor = c("Staff ACNUR", "Enrolamiento", "Staff ACNUR", "Otros"),
+    .source_role = rep("barrido", 4),
+    .source_label = rep("Base de barrido telefonico", 4),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "telefonico"),
+    control_vars = c("sede"),
+    goals = list(
+      list(filters = list(sede = "San Juan de Lurigancho (SJL)"), meta = 107L),
+      list(filters = list(sede = "Chorrillos"), meta = 58L),
+      list(filters = list(zona_operativa = "Pueblo Libre (PL)"), meta = 41L)
+    )
+  ), data)
+
+  reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "phone_summary")
+  blocks <- stats::setNames(reports$sheets[[1]]$blocks, vapply(reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  quota_rows <- .monitoreo_internal_records_to_df(blocks$cuotas_variable$rows)
+  total_rows <- quota_rows[quota_rows$Actor == "Total", , drop = FALSE]
+  actor_rows <- quota_rows[quota_rows$Actor != "Total" & quota_rows$Valor == "San Juan de Lurigancho (SJL)", , drop = FALSE]
+
+  expect_equal(as.integer(total_rows$Meta[total_rows$Valor == "San Juan de Lurigancho (SJL)"]), 107L)
+  expect_equal(as.integer(total_rows$Universo[total_rows$Valor == "San Juan de Lurigancho (SJL)"]), 2L)
+  expect_equal(as.integer(total_rows$Meta[total_rows$Valor == "Chorrillos"]), 58L)
+  expect_equal(as.integer(total_rows$Universo[total_rows$Valor == "Chorrillos"]), 0L)
+  expect_equal(as.integer(total_rows$Meta[total_rows$Valor == "Pueblo Libre (PL)"]), 41L)
+  expect_equal(as.character(total_rows$Variable[total_rows$Valor == "Pueblo Libre (PL)"]), "zona_operativa")
+  expect_equal(as.integer(total_rows$Universo[total_rows$Valor == "Pueblo Libre (PL)"]), 0L)
+  expect_true(all(is.na(actor_rows$Meta) | !nzchar(as.character(actor_rows$Meta))))
+})
+
+test_that("monitoreo telefonico conserva estados por actor y responsable", {
+  data <- data.frame(
+    CodPulso = c("E1", "E2", "D1", "D2"),
+    Status = c("Rechazo", "No contesta", "Efectivo", "Rechazo"),
+    Responsable = c("Ana", "Ana", "Ana", "Luis"),
+    Fecha = c("2026-06-01", "2026-06-01", "2026-06-01", "2026-06-02"),
+    Intentos = c(2, 3, 1, 2),
+    .source_role = rep("barrido", 4),
+    .source_label = c(
+      "Barrido telefonico - Egresados",
+      "Barrido telefonico - Egresados",
+      "Barrido telefonico - Docentes",
+      "Barrido telefonico - Docentes"
+    ),
+    dim_actor = c("Egresados", "Egresados", "Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  build_phone_blocks <- function(family) {
+    cfg <- monitoreo_normalize_config(list(
+      monitoreo_profile = list(
+        family = family,
+        variant = "multi_actor",
+        units = list(
+          list(id = "Egresados", label = "Egresados"),
+          list(id = "Docentes", label = "Docentes")
+        ),
+        key_rules = list(universe_fields = c("CodPulso"), automatic_detection = FALSE)
+      )
+    ), data)
+    reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "phone_summary")
+    stats::setNames(reports$sheets[[1]]$blocks, vapply(reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  }
+
+  for (family in c("acreditacion", "telefonico")) {
+    blocks <- build_phone_blocks(family)
+    ops <- .monitoreo_internal_records_to_df(blocks$operacion_responsable$rows)
+    field_vs_platform <- .monitoreo_internal_records_to_df(blocks$campo_vs_plataforma_responsable$rows)
+    pending_by_owner <- .monitoreo_internal_records_to_df(blocks$no_barridos_responsable$rows)
+    status_by_owner <- .monitoreo_internal_records_to_df(blocks$estatus_responsable$rows)
+    actor_day <- .monitoreo_internal_records_to_df(blocks$avance_efectivo_actor_dia$rows)
+
+    expect_true("Actor" %in% names(ops))
+    expect_true("Actor" %in% names(field_vs_platform))
+    expect_true("Actor" %in% names(pending_by_owner))
+    expect_true("Actor" %in% names(status_by_owner))
+    expect_true("Actor" %in% names(actor_day))
+
+    ana_rows <- ops[ops$Responsable == "Ana", , drop = FALSE]
+    expect_equal(sort(ana_rows$Actor), c("Docentes", "Egresados"))
+    expect_equal(as.integer(ana_rows$`Casos asignados`[ana_rows$Actor == "Egresados"]), 2L)
+    expect_equal(as.integer(ana_rows$`Casos asignados`[ana_rows$Actor == "Docentes"]), 1L)
+    expect_equal(as.integer(ana_rows$`Rechazos telefónicos`[ana_rows$Actor == "Egresados"]), 1L)
+    expect_equal(as.integer(ana_rows$`Efectivas telefónicas`[ana_rows$Actor == "Docentes"]), 1L)
+
+    expect_true(any(status_by_owner$Actor == "Egresados" & status_by_owner$Responsable == "Ana" & status_by_owner$Estado == "Rechazo"))
+    expect_true(any(status_by_owner$Actor == "Docentes" & status_by_owner$Responsable == "Ana" & status_by_owner$Estado == "Efectivo"))
+    expect_equal(as.integer(actor_day$`Rechazos telefónicos`[actor_day$Actor == "Egresados" & actor_day$Fecha == "2026-06-01"]), 1L)
+    expect_equal(as.integer(actor_day$`Efectivas telefónicas`[actor_day$Actor == "Docentes" & actor_day$Fecha == "2026-06-01"]), 1L)
+  }
 })
 
 test_that("perfil acreditacion reutiliza rollup canonico al construir entregables pesados", {
@@ -1542,6 +1751,61 @@ test_that("rechazo de consentimiento sin cruce base queda solo como auditoria", 
   expect_equal(as.integer(client_actor$`Rechazos plataforma`[client_actor$Actor == "Estudiantes"]), 0L)
   expect_equal(as.integer(client_actor$`Sin respuesta`[client_actor$Actor == "Estudiantes"]), 1L)
   expect_equal(sum(as.integer(client_daily$`Rechazos plataforma`), na.rm = TRUE), 0L)
+})
+
+test_that("fallbacks de acreditacion cuentan rechazos plataforma solo con cruce base", {
+  data <- data.frame(
+    CodPulso = c("E1", "E2", "E1", "E2", "ZZZ", ""),
+    response_status = c("", "", "completed", "completed", "completed", "completed"),
+    date_modified = c("", "", "2026-06-01T10:00:00+00:00", "2026-06-02T10:00:00+00:00", "2026-06-03T10:00:00+00:00", "2026-06-04T10:00:00+00:00"),
+    `Acepta participar` = c("", "", "Sí", "No", "No", "No"),
+    `Dedicación` = c("TC", "TP", "", "", "", ""),
+    .source_role = c("universo", "universo", "respuestas", "respuestas", "respuestas", "respuestas"),
+    .source_label = c(
+      "Base - Docentes",
+      "Base - Docentes",
+      "SurveyMonkey - Docentes - Web",
+      "SurveyMonkey - Docentes - Web",
+      "SurveyMonkey - Docentes - Web",
+      "SurveyMonkey - Docentes - Web"
+    ),
+    dim_actor = "Docentes",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Docentes", label = "Docentes")),
+      key_rules = list(
+        universe_fields = c("CodPulso"),
+        response_fields = c("CodPulso"),
+        automatic_detection = FALSE
+      ),
+      rejection_rules = list(list(
+        question_patterns = c("acepta participar"),
+        rejection_answers = c("no")
+      ))
+    )
+  ), data)
+  profile <- cfg$monitoreo_profile
+  empty_rollup <- data.frame()
+
+  summary <- .monitoreo_report_summary_df(data, profile, case_rollup = empty_rollup)
+  daily <- .monitoreo_report_daily_df(data, profile, FALSE, case_rollup = empty_rollup)
+  source <- .monitoreo_report_daily_source_df(data, profile, config = cfg, case_rollup = empty_rollup)
+  channel <- .monitoreo_report_daily_channel_df(data, profile)
+  controls <- .monitoreo_report_control_distribution_df(data, profile)
+
+  expect_equal(as.integer(summary$`Rechazos plataforma`[[1]]), 1L)
+  expect_equal(as.integer(summary$`Rechazos plataforma sin cruce base`[[1]]), 2L)
+  expect_equal(as.integer(summary$`Respondidas plataforma`[[1]]), 2L)
+  expect_equal(as.integer(summary$`Sin respuesta plataforma`[[1]]), 0L)
+  expect_equal(sum(as.integer(daily$Total[daily$Estado == "Rechazos plataforma"]), na.rm = TRUE), 1L)
+  expect_equal(sum(as.integer(source$Total[source$Estado == "Rechazos plataforma"]), na.rm = TRUE), 1L)
+  expect_equal(sum(as.integer(channel$Total[channel$Estado == "Rechazos plataforma"]), na.rm = TRUE), 1L)
+  expect_equal(sum(as.integer(controls$`Rechazos plataforma`), na.rm = TRUE), 1L)
 })
 
 test_that("perfil acreditacion cuenta efectivas solo desde plataforma y concilia telefono", {
@@ -1787,6 +2051,8 @@ test_that("perfil acreditacion deduplica canales contra caso unico de base ofici
   expect_equal(resumen$`Respondidas plataforma`, 2L)
   expect_equal(resumen$`Respuestas plataforma sin cruce base`, 2L)
   expect_equal(resumen$`Efectivas sin cruce base`, 2L)
+  expect_equal(cases$response_datetime[cases$response_id == "r-a2-parcial"], "2026-06-03T10:00:00Z")
+  expect_equal(cases$date[cases$response_id == "r-a2-parcial"], "2026-06-03")
   expect_equal(sum(cases$case_key == "codigo:A1" & vapply(cases$counts_in_advance, .monitoreo_bool, logical(1))), 1L)
   expect_equal(nrow(official), 3L)
   expect_false("r-fuera" %in% official$response_id)
@@ -2450,6 +2716,144 @@ test_that("perfil acreditacion expone revision asistida para respuestas sin llav
   expect_equal(reviewed$advancement, "partial")
   expect_true(isTRUE(reviewed$assisted_review[[1]]$eligible))
   expect_equal(length(reviewed$assisted_review[[1]]$candidates), 0L)
+})
+
+test_that("perfil acreditacion no convierte parciales cruzadas sin validacion manual", {
+  data <- data.frame(
+    CodPulso = c("A1", ""),
+    Nombre = c("Ana Base", ""),
+    correo = c("ana.base@pucp.edu.pe", ""),
+    cv_id = c("", "A1"),
+    response_id = c("", "r-parcial-validable"),
+    response_status = c("", "partial"),
+    date_modified = c("", "2026-06-12T10:00:00+00:00"),
+    q0001 = c("", "Si"),
+    q0002 = c("", "Respuesta 2"),
+    q0003 = c("", "Respuesta 3"),
+    q0004 = c("", "Respuesta 4"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · Correo"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  profile <- .monitoreo_test_assisted_review_profile()
+  queries <- .monitoreo_acreditacion_internal_queries(data, profile)
+  cases <- .monitoreo_test_records_df(queries$cases)
+  rollup <- .monitoreo_test_records_df(queries$case_rollup)
+  resumen <- .monitoreo_acreditacion_summary_from_case_rollup(data, profile, case_rollup = rollup)
+  reviewed <- cases[cases$response_id == "r-parcial-validable", , drop = FALSE]
+  assisted <- reviewed$assisted_review[[1]]
+
+  expect_equal(reviewed$base_result, "Cruzó")
+  expect_equal(reviewed$advancement, "partial")
+  expect_equal(reviewed$identity_status, "parcial_revisable")
+  expect_false(isTRUE(.monitoreo_bool(reviewed$counts_in_advance)))
+  expect_equal(resumen$Efectivas, 0L)
+  expect_equal(resumen$Parciales, 1L)
+  expect_true(isTRUE(assisted$eligible))
+  expect_equal(assisted$assignment_candidates[[1]]$candidate_id, "codigo:A1")
+  expect_equal(assisted$assignment_candidates[[1]]$match_type, "partial_current_case")
+  expect_false(isTRUE(.monitoreo_bool(assisted$assignment_candidates[[1]]$already_effective)))
+
+  manual_profile <- .monitoreo_test_assisted_review_profile(list(
+    include_response_ids = c("r-parcial-validable"),
+    manual_case_reconciliations = list(
+      `r-parcial-validable` = list(
+        response_id = "r-parcial-validable",
+        actor = "Docentes",
+        action = "include_with_caveat",
+        declared_code = "A1",
+        assigned_person_label = "Ana Base",
+        assigned_case_key = "A1",
+        assigned_base_source = "Base · Docentes",
+        assigned_base_row = 1L,
+        match_type = "manual_partial_review",
+        previous_status = "partial",
+        new_status = "included_with_caveat",
+        note = "Parcial validada manualmente por evidencia suficiente.",
+        decided_at = "2026-06-15T09:34:00-05:00"
+      )
+    )
+  ))
+  manual_queries <- .monitoreo_acreditacion_internal_queries(data, manual_profile)
+  manual_cases <- .monitoreo_test_records_df(manual_queries$cases)
+  manual_rollup <- .monitoreo_test_records_df(manual_queries$case_rollup)
+  manual_resumen <- .monitoreo_acreditacion_summary_from_case_rollup(data, manual_profile, case_rollup = manual_rollup)
+  manual_reviewed <- manual_cases[manual_cases$response_id == "r-parcial-validable", , drop = FALSE]
+
+  expect_equal(manual_reviewed$base_result, "Cruzó manualmente")
+  expect_equal(manual_reviewed$advancement, "effective")
+  expect_equal(manual_reviewed$issue_type, "incluido_con_salvedad")
+  expect_true(isTRUE(.monitoreo_bool(manual_reviewed$counts_in_advance)))
+  expect_equal(manual_resumen$Efectivas, 1L)
+  expect_equal(manual_resumen$Parciales, 0L)
+})
+
+test_that("router acreditacion exige nota y aplica inclusion manual para parcial cruzada", {
+  data <- data.frame(
+    CodPulso = c("A1", ""),
+    Nombre = c("Ana Base", ""),
+    correo = c("ana.base@pucp.edu.pe", ""),
+    cv_id = c("", "A1"),
+    response_id = c("", "r-parcial-validable"),
+    response_status = c("", "partial"),
+    date_modified = c("", "2026-06-12T10:00:00+00:00"),
+    q0001 = c("", "Si"),
+    q0002 = c("", "Respuesta 2"),
+    q0003 = c("", "Respuesta 3"),
+    q0004 = c("", "Respuesta 4"),
+    .source_role = c("universo", "respuestas"),
+    .source_label = c("Base · Docentes", "SurveyMonkey · Docentes · Correo"),
+    dim_actor = c("Docentes", "Docentes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- list(monitoreo_profile = .monitoreo_test_assisted_review_profile())
+  missing_note <- tryCatch(
+    .monitoreo_acreditacion_apply_case_reconciliation(
+      data,
+      cfg,
+      list(
+        response_id = "r-parcial-validable",
+        action = "include_with_caveat",
+        candidate_id = "codigo:A1"
+      )
+    ),
+    error = function(e) e
+  )
+
+  expect_s3_class(missing_note, "api_error")
+  expect_equal(missing_note$code, "E_MONITOREO_NOTE_REQUIRED")
+
+  applied <- .monitoreo_acreditacion_apply_case_reconciliation(
+    data,
+    cfg,
+    list(
+      response_id = "r-parcial-validable",
+      action = "include_with_caveat",
+      candidate_id = "codigo:A1",
+      note = "Parcial validada manualmente por evidencia suficiente."
+    )
+  )
+  profile <- applied$config$monitoreo_profile
+  manual <- profile$reconciliation_decisions$manual_case_reconciliations$`r-parcial-validable`
+  queries <- .monitoreo_acreditacion_internal_queries(data, profile)
+  rollup <- .monitoreo_test_records_df(queries$case_rollup)
+  resumen <- .monitoreo_acreditacion_summary_from_case_rollup(data, profile, case_rollup = rollup)
+  reviewed <- .monitoreo_test_records_df(queries$cases)
+  reviewed <- reviewed[reviewed$response_id == "r-parcial-validable", , drop = FALSE]
+
+  expect_equal(applied$decision$action, "include_with_caveat")
+  expect_equal(applied$decision$match_type, "partial_current_case")
+  expect_equal(applied$decision$previous_status, "partial")
+  expect_equal(manual$assigned_case_key, "A1")
+  expect_true("r-parcial-validable" %in% unlist(profile$reconciliation_decisions$include_response_ids, use.names = FALSE))
+  expect_equal(reviewed$advancement, "effective")
+  expect_true(isTRUE(.monitoreo_bool(reviewed$counts_in_advance)))
+  expect_equal(resumen$Efectivas, 1L)
+  expect_equal(resumen$Parciales, 0L)
 })
 
 test_that("perfil acreditacion ofrece pendientes del actor para asignacion manual", {
@@ -5708,6 +6112,10 @@ test_that("monitoreo territorial expone payload operativo de Hojas de Ruta", {
   expect_true(any(vapply(validation_report$route_quota_progress$blocks, function(block) length(block$age %||% list()) > 0L, logical(1))))
   quota_blocks <- validation_report$route_quota_progress$blocks
   ate_quota <- quota_blocks[[which(vapply(quota_blocks, function(block) identical(block$id_manzana, "150103042001"), logical(1)))[[1]]]]
+  ate_replacement_quota <- quota_blocks[[which(vapply(quota_blocks, function(block) identical(block$id_manzana, "150103042002"), logical(1)))[[1]]]]
+  expect_equal(ate_replacement_quota$tipo_manzana, "reemplazo")
+  expect_equal(ate_replacement_quota$titular_id_manzana, "150103042001")
+  expect_equal(ate_replacement_quota$replacement_order, 1L)
   sex_achieved <- stats::setNames(
     vapply(ate_quota$sex, function(row) as.integer(row$achieved %||% 0L), integer(1)),
     vapply(ate_quota$sex, function(row) as.character(row$label %||% ""), character(1))
@@ -5959,7 +6367,7 @@ test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", 
     "Reporte", "Detalle del avance", "Corte y fuentes"
   ))
   expect_equal(names(internal_tabs), c(
-    "Resumen", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"
+    "Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"
   ))
   expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(client_tabs)))
   expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(internal_tabs)))
@@ -6526,7 +6934,7 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
       descripcion = "OCCURRENCE-SENTINEL desde consolidado de ocurrencias"
     ))),
     internal_queries = list(review_cases = list(list(
-      reason = "duracion_menor_1_min",
+      reason = "duracion_menor_2_min",
       type = "duration",
       response_id = "RAW-ID-1",
       district = "Distrito 1",
@@ -6550,7 +6958,7 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   )
   expect_equal(model$family, "territorial_fieldwork")
   expected_sections <- c(
-    "portada", "tabla_maestra", "resumen_operativo", "avance_campo", "encuestadores_rutas", "responsables_rutas", "cuotas_ump",
+    "portada", "tabla_maestra", "resumen_operativo", "produccion_responsable", "avance_campo", "encuestadores_rutas", "responsables_rutas", "cuotas_ump",
     "validacion_tiempos", "ocurrencias_campo", "casos_accionables",
     "gps_territorio", "anulaciones", "auditoria_tecnica", "base_tecnica"
   )
@@ -6566,7 +6974,7 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
     context = list(session_id = "sid-test", spreadsheet_id = "sheet-test")
   )
   expect_equal(names(tabs), c(
-    "Portada", "Resumen territorial", "Ritmo diario", "Tabla maestra",
+    "Portada", "Resumen territorial", "Producción", "Ritmo diario", "Tabla maestra",
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
     "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
     "Base técnica", "Auditoría técnica", "Casos accionables", "Anulaciones"
@@ -6653,6 +7061,13 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   expect_true(any(suppressWarnings(as.numeric(produccion$`UMP efectivas`)) > 0, na.rm = TRUE))
   expect_true(all(.monitoreo_publication_has_assigned_responsible(produccion$Responsable)))
   expect_false(any(trimws(as.character(produccion$Responsable)) %in% c("-", "Sin responsable", "Sin datos", "No asignado")))
+  produccion_tab <- .monitoreo_publication_section_frame(model, "produccion_responsable")
+  expect_true(any(produccion_tab$Bloque == "Ranking por responsable"))
+  expect_true(any(produccion_tab$Bloque == "UMP completadas por responsable"))
+  produccion_detalle <- .monitoreo_publication_block_df(produccion_tab, "UMP completadas por responsable")
+  expect_true(all(c("Responsable", "Distrito", "UMP", "Estado operativo") %in% names(produccion_detalle)))
+  expect_true(any(produccion_detalle$`Estado operativo` %in% c("Completa", "Subsanada"), na.rm = TRUE))
+  expect_true(all(.monitoreo_publication_has_assigned_responsible(produccion_detalle$Responsable)))
 
   cuotas <- .monitoreo_publication_section_frame(model, "cuotas_ump")
   expect_true("Bloque" %in% names(cuotas))
@@ -6780,6 +7195,10 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   expect_equal(monitoreo_territorial_advance_report_pdf(model, pdf_path), pdf_path)
   expect_true(file.exists(pdf_path))
   expect_gt(file.info(pdf_path)$size, 5000)
+  production_pdf_path <- tempfile(fileext = ".pdf")
+  expect_equal(monitoreo_production_report_pdf(model, production_pdf_path), production_pdf_path)
+  expect_true(file.exists(production_pdf_path))
+  expect_gt(file.info(production_pdf_path)$size, 3000)
 })
 
 test_that("clasificacion GPS publicada prioriza fuera de distrito con distancia extrema", {
@@ -6871,10 +7290,17 @@ test_that("modelo de acreditacion separa cliente progreso e interno operativo", 
 
   internal_model <- monitoreo_publication_model(data, demo$config, audience = "internal")
   expect_equal(internal_model$family, "accreditation_monitoring")
-  expect_true(all(c("resumen_operativo", "avance_por_canal_recopilador", "metas_internas_actor", "pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(internal_model)))
+  expect_true(all(c("resumen_operativo", "produccion_responsable", "avance_por_canal_recopilador", "metas_internas_actor", "pendientes_por_actor", "control_seguimiento", "casos_accionables", "auditoria_tecnica", "base_tecnica") %in% names(internal_model)))
   internal_actor_cols <- unlist(internal_model$avance_por_actor$columns, use.names = FALSE)
   expect_true(all(c("Mínimo/meta operativa", "% sobre mínimo", "Brecha contra mínimo", "Estado interno") %in% internal_actor_cols))
   expect_true("internal" %in% names(internal_model$accreditation_progress))
+  production_tab <- .monitoreo_publication_section_frame(internal_model, "produccion_responsable")
+  expect_true(any(production_tab$Bloque == "Ranking por responsable"))
+  expect_true(any(production_tab$Bloque == "Detalle por responsable"))
+  production_pdf_path <- tempfile(fileext = ".pdf")
+  expect_equal(monitoreo_production_report_pdf(internal_model, production_pdf_path), production_pdf_path)
+  expect_true(file.exists(production_pdf_path))
+  expect_gt(file.info(production_pdf_path)$size, 2500)
   internal_text <- paste(unlist(internal_model$base_tecnica$rows, use.names = FALSE), collapse = " ")
   expect_true(grepl("PHONE-ACC-SENTINEL|RID-ACC-1|-12\\.1|-77\\.1", internal_text))
 })
@@ -7344,14 +7770,29 @@ test_that("modo avance solo sincroniza fuentes de respuestas", {
 
 test_that("clasificacion operacional de duracion usa umbrales centralizados", {
   tcfg <- list(min_duration_seconds = 60, max_duration_seconds = 7200)
+  durations <- c(119, 120, 299, 300, 8000)
+  expect_equal(
+    .monitoreo_territorial_duration_status(durations, tcfg),
+    c("muy_corta", "corta", "corta", "esperada", "larga")
+  )
+  expect_equal(
+    .monitoreo_territorial_duration_operational_status("", durations, tcfg),
+    c("muy_corto", "corto", "corto", "normal", "normal")
+  )
+  expect_equal(
+    .monitoreo_territorial_duration_operational_label("", durations, tcfg),
+    c("Muy corto", "Corto", "Corto", "Normal", "Normal")
+  )
   expect_equal(.monitoreo_publication_duration_label("", NA_real_, tcfg), "")
   expect_equal(.monitoreo_publication_duration_label("malformed", NA_real_, tcfg), "")
-  expect_equal(.monitoreo_publication_duration_label("", 30, tcfg), "Muy corto")
-  expect_equal(.monitoreo_publication_duration_label("sin_dato", 30, tcfg), "Muy corto")
+  expect_equal(.monitoreo_publication_duration_label("", 119, tcfg), "Muy corto")
+  expect_equal(.monitoreo_publication_duration_label("sin_dato", 119, tcfg), "Muy corto")
   expect_equal(.monitoreo_publication_duration_label("", 120, tcfg), "Corto")
-  expect_equal(.monitoreo_publication_duration_label("", 1800, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("", 299, tcfg), "Corto")
+  expect_equal(.monitoreo_publication_duration_label("", 300, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("", 8000, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("", 50000, tcfg), "Normal")
+  expect_equal(.monitoreo_publication_duration_label("muy_corta", 300, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("esperada", NA_real_, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("larga", NA_real_, tcfg), "Normal")
   expect_equal(.monitoreo_publication_duration_label("extrema", NA_real_, tcfg), "Normal")

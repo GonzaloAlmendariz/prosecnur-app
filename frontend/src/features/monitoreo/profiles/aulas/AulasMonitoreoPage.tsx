@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { Link } from "react-router-dom";
-import { AlertCircle, CalendarRange, CheckCircle2, QrCode, RefreshCw } from "lucide-react";
+import { AlertCircle, CalendarRange, CheckCircle2 } from "lucide-react";
 import {
   apiMonitoreoState,
   type MonitoreoAulasDashboard,
@@ -10,11 +9,13 @@ import {
 } from "../../../../api/client";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
-import { AULAS_WORKBENCH_VIEWS, type WorkbenchView } from "../../core/monitoreoRegistry";
+import { AULAS_WORKBENCH_VIEWS, MONITOREO_ROUTES, type WorkbenchView } from "../../core/monitoreoRegistry";
+import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import type { MonitoreoReportScope } from "../types";
 import "../profilePage.css";
+import "../../shell/monitoreoShell.css";
 
-const AULAS_VIEWS: WorkbenchView[] = ["avance", "modelo", "calidad", "consultas", "fuentes"];
+const AULAS_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_ROUTES[2];
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -339,6 +340,9 @@ export default function AulasMonitoreoPage() {
     [activeView],
   );
   const dashboard = dashboardFromState(state);
+  const sourceTotal = state?.sources?.length ?? 0;
+  const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
+  const refreshTitle = loading ? "Actualizando vista de aulas..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
 
   const loadView = useCallback(async (view: WorkbenchView, force = false) => {
     setLoading(true);
@@ -364,38 +368,30 @@ export default function AulasMonitoreoPage() {
 
   return (
     <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
-      <header className="mon-profile-topbar">
-        <div className="mon-profile-brand">
-          <span className="mon-profile-brand__icon"><CalendarRange size={18} /></span>
-          <div>
-            <strong>Aplicación en aulas</strong>
-            <span>{fmt(state?.n_rows)} registros</span>
-          </div>
-        </div>
-        <nav className="mon-profile-rail" aria-label="Secciones de monitoreo de aulas">
-          {AULAS_VIEWS.map((view, index) => {
-            const def = AULAS_WORKBENCH_VIEWS.find((item) => item.key === view);
-            const Icon = def?.icon ?? CalendarRange;
-            return (
-              <button key={view} type="button" className={view === activeView ? "is-active" : ""} onClick={() => setActiveView(view)}>
-                <span>{index + 1}</span>
-                <Icon size={14} />
-                {def?.shortLabel ?? def?.label ?? view}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="mon-profile-actions">
-          <Link to="/recopiladores">
-            <QrCode size={14} />
-            Fichas QR
-          </Link>
-          <button type="button" onClick={() => void loadView(activeView, true)}>
-            <RefreshCw size={14} />
-            Actualizar vista
-          </button>
-        </div>
-      </header>
+      <MonitoreoModuleChrome
+        routes={[AULAS_ROUTE]}
+        route={AULAS_ROUTE}
+        routeSelected
+        activeView={activeView}
+        saving={loading}
+        syncedAt={state?.synced_at ?? ""}
+        generatedAt={state?.generated_at ?? state?.synced_at ?? ""}
+        generationStatus={state?.generation_status ?? ""}
+        pendingRegeneration={Boolean(state?.pending_regeneration)}
+        syncErrors={state?.sync_errors ?? state?.errors ?? []}
+        sourceTotal={sourceTotal}
+        activeSources={activeSources}
+        nRows={state?.n_rows ?? 0}
+        hasSnapshot={Boolean(state?.has_snapshot)}
+        syncing={loading}
+        advanceSyncDisabled={loading}
+        advanceSyncLabel="Vista"
+        advanceSyncTitle={refreshTitle}
+        onSyncAdvance={() => { void loadView(activeView, true); }}
+        onViewChange={(view) => {
+          if (view !== activeView) setActiveView(view);
+        }}
+      />
 
       <main className="mon-profile-workbench">
         <aside className="mon-profile-sidebar">

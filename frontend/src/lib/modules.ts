@@ -9,6 +9,7 @@ import {
   IconRoutes,
   IconSample,
   IconStudyDesign,
+  IconWorkPlan,
 } from "./icons";
 
 export type ProsecnurModuleSlug =
@@ -17,6 +18,7 @@ export type ProsecnurModuleSlug =
   | "dashboard"
   | "hojas-ruta"
   | "calc-muestra"
+  | "plan-trabajo"
   | "diseno-estudio"
   | "recopiladores"
   | "monitoreo";
@@ -67,6 +69,11 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
     accentSoft: "var(--pulso-module-sample-soft)",
     accentBorder: "var(--pulso-module-sample-border)",
   },
+  "plan-trabajo": {
+    accent: "var(--pulso-module-workplan)",
+    accentSoft: "var(--pulso-module-workplan-soft)",
+    accentBorder: "var(--pulso-module-workplan-border)",
+  },
   "diseno-estudio": {
     accent: "var(--pulso-module-encyclopedia)",
     accentSoft: "var(--pulso-module-encyclopedia-soft)",
@@ -86,76 +93,40 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
 
 export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
-    slug: "editor-xlsform",
-    title: "Editor de formularios",
-    shortLabel: "Formularios",
-    tagline: "Diseña, importa o traduce tu cuestionario",
+    slug: "diseno-estudio",
+    title: "Diseño del estudio",
+    shortLabel: "Diseño",
+    tagline: "Bitácora viva y protocolo metodológico",
     blurb:
-      "Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm.",
+      "Expediente profesional del proyecto: lee el avance de todos los módulos, consolida evidencia metodológica, muestra riesgos de completitud y permite registrar notas de bitácora durante el trabajo.",
     features: [
-      "Crear desde cero con asistente visual",
-      "Importar XLSX existente y editar celdas",
-      "Traducir cuestionarios de SurveyMonkey",
-      "Wizard de lógica y saltos condicionales",
-      "Diagnósticos del formulario en vivo",
+      "Bitácora editable por módulo, decisión, riesgo o avance",
+      "Lectura viva de Carga, Validación, Analítica, Campo y Monitoreo",
+      "Semáforo profesional de fuentes, evidencias y próximos pasos",
+      "Resumen metodológico para ficha técnica y entregables",
+      "Biblioteca metodológica integrada como referencia secundaria",
     ],
-    icon: IconEditor,
-    tone: MODULE_TONES["editor-xlsform"],
-    to: "/editor-xlsform",
+    icon: IconStudyDesign,
+    tone: MODULE_TONES["diseno-estudio"],
+    to: "/diseno-estudio",
   },
   {
-    slug: "procesamiento",
-    title: "Procesamiento y reportes",
-    shortLabel: "Procesamiento",
-    tagline: "Pipeline completo en 5 fases",
+    slug: "plan-trabajo",
+    title: "Cronograma del proyecto",
+    shortLabel: "Cronograma",
+    tagline: "Actividades, hitos y ventanas sincronizadas",
     blurb:
-      "Flujo completo de 5 fases: carga de data, validación, codificación de abiertas, preparación analítica y generación de reportes PPT/Word listos para entregar.",
+      "Importa cronogramas operativos, normaliza actividades, responsables, productos e hitos, y compara lo planificado con la evidencia real de Monitoreo, Reportes y otros módulos.",
     features: [
-      "Carga y normalización de data + XLSForm",
-      "Validación con reglas y limpieza personalizada",
-      "Codificación de respuestas abiertas",
-      "Frecuencias, cruces y dimensiones",
-      "Reportes en PowerPoint y Word",
+      "Importación de cronogramas Excel con grilla diaria",
+      "Vista Gantt y edición de actividades clave",
+      "Hitos de entrega y ventanas esperadas por módulo",
+      "Exportación XLSX profesional",
+      "Contrato síncrono con Monitoreo y Reportes",
     ],
-    icon: IconProcessing,
-    tone: MODULE_TONES.procesamiento,
-    to: "/procesamiento",
-  },
-  {
-    slug: "dashboard",
-    title: "Dashboard interactivo",
-    shortLabel: "Dashboard",
-    tagline: "Explora cruces, relaciones y base de datos",
-    blurb:
-      "Dashboard interactivo del cuestionario para entregar a tu cliente: resumen por sección, relaciones (cruces) y base de datos. Personaliza logo, paleta y título.",
-    features: [
-      "Resumen por sección del cuestionario",
-      "Cruces 2D filtrados con semáforo",
-      "Base de datos descargable",
-      "Personaliza logo, paleta y título",
-      "Exporta como HTML autosuficiente (WebR)",
-    ],
-    icon: IconDashboard,
-    tone: MODULE_TONES.dashboard,
-    to: "/tablero",
-  },
-  {
-    slug: "hojas-ruta",
-    title: "Hojas de ruta para campo",
-    shortLabel: "Hojas de ruta",
-    tagline: "Cuotas, rutas y mapas para enumeradores",
-    blurb:
-      "Genera hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados. Entrega un ZIP listo para impresión.",
-    features: [
-      "Cuotas por conglomerado (UMP)",
-      "Rutas de visita imprimibles",
-      "Puntos de muestra georeferenciados",
-      "Validación de territorio (UBIGEO Lima)",
-      "ZIP con PDFs listos para imprimir",
-    ],
-    icon: IconRoutes,
-    tone: MODULE_TONES["hojas-ruta"],
-    to: "/hojas-ruta",
+    icon: IconWorkPlan,
+    tone: MODULE_TONES["plan-trabajo"],
+    to: "/plan-trabajo",
   },
   {
     slug: "calc-muestra",
@@ -176,22 +147,40 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     to: "/calc-muestra",
   },
   {
-    slug: "diseno-estudio",
-    title: "Diseño del estudio",
-    shortLabel: "Diseño",
-    tagline: "Bitácora viva y protocolo metodológico",
+    slug: "editor-xlsform",
+    title: "Editor de formularios",
+    shortLabel: "Formularios",
+    tagline: "Diseña, importa o traduce tu cuestionario",
     blurb:
-      "Expediente profesional del proyecto: lee el avance de todos los módulos, consolida evidencia metodológica, muestra riesgos de completitud y permite registrar notas de bitácora durante el trabajo.",
+      "Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm.",
     features: [
-      "Bitácora editable por módulo, decisión, riesgo o avance",
-      "Lectura viva de Carga, Validación, Analítica, Campo y Monitoreo",
-      "Semáforo profesional de fuentes, evidencias y próximos pasos",
-      "Resumen metodológico para ficha técnica y entregables",
-      "Biblioteca metodológica integrada como referencia secundaria",
+      "Crear desde cero con asistente visual",
+      "Importar XLSX existente y editar celdas",
+      "Traducir cuestionarios de SurveyMonkey",
+      "Wizard de lógica y saltos condicionales",
+      "Diagnósticos del formulario en vivo",
     ],
-    icon: IconStudyDesign,
-    tone: MODULE_TONES["diseno-estudio"],
-    to: "/diseno-estudio",
+    icon: IconEditor,
+    tone: MODULE_TONES["editor-xlsform"],
+    to: "/editor-xlsform",
+  },
+  {
+    slug: "hojas-ruta",
+    title: "Hojas de ruta para campo",
+    shortLabel: "Hojas de ruta",
+    tagline: "Cuotas, rutas y mapas para enumeradores",
+    blurb:
+      "Genera hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados. Entrega un ZIP listo para impresión.",
+    features: [
+      "Cuotas por conglomerado (UMP)",
+      "Rutas de visita imprimibles",
+      "Puntos de muestra georeferenciados",
+      "Validación de territorio (UBIGEO Lima)",
+      "ZIP con PDFs listos para imprimir",
+    ],
+    icon: IconRoutes,
+    tone: MODULE_TONES["hojas-ruta"],
+    to: "/hojas-ruta",
   },
   {
     slug: "recopiladores",
@@ -228,10 +217,52 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     tone: MODULE_TONES.monitoreo,
     to: "/monitoreo",
   },
+  {
+    slug: "procesamiento",
+    title: "Carga, validación y análisis",
+    shortLabel: "Carga",
+    tagline: "Consolida data y produce bases/reportes",
+    blurb:
+      "Tramo de procesamiento posterior al levantamiento: carga bases recibidas o sincronizadas, normaliza el estudio multibase, valida y limpia, codifica abiertas, prepara analítica y genera gráficos PPT/Word.",
+    features: [
+      "Carga y normalización multibase",
+      "Validación, reglas y decisiones de limpieza",
+      "Codificación de respuestas abiertas",
+      "Codebook, frecuencias, cruces y dimensiones",
+      "Gráficos y reportes en PowerPoint y Word",
+    ],
+    icon: IconProcessing,
+    tone: MODULE_TONES.procesamiento,
+    to: "/procesamiento",
+  },
+  {
+    slug: "dashboard",
+    title: "Dashboard interactivo",
+    shortLabel: "Dashboard",
+    tagline: "Explora cruces, relaciones y base de datos",
+    blurb:
+      "Dashboard interactivo del cuestionario para entregar a tu cliente: resumen por sección, relaciones (cruces) y base de datos. Personaliza logo, paleta y título.",
+    features: [
+      "Resumen por sección del cuestionario",
+      "Cruces 2D filtrados con semáforo",
+      "Base de datos descargable",
+      "Personaliza logo, paleta y título",
+      "Exporta como HTML autosuficiente (WebR)",
+    ],
+    icon: IconDashboard,
+    tone: MODULE_TONES.dashboard,
+    to: "/tablero",
+  },
 ];
+
+export const PROSECNUR_PRIMARY_MODULES: ProsecnurModuleMeta[] =
+  PROSECNUR_MODULES.filter((module) => module.slug !== "plan-trabajo");
 
 export const PROSECNUR_ACTIVE_MODULES: ActiveProsecnurModuleMeta[] =
   PROSECNUR_MODULES.filter(hasModuleRoute);
+
+export const PROSECNUR_PRIMARY_ACTIVE_MODULES: ActiveProsecnurModuleMeta[] =
+  PROSECNUR_PRIMARY_MODULES.filter(hasModuleRoute);
 
 export function hasModuleRoute(
   module: ProsecnurModuleMeta,

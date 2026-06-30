@@ -44,6 +44,7 @@ const MONITOREO_FULL_PROFILE_WARMUP_TIMEOUT_MS = 300000;
 const MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS = 220000;
 const MONITOREO_TERRITORIAL_SCOPE_TIMEOUT_MS = 180000;
 const MONITOREO_TERRITORIAL_MAP_TIMEOUT_MS = 120000;
+const BACKEND_MONITOREO_READY_KEY = "pulso.backendMonitoreoWarmupReady";
 const MONITOREO_TERRITORIAL_SCOPES = [
   "source",
   "route_summary",
@@ -56,6 +57,25 @@ const MONITOREO_TERRITORIAL_MAP_LAYERS = ["route_geometry", "gps_points"] as con
 
 function cleanString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function backendMonitoreoWarmupReady() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(BACKEND_MONITOREO_READY_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markBackendMonitoreoWarmupReady(ready: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (ready) window.sessionStorage.setItem(BACKEND_MONITOREO_READY_KEY, "1");
+    else window.sessionStorage.removeItem(BACKEND_MONITOREO_READY_KEY);
+  } catch {
+    // sessionStorage can be unavailable in restricted contexts; warmup still works.
+  }
 }
 
 function uniqueStrings(values: unknown[]) {
@@ -295,6 +315,7 @@ async function waitForWarmupJob(api: WarmupApi, jobId: string, maxMs = 45000) {
 async function warmupMonitoreoLocalData() {
   const api = await import("../api/client");
   const { preloadMonitoreoFamily } = await import("../features/monitoreo/profiles/registry");
+  const { monitoreoScopeCache } = await import("../features/monitoreo/core/reportScopeCache");
   const lightState = await api.apiMonitoreoState({ includeReports: false, warmupCache: true });
   const family = cleanString(
     (lightState as { monitoreo_profile?: { family?: string }; config?: { monitoreo_profile?: { family?: string } } }).monitoreo_profile?.family ??
@@ -303,6 +324,7 @@ async function warmupMonitoreoLocalData() {
   const familyProfile = await preloadMonitoreoFamily(family);
 
   if (family === "territorial") {
+    const backendReady = backendMonitoreoWarmupReady();
     const backendPhase = cleanString(
       (lightState as { config?: { territorial?: { active_route_phase?: string } }; active_route_phase?: string }).active_route_phase ??
       (lightState as { config?: { territorial?: { active_route_phase?: string } } }).config?.territorial?.active_route_phase,
@@ -319,16 +341,19 @@ async function warmupMonitoreoLocalData() {
       ? [...familyProfile.warmupScopes]
       : [...MONITOREO_TERRITORIAL_SCOPES];
 
-    await withTimeout("Monitoreo territorial", settleAllLimited(phases, async (phase) => {
-      const job = await api.apiMonitoreoTerritorialPrewarm({ phase, scopes }).catch(() => null);
-      if (job?.job_id) await waitForWarmupJob(api, job.job_id, MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS).catch(() => null);
-    }, 1), MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS);
+    if (!backendReady) {
+      await withTimeout("Monitoreo territorial", settleAllLimited(phases, async (phase) => {
+        const job = await api.apiMonitoreoTerritorialPrewarm({ phase, scopes }).catch(() => null);
+        if (job?.job_id) await waitForWarmupJob(api, job.job_id, MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS).catch(() => null);
+      }, 1), MONITOREO_TERRITORIAL_PREWARM_TIMEOUT_MS);
+    }
 
     await withTimeout("Scopes de monitoreo", settleAllLimited(scopes, async (reportScope) => {
-      await api.apiMonitoreoState({ includeReports: true, reportScope }).catch(() => null);
+      const scopedState = await api.apiMonitoreoState({ includeReports: true, reportScope }).catch(() => null);
+      if (scopedState) monitoreoScopeCache.putTerritorialState(scopedState);
     }, 1), MONITOREO_TERRITORIAL_SCOPE_TIMEOUT_MS);
 
-    if (activePhase !== "pilot") {
+    if (activePhase !== "pilot" && !backendReady) {
       await withTimeout("Mapas de monitoreo", settleAllLimited(phases, async (phase) => {
         await api.apiMonitoreoTerritorialMapPrepare({
           phase,
@@ -473,6 +498,11 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     id: "calc_muestra",
     label: "Calculo de muestra",
     load: () => import("../features/calcMuestra/CalcMuestraPage"),
+  },
+  {
+    id: "plan_trabajo",
+    label: "Cronograma del proyecto",
+    load: () => import("../features/planTrabajo/PlanTrabajoPage"),
   },
   {
     id: "recopiladores",

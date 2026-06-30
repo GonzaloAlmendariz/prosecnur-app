@@ -591,6 +591,17 @@ mount_sistema <- function(pr) {
       if (!isTRUE(codificada_available)) {
         codificada_bases <- list()
       }
+      has_runtime_pair <- is.data.frame(s$rp_data) &&
+        nrow(s$rp_data) > 0L &&
+        !is.null(s$rp_inst)
+      has_runtime_source_pair <- length(s$rp_data_sources %||% list()) > 0L &&
+        length(s$rp_inst_sources %||% list()) > 0L &&
+        any(vapply(s$rp_data_sources %||% list(), function(item) {
+          is.data.frame(item) && nrow(item) > 0L
+        }, logical(1)))
+      analitica_runtime_ready <- isTRUE(s$analitica_prep_ok) ||
+        isTRUE(has_runtime_pair) ||
+        isTRUE(has_runtime_source_pair)
       list(
         session_id = s$id,
         created_at = format(s$created_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
@@ -605,7 +616,7 @@ mount_sistema <- function(pr) {
         codif_plantilla_template = isTRUE(s$codif_plantilla_template),
         codif_plantilla_codigos_loaded = !is.null(s$codif_plantilla_codigos_file_id),
         codif_aplicado = isTRUE(s$codif_aplicado),
-        analitica_prep_ok = isTRUE(s$analitica_prep_ok),
+        analitica_prep_ok = isTRUE(analitica_runtime_ready),
         analitica_codebook_ok = isTRUE(s$analitica_codebook_ok),
         analitica_frecuencias_ok = isTRUE(s$analitica_frecuencias_ok),
         analitica_cruces_ok = isTRUE(s$analitica_cruces_ok),

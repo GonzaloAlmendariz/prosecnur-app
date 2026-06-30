@@ -114,13 +114,23 @@ describe("territorialMasterRecords", () => {
       auditRow({ response_id: "gps", geo_estado: "geo_sin_gps", gps_parseable: false, lat: null, lon: null }),
     ]));
 
-    expect(summary).toMatchObject({ total: 3, clean: 1, review: 2, duration: 1, gps: 1 });
+    expect(summary).toMatchObject({
+      total: 3,
+      clean: 1,
+      review: 2,
+      duration: 1,
+      durationNormal: 2,
+      durationShort: 0,
+      durationVeryShort: 1,
+      gps: 1,
+    });
   });
 
   it("counts raw duration_status fallback when operational duration fields are missing", () => {
     const rows = buildTerritorialMasterRecordRows([
       auditRow({
         response_id: "raw-short",
+        duration_seconds: undefined,
         duration_status: "muy_corta",
         duration_operational_status: undefined,
         duration_operational_label: undefined,

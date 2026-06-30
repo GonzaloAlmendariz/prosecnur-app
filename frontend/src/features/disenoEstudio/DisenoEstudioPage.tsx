@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   BookOpen,
+  CalendarRange,
   CheckCircle2,
   ClipboardCheck,
   Clock3,
@@ -36,17 +37,18 @@ type Section = "expediente" | "bitacora" | "fuentes" | "biblioteca";
 
 const MODULE_OPTIONS = [
   ["diseno-estudio", "Diseño"],
+  ["plan-trabajo", "Cronograma"],
+  ["calc-muestra", "Muestra"],
   ["editor-xlsform", "Formulario"],
+  ["hojas-ruta", "Rutas"],
+  ["recopiladores", "Fichas QR"],
+  ["monitoreo", "Monitoreo"],
   ["carga", "Carga"],
   ["validacion", "Validación"],
   ["codificacion", "Codificación"],
   ["analitica", "Analítica"],
   ["graficos", "Gráficos"],
   ["dashboard", "Dashboard"],
-  ["calc-muestra", "Muestra"],
-  ["hojas-ruta", "Rutas"],
-  ["recopiladores", "Fichas QR"],
-  ["monitoreo", "Monitoreo"],
   ["proyecto", "Proyecto"],
 ] as const;
 
@@ -66,6 +68,7 @@ const SECTION_META: Array<{ key: Section; label: string; icon: typeof FileText }
 ];
 
 const DESIGN_MODULE = PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
+const CRONOGRAMA_TITLE = "Cronograma del proyecto";
 
 const EMPTY_ENTRY: DisenoEstudioBitacoraInput = {
   module_id: "diseno-estudio",
@@ -81,6 +84,16 @@ function fmt(value: number | null | undefined) {
 
 function moduleLabel(id: string) {
   return MODULE_OPTIONS.find(([key]) => key === id)?.[1] ?? id;
+}
+
+function normalizePlanLabel(value: string) {
+  return value
+    .replace(/\bPlan de Trabajo\b/g, CRONOGRAMA_TITLE)
+    .replace(/\bPlan de trabajo\b/g, CRONOGRAMA_TITLE);
+}
+
+function routeLabel(label: string, route: string) {
+  return route === "/plan-trabajo" ? CRONOGRAMA_TITLE : normalizePlanLabel(label);
 }
 
 function stateLabel(state: DisenoEstudioSource["state"]) {
@@ -228,6 +241,10 @@ export default function DisenoEstudioPage() {
               </button>
             );
           })}
+          <Link to="/plan-trabajo" aria-label={CRONOGRAMA_TITLE}>
+            <CalendarRange size={14} />
+            <span>Cronograma</span>
+          </Link>
         </nav>
 
         {error && <Alert kind="error"><strong>No se pudo completar la acción.</strong> {error}</Alert>}
@@ -249,7 +266,7 @@ export default function DisenoEstudioPage() {
                 <strong>Próximos pasos</strong>
                 {state.next_actions.slice(0, 4).map((action) => (
                   <Link key={`${action.route}-${action.label}`} to={action.route}>
-                    <span>{action.label}</span>
+                    <span>{routeLabel(action.label, action.route)}</span>
                     <small>{stateLabel(action.state)}</small>
                   </Link>
                 ))}
@@ -326,9 +343,9 @@ function ExpedienteSection({ state, risks }: { state: DisenoEstudioState; risks:
           <div className="diseno-list">
             {state.decisions.map((item) => (
               <article key={`${item.source}-${item.title}`} className={`is-${item.tone}`}>
-                <strong>{item.title}</strong>
-                <p>{item.detail}</p>
-                <span>{item.source}</span>
+                <strong>{normalizePlanLabel(item.title)}</strong>
+                <p>{normalizePlanLabel(item.detail)}</p>
+                <span>{normalizePlanLabel(item.source)}</span>
               </article>
             ))}
           </div>
@@ -341,8 +358,8 @@ function ExpedienteSection({ state, risks }: { state: DisenoEstudioState; risks:
           <div className="diseno-list">
             {risks.map((item) => (
               <Link key={`${item.route}-${item.title}`} to={item.route} className={`is-${item.severity}`}>
-                <strong>{item.title}</strong>
-                <p>{item.detail}</p>
+                <strong>{routeLabel(item.title, item.route)}</strong>
+                <p>{normalizePlanLabel(item.detail)}</p>
                 <span>{item.route}</span>
               </Link>
             ))}
@@ -466,10 +483,10 @@ function TimelineItem({
           <span>{toneLabel(item.tone)}</span>
           {item.occurred_at && <span><Clock3 size={12} /> {dateLabel(item.occurred_at)}</span>}
         </div>
-        <strong>{item.title}</strong>
-        <p>{item.body}</p>
+        <strong>{normalizePlanLabel(item.title)}</strong>
+        <p>{normalizePlanLabel(item.body)}</p>
         <div className="diseno-timeline-footer">
-          <span>{item.source}</span>
+          <span>{normalizePlanLabel(item.source)}</span>
           {manual ? (
             <span className="diseno-entry-actions">
               <button type="button" onClick={() => onEdit(manual)} title="Editar entrada">
@@ -494,14 +511,14 @@ function FuentesSection({ sources }: { sources: DisenoEstudioSource[] }) {
       {sources.map((source) => (
         <Link key={source.id} to={source.route} className={`diseno-source-card is-${source.state}`}>
           <div>
-            <span>{source.category}</span>
-            <strong>{source.label}</strong>
+            <span>{normalizePlanLabel(source.category)}</span>
+            <strong>{routeLabel(source.label, source.route)}</strong>
           </div>
           <em>{stateLabel(source.state)}</em>
-          <p>{source.summary}</p>
+          <p>{normalizePlanLabel(source.summary)}</p>
           {source.evidence.length > 0 && (
             <ul>
-              {source.evidence.slice(0, 3).map((item) => <li key={item}>{item}</li>)}
+              {source.evidence.slice(0, 3).map((item) => <li key={item}>{normalizePlanLabel(item)}</li>)}
             </ul>
           )}
         </Link>

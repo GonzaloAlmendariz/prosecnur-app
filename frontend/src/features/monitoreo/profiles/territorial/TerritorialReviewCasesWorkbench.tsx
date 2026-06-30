@@ -20,6 +20,12 @@ import type {
 import {
   formatInternalQueryDateAxisLabel,
 } from "../../internalQueries";
+import {
+  TERRITORIAL_DURATION_SHORT_SECONDS,
+  TERRITORIAL_DURATION_VERY_SHORT_SECONDS,
+  type TerritorialDurationOperationalKey,
+  territorialDurationOperationalStatusFromValues,
+} from "../../territorialDuration";
 import { TerritorialOperationalAdjustmentsWorkspace } from "./TerritorialOperationalAdjustmentsWorkspace";
 
 type TerritorialValidationTab = "geolocalizacion" | "duracion";
@@ -162,8 +168,14 @@ export function TerritorialReviewCasesWorkbench({
             </div>
             <div className="mon-territorial-review-metrics">
               <TerritorialReviewMetric icon={FileCheck2} label="Sin observación" value={summary.clean} tone="ready" />
-              <TerritorialReviewMetric icon={MapPin} label="GPS por revisar" value={summary.gps} tone={summary.gps ? "warning" : "ready"} />
-              <TerritorialReviewMetric icon={Clock} label="Duración por revisar" value={summary.duration} tone={summary.duration ? "warning" : "ready"} />
+              <TerritorialReviewMetric icon={MapPin} label="GPS con señal" value={summary.gps} tone={summary.gps ? "warning" : "ready"} />
+              <TerritorialReviewMetric
+                icon={Clock}
+                label="Tiempo corto/muy corto"
+                value={summary.duration}
+                tone={summary.duration ? "warning" : "ready"}
+                hint={summary.duration ? `${formatMetric(summary.durationShort)} corta · ${formatMetric(summary.durationVeryShort)} muy corta` : "todo normal"}
+              />
               <TerritorialReviewMetric icon={ContactRound} label="Cruce responsable" value={summary.unassigned} tone={summary.unassigned ? "warning" : "ready"} hint={summary.unassigned ? "sin responsable" : "resuelto"} />
             </div>
           </section>
@@ -215,7 +227,7 @@ export function TerritorialReviewCasesWorkbench({
                     <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
                   </div>
                   <div className="mon-territorial-review-table-tools">
-                    <em>{formatMetric(visibleSummary.clean)} sin observación · {formatMetric(visibleSummary.review)} por revisar · {formatMetric(visibleSummary.gps)} GPS · {formatMetric(visibleSummary.duration)} duración</em>
+                    <em>{formatMetric(visibleSummary.durationNormal)} normal · {formatMetric(visibleSummary.durationShort)} corta · {formatMetric(visibleSummary.durationVeryShort)} muy corta · {formatMetric(visibleSummary.gps)} GPS</em>
                   </div>
                 </header>
                 {filteredRows.length ? (
@@ -331,7 +343,7 @@ function TerritorialReviewMetric({
       <Icon size={15} />
       <em>{label}</em>
       <strong>{formatMetric(value)}</strong>
-      <small>{hint ?? (value ? "revisar" : "sin alerta")}</small>
+      <small>{hint ?? (value ? "con señal" : "sin señal")}</small>
     </span>
   );
 }
@@ -576,12 +588,23 @@ function summarizeTerritorialReviewRows(rows: TerritorialReviewRow[]) {
     if (row.type === "record") summary.record += 1;
     if (row.gpsReview) summary.gps += 1;
     if (row.durationReview) summary.duration += 1;
+    if (hasEvaluableDuration(row)) {
+      const durationState = territorialDurationOperationalStatusFromValues({
+        seconds: row.durationSeconds,
+        durationStatus: row.durationStatus,
+        durationOperationalStatus: row.durationOperationalStatus,
+        durationOperationalLabel: row.durationOperationalLabel,
+      });
+      if (durationState === "muy_corto") summary.durationVeryShort += 1;
+      else if (durationState === "corto") summary.durationShort += 1;
+      else summary.durationNormal += 1;
+    }
     if (row.type === "ump") summary.ump += 1;
     if (row.state === "sin_observacion") summary.clean += 1;
     if (row.state === "pendiente" || row.state === "en_observacion") summary.review += 1;
     if (row.unassignedReview) summary.unassigned += 1;
     return summary;
-  }, { total: 0, record: 0, gps: 0, duration: 0, ump: 0, clean: 0, review: 0, unassigned: 0 });
+  }, { total: 0, record: 0, gps: 0, duration: 0, durationNormal: 0, durationShort: 0, durationVeryShort: 0, ump: 0, clean: 0, review: 0, unassigned: 0 });
 }
 
 function territorialReviewRowMatchesType(row: TerritorialReviewRow, type: TerritorialReviewTypeFilter) {
@@ -704,8 +727,6 @@ function territorialDistanceBand(row: TerritorialReviewRow) {
   return { key: "geo_sin_gps", label: "S/D", detail: "sin dato" };
 }
 
-type TerritorialDurationOperationalKey = "normal" | "corto" | "muy_corto";
-
 function territorialDurationBand(
   row: TerritorialReviewRow,
   config: Pick<MonitoreoTerritorialConfig, "min_duration_seconds" | "max_duration_seconds">,
@@ -715,10 +736,10 @@ function territorialDurationBand(
   }
   const key = durationOperationalStatus(row, config);
   if (key === "muy_corto") {
-    return { key, label: "Muy corto", detail: `< ${formatDurationLabel(config.min_duration_seconds)}`, className: "is-duration-muy-corto", hasDuration: true };
+    return { key, label: "Muy corta", detail: `< ${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)}`, className: "is-duration-muy-corto", hasDuration: true };
   }
   if (key === "corto") {
-    return { key, label: "Corto", detail: `< ${formatDurationLabel(shortDurationSeconds(config))}`, className: "is-duration-corto", hasDuration: true };
+    return { key, label: "Corta", detail: `${formatDurationLabel(TERRITORIAL_DURATION_VERY_SHORT_SECONDS)}-${formatDurationLabel(TERRITORIAL_DURATION_SHORT_SECONDS)}`, className: "is-duration-corto", hasDuration: true };
   }
   return { key, label: "Normal", detail: "sin alerta operativa", className: "is-duration-normal", hasDuration: true };
 }
@@ -780,24 +801,19 @@ function durationOperationalStatus(
   row: Partial<TerritorialReviewRow | TerritorialResponseAuditRow | TerritorialInternalReviewCase>,
   config: Pick<MonitoreoTerritorialConfig, "min_duration_seconds" | "max_duration_seconds">,
 ): TerritorialDurationOperationalKey {
+  void config;
   const seconds = numberOrNull((row as TerritorialReviewRow).durationSeconds ?? (row as TerritorialResponseAuditRow).duration_seconds);
-  const direct = normalizeCode((row as TerritorialReviewRow).durationOperationalStatus ?? (row as TerritorialResponseAuditRow).duration_operational_status);
-  if (direct === "corto" || direct === "muy_corto") return direct;
-  const label = normalizeMatch((row as TerritorialReviewRow).durationOperationalLabel ?? (row as TerritorialResponseAuditRow).duration_operational_label);
-  if (label === "muy corto") return "muy_corto";
-  if (label === "corto") return "corto";
-  const raw = normalizeCode((row as TerritorialReviewRow).durationStatus ?? (row as TerritorialResponseAuditRow).duration_status);
-  if (raw === "muy_corta" || raw === "muy_corto") return "muy_corto";
-  if (raw === "corta" || raw === "corto") return "corto";
-  if (seconds != null) {
-    if (seconds < config.min_duration_seconds) return "muy_corto";
-    if (seconds < shortDurationSeconds(config)) return "corto";
-  }
-  return "normal";
+  return territorialDurationOperationalStatusFromValues({
+    seconds,
+    durationStatus: (row as TerritorialReviewRow).durationStatus ?? (row as TerritorialResponseAuditRow).duration_status,
+    durationOperationalStatus: (row as TerritorialReviewRow).durationOperationalStatus ?? (row as TerritorialResponseAuditRow).duration_operational_status,
+    durationOperationalLabel: (row as TerritorialReviewRow).durationOperationalLabel ?? (row as TerritorialResponseAuditRow).duration_operational_label,
+  });
 }
 
 function shortDurationSeconds(config: Pick<MonitoreoTerritorialConfig, "min_duration_seconds" | "max_duration_seconds">) {
-  return Math.max(300, config.min_duration_seconds * 5);
+  void config;
+  return TERRITORIAL_DURATION_SHORT_SECONDS;
 }
 
 function observationReasonParts(row: Partial<TerritorialResponseAuditRow | TerritorialInternalReviewCase>) {

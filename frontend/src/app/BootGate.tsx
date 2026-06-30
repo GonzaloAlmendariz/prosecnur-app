@@ -20,7 +20,7 @@ import type { RecentProject } from "../features/project/types";
 import {
   warmupFrontendModules,
   warmupModuleIds,
-  markWarmupModulesComplete,
+  markBackendMonitoreoWarmupReady,
   resetWarmupModulesComplete,
   WARMUP_MODULES,
   type WarmupModuleProgress,
@@ -205,6 +205,10 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
   if (/consultas de revisi[oó]n/i.test(text)) {
     return "Preparando consultas de revisión";
   }
+  if (/acreditaci[oó]n/i.test(text)) {
+    if (/listo|preparad|complet/i.test(text)) return "Acreditación lista";
+    return "Preparando acreditación";
+  }
   if (/tablero telef[oó]nico/i.test(text)) {
     return "Preparando tablero telefónico";
   }
@@ -263,6 +267,7 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
   if (moduleName.includes("graficos") || moduleName.includes("gráficos")) return "Cargando gráficos";
   if (moduleName.includes("hojas de ruta") || moduleName.includes("mapas")) return "Preparando rutas y mapas";
   if (moduleName.includes("calculo") || moduleName.includes("cálculo")) return "Preparando cálculo de muestra";
+  if (moduleName.includes("plan de trabajo") || moduleName.includes("cronograma")) return "Preparando plan de trabajo";
   if (moduleName.includes("monitoreo territorial")) return "Preparando monitoreo territorial";
   if (moduleName.includes("monitoreo")) return "Preparando monitoreo";
   if (moduleName.includes("dashboard")) return "Preparando dashboard";
@@ -275,6 +280,9 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
 function friendlyWarmupDetail(raw: string | null | undefined, phase: GatePhase, progressPercent: number) {
   if (phase === "loading") return "Abriendo el espacio de trabajo con la información preparada.";
   const text = (raw ?? "").trim();
+  if (/acreditaci[oó]n/i.test(text)) {
+    return "Preparando fuentes, avance, consultas y seguimiento telefónico del proyecto.";
+  }
   if (/leyendo fuentes|preparando fuente/i.test(text)) {
     return "Leyendo las bases y fuentes que usará Monitoreo al entrar.";
   }
@@ -348,6 +356,51 @@ function warmupStepDetail(status: WarmupDisplayStepStatus, elapsedMs?: number, e
   return elapsed ? `Listo en ${elapsed}` : "Listo";
 }
 
+function warmupScopeLabel(scope: string, family = "") {
+  if (family === "acreditacion") {
+    if (scope === "source") return "Fuentes de acreditación";
+    if (scope === "advance_summary") return "Avance de acreditación";
+    if (scope === "queries_summary") return "Consultas de revisión";
+    if (scope === "phone_summary") return "Seguimiento telefónico";
+  }
+  if (family === "telefonico") {
+    if (scope === "phone_summary") return "Tablero telefónico";
+    if (scope === "queries_summary") return "Casos telefónicos";
+  }
+  if (scope === "source") return "Fuentes de Monitoreo";
+  if (scope === "advance_summary") return "Avance y cuotas";
+  if (scope === "queries_summary") return "Consultas de revisión";
+  if (scope === "phone_summary") return "Tablero telefónico";
+  if (scope === "route_summary") return "Rutas y cobertura";
+  if (scope === "validation_summary") return "Validaciones";
+  return friendlyTaskLabel(scope.replace(/_/g, " "), "Preparando datos");
+}
+
+function warmupScopeStatus(value: unknown): WarmupDisplayStepStatus {
+  if (value === "ready" || value === "skipped" || value === "timeout" || value === "error") return value;
+  return "pending";
+}
+
+function warmupScopeSteps(task: BootWarmupTask): WarmupDisplayStep[] {
+  const details = task.details ?? {};
+  const scopes = Array.isArray(details.scopes) ? details.scopes : [];
+  if (!scopes.length) return [];
+  const family = typeof details.family === "string" ? details.family : "";
+  return scopes.map((raw, index) => {
+    const item = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+    const scope = String(item.scope ?? `scope-${index + 1}`);
+    const status = warmupScopeStatus(item.status);
+    const elapsedMs = typeof item.elapsed_ms === "number" ? item.elapsed_ms : undefined;
+    const error = typeof item.error === "string" ? item.error : typeof item.message === "string" ? item.message : undefined;
+    return {
+      id: `backend:${task.id || task.module}:scope:${scope}`,
+      label: warmupScopeLabel(scope, family),
+      status,
+      detail: warmupStepDetail(status, elapsedMs, error),
+    };
+  });
+}
+
 function backendProgressDetail(progress: BootJobProgress | null) {
   const percent = Number(progress?.percent);
   const current = Number(progress?.current);
@@ -395,8 +448,10 @@ function warmupDisplaySteps({
     status: item.status as WarmupDisplayStepStatus,
     detail: warmupStepDetail(item.status as WarmupDisplayStepStatus, item.elapsed_ms, item.error),
   }));
+  const backendScopeSteps = backendTasks.flatMap(warmupScopeSteps);
   if (frontend.length) steps.push(...frontend);
   if (backend.length) steps.push(...backend);
+  if (backendScopeSteps.length) steps.push(...backendScopeSteps);
   if (backendEnabled && !backend.length) {
     steps.push({
       id: "backend-progress",
@@ -545,6 +600,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     setFrontendModules({});
     setWarmupMessage("Preparando proyecto local...");
     resetWarmupModulesComplete();
+    markBackendMonitoreoWarmupReady(false);
 
     const visualQaWarmupModuleIds = readVisualQaWarmupModuleIds();
     const skipBackendWarmup = shouldSkipVisualQaBackendWarmup();
@@ -567,25 +623,36 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     });
     const backendCoveredFrontendIdSet = new Set(backendCoveredFrontendIds);
     const plannedFrontendModuleIds = rawPlannedFrontendModuleIds.filter((id) => !backendCoveredFrontendIdSet.has(id));
-    setFrontendWarmupTotal(plannedFrontendModuleIds.length);
+    setFrontendWarmupTotal(rawPlannedFrontendModuleIds.length);
     setBackendWarmupEnabled(backendWarmupActive);
     setDisplayProgressPercent(1);
 
-    const frontendPromise = warmupFrontendModules((progress) => {
+    const recordFrontendProgress = (progress: WarmupModuleProgress) => {
       if (!mountedRef.current) return;
       setFrontendModules((prev) => ({ ...prev, [progress.id]: progress }));
-    }, { concurrency: 3, moduleIds: plannedFrontendModuleIds, taskTimeoutMs: BOOT_FRONTEND_TASK_TIMEOUT_MS });
+    };
+
+    const frontendPromise = warmupFrontendModules(recordFrontendProgress, {
+      concurrency: 3,
+      moduleIds: plannedFrontendModuleIds,
+      taskTimeoutMs: BOOT_FRONTEND_TASK_TIMEOUT_MS,
+    });
 
     const backendPromise = skipBackendWarmup
       ? Promise.resolve(null)
       : bootApiProjectWarmup({ mode: "full", budget_ms: BOOT_BUDGET_MS, modules: plannedBackendModuleIds })
         .then((job) => pollBackendWarmup(job.job_id))
-        .then((snapshot) => {
+        .then(async (snapshot) => {
           if (
             backendCoveredFrontendIds.length &&
             backendSnapshotCoversFrontendModules(snapshot, plannedBackendModuleIds)
           ) {
-            markWarmupModulesComplete(backendCoveredFrontendIds);
+            markBackendMonitoreoWarmupReady(true);
+            await warmupFrontendModules(recordFrontendProgress, {
+              concurrency: 1,
+              moduleIds: backendCoveredFrontendIds,
+              taskTimeoutMs: BOOT_FRONTEND_TASK_TIMEOUT_MS,
+            });
           }
           return snapshot;
         })

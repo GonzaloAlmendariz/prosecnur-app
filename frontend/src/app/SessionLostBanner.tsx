@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
-import { useSession } from "../lib/SessionContext";
+import { useOptionalSession } from "../lib/SessionContext";
 
 // Banner global que aparece cuando el backend deja de reconocer el `sid`
 // que el browser tiene en localStorage. Típicamente pasa cuando el backend
@@ -15,7 +15,8 @@ import { useSession } from "../lib/SessionContext";
 // falla, no tiene sentido ocultar el banner.
 
 export function SessionLostBanner() {
-  const { sessionLost } = useSession();
+  const session = useOptionalSession();
+  const sessionLost = session?.sessionLost ?? false;
   const [mounted, setMounted] = useState(false);
 
   // Pequeño delay para que el banner slide-in suavemente cuando aparece.

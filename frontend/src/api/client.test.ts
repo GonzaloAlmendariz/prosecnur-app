@@ -24,6 +24,7 @@ import {
   apiMonitoreoSheetsPublish,
   apiMonitoreoSheetsSource,
   apiMonitoreoSync,
+  apiMonitoreoAcreditacionCaseReconciliation,
   apiMonitoreoTerritorialMap,
   apiMonitoreoTerritorialMapPrepare,
   apiMonitoreoTerritorialOperationalPackageReview,
@@ -31,6 +32,7 @@ import {
   apiMonitoreoTerritorialReconciliationBatch,
   apiMonitoreoTerritorialSource,
   apiMonitoreoTerritorialUmpReconciliation,
+  apiUpload,
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
@@ -867,6 +869,11 @@ describe("Monitoreo client", () => {
       audience: "internal",
       includeTargets: true,
       confirmedFullData: true,
+      referenceDriftFileId: "reference-drift-file",
+      operationalPackageReview: {
+        status: "review_ready",
+        publication_ready: false,
+      },
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -878,6 +885,11 @@ describe("Monitoreo client", () => {
       audience: "internal",
       include_targets: true,
       confirmed_full_data: true,
+      reference_drift_file_id: "reference-drift-file",
+      operational_package_review: {
+        status: "review_ready",
+        publication_ready: false,
+      },
     });
     expect(result.controlled_tabs).toContain("Base técnica");
   });
@@ -914,6 +926,11 @@ describe("Monitoreo client", () => {
       audience: "internal",
       includeTargets: true,
       confirmedFullData: true,
+      referenceDriftFileId: "reference-drift-file",
+      operationalPackageReview: {
+        status: "review_ready",
+        publication_ready: false,
+      },
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -925,6 +942,11 @@ describe("Monitoreo client", () => {
       audience: "internal",
       include_targets: true,
       confirmed_full_data: true,
+      reference_drift_file_id: "reference-drift-file",
+      operational_package_review: {
+        status: "review_ready",
+        publication_ready: false,
+      },
     });
     expect(result.preflight.status).toBe("ready");
     expect(result.tabs).toContain("Resumen");
@@ -960,6 +982,28 @@ describe("Monitoreo client", () => {
           report_md: "tmp/qa/monitoreo-deliverables/acrdconta-internal/report.md",
           artifacts: { generated_xlsx: "generated.xlsx" },
         },
+        files: {
+          operational_package_request_csv: {
+            file_id: "request-csv",
+            filename: "acrdconta-internal-operational-package-request.csv",
+            size: 456,
+          },
+          operational_package_request: {
+            file_id: "request-json",
+            filename: "acrdconta-internal-operational-package-request.json",
+            size: 789,
+          },
+          operational_package_status: {
+            file_id: "status-json",
+            filename: "acrdconta-internal-operational-package-status.json",
+            size: 321,
+          },
+          publication_decision: {
+            file_id: "decision-json",
+            filename: "acrdconta-internal-publication-decision.json",
+            size: 654,
+          },
+        },
         zip: { file_id: "pack-file", filename: "acrdconta-internal-evidence-pack.zip", size: 1234 },
         file_id: "pack-file",
         filename: "acrdconta-internal-evidence-pack.zip",
@@ -972,6 +1016,11 @@ describe("Monitoreo client", () => {
       audience: "internal",
       includeTargets: true,
       confirmedFullData: true,
+      referenceDriftFileId: "reference-drift-file",
+      operationalPackageReview: {
+        status: "review_ready",
+        publication_ready: false,
+      },
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -983,10 +1032,63 @@ describe("Monitoreo client", () => {
       audience: "internal",
       include_targets: true,
       confirmed_full_data: true,
+      reference_drift_file_id: "reference-drift-file",
+      operational_package_review: {
+        status: "review_ready",
+        publication_ready: false,
+      },
     });
     expect(result.file_id).toBe("pack-file");
     expect(result.download_url).toContain("/api/files/pack-file/download");
+    expect(result.files?.operational_package_request_csv?.download_url).toContain("/api/files/request-csv/download");
+    expect(result.files?.operational_package_request?.download_url).toContain("/api/files/request-json/download");
+    expect(result.files?.operational_package_status?.download_url).toContain("/api/files/status-json/download");
+    expect(result.files?.publication_decision?.download_url).toContain("/api/files/decision-json/download");
     expect(result.evidence_pack.artifacts?.generated_xlsx).toBe("generated.xlsx");
+  });
+
+  test("uploads completed territorial operational packages with a dedicated kind", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      return jsonResponse(url.includes("monitoreo_reference_drift")
+        ? {
+            file_id: "reference-drift-file",
+            kind: "monitoreo_reference_drift",
+            original_name: "territorial-drift-report.csv",
+            size: 96,
+            ext: "csv",
+          }
+        : {
+            file_id: "operational-package-file",
+            kind: "monitoreo_operational_package",
+            original_name: "completed-operational-package.csv",
+            size: 64,
+            ext: "csv",
+          });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const packageResult = await apiUpload(
+      new File(["package_item\nump_subsanada:UMP 101\n"], "completed-operational-package.csv", { type: "text/csv" }),
+      "monitoreo_operational_package",
+    );
+    const driftResult = await apiUpload(
+      new File(["required_package_item\nump_subsanada:UMP 101\n"], "territorial-drift-report.csv", { type: "text/csv" }),
+      "monitoreo_reference_drift",
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/files/upload?kind=monitoreo_operational_package",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/files/upload?kind=monitoreo_reference_drift",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(packageResult.kind).toBe("monitoreo_operational_package");
+    expect(packageResult.ext).toBe("csv");
+    expect(driftResult.kind).toBe("monitoreo_reference_drift");
+    expect(driftResult.ext).toBe("csv");
   });
 
   test("reviews territorial operational package without applying it", async () => {
@@ -1020,9 +1122,12 @@ describe("Monitoreo client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await apiMonitoreoTerritorialOperationalPackageReview({
+      packageFileId: "operational-package-file",
       packageRows: [{ package_item: "ump_subsanada:UMP 101" }],
       driftRows: [{ required_package_item: "ump_subsanada:UMP 101", blocks_publication: true }],
+      driftFileId: "reference-drift-file",
       requiredOperationalPackage: { tachas: 0 },
+      requiredTachas: 0,
       source: "Sheet validado ACNURCG",
       cut: "2026-06-26",
       project: "ACNURCG",
@@ -1033,9 +1138,12 @@ describe("Monitoreo client", () => {
       expect.objectContaining({ method: "POST" }),
     );
     expect(JSON.parse(String(sentInit?.body))).toEqual({
+      package_file_id: "operational-package-file",
       package_rows: [{ package_item: "ump_subsanada:UMP 101" }],
       drift_rows: [{ required_package_item: "ump_subsanada:UMP 101", blocks_publication: true }],
+      drift_file_id: "reference-drift-file",
       required_operational_package: { tachas: 0 },
+      required_tachas: 0,
       source: "Sheet validado ACNURCG",
       cut: "2026-06-26",
       project: "ACNURCG",
@@ -2174,6 +2282,24 @@ describe("Monitoreo client", () => {
     });
   });
 
+  test("starts Monitoreo sync with explicit sync mode", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ ok: true, job_id: "job-monitoreo" }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoSync(undefined, ["sm_docentes"], { syncMode: "advance" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/sync",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      source_ids: ["sm_docentes"],
+      sync_mode: "advance",
+    });
+  });
+
   test("updates territorial phase through lightweight endpoint", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
@@ -2196,6 +2322,44 @@ describe("Monitoreo client", () => {
       active_route_phase: "field",
     });
     expect(result.phase_source_status).toBe("missing_source");
+  });
+
+  test("sends Acreditacion case reconciliation through dedicated endpoint", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({
+        ok: true,
+        decision: {
+          response_id: "r-parcial-validable",
+          action: "include_with_caveat",
+          assigned_case_key: "codigo:A1",
+          note: "Parcial validada manualmente por evidencia suficiente.",
+        },
+        config: { monitoreo_profile: { family: "acreditacion" } },
+        state: { ok: true, sources: [], config: {}, variables: [], dashboard: null, errors: [] },
+        saved_project: true,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoAcreditacionCaseReconciliation({
+      response_id: "r-parcial-validable",
+      action: "include_with_caveat",
+      candidate_id: "codigo:A1",
+      note: "Parcial validada manualmente por evidencia suficiente.",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/acreditacion/case-reconciliation",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"))).toEqual({
+      response_id: "r-parcial-validable",
+      action: "include_with_caveat",
+      candidate_id: "codigo:A1",
+      note: "Parcial validada manualmente por evidencia suficiente.",
+    });
+    expect(result.decision.action).toBe("include_with_caveat");
+    expect(result.saved_project).toBe(true);
   });
 
   test("sends territorial UMP reconciliation through dedicated endpoint", async () => {
