@@ -3,11 +3,13 @@ import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
 import {
+  apiConnectionTokenLoad,
   apiJobStatus,
   apiMonitoreoAcreditacionCaseReconciliation,
   apiMonitoreoAcreditacionSeguimiento,
   apiMonitoreoCierre,
   apiMonitoreoCollectorsConfig,
+  apiMonitoreoKoboAssets,
   apiMonitoreoSheetsInspect,
   apiMonitoreoSheetsSource,
   apiMonitoreoSheetsSync,
@@ -19,6 +21,7 @@ import {
   apiMonitoreoSurveyMonkeyCollectors,
   apiSurveyMonkeyMultibaseInspectSurvey,
   apiSurveyMonkeyMultibaseListSurveys,
+  type ConnectionTokenState,
   type MonitoreoAcreditacion,
   type MonitoreoAcreditacionComponente,
   type MonitoreoAcreditacionIntentos,
@@ -30,6 +33,7 @@ import {
   type MonitoreoGoal,
   type MonitoreoInternalQueryCase,
   type MonitoreoInternalQueryIssue,
+  type MonitoreoKoboAssetItem,
   type MonitoreoLinkCollector,
   type MonitoreoReportBlock,
   type MonitoreoReportSheet,
@@ -51,7 +55,7 @@ import { MODULE_TONES } from "../../../../lib/modules";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { MONITOREO_ROUTES, WORKBENCH_VIEWS, workbenchViewsForRoute, type WorkbenchView } from "../../core/monitoreoRegistry";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
   filterInternalQueryCases,
   compareInternalQueryDateValues,
@@ -78,18 +82,20 @@ import {
   type AcreditacionPhoneSupervisionPriorityGroup,
   type AcreditacionPhoneSupervisionModel,
   type AcreditacionQualityAlertItem,
+  type AcreditacionQualityAlertTone,
 } from "./AcreditacionPhoneAlerts";
 import { upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
 import {
   buildAcreditacionPhoneDailyPoints,
-  buildAcreditacionPhoneDailyTableRows,
-  phoneDailyTableColumns,
+  buildAcreditacionPhoneDailyStatusSeries,
   type AcreditacionPhoneDailyPoint,
+  type AcreditacionPhoneDailyStatusSeries,
 } from "./AcreditacionPhoneDailyTrend";
 import {
   acreditacionActorOptions,
   acreditacionCollectorCountForSource,
   acreditacionCollectorsForSource,
+  acreditacionKoboResponseSources,
   acreditacionSourceChannel,
   acreditacionSourceResponseCount,
   acreditacionSourceWithOperationalMetadata,
@@ -100,6 +106,7 @@ import {
   acreditacionSurveySourceName,
   buildAcreditacionActiveSourcesSummary,
   type AcreditacionCollectorRow,
+  type AcreditacionPhoneSourceContract,
   type AcreditacionPhoneSourceSlot,
   type AcreditacionTelephoneChannel,
 } from "./AcreditacionSourcesModel";
@@ -118,12 +125,13 @@ const ACREDITACION_SOURCE_TABS = [
 ] as const;
 type AcreditacionSourceTab = typeof ACREDITACION_SOURCE_TABS[number]["key"];
 const ACREDITACION_DEFAULT_ACTORS = ["Estudiantes", "Docentes", "Egresados", "Administrativos", "Empleadores"];
+const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
 type AcreditacionSourcePresetKey = "base_trabajada" | "barrido_telefonico" | "respuestas_surveymonkey";
 type AcreditacionSourcePreset = {
   key: AcreditacionSourcePresetKey;
   icon: typeof Layers3;
   label: string;
-  service: "Google Sheets" | "SurveyMonkey";
+  service: "Google Sheets" | "SurveyMonkey/Kobo";
   detail: string;
   bullets: string[];
   provider: MonitoreoSource["kind"];
@@ -159,13 +167,13 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
   {
     key: "respuestas_surveymonkey",
     icon: QrCode,
-    label: "Respuestas SurveyMonkey",
-    service: "SurveyMonkey",
-    detail: "ENCUESTAS_ESTUDIO: una o más encuestas por actor, segmento/carrera y canal.",
-    bullets: ["Actor y canal", "Segmento/carrera", "Survey ID"],
+    label: "Kobo/plataforma",
+    service: "SurveyMonkey/Kobo",
+    detail: "ENCUESTAS_ESTUDIO: una o más encuestas Kobo o SurveyMonkey por actor, segmento/carrera y canal.",
+    bullets: ["Actor y canal", "Segmento/carrera", "Encuesta/asset"],
     provider: "surveymonkey",
     role: "respuestas",
-    sourceLabel: "Respuestas SurveyMonkey",
+    sourceLabel: "Respuestas de plataforma",
   },
 ];
 export const ACREDITACION_MODEL_TABS = [
@@ -184,7 +192,7 @@ export const ACREDITACION_CONSULTA_TABS = [
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
 export const ACREDITACION_PHONE_TABS = [
   { key: "resumen", label: "Resumen", detail: "Barrido telefónico", icon: PhoneCall },
-  { key: "dia", label: "Día", detail: "Efectivas y rechazos", icon: CalendarRange },
+  { key: "dia", label: "Día", detail: "Efectivas Kobo", icon: CalendarRange },
   { key: "incidencia", label: "Incidencias de la base", detail: "Sin efectiva e insistencia", icon: AlertCircle },
   { key: "responsables", label: "Responsables", detail: "Equipo y carga", icon: ContactRound },
   { key: "alertas", label: "Alertas", detail: "Alertas reales", icon: ShieldAlert },
@@ -599,8 +607,135 @@ type PlatformRejectionQuestionOption = {
   support: number;
 };
 
+type PhoneEffectiveFilterConfig = {
+  enabled: boolean;
+  variable: string;
+  values: string[];
+  label: string;
+  value_label: string;
+  source_kind: string;
+};
+
+type PhoneEffectiveFilterQuestionOption = {
+  value: string;
+  label: string;
+  choices: string[];
+  support: number;
+  type: string;
+};
+
 function newPlatformRejectionDraft(): PlatformRejectionRuleDraft {
   return { id: `rechazo-plataforma-${Date.now()}-${Math.random().toString(36).slice(2)}`, question: "", answers: "No" };
+}
+
+function normalizePhoneEffectiveFilter(value: unknown): PhoneEffectiveFilterConfig {
+  const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const rawValues = raw.values ?? raw.options ?? raw.value;
+  const values = (Array.isArray(rawValues) ? rawValues : [rawValues])
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean);
+  return {
+    enabled: Boolean(raw.enabled ?? raw.activo ?? (String(raw.variable ?? raw.field ?? "").trim() && values.length)),
+    variable: String(raw.variable ?? raw.field ?? raw.question ?? raw.pregunta ?? "").trim(),
+    values,
+    label: String(raw.label ?? raw.etiqueta ?? "").trim(),
+    value_label: String(raw.value_label ?? raw.etiqueta_valor ?? "").trim(),
+    source_kind: String(raw.source_kind ?? raw.provider ?? "kobo").trim(),
+  };
+}
+
+function phoneEffectiveFilterLabel(option: PhoneEffectiveFilterQuestionOption) {
+  return option.label && option.label !== option.value ? `${option.label} (${option.value})` : option.value;
+}
+
+function preferredPhoneEffectiveValue(choices: string[]) {
+  return choices.find((choice) => ["yes", "si", "sí", "1", "true"].includes(normalizeSourceMatch(choice)))
+    ?? choices.find((choice) => normalizeSourceMatch(choice).includes("consent"))
+    ?? choices[0]
+    ?? "";
+}
+
+function phoneEffectiveFilterQuestionScore(option: PhoneEffectiveFilterQuestionOption) {
+  const haystack = normalizeSourceMatch(`${option.value} ${option.label} ${option.type}`);
+  if (haystack.includes("consent")) return 0;
+  if (haystack.includes("elegib") || haystack.includes("apto")) return 1;
+  if (haystack.includes("filtro") || haystack.includes("screen")) return 2;
+  if (haystack.includes("select_one")) return 5;
+  return 10;
+}
+
+function phoneEffectiveFilterQuestionOptions(
+  variables: MonitoreoVariable[],
+  sourceMetadata: MonitoreoState["source_metadata"] | null | undefined,
+  platformSources: MonitoreoSource[],
+) {
+  const platformSourceIds = new Set(platformSources.map((source) => source.id).filter(Boolean));
+  const options = new Map<string, PhoneEffectiveFilterQuestionOption>();
+  const addOption = (input: {
+    value: string;
+    label?: string;
+    choices?: unknown[];
+    support?: number;
+    type?: string;
+  }) => {
+    const value = String(input.value ?? "").trim();
+    if (!value) return;
+    const key = normalizeSourceMatch(value);
+    if (!key || value.startsWith(".") || key.startsWith(".") || key.includes("snapshot") || key.includes("prosecnur")) return;
+    if (value.startsWith("_") || key.includes("attachment") || key.includes("version") || key.includes("uuid") || key.includes("submission") || key.includes("integration")) return;
+    const choices = uniqueDisplayValues(unknownArray<unknown>(input.choices)).slice(0, 40);
+    if (!choices.length) return;
+    const existing = options.get(key);
+    const nextChoices = uniqueDisplayValues([...(existing?.choices ?? []), ...choices]);
+    options.set(key, {
+      value: existing?.value ?? value,
+      label: String(input.label ?? existing?.label ?? value).trim() || value,
+      choices: nextChoices,
+      support: Math.max(existing?.support ?? 0, Number(input.support) || nextChoices.length),
+      type: String(input.type ?? existing?.type ?? "").trim(),
+    });
+  };
+
+  variables.forEach((variable) => {
+    addOption({
+      value: variable.name,
+      label: variable.label || variable.name,
+      choices: variable.values ?? [],
+      support: variable.n_unique,
+      type: variable.tipo,
+    });
+  });
+
+  Object.entries(sourceMetadata?.variables_by_source ?? {}).forEach(([sourceId, stats]) => {
+    if (platformSourceIds.size && !platformSourceIds.has(sourceId)) return;
+    unknownArray<Record<string, unknown>>(stats).forEach((stat) => {
+      addOption({
+        value: String(stat.name ?? "").trim(),
+        label: String(stat.label ?? stat.name ?? "").trim(),
+        choices: unknownArray<unknown>(stat.examples),
+        support: Number(stat.non_empty ?? stat.total ?? 0),
+        type: String(stat.kind ?? ""),
+      });
+    });
+  });
+
+  return Array.from(options.values())
+    .sort((a, b) => phoneEffectiveFilterQuestionScore(a) - phoneEffectiveFilterQuestionScore(b) || a.value.localeCompare(b.value, "es"))
+    .slice(0, 160);
+}
+
+function phoneEffectiveFilterAnswerOptions(
+  options: PhoneEffectiveFilterQuestionOption[],
+  variable: string,
+  currentValue: string,
+) {
+  const key = normalizeSourceMatch(variable);
+  const option = options.find((item) => normalizeSourceMatch(item.value) === key);
+  const choices = option?.choices ?? [];
+  if (currentValue && !choices.some((choice) => normalizeSourceMatch(choice) === normalizeSourceMatch(currentValue))) {
+    return [currentValue, ...choices];
+  }
+  return choices;
 }
 
 function platformRejectionDrafts(rules: Array<Record<string, unknown>>): PlatformRejectionRuleDraft[] {
@@ -841,7 +976,15 @@ function AcreditacionCanonicalModelWorkbench({
   const sourceRows = useMemo(() => (
     client?.sources?.length ? client.sources : rowsFromSheets(reports?.sheets ?? [], ["fuente", "source", "canal"])
   ), [client?.sources, reports?.sheets]);
-  const dailyRows = client?.daily_general ?? [];
+  const sheetActorDailyRows = useMemo(
+    () => reports ? rowsForSheetBlock(reports, "cliente_avance_actor", ["avance_actor_dia"]) : [],
+    [reports],
+  );
+  const dailyRows = client?.daily_actor?.length
+    ? client.daily_actor
+    : sheetActorDailyRows.length
+      ? sheetActorDailyRows
+      : client?.daily_general ?? [];
   const allowedActors = useMemo(
     () => new Set(actorRows.map((row, index) => normalizeSourceMatch(rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`)))),
     [actorRows],
@@ -865,7 +1008,7 @@ function AcreditacionCanonicalModelWorkbench({
   const sourceSummary = buildAcreditacionActiveSourcesSummary(state?.sources ?? [], state?.config?.operational_model.link_collectors ?? []);
   const telephoneChannels = buildAcreditacionTelephoneChannels(state?.sources ?? [], state?.config?.operational_model.link_collectors ?? []);
   const activeSheetBases = activeSources.filter((source) => source.kind === "google_sheets" && source.role === "universo").length;
-  const surveyCount = activeSources.filter((source) => source.kind === "surveymonkey" && (source.role === "respuestas" || !source.role || Boolean(source.survey_id))).length;
+  const surveyCount = activeSources.filter(isPlatformResponseSource).length;
   const sweepCount = acreditacionSweepSources(activeSources).length;
   const mechanismTotal = surveyCount + sweepCount || cards.reduce((sum, card) => sum + card.mechanisms.filter((item) => item.role !== "Universo").length, 0);
   const metaTotal = cards.reduce((sum, card) => sum + (card.meta ?? 0), 0);
@@ -878,6 +1021,33 @@ function AcreditacionCanonicalModelWorkbench({
   const reportWeekdayLabel = calendarReportWeekdayLabel(scheduleDraft.reportWeekday);
   const phoneQuotaReportRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
   const isPhoneModel = isTelefonicoMonitoreoState(state);
+  const phoneQuotaVariable = isPhoneModel && state?.config
+    ? preferredPhoneQuotaVariable(state.variables ?? [], state.config.control_vars ?? [], phoneQuotaReportRows, state.config.goals ?? [])
+    : "";
+  const phoneQuotaEditorRows = isPhoneModel && state?.config
+    ? buildAcreditacionPhoneQuotaEditorRows({
+      variable: phoneQuotaVariable,
+      variables: state.variables ?? [],
+      goals: state.config.goals ?? [],
+      quotaRows: phoneQuotaReportRows,
+    })
+    : [];
+  const phoneQuotaBaseTotal = phoneQuotaEditorRows.reduce((sum, row) => sum + row.universe, 0);
+  const phoneQuotaEffectiveTotal = phoneQuotaEditorRows.reduce((sum, row) => sum + row.effective, 0);
+  const phoneQuotaMetaTotal = phoneQuotaVariable && state?.config ? phoneQuotaGoalTotal(state.config.goals ?? [], phoneQuotaVariable) : 0;
+  const modelActionLabels = isPhoneModel
+    ? [
+      phoneQuotaVariable ? `Variable ${phoneQuotaVariableLabel(phoneQuotaVariable)}` : "Sin variable rectora",
+      phoneQuotaMetaTotal ? `${fmt(phoneQuotaMetaTotal)} objetivo` : "Sin objetivo",
+      `${fmt(phoneQuotaEffectiveTotal)} efectivas Kobo`,
+      `${fmt(phoneQuotaEditorRows.length)} categorías`,
+    ]
+    : [
+      `${fmt(cards.length)} actores`,
+      goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} sin meta` : "Metas listas",
+      scheduleWindow,
+      reportWeekdayLabel,
+    ];
   const activeVisibleTab: AcreditacionModelVisibleTab = activeTab === "estrategias" || activeTab === "resumen" ? activeTab : "estructura";
   const modelCopy = activeVisibleTab === "estrategias"
     ? {
@@ -895,7 +1065,7 @@ function AcreditacionCanonicalModelWorkbench({
         ? {
           eyebrow: "Modelo telefónico",
           title: "Cuotas por variable",
-          hint: "Define metas de encuestas válidas, base telefónica, brecha y categorías sin base.",
+          hint: "Define la variable rectora, sus categorías y metas; el avance de cumplimiento se revisa en Avance.",
         }
       : {
         eyebrow: "Modelo operativo",
@@ -958,24 +1128,33 @@ function AcreditacionCanonicalModelWorkbench({
             <p className="pulso-panel-hint">{modelCopy.hint}</p>
           </div>
           <div className="mon-acr-model-actions">
-            <span>{fmt(cards.length)} actores</span>
-            <span>{goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} sin meta` : "Metas listas"}</span>
-            <span>{scheduleWindow}</span>
-            <span>{reportWeekdayLabel}</span>
+            {modelActionLabels.map((label) => <span key={label}>{label}</span>)}
           </div>
         </header>
         {goalStatus ? <span className={`mon-acr-model-action-status is-${goalStatus.tone}`}>{goalStatus.message}</span> : null}
         <div className="mon-acr-model-map" aria-label="Mapa operativo de acreditación">
-          <AcreditacionActorDashboardTile label="Actores" value={fmt(cards.length)} hint="modelo base" tone="base" />
-          <AcreditacionActorDashboardTile label="Universo" value={fmt(totals.universe)} hint="desde Sheets" tone="ready" />
-          <AcreditacionActorDashboardTile label="Meta actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
-          <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
+          {isPhoneModel ? (
+            <>
+              <AcreditacionActorDashboardTile label="Variable rectora" value={phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente"} hint={`${fmt(phoneQuotaEditorRows.length)} categorías`} tone={phoneQuotaVariable ? "ready" : "warning"} />
+              <AcreditacionActorDashboardTile label="Base telefónica" value={fmt(phoneQuotaBaseTotal || totals.universe)} hint="casos con CodPulso" tone={phoneQuotaBaseTotal || totals.universe ? "ready" : "warning"} />
+              <AcreditacionActorDashboardTile label="Objetivo Kobo" value={phoneQuotaMetaTotal ? fmt(phoneQuotaMetaTotal) : "S/M"} hint="efectivas filtradas" tone={phoneQuotaMetaTotal ? "target" : "warning"} />
+              <AcreditacionActorDashboardTile label="Categorías" value={fmt(phoneQuotaEditorRows.length)} hint={phoneQuotaVariable ? `metas por ${phoneQuotaVariableLabel(phoneQuotaVariable).toLowerCase()}` : "define variable"} tone={phoneQuotaEditorRows.length ? "ready" : "warning"} />
+            </>
+          ) : (
+            <>
+              <AcreditacionActorDashboardTile label="Actores" value={fmt(cards.length)} hint="modelo base" tone="base" />
+              <AcreditacionActorDashboardTile label="Universo" value={fmt(totals.universe)} hint="desde Sheets" tone="ready" />
+              <AcreditacionActorDashboardTile label="Meta actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
+              <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
+            </>
+          )}
         </div>
         {activeVisibleTab === "estructura" && isPhoneModel && state?.config ? (
           <>
             <AcreditacionPhoneQuotaEditor
               draft={state.config}
               variables={state.variables ?? []}
+              platformSources={(state.sources ?? []).filter(isKoboResponseSource)}
               quotaRows={phoneQuotaReportRows}
               onPatchConfig={savePhoneQuotaPatch}
             />
@@ -1071,7 +1250,7 @@ function AcreditacionFieldSchedulePanel({
   };
 
   return (
-    <section className="mon-contract-block mon-contract-block--wide" aria-label="Cronograma operativo de acreditación">
+    <section className="mon-contract-block mon-contract-block--wide mon-field-schedule-panel" aria-label="Cronograma operativo">
       <div className="mon-contract-block-head">
         <span>Cronograma de campo</span>
         <button type="button" onClick={() => { void saveSchedule(); }} disabled={saving}>
@@ -1591,7 +1770,7 @@ const MODEL_MODALITY_OPTIONS: Array<{ value: MonitoreoStrategyPhase["modality"];
   { value: "mixto", label: "Mixto" },
 ];
 
-type AcreditacionChannelToneKey = "correo" | "telefono" | "presencial" | "enlace" | "desconocido";
+type AcreditacionChannelToneKey = "correo" | "telefono" | "presencial" | "enlace" | "kobo" | "desconocido";
 
 const ACREDITACION_CHANNEL_OPTIONS: Array<{
   value: string;
@@ -1603,6 +1782,7 @@ const ACREDITACION_CHANNEL_OPTIONS: Array<{
   { value: "Correo", label: "Correo", key: "correo", modality: "email", icon: Mail },
   { value: "Presencial (Ficha QR)", label: "Ficha QR", key: "presencial", modality: "presencial", icon: QrCode },
   { value: "Enlace personalizado (Whatsapp)", label: "Enlace", key: "enlace", modality: "whatsapp", icon: Link2 },
+  { value: "Kobo", label: "Kobo", key: "kobo", modality: "mixto", icon: QrCode },
   { value: "Telefónico", label: "Telefónico", key: "telefono", modality: "telefono", icon: PhoneCall },
 ];
 
@@ -2440,11 +2620,13 @@ export function buildAcreditacionPhoneQuotaEditorRows({
 function AcreditacionPhoneQuotaEditor({
   draft,
   variables,
+  platformSources = [],
   quotaRows,
   onPatchConfig,
 }: {
   draft: MonitoreoConfig;
   variables: MonitoreoVariable[];
+  platformSources?: MonitoreoSource[];
   quotaRows: Array<Record<string, unknown>>;
   onPatchConfig: (patch: Partial<MonitoreoConfig>) => void;
 }) {
@@ -2464,11 +2646,133 @@ function AcreditacionPhoneQuotaEditor({
     goals: draft.goals,
     quotaRows,
   });
+  const allCandidateVariables = variableOptions.map((name) => {
+    const candidateRows = buildAcreditacionPhoneQuotaEditorRows({
+      variable: name,
+      variables,
+      goals: draft.goals,
+      quotaRows,
+    });
+    return {
+      name,
+      label: phoneQuotaVariableLabel(name),
+      categories: candidateRows.length,
+      universe: candidateRows.reduce((sum, row) => sum + row.universe, 0),
+      meta: phoneQuotaGoalTotal(draft.goals, name),
+    };
+  });
+  const candidateVariables = allCandidateVariables
+    .filter((candidate) => (
+      normalizeSourceMatch(candidate.name) === normalizeSourceMatch(activeVariable)
+      || candidate.universe > 0
+      || candidate.meta > 0
+    ))
+    .sort((a, b) => (
+      Number(normalizeSourceMatch(b.name) === normalizeSourceMatch(activeVariable)) - Number(normalizeSourceMatch(a.name) === normalizeSourceMatch(activeVariable))
+      || b.universe - a.universe
+      || b.meta - a.meta
+      || a.label.localeCompare(b.label, "es")
+    ))
+    .slice(0, 6);
   const quotaTotal = activeVariable ? phoneQuotaGoalTotal(draft.goals, activeVariable) : 0;
   const totalUniverse = rows.reduce((sum, row) => sum + row.universe, 0);
   const totalEffective = rows.reduce((sum, row) => sum + row.effective, 0);
   const totalGap = rows.reduce((sum, row) => sum + (row.gap ?? 0), 0);
   const rowsWithoutBase = rows.filter((row) => row.meta != null && row.meta > 0 && row.universe <= 0).length;
+  const activeVariableLabel = activeVariable ? phoneQuotaVariableLabel(activeVariable) : "Sin variable";
+  const phoneFilter = normalizePhoneEffectiveFilter(draft.monitoreo_profile?.platform_effective_filter);
+  const phoneFilterConfigured = Boolean(phoneFilter.enabled && phoneFilter.variable && phoneFilter.values.length);
+  const phoneFilterQuestionLabel = phoneFilter.label || (phoneFilter.variable ? phoneQuotaVariableLabel(phoneFilter.variable) : "");
+  const phoneFilterValueLabel = phoneFilter.value_label || phoneFilter.values.join(", ");
+  const activePlatformSources = platformSources.filter((source) => source.enabled);
+  const variableIsSaved = activeVariable
+    ? draft.control_vars.some((name) => normalizeSourceMatch(name) === normalizeSourceMatch(activeVariable))
+    : false;
+  const quotaProgressPct = quotaTotal > 0
+    ? safePercentValue(totalEffective, quotaTotal)
+    : safePercentValue(totalEffective, totalUniverse);
+  const boundedQuotaProgressPct = Math.max(0, Math.min(100, quotaProgressPct ?? 0));
+  const focusRows = [...rows]
+    .filter((row) => row.meta != null || row.universe > 0 || row.effective > 0)
+    .sort((a, b) => (
+      (b.gap ?? 0) - (a.gap ?? 0)
+      || (b.meta ?? 0) - (a.meta ?? 0)
+      || b.universe - a.universe
+      || a.value.localeCompare(b.value, "es", { numeric: true })
+    ))
+    .slice(0, 6);
+  const decisionSteps = [
+    {
+      key: "filter",
+      label: "Filtro",
+      value: phoneFilterConfigured ? phoneFilterQuestionLabel : "Sin filtro",
+      detail: phoneFilterConfigured ? phoneFilterValueLabel : "Kobo",
+      tone: phoneFilterConfigured ? "ready" : "warning",
+    },
+    {
+      key: "variable",
+      label: "Variable",
+      value: activeVariable ? activeVariableLabel : "Pendiente",
+      detail: activeVariable ? `${fmt(rows.length)} categorías` : "Seleccionar",
+      tone: activeVariable ? "ready" : "warning",
+    },
+    {
+      key: "goal",
+      label: "Meta",
+      value: quotaTotal ? fmt(quotaTotal) : "S/M",
+      detail: quotaTotal ? "cuotas Kobo" : "sin objetivo",
+      tone: quotaTotal ? "ready" : "warning",
+    },
+    {
+      key: "effective",
+      label: "Kobo",
+      value: fmt(totalEffective),
+      detail: "filtradas",
+      tone: totalEffective ? "ready" : "neutral",
+    },
+    {
+      key: "gap",
+      label: "Avance",
+      value: fmt(totalGap),
+      detail: totalGap ? "se revisa en Avance" : "meta cubierta",
+      tone: totalGap ? "warning" : "ready",
+    },
+  ] as const;
+  const governorFacts = [
+    {
+      key: "kobo",
+      label: "Fuente Kobo",
+      value: activePlatformSources.length ? `${fmt(activePlatformSources.length)} activa${activePlatformSources.length === 1 ? "" : "s"}` : "Pendiente",
+      tone: activePlatformSources.length ? "ready" : "warning",
+    },
+    {
+      key: "filter",
+      label: "Efectiva Kobo",
+      value: phoneFilterConfigured ? `${phoneFilterQuestionLabel} = ${phoneFilterValueLabel}` : "Configurar filtro",
+      tone: phoneFilterConfigured ? "ready" : "warning",
+    },
+    {
+      key: "quota",
+      label: "Cuotas",
+      value: activeVariable ? `${activeVariableLabel} · ${fmt(rows.length)} categorías` : "Sin variable",
+      tone: activeVariable ? "ready" : "warning",
+    },
+    {
+      key: "match",
+      label: "Contraste",
+      value: "CodPulso Kobo vs barrido",
+      tone: activePlatformSources.length && activeVariable ? "ready" : "warning",
+    },
+  ] as const;
+
+  const saveActiveVariable = () => {
+    if (!activeVariable) return;
+    const nextControlVars = variableIsSaved ? draft.control_vars : [...draft.control_vars, activeVariable];
+    onPatchConfig({
+      control_vars: nextControlVars,
+      objetivo_total: quotaTotal > 0 ? quotaTotal : draft.objetivo_total,
+    });
+  };
 
   const patchGoals = (goals: MonitoreoGoal[]) => {
     const nextControlVars = activeVariable && !draft.control_vars.includes(activeVariable)
@@ -2500,9 +2804,9 @@ function AcreditacionPhoneQuotaEditor({
     <section className="mon-contract-block mon-contract-block--wide mon-phone-quota-editor">
       <div className="mon-phone-quota-editor-head">
         <div>
-          <span>Cuotas telefónicas</span>
-          <strong>Objetivo visual por variable</strong>
-          <small>Calcula universo, tasa requerida, brecha y margen no efectivo desde la base telefónica.</small>
+          <span>Modelo telefónico</span>
+          <strong>{activeVariable ? `${activeVariableLabel} organiza categorías y metas` : "Elige la variable rectora"}</strong>
+          <small>Kobo aporta efectivas; el barrido conserva estados telefónicos en paralelo.</small>
         </div>
         <div className="mon-phone-quota-editor-controls">
           <label>
@@ -2512,6 +2816,15 @@ function AcreditacionPhoneQuotaEditor({
               {variableOptions.map((name) => <option key={name} value={name}>{phoneQuotaVariableLabel(name)}</option>)}
             </select>
           </label>
+          <button
+            type="button"
+            className="mon-phone-quota-governor-save"
+            onClick={saveActiveVariable}
+            disabled={!activeVariable || variableIsSaved}
+          >
+            <CheckCircle2 size={13} />
+            {variableIsSaved ? "Variable guardada" : "Usar para cuotas"}
+          </button>
           <label>
             <span>Objetivo total</span>
             <input
@@ -2523,11 +2836,92 @@ function AcreditacionPhoneQuotaEditor({
           </label>
         </div>
       </div>
+      <div className="mon-phone-quota-governor" aria-label="Variable rectora del monitoreo telefónico">
+        <div className="mon-phone-quota-governor-main">
+          <div
+            className="mon-phone-quota-governor-gauge"
+            style={{ "--phone-quota-governor-pct": `${Math.max(2, boundedQuotaProgressPct)}%` } as CSSProperties}
+            aria-label={quotaProgressPct == null ? "Sin avance de cuota" : `${formatPercentLabel(quotaProgressPct)} de la meta Kobo`}
+          >
+            <strong>{quotaProgressPct == null ? "S/M" : formatPercentLabel(quotaProgressPct)}</strong>
+            <em>Kobo</em>
+          </div>
+          <div>
+            <span><SlidersHorizontal size={13} /> Variable rectora</span>
+            <strong>{activeVariable ? activeVariableLabel : "Seleccionar variable"}</strong>
+            <p>{activeVariable ? "Cada categoría cruza meta, base telefónica y efectivas Kobo para leer cumplimiento." : "Elige la variable que define las cuotas operativas del estudio telefónico."}</p>
+          </div>
+        </div>
+        <div className="mon-phone-quota-decision-path" aria-label="Regla de lectura de cuotas telefónicas">
+          {decisionSteps.map((step, index) => (
+            <Fragment key={step.key}>
+              <span className={`is-${step.tone}`}>
+                <em>{step.label}</em>
+                <strong>{step.value}</strong>
+                <small>{step.detail}</small>
+              </span>
+              {index < decisionSteps.length - 1 ? <i aria-hidden="true" /> : null}
+            </Fragment>
+          ))}
+        </div>
+        <div className="mon-phone-quota-governor-facts" aria-label="Condiciones para contar efectivas Kobo por cuota">
+          {governorFacts.map((fact) => (
+            <span key={fact.key} className={`is-${fact.tone}`}>
+              <em>{fact.label}</em>
+              <strong title={fact.value}>{fact.value}</strong>
+            </span>
+          ))}
+        </div>
+        {focusRows.length ? (
+          <div className="mon-phone-quota-gap-board" aria-label={`Categorías de cuota por ${activeVariableLabel}`}>
+            <header>
+              <span><BarChart3 size={13} /> Categorías de {activeVariableLabel}</span>
+              <strong>{fmt(rows.length)} categorías · {quotaTotal ? `${fmt(quotaTotal)} meta` : "sin meta"}</strong>
+            </header>
+            <div>
+              {focusRows.map((row) => {
+                const metaPct = row.meta != null && row.universe > 0 ? safePercentValue(row.meta, row.universe) ?? 0 : 0;
+                return (
+                  <article key={row.key} className={row.meta != null ? "is-ready" : "is-gap"}>
+                    <span>
+                      <strong>{row.value}</strong>
+                      <em>{fmt(row.universe)} base · {row.meta == null ? "sin meta" : `${fmt(row.meta)} meta`}</em>
+                    </span>
+                    <i
+                      aria-hidden="true"
+                      style={{
+                        "--phone-quota-gap-pct": "0%",
+                        "--phone-quota-progress-pct": `${Math.max(metaPct ? 4 : 0, Math.min(100, metaPct))}%`,
+                      } as CSSProperties}
+                    />
+                    <small>{row.requiredSuccessPct == null ? "sin base" : `${formatPercentLabel(row.requiredSuccessPct)} requerido`}</small>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+        {candidateVariables.length ? (
+          <div className="mon-phone-quota-governor-candidates" aria-label="Variables candidatas para cuotas">
+            {candidateVariables.map((candidate) => (
+              <button
+                key={candidate.name}
+                type="button"
+                className={normalizeSourceMatch(candidate.name) === normalizeSourceMatch(activeVariable) ? "is-active" : ""}
+                onClick={() => setActiveVariable(candidate.name)}
+              >
+                <strong>{candidate.label}</strong>
+                <em>{fmt(candidate.categories)} categorías · {fmt(candidate.universe)} base{candidate.meta ? ` · ${fmt(candidate.meta)} meta` : ""}</em>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
       <div className="mon-phone-quota-editor-summary" aria-label="Resumen de cuotas telefónicas editables">
-        <span><em>Meta cuotas</em><strong>{quotaTotal ? fmt(quotaTotal) : "S/M"}</strong></span>
+        <span><em>Objetivo Kobo</em><strong>{quotaTotal ? fmt(quotaTotal) : "S/M"}</strong></span>
         <span><em>Base telefónica</em><strong>{fmt(totalUniverse)}</strong></span>
-        <span><em>Efectivas</em><strong>{fmt(totalEffective)}</strong></span>
-        <span className={totalGap ? "is-warning" : "is-ready"}><em>Brecha</em><strong>{fmt(totalGap)}</strong></span>
+        <span><em>Efectivas Kobo</em><strong>{fmt(totalEffective)}</strong></span>
+        <span className={totalGap ? "is-warning" : "is-ready"}><em>Pendiente avance</em><strong>{fmt(totalGap)}</strong></span>
         <span className={rowsWithoutBase ? "is-warning" : "is-ready"}><em>Sin base</em><strong>{fmt(rowsWithoutBase)}</strong></span>
       </div>
       <div className="mon-phone-quota-editor-add">
@@ -2538,11 +2932,17 @@ function AcreditacionPhoneQuotaEditor({
         <div className="mon-phone-quota-editor-list">
           {rows.map((row) => {
             const progressPct = row.meta && row.meta > 0 ? safePercentValue(row.effective, row.meta) ?? 0 : safePercentValue(row.effective, row.universe) ?? 0;
-            const marginLabel = row.nonEffectiveMargin == null
+            const marginTitle = row.nonEffectiveMargin == null
               ? "Sin base"
               : row.nonEffectiveMargin >= 0
                 ? `${fmt(row.nonEffectiveMargin)} no efectivas posibles`
                 : `${fmt(Math.abs(row.nonEffectiveMargin))} base faltante`;
+            const marginLabel = row.nonEffectiveMargin == null
+              ? "Sin base"
+              : row.nonEffectiveMargin >= 0
+                ? fmt(row.nonEffectiveMargin)
+                : fmt(Math.abs(row.nonEffectiveMargin));
+            const marginMetricLabel = row.nonEffectiveMargin != null && row.nonEffectiveMargin < 0 ? "Base faltante" : "No efectivas";
             return (
               <article key={row.key} className={`mon-phone-quota-editor-row ${row.source === "configured" ? "is-configured" : ""} ${row.gap ? "is-gap" : "is-ready"}`}>
                 <header>
@@ -2562,8 +2962,8 @@ function AcreditacionPhoneQuotaEditor({
                   </label>
                   <span><em>Efectivas</em><strong>{fmt(row.effective)}</strong></span>
                   <span><em>Brecha</em><strong>{row.gap == null ? "S/M" : fmt(row.gap)}</strong></span>
-                  <span><em>Tasa requerida</em><strong>{row.requiredSuccessPct == null ? "S/B" : formatPercentLabel(row.requiredSuccessPct)}</strong></span>
-                  <span><em>Margen</em><strong>{marginLabel}</strong></span>
+                  <span><em title="Tasa requerida para cubrir la meta Kobo">Tasa req.</em><strong>{row.requiredSuccessPct == null ? "S/B" : formatPercentLabel(row.requiredSuccessPct)}</strong></span>
+                  <span><em title={marginTitle}>{marginMetricLabel}</em><strong title={marginTitle}>{marginLabel}</strong></span>
                 </div>
                 <i aria-hidden="true" style={{ "--phone-quota-editor-pct": `${Math.max(2, Math.min(100, progressPct))}%` } as CSSProperties} />
               </article>
@@ -3191,6 +3591,7 @@ function AcreditacionModelConfigWorkbench({
         <AcreditacionPhoneQuotaEditor
           draft={draft}
           variables={variables}
+          platformSources={sources.filter(isKoboResponseSource)}
           quotaRows={phoneQuotaReportRows}
           onPatchConfig={patchConfig}
         />
@@ -3823,9 +4224,46 @@ function phoneStatusPalette(label: string) {
   return { color: "#5e7fa5", highlight: "#8fb1d3" };
 }
 
-function phoneResponsibleName(row: Record<string, unknown>, index = 0) {
-  const base = phoneRowValue(row, ["Responsable", "Encuestador", "Owner"], "") || `Responsable ${index + 1}`;
+function phoneLooksLikeTechnicalSourceLabel(value: string) {
+  const key = normalizeSourceMatch(value);
+  if (!key) return false;
+  return (
+    key.includes("base de barrido")
+    || key.includes("base barrido")
+    || key.includes("barrido telefon")
+    || key.includes("_base")
+    || key.includes("_pdm")
+    || key.includes("spreadsheet")
+    || key.includes("google sheets")
+    || key.includes("kobotoolbox")
+    || key.includes("surveymonkey")
+    || /^\d+[_-]/.test(key)
+  );
+}
+
+function phoneCleanResponsibleDisplayName(value: string) {
+  const parts = value.split(/\s+·\s+/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length > 1 && phoneLooksLikeTechnicalSourceLabel(parts[parts.length - 1])) {
+    return parts.slice(0, -1).join(" · ");
+  }
+  return value;
+}
+
+function phoneResponsibleBaseName(row: Record<string, unknown>, index = 0) {
+  const raw = phoneRowValue(row, ["Responsable", "Encuestador", "Owner"], "") || `Responsable ${index + 1}`;
+  return phoneCleanResponsibleDisplayName(raw);
+}
+
+function phoneResponsibleActorName(row: Record<string, unknown>) {
   const actor = phoneRowValue(row, ["Actor", "Unidad"], "");
+  const actorKey = normalizeSourceMatch(actor);
+  if (phoneLooksLikeTechnicalSourceLabel(actor)) return "";
+  return actorKey && !actorKey.includes("sin actor") ? actor : "";
+}
+
+function phoneResponsibleName(row: Record<string, unknown>, index = 0) {
+  const base = phoneResponsibleBaseName(row, index);
+  const actor = phoneResponsibleActorName(row);
   const actorKey = normalizeSourceMatch(actor);
   if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base} · ${actor}`;
   return base;
@@ -3884,6 +4322,27 @@ export type AcreditacionPhoneSupervisionControlPlan = {
   coveragePct: number | null;
 };
 
+type AcreditacionPhoneTimeBucketKey = "under2" | "under5" | "normal";
+
+type AcreditacionPhoneTimeBucket = {
+  key: AcreditacionPhoneTimeBucketKey;
+  label: string;
+  hint: string;
+  count: number;
+  percent: number;
+  tone: AcreditacionQualityAlertTone;
+};
+
+export type AcreditacionPhoneTimeControlModel = {
+  totalEffective: number;
+  flaggedTotal: number;
+  under2: number;
+  under5: number;
+  normal: number;
+  buckets: AcreditacionPhoneTimeBucket[];
+  alerts: AcreditacionQualityAlertItem[];
+};
+
 export function buildAcreditacionPhoneSupervisionControlPlan({
   responsibleRows,
   sampleRows,
@@ -3917,7 +4376,7 @@ export function buildAcreditacionPhoneSupervisionControlPlan({
     .forEach((row, index) => {
       const responsible = phoneSupervisionBaseResponsibleName(row, index);
       const key = normalizeSourceMatch(responsible) || `responsable-${index}`;
-      const actor = phoneRowValue(row, ["Actor", "Unidad"], "");
+      const actor = phoneResponsibleActorName(row);
       const metrics = phoneResponsibleMetrics(row);
       const effective = Math.max(0, metrics.effective);
       const target = effective > 0 ? Math.ceil(effective * ACREDITACION_PHONE_SUPERVISION_SAMPLE_RATE) : 0;
@@ -3981,7 +4440,7 @@ export function buildAcreditacionPhoneSupervisionControlPlan({
   const gapTotal = hasReadBase ? rows.reduce((sum, row) => sum + row.gap, 0) : targetTotal;
   const tableRows = rows.map((row) => ({
     Responsable: row.responsible,
-    Actor: row.actor || "Todos",
+    Base: row.actor || "Todos",
     Efectivas: row.effective,
     "Objetivo 30%": row.target,
     [hasReadBase ? "Base leída" : "Base propuesta"]: hasReadBase ? row.observed : row.target,
@@ -4004,8 +4463,82 @@ export function buildAcreditacionPhoneSupervisionControlPlan({
   };
 }
 
+export function buildAcreditacionPhoneTimeControl({
+  alerts,
+  totalEffective = 0,
+}: {
+  alerts: AcreditacionQualityAlertItem[];
+  totalEffective?: number;
+}): AcreditacionPhoneTimeControlModel {
+  const durationAlerts = alerts.filter((alert) => alert.signal.kind === "short_duration");
+  const under2 = durationAlerts.reduce((sum, alert) => {
+    const threshold = phoneDurationAlertThreshold(alert);
+    return threshold <= 2 ? sum + phoneAlertCaseCount(alert) : sum;
+  }, 0);
+  const under5 = durationAlerts.reduce((sum, alert) => {
+    const threshold = phoneDurationAlertThreshold(alert);
+    return threshold > 2 && threshold <= 5 ? sum + phoneAlertCaseCount(alert) : sum;
+  }, 0);
+  const flaggedTotal = under2 + under5;
+  const effectiveBase = Math.max(0, totalEffective, flaggedTotal);
+  const normal = Math.max(0, effectiveBase - flaggedTotal);
+  const bucketInputs: Array<Omit<AcreditacionPhoneTimeBucket, "percent">> = [
+    {
+      key: "under2",
+      label: "<2 min",
+      hint: "supervisión prioritaria",
+      count: under2,
+      tone: under2 ? "danger" : "ok",
+    },
+    {
+      key: "under5",
+      label: "<5 min",
+      hint: "revisar saltos y consistencia",
+      count: under5,
+      tone: under5 ? "warning" : "ok",
+    },
+    {
+      key: "normal",
+      label: "5+ min",
+      hint: "duración esperada",
+      count: normal,
+      tone: "ok",
+    },
+  ];
+
+  return {
+    totalEffective: effectiveBase,
+    flaggedTotal,
+    under2,
+    under5,
+    normal,
+    buckets: bucketInputs.map((bucket) => ({
+      ...bucket,
+      percent: effectiveBase > 0 ? safePercentValue(bucket.count, effectiveBase) ?? 0 : 0,
+    })),
+    alerts: durationAlerts,
+  };
+}
+
+function phoneDurationAlertThreshold(alert: AcreditacionQualityAlertItem) {
+  const text = normalizeSourceMatch(`${alert.title} ${alert.type} ${alert.detail} ${alert.signal.detail}`);
+  const explicit = text.match(/(?:menor(?:es)?\s*a|menos\s*de|<)\s*(\d+(?:[.,]\d+)?)\s*(?:min|minuto|minutos)?/);
+  if (explicit) {
+    const parsed = Number(explicit[1].replace(",", "."));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  if (text.includes("2 min") || text.includes("2 minuto") || text.includes("extremadamente")) return 2;
+  if (text.includes("5 min") || text.includes("5 minuto")) return 5;
+  return 5;
+}
+
+function phoneAlertCaseCount(alert: AcreditacionQualityAlertItem) {
+  return Math.max(1, Math.round(alert.count ?? alert.total ?? 1));
+}
+
 function phoneSupervisionBaseResponsibleName(row: Record<string, unknown>, index: number) {
-  return phoneRowValue(row, ["Responsable", "Encuestador", "Operador", "Agente", "Owner"], "") || `Responsable ${index + 1}`;
+  const raw = phoneRowValue(row, ["Responsable", "Encuestador", "Operador", "Agente", "Owner"], "") || `Responsable ${index + 1}`;
+  return phoneCleanResponsibleDisplayName(raw);
 }
 
 function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<string, unknown>>>) {
@@ -4046,6 +4579,14 @@ function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<
       || (bMetrics.assigned ?? 0) - (aMetrics.assigned ?? 0)
       || (bMetrics.unswept ?? 0) - (aMetrics.unswept ?? 0)
       || phoneResponsibleName(a).localeCompare(phoneResponsibleName(b), "es");
+  });
+}
+
+function phoneDisplayRowsWithBaseColumn(rows: Array<Record<string, unknown>>) {
+  return rows.map((row) => {
+    if (!Object.prototype.hasOwnProperty.call(row, "Actor")) return row;
+    const { Actor: actor, ...rest } = row;
+    return { Base: actor, ...rest };
   });
 }
 
@@ -4188,12 +4729,12 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
 
   const visibleRows = activeVariable ? quotaRows.filter((row) => row.variable === activeVariable) : quotaRows;
   const groups = Array.from(visibleRows.reduce((acc, row) => {
-    const key = normalizeSourceMatch(row.actor) || "todos";
-    const current = acc.get(key) ?? { actor: row.actor, rows: [] as AcreditacionPhoneQuotaRow[] };
+    const key = normalizeSourceMatch(row.variable) || "variable";
+    const current = acc.get(key) ?? { variable: row.variable, rows: [] as AcreditacionPhoneQuotaRow[] };
     current.rows.push(row);
     acc.set(key, current);
     return acc;
-  }, new Map<string, { actor: string; rows: AcreditacionPhoneQuotaRow[] }>()).values());
+  }, new Map<string, { variable: string; rows: AcreditacionPhoneQuotaRow[] }>()).values());
   const variableTotals = variables.map((variable) => {
     const rowsForVariable = quotaRows.filter((row) => row.variable === variable);
     return {
@@ -4222,11 +4763,11 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
       <header className="mon-phone-ops-head mon-phone-quota-head">
         <div>
           <span>Cuotas telefónicas</span>
-          <strong>Opcional · Base objetivo por variable</strong>
-          <small>{formatMetric(groups.length)} actor{groups.length === 1 ? "" : "es"} · {formatMetric(variables.length)} variable{variables.length === 1 ? "" : "s"}</small>
+          <strong>Base objetivo por variable</strong>
+          <small>Kobo aporta efectivas; el barrido aporta estado de llamada. {formatMetric(visibleRows.length)} categoría{visibleRows.length === 1 ? "" : "s"}.</small>
         </div>
         <div className="mon-phone-quota-actions">
-          <em>Opcional · {formatMetric(visibleRows.length)} categoría{visibleRows.length === 1 ? "" : "s"}</em>
+          <em>{formatMetric(variables.length)} variable{variables.length === 1 ? "" : "s"}</em>
           <button
             type="button"
             className={`mon-phone-quota-toggle ${expanded ? "is-open" : ""}`}
@@ -4278,10 +4819,10 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
           )}
           <div className="mon-phone-quota-grid">
             {groups.map((group) => (
-              <article key={group.actor} className="mon-phone-quota-actor">
+              <article key={group.variable} className="mon-phone-quota-actor mon-phone-quota-variable">
                 <header>
-                  <strong>{group.actor}</strong>
-                  <em>{formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
+                  <strong>{group.variable}</strong>
+                  <em>{formatMetric(group.rows.length)} categoría{group.rows.length === 1 ? "" : "s"} · {formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
                 </header>
                 <div className="mon-phone-quota-rows">
                   {group.rows.map((row) => {
@@ -4489,6 +5030,8 @@ function AcreditacionPhoneStatusStorage({
 function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string, unknown>> }) {
   const assignedRows = rows.filter((row, index) => !phoneIsUnassignedResponsible(phoneResponsibleName(row, index)));
   const unassignedRows = rows.filter((row, index) => phoneIsUnassignedResponsible(phoneResponsibleName(row, index)));
+  const visibleActors = new Set(assignedRows.map((row) => normalizeSourceMatch(phoneResponsibleActorName(row))).filter(Boolean));
+  const showActorContext = visibleActors.size > 1;
   return (
     <div className="mon-phone-responsibles" aria-label="Producción por responsable">
       <header className="mon-phone-responsibles-head">
@@ -4500,6 +5043,8 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
       </header>
       {assignedRows.length ? assignedRows.map((row, index) => {
         const name = phoneResponsibleName(row, index);
+        const displayName = phoneResponsibleBaseName(row, index);
+        const actor = phoneResponsibleActorName(row);
         const metrics = phoneResponsibleMetrics(row);
         const total = metrics.assigned ?? metrics.denominator;
         const effectivePct = safePercentValue(metrics.effective, total);
@@ -4507,9 +5052,12 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
         const pendingPct = safePercentValue(metrics.unswept ?? 0, total);
         const incidencePct = metrics.incidencePct ?? nonEffectivePct;
         return (
-          <article key={`${name}-${index}`} className="mon-phone-responsible">
+          <article key={`${name}-${index}`} className="mon-phone-responsible" title={actor ? `${displayName} · ${actor}` : displayName}>
             <header>
-              <strong>{name}</strong>
+              <div className="mon-phone-responsible-title">
+                <strong>{displayName}</strong>
+                {showActorContext && actor ? <span>{actor}</span> : null}
+              </div>
               <em>{formatMetric(metrics.effective)} efectivas</em>
             </header>
             <div className="mon-phone-responsible-meter" aria-label={`Composición operativa de ${name}`}>
@@ -4728,7 +5276,6 @@ function AcreditacionPhoneSupervisionBoard({
   responsibleRows,
   pendingRows,
   insistenceRows,
-  detailRows,
   reattemptRows,
   totals,
   fallbackEffective,
@@ -4738,7 +5285,6 @@ function AcreditacionPhoneSupervisionBoard({
   responsibleRows: Array<Record<string, unknown>>;
   pendingRows: Array<Record<string, unknown>>;
   insistenceRows: Array<Record<string, unknown>>;
-  detailRows: Array<Record<string, unknown>>;
   reattemptRows: Array<Record<string, unknown>>;
   totals: ReturnType<typeof phoneOperationTotals>;
   fallbackEffective: number;
@@ -4751,7 +5297,10 @@ function AcreditacionPhoneSupervisionBoard({
     priorityGroups: model.priorityGroups,
     fallbackEffective: Math.max(totals.effective, fallbackEffective),
   });
-  const operationalControlCount = model.activeAlerts.length || controlPlan.gapTotal || detailRows.length || totals.incidents;
+  const timeControl = buildAcreditacionPhoneTimeControl({
+    alerts: model.alerts,
+    totalEffective: Math.max(controlPlan.totalEffective, totals.effective, fallbackEffective),
+  });
   const handleExport = () => {
     downloadRowsAsCsv(
       controlPlan.exportRows,
@@ -4766,19 +5315,20 @@ function AcreditacionPhoneSupervisionBoard({
             {model.highest === "ok" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
             {acreditacionQualityStatusLabel(model.highest)}
           </span>
-          <strong>{controlPlan.targetTotal ? "Base de supervisión" : "Sin producción efectiva"}</strong>
-          <p>30% por responsable, cruzado con alertas y conciliación.</p>
+          <strong>{timeControl.totalEffective ? "Control de tiempo y muestra" : "Sin producción efectiva"}</strong>
+          <p>Primero se revisa duración de efectivas Kobo; luego se define la muestra de supervisión por responsable.</p>
         </div>
         <div className="mon-phone-supervision-metrics">
-          <span className={controlPlan.totalEffective ? "is-base" : "is-warning"}><em>Producción</em><strong>{formatMetric(controlPlan.totalEffective || totals.effective)}</strong><small>efectivas</small></span>
-          <span className={controlPlan.targetTotal ? "is-ready" : "is-warning"}><em>Objetivo 30%</em><strong>{formatMetric(controlPlan.targetTotal)}</strong><small>casos control</small></span>
-          <span className={controlPlan.hasReadBase ? "is-ready" : "is-warning"}><em>Base</em><strong>{formatMetric(controlPlan.selectedTotal)}</strong><small>{controlPlan.hasReadBase ? "leída" : "propuesta"}</small></span>
-          <span className={operationalControlCount ? "is-warning" : "is-ready"}><em>Control general</em><strong>{formatMetric(operationalControlCount)}</strong><small>observaciones</small></span>
+          <span className={timeControl.totalEffective ? "is-base" : "is-warning"}><em>Efectivas Kobo</em><strong>{formatMetric(timeControl.totalEffective)}</strong><small>pasan filtro</small></span>
+          <span className={timeControl.under2 ? "is-warning" : "is-ready"}><em>{"<2 min"}</em><strong>{formatMetric(timeControl.under2)}</strong><small>prioridad</small></span>
+          <span className={timeControl.under5 ? "is-warning" : "is-ready"}><em>{"<5 min"}</em><strong>{formatMetric(timeControl.under5)}</strong><small>revisión</small></span>
+          <span className={controlPlan.hasReadBase ? "is-ready" : "is-warning"}><em>Muestra</em><strong>{formatMetric(controlPlan.selectedTotal)}</strong><small>{controlPlan.hasReadBase ? "leída" : "propuesta"}</small></span>
         </div>
       </section>
 
       <div className="mon-phone-supervision-grid">
         <div className="mon-phone-supervision-primary">
+          <AcreditacionPhoneSupervisionTimeControl model={timeControl} />
           <AcreditacionPhoneSupervisionSamplePlan plan={controlPlan} onExport={handleExport} />
         </div>
         <aside className="mon-phone-supervision-aside">
@@ -4788,6 +5338,59 @@ function AcreditacionPhoneSupervisionBoard({
       </div>
     </div>
   );
+}
+
+function AcreditacionPhoneSupervisionTimeControl({ model }: { model: AcreditacionPhoneTimeControlModel }) {
+  const reviewTone = model.under2 ? "danger" : model.under5 ? "warning" : "ok";
+  const visibleAlerts = model.alerts.slice(0, 4);
+  return (
+    <section className={`mon-phone-time-control is-${reviewTone}`} aria-label="Control de tiempo de encuestas Kobo">
+      <header className="mon-phone-ops-head">
+        <div>
+          <span>Control de tiempo</span>
+          <strong>Duración de efectivas Kobo</strong>
+        </div>
+        <em>{formatMetric(model.flaggedTotal)} por revisar</em>
+      </header>
+      <div className="mon-phone-time-track" aria-label="Distribución por duración">
+        {model.buckets.map((bucket) => (
+          <span
+            key={bucket.key}
+            className={`is-${bucket.key}`}
+            style={{ width: `${bucket.count > 0 ? Math.max(4, bucket.percent) : 0}%` } as CSSProperties}
+            title={`${bucket.label}: ${formatMetric(bucket.count)} (${formatPercentLabel(bucket.percent)})`}
+          />
+        ))}
+      </div>
+      <div className="mon-phone-time-buckets">
+        {model.buckets.map((bucket) => (
+          <article key={`phone-time-bucket-${bucket.key}`} className={`is-${bucket.key} is-${bucket.tone}`}>
+            <span>{bucket.label}</span>
+            <strong>{formatMetric(bucket.count)}</strong>
+            <em>{bucket.hint}</em>
+          </article>
+        ))}
+      </div>
+      <div className="mon-phone-time-alerts">
+        {visibleAlerts.length ? visibleAlerts.map((alert) => (
+          <article key={`phone-time-alert-${alert.id}`} className={`is-${alert.tone}`}>
+            <span>{phoneDurationAlertThreshold(alert) <= 2 ? "<2 min" : "<5 min"}</span>
+            <strong>{alert.title}</strong>
+            <p>{phoneDurationAlertDisplayDetail(alert)}</p>
+            <em>{formatMetric(phoneAlertCaseCount(alert))} caso{phoneAlertCaseCount(alert) === 1 ? "" : "s"}</em>
+          </article>
+        )) : (
+          <p>No hay señales de duración corta en el corte. Las efectivas se mantienen como 5+ min salvo nueva evidencia.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function phoneDurationAlertDisplayDetail(alert: AcreditacionQualityAlertItem) {
+  return (alert.detail || "Revisar duración y consistencia de la respuesta.")
+    .replace(/\s*Fuente:.*$/i, "")
+    .trim();
 }
 
 function AcreditacionPhoneSupervisionSamplePlan({
@@ -4818,7 +5421,7 @@ function AcreditacionPhoneSupervisionSamplePlan({
       <DataTable
         rows={plan.tableRows}
         empty="No hay efectivas por responsable para proponer una base de supervisión."
-        preferredColumns={["Responsable", "Actor", "Efectivas", "Objetivo 30%", plan.hasReadBase ? "Base leída" : "Base propuesta", "Por completar", "Cobertura", "Prioridad"]}
+        preferredColumns={["Responsable", "Base", "Efectivas", "Objetivo 30%", plan.hasReadBase ? "Base leída" : "Base propuesta", "Por completar", "Cobertura", "Prioridad"]}
         maxColumns={8}
       />
     </section>
@@ -4903,7 +5506,7 @@ function AcreditacionPhoneQualityAlertsPanel({
     : "No hay observaciones telefónicas activas";
   const heroCopy = observationCount
     ? `Impactan ${formatMetric(impactedCases)} caso${impactedCases === 1 ? "" : "s"} y separan preparación, asignación y calidad antes de pasar a supervisión.`
-    : "El reporte canónico no trae señales de enlace, duración, asignación o conciliación plataforma-barrido.";
+    : "El reporte canónico no trae señales de enlace, duración, asignación o conciliación Kobo-barrido.";
   const summary = [
     { label: "Observaciones", value: formatMetric(observationCount), hint: observationCount ? "filas agregadas" : "sin pendientes", tone: model.highest },
     { label: "Casos impactados", value: formatMetric(impactedCases), hint: impactedCases ? "requieren lectura" : "sin impacto", tone: impactedCases ? model.highest : "ok" },
@@ -5222,11 +5825,94 @@ function AcreditacionPhonePendingInsistence({
   );
 }
 
-function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unknown>> }) {
+function AcreditacionPhoneDailyStatusBars({ series }: { series: AcreditacionPhoneDailyStatusSeries[] }) {
+  if (!series.length) return null;
+  const preparedSeries = series.map((item) => {
+    const datedPoints = item.points.filter((point) => point.date);
+    const datedTotal = datedPoints.reduce((sum, point) => sum + point.value, 0);
+    const undatedTotal = item.points.reduce((sum, point) => sum + (!point.date ? point.value : 0), 0);
+    return { ...item, points: datedPoints, datedTotal, undatedTotal };
+  });
+  const visibleSeries = preparedSeries.filter((item) => item.datedTotal > 0).slice(0, 8);
+  const maxPoint = Math.max(1, ...visibleSeries.flatMap((item) => item.points.map((point) => point.value)));
+  const total = series.reduce((sum, item) => sum + item.total, 0);
+  const datedTotal = preparedSeries.reduce((sum, item) => sum + item.datedTotal, 0);
+  const undatedSeries = preparedSeries.filter((item) => item.undatedTotal > 0).slice(0, 6);
+  const undatedTotal = preparedSeries.reduce((sum, item) => sum + item.undatedTotal, 0);
+  return (
+    <div className="mon-phone-status-daily" aria-label="Estados telefónicos por día">
+      <header className="mon-phone-status-daily-head">
+        <div>
+          <span>Estados telefónicos</span>
+          <strong>Lectura paralela por día</strong>
+        </div>
+        <em>{formatMetric(datedTotal)} con fecha / {formatMetric(total)} total</em>
+      </header>
+      {visibleSeries.length ? (
+        <div className="mon-phone-status-daily-grid">
+          {visibleSeries.map((item) => {
+            const palette = phoneStatusPalette(item.label);
+            return (
+              <section
+                key={`phone-status-day-${normalizeSourceMatch(item.label)}`}
+                className={`is-${phoneStatusTone(item.label)}`}
+                style={{
+                  "--phone-status-color": palette.color,
+                  "--phone-status-color-hi": palette.highlight,
+                } as CSSProperties}
+              >
+                <div className="mon-phone-status-daily-title">
+                  <strong>{item.label}</strong>
+                  <em>{formatMetric(item.datedTotal)}</em>
+                </div>
+                <div className="mon-phone-status-daily-bars" aria-label={`${item.label}: distribución diaria`}>
+                  {item.points.map((point) => {
+                    const size = point.value > 0 ? Math.max(5, Math.min(100, (point.value / maxPoint) * 100)) : 0;
+                    return (
+                      <span key={`${item.label}-${point.rawLabel}`} title={`${item.label} · ${point.label}: ${formatMetric(point.value)}`}>
+                        <i style={{ "--phone-status-day": `${size}%` } as CSSProperties} />
+                        <small>{point.axisLabel || point.label}</small>
+                        <b>{formatMetric(point.value)}</b>
+                      </span>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mon-phone-status-note">El barrido trae estados telefónicos, pero todavía no tienen una fecha diaria usable para graficar.</p>
+      )}
+      {undatedTotal > 0 && (
+        <div className="mon-phone-status-undated" aria-label="Estados telefónicos sin fecha diaria">
+          <strong>{formatMetric(undatedTotal)} casos sin fecha fuera del ritmo diario</strong>
+          <div>
+            {undatedSeries.map((item) => (
+              <span key={`phone-status-undated-${normalizeSourceMatch(item.label)}`}>
+                {item.label} <b>{formatMetric(item.undatedTotal)}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AcreditacionPhoneDailyTrend({
+  rows,
+  statusRows = [],
+}: {
+  rows: Array<Record<string, unknown>>;
+  statusRows?: Array<Record<string, unknown>>;
+}) {
   const points = buildAcreditacionPhoneDailyPoints(rows);
+  const statusSeries = buildAcreditacionPhoneDailyStatusSeries(statusRows);
   const loosePoints = points.filter((point) => !point.date);
-  const series = points;
-  const pointTotal = (point: AcreditacionPhoneDailyPoint) => point.effective + point.partial + point.refusals;
+  const datedPoints = points.filter((point) => point.date);
+  const series = datedPoints;
+  const pointTotal = (point: AcreditacionPhoneDailyPoint) => point.effective;
   let runningTotal = 0;
   const chartRows = series.map((point) => {
     const dailyTotal = pointTotal(point);
@@ -5250,8 +5936,6 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
   const hoverData = chartRows.map((point) => [
     point.label,
     point.effective,
-    point.partial,
-    point.refusals,
     point.dailyTotal,
     point.cumulativeTotal,
   ]);
@@ -5264,24 +5948,6 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
       marker: { color: "#168a55", line: { width: 0 } },
       customdata: hoverData,
       hovertemplate: "Efectivas: %{y}<extra></extra>",
-    },
-    {
-      type: "bar" as const,
-      name: "Parciales",
-      x: xLabels,
-      y: chartRows.map((point) => point.partial),
-      marker: { color: "#c47a00", line: { width: 0 } },
-      customdata: hoverData,
-      hovertemplate: "Parciales: %{y}<extra></extra>",
-    },
-    {
-      type: "bar" as const,
-      name: "Rechazos telefónicos",
-      x: xLabels,
-      y: chartRows.map((point) => point.refusals),
-      marker: { color: "#a61d4f", line: { width: 0 } },
-      customdata: hoverData,
-      hovertemplate: "Rechazos telefónicos: %{y}<extra></extra>",
     },
     {
       type: "scatter" as const,
@@ -5297,7 +5963,7 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
         line: { color: "#17212f", width: 2 },
       },
       customdata: hoverData,
-      hovertemplate: "Total día: %{customdata[4]}<br>Acumulado: %{customdata[5]}<extra></extra>",
+      hovertemplate: "Efectivas Kobo: %{customdata[2]}<br>Acumulado: %{customdata[3]}<extra></extra>",
     },
   ];
   const chartLayout = {
@@ -5324,7 +5990,7 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
       automargin: true,
     },
     yaxis: {
-      title: { text: "Casos/día", font: { color: "#5f6b7a", size: 11 } },
+      title: { text: "Efectivas/día", font: { color: "#5f6b7a", size: 11 } },
       fixedrange: true,
       rangemode: "tozero",
       showline: false,
@@ -5349,25 +6015,62 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
     responsive: true,
     scrollZoom: false,
   };
-  if (!points.length) {
+  if (!chartRows.length) {
+    if (statusSeries.length) {
+      return (
+        <div className="mon-phone-trend" aria-label="Composición temporal de estados telefónicos">
+          <EmptyPanel
+            title={points.length ? "Efectivas sin fecha diaria" : "Sin efectivas diarias"}
+            detail={points.length ? "El corte trae efectivas Kobo sin fecha usable; se muestran fuera del gráfico para no crear un día ficticio." : "El corte no trae efectivas Kobo con fecha, pero sí estados telefónicos del barrido."}
+          />
+          <AcreditacionPhoneDailyStatusBars series={statusSeries} />
+          {loosePoints.length > 0 && (
+            <div className="mon-phone-trend-loose">
+              {loosePoints.map((point) => (
+                <span key={`loose-${point.rawLabel}`}>
+                  <strong>{point.label}</strong>
+                  <em>{formatMetric(point.effective)} efectivas Kobo sin fecha diaria</em>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (loosePoints.length) {
+      return (
+        <div className="mon-phone-trend" aria-label="Efectivas Kobo sin fecha diaria">
+          <EmptyPanel
+            title="Efectivas sin fecha diaria"
+            detail="El corte trae efectivas Kobo sin fecha usable; se muestran fuera del gráfico para no crear un día ficticio."
+          />
+          <div className="mon-phone-trend-loose">
+            {loosePoints.map((point) => (
+              <span key={`loose-${point.rawLabel}`}>
+                <strong>{point.label}</strong>
+                <em>{formatMetric(point.effective)} efectivas Kobo sin fecha diaria</em>
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <EmptyPanel
         title="Sin avance diario"
-        detail="Cuando el corte traiga fecha de llamada o respuesta, aquí aparecerá el ritmo diario."
+        detail="Cuando el corte traiga fecha de respuesta Kobo, aquí aparecerá el ritmo diario."
       />
     );
   }
   return (
-    <div className="mon-phone-trend" aria-label="Composición temporal de respuestas por día">
+    <div className="mon-phone-trend" aria-label="Efectivas Kobo por día">
       <header className="mon-phone-trend-head">
         <div>
-          <span>Producción temporal</span>
+          <span>Efectivas Kobo</span>
           <strong>Ritmo diario y acumulado</strong>
         </div>
         <div className="mon-phone-trend-legend" aria-label="Series">
-          <span className="is-effective">Efectivas</span>
-          <span className="is-partial">Parciales</span>
-          <span className="is-refusal">Rechazos telefónicos</span>
+          <span className="is-effective">Efectivas Kobo</span>
           <span className="is-cumulative">Acumulado</span>
         </div>
       </header>
@@ -5376,7 +6079,7 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
         <span className="is-total">
           <em>Total periodo</em>
           <strong>{formatMetric(totalPeriod)}</strong>
-          <small>respuestas registradas</small>
+          <small>efectivas Kobo fechadas</small>
         </span>
         <span className="is-average">
           <em>Promedio/día</em>
@@ -5395,14 +6098,18 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
         </span>
       </div>
 
-      <div className="mon-phone-trend-chart">
-        <PlotlyChart
-          data={chartData}
-          layout={chartLayout}
-          config={chartConfig}
-          height={340}
-          ariaLabel="Producción telefónica diaria y acumulada"
-        />
+      <div className={`mon-phone-trend-parallel${statusSeries.length ? "" : " is-single"}`}>
+        <div className="mon-phone-trend-chart">
+          <PlotlyChart
+            data={chartData}
+            layout={chartLayout}
+            config={chartConfig}
+            height={340}
+            ariaLabel="Efectivas Kobo diarias y acumuladas"
+          />
+        </div>
+
+        <AcreditacionPhoneDailyStatusBars series={statusSeries} />
       </div>
 
       {loosePoints.length > 0 && (
@@ -5410,9 +6117,7 @@ function AcreditacionPhoneDailyTrend({ rows }: { rows: Array<Record<string, unkn
           {loosePoints.map((point) => (
             <span key={`loose-${point.rawLabel}`}>
               <strong>{point.label}</strong>
-              <em>
-                {formatMetric(point.effective)} efectivas · {formatMetric(point.partial)} parciales · {formatMetric(point.refusals)} rechazos telefónicos
-              </em>
+              <em>{formatMetric(point.effective)} efectivas Kobo sin fecha diaria</em>
             </span>
           ))}
         </div>
@@ -5450,14 +6155,350 @@ function phoneDailyBlockForPanel(reports: MonitoreoAcreditacionReports): Monitor
   return reportBlockForSheet(reports, "monitoreo_telefonico", "produccion_dia");
 }
 
+function phoneBooleanValue(row: Record<string, unknown>, keys: string[]) {
+  const raw = phoneRowValue(row, keys, "");
+  const key = normalizeSourceMatch(raw);
+  if (["si", "sí", "yes", "true", "1"].includes(key)) return true;
+  if (["no", "false", "0"].includes(key)) return false;
+  return Boolean(phoneRowNumber(row, keys, 0));
+}
+
+type PhonePlatformComparisonTotals = {
+  total: number;
+  phoneEffective: number;
+  platformComplete: number;
+  matchedEffective: number;
+  mismatch: number;
+  phoneWithoutPlatform: number;
+  platformWithoutPhone: number;
+  withoutCode: number;
+};
+
+export function phonePlatformComparisonTotals(rows: Array<Record<string, unknown>>): PhonePlatformComparisonTotals {
+  const initialTotals: PhonePlatformComparisonTotals = {
+    total: 0,
+    phoneEffective: 0,
+    platformComplete: 0,
+    matchedEffective: 0,
+    mismatch: 0,
+    phoneWithoutPlatform: 0,
+    platformWithoutPhone: 0,
+    withoutCode: 0,
+  };
+
+  return rows.reduce<PhonePlatformComparisonTotals>((acc, row) => {
+    const phoneEffective = phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"]);
+    const platformComplete = phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"]);
+    const matchLabel = normalizeSourceMatch(phoneRowValue(row, ["Coinciden efectivas"], ""));
+    const code = phoneRowValue(row, ["CodPulso", "Cod Pulso", "Codigo", "Código"], "");
+    const comparable = phoneEffective || platformComplete || matchLabel === "no";
+    acc.total += 1;
+    if (phoneEffective) acc.phoneEffective += 1;
+    if (platformComplete) acc.platformComplete += 1;
+    if (phoneEffective && platformComplete) acc.matchedEffective += 1;
+    if (comparable && phoneEffective !== platformComplete) acc.mismatch += 1;
+    if (phoneEffective && !platformComplete) acc.phoneWithoutPlatform += 1;
+    if (!phoneEffective && platformComplete) acc.platformWithoutPhone += 1;
+    if (!normalizeSourceMatch(code)) acc.withoutCode += 1;
+    return acc;
+  }, initialTotals);
+}
+
+function phonePlatformComparisonIsMismatch(row: Record<string, unknown>) {
+  const phoneEffective = phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"]);
+  const platformComplete = phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"]);
+  const matchLabel = normalizeSourceMatch(phoneRowValue(row, ["Coinciden efectivas"], ""));
+  const detail = normalizeSourceMatch(phoneRowValue(row, ["Coincidencia"], ""));
+  return matchLabel === "no"
+    || phoneEffective !== platformComplete
+    || detail.includes("sin codpulso")
+    || detail.includes("sin plataforma")
+    || detail.includes("sin kobo")
+    || detail.includes("sin tel");
+}
+
+function phonePlatformComparisonTone(row: Record<string, unknown>): "ok" | "warning" | "pending" {
+  if (phonePlatformComparisonIsMismatch(row)) return "warning";
+  const phoneEffective = phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"]);
+  const platformComplete = phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"]);
+  if (phoneEffective && platformComplete) return "ok";
+  return "pending";
+}
+
+function phonePlatformComparisonLabel(row: Record<string, unknown>) {
+  const tone = phonePlatformComparisonTone(row);
+  const detail = phoneRowValue(row, ["Coincidencia", "Detalle"], "");
+  if (detail) return detail;
+  if (tone === "warning") return "Revisar cruce";
+  if (tone === "ok") return "Coincide como efectiva";
+  return "Sin efectiva en ambas fuentes";
+}
+
+function phonePlatformComparisonFocusRows(rows: Array<Record<string, unknown>>, mismatchRows: Array<Record<string, unknown>>) {
+  if (mismatchRows.length) return mismatchRows.slice(0, 12);
+  const effectiveRows = rows.filter((row) => (
+    phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"])
+    || phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"])
+  ));
+  return (effectiveRows.length ? effectiveRows : rows).slice(0, 12);
+}
+
+function phonePlatformComparisonEvidenceRows(
+  rows: Array<Record<string, unknown>>,
+  mismatchRows: Array<Record<string, unknown>>,
+  limit = 80,
+) {
+  const ordered: Array<Record<string, unknown>> = [];
+  const seen = new Set<Record<string, unknown>>();
+  const push = (row: Record<string, unknown>) => {
+    if (seen.has(row)) return;
+    seen.add(row);
+    ordered.push(row);
+  };
+  const matchedEffectiveRows = rows.filter((row) => phonePlatformComparisonTone(row) === "ok");
+  const pendingRows = rows.filter((row) => phonePlatformComparisonTone(row) === "pending");
+  mismatchRows.forEach(push);
+  matchedEffectiveRows.forEach(push);
+  pendingRows.forEach(push);
+  rows.forEach(push);
+  return {
+    rows: ordered.slice(0, limit),
+    hidden: Math.max(0, ordered.length - limit),
+  };
+}
+
+function AcreditacionPhoneComparisonCaseCard({
+  row,
+  index,
+}: {
+  row: Record<string, unknown>;
+  index: number;
+}) {
+  const code = phoneRowValue(row, ["CodPulso", "Cod Pulso", "Codigo", "Código", "Llave"], "");
+  const responsible = phoneRowValue(row, ["Responsable", "Operador", "Encuestador", "Asignado"], "");
+  const rawDate = phoneRowValue(row, ["Fecha", "Fecha Kobo", "Fecha plataforma", "Última respuesta", "Ultima respuesta"], "");
+  const date = isAcreditacionNoDateLabel(rawDate) ? "" : rawDate;
+  const phoneStatus = phoneRowValue(row, ["Estado telefónico", "Estado telefonico", "Avance telefónico", "Avance telefonico"], "");
+  const platformStatus = phoneRowValue(row, ["Avance plataforma", "Estado plataforma", "Estado Kobo"], "");
+  const phoneEffective = phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"]);
+  const platformComplete = phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"]);
+  const tone = phonePlatformComparisonTone(row);
+  const Icon = tone === "warning" ? AlertCircle : tone === "ok" ? CheckCircle2 : Search;
+  const codeLabel = code ? `CodPulso ${code}` : `Caso sin CodPulso ${index + 1}`;
+  return (
+    <section className={`mon-phone-compare-case is-${tone}`}>
+      <header>
+        <span><Icon size={13} /> {tone === "warning" ? "Revisar" : tone === "ok" ? "Coincide" : "Sin efectiva"}</span>
+        <strong>{codeLabel}</strong>
+        <em>{phonePlatformComparisonLabel(row)}</em>
+      </header>
+      <div className="mon-phone-compare-case-flow" aria-label={code ? `Conciliación de ${code}` : `Conciliación del caso ${index + 1}`}>
+        <span className={phoneEffective ? "is-ready" : "is-muted"}>
+          <em>Barrido</em>
+          <strong>{phoneEffective ? "Efectiva" : phoneStatus || "Sin efectiva"}</strong>
+        </span>
+        <i className={tone === "warning" ? "is-warning" : tone === "ok" ? "is-ok" : "is-muted"} aria-hidden="true">
+          <KeyRound size={12} />
+          <small>{code || `#${index + 1}`}</small>
+        </i>
+        <span className={platformComplete ? "is-platform" : "is-muted"}>
+          <em>Kobo</em>
+          <strong>{platformComplete ? "Efectiva" : platformStatus || "Sin efectiva"}</strong>
+        </span>
+      </div>
+      <footer>
+        {responsible ? <span>{responsible}</span> : null}
+        {date ? <span>{formatDate(date)}</span> : null}
+        <span>{tone === "ok" ? "Efectivas coinciden" : tone === "warning" ? "Cruce pendiente" : "Sin efectiva"}</span>
+      </footer>
+    </section>
+  );
+}
+
+function AcreditacionPhoneComparisonEvidenceItem({
+  row,
+  index,
+}: {
+  row: Record<string, unknown>;
+  index: number;
+}) {
+  const code = phoneRowValue(row, ["CodPulso", "Cod Pulso", "Codigo", "Código", "Llave"], "");
+  const responsible = phoneRowValue(row, ["Responsable", "Operador", "Encuestador", "Asignado"], "");
+  const rawDate = phoneRowValue(row, ["Fecha", "Fecha Kobo", "Fecha plataforma", "Última respuesta", "Ultima respuesta"], "");
+  const date = isAcreditacionNoDateLabel(rawDate) ? "" : rawDate;
+  const phoneStatus = phoneRowValue(row, ["Estado telefónico", "Estado telefonico", "Avance telefónico", "Avance telefonico"], "");
+  const platformStatus = phoneRowValue(row, ["Avance plataforma", "Estado plataforma", "Estado Kobo"], "");
+  const phoneEffective = phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"]);
+  const platformComplete = phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"]);
+  const tone = phonePlatformComparisonTone(row);
+  const statusLabel = tone === "warning" ? "Revisar" : tone === "ok" ? "Coincide" : "Sin efectiva";
+  return (
+    <article className={`mon-phone-compare-evidence-item is-${tone}`}>
+      <span className="mon-phone-compare-evidence-code">
+        <KeyRound size={12} />
+        <strong>{code || `Sin CodPulso ${index + 1}`}</strong>
+        <em>{statusLabel}</em>
+      </span>
+      <span className={phoneEffective ? "is-ready" : "is-muted"}>
+        <em>Barrido</em>
+        <strong>{phoneEffective ? "Efectiva" : phoneStatus || "No efectiva"}</strong>
+      </span>
+      <span className={platformComplete ? "is-platform" : "is-muted"}>
+        <em>Kobo</em>
+        <strong>{platformComplete ? "Efectiva" : platformStatus || "No efectiva"}</strong>
+      </span>
+      <span className="mon-phone-compare-evidence-note">
+        <em>{phonePlatformComparisonLabel(row)}</em>
+        <strong>{[responsible, date ? formatDate(date) : ""].filter(Boolean).join(" · ") || "Sin responsable/fecha"}</strong>
+      </span>
+    </article>
+  );
+}
+
+function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<string, unknown>> }) {
+  if (!rows.length) {
+    return (
+      <EmptyPanel
+        title="Sin comparación Kobo-barrido"
+        detail="El reporte todavía no trae filas con CodPulso para conciliar el avance telefónico contra Kobo."
+      />
+    );
+  }
+  const totals = phonePlatformComparisonTotals(rows);
+  const mismatchRows = rows.filter(phonePlatformComparisonIsMismatch);
+  const focusRows = phonePlatformComparisonFocusRows(rows, mismatchRows);
+  const evidence = phonePlatformComparisonEvidenceRows(rows, mismatchRows);
+  const evidenceRows = evidence.rows;
+  const hiddenEvidenceCount = evidence.hidden;
+  const comparableEffective = Math.max(totals.phoneEffective, totals.platformComplete);
+  const comparableDenominator = Math.max(1, comparableEffective);
+  const effectiveMatchLabel = phoneCodPulsoEffectiveMatchLabel(totals);
+  const effectiveBadge = effectiveMatchLabel === "S/D" ? `${formatMetric(totals.total)} llaves` : `${effectiveMatchLabel} efectivas`;
+  const platformDelta = totals.platformComplete - totals.phoneEffective;
+  const syncTone = totals.mismatch ? "warning" : comparableEffective ? "ok" : "pending";
+  const traceableCodes = Math.max(0, totals.total - totals.withoutCode);
+  const phoneEffectivePct = safePercentValue(totals.phoneEffective, comparableDenominator) ?? 0;
+  const platformEffectivePct = safePercentValue(totals.platformComplete, comparableDenominator) ?? 0;
+  const matchedPct = safePercentValue(totals.matchedEffective, comparableDenominator) ?? 0;
+  const traceablePct = safePercentValue(traceableCodes, Math.max(1, totals.total)) ?? 0;
+  const summaryItems = [
+    { key: "phone", label: "Barrido declara", value: totals.phoneEffective, pct: safePercentValue(totals.phoneEffective, comparableDenominator), tone: "effective", hint: "estado telefónico efectivo" },
+    { key: "platform", label: "Kobo valida", value: totals.platformComplete, pct: safePercentValue(totals.platformComplete, comparableDenominator), tone: "platform", hint: "pasan filtro y completan" },
+    { key: "matched", label: "Coinciden", value: totals.matchedEffective, pct: safePercentValue(totals.matchedEffective, comparableDenominator), tone: "ok", hint: `${effectiveMatchLabel} por CodPulso` },
+    { key: "mismatch", label: "Diferencias", value: totals.mismatch, pct: safePercentValue(totals.mismatch, comparableDenominator), tone: totals.mismatch ? "warning" : "ok", hint: "requieren revisión individual" },
+  ];
+  return (
+    <article className="mon-phone-ops-card mon-phone-ops-card--platform-match" aria-label="Comparación CodPulso entre barrido y Kobo">
+      <header className="mon-phone-ops-head">
+        <div>
+          <span>CodPulso</span>
+          <strong>Barrido telefónico vs efectivas Kobo</strong>
+          <small>Kobo define las efectivas; el barrido debe coincidir por código individual.</small>
+        </div>
+        <em>{effectiveBadge}</em>
+      </header>
+      <div className={`mon-phone-codpulso-stage is-${syncTone}`} aria-label="Trazabilidad visual por CodPulso">
+        <section
+          className="mon-phone-codpulso-source is-phone"
+          style={{ "--codpulso-source-pct": `${Math.max(2, Math.min(100, phoneEffectivePct))}%` } as CSSProperties}
+        >
+          <span><PhoneCall size={13} /> Barrido declara</span>
+          <strong>{formatMetric(totals.phoneEffective)}</strong>
+          <em>estado telefónico efectivo</em>
+          <i aria-hidden="true" />
+        </section>
+        <div
+          className="mon-phone-codpulso-keyway"
+          style={{ "--codpulso-match-pct": `${Math.max(0, Math.min(100, matchedPct))}%` } as CSSProperties}
+        >
+          <div className="mon-phone-codpulso-ring" aria-hidden="true">
+            <strong>{effectiveMatchLabel}</strong>
+            <em>coinciden</em>
+          </div>
+          <span><KeyRound size={14} /> CodPulso individual</span>
+          <p>
+            {totals.mismatch
+              ? `${formatMetric(totals.mismatch)} códigos dicen algo distinto entre barrido y Kobo.`
+              : comparableEffective
+                ? "Las efectivas del barrido están alineadas con Kobo por código."
+                : "Aún no hay efectivas comparables por código."}
+          </p>
+        </div>
+        <section
+          className="mon-phone-codpulso-source is-kobo"
+          style={{ "--codpulso-source-pct": `${Math.max(2, Math.min(100, platformEffectivePct))}%` } as CSSProperties}
+        >
+          <span><QrCode size={13} /> Kobo valida</span>
+          <strong>{formatMetric(totals.platformComplete)}</strong>
+          <em>{platformDelta === 0 ? "mismo volumen efectivo" : `${platformDelta > 0 ? "+" : ""}${formatMetric(platformDelta)} frente al barrido`}</em>
+          <i aria-hidden="true" />
+        </section>
+        <aside
+          className="mon-phone-codpulso-trace"
+          style={{ "--codpulso-trace-pct": `${Math.max(0, Math.min(100, traceablePct))}%` } as CSSProperties}
+        >
+          <span>Llaves trazadas</span>
+          <strong>{formatMetric(totals.total)}</strong>
+          <em>{totals.withoutCode ? `${formatMetric(totals.withoutCode)} sin CodPulso` : "todas comparables"}</em>
+          <i aria-hidden="true" />
+        </aside>
+      </div>
+      <div className="mon-phone-codpulso-proof" aria-label="Evidencia resumida de coincidencia efectiva">
+        {summaryItems.map((item) => (
+          <section
+            key={item.key}
+            className={`is-${item.tone}`}
+            style={{ "--phone-proof-pct": `${Math.max(0, Math.min(100, item.pct ?? 0))}%` } as CSSProperties}
+          >
+            <span>{item.label}</span>
+            <strong>{formatMetric(item.value)}</strong>
+            <em>{item.key === "matched" ? "alineadas" : item.key === "mismatch" ? "por revisar" : "casos"}</em>
+            <i aria-hidden="true" />
+            <small>{item.key === "matched" || item.key === "mismatch" ? item.hint : `${phonePercentLabel(item.pct)} · ${item.hint}`}</small>
+          </section>
+        ))}
+      </div>
+      <div className="mon-phone-compare-board" aria-label="Casos priorizados por CodPulso">
+        <header>
+          <span>{mismatchRows.length ? "Diferencias por revisar" : "Coincidencia efectiva"}</span>
+          <strong>{mismatchRows.length ? `${formatMetric(mismatchRows.length)} códigos necesitan revisión` : `${effectiveMatchLabel} efectivas alineadas`}</strong>
+          <em>{mismatchRows.length ? "Prioriza códigos donde barrido y Kobo no dicen lo mismo." : "Muestra de códigos efectivos para confirmar trazabilidad."}</em>
+        </header>
+        <div className="mon-phone-compare-cases">
+          {focusRows.map((row, index) => (
+            <AcreditacionPhoneComparisonCaseCard key={`${phoneRowValue(row, ["CodPulso", "Cod Pulso", "Codigo", "Código"], "")}-${index}`} row={row} index={index} />
+          ))}
+        </div>
+      </div>
+      <details className="mon-phone-compare-evidence">
+        <summary>
+          <span><FileCheck2 size={13} /> Evidencia por llave</span>
+          <em>{formatMetric(evidenceRows.length)} visibles{hiddenEvidenceCount ? ` · ${formatMetric(hiddenEvidenceCount)} más` : ""}</em>
+        </summary>
+        <div className="mon-phone-compare-evidence-list" aria-label="Evidencia visual de comparación por CodPulso">
+          {evidenceRows.map((row, index) => (
+            <AcreditacionPhoneComparisonEvidenceItem
+              key={`evidence-${phoneRowValue(row, ["CodPulso", "Cod Pulso", "Codigo", "Código"], "")}-${index}`}
+              row={row}
+              index={index}
+            />
+          ))}
+        </div>
+      </details>
+    </article>
+  );
+}
+
 function AcreditacionPhoneOperationsWorkbench({
   reports,
   activeTab,
   fallbackEffective = 0,
+  standalone = false,
 }: {
   reports: MonitoreoAcreditacionReports;
   activeTab: AcreditacionPhoneTab;
   fallbackEffective?: number;
+  standalone?: boolean;
 }) {
   const summaryRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]);
   const statusRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
@@ -5473,10 +6514,10 @@ function AcreditacionPhoneOperationsWorkbench({
   const detailRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["detalle_no_contesta"]);
   const reattemptRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["reintentos_responsable"]);
   const alertRows = rowsForSheetBlock(reports, "alertas", ["alertas"]);
+  const reconciliationRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);
   const dailyBlock = phoneDailyBlockForPanel(reports);
   const dailyRows = dailyBlock?.rows ?? [];
-  const dailyTableRows = buildAcreditacionPhoneDailyTableRows(dailyRows);
-  const dailyTablePreferredColumns = phoneDailyTableColumns(dailyTableRows);
+  const statusDailyRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_dia", "estados_dia", "estatus_telefonico_dia"]);
   const queries = normalizeInternalQueries(reports.internal_queries);
   const queryCases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
   const fallbackStatusRows = groupedCaseRows(queryCases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
@@ -5493,15 +6534,19 @@ function AcreditacionPhoneOperationsWorkbench({
 
   return (
     <section
-      className="pulso-panel mon-fill-panel mon-phone-panel"
+      className={`pulso-panel mon-fill-panel mon-phone-panel${standalone ? " is-standalone-phone" : ""}`}
       style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
-      aria-label="Monitoreo telefónico canónico"
+      aria-label={standalone ? "Monitoreo telefónico standalone" : "Monitoreo telefónico canónico"}
     >
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">Operación telefónica</span>
+          <span className="pulso-panel-eyebrow">{standalone ? "Monitoreo telefónico standalone" : "Operación telefónica"}</span>
           <h2 className="pulso-panel-title"><span className="mon-title-icon"><PhoneCall size={16} /> Barrido telefónico</span></h2>
-          <p className="pulso-panel-hint">Responsables, asignación, insistencia y estados propios del barrido.</p>
+          <p className="pulso-panel-hint">
+            {standalone
+              ? "Estados telefónicos, barrido, responsables y cruce individual con Kobo por CodPulso."
+              : "Responsables, asignación, insistencia y estados propios del barrido."}
+          </p>
         </div>
         <div className="mon-phone-meta">
           <span>{formatMetric(queryCases.length)} casos trazables</span>
@@ -5511,25 +6556,18 @@ function AcreditacionPhoneOperationsWorkbench({
       <div className="mon-phone-tabbody">
         {activeTab === "dia" ? (
           <div className="mon-phone-layout mon-phone-layout--alerts">
-            <AcreditacionPhoneDailyTrend rows={dailyRows} />
-            <DataTable
-              rows={dailyTableRows}
-              empty="No hay serie diaria telefónica preparada para este corte."
-              preferredColumns={dailyTablePreferredColumns}
-              maxColumns={Math.max(8, dailyTablePreferredColumns.length)}
-            />
+            <AcreditacionPhoneDailyTrend rows={dailyRows} statusRows={statusDailyRows} />
           </div>
         ) : activeTab === "responsables" ? (
-          <div className="mon-phone-layout">
+          <div className="mon-phone-layout mon-phone-layout--responsables">
             <AcreditacionPhoneResponsibleCards rows={visibleResponsibleRows} />
-            <DataTable rows={visibleResponsibleRows} empty="No hay seguimiento por responsable para este corte." />
           </div>
         ) : activeTab === "incidencia" ? (
           <div className="mon-phone-layout">
             <AcreditacionPhoneIncidenceSection responsibleRows={visibleResponsibleRows} />
             <AcreditacionPhonePendingInsistence pendingRows={pendingRows} insistenceRows={insistenceRows} detailRows={detailRows} reattemptRows={reattemptRows} />
             <DataTable
-              rows={[...pendingRows, ...insistenceRows, ...reattemptRows, ...detailRows]}
+              rows={phoneDisplayRowsWithBaseColumn([...pendingRows, ...insistenceRows, ...reattemptRows, ...detailRows])}
               empty="No hay pendientes, insistencia o detalle de no contacto para este corte."
             />
           </div>
@@ -5539,10 +6577,11 @@ function AcreditacionPhoneOperationsWorkbench({
           </div>
         ) : activeTab === "supervision" ? (
           <div className="mon-phone-layout">
-            <AcreditacionPhoneSupervisionBoard reports={reports} alertRows={alertRows} responsibleRows={visibleResponsibleRows} pendingRows={pendingRows} insistenceRows={insistenceRows} detailRows={detailRows} reattemptRows={reattemptRows} totals={totals} fallbackEffective={reportEffectiveFallback} />
+            <AcreditacionPhoneSupervisionBoard reports={reports} alertRows={alertRows} responsibleRows={visibleResponsibleRows} pendingRows={pendingRows} insistenceRows={insistenceRows} reattemptRows={reattemptRows} totals={totals} fallbackEffective={reportEffectiveFallback} />
           </div>
         ) : (
           <div className="mon-phone-layout mon-phone-layout--summary">
+            {standalone ? <AcreditacionPhonePlatformComparison rows={reconciliationRows} /> : null}
             <section className="mon-phone-overview-grid" aria-label="Resumen de barrido telefónico">
               <AcreditacionPhoneStorage totals={totals} />
               <AcreditacionPhoneStatusStorage rows={visibleStatusRows} total={totals.total} />
@@ -5555,8 +6594,8 @@ function AcreditacionPhoneOperationsWorkbench({
   );
 }
 
-function renderPhoneView(reports: MonitoreoAcreditacionReports, activeTab: AcreditacionPhoneTab = "resumen", fallbackEffective = 0) {
-  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} />;
+function renderPhoneView(reports: MonitoreoAcreditacionReports, activeTab: AcreditacionPhoneTab = "resumen", fallbackEffective = 0, standalone = false) {
+  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} standalone={standalone} />;
 }
 
 function normalizeSourceMatch(value: unknown) {
@@ -5608,6 +6647,21 @@ function sourceExternalId(source: MonitoreoSource) {
     sourceSheetField(source, "spreadsheet_id"),
     sourceSheetField(source, "sheet_name"),
   ].filter(Boolean).join(" / ") || source.id;
+}
+
+function isPlatformResponseSource(source: MonitoreoSource) {
+  return (source.kind === "surveymonkey" || source.kind === "kobo")
+    && (source.role === "respuestas" || !source.role || Boolean(source.survey_id) || Boolean(source.asset_uid));
+}
+
+function isSurveyMonkeyResponseSource(source: MonitoreoSource) {
+  return source.kind === "surveymonkey"
+    && (source.role === "respuestas" || !source.role || Boolean(source.survey_id));
+}
+
+function isKoboResponseSource(source: MonitoreoSource) {
+  return source.kind === "kobo"
+    && (source.role === "respuestas" || !source.role || Boolean(source.asset_uid));
 }
 
 function shortenMiddle(value: string, maxLength: number) {
@@ -5680,10 +6734,7 @@ function actorInitialLabel(value: string) {
 
 function sourcesForPreset(sources: MonitoreoSource[], preset: AcreditacionSourcePreset) {
   if (preset.key === "respuestas_surveymonkey") {
-    return sources.filter((source) => (
-      source.kind === "surveymonkey"
-      && (source.role === "respuestas" || !source.role || Boolean(source.survey_id))
-    ));
+    return sources.filter(isPlatformResponseSource);
   }
   return sources.filter((source) => source.kind === "google_sheets" && source.role === preset.role);
 }
@@ -5707,12 +6758,14 @@ function mostRecentSyncLabel(sources: MonitoreoSource[]) {
   return formatDate(sorted[0]);
 }
 
-function sourceRowsForTable(sources: MonitoreoSource[]) {
+function sourceRowsForTable(sources: MonitoreoSource[], { phoneMode = false }: { phoneMode?: boolean } = {}) {
   return sources.map((source) => ({
     Fuente: source.label || source.id,
     Servicio: sourceProviderLabel(source.kind),
     Rol: source.role || "respuestas",
-    Actor: sourceActorLabel(source),
+    ...(phoneMode
+      ? { Segmento: sourceActorLabel(source) === "Sin actor" ? "Sin segmentar" : sourceActorLabel(source) }
+      : { Actor: sourceActorLabel(source) }),
     Canal: acreditacionChannelLabel(sourceChannelLabel(source)),
     Estado: source.enabled ? "Activa" : "Inactiva",
     "Ultimo sync": sourceSyncLabel(source),
@@ -6388,6 +7441,7 @@ function jobErrorMessage(error: unknown) {
 function AcreditacionSourceStatusStrip({
   sources,
   reports,
+  phoneMode = false,
   status,
   busy,
   onSyncSheets,
@@ -6396,6 +7450,7 @@ function AcreditacionSourceStatusStrip({
 }: {
   sources: MonitoreoSource[];
   reports: MonitoreoAcreditacionReports;
+  phoneMode?: boolean;
   status?: AcreditacionActionStatus;
   busy: boolean;
   onSyncSheets: () => Promise<void>;
@@ -6403,24 +7458,28 @@ function AcreditacionSourceStatusStrip({
   onSyncAll: () => Promise<void>;
 }) {
   const activeSources = sources.filter((source) => source.enabled);
+  const phoneContract = phoneMode ? buildAcreditacionPhoneSourceContract(sources) : null;
+  const phoneReadyCount = phoneContract ? phoneContractReadyCount(phoneContract) : 0;
+  const packageActiveCount = phoneContract ? phoneReadyCount : activeSources.length;
+  const packageTotalCount = phoneContract ? 3 : sources.length;
   const sheetCount = activeSources.filter((source) => source.kind === "google_sheets").length;
-  const surveyCount = activeSources.filter((source) => source.kind === "surveymonkey").length;
-  const baseCount = sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[0]).length;
-  const sweepCount = sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[1]).length;
+  const surveyCount = phoneContract ? phoneContract.platform.sources.filter((source) => source.enabled).length : activeSources.filter(isPlatformResponseSource).length;
+  const baseCount = phoneContract ? (phoneContract.universe.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[0]).length;
+  const sweepCount = phoneContract ? (phoneContract.sweep.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[1]).length;
   return (
     <section className="mon-acr-source-status-strip" aria-label="Estado de fuentes de acreditación">
       {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
       <header>
         <span>Fuentes</span>
-        <strong>Paquete de acreditación</strong>
-        <p>{fmt(sources.length)} configuradas · {fmt(activeSources.length)} activas · corte {formatDate(reports.generated_at)}</p>
+        <strong>{phoneContract ? "Paquete telefónico" : "Paquete de acreditación"}</strong>
+        <p>{fmt(packageTotalCount)} operativas · {fmt(packageActiveCount)} listas · corte {formatDate(reports.generated_at)}</p>
       </header>
       <div className="mon-acr-source-status-metrics">
-        <span className={sources.length ? "is-ready" : "is-warning"}>
+        <span className={packageActiveCount >= packageTotalCount && packageTotalCount ? "is-ready" : "is-warning"}>
           <PlugZap size={14} />
           <em>Fuentes</em>
-          <strong>{fmt(activeSources.length)}/{fmt(sources.length)}</strong>
-          <small>paquete activo</small>
+          <strong>{fmt(packageActiveCount)}/{fmt(packageTotalCount)}</strong>
+          <small>{phoneContract ? "paquete operativo" : "paquete activo"}</small>
         </span>
         <span className={baseCount ? "is-ready" : "is-warning"}>
           <Layers3 size={14} />
@@ -6430,7 +7489,7 @@ function AcreditacionSourceStatusStrip({
         </span>
         <span className={surveyCount ? "is-ready" : "is-warning"}>
           <QrCode size={14} />
-          <em>Encuestas</em>
+          <em>{phoneContract ? "Kobo" : "Plataforma"}</em>
           <strong>{fmt(surveyCount)}</strong>
           <small>{fmt(sweepCount)} barrido</small>
         </span>
@@ -6440,6 +7499,8 @@ function AcreditacionSourceStatusStrip({
         surveyCount={surveyCount}
         totalCount={activeSources.length}
         busy={busy}
+        surveyLabel={phoneContract ? "Kobo" : "encuestas"}
+        surveyTitle={phoneContract ? "fuentes Kobo activas" : "encuestas de plataforma activas"}
         onSyncSheets={onSyncSheets}
         onSyncSurvey={onSyncSurvey}
         onSyncAll={onSyncAll}
@@ -6462,7 +7523,7 @@ function AcreditacionSourceBlueprint({
       <div className="mon-acr-fixed-source-title">
         <span><PlugZap size={13} /> Configuración fija</span>
         <strong>Arquitectura de fuentes de acreditación</strong>
-        <em>Sheets define universo y barrido; SurveyMonkey aporta respuestas exactas por actor y canal.</em>
+        <em>Sheets define universo y barrido; Kobo/SurveyMonkey aportan respuestas exactas por actor y canal.</em>
       </div>
       <div className="mon-acr-fixed-source-summary" aria-label="Resumen de paquete">
         {ACREDITACION_SOURCE_PRESETS.map((preset) => {
@@ -7091,6 +8152,296 @@ function AcreditacionSurveySourcePicker({
   );
 }
 
+function AcreditacionKoboSourcePicker({
+  sources,
+  phoneMode = false,
+  onStateChange,
+}: {
+  sources: MonitoreoSource[];
+  phoneMode?: boolean;
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const configuredAssetIds = useMemo(() => new Set(
+    sources.map((source) => source.asset_uid).filter((value): value is string => Boolean(value)),
+  ), [sources]);
+  const configuredBaseUrl = sources[0]?.base_url || "";
+  const configuredProfileId = sources[0]?.connection_profile_id || "";
+  const [koboConnection, setKoboConnection] = useState<ConnectionTokenState | null>(null);
+  const [baseUrl, setBaseUrl] = useState(configuredBaseUrl || KOBO_DEFAULT_BASE_URL);
+  const [profileId, setProfileId] = useState(configuredProfileId);
+  const [filter, setFilter] = useState("");
+  const [assets, setAssets] = useState<MonitoreoKoboAssetItem[]>([]);
+  const [selectedUid, setSelectedUid] = useState("");
+  const [labels, setLabels] = useState<Record<string, string>>({});
+  const [actors, setActors] = useState<Record<string, string>>({});
+  const [channels, setChannels] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<"list" | string | null>(null);
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+
+  const preferredKoboProfile = useMemo(() => {
+    const profiles = koboConnection?.profiles ?? [];
+    return profiles.find((profile) => profile.id === koboConnection?.active_profile_id)
+      ?? profiles.find((profile) => profile.is_default)
+      ?? profiles.find((profile) => profile.base_url)
+      ?? profiles[0]
+      ?? null;
+  }, [koboConnection]);
+  const preferredBaseUrl = koboConnection?.active_profile_base_url || preferredKoboProfile?.base_url || "";
+  const preferredProfileId = koboConnection?.active_profile_id || preferredKoboProfile?.id || "";
+
+  useEffect(() => {
+    let cancelled = false;
+    void apiConnectionTokenLoad("kobo")
+      .then((connection) => {
+        if (cancelled) return;
+        setKoboConnection(connection);
+      })
+      .catch(() => {
+        if (!cancelled) setKoboConnection(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (configuredBaseUrl) {
+      setBaseUrl(configuredBaseUrl);
+    } else if (preferredBaseUrl) {
+      setBaseUrl((current) => {
+        const trimmed = current.trim();
+        return trimmed && trimmed !== KOBO_DEFAULT_BASE_URL ? current : preferredBaseUrl;
+      });
+    }
+    if (configuredProfileId) {
+      setProfileId(configuredProfileId);
+    } else if (preferredProfileId) {
+      setProfileId((current) => current.trim() ? current : preferredProfileId);
+    }
+  }, [configuredBaseUrl, configuredProfileId, preferredBaseUrl, preferredProfileId]);
+
+  const visibleAssets = useMemo(() => {
+    const needle = normalizeSourceMatch(filter);
+    const filtered = needle
+      ? assets.filter((asset) => normalizeSourceMatch(`${asset.name} ${asset.uid}`).includes(needle))
+      : assets;
+    return [...filtered].sort((a, b) => {
+      const aSelected = a.uid === selectedUid;
+      const bSelected = b.uid === selectedUid;
+      if (aSelected !== bSelected) return aSelected ? -1 : 1;
+      const aAdded = configuredAssetIds.has(a.uid);
+      const bAdded = configuredAssetIds.has(b.uid);
+      if (aAdded !== bAdded) return aAdded ? 1 : -1;
+      return (a.name || a.uid).localeCompare(b.name || b.uid, "es");
+    });
+  }, [assets, configuredAssetIds, filter, selectedUid]);
+  const selectedAsset = assets.find((asset) => asset.uid === selectedUid) ?? visibleAssets[0] ?? null;
+
+  const hydrateKoboDefaults = (items: MonitoreoKoboAssetItem[]) => {
+    setLabels((prev) => {
+      const next = { ...prev };
+      items.forEach((asset) => {
+        if (next[asset.uid] == null) next[asset.uid] = asset.name || asset.uid;
+      });
+      return next;
+    });
+    setActors((prev) => {
+      const next = { ...prev };
+      items.forEach((asset) => {
+        if (next[asset.uid] == null) next[asset.uid] = "";
+      });
+      return next;
+    });
+    setChannels((prev) => {
+      const next = { ...prev };
+      items.forEach((asset) => {
+        if (next[asset.uid] == null) next[asset.uid] = "";
+      });
+      return next;
+    });
+  };
+
+  const listAssets = async () => {
+    setBusy("list");
+    setStatus({ tone: "info", message: "Leyendo formularios Kobo disponibles..." });
+    try {
+      const result = await apiMonitoreoKoboAssets(baseUrl.trim() || KOBO_DEFAULT_BASE_URL, 100, {
+        connection_profile_id: profileId.trim() || undefined,
+      });
+      hydrateKoboDefaults(result.assets);
+      setAssets(result.assets);
+      setSelectedUid((current) => current || result.assets[0]?.uid || "");
+      setStatus({ tone: "success", message: `${fmt(result.assets.length)} formulario${result.assets.length === 1 ? "" : "s"} Kobo disponibles para seleccionar.` });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const payloadForAsset = (asset: MonitoreoKoboAssetItem): MonitoreoSourcePayload => {
+    const actor = phoneMode ? "" : actors[asset.uid] || "";
+    const segment = actors[asset.uid] || "";
+    const channel = phoneMode ? "Kobo" : channels[asset.uid] || "";
+    const label = labels[asset.uid] || asset.name || asset.uid;
+    return {
+      kind: "kobo",
+      label,
+      asset_uid: asset.uid,
+      survey_title: asset.name || label,
+      base_url: baseUrl.trim() || KOBO_DEFAULT_BASE_URL,
+      connection_profile_id: profileId.trim(),
+      role: "respuestas",
+      integration_mode: "connected_read",
+      dimensions: cleanSourceDimensions({
+        actor,
+        segmento: phoneMode ? segment : actor,
+        carrera: phoneMode ? segment : actor,
+        canal: channel,
+        servicio: "Respuestas Kobo",
+        survey_title: asset.name || label,
+      }),
+    };
+  };
+
+  const addAsset = async (asset: MonitoreoKoboAssetItem) => {
+    if (configuredAssetIds.has(asset.uid)) return;
+    setBusy(asset.uid);
+    setStatus({ tone: "info", message: `Registrando ${asset.name || asset.uid} como ${phoneMode ? "instrumento" : "encuesta"} Kobo...` });
+    try {
+      const result = await apiMonitoreoSource(payloadForAsset(asset));
+      onStateChange?.(result.state);
+      setStatus({ tone: "success", message: `${result.source.label || asset.name || asset.uid} quedó como ${phoneMode ? "instrumento" : "encuesta"} Kobo.` });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className={`mon-acr-source-editor mon-acr-survey-add mon-acr-kobo-add${assets.length ? " has-results" : " is-compact"}`} aria-label="Selector de encuesta Kobo en plataforma">
+      <div className="mon-acr-survey-add-head">
+        <label>
+          <span>URL Kobo</span>
+          <input
+            value={baseUrl}
+            onChange={(event) => setBaseUrl(event.currentTarget.value)}
+            placeholder={preferredBaseUrl || KOBO_DEFAULT_BASE_URL}
+            disabled={Boolean(busy)}
+          />
+        </label>
+        <label>
+          <span>Perfil</span>
+          <input
+            value={profileId}
+            onChange={(event) => setProfileId(event.currentTarget.value)}
+            placeholder="Opcional"
+            disabled={Boolean(busy)}
+          />
+        </label>
+        <label>
+          <span>Filtro</span>
+          <input
+            value={filter}
+            onChange={(event) => setFilter(event.currentTarget.value)}
+            placeholder="Buscar formulario"
+            disabled={Boolean(busy)}
+          />
+        </label>
+        <button type="button" onClick={() => { void listAssets(); }} disabled={Boolean(busy)}>
+          {busy === "list" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
+          Listar Kobo
+        </button>
+      </div>
+      {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
+      {assets.length ? (
+        <div className="mon-sm-survey-workflow">
+          <div className="mon-sm-survey-catalog">
+            <div className="pulso-sm-survey-picker">
+              <div className="pulso-sm-list-caption">{fmt(visibleAssets.length)} de {fmt(assets.length)} formularios Kobo</div>
+            </div>
+            <div className="pulso-sm-survey-list" aria-label="Formularios Kobo">
+              {visibleAssets.map((asset) => {
+                const selected = asset.uid === selectedAsset?.uid;
+                const added = configuredAssetIds.has(asset.uid);
+                return (
+                  <button
+                    key={asset.uid}
+                    type="button"
+                    className={`pulso-sm-survey-card${selected ? " is-selected" : ""}${added ? " is-added" : ""}`}
+                    onClick={() => setSelectedUid(asset.uid)}
+                    disabled={Boolean(busy)}
+                    aria-pressed={selected}
+                  >
+                    <span className="pulso-sm-survey-card-copy">
+                      <strong>{asset.name || asset.uid}</strong>
+                      <small>{asset.uid}{asset.date_modified ? ` · ${formatDate(asset.date_modified)}` : ""}</small>
+                      <span className="pulso-sm-survey-card-meta">
+                        <b>{asset.deployment_active ? "Deploy activo" : "Sin deploy activo"}</b>
+                        {asset.version_id ? <i>{asset.version_id}</i> : null}
+                      </span>
+                    </span>
+                    <em>{added ? "Agregada" : selected ? "En edición" : "Elegir"}</em>
+                  </button>
+                );
+              })}
+              {!visibleAssets.length ? <div className="pulso-sm-empty">No hay formularios Kobo con ese filtro.</div> : null}
+            </div>
+          </div>
+          {selectedAsset ? (
+            <div className="mon-sm-selected-survey">
+              <div className="pulso-sm-selected-head">
+                <strong>Encuesta Kobo seleccionada</strong>
+                <span>{selectedAsset.name || selectedAsset.uid} · {shortenMiddle(selectedAsset.uid, 34)}</span>
+              </div>
+              <div className="mon-sm-result">
+                <label className="mon-source-name-field">
+                  <span>{phoneMode ? "Nombre del instrumento" : "Nombre real en plataforma"}</span>
+                  <input value={labels[selectedAsset.uid] ?? ""} onChange={(event) => setLabels((prev) => ({ ...prev, [selectedAsset.uid]: event.currentTarget.value }))} placeholder={selectedAsset.name || "Nombre visible"} />
+                </label>
+                <label className="mon-source-name-field">
+                  <span>{phoneMode ? "Segmento operativo" : "Actor / carrera"}</span>
+                  <input value={actors[selectedAsset.uid] ?? ""} onChange={(event) => setActors((prev) => ({ ...prev, [selectedAsset.uid]: event.currentTarget.value }))} placeholder={phoneMode ? "Opcional: sede u otro segmento" : "Actor"} />
+                </label>
+                {phoneMode ? (
+                  <div className="mon-phone-kobo-fixed-channel">
+                    <QrCode size={14} />
+                    <span>
+                      <strong>Kobo es la plataforma rectora</strong>
+                      <em>El canal no define efectivas; solo el filtro guardado.</em>
+                    </span>
+                  </div>
+                ) : (
+                  <AcreditacionChannelSelect
+                    value={channels[selectedAsset.uid] ?? ""}
+                    onChange={(channel) => setChannels((prev) => ({ ...prev, [selectedAsset.uid]: channel }))}
+                    allowEmpty
+                  />
+                )}
+                <div className="mon-sm-result-actions">
+                  <button type="button" onClick={() => { void addAsset(selectedAsset); }} disabled={Boolean(busy) || configuredAssetIds.has(selectedAsset.uid)}>
+                    {busy === selectedAsset.uid ? <Loader2 size={14} className="pulso-spin" /> : <Plus size={14} />}
+                    {configuredAssetIds.has(selectedAsset.uid) ? "Ya agregada" : phoneMode ? "Usar como instrumento" : "Usar como plataforma"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mon-source-picker-note is-empty">
+          <Search size={15} />
+          <div>
+            <strong>Selecciona la encuesta Kobo de plataforma</strong>
+            <span>{phoneMode ? "Lista los formularios Kobo y elige el instrumento que cuenta efectivas contra CodPulso." : "Lista los formularios Kobo y elige cuál alimenta el avance contra la base de barrido."}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AcreditacionSurveyInspectionCard({
   inspection,
 }: {
@@ -7210,27 +8561,29 @@ function AcreditacionPlatformSurveySourcesView({
   config?: MonitoreoConfig;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
-  const surveySources = sources.filter((source) => source.kind === "surveymonkey");
+  const surveySources = sources.filter(isSurveyMonkeyResponseSource);
+  const koboSources = sources.filter(isKoboResponseSource);
+  const platformSources = sources.filter(isPlatformResponseSource);
   const linkCollectors = config?.operational_model.link_collectors ?? [];
-  const configuredActorOptions = acreditacionActorOptions(surveySources);
-  const actorOptions = acreditacionActorOptions(surveySources, ACREDITACION_DEFAULT_ACTORS);
+  const configuredActorOptions = acreditacionActorOptions(platformSources);
+  const actorOptions = acreditacionActorOptions(platformSources, ACREDITACION_DEFAULT_ACTORS);
   const [drafts, setDrafts] = useState<Record<string, { actor: string; channel: string }>>({});
   const [savingId, setSavingId] = useState("");
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
 
   useEffect(() => {
-    setDrafts(Object.fromEntries(surveySources.map((source) => [
+    setDrafts(Object.fromEntries(platformSources.map((source) => [
       source.id,
       {
         actor: sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source),
         channel: channelOptionForValue(sourceChannelLabel(source)).value,
       },
     ])));
-  }, [surveySources.map((source) => `${source.id}:${sourceActorLabel(source)}:${sourceChannelLabel(source)}`).join("|")]);
+  }, [platformSources.map((source) => `${source.id}:${sourceActorLabel(source)}:${sourceChannelLabel(source)}`).join("|")]);
 
   const declarationGroups = useMemo(() => {
     const groups = new Map<string, { actor: string; sources: MonitoreoSource[] }>();
-    surveySources.forEach((source) => {
+    platformSources.forEach((source) => {
       const actor = drafts[source.id]?.actor || sourceActorLabel(source);
       const key = normalizeSourceMatch(actor) || source.id;
       const group = groups.get(key) ?? { actor, sources: [] };
@@ -7246,7 +8599,7 @@ function AcreditacionPlatformSurveySourcesView({
       });
       return { ...group, channels: Array.from(channels.values()) };
     });
-  }, [drafts, surveySources]);
+  }, [drafts, platformSources]);
 
   async function saveSurvey(source: MonitoreoSource) {
     const draft = drafts[source.id];
@@ -7263,8 +8616,8 @@ function AcreditacionPlatformSurveySourcesView({
           segmento: draft.actor,
           carrera: draft.actor,
           canal: draft.channel,
-          servicio: "Respuestas SurveyMonkey",
-          survey_title: source.survey_title,
+          servicio: source.kind === "kobo" ? "Respuestas Kobo" : "Respuestas SurveyMonkey",
+          survey_title: source.survey_title || source.label,
         }),
       }));
       onStateChange?.(result.state);
@@ -7279,13 +8632,23 @@ function AcreditacionPlatformSurveySourcesView({
   return (
     <div className="mon-acr-source-view mon-acr-platform-surveys">
       {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
-      <details className="mon-acr-source-disclosure" open={!surveySources.length}>
+      <details className="mon-acr-source-disclosure" open={!platformSources.length}>
         <summary>
-          <span><Plus size={14} /> Agregar o actualizar encuestas</span>
-          <em>{surveySources.length ? "Catalogo cerrado por defecto" : "Sin encuestas configuradas"}</em>
+          <span><Plus size={14} /> Agregar SurveyMonkey</span>
+          <em>{surveySources.length ? "Catalogo cerrado por defecto" : "Sin SurveyMonkey configuradas"}</em>
         </summary>
         <AcreditacionSurveySourcePicker
           sources={surveySources}
+          onStateChange={onStateChange}
+        />
+      </details>
+      <details className="mon-acr-source-disclosure" open={!platformSources.length && !koboSources.length}>
+        <summary>
+          <span><QrCode size={14} /> Seleccionar encuesta Kobo</span>
+          <em>{koboSources.length ? `${fmt(koboSources.length)} Kobo seleccionada${koboSources.length === 1 ? "" : "s"}` : "Sin Kobo"}</em>
+        </summary>
+        <AcreditacionKoboSourcePicker
+          sources={koboSources}
           onStateChange={onStateChange}
         />
       </details>
@@ -7294,7 +8657,7 @@ function AcreditacionPlatformSurveySourcesView({
         <div className="mon-acr-object-surface-head">
           <div>
             <span>Encuestas en plataforma</span>
-            <strong>{fmt(surveySources.length)} fuente{surveySources.length === 1 ? "" : "s"} SurveyMonkey</strong>
+            <strong>{fmt(platformSources.length)} fuente{platformSources.length === 1 ? "" : "s"} SurveyMonkey/Kobo</strong>
           </div>
           <em>{fmt(configuredActorOptions.length)} actores detectados</em>
         </div>
@@ -7335,7 +8698,7 @@ function AcreditacionPlatformSurveySourcesView({
           </div>
         ) : null}
         <div className="mon-acr-survey-card-grid">
-          {surveySources.map((source) => {
+          {platformSources.map((source) => {
             const draft = drafts[source.id] ?? {
               actor: sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source),
               channel: channelOptionForValue(sourceChannelLabel(source)).value,
@@ -7362,7 +8725,7 @@ function AcreditacionPlatformSurveySourcesView({
                   </span>
                   <div>
                     <strong>{acreditacionSurveySourceName(source)}</strong>
-                    <em>{source.survey_id || source.id}</em>
+                    <em>{source.survey_id || source.asset_uid || source.id}</em>
                   </div>
                   <span className={source.enabled ? "is-ready" : "is-muted"}>{source.enabled ? "Activa" : "Inactiva"}</span>
                 </div>
@@ -7396,11 +8759,11 @@ function AcreditacionPlatformSurveySourcesView({
               </article>
             );
           })}
-          {!surveySources.length ? (
+          {!platformSources.length ? (
             <div className="mon-acr-empty-state">
               <QrCode size={18} />
               <strong>Sin encuestas conectadas</strong>
-              <span>Agrega encuestas desde el catalogo y despues asigna cada una al actor correcto.</span>
+              <span>Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto.</span>
             </div>
           ) : null}
         </div>
@@ -7416,7 +8779,7 @@ function AcreditacionSheetsByActorView({
   sources: MonitoreoSource[];
   onStateChange?: (state: MonitoreoState) => void;
 }) {
-  const surveySources = sources.filter((source) => source.kind === "surveymonkey");
+  const surveySources = sources.filter(isPlatformResponseSource);
   const baseSources = sources.filter((source) => source.kind === "google_sheets" && source.role === "universo");
   const sweepSources = sources.filter((source) => source.kind === "google_sheets" && source.role === "barrido");
   const [manualActor, setManualActor] = useState("");
@@ -7830,10 +9193,126 @@ function AcreditacionActiveSourcesView({
 }) {
   const linkCollectors = config?.operational_model.link_collectors ?? [];
   const summary = buildAcreditacionActiveSourcesSummary(sources, linkCollectors);
-  const surveySources = sources.filter((source) => source.kind === "surveymonkey" && source.enabled);
+  const surveySources = sources.filter((source) => isPlatformResponseSource(source) && source.enabled);
   const sheetSources = sources.filter((source) => source.kind === "google_sheets" && source.enabled);
-  const activeRows = sourceRowsForTable(sources.filter((source) => source.enabled));
   const packageRows = sourcePackageRows(sources);
+  const isPhoneView = isTelefonicoMonitoreoState(state);
+  const activeRows = sourceRowsForTable(sources.filter((source) => source.enabled), { phoneMode: isPhoneView });
+
+  if (isPhoneView) {
+    const contract = buildAcreditacionPhoneSourceContract(sources);
+    const slots = [contract.universe, contract.sweep, contract.platform];
+    const readySlots = slots.filter((slot) => slot.ready).length;
+    const phoneSheetSources = Array.from(new Map(
+      [...contract.universe.sources, ...contract.sweep.sources]
+        .filter((source) => source.enabled)
+        .map((source) => [source.id, source] as const),
+    ).values());
+    const koboSources = contract.platform.sources.filter((source) => source.enabled);
+    return (
+      <div className="mon-acr-source-view mon-acr-active-sources">
+        <section className="mon-acr-active-hero">
+          <div>
+            <span>Paquete telefónico</span>
+            <strong>{fmt(readySlots)}/3 fuentes listas para monitoreo</strong>
+            <p>Base telefónica, barrido y Kobo se mantienen separados: Kobo manda efectivas y el barrido aporta estados telefónicos.</p>
+          </div>
+          <div className="mon-acr-active-kpis">
+            <StatTile label="Fuentes" value={`${fmt(readySlots)}/3`} tone={readySlots === 3 ? "good" : "warn"} />
+            <StatTile label="Sheets" value={fmt(phoneSheetSources.length)} tone={phoneSheetSources.length >= 2 ? "good" : "warn"} />
+            <StatTile label="Kobo" value={fmt(koboSources.length)} tone={koboSources.length ? "good" : "warn"} />
+            <StatTile label="Ultimo sync" value={summary.lastSync ? formatDate(summary.lastSync) : "Sin sync"} tone={summary.lastSync ? "good" : "warn"} />
+          </div>
+        </section>
+        <div className="mon-acr-active-grid">
+          <section className="mon-acr-object-surface">
+            <div className="mon-acr-object-surface-head">
+              <div>
+                <span>Contrato telefónico</span>
+                <strong>{fmt(readySlots)} de 3 piezas listas</strong>
+              </div>
+              <em>{contract.ready ? "Paquete completo" : "Faltan piezas"}</em>
+            </div>
+            <div className="mon-acr-active-source-list">
+              {slots.map((slot) => (
+                <article key={slot.key} className={slot.ready ? "is-ready" : "is-warning"}>
+                  <strong>{slot.label}</strong>
+                  <span>{slot.purpose}</span>
+                  <em>{slot.ready ? `${fmt(slot.sources.filter((source) => source.enabled).length)} activa` : "Pendiente"}</em>
+                </article>
+              ))}
+            </div>
+          </section>
+          <section className="mon-acr-object-surface">
+            <div className="mon-acr-object-surface-head">
+              <div>
+                <span>Base y barrido</span>
+                <strong>{fmt(phoneSheetSources.length)} fuente{phoneSheetSources.length === 1 ? "" : "s"} Sheets</strong>
+              </div>
+              <em>estados en paralelo</em>
+            </div>
+            <div className="mon-acr-active-source-list">
+              {phoneSheetSources.map((source) => (
+                <article key={source.id}>
+                  <strong>{source.label || source.sheet_binding?.sheet_name || source.id}</strong>
+                  <span>{source.role === "barrido" ? "Barrido telefónico" : "Base telefónica"} · {source.sheet_binding?.sheet_name || "Sin pestaña"}</span>
+                  <em>{sourceSyncLabel(source)}</em>
+                </article>
+              ))}
+              {!phoneSheetSources.length ? <div className="mon-sm-empty">Sin Sheets telefónicas activas.</div> : null}
+            </div>
+          </section>
+          <section className="mon-acr-object-surface">
+            <div className="mon-acr-object-surface-head">
+              <div>
+                <span>Kobo efectivo</span>
+                <strong>{fmt(koboSources.length)} encuesta{ koboSources.length === 1 ? "" : "s"} activa{ koboSources.length === 1 ? "" : "s"}</strong>
+              </div>
+              <em>avance por CodPulso</em>
+            </div>
+            <div className="mon-acr-active-source-list">
+              {koboSources.map((source) => (
+                <article key={source.id}>
+                  <strong>{acreditacionSurveySourceName(source)}</strong>
+                  <span>{sourceProviderLabel(source.kind)} · {shortenMiddle(sourceExternalId(source), 34)}</span>
+                  <em>{fmt(acreditacionSourceResponseCount(source))} respuestas</em>
+                </article>
+              ))}
+              {!koboSources.length ? <div className="mon-sm-empty">Sin Kobo activo.</div> : null}
+            </div>
+          </section>
+        </div>
+        <details className="mon-acr-source-disclosure">
+          <summary>
+            <span><Table2 size={14} /> Detalle de fuentes</span>
+            <em>{fmt(activeRows.length)} activas</em>
+          </summary>
+          <div className="mon-profile-grid">
+            <section className="mon-profile-panel">
+              <div className="mon-profile-panel-head">
+                <h3>Fuentes activas</h3>
+                <span>{fmt(activeRows.length)} filas</span>
+              </div>
+              <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Rol", "Estado", "Ultimo sync", "ID"]} />
+            </section>
+            <section className="mon-profile-panel">
+              <div className="mon-profile-panel-head">
+                <h3>Fuentes del corte</h3>
+                <span>{fmt(reportSources.length)} filas</span>
+              </div>
+              <DataTable rows={reportSources} empty="El corte no declaró fuentes." />
+            </section>
+          </div>
+          <AcreditacionConfiguredSourcesList
+            sources={sources}
+            syncFallback={state?.synced_at ?? state?.generated_at}
+            phoneMode
+            onStateChange={onStateChange}
+          />
+        </details>
+      </div>
+    );
+  }
 
   return (
     <div className="mon-acr-source-view mon-acr-active-sources">
@@ -7957,15 +9436,19 @@ function AcreditacionActiveSourcesView({
 function AcreditacionConfiguredSourcesList({
   sources,
   syncFallback,
+  phoneMode = false,
   onStateChange,
 }: {
   sources: MonitoreoSource[];
   syncFallback?: string;
+  phoneMode?: boolean;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const [savingId, setSavingId] = useState("");
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
-  const activeCount = sources.filter((source) => source.enabled).length;
+  const phoneContract = phoneMode ? buildAcreditacionPhoneSourceContract(sources) : null;
+  const activeCount = phoneContract ? phoneContractReadyCount(phoneContract) : sources.filter((source) => source.enabled).length;
+  const totalCount = phoneContract ? 3 : sources.length;
 
   const updateSource = async (source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>) => {
     setSavingId(source.id);
@@ -7989,7 +9472,7 @@ function AcreditacionConfiguredSourcesList({
           <span className="mon-source-list-head">Fuentes configuradas</span>
           <strong>{sources.length ? `${fmt(sources.length)} seleccionadas` : "Sin fuentes"}</strong>
         </div>
-        <em>{fmt(activeCount)}/{fmt(sources.length || 0)} activas</em>
+        <em>{fmt(activeCount)}/{fmt(totalCount || 0)} {phoneContract ? "operativas" : "activas"}</em>
       </div>
       {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
       <div className="mon-source-list">
@@ -8060,6 +9543,8 @@ function AcreditacionSourceSyncActions({
   surveyCount,
   totalCount,
   busy,
+  surveyLabel = "encuestas",
+  surveyTitle = "encuestas de plataforma activas",
   onSyncSheets,
   onSyncSurvey,
   onSyncAll,
@@ -8068,6 +9553,8 @@ function AcreditacionSourceSyncActions({
   surveyCount: number;
   totalCount: number;
   busy: boolean;
+  surveyLabel?: string;
+  surveyTitle?: string;
   onSyncSheets: () => Promise<void>;
   onSyncSurvey: () => Promise<void>;
   onSyncAll: () => Promise<void>;
@@ -8078,9 +9565,9 @@ function AcreditacionSourceSyncActions({
         {busy ? <Loader2 size={13} className="pulso-spin" /> : <Layers3 size={13} />}
         <span>Actualizar Sheets</span>
       </button>
-      <button type="button" onClick={() => { void onSyncSurvey(); }} disabled={busy || !surveyCount} title={surveyCount ? `${surveyCount} encuestas activas` : "Sin encuestas SurveyMonkey activas"}>
+      <button type="button" onClick={() => { void onSyncSurvey(); }} disabled={busy || !surveyCount} title={surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`}>
         {busy ? <Loader2 size={13} className="pulso-spin" /> : <QrCode size={13} />}
-        <span>Actualizar encuestas</span>
+        <span>Actualizar {surveyLabel}</span>
       </button>
       <button type="button" className="is-primary" onClick={() => { void onSyncAll(); }} disabled={busy || !totalCount} title={totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas"}>
         {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
@@ -8118,7 +9605,7 @@ function AcreditacionSourcePackageConsole({
   const surveySources = sourcesForPreset(sources, surveyPreset);
   const activeSources = sources.filter((source) => source.enabled);
   const sheetCount = activeSources.filter((source) => source.kind === "google_sheets").length;
-  const surveyCount = activeSources.filter((source) => source.kind === "surveymonkey").length;
+  const surveyCount = activeSources.filter(isPlatformResponseSource).length;
 
   return (
     <section className="mon-acr-sources-panel mon-acr-sources-panel--standalone">
@@ -8162,10 +9649,10 @@ function AcreditacionSourcePackageConsole({
               />
             </div>
           </section>
-          <section className="mon-acr-platform-panel mon-acr-platform-panel--survey" aria-label="Encuestas SurveyMonkey">
+          <section className="mon-acr-platform-panel mon-acr-platform-panel--survey" aria-label="Encuestas de plataforma">
             <header className="mon-acr-platform-head">
               <div>
-                <span><QrCode size={14} /> Paso 2 · SurveyMonkey</span>
+                <span><QrCode size={14} /> Paso 2 · Kobo/plataforma</span>
                 <strong>Respuestas por actor, segmento y canal</strong>
               </div>
               <em>{fmt(surveySources.length)} seleccionadas</em>
@@ -8195,23 +9682,42 @@ function AcreditacionPhoneSourceSlotCard({
   icon,
   syncFallback,
   rowFallback = 0,
+  onSelect,
 }: {
   slot: AcreditacionPhoneSourceSlot;
   icon: ReactNode;
   syncFallback?: string;
   rowFallback?: number;
+  onSelect?: () => void;
 }) {
   const active = slot.sources.filter((source) => source.enabled);
   const primary = active[0] ?? slot.sources[0] ?? null;
   const statusLabel = slot.status === "ready" ? "Lista" : slot.status === "inactive" ? "Inactiva" : "Pendiente";
   const statusDetail = slot.key === "universo"
     ? "define la base y las cuotas"
-    : "define responsables y estados";
-  const rows = slot.sources.reduce((sum, source) => sum + sourceRowCount(source), 0) || rowFallback;
+    : slot.key === "barrido"
+      ? "define responsables y estados"
+      : "define avance y cruce CodPulso";
+  const rows = slot.sources.reduce((sum, source) => (
+    sum + (slot.key === "plataforma" ? acreditacionSourceResponseCount(source) : sourceRowCount(source))
+  ), 0) || rowFallback;
   const syncLabel = primary ? sourceSyncLabel(primary) : "Sin sync";
   const displayedSync = syncLabel === "Sin sync" && slot.ready && syncFallback ? formatDate(syncFallback) : syncLabel;
+  const isPlatform = slot.key === "plataforma";
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!onSelect) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onSelect();
+  };
   return (
-    <article className={`mon-phone-source-slot is-${slot.status}`}>
+    <article
+      className={`mon-phone-source-slot is-${slot.status}${onSelect ? " is-clickable" : ""}`}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect}
+      onKeyDown={handleKeyDown}
+    >
       <div className="mon-phone-source-slot-main">
         <span className="mon-phone-source-slot-icon">{icon}</span>
         <div>
@@ -8226,9 +9732,11 @@ function AcreditacionPhoneSourceSlotCard({
           {primary ? <strong>{primary.label || primary.id}</strong> : <strong>Sin fuente vinculada</strong>}
         </span>
         <span>
-          <em>Spreadsheet</em>
-          {primary && sourceSpreadsheetUrl(primary) ? (
-            <a href={sourceSpreadsheetUrl(primary)} target="_blank" rel="noreferrer" title={sourceSpreadsheetUrl(primary)}>
+          <em>{isPlatform ? "Servicio" : "Spreadsheet"}</em>
+          {isPlatform && primary ? (
+            <strong>{sourceProviderLabel(primary.kind)}</strong>
+          ) : primary && sourceSpreadsheetUrl(primary) ? (
+            <a href={sourceSpreadsheetUrl(primary)} target="_blank" rel="noreferrer" title={sourceSpreadsheetUrl(primary)} onClick={(event) => event.stopPropagation()}>
               {sourceSpreadsheetDisplay(primary)}
             </a>
           ) : (
@@ -8236,8 +9744,14 @@ function AcreditacionPhoneSourceSlotCard({
           )}
         </span>
         <span>
-          <em>Pestaña / rango</em>
-          <strong>{primary ? [sourceSheetField(primary, "sheet_name"), sourceSheetField(primary, "range")].filter(Boolean).join(" · ") || "Sin pestaña" : "Pendiente"}</strong>
+          <em>{isPlatform ? "Encuesta / asset" : "Pestaña / rango"}</em>
+          <strong title={primary ? sourceExternalId(primary) : ""}>
+            {primary
+              ? isPlatform
+                ? shortenMiddle(sourceExternalId(primary), 38)
+                : [sourceSheetField(primary, "sheet_name"), sourceSheetField(primary, "range")].filter(Boolean).join(" · ") || "Sin pestaña"
+              : "Pendiente"}
+          </strong>
         </span>
         <span>
           <em>Lectura</em>
@@ -8259,59 +9773,441 @@ function AcreditacionPhoneSourceSlotCard({
   );
 }
 
+function AcreditacionPhoneInstrumentDecision({
+  contract,
+  state,
+  syncedAt,
+}: {
+  contract: AcreditacionPhoneSourceContract;
+  state?: MonitoreoState | null;
+  syncedAt?: string;
+}) {
+  const activePlatformSources = contract.platform.sources.filter((source) => source.enabled);
+  const primary = activePlatformSources[0] ?? contract.platform.sources[0] ?? null;
+  const responseCount = activePlatformSources.reduce((sum, source) => sum + acreditacionSourceResponseCount(source), 0);
+  const filter = normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter);
+  const filterConfigured = Boolean(filter.enabled && filter.variable && filter.values.length);
+  const filterQuestion = filter.label || filter.variable;
+  const filterValue = filter.value_label || filter.values[0] || "";
+  const instrumentSync = primary ? sourceSyncLabel(primary) : syncedAt ? formatDate(syncedAt) : "Sin sync";
+  const sourceTitle = primary ? acreditacionSurveySourceName(primary) : "";
+  const ready = contract.platform.ready && contract.sweep.ready && contract.universe.ready && filterConfigured;
+  const assetLabel = primary ? shortenMiddle(sourceExternalId(primary), 48) : "Selecciona un formulario Kobo";
+  const filterLabel = filterConfigured ? `${filterQuestion || filter.variable} = ${filterValue}` : "Elige consentimiento/elegibilidad";
+  const responseLabel = responseCount ? `${fmt(responseCount)} respuestas` : primary ? "sin respuestas leídas" : "pendiente";
+  return (
+    <section className={`mon-phone-instrument-decision${ready ? " is-ready" : " has-pending"}`} aria-label="Instrumento y filtro efectivo de Kobo">
+      <header>
+        <div>
+          <span><QrCode size={13} /> Instrumento Kobo</span>
+          <strong>{sourceTitle || "Encuesta pendiente"}</strong>
+          <p>Kobo manda el avance efectivo; el barrido telefónico se lee en paralelo para confirmar estados y coincidencia por CodPulso.</p>
+        </div>
+        <em>{ready ? "Listo para avance" : "Revisar decisión"}</em>
+      </header>
+      <div className="mon-phone-kobo-dossier">
+        <article className={contract.platform.ready ? "is-ready" : "is-warning"}>
+          <span><QrCode size={13} /> Instrumento activo</span>
+          <strong>{sourceTitle || "Kobo pendiente"}</strong>
+          <p>{primary ? "Este formulario alimenta el conteo de efectivas. El avance se valida con filtro y se contrasta contra el barrido por CodPulso." : "Selecciona el formulario Kobo que alimentará el avance telefónico."}</p>
+          <div>
+            <em>{primary ? sourceProviderLabel(primary.kind) : "Kobo"}</em>
+            <em>{assetLabel}</em>
+            <em>{instrumentSync}</em>
+          </div>
+        </article>
+        <div className="mon-phone-kobo-decision-stack" aria-label="Decisiones que convierten Kobo en avance">
+          <span className={contract.platform.ready ? "is-ready" : "is-warning"}>
+            <em>1 · Instrumento</em>
+            <strong>{sourceTitle || "Pendiente"}</strong>
+            <small>{responseLabel}</small>
+          </span>
+          <span className={filterConfigured ? "is-ready" : "is-warning"}>
+            <em>2 · Filtro efectiva</em>
+            <strong>{filterLabel}</strong>
+            <small>{filterConfigured ? "cuenta como efectiva Kobo" : "sin filtro no hay cierre de avance"}</small>
+          </span>
+          <span className={contract.universe.ready && contract.sweep.ready ? "is-ready" : "is-warning"}>
+            <em>3 · Contraste telefónico</em>
+            <strong>{contract.universe.ready && contract.sweep.ready ? "Base + barrido listos" : "Faltan Sheets"}</strong>
+            <small>estados telefónicos en paralelo</small>
+          </span>
+          <span className={primary ? "is-ready" : "is-warning"}>
+            <em>4 · Llave CodPulso</em>
+            <strong>{primary ? "Cruce individual" : "Pendiente"}</strong>
+            <small>{responseLabel}</small>
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AcreditacionPhoneSheetsDecision({
+  contract,
+  syncedAt,
+  nRows = 0,
+}: {
+  contract: AcreditacionPhoneSourceContract;
+  syncedAt?: string;
+  nRows?: number;
+}) {
+  const universePrimary = contract.universe.sources.find((source) => source.enabled) ?? contract.universe.sources[0] ?? null;
+  const sweepPrimary = contract.sweep.sources.find((source) => source.enabled) ?? contract.sweep.sources[0] ?? null;
+  const universeRows = contract.universe.sources.reduce((sum, source) => sum + sourceRowCount(source), 0) || nRows;
+  const sweepRows = contract.sweep.sources.reduce((sum, source) => sum + sourceRowCount(source), 0);
+  const sheetSync = [universePrimary, sweepPrimary]
+    .map((source) => source ? sourceSyncLabel(source) : "")
+    .find((label) => label && label !== "Sin sync")
+    ?? (syncedAt ? formatDate(syncedAt) : "Sin sync");
+  const ready = contract.universe.ready && contract.sweep.ready;
+  return (
+    <section className={`mon-phone-instrument-decision mon-phone-sheets-decision${ready ? " is-ready" : " has-pending"}`} aria-label="Base y barrido telefónico">
+      <header>
+        <div>
+          <span><Table2 size={13} /> Base y barrido</span>
+          <strong>{ready ? "Sheets listos para operación" : "Completa universo y barrido"}</strong>
+          <p>La base define a quién llamar; el barrido conserva responsables, intentos, estados y fechas. Kobo queda separado como validación de efectivas.</p>
+        </div>
+        <em>{ready ? "Listo para llamadas" : "Faltan Sheets"}</em>
+      </header>
+      <div className="mon-phone-instrument-grid">
+        <span className={contract.universe.ready ? "is-ready" : "is-warning"}>
+          <em>Universo</em>
+          <strong>{universeRows ? fmt(universeRows) : contract.universe.ready ? "Listo" : "Pendiente"}</strong>
+          <small>{universePrimary ? sourceSheetField(universePrimary, "sheet_name") || "pestaña vinculada" : "base y cuotas"}</small>
+        </span>
+        <span className={contract.sweep.ready ? "is-ready" : "is-warning"}>
+          <em>Barrido</em>
+          <strong>{sweepRows ? fmt(sweepRows) : contract.sweep.ready ? "Listo" : "Pendiente"}</strong>
+          <small>{sweepPrimary ? sourceSheetField(sweepPrimary, "sheet_name") || "pestaña vinculada" : "responsables y estados"}</small>
+        </span>
+        <span className={contract.sweep.ready ? "is-ready" : "is-warning"}>
+          <em>Estados telefónicos</em>
+          <strong>{contract.sweep.ready ? "Separados" : "Pendientes"}</strong>
+          <small>consulta operativa, no efectiva Kobo</small>
+        </span>
+        <span className={ready ? "is-ready" : "is-warning"}>
+          <em>Último sync</em>
+          <strong>{sheetSync}</strong>
+          <small>lectura local de Sheets</small>
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function AcreditacionPhoneEffectiveFilterEditor({
+  state,
+  variables,
+  platformSources,
+  onStateChange,
+}: {
+  state?: MonitoreoState | null;
+  variables: MonitoreoVariable[];
+  platformSources: MonitoreoSource[];
+  onStateChange?: (state: MonitoreoState) => void;
+}) {
+  const savedFilter = normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter);
+  const filterKey = JSON.stringify(savedFilter);
+  const options = phoneEffectiveFilterQuestionOptions(variables, state?.source_metadata, platformSources);
+  const [draft, setDraft] = useState(() => ({
+    variable: savedFilter.variable,
+    value: savedFilter.values[0] ?? "",
+  }));
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+  const selectedOption = options.find((option) => normalizeSourceMatch(option.value) === normalizeSourceMatch(draft.variable)) ?? null;
+  const valueOptions = phoneEffectiveFilterAnswerOptions(options, draft.variable, draft.value);
+  const likelyFilterOptions = options.filter((option) => phoneEffectiveFilterQuestionScore(option) <= 2);
+  const suggestedOptions = uniqueDisplayValues([
+    ...(selectedOption ? [selectedOption.value] : []),
+    ...likelyFilterOptions.map((option) => option.value),
+  ]).map((value) => options.find((option) => option.value === value)).filter(Boolean).slice(0, 3) as PhoneEffectiveFilterQuestionOption[];
+  const configured = Boolean(draft.variable.trim() && draft.value.trim());
+  const displayLabel = configured
+    ? `${selectedOption ? phoneEffectiveFilterLabel(selectedOption) : draft.variable} = ${draft.value}`
+    : "Sin filtro";
+
+  useEffect(() => {
+    setDraft({
+      variable: savedFilter.variable,
+      value: savedFilter.values[0] ?? "",
+    });
+  }, [filterKey]);
+
+  const saveFilter = async () => {
+    if (!state?.config) return;
+    setSaving(true);
+    setStatus({ tone: "info", message: "Guardando filtro Kobo..." });
+    try {
+      const result = await apiMonitoreoConfig({
+        ...state.config,
+        monitoreo_profile: {
+          ...state.config.monitoreo_profile,
+          platform_effective_filter: {
+            enabled: configured,
+            variable: draft.variable.trim(),
+            values: configured ? [draft.value.trim()] : [],
+            label: selectedOption ? phoneEffectiveFilterLabel(selectedOption) : draft.variable.trim(),
+            value_label: draft.value.trim(),
+            source_kind: "kobo",
+          },
+        },
+      });
+      onStateChange?.(result.state);
+      setStatus({ tone: "success", message: "Filtro Kobo actualizado." });
+    } catch (error) {
+      setStatus({ tone: "error", message: (error as Error).message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className={`mon-platform-rejection-rule mon-phone-effective-filter${configured ? " is-configured" : " is-empty"}`} aria-label="Filtro de efectiva Kobo">
+      <header>
+        <div>
+          <span><Filter size={12} /> Filtro de efectiva Kobo</span>
+          <strong>{displayLabel}</strong>
+          <p>Selecciona la pregunta de consentimiento o elegibilidad y el valor que convierte una respuesta completa en efectiva.</p>
+        </div>
+        <button type="button" onClick={() => void saveFilter()} disabled={saving || !state?.config}>
+          {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
+          Guardar filtro
+        </button>
+      </header>
+      <div className="mon-phone-filter-decision" aria-label="Decisión del filtro Kobo">
+        <span className={draft.variable ? "is-ready" : "is-empty"}>
+          <em>Pregunta</em>
+          <strong>{selectedOption ? phoneEffectiveFilterLabel(selectedOption) : draft.variable || "Pendiente"}</strong>
+        </span>
+        <span className={draft.value ? "is-ready" : "is-empty"}>
+          <em>Valor que cuenta</em>
+          <strong>{draft.value || "Pendiente"}</strong>
+        </span>
+        <span className={configured ? "is-ready" : "is-warning"}>
+          <em>Resultado</em>
+          <strong>{configured ? "Cuenta como efectiva Kobo" : "No valida avance"}</strong>
+        </span>
+      </div>
+      {suggestedOptions.length ? (
+        <div className="mon-phone-filter-suggestions" aria-label="Sugerencias de filtro de efectiva">
+          <span>Preguntas candidatas</span>
+          {suggestedOptions.map((option) => {
+            const value = preferredPhoneEffectiveValue(option.choices);
+            const active = normalizeSourceMatch(option.value) === normalizeSourceMatch(draft.variable);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={active ? "is-active" : ""}
+                onClick={() => setDraft({ variable: option.value, value })}
+                disabled={saving}
+              >
+                <strong>{phoneEffectiveFilterLabel(option)}</strong>
+                <em>{value ? `Cuenta: ${value}` : `${fmt(option.choices.length)} valores`}</em>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+      <div className="mon-platform-rule-list">
+        <article className="mon-platform-rule-row mon-platform-rule-row--filter">
+          <label>
+            <span>Pregunta de selección única</span>
+            <select
+              value={draft.variable}
+              onChange={(event) => {
+                const variable = event.target.value;
+                const option = options.find((item) => item.value === variable);
+                const value = option?.choices.some((choice) => normalizeSourceMatch(choice) === normalizeSourceMatch(draft.value))
+                  ? draft.value
+                  : preferredPhoneEffectiveValue(option?.choices ?? []);
+                setDraft({ variable, value });
+              }}
+              disabled={saving}
+            >
+              <option value="">Seleccionar pregunta</option>
+              {options.map((option) => (
+                <option key={option.value} value={option.value} title={phoneEffectiveFilterLabel(option)}>
+                  {compactSelectLabel(phoneEffectiveFilterLabel(option))}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Valor que cuenta</span>
+            <select
+              value={draft.value}
+              onChange={(event) => setDraft((current) => ({ ...current, value: event.target.value }))}
+              disabled={saving || !draft.variable}
+            >
+              {valueOptions.length ? valueOptions.map((value) => (
+                <option key={value} value={value}>{value}</option>
+              )) : <option value={draft.value}>{draft.value || "Sin valores"}</option>}
+            </select>
+          </label>
+        </article>
+      </div>
+      <footer>
+        <span>{fmt(options.length)} preguntas con valores</span>
+        <span>{platformSources.length ? `${fmt(platformSources.length)} fuente${platformSources.length === 1 ? "" : "s"} Kobo` : "Sin Kobo"}</span>
+      </footer>
+      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
+    </section>
+  );
+}
+
 function AcreditacionPhoneSourcesContractPanel({
+  state,
   sources,
   syncedAt,
   nRows = 0,
+  focus = "all",
   onStateChange,
+  onSourceTabChange,
 }: {
+  state?: MonitoreoState | null;
   sources: MonitoreoSource[];
   syncedAt?: string;
   nRows?: number;
+  focus?: "all" | "sheets" | "kobo";
   onStateChange?: (state: MonitoreoState) => void;
+  onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
 }) {
   const contract = buildAcreditacionPhoneSourceContract(sources);
   const basePreset = ACREDITACION_SOURCE_PRESETS[0];
   const sweepPreset = ACREDITACION_SOURCE_PRESETS[1];
+  const platformSources = contract.platform.sources;
+  const koboSources = platformSources.filter(isKoboResponseSource);
   const missingLabel = contract.missing.length
-    ? contract.missing.map((item) => item === "universo" ? "base de universo" : "barrido").join(" y ")
+    ? contract.missing.map((item) => (
+      item === "universo"
+        ? "base de universo"
+        : item === "barrido"
+          ? "barrido"
+          : "Kobo"
+    )).join(", ")
     : "contrato completo";
+  const focusCopy = focus === "sheets"
+    ? {
+      eyebrow: "Base y barrido",
+      title: "Sheets operativos para llamar y registrar estados",
+      detail: "Aquí se revisan solo las hojas que definen población, responsables, intentos, estados y fechas de llamada.",
+    }
+    : focus === "kobo"
+      ? {
+        eyebrow: "Kobo",
+        title: "Instrumento y filtro que cuentan efectivas",
+        detail: "Aquí se escoge la encuesta Kobo y la pregunta de consentimiento que transforma respuestas completas en efectivas del monitoreo.",
+      }
+      : {
+        eyebrow: "Paquete",
+        title: "Contrato de fuentes telefónicas",
+        detail: "La base define a quién llamar; el barrido registra operación telefónica; Kobo valida efectivas por CodPulso.",
+      };
+  const showSheetsDecision = focus === "sheets";
+  const showKoboDecision = focus === "kobo";
+  const showKoboEditor = focus === "kobo" || !contract.platform.ready;
+  const showSheetsEditors = focus === "sheets" || !contract.ready;
+  const activeSweepSource = contract.sweep.sources.find((source) => source.enabled) ?? contract.sweep.sources[0] ?? null;
+  const activeKoboCount = koboSources.filter((source) => source.enabled).length;
+  const sourceSlots = focus === "kobo"
+    ? [contract.platform]
+    : focus === "sheets"
+      ? [contract.universe, contract.sweep]
+      : [contract.universe, contract.sweep, contract.platform];
+  const packageSteps = [
+    {
+      label: "Población",
+      value: contract.universe.ready ? "Base lista" : "Falta base",
+      detail: `${fmt(nRows)} casos`,
+      tone: contract.universe.ready ? "ready" : "warning",
+    },
+    {
+      label: "Operación",
+      value: contract.sweep.ready ? "Barrido listo" : "Falta barrido",
+      detail: activeSweepSource ? sourceSheetField(activeSweepSource, "sheet_name") || "responsables y estados" : "responsables y estados",
+      tone: contract.sweep.ready ? "ready" : "warning",
+    },
+    {
+      label: "Efectivas",
+      value: contract.platform.ready ? "Kobo listo" : "Falta Kobo",
+      detail: `${fmt(activeKoboCount)} encuesta${activeKoboCount === 1 ? "" : "s"}`,
+      tone: contract.platform.ready ? "ready" : "warning",
+    },
+  ] as const;
   return (
-    <section className={`mon-phone-source-contract${contract.ready ? " is-ready" : " has-missing"}`} aria-label="Contrato de fuentes telefónicas">
+    <section className={`mon-phone-source-contract is-focus-${focus}${contract.ready ? " is-ready" : " has-missing"}`} aria-label="Contrato de fuentes telefónicas">
       <header className="mon-phone-source-contract-head">
         <div>
-          <span><PlugZap size={14} /> Fuentes telefónicas</span>
-          <strong>Base de universo y barrido son fuentes distintas</strong>
-          <p>La base define a quién se puede llamar y las cuotas; el barrido define asignaciones, responsables, intentos, estados y fechas.</p>
+          <span><PlugZap size={14} /> {focusCopy.eyebrow}</span>
+          <strong>{focusCopy.title}</strong>
+          <p>{focusCopy.detail}</p>
         </div>
         <em>{contract.ready ? "Listo para monitoreo" : `Falta ${missingLabel}`}</em>
       </header>
       <div className="mon-phone-source-contract-grid">
-        <AcreditacionPhoneSourceSlotCard
-          slot={contract.universe}
-          icon={<Layers3 size={15} />}
-          rowFallback={nRows}
-          syncFallback={syncedAt}
-        />
-        <AcreditacionPhoneSourceSlotCard
-          slot={contract.sweep}
-          icon={<PhoneCall size={15} />}
-          syncFallback={syncedAt}
-        />
+        {sourceSlots.map((slot) => (
+          <AcreditacionPhoneSourceSlotCard
+            key={slot.key}
+            slot={slot}
+            icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <QrCode size={15} />}
+            rowFallback={slot.key === "universo" ? nRows : undefined}
+            syncFallback={syncedAt}
+            onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "survey" : "sheets")}
+          />
+        ))}
       </div>
+      {focus === "all" ? (
+        <div className="mon-phone-source-package-map" aria-label="Lectura del paquete telefónico">
+          {packageSteps.map((step) => (
+            <span key={step.label} className={`is-${step.tone}`}>
+              <em>{step.label}</em>
+              <strong>{step.value}</strong>
+              <small>{step.detail}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {showSheetsDecision ? (
+        <AcreditacionPhoneSheetsDecision
+          contract={contract}
+          syncedAt={syncedAt}
+          nRows={nRows}
+        />
+      ) : null}
+      {showKoboDecision ? (
+        <>
+          <AcreditacionPhoneInstrumentDecision
+            contract={contract}
+            state={state}
+            syncedAt={syncedAt}
+          />
+          <AcreditacionPhoneEffectiveFilterEditor
+            state={state}
+            variables={state?.variables ?? []}
+            platformSources={platformSources}
+            onStateChange={onStateChange}
+          />
+        </>
+      ) : null}
       {!contract.ready ? (
         <div className="mon-phone-source-contract-alert">
           <AlertCircle size={15} />
           <span>
-            {contract.universe.ready
-              ? "La base de universo ya está vinculada. Falta registrar la hoja de barrido con responsables, estados e intentos."
-              : "Primero vincula la base de universo y luego el barrido telefónico para separar población objetivo de operación diaria."}
+            {!contract.universe.ready
+              ? "Primero vincula la base de universo; luego el barrido telefónico y Kobo para separar población, operación diaria y avance."
+              : !contract.sweep.ready
+                ? "La base de universo ya está vinculada. Falta registrar la hoja de barrido con responsables, estados e intentos."
+                : "Base y barrido ya están vinculados. Falta seleccionar la encuesta Kobo que alimenta la comparación de efectivas."}
           </span>
         </div>
       ) : null}
-      <details className="mon-phone-source-editors" open={!contract.ready}>
+      <details className="mon-phone-source-editors" open={showSheetsEditors}>
         <summary>
-          <span><Table2 size={14} /> Configurar Google Sheets</span>
+          <span><Table2 size={14} /> Configurar base y barrido</span>
           <em>{contract.ready ? "Editar fuentes" : "Completar fuentes"}</em>
         </summary>
         <div className="mon-phone-source-editor-grid">
@@ -8327,6 +10223,19 @@ function AcreditacionPhoneSourcesContractPanel({
           />
         </div>
       </details>
+      <details className="mon-phone-source-editors" open={showKoboEditor}>
+        <summary>
+          <span><QrCode size={14} /> Seleccionar Kobo</span>
+          <em>{contract.platform.ready ? "Editar Kobo" : "Falta Kobo"}</em>
+        </summary>
+        <div className="mon-phone-source-editor-grid mon-phone-source-editor-grid--platform">
+          <AcreditacionKoboSourcePicker
+            sources={koboSources}
+            phoneMode
+            onStateChange={onStateChange}
+          />
+        </div>
+      </details>
     </section>
   );
 }
@@ -8336,11 +10245,13 @@ function AcreditacionSourcesWorkbench({
   state,
   activeTab = "survey",
   onStateChange,
+  onSourceTabChange,
 }: {
   reports: MonitoreoAcreditacionReports;
   state?: MonitoreoState | null;
   activeTab?: AcreditacionSourceTab;
   onStateChange?: (state: MonitoreoState) => void;
+  onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
 }) {
   const client = reports.client_report;
   const reportSources = (client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"])) as Array<Record<string, unknown>>;
@@ -8351,12 +10262,12 @@ function AcreditacionSourcesWorkbench({
   );
   const [syncBusy, setSyncBusy] = useState<"sheets" | "survey" | "all" | null>(null);
   const [syncStatus, setSyncStatus] = useState<AcreditacionActionStatus>(null);
-  const surveySources = operationalSources.filter((source) => source.kind === "surveymonkey");
+  const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
+  const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
   const activeSources = operationalSources.filter((source) => source.enabled);
-  const activeSurveySources = surveySources.filter((source) => source.enabled && source.kind === "surveymonkey");
+  const activeSurveySources = platformSources.filter((source) => source.enabled);
   const activeSheetSources = sheetSources.filter((source) => source.enabled);
-  const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
 
   const syncSheets = async () => {
     const sourceIds = activeSheetSources.map((source) => source.id);
@@ -8409,19 +10320,23 @@ function AcreditacionSourcesWorkbench({
     <AcreditacionSourceStatusStrip
       sources={operationalSources}
       reports={reports}
+      phoneMode={isPhoneSourceModel}
       status={syncStatus}
       busy={Boolean(syncBusy)}
       onSyncSheets={syncSheets}
-      onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), "Actualizacion SurveyMonkey", "full")}
+      onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), isPhoneSourceModel ? "Actualizacion Kobo" : "Actualizacion de plataforma", "full")}
       onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualizacion completa", "full")}
     />
   );
-  const phoneSourceContract = isPhoneSourceModel ? (
+  const phoneSourceContract = (focus: "all" | "sheets" | "kobo" = "all") => isPhoneSourceModel ? (
     <AcreditacionPhoneSourcesContractPanel
+      state={state}
       sources={operationalSources}
       syncedAt={state?.synced_at ?? reports.generated_at}
       nRows={state?.n_rows ?? 0}
+      focus={focus}
       onStateChange={onStateChange}
+      onSourceTabChange={onSourceTabChange}
     />
   ) : null;
 
@@ -8429,12 +10344,13 @@ function AcreditacionSourcesWorkbench({
     return (
       <div className="mon-profile-stack">
         {sourceStatus}
-        {phoneSourceContract}
-        <AcreditacionPlatformSurveySourcesView
-          sources={operationalSources}
-          config={state?.config}
-          onStateChange={onStateChange}
-        />
+        {isPhoneSourceModel ? phoneSourceContract("kobo") : (
+          <AcreditacionPlatformSurveySourcesView
+            sources={operationalSources}
+            config={state?.config}
+            onStateChange={onStateChange}
+          />
+        )}
       </div>
     );
   }
@@ -8443,11 +10359,12 @@ function AcreditacionSourcesWorkbench({
     return (
       <div className="mon-profile-stack">
         {sourceStatus}
-        {phoneSourceContract}
+        {phoneSourceContract("sheets")}
         {isPhoneSourceModel ? (
           <AcreditacionConfiguredSourcesList
             sources={operationalSources}
             syncFallback={state?.synced_at ?? reports.generated_at}
+            phoneMode={isPhoneSourceModel}
             onStateChange={onStateChange}
           />
         ) : (
@@ -8464,7 +10381,6 @@ function AcreditacionSourcesWorkbench({
     return (
       <div className="mon-profile-stack">
         {sourceStatus}
-        {phoneSourceContract}
         <AcreditacionCollectorsSourceView
           sources={operationalSources}
           config={state?.config}
@@ -8477,14 +10393,25 @@ function AcreditacionSourcesWorkbench({
   return (
     <div className="mon-profile-stack">
       {sourceStatus}
-      {phoneSourceContract}
-      <AcreditacionActiveSourcesView
-        sources={operationalSources}
-        config={state?.config}
-        reportSources={reportSources}
-        state={state}
-        onStateChange={onStateChange}
-      />
+      {isPhoneSourceModel ? (
+        <>
+          {phoneSourceContract("all")}
+          <AcreditacionConfiguredSourcesList
+            sources={operationalSources}
+            syncFallback={state?.synced_at ?? reports.generated_at}
+            phoneMode={isPhoneSourceModel}
+            onStateChange={onStateChange}
+          />
+        </>
+      ) : (
+        <AcreditacionActiveSourcesView
+          sources={operationalSources}
+          config={state?.config}
+          reportSources={reportSources}
+          state={state}
+          onStateChange={onStateChange}
+        />
+      )}
     </div>
   );
 }
@@ -11695,6 +13622,11 @@ type AcreditacionAdvanceDailyPoint = {
   total: number;
 };
 
+function phoneCodPulsoEffectiveMatchLabel(comparison: Pick<PhonePlatformComparisonTotals, "phoneEffective" | "platformComplete" | "matchedEffective">) {
+  const comparableEffective = Math.max(comparison.phoneEffective, comparison.platformComplete);
+  return comparableEffective ? `${fmt(comparison.matchedEffective)}/${fmt(comparableEffective)}` : "S/D";
+}
+
 type AcreditacionDailyReportCut = {
   date: string;
   label: string;
@@ -11941,14 +13873,38 @@ function advanceTotals(cards: AcreditacionAdvanceCard[]) {
   }), { universe: 0, effective: 0, partial: 0, refusals: 0, pending: 0, metas: 0, brechas: 0 });
 }
 
-function dailyPointsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceDailyPoint[] {
-  return rows.map((row, index) => {
-    const date = rowText(row, ["Fecha", "Dia", "Día", "Date"], `Dia ${index + 1}`);
+const ACREDITACION_DAILY_NO_DATE_LABEL = "Sin fecha";
+const ACREDITACION_DAILY_HEADER_LABELS = new Set(["fecha", "echa", "dia", "día", "date"]);
+
+function isAcreditacionDailyHeaderLabel(value: unknown) {
+  const key = normalizeSourceMatch(value);
+  return ACREDITACION_DAILY_HEADER_LABELS.has(key);
+}
+
+function isAcreditacionNoDateLabel(value: unknown) {
+  const key = normalizeSourceMatch(value).replace(/[^a-z0-9]+/g, " ");
+  return !key || key === "sin fecha" || key === "s d" || key === "sd";
+}
+
+function isDatedAcreditacionDailyPoint(point: AcreditacionAdvanceDailyPoint) {
+  return !isAcreditacionNoDateLabel(point.date) && Boolean(parseAcreditacionDailyDate(point.date));
+}
+
+function normalizeAcreditacionDailyDateLabel(value: unknown) {
+  const text = String(value ?? "").trim();
+  return isAcreditacionNoDateLabel(text) ? ACREDITACION_DAILY_NO_DATE_LABEL : text;
+}
+
+export function dailyPointsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceDailyPoint[] {
+  return rows.flatMap((row) => {
+    const rawDate = rowText(row, ["Fecha", "Dia", "Día", "Date"], "");
+    if (isAcreditacionDailyHeaderLabel(rawDate)) return [];
+    const date = normalizeAcreditacionDailyDateLabel(rawDate);
     const effective = rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completed"], 0);
     const partial = rowNumber(row, ["Parciales", "Partial"], 0);
-    const refusals = rowNumber(row, ["Rechazo", "Rechazos", "Refusals"], 0);
+    const refusals = rowNumber(row, ["Rechazo", "Rechazos", "Rechazos telefónicos", "Rechazos plataforma", "Refusals"], 0);
     const total = rowNumber(row, ["Total respuestas", "Total", "Respuestas"], effective + partial + refusals);
-    return { date, effective, partial, refusals, total };
+    return [{ date, effective, partial, refusals, total }];
   });
 }
 
@@ -11965,6 +13921,10 @@ function dailyPointTotalValue(point: AcreditacionAdvanceDailyPoint) {
   return point.total || point.effective + point.partial + point.refusals;
 }
 
+function dailyEffectiveValue(point: AcreditacionAdvanceDailyPoint) {
+  return point.effective || dailyPointTotalValue(point);
+}
+
 function dateOnlyTime(value: Date | null) {
   if (!value) return null;
   const date = new Date(value);
@@ -11972,7 +13932,8 @@ function dateOnlyTime(value: Date | null) {
   return date.getTime();
 }
 
-function compactAdvanceDateTickLabel(value: string) {
+export function compactAdvanceDateTickLabel(value: string) {
+  if (isAcreditacionNoDateLabel(value)) return "S/D";
   const parsed = parseAcreditacionDailyDate(value);
   if (!parsed) return shortAdvanceDateLabel(value);
   const month = parsed.toLocaleDateString("es-PE", { month: "short" }).replace(".", "").toLowerCase();
@@ -13035,17 +14996,88 @@ function actorCardsForDashboard({
   }));
 }
 
-function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports): AcreditacionActorCard[] {
+function phoneQuotaDailyPointsByValue(
+  reports: MonitoreoAcreditacionReports,
+  quotaRows: AcreditacionPhoneQuotaRow[],
+) {
+  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const variableLabel = phoneQuotaVariableLabel(variable);
+  const valueKeys = new Set(quotaRows.map((row) => normalizeSourceMatch(row.value)).filter(Boolean));
+  const out = new Map<string, Map<string, AcreditacionAdvanceDailyPoint>>();
+  const addPoint = (value: string, date: string, effective = 1) => {
+    const valueKey = normalizeSourceMatch(value);
+    if (!valueKey || !valueKeys.has(valueKey)) return;
+    const cleanDate = normalizeAcreditacionDailyDateLabel(date);
+    if (isAcreditacionNoDateLabel(cleanDate)) return;
+    const amount = Math.max(0, Number(effective) || 0);
+    if (!amount) return;
+    const points = out.get(valueKey) ?? new Map<string, AcreditacionAdvanceDailyPoint>();
+    const point = points.get(cleanDate) ?? { date: cleanDate, effective: 0, partial: 0, refusals: 0, total: 0 };
+    point.effective += amount;
+    point.total += amount;
+    points.set(cleanDate, point);
+    out.set(valueKey, points);
+  };
+  const variableDailyRows = rowsForSheetBlock(reports, "monitoreo_telefonico", [
+    "avance_efectivo_variable_dia",
+    "avance_cuota_dia",
+    "avance_efectivo_cuota_dia",
+  ]);
+  variableDailyRows.forEach((row) => {
+    const rowVariable = phoneRowValue(row, ["Variable", "variable", "Cuota"], "");
+    if (variable && normalizeSourceMatch(rowVariable) !== normalizeSourceMatch(variable)) return;
+    const value = phoneRowValue(row, ["Valor", variable, variableLabel, "Sede", "Distrito", "Segmento", "Grupo"], "");
+    const date = phoneRowValue(row, ["Fecha", "Fecha Kobo", "Fecha plataforma", "Día", "Dia"], "");
+    const effective = phoneRowNumber(row, ["Efectivas Kobo", "Efectivas", "Completas", "Total"], 0);
+    addPoint(value, date, effective);
+  });
+  if (out.size) {
+    return new Map(Array.from(out.entries()).map(([key, points]) => [key, sortAcreditacionDailyPoints(Array.from(points.values()))]));
+  }
+  const comparisonRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);
+  comparisonRows.forEach((row, index) => {
+    if (!phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"])) return;
+    const value = phoneRowValue(row, [
+      variable,
+      variableLabel,
+      "Sede",
+      "Distrito",
+      "Segmento",
+      "Grupo",
+      "Categoria",
+      "Categoría",
+      "Valor",
+    ], "");
+    const valueKey = normalizeSourceMatch(value);
+    if (!valueKey || !valueKeys.has(valueKey)) return;
+    const date = normalizeAcreditacionDailyDateLabel(phoneRowValue(row, [
+      "Fecha Kobo",
+      "Fecha plataforma",
+      "Última respuesta",
+      "Ultima respuesta",
+      "Fecha",
+      "Día",
+      "Dia",
+    ], `Corte ${index + 1}`));
+    addPoint(value, date, 1);
+  });
+  return new Map(Array.from(out.entries()).map(([key, points]) => [key, sortAcreditacionDailyPoints(Array.from(points.values()))]));
+}
+
+export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports): AcreditacionActorCard[] {
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
+  const parsedQuotaRows = phoneQuotaRowsForPanel(quotaRows);
+  const dailyByValue = phoneQuotaDailyPointsByValue(reports, parsedQuotaRows);
   return phoneQuotaAdvanceCardsFromRows(quotaRows).map((card) => ({
     ...card,
     status: actorStatusLabel(card),
     mechanisms: [],
-    dailyPoints: [],
+    dailyPoints: dailyByValue.get(normalizeSourceMatch(card.actor)) ?? [],
   }));
 }
 
 function shortAdvanceDateLabel(value: string) {
+  if (isAcreditacionNoDateLabel(value)) return ACREDITACION_DAILY_NO_DATE_LABEL;
   const parsed = parseAcreditacionDailyDate(value);
   if (parsed) {
     return parsed.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
@@ -13093,21 +15125,32 @@ function AcreditacionAdvanceStorage({
 }) {
   const totals = advanceTotals(cards);
   const universe = Math.max(0, totals.universe);
-  const segments = [
-    { key: "completed", label: "Efectivas", value: totals.effective, pct: safePercentValue(totals.effective, universe) ?? 0, hint: "del universo" },
-    { key: "partial", label: "Parciales", value: totals.partial, pct: safePercentValue(totals.partial, universe) ?? 0, hint: "no cuentan como efectivas" },
-    { key: "refusals", label: "Rechazos", value: totals.refusals, pct: safePercentValue(totals.refusals, universe) ?? 0, hint: "requieren trazabilidad" },
-    { key: "pending", label: "Sin respuesta", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "por cerrar" },
-  ];
+  const isPhoneScope = normalizeSourceMatch(scopeLabel) !== "actor";
+  const phoneSweptWithoutEffective = Math.max(0, universe - totals.effective - totals.pending);
+  const segments = isPhoneScope
+    ? [
+      { key: "completed", label: "Efectivas Kobo", value: totals.effective, pct: safePercentValue(totals.effective, universe) ?? 0, hint: "pasan el filtro" },
+      { key: "phone", label: "Barridas sin efectiva", value: phoneSweptWithoutEffective, pct: safePercentValue(phoneSweptWithoutEffective, universe) ?? 0, hint: "estado telefónico" },
+      { key: "pending", label: "Por barrer", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "base telefónica" },
+    ]
+    : [
+      { key: "completed", label: "Efectivas", value: totals.effective, pct: safePercentValue(totals.effective, universe) ?? 0, hint: "del universo" },
+      { key: "partial", label: "Parciales", value: totals.partial, pct: safePercentValue(totals.partial, universe) ?? 0, hint: "no cuentan como efectivas" },
+      { key: "refusals", label: "Rechazos", value: totals.refusals, pct: safePercentValue(totals.refusals, universe) ?? 0, hint: "requieren trazabilidad" },
+      { key: "pending", label: "Sin respuesta", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "por cerrar" },
+    ];
   const actorUniverse = [...cards].filter((card) => card.universe > 0).sort((a, b) => b.universe - a.universe).slice(0, 4);
+  const storageAriaLabel = isPhoneScope ? "Base telefónica y avance Kobo" : "Universo y avance de acreditación";
+  const storageHeading = isPhoneScope ? "Base telefónica" : "Universo de avance";
+  const storageProgress = isPhoneScope ? `${pctFrom(totals.effective, universe)} efectivas Kobo` : `${pctFrom(totals.effective, universe)} efectivas`;
   return (
-    <section className="mon-advance-storage" aria-label="Universo y avance de acreditación">
+    <section className="mon-advance-storage" aria-label={storageAriaLabel}>
       <header>
         <div>
-          <span>Universo de avance</span>
+          <span>{storageHeading}</span>
           <strong>{fmt(universe)} casos</strong>
         </div>
-        <em>{pctFrom(totals.effective, universe)} efectivas</em>
+        <em>{storageProgress}</em>
       </header>
       <div className="mon-advance-actor-breakdown" aria-label={`Casos por ${scopeLabel.toLowerCase()}`}>
         {actorUniverse.map((card) => (
@@ -13123,7 +15166,7 @@ function AcreditacionAdvanceStorage({
         ))}
       </div>
       <div className="mon-advance-storage-chart">
-        <div className="mon-advance-storage-bar" role="list" aria-label={`${fmt(totals.effective)} efectivas de ${fmt(universe)} casos base`}>
+        <div className="mon-advance-storage-bar" role="list" aria-label={`${fmt(totals.effective)} ${isPhoneScope ? "efectivas Kobo" : "efectivas"} de ${fmt(universe)} casos base`}>
           {segments.some((segment) => segment.value > 0)
             ? segments.map((segment) => (
               <i
@@ -13151,6 +15194,118 @@ function AcreditacionAdvanceStorage({
   );
 }
 
+function AcreditacionPhoneQuotaRhythmBoard({
+  cards,
+  variable,
+  cutDate,
+}: {
+  cards: AcreditacionActorCard[];
+  variable: string;
+  cutDate?: string;
+}) {
+  const quotaCards = [...cards].sort((a, b) => (
+    (b.missing ?? -1) - (a.missing ?? -1)
+    || b.universe - a.universe
+    || a.actor.localeCompare(b.actor, "es")
+  ));
+  const cardsWithSeries = quotaCards.filter((card) => card.dailyPoints.length);
+  const totalEffective = quotaCards.reduce((sum, card) => sum + card.effective, 0);
+  const totalMeta = quotaCards.reduce((sum, card) => sum + (card.meta ?? 0), 0);
+  const totalGap = quotaCards.reduce((sum, card) => sum + (card.missing ?? 0), 0);
+  const visibleCards = (cardsWithSeries.length ? cardsWithSeries : quotaCards).slice(0, 8);
+  const datedEffective = quotaCards.reduce((sum, card) => (
+    sum + card.dailyPoints.reduce((inner, point) => inner + dailyEffectiveValue(point), 0)
+  ), 0);
+  const datedLabel = totalEffective && datedEffective !== totalEffective
+    ? `${fmt(datedEffective)}/${fmt(totalEffective)}`
+    : fmt(datedEffective || totalEffective);
+  const hasSeries = cardsWithSeries.length > 0;
+  return (
+    <section className={`mon-phone-quota-rhythm${hasSeries ? " has-series" : " is-missing-series"}`} aria-label={`Avance diario por ${variable}`}>
+      <header>
+        <div>
+          <span><CalendarRange size={13} /> Ritmo por {variable.toLowerCase()}</span>
+          <strong>{hasSeries ? `Cuotas con ritmo diario propio` : "Falta fecha por cuota"}</strong>
+          <p>
+            {hasSeries
+              ? `Cada ${variable.toLowerCase()} muestra su donut de avance, KPIs y barra diaria de efectivas Kobo; no es un total mezclado.`
+              : `El corte trae metas y pendientes por ${variable.toLowerCase()}, pero no suficientes fechas por CodPulso para dibujar la serie de cada cuota.`}
+          </p>
+        </div>
+        <div className="mon-phone-quota-rhythm-kpis">
+          <span><em>{variable}</em><strong>{fmt(quotaCards.length)}</strong></span>
+          <span><em>Meta</em><strong>{totalMeta ? fmt(totalMeta) : "S/M"}</strong></span>
+          <span className={totalGap ? "is-warning" : "is-ready"}><em>Faltan</em><strong>{fmt(totalGap)}</strong></span>
+          <span className="is-ready"><em>Fechadas</em><strong>{datedLabel}</strong></span>
+        </div>
+      </header>
+      <div className="mon-phone-quota-rhythm-grid">
+        {visibleCards.length ? visibleCards.map((card) => {
+          const progress = card.meta ? safePercentValue(card.effective, card.meta) ?? 0 : card.coverage ?? 0;
+          const cardDated = card.dailyPoints.reduce((sum, point) => sum + dailyEffectiveValue(point), 0);
+          const orderedDaily = sortAcreditacionDailyPoints(card.dailyPoints)
+            .filter((point) => isDatedAcreditacionDailyPoint(point) && dailyEffectiveValue(point) > 0);
+          const visibleDaily = orderedDaily.slice(-10);
+          const maxDaily = Math.max(1, ...visibleDaily.map((point) => dailyEffectiveValue(point)));
+          const latestDatedPoint = orderedDaily.at(-1) ?? null;
+          return (
+            <article key={card.id} className={card.dailyPoints.length ? "has-series" : "is-missing-series"}>
+              <div className="mon-phone-quota-rhythm-card-head">
+                <div>
+                  <span>{variable}</span>
+                  <strong>{card.actor}</strong>
+                  <em>{card.meta == null ? "Meta pendiente" : `${fmt(card.effective)} de ${fmt(card.meta)} efectivas Kobo`}</em>
+                </div>
+                <b>{formatPercentLabel(progress)}</b>
+              </div>
+              <div className="mon-phone-quota-rhythm-donut" aria-label={`${card.actor}: ${formatPercentLabel(progress)} de avance`}>
+                <i aria-hidden="true" style={{ "--phone-quota-rhythm-pct": `${Math.max(0, Math.min(100, progress))}%` } as CSSProperties} />
+                <span>
+                  <strong>{fmt(card.effective)}</strong>
+                  <em>{card.meta == null ? "sin meta" : `de ${fmt(card.meta)}`}</em>
+                  <small>{card.missing == null ? "meta pendiente" : card.missing > 0 ? `${fmt(card.missing)} faltan` : "cuota cubierta"}</small>
+                </span>
+              </div>
+              <i aria-hidden="true" style={{ "--phone-quota-rhythm-pct": `${Math.max(2, Math.min(100, progress))}%` } as CSSProperties} />
+              <div className="mon-phone-quota-rhythm-card-metrics">
+                <span><em>Base</em><strong>{fmt(card.universe)}</strong></span>
+                <span><em>Faltan</em><strong>{card.missing == null ? "S/M" : fmt(card.missing)}</strong></span>
+                <span><em>Fechadas</em><strong>{cardDated ? fmt(cardDated) : "S/D"}</strong></span>
+              </div>
+              <div className="mon-phone-quota-rhythm-daily" aria-label={`Ritmo diario de ${card.actor}`}>
+                <span>
+                  <em>{fmt(orderedDaily.length)} {orderedDaily.length === 1 ? "día" : "días"}</em>
+                  <strong>{latestDatedPoint ? shortAdvanceDateLabel(latestDatedPoint.date) : "Sin fecha"}</strong>
+                </span>
+                <div>
+                  {visibleDaily.length ? visibleDaily.map((point) => {
+                    const value = dailyEffectiveValue(point);
+                    const height = Math.max(8, Math.min(100, safePercentValue(value, maxDaily) ?? 0));
+                    return (
+                      <i
+                        key={`${card.id}-${point.date}`}
+                        title={`${shortAdvanceDateLabel(point.date)}: ${fmt(value)} efectivas Kobo`}
+                        style={{ "--phone-quota-rhythm-day": `${height}%` } as CSSProperties}
+                      />
+                    );
+                  }) : <em>Sin serie diaria</em>}
+                </div>
+              </div>
+              <small>
+                {latestDatedPoint
+                  ? `Último día ${shortAdvanceDateLabel(latestDatedPoint.date)} · ${fmt(dailyEffectiveValue(latestDatedPoint))} efectivas Kobo`
+                  : "Sin serie diaria para esta cuota."}
+              </small>
+            </article>
+          );
+        }) : (
+          <EmptyPanel title="Sin cuotas" detail={`Define ${variable.toLowerCase()} y metas Kobo para ver el avance diario por cuota.`} />
+        )}
+      </div>
+    </section>
+  );
+}
+
 function AcreditacionAdvanceDailyMini({
   points,
   title = "Ritmo general del estudio",
@@ -13158,6 +15313,8 @@ function AcreditacionAdvanceDailyMini({
   cutDate,
   reportCuts = [],
   reportWeekday = "",
+  effectiveOnly = false,
+  compact = false,
 }: {
   points: AcreditacionAdvanceDailyPoint[];
   title?: string;
@@ -13165,14 +15322,17 @@ function AcreditacionAdvanceDailyMini({
   cutDate?: string;
   reportCuts?: AcreditacionDailyReportCut[];
   reportWeekday?: MonitoreoReportWeekday | "";
+  effectiveOnly?: boolean;
+  compact?: boolean;
 }) {
   const orderedSourcePoints = mergeAcreditacionDailyPoints(sortAcreditacionDailyPoints(points));
   const orderedPoints = expandAcreditacionDailyCalendar(orderedSourcePoints, reportCuts);
   const totals = dailyPointTotals(orderedSourcePoints);
-  const visibleLimit = variant === "general" ? 42 : variant === "actor" ? 35 : 30;
+  const isCompactChart = compact && variant !== "general";
+  const visibleLimit = isCompactChart ? 14 : variant === "general" ? 42 : variant === "actor" ? 35 : 30;
   let cumulative = 0;
   const allChartRows = orderedPoints.map((point) => {
-    const dailyTotal = dailyPointTotalValue(point);
+    const dailyTotal = effectiveOnly ? dailyEffectiveValue(point) : dailyPointTotalValue(point);
     cumulative += dailyTotal;
     return {
       ...point,
@@ -13185,12 +15345,13 @@ function AcreditacionAdvanceDailyMini({
   });
   const visiblePoints = allChartRows.slice(-visibleLimit);
   const chartRows = visiblePoints.map((point, index) => ({ ...point, x: index }));
-  const hasDailySignal = totals.total > 0 && chartRows.some((point) => dailyPointTotalValue(point) > 0);
+  const hasDailySignal = chartRows.some((point) => point.dailyTotal > 0);
   const lastPoint = chartRows.at(-1) ?? null;
   const bestPoint = chartRows.reduce<typeof chartRows[number] | null>((best, point) => (
     !best || point.dailyTotal > best.dailyTotal ? point : best
   ), null);
-  const average = chartRows.length ? totals.total / chartRows.length : 0;
+  const averageBase = effectiveOnly ? totals.effective : totals.total;
+  const average = chartRows.length ? averageBase / chartRows.length : 0;
   const resolvedReportWeekday = normalizeCalendarReportWeekday(reportWeekday) || calendarReportWeekdayFromDate(cutDate);
   const datedCuts = dailyCutsForChart(chartRows, reportCuts);
   const inferredWeeklyCuts = datedCuts.length ? [] : weeklyCutsForChart(chartRows, resolvedReportWeekday);
@@ -13210,7 +15371,9 @@ function AcreditacionAdvanceDailyMini({
     variant === "general" ? 3 : 4,
     variant === "general" ? 8 : 5,
   );
-  const showDenseDailyLabels = variant === "general"
+  const showDenseDailyLabels = isCompactChart
+    ? chartRows.length <= 7
+    : variant === "general"
     ? chartRows.length <= 42
     : chartRows.length <= 24;
   const dailyLabelCandidates = showDenseDailyLabels
@@ -13225,8 +15388,8 @@ function AcreditacionAdvanceDailyMini({
     showDenseDailyLabels ? 1 : variant === "general" ? 2 : 3,
     showDenseDailyLabels ? Math.min(42, dailyLabelCandidates.length) : variant === "general" ? 8 : 5,
   );
-  const dateLabelRows = chartRows;
-  const chartBottomMargin = variant === "general" ? 86 : variant === "actor" ? 78 : 72;
+  const dateLabelRows = isCompactChart ? [] : chartRows;
+  const chartBottomMargin = isCompactChart ? 36 : variant === "general" ? 86 : variant === "actor" ? 78 : 72;
   const maxDaily = chartRows.reduce((max, point) => Math.max(max, point.dailyTotal), 0);
   const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
   const dailyAxisMax = paddedAdvanceAxisMax(maxDaily);
@@ -13239,12 +15402,19 @@ function AcreditacionAdvanceDailyMini({
     point.dailyTotal,
     point.cumulative,
   ]);
-  const hoverTemplate = [
-    "<b>%{customdata[0]}</b>",
-    "Efectivas %{customdata[1]} · Parciales %{customdata[2]} · Rechazos %{customdata[3]}",
-    "Total día <b>%{customdata[4]}</b> · Acumulado <b>%{customdata[5]}</b>",
-    "<extra></extra>",
-  ].join("<br>");
+  const hoverTemplate = effectiveOnly
+    ? [
+      "<b>%{customdata[0]}</b>",
+      "Efectivas Kobo <b>%{customdata[1]}</b>",
+      "Acumulado <b>%{customdata[5]}</b>",
+      "<extra></extra>",
+    ].join("<br>")
+    : [
+      "<b>%{customdata[0]}</b>",
+      "Efectivas %{customdata[1]} · Parciales %{customdata[2]} · Rechazos %{customdata[3]}",
+      "Total día <b>%{customdata[4]}</b> · Acumulado <b>%{customdata[5]}</b>",
+      "<extra></extra>",
+    ].join("<br>");
   const chartData = [
     {
       type: "bar" as const,
@@ -13255,6 +15425,7 @@ function AcreditacionAdvanceDailyMini({
       customdata: hoverData,
       hovertemplate: hoverTemplate,
     },
+    ...(!effectiveOnly ? [
     {
       type: "bar" as const,
       name: "Parciales",
@@ -13273,10 +15444,11 @@ function AcreditacionAdvanceDailyMini({
       customdata: hoverData,
       hovertemplate: hoverTemplate,
     },
+    ] : []),
     {
       type: "scatter" as const,
       mode: "lines+markers" as const,
-      name: "Acumulado total",
+      name: effectiveOnly ? "Acumulado Kobo" : "Acumulado total",
       x: chartRows.map((point) => point.x),
       y: chartRows.map((point) => point.cumulative),
       yaxis: "y2",
@@ -13300,7 +15472,12 @@ function AcreditacionAdvanceDailyMini({
     },
     hovermode: "closest" as const,
     showlegend: false,
-    margin: { l: 48, r: 58, t: 36, b: chartBottomMargin },
+    margin: {
+      l: isCompactChart ? 24 : 48,
+      r: isCompactChart ? 28 : 58,
+      t: isCompactChart ? 20 : 36,
+      b: chartBottomMargin,
+    },
     paper_bgcolor: "transparent",
     plot_bgcolor: "transparent",
     hoverlabel: {
@@ -13326,7 +15503,7 @@ function AcreditacionAdvanceDailyMini({
       })),
     ],
     annotations: [
-      ...cumulativeLabelRows.map((point) => ({
+      ...(isCompactChart ? [] : cumulativeLabelRows.map((point) => ({
         x: point.x,
         y: 1.08,
         xref: "x" as const,
@@ -13334,7 +15511,7 @@ function AcreditacionAdvanceDailyMini({
         text: fmt(point.cumulative),
         showarrow: false,
         font: { color: "#0f3a75", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
-      })),
+      }))),
       ...dailyLabelRows.map((point) => ({
         x: point.x,
         y: -0.08,
@@ -13366,29 +15543,32 @@ function AcreditacionAdvanceDailyMini({
       range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
       tickangle: 0,
       tickvals: tickRows.map((point) => point.x),
-      ticktext: tickRows.map((point) => point.axisLabel),
-      showticklabels: false,
+      ticktext: tickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel)),
+      showticklabels: isCompactChart,
       ticks: "",
+      tickfont: { color: "#5f6b7a", size: isCompactChart ? 9 : 10 },
       automargin: true,
     },
     yaxis: {
-      title: { text: "Respuestas/día", font: { color: "#5f6b7a", size: 11 } },
+      title: isCompactChart ? undefined : { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#5f6b7a", size: 11 } },
       fixedrange: true,
       range: dailyAxisMax ? [0, dailyAxisMax] : undefined,
       rangemode: "tozero",
       showline: false,
+      showticklabels: !isCompactChart,
       zeroline: false,
       gridcolor: "rgba(15, 23, 42, 0.06)",
       tickfont: { color: "#5f6b7a", size: 10 },
     },
     yaxis2: {
-      title: { text: "Acumulado", font: { color: "#17212f", size: 11 } },
+      title: isCompactChart ? undefined : { text: "Acumulado", font: { color: "#17212f", size: 11 } },
       overlaying: "y",
       side: "right",
       fixedrange: true,
       range: cumulativeAxisMax ? [0, cumulativeAxisMax] : undefined,
       rangemode: "tozero",
       showgrid: false,
+      showticklabels: !isCompactChart,
       zeroline: false,
       tickfont: { color: "#17212f", size: 10 },
     },
@@ -13400,26 +15580,36 @@ function AcreditacionAdvanceDailyMini({
     scrollZoom: false,
   };
   const averageLabel = average ? average.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "S/D";
-  const chartHeight = variant === "general" ? 360 : 300;
+  const chartHeight = isCompactChart ? 154 : variant === "general" ? 360 : 300;
+  const dailyLabel = effectiveOnly ? "efectivas" : "respuestas";
+  const signalDayCount = orderedSourcePoints.filter((point) => dailyPointTotalValue(point) > 0).length;
   return (
-    <article className={`mon-advance-daily-mini is-${variant}`}>
+    <article className={`mon-advance-daily-mini is-${variant}${isCompactChart ? " is-compact" : ""}`}>
       <header>
         <div>
           <span>Avance diario</span>
           <strong>{title}</strong>
-          <em>{fmt(orderedSourcePoints.filter((point) => dailyPointTotalValue(point) > 0).length)} días con respuesta · {fmt(totals.total)} respuestas · {averageLabel}/día</em>
+          <em>{countText(signalDayCount, "día", "días")} con respuesta · {fmt(effectiveOnly ? totals.effective : totals.total)} {dailyLabel} · {averageLabel}/día</em>
         </div>
         <div className="mon-advance-daily-mini-tools">
           <div className="mon-advance-daily-mini-kpis">
             <span className="is-effective"><em>Efectivas</em><strong>{fmt(totals.effective)}</strong></span>
-            <span className="is-partial"><em>Parciales</em><strong>{fmt(totals.partial)}</strong></span>
-            <span className="is-refusals"><em>Rechazos</em><strong>{fmt(totals.refusals)}</strong></span>
+            {!effectiveOnly ? (
+              <>
+                <span className="is-partial"><em>Parciales</em><strong>{fmt(totals.partial)}</strong></span>
+                <span className="is-refusals"><em>Rechazos</em><strong>{fmt(totals.refusals)}</strong></span>
+              </>
+            ) : null}
           </div>
-          {hasDailySignal ? (
+          {hasDailySignal && !isCompactChart ? (
             <div className="mon-advance-daily-legend" aria-label="Leyenda de avance diario">
               <span className="is-completed">Efectivas</span>
-              <span className="is-partial">Parciales</span>
-              <span className="is-refusals">Rechazos</span>
+              {!effectiveOnly ? (
+                <>
+                  <span className="is-partial">Parciales</span>
+                  <span className="is-refusals">Rechazos</span>
+                </>
+              ) : null}
               <span className="is-cumulative">Acumulado</span>
             </div>
           ) : null}
@@ -13556,10 +15746,16 @@ function AcreditacionActorProgressCardView({
 }) {
   const totalProgress = card.progress ?? card.coverage ?? safePercentValue(card.effective, card.universe);
   const dial = Math.max(0, Math.min(100, totalProgress ?? 0)) * 3.6;
+  const isPhoneQuotaScope = scopeLabel !== "Actor";
   const completedPct = safePercentValue(card.effective, card.universe) ?? 0;
-  const partialPct = safePercentValue(card.partial, card.universe) ?? 0;
-  const refusalsPct = safePercentValue(card.refusals, card.universe) ?? 0;
-  const unansweredPct = Math.max(0, 100 - completedPct - partialPct - refusalsPct);
+  const sweptWithoutEffective = isPhoneQuotaScope
+    ? Math.max(0, card.universe - card.effective - card.pending)
+    : card.partial;
+  const partialPct = safePercentValue(sweptWithoutEffective, card.universe) ?? 0;
+  const refusalsPct = isPhoneQuotaScope ? 0 : safePercentValue(card.refusals, card.universe) ?? 0;
+  const unansweredPct = isPhoneQuotaScope
+    ? safePercentValue(card.pending, card.universe) ?? 0
+    : Math.max(0, 100 - completedPct - partialPct - refusalsPct);
   const targetPct = safePercentValue(card.meta, card.universe);
   const clampedTargetPct = targetPct == null ? 0 : Math.max(0, Math.min(100, targetPct));
   const targetReached = card.missing != null ? card.missing <= 0 : card.meta != null && card.effective >= card.meta;
@@ -13567,7 +15763,7 @@ function AcreditacionActorProgressCardView({
   const responseMechanisms = card.mechanisms.filter((item) => item.role === "Respuestas");
   return (
     <article
-      className={`mon-actor-card is-${card.statusTone}`}
+      className={`mon-actor-card is-${card.statusTone}${isPhoneQuotaScope ? " is-phone-quota" : ""}`}
       style={{
         "--actor-dial": `${dial}deg`,
         "--actor-complete": `${Math.max(0, Math.min(100, completedPct))}%`,
@@ -13587,7 +15783,7 @@ function AcreditacionActorProgressCardView({
         <div className="mon-actor-radar" aria-label={`Avance de ${card.actor}`}>
           <div className={`mon-actor-dial is-${card.statusTone}`}>
             <strong>{formatPercentLabel(totalProgress)}</strong>
-            <span>Total</span>
+            <span>{isPhoneQuotaScope ? "Meta" : "Total"}</span>
           </div>
           <div
             className={`mon-actor-pipeline-wrap${targetPct == null ? "" : " has-target"}`}
@@ -13610,14 +15806,14 @@ function AcreditacionActorProgressCardView({
           </div>
           <p>
             <span>{fmt(card.effective)} efectivas</span>
-            <strong>{fmt(card.pending)} pendientes</strong>
+            <strong>{fmt(card.pending)} {isPhoneQuotaScope ? "por barrer" : "pendientes"}</strong>
           </p>
         </div>
-        <div className="mon-actor-flow" aria-label="Meta de actor">
+        <div className="mon-actor-flow" aria-label={`Meta de ${scopeLabel.toLowerCase()}`}>
           <AcreditacionActorFlowNode label="Universo" value={fmt(card.universe)} tone="base" />
           <AcreditacionActorFlowNode label="Meta" value={card.meta == null ? "S/M" : fmt(card.meta)} tone="target" />
           <AcreditacionActorFlowNode label="Efectivas" value={fmt(card.effective)} tone="ready" />
-          <AcreditacionActorFlowNode label="Brecha" value={card.missing == null ? "S/M" : fmt(card.missing)} tone={card.missing != null && card.missing > 0 ? "warning" : "ready"} />
+          <AcreditacionActorFlowNode label={isPhoneQuotaScope ? "Pendiente" : "Brecha"} value={card.missing == null ? "S/M" : fmt(card.missing)} tone={card.missing != null && card.missing > 0 ? "warning" : "ready"} />
         </div>
       </div>
       {card.dailyPoints.length ? (
@@ -13628,8 +15824,19 @@ function AcreditacionActorProgressCardView({
           cutDate={cutDate}
           reportCuts={reportCuts}
           reportWeekday={reportWeekday}
+          effectiveOnly={scopeLabel !== "Actor"}
+          compact={isPhoneQuotaScope}
         />
+      ) : isPhoneQuotaScope ? (
+        <div className="mon-phone-quota-series-note" role="note">
+          <CalendarRange size={16} aria-hidden="true" />
+          <div>
+            <strong>Ritmo diario pendiente</strong>
+            <span>El corte trae meta y efectivas de esta cuota, pero falta la fecha de cada CodPulso asociada a la variable para dibujar la serie.</span>
+          </div>
+        </div>
       ) : null}
+      {!isPhoneQuotaScope ? (
       <div className="mon-actor-mechanisms" aria-label={`Fuentes y avance de ${card.actor}`}>
         <AcreditacionActorMechanismGroup
           title="Universo y bases"
@@ -13656,7 +15863,112 @@ function AcreditacionActorProgressCardView({
           )}
         </AcreditacionActorMechanismGroup>
       </div>
+      ) : null}
     </article>
+  );
+}
+
+function AcreditacionPhoneQuotaLaneCard({ card }: { card: AcreditacionActorCard }) {
+  const meta = card.meta ?? 0;
+  const metaProgress = meta > 0 ? safePercentValue(card.effective, meta) ?? 0 : safePercentValue(card.effective, card.universe) ?? 0;
+  const baseProgress = safePercentValue(card.effective, card.universe) ?? 0;
+  const targetPct = safePercentValue(meta, card.universe) ?? 0;
+  const gap = card.missing ?? Math.max(0, meta - card.effective);
+  const orderedDaily = sortAcreditacionDailyPoints(card.dailyPoints).filter((point) => dailyEffectiveValue(point) > 0);
+  const visibleDaily = orderedDaily.slice(-6);
+  const maxDaily = Math.max(1, ...visibleDaily.map(dailyEffectiveValue));
+  const lastPoint = orderedDaily.at(-1) ?? null;
+  const dailyTotal = orderedDaily.reduce((sum, point) => sum + dailyEffectiveValue(point), 0);
+  return (
+    <article
+      className={`mon-phone-quota-lane is-${card.statusTone}`}
+      style={{
+        "--phone-quota-lane-pct": `${Math.max(baseProgress ? 3 : 0, Math.min(100, baseProgress))}%`,
+        "--phone-quota-lane-target": `${Math.max(0, Math.min(100, targetPct))}%`,
+      } as CSSProperties}
+    >
+      <div className="mon-phone-quota-lane-title">
+        <span>Sede</span>
+        <strong>{card.actor}</strong>
+        <em>{gap > 0 ? `${fmt(gap)} por cumplir` : "cuota cubierta"}</em>
+      </div>
+      <div className="mon-phone-quota-lane-progress" aria-label={`Avance de cuota de ${card.actor}`}>
+        <div>
+          <strong>{meta > 0 ? `${fmt(card.effective)} / ${fmt(meta)}` : fmt(card.effective)}</strong>
+          <span>{formatPercentLabel(metaProgress)} de la meta Kobo</span>
+        </div>
+        <i aria-hidden="true"><b /></i>
+        <small>Base {fmt(card.universe)} · por barrer {fmt(card.pending)}</small>
+      </div>
+      <div className="mon-phone-quota-lane-metrics" aria-label={`Indicadores de ${card.actor}`}>
+        <span><em>Meta</em><strong>{meta ? fmt(meta) : "S/M"}</strong></span>
+        <span><em>Kobo</em><strong>{fmt(card.effective)}</strong></span>
+        <span className={gap ? "is-warning" : "is-ready"}><em>Pendiente</em><strong>{fmt(gap)}</strong></span>
+      </div>
+      <div className="mon-phone-quota-lane-spark" aria-label={`Ritmo diario de ${card.actor}`}>
+        <span>
+          <em>{fmt(orderedDaily.length)} día{orderedDaily.length === 1 ? "" : "s"}</em>
+          <strong>{lastPoint ? shortAdvanceDateLabel(lastPoint.date) : "Sin fecha"}</strong>
+        </span>
+        <div>
+          {visibleDaily.length ? visibleDaily.map((point) => {
+            const value = dailyEffectiveValue(point);
+            return (
+              <i
+                key={point.date}
+                title={`${shortAdvanceDateLabel(point.date)}: ${fmt(value)} efectivas Kobo`}
+                style={{ "--phone-quota-lane-day": `${Math.max(8, Math.min(100, safePercentValue(value, maxDaily) ?? 0))}%` } as CSSProperties}
+              />
+            );
+          }) : <em>Sin serie</em>}
+        </div>
+        <small>{fmt(dailyTotal)} fechadas</small>
+      </div>
+    </article>
+  );
+}
+
+function AcreditacionPhoneQuotaLaneBoard({
+  cards,
+  totals,
+  generatedAt,
+}: {
+  cards: AcreditacionActorCard[];
+  totals: ReturnType<typeof advanceTotals>;
+  generatedAt: string;
+}) {
+  const withMeta = cards.filter((card) => card.meta != null);
+  const reached = withMeta.filter((card) => (card.missing ?? 0) <= 0).length;
+  const metaTotal = cards.reduce((sum, card) => sum + Math.max(0, card.meta ?? 0), 0);
+  const gapTotal = cards.reduce((sum, card) => sum + Math.max(0, card.missing ?? 0), 0);
+  const datedTotal = cards.reduce(
+    (sum, card) => sum + card.dailyPoints.reduce((inner, point) => inner + dailyEffectiveValue(point), 0),
+    0,
+  );
+  return (
+    <div className="mon-phone-quota-lane-board">
+      <section className="mon-phone-quota-lane-brief" aria-label="Resumen de cuotas Kobo por sede">
+        <div>
+          <span>Cuotas Kobo por sede</span>
+          <strong>{fmt(totals.effective)} efectivas de {metaTotal ? fmt(metaTotal) : "S/M"}</strong>
+          <p>Todas las sedes quedan visibles en una sola lectura: meta, efectivas Kobo, pendiente por cumplir y señal diaria fechada.</p>
+        </div>
+        <div className="mon-phone-quota-lane-kpis">
+          <span><em>Sedes</em><strong>{fmt(cards.length)}</strong></span>
+          <span><em>Cubiertas</em><strong>{fmt(reached)}/{fmt(withMeta.length || cards.length)}</strong></span>
+          <span className={gapTotal ? "is-warning" : "is-ready"}><em>Pendiente</em><strong>{fmt(gapTotal)}</strong></span>
+          <span><em>Fechadas</em><strong>{fmt(datedTotal)}</strong></span>
+          {generatedAt ? <span><em>Corte</em><strong>{generatedAt}</strong></span> : null}
+        </div>
+      </section>
+      <div className="mon-phone-quota-lane-list" aria-label="Carriles de avance por sede">
+        {cards.length ? cards.map((card) => (
+          <AcreditacionPhoneQuotaLaneCard key={card.id} card={card} />
+        )) : (
+          <EmptyPanel title="Sin cuotas operativas" detail="El reporte telefónico aún no trae categorías de cuota para mostrar metas, efectivas Kobo y pendientes." />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -13698,6 +16010,8 @@ function AcreditacionAdvanceActorsWorkbench({
   const mechanismSummary = scopeLabel === "Sede"
     ? `${fmt(cards.filter((card) => card.meta != null).length)} metas`
     : `${fmt(mechanismTotal)} mecanismos`;
+  const phoneQuotaWithMeta = cards.filter((card) => card.meta != null).length;
+  const phoneQuotaReached = cards.filter((card) => card.meta != null && (card.missing ?? 0) <= 0).length;
   const reportCuts = useMemo(
     () => acreditacionReportCutsFromPhases(state?.config?.strategy_phases ?? []),
     [state?.config?.strategy_phases],
@@ -13706,17 +16020,51 @@ function AcreditacionAdvanceActorsWorkbench({
     () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
     [state?.config?.strategy_phases],
   );
+
+  if (isPhoneModel) {
+    return (
+      <section
+        className="pulso-panel mon-fill-panel mon-strata-dashboard mon-actor-dashboard mon-phone-quota-lane-workbench"
+        style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
+        aria-label={`Cuotas Kobo por ${scopeLabel.toLowerCase()}`}
+      >
+        <header className="pulso-panel-header">
+          <div className="pulso-panel-heading">
+            <span className="pulso-panel-eyebrow">Avance</span>
+            <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> Cuotas Kobo por sede</span></h2>
+            <p className="pulso-panel-hint">Meta, efectivas Kobo, pendiente por cumplir y ritmo diario fechable sin mezclarlo con estados telefónicos.</p>
+          </div>
+          <div className="pulso-panel-actions mon-actor-dashboard-actions">
+            <span>{unitCountLabel}</span>
+            <span>{mechanismSummary}</span>
+            {generatedAt ? <span>{generatedAt}</span> : null}
+          </div>
+        </header>
+        <AcreditacionPhoneQuotaRhythmBoard
+          cards={cards}
+          variable={scopeLabel}
+          cutDate={reports.generated_at}
+        />
+        <AcreditacionPhoneQuotaLaneBoard
+          cards={cards}
+          totals={totals}
+          generatedAt={generatedAt}
+        />
+      </section>
+    );
+  }
+
   return (
     <section
       className="pulso-panel mon-fill-panel mon-strata-dashboard mon-actor-dashboard"
       style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
-      aria-label="Avance canónico por actor"
+      aria-label={isPhoneModel ? `Cuotas Kobo por ${scopeLabel.toLowerCase()}` : "Avance canónico por actor"}
     >
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
           <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> Avance por {scopeLabel.toLowerCase()}</span></h2>
-          <p className="pulso-panel-hint">Universo, meta, brecha y fuentes por {scopeLabel.toLowerCase()}.</p>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> {isPhoneModel ? `Cuotas Kobo por ${scopeLabel.toLowerCase()}` : `Avance por ${scopeLabel.toLowerCase()}`}</span></h2>
+          <p className="pulso-panel-hint">{isPhoneModel ? `Meta, efectivas Kobo, pendiente por cumplir y base telefónica por ${scopeLabel.toLowerCase()}.` : `Universo, meta, brecha y fuentes por ${scopeLabel.toLowerCase()}.`}</p>
         </div>
         <div className="pulso-panel-actions mon-actor-dashboard-actions">
           <span>{unitCountLabel}</span>
@@ -13726,18 +16074,28 @@ function AcreditacionAdvanceActorsWorkbench({
       </header>
       <div className="mon-advance-hero mon-advance-hero--actors">
         <div className="mon-advance-hero-copy">
-          <span>Corte por {scopeLabel.toLowerCase()}</span>
-          <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>Lee cada {scopeLabel.toLowerCase()} como una unidad operativa: universo/base, meta, avance real y mecanismos que alimentan el corte.</p>
+          <span>{isPhoneModel ? `Cuota por ${scopeLabel.toLowerCase()}` : `Corte por ${scopeLabel.toLowerCase()}`}</span>
+          <strong>{fmt(totals.effective)} {isPhoneModel ? "efectivas Kobo" : "efectivas"} de {fmt(totals.universe)}</strong>
+          <p>{isPhoneModel ? `Cada ${scopeLabel.toLowerCase()} muestra la base telefónica, la meta, las efectivas Kobo y lo que falta cumplir.` : `Lee cada ${scopeLabel.toLowerCase()} como una unidad operativa: universo/base, meta, avance real y mecanismos que alimentan el corte.`}</p>
         </div>
         <div className="mon-advance-hero-kpis">
           <AcreditacionAdvanceMetric label={scopeLabel === "Sede" ? "Sedes" : "Actores"} value={fmt(cards.length)} hint={mechanismSummary} tone="base" />
-          <AcreditacionAdvanceMetric label={`Metas ${scopeLabel.toLowerCase()}`} value={actorGoalValue(goals)} hint={actorGoalHint(goals)} tone={actorGoalTone(goals)} />
+          <AcreditacionAdvanceMetric
+            label={isPhoneModel ? "Cuotas cumplidas" : `Metas ${scopeLabel.toLowerCase()}`}
+            value={isPhoneModel ? `${fmt(phoneQuotaReached)}/${fmt(phoneQuotaWithMeta || cards.length)}` : actorGoalValue(goals)}
+            hint={isPhoneModel ? `${fmt(phoneQuotaWithMeta)} con meta Kobo` : actorGoalHint(goals)}
+            tone={isPhoneModel ? (phoneQuotaWithMeta && phoneQuotaReached >= phoneQuotaWithMeta ? "ready" : "target") : actorGoalTone(goals)}
+          />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${formatPercentLabel(completionPct)} del universo`} tone="ready" />
-          <AcreditacionAdvanceMetric label="Pendientes" value={fmt(totals.pending)} hint={`${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`} tone={totals.pending ? "warning" : "base"} />
+          <AcreditacionAdvanceMetric
+            label={isPhoneModel ? "Por barrer" : "Pendientes"}
+            value={fmt(totals.pending)}
+            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`}
+            tone={totals.pending ? "warning" : "base"}
+          />
         </div>
       </div>
-      <div className="mon-actor-grid">
+      <div className={`mon-actor-grid${isPhoneModel ? " mon-actor-grid--phone-quota" : ""}`}>
         {cards.length ? cards.map((card) => (
           <AcreditacionActorProgressCardView
             key={card.id}
@@ -13748,7 +16106,10 @@ function AcreditacionAdvanceActorsWorkbench({
             scopeLabel={scopeLabel}
           />
         )) : (
-          <EmptyPanel title="Sin cortes operativos" detail="El reporte de avance aún no trae actores para mostrar metas, fuentes y brechas." />
+          <EmptyPanel
+            title={isPhoneModel ? "Sin cuotas operativas" : "Sin cortes operativos"}
+            detail={isPhoneModel ? "El reporte telefónico aún no trae categorías de cuota para mostrar metas, efectivas Kobo y pendientes." : "El reporte de avance aún no trae actores para mostrar metas, fuentes y brechas."}
+          />
         )}
       </div>
     </section>
@@ -13758,6 +16119,7 @@ function AcreditacionAdvanceActorsWorkbench({
 function acreditacionChannelKey(value: string): AcreditacionChannelToneKey {
   const normalized = normalizeSourceMatch(value);
   if (!normalized || normalized === "sin canal" || normalized === "sin dato" || normalized === "desconocido") return "desconocido";
+  if (normalized.includes("kobo")) return "kobo";
   if (normalized.includes("telefon")) return "telefono";
   if (normalized.includes("presencial") || normalized.includes("qr")) return "presencial";
   if (normalized.includes("correo") || normalized.includes("email") || normalized.includes("mail")) return "correo";
@@ -13771,6 +16133,7 @@ export function acreditacionChannelLabel(value: string) {
   if (key === "telefono") return "Telefónico";
   if (key === "presencial") return "Ficha QR";
   if (key === "enlace") return "Enlace";
+  if (key === "kobo") return "Kobo";
   return "Sin canal";
 }
 
@@ -14097,6 +16460,212 @@ function AcreditacionAdvanceSurveyCard({
   );
 }
 
+function AcreditacionAdvancePhoneKoboCard({
+  row,
+  max,
+  daily,
+  cutDate,
+  reportCuts = [],
+  reportWeekday = "",
+}: {
+  row: AcreditacionAdvanceSurveyRow;
+  max: number;
+  daily: AcreditacionAdvanceDailySeries | null;
+  cutDate?: string;
+  reportCuts?: AcreditacionDailyReportCut[];
+  reportWeekday?: MonitoreoReportWeekday | "";
+}) {
+  const effective = Math.max(row.effective, daily?.completed ?? 0);
+  const responses = Math.max(row.total, daily?.total ?? effective);
+  const width = responses > 0 ? Math.max(3, Math.min(100, safePercentValue(responses, max) ?? 0)) : 0;
+  return (
+    <article className="mon-advance-survey-card mon-advance-survey-card--phone">
+      <div className="mon-advance-survey-main">
+        <header>
+          <AcreditacionChannelBadge channel="Kobo" />
+          <strong>{row.title}</strong>
+          <span>{row.surveyId || row.sourceId ? `Encuesta ${row.surveyId || row.sourceId}` : "Encuesta Kobo vinculada"}</span>
+        </header>
+        <div className="mon-advance-survey-meter" aria-label={`Efectivas Kobo de ${row.title}`}>
+          <strong>{fmt(effective)}</strong>
+          <span>efectivas Kobo</span>
+          <i style={{ "--advance-survey-total": `${width}%` } as CSSProperties} />
+        </div>
+        <div className="mon-advance-phone-kobo-facts">
+          <span className="is-effective"><em>Pasan filtro</em><strong>{fmt(effective)}</strong></span>
+          <span><em>Respuestas Kobo</em><strong>{fmt(responses)}</strong></span>
+        </div>
+      </div>
+      <div className="mon-advance-survey-chart-stack">
+        {daily ? (
+          <AcreditacionAdvanceDailyMini
+            title={`Efectivas por día · ${row.title}`}
+            points={daily.points}
+            variant="source"
+            cutDate={cutDate}
+            reportCuts={reportCuts}
+            reportWeekday={reportWeekday}
+            effectiveOnly
+          />
+        ) : (
+          <div className="mon-phone-kobo-no-chart">
+            <CalendarRange size={16} />
+            <strong>Sin fecha por encuesta</strong>
+            <span>El corte trae efectivas Kobo, pero no una serie diaria para esta fuente.</span>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function AcreditacionAdvancePhoneKoboWorkbench({
+  reports,
+  state,
+  rows,
+  sourceDailySeries,
+  reportCuts,
+  reportWeekday,
+}: {
+  reports: MonitoreoAcreditacionReports;
+  state?: MonitoreoState | null;
+  rows: AcreditacionAdvanceSurveyRow[];
+  sourceDailySeries: AcreditacionAdvanceDailySeries[];
+  reportCuts: AcreditacionDailyReportCut[];
+  reportWeekday: MonitoreoReportWeekday | "";
+}) {
+  const koboKeys = new Set((state?.sources ?? [])
+    .filter(isKoboResponseSource)
+    .flatMap((source) => uniqueNormalizedKeys([source.id, source.survey_id, source.label, source.survey_title, source.dimensions?.survey_title])));
+  const koboRows = koboKeys.size
+    ? rows.filter((row) => uniqueNormalizedKeys([row.sourceId, row.surveyId, row.title]).some((key) => koboKeys.has(key)))
+    : rows;
+  const comparisonRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);
+  const comparison = phonePlatformComparisonTotals(comparisonRows);
+  const statusRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
+  const quotaRows = phoneQuotaRowsForPanel(rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]));
+  const filter = normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter);
+  const filterConfigured = Boolean(filter.enabled && filter.variable && filter.values.length);
+  const totalEffective = comparison.platformComplete || koboRows.reduce((sum, row) => sum + Math.max(row.effective, dailySeriesForSurvey(row, sourceDailySeries)?.completed ?? 0), 0);
+  const totalResponses = koboRows.reduce((sum, row) => sum + Math.max(row.total, dailySeriesForSurvey(row, sourceDailySeries)?.total ?? 0), 0) || totalEffective;
+  const max = Math.max(1, totalResponses, ...koboRows.map((row) => row.total), ...sourceDailySeries.map((series) => series.total));
+  const statusTotal = Math.max(1, statusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0));
+  const statusItems = statusRows.map((row, index) => ({
+    key: `${phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`)}-${index}`,
+    label: phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`),
+    value: phoneRowNumber(row, ["Casos", "Valor", "Total"], 0),
+  })).filter((item) => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 6);
+  const quotaVariable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const quotaPreview = (quotaVariable ? quotaRows.filter((row) => row.variable === quotaVariable) : quotaRows)
+    .slice(0, 5);
+  const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
+  return (
+    <section
+      className="pulso-panel mon-fill-panel mon-advance-panel mon-advance-surveys mon-advance-phone-kobo"
+      style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
+      aria-label="Avance telefónico por Kobo"
+    >
+      <header className="pulso-panel-header">
+        <div className="pulso-panel-heading">
+          <span className="pulso-panel-eyebrow">Avance</span>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><QrCode size={16} /> Kobo efectivo</span></h2>
+          <p className="pulso-panel-hint">Kobo manda el avance; el barrido telefónico se lee en paralelo como estado de consulta.</p>
+        </div>
+        <div className="pulso-panel-actions mon-advance-meta">
+          <span>{fmt(koboRows.length)} encuesta{koboRows.length === 1 ? "" : "s"} Kobo</span>
+          {generatedAt ? <span>{generatedAt}</span> : null}
+        </div>
+      </header>
+      <div className="mon-advance-hero mon-advance-hero--surveys">
+        <div className="mon-advance-hero-copy">
+          <span>Fuente rectora</span>
+          <strong>{fmt(totalEffective)} efectivas Kobo</strong>
+          <p>Cuenta solo respuestas completas que pasan el filtro configurado. La coincidencia con llamadas se verifica por CodPulso, no por suma agregada.</p>
+        </div>
+        <div className="mon-advance-hero-kpis">
+          <AcreditacionAdvanceMetric label="Kobo" value={fmt(totalEffective)} hint={filterConfigured ? "filtro aplicado" : "filtro pendiente"} tone={filterConfigured ? "ready" : "warning"} />
+          <AcreditacionAdvanceMetric label="Barrido efectivo" value={fmt(comparison.phoneEffective)} hint="declarado en base" tone="base" />
+          <AcreditacionAdvanceMetric label="CodPulso" value={phoneCodPulsoEffectiveMatchLabel(comparison)} hint={comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : `${fmt(comparisonRows.length)} llaves trazadas`} tone={comparison.mismatch ? "warning" : "ready"} />
+          <AcreditacionAdvanceMetric label="Cuotas" value={quotaRows.length ? fmt(quotaRows.length) : "S/D"} hint={quotaVariable || "sin variable"} tone={quotaRows.length ? "target" : "base"} />
+        </div>
+      </div>
+      <div className="mon-phone-kobo-parallel">
+        <section className="mon-phone-kobo-status-panel" aria-label="Estados telefónicos paralelos">
+          <header>
+            <span>Estados telefónicos</span>
+            <strong>Barrido como consulta</strong>
+            <em>Estos estados explican operación; no reemplazan la efectiva Kobo.</em>
+          </header>
+          <div>
+            {statusItems.length ? statusItems.map((item) => (
+              <span key={item.key}>
+                <small>{item.label}</small>
+                <i style={{ "--phone-status-pct": `${Math.max(2, Math.min(100, safePercentValue(item.value, statusTotal) ?? 0))}%` } as CSSProperties} />
+                <strong>{fmt(item.value)}</strong>
+              </span>
+            )) : (
+              <em>Sin distribución de estados telefónicos en el corte.</em>
+            )}
+          </div>
+        </section>
+        <section className="mon-phone-kobo-status-panel mon-phone-kobo-status-panel--quota" aria-label="Cuotas telefónicas">
+          <header>
+            <span>Cuotas</span>
+            <strong>{quotaVariable || "Variable pendiente"}</strong>
+            <em>Meta visual para saber cuánto falta cumplir por categoría.</em>
+          </header>
+          <div>
+            {quotaPreview.length ? quotaPreview.map((row) => {
+              const pctValue = row.advancePct ?? safePercentValue(row.effective, row.meta ?? row.universe) ?? 0;
+              return (
+                <span key={row.key}>
+                  <small>{row.value}</small>
+                  <i style={{ "--phone-status-pct": `${Math.max(2, Math.min(100, pctValue))}%` } as CSSProperties} />
+                  <strong>{row.gap == null ? fmt(row.effective) : `${fmt(row.gap)} faltan`}</strong>
+                </span>
+              );
+            }) : (
+              <em>Sin cuotas por variable en el corte.</em>
+            )}
+          </div>
+        </section>
+      </div>
+      <div className="mon-advance-survey-actor-stack">
+        {koboRows.length ? (
+          <article className="mon-advance-survey-actor-card mon-advance-survey-actor-card--phone">
+            <header className="mon-advance-survey-actor-head">
+              <div>
+                <span>Instrumentos Kobo</span>
+                <strong>Efectivas filtradas</strong>
+                <em>{fmt(totalResponses)} respuestas Kobo leídas · {filterConfigured ? `${filter.variable} = ${filter.values[0]}` : "elige filtro de consentimiento"}</em>
+              </div>
+              <div className="mon-advance-survey-actor-kpis mon-advance-survey-actor-kpis--phone">
+                <span className="is-effective"><em>Efectivas</em><strong>{fmt(totalEffective)}</strong></span>
+                <span><em>Encuestas</em><strong>{fmt(koboRows.length)}</strong></span>
+              </div>
+            </header>
+            <div className="mon-advance-survey-actor-sources">
+              {koboRows.map((row) => (
+                <AcreditacionAdvancePhoneKoboCard
+                  key={row.id}
+                  row={row}
+                  max={max}
+                  daily={dailySeriesForSurvey(row, sourceDailySeries)}
+                  cutDate={reports.generated_at}
+                  reportCuts={reportCuts}
+                  reportWeekday={reportWeekday}
+                />
+              ))}
+            </div>
+          </article>
+        ) : (
+          <EmptyPanel title="Sin encuesta Kobo activa" detail="Selecciona la encuesta Kobo en Fuentes para que el avance tenga una fuente rectora." />
+        )}
+      </div>
+    </section>
+  );
+}
+
 function AcreditacionAdvanceSurveysWorkbench({
   reports,
   state,
@@ -14157,6 +16726,18 @@ function AcreditacionAdvanceSurveysWorkbench({
     () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
     [state?.config?.strategy_phases],
   );
+  if (isTelefonicoMonitoreoState(state)) {
+    return (
+      <AcreditacionAdvancePhoneKoboWorkbench
+        reports={reports}
+        state={state}
+        rows={rows}
+        sourceDailySeries={sourceDailySeries}
+        reportCuts={reportCuts}
+        reportWeekday={reportWeekday}
+      />
+    );
+  }
   return (
     <section
       className="pulso-panel mon-fill-panel mon-advance-panel mon-advance-surveys"
@@ -14234,11 +16815,16 @@ function AcreditacionAdvanceSurveysWorkbench({
 function AcreditacionAdvanceFocus({ cards, scopeLabel = "Actor" }: { cards: AcreditacionAdvanceCard[]; scopeLabel?: string }) {
   const ranked = [...cards].sort((a, b) => (b.missing ?? -1) - (a.missing ?? -1) || b.universe - a.universe).slice(0, 5);
   const totals = advanceTotals(cards);
+  const isPhoneQuotaScope = scopeLabel !== "Actor";
   return (
-    <section className="mon-advance-focus" aria-label={`${scopeLabel}s y brechas`}>
+    <section className="mon-advance-focus" aria-label={`${scopeLabel}s y ${isPhoneQuotaScope ? "pendientes" : "brechas"}`}>
       <header>
         <span>{scopeLabel}</span>
-        <strong>{totals.brechas ? `${fmt(totals.brechas)} con brecha` : `${fmt(totals.metas)} metas cubiertas`}</strong>
+        <strong>
+          {totals.brechas
+            ? `${fmt(totals.brechas)} ${isPhoneQuotaScope ? "con pendiente" : "con brecha"}`
+            : `${fmt(totals.metas)} metas cubiertas`}
+        </strong>
       </header>
       <div>
         {ranked.length ? ranked.map((card) => {
@@ -14259,7 +16845,7 @@ function AcreditacionAdvanceFocus({ cards, scopeLabel = "Actor" }: { cards: Acre
             </article>
           );
         }) : (
-          <EmptyPanel title={`Sin ${scopeLabel.toLowerCase()}s`} detail={`No hay cortes por ${scopeLabel.toLowerCase()} para priorizar brechas.`} />
+          <EmptyPanel title={`Sin ${scopeLabel.toLowerCase()}s`} detail={`No hay cortes por ${scopeLabel.toLowerCase()} para priorizar ${isPhoneQuotaScope ? "pendientes" : "brechas"}.`} />
         )}
       </div>
     </section>
@@ -14855,23 +17441,26 @@ function AcreditacionAdvanceSummaryWorkbench({
   state,
   actorRows,
   dailyRows,
+  onNavigateLocalTab,
 }: {
   reports: MonitoreoAcreditacionReports;
   state?: MonitoreoState | null;
   actorRows: Array<Record<string, unknown>>;
   dailyRows: Array<Record<string, unknown>>;
+  onNavigateLocalTab?: (view: WorkbenchView, tab: AcreditacionLocalTabKey) => void;
 }) {
   const isPhoneModel = isTelefonicoMonitoreoState(state);
-  const phoneQuotaCards = useMemo(() => phoneQuotaAdvanceCardsFromRows(
-    rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
-  ), [reports]);
+  const phoneQuotaCards = useMemo(() => phoneQuotaCardsForDashboard(reports), [reports]);
   const cards = useMemo(() => (
     isPhoneModel && phoneQuotaCards.length
       ? phoneQuotaCards
       : advanceCardsFromRows(actorRows, state?.config.goals ?? [])
   ), [actorRows, isPhoneModel, phoneQuotaCards, state?.config.goals]);
   const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
-  const dailyPoints = useMemo(() => dailyPointsFromRows(dailyRows), [dailyRows]);
+  const rawDailyPoints = useMemo(() => dailyPointsFromRows(dailyRows), [dailyRows]);
+  const dailyPoints = useMemo(() => (
+    isPhoneModel ? rawDailyPoints.filter(isDatedAcreditacionDailyPoint) : rawDailyPoints
+  ), [isPhoneModel, rawDailyPoints]);
   const totals = advanceTotals(cards);
   const completionPct = safePercentValue(totals.effective, totals.universe);
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
@@ -14883,6 +17472,159 @@ function AcreditacionAdvanceSummaryWorkbench({
     () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
     [state?.config?.strategy_phases],
   );
+  const phoneComparisonRows = isPhoneModel
+    ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"])
+    : [];
+  const phoneComparison = isPhoneModel ? phonePlatformComparisonTotals(phoneComparisonRows) : null;
+  const phoneStatusRows = isPhoneModel
+    ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"])
+    : [];
+  const phoneStatusTotal = Math.max(1, phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0));
+  const phoneStatusItems = phoneStatusRows.map((row, index) => {
+    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`);
+    const value = phoneRowNumber(row, ["Casos", "Valor", "Total"], 0);
+    return { key: `${normalizeSourceMatch(label)}-${index}`, label, value, tone: phoneStatusTone(label) };
+  }).filter((item) => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 6);
+  const quotaRows = isPhoneModel
+    ? phoneQuotaRowsForPanel(rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]))
+    : [];
+  const quotaVariable = isPhoneModel ? preferredPhoneAdvanceQuotaVariable(quotaRows) || scopeLabel : scopeLabel;
+  const phoneFilter = isPhoneModel ? normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter) : null;
+  const phoneFilterConfigured = Boolean(phoneFilter?.enabled && phoneFilter.variable && phoneFilter.values.length);
+  const phonePlatformSource = isPhoneModel
+    ? state?.sources?.find(isKoboResponseSource) ?? null
+    : null;
+  const phoneInstrumentTitle = phonePlatformSource ? acreditacionSurveySourceName(phonePlatformSource) : "Kobo pendiente";
+  const phoneInstrumentAsset = phonePlatformSource ? sourceExternalId(phonePlatformSource) : "";
+  const phoneFilterLabel = phoneFilterConfigured
+    ? `${phoneFilter?.label || phoneFilter?.variable} = ${phoneFilter?.value_label || phoneFilter?.values[0]}`
+    : "Sin filtro";
+  const phoneFilterHint = phoneFilterConfigured
+    ? "opción válida"
+    : "elige consentimiento";
+  const dailySignalDays = dailyPoints.filter((point) => dailyPointTotalValue(point) > 0).length;
+  const undatedPhoneEffective = isPhoneModel
+    ? rawDailyPoints.filter((point) => !isDatedAcreditacionDailyPoint(point)).reduce((sum, point) => sum + dailyEffectiveValue(point), 0)
+    : 0;
+
+  if (isPhoneModel) {
+    const comparison = phoneComparison ?? {
+      phoneEffective: 0,
+      platformComplete: totals.effective,
+      matchedEffective: 0,
+      mismatch: 0,
+    };
+    const platformEffective = comparison.platformComplete || totals.effective;
+    return (
+      <section className="pulso-panel mon-advance-panel mon-phone-advance-summary" aria-label="Resumen de avance telefónico">
+        <header className="pulso-panel-header">
+          <div className="pulso-panel-heading">
+            <span className="pulso-panel-eyebrow">Avance telefónico</span>
+            <h2 className="pulso-panel-title"><span className="mon-title-icon"><BarChart3 size={16} /> Kobo, barrido y cuotas</span></h2>
+            <p className="pulso-panel-hint">Kobo manda las efectivas; el barrido conserva estados telefónicos y CodPulso verifica coincidencia individual.</p>
+          </div>
+          <div className="pulso-panel-actions mon-advance-meta">
+            <span>{fmt(state?.n_rows ?? totals.universe)} registros</span>
+            {generatedAt ? <span>{generatedAt}</span> : null}
+          </div>
+        </header>
+        <div className="mon-phone-advance-hero">
+          <div className="mon-phone-advance-hero-copy">
+            <span>Fuente rectora</span>
+            <strong>{fmt(platformEffective)} efectivas Kobo</strong>
+            <p>{phoneFilterConfigured ? `Filtro aplicado: ${phoneFilter?.label || phoneFilter?.variable} = ${phoneFilter?.value_label || phoneFilter?.values[0]}` : "Configura el filtro de consentimiento/elegibilidad para que el avance quede completamente validado."}</p>
+          </div>
+          <div className="mon-phone-advance-hero-kpis">
+            <AcreditacionAdvanceMetric label="Variable cuota" value={quotaVariable} hint={`${fmt(cards.length)} categorías`} tone={quotaRows.length ? "target" : "warning"} />
+            <AcreditacionAdvanceMetric label="CodPulso" value={phoneCodPulsoEffectiveMatchLabel(comparison)} hint={comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : `${fmt(phoneComparisonRows.length)} llaves trazadas`} tone={comparison.mismatch ? "warning" : "ready"} />
+            <AcreditacionAdvanceMetric label="Barrido efectivo" value={fmt(comparison.phoneEffective)} hint="declarado en base" tone="base" />
+            <AcreditacionAdvanceMetric label="Por barrer" value={fmt(totals.pending)} hint="estado telefónico" tone={totals.pending ? "warning" : "base"} />
+          </div>
+        </div>
+        <div className="mon-phone-advance-rule-console" aria-label="Regla operativa Kobo para avance telefónico">
+          <section className={phoneFilterConfigured ? "is-ready" : "is-warning"}>
+            <span><QrCode size={13} /> Regla Kobo</span>
+            <strong>{phoneFilterConfigured ? "Efectiva = completa y pasa filtro" : "Falta elegir filtro de efectiva"}</strong>
+            <p>{phoneFilterConfigured ? "Kobo cuenta el avance; el barrido queda como consulta operativa y CodPulso prueba coincidencia individual." : "Sin filtro, el tablero muestra la producción leída, pero la validación de avance todavía no queda cerrada."}</p>
+          </section>
+          <div className="mon-phone-advance-rule-steps">
+            <button type="button" className={phonePlatformSource ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "survey")}>
+              <span><QrCode size={13} /> Instrumento</span>
+              <strong>{phoneInstrumentTitle}</strong>
+              <em>{phoneInstrumentAsset ? shortenMiddle(phoneInstrumentAsset, 38) : "Selecciona Kobo"}</em>
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" className={phoneFilterConfigured ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "survey")}>
+              <span><Filter size={13} /> Filtro</span>
+              <strong>{phoneFilterLabel}</strong>
+              <em>{phoneFilterHint}</em>
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" className={quotaRows.length ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("modelo", "estructura")}>
+              <span><SlidersHorizontal size={13} /> Variable rectora</span>
+              <strong>{quotaVariable}</strong>
+              <em>{fmt(cards.length)} categorías de cuota</em>
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" className={comparison.mismatch ? "is-warning" : "is-ready"} onClick={() => onNavigateLocalTab?.("avance", "detalle")}>
+              <span><KeyRound size={13} /> CodPulso</span>
+              <strong>{phoneCodPulsoEffectiveMatchLabel(comparison)}</strong>
+              <em>{comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : "coincidencia individual"}</em>
+            </button>
+          </div>
+        </div>
+        <div className="mon-phone-advance-grid">
+          <AcreditacionAdvanceDailyMini
+            points={dailyPoints}
+            title="Ritmo general Kobo"
+            variant="source"
+            cutDate={reports.generated_at}
+            reportCuts={reportCuts}
+            reportWeekday={reportWeekday}
+            effectiveOnly
+            compact
+          />
+          <section className="mon-phone-advance-parallel" aria-label="Estados de plataforma y estados telefónicos en paralelo">
+            <header>
+              <div>
+                <span>Contexto telefónico</span>
+                <strong>La llamada explica operación; Kobo valida avance</strong>
+              </div>
+              <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? ` · ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
+            </header>
+            <div className="mon-phone-advance-parallel-grid">
+              <article>
+                <span>Kobo efectivo</span>
+                <strong>{fmt(platformEffective)} efectivas</strong>
+                <p>{phoneFilterConfigured ? "Pasan filtro y cuentan para cuota." : "Pendiente definir filtro de efectiva."}</p>
+                <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(platformEffective, totals.universe) ?? 0))}%` } as CSSProperties} />
+              </article>
+              <article>
+                <span>Barrido telefónico</span>
+                <strong>{fmt(comparison.phoneEffective)} efectivas declaradas</strong>
+                <p>{comparison.mismatch ? `${fmt(comparison.mismatch)} CodPulso no coinciden.` : "Coincide con Kobo por llave individual."}</p>
+                <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(comparison.phoneEffective, totals.universe) ?? 0))}%` } as CSSProperties} />
+              </article>
+            </div>
+            <div className="mon-phone-advance-status-list" aria-label="Distribución de estados telefónicos">
+              {phoneStatusItems.length ? phoneStatusItems.map((item) => (
+                <span key={item.key} className={`is-${item.tone}`}>
+                  <em>{item.label}</em>
+                  <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(item.value, phoneStatusTotal) ?? 0))}%` } as CSSProperties} />
+                  <strong>{fmt(item.value)}</strong>
+                </span>
+              )) : (
+                <span className="is-muted"><em>Sin estados telefónicos</em><strong>S/D</strong></span>
+              )}
+            </div>
+          </section>
+          <AcreditacionAdvanceStorage cards={cards} scopeLabel={scopeLabel} />
+          <AcreditacionAdvanceFocus cards={cards} scopeLabel={scopeLabel} />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="pulso-panel mon-advance-panel" aria-label="Resumen canónico de avance">
       <header className="pulso-panel-header">
@@ -14905,7 +17647,12 @@ function AcreditacionAdvanceSummaryWorkbench({
         <div className="mon-advance-hero-kpis">
           <AcreditacionAdvanceMetric label={`Metas ${scopeLabel.toLowerCase()}`} value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} con brecha` : "sin brecha"} tone={totals.brechas ? "target" : "ready"} />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${completionPct == null ? "S/D" : pct(completionPct)} del universo`} tone="ready" />
-          <AcreditacionAdvanceMetric label="Pendientes" value={fmt(totals.pending)} hint={`${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`} tone={totals.pending ? "warning" : "base"} />
+          <AcreditacionAdvanceMetric
+            label={isPhoneModel ? "Por barrer" : "Pendientes"}
+            value={fmt(totals.pending)}
+            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`}
+            tone={totals.pending ? "warning" : "base"}
+          />
         </div>
       </div>
       <div className="mon-advance-tabbody">
@@ -14915,6 +17662,7 @@ function AcreditacionAdvanceSummaryWorkbench({
             cutDate={reports.generated_at}
             reportCuts={reportCuts}
             reportWeekday={reportWeekday}
+            effectiveOnly={isPhoneModel}
           />
           <AcreditacionAdvanceStorage cards={cards} scopeLabel={scopeLabel} />
           <AcreditacionAdvanceFocus cards={cards} scopeLabel={scopeLabel} />
@@ -14995,17 +17743,19 @@ function renderAcreditacionView(
     state?: MonitoreoState | null;
     onStateChange?: (state: MonitoreoState) => void;
     onPublished?: () => void;
+    onNavigateLocalTab?: (view: WorkbenchView, tab: AcreditacionLocalTabKey) => void;
     routeLabel?: string;
     savingAcreditacion?: boolean;
   } = {},
 ) {
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const state = options.state;
+    const isPhoneOutputs = isTelefonicoMonitoreoState(state);
     return (
       <MonitoreoOutputsWorkbench
-        family="acreditacion"
-        routeLabel={options.routeLabel ?? "Acreditación"}
-        defaultTitle={state?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
+        family={isPhoneOutputs ? "telefonico" : "acreditacion"}
+        routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
+        defaultTitle={isPhoneOutputs ? "" : state?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
         config={state?.config}
         clientSheets={state?.publication?.client_last_sheets ?? null}
         internalSheets={state?.publication?.internal_last_sheets ?? null}
@@ -15027,6 +17777,7 @@ function renderAcreditacionView(
         state={options.state}
         activeTab={options.activeSourceTab ?? "survey"}
         onStateChange={options.onStateChange}
+        onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
       />
     );
   }
@@ -15059,13 +17810,28 @@ function renderAcreditacionView(
     );
   }
   if (view === "telefonico") {
-    return renderPhoneView(reports, options.activePhoneTab ?? "resumen", num(options.state?.dashboard?.kpis?.valid, 0));
+    return renderPhoneView(
+      reports,
+      options.activePhoneTab ?? "resumen",
+      num(options.state?.dashboard?.kpis?.valid, 0),
+      isTelefonicoMonitoreoState(options.state),
+    );
   }
+  const isPhoneModel = isTelefonicoMonitoreoState(options.state);
   const actorRows = client?.actors?.length ? client.actors : rowsFromSheets(reports.sheets, ["actor", "avance", "brecha"]);
-  const phoneDailyRows = isTelefonicoMonitoreoState(options.state)
+  const phoneDailyRows = isPhoneModel
     ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["avance_efectivo_dia", "produccion_dia"])
     : [];
-  const dailyRows = client?.daily_general?.length ? client.daily_general : phoneDailyRows;
+  const clientDailyRows = client?.daily_general ?? [];
+  const dailyRows = isPhoneModel
+    ? (phoneDailyRows.length ? phoneDailyRows : clientDailyRows)
+    : (clientDailyRows.length ? clientDailyRows : phoneDailyRows);
+  const sheetActorDailyRows = rowsForSheetBlock(reports, "cliente_avance_actor", ["avance_actor_dia"]);
+  const actorDailyRows = client?.daily_actor?.length
+    ? client.daily_actor
+    : sheetActorDailyRows.length
+      ? sheetActorDailyRows
+      : dailyRows;
   const sourceRows = client?.sources?.length ? client.sources : rowsFromSheets(reports.sheets, ["fuente", "source", "canal"]);
   const controlRows = client?.controls?.length ? client.controls : rowsFromSheets(reports.sheets, ["control", "segmento", "meta"]);
   if (view === "avance" && options.activeAdvanceTab === "actores") {
@@ -15075,7 +17841,7 @@ function renderAcreditacionView(
         state={options.state}
         actorRows={actorRows as Array<Record<string, unknown>>}
         sourceRows={sourceRows as Array<Record<string, unknown>>}
-        dailyRows={dailyRows as Array<Record<string, unknown>>}
+        dailyRows={actorDailyRows as Array<Record<string, unknown>>}
       />
     );
   }
@@ -15086,6 +17852,14 @@ function renderAcreditacionView(
         state={options.state}
         sourceRows={sourceRows as Array<Record<string, unknown>>}
       />
+    );
+  }
+  if (view === "avance" && isPhoneModel && options.activeAdvanceTab === "detalle") {
+    const reconciliationRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);
+    return (
+      <div className="mon-profile-stack">
+        <AcreditacionPhonePlatformComparison rows={reconciliationRows} />
+      </div>
     );
   }
   if (view === "avance" && options.activeAdvanceTab === "detalle") {
@@ -15105,6 +17879,7 @@ function renderAcreditacionView(
         state={options.state}
         actorRows={actorRows as Array<Record<string, unknown>>}
         dailyRows={dailyRows as Array<Record<string, unknown>>}
+        onNavigateLocalTab={options.onNavigateLocalTab}
       />
     );
   }
@@ -15130,16 +17905,405 @@ function renderAcreditacionView(
   );
 }
 
+function phoneContractReadyCount(contract: AcreditacionPhoneSourceContract) {
+  return [contract.universe, contract.sweep, contract.platform].filter((slot) => slot.ready).length;
+}
+
 function activeSourceCount(state: MonitoreoState | null) {
+  if (isTelefonicoMonitoreoState(state)) {
+    return phoneContractReadyCount(buildAcreditacionPhoneSourceContract(state?.sources ?? []));
+  }
   return (state?.sources ?? []).filter((source) => source.enabled).length;
 }
 
-function localTabsForAcreditacionView(view: WorkbenchView) {
-  if (view === "fuentes") return ACREDITACION_SOURCE_TABS;
-  if (view === "modelo") return ACREDITACION_MODEL_TABS;
-  if (view === "consultas") return ACREDITACION_CONSULTA_TABS;
-  if (view === "telefonico") return ACREDITACION_PHONE_TABS;
-  if (view === "avance") return ACREDITACION_ADVANCE_TABS;
+type AcreditacionRailStatus = NonNullable<MonitoreoWorkbenchRailTab["status"]>;
+
+function countText(count: number, singular: string, plural = `${singular}s`) {
+  return `${fmt(count)} ${count === 1 ? singular : plural}`;
+}
+
+function readyStatus(ready: boolean, risk = false): AcreditacionRailStatus {
+  if (risk) return "risk";
+  return ready ? "ready" : "warning";
+}
+
+function railTab(
+  tab: typeof ACREDITACION_SOURCE_TABS[number]
+    | typeof ACREDITACION_MODEL_TABS[number]
+    | typeof ACREDITACION_CONSULTA_TABS[number]
+    | typeof ACREDITACION_PHONE_TABS[number]
+    | typeof ACREDITACION_ADVANCE_TABS[number],
+  patch: Partial<Pick<MonitoreoWorkbenchRailTab, "label" | "detail" | "badge" | "status">> = {},
+): MonitoreoWorkbenchRailTab {
+  return { ...tab, ...patch };
+}
+
+function acreditacionRailSourceStats(state: MonitoreoState | null, reports: MonitoreoAcreditacionReports | null) {
+  const sources = (state?.sources ?? []).map((source) => acreditacionSourceWithOperationalMetadata(source, state?.source_metadata));
+  const enabled = sources.filter((source) => source.enabled);
+  const platform = sources.filter(isPlatformResponseSource);
+  const sheets = sources.filter((source) => source.kind === "google_sheets");
+  const collectors = state?.config?.operational_model.link_collectors ?? [];
+  const reportSources = reports?.client_report?.sources?.length
+    ? reports.client_report.sources
+    : rowsFromSheets(reports?.sheets ?? [], ["fuente", "source", "canal"]);
+  return {
+    total: sources.length,
+    enabled: enabled.length,
+    platform: platform.length,
+    platformEnabled: platform.filter((source) => source.enabled).length,
+    sheets: sheets.length,
+    sheetsEnabled: sheets.filter((source) => source.enabled).length,
+    collectors: collectors.length,
+    reportSources: reportSources.length,
+  };
+}
+
+function acreditacionRailModelStats(state: MonitoreoState | null, reports: MonitoreoAcreditacionReports | null) {
+  const client = reports?.client_report;
+  const actorRows = client?.actors?.length ? client.actors : rowsFromSheets(reports?.sheets ?? [], ["actor", "avance", "brecha"]);
+  const phoneQuotaRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
+  const quotaVariables = uniqueDisplayValues(phoneQuotaRows.map((row) => phoneRowValue(row, ["Variable"], ""))).length;
+  const phases = state?.config?.strategy_phases ?? [];
+  const scheduleDraft = acreditacionScheduleDraftFromPhases(phases);
+  const goals = state?.config?.goals?.filter((goal) => Number(goal.meta) > 0).length ?? 0;
+  return {
+    actors: actorRows.length,
+    goals,
+    phases: phases.length,
+    schedule: scheduleDraft.durationWeeks
+      ? `${fmt(scheduleDraft.durationWeeks)} sem · ${calendarReportWeekdayLabel(scheduleDraft.reportWeekday)}`
+      : phases.length
+        ? countText(phases.length, "fase")
+        : "sin cronograma",
+    phoneQuotaRows: phoneQuotaRows.length,
+    phoneQuotaVariables: quotaVariables,
+  };
+}
+
+function acreditacionRailPhoneStats(state: MonitoreoState | null, reports: MonitoreoAcreditacionReports | null) {
+  const contract = buildAcreditacionPhoneSourceContract(state?.sources ?? []);
+  const summaryRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]) : [];
+  const statusRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]) : [];
+  const quotaRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
+  const responsibleRows = reports ? mergeAcreditacionPhoneResponsibleRows(
+    rowsForSheetBlock(reports, "monitoreo_telefonico", ["operacion_responsable"]),
+    rowsForSheetBlock(reports, "monitoreo_telefonico", ["efectivos_responsable"]),
+    rowsForSheetBlock(reports, "monitoreo_telefonico", ["no_barridos_responsable"]),
+    rowsForSheetBlock(reports, "monitoreo_telefonico", ["responsables_barrido"]),
+  ) : [];
+  const queries = normalizeInternalQueries(reports?.internal_queries);
+  const queryCases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
+  const fallbackStatusRows = groupedCaseRows(queryCases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
+  const fallbackResponsibleRows = groupedCaseRows(
+    queryCases,
+    (item) => internalQueryCollectorDisplayLabel(item) || item.collector_id || "Sin responsable",
+    (value) => value,
+  );
+  const visibleStatusRows = statusRows.length ? statusRows : fallbackStatusRows;
+  const visibleResponsibleRows = responsibleRows.length ? responsibleRows : fallbackResponsibleRows;
+  const dailyRows = reports ? phoneDailyBlockForPanel(reports)?.rows ?? [] : [];
+  const totals = phoneOperationTotals(summaryRows, visibleStatusRows, visibleResponsibleRows, dailyRows);
+  const pendingRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["no_barridos_responsable"]) : [];
+  const insistenceRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["insistencia_no_contesta"]) : [];
+  const detailRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["detalle_no_contesta"]) : [];
+  const reattemptRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["reintentos_responsable"]) : [];
+  const alertRows = reports ? rowsForSheetBlock(reports, "alertas", ["alertas"]) : [];
+  const alertModel = buildAcreditacionPhoneRealAlertModel({ alertRows });
+  const comparisonRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]) : [];
+  const comparison = phonePlatformComparisonTotals(comparisonRows);
+  const platformEffective = comparison.platformComplete || stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0)).effective;
+  const phoneFilter = normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter);
+  const phoneFilterConfigured = Boolean(phoneFilter.enabled && phoneFilter.variable && phoneFilter.values.length);
+  const sourceReady = phoneContractReadyCount(contract);
+  return {
+    contract,
+    sourceReady,
+    koboSources: contract.platform.sources.filter((source) => source.enabled).length,
+    sheetReady: [contract.universe, contract.sweep].filter((slot) => slot.ready).length,
+    totals,
+    dailyRows: dailyRows.length,
+    quotaRows: quotaRows.length,
+    responsibleRows: visibleResponsibleRows.length,
+    pendingRows: pendingRows.length + insistenceRows.length + detailRows.length + reattemptRows.length,
+    alerts: alertModel.activeAlertCount,
+    comparisonRows: comparisonRows.length,
+    comparison,
+    platformEffective,
+    phoneFilterConfigured,
+  };
+}
+
+function acreditacionRailAdvanceStats(state: MonitoreoState | null, reports: MonitoreoAcreditacionReports | null) {
+  const client = reports?.client_report;
+  const actorRows = client?.actors?.length ? client.actors : rowsFromSheets(reports?.sheets ?? [], ["actor", "avance", "brecha"]);
+  const sourceRows = client?.sources?.length ? client.sources : rowsFromSheets(reports?.sheets ?? [], ["fuente", "source", "canal"]);
+  const controlRows = client?.controls?.length ? client.controls : rowsFromSheets(reports?.sheets ?? [], ["control", "segmento", "meta"]);
+  const phone = acreditacionRailPhoneStats(state, reports);
+  const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0), true);
+  return {
+    actors: actorRows.length,
+    sources: sourceRows.length,
+    controls: controlRows.length,
+    summary,
+    phone,
+  };
+}
+
+function localTabsForAcreditacionView(
+  view: WorkbenchView,
+  state: MonitoreoState | null,
+  reports: MonitoreoAcreditacionReports | null,
+  route: typeof ACREDITACION_ROUTE,
+) {
+  const isPhoneRoute = route.family === "telefonico" || isTelefonicoMonitoreoState(state);
+  const sourceStats = acreditacionRailSourceStats(state, reports);
+  const modelStats = acreditacionRailModelStats(state, reports);
+  const phoneStats = isPhoneRoute ? acreditacionRailPhoneStats(state, reports) : null;
+  const advanceStats = acreditacionRailAdvanceStats(state, reports);
+
+  if (view === "fuentes") {
+    if (isPhoneRoute && phoneStats) {
+      const [survey, sheets, , active] = ACREDITACION_SOURCE_TABS;
+      return [
+        railTab(survey, {
+          label: "Kobo",
+          detail: phoneStats.contract.platform.ready
+            ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
+            : "elige encuesta y filtro de efectiva",
+          badge: phoneStats.koboSources ? fmt(phoneStats.koboSources) : undefined,
+          status: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
+        }),
+        railTab(sheets, {
+          label: "Base y barrido",
+          detail: `${phoneStats.sheetReady}/2 Sheets · universo y estados`,
+          badge: `${phoneStats.sheetReady}/2`,
+          status: readyStatus(phoneStats.sheetReady === 2),
+        }),
+        railTab(active, {
+          label: "Paquete",
+          detail: `${phoneStats.sourceReady}/3 fuentes · corte local`,
+          badge: `${phoneStats.sourceReady}/3`,
+          status: readyStatus(phoneStats.sourceReady === 3),
+        }),
+      ];
+    }
+    const [survey, sheets, collectors, active] = ACREDITACION_SOURCE_TABS;
+    return [
+      railTab(survey, {
+        label: "Plataforma",
+        detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")} · respuestas` : "conecta encuestas",
+        badge: sourceStats.platform ? fmt(sourceStats.platform) : undefined,
+        status: readyStatus(sourceStats.platformEnabled > 0),
+      }),
+      railTab(sheets, {
+        label: "Bases",
+        detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")} · universo` : "conecta Sheets",
+        badge: sourceStats.sheets ? fmt(sourceStats.sheets) : undefined,
+        status: readyStatus(sourceStats.sheetsEnabled > 0),
+      }),
+      railTab(collectors, {
+        label: "Recopiladores",
+        detail: sourceStats.collectors ? `${countText(sourceStats.collectors, "enlace")} · inclusión` : "vincula enlaces",
+        badge: sourceStats.collectors ? fmt(sourceStats.collectors) : undefined,
+        status: readyStatus(sourceStats.collectors > 0),
+      }),
+      railTab(active, {
+        label: "Estado",
+        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · ${countText(sourceStats.reportSources, "fila")}`,
+        badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
+        status: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
+      }),
+    ];
+  }
+
+  if (view === "modelo") {
+    const [structure, schedule, summary] = ACREDITACION_MODEL_TABS;
+    if (isPhoneRoute && phoneStats) {
+      return [
+        railTab(structure, {
+          label: "Cuotas",
+          detail: modelStats.phoneQuotaRows
+            ? `${countText(modelStats.phoneQuotaVariables, "variable")} · metas Kobo`
+            : "define metas por variable",
+          badge: modelStats.phoneQuotaRows ? fmt(modelStats.phoneQuotaRows) : undefined,
+          status: readyStatus(modelStats.phoneQuotaRows > 0),
+        }),
+        railTab(schedule, {
+          label: "Cronograma",
+          detail: modelStats.schedule,
+          badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
+          status: readyStatus(modelStats.phases > 0),
+        }),
+        railTab(summary, {
+          label: "Lectura",
+          detail: `${phoneStats.sourceReady}/3 fuentes · ${countText(phoneStats.totals.total, "caso")}`,
+          badge: `${phoneStats.sourceReady}/3`,
+          status: readyStatus(phoneStats.sourceReady === 3),
+        }),
+      ];
+    }
+    return [
+      railTab(structure, {
+        detail: modelStats.actors ? `${countText(modelStats.actors, "actor")} · ${countText(modelStats.goals, "meta")}` : "define actores y metas",
+        badge: modelStats.actors ? fmt(modelStats.actors) : undefined,
+        status: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
+      }),
+      railTab(schedule, {
+        detail: modelStats.schedule,
+        badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
+        status: readyStatus(modelStats.phases > 0),
+      }),
+      railTab(summary, {
+        label: "Lectura",
+        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · sin editar`,
+        badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
+        status: readyStatus(sourceStats.enabled > 0),
+      }),
+    ];
+  }
+
+  if (view === "consultas") {
+    const queries = normalizeInternalQueries(reports?.internal_queries);
+    const cases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
+    const caseSummary = summarizeInternalCases(cases);
+    const issues = queries.issues.reduce((acc, issue) => acc + (num(issue.count, 1) || 1), 0);
+    const [platform, base, crosses, fixes] = ACREDITACION_CONSULTA_TABS;
+    return [
+      railTab(platform, {
+        detail: cases.length ? `${countText(cases.length, "caso")} · respuestas` : "sin casos trazados",
+        badge: cases.length ? fmt(cases.length) : undefined,
+        status: readyStatus(cases.length > 0),
+      }),
+      railTab(base, {
+        detail: `${countText(caseSummary.pending, "pendiente")} · base`,
+        badge: caseSummary.pending ? fmt(caseSummary.pending) : undefined,
+        status: readyStatus(cases.length > 0),
+      }),
+      railTab(crosses, {
+        detail: `${countText(caseSummary.effective, "efectiva")} · cruce`,
+        badge: caseSummary.effective ? fmt(caseSummary.effective) : undefined,
+        status: readyStatus(caseSummary.effective > 0),
+      }),
+      railTab(fixes, {
+        detail: issues ? `${countText(issues, "alerta")} · revisar` : "sin alertas",
+        badge: issues ? fmt(issues) : undefined,
+        status: readyStatus(!issues, issues > 0),
+      }),
+    ];
+  }
+
+  if (view === "telefonico" && phoneStats) {
+    const [summary, day, incidence, responsible, alerts, supervision] = ACREDITACION_PHONE_TABS;
+    return [
+      railTab(summary, {
+        label: "Barrido + Kobo",
+        detail: phoneStats.comparisonRows
+          ? `${fmt(phoneStats.comparison.matchedEffective)} coinciden · ${fmt(phoneStats.comparison.mismatch)} dif.`
+          : `${fmt(phoneStats.totals.effective)} efectivas declaradas`,
+        badge: phoneStats.comparisonRows ? fmt(phoneStats.comparisonRows) : undefined,
+        status: readyStatus(phoneStats.comparisonRows > 0, phoneStats.comparison.mismatch > 0),
+      }),
+      railTab(day, {
+        label: "Ritmo diario",
+        detail: `${countText(phoneStats.dailyRows, "día", "días")} · ${fmt(phoneStats.platformEffective)} Kobo`,
+        badge: phoneStats.dailyRows ? fmt(phoneStats.dailyRows) : undefined,
+        status: readyStatus(phoneStats.dailyRows > 0),
+      }),
+      railTab(incidence, {
+        label: "Sin efectiva",
+        detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
+        badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
+        status: phoneStats.totals.incidents || phoneStats.totals.unswept ? "warning" : "ready",
+      }),
+      railTab(responsible, {
+        label: "Responsables",
+        detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
+        badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
+        status: readyStatus(phoneStats.responsibleRows > 0),
+      }),
+      railTab(alerts, {
+        label: "Alertas reales",
+        detail: phoneStats.alerts ? countText(phoneStats.alerts, "alerta localizada", "alertas localizadas") : "sin alertas activas",
+        badge: phoneStats.alerts ? fmt(phoneStats.alerts) : undefined,
+        status: readyStatus(!phoneStats.alerts, phoneStats.alerts > 0),
+      }),
+      railTab(supervision, {
+        label: "Supervisión",
+        detail: phoneStats.comparison.mismatch
+          ? `${fmt(phoneStats.comparison.mismatch)} diferencias priorizadas`
+          : `${fmt(phoneStats.totals.effective)} efectivas para control`,
+        badge: phoneStats.comparison.mismatch ? fmt(phoneStats.comparison.mismatch) : undefined,
+        status: readyStatus(phoneStats.totals.effective > 0, phoneStats.comparison.mismatch > 0),
+      }),
+    ];
+  }
+
+  if (view === "avance") {
+    const [summary, actors, surveys, detail, outputs] = ACREDITACION_ADVANCE_TABS;
+    if (isPhoneRoute && phoneStats) {
+      return [
+        railTab(summary, {
+          label: "Diario general",
+          detail: `${countText(phoneStats.platformEffective, "efectiva")} · ritmo Kobo`,
+          badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
+          status: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
+        }),
+        railTab(actors, {
+          label: "Cuotas",
+          detail: phoneStats.quotaRows ? `${countText(phoneStats.quotaRows, "celda")} · pendientes` : "sin cuotas leídas",
+          badge: phoneStats.quotaRows ? fmt(phoneStats.quotaRows) : undefined,
+          status: readyStatus(phoneStats.quotaRows > 0),
+        }),
+        railTab(surveys, {
+          label: "Contexto",
+          detail: `${countText(phoneStats.platformEffective, "efectiva")} · barrido paralelo`,
+          badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
+          status: readyStatus(phoneStats.platformEffective > 0),
+        }),
+        railTab(detail, {
+          label: "CodPulso",
+          detail: phoneStats.comparison.mismatch
+            ? `${countText(phoneStats.comparison.mismatch, "diferencia")} · revisar`
+            : "coincidencia barrido-Kobo",
+          badge: phoneStats.comparison.mismatch ? fmt(phoneStats.comparison.mismatch) : undefined,
+          status: readyStatus(!phoneStats.comparison.mismatch, phoneStats.comparison.mismatch > 0),
+        }),
+        railTab(outputs, {
+          label: "Salidas",
+          detail: "publica PDF y hojas de avance",
+          status: state?.has_snapshot ? "ready" : "muted",
+        }),
+      ];
+    }
+    return [
+      railTab(summary, {
+        detail: `${fmt(advanceStats.summary.effective)} efectivas · ${fmt(advanceStats.summary.universe)} universo`,
+        badge: advanceStats.summary.effective ? fmt(advanceStats.summary.effective) : undefined,
+        status: readyStatus(advanceStats.summary.effective > 0),
+      }),
+      railTab(actors, {
+        detail: `${countText(advanceStats.actors, "actor")} · brechas`,
+        badge: advanceStats.actors ? fmt(advanceStats.actors) : undefined,
+        status: readyStatus(advanceStats.actors > 0),
+      }),
+      railTab(surveys, {
+        detail: `${countText(advanceStats.sources, "fuente")} · canales`,
+        badge: advanceStats.sources ? fmt(advanceStats.sources) : undefined,
+        status: readyStatus(advanceStats.sources > 0),
+      }),
+      railTab(detail, {
+        detail: `${countText(advanceStats.controls, "control")} · reglas`,
+        badge: advanceStats.controls ? fmt(advanceStats.controls) : undefined,
+        status: readyStatus(advanceStats.controls > 0),
+      }),
+      railTab(outputs, {
+        detail: "publica PDF y hojas cliente",
+        status: state?.has_snapshot ? "ready" : "muted",
+      }),
+    ];
+  }
+
   return [];
 }
 
@@ -15149,6 +18313,7 @@ function AcreditacionWorkbenchRail({
   activeLocalTab,
   onLocalTabChange,
   syncedAt,
+  state,
   reports,
 }: {
   route: typeof ACREDITACION_ROUTE;
@@ -15156,6 +18321,7 @@ function AcreditacionWorkbenchRail({
   activeLocalTab: string;
   onLocalTabChange: (view: WorkbenchView, tab: AcreditacionLocalTabKey) => void;
   syncedAt: string;
+  state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
   const views = workbenchViewsForRoute(route);
@@ -15164,7 +18330,7 @@ function AcreditacionWorkbenchRail({
     desc: "Vista operativa",
     icon: route.icon,
   };
-  const localTabs = localTabsForAcreditacionView(activeView);
+  const localTabs = localTabsForAcreditacionView(activeView, state, reports, route);
 
   return (
     <MonitoreoWorkbenchRail
@@ -15174,7 +18340,9 @@ function AcreditacionWorkbenchRail({
       ariaLabel="Flujos de monitoreo de acreditación"
       className="is-acreditacion"
       emptyDetail={reports?.report_scope ?? activeSection.desc ?? "Vista operativa"}
+      iconOnlyTabs
       localTabs={localTabs}
+      modeCountLabel={`${localTabs.length || 1} pestañas`}
       routeLabel={route.shortLabel}
       routeSectionLabel={`${route.shortLabel} · sección`}
       routeShortLabel={route.shortLabel}
@@ -15286,7 +18454,8 @@ function AcreditacionClarityStrip({
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
-  const sourceTotal = state?.sources?.length ?? 0;
+  const isPhoneState = isTelefonicoMonitoreoState(state);
+  const sourceTotal = isPhoneState ? 3 : state?.sources?.length ?? 0;
   const activeSources = activeSourceCount(state);
   const sourceGap = Math.max(0, sourceTotal - activeSources);
   const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0));
@@ -15319,20 +18488,39 @@ function AcreditacionClarityStrip({
   const actorRows = reports?.client_report?.actors ?? [];
   const configuredGoals = state?.config?.goals?.filter((goal) => Number(goal.meta) > 0).length ?? 0;
   const bloqueos = state?.acreditacion?.dashboard?.bloqueos ?? 0;
+  const phoneQuotaReportRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
+  const phoneQuotaVariable = isPhoneState && state?.config
+    ? preferredPhoneQuotaVariable(state.variables ?? [], state.config.control_vars ?? [], phoneQuotaReportRows, state.config.goals ?? [])
+    : "";
+  const phoneQuotaEditorRows = isPhoneState && state?.config
+    ? buildAcreditacionPhoneQuotaEditorRows({
+      variable: phoneQuotaVariable,
+      variables: state.variables ?? [],
+      goals: state.config.goals ?? [],
+      quotaRows: phoneQuotaReportRows,
+    })
+    : [];
+  const phoneQuotaGoal = phoneQuotaVariable && state?.config ? phoneQuotaGoalTotal(state.config.goals ?? [], phoneQuotaVariable) : 0;
   const itemsByView = {
     fuentes: [
       { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: sourceGap ? `${sourceGap} pendientes` : "paquete listo", tone: sourceGap ? "warning" : "ready", icon: ClipboardCheck },
       { label: "Base", value: state?.n_rows ? fmt(state.n_rows) : "S/D", hint: "registros leídos", tone: state?.n_rows ? "base" : "warning", icon: Table2 },
       { label: "Sync", value: reports ? "Listo" : "Pendiente", hint: reports?.generated_at ? formatDate(reports.generated_at) : "requiere corte", tone: reports ? "ready" : "warning", icon: RefreshCw },
     ],
-    modelo: [
+    modelo: isPhoneState ? [
+      { label: "Variable rectora", value: phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente", hint: `${fmt(phoneQuotaEditorRows.length)} categorías`, tone: phoneQuotaVariable ? "base" : "warning", icon: SlidersHorizontal },
+      { label: "Objetivo Kobo", value: phoneQuotaGoal ? fmt(phoneQuotaGoal) : "S/M", hint: "efectivas filtradas", tone: phoneQuotaGoal ? "ready" : "warning", icon: Target },
+      { label: "Categorías", value: fmt(phoneQuotaEditorRows.length), hint: phoneQuotaVariable ? `metas por ${phoneQuotaVariableLabel(phoneQuotaVariable).toLowerCase()}` : "define variable", tone: phoneQuotaEditorRows.length ? "ready" : "warning", icon: ShieldAlert },
+    ] : [
       { label: "Actores", value: fmt(actorRows.length), hint: "cortes del reporte", tone: actorRows.length ? "base" : "warning", icon: ClipboardCheck },
       { label: "Metas", value: fmt(configuredGoals), hint: "configuradas", tone: configuredGoals ? "ready" : "warning", icon: Target },
       { label: "Bloqueos", value: fmt(bloqueos), hint: bloqueos ? "requieren cierre" : "sin bloqueos", tone: bloqueos ? "warning" : "ready", icon: ShieldAlert },
     ],
     avance: [
-      { label: "Efectivas", value: summary.effective ? fmt(summary.effective) : "S/D", hint: summary.universe ? `${pctFrom(summary.effective, summary.universe)} del universo` : "plataforma completa", tone: summary.effective ? "effective" : "warning", icon: CheckCircle2 },
-      { label: "Parciales", value: fmt(summary.partial), hint: "no cuentan como efectivas", tone: summary.partial ? "partial" : "ready", icon: AlertCircle },
+      { label: "Efectivas", value: summary.effective ? fmt(summary.effective) : "S/D", hint: summary.universe ? `${pctFrom(summary.effective, summary.universe)} del universo` : isPhoneState ? "efectivas Kobo" : "plataforma completa", tone: summary.effective ? "effective" : "warning", icon: CheckCircle2 },
+      isPhoneState
+        ? { label: "Kobo", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: "cruce por CodPulso", tone: platformHasReport ? "ready" : "warning", icon: Search }
+        : { label: "Parciales", value: fmt(summary.partial), hint: "no cuentan como efectivas", tone: summary.partial ? "partial" : "ready", icon: AlertCircle },
       { label: "Universo", value: summary.universe ? fmt(summary.universe) : fmt(state?.n_rows ?? 0), hint: summary.referenceLabel, tone: summary.universe || state?.n_rows ? "base" : "warning", icon: Table2 },
     ],
     consultas: [
@@ -15342,14 +18530,14 @@ function AcreditacionClarityStrip({
     ],
     telefonico: [
       { label: "Base tel.", value: phoneBaseTotal ? fmt(phoneBaseTotal) : "Pendiente", hint: phoneRows.length ? "base de barrido" : "requiere corte", tone: phoneBaseTotal ? "base" : "warning", icon: PhoneCall },
-      { label: "Kobo/plataforma", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: platformCaseCount ? "casos trazados" : "cruce no cargado", tone: platformHasReport ? "ready" : "warning", icon: Search },
+      { label: "Kobo", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: platformCaseCount ? "casos trazados" : "cruce no cargado", tone: platformHasReport ? "ready" : "warning", icon: Search },
       { label: "Por barrer", value: fmt(phonePendingTotal), hint: "operación telefónica", tone: phonePendingTotal ? "pending" : "ready", icon: AlertCircle },
     ],
     ocurrencias: [],
     calidad: [],
   };
   const items = itemsByView[activeView] ?? itemsByView.fuentes;
-  const clarityLabel = activeView === "telefonico" ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
+  const clarityLabel = isPhoneState ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
 
   return (
     <section className={`mon-clarity-strip is-${activeView}`} aria-label={clarityLabel}>
@@ -15488,6 +18676,12 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     initialLoadStartedRef.current = true;
     void loadView(activeView);
   }, [activeView, loadView]);
+
+  useEffect(() => {
+    if (!isPhone || activeView !== "fuentes" || activeSourceTab !== "collectors") return;
+    setActiveSourceTab("survey");
+  }, [activeSourceTab, activeView, isPhone]);
+
   const refreshCurrentView = useCallback(() => {
     void loadView(activeView, true);
   }, [activeView, loadView]);
@@ -15571,6 +18765,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       .filter((source) => {
         if (!source.enabled) return false;
         if (syncMode === "full") return true;
+        if (route.family === "telefonico") return source.kind === "kobo" && (source.role === "respuestas" || !source.role || Boolean(source.asset_uid));
         return (source.kind === "surveymonkey" || source.kind === "kobo") && (source.role === "respuestas" || !source.role);
       })
       .map((source) => source.id);
@@ -15609,7 +18804,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setSourceSyncing(false);
     }
   }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
-  const sourceTotal = state?.sources?.length ?? 0;
+  const sourceTotal = isPhone ? 3 : state?.sources?.length ?? 0;
   const activeSources = activeSourceCount(state);
   const chromeBusy = savingAcreditacion || sourceSyncing || Boolean(caseReconciliationBusyId);
   const refreshTitle = sourceSyncing ? "Sincronizando fuentes..." : loading ? "Actualizando vista..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
@@ -15638,6 +18833,14 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setActiveAdvanceTab(tab as AcreditacionAdvanceTab);
     }
   }, []);
+  const navigateLocalTab = useCallback((view: WorkbenchView, tab: AcreditacionLocalTabKey) => {
+    changeLocalTab(view, tab);
+    if (view === activeViewRef.current) return;
+    activeViewRef.current = view;
+    setActiveView(view);
+    if (view !== "avance") setActiveAdvanceTab("resumen");
+    void loadView(view);
+  }, [changeLocalTab, loadView]);
 
   return (
     <div className="mon-profile-canonical-shell" style={MODULE_TONES.monitoreo as CSSProperties}>
@@ -15702,6 +18905,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               activeLocalTab={activeLocalTab}
               onLocalTabChange={changeLocalTab}
               syncedAt={state?.synced_at ?? ""}
+              state={state}
               reports={reports}
             />
           )}
@@ -15734,6 +18938,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             state,
             onStateChange: applyStateChange,
             onPublished: refreshCurrentView,
+            onNavigateLocalTab: navigateLocalTab,
             routeLabel: profileLabel,
             savingAcreditacion,
           })}

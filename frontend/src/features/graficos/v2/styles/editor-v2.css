@@ -598,32 +598,97 @@
 
 .pulso-gv2-suggest-acnur {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+  align-items: stretch;
   padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 72%, white);
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-primary-soft) 52%, white);
 }
 
-.pulso-gv2-suggest-acnur label {
+.pulso-gv2-suggest-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pulso-gv2-suggest-mode button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.pulso-gv2-suggest-mode button.is-active {
+  background: var(--pulso-primary);
+  color: white;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 6px 14px rgba(0, 114, 188, 0.16);
+}
+
+.pulso-gv2-suggest-mode button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.pulso-gv2-suggest-acnur label {
+  display: inline-flex;
+  align-items: flex-start;
   gap: 7px;
   min-width: 0;
+  width: 100%;
   color: var(--pulso-text);
   font-size: 11px;
   font-weight: 720;
 }
 
+.pulso-gv2-suggest-option-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-gv2-suggest-option-text strong,
+.pulso-gv2-suggest-option-text small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-gv2-suggest-option-text strong {
+  color: var(--pulso-text);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.pulso-gv2-suggest-option-text small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 620;
+}
+
 .pulso-gv2-suggest-acnur input {
   width: 14px;
   height: 14px;
+  margin-top: 1px;
   accent-color: var(--pulso-primary);
 }
 
 .pulso-gv2-suggest-acnur select {
+  align-self: center;
+  flex: 0 0 148px;
   height: 28px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
@@ -631,6 +696,26 @@
   color: var(--pulso-text);
   font-size: 11px;
   font-weight: 720;
+}
+
+.pulso-gv2-suggest-regenerate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 10px;
+  background: white;
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.pulso-gv2-suggest-regenerate:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .pulso-gv2-suggest-state,
@@ -699,9 +784,10 @@
 
 .pulso-gv2-suggest-preview {
   margin-top: 9px;
+  max-height: 235px;
   border: 1px solid var(--pulso-border);
   border-radius: 13px;
-  overflow: hidden;
+  overflow: auto;
   background: rgba(255, 255, 255, 0.78);
 }
 

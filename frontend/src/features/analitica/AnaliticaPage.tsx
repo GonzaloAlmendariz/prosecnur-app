@@ -12,9 +12,10 @@ import {
   GitBranch,
   GitMerge,
   Layers,
+  Table2,
   type LucideIcon,
 } from "lucide-react";
-import { apiAnaliticaPreparar } from "../../api/client";
+import { apiAnaliticaBaseSheet, apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { EmptyState, LoadingBlock } from "../../components/States";
@@ -31,9 +32,10 @@ import { DataReviewPane } from "./panes/DataReviewPane";
 import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
 import { PanelBasePane } from "./panes/PanelBasePane";
 import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
+import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
-type Reporte = "datos" | "codebook" | "bases" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
+type Reporte = "datos" | "base_final" | "codebook" | "bases" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
 
 type ReporteMeta = {
   key: Reporte;
@@ -44,6 +46,7 @@ type ReporteMeta = {
 
 const REPORTES: ReporteMeta[] = [
   { key: "datos",        label: "Datos",             icon: ClipboardList, desc: "Revisión de data" },
+  { key: "base_final",   label: "Base final",        icon: Table2, desc: "BBDD completa" },
   { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario de variables" },
   { key: "bases",        label: "Bases e instrumento", icon: Database,  desc: "Data, XLSForm y exportables" },
   { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Tablas univariadas" },
@@ -183,6 +186,14 @@ export default function AnaliticaPage() {
                 ) : prepOk ? (
                   <>
                     {active === "datos"        && <DataReviewPane />}
+                    {active === "base_final"   && (
+                      <ProcessingSheetViewer
+                        title="Base final"
+                        sourceLabel="Analítica · resultados finales"
+                        highlightCoding
+                        load={apiAnaliticaBaseSheet}
+                      />
+                    )}
                     {active === "codebook"     && <CodebookPane />}
                     {active === "bases"        && <BasesPane />}
                     {active === "frecuencias"  && <FrecuenciasPane />}
@@ -274,6 +285,7 @@ function AnaliticaSidebar({
 function reporteDone(reporte: Reporte, state: ReturnType<typeof useSession>["state"]) {
   if (!state) return false;
   if (reporte === "datos") return !!state.analitica_prep_ok;
+  if (reporte === "base_final") return !!state.analitica_prep_ok;
   if (reporte === "codebook") return !!state.analitica_codebook_ok;
   if (reporte === "bases") return !!state.analitica_spss_ok;
   if (reporte === "frecuencias") return !!state.analitica_frecuencias_ok;

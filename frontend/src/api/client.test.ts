@@ -33,6 +33,7 @@ import {
   apiMonitoreoTerritorialSource,
   apiMonitoreoTerritorialUmpReconciliation,
   apiUpload,
+  apiCargaRefreshKoboIndependent,
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
@@ -1755,6 +1756,10 @@ describe("Monitoreo client", () => {
           { survey_id: "2", label: "Ingeniería Geológica campaña 2", response_statuses: ["completed", "partial"], channel: "WhatsApp", source_channel: "WhatsApp" },
         ],
       }],
+      surveymonkey_logic_rules: "Q1 = C1 => Ocultar P2.",
+      surveymonkey_logic_rules_by_survey: {
+        "1": "Q1 != C1 => Ocultar P2.",
+      },
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1771,6 +1776,10 @@ describe("Monitoreo client", () => {
           { survey_id: "2", label: "Ingeniería Geológica campaña 2", response_statuses: ["completed", "partial"], channel: "WhatsApp", source_channel: "WhatsApp" },
         ],
       }],
+      surveymonkey_logic_rules: "Q1 = C1 => Ocultar P2.",
+      surveymonkey_logic_rules_by_survey: {
+        "1": "Q1 != C1 => Ocultar P2.",
+      },
     });
     expect(result.estudio.processing_mode).toBe("independent_siblings");
   });
@@ -1817,6 +1826,51 @@ describe("Monitoreo client", () => {
       canonical_xlsform_file_id: "xls-template",
       use_canonical_xlsform_logic: true,
     });
+  });
+
+  test("refreshes Kobo independent siblings with saved base names", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        provider: "kobo",
+        processing_mode: "independent_siblings",
+        active_base: "docentes",
+        results: [{
+          ok: true,
+          base_name: "docentes",
+          asset_uid: "asset_docentes",
+          rows_before: 2,
+          rows_after: 3,
+          total_remote: 3,
+          xlsform_file_id: "xls-new",
+          data_file_id: "data-new",
+          refreshed_at: "2026-07-02T12:00:00Z",
+        }],
+        updated_bases: ["docentes"],
+        n_updated_bases: 1,
+        estudio: {
+          nombre: null,
+          processing_mode: "independent_siblings",
+          active_base: "docentes",
+          n_bases: 1,
+          bases: {},
+          max_bases: 10,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiCargaRefreshKoboIndependent({ base_names: ["docentes"] });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/carga/platform/kobo/refresh-independent",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({ base_names: ["docentes"] });
+    expect(result.n_updated_bases).toBe(1);
+    expect(result.results[0]?.rows_after).toBe(3);
   });
 
   test("applies canonical XLSForm logic to existing independent siblings", async () => {

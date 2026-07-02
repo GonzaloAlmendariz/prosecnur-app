@@ -98,8 +98,8 @@
 #' @param agrupar_resto_en_otros Si `TRUE`, agrupa las categorías excedentes
 #'   cuando `max_categorias` aplica.
 #' @param etiqueta_otros Etiqueta usada para el grupo agregado del resto.
-#' @param otros_al_final Si `TRUE`, ubica `"Otro"`/`"Otros"` al final del orden
-#'   visual aunque su frecuencia sea alta.
+#' @param otros_al_final Si `TRUE`, ubica `"Otro"`/`"Otros"` y opciones de
+#'   no-respuesta/no-aplica al final del orden visual aunque su frecuencia sea alta.
 #' @param invertir_leyenda Si `TRUE`, invierte el orden de la leyenda.
 #' @param invertir_barras Si `TRUE`, invierte el orden de las categorias.
 #' @param invertir_series Si `TRUE`, invierte el orden de las series.
@@ -248,6 +248,7 @@ graficar_barras_agrupadas <- function(
     canvas_h_legend_in        = 0.75,
     canvas_h_caption_in       = 0.40,
     canvas_h_panel_in         = NULL,
+    canvas_min_filas          = 1L,
     canvas_h_toprow_in        = 0.18,
 
     legend_key_cm             = 0.30,
@@ -375,12 +376,50 @@ graficar_barras_agrupadas <- function(
   df[[row_id_col]] <- seq_len(nrow(df))
   df[[var_categoria]] <- as.character(df[[var_categoria]])
 
-  .is_otros_label <- function(x) {
-    y <- iconv(as.character(x %||% ""), from = "", to = "ASCII//TRANSLIT")
-    y <- tolower(trimws(y))
-    y <- gsub("[^a-z]+", "", y)
-    y %in% c("otro", "otros", "otra", "otras", "other", "others")
-  }
+	  .is_otros_label <- function(x) {
+	    y <- iconv(as.character(x %||% ""), from = "", to = "ASCII//TRANSLIT")
+	    y <- tolower(trimws(y))
+	    y <- gsub("[^a-z]+", "", y)
+	    y %in% c("otro", "otros", "otra", "otras", "other", "others")
+	  }
+
+	  .is_no_respuesta_label <- function(x) {
+	    y <- iconv(as.character(x %||% ""), from = "", to = "ASCII//TRANSLIT")
+	    y <- tolower(trimws(y))
+	    y <- gsub("[^a-z]+", "", y)
+	    y %in% c(
+	      "prefieronoresponder",
+	      "prefierenoresponder",
+	      "noresponde",
+	      "noresponder",
+	      "norespondio",
+	      "norespondieron",
+	      "noquiereresponder",
+	      "noquierocontestar",
+	      "norespondioestaopcion",
+	      "nosabe",
+	      "nosabenoopina",
+	      "nosabenoopino",
+	      "nosabenoresponde",
+	      "nosabenocontesta",
+	      "nspnr",
+	      "nsnr",
+	      "nsnc",
+	      "noaplica",
+	      "noaplicable",
+	      "nocorresponde",
+	      "nohetrabajado",
+	      "nohatrabajado",
+	      "notrabajo",
+	      "notrabaja",
+	      "notrabaje",
+	      "notrabajoactualmente"
+	    )
+	  }
+
+	  .is_final_label <- function(x) {
+	    .is_otros_label(x) | .is_no_respuesta_label(x)
+	  }
 
   etiqueta_otros <- as.character(etiqueta_otros %||% "Otros")[1]
   if (is.na(etiqueta_otros) || !nzchar(trimws(etiqueta_otros))) etiqueta_otros <- "Otros"
@@ -400,20 +439,22 @@ graficar_barras_agrupadas <- function(
       function(z) suppressWarnings(as.numeric(z))
     ))
     totales_cat <- rowSums(pct_mat, na.rm = TRUE)
-    idx_no_otros <- which(!.is_otros_label(cat_vals))
+	    idx_final_protegido <- which(.is_no_respuesta_label(cat_vals))
+	    idx_no_final <- which(!.is_final_label(cat_vals))
 
-    keep_n <- max(0L, max_categorias_eff - 1L)
-    idx_keep <- integer(0)
-    if (length(idx_no_otros) && keep_n > 0L) {
-      idx_ord <- idx_no_otros[order(-totales_cat[idx_no_otros], seq_along(idx_no_otros))]
-      idx_keep <- head(idx_ord, keep_n)
-    }
+	    keep_n <- max(0L, max_categorias_eff - length(idx_final_protegido) - 1L)
+	    idx_keep <- integer(0)
+	    if (length(idx_no_final) && keep_n > 0L) {
+	      idx_ord <- idx_no_final[order(-totales_cat[idx_no_final], seq_along(idx_no_final))]
+	      idx_keep <- head(idx_ord, keep_n)
+	    }
 
-    idx_resto <- setdiff(seq_len(nrow(df)), idx_keep)
-    if (length(idx_resto)) {
-      df_keep <- df[idx_keep, , drop = FALSE]
-      df_otros <- df[idx_resto[1], , drop = FALSE]
-      df_otros[[var_categoria]] <- etiqueta_otros
+	    idx_resto <- setdiff(seq_len(nrow(df)), c(idx_keep, idx_final_protegido))
+	    if (length(idx_resto)) {
+	      idx_keep_final <- c(idx_keep, idx_final_protegido)
+	      df_keep <- df[idx_keep_final, , drop = FALSE]
+	      df_otros <- df[idx_resto[1], , drop = FALSE]
+	      df_otros[[var_categoria]] <- etiqueta_otros
 
       n_vals <- suppressWarnings(as.numeric(df[[var_n]][idx_resto]))
       df_otros[[var_n]] <- if (all(!is.finite(n_vals) | is.na(n_vals))) {
@@ -431,9 +472,9 @@ graficar_barras_agrupadas <- function(
         }
       }
 
-      df <- rbind(df_keep, df_otros)
-    }
-  }
+	      df <- rbind(df_keep, df_otros)
+	    }
+	  }
 
   # ---------------------------------------------------------------------------
   # 1) Ancho -> largo
@@ -493,8 +534,9 @@ graficar_barras_agrupadas <- function(
   df_long$.serie <- factor(df_long$.serie, levels = niveles_series)
 
 	  # orden categorias (FIJO)
-	  cat_chr  <- as.character(df_long[[var_categoria]])
-	  cat_lvls <- unique(cat_chr)
+		  cat_chr  <- as.character(df_long[[var_categoria]])
+		  cat_lvls <- unique(cat_chr)
+		  cat_lvls_instrumento <- cat_lvls
 	  if (!identical(orden_barras, "instrumento")) {
 	    ord_vals <- tapply(df_long$.valor_plot, cat_chr, sum, na.rm = TRUE)
 	    ord_df <- data.frame(
@@ -509,13 +551,62 @@ graficar_barras_agrupadas <- function(
 	    ), , drop = FALSE]
 	    cat_lvls <- ord_df$categoria
 	  }
-	  if (isTRUE(otros_al_final) && length(cat_lvls) > 1L) {
-	    idx_otros <- .is_otros_label(cat_lvls)
-	    if (any(idx_otros)) cat_lvls <- c(cat_lvls[!idx_otros], cat_lvls[idx_otros])
-	  }
+		  if (isTRUE(otros_al_final) && length(cat_lvls) > 1L) {
+		    idx_final <- .is_final_label(cat_lvls)
+		    if (any(idx_final)) {
+		      lvls_final <- cat_lvls[idx_final]
+		      lvls_final <- lvls_final[order(match(lvls_final, cat_lvls_instrumento), na.last = TRUE)]
+		      cat_lvls <- c(cat_lvls[!idx_final], lvls_final)
+		    }
+		  }
 	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
   n_categorias <- length(cat_lvls)
+  canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
+  if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
+    canvas_min_filas_eff <- 1
+  }
+
+  grosor_barras_eff <- suppressWarnings(as.numeric(grosor_barras)[1])
+  if (!is.finite(grosor_barras_eff) || is.na(grosor_barras_eff) || grosor_barras_eff <= 0) {
+    grosor_barras_eff <- 0.6
+  }
+  if (isTRUE(usar_canvas) && n_categorias > 0) {
+    filas_grosor <- max(n_categorias, canvas_min_filas_eff)
+    grosor_barras_eff <- grosor_barras_eff * n_categorias / filas_grosor
+    grosor_barras_eff <- max(0.42, min(grosor_barras, grosor_barras_eff))
+  }
+
+  size_ejes_eff <- suppressWarnings(as.numeric(size_ejes)[1])
+  if (!is.finite(size_ejes_eff) || is.na(size_ejes_eff) || size_ejes_eff <= 0) {
+    size_ejes_eff <- 9
+  }
+  ancho_max_eje_y_eff <- ancho_max_eje_y
+  if (isTRUE(usar_canvas) && identical(orientacion, "horizontal") && n_categorias > 0) {
+    cat_widths <- nchar(as.character(cat_lvls), type = "width", allowNA = FALSE, keepNA = FALSE)
+    cat_widths[!is.finite(cat_widths)] <- 0
+    max_cat_width <- max(cat_widths, na.rm = TRUE)
+    if (!is.finite(max_cat_width)) max_cat_width <- 0
+    wide_labels <- max_cat_width >= 28
+    if (isTRUE(wide_labels)) {
+      wrap_cap <- if (n_categorias <= 6L) 30 else if (n_categorias <= 8L) 31 else 32
+      if (!is.null(ancho_max_eje_y_eff)) {
+        ancho_max_eje_y_eff <- min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), wrap_cap)
+      } else {
+        ancho_max_eje_y_eff <- wrap_cap
+      }
+    }
+    dense_labels <- n_categorias >= 8L || max_cat_width >= 42
+    if (isTRUE(dense_labels)) {
+      size_ejes_eff <- min(size_ejes_eff, if (n_categorias >= 10L || max_cat_width >= 48) 12.2 else 13.2)
+      if (!is.null(ancho_max_eje_y_eff)) {
+        ancho_max_eje_y_eff <- min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), 32)
+      } else {
+        ancho_max_eje_y_eff <- 32
+      }
+    }
+  }
+
   usar_color_categorias <- !is.null(colores_categorias) &&
     length(cols_porcentaje) == 1L &&
     is.null(colores_series)
@@ -558,7 +649,7 @@ graficar_barras_agrupadas <- function(
   ) +
     ggplot2::geom_col(
       position = ggplot2::position_dodge(width = width_dodge),
-      width    = grosor_barras
+      width    = grosor_barras_eff
     )
 
   # ---------------------------------------------------------------------------
@@ -608,9 +699,15 @@ graficar_barras_agrupadas <- function(
     label_con_n <- grepl("\\([0-9.,]+\\)", df_lab$lab)
     umbral_por_texto <- ifelse(
       label_con_n,
-      pmin(0.32, pmax(0.20, label_chars * 0.035)),
+      pmin(0.30, pmax(0.18, label_chars * 0.028)),
       pmin(0.18, pmax(0.08, label_chars * 0.012))
     )
+    ancho_texto_estimado <- ifelse(
+      label_con_n,
+      pmin(0.34, pmax(0.20, label_chars * 0.030)),
+      pmin(0.18, pmax(0.075, label_chars * 0.012))
+    )
+    margen_texto_inside <- ifelse(label_con_n, 0.030, 0.018)
     umbral_inside <- if (identical(orientacion, "horizontal")) {
       pmax(umbral_posicion_eff, umbral_por_texto)
     } else {
@@ -620,11 +717,31 @@ graficar_barras_agrupadas <- function(
     offset_lab <- if (orientacion == "vertical") base_max * 0.03 else base_max * 0.015
     offset_lab_small <- if (orientacion == "vertical") base_max * 0.04 else base_max * 0.026
 
-    df_lab$inside <- !is.na(df_lab$.valor_plot) & df_lab$.valor_plot >= umbral_inside & df_lab$lab != ""
+    ancho_texto_datos <- ancho_texto_estimado * base_max
+    margen_texto_datos <- ifelse(label_con_n, 0.030, 0.014) * base_max
+    cabe_texto_inside <- identical(orientacion, "horizontal") &
+      !is.na(df_lab$.valor_plot) &
+      df_lab$.valor_plot >= pmax(
+        ifelse(label_con_n, 0.30, 0.13),
+        ancho_texto_datos + margen_texto_datos
+      )
+    if (identical(orientacion, "horizontal")) {
+      df_lab$inside <- !is.na(df_lab$.valor_plot) &
+        df_lab$lab != "" &
+        cabe_texto_inside
+    } else {
+      df_lab$inside <- !is.na(df_lab$.valor_plot) &
+        df_lab$lab != "" &
+        (df_lab$.valor_plot >= umbral_inside | cabe_texto_inside)
+    }
 
     df_lab$valor_label <- df_lab$.valor_plot
-    df_lab$valor_label[df_lab$inside & !is.na(df_lab$inside)] <-
-      df_lab$.valor_plot[df_lab$inside & !is.na(df_lab$inside)] / 2
+    mask_inside <- df_lab$inside & !is.na(df_lab$inside)
+    if (identical(orientacion, "horizontal")) {
+      df_lab$valor_label[mask_inside] <- df_lab$.valor_plot[mask_inside] / 2
+    } else {
+      df_lab$valor_label[mask_inside] <- df_lab$.valor_plot[mask_inside] / 2
+    }
     mask_outside <- !is.na(df_lab$.valor_plot) & !is.na(df_lab$inside) & !df_lab$inside & df_lab$.valor_plot > 0
     df_lab$valor_label[mask_outside] <- df_lab$.valor_plot[mask_outside] + ifelse(
       df_lab$.valor_plot[mask_outside] <= 0.02,
@@ -670,9 +787,9 @@ graficar_barras_agrupadas <- function(
     p <- p + ggplot2::scale_fill_manual(values = colores_series)
   }
 
-  if (!is.null(ancho_max_eje_y)) {
+  if (!is.null(ancho_max_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
-    p <- p + ggplot2::scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = ancho_max_eje_y))
+    p <- p + ggplot2::scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = ancho_max_eje_y_eff))
   }
 
   # caption
@@ -856,6 +973,14 @@ graficar_barras_agrupadas <- function(
 
     if (exportar == "rplot") {
       attr(p, "alto_word_sugerido") <- (alto_por_categoria %||% 0.35) * max(1L, n_categorias)
+      attr(p, "pulso_barras_agrupadas_layout") <- list(
+        n_categorias = n_categorias,
+      base_max = base_max,
+      usar_eje_libre = isTRUE(usar_eje_libre),
+      grosor_eff = grosor_barras_eff,
+      size_ejes_eff = size_ejes_eff,
+      ancho_max_eje_y_eff = ancho_max_eje_y_eff
+      )
       return(p)
     }
 
@@ -955,9 +1080,9 @@ graficar_barras_agrupadas <- function(
 
   # etiquetas y extra (texto)
   etiquetas_vec <- cat_lvls
-  if (!is.null(ancho_max_eje_y)) {
+  if (!is.null(ancho_max_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
-    etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = ancho_max_eje_y)
+    etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = ancho_max_eje_y_eff)
   }
 
   extra_labels <- rep("", length(cat_lvls))
@@ -987,7 +1112,7 @@ graficar_barras_agrupadas <- function(
     )
     max_lineas_etq <- suppressWarnings(max(lineas_etq, na.rm = TRUE))
     if (is.finite(max_lineas_etq) && max_lineas_etq > 1) {
-      alto_min_etq <- (size_ejes / 72) * max_lineas_etq * 1.45 + 0.08
+      alto_min_etq <- (size_ejes_eff / 72) * max_lineas_etq * 1.42 + 0.08
       if (is.finite(alto_min_etq) && alto_min_etq > 0) {
         alto_por_cat_eff <- max(alto_por_cat_eff, alto_min_etq)
       }
@@ -1176,7 +1301,7 @@ graficar_barras_agrupadas <- function(
       y        = y_abs[i],
       hjust    = 1,
       vjust    = 0.5,
-      size     = size_ejes,
+      size     = size_ejes_eff,
       colour   = color_ejes,
       family = font_family,
       fontface = fontface_etq
@@ -1269,6 +1394,16 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   if (exportar == "rplot") {
     attr(canvas, "alto_word_sugerido") <- h_total_in
+    attr(canvas, "pulso_barras_agrupadas_layout") <- list(
+      n_categorias = n_categorias,
+      base_max = base_max,
+      usar_eje_libre = isTRUE(usar_eje_libre),
+      grosor_eff = grosor_barras_eff,
+      canvas_min_filas = canvas_min_filas_eff,
+      h_panel_in = h_panel_in,
+      size_ejes_eff = size_ejes_eff,
+      ancho_max_eje_y_eff = ancho_max_eje_y_eff
+    )
     return(canvas)
   }
 

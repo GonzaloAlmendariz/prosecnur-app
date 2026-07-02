@@ -430,8 +430,24 @@ export function acreditacionTelephoneUniverseSources(sources: MonitoreoSource[])
   ));
 }
 
+export function acreditacionPlatformResponseSources(sources: MonitoreoSource[]) {
+  return sources.filter((source) => (
+    (source.kind === "surveymonkey" || source.kind === "kobo")
+    && (
+      normalizeKey(source.role) === "respuestas"
+      || !compactLabel(source.role)
+      || Boolean(compactLabel(source.survey_id))
+      || Boolean(compactLabel(source.asset_uid))
+    )
+  ));
+}
+
+export function acreditacionKoboResponseSources(sources: MonitoreoSource[]) {
+  return acreditacionPlatformResponseSources(sources).filter((source) => source.kind === "kobo");
+}
+
 export type AcreditacionPhoneSourceSlot = {
-  key: "universo" | "barrido";
+  key: "universo" | "barrido" | "plataforma";
   label: string;
   purpose: string;
   expected: string[];
@@ -443,8 +459,9 @@ export type AcreditacionPhoneSourceSlot = {
 export type AcreditacionPhoneSourceContract = {
   universe: AcreditacionPhoneSourceSlot;
   sweep: AcreditacionPhoneSourceSlot;
+  platform: AcreditacionPhoneSourceSlot;
   ready: boolean;
-  missing: Array<"universo" | "barrido">;
+  missing: Array<"universo" | "barrido" | "plataforma">;
 };
 
 function phoneSlotStatus(sources: MonitoreoSource[]): AcreditacionPhoneSourceSlot["status"] {
@@ -457,14 +474,22 @@ export function buildAcreditacionPhoneSourceContract(
 ): AcreditacionPhoneSourceContract {
   const universeSources = acreditacionTelephoneUniverseSources(sources);
   const sweepSources = acreditacionSweepSources(sources);
-  const universeStatus = phoneSlotStatus(universeSources);
+  const platformSources = acreditacionKoboResponseSources(sources);
   const sweepStatus = phoneSlotStatus(sweepSources);
+  const platformStatus = phoneSlotStatus(platformSources);
+  const activeUniverseSources = universeSources.filter((source) => source.enabled);
+  const activeSweepSources = sweepSources.filter((source) => source.enabled);
+  const sweepCoversUniverse = !activeUniverseSources.length && activeSweepSources.length > 0;
+  const effectiveUniverseSources = sweepCoversUniverse ? activeSweepSources : universeSources;
+  const universeStatus = sweepCoversUniverse ? "ready" : phoneSlotStatus(universeSources);
   const universe: AcreditacionPhoneSourceSlot = {
     key: "universo",
     label: "Base telefónica / universo",
-    purpose: "Personas contactables, variables de cuota y población objetivo.",
+    purpose: sweepCoversUniverse
+      ? "La hoja activa también define casos, cuotas y población objetivo."
+      : "Personas contactables, variables de cuota y población objetivo.",
     expected: ["sede", "atencion", "tramite", "origen", "telefono"],
-    sources: universeSources,
+    sources: effectiveUniverseSources,
     ready: universeStatus === "ready",
     status: universeStatus,
   };
@@ -477,13 +502,24 @@ export function buildAcreditacionPhoneSourceContract(
     ready: sweepStatus === "ready",
     status: sweepStatus,
   };
+  const platform: AcreditacionPhoneSourceSlot = {
+    key: "plataforma",
+    label: "Kobo",
+    purpose: "Efectivas Kobo filtradas para comparar avance por CodPulso.",
+    expected: ["CodPulso", "consentimiento", "fecha", "respuesta", "asset"],
+    sources: platformSources,
+    ready: platformStatus === "ready",
+    status: platformStatus,
+  };
   return {
     universe,
     sweep,
-    ready: universe.ready && sweep.ready,
+    platform,
+    ready: universe.ready && sweep.ready && platform.ready,
     missing: [
       ...(!universe.ready ? ["universo" as const] : []),
       ...(!sweep.ready ? ["barrido" as const] : []),
+      ...(!platform.ready ? ["plataforma" as const] : []),
     ],
   };
 }
@@ -541,7 +577,7 @@ export function buildAcreditacionActiveSourcesSummary(
   linkCollectors: MonitoreoLinkCollector[] = [],
 ) {
   const activeSources = sources.filter((source) => source.enabled);
-  const activeSurveys = activeSources.filter((source) => source.kind === "surveymonkey");
+  const activeSurveys = acreditacionPlatformResponseSources(activeSources);
   const activeSheetBases = activeSources.filter((source) => source.kind === "google_sheets" && source.role === "universo");
   const actorsWithSurvey = acreditacionActorOptions(activeSurveys);
   const actorsWithSheet = acreditacionActorOptions(activeSheetBases);

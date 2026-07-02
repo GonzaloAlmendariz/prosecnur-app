@@ -733,6 +733,27 @@ estudio_init_default_base <- function(sid) {
   if (txt %in% c("true", "1", "yes", "si", "s")) TRUE else if (txt %in% c("false", "0", "no", "n")) FALSE else default
 }
 
+.carga_chr_vector <- function(x) {
+  if (is.null(x)) return(character(0))
+  if (is.data.frame(x)) {
+    cols <- intersect(c("base_name", "baseName", "nombre", "name"), names(x))
+    if (!length(cols)) return(character(0))
+    out <- as.character(x[[cols[1]]])
+  } else if (is.list(x) && !is.data.frame(x)) {
+    out <- unlist(lapply(x, function(item) {
+      if (is.list(item)) {
+        .carga_chr1(item$base_name %||% item$baseName %||% item$nombre %||% item$name, "")
+      } else {
+        .carga_chr1(item, "")
+      }
+    }), use.names = FALSE)
+  } else {
+    out <- as.character(x)
+  }
+  out <- trimws(out)
+  out[!is.na(out) & nzchar(out)]
+}
+
 .carga_kobo_assets <- function(sid, parsed = list()) {
   profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||%
     parsed$profile_id %||% parsed$profileId %||% NULL
@@ -1029,6 +1050,464 @@ estudio_init_default_base <- function(sid) {
   ), finalized)
 }
 
+.carga_kobo_asset_specs <- function(parsed) {
+  assets <- parsed$assets %||% parsed$kobo_assets %||% parsed$sources %||% list()
+  if ((!length(assets) || is.null(assets)) &&
+      nzchar(.carga_chr1(parsed$asset_uid %||% parsed$assetUid, ""))) {
+    assets <- list(parsed)
+  }
+  if (is.data.frame(assets)) assets <- split(assets, seq_len(nrow(assets)))
+  if (!is.list(assets) || !length(assets)) {
+    stop_api(400, "E_KOBO_NO_ASSETS", "Selecciona al menos un proyecto Kobo.")
+  }
+  out <- lapply(assets, function(asset) {
+    if (!is.list(asset)) asset <- list(asset_uid = asset)
+    asset_uid <- .carga_chr1(asset$asset_uid %||% asset$assetUid %||% asset$uid, "")
+    if (!nzchar(asset_uid)) stop_api(400, "E_KOBO_ASSET_REQUIRED", "Todas las fuentes Kobo necesitan asset_uid.")
+    list(
+      asset_uid = asset_uid,
+      title = .carga_chr1(asset$title %||% asset$name %||% asset$source_title %||% asset$label, ""),
+      source_alias = .carga_chr1(asset$source_alias %||% asset$alias %||% asset$label, ""),
+      source_title = .carga_chr1(asset$source_title %||% asset$title %||% asset$name %||% asset$label, ""),
+      source_channel = .carga_chr1(asset$source_channel %||% asset$channel, ""),
+      collection_strategy = .carga_chr1(asset$collection_strategy %||% asset$collectionStrategy, ""),
+      base_url = .carga_chr1(asset$base_url %||% asset$baseUrl, ""),
+      connection_profile_id = .carga_chr1(
+        asset$connection_profile_id %||% asset$connectionProfileId %||% asset$profile_id %||% asset$profileId,
+        ""
+      )
+    )
+  })
+  out
+}
+
+.carga_unique_base_name <- function(label, planned, fallback = "base") {
+  base <- .carga_slug(label, fallback)
+  if (!nzchar(base)) base <- fallback
+  base <- substr(base, 1L, 72L)
+  base0 <- base
+  idx <- 2L
+  while (base %in% planned) {
+    suffix <- paste0("_", idx)
+    base <- paste0(substr(base0, 1L, max(1L, 72L - nchar(suffix))), suffix)
+    idx <- idx + 1L
+  }
+  base
+}
+
+.carga_import_kobo_independent <- function(sid, parsed) {
+  assets <- .carga_kobo_asset_specs(parsed)
+  existing <- estudio_list_bases(sid)
+  if (length(existing) > 0L && !estudio_is_independent_siblings(sid)) {
+    stop_api(409, "E_ESTUDIO_MODE_CONFLICT",
+             "El estudio ya tiene bases en otro modo. Crea un estudio nuevo o importa sobre uno de bases hermanas independientes.")
+  }
+  independent_limit <- if (exists(".ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES", mode = "any")) {
+    .ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES
+  } else {
+    10L
+  }
+  if ((length(existing) + length(assets)) > independent_limit) {
+    stop_api(400, "E_BASE_LIMITE",
+             sprintf("La importacion excede el limite de %d bases hermanas independientes.", independent_limit))
+  }
+
+  existing_names <- names(existing)
+  active_before <- if (length(existing_names)) {
+    tryCatch(estudio_active_base(sid), error = function(e) existing_names[1])
+  } else {
+    NULL
+  }
+  family_id <- if (exists("estudio_independent_family_id", mode = "function")) {
+    estudio_independent_family_id(sid) %||% uuid::UUIDgenerate()
+  } else {
+    uuid::UUIDgenerate()
+  }
+  imported_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+  dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+
+  prepared <- list()
+  planned_names <- existing_names
+  for (asset in assets) {
+    profile_id <- asset$connection_profile_id
+    base_url <- asset$base_url
+    if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+    if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+    token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
+    detail_url <- sprintf(
+      "%s/api/v2/assets/%s/?format=json",
+      .kobo_api_trim_base_url(base_url),
+      utils::URLencode(asset$asset_uid, reserved = TRUE)
+    )
+    detail <- .kobo_api_fetch_json(detail_url, token)
+    title <- .carga_chr1(detail$name %||% asset$title %||% asset$source_title, paste("Kobo", asset$asset_uid))
+    source_alias <- .carga_chr1(asset$source_alias, title)
+    source_title <- .carga_chr1(asset$source_title, title)
+    base_name <- .carga_unique_base_name(source_alias %||% source_title %||% title, planned_names, paste0("kobo_", asset$asset_uid))
+    planned_names <- c(planned_names, base_name)
+
+    xls_model <- .carga_kobo_xlsform_model(detail)
+    inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_xlsform.xlsx"))
+    .carga_write_xlsform_model(xls_model, inst_path)
+    rp_inst <- reporte_instrumento(path = inst_path)
+
+    payload <- kobo_api_fetch_all_asset_data(asset$asset_uid, token, base_url = base_url)
+    data_df <- kobo_api_flatten_results(payload$results %||% list())
+    data_df <- .carga_align_kobo_data(data_df, rp_inst)
+    data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
+      normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+    } else {
+      .carga_empty_data_for_instrument(rp_inst)
+    }
+    .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+    data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_data.xlsx"))
+    .carga_write_xlsx_sheet(data_df, data_path, "datos")
+    rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+    prepared[[length(prepared) + 1L]] <- list(
+      base_name = base_name,
+      asset = asset,
+      title = title,
+      source_alias = source_alias,
+      source_title = source_title,
+      base_url = .kobo_api_trim_base_url(base_url),
+      profile_id = profile_id,
+      detail = detail,
+      payload = payload,
+      inst_path = inst_path,
+      data_path = data_path,
+      rp_inst = rp_inst,
+      rp_data = rp_data,
+      n_filas = as.integer(nrow(data_df)),
+      n_columnas = as.integer(ncol(data_df))
+    )
+  }
+
+  estudio_ensure(sid)
+  estudio_set_processing_mode(sid, "independent_siblings")
+  bases_out <- list()
+  imported_names <- character(0)
+  for (item in prepared) {
+    inst_meta <- save_upload(
+      sid,
+      "xlsform",
+      paste0(item$base_name, "_xlsform.xlsx"),
+      readBin(item$inst_path, "raw", n = file.info(item$inst_path)$size)
+    )
+    data_meta <- save_upload(
+      sid,
+      "data",
+      paste0(item$base_name, "_data.xlsx"),
+      readBin(item$data_path, "raw", n = file.info(item$data_path)$size)
+    )
+    source_spec <- .carga_kobo_source_spec(
+      asset_uid = item$asset$asset_uid,
+      base_url = item$base_url,
+      profile_id = item$profile_id,
+      detail = item$detail,
+      payload = item$payload,
+      inst_meta = inst_meta,
+      data_meta = data_meta,
+      imported_at = imported_at
+    )
+    source_meta <- c(list(
+      kind = "kobo_api",
+      asset_uid = item$asset$asset_uid,
+      source_title = item$source_title,
+      source_alias = item$source_alias,
+      source_channel = item$asset$source_channel,
+      collection_strategy = item$asset$collection_strategy,
+      imported_at = imported_at
+    ), source_spec)
+    base_meta <- estudio_add_base(
+      sid,
+      nombre = item$base_name,
+      xlsform_file_id = inst_meta$file_id,
+      data_file_id = data_meta$file_id,
+      data_ext = "xlsx",
+      rp_data = item$rp_data,
+      rp_inst = item$rp_inst,
+      n_filas = item$n_filas,
+      n_columnas = item$n_columnas,
+      extra_meta = list(
+        processing_mode = "independent_siblings",
+        source_kind = "kobo_api",
+        survey_id = item$asset$asset_uid,
+        source_alias = item$source_alias,
+        source_title = item$source_title,
+        source_channel = item$asset$source_channel,
+        sibling_family_id = family_id,
+        imported_at = imported_at,
+        response_filter = source_meta,
+        kobo_source_spec = source_spec,
+        kobo_effective_data_file_id = data_meta$file_id
+      )
+    )
+    imported_names <- c(imported_names, item$base_name)
+    bases_out[[length(bases_out) + 1L]] <- .estudio_base_payload(base_meta, session_get(sid, required = FALSE))
+  }
+
+  if (length(imported_names)) {
+    if (!length(existing_names)) {
+      estudio_active_base_set(sid, imported_names[1])
+      active_for_source <- imported_names[1]
+    } else if (!is.null(active_before) && nzchar(as.character(active_before)) &&
+               active_before %in% names(estudio_list_bases(sid))) {
+      estudio_active_base_set(sid, active_before)
+      active_for_source <- active_before
+    } else {
+      active_for_source <- as.character(estudio_active_base(sid) %||% imported_names[1])
+    }
+    if (exists("estudio_mark_independent_shared_logic", mode = "function")) {
+      estudio_mark_independent_shared_logic(
+        sid,
+        template_base = active_for_source,
+        audit = list(provider = "kobo", imported_bases = as.list(imported_names)),
+        status = "kobo_imported_siblings"
+      )
+    }
+    if (length(existing_names) > 0L && exists("estudio_apply_template_xlsform_logic", mode = "function")) {
+      xlsform_logic_sync <- tryCatch(
+        estudio_apply_template_xlsform_logic(
+          sid,
+          template_base = active_for_source,
+          targets = imported_names,
+          clear_target_logic = FALSE
+        ),
+        error = function(e) list(
+          ok = FALSE,
+          template_base = active_for_source,
+          targets = as.list(imported_names),
+          error = conditionMessage(e)
+        )
+      )
+    } else {
+      xlsform_logic_sync <- NULL
+    }
+    session_set(sid, "analitica_prep_ok", TRUE)
+    if (!length(existing_names)) {
+      session_set(sid, "analitica_fuente", sprintf("estudio:%s", as.character(estudio_active_base(sid) %||% active_for_source)))
+    }
+  } else {
+    xlsform_logic_sync <- NULL
+  }
+
+  current_bases <- estudio_list_bases(sid)
+  current_session <- session_get(sid, required = FALSE)
+  bases_out <- unname(lapply(imported_names, function(name) {
+    .estudio_base_payload(current_bases[[name]], current_session)
+  }))
+  list(
+    ok = TRUE,
+    provider = "kobo",
+    processing_mode = "independent_siblings",
+    active_base = as.character(estudio_active_base(sid) %||% NA_character_),
+    bases = bases_out,
+    n_bases = length(estudio_list_bases(sid)),
+    estudio = .estudio_payload(sid),
+    xlsform_logic_sync = xlsform_logic_sync
+  )
+}
+
+.carga_kobo_refresh_names <- function(sid, parsed = list()) {
+  if (!estudio_is_independent_siblings(sid)) {
+    stop_api(409, "E_KOBO_REFRESH_MODE",
+             "La actualización Kobo requiere bases hermanas independientes.")
+  }
+  bases <- estudio_list_bases(sid)
+  requested <- unique(c(
+    .carga_chr_vector(parsed$base_names %||% parsed$baseNames),
+    .carga_chr_vector(parsed$bases),
+    .carga_chr_vector(parsed$base_name %||% parsed$baseName)
+  ))
+  requested <- requested[nzchar(requested)]
+  kobo_names <- names(Filter(function(base) {
+    source_kind <- tolower(.carga_chr1(base$source_kind, ""))
+    spec <- base$kobo_source_spec %||% list()
+    identical(source_kind, "kobo_api") || nzchar(.carga_chr1(spec$asset_uid %||% base$survey_id, ""))
+  }, bases))
+  target_names <- if (length(requested)) requested else kobo_names
+  missing <- setdiff(target_names, names(bases))
+  if (length(missing)) {
+    stop_api(404, "E_BASE_NOT_FOUND",
+             sprintf("No encontré bases Kobo: %s", paste(missing, collapse = ", ")))
+  }
+  not_kobo <- setdiff(target_names, kobo_names)
+  if (length(not_kobo)) {
+    stop_api(400, "E_KOBO_REFRESH_NOT_KOBO",
+             sprintf("Estas bases no tienen fuente Kobo guardada: %s", paste(not_kobo, collapse = ", ")))
+  }
+  target_names
+}
+
+.carga_refresh_kobo_independent <- function(sid, parsed = list()) {
+  target_names <- .carga_kobo_refresh_names(sid, parsed)
+  if (!length(target_names)) {
+    return(list(
+      ok = TRUE,
+      provider = "kobo",
+      processing_mode = "independent_siblings",
+      active_base = as.character(estudio_active_base(sid) %||% NA_character_),
+      results = list(),
+      updated_bases = list(),
+      n_updated_bases = 0L,
+      estudio = .estudio_payload(sid),
+      message = "No hay bases Kobo para actualizar."
+    ))
+  }
+
+  refreshed_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+  dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+  results <- list()
+  updated <- character(0)
+
+  for (base_name in target_names) {
+    bases <- estudio_list_bases(sid)
+    base <- bases[[base_name]]
+    spec <- base$kobo_source_spec %||% list()
+    asset_uid <- .carga_chr1(spec$asset_uid %||% base$survey_id, "")
+    if (!nzchar(asset_uid)) {
+      stop_api(400, "E_KOBO_ASSET_UID",
+               sprintf("La base '%s' no tiene asset_uid Kobo guardado.", base_name))
+    }
+    profile_id <- .carga_chr1(spec$connection_profile_id, "")
+    base_url <- .carga_chr1(spec$base_url, "")
+    if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
+    if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
+
+    token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
+    detail_url <- sprintf(
+      "%s/api/v2/assets/%s/?format=json",
+      .kobo_api_trim_base_url(base_url),
+      utils::URLencode(asset_uid, reserved = TRUE)
+    )
+    detail <- .kobo_api_fetch_json(detail_url, token)
+    xls_model <- .carga_kobo_xlsform_model(detail)
+    inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_refresh_xlsform.xlsx"))
+    .carga_write_xlsform_model(xls_model, inst_path)
+    rp_inst <- reporte_instrumento(path = inst_path)
+
+    payload <- kobo_api_fetch_all_asset_data(asset_uid, token, base_url = base_url)
+    data_df <- kobo_api_flatten_results(payload$results %||% list())
+    data_df <- .carga_align_kobo_data(data_df, rp_inst)
+    data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
+      normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+    } else {
+      .carga_empty_data_for_instrument(rp_inst)
+    }
+    .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+    data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_refresh_data.xlsx"))
+    .carga_write_xlsx_sheet(data_df, data_path, "datos")
+    rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+    inst_meta <- save_upload(
+      sid,
+      "xlsform",
+      paste0(base_name, "_refresh_xlsform.xlsx"),
+      readBin(inst_path, "raw", n = file.info(inst_path)$size)
+    )
+    data_meta <- save_upload(
+      sid,
+      "data",
+      paste0(base_name, "_refresh_data.xlsx"),
+      readBin(data_path, "raw", n = file.info(data_path)$size)
+    )
+
+    old_rows <- as.integer(base$n_filas %||% 0L)
+    imported_at <- .carga_chr1(spec$imported_at %||% base$imported_at, refreshed_at)
+    source_spec <- .carga_kobo_source_spec(
+      asset_uid = asset_uid,
+      base_url = base_url,
+      profile_id = profile_id,
+      detail = detail,
+      payload = payload,
+      inst_meta = inst_meta,
+      data_meta = data_meta,
+      imported_at = imported_at
+    )
+    source_spec$refreshed_at <- refreshed_at
+    source_spec$previous_xlsform_file_id <- .carga_chr1(base$xlsform_file_id, "")
+    source_spec$previous_data_file_id <- .carga_chr1(base$data_file_id, "")
+
+    estudio_preserve_original_base_files(sid, base_name)
+    estudio_replace_base_files(
+      sid,
+      base_name,
+      xlsform_file_id = inst_meta$file_id,
+      data_file_id = data_meta$file_id,
+      data_ext = "xlsx",
+      rp_data = rp_data,
+      rp_inst = rp_inst,
+      n_filas = as.integer(nrow(data_df)),
+      n_columnas = as.integer(ncol(data_df))
+    )
+
+    s_after <- session_get(sid)
+    refreshed_base <- s_after$estudio$bases[[base_name]]
+    refresh_meta <- list(
+      provider = "kobo",
+      asset_uid = asset_uid,
+      refreshed_at = refreshed_at,
+      rows_before = old_rows,
+      rows_after = as.integer(nrow(data_df)),
+      total_remote = as.integer(payload$total %||% payload$count %||% nrow(data_df)),
+      version_id = .carga_chr1(source_spec$version_id, ""),
+      xlsform_file_id = inst_meta$file_id,
+      data_file_id = data_meta$file_id
+    )
+    refreshed_base$source_kind <- "kobo_api"
+    refreshed_base$survey_id <- asset_uid
+    refreshed_base$kobo_source_spec <- source_spec
+    refreshed_base$kobo_effective_data_file_id <- data_meta$file_id
+    refreshed_base$kobo_refreshed_at <- refreshed_at
+    refreshed_base$kobo_last_refresh <- refresh_meta
+    refreshed_base$response_filter <- c(
+      refreshed_base$response_filter %||% list(),
+      list(
+        kind = "kobo_api",
+        asset_uid = asset_uid,
+        refreshed_at = refreshed_at,
+        total_remote = refresh_meta$total_remote,
+        n_filas = as.integer(nrow(data_df))
+      )
+    )
+    s_after$estudio$bases[[base_name]] <- refreshed_base
+    s_after <- .mark_project_dirty(s_after)
+    .session_env[[sid]] <- s_after
+
+    updated <- c(updated, base_name)
+    results[[length(results) + 1L]] <- list(
+      ok = TRUE,
+      base_name = base_name,
+      asset_uid = asset_uid,
+      rows_before = old_rows,
+      rows_after = as.integer(nrow(data_df)),
+      total_remote = refresh_meta$total_remote,
+      xlsform_file_id = inst_meta$file_id,
+      data_file_id = data_meta$file_id,
+      refreshed_at = refreshed_at
+    )
+  }
+
+  current_bases <- estudio_list_bases(sid)
+  current_session <- session_get(sid, required = FALSE)
+  list(
+    ok = TRUE,
+    provider = "kobo",
+    processing_mode = "independent_siblings",
+    active_base = as.character(estudio_active_base(sid) %||% NA_character_),
+    results = results,
+    updated_bases = as.list(updated),
+    n_updated_bases = as.integer(length(updated)),
+    bases = unname(lapply(updated, function(name) {
+      .estudio_base_payload(current_bases[[name]], current_session)
+    })),
+    estudio = .estudio_payload(sid)
+  )
+}
+
 mount_carga <- function(pr) {
   pr |>
     plumber::pr_post("/api/carga/instrumento", wrap_endpoint(function(req, res, file_id = NULL) {
@@ -1141,6 +1620,27 @@ mount_carga <- function(pr) {
       )
     })) |>
 
+    plumber::pr_post("/api/carga/base-sheet", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .carga_parse_json_body(req)
+      payload <- .carga_normalized_data_for_export(
+        sid,
+        base_nombre = body$base_nombre %||% body$baseNombre %||% NULL
+      )
+      .procesamiento_sheet_payload(
+        data = payload$data,
+        inst = payload$instrumento,
+        modo = body$modo %||% "codigos",
+        page = body$page %||% 1L,
+        page_size = body$page_size %||% body$pageSize %||% 50L,
+        search = body$search %||% "",
+        column_filters = body$column_filters %||% body$columnFilters %||% list(),
+        sort = body$sort %||% NULL,
+        coded = FALSE,
+        source = "carga"
+      )
+    })) |>
+
     plumber::pr_post("/api/carga/platform/surveymonkey/import", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
@@ -1162,6 +1662,18 @@ mount_carga <- function(pr) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
       .carga_import_kobo(sid, parsed)
+    })) |>
+
+    plumber::pr_post("/api/carga/platform/kobo/import-independent", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_import_kobo_independent(sid, parsed)
+    })) |>
+
+    plumber::pr_post("/api/carga/platform/kobo/refresh-independent", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_refresh_kobo_independent(sid, parsed)
     })) |>
 
     # DELETE /api/carga/instrumento — limpia XLSForm cargado.

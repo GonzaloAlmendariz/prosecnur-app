@@ -137,9 +137,11 @@ export function MonitoreoModuleChrome({
                 <button
                   type="button"
                   role="tab"
-                  className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}`}
+                  className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}${saving ? " is-disabled" : ""}`}
+                  aria-label={`${displayLabel}: ${item.desc}`}
                   aria-current={selected ? "page" : undefined}
                   aria-selected={selected}
+                  data-view-key={item.key}
                   disabled={saving}
                   title={`${item.label}: ${item.desc}`}
                   onClick={() => {

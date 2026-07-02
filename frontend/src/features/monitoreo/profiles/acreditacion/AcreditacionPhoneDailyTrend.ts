@@ -14,6 +14,20 @@ export type AcreditacionPhoneDailyPoint = {
   date: Date | null;
 };
 
+export type AcreditacionPhoneDailyStatusPoint = {
+  rawLabel: string;
+  label: string;
+  axisLabel: string;
+  value: number;
+  date: Date | null;
+};
+
+export type AcreditacionPhoneDailyStatusSeries = {
+  label: string;
+  total: number;
+  points: AcreditacionPhoneDailyStatusPoint[];
+};
+
 export function buildAcreditacionPhoneDailyPoints(rows: Array<Record<string, unknown>>): AcreditacionPhoneDailyPoint[] {
   const matrixPoints = buildAcreditacionPhoneDailyPointsFromMatrix(rows);
   if (matrixPoints.length) return matrixPoints;
@@ -79,6 +93,25 @@ export function buildAcreditacionPhoneDailyTableRows(rows: Array<Record<string, 
       return [column, source[metric] ?? ""];
     })),
   }));
+}
+
+export function buildAcreditacionPhoneDailyStatusSeries(rows: Array<Record<string, unknown>>): AcreditacionPhoneDailyStatusSeries[] {
+  const matrix = phoneDailyMatrixShape(rows);
+  if (!matrix) return [];
+  const columns = phoneDailySortedDateColumns(matrix.dateColumns);
+  return rows.map((row, index) => {
+    const label = phoneDailyRowLabel(row) || `Estado ${index + 1}`;
+    const points = columns.map((column) => ({
+      rawLabel: column,
+      label: formatInternalQueryDateLabel(column),
+      axisLabel: formatInternalQueryDateAxisLabel(column),
+      value: matrixValue(row, column),
+      date: parseInternalQueryDate(column),
+    }));
+    const total = points.reduce((sum, point) => sum + point.value, 0);
+    return { label, total, points };
+  }).filter((series) => series.total > 0)
+    .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "es"));
 }
 
 export function phoneDailyTableColumns(rows: Array<Record<string, unknown>>) {

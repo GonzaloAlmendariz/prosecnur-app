@@ -924,6 +924,12 @@
            descripcion = "A partir de este umbral, la etiqueta va dentro del segmento sin desplazar."),
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "filtro",
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
+      list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
+           descripcion = "Si una barra tiene al menos un porcentaje que no entra bien, coloca todos sus porcentajes encima y los conecta con su segmento."),
+      list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
+           descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
+      list(name = "linewidth_conectores_etiquetas", label = "Grosor conectores etiquetas", tipo_input = "number", grupo = "estilo",
+           descripcion = "Grosor de las líneas que conectan porcentajes superiores con la barra."),
       list(name = "desplazamiento_max_etiquetas_peq", label = "Desplazamiento máximo etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
            descripcion = "Cuánto puede moverse (fracción) una etiqueta chica al repelerla. 0.06 es típico."),
 
@@ -1045,6 +1051,9 @@
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "filtro"),
+      list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro"),
+      list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro"),
+      list(name = "linewidth_conectores_etiquetas", label = "Grosor conectores etiquetas", tipo_input = "number", grupo = "estilo"),
 
       # --- Barra extra ---------------------------------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
@@ -1176,6 +1185,7 @@
       list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas", default = 0.70),
       list(name = "canvas_h_legend_in",     label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "canvas_h_caption_in",    label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_min_filas",        label = "Filas mínimas para grosor", tipo_input = "number", grupo = "canvas", default = 8),
       list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas", default = 0.48)
     )
   ),
@@ -1286,6 +1296,7 @@
 
       # --- Etiquetas porcentuales ---------------------------------------
       list(name = "mostrar_etiquetas_pct", label = "Mostrar porcentajes",  tipo_input = "bool",   grupo = "estilo", default = TRUE),
+      list(name = "mostrar_n_en_etiquetas", label = "Mostrar n junto al %", tipo_input = "bool",   grupo = "estilo", default = FALSE),
       list(name = "size_etiquetas_pct",    label = "Tamaño etiquetas %",   tipo_input = "number", grupo = "estilo", default = 5),
       list(name = "color_etiquetas_pct",   label = "Color etiquetas %",    tipo_input = "color", grupo = "estilo", default = "white"),
       list(name = "etiquetas_negrita",     label = "Etiquetas en negrita", tipo_input = "bool",   grupo = "estilo", default = TRUE),
@@ -1668,17 +1679,20 @@
     formato           = "Base: %s",
     sufijo_auto       = "respuestas",
 
-    size_titulo       = 18,
+    size_titulo       = 16,
     size_titulo_slide = 24,
-    size_subtitulo    = 18,
+    size_subtitulo    = 16,
     size_subtitulo_slide = 16,
     size_cuerpo_slide = 16,
-    size_leyenda      = 15,
-    size_ejes         = 15,
-    size_nota_pie     = 12,
+    size_leyenda      = 16,
+    size_ejes         = 16,
+    size_nota_pie     = 14,
     size_texto_barras = 5.6,
-    slide_1_narrativo_plot_top_cm = 1.75,
-    slide_1_narrativo_plot_height_cm = 11.45,
+    slide_1_plot_height_cm = 14.00,
+    slide_1_narrativo_plot_top_cm = 3.10,
+    slide_1_narrativo_plot_height_cm = 12.50,
+    slide_1_plot_extra_height_cm_apiladas_arriba = 2.30,
+    slide_1_plot_max_height_cm_apiladas_arriba = 16.45,
 
     color_titulo      = .PULSO_PPT_COLORS$rojo,
     color_subtitulo   = .PULSO_PPT_COLORS$azul,
@@ -1695,39 +1709,42 @@
     color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
 
     canvas_w_etiquetas       = 0.18,
-    canvas_w_buf_etq_bars    = 0.02,
+    canvas_w_buf_etq_bars    = 0.03,
     canvas_w_bars            = 0.54,
     canvas_w_buf_bars_extra  = 0.02,
     canvas_w_extra           = 0.12,
 
     canvas_h_toprow_in       = 0.10,
-    canvas_h_header_in       = 0.15,
-    canvas_h_legend_in       = 0.28,
+    canvas_h_header_in       = 0.20,
+    canvas_h_legend_in       = 0.32,
     canvas_h_caption_in      = 0.26,
 
-    alto_por_categoria       = 0.46,
+    alto_por_categoria       = 0.54,
     canvas_min_filas         = 1,
-    canvas_pad_bars_y_in     = 0.06,
+    canvas_pad_bars_y_in     = 0.08,
 
     grosor_modo              = "manual",
-    grosor_barras            = 0.62,
+    grosor_barras            = 0.70,
     grosor_barras_mult       = 1,
 
     mostrar_valores          = TRUE,
     umbral_etiqueta          = 0.01,
-    umbral_mostrar_etiqueta  = 0.035,
+    umbral_mostrar_etiqueta  = 0.12,
     umbral_etiqueta_normal   = 0.085,
     decimales                = 0,
 
     mostrar_barra_extra      = TRUE,
 
     legend_key_cm            = 0.40,
-    legend_espaciado         = 4,
+    legend_espaciado         = 3,
     legend_n_por_fila        = 6,
-    legend_gap_npc           = 0.016,
+    legend_gap_npc           = 0.012,
 
-    size_barra_extra         = 14.5,
-    size_titulo_extra        = 12,
+    size_texto_barras        = 5.6,
+    size_texto_barras_peq    = 5.6,
+    size_leyenda             = 16,
+    size_barra_extra         = 16,
+    size_titulo_extra        = 16,
     ancho_max_eje_y          = 22,
     prefijo_barra_extra      = "",
 
@@ -1735,50 +1752,60 @@
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     repeler_etiquetas_peq    = TRUE,
-    desplazamiento_max_etiquetas_peq = 0.07,
-    etiquetas_peq_factor_ancho = 1.25,
-    etiquetas_peq_padding = 0.008,
+    etiquetas_arriba_si_no_caben = TRUE,
+    etiquetas_arriba_offset = 0.17,
+    linewidth_conectores_etiquetas = 0.42,
+    desplazamiento_max_etiquetas_peq = 0.09,
+    etiquetas_peq_factor_ancho = 2.5,
+    etiquetas_peq_padding = 0.012,
     excluir_opciones      = .PULSO_PPT_EXCLUIR_SIN_GRADO
   ),
 
   multi_apiladas = list(
     canvas_w_etiquetas       = 0.36,
+    canvas_w_buf_etq_bars    = 0.05,
     canvas_w_bars            = 0.46,
     canvas_w_extra           = 0.10,
 
     canvas_h_toprow_in       = 0.10,
-    canvas_h_header_in       = 0.15,
-    canvas_h_legend_in       = 0.28,
+    canvas_h_header_in       = 0.20,
+    canvas_h_legend_in       = 0.32,
     canvas_h_caption_in      = 0.22,
 
-    alto_por_categoria       = 0.50,
+    alto_por_categoria       = 0.58,
+    canvas_pad_bars_y_in     = 0.08,
     ancho_max_eje_y          = 40,
     grosor_modo              = "manual",
-    grosor_barras            = 0.62,
+    grosor_barras            = 0.70,
     grosor_barras_mult       = 1,
 
     mostrar_valores          = TRUE,
     mostrar_ceros            = TRUE,
-    umbral_mostrar_etiqueta  = 0.035,
+    umbral_mostrar_etiqueta  = 0.12,
     umbral_etiqueta_normal   = 0.085,
     decimales                = 0,
 
     legend_key_cm            = 0.35,
-    legend_espaciado         = 4,
+    legend_espaciado         = 3,
     legend_n_por_fila        = 6,
-    legend_gap_npc           = 0.016,
+    legend_gap_npc           = 0.012,
 
     color_texto_barras       = "white",
     color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
-    size_titulo_extra        = 12,
+    size_texto_barras        = 5.6,
+    size_texto_barras_peq    = 5.6,
+    size_titulo_extra        = 16,
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
-    size_ejes                = 16.5,
-    size_leyenda             = 14,
-    size_barra_extra         = 14.5,
-    desplazamiento_max_etiquetas_peq = 0.07,
-    etiquetas_peq_factor_ancho = 1.25,
-    etiquetas_peq_padding = 0.008,
+    size_ejes                = 16,
+    size_leyenda             = 16,
+    size_barra_extra         = 16,
+    etiquetas_arriba_si_no_caben = TRUE,
+    etiquetas_arriba_offset = 0.17,
+    linewidth_conectores_etiquetas = 0.42,
+    desplazamiento_max_etiquetas_peq = 0.09,
+    etiquetas_peq_factor_ancho = 2.5,
+    etiquetas_peq_padding = 0.012,
     excluir_opciones      = .PULSO_PPT_EXCLUIR_SIN_GRADO
   ),
 
@@ -1790,11 +1817,11 @@
     canvas_w_extra           = 0,
 
     canvas_h_toprow_in       = 0.10,
-    canvas_h_header_in       = 0.50,
+    canvas_h_header_in       = 1.25,
     canvas_h_legend_in       = 0.00,
-    canvas_h_caption_in      = 0.00,
+    canvas_h_caption_in      = 0.28,
 
-    alto_por_categoria       = 0.46,
+    alto_por_categoria       = 0.64,
     ancho_max_eje_y          = 38,
 
     mostrar_valores          = TRUE,
@@ -1802,6 +1829,9 @@
     decimales                = 0,
     umbral_etiqueta          = 0.001,
     umbral_posicion          = 0.07,
+    grosor_barras            = 0.82,
+    usar_eje_libre           = FALSE,
+    canvas_min_filas         = 7,
 
     mostrar_barra_extra      = FALSE,
     prefijo_barra_extra      = "",
@@ -1814,9 +1844,11 @@
     otros_al_final           = TRUE,
     invertir_barras          = TRUE,
 
-    size_barra_extra         = 14.5,
-    size_subtitulo           = 13,
-    encabezado_separacion_in = 0.11,
+    size_barra_extra         = 16,
+    size_subtitulo           = 16,
+    face_subtitulo           = "bold",
+    encabezado_desplazamiento_in = 0.03,
+    encabezado_separacion_in = 0.52,
     colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul_barras),
     excluir_opciones         = .PULSO_PPT_EXCLUIR_SIN_GRADO
   ),
@@ -1866,6 +1898,7 @@
     tipo_pie                 = "pie",
 
     mostrar_etiquetas_pct    = TRUE,
+    mostrar_n_en_etiquetas   = TRUE,
     size_etiquetas_pct       = 5,
     color_etiquetas_pct      = "white",
     etiquetas_negrita        = TRUE,
@@ -2120,13 +2153,13 @@
 
 .PPT_STYLE_PROFILES <- list(
   acnur_kobo_cruncher_plus = list(
-    titulo_humano = "ACNUR KOICA - Kobo-style + mapas",
+    titulo_humano = "ACNUR - Kobo azul",
     descripcion = paste(
-      "Linea visual ACNUR para reportes Kobo/KOICA: portada azul,",
-      "titulos limpios, barras comparativas azul/gris, logo PULSO en footer",
-      "y altura optimizada para mapas de cobertura."
+      "Linea visual ACNUR para reportes Kobo: portada azul,",
+      "titulos limpios, barras agrupadas en azul ACNUR y logo PULSO en footer.",
+      "El modo territorial KOICA agrega mapas y comparativos solo cuando corresponde."
     ),
-    icono_ui = "Map",
+    icono_ui = "BarChart3",
     preview_colors = unname(c(
       .ACNUR_PPT_COLORS$blue,
       .ACNUR_PPT_COLORS$navy,

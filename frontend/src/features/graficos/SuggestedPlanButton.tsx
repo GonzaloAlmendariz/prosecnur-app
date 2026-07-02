@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, GitMerge, Loader2, Map, Sparkles, X } from "lucide-react";
+import { BarChart3, Check, GitMerge, Loader2, Map, Sparkles, X } from "lucide-react";
 import {
   apiGraficosPlanSugerido,
   type GraficosSuggestedPlanResponse,
@@ -9,6 +9,7 @@ import {
 import { usePlanStore } from "./store";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { usePptStyleProfiles } from "./usePptStyleProfiles";
+import { useGraficosRegistry } from "./useGraficosRegistry";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -29,14 +30,22 @@ export function SuggestedPlanButton() {
   const loadPlan = usePlanStore((s) => s.loadPlan);
   const applyPptStyleProfile = usePlanStore((s) => s.applyPptStyleProfile);
   const { profiles: styleProfiles } = usePptStyleProfiles();
+  const { registry } = useGraficosRegistry();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
   const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
-  const [includeCoverageMaps, setIncludeCoverageMaps] = useState(true);
+  const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
   const [comparisonMode, setComparisonMode] = useState<"koica_group" | "district" | "none">("koica_group");
   const rootRef = useRef<HTMLDivElement>(null);
+  const territorialCoverageMeta = registry?.graficadores.find(
+    (g) => g.feature_kind === "territorial_coverage" || g.requisito === "territorial_coverage",
+  );
+  const canIncludeCoverageMaps = territorialCoverageMeta?.available === true;
+  const coverageDisabledReason =
+    territorialCoverageMeta?.disabled_reason ||
+    "Disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial.";
 
   useEffect(() => {
     if (!open) return;
@@ -54,6 +63,13 @@ export function SuggestedPlanButton() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (territorialCoverageMeta && !canIncludeCoverageMaps && acnurMode === "territorial") {
+      setAcnurMode("general");
+      setResult(null);
+    }
+  }, [acnurMode, canIncludeCoverageMaps, territorialCoverageMeta]);
+
   async function generate() {
     setOpen(true);
     setBusy(true);
@@ -65,8 +81,9 @@ export function SuggestedPlanButton() {
         ...(profileId === "acnur_kobo_cruncher_plus"
           ? {
               profile_id: profileId,
-              include_coverage_maps: includeCoverageMaps,
-              comparison_mode: comparisonMode,
+              acnur_mode: acnurMode,
+              include_coverage_maps: acnurMode === "territorial" && canIncludeCoverageMaps,
+              comparison_mode: acnurMode === "territorial" ? comparisonMode : "none",
             }
           : {}),
       });
@@ -132,7 +149,10 @@ export function SuggestedPlanButton() {
                 type="button"
                 className={profileId === "auto" ? "is-active" : ""}
                 aria-pressed={profileId === "auto"}
-                onClick={() => setProfileId("auto")}
+                onClick={() => {
+                  setProfileId("auto");
+                  setResult(null);
+                }}
               >
                 <Sparkles size={13} /> Automático
               </button>
@@ -140,35 +160,79 @@ export function SuggestedPlanButton() {
                 type="button"
                 className={profileId === "acnur_kobo_cruncher_plus" ? "is-active" : ""}
                 aria-pressed={profileId === "acnur_kobo_cruncher_plus"}
-                onClick={() => setProfileId("acnur_kobo_cruncher_plus")}
+                onClick={() => {
+                  setProfileId("acnur_kobo_cruncher_plus");
+                  setResult(null);
+                }}
               >
-                <Map size={13} /> ACNUR/Kobo + mapas
+                <BarChart3 size={13} /> ACNUR azul
               </button>
             </div>
 
             {profileId === "acnur_kobo_cruncher_plus" && (
               <div className="pulso-gv2-suggest-acnur">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={includeCoverageMaps}
-                    onChange={(e) => setIncludeCoverageMaps(e.target.checked)}
-                  />
-                  Mapas de cobertura al inicio
-                </label>
-                <label>
-                  Comparar por
-                  <select
-                    value={comparisonMode}
-                    onChange={(e) => setComparisonMode(e.target.value as "koica_group" | "district" | "none")}
+                <div className="pulso-gv2-suggest-mode" role="radiogroup" aria-label="Modo ACNUR">
+                  <button
+                    type="button"
+                    className={acnurMode === "general" ? "is-active" : ""}
+                    aria-pressed={acnurMode === "general"}
+                    onClick={() => {
+                      setAcnurMode("general");
+                      setResult(null);
+                    }}
                   >
-                    <option value="koica_group">grupo KOICA</option>
-                    <option value="district">distrito</option>
-                    <option value="none">sin cruce</option>
-                  </select>
-                </label>
+                    <BarChart3 size={13} /> General
+                  </button>
+                  <button
+                    type="button"
+                    className={acnurMode === "territorial" ? "is-active" : ""}
+                    aria-pressed={acnurMode === "territorial"}
+                    disabled={!canIncludeCoverageMaps}
+                    title={!canIncludeCoverageMaps ? coverageDisabledReason : undefined}
+                    onClick={() => {
+                      setAcnurMode("territorial");
+                      setComparisonMode("koica_group");
+                      setResult(null);
+                    }}
+                  >
+                    <Map size={13} /> Territorial KOICA
+                  </button>
+                </div>
+                {acnurMode === "general" ? (
+                  <div className="pulso-gv2-suggest-option-text">
+                    <strong>Barras agrupadas sin comparativo</strong>
+                    <small>Usa el azul ACNUR y no inserta mapas.</small>
+                  </div>
+                ) : (
+                  <label>
+                    <span className="pulso-gv2-suggest-option-text">
+                      <strong>Comparativo por variable opcional</strong>
+                      <small>El mapa territorial se agrega al inicio del plan.</small>
+                    </span>
+                    <select
+                      value={comparisonMode}
+                      onChange={(e) => {
+                        setComparisonMode(e.target.value as "koica_group" | "district" | "none");
+                        setResult(null);
+                      }}
+                    >
+                      <option value="koica_group">intervención vs comparación</option>
+                      <option value="district">distrito</option>
+                      <option value="none">sin comparativo</option>
+                    </select>
+                  </label>
+                )}
               </div>
             )}
+            <button
+              type="button"
+              className="pulso-gv2-suggest-regenerate"
+              onClick={generate}
+              disabled={busy}
+            >
+              {busy ? <Loader2 size={12} className="pulso-spin" /> : <Sparkles size={12} />}
+              Actualizar propuesta
+            </button>
           </div>
 
           {busy && (

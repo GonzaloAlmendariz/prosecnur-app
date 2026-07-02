@@ -153,7 +153,7 @@ export function acreditacionQualityHeroTitle(activeAlerts: number, tone: Acredit
 }
 
 export function acreditacionQualityHeroCopy(activeAlerts: number, locations: number) {
-  if (!activeAlerts) return "El reporte canónico no trae señales reales de enlace, duración, asignación o conciliación plataforma-barrido.";
+  if (!activeAlerts) return "El reporte canónico no trae señales reales de enlace, duración, asignación o conciliación Kobo-barrido.";
   return locations
     ? "Las alertas separan señales de enlace, duración y conciliación para decidir qué debe pasar a supervisión."
     : "Las alertas están listas para revisión de calidad.";
@@ -358,8 +358,8 @@ function acreditacionQualityAlertTitle(type: string, detail: string, owner = "")
     if (minutes <= 2) return "Encuesta extremadamente corta";
     return "Encuesta muy corta";
   }
-  if (key.includes("diferencia") && key.includes("efectiv")) return "Diferencia de efectivas plataforma-barrido";
-  if (key.includes("efectivas plataforma") || key.includes("efectivas en plataforma")) return "Efectivas de plataforma por conciliar";
+  if (key.includes("diferencia") && key.includes("efectiv")) return "Diferencia de efectivas Kobo-barrido";
+  if (key.includes("efectivas plataforma") || key.includes("efectivas en plataforma")) return "Efectivas Kobo por conciliar";
   if (key.includes("casos sin responsable")) return "Casos sin responsable";
   if (key.includes("responsable no barridos") && (ownerKey === "sin responsable" || detailKey.includes("sin responsable"))) return "Casos sin responsable por barrer";
   if (key.includes("responsable no barridos")) return "Responsable con casos por iniciar";
@@ -367,6 +367,8 @@ function acreditacionQualityAlertTitle(type: string, detail: string, owner = "")
   if (key.includes("llave no detectada")) return "No se reconoce el código de cruce del barrido";
   if (key.includes("llave faltante respuesta")) return "Respuestas sin código de cruce";
   if (key.includes("efectiva sin cruce base")) return "Efectiva sin cruce con base";
+  if (key.includes("efectivo telefonico sin kobo")) return "Efectivo telefónico sin efectiva Kobo";
+  if (key.includes("efectiva kobo sin telefonica")) return "Efectiva Kobo sin efectiva telefónica";
   if (key.includes("efectivo telefonico sin plataforma")) return "Efectivo telefónico sin plataforma completa";
   if (key.includes("efectivo telefonico parcial plataforma")) return "Efectivo telefónico con plataforma parcial";
   if (key.includes("rechazo telefonico con respuesta")) return "Rechazo telefónico con respuesta de plataforma";
@@ -432,6 +434,12 @@ function acreditacionQualityAlertDetail(type: string, detail: string, owner = ""
   if (key.includes("efectivo telefonico sin plataforma")) {
     return "El barrido marca el caso como efectivo, pero la plataforma no tiene una respuesta completa conciliada.";
   }
+  if (key.includes("efectivo telefonico sin kobo")) {
+    return "El barrido marca el caso como efectivo, pero Kobo no tiene una efectiva conciliada para ese CodPulso.";
+  }
+  if (key.includes("efectiva kobo sin telefonica")) {
+    return "Kobo tiene una efectiva filtrada, pero el barrido no declara ese CodPulso como efectivo.";
+  }
   if (key.includes("efectivo telefonico parcial plataforma")) {
     return "El barrido marca el caso como efectivo, pero SurveyMonkey conserva una respuesta parcial.";
   }
@@ -496,7 +504,10 @@ function acreditacionPhoneAlertSignal(type: string, detail: string, owner = ""):
   }
   if (
     (key.includes("plataforma") && (key.includes("barrido") || key.includes("base")))
+    || (key.includes("kobo") && (key.includes("barrido") || key.includes("telefonica") || key.includes("telefonico")))
     || key.includes("efectivo telefonico sin plataforma")
+    || key.includes("efectivo telefonico sin kobo")
+    || key.includes("efectiva kobo sin telefonica")
     || key.includes("efectivo telefonico parcial plataforma")
     || key.includes("rechazo telefonico con respuesta")
   ) {

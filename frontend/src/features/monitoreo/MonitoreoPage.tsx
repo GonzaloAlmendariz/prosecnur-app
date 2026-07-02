@@ -490,6 +490,14 @@ const EMPTY_PROFILE: MonitoreoProfile = {
   groups: [],
   minimums: {},
   rejection_rules: [],
+  platform_effective_filter: {
+    enabled: false,
+    variable: "",
+    values: [],
+    label: "",
+    value_label: "",
+    source_kind: "",
+  },
   key_rules: {
     universe_fields: ["CodPulso", "Cod Pulso", "Cód Pulso", "id", "ID", "codigo", "Codigo", "Código", "correo", "email", "telefono", "celular"],
     response_fields: ["CodPulso", "Cod Pulso", "Cód Pulso", "Código PUCP", "Codigo PUCP", "email_address", "custom_value"],
@@ -2242,6 +2250,11 @@ function mergeProfile(value: unknown): MonitoreoProfile {
     groups: arrayOrEmpty<Record<string, unknown>>(profile.groups),
     minimums: { ...EMPTY_PROFILE.minimums, ...(profile.minimums ?? {}) },
     rejection_rules: arrayOrEmpty<Record<string, unknown>>(profile.rejection_rules),
+    platform_effective_filter: {
+      ...EMPTY_PROFILE.platform_effective_filter,
+      ...(profile.platform_effective_filter ?? {}),
+      values: arrayOrEmpty<string>(profile.platform_effective_filter?.values),
+    },
     key_rules: {
       ...EMPTY_PROFILE.key_rules,
       ...keyRules,
@@ -28263,9 +28276,8 @@ function AcreditacionPhoneOperationsPanel({
           </div>
         )}
         {activeTab === "responsables" && (
-          <div className="mon-phone-layout">
+          <div className="mon-phone-layout mon-phone-layout--responsables">
             <PhoneResponsibleCards rows={responsibleRows} />
-            {blocks.responsables && <GsReportBlockTable sheet={sheet} block={blocks.responsables} />}
           </div>
         )}
         {activeTab === "pendientes" && (
@@ -29624,11 +29636,15 @@ function isUnassignedPhoneResponsibleRow(row: MonitoreoRow) {
 }
 
 function phoneResponsibleDisplayName(row: MonitoreoRow, index?: number) {
-  const raw = phoneResponsibleRawName(row);
-  const base = raw || (index == null ? "Sin responsable" : `Responsable ${index + 1}`);
+  const base = phoneResponsibleBaseDisplayName(row, index);
   const actor = phoneResponsibleActorName(row);
   if (actor && normalizeMatch(base) !== normalizeMatch(actor)) return `${base} · ${actor}`;
   return base;
+}
+
+function phoneResponsibleBaseDisplayName(row: MonitoreoRow, index?: number) {
+  const raw = phoneResponsibleRawName(row);
+  return raw || (index == null ? "Sin responsable" : `Responsable ${index + 1}`);
 }
 
 function phoneResponsibleMetrics(row: MonitoreoRow) {
@@ -29695,6 +29711,8 @@ function PhoneResponsibleCards({ rows }: { rows: MonitoreoRow[] }) {
   const assignedRows = rows.filter((row) => !isUnassignedPhoneResponsibleRow(row));
   const unassignedRows = rows.filter(isUnassignedPhoneResponsibleRow);
   const unassigned = phoneResponsibleRowsSummary(unassignedRows);
+  const visibleActors = new Set(assignedRows.map((row) => normalizeMatch(phoneResponsibleActorName(row))).filter(Boolean));
+  const showActorContext = visibleActors.size > 1;
   return (
     <div className="mon-phone-responsibles" aria-label="Producción por responsable">
       <header className="mon-phone-responsibles-head">
@@ -29706,14 +29724,19 @@ function PhoneResponsibleCards({ rows }: { rows: MonitoreoRow[] }) {
       </header>
       {assignedRows.map((row, index) => {
         const name = phoneResponsibleDisplayName(row, index);
+        const displayName = phoneResponsibleBaseDisplayName(row, index);
+        const actor = phoneResponsibleActorName(row);
         const metrics = phoneResponsibleMetrics(row);
         const effectivePct = safePercent(metrics.effective, metrics.assigned ?? metrics.denominator);
         const nonEffectivePct = safePercent(metrics.nonEffective ?? 0, metrics.assigned ?? metrics.denominator);
         const pendingPct = safePercent(metrics.unswept ?? 0, metrics.assigned ?? metrics.denominator);
         return (
-          <article key={`${name}-${index}`} className="mon-phone-responsible">
+          <article key={`${name}-${index}`} className="mon-phone-responsible" title={actor ? `${displayName} · ${actor}` : displayName}>
             <header>
-              <strong>{name}</strong>
+              <div className="mon-phone-responsible-title">
+                <strong>{displayName}</strong>
+                {showActorContext && actor ? <span>{actor}</span> : null}
+              </div>
               <em>{formatMetric(metrics.effective)} efectivas</em>
             </header>
             <div className="mon-phone-responsible-meter" aria-label={`Composición operativa de ${name}`}>

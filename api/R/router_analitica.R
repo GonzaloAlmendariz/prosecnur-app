@@ -3068,6 +3068,28 @@ mount_analitica <- function(pr) {
 	      cfg <- .analitica_get_config(sid)
 	      list(ok = TRUE, variables = .analitica_data_review_payload(ctx$rp_data, ctx$rp_inst, cfg))
 	    })) |>
+	    plumber::pr_post("/api/analitica/base-sheet", wrap_endpoint(function(req, res, ...) {
+	      sid <- session_header(req)
+	      body <- .analitica_json_body(req)
+	      ctx <- .load_rp_data(sid)
+	      cfg <- .analitica_get_config(sid)
+	      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
+	      s <- session_get(sid, required = FALSE)
+	      coded <- isTRUE(s$codif_aplicado %||% FALSE) &&
+	        identical(.analitica_effective_source(s, cfg), "adaptados")
+	      .procesamiento_sheet_payload(
+	        data = reviewed$data,
+	        inst = reviewed$inst,
+	        modo = body$modo %||% "codigos",
+	        page = body$page %||% 1L,
+	        page_size = body$page_size %||% body$pageSize %||% 50L,
+	        search = body$search %||% "",
+	        column_filters = body$column_filters %||% body$columnFilters %||% list(),
+	        sort = body$sort %||% NULL,
+	        coded = coded,
+	        source = "analitica"
+	      )
+	    })) |>
 	    plumber::pr_get("/api/analitica/column-values", wrap_endpoint(function(req, res, name = NULL) {
       # Devuelve valores únicos de una columna del data preparado, con
       # sus labels si la columna es select_one/select_multiple (usa los

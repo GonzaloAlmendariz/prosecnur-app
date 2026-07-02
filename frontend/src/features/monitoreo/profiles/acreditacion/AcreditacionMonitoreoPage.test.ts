@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
 import { buildAcreditacionPhoneRealAlertModel, buildAcreditacionPhoneSupervisionModel } from "./AcreditacionPhoneAlerts";
-import { buildAcreditacionPhoneDailyPoints, buildAcreditacionPhoneDailyTableRows } from "./AcreditacionPhoneDailyTrend";
+import { buildAcreditacionPhoneDailyPoints, buildAcreditacionPhoneDailyStatusSeries, buildAcreditacionPhoneDailyTableRows } from "./AcreditacionPhoneDailyTrend";
 import {
   ACREDITACION_MODEL_TABS,
   ACREDITACION_CONSULTA_TABS,
@@ -13,14 +13,19 @@ import {
   acreditacionScheduleDraftFromPhases,
   acreditacionRowsForConsultaTab,
   buildAcreditacionPhoneSupervisionControlPlan,
+  buildAcreditacionPhoneTimeControl,
   buildAcreditacionPhoneQuotaEditorRows,
+  compactAdvanceDateTickLabel,
   acreditacionPhoneStatusLegendItems,
   caseKeyTraceSummary,
   caseIsActionableSubsanacion,
   caseIsSubsanacionCandidate,
   caseResponseDateTimeLabel,
   caseResponseTimeDetailLabel,
+  dailyPointsFromRows,
+  phoneQuotaCardsForDashboard,
   phoneQuotaAdvanceCardsFromRows,
+  phonePlatformComparisonTotals,
   phoneQuotaRowsForPanel,
   upsertAcreditacionFieldSchedulePhase,
 } from "./AcreditacionMonitoreoPage";
@@ -38,7 +43,7 @@ import {
   buildAcreditacionTelephoneChannels,
   buildAcreditacionActiveSourcesSummary,
 } from "./AcreditacionSourcesModel";
-import type { MonitoreoInternalQueryCase, MonitoreoLinkCollector, MonitoreoSource, MonitoreoSourceMetadata, MonitoreoStrategyPhase } from "../../../../api/client";
+import type { MonitoreoAcreditacionReports, MonitoreoInternalQueryCase, MonitoreoLinkCollector, MonitoreoSource, MonitoreoSourceMetadata, MonitoreoStrategyPhase } from "../../../../api/client";
 
 function consultaCase(partial: Partial<MonitoreoInternalQueryCase>): MonitoreoInternalQueryCase {
   return {
@@ -81,6 +86,7 @@ describe("Acreditacion fuentes", () => {
     expect(acreditacionChannelLabel("Enlace abierto")).toBe("Enlace");
     expect(acreditacionChannelLabel("SMS")).toBe("Enlace");
     expect(acreditacionChannelLabel("Telefónico")).toBe("Telefónico");
+    expect(acreditacionChannelLabel("KoboToolbox")).toBe("Kobo");
   });
 });
 
@@ -727,6 +733,16 @@ describe("Acreditacion source model", () => {
     const summary = buildAcreditacionActiveSourcesSummary([
       surveySource,
       {
+        id: "kobo-pdm",
+        kind: "kobo",
+        label: "Kobo PDM",
+        enabled: true,
+        role: "respuestas",
+        asset_uid: "aKoboAsset123",
+        survey_title: "Post-Distribution Monitoring",
+        dimensions: { actor: "Egresados", servicio: "Respuestas Kobo" },
+      },
+      {
         id: "gs-estudiantes",
         kind: "google_sheets",
         label: "Base Estudiantes",
@@ -737,12 +753,12 @@ describe("Acreditacion source model", () => {
     ], linkCollectors);
 
     expect(summary).toMatchObject({
-      activeSurveys: 1,
-      surveysWithActor: 1,
+      activeSurveys: 2,
+      surveysWithActor: 2,
       activeSheetBases: 1,
-      actorsWithSurvey: ["Docentes"],
+      actorsWithSurvey: ["Docentes", "Egresados"],
       actorsWithSheet: ["Estudiantes"],
-      missingSheetActors: ["Docentes"],
+      missingSheetActors: ["Docentes", "Egresados"],
       includedCollectors: 1,
       excludedCollectors: 1,
       missingCollectorMetadata: 1,
@@ -832,8 +848,42 @@ describe("Acreditacion source model", () => {
     expect(acreditacionSweepSources([universeSource])).toEqual([]);
     expect(contract.universe.ready).toBe(true);
     expect(contract.sweep.ready).toBe(false);
-    expect(contract.missing).toEqual(["barrido"]);
+    expect(contract.platform.ready).toBe(false);
+    expect(contract.missing).toEqual(["barrido", "plataforma"]);
     expect(contract.universe.sources[0]?.id).toBe("acnur-pdm-universo");
+
+    const sweepSource: MonitoreoSource = {
+      id: "gs-barrido",
+      kind: "google_sheets",
+      label: "Base de barrido",
+      enabled: true,
+      role: "barrido",
+      sheet_binding: {
+        spreadsheet_id: "1V9Tjh-suREXNEyZ8ZapTVmHiNqLRipJ-1085mwMKPZw",
+        sheet_name: "Barrido",
+        header_row: 1,
+        range: "Barrido!A1:F1770",
+        last_read_at: "2026-06-30T06:10:48-0500",
+        snapshot_hash: "",
+      },
+    };
+    const koboSource: MonitoreoSource = {
+      id: "kobo-plataforma",
+      kind: "kobo",
+      label: "Kobo egresados",
+      enabled: true,
+      role: "respuestas",
+      asset_uid: "aKoboAsset123",
+      survey_title: "11_ACNUR_PDM_Plataforma",
+      base_url: "https://kf.kobotoolbox.org",
+      dimensions: { actor: "Egresados", canal: "Telefónico" },
+    };
+
+    const completeContract = buildAcreditacionPhoneSourceContract([universeSource, sweepSource, koboSource]);
+
+    expect(completeContract.ready).toBe(true);
+    expect(completeContract.platform.sources[0]?.id).toBe("kobo-plataforma");
+    expect(completeContract.missing).toEqual([]);
   });
 });
 
@@ -901,6 +951,43 @@ describe("Acreditacion phone daily points", () => {
     ]);
   });
 
+  test("preserva estados telefonicos diarios ampliados para monitoreo telefonico standalone", () => {
+    const series = buildAcreditacionPhoneDailyStatusSeries([
+      { Estado: "No contesta", "2026-06-01": 3, "2026-06-02": 1, Total: 4 },
+      { Estado: "Apagado", "2026-06-01": 0, "2026-06-02": 2, Total: 2 },
+      { Estado: "Efectiva", "2026-06-01": 1, "2026-06-02": 0, Total: 1 },
+    ]);
+
+    expect(series.map((item) => [item.label, item.total])).toEqual([
+      ["No contesta", 4],
+      ["Apagado", 2],
+      ["Efectiva", 1],
+    ]);
+    expect(series[0].points.map((point) => [point.rawLabel, point.value])).toEqual([
+      ["2026-06-01", 3],
+      ["2026-06-02", 1],
+    ]);
+  });
+
+  test("resume comparacion CodPulso entre barrido telefonico y plataforma", () => {
+    const totals = phonePlatformComparisonTotals([
+      { CodPulso: "C1", "Efectiva telefónica": "Sí", "Plataforma completa": "Sí", "Coinciden efectivas": "Sí" },
+      { CodPulso: "C2", "Efectiva telefónica": "No", "Plataforma completa": "Sí", "Coinciden efectivas": "No" },
+      { CodPulso: "C3", "Efectiva telefónica": "Sí", "Plataforma completa": "No", "Coinciden efectivas": "No" },
+      { CodPulso: "C4", "Efectiva telefónica": "No", "Plataforma completa": "No", "Coinciden efectivas": "No aplica" },
+    ]);
+
+    expect(totals).toMatchObject({
+      total: 4,
+      phoneEffective: 2,
+      platformComplete: 2,
+      matchedEffective: 1,
+      mismatch: 2,
+      phoneWithoutPlatform: 1,
+      platformWithoutPhone: 1,
+    });
+  });
+
   test("normaliza cuotas telefonicas por variable para acreditacion y telefonico", () => {
     const rows = phoneQuotaRowsForPanel([
       { Actor: "Egresados", Variable: "Distrito", Valor: "Lima", Universo: 2, Meta: 2, Efectivas: 1, "No barridos": 1, "Avance meta": 50, Brecha: 1 },
@@ -949,6 +1036,53 @@ describe("Acreditacion phone daily points", () => {
     ]);
     expect(cards[0].coverage).toBeCloseTo(3.8, 1);
     expect(cards[0].progress).toBe(20);
+  });
+
+  test("asocia ritmo diario de Kobo a las cuotas telefonicas por variable", () => {
+    const reports: MonitoreoAcreditacionReports = {
+      schema: "monitoreo.acreditacion.reports.v1",
+      generated_at: "2026-06-30T21:45:00Z",
+      reference_tabs: [],
+      sheets: [
+        {
+          id: "monitoreo_telefonico",
+          title: "Monitoreo telefónico",
+          description: "",
+          scope: "cliente",
+          blocks: [
+            {
+              id: "cuotas_variable",
+              title: "Cuotas",
+              columns: [],
+              rows: [
+                { Actor: "Total", Variable: "sede", Valor: "Cercado de Lima", Universo: 501, Meta: 95, Efectivas: 2, Brecha: 93 },
+                { Actor: "Total", Variable: "sede", Valor: "Chorrillos", Universo: 0, Meta: 58, Efectivas: 0, Brecha: 58 },
+              ],
+            },
+            {
+              id: "avance_efectivo_variable_dia",
+              title: "Avance diario por cuota",
+              columns: [],
+              rows: [
+                { Variable: "Sede", Valor: "Cercado de Lima", Fecha: "2026-06-30", "Efectivas Kobo": 1 },
+                { Variable: "Sede", Valor: "Cercado de Lima", Fecha: "2026-07-01", "Efectivas Kobo": 1 },
+                { Variable: "Sede", Valor: "Chorrillos", Fecha: "Sin fecha", "Efectivas Kobo": 2 },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const cards = phoneQuotaCardsForDashboard(reports);
+    const cercado = cards.find((card) => card.actor === "Cercado de Lima");
+    const chorrillos = cards.find((card) => card.actor === "Chorrillos");
+
+    expect(cercado?.dailyPoints.map((point) => [point.date, point.effective])).toEqual([
+      ["2026-06-30", 1],
+      ["2026-07-01", 1],
+    ]);
+    expect(chorrillos?.dailyPoints).toEqual([]);
   });
 
   test("arma filas editables de cuota con tasa requerida y margen no efectivo", () => {
@@ -1024,8 +1158,8 @@ describe("Acreditacion phone daily points", () => {
         },
         {
           nivel: "Alta",
-          "tipo alerta": "Diferencia efectivas plataforma vs base de barrido",
-          detalle: "3 efectivas de plataforma no figuran como efectivas en el barrido. Fuente: SurveyMonkey · Egresados · Telefonico.",
+          "tipo alerta": "Diferencia efectivas Kobo vs base de barrido",
+          detalle: "3 efectivas Kobo no figuran como efectivas en el barrido. Fuente: Kobo · Egresados · Telefonico.",
           casos: 3,
         },
       ],
@@ -1041,7 +1175,7 @@ describe("Acreditacion phone daily points", () => {
     expect(model.activeAlerts.map((alert) => alert.title)).toEqual([
       "Posible confusión de enlace",
       "Encuesta muy corta",
-      "Diferencia de efectivas plataforma-barrido",
+      "Diferencia de efectivas Kobo-barrido",
     ]);
   });
 
@@ -1141,11 +1275,62 @@ describe("Acreditacion phone daily points", () => {
     expect(plan.targetTotal).toBe(36);
     expect(plan.tableRows[0]).toMatchObject({
       Responsable: "Equipo telefónico",
-      Actor: "Todos",
+      Base: "Todos",
       Efectivas: 117,
       "Objetivo 30%": 36,
       "Base propuesta": 36,
     });
+  });
+
+  test("supervisión clasifica duración Kobo en menor a 2, menor a 5 y normal", () => {
+    const alertModel = buildAcreditacionPhoneRealAlertModel({
+      alertRows: [
+        {
+          nivel: "Alta",
+          "tipo alerta": "Duración menor a 2 minutos",
+          fuente: "Kobo telefónico",
+          detalle: "1 encuesta completa dura menos de 2 minutos.",
+          casos: 1,
+        },
+        {
+          nivel: "Media",
+          "tipo alerta": "Duración menor a 5 minutos",
+          fuente: "Kobo telefónico",
+          detalle: "2 encuestas completas duran menos de 5 minutos.",
+          casos: 2,
+        },
+      ],
+    });
+    const control = buildAcreditacionPhoneTimeControl({
+      alerts: alertModel.alerts,
+      totalEffective: 10,
+    });
+
+    expect(control.under2).toBe(1);
+    expect(control.under5).toBe(2);
+    expect(control.normal).toBe(7);
+    expect(control.buckets.map((bucket) => [bucket.key, bucket.count])).toEqual([
+      ["under2", 1],
+      ["under5", 2],
+      ["normal", 7],
+    ]);
+  });
+});
+
+describe("Acreditacion advance daily points", () => {
+  test("descarta cabeceras diarias y rotula sin fecha sin cortar el texto", () => {
+    const points = dailyPointsFromRows([
+      { Fecha: "Fecha", Efectivas: 0, Parciales: 0, Rechazos: 0 },
+      { Fecha: "ECHA", Efectivas: 0, Parciales: 0, Rechazos: 0 },
+      { Fecha: "30/06/2026", Efectivas: 8, Parciales: 0, Rechazos: 1 },
+      { Fecha: "Sin fecha", Efectivas: 2, Parciales: 0, Rechazos: 0 },
+    ]);
+
+    expect(points).toEqual([
+      { date: "30/06/2026", effective: 8, partial: 0, refusals: 1, total: 9 },
+      { date: "Sin fecha", effective: 2, partial: 0, refusals: 0, total: 2 },
+    ]);
+    expect(compactAdvanceDateTickLabel("Sin fecha")).toBe("S/D");
   });
 });
 
