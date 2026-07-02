@@ -283,6 +283,10 @@ export type EstudioBase = {
   surveymonkey_last_refresh?: Record<string, unknown> | null;
   surveymonkey_source_summary?: SurveyMonkeyBaseSourceSummary | null;
   surveymonkey_sources?: SurveyMonkeySourceSummary[];
+  kobo_source_spec?: KoboSourceSpec | null;
+  kobo_effective_data_file_id?: string | null;
+  kobo_refreshed_at?: string | null;
+  kobo_last_refresh?: Record<string, unknown> | null;
   logic_template_base?: string | null;
   logic_template_applied_at?: string | null;
   logic_template_status?: "updated" | "unchanged" | string | null;
@@ -396,6 +400,66 @@ export type EstudioPayload = {
   max_bases: number;
 };
 
+export type EstudioProcessingSuggestionSource = {
+  source_id: string;
+  kind: "surveymonkey" | "kobo" | string;
+  label: string;
+  title: string;
+  actor: string;
+  actor_key: string;
+  channel: string;
+  collection_strategy: string;
+  role: string;
+  integration_mode: string;
+  survey_id: string;
+  asset_uid: string;
+  base_url: string;
+  connection_profile_id: string;
+  version_id?: string;
+  deployment_active?: boolean;
+  response_count?: number | null;
+  collector_ids?: string[];
+  enabled: boolean;
+  last_sync_at: string;
+};
+
+export type EstudioProcessingSuggestionGroup = {
+  id: string;
+  project_kind: "acreditacion" | string;
+  actor: string;
+  actor_key: string;
+  platform: "surveymonkey" | "kobo" | string;
+  label: string;
+  recommended_base_name: string;
+  source_count: number;
+  response_count?: number | null;
+  importable: boolean;
+  import_mode: "surveymonkey_independent_sibling" | "kobo_independent_sibling" | "kobo_detected" | string;
+  confidence: "high" | "medium" | "low" | string;
+  survey_input?: SurveyMonkeyMultibaseSurveyInput | null;
+  kobo_input?: KoboIndependentAssetInput | null;
+  sources: EstudioProcessingSuggestionSource[];
+};
+
+export type EstudioProcessingSuggestions = {
+  ok: true;
+  source: "monitoreo" | string;
+  project_kind?: "acreditacion" | string | null;
+  profile_family?: "acreditacion" | string | null;
+  profile_variant?: string | null;
+  has_suggestions: boolean;
+  message: string;
+  summary: {
+    monitoring_sources_count: number;
+    survey_sources_count: number;
+    actors_count: number;
+    surveymonkey_groups: number;
+    kobo_groups: number;
+  };
+  warnings?: string[];
+  groups: EstudioProcessingSuggestionGroup[];
+};
+
 export type EstudioLogicSyncResult = {
   ok: boolean;
   template_base: string;
@@ -421,6 +485,12 @@ export type EstudioLogicSyncResult = {
 export async function apiEstudioGet() {
   return handle<EstudioPayload>(
     await apiFetch("/api/estudio", { headers: headers() }),
+  );
+}
+
+export async function apiEstudioProcessingSuggestions() {
+  return handle<EstudioProcessingSuggestions>(
+    await apiFetch("/api/estudio/processing-suggestions", { headers: headers() }),
   );
 }
 
@@ -1354,6 +1424,12 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
   keep_missing_status?: boolean;
   canonical_xlsform_file_id?: string;
   use_canonical_xlsform_logic?: boolean;
+  surveymonkey_logic_rules?: string;
+  surveymonkey_logic_rules_by_survey?: Record<string, string>;
+  logic_pages?: Record<string, string[]>;
+  choice_order_overrides?: Record<string, string[]>;
+  choice_code_maps?: ChoiceCodeMap[];
+  replace_existing_logic?: boolean;
 }) {
   return handle<{
     ok: true;
@@ -3287,6 +3363,20 @@ export type KoboSourceSpec = {
   source_alias?: string;
 };
 
+export type KoboIndependentAssetInput = {
+  asset_uid: string;
+  title?: string;
+  name?: string;
+  label?: string;
+  source_alias?: string;
+  source_title?: string;
+  source_channel?: string;
+  channel?: string;
+  collection_strategy?: string;
+  base_url?: string;
+  connection_profile_id?: string;
+};
+
 export type CargaPlatformImportResult = {
   ok: true;
   provider: CargaPlatformProvider;
@@ -3325,6 +3415,63 @@ export async function apiCargaImportKobo(payload: {
 }): Promise<CargaPlatformImportResult> {
   return handle<CargaPlatformImportResult>(
     await apiFetch("/api/carga/platform/kobo/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCargaImportKoboIndependent(payload: {
+  assets: KoboIndependentAssetInput[];
+}) {
+  return handle<{
+    ok: true;
+    provider: "kobo";
+    processing_mode: "independent_siblings";
+    active_base: string | null;
+    bases: EstudioBase[];
+    n_bases: number;
+    estudio: EstudioPayload;
+    xlsform_logic_sync?: EstudioLogicSyncResult | null;
+  }>(
+    await apiFetch("/api/carga/platform/kobo/import-independent", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export type KoboIndependentRefreshResult = {
+  ok: true;
+  provider: "kobo";
+  processing_mode: "independent_siblings";
+  active_base: string | null;
+  results: Array<{
+    ok: true;
+    base_name: string;
+    asset_uid: string;
+    rows_before: number;
+    rows_after: number;
+    total_remote: number;
+    xlsform_file_id: string;
+    data_file_id: string;
+    refreshed_at: string;
+  }>;
+  updated_bases: string[];
+  n_updated_bases: number;
+  bases?: EstudioBase[];
+  estudio: EstudioPayload;
+  message?: string;
+};
+
+export async function apiCargaRefreshKoboIndependent(payload: {
+  base_names?: string[];
+  bases?: Array<string | { base_name?: string; nombre?: string; name?: string }>;
+} = {}) {
+  return handle<KoboIndependentRefreshResult>(
+    await apiFetch("/api/carga/platform/kobo/refresh-independent", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -3419,6 +3566,56 @@ export async function apiCargaExportNormalized(
   }>(
     await apiFetch(`/api/carga/data/normalized-export?${qs.toString()}`, {
       headers: headers(),
+    }),
+  );
+}
+
+export type ProcessingSheetMode = "codigos" | "etiquetas";
+export type ProcessingSheetTypeKind = "integer" | "sm" | "so" | "text" | "other";
+
+export type ProcessingSheetColumn = {
+  key: string;
+  label: string;
+  type: string;
+  type_base: string;
+  type_kind: ProcessingSheetTypeKind;
+  coded: boolean;
+  dummy_parent?: string | null;
+  dummy_code?: string | null;
+};
+
+export type ProcessingSheetPayload = {
+  ok: true;
+  source: "carga" | "analitica" | string;
+  modo: ProcessingSheetMode;
+  columns: ProcessingSheetColumn[];
+  rows: Record<string, string>[];
+  total: number;
+  page: number;
+  page_size: number;
+  n_columns: number;
+  coded: boolean;
+};
+
+export type ProcessingSheetRequest = {
+  modo?: ProcessingSheetMode;
+  page?: number;
+  page_size?: number;
+  pageSize?: number;
+  search?: string;
+  column_filters?: Record<string, string>;
+  columnFilters?: Record<string, string>;
+  sort?: { col: string; desc: boolean } | null;
+  base_nombre?: string | null;
+  baseNombre?: string | null;
+};
+
+export async function apiCargaBaseSheet(opts: ProcessingSheetRequest = {}) {
+  return handle<ProcessingSheetPayload>(
+    await apiFetch("/api/carga/base-sheet", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
     }),
   );
 }
@@ -4812,6 +5009,22 @@ export type MonitoreoProfile = {
   groups: Array<Record<string, unknown>>;
   minimums: Record<string, number>;
   rejection_rules: Array<Record<string, unknown>>;
+  platform_effective_filter?: {
+    enabled?: boolean;
+    variable?: string;
+    values?: string[];
+    label?: string;
+    value_label?: string;
+    source_kind?: string;
+  };
+  platform_test_filter?: {
+    enabled?: boolean;
+    variable?: string;
+    values?: string[];
+    real_values?: string[];
+    label?: string;
+    value_label?: string;
+  };
   key_rules: {
     universe_fields: string[];
     response_fields: string[];
@@ -9012,6 +9225,16 @@ export type DataReviewVariable = {
 export async function apiAnaliticaDataReview() {
   return handle<{ ok: true; variables: DataReviewVariable[] }>(
     await apiFetch("/api/analitica/data-review", { headers: headers() })
+  );
+}
+
+export async function apiAnaliticaBaseSheet(opts: ProcessingSheetRequest = {}) {
+  return handle<ProcessingSheetPayload>(
+    await apiFetch("/api/analitica/base-sheet", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
+    }),
   );
 }
 

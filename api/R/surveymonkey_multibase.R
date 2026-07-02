@@ -357,6 +357,54 @@
   })
 }
 
+.sm_mb_logic_pages <- function(x) {
+  if (is.null(x) || !length(x)) return(NULL)
+  if (is.data.frame(x)) return(NULL)
+  out <- lapply(x, function(qs) as.character(unlist(qs, use.names = FALSE)))
+  names(out) <- as.character(names(x))
+  out <- out[nzchar(names(out))]
+  out
+}
+
+.sm_mb_logic_choice_order_overrides <- function(x) {
+  if (is.null(x) || !length(x)) return(NULL)
+  if (is.data.frame(x)) return(NULL)
+  out <- lapply(x, function(labels) as.character(unlist(labels, use.names = FALSE)))
+  names(out) <- as.character(names(x))
+  out <- out[nzchar(names(out))]
+  out
+}
+
+.sm_mb_logic_rules_by_survey <- function(x) {
+  if (is.null(x) || !length(x)) return(list())
+  out <- list()
+  if (is.data.frame(x)) {
+    if (!all(c("survey_id", "rules") %in% names(x))) return(list())
+    for (i in seq_len(nrow(x))) {
+      sid <- .sm_mb_scalar(x$survey_id[[i]], "")
+      rules <- .sm_mb_scalar(x$rules[[i]], "")
+      if (nzchar(sid) && nzchar(trimws(rules))) out[[sid]] <- rules
+    }
+    return(out)
+  }
+  if (!is.null(names(x)) && any(nzchar(names(x)))) {
+    for (nm in names(x)) {
+      sid <- .sm_mb_scalar(nm, "")
+      rules <- .sm_mb_scalar(x[[nm]], "")
+      if (nzchar(sid) && nzchar(trimws(rules))) out[[sid]] <- rules
+    }
+    return(out)
+  }
+  if (is.list(x)) {
+    for (item in x) {
+      sid <- .sm_mb_scalar(item$survey_id %||% item$id, "")
+      rules <- .sm_mb_scalar(item$rules %||% item$logic_rules %||% item$reglas, "")
+      if (nzchar(sid) && nzchar(trimws(rules))) out[[sid]] <- rules
+    }
+  }
+  out
+}
+
 .sm_mb_canonical_inst <- function(sid, file_id = "") {
   if (nzchar(file_id)) {
     meta <- get_file(sid, file_id)
@@ -3888,9 +3936,20 @@ sm_multibase_import_independent <- function(sid,
                                             response_statuses = c("completed"),
                                             keep_missing_status = TRUE,
                                             canonical_file_id = "",
-                                            use_canonical_xlsform_logic = FALSE) {
+                                            use_canonical_xlsform_logic = FALSE,
+                                            logic_rules = "",
+                                            logic_rules_by_survey = NULL,
+                                            logic_pages = NULL,
+                                            choice_order_overrides = NULL,
+                                            choice_code_maps = NULL,
+                                            replace_existing_logic = FALSE) {
   specs <- .sm_mb_normalize_survey_specs(specs)
   if (!length(specs)) stop_api(400, "E_SM_NO_SURVEYS", "Selecciona al menos una encuesta.")
+  logic_rules <- .sm_mb_scalar(logic_rules, "")
+  has_direct_logic <- nzchar(trimws(logic_rules))
+  logic_rules_by_survey <- .sm_mb_logic_rules_by_survey(logic_rules_by_survey)
+  logic_pages <- .sm_mb_logic_pages(logic_pages)
+  choice_order_overrides <- .sm_mb_logic_choice_order_overrides(choice_order_overrides)
 
   existing <- estudio_list_bases(sid)
   if (length(existing) > 0L && !estudio_is_independent_siblings(sid)) {
@@ -3984,6 +4043,40 @@ sm_multibase_import_independent <- function(sid,
     planned_names <- c(planned_names, base_name)
 
     xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    direct_logic_sync <- NULL
+    specific_logic_rules <- .sm_mb_scalar(logic_rules_by_survey[[spec$survey_id]], "")
+    specific_logic <- nzchar(trimws(specific_logic_rules))
+    applied_logic_rules <- if (specific_logic) specific_logic_rules else logic_rules
+    if (isTRUE(has_direct_logic) || specific_logic) {
+      xls_model <- tryCatch(
+        surveymonkey_aplicar_logica(
+          xls_model,
+          applied_logic_rules,
+          xls_model$sm_logic,
+          paginas = logic_pages,
+          choice_order_overrides = choice_order_overrides,
+          choice_code_maps = choice_code_maps,
+          replace_existing = isTRUE(replace_existing_logic)
+        ),
+        error = function(e) {
+          stop_api(
+            400,
+            "E_SM_LOGIC_APPLY_FAILED",
+            sprintf("No se pudo aplicar la lógica SurveyMonkey a '%s': %s", label, conditionMessage(e))
+          )
+        }
+      )
+      direct_logic_sync <- list(
+        kind = "surveymonkey_direct_logic",
+        source = "import_independent",
+        applied = TRUE,
+        applied_at = imported_at,
+        rules_count = as.integer(nrow(surveymonkey_parsear_logica(applied_logic_rules))),
+        rules_scope = if (specific_logic) "survey" else "global",
+        survey_id = spec$survey_id,
+        replace_existing = isTRUE(replace_existing_logic)
+      )
+    }
     canonical_sync <- NULL
     if (!is.null(canonical_logic)) {
       canonical_sync <- .sm_mb_apply_canonical_logic_to_model(canonical_logic, xls_model)
@@ -4123,6 +4216,7 @@ sm_multibase_import_independent <- function(sid,
       decision_policy = decision_policy,
       raw_snapshot_sources = raw_snapshot_sources,
       canonical_logic_sync = canonical_sync,
+      direct_logic_sync = direct_logic_sync,
       source_kind = if (length(source_specs) > 1L) {
         "surveymonkey_api_multi_source"
       } else if (nzchar(spec$data_file_id)) {
@@ -4177,7 +4271,8 @@ sm_multibase_import_independent <- function(sid,
         surveymonkey_raw_snapshot_file_id = raw_meta$file_id %||% "",
         surveymonkey_decision_policy = item$decision_policy,
         surveymonkey_decision_audit = item$response_filter,
-        surveymonkey_source_spec = item$source_spec
+        surveymonkey_source_spec = item$source_spec,
+        surveymonkey_logic_sync = item$direct_logic_sync %||% NULL
       )
     )
     if (is.list(item$canonical_logic_sync) && length(item$canonical_logic_sync)) {
@@ -4779,7 +4874,13 @@ mount_surveymonkey_multibase <- function(pr) {
         response_statuses = .sm_mb_response_statuses(parsed$response_statuses),
         keep_missing_status = if (is.null(parsed$keep_missing_status)) TRUE else isTRUE(parsed$keep_missing_status),
         canonical_file_id = .sm_mb_scalar(parsed$canonical_xlsform_file_id, ""),
-        use_canonical_xlsform_logic = isTRUE(parsed$use_canonical_xlsform_logic)
+        use_canonical_xlsform_logic = isTRUE(parsed$use_canonical_xlsform_logic),
+        logic_rules = .sm_mb_scalar(parsed$surveymonkey_logic_rules %||% parsed$logic_rules %||% parsed$reglas, ""),
+        logic_rules_by_survey = parsed$surveymonkey_logic_rules_by_survey %||% parsed$logic_rules_by_survey %||% NULL,
+        logic_pages = parsed$surveymonkey_logic_pages %||% parsed$logic_pages %||% parsed$paginas %||% NULL,
+        choice_order_overrides = parsed$choice_order_overrides %||% NULL,
+        choice_code_maps = parsed$choice_code_maps %||% NULL,
+        replace_existing_logic = isTRUE(parsed$replace_existing_logic)
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/apply-canonical-xlsform-logic", wrap_endpoint(function(req, res, ...) {

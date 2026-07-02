@@ -13,7 +13,7 @@ import {
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
-// activo y errores de sesión solo cuando existen. El topbar de las etapas 6-10
+// activo y errores de sesión solo cuando existen. El topbar local de etapas
 // (Carga → Gráficos) aparece SOLO cuando
 // el usuario está dentro del módulo de carga, limpieza y análisis — el
 // Home (`/`) no lo muestra porque es un menú de módulos a nivel superior,
@@ -81,34 +81,34 @@ function useNavItems(): NavItem[] {
   const hasAnalitica = !!state?.analitica_prep_ok;
 
   return [
-    { to: "/carga", n: 6, label: "Carga", done: hasXlsform && hasData },
+    { to: "/carga", n: 1, label: "Carga", done: hasXlsform && hasData },
     {
       to: "/validacion",
-      n: 7,
+      n: 2,
       label: "Validación",
       done: !!state?.auditoria_run,
-      blockedReason: hasXlsform ? undefined : "Bloqueada: carga un XLSForm en la etapa 6.",
+      blockedReason: hasXlsform ? undefined : "Bloqueada: carga un XLSForm en Carga.",
     },
     {
       to: "/codificacion",
-      n: 8,
+      n: 3,
       label: "Codificación",
       done: !!state?.codif_aplicado,
-      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación en la etapa 6.",
+      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación.",
     },
     {
       to: "/analitica",
-      n: 9,
+      n: 4,
       label: "Analítica",
       done: hasAnalitica,
-      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación en la etapa 6.",
+      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación.",
     },
     {
       to: "/graficos",
-      n: 10,
+      n: 5,
       label: "Gráficos",
       done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok,
-      blockedReason: hasAnalitica ? undefined : "Bloqueada: prepara Analítica en la etapa 9.",
+      blockedReason: hasAnalitica ? undefined : "Bloqueada: prepara Analítica.",
     },
   ];
 }

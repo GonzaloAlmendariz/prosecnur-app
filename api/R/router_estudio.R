@@ -50,6 +50,350 @@
   if (is.na(out)) default else trimws(out)
 }
 
+.estudio_suggestion_key <- function(value) {
+  out <- iconv(as.character(value %||% ""), to = "ASCII//TRANSLIT")
+  out <- tolower(trimws(out))
+  out <- gsub("[^a-z0-9]+", " ", out)
+  trimws(out)
+}
+
+.estudio_suggestion_slug <- function(value, fallback = "base") {
+  out <- .estudio_suggestion_key(value)
+  out <- gsub("\\s+", "_", out)
+  out <- gsub("^_+|_+$", "", out)
+  if (!nzchar(out)) fallback else out
+}
+
+.estudio_suggestion_records <- function(value) {
+  if (is.null(value)) return(list())
+  if (is.data.frame(value)) {
+    return(unname(lapply(seq_len(nrow(value)), function(i) as.list(value[i, , drop = FALSE]))))
+  }
+  if (!is.list(value)) return(list())
+  unname(lapply(value, function(item) if (is.list(item)) item else list(value = item)))
+}
+
+.estudio_suggestion_profile <- function(s) {
+  cfg <- s$monitoreo_config %||% list()
+  cfg$monitoreo_profile %||% s$monitoreo_profile %||% list()
+}
+
+.estudio_suggestion_sources <- function(s) {
+  cfg <- s$monitoreo_config %||% list()
+  snapshot <- s$monitoreo_snapshot %||% list()
+  .estudio_suggestion_records(
+    s$monitoreo_sources %||% snapshot$sources %||% cfg$sources %||% cfg$fuentes %||% list()
+  )
+}
+
+.estudio_suggestion_source_title <- function(src) {
+  .estudio_scalar(
+    src$survey_title %||% (src$dimensions %||% list())$survey_title %||%
+      src$title %||% src$label %||% src$name %||% src$survey_id %||% src$asset_uid %||% src$id,
+    ""
+  )
+}
+
+.estudio_suggestion_actor <- function(src) {
+  dims <- src$dimensions %||% list()
+  direct <- .estudio_scalar(dims$actor %||% dims$carrera %||% dims$segmento %||% dims$unidad, "")
+  if (nzchar(direct)) return(direct)
+  haystack <- .estudio_suggestion_key(paste(
+    .estudio_scalar(src$id, ""),
+    .estudio_scalar(src$label, ""),
+    .estudio_suggestion_source_title(src),
+    collapse = " "
+  ))
+  actors <- list(
+    estudiantes = "Estudiantes",
+    docentes = "Docentes",
+    administrativos = "Administrativos",
+    egresados = "Egresados",
+    empleadores = "Empleadores",
+    autoridades = "Autoridades"
+  )
+  for (key in names(actors)) {
+    if (grepl(key, haystack, fixed = TRUE)) return(actors[[key]])
+  }
+  ""
+}
+
+.estudio_suggestion_channel_label <- function(value) {
+  key <- .estudio_suggestion_key(value)
+  if (!nzchar(key)) return("")
+  if (grepl("telefon|phone|llamada", key)) return("Telefónico")
+  if (grepl("whatsapp", key)) return("WhatsApp")
+  if (grepl("sms", key)) return("SMS")
+  if (grepl("ficha|qr|presencial", key)) return("Ficha QR")
+  if (grepl("correo|email|mail", key)) return("Correo")
+  if (grepl("web|online|link|enlace", key)) return("Correo")
+  "Mixto"
+}
+
+.estudio_suggestion_source_channel <- function(src) {
+  dims <- src$dimensions %||% list()
+  direct <- .estudio_scalar(dims$canal %||% dims$channel %||% dims$modalidad %||% dims$medio, "")
+  if (nzchar(direct)) {
+    label <- .estudio_suggestion_channel_label(direct)
+    return(if (nzchar(label)) label else direct)
+  }
+  fallback <- paste(.estudio_scalar(src$label, ""), .estudio_suggestion_source_title(src))
+  label <- .estudio_suggestion_channel_label(fallback)
+  if (nzchar(label)) label else ""
+}
+
+.estudio_suggestion_collection_strategy <- function(channel) {
+  key <- .estudio_suggestion_key(channel)
+  if (grepl("whatsapp", key)) return("whatsapp_link")
+  if (grepl("correo|email|mail", key)) return("email")
+  if (grepl("web|online|link|enlace|ficha|qr", key)) return("web_link")
+  if (grepl("telefon|phone|llamada", key)) return("campo")
+  "campo"
+}
+
+.estudio_suggestion_source_enabled <- function(src) {
+  enabled <- src$enabled
+  if (is.null(enabled) || !length(enabled)) return(TRUE)
+  isTRUE(enabled[[1]]) || identical(as.character(enabled[[1]]), "TRUE")
+}
+
+.estudio_suggestion_response_count <- function(src) {
+  direct <- suppressWarnings(as.numeric(src$response_count %||% src$n_rows %||% src$total %||% NA_real_)[1])
+  if (is.finite(direct)) return(as.integer(direct))
+  collectors <- .estudio_suggestion_records(src$collectors %||% list())
+  if (!length(collectors)) return(NA_integer_)
+  counts <- vapply(collectors, function(collector) {
+    value <- collector$active_response_count %||% collector$response_count %||% collector$responses %||% 0
+    out <- suppressWarnings(as.numeric(value)[1])
+    if (is.finite(out)) out else 0
+  }, numeric(1))
+  as.integer(sum(counts, na.rm = TRUE))
+}
+
+.estudio_suggestion_collector_ids <- function(src) {
+  collectors <- .estudio_suggestion_records(src$collectors %||% list())
+  ids <- vapply(collectors, function(collector) {
+    .estudio_scalar(collector$collector_id %||% collector$id, "")
+  }, character(1))
+  as.list(unique(ids[nzchar(ids)]))
+}
+
+.estudio_suggestion_source_payload <- function(src) {
+  kind <- .estudio_scalar(src$kind, "")
+  actor <- .estudio_suggestion_actor(src)
+  channel <- .estudio_suggestion_source_channel(src)
+  list(
+    source_id = .estudio_scalar(src$id %||% src$key, ""),
+    kind = kind,
+    label = .estudio_scalar(src$label %||% src$name, ""),
+    title = .estudio_suggestion_source_title(src),
+    actor = actor,
+    actor_key = .estudio_suggestion_slug(actor, "sin_actor"),
+    channel = channel,
+    collection_strategy = .estudio_suggestion_collection_strategy(channel),
+    role = .estudio_scalar(src$role, ""),
+    integration_mode = .estudio_scalar(src$integration_mode, ""),
+    survey_id = .estudio_scalar(src$survey_id, ""),
+    asset_uid = .estudio_scalar(src$asset_uid, ""),
+    base_url = .estudio_scalar(src$base_url, ""),
+    connection_profile_id = .estudio_scalar(src$connection_profile_id, ""),
+    version_id = .estudio_scalar(src$version_id %||% src$kobo_version_id, ""),
+    deployment_active = isTRUE(src$deployment_active),
+    response_count = .estudio_suggestion_response_count(src),
+    collector_ids = .estudio_suggestion_collector_ids(src),
+    enabled = .estudio_suggestion_source_enabled(src),
+    last_sync_at = .estudio_scalar(src$last_sync_at, "")
+  )
+}
+
+.estudio_suggestion_group_survey_input <- function(group_sources, actor) {
+  sm_sources <- Filter(function(src) identical(src$kind, "surveymonkey") && nzchar(src$survey_id), group_sources)
+  if (!length(sm_sources)) return(NULL)
+  channels <- unique(vapply(sm_sources, function(src) src$channel, character(1)))
+  channels <- channels[nzchar(channels)]
+  channel <- if (length(channels) > 1L) "Mixto" else (channels[[1]] %||% "")
+  collection_strategy <- if (identical(channel, "Mixto")) "campo" else .estudio_suggestion_collection_strategy(channel)
+  source_inputs <- lapply(sm_sources, function(src) {
+    out <- list(
+      survey_id = src$survey_id,
+      label = src$label %||% src$title %||% actor,
+      source_alias = actor,
+      source_title = src$title %||% src$label %||% actor,
+      channel = src$channel,
+      source_channel = src$channel,
+      collection_strategy = src$collection_strategy,
+      response_statuses = as.list("completed"),
+      keep_missing_status = FALSE
+    )
+    if (length(src$collector_ids %||% list())) out$collector_ids <- src$collector_ids
+    out
+  })
+  primary <- source_inputs[[1]]
+  out <- list(
+    survey_id = primary$survey_id,
+    label = actor,
+    source_alias = actor,
+    source_title = actor,
+    channel = channel,
+    source_channel = channel,
+    collection_strategy = collection_strategy,
+    response_statuses = as.list("completed"),
+    keep_missing_status = FALSE
+  )
+  if (length(source_inputs) > 1L ||
+      length(primary$collector_ids %||% list()) ||
+      !identical(primary$channel %||% "", channel)) {
+    out$sources <- source_inputs
+  } else {
+    if (length(primary$collector_ids %||% list())) out$collector_ids <- primary$collector_ids
+  }
+  out
+}
+
+.estudio_suggestion_group_kobo_input <- function(group_sources, actor) {
+  kobo_sources <- Filter(function(src) identical(src$kind, "kobo") && nzchar(src$asset_uid), group_sources)
+  if (!length(kobo_sources)) return(NULL)
+  primary <- kobo_sources[[1]]
+  out <- list(
+    asset_uid = primary$asset_uid,
+    label = actor,
+    source_alias = actor,
+    source_title = primary$title %||% primary$label %||% actor,
+    title = primary$title %||% primary$label %||% actor,
+    base_url = primary$base_url %||% "",
+    connection_profile_id = primary$connection_profile_id %||% "",
+    channel = primary$channel %||% "",
+    source_channel = primary$channel %||% "",
+    collection_strategy = primary$collection_strategy %||% ""
+  )
+  source_inputs <- lapply(kobo_sources, function(src) {
+    list(
+      asset_uid = src$asset_uid,
+      label = src$label %||% src$title %||% actor,
+      source_alias = actor,
+      source_title = src$title %||% src$label %||% actor,
+      title = src$title %||% src$label %||% actor,
+      base_url = src$base_url %||% "",
+      connection_profile_id = src$connection_profile_id %||% "",
+      channel = src$channel %||% "",
+      source_channel = src$channel %||% "",
+      collection_strategy = src$collection_strategy %||% ""
+    )
+  })
+  if (length(source_inputs) > 1L ||
+      !identical(primary$base_url %||% "", out$base_url) ||
+      !identical(primary$connection_profile_id %||% "", out$connection_profile_id)) {
+    out$sources <- source_inputs
+  }
+  out
+}
+
+.estudio_processing_suggestions_payload <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) stop_api(404, "E_NO_SESSION", "Sin sesión.")
+  profile <- .estudio_suggestion_profile(s)
+  profile_family <- .estudio_scalar(profile$family, "")
+  profile_variant <- .estudio_scalar(profile$variant, "")
+  sources_raw <- .estudio_suggestion_sources(s)
+  sources <- lapply(sources_raw, .estudio_suggestion_source_payload)
+  sources <- Filter(function(src) isTRUE(src$enabled), sources)
+  survey_sources <- Filter(function(src) {
+    src$kind %in% c("surveymonkey", "kobo") &&
+      (.estudio_suggestion_key(src$role) %in% c("", "respuestas", "respuesta") ||
+         nzchar(src$survey_id) || nzchar(src$asset_uid))
+  }, sources)
+  is_acreditacion <- identical(profile_family, "acreditacion") ||
+    any(grepl("acreditacion", .estudio_suggestion_key(vapply(sources, function(src) {
+      paste(src$label, src$title, src$source_id, collapse = " ")
+    }, character(1)))))
+
+  warnings <- list()
+  if (!is_acreditacion && length(survey_sources)) {
+    warnings <- c(warnings, "Hay fuentes de encuesta en Monitoreo, pero no se detectó perfil de acreditación.")
+  }
+
+  groups <- list()
+  if (is_acreditacion && length(survey_sources)) {
+    keyed <- split(survey_sources, vapply(survey_sources, function(src) {
+      actor_key <- src$actor_key
+      if (!nzchar(actor_key) || identical(actor_key, "sin_actor")) {
+        actor_key <- .estudio_suggestion_slug(src$label %||% src$title, "sin_actor")
+      }
+      paste(src$kind, actor_key, sep = "::")
+    }, character(1)))
+    groups <- lapply(names(keyed), function(key) {
+      rows <- keyed[[key]]
+      actor <- rows[[1]]$actor
+      if (!nzchar(actor)) actor <- rows[[1]]$label %||% rows[[1]]$title %||% "Sin actor"
+      platform <- rows[[1]]$kind
+      response_counts <- vapply(rows, function(src) {
+        value <- suppressWarnings(as.numeric(src$response_count)[1])
+        if (is.finite(value)) value else 0
+      }, numeric(1))
+      survey_input <- if (identical(platform, "surveymonkey")) {
+        .estudio_suggestion_group_survey_input(rows, actor)
+      } else {
+        NULL
+      }
+      kobo_input <- if (identical(platform, "kobo")) {
+        .estudio_suggestion_group_kobo_input(rows, actor)
+      } else {
+        NULL
+      }
+      list(
+        id = paste("monitoreo", "acreditacion", platform, .estudio_suggestion_slug(actor), sep = ":"),
+        project_kind = "acreditacion",
+        actor = actor,
+        actor_key = .estudio_suggestion_slug(actor, "sin_actor"),
+        platform = platform,
+        label = sprintf("%s · %s", actor, if (identical(platform, "surveymonkey")) "SurveyMonkey" else "Kobo"),
+        recommended_base_name = .estudio_suggestion_slug(actor, "base"),
+        source_count = length(rows),
+        response_count = as.integer(sum(response_counts, na.rm = TRUE)),
+        importable = (identical(platform, "surveymonkey") && !is.null(survey_input)) ||
+          (identical(platform, "kobo") && !is.null(kobo_input)),
+        import_mode = if (identical(platform, "surveymonkey")) "surveymonkey_independent_sibling" else if (!is.null(kobo_input)) "kobo_independent_sibling" else "kobo_detected",
+        confidence = if (all(vapply(rows, function(src) nzchar(src$actor), logical(1)))) "high" else "medium",
+        survey_input = survey_input %||% NA,
+        kobo_input = kobo_input %||% NA,
+        sources = rows
+      )
+    })
+    actor_order <- c("estudiantes", "docentes", "administrativos", "egresados", "empleadores", "autoridades")
+    groups <- groups[order(vapply(groups, function(group) {
+      hit <- match(group$actor_key, actor_order)
+      if (is.na(hit)) 999L else hit
+    }, integer(1)), vapply(groups, function(group) group$actor, character(1)))]
+  }
+
+  sm_groups <- Filter(function(group) identical(group$platform, "surveymonkey"), groups)
+  kobo_groups <- Filter(function(group) identical(group$platform, "kobo"), groups)
+  list(
+    ok = TRUE,
+    source = "monitoreo",
+    project_kind = if (is_acreditacion) "acreditacion" else NA_character_,
+    profile_family = if (nzchar(profile_family)) profile_family else NA_character_,
+    profile_variant = if (nzchar(profile_variant)) profile_variant else NA_character_,
+    has_suggestions = length(groups) > 0L,
+    message = if (length(groups)) {
+      sprintf("Detecté %d grupo%s de encuesta desde Monitoreo.", length(groups), if (length(groups) == 1L) "" else "s")
+    } else if (is_acreditacion) {
+      "Monitoreo está en acreditación, pero no encontré fuentes activas de encuesta para Procesamiento."
+    } else {
+      "No encontré un monitoreo de acreditación con fuentes de encuesta listas para sugerir."
+    },
+    summary = list(
+      monitoring_sources_count = length(sources),
+      survey_sources_count = length(survey_sources),
+      actors_count = length(unique(vapply(groups, function(group) group$actor_key, character(1)))),
+      surveymonkey_groups = length(sm_groups),
+      kobo_groups = length(kobo_groups)
+    ),
+    warnings = warnings,
+    groups = groups
+  )
+}
+
 .estudio_choice_key <- function(x) {
   out <- iconv(as.character(x %||% ""), to = "ASCII//TRANSLIT")
   out <- tolower(trimws(out))
@@ -442,6 +786,11 @@
 
 .estudio_sm_source_summary <- function(meta) {
   if (is.null(meta) || !is.list(meta)) return(NULL)
+  source_kind <- .estudio_scalar(meta$source_kind %||% (meta$response_filter %||% list())$kind, "")
+  if (is.null(meta$surveymonkey_source_spec) &&
+      !grepl("surveymonkey", source_kind, ignore.case = TRUE)) {
+    return(NULL)
+  }
   spec <- meta$surveymonkey_source_spec %||% list()
   filter <- meta$response_filter %||% list()
   audit <- meta$surveymonkey_decision_audit %||% list()
@@ -513,7 +862,7 @@
     kind = "surveymonkey_source_summary",
     source_count = as.integer(length(records)),
     main_survey_id = .estudio_scalar(meta$survey_id %||% records[[1]]$survey_id, ""),
-    channel_label = if (length(channel_keys) > 1L) "Mixto" else (channel_labels[[1]] %||% ""),
+    channel_label = if (length(channel_keys) > 1L) "Mixto" else if (length(channel_labels)) channel_labels[[1]] else "",
     channels = as.list(channel_labels),
     has_phone = has_key("telefono"),
     has_email = has_key("correo"),
@@ -606,6 +955,8 @@
     surveymonkey_last_refresh = meta$surveymonkey_last_refresh %||% NA,
     surveymonkey_source_summary = sm_source_summary %||% NA,
     surveymonkey_sources = if (is.null(sm_source_summary)) list() else sm_source_summary$sources,
+    kobo_source_spec = meta$kobo_source_spec %||% NA,
+    kobo_effective_data_file_id = as.character(meta$kobo_effective_data_file_id %||% NA_character_),
     logic_template_base = as.character(meta$logic_template_base %||% NA_character_),
     logic_template_applied_at = as.character(meta$logic_template_applied_at %||% NA_character_),
     logic_template_status = as.character(meta$logic_template_status %||% NA_character_),
@@ -1245,6 +1596,30 @@ mount_estudio <- function(pr) {
         ))
       }
       .estudio_payload(sid)
+    })) |>
+    plumber::pr_get("/api/estudio/processing-suggestions", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      if (is.null(session_get(sid, required = FALSE))) {
+        return(list(
+          ok = TRUE,
+          source = "monitoreo",
+          project_kind = NA_character_,
+          profile_family = NA_character_,
+          profile_variant = NA_character_,
+          has_suggestions = FALSE,
+          message = "Abre un proyecto con Monitoreo para recibir sugerencias de Procesamiento.",
+          summary = list(
+            monitoring_sources_count = 0L,
+            survey_sources_count = 0L,
+            actors_count = 0L,
+            surveymonkey_groups = 0L,
+            kobo_groups = 0L
+          ),
+          warnings = list(),
+          groups = list()
+        ))
+      }
+      .estudio_processing_suggestions_payload(sid)
     })) |>
     plumber::pr_handle("PATCH", "/api/estudio", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

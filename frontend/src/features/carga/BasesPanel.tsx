@@ -6,12 +6,15 @@ import {
 } from "lucide-react";
 import {
   apiCargaExportNormalized,
+  apiCargaImportKoboIndependent,
+  apiCargaRefreshKoboIndependent,
   apiConnectionProfileSetDefault,
   apiConnectionTokenLoad,
   apiEstudioAddBase,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioDowngradeToSingle,
   apiEstudioGet,
+  apiEstudioProcessingSuggestions,
   apiEstudioPromoteIndependentSiblings,
   apiEstudioRemoveBase,
   apiEstudioRenameBase,
@@ -31,6 +34,7 @@ import {
   apiSurveyMonkeyMultibaseSavBundleInspect,
   apiSurveyMonkeyMultibaseWorkbookImport,
   apiSurveyMonkeyMultibaseWorkbookInspect,
+  apiXlsformEditorSmInterpretRule,
   apiUpload,
   downloadUrl,
   uploadKindForDataFile,
@@ -42,6 +46,11 @@ import type {
   EstudioMultiIntegrated,
   EstudioMultiIntegratedOrigin,
   EstudioPayload,
+  EstudioProcessingSuggestionGroup,
+  EstudioProcessingSuggestionSource,
+  EstudioProcessingSuggestions,
+  KoboIndependentRefreshResult,
+  KoboIndependentAssetInput,
   SurveyMonkeyMultibaseSurveyInput,
   SurveyMonkeyMultibaseAudit,
   SurveyMonkeyMultibaseCollector,
@@ -58,6 +67,7 @@ import type {
   SurveyMonkeySavBundleInspection,
   SurveyMonkeyWorkbookImportResult,
   SurveyMonkeyWorkbookInspection,
+  RuleInterpretation,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
@@ -902,6 +912,7 @@ type SmExtraSourceDraft = SmImportScopeFields & {
 
 type SmImportScopeDraft = SmImportScopeFields & {
   alias: string;
+  logicRules: string;
   targetBaseName?: string;
   extraSources: SmExtraSourceDraft[];
 };
@@ -934,8 +945,243 @@ function smDefaultScopeDraft(): SmImportScopeDraft {
   return {
     ...smDefaultScopeFields(),
     alias: "",
+    logicRules: "",
     extraSources: [],
   };
+}
+
+function smMonitoringSuggestionPrimarySource(group: EstudioProcessingSuggestionGroup) {
+  return group.sources.find((source) => source.kind === "surveymonkey" && source.survey_id)
+    ?? group.sources.find((source) => source.survey_id)
+    ?? null;
+}
+
+function smMonitoringSuggestionCanImport(
+  group: EstudioProcessingSuggestionGroup,
+  existingSurveyIds: Iterable<string>,
+  selectedSurveyIds: Iterable<string> = [],
+) {
+  const primary = smMonitoringSuggestionPrimarySource(group);
+  if (!group.importable || group.platform !== "surveymonkey" || !primary?.survey_id) return false;
+  const existing = new Set(Array.from(existingSurveyIds).map((id) => String(id).trim()).filter(Boolean));
+  const selected = new Set(Array.from(selectedSurveyIds).map((id) => String(id).trim()).filter(Boolean));
+  return !existing.has(primary.survey_id) && !selected.has(primary.survey_id);
+}
+
+function koboAssetIdsFromBase(base: EstudioBase) {
+  return Array.from(new Set([
+    base.kobo_source_spec?.asset_uid,
+    base.survey_id,
+  ].map((id) => String(id || "").trim()).filter(Boolean)));
+}
+
+function koboMonitoringSuggestionPrimarySource(group: EstudioProcessingSuggestionGroup) {
+  return group.sources.find((source) => source.kind === "kobo" && source.asset_uid)
+    ?? group.sources.find((source) => source.asset_uid)
+    ?? null;
+}
+
+function koboMonitoringSuggestionCanImport(
+  group: EstudioProcessingSuggestionGroup,
+  existingAssetIds: Iterable<string>,
+) {
+  const primary = koboMonitoringSuggestionPrimarySource(group);
+  if (!group.importable || group.platform !== "kobo" || !primary?.asset_uid) return false;
+  const existing = new Set(Array.from(existingAssetIds).map((id) => String(id).trim()).filter(Boolean));
+  return !existing.has(primary.asset_uid);
+}
+
+function koboMonitoringSuggestionInput(group: EstudioProcessingSuggestionGroup): KoboIndependentAssetInput | null {
+  const primary = koboMonitoringSuggestionPrimarySource(group);
+  if (!primary?.asset_uid) return null;
+  return {
+    ...(group.kobo_input ?? {}),
+    asset_uid: primary.asset_uid,
+    title: group.kobo_input?.title || primary.title || primary.label || group.actor,
+    label: group.kobo_input?.label || group.actor,
+    source_alias: group.kobo_input?.source_alias || group.actor,
+    source_title: group.kobo_input?.source_title || primary.title || primary.label || group.actor,
+    source_channel: group.kobo_input?.source_channel || primary.channel || "",
+    channel: group.kobo_input?.channel || primary.channel || "",
+    collection_strategy: group.kobo_input?.collection_strategy || primary.collection_strategy || "",
+    base_url: group.kobo_input?.base_url || primary.base_url || "",
+    connection_profile_id: group.kobo_input?.connection_profile_id || primary.connection_profile_id || "",
+  };
+}
+
+function smSuggestionCatalogItem(source: EstudioProcessingSuggestionSource): SurveyMonkeyMultibaseListItem {
+  return {
+    id: source.survey_id,
+    title: source.title || source.label || source.survey_id,
+    nickname: source.label || source.actor || null,
+    date_modified: source.last_sync_at || null,
+    pais_guess: null,
+    response_count: source.response_count ?? null,
+  };
+}
+
+function smMergeSuggestionCatalog(
+  current: SurveyMonkeyMultibaseListItem[] | null,
+  groups: EstudioProcessingSuggestionGroup[],
+) {
+  const byId = new Map<string, SurveyMonkeyMultibaseListItem>();
+  for (const item of current ?? []) byId.set(item.id, item);
+  for (const group of groups) {
+    for (const source of group.sources) {
+      if (source.kind !== "surveymonkey" || !source.survey_id) continue;
+      if (!byId.has(source.survey_id)) byId.set(source.survey_id, smSuggestionCatalogItem(source));
+    }
+  }
+  return Array.from(byId.values());
+}
+
+function smMonitoringSuggestionScope(
+  group: EstudioProcessingSuggestionGroup,
+  current?: SmImportScopeDraft,
+): SmImportScopeDraft {
+  const smSources = group.sources.filter((source) => source.kind === "surveymonkey" && source.survey_id);
+  const primary = smSources[0];
+  const alias = group.actor || group.label || primary?.label || primary?.title || "";
+  const primaryChannel = primary?.channel || group.survey_input?.channel || "";
+  const primaryStrategy = (primary?.collection_strategy || group.survey_input?.collection_strategy || "campo") as SmImportScopeFields["collectionStrategy"];
+  return {
+    ...smDefaultScopeDraft(),
+    ...(current ?? {}),
+    alias,
+    channel: smChannelLabel(primaryChannel) || primaryChannel,
+    collectionStrategy: primaryStrategy,
+    collectorIds: (primary?.collector_ids ?? []).join(", "),
+    extraSources: smSources.slice(1).map((source) => ({
+      ...smDefaultScopeFields(),
+      key: smNewScopeKey(),
+      surveyId: source.survey_id,
+      label: [group.actor, smChannelLabel(source.channel) || source.channel]
+        .filter(Boolean)
+        .join(" · ") || group.actor || source.label || source.title,
+      query: "",
+      channel: smChannelLabel(source.channel) || source.channel,
+      collectionStrategy: (source.collection_strategy || "campo") as SmImportScopeFields["collectionStrategy"],
+      collectorIds: (source.collector_ids ?? []).join(", "),
+    })),
+  };
+}
+
+function smSuggestionUsesPersonalizedLink(source: EstudioProcessingSuggestionSource) {
+  const haystack = [
+    source.collection_strategy,
+    source.channel,
+    source.label,
+    source.title,
+  ].join(" ").toLowerCase();
+  return haystack.includes("whatsapp")
+    || haystack.includes("sms")
+    || haystack.includes("personalizado")
+    || haystack.includes("custom link")
+    || haystack.includes("web link")
+    || haystack.includes("weblink")
+    || haystack.includes("enlace");
+}
+
+export function smSuggestedSurveyMonkeyLogicRulesFromMonitoring(
+  suggestions: EstudioProcessingSuggestions | null | undefined,
+) {
+  if (!suggestions) return "";
+  const isAccreditation = suggestions.project_kind === "acreditacion" || suggestions.profile_family === "acreditacion";
+  if (!isAccreditation) return "";
+  const personalizedSources = suggestions.groups
+    .filter((group) => group.platform === "surveymonkey")
+    .flatMap((group) => group.sources)
+    .filter((source) => source.kind === "surveymonkey" && smSuggestionUsesPersonalizedLink(source));
+  if (!personalizedSources.length) return "";
+  return "Q1 = C1 => Ocultar P2.";
+}
+
+export function smSurveyMonkeyLogicRuleLines(text: string) {
+  return text
+    .split(/\r?\n|;/g)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+type SmLogicPreviewRow = {
+  rule: string;
+  ok: boolean;
+  summary: string;
+  detail: string;
+  warnings: string[];
+  origin?: string;
+};
+
+type SmLogicPreviewEntry = {
+  rule: string;
+  origin?: string;
+};
+
+export function smSurveyMonkeyLogicPreviewNeedsReview(
+  ruleLines: string[],
+  preview: Array<{ rule: string; ok: boolean }> | null | undefined,
+) {
+  if (!ruleLines.length) return false;
+  if (!preview || preview.length !== ruleLines.length) return true;
+  return ruleLines.some((rule, index) => preview[index]?.rule !== rule || !preview[index]?.ok);
+}
+
+export function smSurveySpecificLogicRulesBySurvey(
+  items: Array<{ id: string }>,
+  drafts: Record<string, { logicRules?: string } | undefined>,
+) {
+  const out: Record<string, string> = {};
+  for (const item of items) {
+    const rules = String(drafts[item.id]?.logicRules ?? "").trim();
+    if (item.id && rules) out[item.id] = rules;
+  }
+  return out;
+}
+
+export function smSurveyMonkeyLogicPreviewEntries(
+  commonRules: string,
+  specificRulesBySurvey: Record<string, string>,
+  surveyLabels: Record<string, string> = {},
+) {
+  const entries: SmLogicPreviewEntry[] = smSurveyMonkeyLogicRuleLines(commonRules)
+    .map((rule) => ({ rule, origin: "Regla común" }));
+  for (const [surveyId, rulesText] of Object.entries(specificRulesBySurvey)) {
+    const label = surveyLabels[surveyId] || surveyId;
+    entries.push(...smSurveyMonkeyLogicRuleLines(rulesText).map((rule) => ({
+      rule,
+      origin: `Actor ${label}`,
+    })));
+  }
+  return entries;
+}
+
+function smLogicPreviewRow(entry: SmLogicPreviewEntry, interpretation: RuleInterpretation): SmLogicPreviewRow {
+  const rule = entry.rule;
+  if (interpretation.ok !== true) {
+    return {
+      rule,
+      ok: false,
+      summary: "No se pudo interpretar",
+      detail: interpretation.error,
+      warnings: [],
+      origin: entry.origin,
+    };
+  }
+  const actionCount = interpretation.regla_parseada.n_actions || interpretation.regla_parseada.actions.length;
+  const expr = interpretation.resolucion.kobo_expr;
+  return {
+    rule,
+    ok: true,
+    summary: `${actionCount} acción${actionCount === 1 ? "" : "es"} · ${interpretation.regla_parseada.when_var}`,
+    detail: interpretation.texto_humano || expr || "Regla interpretada.",
+    warnings: interpretation.warnings ?? [],
+    origin: entry.origin,
+  };
+}
+
+function smSuggestionResponseLabel(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "sin conteo";
+  return `${value.toLocaleString("es-PE")} respuesta${value === 1 ? "" : "s"}`;
 }
 
 function smChannelKey(value: string) {
@@ -1568,6 +1814,124 @@ function SmSourceSummaryBlock({ sources }: { sources: SmSourceSummary[] }) {
           <span title={source.collectorIds.join(", ")}>{smSourceCollectorLabel(source)}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function MonitoringProcessingSuggestionsCard({
+  suggestions,
+  status,
+  disabled,
+  importableGroups,
+  importableKoboGroups,
+  preparedGroups,
+  onRefresh,
+  onApplyGroup,
+  onApplyAll,
+  onImportKoboGroup,
+  onImportAllKobo,
+}: {
+  suggestions: EstudioProcessingSuggestions | null;
+  status: string;
+  disabled: boolean;
+  importableGroups: EstudioProcessingSuggestionGroup[];
+  importableKoboGroups: EstudioProcessingSuggestionGroup[];
+  preparedGroups: EstudioProcessingSuggestionGroup[];
+  onRefresh: () => void;
+  onApplyGroup: (group: EstudioProcessingSuggestionGroup) => void;
+  onApplyAll: () => void;
+  onImportKoboGroup: (group: EstudioProcessingSuggestionGroup) => void;
+  onImportAllKobo: () => void;
+}) {
+  const groups = suggestions?.groups ?? [];
+  const shouldShow = Boolean(status || suggestions?.has_suggestions || suggestions?.profile_family === "acreditacion");
+  if (!shouldShow) return null;
+  const importableIds = new Set(importableGroups.map((group) => group.id));
+  const importableKoboIds = new Set(importableKoboGroups.map((group) => group.id));
+  const preparedIds = new Set(preparedGroups.map((group) => group.id));
+  const hasSurveyMonkeyGroups = groups.some((group) => group.platform === "surveymonkey");
+  const hasKoboGroups = groups.some((group) => group.platform === "kobo");
+  return (
+    <div className="pulso-monitoring-suggestions" aria-label="Sugerencias desde Monitoreo para Procesamiento">
+      <div className="pulso-monitoring-suggestions-head">
+        <span className="pulso-monitoring-suggestions-icon" aria-hidden="true">
+          {status ? <Loader2 size={15} className="pulso-spin" /> : <GitMerge size={15} />}
+        </span>
+        <div>
+          <strong>Monitoreo detectó un procesamiento de acreditación</strong>
+          <span>
+            {status || suggestions?.message || "Fuentes listas para organizar como bases hermanas por actor."}
+          </span>
+        </div>
+        <div className="pulso-monitoring-suggestions-actions">
+          <button type="button" className="pulso-sm-secondary" onClick={onRefresh} disabled={disabled}>
+            <RefreshCw size={13} />
+            Revisar
+          </button>
+          {hasSurveyMonkeyGroups && (
+            <button type="button" onClick={onApplyAll} disabled={disabled || !importableGroups.length}>
+              <Layers size={13} />
+              Preparar SurveyMonkey
+            </button>
+          )}
+          {hasKoboGroups && (
+            <button type="button" className="pulso-sm-secondary" onClick={onImportAllKobo} disabled={disabled || !importableKoboGroups.length}>
+              <Cloud size={13} />
+              Importar Kobo
+            </button>
+          )}
+        </div>
+      </div>
+      {suggestions?.warnings?.length ? (
+        <div className="pulso-monitoring-suggestions-note">
+          <AlertTriangle size={13} />
+          <span>{suggestions.warnings[0]}</span>
+        </div>
+      ) : null}
+      {groups.length ? (
+        <div className="pulso-monitoring-suggestion-grid" role="list">
+          {groups.map((group) => {
+            const canImport = importableIds.has(group.id);
+            const canImportKobo = importableKoboIds.has(group.id);
+            const isPrepared = preparedIds.has(group.id);
+            const koboUnavailable = group.platform === "kobo" && !group.importable;
+            const koboLoaded = group.platform === "kobo" && group.importable && !canImportKobo;
+            const primary = smMonitoringSuggestionPrimarySource(group);
+            const koboPrimary = koboMonitoringSuggestionPrimarySource(group);
+            const channels = Array.from(new Set(group.sources.map((source) => source.channel).filter(Boolean)));
+            return (
+              <div className={`pulso-monitoring-suggestion-row${canImport || canImportKobo ? "" : " is-muted"}`} role="listitem" key={group.id}>
+                <div className="pulso-monitoring-suggestion-actor">
+                  <strong>{group.actor}</strong>
+                  <small>{group.platform === "surveymonkey" ? "SurveyMonkey" : "Kobo"} · {group.source_count} fuente{group.source_count === 1 ? "" : "s"}</small>
+                </div>
+                <div className="pulso-monitoring-suggestion-meta">
+                  <span>{smSuggestionResponseLabel(group.response_count)}</span>
+                  <span>{channels.length > 1 ? "Canal mixto" : channels[0] || "Canal por definir"}</span>
+                  {primary?.survey_id ? <code>ID {primary.survey_id}</code> : koboPrimary?.asset_uid ? <code>Asset {koboPrimary.asset_uid}</code> : <code>{group.import_mode}</code>}
+                </div>
+                <button
+                  type="button"
+                  className="pulso-sm-secondary"
+                  disabled={disabled || (!canImport && !canImportKobo)}
+                  onClick={() => {
+                    if (canImportKobo) onImportKoboGroup(group);
+                    else onApplyGroup(group);
+                  }}
+                >
+                  {canImport || canImportKobo || isPrepared ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                  {canImport ? "Usar actor" : canImportKobo ? "Importar Kobo" : isPrepared ? "Preparado" : koboUnavailable ? "Kobo detectado" : koboLoaded ? "Kobo cargado" : "Ya cargado"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="pulso-monitoring-suggestions-note">
+          <Database size={13} />
+          <span>{suggestions?.message || "Sin fuentes activas para sugerir."}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -3505,6 +3869,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [logicSync, setLogicSync] = useState<EstudioLogicSyncResult | null>(null);
   const [canonicalRepairResult, setCanonicalRepairResult] = useState<EstudioLogicSyncResult | null>(null);
   const [canonicalFileId, setCanonicalFileId] = useState(canonicalOptions[0]?.fileId ?? "");
+  const [surveyMonkeyLogicRules, setSurveyMonkeyLogicRules] = useState("");
+  const [surveyMonkeyLogicPreview, setSurveyMonkeyLogicPreview] = useState<SmLogicPreviewRow[] | null>(null);
   const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
   const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
   const [refreshPlan, setRefreshPlan] = useState<SurveyMonkeyRefreshPlan | null>(null);
@@ -3513,16 +3879,23 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [workbookFileId, setWorkbookFileId] = useState("");
   const [workbookInspection, setWorkbookInspection] = useState<SurveyMonkeyWorkbookInspection | null>(null);
   const [workbookImportResult, setWorkbookImportResult] = useState<SurveyMonkeyWorkbookImportResult | null>(null);
+  const [koboRefreshResult, setKoboRefreshResult] = useState<KoboIndependentRefreshResult | null>(null);
   const [savBundleFile, setSavBundleFile] = useState<File | null>(null);
   const [savBundleFileId, setSavBundleFileId] = useState("");
   const [savBundleInspection, setSavBundleInspection] = useState<SurveyMonkeySavBundleInspection | null>(null);
   const [savBundleImportResult, setSavBundleImportResult] = useState<SurveyMonkeySavBundleImportResult | null>(null);
   const [editingAliasBase, setEditingAliasBase] = useState<string | null>(null);
   const [editingAliasDraft, setEditingAliasDraft] = useState("");
+  const [monitoringSuggestions, setMonitoringSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
+  const [monitoringSuggestionsStatus, setMonitoringSuggestionsStatus] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const modeConflict = estudio.n_bases > 0 && estudio.processing_mode !== "independent_siblings";
   const existingBases = Object.values(estudio.bases ?? {});
+  const existingKoboBases = existingBases.filter((base) => (
+    String(base.source_kind || "").toLowerCase() === "kobo_api" ||
+    !!String(base.kobo_source_spec?.asset_uid || "").trim()
+  ));
   const hasExistingIndependentBases = existingBases.length > 0 && estudio.processing_mode === "independent_siblings";
   const templateSyncBase = smIndependentTemplateBase(estudio, existingBases);
   const promotedBase = existingBases.find((base) => base.nombre === estudio.active_base) ?? existingBases[0] ?? null;
@@ -3530,6 +3903,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const promotedName = promotedBase?.nombre === "default" ? smBaseSlug(promotedTitle) : promotedBase?.nombre;
   const { maxBases: independentMaxBases, capacityLeft } = independentSiblingsCapacity(estudio);
   const existingSurveyIds = new Set(existingBases.flatMap(smSurveyIdsFromBase));
+  const existingKoboAssetIds = new Set(existingBases.flatMap(koboAssetIdsFromBase));
   const selectedSurveyIds = selectedIds;
   const blockedSurveyIds = new Set([...Array.from(existingSurveyIds), ...Array.from(selectedSurveyIds)]);
   const surveyAvailability = smSurveyCatalogAvailability(surveys, query, existingSurveyIds, selectedSurveyIds);
@@ -3571,6 +3945,46 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const hasCanonicalBaseStatus = existingBases.some((base) => String(base.logic_template_status || "").startsWith("canonical_"));
   const shouldOfferCanonicalRepair = hasExistingIndependentBases && hasCanonicalReference && !hasFamilyLogicApplied && !hasCanonicalBaseStatus;
   const canonicalRepairChangedCells = (canonicalRepairResult?.results ?? []).reduce((sum, row) => sum + (Number(row.changed_cells) || 0), 0);
+  const importableMonitoringSuggestionGroups = (monitoringSuggestions?.groups ?? [])
+    .filter((group) => smMonitoringSuggestionCanImport(group, existingSurveyIds, selectedIds));
+  const importableKoboMonitoringSuggestionGroups = (monitoringSuggestions?.groups ?? [])
+    .filter((group) => koboMonitoringSuggestionCanImport(group, existingKoboAssetIds));
+  const monitoringGroups = monitoringSuggestions?.groups ?? [];
+  const hasMonitoringSurveyMonkeyGroups = monitoringGroups.some((group) => group.platform === "surveymonkey");
+  const hasMonitoringKoboGroups = monitoringGroups.some((group) => group.platform === "kobo");
+  const monitoringKoboOnly = hasMonitoringKoboGroups && !hasMonitoringSurveyMonkeyGroups;
+  const shouldShowSurveyMonkeyActions = showSurveyCatalog ||
+    selectedInputs.length > 0 ||
+    selectedMergeCampaignCount > 0 ||
+    hasMonitoringSurveyMonkeyGroups ||
+    hasExistingIndependentBases;
+  const independentProviderLabel = monitoringKoboOnly
+    ? "Kobo"
+    : hasMonitoringKoboGroups && hasMonitoringSurveyMonkeyGroups
+      ? "SurveyMonkey / Kobo"
+      : "SurveyMonkey";
+  const monitoringLogicSuggestion = smSuggestedSurveyMonkeyLogicRulesFromMonitoring(monitoringSuggestions);
+  const canInsertMonitoringLogicSuggestion = Boolean(
+    monitoringLogicSuggestion && surveyMonkeyLogicRules.trim() !== monitoringLogicSuggestion,
+  );
+  const surveySpecificLogicRulesBySurvey = smSurveySpecificLogicRulesBySurvey(selectedNewSurveys, scopeDrafts);
+  const surveyLogicLabels = Object.fromEntries(selectedNewSurveys.map((item) => [
+    item.id,
+    smAliasDraftValue(item, scopeDrafts[item.id]).trim() || smSurveyDefaultAlias(item),
+  ]));
+  const surveyMonkeyLogicPreviewEntries = smSurveyMonkeyLogicPreviewEntries(
+    surveyMonkeyLogicRules,
+    surveySpecificLogicRulesBySurvey,
+    surveyLogicLabels,
+  );
+  const surveyMonkeyLogicRuleLines = surveyMonkeyLogicPreviewEntries.map((entry) => entry.rule);
+  const surveyMonkeyLogicPreviewErrors = surveyMonkeyLogicPreview?.filter((row) => !row.ok).length ?? 0;
+  const surveyMonkeyLogicPreviewWarnings = surveyMonkeyLogicPreview?.reduce((sum, row) => sum + row.warnings.length, 0) ?? 0;
+  const preparedMonitoringSuggestionGroups = (monitoringSuggestions?.groups ?? [])
+    .filter((group) => {
+      const primary = smMonitoringSuggestionPrimarySource(group);
+      return Boolean(primary?.survey_id && selectedIds.has(primary.survey_id) && !existingSurveyIds.has(primary.survey_id));
+    });
 
   useEffect(() => {
     if (!canonicalOptions.length) {
@@ -3582,6 +3996,29 @@ function IndependentSiblingsSurveyMonkeyWizard({
       setAudit(null);
     }
   }, [canonicalOptions, canonicalFileId]);
+
+  useEffect(() => {
+    void loadProcessingSuggestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (monitoringKoboOnly && selectedIds.size === 0 && !(surveys?.length)) {
+      setShowSurveyCatalog(false);
+    }
+  }, [monitoringKoboOnly, selectedIds.size, surveys?.length]);
+
+  async function loadProcessingSuggestions() {
+    setMonitoringSuggestionsStatus("Leyendo Monitoreo...");
+    try {
+      const result = await apiEstudioProcessingSuggestions();
+      setMonitoringSuggestions(result);
+      setMonitoringSuggestionsStatus("");
+    } catch (e) {
+      setMonitoringSuggestions(null);
+      setMonitoringSuggestionsStatus((e as Error).message);
+    }
+  }
 
   async function refreshSurveyMonkeyConnection() {
     try {
@@ -3708,6 +4145,92 @@ function IndependentSiblingsSurveyMonkeyWizard({
     });
   }
 
+  function applyMonitoringSuggestionGroups(groups: EstudioProcessingSuggestionGroup[]) {
+    const usable = groups.filter((group) => smMonitoringSuggestionCanImport(group, existingSurveyIds, selectedIds));
+    if (!usable.length) {
+      setError("No hay sugerencias SurveyMonkey nuevas para preparar.");
+      return;
+    }
+    const newBaseCount = usable.filter((group) => !selectedIds.has(smMonitoringSuggestionPrimarySource(group)?.survey_id || "")).length;
+    if (newBaseCount > capacityLeft) {
+      setError(`Quedan ${capacityLeft} cupos para bases nuevas y la sugerencia necesita ${newBaseCount}.`);
+      return;
+    }
+    setError("");
+    setAudit(null);
+    setLogicSync(null);
+    setCanonicalRepairResult(null);
+    setShowSurveyCatalog(true);
+    setSurveys((prev) => smMergeSuggestionCatalog(prev, usable));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const group of usable) {
+        const primary = smMonitoringSuggestionPrimarySource(group);
+        if (primary?.survey_id) next.add(primary.survey_id);
+      }
+      return next;
+    });
+    setScopeDrafts((prev) => {
+      const next = { ...prev };
+      for (const group of usable) {
+        const primary = smMonitoringSuggestionPrimarySource(group);
+        if (!primary?.survey_id) continue;
+        next[primary.survey_id] = smMonitoringSuggestionScope(group, next[primary.survey_id]);
+      }
+      return next;
+    });
+  }
+
+  async function importKoboMonitoringSuggestionGroups(groups: EstudioProcessingSuggestionGroup[]) {
+    const usable = groups.filter((group) => koboMonitoringSuggestionCanImport(group, existingKoboAssetIds));
+    const assets = usable
+      .map(koboMonitoringSuggestionInput)
+      .filter((asset): asset is KoboIndependentAssetInput => Boolean(asset?.asset_uid));
+    if (!assets.length) {
+      setError("No hay sugerencias Kobo nuevas para importar como bases hermanas.");
+      return;
+    }
+    if (assets.length > capacityLeft) {
+      setError(`Quedan ${capacityLeft} cupos para bases nuevas y Kobo necesita ${assets.length}.`);
+      return;
+    }
+    setError("");
+    setAudit(null);
+    setLogicSync(null);
+    setCanonicalRepairResult(null);
+    setBusy(assets.length === 1 ? "Importando Kobo como base hermana..." : "Importando Kobo como bases hermanas...");
+    try {
+      const result = await apiCargaImportKoboIndependent({ assets });
+      if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
+      setKoboRefreshResult(null);
+      await onImported(result.estudio);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function refreshKoboIndependentBases(baseNames?: string[]) {
+    const targets = (baseNames?.length ? baseNames : existingKoboBases.map((base) => base.nombre))
+      .filter((name) => !!name);
+    if (!targets.length) {
+      setError("No hay bases Kobo conectadas para actualizar.");
+      return;
+    }
+    setError("");
+    setBusy(targets.length === 1 ? "Actualizando base Kobo..." : "Actualizando bases Kobo...");
+    try {
+      const result = await apiCargaRefreshKoboIndependent({ base_names: targets });
+      setKoboRefreshResult(result);
+      await onImported(result.estudio);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   function updateExtraSource(id: string, key: string, patch: Partial<SmExtraSourceDraft>) {
     const current = scopeDrafts[id] ?? smDefaultScopeDraft();
     updateScope(id, {
@@ -3767,6 +4290,32 @@ function IndependentSiblingsSurveyMonkeyWizard({
     }
   }
 
+  async function runSurveyMonkeyLogicPreview() {
+    const entries = surveyMonkeyLogicPreviewEntries;
+    if (!entries.length) {
+      setError("Escribe al menos una regla SurveyMonkey para validarla.");
+      return;
+    }
+    setError("");
+    setSurveyMonkeyLogicPreview(null);
+    setBusy("Validando reglas SurveyMonkey...");
+    try {
+      await validateSurveyMonkeyLogicRows(entries);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function validateSurveyMonkeyLogicRows(entries: SmLogicPreviewEntry[]) {
+    const rows = await Promise.all(entries.map(async (entry) => (
+      smLogicPreviewRow(entry, await apiXlsformEditorSmInterpretRule(entry.rule))
+    )));
+    setSurveyMonkeyLogicPreview(rows);
+    return rows;
+  }
+
   async function runImport() {
     setError("");
     setLogicSync(null);
@@ -3775,12 +4324,25 @@ function IndependentSiblingsSurveyMonkeyWizard({
     const mergePayload = selectedMergePayload();
     const hasNewBases = selectedInputs.length > 0;
     const hasMergeCampaigns = mergePayload.some((row) => row.campaigns.length > 0);
-    setBusy(hasNewBases && hasMergeCampaigns
+    const importBusyLabel = hasNewBases && hasMergeCampaigns
       ? "Importando bases nuevas y fusionando campañas..."
       : hasMergeCampaigns
         ? "Agregando campañas a bases existentes..."
-        : "Importando bases hermanas independientes...");
+        : "Importando bases hermanas independientes...";
     try {
+      const directLogicEntries = surveyMonkeyLogicPreviewEntries;
+      const directLogicRules = directLogicEntries.map((entry) => entry.rule);
+      if (hasNewBases && smSurveyMonkeyLogicPreviewNeedsReview(directLogicRules, surveyMonkeyLogicPreview)) {
+        setSurveyMonkeyLogicPreview(null);
+        setBusy("Validando reglas SurveyMonkey...");
+        const previewRows = await validateSurveyMonkeyLogicRows(directLogicEntries);
+        const failedRows = previewRows.filter((row) => !row.ok);
+        if (failedRows.length) {
+          setError("Corrige las reglas SurveyMonkey marcadas antes de importar bases nuevas.");
+          return;
+        }
+      }
+      setBusy(importBusyLabel);
       let latestEstudio: EstudioPayload | null = null;
       if (hasNewBases) {
         const result = await apiSurveyMonkeyMultibaseImportIndependent({
@@ -3789,6 +4351,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
           keep_missing_status: false,
           canonical_xlsform_file_id: canonicalFileId,
           use_canonical_xlsform_logic: hasCanonicalReference,
+          surveymonkey_logic_rules: surveyMonkeyLogicRules.trim() || undefined,
+          surveymonkey_logic_rules_by_survey: Object.keys(surveySpecificLogicRulesBySurvey).length
+            ? surveySpecificLogicRulesBySurvey
+            : undefined,
         });
         setAudit(result.audit);
         if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
@@ -4182,11 +4748,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
   }
 
   useEffect(() => {
-    if (showSurveyCatalog && !surveys) void loadSurveys();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showSurveyCatalog]);
-
-  useEffect(() => {
     if (!showSurveyCatalog) return;
     void refreshSurveyMonkeyConnection();
   }, [showSurveyCatalog]);
@@ -4196,12 +4757,12 @@ function IndependentSiblingsSurveyMonkeyWizard({
       <header className="pulso-integrated-head">
         <span className="pulso-sm-multibase-icon" aria-hidden="true"><Cloud size={18} /></span>
         <div>
-          <div className="pulso-sm-multibase-kicker">SurveyMonkey</div>
+          <div className="pulso-sm-multibase-kicker">{independentProviderLabel}</div>
           <h3>Bases hermanas independientes</h3>
-          <p>Importa cada encuesta con su propio XLSForm, data y estado de procesamiento.</p>
+          <p>Importa cada fuente con su propio XLSForm, data y estado de procesamiento.</p>
           <p>
-            Usa el perfil SurveyMonkey activo en Ajustes. Si la clave principal llega al límite,
-            cambia manualmente al perfil secundario y actualiza el catálogo.
+            Usa los perfiles activos en Ajustes. Si una clave llega al límite,
+            cambia manualmente al perfil secundario y actualiza el catálogo correspondiente.
             Si ya tenías una base trabajada, esa base puede actuar como referencia para sincronizar reglas XLSForm compatibles.
           </p>
           <div className="pulso-sm-family-meter pulso-sm-independent-meter" aria-label="Resumen de familia independiente">
@@ -4266,6 +4827,80 @@ function IndependentSiblingsSurveyMonkeyWizard({
             )}
           </select>
         </label>
+        <div className="pulso-sm-logic-reference-rules">
+          <div className="pulso-sm-logic-reference-rules-head">
+            <label htmlFor="pulso-sm-logic-rules">Reglas SurveyMonkey</label>
+            <div className="pulso-sm-logic-reference-rules-actions">
+              <button
+                type="button"
+                className="pulso-sm-secondary"
+                disabled={disabled || !!busy || surveyMonkeyLogicRuleLines.length === 0}
+                onClick={() => void runSurveyMonkeyLogicPreview()}
+                title="Validar sintaxis e interpretación básica antes de importar"
+              >
+                {busy === "Validando reglas SurveyMonkey..." ? <Loader2 size={12} className="pulso-spin" /> : <CheckCircle2 size={12} />}
+                Validar reglas
+              </button>
+              {monitoringLogicSuggestion && (
+                <button
+                  type="button"
+                  className="pulso-sm-secondary"
+                  disabled={disabled || !!busy || !canInsertMonitoringLogicSuggestion}
+                  onClick={() => {
+                    setSurveyMonkeyLogicRules(monitoringLogicSuggestion);
+                    setSurveyMonkeyLogicPreview(null);
+                    setAudit(null);
+                  }}
+                  title="Insertar plantilla sugerida por Monitoreo para revisar antes de importar"
+                >
+                  <GitMerge size={12} />
+                  Usar sugerencia
+                </button>
+              )}
+            </div>
+          </div>
+          <textarea
+            id="pulso-sm-logic-rules"
+            value={surveyMonkeyLogicRules}
+            disabled={disabled || !!busy}
+            rows={3}
+            placeholder={monitoringLogicSuggestion || "Q1 = C1 => Ocultar P2."}
+            onChange={(event) => {
+              setSurveyMonkeyLogicRules(event.target.value);
+              setSurveyMonkeyLogicPreview(null);
+              setAudit(null);
+            }}
+          />
+          {surveyMonkeyLogicPreview && (
+            <div className={`pulso-sm-logic-preview${surveyMonkeyLogicPreviewErrors ? " has-errors" : " is-ok"}`} role="status">
+              <strong>
+                {surveyMonkeyLogicPreviewErrors
+                  ? `${surveyMonkeyLogicPreviewErrors} regla${surveyMonkeyLogicPreviewErrors === 1 ? "" : "s"} requieren revisión`
+                  : `${surveyMonkeyLogicPreview.length} regla${surveyMonkeyLogicPreview.length === 1 ? "" : "s"} interpretada${surveyMonkeyLogicPreview.length === 1 ? "" : "s"}`}
+                {surveyMonkeyLogicPreviewWarnings ? ` · ${surveyMonkeyLogicPreviewWarnings} advertencia${surveyMonkeyLogicPreviewWarnings === 1 ? "" : "s"}` : ""}
+              </strong>
+              <div className="pulso-sm-logic-preview-list">
+                {surveyMonkeyLogicPreview.map((row, index) => (
+                  <div className="pulso-sm-logic-preview-row" key={`${row.rule}-${index}`}>
+                    {row.ok ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+	                    <span>
+	                      <code>{row.rule}</code>
+	                      {row.origin && <em>{row.origin}</em>}
+	                      <small>{row.summary}: {row.detail}</small>
+	                      {row.warnings.map((warning) => <small key={warning} className="is-warning">{warning}</small>)}
+	                    </span>
+                  </div>
+                ))}
+              </div>
+              <small>Esta revisión confirma sintaxis e intención general; la importación vuelve a validar cada regla contra el XLSForm de cada actor.</small>
+            </div>
+          )}
+          {monitoringLogicSuggestion && (
+            <small>
+              Sugerida por Monitoreo para fuentes SurveyMonkey con enlaces personalizados; revisa Q/P antes de importar.
+            </small>
+          )}
+        </div>
         <div className="pulso-sm-logic-reference-status">
           {hasCanonicalReference ? (
             <>
@@ -4280,6 +4915,20 @@ function IndependentSiblingsSurveyMonkeyWizard({
           )}
         </div>
       </div>
+
+      <MonitoringProcessingSuggestionsCard
+        suggestions={monitoringSuggestions}
+        status={monitoringSuggestionsStatus}
+        disabled={disabled || !!busy}
+        importableGroups={importableMonitoringSuggestionGroups}
+        importableKoboGroups={importableKoboMonitoringSuggestionGroups}
+        preparedGroups={preparedMonitoringSuggestionGroups}
+        onRefresh={() => void loadProcessingSuggestions()}
+        onApplyGroup={(group) => applyMonitoringSuggestionGroups([group])}
+        onApplyAll={() => applyMonitoringSuggestionGroups(importableMonitoringSuggestionGroups)}
+        onImportKoboGroup={(group) => void importKoboMonitoringSuggestionGroups([group])}
+        onImportAllKobo={() => void importKoboMonitoringSuggestionGroups(importableKoboMonitoringSuggestionGroups)}
+      />
 
       {shouldOfferCanonicalRepair && (
         <div className="pulso-sm-logic-repair" aria-label="Aviso de lógica pendiente en bases hermanas">
@@ -4896,9 +5545,34 @@ function IndependentSiblingsSurveyMonkeyWizard({
               )}
             </div>
           )}
+          {koboRefreshResult && (
+            <div className="pulso-sm-multibase-warning">
+              <CheckCircle2 size={15} />
+              <div className="pulso-sm-refresh-result-copy">
+                <span>
+                  Kobo actualizado: {koboRefreshResult.n_updated_bases} base{koboRefreshResult.n_updated_bases === 1 ? "" : "s"}.
+                </span>
+                {koboRefreshResult.results.map((row) => (
+                  <small key={row.base_name}>
+                    {row.base_name}: {row.rows_before} {"->"} {row.rows_after} registros · {row.total_remote} remotos
+                  </small>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="pulso-sm-family-config-head">
             <span>Para trabajar usa el selector de base activa del lateral. La base de referencia puede sincronizar reglas XLSForm con hermanas compatibles.</span>
             <div className="pulso-sm-family-actions">
+              <button
+                type="button"
+                className="pulso-sm-secondary"
+                disabled={disabled || !!busy || existingKoboBases.length === 0}
+                onClick={() => void refreshKoboIndependentBases()}
+                title={existingKoboBases.length ? "Actualizar data e instrumento desde las fuentes Kobo guardadas" : "No hay bases Kobo conectadas"}
+              >
+                <RefreshCw size={13} />
+                Actualizar Kobo
+              </button>
               <button
                 type="button"
                 className="pulso-sm-secondary"
@@ -5165,11 +5839,11 @@ function IndependentSiblingsSurveyMonkeyWizard({
                           disabled={disabled || !!busy}
                           onChange={(value) => updateScope(item.id, { collectorIds: value })}
                         />
-                        <div className="pulso-sm-scope-fields is-operational">
-                          <SmChannelSelect
-                            value={scope.channel}
-                            disabled={disabled || !!busy}
-                            onChange={(value) => updateScope(item.id, { channel: value })}
+	                        <div className="pulso-sm-scope-fields is-operational">
+	                          <SmChannelSelect
+	                            value={scope.channel}
+	                            disabled={disabled || !!busy}
+	                            onChange={(value) => updateScope(item.id, { channel: value })}
                           />
                           <label className="pulso-sm-scope-field">
                             <span>Tipo de recojo</span>
@@ -5185,11 +5859,25 @@ function IndependentSiblingsSurveyMonkeyWizard({
                               <option value="web_link">Enlace web</option>
                               <option value="email">Correo</option>
                               <option value="otro">Otro</option>
-                            </select>
-                          </label>
-                        </div>
+	                            </select>
+	                          </label>
+	                        </div>
+	                        <label className="pulso-sm-scope-field pulso-sm-actor-logic-field">
+	                          <span>Reglas de este actor</span>
+	                          <textarea
+	                            value={scope.logicRules}
+	                            disabled={disabled || !!busy}
+	                            rows={2}
+	                            placeholder="Opcional: Q1 != C1 => Ocultar P2."
+	                            onChange={(event) => {
+	                              updateScope(item.id, { logicRules: event.target.value });
+	                              setSurveyMonkeyLogicPreview(null);
+	                            }}
+	                          />
+	                          <small>Úsalo si SurveyMonkey movió Q1/Q2/Q3 por una pregunta adicional como Código Pulso.</small>
+	                        </label>
 
-                        <div className="pulso-sm-extra-sources">
+	                        <div className="pulso-sm-extra-sources">
                           {scope.extraSources.map((source, sourceIndex) => {
                             const pickedSurvey = smSurveyById(surveys, source.surveyId);
                             const excludeIds = new Set([
@@ -5336,20 +6024,22 @@ function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
-      <div className="pulso-sm-multibase-actions">
-        <button type="button" className="pulso-sm-secondary" disabled={!selectedInputs.length || !!busy || disabled} onClick={runAudit}>
-          {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-          Auditar nuevas bases
-        </button>
-        <button type="button" className="pulso-sm-primary" disabled={!canImport} onClick={runImport}>
-          {selectedMergeCampaignCount && !selectedInputs.length ? <GitMerge size={14} /> : <Layers size={14} />}
-          {selectedInputs.length && selectedMergeCampaignCount
-            ? "Importar y agregar campañas"
-            : selectedMergeCampaignCount
-              ? "Agregar como campañas/canales"
-              : "Importar como bases hermanas independientes"}
-        </button>
-      </div>
+      {shouldShowSurveyMonkeyActions && (
+        <div className="pulso-sm-multibase-actions">
+          <button type="button" className="pulso-sm-secondary" disabled={!selectedInputs.length || !!busy || disabled} onClick={runAudit}>
+            {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+            Auditar nuevas bases
+          </button>
+          <button type="button" className="pulso-sm-primary" disabled={!canImport} onClick={runImport}>
+            {selectedMergeCampaignCount && !selectedInputs.length ? <GitMerge size={14} /> : <Layers size={14} />}
+            {selectedInputs.length && selectedMergeCampaignCount
+              ? "Importar y agregar campañas"
+              : selectedMergeCampaignCount
+                ? "Agregar como campañas/canales"
+                : "Importar como bases hermanas independientes"}
+          </button>
+        </div>
+      )}
 
       {busy && <div className="pulso-sm-status"><Loader2 size={13} className="pulso-spin" /> {busy}</div>}
       {error && <ErrorBlock label="No se pudo completar la importación" detail={error} />}

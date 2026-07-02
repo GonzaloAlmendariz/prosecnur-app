@@ -42,7 +42,7 @@ import { useOptionalSession } from "../../../lib/SessionContext";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
-type OutputFamily = "acreditacion" | "territorial";
+type OutputFamily = "acreditacion" | "territorial" | "telefonico";
 type PublicationStatus = {
   kind: "idle" | "checking" | "publishing" | "success" | "error";
   message: string;
@@ -163,6 +163,18 @@ function copyForFamily(family: OutputFamily) {
       sheetsTitle: "Salidas territoriales a Sheets",
     };
   }
+  if (family === "telefonico") {
+    return {
+      eyebrow: "PDF telefónico",
+      title: "PDF de avance telefónico",
+      detail: "Efectivas Kobo, cuotas, estados telefónicos y coincidencia por CodPulso del corte activo.",
+      button: "Generar PDF telefónico",
+      progress: "Generando PDF telefónico",
+      ready: "PDF telefónico listo para descargar.",
+      download: "Descargar PDF telefónico",
+      sheetsTitle: "Salidas telefónicas a Sheets",
+    };
+  }
   return {
     eyebrow: "PDF ejecutivo",
     title: "PDF ejecutivo",
@@ -187,6 +199,17 @@ function productionCopyForFamily(family: OutputFamily) {
       download: "Descargar producción",
     };
   }
+  if (family === "telefonico") {
+    return {
+      eyebrow: "Producción telefónica",
+      title: "Producción por responsable",
+      detail: "Resumen por responsable, estados de llamada y trazabilidad del barrido contra Kobo.",
+      button: "Generar PDF de producción telefónica",
+      progress: "Generando PDF de producción telefónica",
+      ready: "PDF de producción telefónica listo para descargar.",
+      download: "Descargar producción telefónica",
+    };
+  }
   return {
     eyebrow: "Producción",
     title: "Producción por responsable",
@@ -201,8 +224,11 @@ function productionCopyForFamily(family: OutputFamily) {
 function productionPdfTitleSeed(family: OutputFamily, defaultTitle: string, routeLabel: string) {
   const cleanTitle = (defaultTitle || "").trim();
   const cleanRoute = (routeLabel || "").trim();
-  const generic = /^(reporte[-\s]?monitoreo|reporte[-\s]?territorial|territorial|acreditaci[oó]n)$/i;
+  const generic = /^(reporte[-\s]?monitoreo|reporte[-\s]?territorial|territorial|acreditaci[oó]n|telef[oó]nico|monitoreo telef[oó]nico|estudio de acreditaci[oó]n)$/i;
   const base = cleanTitle && !generic.test(cleanTitle) ? cleanTitle : cleanRoute;
+  if (family === "telefonico") {
+    return base && !generic.test(base) ? `Producción telefónica - ${base}` : "Producción telefónica";
+  }
   const fallback = family === "territorial" ? "monitoreo territorial" : "monitoreo de acreditación";
   return `Producción - ${base && !generic.test(base) ? base : fallback}`;
 }

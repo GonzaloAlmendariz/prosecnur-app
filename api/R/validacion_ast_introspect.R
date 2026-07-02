@@ -417,46 +417,63 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
                   "begin_group", "end_group", "begin_repeat", "end_repeat",
                   "hidden")) next
     rel_raw <- as.character(survey$relevant[i])
-    if (is.null(rel_raw) || is.na(rel_raw) || !nzchar(rel_raw)) next
-    # El relevant específico de la variable (no heredado de grupos).
-    parsed <- odk_parse_to_ast(rel_raw, context = "relevant")
-    if (parsed$degraded_to_raw) {
-      # Regla de salto que no pudimos traducir → escape hatch con origen.
-      origin <- if (is_ast(parsed$ast)) parsed$ast$origin else "raw"
-      if (identical(origin, "pulldata")) next  # descarta reglas que dependen de pulldata
-      label <- resolve_label_es(as.list(survey[i, , drop = FALSE]), names(survey))
-      r <- rule_odk_raw(
-        odk_expression = rel_raw,
-        variables = row$name,
-        nombre = if (!is.null(label) && nzchar(label) && label != row$name) sprintf("[%s] Salto · «%s» (modo experto)", row$name, label) else sprintf("[%s] Salto (modo experto)", row$name),
-        seccion = if (length(row$group_path)) tail(row$group_path, 1) else NA,
-        tabla = if (!is.null(row$repeat_context)) row$repeat_context else "principal",
-        repeat_context = row$repeat_context,
-        origin = origin
-      )
-      rules[[length(rules) + 1L]] <- r
-      next
+    has_own_relevant <- !is.null(rel_raw) && !is.na(rel_raw) && nzchar(rel_raw)
+    if (!has_own_relevant && is.null(row$gate)) next
+
+    # El salto efectivo combina relevant específico de la variable con gates
+    # heredados de grupos/repeats padres. Si solo existe gate heredado, igual
+    # se debe controlar que la variable quede vacía cuando la sección no abre.
+    own_gate <- NULL
+    if (has_own_relevant) {
+      parsed <- odk_parse_to_ast(rel_raw, context = "relevant")
+      if (parsed$degraded_to_raw) {
+        # Regla de salto que no pudimos traducir → escape hatch con origen.
+        origin <- if (is_ast(parsed$ast)) parsed$ast$origin else "raw"
+        if (identical(origin, "pulldata")) next  # descarta reglas que dependen de pulldata
+        label <- resolve_label_es(as.list(survey[i, , drop = FALSE]), names(survey))
+        r <- rule_odk_raw(
+          odk_expression = rel_raw,
+          variables = row$name,
+          nombre = if (!is.null(label) && nzchar(label) && label != row$name) sprintf("[%s] Salto · «%s» (modo experto)", row$name, label) else sprintf("[%s] Salto (modo experto)", row$name),
+          seccion = if (length(row$group_path)) tail(row$group_path, 1) else NA,
+          tabla = if (!is.null(row$repeat_context)) row$repeat_context else "principal",
+          repeat_context = row$repeat_context,
+          origin = origin
+        )
+        rules[[length(rules) + 1L]] <- r
+        next
+      }
+      own_gate <- parsed$ast
     }
     var <- row$name
-    gate_full <- if (is.null(row$gate)) parsed$ast else ast_normalize(ast_and(row$gate, parsed$ast))
+    gate_full <- if (is.null(row$gate)) {
+      own_gate
+    } else if (is.null(own_gate)) {
+      row$gate
+    } else {
+      ast_normalize(ast_and(row$gate, own_gate))
+    }
+    if (is.null(gate_full)) next
     label <- resolve_label_es(as.list(survey[i, , drop = FALSE]), names(survey))
     seccion_row <- if (length(row$group_path)) tail(row$group_path, 1) else NA
     tabla_row <- if (!is.null(row$repeat_context)) row$repeat_context else "principal"
+    required_flag <- if ("required" %in% names(survey)) .is_required(survey$required[i]) else FALSE
+    emit_debe <- has_own_relevant || required_flag
 
-    # Emitimos DOS reglas de salto (match legacy _debe + _nodebe):
-    #   1. must_answer_when_true: violación cuando gate=T y variable missing
-    #      → la variable debería haberse respondido pero quedó vacía.
-    #   2. must_be_empty_when_false: violación cuando gate=F y variable tiene valor
-    #      → la variable no debió responderse pero tiene dato.
-    # Ambas son válidas y complementarias; tenerlas separadas facilita UX
-    # (el usuario ve cuántos casos violan cada dirección).
-    r_debe <- rule_skip(
-      var = var,
-      gate = gate_full,
-      direction = "must_answer_when_true",
-      nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
-      seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
-    )
+    # _nodebe siempre aplica: si el salto/sección está inactivo, la variable
+    # debe quedar vacía. _debe solo aplica si ya existía relevant propio o la
+    # pregunta es requerida, para no volver obligatorias preguntas opcionales
+    # dentro de una sección abierta.
+    r_debe <- NULL
+    if (isTRUE(emit_debe)) {
+      r_debe <- rule_skip(
+        var = var,
+        gate = gate_full,
+        direction = "must_answer_when_true",
+        nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
+        seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
+      )
+    }
     r_nodebe <- rule_skip(
       var = var,
       gate = gate_full,
@@ -478,17 +495,19 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
     } else {
       sprintf("%s«%s» no debe responderse cuando el salto no aplica.", pref, label %||% var)
     }
-    r_debe <- .enrich_ast_rule_from_survey(
-      r_debe,
-      survey = survey,
-      target_var = var,
-      gate_ast = gate_full,
-      nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
-      objetivo = obj_debe,
-      subtipo_semantico = "debe",
-      detalle_ast = gate_full,
-      choices_map = choices_map
-    )
+    if (!is.null(r_debe)) {
+      r_debe <- .enrich_ast_rule_from_survey(
+        r_debe,
+        survey = survey,
+        target_var = var,
+        gate_ast = gate_full,
+        nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
+        objetivo = obj_debe,
+        subtipo_semantico = "debe",
+        detalle_ast = gate_full,
+        choices_map = choices_map
+      )
+    }
     r_nodebe <- .enrich_ast_rule_from_survey(
       r_nodebe,
       survey = survey,
@@ -500,7 +519,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       detalle_ast = gate_neg,
       choices_map = choices_map
     )
-    rules[[length(rules) + 1L]] <- r_debe
+    if (!is.null(r_debe)) rules[[length(rules) + 1L]] <- r_debe
     rules[[length(rules) + 1L]] <- r_nodebe
   }
   rules

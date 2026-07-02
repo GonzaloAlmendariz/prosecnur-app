@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260629-acreditacion-phone-alerts-v1"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260701-telefonico-kobo-filter-v1"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(

@@ -1359,18 +1359,19 @@ test_that("perfil acreditacion usa payload liviano para consultas internas", {
 
 test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   data <- data.frame(
-    CodPulso = c("C1", "C2", "C3", "C4", "C1"),
-    Status = c("Completa", "No contesta", "No barrido", "Rechazo", "completed"),
-    Responsable = c("Ana", "Luis", "Ana", "Luis", ""),
-    Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-02", "2026-06-01"),
-    Distrito = c("Lima", "Callao", "Lima", "Callao", "Lima"),
-    Grupo = c("Egresados 2020", "Egresados 2020", "Egresados 2021", "Egresados 2021", "Egresados 2020"),
-    .source_role = c("barrido", "barrido", "barrido", "barrido", "respuestas"),
+    CodPulso = c("C1", "C2", "C3", "C4", "C1", "C2"),
+    Status = c("Completa", "No contesta", "No barrido", "Rechazo", "completed", "completed"),
+    Responsable = c("Ana", "Luis", "Ana", "Luis", "", ""),
+    Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-02", "2026-06-01", "2026-06-02"),
+    Distrito = c("Lima", "Callao", "Lima", "Callao", "Lima", "Callao"),
+    Grupo = c("Egresados 2020", "Egresados 2020", "Egresados 2021", "Egresados 2021", "Egresados 2020", "Egresados 2020"),
+    .source_role = c("barrido", "barrido", "barrido", "barrido", "respuestas", "respuestas"),
     .source_label = c(
       "Barrido telefonico - Civil",
       "Barrido telefonico - Civil",
       "Barrido telefonico - Civil",
       "Barrido telefonico - Civil",
+      "Encuesta Civil - Correo",
       "Encuesta Civil - Correo"
     ),
     stringsAsFactors = FALSE,
@@ -1407,6 +1408,8 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   total_quota_rows <- quota_rows[quota_rows$Actor == "Total", , drop = FALSE]
   expect_true(all(c("No contesta", "No barrido", "Rechazo") %in% status_rows$Estatus))
   expect_equal(daily_rows$`Rechazos telefónicos`[daily_rows$Fecha == "2026-06-02"], 1L)
+  expect_false("estatus_dia" %in% names(phone_blocks))
+  expect_false("comparacion_codpulso" %in% names(phone_blocks))
   expect_equal(responsible_rows$`Rechazos telefónicos`[responsible_rows$Responsable == "Luis"], 1L)
   expect_equal(sort(unique(quota_rows$Variable)), "Distrito")
   expect_equal(as.integer(total_quota_rows$Meta[total_quota_rows$Valor == "Lima"]), 2L)
@@ -1433,10 +1436,17 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   phone_path_reports <- monitoreo_acreditacion_reportes(data, phone_path_cfg, report_scope = "phone_summary")
   phone_path_blocks <- stats::setNames(phone_path_reports$sheets[[1]]$blocks, vapply(phone_path_reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
   phone_path_daily <- .monitoreo_internal_records_to_df(phone_path_blocks$avance_efectivo_dia$rows)
+  phone_path_status_daily <- .monitoreo_internal_records_to_df(phone_path_blocks$estatus_dia$rows)
+  phone_path_comparison <- .monitoreo_internal_records_to_df(phone_path_blocks$comparacion_codpulso$rows)
   phone_path_quota <- .monitoreo_internal_records_to_df(phone_path_blocks$cuotas_variable$rows)
   expect_equal(phone_path_reports$report_scope, "phone_summary")
   expect_equal(phone_path_reports$sheets[[1]]$id, "monitoreo_telefonico")
   expect_equal(sum(phone_path_daily$`Rechazos telefónicos`, na.rm = TRUE), 1L)
+  expect_true(all(c("No contesta", "No barrido", "Rechazo") %in% phone_path_status_daily$Estado))
+  expect_equal(as.integer(phone_path_status_daily$`2026-06-01`[phone_path_status_daily$Estado == "No contesta"]), 1L)
+  expect_equal(phone_path_comparison$`Avance plataforma`[phone_path_comparison$CodPulso == "C1"], "Efectiva Kobo")
+  expect_equal(phone_path_comparison$`Coinciden efectivas`[phone_path_comparison$CodPulso == "C1"], "Sí")
+  expect_true("Efectiva Kobo sin tel. efectiva" %in% phone_path_comparison$Coincidencia)
   expect_equal(phone_path_quota[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")], quota_rows[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")])
 
   phone_advance_reports <- monitoreo_acreditacion_reportes(data, phone_path_cfg, report_scope = "advance_summary")
@@ -1446,6 +1456,215 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   expect_equal(phone_advance_reports$report_scope, "advance_summary")
   expect_true("cuotas_variable" %in% names(phone_advance_blocks))
   expect_equal(phone_advance_quota[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")], quota_rows[, c("Variable", "Valor", "Universo", "Meta", "Efectivas")])
+})
+
+test_that("phone_summary reutiliza hoja telefonica cacheada para evitar cruces divergentes", {
+  data_stale <- data.frame(
+    CodPulso = "PDM1114",
+    Status = "Completa",
+    Responsable = "Jorge Del Solar",
+    Fecha = "2026-06-30",
+    Sede = "Lima",
+    IntroConsent = "",
+    EsPrueba = "",
+    .source_role = "barrido",
+    .source_kind = "google_sheets",
+    .source_label = "11_ACNUR_PDM_Base de barrido",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  response <- data_stale
+  response$Status <- "completed"
+  response$Responsable <- ""
+  response$IntroConsent <- "Yes"
+  response$EsPrueba <- "Entrevista real"
+  response$.source_role <- "respuestas"
+  response$.source_kind <- "kobo"
+  response$.source_label <- "Post-Distribution Monitoring"
+  data_current <- rbind(data_stale, response)
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "telefonico",
+      platform_effective_filter = list(enabled = TRUE, variable = "IntroConsent", values = list("Yes")),
+      platform_test_filter = list(enabled = TRUE, variable = "EsPrueba", real_values = list("Entrevista real"))
+    )
+  ), data_current)
+
+  cached_reports <- monitoreo_acreditacion_reportes(data_current, cfg, report_scope = "full")
+  fresh_stale <- monitoreo_acreditacion_reportes(data_stale, cfg, report_scope = "phone_summary")
+  cached_phone <- monitoreo_acreditacion_reportes(data_stale, cfg, report_scope = "phone_summary", cached_reports = cached_reports)
+  fresh_blocks <- stats::setNames(fresh_stale$sheets[[1]]$blocks, vapply(fresh_stale$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  cached_blocks <- stats::setNames(cached_phone$sheets[[1]]$blocks, vapply(cached_phone$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  fresh_comparison <- .monitoreo_internal_records_to_df(fresh_blocks$comparacion_codpulso$rows)
+  cached_comparison <- .monitoreo_internal_records_to_df(cached_blocks$comparacion_codpulso$rows)
+
+  expect_equal(fresh_comparison$`Efectiva Kobo`[fresh_comparison$CodPulso == "PDM1114"], "No")
+  expect_equal(cached_comparison$`Efectiva Kobo`[cached_comparison$CodPulso == "PDM1114"], "Sí")
+  expect_equal(cached_comparison$Coincidencia[cached_comparison$CodPulso == "PDM1114"], "Coincide efectiva por CodPulso")
+})
+
+test_that("monitoreo telefonico usa Kobo como fuente de avance y barrido como control paralelo", {
+  data <- data.frame(
+    .source_role = c(rep("barrido", 4), rep("respuestas", 5)),
+    .source_kind = c(rep("google_sheets", 4), rep("kobo", 5)),
+    .source_label = c(
+      rep("11_ACNUR_PDM_Base de barrido", 4),
+      rep("Post-Distribution Monitoring - Espacios de Protección 2026 Q2", 5)
+    ),
+    CodPulso = c("PDM 1239", "PDM2", "PDM3", "PDM4", "", "", "", "", ""),
+    Status = c("Efectivo", "No contesta", "Efectivo", "No barrido", "", "", "", "", ""),
+    Responsable = c("Ana", "Ana", "Luis", "Luis", "", "", "", "", ""),
+    Fecha = c("2026-06-29", "", "", "", "", "", "", "", ""),
+    sede = c("SJL", "SMP", "SMP", "CER", "", "", "", "", ""),
+    `Intro/Pulso_code` = c("", "", "", "", "1239", "PDM3", "ZZ", "PDM4", "123456"),
+    `Intro/Consent` = c("", "", "", "", "Yes", "No", "Yes", "Yes", "Yes"),
+    `Detalles entrevista` = c("", "", "", "", "Entrevista real", "Entrevista real", "Entrevista real", "Entrevista real", "Test / Prueba"),
+    `_status` = c("", "", "", "", rep("submitted_via_web", 5)),
+    kobo_fecha_iso = c("", "", "", "", "2026-06-30T10:00:00Z", "2026-06-30T10:05:00Z", "2026-06-25T10:00:00Z", "2026-06-30T10:10:00Z", "2026-06-30T10:20:00Z"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "telefonico",
+      platform_effective_filter = list(
+        variable = "Intro/Consent",
+        values = list("Yes")
+      )
+    ),
+    control_vars = c("sede")
+  ), data)
+
+  model <- monitoreo_acreditacion_client_report_model(data, cfg, detail = "advance_summary")
+  actors <- .monitoreo_internal_records_to_df(model$actors)
+  daily <- .monitoreo_internal_records_to_df(model$daily_general)
+  sources <- .monitoreo_internal_records_to_df(model$sources)
+
+  expect_equal(nrow(actors), 1L)
+  expect_equal(actors$Actor, "11_ACNUR_PDM_Base de barrido")
+  expect_equal(as.integer(actors$Universo), 4L)
+  expect_equal(as.integer(actors$Efectivas), 3L)
+  expect_equal(as.integer(actors$Parciales), 0L)
+  expect_equal(as.integer(actors$`Rechazos plataforma`), 0L)
+  expect_true(all(c("2026-06-25", "2026-06-30") %in% daily$Fecha))
+  expect_equal(sum(as.integer(daily$Efectivas), na.rm = TRUE), 3L)
+  expect_false("Sin fecha" %in% daily$Fecha)
+  expect_equal(as.integer(sources$Efectivas), 3L)
+  expect_equal(sources$Fuente, "Post-Distribution Monitoring - Espacios de Protección 2026 Q2")
+
+  reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "phone_summary")
+  client_daily <- .monitoreo_internal_records_to_df(reports$client_report$daily_general)
+  phone_blocks <- stats::setNames(reports$sheets[[1]]$blocks, vapply(reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  phone_daily <- .monitoreo_internal_records_to_df(phone_blocks$avance_efectivo_dia$rows)
+  quota_daily <- .monitoreo_internal_records_to_df(phone_blocks$avance_efectivo_variable_dia$rows)
+  quota_rows <- .monitoreo_internal_records_to_df(phone_blocks$cuotas_variable$rows)
+  comparison <- .monitoreo_internal_records_to_df(phone_blocks$comparacion_codpulso$rows)
+
+  expect_true(all(c("2026-06-25", "2026-06-30") %in% client_daily$Fecha))
+  expect_equal(sum(as.integer(client_daily$Efectivas), na.rm = TRUE), 3L)
+  expect_true("Sin fecha" %in% phone_daily$Fecha)
+  expect_equal(sum(as.integer(phone_daily$Efectivas), na.rm = TRUE), 3L)
+  expect_true(all(c("sede", "Fecha Kobo") %in% names(comparison)))
+  expect_equal(comparison$`Fecha Kobo`[comparison$CodPulso == "PDM 1239"], "2026-06-30")
+  expect_equal(comparison$`Fecha Kobo`[comparison$CodPulso == "PDM4"], "2026-06-30")
+  expect_equal(comparison$sede[comparison$CodPulso == "PDM4"], "CER")
+  expect_equal(as.integer(quota_rows$Efectivas[quota_rows$Variable == "sede" & quota_rows$Valor == "SMP"]), 0L)
+  expect_equal(as.integer(quota_daily$`Efectivas Kobo`[quota_daily$Variable == "sede" & quota_daily$Valor == "CER"]), 1L)
+  expect_equal(as.integer(quota_daily$`Efectivas Kobo`[quota_daily$Variable == "sede" & quota_daily$Valor == "SJL"]), 1L)
+  expect_false("SMP" %in% quota_daily$Valor)
+  expect_equal(sum(comparison$`Efectiva telefónica` == "Sí", na.rm = TRUE), 2L)
+  expect_equal(sum(comparison$`Efectiva Kobo` == "Sí", na.rm = TRUE), 3L)
+  expect_equal(sum(comparison$`Coinciden efectivas` == "No", na.rm = TRUE), 3L)
+  expect_equal(comparison$Coincidencia[comparison$CodPulso == "ZZ"], "Efectiva Kobo fuera de base")
+  expect_false("123456" %in% comparison$CodPulso)
+  expect_equal(comparison$`Avance plataforma`[comparison$CodPulso == "PDM3"], "Sin efectiva Kobo")
+  expect_equal(comparison$Coincidencia[comparison$CodPulso == "PDM3"], "Tel. efectiva sin efectiva Kobo")
+  expect_equal(comparison$`Avance plataforma`[comparison$CodPulso == "PDM4"], "Efectiva Kobo")
+  expect_equal(comparison$Coincidencia[comparison$CodPulso == "PDM4"], "Efectiva Kobo sin tel. efectiva")
+
+  alert_blocks <- stats::setNames(reports$sheets[[2]]$blocks, vapply(reports$sheets[[2]]$blocks, `[[`, character(1), "id"))
+  alert_rows <- .monitoreo_internal_records_to_df(alert_blocks$alertas$rows)
+  expect_true(any(alert_rows$`Tipo alerta` == "sugerencia_formato_codpulso" & grepl("PDM 1239", alert_rows$Detalle, fixed = TRUE)))
+  expect_false(any(grepl("123456", paste(alert_rows$CodPulso, alert_rows$Detalle), fixed = TRUE)))
+
+  quick_cards <- .monitoreo_publication_phone_summary_cards_df(reports)
+  expect_equal(quick_cards$`%`[quick_cards$Indicador == "Casos barridos"], 75)
+  supervision <- .monitoreo_publication_phone_supervision_matrix_df(reports)
+  expect_true("Conciliación teléfono-plataforma" %in% supervision$Capa)
+  expect_equal(
+    supervision$Estado[supervision$Capa == "Conciliación teléfono-plataforma"],
+    "Revisar diferencias"
+  )
+  difference_summary <- .monitoreo_publication_phone_difference_summary_df(reports)
+  luis_difference <- difference_summary[difference_summary$Responsable == "Luis", , drop = FALSE]
+  expect_equal(as.integer(luis_difference$`Efectivas telefónicas`), 1L)
+  expect_equal(as.integer(luis_difference$`Efectivas Kobo`), 1L)
+  expect_equal(as.integer(luis_difference$`Tel. efectiva sin efectiva Kobo`), 1L)
+  expect_equal(as.integer(luis_difference$`Efectiva Kobo sin tel. efectiva`), 1L)
+  expect_equal(as.integer(luis_difference$`Diferencias a revisar`), 2L)
+  expect_equal(luis_difference$`Estado comparativo`, "Revisar diferencias")
+  platform_production <- .monitoreo_publication_phone_platform_production_df(reports)
+  expect_true(all(c("Responsable", "Efectivas Kobo", "Estado comparativo") %in% names(platform_production)))
+  expect_true("Sedes" %in% names(platform_production))
+  expect_false("Actores" %in% names(platform_production))
+
+  internal_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "internal")
+  expect_equal(names(internal_tabs), c("Resumen", "Avance y cuotas", "Responsables", "Conciliación", "Casos y alertas", "Corte y fuentes"))
+  internal_text <- paste(unlist(internal_tabs, use.names = FALSE), collapse = " ")
+  expect_true(grepl("LECTURA RÁPIDA DE AVANCE", internal_text, fixed = TRUE))
+  expect_true(grepl("MATRIZ DE SUPERVISIÓN TELEFÓNICA", internal_text, fixed = TRUE))
+  expect_true(grepl("CUOTAS POR VARIABLE", internal_text, fixed = TRUE))
+  expect_true(grepl("PRODUCCIÓN EFECTIVA PLATAFORMA POR RESPONSABLE", internal_text, fixed = TRUE))
+  expect_true(grepl("RESUMEN DE DIFERENCIAS POR RESPONSABLE", internal_text, fixed = TRUE))
+  expect_true(grepl("COMPARACIÓN CODPULSO: BARRIDO VS KOBO", internal_text, fixed = TRUE))
+  expect_true(grepl("Kobo sin tel.", internal_text, fixed = TRUE))
+  expect_true(grepl("Revisar diferencias", internal_text, fixed = TRUE))
+  expect_false("Registros del corte" %in% names(internal_tabs))
+  internal_progress_text <- paste(unlist(internal_tabs[["Avance y cuotas"]], use.names = FALSE), collapse = " ")
+  internal_responsible_text <- paste(unlist(internal_tabs[["Responsables"]], use.names = FALSE), collapse = " ")
+  expect_false(grepl("\\bActor\\b|\\bActores\\b|\\bParciales\\b|Rechazos telefónicos", internal_progress_text))
+  expect_false(grepl("\\bActor\\b|\\bActores\\b|Rechazos telefónicos", internal_responsible_text))
+  expect_true(grepl("Efectivas Kobo", internal_progress_text, fixed = TRUE))
+  internal_sheets_model <- attr(internal_tabs, "sheets_model")
+  expect_true(all(c("avance_y_cuotas", "responsables", "conciliacion", "casos_y_alertas") %in% names(internal_sheets_model)))
+  expect_false(any(grepl("avance_por_actor|efectivas_parciales|pendientes_por_actor", names(internal_sheets_model), ignore.case = TRUE)))
+
+  client_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "client")
+  expect_equal(names(client_tabs), c("Reporte telefónico", "Monitoreo telefónico", "Alertas", "Corte y fuentes"))
+  client_monitoring_text <- paste(unlist(client_tabs[["Monitoreo telefónico"]], use.names = FALSE), collapse = " ")
+  expect_false(grepl("\\bActor\\b|\\bActores\\b|\\bParciales\\b|Rechazos telefónicos", client_monitoring_text))
+  client_sheets_model <- attr(client_tabs, "sheets_model")
+  expect_true(all(c("reporte_telefonico", "avance_kobo", "alertas", "lectura_telefonica") %in% names(client_sheets_model)))
+  expect_false(any(grepl("avance_por_actor|efectivas_parciales", names(client_sheets_model), ignore.case = TRUE)))
+
+  reconciliation_headers <- .monitoreo_sheets_table_header_rows(internal_tabs[["Conciliación"]])
+  reconciliation_filter <- .monitoreo_sheets_filter_header_index("Conciliación", internal_tabs[["Conciliación"]], reconciliation_headers)
+  expect_match(
+    .monitoreo_sheets_previous_section_key(internal_tabs[["Conciliación"]], reconciliation_filter),
+    "resumen.*diferencias|comparacion.*codpulso|barrido.*kobo"
+  )
+  responsible_headers <- .monitoreo_sheets_table_header_rows(internal_tabs[["Responsables"]])
+  responsible_filter <- .monitoreo_sheets_filter_header_index("Responsables", internal_tabs[["Responsables"]], responsible_headers)
+  expect_match(
+    .monitoreo_sheets_previous_section_key(internal_tabs[["Responsables"]], responsible_filter),
+    "produccion.*plataforma|ranking.*responsable"
+  )
+  expect_equal(.monitoreo_publication_row_status_style(c("Estado cuota", "Brecha")), "high")
+  expect_equal(.monitoreo_publication_row_status_style(c("Estado comparativo", "Revisar diferencias")), "high")
+
+  pct_rows <- .monitoreo_sheets_table_rows(data.frame(
+    Estatus = "No barrido",
+    Casos = 98L,
+    `% del total telefónico` = 0.98,
+    check.names = FALSE
+  ))
+  expect_equal(pct_rows[[2]][[3]], "98.0%")
+
+  xlsx_path <- tempfile(fileext = ".xlsx")
+  monitoreo_publication_workbook(data, cfg, path = xlsx_path, audience = "internal", sheets = internal_tabs)
+  xlsx_entries <- utils::unzip(xlsx_path, list = TRUE)$Name
+  expect_true("_rels/.rels" %in% xlsx_entries)
+  expect_false(any(grepl("printerSettings", xlsx_entries, fixed = TRUE)))
 })
 
 test_that("perfil acreditacion calcula cuotas telefonicas desde poblacion del actor", {
@@ -3610,6 +3829,14 @@ test_that("Google Sheets reset limpia filtros y reglas previas de pestanas contr
   resize <- Filter(function(request) !is.null(request$updateSheetProperties), requests)[[1]]
   expect_equal(resize$updateSheetProperties$properties$gridProperties$rowCount, 2L)
   expect_equal(resize$updateSheetProperties$properties$gridProperties$columnCount, 2L)
+})
+
+test_that("lista blanca de Sheets cubre pestañas controladas del monitoreo telefónico", {
+  phone_client_tabs <- unname(.monitoreo_publication_sheet_tab_names("telefonico", "client"))
+  phone_internal_tabs <- unname(.monitoreo_publication_sheet_tab_names("telefonico", "internal"))
+
+  expect_silent(.monitoreo_sheets_validate_controlled_tabs(phone_client_tabs))
+  expect_silent(.monitoreo_sheets_validate_controlled_tabs(phone_internal_tabs))
 })
 
 test_that("Google Sheets sanea celdas que exceden el limite nativo", {
@@ -7641,6 +7868,131 @@ test_that("perfil alternativo de SurveyMonkey se resuelve sin mutar la fuente", 
     }
   }
 }
+
+test_that("sync telefonico completo lee Kobo y barrido telefonico en Sheets", {
+  restores <- list(
+    .with_mocked_monitoreo_binding(".connections_token_require", function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
+      expect_equal(provider, "kobo")
+      "token_kobo_local"
+    }),
+    .with_mocked_monitoreo_binding("kobo_api_fetch_all_asset_data", function(asset_uid, token, base_url = NULL, min_id = NULL, progress = NULL) {
+      expect_equal(asset_uid, "asset_acnur_pdm")
+      expect_equal(token, "token_kobo_local")
+      expect_null(min_id)
+      list(
+        count = 2L,
+        total = 2L,
+        results = list(
+          list(`_id` = 101L, CodPulso = "P001", response_status = "completed", IntroConsent = "Yes"),
+          list(`_id` = 102L, CodPulso = "P002", response_status = "completed", IntroConsent = "Yes")
+        )
+      )
+    }),
+    .with_mocked_monitoreo_binding("kobo_api_flatten_results", function(results) {
+      data.frame(
+        `_id` = vapply(results, function(item) item$`_id`, numeric(1)),
+        CodPulso = vapply(results, function(item) item$CodPulso, character(1)),
+        response_status = vapply(results, function(item) item$response_status, character(1)),
+        IntroConsent = vapply(results, function(item) item$IntroConsent, character(1)),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    }),
+    .with_mocked_monitoreo_binding("monitoreo_sheets_read_source", function(source) {
+      expect_equal(source$id, "barrido_telefonico")
+      data.frame(
+        CodPulso = c("P001", "P002"),
+        Responsable = c("Ana", "Luis"),
+        Estado = c("Efectivo", "No contesta"),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    })
+  )
+  on.exit(invisible(lapply(rev(restores), function(restore) restore())), add = TRUE)
+
+  result <- monitoreo_sync_sources(
+    list(
+      list(
+        id = "kobo_acnur_pdm",
+        kind = "kobo",
+        role = "respuestas",
+        enabled = TRUE,
+        label = "Kobo PDM",
+        asset_uid = "asset_acnur_pdm",
+        base_url = "https://kf.kobotoolbox.org",
+        sync_cursor = list(kobo_max_id = 100L)
+      ),
+      list(
+        id = "barrido_telefonico",
+        kind = "google_sheets",
+        role = "barrido",
+        enabled = TRUE,
+        label = "Barrido telefonico",
+        spreadsheet_id = "sheet_barrido",
+        sheet_name = "Barrido"
+      )
+    ),
+    list(monitoreo_profile = list(family = "telefonico")),
+    build_dashboard = FALSE,
+    sync_mode = "full"
+  )
+
+  expect_true(result$ok)
+  expect_equal(result$n_sources, 2L)
+  expect_equal(sort(unique(result$data$.source_kind)), c("google_sheets", "kobo"))
+  expect_equal(sort(unique(result$data$.source_role)), c("barrido", "respuestas"))
+  expect_equal(
+    sort(names(result$sync_summary)),
+    c("barrido_telefonico", "kobo_acnur_pdm")
+  )
+  expect_equal(result$sync_summary$kobo_acnur_pdm$rows, 2L)
+  expect_equal(result$sync_summary$kobo_acnur_pdm$mode, "full")
+  expect_equal(result$sync_summary$barrido_telefonico$rows, 2L)
+})
+
+test_that("sync Kobo advance usa cursor incremental", {
+  restores <- list(
+    .with_mocked_monitoreo_binding(".connections_token_require", function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
+      "token_kobo_local"
+    }),
+    .with_mocked_monitoreo_binding("kobo_api_fetch_all_asset_data", function(asset_uid, token, base_url = NULL, min_id = NULL, progress = NULL) {
+      expect_equal(asset_uid, "asset_acnur_pdm")
+      expect_equal(token, "token_kobo_local")
+      expect_equal(min_id, 100)
+      list(
+        count = 1L,
+        total = 1L,
+        results = list(list(`_id` = 101L, CodPulso = "P001", response_status = "completed"))
+      )
+    }),
+    .with_mocked_monitoreo_binding("kobo_api_flatten_results", function(results) {
+      data.frame(
+        `_id` = vapply(results, function(item) item$`_id`, numeric(1)),
+        CodPulso = vapply(results, function(item) item$CodPulso, character(1)),
+        response_status = vapply(results, function(item) item$response_status, character(1)),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    })
+  )
+  on.exit(invisible(lapply(rev(restores), function(restore) restore())), add = TRUE)
+
+  result <- monitoreo_sync_source(
+    list(
+      id = "kobo_acnur_pdm",
+      kind = "kobo",
+      enabled = TRUE,
+      asset_uid = "asset_acnur_pdm",
+      base_url = "https://kf.kobotoolbox.org",
+      sync_cursor = list(kobo_max_id = 100L)
+    ),
+    sync_mode = "advance"
+  )
+
+  expect_equal(attr(result, "sync_mode", exact = TRUE), "incremental")
+  expect_equal(attr(result, "sync_cursor", exact = TRUE)$kobo_max_id, 101)
+})
 
 test_that("sync SurveyMonkey prueba perfil alternativo y persiste nombres de recopiladores", {
   calls <- character(0)

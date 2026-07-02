@@ -32,4 +32,19 @@ describe("monitoreo profile import boundary", () => {
       expect(offenders).toEqual([]);
     });
   }
+
+  test("telefonico no importa la UI de acreditacion", () => {
+    const files = sourceFiles(path.join(profilesDir, "telefonico"));
+    const offenders = files
+      .filter((file) => {
+        const source = fs.readFileSync(file, "utf8");
+        return Array.from(source.matchAll(importSpecifier)).some((match) => {
+          const specifier = match[1] ?? match[2] ?? "";
+          return specifier.includes("../acreditacion") || specifier.includes("/profiles/acreditacion/");
+        });
+      })
+      .map((file) => path.relative(profilesDir, file));
+
+    expect(offenders).toEqual([]);
+  });
 });

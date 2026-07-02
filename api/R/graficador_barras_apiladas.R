@@ -109,10 +109,552 @@
   pmax(0.018, pmin(0.07, est))
 }
 
+.estimate_label_fit_width_apiladas <- function(labels, size) {
+  labels <- as.character(labels)
+  base <- .estimate_label_width_apiladas(labels, size)
+  has_freq <- grepl("\\([^)]*\\d", labels)
+  # Las etiquetas con frecuencia (% (n)) ocupan mucho mas que el porcentaje
+  # solo. Si subestimamos este ancho terminan invadiendo el segmento vecino.
+  base * ifelse(has_freq, 2.40, 0.72)
+}
+
+.finalizar_estado_labels_apiladas <- function(df_lab,
+                                             color_texto_barras,
+                                             color_texto_barras_fuera,
+                                             fit_padding = 0.003) {
+  if (!NROW(df_lab)) return(df_lab)
+
+  hjust <- suppressWarnings(as.numeric(df_lab$.hjust_label))
+  hjust[!is.finite(hjust)] <- 0.5
+  hjust <- pmax(0, pmin(1, hjust))
+
+  width_est <- .estimate_label_fit_width_apiladas(df_lab$lab, df_lab$.size_label)
+  if (".label_fit_scale" %in% names(df_lab)) {
+    scale_width <- suppressWarnings(as.numeric(df_lab$.label_fit_scale))
+    scale_width[!is.finite(scale_width) | is.na(scale_width)] <- 1
+    width_est <- width_est * scale_width
+  }
+  span_left <- df_lab$x_label - hjust * width_est
+  span_right <- df_lab$x_label + (1 - hjust) * width_est
+
+  tol <- max(0.0015, suppressWarnings(as.numeric(fit_padding)[1]) %||% 0.003)
+  inside_bar <- is.finite(span_left) &
+    is.finite(span_right) &
+    span_left >= 0 - tol &
+    span_right <= 1 + tol &
+    df_lab$x_label >= 0 - tol &
+    df_lab$x_label <= 1 + tol
+  inside_bar[is.na(inside_bar)] <- FALSE
+
+  forced_out <- if (".forzar_fuera" %in% names(df_lab)) as.logical(df_lab$.forzar_fuera) else FALSE
+  if (length(forced_out) != nrow(df_lab)) forced_out <- rep(FALSE, nrow(df_lab))
+  forced_out[is.na(forced_out)] <- FALSE
+
+  df_lab$.label_fuera <- forced_out | !inside_bar
+  df_lab$.col_label <- ifelse(df_lab$.label_fuera, color_texto_barras_fuera, color_texto_barras)
+  df_lab$.span_label_left <- span_left
+  df_lab$.span_label_right <- span_right
+  df_lab
+}
+
+.limitar_una_label_fuera_por_barra_apiladas <- function(df_lab,
+                                                        var_categoria,
+                                                        color_texto_barras,
+                                                        fit_padding = 0.003,
+                                                        etiquetas_peq_padding = 0.012) {
+  if (!NROW(df_lab) || !".label_fuera" %in% names(df_lab)) return(df_lab)
+
+  grupos <- if (var_categoria %in% names(df_lab)) {
+    split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+  } else {
+    list(seq_len(nrow(df_lab)))
+  }
+
+  fit_padding <- max(0.002, suppressWarnings(as.numeric(fit_padding)[1]) %||% 0.003)
+  gap <- max(0.010, suppressWarnings(as.numeric(etiquetas_peq_padding)[1]) %||% 0.012)
+
+  for (idx in grupos) {
+    fuera <- idx[df_lab$.label_fuera[idx] %in% TRUE]
+    if (length(fuera) <= 1L) next
+
+    forced <- integer(0)
+    if (".forzar_fuera" %in% names(df_lab)) {
+      forced <- fuera[df_lab$.forzar_fuera[fuera] %in% TRUE]
+    }
+    keep_out <- if (length(forced)) {
+      forced[which.min(df_lab$x_label[forced])]
+    } else {
+      span_left <- if (".span_label_left" %in% names(df_lab)) df_lab$.span_label_left[fuera] else df_lab$x_label[fuera]
+      span_right <- if (".span_label_right" %in% names(df_lab)) df_lab$.span_label_right[fuera] else df_lab$x_label[fuera]
+      overflow <- pmax(0, -span_left) + pmax(0, span_right - 1)
+      overflow[!is.finite(overflow)] <- 0
+      fuera[which.max(overflow + (1 - df_lab$x_left[fuera]) * 1e-6)]
+    }
+
+    inside <- setdiff(fuera, keep_out)
+    if (!length(inside)) next
+
+    ord_left <- inside[df_lab$x_center[inside] <= 0.5]
+    ord_left <- ord_left[order(df_lab$x_left[ord_left], seq_along(ord_left))]
+    cursor_left <- fit_padding
+
+    for (id in ord_left) {
+      width <- .estimate_label_fit_width_apiladas(df_lab$lab[id], df_lab$.size_label[id]) * 1.15
+      width <- min(max(width, 0.020), 0.12)
+      x_max <- max(fit_padding, 1 - width - fit_padding)
+      x_inside <- min(max(cursor_left, df_lab$x_left[id] + fit_padding), x_max)
+
+      df_lab$x_label[id] <- x_inside
+      df_lab$.hjust_label[id] <- 0
+      df_lab$.label_fuera[id] <- FALSE
+      df_lab$.col_label[id] <- color_texto_barras
+      if (".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera[id] <- FALSE
+      if (".fijar_label" %in% names(df_lab)) df_lab$.fijar_label[id] <- TRUE
+      if (".repel_x_min" %in% names(df_lab)) df_lab$.repel_x_min[id] <- x_inside
+      if (".repel_x_max" %in% names(df_lab)) df_lab$.repel_x_max[id] <- x_inside
+      if (".span_label_left" %in% names(df_lab)) df_lab$.span_label_left[id] <- x_inside
+      if (".span_label_right" %in% names(df_lab)) df_lab$.span_label_right[id] <- x_inside + width
+
+      cursor_left <- x_inside + width + gap
+    }
+
+    ord_right <- inside[df_lab$x_center[inside] > 0.5]
+    ord_right <- ord_right[order(df_lab$x_right[ord_right], decreasing = TRUE)]
+    cursor_right <- 1 - fit_padding
+
+    for (id in ord_right) {
+      width <- .estimate_label_fit_width_apiladas(df_lab$lab[id], df_lab$.size_label[id]) * 1.15
+      width <- min(max(width, 0.020), 0.12)
+      x_min <- min(1 - fit_padding, width + fit_padding)
+      x_inside <- max(min(cursor_right, df_lab$x_right[id] - fit_padding), x_min)
+
+      df_lab$x_label[id] <- x_inside
+      df_lab$.hjust_label[id] <- 1
+      df_lab$.label_fuera[id] <- FALSE
+      df_lab$.col_label[id] <- color_texto_barras
+      if (".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera[id] <- FALSE
+      if (".fijar_label" %in% names(df_lab)) df_lab$.fijar_label[id] <- TRUE
+      if (".repel_x_min" %in% names(df_lab)) df_lab$.repel_x_min[id] <- x_inside
+      if (".repel_x_max" %in% names(df_lab)) df_lab$.repel_x_max[id] <- x_inside
+      if (".span_label_left" %in% names(df_lab)) df_lab$.span_label_left[id] <- x_inside - width
+      if (".span_label_right" %in% names(df_lab)) df_lab$.span_label_right[id] <- x_inside
+
+      cursor_right <- x_inside - width - gap
+    }
+  }
+
+  df_lab
+}
+
+.acomodar_labels_dentro_barra_apiladas <- function(df_lab,
+                                                   var_categoria,
+                                                   color_texto_barras,
+                                                   fit_padding = 0.003,
+                                                   etiquetas_peq_padding = 0.012,
+                                                   width_factor = 2.10) {
+  if (!NROW(df_lab) || !".label_fuera" %in% names(df_lab)) return(df_lab)
+
+  grupos <- if (var_categoria %in% names(df_lab)) {
+    split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+  } else {
+    list(seq_len(nrow(df_lab)))
+  }
+
+  fit_padding <- max(0.002, suppressWarnings(as.numeric(fit_padding)[1]) %||% 0.003)
+  gap <- max(0.024, suppressWarnings(as.numeric(etiquetas_peq_padding)[1]) %||% 0.012)
+  width_factor <- max(1, suppressWarnings(as.numeric(width_factor)[1]) %||% 1.35)
+
+  for (idx in grupos) {
+    inside <- idx[!(df_lab$.label_fuera[idx] %in% TRUE)]
+    if (length(inside) < 2L) next
+
+    widths <- .estimate_label_width_apiladas(
+      df_lab$lab[inside],
+      df_lab$.size_label[inside]
+    ) * width_factor
+    widths[!is.finite(widths) | is.na(widths)] <- 0.05
+
+    hjust <- suppressWarnings(as.numeric(df_lab$.hjust_label[inside]))
+    hjust[!is.finite(hjust) | is.na(hjust)] <- 0.5
+    hjust <- pmax(0, pmin(1, hjust))
+
+    span_left <- df_lab$x_label[inside] - hjust * widths
+    span_right <- df_lab$x_label[inside] + (1 - hjust) * widths
+    ord_local <- order(span_left, df_lab$x_label[inside], seq_along(inside))
+    if (all(diff(span_left[ord_local]) >= 0) &&
+        all(span_left[ord_local][-1] - span_right[ord_local][-length(ord_local)] >= gap)) {
+      next
+    }
+
+    total_need <- sum(widths) + (length(widths) - 1L) * gap
+    if (!is.finite(total_need) || total_need > (1 - 2 * fit_padding)) next
+
+    ord <- inside[ord_local]
+    widths_ord <- widths[ord_local]
+    hjust_ord <- hjust[ord_local]
+    cursor <- fit_padding
+
+    for (pos in seq_along(ord)) {
+      id <- ord[pos]
+      width <- widths_ord[pos]
+      hj <- hjust_ord[pos]
+      x_min <- cursor + hj * width
+      x_max <- 1 - fit_padding - (1 - hj) * width
+      x_target <- max(df_lab$x_label[id], x_min)
+      if (is.finite(x_max)) x_target <- min(x_target, x_max)
+
+      df_lab$x_label[id] <- x_target
+      df_lab$.hjust_label[id] <- hj
+      df_lab$.label_fuera[id] <- FALSE
+      df_lab$.col_label[id] <- color_texto_barras
+      if (".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera[id] <- FALSE
+      span_left_target <- x_target - hj * width
+      span_right_target <- x_target + (1 - hj) * width
+      if (".span_label_left" %in% names(df_lab)) df_lab$.span_label_left[id] <- span_left_target
+      if (".span_label_right" %in% names(df_lab)) df_lab$.span_label_right[id] <- span_right_target
+
+      cursor <- span_right_target + gap
+    }
+  }
+
+  df_lab
+}
+
+.forzar_labels_dentro_barra_apiladas <- function(df_lab,
+                                                 var_categoria,
+                                                 color_texto_barras,
+                                                 fit_padding = 0.003,
+                                                 etiquetas_peq_padding = 0.012,
+                                                 width_factor = 2.10) {
+  if (!NROW(df_lab)) return(df_lab)
+
+  grupos <- if (var_categoria %in% names(df_lab)) {
+    split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+  } else {
+    list(seq_len(nrow(df_lab)))
+  }
+
+  fit_padding <- max(0.002, suppressWarnings(as.numeric(fit_padding)[1]) %||% 0.003)
+  gap <- max(0.016, suppressWarnings(as.numeric(etiquetas_peq_padding)[1]) %||% 0.012)
+  width_factor <- max(1, suppressWarnings(as.numeric(width_factor)[1]) %||% 1.35)
+
+  for (idx in grupos) {
+    visible <- idx[nzchar(df_lab$lab[idx] %||% "")]
+    if (!length(visible)) next
+
+    base_widths <- .estimate_label_width_apiladas(
+      df_lab$lab[visible],
+      df_lab$.size_label[visible]
+    )
+    base_widths[!is.finite(base_widths) | is.na(base_widths)] <- 0.05
+
+    available <- 1 - 2 * fit_padding - gap * max(0L, length(visible) - 1L)
+    dyn_factor <- if (sum(base_widths) > 0 && is.finite(available) && available > 0) {
+      min(width_factor, max(0.82, available / sum(base_widths)))
+    } else {
+      width_factor
+    }
+
+    widths <- base_widths * dyn_factor
+    lower <- fit_padding + widths / 2
+    upper <- 1 - fit_padding - widths / 2
+
+    target <- suppressWarnings(as.numeric(df_lab$x_label[visible]))
+    bad_target <- !is.finite(target)
+    if (any(bad_target)) target[bad_target] <- df_lab$x_center[visible][bad_target]
+    target <- pmin(upper, pmax(lower, target))
+
+    x_adj <- .repel_label_positions_apiladas(
+      x = target,
+      labels = df_lab$lab[visible],
+      label_size = df_lab$.size_label[visible],
+      movable = rep(TRUE, length(visible)),
+      hjust = rep(0.5, length(visible)),
+      max_shift = 1,
+      x_min = rep(fit_padding, length(visible)),
+      x_max = rep(1 - fit_padding, length(visible)),
+      padding = gap,
+      max_iter = 24L,
+      bias_right = 0.72,
+      edge_margin = 0,
+      width_factor = dyn_factor,
+      bias_toward_center = TRUE,
+      center_ref = 0.5
+    )
+
+    x_adj <- pmin(upper, pmax(lower, x_adj))
+    df_lab$x_label[visible] <- x_adj
+    df_lab$.hjust_label[visible] <- 0.5
+    df_lab$.label_fuera[visible] <- FALSE
+    df_lab$.col_label[visible] <- color_texto_barras
+    if (".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera[visible] <- FALSE
+    if (".span_label_left" %in% names(df_lab)) df_lab$.span_label_left[visible] <- x_adj - widths / 2
+    if (".span_label_right" %in% names(df_lab)) df_lab$.span_label_right[visible] <- x_adj + widths / 2
+  }
+
+  df_lab
+}
+
+.posicionar_labels_arriba_si_no_caben_apiladas <- function(df_lab,
+                                                           var_categoria,
+                                                           usar_y_numerico,
+                                                           grosor_eff,
+                                                           fit_padding = 0.003,
+                                                           etiquetas_peq_padding = 0.012,
+                                                           color_texto_barras_fuera,
+                                                           colores_grupos = NULL,
+                                                           offset_y = 0.17,
+                                                           connector_gap_y = 0.060,
+                                                           width_factor = 2.15) {
+  if (!NROW(df_lab)) return(df_lab)
+
+  if (!".label_arriba" %in% names(df_lab)) df_lab$.label_arriba <- FALSE
+  if (!"y_label" %in% names(df_lab)) {
+    df_lab$y_label <- if (".y_plot" %in% names(df_lab)) df_lab$.y_plot else NA_real_
+  }
+  if (!"x_conector_label" %in% names(df_lab)) df_lab$x_conector_label <- NA_real_
+  if (!"x_conector_barra" %in% names(df_lab)) df_lab$x_conector_barra <- NA_real_
+  if (!"y_conector_label" %in% names(df_lab)) df_lab$y_conector_label <- NA_real_
+  if (!"y_conector_barra" %in% names(df_lab)) df_lab$y_conector_barra <- NA_real_
+  if (!".col_conector" %in% names(df_lab)) df_lab$.col_conector <- color_texto_barras_fuera
+
+  if (!isTRUE(usar_y_numerico) || !".y_plot" %in% names(df_lab)) {
+    return(df_lab)
+  }
+
+  fit_padding <- max(0.002, suppressWarnings(as.numeric(fit_padding)[1]) %||% 0.003)
+  gap <- max(0.016, suppressWarnings(as.numeric(etiquetas_peq_padding)[1]) %||% 0.012)
+  offset_y <- suppressWarnings(as.numeric(offset_y)[1])
+  if (!is.finite(offset_y) || is.na(offset_y) || offset_y <= 0) offset_y <- 0.13
+  connector_gap_y <- suppressWarnings(as.numeric(connector_gap_y)[1])
+  if (!is.finite(connector_gap_y) || is.na(connector_gap_y) || connector_gap_y < 0) connector_gap_y <- 0.035
+  width_factor <- max(1, suppressWarnings(as.numeric(width_factor)[1]) %||% 1.55)
+
+  grosor_eff <- suppressWarnings(as.numeric(grosor_eff)[1])
+  if (!is.finite(grosor_eff) || is.na(grosor_eff) || grosor_eff <= 0) grosor_eff <- 0.70
+
+  color_segmento <- rep(color_texto_barras_fuera, nrow(df_lab))
+  if (!is.null(colores_grupos)) {
+    cg <- colores_grupos
+    if (!is.null(names(cg)) && length(names(cg))) {
+      hit <- as.character(cg[match(as.character(df_lab$.grupo), names(cg))])
+      ok <- !is.na(hit) & nzchar(hit)
+      color_segmento[ok] <- hit[ok]
+    }
+  }
+
+  grupos <- if (var_categoria %in% names(df_lab)) {
+    split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+  } else {
+    list(seq_len(nrow(df_lab)))
+  }
+
+  top_y <- df_lab$.y_plot + grosor_eff / 2
+
+  for (idx in grupos) {
+    visible <- idx[nzchar(df_lab$lab[idx] %||% "")]
+    if (!length(visible)) next
+    mover <- visible[df_lab$.label_fuera[visible] %in% TRUE]
+    if (!length(mover)) next
+
+    if (".lab_arriba" %in% names(df_lab)) {
+      lab_arriba <- as.character(df_lab$.lab_arriba[mover])
+      usar_lab_arriba <- !is.na(lab_arriba) & nzchar(lab_arriba)
+      if (any(usar_lab_arriba)) {
+        df_lab$lab[mover[usar_lab_arriba]] <- lab_arriba[usar_lab_arriba]
+      }
+    }
+
+    widths <- .estimate_label_width_apiladas(
+      df_lab$lab[mover],
+      df_lab$.size_label[mover]
+    ) * width_factor
+    if (".label_fit_scale" %in% names(df_lab)) {
+      scale_width <- suppressWarnings(as.numeric(df_lab$.label_fit_scale[mover]))
+      scale_width[!is.finite(scale_width) | is.na(scale_width)] <- 1
+      widths <- widths * scale_width
+    }
+    widths[!is.finite(widths) | is.na(widths)] <- 0.05
+
+    lower <- fit_padding + widths / 2
+    upper <- 1 - fit_padding - widths / 2
+    impossible <- lower > upper
+    if (any(impossible)) {
+      lower[impossible] <- 0.5
+      upper[impossible] <- 0.5
+    }
+
+    target <- suppressWarnings(as.numeric(df_lab$x_center[mover]))
+    target[!is.finite(target)] <- 0.5
+    target <- pmin(upper, pmax(lower, target))
+
+    x_adj <- .repel_label_positions_apiladas(
+      x = target,
+      labels = df_lab$lab[mover],
+      label_size = df_lab$.size_label[mover],
+      movable = rep(TRUE, length(mover)),
+      hjust = rep(0.5, length(mover)),
+      max_shift = 1,
+      x_min = rep(fit_padding, length(mover)),
+      x_max = rep(1 - fit_padding, length(mover)),
+      padding = gap,
+      max_iter = 28L,
+      bias_right = 0.55,
+      edge_margin = 0,
+      width_factor = width_factor,
+      bias_toward_center = TRUE,
+      center_ref = 0.5
+    )
+    x_adj <- pmin(upper, pmax(lower, x_adj))
+
+    df_lab$x_label[mover] <- x_adj
+    df_lab$.hjust_label[mover] <- 0.5
+    df_lab$.label_fuera[mover] <- TRUE
+    df_lab$.label_arriba[mover] <- TRUE
+    df_lab$.col_label[mover] <- color_texto_barras_fuera
+    df_lab$.col_conector[mover] <- color_segmento[mover]
+    df_lab$y_label[mover] <- top_y[mover] + offset_y
+    df_lab$x_conector_label[mover] <- x_adj
+    df_lab$x_conector_barra[mover] <- df_lab$x_center[mover]
+    df_lab$y_conector_label[mover] <- top_y[mover] + connector_gap_y
+    df_lab$y_conector_barra[mover] <- top_y[mover] - max(0.010, connector_gap_y * 0.15)
+    if (".fijar_label" %in% names(df_lab)) df_lab$.fijar_label[mover] <- TRUE
+    if (".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera[mover] <- TRUE
+  }
+
+  df_lab
+}
+
+.finalizar_labels_interiores_apiladas <- function(df_lab,
+                                                  var_categoria,
+                                                  color_texto_barras,
+                                                  color_texto_barras_fuera,
+                                                  fit_padding = 0.003,
+                                                  etiquetas_peq_padding = 0.012,
+                                                  width_factor = 2.10) {
+  if (!NROW(df_lab)) return(df_lab)
+
+  df_lab <- .finalizar_estado_labels_apiladas(
+    df_lab,
+    color_texto_barras = color_texto_barras,
+    color_texto_barras_fuera = color_texto_barras_fuera,
+    fit_padding = fit_padding
+  )
+  df_lab <- .limitar_una_label_fuera_por_barra_apiladas(
+    df_lab,
+    var_categoria = var_categoria,
+    color_texto_barras = color_texto_barras,
+    fit_padding = fit_padding,
+    etiquetas_peq_padding = etiquetas_peq_padding
+  )
+  df_lab <- .acomodar_labels_dentro_barra_apiladas(
+    df_lab,
+    var_categoria = var_categoria,
+    color_texto_barras = color_texto_barras,
+    fit_padding = fit_padding,
+    etiquetas_peq_padding = etiquetas_peq_padding
+  )
+  df_lab <- .forzar_labels_dentro_barra_apiladas(
+    df_lab,
+    var_categoria = var_categoria,
+    color_texto_barras = color_texto_barras,
+    fit_padding = fit_padding,
+    etiquetas_peq_padding = etiquetas_peq_padding,
+    width_factor = width_factor
+  )
+
+  df_lab
+}
+
+.centrar_labels_interiores_segmento_apiladas <- function(df_lab,
+                                                         color_texto_barras) {
+  if (!NROW(df_lab)) return(df_lab)
+
+  df_lab$x_label <- df_lab$x_center
+  df_lab$.hjust_label <- 0.5
+  df_lab$.label_fuera <- FALSE
+  df_lab$.col_label <- color_texto_barras
+  if (".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera <- FALSE
+  if (".fijar_label" %in% names(df_lab)) df_lab$.fijar_label <- TRUE
+  if (".repel_x_min" %in% names(df_lab)) df_lab$.repel_x_min <- df_lab$x_center
+  if (".repel_x_max" %in% names(df_lab)) df_lab$.repel_x_max <- df_lab$x_center
+  if (".span_label_left" %in% names(df_lab)) df_lab$.span_label_left <- NA_real_
+  if (".span_label_right" %in% names(df_lab)) df_lab$.span_label_right <- NA_real_
+  df_lab
+}
+
+.dejar_max_una_label_fuera_izq_apiladas <- function(df_lab,
+                                                    idx_izq,
+                                                    label_offset,
+                                                    fit_padding,
+                                                    etiquetas_peq_padding,
+                                                    color_texto_barras) {
+  if (!length(idx_izq) || length(idx_izq) < 2L) return(df_lab)
+
+  first <- idx_izq[which.min(df_lab$x_left[idx_izq])]
+  if (!is.finite(df_lab$x_left[first]) || df_lab$x_left[first] > 0.015) return(df_lab)
+
+  ord_edge <- idx_izq[order(df_lab$x_left[idx_izq], seq_along(idx_izq))]
+  gap <- max(etiquetas_peq_padding, 0.016)
+  widths_all <- .estimate_label_width_apiladas(
+    df_lab$lab[ord_edge],
+    df_lab$.size_label[ord_edge]
+  ) * 1.18
+  widths_all[!is.finite(widths_all) | is.na(widths_all)] <- 0.05
+  start_inside <- max(0.006, min(df_lab$x_left[first] + max(fit_padding, 0.003), 0.03))
+  keep_out <- integer(0)
+  inside <- ord_edge
+
+  if (!".fijar_label" %in% names(df_lab)) df_lab$.fijar_label <- FALSE
+  if (!".forzar_fuera" %in% names(df_lab)) df_lab$.forzar_fuera <- FALSE
+  if (!".repel_x_min" %in% names(df_lab)) df_lab$.repel_x_min <- NA_real_
+  if (!".repel_x_max" %in% names(df_lab)) df_lab$.repel_x_max <- NA_real_
+
+  if (length(keep_out)) {
+    df_lab$x_label[keep_out] <- df_lab$x_left[keep_out] - max(label_offset, 0.008)
+    df_lab$.hjust_label[keep_out] <- 1
+    df_lab$.repel_x_min[keep_out] <- max(-0.20, df_lab$x_label[keep_out])
+    df_lab$.repel_x_max[keep_out] <- df_lab$x_label[keep_out]
+    df_lab$.fijar_label[keep_out] <- TRUE
+    df_lab$.forzar_fuera[keep_out] <- TRUE
+  }
+
+  if (length(inside)) {
+    widths_inside <- .estimate_label_width_apiladas(
+      df_lab$lab[inside],
+      df_lab$.size_label[inside]
+    ) * 1.35
+    cursor <- if (length(keep_out)) {
+      max(0.006, df_lab$x_right[keep_out] + max(fit_padding, 0.003))
+    } else {
+      start_inside
+    }
+
+    for (pos in seq_along(inside)) {
+      id <- inside[pos]
+      w <- widths_inside[pos]
+      if (!is.finite(w) || is.na(w)) w <- 0.05
+      x_inside <- min(max(cursor, 0.003), max(0.003, 1 - w - fit_padding))
+      df_lab$x_label[id] <- x_inside
+      df_lab$.hjust_label[id] <- 0
+      df_lab$.label_fuera[id] <- FALSE
+      df_lab$.col_label[id] <- color_texto_barras
+      df_lab$.repel_x_min[id] <- x_inside
+      df_lab$.repel_x_max[id] <- x_inside
+      df_lab$.fijar_label[id] <- TRUE
+      df_lab$.forzar_fuera[id] <- FALSE
+      cursor <- x_inside + w + gap
+    }
+  }
+
+  df_lab
+}
+
 .repel_label_positions_apiladas <- function(x,
                                             labels,
                                             label_size,
                                             movable,
+                                            hjust = 0.5,
                                             max_shift = 0.05,
                                             x_min = 0,
                                             x_max = 1,
@@ -159,6 +701,9 @@
   labels_ord <- rep_len(as.character(labels), n)[ord]
   size_ord <- rep_len(suppressWarnings(as.numeric(label_size)), n)[ord]
   movable_ord <- movable[ord]
+  hjust_ord <- rep_len(suppressWarnings(as.numeric(hjust)), n)[ord]
+  hjust_ord[!is.finite(hjust_ord)] <- 0.5
+  hjust_ord <- pmax(0, pmin(1, hjust_ord))
 
   x_min_vec <- rep_len(suppressWarnings(as.numeric(x_min)), n)
   x_max_vec <- rep_len(suppressWarnings(as.numeric(x_max)), n)
@@ -179,10 +724,9 @@
   x_max_ord <- pmax(x_min_ord + 1e-6, x_max_ord - edge_margin)
 
   width_est <- .estimate_label_width_apiladas(labels_ord, size_ord) * width_factor
-  half_width <- width_est / 2
 
-  lower <- pmax(x_min_ord + half_width, x_ord - max_shift)
-  upper <- pmin(x_max_ord - half_width, x_ord + max_shift)
+  lower <- pmax(x_min_ord + hjust_ord * width_est, x_ord - max_shift)
+  upper <- pmin(x_max_ord - (1 - hjust_ord) * width_est, x_ord + max_shift)
 
   impossible <- lower > upper
   if (any(impossible)) {
@@ -192,7 +736,6 @@
       x_max_ord[impossible],
       pmax(x_min_ord[impossible], push_to_center)
     )
-    center_fix <- pmin(1, pmax(0, center_fix))
     lower[impossible] <- center_fix
     upper[impossible] <- center_fix
   }
@@ -206,12 +749,13 @@
     changed <- FALSE
 
     for (i in seq_len(n - 1L)) {
-      required_gap <- half_width[i] + half_width[i + 1L] + padding
-      current_gap <- x_adj[i + 1L] - x_adj[i]
+      span_right_i <- x_adj[i] + (1 - hjust_ord[i]) * width_est[i]
+      span_left_next <- x_adj[i + 1L] - hjust_ord[i + 1L] * width_est[i + 1L]
+      current_gap <- span_left_next - span_right_i
 
-      if (!is.finite(current_gap) || current_gap + 1e-9 >= required_gap) next
+      if (!is.finite(current_gap) || current_gap + 1e-9 >= padding) next
 
-      overlap <- required_gap - current_gap
+      overlap <- padding - current_gap
       left_room <- if (movable_ord[i]) max(0, x_adj[i] - lower[i]) else 0
       right_room <- if (movable_ord[i + 1L]) max(0, upper[i + 1L] - x_adj[i + 1L]) else 0
 
@@ -225,13 +769,13 @@
         if (isTRUE(bias_toward_center)) {
           pair_mid <- (x_adj[i] + x_adj[i + 1L]) / 2
           center_bias <- if (pair_mid < center_ref) {
-            0.75
+            0.9
           } else if (pair_mid > center_ref) {
-            0.25
+            0.1
           } else {
             0.5
           }
-          bias_eff <- (bias_right + center_bias) / 2
+          bias_eff <- (bias_right + center_bias * 2) / 3
         }
         target_right <- overlap * bias_eff
         target_left <- overlap - target_right
@@ -263,13 +807,17 @@
 
     if (n > 1L) {
       for (i in 2:n) {
-        if (x_adj[i] <= x_adj[i - 1L]) {
-          x_adj[i] <- min(upper[i], x_adj[i - 1L] + 1e-6)
+        prev_right <- x_adj[i - 1L] + (1 - hjust_ord[i - 1L]) * width_est[i - 1L]
+        this_left <- x_adj[i] - hjust_ord[i] * width_est[i]
+        if (this_left < prev_right + padding) {
+          x_adj[i] <- min(upper[i], x_adj[i] + (prev_right + padding - this_left))
         }
       }
       for (i in seq.int(n - 1L, 1L)) {
-        if (x_adj[i] >= x_adj[i + 1L]) {
-          x_adj[i] <- max(lower[i], x_adj[i + 1L] - 1e-6)
+        this_right <- x_adj[i] + (1 - hjust_ord[i]) * width_est[i]
+        next_left <- x_adj[i + 1L] - hjust_ord[i + 1L] * width_est[i + 1L]
+        if (this_right > next_left - padding) {
+          x_adj[i] <- max(lower[i], x_adj[i] - (this_right - next_left + padding))
         }
       }
     }
@@ -334,10 +882,10 @@
 #'   Se mantiene por compatibilidad y actúa como alias de `umbral_etiqueta_normal`.
 #' @param umbral_etiqueta_peq Umbral mínimo de proporción para mostrar una etiqueta pequena.
 #'   Se mantiene por compatibilidad y actúa como alias de `umbral_mostrar_etiqueta`.
-#' @param umbral_mostrar_etiqueta Umbral de proporción para reubicar etiquetas pequeñas.
+#' @param umbral_mostrar_etiqueta Umbral de proporción para reubicar etiquetas fuera del segmento.
 #'   Los valores positivos por debajo de este umbral se etiquetan dentro del ancho total de la barra.
 #' @param umbral_etiqueta_normal Umbral mínimo de proporción para usar una etiqueta de tamano normal.
-#'   Los valores entre `umbral_mostrar_etiqueta` y este umbral se muestran como etiquetas pequenas.
+#'   Controla tamaño de fuente y puede ser menor que `umbral_mostrar_etiqueta`.
 #' @param umbral_ocultar_etiqueta Umbral de proporción bajo el cual se oculta solo
 #'   la etiqueta de porcentaje, manteniendo visible el segmento de la barra.
 #'
@@ -377,6 +925,13 @@
 #'   propio segmento apilado y no pueden cruzar a segmentos vecinos.
 #' @param etiquetas_peq_margen_interno Margen de seguridad dentro del segmento cuando
 #'   `etiquetas_peq_confinadas = TRUE`, para evitar textos pegados al borde.
+#' @param etiquetas_arriba_si_no_caben Si `TRUE`, cuando una barra tiene al menos
+#'   una etiqueta que no cabe en su segmento, mueve todas las etiquetas visibles de
+#'   esa barra encima y las conecta con su segmento mediante una línea corta.
+#' @param etiquetas_arriba_offset Separación vertical entre el borde superior de la
+#'   barra y las etiquetas superiores, en unidades del eje Y interno.
+#' @param linewidth_conectores_etiquetas Grosor de las líneas que conectan etiquetas
+#'   superiores con su segmento.
 #' @param color_barra_extra,size_barra_extra,size_titulo_extra Estilos de la columna extra.
 #' @param color_ejes,size_ejes Estilos de las etiquetas de categorías (dibujadas en canvas).
 #' @param color_titulos_grupo,size_titulos_grupo Estilos para títulos de bloque izquierdo en canvas.
@@ -419,6 +974,8 @@
 #'   manual compacta en canvas. Si es `NULL`, se calcula con las etiquetas.
 #' @param legend_gap_npc Separación horizontal entre ítems de leyenda manual
 #'   compacta, en coordenadas normalizadas del canvas.
+#' @param legend_key_aspect_yx Relación alto/ancho física usada para cuadrar
+#'   la marca de color de la leyenda manual. Si es `NULL`, usa `alto / ancho`.
 #'
 #' @param encabezado_desplazamiento_in Ajuste vertical del encabezado (in).
 #' @param encabezado_separacion_in Separación vertical entre título y subtítulo (in).
@@ -507,6 +1064,9 @@ graficar_barras_apiladas <- function(
     etiquetas_peq_sesgo_derecha = 0.5,
     etiquetas_peq_confinadas = FALSE,
     etiquetas_peq_margen_interno = 0,
+    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_offset = 0.13,
+    linewidth_conectores_etiquetas = 0.32,
     color_barra_extra     = "#000000",
     size_barra_extra      = 3,
     size_titulo_extra     = 3,
@@ -575,6 +1135,7 @@ graficar_barras_apiladas <- function(
     legend_n_por_fila     = 6L,
     legend_ancho_rel      = NULL,
     legend_gap_npc        = 0.018,
+    legend_key_aspect_yx  = NULL,
 
     # ==========================
     # AJUSTES POSICIONALES
@@ -727,12 +1288,8 @@ graficar_barras_apiladas <- function(
     umbral_etiqueta_normal_eff  <- umbral_etiqueta_legacy %||% 0.001
     umbral_mostrar_etiqueta_eff <- umbral_etiqueta_peq_legacy %||% umbral_etiqueta_normal_eff
   }
-  if (umbral_mostrar_etiqueta_eff > umbral_etiqueta_normal_eff) {
-    stop(
-      "`umbral_mostrar_etiqueta`/`umbral_etiqueta_peq` no puede ser mayor que `umbral_etiqueta_normal`/`umbral_etiqueta`.",
-      call. = FALSE
-    )
-  }
+  # `umbral_mostrar_etiqueta` controla ubicacion dentro/fuera del segmento,
+  # mientras `umbral_etiqueta_normal` controla tamano. Pueden ser distintos.
 
   hjust_titulo  <- hjust_from_pos(pos_titulo)
   hjust_caption <- hjust_from_pos(pos_nota_pie)
@@ -931,35 +1488,73 @@ graficar_barras_apiladas <- function(
   n_categorias <- length(cat_lvls)
   plot_cat_lvls <- cat_lvls
 
+  wrap_eje_y_eff <- ancho_max_eje_y
+  ancho_eje_y_num <- suppressWarnings(as.numeric(ancho_max_eje_y)[1])
+  if (!is.finite(ancho_eje_y_num) || is.na(ancho_eje_y_num) || ancho_eje_y_num <= 0) {
+    ancho_eje_y_num <- NA_real_
+  }
+  size_ejes_num <- suppressWarnings(as.numeric(size_ejes)[1])
+  if (!is.finite(size_ejes_num) || is.na(size_ejes_num) || size_ejes_num <= 0) {
+    size_ejes_num <- 9
+  }
+  cat_label_chars <- nchar(as.character(cat_layout$.cat_label), type = "width", allowNA = FALSE, keepNA = FALSE)
+  cat_label_chars[!is.finite(cat_label_chars)] <- 0
+  max_cat_label_chars <- if (length(cat_label_chars)) max(cat_label_chars, na.rm = TRUE) else 0
+  if (!is.finite(max_cat_label_chars)) max_cat_label_chars <- 0
+
+  if (isTRUE(usar_canvas) && is.finite(ancho_eje_y_num) &&
+      n_categorias <= 4L && max_cat_label_chars >= 95) {
+    # En OE y competencias largas, un wrap demasiado ancho corta el texto por
+    # la izquierda. Preferimos mas lineas y compensamos con mayor alto/separacion.
+    ancho_eje_y_num <- min(ancho_eje_y_num, 40)
+    wrap_eje_y_eff <- ancho_eje_y_num
+  }
+  lineas_eje_y_est <- if (is.finite(ancho_eje_y_num) && ancho_eje_y_num > 0) {
+    pmax(1, ceiling(cat_label_chars / ancho_eje_y_num))
+  } else {
+    rep(1, length(cat_label_chars))
+  }
+  max_lineas_eje_y_est <- if (length(lineas_eje_y_est)) max(lineas_eje_y_est, na.rm = TRUE) else 1
+  if (!is.finite(max_lineas_eje_y_est) || is.na(max_lineas_eje_y_est)) max_lineas_eje_y_est <- 1
+  needs_tall_label_slot <- isTRUE(usar_canvas) && n_categorias <= 4L && max_lineas_eje_y_est >= 5
+
   min_filas_canvas <- suppressWarnings(as.integer(canvas_min_filas)[1])
   if (!is.finite(min_filas_canvas) || is.na(min_filas_canvas) || min_filas_canvas < 1L) {
     min_filas_canvas <- 1L
   }
 
   usar_y_numerico <- isTRUE(usar_canvas)
+  min_filas_layout <- min_filas_canvas
+  if (usar_y_numerico && n_categorias == 1L) {
+    min_filas_layout <- max(min_filas_layout, 2L)
+  }
   y_axis_max <- max(1, n_categorias)
   if (usar_y_numerico) {
     gap_grupos_eff <- if (isTRUE(usar_grupos_canvas)) suppressWarnings(as.numeric(canvas_gap_grupos)) else 0
     if (!is.finite(gap_grupos_eff) || is.na(gap_grupos_eff) || gap_grupos_eff < 0) gap_grupos_eff <- 0
+    row_step_eff <- if (isTRUE(etiquetas_arriba_si_no_caben)) 1.72 else 1
+    if (n_categorias <= 4L && max_lineas_eje_y_est >= 5) {
+      row_step_eff <- max(row_step_eff, min(3.20, 1.16 + max_lineas_eje_y_est * 0.28))
+    }
 
     y_from_top <- numeric(n_categorias)
     offset_top <- 0
     for (i in seq_len(n_categorias)) {
       y_from_top[i] <- offset_top
-      offset_top <- offset_top + 1
+      offset_top <- offset_top + row_step_eff
       if (i < n_categorias) {
         grp_i <- cat_layout$.group_id[i] %||% ""
         grp_n <- cat_layout$.group_id[i + 1] %||% ""
-        if (!identical(grp_i, grp_n)) offset_top <- offset_top + gap_grupos_eff
+        if (!identical(grp_i, grp_n)) offset_top <- offset_top + gap_grupos_eff * row_step_eff
       }
     }
     max_from_top_obs <- if (length(y_from_top)) max(y_from_top) else 0
     filas_obs <- max_from_top_obs + 1
     if (!is.finite(filas_obs) || is.na(filas_obs) || filas_obs < 1) filas_obs <- 1
 
-    # Reservar al menos `canvas_min_filas` filas virtuales evita que un gráfico
-    # con una sola categoría se vea desalineado o demasiado delgado.
-    y_axis_max <- max(filas_obs, if (isTRUE(usar_canvas)) min_filas_canvas else 1)
+    # Reservar filas virtuales evita que un gráfico con una sola categoría se
+    # vea como una barra gigante aislada dentro del panel PPT.
+    y_axis_max <- max(filas_obs, if (isTRUE(usar_canvas)) min_filas_layout else 1)
     y_shift <- (y_axis_max - filas_obs) / 2
     cat_layout$.y_plot <- ((max_from_top_obs - y_from_top) + 1) + y_shift
     df_long$.y_plot <- cat_layout$.y_plot[match(as.character(df_long[[var_categoria]]), cat_layout$.cat_id)]
@@ -977,7 +1572,7 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   # 1.5) Grosor de barras
   # ---------------------------------------------------------------------------
-  n_categorias_grosor <- if (isTRUE(usar_canvas)) max(n_categorias, min_filas_canvas) else n_categorias
+  n_categorias_grosor <- if (isTRUE(usar_canvas)) max(n_categorias, min_filas_layout) else n_categorias
   if (grosor_modo == "auto") {
     grosor_eff <- .auto_bar_width_apiladas(
       n_categorias = n_categorias_grosor,
@@ -988,9 +1583,33 @@ graficar_barras_apiladas <- function(
     grosor_eff <- grosor_barras
   }
 
+  label_fit_scale <- 1
+  if (isTRUE(usar_canvas)) {
+    raw_group <- if (isTRUE(usar_grupos_canvas)) canvas_w_grupo else 0
+    raw_buf0  <- if (isTRUE(usar_grupos_canvas)) canvas_w_buf_grupo_etq else 0
+    raw_sum <- raw_group + raw_buf0 + canvas_w_etiquetas + canvas_w_buf_etq_bars +
+      canvas_w_bars + canvas_w_buf_bars_extra + canvas_w_extra
+    if (is.finite(raw_sum) && raw_sum > 0 && is.finite(canvas_w_bars) && canvas_w_bars > 0) {
+      bar_width_rel <- canvas_w_bars / raw_sum
+      label_fit_scale <- 0.59 / max(0.25, bar_width_rel)
+      label_fit_scale <- max(0.55, min(1.35, label_fit_scale))
+    }
+  }
+
   # ---------------------------------------------------------------------------
   # 2) BARRAS
   # ---------------------------------------------------------------------------
+  y_axis_extra_top <- 0
+  y_axis_extra_bottom <- 0
+  if (usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben)) {
+    offset_top_labels <- suppressWarnings(as.numeric(etiquetas_arriba_offset)[1])
+    if (!is.finite(offset_top_labels) || is.na(offset_top_labels) || offset_top_labels <= 0) {
+      offset_top_labels <- 0.13
+    }
+    y_axis_extra_top <- max(0.16, offset_top_labels + 0.06)
+    y_axis_extra_bottom <- 0.55
+  }
+
   max_suma <- 1
   x_max_bars <- if (usar_canvas) 1 else if (mostrar_barra_extra) max_suma * (1 + extra_derecha_rel) else max_suma
 
@@ -1008,14 +1627,14 @@ graficar_barras_apiladas <- function(
       fill = .data$.grupo
     )
   ) +
-    ggplot2::geom_col(width = grosor_eff, orientation = "y") +
+    ggplot2::geom_col(width = grosor_eff, orientation = "y", key_glyph = ggplot2::draw_key_rect) +
     ggplot2::scale_x_continuous(expand = expand_x) +
     {
       if (usar_y_numerico) {
         ggplot2::scale_y_continuous(
           breaks = cat_layout$.y_plot,
           labels = rep("", n_categorias),
-          limits = c(0.5, y_axis_max + 0.5),
+          limits = c(0.5 - y_axis_extra_bottom, y_axis_max + 0.5 + y_axis_extra_top),
           expand = ggplot2::expansion(mult = c(0, 0), add = c(0, 0))
         )
       } else {
@@ -1047,6 +1666,7 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   # 3) Etiquetas internas (%) con asignación exacta (suma 100.00 si decimales=2, etc.)
   # ---------------------------------------------------------------------------
+  labels_arriba_activas <- FALSE
   if (isTRUE(mostrar_valores)) {
 
     niveles_fill       <- levels(df_long$.grupo)
@@ -1106,28 +1726,100 @@ graficar_barras_apiladas <- function(
       ) |>
       dplyr::ungroup()
 
-    if (isTRUE(mostrar_n_en_etiquetas) && ".n_label_val" %in% names(df_lab)) {
+    if (".n_label_val" %in% names(df_lab)) {
       n_txt <- .fmt_count_label(df_lab$.n_label_val)
       has_n <- nzchar(n_txt) & !is.na(df_lab$lab) & nzchar(df_lab$lab)
-      df_lab$lab[has_n] <- paste0(df_lab$lab[has_n], " (", n_txt[has_n], ")")
+      df_lab$.lab_arriba <- df_lab$lab
+      df_lab$.lab_arriba[has_n] <- paste0(df_lab$lab[has_n], " (", n_txt[has_n], ")")
+      if (isTRUE(mostrar_n_en_etiquetas) || isTRUE(etiquetas_arriba_si_no_caben)) {
+        df_lab$lab[has_n] <- df_lab$.lab_arriba[has_n]
+      }
+    } else {
+      df_lab$.lab_arriba <- df_lab$lab
     }
 
     if (isTRUE(etiquetas_uniformes)) {
-      label_offset <- 0.018
+      label_offset <- min(0.012, max(0.004, etiquetas_peq_padding * 0.5))
+      fit_padding <- min(0.004, max(0.002, etiquetas_peq_padding * 0.25))
       df_lab <- df_lab |>
         dplyr::mutate(
           .mostrar = .valor_plot > umbral_ocultar_etiqueta_eff,
-          .label_fuera = .mostrar & .valor_plot <= umbral_mostrar_etiqueta_eff,
           .size_label = size_texto_barras,
+          .label_fit_scale = label_fit_scale,
+          .label_fit_width = .estimate_label_fit_width_apiladas(lab, .size_label) * .label_fit_scale,
+          .entra_segmento = .mostrar &
+            is.finite(.valor_plot) &
+            .valor_plot >= (.label_fit_width + 2 * fit_padding),
+          .label_fuera = .mostrar & !.entra_segmento,
           x_label = dplyr::case_when(
-            .label_fuera & x_left <= 0.5 ~ pmin(0.985, pmax(0.015, x_center + label_offset / 2)),
-            .label_fuera                 ~ pmax(0.015, pmin(0.985, x_center - label_offset / 2)),
+            .label_fuera & x_center <= 0.5 ~ pmin(0.985, pmax(0.015, x_right + label_offset)),
+            .label_fuera                   ~ pmax(0.015, pmin(0.985, x_left - label_offset)),
             TRUE                          ~ x_center
           ),
-          .hjust_label = 0.5,
-          .col_label = color_texto_barras
+          .hjust_label = dplyr::case_when(
+            .label_fuera & x_center <= 0.5 ~ 0,
+            .label_fuera                   ~ 1,
+            TRUE                           ~ 0.5
+          ),
+          .repel_x_min = dplyr::case_when(
+            .label_fuera & x_center > 0.5  ~ -0.08,
+            .label_fuera & x_center <= 0.5 ~ x_right + label_offset,
+            TRUE                           ~ x_left + fit_padding
+          ),
+          .repel_x_max = dplyr::case_when(
+            .label_fuera & x_center <= 0.5 ~ 1.08,
+            .label_fuera & x_center > 0.5  ~ x_left - label_offset,
+            TRUE                           ~ x_right - fit_padding
+          ),
+          .col_label = dplyr::if_else(.label_fuera, color_texto_barras_fuera, color_texto_barras),
+          .fijar_label = FALSE,
+          .forzar_fuera = FALSE
         ) |>
         dplyr::filter(.mostrar, is.finite(x_center))
+
+      if (!isTRUE(etiquetas_arriba_si_no_caben) && nrow(df_lab) > 1L) {
+        idx_por_cat_borde <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+        for (idx in idx_por_cat_borde) {
+          idx_izq <- idx[df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5]
+          if (length(idx_izq) < 2L) next
+          df_lab <- .dejar_max_una_label_fuera_izq_apiladas(
+            df_lab,
+            idx_izq = idx_izq,
+            label_offset = label_offset,
+            fit_padding = fit_padding,
+            etiquetas_peq_padding = etiquetas_peq_padding,
+            color_texto_barras = color_texto_barras
+          )
+        }
+      }
+
+      if (nrow(df_lab) > 1L) {
+        idx_por_cat_colision <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+        collision_padding <- max(etiquetas_peq_padding, 0.018)
+        for (idx in idx_por_cat_colision) {
+          if (length(idx) < 2L) next
+          ord <- idx[order(df_lab$x_label[idx], seq_along(idx))]
+          widths <- .estimate_label_width_apiladas(df_lab$lab[ord], df_lab$.size_label[ord]) * 1.35
+          for (pos in seq_len(length(ord) - 1L)) {
+            i <- ord[pos]
+            j <- ord[pos + 1L]
+            if (!is.finite(df_lab$x_label[i]) || !is.finite(df_lab$x_label[j])) next
+            if (df_lab$x_label[i] < df_lab$x_left[i]) next
+            if (df_lab$x_center[i] > 0.5) next
+            if (!isTRUE(df_lab$.label_fuera[i])) next
+
+            span_right_i <- df_lab$x_label[i] + (1 - df_lab$.hjust_label[i]) * widths[pos]
+            span_left_j <- df_lab$x_label[j] - df_lab$.hjust_label[j] * widths[pos + 1L]
+            if (is.finite(span_left_j - span_right_i) && span_left_j - span_right_i >= collision_padding) next
+
+            anchor <- max(fit_padding, min(df_lab$x_right[i] + label_offset, 1 - fit_padding))
+            df_lab$x_label[i] <- anchor
+            df_lab$.hjust_label[i] <- 0
+            df_lab$.repel_x_min[i] <- max(fit_padding, df_lab$x_left[i] + fit_padding)
+            df_lab$.repel_x_max[i] <- 1 - fit_padding
+          }
+        }
+      }
 
       if (isTRUE(repeler_etiquetas_peq) &&
           desplazamiento_max_etiquetas_peq > 0 &&
@@ -1135,31 +1827,97 @@ graficar_barras_apiladas <- function(
         idx_por_cat <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
         for (idx in idx_por_cat) {
           if (length(idx) < 2L) next
+          repel_width_factor <- if (any(df_lab$.label_fuera[idx])) {
+            max(etiquetas_peq_factor_ancho, 1.65)
+          } else {
+            min(etiquetas_peq_factor_ancho, 0.90)
+          }
           df_lab$x_label[idx] <- .repel_label_positions_apiladas(
             x = df_lab$x_label[idx],
             labels = df_lab$lab[idx],
             label_size = df_lab$.size_label[idx],
-            movable = rep(TRUE, length(idx)),
+            movable = {
+              fijo <- as.logical(df_lab$.fijar_label[idx])
+              fijo[is.na(fijo)] <- FALSE
+              !fijo
+            },
+            hjust = df_lab$.hjust_label[idx],
             max_shift = desplazamiento_max_etiquetas_peq,
-            x_min = if (etiquetas_peq_confinadas) df_lab$x_left[idx] else 0,
-            x_max = if (etiquetas_peq_confinadas) df_lab$x_right[idx] else 1,
+            x_min = df_lab$.repel_x_min[idx],
+            x_max = df_lab$.repel_x_max[idx],
             padding = etiquetas_peq_padding,
             max_iter = etiquetas_peq_max_iter,
             bias_right = etiquetas_peq_sesgo_derecha,
             edge_margin = if (etiquetas_peq_confinadas) etiquetas_peq_margen_interno else 0,
-            width_factor = etiquetas_peq_factor_ancho,
+            width_factor = repel_width_factor,
             bias_toward_center = TRUE
           )
         }
       }
 
+      df_lab <- .posicionar_labels_arriba_si_no_caben_apiladas(
+        df_lab,
+        var_categoria = var_categoria,
+        usar_y_numerico = usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben),
+        grosor_eff = grosor_eff,
+        fit_padding = fit_padding,
+        etiquetas_peq_padding = etiquetas_peq_padding,
+        color_texto_barras_fuera = color_texto_barras_fuera,
+        colores_grupos = colores_grupos,
+        offset_y = etiquetas_arriba_offset
+      )
+      arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
+      df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
+      df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
+      df_lab_dentro <- if (isTRUE(etiquetas_arriba_si_no_caben)) {
+        .centrar_labels_interiores_segmento_apiladas(
+          df_lab_dentro,
+          color_texto_barras = color_texto_barras
+        )
+      } else {
+        .finalizar_labels_interiores_apiladas(
+          df_lab_dentro,
+          var_categoria = var_categoria,
+          color_texto_barras = color_texto_barras,
+          color_texto_barras_fuera = color_texto_barras_fuera,
+          fit_padding = fit_padding,
+          etiquetas_peq_padding = etiquetas_peq_padding,
+          width_factor = 2.10
+        )
+      }
+      df_lab <- dplyr::bind_rows(df_lab_dentro, df_lab_arriba)
+
       if (nrow(df_lab) > 0) {
+        arriba_plot_idx <- if (".label_arriba" %in% names(df_lab)) {
+          df_lab$.label_arriba %in% TRUE
+        } else {
+          rep(FALSE, nrow(df_lab))
+        }
+        df_lab_arriba_plot <- df_lab[arriba_plot_idx, , drop = FALSE]
+        if (nrow(df_lab_arriba_plot) > 0) {
+          labels_arriba_activas <- TRUE
+          p_bars <- p_bars +
+            ggplot2::geom_segment(
+              data = df_lab_arriba_plot,
+              mapping = ggplot2::aes(
+                x = x_conector_label,
+                xend = x_conector_barra,
+                y = y_conector_label,
+                yend = y_conector_barra,
+                colour = .data$.col_conector
+              ),
+              linewidth = linewidth_conectores_etiquetas,
+              lineend = "round",
+              inherit.aes = FALSE,
+              show.legend = FALSE
+            )
+        }
         p_bars <- p_bars +
           ggplot2::geom_text(
             data    = df_lab,
             mapping = ggplot2::aes(
               x = x_label,
-              y = if (usar_y_numerico) .data$.y_plot else .data[[var_categoria]],
+              y = if (usar_y_numerico) .data$y_label else .data[[var_categoria]],
               label = lab,
               colour = .data$.col_label,
               hjust = .data$.hjust_label
@@ -1173,7 +1931,8 @@ graficar_barras_apiladas <- function(
           ggplot2::scale_colour_identity(guide = "none")
       }
     } else {
-      label_offset <- 0.018
+      label_offset <- min(0.012, max(0.004, etiquetas_peq_padding * 0.5))
+      fit_padding <- min(0.004, max(0.002, etiquetas_peq_padding * 0.25))
       df_lab <- df_lab |>
         dplyr::mutate(
           .tamano_etq = dplyr::case_when(
@@ -1182,16 +1941,68 @@ graficar_barras_apiladas <- function(
             TRUE                                        ~ "ninguna"
           ),
           .size_label = dplyr::if_else(.tamano_etq == "grande", size_texto_barras, size_texto_barras_peq),
-          .label_fuera = .tamano_etq == "peq" & .valor_plot <= umbral_mostrar_etiqueta_eff,
+          .label_fit_scale = label_fit_scale,
+          .label_fit_width = .estimate_label_fit_width_apiladas(lab, .size_label) * .label_fit_scale,
+          .entra_segmento = .tamano_etq != "ninguna" &
+            is.finite(.valor_plot) &
+            .valor_plot >= (.label_fit_width + 2 * fit_padding),
+          .label_fuera = .tamano_etq != "ninguna" & !.entra_segmento,
           x_label = dplyr::case_when(
-            .label_fuera & x_left <= 0.5 ~ pmin(0.985, pmax(0.015, x_center + label_offset / 2)),
-            .label_fuera                 ~ pmax(0.015, pmin(0.985, x_center - label_offset / 2)),
+            .label_fuera & x_center <= 0.5 ~ pmin(0.985, pmax(0.015, x_right + label_offset)),
+            .label_fuera                   ~ pmax(0.015, pmin(0.985, x_left - label_offset)),
             TRUE                          ~ x_center
           ),
-          .hjust_label = 0.5,
-          .col_label = color_texto_barras
+          .hjust_label = dplyr::case_when(
+            .label_fuera & x_center <= 0.5 ~ 0,
+            .label_fuera                   ~ 1,
+            TRUE                           ~ 0.5
+          ),
+          .col_label = dplyr::if_else(.label_fuera, color_texto_barras_fuera, color_texto_barras),
+          .fijar_label = FALSE,
+          .forzar_fuera = FALSE
         ) |>
         dplyr::filter(.tamano_etq != "ninguna", is.finite(x_center))
+
+      if (!isTRUE(etiquetas_arriba_si_no_caben) && nrow(df_lab) > 1L) {
+        idx_por_cat_borde <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+        for (idx in idx_por_cat_borde) {
+          idx_izq <- idx[df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5]
+          if (length(idx_izq) < 2L) next
+          df_lab <- .dejar_max_una_label_fuera_izq_apiladas(
+            df_lab,
+            idx_izq = idx_izq,
+            label_offset = label_offset,
+            fit_padding = fit_padding,
+            etiquetas_peq_padding = etiquetas_peq_padding,
+            color_texto_barras = color_texto_barras
+          )
+        }
+      }
+
+      if (nrow(df_lab) > 1L) {
+        idx_por_cat_colision <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
+        collision_padding <- max(etiquetas_peq_padding, 0.018)
+        for (idx in idx_por_cat_colision) {
+          if (length(idx) < 2L) next
+          ord <- idx[order(df_lab$x_label[idx], seq_along(idx))]
+          widths <- .estimate_label_width_apiladas(df_lab$lab[ord], df_lab$.size_label[ord]) * 1.35
+          for (pos in seq_len(length(ord) - 1L)) {
+            i <- ord[pos]
+            j <- ord[pos + 1L]
+            if (!is.finite(df_lab$x_label[i]) || !is.finite(df_lab$x_label[j])) next
+            if (df_lab$x_label[i] < df_lab$x_left[i]) next
+            if (df_lab$x_center[i] > 0.5) next
+            if (!isTRUE(df_lab$.label_fuera[i])) next
+
+            span_right_i <- df_lab$x_label[i] + (1 - df_lab$.hjust_label[i]) * widths[pos]
+            span_left_j <- df_lab$x_label[j] - df_lab$.hjust_label[j] * widths[pos + 1L]
+            if (is.finite(span_left_j - span_right_i) && span_left_j - span_right_i >= collision_padding) next
+
+            df_lab$x_label[i] <- max(fit_padding, min(df_lab$x_right[i] + label_offset, 1 - fit_padding))
+            df_lab$.hjust_label[i] <- 0
+          }
+        }
+      }
 
       if (isTRUE(repeler_etiquetas_peq) &&
           desplazamiento_max_etiquetas_peq > 0 &&
@@ -1200,30 +2011,131 @@ graficar_barras_apiladas <- function(
         idx_por_cat <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
         for (idx in idx_por_cat) {
           if (length(idx) < 2L) next
+          repel_width_factor <- if (any(df_lab$.label_fuera[idx])) {
+            max(etiquetas_peq_factor_ancho, 1.65)
+          } else {
+            min(etiquetas_peq_factor_ancho, 0.90)
+          }
+          fijo_idx <- as.logical(df_lab$.fijar_label[idx])
+          fijo_idx[is.na(fijo_idx)] <- FALSE
+          movable_idx <- df_lab$.tamano_etq[idx] == "peq" & !fijo_idx
+          x_min_idx <- dplyr::if_else(
+            df_lab$.label_fuera[idx] & df_lab$x_label[idx] < df_lab$x_left[idx],
+            -0.20,
+            dplyr::if_else(
+              df_lab$.label_fuera[idx] & df_lab$.hjust_label[idx] == 0.5,
+              df_lab$x_label[idx],
+              dplyr::if_else(
+                df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5,
+                df_lab$x_right[idx] + label_offset,
+                dplyr::if_else(
+                  df_lab$.label_fuera[idx],
+                  -0.08,
+                  df_lab$x_left[idx] + fit_padding
+                )
+              )
+            )
+          )
+          x_max_idx <- dplyr::if_else(
+            df_lab$.label_fuera[idx] & df_lab$x_label[idx] < df_lab$x_left[idx],
+            df_lab$x_label[idx],
+            dplyr::if_else(
+              df_lab$.label_fuera[idx] & df_lab$.hjust_label[idx] == 0.5,
+              df_lab$x_label[idx],
+              dplyr::if_else(
+                df_lab$.label_fuera[idx] & df_lab$x_center[idx] > 0.5,
+                df_lab$x_left[idx] - label_offset,
+                dplyr::if_else(
+                  df_lab$.label_fuera[idx],
+                  1.08,
+                  df_lab$x_right[idx] - fit_padding
+                )
+              )
+            )
+          )
+          x_min_idx[fijo_idx] <- df_lab$x_label[idx][fijo_idx]
+          x_max_idx[fijo_idx] <- df_lab$x_label[idx][fijo_idx]
           df_lab$x_label[idx] <- .repel_label_positions_apiladas(
             x = df_lab$x_label[idx],
             labels = df_lab$lab[idx],
             label_size = df_lab$.size_label[idx],
-            movable = df_lab$.tamano_etq[idx] == "peq",
+            movable = movable_idx,
+            hjust = df_lab$.hjust_label[idx],
             max_shift = desplazamiento_max_etiquetas_peq,
-            x_min = if (etiquetas_peq_confinadas) df_lab$x_left[idx] else 0,
-            x_max = if (etiquetas_peq_confinadas) df_lab$x_right[idx] else 1,
+            x_min = x_min_idx,
+            x_max = x_max_idx,
             padding = etiquetas_peq_padding,
             max_iter = etiquetas_peq_max_iter,
             bias_right = etiquetas_peq_sesgo_derecha,
             edge_margin = if (etiquetas_peq_confinadas) etiquetas_peq_margen_interno else 0,
-            width_factor = etiquetas_peq_factor_ancho
+            width_factor = repel_width_factor
           )
         }
       }
 
+      df_lab <- .posicionar_labels_arriba_si_no_caben_apiladas(
+        df_lab,
+        var_categoria = var_categoria,
+        usar_y_numerico = usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben),
+        grosor_eff = grosor_eff,
+        fit_padding = fit_padding,
+        etiquetas_peq_padding = etiquetas_peq_padding,
+        color_texto_barras_fuera = color_texto_barras_fuera,
+        colores_grupos = colores_grupos,
+        offset_y = etiquetas_arriba_offset
+      )
+      arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
+      df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
+      df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
+      df_lab_dentro <- if (isTRUE(etiquetas_arriba_si_no_caben)) {
+        .centrar_labels_interiores_segmento_apiladas(
+          df_lab_dentro,
+          color_texto_barras = color_texto_barras
+        )
+      } else {
+        .finalizar_labels_interiores_apiladas(
+          df_lab_dentro,
+          var_categoria = var_categoria,
+          color_texto_barras = color_texto_barras,
+          color_texto_barras_fuera = color_texto_barras_fuera,
+          fit_padding = fit_padding,
+          etiquetas_peq_padding = etiquetas_peq_padding,
+          width_factor = 2.10
+        )
+      }
+      df_lab <- dplyr::bind_rows(df_lab_dentro, df_lab_arriba)
+
       if (nrow(df_lab) > 0) {
+        arriba_plot_idx <- if (".label_arriba" %in% names(df_lab)) {
+          df_lab$.label_arriba %in% TRUE
+        } else {
+          rep(FALSE, nrow(df_lab))
+        }
+        df_lab_arriba_plot <- df_lab[arriba_plot_idx, , drop = FALSE]
+        if (nrow(df_lab_arriba_plot) > 0) {
+          labels_arriba_activas <- TRUE
+          p_bars <- p_bars +
+            ggplot2::geom_segment(
+              data = df_lab_arriba_plot,
+              mapping = ggplot2::aes(
+                x = x_conector_label,
+                xend = x_conector_barra,
+                y = y_conector_label,
+                yend = y_conector_barra,
+                colour = .data$.col_conector
+              ),
+              linewidth = linewidth_conectores_etiquetas,
+              lineend = "round",
+              inherit.aes = FALSE,
+              show.legend = FALSE
+            )
+        }
         p_bars <- p_bars +
           ggplot2::geom_text(
             data    = df_lab,
             mapping = ggplot2::aes(
               x = x_label,
-              y = if (usar_y_numerico) .data$.y_plot else .data[[var_categoria]],
+              y = if (usar_y_numerico) .data$y_label else .data[[var_categoria]],
               label = lab,
               colour = .data$.col_label,
               size = .data$.size_label,
@@ -1271,6 +2183,9 @@ graficar_barras_apiladas <- function(
   n_items_leyenda <- length(niveles_leyenda)
   n_por_fila <- as.integer(legend_n_por_fila)
   if (!is.finite(n_por_fila) || n_por_fila < 1L) n_por_fila <- 6L
+  legend_key_side_cm <- max(0.30, legend_key_cm)
+  legend_key_w_cm <- legend_key_side_cm
+  legend_key_h_cm <- legend_key_side_cm
 
   p_for_legend <- p_bars +
     ggplot2::theme(
@@ -1284,8 +2199,8 @@ graficar_barras_apiladas <- function(
         margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
       ),
 
-      legend.key.width  = grid::unit(legend_key_cm, "cm"),
-      legend.key.height = grid::unit(legend_key_cm, "cm"),
+      legend.key.width  = grid::unit(legend_key_w_cm, "cm"),
+      legend.key.height = grid::unit(legend_key_h_cm, "cm"),
 
       legend.key.spacing.x = grid::unit(0.10, "cm"),
 
@@ -1295,8 +2210,8 @@ graficar_barras_apiladas <- function(
       fill = ggplot2::guide_legend(
         byrow = TRUE,
         ncol  = if (legend_is_side) 1L else n_por_fila,
-        keywidth  = grid::unit(legend_key_cm, "cm"),
-        keyheight = grid::unit(legend_key_cm, "cm")
+        keywidth  = grid::unit(legend_key_w_cm, "cm"),
+        keyheight = grid::unit(legend_key_h_cm, "cm")
       )
     )
 
@@ -1304,9 +2219,9 @@ graficar_barras_apiladas <- function(
   # 5) Etiquetas Y y extra como texto (sin ggplot)
   # ---------------------------------------------------------------------------
   etiquetas_vec <- cat_layout$.cat_label
-  if (!is.null(ancho_max_eje_y)) {
+  if (!is.null(wrap_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
-    etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = ancho_max_eje_y)
+    etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = wrap_eje_y_eff)
   }
 
   df_wide_extra <- df |>
@@ -1501,6 +2416,12 @@ graficar_barras_apiladas <- function(
 
   # alturas en pulgadas
   alto_por_cat_eff <- alto_por_categoria %||% 0.42
+  if (isTRUE(needs_tall_label_slot)) {
+    alto_por_cat_eff <- max(
+      alto_por_cat_eff,
+      if (max_lineas_eje_y_est >= 8L) 1.06 else 0.96
+    )
+  }
   n_filas_virtuales <- if (isTRUE(usar_canvas)) y_axis_max else max(1L, n_categorias)
   h_panel_in <- if (!is.null(canvas_h_panel_in) && is.finite(canvas_h_panel_in) && canvas_h_panel_in > 0) {
     canvas_h_panel_in
@@ -1521,6 +2442,9 @@ graficar_barras_apiladas <- function(
   h_header_in  <- if (has_header)  canvas_h_header_in  else 0
   h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
   h_caption_in <- if (has_caption) canvas_h_caption_in else 0
+  if (isTRUE(needs_tall_label_slot) && has_legend && !legend_is_side) {
+    h_legend_in <- max(h_legend_in, 0.40)
+  }
 
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
   if (h_total_in <= 0) h_total_in <- 1
@@ -1691,6 +2615,9 @@ graficar_barras_apiladas <- function(
   # padding en pulgadas -> npc (respecto al alto total del canvas)
   pad_in <- canvas_pad_bars_y_in %||% 0
   if (!is.finite(pad_in) || is.na(pad_in) || pad_in < 0) pad_in <- 0
+  if (isTRUE(needs_tall_label_slot)) {
+    pad_in <- max(pad_in, 0.16)
+  }
   pad_npc <- pad_in / h_total_in
 
   # clamp: no permitir que el padding "mate" el área útil
@@ -1783,9 +2710,40 @@ graficar_barras_apiladas <- function(
   }
 
   # Etiquetas (columna izquierda)
-  pad_x <- 0.012
+  pad_x <- 0.004
   x_lab <- x_etq0 + w_etq * (1 - pad_x)
   fontface_etq <- if ("eje_y" %in% textos_negrita) "bold" else "plain"
+  size_ejes_eff <- size_ejes_num
+  lineheight_eje_y_eff <- if (isTRUE(needs_tall_label_slot)) 0.80 else 0.86
+  lineas_eje_y <- vapply(strsplit(as.character(etiquetas_vec), "\n", fixed = TRUE), length, integer(1))
+  lineas_eje_y[!is.finite(lineas_eje_y) | is.na(lineas_eje_y) | lineas_eje_y < 1L] <- 1L
+  if (isTRUE(needs_tall_label_slot)) {
+    max_lines_eje_y <- max(lineas_eje_y, na.rm = TRUE)
+    size_cap <- if (max_lines_eje_y >= 9L) {
+      11.8
+    } else if (max_lines_eje_y >= 8L) {
+      12.4
+    } else if (max_lines_eje_y >= 7L) {
+      12.9
+    } else {
+      13.8
+    }
+    size_ejes_eff <- min(size_ejes_eff, size_cap)
+  }
+  if (isTRUE(usar_canvas) && n_categorias > 1L && any(lineas_eje_y >= 4L)) {
+    y_sorted <- sort(as.numeric(y_abs))
+    gaps_in <- diff(y_sorted) * h_total_in
+    gaps_in <- gaps_in[is.finite(gaps_in) & gaps_in > 0]
+    if (length(gaps_in)) {
+      min_gap_in <- min(gaps_in)
+      max_lines <- max(lineas_eje_y, na.rm = TRUE)
+      size_fit <- (min_gap_in * 72 * 0.82) / (max(1, max_lines) * lineheight_eje_y_eff)
+      if (is.finite(size_fit) && size_fit > 0) {
+        floor_size <- if (max_lines >= 7L) 8.8 else 9.6
+        size_ejes_eff <- max(floor_size, min(size_ejes_eff, size_fit))
+      }
+    }
+  }
 
   for (i in seq_len(n_categorias)) {
     canvas <- canvas + cowplot::draw_text(
@@ -1794,10 +2752,11 @@ graficar_barras_apiladas <- function(
       y        = y_abs[i],
       hjust    = 1,
       vjust    = 0.5,
-      size     = size_ejes,
+      size     = size_ejes_eff,
       colour   = color_ejes,
       family = font_family,
-      fontface = fontface_etq
+      fontface = fontface_etq,
+      lineheight = lineheight_eje_y_eff
     )
   }
 
@@ -1832,9 +2791,13 @@ graficar_barras_apiladas <- function(
   # ============================================================
   # LEYENDA: centrada + desplazamiento
   # ============================================================
+  legend_manual_layout <- NULL
   if (has_legend && (usar_leyenda_manual || !is.null(leg_grob))) {
 
     dy_leg <- leyenda_desplazamiento_in / h_total_in
+    if (isTRUE(needs_tall_label_slot) && !legend_is_side) {
+      dy_leg <- dy_leg - (0.08 / h_total_in)
+    }
     if (legend_is_side) {
       canvas <- canvas + cowplot::draw_grob(
         leg_grob,
@@ -1854,9 +2817,17 @@ graficar_barras_apiladas <- function(
       n_rows <- ceiling(n_items / n_per_row)
       row_ids <- ceiling(seq_len(n_items) / n_per_row)
       row_h <- legend_h / max(1, n_rows)
-      key_w <- min(0.014, max(0.008, 0.06 / max(1, n_per_row)))
-      key_h <- min(row_h * 0.32, key_w * 1.35)
-      key_gap <- 0.004
+      key_side_y <- min(row_h * 0.82, max(0.034, legend_key_cm * 0.11))
+      aspect_yx <- suppressWarnings(as.numeric(legend_key_aspect_yx)[1])
+      if (!is.finite(aspect_yx) || aspect_yx <= 0) {
+        aspect_yx <- suppressWarnings(as.numeric(alto)[1] / as.numeric(ancho)[1])
+      }
+      if (!is.finite(aspect_yx) || aspect_yx <= 0) aspect_yx <- 0.6
+      key_h <- key_side_y
+      key_w <- key_side_y * aspect_yx
+      key_gap <- min(0.012, max(0.007, legend_gap_npc * 0.60))
+      key_size_mm <- max(2.4, suppressWarnings(as.numeric(legend_key_cm)[1]) * 10)
+      if (!is.finite(key_size_mm)) key_size_mm <- 3
       fontface_ley <- if ("leyenda" %in% textos_negrita) "bold" else "plain"
 
       for (r in seq_len(n_rows)) {
@@ -1865,27 +2836,47 @@ graficar_barras_apiladas <- function(
         if (!n_row) next
         labels_row <- labels_manual[idx_row]
         label_chars <- nchar(gsub("\\s+", " ", gsub("\n", " ", labels_row)), type = "width")
-        text_w <- pmax(0.030, label_chars * size_leyenda * 0.00105)
+        text_w <- pmax(0.016, label_chars * size_leyenda * 0.00055)
         item_w <- key_w + key_gap + text_w
-        slot_gap <- legend_gap_npc
-        slot_w <- max(item_w, na.rm = TRUE)
-        row_w <- slot_w * n_row + slot_gap * max(0L, n_row - 1L)
+        slot_gap <- min(0.040, max(0.026, legend_gap_npc * 1.80))
+        row_w <- sum(item_w, na.rm = TRUE) + slot_gap * max(0L, n_row - 1L)
         if (is.finite(legend_ancho_rel)) row_w <- max(row_w, legend_ancho_rel)
         row_w <- max(0.12, min(0.98, row_w))
-        slot_w <- (row_w - slot_gap * max(0L, n_row - 1L)) / max(1L, n_row)
         x_origin <- 0.5 - row_w / 2
         y_row <- y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg
+        x_offsets <- c(0, cumsum(item_w + slot_gap))
         for (j in seq_along(idx_row)) {
           idx <- idx_row[j]
-          x_left <- x_origin + (j - 1L) * (slot_w + slot_gap)
+          x_left <- x_origin + x_offsets[j]
+          legend_manual_layout <- rbind(
+            legend_manual_layout,
+            data.frame(
+              row = r,
+              idx = idx,
+              label = labels_manual[idx],
+              x_left = x_left,
+              x_key_right = x_left + key_w,
+              key_width = key_w,
+              key_height = key_h,
+              key_width_physical_in = key_w * as.numeric(ancho)[1],
+              key_height_physical_in = key_h * as.numeric(alto)[1],
+              key_square_width_unit = key_w / aspect_yx,
+              key_square_height_unit = key_h,
+              key_aspect_yx = aspect_yx,
+              key_marker = "point_square",
+              key_size_mm = key_size_mm,
+              x_text = x_left + key_w + key_gap,
+              x_item_right = x_left + item_w[j],
+              stringsAsFactors = FALSE
+            )
+          )
           canvas <- canvas + ggplot2::annotate(
-            "rect",
-            xmin = x_left,
-            xmax = x_left + key_w,
-            ymin = y_row - (key_h * 0.5),
-            ymax = y_row + (key_h * 0.5),
-            fill = fills_manual[idx],
-            colour = NA
+            "point",
+            x = x_left + key_w * 0.5,
+            y = y_row,
+            shape = 15,
+            size = key_size_mm,
+            colour = fills_manual[idx]
           )
           canvas <- canvas + cowplot::draw_text(
             labels_manual[idx],
@@ -1941,6 +2932,19 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   if (exportar == "rplot") {
     attr(canvas, "alto_word_sugerido") <- h_total_in
+    attr(canvas, "pulso_labels_above_bars") <- isTRUE(labels_arriba_activas)
+    attr(canvas, "pulso_needs_tall_plot_slot") <- isTRUE(labels_arriba_activas) || isTRUE(needs_tall_label_slot)
+    attr(canvas, "pulso_barras_apiladas_layout") <- list(
+      n_categorias = n_categorias,
+      y_axis_max = y_axis_max,
+      grosor_eff = grosor_eff,
+      h_panel_in = h_panel_in
+    )
+    if (!is.null(legend_manual_layout)) {
+      layout_attr <- attr(canvas, "pulso_barras_apiladas_layout")
+      layout_attr$legend_manual <- legend_manual_layout
+      attr(canvas, "pulso_barras_apiladas_layout") <- layout_attr
+    }
     return(canvas)
   }
 

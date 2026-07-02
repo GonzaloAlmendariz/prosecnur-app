@@ -27,6 +27,7 @@
 #' @param data `data.frame` o `tibble` con columnas de categoría y porcentaje.
 #' @param var_categoria Nombre de columna con categorías.
 #' @param var_pct Nombre de columna con proporciones/porcentajes.
+#' @param var_n Nombre opcional de columna con frecuencias absolutas.
 #'
 #' @param tipo_pie Tipo de gráfico: `"donut"` o `"pie"`.
 #' @param donut_hole Tamaño del hueco del donut (0-1, clamp interno).
@@ -34,6 +35,8 @@
 #'   compatibilidad para etiquetas externas en donut (se conservan por API).
 #'
 #' @param mostrar_etiquetas_pct Si `TRUE`, muestra etiquetas de porcentaje.
+#' @param mostrar_n_en_etiquetas Si `TRUE` y `var_n` está disponible, muestra
+#'   la frecuencia junto al porcentaje: `53% (97)`.
 #' @param size_etiquetas_pct,color_etiquetas_pct Estilo de etiquetas de porcentaje.
 #' @param etiquetas_negrita Si `TRUE`, aplica negrita a etiquetas de porcentaje.
 #' @param decimales_pct Decimales para el texto porcentual.
@@ -99,6 +102,7 @@ graficar_pie <- function(
     data,
     var_categoria,
     var_pct,
+    var_n = NULL,
 
     # Pie / donut
     tipo_pie                 = c("donut", "pie"),
@@ -112,6 +116,7 @@ graficar_pie <- function(
     # ETIQUETAS (%)
     # ==========================
     mostrar_etiquetas_pct = TRUE,
+    mostrar_n_en_etiquetas = FALSE,
     size_etiquetas_pct    = 3.2,
     color_etiquetas_pct   = "#FFFFFF",
     etiquetas_negrita     = FALSE,
@@ -235,17 +240,24 @@ graficar_pie <- function(
   if (!var_categoria %in% names(data)) stop("`var_categoria` no existe en `data`.", call. = FALSE)
   if (!var_pct %in% names(data))       stop("`var_pct` no existe en `data`.", call. = FALSE)
 
+  var_n <- as.character(var_n %||% "")[1]
+  if (is.na(var_n)) var_n <- ""
+  has_n <- nzchar(var_n)
+  if (has_n && !(var_n %in% names(data))) {
+    stop("`var_n` no existe en `data`.", call. = FALSE)
+  }
+
   df <- data |>
-    dplyr::select(
-      categoria = dplyr::all_of(var_categoria),
-      pct       = dplyr::all_of(var_pct)
-    ) |>
-    dplyr::mutate(
-      categoria = as.character(.data$categoria),
-      pct       = suppressWarnings(as.numeric(.data$pct))
+    dplyr::transmute(
+      categoria = as.character(.data[[var_categoria]]),
+      pct       = suppressWarnings(as.numeric(.data[[var_pct]])),
+      n         = if (has_n) suppressWarnings(as.numeric(.data[[var_n]])) else NA_real_
     ) |>
     dplyr::filter(!is.na(.data$categoria), .data$categoria != "") |>
-    dplyr::mutate(pct = dplyr::if_else(is.finite(.data$pct), .data$pct, 0))
+    dplyr::mutate(
+      pct = dplyr::if_else(is.finite(.data$pct), .data$pct, 0),
+      n   = dplyr::if_else(is.finite(.data$n), .data$n, NA_real_)
+    )
 
   if (!nrow(df)) stop("No hay filas válidas para graficar.", call. = FALSE)
 
@@ -273,7 +285,8 @@ graficar_pie <- function(
         df_top,
         dplyr::tibble(
           categoria = etiqueta_otros,
-          pct       = sum(df_oth$pct, na.rm = TRUE)
+          pct       = sum(df_oth$pct, na.rm = TRUE),
+          n         = if (has_n) sum(df_oth$n, na.rm = TRUE) else NA_real_
         )
       )
     }
@@ -286,14 +299,32 @@ graficar_pie <- function(
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
 
+  .fmt_pct <- function(x) {
+    out <- format(round(x * 100, decimales_pct), nsmall = decimales_pct, trim = TRUE, scientific = FALSE)
+    paste0(out, "%")
+  }
+  .fmt_n <- function(x) {
+    x <- suppressWarnings(as.numeric(x))
+    out <- rep("", length(x))
+    ok <- is.finite(x) & !is.na(x)
+    out[ok] <- format(round(x[ok]), big.mark = ",", scientific = FALSE, trim = TRUE)
+    out
+  }
+
   df <- df |>
     dplyr::mutate(
       ymax    = cumsum(.data$pct),
       ymin    = dplyr::lag(.data$ymax, default = 0),
-      pct_txt = paste0(round(.data$pct * 100, decimales_pct), "%"),
+      pct_txt = .fmt_pct(.data$pct),
       mostrar = .data$pct >= umbral_etiqueta_pct,
       y_mid   = (.data$ymin + .data$ymax) / 2
     )
+
+  if (isTRUE(mostrar_n_en_etiquetas) && any(is.finite(df$n))) {
+    n_txt <- .fmt_n(df$n)
+    has_n_txt <- nzchar(n_txt)
+    df$pct_txt[has_n_txt] <- paste0(df$pct_txt[has_n_txt], " (", n_txt[has_n_txt], ")")
+  }
 
   # ---------------------------------------------------------------------------
   # 1) Radios (FULL panel)

@@ -8,6 +8,8 @@ export type MonitoreoWorkbenchRailTab = {
   label: string;
   detail: string;
   icon: LucideIcon;
+  badge?: string;
+  status?: "ready" | "warning" | "risk" | "muted";
 };
 
 export type MonitoreoWorkbenchRailStatusItem = {
@@ -31,6 +33,7 @@ type MonitoreoWorkbenchRailProps = {
   emptyDetail?: ReactNode;
   headerDetail?: ReactNode;
   headerEyebrow?: ReactNode;
+  iconOnlyTabs?: boolean;
   localTabs: readonly MonitoreoWorkbenchRailTab[];
   localTabsLabel?: string;
   modeCountLabel?: string;
@@ -82,6 +85,7 @@ export function MonitoreoWorkbenchRail({
   emptyDetail,
   headerDetail = "Tipo único del proyecto",
   headerEyebrow = "Ruta activa",
+  iconOnlyTabs = false,
   localTabs,
   localTabsLabel = "Pestañas locales",
   modeCountLabel,
@@ -99,6 +103,7 @@ export function MonitoreoWorkbenchRail({
   const localTabSignature = localTabs.map((tab) => tab.key).join(",");
   const emptyRailLabel = typeof routeLabel === "string" ? routeLabel : activeSection.label;
   const emptyRailDetail = typeof emptyDetail === "string" ? emptyDetail : activeSection.desc;
+  const showRailContext = !iconOnlyTabs;
 
   useEffect(() => {
     const activeTab = localTabs.find((tab) => tab.key === activeLocalTab);
@@ -132,24 +137,30 @@ export function MonitoreoWorkbenchRail({
   }
 
   return (
-    <aside className={joinClasses("mon-workbench-rail pulso-sidebar is-collapsible", className)} aria-label={ariaLabel}>
-      <div className="mon-rail-head">
-        <span className="pulso-section-eyebrow">{headerEyebrow}</span>
-        <strong>{routeShortLabel}</strong>
-        <small>{headerDetail}</small>
-      </div>
+    <aside className={joinClasses("mon-workbench-rail pulso-sidebar is-collapsible", iconOnlyTabs && "is-icon-only-tabs", className)} aria-label={ariaLabel}>
+      {showRailContext ? (
+        <div className="mon-rail-head">
+          <span className="pulso-section-eyebrow">{headerEyebrow}</span>
+          <strong>{routeShortLabel}</strong>
+          <small>{headerDetail}</small>
+        </div>
+      ) : null}
 
-      {summary}
+      {showRailContext ? summary : null}
 
-      <div className="mon-rail-section-label">
-        <span>{localTabsLabel}</span>
-        <em>{resolvedModeCountLabel}</em>
-      </div>
-      <div className="mon-section-current-card">
-        <span>{routeSectionLabel}</span>
-        <strong><ActiveIcon size={13} /> {activeSection.label}</strong>
-        <small>{activeSection.desc}</small>
-      </div>
+      {showRailContext ? (
+        <>
+          <div className="mon-rail-section-label">
+            <span>{localTabsLabel}</span>
+            <em>{resolvedModeCountLabel}</em>
+          </div>
+          <div className="mon-section-current-card">
+            <span>{routeSectionLabel}</span>
+            <strong><ActiveIcon size={13} /> {activeSection.label}</strong>
+            <small>{activeSection.desc}</small>
+          </div>
+        </>
+      ) : null}
       <div className="mon-section-local-tabs" role="tablist" aria-orientation="vertical" aria-label={`Pestañas locales de ${activeSection.label}`}>
         {localTabs.length ? localTabs.map((tab, index) => {
           const Icon = tab.icon;
@@ -166,7 +177,10 @@ export function MonitoreoWorkbenchRail({
                 aria-selected={active}
                 aria-current={active ? "page" : undefined}
                 aria-label={`${tab.label}: ${tab.detail}`}
+                title={`${tab.label}: ${tab.detail}`}
                 className={`mon-nav-item is-${activeView}-${tab.key}${active ? " is-active" : ""}`}
+                data-view-key={activeView}
+                data-local-tab-key={tab.key}
                 data-rail-label={tab.label}
                 data-rail-tip={`${tab.label} · ${tab.detail}`}
                 style={tabStyle}
@@ -177,7 +191,9 @@ export function MonitoreoWorkbenchRail({
                   <strong>{tab.label}</strong>
                   <span>{tab.detail}</span>
                 </span>
-                {active ? <CheckCircle2 size={13} className="mon-nav-current" /> : null}
+                {!iconOnlyTabs && tab.badge ? <em className="mon-nav-badge">{tab.badge}</em> : null}
+                {!iconOnlyTabs && tab.status ? <i className={`mon-nav-health is-${tab.status}`} aria-hidden="true" /> : null}
+                {!iconOnlyTabs && active ? <CheckCircle2 size={13} className="mon-nav-current" /> : null}
               </button>
               <span className="mon-nav-tip" style={tabStyle} aria-hidden="true">{tab.label} · {tab.detail}</span>
             </Fragment>
@@ -198,9 +214,9 @@ export function MonitoreoWorkbenchRail({
         )}
       </div>
 
-      {phaseSwitch}
+      {showRailContext ? phaseSwitch : null}
 
-      {statusItems.length ? (
+      {showRailContext && statusItems.length ? (
         <div className="mon-rail-status" aria-label={statusAriaLabel}>
           {statusItems.map((item) => {
             const isLastUpdate = isLastUpdateLabel(item.label);

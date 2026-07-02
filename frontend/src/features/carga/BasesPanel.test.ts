@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { EstudioMultiIntegrated } from "../../api/client";
+import type { EstudioMultiIntegrated, EstudioProcessingSuggestions } from "../../api/client";
 import {
   INDEPENDENT_SIBLINGS_MAX_BASES,
   independentSiblingsCapacity,
@@ -23,8 +23,13 @@ import {
   smSpecWithConsentVar,
   smSpecWithSourceCollectors,
   smSurveyCatalogAvailability,
-  smSurveyResponseCount,
-  smSurveyResponseLabel,
+	  smSurveyResponseCount,
+	  smSurveyResponseLabel,
+	  smSurveyMonkeyLogicRuleLines,
+	  smSurveyMonkeyLogicPreviewEntries,
+	  smSurveyMonkeyLogicPreviewNeedsReview,
+	  smSurveySpecificLogicRulesBySurvey,
+	  smSuggestedSurveyMonkeyLogicRulesFromMonitoring,
   smWorkbookInspectionCanImport,
   smWorkbookInspectionCellErrorCount,
   smWorkbookInspectionWarningCount,
@@ -268,9 +273,10 @@ describe("BasesPanel integrated history helpers", () => {
         includeCompleted: true,
         includePartial: false,
         keepMissingStatus: false,
-        collectionStrategy: "campo",
-        channel: "Telefónico",
-        extraSources: [{
+	        collectionStrategy: "campo",
+	        channel: "Telefónico",
+	        logicRules: "",
+	        extraSources: [{
           key: "extra",
           surveyId: "222",
           label: "Ingeniería Geológica campaña 2",
@@ -326,6 +332,137 @@ describe("BasesPanel integrated history helpers", () => {
     });
   });
 
+  test("suggests editable SurveyMonkey logic from accreditation monitoring links", () => {
+    const suggestions: EstudioProcessingSuggestions = {
+      ok: true,
+      source: "monitoreo",
+      project_kind: "acreditacion",
+      profile_family: "acreditacion",
+      profile_variant: "multi_actor",
+      has_suggestions: true,
+      message: "Acreditacion multiactor",
+      summary: {
+        monitoring_sources_count: 1,
+        survey_sources_count: 1,
+        actors_count: 1,
+        surveymonkey_groups: 1,
+        kobo_groups: 0,
+      },
+      groups: [{
+        id: "egresados-surveymonkey",
+        project_kind: "acreditacion",
+        actor: "Egresados",
+        actor_key: "egresados",
+        platform: "surveymonkey",
+        label: "SurveyMonkey Egresados",
+        recommended_base_name: "egresados",
+        source_count: 1,
+        response_count: 42,
+        importable: true,
+        import_mode: "surveymonkey_independent_sibling",
+        confidence: "high",
+        sources: [{
+          source_id: "sm-egresados-whatsapp",
+          kind: "surveymonkey",
+          label: "Egresados WhatsApp",
+          title: "Encuesta egresados",
+          actor: "Egresados",
+          actor_key: "egresados",
+          channel: "Enlace personalizado por WhatsApp",
+          collection_strategy: "whatsapp_link",
+          role: "responses",
+          integration_mode: "survey",
+          survey_id: "sm-123",
+          asset_uid: "",
+          base_url: "",
+          connection_profile_id: "surveymonkey-main",
+          collector_ids: ["collector-1"],
+          enabled: true,
+          last_sync_at: "2026-07-02T00:00:00Z",
+        }],
+      }],
+    };
+
+    expect(smSuggestedSurveyMonkeyLogicRulesFromMonitoring(suggestions)).toBe("Q1 = C1 => Ocultar P2.");
+    expect(smSuggestedSurveyMonkeyLogicRulesFromMonitoring({
+      ...suggestions,
+      project_kind: "territorial",
+      profile_family: "territorial",
+    })).toBe("");
+    expect(smSuggestedSurveyMonkeyLogicRulesFromMonitoring({
+      ...suggestions,
+      groups: suggestions.groups.map((group) => ({
+        ...group,
+        sources: group.sources.map((source) => ({
+          ...source,
+          label: "Egresados correo",
+          title: "Encuesta egresados correo",
+          channel: "Correo",
+          collection_strategy: "email",
+        })),
+      })),
+    })).toBe("");
+  });
+
+	  test("splits SurveyMonkey logic text into reviewable rule lines", () => {
+	    expect(smSurveyMonkeyLogicRuleLines(`
+	      Q1 = C1 => Ocultar P2.
+	      Q3 IN [C1, C2] => Fin;
+	      ;
+    `)).toEqual([
+      "Q1 = C1 => Ocultar P2.",
+      "Q3 IN [C1, C2] => Fin",
+	    ]);
+	  });
+
+	  test("builds SurveyMonkey direct logic maps for actor-specific exceptions", () => {
+	    expect(smSurveySpecificLogicRulesBySurvey(
+	      [{ id: "sm-estudiantes" }, { id: "sm-docentes" }, { id: "" }],
+	      {
+	        "sm-estudiantes": { logicRules: "" },
+	        "sm-docentes": { logicRules: "  Q1 != C1 => Ocultar P2.  " },
+	        "": { logicRules: "Q9 = C1 => Fin" },
+	      },
+	    )).toEqual({
+	      "sm-docentes": "Q1 != C1 => Ocultar P2.",
+	    });
+	  });
+
+	  test("combines common and actor-specific SurveyMonkey rules for preview", () => {
+	    expect(smSurveyMonkeyLogicPreviewEntries(
+	      "Q1 = C1 => Ocultar P2.",
+	      {
+	        "sm-docentes": "Q1 != C1 => Ocultar P2.; Q3 = C2 => Fin",
+	      },
+	      {
+	        "sm-docentes": "Docentes",
+	      },
+	    )).toEqual([
+	      { rule: "Q1 = C1 => Ocultar P2.", origin: "Regla común" },
+	      { rule: "Q1 != C1 => Ocultar P2.", origin: "Actor Docentes" },
+	      { rule: "Q3 = C2 => Fin", origin: "Actor Docentes" },
+	    ]);
+	  });
+
+	  test("requires fresh successful SurveyMonkey logic preview before import", () => {
+    const rules = ["Q1 = C1 => Ocultar P2.", "Q3 = C2 => Fin"];
+    expect(smSurveyMonkeyLogicPreviewNeedsReview([], null)).toBe(false);
+    expect(smSurveyMonkeyLogicPreviewNeedsReview(rules, null)).toBe(true);
+    expect(smSurveyMonkeyLogicPreviewNeedsReview(rules, [{ rule: rules[0], ok: true }])).toBe(true);
+    expect(smSurveyMonkeyLogicPreviewNeedsReview(rules, [
+      { rule: rules[0], ok: true },
+      { rule: rules[1], ok: false },
+    ])).toBe(true);
+    expect(smSurveyMonkeyLogicPreviewNeedsReview(rules, [
+      { rule: rules[0], ok: true },
+      { rule: "Q4 = C1 => Fin", ok: true },
+    ])).toBe(true);
+    expect(smSurveyMonkeyLogicPreviewNeedsReview(rules, [
+      { rule: rules[0], ok: true },
+      { rule: rules[1], ok: true },
+    ])).toBe(false);
+  });
+
   test("caps independent sibling families at ten bases even if the study allows more", () => {
     expect(INDEPENDENT_SIBLINGS_MAX_BASES).toBe(10);
     expect(independentSiblingsCapacity({ max_bases: 16, n_bases: 8 })).toEqual({
@@ -355,9 +492,10 @@ describe("BasesPanel integrated history helpers", () => {
         includeCompleted: true,
         includePartial: false,
         keepMissingStatus: false,
-        collectionStrategy: "campo",
-        channel: "",
-        extraSources: [],
+	        collectionStrategy: "campo",
+	        channel: "",
+	        logicRules: "",
+	        extraSources: [],
       },
     );
 

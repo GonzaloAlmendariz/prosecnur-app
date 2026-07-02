@@ -385,7 +385,7 @@ async function warmupMonitoreoLocalData() {
   if (family === "telefonico") {
     const scopes = familyProfile?.warmupScopes?.length
       ? [...familyProfile.warmupScopes]
-      : ["source", "advance_summary", "phone_summary"];
+      : ["source", "phone_summary"];
     await withTimeout(
       "Monitoreo telefónico",
       settleAllLimited(scopes, async (reportScope) => {

@@ -122,7 +122,7 @@ export function buildAcreditacionPhoneRealAlertModel({
   alertRows: Array<Record<string, unknown>>;
 }): AcreditacionPhoneSupervisionModel {
   const alerts = buildAcreditacionQualityAlertItems(alertRows).filter(isAcreditacionTelephoneQualityAlert);
-  const activeAlerts = alerts.filter((alert) => alert.tone !== "ok");
+  const activeAlerts = sortAcreditacionQualityAlerts(alerts.filter((alert) => alert.tone !== "ok"));
   return {
     alerts,
     activeAlerts,
@@ -164,6 +164,7 @@ export function acreditacionQualityLevelLabel(level: string, tone: AcreditacionQ
   const key = normalizeAcreditacionAlertMatch(level);
   if (key.includes("alta")) return "Atención alta";
   if (key.includes("media")) return "Atención media";
+  if (key.includes("sugerencia")) return "Sugerencia";
   return "Seguimiento";
 }
 
@@ -172,6 +173,7 @@ export function acreditacionQualityActionLabel(alert: AcreditacionQualityAlertIt
   if (alert.signal.kind === "link_confusion") return "Contrastar persona, enlace enviado y llave de cruce.";
   if (alert.signal.kind === "short_duration") return "Enviar a supervisión por duración atípica.";
   if (alert.signal.kind === "platform_gap") return "Conciliar plataforma contra base de barrido.";
+  if (key.includes("formato codpulso")) return "Usar el formato sugerido cuando se edite la respuesta o base.";
   if (key.includes("sin responsable")) return "Asignar responsable antes de evaluar producción.";
   if (key.includes("no barrido") || key.includes("por iniciar") || key.includes("por barrer")) return "Priorizar barrido pendiente.";
   if (key.includes("efectivo telefonico") || key.includes("rechazo telefonico")) return "Verificar llamada y respuesta de plataforma.";
@@ -248,14 +250,26 @@ function groupAcreditacionQualityAlertItems(items: AcreditacionQualityAlertItem[
 
 function acreditacionQualityAlertGroupKey(alert: AcreditacionQualityAlertItem) {
   const key = normalizeAcreditacionAlertMatch(alert.type);
+  const codeKey = normalizeAcreditacionAlertMatch(alert.code);
   const groupable =
     key.includes("sin cruce base")
     || key.includes("respuesta sin llave")
     || key.includes("llave faltante respuesta")
     || key.includes("parcial plataforma");
+  if (key.includes("sin cruce base") && codeKey) {
+    return `${key}|${normalizeAcreditacionAlertMatch(alert.where)}|${codeKey}`;
+  }
   if (groupable) return `${key}|${normalizeAcreditacionAlertMatch(alert.where)}`;
   if (key.includes("responsable no barridos")) return `${key}|${normalizeAcreditacionAlertMatch(alert.owner || alert.where)}`;
   return `${key}|${normalizeAcreditacionAlertMatch(alert.where)}|${normalizeAcreditacionAlertMatch(alert.code)}|${normalizeAcreditacionAlertMatch(alert.detail)}`;
+}
+
+function sortAcreditacionQualityAlerts(alerts: AcreditacionQualityAlertItem[]) {
+  return [...alerts].sort((a, b) => (
+    acreditacionQualityToneWeight(b.tone) - acreditacionQualityToneWeight(a.tone)
+    || (b.count ?? 1) - (a.count ?? 1)
+    || a.title.localeCompare(b.title, "es")
+  ));
 }
 
 function acreditacionQualityGroupedAlertDetail(alert: AcreditacionQualityAlertItem, rows: number) {
@@ -366,7 +380,8 @@ function acreditacionQualityAlertTitle(type: string, detail: string, owner = "")
   if (key.includes("llave faltante barrido")) return "Registros del barrido sin código de cruce";
   if (key.includes("llave no detectada")) return "No se reconoce el código de cruce del barrido";
   if (key.includes("llave faltante respuesta")) return "Respuestas sin código de cruce";
-  if (key.includes("efectiva sin cruce base")) return "Efectiva sin cruce con base";
+  if (key.includes("formato codpulso")) return "Sugerencia de formato CodPulso";
+  if (key.includes("efectiva sin cruce base")) return "Efectiva Kobo fuera de base";
   if (key.includes("efectivo telefonico sin kobo")) return "Efectivo telefónico sin efectiva Kobo";
   if (key.includes("efectiva kobo sin telefonica")) return "Efectiva Kobo sin efectiva telefónica";
   if (key.includes("efectivo telefonico sin plataforma")) return "Efectivo telefónico sin plataforma completa";
@@ -428,8 +443,12 @@ function acreditacionQualityAlertDetail(type: string, detail: string, owner = ""
   if (key.includes("llave faltante respuesta") || key.includes("respuesta sin llave")) {
     return "La respuesta de plataforma no trae una llave utilizable para contrastarla con el universo. Debe revisarse antes de decidir si entra al avance.";
   }
+  if (key.includes("formato codpulso")) {
+    return detail || "El código cruza, pero conviene escribirlo con el formato PDM para evitar ambigüedades.";
+  }
   if (key.includes("efectiva sin cruce base")) {
-    return "SurveyMonkey trae una respuesta completa, pero la llave detectada no aparece en la base. No se invalida automáticamente: requiere revisar código, correo o nombre contra el universo.";
+    const detectedKey = detail.match(/Llave detectada:\s*([^.]*)/i)?.[1]?.trim();
+    return `Kobo trae una respuesta completa, pero la llave detectada no aparece en la base${detectedKey ? ` (${detectedKey})` : ""}. No se invalida automáticamente: requiere revisar código, correo o nombre contra el universo.`;
   }
   if (key.includes("efectivo telefonico sin plataforma")) {
     return "El barrido marca el caso como efectivo, pero la plataforma no tiene una respuesta completa conciliada.";
@@ -463,6 +482,10 @@ function isAcreditacionTelephoneQualityAlert(alert: AcreditacionQualityAlertItem
   if (isAcreditacionTelephoneText(key) || isAcreditacionTelephoneText(sourceKey)) return true;
   if (typeKey.includes("barrido") || typeKey.includes("responsable")) return true;
   if (typeKey.includes("llave faltante barrido") || typeKey.includes("llave no detectada")) return true;
+  if (typeKey.includes("sin cruce base") || typeKey.includes("respuesta sin llave") || typeKey.includes("llave faltante respuesta")) return true;
+  if (typeKey.includes("codpulso") || typeKey.includes("codigo")) return true;
+  if (typeKey.includes("kobo")) return true;
+  if (typeKey.includes("plataforma") && (typeKey.includes("base") || typeKey.includes("barrido"))) return true;
   return false;
 }
 

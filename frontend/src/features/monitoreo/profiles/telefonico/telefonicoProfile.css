@@ -1,0 +1,3025 @@
+.is-telefonico-profile .mon-phone-quota-rhythm-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-phone-source-tab {
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button {
+  --source-status-accent: var(--pulso-module-monitoring);
+  appearance: none;
+  min-width: 0;
+  min-height: 25px;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--source-status-accent) 18%, var(--pulso-border));
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--source-status-accent) 5%, #fff)),
+    var(--pulso-surface);
+  color: inherit;
+  padding: 4px 6px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button.is-ready {
+  --source-status-accent: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button.is-warning {
+  --source-status-accent: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button:hover,
+.is-telefonico-profile .mon-acr-source-status-metrics > button:focus-visible,
+.is-telefonico-profile .mon-acr-source-status-metrics > button.is-active {
+  border-color: color-mix(in srgb, var(--source-status-accent) 40%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--source-status-accent) 9%, #fff), rgba(255, 255, 255, 0.96)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 2px color-mix(in srgb, var(--source-status-accent) 10%, transparent);
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--source-status-accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button:active {
+  transform: scale(0.99);
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button svg {
+  grid-row: auto;
+  color: var(--source-status-accent);
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button small {
+  display: none;
+}
+
+.is-telefonico-profile .mon-acr-source-status-metrics > button strong {
+  justify-self: end;
+  font-size: 12px;
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-sheets .mon-phone-source-contract {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, #e7f8fb 42%, #fff), rgba(255, 255, 255, 0.96) 52%),
+    var(--pulso-surface);
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-sheets .mon-phone-source-contract-grid,
+.is-telefonico-profile .mon-phone-source-tab.is-sheets .mon-phone-source-editor-grid {
+  align-items: stretch;
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-sheets .mon-phone-source-slot,
+.is-telefonico-profile .mon-phone-source-tab.is-sheets .mon-acr-sheet-adjustment {
+  height: 100%;
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-sheets .mon-phone-source-slot {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-source-contract-grid {
+  grid-template-columns: minmax(0, 0.42fr);
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-kobo-dossier {
+  grid-template-columns: minmax(300px, 0.36fr) minmax(0, 1fr);
+}
+
+.is-telefonico-profile .mon-kobo-portability-note {
+  --phone-kobo-portability: var(--pulso-info-fg, #2563eb);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--phone-kobo-portability) 22%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--phone-kobo-portability) 7%, #fff), rgba(255, 255, 255, 0.96)),
+    var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.is-telefonico-profile .mon-kobo-portability-note.is-warning {
+  --phone-kobo-portability: var(--pulso-warn-accent, #b45309);
+}
+
+.is-telefonico-profile .mon-kobo-portability-note > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--phone-kobo-portability);
+}
+
+.is-telefonico-profile .mon-kobo-portability-note > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.is-telefonico-profile .mon-kobo-portability-note strong,
+.is-telefonico-profile .mon-kobo-portability-note span {
+  min-width: 0;
+}
+
+.is-telefonico-profile .mon-kobo-portability-note strong {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--phone-kobo-portability) 72%, var(--pulso-text));
+}
+
+.is-telefonico-profile .mon-kobo-portability-note span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--pulso-text-soft);
+}
+
+.is-telefonico-profile .mon-kobo-source-actions {
+  min-width: 0;
+  display: flex;
+  gap: 7px;
+  align-items: end;
+  justify-content: flex-end;
+}
+
+.is-telefonico-profile .mon-acr-survey-add-head .mon-kobo-source-actions button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-acr-survey-add-head .mon-kobo-source-actions button:first-child {
+  width: 92px;
+}
+
+.is-telefonico-profile .mon-acr-survey-add-head .mon-kobo-source-actions button:last-child {
+  width: 122px;
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-contract {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-module-monitoring-soft) 18%, #fff)),
+    var(--pulso-surface);
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-package .mon-source-configured-panel {
+  margin-top: 0;
+}
+
+.is-telefonico-profile .mon-stage--telefonico > .mon-stage-stack {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-stage--telefonico .mon-phone-panel {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-tabbody {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-layout {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-layout > * {
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid {
+  min-height: 0;
+  grid-template-columns: minmax(0, 0.96fr) minmax(420px, 1.04fr);
+  align-items: stretch;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid > .mon-phone-storage {
+  min-height: 0;
+  height: 100%;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid > .mon-phone-storage:not(.mon-phone-storage--statuses) {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid > .mon-phone-storage--operation .mon-phone-operation-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-self: stretch;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid span {
+  --phone-operation-accent: var(--phone-accent);
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-areas:
+    "label value"
+    "bar bar"
+    "hint hint";
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  gap: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--phone-operation-accent) 22%, var(--pulso-border));
+  border-left-width: 3px;
+  border-radius: 9px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--phone-operation-accent) 8%, transparent), transparent 62%),
+    var(--pulso-surface);
+  padding: 9px 10px;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid span.is-effective,
+.is-telefonico-profile .mon-phone-operation-grid span.is-calm {
+  --phone-operation-accent: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-phone-operation-grid span.is-incidents {
+  --phone-operation-accent: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-operation-grid span.is-unswept {
+  --phone-operation-accent: #64748b;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid em,
+.is-telefonico-profile .mon-phone-operation-grid strong,
+.is-telefonico-profile .mon-phone-operation-grid small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid em {
+  grid-area: label;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 860;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid strong {
+  grid-area: value;
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: 880;
+  line-height: 1;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid i {
+  grid-area: bar;
+  height: 8px;
+  border-radius: var(--pulso-radius-chip);
+  background:
+    linear-gradient(90deg, var(--phone-operation-accent) var(--phone-operation-pct), color-mix(in srgb, var(--pulso-border) 74%, #fff 26%) var(--phone-operation-pct));
+}
+
+.is-telefonico-profile .mon-phone-operation-grid small {
+  grid-area: hint;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid > .mon-phone-storage--statuses {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid .mon-phone-status-rank {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-phone-ops-card--platform-match {
+  max-height: min(650px, calc(100vh - 250px));
+  overflow: hidden;
+  grid-template-rows: auto minmax(136px, auto) auto minmax(0, 1fr) auto;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary .mon-phone-codpulso-stage {
+  min-height: 136px;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary .mon-phone-compare-board {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.is-telefonico-profile .mon-phone-layout--summary .mon-phone-compare-cases {
+  min-height: 0;
+  max-height: 250px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-summary-secondary {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-summary-secondary > * {
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-ops-insights,
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-responsibles {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-responsibles {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+.is-telefonico-profile .mon-phone-layout--incidence {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+  gap: 0;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-layout--incidence > .mon-phone-ops-card--pending-workbench {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-layout--incidence .mon-phone-pending-workbench-list {
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 3px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-ops-card--pending-workbench .mon-phone-pending-person {
+  grid-template-columns: minmax(220px, 0.34fr) minmax(0, 0.66fr);
+}
+
+.is-telefonico-profile .mon-phone-ops-card--pending-workbench .mon-phone-noanswer-list {
+  max-height: 190px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-pending-table-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #0a6b8f 16%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, #e7f8fb 18%, #fff)),
+    var(--pulso-surface);
+}
+
+.is-telefonico-profile .mon-phone-pending-table-panel > header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid color-mix(in srgb, #0a6b8f 10%, var(--pulso-border));
+  padding: 9px 10px;
+}
+
+.is-telefonico-profile .mon-phone-pending-table-panel > header div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.is-telefonico-profile .mon-phone-pending-table-panel > header span {
+  color: #0f6f77;
+  font-size: 10px;
+  font-weight: 840;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-pending-table-panel > header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 880;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-pending-table-panel > header em {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, #0a6b8f 20%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: rgba(255, 255, 255, 0.78);
+  color: #0f6f77;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 820;
+  padding: 4px 8px;
+}
+
+.is-telefonico-profile .mon-phone-pending-table-wrap {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-pending-table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.is-telefonico-profile .mon-phone-pending-table th,
+.is-telefonico-profile .mon-phone-pending-table td {
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #fff);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.is-telefonico-profile .mon-phone-pending-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-pending-table td {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.is-telefonico-profile .mon-phone-pending-table td strong,
+.is-telefonico-profile .mon-phone-pending-table td small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-pending-table td strong {
+  font-size: 13px;
+  font-weight: 880;
+  line-height: 1.15;
+}
+
+.is-telefonico-profile .mon-phone-pending-table td small {
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1.1;
+}
+
+.is-telefonico-profile .mon-phone-pending-table tr.is-unassigned td:first-child {
+  border-left: 4px solid var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-pending-table tr.is-pending td:first-child {
+  border-left: 4px solid #0f7c8a;
+}
+
+.is-telefonico-profile .mon-phone-pending-compact-bar {
+  height: 6px;
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-border) 72%, #fff);
+}
+
+.is-telefonico-profile .mon-phone-pending-compact-bar i {
+  width: var(--phone-pending-pct);
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f7c8a, #13a8b8);
+}
+
+.is-telefonico-profile .mon-phone-layout:has(.mon-quality-alert-panel) {
+  height: 100%;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.is-telefonico-profile .mon-quality-alert-panel {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-quality-alert-layout {
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+}
+
+.is-telefonico-profile .mon-quality-alert-list {
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-quality-alert-where {
+  position: static;
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-quality-alert-where-list {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-layout:has(.mon-phone-consulted-grid),
+.is-telefonico-profile .mon-phone-layout--time {
+  height: 100%;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  align-content: stretch;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.is-telefonico-profile .mon-phone-advance-hero {
+  grid-template-columns: minmax(300px, 0.56fr) minmax(520px, 1fr);
+}
+
+.is-telefonico-profile .mon-phone-advance-hero-copy strong {
+  font-size: 19px;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(330px, 0.78fr) minmax(300px, 0.64fr);
+  grid-template-rows: minmax(300px, 0.92fr) minmax(300px, 1.08fr);
+  grid-template-areas:
+    "daily daily daily"
+    "storage context focus";
+  align-items: stretch;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > * {
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > .mon-advance-daily-mini {
+  grid-area: daily;
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > .mon-phone-advance-parallel {
+  grid-area: context;
+  overflow: auto;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > .mon-advance-storage {
+  grid-area: storage;
+  height: 100%;
+  overflow: auto;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > .mon-advance-focus {
+  grid-area: focus;
+  height: 100%;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general {
+  min-height: 0;
+  align-content: stretch;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general > header strong {
+  font-size: 15px;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-board {
+  min-height: 0;
+  height: 100%;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-line-chart {
+  min-height: 0;
+  display: grid;
+  align-items: stretch;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-line-chart > .dash-plotly-chart {
+  grid-area: 1 / 1;
+}
+
+.is-telefonico-profile .mon-advance-line-chart.is-phone-effective-axis {
+  grid-template-rows: minmax(0, 1fr) 42px;
+  padding-bottom: 4px;
+}
+
+.is-telefonico-profile .mon-advance-line-chart.is-phone-effective-axis > .dash-plotly-chart {
+  grid-area: auto;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general .mon-advance-line-chart .dash-plotly-chart {
+  min-height: 170px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels {
+  min-width: 0;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+  padding: 7px 58px 1px 48px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels span {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: var(--pulso-text-muted);
+  font-weight: 760;
+  line-height: 1;
+  text-align: center;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels strong {
+  color: #168a55;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels em {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  color: #6b7686;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 740;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels small {
+  color: #778292;
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-dense {
+  padding-inline: 48px 58px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-dense strong {
+  font-size: 9px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-dense em,
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-dense small {
+  font-size: 8px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-compact {
+  min-height: 34px;
+  padding: 5px 56px 0 54px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-compact strong {
+  font-size: 9px;
+}
+
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-compact em,
+.is-telefonico-profile .mon-phone-daily-axis-labels.is-compact small {
+  font-size: 8px;
+}
+
+.is-telefonico-profile .mon-phone-advance-parallel {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 7px;
+  overflow: hidden;
+  padding: 9px;
+}
+
+.is-telefonico-profile .mon-phone-advance-parallel header strong {
+  font-size: 13px;
+}
+
+.is-telefonico-profile .mon-phone-advance-status-list {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(32px, 1fr);
+  align-content: stretch;
+  align-items: stretch;
+  gap: 5px;
+  overflow: auto;
+  padding-bottom: 2px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-advance-status-list span {
+  min-height: 0;
+  align-content: center;
+  padding: 5px 6px;
+}
+
+.is-telefonico-profile .mon-phone-advance-status-list em {
+  font-size: 9px;
+}
+
+.is-telefonico-profile .mon-phone-advance-status-list strong {
+  font-size: 11px;
+}
+
+.is-telefonico-profile .mon-phone-advance-status-list i {
+  height: 4px;
+}
+
+.is-telefonico-profile .mon-phone-advance-parallel-grid article {
+  padding: 7px 8px;
+}
+
+.is-telefonico-profile .mon-phone-advance-parallel-grid article strong {
+  font-size: 13px;
+}
+
+.is-telefonico-profile .mon-phone-advance-parallel-grid article p {
+  font-size: 10px;
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, #0a6b8f 14%, var(--pulso-border));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 7px 8px;
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip span.is-ready {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 26%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-soft) 32%, #fff);
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip span.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-soft) 36%, #fff);
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip em,
+.is-telefonico-profile .mon-phone-advance-audit-strip small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-style: normal;
+  font-weight: 780;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip em {
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-advance-audit-strip strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 880;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-storage,
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-focus {
+  min-height: 0;
+  max-height: 100%;
+}
+
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-focus {
+  overflow: auto;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-quota-lane-workbench {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-quota-lane-workbench > .mon-phone-quota-rhythm {
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-grid {
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding-right: 2px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm > header {
+  grid-template-columns: minmax(220px, 0.36fr) minmax(420px, 0.64fr);
+  align-items: center;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm > header > div:first-child {
+  gap: 2px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm > header p {
+  display: none;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-console {
+  --phone-rule-accent: #0891b2;
+  grid-template-columns: minmax(190px, 0.24fr) minmax(0, 1fr);
+  gap: 6px;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-module-monitoring-soft) 14%, #fff)),
+    var(--pulso-surface);
+  padding: 6px;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-console > section {
+  align-content: center;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-console > section strong {
+  font-size: 12px;
+  line-height: 1.12;
+  white-space: normal;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-console > section p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 720;
+  line-height: 1.08;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-steps {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-steps button {
+  min-height: 48px;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-console > section span,
+.is-telefonico-profile .mon-phone-advance-rule-steps span {
+  font-size: 9px;
+  letter-spacing: 0.03em;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-steps strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.08;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  -webkit-line-clamp: unset;
+}
+
+.is-telefonico-profile .mon-phone-advance-rule-steps em {
+  font-size: 9px;
+}
+
+@media (max-width: 1180px) {
+  .is-telefonico-profile .mon-phone-advance-summary {
+    height: auto;
+    min-height: auto;
+    overflow: auto;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-hero,
+  .is-telefonico-profile .mon-phone-advance-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid {
+    height: auto;
+    grid-template-areas:
+      "daily"
+      "context"
+      "storage"
+      "focus";
+    grid-template-rows:
+      minmax(330px, auto)
+      minmax(230px, auto)
+      minmax(230px, auto)
+      minmax(210px, auto);
+    max-height: calc(100vh - 294px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-phone-advance-parallel,
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-storage,
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-focus {
+    height: auto;
+    overflow: visible;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-daily-mini {
+    min-height: 318px;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general {
+    min-height: 320px;
+    grid-template-rows: auto minmax(230px, 1fr) auto;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-board {
+    min-height: 238px;
+    height: auto;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general .mon-advance-line-chart .dash-plotly-chart {
+    min-height: 264px;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-parallel {
+    height: auto;
+    overflow: visible;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-status-list {
+    height: auto;
+    grid-auto-rows: minmax(32px, auto);
+    overflow: visible;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-status-list span {
+    min-width: 0;
+  }
+
+  .is-telefonico-profile .mon-phone-time-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-time-hero-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.is-telefonico-profile .mon-phone-supervision-shell {
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-supervision-hero {
+  grid-template-columns: minmax(230px, 0.46fr) minmax(0, 1fr);
+  padding: 8px;
+}
+
+.is-telefonico-profile .mon-phone-supervision-lead p {
+  max-width: 58ch;
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 14%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-module-monitoring-soft) 10%, #fff)),
+    var(--pulso-surface);
+  padding: 5px;
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button {
+  --phone-supervision-tab: var(--pulso-module-monitoring);
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 6px 8px;
+  text-align: left;
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button.is-ready,
+.is-telefonico-profile .mon-phone-supervision-tabs button.is-ok {
+  --phone-supervision-tab: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button.is-warning {
+  --phone-supervision-tab: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button.is-danger {
+  --phone-supervision-tab: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button:hover,
+.is-telefonico-profile .mon-phone-supervision-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--phone-supervision-tab) 22%, var(--pulso-border));
+  background: color-mix(in srgb, var(--phone-supervision-tab) 7%, #fff);
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button:active {
+  transform: scale(0.985);
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--phone-supervision-tab) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs strong,
+.is-telefonico-profile .mon-phone-supervision-tabs span,
+.is-telefonico-profile .mon-phone-supervision-tabs em {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 870;
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs span {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.is-telefonico-profile .mon-phone-supervision-tabs em {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  min-width: 30px;
+  color: var(--phone-supervision-tab);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 880;
+  text-align: right;
+}
+
+.is-telefonico-profile .mon-phone-supervision-focus {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-supervision-focus.is-time {
+  grid-template-columns: minmax(0, 1.38fr) minmax(320px, 0.62fr);
+  align-items: start;
+}
+
+.is-telefonico-profile .mon-phone-time-control {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 6px;
+  overflow: hidden;
+  padding: 8px;
+  align-content: start;
+  border-radius: 10px;
+}
+
+.is-telefonico-profile .mon-phone-layout--time {
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-time-workbench {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-time-hero {
+  --phone-time-hero: var(--pulso-success-fg);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(250px, 0.44fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--phone-time-hero) 18%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--phone-time-hero) 7%, #fff), rgba(255, 255, 255, 0.96) 56%),
+    var(--pulso-surface);
+  padding: 8px;
+  align-self: start;
+}
+
+.is-telefonico-profile .mon-phone-time-hero.is-warning {
+  --phone-time-hero: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-time-hero.is-danger {
+  --phone-time-hero: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-hero > div:first-child {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.is-telefonico-profile .mon-phone-time-hero span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--phone-time-hero);
+  font-size: 9.5px;
+  font-weight: 880;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-time-hero strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 880;
+  line-height: 1.08;
+}
+
+.is-telefonico-profile .mon-phone-time-hero p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis span {
+  --phone-time-kpi: var(--pulso-success-fg);
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, var(--phone-time-kpi) 18%, var(--pulso-border));
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px 8px;
+  min-height: 48px;
+  align-content: center;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis span.is-warning {
+  --phone-time-kpi: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis span.is-danger {
+  --phone-time-kpi: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis em,
+.is-telefonico-profile .mon-phone-time-hero-kpis strong,
+.is-telefonico-profile .mon-phone-time-hero-kpis small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis em {
+  color: var(--phone-time-kpi);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 880;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: 880;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.is-telefonico-profile .mon-phone-time-guide {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.is-telefonico-profile .mon-phone-time-guide span {
+  --phone-time-guide: var(--pulso-success-fg);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--phone-time-guide) 18%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--phone-time-guide) 6%, #fff);
+  padding: 6px 8px;
+}
+
+.is-telefonico-profile .mon-phone-time-guide span.is-danger {
+  --phone-time-guide: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-guide span.is-warning {
+  --phone-time-guide: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-time-guide strong,
+.is-telefonico-profile .mon-phone-time-guide em {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-time-guide strong {
+  color: var(--phone-time-guide);
+  font-size: 11px;
+  font-weight: 880;
+}
+
+.is-telefonico-profile .mon-phone-time-guide em {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 730;
+}
+
+.is-telefonico-profile .mon-phone-time-cases {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section {
+  --phone-time-case-tone: var(--pulso-success-fg);
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section.is-warning {
+  --phone-time-case-tone: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section.is-danger {
+  --phone-time-case-tone: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section.is-missing {
+  --phone-time-case-tone: var(--pulso-muted-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section > header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--phone-time-case-tone) 14%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--phone-time-case-tone) 6%, #fff), rgba(255, 255, 255, 0.96)),
+    var(--pulso-surface);
+  padding: 6px 8px;
+  backdrop-filter: blur(12px);
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section > header span {
+  color: var(--phone-time-case-tone);
+  font-size: 10px;
+  font-weight: 880;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section > header strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 880;
+}
+
+.is-telefonico-profile .mon-phone-time-case-list {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row {
+  --phone-time-case: var(--pulso-success-fg);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(142px, 0.92fr) minmax(112px, 0.72fr) minmax(86px, 0.48fr) minmax(92px, 0.5fr) minmax(146px, 0.8fr) minmax(148px, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--phone-time-case) 18%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--phone-time-case) 5%, #fff);
+  padding: 6px 8px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row.is-head {
+  position: sticky;
+  z-index: 2;
+  top: 35px;
+  border-color: var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface) 94%, transparent);
+  color: var(--pulso-text-faint);
+  font-size: 9px;
+  font-weight: 880;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+}
+
+.is-telefonico-profile .mon-phone-time-case-row.is-warning {
+  --phone-time-case: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-time-case-row.is-danger {
+  --phone-time-case: var(--pulso-danger-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-case-row.is-missing {
+  --phone-time-case: var(--pulso-muted-fg);
+}
+
+.is-telefonico-profile .mon-phone-time-case-row span,
+.is-telefonico-profile .mon-phone-time-case-row strong,
+.is-telefonico-profile .mon-phone-time-case-row em,
+.is-telefonico-profile .mon-phone-time-case-row b,
+.is-telefonico-profile .mon-phone-time-case-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-time-case-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  color: var(--phone-time-case);
+  font-size: 9.5px;
+  font-weight: 880;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 860;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row span:not(.mon-phone-time-case-status),
+.is-telefonico-profile .mon-phone-time-case-row small {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 720;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row b {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 860;
+  line-height: 1.1;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row small {
+  display: block;
+  line-height: 1.15;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row small.is-alert {
+  color: var(--pulso-danger-fg);
+  font-weight: 800;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 740;
+}
+
+.is-telefonico-profile .mon-phone-time-hero-kpis small {
+  font-size: 9.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-control-head {
+  align-items: center;
+}
+
+.is-telefonico-profile .mon-phone-time-control-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.is-telefonico-profile .mon-phone-time-control-head small {
+  display: block;
+  max-width: 76ch;
+  margin-top: 1px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 690;
+  line-height: 1.2;
+}
+
+.is-telefonico-profile .mon-phone-time-track {
+  height: 10px;
+  padding: 2px;
+}
+
+.is-telefonico-profile .mon-phone-time-buckets {
+  gap: 6px;
+}
+
+.is-telefonico-profile .mon-phone-time-buckets article {
+  min-height: 48px;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.is-telefonico-profile .mon-phone-time-buckets span {
+  font-size: 9.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-buckets strong {
+  font-size: 15px;
+}
+
+.is-telefonico-profile .mon-phone-time-buckets em {
+  font-size: 9.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-guide {
+  gap: 5px;
+}
+
+.is-telefonico-profile .mon-phone-time-guide span {
+  border-radius: 7px;
+  padding: 4px 7px;
+}
+
+.is-telefonico-profile .mon-phone-time-guide strong {
+  font-size: 10.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-guide em {
+  font-size: 9.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-cases {
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--phone-time-accent, var(--pulso-success-fg)) 16%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--phone-time-accent, var(--pulso-success-fg)) 4%, #fff)),
+    var(--pulso-surface);
+  padding: 7px;
+}
+
+.is-telefonico-profile .mon-phone-time-cases-title {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--phone-time-accent, var(--pulso-success-fg)) 14%, var(--pulso-border));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 6px 8px;
+  backdrop-filter: blur(14px);
+}
+
+.is-telefonico-profile .mon-phone-time-cases-title div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.is-telefonico-profile .mon-phone-time-cases-title span,
+.is-telefonico-profile .mon-phone-time-cases-title strong,
+.is-telefonico-profile .mon-phone-time-cases-title em {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-time-cases-title span {
+  color: var(--phone-time-accent, var(--pulso-success-fg));
+  font-size: 9.5px;
+  font-weight: 880;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-time-cases-title strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 860;
+}
+
+.is-telefonico-profile .mon-phone-time-cases-title em {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 780;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section > header {
+  position: static;
+  border-radius: 7px;
+  padding: 5px 8px;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section > header span {
+  font-size: 9.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-cases > section > header strong {
+  font-size: 12px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-list {
+  gap: 3px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row {
+  grid-template-columns: minmax(128px, 0.82fr) minmax(96px, 0.58fr) minmax(72px, 0.38fr) minmax(82px, 0.42fr) minmax(148px, 0.88fr) minmax(150px, 1fr);
+  gap: 7px;
+  border-radius: 7px;
+  padding: 5px 7px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row.is-head {
+  z-index: 3;
+  top: 38px;
+  font-size: 8.8px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-status {
+  font-size: 9px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row strong {
+  font-size: 11.5px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row span:not(.mon-phone-time-case-status),
+.is-telefonico-profile .mon-phone-time-case-row small {
+  font-size: 10px;
+}
+
+.is-telefonico-profile .mon-phone-time-case-row b {
+  font-size: 11px;
+}
+
+.is-telefonico-profile .mon-phone-model-reading {
+  --phone-model-tone: #0a6b8f;
+  display: grid;
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-model-reading.is-ready {
+  --phone-model-tone: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-phone-model-reading.is-warning {
+  --phone-model-tone: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-model-reading-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-rule,
+.is-telefonico-profile .mon-phone-model-reading-slots article,
+.is-telefonico-profile .mon-phone-model-decision-grid article,
+.is-telefonico-profile .mon-phone-model-routing span {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--phone-model-tone) 14%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--phone-model-tone) 5%, #fff)),
+    var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-subtle);
+}
+
+.is-telefonico-profile .mon-phone-model-reading-rule {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 10px;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-rule span,
+.is-telefonico-profile .mon-phone-model-decision-grid span,
+.is-telefonico-profile .mon-phone-model-reading-slots span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--phone-model-tone);
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-rule strong {
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: 890;
+  line-height: 1.08;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-rule p {
+  max-width: 54ch;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots,
+.is-telefonico-profile .mon-phone-model-decision-grid {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots article,
+.is-telefonico-profile .mon-phone-model-decision-grid article {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 9px;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots article.is-warning,
+.is-telefonico-profile .mon-phone-model-decision-grid article.is-warning {
+  --phone-model-tone: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots article.is-ready,
+.is-telefonico-profile .mon-phone-model-decision-grid article.is-ready {
+  --phone-model-tone: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-phone-model-decision-grid article.is-neutral {
+  --phone-model-tone: #64748b;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots strong,
+.is-telefonico-profile .mon-phone-model-decision-grid strong,
+.is-telefonico-profile .mon-phone-model-routing strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 880;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-model-reading-slots em,
+.is-telefonico-profile .mon-phone-model-decision-grid em,
+.is-telefonico-profile .mon-phone-model-routing small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 720;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-model-decision-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.is-telefonico-profile .mon-phone-model-routing {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+}
+
+.is-telefonico-profile .mon-phone-model-routing span {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+}
+
+.is-telefonico-profile .mon-phone-model-routing em {
+  color: var(--phone-model-tone);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 870;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-model-routing i {
+  width: 100%;
+  height: 1px;
+  display: block;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--phone-model-tone) 8%, transparent), color-mix(in srgb, var(--phone-model-tone) 42%, transparent));
+}
+
+.is-telefonico-profile .mon-field-schedule-dashboard {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.44fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.is-telefonico-profile .mon-acr-model-panel.is-phone-model-schedule {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.is-telefonico-profile .mon-stage--model.is-phone-model-schedule-stage {
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.is-telefonico-profile .mon-acr-model-panel.is-phone-model-schedule .mon-acr-model-map {
+  flex: 0 0 auto;
+}
+
+.is-telefonico-profile .mon-acr-model-panel.is-phone-model-schedule .mon-field-schedule-panel {
+  flex: 1 1 auto;
+  min-height: 520px;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-field-schedule-window,
+.is-telefonico-profile .mon-field-schedule-cards span {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, #0a6b8f 14%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, #e7f8fb 28%, #fff)),
+    var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-subtle);
+}
+
+.is-telefonico-profile .mon-field-schedule-window {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+}
+
+.is-telefonico-profile .mon-field-schedule-window > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0a6b8f;
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-field-schedule-window strong {
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: 890;
+  line-height: 1.05;
+}
+
+.is-telefonico-profile .mon-field-schedule-window p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.is-telefonico-profile .mon-field-schedule-weekrail {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+  align-items: center;
+  gap: 4px;
+  padding-top: 3px;
+}
+
+.is-telefonico-profile .mon-field-schedule-weekrail i {
+  position: relative;
+  min-width: 0;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, #0a6b8f 18%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #e7f8fb 42%, #fff);
+  color: #0a6b8f;
+  font-style: normal;
+}
+
+.is-telefonico-profile .mon-field-schedule-weekrail i.is-start,
+.is-telefonico-profile .mon-field-schedule-weekrail i.is-end {
+  background: #0a6b8f;
+  color: #fff;
+}
+
+.is-telefonico-profile .mon-field-schedule-weekrail i.is-more {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--pulso-text-soft);
+}
+
+.is-telefonico-profile .mon-field-schedule-weekrail em {
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 860;
+  line-height: 1;
+}
+
+.is-telefonico-profile .mon-field-schedule-cards {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-field-schedule-cards span {
+  --field-schedule-card: #64748b;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border-color: color-mix(in srgb, var(--field-schedule-card) 14%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--field-schedule-card) 5%, #fff)),
+    var(--pulso-surface);
+  padding: 9px;
+}
+
+.is-telefonico-profile .mon-field-schedule-cards span.is-ready {
+  --field-schedule-card: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-field-schedule-cards span.is-warning {
+  --field-schedule-card: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-field-schedule-cards em,
+.is-telefonico-profile .mon-field-schedule-cards strong,
+.is-telefonico-profile .mon-field-schedule-cards small {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-field-schedule-cards em {
+  color: var(--field-schedule-card);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 870;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-field-schedule-cards strong {
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: 890;
+}
+
+.is-telefonico-profile .mon-field-schedule-cards small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.34fr) minmax(0, 1fr);
+  gap: 8px;
+  margin: 0 0 10px;
+  align-self: stretch;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary,
+.is-telefonico-profile .mon-field-schedule-evidence-days {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 14%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-module-monitoring) 4%, #fff)),
+    var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-subtle);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary {
+  display: grid;
+  align-content: stretch;
+  gap: 7px;
+  padding: 10px;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0a6b8f;
+  font-size: 10px;
+  font-weight: 870;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary strong {
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.32;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary em {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, #0a6b8f 10%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #e7f8fb 34%, #fff);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 760;
+  padding: 6px 7px;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary em.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 24%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 48%, #fff);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-summary b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-weight: 900;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days {
+  min-height: 0;
+  display: grid;
+  align-content: stretch;
+  gap: 6px;
+  overflow: auto;
+  padding: 9px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days article {
+  --field-day-tone: #64748b;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(132px, 0.22fr) minmax(160px, 1fr) minmax(220px, 0.34fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--field-day-tone) 16%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--field-day-tone) 4%, #fff);
+  padding: 7px 8px;
+  min-height: 58px;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days article.is-ready {
+  --field-day-tone: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days article.is-warning {
+  --field-day-tone: var(--pulso-warn-accent);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days span,
+.is-telefonico-profile .mon-field-schedule-evidence-days small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days strong {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days em {
+  color: var(--field-day-tone);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 820;
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days i {
+  min-width: 0;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--field-day-tone);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 760;
+  text-align: right;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.28fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, #0a6b8f 18%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #e7f8fb 34%, #fff), rgba(255, 255, 255, 0.94) 38%),
+    var(--pulso-surface);
+  padding: 8px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary {
+  min-width: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row .mon-phone-quota-rhythm-card-head {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  min-height: 30px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row .mon-phone-quota-rhythm-card-head strong {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(50px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, #168a55 16%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #168a55 7%, #fff), rgba(255, 255, 255, 0.82)),
+    var(--pulso-surface);
+  padding: 7px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-donut {
+  width: 48px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-donut > i {
+  width: 44px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-value {
+  color: #116b43;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy strong,
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy em,
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy small {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.04;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy strong {
+  color: var(--pulso-text);
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy em {
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 740;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > small {
+  margin-top: auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 720;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart {
+  min-width: 0;
+  display: grid;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart > .mon-advance-daily-mini {
+  min-height: 100%;
+  border-color: color-mix(in srgb, #168a55 18%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.92)),
+    var(--pulso-surface);
+  padding: 6px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-daily-mini > header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-daily-mini > header strong {
+  font-size: 12.5px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-daily-mini > header em {
+  font-size: 9.5px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-daily-board {
+  padding: 5px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-line-chart {
+  padding: 3px 4px 0;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-line-chart .dash-plotly-chart {
+  min-height: 184px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-line-chart.is-phone-effective-axis {
+  grid-template-rows: minmax(0, 1fr) 42px;
+}
+
+.is-telefonico-profile .mon-phone-consulted-grid {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-phone-consulted-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border-color: color-mix(in srgb, #168a55 20%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, #e9f8f0 30%, #fff)),
+    var(--pulso-surface);
+}
+
+.is-telefonico-profile .mon-phone-consulted-panel .mon-query-section-head,
+.is-telefonico-profile .mon-phone-consulted-panel .mon-phone-consulted-summary,
+.is-telefonico-profile .mon-phone-consulted-panel .mon-phone-consulted-filters {
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-consulted-panel .mon-query-table-wrap {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary > span {
+  --phone-consulted-accent: #64748b;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--phone-consulted-accent) 18%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--phone-consulted-accent) 6%, #fff);
+  padding: 8px 9px;
+  color: var(--phone-consulted-accent);
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary > span.is-effective {
+  --phone-consulted-accent: #168a55;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary > span.is-caveat {
+  --phone-consulted-accent: #b97611;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary > span.is-pending {
+  --phone-consulted-accent: #0a6b8f;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary > span.is-base {
+  --phone-consulted-accent: #0a6b8f;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary em,
+.is-telefonico-profile .mon-phone-consulted-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary em {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 780;
+}
+
+.is-telefonico-profile .mon-phone-consulted-summary strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: 880;
+  text-align: right;
+}
+
+.is-telefonico-profile .mon-phone-consulted-filters {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(150px, 0.72fr) minmax(150px, 0.72fr) minmax(190px, 0.95fr) minmax(160px, 0.75fr) auto;
+  gap: 7px;
+}
+
+.is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-filter-pill {
+  max-width: none;
+  min-width: 0;
+}
+
+.is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-filter-pill select {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.is-telefonico-profile .mon-phone-consulted-table {
+  min-width: 1040px;
+}
+
+.is-telefonico-profile .mon-phone-consulted-table th:nth-child(1) { width: 18%; }
+.is-telefonico-profile .mon-phone-consulted-table th:nth-child(2) { width: 13%; }
+.is-telefonico-profile .mon-phone-consulted-table th:nth-child(3) { width: 16%; }
+.is-telefonico-profile .mon-phone-consulted-table th:nth-child(4) { width: 18%; }
+.is-telefonico-profile .mon-phone-consulted-table th:nth-child(5) { width: 17%; }
+.is-telefonico-profile .mon-phone-consulted-table th:nth-child(6) { width: 18%; }
+
+.is-telefonico-profile .mon-phone-consulted-table td {
+  vertical-align: top;
+}
+
+.is-telefonico-profile .mon-phone-consulted-table td > span,
+.is-telefonico-profile .mon-phone-consulted-table td > small,
+.is-telefonico-profile .mon-phone-consulted-table td button small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-consulted-tag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, #168a55 22%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #e9f8f0 72%, #fff);
+  color: #136f46;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 840;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-consulted-tag.is-caveat {
+  border-color: color-mix(in srgb, #b97611 28%, var(--pulso-border));
+  background: color-mix(in srgb, #fff5df 76%, #fff);
+  color: #8a550b;
+}
+
+.is-telefonico-profile .mon-phone-consulted-tag.is-pending {
+  border-color: color-mix(in srgb, #0a6b8f 24%, var(--pulso-border));
+  background: color-mix(in srgb, #e7f5fb 70%, #fff);
+  color: #075a78;
+}
+
+.is-telefonico-profile .mon-phone-base-pill,
+.is-telefonico-profile .mon-phone-state-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--phone-row-accent, #64748b) 24%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--phone-row-accent, #64748b) 8%, #fff);
+  color: var(--phone-row-accent, #64748b);
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 840;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-base-pill.is-base,
+.is-telefonico-profile .mon-phone-state-pill.is-effective {
+  --phone-row-accent: #168a55;
+}
+
+.is-telefonico-profile .mon-phone-base-pill.is-caveat,
+.is-telefonico-profile .mon-phone-base-pill.is-warning {
+  --phone-row-accent: #b97611;
+}
+
+.is-telefonico-profile .mon-phone-state-pill.is-pending {
+  --phone-row-accent: #0a6b8f;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.is-telefonico-profile .mon-acr-crossing-grid > .mon-query-table-panel:has(.mon-phone-crossing-summary) {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary span {
+  --phone-crossing-accent: #64748b;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--phone-crossing-accent) 18%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--phone-crossing-accent) 6%, #fff);
+  padding: 7px 9px;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary span.is-platform {
+  --phone-crossing-accent: #2563eb;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary span.is-phone,
+.is-telefonico-profile .mon-phone-crossing-summary span.is-ready {
+  --phone-crossing-accent: #168a55;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary span.is-warning {
+  --phone-crossing-accent: #b97611;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary em,
+.is-telefonico-profile .mon-phone-crossing-summary small,
+.is-telefonico-profile .mon-phone-crossing-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary em {
+  color: var(--phone-crossing-accent);
+  font-size: 9.2px;
+  font-style: normal;
+  font-weight: 880;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 880;
+  text-align: right;
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary small {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.is-telefonico-profile .mon-phone-crossing-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, #168a55 24%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #e9f8f0 70%, #fff);
+  color: #136f46;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 860;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-crossing-pill.is-warning {
+  border-color: color-mix(in srgb, #b97611 30%, var(--pulso-border));
+  background: color-mix(in srgb, #fff5df 74%, #fff);
+  color: #8a550b;
+}
+
+.is-telefonico-profile .mon-phone-caveats {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-phone-caveats--empty {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.is-telefonico-profile .mon-phone-caveats-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #b97611 22%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, #fff8ea 34%, #fff)),
+    var(--pulso-surface);
+  padding: 10px;
+}
+
+.is-telefonico-profile .mon-phone-caveats-panel.is-empty {
+  min-height: 230px;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.is-telefonico-profile .mon-phone-caveats-panel.is-empty span {
+  color: #136f46;
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-caveats-panel.is-empty strong {
+  color: var(--pulso-text);
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.is-telefonico-profile .mon-phone-caveats-panel.is-empty p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid color-mix(in srgb, #168a55 22%, var(--pulso-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, #e9f8f0 76%, #fff);
+  color: #136f46;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-metrics {
+  width: min(560px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-metrics span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, #168a55 18%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #e9f8f0 54%, #fff);
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-metrics em,
+.is-telefonico-profile .mon-phone-caveats-empty-metrics strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-metrics em {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 820;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-metrics strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 880;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-guide {
+  width: min(760px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-guide span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, #0a6b8f 16%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #e7f8fb 34%, #fff);
+  padding: 8px 9px;
+  text-align: left;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-guide em,
+.is-telefonico-profile .mon-phone-caveats-empty-guide strong,
+.is-telefonico-profile .mon-phone-caveats-empty-guide small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-guide em {
+  color: #0f6f77;
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 860;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-guide strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 860;
+  line-height: 1.12;
+}
+
+.is-telefonico-profile .mon-phone-caveats-empty-guide small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 690;
+  line-height: 1.1;
+}
+
+.is-telefonico-profile .mon-phone-caveats-list {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.is-telefonico-profile .mon-phone-caveats-list button {
+  appearance: none;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(140px, 0.8fr) minmax(180px, 1fr);
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, #b97611 18%, var(--pulso-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff8ea 58%, #fff);
+  padding: 9px;
+  color: inherit;
+  text-align: left;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.is-telefonico-profile .mon-phone-caveats-list button:hover,
+.is-telefonico-profile .mon-phone-caveats-list button.is-active {
+  border-color: color-mix(in srgb, #b97611 42%, var(--pulso-border));
+  box-shadow: 0 8px 20px rgba(185, 118, 17, 0.1);
+}
+
+.is-telefonico-profile .mon-phone-caveats-list button:active {
+  transform: scale(0.99);
+}
+
+.is-telefonico-profile .mon-phone-caveats-list span,
+.is-telefonico-profile .mon-phone-caveats-list em,
+.is-telefonico-profile .mon-phone-caveats-list strong,
+.is-telefonico-profile .mon-phone-caveats-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-caveats-list span {
+  display: grid;
+  gap: 2px;
+}
+
+.is-telefonico-profile .mon-phone-caveats-list em {
+  color: var(--pulso-text-faint);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 820;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-caveats-list strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.is-telefonico-profile .mon-phone-caveats-list small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+@media (max-width: 1180px) {
+  .is-telefonico-profile .mon-phone-advance-rule-console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-advance-rule-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .is-telefonico-profile .mon-phone-supervision-hero,
+  .is-telefonico-profile .mon-phone-supervision-focus.is-time,
+  .is-telefonico-profile .mon-phone-model-reading-main,
+  .is-telefonico-profile .mon-field-schedule-dashboard,
+  .is-telefonico-profile .mon-phone-caveats,
+  .is-telefonico-profile .mon-phone-quota-rhythm-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-model-reading-slots,
+  .is-telefonico-profile .mon-phone-model-decision-grid,
+  .is-telefonico-profile .mon-phone-caveats-empty-guide,
+  .is-telefonico-profile .mon-field-schedule-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-model-routing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-model-routing i {
+    display: none;
+  }
+
+  .is-telefonico-profile .mon-phone-time-guide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-consulted-summary,
+  .is-telefonico-profile .mon-phone-consulted-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

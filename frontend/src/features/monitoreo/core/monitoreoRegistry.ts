@@ -107,12 +107,12 @@ export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
     icon: PhoneCall,
     eyebrow: "Disponible en v1",
     title: "Telefónico",
-    summary: "Operación de llamadas conectada a marco muestral, base de barrido, responsables y cuotas por segmento.",
-    details: ["Marco muestral", "Barrido telefónico", "Ratio de insistencia", "Metas por segmento"],
+    summary: "Operación de llamadas conciliada con efectivas Kobo por CodPulso, responsables y cuotas por segmento.",
+    details: ["Marco muestral", "Barrido telefónico", "Efectivas Kobo", "Metas por segmento"],
     sourceRoles: [
       { label: "Marco muestral", detail: "Universo contactable, segmentos y metas" },
       { label: "Base de barrido", detail: "Responsables, intentos, estados y prioridad" },
-      { label: "Respuestas", detail: "Efectivas, rechazos, parciales y plataforma" },
+      { label: "Kobo", detail: "Efectivas filtradas por consentimiento y CodPulso" },
       { label: "Cuotas", detail: "Avance por segmento y brechas operativas" },
     ],
   },
@@ -130,6 +130,7 @@ export const TELEFONICO_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Universo y barrido", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas y cuotas telefónicas", icon: ListChecks },
   { key: "telefonico", label: "Llamadas", shortLabel: "Llamadas", desc: "Estados, barrido y supervisión", icon: PhoneCall },
+  { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Efectivas, CodPulso y salvedades", icon: Search },
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Ritmo, cuotas, reportes y entregables", icon: BarChart3 },
 ];
 

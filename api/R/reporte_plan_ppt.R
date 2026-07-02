@@ -1080,6 +1080,39 @@ reporte_ppt_plan <- function(
     out
   }
 
+  .plot_slot_expand_down_cm <- function(spec, extra_cm = NULL, max_height_cm = NULL) {
+    if (is.null(spec) || is.null(spec$loc)) return(spec)
+    loc <- spec$loc
+    if (is.numeric(loc) && length(loc) >= 4L) {
+      loc <- list(left = loc[[1]], top = loc[[2]], width = loc[[3]], height = loc[[4]])
+    }
+    required_loc <- c("left", "top", "width", "height")
+    if (!is.list(loc) || !all(required_loc %in% names(loc))) return(spec)
+
+    extra_cm <- suppressWarnings(as.numeric(extra_cm %||% 0)[1])
+    if (!is.finite(extra_cm) || is.na(extra_cm) || extra_cm <= 0) return(spec)
+
+    max_height_cm <- suppressWarnings(as.numeric(max_height_cm %||% NA_real_)[1])
+    new_height_cm <- as.numeric(loc$height) * 2.54 + extra_cm
+    if (is.finite(max_height_cm) && !is.na(max_height_cm) && max_height_cm > 0) {
+      new_height_cm <- min(new_height_cm, max_height_cm)
+    }
+
+    spec$loc <- loc
+    spec$loc$height <- max(as.numeric(loc$height), new_height_cm / 2.54)
+    spec
+  }
+
+  .plot_slot_for_rendered_plot <- function(spec, plot) {
+    if (!isTRUE(attr(plot, "pulso_needs_tall_plot_slot", exact = TRUE))) return(spec)
+    base_args <- presets$base$args %||% list()
+    .plot_slot_expand_down_cm(
+      spec,
+      extra_cm = base_args$slide_1_plot_extra_height_cm_apiladas_arriba %||% 1.20,
+      max_height_cm = base_args$slide_1_plot_max_height_cm_apiladas_arriba %||% 15.35
+    )
+  }
+
   .resolve_partner_logo_path <- function(path = NULL) {
     raw <- path %||% ""
     raw <- as.character(raw)[1]
@@ -1659,13 +1692,16 @@ reporte_ppt_plan <- function(
     )))
     base_names <- base_names[nzchar(base_names)]
     suffixes <- c("_other", "_otros", "_otro", "_otra", "_specify", "_especifique", "_texto", "_text")
-    unique(unlist(lapply(base_names, function(base) {
+    suffixed <- unlist(lapply(base_names, function(base) {
       c(
         paste0(base, suffixes),
         paste0(base, ".", sub("^_", "", suffixes)),
         paste0(base, "/", sub("^_", "", suffixes))
       )
-    }), use.names = FALSE))
+    }), use.names = FALSE)
+    recod_bases <- unique(sub("_recod$", "", base_names[grepl("_recod$", base_names, ignore.case = TRUE)]))
+    recod_bases <- recod_bases[nzchar(recod_bases)]
+    unique(c(suffixed, recod_bases))
   }
 
   .nonblank_open_text <- function(x) {
@@ -1805,7 +1841,7 @@ reporte_ppt_plan <- function(
     Reduce(`|`, masks)
   }
 
-  .other_text_info_for_ref <- function(ref, filtros = list(), source = NULL) {
+  .other_text_info_for_ref <- function(ref, filtros = list(), source = NULL, title_override = NULL) {
     ctx_parent <- tryCatch(.resolve_ref(ref, source = source, arg_name = "var"), error = function(e) NULL)
     if (is.null(ctx_parent)) return(NULL)
 
@@ -1834,7 +1870,12 @@ reporte_ppt_plan <- function(
     respuestas <- respuestas[nzchar(respuestas)]
     if (!length(respuestas)) return(NULL)
 
-    title <- tryCatch(.word_clean_inferred_title(.title_of_var(ref, source = ctx_parent$source)), error = function(e) NULL)
+    title <- .reporte_plan_clean_chr(title_override %||% "")
+    title <- title[nzchar(title)]
+    title <- if (length(title)) title[[1]] else NULL
+    if (is.null(title)) {
+      title <- tryCatch(.word_clean_inferred_title(.title_of_var(ref, source = ctx_parent$source)), error = function(e) NULL)
+    }
     title <- title %||% ctx_parent$var_requested
 
     list(
@@ -1847,6 +1888,148 @@ reporte_ppt_plan <- function(
       filtros = filtros %||% list(),
       n = length(respuestas),
       respuestas = respuestas
+    )
+  }
+
+  .is_grouped_no_response_label <- function(x) {
+    y <- iconv(as.character(x %||% ""), from = "", to = "ASCII//TRANSLIT")
+    y <- tolower(trimws(y))
+    y <- gsub("[^a-z]+", "", y, perl = TRUE)
+    y %in% c(
+      "prefieronoresponder",
+      "prefierenoresponder",
+      "noresponde",
+      "noresponder",
+      "norespondio",
+      "norespondieron",
+      "noquiereresponder",
+      "noquierocontestar",
+      "norespondioestaopcion",
+      "nosabe",
+      "nosabenoopina",
+      "nosabenoopino",
+      "nosabenoresponde",
+      "nosabenocontesta",
+      "nspnr",
+      "nsnr",
+      "nsnc",
+      "noaplica",
+      "noaplicable",
+      "nocorresponde",
+      "nohetrabajado",
+      "nohatrabajado",
+      "notrabajo",
+      "notrabaja",
+      "notrabaje",
+      "notrabajoactualmente"
+    )
+  }
+
+  .is_grouped_otros_final_label <- function(x) {
+    .looks_like_otros_label(x) | .is_grouped_no_response_label(x)
+  }
+
+  .grouped_otros_info_for_element <- function(el) {
+    if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
+    if (!identical(el$.element_type %||% "", "barras_agrupadas")) return(NULL)
+
+    var <- el$var %||% NULL
+    if (is.null(var) || !nzchar(trimws(as.character(var)[1]))) return(NULL)
+
+    filtros <- el$filtros %||% list()
+    overrides <- el$overrides %||% list()
+    if (!is.null(el$mostrar_ceros)) {
+      overrides$mostrar_ceros <- isTRUE(el$mostrar_ceros)
+    }
+
+    preset_args <- presets$barras_agrupadas$args %||% list()
+    merged_args <- .merge_args(preset_args, overrides)
+    max_categorias_eff <- suppressWarnings(as.integer(merged_args$max_categorias)[1])
+    if (!is.finite(max_categorias_eff) || is.na(max_categorias_eff) || max_categorias_eff < 2L) {
+      return(NULL)
+    }
+    if (!isTRUE(merged_args$agrupar_resto_en_otros %||% TRUE)) return(NULL)
+
+    ctx <- tryCatch(.resolve_ref(var, source = el$source %||% NULL, arg_name = "var"), error = function(e) NULL)
+    if (is.null(ctx)) return(NULL)
+
+    tab_raw <- tryCatch(.tab_freq(var, filtros = filtros, source = el$source %||% NULL), error = function(e) NULL)
+    if (is.null(tab_raw) || !is.data.frame(tab_raw) || !nrow(tab_raw)) return(NULL)
+
+    excluir_opciones <- .reporte_plan_excluir_opciones(
+      preset_args$excluir_opciones %||% NULL,
+      overrides$excluir_opciones %||% NULL,
+      el$excluir_opciones %||% NULL
+    )
+    excluir_opciones <- .exclusion_for_ctx(ctx, excluir_opciones)
+
+    mostrar_ceros <- .should_show_zero_options(
+      var,
+      tab = tab_raw,
+      preset_args = preset_args,
+      overrides = overrides,
+      source = el$source %||% NULL,
+      word_render = isTRUE(el$.word_render)
+    )
+    tab <- .reporte_plan_prepare_freq_options(tab_raw, incluir_sin_n = mostrar_ceros)
+    tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
+    if (is.null(tab) || !is.data.frame(tab) || !nrow(tab) || nrow(tab) <= max_categorias_eff) return(NULL)
+
+    cat_vals <- as.character(tab$Opciones)
+    n_vals <- suppressWarnings(as.numeric(tab$n))
+    n_vals[!is.finite(n_vals) | is.na(n_vals)] <- 0
+
+    idx_final_protegido <- which(.is_grouped_no_response_label(cat_vals))
+    idx_no_final <- which(!.is_grouped_otros_final_label(cat_vals))
+    keep_n <- max(0L, max_categorias_eff - length(idx_final_protegido) - 1L)
+
+    idx_keep <- integer(0)
+    if (length(idx_no_final) && keep_n > 0L) {
+      idx_ord <- idx_no_final[order(-n_vals[idx_no_final], seq_along(idx_no_final))]
+      idx_keep <- head(idx_ord, keep_n)
+    }
+
+    idx_resto <- setdiff(seq_len(nrow(tab)), c(idx_keep, idx_final_protegido))
+    if (!length(idx_resto)) return(NULL)
+
+    detalle <- tab[idx_resto, , drop = FALSE]
+    detalle$n <- suppressWarnings(as.numeric(detalle$n))
+    detalle <- detalle[is.finite(detalle$n) & !is.na(detalle$n) & detalle$n > 0, , drop = FALSE]
+    if (!nrow(detalle)) return(NULL)
+    ln <- .list_name_from_ctx(ctx)
+    detalle_labels <- .reporte_plan_labels_for_levels(ln, detalle$Opciones, ctx$choices)
+    detalle_labels <- .reporte_plan_clean_chr(detalle_labels)
+    detalle$Opciones[nzchar(detalle_labels)] <- detalle_labels[nzchar(detalle_labels)]
+    detalle$Opciones <- .clean_other_response_bullet(detalle$Opciones)
+    detalle <- detalle[nzchar(detalle$Opciones), , drop = FALSE]
+    if (!nrow(detalle)) return(NULL)
+
+    detalle <- detalle[order(-detalle$n, detalle$Opciones), , drop = FALSE]
+    n_agrupado <- sum(detalle$n, na.rm = TRUE)
+    if (!is.finite(n_agrupado) || n_agrupado <= 0) return(NULL)
+
+    fmt_n <- function(x) format(as.integer(round(x)), big.mark = ",", scientific = FALSE, trim = TRUE)
+    respuestas <- paste0(detalle$Opciones, " (", fmt_n(detalle$n), ")")
+
+    title <- merged_args$titulo %||% el$title_slide %||% NULL
+    if (is.null(title) || !nzchar(trimws(as.character(title)[1]))) {
+      title <- tryCatch(.word_clean_inferred_title(.title_of_var(var, source = ctx$source)), error = function(e) NULL)
+    }
+    title <- title %||% ctx$var_requested
+
+    list(
+      source = ctx$source,
+      parent_var = ctx$var_requested,
+      parent_ref = .qualified_ref(ctx$var_requested, ctx$source),
+      text_var = paste0(ctx$var_requested, "::agrupado_otros"),
+      text_ref = paste0(.qualified_ref(ctx$var_requested, ctx$source), "::agrupado_otros"),
+      title = as.character(title)[1],
+      filtros = filtros %||% list(),
+      n = length(respuestas),
+      n_agrupado = n_agrupado,
+      respuestas = respuestas,
+      base = paste0("Base: ", fmt_n(n_agrupado), " respuestas agrupadas en Otros"),
+      kind = "grouped_otros"
     )
   }
 
@@ -1898,7 +2081,7 @@ reporte_ppt_plan <- function(
     chunks <- split(respuestas, ceiling(seq_along(respuestas) / max_por_slide))
     total_chunks <- length(chunks)
     n_txt <- format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE)
-    base_txt <- paste0("Base: ", n_txt, " respuestas abiertas")
+    base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas abiertas")
 
     lapply(seq_along(chunks), function(i) {
       title <- paste0("Otros: ", info$title)
@@ -1912,6 +2095,7 @@ reporte_ppt_plan <- function(
           source = info$source,
           parent_var = info$parent_var,
           text_var = info$text_var,
+          kind = info$kind %||% "open_text_otros",
           chunk = i,
           chunks = total_chunks
         )
@@ -1931,6 +2115,20 @@ reporte_ppt_plan <- function(
       if (!length(elements)) next
 
       for (el in elements) {
+        grouped_info <- .grouped_otros_info_for_element(el)
+        if (!is.null(grouped_info) && is.finite(grouped_info$n) && grouped_info$n > 0) {
+          key <- .otros_key(grouped_info)
+          if (!key %in% seen) {
+            seen <- c(seen, key)
+            otros_slides <- .make_otros_slides(grouped_info)
+            if (length(otros_slides)) {
+              for (otros_slide in otros_slides) {
+                out[[length(out) + 1L]] <- otros_slide
+              }
+            }
+          }
+        }
+
         refs <- .element_refs_for_otros(el)
         if (!length(refs)) next
 
@@ -1938,7 +2136,8 @@ reporte_ppt_plan <- function(
           info <- .other_text_info_for_ref(
             ref,
             filtros = el$filtros %||% list(),
-            source = el$source %||% NULL
+            source = el$source %||% NULL,
+            title_override = (el$overrides %||% list())$titulo %||% el$title_slide %||% NULL
           )
           if (is.null(info) || !is.finite(info$n) || info$n <= 0) next
           key <- .otros_key(info)
@@ -3392,6 +3591,14 @@ reporte_ppt_plan <- function(
       if (!is.finite(min_rows) || is.na(min_rows) || min_rows < 1) min_rows <- 1
       n_rows_eff <- max(1, n_rows, min_rows)
 
+      uses_canvas <- block_overrides$usar_canvas %||%
+        preset_args_multi$usar_canvas %||%
+        preset_args_single$usar_canvas %||%
+        TRUE
+      if (isTRUE(uses_canvas) && n_rows == 1L) {
+        n_rows_eff <- max(n_rows_eff, 2)
+      }
+
       0.85 +
         (0.90 * n_rows_eff) +
         (0.18 * title_lines) +
@@ -3406,9 +3613,24 @@ reporte_ppt_plan <- function(
         stop("multiapiladas (modo='multilista'): se requiere cowplot.", call. = FALSE)
       }
 
+      rel_heights_plan <- vapply(bloques, .multilista_block_height, numeric(1))
+      rel_heights_plan[!is.finite(rel_heights_plan) | rel_heights_plan <= 0] <- 1
+      rel_total <- sum(rel_heights_plan, na.rm = TRUE)
+      if (!is.finite(rel_total) || rel_total <= 0) rel_total <- length(bloques)
+
+      parent_aspect_yx <- overrides$legend_key_aspect_yx %||%
+        preset_args_multi$legend_key_aspect_yx %||%
+        preset_args_single$legend_key_aspect_yx %||%
+        0.60
+      parent_aspect_yx <- suppressWarnings(as.numeric(parent_aspect_yx)[1])
+      if (!is.finite(parent_aspect_yx) || parent_aspect_yx <= 0) {
+        parent_aspect_yx <- 0.60
+      }
+
       rendered <- list()
       rel_heights <- numeric(0)
-      for (block in bloques) {
+      for (idx_block in seq_along(bloques)) {
+        block <- bloques[[idx_block]]
         # En multilista, cada subbloque debe renderizarse sin titulo/subtitulo
         # automaticos salvo que el usuario los haya pedido explicitamente.
         block_render <- block
@@ -3416,6 +3638,10 @@ reporte_ppt_plan <- function(
         block_render$overrides <- block_render$overrides %||% list()
         block_render$overrides$titulo <- block_render$.multilista_block_title %||% ""
         block_render$overrides$subtitulo <- block_render$.multilista_block_subtitle %||% ""
+        if (is.null(block_render$overrides$legend_key_aspect_yx)) {
+          block_aspect_yx <- parent_aspect_yx * (rel_heights_plan[[idx_block]] / rel_total)
+          block_render$overrides$legend_key_aspect_yx <- max(0.08, min(parent_aspect_yx, block_aspect_yx))
+        }
 
         p_block <- .render_barras_multiapiladas(
           block_render,
@@ -3424,7 +3650,7 @@ reporte_ppt_plan <- function(
         )
         if (is.null(p_block)) next
         rendered[[length(rendered) + 1L]] <- p_block
-        rel_heights <- c(rel_heights, .multilista_block_height(block))
+        rel_heights <- c(rel_heights, rel_heights_plan[[idx_block]])
       }
 
       if (!length(rendered)) {
@@ -4189,7 +4415,7 @@ reporte_ppt_plan <- function(
     ln <- .list_name_of_var(var)
     colores_categorias <- .paleta_auto(ln, env_diapos)
 
-    # Detectar si la variable es select_multiple → agregar subtitulo en cursiva
+    # Detectar si la variable es select_multiple -> agregar subtitulo destacado.
     if (is.null(overrides$subtitulo)) {
       ctx_v <- tryCatch(.resolve_ref(var, arg_name = "var"), error = function(e) NULL)
       if (!is.null(ctx_v) && !is.null(ctx_v$survey) && all(c("type", "name") %in% names(ctx_v$survey))) {
@@ -4197,6 +4423,26 @@ reporte_ppt_plan <- function(
         tps  <- unique(stats::na.omit(ctx_v$survey$type[mask]))
         if (any(grepl("^select_multiple(\\s|$)", tps))) {
           overrides$subtitulo <- "Pregunta de opción múltiple"
+          overrides$face_subtitulo <- overrides$face_subtitulo %||% "bold"
+
+          size_sub <- suppressWarnings(as.numeric(overrides$size_subtitulo %||% NA_real_)[1])
+          overrides$size_subtitulo <- if (is.finite(size_sub)) max(size_sub, 11.2) else 11.2
+
+          titulo_sub <- as.character(overrides$titulo %||% el$title %||% "")
+          titulo_sub <- paste(strsplit(titulo_sub, "\n", fixed = TRUE)[[1]], collapse = "\n")
+          n_lineas_titulo <- max(1L, length(strsplit(titulo_sub, "\n", fixed = TRUE)[[1]]))
+          if (n_lineas_titulo <= 1L && nchar(titulo_sub) > 64L) n_lineas_titulo <- 2L
+          sep_obj <- if (n_lineas_titulo >= 3L) 0.72 else if (n_lineas_titulo >= 2L) 0.62 else 0.30
+          sep_sub <- suppressWarnings(as.numeric(overrides$encabezado_separacion_in %||% NA_real_)[1])
+          overrides$encabezado_separacion_in <- if (is.finite(sep_sub) && n_lineas_titulo <= 1L) {
+            min(sep_sub, sep_obj)
+          } else {
+            sep_obj
+          }
+
+          header_sub <- suppressWarnings(as.numeric(overrides$canvas_h_header_in %||% NA_real_)[1])
+          header_obj <- if (n_lineas_titulo >= 2L) 1.22 else 1.02
+          overrides$canvas_h_header_in <- if (is.finite(header_sub)) max(header_sub, header_obj) else header_obj
         }
       }
     }
@@ -4273,6 +4519,7 @@ reporte_ppt_plan <- function(
       data           = df_long,
       var_categoria  = "opcion",
       var_pct        = "pct",
+      var_n          = "n",
       tipo_pie       = tipo_pie,
       colores_categorias = colores_grupos,
       titulo         = NULL,
@@ -5991,10 +6238,11 @@ reporte_ppt_plan <- function(
           doc <- .ph_with_slide_subtitle(doc, subtitle = subtitle_slide, title_spec = contract$slots$title)
         }
 
+        plot_slot <- .plot_slot_for_rendered_plot(contract$slots$plot, p)
         doc <- .ph_with_strict(
           doc,
           rvg::dml(ggobj = p, bg = "transparent"),
-          contract$slots$plot
+          plot_slot
         )
 
         # BASE (manual o auto)

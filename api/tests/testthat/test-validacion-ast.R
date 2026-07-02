@@ -314,6 +314,54 @@ test_that("inferencia de salto nodebe presenta la condicion negada", {
   expect_match(nodebe$presentation$objetivo, "«Detalle» no debe responderse", fixed = TRUE)
 })
 
+test_that("infer_rules_from_xlsform: saltos heredados de begin_group cubren hijas de la seccion", {
+  survey <- data.frame(
+    type = c("select_one yesno", "begin_group", "text", "integer", "end_group"),
+    name = c("consent", "sec_services", "service_q1", "service_score", ""),
+    label = c("Consentimiento", "Servicios", "Servicio principal", "Puntaje", ""),
+    required = c("", "", "yes", "no", ""),
+    relevant = c("", "${consent} = 'yes'", "", "", ""),
+    constraint = c("", "", "", "", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("yesno", "yesno"),
+    name = c("yes", "no"),
+    label = c("Si", "No"),
+    stringsAsFactors = FALSE
+  )
+
+  rules <- infer_rules_from_xlsform(
+    list(survey = survey, choices = choices),
+    include = c("skip")
+  )$rules
+
+  nodebe <- Filter(function(r) identical(r$presentation$subtipo_semantico, "nodebe"), rules)
+  debe <- Filter(function(r) identical(r$presentation$subtipo_semantico, "debe"), rules)
+
+  expect_setequal(vapply(nodebe, function(r) r$primary_var, character(1)), c("service_q1", "service_score"))
+  expect_setequal(vapply(debe, function(r) r$primary_var, character(1)), "service_q1")
+
+  data <- data.frame(
+    consent = c("no", "no", "yes"),
+    service_q1 = c("dato indebido", "", ""),
+    service_score = c(7, NA, 5),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(nodebe, data)
+  flag_for <- function(var) {
+    match_idx <- which(vapply(nodebe, function(r) identical(r$primary_var, var), logical(1)))
+    nodebe[[match_idx[[1]]]]$flag_name
+  }
+
+  expect_true(ev$data[[flag_for("service_q1")]][[1]])
+  expect_false(ev$data[[flag_for("service_q1")]][[2]])
+  expect_false(ev$data[[flag_for("service_q1")]][[3]])
+  expect_true(ev$data[[flag_for("service_score")]][[1]])
+  expect_false(ev$data[[flag_for("service_score")]][[2]])
+  expect_false(ev$data[[flag_for("service_score")]][[3]])
+})
+
 test_that("parser: pulldata() devuelve raw con origin='pulldata'", {
   res <- odk_parse_to_ast("pulldata('catalog','col','key',${v}) != ''",
                            context = "constraint", self_var = "v")

@@ -765,6 +765,59 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
   expect_length(out_off$plan, 1L)
 })
 
+test_that("reporte_ppt_plan explica Otros agrupado por maximo de categorias", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  vals <- paste0("c", 1:12)
+  ns <- c(30, 25, 20, 15, 8, 7, 6, 5, 4, 3, 2, 1)
+  dat <- data.frame(
+    puesto = rep(vals, ns),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$puesto, "label") <- "Puesto actual"
+
+  inst <- list(
+    survey = data.frame(
+      name = "puesto",
+      type = "select_one lst_puesto",
+      list_name = "lst_puesto",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_puesto",
+      name = vals,
+      label = paste("Cargo", seq_along(vals)),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("puesto"))),
+    presets = p_presets(barras_agrupadas = list(
+      usar_canvas = TRUE,
+      mostrar_leyenda = FALSE,
+      max_categorias = 5,
+      agrupar_resto_en_otros = TRUE
+    )),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 2L)
+  expect_identical(out$plan[[2]]$title, "Otros: Puesto actual")
+  expect_identical(out$plan[[2]]$meta$kind, "grouped_otros")
+
+  txt <- out$plan[[2]]$slots$text
+  expect_true(grepl("\u2022 Cargo 5 (8)", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Cargo 12 (1)", txt, fixed = TRUE))
+  expect_false(grepl("Cargo 1 (30)", txt, fixed = TRUE))
+  expect_true(grepl("Base: 36 respuestas agrupadas en Otros", txt, fixed = TRUE))
+})
+
 test_that("slide Otros lista solo respuestas aun no categorizadas", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
@@ -808,6 +861,54 @@ test_that("slide Otros lista solo respuestas aun no categorizadas", {
   expect_true(grepl("\u2022 queda otro", txt, fixed = TRUE))
   expect_true(grepl("\u2022 sin recod", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
+})
+
+test_that("slide Otros usa variable madre cuando la recodificada queda en Otros", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    puesto = c("growth manager", "site reliability", "analista", "coordinador"),
+    puesto_recod = c("99", "99", "1", "2"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$puesto_recod, "label") <- "Puesto actual"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("puesto", "puesto_recod"),
+      type = c("text", "select_one lst_puesto"),
+      list_name = c(NA_character_, "lst_puesto"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_puesto",
+      name = c("1", "2", "99"),
+      label = c("Analista", "Coordinador", "Otros"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(
+      grafico = p_barras_agrupadas("puesto_recod", titulo = "¿Cuál es su puesto actual?")
+    )),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 2L)
+  expect_identical(out$plan[[2]]$title, "Otros: ¿Cuál es su puesto actual?")
+  txt <- out$plan[[2]]$slots$text
+  expect_true(grepl("\u2022 growth manager", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 site reliability", txt, fixed = TRUE))
+  expect_false(grepl("analista", txt, fixed = TRUE))
+  expect_false(grepl("coordinador", txt, fixed = TRUE))
   expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
 })
 
@@ -1241,6 +1342,22 @@ test_that("graficar_barras_apiladas acepta 'valores' como alias de 'porcentajes'
   expect_true(all(vapply(text_layers, function(layer) identical(layer$aes_params$fontface, "bold"), logical(1))))
 })
 
+.min_span_gap_apiladas <- function(layer_data) {
+  widths <- .estimate_label_fit_width_apiladas(layer_data$lab, layer_data$.size_label)
+  span_left <- layer_data$x_label - layer_data$.hjust_label * widths
+  span_right <- layer_data$x_label + (1 - layer_data$.hjust_label) * widths
+  ord <- order(span_left)
+  min(span_left[ord][-1] - span_right[ord][-length(ord)])
+}
+
+.min_visual_span_gap_apiladas <- function(layer_data, width_factor = 1.35) {
+  widths <- .estimate_label_width_apiladas(layer_data$lab, layer_data$.size_label) * width_factor
+  span_left <- layer_data$x_label - layer_data$.hjust_label * widths
+  span_right <- layer_data$x_label + (1 - layer_data$.hjust_label) * widths
+  ord <- order(span_left)
+  min(span_left[ord][-1] - span_right[ord][-length(ord)])
+}
+
 test_that("graficar_barras_apiladas separa horizontalmente etiquetas pequenas", {
   df <- data.frame(
     categoria = "Item",
@@ -1266,7 +1383,9 @@ test_that("graficar_barras_apiladas separa horizontalmente etiquetas pequenas", 
     mostrar_valores = TRUE,
     decimales = 0,
     umbral_etiqueta = 0.50,
-    umbral_etiqueta_peq = 0.01
+    umbral_etiqueta_peq = 0.01,
+    size_texto_barras = 6.4,
+    size_texto_barras_peq = 6.4
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
@@ -1274,15 +1393,88 @@ test_that("graficar_barras_apiladas separa horizontalmente etiquetas pequenas", 
 
   layer_data <- text_layers[[1]]$data
   expect_setequal(as.character(layer_data$lab), c("1%", "2%", "3%", "94%"))
+  expect_false(any(layer_data$.label_fuera))
 
-  peq_data <- layer_data[layer_data$lab %in% c("1%", "2%", "3%"), , drop = FALSE]
-  peq_data <- peq_data[order(peq_data$x_center), , drop = FALSE]
-  x_orig <- peq_data$x_center
-  x_adj <- peq_data$x_label
+  row_1 <- layer_data[layer_data$lab == "1%", , drop = FALSE]
+  expect_false(row_1$.label_fuera)
+  expect_gte(row_1$x_label, 0)
+  expect_lte(row_1$x_label, 1)
+  expect_equal(row_1$.col_label, "white")
 
-  expect_true(any(abs(x_adj - x_orig) > 1e-6))
-  expect_gt(min(diff(x_adj)), min(diff(x_orig)))
-  expect_true(all(x_adj >= 0 & x_adj <= 1))
+  row_2 <- layer_data[layer_data$lab == "2%", , drop = FALSE]
+  row_3 <- layer_data[layer_data$lab == "3%", , drop = FALSE]
+  expect_false(row_2$.label_fuera)
+  expect_false(row_3$.label_fuera)
+  expect_equal(row_2$.col_label, "white")
+  expect_equal(row_3$.col_label, "white")
+  expect_gte(row_2$x_label, 0)
+  expect_lte(row_2$x_label, 1)
+  expect_gte(row_3$x_label, 0)
+  expect_lte(row_3$x_label, 1)
+  expect_gt(.min_span_gap_apiladas(layer_data), 0.006)
+  expect_true(all(layer_data$x_label >= -0.20 & layer_data$x_label <= 1))
+})
+
+test_that("apiladas sube solo etiquetas que no caben y mantiene dentro las que entran", {
+  df_lab <- data.frame(
+    categoria = rep("Item", 4),
+    lab = c("1%", "2%", "16%", "81%"),
+    .lab_arriba = c("1% (2)", "2% (4)", "16% (29)", "81% (147)"),
+    .label_fuera = c(TRUE, FALSE, FALSE, FALSE),
+    .size_label = rep(6.4, 4),
+    x_left = c(0, 0.01, 0.03, 0.19),
+    x_right = c(0.01, 0.03, 0.19, 1),
+    x_center = c(0.005, 0.02, 0.11, 0.595),
+    x_label = c(0.005, 0.02, 0.11, 0.595),
+    .hjust_label = rep(0.5, 4),
+    .y_plot = rep(1, 4),
+    .grupo = c("1 Nada", "2", "3", "4 Totalmente"),
+    .col_label = rep("white", 4),
+    stringsAsFactors = FALSE
+  )
+
+  colores <- c(
+    "1 Nada" = "#CA5651",
+    "2" = "#EFD25E",
+    "3" = "#ADD198",
+    "4 Totalmente" = "#70AD47"
+  )
+
+  out <- prosecnurapp:::.posicionar_labels_arriba_si_no_caben_apiladas(
+    df_lab,
+    var_categoria = "categoria",
+    usar_y_numerico = TRUE,
+    grosor_eff = 0.70,
+    fit_padding = 0.003,
+    etiquetas_peq_padding = 0.012,
+    color_texto_barras_fuera = "#081F5C",
+    colores_grupos = colores,
+    offset_y = 0.13
+  )
+
+  expect_identical(out$.label_arriba, c(TRUE, FALSE, FALSE, FALSE))
+  expect_identical(out$.label_fuera, c(TRUE, FALSE, FALSE, FALSE))
+  expect_equal(out$lab, c("1% (2)", "2%", "16%", "81%"))
+  expect_gt(out$y_label[1], out$.y_plot[1])
+  expect_equal(out$y_label[-1], out$.y_plot[-1])
+  expect_equal(out$.col_label, c("#081F5C", "white", "white", "white"))
+  expect_equal(out$.col_conector[1], unname(colores[out$.grupo[1]]))
+  expect_true(all(is.finite(out$x_conector_label[1])))
+  expect_true(all(is.finite(out$x_conector_barra[1])))
+  expect_true(out$y_conector_label[1] > out$y_conector_barra[1])
+  expect_true(all(is.na(out$x_conector_label[-1])))
+  expect_true(all(is.na(out$x_conector_barra[-1])))
+})
+
+test_that("apiladas mide la etiqueta completa con frecuencia antes de dejarla dentro", {
+  width_10 <- prosecnurapp:::.estimate_label_fit_width_apiladas("10% (13)", 5.6)
+  width_16 <- prosecnurapp:::.estimate_label_fit_width_apiladas("16% (21)", 5.6)
+  width_pct <- prosecnurapp:::.estimate_label_fit_width_apiladas("10%", 5.6)
+
+  expect_gt(width_10, 0.13)
+  expect_lt(width_16, 0.16)
+  expect_lt(width_pct, 0.10)
+  expect_gt(width_10, width_pct)
 })
 
 test_that("graficar_barras_apiladas permite desactivar repulsion de etiquetas pequenas", {
@@ -1321,13 +1513,19 @@ test_that("graficar_barras_apiladas permite desactivar repulsion de etiquetas pe
 
   row_1 <- peq_data[peq_data$lab == "1%", , drop = FALSE]
   expect_equal(nrow(row_1), 1)
-  expect_gt(row_1$x_label, row_1$x_center)
+  expect_false(row_1$.label_fuera)
   expect_gte(row_1$x_label, 0)
   expect_lte(row_1$x_label, 1)
   expect_equal(row_1$.col_label, "white")
 
-  rows_mid <- peq_data[peq_data$lab %in% c("2%", "3%"), , drop = FALSE]
-  expect_equal(rows_mid$x_label, rows_mid$x_center)
+  row_2 <- peq_data[peq_data$lab == "2%", , drop = FALSE]
+  row_3 <- peq_data[peq_data$lab == "3%", , drop = FALSE]
+  expect_false(row_2$.label_fuera)
+  expect_equal(row_2$.col_label, "white")
+  expect_gte(row_2$x_label, 0)
+  expect_lte(row_2$x_label, 1)
+  expect_false(row_3$.label_fuera)
+  expect_equal(row_3$.col_label, "white")
 })
 
 test_that("graficar_barras_apiladas admite umbrales explicitos de mostrar y tamano normal", {
@@ -1368,8 +1566,7 @@ test_that("graficar_barras_apiladas admite umbrales explicitos de mostrar y tama
 
   row_09 <- layer_data[layer_data$lab == "0.9%", , drop = FALSE]
   expect_equal(nrow(row_09), 1)
-  expect_true(row_09$.label_fuera)
-  expect_gt(row_09$x_label, row_09$x_center)
+  expect_false(row_09$.label_fuera)
   expect_gte(row_09$x_label, 0)
   expect_lte(row_09$x_label, 1)
   expect_equal(row_09$.col_label, "white")
@@ -1400,7 +1597,9 @@ test_that("graficar_barras_apiladas repela etiquetas pequenas con umbrales expli
     mostrar_valores = TRUE,
     decimales = 0,
     umbral_mostrar_etiqueta = 0.01,
-    umbral_etiqueta_normal = 0.05
+    umbral_etiqueta_normal = 0.05,
+    size_texto_barras = 6.4,
+    size_texto_barras_peq = 6.4
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
@@ -1408,15 +1607,22 @@ test_that("graficar_barras_apiladas repela etiquetas pequenas con umbrales expli
 
   layer_data <- text_layers[[1]]$data
   expect_setequal(as.character(layer_data$lab), c("1%", "2%", "3%", "94%"))
+  expect_false(any(layer_data$.label_fuera))
 
-  peq_data <- layer_data[layer_data$lab %in% c("1%", "2%", "3%"), , drop = FALSE]
-  peq_data <- peq_data[order(peq_data$x_center), , drop = FALSE]
-  x_orig <- peq_data$x_center
-  x_adj <- peq_data$x_label
+  row_1 <- layer_data[layer_data$lab == "1%", , drop = FALSE]
+  expect_false(row_1$.label_fuera)
+  expect_gte(row_1$x_label, 0)
+  expect_lte(row_1$x_label, 1)
+  expect_equal(row_1$.col_label, "white")
 
-  expect_true(any(abs(x_adj - x_orig) > 1e-6))
-  expect_gt(min(diff(x_adj)), min(diff(x_orig)))
-  expect_true(all(x_adj >= 0 & x_adj <= 1))
+  row_2 <- layer_data[layer_data$lab == "2%", , drop = FALSE]
+  row_3 <- layer_data[layer_data$lab == "3%", , drop = FALSE]
+  expect_false(row_2$.label_fuera)
+  expect_false(row_3$.label_fuera)
+  expect_equal(row_2$.col_label, "white")
+  expect_equal(row_3$.col_label, "white")
+  expect_gt(.min_span_gap_apiladas(layer_data), 0.006)
+  expect_true(all(layer_data$x_label >= -0.20 & layer_data$x_label <= 1))
 })
 
 test_that("graficar_barras_apiladas activa modo uniforme con una sola capa de etiquetas", {
@@ -1458,7 +1664,7 @@ test_that("graficar_barras_apiladas activa modo uniforme con una sola capa de et
   expect_false(".tamano_etq" %in% names(layer_data))
 })
 
-test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en borde izquierdo", {
+test_that("graficar_barras_apiladas en modo uniforme mantiene dentro el borde izquierdo si cabe", {
   df <- data.frame(
     categoria = "Item",
     N = 100,
@@ -1493,9 +1699,10 @@ test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en bor
   row_left <- layer_data[layer_data$lab == "1%", , drop = FALSE]
 
   expect_equal(nrow(row_left), 1)
+  expect_false(row_left$.label_fuera)
   expect_gte(row_left$x_label, 0)
   expect_lte(row_left$x_label, 1)
-  expect_gt(row_left$x_label, row_left$x_center)
+  expect_equal(row_left$.col_label, "white")
 })
 
 test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en borde derecho", {
@@ -1535,7 +1742,10 @@ test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en bor
   expect_equal(nrow(row_right), 1)
   expect_gte(row_right$x_label, 0)
   expect_lte(row_right$x_label, 1)
-  expect_lt(row_right$x_label, row_right$x_center)
+  expect_false(row_right$.label_fuera)
+  expect_equal(row_right$.col_label, "white")
+  width_right <- .estimate_label_fit_width_apiladas(row_right$lab, row_right$.size_label)
+  expect_lte(row_right$x_label + (1 - row_right$.hjust_label) * width_right, 1)
 })
 
 test_that("graficar_barras_apiladas en modo uniforme aumenta separacion minima entre etiquetas", {
@@ -1564,16 +1774,292 @@ test_that("graficar_barras_apiladas en modo uniforme aumenta separacion minima e
     decimales = 0,
     umbral_mostrar_etiqueta = 0.01,
     umbral_etiqueta_normal = 0.05,
-    etiquetas_uniformes = TRUE
+    etiquetas_uniformes = TRUE,
+    size_texto_barras = 6.4
   )
 
   text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
   layer_data <- text_layers[[1]]$data
-  peq_data <- layer_data[layer_data$lab %in% c("1%", "2%", "3%"), , drop = FALSE]
-  peq_data <- peq_data[order(peq_data$x_center), , drop = FALSE]
+  row_1 <- layer_data[layer_data$lab == "1%", , drop = FALSE]
+  expect_false(row_1$.label_fuera)
+  expect_gte(row_1$x_label, 0)
+  expect_lte(row_1$x_label, 1)
+  expect_equal(row_1$.col_label, "white")
+  expect_gt(.min_span_gap_apiladas(layer_data), 0.006)
+  expect_true(all(layer_data$x_label >= -0.20 & layer_data$x_label <= 1))
+})
 
-  expect_gt(min(diff(peq_data$x_label)), min(diff(peq_data$x_center)))
-  expect_true(all(peq_data$x_label >= 0 & peq_data$x_label <= 1))
+test_that("graficar_barras_apiladas en modo uniforme saca solo etiquetas que no entran", {
+  df <- data.frame(
+    categoria = "Item",
+    N = 100,
+    pct_1 = 0.01,
+    pct_2 = 0.02,
+    pct_3 = 0.16,
+    pct_4 = 0.81,
+    stringsAsFactors = FALSE
+  )
+
+  p <- prosecnurapp::graficar_barras_apiladas(
+    data = df,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2", "pct_3", "pct_4"),
+    etiquetas_grupos = c(
+      pct_1 = "1",
+      pct_2 = "2",
+      pct_3 = "16",
+      pct_4 = "81"
+    ),
+    mostrar_valores = TRUE,
+    decimales = 0,
+    umbral_mostrar_etiqueta = 0,
+    umbral_etiqueta_normal = 0.05,
+    etiquetas_uniformes = TRUE,
+    color_texto_barras = "white",
+    color_texto_barras_fuera = "#081F5C",
+    size_texto_barras = 6.4
+  )
+
+  text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
+  layer_data <- text_layers[[1]]$data
+  expect_setequal(as.character(layer_data$lab), c("1%", "2%", "16%", "81%"))
+  expect_false(any(layer_data$.label_fuera))
+
+  row_1 <- layer_data[layer_data$lab == "1%", , drop = FALSE]
+  expect_false(row_1$.label_fuera)
+  expect_gte(row_1$x_label, 0)
+  expect_lte(row_1$x_label, 1)
+  expect_equal(row_1$.col_label, "white")
+
+  row_2 <- layer_data[layer_data$lab == "2%", , drop = FALSE]
+  expect_false(row_2$.label_fuera)
+  expect_gte(row_2$x_label, 0)
+  expect_lte(row_2$x_label, 1)
+  expect_equal(row_2$.col_label, "white")
+
+  rows_inside <- layer_data[layer_data$lab %in% c("16%", "81%"), , drop = FALSE]
+  expect_false(any(rows_inside$.label_fuera))
+  expect_true(all(rows_inside$.col_label == "white"))
+  expect_gt(.min_span_gap_apiladas(layer_data), 0.006)
+  expect_gt(.min_visual_span_gap_apiladas(layer_data), 0.006)
+})
+
+test_that("graficar_barras_apiladas evita superposicion cerca de segmentos pequenos consecutivos", {
+  mk_layer <- function(vals) {
+    df <- data.frame(categoria = "Item", N = 100, stringsAsFactors = FALSE)
+    for (i in seq_along(vals)) df[[paste0("pct_", i)]] <- vals[i]
+
+    p <- prosecnurapp::graficar_barras_apiladas(
+      data = df,
+      var_categoria = "categoria",
+      var_n = "N",
+      cols_porcentaje = paste0("pct_", seq_along(vals)),
+      etiquetas_grupos = stats::setNames(
+        as.character(round(vals * 100)),
+        paste0("pct_", seq_along(vals))
+      ),
+      mostrar_valores = TRUE,
+      decimales = 0,
+      umbral_mostrar_etiqueta = 0,
+      umbral_etiqueta_normal = 0.05,
+      etiquetas_uniformes = TRUE,
+      color_texto_barras = "white",
+      color_texto_barras_fuera = "#081F5C",
+      size_texto_barras = 6.4
+    )
+
+    Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)[[1]]$data
+  }
+
+  layer_16 <- mk_layer(c(0.01, 0.02, 0.16, 0.81))
+  row_16 <- layer_16[layer_16$lab == "16%", , drop = FALSE]
+  expect_false(row_16$.label_fuera)
+  expect_gte(row_16$x_label, 0)
+  expect_lte(row_16$x_label, 1)
+  expect_equal(row_16$.col_label, "white")
+  expect_gt(.min_visual_span_gap_apiladas(layer_16), 0.006)
+
+  layer_21 <- mk_layer(c(0.01, 0.03, 0.21, 0.75))
+  row_21 <- layer_21[layer_21$lab == "21%", , drop = FALSE]
+  expect_false(row_21$.label_fuera)
+  expect_gte(row_21$x_label, 0)
+  expect_lte(row_21$x_label, 1)
+  expect_equal(row_21$.col_label, "white")
+  expect_gt(.min_visual_span_gap_apiladas(layer_21), 0.006)
+})
+
+test_that("graficar_barras_apiladas mantiene dentro porcentajes pequenos que caben", {
+  mk_plot <- function(vals, labs) {
+    df <- data.frame(categoria = "Item", N = 100, stringsAsFactors = FALSE)
+    for (i in seq_along(vals)) df[[paste0("pct_", i)]] <- vals[i]
+
+    prosecnurapp::graficar_barras_apiladas(
+      data = df,
+      var_categoria = "categoria",
+      var_n = "N",
+      cols_porcentaje = paste0("pct_", seq_along(vals)),
+      etiquetas_grupos = stats::setNames(as.character(labs), paste0("pct_", seq_along(vals))),
+      mostrar_valores = TRUE,
+      decimales = 0,
+      umbral_mostrar_etiqueta = 0.12,
+      umbral_etiqueta_normal = 0.085,
+      etiquetas_uniformes = TRUE,
+      size_texto_barras = 6.4,
+      color_texto_barras = "white",
+      color_texto_barras_fuera = "#081F5C",
+      etiquetas_peq_factor_ancho = 2.5,
+      etiquetas_peq_padding = 0.012
+    )
+  }
+
+  p_oe_1 <- mk_plot(c(0.05, 0.20, 0.75), c(1, 2, 3))
+  layer_oe_1 <- Filter(function(layer) inherits(layer$geom, "GeomText"), p_oe_1$layers)[[1]]$data
+  row_5 <- layer_oe_1[layer_oe_1$lab == "5%", , drop = FALSE]
+  expect_false(row_5$.label_fuera)
+  expect_equal(row_5$.col_label, "white")
+  expect_gte(row_5$x_label, row_5$x_left)
+  expect_lte(row_5$x_label, row_5$x_right)
+
+  p_oe_2 <- mk_plot(c(0.09, 0.27, 0.64), c(1, 2, 3))
+  layer_oe_2 <- Filter(function(layer) inherits(layer$geom, "GeomText"), p_oe_2$layers)[[1]]$data
+  row_9 <- layer_oe_2[layer_oe_2$lab == "9%", , drop = FALSE]
+  expect_false(row_9$.label_fuera)
+  expect_equal(row_9$.col_label, "white")
+  expect_gte(row_9$x_label, row_9$x_left)
+  expect_lte(row_9$x_label, row_9$x_right)
+})
+
+test_that("graficar_barras_apiladas modera layout canvas con una sola barra", {
+  p <- prosecnurapp::graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Item",
+      N = 100,
+      pct_1 = 0.04,
+      pct_2 = 0.57,
+      pct_3 = 0.39,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
+    etiquetas_grupos = c(pct_1 = "1", pct_2 = "2", pct_3 = "3"),
+    usar_canvas = TRUE,
+    mostrar_valores = TRUE,
+    etiquetas_uniformes = TRUE,
+    color_texto_barras = "white",
+    color_texto_barras_fuera = "#081F5C",
+    size_texto_barras = 6.4,
+    size_barra_extra = 16,
+    grosor_modo = "manual",
+    grosor_barras = 0.70,
+    mostrar_leyenda = FALSE
+  )
+
+  layout <- attr(p, "pulso_barras_apiladas_layout")
+  expect_equal(layout$n_categorias, 1)
+  expect_equal(layout$y_axis_max, 2)
+  expect_equal(layout$grosor_eff, 0.70)
+})
+
+test_that("graficar_barras_apiladas compacta la leyenda manual al centro", {
+  p <- prosecnurapp::graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Item",
+      N = 100,
+      pct_1 = 0.05,
+      pct_2 = 0.20,
+      pct_3 = 0.25,
+      pct_4 = 0.50,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2", "pct_3", "pct_4"),
+    etiquetas_grupos = c(
+      pct_1 = "1 Nada competente",
+      pct_2 = "2",
+      pct_3 = "3",
+      pct_4 = "4 Totalmente competente"
+    ),
+    colores_grupos = c(
+      "1 Nada competente" = "#CA5651",
+      "2" = "#EFD25E",
+      "3" = "#ADD198",
+      "4 Totalmente competente" = "#70AD47"
+    ),
+    usar_canvas = TRUE,
+    mostrar_valores = FALSE,
+    mostrar_leyenda = TRUE,
+    legend_n_por_fila = 4,
+    legend_gap_npc = 0.012,
+    legend_key_cm = 0.40,
+    size_leyenda = 16
+  )
+
+  legend <- attr(p, "pulso_barras_apiladas_layout")$legend_manual
+  expect_s3_class(legend, "data.frame")
+  expect_equal(nrow(legend), 4)
+
+  row_w <- max(legend$x_item_right) - min(legend$x_left)
+  expect_gt(row_w, 0.52)
+  expect_lt(row_w, 0.78)
+  expect_gt(min(legend$x_left), 0.10)
+  expect_lt(max(legend$x_item_right), 0.90)
+  expect_gt(min(legend$key_height), 0.02)
+  expect_gt(min(legend$key_width), 0.02)
+  expect_equal(legend$key_marker, rep("point_square", 4))
+  expect_true(all(is.finite(legend$key_size_mm)))
+  expect_gte(min(legend$key_size_mm), 2.4)
+  expect_equal(
+    legend$key_width_physical_in,
+    legend$key_height_physical_in,
+    tolerance = 1e-8
+  )
+
+  p_compuesto <- prosecnurapp::graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Item",
+      N = 100,
+      pct_1 = 0.05,
+      pct_2 = 0.20,
+      pct_3 = 0.25,
+      pct_4 = 0.50,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2", "pct_3", "pct_4"),
+    etiquetas_grupos = c(
+      pct_1 = "1 Nada competente",
+      pct_2 = "2",
+      pct_3 = "3",
+      pct_4 = "4 Totalmente competente"
+    ),
+    colores_grupos = c(
+      "1 Nada competente" = "#CA5651",
+      "2" = "#EFD25E",
+      "3" = "#ADD198",
+      "4 Totalmente competente" = "#70AD47"
+    ),
+    usar_canvas = TRUE,
+    mostrar_valores = FALSE,
+    mostrar_leyenda = TRUE,
+    legend_n_por_fila = 4,
+    legend_gap_npc = 0.012,
+    legend_key_cm = 0.40,
+    legend_key_aspect_yx = 0.30,
+    size_leyenda = 16
+  )
+
+  legend_compuesto <- attr(p_compuesto, "pulso_barras_apiladas_layout")$legend_manual
+  expect_equal(legend_compuesto$key_marker, rep("point_square", 4))
+  expect_equal(legend_compuesto$key_aspect_yx, rep(0.30, 4), tolerance = 1e-8)
+  expect_equal(
+    legend_compuesto$key_square_width_unit,
+    legend_compuesto$key_square_height_unit,
+    tolerance = 1e-8
+  )
 })
 
 test_that("graficar_barras_apiladas mantiene comportamiento legacy con etiquetas_uniformes = FALSE", {

@@ -143,6 +143,221 @@ test_that("cobertura extrae variables desde graficadores y bloques", {
   sid
 }
 
+.graficos_acnur_seed_territorial_capabilities <- function(sid) {
+  s <- session_get(sid)
+  s$hojas_ruta_ok <- TRUE
+  s$hojas_ruta_workspace_outputs <- list(
+    sample = list(
+      blocks = list(list(ubigeo = "150132", zona = "Z01", manzanas = 12))
+    )
+  )
+  s$monitoreo_snapshot <- list(
+    territorial_reports = list(
+      response_audit = list(list(ubigeo = "150132", zona = "Z01", advance_valid = TRUE)),
+      route_blocks = list(list(ubigeo = "150132", zona = "Z01", total_manzanas = 12))
+    )
+  )
+  .session_env[[sid]] <- s
+  invisible(sid)
+}
+
+.graficos_plan_graph_specs <- function(plan) {
+  slides <- (plan %||% list())$slides %||% list()
+  unlist(lapply(slides, function(slide) {
+    payload <- (slide %||% list())$payload %||% list()
+    candidates <- list(
+      payload$grafico,
+      payload$izquierda,
+      payload$derecha,
+      payload$superior_izquierda,
+      payload$superior_derecha,
+      payload$inferior_izquierda,
+      payload$inferior_derecha
+    )
+    Filter(function(graf) is.list(graf) && !is.null(graf$graficador), candidates)
+  }), recursive = FALSE)
+}
+
+.graficos_acreditacion_multibase_test_session <- function() {
+  sid <- session_create()
+  estudio_ensure(sid)
+
+  likert4 <- function(list_name, names = c("1", "2", "3", "4")) {
+    data.frame(
+      list_name = rep(list_name, 4),
+      name = names,
+      label = c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho"),
+      stringsAsFactors = FALSE
+    )
+  }
+  yesno <- function(list_name, names = c("si", "no")) {
+    data.frame(
+      list_name = rep(list_name, 2),
+      name = names,
+      label = c("Si", "No"),
+      stringsAsFactors = FALSE
+    )
+  }
+  make_inst <- function(names, labels, lists, choices) {
+    list(
+      survey = data.frame(
+        type = c(paste("select_one", lists), "text"),
+        type_base = c(rep("select_one", length(names)), "text"),
+        name = c(names, "codigo_pulso"),
+        label = c(labels, "Codigo pulso"),
+        list_name = c(lists, ""),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      ),
+      choices = choices
+    )
+  }
+
+  labels <- c(
+    "Satisfaccion con la carrera",
+    "Conoce la mision institucional",
+    "Atencion administrativa"
+  )
+  inst_est <- make_inst(
+    c("p_sat", "p_mision", "p_incompatible"),
+    labels,
+    c("likert4", "yesno", "likert4"),
+    rbind(likert4("likert4"), yesno("yesno"))
+  )
+  inst_doc <- make_inst(
+    c("p_sat", "p_mision", "p_incompatible"),
+    labels,
+    c("likert4_doc", "yesno_doc", "yesno_doc"),
+    rbind(likert4("likert4_doc"), yesno("yesno_doc"))
+  )
+  inst_adm <- make_inst(
+    c("q_sat", "q_mision"),
+    labels[1:2],
+    c("escala_adm", "yesno_adm"),
+    rbind(likert4("escala_adm"), yesno("yesno_adm"))
+  )
+
+  data_est <- data.frame(
+    p_sat = c("3", "4", "2", ""),
+    p_mision = c("si", "no", "si", ""),
+    p_incompatible = c("3", "4", "3", ""),
+    codigo_pulso = c("A1", "A2", "A3", ""),
+    stringsAsFactors = FALSE
+  )
+  data_doc <- data.frame(
+    p_sat = c("2", "3", "4", ""),
+    p_mision = c("si", "si", "no", ""),
+    p_incompatible = c("si", "no", "si", ""),
+    codigo_pulso = c("D1", "D2", "D3", ""),
+    stringsAsFactors = FALSE
+  )
+  data_adm <- data.frame(
+    q_sat = c("3", "4", "2", ""),
+    q_mision = c("si", "no", "si", ""),
+    codigo_pulso = c("X1", "X2", "X3", ""),
+    stringsAsFactors = FALSE
+  )
+
+  s <- session_get(sid)
+  s$monitoreo_config <- list(monitoreo_profile = list(family = "acreditacion"))
+  s$estudio$processing_mode <- "independent_siblings"
+  s$estudio$active_base <- "estudiantes"
+  s$codif_source_active <- "estudiantes"
+  s$estudio$independent_siblings <- list(
+    version = 1L,
+    sibling_family_id = "acr-test",
+    template_base = "estudiantes",
+    logic_policy = "shared_template",
+    shared_logic = TRUE,
+    status = "ready"
+  )
+  s$estudio$bases <- list(
+    estudiantes = list(nombre = "estudiantes", source_kind = "surveymonkey", project_kind = "acreditacion", profile_family = "acreditacion"),
+    docentes = list(nombre = "docentes", source_kind = "surveymonkey", project_kind = "acreditacion", profile_family = "acreditacion"),
+    administrativos = list(nombre = "administrativos", source_kind = "surveymonkey", project_kind = "acreditacion", profile_family = "acreditacion")
+  )
+  s$rp_data_sources <- list(estudiantes = data_est, docentes = data_doc, administrativos = data_adm)
+  s$rp_inst_sources <- list(estudiantes = inst_est, docentes = inst_doc, administrativos = inst_adm)
+  s$rp_data <- data_est
+  s$rp_inst <- inst_est
+  .session_env[[sid]] <- s
+  sid
+}
+
+.graficos_var_cruce_blocks <- function(plan) {
+  grafs <- .graficos_plan_graph_specs(plan)
+  out <- list()
+  for (graf in grafs) {
+    if (!identical(graf$graficador, "p_barras_multiapiladas")) next
+    if (!identical((graf$args %||% list())$modo, "var_cruce")) next
+    vars <- (graf$args %||% list())$vars %||% list()
+    for (nm in names(vars)) out[[nm]] <- vars[[nm]]
+  }
+  out
+}
+
+test_that("plan sugerido de acreditacion multibase agrega comparativos por actor", {
+  sid <- .graficos_acreditacion_multibase_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+
+  suggested <- .graficos_suggested_plan(sid, config = list())
+  blocks <- .graficos_var_cruce_blocks(suggested$plan)
+  titles <- vapply(suggested$plan$slides, function(slide) {
+    .graficos_scalar_chr(((slide %||% list())$payload %||% list())$titulo, "")
+  }, character(1))
+  compare_refs <- unique(unlist(lapply(blocks, as.character), use.names = FALSE))
+
+  expect_true(suggested$ok)
+  expect_true("Comparativo por actor" %in% titles)
+  expect_setequal(
+    blocks$satisfaccion_con_la_carrera,
+    c("estudiantes$p_sat", "docentes$p_sat", "administrativos$q_sat")
+  )
+  expect_setequal(
+    blocks$conoce_la_mision_institucional,
+    c("estudiantes$p_mision", "docentes$p_mision", "administrativos$q_mision")
+  )
+  expect_false(any(c("estudiantes$p_incompatible", "docentes$p_incompatible") %in% compare_refs))
+  expect_equal(length(suggested$coverage$sources), 3L)
+})
+
+test_that("plan sugerido permite desactivar comparativos multi-actor", {
+  sid <- .graficos_acreditacion_multibase_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+
+  suggested <- .graficos_suggested_plan(sid, config = list(multi_actor_comparisons = FALSE))
+
+  expect_length(.graficos_var_cruce_blocks(suggested$plan), 0L)
+  expect_equal(length(suggested$coverage$sources), 1L)
+})
+
+test_that("plan ACNUR general usa barras agrupadas sin mapa ni comparativo", {
+  sid <- .graficos_acnur_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+  .graficos_acnur_seed_territorial_capabilities(sid)
+
+  suggested <- .graficos_suggested_plan(
+    sid,
+    config = list(profile_id = "acnur_kobo_cruncher_plus")
+  )
+  grafs <- .graficos_plan_graph_specs(suggested$plan)
+  refs <- .graficos_collect_plan_refs(suggested$plan)
+  titles <- vapply(suggested$plan$slides, function(slide) {
+    .graficos_scalar_chr(((slide %||% list())$payload %||% list())$titulo, "")
+  }, character(1))
+
+  expect_equal(sum(vapply(grafs, function(graf) {
+    identical(graf$graficador, "p_mapa_cobertura_territorial")
+  }, logical(1))), 0L)
+  expect_false("__koica_group" %in% refs)
+  expect_false("__district" %in% refs)
+  expect_false("Diseno de intervencion y comparacion" %in% titles)
+  expect_true(length(grafs) > 0L)
+  expect_true(all(vapply(grafs, function(graf) {
+    identical(graf$graficador, "p_barras_agrupadas")
+  }, logical(1))))
+})
+
 test_that("perfil ACNUR/Kobo agrega variables virtuales KOICA sin exponerlas como preguntas", {
   sid <- .graficos_acnur_test_session()
   on.exit(session_delete(sid), add = TRUE)
@@ -165,11 +380,13 @@ test_that("perfil ACNUR/Kobo agrega variables virtuales KOICA sin exponerlas com
 test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficables", {
   sid <- .graficos_acnur_test_session()
   on.exit(session_delete(sid), add = TRUE)
+  .graficos_acnur_seed_territorial_capabilities(sid)
 
   suggested <- .graficos_suggested_plan(
     sid,
     config = list(
       profile_id = "acnur_kobo_cruncher_plus",
+      acnur_mode = "territorial",
       include_coverage_maps = TRUE,
       comparison_mode = "koica_group"
     )
@@ -189,6 +406,29 @@ test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficabl
   expect_false(any(c("intro_note", "calc_score", "gps_raw", "email") %in% refs))
 })
 
+test_that("plan ACNUR/Kobo omite mapas territoriales si faltan Hojas de Ruta o Monitoreo", {
+  sid <- .graficos_acnur_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+
+  suggested <- .graficos_suggested_plan(
+    sid,
+    config = list(
+      profile_id = "acnur_kobo_cruncher_plus",
+      acnur_mode = "territorial",
+      include_coverage_maps = TRUE,
+      comparison_mode = "koica_group"
+    )
+  )
+  map_count <- sum(vapply(suggested$plan$slides, function(slide) {
+    graf <- (slide$payload %||% list())$grafico %||% list()
+    identical(graf$graficador, "p_mapa_cobertura_territorial")
+  }, logical(1)))
+
+  expect_equal(map_count, 0L)
+  expect_match(paste(unlist(suggested$warnings), collapse = " "), "Hojas de Ruta")
+  expect_match(paste(unlist(suggested$warnings), collapse = " "), "Monitoreo territorial")
+})
+
 test_that("plan ACNUR/Kobo respeta opciones explicitas de mapas y comparativo", {
   sid <- .graficos_acnur_test_session()
   on.exit(session_delete(sid), add = TRUE)
@@ -197,6 +437,7 @@ test_that("plan ACNUR/Kobo respeta opciones explicitas de mapas y comparativo", 
     sid,
     config = list(
       profile_id = "acnur_kobo_cruncher_plus",
+      acnur_mode = "territorial",
       include_coverage_maps = FALSE,
       comparison_mode = "none"
     )

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight, ArrowRightLeft, CheckCircle2, CloudDownload, Database, FileSpreadsheet,
-  Download, Info, Loader2, RefreshCw, Search, ShieldCheck, Trash2, Upload,
+  Download, Info, Loader2, RefreshCw, Search, ShieldCheck, Table2, Trash2, Upload,
 } from "lucide-react";
 import {
+  apiCargaBaseSheet,
   apiCargaKoboAssets,
   apiCargaKoboDetectedSource,
   apiCargaImportKobo,
@@ -17,6 +18,7 @@ import {
   apiEstudioFromSession,
   apiEstudioGet,
   apiEstudioInit,
+  apiEstudioProcessingSuggestions,
   apiInstrumentoEstructura,
   apiQuitarData,
   apiQuitarInstrumento,
@@ -27,7 +29,9 @@ import {
   ChoiceCodeMap,
   ChoiceCodeMapReview,
   ConnectionTokenState,
+  EstudioBase,
   EstudioPayload,
+  EstudioProcessingSuggestions,
   KoboSourceSpec,
   MonitoreoKoboAssetItem,
   NormalizedExportFormat,
@@ -47,6 +51,7 @@ import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
 import { BasesPanel } from "./BasesPanel";
+import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 
 // Fase 1 — Carga de insumos.
 //
@@ -62,6 +67,7 @@ type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 
 type IconCmp = typeof Database;
 type SourceMode = "files" | "platform";
+type CargaWorkspaceTab = "insumos" | "base";
 type DetectedKoboSource = KoboSourceSpec & {
   ok: true;
   detected: true;
@@ -165,6 +171,8 @@ export default function CargaPage() {
   const [forceMultiBase, setForceMultiBase] = useState(false);
   const [preferredMultiStrategy, setPreferredMultiStrategy] = useState<"separate" | "integrated" | "independent" | undefined>(undefined);
   const [sourceMode, setSourceMode] = useState<SourceMode>("files");
+  const [activeCargaTab, setActiveCargaTab] = useState<CargaWorkspaceTab>("insumos");
+  const [selectedCargaBase, setSelectedCargaBase] = useState("");
   const [platformProvider, setPlatformProvider] = useState<CargaPlatformProvider>("surveymonkey");
   const [connections, setConnections] = useState<ConnectionTokenState[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
@@ -180,6 +188,25 @@ export default function CargaPage() {
   const [platformError, setPlatformError] = useState("");
   const [platformMessage, setPlatformMessage] = useState("");
   const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
+  const [processingSuggestions, setProcessingSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
+  const [processingSuggestionsStatus, setProcessingSuggestionsStatus] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setProcessingSuggestionsStatus("Leyendo Monitoreo...");
+    apiEstudioProcessingSuggestions()
+      .then((payload) => {
+        if (cancelled) return;
+        setProcessingSuggestions(payload);
+        setProcessingSuggestionsStatus("");
+      })
+      .catch((e: Error) => {
+        if (cancelled) return;
+        setProcessingSuggestions(null);
+        setProcessingSuggestionsStatus(e.message);
+      });
+    return () => { cancelled = true; };
+  }, [sessionId]);
 
   async function onQuitar(kind: "xlsform" | "data") {
     const label = kind === "xlsform" ? "el XLSForm" : "la base de datos";
@@ -475,6 +502,10 @@ export default function CargaPage() {
   // Payload del estudio — cargamos on-demand cuando entramos a modo
   // multi-base para mostrar el BasesPanel con detalle de cada base.
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
+  const cargaBaseOptions = estudio ? Object.values(estudio.bases) : [];
+  const cargaBaseSignature = estudio
+    ? Object.keys(estudio.bases).sort((a, b) => a.localeCompare(b, "es")).join("|")
+    : "";
   // Flag que le pide al BasesPanel abrir directamente su form "Agregar
   // base" al montar. Se activa tras convertir single → multi con el
   // botón "+ Agregar otra base" para que el usuario no tenga que
@@ -491,11 +522,30 @@ export default function CargaPage() {
     setEstructura(null);
     setEstudio(null);
     setAutoOpenAddBase(false);
+    setActiveCargaTab("insumos");
+    setSelectedCargaBase("");
     setForceMultiBase(false);
     setPreferredMultiStrategy(undefined);
     setError("");
     setBusy("");
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!isMultiBase) {
+      setSelectedCargaBase("");
+      return;
+    }
+    if (!cargaBaseOptions.length) {
+      setSelectedCargaBase("");
+      return;
+    }
+    const names = new Set(cargaBaseOptions.map((base) => base.nombre));
+    setSelectedCargaBase((current) => {
+      if (names.has(current)) return current;
+      if (estudio?.active_base && names.has(estudio.active_base)) return estudio.active_base;
+      return cargaBaseOptions[0]?.nombre ?? "";
+    });
+  }, [cargaBaseSignature, estudio?.active_base, isMultiBase]);
 
   useEffect(() => {
     if (!error) return;
@@ -566,6 +616,34 @@ export default function CargaPage() {
       window.location.href = downloadUrl(out.file_id);
     } catch (e: unknown) {
       setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function openIndependentProcessingFromMonitoring() {
+    setError("");
+    setPlatformError("");
+    setBusy("Preparando bases hermanas desde Monitoreo...");
+    try {
+      let payload: EstudioPayload;
+      if (state?.has_estudio) {
+        payload = await apiEstudioGet();
+      } else if (hasXlsform && hasData) {
+        await apiEstudioFromSession();
+        payload = await apiEstudioGet();
+      } else {
+        payload = await apiEstudioInit();
+      }
+      setEstudio(payload);
+      setForceMultiBase(true);
+      setPreferredMultiStrategy("independent");
+      setAutoOpenAddBase(false);
+      setSourceMode("platform");
+      setActiveCargaTab("insumos");
+      await refresh();
+    } catch (e) {
+      setPlatformError((e as Error).message);
     } finally {
       setBusy("");
     }
@@ -702,28 +780,48 @@ export default function CargaPage() {
           )}
         >
           <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi">
-            <BasesPanel
-              estudio={estudio}
-              onChanged={onEstudioChanged}
-              hasSessionXlsform={hasXlsform}
-              autoOpenAdd={autoOpenAddBase}
-              onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
-              initialStrategy={preferredMultiStrategy}
-              onDowngraded={async () => {
-                setAutoOpenAddBase(false);
-                setEstudio(null);
-                setForceMultiBase(false);
-                setPreferredMultiStrategy(undefined);
-                await refresh();
-              }}
+            <CargaWorkspaceTabs
+              active={activeCargaTab}
+              onChange={setActiveCargaTab}
+              baseReady={cargaBaseOptions.length > 0}
             />
-            <CargaFollowupContent
-              showInspection={!!state?.instrumento_parsed && !!estructura}
-              estructura={estructura}
-              allReady={allReady}
-              busy={busy}
-              error={error}
-            />
+            {activeCargaTab === "insumos" ? (
+              <>
+                <BasesPanel
+                  estudio={estudio}
+                  onChanged={onEstudioChanged}
+                  hasSessionXlsform={hasXlsform}
+                  autoOpenAdd={autoOpenAddBase}
+                  onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
+                  initialStrategy={preferredMultiStrategy}
+                  onDowngraded={async () => {
+                    setAutoOpenAddBase(false);
+                    setEstudio(null);
+                    setForceMultiBase(false);
+                    setPreferredMultiStrategy(undefined);
+                    setActiveCargaTab("insumos");
+                    await refresh();
+                  }}
+                />
+                <CargaFollowupContent
+                  showInspection={!!state?.instrumento_parsed && !!estructura}
+                  estructura={estructura}
+                  allReady={allReady}
+                  busy={busy}
+                  error={error}
+                />
+              </>
+            ) : (
+              <CargaBaseSheetPane
+                isMultiBase
+                allReady={allReady}
+                busy={busy}
+                error={error}
+                baseOptions={cargaBaseOptions}
+                selectedBase={selectedCargaBase}
+                onSelectedBaseChange={setSelectedCargaBase}
+              />
+            )}
           </div>
         </AdaptiveSplitView>
       )}
@@ -758,30 +856,41 @@ export default function CargaPage() {
               label="Tus dos insumos"
               hint="Carga primero el XLSForm y después la data. Pulso usa el formulario para normalizar nombres, reconstruir select_multiple y validar compatibilidad antes de procesar reportes."
             />
-            <div className="pulso-carga-source-switch" role="tablist" aria-label="Origen de carga">
-              <button
-                type="button"
-                className={sourceMode === "files" ? "is-active" : ""}
-                onClick={() => setSourceMode("files")}
-                role="tab"
-                aria-selected={sourceMode === "files"}
-              >
-                <Upload size={14} />
-                Archivos
-              </button>
-              <button
-                type="button"
-                className={sourceMode === "platform" ? "is-active" : ""}
-                onClick={() => setSourceMode("platform")}
-                role="tab"
-                aria-selected={sourceMode === "platform"}
-              >
-                <CloudDownload size={14} />
-                Plataforma
-              </button>
+            <div className="pulso-carga-header-controls">
+              <CargaWorkspaceTabs
+                active={activeCargaTab}
+                onChange={setActiveCargaTab}
+                baseReady={allReady}
+              />
+              {activeCargaTab === "insumos" && (
+                <div className="pulso-carga-source-switch" role="tablist" aria-label="Origen de carga">
+                  <button
+                    type="button"
+                    className={sourceMode === "files" ? "is-active" : ""}
+                    onClick={() => setSourceMode("files")}
+                    role="tab"
+                    aria-selected={sourceMode === "files"}
+                  >
+                    <Upload size={14} />
+                    Archivos
+                  </button>
+                  <button
+                    type="button"
+                    className={sourceMode === "platform" ? "is-active" : ""}
+                    onClick={() => setSourceMode("platform")}
+                    role="tab"
+                    aria-selected={sourceMode === "platform"}
+                  >
+                    <CloudDownload size={14} />
+                    Plataforma
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
+          {activeCargaTab === "insumos" ? (
+            <>
           {sourceMode === "files" && detectedKoboSource && (
             <DetectedKoboSourceCallout
               source={detectedKoboSource}
@@ -835,6 +944,9 @@ export default function CargaPage() {
               busy={!!busy}
               error={platformError}
               message={platformMessage}
+              processingSuggestions={processingSuggestions}
+              processingSuggestionsStatus={processingSuggestionsStatus}
+              onOpenIndependentProcessing={() => void openIndependentProcessingFromMonitoring()}
               detectedKoboSource={detectedKoboSource}
               onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
               onImport={() => void onPlatformImport()}
@@ -1001,6 +1113,17 @@ export default function CargaPage() {
             busy={busy}
             error={error}
           />
+            </>
+          ) : (
+            <CargaBaseSheetPane
+              allReady={allReady}
+              busy={busy}
+              error={error}
+              baseOptions={[]}
+              selectedBase=""
+              onSelectedBaseChange={setSelectedCargaBase}
+            />
+          )}
         </div>
 
         {/* El botón "+ Agregar otra base" se eliminó — ahora la
@@ -1094,6 +1217,75 @@ function DetectedKoboSourceCallout({
   );
 }
 
+function PlatformProcessingSuggestions({
+  suggestions,
+  status,
+  busy,
+  onOpen,
+}: {
+  suggestions: EstudioProcessingSuggestions | null;
+  status: string;
+  busy: boolean;
+  onOpen: () => void;
+}) {
+  const groups = suggestions?.groups ?? [];
+  const shouldShow = Boolean(status || suggestions?.has_suggestions || suggestions?.profile_family === "acreditacion");
+  if (!shouldShow) return null;
+  const smGroups = groups.filter((group) => group.platform === "surveymonkey" && group.importable);
+  const koboGroups = groups.filter((group) => group.platform === "kobo" && group.importable);
+  const readyGroups = smGroups.length + koboGroups.length;
+  return (
+    <div className="pulso-monitoring-suggestions is-platform" aria-label="Sugerencias de Procesamiento desde Monitoreo">
+      <div className="pulso-monitoring-suggestions-head">
+        <span className="pulso-monitoring-suggestions-icon" aria-hidden="true">
+          {status ? <Loader2 size={15} className="pulso-spin" /> : <ArrowRightLeft size={15} />}
+        </span>
+        <div>
+          <strong>Procesamiento de acreditación sugerido desde Monitoreo</strong>
+          <span>
+            {status || suggestions?.message || "Las fuentes pueden organizarse como bases hermanas por actor."}
+          </span>
+        </div>
+        <div className="pulso-monitoring-suggestions-actions">
+          <button type="button" onClick={onOpen} disabled={busy || !readyGroups}>
+            <ArrowRight size={13} />
+            Abrir bases hermanas
+          </button>
+        </div>
+      </div>
+      {groups.length ? (
+        <div className="pulso-monitoring-suggestion-grid" role="list">
+          {groups.map((group) => {
+            const channels = Array.from(new Set(group.sources.map((source) => source.channel).filter(Boolean)));
+            return (
+              <div className="pulso-monitoring-suggestion-row is-compact" role="listitem" key={group.id}>
+                <div className="pulso-monitoring-suggestion-actor">
+                  <strong>{group.actor}</strong>
+                  <small>{group.platform === "surveymonkey" ? "SurveyMonkey" : "Kobo"} · {group.source_count} fuente{group.source_count === 1 ? "" : "s"}</small>
+                </div>
+                <div className="pulso-monitoring-suggestion-meta">
+                  <span>{group.response_count ? `${group.response_count} resp.` : "sin conteo"}</span>
+                  <span>{channels.length > 1 ? "Canal mixto" : channels[0] || "Canal por definir"}</span>
+                  <span>{group.importable ? "Listo para traducir" : "Detectado"}</span>
+                </div>
+                <span className={`pulso-platform-suggestion-status${group.importable ? " is-ready" : ""}`}>
+                  {group.importable ? <CheckCircle2 size={12} /> : <Info size={12} />}
+                  {group.importable ? (group.platform === "kobo" ? "Kobo" : "SurveyMonkey") : "Pendiente"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="pulso-monitoring-suggestions-note">
+          <Info size={13} />
+          <span>{suggestions?.message || "Sin fuentes listas para Procesamiento."}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PlatformImportPanel({
   provider,
   onProviderChange,
@@ -1121,6 +1313,9 @@ function PlatformImportPanel({
   busy,
   error,
   message,
+  processingSuggestions,
+  processingSuggestionsStatus,
+  onOpenIndependentProcessing,
   detectedKoboSource,
   onImportDetectedKoboSource,
   onImport,
@@ -1151,6 +1346,9 @@ function PlatformImportPanel({
   busy: boolean;
   error: string;
   message: string;
+  processingSuggestions: EstudioProcessingSuggestions | null;
+  processingSuggestionsStatus: string;
+  onOpenIndependentProcessing: () => void;
   detectedKoboSource: DetectedKoboSource | null;
   onImportDetectedKoboSource: () => void;
   onImport: () => void;
@@ -1189,6 +1387,13 @@ function PlatformImportPanel({
           {connectionsLoading ? "Verificando conexiones" : hasConnection ? "Conectado" : "Sin conexión"}
         </div>
       </div>
+
+      <PlatformProcessingSuggestions
+        suggestions={processingSuggestions}
+        status={processingSuggestionsStatus}
+        busy={busy}
+        onOpen={onOpenIndependentProcessing}
+      />
 
       <div className="pulso-platform-controls">
         <label className="pulso-platform-field">
@@ -1343,6 +1548,115 @@ function PlatformImportPanel({
       </div>
     </section>
   );
+}
+
+function CargaWorkspaceTabs({
+  active,
+  baseReady,
+  onChange,
+}: {
+  active: CargaWorkspaceTab;
+  baseReady: boolean;
+  onChange: (tab: CargaWorkspaceTab) => void;
+}) {
+  return (
+    <div className="pulso-carga-source-switch pulso-carga-view-tabs" role="tablist" aria-label="Vista de carga">
+      <button
+        type="button"
+        className={active === "insumos" ? "is-active" : ""}
+        onClick={() => onChange("insumos")}
+        role="tab"
+        aria-selected={active === "insumos"}
+      >
+        <Upload size={14} />
+        Insumos
+      </button>
+      <button
+        type="button"
+        className={active === "base" ? "is-active" : ""}
+        onClick={() => onChange("base")}
+        role="tab"
+        aria-selected={active === "base"}
+        aria-disabled={!baseReady}
+      >
+        <Table2 size={14} />
+        Base de carga
+      </button>
+    </div>
+  );
+}
+
+function CargaBaseSheetPane({
+  isMultiBase = false,
+  allReady,
+  busy,
+  error,
+  baseOptions,
+  selectedBase,
+  onSelectedBaseChange,
+}: {
+  isMultiBase?: boolean;
+  allReady: boolean;
+  busy: string;
+  error: string;
+  baseOptions: EstudioBase[];
+  selectedBase: string;
+  onSelectedBaseChange: (base: string) => void;
+}) {
+  const activeBase = baseOptions.find((base) => base.nombre === selectedBase) ?? baseOptions[0] ?? null;
+  const hasMultiBase = isMultiBase && baseOptions.length > 0;
+  const enabled = isMultiBase ? hasMultiBase && !busy && !error : allReady && !busy && !error;
+  const disabledMessage = isMultiBase
+    ? "Agrega al menos una base para ver su BBDD de carga."
+    : "Carga el XLSForm y la base de datos para ver la BBDD completa.";
+  const sourceLabel = isMultiBase && activeBase
+    ? `Carga · ${cargaBaseLabel(activeBase)} · sin validación, limpieza ni codificación`
+    : "Carga · sin validación, limpieza ni codificación";
+
+  return (
+    <section className="pulso-carga-base-shell" aria-label="Base de carga">
+      {isMultiBase && (
+        <div className="pulso-carga-base-picker">
+          <div>
+            <strong>Base visible</strong>
+            <span>{activeBase ? cargaBaseMeta(activeBase) : "Sin bases cargadas"}</span>
+          </div>
+          <label>
+            <span className="pulso-sr-only">Seleccionar base de carga</span>
+            <select
+              value={activeBase?.nombre ?? ""}
+              onChange={(event) => onSelectedBaseChange(event.target.value)}
+              disabled={!baseOptions.length || !!busy}
+            >
+              {baseOptions.map((base) => (
+                <option key={base.nombre} value={base.nombre}>
+                  {cargaBaseLabel(base)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+      <ProcessingSheetViewer
+        title="Base de carga"
+        sourceLabel={sourceLabel}
+        enabled={enabled}
+        disabledMessage={disabledMessage}
+        request={activeBase ? { base_nombre: activeBase.nombre } : undefined}
+        load={apiCargaBaseSheet}
+      />
+    </section>
+  );
+}
+
+function cargaBaseLabel(base: EstudioBase) {
+  return String(base.source_alias || base.source_title || base.nombre || "").trim() || base.nombre;
+}
+
+function cargaBaseMeta(base: EstudioBase) {
+  const rows = typeof base.n_filas === "number" ? base.n_filas.toLocaleString("es-PE") : "sin conteo";
+  const cols = typeof base.n_columnas === "number" ? base.n_columnas.toLocaleString("es-PE") : "sin columnas";
+  return `${base.nombre} · ${rows} filas · ${cols} columnas`;
 }
 
 function CargaFollowupContent({
