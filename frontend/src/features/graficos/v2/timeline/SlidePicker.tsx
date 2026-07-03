@@ -290,7 +290,6 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                       )}
                       <span className="pulso-gv2-picker-tile-tags" aria-label={`Estructura del modelo: ${modelSlotLabel(t)}`}>
                         <span>{modelSlotLabel(t)}</span>
-                        <span>PPT 16:9</span>
                       </span>
                     </span>
                     <button
@@ -346,7 +345,6 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                   <span>
                     <CheckCircle2 size={13} /> {modelSlotLabel(selectedType)}
                   </span>
-                  <span>PPT 16:9</span>
                   <span>{selectedSlotCount > 0 ? "Con gráficos" : "Editorial"}</span>
                 </div>
 
@@ -500,12 +498,7 @@ function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType;
         <span className="pulso-gv2-picker-slide-slots">
           {slotItems.map((slot) => (
             <span key={slot} className="pulso-gv2-picker-slide-slot">
-              <i />
-              <b />
-              <em />
-              <em />
-              <em />
-              <em />
+              <span className="pulso-gv2-picker-slide-slot-icon" />
             </span>
           ))}
         </span>
