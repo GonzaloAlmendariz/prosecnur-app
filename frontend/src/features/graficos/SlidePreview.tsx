@@ -272,6 +272,17 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         : rendererUnavailable || renderFailed || hasResult
           ? "Vista local garantizada"
           : slide.tipo;
+  const sourceSteps = getPreviewSourceSteps({
+    rendererChecking,
+    rendererAvailable,
+    rendererUnavailable,
+    rendererName: rendererStatus?.renderer ?? "",
+    hasPreview: hasPreview && !isStale,
+    hasEmbeddedImages,
+    hasResult,
+    renderFailed,
+    error: !!error,
+  });
 
   return (
     <section
@@ -391,6 +402,15 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 <X size={13} />
               </button>
             </span>
+          </div>
+          <div className="pulso-slide-preview-source-rail" aria-label="Ruta de previsualización">
+            {sourceSteps.map((step) => (
+              <span key={step.key} className={`is-${step.key}`} data-state={step.state}>
+                <i aria-hidden="true" />
+                <strong>{step.label}</strong>
+                <small>{step.detail}</small>
+              </span>
+            ))}
           </div>
           <div className="pulso-slide-preview-bubble-inner" style={frameStyle}>
             {busy ? (
@@ -557,6 +577,57 @@ function previewAspect(preview: SlideRenderedPreview | null): string | undefined
   const height = Number(preview?.height);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return undefined;
   return `${Math.round(width)} / ${Math.round(height)}`;
+}
+
+function getPreviewSourceSteps(state: {
+  rendererChecking: boolean;
+  rendererAvailable: boolean;
+  rendererUnavailable: boolean;
+  rendererName: string;
+  hasPreview: boolean;
+  hasEmbeddedImages: boolean;
+  hasResult: boolean;
+  renderFailed: boolean;
+  error: boolean;
+}): Array<{
+  key: "exact" | "image" | "local";
+  label: string;
+  detail: string;
+  state: "active" | "ready" | "idle";
+}> {
+  const exactActive = state.hasPreview;
+  const imageActive = !exactActive && state.hasEmbeddedImages;
+  const localActive = !exactActive && !imageActive && (
+    state.rendererUnavailable ||
+    state.renderFailed ||
+    state.error ||
+    state.hasResult
+  );
+
+  return [
+    {
+      key: "exact",
+      label: "PPTX exacto",
+      detail: state.rendererChecking
+        ? "Comprobando"
+        : state.rendererAvailable
+          ? state.rendererName || "Renderer local"
+          : "Opcional",
+      state: exactActive ? "active" : state.rendererAvailable ? "ready" : "idle",
+    },
+    {
+      key: "image",
+      label: "Imagen interna",
+      detail: state.hasEmbeddedImages ? "Disponible" : "Si el PPTX la expone",
+      state: imageActive ? "active" : state.hasEmbeddedImages ? "ready" : "idle",
+    },
+    {
+      key: "local",
+      label: "Boceto local",
+      detail: "Sin dependencias",
+      state: localActive ? "active" : "ready",
+    },
+  ];
 }
 
 function getActionLabel(state: {
