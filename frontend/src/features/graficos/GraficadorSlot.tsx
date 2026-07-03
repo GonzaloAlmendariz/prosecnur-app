@@ -342,7 +342,7 @@ function OverrideDropdown({
         ? "Modo + manual"
         : modeState === "manual"
           ? "Ajustes manuales"
-          : "Base del preset";
+          : "Base establecida";
   const triggerHint =
     exactMatch?.nombre ??
     partialMatch?.nombre ??
@@ -476,8 +476,8 @@ function OverrideDropdown({
           </div>
 
           <DropdownOption
-            label="Base del preset"
-            hint="sin modo ni ajustes"
+            label="Mantener base del preset"
+            hint="no marca cambios"
             active={customCount === 0}
             onClick={() => applyMode(null)}
           />
@@ -522,7 +522,7 @@ function OverrideDropdown({
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
               <RotateCcw size={11} />
-              Volver a base del preset
+              Volver a base establecida
             </button>
           )}
         </div>,
