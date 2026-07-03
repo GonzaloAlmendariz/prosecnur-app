@@ -19364,28 +19364,30 @@
 
 .pulso-gv2-export-menu-popover {
   right: 0;
-  width: min(360px, calc(100vw - 28px));
-  padding: 12px;
+  width: min(384px, calc(100vw - 28px));
+  padding: 13px;
   display: grid;
-  gap: 10px;
+  gap: 11px;
   background:
-    linear-gradient(180deg, #ffffff 0%, #ffffff 42%, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 12%, #ffffff) 100%);
+    linear-gradient(180deg, #ffffff 0%, #ffffff 56%, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 10%, #ffffff) 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .pulso-gv2-export-menu-head {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  align-items: center;
-  gap: 9px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
 }
 
 .pulso-gv2-export-menu-mark {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   align-self: center;
   display: grid;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 10px;
   color: var(--gv2-accent, var(--pulso-primary));
   border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 58%, var(--pulso-border));
   background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 60%, #ffffff);
@@ -19403,14 +19405,15 @@
 
 .pulso-gv2-export-menu-head strong {
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: 12.8px;
   font-weight: 800;
+  line-height: 1.15;
 }
 
 .pulso-gv2-export-menu-head span {
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
-  line-height: 1.35;
+  font-size: 10.6px;
+  line-height: 1.3;
 }
 
 .pulso-gv2-export-menu-warning {
@@ -19426,36 +19429,49 @@
 .pulso-gv2-export-menu-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 9px;
 }
 
 .pulso-gv2-export-menu-actions button {
-  min-height: 66px;
-  padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 40%, var(--pulso-border));
+  min-height: 78px;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 34%, var(--pulso-border));
   border-radius: 12px !important;
   background:
-    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 16%, #ffffff));
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 10%, #ffffff));
   color: var(--pulso-text);
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-align: left;
   cursor: pointer;
 }
 
-.pulso-gv2-export-menu-actions button > svg {
-  width: 18px;
-  height: 18px;
-  justify-self: center;
-  align-self: center;
+.pulso-gv2-export-menu-action-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--gv2-accent, var(--pulso-primary));
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 42%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 58%, #ffffff), #ffffff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.pulso-gv2-export-menu-action-icon svg {
+  width: 17px;
+  height: 17px;
   display: block;
 }
 
 .pulso-gv2-export-menu-actions button:hover:not(:disabled) {
   border-color: var(--gv2-accent-border, var(--pulso-primary-border));
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 10%, transparent);
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 18%, #ffffff));
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 10%, transparent);
   transform: translateY(-1px);
 }
 
@@ -19471,15 +19487,19 @@
 }
 
 .pulso-gv2-export-menu-actions strong {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .pulso-gv2-export-menu-actions small {
-  margin-top: 2px;
+  margin-top: 4px;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: 10.2px;
   font-weight: 650;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-gv2-export-menu-files {

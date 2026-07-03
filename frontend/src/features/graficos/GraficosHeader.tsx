@@ -1023,7 +1023,7 @@ export function GraficosHeader({
                   </span>
                   <div>
                     <strong>Exportar reporte</strong>
-                    <span>PPT para presentación o Word para informe narrativo.</span>
+                    <span>Elige el archivo final que necesitas generar.</span>
                   </div>
                 </div>
 
@@ -1042,10 +1042,12 @@ export function GraficosHeader({
                     }}
                     disabled={!canExportFinal || exportBusy}
                   >
-                    {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                    <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
+                      {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                    </span>
                     <span>
                       <strong>PowerPoint</strong>
-                      <small>.pptx editable</small>
+                      <small>PPTX editable</small>
                     </span>
                   </button>
                   <button
@@ -1056,10 +1058,12 @@ export function GraficosHeader({
                     }}
                     disabled={!canExportFinal || exportBusy}
                   >
-                    {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                    <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
+                      {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                    </span>
                     <span>
                       <strong>Word</strong>
-                      <small>.docx narrativo</small>
+                      <small>DOCX narrativo</small>
                     </span>
                   </button>
                 </div>
