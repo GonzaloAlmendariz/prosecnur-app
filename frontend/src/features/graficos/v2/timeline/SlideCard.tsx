@@ -95,8 +95,10 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
       </div>
 
       <div className="pulso-gv2-slide-card-title">
-        <SlideTypeIcon tipo={slide.tipo} iconoUi={meta?.icono_ui} size={11} />
-        <span>{slideTypeLabel}</span>
+        <span className="pulso-gv2-slide-card-type-icon" aria-hidden="true">
+          <SlideTypeIcon tipo={slide.tipo} iconoUi={meta?.icono_ui} size={12} />
+        </span>
+        <span className="pulso-gv2-slide-card-title-label">{slideTypeLabel}</span>
       </div>
 
       {graphItems.length > 0 && (
