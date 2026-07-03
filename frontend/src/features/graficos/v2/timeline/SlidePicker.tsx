@@ -391,8 +391,10 @@ function modelStructureLabel(pattern: BlueprintPattern): string {
       return "Narrativo";
     case "single":
       return "Visual único";
+    case "cover":
+      return "Editorial";
     default:
-      return "Estructura";
+      return "Editorial";
   }
 }
 
