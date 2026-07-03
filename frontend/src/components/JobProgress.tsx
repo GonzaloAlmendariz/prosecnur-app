@@ -10,6 +10,7 @@ type Props<T> = {
   onDone?: (data: T, snapshot: JobSnapshot<T>) => void;
   onError?: (message: string) => void;
   onCancelled?: () => void;
+  onProgress?: (progress: JobProgressData | null, snapshot: JobSnapshot<T>) => void;
 };
 
 function readProgress(snapshot: JobSnapshot<unknown> | null): JobProgressData | null {
@@ -79,9 +80,10 @@ function formatMessage(message?: string, phase?: string) {
   return raw.replace(/^(Kobo|SurveyMonkey):\s*/i, "");
 }
 
-export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCancelled }: Props<T>) {
+export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCancelled, onProgress }: Props<T>) {
   const { snapshot, error, cancel } = useJob<T>(jobId);
   const notifiedRef = useRef<string | null>(null);
+  const progressNotifiedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!snapshot || !jobId) return;
@@ -100,6 +102,23 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
       onCancelled?.();
     }
   }, [snapshot, jobId, onDone, onError, onCancelled]);
+
+  useEffect(() => {
+    if (!snapshot || !jobId || !onProgress) return;
+    const progress = readProgress(snapshot);
+    const key = [
+      jobId,
+      snapshot.status,
+      progress?.phase ?? "",
+      progress?.percent ?? "",
+      progress?.current ?? "",
+      progress?.total ?? "",
+      progress?.message ?? "",
+    ].join(":");
+    if (progressNotifiedRef.current === key) return;
+    progressNotifiedRef.current = key;
+    onProgress(progress, snapshot);
+  }, [snapshot, jobId, onProgress]);
 
   if (!jobId) return null;
   if (error) return <Alert kind="error">{error}</Alert>;

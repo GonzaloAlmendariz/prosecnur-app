@@ -4733,6 +4733,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     "Cuotas por UMP",
     "Cuotas por manzana",
     "Cuotas sexo y edad",
+    "Cierre de cuotas",
     "Llenado sexo y edad",
     "Tabla maestra",
     "Ritmo diario",
@@ -4904,7 +4905,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     if (.monitoreo_sheets_is_blank_row(rows[[idx]])) next
     if (.monitoreo_sheets_is_section_row(rows[[idx]])) {
       values <- .monitoreo_sheets_row_values(rows[[idx]])
-      card_section <- grepl("TARJETAS|CARDS|RESUMEN UMP Y RESPONSABLES|RESUMEN DE OCURRENCIAS", .monitoreo_scalar(values[[1]] %||% "", ""), ignore.case = TRUE)
+      card_section <- grepl("TARJETAS|CARDS|LECTURA RÁPIDA|LECTURA RAPIDA|INDICADORES DEL CORTE|RESUMEN UMP Y RESPONSABLES|RESUMEN DE OCURRENCIAS", .monitoreo_scalar(values[[1]] %||% "", ""), ignore.case = TRUE)
       pending_header <- !isTRUE(card_section)
       next
     }
@@ -4978,6 +4979,210 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   135L
 }
 
+.monitoreo_sheets_report_block_header_rows <- function(rows) {
+  rows <- rows %||% list()
+  which(vapply(rows, function(row) {
+    values <- trimws(.monitoreo_sheets_row_values(row))
+    any(values == "Respuestas en el sistema")
+  }, logical(1)))
+}
+
+.monitoreo_sheets_report_block_format_requests <- function(sheet_id, rows, col_count) {
+  rows <- rows %||% list()
+  header_rows <- .monitoreo_sheets_report_block_header_rows(rows)
+  if (!length(header_rows)) return(list())
+  row_count <- length(rows)
+  requests <- list()
+  widths <- c(190L, 190L, 170L, 160L, 135L, 110L)
+  for (col in seq_along(widths)) {
+    requests[[length(requests) + 1L]] <- list(
+      updateDimensionProperties = list(
+        range = list(sheetId = sheet_id, dimension = "COLUMNS", startIndex = col - 1L, endIndex = col),
+        properties = list(pixelSize = widths[[col]]),
+        fields = "pixelSize"
+      )
+    )
+  }
+  subtitle_rows <- which(vapply(rows, function(row) {
+    values <- .monitoreo_sheets_row_values(row)
+    length(values) && identical(trimws(values[[1]]), "Seguimiento de Encuestas")
+  }, logical(1)))
+  for (idx in subtitle_rows) {
+    requests[[length(requests) + 1L]] <- list(
+      repeatCell = list(
+        range = list(sheetId = sheet_id, startRowIndex = idx - 1L, endRowIndex = idx, startColumnIndex = 0L, endColumnIndex = 6L),
+        cell = list(userEnteredFormat = list(
+          textFormat = list(italic = TRUE, foregroundColor = .monitoreo_sheets_rgb("#0F355E"), fontSize = 12),
+          horizontalAlignment = "LEFT"
+        )),
+        fields = "userEnteredFormat(textFormat,horizontalAlignment)"
+      )
+    )
+  }
+  meta_rows <- which(vapply(rows, function(row) {
+    values <- .monitoreo_sheets_row_values(row)
+    any(trimws(values) == "Ultima actualizacion")
+  }, logical(1)))
+  for (idx in meta_rows) {
+    requests[[length(requests) + 1L]] <- list(
+      repeatCell = list(
+        range = list(sheetId = sheet_id, startRowIndex = idx - 1L, endRowIndex = idx, startColumnIndex = 0L, endColumnIndex = 6L),
+        cell = list(userEnteredFormat = list(
+          textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb("#111827"), fontSize = 10),
+          horizontalAlignment = "CENTER"
+        )),
+        fields = "userEnteredFormat(textFormat,horizontalAlignment)"
+      )
+    )
+    requests[[length(requests) + 1L]] <- list(
+      updateBorders = list(
+        range = list(sheetId = sheet_id, startRowIndex = idx - 1L, endRowIndex = idx, startColumnIndex = 0L, endColumnIndex = 6L),
+        bottom = list(style = "SOLID_THICK", width = 2L, color = .monitoreo_sheets_rgb("#BDBDBD"))
+      )
+    )
+  }
+  status_rows <- which(vapply(rows, function(row) {
+    values <- trimws(.monitoreo_sheets_row_values(row))
+    any(values == "Nuevas respuestas último día") && any(values == "Estado de avance")
+  }, logical(1)))
+  for (idx in status_rows) {
+    end_col <- min(max(4L, length(rows[[idx]] %||% character(0))), col_count)
+    requests[[length(requests) + 1L]] <- list(
+      repeatCell = list(
+        range = list(sheetId = sheet_id, startRowIndex = idx - 1L, endRowIndex = idx, startColumnIndex = 0L, endColumnIndex = end_col),
+        cell = list(userEnteredFormat = list(
+          backgroundColor = .monitoreo_sheets_rgb("#0F4A73"),
+          horizontalAlignment = "CENTER",
+          verticalAlignment = "MIDDLE",
+          wrapStrategy = "WRAP",
+          textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb("#FFFFFF"), fontSize = 10)
+        )),
+        fields = "userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)"
+      )
+    )
+    if (idx + 1L <= row_count) {
+      requests[[length(requests) + 1L]] <- list(
+        repeatCell = list(
+          range = list(sheetId = sheet_id, startRowIndex = idx, endRowIndex = idx + 1L, startColumnIndex = 0L, endColumnIndex = end_col),
+          cell = list(userEnteredFormat = list(
+            backgroundColor = .monitoreo_sheets_rgb("#F8FAFC"),
+            horizontalAlignment = "CENTER",
+            verticalAlignment = "MIDDLE",
+            wrapStrategy = "WRAP",
+            textFormat = list(foregroundColor = .monitoreo_sheets_rgb("#111827"), fontSize = 11)
+          )),
+          fields = "userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)"
+        )
+      )
+      requests[[length(requests) + 1L]] <- list(
+        repeatCell = list(
+          range = list(sheetId = sheet_id, startRowIndex = idx, endRowIndex = idx + 1L, startColumnIndex = end_col - 1L, endColumnIndex = end_col),
+          cell = list(userEnteredFormat = list(
+            backgroundColor = .monitoreo_sheets_rgb("#DBEAFE"),
+            textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb("#1D4ED8"), fontSize = 11)
+          )),
+          fields = "userEnteredFormat(backgroundColor,textFormat)"
+        )
+      )
+    }
+    requests[[length(requests) + 1L]] <- list(
+      updateBorders = list(
+        range = list(sheetId = sheet_id, startRowIndex = idx - 1L, endRowIndex = min(row_count, idx + 1L), startColumnIndex = 0L, endColumnIndex = end_col),
+        top = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#0F4A73")),
+        bottom = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#0F4A73")),
+        left = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#0F4A73")),
+        right = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#0F4A73")),
+        innerHorizontal = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#CBD5E1")),
+        innerVertical = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#CBD5E1"))
+      )
+    )
+    requests[[length(requests) + 1L]] <- list(
+      updateDimensionProperties = list(
+        range = list(sheetId = sheet_id, dimension = "ROWS", startIndex = idx - 1L, endIndex = min(row_count, idx + 1L)),
+        properties = list(pixelSize = 32L),
+        fields = "pixelSize"
+      )
+    )
+  }
+  for (header_idx in header_rows) {
+    if (header_idx + 2L > row_count) next
+    title_idx <- header_idx - 1L
+    if (title_idx >= 1L) {
+      requests[[length(requests) + 1L]] <- list(
+        repeatCell = list(
+          range = list(sheetId = sheet_id, startRowIndex = title_idx - 1L, endRowIndex = title_idx, startColumnIndex = 0L, endColumnIndex = 6L),
+          cell = list(userEnteredFormat = list(
+            textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb("#202124"), fontSize = 13),
+            verticalAlignment = "MIDDLE"
+          )),
+          fields = "userEnteredFormat(textFormat,verticalAlignment)"
+        )
+      )
+      requests[[length(requests) + 1L]] <- list(
+        updateDimensionProperties = list(
+          range = list(sheetId = sheet_id, dimension = "ROWS", startIndex = title_idx - 1L, endIndex = title_idx),
+          properties = list(pixelSize = 34L),
+          fields = "pixelSize"
+        )
+      )
+    }
+    merge_ranges <- list(
+      list(startRowIndex = header_idx - 1L, endRowIndex = header_idx + 1L, startColumnIndex = 0L, endColumnIndex = 1L),
+      list(startRowIndex = header_idx - 1L, endRowIndex = header_idx, startColumnIndex = 1L, endColumnIndex = 4L),
+      list(startRowIndex = header_idx - 1L, endRowIndex = header_idx + 1L, startColumnIndex = 4L, endColumnIndex = 5L),
+      list(startRowIndex = header_idx - 1L, endRowIndex = header_idx + 1L, startColumnIndex = 5L, endColumnIndex = 6L)
+    )
+    for (range in merge_ranges) {
+      requests[[length(requests) + 1L]] <- list(
+        mergeCells = list(range = c(list(sheetId = sheet_id), range), mergeType = "MERGE_ALL")
+      )
+    }
+    requests[[length(requests) + 1L]] <- list(
+      repeatCell = list(
+        range = list(sheetId = sheet_id, startRowIndex = header_idx - 1L, endRowIndex = header_idx + 1L, startColumnIndex = 0L, endColumnIndex = 6L),
+        cell = list(userEnteredFormat = list(
+          backgroundColor = .monitoreo_sheets_rgb("#0F4A73"),
+          horizontalAlignment = "CENTER",
+          verticalAlignment = "MIDDLE",
+          wrapStrategy = "WRAP",
+          textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb("#FFFFFF"), fontSize = 12)
+        )),
+        fields = "userEnteredFormat(backgroundColor,horizontalAlignment,verticalAlignment,wrapStrategy,textFormat)"
+      )
+    )
+    requests[[length(requests) + 1L]] <- list(
+      repeatCell = list(
+        range = list(sheetId = sheet_id, startRowIndex = header_idx + 1L, endRowIndex = header_idx + 2L, startColumnIndex = 0L, endColumnIndex = 6L),
+        cell = list(userEnteredFormat = list(
+          horizontalAlignment = "CENTER",
+          verticalAlignment = "MIDDLE",
+          textFormat = list(foregroundColor = .monitoreo_sheets_rgb("#202124"), fontSize = 12)
+        )),
+        fields = "userEnteredFormat(horizontalAlignment,verticalAlignment,textFormat)"
+      )
+    )
+    requests[[length(requests) + 1L]] <- list(
+      updateBorders = list(
+        range = list(sheetId = sheet_id, startRowIndex = header_idx - 1L, endRowIndex = header_idx + 2L, startColumnIndex = 0L, endColumnIndex = 6L),
+        top = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#000000")),
+        bottom = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#000000")),
+        left = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#000000")),
+        right = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#000000")),
+        innerHorizontal = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#000000")),
+        innerVertical = list(style = "SOLID", width = 1L, color = .monitoreo_sheets_rgb("#000000"))
+      )
+    )
+    requests[[length(requests) + 1L]] <- list(
+      updateDimensionProperties = list(
+        range = list(sheetId = sheet_id, dimension = "ROWS", startIndex = header_idx - 1L, endIndex = header_idx + 2L),
+        properties = list(pixelSize = 34L),
+        fields = "pixelSize"
+      )
+    )
+  }
+  requests
+}
+
 .monitoreo_sheets_a1_col <- function(n) {
   n <- as.integer(n)
   if (!is.finite(n) || n <= 0L) return("A")
@@ -5041,6 +5246,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     "No iniciada" = list(bg = "#F3F4F6", fg = "#4B5563"),
     "En campo" = list(bg = "#DBEAFE", fg = "#1D4ED8"),
     "En avance" = list(bg = "#DBEAFE", fg = "#1D4ED8"),
+    "Avanzado" = list(bg = "#DBEAFE", fg = "#1D4ED8"),
     "Sin avance" = list(bg = "#E5E7EB", fg = "#374151"),
     "Sin actividad" = list(bg = "#F3F4F6", fg = "#4B5563"),
     "Sin responsable" = list(bg = "#FEF3C7", fg = "#92400E"),
@@ -5276,13 +5482,15 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     }
   }
 
+  requests <- c(requests, .monitoreo_sheets_report_block_format_requests(sheet_id, rows, col_count))
+
   headers <- .monitoreo_sheets_table_header_rows(rows)
   filter_header_index <- .monitoreo_sheets_filter_header_index(tab_name, rows, headers)
   for (item in headers) {
     idx <- item$index
     header <- item$header
     end_idx <- .monitoreo_sheets_next_block_end(rows, idx)
-    header_color <- if (technical_tab) "#5B556C" else if (tab_name %in% c("Tabla maestra", "Cuotas por manzana", "Cuotas sexo y edad", "Casos accionables", "Casos para revisar", "Validación de tiempos", "GPS y territorio")) "#9F1239" else "#123B70"
+    header_color <- if (technical_tab) "#5B556C" else if (tab_name %in% c("Tabla maestra", "Cuotas por manzana", "Cuotas sexo y edad", "Cierre de cuotas", "Casos accionables", "Casos para revisar", "Validación de tiempos", "GPS y territorio")) "#9F1239" else "#123B70"
     requests[[length(requests) + 1L]] <- list(
       repeatCell = list(
         range = list(sheetId = sheet_id, startRowIndex = idx - 1L, endRowIndex = idx, startColumnIndex = 0L, endColumnIndex = length(header)),
@@ -16158,7 +16366,9 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   if (key %in% c("telefono", "telefonico", "phone", "llamada")) return("Telefónico")
   if (key %in% c("whatsapp", "whartsapp", "wsp", "whatsapp_link", "link_whatsapp", "enlace_personalizado", "personalized_link")) return("Enlace personalizado")
   if (key %in% c("presencial", "qr", "ficha_qr", "fichas_qr", "ficha")) return("Ficha QR")
-  if (key %in% c("correo", "email", "mail", "web", "link", "enlace")) return("Correo")
+  if (key %in% c("enlace", "link", "enlace_personalizado", "personalized_link") ||
+      grepl("^enlace_personalizado|^personalized_link", key, perl = TRUE)) return("Enlace personalizado")
+  if (key %in% c("correo", "email", "mail", "web")) return("Correo")
   if (identical(.monitoreo_safe_name(role), "barrido")) return("Telefónico")
   if (grepl("whatsapp|whartsapp|personalizado", label_key, perl = TRUE)) return("Enlace personalizado")
   if (grepl("telefon", label_key, fixed = TRUE)) return("Telefónico")
@@ -23032,7 +23242,7 @@ monitoreo_production_report_pdf <- function(model, output_file, title = NULL) {
     .monitoreo_report_block("campo_vs_plataforma_responsable", "Barrido vs Kobo por responsable", utils::head(by_resp_ops[, intersect(names(by_resp_ops), c("Actor", "Responsable", "Casos asignados", "Barridos", "Efectivas telefónicas", "Efectivas Kobo", "Conciliadas por CodPulso", "Tel. efectiva sin efectiva Kobo", "Efectiva Kobo sin tel. efectiva", "Plataforma completa", "Conciliadas", "Tel. efectiva sin plataforma completa", "Plataforma completa sin tel. efectiva")), drop = FALSE], 120L))
   ))
   if (isTRUE(standalone_phone)) {
-    blocks <- c(blocks, list(.monitoreo_report_block("comparacion_codpulso", "Comparación CodPulso: barrido vs Kobo", utils::head(reconciliation_detail, 1500L))))
+    blocks <- c(blocks, list(.monitoreo_report_block("comparacion_codpulso", "Comparación CodPulso: barrido vs Kobo", reconciliation_detail)))
   }
   c(blocks, list(
     .monitoreo_report_block("estatus_responsable", "Estados por responsable", utils::head(by_status_resp, 240L)),
@@ -23723,6 +23933,7 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
       encuestadores_rutas = "Manzanas y responsables",
       responsables_rutas = "Responsables y rutas",
       cuotas_ump = "Cuotas sexo y edad",
+      cierre_cuotas = "Cierre de cuotas",
       validacion_tiempos = "Validación de tiempos",
       gps_territorio = "GPS y territorio",
       ocurrencias_campo = "Ocurrencias de campo",
@@ -23833,7 +24044,7 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
     return(c(
       portada = "Reporte",
       avance_diario = "Detalle del avance",
-      fuentes_actualizacion = "Corte y fuentes"
+      avance_por_canal_fuente = "Avance por encuesta"
     ))
   }
   if (identical(family, "acreditacion") && identical(audience, "internal")) {
@@ -23952,14 +24163,14 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
     responsable = c("responsible_display", "responsable", "Responsable", "submitted_by", "_submitted_by", "enumerator", "Encuestador", "Enumerador"),
     codigo_encuestador = c("pulso_code", "pulso_code_raw", "codigo_encuestador", "codigo", "Código", "Codigo", "CodPulso", "Cod Pulso", "Cód Pulso", "Código Pulso", "Codigo Pulso"),
     distrito = c("distrito", "Distrito", "district", "district_code", "advance_block_distrito", "Core/district"),
-    ump = c("advance_block_ump", "declared_ump_raw", "ump", "UMP", "route_ump", "hoja_num", "Core/ump"),
+    ump = c("advance_block_ump", "declared_ump_raw", "ump", "UMP", "route_ump", "hoja_num", "Core/ump", "closing_group/UMP", "closing_group/ump"),
     manzana = c("advance_block_manzana", "manzana", "Manzana", "block_id", "id_manzana", "nearest_block_id"),
     estado_caso = c("validation_status", "advance_status", "status", "estado", "Estado", "Estado del caso"),
     resultado_entrevista = c("result", "resultado", "Resultado", "platform_effective", "estado_entrevista"),
     fecha = c("submission_date", "submission_date_iso", "advance_date", "date", "fecha", "Fecha", "Core/date"),
     hora_inicio = c("start", "inicio", "hora_inicio", "start_time", "Core/start"),
     hora_fin = c("end", "fin", "hora_fin", "end_time", "submission_hour", "Core/end"),
-    duracion = c("duration_seconds", "duration", "duracion", "Duración", "duracion_segundos"),
+    duracion = c("duration_seconds", "duracion_total_start_end", "duracion_total", "duration", "duracion", "Duración", "duracion_segundos"),
     clasificacion_duracion = c("duration_status", "Estado duracion", "Estado duración", "clasificacion", "Clasificación"),
     severidad = c("severidad", "severity", "nivel", "Nivel", "prioridad"),
     descripcion = c("descripcion", "Descripción", "description", "detalle", "Detalle", "mensaje", "message"),
@@ -24180,6 +24391,57 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
   data[0, , drop = FALSE]
 }
 
+.monitoreo_publication_source_first_values_for_audit <- function(data, audit, candidates, default = "") {
+  data <- .monitoreo_workbook_df(data)
+  audit <- .monitoreo_workbook_df(audit)
+  n <- nrow(audit)
+  if (!n) return(character(0))
+  out <- rep(default, n)
+  if (!nrow(data) || !ncol(data)) return(out)
+
+  align_values <- function(values) {
+    aligned <- rep(default, n)
+    if ("row_index" %in% names(audit)) {
+      idx <- suppressWarnings(as.integer(audit$row_index))
+      ok <- is.finite(idx) & idx >= 1L & idx <= length(values)
+      aligned[ok] <- values[idx[ok]]
+      return(aligned)
+    }
+
+    fill_by_key <- function(audit_aliases, data_aliases) {
+      audit_col <- .monitoreo_report_col(audit, audit_aliases)
+      data_col <- .monitoreo_report_col(data, data_aliases)
+      if (!nzchar(audit_col) || !nzchar(data_col)) return(FALSE)
+      audit_ids <- trimws(as.character(audit[[audit_col]] %||% ""))
+      data_ids <- trimws(as.character(data[[data_col]] %||% ""))
+      pos <- match(audit_ids, data_ids)
+      ok <- nzchar(audit_ids) & is.finite(pos)
+      aligned[ok] <<- values[pos[ok]]
+      any(ok)
+    }
+
+    if (fill_by_key(c("response_id", "_id", "id"), c("_id", "response_id", "id"))) return(aligned)
+    if (fill_by_key(c("_uuid", "uuid", "formhub/uuid", "instanceID", "instance_id"), c("_uuid", "uuid", "formhub/uuid", "instanceID", "instance_id"))) return(aligned)
+    if (nrow(data) == n) values else aligned
+  }
+
+  missing <- rep(TRUE, n)
+  for (candidate in .monitoreo_chr_vec(candidates)) {
+    col <- .monitoreo_report_col(data, candidate)
+    if (!nzchar(col)) next
+    values <- as.character(data[[col]])
+    values[is.na(values)] <- default
+    aligned <- align_values(values)
+    value_key <- .monitoreo_text_key(aligned)
+    has_value <- nzchar(trimws(aligned)) & !value_key %in% c("na", "nan", "null", "sin_dato", "sin_datos", "sd")
+    fill <- missing & has_value
+    out[fill] <- aligned[fill]
+    missing[fill] <- FALSE
+    if (!any(missing)) break
+  }
+  out
+}
+
 .monitoreo_publication_first_nonempty <- function(...) {
   values <- list(...)
   for (value in values) {
@@ -24266,6 +24528,7 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
   ump_quota <- .monitoreo_publication_territorial_ump_quota_df(uncached)
   valid_audit <- .monitoreo_workbook_df(uncached$response_audit %||% list())
   if (!nrow(valid_audit)) valid_audit <- .monitoreo_workbook_df(uncached$map$points %||% list())
+  if (!nrow(valid_audit)) valid_audit <- .monitoreo_workbook_df(uncached$.publication_source_data %||% list())
   valid_audit <- if (nrow(valid_audit)) {
     .monitoreo_publication_valid_response_df(valid_audit, keep_review = TRUE)
   } else {
@@ -24655,15 +24918,33 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
 
 .monitoreo_publication_territorial_audit_df <- function(reports = list()) {
   audit <- .monitoreo_workbook_df(reports$response_audit %||% list())
+  source_data <- .monitoreo_workbook_df(reports$.publication_source_data %||% list())
+  if (!nrow(audit) && nrow(source_data)) {
+    audit <- .monitoreo_publication_valid_response_df(source_data, keep_review = TRUE)
+  }
   if (!nrow(audit)) return(data.frame())
   valid <- if ("advance_valid" %in% names(audit)) {
     .monitoreo_publication_bool_values(audit, "advance_valid", FALSE)
   } else {
-    status <- .monitoreo_publication_col_values(audit, "estado_caso", "", extra = c("validation_status", "advance_status"))
-    .monitoreo_text_key(status) %in% c("valida", "validada", "efectiva", "complete", "completa", "ok")
+    .monitoreo_publication_valid_response_mask(audit, keep_review = TRUE)
   }
-  age_raw <- .monitoreo_publication_col_values(audit, "edad", "")
-  age_num <- suppressWarnings(as.numeric(gsub(",", ".", age_raw, fixed = TRUE)))
+  tcfg <- reports$config$territorial %||% list()
+  age_candidates <- unique(c(.monitoreo_publication_aliases_for("edad"), .monitoreo_territorial_age_candidates(tcfg)))
+  sex_candidates <- unique(c(.monitoreo_publication_aliases_for("sexo"), .monitoreo_territorial_sex_candidates(tcfg)))
+  age_num <- .monitoreo_territorial_parse_age_values(.monitoreo_publication_col_values(audit, "edad", ""))
+  if (nrow(source_data)) {
+    source_age <- .monitoreo_territorial_parse_age_values(
+      .monitoreo_publication_source_first_values_for_audit(source_data, audit, age_candidates, "")
+    )
+    fill_age <- !is.finite(age_num) & is.finite(source_age)
+    age_num[fill_age] <- source_age[fill_age]
+  }
+  sex_values <- .monitoreo_publication_col_values(audit, "sexo", "")
+  if (nrow(source_data)) {
+    source_sex <- .monitoreo_publication_source_first_values_for_audit(source_data, audit, sex_candidates, "")
+    missing_sex <- !nzchar(trimws(sex_values)) | .monitoreo_text_key(sex_values) %in% c("na", "nan", "null", "sin_dato", "sin_datos", "sd")
+    sex_values[missing_sex] <- source_sex[missing_sex]
+  }
   out <- data.frame(
     Distrito = .monitoreo_publication_col_values(audit, "distrito", "Sin distrito"),
     UMP = .monitoreo_publication_col_values(audit, "ump", ""),
@@ -24671,7 +24952,7 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
     `Responsable observado` = .monitoreo_publication_col_values(audit, "responsable", ""),
     `Código encuestador` = .monitoreo_publication_col_values(audit, "codigo_encuestador", ""),
     Fecha = .monitoreo_publication_col_values(audit, "fecha", "", extra = c("submission_date", "submission_date_iso")),
-    Sexo = .monitoreo_publication_col_values(audit, "sexo", ""),
+    Sexo = sex_values,
     `Edad exacta` = age_num,
     Válida = valid,
     check.names = FALSE,
@@ -25289,6 +25570,7 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
   routes <- .monitoreo_publication_territorial_route_rows_df(reports)
   audit <- .monitoreo_publication_territorial_audit_with_groups(reports, routes)
   quota <- .monitoreo_publication_territorial_ump_quota_df(reports)
+  operational_groups <- .monitoreo_publication_territorial_operational_groups_df(quota)
   observed_rows <- list()
   if (nrow(audit)) {
     resp_values <- trimws(as.character(audit$`Responsable observado` %||% ""))
@@ -25296,7 +25578,13 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
     for (resp in resp_values) {
       part <- audit[trimws(as.character(audit$`Responsable observado` %||% "")) == resp, , drop = FALSE]
       group_keys <- unique(part$`_grupo_ump`[nzchar(part$`_grupo_ump`)])
+      op_rows <- lapply(group_keys, function(key) {
+        .monitoreo_publication_territorial_operational_group_row(operational_groups, key)
+      })
+      op_rows <- Filter(function(row) nrow(row) > 0L, op_rows)
+      op <- if (length(op_rows)) do.call(rbind, op_rows) else data.frame()
       q <- if (nrow(quota) && "UMP" %in% names(quota)) quota[quota$UMP %in% group_keys, , drop = FALSE] else data.frame()
+      state_values <- if (nrow(op) && "Estado operativo" %in% names(op)) op$`Estado operativo` else q$`Estado cuota`
       codes <- unique(trimws(as.character(part$`Código encuestador` %||% "")))
       codes <- codes[nzchar(codes)]
       districts <- unique(trimws(as.character(part$Distrito %||% "")))
@@ -25308,9 +25596,9 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
         `Código encuestador` = paste(codes, collapse = " · "),
         `Distritos recorridos` = paste(districts, collapse = " · "),
         `UMP con registros` = as.integer(length(group_keys)),
-        `UMP completas` = as.integer(sum(q$`Estado cuota` %in% c("Completa", "Subsanada"), na.rm = TRUE)),
-        `UMP subsanadas` = as.integer(sum(q$`Estado cuota` == "Subsanada", na.rm = TRUE)),
-        `UMP en campo` = as.integer(sum(q$`Estado cuota` == "En campo", na.rm = TRUE)),
+        `UMP completas` = as.integer(sum(state_values %in% c("Completa", "Subsanada"), na.rm = TRUE)),
+        `UMP subsanadas` = as.integer(sum(state_values == "Subsanada", na.rm = TRUE)),
+        `UMP en campo` = as.integer(sum(state_values == "En campo", na.rm = TRUE)),
         `Válidas observadas` = as.integer(sum(part$Válida %in% TRUE, na.rm = TRUE)),
         `Última actividad` = if (length(dates)) .monitoreo_publication_latest_date_label(dates) else "",
         Fuente = "Registro observado",
@@ -25344,21 +25632,36 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
       else titular <- titular[1, , drop = FALSE]
       replacements <- part[part$`_is_replacement`, , drop = FALSE]
       q <- if (nrow(quota) && "UMP" %in% names(quota)) quota[as.character(quota$UMP %||% "") == group_key, , drop = FALSE] else data.frame()
+      op <- .monitoreo_publication_territorial_operational_group_row(operational_groups, group_key)
       audit_part <- if (nrow(audit)) audit[audit$`_grupo_ump` == group_key & audit$Válida %in% TRUE, , drop = FALSE] else data.frame()
-      fallback_validas <- if (nrow(q) && "Válidas" %in% names(q)) suppressWarnings(as.integer(q$Válidas[[1]])) else {
+      fallback_validas <- if (nrow(op) && "Encuestas válidas" %in% names(op)) {
+        suppressWarnings(as.integer(op$`Encuestas válidas`[[1]]))
+      } else if (nrow(q) && "Válidas" %in% names(q)) {
+        suppressWarnings(as.integer(q$Válidas[[1]]))
+      } else {
         sum(suppressWarnings(as.numeric(part$`Válidas ruta` %||% 0)), na.rm = TRUE)
       }
       slots <- .monitoreo_publication_assignment_slots(audit_part, quota_count = quota_count, display_count = display_slot_count, fallback_count = fallback_validas)
-      validas <- slots$total
+      validas <- if (nrow(op) && "Encuestas válidas" %in% names(op)) suppressWarnings(as.integer(op$`Encuestas válidas`[[1]])) else slots$total
+      missing <- if (nrow(op) && "Brecha encuestas" %in% names(op)) suppressWarnings(as.integer(op$`Brecha encuestas`[[1]])) else as.integer(max(0L, quota_count - validas))
       fechas <- if (nrow(audit_part)) trimws(as.character(audit_part$Fecha %||% "")) else trimws(as.character(part$`Última actividad ruta` %||% ""))
       fechas <- fechas[nzchar(fechas)]
-      status <- .monitoreo_publication_operational_quota_status(
-        validas,
-        quota_count,
-        configured = TRUE,
-        activity = fechas,
-        has_records = length(fechas) > 0L || validas > 0
-      )
+      status <- if (nrow(op) && "Estado operativo" %in% names(op)) {
+        op$`Estado operativo`[[1]]
+      } else {
+        .monitoreo_publication_operational_quota_status(
+          validas,
+          quota_count,
+          configured = TRUE,
+          activity = fechas,
+          has_records = length(fechas) > 0L || validas > 0
+        )
+      }
+      activity_label <- if (nrow(op) && "Última actividad" %in% names(op)) {
+        .monitoreo_workbook_cell_value(op$`Última actividad`[[1]])
+      } else {
+        ""
+      }
       base <- list(
         Distrito = titular$Distrito[[1]],
         Zona = titular$Zona[[1]],
@@ -25379,9 +25682,9 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
         `Responsable asignado` = if (nzchar(trimws(titular$`Responsable planificado`[[1]] %||% ""))) titular$`Responsable planificado`[[1]] else "Sin responsable",
         `Código asignado` = titular$`Código encuestador planificado`[[1]],
         `Encuestas válidas` = as.integer(validas),
-        `Encuestas faltantes` = as.integer(max(0L, quota_count - validas)),
+        `Encuestas faltantes` = as.integer(max(0L, missing)),
         `Estado UMP` = status,
-        `Última actividad` = if (length(fechas)) .monitoreo_publication_latest_date_label(fechas) else ""
+        `Última actividad` = if (nzchar(activity_label)) activity_label else if (length(fechas)) .monitoreo_publication_latest_date_label(fechas) else ""
       )
       survey_cols <- stats::setNames(as.list(slots$slots), paste("Encuesta", seq_len(display_slot_count)))
       planned_rows[[length(planned_rows) + 1L]] <- as.data.frame(c(base, survey_cols), check.names = FALSE, stringsAsFactors = FALSE)
@@ -25578,6 +25881,7 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
 .monitoreo_publication_quota_professional_df <- function(reports = list()) {
   quota <- .monitoreo_workbook_df(.monitoreo_publication_territorial_ump_quota_df(reports))
   if (!nrow(quota) || identical(names(quota), "Estado")) return(quota)
+  operational_groups <- .monitoreo_publication_territorial_operational_groups_df(quota)
   exact_ages <- .monitoreo_publication_exact_age_lists_by_ump(reports)
   sex_labels <- sub("^Sexo (.+) observado$", "\\1", grep("^Sexo .+ observado$", names(quota), value = TRUE))
   sex_labels <- unique(c("Hombre", "Mujer", sex_labels[nzchar(sex_labels)]))
@@ -25586,6 +25890,26 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
   age_labels <- sub("^Edad (.+) observado$", "\\1", grep("^Edad .+ observado$", names(quota), value = TRUE))
   age_labels <- unique(c("18-29", "30-44", "45-59", "60+", age_labels[nzchar(age_labels)]))
   age_labels <- age_labels[.monitoreo_publication_quota_age_order(age_labels)]
+  operational_status_for_row <- function(ump, tipo_display, manzana, raw_status, validas) {
+    group <- .monitoreo_publication_territorial_operational_group_row(operational_groups, ump)
+    if (!nrow(group) || !"Estado operativo" %in% names(group)) return(raw_status)
+    group_status <- .monitoreo_workbook_cell_value(group$`Estado operativo`[[1]])
+    active_type <- .monitoreo_text_key(.monitoreo_workbook_cell_value(group$`Tipo que completa`[[1]] %||% "Titular"))
+    active_manzana <- .monitoreo_text_key(.monitoreo_workbook_cell_value(group$`Manzana activa`[[1]] %||% ""))
+    row_manzana <- .monitoreo_text_key(manzana)
+    is_replacement <- identical(.monitoreo_publication_route_type_label(tipo_display), "Reemplazo")
+    active_replacement <- grepl("reemplazo", active_type, fixed = TRUE)
+    active_manzana_match <- !nzchar(active_manzana) || !nzchar(row_manzana) || identical(active_manzana, row_manzana)
+    if (identical(is_replacement, active_replacement) && active_manzana_match) return(group_status)
+    if (!is_replacement && active_replacement) return("Titular reemplazada")
+    if (is_replacement && !active_manzana_match) {
+      validas <- suppressWarnings(as.numeric(validas %||% 0))
+      if (is.finite(validas) && validas > 0) return("Reemplazo usado")
+      return("Reemplazo sin uso")
+    }
+    if (!is_replacement && !active_replacement) return(group_status)
+    group_status
+  }
 
   rows <- lapply(seq_len(nrow(quota)), function(idx) {
     q <- quota[idx, , drop = FALSE]
@@ -25609,19 +25933,23 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
     if (identical(tipo_display, "Reemplazo")) {
       replacement_raw <- .monitoreo_publication_replacement_display_label("reemplazo", replacement_order, ump, fallback = replacement_raw)
     }
+    manzana_raw <- txt("Manzana de referencia", "Sin manzana")
     validas_n <- as.integer(max(0, num("Válidas")))
     status_label <- txt("Estado cuota", "Sin información suficiente")
+    status_label <- operational_status_for_row(ump, tipo_display, manzana_raw, status_label, validas_n)
     activity_label <- txt("Actividad", txt("Última actividad", ""))
     responsible_raw <- txt("Responsable", "")
+    usage_label <- .monitoreo_publication_replacement_usage_label(tipo_raw, validas_n, status_label, activity_label)
+    if (!identical(tipo_display, "Reemplazo") && identical(status_label, "Titular reemplazada")) usage_label <- "Sustituida"
     base <- list(
       Distrito = txt("Distrito", "Sin distrito"),
       Zona = txt("Zona", "Sin zona"),
       UMP = .monitoreo_publication_route_unit_label(ump, tipo_raw, replacement_raw, replacement_order),
       `UMP titular` = .monitoreo_publication_ump_display_label(ump),
-      Manzana = txt("Manzana de referencia", "Sin manzana"),
+      Manzana = manzana_raw,
       Tipo = .monitoreo_publication_route_type_display(tipo_raw, replacement_raw, replacement_order),
       Reemplazo = if (identical(tipo_display, "Reemplazo")) replacement_raw else "",
-      `Uso reemplazo` = .monitoreo_publication_replacement_usage_label(tipo_raw, validas_n, status_label, activity_label),
+      `Uso reemplazo` = usage_label,
       `Reemplaza a` = if (identical(tipo_display, "Reemplazo")) txt("titular_id_manzana", "") else "",
       tipo_manzana = tipo_raw,
       reemplazo = replacement_raw,
@@ -25780,16 +26108,31 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
   routes <- .monitoreo_publication_territorial_route_rows_df(reports)
   audit <- .monitoreo_publication_territorial_audit_with_groups(reports, routes)
   observed_map <- .monitoreo_publication_territorial_cache_value(reports, "observed_summary_map")
+  operational_groups <- .monitoreo_publication_territorial_operational_groups_df(
+    .monitoreo_publication_territorial_ump_quota_df(reports)
+  )
   rows <- list()
   for (row in blocks) {
     tipo <- .monitoreo_publication_route_type_label(.monitoreo_publication_row_chr(row, c("tipo_manzana", "tipo", "block_type"), "titular"))
     validas <- .monitoreo_publication_row_num(row, c("validas", "efectivas", "achieved", "done"), 0)
     if (identical(tipo, "Reemplazo") && (!is.finite(validas) || validas <= 0)) next
 	    replacement_order <- .monitoreo_publication_row_num(row, c("replacement_order", "orden_reemplazo", "replacementOrder"), NA_real_)
-	    group_key <- .monitoreo_publication_row_chr(row, c("titular_hoja_num", "titular_ump", "ump_titular", "primary_ump", "ump", "hoja_num", "route_ump"), "")
+	    group_key <- .monitoreo_publication_row_chr(row, c("titular_hoja_num", "titular_ump", "ump_titular", "primary_ump", "UMP titular"), "")
+	    if (!nzchar(trimws(group_key))) {
+	      group_key <- .monitoreo_publication_row_chr(row, c("UMP", "ump", "hoja_num", "route_ump"), "")
+	    }
 	    replacement_label <- .monitoreo_publication_replacement_display_label(tipo, replacement_order, group_key)
 	    ump_label <- .monitoreo_publication_route_unit_label(group_key, if (identical(tipo, "Reemplazo")) "reemplazo" else "titular", replacement_label, replacement_order)
     tipo_display <- .monitoreo_publication_route_type_display(if (identical(tipo, "Reemplazo")) "reemplazo" else "titular", replacement_label, replacement_order)
+    operational_group <- .monitoreo_publication_territorial_operational_group_row(operational_groups, group_key)
+    if (nrow(operational_group)) {
+      active_type <- .monitoreo_text_key(.monitoreo_workbook_cell_value(operational_group$`Tipo que completa`[[1]] %||% "Titular"))
+      active_manzana <- .monitoreo_text_key(.monitoreo_workbook_cell_value(operational_group$`Manzana activa`[[1]] %||% ""))
+      row_manzana <- .monitoreo_text_key(.monitoreo_publication_row_chr(row, c("manzana", "id_manzana", "block_id"), ""))
+      active_replacement <- grepl("reemplazo", active_type, fixed = TRUE)
+      active_manzana_match <- !nzchar(active_manzana) || !nzchar(row_manzana) || identical(active_manzana, row_manzana)
+      if (!(identical(identical(tipo, "Reemplazo"), active_replacement) && active_manzana_match)) next
+    }
     titular_id <- .monitoreo_publication_row_chr(row, c("titular_id_manzana", "primary_block_id", "titular_manzana", "primary_manzana"), "")
     manzana_ref <- .monitoreo_publication_row_chr(row, c("titular_manzana", "titular_id_manzana", "primary_manzana", "manzana", "id_manzana", "block_id"), "")
     observed <- .monitoreo_publication_territorial_observed_summary(audit, group_key, observed_map = observed_map)
@@ -25906,12 +26249,14 @@ detect_monitoreo_family <- function(session = NULL, config = list(), data = NULL
   "En avance"
 }
 
-.monitoreo_publication_client_coverage_status_label <- function(done, universe) {
+.monitoreo_publication_client_coverage_status_label <- function(done, universe, pending = NULL) {
   done <- suppressWarnings(as.numeric(done %||% NA_real_))
   universe <- suppressWarnings(as.numeric(universe %||% NA_real_))
+  pending <- suppressWarnings(as.numeric(pending %||% NA_real_))
   if (!is.finite(universe) || universe <= 0) return("Sin universo configurado")
   if (!is.finite(done)) return("Sin información suficiente")
   if (done <= 0) return("Sin avance")
+  if (is.finite(pending) && pending <= 0 && done < universe) return("Avanzado")
   pct <- done / universe
   if (pct >= 1) return("Cobertura completa")
   if (pct >= 0.8) return("Avance alto")
@@ -26621,10 +26966,32 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   )
 }
 
+.monitoreo_publication_territorial_operational_group_row <- function(operational_groups, group_key) {
+  groups <- .monitoreo_workbook_df(operational_groups)
+  if (!nrow(groups)) return(data.frame())
+  group_key <- trimws(.monitoreo_scalar(group_key, ""))
+  if (!nzchar(group_key)) return(data.frame())
+  group_label <- .monitoreo_publication_ump_display_label(group_key)
+  group_number <- .monitoreo_publication_ump_sort_number(group_key)
+  match_idx <- rep(FALSE, nrow(groups))
+  for (col in intersect(c("UMP base", "UMP"), names(groups))) {
+    values <- trimws(as.character(groups[[col]] %||% ""))
+    match_idx <- match_idx | values %in% c(group_key, group_label)
+    if (length(group_number) && is.finite(group_number[[1]])) {
+      value_numbers <- .monitoreo_publication_ump_sort_number(values)
+      match_idx <- match_idx | (is.finite(value_numbers) & value_numbers == group_number[[1]])
+    }
+  }
+  hit <- which(match_idx)
+  if (!length(hit)) return(data.frame())
+  groups[hit[[1]], , drop = FALSE]
+}
+
 .monitoreo_publication_territorial_routes_df <- function(reports = list()) {
   routes <- .monitoreo_publication_territorial_route_rows_df(reports)
   audit <- .monitoreo_publication_territorial_audit_with_groups(reports, routes)
   quota <- .monitoreo_publication_territorial_ump_quota_df(reports)
+  operational_groups <- .monitoreo_publication_territorial_operational_groups_df(quota)
   observed_map <- .monitoreo_publication_territorial_cache_value(reports, "observed_summary_map")
   quota_for_group <- function(group_key) {
     if (!nrow(quota) || !"UMP" %in% names(quota)) return(data.frame())
@@ -26662,6 +27029,7 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
     if (!nrow(audit)) return(.monitoreo_publication_empty_df("Sin rutas/UMP para este corte."))
     rows <- lapply(unique(audit$`_grupo_ump`), function(group_key) {
       observed <- .monitoreo_publication_territorial_observed_summary(audit, group_key, observed_map = observed_map)
+      group_operational <- .monitoreo_publication_territorial_operational_group_row(operational_groups, group_key)
       part <- audit[audit$`_grupo_ump` == group_key, , drop = FALSE]
       data.frame(
         Distrito = part$Distrito[[1]],
@@ -26687,7 +27055,7 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
         Población = NA_integer_,
         `Válidas observadas` = observed$validas,
         `Última actividad` = observed$last_activity,
-        `Estado UMP` = .monitoreo_publication_ump_quota_status(observed$validas, .monitoreo_publication_territorial_config_ump_quota(reports), active = TRUE),
+        `Estado UMP` = if (nrow(group_operational)) group_operational$`Estado operativo`[[1]] else .monitoreo_publication_ump_quota_status(observed$validas, .monitoreo_publication_territorial_config_ump_quota(reports), active = TRUE),
         check.names = FALSE,
         stringsAsFactors = FALSE
       )
@@ -26700,8 +27068,15 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
     route <- routes[idx, , drop = FALSE]
     group_key <- route$`_grupo_ump`
     group_quota <- quota_for_group(group_key)
-    group_status <- if (nrow(group_quota)) group_quota$`Estado cuota`[[1]] else "Sin información suficiente"
-    group_validas <- if (nrow(group_quota)) suppressWarnings(as.numeric(group_quota$Válidas[[1]])) else route$`Válidas ruta`
+    group_operational <- .monitoreo_publication_territorial_operational_group_row(operational_groups, group_key)
+    group_status <- if (nrow(group_operational)) group_operational$`Estado operativo`[[1]] else if (nrow(group_quota)) group_quota$`Estado cuota`[[1]] else "Sin información suficiente"
+    group_validas <- if (nrow(group_operational)) {
+      suppressWarnings(as.numeric(group_operational$`Encuestas válidas`[[1]]))
+    } else if (nrow(group_quota)) {
+      suppressWarnings(as.numeric(group_quota$Válidas[[1]]))
+    } else {
+      route$`Válidas ruta`
+    }
     observed <- .monitoreo_publication_territorial_observed_summary(
       audit,
       group_key,
@@ -27476,6 +27851,307 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   )
 }
 
+.monitoreo_publication_quota_gap_items <- function(labels, observed, target) {
+  gaps <- .monitoreo_publication_quota_gap_values(labels, observed, target)
+  keep <- is.finite(gaps) & gaps > 0 & nzchar(trimws(names(gaps)))
+  if (!any(keep)) return(list(total = 0L, label = "Sin faltantes"))
+  items <- paste0(names(gaps)[keep], " x", as.integer(gaps[keep]))
+  list(total = as.integer(sum(gaps[keep], na.rm = TRUE)), label = paste(items, collapse = " · "))
+}
+
+.monitoreo_publication_quota_gap_values <- function(labels, observed, target) {
+  observed <- suppressWarnings(as.numeric(observed %||% 0))
+  target <- suppressWarnings(as.numeric(target %||% 0))
+  len <- max(length(labels), length(observed), length(target))
+  if (!len) return(stats::setNames(integer(0), character(0)))
+  labels <- rep_len(as.character(labels %||% ""), len)
+  observed <- rep_len(observed, len)
+  target <- rep_len(target, len)
+  observed[!is.finite(observed)] <- 0
+  target[!is.finite(target)] <- 0
+  gap <- pmax(0, target - observed)
+  labels[is.na(labels)] <- ""
+  stats::setNames(as.integer(gap), labels)
+}
+
+.monitoreo_publication_quota_gap_value <- function(values, label) {
+  if (!length(values) || is.null(names(values))) return(0L)
+  hit <- which(names(values) == label)
+  if (!length(hit)) return(0L)
+  value <- suppressWarnings(as.integer(values[[hit[[1]]]]))
+  if (is.finite(value)) value else 0L
+}
+
+.monitoreo_publication_quota_gap_list_label <- function(values, labels = NULL) {
+  if (!length(values)) return("Sin faltantes")
+  if (is.null(labels)) labels <- names(values)
+  labels <- as.character(labels %||% names(values))
+  out <- vapply(labels, function(label) {
+    value <- .monitoreo_publication_quota_gap_value(values, label)
+    if (value > 0L) paste0(label, " x", value) else ""
+  }, character(1))
+  out <- out[nzchar(out)]
+  if (length(out)) paste(out, collapse = " · ") else "Sin faltantes"
+}
+
+.monitoreo_publication_count_phrase <- function(n, singular, plural = NULL) {
+  n <- suppressWarnings(as.integer(n %||% 0L))
+  if (!is.finite(n) || n <= 0L) return("")
+  if (is.null(plural)) plural <- paste0(singular, "s")
+  paste(n, if (identical(n, 1L)) singular else plural)
+}
+
+.monitoreo_publication_quota_sex_plain_label <- function(values) {
+  hombre <- .monitoreo_publication_quota_gap_value(values, "Hombre")
+  mujer <- .monitoreo_publication_quota_gap_value(values, "Mujer")
+  parts <- c(
+    .monitoreo_publication_count_phrase(hombre, "hombre", "hombres"),
+    .monitoreo_publication_count_phrase(mujer, "mujer", "mujeres")
+  )
+  parts <- parts[nzchar(parts)]
+  if (!length(parts)) return("")
+  paste(parts, collapse = " y ")
+}
+
+.monitoreo_publication_quota_age_plain_label <- function(values, labels = NULL) {
+  if (is.null(labels)) labels <- names(values)
+  labels <- as.character(labels %||% names(values))
+  parts <- vapply(labels, function(label) {
+    value <- .monitoreo_publication_quota_gap_value(values, label)
+    if (value <= 0L) return("")
+    paste0(.monitoreo_publication_count_phrase(value, "persona", "personas"), " del rango ", label)
+  }, character(1))
+  parts <- parts[nzchar(parts)]
+  if (!length(parts)) return("")
+  paste(parts, collapse = "; ")
+}
+
+.monitoreo_publication_quota_field_request <- function(digit_min, sex_gap_values, age_gap_values, age_labels) {
+  digit_min <- suppressWarnings(as.integer(digit_min %||% 0L))
+  if (!is.finite(digit_min) || digit_min <= 0L) {
+    return("Revisar cierre; la cuota aparece pendiente sin faltante operativo claro.")
+  }
+  sex_total <- sum(c(
+    .monitoreo_publication_quota_gap_value(sex_gap_values, "Hombre"),
+    .monitoreo_publication_quota_gap_value(sex_gap_values, "Mujer")
+  ), na.rm = TRUE)
+  age_total <- sum(vapply(age_labels, function(label) {
+    .monitoreo_publication_quota_gap_value(age_gap_values, label)
+  }, integer(1)), na.rm = TRUE)
+  sex_labels <- c("Hombre", "Mujer")
+  missing_sex <- sex_labels[vapply(sex_labels, function(label) .monitoreo_publication_quota_gap_value(sex_gap_values, label) > 0L, logical(1))]
+  missing_age <- age_labels[vapply(age_labels, function(label) .monitoreo_publication_quota_gap_value(age_gap_values, label) > 0L, logical(1))]
+
+  if (digit_min == 1L && length(missing_sex) == 1L && length(missing_age) == 1L) {
+    sex_word <- if (identical(missing_sex[[1]], "Mujer")) "mujer" else "hombre"
+    return(paste0("Completar 1 encuesta efectiva a 1 ", sex_word, " del rango ", missing_age[[1]], "."))
+  }
+  if (digit_min == 1L && !length(missing_sex) && length(missing_age) == 1L) {
+    return(paste0("Completar 1 encuesta efectiva en el rango ", missing_age[[1]], ". Puede ser hombre o mujer porque la cuota de sexo ya está cubierta."))
+  }
+  if (digit_min == 1L && length(missing_sex) == 1L && !length(missing_age)) {
+    sex_word <- if (identical(missing_sex[[1]], "Mujer")) "mujer" else "hombre"
+    return(paste0("Completar 1 encuesta efectiva a 1 ", sex_word, " de cualquier rango de edad."))
+  }
+
+  sex_plain <- .monitoreo_publication_quota_sex_plain_label(sex_gap_values)
+  age_plain <- .monitoreo_publication_quota_age_plain_label(age_gap_values, age_labels)
+  lead <- paste0("Completar ", .monitoreo_publication_count_phrase(digit_min, "encuesta efectiva", "encuestas efectivas"))
+  if (nzchar(sex_plain) && nzchar(age_plain)) {
+    return(paste0(lead, ": ", sex_plain, "; cubrir ", age_plain, "."))
+  }
+  if (nzchar(sex_plain)) return(paste0(lead, ": ", sex_plain, " de cualquier rango de edad."))
+  if (nzchar(age_plain)) return(paste0(lead, ": ", age_plain, ". Puede ser hombre o mujer porque la cuota de sexo ya está cubierta."))
+  paste0(lead, " de cualquier sexo y rango.")
+}
+
+.monitoreo_publication_quota_closure_detail_df <- function(reports = list()) {
+  quota <- .monitoreo_workbook_df(.monitoreo_publication_quota_with_observed_sex_age_df(reports))
+  if (!nrow(quota) || !"Estado cuota" %in% names(quota)) {
+    return(.monitoreo_publication_empty_df("Sin cuotas UMP para cierre."))
+  }
+  status_key <- .monitoreo_text_key(quota$`Estado cuota` %||% "")
+  keep <- status_key %in% c(
+    "en campo", "en_campo", "en avance", "en_avance",
+    "cuota pendiente", "cuota_pendiente", "pendiente", "partial", "parcial",
+    "no iniciada", "no_iniciada", "sin cuota", "sin_cuota",
+    "no configurada", "no_configurada", "sin informacion suficiente",
+    "sin_informacion_suficiente"
+  )
+  quota <- quota[keep, , drop = FALSE]
+  if (!nrow(quota)) return(.monitoreo_publication_empty_df("Sin UMP pendientes de encuestas para cierre."))
+
+  default_target <- .monitoreo_publication_territorial_config_ump_quota(reports, default = 8L)
+  if (!is.finite(default_target) || default_target <= 0) default_target <- 8L
+  sex_labels <- c("Hombre", "Mujer", "Sin dato")
+  sex_labels <- sex_labels[paste0(sex_labels, " (n)") %in% names(quota)]
+  age_cols <- grep("^Edad .+ \\(n\\)$", names(quota), value = TRUE)
+  age_labels <- sub("^Edad (.+) \\(n\\)$", "\\1", age_cols)
+
+  num_at <- function(df, idx, col, default = 0) {
+    value <- if (col %in% names(df)) df[[col]][[idx]] else default
+    parsed <- suppressWarnings(as.numeric(value %||% default))
+    if (is.finite(parsed)) parsed else default
+  }
+  chr_at <- function(df, idx, col, default = "") {
+    if (!col %in% names(df)) return(default)
+    value <- .monitoreo_workbook_cell_value(df[[col]][[idx]])
+    if (nzchar(trimws(value))) value else default
+  }
+
+  rows <- lapply(seq_len(nrow(quota)), function(idx) {
+    observed_sex <- vapply(sex_labels, function(label) num_at(quota, idx, paste0(label, " (n)")), numeric(1))
+    target_sex <- vapply(sex_labels, function(label) num_at(quota, idx, paste0("Cuota ", tolower(label), " (n)")), numeric(1))
+    observed_age <- vapply(age_labels, function(label) num_at(quota, idx, paste0("Edad ", label, " (n)")), numeric(1))
+    target_age <- vapply(age_labels, function(label) num_at(quota, idx, paste0("Cuota Edad ", label, " (n)")), numeric(1))
+    sex_gap_values <- .monitoreo_publication_quota_gap_values(sex_labels, observed_sex, target_sex)
+    age_gap_values <- .monitoreo_publication_quota_gap_values(age_labels, observed_age, target_age)
+    sex_gap <- .monitoreo_publication_quota_gap_items(sex_labels, observed_sex, target_sex)
+    age_gap <- .monitoreo_publication_quota_gap_items(age_labels, observed_age, target_age)
+    effective <- num_at(quota, idx, "Efectivas (n)")
+    total_target <- sum(target_sex, na.rm = TRUE)
+    if (!is.finite(total_target) || total_target <= 0) total_target <- sum(target_age, na.rm = TRUE)
+    if (!is.finite(total_target) || total_target <= 0) total_target <- default_target
+    total_gap <- as.integer(max(0, round(total_target - effective)))
+    digit_min <- as.integer(max(total_gap, sex_gap$total, age_gap$total, na.rm = TRUE))
+    category_parts <- c(
+      if (total_gap > 0) paste0("Cantidad total x", total_gap) else character(0),
+      if (sex_gap$total > 0) paste0("Sexo: ", sex_gap$label) else character(0),
+      if (age_gap$total > 0) paste0("Edad: ", age_gap$label) else character(0)
+    )
+    categories <- if (length(category_parts)) paste(category_parts, collapse = " | ") else "Sin faltantes"
+    field_request <- .monitoreo_publication_quota_field_request(digit_min, sex_gap_values, age_gap_values, age_labels)
+    responsible_real <- chr_at(quota, idx, "Responsable real")
+    responsible <- if (.monitoreo_publication_has_assigned_responsible(responsible_real)) responsible_real else chr_at(quota, idx, "Responsable", "Sin responsable")
+    priority <- if (digit_min >= 3L || total_gap > 0L) "Alta" else if (digit_min > 0L) "Media" else "Baja"
+    data.frame(
+      Distrito = chr_at(quota, idx, "Distrito", "Sin distrito"),
+      Zona = chr_at(quota, idx, "Zona"),
+      UMP = chr_at(quota, idx, "UMP"),
+      Manzana = chr_at(quota, idx, "Manzana"),
+      Tipo = chr_at(quota, idx, "Tipo"),
+      Reemplazo = chr_at(quota, idx, "Reemplazo"),
+      `Uso reemplazo` = chr_at(quota, idx, "Uso reemplazo"),
+      `Reemplaza a` = chr_at(quota, idx, "Reemplaza a"),
+      `UMP titular` = chr_at(quota, idx, "UMP titular", chr_at(quota, idx, "UMP")),
+      Responsable = responsible,
+      `Efectivas actuales` = as.integer(max(0, effective)),
+      `Meta UMP` = as.integer(max(0, round(total_target))),
+      `Faltan por cantidad` = total_gap,
+      `Faltantes sexo` = sex_gap$total,
+      `Faltantes edad` = age_gap$total,
+      `Hombres faltantes` = .monitoreo_publication_quota_gap_value(sex_gap_values, "Hombre"),
+      `Mujeres faltantes` = .monitoreo_publication_quota_gap_value(sex_gap_values, "Mujer"),
+      `18-29 faltantes` = .monitoreo_publication_quota_gap_value(age_gap_values, "18-29"),
+      `30-44 faltantes` = .monitoreo_publication_quota_gap_value(age_gap_values, "30-44"),
+      `45-59 faltantes` = .monitoreo_publication_quota_gap_value(age_gap_values, "45-59"),
+      `60+ faltantes` = .monitoreo_publication_quota_gap_value(age_gap_values, "60+"),
+      `Encuestas por completar` = digit_min,
+      `Qué completar para cerrar` = field_request,
+      `Categorías a cerrar` = categories,
+      `Último ingreso` = chr_at(quota, idx, "Último ingreso", "Sin registro Kobo"),
+      `Estado cuota` = chr_at(quota, idx, "Estado cuota", "Cuota pendiente"),
+      Prioridad = priority,
+      `Acción para campo` = if (digit_min > 0L) {
+        field_request
+      } else {
+        "Revisar cuota pendiente antes de cerrar."
+      },
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  out <- out[order(
+    out$Distrito,
+    -suppressWarnings(as.numeric(out$`Encuestas por completar` %||% 0)),
+    .monitoreo_publication_ump_sort_number(out$UMP),
+    out$UMP
+  ), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.monitoreo_publication_quota_closure_simple_df <- function(detail) {
+  detail <- .monitoreo_workbook_df(detail)
+  if (!nrow(detail) || !"Distrito" %in% names(detail)) {
+    return(.monitoreo_publication_empty_df("Sin UMP pendientes de encuestas para cierre."))
+  }
+  cols <- c(
+    "Distrito", "UMP titular", "UMP", "Manzana", "Tipo", "Reemplazo", "Responsable",
+    "Efectivas actuales", "Meta UMP", "Encuestas por completar",
+    "Hombres faltantes", "Mujeres faltantes",
+    "18-29 faltantes", "30-44 faltantes", "45-59 faltantes", "60+ faltantes",
+    "Qué completar para cerrar", "Último ingreso", "Prioridad"
+  )
+  for (col in setdiff(cols, names(detail))) detail[[col]] <- ""
+  out <- detail[, cols, drop = FALSE]
+  out <- out[order(
+    out$Distrito,
+    -suppressWarnings(as.numeric(out$`Encuestas por completar` %||% 0)),
+    .monitoreo_publication_ump_sort_number(out$`UMP titular`),
+    out$`UMP titular`,
+    out$UMP
+  ), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.monitoreo_publication_quota_closure_summary_df <- function(detail) {
+  detail <- .monitoreo_workbook_df(detail)
+  if (!nrow(detail) || !"Distrito" %in% names(detail)) {
+    return(.monitoreo_publication_empty_df("Sin UMP pendientes de encuestas para cierre."))
+  }
+  make_row <- function(district, part) {
+    digit <- sum(suppressWarnings(as.numeric(part$`Encuestas por completar` %||% 0)), na.rm = TRUE)
+    total_gap <- sum(suppressWarnings(as.numeric(part$`Faltan por cantidad` %||% 0)), na.rm = TRUE)
+    sex_gap <- sum(suppressWarnings(as.numeric(part$`Faltantes sexo` %||% 0)), na.rm = TRUE)
+    age_gap <- sum(suppressWarnings(as.numeric(part$`Faltantes edad` %||% 0)), na.rm = TRUE)
+    umps <- unique(trimws(paste(part$UMP, part$Manzana, sep = " / ")))
+    umps <- umps[nzchar(umps)]
+    responsible <- unique(trimws(as.character(part$Responsable %||% "")))
+    responsible <- responsible[.monitoreo_publication_has_assigned_responsible(responsible)]
+    data.frame(
+      Distrito = district,
+      `UMP por completar` = as.integer(nrow(part)),
+      `Encuestas por completar` = as.integer(digit),
+      `Faltan por cantidad` = as.integer(total_gap),
+      `Faltantes sexo` = as.integer(sex_gap),
+      `Faltantes edad` = as.integer(age_gap),
+      `UMP / manzana` = if (length(umps)) paste(umps, collapse = " · ") else "",
+      Responsables = if (length(responsible)) paste(responsible, collapse = " · ") else "Sin responsable",
+      `Prioridad máxima` = if (any(part$Prioridad == "Alta")) "Alta" else if (any(part$Prioridad == "Media")) "Media" else "Baja",
+      Lectura = if (digit > 0) {
+        paste0("Faltan al menos ", as.integer(digit), " encuesta(s) efectiva(s) para cerrar cuotas del distrito.")
+      } else {
+        "Sin encuestas pendientes para cierre."
+      },
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  }
+  districts <- unique(as.character(detail$Distrito %||% "Sin distrito"))
+  districts[!nzchar(trimws(districts))] <- "Sin distrito"
+  rows <- lapply(districts, function(district) make_row(district, detail[as.character(detail$Distrito %||% "") == district, , drop = FALSE]))
+  out <- do.call(rbind, rows)
+  out <- out[order(-suppressWarnings(as.numeric(out$`Encuestas por completar` %||% 0)), out$Distrito), , drop = FALSE]
+  total <- make_row("TOTAL", detail)
+  out <- rbind(out, total)
+  rownames(out) <- NULL
+  out
+}
+
+.monitoreo_publication_territorial_quota_closure_sheet_df <- function(reports = list()) {
+  detail <- .monitoreo_publication_quota_closure_detail_df(reports)
+  simple <- .monitoreo_publication_quota_closure_simple_df(detail)
+  summary <- .monitoreo_publication_quota_closure_summary_df(detail)
+  .monitoreo_workbook_bind(
+    .monitoreo_publication_tag_df("Lista simple para cierre", simple),
+    .monitoreo_publication_tag_df("Resumen de cierre por distrito", summary),
+    .monitoreo_publication_tag_df("UMP por completar para cierre", detail)
+  )
+}
+
 .monitoreo_publication_num_col <- function(df, candidates, default = 0) {
   df <- .monitoreo_workbook_df(df)
   hit <- intersect(candidates, names(df))
@@ -28079,15 +28755,61 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   out
 }
 
+.monitoreo_publication_duration_seconds_for_audit <- function(audit, reports = list()) {
+  audit <- .monitoreo_workbook_df(audit)
+  n <- nrow(audit)
+  if (!n) return(numeric(0))
+  duration_candidates <- .monitoreo_publication_aliases_for("duracion")
+  seconds <- suppressWarnings(as.numeric(
+    .monitoreo_publication_col_values(audit, "duracion", NA_character_, extra = duration_candidates)
+  ))
+  if (length(seconds) != n) seconds <- rep(NA_real_, n)
+
+  start_raw <- .monitoreo_publication_col_values(audit, "hora_inicio", "")
+  end_raw <- .monitoreo_publication_col_values(audit, "hora_fin", "")
+  source_data <- .monitoreo_workbook_df(reports$.publication_source_data %||% list())
+  if (nrow(source_data)) {
+    source_start <- .monitoreo_publication_source_first_values_for_audit(
+      source_data,
+      audit,
+      .monitoreo_publication_aliases_for("hora_inicio"),
+      ""
+    )
+    source_end <- .monitoreo_publication_source_first_values_for_audit(
+      source_data,
+      audit,
+      .monitoreo_publication_aliases_for("hora_fin"),
+      ""
+    )
+    missing_start <- !nzchar(trimws(start_raw))
+    missing_end <- !nzchar(trimws(end_raw))
+    start_raw[missing_start & nzchar(trimws(source_start))] <- source_start[missing_start & nzchar(trimws(source_start))]
+    end_raw[missing_end & nzchar(trimws(source_end))] <- source_end[missing_end & nzchar(trimws(source_end))]
+  }
+
+  start_time <- .monitoreo_parse_time_vec(start_raw)
+  end_time <- .monitoreo_parse_time_vec(end_raw)
+  derived <- suppressWarnings(as.numeric(difftime(end_time, start_time, units = "secs")))
+  derived[!is.finite(derived) | derived < 0] <- NA_real_
+  fill <- !is.finite(seconds) | seconds < 0
+  seconds[fill & is.finite(derived)] <- derived[fill & is.finite(derived)]
+  seconds
+}
+
 .monitoreo_publication_territorial_validation_df <- function(reports = list(), audience = "client") {
-  audit <- .monitoreo_workbook_df(reports$response_audit %||% list())
-  if (!nrow(audit)) return(.monitoreo_publication_empty_df("Sin auditoria de tiempos para este corte."))
-  audit <- .monitoreo_publication_valid_response_df(audit, keep_review = TRUE)
+  audit <- .monitoreo_publication_territorial_cache_value(reports, "valid_response_audit")
+  if (!is.data.frame(audit)) {
+    audit <- .monitoreo_workbook_df(reports$response_audit %||% list())
+    if (!nrow(audit)) audit <- .monitoreo_workbook_df(reports$map$points %||% list())
+    if (!nrow(audit)) audit <- .monitoreo_workbook_df(reports$.publication_source_data %||% list())
+    if (!nrow(audit)) return(.monitoreo_publication_empty_df("Sin auditoria de tiempos para este corte."))
+    audit <- .monitoreo_publication_valid_response_df(audit, keep_review = TRUE)
+  }
   if (!nrow(audit)) return(.monitoreo_publication_empty_df("Sin respuestas válidas para validación de tiempos."))
   tcfg <- reports$config$territorial %||% list()
+  seconds <- .monitoreo_publication_duration_seconds_for_audit(audit, reports)
   if (!identical(audience, "internal")) {
     status_col <- .monitoreo_report_col(audit, c("duration_status", "Estado duracion", "Estado duración"))
-    seconds <- suppressWarnings(as.numeric(.monitoreo_publication_col_values(audit, "duracion", NA_character_)))
     district_col <- .monitoreo_report_col(audit, c("distrito", "district"))
     if (!nzchar(status_col) && !any(is.finite(seconds))) return(.monitoreo_publication_empty_df("La validacion de tiempos no esta configurada para este corte cliente."))
     status <- if (nzchar(status_col)) as.character(audit[[status_col]]) else rep("", nrow(audit))
@@ -28105,7 +28827,6 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
     names(out)[3] <- "Casos"
     return(out[order(out$Distrito, out$Clasificación), , drop = FALSE])
   }
-  seconds <- suppressWarnings(as.numeric(.monitoreo_publication_col_values(audit, "duracion", NA_character_)))
   status <- .monitoreo_publication_col_values(audit, "clasificacion_duracion", "")
   labels <- vapply(seq_len(nrow(audit)), function(i) .monitoreo_publication_duration_label(status[[i]], seconds[[i]], tcfg), character(1))
   data.frame(
@@ -29035,12 +29756,12 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   if (!is.data.frame(audit)) {
     audit <- .monitoreo_workbook_df(reports$response_audit %||% list())
     if (!nrow(audit)) audit <- .monitoreo_workbook_df(reports$map$points %||% list())
+    if (!nrow(audit)) audit <- .monitoreo_workbook_df(reports$.publication_source_data %||% list())
     if (!nrow(audit)) return(.monitoreo_publication_empty_df("Sin respuestas con datos GPS para este corte."))
     audit <- .monitoreo_publication_valid_response_df(audit, keep_review = TRUE)
   }
   if (!nrow(audit)) return(.monitoreo_publication_empty_df("Sin respuestas válidas con datos GPS para este corte."))
   geo_col <- .monitoreo_report_col(audit, c("geo_estado", "estado_gps", "gps_status"))
-  if (!nzchar(geo_col)) return(.monitoreo_publication_empty_df("El corte no contiene clasificación GPS por respuesta."))
 
   get_values <- function(concept, default = "", extra = character()) .monitoreo_publication_col_values(audit, concept, default, extra = extra)
   get_numeric <- function(candidates) {
@@ -29055,6 +29776,14 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
     out[is.na(out)] <- default
     out
   }
+  gps_number_from_raw <- function(raw, position) {
+    vapply(raw, function(value) {
+      nums <- regmatches(value, gregexpr("-?[0-9]+(?:[.][0-9]+)?", value, perl = TRUE))[[1]]
+      vals <- suppressWarnings(as.numeric(nums))
+      vals <- vals[is.finite(vals)]
+      if (length(vals) >= position) vals[[position]] else NA_real_
+    }, numeric(1))
+  }
   response_id <- get_values("id_caso", "", extra = c("response_id", "_id", "id"))
   distrito <- get_values("distrito", "Sin distrito", extra = c("advance_block_distrito", "district"))
   ump <- get_values("ump", "", extra = c("advance_block_ump", "declared_ump_raw", "route_ump", "hoja_num"))
@@ -29064,6 +29793,11 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   fecha <- get_values("fecha", "", extra = c("submission_date", "submission_date_iso", "date"))
   lat <- get_numeric(c("lat", "latitude", "_gps_lat"))
   lon <- get_numeric(c("lon", "longitude", "_gps_lon"))
+  raw_gps <- get_direct_values(.monitoreo_publication_aliases_for("gps", extra = c("_geolocation", "geolocation", "gps_inicio", "gps_background")), "")
+  parsed_lat <- gps_number_from_raw(raw_gps, 1L)
+  parsed_lon <- gps_number_from_raw(raw_gps, 2L)
+  lat[!is.finite(lat) & is.finite(parsed_lat)] <- parsed_lat[!is.finite(lat) & is.finite(parsed_lat)]
+  lon[!is.finite(lon) & is.finite(parsed_lon)] <- parsed_lon[!is.finite(lon) & is.finite(parsed_lon)]
   distance <- get_numeric(c("distance_m", "geo_distance_m", "distancia_m"))
   closest <- get_direct_values(c("closest_block_id", "nearest_block_id", "nearest_manzana"), "")
   closest_type <- get_direct_values(c("closest_block_type", "nearest_block_type"), "")
@@ -29075,8 +29809,11 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   } else {
     is.finite(lat) & is.finite(lon)
   }
-  geo_status <- as.character(audit[[geo_col]])
-  geo_status[is.na(geo_status)] <- ""
+  geo_status <- if (nzchar(geo_col)) {
+    out <- as.character(audit[[geo_col]])
+    out[is.na(out)] <- ""
+    out
+  } else ifelse(gps_parseable, "geo_sin_cruce", "geo_sin_gps")
   route_blocks <- .monitoreo_publication_gps_route_blocks_df(reports)
   bands <- lapply(seq_len(nrow(audit)), function(idx) {
     .monitoreo_publication_gps_band(geo_status[[idx]], distance[[idx]], as.list(audit[idx, , drop = FALSE]), route_blocks)
@@ -29291,6 +30028,26 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   )
 }
 
+.monitoreo_publication_accreditation_client_with_detected_controls <- function(client, data, cfg = list()) {
+  if (!is.list(client)) client <- list()
+  existing <- .monitoreo_publication_records_df(client$controls %||% list())
+  if (nrow(existing)) return(client)
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(client)
+
+  normalized <- tryCatch(
+    monitoreo_normalize_config(cfg %||% list(), data),
+    error = function(e) cfg %||% list()
+  )
+  profile <- normalized$monitoreo_profile %||% (cfg %||% list())$monitoreo_profile %||% list()
+  controls <- tryCatch(
+    .monitoreo_report_control_distribution_df(data, profile),
+    error = function(e) data.frame()
+  )
+  if (!nrow(controls)) return(client)
+  client$controls <- .monitoreo_report_records(controls)
+  client
+}
+
 .monitoreo_publication_exact_col <- function(df, aliases) {
   if (is.null(df) || !is.data.frame(df) || !ncol(df)) return("")
   clean_names <- .monitoreo_text_key(names(df))
@@ -29398,7 +30155,7 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
     if (nzchar(latest)) latest else "No registrado",
     as.character(as.integer(last_increment)),
     if (nzchar(.monitoreo_scalar(synced_at, ""))) .monitoreo_scalar(synced_at, "") else "No registrado",
-    .monitoreo_publication_client_coverage_status_label(totals$effective, totals$universe)
+    .monitoreo_publication_client_coverage_status_label(totals$effective, totals$universe, totals$pending)
   )
   if (identical(audience, "internal") || isTRUE(show_internal_targets)) {
     indicators <- c(indicators, "Referencia operativa total", "% umbral interno")
@@ -29428,7 +30185,7 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
     `Sin respuesta` = if (is.finite(totals$pending)) as.integer(totals$pending) else NA_integer_,
     `% avance universo` = .monitoreo_publication_pct(totals$effective, totals$universe),
     `% cobertura` = .monitoreo_publication_pct(totals$effective, totals$universe),
-    `Estado de avance` = .monitoreo_publication_client_coverage_status_label(totals$effective, totals$universe),
+      `Estado de avance` = .monitoreo_publication_client_coverage_status_label(totals$effective, totals$universe, totals$pending),
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
@@ -29470,7 +30227,7 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
       `% avance universo` = .monitoreo_publication_pct(effective, universe),
       `% cobertura` = .monitoreo_publication_pct(effective, universe),
       `Último aumento` = .monitoreo_publication_row_chr(row, c("Última efectiva", "Ultima efectiva", "Último aumento"), ""),
-      `Estado de avance` = .monitoreo_publication_client_coverage_status_label(effective, universe),
+      `Estado de avance` = .monitoreo_publication_client_coverage_status_label(effective, universe, pending),
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
@@ -29588,6 +30345,10 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   rows <- lapply(.monitoreo_df_records(controls), function(row) {
     universe <- .monitoreo_publication_row_num(row, c("Universo", "universo"), NA_real_)
     effective <- .monitoreo_publication_row_num(row, c("Efectivas", "Completas"), 0)
+    partial <- .monitoreo_publication_row_num(row, c("Parciales"), 0)
+    refusal <- .monitoreo_publication_platform_refusal_value(row, 0)
+    pending <- .monitoreo_publication_row_num(row, c("Sin respuesta", "Sin respuesta plataforma", "Pendientes"), NA_real_)
+    if (!is.finite(pending) && is.finite(universe)) pending <- max(0, universe - effective - partial - refusal)
     target <- .monitoreo_publication_row_num(row, c("Meta", "Mínimo", "Minimo", "target"), NA_real_)
     segment <- trimws(paste(.monitoreo_publication_row_chr(row, c("Variable"), "Segmento"), .monitoreo_publication_row_chr(row, c("Valor"), ""), sep = ": "))
     base <- data.frame(
@@ -29595,10 +30356,10 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
       Actor = .monitoreo_publication_row_chr(row, c("Actor", "actor", "Unidad"), "Sin actor"),
       Universo = if (is.finite(universe)) as.integer(universe) else NA_integer_,
       Efectivas = if (is.finite(effective)) as.integer(effective) else 0L,
-      Pendientes = if (is.finite(universe)) as.integer(max(0, universe - effective)) else NA_integer_,
+      Pendientes = if (is.finite(pending)) as.integer(pending) else NA_integer_,
       `% avance universo` = .monitoreo_publication_pct(effective, universe),
       `% cobertura` = .monitoreo_publication_pct(effective, universe),
-      `Estado de avance` = .monitoreo_publication_client_coverage_status_label(effective, universe),
+      `Estado de avance` = .monitoreo_publication_client_coverage_status_label(effective, universe, pending),
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
@@ -29619,6 +30380,75 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out
+}
+
+.monitoreo_publication_accreditation_control_detail_df <- function(frames = list()) {
+  controls <- .monitoreo_workbook_df(frames$controls %||% data.frame())
+  if (!nrow(controls)) return(.monitoreo_publication_empty_df("No hay variables de control para este corte."))
+  pct_text <- function(num, den = NULL) {
+    value <- suppressWarnings(as.numeric(num))
+    if (!is.finite(value)) return("S/D")
+    if (!is.null(den)) {
+      den <- suppressWarnings(as.numeric(den))
+      if (!is.finite(den) || den <= 0) return("S/D")
+      value <- 100 * value / den
+    } else if (abs(value) <= 1) {
+      value <- 100 * value
+    }
+    sprintf("%.0f%%", value)
+  }
+  num_col <- function(candidates, default = 0) {
+    col <- intersect(candidates, names(controls))
+    if (!length(col)) return(rep(default, nrow(controls)))
+    values <- suppressWarnings(as.numeric(controls[[col[[1]]]]))
+    values[!is.finite(values)] <- default
+    values
+  }
+  chr_col <- function(candidates, default = "") {
+    col <- intersect(candidates, names(controls))
+    if (!length(col)) return(rep(default, nrow(controls)))
+    values <- trimws(as.character(controls[[col[[1]]]]))
+    values[is.na(values) | !nzchar(values)] <- default
+    values
+  }
+  universe <- num_col(c("Universo", "Total"), NA_real_)
+  complete <- num_col(c("Efectivas", "Completas"), 0)
+  partial <- num_col(c("Parciales"), 0)
+  refusal <- .monitoreo_publication_platform_refusal_values(controls, 0)
+  pending <- num_col(c("Sin respuesta", "Sin respuesta plataforma", "Pendientes"), NA_real_)
+  missing_pending <- !is.finite(pending)
+  pending[missing_pending] <- pmax(0, universe[missing_pending] - complete[missing_pending] - partial[missing_pending] - refusal[missing_pending])
+  actors <- .monitoreo_publication_accreditation_actor_summary_df(frames$actors %||% data.frame())
+  if (nrow(actors) && all(c("Actor", "Sin respuesta") %in% names(actors))) {
+    units <- chr_col(c("Actor", "Unidad"), "Sin actor")
+    actor_pending <- suppressWarnings(as.numeric(actors$`Sin respuesta`))
+    names(actor_pending) <- as.character(actors$Actor)
+    settled_units <- names(actor_pending)[is.finite(actor_pending) & actor_pending <= 0]
+    settled_idx <- units %in% settled_units
+    if (any(settled_idx, na.rm = TRUE)) {
+      pending[settled_idx] <- 0
+      complete[settled_idx] <- pmax(0, universe[settled_idx] - partial[settled_idx] - refusal[settled_idx])
+    }
+  }
+  base_pct <- num_col(c("% base", "% universo"), NA_real_)
+  effective_pct <- num_col(c("% efectivas"), NA_real_)
+  diff_pct <- num_col(c("Diferencia pp", "Diferencia distribución"), NA_real_)
+  data.frame(
+    Unidad = chr_col(c("Actor", "Unidad"), "Sin actor"),
+    Variable = chr_col("Variable", "Variable"),
+    Valor = chr_col("Valor", "Sin dato"),
+    Universo = as.integer(universe),
+    `% universo` = vapply(base_pct, pct_text, character(1)),
+    Efectivas = as.integer(complete),
+    `% efectivas` = vapply(effective_pct, pct_text, character(1)),
+    `Diferencia distribución` = vapply(diff_pct, pct_text, character(1)),
+    `Avance efectivo` = vapply(seq_along(complete), function(i) pct_text(complete[[i]], universe[[i]]), character(1)),
+    Parciales = as.integer(partial),
+    Rechazos = as.integer(refusal),
+    `Sin respuesta` = as.integer(pending),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
 }
 
 .monitoreo_publication_accreditation_coverage_pending_df <- function(frames = list()) {
@@ -31030,6 +31860,8 @@ build_daily_progress_model <- function(data, config = list(), family = "generic"
 }
 
 .monitoreo_publication_territorial_model_frames <- function(data, cfg, dashboard = list(), reports = list(), audience = "client", include_targets = FALSE, synced_at = "", context = list()) {
+  reports <- reports %||% list()
+  reports$.publication_source_data <- .monitoreo_workbook_df(data)
   kpis <- reports$kpis %||% dashboard$kpis %||% list()
   advance <- reports$advance %||% list()
   district_progress <- advance$district_progress %||% reports$district_progress %||% list()
@@ -31098,6 +31930,7 @@ build_daily_progress_model <- function(data, config = list(), family = "generic"
     ),
     responsables_rutas = .monitoreo_publication_responsible_routes_df(reports),
     cuotas_ump = .monitoreo_publication_quota_sex_age_sheet_df(reports),
+    cierre_cuotas = .monitoreo_publication_territorial_quota_closure_sheet_df(reports),
     validacion_tiempos = .monitoreo_publication_territorial_validation_df(reports, audience),
     ocurrencias_campo = .monitoreo_publication_occurrences_df(reports, audience),
     casos_accionables = .monitoreo_publication_action_cases_df(reports, audience),
@@ -31493,6 +32326,7 @@ build_daily_progress_model <- function(data, config = list(), family = "generic"
 
 .monitoreo_publication_acreditacion_model_frames <- function(data, cfg, dashboard = list(), reports = list(), audience = "client", include_targets = FALSE, synced_at = "", context = list()) {
   client <- reports$client_report %||% monitoreo_acreditacion_client_report_model(data, cfg)
+  client <- .monitoreo_publication_accreditation_client_with_detected_controls(client, data, cfg)
   show_internal_targets <- .monitoreo_publication_show_internal_targets_to_client(cfg, context, include_targets)
   client_frames <- .monitoreo_client_report_sheet_frames(client, include_targets = isTRUE(show_internal_targets))
   progress_frames <- .monitoreo_publication_accreditation_frames(client)
@@ -31518,6 +32352,11 @@ build_daily_progress_model <- function(data, config = list(), family = "generic"
       avance_diario = .monitoreo_publication_accreditation_daily_df(progress_frames, audience, show_internal_targets),
       avance_por_segmento = .monitoreo_publication_accreditation_segment_df(progress_frames, audience, show_internal_targets),
       avance_por_canal_fuente = .monitoreo_publication_accreditation_channel_df(client_source_rows, audience),
+      detalle_variables_control = .monitoreo_publication_accreditation_control_detail_df(progress_frames),
+      avance_por_encuesta = .monitoreo_workbook_bind(
+        .monitoreo_publication_tag_df("Avance diario por fuente", .monitoreo_workbook_block_df(reports, "avance_encuesta", "avance_fuente_dia")),
+        .monitoreo_publication_tag_df("Avance diario por recopilador", .monitoreo_workbook_block_df(reports, "avance_encuesta", "avance_recopilador_dia"))
+      ),
       cobertura_pendientes = .monitoreo_publication_accreditation_coverage_pending_df(progress_frames),
       fuentes_actualizacion = .monitoreo_workbook_bind(
         .monitoreo_publication_sources_df(data, cfg, reports, synced_at, context, audience),
@@ -31635,6 +32474,7 @@ monitoreo_publication_model <- function(data,
   accreditation_progress <- NULL
   if (identical(family, "acreditacion")) {
     accreditation_client <- reports$client_report %||% monitoreo_acreditacion_client_report_model(data, cfg)
+    accreditation_client <- .monitoreo_publication_accreditation_client_with_detected_controls(accreditation_client, data, cfg)
     accreditation_progress <- .monitoreo_publication_accreditation_progress_model(
       .monitoreo_publication_accreditation_frames(accreditation_client),
       audience = audience,
@@ -31705,6 +32545,15 @@ monitoreo_publication_model <- function(data,
       )
     )
   }
+  extra_frame_keys <- setdiff(names(frames), names(titles))
+  for (key in extra_frame_keys) {
+    model[[key]] <- .monitoreo_publication_section(
+      id = key,
+      title = key,
+      df = frames[[key]] %||% data.frame(),
+      description = "Sección auxiliar usada para armar salidas cliente."
+    )
+  }
   model
 }
 
@@ -31771,6 +32620,7 @@ monitoreo_publication_model <- function(data,
     responsables_rutas = "Responsables y rutas",
     cuotas_ump = "Cuotas sexo y edad",
     llenado_sexo_edad = "Cuotas sexo y edad",
+    cierre_cuotas = "Cierre de cuotas",
     validacion_tiempos = "Validación de tiempos",
     ocurrencias_campo = "Ocurrencias de campo",
     casos_accionables = "Casos accionables",
@@ -33846,6 +34696,8 @@ build_client_sheets_progress_model <- function(publication_model) {
     efectivas_parciales_rechazos_pendientes = .monitoreo_sheets_model_rows(publication_model, "avance_por_actor"),
     avance_por_segmento = .monitoreo_sheets_model_section(publication_model, "avance_por_segmento"),
     avance_por_canal_fuente = .monitoreo_sheets_model_section(publication_model, "avance_por_canal_fuente"),
+    detalle_variables_control = .monitoreo_sheets_model_section(publication_model, "detalle_variables_control"),
+    avance_por_encuesta = .monitoreo_sheets_model_section(publication_model, "avance_por_encuesta"),
     cobertura_pendientes = .monitoreo_sheets_model_section(publication_model, "cobertura_pendientes"),
     matrices_fecha = list(
       daily_effective = .monitoreo_space_daily_progress_rows(publication_model$daily_progress %||% list(), "daily_effective"),
@@ -34802,6 +35654,648 @@ build_internal_sheets_model <- function(publication_model) {
   rows
 }
 
+.monitoreo_publication_accreditation_cover_value <- function(model, field, default = "") {
+  cover <- .monitoreo_publication_section_frame(model, "portada")
+  if (!nrow(cover) || !all(c("Campo", "Valor") %in% names(cover))) return(default)
+  keys <- .monitoreo_text_key(cover$Campo)
+  idx <- match(.monitoreo_text_key(field), keys, nomatch = 0L)
+  if (!idx) return(default)
+  value <- .monitoreo_workbook_cell_value(cover$Valor[[idx]])
+  if (nzchar(trimws(value))) value else default
+}
+
+.monitoreo_publication_accreditation_num <- function(value, default = 0) {
+  raw <- gsub("%", "", gsub(",", ".", .monitoreo_workbook_cell_value(value)), fixed = TRUE)
+  out <- suppressWarnings(as.numeric(raw))
+  if (length(out) && is.finite(out[[1]])) out[[1]] else default
+}
+
+.monitoreo_publication_accreditation_pct_label <- function(num, den, digits = 0L) {
+  num <- suppressWarnings(as.numeric(num))
+  den <- suppressWarnings(as.numeric(den))
+  if (!is.finite(num) || !is.finite(den) || den <= 0) return("S/D")
+  sprintf(paste0("%.", max(0L, .monitoreo_int(digits, 0L)), "f%%"), 100 * num / den)
+}
+
+.monitoreo_publication_accreditation_int_label <- function(value) {
+  value <- suppressWarnings(as.numeric(value))
+  if (!length(value) || !is.finite(value[[1]])) return("")
+  format(as.integer(round(value[[1]])), big.mark = ",", scientific = FALSE, trim = TRUE)
+}
+
+.monitoreo_publication_accreditation_datetime_label <- function(value, default = "") {
+  raw <- trimws(as.character(value %||% ""))
+  raw[is.na(raw)] <- ""
+  raw <- raw[nzchar(raw)]
+  if (!length(raw)) return(default)
+  parsed <- suppressWarnings(.monitoreo_parse_time_vec(raw[[1]]))
+  if (length(parsed) && !is.na(parsed[[1]])) {
+    date <- .monitoreo_format_date_label_vec(parsed[1], raw[[1]])[[1]]
+    time <- .monitoreo_format_time_label_vec(parsed[1], raw[[1]])[[1]]
+    if (nzchar(time)) return(trimws(paste(date, time, sep = " · ")))
+    if (nzchar(date)) return(date)
+  }
+  .monitoreo_publication_date_label_scalar(raw[[1]], default = raw[[1]])
+}
+
+.monitoreo_publication_accreditation_datetime_stamp <- function(value, default = "") {
+  raw <- trimws(as.character(value %||% ""))
+  raw[is.na(raw)] <- ""
+  raw <- raw[nzchar(raw)]
+  if (!length(raw)) return(default)
+  parsed <- suppressWarnings(.monitoreo_parse_time_vec(raw[[1]]))
+  if (length(parsed) && !is.na(parsed[[1]])) {
+    tz <- .monitoreo_datetime_display_tz(raw[[1]])[[1]]
+    return(format(parsed[[1]], "%d/%m/%Y %H:%M", tz = tz, usetz = FALSE))
+  }
+  default_value <- .monitoreo_workbook_cell_value(default)
+  if (nzchar(default_value)) default_value else raw[[1]]
+}
+
+.monitoreo_publication_accreditation_date_order <- function(values) {
+  values <- as.character(values %||% character())
+  parsed <- suppressWarnings(as.Date(values))
+  order(is.na(parsed), parsed, values, na.last = TRUE)
+}
+
+.monitoreo_publication_accreditation_wide_date_cols <- function(df) {
+  cols <- .monitoreo_client_report_date_cols(df)
+  cols[grepl("^\\d{4}-\\d{2}-\\d{2}$|^\\d{1,2}/\\d{1,2}/\\d{4}$|^Sin fecha$", cols)]
+}
+
+.monitoreo_publication_accreditation_actor_summary_df <- function(actor_df) {
+  actor_df <- .monitoreo_workbook_df(actor_df)
+  if (!nrow(actor_df) || !"Actor" %in% names(actor_df)) {
+    return(data.frame(
+      Actor = "Sin actores",
+      Universo = 0L,
+      Completas = 0L,
+      Parciales = 0L,
+      Rechazos = 0L,
+      `Sin respuesta` = 0L,
+      `% avance` = "S/D",
+      `Último avance` = "",
+      Estado = "Sin avance",
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ))
+  }
+  rows <- lapply(seq_len(nrow(actor_df)), function(idx) {
+    row <- as.list(actor_df[idx, , drop = FALSE])
+    actor <- .monitoreo_publication_row_chr(row, c("Actor", "Unidad"), "Sin actor")
+    universe <- .monitoreo_publication_row_num(row, c("Universo", "Total"), NA_real_)
+    complete <- .monitoreo_publication_row_num(row, c("Efectivas", "Completas"), 0)
+    partial <- .monitoreo_publication_row_num(row, c("Parciales"), 0)
+    refusal <- .monitoreo_publication_platform_refusal_value(row, 0)
+    no_response <- .monitoreo_publication_row_num(row, c("Sin respuesta", "Pendientes"), NA_real_)
+    if (!is.finite(no_response) && is.finite(universe)) {
+      no_response <- max(0, universe - complete - partial - refusal)
+    }
+    status <- if (is.finite(universe) && universe > 0 && complete >= universe) {
+      "Completo"
+    } else if (is.finite(no_response) && no_response <= 0 && (complete > 0 || partial > 0 || refusal > 0)) {
+      "Avanzado"
+    } else if (complete > 0 || partial > 0 || refusal > 0) {
+      "En avance"
+    } else {
+      "Sin avance"
+    }
+    source_status <- .monitoreo_publication_row_chr(row, c("Estado de avance", "Estado"), "")
+    if (nzchar(source_status)) status <- source_status
+    if (is.finite(no_response) && no_response <= 0 && (complete > 0 || partial > 0 || refusal > 0) &&
+        (!is.finite(universe) || complete < universe)) {
+      status <- "Avanzado"
+    }
+    data.frame(
+      Actor = actor,
+      Universo = if (is.finite(universe)) as.integer(universe) else NA_integer_,
+      Completas = as.integer(complete),
+      Parciales = as.integer(partial),
+      Rechazos = as.integer(refusal),
+      `Sin respuesta` = if (is.finite(no_response)) as.integer(no_response) else NA_integer_,
+      `% avance` = .monitoreo_publication_accreditation_pct_label(complete, universe, digits = 0L),
+      `Último avance` = .monitoreo_publication_row_chr(row, c("Último avance", "Ultimo avance", "Última completa", "Ultima completa"), ""),
+      Estado = status,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+.monitoreo_publication_accreditation_progress_summary <- function(daily_df, actor_summary, updated = "") {
+  daily_df <- .monitoreo_workbook_df(daily_df)
+  actor_summary <- .monitoreo_workbook_df(actor_summary)
+  daily_status <- daily_df
+  if (nrow(daily_status) && "Bloque" %in% names(daily_status)) {
+    general <- daily_status[as.character(daily_status$Bloque) == "General", , drop = FALSE]
+    if (nrow(general)) daily_status <- general
+  }
+  dates <- if (nrow(daily_status) && "Fecha" %in% names(daily_status)) unique(as.character(daily_status$Fecha %||% "")) else character()
+  dates <- dates[nzchar(dates) & !is.na(dates)]
+  dates <- dates[.monitoreo_publication_accreditation_date_order(dates)]
+  last_date <- if (length(dates)) dates[[length(dates)]] else ""
+  new_last_day <- 0L
+  if (nrow(daily_status) && nzchar(last_date) && "Fecha" %in% names(daily_status)) {
+    idx <- as.character(daily_status$Fecha %||% "") == last_date
+    if ("Nuevas efectivas" %in% names(daily_status)) {
+      new_last_day <- sum(suppressWarnings(as.numeric(daily_status$`Nuevas efectivas`[idx])), na.rm = TRUE)
+    } else if ("Efectivas" %in% names(daily_status)) {
+      new_last_day <- sum(suppressWarnings(as.numeric(daily_status$Efectivas[idx])), na.rm = TRUE)
+    }
+  }
+  num_col <- function(name) {
+    if (!nrow(actor_summary) || !name %in% names(actor_summary)) return(numeric(0))
+    suppressWarnings(as.numeric(actor_summary[[name]]))
+  }
+  total_universe <- sum(num_col("Universo"), na.rm = TRUE)
+  total_complete <- sum(num_col("Completas"), na.rm = TRUE)
+  total_partial <- sum(num_col("Parciales"), na.rm = TRUE)
+  total_refusal <- sum(num_col("Rechazos"), na.rm = TRUE)
+  total_pending <- sum(num_col("Sin respuesta"), na.rm = TRUE)
+  status <- if (total_universe > 0 && total_complete >= total_universe) {
+    "Completo"
+  } else if (is.finite(total_pending) && total_pending <= 0 && (total_complete > 0 || total_partial > 0 || total_refusal > 0)) {
+    "Avanzado"
+  } else if (total_complete > 0 || total_partial > 0 || total_refusal > 0) {
+    "En avance"
+  } else {
+    "Sin avance"
+  }
+  list(
+    total_universe = total_universe,
+    total_complete = total_complete,
+    total_partial = total_partial,
+    total_refusal = total_refusal,
+    total_pending = total_pending,
+    pct_label = .monitoreo_publication_accreditation_pct_label(total_complete, total_universe, digits = 0L),
+    new_last_day = new_last_day,
+    last_date = last_date,
+    last_date_label = .monitoreo_publication_date_label_scalar(last_date, default = last_date),
+    updated = .monitoreo_workbook_cell_value(updated),
+    updated_label = .monitoreo_publication_accreditation_datetime_label(updated, default = .monitoreo_workbook_cell_value(updated)),
+    status = status
+  )
+}
+
+.monitoreo_publication_accreditation_summary_cards_df <- function(progress) {
+  data.frame(
+    Indicador = c(
+      "Universo total", "Completas", "Parciales",
+      "Rechazos", "Sin respuesta", "% avance",
+      "Nuevas último día", "Última fecha con avance", "Actualización"
+    ),
+    n = c(
+      .monitoreo_publication_accreditation_int_label(progress$total_universe),
+      .monitoreo_publication_accreditation_int_label(progress$total_complete),
+      .monitoreo_publication_accreditation_int_label(progress$total_partial),
+      .monitoreo_publication_accreditation_int_label(progress$total_refusal),
+      .monitoreo_publication_accreditation_int_label(progress$total_pending),
+      progress$pct_label,
+      .monitoreo_publication_accreditation_int_label(progress$new_last_day),
+      progress$last_date_label,
+      progress$updated_label
+    ),
+    Lectura = c(
+      "Casos base considerados para el avance.",
+      "Respuestas completas que sí cuentan para el avance.",
+      "Respuestas iniciadas; se muestran separadas de completas.",
+      "Respuestas rechazadas identificadas en plataforma.",
+      "Casos del universo que todavía no tienen respuesta completa.",
+      "Completas sobre universo total del corte.",
+      "Completas nuevas en la fecha más reciente.",
+      "Último día con movimiento registrado.",
+      "Fecha y hora compacta del corte publicado."
+    ),
+    Estado = c(
+      "Base", progress$status, "Seguimiento",
+      if (progress$total_refusal > 0) "Trazabilidad" else "Sin rechazos",
+      if (progress$total_pending > 0) "Por cerrar" else "Completo",
+      progress$status,
+      if (progress$new_last_day > 0) "Con movimiento" else "Sin movimiento",
+      if (nzchar(progress$last_date_label)) "Con fecha" else "Sin fecha",
+      progress$status
+    ),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+}
+
+.monitoreo_publication_accreditation_validation_df <- function(progress) {
+  data.frame(
+    Campo = c(
+      "Base de avance",
+      "Qué cuenta como completa",
+      "Parciales y rechazos",
+      "Sin respuesta",
+      "Estado del corte",
+      "Última actualización"
+    ),
+    Valor = c(
+      sprintf(
+        "%s completas de %s casos",
+        .monitoreo_publication_accreditation_int_label(progress$total_complete),
+        .monitoreo_publication_accreditation_int_label(progress$total_universe)
+      ),
+      "Solo respuestas completas o efectivas",
+      sprintf(
+        "%s parciales · %s rechazos",
+        .monitoreo_publication_accreditation_int_label(progress$total_partial),
+        .monitoreo_publication_accreditation_int_label(progress$total_refusal)
+      ),
+      .monitoreo_publication_accreditation_int_label(progress$total_pending),
+      progress$status,
+      progress$updated_label
+    ),
+    Lectura = c(
+      "El porcentaje de avance se calcula con completas sobre universo.",
+      "Parciales, rechazos y sin respuesta no inflan el avance.",
+      "Quedan visibles para trazabilidad, pero separados del logro.",
+      "Casos pendientes por cerrar o contactar.",
+      "Lectura ejecutiva del corte para cliente.",
+      "Se conserva el corte publicado en formato compacto."
+    ),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+}
+
+.monitoreo_publication_accreditation_daily_matrix_rows <- function(daily_df, actor_df, states = c(Completas = "Nuevas efectivas"), effective_label = "Completas") {
+  daily_df <- .monitoreo_workbook_df(daily_df)
+  actor_df <- .monitoreo_workbook_df(actor_df)
+  if (!nrow(daily_df) || !"Fecha" %in% names(daily_df)) {
+    return(list(c("Unidad", "Estado"), c("Sin datos", effective_label)))
+  }
+  if ("Bloque" %in% names(daily_df)) {
+    by_actor <- daily_df[as.character(daily_df$Bloque) == "Por actor", setdiff(names(daily_df), "Bloque"), drop = FALSE]
+  } else {
+    by_actor <- daily_df
+  }
+  if (!nrow(by_actor) || !"Actor" %in% names(by_actor)) {
+    return(list(c("Unidad", "Estado"), c("Sin datos", effective_label)))
+  }
+  dates <- unique(as.character(by_actor$Fecha %||% ""))
+  dates <- dates[nzchar(dates) & !is.na(dates)]
+  dates <- dates[.monitoreo_publication_accreditation_date_order(dates)]
+  actors <- if (nrow(actor_df) && "Actor" %in% names(actor_df)) as.character(actor_df$Actor) else unique(as.character(by_actor$Actor))
+  actors <- actors[nzchar(actors) & !is.na(actors)]
+  if (!length(dates) || !length(actors)) {
+    return(list(c("Unidad", "Estado"), c("Sin datos", effective_label)))
+  }
+  rows <- list(c("Unidad", "Estado", dates, "Total"))
+  for (actor in actors) {
+    for (state_label in names(states)) {
+      col <- states[[state_label]]
+      values <- vapply(dates, function(day) {
+        idx <- as.character(by_actor$Actor) == actor & as.character(by_actor$Fecha) == day
+        if (!col %in% names(by_actor)) return(0L)
+        as.integer(sum(suppressWarnings(as.numeric(by_actor[[col]][idx])), na.rm = TRUE))
+      }, integer(1))
+      rows[[length(rows) + 1L]] <- c(actor, state_label, as.character(values), as.character(sum(values, na.rm = TRUE)))
+    }
+  }
+  rows
+}
+
+.monitoreo_publication_accreditation_progress_status_rows <- function(daily_df, actor_df, updated = "") {
+  actor_summary <- .monitoreo_publication_accreditation_actor_summary_df(actor_df)
+  progress <- .monitoreo_publication_accreditation_progress_summary(daily_df, actor_summary, updated)
+  list(
+    .monitoreo_sheets_blank_row(),
+    c("Nuevas respuestas último día", "Última fecha con avance", "Última actualización", "Estado de avance"),
+    c(
+      .monitoreo_publication_accreditation_int_label(progress$new_last_day),
+      progress$last_date_label,
+      progress$updated_label,
+      progress$status
+    )
+  )
+}
+
+.monitoreo_publication_accreditation_actor_block_rows <- function(actor_summary) {
+  actor_summary <- .monitoreo_workbook_df(actor_summary)
+  if (!nrow(actor_summary)) return(list())
+  preferred <- c("Administrativos", "Docentes", "Egresados", "Estudiantes")
+  actors <- as.character(actor_summary$Actor %||% "")
+  actors <- actors[nzchar(actors) & !is.na(actors)]
+  order_values <- c(intersect(preferred, actors), setdiff(actors[order(actors)], preferred))
+  rows <- list()
+  for (actor in order_values) {
+    idx <- match(actor, as.character(actor_summary$Actor %||% ""))
+    if (is.na(idx)) next
+    row <- actor_summary[idx, , drop = FALSE]
+    rows <- c(rows, list(
+      c(actor, "", "", "", "", ""),
+      c("Total", "Respuestas en el sistema", "", "", "Sin respuesta", "Avance"),
+      c("", "Completas", "Parciales", "Rechazos", "", ""),
+      c(
+        .monitoreo_publication_accreditation_int_label(row$Universo[[1]]),
+        .monitoreo_publication_accreditation_int_label(row$Completas[[1]]),
+        .monitoreo_publication_accreditation_int_label(row$Parciales[[1]]),
+        .monitoreo_publication_accreditation_int_label(row$Rechazos[[1]]),
+        .monitoreo_publication_accreditation_int_label(row$`Sin respuesta`[[1]]),
+        .monitoreo_workbook_cell_value(row$`% avance`[[1]])
+      ),
+      .monitoreo_sheets_blank_row()
+    ))
+  }
+  rows
+}
+
+.monitoreo_publication_accreditation_client_report_rows <- function(model) {
+  title <- .monitoreo_publication_accreditation_cover_value(model, "Reporte", "Reporte de avance")
+  cutoff <- .monitoreo_publication_accreditation_cover_value(model, "Corte de datos", "")
+  updated <- .monitoreo_scalar(model$synced_at %||% model$generated_at %||% "", "")
+  if (!nzchar(trimws(updated))) updated <- cutoff
+  actors <- .monitoreo_publication_section_frame(model, "avance_por_actor")
+  daily <- .monitoreo_publication_section_frame(model, "avance_diario")
+  actor_summary <- .monitoreo_publication_accreditation_actor_summary_df(actors)
+  progress <- .monitoreo_publication_accreditation_progress_summary(daily, actor_summary, updated)
+  cutoff_label <- .monitoreo_publication_accreditation_datetime_label(cutoff, default = cutoff)
+  title_label <- trimws(.monitoreo_workbook_cell_value(title))
+  if (!nzchar(title_label)) title_label <- "Reporte de avance"
+  if (!grepl("reporte|avance", .monitoreo_text_key(title_label), perl = TRUE)) {
+    title_label <- paste("Reporte de avance", title_label, sep = " - ")
+  }
+  c(
+    list(
+      .monitoreo_sheets_section_row("Monitoreo"),
+      c("Seguimiento de Encuestas", "", "", "", "", ""),
+      c("", "Ultima actualizacion", "", .monitoreo_publication_accreditation_datetime_stamp(updated, default = cutoff_label), "", ""),
+      .monitoreo_sheets_blank_row(),
+      c("Avance general", "", "", "", "", ""),
+      c("Total", "Respuestas en el sistema", "", "", "Sin respuesta", "Avance"),
+      c("", "Completas", "Parciales", "Rechazos", "", ""),
+      c(
+        .monitoreo_publication_accreditation_int_label(progress$total_universe),
+        .monitoreo_publication_accreditation_int_label(progress$total_complete),
+        .monitoreo_publication_accreditation_int_label(progress$total_partial),
+        .monitoreo_publication_accreditation_int_label(progress$total_refusal),
+        .monitoreo_publication_accreditation_int_label(progress$total_pending),
+        progress$pct_label
+      ),
+      .monitoreo_sheets_blank_row()
+    ),
+    .monitoreo_publication_accreditation_actor_block_rows(actor_summary),
+    .monitoreo_publication_accreditation_progress_status_rows(daily, actors, updated)
+  )
+}
+
+.monitoreo_publication_accreditation_detail_rows <- function(model) {
+  actors <- .monitoreo_publication_section_frame(model, "avance_por_actor")
+  actor_summary <- .monitoreo_publication_accreditation_actor_summary_df(actors)
+  actor_detail <- actor_summary[, intersect(
+    c("Actor", "Universo", "Completas", "Parciales", "Rechazos", "Sin respuesta", "% avance", "Estado"),
+    names(actor_summary)
+  ), drop = FALSE]
+  names(actor_detail)[names(actor_detail) == "Rechazos"] <- "Rechazo"
+  names(actor_detail)[names(actor_detail) == "% avance"] <- "% avance universo"
+  names(actor_detail)[names(actor_detail) == "Estado"] <- "Estado de avance"
+  rows <- .monitoreo_sheets_section_table("Resumen por actor", actor_detail)
+  controls <- .monitoreo_publication_section_frame(model, "detalle_variables_control")
+  if (!nrow(controls) || !"Unidad" %in% names(controls)) {
+    return(c(
+      rows,
+      .monitoreo_publication_accreditation_section_table(
+        "Detalle completo por variables de control",
+        .monitoreo_publication_section_frame(model, "avance_por_segmento"),
+        "client",
+        "avance_por_segmento"
+      )
+    ))
+  }
+  rows <- c(rows, list(.monitoreo_sheets_section_row("Detalle completo por variables de control")))
+  group_key <- paste(as.character(controls$Unidad), as.character(controls$Variable), sep = "\r")
+  for (key in unique(group_key)) {
+    part <- controls[group_key == key, , drop = FALSE]
+    if (!nrow(part)) next
+    actor <- .monitoreo_scalar(part$Unidad[[1]], "Unidad")
+    variable <- .monitoreo_scalar(part$Variable[[1]], "Variable")
+    full <- data.frame(
+      Valor = part$Valor,
+      Total = part$Universo,
+      Completas = part$Efectivas,
+      Parciales = part$Parciales,
+      Rechazos = part$Rechazos,
+      `Sin respuesta` = part$`Sin respuesta`,
+      Avance = part$`Avance efectivo`,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+    rows <- c(rows, list(.monitoreo_sheets_section_row(paste(actor, variable, sep = " - "))), .monitoreo_sheets_table_rows(full), list(.monitoreo_sheets_blank_row()))
+  }
+  rows
+}
+
+.monitoreo_publication_accreditation_survey_matrix_rows <- function(source_daily, actors) {
+  source_daily <- .monitoreo_workbook_df(source_daily)
+  actors <- .monitoreo_workbook_df(actors)
+  date_cols <- .monitoreo_publication_accreditation_wide_date_cols(source_daily)
+  if (!nrow(source_daily) || !length(date_cols) || !"Canal" %in% names(source_daily)) return(list())
+  actor_order <- if (nrow(actors) && "Actor" %in% names(actors)) as.character(actors$Actor) else unique(as.character(source_daily$Actor %||% ""))
+  actor_order <- actor_order[nzchar(actor_order) & !is.na(actor_order)]
+  channels <- unique(trimws(as.character(source_daily$Canal %||% "")))
+  channels <- channels[nzchar(channels) & !is.na(channels)]
+  rows <- list()
+  for (channel in channels) {
+    part <- source_daily[trimws(as.character(source_daily$Canal %||% "")) == channel, , drop = FALSE]
+    if ("Estado" %in% names(part)) {
+      part <- part[grepl("efectiva|completa", .monitoreo_text_key(part$Estado)), , drop = FALSE]
+    }
+    rows <- c(rows, list(.monitoreo_sheets_section_row(paste("Efectivas por día", channel, sep = " - "))))
+    rows[[length(rows) + 1L]] <- c("Unidad", date_cols, "Total")
+    for (actor in actor_order) {
+      idx <- as.character(part$Actor %||% "") == actor
+      values <- vapply(date_cols, function(day) {
+        as.integer(sum(suppressWarnings(as.numeric(part[[day]][idx])), na.rm = TRUE))
+      }, integer(1))
+      rows[[length(rows) + 1L]] <- c(actor, as.character(values), as.character(sum(values, na.rm = TRUE)))
+    }
+    rows[[length(rows) + 1L]] <- .monitoreo_sheets_blank_row()
+  }
+  rows
+}
+
+.monitoreo_publication_accreditation_survey_summary_matrix_rows <- function(channel_summary, actors) {
+  channel_summary <- .monitoreo_workbook_df(channel_summary)
+  actors <- .monitoreo_workbook_df(actors)
+  if (!nrow(channel_summary) || !"Canal" %in% names(channel_summary) || !"Efectivas" %in% names(channel_summary)) {
+    return(list())
+  }
+  actor_order <- if (nrow(actors) && "Actor" %in% names(actors)) as.character(actors$Actor) else unique(as.character(channel_summary$Actor %||% ""))
+  actor_order <- actor_order[nzchar(actor_order) & !is.na(actor_order)]
+  if (!length(actor_order)) actor_order <- unique(as.character(channel_summary$Actor %||% ""))
+  channel_values <- trimws(as.character(channel_summary$Canal %||% ""))
+  channels <- unique(channel_values[nzchar(channel_values) & !is.na(channel_values)])
+  date_candidates <- intersect(c("Última efectiva", "Ultima efectiva", "Última respuesta", "Ultima respuesta", "Primer día", "Primer dia"), names(channel_summary))
+  date_col <- if (length(date_candidates)) date_candidates[[1L]] else ""
+  rows <- list()
+  for (channel in channels) {
+    part <- channel_summary[channel_values == channel, , drop = FALSE]
+    day_values <- if (nzchar(date_col)) trimws(as.character(part[[date_col]])) else character(0)
+    day_values <- day_values[nzchar(day_values) & !is.na(day_values)]
+    unique_days <- unique(day_values)
+    date_cols <- unique_days[.monitoreo_publication_accreditation_date_order(unique_days)]
+    rows <- c(rows, list(.monitoreo_sheets_section_row(paste("Efectivas por día", channel, sep = " - "))))
+    if (length(date_cols)) {
+      rows[[length(rows) + 1L]] <- c("Unidad", date_cols, "Total")
+      for (actor in actor_order) {
+        idx_actor <- as.character(part$Actor %||% "") == actor
+        values <- vapply(date_cols, function(day) {
+          idx <- idx_actor & trimws(as.character(part[[date_col]])) == day
+          as.integer(sum(suppressWarnings(as.numeric(part$Efectivas[idx])), na.rm = TRUE))
+        }, integer(1))
+        rows[[length(rows) + 1L]] <- c(actor, as.character(values), as.character(sum(values, na.rm = TRUE)))
+      }
+    } else {
+      rows[[length(rows) + 1L]] <- c("Unidad", "Total")
+      for (actor in actor_order) {
+        idx <- as.character(part$Actor %||% "") == actor
+        total <- as.integer(sum(suppressWarnings(as.numeric(part$Efectivas[idx])), na.rm = TRUE))
+        rows[[length(rows) + 1L]] <- c(actor, as.character(total))
+      }
+    }
+    rows[[length(rows) + 1L]] <- .monitoreo_sheets_blank_row()
+  }
+  rows
+}
+
+.monitoreo_publication_accreditation_collector_summary <- function(collector_daily) {
+  collector_daily <- .monitoreo_workbook_df(collector_daily)
+  date_cols <- .monitoreo_publication_accreditation_wide_date_cols(collector_daily)
+  if (!nrow(collector_daily) || !length(date_cols)) return(data.frame())
+  text_col <- function(col, default = "") {
+    if (!col %in% names(collector_daily)) return(rep(default, nrow(collector_daily)))
+    values <- trimws(as.character(collector_daily[[col]]))
+    values[is.na(values) | !nzchar(values)] <- default
+    values
+  }
+  key_df <- data.frame(
+    Actor = text_col("Actor", "Sin actor"),
+    Canal = text_col("Canal", "Sin canal"),
+    Fuente = text_col("Fuente", "Encuesta"),
+    Recopilador = text_col("Recopilador", "Sin recopilador"),
+    `Tipo recopilador` = text_col("Tipo recopilador", "Sin dato"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  key <- do.call(paste, c(key_df, sep = "\r"))
+  state <- .monitoreo_text_key(text_col("Estado", ""))
+  rows <- lapply(unique(key), function(item) {
+    idx <- key == item
+    first <- which(idx)[[1]]
+    total_by_row <- rowSums(as.data.frame(lapply(date_cols, function(day) {
+      suppressWarnings(as.numeric(collector_daily[[day]]))
+    })), na.rm = TRUE)
+    complete <- sum(total_by_row[idx & grepl("efectiva|completa", state)], na.rm = TRUE)
+    partial <- sum(total_by_row[idx & grepl("parcial", state)], na.rm = TRUE)
+    refusal <- sum(total_by_row[idx & grepl("rechazo", state)], na.rm = TRUE)
+    active_dates <- date_cols[vapply(date_cols, function(day) {
+      sum(suppressWarnings(as.numeric(collector_daily[[day]][idx])), na.rm = TRUE) > 0
+    }, logical(1))]
+    data.frame(
+      Actor = key_df$Actor[[first]],
+      `Canal encuesta` = key_df$Canal[[first]],
+      `Uso operativo` = paste("Aplicación", key_df$Canal[[first]]),
+      Titulo = key_df$Fuente[[first]],
+      Recopilador = key_df$Recopilador[[first]],
+      `Tipo recopilador` = key_df$`Tipo recopilador`[[first]],
+      Completas = as.integer(complete),
+      Parciales = as.integer(partial),
+      Rechazos = as.integer(refusal),
+      `Total respuestas` = as.integer(complete + partial + refusal),
+      `Ultima actualizacion` = if (length(active_dates)) active_dates[[length(active_dates)]] else "",
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  out <- out[order(out$Actor, out$`Canal encuesta`, out$Titulo, out$Recopilador), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.monitoreo_publication_accreditation_channel_collector_summary <- function(channel_summary) {
+  channel_summary <- .monitoreo_workbook_df(channel_summary)
+  if (!nrow(channel_summary)) return(data.frame())
+  text_col <- function(col, default = "") {
+    if (!col %in% names(channel_summary)) return(rep(default, nrow(channel_summary)))
+    values <- trimws(as.character(channel_summary[[col]]))
+    values[is.na(values) | !nzchar(values)] <- default
+    values
+  }
+  num_col <- function(col) {
+    if (!col %in% names(channel_summary)) return(rep(0, nrow(channel_summary)))
+    values <- suppressWarnings(as.numeric(channel_summary[[col]]))
+    values[is.na(values)] <- 0
+    values
+  }
+  channel <- text_col("Canal", "Sin canal")
+  source <- text_col("Fuente", "Encuesta")
+  update_candidates <- intersect(c("Última respuesta", "Ultima respuesta", "Última efectiva", "Ultima efectiva"), names(channel_summary))
+  last_update <- if (length(update_candidates)) text_col(update_candidates[[1L]], "") else rep("", nrow(channel_summary))
+  total <- if ("Total respuestas" %in% names(channel_summary)) {
+    num_col("Total respuestas")
+  } else {
+    num_col("Efectivas") + num_col("Parciales") + num_col("Rechazos plataforma") + num_col("Rechazos")
+  }
+  data.frame(
+    Actor = text_col("Actor", "Sin actor"),
+    `Canal encuesta` = channel,
+    `Uso operativo` = paste("Aplicación", channel),
+    Titulo = source,
+    Recopilador = source,
+    `Tipo recopilador` = "Fuente agregada",
+    Completas = as.integer(num_col("Efectivas")),
+    Parciales = as.integer(num_col("Parciales")),
+    Rechazos = as.integer(num_col("Rechazos plataforma") + num_col("Rechazos")),
+    `Total respuestas` = as.integer(total),
+    `Ultima actualizacion` = last_update,
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+}
+
+.monitoreo_publication_accreditation_response_source_catalog <- function(sources) {
+  sources <- .monitoreo_workbook_df(sources)
+  if (!nrow(sources) || !"Fuente de datos" %in% names(sources)) return(data.frame())
+  role <- if ("Rol" %in% names(sources)) .monitoreo_text_key(sources$Rol) else rep("", nrow(sources))
+  type <- if ("Tipo" %in% names(sources)) .monitoreo_text_key(sources$Tipo) else rep("", nrow(sources))
+  keep <- type %in% c("fuente") & role %in% c("respuestas", "respuesta")
+  out <- sources[keep, intersect(c("Fuente de datos", "Rol", "Registros procesados"), names(sources)), drop = FALSE]
+  if (!nrow(out)) return(data.frame())
+  names(out)[names(out) == "Fuente de datos"] <- "Fuente"
+  rownames(out) <- NULL
+  out
+}
+
+.monitoreo_publication_accreditation_survey_rows <- function(model) {
+  survey <- .monitoreo_publication_section_frame(model, "avance_por_encuesta")
+  source_daily <- .monitoreo_publication_block_df(survey, "Avance diario por fuente")
+  collector_daily <- .monitoreo_publication_block_df(survey, "Avance diario por recopilador")
+  actors <- .monitoreo_publication_section_frame(model, "avance_por_actor")
+  channel_summary <- .monitoreo_publication_section_frame(model, "avance_por_canal_fuente")
+  source_catalog <- .monitoreo_publication_accreditation_response_source_catalog(.monitoreo_publication_section_frame(model, "fuentes_actualizacion"))
+  rows <- .monitoreo_publication_accreditation_survey_matrix_rows(source_daily, actors)
+  if (!length(rows)) {
+    rows <- .monitoreo_publication_accreditation_survey_summary_matrix_rows(channel_summary, actors)
+  }
+  collector_summary <- .monitoreo_publication_accreditation_collector_summary(collector_daily)
+  if (!nrow(collector_summary)) {
+    collector_summary <- .monitoreo_publication_accreditation_channel_collector_summary(channel_summary)
+  }
+  if (nrow(collector_summary)) {
+    rows <- c(rows, .monitoreo_sheets_section_table("Avance por recopilador", collector_summary))
+  }
+  if (nrow(source_catalog)) {
+    rows <- c(rows, .monitoreo_sheets_section_table("Fuentes consideradas", source_catalog))
+  }
+  if (length(rows)) return(rows)
+  .monitoreo_publication_accreditation_section_table("Avance por recopilador", channel_summary, "client", "avance_por_canal_fuente")
+}
+
 .monitoreo_publication_accreditation_sheet_rows <- function(model, key) {
   audience <- .monitoreo_workbook_audience(model$audience %||% "client")
   family_key <- .monitoreo_publication_family_key(model$family %||% "")
@@ -34903,15 +36397,8 @@ build_internal_sheets_model <- function(publication_model) {
         table("Puntos de atención", frame("alertas_internas"), "alertas_internas")
       ))
     }
-    if (identical(audience, "client")) {
-      cards <- .monitoreo_publication_accreditation_present_df(frame("resumen_ejecutivo"), audience, "summary")
-      return(c(
-        table("Datos del corte", section_df, "portada"),
-        .monitoreo_sheets_card_rows("Indicadores del corte", cards),
-        table("Avance por actor", frame("avance_por_actor"), "avance_por_actor"),
-        table("Avance por canal", frame("avance_por_canal_fuente"), "avance_por_canal_fuente"),
-        table("Pendientes por cubrir", frame("cobertura_pendientes"), "cobertura_pendientes")
-      ))
+    if (identical(audience, "client") && identical(family_key, "acreditacion")) {
+      return(.monitoreo_publication_accreditation_client_report_rows(model))
     }
     return(table("Resumen del corte", section_df, "portada"))
   }
@@ -34938,6 +36425,9 @@ build_internal_sheets_model <- function(publication_model) {
     return(.monitoreo_publication_accreditation_block_rows("Producción por responsable", section_df, audience, "produccion_responsable"))
   }
   if (identical(key, "avance_diario")) {
+    if (identical(audience, "client") && identical(family_key, "acreditacion")) {
+      return(.monitoreo_publication_accreditation_detail_rows(model))
+    }
     rows <- daily_tables(section_df)
     if (identical(audience, "client")) {
       return(c(
@@ -34946,6 +36436,9 @@ build_internal_sheets_model <- function(publication_model) {
       ))
     }
     return(rows)
+  }
+  if (identical(key, "avance_por_canal_fuente") && identical(audience, "client") && identical(family_key, "acreditacion")) {
+    return(.monitoreo_publication_accreditation_survey_rows(model))
   }
   if (identical(key, "cobertura_pendientes")) {
     coverage <- .monitoreo_workbook_df(section_df)
@@ -35051,7 +36544,7 @@ build_internal_sheets_model <- function(publication_model) {
   groups <- unique(group_key)
   group_complete <- vapply(groups, function(key) {
     idx <- group_key == key
-    any(status[idx] %in% c("Completa", "Excedida"), na.rm = TRUE)
+    any(status[idx] %in% c("Completa", "Subsanada", "Excedida"), na.rm = TRUE)
   }, logical(1))
   group_in_field <- vapply(groups, function(key) {
     idx <- group_key == key
@@ -35458,6 +36951,43 @@ build_internal_sheets_model <- function(publication_model) {
       .monitoreo_sheets_section_table("Cumplimiento por UMP", quota_detail),
       .monitoreo_sheets_section_table("Matriz esperada sexo/edad", expected),
       .monitoreo_sheets_section_table("Faltantes por categoría", detail)
+    ))
+  }
+  if (identical(key, "cierre_cuotas")) {
+    simple <- .monitoreo_publication_cols_first(
+      .monitoreo_publication_block_df(section_df, "Lista simple para cierre"),
+      c(
+        "Distrito", "UMP titular", "UMP", "Manzana", "Tipo", "Reemplazo", "Responsable",
+        "Efectivas actuales", "Meta UMP", "Encuestas por completar",
+        "Hombres faltantes", "Mujeres faltantes",
+        "18-29 faltantes", "30-44 faltantes", "45-59 faltantes", "60+ faltantes",
+        "Qué completar para cerrar", "Último ingreso", "Prioridad"
+      )
+    )
+    summary <- .monitoreo_publication_cols_first(
+      .monitoreo_publication_block_df(section_df, "Resumen de cierre por distrito"),
+      c(
+        "Distrito", "UMP por completar", "Encuestas por completar", "Faltan por cantidad",
+        "Faltantes sexo", "Faltantes edad", "UMP / manzana", "Responsables",
+        "Prioridad máxima", "Lectura"
+      )
+    )
+    detail <- .monitoreo_publication_cols_first(
+      .monitoreo_publication_block_df(section_df, "UMP por completar para cierre"),
+      c(
+        "Distrito", "Zona", "UMP", "Manzana", "Tipo", "Reemplazo", "Uso reemplazo",
+        "Reemplaza a", "UMP titular", "Responsable", "Efectivas actuales", "Meta UMP",
+        "Faltan por cantidad", "Faltantes sexo", "Faltantes edad",
+        "Hombres faltantes", "Mujeres faltantes",
+        "18-29 faltantes", "30-44 faltantes", "45-59 faltantes", "60+ faltantes",
+        "Encuestas por completar", "Qué completar para cerrar", "Categorías a cerrar", "Último ingreso",
+        "Estado cuota", "Prioridad", "Acción para campo"
+      )
+    )
+    return(c(
+      .monitoreo_sheets_section_table("Lista simple para cierre", simple),
+      .monitoreo_sheets_section_table("Resumen de cierre por distrito", summary),
+      .monitoreo_sheets_section_table("UMP por completar para cierre", detail)
     ))
   }
   if (identical(key, "ocurrencias_campo")) {
@@ -36215,6 +37745,7 @@ monitoreo_publish_qa_fixture <- function(family = c("territorial", "acreditacion
       "Manzanas y responsables" = contract(10L, 8L, c("RESUMEN UMP Y RESPONSABLES", "RELACIÓN UMP · MANZANAS DE REFERENCIA · RESPONSABLES", "Reemplazos disponibles")),
       "Responsables y rutas" = contract(5L, 10L, c("RESPONSABLES OBSERVADOS POR REGISTROS", "Encuesta 1", "Reemplazos usados")),
       "Cuotas sexo y edad" = contract(20L, 12L, c("RESUMEN DE CUOTAS UMP", "CUMPLIMIENTO POR UMP", "MATRIZ ESPERADA SEXO/EDAD", "FALTANTES POR CATEGORÍA")),
+      "Cierre de cuotas" = contract(4L, 10L, c("LISTA SIMPLE PARA CIERRE", "UMP POR COMPLETAR PARA CIERRE", "Encuestas por completar", "Acción para campo")),
       "Validación de tiempos" = contract(2L, 10L, c("Responsable", "Clasificación", "Alerta")),
       "GPS y territorio" = contract(2L, 12L, c("Estado GPS por respuesta", "Bloque GPS más cercano", "Latitud")),
       "Ocurrencias de campo" = contract(12L, 8L, c("RESUMEN DE OCURRENCIAS", "RANKING POR CATEGORÍA", "RITMO DIARIO DE OCURRENCIAS", "QUÉ SE REPORTA CADA DÍA", "REPORTES POR DISTRITO Y DÍA", "ESTADO POR UMP")),
@@ -36225,9 +37756,9 @@ monitoreo_publish_qa_fixture <- function(family = c("territorial", "acreditacion
     )
   } else if (identical(family, "acreditacion") && identical(audience, "client")) {
     list(
-      "Reporte" = contract(20L, 8L, c("DATOS DEL CORTE", "AVANCE POR ACTOR", "Canal operativo")),
-      "Detalle del avance" = contract(10L, 8L, c("RITMO GENERAL", "Completas acumuladas", "Estado de avance")),
-      "Corte y fuentes" = contract(3L, 5L, c("FUENTES DEL CORTE", "Fuente de datos", "Registros procesados"))
+      "Reporte" = contract(12L, 6L, c("MONITOREO", "Seguimiento de Encuestas", "Ultima actualizacion", "Respuestas en el sistema", "Avance general"), requires_filter = FALSE),
+      "Detalle del avance" = contract(8L, 8L, c("DETALLE COMPLETO POR VARIABLES DE CONTROL", "Completas", "Sin respuesta")),
+      "Avance por encuesta" = contract(2L, 8L, c("EFECTIVAS POR DÍA", "AVANCE POR RECOPILADOR", "Total respuestas"))
     )
   } else if (identical(family, "acreditacion") && identical(audience, "internal")) {
     list(

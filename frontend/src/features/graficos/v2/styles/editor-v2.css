@@ -4982,8 +4982,31 @@
   white-space: nowrap;
   transition: color 120ms;
 }
+.pulso-gv2-estilo-tab-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  color: currentColor;
+  line-height: 0;
+  transition:
+    background-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+.pulso-gv2-estilo-tab-icon svg,
+.pulso-gv2-presets-sidebar-icon svg,
+.pulso-gv2-preset-header-icon svg,
+.pulso-gv2-preset-action-icon svg,
+.pulso-gv2-modified-dot {
+  display: block;
+}
 .pulso-gv2-estilo-tab:hover { color: var(--pulso-text); }
 .pulso-gv2-estilo-tab.is-active { color: var(--pulso-primary); }
+.pulso-gv2-estilo-tab.is-active .pulso-gv2-estilo-tab-icon {
+  background: var(--pulso-primary-soft);
+}
 .pulso-gv2-estilo-tab.is-active::after {
   content: "";
   position: absolute;
@@ -5135,18 +5158,22 @@
   width: 28px;
   height: 28px;
   border-radius: 9px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   color: var(--pulso-primary);
   background: var(--pulso-primary-soft);
   border: 1px solid var(--pulso-primary-border);
   flex: 0 0 auto;
+  line-height: 0;
 }
 
 .pulso-gv2-ppt-style-intro strong,
 .pulso-gv2-ppt-style-intro span {
   display: block;
+}
+
+.pulso-gv2-ppt-style-intro > .pulso-gv2-ppt-style-intro-icon {
+  display: inline-grid;
 }
 
 .pulso-gv2-ppt-style-intro strong {
@@ -5196,16 +5223,26 @@
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   color: white;
   background: var(--pulso-primary);
   flex: 0 0 auto;
+  line-height: 0;
 }
 
 .pulso-gv2-ppt-style-card strong,
 .pulso-gv2-ppt-style-card span {
+  display: block;
+}
+
+.pulso-gv2-ppt-style-card-head > .pulso-gv2-ppt-style-card-icon {
+  display: inline-grid;
+}
+
+.pulso-gv2-ppt-style-intro-icon svg,
+.pulso-gv2-ppt-style-card-icon svg,
+.pulso-gv2-ppt-style-card button svg {
   display: block;
 }
 
@@ -5297,6 +5334,48 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+.pulso-gv2-presets-sidebar-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 7px;
+  color: color-mix(in srgb, var(--pulso-primary) 76%, var(--pulso-text-soft));
+  background: transparent;
+  line-height: 0;
+  transition:
+    background-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+.pulso-gv2-presets-sidebar-icon[data-active="true"] {
+  color: var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary-soft) 72%, white);
+}
+
+.pulso-gv2-preset-header-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 30px;
+  line-height: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.pulso-gv2-preset-action-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 14px;
+  line-height: 0;
 }
 
 .pulso-gv2-presets-detail {

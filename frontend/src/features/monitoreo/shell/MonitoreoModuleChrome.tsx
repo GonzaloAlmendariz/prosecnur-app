@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Activity, Loader2, RefreshCw } from "lucide-react";
 import type {
   MonitoreoRouteDefinition,
@@ -21,6 +22,7 @@ type MonitoreoModuleChromeProps = {
   nRows: number;
   hasSnapshot: boolean;
   syncing?: boolean;
+  syncProgress?: MonitoreoModuleSyncProgress | null;
   syncDisabled?: boolean;
   syncLabel?: string;
   syncTitle?: string;
@@ -32,6 +34,13 @@ type MonitoreoModuleChromeProps = {
   onViewChange?: (view: WorkbenchView) => void;
 };
 
+type MonitoreoModuleSyncProgress = {
+  active?: "advance" | "full";
+  percent?: number | null;
+  phase?: string;
+  message?: string;
+};
+
 function formatChromeCount(value: number) {
   return Number.isFinite(value) ? value.toLocaleString("es-PE") : "0";
 }
@@ -40,6 +49,24 @@ function formatChromeDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
+}
+
+function chromeSyncProgressPercent(progress: MonitoreoModuleSyncProgress | null | undefined) {
+  const raw = Number(progress?.percent);
+  if (!Number.isFinite(raw)) return null;
+  return Math.max(0, Math.min(100, raw));
+}
+
+function chromeSyncProgressLabel(progress: MonitoreoModuleSyncProgress | null | undefined) {
+  const percent = chromeSyncProgressPercent(progress);
+  if (percent == null) return "...";
+  return `${Math.round(percent)}%`;
+}
+
+function chromeSyncProgressStyle(progress: MonitoreoModuleSyncProgress | null | undefined): CSSProperties | undefined {
+  const percent = chromeSyncProgressPercent(progress);
+  if (percent == null) return undefined;
+  return { "--mon-sync-progress": `${percent}%` } as CSSProperties;
 }
 
 type ChromeGenerationInfo = {
@@ -65,6 +92,7 @@ export function MonitoreoModuleChrome({
   nRows,
   hasSnapshot,
   syncing = false,
+  syncProgress = null,
   syncDisabled = false,
   syncLabel = "Actualizar todo",
   syncTitle,
@@ -84,6 +112,14 @@ export function MonitoreoModuleChrome({
       : "Modo por elegir"
     : `${activeRoutes} tipos disponibles`;
   const cutLabel = syncedAt ? "Listo" : hasSnapshot ? "Snapshot" : "Sin corte";
+  const syncingAdvance = Boolean(syncing && (!syncProgress?.active || syncProgress.active === "advance"));
+  const syncingFull = Boolean(syncing && (!syncProgress?.active || syncProgress.active === "full"));
+  const advanceProgress = syncingAdvance ? syncProgress : null;
+  const fullProgress = syncingFull ? syncProgress : null;
+  const advanceProgressLabel = syncingAdvance ? chromeSyncProgressLabel(advanceProgress) : "";
+  const fullProgressLabel = syncingFull ? chromeSyncProgressLabel(fullProgress) : "";
+  const advanceProgressTitle = advanceProgress?.message || advanceProgress?.phase || advanceSyncTitle || advanceSyncLabel;
+  const fullProgressTitle = fullProgress?.message || fullProgress?.phase || syncTitle || syncLabel;
   const generationInfo: ChromeGenerationInfo | null = (() => {
     if (pendingRegeneration || generationStatus === "stale") {
       return {
@@ -213,36 +249,40 @@ export function MonitoreoModuleChrome({
             <>
               {onSyncAll || onSyncAdvance ? (
                 <div className="mon-command-sync-group" aria-label="Actualización de monitoreo">
-                  {onSyncAdvance ? (
-                    <button
-                      type="button"
-                      className="mon-command-sync is-advance"
-                      disabled={saving || syncing || advanceSyncDisabled}
-                      title={advanceSyncTitle ?? advanceSyncLabel}
-                      aria-label={advanceSyncLabel}
-                      onClick={() => {
-                        void Promise.resolve(onSyncAdvance()).catch(() => undefined);
-                      }}
-                    >
-                      {syncing ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
-                      <span>{advanceSyncLabel}</span>
-                    </button>
-                  ) : null}
-                  {onSyncAll ? (
-                    <button
-                      type="button"
-                      className="mon-command-sync is-full"
-                      disabled={saving || syncing || syncDisabled}
-                      title={syncTitle ?? syncLabel}
-                      aria-label={syncLabel}
-                      onClick={() => {
-                        void Promise.resolve(onSyncAll()).catch(() => undefined);
-                      }}
-                    >
-                      {syncing ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-                      <span>{syncLabel}</span>
-                    </button>
-                  ) : null}
+	                  {onSyncAdvance ? (
+	                    <button
+	                      type="button"
+	                      className={`mon-command-sync is-advance${syncingAdvance ? " is-syncing" : ""}`}
+	                      disabled={saving || syncing || advanceSyncDisabled}
+	                      title={advanceProgressTitle}
+	                      aria-label={advanceProgressLabel ? `${advanceSyncLabel}: ${advanceProgressLabel}` : advanceSyncLabel}
+	                      style={chromeSyncProgressStyle(advanceProgress)}
+	                      onClick={() => {
+	                        void Promise.resolve(onSyncAdvance()).catch(() => undefined);
+	                      }}
+	                    >
+	                      {syncingAdvance ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
+	                      <span>{advanceSyncLabel}</span>
+	                      {advanceProgressLabel ? <strong className="mon-command-sync-progress">{advanceProgressLabel}</strong> : null}
+	                    </button>
+	                  ) : null}
+	                  {onSyncAll ? (
+	                    <button
+	                      type="button"
+	                      className={`mon-command-sync is-full${syncingFull ? " is-syncing" : ""}`}
+	                      disabled={saving || syncing || syncDisabled}
+	                      title={fullProgressTitle}
+	                      aria-label={fullProgressLabel ? `${syncLabel}: ${fullProgressLabel}` : syncLabel}
+	                      style={chromeSyncProgressStyle(fullProgress)}
+	                      onClick={() => {
+	                        void Promise.resolve(onSyncAll()).catch(() => undefined);
+	                      }}
+	                    >
+	                      {syncingFull ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+	                      <span>{syncLabel}</span>
+	                      {fullProgressLabel ? <strong className="mon-command-sync-progress">{fullProgressLabel}</strong> : null}
+	                    </button>
+	                  ) : null}
                 </div>
               ) : null}
               {generationInfo ? (

@@ -17,6 +17,34 @@
 #     https://developer.surveymonkey.com/apps/
 # =============================================================================
 
+.sm_api_timeout_seconds <- function(value = Sys.getenv("PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS", unset = ""),
+                                    default = 20,
+                                    min_seconds = 3,
+                                    max_seconds = 120) {
+  seconds <- suppressWarnings(as.numeric(value %||% default))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- default
+  min(max_seconds, max(min_seconds, seconds))
+}
+
+.sm_api_connect_timeout_seconds <- function(timeout_seconds = .sm_api_timeout_seconds(),
+                                            value = Sys.getenv("PROSECNUR_SURVEYMONKEY_CONNECT_TIMEOUT_SECONDS", unset = "")) {
+  timeout_seconds <- .sm_api_timeout_seconds(timeout_seconds)
+  seconds <- suppressWarnings(as.numeric(value %||% min(8, timeout_seconds)))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- min(8, timeout_seconds)
+  min(timeout_seconds, max(1, seconds))
+}
+
+.sm_api_new_handle <- function() {
+  h <- curl::new_handle()
+  timeout <- .sm_api_timeout_seconds()
+  curl::handle_setopt(
+    h,
+    timeout = timeout,
+    connecttimeout = .sm_api_connect_timeout_seconds(timeout)
+  )
+  h
+}
+
 #' Trae la estructura completa de un survey desde la API v3 de SurveyMonkey.
 #'
 #' @param survey_id ID numérico del survey (visible en la URL del constructor).
@@ -35,7 +63,7 @@ sm_api_fetch_survey_details <- function(survey_id, token, base_url = "https://ap
   }
 
   url <- sprintf("%s/surveys/%s/details", sub("/$", "", base_url), survey_id)
-  h <- curl::new_handle()
+  h <- .sm_api_new_handle()
   curl::handle_setheaders(h,
     "Authorization" = paste("Bearer", token),
     "Accept" = "application/json"
@@ -84,7 +112,7 @@ sm_api_check_token <- function(token, base_url = "https://api.surveymonkey.com/v
   if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
 
   url <- sprintf("%s/surveys?per_page=1", sub("/$", "", base_url))
-  h <- curl::new_handle()
+  h <- .sm_api_new_handle()
   curl::handle_setheaders(h,
     "Authorization" = paste("Bearer", token),
     "Accept" = "application/json"
@@ -141,7 +169,7 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
     "%s/surveys?per_page=%d&sort_by=date_modified&sort_order=DESC&include=date_modified,nickname,response_count",
     sub("/$", "", base_url), as.integer(per_page)
   )
-  h <- curl::new_handle()
+  h <- .sm_api_new_handle()
   curl::handle_setheaders(h,
     "Authorization" = paste("Bearer", token),
     "Accept" = "application/json"
@@ -201,7 +229,7 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   if (!requireNamespace("curl", quietly = TRUE)) stop("Paquete 'curl' no instalado.", call. = FALSE)
   if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
 
-  h <- curl::new_handle()
+  h <- .sm_api_new_handle()
   curl::handle_setheaders(h,
     "Authorization" = paste("Bearer", token),
     "Accept" = "application/json"
@@ -608,7 +636,7 @@ sm_api_fetch_responses_bulk <- function(survey_id,
     page,
     per_page
   )
-  h <- curl::new_handle()
+  h <- .sm_api_new_handle()
   curl::handle_setheaders(h,
     "Authorization" = paste("Bearer", token),
     "Accept" = "application/json"

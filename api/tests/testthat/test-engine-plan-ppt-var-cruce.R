@@ -454,6 +454,63 @@ test_that("modos existentes siguen renderizando sin error", {
   )
 })
 
+test_that("reporte_ppt_plan renderiza histograma apilado por grupo usando variable numerica cruda", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    edad = c(25, 25, 26, 26, 27, 28, 28, 29),
+    edad_recod = rep(c("25 a 26", "27 a 29"), each = 4),
+    sexo = c("1", "2", "1", "2", "1", "1", "2", "2"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$edad, "label") <- "Edad"
+  attr(dat$sexo, "label") <- "Sexo"
+
+  survey <- data.frame(
+    name = c("edad", "edad_recod", "sexo"),
+    type = c("integer", "select_one lst_edad", "select_one lst_sexo"),
+    list_name = c(NA_character_, "lst_edad", "lst_sexo"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c(rep("lst_edad", 2), rep("lst_sexo", 2)),
+    name = c("25 a 26", "27 a 29", "1", "2"),
+    label = c("25 a 26", "27 a 29", "Hombres", "Mujeres"),
+    stringsAsFactors = FALSE
+  )
+
+  plan <- list(
+    diapo_001 = p_slide_1_grafico(
+      grafico = p_histograma(
+        "edad",
+        grupo = "sexo",
+        modo = "porcentaje_bin",
+        ancho_bin = 2,
+        overrides = list(mostrar_valores = FALSE, usar_canvas = FALSE)
+      )
+    )
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = list(survey = survey, choices = choices, orders_list = NULL),
+    plan = plan,
+    presets = p_presets(histograma = list(modo = "porcentaje_bin", ancho_bin = 2)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$rendered, 1L)
+  expect_s3_class(out$rendered[[1]], "ggplot")
+  hist_data <- attr(out$rendered[[1]], "pulso_histograma_data")
+  expect_true(is.data.frame(hist_data))
+  expect_true(any(grepl("^25", hist_data$.bin_label)))
+  expect_setequal(as.character(hist_data$.grupo_label), c("Hombres", "Mujeres"))
+  bin_sums <- stats::aggregate(.valor ~ .bin_label, hist_data[hist_data$n_bin > 0, , drop = FALSE], sum)
+  expect_equal(bin_sums$.valor, rep(1, nrow(bin_sums)), tolerance = 1e-8)
+})
+
 test_that("barras agrupadas oculta opciones 0 por defecto y permite mostrarlas", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
@@ -1459,11 +1516,56 @@ test_that("apiladas sube solo etiquetas que no caben y mantiene dentro las que e
   expect_equal(out$y_label[-1], out$.y_plot[-1])
   expect_equal(out$.col_label, c("#081F5C", "white", "white", "white"))
   expect_equal(out$.col_conector[1], unname(colores[out$.grupo[1]]))
+  expect_equal(out$x_conector_label[1], out$x_label[1])
   expect_true(all(is.finite(out$x_conector_label[1])))
   expect_true(all(is.finite(out$x_conector_barra[1])))
   expect_true(out$y_conector_label[1] > out$y_conector_barra[1])
   expect_true(all(is.na(out$x_conector_label[-1])))
   expect_true(all(is.na(out$x_conector_barra[-1])))
+
+  out_azul <- prosecnurapp:::.posicionar_labels_arriba_si_no_caben_apiladas(
+    df_lab,
+    var_categoria = "categoria",
+    usar_y_numerico = TRUE,
+    grosor_eff = 0.70,
+    fit_padding = 0.003,
+    etiquetas_peq_padding = 0.012,
+    color_texto_barras_fuera = "#081F5C",
+    colores_grupos = colores,
+    color_conectores_etiquetas = "azul_pulso",
+    offset_y = 0.13
+  )
+
+  expect_equal(out_azul$.col_conector[1], "#081F5C")
+  expect_equal(out_azul$.col_conector[-1], rep("#081F5C", 3))
+
+  out_izq <- prosecnurapp:::.posicionar_labels_arriba_si_no_caben_apiladas(
+    df_lab,
+    var_categoria = "categoria",
+    usar_y_numerico = TRUE,
+    grosor_eff = 0.70,
+    fit_padding = 0.003,
+    etiquetas_peq_padding = 0.012,
+    color_texto_barras_fuera = "#081F5C",
+    colores_grupos = colores,
+    posicion_conector_etiquetas = "izquierda",
+    offset_y = 0.13
+  )
+
+  expect_lt(out_izq$x_conector_label[1], out_izq$x_label[1])
+  expect_equal(out_izq$x_conector_barra[1], out_izq$x_center[1])
+})
+
+test_that("apiladas expone color y grosor de conectores como argumentos publicos", {
+  fml <- formals(prosecnurapp::graficar_barras_apiladas)
+  expect_equal(eval(fml$color_conectores_etiquetas), c("segmento", "azul_pulso"))
+  expect_equal(eval(fml$posicion_conector_etiquetas), c("centro", "izquierda", "derecha"))
+  expect_equal(eval(fml$linewidth_conectores_etiquetas), 0.32)
+
+  body_txt <- paste(deparse(body(prosecnurapp::graficar_barras_apiladas)), collapse = "\n")
+  expect_true(grepl("linewidth = linewidth_conectores_etiquetas", body_txt, fixed = TRUE))
+  expect_true(grepl("color_conectores_etiquetas = color_conectores_etiquetas", body_txt, fixed = TRUE))
+  expect_true(grepl("posicion_conector_etiquetas = posicion_conector_etiquetas", body_txt, fixed = TRUE))
 })
 
 test_that("apiladas mide la etiqueta completa con frecuencia antes de dejarla dentro", {

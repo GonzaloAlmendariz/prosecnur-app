@@ -403,10 +403,15 @@
                                                            etiquetas_peq_padding = 0.012,
                                                            color_texto_barras_fuera,
                                                            colores_grupos = NULL,
+                                                           color_conectores_etiquetas = c("segmento", "azul_pulso"),
+                                                           posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
                                                            offset_y = 0.17,
                                                            connector_gap_y = 0.060,
                                                            width_factor = 2.15) {
   if (!NROW(df_lab)) return(df_lab)
+
+  color_conectores_etiquetas <- match.arg(color_conectores_etiquetas)
+  posicion_conector_etiquetas <- match.arg(posicion_conector_etiquetas)
 
   if (!".label_arriba" %in% names(df_lab)) df_lab$.label_arriba <- FALSE
   if (!"y_label" %in% names(df_lab)) {
@@ -465,15 +470,18 @@
       }
     }
 
-    widths <- .estimate_label_width_apiladas(
+    label_widths <- .estimate_label_width_apiladas(
       df_lab$lab[mover],
       df_lab$.size_label[mover]
-    ) * width_factor
+    )
+    widths <- label_widths * width_factor
     if (".label_fit_scale" %in% names(df_lab)) {
       scale_width <- suppressWarnings(as.numeric(df_lab$.label_fit_scale[mover]))
       scale_width[!is.finite(scale_width) | is.na(scale_width)] <- 1
+      label_widths <- label_widths * scale_width
       widths <- widths * scale_width
     }
+    label_widths[!is.finite(label_widths) | is.na(label_widths)] <- 0.05
     widths[!is.finite(widths) | is.na(widths)] <- 0.05
 
     lower <- fit_padding + widths / 2
@@ -506,15 +514,26 @@
       center_ref = 0.5
     )
     x_adj <- pmin(upper, pmax(lower, x_adj))
+    x_conector_label <- switch(
+      posicion_conector_etiquetas,
+      izquierda = x_adj - label_widths / 2,
+      derecha = x_adj + label_widths / 2,
+      centro = x_adj
+    )
+    x_conector_label <- pmin(1 - fit_padding, pmax(fit_padding, x_conector_label))
 
     df_lab$x_label[mover] <- x_adj
     df_lab$.hjust_label[mover] <- 0.5
     df_lab$.label_fuera[mover] <- TRUE
     df_lab$.label_arriba[mover] <- TRUE
     df_lab$.col_label[mover] <- color_texto_barras_fuera
-    df_lab$.col_conector[mover] <- color_segmento[mover]
+    df_lab$.col_conector[mover] <- if (identical(color_conectores_etiquetas, "azul_pulso")) {
+      color_texto_barras_fuera
+    } else {
+      color_segmento[mover]
+    }
     df_lab$y_label[mover] <- top_y[mover] + offset_y
-    df_lab$x_conector_label[mover] <- x_adj
+    df_lab$x_conector_label[mover] <- x_conector_label
     df_lab$x_conector_barra[mover] <- df_lab$x_center[mover]
     df_lab$y_conector_label[mover] <- top_y[mover] + connector_gap_y
     df_lab$y_conector_barra[mover] <- top_y[mover] - max(0.010, connector_gap_y * 0.15)
@@ -930,6 +949,11 @@
 #'   esa barra encima y las conecta con su segmento mediante una línea corta.
 #' @param etiquetas_arriba_offset Separación vertical entre el borde superior de la
 #'   barra y las etiquetas superiores, en unidades del eje Y interno.
+#' @param color_conectores_etiquetas Color de las líneas que conectan etiquetas
+#'   superiores con su segmento. `"segmento"` hereda el color del segmento;
+#'   `"azul_pulso"` usa el color de texto fuera de barra.
+#' @param posicion_conector_etiquetas Punto del texto superior desde donde sale
+#'   la línea guía: `"centro"`, `"izquierda"` o `"derecha"`.
 #' @param linewidth_conectores_etiquetas Grosor de las líneas que conectan etiquetas
 #'   superiores con su segmento.
 #' @param color_barra_extra,size_barra_extra,size_titulo_extra Estilos de la columna extra.
@@ -1066,6 +1090,8 @@ graficar_barras_apiladas <- function(
     etiquetas_peq_margen_interno = 0,
     etiquetas_arriba_si_no_caben = FALSE,
     etiquetas_arriba_offset = 0.13,
+    color_conectores_etiquetas = c("segmento", "azul_pulso"),
+    posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
     linewidth_conectores_etiquetas = 0.32,
     color_barra_extra     = "#000000",
     size_barra_extra      = 3,
@@ -1193,6 +1219,8 @@ graficar_barras_apiladas <- function(
   pos_nota_pie       <- match.arg(pos_nota_pie)
   grosor_modo        <- match.arg(grosor_modo)
   leyenda_posicion   <- match.arg(leyenda_posicion)
+  color_conectores_etiquetas <- match.arg(color_conectores_etiquetas)
+  posicion_conector_etiquetas <- match.arg(posicion_conector_etiquetas)
   font_family <- as.character(font_family %||% "Arial")[1]
   if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
   if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
@@ -1864,6 +1892,8 @@ graficar_barras_apiladas <- function(
         etiquetas_peq_padding = etiquetas_peq_padding,
         color_texto_barras_fuera = color_texto_barras_fuera,
         colores_grupos = colores_grupos,
+        color_conectores_etiquetas = color_conectores_etiquetas,
+        posicion_conector_etiquetas = posicion_conector_etiquetas,
         offset_y = etiquetas_arriba_offset
       )
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
@@ -2082,6 +2112,8 @@ graficar_barras_apiladas <- function(
         etiquetas_peq_padding = etiquetas_peq_padding,
         color_texto_barras_fuera = color_texto_barras_fuera,
         colores_grupos = colores_grupos,
+        color_conectores_etiquetas = color_conectores_etiquetas,
+        posicion_conector_etiquetas = posicion_conector_etiquetas,
         offset_y = etiquetas_arriba_offset
       )
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))

@@ -3,6 +3,28 @@
 # resumen. La función sm_api_fetch_survey_details() requiere token real y se
 # prueba aparte cuando esté disponible.
 
+test_that("cliente SurveyMonkey acota esperas de red", {
+  old_timeout <- Sys.getenv("PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS", unset = NA_character_)
+  old_connect <- Sys.getenv("PROSECNUR_SURVEYMONKEY_CONNECT_TIMEOUT_SECONDS", unset = NA_character_)
+  on.exit({
+    if (is.na(old_timeout)) Sys.unsetenv("PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS") else Sys.setenv(PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS = old_timeout)
+    if (is.na(old_connect)) Sys.unsetenv("PROSECNUR_SURVEYMONKEY_CONNECT_TIMEOUT_SECONDS") else Sys.setenv(PROSECNUR_SURVEYMONKEY_CONNECT_TIMEOUT_SECONDS = old_connect)
+  }, add = TRUE)
+
+  Sys.unsetenv("PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS")
+  Sys.unsetenv("PROSECNUR_SURVEYMONKEY_CONNECT_TIMEOUT_SECONDS")
+  expect_equal(.sm_api_timeout_seconds(), 20)
+  expect_equal(.sm_api_connect_timeout_seconds(20), 8)
+
+  Sys.setenv(PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS = "2")
+  expect_equal(.sm_api_timeout_seconds(), 3)
+  Sys.setenv(PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS = "200")
+  expect_equal(.sm_api_timeout_seconds(), 120)
+  Sys.setenv(PROSECNUR_SURVEYMONKEY_TIMEOUT_SECONDS = "15")
+  Sys.setenv(PROSECNUR_SURVEYMONKEY_CONNECT_TIMEOUT_SECONDS = "30")
+  expect_equal(.sm_api_connect_timeout_seconds(15), 15)
+})
+
 test_that("sm_api_extract_paginas mapea páginas con pad correcto del .sav", {
   details <- list(
     pages = list(

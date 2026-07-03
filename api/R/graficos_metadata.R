@@ -550,6 +550,64 @@
     ), .args_graf_comunes())
   ),
 
+  p_histograma = list(
+    titulo_humano = "Histograma",
+    descripcion   = "Distribución de una variable numérica por intervalos. Puede apilar cada intervalo por un grupo, como sexo o sede.",
+    icono_ui      = "ChartColumnStacked",
+    args = c(list(
+      list(name = "var",   label = "Variable numérica", tipo_input = "variable",     grupo = "datos",
+           descripcion = "Variable continua o discreta que se agrupará en intervalos."),
+      list(name = "grupo", label = "Apilar por grupo",  tipo_input = "variable_opt", grupo = "datos",
+           descripcion = "Variable categórica que divide cada intervalo. Ejemplo: sexo."),
+      list(name = "modo",  label = "Qué muestra la barra", tipo_input = "choice", grupo = "valores",
+           default = "porcentaje_total",
+           descripcion = "Elige si la altura representa la distribución total, la composición dentro de cada intervalo o conteos.",
+           choices = list(
+             list(value = "porcentaje_total", label = "% del total", hint = "Cada segmento es parte del total de casos."),
+             list(value = "porcentaje_bin",   label = "% dentro del intervalo", hint = "Cada barra suma 100%; útil para comparar hombres y mujeres por edad."),
+             list(value = "conteo",           label = "Conteos", hint = "Muestra frecuencias absolutas.")
+           )),
+      list(name = "ancho_bin", label = "Ancho del intervalo", tipo_input = "number", grupo = "datos",
+           descripcion = "Tamaño de cada intervalo. Ejemplo: 2 para edades 25-26, 27-28."),
+      list(name = "bins", label = "Número de intervalos", tipo_input = "number", grupo = "datos",
+           descripcion = "Se usa si no defines un ancho fijo de intervalo."),
+      list(name = "mostrar_bins_vacios", label = "Mostrar intervalos vacíos", tipo_input = "bool", grupo = "datos",
+           default = TRUE,
+           descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
+      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
+           default = TRUE,
+           descripcion = "Escribe etiquetas como 42% (76)."),
+      list(name = "excluir_grupos", label = "Excluir grupos del apilado", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Oculta grupos como 'Prefiero no responder' cuando el apilado debe mostrar solo categorías sustantivas."),
+      list(name = "orden_grupos", label = "Orden de grupos", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Orden opcional para los grupos apilados. Ejemplo: Hombre, Mujer."),
+      list(name = "posicion_etiquetas", label = "Ubicación de etiquetas", tipo_input = "choice", grupo = "valores",
+           default = "segmento",
+           descripcion = "Permite poner etiquetas dentro de cada segmento o una etiqueta resumida encima de cada barra.",
+           choices = list(
+             list(value = "segmento", label = "Dentro de segmentos"),
+             list(value = "cima",     label = "Encima de la barra"),
+             list(value = "ninguna",  label = "Sin etiquetas")
+           )),
+      list(name = "etiqueta_cima_modo", label = "Contenido de etiqueta superior", tipo_input = "choice", grupo = "valores",
+           default = "conteos_grupo",
+           descripcion = "Cuando la etiqueta va encima, define si muestra conteos por grupo abreviados o el total del intervalo.",
+           choices = list(
+             list(value = "conteos_grupo", label = "Conteos por grupo"),
+             list(value = "conteo_total",  label = "Conteo total")
+           )),
+      list(name = "abreviaturas_grupos", label = "Abreviaturas de grupos", tipo_input = "codigos_list", grupo = "valores",
+           descripcion = "Mapa opcional para etiquetas superiores. Ejemplo: Hombre = H, Mujer = M."),
+      list(name = "color_etiqueta_cima", label = "Color de etiqueta superior", tipo_input = "color", grupo = "valores",
+           default = "#06245C"),
+      list(name = "size_etiqueta_cima", label = "Tamaño de etiqueta superior", tipo_input = "number", grupo = "valores",
+           default = 4.2),
+      list(name = "umbral_etiqueta", label = "Mínimo para mostrar etiqueta", tipo_input = "number", grupo = "valores",
+           default = 0.04,
+           descripcion = "Oculta etiquetas de segmentos muy pequeños para evitar ruido visual.")
+    ), .args_graf_comunes())
+  ),
+
   p_boxplot = list(
     titulo_humano = "Box plot",
     descripcion   = "Caja con cuartiles y bigotes. Muestra la distribución de una variable numérica, opcionalmente por grupos.",
@@ -904,6 +962,9 @@
       # --- Etiquetas de valores ------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo",
            descripcion = "Escribe el % dentro de cada segmento de la barra."),
+      list(name = "mostrar_n_en_etiquetas", label = "Mostrar frecuencia en porcentajes", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
            default = "white",
            descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
@@ -928,6 +989,21 @@
            descripcion = "Si una barra tiene al menos un porcentaje que no entra bien, coloca todos sus porcentajes encima y los conecta con su segmento."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
+      list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
+           default = "segmento",
+           choices = list(
+             list(value = "segmento", label = "Color del segmento"),
+             list(value = "azul_pulso", label = "Azul Pulso")
+           ),
+           descripcion = "Define el color de las líneas que conectan porcentajes superiores con su segmento."),
+      list(name = "posicion_conector_etiquetas", label = "Salida conectores etiquetas", tipo_input = "choice", grupo = "estilo",
+           default = "centro",
+           choices = list(
+             list(value = "centro", label = "Centro del texto"),
+             list(value = "izquierda", label = "Esquina izquierda del texto"),
+             list(value = "derecha", label = "Esquina derecha del texto")
+           ),
+           descripcion = "Define desde qué punto del porcentaje superior sale la línea guía hacia la barra."),
       list(name = "linewidth_conectores_etiquetas", label = "Grosor conectores etiquetas", tipo_input = "number", grupo = "estilo",
            descripcion = "Grosor de las líneas que conectan porcentajes superiores con la barra."),
       list(name = "desplazamiento_max_etiquetas_peq", label = "Desplazamiento máximo etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
@@ -987,8 +1063,14 @@
       list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas",
            default = 0.15,
            descripcion = "Altura en pulgadas de la zona del título. Si el título no entra, aumenta este valor."),
+      list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas",
+           descripcion = "Desplazamiento vertical fino del bloque de título/subtítulo."),
+      list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas",
+           descripcion = "Distancia vertical entre el título del gráfico y su subtítulo."),
       list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas",
            default = 0.15),
+      list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas",
+           descripcion = "Desplazamiento vertical fino de la leyenda dentro del gráfico."),
       list(name = "canvas_h_caption_in",    label = "Alto del pie de página (in)", tipo_input = "number", grupo = "canvas",
            default = 0.20),
       list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
@@ -1048,11 +1130,27 @@
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
       list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo"),
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_n_en_etiquetas", label = "Mostrar frecuencia en porcentajes", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "filtro"),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro"),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro"),
+      list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
+           default = "segmento",
+           choices = list(
+             list(value = "segmento", label = "Color del segmento"),
+             list(value = "azul_pulso", label = "Azul Pulso")
+           )),
+      list(name = "posicion_conector_etiquetas", label = "Salida conectores etiquetas", tipo_input = "choice", grupo = "estilo",
+           default = "centro",
+           choices = list(
+             list(value = "centro", label = "Centro del texto"),
+             list(value = "izquierda", label = "Esquina izquierda del texto"),
+             list(value = "derecha", label = "Esquina derecha del texto")
+           )),
       list(name = "linewidth_conectores_etiquetas", label = "Grosor conectores etiquetas", tipo_input = "number", grupo = "estilo"),
 
       # --- Barra extra ---------------------------------------------------
@@ -1089,15 +1187,34 @@
       list(name = "legend_key_cm",        label = "Tamaño icono leyenda",  tipo_input = "number", grupo = "estilo"),
       list(name = "legend_espaciado",     label = "Espaciado leyenda",     tipo_input = "number", grupo = "estilo"),
       list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo"),
+      list(name = "legend_gap_npc",        label = "Separación compacta leyenda", tipo_input = "number", grupo = "estilo",
+           descripcion = "Separación horizontal fina entre ítems de la leyenda manual."),
 
       # --- Canvas ---------------------------------------------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→columna extra", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas"),
+      list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas"),
+      list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_caption_in",    label = "Alto del pie (in)",      tipo_input = "number", grupo = "canvas")
+      list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_caption_in",    label = "Alto del pie (in)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas"),
+
+      # --- Grosor de barras ----------------------------------------------
+      list(name = "grosor_modo",          label = "Modo de grosor", tipo_input = "choice", grupo = "canvas",
+           choices = list(
+             list(value = "auto", label = "Automático"),
+             list(value = "manual", label = "Manual")
+           )),
+      list(name = "grosor_barras",        label = "Grosor de las barras", tipo_input = "number", grupo = "canvas"),
+      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "canvas")
     )
   ),
 
@@ -1142,6 +1259,9 @@
 
       # --- Valores y cálculo ---------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_n_en_etiquetas", label = "Mostrar frecuencia en porcentajes", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
       list(name = "mostrar_ceros",        label = "Mostrar opciones 0%",   tipo_input = "bool",   grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
@@ -1170,6 +1290,9 @@
            descripcion = "Texto antes del valor extra. Déjalo vacío para mostrar solo el valor."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
+      list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo"),
+      list(name = "size_texto_barras",    label = "Tamaño texto en barras", tipo_input = "number", grupo = "estilo"),
+      list(name = "grosor_barras",        label = "Grosor de las barras", tipo_input = "number", grupo = "canvas"),
 
       # --- Eje Y / labels -------------------------------------------------
       list(name = "ancho_max_eje_y",      label = "Ancho de texto de etiquetas", tipo_input = "number", grupo = "filtro", default = 30),
@@ -1183,7 +1306,10 @@
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas", default = 0.10),
       list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas", default = 0.70),
+      list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas"),
+      list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_legend_in",     label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_caption_in",    label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "canvas_min_filas",        label = "Filas mínimas para grosor", tipo_input = "number", grupo = "canvas", default = 8),
       list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas", default = 0.48)
@@ -1272,6 +1398,89 @@
       # --- Textos --------------------------------------------------------
       list(name = "nota_pie",             label = "Nota al pie (fijo)",    tipo_input = "string", grupo = "textos",
            descripcion = "Texto opcional que siempre va al pie. Si está vacío, se usa la base automática.")
+    )
+  ),
+
+  # =========================================================================
+  # HISTOGRAMA
+  # =========================================================================
+  histograma = list(
+    titulo_humano = "Histograma",
+    descripcion   = "Estilo global para histogramas. Permite mostrar distribución de una variable numérica y apilarla por grupos.",
+    icono_ui      = "ChartColumnStacked",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "valores", "ejes")),
+
+      list(name = "modo", label = "Qué muestra la barra", tipo_input = "choice", grupo = "valores",
+           default = "porcentaje_total",
+           choices = list(
+             list(value = "porcentaje_total", label = "% del total"),
+             list(value = "porcentaje_bin",   label = "% dentro del intervalo"),
+             list(value = "conteo",           label = "Conteos")
+           )),
+      list(name = "ancho_bin", label = "Ancho del intervalo", tipo_input = "number", grupo = "datos",
+           descripcion = "Tamaño de cada intervalo. Ejemplo: 2 para edades de dos en dos."),
+      list(name = "bins", label = "Número de intervalos", tipo_input = "number", grupo = "datos",
+           default = 8),
+      list(name = "limite_inferior", label = "Límite inferior", tipo_input = "number", grupo = "datos"),
+      list(name = "limite_superior", label = "Límite superior", tipo_input = "number", grupo = "datos"),
+      list(name = "mostrar_bins_vacios", label = "Mostrar intervalos vacíos", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
+      list(name = "excluir_grupos", label = "Excluir grupos del apilado", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Oculta grupos como 'Prefiero no responder' cuando el apilado debe mostrar solo categorías sustantivas."),
+      list(name = "orden_grupos", label = "Orden de grupos", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Orden opcional para los grupos apilados. Ejemplo: Hombre, Mujer."),
+
+      list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "posicion_etiquetas", label = "Ubicación de etiquetas", tipo_input = "choice", grupo = "valores",
+           default = "segmento",
+           choices = list(
+             list(value = "segmento", label = "Dentro de segmentos"),
+             list(value = "cima",     label = "Encima de la barra"),
+             list(value = "ninguna",  label = "Sin etiquetas")
+           )),
+      list(name = "etiqueta_cima_modo", label = "Contenido de etiqueta superior", tipo_input = "choice", grupo = "valores",
+           default = "conteos_grupo",
+           choices = list(
+             list(value = "conteos_grupo", label = "Conteos por grupo"),
+             list(value = "conteo_total",  label = "Conteo total")
+           )),
+      list(name = "abreviaturas_grupos", label = "Abreviaturas de grupos", tipo_input = "codigos_list", grupo = "valores",
+           descripcion = "Mapa opcional para etiquetas superiores. Ejemplo: Hombre = H, Mujer = M."),
+      list(name = "color_etiqueta_cima", label = "Color de etiqueta superior", tipo_input = "color", grupo = "valores", default = "#06245C"),
+      list(name = "size_etiqueta_cima", label = "Tamaño de etiqueta superior", tipo_input = "number", grupo = "valores", default = 4.2),
+      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 0),
+      list(name = "umbral_etiqueta", label = "Mínimo para mostrar etiqueta", tipo_input = "number", grupo = "valores",
+           default = 0.04,
+           descripcion = "Segmentos más pequeños que este valor quedan sin etiqueta para evitar solapamientos."),
+      list(name = "color_texto_barras", label = "Color de etiquetas", tipo_input = "color", grupo = "valores", default = "white"),
+      list(name = "size_texto_barras", label = "Tamaño de etiquetas", tipo_input = "number", grupo = "valores", default = 4.8),
+
+      list(name = "colores_grupos", label = "Colores por grupo", tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Paleta para los grupos apilados."),
+      list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "leyenda", default = TRUE),
+      list(name = "leyenda_posicion", label = "Posición de leyenda", tipo_input = "choice", grupo = "leyenda",
+           default = "abajo",
+           choices = list(
+             list(value = "abajo", label = "Abajo"),
+             list(value = "arriba", label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "izquierda", label = "Izquierda"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "legend_n_por_fila", label = "Elementos de leyenda por fila", tipo_input = "number", grupo = "leyenda", default = 4),
+      list(name = "legend_key_cm", label = "Tamaño del marcador", tipo_input = "number", grupo = "leyenda", default = 0.32),
+      list(name = "legend_espaciado", label = "Separación de leyenda", tipo_input = "number", grupo = "leyenda", default = 0.6),
+      list(name = "legend_text_gap", label = "Separación marcador-texto", tipo_input = "number", grupo = "leyenda", default = 0.12),
+      list(name = "size_leyenda", label = "Tamaño de leyenda", tipo_input = "number", grupo = "leyenda", default = 10),
+
+      list(name = "ancho_barras", label = "Ancho de barras", tipo_input = "number", grupo = "espacio", default = 0.78),
+      list(name = "mostrar_eje_y", label = "Mostrar eje Y", tipo_input = "bool", grupo = "estilo", default = TRUE),
+      list(name = "wrap_eje_x", label = "Wrap de intervalos", tipo_input = "number", grupo = "espacio", default = 14),
+      list(name = "canvas_h_title", label = "Alto de encabezado", tipo_input = "number", grupo = "espacio", default = 0.12),
+      list(name = "canvas_h_legend", label = "Alto de leyenda", tipo_input = "number", grupo = "espacio", default = 0.12),
+      list(name = "canvas_h_caption", label = "Alto de pie", tipo_input = "number", grupo = "espacio", default = 0.04)
     )
   ),
 
@@ -1754,6 +1963,8 @@
     repeler_etiquetas_peq    = TRUE,
     etiquetas_arriba_si_no_caben = TRUE,
     etiquetas_arriba_offset = 0.17,
+    color_conectores_etiquetas = "segmento",
+    posicion_conector_etiquetas = "centro",
     linewidth_conectores_etiquetas = 0.42,
     desplazamiento_max_etiquetas_peq = 0.09,
     etiquetas_peq_factor_ancho = 2.5,
@@ -1802,6 +2013,8 @@
     size_barra_extra         = 16,
     etiquetas_arriba_si_no_caben = TRUE,
     etiquetas_arriba_offset = 0.17,
+    color_conectores_etiquetas = "segmento",
+    posicion_conector_etiquetas = "centro",
     linewidth_conectores_etiquetas = 0.42,
     desplazamiento_max_etiquetas_peq = 0.09,
     etiquetas_peq_factor_ancho = 2.5,
@@ -1892,6 +2105,46 @@
     size_n_sobre_barras      = 4.2,
     color_n_sobre_barras     = .PULSO_PPT_COLORS$azul,
     colores_series           = list(Media = .PULSO_PPT_COLORS$azul)
+  ),
+
+  histograma = list(
+    modo                     = "porcentaje_total",
+    bins                     = 8,
+    ancho_bin                = NULL,
+    mostrar_bins_vacios      = TRUE,
+    mostrar_valores          = TRUE,
+    mostrar_frecuencia       = TRUE,
+    excluir_grupos           = NULL,
+    orden_grupos             = NULL,
+    posicion_etiquetas       = "segmento",
+    etiqueta_cima_modo       = "conteos_grupo",
+    abreviaturas_grupos      = NULL,
+    separador_etiquetas_cima = "  ",
+    color_etiqueta_cima      = .PULSO_PPT_COLORS$azul,
+    size_etiqueta_cima       = 4.2,
+    decimales                = 0,
+    umbral_etiqueta          = 0.04,
+    color_texto_barras       = "white",
+    size_texto_barras        = 4.8,
+    textos_negrita           = c("valores", "leyenda"),
+    mostrar_eje_y            = TRUE,
+    mostrar_leyenda          = TRUE,
+    leyenda_posicion         = "abajo",
+    legend_n_por_fila        = 4,
+    legend_key_cm            = 0.32,
+    legend_espaciado         = 0.6,
+    legend_text_gap          = 0.12,
+    size_leyenda             = 10,
+    ancho_barras             = 0.78,
+    wrap_eje_x               = 14,
+    canvas_h_title           = 0.12,
+    canvas_h_legend          = 0.12,
+    canvas_h_caption         = 0.04,
+    canvas_pad_top           = 0.01,
+    colores_grupos           = list(
+      Grupo_1 = .PULSO_PPT_COLORS$azul,
+      Grupo_2 = .PULSO_PPT_COLORS$azul_secundario
+    )
   ),
 
   pie = list(
@@ -2335,7 +2588,7 @@
   if (nm %in% c("debug_ph_bordes", "debug_ph_col", "debug_ph_lwd", "debug_lw", "exportar")) {
     return("diagnostico")
   }
-  if (grepl("^(canvas_|tabla_ph_|alto_por_categoria$|ancho_max_eje_y$|wrap_y$|wrap_ejes$|eje_label_mult$)", nm)) {
+  if (grepl("^(canvas_|tabla_ph_|alto_por_categoria$|ancho_max_eje_y$|wrap_y$|wrap_ejes$|eje_label_mult$|grosor_)", nm)) {
     return("espacio")
   }
   if (grepl("^(tabla_|mostrar_tabla_derecha$|titulo_tabla$|umbral_rojo_pct$)", nm)) {
@@ -2496,6 +2749,105 @@
       step = 1,
       control = "stepper"
     ),
+    legend_gap_npc = list(
+      label = "Separación fina de leyenda",
+      descripcion = "Ajusta la separación horizontal compacta entre elementos de la leyenda manual. Útil cuando la leyenda queda muy abierta o demasiado pegada.",
+      unidad = "proporción",
+      min = 0,
+      max = 0.08,
+      step = 0.002,
+      control = "slider"
+    ),
+    mostrar_n_en_etiquetas = list(
+      label = "Mostrar frecuencia en porcentajes",
+      descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16).",
+      efecto = "Hace más informativas las etiquetas de las barras."
+    ),
+    etiquetas_arriba_si_no_caben = list(
+      label = "Subir porcentajes que no caben",
+      descripcion = "Cuando algún porcentaje no entra bien dentro de su segmento, lo coloca encima de la barra con una línea guía.",
+      efecto = "Evita superposiciones en segmentos pequeños."
+    ),
+    etiquetas_arriba_offset = list(
+      label = "Distancia sobre la barra",
+      descripcion = "Separación vertical entre la barra y los porcentajes que se colocan arriba.",
+      unidad = "eje interno",
+      min = 0.04,
+      max = 0.5,
+      step = 0.01,
+      control = "stepper"
+    ),
+    color_conectores_etiquetas = list(
+      label = "Color de la línea guía",
+      descripcion = "Define si la línea guía usa el color del segmento o el azul Pulso.",
+      efecto = "Solo afecta las líneas que conectan porcentajes superiores con la barra."
+    ),
+    posicion_conector_etiquetas = list(
+      label = "Salida de la línea guía",
+      descripcion = "Punto del texto superior desde donde sale la línea: centro, esquina izquierda o esquina derecha.",
+      efecto = "Permite que la línea nazca del borde más natural del porcentaje, útil cuando la etiqueta queda desplazada."
+    ),
+    linewidth_conectores_etiquetas = list(
+      label = "Grosor de la línea guía",
+      descripcion = "Grosor de la línea que une un porcentaje superior con su segmento.",
+      min = 0.1,
+      max = 2,
+      step = 0.05,
+      control = "stepper"
+    ),
+    size_texto_barras = list(
+      label = "Tamaño de porcentajes",
+      descripcion = "Tamaño del texto de porcentajes dentro o encima de la barra.",
+      min = 1,
+      max = 12,
+      step = 0.1,
+      control = "stepper"
+    ),
+    size_texto_barras_peq = list(
+      label = "Tamaño de porcentajes pequeños",
+      descripcion = "Tamaño alternativo para porcentajes de segmentos pequeños. Déjalo igual al tamaño principal para una lectura consistente.",
+      min = 1,
+      max = 12,
+      step = 0.1,
+      control = "stepper"
+    ),
+    grosor_modo = list(
+      label = "Cálculo de grosor",
+      descripcion = "Define si el grosor de barras se respeta manualmente o se ajusta automáticamente según la cantidad de filas."
+    ),
+    grosor_barras = list(
+      label = "Grosor de barras",
+      descripcion = "Controla el grosor visual de las barras. Útil para hacer coherentes gráficos apilados y agrupados en una misma lámina.",
+      min = 0.1,
+      max = 1.2,
+      step = 0.02,
+      control = "stepper"
+    ),
+    grosor_barras_mult = list(
+      label = "Multiplicador de grosor",
+      descripcion = "Ajuste fino del grosor cuando el modo automático está activo.",
+      min = 0.4,
+      max = 1.8,
+      step = 0.02,
+      control = "stepper"
+    ),
+    canvas_min_filas = list(
+      label = "Filas mínimas de referencia",
+      descripcion = "Reserva filas virtuales para que una barra sola no se vea desproporcionada frente a gráficos con varias filas.",
+      min = 1,
+      max = 12,
+      step = 1,
+      control = "stepper"
+    ),
+    canvas_pad_bars_y_in = list(
+      label = "Aire vertical de barras",
+      descripcion = "Padding vertical interno del panel de barras. Aumentarlo da más respiración cuando hay etiquetas encima.",
+      unidad = "pulgadas",
+      min = 0,
+      max = 0.3,
+      step = 0.005,
+      control = "stepper"
+    ),
     mostrar_ceros = list(
       label = "Mostrar opciones 0%",
       descripcion = "Incluye categorías definidas en el instrumento aunque no tengan casos. Desactívalo para dejar solo categorías con N.",
@@ -2553,6 +2905,33 @@
       min = 0,
       max = 1.5,
       step = 0.02,
+      control = "stepper"
+    ),
+    encabezado_desplazamiento_in = list(
+      label = "Mover encabezado",
+      descripcion = "Desplaza verticalmente el bloque de título/subtítulo del gráfico. Úsalo para pequeños ajustes finos.",
+      unidad = "pulgadas",
+      min = -0.5,
+      max = 0.5,
+      step = 0.01,
+      control = "stepper"
+    ),
+    encabezado_separacion_in = list(
+      label = "Separación título-subtítulo",
+      descripcion = "Controla la distancia entre el título del gráfico y su subtítulo, por ejemplo Pregunta de opción múltiple.",
+      unidad = "pulgadas",
+      min = 0,
+      max = 1,
+      step = 0.01,
+      control = "stepper"
+    ),
+    leyenda_desplazamiento_in = list(
+      label = "Mover leyenda",
+      descripcion = "Desplaza verticalmente la leyenda para acercarla o alejarla del panel de barras.",
+      unidad = "pulgadas",
+      min = -0.5,
+      max = 0.5,
+      step = 0.01,
       control = "stepper"
     ),
     canvas_h_legend_in = list(
