@@ -417,7 +417,6 @@ function TextControl({
   const label = safeText(meta.label, humanizeIdentifier(meta.name, "campo"));
   const hasDescription = safeTrimmedText(meta.descripcion).length > 0;
   const presets = quickStringPresetsFor(meta.name);
-  const baseHint = buildTextHint(meta);
   const [draft, setDraft] = useState(value);
   const [status, setStatus] = useState<FieldStatus>({
     state: "default",
@@ -425,7 +424,6 @@ function TextControl({
       value,
       metaName: meta.name,
       placeholder,
-      baseHint,
     }),
   });
   const [isFocused, setIsFocused] = useState(false);
@@ -441,7 +439,7 @@ function TextControl({
   const textareaRows = multiline ? rows : 2;
 
   function evaluate(next: string) {
-    const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder, baseHint });
+    const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder });
     const hasAutomaticText = !!placeholder && next.trim() === "";
     setStatus({
       state: isCriticalTextField(meta.name) && next.trim() === "" && !hasAutomaticText ? "warning" : "default",
@@ -455,6 +453,11 @@ function TextControl({
   }, [meta.name, value]);
 
   const statusRowState = isFocused && status.state === "default" ? "focus" : status.state;
+  const controlStatus: FieldStatus = {
+    ...status,
+    state: statusRowState,
+  };
+  const describedBy = controlStatus.message.trim().length > 0 ? statusId : undefined;
 
   return (
     <div className="pulso-gv2-string-control" data-text-source={textSource.state}>
@@ -478,7 +481,7 @@ function TextControl({
             placeholder={placeholder ?? (hasDescription ? undefined : "(opcional)")}
             style={{ ...inputStyle, fontFamily: "inherit", resize: multiline ? "vertical" : "none" }}
             className={`pulso-gv2-text-input-control is-${statusRowState} ${wrapsLongSingleLine ? "is-auto-wrap" : ""}`}
-            aria-describedby={statusId}
+            aria-describedby={describedBy}
             aria-invalid={status.state === "error" ? "true" : undefined}
           />
         ) : (
@@ -500,7 +503,7 @@ function TextControl({
               placeholder={placeholder ?? (hasDescription ? undefined : "(opcional)")}
               style={inputStyle}
               className={`pulso-gv2-text-input-control is-${statusRowState}`}
-              aria-describedby={statusId}
+              aria-describedby={describedBy}
               aria-invalid={status.state === "error" ? "true" : undefined}
             />
             {draft !== "" && (
@@ -571,10 +574,7 @@ function TextControl({
 
       <FieldStatusRow
         id={statusId}
-        status={{
-          ...status,
-          state: statusRowState,
-        }}
+        status={controlStatus}
         minHeight={16}
       />
     </div>
@@ -643,8 +643,7 @@ function NumberControl({
   const displayMax = typeof max === "number" ? max * displayScale : undefined;
   const displayUnit = displayAsPercent ? "%" : meta.unidad;
   const useThreeDecimals = meta.grupo === "espacio" || /^(canvas_|tabla_)/.test(meta.name ?? "") || meta.name === "alto_por_categoria";
-  const rangeHint = buildRangeHint(meta);
-  const baseHint = [buildNumberHint(meta), rangeHint].filter(Boolean).join(" ");
+  const baseHint = buildNumberStatusHint(meta);
   const [status, setStatus] = useState<FieldStatus>(() => ({
     state: "default",
     message: baseHint,
@@ -851,6 +850,11 @@ function NumberControl({
   };
   const currentDisplayValue = hasCurrentValue ? currentNumeric * displayScale : undefined;
   const stepDisplayLabel = formatRangeTick(displayStep);
+  const controlStatus: FieldStatus = {
+    ...status,
+    state: isFocused && status.state === "default" ? "focus" : status.state,
+  };
+  const describedBy = controlStatus.message.trim().length > 0 ? statusId : undefined;
   const rangeProgress =
     hasSlider &&
     typeof displayMin === "number" &&
@@ -916,7 +920,7 @@ function NumberControl({
               fontVariantNumeric: "tabular-nums",
             }}
             className={`pulso-gv2-number-input ${statusClassName}`}
-            aria-describedby={statusId}
+            aria-describedby={describedBy}
             aria-invalid={status.state === "error" || status.state === "warning" ? "true" : undefined}
           />
           {displayUnit && (
@@ -997,26 +1001,15 @@ function NumberControl({
 
       <FieldStatusRow
         id={statusId}
-        status={{
-          ...status,
-          state: isFocused && status.state === "default" ? "focus" : status.state,
-        }}
+        status={controlStatus}
         minHeight={16}
       />
     </div>
   );
 }
 
-function buildTextHint(meta: ArgMetadata): string {
-  return resolveArgumentDescription(meta, {
-    forText: true,
-  });
-}
-
-function buildNumberHint(meta: ArgMetadata): string {
-  return resolveArgumentDescription(meta, {
-    forNumber: true,
-  });
+function buildNumberStatusHint(meta: ArgMetadata): string {
+  return buildRangeHint(meta);
 }
 
 function buildRangeHint(meta: ArgMetadata): string {
@@ -1465,28 +1458,29 @@ export function resolveArgumentDescription(meta: ArgMetadata, options: {
   const numberContext = options.forNumber ? relatedNumericHint(meta.name ?? "", meta.grupo ?? "") : "";
   const fallbackHint = buildTextualLabelHint(meta);
 
-  return joinHints([typeHint, nameHint, groupContext, rangeHint, numberContext, fallbackHint]) || DEFAULT_ARG_HINT;
+  if (nameHint) return joinHints([nameHint, rangeHint]);
+  if (fallbackHint) return joinHints([fallbackHint, rangeHint]);
+  if (options.forNumber && rangeHint) return rangeHint;
+  return joinHints([typeHint, groupContext, numberContext]) || DEFAULT_ARG_HINT;
 }
 
 function buildTextStatusMessage({
   value,
   metaName,
   placeholder,
-  baseHint,
 }: {
   value: string | undefined;
   metaName: string;
   placeholder?: string;
-  baseHint: string;
 }): string {
   const trimmed = (value ?? "").trim();
   if (trimmed.length === 0 && placeholder) {
-    return "Se usará el texto automático si dejas este campo vacío.";
+    return "Usa texto automático si queda vacío.";
   }
   if (isCriticalTextField(metaName) && trimmed.length === 0) {
-    return "Este texto es clave para la lectura del gráfico.";
+    return "Texto recomendado para orientar la lectura.";
   }
-  return baseHint;
+  return "";
 }
 
 function isCriticalTextField(name: string): boolean {
@@ -1510,6 +1504,8 @@ function FieldStatusRow({
   status: FieldStatus;
   minHeight: number;
 }) {
+  if (status.message.trim().length === 0) return null;
+
   return (
     <p
       id={id}
