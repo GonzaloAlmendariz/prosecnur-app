@@ -18,12 +18,47 @@ import { WordPresetsEditor } from "../../WordPresetsEditor";
 
 type Tab = "ppt" | "word" | "paletas" | "iconos" | "modos";
 
-const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string }[] = [
-  { key: "ppt",     label: "Base PPT",     eyebrow: "No marca cambios", Icon: Sliders,    hint: "Apariencia global por tipo de gráfico para el PPT" },
-  { key: "word",    label: "Base Word",    eyebrow: "Reporte",          Icon: FileText,   hint: "Apariencia global para gráficos del reporte Word" },
-  { key: "paletas", label: "Color e identidad", eyebrow: "Paletas",          Icon: Palette,    hint: "Línea visual y colores por etiqueta de respuesta" },
-  { key: "iconos",  label: "Íconos",       eyebrow: "Recursos",     Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
-  { key: "modos",   label: "Estilos guardados", eyebrow: "Reutilizables", Icon: IconModes, hint: "Apariencias reutilizables como compacto, narrativo o alta densidad" },
+const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string; summary: string }[] = [
+  {
+    key: "ppt",
+    label: "Base PPT",
+    eyebrow: "Valor por defecto",
+    Icon: Sliders,
+    hint: "Apariencia global por tipo de gráfico para el PowerPoint",
+    summary: "Define cómo se ven los gráficos cuando no hay cambios propios.",
+  },
+  {
+    key: "word",
+    label: "Base Word",
+    eyebrow: "Hereda de PPT",
+    Icon: FileText,
+    hint: "Ajustes globales para gráficos del reporte Word",
+    summary: "Mantén Word alineado al PPT y ajusta solo lo que necesite otra lectura.",
+  },
+  {
+    key: "paletas",
+    label: "Color e identidad",
+    eyebrow: "Paletas",
+    Icon: Palette,
+    hint: "Línea visual y colores por etiqueta de respuesta",
+    summary: "Aplica identidades visuales y fija colores por categorías del instrumento.",
+  },
+  {
+    key: "iconos",
+    label: "Íconos",
+    eyebrow: "Recursos",
+    Icon: ImageIcon,
+    hint: "PNGs subidos para slides de población",
+    summary: "Administra recursos visuales usados en láminas de población.",
+  },
+  {
+    key: "modos",
+    label: "Estilos guardados",
+    eyebrow: "Reutilizables",
+    Icon: IconModes,
+    hint: "Apariencias reutilizables como compacto, narrativo o alta densidad",
+    summary: "Crea estilos que puedes aplicar a varios gráficos sin repetir ajustes.",
+  },
 ];
 
 const STYLE_FLOW: Array<{
@@ -31,9 +66,9 @@ const STYLE_FLOW: Array<{
   label: string;
   detail: string;
 }> = [
-  { key: "base", label: "Base predeterminada", detail: "No marca cambios" },
+  { key: "base", label: "Valor por defecto", detail: "No marca cambios" },
   { key: "mode", label: "Estilo guardado", detail: "Reusable" },
-  { key: "manual", label: "Ajustes adicionales", detail: "Solo gráfico activo" },
+  { key: "manual", label: "Ajuste adicional", detail: "Solo el gráfico activo" },
 ];
 
 export type EstiloGlobalDialogProps = {
@@ -90,7 +125,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               <div className="pulso-gv2-estilo-eyebrow">Suite visual</div>
               <div className="pulso-gv2-estilo-title">Estilo global</div>
               <div className="pulso-gv2-estilo-sub">
-                Define la base que no marca cambios, los estilos reutilizables y los ajustes finos por gráfico.
+                Ordena la identidad visual completa del reporte sin mezclarla con los ajustes manuales del slide.
               </div>
             </div>
           </div>
@@ -126,54 +161,77 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
           </button>
         </header>
 
-        <div className="pulso-gv2-estilo-flow" aria-label="Cómo se aplican los estilos">
-          <span className="pulso-gv2-estilo-flow-label">Cómo se aplica</span>
-          {STYLE_FLOW.map((step, index) => {
-            const isActive = step.key === "mode" ? tab === "modos" : step.key === "base" ? tab !== "modos" : false;
-            return (
-              <span
-                key={step.key}
-                className={`pulso-gv2-estilo-flow-step is-${step.key}${isActive ? " is-active" : ""}`}
-              >
-                <CheckCircle2 size={12} />
-                <span>
-                  <strong>{step.label}</strong>
-                  <small>{step.detail}</small>
-                </span>
-                {index < STYLE_FLOW.length - 1 && <i aria-hidden="true" />}
-              </span>
-            );
-          })}
-        </div>
+        <div className="pulso-gv2-estilo-workbench">
+          <aside className="pulso-gv2-estilo-rail" aria-label="Secciones de estilo global">
+            <div className="pulso-gv2-estilo-rail-head">
+              <span>Mapa visual</span>
+              <strong>Base, identidad y estilos</strong>
+              <small>Primero fija la base; después guarda variaciones reutilizables cuando haga falta.</small>
+            </div>
 
-        <nav className="pulso-gv2-estilo-tabs" role="tablist">
-          {TABS.map(({ key, label, eyebrow, Icon, hint }) => (
-            <button
-              key={key}
-              role="tab"
-              type="button"
-              aria-selected={tab === key}
-              className={`pulso-gv2-estilo-tab ${tab === key ? "is-active" : ""}`}
-              onClick={() => setTab(key)}
-              aria-label={`${label}. ${hint}`}
-            >
-              <span className="pulso-gv2-estilo-tab-icon" aria-hidden="true">
-                <Icon size={13} />
-              </span>
-              <span className="pulso-gv2-estilo-tab-copy">
-                <span className="pulso-gv2-estilo-tab-label">{label}</span>
-                <span className="pulso-gv2-estilo-tab-eyebrow">{eyebrow}</span>
-              </span>
-            </button>
-          ))}
-        </nav>
+            <div className="pulso-gv2-estilo-flow" aria-label="Cómo se aplican los estilos">
+              <span className="pulso-gv2-estilo-flow-label">Prioridad de estilo</span>
+              {STYLE_FLOW.map((step, index) => {
+                const isActive = step.key === "mode" ? tab === "modos" : step.key === "base" ? tab !== "modos" : false;
+                return (
+                  <span
+                    key={step.key}
+                    className={`pulso-gv2-estilo-flow-step is-${step.key}${isActive ? " is-active" : ""}`}
+                  >
+                    <CheckCircle2 size={12} />
+                    <span>
+                      <strong>{step.label}</strong>
+                      <small>{step.detail}</small>
+                    </span>
+                    {index < STYLE_FLOW.length - 1 && <i aria-hidden="true" />}
+                  </span>
+                );
+              })}
+            </div>
 
-        <div className={`pulso-gv2-estilo-body is-${tab}`}>
-          {tab === "ppt" && <PresetsEditor />}
-          {tab === "word" && <WordTabContent onClose={onClose} />}
-          {tab === "paletas" && <PaletasEditor />}
-          {tab === "iconos" && <IconosEditor />}
-          {tab === "modos" && <OverridesEditor />}
+            <nav className="pulso-gv2-estilo-tabs" role="tablist">
+              {TABS.map(({ key, label, eyebrow, Icon, hint }) => (
+                <button
+                  key={key}
+                  role="tab"
+                  type="button"
+                  aria-selected={tab === key}
+                  className={`pulso-gv2-estilo-tab ${tab === key ? "is-active" : ""}`}
+                  onClick={() => setTab(key)}
+                  aria-label={`${label}. ${hint}`}
+                >
+                  <span className="pulso-gv2-estilo-tab-icon" aria-hidden="true">
+                    <Icon size={13} />
+                  </span>
+                  <span className="pulso-gv2-estilo-tab-copy">
+                    <span className="pulso-gv2-estilo-tab-label">{label}</span>
+                    <span className="pulso-gv2-estilo-tab-eyebrow">{eyebrow}</span>
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <section className="pulso-gv2-estilo-panel" aria-label={activeTab.label}>
+            <div className="pulso-gv2-estilo-sectionbar">
+              <span className="pulso-gv2-estilo-section-icon" aria-hidden="true">
+                <activeTab.Icon size={14} />
+              </span>
+              <div>
+                <strong>{activeTab.label}</strong>
+                <span>{activeTab.summary}</span>
+              </div>
+              <em>{activeTab.eyebrow}</em>
+            </div>
+
+            <div className={`pulso-gv2-estilo-body is-${tab}`}>
+              {tab === "ppt" && <PresetsEditor />}
+              {tab === "word" && <WordTabContent onClose={onClose} />}
+              {tab === "paletas" && <PaletasEditor />}
+              {tab === "iconos" && <IconosEditor />}
+              {tab === "modos" && <OverridesEditor />}
+            </div>
+          </section>
         </div>
       </div>
     </div>,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, Circle, FileText, RotateCcw } from "lucide-react";
+import { CheckCircle2, Circle, FileText, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { createDefaultWordPresets } from "../../api/graficosConfigNormalizer";
 import { usePlanStore } from "./store";
@@ -173,10 +173,12 @@ export function WordPresetsEditor() {
                 className={`pulso-gv2-word-preset ${isActive ? "is-active" : ""}`}
               >
                 <Icon size={14} />
-                <span>
+                <span className="pulso-gv2-word-preset-label">
                   {p.titulo_humano}
                 </span>
-                {modified && <Circle size={7} fill="var(--pulso-primary)" color="transparent" aria-label="Modificado" />}
+                <span className={`pulso-gv2-word-preset-state ${modified ? "is-custom" : "is-inherited"}`}>
+                  {modified ? "Word" : "PPT"}
+                </span>
               </button>
             );
           })}
@@ -203,7 +205,7 @@ export function WordPresetsEditor() {
                 )}
               </div>
               <p>
-                Parte de los valores del PPT. Cambia solo lo que necesite ser más compacto en Word.
+                Hereda la base PPT. Cambia solo lo que necesite una lectura distinta en el reporte Word.
               </p>
             </div>
             {hasSelectedChanges && (
@@ -213,10 +215,17 @@ export function WordPresetsEditor() {
                 className="pulso-gv2-word-reset"
               >
                 <RotateCcw size={11} />
-                Volver a base Word
+                Volver a heredar PPT
               </button>
             )}
           </header>
+
+          <WordSourceRail
+            metaName={meta.name}
+            editableArgCount={meta.args.length}
+            selectedPatchCount={selectedPatchCount}
+            hasChanges={hasSelectedChanges}
+          />
 
           <div className="pulso-gv2-word-args">
             {gruposDeArgs.length === 0 ? (
@@ -240,6 +249,43 @@ export function WordPresetsEditor() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function WordSourceRail({
+  metaName,
+  editableArgCount,
+  selectedPatchCount,
+  hasChanges,
+}: {
+  metaName: string;
+  editableArgCount: number;
+  selectedPatchCount: number;
+  hasChanges: boolean;
+}) {
+  const inheritedCount = Math.max(0, editableArgCount - selectedPatchCount);
+  return (
+    <div className="pulso-gv2-word-source-rail" aria-label="Origen de valores del preset Word">
+      <span className="is-ppt">
+        <CheckCircle2 size={12} />
+        <strong>Base PPT</strong>
+        <b>heredada</b>
+      </span>
+      <span className={hasChanges ? "is-word" : "is-inherited"}>
+        <Circle size={8} fill={hasChanges ? "currentColor" : "transparent"} />
+        <strong>{hasChanges ? "Diferencia Word" : "Sin diferencia Word"}</strong>
+        <b>
+          {hasChanges
+            ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"}`
+            : `${inheritedCount} heredado${inheritedCount === 1 ? "" : "s"}`}
+        </b>
+      </span>
+      <span className="is-model">
+        <SlidersHorizontal size={12} />
+        <strong>Tipo</strong>
+        <code>{metaName}</code>
+      </span>
     </div>
   );
 }
