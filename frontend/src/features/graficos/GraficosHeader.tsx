@@ -966,62 +966,80 @@ export function GraficosHeader({
         ariaLabel="Estilo global y exportación de reportes"
         className="pulso-gv2-command-row pulso-gv2-command-row--exports"
       >
-        <button
-          type="button"
-          onClick={() => setEstiloOpen(true)}
-          className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
-          aria-haspopup="dialog"
-          aria-expanded={estiloOpen}
-          title="Configurar presets, paletas, íconos y modos para todos los slides"
-        >
-          <Settings2 size={13} /> Estilo global
-          <span className="pulso-gv2-estilo-trigger-meta">
-            {nPaletas + nIconos + nPresets + nModos > 0
-              ? [
-                  nPresets > 0 && `${nPresets} preset${nPresets === 1 ? "" : "s"}`,
-                  nModos > 0 && `${nModos} modo${nModos === 1 ? "" : "s"}`,
-                  nPaletas > 0 && `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`,
-                  nIconos > 0 && `${nIconos} ícono${nIconos === 1 ? "" : "s"}`,
-                ].filter(Boolean).join(" · ")
-              : "configurar"}
-          </span>
-        </button>
+        <div className="pulso-gv2-style-command">
+          <button
+            type="button"
+            onClick={() => setEstiloOpen(true)}
+            className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
+            aria-haspopup="dialog"
+            aria-expanded={estiloOpen}
+            title="Configurar presets, paletas, íconos y modos para todos los slides"
+          >
+            <span className="pulso-gv2-estilo-trigger-icon" aria-hidden="true">
+              <Settings2 size={13} />
+            </span>
+            <span className="pulso-gv2-estilo-trigger-copy">
+              <span className="pulso-gv2-estilo-trigger-label">Estilo global</span>
+              <span className="pulso-gv2-estilo-trigger-meta">
+                {nPaletas + nIconos + nPresets + nModos > 0
+                  ? [
+                      nPresets > 0 && `${nPresets} preset${nPresets === 1 ? "" : "s"}`,
+                      nModos > 0 && `${nModos} modo${nModos === 1 ? "" : "s"}`,
+                      nPaletas > 0 && `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`,
+                      nIconos > 0 && `${nIconos} ícono${nIconos === 1 ? "" : "s"}`,
+                    ].filter(Boolean).join(" · ")
+                  : "configurar"}
+              </span>
+            </span>
+          </button>
+        </div>
 
         <ContextBarDivider />
 
-        <button
-          className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary"
-          onClick={onExportPpt}
-          disabled={!canExportFinal || exportBusy}
-        >
-          {exportJobKind === "ppt" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
-          Exportar .pptx
-        </button>
-        {pptFileId && !exportBusy && (
-          <a
-            href={downloadUrl(pptFileId)}
-            className="pulso-gv2-download-pill"
-          >
-            <Download size={12} /> {pptFilename ?? "reporte.pptx"}
-          </a>
-        )}
+        <div className="pulso-gv2-export-suite" aria-label="Salidas del reporte">
+          <span className="pulso-gv2-export-suite-title">
+            <FileText size={13} aria-hidden="true" />
+            Salidas
+          </span>
 
-        <button
-          className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary"
-          onClick={onExportWord}
-          disabled={!canExportFinal || exportBusy}
-        >
-          {exportJobKind === "word" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
-          Exportar .docx
-        </button>
-        {docxFileId && !exportBusy && (
-          <a
-            href={downloadUrl(docxFileId)}
-            className="pulso-gv2-download-pill"
-          >
-            <Download size={12} /> {docxFilename ?? "reporte.docx"}
-          </a>
-        )}
+          <div className="pulso-gv2-export-format">
+            <button
+              className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-button"
+              onClick={onExportPpt}
+              disabled={!canExportFinal || exportBusy}
+            >
+              {exportJobKind === "ppt" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
+              Exportar .pptx
+            </button>
+            {pptFileId && !exportBusy && (
+              <a
+                href={downloadUrl(pptFileId)}
+                className="pulso-gv2-download-pill"
+              >
+                <Download size={12} /> {pptFilename ?? "reporte.pptx"}
+              </a>
+            )}
+          </div>
+
+          <div className="pulso-gv2-export-format">
+            <button
+              className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-button"
+              onClick={onExportWord}
+              disabled={!canExportFinal || exportBusy}
+            >
+              {exportJobKind === "word" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
+              Exportar .docx
+            </button>
+            {docxFileId && !exportBusy && (
+              <a
+                href={downloadUrl(docxFileId)}
+                className="pulso-gv2-download-pill"
+              >
+                <Download size={12} /> {docxFilename ?? "reporte.docx"}
+              </a>
+            )}
+          </div>
+        </div>
         {saveStatus && (
           <span className={`pulso-gv2-save-result ${saveStatus.startsWith("[") ? "is-error" : "is-ok"}`}>
             {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
