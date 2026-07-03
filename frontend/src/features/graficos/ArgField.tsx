@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2 } from "lucide-react";
+import { Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
@@ -87,11 +87,13 @@ export function ArgField({
   const labelId = useId();
   const description = resolveArgumentDescription(meta);
   const descriptionId = `${labelId}-description`;
+  const isTextInput = meta.tipo_input === "string" || meta.tipo_input === "textarea";
+  const hasEmptyTextValue = isTextInput && typeof value === "string" && value.trim().length === 0;
   const hasAutomaticPlaceholder =
-    !hasOwnValue &&
-    (meta.tipo_input === "string" || meta.tipo_input === "textarea") &&
+    isTextInput &&
     typeof placeholder === "string" &&
-    placeholder.trim().length > 0;
+    placeholder.trim().length > 0 &&
+    (!hasOwnValue || hasEmptyTextValue);
   const hasInheritedPreview =
     !hasOwnValue &&
     inheritedValue !== undefined &&
@@ -423,6 +425,7 @@ function TextControl({
   });
   const [isFocused, setIsFocused] = useState(false);
   const statusId = useId();
+  const showAutomaticPreview = !!placeholder && draft.trim() === "";
 
   function evaluate(next: string) {
     const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder, baseHint });
@@ -505,6 +508,17 @@ function TextControl({
           </>
         )}
       </div>
+
+      {showAutomaticPreview && (
+        <div
+          className="pulso-gv2-auto-preview"
+          aria-label={`Texto automatico: ${placeholder}`}
+        >
+          <Sparkles size={12} />
+          <span>Auto</span>
+          <strong>{placeholder}</strong>
+        </div>
+      )}
 
       {presets.length > 0 && (
         <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${label}`}>
