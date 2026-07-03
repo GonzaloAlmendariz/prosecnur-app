@@ -16014,6 +16014,140 @@
   background: color-mix(in srgb, var(--pulso-danger-bg) 74%, #ffffff);
 }
 
+/* Suite polish pass 36: crisper timeline signatures and centered icons. */
+.pulso-gv2-slide-card {
+  --gv2-slide-cat: var(--gv2-accent, var(--pulso-primary));
+  --gv2-slide-cat-soft: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  --gv2-slide-cat-border: var(--gv2-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-gv2-slide-card[data-cat="estructural"] {
+  --gv2-slide-cat: #4f46e5;
+  --gv2-slide-cat-soft: color-mix(in srgb, #eef2ff 88%, #ffffff);
+  --gv2-slide-cat-border: color-mix(in srgb, #4f46e5 25%, var(--pulso-border));
+  border-left-color: var(--gv2-slide-cat);
+}
+
+.pulso-gv2-slide-card[data-cat="1g"] {
+  --gv2-slide-cat: #0f766e;
+  --gv2-slide-cat-soft: color-mix(in srgb, #ccfbf1 78%, #ffffff);
+  --gv2-slide-cat-border: color-mix(in srgb, #0f766e 26%, var(--pulso-border));
+  border-left-color: var(--gv2-slide-cat);
+}
+
+.pulso-gv2-slide-card[data-cat="2g"] {
+  --gv2-slide-cat: #0891b2;
+  --gv2-slide-cat-soft: color-mix(in srgb, #cffafe 78%, #ffffff);
+  --gv2-slide-cat-border: color-mix(in srgb, #0891b2 26%, var(--pulso-border));
+  border-left-color: var(--gv2-slide-cat);
+}
+
+.pulso-gv2-slide-card[data-cat="grid"] {
+  --gv2-slide-cat: #b7791f;
+  --gv2-slide-cat-soft: color-mix(in srgb, #fef3c7 80%, #ffffff);
+  --gv2-slide-cat-border: color-mix(in srgb, #b7791f 26%, var(--pulso-border));
+  border-left-color: var(--gv2-slide-cat);
+}
+
+.pulso-gv2-slide-card[data-cat="poblacion"] {
+  --gv2-slide-cat: #be185d;
+  --gv2-slide-cat-soft: color-mix(in srgb, #fce7f3 80%, #ffffff);
+  --gv2-slide-cat-border: color-mix(in srgb, #be185d 25%, var(--pulso-border));
+  border-left-color: var(--gv2-slide-cat);
+}
+
+.pulso-gv2-slide-card.is-active {
+  border-color: color-mix(in srgb, var(--gv2-slide-cat) 64%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-slide-cat-soft) 64%, #ffffff), #ffffff),
+    var(--pulso-surface);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gv2-slide-cat) 13%, transparent),
+    0 9px 22px rgba(15, 23, 42, 0.07);
+}
+
+.pulso-gv2-slide-card-title {
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-gv2-slide-card-type-icon {
+  width: 21px;
+  height: 21px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--gv2-slide-cat) 22%, var(--pulso-border));
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-slide-cat-soft) 64%, #ffffff));
+  color: color-mix(in srgb, var(--gv2-slide-cat) 86%, var(--pulso-text));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 3px 8px color-mix(in srgb, var(--gv2-slide-cat) 8%, transparent);
+}
+
+.pulso-gv2-slide-card-type-icon svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  margin: 0;
+  color: currentColor;
+  stroke-width: 2.45;
+}
+
+.pulso-gv2-slide-card-title-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-slide-card-models {
+  gap: 4px;
+}
+
+.pulso-gv2-slide-card-model {
+  min-height: 24px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px;
+  padding: 2px 7px 2px 2px;
+  border: 1px solid color-mix(in srgb, var(--gv2-slide-cat) 18%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--gv2-slide-cat-soft) 46%, #ffffff));
+  color: color-mix(in srgb, var(--gv2-slide-cat) 84%, var(--pulso-text));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.pulso-gv2-slide-card-model-icon {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--gv2-slide-cat-soft) 78%, #ffffff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gv2-slide-cat) 16%, transparent);
+}
+
+.pulso-gv2-slide-card-model-icon svg {
+  width: 12px;
+  height: 12px;
+  color: color-mix(in srgb, var(--gv2-slide-cat) 88%, var(--pulso-text));
+}
+
+.pulso-gv2-slide-card-model-label {
+  line-height: 1;
+}
+
+.pulso-gv2-slide-card-handle {
+  color: color-mix(in srgb, var(--gv2-slide-cat) 42%, var(--pulso-text-soft));
+}
+
+.pulso-gv2-slide-card-index {
+  color: color-mix(in srgb, var(--gv2-slide-cat) 30%, var(--pulso-text-soft));
+}
+
 /* Suite polish pass 8: explicit automatic text preview for dynamic placeholders. */
 .pulso-gv2-text-source-strip {
   min-width: 0;
