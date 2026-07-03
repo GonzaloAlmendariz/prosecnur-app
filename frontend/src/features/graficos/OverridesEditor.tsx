@@ -122,7 +122,7 @@ export function OverridesEditor() {
         <span className="is-connector" aria-hidden="true">/</span>
         <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} modo{overrides.length === 1 ? "" : "s"}</span>
         <span className="is-connector" aria-hidden="true">/</span>
-        <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes</span>
+        <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes propios</span>
       </div>
       <div className="pulso-gv2-overrides-workbench">
       {/* Sidebar */}
@@ -162,7 +162,7 @@ export function OverridesEditor() {
                   <span className="pulso-gv2-mode-list-copy">
                     <span className="pulso-gv2-mode-list-label">{o.nombre}</span>
                     <span className="pulso-gv2-mode-list-meta">
-                      {tipoMeta?.titulo_humano ?? o.tipo_preset} · {argCount} ajuste{argCount === 1 ? "" : "s"}
+                      {tipoMeta?.titulo_humano ?? o.tipo_preset} · {hasArgs ? `${argCount} ajuste${argCount === 1 ? "" : "s"}` : "hereda base"}
                     </span>
                   </span>
                   <span className={`pulso-gv2-mode-list-state ${hasArgs ? "is-custom" : "is-base"}`}>
@@ -238,7 +238,7 @@ function OverrideEditPanel({
   const argCount = Object.keys(override.args).length;
   const stateLabel = argCount > 0
     ? `${argCount} ajuste${argCount === 1 ? "" : "s"}`
-    : "Base heredada";
+    : "Sin ajustes propios";
 
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];
