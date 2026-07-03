@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Search, X, LayoutGrid, Layers3, LayoutPanelTop, BarChart3, Columns3, Grid3X3, UsersRound } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Columns3,
+  Eye,
+  FilePlus2,
+  Grid3X3,
+  Layers3,
+  LayoutGrid,
+  LayoutPanelTop,
+  Plus,
+  Search,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { SlideType } from "../../../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
@@ -37,6 +53,7 @@ const ALL_TYPES: SlideType[] = [
 
 const ORDER: ("all" | SlideCategory)[] = ["all", "estructural", "1g", "2g", "grid", "poblacion"];
 type BlueprintPattern = "cover" | "single" | "narrative" | "split" | "grid" | "population";
+type PreviewScale = "card" | "hero";
 type SlidePreviewLayout =
   | "cover"
   | "index"
@@ -63,7 +80,7 @@ const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
   ...CATEGORY_LABEL,
 };
 
-const CAT_META: Record<"all" | SlideCategory, { Icon: typeof Plus; hint: string }> = {
+const CAT_META: Record<"all" | SlideCategory, { Icon: LucideIcon; hint: string }> = {
   all: { Icon: LayoutGrid, hint: "Todos los modelos" },
   estructural: { Icon: LayoutPanelTop, hint: "Apertura y narrativa" },
   "1g": { Icon: BarChart3, hint: "Un visual principal" },
@@ -82,6 +99,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
   const { slidesById } = useGraficosRegistry();
   const [filter, setFilter] = useState<"all" | SlideCategory>("all");
   const [query, setQuery] = useState("");
+  const [selectedType, setSelectedType] = useState<SlideType>(ALL_TYPES[0]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +108,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
     if (open) {
       setQuery("");
       setFilter("all");
+      setSelectedType(ALL_TYPES[0]);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
@@ -122,6 +141,11 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
     });
   }, [filter, query, slidesById]);
 
+  useEffect(() => {
+    if (!open || filtered.length === 0 || filtered.includes(selectedType)) return;
+    setSelectedType(filtered[0]);
+  }, [filtered, open, selectedType]);
+
   const categoryCounts = useMemo(() => {
     const counts = Object.fromEntries(ORDER.map((c) => [c, 0])) as Record<"all" | SlideCategory, number>;
     counts.all = ALL_TYPES.length;
@@ -131,6 +155,19 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
 
   const activeMeta = CAT_META[filter];
   const activeLabel = CAT_LABEL_WITH_ALL[filter];
+  const selectedMeta = slidesById[selectedType];
+  const selectedCategory = categoryOf(selectedType);
+  const selectedPattern = blueprintPattern(selectedType);
+  const selectedSlots = selectedMeta?.slots ?? [];
+  const selectedSlotCount = selectedSlots.length || inferredSlotCount(selectedType);
+  const selectedSlotItems = selectedSlotCount > 0
+    ? Array.from({ length: selectedSlotCount }, (_, index) => `Slot ${index + 1}`)
+    : [];
+
+  function insertSlide(type: SlideType) {
+    addSlide(type);
+    onClose();
+  }
 
   if (!open || typeof document === "undefined") return null;
 
@@ -215,19 +252,29 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
               />
             </div>
 
-            <div className="pulso-gv2-picker-grid">
+            <div className="pulso-gv2-picker-grid" role="list" aria-label="Modelos disponibles">
               {filtered.map((t) => {
                 const meta = slidesById[t];
                 const cat = categoryOf(t);
                 const pattern = blueprintPattern(t);
                 const slots = meta?.slots ?? [];
+                const selected = selectedType === t;
                 return (
-                  <button
+                  <article
                     key={t}
-                    type="button"
-                    className="pulso-gv2-picker-tile"
+                    className={`pulso-gv2-picker-tile ${selected ? "is-selected" : ""}`}
                     data-cat={cat}
-                    onClick={() => { addSlide(t); onClose(); }}
+                    role="listitem"
+                    aria-current={selected ? "true" : undefined}
+                    aria-label={`${SLIDE_LABELS[t]}. ${modelSlotLabel(t)}. Seleccionar modelo`}
+                    tabIndex={0}
+                    onClick={() => setSelectedType(t)}
+                    onDoubleClick={() => insertSlide(t)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      setSelectedType(t);
+                    }}
                   >
                     <span className="pulso-gv2-picker-tile-icon">
                       <SlideTypeIcon tipo={t} iconoUi={meta?.icono_ui} size={23} />
@@ -246,11 +293,18 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                         <span>PPT 16:9</span>
                       </span>
                     </span>
-                    <span className="pulso-gv2-picker-tile-action">
+                    <button
+                      type="button"
+                      className="pulso-gv2-picker-tile-action"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        insertSlide(t);
+                      }}
+                    >
                       <Plus size={11} /> Insertar
-                    </span>
-                    <SlideModelMiniature type={t} slots={slots} />
-                  </button>
+                    </button>
+                    <SlideModelMiniature type={t} slots={slots} scale="card" />
+                  </article>
                 );
               })}
               {filtered.length === 0 && (
@@ -260,6 +314,66 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
               )}
             </div>
           </section>
+
+          <aside className="pulso-gv2-picker-inspector" data-cat={selectedCategory} aria-label="Detalle del modelo seleccionado">
+            {filtered.length === 0 ? (
+              <div className="pulso-gv2-picker-inspector-empty">
+                <Search size={18} />
+                <strong>Sin resultados</strong>
+                <span>Prueba con “gráfico”, “texto”, “población” o limpia la búsqueda.</span>
+              </div>
+            ) : (
+              <>
+                <div className="pulso-gv2-picker-inspector-head">
+                  <span className="pulso-gv2-picker-inspector-icon" aria-hidden="true">
+                    <Eye size={15} />
+                  </span>
+                  <div>
+                    <span>Vista previa PPT</span>
+                    <strong>{modelStructureLabel(selectedPattern)}</strong>
+                  </div>
+                </div>
+
+                <SlideModelMiniature type={selectedType} slots={selectedSlots} scale="hero" />
+
+                <div className="pulso-gv2-picker-inspector-copy">
+                  <span className="pulso-gv2-picker-inspector-family">{CAT_LABEL_WITH_ALL[selectedCategory]}</span>
+                  <h3>{SLIDE_LABELS[selectedType]}</h3>
+                  <p>{selectedMeta?.descripcion ?? "Modelo listo para construir una lámina del reporte."}</p>
+                </div>
+
+                <div className="pulso-gv2-picker-inspector-facts">
+                  <span>
+                    <CheckCircle2 size={13} /> {modelSlotLabel(selectedType)}
+                  </span>
+                  <span>PPT 16:9</span>
+                  <span>{selectedSlotCount > 0 ? "Con gráficos" : "Editorial"}</span>
+                </div>
+
+                <div className="pulso-gv2-picker-inspector-slots" aria-label="Zonas del modelo">
+                  {selectedSlotItems.length > 0 ? (
+                    selectedSlotItems.map((slot) => <span key={slot}>{slot}</span>)
+                  ) : (
+                    <span>Sin slots de gráfico</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="pulso-gv2-picker-insert-primary"
+                  onClick={() => insertSlide(selectedType)}
+                >
+                  <FilePlus2 size={16} />
+                  <span>Insertar modelo</span>
+                  <ArrowRight size={15} />
+                </button>
+
+                <p className="pulso-gv2-picker-inspector-note">
+                  Luego podrás elegir variables, cruces y estilo desde el editor del slide.
+                </p>
+              </>
+            )}
+          </aside>
         </div>
       </div>
     </div>,
@@ -345,14 +459,14 @@ function blueprintLayout(type: SlideType): SlidePreviewLayout {
   }
 }
 
-function SlideModelMiniature({ type, slots }: { type: SlideType; slots: string[] }) {
+function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType; slots: string[]; scale?: PreviewScale }) {
   const layout = blueprintLayout(type);
   const slotCount = slots.length || inferredSlotCount(type);
   const slotItems = Array.from({ length: Math.min(slotCount, 6) }, (_, index) => index + 1);
 
   return (
     <span
-      className="pulso-gv2-picker-slide-preview"
+      className={`pulso-gv2-picker-slide-preview is-${scale}`}
       data-layout={layout}
       data-slots={slotCount}
       aria-hidden="true"
