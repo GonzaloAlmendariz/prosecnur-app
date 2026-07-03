@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, CheckCircle2, CircleSlash2, EyeOff, Loader2, RefreshCw } from "lucide-react";
-import type { GraficosCoverageVariable } from "../../api/client";
+import { BarChart3, CheckCircle2, CircleSlash2, EyeOff, Loader2, RefreshCw, Target } from "lucide-react";
+import type { GraficosCoverageSummary, GraficosCoverageVariable } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePlanCoverage, variableCoverageRef } from "./usePlanCoverage";
 
@@ -46,6 +46,8 @@ export function PlanCoverageBadge() {
   }, [open]);
 
   const summary = coverage?.summary;
+  const progress = summary ? coverageProgress(summary) : 0;
+  const coveragePhrase = summary ? coverageHeadline(summary) : "Inventario de variables";
   const label = error
     ? "Cobertura no disponible"
     : summary
@@ -86,15 +88,22 @@ export function PlanCoverageBadge() {
       {open && (
         <div className="pulso-gv2-coverage-popover" role="dialog" aria-label="Cobertura del plan de gráficos">
           <div className="pulso-gv2-coverage-head">
-            <div>
-              <strong>Cobertura del plan</strong>
+            <span className={`pulso-gv2-coverage-head-mark is-${tone}`} aria-hidden="true">
+              {loading ? <Loader2 size={15} className="pulso-spin" /> : <Target size={15} />}
+            </span>
+            <div className="pulso-gv2-coverage-head-copy">
+              <strong>{coveragePhrase}</strong>
               <span>
                 {summary
-                  ? `${summary.total_variables} variables totales · ${summary.unused_graphable} graficables sin usar`
+                  ? `${summary.total_variables} variables totales · ${summary.graphable_variables} graficables detectadas`
                   : "Calculando inventario del instrumento"}
               </span>
             </div>
-            {loading && <Loader2 size={14} className="pulso-spin" />}
+            {summary && (
+              <span className={`pulso-gv2-coverage-head-pill is-${tone}`}>
+                {progress}%
+              </span>
+            )}
           </div>
 
           {error && (
@@ -110,12 +119,31 @@ export function PlanCoverageBadge() {
           ) : null}
 
           {summary && (
-            <div className="pulso-gv2-coverage-kpis">
-              <CoverageKpi label="Incluidas" value={summary.included_graphable} total={summary.graphable_variables} />
-              <CoverageKpi label="Sin usar" value={summary.unused_graphable} />
-              <CoverageKpi label="Recodificadas" value={summary.covered_by_recod} />
-              <CoverageKpi label="No graficables" value={summary.not_graphable + summary.empty} />
-            </div>
+            <>
+              <div className="pulso-gv2-coverage-progress-card">
+                <div className="pulso-gv2-coverage-progress-copy">
+                  <strong>{summary.included_graphable}/{summary.graphable_variables}</strong>
+                  <span>{summary.unused_graphable === 0 ? "Todo lo graficable está cubierto o excluido." : `${summary.unused_graphable} variable${summary.unused_graphable === 1 ? "" : "s"} graficable${summary.unused_graphable === 1 ? "" : "s"} pendiente${summary.unused_graphable === 1 ? "" : "s"}.`}</span>
+                </div>
+                <div
+                  className={`pulso-gv2-coverage-progress is-${tone}`}
+                  role="meter"
+                  aria-label="Porcentaje de variables graficables cubiertas"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progress}
+                >
+                  <span style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+
+              <div className="pulso-gv2-coverage-kpis">
+                <CoverageKpi tone="success" label="Incluidas" value={summary.included_graphable} total={summary.graphable_variables} />
+                <CoverageKpi tone={summary.unused_graphable > 0 ? "info" : "success"} label="Sin usar" value={summary.unused_graphable} />
+                <CoverageKpi tone="mode" label="Recodificadas" value={summary.covered_by_recod} />
+                <CoverageKpi tone="muted" label="No graficables" value={summary.not_graphable + summary.empty} />
+              </div>
+            </>
           )}
 
           <CoverageGroup
@@ -138,9 +166,30 @@ export function PlanCoverageBadge() {
   );
 }
 
-function CoverageKpi({ label, value, total }: { label: string; value: number; total?: number }) {
+function coverageProgress(summary: GraficosCoverageSummary): number {
+  if (!summary.graphable_variables) return 100;
+  return Math.round((summary.included_graphable / summary.graphable_variables) * 100);
+}
+
+function coverageHeadline(summary: GraficosCoverageSummary): string {
+  if (summary.graphable_variables === 0) return "Sin variables graficables";
+  if (summary.unused_graphable === 0) return "Cobertura lista";
+  return "Cobertura por completar";
+}
+
+function CoverageKpi({
+  label,
+  value,
+  total,
+  tone,
+}: {
+  label: string;
+  value: number;
+  total?: number;
+  tone: "success" | "info" | "mode" | "muted";
+}) {
   return (
-    <div className="pulso-gv2-coverage-kpi">
+    <div className="pulso-gv2-coverage-kpi" data-tone={tone}>
       <strong>{value}{typeof total === "number" ? `/${total}` : ""}</strong>
       <span>{label}</span>
     </div>
@@ -167,7 +216,7 @@ function CoverageGroup({
       CheckCircle2;
 
   return (
-    <section className="pulso-gv2-coverage-group">
+    <section className="pulso-gv2-coverage-group" data-status={status} data-compact={compact ? "true" : "false"}>
       <div className="pulso-gv2-coverage-group-title">
         <span><Icon size={12} /> {STATUS_LABELS[status] ?? status}</span>
         <small>{items.length}</small>
@@ -179,7 +228,10 @@ function CoverageGroup({
           return (
             <div key={`${source}:${variable.name}`} className="pulso-gv2-coverage-row">
               <div>
-                <strong>{variable.name}</strong>
+                <span className="pulso-gv2-coverage-row-meta">
+                  {source && source !== "default" && <small>{source}</small>}
+                  <code>{variable.name}</code>
+                </span>
                 <span>{variable.label || variable.name}</span>
                 {variable.exclusion_reason && <em>{variable.exclusion_reason}</em>}
               </div>
