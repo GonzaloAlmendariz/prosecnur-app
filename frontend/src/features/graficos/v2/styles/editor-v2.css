@@ -22493,3 +22493,267 @@
     display: none;
   }
 }
+
+/* Suite polish pass 34: contained workbench model for Estilo global. */
+.pulso-gv2-estilo-body.is-ppt,
+.pulso-gv2-estilo-body.is-word,
+.pulso-gv2-estilo-body.is-paletas,
+.pulso-gv2-estilo-body.is-modos {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-gv2-estilo-body :where(
+  .pulso-gv2-presets-stack,
+  .pulso-gv2-word-presets,
+  .pulso-gv2-overrides-editor,
+  .pulso-gv2-paletas-editor
+) {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pulso-gv2-estilo-body :where(
+  .pulso-gv2-presets-overview,
+  .pulso-gv2-word-overview,
+  .pulso-gv2-overrides-overview,
+  .pulso-gv2-word-option-card,
+  .pulso-gv2-overrides-map,
+  .pulso-gv2-ppt-style-panel
+) {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-estilo-body :where(
+  .pulso-gv2-presets-editor,
+  .pulso-gv2-word-layout,
+  .pulso-gv2-overrides-workbench
+) {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-gv2-estilo-body :where(
+  .pulso-gv2-presets-sidebar,
+  .pulso-gv2-word-sidebar,
+  .pulso-gv2-overrides-sidebar,
+  .pulso-gv2-paletas-sidebar
+) {
+  align-self: stretch;
+  max-height: none;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-gv2-estilo-body :where(
+  .pulso-gv2-presets-sidebar,
+  .pulso-gv2-word-sidebar,
+  .pulso-gv2-overrides-list,
+  .pulso-gv2-paletas-list
+) {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.pulso-gv2-estilo-body :where(
+  .pulso-gv2-presets-detail,
+  .pulso-gv2-word-detail,
+  .pulso-gv2-overrides-detail,
+  .pulso-gv2-paletas-detail
+) {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) {
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-arg-group {
+  max-width: 100%;
+  overflow: visible;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-arg-body {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-arg-field.pulso-gv2-field-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  grid-template-columns: minmax(180px, 0.95fr) minmax(72px, auto) minmax(180px, 1fr) !important;
+  column-gap: 14px !important;
+  padding-inline: 18px !important;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-field-copy,
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-field-utilities,
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-field-control {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) :where(
+  .pulso-gv2-string-control,
+  .pulso-gv2-number-control,
+  .pulso-gv2-color-row,
+  .pulso-gv2-quick-presets,
+  .pulso-gv2-text-input-wrap,
+  .pulso-gv2-number-input-wrap,
+  .pulso-arg-range
+) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-number-stepper {
+  width: 100%;
+  max-width: 340px;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) :where(
+  .pulso-gv2-field-card[data-arg-type="textarea"],
+  .pulso-gv2-field-card[data-arg-type="choice"],
+  .pulso-gv2-field-card[data-arg-type="multiflag"],
+  .pulso-gv2-field-card[data-arg-type="criteria_config"],
+  .pulso-gv2-field-card[data-arg-type="variables_list"],
+  .pulso-gv2-field-card[data-arg-type="series_colors"]
+) {
+  grid-template-columns: minmax(0, 1fr) minmax(72px, auto) !important;
+  grid-template-areas:
+    "copy utilities"
+    "control control" !important;
+  align-items: start;
+  row-gap: 10px !important;
+}
+
+.pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) :where(
+  .pulso-gv2-field-card[data-arg-type="textarea"],
+  .pulso-gv2-field-card[data-arg-type="choice"],
+  .pulso-gv2-field-card[data-arg-type="multiflag"],
+  .pulso-gv2-field-card[data-arg-type="criteria_config"],
+  .pulso-gv2-field-card[data-arg-type="variables_list"],
+  .pulso-gv2-field-card[data-arg-type="series_colors"]
+) .pulso-gv2-field-control {
+  grid-column: 1 / -1;
+  max-width: min(100%, 760px);
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-presets-sidebar {
+  gap: 1px;
+  padding-right: 10px;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-preset-nav-item,
+.pulso-gv2-estilo-body .pulso-gv2-word-preset {
+  min-height: 34px;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paletas-editor {
+  align-items: stretch;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paletas-sidebar {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paleta-row {
+  grid-template-columns: minmax(0, 1fr) 58px;
+  gap: 8px;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paleta-row-visual {
+  width: 58px;
+  justify-items: end;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paleta-row-strip {
+  max-width: 48px;
+  grid-auto-columns: minmax(5px, 8px);
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paleta-row-state {
+  min-width: 46px;
+  padding-inline: 6px;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-sugerido-apply {
+  grid-template-columns: 46px minmax(0, 1fr);
+  padding-right: 88px;
+}
+
+@media (max-width: 1320px) {
+  .pulso-gv2-estilo-body {
+    padding-inline: 12px;
+  }
+
+  .pulso-gv2-estilo-body :where(
+    .pulso-gv2-presets-editor,
+    .pulso-gv2-word-layout,
+    .pulso-gv2-overrides-workbench,
+    .pulso-gv2-paletas-editor
+  ) {
+    gap: 12px;
+  }
+
+  .pulso-gv2-estilo-body :where(
+    .pulso-gv2-presets-sidebar,
+    .pulso-gv2-word-sidebar,
+    .pulso-gv2-overrides-sidebar,
+    .pulso-gv2-paletas-sidebar
+  ) {
+    flex-basis: 218px;
+    width: 218px;
+  }
+
+  .pulso-gv2-estilo-body .pulso-gv2-presets-editor {
+    gap: 14px;
+  }
+
+  .pulso-gv2-estilo-body .pulso-gv2-word-layout {
+    grid-template-columns: 204px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-arg-field.pulso-gv2-field-card {
+    grid-template-columns: minmax(0, 1fr) minmax(68px, auto) minmax(180px, 0.9fr) !important;
+    column-gap: 12px !important;
+    padding-inline: 14px !important;
+  }
+
+  .pulso-gv2-estilo-body .pulso-gv2-ppt-style-list,
+  .pulso-gv2-paletas-detail .pulso-gv2-ppt-style-list {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-arg-field.pulso-gv2-field-card {
+    grid-template-columns: minmax(0, 1fr) minmax(68px, auto) !important;
+    grid-template-areas:
+      "copy utilities"
+      "control control" !important;
+    align-items: start;
+    row-gap: 10px !important;
+  }
+
+  .pulso-gv2-estilo-body :where(.pulso-gv2-presets-body, .pulso-gv2-word-args) .pulso-gv2-field-control {
+    grid-column: 1 / -1;
+    max-width: min(100%, 720px);
+  }
+}
