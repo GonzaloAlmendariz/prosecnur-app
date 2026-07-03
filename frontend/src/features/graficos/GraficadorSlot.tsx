@@ -248,11 +248,11 @@ function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
 }
 
 // Dropdown de estilo por gráfico. La UI evita términos internos como
-// override/preset y expresa la herencia en tres capas: base predeterminada,
+// override/preset y expresa la herencia en tres capas: valor por defecto,
 // estilo guardado y ajustes adicionales del gráfico.
 //
 // Estados visuales:
-//   - "Base predeterminada" → sin overrides (estilo base)
+//   - "Valor por defecto"  → sin overrides (estilo base)
 //   - "Estilo guardado"     → una variante reusable aplicada exacta
 //   - "Estilo + ajustes"    → variante aplicada + ajustes adicionales
 //   - "Ajustes adicionales" → ajustes propios, sin variante base
@@ -354,7 +354,7 @@ function OverrideDropdown({
         ? "Estilo + ajustes"
         : modeState === "manual"
           ? "Ajustes adicionales"
-          : "Base predeterminada";
+          : "Valor por defecto";
   const triggerHint =
     exactMatch?.nombre ??
     partialMatch?.nombre ??
@@ -362,7 +362,7 @@ function OverrideDropdown({
   const graphLabel = graficadorDisplayName(value.graficador);
   const currentDetail =
     modeState === "base"
-      ? "Usa la apariencia base del gráfico. No marca cambios."
+      ? "Usa el valor por defecto del gráfico. No marca cambios."
       : modeState === "mode"
         ? "Aplica un estilo guardado sin ajustes adicionales."
         : modeState === "mixed"
@@ -373,7 +373,7 @@ function OverrideDropdown({
     ? `${customCount} ajuste${customCount === 1 ? "" : "s"} adicional${customCount === 1 ? "" : "es"}`
     : "Sin ajustes adicionales";
   const modeRail = [
-    { key: "base", label: "Base predeterminada", active: true },
+    { key: "base", label: "Valor por defecto", active: true },
     { key: "mode", label: "Estilo guardado", active: Boolean(exactMatch || partialMatch) },
     { key: "manual", label: "Ajustes adicionales", active: customCount > 0 },
   ];
@@ -497,7 +497,7 @@ function OverrideDropdown({
             <small>{triggerHint}</small>
             <p className="pulso-gv2-mode-current-detail">{currentDetail}</p>
             <div className="pulso-gv2-mode-lineage" aria-label="Ruta visual aplicada">
-              <span className="is-base"><Check size={11} /> Base predeterminada</span>
+              <span className="is-base"><Check size={11} /> Valor por defecto</span>
               <span className={exactMatch || partialMatch ? "is-mode" : "is-muted"}>
                 {lineageModeLabel}
               </span>
@@ -513,7 +513,7 @@ function OverrideDropdown({
 
           <DropdownOption
             kind="base"
-            label="Usar base predeterminada"
+            label="Mantener valor por defecto"
             hint="No marca cambios"
             description="Apariencia base para este tipo de gráfico."
             active={customCount === 0}
@@ -562,7 +562,7 @@ function OverrideDropdown({
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
               <RotateCcw size={11} />
-              Volver a base predeterminada
+              Volver al valor por defecto
             </button>
           )}
         </div>,

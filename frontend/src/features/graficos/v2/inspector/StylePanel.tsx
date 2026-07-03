@@ -77,7 +77,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
 
       if (overrideKeys.length === 0) {
         counts.base += 1;
-        bySlot[slot] = { state: "base", label: "Base predeterminada" };
+        bySlot[slot] = { state: "base", label: "Valor por defecto" };
         continue;
       }
 
@@ -147,7 +147,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                 Apariencia del gráfico
               </div>
               <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por gráfico">
-                <span><strong>{slotStyleInfo.counts.base}</strong> Base predeterminada</span>
+                <span><strong>{slotStyleInfo.counts.base}</strong> Valor por defecto</span>
                 <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Estilo guardado</span>
                 <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Ajustes adicionales</span>
               </div>
@@ -158,7 +158,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                 <div className={`pulso-gv2-style-flow-step is-base ${styleFlow.hasPreset ? "is-active" : ""}`} data-state="Base">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Base predeterminada</strong>
+                    <strong>Valor por defecto</strong>
                     <span>No marca cambios</span>
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
           <div className="pulso-gv2-style-section-hint">
             Ajusta lectura, espacio, leyenda y valores visibles.
             Usa <strong>Estilo guardado</strong> para reutilizar una apariencia y
-            <strong> Ajustes adicionales</strong> para afinar solo este gráfico.
+            <strong> Ajustes adicionales</strong> para afinar solo el gráfico activo.
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => {

@@ -91,7 +91,7 @@ export function OverridesEditor() {
   }
 
   function handleDelete(id: string) {
-    const confirm = window.confirm("¿Eliminar este estilo guardado? Los gráficos que lo estén usando volverán a la base predeterminada.");
+    const confirm = window.confirm("¿Eliminar este estilo guardado? Los gráficos que lo estén usando volverán al valor por defecto.");
     if (!confirm) return;
     removeOverride(id);
     if (selectedId === id) {
@@ -119,10 +119,10 @@ export function OverridesEditor() {
         </span>
       </div>
       <div className="pulso-gv2-overrides-map" aria-label="Estructura de estilos guardados">
-        <span className="is-base"><CheckCircle2 size={12} /> Base predeterminada</span>
-        <span className="is-connector" aria-hidden="true">/</span>
+        <span className="is-base"><CheckCircle2 size={12} /> Valor por defecto</span>
+        <span className="is-connector" aria-hidden="true">→</span>
         <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} estilo{overrides.length === 1 ? "" : "s"} guardado{overrides.length === 1 ? "" : "s"}</span>
-        <span className="is-connector" aria-hidden="true">/</span>
+        <span className="is-connector" aria-hidden="true">→</span>
         <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes adicionales</span>
       </div>
       <div className="pulso-gv2-overrides-workbench">
@@ -193,7 +193,7 @@ export function OverridesEditor() {
             title={overrides.length === 0 ? "Aún no hay estilos guardados" : "Selecciona un estilo guardado"}
             hint={
               overrides.length === 0
-                ? "Un estilo guardado conserva una apariencia reusable para aplicarla a gráficos específicos cuando la base predeterminada no alcanza."
+                ? "Un estilo guardado conserva una apariencia reusable para aplicarla cuando el valor por defecto necesita una variante."
                 : "Elige uno del panel izquierdo para editar sus ajustes."
             }
             cta={
@@ -328,10 +328,10 @@ function OverrideEditPanel({
       </header>
 
       <div className="pulso-gv2-override-lineage" aria-label="Estructura del estilo seleccionado">
-        <span className="is-base"><CheckCircle2 size={12} /> Base predeterminada</span>
-        <span className="is-connector" aria-hidden="true">/</span>
+        <span className="is-base"><CheckCircle2 size={12} /> Valor por defecto</span>
+        <span className="is-connector" aria-hidden="true">→</span>
         <span className="is-mode">{modelLabel}</span>
-        <span className="is-connector" aria-hidden="true">/</span>
+        <span className="is-connector" aria-hidden="true">→</span>
         <span className={argCount > 0 ? "is-custom" : "is-muted"}>{stateLabel}</span>
       </div>
 
@@ -343,7 +343,7 @@ function OverrideEditPanel({
 
       {tipoMeta?.descripcion && (
         <p className="pulso-gv2-override-description">
-          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre la base predeterminada cuando uses este estilo.
+          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre el valor por defecto cuando uses este estilo.
         </p>
       )}
 
@@ -407,7 +407,7 @@ function OverrideFocusGrid({
       </span>
       <span className={argCount > 0 ? "is-custom" : "is-base"}>
         <strong>Herencia</strong>
-        <b>{argCount > 0 ? `${argCount} sobre base` : "Usa base predeterminada"}</b>
+        <b>{argCount > 0 ? `${argCount} sobre valor por defecto` : "Usa valor por defecto"}</b>
       </span>
       <span className="is-mode">
         <strong>Estilo guardado</strong>
