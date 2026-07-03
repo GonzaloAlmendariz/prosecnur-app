@@ -21717,69 +21717,105 @@
 
 /* Suite polish pass 27: clearer placeholder/layout editing language and compact exact controls. */
 .pulso-gv2-layout-panel {
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 12px;
   border-radius: 16px;
 }
 
 .pulso-gv2-layout-head {
-  grid-template-columns: 34px minmax(0, 1fr) minmax(154px, auto);
-  gap: 10px;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(138px, auto);
+  align-items: center;
+  gap: 8px;
 }
 
 .pulso-gv2-layout-head-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.pulso-gv2-layout-head-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .pulso-gv2-layout-head-copy strong {
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .pulso-gv2-layout-head-copy > span:not(.pulso-gv2-layout-eyebrow) {
   white-space: normal;
+  font-size: 10.2px !important;
+  line-height: 1.18;
 }
 
 .pulso-gv2-layout-state-card {
-  min-width: 154px;
-  padding: 8px 10px;
+  min-width: 138px;
+  padding: 6px 8px;
+  border-radius: 11px;
 }
 
 .pulso-gv2-layout-role-strip {
   grid-column: 1 / 4;
-  padding-top: 0;
+  display: none;
+}
+
+.pulso-gv2-layout-role-strip span {
+  min-height: 20px;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.pulso-gv2-layout-role-strip i {
+  width: 6px;
+  height: 6px;
+  flex-basis: 6px;
+}
+
+.pulso-gv2-layout-role-strip b {
+  min-width: 14px;
+  padding: 1px 4px;
+  font-size: 8.5px;
 }
 
 .pulso-gv2-layout-instruction-strip {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 7px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 5px;
   border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 30%, var(--pulso-border));
-  border-radius: 13px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--pulso-surface-2) 68%, #ffffff);
+  scrollbar-width: none;
+}
+
+.pulso-gv2-layout-instruction-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .pulso-gv2-layout-instruction-strip span {
-  min-height: 24px;
+  min-height: 22px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px;
+  padding: 3px 7px;
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: #ffffff;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 720;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .pulso-gv2-layout-canvas {
-  min-height: clamp(360px, 46vh, 520px);
-  padding: 14px;
-  border-radius: 16px;
+  min-height: clamp(320px, 40vh, 440px);
+  padding: 12px;
+  border-radius: 14px;
 }
 
 .pulso-gv2-layout-canvas::after {
@@ -21792,6 +21828,36 @@
   white-space: normal;
 }
 
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric {
+  grid-template-columns: minmax(62px, 1fr) minmax(62px, 1fr);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell {
+  grid-template-rows: 8px 15px;
+  padding: 3px 4px 2px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell.is-value,
+.pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell.is-value {
+  min-width: 48px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric em {
+  font-size: 6.2px;
+  line-height: 1;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric b,
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
+  font-size: 10.8px;
+  line-height: 1;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
+  height: 15px;
+  min-height: 15px;
+}
+
 .pulso-gv2-layout-measure-board {
   border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 30%, var(--pulso-border));
   border-radius: 14px;
@@ -21801,12 +21867,12 @@
 }
 
 .pulso-gv2-layout-measure-board summary {
-  min-height: 38px;
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 5px 9px;
   color: var(--pulso-text);
   cursor: pointer;
   list-style: none;
@@ -21831,8 +21897,46 @@
 .pulso-gv2-layout-measure-board summary small {
   flex: 0 0 auto;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 720;
+}
+
+.pulso-gv2-layout-footer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 12px;
+}
+
+.pulso-gv2-layout-source-legend {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pulso-gv2-layout-source-legend::-webkit-scrollbar {
+  display: none;
+}
+
+.pulso-gv2-layout-source-legend span {
+  min-height: 21px;
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+.pulso-gv2-layout-source-legend i {
+  width: 6px;
+  height: 6px;
+  flex-basis: 6px;
+}
+
+.pulso-gv2-layout-footer-tools {
+  display: none;
+}
+
+.pulso-gv2-layout-reset {
+  min-height: 24px !important;
+  padding-inline: 8px !important;
 }
 
 .pulso-gv2-layout-measure-grid {
@@ -21936,7 +22040,7 @@
 
 @media (max-width: 1100px) {
   .pulso-gv2-layout-head {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr);
   }
 
   .pulso-gv2-layout-state-card,

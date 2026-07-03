@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { Layers3, MoveHorizontal, MousePointer2, RotateCcw, Ruler, X } from "lucide-react";
+import { MoveHorizontal, RotateCcw, Ruler, X } from "lucide-react";
 import type { ArgMetadata } from "../../api/client";
 import { buildGridTracks, clampByMeta, clampPairByMeta, flexTrackStyle } from "./chartLayoutHelpers";
 
@@ -87,12 +87,12 @@ const RADAR_PRESETS = new Set(["radar_tabla", "dim_radar"]);
 
 const ROLE_LABELS: Record<LayoutField["role"], string> = {
   label: "Etiquetas",
-  gap: "Separadores",
-  plot: "Gráfico",
-  extra: "Extra",
+  gap: "Respiros",
+  plot: "Área gráfica",
+  extra: "Columna apoyo",
   header: "Encabezado",
   legend: "Leyenda",
-  caption: "Pie",
+  caption: "Nota/base",
   table: "Tabla",
   row: "Categorías",
   panel: "Panel",
@@ -219,15 +219,15 @@ export function ChartLayoutEditor({
 
   const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
   const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
-  const layoutKindLabel = kind === "bars" ? "Gráfico de barras" : kind === "radar" ? "Radar con tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Layout vertical";
+  const layoutKindLabel = kind === "bars" ? "Gráfico de barras" : kind === "radar" ? "Radar con tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Gráfico vertical";
   const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
   const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Valor por defecto";
   const sourceDetail = sourceState === "manual"
-    ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
+    ? `${customFieldCount} medida${customFieldCount === 1 ? "" : "s"} personalizada${customFieldCount === 1 ? "" : "s"}`
     : sourceState === "mode"
-      ? `${inheritedFieldCount} valor${inheritedFieldCount === 1 ? "" : "es"} heredado${inheritedFieldCount === 1 ? "" : "s"}`
-      : "Base sin cambios";
+      ? `${inheritedFieldCount} medida${inheritedFieldCount === 1 ? "" : "s"} del estilo`
+      : "Sin cambios propios";
   const hasManualLayout = customFieldCount > 0;
   const resetLabel = hasManualLayout ? "Quitar ajustes" : "Sin ajustes adicionales";
 
@@ -382,11 +382,11 @@ export function ChartLayoutEditor({
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
-              <strong>Editor visual de espacios</strong>
-              <span>Ajusta título, leyenda, etiquetas y área del gráfico desde una vista directa.</span>
+              <strong>Mapa de espacios</strong>
+              <span>Arrastra bordes. Abre medidas exactas para afinar; 0 oculta una zona.</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
-              <span>Fuente visible</span>
+              <span>Aplicando</span>
               <strong>{sourceLabel}</strong>
               <small>{sourceDetail}</small>
             </div>
@@ -399,12 +399,6 @@ export function ChartLayoutEditor({
                 </span>
               ))}
             </div>
-          </div>
-
-          <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de espacios">
-            <span><MoveHorizontal size={11} /> Arrastra el borde entre zonas</span>
-            <span><Ruler size={11} /> Escribe una medida exacta</span>
-            <span><X size={11} /> Pon 0 para ocultar una zona</span>
           </div>
 
           <div
@@ -478,11 +472,6 @@ export function ChartLayoutEditor({
               <span className="is-base"><i /> Valor por defecto</span>
               <span className="is-mode"><i /> Estilo guardado</span>
               <span className="is-manual"><i /> Ajustes adicionales</span>
-            </div>
-            <div className="pulso-gv2-layout-footer-tools" aria-label="Herramientas del editor">
-              <span><MousePointer2 size={11} /> Bordes ajustables</span>
-              <span><Ruler size={11} /> {fields.length} medidas</span>
-              <span><Layers3 size={11} /> {roleSummary.length} roles</span>
             </div>
             <button
               type="button"
@@ -1438,12 +1427,12 @@ function FrameMetric({
       >
         {onCommit && (
           <span className="pulso-gv2-layout-metric-cell is-value">
-            <em>Medida</em>
+            <em>Valor</em>
             {valueControl}
           </span>
         )}
         <span className="pulso-gv2-layout-metric-cell is-share">
-          <em>% {axisLabel}</em>
+          <em>%</em>
           <b>{sharePercent}</b>
         </span>
       </small>
@@ -1458,11 +1447,11 @@ function FrameMetric({
       aria-label={`${fieldLabel ?? "Zona"}: ${axisTitle.toLowerCase()} relativo ${sharePercent}; valor exacto ${formatNumber(value)}; estado ${shareLabel}`}
     >
       <span className="pulso-gv2-layout-metric-cell is-value">
-        <em>Medida</em>
+        <em>Valor</em>
         {valueControl}
       </span>
       <span className="pulso-gv2-layout-metric-cell is-share">
-        <em>% {axisLabel}</em>
+        <em>%</em>
         <b>{sharePercent}</b>
       </span>
       <i className="pulso-gv2-layout-metric-bar" aria-hidden="true" />
