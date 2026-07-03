@@ -7,7 +7,7 @@ import { ValidationIssue, usePlanValidator } from "./usePlanValidator";
 type HealthTone = "success" | "warn" | "danger";
 
 // Badge compacto "Salud del plan" para el header. Tres estados visuales:
-//   - ✔  Todo en orden (verde, pequeño): sin warnings ni errors.
+//   - Plan listo (verde, sobrio): sin warnings ni errors.
 //   - ⚠  N warnings (amarillo): advertencias pero export permitido.
 //   - ✖  N errores (rojo): export bloqueado.
 //
@@ -46,7 +46,7 @@ export function PlanHealthBadge() {
     ? `${errors.length} error${errors.length === 1 ? "" : "es"}`
     : warnings.length > 0
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
-      : "Listo";
+      : "Plan listo";
   const headline = errors.length > 0
     ? "Export bloqueado"
     : warnings.length > 0
@@ -87,9 +87,7 @@ export function PlanHealthBadge() {
         title={triggerTitle}
         className={`pulso-gv2-health-trigger is-${tone}`}
       >
-        {tone === "success" ? (
-          <span className="pulso-gv2-health-dot" aria-hidden="true" />
-        ) : (
+        {tone !== "success" && (
           <Icon size={13} strokeWidth={2.2} aria-hidden="true" />
         )}
         <span>{label}</span>
