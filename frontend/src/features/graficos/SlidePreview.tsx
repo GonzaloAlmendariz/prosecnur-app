@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, Eye, Image as ImageIcon, Loader2, RefreshCw } from "lucide-react";
+import { createPortal } from "react-dom";
+import { AlertCircle, Download, Eye, Image as ImageIcon, Loader2, RefreshCw, X } from "lucide-react";
 import {
   apiGraficosPreviewRenderer,
   apiGraficosPreviewSlide,
@@ -241,6 +242,22 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     renderFailed,
     hasResult,
   });
+  const chromeTone = busy
+    ? "loading"
+    : error
+      ? "danger"
+      : hasPreview && !isStale
+        ? "exact"
+        : hasUsableResult
+          ? "local"
+          : "idle";
+  const chromeDetail = hasPreview && !isStale
+    ? "Captura PPTX"
+    : hasEmbeddedImages
+      ? "Imagen interna"
+      : rendererUnavailable || renderFailed || hasResult
+        ? "Vista local"
+        : slide.tipo;
 
   return (
     <section
@@ -315,7 +332,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         </PreviewNotice>
       )}
 
-      {isBubbleRendered && (
+      {isBubbleRendered && typeof document !== "undefined" && createPortal((
         <div
           ref={previewBubbleRef}
           className={[
@@ -332,6 +349,32 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
           aria-live="polite"
         >
           <div className="pulso-slide-preview-bubble-arrow" />
+          <div className="pulso-slide-preview-chrome">
+            <span className={`pulso-slide-preview-status is-${chromeTone}`}>
+              {busy ? <Loader2 size={13} className="pulso-spin" /> : hasPreview ? <Eye size={13} /> : <ImageIcon size={13} />}
+              <span>
+                <strong>{stateLabel}</strong>
+                <small>{chromeDetail}</small>
+              </span>
+            </span>
+            <span className="pulso-slide-preview-chrome-actions">
+              {fileId && !busy && (
+                <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-download">
+                  <Download size={12} />
+                  PPTX
+                </a>
+              )}
+              <button
+                type="button"
+                className="pulso-slide-preview-close"
+                onClick={closeBubble}
+                aria-label="Cerrar preview"
+                title="Cerrar preview"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          </div>
           <div className="pulso-slide-preview-bubble-inner" style={frameStyle}>
             {busy ? (
               <div className="pulso-slide-preview-placeholder">
@@ -345,7 +388,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                   alt="Preview exacta del slide"
                   className="pulso-slide-preview-img"
                 />
-                <div className="pulso-slide-preview-badge">Preview exacta</div>
               </>
             ) : rendererUnavailable ? (
               <LocalPreviewFallback
@@ -394,7 +436,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             )}
           </div>
         </div>
-      )}
+      ), document.body)}
     </section>
   );
 }
