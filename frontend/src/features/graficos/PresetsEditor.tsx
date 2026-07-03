@@ -109,7 +109,7 @@ export function PresetsEditor() {
           className={`pulso-gv2-presets-overview-current ${hasChanges ? "is-custom" : "is-inherited"}`}
           title={`ID interno: ${meta.name}`}
         >
-          {hasChanges ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}` : "Base predeterminada"}
+          {hasChanges ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}` : "Valor por defecto"}
         </span>
       </div>
       <div className="pulso-gv2-presets-editor">
@@ -142,7 +142,7 @@ export function PresetsEditor() {
                 className={`pulso-gv2-preset-nav-item ${isActive ? "is-active" : ""}`}
                 data-state={modified ? "custom" : "base"}
                 aria-pressed={isActive}
-                aria-label={`${p.titulo_humano}. ${modified ? `${customCount} ajustes personalizados` : "Base predeterminada"}`}
+                aria-label={`${p.titulo_humano}. ${modified ? `${customCount} ajustes personalizados` : "Valor por defecto"}`}
               >
                 <span
                   className="pulso-gv2-presets-sidebar-icon"
@@ -156,9 +156,9 @@ export function PresetsEditor() {
                 </span>
                 <span
                   className={`pulso-gv2-preset-nav-state ${modified ? "is-custom" : "is-base"}`}
-                  title={modified ? `${customCount} ajustes personalizados` : "Base predeterminada"}
+                  title={modified ? `${customCount} ajustes personalizados` : "Valor por defecto"}
                 >
-                  {modified ? `${customCount} ajuste${customCount === 1 ? "" : "s"}` : "Base"}
+                  {modified ? `${customCount} ajuste${customCount === 1 ? "" : "s"}` : "Por defecto"}
                 </span>
               </button>
             );
@@ -227,12 +227,12 @@ function PresetSourceRail({
     <div className="pulso-gv2-preset-source-rail" aria-label="Estado de la base seleccionada">
       <span className="is-base">
         <CheckCircle2 size={12} />
-        <strong>Base del sistema</strong>
+        <strong>Valor por defecto</strong>
         <b>Activa</b>
       </span>
       <span className={hasChanges ? "is-custom" : "is-inherited"}>
         <Circle size={8} fill={hasChanges ? "currentColor" : "transparent"} />
-        <strong>{hasChanges ? "Personalización PPT" : "Sin cambios PPT"}</strong>
+        <strong>{hasChanges ? "Personalización PPT" : "Sin diferencia PPT"}</strong>
         <b>
           {hasChanges
             ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}`
@@ -282,7 +282,7 @@ function PresetHeader({
           ) : (
             <span className="pulso-gv2-preset-modified-badge is-inherited">
               <CheckCircle2 size={12} />
-              Base predeterminada
+              Valor por defecto
             </span>
           )}
         </div>
@@ -296,13 +296,13 @@ function PresetHeader({
         <button
           type="button"
           onClick={onReset}
-          title="Volver a la base predeterminada de este tipo de gráfico."
+          title="Volver al valor por defecto de este tipo de gráfico."
           className="pulso-gv2-preset-reset"
         >
           <span className="pulso-gv2-preset-action-icon" aria-hidden="true">
             <RotateCcw size={11} />
           </span>
-          Volver a base
+          Volver al valor
         </button>
       )}
     </header>
