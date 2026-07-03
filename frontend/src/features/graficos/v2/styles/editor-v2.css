@@ -11931,3 +11931,170 @@
     max-width: none;
   }
 }
+
+/* Suite polish pass 7: denser populated timeline with safer footer clearance. */
+.pulso-gv2-timeline-list {
+  padding-bottom: calc(var(--pulso-active-base-footer-reserve, 96px) + 14px);
+  scroll-padding-bottom: calc(var(--pulso-active-base-footer-reserve, 96px) + 14px);
+}
+
+.pulso-gv2-timeline-summary--top {
+  margin-bottom: 6px;
+  padding: 5px;
+}
+
+.pulso-gv2-summary-num {
+  font-size: 13px;
+}
+
+.pulso-gv2-summary-label {
+  font-size: 7.4px;
+}
+
+.pulso-gv2-timeline-title-row {
+  min-height: 18px;
+  margin-bottom: 4px;
+}
+
+.pulso-gv2-picker-trigger {
+  min-height: 28px;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  font-size: 11.2px;
+}
+
+.pulso-gv2-timeline-search {
+  margin-bottom: 5px;
+}
+
+.pulso-gv2-timeline-search input {
+  min-height: 27px;
+  padding-block: 4px;
+  font-size: 11px;
+}
+
+.pulso-gv2-timeline-cat-chips {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 3px;
+  min-height: 27px;
+  margin-bottom: 6px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.pulso-gv2-timeline-cat-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.pulso-gv2-cat-chip {
+  flex: 0 0 auto;
+  min-height: 23px;
+  padding: 1px 6px;
+  font-size: 9.2px;
+  white-space: nowrap;
+}
+
+.pulso-gv2-cat-chip-count {
+  font-size: 8.4px;
+  min-width: 13px;
+}
+
+.pulso-gv2-slide-card {
+  gap: 3px;
+  padding: 6px 7px 7px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 251, 253, 0.92)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 4px 12px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-slide-card:hover {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 70%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 24%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-slide-card.is-active {
+  border-color: var(--gv2-accent, var(--pulso-primary));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 58%, #ffffff), rgba(255, 255, 255, 0.94)),
+    var(--pulso-surface);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 16%, transparent),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-gv2-slide-card-head {
+  min-height: 18px;
+}
+
+.pulso-gv2-slide-card-handle {
+  border-radius: 6px;
+}
+
+.pulso-gv2-slide-card-title {
+  align-items: center;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.22;
+}
+
+.pulso-gv2-slide-card-title svg {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-slide-card-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-slide-card-subtitle {
+  font-size: 9.8px;
+  line-height: 1.2;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.pulso-gv2-slide-card-thumb {
+  height: 38px;
+  max-height: 38px;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), color-mix(in srgb, var(--pulso-surface-2) 82%, #ffffff));
+}
+
+.pulso-gv2-slide-card.is-active .pulso-gv2-slide-card-thumb {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 60%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-gv2-slide-card.is-active .pulso-gv2-slide-card-actions,
+.pulso-gv2-slide-card:focus-within .pulso-gv2-slide-card-actions {
+  display: inline-flex;
+}
+
+.pulso-gv2-slide-card-actions .pulso-icon {
+  width: 21px;
+  height: 21px;
+  min-width: 21px;
+  min-height: 21px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-gv2-slide-card[data-cat="estructural"] { border-left-color: #4f46e5; }
+.pulso-gv2-slide-card[data-cat="1g"]          { border-left-color: #0f766e; }
+.pulso-gv2-slide-card[data-cat="2g"]          { border-left-color: #0891b2; }
+.pulso-gv2-slide-card[data-cat="grid"]        { border-left-color: #b7791f; }
+.pulso-gv2-slide-card[data-cat="poblacion"]   { border-left-color: #be185d; }
