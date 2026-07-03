@@ -12489,8 +12489,8 @@
   --gv2-picker-cat: var(--gv2-accent, var(--pulso-primary));
   --gv2-picker-cat-soft: var(--gv2-accent-soft, var(--pulso-primary-soft));
   align-content: start;
-  grid-template-rows: auto auto;
-  min-height: 168px;
+  grid-template-rows: auto auto auto;
+  min-height: 188px;
   border-left: 3px solid color-mix(in srgb, var(--gv2-picker-cat) 68%, var(--pulso-border));
 }
 
@@ -12537,6 +12537,68 @@
   border-color: color-mix(in srgb, var(--gv2-picker-cat) 22%, var(--pulso-border));
   color: color-mix(in srgb, var(--gv2-picker-cat) 72%, var(--pulso-text-soft));
   background: color-mix(in srgb, var(--gv2-picker-cat-soft) 54%, #ffffff);
+}
+
+.pulso-gv2-picker-tile-meta-row,
+.pulso-gv2-picker-tile-tags {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.pulso-gv2-picker-tile-structure,
+.pulso-gv2-picker-tile-tags span,
+.pulso-gv2-picker-tile-action {
+  border: 1px solid color-mix(in srgb, var(--gv2-picker-cat) 18%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: color-mix(in srgb, var(--gv2-picker-cat) 74%, var(--pulso-text-soft));
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-gv2-picker-tile-structure,
+.pulso-gv2-picker-tile-tags span {
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+}
+
+.pulso-gv2-picker-tile-tags {
+  margin-top: 1px;
+}
+
+.pulso-gv2-picker-tile-tags span:last-child {
+  color: var(--pulso-text-soft);
+  background: color-mix(in srgb, var(--pulso-surface-2) 68%, #ffffff);
+}
+
+.pulso-gv2-picker-tile-action {
+  grid-column: 2;
+  justify-self: start;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 9px;
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--gv2-picker-cat-soft) 64%, #ffffff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.pulso-gv2-picker-tile-action svg {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-picker-tile:hover .pulso-gv2-picker-tile-action {
+  border-color: color-mix(in srgb, var(--gv2-picker-cat) 34%, var(--pulso-border));
+  background: #ffffff;
+  color: var(--gv2-picker-cat);
 }
 
 .pulso-gv2-picker-tile-blueprint {
