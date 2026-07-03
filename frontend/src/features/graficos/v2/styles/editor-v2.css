@@ -19219,6 +19219,7 @@
   display: inline-flex;
   align-items: stretch;
   gap: 0;
+  isolation: isolate;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, var(--pulso-primary-border));
   border-radius: 999px;
   background:
@@ -19235,9 +19236,10 @@
 }
 
 .pulso-graficos-frame .pulso-gv2-debug-border-trigger {
-  min-width: 30px;
+  min-width: 74px;
   min-height: 28px !important;
   padding-inline: 8px 7px !important;
+  gap: 6px !important;
   border: 0 !important;
   border-radius: 999px 0 0 999px !important;
   background: transparent !important;
@@ -19255,12 +19257,12 @@
 }
 
 .pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-options {
-  width: 28px !important;
+  width: 26px !important;
   height: auto !important;
-  min-width: 28px !important;
+  min-width: 26px !important;
   min-height: 28px !important;
   border: 0 !important;
-  border-left: 1px solid color-mix(in srgb, var(--gv2-debug-border-color) 18%, var(--pulso-border)) !important;
+  border-left: 1px solid color-mix(in srgb, var(--gv2-debug-border-color) 16%, var(--pulso-border)) !important;
   border-radius: 0 999px 999px 0 !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -19271,7 +19273,34 @@
   right: 0;
 }
 
-.pulso-gv2-debug-border-label,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-popover::before {
+  left: auto;
+  right: 36px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-label {
+  width: auto;
+  max-width: 52px;
+  margin: 0;
+  overflow: visible;
+  opacity: 1;
+  color: color-mix(in srgb, var(--pulso-text) 88%, var(--pulso-text-soft));
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-chip {
+  width: 7px;
+  height: 7px;
+  opacity: 0.62;
+  margin-inline-start: 1px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border.is-active .pulso-gv2-debug-border-chip {
+  opacity: 1;
+}
+
 .pulso-gv2-toolbar-label,
 .pulso-gv2-suggest-trigger-label {
   width: 1px;
