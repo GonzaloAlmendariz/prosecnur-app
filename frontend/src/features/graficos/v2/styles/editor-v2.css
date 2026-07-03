@@ -21191,6 +21191,141 @@
   }
 }
 
+/* Suite polish pass 31: compact, readable model cards. */
+.pulso-gv2-picker-library .pulso-gv2-picker-grid {
+  grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+  gap: 10px;
+}
+
+.pulso-gv2-picker-tile {
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto minmax(98px, auto);
+  min-height: 212px;
+  padding: 11px 12px;
+  gap: 8px 10px;
+  border-left-width: 3px;
+  border-radius: 13px;
+}
+
+.pulso-gv2-picker-tile.is-selected::after {
+  top: 10px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gv2-picker-cat) 13%, transparent);
+}
+
+.pulso-gv2-picker-tile-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.pulso-gv2-picker-tile-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pulso-gv2-picker-tile-copy {
+  gap: 4px;
+}
+
+.pulso-gv2-picker-tile-meta-row,
+.pulso-gv2-picker-tile-tags {
+  gap: 4px;
+}
+
+.pulso-gv2-picker-tile-meta,
+.pulso-gv2-picker-tile-structure,
+.pulso-gv2-picker-tile-tags span {
+  min-height: 17px;
+  padding: 3px 6px;
+  font-size: 8.2px;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-picker-tile-label {
+  font-size: 12.5px;
+  line-height: 1.12;
+  text-wrap: auto;
+}
+
+.pulso-gv2-picker-tile-desc {
+  font-size: 10px;
+  line-height: 1.22;
+  -webkit-line-clamp: 2;
+}
+
+.pulso-gv2-picker-tile-tags {
+  margin-top: 0;
+}
+
+.pulso-gv2-picker-tile-action {
+  display: none;
+}
+
+.pulso-gv2-picker-slide-preview.is-card {
+  align-self: center;
+  width: min(172px, 74%);
+  padding: 5px;
+  border-radius: 12px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-paper {
+  inset: 5px;
+  gap: 3px;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-frame {
+  display: none;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-title,
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-table,
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-slot,
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-icon {
+  border-radius: 7px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy {
+  padding: 5px 6px 5px clamp(23px, 16%, 32px);
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy::before {
+  left: 6px;
+  width: clamp(13px, 12%, 21px);
+  border-radius: 7px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy i {
+  height: 3px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy i:first-child {
+  height: 4px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="index"] .pulso-gv2-picker-slide-title,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="text"] .pulso-gv2-picker-slide-title,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="technical"] .pulso-gv2-picker-slide-title {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="index"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="text"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="technical"] .pulso-gv2-picker-slide-table {
+  grid-row: 4 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-slot-icon {
+  width: clamp(12px, 24%, 24px);
+  border-radius: 7px;
+}
+
 @media (max-width: 980px) {
   .pulso-gv2-picker {
     height: min(820px, calc(100vh - 42px));
