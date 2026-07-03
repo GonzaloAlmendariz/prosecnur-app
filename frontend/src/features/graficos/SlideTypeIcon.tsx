@@ -198,6 +198,17 @@ function PersonMark({ x = 7.2, y = 12.4 }: { x?: number; y?: number }) {
   );
 }
 
+function TargetMark() {
+  return (
+    <g>
+      <circle cx="12" cy="12" r="7.2" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none" />
+      <path d="M12 2.8v3.1M12 18.1v3.1M2.8 12h3.1M18.1 12h3.1" />
+    </g>
+  );
+}
+
 function CountTile({ x, y, size = 3.5 }: { x: number; y: number; size?: number }) {
   return (
     <rect
@@ -267,12 +278,7 @@ function SlideLayoutIcon({
       focusable="false"
     >
       {variant === "objetivo-icono" && (
-        <>
-          <circle cx="7.6" cy="12" r="5" fill="currentColor" stroke="none" opacity="0.1" />
-          <circle cx="7.6" cy="12" r="5" />
-          <circle cx="7.6" cy="12" r="1.85" />
-          <TextBlock x={14.4} y={5.2} width={5.8} height={13.6} muted />
-        </>
+        <TargetMark />
       )}
       {variant === "texto" && <TextBlock x={5} y={4} width={14} height={16} />}
       {variant === "tabla" && <TableBlock x={5} y={4} width={14} height={16} />}
