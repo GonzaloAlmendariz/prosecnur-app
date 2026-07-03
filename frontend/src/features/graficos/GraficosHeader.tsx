@@ -1,5 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, CheckCircle2, ChevronDown, Download, FileText, RotateCcw, Loader2, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -13,7 +13,6 @@ import {
 } from "../../api/client";
 import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import { ContextBar } from "../../components/ContextBar";
-import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { DEFAULT_DEBUG_PH, usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
 import { PlanCoverageBadge } from "./PlanCoverageBadge";
@@ -704,10 +703,6 @@ export function GraficosHeader({
     resetPlan();
   }
 
-  // Estado del badge de autosave (3 variantes visuales).
-  const savingNow = hydrated && dirty;
-  const savedAll = hydrated && !dirty;
-
   useEffect(() => {
     const candidate = [
       { fileId: pptFileId, filename: pptFilename ?? "reporte.pptx" },
@@ -754,16 +749,15 @@ export function GraficosHeader({
         className="pulso-gv2-command-row pulso-gv2-command-row--unified"
       >
         <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--state">
-          <SaveStatusIndicator
-            state={savedAll ? "saved" : savingNow ? "saving" : "loading"}
-            savedLabel="Autoguardado"
-            showLabel={false}
-          />
           <PlanSnapshotBadge
             nSlides={nSlides}
             hydrated={hydrated}
             dirty={dirty}
           />
+        </div>
+
+        <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--mode">
+          <ConstructorViewControls issueCount={validator.issues.length} />
         </div>
 
         <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--review">
@@ -1234,6 +1228,77 @@ function clampDebugBorderWidth(value: number): number {
   return Math.min(3, Math.max(0.1, Math.round(value * 10) / 10));
 }
 
+const CONSTRUCTOR_VIEW_MODES = [
+  { key: "timeline" as const, label: "Timeline", Icon: GanttChart, hint: "Vista lineal para ordenar slides" },
+  { key: "canvas" as const, label: "Canvas", Icon: LayoutGrid, hint: "Grilla para reordenar en bloque" },
+];
+
+function ConstructorViewControls({ issueCount }: { issueCount: number }) {
+  const viewMode = usePlanStore((s) => s.viewMode);
+  const setViewMode = usePlanStore((s) => s.setViewMode);
+  const density = usePlanStore((s) => s.density);
+  const setDensity = usePlanStore((s) => s.setDensity);
+  const slides = usePlanStore((s) => s.plan.slides);
+  const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
+  const selectedIndex = selectedSlideId ? slides.findIndex((slide) => slide.id === selectedSlideId) : -1;
+  const currentSlideLabel = slides.length === 0
+    ? "sin slides"
+    : selectedIndex >= 0
+      ? `slide ${selectedIndex + 1}/${slides.length}`
+      : `${slides.length} ${slides.length === 1 ? "slide" : "slides"}`;
+  const densityLabel = density === "compact" ? "Compacto" : "Cómodo";
+
+  return (
+    <div className="pulso-gv2-command-view-control" role="toolbar" aria-label="Vista del constructor">
+      <div className="pulso-gv2-suite-status" aria-label={`Constructor, ${currentSlideLabel}`}>
+        <span className="pulso-gv2-suite-mark" aria-hidden="true">
+          <LayoutGrid size={13} />
+        </span>
+        <span className="pulso-gv2-suite-copy">
+          <strong>Constructor</strong>
+          <span>{currentSlideLabel}</span>
+        </span>
+        {issueCount > 0 && (
+          <span className="pulso-gv2-suite-chip is-warn">
+            <AlertTriangle size={11} />
+            {issueCount}
+          </span>
+        )}
+      </div>
+
+      <div className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Modo de trabajo">
+        {CONSTRUCTOR_VIEW_MODES.map(({ key, label, Icon, hint }) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={viewMode === key}
+            type="button"
+            className={`pulso-gv2-mode-tab ${viewMode === key ? "is-active" : ""}`}
+            onClick={() => setViewMode(key)}
+            aria-label={`${label}. ${hint}`}
+            title={hint}
+          >
+            <Icon size={12} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        className={`pulso-gv2-density-toggle pulso-gv2-pill-button ${density === "compact" ? "is-on" : ""}`}
+        onClick={() => setDensity(density === "comfortable" ? "compact" : "comfortable")}
+        aria-label={density === "compact" ? "Cambiar a vista cómoda" : "Cambiar a vista compacta"}
+        aria-pressed={density === "compact"}
+        title={density === "compact" ? "Cambiar a vista cómoda" : "Cambiar a vista compacta"}
+      >
+        {density === "compact" ? <AlignJustify size={12} /> : <Rows3 size={12} />}
+        <span>{densityLabel}</span>
+      </button>
+    </div>
+  );
+}
+
 function DebugPhToggle() {
   const debugPh = usePlanStore((s) => s.debugPh);
   const setDebugPh = usePlanStore((s) => s.setDebugPh);
@@ -1280,19 +1345,19 @@ function DebugPhToggle() {
         onClick={() => setDebugPh({ activo: !active })}
         className="pulso-gv2-pill-button pulso-gv2-debug-border-trigger"
         aria-pressed={active}
-        title={active ? "Ocultar bordes" : "Mostrar bordes"}
+        title={active ? "Ocultar guías de layout" : "Mostrar guías de layout"}
       >
         <PanelTopDashed size={12} />
-        <span className="pulso-gv2-debug-border-label">Bordes</span>
+        <span className="pulso-gv2-debug-border-label">Guías</span>
         <span className="pulso-gv2-debug-border-chip" aria-hidden="true" />
       </button>
       <button
         type="button"
         onClick={() => setPopoverOpen((v) => !v)}
         className={`pulso-icon pulso-gv2-icon-button pulso-gv2-debug-border-options ${popoverOpen ? "is-open" : ""}`}
-        aria-label="Opciones de bordes"
+        aria-label="Configurar guías de layout"
         aria-expanded={popoverOpen}
-        title="Color y grosor de los bordes"
+        title="Color y grosor de las guías"
       >
         <ChevronDown size={13} />
       </button>
@@ -1300,15 +1365,15 @@ function DebugPhToggle() {
         <div
           className="pulso-gv2-debug-border-popover"
           role="dialog"
-          aria-label="Bordes de referencia"
+          aria-label="Guías de layout"
         >
           <div className="pulso-gv2-debug-border-popover-head">
             <span className="pulso-gv2-debug-border-popover-icon" aria-hidden="true">
               <PanelTopDashed size={15} />
             </span>
             <div className="pulso-gv2-debug-border-popover-title">
-              <strong>Bordes de referencia</strong>
-              <span>{active ? "Activo" : "Inactivo"}</span>
+              <strong>Guías de layout</strong>
+              <span>{active ? "Visibles en el preview" : "Ocultas en el preview"}</span>
             </div>
             <button
               type="button"
@@ -1439,7 +1504,3 @@ function UndoRedoButtons() {
     </div>
   );
 }
-
-// SaveStatusIndicator local reemplazado por
-// `components/SaveStatusIndicator.tsx` — unificado con Codificación
-// y Analítica.

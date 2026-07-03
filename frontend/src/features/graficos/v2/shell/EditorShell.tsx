@@ -1,5 +1,4 @@
 import { usePlanStore } from "../../store";
-import { ModeToolbar } from "./ModeToolbar";
 import { TimelinePanelV2 } from "../timeline/TimelinePanelV2";
 import { InspectorV2 } from "../inspector/InspectorV2";
 import { PlanCanvas } from "../canvas/PlanCanvas";
@@ -16,8 +15,6 @@ export function EditorShell() {
 
   return (
     <div className={`pulso-gv2-shell is-${density}`} data-density={density}>
-      <ModeToolbar />
-
       <div className={`pulso-gv2-shell-body is-${viewMode}`}>
         {viewMode === "timeline" && (
           <>
