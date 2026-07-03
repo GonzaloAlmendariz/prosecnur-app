@@ -239,6 +239,7 @@ function OverrideEditPanel({
   const stateLabel = argCount > 0
     ? `${argCount} ajuste${argCount === 1 ? "" : "s"}`
     : "Sin ajustes propios";
+  const modelLabel = tipoMeta?.titulo_humano ?? override.tipo_preset;
 
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];
@@ -282,11 +283,11 @@ function OverrideEditPanel({
             type="text"
             value={override.nombre}
             onChange={(e) => onUpdate({ nombre: e.target.value })}
-            placeholder="Nombre del modo"
+            placeholder="Ej. Compacto para grid 4"
             className="pulso-inline-edit pulso-gv2-override-name"
           />
           <div className="pulso-gv2-override-model-row">
-            <label>Modelo</label>
+            <label>Tipo de gráfico</label>
             <select
               value={override.tipo_preset}
               onChange={(e) => handleTipoChange(e.target.value)}
@@ -328,10 +329,16 @@ function OverrideEditPanel({
       <div className="pulso-gv2-override-lineage" aria-label="Estructura del modo seleccionado">
         <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
         <span className="is-connector" aria-hidden="true">/</span>
-        <span className="is-mode">{tipoMeta?.titulo_humano ?? override.tipo_preset}</span>
+        <span className="is-mode">{modelLabel}</span>
         <span className="is-connector" aria-hidden="true">/</span>
         <span className={argCount > 0 ? "is-custom" : "is-muted"}>{stateLabel}</span>
       </div>
+
+      <OverrideFocusGrid
+        modelLabel={modelLabel}
+        modeName={override.nombre}
+        argCount={argCount}
+      />
 
       {tipoMeta?.descripcion && (
         <p className="pulso-gv2-override-description">
@@ -379,5 +386,32 @@ function OverrideEditPanel({
 
       </div>
     </>
+  );
+}
+
+function OverrideFocusGrid({
+  modelLabel,
+  modeName,
+  argCount,
+}: {
+  modelLabel: string;
+  modeName: string;
+  argCount: number;
+}) {
+  return (
+    <div className="pulso-gv2-override-focus-grid" aria-label="Resumen del modo seleccionado">
+      <span className="is-model">
+        <strong>Tipo compatible</strong>
+        <b>{modelLabel}</b>
+      </span>
+      <span className={argCount > 0 ? "is-custom" : "is-base"}>
+        <strong>Herencia</strong>
+        <b>{argCount > 0 ? `${argCount} sobre base` : "Usa base global"}</b>
+      </span>
+      <span className="is-mode">
+        <strong>Modo</strong>
+        <b>{modeName.trim() || "Sin nombre"}</b>
+      </span>
+    </div>
   );
 }

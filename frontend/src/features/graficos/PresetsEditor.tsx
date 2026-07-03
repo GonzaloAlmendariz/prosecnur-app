@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useState } from "react";
-import { CheckCircle2, Circle, Palette, RotateCcw } from "lucide-react";
+import { CheckCircle2, Circle, Palette, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
@@ -200,9 +200,52 @@ export function PresetsEditor() {
             resetPreset(meta.name);
           }}
         />
+        <PresetSourceRail
+          metaName={meta.name}
+          editableArgCount={meta.args.length}
+          customArgCount={customArgCount}
+          hasChanges={hasChanges}
+        />
         <PresetBody meta={meta} values={current} />
       </section>
       </div>
+    </div>
+  );
+}
+
+function PresetSourceRail({
+  metaName,
+  editableArgCount,
+  customArgCount,
+  hasChanges,
+}: {
+  metaName: string;
+  editableArgCount: number;
+  customArgCount: number;
+  hasChanges: boolean;
+}) {
+  const inheritedCount = Math.max(0, editableArgCount - customArgCount);
+  return (
+    <div className="pulso-gv2-preset-source-rail" aria-label="Estado del preset seleccionado">
+      <span className="is-base">
+        <CheckCircle2 size={12} />
+        <strong>Base del sistema</strong>
+        <b>Activa</b>
+      </span>
+      <span className={hasChanges ? "is-custom" : "is-inherited"}>
+        <Circle size={8} fill={hasChanges ? "currentColor" : "transparent"} />
+        <strong>{hasChanges ? "Personalización PPT" : "Sin cambios PPT"}</strong>
+        <b>
+          {hasChanges
+            ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}`
+            : `${inheritedCount} heredado${inheritedCount === 1 ? "" : "s"}`}
+        </b>
+      </span>
+      <span className="is-model">
+        <SlidersHorizontal size={12} />
+        <strong>Tipo</strong>
+        <code>{metaName}</code>
+      </span>
     </div>
   );
 }

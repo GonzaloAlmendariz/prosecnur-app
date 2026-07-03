@@ -222,7 +222,7 @@ export function ChartLayoutEditor({
   const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
   const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
-  const sourceLabel = sourceState === "manual" ? "Manual" : sourceState === "mode" ? "Modo aplicado" : "Base establecida";
+  const sourceLabel = sourceState === "manual" ? "Manual del slot" : sourceState === "mode" ? "Modo aplicado" : "Base establecida";
   const sourceDetail = sourceState === "manual"
     ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
     : sourceState === "mode"
@@ -381,10 +381,10 @@ export function ChartLayoutEditor({
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
               <strong>Editor dinámico de placeholders</strong>
-              <span>{fields.length} zonas editables · valores heredados hasta que ajustes algo</span>
+              <span>{fields.length} zonas · origen visible por base, modo o manual</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
-              <span>Estado</span>
+              <span>Fuente visible</span>
               <strong>{sourceLabel}</strong>
               <small>{sourceDetail}</small>
             </div>
@@ -400,9 +400,9 @@ export function ChartLayoutEditor({
           </div>
 
           <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
-            <span><MoveHorizontal size={11} /> Divisores: arrastra límites</span>
-            <span><Ruler size={11} /> Valor: escribe ajuste exacto</span>
-            <span><X size={11} /> Ocultar: lleva zona a 0</span>
+            <span><MoveHorizontal size={11} /> Divisores: espacio relativo</span>
+            <span><Ruler size={11} /> Valores: ancho/alto exacto</span>
+            <span><X size={11} /> Cero: zona oculta</span>
           </div>
 
           <div

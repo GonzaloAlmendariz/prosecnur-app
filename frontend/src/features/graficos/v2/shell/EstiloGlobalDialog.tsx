@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles } from "lucide-react";
+import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles, CheckCircle2 } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
 import { IconosEditor } from "../../IconosEditor";
@@ -24,6 +24,16 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
   { key: "paletas", label: "Paletas",      eyebrow: "Color",        Icon: Palette,    hint: "Colores por value-label de cada lista" },
   { key: "iconos",  label: "Íconos",       eyebrow: "Assets",       Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
   { key: "modos",   label: "Modos por slot", eyebrow: "Reutilizable", Icon: IconModes, hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
+];
+
+const STYLE_FLOW: Array<{
+  key: "base" | "mode" | "manual";
+  label: string;
+  detail: string;
+}> = [
+  { key: "base", label: "Base global", detail: "PPT / Word" },
+  { key: "mode", label: "Modo por slot", detail: "Opcional" },
+  { key: "manual", label: "Ajuste manual", detail: "Slide actual" },
 ];
 
 export type EstiloGlobalDialogProps = {
@@ -115,6 +125,26 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
             <X size={16} />
           </button>
         </header>
+
+        <div className="pulso-gv2-estilo-flow" aria-label="Jerarquía de estilos">
+          <span className="pulso-gv2-estilo-flow-label">Jerarquía visual</span>
+          {STYLE_FLOW.map((step, index) => {
+            const isActive = step.key === "mode" ? tab === "modos" : step.key === "base" ? tab !== "modos" : false;
+            return (
+              <span
+                key={step.key}
+                className={`pulso-gv2-estilo-flow-step is-${step.key}${isActive ? " is-active" : ""}`}
+              >
+                <CheckCircle2 size={12} />
+                <span>
+                  <strong>{step.label}</strong>
+                  <small>{step.detail}</small>
+                </span>
+                {index < STYLE_FLOW.length - 1 && <i aria-hidden="true" />}
+              </span>
+            );
+          })}
+        </div>
 
         <nav className="pulso-gv2-estilo-tabs" role="tablist">
           {TABS.map(({ key, label, eyebrow, Icon, hint }) => (
