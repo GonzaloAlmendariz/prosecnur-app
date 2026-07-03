@@ -18382,3 +18382,240 @@
     scrollbar-gutter: auto;
   }
 }
+
+/* Suite polish pass 21: compact two-lane command rail for the graph builder. */
+.pulso-graficos-frame .pulso-gv2-command-header {
+  gap: 0;
+  margin-bottom: 10px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border) 64%, var(--pulso-border));
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 94%, transparent), color-mix(in srgb, var(--pulso-surface-2) 72%, var(--gv2-accent-soft))),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > [aria-label] {
+  min-height: 34px;
+  padding: 5px 10px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--status {
+  border-bottom: 1px solid color-mix(in srgb, var(--gv2-accent-border) 42%, var(--pulso-border));
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--exports {
+  min-height: 38px;
+  padding-block: 5px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row {
+  gap: 6px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header .pulso-gv2-pill-button,
+.pulso-graficos-frame .pulso-gv2-command-header label {
+  min-height: 28px !important;
+  padding: 4px 9px !important;
+  font-size: 10.5px !important;
+  line-height: 1 !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header .pulso-gv2-icon-button {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-header-note {
+  flex: 1 1 220px;
+  min-width: 150px;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.pulso-graficos-frame .pulso-gv2-style-command {
+  flex: 0 1 310px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger {
+  min-height: 33px !important;
+  gap: 7px !important;
+  padding: 4px 9px 4px 5px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-label {
+  font-size: 11px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-meta {
+  max-width: min(230px, 30vw);
+  gap: 3px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-meta > span {
+  min-height: 16px;
+  padding: 2px 6px;
+  font-size: 8.8px;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-suite {
+  flex: 1 1 430px;
+  gap: 5px;
+  padding: 3px;
+  min-height: 32px;
+  border-radius: 11px;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-suite-title {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-button {
+  min-height: 28px !important;
+  padding-inline: 10px !important;
+  font-size: 11px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-download-pill,
+.pulso-graficos-frame .pulso-gv2-save-result {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.pulso-graficos-frame .pulso-gv2-mode-toolbar {
+  min-height: 48px;
+  padding: 6px 10px;
+  grid-template-columns: minmax(210px, 1fr) auto minmax(150px, 1fr);
+  gap: 8px;
+}
+
+.pulso-graficos-frame .pulso-gv2-suite-status {
+  min-height: 32px;
+  gap: 6px;
+  padding: 3px 5px 3px 4px;
+}
+
+.pulso-graficos-frame .pulso-gv2-suite-mark {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+
+.pulso-graficos-frame .pulso-gv2-suite-copy strong {
+  font-size: 11px;
+}
+
+.pulso-graficos-frame .pulso-gv2-suite-copy span {
+  max-width: 126px;
+  font-size: 9.6px;
+}
+
+.pulso-graficos-frame .pulso-gv2-suite-chip {
+  min-height: 21px;
+  padding: 2px 7px;
+  font-size: 9.5px;
+}
+
+.pulso-graficos-frame .pulso-gv2-mode-tabs {
+  padding: 3px;
+}
+
+.pulso-graficos-frame .pulso-gv2-mode-tab {
+  min-height: 29px;
+  padding-inline: 13px;
+  font-size: 11.5px;
+}
+
+.pulso-graficos-frame .pulso-gv2-density-toggle {
+  min-height: 30px !important;
+  padding-inline: 10px !important;
+  font-size: 10.5px !important;
+}
+
+@media (max-width: 1180px) {
+  .pulso-graficos-frame .pulso-gv2-export-suite {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-suite::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-suite-title {
+    width: auto;
+    justify-content: center;
+  }
+}
+
+@media (max-height: 760px), (max-width: 1120px) {
+  .pulso-graficos-frame .pulso-gv2-command-header {
+    margin-bottom: 8px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-header-note {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-header > [aria-label] {
+    min-height: 31px;
+    padding: 4px 8px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--exports {
+    min-height: 34px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-suite-title {
+    max-width: 30px;
+    overflow: hidden;
+    gap: 0;
+    color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 74%, var(--pulso-text-soft));
+    font-size: 0;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-suite-title svg {
+    width: 13px;
+    height: 13px;
+    margin-inline: 1px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-mode-toolbar {
+    min-height: 43px;
+    padding: 5px 8px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-suite-status {
+    min-height: 29px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-suite-mark,
+  .pulso-graficos-frame .pulso-gv2-suite-chip {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-mode-tab {
+    min-height: 27px;
+    padding-inline: 10px;
+  }
+}
