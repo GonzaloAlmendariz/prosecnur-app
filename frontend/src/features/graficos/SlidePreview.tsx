@@ -264,7 +264,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
           ? "local"
           : "idle";
   const chromeDetail = hasPreview && !isStale
-    ? `Captura PPTX${rendererStatus?.renderer ? ` · ${rendererStatus.renderer}` : ""}`
+    ? `Captura PPTX${rendererStatus?.renderer ? ` · ${formatRendererName(rendererStatus.renderer)}` : ""}`
     : error
       ? "Usando boceto local"
       : hasEmbeddedImages
@@ -430,7 +430,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               <LocalPreviewFallback
                 slide={slide}
                 title="Vista local segura"
-                detail={hasEmbeddedImages ? "Imagen interna extraída del PPTX; no depende de un renderer externo." : "Boceto local disponible aunque este equipo no tenga renderer de PPTX."}
+                detail={hasEmbeddedImages ? "Imagen interna extraída del PPTX; no depende de herramientas adicionales." : "Boceto local disponible aunque este equipo no tenga captura PPTX exacta."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -439,7 +439,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 tone="warn"
                 title="Captura no disponible"
-                detail={hasEmbeddedImages ? "Usando imagen interna del PPTX como referencia visual." : "El PPTX se generó, pero el renderer no devolvió imagen."}
+                detail={hasEmbeddedImages ? "Usando imagen interna del PPTX como referencia visual." : "El PPTX se generó, pero la captura exacta no devolvió imagen."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -447,7 +447,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               <LocalPreviewFallback
                 slide={slide}
                 title="Vista local disponible"
-                detail={hasEmbeddedImages ? "Imagen del graficador extraída del PPTX." : "No se encontró un renderer headless de PPTX en este equipo."}
+                detail={hasEmbeddedImages ? "Imagen del gráfico extraída del PPTX." : "Este equipo no tiene captura PPTX exacta disponible."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -611,7 +611,7 @@ function getPreviewSourceSteps(state: {
       detail: state.rendererChecking
         ? "Comprobando"
         : state.rendererAvailable
-          ? state.rendererName || "Renderer local"
+          ? formatRendererName(state.rendererName) || "Vista exacta local"
           : "Opcional",
       state: exactActive ? "active" : state.rendererAvailable ? "ready" : "idle",
     },
@@ -687,14 +687,24 @@ function getEngineCopy(mode: PreviewEngineMode, status: GraficosPreviewRendererS
   }
   if (mode === "exact") {
     return {
-      label: "Preview exacto",
-      detail: status?.renderer ? status.renderer : "Renderer local",
+      label: "Vista exacta",
+      detail: formatRendererName(status?.renderer) || "PPTX local",
     };
   }
   return {
     label: "Vista local",
     detail: "Sin dependencias externas",
   };
+}
+
+function formatRendererName(renderer?: string | null): string {
+  const normalized = String(renderer ?? "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (normalized.includes("artifact")) return "PPTX local";
+  if (normalized.includes("libreoffice") || normalized.includes("soffice")) return "LibreOffice local";
+  if (normalized.includes("powerpoint")) return "PowerPoint local";
+  if (normalized.includes("pptx")) return "PPTX local";
+  return "Motor local";
 }
 
 function preValidateSlide(slide: Slide): string[] {
@@ -733,7 +743,7 @@ function humanizePreviewError(raw: string): string {
     return "Los datos no están listos. Ve a la fase 4 -> Preparar datos y vuelve a intentarlo.";
   }
   if (/timeout|timed out/i.test(cleaned)) {
-    return "El renderer tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
+    return "La captura exacta tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
   }
   if (/subscript out of bounds|índice fuera|indice fuera|out of bounds/i.test(cleaned)) {
     return "El graficador no pudo completar esta combinación. Revisa la variable, cruces o escala en Datos; la vista local queda disponible para revisar estructura.";

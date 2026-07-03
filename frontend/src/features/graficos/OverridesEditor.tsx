@@ -6,6 +6,7 @@ import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
+import { humanizeIdentifier } from "./graficadorDisplay";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
 // Los overrides reutilizables usan solo controles catalogados.
 
@@ -67,7 +68,7 @@ export function OverridesEditor() {
 
   function handleCreate() {
     const tipoDefault = tipoOptions[0]?.name ?? "barras_apiladas";
-    const nuevoNombre = `Modo ${overrides.length + 1}`;
+    const nuevoNombre = `Variante ${overrides.length + 1}`;
     const nuevo: OverrideReusable = {
       id: newId(),
       nombre: nuevoNombre,
@@ -90,7 +91,7 @@ export function OverridesEditor() {
   }
 
   function handleDelete(id: string) {
-    const confirm = window.confirm("¿Eliminar este modo? Los gráficos que lo estén usando volverán a la base del preset.");
+    const confirm = window.confirm("¿Eliminar esta variante? Los gráficos que la estén usando volverán a la base visual.");
     if (!confirm) return;
     removeOverride(id);
     if (selectedId === id) {
@@ -101,26 +102,26 @@ export function OverridesEditor() {
 
   return (
     <div className="pulso-gv2-overrides-editor">
-      <div className="pulso-gv2-overrides-overview" aria-label="Resumen de modos reutilizables">
+      <div className="pulso-gv2-overrides-overview" aria-label="Resumen de variantes reutilizables">
         <span className="pulso-gv2-overrides-overview-icon" aria-hidden="true">
           <Layers3 size={15} />
         </span>
         <span className="pulso-gv2-overrides-overview-copy">
-          <strong>Modos reutilizables</strong>
+          <strong>Variantes reutilizables</strong>
           <span>
             {overrides.length === 0
               ? "Crea variantes como compacto, narrativo o alta densidad"
-              : `${overrides.length} modo${overrides.length === 1 ? "" : "s"} · ${modesWithArgs} con ajustes · ${coveredTypes} tipo${coveredTypes === 1 ? "" : "s"} de gráfico`}
+              : `${overrides.length} variante${overrides.length === 1 ? "" : "s"} · ${modesWithArgs} con ajustes · ${coveredTypes} tipo${coveredTypes === 1 ? "" : "s"} de gráfico`}
           </span>
         </span>
         <span className="pulso-gv2-overrides-overview-pill">
           {totalArgs} ajuste{totalArgs === 1 ? "" : "s"}
         </span>
       </div>
-      <div className="pulso-gv2-overrides-map" aria-label="Estructura de modos reutilizables">
+      <div className="pulso-gv2-overrides-map" aria-label="Estructura de variantes reutilizables">
         <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
         <span className="is-connector" aria-hidden="true">/</span>
-        <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} modo{overrides.length === 1 ? "" : "s"}</span>
+        <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} variante{overrides.length === 1 ? "" : "s"}</span>
         <span className="is-connector" aria-hidden="true">/</span>
         <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes propios</span>
       </div>
@@ -132,15 +133,15 @@ export function OverridesEditor() {
           className="pulso-primary pulso-gv2-overrides-new"
           onClick={handleCreate}
         >
-          <Plus size={13} /> Nuevo modo
+          <Plus size={13} /> Nueva variante
         </button>
 
         {overrides.length === 0 ? (
           <EmptyState
             variant="inline"
             icon={<Layers3 size={16} />}
-            title="Sin modos"
-            hint="Crea uno y aplícalo desde cualquier slot de gráfico."
+            title="Sin variantes"
+            hint="Crea una y aplícala desde cualquier gráfico."
           />
         ) : (
           <div className="pulso-gv2-overrides-list">
@@ -162,7 +163,7 @@ export function OverridesEditor() {
                   <span className="pulso-gv2-mode-list-copy">
                     <span className="pulso-gv2-mode-list-label">{o.nombre}</span>
                     <span className="pulso-gv2-mode-list-meta">
-                      {tipoMeta?.titulo_humano ?? o.tipo_preset} · {hasArgs ? `${argCount} ajuste${argCount === 1 ? "" : "s"}` : "hereda base"}
+                      {tipoMeta?.titulo_humano ?? humanizeIdentifier(o.tipo_preset, "Tipo de gráfico")} · {hasArgs ? `${argCount} ajuste${argCount === 1 ? "" : "s"}` : "hereda base"}
                     </span>
                   </span>
                   <span className={`pulso-gv2-mode-list-state ${hasArgs ? "is-custom" : "is-base"}`}>
@@ -189,11 +190,11 @@ export function OverridesEditor() {
         ) : (
           <EmptyState
             icon={<Layers3 size={22} />}
-            title={overrides.length === 0 ? "Aún no hay modos" : "Selecciona un modo"}
+            title={overrides.length === 0 ? "Aún no hay variantes" : "Selecciona una variante"}
             hint={
               overrides.length === 0
-                ? "Los modos son mini-presets reusables que aplicas a slots específicos cuando la base global no alcanza."
-                : "Elige uno del panel izquierdo para editar sus ajustes."
+                ? "Las variantes guardan una apariencia reusable para aplicarla a gráficos específicos cuando la base global no alcanza."
+                : "Elige una del panel izquierdo para editar sus ajustes."
             }
             cta={
               overrides.length === 0 ? (
@@ -206,7 +207,7 @@ export function OverridesEditor() {
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  <Plus size={13} /> Crear primer modo
+                  <Plus size={13} /> Crear primera variante
                 </button>
               ) : undefined
             }
@@ -239,7 +240,7 @@ function OverrideEditPanel({
   const stateLabel = argCount > 0
     ? `${argCount} ajuste${argCount === 1 ? "" : "s"}`
     : "Sin ajustes propios";
-  const modelLabel = tipoMeta?.titulo_humano ?? override.tipo_preset;
+  const modelLabel = tipoMeta?.titulo_humano ?? humanizeIdentifier(override.tipo_preset, "Tipo de gráfico");
 
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];
@@ -278,7 +279,7 @@ function OverrideEditPanel({
           <Icon size={15} />
         </span>
         <div className="pulso-gv2-override-detail-copy">
-          <span className="pulso-gv2-override-eyebrow">Modo reutilizable</span>
+          <span className="pulso-gv2-override-eyebrow">Variante reutilizable</span>
           <input
             type="text"
             value={override.nombre}
@@ -309,7 +310,7 @@ function OverrideEditPanel({
         <button
           type="button"
           onClick={onDuplicate}
-          title="Duplicar este modo"
+          title="Duplicar esta variante"
           className="pulso-gv2-override-action-button"
         >
           <Copy size={11} /> Duplicar
@@ -317,7 +318,7 @@ function OverrideEditPanel({
         <button
           type="button"
           onClick={onDelete}
-          title="Eliminar este modo"
+          title="Eliminar esta variante"
           className="pulso-icon pulso-icon-danger"
           style={{ minWidth: 28, minHeight: 28 }}
         >
@@ -326,7 +327,7 @@ function OverrideEditPanel({
         </div>
       </header>
 
-      <div className="pulso-gv2-override-lineage" aria-label="Estructura del modo seleccionado">
+      <div className="pulso-gv2-override-lineage" aria-label="Estructura de la variante seleccionada">
         <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
         <span className="is-connector" aria-hidden="true">/</span>
         <span className="is-mode">{modelLabel}</span>
@@ -342,14 +343,14 @@ function OverrideEditPanel({
 
       {tipoMeta?.descripcion && (
         <p className="pulso-gv2-override-description">
-          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre el preset global cuando uses este modo.
+          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre la base visual cuando uses esta variante.
         </p>
       )}
 
       <div className="pulso-gv2-presets-body">
         {gruposDeArgs.length === 0 ? (
           <div className="pulso-gv2-override-empty">
-            Este tipo de preset no tiene ajustes visuales catalogados todavía.
+            Este tipo de gráfico no tiene ajustes visuales catalogados todavía.
             No se puede editar desde esta pantalla.
           </div>
         ) : (
@@ -399,7 +400,7 @@ function OverrideFocusGrid({
   argCount: number;
 }) {
   return (
-    <div className="pulso-gv2-override-focus-grid" aria-label="Resumen del modo seleccionado">
+    <div className="pulso-gv2-override-focus-grid" aria-label="Resumen de la variante seleccionada">
       <span className="is-model">
         <strong>Tipo compatible</strong>
         <b>{modelLabel}</b>
@@ -409,7 +410,7 @@ function OverrideFocusGrid({
         <b>{argCount > 0 ? `${argCount} sobre base` : "Usa base global"}</b>
       </span>
       <span className="is-mode">
-        <strong>Modo</strong>
+        <strong>Variante</strong>
         <b>{modeName.trim() || "Sin nombre"}</b>
       </span>
     </div>

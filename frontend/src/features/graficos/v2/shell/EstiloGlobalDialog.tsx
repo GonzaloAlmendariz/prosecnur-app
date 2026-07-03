@@ -11,7 +11,7 @@ import { WordPresetsEditor } from "../../WordPresetsEditor";
 // Popup unificado de "Estilo global". Reemplaza los 3 botones del header
 // (Presets PPT, Presets Word, Configuración global de estilo) por un
 // solo CTA. Adentro: tabs PPT (presets curados) / Word (overrides Word) /
-// Paletas / Íconos / Modos.
+// Paletas / Íconos / Variantes.
 //
 // Cada tab monta una superficie visual. Los ajustes que todavía no tienen
 // catálogo curado no se editan desde acá para evitar campos crudos.
@@ -23,7 +23,7 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
   { key: "word",    label: "Base Word",    eyebrow: "Reporte",      Icon: FileText,   hint: "Overrides solo para el reporte Word" },
   { key: "paletas", label: "Paletas",      eyebrow: "Color",        Icon: Palette,    hint: "Colores por value-label de cada lista" },
   { key: "iconos",  label: "Íconos",       eyebrow: "Assets",       Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
-  { key: "modos",   label: "Modos por slot", eyebrow: "Reutilizable", Icon: IconModes, hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
+  { key: "modos",   label: "Variantes", eyebrow: "Reutilizable", Icon: IconModes, hint: "Estilos guardados como compacto, narrativo, alta densidad, etc." },
 ];
 
 const STYLE_FLOW: Array<{
@@ -32,8 +32,8 @@ const STYLE_FLOW: Array<{
   detail: string;
 }> = [
   { key: "base", label: "Base global", detail: "PPT / Word" },
-  { key: "mode", label: "Modo por slot", detail: "Opcional" },
-  { key: "manual", label: "Ajuste manual", detail: "Slide actual" },
+  { key: "mode", label: "Variante", detail: "Opcional" },
+  { key: "manual", label: "Ajustes propios", detail: "Slide actual" },
 ];
 
 export type EstiloGlobalDialogProps = {
@@ -90,7 +90,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               <div className="pulso-gv2-estilo-eyebrow">Suite visual</div>
               <div className="pulso-gv2-estilo-title">Estilo global</div>
               <div className="pulso-gv2-estilo-sub">
-                Base PPT y Word, paletas, íconos y modos reutilizables para slots.
+                Bases PPT y Word, paletas, íconos y variantes reutilizables.
               </div>
             </div>
           </div>

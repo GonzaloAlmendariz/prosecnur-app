@@ -5,6 +5,7 @@ import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
+import { humanizeIdentifier } from "./graficadorDisplay";
 import { safeText, safeTrimmedText } from "./safeText";
 import {
   clampNumber,
@@ -170,22 +171,16 @@ function FieldHeader({
   descriptionId?: string;
   hasAutomaticPlaceholder?: boolean;
 }) {
-  const label = safeText(meta.label, safeText(meta.name, "Campo"));
+  const label = safeText(meta.label, humanizeIdentifier(meta.name, "Campo"));
   const isCustom = argState === "custom";
   const showOriginBadge = argState !== "inherited";
   const stateMeta = fieldStateMeta(argState);
-  const technicalName = safeText(meta.name);
 
   return (
     <>
       <span className="pulso-gv2-field-copy">
         <span className="pulso-gv2-field-title-row">
           <span id={labelId} className="pulso-gv2-field-title">{label}</span>
-          {technicalName && (
-            <code className="pulso-gv2-field-code" title={technicalName}>
-              {technicalName}
-            </code>
-          )}
         </span>
         {description && (
           <span id={descriptionId} className="pulso-gv2-field-description">
@@ -249,18 +244,18 @@ function fieldStateMeta(argState: ArgState): {
 } {
   if (argState === "custom") {
     return {
-      label: "Manual",
+      label: "Propio",
       className: "is-custom",
-      title: "Ajuste manual del slide/slot. Tiene prioridad sobre base y modo.",
-      ariaLabel: "Valor cambiado manualmente",
+      title: "Ajuste propio de este gráfico. Tiene prioridad sobre la base y la variante.",
+      ariaLabel: "Valor cambiado en este gráfico",
     };
   }
   if (argState === "from-mode") {
     return {
-      label: "Modo",
+      label: "Variante",
       className: "is-mode",
-      title: "Valor aplicado por el modo activo",
-      ariaLabel: "Valor proveniente del modo activo",
+      title: "Valor aplicado por la variante activa",
+      ariaLabel: "Valor proveniente de la variante activa",
     };
   }
   return {
@@ -419,7 +414,7 @@ function TextControl({
   multiline?: boolean;
   rows?: number;
 }) {
-  const label = safeText(meta.label, safeText(meta.name, "campo"));
+  const label = safeText(meta.label, humanizeIdentifier(meta.name, "campo"));
   const hasDescription = safeTrimmedText(meta.descripcion).length > 0;
   const presets = quickStringPresetsFor(meta.name);
   const baseHint = buildTextHint(meta);
@@ -438,6 +433,12 @@ function TextControl({
   const showAutomaticPreview = !!placeholder && draft.trim() === "";
   const textSource = buildTextSourceMeta(draft, placeholder, argState);
   const showTextSourceStrip = textSource.state !== "base";
+  const wrapsLongSingleLine = !multiline && (
+    draft.length > 64 ||
+    (placeholder?.length ?? 0) > 72
+  );
+  const useTextarea = multiline || wrapsLongSingleLine;
+  const textareaRows = multiline ? rows : 2;
 
   function evaluate(next: string) {
     const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder, baseHint });
@@ -458,9 +459,10 @@ function TextControl({
   return (
     <div className="pulso-gv2-string-control" data-text-source={textSource.state}>
       <div className="pulso-gv2-text-input-wrap">
-        {multiline ? (
+        {useTextarea ? (
           <textarea
-            rows={rows}
+            rows={textareaRows}
+            data-auto-wrap={wrapsLongSingleLine ? "true" : undefined}
             value={draft}
             onChange={(e) => {
               const next = e.target.value;
@@ -474,8 +476,8 @@ function TextControl({
               evaluate(draft);
             }}
             placeholder={placeholder ?? (hasDescription ? undefined : "(opcional)")}
-            style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
-            className={`pulso-gv2-text-input-control is-${statusRowState}`}
+            style={{ ...inputStyle, fontFamily: "inherit", resize: multiline ? "vertical" : "none" }}
+            className={`pulso-gv2-text-input-control is-${statusRowState} ${wrapsLongSingleLine ? "is-auto-wrap" : ""}`}
             aria-describedby={statusId}
             aria-invalid={status.state === "error" ? "true" : undefined}
           />
@@ -595,21 +597,21 @@ function buildTextSourceMeta(draft: string, placeholder: string | undefined, arg
   if (argState === "from-mode") {
     return {
       state: "mode",
-      label: "Modo",
-      detail: "Modo activo",
+      label: "Variante",
+      detail: "Variante activa",
     };
   }
   if (argState === "inherited") {
     return {
       state: "base",
       label: "Base",
-      detail: "Sin override",
+      detail: "Sin cambios propios",
     };
   }
   if (trimmed.length > 0) {
     return {
       state: "manual",
-      label: "Manual",
+      label: "Ajustes propios",
       detail: `${trimmed.length} caracteres`,
     };
   }
@@ -1398,7 +1400,7 @@ function buildTypeHint(meta: ArgMetadata, options: { forText?: boolean; forNumbe
     return "Selecciona un icono para reforzar el mensaje visual.";
   }
   if (tipo === "overrides") {
-    return "Configurable desde estilos globales o modos para aplicar cambios a varios gráficos.";
+    return "Configurable desde estilos globales o variantes para aplicar cambios a varios gráficos.";
   }
   if (tipo === "filtros") {
     return "Este control usa una interfaz dedicada para combinar condiciones lógicas.";
@@ -1689,18 +1691,40 @@ function CodigosList({
   // o espacio. Lo parseamos a array de strings (algunos son numéricos,
   // pero el backend los acepta como string y convierte).
   const text = Array.isArray(value) ? value.join(", ") : "";
+  const wrapsLongList = text.length > 64;
+  const commit = (next: string) => onChange(parseCodigosList(next));
+
+  if (wrapsLongList) {
+    return (
+      <textarea
+        rows={3}
+        value={text}
+        onChange={(e) => commit(e.target.value)}
+        placeholder="ej. 88, 90, 96 o etiquetas separadas por coma"
+        style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
+        className="pulso-gv2-text-input-control is-auto-wrap pulso-gv2-code-list-control"
+      />
+    );
+  }
+
   return (
     <input
       type="text"
       value={text}
-      onChange={(e) => {
-        const parts = e.target.value.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
-        onChange(parts);
-      }}
+      onChange={(e) => commit(e.target.value)}
       placeholder="ej. 88, 90, 96"
       style={inputStyle}
     />
   );
+}
+
+function parseCodigosList(text: string): string[] {
+  const hasComma = text.includes(",");
+  const splitter = hasComma ? "," : /\s+/;
+  return text
+    .split(splitter)
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function SeriesColorsField({
@@ -2108,7 +2132,7 @@ function DedicatedSurfaceNotice({
 
 function surfaceLabel(tipo: string): string {
   if (tipo === "filtros") return "Se configura desde la pestaña Filtros.";
-  if (tipo === "overrides") return "Se configura desde Modo o Estilo del gráfico.";
+  if (tipo === "overrides") return "Se configura desde Variante o Estilo del gráfico.";
   if (tipo === "base_config") return "La base se calcula automáticamente o se edita como texto del gráfico.";
   return "Este ajuste usa una interfaz dedicada.";
 }
