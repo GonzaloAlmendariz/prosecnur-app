@@ -21568,18 +21568,18 @@
 
 /* Suite polish pass 31: compact, readable model cards. */
 .pulso-gv2-picker-library .pulso-gv2-picker-grid {
-  grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(282px, 1fr));
+  gap: 9px;
 }
 
 .pulso-gv2-picker-tile {
-  grid-template-columns: 34px minmax(0, 1fr);
-  grid-template-rows: auto minmax(98px, auto);
-  min-height: 212px;
-  padding: 11px 12px;
-  gap: 8px 10px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-rows: auto minmax(108px, auto);
+  min-height: 198px;
+  padding: 10px 11px 11px;
+  gap: 7px 9px;
   border-left-width: 3px;
-  border-radius: 13px;
+  border-radius: 12px;
 }
 
 .pulso-gv2-picker-tile.is-selected::after {
@@ -21591,18 +21591,18 @@
 }
 
 .pulso-gv2-picker-tile-icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
 }
 
 .pulso-gv2-picker-tile-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
 }
 
 .pulso-gv2-picker-tile-copy {
-  gap: 4px;
+  gap: 3px;
 }
 
 .pulso-gv2-picker-tile-meta-row,
@@ -21620,15 +21620,13 @@
 }
 
 .pulso-gv2-picker-tile-label {
-  font-size: 12.5px;
-  line-height: 1.12;
+  font-size: 12.8px;
+  line-height: 1.1;
   text-wrap: auto;
 }
 
 .pulso-gv2-picker-tile-desc {
-  font-size: 10px;
-  line-height: 1.22;
-  -webkit-line-clamp: 2;
+  display: none;
 }
 
 .pulso-gv2-picker-tile-tags {
@@ -21641,15 +21639,16 @@
 
 .pulso-gv2-picker-slide-preview.is-card {
   align-self: center;
-  width: min(172px, 74%);
+  justify-self: center;
+  width: min(224px, 92%);
   padding: 5px;
   border-radius: 12px;
 }
 
 .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-paper {
   inset: 5px;
-  gap: 3px;
-  padding: 8px;
+  gap: 4px;
+  padding: 9px;
   border-radius: 10px;
 }
 
@@ -21666,7 +21665,9 @@
 }
 
 .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy {
-  padding: 5px 6px 5px clamp(23px, 16%, 32px);
+  padding: 4px 5px 4px clamp(22px, 15%, 31px);
+  gap: 2px;
+  min-height: 0;
 }
 
 .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy::before {
@@ -21676,11 +21677,11 @@
 }
 
 .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy i {
-  height: 3px;
+  height: 2px;
 }
 
 .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy i:first-child {
-  height: 4px;
+  height: 3px;
 }
 
 .pulso-gv2-picker-slide-preview.is-card[data-layout="index"] .pulso-gv2-picker-slide-title,
@@ -21697,8 +21698,75 @@
 }
 
 .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-slot-icon {
-  width: clamp(12px, 24%, 24px);
+  width: clamp(10px, 24%, 22px);
   border-radius: 7px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-slot {
+  min-height: 12px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy {
+  grid-row: 2 / 5;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-slots {
+  grid-row: 5 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-slots {
+  grid-row: 5 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slots {
+  grid-template-rows: repeat(2, minmax(22px, 1fr));
+  grid-row: 2 / 7;
+  gap: 5px 6px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(1),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(2),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(3),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(3) {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(4),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(4) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(5),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(5) {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(6) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-icon,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-icon {
+  grid-column: 6 / 8;
+  grid-row: 4 / 6;
+  width: 62%;
+  z-index: 2;
 }
 
 @media (max-width: 980px) {
