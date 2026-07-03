@@ -128,7 +128,7 @@ export function SuggestedPlanButton() {
         disabled={busy}
       >
         {busy ? <Loader2 size={12} className="pulso-spin" /> : <Sparkles size={12} />}
-        Sugerir plan
+        <span className="pulso-gv2-suggest-trigger-label">Sugerir</span>
       </button>
 
       {open && (
