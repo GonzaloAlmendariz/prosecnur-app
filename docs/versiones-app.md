@@ -26,10 +26,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 3.4.2 | Corte 3.4.2: monitoreo operativo y publicacion | Publicada en GitHub | Consolida mejoras de Monitoreo, reportes publicables, controles de salida, QA visual y ajustes de layout acumulados para el nuevo instalable. |
 | 0.4.0 | Corte 0.4: calculo, carga y reportes metodologicos | Publicada en GitHub | Consolida mejoras de Calculo de muestra, Carga, Codificacion, Analitica, Graficos, Hojas de ruta y Dashboard. No incluye los ultimos cambios de Monitoreo que siguen en trabajo. |
 | 0.5.0 | Corte 0.5: auditoria, monitoreo y plan de trabajo | Publicada en GitHub | Suma proyectos canonicos de auditoria, plan de trabajo sincronico, mejoras de Monitoreo publicable, salidas operativas y warm start para el instalable previo. |
-| 0.5.1 | Corte 0.5.1: procesamiento multibase y monitoreo telefonico | Version actual para deploy | Consolida procesamiento multiactor para acreditacion/Kobo, sugerencias de procesamiento desde Estudio, mejoras de Carga, Graficos, Validacion y perfiles de Monitoreo acreditacion/telefonico. |
+| 0.5.1 | Corte 0.5.1: procesamiento multibase y monitoreo telefonico | Publicada en GitHub | Consolida procesamiento multiactor para acreditacion/Kobo, sugerencias de procesamiento desde Estudio, mejoras de Carga, Graficos, Validacion y perfiles de Monitoreo acreditacion/telefonico. |
+| 0.5.2 | Corte 0.5.2: modelos PPT y graficos refinados | Version actual para deploy | Consolida el refinamiento acumulado de Graficos: biblioteca de modelos PPT, preview local empaquetable, controles de estilo/layout, placeholders dinamicos y experiencia de exportacion mas compacta. |
 
 ## Version actual
 
-Estamos en `0.5.1` (corte `0.5.1`). Esta es la version publicada como
-`v0.5.1` para que GitHub Releases genere el instalador y el auto-updater la
+Estamos en `0.5.2` (corte `0.5.2`). Esta es la version publicada como
+`v0.5.2` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.
