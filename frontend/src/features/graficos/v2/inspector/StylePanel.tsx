@@ -243,12 +243,21 @@ export function StylePanel({ slide, args }: StylePanelProps) {
               const humanName = technicalName ? (graficadoresById[technicalName]?.titulo_humano ?? technicalName) : "";
               const slotState = slotStyleInfo.bySlot[slotName] ?? { state: "empty", label: "Sin gráfico" };
               return (
-                <details className="pulso-gv2-slot-accordion" key={slotName} open>
+                <details className="pulso-gv2-slot-accordion" data-state={slotState.state} key={slotName} open>
                   <summary className="pulso-gv2-slot-accordion-summary">
                     <span className="pulso-gv2-slot-accordion-summary-copy">
                       <span className="pulso-gv2-slot-accordion-title">
                         <strong>{slotLabel}</strong>
                         <span>{technicalName ? humanName : "Sin gráfico"}</span>
+                      </span>
+                      <span
+                        className="pulso-gv2-slot-origin-map"
+                        data-state={slotState.state}
+                        aria-hidden="true"
+                      >
+                        <span data-step="base">Base</span>
+                        <span data-step="mode">Modo</span>
+                        <span data-step="manual">Manual</span>
                       </span>
                       <span className={`pulso-gv2-slot-state-pill is-${slotState.state}`}>
                         {slotState.label}
