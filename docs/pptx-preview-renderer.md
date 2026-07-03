@@ -13,11 +13,13 @@ No se automatiza PowerPoint, Keynote, QuickLook ni capturas del escritorio. Esto
 
 Es el renderizador recomendado para equipos de usuario.
 
-La app lo detecta en:
+La app lo detecta en este orden:
 
+- `PROSECNUR_BUNDLED_SOFFICE`
 - `PROSECNUR_SOFFICE`
 - `SOFFICE_PATH`
 - `LIBREOFFICE_PATH`
+- un renderer empaquetado en `Internals/preview-renderer`
 - `soffice` o `libreoffice` en `PATH`
 - rutas típicas de LibreOffice en macOS y Windows
 
@@ -31,6 +33,24 @@ PROSECNUR_SOFFICE="/Applications/LibreOffice.app/Contents/MacOS/soffice" make de
 set PROSECNUR_SOFFICE=C:\Program Files\LibreOffice\program\soffice.exe
 Prosecnur.bat
 ```
+
+### Renderer empaquetado
+
+Para que el preview exacto funcione sin depender de instalaciones externas, el
+paquete de escritorio puede incluir LibreOffice/soffice dentro de:
+
+```text
+Internals/preview-renderer/
+```
+
+Rutas esperadas:
+
+- macOS: `Internals/preview-renderer/LibreOffice.app/Contents/MacOS/soffice`
+- Windows: `Internals/preview-renderer/LibreOffice/program/soffice.exe`
+- Windows portable: también se acepta `runtime/preview-renderer/LibreOffice/program/soffice.exe`, como hermano de `Internals/`
+
+Si ese binario existe, el backend lo prefiere sobre `PATH`. El fallback visual
+local sigue disponible aunque el paquete no traiga el renderer exacto.
 
 ### artifact-tool
 

@@ -26,6 +26,49 @@ test_that("diagnostico de renderer de preview es headless y estable", {
   expect_true(all(vapply(status$renderers, function(x) "available" %in% names(x), logical(1))))
 })
 
+test_that("renderer de preview prefiere soffice empaquetado", {
+  ensure_preview_renderer_helpers()
+
+  vars <- c(
+    "PULSO_APP_ROOT",
+    "PROSECNUR_PREVIEW_RENDERER_DIR",
+    "PROSECNUR_BUNDLED_SOFFICE",
+    "PROSECNUR_SOFFICE",
+    "SOFFICE_PATH",
+    "LIBREOFFICE_PATH"
+  )
+  old <- Sys.getenv(vars, unset = NA_character_)
+  on.exit({
+    for (var in vars) {
+      if (is.na(old[[var]])) {
+        Sys.unsetenv(var)
+      } else {
+        do.call(Sys.setenv, as.list(stats::setNames(old[[var]], var)))
+      }
+    }
+  }, add = TRUE)
+
+  root <- tempfile("prosecnur_app_root_")
+  fake <- file.path(root, "preview-renderer", "soffice")
+  dir.create(dirname(fake), recursive = TRUE, showWarnings = FALSE)
+  writeLines("", fake)
+  on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+
+  Sys.setenv(
+    PULSO_APP_ROOT = root,
+    PROSECNUR_PREVIEW_RENDERER_DIR = "",
+    PROSECNUR_BUNDLED_SOFFICE = "",
+    PROSECNUR_SOFFICE = "",
+    SOFFICE_PATH = "",
+    LIBREOFFICE_PATH = ""
+  )
+
+  expect_equal(
+    normalizePath(.soffice_cmd(), winslash = "/", mustWork = FALSE),
+    normalizePath(fake, winslash = "/", mustWork = FALSE)
+  )
+})
+
 test_that("comparador interno de previews detecta PNGs iguales y distintos", {
   skip_if_not_installed("png")
   ensure_preview_renderer_helpers()

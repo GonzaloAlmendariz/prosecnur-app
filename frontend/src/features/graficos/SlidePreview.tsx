@@ -13,6 +13,7 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
+import { humanizeIdentifier } from "./graficadorDisplay";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "./store";
 import SlidePreviewMockup from "./SlidePreviewMockup";
 
@@ -75,6 +76,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const hasResult = !!fileId && !error;
   const renderFailed = hasResult && !hasPreview && rendererAvailable;
   const hasUsableResult = hasResult && (hasPreview || hasEmbeddedImages || rendererUnavailable || renderFailed);
+  const hasLocalFallback = !!error || rendererUnavailable || renderFailed || hasUsableResult;
 
   useEffect(() => {
     let alive = true;
@@ -256,22 +258,20 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   });
   const chromeTone = busy
     ? "loading"
-    : error
-      ? "danger"
-      : hasPreview && !isStale
-        ? "exact"
-        : hasUsableResult
-          ? "local"
-          : "idle";
+    : hasPreview && !isStale
+      ? "exact"
+      : hasLocalFallback
+        ? "local"
+        : "idle";
   const chromeDetail = hasPreview && !isStale
     ? `Captura PPTX${rendererStatus?.renderer ? ` · ${formatRendererName(rendererStatus.renderer)}` : ""}`
     : error
-      ? "Usando boceto local"
+      ? "Vista de estructura disponible"
       : hasEmbeddedImages
         ? "Imagen interna PPTX"
         : rendererUnavailable || renderFailed || hasResult
           ? "Vista local garantizada"
-          : slide.tipo;
+          : humanizeIdentifier(slide.tipo, "Slide");
   const sourceSteps = getPreviewSourceSteps({
     rendererChecking,
     rendererAvailable,
@@ -316,6 +316,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                     ? "Generar vista local del slide en este equipo"
                     : hasPreview && !isStale && !renderFailed && !error
                       ? "Mostrar/Ocultar preview del slide"
+                      : error
+                      ? "Reintentar preview exacta; la vista local queda disponible"
                       : "Generar preview exacta del slide"
             }
           >
@@ -344,7 +346,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
       {!compact && rendererUnavailable && !error && (
         <PreviewNotice tone="muted">
-          <strong>Vista local disponible:</strong> si este equipo no puede generar la captura exacta del PPTX, la app usa imágenes internas y una maqueta descargable.
+          <strong>Vista local disponible:</strong> si la captura exacta no está activa en este equipo, Prosecnur mantiene una referencia visual y el PPTX descargable.
         </PreviewNotice>
       )}
 
@@ -355,8 +357,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
       )}
 
       {!compact && error && (
-        <PreviewNotice tone="danger">
-          <strong>No pudimos generar la previsualización.</strong> {humanizePreviewError(error)}
+        <PreviewNotice tone="warn">
+          <strong>Mostrando vista local.</strong> {humanizePreviewError(error)}
         </PreviewNotice>
       )}
 
@@ -368,7 +370,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             isBubbleOpen ? "is-open" : "",
             isBubbleClosing ? "is-closing" : "",
             busy ? "is-loading" : "",
-            error ? "is-error" : "",
             isStale ? "is-stale" : "",
             hasPreview ? "has-image" : "",
           ].filter(Boolean).join(" ")}
@@ -429,8 +430,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             ) : rendererUnavailable ? (
               <LocalPreviewFallback
                 slide={slide}
-                title="Vista local segura"
-                detail={hasEmbeddedImages ? "Imagen interna extraída del PPTX; no depende de herramientas adicionales." : "Boceto local disponible aunque este equipo no tenga captura PPTX exacta."}
+                title="Vista local lista"
+                detail={hasEmbeddedImages ? "Imagen interna extraída del PPTX." : "Referencia visual incluida para revisar composición del slide."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -456,7 +457,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 tone="warn"
                 title="Vista local disponible"
-                detail={`La captura exacta no se generó. ${humanizePreviewError(error)}`}
+                detail={`${humanizePreviewError(error)} La app mantiene esta vista para revisar estructura sin bloquear tu trabajo.`}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -498,8 +499,8 @@ function LocalPreviewFallback({
     .slice(0, 4);
   const hasImages = embeddedImages.length > 0;
   const badges = [
-    hasImages ? "Imagen PPTX" : "Boceto local",
-    fileId ? "PPTX listo" : "Sin dependencias externas",
+    hasImages ? "Imagen PPTX" : "Vista local",
+    fileId ? "PPTX listo" : "Incluida en Prosecnur",
   ];
 
   return (
@@ -623,8 +624,8 @@ function getPreviewSourceSteps(state: {
     },
     {
       key: "local",
-      label: "Boceto local",
-      detail: "Sin dependencias",
+      label: "Vista local",
+      detail: "Incluida",
       state: localActive ? "active" : "ready",
     },
   ];
@@ -646,6 +647,7 @@ function getActionLabel(state: {
   if (state.busy) return "Generando...";
   if (!state.prepOk) return "Preparar datos";
   if (state.blocked) return "Bloqueado";
+  if (state.error) return "Reintentar";
   if (state.rendererChecking && !state.hasPreview && !state.hasResult) return "Previsualizar";
   if (state.rendererUnavailable && !state.hasPreview) {
     if (!state.hasResult) return "Vista local";
@@ -670,9 +672,9 @@ function getStateLabel(state: {
   hasResult: boolean;
 }) {
   if (state.busy) return "Generando preview";
-  if (state.error) return "Error de preview";
   if (!state.prepOk) return "Datos no preparados";
   if (state.blocked) return "Configuración incompleta";
+  if (state.error) return "Vista local disponible";
   if (state.rendererChecking) return "Comprobando motor";
   if (state.hasPreview) return state.isStale ? "Preview desactualizada" : "Preview lista";
   if (state.rendererUnavailable) return state.hasResult ? "Vista local lista" : "Vista local disponible";
@@ -693,7 +695,7 @@ function getEngineCopy(mode: PreviewEngineMode, status: GraficosPreviewRendererS
   }
   return {
     label: "Vista local",
-    detail: "Sin dependencias externas",
+    detail: "Incluida en Prosecnur",
   };
 }
 
@@ -712,15 +714,16 @@ function preValidateSlide(slide: Slide): string[] {
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   for (const slot of slots) {
     const v = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined | null;
+    const slotLabel = humanizeIdentifier(slot, "gráfico");
     if (!v || !v.graficador) {
-      issues.push(`elige un gráfico para "${slot}" en la pestaña Datos`);
+      issues.push(`elige un gráfico para ${slotLabel} en la pestaña Datos`);
       continue;
     }
     const args = (v.args ?? {}) as Record<string, unknown>;
     const hasVar = typeof args.var === "string" && args.var.length > 0;
     const hasVars = Array.isArray(args.vars) && (args.vars as unknown[]).length > 0;
     if (!hasVar && !hasVars) {
-      issues.push(`configura la variable principal del gráfico "${slot}" en la pestaña Datos`);
+      issues.push(`configura la variable principal de ${slotLabel} en la pestaña Datos`);
     }
   }
   return issues;
@@ -746,7 +749,7 @@ function humanizePreviewError(raw: string): string {
     return "La captura exacta tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
   }
   if (/subscript out of bounds|índice fuera|indice fuera|out of bounds/i.test(cleaned)) {
-    return "El graficador no pudo completar esta combinación. Revisa la variable, cruces o escala en Datos; la vista local queda disponible para revisar estructura.";
+    return "El gráfico no pudo completar esta combinación. Revisa la variable, cruces o escala en Datos; la vista local queda disponible para revisar estructura.";
   }
   if (/variable.*no existe|var.*unknown|variable inv/i.test(cleaned)) {
     return "Una de las variables del gráfico no existe en el instrumento. Revísala en la pestaña Datos.";

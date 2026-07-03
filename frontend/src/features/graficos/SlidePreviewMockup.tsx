@@ -1,4 +1,5 @@
 import { GraficadorRef, Slide } from "../../api/client";
+import { graficadorDisplayName, humanizeIdentifier } from "./graficadorDisplay";
 import { safeText, safeTrimmedText } from "./safeText";
 import {
   BarChart3,
@@ -15,6 +16,7 @@ import {
 
 function GrafIcon({ name, size = 18 }: { name: string; size?: number }) {
   const map: Record<string, typeof BarChart3> = {
+    p_barras: BarChart3,
     p_barras_agrupadas: BarChart3,
     p_barras_apiladas: BarChartHorizontal,
     p_barras_multiapiladas: Columns3,
@@ -23,10 +25,46 @@ function GrafIcon({ name, size = 18 }: { name: string; size?: number }) {
     p_numerico: Hash,
     p_boxplot: Box,
     p_media_rango: Minus,
+    p_radar: Radar,
+    p_tabla: Radar,
     p_radar_tabla: Radar,
   };
   const Icon = map[name] ?? HelpCircle;
   return <Icon size={size} />;
+}
+
+function displaySlotLabel(label?: string): string {
+  if (!label) return "";
+  return humanizeIdentifier(label, "Gráfico");
+}
+
+function displayDataRef(value: unknown, fallback = "Pendiente"): string {
+  const raw = safeTrimmedText(value);
+  if (!raw || raw === "-") return fallback;
+  const lastSegment = raw.split("$").pop() ?? raw;
+  const cleaned = lastSegment
+    .replace(/[./:]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return humanizeIdentifier(cleaned, raw);
+}
+
+function formatDataLine(label: string, value: string, compact: boolean): React.ReactNode {
+  return (
+    <div style={{
+      minWidth: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: compact ? 3 : 5,
+      fontSize: compact ? 8.4 : 9.5,
+      color: "var(--pulso-text-soft)",
+      lineHeight: 1.1,
+      overflow: "hidden",
+    }}>
+      <span style={{ flex: "0 0 auto", fontWeight: 740, color: "color-mix(in srgb, var(--pulso-primary) 58%, var(--pulso-text-soft))" }}>{label}</span>
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</span>
+    </div>
+  );
 }
 
 function MockupChartGlyph({ name, compact = false }: { name: string; compact?: boolean }) {
@@ -61,6 +99,38 @@ function MockupChartGlyph({ name, compact = false }: { name: string; compact?: b
   const bars = normalized.includes("apiladas")
     ? [72, 88, 62, 78]
     : [56, 78, 46, 90];
+  if (!compact) {
+    return (
+      <div style={{
+        flex: 1,
+        minHeight: 96,
+        display: "grid",
+        gridTemplateRows: `repeat(${bars.length}, minmax(0, 1fr))`,
+        alignItems: "center",
+        gap: 10,
+        marginTop: 10,
+        padding: "14px 10px 8px",
+        borderRadius: 10,
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.16))",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.72)",
+      }}>
+        {bars.map((width, index) => (
+          <span key={`${name}-${index}`} style={{
+            display: "block",
+            width: `${width}%`,
+            height: 12,
+            borderRadius: 999,
+            background: index % 2 === 0
+              ? "linear-gradient(90deg, rgba(0,36,87,0.72), rgba(13,148,136,0.56))"
+              : "linear-gradient(90deg, rgba(124,58,237,0.58), rgba(203,113,39,0.52))",
+            boxShadow:
+              "0 1px 0 rgba(255,255,255,0.66) inset, 0 2px 7px rgba(15,23,42,0.06)",
+          }} />
+        ))}
+      </div>
+    );
+  }
   return (
     <div style={{ flex: 1, minHeight: compact ? 18 : 86, display: "grid", alignContent: "end", gap: compact ? 2 : 6, marginTop: compact ? 2 : 8 }}>
       {bars.map((width, index) => (
@@ -81,6 +151,7 @@ function MockupChartGlyph({ name, compact = false }: { name: string; compact?: b
 }
 
 function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null | undefined; label?: string; compact?: boolean }) {
+  const slotLabel = displaySlotLabel(label);
   if (!slot || !slot.graficador) {
     return (
       <div style={{
@@ -90,33 +161,36 @@ function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null 
         minHeight: 0, height: "100%",
         color: "var(--pulso-text-soft)", fontSize: compact ? 8.5 : 10, padding: compact ? "0.22rem" : "0.4rem",
       }}>
-        <span>sin graficador</span>
-        {label && <span style={{ marginTop: compact ? 1 : 2, fontFamily: "ui-monospace,monospace" }}>{label}</span>}
+        <span>Sin gráfico</span>
+        {slotLabel && <span style={{ marginTop: compact ? 1 : 2, fontWeight: 650 }}>{slotLabel}</span>}
       </div>
     );
   }
   const graficador = safeText(slot.graficador, "grafico");
-  const varStr = safeTrimmedText(slot.args?.var, safeTrimmedText(slot.args?.vars, "-"));
-  const cruces = safeTrimmedText(slot.args?.cruces, safeTrimmedText(slot.args?.cruce));
+  const graphLabel = graficadorDisplayName(graficador);
+  const variable = displayDataRef(slot.args?.var ?? slot.args?.vars);
+  const cruces = displayDataRef(slot.args?.cruces ?? slot.args?.cruce, "");
   const titulo = safeTrimmedText(slot.args?.titulo);
   return (
     <div style={{
       border: "1px solid var(--pulso-primary-border)", borderRadius: compact ? 5 : 6,
-      background: "linear-gradient(135deg, rgba(0,36,87,0.10) 0%, rgba(0,36,87,0.03) 100%)",
+      background: "linear-gradient(135deg, rgba(0,36,87,0.08) 0%, rgba(13,148,136,0.06) 100%)",
       display: "flex", flexDirection: "column", padding: compact ? "0.28rem" : "0.4rem", gap: compact ? 1 : 2, overflow: "hidden",
       minHeight: 0, height: "100%",
       color: "var(--pulso-primary)",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <GrafIcon name={graficador} size={compact ? 14 : 18} />
-        {label && <span style={{ fontSize: compact ? 8 : 9, color: "var(--pulso-primary)", fontFamily: "ui-monospace,monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginLeft: 4 }}>{label}</span>}
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: compact ? 18 : 24, height: compact ? 18 : 24, borderRadius: compact ? 5 : 7, background: "color-mix(in srgb, var(--pulso-primary-soft) 78%, #ffffff)", boxShadow: "inset 0 0 0 1px var(--pulso-primary-border)" }}>
+          <GrafIcon name={graficador} size={compact ? 13 : 16} />
+        </span>
+        {slotLabel && <span style={{ fontSize: compact ? 7.6 : 8.6, color: "var(--pulso-primary)", fontWeight: 780, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginLeft: 4, padding: compact ? "1px 4px" : "2px 6px", border: "1px solid var(--pulso-primary-border)", borderRadius: 999, background: "rgba(255,255,255,0.72)" }}>{slotLabel}</span>}
       </div>
-      <div style={{ fontSize: compact ? 9 : 10, fontWeight: 600, fontFamily: "ui-monospace,monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {graficador.replace("p_", "")}
+      <div style={{ fontSize: compact ? 9.5 : 11, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0 }}>
+        {graphLabel}
       </div>
       {titulo && <div style={{ fontSize: compact ? 8.5 : 10, color: "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</div>}
-      <div style={{ fontSize: compact ? 8.5 : 9, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>var: <code>{varStr}</code></div>
-      {cruces && <div style={{ fontSize: compact ? 8.5 : 9, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>x <code>{cruces}</code></div>}
+      {formatDataLine("Variable", variable, compact)}
+      {cruces && formatDataLine("Cruce", cruces, compact)}
       <MockupChartGlyph name={graficador} compact={compact} />
     </div>
   );
