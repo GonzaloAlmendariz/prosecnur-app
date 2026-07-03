@@ -27,9 +27,10 @@ export type StylePanelProps = {
   slide: Slide;
   args: ArgMetadata[];        // args de estilo del slide (no del graficador)
   variables: VarInfo[];
+  onRequestDataTab?: () => void;
 };
 
-export function StylePanel({ slide, args }: StylePanelProps) {
+export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const { graficadoresById } = useGraficosRegistry();
@@ -271,6 +272,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
                       slotName={slotName}
                       value={slotValue as never}
                       mode="style"
+                      onRequestDataTab={onRequestDataTab}
                     />
                   </div>
                 </details>

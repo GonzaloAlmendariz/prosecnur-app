@@ -31,6 +31,8 @@ type Props = {
   /** Determina qué grupos de args se muestran y si el OverrideDropdown
    *  (botón "Estilo" con varita) está visible. Por defecto "data". */
   mode?: GraficadorSlotMode;
+  /** Acción contextual para resolver un modelo pendiente desde tabs no-data. */
+  onRequestDataTab?: () => void;
 };
 
 const MODE_GROUPS: Record<GraficadorSlotMode, ArgGrupo[]> = {
@@ -62,7 +64,7 @@ export function getSlotLabel(slotName: string): string {
   return SLOT_LABELS[slotName] ?? slotName;
 }
 
-export default function GraficadorSlot({ slideId, slotName, value, mode = "data" }: Props) {
+export default function GraficadorSlot({ slideId, slotName, value, mode = "data", onRequestDataTab }: Props) {
   const setSlot = usePlanStore((s) => s.setSlot);
   const updateArgs = usePlanStore((s) => s.updateSlotArgs);
   const { graficadoresById } = useGraficosRegistry();
@@ -91,6 +93,8 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
   }
 
   const slotLabel = SLOT_LABELS[slotName] ?? slotName;
+  const replaceGraficadorAction = mode === "data" ? () => setPickerOpen(true) : onRequestDataTab;
+  const replaceGraficadorLabel = mode === "data" ? "Reemplazar modelo" : "Ir a Datos";
 
   // En modos style/filters NO mostramos el "slot vacío" porque la
   // selección de graficador es responsabilidad de Datos. Mostrar un
@@ -214,7 +218,8 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             onArgs={(patch) => updateArgs(slideId, slotName, patch)}
             groupFilter={allowedGroups}
             slotLabel={slotLabel}
-            onReplaceGraficador={mode === "data" ? () => setPickerOpen(true) : undefined}
+            onReplaceGraficador={replaceGraficadorAction}
+            replaceGraficadorLabel={replaceGraficadorAction ? replaceGraficadorLabel : undefined}
           />
         )}
       </div>
