@@ -6650,9 +6650,21 @@
   width: min(480px, calc(100vw - 56px));
   max-width: min(480px, calc(100vw - 56px));
   min-width: min(300px, calc(100vw - 56px));
-  display: flex;
-  justify-content: flex-start;
+  display: grid;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--pulso-primary-border));
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.94)),
+    var(--pulso-surface);
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.16),
+    var(--pulso-shadow-med);
+  opacity: 0;
+  pointer-events: none;
   transform-origin: top right;
+  animation: pulso-gv2-popover-out-rtl var(--motion-dur-fast) ease both;
 }
 
 .pulso-slide-preview-bubble-arrow {
@@ -6680,24 +6692,128 @@
   aspect-ratio: 16 / 9;
   max-width: min(100%, 480px);
   max-height: min(46vh, 340px);
-  opacity: 0;
   transform-origin: top right;
-  pointer-events: none;
-  animation: pulso-gv2-popover-out-rtl var(--motion-dur-fast) ease both;
 }
 
-.pulso-slide-preview-bubble.is-open,
-.pulso-slide-preview-bubble.is-open .pulso-slide-preview-bubble-inner {
+.pulso-slide-preview-bubble.is-open {
   opacity: 1;
   pointer-events: auto;
   animation: pulso-gv2-popover-in-rtl var(--motion-dur-fast) ease both;
 }
 
-.pulso-slide-preview-bubble.is-closing,
-.pulso-slide-preview-bubble.is-closing .pulso-slide-preview-bubble-inner {
+.pulso-slide-preview-bubble.is-closing {
   opacity: 0;
   pointer-events: none;
   animation: pulso-gv2-popover-out-rtl var(--motion-dur-fast) ease both;
+}
+
+.pulso-slide-preview-chrome {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 0;
+}
+
+.pulso-slide-preview-status {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pulso-text);
+}
+
+.pulso-slide-preview-status > svg {
+  flex: 0 0 auto;
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-slide-preview-status > span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pulso-slide-preview-status strong,
+.pulso-slide-preview-status small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-slide-preview-status strong {
+  font-size: 11.5px;
+  font-weight: 820;
+  line-height: 1.1;
+}
+
+.pulso-slide-preview-status small {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.pulso-slide-preview-status.is-exact > svg {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-slide-preview-status.is-danger > svg {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-slide-preview-chrome-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.pulso-slide-preview-download,
+.pulso-slide-preview-close {
+  min-height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-primary-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 780;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-slide-preview-download {
+  padding: 4px 8px;
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-slide-preview-close {
+  width: 27px;
+  padding: 0;
+}
+
+.pulso-slide-preview-download:hover,
+.pulso-slide-preview-close:hover {
+  border-color: var(--gv2-accent-border, var(--pulso-primary-border));
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-slide-preview-download:active,
+.pulso-slide-preview-close:active {
+  transform: scale(0.96);
 }
 
 .pulso-slide-preview-bubble-stale {
@@ -13648,39 +13764,29 @@
 
 /* Suite polish pass 12: larger, dependency-safe slide preview viewer. */
 .pulso-slide-preview-bubble {
-  width: min(760px, calc(100vw - 56px));
-  max-width: min(760px, calc(100vw - 56px));
-  min-width: min(420px, calc(100vw - 56px));
+  position: fixed;
+  top: 92px;
+  right: 32px;
+  width: min(880px, calc(100vw - 64px));
+  max-width: min(880px, calc(100vw - 64px));
+  min-width: min(440px, calc(100vw - 64px));
+  max-height: calc(100vh - 116px);
+  z-index: 1300;
+}
+
+.pulso-slide-preview-bubble-arrow {
+  display: none;
 }
 
 .pulso-slide-preview-bubble-inner {
-  max-width: min(100%, 760px);
-  max-height: min(68vh, 560px);
+  max-width: min(100%, 880px);
+  max-height: min(72vh, 620px);
   border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 48%, var(--pulso-border));
   border-radius: 14px;
   box-shadow:
     0 24px 52px rgba(15, 23, 42, 0.22),
     0 2px 10px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.92);
-}
-
-.pulso-slide-preview-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 4px 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 82%, white);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-success-bg) 86%, white);
-  color: var(--pulso-success-fg);
-  font-size: 10px;
-  font-weight: 820;
-  line-height: 1;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .pulso-slide-preview-local {
@@ -13845,11 +13951,11 @@
 
 @media (max-width: 760px) {
   .pulso-slide-preview-bubble {
-    right: 50%;
+    top: 74px;
+    right: 14px;
     width: calc(100vw - 28px);
     min-width: 0;
     max-width: calc(100vw - 28px);
-    transform: translateX(50%);
     transform-origin: top center;
   }
 
@@ -13873,12 +13979,12 @@
 
 @media (max-height: 720px) {
   .pulso-slide-preview-bubble {
-    position: absolute;
-    top: max(-330px, -52vh);
-    right: 0;
-    width: min(760px, calc(100vw - 48px));
-    max-width: min(760px, calc(100vw - 48px));
+    top: 64px;
+    right: 24px;
+    width: min(820px, calc(100vw - 48px));
+    max-width: min(820px, calc(100vw - 48px));
     min-width: min(360px, calc(100vw - 48px));
+    max-height: calc(100vh - 82px);
   }
 
   .pulso-slide-preview-bubble-arrow {
