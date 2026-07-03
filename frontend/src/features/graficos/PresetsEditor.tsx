@@ -132,7 +132,8 @@ export function PresetsEditor() {
           const dimensionales = presets.filter((p) => isDim(p.name));
 
           const renderItem = (p: typeof presets[number]) => {
-            const modified = presetCustomCount(configPresets[p.name], defaults[p.name]) > 0;
+            const customCount = presetCustomCount(configPresets[p.name], defaults[p.name]);
+            const modified = customCount > 0;
             const isActive = p.name === selected;
             const Icon = resolveGraphLucideIcon(p.icono_ui, "Sliders");
             return (
@@ -141,7 +142,9 @@ export function PresetsEditor() {
                 type="button"
                 onClick={() => setSelected(p.name)}
                 className={`pulso-gv2-preset-nav-item ${isActive ? "is-active" : ""}`}
+                data-state={modified ? "custom" : "base"}
                 aria-pressed={isActive}
+                aria-label={`${p.titulo_humano}. ${modified ? `${customCount} ajustes personalizados` : "Base establecida"}`}
               >
                 <span
                   className="pulso-gv2-presets-sidebar-icon"
@@ -153,15 +156,12 @@ export function PresetsEditor() {
                 <span className="pulso-gv2-preset-nav-label">
                   {p.titulo_humano}
                 </span>
-                {modified && (
-                  <Circle
-                    className="pulso-gv2-preset-nav-dot"
-                    size={7}
-                    fill={isActive ? "var(--pulso-primary)" : "var(--pulso-primary)"}
-                    color="transparent"
-                    aria-label="Modificado"
-                  />
-                )}
+                <span
+                  className={`pulso-gv2-preset-nav-state ${modified ? "is-custom" : "is-base"}`}
+                  title={modified ? `${customCount} ajustes personalizados` : "Base establecida"}
+                >
+                  {modified ? `${customCount} ajuste${customCount === 1 ? "" : "s"}` : "Base"}
+                </span>
               </button>
             );
           };
