@@ -18619,3 +18619,161 @@
     padding-inline: 10px;
   }
 }
+
+/* Suite polish pass 22: lower-profile slide inspector head. */
+.pulso-graficos-frame .pulso-gv2-inspector-head {
+  padding: 9px 18px 8px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-head-main {
+  grid-template-columns: minmax(0, 1fr) minmax(274px, 398px);
+  align-items: center;
+  gap: 13px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-icon {
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-title-cluster {
+  gap: 9px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-title {
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-description {
+  max-width: min(760px, 100%);
+  margin-top: 3px;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--pulso-text-soft) 88%, var(--pulso-text));
+  font-size: 10.6px;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-graficos-frame .pulso-slide-preview.is-compact {
+  align-self: center;
+  max-width: 398px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview.is-compact .pulso-slide-preview-head {
+  align-items: center;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-controls {
+  gap: 5px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-engine {
+  min-height: 26px;
+  max-width: 168px;
+  gap: 5px;
+  padding: 3px 8px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-engine strong {
+  font-size: 9.2px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-engine small {
+  font-size: 8px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-action {
+  min-height: 27px;
+  padding: 4px 10px !important;
+  font-size: 10.6px !important;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-refresh {
+  width: 27px;
+  height: 27px;
+  min-width: 27px;
+  min-height: 27px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tabs {
+  gap: 2px;
+  margin-top: 7px;
+  padding: 2px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 4px 14px rgba(15, 23, 42, 0.055);
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tab {
+  min-height: 28px;
+  gap: 5px;
+  padding: 4px 11px;
+  font-size: 11.4px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tab-badge {
+  min-width: 15px;
+  height: 15px;
+  padding-inline: 4px;
+  font-size: 9.4px;
+}
+
+@media (max-height: 760px), (max-width: 1120px) {
+  .pulso-graficos-frame .pulso-gv2-inspector-head {
+    padding: 7px 10px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-head-main {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-title-cluster {
+    gap: 7px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-title {
+    font-size: 13.5px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-description {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-slide-preview.is-compact {
+    max-width: 300px;
+  }
+
+  .pulso-graficos-frame .pulso-slide-preview-engine {
+    min-height: 25px;
+    max-width: 126px;
+    padding-inline: 7px;
+  }
+
+  .pulso-graficos-frame .pulso-slide-preview-engine small {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-slide-preview-action {
+    min-height: 26px;
+    padding-inline: 9px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-tabs {
+    margin-top: 6px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-tab {
+    min-height: 26px;
+    padding-inline: 9px;
+    font-size: 10.8px;
+  }
+}
