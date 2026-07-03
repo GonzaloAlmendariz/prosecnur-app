@@ -1246,9 +1246,54 @@
   ""
 }
 
+.preview_renderer_roots <- function() {
+  app_root <- Sys.getenv("PULSO_APP_ROOT", unset = "")
+  explicit_root <- Sys.getenv("PROSECNUR_PREVIEW_RENDERER_DIR", unset = "")
+  cwd <- tryCatch(getwd(), error = function(e) "")
+  parent_cwd <- if (nzchar(cwd)) dirname(cwd) else ""
+
+  unique(c(
+    explicit_root,
+    if (nzchar(app_root)) file.path(app_root, "preview-renderer") else "",
+    if (nzchar(app_root)) file.path(dirname(app_root), "runtime", "preview-renderer") else "",
+    if (nzchar(cwd)) file.path(cwd, "preview-renderer") else "",
+    if (nzchar(parent_cwd)) file.path(parent_cwd, "runtime", "preview-renderer") else "",
+    if (nzchar(parent_cwd)) file.path(parent_cwd, "preview-renderer") else ""
+  ))
+}
+
+.bundled_soffice_candidates <- function() {
+  roots <- .preview_renderer_roots()
+  roots <- roots[nzchar(roots)]
+  if (!length(roots)) return(character())
+
+  common <- c(
+    file.path(roots, "soffice"),
+    file.path(roots, "program", "soffice")
+  )
+  platform <- switch(
+    Sys.info()[["sysname"]] %||% "",
+    "Darwin" = c(
+      file.path(roots, "LibreOffice.app", "Contents", "MacOS", "soffice"),
+      file.path(roots, "LibreOffice", "LibreOffice.app", "Contents", "MacOS", "soffice")
+    ),
+    "Windows" = c(
+      file.path(roots, "soffice.exe"),
+      file.path(roots, "program", "soffice.exe"),
+      file.path(roots, "LibreOffice", "program", "soffice.exe"),
+      file.path(roots, "libreoffice", "program", "soffice.exe")
+    ),
+    c(
+      file.path(roots, "libreoffice", "program", "soffice"),
+      file.path(roots, "libreoffice", "soffice")
+    )
+  )
+  unique(c(common, platform))
+}
+
 .soffice_cmd <- function() {
   env_candidates <- unname(Sys.getenv(
-    c("PROSECNUR_SOFFICE", "SOFFICE_PATH", "LIBREOFFICE_PATH"),
+    c("PROSECNUR_BUNDLED_SOFFICE", "PROSECNUR_SOFFICE", "SOFFICE_PATH", "LIBREOFFICE_PATH"),
     unset = ""
   ))
 
@@ -1266,7 +1311,7 @@
     character()
   )
 
-  .first_available_executable(c(env_candidates, "soffice", "libreoffice", platform_candidates))
+  .first_available_executable(c(env_candidates, .bundled_soffice_candidates(), "soffice", "libreoffice", platform_candidates))
 }
 
 .artifact_renderer_script <- function() {
