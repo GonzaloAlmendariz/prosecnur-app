@@ -6044,6 +6044,10 @@ export type TerritorialQuotaProgressItem = {
   target: number;
   achieved: number;
   missing: number;
+  operational_adjustment_delta?: number;
+  operational_adjustment_gain?: number;
+  operational_adjustment_loss?: number;
+  observed_achieved?: number;
 };
 
 export type TerritorialQuotaObservedCrossCell = {
@@ -6095,6 +6099,10 @@ export type TerritorialQuotaProgressBlock = {
   status: "complete" | "in_field" | "pending" | "partial" | "missing" | "exceeded" | "not_configured" | string;
   target: number;
   validas: number;
+  observed_validas?: number;
+  operational_adjustment_gain?: number;
+  operational_adjustment_loss?: number;
+  operational_adjustment_delta?: number;
   missing_total: number;
   sex_missing_total?: number;
   age_missing_total?: number;

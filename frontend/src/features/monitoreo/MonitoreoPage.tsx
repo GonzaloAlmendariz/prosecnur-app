@@ -111,6 +111,7 @@ import {
   apiConnectionsList,
   ConnectionTokenState,
   JobStart,
+  type JobProgress as JobProgressData,
   monitoreoClientReportPdfDownloadUrl,
   MonitoreoConfig,
   MonitoreoAcreditacion,
@@ -796,6 +797,7 @@ type SourceSyncRateLimitNotice = {
 type SourceSyncJobState = {
   jobId: string | null;
   label: string;
+  mode?: "advance" | "full";
   phase: string;
   message: string;
   percent: number;
@@ -2487,7 +2489,11 @@ function isRouteSelected(
   return Boolean(profile.route_selected) || hasExistingMonitoreoWork(state, sources, acreditacion);
 }
 
-async function startMonitoreoSourceSyncJob(config: Partial<MonitoreoConfig>, sourceIds: string[] = []) {
+async function startMonitoreoSourceSyncJob(
+  config: Partial<MonitoreoConfig>,
+  sourceIds: string[] = [],
+  options: { syncMode?: "advance" | "full" | string } = {},
+) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const sid = localStorage.getItem("pulso.sessionId");
   if (sid) headers["X-Pulso-Session"] = sid;
@@ -2497,6 +2503,7 @@ async function startMonitoreoSourceSyncJob(config: Partial<MonitoreoConfig>, sou
     body: JSON.stringify({
       config,
       ...(sourceIds.length ? { source_ids: sourceIds } : {}),
+      ...(options.syncMode ? { sync_mode: options.syncMode } : {}),
     }),
   });
   const sidHeader = res.headers.get("X-Pulso-Session");
@@ -4414,17 +4421,23 @@ export default function MonitoreoPage() {
     }
   }
 
-  async function syncExternalSources(sourceIds: string[], label: string) {
+  async function syncExternalSources(
+    sourceIds: string[],
+    label: string,
+    options: { syncMode?: "advance" | "full" | string } = {},
+  ) {
     if (!sourceIds.length) {
       setError("Define primero una fuente activa para actualizar.");
       return;
     }
+    const syncMode = options.syncMode === "advance" ? "advance" : "full";
     setSavingSource(true);
     setError("");
     setSourceSyncRateLimitNotice(null);
     setSourceSyncJob({
       jobId: null,
       label,
+      mode: syncMode,
       phase: "Preparando",
       message: "Guardando configuración y preparando actualización...",
       percent: 4,
@@ -4435,22 +4448,25 @@ export default function MonitoreoPage() {
       setSourceSyncJob({
         jobId: null,
         label,
+        mode: syncMode,
         phase: "Configuración",
-        message: "Guardando la configuración territorial local...",
+        message: route.family === "territorial" ? "Guardando la configuración territorial local..." : "Guardando la configuración local...",
         percent: 8,
       });
       await apiMonitoreoConfig(configForSync);
       setSourceSyncJob({
         jobId: null,
         label,
+        mode: syncMode,
         phase: "Iniciando",
         message: "Creando el job de actualización...",
         percent: 12,
       });
-      const start = await startMonitoreoSourceSyncJob(configForSync, sourceIds);
+      const start = await startMonitoreoSourceSyncJob(configForSync, sourceIds, { syncMode });
       setSourceSyncJob({
         jobId: start.job_id,
         label,
+        mode: syncMode,
         phase: "En cola",
         message: "Esperando al motor local de actualización...",
         percent: 14,
@@ -4709,13 +4725,13 @@ export default function MonitoreoPage() {
   const syncChromeAdvance = () => {
     if (route.family === "aulas_universitarias") return syncAulasUniversitarias();
     if (route.family === "territorial") {
-      return syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`);
+      return syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`, { syncMode: "advance" });
     }
-    return syncExternalSources(activeSourceIds, "Actualizando avance");
+    return syncExternalSources(activeSourceIds, "Actualizando avance", { syncMode: "advance" });
   };
   const syncChromeAll = () => {
     if (route.family === "aulas_universitarias") return syncAulasUniversitarias();
-    return syncExternalSources(activeSourceIds, "Actualizando todas las fuentes");
+    return syncExternalSources(activeSourceIds, "Actualizando todas las fuentes", { syncMode: "full" });
   };
   const openOutputsTab = () => {
     setActiveView("avance");
@@ -4757,6 +4773,12 @@ export default function MonitoreoPage() {
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={Boolean(sourceSyncJob)}
+        syncProgress={sourceSyncJob ? {
+          active: sourceSyncJob.mode,
+          percent: sourceSyncJob.percent,
+          phase: sourceSyncJob.phase,
+          message: sourceSyncJob.message,
+        } : null}
         syncDisabled={chromeSyncAllDisabled}
         syncLabel="Todo"
         syncTitle="Actualizar todas las fuentes activas"
@@ -4867,6 +4889,22 @@ export default function MonitoreoPage() {
                       <JobProgress<MonitoreoSyncResult>
                         label={sourceSyncJob.label}
                         jobId={sourceSyncJob.jobId}
+                        onProgress={(progress: JobProgressData | null) => {
+                          if (!progress) return;
+                          const activeJobId = sourceSyncJob.jobId;
+                          setSourceSyncJob((current) => {
+                            if (!current || current.jobId !== activeJobId) return current;
+                            const nextPercent = Number(progress.percent);
+                            return {
+                              ...current,
+                              phase: progress.phase || current.phase,
+                              message: progress.message || current.message,
+                              percent: Number.isFinite(nextPercent)
+                                ? Math.max(0, Math.min(100, nextPercent))
+                                : current.percent,
+                            };
+                          });
+                        }}
                         onDone={async (result) => {
                           setSourceSyncJob(null);
                           const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
@@ -7758,6 +7796,59 @@ function territorialQuotaBlockDemographicMissingTotal(block: TerritorialQuotaPro
   return Math.max(0, Math.round(numberOrNull(block.demographic_missing_total) ?? (territorialQuotaBlockSexMissingTotal(block) + territorialQuotaBlockAgeMissingTotal(block))));
 }
 
+function territorialQuotaBlockRealMissingTotal(block: TerritorialQuotaProgressBlock) {
+  return Math.max(
+    0,
+    Math.round(numberOrNull(block.missing_total) ?? 0),
+    territorialQuotaBlockSexMissingTotal(block),
+    territorialQuotaBlockAgeMissingTotal(block),
+  );
+}
+
+function territorialQuotaBlockLayers(block: TerritorialQuotaProgressBlock, observedFallback = 0) {
+  const validas = Math.max(0, Math.round(numberOrNull(block.validas) ?? 0));
+  const delta = Math.round(numberOrNull(block.operational_adjustment_delta) ?? 0);
+  const observedBase = numberOrNull(block.observed_validas) ?? (validas || delta ? validas - delta : observedFallback);
+  const observed = Math.max(0, Math.round(observedBase));
+  const gain = Math.max(0, Math.round(numberOrNull(block.operational_adjustment_gain) ?? Math.max(0, delta)));
+  return {
+    observed,
+    adjustment: gain,
+    realMissing: territorialQuotaBlockRealMissingTotal(block),
+  };
+}
+
+function territorialQuotaAdjustmentTargetLabels(block: TerritorialQuotaProgressBlock) {
+  const labels = [...(block.sex ?? []), ...(block.age ?? [])]
+    .filter((item) => territorialQuotaItemAdjustmentDelta(item) > 0)
+    .map((item) => stringOrEmpty(item.label).trim())
+    .filter(Boolean);
+  return Array.from(new Set(labels));
+}
+
+function territorialQuotaRealMissingLabel(block: TerritorialQuotaProgressBlock, realMissing: number) {
+  if (realMissing <= 0) return "sin faltantes después de subsanar";
+  const sexMissing = territorialQuotaMissingItemLabels(block.sex);
+  const ageMissing = territorialQuotaMissingItemLabels(block.age);
+  if (!sexMissing.length && ageMissing.length) {
+    return `${formatMetric(realMissing)} encuesta${realMissing === 1 ? "" : "s"} por completar en edad ${ageMissing.join(", ")}; sexo cubierto`;
+  }
+  if (sexMissing.length && !ageMissing.length) {
+    return `${formatMetric(realMissing)} encuesta${realMissing === 1 ? "" : "s"} por completar en sexo ${sexMissing.join(", ")}; edad cubierta`;
+  }
+  if (sexMissing.length && ageMissing.length) {
+    return `${formatMetric(realMissing)} encuesta${realMissing === 1 ? "" : "s"} por completar: ${sexMissing.join(", ")}; edad ${ageMissing.join(", ")}`;
+  }
+  return `${formatMetric(realMissing)} encuesta${realMissing === 1 ? "" : "s"} por completar`;
+}
+
+function territorialQuotaMissingItemLabels(rows: TerritorialQuotaProgressBlock["sex"] | undefined) {
+  return (rows ?? [])
+    .filter((item) => Math.max(0, Math.round(numberOrNull(item.missing) ?? 0)) > 0)
+    .map((item) => stringOrEmpty(item.label).trim())
+    .filter(Boolean);
+}
+
 function summarizeTerritorialQuotaProgressBlocks(blocks: TerritorialQuotaProgressBlock[]) {
   return blocks.reduce((acc, row) => {
     acc.total += 1;
@@ -7805,6 +7896,10 @@ function territorialQuotaItemPercent(item: TerritorialQuotaProgressBlock["sex"][
   const target = Math.max(0, numberOrNull(item.target) ?? 0);
   const achieved = Math.max(0, numberOrNull(item.achieved) ?? 0);
   return target > 0 ? Math.min(140, Math.max(0, (achieved / target) * 100)) : 0;
+}
+
+function territorialQuotaItemAdjustmentDelta(item: TerritorialQuotaProgressBlock["sex"][number]) {
+  return Math.round(numberOrNull(item.operational_adjustment_delta) ?? 0);
 }
 
 function territorialResponseMatchesBlock(row: Partial<TerritorialResponseAuditRow>, block: TerritorialBlockProgress) {
@@ -17843,22 +17938,42 @@ function TerritorialQuotaBlockCard({ block }: { block: TerritorialQuotaProgressB
         <TerritorialQuotaMarginGroup title="Sexo" icon={ContactRound} rows={block.sex ?? []} empty="Sin cuota por sexo" />
         <TerritorialQuotaMarginGroup title="Edad" icon={CalendarRange} rows={block.age ?? []} empty="Sin cuota por edad" />
       </div>
-      <TerritorialQuotaObservedCrossMatrix cross={block.observed_cross ?? null} />
+      <TerritorialQuotaObservedCrossMatrix block={block} />
     </article>
   );
 }
 
-function TerritorialQuotaObservedCrossMatrix({ cross }: { cross: TerritorialQuotaProgressBlock["observed_cross"] | null | undefined }) {
+function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuotaProgressBlock }) {
+  const cross = block.observed_cross ?? null;
   const rows = cross?.rows ?? [];
   const columns = cross?.columns ?? [];
   const total = Math.max(0, Math.round(numberOrNull(cross?.total_consentido ?? cross?.total) ?? 0));
+  const layers = territorialQuotaBlockLayers(block, total);
+  const adjustmentLabels = territorialQuotaAdjustmentTargetLabels(block);
   const hasMatrix = rows.length > 0 && columns.length > 0;
   return (
     <section className="mon-territorial-quota-observed" aria-label="Llenado observado por sexo y edad">
       <header>
-        <span><Table2 size={13} /> Llenado observado</span>
-        <strong>{formatMetric(total)} consentidos</strong>
+        <span><Table2 size={13} /> Encuestadores</span>
+        <strong>{formatMetric(layers.observed)} consentidos observados</strong>
       </header>
+      <div className="mon-territorial-quota-layer-strip" aria-label="Capas operativas de cuota">
+        <span className="is-field">
+          <b>Encuestadores</b>
+          <strong>{formatMetric(layers.observed)}</strong>
+          <em>levantado en campo</em>
+        </span>
+        <span className={`is-subsanado ${layers.adjustment > 0 ? "has-value" : ""}`}>
+          <b>Subsanado</b>
+          <strong>{layers.adjustment > 0 ? `+${formatMetric(layers.adjustment)}` : "0"}</strong>
+          <em>{adjustmentLabels.length ? `Aporta a ${adjustmentLabels.join(" · ")}` : "sin ajuste aplicado"}</em>
+        </span>
+        <span className={layers.realMissing > 0 ? "is-real-missing" : "is-real-ready"}>
+          <b>Falta real</b>
+          <strong>{formatMetric(layers.realMissing)}</strong>
+          <em>{territorialQuotaRealMissingLabel(block, layers.realMissing)}</em>
+        </span>
+      </div>
       {hasMatrix ? (
         <div className="mon-territorial-quota-observed-scroll">
           <table>
@@ -17918,7 +18033,7 @@ function TerritorialQuotaObservedCrossMatrix({ cross }: { cross: TerritorialQuot
       ) : (
         <p className="mon-territorial-quota-observed-empty">Sin registros consentidos asociados a esta UMP.</p>
       )}
-      <p>El cruce es descriptivo; la cuota se evalúa por totales de sexo y edad.</p>
+      <p>El cruce muestra solo lo levantado por encuestadores. Las subsanaciones se muestran en azul y la falta real se calcula después de aplicarlas.</p>
     </section>
   );
 }
@@ -17959,14 +18074,24 @@ function TerritorialQuotaMarginRow({ item }: { item: TerritorialQuotaProgressBlo
   const target = Math.max(0, numberOrNull(item.target) ?? 0);
   const achieved = Math.max(0, numberOrNull(item.achieved) ?? 0);
   const missing = Math.max(0, numberOrNull(item.missing) ?? Math.max(0, target - achieved));
+  const adjustmentDelta = territorialQuotaItemAdjustmentDelta(item);
+  const observed = Math.max(0, achieved - adjustmentDelta);
   const pct = territorialQuotaItemPercent(item);
   const tone = territorialQuotaItemTone(item);
   return (
-    <span className={`mon-territorial-quota-margin-row is-${tone}`}>
+    <span className={`mon-territorial-quota-margin-row is-${tone} ${adjustmentDelta !== 0 ? "has-adjustment" : ""}`}>
       <strong title={item.label}>{item.label}</strong>
       <em>{formatMetric(achieved)} / {formatMetric(target)}</em>
       <i><b style={{ width: `${Math.min(100, pct)}%` }} /></i>
       <small>{missing > 0 ? `faltan ${formatMetric(missing)}` : achieved > target ? `+${formatMetric(achieved - target)}` : "ok"}</small>
+      {adjustmentDelta !== 0 ? (
+        <span className="mon-territorial-quota-margin-adjustment">
+          <b>Encuestadores {formatMetric(observed)}</b>
+          <b className={adjustmentDelta > 0 ? "is-subsanado" : "is-reassigned"}>
+            {adjustmentDelta > 0 ? `Subsanado +${formatMetric(adjustmentDelta)}` : `Ajuste ${formatMetric(adjustmentDelta)}`}
+          </b>
+        </span>
+      ) : null}
     </span>
   );
 }

@@ -115,7 +115,13 @@ export function PresetsEditor() {
                   transition: "background 120ms ease",
                 }}
               >
-                <Icon size={14} />
+                <span
+                  className="pulso-gv2-presets-sidebar-icon"
+                  aria-hidden="true"
+                  data-active={isActive ? "true" : "false"}
+                >
+                  <Icon size={14} />
+                </span>
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.titulo_humano}
                 </span>
@@ -219,15 +225,7 @@ function PresetHeader({
         borderBottom: "1px solid var(--pulso-border)",
       }}
     >
-      <span
-        style={{
-          width: 30, height: 30, borderRadius: 7,
-          background: "var(--pulso-primary-soft)",
-          color: "var(--pulso-primary)",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
+      <span className="pulso-gv2-preset-header-icon" aria-hidden="true">
         <Icon size={15} />
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -249,7 +247,7 @@ function PresetHeader({
                 border: "1px solid var(--pulso-primary-border)",
               }}
             >
-              <Circle size={6} fill="var(--pulso-primary)" color="transparent" />
+              <Circle className="pulso-gv2-modified-dot" size={6} fill="var(--pulso-primary)" color="transparent" />
               Modificado
             </span>
           )}
@@ -289,7 +287,9 @@ function PresetHeader({
             transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
           }}
         >
-          <RotateCcw size={11} />
+          <span className="pulso-gv2-preset-action-icon" aria-hidden="true">
+            <RotateCcw size={11} />
+          </span>
           Restaurar default
         </button>
       )}

@@ -80,6 +80,38 @@ make_sm_mb_inst <- function() {
   )
 }
 
+test_that("catalogo SurveyMonkey normaliza token rechazado como error de token", {
+  err <- tryCatch(
+    .sm_mb_stop_catalog_api_error(simpleError("Token rechazado por SurveyMonkey (HTTP 401).")),
+    error = function(e) e
+  )
+  res <- new.env(parent = emptyenv())
+  payload <- handle_api_error(NULL, res, err)
+
+  expect_s3_class(err, "api_error")
+  expect_equal(err$status, 401)
+  expect_equal(err$code, "E_SM_TOKEN")
+  expect_equal(res$status, 401)
+  expect_equal(payload$error$code, "E_SM_TOKEN")
+  expect_match(payload$error$message, "Token rechazado", fixed = TRUE)
+})
+
+test_that("catalogo SurveyMonkey normaliza timeout como espera agotada", {
+  err <- tryCatch(
+    .sm_mb_stop_catalog_api_error(simpleError("Timeout was reached: Operation timed out after 20000 milliseconds")),
+    error = function(e) e
+  )
+  res <- new.env(parent = emptyenv())
+  payload <- handle_api_error(NULL, res, err)
+
+  expect_s3_class(err, "api_error")
+  expect_equal(err$status, 504)
+  expect_equal(err$code, "E_SM_TIMEOUT")
+  expect_equal(res$status, 504)
+  expect_equal(payload$error$code, "E_SM_TIMEOUT")
+  expect_match(payload$error$message, "SurveyMonkey no respondio", fixed = TRUE)
+})
+
 test_that("comparador multibase trata empresa distinta como variante de categorias", {
   ref_tbl <- .sm_mb_question_table(make_sm_mb_details(company_labels = c("Empresa A", "Empresa B")))
   cur_tbl <- .sm_mb_question_table(make_sm_mb_details(

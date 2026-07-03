@@ -35,6 +35,7 @@ import {
   type MonitoreoGoal,
   type MonitoreoInternalQueryCase,
   type MonitoreoInternalQueryIssue,
+  type JobProgress as JobProgressData,
   type MonitoreoKoboAssetItem,
   type MonitoreoLinkCollector,
   type MonitoreoReportBlock,
@@ -231,6 +232,12 @@ function isTelefonicoVisibleAdvanceTab(tab: AcreditacionLocalTabKey): tab is Acr
 
 export type AcreditacionProfileMode = "acreditacion" | "telefonico";
 type AcreditacionActionStatus = { tone: "success" | "error" | "info"; message: string } | null;
+type AcreditacionSourceSyncProgress = {
+  mode: "advance" | "full";
+  percent: number | null;
+  phase: string;
+  message: string;
+};
 type AcreditacionCaseReconciliationPayload = {
   response_id: string;
   action: "keep_excluded" | "include_with_caveat";
@@ -6419,6 +6426,7 @@ function AcreditacionPhonePendingInsistence({
         <span><strong>{formatMetric(totalAssigned)}</strong><em>personas asignadas</em></span>
         <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>casos por barrer</em></span>
         <span><strong>{formatMetric(totalNoAnswer)}</strong><em>casos que no contestan</em></span>
+        {unassignedCases ? <span className="is-warning" title={`${formatMetric(unassignedCases)} casos sin responsable asignado`}><strong>{formatMetric(unassignedCases)}</strong><em>sin asignar</em></span> : null}
         <span><strong>{avgAttempts == null ? "S/D" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
       </div>
       <div className="mon-phone-attempt-scale" aria-label="Escala de insistencia por intentos">
@@ -6534,16 +6542,6 @@ function AcreditacionPhonePendingInsistence({
           );
         })}
       </div>
-      {unassignedPending.length ? (
-        <aside className="mon-phone-unassigned">
-          <AlertCircle size={16} />
-          <div>
-            <span>Sin responsable asignado</span>
-            <strong>{formatMetric(unassignedCases)} casos por asignar</strong>
-            <em>Se gestionan como brecha de asignación.</em>
-          </div>
-        </aside>
-      ) : null}
     </article>
   );
 }
@@ -10574,10 +10572,27 @@ function AcreditacionConfiguredSourcesList({
   );
 }
 
-async function waitForSourceSyncJob(jobId: string) {
+function normalizeSourceSyncProgress(progress: JobProgressData | Record<string, never> | null | undefined) {
+  if (!progress || typeof progress !== "object") return null;
+  if (!("phase" in progress) && !("percent" in progress) && !("message" in progress)) return null;
+  const raw = progress as JobProgressData;
+  const percent = Number(raw.percent);
+  return {
+    percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : null,
+    phase: typeof raw.phase === "string" ? raw.phase : "",
+    message: typeof raw.message === "string" ? raw.message : "",
+  };
+}
+
+async function waitForSourceSyncJob(
+  jobId: string,
+  onProgress?: (progress: Omit<AcreditacionSourceSyncProgress, "mode">) => void,
+) {
   for (let attempt = 0; attempt < 90; attempt += 1) {
     await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 350 : 1000));
     const snapshot = await apiJobStatus<MonitoreoSyncResult>(jobId);
+    const progress = normalizeSourceSyncProgress(snapshot.progress);
+    if (progress) onProgress?.(progress);
     if (snapshot.status === "done") return snapshot;
     if (snapshot.status === "cancelled") throw new Error("La sincronización fue cancelada.");
     if (snapshot.status === "error") {
@@ -20548,52 +20563,6 @@ function AcreditacionWorkbenchHead({
   );
 }
 
-export function acreditacionPhoneStatusLegendItems(rows: Array<Record<string, unknown>>) {
-  return rows.map((row, index) => {
-    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`);
-    const value = phoneRowNumber(row, ["Casos", "Valor", "Total"], 0);
-    const tone = phoneStatusTone(label);
-    const palette = phoneStatusPalette(label);
-    return {
-      key: `${normalizeSourceMatch(label) || "estado"}-${index}`,
-      label,
-      value,
-      tone,
-      palette,
-    };
-  }).filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es"));
-}
-
-function phoneSemanticToneClass(tone: ReturnType<typeof phoneStatusTone>) {
-  if (tone === "good") return "is-effective";
-  if (tone === "warn") return "is-partial";
-  if (tone === "risk") return "is-refusal";
-  if (tone === "unswept") return "is-pending";
-  return "is-assignment";
-}
-
-function AcreditacionSemanticStatusLegend({ rows }: { rows: Array<Record<string, unknown>> }) {
-  const items = acreditacionPhoneStatusLegendItems(rows);
-  if (!items.length) return null;
-  return (
-    <div className="mon-semantic-legend is-phone" aria-label="Estados de la base telefónica">
-      {items.map((item) => (
-        <span
-          key={item.key}
-          className={phoneSemanticToneClass(item.tone)}
-          style={{ "--clarity-accent": item.palette.color } as CSSProperties}
-          title={`${item.label}: ${fmt(item.value)}`}
-        >
-          <i aria-hidden="true" />
-          <em>{item.label}</em>
-          <strong>{fmt(item.value)}</strong>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function AcreditacionClarityStrip({
   activeView,
   state,
@@ -20729,7 +20698,6 @@ function AcreditacionClarityStrip({
           );
         })}
       </div>
-      {activeView === "telefonico" ? <AcreditacionSemanticStatusLegend rows={phoneStatusRows} /> : null}
     </section>
   );
 }
@@ -20749,6 +20717,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
   const [sourceSyncing, setSourceSyncing] = useState(false);
+  const [sourceSyncProgress, setSourceSyncProgress] = useState<AcreditacionSourceSyncProgress | null>(null);
   const [actionStatus, setActionStatus] = useState<AcreditacionActionStatus>(null);
   const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
   const [caseReconciliationStatus, setCaseReconciliationStatus] = useState<AcreditacionActionStatus>(null);
@@ -20991,13 +20960,30 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setActionStatus({ tone: "error", message });
       return;
     }
-    setSourceSyncing(true);
-    setError("");
-    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
-    try {
-      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
-      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
-      await waitForSourceSyncJob(start.job_id);
+	    setSourceSyncing(true);
+	    setSourceSyncProgress({
+	      mode: syncMode,
+	      percent: 2,
+	      phase: "prepare",
+	      message: syncMode === "full" ? "Preparando actualización completa..." : "Preparando avance...",
+	    });
+	    setError("");
+	    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
+	    try {
+	      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
+	      setSourceSyncProgress({
+	        mode: syncMode,
+	        percent: 8,
+	        phase: "queued",
+	        message: `Job ${start.job_id} en cola.`,
+	      });
+	      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
+	      await waitForSourceSyncJob(start.job_id, (progress) => {
+	        setSourceSyncProgress({
+	          mode: syncMode,
+	          ...progress,
+	        });
+	      });
       clearScopeStateCache();
       const reportScope = scopeForView(activeViewRef.current, route.family);
       const next = await apiMonitoreoState({
@@ -21021,9 +21007,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       const message = (e as Error).message;
       setError(message);
       setActionStatus({ tone: "error", message });
-    } finally {
-      setSourceSyncing(false);
-    }
+	    } finally {
+	      setSourceSyncProgress(null);
+	      setSourceSyncing(false);
+	    }
   }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
   const sourceTotal = isPhone ? 3 : state?.sources?.length ?? 0;
   const activeSources = activeSourceCount(state);
@@ -21106,8 +21093,9 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           activeSources={activeSources}
           nRows={state?.n_rows ?? 0}
           hasSnapshot={Boolean(state?.has_snapshot)}
-          syncing={loading || sourceSyncing}
-          syncDisabled={loading || sourceSyncing}
+	          syncing={loading || sourceSyncing}
+	          syncProgress={sourceSyncProgress}
+	          syncDisabled={loading || sourceSyncing}
           syncLabel="Todo"
           syncTitle="Actualizar todas las fuentes activas"
           onSyncAll={() => { void runProfileSourceSync("full"); }}

@@ -235,25 +235,29 @@ test_that("ACRDCONTA compacto genera 270/157/5/0/108 desde base canonica", {
     dashboard = list(acreditacion_reports = reports),
     synced_at = "2026-06-16T12:00:00Z"
   )
-  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Corte y fuentes"))
+  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Avance por encuesta"))
   report_text <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
   detail_text <- paste(unlist(client_tabs[["Detalle del avance"]], use.names = FALSE), collapse = "\n")
-  source_text <- paste(unlist(client_tabs[["Corte y fuentes"]], use.names = FALSE), collapse = "\n")
+  survey_text <- paste(unlist(client_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
 
-  expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", report_text, fixed = TRUE))
-  expect_true(grepl("AVANCE POR ACTOR", report_text, fixed = TRUE))
+  expect_false(grepl("DATOS DEL CORTE", report_text, fixed = TRUE))
+  expect_true(grepl("MONITOREO", report_text, fixed = TRUE))
+  expect_true(grepl("Seguimiento de Encuestas", report_text, fixed = TRUE))
+  expect_true(grepl("Ultima actualizacion", report_text, fixed = TRUE))
+  expect_true(grepl("Avance general", report_text, fixed = TRUE))
+  expect_true(grepl("Respuestas en el sistema", report_text, fixed = TRUE))
+  expect_true(grepl("Avance", report_text, fixed = TRUE))
   expect_true(grepl("Egresados", report_text, fixed = TRUE))
   expect_true(grepl("Completas", report_text, fixed = TRUE))
   expect_true(grepl("Parciales", report_text, fixed = TRUE))
   expect_true(grepl("Sin respuesta", report_text, fixed = TRUE))
-  expect_true(grepl("RITMO GENERAL", detail_text, fixed = TRUE))
-  expect_true(grepl("Completas acumuladas", detail_text, fixed = TRUE))
+  expect_true(grepl("DETALLE COMPLETO POR VARIABLES DE CONTROL", detail_text, fixed = TRUE))
   expect_true(grepl("157", detail_text, fixed = TRUE))
-  expect_true(grepl("FUENTES DEL CORTE", source_text, fixed = TRUE))
-  expect_true(grepl("BBDD oficial - Egresados", source_text, fixed = TRUE))
-  expect_true(grepl("SurveyMonkey - Egresados - Web", source_text, fixed = TRUE))
-  expect_true(grepl("SurveyMonkey - Egresados - Telefonico", source_text, fixed = TRUE))
-  expect_true(grepl("SurveyMonkey - Egresados - Correo", source_text, fixed = TRUE))
+  expect_true(grepl("EFECTIVAS POR DÍA", survey_text, fixed = TRUE))
+  expect_true(grepl("AVANCE POR RECOPILADOR", survey_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Web", survey_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Telefonico", survey_text, fixed = TRUE))
+  expect_true(grepl("SurveyMonkey - Egresados - Correo", survey_text, fixed = TRUE))
 
   internal_tabs <- monitoreo_publication_sheets_tabs(
     data,
@@ -317,7 +321,9 @@ test_that("ACRDCONTA compacto genera 270/157/5/0/108 desde base canonica", {
       skipEmptyCols = FALSE
     ), use.names = FALSE), collapse = "\n")
 
-    expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", client_xlsx_text, fixed = TRUE))
+    expect_true(grepl("Respuestas en el sistema", client_xlsx_text, fixed = TRUE))
+    expect_true(grepl("Seguimiento de Encuestas", client_xlsx_text, fixed = TRUE))
+    expect_true(grepl("Avance general", client_xlsx_text, fixed = TRUE))
     expect_true(grepl("157 de 270 respuestas esperadas (58.1%)", internal_xlsx_text, fixed = TRUE))
     expect_false(grepl("145 de 270", client_xlsx_text, fixed = TRUE))
     expect_false(grepl("145 de 270", internal_xlsx_text, fixed = TRUE))
@@ -639,7 +645,7 @@ test_that("modelos de publicacion separan Sheets cliente y Sheets interno", {
   expect_equal(client_sheets_model$destination, "google_sheets")
   expect_equal(client_sheets_model$audience, "cliente")
   expect_equal(client_sheets_model$purpose, "progress_workbook")
-  expect_equal(unlist(client_sheets_model$metadata$tab_order, use.names = FALSE), c("Reporte", "Detalle del avance", "Corte y fuentes"))
+  expect_equal(unlist(client_sheets_model$metadata$tab_order, use.names = FALSE), c("Reporte", "Detalle del avance", "Avance por encuesta"))
   expect_equal(client_sheets_model$app_visual_progress_model$schema, "monitoreo_app_visual_progress_model_v1")
   expect_equal(client_sheets_model$accreditation_table_model$schema, "monitoreo_accreditation_table_model_v1")
   expect_true(all(c("resumen", "avance_por_actor", "avance_por_segmento", "avance_por_canal_fuente", "cobertura_pendientes") %in% names(client_sheets_model)))
@@ -898,6 +904,40 @@ test_that("Seguimiento interno separa brecha mínima y estados telefónicos", {
   expect_lt(match("Brecha mínimo", names(presented)), match("Estado", names(presented), nomatch = length(presented) + 1L))
 })
 
+test_that("Sheets acreditacion marca Avanzado y reconcilia controles sin pendientes", {
+  actors <- data.frame(
+    Actor = c("Docentes", "Egresados"),
+    Universo = c(53L, 270L),
+    Efectivas = c(52L, 163L),
+    Parciales = c(0L, 5L),
+    Rechazo = c(1L, 0L),
+    `Sin respuesta` = c(0L, 102L),
+    check.names = FALSE
+  )
+  summary <- .monitoreo_publication_accreditation_actor_summary_df(actors)
+  expect_equal(summary$Estado[summary$Actor == "Docentes"], "Avanzado")
+  expect_equal(summary$Estado[summary$Actor == "Egresados"], "En avance")
+
+  controls <- data.frame(
+    Unidad = c("Docentes", "Docentes"),
+    Variable = c("Tipo de dedicación", "Tipo de dedicación"),
+    Valor = c("DTC", "TPA"),
+    Universo = c(10L, 43L),
+    Efectivas = c(7L, 42L),
+    Parciales = c(0L, 0L),
+    Rechazos = c(1L, 0L),
+    `Sin respuesta` = c(2L, 1L),
+    check.names = FALSE
+  )
+  detail <- .monitoreo_publication_accreditation_control_detail_df(list(
+    actors = actors,
+    controls = controls
+  ))
+  expect_equal(as.integer(detail$`Sin respuesta`), c(0L, 0L))
+  expect_equal(as.integer(detail$Efectivas), c(9L, 43L))
+  expect_equal(as.character(detail$`Avance efectivo`), c("90%", "100%"))
+})
+
 test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
   responses <- data.frame(
     CodPulso = c("A1", "A2", "A3", "A4", "A5"),
@@ -943,9 +983,10 @@ test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
 
   client_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "client", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
   internal_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "internal", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
-  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Corte y fuentes"))
+  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Avance por encuesta"))
   expect_equal(names(internal_tabs), c("Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
   client_channel <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
+  client_survey <- paste(unlist(client_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
   internal_channel <- paste(unlist(internal_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
   internal_sources <- paste(unlist(internal_tabs[["Corte y fuentes"]], use.names = FALSE), collapse = "\n")
 
@@ -970,11 +1011,14 @@ test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
   expect_true(grepl("Corte publicado", internal_sources, fixed = TRUE))
   expect_true(grepl("\\b2026-06-[0-9]{2}\\b", internal_sources))
   expect_false(grepl("2026-06-18T12:00:00|T[0-9]{2}:[0-9]{2}|\\+00:00|Z", internal_sources))
-  expect_true(grepl("Canal operativo", client_channel, fixed = TRUE))
-  expect_true(grepl("Título / fuente", client_channel, fixed = TRUE))
-  expect_true(grepl("Completas", client_channel, fixed = TRUE))
-  expect_false(grepl("Responsable de carga|Tipo de responsable|web-estudiantes|tel-egresados|collector_id", client_channel))
-  expect_true(grepl("2026-06-01", client_channel, fixed = TRUE))
+  expect_true(grepl("Respuestas en el sistema", client_channel, fixed = TRUE))
+  expect_true(grepl("Seguimiento de Encuestas", client_channel, fixed = TRUE))
+  expect_true(grepl("Avance general", client_channel, fixed = TRUE))
+  expect_true(grepl("AVANCE POR RECOPILADOR", client_survey, fixed = TRUE))
+  expect_true(grepl("Titulo", client_survey, fixed = TRUE))
+  expect_true(grepl("Completas", client_survey, fixed = TRUE))
+  expect_false(grepl("collector_id", client_survey))
+  expect_true(grepl("Ultima actualizacion", client_channel, fixed = TRUE))
 })
 
 test_that("progreso diario acumulado es consistente en artefactos QA", {
@@ -1005,12 +1049,12 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
   )
   expect_true(all(c(
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
-    "Tabla maestra", "Resumen territorial", "Ritmo diario", "Ocurrencias de campo", "Casos accionables"
+    "Cierre de cuotas", "Tabla maestra", "Resumen territorial", "Ritmo diario", "Ocurrencias de campo", "Casos accionables"
   ) %in% names(tabs)))
   expect_equal(names(tabs), c(
     "Portada", "Resumen territorial", "Producción", "Ritmo diario", "Tabla maestra",
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
-    "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
+    "Cierre de cuotas", "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
     "Base técnica", "Auditoría técnica", "Casos accionables", "Anulaciones"
   ))
   expect_false("Fuentes y actualización" %in% names(tabs))
@@ -1063,11 +1107,75 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
   expect_false(grepl("MATRIZ OBSERVADA SEXO/EDAD POR UMP", text_tab("Cuotas sexo y edad"), fixed = TRUE))
   expect_false(grepl("EDADES EXACTAS OBSERVADAS", text_tab("Cuotas sexo y edad"), fixed = TRUE))
   expect_true(grepl("FALTANTES POR CATEGORÍA", text_tab("Cuotas sexo y edad"), fixed = TRUE))
+  expect_true(grepl("RESUMEN DE CIERRE POR DISTRITO", text_tab("Cierre de cuotas"), fixed = TRUE))
+  expect_true(grepl("UMP A DIGITAR PARA CIERRE", text_tab("Cierre de cuotas"), fixed = TRUE))
+  expect_true(grepl("Digitaciones mínimas", text_tab("Cierre de cuotas"), fixed = TRUE))
+  expect_true(grepl("Digitación requerida", text_tab("Cierre de cuotas"), fixed = TRUE))
   quota_rows <- tabs[["Cuotas sexo y edad"]]
   quota_headers <- .monitoreo_sheets_table_header_rows(quota_rows)
   quota_header_index <- .monitoreo_sheets_filter_header_index("Cuotas sexo y edad", quota_rows, quota_headers)
   quota_header <- quota_rows[[quota_header_index]]
   expect_equal(match("Último ingreso", quota_header), match("UMP titular", quota_header) + 1L)
+  fixture_no_audit <- fixture
+  fixture_no_audit$dashboard$territorial_reports$response_audit <- list()
+  fixture_no_audit$dashboard$territorial_reports$map$points <- list()
+  tabs_no_audit <- monitoreo_publication_sheets_tabs(
+    fixture_no_audit$data,
+    fixture_no_audit$config,
+    audience = "internal",
+    dashboard = fixture_no_audit$dashboard,
+    synced_at = fixture_no_audit$synced_at
+  )
+  quota_rows_no_audit <- tabs_no_audit[["Cuotas sexo y edad"]]
+  quota_header_index_no_audit <- .monitoreo_sheets_filter_header_index(
+    "Cuotas sexo y edad",
+    quota_rows_no_audit,
+    .monitoreo_sheets_table_header_rows(quota_rows_no_audit)
+  )
+  quota_header_no_audit <- quota_rows_no_audit[[quota_header_index_no_audit]]
+  age_male_col <- match("Edades hombre", quota_header_no_audit)
+  age_female_col <- match("Edades mujer", quota_header_no_audit)
+  cell_at <- function(row, idx) if (length(row) >= idx) row[[idx]] else ""
+  age_list_values <- vapply(
+    quota_rows_no_audit[(quota_header_index_no_audit + 1L):min(length(quota_rows_no_audit), quota_header_index_no_audit + 6L)],
+    function(row) paste(cell_at(row, age_male_col), cell_at(row, age_female_col)),
+    character(1)
+  )
+  expect_true(any(grepl("22|34|51|65", age_list_values)))
+  expect_false(all(trimws(age_list_values) %in% c("- -", "-", "")))
+  fixture_no_status <- fixture_no_audit
+  fixture_no_status$data$advance_valid <- NULL
+  fixture_no_status$data$validation_status <- NULL
+  fixture_no_status$data$`_status` <- "submitted"
+  tabs_no_status <- monitoreo_publication_sheets_tabs(
+    fixture_no_status$data,
+    fixture_no_status$config,
+    audience = "internal",
+    dashboard = fixture_no_status$dashboard,
+    synced_at = fixture_no_status$synced_at
+  )
+  quota_rows_no_status <- tabs_no_status[["Cuotas sexo y edad"]]
+  quota_header_index_no_status <- .monitoreo_sheets_filter_header_index(
+    "Cuotas sexo y edad",
+    quota_rows_no_status,
+    .monitoreo_sheets_table_header_rows(quota_rows_no_status)
+  )
+  quota_header_no_status <- quota_rows_no_status[[quota_header_index_no_status]]
+  no_status_age_cols <- match(c("Edades hombre", "Edades mujer"), quota_header_no_status)
+  no_status_age_values <- vapply(
+    quota_rows_no_status[(quota_header_index_no_status + 1L):min(length(quota_rows_no_status), quota_header_index_no_status + 6L)],
+    function(row) paste(cell_at(row, no_status_age_cols[[1]]), cell_at(row, no_status_age_cols[[2]])),
+    character(1)
+  )
+  expect_true(any(grepl("22|34|51|65", no_status_age_values)))
+  no_status_time <- paste(unlist(tabs_no_status[["Validación de tiempos"]], use.names = FALSE), collapse = "\n")
+  no_status_gps <- paste(unlist(tabs_no_status[["GPS y territorio"]], use.names = FALSE), collapse = "\n")
+  expect_false(grepl("Sin auditoria de tiempos|Sin respuestas válidas", no_status_time))
+  expect_true(grepl("Duración|Clasificación", no_status_time))
+  expect_true(grepl("[0-9]{2}:[0-9]{2}:[0-9]{2}", no_status_time))
+  expect_true(grepl("Normal|Corto|Muy corto", no_status_time))
+  expect_false(grepl("Sin respuestas válidas con datos GPS|El corte no contiene clasificación GPS", no_status_gps))
+  expect_true(grepl("Estado GPS por respuesta|GPS parseable|Latitud|Longitud", no_status_gps))
   expect_true(grepl("TARJETAS EJECUTIVAS", text_tab("Resumen territorial"), fixed = TRUE))
   expect_true(grepl("Encuestas válidas", text_tab("Resumen territorial"), fixed = TRUE))
   expect_true(grepl("Cuota pendiente", text_tab("Resumen territorial"), fixed = TRUE))

@@ -961,6 +961,22 @@ sm_multibase_inspect_survey <- function(survey_id,
   as.integer(max(0, difftime(Sys.time(), dt, units = "secs")))
 }
 
+.sm_mb_stop_catalog_api_error <- function(err) {
+  if (inherits(err, "api_error")) stop(err)
+  message <- conditionMessage(err)
+  if (grepl("Token rechazado|HTTP 401", message, ignore.case = TRUE)) {
+    stop_api(401, "E_SM_TOKEN", message)
+  }
+  if (grepl("timeout|timed out|time-out|Timeout was reached|Operation timed out", message, ignore.case = TRUE)) {
+    stop_api(
+      504,
+      "E_SM_TIMEOUT",
+      "SurveyMonkey no respondio dentro del tiempo de espera. Revisa tu conexion y vuelve a buscar."
+    )
+  }
+  stop_api(400, "E_SM_SURVEY_CATALOG", message)
+}
+
 sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L,
                                       sid = NULL, force_refresh = FALSE) {
   limit <- suppressWarnings(as.integer(limit %||% 200L))
@@ -4788,13 +4804,16 @@ mount_surveymonkey_multibase <- function(pr) {
       profile_id <- parsed$connection_profile_id %||% parsed$profile_id %||% parsed$profileId %||% NULL
       profile_key <- trimws(as.character(profile_id %||% ""))
       token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
-      sm_multibase_list_surveys(
-        token,
-        q = .sm_mb_scalar(parsed$q, ""),
-        limit = suppressWarnings(as.integer(parsed$limit %||% 200L)),
-        months = suppressWarnings(as.integer(parsed$months %||% 6L)),
-        sid = if (nzchar(profile_key)) NULL else sid,
-        force_refresh = isTRUE(parsed$force_refresh) || nzchar(profile_key)
+      tryCatch(
+        sm_multibase_list_surveys(
+          token,
+          q = .sm_mb_scalar(parsed$q, ""),
+          limit = suppressWarnings(as.integer(parsed$limit %||% 200L)),
+          months = suppressWarnings(as.integer(parsed$months %||% 6L)),
+          sid = if (nzchar(profile_key)) NULL else sid,
+          force_refresh = isTRUE(parsed$force_refresh) || nzchar(profile_key)
+        ),
+        error = .sm_mb_stop_catalog_api_error
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/inspect", wrap_endpoint(function(req, res, ...) {

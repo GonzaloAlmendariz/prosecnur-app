@@ -1045,7 +1045,7 @@
   # que no usa canvas).
   tipos_canvas <- c(
     "barras_apiladas", "barras_agrupadas", "multi_apiladas",
-    "barras_numericas", "pie", "donut", "radar_tabla",
+    "barras_numericas", "histograma", "pie", "donut", "radar_tabla",
     "numerico", "media_rango", "boxplot"
   )
   for (t in tipos_canvas) {

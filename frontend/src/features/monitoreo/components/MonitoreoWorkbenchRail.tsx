@@ -104,6 +104,7 @@ export function MonitoreoWorkbenchRail({
   const emptyRailLabel = typeof routeLabel === "string" ? routeLabel : activeSection.label;
   const emptyRailDetail = typeof emptyDetail === "string" ? emptyDetail : activeSection.desc;
   const showRailContext = !iconOnlyTabs;
+  const showRailStatus = statusItems.length > 0;
 
   useEffect(() => {
     const activeTab = localTabs.find((tab) => tab.key === activeLocalTab);
@@ -216,7 +217,7 @@ export function MonitoreoWorkbenchRail({
 
       {showRailContext ? phaseSwitch : null}
 
-      {showRailContext && statusItems.length ? (
+      {showRailStatus ? (
         <div className="mon-rail-status" aria-label={statusAriaLabel}>
           {statusItems.map((item) => {
             const isLastUpdate = isLastUpdateLabel(item.label);

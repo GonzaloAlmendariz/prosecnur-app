@@ -116,7 +116,7 @@ w_presets <- function(
   }
 
   for (nm in c("base", "barras_apiladas", "multi_apiladas", "barras_agrupadas",
-               "barras_numericas", "boxplot", "pie", "donut", "radar_tabla",
+               "barras_numericas", "histograma", "boxplot", "pie", "donut", "radar_tabla",
                "media_rango", "dim_heatmap", "dim_heatmap_criterios", "dim_radar",
                "dim_comparativo_radarbar", "dim_foda", "debug")) {
     presets_ppt[[nm]] <- ensure_block(presets_ppt[[nm]])

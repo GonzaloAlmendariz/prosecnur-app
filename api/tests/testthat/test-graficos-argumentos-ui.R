@@ -148,9 +148,22 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_agr$orden_barras$choices[[1]]$label, "Orden del instrumento")
   expect_equal(by_name_agr$otros_al_final$default, TRUE)
   expect_equal(by_name_agr$max_categorias$default, 10)
-  expect_equal(by_name_agr$agrupar_resto_en_otros$default, TRUE)
-  expect_match(by_name_agr$umbral_posicion$label, "etiquetas pequeñas")
-  expect_equal(by_name_agr$excluir_opciones$tipo_input, "codigos_list")
+	  expect_equal(by_name_agr$agrupar_resto_en_otros$default, TRUE)
+	  expect_match(by_name_agr$umbral_posicion$label, "etiquetas pequeñas")
+	  expect_equal(by_name_agr$excluir_opciones$tipo_input, "codigos_list")
+
+  expect_true("histograma" %in% names(presets))
+  hist <- presets$histograma$args
+  by_name_hist <- stats::setNames(hist, vapply(hist, `[[`, character(1), "name"))
+  expect_equal(by_name_hist$modo$tipo_input, "choice")
+  expect_true("porcentaje_bin" %in% vapply(by_name_hist$modo$choices, `[[`, character(1), "value"))
+  expect_equal(by_name_hist$mostrar_frecuencia$grupo, "valores")
+  expect_equal(by_name_hist$posicion_etiquetas$tipo_input, "choice")
+  expect_true("cima" %in% vapply(by_name_hist$posicion_etiquetas$choices, `[[`, character(1), "value"))
+  expect_equal(by_name_hist$abreviaturas_grupos$tipo_input, "codigos_list")
+  expect_equal(by_name_hist$orden_grupos$tipo_input, "codigos_list")
+  expect_equal(by_name_hist$mostrar_bins_vacios$tipo_input, "bool")
+  expect_equal(by_name_hist$legend_key_cm$grupo, "leyenda")
 
   expect_true("nube_palabras" %in% names(presets))
   nube <- presets$nube_palabras$args
@@ -547,12 +560,65 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_true("titulo_barra_extra" %in% apiladas_names)
   expect_true("prefijo_barra_extra" %in% apiladas_names)
   expect_true("etiquetas_arriba_si_no_caben" %in% apiladas_names)
+  expect_true("mostrar_n_en_etiquetas" %in% apiladas_names)
+  expect_true("color_conectores_etiquetas" %in% apiladas_names)
+  expect_true("posicion_conector_etiquetas" %in% apiladas_names)
   expect_true("linewidth_conectores_etiquetas" %in% apiladas_names)
   expect_true("barra_extra_preset" %in% multi_names)
   expect_true("titulo_barra_extra" %in% multi_names)
   expect_true("etiquetas_arriba_si_no_caben" %in% multi_names)
+  expect_true("mostrar_n_en_etiquetas" %in% multi_names)
+  expect_true("color_conectores_etiquetas" %in% multi_names)
+  expect_true("posicion_conector_etiquetas" %in% multi_names)
   expect_true("linewidth_conectores_etiquetas" %in% multi_names)
+  expect_true("legend_gap_npc" %in% multi_names)
+  expect_true("grosor_barras" %in% multi_names)
   expect_true("titulo_barra_extra" %in% agrupadas_names)
+  expect_true("mostrar_n_en_etiquetas" %in% agrupadas_names)
+  expect_true("grosor_barras" %in% agrupadas_names)
+
+  apiladas_args <- stats::setNames(presets$barras_apiladas$args, apiladas_names)
+  multi_args <- stats::setNames(presets$multi_apiladas$args, multi_names)
+
+  expect_equal(apiladas_args$etiquetas_arriba_si_no_caben$label, "Subir porcentajes que no caben")
+  expect_equal(apiladas_args$etiquetas_arriba_offset$label, "Distancia sobre la barra")
+  expect_equal(apiladas_args$color_conectores_etiquetas$label, "Color de la línea guía")
+  expect_equal(apiladas_args$color_conectores_etiquetas$grupo, "valores")
+  expect_equal(
+    vapply(apiladas_args$color_conectores_etiquetas$choices, `[[`, character(1), "value"),
+    c("segmento", "azul_pulso")
+  )
+  expect_equal(apiladas_args$posicion_conector_etiquetas$label, "Salida de la línea guía")
+  expect_equal(apiladas_args$posicion_conector_etiquetas$grupo, "valores")
+  expect_equal(
+    vapply(apiladas_args$posicion_conector_etiquetas$choices, `[[`, character(1), "value"),
+    c("centro", "izquierda", "derecha")
+  )
+  expect_equal(apiladas_args$linewidth_conectores_etiquetas$label, "Grosor de la línea guía")
+  expect_equal(apiladas_args$linewidth_conectores_etiquetas$min, 0.1)
+  expect_equal(apiladas_args$linewidth_conectores_etiquetas$max, 2)
+  expect_equal(apiladas_args$linewidth_conectores_etiquetas$step, 0.05)
+  expect_equal(apiladas_args$mostrar_n_en_etiquetas$label, "Mostrar frecuencia en porcentajes")
+  expect_equal(apiladas_args$grosor_barras$grupo, "espacio")
+  expect_equal(apiladas_args$legend_key_cm$label, "Tamaño del marcador")
+  expect_equal(apiladas_args$legend_gap_npc$grupo, "leyenda")
+
+  expect_equal(multi_args$color_conectores_etiquetas$label, "Color de la línea guía")
+  expect_equal(multi_args$color_conectores_etiquetas$grupo, "valores")
+  expect_equal(
+    vapply(multi_args$color_conectores_etiquetas$choices, `[[`, character(1), "value"),
+    c("segmento", "azul_pulso")
+  )
+  expect_equal(multi_args$posicion_conector_etiquetas$label, "Salida de la línea guía")
+  expect_equal(multi_args$posicion_conector_etiquetas$grupo, "valores")
+  expect_equal(
+    vapply(multi_args$posicion_conector_etiquetas$choices, `[[`, character(1), "value"),
+    c("centro", "izquierda", "derecha")
+  )
+  expect_equal(multi_args$linewidth_conectores_etiquetas$min, 0.1)
+  expect_equal(multi_args$linewidth_conectores_etiquetas$max, 2)
+  expect_equal(multi_args$linewidth_conectores_etiquetas$step, 0.05)
+  expect_equal(multi_args$grosor_barras$grupo, "espacio")
 
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_apiladas$prefijo_barra_extra, "")
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_agrupadas$prefijo_barra_extra, "")
@@ -592,6 +658,12 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_peq_factor_ancho, 2.5)
   expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_arriba_si_no_caben))
   expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_arriba_si_no_caben))
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_conectores_etiquetas, "segmento")
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_conectores_etiquetas, "segmento")
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$posicion_conector_etiquetas, "centro")
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$posicion_conector_etiquetas, "centro")
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$linewidth_conectores_etiquetas, 0.42)
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$linewidth_conectores_etiquetas, 0.42)
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, 16)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, 16)
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "Top 2 Box")
@@ -615,10 +687,12 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 16)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 14)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_numericas$colores_series$Media, .PULSO_PPT_COLORS$azul)
-  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$tabla_header_fill, .PULSO_PPT_COLORS$azul)
+	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
+	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
+	  expect_equal(.PRESETS_DEFAULT_PULSO$barras_numericas$colores_series$Media, .PULSO_PPT_COLORS$azul)
+  expect_equal(.PRESETS_DEFAULT_PULSO$histograma$modo, "porcentaje_total")
+  expect_true(.PRESETS_DEFAULT_PULSO$histograma$mostrar_frecuencia)
+	  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$tabla_header_fill, .PULSO_PPT_COLORS$azul)
 
   fallback <- .reporte_plan_pulso_palette_for_levels(c("1", "2", "3", "4"))
   expect_equal(unname(fallback), c("#CA5651", "#EFD25E", "#85BB85", "#081F5C"))
@@ -673,10 +747,78 @@ test_that("metadata numerica expone limites seguros para la UI", {
 })
 
 test_that("controles expuestos de leyenda llegan a los renderizadores canvas", {
-	  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_apiladas)))
-	  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_agrupadas)))
-	  expect_true("orden_barras" %in% names(formals(graficar_barras_agrupadas)))
-	  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_numericas)))
+		  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_apiladas)))
+		  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_agrupadas)))
+		  expect_true("orden_barras" %in% names(formals(graficar_barras_agrupadas)))
+  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_numericas)))
+  expect_true("grupo" %in% names(formals(graficar_histograma)))
+  expect_true("modo" %in% names(formals(graficar_histograma)))
+  expect_true("posicion_etiquetas" %in% names(formals(graficar_histograma)))
+  expect_true("abreviaturas_grupos" %in% names(formals(graficar_histograma)))
+	})
+
+test_that("histograma apilado calcula proporciones por intervalo y total", {
+  df <- data.frame(
+    edad = c(25, 25, 26, 26, 27, 28, 28, 29),
+    sexo = c("Hombre", "Mujer", "Hombre", "Mujer", "Hombre", "Hombre", "Mujer", "Mujer"),
+    stringsAsFactors = FALSE
+  )
+
+  p_bin <- graficar_histograma(
+    df,
+    var = "edad",
+    grupo = "sexo",
+    ancho_bin = 2,
+    modo = "porcentaje_bin",
+    mostrar_valores = FALSE,
+    usar_canvas = FALSE
+  )
+  d_bin <- attr(p_bin, "pulso_histograma_data")
+  expect_true(all(c(".bin_label", ".grupo_label", "n", "pct_bin", ".valor") %in% names(d_bin)))
+  bin_sums <- stats::aggregate(.valor ~ .bin_label, d_bin[d_bin$n_bin > 0, , drop = FALSE], sum)
+  expect_equal(bin_sums$.valor, rep(1, nrow(bin_sums)), tolerance = 1e-8)
+  expect_setequal(as.character(d_bin$.grupo_label), c("Hombre", "Mujer"))
+
+  p_total <- graficar_histograma(
+    df,
+    var = "edad",
+    grupo = "sexo",
+    ancho_bin = 2,
+    modo = "porcentaje_total",
+    mostrar_valores = FALSE,
+    usar_canvas = FALSE
+  )
+  d_total <- attr(p_total, "pulso_histograma_data")
+  expect_equal(sum(d_total$.valor), 1, tolerance = 1e-8)
+
+  p_top <- graficar_histograma(
+    df,
+    var = "edad",
+    grupo = "sexo",
+    ancho_bin = 2,
+    modo = "porcentaje_total",
+    posicion_etiquetas = "cima",
+    abreviaturas_grupos = c("Hombre" = "H", "Mujer" = "M"),
+    umbral_etiqueta = 0,
+    usar_canvas = FALSE
+  )
+  built_labels <- unlist(lapply(ggplot2::ggplot_build(p_top)$data, function(x) {
+    if ("label" %in% names(x)) x$label else character()
+  }), use.names = FALSE)
+  expect_true(any(grepl("H 2\\s+M 2", built_labels)))
+})
+
+test_that("p_histograma y p_presets exponen contratos publicos", {
+  el <- p_histograma("edad", grupo = "sexo", modo = "porcentaje_bin", ancho_bin = 2)
+  expect_s3_class(el, "ppt_element")
+  expect_equal(el$.element_type, "histograma")
+  expect_equal(el$grupo, "sexo")
+  expect_equal(el$overrides$modo, "porcentaje_bin")
+  expect_equal(el$overrides$ancho_bin, 2)
+
+  presets <- p_presets(histograma = list(modo = "porcentaje_bin", ancho_bin = 2))
+  expect_equal(presets$histograma$args$modo, "porcentaje_bin")
+  expect_equal(presets$histograma$args$ancho_bin, 2)
 })
 
 test_that("canvas_w_etiquetas desplaza visualmente el inicio de barras", {

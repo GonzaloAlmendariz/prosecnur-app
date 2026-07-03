@@ -208,6 +208,7 @@
 }
 
 .mon-commandbar .mon-command-sync {
+  position: relative;
   min-width: 0;
   min-height: var(--mon-topbar-control-height);
   display: inline-flex;
@@ -223,6 +224,7 @@
   font-weight: 880;
   line-height: 1;
   padding: 5px 9px;
+  overflow: hidden;
   white-space: nowrap;
   box-shadow: none;
   transition:
@@ -232,13 +234,48 @@
     transform 160ms ease;
 }
 
+.mon-commandbar .mon-command-sync::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--mon-sync-progress, 0%);
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    width 240ms ease,
+    opacity 160ms ease;
+}
+
+.mon-commandbar .mon-command-sync.is-syncing::before {
+  opacity: 0.12;
+}
+
 .mon-commandbar .mon-command-sync svg,
-.mon-commandbar .mon-command-sync span {
+.mon-commandbar .mon-command-sync span,
+.mon-commandbar .mon-command-sync strong {
+  position: relative;
+  z-index: 1;
   color: currentColor;
 }
 
 .mon-commandbar .mon-command-sync svg {
   stroke: currentColor;
+}
+
+.mon-commandbar .mon-command-sync .mon-command-sync-progress {
+  min-width: 3.2ch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: currentColor;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 2px 4px;
 }
 
 .mon-commandbar .mon-command-sync.is-advance {
@@ -262,9 +299,14 @@
 }
 
 .mon-commandbar .mon-command-sync.is-full svg,
-.mon-commandbar .mon-command-sync.is-full span {
+.mon-commandbar .mon-command-sync.is-full span,
+.mon-commandbar .mon-command-sync.is-full strong {
   color: #fff;
   stroke: #fff;
+}
+
+.mon-commandbar .mon-command-sync.is-full .mon-command-sync-progress {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .mon-commandbar .mon-command-sync:hover:not(:disabled) {
@@ -1205,6 +1247,12 @@
     gap: 3px;
     padding-inline: 5px;
     font-size: 9.5px;
+  }
+
+  .mon-commandbar .mon-command-sync .mon-command-sync-progress {
+    min-width: 3ch;
+    font-size: 8px;
+    padding-inline: 3px;
   }
 
   .mon-commandbar .mon-command-sync svg {

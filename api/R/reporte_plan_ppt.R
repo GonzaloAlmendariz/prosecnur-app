@@ -617,6 +617,8 @@ reporte_ppt_plan <- function(
 
   presets$barras_numericas <- presets$barras_numericas %||% list(args = list())
   presets$barras_numericas$args <- presets$barras_numericas$args %||% list()
+  presets$histograma <- presets$histograma %||% list(args = list())
+  presets$histograma$args <- presets$histograma$args %||% list()
 
   presets$boxplot <- presets$boxplot %||% list(args = list())
   presets$boxplot$args <- presets$boxplot$args %||% list()
@@ -655,7 +657,7 @@ reporte_ppt_plan <- function(
   targets <- intersect(
     names(presets),
     c("barras_apiladas", "multi_apiladas", "barras_agrupadas",
-      "barras_numericas", "boxplot", "media_rango", "nube_palabras", "pie", "donut", "radar_tabla",
+      "barras_numericas", "histograma", "boxplot", "media_rango", "nube_palabras", "pie", "donut", "radar_tabla",
       "dim_heatmap", "dim_heatmap_criterios", "dim_radar", "dim_comparativo_radarbar", "dim_foda")
   )
 
@@ -3113,6 +3115,7 @@ reporte_ppt_plan <- function(
     pa_multi    <- presets$multi_apiladas$args  %||% list()
     pa_agrup    <- presets$barras_agrupadas$args %||% list()
     pa_num      <- presets$barras_numericas$args %||% list()
+    pa_hist     <- presets$histograma$args %||% list()
     pa_box      <- presets$boxplot$args %||% list()
     pa_media_rng <- presets$media_rango$args %||% presets$boxplot$args %||% list()
     pa_nube     <- presets$nube_palabras$args %||% list()
@@ -3157,6 +3160,7 @@ reporte_ppt_plan <- function(
       barras_apiladas  = pa_apiladas,
       barras_agrupadas = pa_agrup,
       numerico         = pa_num,
+      histograma       = pa_hist,
       boxplot          = pa_box,
       media_rango      = pa_media_rng,
       nube_palabras    = pa_nube,
@@ -4470,6 +4474,9 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     preset_args$mostrar_ceros <- NULL
     preset_args$excluir_opciones <- NULL
+    if (!is.null(overrides$colores_categorias) && length(overrides$colores_categorias)) {
+      preset_args$colores_series <- NULL
+    }
     overrides$mostrar_ceros <- NULL
     overrides$excluir_opciones <- NULL
     # limpiar cosas que NO aplican a agrupadas (por si vienen de presets genericos)
@@ -5089,6 +5096,118 @@ reporte_ppt_plan <- function(
       suppressWarnings(do.call(fun, args)),
       error = function(e) {
         message("⚠️ .render_numerico(): ", conditionMessage(e))
+        NULL
+      }
+    )
+  }
+
+  .render_histograma <- function(el, preset_args) {
+
+    `%||%` <- function(x, y) if (!is.null(x)) x else y
+
+    var <- el$var
+    if (is.null(var) || !nzchar(var)) return(NULL)
+
+    preset_args <- preset_args %||% list()
+    overrides   <- el$overrides %||% list()
+    title_arg <- overrides$titulo %||% overrides$title %||%
+      preset_args$titulo %||% preset_args$title %||%
+      el$title_slide %||% el$titulo %||% NULL
+    subtitle_arg <- overrides$subtitulo %||% overrides$subtitle %||%
+      preset_args$subtitulo %||% preset_args$subtitle %||% NULL
+    note_arg <- overrides$nota_pie %||% overrides$caption %||%
+      preset_args$nota_pie %||% preset_args$caption %||% NULL
+
+    ctx_var <- .resolve_ref(var, arg_name = "var")
+    # Para histogramas interesa la variable numerica cruda. Si el motor
+    # resolvio automaticamente a *_recod pero la columna pedida existe, se usa
+    # la columna original.
+    if (!is.null(ctx_var$var_requested) &&
+        ctx_var$var_requested %in% names(ctx_var$data) &&
+        !identical(ctx_var$var_requested, ctx_var$var)) {
+      ctx_var$var <- ctx_var$var_requested
+      ctx_var$recod_redirected <- FALSE
+    }
+
+    grupo_ref <- overrides$grupo %||% overrides$cruce %||% el$grupo %||% el$cruce %||% preset_args$grupo %||% preset_args$cruce %||% NULL
+    for (k in c("grupo", "cruce")) {
+      preset_args[[k]] <- NULL
+      overrides[[k]] <- NULL
+    }
+
+    ctx_grupo <- NULL
+    grupo <- NULL
+    if (!is.null(grupo_ref) &&
+        is.character(grupo_ref) &&
+        length(grupo_ref) == 1L &&
+        nzchar(trimws(grupo_ref))) {
+      ctx_grupo <- .resolve_ref(grupo_ref, source = ctx_var$source, arg_name = "grupo")
+      grupo <- ctx_grupo$var
+    }
+
+    df <- .filter_data(el$filtros %||% list(), source = ctx_var$source)
+    if (!nrow(df)) return(.blank_canvas(preset_args, overrides))
+    if (!ctx_var$var %in% names(df)) return(NULL)
+    if (!is.null(grupo) && !grupo %in% names(df)) return(NULL)
+
+    df_hist <- df
+    colores_grupos <- NULL
+    if (!is.null(ctx_grupo)) {
+      ln <- .list_name_from_ctx(ctx_grupo)
+      g_raw <- df_hist[[grupo]]
+      raw_levels <- if (is.factor(g_raw)) levels(g_raw) else unique(as.character(g_raw))
+      raw_levels <- raw_levels[!is.na(raw_levels) & nzchar(trimws(raw_levels))]
+      lab_levels <- .reporte_plan_labels_for_levels(ln, raw_levels, choices_use = ctx_grupo$choices)
+      names(lab_levels) <- raw_levels
+
+      g_chr <- as.character(g_raw)
+      g_lab <- ifelse(g_chr %in% names(lab_levels), unname(lab_levels[g_chr]), g_chr)
+      df_hist[[grupo]] <- factor(g_lab, levels = unique(unname(lab_levels)))
+
+      pal <- .paleta_auto(ln, env_diapos)
+      if (!is.null(pal) && length(pal)) {
+        vals <- vapply(seq_along(raw_levels), function(i) {
+          raw <- raw_levels[i]
+          lab <- unname(lab_levels[i])
+          pal[[lab]] %||% pal[[raw]] %||% NA_character_
+        }, character(1))
+        ok <- !is.na(vals) & nzchar(vals)
+        if (any(ok)) colores_grupos <- stats::setNames(vals[ok], unname(lab_levels[ok]))
+      }
+    }
+
+    base_args <- list(
+      data           = df_hist,
+      var            = ctx_var$var,
+      grupo          = grupo,
+      colores_grupos = colores_grupos,
+
+      titulo         = title_arg,
+      subtitulo      = subtitle_arg,
+      nota_pie       = note_arg,
+
+      usar_canvas    = TRUE,
+      exportar       = "rplot"
+    )
+
+    for (k in c("titulo", "subtitulo", "nota_pie", "title", "subtitle", "caption", "main", "sub")) {
+      if (!is.null(preset_args[[k]])) preset_args[[k]] <- NULL
+      if (!is.null(overrides[[k]]))   overrides[[k]]   <- NULL
+    }
+
+    if (!exists("graficar_histograma", mode = "function", inherits = TRUE)) {
+      stop("No existe `graficar_histograma()` en el entorno/paquete.", call. = FALSE)
+    }
+
+    fun  <- graficar_histograma
+    args <- .merge_args(base_args, preset_args, overrides)
+    args <- .force_canvas_args(fun, args)
+    args <- .keep_formals(fun, args)
+
+    tryCatch(
+      suppressWarnings(do.call(fun, args)),
+      error = function(e) {
+        message("⚠️ .render_histograma(): ", conditionMessage(e))
         NULL
       }
     )
@@ -7429,6 +7548,7 @@ reporte_ppt_plan <- function(
 #' @param multi_apiladas Lista de parametros por defecto para `graficar_barras_apiladas()` en modo bloque.
 #' @param barras_agrupadas Lista de parametros por defecto para `graficar_barras_agrupadas()`.
 #' @param barras_numericas Lista de parametros por defecto para `graficar_barras_numericas()`.
+#' @param histograma Lista de parametros por defecto para `graficar_histograma()`.
 #' @param boxplot Lista de parametros por defecto para `graficar_boxplot()`.
 #' @param media_rango Lista de parametros por defecto para `graficar_media_rango()`.
 #' @param pie Lista de parametros por defecto para `graficar_pie(tipo_pie="pie")`.
@@ -7452,6 +7572,7 @@ p_presets <- function(
     multi_apiladas   = list(),
     barras_agrupadas = list(),
     barras_numericas = list(),
+    histograma       = list(),
     boxplot          = list(),
     media_rango      = list(),
     nube_palabras    = list(),
@@ -7495,6 +7616,7 @@ p_presets <- function(
     multi_apiladas   = normalize_block(multi_apiladas),
     barras_agrupadas = normalize_block(barras_agrupadas),
     barras_numericas = normalize_block(barras_numericas),
+    histograma       = normalize_block(histograma),
     boxplot          = normalize_block(boxplot),
     media_rango      = normalize_block(media_rango),
     nube_palabras    = normalize_block(nube_palabras),

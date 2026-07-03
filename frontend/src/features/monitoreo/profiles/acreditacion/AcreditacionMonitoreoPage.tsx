@@ -15,7 +15,6 @@ import {
   apiMonitoreoSheetsSync,
   apiMonitoreoConfig,
   apiMonitoreoSource,
-  apiMonitoreoSources,
   apiMonitoreoState,
   apiMonitoreoSync,
   apiMonitoreoSurveyMonkeyCollectors,
@@ -33,6 +32,7 @@ import {
   type MonitoreoGoal,
   type MonitoreoInternalQueryCase,
   type MonitoreoInternalQueryIssue,
+  type JobProgress as JobProgressData,
   type MonitoreoKoboAssetItem,
   type MonitoreoLinkCollector,
   type MonitoreoReportBlock,
@@ -210,6 +210,12 @@ type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
 export type AcreditacionProfileMode = "acreditacion" | "telefonico";
 type AcreditacionActionStatus = { tone: "success" | "error" | "info"; message: string } | null;
+type AcreditacionSourceSyncProgress = {
+  mode: "advance" | "full";
+  percent: number | null;
+  phase: string;
+  message: string;
+};
 type AcreditacionCaseReconciliationPayload = {
   response_id: string;
   action: "keep_excluded" | "include_with_caveat";
@@ -7877,8 +7883,12 @@ function AcreditacionSurveySourcePicker({
   const [channels, setChannels] = useState<Record<string, string>>({});
   const [inspections, setInspections] = useState<Record<string, { loading: boolean; error: string; data: SurveyMonkeyMultibaseInspection | null }>>({});
   const [meta, setMeta] = useState<{ totalRecent: number; months: number; fromCache: boolean } | null>(null);
-  const [busy, setBusy] = useState<"search" | "refresh" | "bulk" | string | null>(null);
+  const [busy, setBusy] = useState<"search" | "refresh" | string | null>(null);
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+  const actorOptions = useMemo(
+    () => acreditacionActorOptions(sources.filter(isPlatformResponseSource), ACREDITACION_DEFAULT_ACTORS),
+    [sources],
+  );
 
   const visibleSurveys = useMemo(() => {
     const needle = normalizeSourceMatch(filter);
@@ -7896,7 +7906,9 @@ function AcreditacionSurveySourcePicker({
     });
   }, [actors, channels, configuredSurveyIds, filter, results, selectedId]);
   const selectedSurvey = results.find((survey) => survey.id === selectedId) ?? visibleSurveys[0] ?? null;
-  const bulkCandidates = results.filter((survey) => !configuredSurveyIds.has(survey.id)).slice(0, 12);
+  const selectedActor = selectedSurvey ? (actors[selectedSurvey.id] ?? "").trim() : "";
+  const selectedChannel = selectedSurvey ? (channels[selectedSurvey.id] ?? "").trim() : "";
+  const canAddSelectedSurvey = Boolean(selectedSurvey && selectedActor && selectedChannel && !configuredSurveyIds.has(selectedSurvey.id));
 
   const hydrateSurveyDefaults = (surveys: SurveyMonkeyMultibaseListItem[]) => {
     setLabels((prev) => {
@@ -7931,7 +7943,7 @@ function AcreditacionSurveySourcePicker({
       setResults(result.surveys);
       setSelectedId((current) => current || result.surveys[0]?.id || "");
       setMeta({ totalRecent: result.total_recent, months: result.months, fromCache: result.from_cache });
-      setStatus({ tone: "success", message: `${fmt(result.surveys.length)} encuestas visibles para el filtro.` });
+      setStatus(null);
     } catch (error) {
       setStatus({ tone: "error", message: (error as Error).message });
     } finally {
@@ -7983,27 +7995,19 @@ function AcreditacionSurveySourcePicker({
 
   const addSurvey = async (survey: SurveyMonkeyMultibaseListItem) => {
     if (configuredSurveyIds.has(survey.id)) return;
+    const actor = (actors[survey.id] ?? "").trim();
+    const channel = (channels[survey.id] ?? "").trim();
+    if (!actor || !channel) {
+      setSelectedId(survey.id);
+      setStatus({ tone: "error", message: "Elige actor y canal antes de agregar esta encuesta." });
+      return;
+    }
     setBusy(survey.id);
     setStatus({ tone: "info", message: `Agregando ${surveyMonkeyDisplayTitle(survey)}...` });
     try {
       const result = await apiMonitoreoSource(payloadForSurvey(survey));
       onStateChange?.(result.state);
       setStatus({ tone: "success", message: `${result.source.label || survey.title} quedó agregada al paquete.` });
-    } catch (error) {
-      setStatus({ tone: "error", message: (error as Error).message });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const addDetectedSurveys = async () => {
-    if (!bulkCandidates.length) return;
-    setBusy("bulk");
-    setStatus({ tone: "info", message: `Agregando ${fmt(bulkCandidates.length)} encuestas detectadas...` });
-    try {
-      const result = await apiMonitoreoSources(bulkCandidates.map(payloadForSurvey));
-      onStateChange?.(result.state);
-      setStatus({ tone: "success", message: `${fmt(result.sources.length)} fuentes SurveyMonkey quedaron registradas.` });
     } catch (error) {
       setStatus({ tone: "error", message: (error as Error).message });
     } finally {
@@ -8041,12 +8045,6 @@ function AcreditacionSurveySourcePicker({
           <button type="button" onClick={() => { void searchSurveys(true); }} disabled={Boolean(busy)}>
             {busy === "refresh" ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
             Actualizar
-          </button>
-        ) : null}
-        {results.length ? (
-          <button type="button" onClick={() => { void addDetectedSurveys(); }} disabled={Boolean(busy) || !bulkCandidates.length}>
-            {busy === "bulk" ? <Loader2 size={14} className="pulso-spin" /> : <Plus size={14} />}
-            Agregar detectadas
           </button>
         ) : null}
       </div>
@@ -8111,25 +8109,33 @@ function AcreditacionSurveySourcePicker({
                   <strong>{selectedSurvey.title}</strong>
                   <span>{selectedSurvey.date_modified ? formatDate(selectedSurvey.date_modified) : "Sin fecha de modificación"}</span>
                 </div>
-                <label className="mon-source-name-field">
-                  <span>Nombre real en plataforma</span>
-                  <input value={labels[selectedSurvey.id] ?? ""} onChange={(event) => setLabels((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder={selectedSurvey.title || "Nombre visible"} />
-                </label>
-                <label className="mon-source-name-field">
-                  <span>Actor / carrera</span>
-                  <input value={actors[selectedSurvey.id] ?? ""} onChange={(event) => setActors((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder="Actor" />
-                </label>
-                <AcreditacionChannelSelect
-                  value={channels[selectedSurvey.id] ?? ""}
-                  onChange={(channel) => setChannels((prev) => ({ ...prev, [selectedSurvey.id]: channel }))}
-                  allowEmpty
-                />
+                <div className="mon-sm-selected-fields">
+                  <label className="mon-source-name-field">
+                    <span>Nombre real en plataforma</span>
+                    <input value={labels[selectedSurvey.id] ?? ""} onChange={(event) => setLabels((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder={selectedSurvey.title || "Nombre visible"} />
+                  </label>
+                  <AcreditacionActorAssignableField
+                    value={actors[selectedSurvey.id] ?? ""}
+                    options={actorOptions}
+                    disabled={Boolean(busy)}
+                    onChange={(actor) => setActors((prev) => ({ ...prev, [selectedSurvey.id]: actor }))}
+                  />
+                  <AcreditacionChannelSelect
+                    value={channels[selectedSurvey.id] ?? ""}
+                    onChange={(channel) => setChannels((prev) => ({ ...prev, [selectedSurvey.id]: channel }))}
+                    disabled={Boolean(busy)}
+                    allowEmpty
+                  />
+                </div>
+                {!canAddSelectedSurvey && !configuredSurveyIds.has(selectedSurvey.id) ? (
+                  <div className="mon-sm-meta">Elige actor y canal para habilitar el alta individual.</div>
+                ) : null}
                 <div className="mon-sm-result-actions">
                   <button type="button" onClick={() => { void inspectSurvey(selectedSurvey); }} disabled={Boolean(busy) || inspections[selectedSurvey.id]?.loading}>
                     {inspections[selectedSurvey.id]?.loading ? <Loader2 size={14} className="pulso-spin" /> : <Eye size={14} />}
                     Ver datos
                   </button>
-                  <button type="button" onClick={() => { void addSurvey(selectedSurvey); }} disabled={Boolean(busy) || configuredSurveyIds.has(selectedSurvey.id)}>
+                  <button type="button" onClick={() => { void addSurvey(selectedSurvey); }} disabled={Boolean(busy) || !canAddSelectedSurvey}>
                     {busy === selectedSurvey.id ? <Loader2 size={14} className="pulso-spin" /> : <Plus size={14} />}
                     {configuredSurveyIds.has(selectedSurvey.id) ? "Ya agregada" : "Agregar al proyecto"}
                   </button>
@@ -9525,10 +9531,27 @@ function AcreditacionConfiguredSourcesList({
   );
 }
 
-async function waitForSourceSyncJob(jobId: string) {
+function normalizeSourceSyncProgress(progress: JobProgressData | Record<string, never> | null | undefined) {
+  if (!progress || typeof progress !== "object") return null;
+  if (!("phase" in progress) && !("percent" in progress) && !("message" in progress)) return null;
+  const raw = progress as JobProgressData;
+  const percent = Number(raw.percent);
+  return {
+    percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : null,
+    phase: typeof raw.phase === "string" ? raw.phase : "",
+    message: typeof raw.message === "string" ? raw.message : "",
+  };
+}
+
+async function waitForSourceSyncJob(
+  jobId: string,
+  onProgress?: (progress: Omit<AcreditacionSourceSyncProgress, "mode">) => void,
+) {
   for (let attempt = 0; attempt < 90; attempt += 1) {
     await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 350 : 1000));
     const snapshot = await apiJobStatus<MonitoreoSyncResult>(jobId);
+    const progress = normalizeSourceSyncProgress(snapshot.progress);
+    if (progress) onProgress?.(progress);
     if (snapshot.status === "done") return snapshot;
     if (snapshot.status === "cancelled") throw new Error("La sincronización fue cancelada.");
     if (snapshot.status === "error") {
@@ -18576,6 +18599,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
   const [sourceSyncing, setSourceSyncing] = useState(false);
+  const [sourceSyncProgress, setSourceSyncProgress] = useState<AcreditacionSourceSyncProgress | null>(null);
   const [actionStatus, setActionStatus] = useState<AcreditacionActionStatus>(null);
   const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
   const [caseReconciliationStatus, setCaseReconciliationStatus] = useState<AcreditacionActionStatus>(null);
@@ -18777,13 +18801,30 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setActionStatus({ tone: "error", message });
       return;
     }
-    setSourceSyncing(true);
-    setError("");
-    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
-    try {
-      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
-      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
-      await waitForSourceSyncJob(start.job_id);
+	    setSourceSyncing(true);
+	    setSourceSyncProgress({
+	      mode: syncMode,
+	      percent: 2,
+	      phase: "prepare",
+	      message: syncMode === "full" ? "Preparando actualización completa..." : "Preparando avance...",
+	    });
+	    setError("");
+	    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
+	    try {
+	      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
+	      setSourceSyncProgress({
+	        mode: syncMode,
+	        percent: 8,
+	        phase: "queued",
+	        message: `Job ${start.job_id} en cola.`,
+	      });
+	      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
+	      await waitForSourceSyncJob(start.job_id, (progress) => {
+	        setSourceSyncProgress({
+	          mode: syncMode,
+	          ...progress,
+	        });
+	      });
       clearScopeStateCache();
       const reportScope = scopeForView(activeViewRef.current, route.family);
       const next = await apiMonitoreoState({
@@ -18800,9 +18841,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       const message = (e as Error).message;
       setError(message);
       setActionStatus({ tone: "error", message });
-    } finally {
-      setSourceSyncing(false);
-    }
+	    } finally {
+	      setSourceSyncProgress(null);
+	      setSourceSyncing(false);
+	    }
   }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
   const sourceTotal = isPhone ? 3 : state?.sources?.length ?? 0;
   const activeSources = activeSourceCount(state);
@@ -18876,8 +18918,9 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           activeSources={activeSources}
           nRows={state?.n_rows ?? 0}
           hasSnapshot={Boolean(state?.has_snapshot)}
-          syncing={loading || sourceSyncing}
-          syncDisabled={loading || sourceSyncing}
+	          syncing={loading || sourceSyncing}
+	          syncProgress={sourceSyncProgress}
+	          syncDisabled={loading || sourceSyncing}
           syncLabel="Todo"
           syncTitle="Actualizar todas las fuentes activas"
           onSyncAll={() => { void runProfileSourceSync("full"); }}

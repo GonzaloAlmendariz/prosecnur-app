@@ -817,3 +817,494 @@ graficar_barras_numericas <- function(
 
   p_final
 }
+
+#' Graficar histograma, opcionalmente apilado por grupo
+#'
+#' El modo `porcentaje_bin` hace que cada intervalo sume 100% y muestra la
+#' composicion interna del grupo (por ejemplo, hombres/mujeres dentro de cada
+#' rango de edad). El modo `porcentaje_total` conserva la distribucion total y
+#' reparte cada barra por grupo.
+#'
+#' @param data Data frame con los datos crudos.
+#' @param var Nombre de la variable numerica.
+#' @param grupo Variable categorica opcional para apilar dentro de cada bin.
+#' @param modo `porcentaje_total`, `porcentaje_bin` o `conteo`.
+#' @export
+graficar_histograma <- function(
+    data,
+    var,
+    grupo = NULL,
+    bins = NULL,
+    ancho_bin = NULL,
+    limite_inferior = NULL,
+    limite_superior = NULL,
+    mostrar_bins_vacios = TRUE,
+    modo = c("porcentaje_total", "porcentaje_bin", "conteo"),
+    cerrar_intervalos = c("izquierda", "derecha"),
+    incluir_na_grupo = FALSE,
+    etiqueta_sin_grupo = "Sin dato",
+    excluir_grupos = NULL,
+    orden_grupos = NULL,
+
+    titulo = NULL,
+    subtitulo = NULL,
+    nota_pie = NULL,
+
+    mostrar_valores = TRUE,
+    mostrar_frecuencia = TRUE,
+    posicion_etiquetas = c("segmento", "cima", "ninguna"),
+    etiqueta_cima_modo = c("conteos_grupo", "conteo_total"),
+    abreviaturas_grupos = NULL,
+    separador_etiquetas_cima = "  ",
+    color_etiqueta_cima = "#06245C",
+    size_etiqueta_cima = 4.2,
+    decimales = 0,
+    umbral_etiqueta = 0.04,
+    color_texto_barras = "white",
+    size_texto_barras = 4.8,
+    textos_negrita = c("valores", "leyenda"),
+
+    colores_grupos = NULL,
+    colores_series = NULL,
+    mostrar_leyenda = TRUE,
+    leyenda_posicion = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
+    legend_n_por_fila = 4,
+    legend_key_cm = 0.32,
+    legend_espaciado = 0.6,
+    legend_text_gap = 0.12,
+    size_leyenda = 10,
+    color_leyenda = "#06245C",
+
+    ancho_barras = 0.78,
+    expand_x = 0.55,
+    mostrar_eje_y = TRUE,
+    mostrar_eje_x = TRUE,
+    wrap_eje_x = 14,
+    size_ejes = 9,
+    color_ejes = "#06245C",
+    expand_y = 0.06,
+
+    font_family = "Arial",
+    color_fondo = "transparent",
+    color_titulo = "#CA5651",
+    color_subtitulo = "#06245C",
+    color_nota_pie = "#06245C",
+    size_titulo = 12,
+    size_subtitulo = 10,
+    size_nota_pie = 8,
+    pos_titulo = "center",
+    pos_nota_pie = "left",
+
+    usar_canvas = TRUE,
+    canvas_h_title = 0.12,
+    canvas_h_legend = 0.12,
+    canvas_h_caption = 0.04,
+    canvas_pad_top = 0.01,
+
+    exportar = c("rplot", "png", "ppt", "word"),
+    path_salida = NULL,
+    ancho = 10,
+    alto = NULL,
+    dpi = 300
+) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  modo <- match.arg(modo)
+  cerrar_intervalos <- match.arg(cerrar_intervalos)
+  leyenda_posicion <- match.arg(leyenda_posicion)
+  exportar <- match.arg(exportar)
+  posicion_etiquetas <- match.arg(posicion_etiquetas)
+  etiqueta_cima_modo <- match.arg(etiqueta_cima_modo)
+
+  if (!is.data.frame(data)) stop("`data` debe ser un data.frame.", call. = FALSE)
+  if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
+    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+  }
+  var <- trimws(var)
+  if (!var %in% names(data)) stop("La variable `var` no existe en `data`.", call. = FALSE)
+
+  if (!is.null(grupo)) {
+    if (!is.character(grupo) || length(grupo) != 1L || !nzchar(trimws(grupo))) {
+      stop("`grupo` debe ser NULL o character(1) no vacio.", call. = FALSE)
+    }
+    grupo <- trimws(grupo)
+    if (!grupo %in% names(data)) stop("La variable `grupo` no existe en `data`.", call. = FALSE)
+  }
+
+  x <- suppressWarnings(as.numeric(data[[var]]))
+  keep <- is.finite(x)
+  if (!any(keep)) stop("`var` no tiene valores numericos finitos.", call. = FALSE)
+
+  d <- data.frame(.x = x[keep], stringsAsFactors = FALSE)
+  if (is.null(grupo)) {
+    d$.grupo <- "Total"
+    niveles_grupo <- "Total"
+    mostrar_leyenda <- FALSE
+  } else {
+    g_raw <- data[[grupo]][keep]
+    if (is.factor(g_raw)) {
+      niveles_grupo <- levels(g_raw)
+      g <- as.character(g_raw)
+    } else {
+      g <- as.character(g_raw)
+      niveles_grupo <- unique(g[!is.na(g) & nzchar(trimws(g))])
+    }
+    if (isTRUE(incluir_na_grupo)) {
+      g[is.na(g) | !nzchar(trimws(g))] <- etiqueta_sin_grupo
+      niveles_grupo <- unique(c(niveles_grupo, etiqueta_sin_grupo))
+    } else {
+      ok_g <- !is.na(g) & nzchar(trimws(g))
+      d <- d[ok_g, , drop = FALSE]
+      g <- g[ok_g]
+      niveles_grupo <- unique(g)
+    }
+    if (!nrow(d)) stop("No hay casos validos despues de filtrar `grupo`.", call. = FALSE)
+    niveles_grupo <- niveles_grupo[!is.na(niveles_grupo) & nzchar(trimws(niveles_grupo))]
+    d$.grupo <- g
+  }
+
+  if (!is.null(excluir_grupos) && length(excluir_grupos)) {
+    .norm_group <- function(z) {
+      z <- iconv(as.character(z), from = "", to = "ASCII//TRANSLIT")
+      z <- tolower(z)
+      z <- gsub("[^a-z0-9]+", " ", z)
+      trimws(gsub("\\s+", " ", z))
+    }
+    excl_norm <- .norm_group(excluir_grupos)
+    keep_group <- !(.norm_group(d$.grupo) %in% excl_norm)
+    d <- d[keep_group, , drop = FALSE]
+    niveles_grupo <- niveles_grupo[!(.norm_group(niveles_grupo) %in% excl_norm)]
+    if (!nrow(d)) stop("No hay casos validos despues de excluir grupos.", call. = FALSE)
+  }
+  if (!is.null(orden_grupos) && length(orden_grupos)) {
+    orden_grupos <- as.character(unlist(orden_grupos, use.names = FALSE))
+    orden_grupos <- orden_grupos[!is.na(orden_grupos) & nzchar(trimws(orden_grupos))]
+    if (length(orden_grupos)) {
+      niveles_grupo <- unique(c(orden_grupos[orden_grupos %in% niveles_grupo], setdiff(niveles_grupo, orden_grupos)))
+    }
+  }
+
+  lo <- as.numeric(limite_inferior %||% floor(min(d$.x, na.rm = TRUE)))
+  hi <- as.numeric(limite_superior %||% ceiling(max(d$.x, na.rm = TRUE)))
+  if (!is.finite(lo) || !is.finite(hi)) stop("Limites no finitos para el histograma.", call. = FALSE)
+  if (hi <= lo) hi <- lo + 1
+
+  if (!is.null(ancho_bin)) {
+    ancho_bin <- as.numeric(ancho_bin)
+    if (!is.finite(ancho_bin) || ancho_bin <= 0) {
+      stop("`ancho_bin` debe ser numerico positivo.", call. = FALSE)
+    }
+    breaks <- seq(lo, hi, by = ancho_bin)
+    if (tail(breaks, 1) <= max(d$.x, na.rm = TRUE)) {
+      breaks <- c(breaks, tail(breaks, 1) + ancho_bin)
+    }
+  } else {
+    bins <- as.integer(bins %||% 8L)
+    if (!is.finite(bins) || bins < 1L) bins <- 8L
+    breaks <- seq(lo, hi, length.out = bins + 1L)
+  }
+  breaks <- unique(breaks)
+  if (length(breaks) < 2L) stop("No se pudieron construir intervalos para el histograma.", call. = FALSE)
+
+  .fmt_num <- function(z) {
+    z <- as.numeric(z)
+    ifelse(abs(z - round(z)) < 1e-8, as.character(round(z)), format(round(z, 2), trim = TRUE))
+  }
+  right <- identical(cerrar_intervalos, "derecha")
+  lefts <- breaks[-length(breaks)]
+  rights <- breaks[-1]
+  step_med <- stats::median(diff(breaks), na.rm = TRUE)
+  entero <- all(abs(c(lefts, rights, step_med) - round(c(lefts, rights, step_med))) < 1e-8)
+  if (!right && entero && step_med >= 1) {
+    labels <- ifelse(round(rights - 1) <= round(lefts),
+                     .fmt_num(lefts),
+                     paste0(.fmt_num(lefts), "-", .fmt_num(rights - 1)))
+  } else {
+    labels <- paste0(.fmt_num(lefts), "-", .fmt_num(rights))
+  }
+
+  breaks_cut <- breaks
+  if (!right) {
+    breaks_cut[length(breaks_cut)] <- breaks_cut[length(breaks_cut)] + max(1e-9, abs(tail(breaks, 1)) * 1e-9)
+  }
+  d$.bin <- cut(
+    d$.x,
+    breaks = breaks_cut,
+    labels = labels,
+    right = right,
+    include.lowest = TRUE,
+    ordered_result = TRUE
+  )
+  d <- d[!is.na(d$.bin), , drop = FALSE]
+  if (!nrow(d)) stop("No hay casos dentro de los intervalos del histograma.", call. = FALSE)
+
+  niveles_grupo <- niveles_grupo %||% unique(d$.grupo)
+  niveles_grupo <- unique(niveles_grupo[!is.na(niveles_grupo) & nzchar(trimws(niveles_grupo))])
+  if (!length(niveles_grupo)) niveles_grupo <- unique(as.character(d$.grupo))
+
+  tab <- as.data.frame(
+    table(
+      .bin = factor(as.character(d$.bin), levels = labels),
+      .grupo = factor(as.character(d$.grupo), levels = niveles_grupo),
+      useNA = "no"
+    ),
+    stringsAsFactors = FALSE
+  )
+  names(tab)[names(tab) == "Freq"] <- "n"
+  tab$n <- as.integer(tab$n)
+  tab$.bin <- factor(tab$.bin, levels = labels, ordered = TRUE)
+  tab$.grupo <- factor(tab$.grupo, levels = niveles_grupo)
+
+  tab$n_bin <- ave(tab$n, tab$.bin, FUN = sum)
+  if (!isTRUE(mostrar_bins_vacios)) {
+    bins_con_datos <- unique(as.character(tab$.bin[tab$n_bin > 0]))
+    labels <- labels[labels %in% bins_con_datos]
+    tab <- tab[as.character(tab$.bin) %in% labels, , drop = FALSE]
+    tab$.bin <- factor(as.character(tab$.bin), levels = labels, ordered = TRUE)
+    if (!nrow(tab)) stop("No hay intervalos con datos para mostrar.", call. = FALSE)
+  }
+  n_total <- sum(tab$n, na.rm = TRUE)
+  tab$pct_total <- if (n_total > 0) tab$n / n_total else 0
+  tab$pct_bin <- ifelse(tab$n_bin > 0, tab$n / tab$n_bin, 0)
+  tab$.valor <- switch(
+    modo,
+    porcentaje_total = tab$pct_total,
+    porcentaje_bin   = tab$pct_bin,
+    conteo           = tab$n
+  )
+  tab$.bin_label <- as.character(tab$.bin)
+  tab$.grupo_label <- as.character(tab$.grupo)
+
+  if (!is.null(colores_series) && is.null(colores_grupos)) colores_grupos <- colores_series
+  if (is.null(colores_grupos) || !length(colores_grupos)) {
+    colores_grupos <- c("#06245C", "#9EC3E6", "#CA5651", "#70AD47", "#FFD966", "#7B5EA7")
+  }
+  colores_grupos <- unlist(colores_grupos, use.names = TRUE)
+  if (is.null(names(colores_grupos)) || any(!nzchar(names(colores_grupos)))) {
+    colores_grupos <- stats::setNames(rep(colores_grupos, length.out = length(niveles_grupo)), niveles_grupo)
+  } else {
+    faltantes <- setdiff(niveles_grupo, names(colores_grupos))
+    if (length(faltantes)) {
+      extra <- rep(unname(colores_grupos), length.out = length(faltantes))
+      colores_grupos <- c(colores_grupos, stats::setNames(extra, faltantes))
+    }
+    colores_grupos <- colores_grupos[niveles_grupo]
+  }
+  legend_text_gap_pt <- max(0, as.numeric(legend_text_gap %||% 0.12)) * 28.35
+  legend_item_gap_pt <- max(0, as.numeric(legend_espaciado %||% 0.6)) * 28.35
+
+  accuracy <- if (decimales <= 0) 1 else 10^-decimales
+  pct_label <- scales::percent(if (identical(modo, "conteo")) tab$pct_total else tab$.valor, accuracy = accuracy)
+  tab$.label <- if (identical(modo, "conteo")) {
+    as.character(tab$n)
+  } else if (isTRUE(mostrar_frecuencia)) {
+    paste0(pct_label, " (", tab$n, ")")
+  } else {
+    pct_label
+  }
+  lab_data <- tab[tab$n > 0 & tab$.valor >= as.numeric(umbral_etiqueta %||% 0), , drop = FALSE]
+
+  .grupo_abbr <- function(niveles, abbr = NULL) {
+    niveles <- as.character(niveles)
+    if (!is.null(abbr) && length(abbr)) {
+      abbr <- unlist(abbr, use.names = TRUE)
+      if (!is.null(names(abbr)) && any(nzchar(names(abbr)))) {
+        out <- unname(abbr[niveles])
+        miss <- is.na(out) | !nzchar(out)
+        if (any(miss)) out[miss] <- niveles[miss]
+      } else {
+        out <- rep(as.character(abbr), length.out = length(niveles))
+      }
+    } else {
+      out <- toupper(substr(trimws(niveles), 1L, 1L))
+      out[!nzchar(out)] <- "G"
+    }
+    out
+  }
+
+  top_data <- NULL
+  if (isTRUE(mostrar_valores) && identical(posicion_etiquetas, "cima")) {
+    agg_val <- stats::aggregate(.valor ~ .bin + .bin_label, tab, sum, na.rm = TRUE)
+    agg_n <- stats::aggregate(n ~ .bin + .bin_label, tab, sum, na.rm = TRUE)
+    names(agg_n)[names(agg_n) == "n"] <- "n_bin_total"
+    top_data <- merge(agg_val, agg_n, by = c(".bin", ".bin_label"), all.x = TRUE, sort = FALSE)
+    top_data <- top_data[top_data$n_bin_total > 0, , drop = FALSE]
+    top_data <- top_data[top_data$.valor >= as.numeric(umbral_etiqueta %||% 0), , drop = FALSE]
+    if (nrow(top_data)) {
+      if (identical(etiqueta_cima_modo, "conteo_total") || is.null(grupo)) {
+        top_data$.label_top <- as.character(top_data$n_bin_total)
+      } else {
+        abbr <- stats::setNames(.grupo_abbr(niveles_grupo, abreviaturas_grupos), niveles_grupo)
+        top_data$.label_top <- vapply(as.character(top_data$.bin), function(bin_i) {
+          rows <- tab[as.character(tab$.bin) == bin_i & tab$n > 0, , drop = FALSE]
+          rows <- rows[match(intersect(niveles_grupo, as.character(rows$.grupo)), as.character(rows$.grupo)), , drop = FALSE]
+          if (!nrow(rows)) return("")
+          paste0(unname(abbr[as.character(rows$.grupo)]), " ", rows$n, collapse = separador_etiquetas_cima)
+        }, character(1))
+      }
+      top_data <- top_data[nzchar(top_data$.label_top), , drop = FALSE]
+    }
+  }
+
+  y_lab <- switch(
+    modo,
+    porcentaje_total = "Porcentaje del total",
+    porcentaje_bin = "Proporcion dentro del intervalo",
+    conteo = "Frecuencia"
+  )
+  y_max <- if (identical(modo, "porcentaje_bin")) 1 else max(stats::aggregate(.valor ~ .bin, tab, sum)$.valor, na.rm = TRUE)
+  if (!is.finite(y_max) || y_max <= 0) y_max <- 1
+
+  expand_y_eff <- as.numeric(expand_y %||% 0.06)
+  if (!is.finite(expand_y_eff) || expand_y_eff < 0) expand_y_eff <- 0.06
+  if (identical(posicion_etiquetas, "cima") && !is.null(top_data) && nrow(top_data)) {
+    expand_y_eff <- max(expand_y_eff, 0.18)
+  }
+
+  p <- ggplot2::ggplot(tab, ggplot2::aes(x = .data$.bin, y = .data$.valor, fill = .data$.grupo)) +
+    ggplot2::geom_col(width = ancho_barras, color = NA) +
+    ggplot2::scale_fill_manual(values = colores_grupos, drop = FALSE) +
+    ggplot2::labs(x = NULL, y = y_lab, fill = NULL) +
+    ggplot2::coord_cartesian(ylim = c(0, y_max * (1 + expand_y_eff)), clip = "off") +
+    ggplot2::theme_minimal(base_family = font_family) +
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank(),
+      axis.title.y = if (isTRUE(mostrar_eje_y)) ggplot2::element_text(color = color_ejes, size = size_ejes) else ggplot2::element_blank(),
+      axis.text.y = if (isTRUE(mostrar_eje_y)) ggplot2::element_text(color = color_ejes, size = size_ejes) else ggplot2::element_blank(),
+      axis.text.x = if (isTRUE(mostrar_eje_x)) ggplot2::element_text(color = color_ejes, size = size_ejes, face = if ("eje_x" %in% textos_negrita || "ejes" %in% textos_negrita) "bold" else "plain") else ggplot2::element_blank(),
+      axis.ticks = ggplot2::element_blank(),
+      legend.position = if (isTRUE(mostrar_leyenda) && !identical(leyenda_posicion, "ninguna")) leyenda_posicion else "none",
+      legend.text = ggplot2::element_text(
+        color = color_leyenda,
+        size = size_leyenda,
+        face = if ("leyenda" %in% textos_negrita) "bold" else "plain",
+        margin = ggplot2::margin(l = legend_text_gap_pt, r = legend_item_gap_pt, unit = "pt")
+      ),
+      legend.key.size = grid::unit(legend_key_cm, "cm"),
+      plot.background = ggplot2::element_rect(fill = color_fondo, color = NA),
+      panel.background = ggplot2::element_rect(fill = color_fondo, color = NA),
+      plot.margin = ggplot2::margin(2, 8, 2, 8)
+    ) +
+    ggplot2::guides(fill = ggplot2::guide_legend(
+      nrow = if (leyenda_posicion %in% c("abajo", "arriba")) ceiling(length(niveles_grupo) / max(1, legend_n_por_fila)) else NULL,
+      byrow = TRUE,
+      override.aes = list(size = legend_key_cm * 7)
+    ))
+
+  if (identical(modo, "conteo")) {
+    p <- p + ggplot2::scale_y_continuous(labels = scales::comma)
+  } else {
+    p <- p + ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = accuracy))
+  }
+  expand_x <- suppressWarnings(as.numeric(expand_x %||% 0.55))
+  if (!is.finite(expand_x) || expand_x < 0) expand_x <- 0.55
+  if (wrap_eje_x > 0) {
+    p <- p + ggplot2::scale_x_discrete(
+      labels = function(z) stringr::str_wrap(z, width = wrap_eje_x),
+      expand = ggplot2::expansion(add = expand_x)
+    )
+  } else {
+    p <- p + ggplot2::scale_x_discrete(expand = ggplot2::expansion(add = expand_x))
+  }
+  if (isTRUE(mostrar_valores) && identical(posicion_etiquetas, "segmento") && nrow(lab_data)) {
+    p <- p + ggplot2::geom_text(
+      data = lab_data,
+      ggplot2::aes(label = .data$.label),
+      position = ggplot2::position_stack(vjust = 0.5),
+      color = color_texto_barras,
+      size = size_texto_barras,
+      family = font_family,
+      fontface = if ("valores" %in% textos_negrita) "bold" else "plain",
+      show.legend = FALSE
+    )
+  }
+  if (isTRUE(mostrar_valores) && identical(posicion_etiquetas, "cima") && !is.null(top_data) && nrow(top_data)) {
+    p <- p + ggplot2::geom_text(
+      data = top_data,
+      ggplot2::aes(x = .data$.bin, y = .data$.valor, label = .data$.label_top),
+      inherit.aes = FALSE,
+      vjust = -0.35,
+      color = color_etiqueta_cima,
+      size = size_etiqueta_cima,
+      family = font_family,
+      fontface = if ("valores" %in% textos_negrita) "bold" else "plain",
+      show.legend = FALSE
+    )
+  }
+
+  p_final <- p
+  if (isTRUE(usar_canvas)) {
+    align <- switch(pos_titulo, left = 0, right = 1, center = 0.5, 0.5)
+    title_block <- cowplot::ggdraw() +
+      cowplot::draw_label(titulo %||% "", x = align, hjust = align, y = 0.70,
+                          color = color_titulo, fontfamily = font_family,
+                          fontface = if ("titulo" %in% textos_negrita) "bold" else "bold",
+                          size = size_titulo) +
+      cowplot::draw_label(subtitulo %||% "", x = align, hjust = align, y = 0.25,
+                          color = color_subtitulo, fontfamily = font_family,
+                          fontface = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
+                          size = size_subtitulo)
+    panel_block <- p + ggplot2::theme(legend.position = "none")
+    legend_block <- NULL
+    if (isTRUE(mostrar_leyenda) && !identical(leyenda_posicion, "ninguna") && !is.null(grupo)) {
+      legend_block <- cowplot::get_legend(
+        p + ggplot2::theme(
+          legend.position = if (leyenda_posicion %in% c("arriba", "abajo")) "bottom" else "right",
+          legend.box.spacing = grid::unit(legend_text_gap, "cm"),
+          legend.spacing.x = grid::unit(legend_text_gap, "cm")
+        )
+      )
+    }
+    caption_align <- switch(pos_nota_pie, right = 1, center = 0.5, left = 0, 0)
+    caption_block <- cowplot::ggdraw() +
+      cowplot::draw_label(nota_pie %||% "", x = caption_align, hjust = caption_align, y = 0.5,
+                          color = color_nota_pie, fontfamily = font_family,
+                          fontface = if ("nota_pie" %in% textos_negrita) "bold" else "plain",
+                          size = size_nota_pie)
+
+    h_title <- canvas_h_title
+    h_legend <- if (!is.null(legend_block) && leyenda_posicion %in% c("arriba", "abajo")) canvas_h_legend else 0.01
+    h_caption <- if (!is.null(nota_pie) && nzchar(nota_pie)) canvas_h_caption else 0.01
+    h_panel <- max(0.01, 1 - (h_title + h_legend + h_caption) - canvas_pad_top)
+    if (!is.null(legend_block) && identical(leyenda_posicion, "arriba")) {
+      p_final <- cowplot::plot_grid(title_block, legend_block, panel_block, caption_block, ncol = 1,
+                                    rel_heights = c(h_title, h_legend, h_panel, h_caption))
+    } else {
+      p_final <- cowplot::plot_grid(title_block, panel_block, legend_block %||% cowplot::ggdraw(), caption_block, ncol = 1,
+                                    rel_heights = c(h_title, h_panel, h_legend, h_caption))
+    }
+  }
+
+  attr(p_final, "pulso_histograma_data") <- tab
+
+  if (exportar == "rplot") return(p_final)
+  if (is.null(path_salida) || !nzchar(path_salida)) {
+    stop("Debe especificar `path_salida` cuando `exportar` no es 'rplot'.", call. = FALSE)
+  }
+  height_plot <- as.numeric(alto %||% 4.8)
+  if (!is.finite(height_plot) || height_plot <= 0) height_plot <- 4.8
+  if (exportar == "word") {
+    if (!requireNamespace("officer", quietly = TRUE)) stop("Para Word se requiere 'officer'.", call. = FALSE)
+    doc <- officer::read_docx()
+    doc <- officer::body_add_gg(doc, value = p_final, width = ancho, height = height_plot, style = "centered")
+    print(doc, target = path_salida)
+    return(invisible(p_final))
+  }
+  if (exportar == "png") {
+    ggplot2::ggsave(path_salida, plot = p_final, width = ancho, height = height_plot, dpi = dpi,
+                    bg = if (is.na(color_fondo)) "transparent" else color_fondo)
+    return(invisible(p_final))
+  }
+  if (exportar == "ppt") {
+    if (!requireNamespace("officer", quietly = TRUE) || !requireNamespace("rvg", quietly = TRUE)) {
+      stop("Para PPT se requieren 'officer' y 'rvg'.", call. = FALSE)
+    }
+    doc <- officer::read_pptx()
+    doc <- officer::add_slide(doc, layout = "Blank", master = "Office Theme")
+    doc <- officer::ph_with(doc, rvg::dml(ggobj = p_final, bg = "transparent"), location = officer::ph_location_fullsize())
+    print(doc, target = path_salida)
+    return(invisible(p_final))
+  }
+
+  p_final
+}

@@ -1596,6 +1596,68 @@ p_numerico <- function(
   el
 }
 
+#' @title Histograma numerico
+#'
+#' @param var Variable numerica a convertir en intervalos.
+#' @param grupo Variable categorica opcional para apilar cada intervalo.
+#' @param titulo Titulo opcional del elemento.
+#' @param modo `porcentaje_total`, `porcentaje_bin` o `conteo`.
+#' @param overrides Lista de overrides para `graficar_histograma()`.
+#' @param base Lista de opciones de base (reservado para consistencia de API).
+#' @param filtros Lista nombrada de filtros por igualdad/inclusion.
+#' @param ... Argumentos adicionales de conveniencia para `graficar_histograma()`
+#'   (por ejemplo, `ancho_bin`, `bins`, `mostrar_frecuencia`). Se incorporan
+#'   como `overrides`.
+#'
+#' @return Objeto `"ppt_element"`.
+#' @family reporte
+#' @export
+p_histograma <- function(
+    var,
+    grupo = NULL,
+    titulo = NULL,
+    modo = NULL,
+    overrides = list(),
+    base = list(),
+    filtros = list(),
+    ...
+) {
+  if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
+    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+  }
+  var <- trimws(var)
+
+  if (!is.null(grupo)) {
+    if (!is.character(grupo) || length(grupo) != 1L || !nzchar(trimws(grupo))) {
+      stop("`grupo` debe ser NULL o character(1) no vacio.", call. = FALSE)
+    }
+    grupo <- trimws(grupo)
+  }
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  extra <- list(...)
+  if (length(extra)) overrides <- utils::modifyList(overrides, extra)
+  if (!is.null(modo)) {
+    modo <- match.arg(modo, c("porcentaje_total", "porcentaje_bin", "conteo"))
+    overrides$modo <- overrides$modo %||% modo
+  }
+  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  filtros <- .ppt_norm_filters(filtros)
+
+  el <- list(
+    .element_type = "histograma",
+    var           = var,
+    grupo         = grupo,
+    title_slide   = titulo,
+    overrides     = overrides,
+    base          = base,
+    filtros       = filtros
+  )
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
 #' @title Boxplot numerico por categoria
 #'
 #' @param var Variable numerica a resumir en el boxplot.

@@ -7622,6 +7622,8 @@ test_that("modelo de avance diario cuenta estados, efectivas y acumulados sin in
 test_that("canales personalizados de acreditacion se publican como enlace personalizado", {
   expect_equal(.monitoreo_report_channel_label("WhatsApp"), "Enlace personalizado")
   expect_equal(.monitoreo_report_channel_label("Whartsapp"), "Enlace personalizado")
+  expect_equal(.monitoreo_report_channel_label("Enlace"), "Enlace personalizado")
+  expect_equal(.monitoreo_report_channel_label("Enlace personalizado (Whatsapp)"), "Enlace personalizado")
   expect_equal(.monitoreo_report_channel_label("web"), "Correo")
   expect_equal(.monitoreo_report_channel_label("", role = "respuestas", label = "SurveyMonkey Docentes WhatsApp"), "Enlace personalizado")
   expect_equal(.monitoreo_report_channel_label("", role = "respuestas", label = "SurveyMonkey Docentes Personalizado"), "Enlace personalizado")
