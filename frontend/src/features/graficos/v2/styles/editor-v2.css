@@ -3971,6 +3971,50 @@
   cursor: grabbing;
 }
 
+.pulso-gv2-range-control {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 1px 0;
+}
+
+.pulso-gv2-range-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.pulso-gv2-range-meta span,
+.pulso-gv2-range-meta strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-range-meta span:last-child {
+  text-align: right;
+}
+
+.pulso-gv2-range-meta strong {
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 54%, #ffffff);
+  color: var(--pulso-primary);
+  font-weight: 820;
+  font-variant-numeric: tabular-nums;
+}
+
 .pulso-gv2-override-chips {
   display: flex;
   flex-wrap: wrap;

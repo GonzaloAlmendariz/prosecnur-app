@@ -842,6 +842,13 @@ function NumberControl({
   const unitPadding = displayUnit ? Math.max(46, String(displayUnit).length * 9 + 18) : 8;
   const statusClass = isFocused && status.state === "default" ? "focus" : status.state;
   const statusClassName = statusClass === "default" ? "" : `is-${statusClass}`;
+  const formatRangeTick = (candidate: number | undefined) => {
+    if (typeof candidate !== "number" || !Number.isFinite(candidate)) return "Auto";
+    const suffix = displayUnit ? ` ${displayUnit}` : "";
+    return `${formatNumberInput(candidate)}${suffix}`;
+  };
+  const currentDisplayValue = hasCurrentValue ? currentNumeric * displayScale : undefined;
+  const stepDisplayLabel = formatRangeTick(displayStep);
 
   return (
     <div className="pulso-gv2-number-control" style={{ width: "100%", maxWidth: "100%" }}>
@@ -853,7 +860,8 @@ function NumberControl({
               e.preventDefault();
               applyCandidate(currentNumeric - step);
             }}
-            aria-label={`Disminuir ${label}`}
+            aria-label={`Disminuir ${label} en ${stepDisplayLabel}`}
+            title={`Disminuir en ${stepDisplayLabel}`}
             style={stepButtonStyle}
         >
           −
@@ -911,7 +919,8 @@ function NumberControl({
               e.preventDefault();
               applyCandidate(currentNumeric + step);
             }}
-            aria-label={`Aumentar ${label}`}
+            aria-label={`Aumentar ${label} en ${stepDisplayLabel}`}
+            title={`Aumentar en ${stepDisplayLabel}`}
             style={stepButtonStyle}
         >
           +
@@ -919,17 +928,25 @@ function NumberControl({
       </div>
 
       {hasSlider && (
-        <input
-          className="pulso-arg-range"
-          type="range"
-          value={hasCurrentValue ? currentNumeric * displayScale : displayMin}
-          min={displayMin}
-          max={displayMax}
-          step={displayStep}
-          onChange={(e) => applyCandidate(Number(e.target.value) / displayScale)}
-          aria-label={`${label} fino`}
-          style={{ width: "100%", accentColor: "var(--pulso-primary)" }}
-        />
+        <div className="pulso-gv2-range-control">
+          <input
+            className="pulso-arg-range"
+            type="range"
+            value={hasCurrentValue ? currentNumeric * displayScale : displayMin}
+            min={displayMin}
+            max={displayMax}
+            step={displayStep}
+            onChange={(e) => applyCandidate(Number(e.target.value) / displayScale)}
+            aria-label={`${label}: ajustar con deslizador`}
+            title={`Arrastra para ajustar ${label}; también puedes escribir el valor exacto.`}
+            style={{ width: "100%", accentColor: "var(--pulso-primary)" }}
+          />
+          <div className="pulso-gv2-range-meta" aria-hidden="true">
+            <span>{formatRangeTick(displayMin)}</span>
+            <strong>{formatRangeTick(currentDisplayValue)}</strong>
+            <span>{formatRangeTick(displayMax)}</span>
+          </div>
+        </div>
       )}
 
       {quickPresetsFor(meta.name).length > 0 && (
