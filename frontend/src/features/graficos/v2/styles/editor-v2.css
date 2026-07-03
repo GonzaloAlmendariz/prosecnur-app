@@ -24239,3 +24239,424 @@
     min-height: 58px;
   }
 }
+
+/* Suite polish pass 43: top bar as one professional command strip. */
+.pulso-graficos-frame .pulso-gv2-command-header {
+  --gv2-command-control-h: 32px;
+  --gv2-command-button-radius: 10px;
+  --gv2-command-cell-bg: rgba(255, 255, 255, 0.72);
+  --gv2-command-cell-bg-hover: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 38%, #ffffff);
+  --gv2-command-cell-border: color-mix(in srgb, var(--pulso-border) 76%, var(--gv2-accent-border, var(--pulso-primary-border)));
+  margin-bottom: 6px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+  min-height: 46px !important;
+  gap: 4px !important;
+  padding: 6px 8px !important;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 42%, var(--pulso-border)) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-surface-2) 58%, #ffffff)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 20px rgba(0, 36, 87, 0.045) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster {
+  min-height: 34px;
+  gap: 3px;
+  padding-inline: 4px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--state {
+  padding-left: 0;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--mode,
+.pulso-graficos-frame .pulso-gv2-command-cluster--review,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools {
+  position: relative;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--mode::before,
+.pulso-graficos-frame .pulso-gv2-command-cluster--review::before,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools::before {
+  content: "";
+  width: 1px;
+  height: 24px;
+  flex: 0 0 1px;
+  margin-right: 4px;
+  background: color-mix(in srgb, var(--pulso-border) 78%, transparent);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--mode {
+  flex: 0 1 424px;
+  min-width: 300px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control {
+  height: var(--gv2-command-control-h);
+  min-height: var(--gv2-command-control-h);
+  padding: 2px;
+  border-radius: 12px;
+  border-color: var(--gv2-command-cell-border);
+  background: var(--gv2-command-cell-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-status {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px 7px 2px 3px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-mark,
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon {
+  display: inline-grid;
+  place-items: center;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tabs {
+  height: 28px;
+  padding: 1px;
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--pulso-border) 80%, transparent);
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tab,
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-density-toggle {
+  height: 26px !important;
+  min-height: 26px !important;
+  border-radius: 8px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-density-toggle {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.pulso-graficos-frame :where(
+  .pulso-gv2-plan-snapshot-trigger,
+  .pulso-gv2-health-trigger,
+  .pulso-gv2-coverage-trigger,
+  .pulso-gv2-suggest-trigger,
+  .pulso-gv2-toolbar-action,
+  .pulso-gv2-estilo-trigger,
+  .pulso-gv2-export-menu-trigger,
+  .pulso-gv2-toolbar-reset,
+  .pulso-gv2-undo-redo .pulso-gv2-icon-button
+) {
+  height: var(--gv2-command-control-h) !important;
+  min-height: var(--gv2-command-control-h) !important;
+  border-radius: var(--gv2-command-button-radius) !important;
+  border-color: var(--gv2-command-cell-border) !important;
+  background: var(--gv2-command-cell-bg) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.pulso-graficos-frame :where(
+  .pulso-gv2-plan-snapshot-trigger,
+  .pulso-gv2-health-trigger,
+  .pulso-gv2-coverage-trigger,
+  .pulso-gv2-toolbar-action,
+  .pulso-gv2-estilo-trigger
+) {
+  min-width: 84px;
+  justify-content: center !important;
+  padding-inline: 9px !important;
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 70%, var(--pulso-text)) !important;
+}
+
+.pulso-graficos-frame :where(
+  .pulso-gv2-plan-snapshot-trigger,
+  .pulso-gv2-health-trigger,
+  .pulso-gv2-coverage-trigger,
+  .pulso-gv2-suggest-trigger,
+  .pulso-gv2-toolbar-action,
+  .pulso-gv2-estilo-trigger,
+  .pulso-gv2-export-menu-trigger,
+  .pulso-gv2-toolbar-reset,
+  .pulso-gv2-undo-redo .pulso-gv2-icon-button
+):hover:not(:disabled) {
+  background: var(--gv2-command-cell-bg-hover) !important;
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 68%, var(--pulso-border)) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-icon-button,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-suggest-trigger,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-toolbar-reset {
+  width: var(--gv2-command-control-h) !important;
+  min-width: var(--gv2-command-control-h) !important;
+  padding: 0 !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-undo-redo {
+  gap: 3px;
+  height: var(--gv2-command-control-h);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--review .pulso-gv2-icon-button:disabled {
+  color: color-mix(in srgb, var(--pulso-text-soft) 48%, transparent) !important;
+  opacity: 1;
+  background: color-mix(in srgb, var(--pulso-surface-2) 66%, #ffffff) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-health-trigger.is-success {
+  min-width: 88px;
+  color: color-mix(in srgb, var(--pulso-success-fg) 56%, var(--pulso-text)) !important;
+  border-color: color-mix(in srgb, var(--pulso-success-border) 52%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-success-bg) 24%, #ffffff)) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-health-dot {
+  display: none;
+}
+
+.pulso-graficos-frame .pulso-gv2-coverage-trigger {
+  min-width: 72px;
+  color: color-mix(in srgb, var(--pulso-info-fg) 72%, var(--pulso-text)) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border {
+  height: var(--gv2-command-control-h);
+  min-height: var(--gv2-command-control-h);
+  border-radius: var(--gv2-command-button-radius);
+  border-color: var(--gv2-command-cell-border);
+  background: var(--gv2-command-cell-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-trigger {
+  min-width: 78px;
+  height: calc(var(--gv2-command-control-h) - 2px) !important;
+  min-height: calc(var(--gv2-command-control-h) - 2px) !important;
+  border-radius: calc(var(--gv2-command-button-radius) - 1px) 0 0 calc(var(--gv2-command-button-radius) - 1px) !important;
+  padding-inline: 8px 7px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-options {
+  width: 26px !important;
+  min-width: 26px !important;
+  min-height: calc(var(--gv2-command-control-h) - 2px) !important;
+  border-left-color: color-mix(in srgb, var(--pulso-border) 74%, transparent) !important;
+  border-radius: 0 calc(var(--gv2-command-button-radius) - 1px) calc(var(--gv2-command-button-radius) - 1px) 0 !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger {
+  min-width: 100px;
+  max-width: 136px;
+  padding: 3px 8px 3px 4px !important;
+  justify-content: flex-start !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 58%, #ffffff);
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-label {
+  font-size: 10.7px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-meta {
+  max-width: 70px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-meta > span {
+  min-height: 15px;
+  padding: 2px 6px;
+  font-size: 8.8px;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-action {
+  min-width: 72px;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-action [style] {
+  font-size: 10px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-menu-trigger {
+  min-width: 116px;
+  color: #ffffff !important;
+  border-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 84%, #000000) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 88%, #ffffff), var(--gv2-accent, var(--pulso-primary))) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 14%, transparent) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-menu-trigger:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 82%, #ffffff), color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 94%, #000000)) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-reset {
+  color: color-mix(in srgb, var(--pulso-danger-fg) 72%, var(--pulso-text)) !important;
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 58%, var(--pulso-border)) !important;
+  background: color-mix(in srgb, var(--pulso-danger-bg) 32%, #ffffff) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified :where(button, label) > svg,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-estilo-trigger-icon > svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.25;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-export-menu-trigger > svg {
+  color: #ffffff;
+}
+
+@media (max-width: 1360px) {
+  .pulso-graficos-frame .pulso-gv2-command-cluster--mode {
+    flex-basis: 330px;
+    min-width: 268px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy span,
+  .pulso-graficos-frame .pulso-gv2-estilo-trigger-meta {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-estilo-trigger {
+    min-width: 84px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .pulso-graficos-frame .pulso-gv2-command-cluster--mode {
+    order: 0;
+    flex: 0 1 300px;
+    min-width: 246px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Suite polish pass 44: remove nested capsules from the command bar. */
+.pulso-graficos-frame .pulso-gv2-command-header {
+  --gv2-command-flat-hover: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 42%, #ffffff);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+  gap: 2px !important;
+  padding: 6px 9px !important;
+}
+
+.pulso-graficos-frame :where(
+  .pulso-gv2-plan-snapshot-trigger,
+  .pulso-gv2-health-trigger,
+  .pulso-gv2-coverage-trigger,
+  .pulso-gv2-suggest-trigger,
+  .pulso-gv2-toolbar-action,
+  .pulso-gv2-estilo-trigger,
+  .pulso-gv2-toolbar-reset,
+  .pulso-gv2-undo-redo .pulso-gv2-icon-button
+) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pulso-graficos-frame :where(
+  .pulso-gv2-plan-snapshot-trigger,
+  .pulso-gv2-health-trigger,
+  .pulso-gv2-coverage-trigger,
+  .pulso-gv2-suggest-trigger,
+  .pulso-gv2-toolbar-action,
+  .pulso-gv2-estilo-trigger,
+  .pulso-gv2-toolbar-reset,
+  .pulso-gv2-undo-redo .pulso-gv2-icon-button
+):hover:not(:disabled) {
+  border-color: transparent !important;
+  background: var(--gv2-command-flat-hover) !important;
+  box-shadow: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control:hover,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border:hover {
+  background: var(--gv2-command-flat-hover) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tabs {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--pulso-surface-2) 52%, #ffffff);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-density-toggle {
+  color: color-mix(in srgb, var(--pulso-text-soft) 82%, var(--gv2-accent, var(--pulso-primary))) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-trigger,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-options {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-options {
+  border-left-color: color-mix(in srgb, var(--pulso-border) 58%, transparent) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-chip {
+  width: 9px;
+  height: 9px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--gv2-debug-border-color) 10%, #ffffff),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 74%, var(--pulso-text));
+  background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 46%, #ffffff);
+  box-shadow: none;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-meta > span {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #ffffff);
+}
+
+.pulso-graficos-frame .pulso-gv2-export-menu-trigger {
+  border-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 84%, #000000) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 88%, #ffffff), var(--gv2-accent, var(--pulso-primary))) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 14%, transparent) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-reset {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 62%, var(--pulso-text-soft)) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-reset:hover:not(:disabled) {
+  color: var(--pulso-danger-fg) !important;
+  background: color-mix(in srgb, var(--pulso-danger-bg) 54%, #ffffff) !important;
+}
