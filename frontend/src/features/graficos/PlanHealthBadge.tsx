@@ -46,7 +46,7 @@ export function PlanHealthBadge() {
     ? `${errors.length} error${errors.length === 1 ? "" : "es"}`
     : warnings.length > 0
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
-      : "OK";
+      : "Listo";
   const headline = errors.length > 0
     ? "Export bloqueado"
     : warnings.length > 0
@@ -87,7 +87,11 @@ export function PlanHealthBadge() {
         title={triggerTitle}
         className={`pulso-gv2-health-trigger is-${tone}`}
       >
-        <Icon size={13} strokeWidth={2.2} aria-hidden="true" />
+        {tone === "success" ? (
+          <span className="pulso-gv2-health-dot" aria-hidden="true" />
+        ) : (
+          <Icon size={13} strokeWidth={2.2} aria-hidden="true" />
+        )}
         <span>{label}</span>
       </button>
       {open && (

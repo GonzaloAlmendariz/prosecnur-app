@@ -1342,24 +1342,17 @@ function DebugPhToggle() {
     >
       <button
         type="button"
-        onClick={() => setDebugPh({ activo: !active })}
+        onClick={() => setPopoverOpen((v) => !v)}
         className="pulso-gv2-pill-button pulso-gv2-debug-border-trigger"
         aria-pressed={active}
+        aria-expanded={popoverOpen}
+        aria-haspopup="dialog"
         title={active ? "Ocultar guías de layout" : "Mostrar guías de layout"}
       >
         <PanelTopDashed size={12} />
         <span className="pulso-gv2-debug-border-label">Guías</span>
         <span className="pulso-gv2-debug-border-chip" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setPopoverOpen((v) => !v)}
-        className={`pulso-icon pulso-gv2-icon-button pulso-gv2-debug-border-options ${popoverOpen ? "is-open" : ""}`}
-        aria-label="Configurar guías de layout"
-        aria-expanded={popoverOpen}
-        title="Color y grosor de las guías"
-      >
-        <ChevronDown size={13} />
+        <ChevronDown size={12} className="pulso-gv2-debug-border-chevron" aria-hidden="true" />
       </button>
       {popoverOpen && (
         <div

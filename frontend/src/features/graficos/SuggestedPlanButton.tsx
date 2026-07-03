@@ -126,6 +126,8 @@ export function SuggestedPlanButton() {
         className="pulso-gv2-pill-button pulso-gv2-suggest-trigger"
         onClick={generate}
         disabled={busy}
+        aria-label="Sugerir plan de gráficos"
+        title="Sugerir plan de gráficos"
       >
         {busy ? <Loader2 size={12} className="pulso-spin" /> : <Sparkles size={12} />}
         <span className="pulso-gv2-suggest-trigger-label">Sugerir</span>

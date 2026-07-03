@@ -19720,11 +19720,7 @@
 
 .pulso-gv2-toolbar-label,
 .pulso-gv2-suggest-trigger-label {
-  width: 1px;
-  max-width: 1px;
-  margin: 0;
-  overflow: hidden;
-  opacity: 0;
+  display: none;
 }
 
 .pulso-graficos-frame .pulso-gv2-estilo-trigger {
@@ -23858,6 +23854,131 @@
   .pulso-graficos-frame .pulso-gv2-command-cluster--tools {
     padding: 1px;
     gap: 4px;
+  }
+}
+
+/* Suite polish pass 42: calmer plan status and single-piece guide control. */
+.pulso-graficos-frame .pulso-gv2-command-header {
+  --gv2-command-control-h: 33px;
+  --gv2-command-button-radius: 11px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+  min-height: 44px !important;
+  padding-block: 4px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--review,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools {
+  min-height: 37px;
+  border-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--pulso-surface-2) 54%, #ffffff));
+}
+
+.pulso-graficos-frame .pulso-gv2-health-trigger.is-success {
+  color: color-mix(in srgb, var(--pulso-success-fg) 52%, var(--pulso-text));
+  border-color: color-mix(in srgb, var(--pulso-success-border) 42%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-success-bg) 20%, #ffffff));
+  box-shadow:
+    0 1px 2px rgba(0, 36, 87, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.pulso-gv2-health-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+  background: var(--pulso-success-fg);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--pulso-success-bg) 76%, #ffffff),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border {
+  height: var(--gv2-command-control-h);
+  min-height: var(--gv2-command-control-h);
+  border-radius: var(--gv2-command-button-radius);
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-debug-border-color) 2%, #ffffff));
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border.is-active {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-debug-border-color) 6%, #ffffff), color-mix(in srgb, var(--gv2-debug-border-color) 2%, #ffffff));
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-trigger {
+  min-width: 92px;
+  min-height: var(--gv2-command-control-h) !important;
+  height: var(--gv2-command-control-h) !important;
+  padding-inline: 9px !important;
+  border-radius: var(--gv2-command-button-radius) !important;
+  gap: 6px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-trigger:hover {
+  background: color-mix(in srgb, var(--gv2-debug-border-color) 4%, #ffffff) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-chip {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  margin-left: auto;
+  background: var(--gv2-debug-border-color);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gv2-debug-border-color) 12%, #ffffff),
+    inset 0 1px 0 rgba(255, 255, 255, 0.46);
+}
+
+.pulso-gv2-debug-border-chevron {
+  color: color-mix(in srgb, var(--pulso-text-soft) 84%, var(--gv2-accent, var(--pulso-primary)));
+  transition: transform var(--motion-dur-fast) var(--gv2-press-ease);
+}
+
+.pulso-gv2-debug-border:has(.pulso-gv2-debug-border-trigger[aria-expanded="true"]) .pulso-gv2-debug-border-chevron {
+  transform: rotate(180deg);
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger,
+.pulso-graficos-frame .pulso-gv2-toolbar-action {
+  min-width: 96px;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-menu-trigger {
+  min-width: 118px;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-menu-popover {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tabs {
+  height: 29px;
+  padding: 1px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tab {
+  height: 25px;
+  min-height: 25px;
+  padding-inline: 8px;
+}
+
+@media (max-width: 1360px) {
+  .pulso-graficos-frame .pulso-gv2-debug-border-trigger {
+    min-width: 82px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-estilo-trigger,
+  .pulso-graficos-frame .pulso-gv2-toolbar-action {
+    min-width: var(--gv2-command-control-h);
   }
 }
 
