@@ -1108,9 +1108,9 @@ test_that("Sheets territorial interno expone workbook operativo y no base cruda"
   expect_false(grepl("EDADES EXACTAS OBSERVADAS", text_tab("Cuotas sexo y edad"), fixed = TRUE))
   expect_true(grepl("FALTANTES POR CATEGORÍA", text_tab("Cuotas sexo y edad"), fixed = TRUE))
   expect_true(grepl("RESUMEN DE CIERRE POR DISTRITO", text_tab("Cierre de cuotas"), fixed = TRUE))
-  expect_true(grepl("UMP A DIGITAR PARA CIERRE", text_tab("Cierre de cuotas"), fixed = TRUE))
-  expect_true(grepl("Digitaciones mínimas", text_tab("Cierre de cuotas"), fixed = TRUE))
-  expect_true(grepl("Digitación requerida", text_tab("Cierre de cuotas"), fixed = TRUE))
+  expect_true(grepl("UMP POR COMPLETAR PARA CIERRE", text_tab("Cierre de cuotas"), fixed = TRUE))
+  expect_true(grepl("Encuestas por completar", text_tab("Cierre de cuotas"), fixed = TRUE))
+  expect_true(grepl("Acción para campo", text_tab("Cierre de cuotas"), fixed = TRUE))
   quota_rows <- tabs[["Cuotas sexo y edad"]]
   quota_headers <- .monitoreo_sheets_table_header_rows(quota_rows)
   quota_header_index <- .monitoreo_sheets_filter_header_index("Cuotas sexo y edad", quota_rows, quota_headers)

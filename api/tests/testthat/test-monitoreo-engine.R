@@ -6591,7 +6591,7 @@ test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", 
   internal_tabs <- monitoreo_publication_sheets_tabs(data, demo$config, audience = "internal")
 
   expect_equal(names(client_tabs), c(
-    "Reporte", "Detalle del avance", "Corte y fuentes"
+    "Reporte", "Detalle del avance", "Avance por encuesta"
   ))
   expect_equal(names(internal_tabs), c(
     "Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"
@@ -7203,7 +7203,7 @@ test_that("modelo publicable de Monitoreo arma workbook operacional compartido",
   expect_equal(names(tabs), c(
     "Portada", "Resumen territorial", "Producción", "Ritmo diario", "Tabla maestra",
     "Manzanas y responsables", "Responsables y rutas", "Cuotas sexo y edad",
-    "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
+    "Cierre de cuotas", "Validación de tiempos", "GPS y territorio", "Ocurrencias de campo",
     "Base técnica", "Auditoría técnica", "Casos accionables", "Anulaciones"
   ))
   sheet_section_header <- function(rows, section) {

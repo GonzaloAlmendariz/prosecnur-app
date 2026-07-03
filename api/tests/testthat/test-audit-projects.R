@@ -474,7 +474,9 @@ test_that("entregables canonicos generan paquetes con file_id, checksums y artef
   expect_true(all(c("SurveyMonkey + telefonico + correo", "q0001 == No", "qa_source_docentes", "qa_source_egresados") %in% unlist(acr_sentinel_audit$sentinels, use.names = FALSE)))
   expect_gt(file.info(acr_pdf)$size, 1000)
   acr_report_cells <- as.character(unlist(openxlsx::read.xlsx(acr_xlsx, sheet = "Reporte", colNames = FALSE), use.names = FALSE))
-  expect_true(any(grepl("76 de 176", acr_report_cells, fixed = TRUE)))
+  expect_true(any(acr_report_cells == "76"))
+  expect_true(any(acr_report_cells == "176"))
+  expect_true(any(grepl("Completas", acr_report_cells, fixed = TRUE)))
   pdftotext <- Sys.which("pdftotext")
   if (nzchar(pdftotext)) {
     acr_pdf_text <- paste(system2(pdftotext, c(acr_pdf, "-"), stdout = TRUE), collapse = "\n")

@@ -24,7 +24,7 @@
   raw <- as.character(name %||% "")
   raw <- if (length(raw)) raw[[1]] else ""
   if (is.na(raw) || !nzchar(raw)) return("")
-  candidate <- .GRAFICADOR_LEGACY_ALIASES[[raw]] %||% raw
+  candidate <- unname(.GRAFICADOR_LEGACY_ALIASES[raw]) %||% raw
   if (candidate %in% graficador_registry) candidate else raw
 }
 
