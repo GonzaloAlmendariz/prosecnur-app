@@ -9526,3 +9526,599 @@
   text-align: right;
   padding-inline: 24px !important;
 }
+
+/* Suite polish pass: professional graph builder chrome, presets, and placeholder editor. */
+.pulso-gv2-shell,
+.pulso-gv2-command-header,
+.pulso-gv2-estilo-dialog {
+  --gv2-accent: var(--module-accent, var(--pulso-module-processing));
+  --gv2-accent-soft: var(--module-accent-soft, var(--pulso-module-processing-soft));
+  --gv2-accent-border: var(--module-accent-border, var(--pulso-module-processing-border));
+  --gv2-glass-border: color-mix(in srgb, var(--gv2-accent-border) 74%, var(--pulso-border));
+}
+
+.pulso-gv2-shell {
+  border-color: color-mix(in srgb, var(--gv2-accent-border) 68%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 96%, var(--gv2-accent-soft)), var(--pulso-surface) 36%),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-gv2-mode-toolbar {
+  grid-template-columns: minmax(260px, 1fr) auto minmax(220px, 1fr);
+  gap: 12px;
+  min-height: 58px;
+  padding: 9px 12px;
+  border-bottom-color: color-mix(in srgb, var(--gv2-accent-border) 56%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 84%, transparent), color-mix(in srgb, var(--pulso-surface-2) 72%, transparent)),
+    color-mix(in srgb, var(--pulso-surface) 88%, transparent);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.pulso-gv2-suite-status {
+  justify-self: start;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  max-width: 100%;
+  padding: 4px 6px 4px 5px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border) 58%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 16px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-suite-mark {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--gv2-accent-soft);
+  color: var(--gv2-accent);
+  box-shadow: inset 0 0 0 1px var(--gv2-accent-border);
+  line-height: 0;
+}
+
+.pulso-gv2-suite-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pulso-gv2-suite-copy strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  line-height: 1.1;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-suite-copy span {
+  max-width: 148px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.pulso-gv2-suite-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  max-width: 142px;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 999px;
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-gv2-suite-chip.is-warn {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-gv2-mode-tabs {
+  padding: 4px;
+  border-color: color-mix(in srgb, var(--gv2-accent-border) 70%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--pulso-surface-2) 82%, transparent)),
+    color-mix(in srgb, var(--pulso-surface) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 8px 22px rgba(15, 23, 42, 0.055);
+}
+
+.pulso-gv2-mode-tab {
+  min-height: 32px;
+  padding-inline: 15px;
+}
+
+.pulso-gv2-mode-tab svg {
+  display: block;
+}
+
+.pulso-gv2-mode-tab.is-active {
+  background: var(--gv2-accent);
+  color: white;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.24) inset,
+    0 6px 14px color-mix(in srgb, var(--gv2-accent) 22%, transparent);
+}
+
+.pulso-gv2-density-toggle {
+  justify-self: end;
+  border-color: color-mix(in srgb, var(--gv2-accent-border) 72%, var(--pulso-border)) !important;
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent) !important;
+  color: var(--pulso-text-soft) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.pulso-gv2-density-toggle:hover:not(:disabled),
+.pulso-gv2-density-toggle.is-on {
+  color: var(--gv2-accent) !important;
+  border-color: var(--gv2-accent-border) !important;
+  background: color-mix(in srgb, var(--gv2-accent-soft) 58%, white) !important;
+}
+
+.pulso-gv2-timeline {
+  border-right-color: color-mix(in srgb, var(--gv2-accent-border) 46%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface-2) 88%, var(--gv2-accent-soft)), var(--pulso-surface-2)),
+    var(--pulso-surface-2);
+}
+
+.pulso-gv2-timeline-summary--top {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  border-color: color-mix(in srgb, var(--gv2-accent-border) 60%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--pulso-surface) 86%, var(--gv2-accent-soft))),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-summary-stat {
+  min-width: 0;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-summary-num {
+  color: var(--gv2-accent);
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-gv2-summary-label {
+  color: var(--pulso-text-soft);
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-presets-stack {
+  gap: 12px;
+}
+
+.pulso-gv2-presets-overview {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 66%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-surface-2) 82%, var(--gv2-accent-soft, var(--pulso-primary-soft)))),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 8px 22px rgba(15, 23, 42, 0.05);
+}
+
+.pulso-gv2-presets-overview-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--gv2-accent, var(--pulso-primary));
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px var(--gv2-accent-border, var(--pulso-primary-border));
+  line-height: 0;
+}
+
+.pulso-gv2-presets-overview-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-gv2-presets-overview-copy strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 780;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-presets-overview-copy span,
+.pulso-gv2-presets-overview-current {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.pulso-gv2-presets-overview-current {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 26px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 54%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--gv2-accent, var(--pulso-primary));
+  white-space: nowrap;
+}
+
+.pulso-gv2-preset-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 8px 6px;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 820;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-preset-nav-group::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--pulso-border) 82%, transparent);
+}
+
+.pulso-gv2-preset-nav-group.is-first {
+  padding-top: 2px;
+}
+
+.pulso-gv2-preset-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--pulso-text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 610;
+  text-align: left;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-gv2-preset-nav-item:hover {
+  background: color-mix(in srgb, var(--pulso-surface) 82%, var(--gv2-accent-soft, var(--pulso-primary-soft)));
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 36%, transparent);
+}
+
+.pulso-gv2-preset-nav-item:active {
+  transform: scale(0.985);
+}
+
+.pulso-gv2-preset-nav-item.is-active {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 74%, white), rgba(255, 255, 255, 0.74));
+  border-color: var(--gv2-accent-border, var(--pulso-primary-border));
+  color: var(--gv2-accent, var(--pulso-primary));
+  box-shadow:
+    inset 3px 0 0 var(--gv2-accent, var(--pulso-primary)),
+    0 4px 12px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-preset-nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-preset-nav-dot {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.pulso-gv2-preset-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 52%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-surface-2) 72%, var(--pulso-surface))),
+    var(--pulso-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+.pulso-gv2-preset-header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-gv2-preset-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-gv2-preset-header-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 780;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.pulso-gv2-preset-modified-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 22px;
+  padding: 2px 8px 2px 7px;
+  border: 1px solid var(--gv2-accent-border, var(--pulso-primary-border));
+  border-radius: 999px;
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  color: var(--gv2-accent, var(--pulso-primary));
+  font-size: 10px;
+  font-weight: 740;
+}
+
+.pulso-gv2-preset-header-description {
+  margin: 5px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pulso-gv2-preset-reset {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 680;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-gv2-preset-reset:hover {
+  border-color: var(--gv2-accent-border, var(--pulso-primary-border));
+  background: var(--pulso-surface);
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-gv2-preset-reset:active {
+  transform: scale(0.97);
+}
+
+.pulso-gv2-layout-panel {
+  --layout-ink: #17212f;
+  --layout-muted: #5f6b7a;
+  --layout-soft: #7a8696;
+  --layout-line: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 38%, rgba(31, 41, 55, 0.12));
+  --layout-panel: color-mix(in srgb, #ffffff 88%, var(--gv2-accent-soft, var(--pulso-primary-soft)));
+  --layout-card: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  border-color: var(--layout-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-surface-2) 86%, var(--gv2-accent-soft, var(--pulso-primary-soft)))),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 14px 34px rgba(15, 23, 42, 0.075);
+}
+
+.pulso-gv2-layout-head {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 11px;
+  min-height: 42px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.pulso-gv2-layout-head-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: var(--gv2-accent, var(--pulso-primary));
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 62%, #ffffff));
+  box-shadow:
+    inset 0 0 0 1px var(--gv2-accent-border, var(--pulso-primary-border)),
+    0 6px 14px rgba(15, 23, 42, 0.07);
+}
+
+.pulso-gv2-layout-head strong {
+  font-size: 13px;
+  font-weight: 780;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-layout-head div > span {
+  color: var(--layout-muted);
+  font-size: 11px;
+}
+
+.pulso-gv2-layout-head-badges {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pulso-gv2-layout-head-badges span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-gv2-layout-head-badges .is-base {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 64%, var(--pulso-border));
+  color: var(--gv2-accent, var(--pulso-primary));
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-gv2-layout-head-badges .is-mode {
+  border-color: color-mix(in srgb, #7c3aed 28%, var(--pulso-border));
+  color: #5b21b6;
+  background: color-mix(in srgb, #ede9fe 74%, white);
+}
+
+.pulso-gv2-layout-head-badges .is-manual {
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-bg) 78%, white);
+}
+
+.pulso-gv2-layout-canvas {
+  min-height: 580px;
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 28%, rgba(31, 41, 55, 0.10));
+  border-radius: 16px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.84)),
+    linear-gradient(90deg, rgba(31, 41, 55, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(31, 41, 55, 0.08) 1px, transparent 1px),
+    color-mix(in srgb, var(--pulso-surface-2) 90%, white);
+  background-size: auto, 28px 28px, 28px 28px, auto;
+}
+
+.pulso-gv2-layout-frame {
+  border-radius: 12px;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-gv2-layout-frame::before {
+  height: 4px;
+  border-radius: 12px 12px 0 0;
+  background: color-mix(in srgb, var(--layout-accent) 68%, #ffffff 32%);
+}
+
+.pulso-gv2-layout-frame:hover {
+  transform: translateY(-1px);
+}
+
+.pulso-gv2-layout-frame span {
+  letter-spacing: 0;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric {
+  border-color: color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 18%, rgba(31, 41, 55, 0.10));
+}
+
+@media (max-width: 1280px) {
+  .pulso-gv2-mode-toolbar {
+    grid-template-columns: minmax(220px, 1fr) auto minmax(160px, 1fr);
+  }
+
+  .pulso-gv2-suite-copy span {
+    max-width: 112px;
+  }
+
+  .pulso-gv2-suite-chip {
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pulso-gv2-presets-overview {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-presets-overview-current {
+    grid-column: 2;
+    justify-self: start;
+    max-width: min(100%, 320px);
+  }
+
+  .pulso-gv2-layout-head {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-layout-head-badges {
+    grid-column: 2;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

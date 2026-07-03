@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useState } from "react";
-import { RotateCcw, Circle } from "lucide-react";
+import { Circle, Palette, RotateCcw } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
@@ -68,10 +68,25 @@ export function PresetsEditor() {
   // mostraba el badge aunque el usuario no hubiera tocado nada. Ahora
   // solo se enciende cuando el value difiere del default real.
   const hasChanges = !presetArgsEqual(current, defaultForPreset);
+  const modifiedCount = presets.filter((p) => !presetArgsEqual(configPresets[p.name] ?? {}, defaults[p.name] ?? {})).length;
 
   return (
     <div className="pulso-gv2-presets-stack">
       <PptStyleProfilesPanel />
+      <div className="pulso-gv2-presets-overview" aria-label="Resumen de presets de PowerPoint">
+        <span className="pulso-gv2-presets-overview-icon" aria-hidden="true">
+          <Palette size={15} />
+        </span>
+        <span className="pulso-gv2-presets-overview-copy">
+          <strong>Biblioteca visual PPT</strong>
+          <span>
+            {presets.length} tipos · {modifiedCount} modificado{modifiedCount === 1 ? "" : "s"}
+          </span>
+        </span>
+        <span className="pulso-gv2-presets-overview-current" title={`ID interno: ${meta.name}`}>
+          {meta.titulo_humano}
+        </span>
+      </div>
       <div className="pulso-gv2-presets-editor">
       {/* Sidebar — lista de tipos de preset */}
       <aside
@@ -104,16 +119,8 @@ export function PresetsEditor() {
                 key={p.name}
                 type="button"
                 onClick={() => setSelected(p.name)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "7px 9px", borderRadius: 6,
-                  border: "1px solid transparent",
-                  background: isActive ? "var(--pulso-primary-soft)" : "transparent",
-                  color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-                  fontSize: 12, fontWeight: isActive ? 600 : 500,
-                  textAlign: "left", cursor: "pointer",
-                  transition: "background 120ms ease",
-                }}
+                className={`pulso-gv2-preset-nav-item ${isActive ? "is-active" : ""}`}
+                aria-pressed={isActive}
               >
                 <span
                   className="pulso-gv2-presets-sidebar-icon"
@@ -122,11 +129,12 @@ export function PresetsEditor() {
                 >
                   <Icon size={14} />
                 </span>
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span className="pulso-gv2-preset-nav-label">
                   {p.titulo_humano}
                 </span>
                 {modified && (
                   <Circle
+                    className="pulso-gv2-preset-nav-dot"
                     size={7}
                     fill={isActive ? "var(--pulso-primary)" : "var(--pulso-primary)"}
                     color="transparent"
@@ -139,30 +147,10 @@ export function PresetsEditor() {
 
           const groupHeader = (label: string, hint?: string, isFirst = false) => (
             <div
-              style={{
-                fontSize: 10, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: 0.5,
-                color: "var(--pulso-text-soft)",
-                padding: isFirst ? "2px 8px 6px" : "14px 8px 6px",
-                marginBottom: 2,
-                display: "flex", alignItems: "center", gap: 6,
-              }}
+              className={`pulso-gv2-preset-nav-group ${isFirst ? "is-first" : ""}`}
               title={hint}
             >
-              <span
-                style={{
-                  flex: 1,
-                  height: 1,
-                  maxWidth: 0,
-                }}
-              />
               <span>{label}</span>
-              <span
-                style={{
-                  flex: 1, height: 1,
-                  background: "var(--pulso-border)",
-                }}
-              />
             </div>
           );
 
@@ -218,47 +206,27 @@ function PresetHeader({
 }) {
   const Icon = resolveGraphLucideIcon(meta.icono_ui, "Sliders");
   return (
-    <header
-      style={{
-        display: "flex", alignItems: "flex-start", gap: 10,
-        paddingBottom: 10,
-        borderBottom: "1px solid var(--pulso-border)",
-      }}
-    >
+    <header className="pulso-gv2-preset-header">
       <span className="pulso-gv2-preset-header-icon" aria-hidden="true">
         <Icon size={15} />
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="pulso-gv2-preset-header-copy">
+        <div className="pulso-gv2-preset-header-title-row">
           <h3
-            style={{ margin: 0, fontSize: 14, lineHeight: 1.3 }}
+            className="pulso-gv2-preset-header-title"
             title={`ID interno: ${meta.name}`}
           >
             {meta.titulo_humano}
           </h3>
           {hasChanges && (
-            <span
-              style={{
-                fontSize: 10, fontWeight: 600,
-                padding: "2px 8px 2px 7px", borderRadius: 999,
-                background: "var(--pulso-primary-soft)",
-                color: "var(--pulso-primary)",
-                display: "inline-flex", alignItems: "center", gap: 5,
-                border: "1px solid var(--pulso-primary-border)",
-              }}
-            >
+            <span className="pulso-gv2-preset-modified-badge">
               <Circle className="pulso-gv2-modified-dot" size={6} fill="var(--pulso-primary)" color="transparent" />
               Modificado
             </span>
           )}
         </div>
         {meta.descripcion && (
-          <p
-            style={{
-              margin: "4px 0 0", fontSize: 11,
-              color: "var(--pulso-text-soft)", lineHeight: 1.5,
-            }}
-          >
+          <p className="pulso-gv2-preset-header-description">
             {meta.descripcion}
           </p>
         )}
@@ -268,24 +236,7 @@ function PresetHeader({
           type="button"
           onClick={onReset}
           title="Volver a los defaults (elimina tus cambios en este preset)."
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--pulso-surface)";
-            e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
-            e.currentTarget.style.color = "var(--pulso-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.borderColor = "var(--pulso-border)";
-            e.currentTarget.style.color = "var(--pulso-text-soft)";
-          }}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            fontSize: 11, padding: "5px 10px",
-            border: "1px solid var(--pulso-border)", borderRadius: 6,
-            background: "transparent", color: "var(--pulso-text-soft)",
-            cursor: "pointer", flexShrink: 0,
-            transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
-          }}
+          className="pulso-gv2-preset-reset"
         >
           <span className="pulso-gv2-preset-action-icon" aria-hidden="true">
             <RotateCcw size={11} />
