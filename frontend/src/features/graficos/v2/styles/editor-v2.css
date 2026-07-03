@@ -15750,6 +15750,30 @@
   white-space: nowrap;
 }
 
+.pulso-slide-preview-local-badges {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.pulso-slide-preview-local-badges span {
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 52%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-weight: 780;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .pulso-slide-preview-local .pulso-slide-preview-link {
   justify-self: end;
   margin-top: 0;

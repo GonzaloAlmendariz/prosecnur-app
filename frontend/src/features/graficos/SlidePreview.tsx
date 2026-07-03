@@ -183,12 +183,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
       return;
     }
 
-    if (rendererUnavailable && !hasResult && !hasPreview) {
-      setError("");
-      openBubble();
-      return;
-    }
-
     const canOpen = !busy && (
       (hasPreview && !isStale && !error) ||
       (hasUsableResult && !isStale)
@@ -226,6 +220,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     blocked,
     rendererUnavailable,
     hasPreview,
+    hasResult,
     isStale,
     renderFailed,
     error: !!error,
@@ -285,7 +280,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 : blocked
                   ? `Faltan datos: ${preIssues[0]}`
               : rendererUnavailable
-                    ? "No hay renderer headless configurado para generar la captura inline"
+                    ? "Generar vista local del slide en este equipo"
                     : hasPreview && !isStale && !renderFailed && !error
                       ? "Mostrar/Ocultar preview del slide"
                       : "Generar preview exacta del slide"
@@ -316,7 +311,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
       {!compact && rendererUnavailable && !error && (
         <PreviewNotice tone="muted">
-          <strong>Sin renderizador headless:</strong> configura LibreOffice/soffice para ver la lámina dentro de la app.
+          <strong>Vista local disponible:</strong> si este equipo no puede generar la captura exacta del PPTX, la app usa imágenes internas y una maqueta descargable.
         </PreviewNotice>
       )}
 
@@ -392,8 +387,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             ) : rendererUnavailable ? (
               <LocalPreviewFallback
                 slide={slide}
-                title="Vista local del slide"
-                detail={hasEmbeddedImages ? "Imagen interna del PPTX disponible sin renderer headless." : "Boceto local disponible sin LibreOffice/soffice."}
+                title="Vista local segura"
+                detail={hasEmbeddedImages ? "Imagen interna del PPTX generada en este equipo, sin captura externa." : "Boceto local disponible sin depender de LibreOffice/soffice."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -402,7 +397,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 tone="warn"
                 title="Captura no disponible"
-                detail={hasEmbeddedImages ? "Usando imagen interna del PPTX como referencia visual." : "El PPTX se genero, pero el renderer no devolvio imagen."}
+                detail={hasEmbeddedImages ? "Usando imagen interna del PPTX como referencia visual." : "El PPTX se generó, pero el renderer no devolvió imagen."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -410,7 +405,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               <LocalPreviewFallback
                 slide={slide}
                 title="Vista local disponible"
-                detail={hasEmbeddedImages ? "Imagen del graficador extraida del PPTX." : "No se encontro un renderer headless de PPTX en este equipo."}
+                detail={hasEmbeddedImages ? "Imagen del graficador extraída del PPTX." : "No se encontró un renderer headless de PPTX en este equipo."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -460,6 +455,10 @@ function LocalPreviewFallback({
     .filter((image) => typeof image?.png_base64 === "string" && image.png_base64.startsWith("data:image/"))
     .slice(0, 4);
   const hasImages = embeddedImages.length > 0;
+  const badges = [
+    hasImages ? "Imagen PPTX" : "Boceto local",
+    fileId ? "PPTX listo" : "Sin dependencias externas",
+  ];
 
   return (
     <div className={`pulso-slide-preview-local is-${tone}`} data-has-images={hasImages}>
@@ -486,6 +485,11 @@ function LocalPreviewFallback({
         <span className="pulso-slide-preview-local-copy">
           <strong>{title}</strong>
           <small>{detail}</small>
+          <span className="pulso-slide-preview-local-badges" aria-label="Capacidades del preview local">
+            {badges.map((badge) => (
+              <span key={badge}>{badge}</span>
+            ))}
+          </span>
         </span>
         {fileId && (
           <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
@@ -519,6 +523,7 @@ function getActionLabel(state: {
   blocked: boolean;
   rendererUnavailable: boolean;
   hasPreview: boolean;
+  hasResult: boolean;
   isStale: boolean;
   renderFailed: boolean;
   error: boolean;
@@ -528,6 +533,7 @@ function getActionLabel(state: {
   if (!state.prepOk) return "Preparar datos";
   if (state.blocked) return "Bloqueado";
   if (state.rendererUnavailable && !state.hasPreview) {
+    if (!state.hasResult) return "Vista local";
     return state.isBubbleOpen ? "Ocultar" : "Vista local";
   }
   if (state.hasPreview && !state.isStale && !state.renderFailed && !state.error) {
@@ -552,7 +558,7 @@ function getStateLabel(state: {
   if (!state.prepOk) return "Datos no preparados";
   if (state.blocked) return "Configuración incompleta";
   if (state.hasPreview) return state.isStale ? "Preview desactualizada" : "Preview lista";
-  if (state.rendererUnavailable) return "Sin renderizador";
+  if (state.rendererUnavailable) return state.hasResult ? "Vista local lista" : "Vista local disponible";
   if (state.renderFailed) return "Captura no disponible";
   if (state.hasResult) return "Sin captura disponible";
   return "Sin preview";
