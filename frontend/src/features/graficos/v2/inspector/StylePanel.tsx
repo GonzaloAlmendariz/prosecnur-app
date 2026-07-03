@@ -36,20 +36,6 @@ export function StylePanel({ slide, args }: StylePanelProps) {
 
   const slotNames = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
 
-  // Detectar el "preset principal" del slide observando los slots.
-  const presetInfo = useMemo(() => {
-    const presetTypes: Set<string> = new Set();
-    const populatedSlots: { slot: string; graf: string }[] = [];
-    for (const slot of slotNames) {
-      const v = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined;
-      if (!v?.graficador) continue;
-      populatedSlots.push({ slot, graf: v.graficador });
-      const ptype = graficadorToPresetType(v.graficador);
-      if (ptype) presetTypes.add(ptype);
-    }
-    return { presetTypes: Array.from(presetTypes), populatedSlots };
-  }, [slide.payload, slotNames]);
-
   // Args de estilo del SLIDE con valor custom (difieren del default)
   const customSlideArgKeys = useMemo(() => {
     const set = new Set<string>();
@@ -60,20 +46,36 @@ export function StylePanel({ slide, args }: StylePanelProps) {
     return set;
   }, [args, slide.payload]);
 
-  const styleFlow = useMemo(() => {
-    let hasPreset = false;
-    let hasMode = false;
-    let hasManual = false;
+  const slotStyleInfo = useMemo(() => {
+    type SlotState = "empty" | "base" | "mode" | "mixed" | "manual";
+    const bySlot: Record<string, { state: SlotState; label: string }> = {};
+    const counts = {
+      empty: 0,
+      base: 0,
+      mode: 0,
+      mixed: 0,
+      manual: 0,
+      populated: 0,
+    };
 
-    for (const { slot, graf } of presetInfo.populatedSlots) {
+    for (const slot of slotNames) {
       const value = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined;
+      const graf = value?.graficador;
+      if (!graf) {
+        counts.empty += 1;
+        bySlot[slot] = { state: "empty", label: "Sin gráfico" };
+        continue;
+      }
+
+      counts.populated += 1;
       const overrides = asRecord(value?.args?.overrides);
       const overrideKeys = Object.keys(overrides).filter(
         (k) => overrides[k] !== null && overrides[k] !== undefined
       );
 
       if (overrideKeys.length === 0) {
-        hasPreset = true;
+        counts.base += 1;
+        bySlot[slot] = { state: "base", label: "Base" };
         continue;
       }
 
@@ -82,13 +84,15 @@ export function StylePanel({ slide, args }: StylePanelProps) {
         ? overridesReusables.filter((o) => o.tipo_preset === presetType)
         : [];
       if (!aplicables.length) {
-        hasManual = true;
+        counts.manual += 1;
+        bySlot[slot] = { state: "manual", label: "Manual" };
         continue;
       }
 
       const exactMatch = aplicables.find((o) => shallowEqualArgs((o.args as Record<string, unknown>) ?? {}, overrides));
       if (exactMatch) {
-        hasMode = true;
+        counts.mode += 1;
+        bySlot[slot] = { state: "mode", label: `Modo: ${exactMatch.nombre}` };
         continue;
       }
 
@@ -96,19 +100,26 @@ export function StylePanel({ slide, args }: StylePanelProps) {
         isSubsetArgs((o.args as Record<string, unknown>) ?? {}, overrides)
       );
       if (partialMatch) {
-        hasManual = true;
+        counts.mixed += 1;
+        bySlot[slot] = { state: "mixed", label: "Modo + manual" };
         continue;
       }
 
-      hasManual = true;
+      counts.manual += 1;
+      bySlot[slot] = { state: "manual", label: "Manual" };
     }
 
     return {
-      hasPreset,
-      hasMode,
-      hasManual,
+      bySlot,
+      counts,
     };
-  }, [presetInfo.populatedSlots, slide.payload, overridesReusables]);
+  }, [slotNames, slide.payload, overridesReusables]);
+
+  const styleFlow = {
+    hasPreset: slotStyleInfo.counts.base > 0,
+    hasMode: slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed > 0,
+    hasManual: slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed > 0,
+  };
 
   function resetSlideStyleArgs() {
     if (!window.confirm("¿Restaurar los args de estilo del slide al estilo base?")) return;
@@ -129,20 +140,24 @@ export function StylePanel({ slide, args }: StylePanelProps) {
         <div className="pulso-gv2-style-banner">
           <span className="pulso-gv2-style-banner-icon"><Palette size={14} /></span>
           <div className="pulso-gv2-style-banner-body">
-            <div className="pulso-gv2-style-banner-title">
-              Estilo del gráfico
+            <div className="pulso-gv2-style-banner-title-row">
+              <div className="pulso-gv2-style-banner-title">
+                Estilo del gráfico
+              </div>
+              <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por slot">
+                <span><strong>{slotStyleInfo.counts.base}</strong> Base</span>
+                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Modo</span>
+                <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Manual</span>
+              </div>
             </div>
             <div className="pulso-gv2-style-banner-hint">
               <div className="pulso-gv2-style-flow-title">Ruta de estilo del gráfico</div>
               <div className="pulso-gv2-style-flow" aria-label="Jerarquía de origen de los valores">
-                <div className="pulso-gv2-style-flow-step is-base is-active" data-state="Base">
+                <div className={`pulso-gv2-style-flow-step is-base ${styleFlow.hasPreset ? "is-active" : ""}`} data-state="Base">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
                     <strong>Base global</strong>
-                    <span>
-                      Configura el aspecto base del tipo de gráfico para toda la presentación.
-                      Es el punto de inicio compartido antes de los ajustes por gráfico.
-                    </span>
+                    <span>Preset por tipo de gráfico</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
@@ -150,10 +165,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
                     <strong>Modo</strong>
-                    <span>
-                      Ajuste reutilizable para varios gráficos (compacto, narrativo, etc.).
-                      Aplícalo para homogeneidad sin tocar cada gráfico uno por uno.
-                    </span>
+                    <span>Override reusable</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
@@ -161,10 +173,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
                   <div className="pulso-gv2-style-flow-step-icon"><Sliders size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
                     <strong>Manual</strong>
-                    <span>
-                      Ajustes puntuales solo de este slide/slot.
-                      Si interviene aquí, <strong>Manual tiene prioridad</strong> sobre modo y base.
-                    </span>
+                    <span>Ajustes del slot activo</span>
                   </div>
                 </div>
               </div>
@@ -232,12 +241,18 @@ export function StylePanel({ slide, args }: StylePanelProps) {
               const slotLabel = getSlotLabel(slotName);
               const technicalName = slotValue?.graficador ?? "";
               const humanName = technicalName ? (graficadoresById[technicalName]?.titulo_humano ?? technicalName) : "";
+              const slotState = slotStyleInfo.bySlot[slotName] ?? { state: "empty", label: "Sin gráfico" };
               return (
                 <details className="pulso-gv2-slot-accordion" key={slotName} open>
                   <summary className="pulso-gv2-slot-accordion-summary">
-                    <span>
-                      <strong>{slotLabel}</strong>
-                      {technicalName ? ` · ${humanName}` : " · Sin gráfico"}
+                    <span className="pulso-gv2-slot-accordion-summary-copy">
+                      <span className="pulso-gv2-slot-accordion-title">
+                        <strong>{slotLabel}</strong>
+                        <span>{technicalName ? humanName : "Sin gráfico"}</span>
+                      </span>
+                      <span className={`pulso-gv2-slot-state-pill is-${slotState.state}`}>
+                        {slotState.label}
+                      </span>
                     </span>
                     <ChevronDown size={13} />
                   </summary>

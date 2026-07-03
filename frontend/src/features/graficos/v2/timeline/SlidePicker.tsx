@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, LayoutGrid, Layers3, LayoutPanelTop, BarChart3, Columns3, Grid3X3, UsersRound } from "lucide-react";
 import { SlideType } from "../../../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
@@ -40,6 +40,15 @@ const ORDER: ("all" | SlideCategory)[] = ["all", "estructural", "1g", "2g", "gri
 const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
   all: "Todos",
   ...CATEGORY_LABEL,
+};
+
+const CAT_META: Record<"all" | SlideCategory, { Icon: typeof Plus; hint: string }> = {
+  all: { Icon: LayoutGrid, hint: "Biblioteca completa" },
+  estructural: { Icon: LayoutPanelTop, hint: "Apertura y narrativa" },
+  "1g": { Icon: BarChart3, hint: "Lectura individual" },
+  "2g": { Icon: Columns3, hint: "Comparación doble" },
+  grid: { Icon: Grid3X3, hint: "Matrices de análisis" },
+  poblacion: { Icon: UsersRound, hint: "Perfiles poblacionales" },
 };
 
 export type SlidePickerProps = {
@@ -92,15 +101,31 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
     });
   }, [filter, query, slidesById]);
 
+  const categoryCounts = useMemo(() => {
+    const counts = Object.fromEntries(ORDER.map((c) => [c, 0])) as Record<"all" | SlideCategory, number>;
+    counts.all = ALL_TYPES.length;
+    for (const type of ALL_TYPES) counts[categoryOf(type)] += 1;
+    return counts;
+  }, []);
+
+  const activeMeta = CAT_META[filter];
+  const activeLabel = CAT_LABEL_WITH_ALL[filter];
+
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
     <div className="pulso-gv2-picker-backdrop" role="dialog" aria-modal="true" aria-label="Agregar slide">
       <div className="pulso-gv2-picker" ref={rootRef}>
         <div className="pulso-gv2-picker-head">
-          <div>
-            <div className="pulso-gv2-picker-title">Agregar slide</div>
-            <div className="pulso-gv2-picker-sub">Elige una plantilla. Puedes editarla después.</div>
+          <div className="pulso-gv2-picker-head-main">
+            <span className="pulso-gv2-picker-head-mark" aria-hidden="true">
+              <Layers3 size={17} />
+            </span>
+            <div>
+              <div className="pulso-gv2-picker-eyebrow">Biblioteca de plantillas</div>
+              <div className="pulso-gv2-picker-title">Agregar slide</div>
+              <div className="pulso-gv2-picker-sub">{ALL_TYPES.length} composiciones disponibles</div>
+            </div>
           </div>
           <button
             type="button"
@@ -112,60 +137,95 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
           </button>
         </div>
 
-        <div className="pulso-gv2-picker-search-wrap">
-          <Search size={13} className="pulso-gv2-picker-search-icon" />
-          <input
-            ref={inputRef}
-            type="text"
-            className="pulso-gv2-picker-search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar plantilla…"
-            aria-label="Buscar plantilla"
-          />
-        </div>
-
-        <div className="pulso-gv2-picker-tabs">
-          {ORDER.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={`pulso-gv2-picker-tab ${filter === c ? "is-active" : ""}`}
-              onClick={() => setFilter(c)}
-              aria-pressed={filter === c}
-            >
-              {CAT_LABEL_WITH_ALL[c]}
-            </button>
-          ))}
-        </div>
-
-        <div className="pulso-gv2-picker-grid">
-          {filtered.map((t) => {
-            const meta = slidesById[t];
-            const cat = categoryOf(t);
-            return (
-              <button
-                key={t}
-                type="button"
-                className="pulso-gv2-picker-tile"
-                data-cat={cat}
-                onClick={() => { addSlide(t); onClose(); }}
-              >
-                <span className="pulso-gv2-picker-tile-icon">
-                  <SlideTypeIcon tipo={t} iconoUi={meta?.icono_ui} size={23} />
-                </span>
-                <span className="pulso-gv2-picker-tile-label">{SLIDE_LABELS[t]}</span>
-                {meta?.descripcion && (
-                  <span className="pulso-gv2-picker-tile-desc">{meta.descripcion}</span>
-                )}
-              </button>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="pulso-gv2-picker-empty">
-              Ninguna plantilla coincide con "{query}".
+        <div className="pulso-gv2-picker-stage">
+          <aside className="pulso-gv2-picker-rail" aria-label="Categorías de plantillas">
+            <div className="pulso-gv2-picker-rail-kicker">Colección</div>
+            <div className="pulso-gv2-picker-tabs">
+              {ORDER.map((c) => {
+                const { Icon, hint } = CAT_META[c];
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`pulso-gv2-picker-tab ${filter === c ? "is-active" : ""}`}
+                    onClick={() => setFilter(c)}
+                    aria-pressed={filter === c}
+                  >
+                    <span className="pulso-gv2-picker-tab-icon" aria-hidden="true">
+                      <Icon size={14} />
+                    </span>
+                    <span className="pulso-gv2-picker-tab-copy">
+                      <span>{CAT_LABEL_WITH_ALL[c]}</span>
+                      <small>{hint}</small>
+                    </span>
+                    <span className="pulso-gv2-picker-tab-count">{categoryCounts[c]}</span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </aside>
+
+          <section className="pulso-gv2-picker-library" aria-label={`Plantillas: ${activeLabel}`}>
+            <div className="pulso-gv2-picker-library-head">
+              <div className="pulso-gv2-picker-library-title">
+                <span className="pulso-gv2-picker-library-icon" aria-hidden="true">
+                  <activeMeta.Icon size={14} />
+                </span>
+                <div>
+                  <strong>{activeLabel}</strong>
+                  <span>{activeMeta.hint}</span>
+                </div>
+              </div>
+              <div className="pulso-gv2-picker-library-count">
+                {filtered.length} en vista
+              </div>
+            </div>
+
+            <div className="pulso-gv2-picker-search-wrap">
+              <Search size={13} className="pulso-gv2-picker-search-icon" />
+              <input
+                ref={inputRef}
+                type="text"
+                className="pulso-gv2-picker-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar plantilla…"
+                aria-label="Buscar plantilla"
+              />
+            </div>
+
+            <div className="pulso-gv2-picker-grid">
+              {filtered.map((t) => {
+                const meta = slidesById[t];
+                const cat = categoryOf(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    className="pulso-gv2-picker-tile"
+                    data-cat={cat}
+                    onClick={() => { addSlide(t); onClose(); }}
+                  >
+                    <span className="pulso-gv2-picker-tile-icon">
+                      <SlideTypeIcon tipo={t} iconoUi={meta?.icono_ui} size={23} />
+                    </span>
+                    <span className="pulso-gv2-picker-tile-copy">
+                      <span className="pulso-gv2-picker-tile-meta">{CAT_LABEL_WITH_ALL[cat]}</span>
+                      <span className="pulso-gv2-picker-tile-label">{SLIDE_LABELS[t]}</span>
+                      {meta?.descripcion && (
+                        <span className="pulso-gv2-picker-tile-desc">{meta.descripcion}</span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <div className="pulso-gv2-picker-empty">
+                  Ninguna plantilla coincide con "{query}".
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>,

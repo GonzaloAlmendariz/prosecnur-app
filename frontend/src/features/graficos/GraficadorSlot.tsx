@@ -307,6 +307,13 @@ function OverrideDropdown({
   else if (isPureCustom) triggerLabel = "Manual";
 
   const isActive = exactMatch || partialMatch || isPureCustom;
+  const modeStateClass = exactMatch
+    ? "is-mode"
+    : partialMatch
+      ? "is-mixed"
+      : isPureCustom
+        ? "is-manual"
+        : "is-default";
 
   function applyMode(args: Record<string, unknown> | null) {
     // Si hay edits custom y vamos a reemplazar, pedir confirmación.
@@ -357,7 +364,7 @@ function OverrideDropdown({
             ? "Hay ajustes manuales sobre el estilo base"
             : "Cambiar modo de estilo"
         }
-        className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""}`}
+        className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""} ${modeStateClass}`}
       >
         <Wand2 size={11} />
         {triggerLabel}
