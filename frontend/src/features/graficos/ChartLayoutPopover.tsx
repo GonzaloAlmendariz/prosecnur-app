@@ -203,6 +203,9 @@ export function ChartLayoutEditor({
   const legendPosition = legendPositionFromValue(textValueOf("leyenda_posicion"));
   const showTitle = !argsByName.mostrar_titulo || boolValueOf("mostrar_titulo", true);
   const showLegend = legendPosition !== "none" && (!argsByName.mostrar_leyenda || boolValueOf("mostrar_leyenda", true));
+  const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
+  const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
+  const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
 
 function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
     e.preventDefault();
@@ -308,12 +311,17 @@ function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, 
   }
 
   return (
-    <div className="pulso-gv2-layout-panel" aria-label="Editor visual de distribución del espacio">
+    <div className="pulso-gv2-layout-panel" aria-label="Editor visual de placeholders">
           <div className="pulso-gv2-layout-head">
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
             <div>
-              <strong>Distribución del espacio</strong>
-              <span>Arrastra separadores. Abajo siguen los argumentos originales con descripción y herencia.</span>
+              <strong>Editor dinámico de placeholders</strong>
+              <span>{layoutKindLabel} · {fields.length} zonas editables · herencia visual preservada</span>
+            </div>
+            <div className="pulso-gv2-layout-head-badges" aria-label="Origen de los valores visibles">
+              <span className="is-base">Base</span>
+              {inheritedFieldCount > 0 && <span className="is-mode">{inheritedFieldCount} heredado{inheritedFieldCount === 1 ? "" : "s"}</span>}
+              {customFieldCount > 0 && <span className="is-manual">{customFieldCount} manual{customFieldCount === 1 ? "" : "es"}</span>}
             </div>
           </div>
 
@@ -1204,6 +1212,10 @@ function parseLayoutNumber(value: string): number | null {
 function formatPercent(value: number): string {
   if (!Number.isFinite(value)) return "0%";
   return `${Number((value * 100).toFixed(1)).toString().replace(".", ",")}%`;
+}
+
+function hasStoredValue(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== "";
 }
 
 function getCanvasTrackLength(canvas: HTMLDivElement | null, axis: "x" | "y"): number {
