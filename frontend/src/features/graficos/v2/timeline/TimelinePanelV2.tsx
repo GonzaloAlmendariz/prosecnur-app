@@ -212,9 +212,14 @@ export function TimelinePanelV2() {
           <div className="pulso-gv2-timeline-empty-icon">
             <LayoutPanelTop size={28} />
           </div>
-          <div className="pulso-gv2-timeline-empty-title">Empieza tu reporte</div>
+          <div className="pulso-gv2-timeline-empty-title">Plan nuevo</div>
           <div className="pulso-gv2-timeline-empty-hint">
-            Agrega tu primer slide para construir el plan paso a paso.
+            Crea una portada, sección o slide gráfico para activar el inspector.
+          </div>
+          <div className="pulso-gv2-timeline-empty-flow" aria-hidden="true">
+            <span>Portada</span>
+            <span>Sección</span>
+            <span>Gráfico</span>
           </div>
           <button
             type="button"
@@ -223,9 +228,6 @@ export function TimelinePanelV2() {
           >
             <Plus size={14} /> Agregar slide
           </button>
-          <div className="pulso-gv2-timeline-empty-hint" style={{ marginTop: 8, fontSize: 10 }}>
-            Tip: pulsa <kbd className="pulso-kbd">N</kbd> en cualquier momento.
-          </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="pulso-gv2-timeline-no-results">
