@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { MoveHorizontal, RotateCcw, X } from "lucide-react";
+import { Layers3, MoveHorizontal, MousePointer2, RotateCcw, Ruler, X } from "lucide-react";
 import type { ArgMetadata } from "../../api/client";
 import { buildGridTracks, clampByMeta, clampPairByMeta, flexTrackStyle } from "./chartLayoutHelpers";
 
@@ -78,6 +78,32 @@ const RADAR_FIELDS: LayoutField[] = [
 const BARS_PRESETS = new Set(["barras_apiladas", "multi_apiladas", "barras_agrupadas"]);
 const PIE_PRESETS = new Set(["pie", "donut"]);
 const RADAR_PRESETS = new Set(["radar_tabla", "dim_radar"]);
+
+const ROLE_LABELS: Record<LayoutField["role"], string> = {
+  label: "Etiquetas",
+  gap: "Separadores",
+  plot: "Gráfico",
+  extra: "Extra",
+  header: "Encabezado",
+  legend: "Leyenda",
+  caption: "Pie",
+  table: "Tabla",
+  row: "Categorías",
+  panel: "Panel",
+};
+
+const ROLE_ORDER: LayoutField["role"][] = [
+  "header",
+  "label",
+  "row",
+  "plot",
+  "legend",
+  "caption",
+  "extra",
+  "table",
+  "gap",
+  "panel",
+];
 
 export function ChartLayoutEditor({
   presetType,
@@ -172,6 +198,18 @@ export function ChartLayoutEditor({
     if (!dragRef.current) setLiveValues({});
   }, [valuesKey, inheritedValuesKey]);
 
+  const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
+  const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
+  const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
+  const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
+  const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
+  const sourceLabel = sourceState === "manual" ? "Manual" : sourceState === "mode" ? "Modo" : "Base";
+  const sourceDetail = sourceState === "manual"
+    ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
+    : sourceState === "mode"
+      ? `${inheritedFieldCount} valor${inheritedFieldCount === 1 ? "" : "es"} heredado${inheritedFieldCount === 1 ? "" : "s"}`
+      : "Preset predeterminado";
+
   if (!kind || fields.length === 0) return null;
 
   function valueOf(name: string): number {
@@ -203,9 +241,6 @@ export function ChartLayoutEditor({
   const legendPosition = legendPositionFromValue(textValueOf("leyenda_posicion"));
   const showTitle = !argsByName.mostrar_titulo || boolValueOf("mostrar_titulo", true);
   const showLegend = legendPosition !== "none" && (!argsByName.mostrar_leyenda || boolValueOf("mostrar_leyenda", true));
-  const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
-  const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
-  const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
 
 function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
     e.preventDefault();
@@ -311,21 +346,31 @@ function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, 
   }
 
   return (
-    <div className="pulso-gv2-layout-panel" aria-label="Editor visual de placeholders">
+    <div className="pulso-gv2-layout-panel" data-source-state={sourceState} aria-label="Editor visual de placeholders">
           <div className="pulso-gv2-layout-head">
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
-            <div>
+            <div className="pulso-gv2-layout-head-copy">
+              <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
               <strong>Editor dinámico de placeholders</strong>
               <span>{layoutKindLabel} · {fields.length} zonas editables · herencia visual preservada</span>
             </div>
-            <div className="pulso-gv2-layout-head-badges" aria-label="Origen de los valores visibles">
-              <span className="is-base">Base</span>
-              {inheritedFieldCount > 0 && <span className="is-mode">{inheritedFieldCount} heredado{inheritedFieldCount === 1 ? "" : "s"}</span>}
-              {customFieldCount > 0 && <span className="is-manual">{customFieldCount} manual{customFieldCount === 1 ? "" : "es"}</span>}
+            <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
+              <span>Estado</span>
+              <strong>{sourceLabel}</strong>
+              <small>{sourceDetail}</small>
+            </div>
+            <div className="pulso-gv2-layout-role-strip" aria-label="Zonas visibles del placeholder">
+              {roleSummary.map(({ role, label, count }) => (
+                <span key={role} data-role={role}>
+                  <i aria-hidden="true" />
+                  {label}
+                  <b>{count}</b>
+                </span>
+              ))}
             </div>
           </div>
 
-          <div ref={canvasRef} className={`pulso-gv2-layout-canvas is-${kind}`}>
+          <div ref={canvasRef} className={`pulso-gv2-layout-canvas is-${kind}`} data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}>
             {kind === "bars" && (
               <BarsLayout
                 fields={fields}
@@ -378,10 +423,17 @@ function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, 
           </div>
 
           <div className="pulso-gv2-layout-footer">
-            <span><i /> Base</span>
-            <span><i /> Modo</span>
-            <span><i /> Manual</span>
-            <button type="button" onClick={resetAll}>
+            <div className="pulso-gv2-layout-source-legend" aria-label="Origen de valores">
+              <span className="is-base"><i /> Base</span>
+              <span className="is-mode"><i /> Modo</span>
+              <span className="is-manual"><i /> Manual</span>
+            </div>
+            <div className="pulso-gv2-layout-footer-tools" aria-label="Herramientas del editor">
+              <span><MousePointer2 size={11} /> Ajuste fino</span>
+              <span><Ruler size={11} /> {fields.length} campos</span>
+              <span><Layers3 size={11} /> {roleSummary.length} roles</span>
+            </div>
+            <button type="button" onClick={resetAll} className="pulso-gv2-layout-reset">
               <RotateCcw size={12} /> Restaurar layout
             </button>
           </div>
@@ -396,6 +448,14 @@ export function hasChartLayoutSpec(presetType: string | null, args: ArgMetadata[
 }
 
 export const ChartLayoutPopover = (props: Parameters<typeof ChartLayoutEditor>[0]) => <ChartLayoutEditor {...props} />;
+
+function buildRoleSummary(fields: LayoutField[]): Array<{ role: LayoutField["role"]; label: string; count: number }> {
+  const counts = new Map<LayoutField["role"], number>();
+  fields.forEach((field) => counts.set(field.role, (counts.get(field.role) ?? 0) + 1));
+  return ROLE_ORDER
+    .filter((role) => counts.has(role))
+    .map((role) => ({ role, label: ROLE_LABELS[role], count: counts.get(role) ?? 0 }));
+}
 
 function BarsLayout({
   fields,
