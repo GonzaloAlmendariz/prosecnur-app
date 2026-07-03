@@ -1,25 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { ChevronRight, CircleAlert, ShieldCheck, TriangleAlert } from "lucide-react";
 import { usePlanStore } from "./store";
 import { ValidationIssue, usePlanValidator } from "./usePlanValidator";
 
-type StatusPalette = { bg: string; fg: string; border: string };
-
-const PALETTE_ERROR: StatusPalette = {
-  bg: "var(--pulso-danger-bg)",
-  fg: "var(--pulso-danger-fg)",
-  border: "var(--pulso-danger-border)",
-};
-const PALETTE_WARN: StatusPalette = {
-  bg: "var(--pulso-warn-bg)",
-  fg: "var(--pulso-warn-fg)",
-  border: "var(--pulso-warn-border)",
-};
-const PALETTE_SUCCESS: StatusPalette = {
-  bg: "var(--pulso-success-bg)",
-  fg: "var(--pulso-success-fg)",
-  border: "var(--pulso-success-border)",
-};
+type HealthTone = "success" | "warn" | "danger";
 
 // Badge compacto "Salud del plan" para el header. Tres estados visuales:
 //   - ✔  Todo en orden (verde, pequeño): sin warnings ni errors.
@@ -55,17 +40,33 @@ export function PlanHealthBadge() {
   }, [open]);
 
   const total = issues.length;
-  const palette: StatusPalette =
-    errors.length > 0 ? PALETTE_ERROR :
-    warnings.length > 0 ? PALETTE_WARN :
-    PALETTE_SUCCESS;
-
-  const Icon = errors.length > 0 ? XCircle : warnings.length > 0 ? AlertTriangle : CheckCircle2;
+  const tone: HealthTone = errors.length > 0 ? "danger" : warnings.length > 0 ? "warn" : "success";
+  const Icon: LucideIcon = errors.length > 0 ? CircleAlert : warnings.length > 0 ? TriangleAlert : ShieldCheck;
   const label = errors.length > 0
     ? `${errors.length} error${errors.length === 1 ? "" : "es"}`
     : warnings.length > 0
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
       : "Plan OK";
+  const headline = errors.length > 0
+    ? "Export bloqueado"
+    : warnings.length > 0
+      ? "Plan con avisos"
+      : "Plan listo";
+  const detail = errors.length > 0
+    ? "Corrige los slides señalados antes de generar PPTX o Word."
+    : warnings.length > 0
+      ? "El export está habilitado, pero conviene revisar estas señales."
+      : "Sin errores ni avisos detectados.";
+  const pillLabel = total === 0
+    ? "Limpio"
+    : errors.length > 0 && warnings.length > 0
+      ? `${total} temas`
+      : label;
+  const triggerTitle = !canExport
+    ? "El plan tiene errores que bloquean el export"
+    : warnings.length > 0
+      ? "Validación del plan: export habilitado con avisos"
+      : "Validación del plan: listo para exportar";
 
   function handleJumpTo(issue: ValidationIssue) {
     if (issue.slideId) {
@@ -75,64 +76,56 @@ export function PlanHealthBadge() {
   }
 
   return (
-    <div ref={rootRef} style={{ position: "relative" }}>
+    <div ref={rootRef} className="pulso-gv2-health-root" data-state={tone} data-open={open ? "true" : "false"}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-haspopup="menu"
-        title={canExport ? "Validación del plan" : "El plan tiene errores que bloquean el export"}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 11, fontWeight: 600,
-          padding: "5px 10px", borderRadius: 999,
-          border: `1px solid ${palette.border}`,
-          background: palette.bg,
-          color: palette.fg,
-          cursor: "pointer",
-        }}
+        aria-haspopup="dialog"
+        aria-controls={open ? "pulso-gv2-health-popover" : undefined}
+        aria-label={`${headline}. ${detail}`}
+        title={triggerTitle}
+        className={`pulso-gv2-health-trigger is-${tone}`}
       >
-        <Icon size={12} />
-        {label}
+        <Icon size={13} strokeWidth={2.2} aria-hidden="true" />
+        <span>{label}</span>
       </button>
       {open && (
         <div
-          role="menu"
-          style={{
-            position: "absolute", top: "calc(100% + 6px)", right: 0,
-            zIndex: 21,
-            minWidth: 340, maxWidth: 420,
-            maxHeight: 440, overflowY: "auto",
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 8,
-            boxShadow: "var(--pulso-shadow-med)",
-            padding: 10,
-            display: "flex", flexDirection: "column", gap: 8,
-          }}
+          id="pulso-gv2-health-popover"
+          role="dialog"
+          aria-label="Salud del plan de gráficos"
+          className={`pulso-gv2-health-popover is-${tone}`}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
-            Salud del plan
+          <div className="pulso-gv2-health-head">
+            <span className={`pulso-gv2-health-head-mark is-${tone}`} aria-hidden="true">
+              <Icon size={16} strokeWidth={2.2} />
+            </span>
+            <div className="pulso-gv2-health-head-copy">
+              <strong>{headline}</strong>
+              <span>{detail}</span>
+            </div>
+            <span className={`pulso-gv2-health-head-pill is-${tone}`}>
+              {pillLabel}
+            </span>
           </div>
 
           {total === 0 ? (
-            <div
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                fontSize: 12, color: palette.fg,
-                padding: "10px 12px", borderRadius: 6,
-                background: palette.bg, border: `1px solid ${palette.border}`,
-              }}
-            >
-              <CheckCircle2 size={14} />
-              <span>Todo en orden. El plan está listo para exportar.</span>
+            <div className="pulso-gv2-health-ready">
+              <div className="pulso-gv2-health-ready-copy">
+                <strong>Estado base limpio</strong>
+                <span>La estructura actual se mantiene sin marcas pendientes ni bloqueos.</span>
+              </div>
+              <span className="pulso-gv2-health-ready-seal" aria-hidden="true">
+                <ShieldCheck size={16} strokeWidth={2.2} />
+              </span>
             </div>
           ) : (
-            <>
+            <div className="pulso-gv2-health-issues">
               {errors.length > 0 && (
                 <IssueGroup
                   title={`Errores (${errors.length})`}
-                  hint="Bloquean el export — arréglalos antes de generar el PPT/Word."
+                  hint="Bloquean el export. Abre el slide indicado y corrige el campo faltante."
                   issues={errors}
                   severity="error"
                   onJump={handleJumpTo}
@@ -147,7 +140,7 @@ export function PlanHealthBadge() {
                   onJump={handleJumpTo}
                 />
               )}
-            </>
+            </div>
           )}
         </div>
       )}
@@ -164,48 +157,31 @@ function IssueGroup({
   severity: "error" | "warning";
   onJump: (issue: ValidationIssue) => void;
 }) {
-  const palette = severity === "error" ? PALETTE_ERROR : PALETTE_WARN;
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div
-        style={{
-          fontSize: 10, fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: 0.4,
-          color: palette.fg,
-        }}
-      >
-        {title}
+    <section className={`pulso-gv2-health-group is-${severity}`} aria-label={title}>
+      <div className="pulso-gv2-health-group-head">
+        <strong>{title}</strong>
+        <span>{issues.length}</span>
       </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-        {hint}
-      </div>
-      <ul
-        style={{
-          listStyle: "none", padding: 0, margin: "4px 0 0",
-          display: "flex", flexDirection: "column", gap: 3,
-        }}
-      >
+      <p>{hint}</p>
+      <ul className="pulso-gv2-health-list">
         {issues.map((issue, idx) => {
           const jumpable = !!issue.slideId;
           return (
-            <li key={idx}>
+            <li key={`${issue.code}:${idx}`}>
               <button
                 type="button"
                 onClick={() => onJump(issue)}
                 disabled={!jumpable}
-                style={{
-                  width: "100%", textAlign: "left",
-                  display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 11, lineHeight: 1.5,
-                  padding: "7px 10px", borderRadius: 6,
-                  border: `1px solid ${palette.border}`,
-                  background: palette.bg,
-                  color: palette.fg,
-                  cursor: jumpable ? "pointer" : "default",
-                }}
+                className={`pulso-gv2-health-row${jumpable ? " is-jumpable" : ""}`}
+                aria-label={jumpable ? `${issue.message}. Ir al slide relacionado.` : issue.message}
               >
-                <span style={{ flex: 1 }}>{issue.message}</span>
-                {jumpable && <ChevronRight size={12} />}
+                <span className="pulso-gv2-health-row-marker" aria-hidden="true" />
+                <span className="pulso-gv2-health-row-copy">
+                  <span>{issue.message}</span>
+                  <small>{jumpable ? "Abrir slide relacionado" : "Revisión global del plan"}</small>
+                </span>
+                {jumpable && <ChevronRight size={13} strokeWidth={2.2} aria-hidden="true" />}
               </button>
             </li>
           );
