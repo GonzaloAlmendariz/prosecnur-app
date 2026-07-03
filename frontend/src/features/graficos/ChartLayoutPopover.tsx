@@ -222,12 +222,12 @@ export function ChartLayoutEditor({
   const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
   const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
-  const sourceLabel = sourceState === "manual" ? "Manual" : sourceState === "mode" ? "Modo" : "Base";
+  const sourceLabel = sourceState === "manual" ? "Manual" : sourceState === "mode" ? "Modo aplicado" : "Base establecida";
   const sourceDetail = sourceState === "manual"
     ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
     : sourceState === "mode"
       ? `${inheritedFieldCount} valor${inheritedFieldCount === 1 ? "" : "es"} heredado${inheritedFieldCount === 1 ? "" : "s"}`
-      : "Preset predeterminado";
+      : "Sin cambios manuales";
 
   if (!kind || fields.length === 0) return null;
 
@@ -381,7 +381,7 @@ export function ChartLayoutEditor({
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
               <strong>Editor dinámico de placeholders</strong>
-              <span>{layoutKindLabel} · {fields.length} zonas editables · herencia visual preservada</span>
+              <span>{fields.length} zonas editables · valores heredados hasta que ajustes algo</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
               <span>Estado</span>
@@ -400,9 +400,9 @@ export function ChartLayoutEditor({
           </div>
 
           <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
-            <span><MoveHorizontal size={11} /> Arrastra divisores para repartir espacio</span>
-            <span><Ruler size={11} /> Edita números para precisión fina</span>
-            <span><X size={11} /> Oculta título, leyenda o pie con el botón de cerrar</span>
+            <span><MoveHorizontal size={11} /> Divisores: reparte espacio</span>
+            <span><Ruler size={11} /> Valores: ajuste exacto</span>
+            <span><X size={11} /> Cerrar: oculta la zona</span>
           </div>
 
           <div ref={canvasRef} className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`} data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}>
@@ -460,13 +460,13 @@ export function ChartLayoutEditor({
 
           <div className="pulso-gv2-layout-footer">
             <div className="pulso-gv2-layout-source-legend" aria-label="Origen de valores">
-              <span className="is-base"><i /> Base</span>
-              <span className="is-mode"><i /> Modo</span>
+              <span className="is-base"><i /> Base sin cambios</span>
+              <span className="is-mode"><i /> Modo heredado</span>
               <span className="is-manual"><i /> Manual</span>
             </div>
             <div className="pulso-gv2-layout-footer-tools" aria-label="Herramientas del editor">
-              <span><MousePointer2 size={11} /> Ajuste fino</span>
-              <span><Ruler size={11} /> {fields.length} campos</span>
+              <span><MousePointer2 size={11} /> Divisores activos</span>
+              <span><Ruler size={11} /> {fields.length} valores</span>
               <span><Layers3 size={11} /> {roleSummary.length} roles</span>
             </div>
             <button type="button" onClick={resetAll} className="pulso-gv2-layout-reset">
@@ -569,7 +569,8 @@ function BarsLayout({
                 type="button"
                 className="pulso-gv2-layout-handle is-y is-leading"
                 onPointerDown={(e) => beginPairDrag(e, "y", prev.name, field.name)}
-                aria-label={`Ajustar ${prev.label} y ${field.label}`}
+                aria-label={resizePairLabel(prev, field)}
+                title={resizePairLabel(prev, field)}
               />
             )}
             {isMain && horizontalFields.length > 0 ? (
@@ -594,7 +595,8 @@ function BarsLayout({
                 type="button"
                 className="pulso-gv2-layout-handle is-y"
                 onPointerDown={(e) => beginPairDrag(e, "y", field.name, next.name)}
-                aria-label={`Ajustar ${field.label} y ${next.label}`}
+                aria-label={resizePairLabel(field, next)}
+                title={resizePairLabel(field, next)}
               />
             )}
           </div>
@@ -650,7 +652,8 @@ function BarsHorizontalRow({
                 type="button"
                 className="pulso-gv2-layout-handle is-x is-leading"
                 onPointerDown={(e) => beginPairDrag(e, "x", prev.name, field.name)}
-                aria-label={`Ajustar ${prev.label} y ${field.label}`}
+                aria-label={resizePairLabel(prev, field)}
+                title={resizePairLabel(prev, field)}
               />
             )}
             <ZeroButton field={field} onSetArgValue={onSetArgValue} />
@@ -668,7 +671,8 @@ function BarsHorizontalRow({
                 type="button"
                 className="pulso-gv2-layout-handle is-x"
                 onPointerDown={(e) => beginPairDrag(e, "x", field.name, next.name)}
-                aria-label={`Ajustar ${field.label} y ${next.label}`}
+                aria-label={resizePairLabel(field, next)}
+                title={resizePairLabel(field, next)}
               />
             )}
           </div>
@@ -732,7 +736,8 @@ function VerticalLayout({
                 type="button"
                 className="pulso-gv2-layout-handle is-y is-leading"
                 onPointerDown={(e) => beginPairDrag(e, "y", prev.name, field.name)}
-                aria-label={`Ajustar ${prev.label} y ${field.label}`}
+                aria-label={resizePairLabel(prev, field)}
+                title={resizePairLabel(prev, field)}
               />
             )}
             <ZeroButton field={field} onSetArgValue={onSetArgValue} />
@@ -745,7 +750,8 @@ function VerticalLayout({
                 type="button"
                 className="pulso-gv2-layout-handle is-y"
                 onPointerDown={(e) => beginPairDrag(e, "y", field.name, next.name)}
-                aria-label={`Ajustar ${field.label} y ${next.label}`}
+                aria-label={resizePairLabel(field, next)}
+                title={resizePairLabel(field, next)}
               />
             )}
           </div>
@@ -824,7 +830,8 @@ function PieLayout({
                 type="button"
                 className="pulso-gv2-layout-handle is-y is-leading"
                 onPointerDown={(e) => beginPairDrag(e, "y", prev.name, field.name)}
-                aria-label={`Ajustar ${prev.label} y ${field.label}`}
+                aria-label={resizePairLabel(prev, field)}
+                title={resizePairLabel(prev, field)}
               />
             )}
             {!isPanel && <ZeroButton field={field} onSetArgValue={onSetArgValue} />}
@@ -851,7 +858,8 @@ function PieLayout({
                 type="button"
                 className="pulso-gv2-layout-handle is-y"
                 onPointerDown={(e) => beginPairDrag(e, "y", field.name, next.name)}
-                aria-label={`Ajustar ${field.label} y ${next.label}`}
+                aria-label={resizePairLabel(field, next)}
+                title={resizePairLabel(field, next)}
               />
             )}
           </div>
@@ -886,7 +894,8 @@ function PiePanel({
             type="button"
             className="pulso-gv2-layout-handle is-x is-leading"
             onPointerDown={(e) => beginSingleDrag(e, "x", legendRightField.name, -1)}
-            aria-label={`Ajustar ancho de ${legendRightField.label}`}
+            aria-label={resizeSingleLabel(legendRightField)}
+            title={resizeSingleLabel(legendRightField)}
           />
           <ZeroButton field={legendRightField} onSetArgValue={onSetArgValue} />
           <span>{legendRightField.short}</span>
@@ -935,7 +944,8 @@ function RadarLayout({
             type="button"
             className="pulso-gv2-layout-handle is-x is-leading"
             onPointerDown={(e) => beginSingleDrag(e, "x", "tabla_ph_ancho")}
-            aria-label="Ajustar ancho de tabla"
+            aria-label="Arrastra para ajustar ancho de tabla"
+            title="Arrastra para ajustar ancho de tabla"
           />
           <span>Tabla</span>
           <FrameMetric value={table} total={1} axisLabel="ancho" onCommit={(next) => onSetArgValue("tabla_ph_ancho", next)} />
@@ -1154,7 +1164,7 @@ function ZeroButton({
       type="button"
       className="pulso-gv2-layout-zero"
       aria-label={`Ocultar ${field.label} poniendo su espacio en cero`}
-      title={`Ocultar ${field.label}`}
+      title={`Ocultar ${field.label} (espacio en 0)`}
       onPointerEnter={(event) => {
         setZeroInteraction(event.currentTarget, true);
       }}
@@ -1317,6 +1327,14 @@ function pointerPositionInCanvas(
   const client = axis === "x" ? event.clientX : event.clientY;
   const position = (client - axisStart) / Math.max(1, axisSize);
   return Math.min(1, Math.max(0, position));
+}
+
+function resizePairLabel(first: LayoutField, second: LayoutField): string {
+  return `Arrastra para repartir espacio entre ${first.label} y ${second.label}`;
+}
+
+function resizeSingleLabel(field: LayoutField): string {
+  return `Arrastra para ajustar ${field.label}`;
 }
 
 function layoutFieldLabel(
