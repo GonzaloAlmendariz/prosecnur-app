@@ -21769,6 +21769,91 @@
   z-index: 2;
 }
 
+/* Suite polish pass 32: PPT-faithful model proportions.
+ * The card miniatures are small, but chart zones should still read like the
+ * real PowerPoint placeholders instead of thin decorative strips. */
+.pulso-gv2-picker-slide-preview.is-card {
+  width: min(236px, 94%);
+}
+
+.pulso-gv2-picker-tile {
+  grid-template-rows: auto minmax(116px, auto);
+  min-height: 206px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="single"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="splitRight"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="splitLeft"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="two"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoTextLeft"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoTextRight"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="grid4"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population2"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population4"] .pulso-gv2-picker-slide-slots {
+  grid-row: 2 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="splitRight"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="splitLeft"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoTextLeft"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoTextRight"] .pulso-gv2-picker-slide-copy {
+  grid-row: 2 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy {
+  grid-row: 2 / 3;
+  align-content: center;
+  gap: 2px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-slots {
+  grid-row: 3 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy::before,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy::before {
+  content: none;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy i,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy i {
+  height: 2px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slots {
+  grid-template-rows: repeat(2, minmax(32px, 1fr));
+  grid-row: 2 / 8;
+  gap: 4px 6px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(1),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(1),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(2),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(2),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(3),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(3) {
+  grid-row: 1;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(4),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(4),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slot:nth-child(5),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(5),
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slot:nth-child(6) {
+  grid-row: 2;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-icon,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-icon {
+  width: 42%;
+  opacity: 0.82;
+}
+
 @media (max-width: 980px) {
   .pulso-gv2-picker {
     height: min(820px, calc(100vh - 42px));
