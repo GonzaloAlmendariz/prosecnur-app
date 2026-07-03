@@ -23,8 +23,6 @@ type Props = {
   compact?: boolean;
 };
 
-type PreviewEngineMode = "checking" | "exact" | "local";
-
 function hashSlide(slide: Slide, visualConfigHash: string): string {
   return JSON.stringify({ tipo: slide.tipo, payload: slide.payload, visualConfigHash });
 }
@@ -69,8 +67,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const rendererChecking = !rendererStatusChecked;
   const rendererAvailable = rendererStatus?.available === true;
   const rendererUnavailable = rendererStatusChecked && !rendererAvailable;
-  const engineMode: PreviewEngineMode = rendererChecking ? "checking" : rendererAvailable ? "exact" : "local";
-  const engineCopy = getEngineCopy(engineMode, rendererStatus);
   const hasPreview = !!slidePreview?.png_base64;
   const hasEmbeddedImages = previewImages.length > 0;
   const hasResult = !!fileId && !error;
@@ -299,7 +295,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         )}
 
         <div className="pulso-slide-preview-controls">
-          <PreviewEnginePill mode={engineMode} label={engineCopy.label} detail={engineCopy.detail} />
           <button
             type="button"
             className="pulso-primary pulso-slide-preview-action"
@@ -553,26 +548,6 @@ function PreviewNotice({ tone, children }: { tone: "warn" | "danger" | "muted"; 
   );
 }
 
-function PreviewEnginePill({
-  mode,
-  label,
-  detail,
-}: {
-  mode: PreviewEngineMode;
-  label: string;
-  detail: string;
-}) {
-  return (
-    <span className={`pulso-slide-preview-engine is-${mode}`} title={detail}>
-      {mode === "checking" ? <Loader2 size={12} className="pulso-spin" /> : mode === "exact" ? <Eye size={12} /> : <ImageIcon size={12} />}
-      <span>
-        <strong>{label}</strong>
-        <small>{detail}</small>
-      </span>
-    </span>
-  );
-}
-
 function previewAspect(preview: SlideRenderedPreview | null): string | undefined {
   const width = Number(preview?.width);
   const height = Number(preview?.height);
@@ -681,22 +656,6 @@ function getStateLabel(state: {
   if (state.renderFailed) return "Captura no disponible";
   if (state.hasResult) return "Sin captura disponible";
   return "Sin preview";
-}
-
-function getEngineCopy(mode: PreviewEngineMode, status: GraficosPreviewRendererStatus | null): { label: string; detail: string } {
-  if (mode === "checking") {
-    return { label: "Motor", detail: "Comprobando preview" };
-  }
-  if (mode === "exact") {
-    return {
-      label: "Vista exacta",
-      detail: formatRendererName(status?.renderer) || "PPTX local",
-    };
-  }
-  return {
-    label: "Vista local",
-    detail: "Incluida en Prosecnur",
-  };
 }
 
 function formatRendererName(renderer?: string | null): string {

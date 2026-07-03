@@ -51,7 +51,7 @@ export function PlanCoverageBadge() {
   const label = error
     ? "Cobertura no disponible"
     : summary
-      ? `${summary.included_graphable}/${summary.graphable_variables} graficables`
+      ? `${summary.included_graphable}/${summary.graphable_variables}`
       : "Cobertura";
 
   const tone = error

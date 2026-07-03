@@ -46,7 +46,7 @@ export function PlanHealthBadge() {
     ? `${errors.length} error${errors.length === 1 ? "" : "es"}`
     : warnings.length > 0
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
-      : "Plan OK";
+      : "OK";
   const headline = errors.length > 0
     ? "Export bloqueado"
     : warnings.length > 0
