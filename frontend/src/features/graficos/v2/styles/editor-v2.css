@@ -13421,6 +13421,18 @@
   background: var(--gv2-accent, var(--pulso-primary));
 }
 
+.pulso-gv2-field-card[data-arg-state="inherited"]:not([data-has-auto-text="true"]) {
+  border-color: color-mix(in srgb, var(--pulso-border) 88%, var(--gv2-accent-border, var(--pulso-primary-border)) 12%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--pulso-surface-2) 20%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-field-card[data-arg-state="inherited"]:not([data-has-auto-text="true"])::before {
+  background: color-mix(in srgb, var(--pulso-border) 82%, transparent);
+  opacity: 0.38;
+}
+
 .pulso-gv2-field-title-row {
   min-width: 0;
   display: flex;
