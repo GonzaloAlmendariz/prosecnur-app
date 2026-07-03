@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useState } from "react";
-import { Circle, Palette, RotateCcw } from "lucide-react";
+import { CheckCircle2, Circle, Palette, RotateCcw } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
-import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
+import { usePresetsDefaults } from "./usePresetsDefaults";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
 import { PptStyleProfilesPanel } from "./PptStyleProfilesPanel";
@@ -34,12 +34,36 @@ function clarifyPresetGraphTitleArg(arg: ArgMetadata): ArgMetadata {
   };
 }
 
+function samePresetValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function presetCustomArgs(
+  current: Record<string, unknown> | undefined,
+  defaults: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const defaultValues = defaults ?? {};
+  for (const [key, value] of Object.entries(current ?? {})) {
+    if (value === null || value === undefined || value === "") continue;
+    if (samePresetValue(value, defaultValues[key])) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
+function presetCustomCount(
+  current: Record<string, unknown> | undefined,
+  defaults: Record<string, unknown> | undefined,
+): number {
+  return Object.keys(presetCustomArgs(current, defaults)).length;
+}
+
 export function PresetsEditor() {
   const { presets, loading, error } = usePresetsMetadata();
   const { presets: defaults } = usePresetsDefaults();
   const configPresets = usePlanStore((s) => s.presets);
   const resetPreset = usePlanStore((s) => s.resetPreset);
-  const replacePreset = usePlanStore((s) => s.replacePreset);
 
   const [selected, setSelected] = useState<string>("base");
 
@@ -61,14 +85,12 @@ export function PresetsEditor() {
   const meta = presets.find((p) => p.name === selected) ?? presets[0];
   if (!meta) return null;
 
-  const current = configPresets[meta.name] ?? {};
+  const rawCurrent = configPresets[meta.name] ?? {};
   const defaultForPreset = defaults[meta.name] ?? {};
-  // "Modificado" ahora compara contra el DEFAULT (no contra vacío). Los
-  // presets llegan pre-poblados con los defaults → antes siempre se
-  // mostraba el badge aunque el usuario no hubiera tocado nada. Ahora
-  // solo se enciende cuando el value difiere del default real.
-  const hasChanges = !presetArgsEqual(current, defaultForPreset);
-  const modifiedCount = presets.filter((p) => !presetArgsEqual(configPresets[p.name] ?? {}, defaults[p.name] ?? {})).length;
+  const current = presetCustomArgs(rawCurrent, defaultForPreset);
+  const customArgCount = Object.keys(current).length;
+  const hasChanges = customArgCount > 0;
+  const modifiedCount = presets.filter((p) => presetCustomCount(configPresets[p.name], defaults[p.name]) > 0).length;
 
   return (
     <div className="pulso-gv2-presets-stack">
@@ -80,11 +102,16 @@ export function PresetsEditor() {
         <span className="pulso-gv2-presets-overview-copy">
           <strong>Biblioteca visual PPT</strong>
           <span>
-            {presets.length} tipos · {modifiedCount} modificado{modifiedCount === 1 ? "" : "s"}
+            {presets.length} tipos · {modifiedCount === 0
+              ? "todo heredado de la base"
+              : `${modifiedCount} personalizado${modifiedCount === 1 ? "" : "s"}`}
           </span>
         </span>
-        <span className="pulso-gv2-presets-overview-current" title={`ID interno: ${meta.name}`}>
-          {meta.titulo_humano}
+        <span
+          className={`pulso-gv2-presets-overview-current ${hasChanges ? "is-custom" : "is-inherited"}`}
+          title={`ID interno: ${meta.name}`}
+        >
+          {hasChanges ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}` : "Base establecida"}
         </span>
       </div>
       <div className="pulso-gv2-presets-editor">
@@ -105,13 +132,7 @@ export function PresetsEditor() {
           const dimensionales = presets.filter((p) => isDim(p.name));
 
           const renderItem = (p: typeof presets[number]) => {
-            // Mismo criterio que el badge "Modificado" del header: hay
-            // cambios vs el default efectivo, no "hay algo en el store"
-            // (los presets vienen pre-poblados con defaults).
-            const modified = !presetArgsEqual(
-              configPresets[p.name] ?? {},
-              defaults[p.name] ?? {},
-            );
+            const modified = presetCustomCount(configPresets[p.name], defaults[p.name]) > 0;
             const isActive = p.name === selected;
             const Icon = resolveGraphLucideIcon(p.icono_ui, "Sliders");
             return (
@@ -174,17 +195,9 @@ export function PresetsEditor() {
         <PresetHeader
           meta={meta}
           hasChanges={hasChanges}
+          customArgCount={customArgCount}
           onReset={() => {
-            // Restaurar default: reemplazar el preset con el default
-            // efectivo (user-saved o factory). No borrar — los presets
-            // SIEMPRE tienen valores de default; "vacío" no es un
-            // estado válido en el UX.
-            const def = defaults[meta.name];
-            if (def && Object.keys(def).length > 0) {
-              replacePreset(meta.name, def);
-            } else {
-              resetPreset(meta.name);
-            }
+            resetPreset(meta.name);
           }}
         />
         <PresetBody meta={meta} values={current} />
@@ -198,10 +211,12 @@ export function PresetsEditor() {
 function PresetHeader({
   meta,
   hasChanges,
+  customArgCount,
   onReset,
 }: {
   meta: { name: string; titulo_humano: string; descripcion: string; icono_ui: string };
   hasChanges: boolean;
+  customArgCount: number;
   onReset: () => void;
 }) {
   const Icon = resolveGraphLucideIcon(meta.icono_ui, "Sliders");
@@ -218,10 +233,15 @@ function PresetHeader({
           >
             {meta.titulo_humano}
           </h3>
-          {hasChanges && (
-            <span className="pulso-gv2-preset-modified-badge">
+          {hasChanges ? (
+            <span className="pulso-gv2-preset-modified-badge is-custom">
               <Circle className="pulso-gv2-modified-dot" size={6} fill="var(--pulso-primary)" color="transparent" />
-              Modificado
+              Personalizado · {customArgCount} ajuste{customArgCount === 1 ? "" : "s"}
+            </span>
+          ) : (
+            <span className="pulso-gv2-preset-modified-badge is-inherited">
+              <CheckCircle2 size={12} />
+              Base establecida
             </span>
           )}
         </div>
@@ -235,13 +255,13 @@ function PresetHeader({
         <button
           type="button"
           onClick={onReset}
-          title="Volver a los defaults (elimina tus cambios en este preset)."
+          title="Volver a la base heredada de este preset."
           className="pulso-gv2-preset-reset"
         >
           <span className="pulso-gv2-preset-action-icon" aria-hidden="true">
             <RotateCcw size={11} />
           </span>
-          Restaurar default
+          Volver a base
         </button>
       )}
     </header>
@@ -255,7 +275,6 @@ function PresetBody({
   meta: { name: string; args: ArgMetadata[] };
   values: Record<string, unknown>;
 }) {
-  const setPresetArg = usePlanStore((s) => s.setPresetArg);
   const replacePreset = usePlanStore((s) => s.replacePreset);
   const { presets: defaults } = usePresetsDefaults();
   const presetArgs = useMemo(() => meta.args.map(clarifyPresetGraphTitleArg), [meta.args]);
@@ -275,17 +294,8 @@ function PresetBody({
 
   const currentDefaults = defaults[meta.name] ?? {};
 
-  function sameValue(a: unknown, b: unknown): boolean {
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-
   function handleSetPresetArg(name: string, value: unknown) {
-    if (value === null || value === undefined || value === "") {
-      setPresetArg(meta.name, name, value);
-      return;
-    }
-    const defaultValue = currentDefaults[name];
-    setPresetArg(meta.name, name, sameValue(value, defaultValue) ? null : value);
+    handleSetPresetPatch({ [name]: value });
   }
 
   function handleSetPresetPatch(patchIn: Record<string, unknown>) {
@@ -296,7 +306,7 @@ function PresetBody({
         continue;
       }
       const defaultValue = currentDefaults[name];
-      if (sameValue(value, defaultValue)) {
+      if (samePresetValue(value, defaultValue)) {
         delete next[name];
       } else {
         next[name] = value;
