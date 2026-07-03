@@ -222,7 +222,7 @@ export function ChartLayoutEditor({
   const layoutKindLabel = kind === "bars" ? "Gráfico de barras" : kind === "radar" ? "Radar con tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Layout vertical";
   const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
-  const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Base predeterminada";
+  const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Valor por defecto";
   const sourceDetail = sourceState === "manual"
     ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
     : sourceState === "mode"
@@ -475,7 +475,7 @@ export function ChartLayoutEditor({
 
           <div className="pulso-gv2-layout-footer">
             <div className="pulso-gv2-layout-source-legend" aria-label="Origen de valores">
-              <span className="is-base"><i /> Base predeterminada</span>
+              <span className="is-base"><i /> Valor por defecto</span>
               <span className="is-mode"><i /> Estilo guardado</span>
               <span className="is-manual"><i /> Ajustes adicionales</span>
             </div>
@@ -489,7 +489,7 @@ export function ChartLayoutEditor({
               onClick={resetAll}
               className="pulso-gv2-layout-reset"
               disabled={!hasManualLayout}
-              title={hasManualLayout ? "Quitar ajustes adicionales y volver a la base o estilo visible" : "Este layout no tiene ajustes adicionales"}
+              title={hasManualLayout ? "Quitar ajustes adicionales y volver al valor visible anterior" : "Este layout no tiene ajustes adicionales"}
             >
               <RotateCcw size={12} /> {resetLabel}
             </button>
