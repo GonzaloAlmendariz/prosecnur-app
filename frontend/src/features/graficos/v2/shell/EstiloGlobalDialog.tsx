@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Sliders, FileText, Palette, Image as ImageIcon } from "lucide-react";
+import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
 import { IconosEditor } from "../../IconosEditor";
@@ -18,12 +18,12 @@ import { WordPresetsEditor } from "../../WordPresetsEditor";
 
 type Tab = "ppt" | "word" | "paletas" | "iconos" | "modos";
 
-const TABS: { key: Tab; label: string; Icon: typeof Sliders; hint: string }[] = [
-  { key: "ppt",     label: "Presets PPT",  Icon: Sliders,    hint: "Estilos por tipo de gráfico para el PPT" },
-  { key: "word",    label: "Word",         Icon: FileText,   hint: "Overrides solo para el reporte Word" },
-  { key: "paletas", label: "Paletas",      Icon: Palette,    hint: "Colores por value-label de cada lista" },
-  { key: "iconos",  label: "Íconos",       Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
-  { key: "modos",   label: "Modos",        Icon: IconModes,  hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
+const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string }[] = [
+  { key: "ppt",     label: "Presets PPT",  eyebrow: "Presentación", Icon: Sliders,    hint: "Estilos por tipo de gráfico para el PPT" },
+  { key: "word",    label: "Word",         eyebrow: "Reporte",      Icon: FileText,   hint: "Overrides solo para el reporte Word" },
+  { key: "paletas", label: "Paletas",      eyebrow: "Color",        Icon: Palette,    hint: "Colores por value-label de cada lista" },
+  { key: "iconos",  label: "Íconos",       eyebrow: "Assets",       Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
+  { key: "modos",   label: "Modos",        eyebrow: "Reutilizable", Icon: IconModes,  hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
 ];
 
 export type EstiloGlobalDialogProps = {
@@ -35,6 +35,7 @@ export type EstiloGlobalDialogProps = {
 export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: EstiloGlobalDialogProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
 
   // Reset tab al abrir
   useEffect(() => { if (open) setTab(initialTab); }, [open, initialTab]);
@@ -71,11 +72,30 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
     <div className="pulso-gv2-estilo-backdrop" role="dialog" aria-modal="true" aria-label="Estilo global">
       <div className="pulso-gv2-estilo-dialog" ref={dialogRef}>
         <header className="pulso-gv2-estilo-head">
-          <div>
-            <div className="pulso-gv2-estilo-title">Estilo global</div>
-            <div className="pulso-gv2-estilo-sub">
-              Configura presets, paletas, íconos y modos. Estos valores se heredan en todos los slides.
+          <div className="pulso-gv2-estilo-identity">
+            <span className="pulso-gv2-estilo-mark" aria-hidden="true">
+              <Sparkles size={17} />
+            </span>
+            <div className="pulso-gv2-estilo-copy">
+              <div className="pulso-gv2-estilo-eyebrow">Suite visual</div>
+              <div className="pulso-gv2-estilo-title">Estilo global</div>
+              <div className="pulso-gv2-estilo-sub">
+                Presets, Word, paletas, íconos y modos para toda la presentación.
+              </div>
             </div>
+          </div>
+          <div className="pulso-gv2-estilo-context" aria-label={`Sección activa: ${activeTab.label}`}>
+            <span className="pulso-gv2-estilo-context-icon" aria-hidden="true">
+              <activeTab.Icon size={14} />
+            </span>
+            <span className="pulso-gv2-estilo-context-copy">
+              <strong>{activeTab.label}</strong>
+              <span>{activeTab.eyebrow}</span>
+            </span>
+            <span className="pulso-gv2-estilo-context-pill">
+              <Layers3 size={12} />
+              Global
+            </span>
           </div>
           <button
             type="button"
@@ -97,7 +117,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
         </header>
 
         <nav className="pulso-gv2-estilo-tabs" role="tablist">
-          {TABS.map(({ key, label, Icon, hint }) => (
+          {TABS.map(({ key, label, eyebrow, Icon, hint }) => (
             <button
               key={key}
               role="tab"
@@ -110,7 +130,10 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               <span className="pulso-gv2-estilo-tab-icon" aria-hidden="true">
                 <Icon size={13} />
               </span>
-              {label}
+              <span className="pulso-gv2-estilo-tab-copy">
+                <span className="pulso-gv2-estilo-tab-label">{label}</span>
+                <span className="pulso-gv2-estilo-tab-eyebrow">{eyebrow}</span>
+              </span>
             </button>
           ))}
         </nav>
