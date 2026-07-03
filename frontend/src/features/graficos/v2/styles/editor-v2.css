@@ -11716,3 +11716,218 @@
     font-size: 23px;
   }
 }
+
+/* Suite polish pass 6: professional report output command chrome. */
+.pulso-gv2-command-row--exports {
+  min-height: 54px;
+  padding-block: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-surface-2) 78%, var(--gv2-accent-soft, var(--pulso-primary-soft)))),
+    var(--pulso-surface) !important;
+}
+
+.pulso-gv2-command-row--status [role="status"] {
+  min-height: 18px;
+  line-height: 1.25 !important;
+  align-items: center !important;
+}
+
+.pulso-gv2-command-row--status [role="status"] svg {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-style-command {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 360px;
+}
+
+.pulso-gv2-estilo-trigger {
+  min-height: 40px !important;
+  max-width: 100%;
+  justify-content: flex-start !important;
+  gap: 9px !important;
+  padding: 5px 10px 5px 6px !important;
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 58%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(249, 251, 253, 0.86)),
+    var(--pulso-surface) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 5px 14px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-estilo-trigger:hover,
+.pulso-gv2-estilo-trigger.is-open {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 66%, #ffffff), rgba(255, 255, 255, 0.9)),
+    var(--pulso-surface) !important;
+  border-color: var(--gv2-accent-border, var(--pulso-primary-border)) !important;
+  color: var(--gv2-accent, var(--pulso-primary)) !important;
+}
+
+.pulso-gv2-estilo-trigger-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--gv2-accent, var(--pulso-primary));
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px var(--gv2-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-gv2-estilo-trigger-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-gv2-estilo-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.pulso-gv2-estilo-trigger-meta {
+  max-width: min(260px, 34vw);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 640;
+  line-height: 1.05;
+}
+
+.pulso-gv2-export-suite {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 520px;
+  gap: 7px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 46%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.pulso-gv2-export-suite-title {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 74%, var(--pulso-text-soft));
+  background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 62%, #ffffff);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-gv2-export-format {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pulso-gv2-export-button {
+  min-height: 32px !important;
+  padding-inline: 12px !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 94%, #ffffff), var(--gv2-accent, var(--pulso-primary))) !important;
+  border-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 82%, var(--pulso-border)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 7px 16px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 18%, transparent) !important;
+}
+
+.pulso-gv2-export-button:disabled {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface-2) 82%, #ffffff), var(--pulso-surface-2)) !important;
+  border-color: var(--pulso-border) !important;
+  color: color-mix(in srgb, var(--pulso-text-soft) 72%, #ffffff) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+.pulso-gv2-download-pill {
+  max-width: min(190px, 22vw);
+  min-height: 30px;
+  border-color: var(--pulso-success-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-success-bg) 72%, #ffffff), rgba(255, 255, 255, 0.84));
+  color: var(--pulso-success-fg);
+  font-size: 10.5px;
+}
+
+.pulso-gv2-download-pill svg {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-download-pill {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-save-result {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 999px;
+  background: var(--pulso-success-bg);
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.pulso-gv2-save-result.is-error {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+@media (max-width: 1180px) {
+  .pulso-gv2-export-suite {
+    border-radius: 16px;
+    flex-wrap: wrap;
+  }
+
+  .pulso-gv2-export-suite-title {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pulso-gv2-download-pill {
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 760px) {
+  .pulso-gv2-style-command,
+  .pulso-gv2-export-suite,
+  .pulso-gv2-export-format {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .pulso-gv2-export-format {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-gv2-export-button,
+  .pulso-gv2-download-pill {
+    width: 100%;
+    max-width: none;
+  }
+}
