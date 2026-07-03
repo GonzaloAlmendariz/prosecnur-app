@@ -17923,3 +17923,228 @@
     grid-template-columns: 18px minmax(0, 1fr) auto;
   }
 }
+
+/* Suite polish pass 19: clearer exact/share/state controls in the placeholder canvas. */
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric {
+  --metric-progress: 0%;
+  --metric-state-color: var(--layout-accent, var(--gv2-accent, var(--pulso-primary)));
+  grid-template-columns: minmax(58px, 1fr) minmax(58px, 1fr);
+  grid-template-areas:
+    "value share"
+    "bar bar"
+    "tier tier";
+  min-width: min(164px, calc(100% - 14px));
+  max-width: calc(100% - 12px);
+  gap: 0;
+  border: 1px solid color-mix(in srgb, var(--metric-state-color) 18%, rgba(31, 41, 55, 0.1));
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--layout-tint, rgba(255, 255, 255, 0.72)) 48%, #ffffff));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 2px 7px rgba(15, 23, 42, 0.055);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric[data-share-tier="hidden"] {
+  --metric-state-color: #94a3b8;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric[data-share-tier="compact"] {
+  --metric-state-color: #64748b;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric[data-share-tier="dominant"] {
+  --metric-state-color: var(--layout-accent, var(--gv2-accent, var(--pulso-primary)));
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 11px 18px;
+  align-items: center;
+  justify-items: center;
+  padding: 5px 4px 4px;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric-cell.is-value {
+  grid-area: value;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric-cell.is-share {
+  grid-area: share;
+  border-left: 1px solid color-mix(in srgb, var(--metric-state-color) 14%, rgba(31, 41, 55, 0.08));
+  background: color-mix(in srgb, var(--metric-state-color) 6%, rgba(248, 250, 252, 0.62));
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric em {
+  color: color-mix(in srgb, var(--metric-state-color) 44%, var(--pulso-text-soft));
+  font-size: 8px;
+  font-weight: 820;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric b,
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
+  color: color-mix(in srgb, var(--pulso-text) 84%, var(--metric-state-color));
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
+  width: 36px;
+  min-height: 20px;
+  border-radius: 7px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input:hover {
+  background: color-mix(in srgb, var(--metric-state-color) 7%, #ffffff);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input:focus {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--metric-state-color) 15%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric .pulso-gv2-layout-metric-bar {
+  grid-area: bar;
+  display: block !important;
+  height: 4px;
+  margin: 0 8px 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      var(--metric-state-color) 0 var(--metric-progress),
+      color-mix(in srgb, var(--pulso-border) 68%, #ffffff) var(--metric-progress) 100%
+    );
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.12);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-tier {
+  grid-area: tier;
+  min-width: 0;
+  min-height: 20px;
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 3px 8px 5px;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--metric-state-color) 12%, rgba(31, 41, 55, 0.07));
+  background: color-mix(in srgb, var(--metric-state-color) 7%, rgba(255, 255, 255, 0.76));
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric-tier b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--metric-state-color);
+  font-size: 9px;
+  font-weight: 860;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric.is-gap-metric {
+  grid-template-columns: minmax(42px, auto) minmax(42px, auto);
+  grid-template-areas: "value share";
+  min-width: min(94px, calc(100% - 6px));
+  max-width: calc(100% - 4px);
+  border-radius: 8px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric.is-gap-metric > .pulso-gv2-layout-metric-cell {
+  grid-template-rows: 9px 15px;
+  padding: 3px 5px 4px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric.is-gap-metric input {
+  width: 36px;
+  min-height: 17px;
+  font-size: 10px;
+}
+
+.pulso-gv2-layout-frame[data-role="gap"] .pulso-gv2-layout-metric.is-gap-metric > span + span {
+  display: grid;
+}
+
+.pulso-gv2-layout-frame[data-role="header"] .pulso-gv2-layout-metric {
+  display: none !important;
+}
+
+.pulso-gv2-layout-frame.is-compact:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric {
+  max-width: calc(100% - 8px);
+}
+
+.pulso-gv2-layout-instruction-strip span {
+  min-height: 27px;
+  padding-inline: 10px;
+  font-size: 10.2px;
+}
+
+@container (max-width: 150px) {
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "share";
+    min-width: min(76px, calc(100% - 6px));
+    max-width: calc(100% - 6px);
+    border-radius: 8px;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-cell.is-value,
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-bar,
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-tier {
+    display: none !important;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-cell.is-share {
+    border-left: 0;
+    padding: 3px 2px 4px;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-cell.is-share em {
+    display: none;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-cell.is-share b {
+    font-size: 9.2px;
+  }
+}
+
+@container (max-width: 82px) {
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) > span {
+    display: none !important;
+  }
+}
+
+@container (max-height: 96px) and (min-width: 151px) {
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric {
+    grid-template-columns: minmax(48px, auto) minmax(48px, auto);
+    grid-template-areas: "value share";
+    min-width: min(118px, calc(100% - 10px));
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-bar,
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric-tier {
+    display: none !important;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell {
+    min-width: 34px;
+    grid-template-rows: 1fr;
+    padding: 3px 4px 4px;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric input {
+    width: 40px;
+  }
+
+  .pulso-gv2-layout-frame:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric em {
+    display: none;
+  }
+}
