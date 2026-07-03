@@ -392,20 +392,20 @@ function UnknownGraficadorState({
 
       <div className="pulso-gv2-unknown-graf-copy">
         <div className="pulso-gv2-unknown-graf-kicker">
-          <span>Modelo no disponible</span>
+          <span>Modelo pendiente</span>
           {slotLabel && <strong>{slotLabel}</strong>}
         </div>
-        <h4>Este espacio usa un graficador fuera del catálogo actual</h4>
+        <h4>Modelo fuera de catálogo, configuración preservada</h4>
         <p>
-          Conservamos la configuración del proyecto y el resto del slide.
-          Reemplázalo por un modelo vigente para recuperar preview y edición completa.
+          El plan conserva este slot y sus argumentos. Reemplázalo por un modelo vigente
+          para recuperar preview exacta y edición completa.
         </p>
         <div className="pulso-gv2-unknown-graf-meta" aria-label="Estado del slot">
           <span>
-            <IconTemplate size={12} /> Configuración preservada
+            <IconTemplate size={12} /> Plan intacto
           </span>
           <span>
-            <IconModes size={12} /> Requiere modelo vigente
+            <IconModes size={12} /> Preview limitado
           </span>
           <code>{graficador}</code>
         </div>
@@ -417,10 +417,10 @@ function UnknownGraficadorState({
           className="pulso-primary pulso-gv2-pill-button pulso-gv2-unknown-graf-action"
           onClick={onReplaceGraficador}
         >
-          <IconForward size={13} /> Cambiar modelo
+          <IconForward size={13} /> Reemplazar modelo
         </button>
       ) : (
-        <span className="pulso-gv2-unknown-graf-hint">Datos / Cambiar</span>
+        <span className="pulso-gv2-unknown-graf-hint">Datos - Cambiar modelo</span>
       )}
     </div>
   );
