@@ -103,7 +103,7 @@ export function PresetsEditor() {
           <strong>Biblioteca visual PPT</strong>
           <span>
             {presets.length} tipos · {modifiedCount === 0
-              ? "todo heredado de la base"
+              ? "sin cambios sobre la base"
               : `${modifiedCount} personalizado${modifiedCount === 1 ? "" : "s"}`}
           </span>
         </span>

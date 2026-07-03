@@ -75,7 +75,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
 
       if (overrideKeys.length === 0) {
         counts.base += 1;
-        bySlot[slot] = { state: "base", label: "Base" };
+        bySlot[slot] = { state: "base", label: "Base establecida" };
         continue;
       }
 
@@ -145,8 +145,8 @@ export function StylePanel({ slide, args }: StylePanelProps) {
                 Estilo del gráfico
               </div>
               <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por slot">
-                <span><strong>{slotStyleInfo.counts.base}</strong> Base</span>
-                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Modo</span>
+                <span><strong>{slotStyleInfo.counts.base}</strong> Base sin cambios</span>
+                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Modo aplicado</span>
                 <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Manual</span>
               </div>
             </div>
@@ -157,15 +157,15 @@ export function StylePanel({ slide, args }: StylePanelProps) {
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
                     <strong>Base global</strong>
-                    <span>Preset por tipo de gráfico</span>
+                    <span>Sin cambios propios</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
                 <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Modo">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Modo</strong>
-                    <span>Override reusable</span>
+                    <strong>Modo reutilizable</strong>
+                    <span>Variante aplicada</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
