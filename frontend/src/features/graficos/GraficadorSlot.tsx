@@ -9,6 +9,7 @@ import GraficadorPicker from "./GraficadorPicker";
 import GraficadorForm from "./GraficadorForm";
 import MultiApiladasBuilder from "./MultiApiladasBuilder";
 import { graficadorToPresetType } from "./graficadorPresetMap";
+import { graficadorDisplayName, graficadorKindLabel } from "./graficadorDisplay";
 import { GraphSquareIcon, resolveGraphLucideIcon } from "./lucideRegistry";
 
 // Card que representa un slot de graficador dentro de un slide. Dos
@@ -105,7 +106,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
     return (
       <div className="pulso-gv2-slot-empty-note">
         <SlotLabel text={slotLabel} slotName={slotName} />
-        <span>Slot vacío. Elige un gráfico en la pestaña <strong>Datos</strong> primero.</span>
+        <span>Este espacio todavía no tiene gráfico. Elígelo en <strong>Datos</strong> primero.</span>
       </div>
     );
   }
@@ -124,11 +125,11 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
           <div className="pulso-gv2-slot-empty-title-row">
             <SlotLabel text={slotLabel} slotName={slotName} />
             <span className="pulso-gv2-slot-empty-title">
-              Añade un gráfico a este slot
+              Añade un gráfico a este espacio
             </span>
           </div>
           <span className="pulso-gv2-slot-empty-hint">
-            Elige un tipo del catálogo (barras, pie, radar, etc.) y configura sus args.
+            Elige barras, circular, radar u otro tipo y ajusta sus datos.
           </span>
         </div>
         <button
@@ -136,7 +137,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
           className="pulso-primary pulso-gv2-pill-button"
           onClick={() => setPickerOpen(true)}
         >
-          <Plus size={13} /> Elegir graficador
+          <Plus size={13} /> Elegir gráfico
         </button>
         {pickerOpen && <GraficadorPicker onPick={onPick} onCancel={() => setPickerOpen(false)} />}
       </div>
@@ -146,10 +147,11 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
   // --- Slot con graficador ---
   const meta = graficadoresById[value.graficador];
   const Icon = meta ? resolveGraphLucideIcon(meta.icono_ui, "BarChart") : GraphSquareIcon;
-  const titulo = meta?.titulo_humano ?? value.graficador;
+  const titulo = graficadorDisplayName(value.graficador, meta);
+  const tipoVisible = graficadorKindLabel(value.graficador, meta);
 
   return (
-    <div className="pulso-gv2-slot-card">
+    <div className="pulso-gv2-slot-card" data-graficador={value.graficador}>
       {/* Header */}
       <div className="pulso-gv2-slot-head">
         <SlotLabel text={slotLabel} slotName={slotName} />
@@ -162,9 +164,12 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             <span className="pulso-gv2-slot-title">
               {titulo}
             </span>
-            <code className="pulso-gv2-slot-code">
-              {value.graficador}
-            </code>
+            <span
+              className="pulso-gv2-slot-code"
+              aria-label={`Tipo de gráfico: ${tipoVisible}`}
+            >
+              {tipoVisible}
+            </span>
           </span>
         </span>
 
@@ -198,8 +203,8 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
               setSlot(slideId, slotName, null);
             }}
             className="pulso-icon pulso-icon-danger pulso-gv2-slot-remove"
-            aria-label="Quitar graficador"
-            title="Quitar graficador"
+            aria-label="Quitar gráfico"
+            title="Quitar gráfico"
           >
             <X size={12} />
           </button>
@@ -234,7 +239,8 @@ function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
   return (
     <span
       className="pulso-gv2-slot-label"
-      aria-label={`Slot técnico: ${slotName}`}
+      data-slot-name={slotName}
+      aria-label={`Ubicación del gráfico: ${text}`}
     >
       {text}
     </span>
@@ -343,24 +349,24 @@ function OverrideDropdown({
   const isActive = modeState !== "base";
   const triggerLabel =
     modeState === "mode"
-      ? "Modo aplicado"
+      ? "Variante aplicada"
       : modeState === "mixed"
-        ? "Modo + manual"
+        ? "Variante + ajustes"
         : modeState === "manual"
-          ? "Ajustes manuales"
-          : "Base establecida";
+          ? "Ajustes propios"
+          : "Base visual";
   const triggerHint =
     exactMatch?.nombre ??
     partialMatch?.nombre ??
     (isPureCustom ? `${customCount} ajustes` : "sin cambios");
-  const lineageModeLabel = exactMatch?.nombre ?? partialMatch?.nombre ?? "Sin modo";
+  const lineageModeLabel = exactMatch?.nombre ?? partialMatch?.nombre ?? "Sin variante";
   const lineageSlotLabel = customCount > 0
     ? `${customCount} ajuste${customCount === 1 ? "" : "s"}`
     : "sin ajustes";
   const modeRail = [
-    { key: "base", label: "Base", active: true },
-    { key: "mode", label: "Modo", active: Boolean(exactMatch || partialMatch) },
-    { key: "manual", label: "Manual", active: customCount > 0 },
+    { key: "base", label: "Base visual", active: true },
+    { key: "mode", label: "Variante", active: Boolean(exactMatch || partialMatch) },
+    { key: "manual", label: "Ajustes", active: customCount > 0 },
   ];
 
   function applyMode(args: Record<string, unknown> | null) {
@@ -370,9 +376,9 @@ function OverrideDropdown({
       !shallowEqualArgs(currentOverrideArgs, args ?? {});
     if (willOverwriteCustom) {
       const ok = window.confirm(
-        `Hay cambios manuales sin guardar en este gráfico. ` +
-        `Aplicar otro modo los reemplaza. ¿Continuar?\n\n` +
-        `Tip: cancela y usa "Crear modo" si quieres guardarlos antes.`
+        `Hay ajustes propios sin guardar en este gráfico. ` +
+        `Aplicar otra variante los reemplaza. ¿Continuar?\n\n` +
+        `Tip: cancela y guarda esta variante si quieres reutilizarla.`
       );
       if (!ok) { setOpen(false); return; }
     }
@@ -382,12 +388,12 @@ function OverrideDropdown({
 
   function createMode() {
     if (customCount === 0) {
-      window.alert("No hay cambios manuales para guardar como modo. Edita algún arg primero.");
+      window.alert("No hay ajustes propios para guardar como variante. Cambia algún control primero.");
       return;
     }
     const nombre = window.prompt(
-      "Nombre del modo nuevo (ej. 'compacto', 'narrativo', 'minimal'):",
-      "modo personalizado"
+      "Nombre de la variante visual (ej. 'compacto', 'narrativo', 'minimal'):",
+      "variante personalizada"
     );
     if (!nombre || !nombre.trim()) { setOpen(false); return; }
     const id = `ovr-${Math.random().toString(36).slice(2, 10)}`;
@@ -480,7 +486,7 @@ function OverrideDropdown({
             <span>Estado actual</span>
             <strong>{triggerLabel}</strong>
             <small>{triggerHint}</small>
-            <div className="pulso-gv2-mode-lineage" aria-label="Estructura de estilo aplicada">
+            <div className="pulso-gv2-mode-lineage" aria-label="Ruta visual aplicada">
               <span className="is-base"><Check size={11} /> Base</span>
               <span className={exactMatch || partialMatch ? "is-mode" : "is-muted"}>
                 {lineageModeLabel}
@@ -492,14 +498,14 @@ function OverrideDropdown({
           </div>
 
           <div className="pulso-gv2-mode-popover-label">
-            Variantes reutilizables para este slot · {aplicables.length}
+            Variantes reutilizables para este gráfico · {aplicables.length}
           </div>
 
           <DropdownOption
             kind="base"
-            label="Mantener base del preset"
+            label="Mantener base visual"
             hint="no marca cambios"
-            description="Usa exactamente la biblioteca visual global."
+            description="Usa la apariencia establecida para este tipo de gráfico."
             active={customCount === 0}
             onClick={() => applyMode(null)}
           />
@@ -510,7 +516,7 @@ function OverrideDropdown({
                 kind="mode"
                 label={o.nombre}
                 hint={`${Object.keys(o.args).length} ajustes`}
-                description="Aplica este modo solo al slot seleccionado."
+                description="Aplica esta variante solo a este gráfico."
                 active={exactMatch?.id === o.id}
                 onClick={() => applyMode({ ...o.args })}
               />
@@ -518,7 +524,7 @@ function OverrideDropdown({
           })}
           {aplicables.length === 0 && (
             <div className="pulso-gv2-mode-empty">
-              Aún no hay modos guardados para este preset.
+              Aún no hay variantes guardadas para este tipo de gráfico.
             </div>
           )}
 
@@ -533,7 +539,7 @@ function OverrideDropdown({
             >
               <Save size={12} />
               <span className="pulso-gv2-mode-option-label">
-                Guardar ajustes como modo
+                Guardar ajustes como variante
               </span>
             </button>
           )}
@@ -546,7 +552,7 @@ function OverrideDropdown({
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
               <RotateCcw size={11} />
-              Volver a base establecida
+              Quitar ajustes propios
             </button>
           )}
         </div>,

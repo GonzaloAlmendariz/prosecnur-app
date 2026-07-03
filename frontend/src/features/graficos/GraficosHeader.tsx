@@ -39,7 +39,7 @@ const GRAFICOS_JSON_SECTIONS: Array<{ id: GraficosJsonSectionId; label: string; 
   { id: "w_presets", label: "Estilo para Word", help: "Cómo se ven los gráficos y tablas en el documento." },
   { id: "paletas", label: "Colores", help: "Las paletas usadas para respuestas y categorías." },
   { id: "iconos", label: "Íconos", help: "Los íconos cargados para láminas de población." },
-  { id: "overrides_reusables", label: "Modos de estilo", help: "Grupos de cambios para un gráfico, como compacto o destacado." },
+  { id: "overrides_reusables", label: "Variantes de estilo", help: "Grupos de cambios para un gráfico, como compacto o destacado." },
   { id: "debug_ph", label: "Guías visuales", help: "Marcas temporales para revisar espacios y posiciones." },
   { id: "scope_rules", label: "Reglas específicas", help: "Ajustes que aplican solo a una lista, gráfico o slide." },
   { id: "ui_state", label: "Vista de trabajo", help: "La vista, pestaña y zoom con que dejaste el editor." },
@@ -523,7 +523,7 @@ export function GraficosHeader({
   const [saveStatus, setSaveStatus] = useState("");
   const styleTriggerItems = [
     { key: "ppt", label: "Base PPT", tone: "base" },
-    ...(nModos > 0 ? [{ key: "modos", label: `${nModos} modo${nModos === 1 ? "" : "s"}`, tone: "mode" }] : []),
+    ...(nModos > 0 ? [{ key: "modos", label: `${nModos} variante${nModos === 1 ? "" : "s"}`, tone: "mode" }] : []),
     ...(nPaletas > 0 ? [{ key: "paletas", label: `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`, tone: "color" }] : []),
     ...(nIconos > 0 ? [{ key: "iconos", label: `${nIconos} ícono${nIconos === 1 ? "" : "s"}`, tone: "asset" }] : []),
   ];
@@ -978,7 +978,7 @@ export function GraficosHeader({
             className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
             aria-haspopup="dialog"
             aria-expanded={estiloOpen}
-            title="Configurar presets, paletas, íconos y modos para todos los slides"
+            title="Configurar bases visuales, paletas, íconos y variantes para todos los slides"
           >
             <span className="pulso-gv2-estilo-trigger-icon" aria-hidden="true">
               <Settings2 size={13} />

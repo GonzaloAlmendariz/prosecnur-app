@@ -6,6 +6,7 @@ import { graficadorToPresetType } from "../../graficadorPresetMap";
 import { ArgGroup } from "../../ArgGroup";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
+import { graficadorDisplayName } from "../../graficadorDisplay";
 import { groupArgs } from "./InspectorV2";
 
 // Tab de Estilo. Estructura final acordada con el usuario:
@@ -86,14 +87,14 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
         : [];
       if (!aplicables.length) {
         counts.manual += 1;
-        bySlot[slot] = { state: "manual", label: "Manual" };
+        bySlot[slot] = { state: "manual", label: "Ajustes propios" };
         continue;
       }
 
       const exactMatch = aplicables.find((o) => shallowEqualArgs((o.args as Record<string, unknown>) ?? {}, overrides));
       if (exactMatch) {
         counts.mode += 1;
-        bySlot[slot] = { state: "mode", label: `Modo: ${exactMatch.nombre}` };
+        bySlot[slot] = { state: "mode", label: `Variante: ${exactMatch.nombre}` };
         continue;
       }
 
@@ -102,12 +103,12 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
       );
       if (partialMatch) {
         counts.mixed += 1;
-        bySlot[slot] = { state: "mixed", label: "Modo + manual" };
+        bySlot[slot] = { state: "mixed", label: "Variante + ajustes" };
         continue;
       }
 
       counts.manual += 1;
-      bySlot[slot] = { state: "manual", label: "Manual" };
+      bySlot[slot] = { state: "manual", label: "Ajustes propios" };
     }
 
     return {
@@ -123,7 +124,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
   };
 
   function resetSlideStyleArgs() {
-    if (!window.confirm("¿Restaurar los args de estilo del slide al estilo base?")) return;
+    if (!window.confirm("¿Restaurar los ajustes de estilo del slide al estilo base?")) return;
     const patch: Record<string, unknown> = {};
     for (const a of args) patch[a.name] = null;
     updatePayload(slide.id, patch);
@@ -145,10 +146,10 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
               <div className="pulso-gv2-style-banner-title">
                 Estilo del gráfico
               </div>
-              <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por slot">
+              <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por gráfico">
                 <span><strong>{slotStyleInfo.counts.base}</strong> Base sin cambios</span>
-                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Modo aplicado</span>
-                <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Manual</span>
+                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Variante aplicada</span>
+                <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Ajustes propios</span>
               </div>
             </div>
             <div className="pulso-gv2-style-banner-hint">
@@ -162,19 +163,19 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
-                <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Modo">
+                <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Variante">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Modo reutilizable</strong>
+                    <strong>Variante reutilizable</strong>
                     <span>Variante aplicada</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
-                <div className={`pulso-gv2-style-flow-step is-custom ${styleFlow.hasManual ? "is-active" : ""}`} data-state="Manual">
+                <div className={`pulso-gv2-style-flow-step is-custom ${styleFlow.hasManual ? "is-active" : ""}`} data-state="Ajustes">
                   <div className="pulso-gv2-style-flow-step-icon"><Sliders size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Manual</strong>
-                    <span>Ajustes del slot activo</span>
+                    <strong>Ajustes propios</strong>
+                    <span>Cambios del gráfico activo</span>
                   </div>
                 </div>
               </div>
@@ -233,15 +234,15 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
           </div>
           <div className="pulso-gv2-style-section-hint">
             Ajusta lectura, espacio, leyenda y valores del gráfico.
-            Usa <strong>Modo</strong> para reutilizar el mismo estilo en varios gráficos y,
-            cuando hace falta, <strong>Manual</strong> para ajustes finos por slot.
+            Usa <strong>Variante</strong> para reutilizar el mismo estilo en varios gráficos y,
+            cuando hace falta, <strong>Ajustes</strong> para cambios finos en este gráfico.
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => {
               const slotValue = (slide.payload as Record<string, unknown>)[slotName] as GraficadorRef | undefined;
               const slotLabel = getSlotLabel(slotName);
               const technicalName = slotValue?.graficador ?? "";
-              const humanName = technicalName ? (graficadoresById[technicalName]?.titulo_humano ?? technicalName) : "";
+              const humanName = technicalName ? graficadorDisplayName(technicalName, graficadoresById[technicalName]) : "";
               const slotState = slotStyleInfo.bySlot[slotName] ?? { state: "empty", label: "Sin gráfico" };
               return (
                 <details className="pulso-gv2-slot-accordion" data-state={slotState.state} key={slotName} open>
@@ -257,8 +258,8 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                         aria-hidden="true"
                       >
                         <span data-step="base">Base</span>
-                        <span data-step="mode">Modo</span>
-                        <span data-step="manual">Manual</span>
+                        <span data-step="mode">Variante</span>
+                        <span data-step="manual">Ajustes</span>
                       </span>
                       <span className={`pulso-gv2-slot-state-pill is-${slotState.state}`}>
                         {slotState.label}

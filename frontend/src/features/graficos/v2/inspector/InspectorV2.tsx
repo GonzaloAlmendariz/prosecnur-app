@@ -7,6 +7,7 @@ import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
 import { ArgGroup, ARG_GROUP_ORDER, normalizeArgGroup } from "../../ArgGroup";
 import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
+import { graficadorDisplayName, humanizeIdentifier } from "../../graficadorDisplay";
 import { SlidePreview } from "../../SlidePreview";
 import { LoadingBlock, EmptyState } from "../../../../components/States";
 import { usePlanValidator } from "../../usePlanValidator";
@@ -110,7 +111,7 @@ export function InspectorV2() {
     );
   }
 
-  const humanTitle = SLIDE_LABELS[slide.tipo] ?? slide.tipo;
+  const humanTitle = SLIDE_LABELS[slide.tipo] ?? humanizeIdentifier(slide.tipo, "Slide");
 
   // Cuenta args por tab para badges
   const tabArgCounts: Record<InspectorTab, number> = {
@@ -144,9 +145,6 @@ export function InspectorV2() {
                 </span>
                 <div className="pulso-gv2-inspector-title-copy">
                   <h2 className="pulso-gv2-inspector-title">{humanTitle}</h2>
-                  <code className="pulso-gv2-inspector-code">
-                    {slide.tipo}
-                  </code>
                 </div>
               </div>
             </div>
@@ -388,7 +386,7 @@ function DataTabBody({ slide, args, updatePayload, variables, slotNames, grafica
               const slotValue = (slide.payload as Record<string, unknown>)[slotName] as GraficadorRef | undefined;
               const slotLabel = getSlotLabel(slotName);
               const technicalName = slotValue?.graficador ?? "";
-              const humanName = technicalName ? (graficadoresById[technicalName]?.titulo_humano ?? technicalName) : "";
+              const humanName = technicalName ? graficadorDisplayName(technicalName, graficadoresById[technicalName]) : "";
               return (
                 <details className="pulso-gv2-slot-accordion" key={slotName} open>
                   <summary className="pulso-gv2-slot-accordion-summary">
