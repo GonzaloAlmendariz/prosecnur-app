@@ -18,6 +18,7 @@ import {
 } from "../../api/client";
 import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
+import { PptStyleProfilesPanel } from "./PptStyleProfilesPanel";
 
 // Editor de paletas de colores por `list_name` del XLSForm. Cada fila
 // de la tabla es un value-label; el analista le asigna un color. Las
@@ -265,7 +266,7 @@ export function PaletasEditor() {
                     {firmasSimilares > 1 ? ` · ${firmasSimilares} listas compatibles` : ""}
                   </small>
                 </span>
-                <span className="pulso-gv2-paleta-row-visual" title={tienePaleta ? "Paleta personalizada" : "Preset base sin cambios"}>
+                <span className="pulso-gv2-paleta-row-visual" title={tienePaleta ? "Paleta personalizada" : "Base predeterminada sin cambios"}>
                   <span className="pulso-gv2-paleta-row-strip" data-empty={coloresFila.length === 0 ? "true" : "false"}>
                     {coloresFila.length > 0
                       ? coloresFila.map((color, index) => (
@@ -297,6 +298,8 @@ export function PaletasEditor() {
           </div>
         ) : (
           <>
+            <PptStyleProfilesPanel />
+
             <header className="pulso-gv2-paleta-hero">
               <div className="pulso-gv2-paleta-hero-main">
                 <span className="pulso-gv2-paleta-hero-mark">
@@ -308,7 +311,7 @@ export function PaletasEditor() {
                     Colores de <code>{activaData.list_name}</code>
                   </h3>
                   <p>
-                    El preset base no marca cambios. Personaliza solo las categorías que necesitan un color fijo en reportes, slides y dashboards.
+                    La base predeterminada no marca cambios. Personaliza solo las categorías que necesitan un color fijo en reportes, slides y dashboards.
                   </p>
                   <div className="pulso-gv2-paleta-hero-chips">
                     <span><Palette size={12} /> {activaData.choices.length} categorías</span>
@@ -340,7 +343,7 @@ export function PaletasEditor() {
                 <small>
                   {coloresPersonalizados > 0
                     ? `${coloresActivos.length}/${activaData.choices.length} categorías con color (${coberturaActiva}%)`
-                    : "Usa el preset base del sistema"}
+                    : "Usa la base predeterminada del sistema"}
                 </small>
                 <div
                   className="pulso-gv2-paleta-state-strip"
@@ -379,7 +382,7 @@ export function PaletasEditor() {
                   <Sparkles size={14} />
                 </span>
                 <div>
-                  <strong><IconAI size={12} /> Presets recomendados</strong>
+                  <strong><IconAI size={12} /> Paletas recomendadas</strong>
                   <small>{activaData.choices.length} categorías · {paletasSugeridas.length} propuestas calibradas</small>
                 </div>
               </header>
@@ -419,7 +422,7 @@ export function PaletasEditor() {
               <header className="pulso-gv2-paleta-map-head">
                 <div>
                   <strong>Mapa de categorías</strong>
-                  <small>Edita color por etiqueta. Los campos vacíos permanecen en el preset base.</small>
+                  <small>Edita color por etiqueta. Los campos vacíos permanecen en la base predeterminada.</small>
                 </div>
                 <span>{coloresActivos.length}/{activaData.choices.length} definidos</span>
               </header>

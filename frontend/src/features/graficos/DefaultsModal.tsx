@@ -40,7 +40,7 @@ export function DefaultsModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={mode === "presets" ? "Modificar defaults de presets" : "Modificar defaults de overrides"}
+      aria-label={mode === "presets" ? "Editar bases predeterminadas" : "Editar estilos guardados"}
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, zIndex: 100,
@@ -69,12 +69,12 @@ export function DefaultsModal({
           <GraphSettingsIcon size={16} color="var(--pulso-primary)" />
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: 0, fontSize: 14 }}>
-              {mode === "presets" ? "Defaults de presets" : "Defaults de overrides"}
+              {mode === "presets" ? "Bases predeterminadas" : "Estilos guardados iniciales"}
             </h2>
             <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
               {mode === "presets"
-                ? "Edita los valores base que sirven de arranque a cualquier estudio. Aplica a todas las sesiones futuras y al 'Restaurar default' por preset."
-                : "Edita los overrides reusables pre-cargados (reducido, compacto…). También puedes añadir nuevos."}
+                ? "Edita los valores de arranque que no marcan cambios. Aplica a estudios futuros y al botón de volver a base."
+                : "Edita los estilos guardados precargados, como compacto o destacado. También puedes añadir nuevos."}
             </p>
           </div>
           <button type="button" onClick={onClose} className="pulso-icon" aria-label="Cerrar">
@@ -350,7 +350,7 @@ function OverridesDefaultsEditor() {
   }, [backendOverrides]);
 
   if (loadingBackend || loadingCatalog) {
-    return <LoadingBlock label="Cargando defaults de overrides…" />;
+    return <LoadingBlock label="Cargando estilos guardados iniciales..." />;
   }
 
   const selected = draft.find((o) => o.id === selectedId);
@@ -359,7 +359,7 @@ function OverridesDefaultsEditor() {
   function addOverride() {
     const ov: OverrideDefaultEntry = {
       id: `ov-${Math.random().toString(36).slice(2, 10)}`,
-      nombre: `Override ${draft.length + 1}`,
+      nombre: `Estilo ${draft.length + 1}`,
       tipo_preset: tipoOptions[0]?.name ?? "barras_apiladas",
       args: {},
     };
@@ -372,7 +372,7 @@ function OverridesDefaultsEditor() {
   }
 
   function removeOverride(id: string) {
-    if (!window.confirm("¿Eliminar este override del set de defaults?")) return;
+    if (!window.confirm("¿Eliminar este estilo guardado inicial?")) return;
     setDraft((prev) => prev.filter((o) => o.id !== id));
     if (selectedId === id) {
       const rest = draft.filter((o) => o.id !== id);
@@ -397,7 +397,7 @@ function OverridesDefaultsEditor() {
 
   async function onResetFactory() {
     if (!window.confirm(
-      "¿Volver a los overrides de fábrica?\n\nTu set personalizado se descartará. El estudio actual no cambia — solo los valores base que usan los estudios nuevos y 'Restaurar' por override."
+      "¿Volver a los estilos guardados de fábrica?\n\nTu set personalizado se descartará. El estudio actual no cambia; solo los valores iniciales que usan los estudios nuevos."
     )) return;
     setError(""); setSaving(true);
     try {
@@ -427,8 +427,8 @@ function OverridesDefaultsEditor() {
       >
         <span style={{ color: "var(--pulso-text-soft)", flex: 1, minWidth: 200 }}>
           {esCustom
-            ? "Estás editando tu set personalizado de overrides default."
-            : "Estás editando los overrides de fábrica. Al guardar se convierten en tu set personalizado."}
+            ? "Estás editando tu set personalizado de estilos guardados iniciales."
+            : "Estás editando los estilos guardados de fábrica. Al guardar se convierten en tu set personalizado."}
         </span>
         <button
           type="button"
@@ -442,7 +442,7 @@ function OverridesDefaultsEditor() {
           }}
         >
           {feedback === "saved" ? <Check size={11} /> : <Save size={11} />}
-          {feedback === "saved" ? "Guardado" : "Guardar defaults"}
+          {feedback === "saved" ? "Guardado" : "Guardar estilos"}
         </button>
         {esCustom && (
           <button
@@ -490,7 +490,7 @@ function OverridesDefaultsEditor() {
             onClick={addOverride}
             style={{ fontSize: 12, padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center" }}
           >
-            <Plus size={12} /> Añadir override
+            <Plus size={12} /> Añadir estilo
           </button>
           <div style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
             {draft.map((o) => {
@@ -546,11 +546,11 @@ function OverridesDefaultsEditor() {
           ) : (
             <EmptyState
               icon={<Layers3 size={22} />}
-              title={draft.length === 0 ? "Aún no hay overrides" : "Selecciona un override"}
+              title={draft.length === 0 ? "Aún no hay estilos guardados" : "Selecciona un estilo guardado"}
               hint={
                 draft.length === 0
-                  ? "Crea mini-presets reusables (reducido, compacto…) que cualquier slide del plan puede invocar."
-                  : "Elige un override de la izquierda para editar sus args, o crea uno nuevo."
+                  ? "Crea apariencias reutilizables, como compacto o destacado, que cualquier slide del plan puede usar."
+                  : "Elige un estilo de la izquierda para editar sus ajustes, o crea uno nuevo."
               }
               cta={
                 draft.length === 0 ? (

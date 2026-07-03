@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Circle, RotateCcw } from "lucide-react";
+import { CheckCircle2, Circle, FileText, RotateCcw } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { createDefaultWordPresets } from "../../api/graficosConfigNormalizer";
 import { usePlanStore } from "./store";
@@ -50,6 +50,11 @@ export function WordPresetsEditor() {
   const selectedPatch = chartPresets[meta.name] ?? defaultChartPresets[meta.name] ?? {};
   const inherited = pptPresets[meta.name] ?? {};
   const hasSelectedChanges = Object.keys(selectedPatch).some((k) => hasValue(selectedPatch[k]));
+  const wordTunedCount = editablePresets.filter((p) => {
+    const patch = chartPresets[p.name] ?? defaultChartPresets[p.name] ?? {};
+    return Object.keys(patch).some((k) => hasValue(patch[k]));
+  }).length;
+  const selectedPatchCount = Object.keys(selectedPatch).filter((k) => hasValue(selectedPatch[k])).length;
 
   function setChartOptions(nextOptions: Record<string, unknown>) {
     setWPresets({
@@ -110,6 +115,23 @@ export function WordPresetsEditor() {
 
   return (
     <div className="pulso-gv2-word-presets">
+      <div className="pulso-gv2-word-overview" aria-label="Resumen de estilo para Word">
+        <span className="pulso-gv2-word-overview-icon" aria-hidden="true">
+          <FileText size={15} />
+        </span>
+        <span className="pulso-gv2-word-overview-copy">
+          <strong>Biblioteca visual Word</strong>
+          <span>
+            {editablePresets.length} tipos · {wordTunedCount === 0
+              ? "usa la base PPT"
+              : `${wordTunedCount} con ajuste Word`}
+          </span>
+        </span>
+        <span className={`pulso-gv2-word-overview-current ${hasSelectedChanges ? "is-custom" : "is-inherited"}`}>
+          {hasSelectedChanges ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"}` : "Base PPT"}
+        </span>
+      </div>
+
       <section className="pulso-gv2-word-option-card">
         <button
           type="button"
@@ -175,7 +197,7 @@ export function WordPresetsEditor() {
                 </h3>
                 {hasSelectedChanges && (
                   <span className="pulso-gv2-word-status">
-                    <Circle size={6} fill="var(--pulso-primary)" color="transparent" />
+                    <CheckCircle2 size={11} />
                     Ajuste Word
                   </span>
                 )}
@@ -191,7 +213,7 @@ export function WordPresetsEditor() {
                 className="pulso-gv2-word-reset"
               >
                 <RotateCcw size={11} />
-                Default Word
+                Volver a base Word
               </button>
             )}
           </header>

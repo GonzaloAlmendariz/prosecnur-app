@@ -77,7 +77,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
 
       if (overrideKeys.length === 0) {
         counts.base += 1;
-        bySlot[slot] = { state: "base", label: "Base establecida" };
+        bySlot[slot] = { state: "base", label: "Base predeterminada" };
         continue;
       }
 
@@ -87,14 +87,14 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
         : [];
       if (!aplicables.length) {
         counts.manual += 1;
-        bySlot[slot] = { state: "manual", label: "Ajustes propios" };
+        bySlot[slot] = { state: "manual", label: "Ajustes adicionales" };
         continue;
       }
 
       const exactMatch = aplicables.find((o) => shallowEqualArgs((o.args as Record<string, unknown>) ?? {}, overrides));
       if (exactMatch) {
         counts.mode += 1;
-        bySlot[slot] = { state: "mode", label: `Variante: ${exactMatch.nombre}` };
+        bySlot[slot] = { state: "mode", label: `Estilo: ${exactMatch.nombre}` };
         continue;
       }
 
@@ -103,12 +103,12 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
       );
       if (partialMatch) {
         counts.mixed += 1;
-        bySlot[slot] = { state: "mixed", label: "Variante + ajustes" };
+        bySlot[slot] = { state: "mixed", label: "Estilo + ajustes" };
         continue;
       }
 
       counts.manual += 1;
-      bySlot[slot] = { state: "manual", label: "Ajustes propios" };
+      bySlot[slot] = { state: "manual", label: "Ajustes adicionales" };
     }
 
     return {
@@ -147,35 +147,35 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                 Estilo del gráfico
               </div>
               <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por gráfico">
-                <span><strong>{slotStyleInfo.counts.base}</strong> Base sin cambios</span>
-                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Variante aplicada</span>
-                <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Ajustes propios</span>
+                <span><strong>{slotStyleInfo.counts.base}</strong> Base predeterminada</span>
+                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Estilo guardado</span>
+                <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Ajustes adicionales</span>
               </div>
             </div>
             <div className="pulso-gv2-style-banner-hint">
-              <div className="pulso-gv2-style-flow-title">Ruta de estilo del gráfico</div>
+              <div className="pulso-gv2-style-flow-title">Cómo se decide el estilo</div>
               <div className="pulso-gv2-style-flow" aria-label="Jerarquía de origen de los valores">
                 <div className={`pulso-gv2-style-flow-step is-base ${styleFlow.hasPreset ? "is-active" : ""}`} data-state="Base">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Base global</strong>
-                    <span>Sin cambios propios</span>
+                    <strong>Base predeterminada</strong>
+                    <span>No marca cambios</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
-                <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Variante">
+                <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Estilo guardado">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Variante reutilizable</strong>
-                    <span>Variante aplicada</span>
+                    <strong>Estilo guardado</strong>
+                    <span>Reusable</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
                 <div className={`pulso-gv2-style-flow-step is-custom ${styleFlow.hasManual ? "is-active" : ""}`} data-state="Ajustes">
                   <div className="pulso-gv2-style-flow-step-icon"><Sliders size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Ajustes propios</strong>
-                    <span>Cambios del gráfico activo</span>
+                    <strong>Ajustes adicionales</strong>
+                    <span>Solo este gráfico</span>
                   </div>
                 </div>
               </div>
@@ -234,8 +234,8 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
           </div>
           <div className="pulso-gv2-style-section-hint">
             Ajusta lectura, espacio, leyenda y valores del gráfico.
-            Usa <strong>Variante</strong> para reutilizar el mismo estilo en varios gráficos y,
-            cuando hace falta, <strong>Ajustes</strong> para cambios finos en este gráfico.
+            Usa <strong>Estilo guardado</strong> para reutilizar la misma apariencia en varios gráficos y,
+            cuando hace falta, <strong>Ajustes adicionales</strong> para cambios finos solo aquí.
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => {
@@ -258,7 +258,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                         aria-hidden="true"
                       >
                         <span data-step="base">Base</span>
-                        <span data-step="mode">Variante</span>
+                        <span data-step="mode">Estilo</span>
                         <span data-step="manual">Ajustes</span>
                       </span>
                       <span className={`pulso-gv2-slot-state-pill is-${slotState.state}`}>
