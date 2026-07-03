@@ -17,6 +17,7 @@ import { GraficadorTypeIcon } from "./GraficadorTypeIcon";
 // automáticamente sin cambios de código.
 
 type Categoria = { label: string; predicate: (g: GraficadorMetadata) => boolean };
+type GrafCardKind = "distribution" | "numeric" | "multi" | "dimensions" | "territory";
 
 const CATEGORIAS: Categoria[] = [
   {
@@ -176,11 +177,13 @@ function GraficadorCard({
   const requiereTerritorio = graf.requisito === "territorial_coverage" || graf.feature_kind === "territorial_coverage";
   const dimReady = requiereDim && dimOk;
   const dimMissing = requiereDim && !dimOk;
+  const kind = grafCardKind(graf);
   return (
     <button
       type="button"
       onClick={() => onPick(graf)}
       className={`pulso-gv2-graf-card ${requiereDim ? "requires-dimensions" : ""} ${requiereTerritorio ? "requires-territory" : ""}`}
+      data-kind={kind}
     >
       <span className="pulso-gv2-graf-card-icon">
         <GraficadorTypeIcon name={graf.name} iconoUi={graf.icono_ui} size={25} />
@@ -190,6 +193,9 @@ function GraficadorCard({
           {graf.titulo_humano}
         </span>
         <span className="pulso-gv2-graf-card-desc">{graf.descripcion}</span>
+      </span>
+      <span className="pulso-gv2-graf-card-kind">
+        {grafCardKindLabel(kind)}
       </span>
       {dimReady && (
         <span className="pulso-gv2-graf-card-badge is-ready">
@@ -208,4 +214,27 @@ function GraficadorCard({
       )}
     </button>
   );
+}
+
+function grafCardKind(graf: GraficadorMetadata): GrafCardKind {
+  if (graf.requisito === "territorial_coverage" || graf.feature_kind === "territorial_coverage") return "territory";
+  if (graf.requisito === "dimensiones") return "dimensions";
+  if (["p_numerico", "p_boxplot", "p_media_rango"].includes(graf.name)) return "numeric";
+  if (["p_radar", "p_tabla", "p_radar_tabla"].includes(graf.name)) return "multi";
+  return "distribution";
+}
+
+function grafCardKindLabel(kind: GrafCardKind): string {
+  switch (kind) {
+    case "numeric":
+      return "Resumen";
+    case "multi":
+      return "Multi-variable";
+    case "dimensions":
+      return "Dimensiones";
+    case "territory":
+      return "Territorio";
+    default:
+      return "Categorías";
+  }
 }

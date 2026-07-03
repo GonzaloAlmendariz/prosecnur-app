@@ -3711,6 +3711,7 @@
   width: 100%;
   max-width: min(1180px, calc(100vw - 48px));
   max-height: min(860px, calc(100vh - 56px));
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -3723,6 +3724,18 @@
     0 30px 74px rgba(15, 23, 42, 0.24),
     var(--pulso-shadow-high);
   animation: pulso-gv2-fade-in-up 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pulso-gv2-graf-picker::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 30px;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 253, 0), rgba(248, 250, 253, 0.94));
+  content: "";
 }
 
 .pulso-gv2-graf-picker-head {
@@ -3850,7 +3863,8 @@
   flex: 1;
   min-height: var(--pulso-operational-min-dialog-body);
   overflow-y: auto;
-  padding: 20px 24px 24px;
+  padding: 20px 24px 38px;
+  scrollbar-gutter: stable;
 }
 
 .pulso-gv2-graf-picker-section {
@@ -3894,6 +3908,8 @@
 }
 
 .pulso-gv2-graf-card {
+  --gv2-graf-kind: var(--pulso-primary);
+  --gv2-graf-kind-soft: var(--pulso-primary-soft);
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   grid-template-rows: auto auto;
@@ -3921,14 +3937,39 @@
     background var(--motion-dur-fast) ease;
 }
 
+.pulso-gv2-graf-card[data-kind="distribution"] {
+  --gv2-graf-kind: #0f766e;
+  --gv2-graf-kind-soft: #ccfbf1;
+}
+
+.pulso-gv2-graf-card[data-kind="numeric"] {
+  --gv2-graf-kind: #b7791f;
+  --gv2-graf-kind-soft: #fef3c7;
+}
+
+.pulso-gv2-graf-card[data-kind="multi"] {
+  --gv2-graf-kind: #0891b2;
+  --gv2-graf-kind-soft: #cffafe;
+}
+
+.pulso-gv2-graf-card[data-kind="dimensions"] {
+  --gv2-graf-kind: #6d28d9;
+  --gv2-graf-kind-soft: #ede9fe;
+}
+
+.pulso-gv2-graf-card[data-kind="territory"] {
+  --gv2-graf-kind: #be185d;
+  --gv2-graf-kind-soft: #fce7f3;
+}
+
 .pulso-gv2-graf-card:hover {
-  border-color: var(--pulso-primary-border);
+  border-color: color-mix(in srgb, var(--gv2-graf-kind) 34%, var(--pulso-border));
   background:
-    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-primary-soft) 34%, #fff 66%));
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--gv2-graf-kind-soft) 42%, #fff));
   transform: translateY(-2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 12px 26px rgba(0, 36, 87, 0.09);
+    0 12px 26px color-mix(in srgb, var(--gv2-graf-kind) 14%, transparent);
 }
 
 .pulso-gv2-graf-card:active {
@@ -3937,19 +3978,37 @@
 
 .pulso-gv2-graf-card-icon {
   grid-row: 1 / span 2;
+  position: relative;
   width: 48px;
   height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 13px;
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-graf-kind-soft) 70%, #ffffff), #ffffff);
+  color: var(--gv2-graf-kind);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gv2-graf-kind) 18%, var(--pulso-border)),
+    0 8px 16px color-mix(in srgb, var(--gv2-graf-kind) 10%, transparent);
+}
+
+.pulso-gv2-graf-card-icon::after {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+  opacity: 0.28;
 }
 
 .pulso-gv2-graf-card.requires-dimensions .pulso-gv2-graf-card-icon {
-  background: rgba(124, 58, 237, 0.12);
-  color: #5b21b6;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-graf-kind-soft) 72%, #ffffff), #ffffff);
+  color: var(--gv2-graf-kind);
 }
 
 .pulso-gv2-graf-card-copy {
@@ -3978,6 +4037,23 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+.pulso-gv2-graf-card-kind {
+  grid-column: 2;
+  justify-self: start;
+  align-self: end;
+  max-width: 100%;
+  margin-top: 10px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--gv2-graf-kind) 24%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv2-graf-kind-soft) 58%, #ffffff);
+  color: color-mix(in srgb, var(--gv2-graf-kind) 82%, var(--pulso-text));
+  font-size: 9.5px;
+  font-weight: 820;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .pulso-gv2-graf-card-badge {
