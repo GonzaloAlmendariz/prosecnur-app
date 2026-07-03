@@ -159,7 +159,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
   const selectedCategory = categoryOf(selectedType);
   const selectedPattern = blueprintPattern(selectedType);
   const selectedSlots = selectedMeta?.slots ?? [];
-  const selectedSlotCount = selectedSlots.length || inferredSlotCount(selectedType);
+  const selectedSlotCount = inferredSlotCount(selectedType) || selectedSlots.length;
   const selectedSlotItems = selectedSlotCount > 0
     ? Array.from({ length: selectedSlotCount }, (_, index) => `Slot ${index + 1}`)
     : [];
@@ -461,7 +461,7 @@ function blueprintLayout(type: SlideType): SlidePreviewLayout {
 
 function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType; slots: string[]; scale?: PreviewScale }) {
   const layout = blueprintLayout(type);
-  const slotCount = slots.length || inferredSlotCount(type);
+  const slotCount = inferredSlotCount(type) || slots.length;
   const slotItems = Array.from({ length: Math.min(slotCount, 6) }, (_, index) => index + 1);
 
   return (
@@ -472,12 +472,20 @@ function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType;
       aria-hidden="true"
     >
       <span className="pulso-gv2-picker-slide-paper">
+        <span className="pulso-gv2-picker-slide-report-title" />
+        <span className="pulso-gv2-picker-slide-logo">
+          <i />
+          <b />
+        </span>
+        <span className="pulso-gv2-picker-slide-frame" />
         <span className="pulso-gv2-picker-slide-band is-top" />
         <span className="pulso-gv2-picker-slide-title">
           <i />
           <i />
         </span>
         <span className="pulso-gv2-picker-slide-copy">
+          <i />
+          <i />
           <i />
           <i />
           <i />
@@ -494,10 +502,15 @@ function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType;
             <span key={slot} className="pulso-gv2-picker-slide-slot">
               <i />
               <b />
+              <em />
+              <em />
+              <em />
+              <em />
             </span>
           ))}
         </span>
         <span className="pulso-gv2-picker-slide-band is-bottom" />
+        <span className="pulso-gv2-picker-slide-base" />
       </span>
     </span>
   );
