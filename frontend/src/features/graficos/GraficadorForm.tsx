@@ -32,6 +32,7 @@ type Props = {
   flatten?: boolean;
   slotLabel?: string;
   onReplaceGraficador?: () => void;
+  replaceGraficadorLabel?: string;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -70,6 +71,7 @@ export default function GraficadorForm({
   flatten = false,
   slotLabel,
   onReplaceGraficador,
+  replaceGraficadorLabel,
 }: Props) {
   const { graficadoresById, loading, error } = useGraficosRegistry();
   const { presetsByName } = usePresetsMetadata();
@@ -332,6 +334,7 @@ export default function GraficadorForm({
         graficador={graf.graficador}
         slotLabel={slotLabel}
         onReplaceGraficador={onReplaceGraficador}
+        replaceGraficadorLabel={replaceGraficadorLabel}
       />
     );
   }
@@ -379,11 +382,15 @@ function UnknownGraficadorState({
   graficador,
   slotLabel,
   onReplaceGraficador,
+  replaceGraficadorLabel,
 }: {
   graficador: string;
   slotLabel?: string;
   onReplaceGraficador?: () => void;
+  replaceGraficadorLabel?: string;
 }) {
+  const actionLabel = replaceGraficadorLabel ?? "Reemplazar modelo";
+
   return (
     <div className="pulso-gv2-unknown-graf" role="alert">
       <span className="pulso-gv2-unknown-graf-mark" aria-hidden="true">
@@ -416,11 +423,12 @@ function UnknownGraficadorState({
           type="button"
           className="pulso-primary pulso-gv2-pill-button pulso-gv2-unknown-graf-action"
           onClick={onReplaceGraficador}
+          title={actionLabel}
         >
-          <IconForward size={13} /> Reemplazar modelo
+          <IconForward size={13} /> {actionLabel}
         </button>
       ) : (
-        <span className="pulso-gv2-unknown-graf-hint">Datos - Cambiar modelo</span>
+        <span className="pulso-gv2-unknown-graf-hint">Ve a Datos para cambiar modelo</span>
       )}
     </div>
   );

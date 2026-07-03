@@ -237,6 +237,7 @@ export function InspectorV2() {
             slide={slide}
             args={argsInActiveTab}
             variables={variables}
+            onRequestDataTab={() => setInspectorTab("data")}
           />
         )}
 
