@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, SearchX, X } from "lucide-react";
+import { BarChart3, Plus, Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
@@ -91,9 +91,15 @@ export default function GraficadorPicker({
         className="pulso-gv2-graf-picker"
       >
         <header className="pulso-gv2-graf-picker-head">
-          <div>
-            <h3 id="graf-picker-title" className="pulso-gv2-graf-picker-title">Elegir graficador</h3>
-            <div className="pulso-gv2-graf-picker-sub">Selecciona el tipo de visualización para este slot.</div>
+          <div className="pulso-gv2-graf-picker-head-main">
+            <span className="pulso-gv2-graf-picker-mark" aria-hidden="true">
+              <BarChart3 size={17} />
+            </span>
+            <div>
+              <div className="pulso-gv2-graf-picker-eyebrow">Biblioteca de graficadores</div>
+              <h3 id="graf-picker-title" className="pulso-gv2-graf-picker-title">Elegir visual</h3>
+              <div className="pulso-gv2-graf-picker-sub">Tipos por dato, comparación y salida del slide.</div>
+            </div>
           </div>
           <button
             type="button"
@@ -194,8 +200,13 @@ function GraficadorCard({
         </span>
         <span className="pulso-gv2-graf-card-desc">{graf.descripcion}</span>
       </span>
-      <span className="pulso-gv2-graf-card-kind">
-        {grafCardKindLabel(kind)}
+      <span className="pulso-gv2-graf-card-footer">
+        <span className="pulso-gv2-graf-card-kind">
+          {grafCardKindLabel(kind)}
+        </span>
+        <span className="pulso-gv2-graf-card-action" aria-hidden="true">
+          <Plus size={11} /> Elegir
+        </span>
       </span>
       {dimReady && (
         <span className="pulso-gv2-graf-card-badge is-ready">
