@@ -1,4 +1,5 @@
-import { useMemo, useRef, useEffect, useState } from "react";
+import { type CSSProperties, useMemo, useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Shuffle, X, Wand2, Check, ImagePlus, Save, RotateCcw } from "lucide-react";
 import { GraficadorMetadata, GraficadorRef } from "../../api/client";
 import { usePlanStore } from "./store";
@@ -260,7 +261,10 @@ function OverrideDropdown({
   const addOverride = usePlanStore((s) => s.addOverrideReusable);
   const updateArgs = usePlanStore((s) => s.updateSlotArgs);
   const [open, setOpen] = useState(false);
+  const [placement, setPlacement] = useState<"up" | "down">("down");
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const presetType = graficadorToPresetType(value.graficador);
   const aplicables = useMemo(
@@ -272,7 +276,14 @@ function OverrideDropdown({
   useEffect(() => {
     if (!open) return;
     function onDocMouseDown(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(target) &&
+        !popoverRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -282,6 +293,19 @@ function OverrideDropdown({
     return () => {
       document.removeEventListener("mousedown", onDocMouseDown);
       document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onReposition() {
+      updatePopoverPosition();
+    }
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
     };
   }, [open]);
 
@@ -300,20 +324,27 @@ function OverrideDropdown({
     : aplicables.find((o) => isSubset(o.args, currentOverrideArgs));
   const isPureCustom = customCount > 0 && !exactMatch && !partialMatch;
 
-  // Label del trigger
-  let triggerLabel = "Modo: por defecto";
-  if (exactMatch) triggerLabel = `Modo: ${exactMatch.nombre}`;
-  else if (partialMatch) triggerLabel = `${partialMatch.nombre} + ajustes propios`;
-  else if (isPureCustom) triggerLabel = "Manual";
-
-  const isActive = exactMatch || partialMatch || isPureCustom;
-  const modeStateClass = exactMatch
-    ? "is-mode"
+  const modeState = exactMatch
+    ? "mode"
     : partialMatch
-      ? "is-mixed"
+      ? "mixed"
       : isPureCustom
-        ? "is-manual"
-        : "is-default";
+        ? "manual"
+        : "base";
+
+  const isActive = modeState !== "base";
+  const triggerLabel =
+    modeState === "mode"
+      ? "Modo aplicado"
+      : modeState === "mixed"
+        ? "Modo + manual"
+        : modeState === "manual"
+          ? "Ajustes manuales"
+          : "Base del preset";
+  const triggerHint =
+    exactMatch?.nombre ??
+    partialMatch?.nombre ??
+    (isPureCustom ? `${customCount} ajustes` : "sin cambios");
 
   function applyMode(args: Record<string, unknown> | null) {
     // Si hay edits custom y vamos a reemplazar, pedir confirmación.
@@ -352,33 +383,86 @@ function OverrideDropdown({
     setOpen(false);
   }
 
+  function updatePopoverPosition() {
+    if (rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect();
+      const roomBelow = window.innerHeight - rect.bottom;
+      const roomAbove = rect.top;
+      const nextPlacement = roomBelow < 340 && roomAbove > roomBelow ? "up" : "down";
+      const popoverWidth = 320;
+      const gutter = 12;
+      const left = Math.min(
+        Math.max(gutter, rect.right - popoverWidth),
+        Math.max(gutter, window.innerWidth - popoverWidth - gutter),
+      );
+      setPlacement(nextPlacement);
+      setPopoverStyle(
+        nextPlacement === "up"
+          ? {
+              position: "fixed",
+              left,
+              right: "auto",
+              top: "auto",
+              bottom: window.innerHeight - rect.top + 6,
+              width: popoverWidth,
+            }
+          : {
+              position: "fixed",
+              left,
+              right: "auto",
+              top: rect.bottom + 6,
+              bottom: "auto",
+              width: popoverWidth,
+            }
+      );
+    }
+  }
+
+  function toggleOpen() {
+    if (!open) {
+      updatePopoverPosition();
+    }
+    setOpen((o) => !o);
+  }
+
   return (
     <div ref={rootRef} className="pulso-gv2-mode-menu">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={
-          isPureCustom
-            ? "Hay ajustes manuales sobre el estilo base"
-            : "Cambiar modo de estilo"
-        }
-        className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""} ${modeStateClass}`}
+        aria-label={`${triggerLabel}: ${triggerHint}`}
+        className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""} is-${modeState}`}
+        data-state={modeState}
       >
         <Wand2 size={11} />
-        {triggerLabel}
+        <span className="pulso-gv2-mode-trigger-copy">
+          <span>{triggerLabel}</span>
+          <small>{triggerHint}</small>
+        </span>
       </button>
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div
+          ref={popoverRef}
           role="menu"
           className="pulso-gv2-mode-popover"
+          data-placement={placement}
+          style={popoverStyle}
         >
-          <div className="pulso-gv2-mode-popover-label">Modos disponibles</div>
+          <div className="pulso-gv2-mode-current" data-state={modeState}>
+            <span>Estado actual</span>
+            <strong>{triggerLabel}</strong>
+            <small>{triggerHint}</small>
+          </div>
+
+          <div className="pulso-gv2-mode-popover-label">
+            Modos reutilizables · {aplicables.length}
+          </div>
 
           <DropdownOption
-            label="Por defecto"
-            hint="Solo el estilo base"
+            label="Base del preset"
+            hint="sin modo ni ajustes"
             active={customCount === 0}
             onClick={() => applyMode(null)}
           />
@@ -387,12 +471,17 @@ function OverrideDropdown({
               <DropdownOption
                 key={o.id}
                 label={o.nombre}
-                hint=""
+                hint={`${Object.keys(o.args).length} ajustes`}
                 active={exactMatch?.id === o.id}
                 onClick={() => applyMode({ ...o.args })}
               />
             );
           })}
+          {aplicables.length === 0 && (
+            <div className="pulso-gv2-mode-empty">
+              Aún no hay modos guardados para este preset.
+            </div>
+          )}
 
           <div className="pulso-gv2-mode-popover-divider" />
 
@@ -405,7 +494,7 @@ function OverrideDropdown({
             >
               <Save size={12} />
               <span className="pulso-gv2-mode-option-label">
-                Crear modo "{partialMatch?.nombre ?? "personalizado"}"
+                Guardar ajustes como modo
               </span>
             </button>
           )}
@@ -417,11 +506,12 @@ function OverrideDropdown({
               onClick={() => applyMode(null)}
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
-            <RotateCcw size={11} />
-              Descartar cambios manuales y volver al estilo base
+              <RotateCcw size={11} />
+              Volver a base del preset
             </button>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
