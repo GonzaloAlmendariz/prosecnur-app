@@ -18213,3 +18213,88 @@
     display: none;
   }
 }
+
+/* Suite polish pass 20: short-screen editor scroll model for clearer controls. */
+@media (max-height: 720px) and (max-width: 1120px) {
+  .pulso-graficos-frame .pulso-gv2-mode-toolbar {
+    min-height: 50px;
+    padding: 6px 9px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-suite-status {
+    min-height: 32px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-shell-body.is-timeline {
+    align-items: start;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scroll-padding-block: 12px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-shell-body.is-timeline::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-shell-body.is-timeline::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 34%, var(--pulso-border));
+    background-clip: padding-box;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-shell-body.is-timeline .pulso-gv2-timeline {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector {
+    align-self: start;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-head {
+    padding: 10px 14px 8px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-head-main {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 360px);
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-title {
+    font-size: 14px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-description {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-slide-preview.is-compact {
+    max-width: 360px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-tabs {
+    margin-top: 9px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-body {
+    flex: 0 0 auto;
+    min-height: 180px;
+    overflow: visible;
+    padding: 12px 14px 18px;
+    scrollbar-gutter: auto;
+  }
+}
