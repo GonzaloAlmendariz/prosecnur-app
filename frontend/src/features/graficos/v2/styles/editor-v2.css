@@ -9769,6 +9769,18 @@
   white-space: nowrap;
 }
 
+.pulso-gv2-presets-overview-current.is-inherited {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 76%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-gv2-presets-overview-current.is-custom {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 70%, var(--pulso-border));
+  background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 64%, #ffffff);
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
 .pulso-gv2-preset-nav-group {
   display: flex;
   align-items: center;
@@ -9899,6 +9911,22 @@
   color: var(--gv2-accent, var(--pulso-primary));
   font-size: 10px;
   font-weight: 740;
+}
+
+.pulso-gv2-preset-modified-badge.is-inherited {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 78%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-gv2-preset-modified-badge.is-inherited svg {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-preset-modified-badge.is-custom {
+  border-color: var(--gv2-accent-border, var(--pulso-primary-border));
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  color: var(--gv2-accent, var(--pulso-primary));
 }
 
 .pulso-gv2-preset-header-description {
@@ -12260,6 +12288,12 @@
   grid-template-columns: 34px minmax(0, 1fr) 34px;
   gap: 6px;
   overflow-x: clip;
+}
+
+.pulso-gv2-number-stepper .pulso-arg-stepper-button {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
 }
 
 /* Suite polish pass 10: visual blueprints for the slide template library. */
