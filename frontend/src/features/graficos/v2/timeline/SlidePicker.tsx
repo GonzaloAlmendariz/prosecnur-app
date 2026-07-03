@@ -36,6 +36,7 @@ const ALL_TYPES: SlideType[] = [
 ];
 
 const ORDER: ("all" | SlideCategory)[] = ["all", "estructural", "1g", "2g", "grid", "poblacion"];
+type BlueprintPattern = "cover" | "single" | "narrative" | "split" | "grid" | "population";
 
 const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
   all: "Todos",
@@ -43,11 +44,11 @@ const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
 };
 
 const CAT_META: Record<"all" | SlideCategory, { Icon: typeof Plus; hint: string }> = {
-  all: { Icon: LayoutGrid, hint: "Biblioteca completa" },
+  all: { Icon: LayoutGrid, hint: "Todos los modelos" },
   estructural: { Icon: LayoutPanelTop, hint: "Apertura y narrativa" },
-  "1g": { Icon: BarChart3, hint: "Lectura individual" },
-  "2g": { Icon: Columns3, hint: "Comparación doble" },
-  grid: { Icon: Grid3X3, hint: "Matrices de análisis" },
+  "1g": { Icon: BarChart3, hint: "Un visual principal" },
+  "2g": { Icon: Columns3, hint: "Comparación en paralelo" },
+  grid: { Icon: Grid3X3, hint: "Matrices de lectura" },
   poblacion: { Icon: UsersRound, hint: "Perfiles poblacionales" },
 };
 
@@ -114,7 +115,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="pulso-gv2-picker-backdrop" role="dialog" aria-modal="true" aria-label="Agregar slide">
+    <div className="pulso-gv2-picker-backdrop" role="dialog" aria-modal="true" aria-label="Insertar modelo de slide">
       <div className="pulso-gv2-picker" ref={rootRef}>
         <div className="pulso-gv2-picker-head">
           <div className="pulso-gv2-picker-head-main">
@@ -122,9 +123,9 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
               <Layers3 size={17} />
             </span>
             <div>
-              <div className="pulso-gv2-picker-eyebrow">Biblioteca de plantillas</div>
-              <div className="pulso-gv2-picker-title">Agregar slide</div>
-              <div className="pulso-gv2-picker-sub">{ALL_TYPES.length} composiciones disponibles</div>
+              <div className="pulso-gv2-picker-eyebrow">Biblioteca de modelos</div>
+              <div className="pulso-gv2-picker-title">Insertar modelo</div>
+              <div className="pulso-gv2-picker-sub">{ALL_TYPES.length} modelos de composición</div>
             </div>
           </div>
           <button
@@ -138,8 +139,8 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
         </div>
 
         <div className="pulso-gv2-picker-stage">
-          <aside className="pulso-gv2-picker-rail" aria-label="Categorías de plantillas">
-            <div className="pulso-gv2-picker-rail-kicker">Colección</div>
+          <aside className="pulso-gv2-picker-rail" aria-label="Familias de modelos">
+            <div className="pulso-gv2-picker-rail-kicker">Familias</div>
             <div className="pulso-gv2-picker-tabs">
               {ORDER.map((c) => {
                 const { Icon, hint } = CAT_META[c];
@@ -165,7 +166,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
             </div>
           </aside>
 
-          <section className="pulso-gv2-picker-library" aria-label={`Plantillas: ${activeLabel}`}>
+          <section className="pulso-gv2-picker-library" aria-label={`Modelos: ${activeLabel}`}>
             <div className="pulso-gv2-picker-library-head">
               <div className="pulso-gv2-picker-library-title">
                 <span className="pulso-gv2-picker-library-icon" aria-hidden="true">
@@ -177,7 +178,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                 </div>
               </div>
               <div className="pulso-gv2-picker-library-count">
-                {filtered.length} en vista
+                {filtered.length} modelos visibles
               </div>
             </div>
 
@@ -189,8 +190,8 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                 className="pulso-gv2-picker-search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar plantilla…"
-                aria-label="Buscar plantilla"
+                placeholder="Buscar modelo…"
+                aria-label="Buscar modelo"
               />
             </div>
 
@@ -198,6 +199,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
               {filtered.map((t) => {
                 const meta = slidesById[t];
                 const cat = categoryOf(t);
+                const pattern = blueprintPattern(t);
                 return (
                   <button
                     key={t}
@@ -210,15 +212,25 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                       <SlideTypeIcon tipo={t} iconoUi={meta?.icono_ui} size={23} />
                     </span>
                     <span className="pulso-gv2-picker-tile-copy">
-                      <span className="pulso-gv2-picker-tile-meta">{CAT_LABEL_WITH_ALL[cat]}</span>
+                      <span className="pulso-gv2-picker-tile-meta-row">
+                        <span className="pulso-gv2-picker-tile-meta">{CAT_LABEL_WITH_ALL[cat]}</span>
+                        <span className="pulso-gv2-picker-tile-structure">{modelStructureLabel(pattern)}</span>
+                      </span>
                       <span className="pulso-gv2-picker-tile-label">{SLIDE_LABELS[t]}</span>
                       {meta?.descripcion && (
                         <span className="pulso-gv2-picker-tile-desc">{meta.descripcion}</span>
                       )}
+                      <span className="pulso-gv2-picker-tile-tags" aria-label={`Estructura del modelo: ${modelSlotLabel(t)}`}>
+                        <span>{modelSlotLabel(t)}</span>
+                        <span>Modelo base</span>
+                      </span>
+                    </span>
+                    <span className="pulso-gv2-picker-tile-action">
+                      <Plus size={11} /> Insertar
                     </span>
                     <span
                       className="pulso-gv2-picker-tile-blueprint"
-                      data-pattern={blueprintPattern(t)}
+                      data-pattern={pattern}
                       aria-hidden="true"
                     >
                       <i />
@@ -231,7 +243,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
               })}
               {filtered.length === 0 && (
                 <div className="pulso-gv2-picker-empty">
-                  Ninguna plantilla coincide con "{query}".
+                  Ningún modelo coincide con "{query}".
                 </div>
               )}
             </div>
@@ -243,7 +255,33 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
   );
 }
 
-function blueprintPattern(type: SlideType): "cover" | "single" | "narrative" | "split" | "grid" | "population" {
+function modelStructureLabel(pattern: BlueprintPattern): string {
+  switch (pattern) {
+    case "grid":
+      return "Matriz";
+    case "population":
+      return "Población";
+    case "split":
+      return "Dos zonas";
+    case "narrative":
+      return "Narrativo";
+    case "single":
+      return "Visual único";
+    default:
+      return "Estructura";
+  }
+}
+
+function modelSlotLabel(type: SlideType): string {
+  if (type.includes("6_graficos")) return "6 slots";
+  if (type.includes("5_graficos")) return "5 slots";
+  if (type.includes("4_graficos")) return "4 slots";
+  if (type.includes("2_graficos")) return "2 slots";
+  if (type.includes("1_grafico") || type.includes("grafico_texto")) return "1 slot";
+  return "Base editorial";
+}
+
+function blueprintPattern(type: SlideType): BlueprintPattern {
   if (type.includes("poblacion")) return "population";
   if (type.includes("4_graficos") || type.includes("5_graficos") || type.includes("6_graficos")) return "grid";
   if (type.includes("2_graficos") || type.includes("texto_derecha") || type.includes("texto_izquierda")) return "split";
