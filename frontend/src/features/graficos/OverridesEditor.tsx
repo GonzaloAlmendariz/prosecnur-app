@@ -61,10 +61,12 @@ export function OverridesEditor() {
   if (error) return <ErrorBlock label="Error cargando catálogo" detail={error} />;
 
   const selected = overrides.find((o) => o.id === selectedId);
+  const modesWithArgs = overrides.filter((o) => Object.keys(o.args).length > 0).length;
+  const coveredTypes = new Set(overrides.map((o) => o.tipo_preset)).size;
 
   function handleCreate() {
     const tipoDefault = tipoOptions[0]?.name ?? "barras_apiladas";
-    const nuevoNombre = `Override ${overrides.length + 1}`;
+    const nuevoNombre = `Modo ${overrides.length + 1}`;
     const nuevo: OverrideReusable = {
       id: newId(),
       nombre: nuevoNombre,
@@ -87,7 +89,7 @@ export function OverridesEditor() {
   }
 
   function handleDelete(id: string) {
-    const confirm = window.confirm("¿Eliminar este override? Los gráficos que lo estén usando volverán a los defaults del preset.");
+    const confirm = window.confirm("¿Eliminar este modo? Los gráficos que lo estén usando volverán a la base del preset.");
     if (!confirm) return;
     removeOverride(id);
     if (selectedId === id) {
@@ -98,6 +100,23 @@ export function OverridesEditor() {
 
   return (
     <div className="pulso-gv2-overrides-editor">
+      <div className="pulso-gv2-overrides-overview" aria-label="Resumen de modos reutilizables">
+        <span className="pulso-gv2-overrides-overview-icon" aria-hidden="true">
+          <Layers3 size={15} />
+        </span>
+        <span className="pulso-gv2-overrides-overview-copy">
+          <strong>Modos reutilizables</strong>
+          <span>
+            {overrides.length === 0
+              ? "Crea variantes como compacto, narrativo o alta densidad"
+              : `${overrides.length} modo${overrides.length === 1 ? "" : "s"} · ${modesWithArgs} con ajustes · ${coveredTypes} tipo${coveredTypes === 1 ? "" : "s"} de gráfico`}
+          </span>
+        </span>
+        <span className="pulso-gv2-overrides-overview-pill">
+          Por slot
+        </span>
+      </div>
+      <div className="pulso-gv2-overrides-workbench">
       {/* Sidebar */}
       <aside className="pulso-gv2-overrides-sidebar">
         <button
@@ -109,14 +128,14 @@ export function OverridesEditor() {
             display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "center",
           }}
         >
-          <Plus size={13} /> Nuevo override
+          <Plus size={13} /> Nuevo modo
         </button>
 
         {overrides.length === 0 ? (
           <EmptyState
             variant="inline"
             icon={<Layers3 size={16} />}
-            title="Sin overrides"
+            title="Sin modos"
             hint="Crea uno y aplícalo desde cualquier slot de gráfico."
           />
         ) : (
@@ -125,12 +144,14 @@ export function OverridesEditor() {
               const tipoMeta = presetsByName[o.tipo_preset];
               const Icon = resolveGraphLucideIcon(tipoMeta?.icono_ui, "Sliders");
               const isActive = o.id === selectedId;
-              const hasArgs = Object.keys(o.args).length > 0;
+              const argCount = Object.keys(o.args).length;
+              const hasArgs = argCount > 0;
               return (
                 <button
                   key={o.id}
                   type="button"
                   onClick={() => setSelectedId(o.id)}
+                  className={`pulso-gv2-mode-list-item ${isActive ? "is-active" : ""}`}
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
                     padding: "7px 9px", borderRadius: 6,
@@ -143,8 +164,11 @@ export function OverridesEditor() {
                   }}
                 >
                   <Icon size={13} />
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {o.nombre}
+                  <span className="pulso-gv2-mode-list-copy">
+                    <span className="pulso-gv2-mode-list-label">{o.nombre}</span>
+                    <span className="pulso-gv2-mode-list-meta">
+                      {tipoMeta?.titulo_humano ?? o.tipo_preset} · {argCount} ajuste{argCount === 1 ? "" : "s"}
+                    </span>
                   </span>
                   {hasArgs && (
                     <Circle size={6} fill="var(--pulso-primary)" color="transparent" />
@@ -170,11 +194,11 @@ export function OverridesEditor() {
         ) : (
           <EmptyState
             icon={<Layers3 size={22} />}
-            title={overrides.length === 0 ? "Aún no hay overrides" : "Selecciona un override"}
+            title={overrides.length === 0 ? "Aún no hay modos" : "Selecciona un modo"}
             hint={
               overrides.length === 0
-                ? "Los overrides son mini-presets reusables que aplicas a slots específicos cuando la configuración global no encaja."
-                : "Elige uno del panel izquierdo para editar sus args."
+                ? "Los modos son mini-presets reusables que aplicas a slots específicos cuando la base global no alcanza."
+                : "Elige uno del panel izquierdo para editar sus ajustes."
             }
             cta={
               overrides.length === 0 ? (
@@ -187,13 +211,14 @@ export function OverridesEditor() {
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  <Plus size={13} /> Crear primer override
+                  <Plus size={13} /> Crear primer modo
                 </button>
               ) : undefined
             }
           />
         )}
       </section>
+      </div>
     </div>
   );
 }
@@ -271,7 +296,7 @@ function OverrideEditPanel({
             type="text"
             value={override.nombre}
             onChange={(e) => onUpdate({ nombre: e.target.value })}
-            placeholder="Nombre del override"
+            placeholder="Nombre del modo"
             className="pulso-inline-edit"
           />
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -299,7 +324,7 @@ function OverrideEditPanel({
         <button
           type="button"
           onClick={onDuplicate}
-          title="Duplicar este override"
+          title="Duplicar este modo"
           style={{
             display: "inline-flex", alignItems: "center", gap: 5,
             fontSize: 11, padding: "5px 10px",
@@ -313,7 +338,7 @@ function OverrideEditPanel({
         <button
           type="button"
           onClick={onDelete}
-          title="Eliminar este override"
+          title="Eliminar este modo"
           className="pulso-icon pulso-icon-danger"
           style={{ minWidth: 28, minHeight: 28 }}
         >
@@ -328,7 +353,7 @@ function OverrideEditPanel({
             color: "var(--pulso-text-soft)", lineHeight: 1.5,
           }}
         >
-          {tipoMeta.descripcion} Los args que definas acá <strong>pisan</strong> al preset global cuando se aplique este override.
+          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre el preset global cuando uses este modo.
         </p>
       )}
 
