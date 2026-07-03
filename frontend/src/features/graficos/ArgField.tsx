@@ -849,6 +849,20 @@ function NumberControl({
   };
   const currentDisplayValue = hasCurrentValue ? currentNumeric * displayScale : undefined;
   const stepDisplayLabel = formatRangeTick(displayStep);
+  const rangeProgress =
+    hasSlider &&
+    typeof displayMin === "number" &&
+    typeof displayMax === "number" &&
+    typeof currentDisplayValue === "number" &&
+    Number.isFinite(currentDisplayValue) &&
+    displayMax > displayMin
+      ? clampNumber(((currentDisplayValue - displayMin) / (displayMax - displayMin)) * 100, 0, 100)
+      : 0;
+  const rangeTrackStyle = {
+    width: "100%",
+    accentColor: "var(--pulso-primary)",
+    "--range-progress": `${rangeProgress}%`,
+  } as React.CSSProperties;
 
   return (
     <div className="pulso-gv2-number-control" style={{ width: "100%", maxWidth: "100%" }}>
@@ -864,7 +878,7 @@ function NumberControl({
             title={`Disminuir en ${stepDisplayLabel}`}
             style={stepButtonStyle}
         >
-          −
+          <span aria-hidden="true" className="pulso-gv2-stepper-glyph">−</span>
         </button>
         <div className="pulso-gv2-number-input-wrap">
           <input
@@ -923,7 +937,7 @@ function NumberControl({
             title={`Aumentar en ${stepDisplayLabel}`}
             style={stepButtonStyle}
         >
-          +
+          <span aria-hidden="true" className="pulso-gv2-stepper-glyph">+</span>
         </button>
       </div>
 
@@ -938,13 +952,23 @@ function NumberControl({
             step={displayStep}
             onChange={(e) => applyCandidate(Number(e.target.value) / displayScale)}
             aria-label={`${label}: ajustar con deslizador`}
+            aria-valuetext={`${label}: ${formatRangeTick(currentDisplayValue)}. Mínimo ${formatRangeTick(displayMin)}; máximo ${formatRangeTick(displayMax)}.`}
             title={`Arrastra para ajustar ${label}; también puedes escribir el valor exacto.`}
-            style={{ width: "100%", accentColor: "var(--pulso-primary)" }}
+            style={rangeTrackStyle}
           />
           <div className="pulso-gv2-range-meta" aria-hidden="true">
-            <span>{formatRangeTick(displayMin)}</span>
-            <strong>{formatRangeTick(currentDisplayValue)}</strong>
-            <span>{formatRangeTick(displayMax)}</span>
+            <span>
+              <em>Mín.</em>
+              <b>{formatRangeTick(displayMin)}</b>
+            </span>
+            <strong>
+              <em>Actual</em>
+              <b>{formatRangeTick(currentDisplayValue)}</b>
+            </strong>
+            <span>
+              <em>Máx.</em>
+              <b>{formatRangeTick(displayMax)}</b>
+            </span>
           </div>
         </div>
       )}
