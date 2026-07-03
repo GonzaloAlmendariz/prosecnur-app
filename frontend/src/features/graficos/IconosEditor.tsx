@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
-import { Upload, Trash2, Pencil, Check, ImageOff } from "lucide-react";
+import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2, Sparkles } from "lucide-react";
 import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
-import { EmptyState, ErrorBlock, SectionEyebrow } from "../../components/States";
+import { EmptyState, ErrorBlock } from "../../components/States";
 
 // Editor de biblioteca de iconos PNG. Los iconos son parte esencial de
 // los slides de población (p_slide_*_poblacion): aparecen centrados o
@@ -26,6 +26,7 @@ export function IconosEditor() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const lastIcon = iconos[iconos.length - 1];
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -33,8 +34,8 @@ export function IconosEditor() {
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) {
-          setError(`"${file.name}" no es imagen, ignorado.`);
+        if (file.type !== "image/png") {
+          setError(`"${file.name}" no es PNG, ignorado.`);
           continue;
         }
         const dataBase64 = await readAsBase64(file);
@@ -56,41 +57,70 @@ export function IconosEditor() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <SectionEyebrow
-        label="Iconos para slides de población"
-        hint="Sube PNGs que quieras usar como ícono central en slides de población (p_slide_*_poblacion) o como ícono lateral en p_slide_objetivo_icono. Formato recomendado: PNG con fondo transparente, ~500×500 px."
-      />
+    <div className="pulso-gv2-iconos-editor">
+      <section className="pulso-gv2-iconos-hero" aria-label="Biblioteca de iconos para slides">
+        <div className="pulso-gv2-iconos-hero-main">
+          <span className="pulso-gv2-iconos-hero-mark" aria-hidden="true">
+            <Images size={18} />
+          </span>
+          <div className="pulso-gv2-iconos-hero-copy">
+            <span>Biblioteca de assets</span>
+            <strong>Iconos para slides de población</strong>
+            <small>PNGs transparentes para objetivos, públicos, cobertura y láminas con apoyo visual.</small>
+          </div>
+        </div>
+        <div className="pulso-gv2-iconos-hero-stats" aria-label="Estado de la biblioteca">
+          <span>
+            <strong>{iconos.length}</strong>
+            <small>{iconos.length === 1 ? "icono" : "iconos"}</small>
+          </span>
+          <span>
+            <strong>PNG</strong>
+            <small>transparente</small>
+          </span>
+          <span>
+            <strong>{lastIcon ? "Listo" : "Base"}</strong>
+            <small>{lastIcon ? lastIcon.nombre : "sin assets"}</small>
+          </span>
+        </div>
+      </section>
 
-      {/* Drop area */}
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          void handleFiles(e.dataTransfer.files);
-        }}
-        style={{
-          padding: "22px 14px",
-          border: `2px dashed ${dragOver ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-          borderRadius: 8,
-          background: dragOver ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
-          cursor: uploading ? "wait" : "pointer",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-          transition: "background 120ms ease, border-color 120ms ease",
-        }}
-      >
-        <Upload size={22} color={dragOver ? "var(--pulso-primary)" : "var(--pulso-text-soft)"} />
-        <div style={{ fontSize: 12, color: "var(--pulso-text)", fontWeight: 600 }}>
-          {uploading ? "Subiendo…" : "Arrastra un PNG o haz click para seleccionar"}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          Se aceptan múltiples archivos. Solo PNG.
-        </div>
+      <div className="pulso-gv2-iconos-workbench">
+        <label
+          className="pulso-gv2-iconos-dropzone"
+          data-active={dragOver ? "true" : "false"}
+          data-uploading={uploading ? "true" : "false"}
+          aria-busy={uploading}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            void handleFiles(e.dataTransfer.files);
+          }}
+        >
+          <span className="pulso-gv2-iconos-drop-orbit" aria-hidden="true">
+            <Upload size={20} />
+          </span>
+          <span className="pulso-gv2-iconos-drop-copy">
+            <strong>{uploading ? "Subiendo assets..." : "Arrastra PNGs o selecciona archivos"}</strong>
+            <small>Usa fondo transparente, borde limpio y aproximadamente 500 x 500 px.</small>
+          </span>
+          <span className="pulso-gv2-iconos-drop-pill">
+            <Sparkles size={12} />
+            Reutilizable
+          </span>
         <input
           ref={fileInputRef}
           type="file"
@@ -99,7 +129,14 @@ export function IconosEditor() {
           style={{ display: "none" }}
           onChange={(e) => handleFiles(e.target.files)}
         />
-      </label>
+        </label>
+
+        <aside className="pulso-gv2-iconos-guidance" aria-label="Guía de calidad de iconos">
+          <span><CheckCircle2 size={13} /> Transparencia real</span>
+          <span><CheckCircle2 size={13} /> Contraste sobre fondo claro</span>
+          <span><CheckCircle2 size={13} /> Silueta legible a 32 px</span>
+        </aside>
+      </div>
 
       {error && <ErrorBlock label="Error al subir" detail={error} />}
 
@@ -112,13 +149,7 @@ export function IconosEditor() {
           hint="Los PNGs que subas aparecerán acá para reutilizar en cualquier slide de población."
         />
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-            gap: 10,
-          }}
-        >
+        <div className="pulso-gv2-iconos-grid" aria-label="Iconos cargados">
           {iconos.map((ico) => (
             <IconoCard
               key={ico.id}
@@ -152,33 +183,16 @@ function IconoCard({
   }
 
   return (
-    <div
-      style={{
-        display: "flex", flexDirection: "column", gap: 6,
-        padding: 8,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        background: "white",
-      }}
-    >
-      <div
-        style={{
-          aspectRatio: "1 / 1",
-          background: "var(--pulso-surface)",
-          borderRadius: 6,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          overflow: "hidden",
-        }}
-      >
+    <article className="pulso-gv2-icon-card">
+      <div className="pulso-gv2-icon-card-preview">
         <img
           src={downloadUrl(icono.file_id)}
           alt={icono.nombre}
-          style={{ maxWidth: "80%", maxHeight: "80%", objectFit: "contain" }}
         />
       </div>
 
       {editing ? (
-        <div style={{ display: "flex", gap: 3 }}>
+        <div className="pulso-gv2-icon-card-edit">
           <input
             autoFocus
             value={draft}
@@ -188,49 +202,40 @@ function IconoCard({
               if (e.key === "Enter") commit();
               if (e.key === "Escape") { setEditing(false); setDraft(icono.nombre); }
             }}
-            style={{
-              flex: 1, minWidth: 0,
-              fontSize: 11, padding: "3px 5px", borderRadius: 4,
-              border: "1px solid var(--pulso-primary)",
-            }}
           />
           <button type="button" onClick={commit} className="pulso-icon" aria-label="Confirmar">
             <Check size={11} />
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>
-          <div
-            style={{
-              flex: 1, minWidth: 0,
-              fontSize: 11, fontWeight: 600, color: "var(--pulso-text)",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}
-            title={icono.nombre}
-          >
-            {icono.nombre}
-          </div>
-          <button
-            type="button"
-            onClick={() => { setDraft(icono.nombre); setEditing(true); }}
-            className="pulso-icon"
-            aria-label="Renombrar"
-            title="Renombrar"
-          >
-            <Pencil size={10} />
-          </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="pulso-icon pulso-icon-danger"
-            aria-label="Eliminar"
-            title="Eliminar"
-          >
-            <Trash2 size={10} />
-          </button>
+        <div className="pulso-gv2-icon-card-footer">
+          <span className="pulso-gv2-icon-card-name" title={icono.nombre}>
+            <strong>{icono.nombre}</strong>
+            <small>Asset PNG</small>
+          </span>
+          <span className="pulso-gv2-icon-card-actions">
+            <button
+              type="button"
+              onClick={() => { setDraft(icono.nombre); setEditing(true); }}
+              className="pulso-gv2-iconos-action"
+              aria-label={`Renombrar ${icono.nombre}`}
+              title="Renombrar"
+            >
+              <Pencil size={11} />
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              className="pulso-gv2-iconos-action is-danger"
+              aria-label={`Eliminar ${icono.nombre}`}
+              title="Eliminar"
+            >
+              <Trash2 size={11} />
+            </button>
+          </span>
         </div>
       )}
-    </div>
+    </article>
   );
 }
 
