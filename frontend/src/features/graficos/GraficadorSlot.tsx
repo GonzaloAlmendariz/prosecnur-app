@@ -1,7 +1,8 @@
 import { type CSSProperties, useMemo, useRef, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Shuffle, X, Wand2, Check, ImagePlus, Save, RotateCcw } from "lucide-react";
+import { Plus, Shuffle, X, Check, ImagePlus, Save, RotateCcw } from "lucide-react";
 import { GraficadorMetadata, GraficadorRef } from "../../api/client";
+import { IconModes } from "../../lib/icons";
 import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import GraficadorPicker from "./GraficadorPicker";
@@ -356,6 +357,11 @@ function OverrideDropdown({
   const lineageSlotLabel = customCount > 0
     ? `${customCount} ajuste${customCount === 1 ? "" : "s"}`
     : "sin ajustes";
+  const modeRail = [
+    { key: "base", label: "Base", active: true },
+    { key: "mode", label: "Modo", active: Boolean(exactMatch || partialMatch) },
+    { key: "manual", label: "Manual", active: customCount > 0 },
+  ];
 
   function applyMode(args: Record<string, unknown> | null) {
     // Si hay edits custom y vamos a reemplazar, pedir confirmación.
@@ -400,7 +406,7 @@ function OverrideDropdown({
       const roomBelow = window.innerHeight - rect.bottom;
       const roomAbove = rect.top;
       const nextPlacement = roomBelow < 340 && roomAbove > roomBelow ? "up" : "down";
-      const popoverWidth = 320;
+      const popoverWidth = 380;
       const gutter = 12;
       const left = Math.min(
         Math.max(gutter, rect.right - popoverWidth),
@@ -447,10 +453,19 @@ function OverrideDropdown({
         className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""} is-${modeState}`}
         data-state={modeState}
       >
-        <Wand2 size={11} />
+        <IconModes size={11} />
         <span className="pulso-gv2-mode-trigger-copy">
           <span>{triggerLabel}</span>
           <small>{triggerHint}</small>
+        </span>
+        <span className="pulso-gv2-mode-trigger-rail" aria-hidden="true">
+          {modeRail.map((item) => (
+            <i
+              key={item.key}
+              className={`is-${item.key}${item.active ? " is-on" : ""}`}
+              title={item.label}
+            />
+          ))}
         </span>
       </button>
       {open && typeof document !== "undefined" && createPortal(
@@ -477,12 +492,14 @@ function OverrideDropdown({
           </div>
 
           <div className="pulso-gv2-mode-popover-label">
-            Modos reutilizables · {aplicables.length}
+            Variantes reutilizables para este slot · {aplicables.length}
           </div>
 
           <DropdownOption
+            kind="base"
             label="Mantener base del preset"
             hint="no marca cambios"
+            description="Usa exactamente la biblioteca visual global."
             active={customCount === 0}
             onClick={() => applyMode(null)}
           />
@@ -490,8 +507,10 @@ function OverrideDropdown({
             return (
               <DropdownOption
                 key={o.id}
+                kind="mode"
                 label={o.nombre}
                 hint={`${Object.keys(o.args).length} ajustes`}
+                description="Aplica este modo solo al slot seleccionado."
                 active={exactMatch?.id === o.id}
                 onClick={() => applyMode({ ...o.args })}
               />
@@ -550,12 +569,14 @@ function isSubset(subset: Record<string, unknown>, superset: Record<string, unkn
 }
 
 function DropdownOption({
-  label, hint, active, onClick,
+  label, hint, description, active, onClick, kind = "mode",
 }: {
   label: string;
   hint?: string;
+  description?: string;
   active: boolean;
   onClick: () => void;
+  kind?: "base" | "mode";
 }) {
   return (
     <button
@@ -563,9 +584,18 @@ function DropdownOption({
       role="menuitem"
       onClick={onClick}
       className={`pulso-gv2-mode-option ${active ? "is-active" : ""}`}
+      data-kind={kind}
     >
-      <span className="pulso-gv2-mode-option-label">
-        {label}
+      <span className="pulso-gv2-mode-option-mark" aria-hidden="true" />
+      <span className="pulso-gv2-mode-option-copy">
+        <span className="pulso-gv2-mode-option-label">
+          {label}
+        </span>
+        {description && (
+          <span className="pulso-gv2-mode-option-description">
+            {description}
+          </span>
+        )}
       </span>
       {hint && (
         <span className="pulso-gv2-mode-option-hint">
