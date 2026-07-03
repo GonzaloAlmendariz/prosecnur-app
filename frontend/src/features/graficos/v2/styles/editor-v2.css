@@ -13563,6 +13563,15 @@
   background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 62%, #ffffff) !important;
 }
 
+.pulso-gv2-layout-reset:disabled {
+  cursor: default;
+  border-color: color-mix(in srgb, var(--pulso-border) 86%, #ffffff) !important;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, #ffffff) !important;
+  color: var(--pulso-text-soft) !important;
+  opacity: 0.72;
+  box-shadow: none;
+}
+
 @media (max-width: 1280px) {
   .pulso-gv2-layout-head {
     grid-template-columns: 38px minmax(0, 1fr);
@@ -18056,7 +18065,8 @@
 }
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
-  width: 36px;
+  box-sizing: border-box;
+  width: 44px;
   min-height: 20px;
   border-radius: 7px;
 }
@@ -18129,7 +18139,7 @@
 }
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric.is-gap-metric input {
-  width: 36px;
+  width: 40px;
   min-height: 17px;
   font-size: 10px;
 }

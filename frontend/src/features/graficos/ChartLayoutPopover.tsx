@@ -161,7 +161,7 @@ export function ChartLayoutEditor({
         setDragGuide({
           axis: drag.axis,
           position: guidePosition,
-          label: `${layoutFieldLabel(leftName, fields, argsByName)} ${formatNumber(nextLeft)} · ${layoutFieldLabel(rightName, fields, argsByName)} ${formatNumber(nextRight)} - suelta para aplicar`,
+          label: `${layoutFieldLabel(leftName, fields, argsByName)} ${formatNumber(nextLeft)} · ${layoutFieldLabel(rightName, fields, argsByName)} ${formatNumber(nextRight)}. Suelta para guardar.`,
         });
       } else {
         const name = drag.names[0];
@@ -173,7 +173,7 @@ export function ChartLayoutEditor({
         setDragGuide({
           axis: drag.axis,
           position: guidePosition,
-          label: `${layoutFieldLabel(name, fields, argsByName)} ${formatNumber(next)} - suelta para aplicar`,
+          label: `${layoutFieldLabel(name, fields, argsByName)} ${formatNumber(next)}. Suelta para guardar.`,
         });
       }
     }
@@ -227,7 +227,9 @@ export function ChartLayoutEditor({
     ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
     : sourceState === "mode"
       ? `${inheritedFieldCount} valor${inheritedFieldCount === 1 ? "" : "es"} heredado${inheritedFieldCount === 1 ? "" : "s"}`
-      : "Sin cambios manuales";
+      : "Base sin cambios";
+  const hasManualLayout = customFieldCount > 0;
+  const resetLabel = hasManualLayout ? "Restaurar manuales" : "Sin cambios manuales";
 
   if (!kind || fields.length === 0) return null;
 
@@ -279,7 +281,7 @@ export function ChartLayoutEditor({
     setDragGuide({
       axis,
       position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
-      label: `Ajustando ${layoutFieldLabel(leftName, fields, argsByName)} y ${layoutFieldLabel(rightName, fields, argsByName)} - suelta para aplicar`,
+      label: `Repartiendo espacio entre ${layoutFieldLabel(leftName, fields, argsByName)} y ${layoutFieldLabel(rightName, fields, argsByName)}. Suelta para guardar.`,
     });
   }
 
@@ -302,7 +304,7 @@ export function ChartLayoutEditor({
     setDragGuide({
       axis,
       position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
-      label: `Ajustando ${layoutFieldLabel(name, fields, argsByName)} - suelta para aplicar`,
+      label: `Ajustando ${layoutFieldLabel(name, fields, argsByName)}. Suelta para guardar.`,
     });
   }
 
@@ -380,8 +382,8 @@ export function ChartLayoutEditor({
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
-              <strong>Editor dinámico de placeholders</strong>
-              <span>{fields.length} zonas · origen visible por base, modo o manual</span>
+              <strong>Editor visual de espacios</strong>
+              <span>Reparte título, leyenda y área del gráfico sin tocar los datos</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
               <span>Fuente visible</span>
@@ -400,9 +402,9 @@ export function ChartLayoutEditor({
           </div>
 
           <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
-            <span><MoveHorizontal size={11} /> Arrastra divisores</span>
-            <span><Ruler size={11} /> Edita valores exactos</span>
-            <span><X size={11} /> Oculta zonas secundarias</span>
+            <span><MoveHorizontal size={11} /> Arrastra el borde entre zonas</span>
+            <span><Ruler size={11} /> Escribe una medida exacta</span>
+            <span><X size={11} /> Pon 0 para ocultar una zona</span>
           </div>
 
           <div
@@ -410,7 +412,7 @@ export function ChartLayoutEditor({
             className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`}
             data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}
             role="group"
-            aria-label={`Canvas de layout ${layoutKindLabel}. Arrastra divisores o edita valores exactos.`}
+            aria-label={`Editor visual ${layoutKindLabel}. Arrastra bordes entre zonas o escribe medidas exactas.`}
           >
             {dragGuide && <DragGuide guide={dragGuide} />}
             {kind === "bars" && (
@@ -471,12 +473,18 @@ export function ChartLayoutEditor({
               <span className="is-manual"><i /> Manual</span>
             </div>
             <div className="pulso-gv2-layout-footer-tools" aria-label="Herramientas del editor">
-              <span><MousePointer2 size={11} /> Divisores activos</span>
-              <span><Ruler size={11} /> {fields.length} valores</span>
+              <span><MousePointer2 size={11} /> Bordes ajustables</span>
+              <span><Ruler size={11} /> {fields.length} medidas</span>
               <span><Layers3 size={11} /> {roleSummary.length} roles</span>
             </div>
-            <button type="button" onClick={resetAll} className="pulso-gv2-layout-reset">
-              <RotateCcw size={12} /> Restaurar layout
+            <button
+              type="button"
+              onClick={resetAll}
+              className="pulso-gv2-layout-reset"
+              disabled={!hasManualLayout}
+              title={hasManualLayout ? "Quitar medidas manuales y volver a la base o modo visible" : "Este layout no tiene medidas manuales"}
+            >
+              <RotateCcw size={12} /> {resetLabel}
             </button>
           </div>
     </div>
@@ -1269,8 +1277,8 @@ function FrameMetric({
     <input
       type="text"
       inputMode="decimal"
-      aria-label={`Editar ${axisTitle.toLowerCase()} del placeholder`}
-      title="Usa coma o punto decimal. Presiona Enter para aplicar."
+      aria-label={`Editar ${fieldLabel ?? "zona"}: medida exacta de ${axisTitle.toLowerCase()}`}
+      title="Medida exacta del espacio. Usa coma o punto decimal; Enter aplica y Escape cancela."
       value={draft}
       onPointerDown={(event) => event.stopPropagation()}
       onChange={(event) => setDraft(event.currentTarget.value)}
@@ -1302,12 +1310,12 @@ function FrameMetric({
       >
         {onCommit && (
           <span className="pulso-gv2-layout-metric-cell is-value">
-            <em>Valor</em>
+            <em>Medida</em>
             {valueControl}
           </span>
         )}
         <span className="pulso-gv2-layout-metric-cell is-share">
-          <em>{axisTitle}</em>
+          <em>% {axisLabel}</em>
           <b>{sharePercent}</b>
         </span>
       </small>
@@ -1322,11 +1330,11 @@ function FrameMetric({
       aria-label={`${fieldLabel ?? "Zona"}: ${axisTitle.toLowerCase()} relativo ${sharePercent}; valor exacto ${formatNumber(value)}; estado ${shareLabel}`}
     >
       <span className="pulso-gv2-layout-metric-cell is-value">
-        <em>Valor</em>
+        <em>Medida</em>
         {valueControl}
       </span>
       <span className="pulso-gv2-layout-metric-cell is-share">
-        <em>{axisTitle}</em>
+        <em>% {axisLabel}</em>
         <b>{sharePercent}</b>
       </span>
       <i className="pulso-gv2-layout-metric-bar" aria-hidden="true" />
@@ -1378,11 +1386,11 @@ function pointerPositionInCanvas(
 }
 
 function resizePairLabel(first: LayoutField, second: LayoutField): string {
-  return `Arrastra para repartir espacio entre ${first.label} y ${second.label}`;
+  return `Arrastra el borde para repartir espacio entre ${first.label} y ${second.label}`;
 }
 
 function resizeSingleLabel(field: LayoutField): string {
-  return `Arrastra para ajustar ${field.label}`;
+  return `Arrastra el borde para ajustar ${field.label}`;
 }
 
 function layoutFieldLabel(
