@@ -127,30 +127,31 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   popover: {
     position: "absolute",
     zIndex: 10000,
-    top: "calc(100% + 8px)",
+    top: "calc(100% + 10px)",
     right: 0,
-    width: 760,
+    width: 660,
     maxWidth: "calc(100vw - 32px)",
-    padding: 10,
-    borderRadius: 18,
-    border: "1px solid var(--pulso-material-border)",
-    background: "var(--pulso-material-bg-strong)",
-    boxShadow: "0 22px 56px rgba(15, 23, 42, 0.18)",
-    backdropFilter: "blur(18px)",
-    maxHeight: "calc(100vh - 220px)",
+    padding: 12,
+    borderRadius: 16,
+    border: "1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 50%, var(--pulso-border))",
+    background: "linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 10%, #ffffff))",
+    boxShadow: "0 22px 52px rgba(0, 36, 87, 0.16), 0 4px 12px rgba(0, 36, 87, 0.07), inset 0 1px 0 rgba(255,255,255,0.86)",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
+    maxHeight: "calc(100vh - 190px)",
     overflowY: "auto",
   },
   packagePanel: {
-    border: "1px solid var(--pulso-border)",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.78)",
-    padding: 10,
+    border: "1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 32%, var(--pulso-border))",
+    borderRadius: 13,
+    background: "rgba(255,255,255,0.9)",
+    padding: 11,
   },
   packageHead: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    alignItems: "center",
+    gap: 10,
   },
   packageActions: {
     display: "flex",
@@ -160,8 +161,8 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     flexWrap: "wrap",
   },
   primaryActionButton: {
-    minHeight: 32,
-    borderRadius: 12,
+    minHeight: 30,
+    borderRadius: 10,
     border: "1px solid var(--pulso-primary)",
     background: "var(--pulso-primary)",
     color: "white",
@@ -169,14 +170,14 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    padding: "0 11px",
-    fontSize: 11,
+    padding: "0 10px",
+    fontSize: 10.5,
     fontWeight: 800,
     cursor: "pointer",
   },
   secondaryActionButton: {
-    minHeight: 32,
-    borderRadius: 12,
+    minHeight: 30,
+    borderRadius: 10,
     border: "1px solid var(--pulso-border)",
     background: "white",
     color: "var(--pulso-primary)",
@@ -184,8 +185,8 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    padding: "0 11px",
-    fontSize: 11,
+    padding: "0 10px",
+    fontSize: 10.5,
     fontWeight: 760,
     cursor: "pointer",
   },
@@ -249,14 +250,14 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   advancedToggle: {
     width: "100%",
-    marginTop: 8,
+    marginTop: 7,
     border: 0,
     background: "transparent",
     color: "var(--pulso-primary)",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "8px 2px 4px",
+    padding: "7px 2px 3px",
     fontSize: 11,
     fontWeight: 800,
     cursor: "pointer",
@@ -276,8 +277,8 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     gap: 12,
     alignItems: "flex-start",
-    padding: "4px 4px 8px",
-    marginBottom: 2,
+    padding: "2px 2px 9px",
+    marginBottom: 0,
   },
   headerActions: {
     display: "inline-flex",
@@ -287,18 +288,19 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   title: {
     display: "block",
-    fontSize: 12.5,
+    fontSize: 13,
+    lineHeight: 1.15,
     color: "var(--pulso-text)",
   },
   lead: {
     margin: "3px 0 0",
     color: "var(--pulso-text-soft)",
-    fontSize: 10.5,
+    fontSize: 10.4,
     lineHeight: 1.4,
   },
   close: {
-    width: 28,
-    height: 28,
+    width: 27,
+    height: 27,
     borderRadius: 999,
     border: "1px solid var(--pulso-border)",
     background: "rgba(255,255,255,0.82)",
@@ -519,6 +521,7 @@ export function GraficosHeader({
   const [jsonError, setJsonError] = useState("");
   const jsonFileRef = useRef<HTMLInputElement>(null);
   const shareFileRef = useRef<HTMLInputElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const { project } = useProjectShell();
   const savedRef = useRef<Record<string, true>>({});
@@ -552,6 +555,22 @@ export function GraficosHeader({
       document.removeEventListener("keydown", onKey);
     };
   }, [exportMenuOpen]);
+
+  useEffect(() => {
+    if (!jsonMenuOpen) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) setJsonMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setJsonMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [jsonMenuOpen]);
 
   function selectedJsonSections() {
     return GRAFICOS_JSON_SECTIONS.filter((section) => jsonSections[section.id]);
@@ -761,7 +780,11 @@ export function GraficosHeader({
 
           <button
             type="button"
-            onClick={() => setEstiloOpen(true)}
+            onClick={() => {
+              setJsonMenuOpen(false);
+              setExportMenuOpen(false);
+              setEstiloOpen(true);
+            }}
             className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
             aria-haspopup="dialog"
             aria-expanded={estiloOpen}
@@ -780,10 +803,13 @@ export function GraficosHeader({
             </span>
           </button>
 
-          <div style={jsonIoStyles.wrap}>
+          <div style={jsonIoStyles.wrap} ref={shareMenuRef}>
           <button
             type="button"
-            onClick={() => setJsonMenuOpen((x) => !x)}
+            onClick={() => {
+              setExportMenuOpen(false);
+              setJsonMenuOpen((x) => !x);
+            }}
             className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
             aria-expanded={jsonMenuOpen}
             aria-label={`Compartir plan. ${selectedJsonSections().length} de ${GRAFICOS_JSON_SECTIONS.length} secciones activas`}
@@ -1003,7 +1029,10 @@ export function GraficosHeader({
             <button
               type="button"
               className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger"
-              onClick={() => setExportMenuOpen((v) => !v)}
+              onClick={() => {
+                setJsonMenuOpen(false);
+                setExportMenuOpen((v) => !v);
+              }}
               disabled={!canExportFinal && !pptFileId && !docxFileId}
               aria-haspopup="dialog"
               aria-expanded={exportMenuOpen}
