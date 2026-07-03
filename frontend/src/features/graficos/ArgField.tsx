@@ -172,6 +172,7 @@ function FieldHeader({
 }) {
   const label = safeText(meta.label, safeText(meta.name, "Campo"));
   const isCustom = argState === "custom";
+  const showOriginBadge = argState !== "inherited";
   const stateMeta = fieldStateMeta(argState);
   const technicalName = safeText(meta.name);
 
@@ -193,17 +194,19 @@ function FieldHeader({
         )}
       </span>
       <span className="pulso-gv2-field-utilities">
-        <span
-          className={`pulso-gv2-source-badge ${stateMeta.className}`}
-          title={stateMeta.title}
-          aria-label={stateMeta.ariaLabel}
-        >
+        {showOriginBadge && (
           <span
-            aria-hidden="true"
-            className={`pulso-gv2-source-dot ${stateMeta.className}`}
-          />
-          {stateMeta.label}
-        </span>
+            className={`pulso-gv2-source-badge ${stateMeta.className}`}
+            title={stateMeta.title}
+            aria-label={stateMeta.ariaLabel}
+          >
+            <span
+              aria-hidden="true"
+              className={`pulso-gv2-source-dot ${stateMeta.className}`}
+            />
+            {stateMeta.label}
+          </span>
+        )}
         {hasAutomaticPlaceholder && (
           <span
             className="pulso-gv2-source-badge is-auto"
@@ -434,6 +437,7 @@ function TextControl({
   const statusId = useId();
   const showAutomaticPreview = !!placeholder && draft.trim() === "";
   const textSource = buildTextSourceMeta(draft, placeholder, argState);
+  const showTextSourceStrip = textSource.state !== "base";
 
   function evaluate(next: string) {
     const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder, baseHint });
@@ -517,17 +521,19 @@ function TextControl({
         )}
       </div>
 
-      <div
-        className="pulso-gv2-text-source-strip"
-        data-source-state={textSource.state}
-        aria-label={`Estado del texto: ${textSource.label}`}
-      >
-        <span className="pulso-gv2-text-source-label">
-          <span className="pulso-gv2-text-source-dot" aria-hidden="true" />
-          {textSource.label}
-        </span>
-        <span className="pulso-gv2-text-source-detail">{textSource.detail}</span>
-      </div>
+      {showTextSourceStrip && (
+        <div
+          className="pulso-gv2-text-source-strip"
+          data-source-state={textSource.state}
+          aria-label={`Estado del texto: ${textSource.label}`}
+        >
+          <span className="pulso-gv2-text-source-label">
+            <span className="pulso-gv2-text-source-dot" aria-hidden="true" />
+            {textSource.label}
+          </span>
+          <span className="pulso-gv2-text-source-detail">{textSource.detail}</span>
+        </div>
+      )}
 
       {showAutomaticPreview && (
         <div
@@ -582,7 +588,7 @@ function buildTextSourceMeta(draft: string, placeholder: string | undefined, arg
   if (placeholder && trimmed.length === 0) {
     return {
       state: "auto",
-      label: "Automatico",
+      label: "Automático",
       detail: "Fallback activo",
     };
   }
@@ -609,7 +615,7 @@ function buildTextSourceMeta(draft: string, placeholder: string | undefined, arg
   }
   return {
     state: "empty",
-    label: "Vacio",
+    label: "Vacío",
     detail: "Sin texto visible",
   };
 }
