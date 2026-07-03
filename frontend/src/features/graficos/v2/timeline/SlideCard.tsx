@@ -19,10 +19,9 @@ export type SlideCardProps = {
   variables: VarInfo[];
 };
 
-// Card de slide en el timeline V2. Es draggable (handle al inicio + grab
-// del card completo); muestra índice, tipo de lámina y gráficos usados,
-// sin exponer textos editables del usuario en la navegación lateral.
-// Color-coded por categoría en el borde izquierdo.
+// Card de slide en el timeline V2. Es draggable y funciona como firma visual
+// de estructura: índice, tipo de lámina y gráficos usados, sin exponer textos
+// editables del usuario en la navegación lateral.
 
 export function SlideCard({ slide, index, active, issues, variables }: SlideCardProps) {
   const select = usePlanStore((s) => s.select);
@@ -106,9 +105,15 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
           aria-label={`Gráficos usados: ${graphItems.map((item) => item.label).join(", ")}`}
         >
           {graphItems.slice(0, 2).map((item) => (
-            <span className="pulso-gv2-slide-card-model" key={`${item.slot}-${item.name}`}>
-              <GraficadorTypeIcon name={item.name} iconoUi={item.iconoUi} size={12} />
-              <span>{item.label}</span>
+            <span
+              className="pulso-gv2-slide-card-model"
+              key={`${item.slot}-${item.name}`}
+              title={item.label}
+            >
+              <span className="pulso-gv2-slide-card-model-icon" aria-hidden="true">
+                <GraficadorTypeIcon name={item.name} iconoUi={item.iconoUi} size={12} />
+              </span>
+              <span className="pulso-gv2-slide-card-model-label">{item.label}</span>
             </span>
           ))}
           {graphItems.length > 2 && (
