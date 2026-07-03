@@ -5,7 +5,6 @@ import { GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { ValidationIssue } from "../../usePlanValidator";
-import SlidePreviewMockup from "../../SlidePreviewMockup";
 import { SlideTypeIcon } from "../../SlideTypeIcon";
 import { GraficadorTypeIcon } from "../../GraficadorTypeIcon";
 import { graficadorDisplayName, humanizeIdentifier } from "../../graficadorDisplay";
@@ -17,16 +16,15 @@ export type SlideCardProps = {
   index: number;
   active: boolean;
   issues: ValidationIssue[];
-  density: "comfortable" | "compact";
   variables: VarInfo[];
 };
 
 // Card de slide en el timeline V2. Es draggable (handle al inicio + grab
-// del card completo); muestra thumbnail mockup, título humano, índice,
-// chips de override/icono compartidos, badge de diagnostics. Color-coded
-// por categoría en el borde izquierdo.
+// del card completo); muestra índice, tipo de lámina y gráficos usados,
+// sin exponer textos editables del usuario en la navegación lateral.
+// Color-coded por categoría en el borde izquierdo.
 
-export function SlideCard({ slide, index, active, issues, density, variables }: SlideCardProps) {
+export function SlideCard({ slide, index, active, issues, variables }: SlideCardProps) {
   const select = usePlanStore((s) => s.select);
   const removeSlide = usePlanStore((s) => s.removeSlide);
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
@@ -67,6 +65,7 @@ export function SlideCard({ slide, index, active, issues, density, variables }: 
       onClick={() => select(slide.id)}
       role="button"
       tabIndex={0}
+      aria-label={`Slide ${index + 1}. ${slideTypeLabel}${titulo ? `. ${titulo}` : ""}`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -100,11 +99,6 @@ export function SlideCard({ slide, index, active, issues, density, variables }: 
         <SlideTypeIcon tipo={slide.tipo} iconoUi={meta?.icono_ui} size={11} />
         <span>{slideTypeLabel}</span>
       </div>
-      {titulo && (
-        <div className="pulso-gv2-slide-card-subtitle" aria-label={titulo}>
-          {titulo}
-        </div>
-      )}
 
       {graphItems.length > 0 && (
         <div
@@ -122,14 +116,6 @@ export function SlideCard({ slide, index, active, issues, density, variables }: 
               +{graphItems.length - 2}
             </span>
           )}
-        </div>
-      )}
-
-      {density === "comfortable" && graphItems.length === 0 && (
-        <div className="pulso-gv2-slide-card-thumb" aria-hidden="true">
-          <div className="pulso-gv2-slide-card-thumb-mock">
-            <SlidePreviewMockup slide={slide} compact />
-          </div>
         </div>
       )}
 

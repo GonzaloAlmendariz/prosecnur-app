@@ -244,7 +244,6 @@ export function TimelinePanelV2() {
                   index={index}
                   active={selectedSlideId === slide.id}
                   issues={issuesBySlide[slide.id] ?? []}
-                  density={density}
                   variables={variables}
                 />
               ))}
