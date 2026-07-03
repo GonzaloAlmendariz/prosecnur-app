@@ -14,7 +14,7 @@ export function PptStyleProfilesPanel() {
     return (
       <section className="pulso-gv2-ppt-style-panel is-loading">
         <Loader2 size={14} className="pulso-spin" />
-        Cargando identidades visuales...
+        Cargando líneas visuales...
       </section>
     );
   }
@@ -22,7 +22,7 @@ export function PptStyleProfilesPanel() {
   if (error) {
     return (
       <section className="pulso-gv2-ppt-style-panel is-error">
-        No se pudieron cargar las identidades visuales: {error}
+        No se pudieron cargar las líneas visuales: {error}
       </section>
     );
   }
@@ -32,18 +32,18 @@ export function PptStyleProfilesPanel() {
   const appliedProfile = profiles.find((profile) => profile.name === applied) ?? null;
 
   return (
-    <section className="pulso-gv2-ppt-style-panel" aria-label="Identidad visual de presentación">
+    <section className="pulso-gv2-ppt-style-panel" aria-label="Líneas visuales de presentación">
       <div className="pulso-gv2-ppt-style-intro">
         <span className="pulso-gv2-ppt-style-intro-icon"><Palette size={14} /></span>
         <div>
-          <strong>Identidad visual de presentación</strong>
-          <span>Aplica una línea de color, estilos PPT y estilos guardados sin cambiar slides ni variables.</span>
+          <strong>Líneas visuales</strong>
+          <span>Aplica color, portada, bases PPT y estilos guardados sin mover slides ni variables.</span>
         </div>
         <span className={`pulso-gv2-ppt-style-session ${appliedProfile ? "is-applied" : "is-base"}`}>
           {appliedProfile ? <Check size={12} /> : <Layers3 size={12} />}
           <span>
-            <strong>{appliedProfile ? appliedProfile.titulo_humano : "Base predeterminada"}</strong>
-            <small>{appliedProfile ? "Aplicado en esta sesión" : "Sin perfil aplicado"}</small>
+            <strong>{appliedProfile ? appliedProfile.titulo_humano : "Valor por defecto"}</strong>
+            <small>{appliedProfile ? "Aplicada en esta sesión" : "Sin línea aplicada"}</small>
           </span>
         </span>
       </div>
@@ -76,21 +76,21 @@ export function PptStyleProfilesPanel() {
               <div className="pulso-gv2-ppt-style-card-meta">
                 <span>{colorCount} color{colorCount === 1 ? "" : "es"}</span>
                 <span>{impact}</span>
-                <span>No cambia slides</span>
+                <span>No mueve slides</span>
               </div>
 
               <button
                 type="button"
                 className={isApplied ? "is-applied" : ""}
                 aria-pressed={isApplied}
-                title={isApplied ? "Perfil aplicado en esta sesión" : `Aplicar identidad visual ${profile.titulo_humano}`}
+                title={isApplied ? "Línea visual aplicada en esta sesión" : `Aplicar línea visual ${profile.titulo_humano}`}
                 onClick={() => {
                   applyPptStyleProfile(profile);
                   setApplied(profile.name);
                 }}
               >
                 {isApplied ? <Check size={12} /> : <Sparkles size={12} />}
-                {isApplied ? "Perfil activo" : "Aplicar identidad"}
+                {isApplied ? "Línea activa" : "Aplicar línea"}
               </button>
             </article>
           );
