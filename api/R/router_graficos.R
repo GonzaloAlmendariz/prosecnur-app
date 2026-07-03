@@ -16,6 +16,17 @@
 )
 
 .GRAFICADOR_REGISTRY <- .graf_names()
+.GRAFICADOR_LEGACY_ALIASES <- c(
+  p_barras = "p_barras_agrupadas"
+)
+
+.graficos_resolve_graficador_name <- function(name, graficador_registry = .GRAFICADOR_REGISTRY) {
+  raw <- as.character(name %||% "")
+  raw <- if (length(raw)) raw[[1]] else ""
+  if (is.na(raw) || !nzchar(raw)) return("")
+  candidate <- .GRAFICADOR_LEGACY_ALIASES[[raw]] %||% raw
+  if (candidate %in% graficador_registry) candidate else raw
+}
 
 .normalize_plan <- function(plan) {
   if (is.null(plan)) return(list(slides = list()))
@@ -267,10 +278,11 @@
 .graficos_rebuild_graf_json <- function(g, graficador_registry = .GRAFICADOR_REGISTRY) {
   g <- .as_json_list(g)
   if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-  if (!(g$graficador %in% graficador_registry)) {
+  graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
+  if (!(graficador_name %in% graficador_registry)) {
     stop(sprintf("Graficador no registrado: %s", g$graficador), call. = FALSE)
   }
-  fn <- getExportedValue("prosecnurapp", g$graficador)
+  fn <- getExportedValue("prosecnurapp", graficador_name)
   args <- .graficos_drop_blank_optional_refs(g$args %||% list())
   if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
   do.call(fn, .clean_rebuild_args(args, fn))
@@ -561,10 +573,11 @@
 .rebuild_graf <- function(g) {
   if (is.null(g)) return(NULL)
   if (is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-  if (!(g$graficador %in% .GRAFICADOR_REGISTRY)) {
+  graficador_name <- .graficos_resolve_graficador_name(g$graficador)
+  if (!(graficador_name %in% .GRAFICADOR_REGISTRY)) {
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
   }
-  fn <- getExportedValue("prosecnurapp", g$graficador)
+  fn <- getExportedValue("prosecnurapp", graficador_name)
   args <- .graficos_drop_blank_optional_refs(g$args %||% list())
   if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
   do.call(fn, .clean_rebuild_args(args, fn))
@@ -625,7 +638,10 @@
       if (!nzchar(graf_name)) {
         warns <- c(warns, sprintf("%s (%s): slot '%s' sin graficador", tag, tipo, slot_name))
       } else if (!(graf_name %in% .GRAFICADOR_REGISTRY)) {
-        errs <- c(errs, sprintf("%s: graficador desconocido '%s'", tag, graf_name))
+        resolved_graf_name <- .graficos_resolve_graficador_name(graf_name)
+        if (!(resolved_graf_name %in% .GRAFICADOR_REGISTRY)) {
+          errs <- c(errs, sprintf("%s: graficador desconocido '%s'", tag, graf_name))
+        }
       }
     }
   }
@@ -2140,6 +2156,7 @@ mount_graficos <- function(pr) {
         .slide_names()
       )
       graficador_registry <- .graf_names()
+      graficador_aliases <- .GRAFICADOR_LEGACY_ALIASES
 
       promote_graph_title <- function(args, fn) {
         args <- as.list(args %||% list())
@@ -2169,8 +2186,9 @@ mount_graficos <- function(pr) {
       }
       rebuild_graf <- function(g) {
         if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-        if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-        fn <- getExportedValue("prosecnurapp", g$graficador)
+        graficador_name <- graficador_aliases[[g$graficador]] %||% g$graficador
+        if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+        fn <- getExportedValue("prosecnurapp", graficador_name)
         args <- .graficos_drop_blank_optional_refs(g$args %||% list())
         if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
         args <- promote_graph_title(args, fn)
@@ -2425,10 +2443,12 @@ mount_graficos <- function(pr) {
             }
             p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
           }
+          graficador_aliases <- c(p_barras = "p_barras_agrupadas")
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-            if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-            fn <- getExportedValue("prosecnurapp", g$graficador)
+            graficador_name <- graficador_aliases[[g$graficador]] %||% g$graficador
+            if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+            fn <- getExportedValue("prosecnurapp", graficador_name)
             args <- drop_blank_optional_refs(g$args %||% list())
             if (missing_required_ref(args)) return(blank_graph_element())
             args <- promote_graph_title(args, fn)
@@ -2646,10 +2666,12 @@ mount_graficos <- function(pr) {
             }
             p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
           }
+          graficador_aliases <- c(p_barras = "p_barras_agrupadas")
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-            if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-            fn <- getExportedValue("prosecnurapp", g$graficador)
+            graficador_name <- graficador_aliases[[g$graficador]] %||% g$graficador
+            if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+            fn <- getExportedValue("prosecnurapp", graficador_name)
             args <- drop_blank_optional_refs(g$args %||% list())
             if (missing_required_ref(args)) return(blank_graph_element())
             args <- promote_graph_title(args, fn)

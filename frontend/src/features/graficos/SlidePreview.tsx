@@ -6,6 +6,7 @@ import {
   apiGraficosPreviewSlide,
   GraficosPreviewRendererStatus,
   GraficadorRef,
+  PreviewImage,
   Slide,
   SlideRenderedPreview,
   downloadUrl,
@@ -39,6 +40,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const [busy, setBusy] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
   const [slidePreview, setSlidePreview] = useState<SlideRenderedPreview | null>(null);
+  const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
   const [error, setError] = useState("");
   const [lastHash, setLastHash] = useState<string | null>(null);
   const [rendererStatus, setRendererStatus] = useState<GraficosPreviewRendererStatus | null>(null);
@@ -61,9 +63,10 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const blocked = preIssues.length > 0;
   const rendererUnavailable = rendererStatus?.available === false;
   const hasPreview = !!slidePreview?.png_base64;
+  const hasEmbeddedImages = previewImages.length > 0;
   const hasResult = !!fileId && !error;
   const renderFailed = hasResult && !hasPreview && rendererStatus?.available === true;
-  const hasUsableResult = hasResult && (hasPreview || rendererUnavailable || renderFailed);
+  const hasUsableResult = hasResult && (hasPreview || hasEmbeddedImages || rendererUnavailable || renderFailed);
 
   useEffect(() => {
     let alive = true;
@@ -142,6 +145,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     if (blocked || busy || !prepOk) return;
     setBusy(true);
     setError("");
+    setPreviewImages([]);
     if (!isBubbleRendered) {
       openBubble();
     }
@@ -151,11 +155,12 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         buildGraficosConfigFromStore(),
         {
           preview_quality: "quick",
-          include_images: false,
+          include_images: true,
         },
       );
       setFileId(r.file_id);
       setSlidePreview(r.slide_preview ?? null);
+      setPreviewImages(Array.isArray(r.images) ? r.images : []);
       setLastHash(currentHash);
       openBubble();
     } catch (e) {
@@ -346,7 +351,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               <LocalPreviewFallback
                 slide={slide}
                 title="Vista local del slide"
-                detail="La captura exacta requiere renderer headless. Este boceto no depende de LibreOffice/soffice."
+                detail={hasEmbeddedImages ? "Imagen interna del PPTX disponible sin renderer headless." : "Boceto local disponible sin LibreOffice/soffice."}
+                images={previewImages}
                 fileId={fileId}
               />
             ) : renderFailed ? (
@@ -354,14 +360,16 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 tone="warn"
                 title="Captura no disponible"
-                detail="El PPTX se generó, pero el renderer no devolvió imagen. Puedes revisar una vista local mientras tanto."
+                detail={hasEmbeddedImages ? "Usando imagen interna del PPTX como referencia visual." : "El PPTX se genero, pero el renderer no devolvio imagen."}
+                images={previewImages}
                 fileId={fileId}
               />
             ) : hasResult ? (
               <LocalPreviewFallback
                 slide={slide}
                 title="Vista local disponible"
-                detail="No se encontró un renderer headless de PPTX en este equipo."
+                detail={hasEmbeddedImages ? "Imagen del graficador extraida del PPTX." : "No se encontro un renderer headless de PPTX en este equipo."}
+                images={previewImages}
                 fileId={fileId}
               />
             ) : error ? (
@@ -370,6 +378,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 tone="danger"
                 title="Preview exacta con error"
                 detail={humanizePreviewError(error)}
+                images={previewImages}
                 fileId={fileId}
               />
             ) : (
@@ -394,19 +403,39 @@ function LocalPreviewFallback({
   slide,
   title,
   detail,
+  images = [],
   fileId,
   tone = "info",
 }: {
   slide: Slide;
   title: string;
   detail: string;
+  images?: PreviewImage[];
   fileId: string | null;
   tone?: "info" | "warn" | "danger";
 }) {
+  const embeddedImages = images
+    .filter((image) => typeof image?.png_base64 === "string" && image.png_base64.startsWith("data:image/"))
+    .slice(0, 4);
+  const hasImages = embeddedImages.length > 0;
+
   return (
-    <div className={`pulso-slide-preview-local is-${tone}`}>
-      <div className="pulso-slide-preview-local-frame" aria-hidden="true">
-        <SlidePreviewMockup slide={slide} />
+    <div className={`pulso-slide-preview-local is-${tone}`} data-has-images={hasImages}>
+      <div className={`pulso-slide-preview-local-frame ${hasImages ? "has-images" : ""}`} aria-hidden="true">
+        {hasImages ? (
+          <div className="pulso-slide-preview-image-stack" data-count={Math.min(embeddedImages.length, 4)}>
+            {embeddedImages.map((image, index) => (
+              <img
+                key={`${image.filename || "preview-image"}-${index}`}
+                src={image.png_base64}
+                alt=""
+                loading="lazy"
+              />
+            ))}
+          </div>
+        ) : (
+          <SlidePreviewMockup slide={slide} />
+        )}
       </div>
       <div className="pulso-slide-preview-local-panel">
         <span className="pulso-slide-preview-local-icon">
