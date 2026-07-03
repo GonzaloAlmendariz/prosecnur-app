@@ -302,7 +302,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                     >
                       <Plus size={11} /> Insertar
                     </button>
-                    <SlideModelMiniature type={t} slots={slots} scale="card" />
+                    <SlideModelMiniature type={t} slots={slots} scale="card" iconoUi={meta?.icono_ui} />
                   </article>
                 );
               })}
@@ -333,7 +333,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                   </div>
                 </div>
 
-                <SlideModelMiniature type={selectedType} slots={selectedSlots} scale="hero" />
+                <SlideModelMiniature type={selectedType} slots={selectedSlots} scale="hero" iconoUi={selectedMeta?.icono_ui} />
 
                 <div className="pulso-gv2-picker-inspector-copy">
                   <span className="pulso-gv2-picker-inspector-family">{CAT_LABEL_WITH_ALL[selectedCategory]}</span>
@@ -501,7 +501,17 @@ function pptLayoutName(type: SlideType): string {
   }
 }
 
-function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType; slots: string[]; scale?: PreviewScale }) {
+function SlideModelMiniature({
+  type,
+  slots,
+  scale = "card",
+  iconoUi,
+}: {
+  type: SlideType;
+  slots: string[];
+  scale?: PreviewScale;
+  iconoUi?: string;
+}) {
   const layout = blueprintLayout(type);
   const slotCount = inferredSlotCount(type) || slots.length;
   const slotItems = Array.from({ length: Math.min(slotCount, 6) }, (_, index) => index + 1);
@@ -539,7 +549,14 @@ function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType;
           <i />
           <i />
         </span>
-        <span className="pulso-gv2-picker-slide-icon" />
+        <span className="pulso-gv2-picker-slide-icon">
+          <SlideTypeIcon
+            tipo={type}
+            iconoUi={iconoUi}
+            size={scale === "hero" ? 24 : 18}
+            className="pulso-gv2-picker-slide-icon-svg"
+          />
+        </span>
         <span className="pulso-gv2-picker-slide-slots">
           {slotItems.map((slot) => (
             <span key={slot} className="pulso-gv2-picker-slide-slot">
