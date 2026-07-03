@@ -12,6 +12,7 @@ import {
 } from "../../api/client";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "./store";
+import SlidePreviewMockup from "./SlidePreviewMockup";
 
 type Props = {
   slide: Slide;
@@ -176,6 +177,12 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
       return;
     }
 
+    if (rendererUnavailable && !hasResult && !hasPreview) {
+      setError("");
+      openBubble();
+      return;
+    }
+
     const canOpen = !busy && (
       (hasPreview && !isStale && !error) ||
       (hasUsableResult && !isStale)
@@ -207,6 +214,17 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const frameStyle: CSSProperties | undefined = previewAspectRatio
     ? { aspectRatio: previewAspectRatio }
     : undefined;
+  const actionLabel = getActionLabel({
+    busy,
+    prepOk,
+    blocked,
+    rendererUnavailable,
+    hasPreview,
+    isStale,
+    renderFailed,
+    error: !!error,
+    isBubbleOpen,
+  });
   const stateLabel = getStateLabel({
     busy,
     error: !!error,
@@ -252,17 +270,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             }
           >
             {busy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
-              {busy
-                ? "Generando..."
-                : !prepOk
-                  ? "Preparar datos"
-                  : blocked
-                    ? "Bloqueado"
-                    : hasPreview && !isStale && !renderFailed && !error
-                  ? isBubbleOpen
-                    ? "Ocultar"
-                    : "Previsualizar"
-                  : "Actualizar"}
+            {actionLabel}
           </button>
           {showRefreshAction && (
             <button
@@ -326,48 +334,44 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 <span>Renderizando PPTX...</span>
               </div>
             ) : hasPreview ? (
-              <img
-                src={slidePreview.png_base64}
-                alt="Preview exacta del slide"
-                className="pulso-slide-preview-img"
-              />
+              <>
+                <img
+                  src={slidePreview.png_base64}
+                  alt="Preview exacta del slide"
+                  className="pulso-slide-preview-img"
+                />
+                <div className="pulso-slide-preview-badge">Preview exacta</div>
+              </>
             ) : rendererUnavailable ? (
-              <div className="pulso-slide-preview-placeholder">
-                <ImageIcon size={18} />
-                <span>Sin renderizador headless.</span>
-                <small>Configura LibreOffice/soffice para activar la captura inline.</small>
-                {fileId && (
-                  <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
-                    Descargar preview.pptx
-                  </a>
-                )}
-              </div>
+              <LocalPreviewFallback
+                slide={slide}
+                title="Vista local del slide"
+                detail="La captura exacta requiere renderer headless. Este boceto no depende de LibreOffice/soffice."
+                fileId={fileId}
+              />
             ) : renderFailed ? (
-              <div className="pulso-slide-preview-placeholder">
-                <AlertCircle size={18} />
-                <span>No se pudo crear la captura.</span>
-                <small>El PPTX se generó, pero el renderer no devolvió imagen.</small>
-                {fileId && (
-                  <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
-                    Descargar preview.pptx
-                  </a>
-                )}
-              </div>
+              <LocalPreviewFallback
+                slide={slide}
+                tone="warn"
+                title="Captura no disponible"
+                detail="El PPTX se generó, pero el renderer no devolvió imagen. Puedes revisar una vista local mientras tanto."
+                fileId={fileId}
+              />
             ) : hasResult ? (
-              <div className="pulso-slide-preview-placeholder">
-                <ImageIcon size={18} />
-                <span>No hay captura disponible.</span>
-                <small>No se encontró un renderer headless de PPTX en este equipo.</small>
-                <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
-                  Descargar preview.pptx
-                </a>
-              </div>
+              <LocalPreviewFallback
+                slide={slide}
+                title="Vista local disponible"
+                detail="No se encontró un renderer headless de PPTX en este equipo."
+                fileId={fileId}
+              />
             ) : error ? (
-              <div className="pulso-slide-preview-placeholder">
-                <AlertCircle size={18} />
-                <span>No se pudo generar la previsualización.</span>
-                <small>{humanizePreviewError(error)}</small>
-              </div>
+              <LocalPreviewFallback
+                slide={slide}
+                tone="danger"
+                title="Preview exacta con error"
+                detail={humanizePreviewError(error)}
+                fileId={fileId}
+              />
             ) : (
               <div className="pulso-slide-preview-placeholder">
                 <Eye size={18} />
@@ -386,6 +390,42 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   );
 }
 
+function LocalPreviewFallback({
+  slide,
+  title,
+  detail,
+  fileId,
+  tone = "info",
+}: {
+  slide: Slide;
+  title: string;
+  detail: string;
+  fileId: string | null;
+  tone?: "info" | "warn" | "danger";
+}) {
+  return (
+    <div className={`pulso-slide-preview-local is-${tone}`}>
+      <div className="pulso-slide-preview-local-frame" aria-hidden="true">
+        <SlidePreviewMockup slide={slide} />
+      </div>
+      <div className="pulso-slide-preview-local-panel">
+        <span className="pulso-slide-preview-local-icon">
+          {tone === "danger" ? <AlertCircle size={14} /> : <ImageIcon size={14} />}
+        </span>
+        <span className="pulso-slide-preview-local-copy">
+          <strong>{title}</strong>
+          <small>{detail}</small>
+        </span>
+        {fileId && (
+          <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
+            Descargar preview.pptx
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PreviewNotice({ tone, children }: { tone: "warn" | "danger" | "muted"; children: ReactNode }) {
   return (
     <div className={`pulso-slide-preview-notice is-${tone}`}>
@@ -400,6 +440,29 @@ function previewAspect(preview: SlideRenderedPreview | null): string | undefined
   const height = Number(preview?.height);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return undefined;
   return `${Math.round(width)} / ${Math.round(height)}`;
+}
+
+function getActionLabel(state: {
+  busy: boolean;
+  prepOk: boolean;
+  blocked: boolean;
+  rendererUnavailable: boolean;
+  hasPreview: boolean;
+  isStale: boolean;
+  renderFailed: boolean;
+  error: boolean;
+  isBubbleOpen: boolean;
+}) {
+  if (state.busy) return "Generando...";
+  if (!state.prepOk) return "Preparar datos";
+  if (state.blocked) return "Bloqueado";
+  if (state.rendererUnavailable && !state.hasPreview) {
+    return state.isBubbleOpen ? "Ocultar" : "Vista local";
+  }
+  if (state.hasPreview && !state.isStale && !state.renderFailed && !state.error) {
+    return state.isBubbleOpen ? "Ocultar" : "Previsualizar";
+  }
+  return "Actualizar";
 }
 
 function getStateLabel(state: {
