@@ -19,11 +19,11 @@ import { WordPresetsEditor } from "../../WordPresetsEditor";
 type Tab = "ppt" | "word" | "paletas" | "iconos" | "modos";
 
 const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string }[] = [
-  { key: "ppt",     label: "Presets PPT",  eyebrow: "Presentación", Icon: Sliders,    hint: "Estilos por tipo de gráfico para el PPT" },
-  { key: "word",    label: "Word",         eyebrow: "Reporte",      Icon: FileText,   hint: "Overrides solo para el reporte Word" },
+  { key: "ppt",     label: "Base PPT",     eyebrow: "Presets",      Icon: Sliders,    hint: "Estilos base por tipo de gráfico para el PPT" },
+  { key: "word",    label: "Base Word",    eyebrow: "Reporte",      Icon: FileText,   hint: "Overrides solo para el reporte Word" },
   { key: "paletas", label: "Paletas",      eyebrow: "Color",        Icon: Palette,    hint: "Colores por value-label de cada lista" },
   { key: "iconos",  label: "Íconos",       eyebrow: "Assets",       Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
-  { key: "modos",   label: "Modos",        eyebrow: "Reutilizable", Icon: IconModes,  hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
+  { key: "modos",   label: "Modos por slot", eyebrow: "Reutilizable", Icon: IconModes, hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
 ];
 
 export type EstiloGlobalDialogProps = {
@@ -80,7 +80,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               <div className="pulso-gv2-estilo-eyebrow">Suite visual</div>
               <div className="pulso-gv2-estilo-title">Estilo global</div>
               <div className="pulso-gv2-estilo-sub">
-                Presets, Word, paletas, íconos y modos para toda la presentación.
+                Base PPT y Word, paletas, íconos y modos reutilizables para slots.
               </div>
             </div>
           </div>
