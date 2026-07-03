@@ -29,6 +29,57 @@ function GrafIcon({ name, size = 18 }: { name: string; size?: number }) {
   return <Icon size={size} />;
 }
 
+function MockupChartGlyph({ name, compact = false }: { name: string; compact?: boolean }) {
+  const normalized = name.toLowerCase();
+  if (normalized.includes("pie") || normalized.includes("donut")) {
+    return (
+      <div style={{ flex: 1, minHeight: compact ? 18 : 86, display: "grid", placeItems: "center", marginTop: compact ? 2 : 8 }}>
+        <span style={{
+          width: compact ? 22 : 82,
+          height: compact ? 22 : 82,
+          borderRadius: "999px",
+          background: "conic-gradient(from 40deg, rgba(0,36,87,0.78) 0 38%, rgba(13,148,136,0.72) 38% 64%, rgba(124,58,237,0.62) 64% 82%, rgba(203,113,39,0.64) 82% 100%)",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.72), 0 8px 18px rgba(15,23,42,0.10)",
+        }} />
+      </div>
+    );
+  }
+  if (normalized.includes("radar")) {
+    return (
+      <div style={{ flex: 1, minHeight: compact ? 18 : 86, display: "grid", placeItems: "center", marginTop: compact ? 2 : 8 }}>
+        <span style={{
+          width: compact ? 26 : 104,
+          height: compact ? 22 : 82,
+          clipPath: "polygon(50% 3%, 88% 30%, 74% 88%, 28% 78%, 10% 34%)",
+          background: "linear-gradient(135deg, rgba(13,148,136,0.34), rgba(0,36,87,0.42))",
+          border: "1px solid rgba(0,36,87,0.24)",
+          boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
+        }} />
+      </div>
+    );
+  }
+  const bars = normalized.includes("apiladas")
+    ? [72, 88, 62, 78]
+    : [56, 78, 46, 90];
+  return (
+    <div style={{ flex: 1, minHeight: compact ? 18 : 86, display: "grid", alignContent: "end", gap: compact ? 2 : 6, marginTop: compact ? 2 : 8 }}>
+      {bars.map((width, index) => (
+        <span key={`${name}-${index}`} style={{
+          display: "block",
+          width: `${width}%`,
+          height: compact ? 3 : 10,
+          borderRadius: 999,
+          background: index % 2 === 0
+            ? "linear-gradient(90deg, rgba(0,36,87,0.70), rgba(13,148,136,0.54))"
+            : "linear-gradient(90deg, rgba(124,58,237,0.56), rgba(203,113,39,0.50))",
+          opacity: compact ? 0.82 : 0.92,
+          boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset",
+        }} />
+      ))}
+    </div>
+  );
+}
+
 function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null | undefined; label?: string; compact?: boolean }) {
   if (!slot || !slot.graficador) {
     return (
@@ -36,6 +87,7 @@ function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null 
         border: "1px dashed var(--pulso-border)", borderRadius: compact ? 5 : 6,
         background: "var(--pulso-surface-2)",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        minHeight: 0, height: "100%",
         color: "var(--pulso-text-soft)", fontSize: compact ? 8.5 : 10, padding: compact ? "0.22rem" : "0.4rem",
       }}>
         <span>sin graficador</span>
@@ -52,6 +104,7 @@ function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null 
       border: "1px solid var(--pulso-primary-border)", borderRadius: compact ? 5 : 6,
       background: "linear-gradient(135deg, rgba(0,36,87,0.10) 0%, rgba(0,36,87,0.03) 100%)",
       display: "flex", flexDirection: "column", padding: compact ? "0.28rem" : "0.4rem", gap: compact ? 1 : 2, overflow: "hidden",
+      minHeight: 0, height: "100%",
       color: "var(--pulso-primary)",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -64,6 +117,7 @@ function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null 
       {titulo && <div style={{ fontSize: compact ? 8.5 : 10, color: "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</div>}
       <div style={{ fontSize: compact ? 8.5 : 9, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>var: <code>{varStr}</code></div>
       {cruces && <div style={{ fontSize: compact ? 8.5 : 9, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>x <code>{cruces}</code></div>}
+      <MockupChartGlyph name={graficador} compact={compact} />
     </div>
   );
 }
@@ -132,7 +186,7 @@ function HeaderFooter({ p, children, compact = false }: { p: Record<string, unkn
 
 function TextBlock({ texto, compact = false }: { texto: string; compact?: boolean }) {
   return (
-    <div style={{ border: "1px dashed var(--pulso-border)", borderRadius: compact ? 5 : 6, padding: compact ? 4 : 6, fontSize: compact ? 8.5 : 10, color: "var(--pulso-text-soft)", overflow: "hidden", whiteSpace: "pre-wrap" }}>
+    <div style={{ height: "100%", minHeight: 0, border: "1px dashed var(--pulso-border)", borderRadius: compact ? 5 : 6, padding: compact ? 4 : 6, fontSize: compact ? 8.5 : 10, color: "var(--pulso-text-soft)", overflow: "hidden", whiteSpace: "pre-wrap" }}>
       {texto}
     </div>
   );

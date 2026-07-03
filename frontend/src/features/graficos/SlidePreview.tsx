@@ -22,6 +22,8 @@ type Props = {
   compact?: boolean;
 };
 
+type PreviewEngineMode = "checking" | "exact" | "local";
+
 function hashSlide(slide: Slide, visualConfigHash: string): string {
   return JSON.stringify({ tipo: slide.tipo, payload: slide.payload, visualConfigHash });
 }
@@ -45,6 +47,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const [error, setError] = useState("");
   const [lastHash, setLastHash] = useState<string | null>(null);
   const [rendererStatus, setRendererStatus] = useState<GraficosPreviewRendererStatus | null>(null);
+  const [rendererStatusChecked, setRendererStatusChecked] = useState(false);
   const [isBubbleOpen, setIsBubbleOpen] = useState(false);
   const [isBubbleRendered, setIsBubbleRendered] = useState(false);
   const [isBubbleClosing, setIsBubbleClosing] = useState(false);
@@ -62,18 +65,30 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
   const preIssues = useMemo(() => preValidateSlide(slide), [slide]);
   const blocked = preIssues.length > 0;
-  const rendererUnavailable = rendererStatus?.available === false;
+  const rendererChecking = !rendererStatusChecked;
+  const rendererAvailable = rendererStatus?.available === true;
+  const rendererUnavailable = rendererStatusChecked && !rendererAvailable;
+  const engineMode: PreviewEngineMode = rendererChecking ? "checking" : rendererAvailable ? "exact" : "local";
+  const engineCopy = getEngineCopy(engineMode, rendererStatus);
   const hasPreview = !!slidePreview?.png_base64;
   const hasEmbeddedImages = previewImages.length > 0;
   const hasResult = !!fileId && !error;
-  const renderFailed = hasResult && !hasPreview && rendererStatus?.available === true;
+  const renderFailed = hasResult && !hasPreview && rendererAvailable;
   const hasUsableResult = hasResult && (hasPreview || hasEmbeddedImages || rendererUnavailable || renderFailed);
 
   useEffect(() => {
     let alive = true;
     getRendererStatus()
-      .then((status) => { if (alive) setRendererStatus(status); })
-      .catch(() => { if (alive) setRendererStatus(null); });
+      .then((status) => {
+        if (!alive) return;
+        setRendererStatus(status);
+        setRendererStatusChecked(true);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setRendererStatus(null);
+        setRendererStatusChecked(true);
+      });
     return () => { alive = false; };
   }, []);
 
@@ -218,6 +233,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     busy,
     prepOk,
     blocked,
+    rendererChecking,
     rendererUnavailable,
     hasPreview,
     hasResult,
@@ -231,6 +247,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     error: !!error,
     prepOk,
     blocked,
+    rendererChecking,
     hasPreview,
     isStale,
     rendererUnavailable,
@@ -247,12 +264,14 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
           ? "local"
           : "idle";
   const chromeDetail = hasPreview && !isStale
-    ? "Captura PPTX"
-    : hasEmbeddedImages
-      ? "Imagen interna"
-      : rendererUnavailable || renderFailed || hasResult
-        ? "Vista local"
-        : slide.tipo;
+    ? `Captura PPTX${rendererStatus?.renderer ? ` · ${rendererStatus.renderer}` : ""}`
+    : error
+      ? "Usando boceto local"
+      : hasEmbeddedImages
+        ? "Imagen interna PPTX"
+        : rendererUnavailable || renderFailed || hasResult
+          ? "Vista local garantizada"
+          : slide.tipo;
 
   return (
     <section
@@ -269,6 +288,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         )}
 
         <div className="pulso-slide-preview-controls">
+          <PreviewEnginePill mode={engineMode} label={engineCopy.label} detail={engineCopy.detail} />
           <button
             type="button"
             className="pulso-primary pulso-slide-preview-action"
@@ -279,7 +299,9 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 ? "Primero prepara los datos en Analítica"
                 : blocked
                   ? `Faltan datos: ${preIssues[0]}`
-              : rendererUnavailable
+                  : rendererChecking
+                    ? "Generar preview mientras se comprueba el motor local"
+                    : rendererUnavailable
                     ? "Generar vista local del slide en este equipo"
                     : hasPreview && !isStale && !renderFailed && !error
                       ? "Mostrar/Ocultar preview del slide"
@@ -388,7 +410,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               <LocalPreviewFallback
                 slide={slide}
                 title="Vista local segura"
-                detail={hasEmbeddedImages ? "Imagen interna del PPTX generada en este equipo, sin captura externa." : "Boceto local disponible sin depender de LibreOffice/soffice."}
+                detail={hasEmbeddedImages ? "Imagen interna extraída del PPTX; no depende de un renderer externo." : "Boceto local disponible aunque este equipo no tenga renderer de PPTX."}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -412,9 +434,9 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             ) : error ? (
               <LocalPreviewFallback
                 slide={slide}
-                tone="danger"
-                title="Preview exacta con error"
-                detail={humanizePreviewError(error)}
+                tone="warn"
+                title="Vista local disponible"
+                detail={`La captura exacta no se generó. ${humanizePreviewError(error)}`}
                 images={previewImages}
                 fileId={fileId}
               />
@@ -510,6 +532,26 @@ function PreviewNotice({ tone, children }: { tone: "warn" | "danger" | "muted"; 
   );
 }
 
+function PreviewEnginePill({
+  mode,
+  label,
+  detail,
+}: {
+  mode: PreviewEngineMode;
+  label: string;
+  detail: string;
+}) {
+  return (
+    <span className={`pulso-slide-preview-engine is-${mode}`} title={detail}>
+      {mode === "checking" ? <Loader2 size={12} className="pulso-spin" /> : mode === "exact" ? <Eye size={12} /> : <ImageIcon size={12} />}
+      <span>
+        <strong>{label}</strong>
+        <small>{detail}</small>
+      </span>
+    </span>
+  );
+}
+
 function previewAspect(preview: SlideRenderedPreview | null): string | undefined {
   const width = Number(preview?.width);
   const height = Number(preview?.height);
@@ -521,6 +563,7 @@ function getActionLabel(state: {
   busy: boolean;
   prepOk: boolean;
   blocked: boolean;
+  rendererChecking: boolean;
   rendererUnavailable: boolean;
   hasPreview: boolean;
   hasResult: boolean;
@@ -532,6 +575,7 @@ function getActionLabel(state: {
   if (state.busy) return "Generando...";
   if (!state.prepOk) return "Preparar datos";
   if (state.blocked) return "Bloqueado";
+  if (state.rendererChecking && !state.hasPreview && !state.hasResult) return "Previsualizar";
   if (state.rendererUnavailable && !state.hasPreview) {
     if (!state.hasResult) return "Vista local";
     return state.isBubbleOpen ? "Ocultar" : "Vista local";
@@ -547,6 +591,7 @@ function getStateLabel(state: {
   error: boolean;
   prepOk: boolean;
   blocked: boolean;
+  rendererChecking: boolean;
   hasPreview: boolean;
   isStale: boolean;
   rendererUnavailable: boolean;
@@ -557,11 +602,28 @@ function getStateLabel(state: {
   if (state.error) return "Error de preview";
   if (!state.prepOk) return "Datos no preparados";
   if (state.blocked) return "Configuración incompleta";
+  if (state.rendererChecking) return "Comprobando motor";
   if (state.hasPreview) return state.isStale ? "Preview desactualizada" : "Preview lista";
   if (state.rendererUnavailable) return state.hasResult ? "Vista local lista" : "Vista local disponible";
   if (state.renderFailed) return "Captura no disponible";
   if (state.hasResult) return "Sin captura disponible";
   return "Sin preview";
+}
+
+function getEngineCopy(mode: PreviewEngineMode, status: GraficosPreviewRendererStatus | null): { label: string; detail: string } {
+  if (mode === "checking") {
+    return { label: "Motor", detail: "Comprobando preview" };
+  }
+  if (mode === "exact") {
+    return {
+      label: "Preview exacto",
+      detail: status?.renderer ? status.renderer : "Renderer local",
+    };
+  }
+  return {
+    label: "Vista local",
+    detail: "Sin dependencias externas",
+  };
 }
 
 function preValidateSlide(slide: Slide): string[] {
@@ -601,6 +663,9 @@ function humanizePreviewError(raw: string): string {
   }
   if (/timeout|timed out/i.test(cleaned)) {
     return "El renderer tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
+  }
+  if (/subscript out of bounds|índice fuera|indice fuera|out of bounds/i.test(cleaned)) {
+    return "El graficador no pudo completar esta combinación. Revisa la variable, cruces o escala en Datos; la vista local queda disponible para revisar estructura.";
   }
   if (/variable.*no existe|var.*unknown|variable inv/i.test(cleaned)) {
     return "Una de las variables del gráfico no existe en el instrumento. Revísala en la pestaña Datos.";
