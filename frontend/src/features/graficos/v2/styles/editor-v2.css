@@ -23860,3 +23860,148 @@
     gap: 4px;
   }
 }
+
+/* Suite polish pass 41: inspector head as a single editing toolbar. */
+.pulso-graficos-frame .pulso-gv2-inspector-head {
+  padding: 8px 16px;
+  border-bottom-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 34%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-surface-2) 54%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-head-main {
+  grid-template-columns: minmax(210px, 1fr) auto minmax(112px, auto);
+  align-items: center;
+  gap: 12px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-head-copy {
+  align-self: center;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-title-row {
+  align-items: center;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-title-cluster {
+  gap: 8px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-title {
+  font-size: 14px;
+  line-height: 1.12;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-description {
+  max-width: min(520px, 100%);
+  margin-top: 2px;
+  font-size: 10.2px;
+  line-height: 1.2;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tabs {
+  justify-self: center;
+  margin: 0;
+  gap: 2px;
+  padding: 2px;
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 54%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), color-mix(in srgb, var(--pulso-surface-2) 72%, #ffffff));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 3px 10px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tab {
+  min-height: 27px;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 10.8px;
+  font-weight: 760;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tab svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.pulso-graficos-frame .pulso-gv2-inspector-tab-badge {
+  min-width: 15px;
+  height: 15px;
+  padding-inline: 4px;
+  font-size: 9px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview.is-compact {
+  justify-self: end;
+  width: auto;
+  max-width: none;
+}
+
+.pulso-graficos-frame .pulso-slide-preview.is-compact .pulso-slide-preview-head {
+  width: auto;
+}
+
+.pulso-graficos-frame .pulso-slide-preview.is-compact .pulso-slide-preview-controls {
+  gap: 5px;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-action {
+  min-height: 30px !important;
+  padding: 5px 12px !important;
+  border-radius: 12px !important;
+  font-size: 10.8px !important;
+}
+
+.pulso-graficos-frame .pulso-slide-preview-refresh {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 12px;
+}
+
+@media (max-width: 1360px) {
+  .pulso-graficos-frame .pulso-gv2-inspector-head-main {
+    grid-template-columns: minmax(164px, 0.8fr) auto minmax(102px, auto);
+    gap: 9px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-description {
+    display: none;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-tab {
+    padding-inline: 8px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .pulso-graficos-frame .pulso-gv2-inspector-head-main {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "copy preview"
+      "tabs tabs";
+    row-gap: 7px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-head-copy {
+    grid-area: copy;
+  }
+
+  .pulso-graficos-frame .pulso-slide-preview.is-compact {
+    grid-area: preview;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-inspector-tabs {
+    grid-area: tabs;
+    justify-self: start;
+  }
+}

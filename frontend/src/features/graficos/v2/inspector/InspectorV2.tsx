@@ -156,56 +156,56 @@ export function InspectorV2() {
             )}
           </div>
 
-          <SlidePreview slide={slide} prepOk={prepOk} compact />
-        </div>
+          <div className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
+            {TABS.map(({ key, label, Icon }) => {
+              const count = tabArgCounts[key];
+              const issueN = issuesByTab[key];
+              // Estilo y Filtros siempre se muestran si el slide tiene
+              // slots — aunque el slide en sí no tenga args propios, los
+              // args de cada graficador se exponen en sub-cards.
+              const isAlwaysVisible =
+                (key === "filters" && slotNames.length > 0) ||
+                (key === "style" && slotNames.length > 0);
+              const disabled = count === 0 && !isAlwaysVisible;
+              return (
+                <button
+                  key={key}
+                  role="tab"
+                  type="button"
+                  aria-selected={inspectorTab === key}
+                  disabled={disabled}
+                  onClick={() => setInspectorTab(key)}
+                  className={`pulso-gv2-inspector-tab ${inspectorTab === key ? "is-active" : ""}`}
+                  aria-label={
+                    disabled
+                      ? `Sin opciones en "${label}" para este tipo de slide`
+                      : `${label}${issueN > 0 ? ` · ${issueN} incidencia${issueN === 1 ? "" : "s"}` : ""}`
+                  }
+                  style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+                >
+                  <Icon size={13} />
+                  {label}
+                  {count > 0 && (
+                    <span className="pulso-gv2-inspector-tab-badge">
+                      {count}
+                    </span>
+                  )}
+                  {issueN > 0 && (
+                    <span
+                      style={{
+                        width: 6, height: 6, borderRadius: 999,
+                        background: "var(--pulso-danger-fg)",
+                        display: "inline-block",
+                      }}
+                      aria-label={`${issueN} issues`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
-          {TABS.map(({ key, label, Icon }) => {
-            const count = tabArgCounts[key];
-            const issueN = issuesByTab[key];
-            // Estilo y Filtros siempre se muestran si el slide tiene
-            // slots — aunque el slide en sí no tenga args propios, los
-            // args de cada graficador se exponen en sub-cards.
-            const isAlwaysVisible =
-              (key === "filters" && slotNames.length > 0) ||
-              (key === "style" && slotNames.length > 0);
-            const disabled = count === 0 && !isAlwaysVisible;
-            return (
-              <button
-                key={key}
-                role="tab"
-                type="button"
-                aria-selected={inspectorTab === key}
-                disabled={disabled}
-                onClick={() => setInspectorTab(key)}
-                className={`pulso-gv2-inspector-tab ${inspectorTab === key ? "is-active" : ""}`}
-                aria-label={
-                  disabled
-                    ? `Sin opciones en "${label}" para este tipo de slide`
-                    : `${label}${issueN > 0 ? ` · ${issueN} incidencia${issueN === 1 ? "" : "s"}` : ""}`
-                }
-                style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
-              >
-                <Icon size={13} />
-                {label}
-                {count > 0 && (
-                  <span className="pulso-gv2-inspector-tab-badge">
-                    {count}
-                  </span>
-                )}
-                {issueN > 0 && (
-                  <span
-                    style={{
-                      width: 6, height: 6, borderRadius: 999,
-                      background: "var(--pulso-danger-fg)",
-                      display: "inline-block",
-                    }}
-                    aria-label={`${issueN} issues`}
-                  />
-                )}
-              </button>
-            );
-          })}
+          <SlidePreview slide={slide} prepOk={prepOk} compact />
         </div>
       </div>
 
