@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { Layers3, MoveHorizontal, MousePointer2, RotateCcw, Ruler, X } from "lucide-react";
 import type { ArgMetadata } from "../../api/client";
 import { buildGridTracks, clampByMeta, clampPairByMeta, flexTrackStyle } from "./chartLayoutHelpers";
@@ -400,9 +400,9 @@ export function ChartLayoutEditor({
           </div>
 
           <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
-            <span><MoveHorizontal size={11} /> Divisores: espacio relativo</span>
-            <span><Ruler size={11} /> Valores: ancho/alto exacto</span>
-            <span><X size={11} /> Cero: zona oculta</span>
+            <span><MoveHorizontal size={11} /> Arrastra divisores</span>
+            <span><Ruler size={11} /> Edita valores exactos</span>
+            <span><X size={11} /> Oculta zonas secundarias</span>
           </div>
 
           <div
@@ -592,7 +592,7 @@ function BarsLayout({
                 <ZeroButton field={field} onSetArgValue={onSetArgValue} />
                 <span>{field.short}</span>
                 {field.role !== "gap" && (
-                  <FrameMetric value={rawValue} total={vTotal} axisLabel="alto" onCommit={(next) => onSetArgValue(field.name, next)} />
+                  <FrameMetric value={rawValue} total={vTotal} axisLabel="alto" fieldLabel={field.label} onCommit={(next) => onSetArgValue(field.name, next)} />
                 )}
               </div>
             )}
@@ -669,6 +669,7 @@ function BarsHorizontalRow({
                 value={rawValue}
                 total={total}
                 axisLabel="ancho"
+                fieldLabel={field.label}
                 onCommit={!field.synthetic ? (next) => onSetArgValue(field.name, next) : undefined}
               />
             )}
@@ -749,7 +750,7 @@ function VerticalLayout({
             <ZeroButton field={field} onSetArgValue={onSetArgValue} />
             <span>{field.short}</span>
             {field.role !== "gap" && (
-              <FrameMetric value={rawValue} total={total} axisLabel="alto" onCommit={(next) => onSetArgValue(field.name, next)} />
+              <FrameMetric value={rawValue} total={total} axisLabel="alto" fieldLabel={field.label} onCommit={(next) => onSetArgValue(field.name, next)} />
             )}
             {isResizableField(field) && next && rawValue > 0 && nextValue > 0 && !field.synthetic && !next.synthetic && (
               <button
@@ -855,6 +856,7 @@ function PieLayout({
                   value={realValue}
                   total={total}
                   axisLabel="alto"
+                  fieldLabel={field.label}
                   onCommit={!isPanel ? (nextValue) => onSetArgValue(field.name, nextValue) : undefined}
                 />
               </>
@@ -892,7 +894,7 @@ function PiePanel({
     <div className="pulso-gv2-layout-pie-panel">
       <div className="pulso-gv2-layout-frame" data-role="panel" style={{ flex: `${plotShare} 1 0` }}>
         <span>Área del gráfico</span>
-        <FrameMetric value={plotShare} total={1} axisLabel="ancho" />
+        <FrameMetric value={plotShare} total={1} axisLabel="ancho" fieldLabel="Área del gráfico" />
       </div>
       {legendRightField && legendRightValue > 0 && (
         <div className="pulso-gv2-layout-frame" data-role="legend" style={{ flex: `${legendShare} 1 0` }}>
@@ -909,6 +911,7 @@ function PiePanel({
             value={legendRightValue}
             total={1}
             axisLabel="ancho"
+            fieldLabel={legendRightField.label}
             onCommit={(nextValue) => onSetArgValue(legendRightField.name, nextValue)}
           />
         </div>
@@ -935,7 +938,7 @@ function RadarLayout({
     <div className="pulso-gv2-layout-radar-grid">
       <div className="pulso-gv2-layout-frame" data-role="plot" style={{ width: `${plot * 100}%` }}>
         <span>Radar</span>
-        <FrameMetric value={plot} total={1} axisLabel="ancho" />
+        <FrameMetric value={plot} total={1} axisLabel="ancho" fieldLabel="Radar" />
       </div>
       {argsByName.tabla_ph_gap && gap > 0 ? (
         <div className="pulso-gv2-layout-frame" data-role="gap" style={{ width: `${gap * 100}%` }}>
@@ -954,7 +957,7 @@ function RadarLayout({
             title="Arrastra para ajustar ancho de tabla"
           />
           <span>Tabla</span>
-          <FrameMetric value={table} total={1} axisLabel="ancho" onCommit={(next) => onSetArgValue("tabla_ph_ancho", next)} />
+          <FrameMetric value={table} total={1} axisLabel="ancho" fieldLabel={RADAR_FIELDS[0].label} onCommit={(next) => onSetArgValue("tabla_ph_ancho", next)} />
         </div>
       )}
     </div>
@@ -1230,17 +1233,25 @@ function FrameMetric({
   value,
   total,
   axisLabel,
+  fieldLabel,
   compact = false,
   onCommit,
 }: {
   value: number;
   total: number;
   axisLabel: "ancho" | "alto";
+  fieldLabel?: string;
   compact?: boolean;
   onCommit?: (value: number) => void;
 }) {
   const share = total > 0 ? value / total : 0;
   const axisTitle = axisLabel === "ancho" ? "Ancho" : "Alto";
+  const sharePercent = formatPercent(share);
+  const shareTier = metricShareTier(share, value);
+  const shareLabel = metricShareLabel(shareTier);
+  const metricStyle = {
+    "--metric-progress": `${Math.max(0, Math.min(100, share * 100))}%`,
+  } as CSSProperties;
   const [draft, setDraft] = useState(formatNumber(value));
   useEffect(() => {
     setDraft(formatNumber(value));
@@ -1282,32 +1293,63 @@ function FrameMetric({
   );
   if (compact) {
     return (
-      <small className="pulso-gv2-layout-metric is-gap-metric">
+      <small
+        className="pulso-gv2-layout-metric is-gap-metric"
+        data-axis={axisLabel}
+        data-share-tier={shareTier}
+        style={metricStyle}
+        aria-label={`${fieldLabel ?? "Zona"}: ${axisTitle.toLowerCase()} relativo ${sharePercent}; valor exacto ${formatNumber(value)}`}
+      >
         {onCommit && (
-          <span>
+          <span className="pulso-gv2-layout-metric-cell is-value">
             <em>Valor</em>
             {valueControl}
           </span>
         )}
-        <span>
+        <span className="pulso-gv2-layout-metric-cell is-share">
           <em>{axisTitle}</em>
-          <b>{formatPercent(share)}</b>
+          <b>{sharePercent}</b>
         </span>
       </small>
     );
   }
   return (
-    <small className="pulso-gv2-layout-metric">
-      <span>
+    <small
+      className="pulso-gv2-layout-metric"
+      data-axis={axisLabel}
+      data-share-tier={shareTier}
+      style={metricStyle}
+      aria-label={`${fieldLabel ?? "Zona"}: ${axisTitle.toLowerCase()} relativo ${sharePercent}; valor exacto ${formatNumber(value)}; estado ${shareLabel}`}
+    >
+      <span className="pulso-gv2-layout-metric-cell is-value">
         <em>Valor</em>
         {valueControl}
       </span>
-      <span>
+      <span className="pulso-gv2-layout-metric-cell is-share">
         <em>{axisTitle}</em>
-        <b>{formatPercent(share)}</b>
+        <b>{sharePercent}</b>
+      </span>
+      <i className="pulso-gv2-layout-metric-bar" aria-hidden="true" />
+      <span className="pulso-gv2-layout-metric-tier" aria-hidden="true">
+        <em>Estado</em>
+        <b>{shareLabel}</b>
       </span>
     </small>
   );
+}
+
+function metricShareTier(share: number, value: number): "hidden" | "compact" | "balanced" | "dominant" {
+  if (!Number.isFinite(value) || value <= 0 || share <= 0.005) return "hidden";
+  if (share <= 0.11) return "compact";
+  if (share >= 0.48) return "dominant";
+  return "balanced";
+}
+
+function metricShareLabel(tier: ReturnType<typeof metricShareTier>): string {
+  if (tier === "hidden") return "Oculta";
+  if (tier === "compact") return "Compacta";
+  if (tier === "dominant") return "Principal";
+  return "Media";
 }
 
 function DragGuide({ guide }: { guide: DragGuideState }) {
