@@ -132,6 +132,7 @@ export function ArgField({
           displayValue={displayValue}
           hasOwnValue={hasOwnValue}
           inheritedValue={inheritedValue}
+          argState={argState}
           placeholder={placeholder}
           onChange={onChange}
           variables={variables}
@@ -275,6 +276,7 @@ function FieldControl({
   displayValue,
   hasOwnValue,
   inheritedValue,
+  argState,
   placeholder,
   onChange,
   variables,
@@ -284,6 +286,7 @@ function FieldControl({
   displayValue: ArgValue;
   hasOwnValue: boolean;
   inheritedValue?: ArgValue;
+  argState: ArgState;
   placeholder?: string;
   onChange: (v: ArgValue) => void;
   variables: VarInfo[];
@@ -305,6 +308,7 @@ function FieldControl({
         <TextControl
           meta={meta}
           value={safeText(shownValue)}
+          argState={argState}
           placeholder={placeholder}
           onChange={onChange}
         />
@@ -315,6 +319,7 @@ function FieldControl({
         <TextControl
           meta={meta}
           value={safeText(shownValue)}
+          argState={argState}
           placeholder={placeholder}
           onChange={onChange}
           multiline
@@ -397,6 +402,7 @@ const inputStyle: React.CSSProperties = {
 function TextControl({
   meta,
   value,
+  argState,
   placeholder,
   onChange,
   multiline = false,
@@ -404,6 +410,7 @@ function TextControl({
 }: {
   meta: ArgMetadata;
   value: string;
+  argState: ArgState;
   placeholder?: string;
   onChange: (v: ArgValue) => void;
   multiline?: boolean;
@@ -426,6 +433,7 @@ function TextControl({
   const [isFocused, setIsFocused] = useState(false);
   const statusId = useId();
   const showAutomaticPreview = !!placeholder && draft.trim() === "";
+  const textSource = buildTextSourceMeta(draft, placeholder, argState);
 
   function evaluate(next: string) {
     const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder, baseHint });
@@ -444,7 +452,7 @@ function TextControl({
   const statusRowState = isFocused && status.state === "default" ? "focus" : status.state;
 
   return (
-    <div className="pulso-gv2-string-control">
+    <div className="pulso-gv2-string-control" data-text-source={textSource.state}>
       <div className="pulso-gv2-text-input-wrap">
         {multiline ? (
           <textarea
@@ -509,13 +517,25 @@ function TextControl({
         )}
       </div>
 
+      <div
+        className="pulso-gv2-text-source-strip"
+        data-source-state={textSource.state}
+        aria-label={`Estado del texto: ${textSource.label}`}
+      >
+        <span className="pulso-gv2-text-source-label">
+          <span className="pulso-gv2-text-source-dot" aria-hidden="true" />
+          {textSource.label}
+        </span>
+        <span className="pulso-gv2-text-source-detail">{textSource.detail}</span>
+      </div>
+
       {showAutomaticPreview && (
         <div
           className="pulso-gv2-auto-preview"
-          aria-label={`Texto automatico: ${placeholder}`}
+          aria-label={`Placeholder automatico: ${placeholder}`}
         >
           <Sparkles size={12} />
-          <span>Auto</span>
+          <span className="pulso-gv2-auto-preview-kicker">Placeholder</span>
           <strong>{placeholder}</strong>
         </div>
       )}
@@ -551,6 +571,47 @@ function TextControl({
       />
     </div>
   );
+}
+
+function buildTextSourceMeta(draft: string, placeholder: string | undefined, argState: ArgState): {
+  state: "auto" | "manual" | "base" | "mode" | "empty";
+  label: string;
+  detail: string;
+} {
+  const trimmed = draft.trim();
+  if (placeholder && trimmed.length === 0) {
+    return {
+      state: "auto",
+      label: "Automatico",
+      detail: "Fallback activo",
+    };
+  }
+  if (argState === "from-mode") {
+    return {
+      state: "mode",
+      label: "Modo",
+      detail: "Modo activo",
+    };
+  }
+  if (argState === "inherited") {
+    return {
+      state: "base",
+      label: "Base",
+      detail: "Sin override",
+    };
+  }
+  if (trimmed.length > 0) {
+    return {
+      state: "manual",
+      label: "Manual",
+      detail: `${trimmed.length} caracteres`,
+    };
+  }
+  return {
+    state: "empty",
+    label: "Vacio",
+    detail: "Sin texto visible",
+  };
 }
 
 function NumberControl({
@@ -1356,7 +1417,7 @@ function buildTextStatusMessage({
 }): string {
   const trimmed = (value ?? "").trim();
   if (trimmed.length === 0 && placeholder) {
-    return "Si lo dejas vacio, Prosecnur usara el titulo automatico de la variable.";
+    return "Fallback automatico activo desde el placeholder del graficador.";
   }
   if (isCriticalTextField(metaName) && trimmed.length === 0) {
     return "Este texto es clave para la lectura del gráfico.";
