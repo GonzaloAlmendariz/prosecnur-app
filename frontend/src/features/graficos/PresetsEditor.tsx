@@ -8,7 +8,6 @@ import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgG
 import { usePresetsDefaults } from "./usePresetsDefaults";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
-import { PptStyleProfilesPanel } from "./PptStyleProfilesPanel";
 // La edición de presets usa solo controles catalogados. Si un argumento
 // no tiene metadata visual, no se expone como campo editable.
 
@@ -70,14 +69,14 @@ export function PresetsEditor() {
   if (loading) {
     return (
       <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 10 }}>
-        Cargando catálogo de presets…
+        Cargando bases visuales...
       </div>
     );
   }
   if (error) {
     return (
       <div style={{ fontSize: 12, color: "#991b1b", padding: 10 }}>
-        Error cargando presets: {error}
+        Error cargando bases visuales: {error}
       </div>
     );
   }
@@ -94,8 +93,7 @@ export function PresetsEditor() {
 
   return (
     <div className="pulso-gv2-presets-stack">
-      <PptStyleProfilesPanel />
-      <div className="pulso-gv2-presets-overview" aria-label="Resumen de presets de PowerPoint">
+      <div className="pulso-gv2-presets-overview" aria-label="Resumen de bases visuales de PowerPoint">
         <span className="pulso-gv2-presets-overview-icon" aria-hidden="true">
           <Palette size={15} />
         </span>
@@ -111,7 +109,7 @@ export function PresetsEditor() {
           className={`pulso-gv2-presets-overview-current ${hasChanges ? "is-custom" : "is-inherited"}`}
           title={`ID interno: ${meta.name}`}
         >
-          {hasChanges ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}` : "Base establecida"}
+          {hasChanges ? `${customArgCount} ajuste${customArgCount === 1 ? "" : "s"}` : "Base predeterminada"}
         </span>
       </div>
       <div className="pulso-gv2-presets-editor">
@@ -144,7 +142,7 @@ export function PresetsEditor() {
                 className={`pulso-gv2-preset-nav-item ${isActive ? "is-active" : ""}`}
                 data-state={modified ? "custom" : "base"}
                 aria-pressed={isActive}
-                aria-label={`${p.titulo_humano}. ${modified ? `${customCount} ajustes personalizados` : "Base establecida"}`}
+                aria-label={`${p.titulo_humano}. ${modified ? `${customCount} ajustes personalizados` : "Base predeterminada"}`}
               >
                 <span
                   className="pulso-gv2-presets-sidebar-icon"
@@ -158,7 +156,7 @@ export function PresetsEditor() {
                 </span>
                 <span
                   className={`pulso-gv2-preset-nav-state ${modified ? "is-custom" : "is-base"}`}
-                  title={modified ? `${customCount} ajustes personalizados` : "Base establecida"}
+                  title={modified ? `${customCount} ajustes personalizados` : "Base predeterminada"}
                 >
                   {modified ? `${customCount} ajuste${customCount === 1 ? "" : "s"}` : "Base"}
                 </span>
@@ -226,7 +224,7 @@ function PresetSourceRail({
 }) {
   const inheritedCount = Math.max(0, editableArgCount - customArgCount);
   return (
-    <div className="pulso-gv2-preset-source-rail" aria-label="Estado del preset seleccionado">
+    <div className="pulso-gv2-preset-source-rail" aria-label="Estado de la base seleccionada">
       <span className="is-base">
         <CheckCircle2 size={12} />
         <strong>Base del sistema</strong>
@@ -284,7 +282,7 @@ function PresetHeader({
           ) : (
             <span className="pulso-gv2-preset-modified-badge is-inherited">
               <CheckCircle2 size={12} />
-              Base establecida
+              Base predeterminada
             </span>
           )}
         </div>
@@ -298,7 +296,7 @@ function PresetHeader({
         <button
           type="button"
           onClick={onReset}
-          title="Volver a la base heredada de este preset."
+          title="Volver a la base predeterminada de este tipo de gráfico."
           className="pulso-gv2-preset-reset"
         >
           <span className="pulso-gv2-preset-action-icon" aria-hidden="true">
@@ -369,7 +367,7 @@ function PresetBody({
             border: "1px solid var(--pulso-border)",
           }}
         >
-          Este preset no tiene ajustes visuales catalogados todavía.
+          Esta base visual no tiene ajustes catalogados todavía.
           No se puede editar desde esta pantalla.
         </div>
       ) : (

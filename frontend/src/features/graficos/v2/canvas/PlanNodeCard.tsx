@@ -69,8 +69,8 @@ export function PlanNodeCard({ node, selected, dimmed, issues, variables, onClic
       {(node.hasOverride || node.hasIcon || node.hasPalette) && (
         <div className="pulso-gv2-node-badges">
           {node.hasOverride && (
-            <span className="pulso-gv2-node-badge is-override" aria-label="Aplica un modo de estilo">
-              <IconModes size={9} /> Modo
+            <span className="pulso-gv2-node-badge is-override" aria-label="Aplica un estilo guardado">
+              <IconModes size={9} /> Estilo
             </span>
           )}
           {node.hasIcon && (

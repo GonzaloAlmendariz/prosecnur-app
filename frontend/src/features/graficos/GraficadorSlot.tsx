@@ -247,15 +247,15 @@ function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
   );
 }
 
-// Dropdown de "Modo" (concepto = override reusable). El usuario lo
-// llama así: "modo compacto", "modo narrativo". Es un set de args que
-// sobreescribe al preset global para este slot.
+// Dropdown de estilo por gráfico. La UI evita términos internos como
+// override/preset y expresa la herencia en tres capas: base predeterminada,
+// estilo guardado y ajustes adicionales del gráfico.
 //
 // Estados visuales:
-//   - "Modo: por defecto"  → sin overrides (estilo base)
-//   - "Modo: 'compacto'"   → un override reusable aplicado exacto
-//   - "Modo + ajustes propios" → override aplicado + ajustes adicionales
-//   - "Manual"             → ajustes propios, sin override base
+//   - "Base predeterminada" → sin overrides (estilo base)
+//   - "Estilo guardado"     → una variante reusable aplicada exacta
+//   - "Estilo + ajustes"    → variante aplicada + ajustes adicionales
+//   - "Ajustes adicionales" → ajustes propios, sin variante base
 //
 // Acciones:
 //   - Selección de modo predefinido (con confirmación si hay edits).
@@ -349,24 +349,33 @@ function OverrideDropdown({
   const isActive = modeState !== "base";
   const triggerLabel =
     modeState === "mode"
-      ? "Variante aplicada"
+      ? "Estilo guardado"
       : modeState === "mixed"
-        ? "Variante + ajustes"
+        ? "Estilo + ajustes"
         : modeState === "manual"
-          ? "Ajustes propios"
-          : "Base visual";
+          ? "Ajustes adicionales"
+          : "Base predeterminada";
   const triggerHint =
     exactMatch?.nombre ??
     partialMatch?.nombre ??
-    (isPureCustom ? `${customCount} ajustes` : "sin cambios");
-  const lineageModeLabel = exactMatch?.nombre ?? partialMatch?.nombre ?? "Sin variante";
+    (isPureCustom ? `${customCount} ajuste${customCount === 1 ? "" : "s"}` : "sin cambios");
+  const graphLabel = graficadorDisplayName(value.graficador);
+  const currentDetail =
+    modeState === "base"
+      ? "Usa la apariencia base del gráfico. No marca cambios."
+      : modeState === "mode"
+        ? "Aplica un estilo guardado sin ajustes adicionales."
+        : modeState === "mixed"
+          ? "Parte de un estilo guardado y suma ajustes adicionales."
+          : "Solo este gráfico tiene ajustes adicionales.";
+  const lineageModeLabel = exactMatch?.nombre ?? partialMatch?.nombre ?? "Sin estilo guardado";
   const lineageSlotLabel = customCount > 0
-    ? `${customCount} ajuste${customCount === 1 ? "" : "s"}`
-    : "sin ajustes";
+    ? `${customCount} ajuste${customCount === 1 ? "" : "s"} adicional${customCount === 1 ? "" : "es"}`
+    : "Sin ajustes adicionales";
   const modeRail = [
-    { key: "base", label: "Base visual", active: true },
-    { key: "mode", label: "Variante", active: Boolean(exactMatch || partialMatch) },
-    { key: "manual", label: "Ajustes", active: customCount > 0 },
+    { key: "base", label: "Base predeterminada", active: true },
+    { key: "mode", label: "Estilo guardado", active: Boolean(exactMatch || partialMatch) },
+    { key: "manual", label: "Ajustes adicionales", active: customCount > 0 },
   ];
 
   function applyMode(args: Record<string, unknown> | null) {
@@ -376,9 +385,9 @@ function OverrideDropdown({
       !shallowEqualArgs(currentOverrideArgs, args ?? {});
     if (willOverwriteCustom) {
       const ok = window.confirm(
-        `Hay ajustes propios sin guardar en este gráfico. ` +
-        `Aplicar otra variante los reemplaza. ¿Continuar?\n\n` +
-        `Tip: cancela y guarda esta variante si quieres reutilizarla.`
+        `Hay ajustes adicionales en este gráfico. ` +
+        `Aplicar otro estilo guardado los reemplazará. ¿Continuar?\n\n` +
+        `Consejo: cancela y guárdalos como estilo si quieres reutilizarlos.`
       );
       if (!ok) { setOpen(false); return; }
     }
@@ -388,12 +397,12 @@ function OverrideDropdown({
 
   function createMode() {
     if (customCount === 0) {
-      window.alert("No hay ajustes propios para guardar como variante. Cambia algún control primero.");
+      window.alert("No hay ajustes adicionales para guardar como estilo. Cambia algún control primero.");
       return;
     }
     const nombre = window.prompt(
-      "Nombre de la variante visual (ej. 'compacto', 'narrativo', 'minimal'):",
-      "variante personalizada"
+      "Nombre del estilo guardado (ej. 'compacto', 'narrativo', 'minimal'):",
+      "estilo personalizado"
     );
     if (!nombre || !nombre.trim()) { setOpen(false); return; }
     const id = `ovr-${Math.random().toString(36).slice(2, 10)}`;
@@ -483,11 +492,12 @@ function OverrideDropdown({
           style={popoverStyle}
         >
           <div className="pulso-gv2-mode-current" data-state={modeState}>
-            <span>Estado actual</span>
+            <span>Estilo actual</span>
             <strong>{triggerLabel}</strong>
             <small>{triggerHint}</small>
+            <p className="pulso-gv2-mode-current-detail">{currentDetail}</p>
             <div className="pulso-gv2-mode-lineage" aria-label="Ruta visual aplicada">
-              <span className="is-base"><Check size={11} /> Base</span>
+              <span className="is-base"><Check size={11} /> Base predeterminada</span>
               <span className={exactMatch || partialMatch ? "is-mode" : "is-muted"}>
                 {lineageModeLabel}
               </span>
@@ -498,14 +508,14 @@ function OverrideDropdown({
           </div>
 
           <div className="pulso-gv2-mode-popover-label">
-            Variantes reutilizables para este gráfico · {aplicables.length}
+            Estilos guardados para {graphLabel} · {aplicables.length}
           </div>
 
           <DropdownOption
             kind="base"
-            label="Mantener base visual"
-            hint="no marca cambios"
-            description="Usa la apariencia establecida para este tipo de gráfico."
+            label="Usar base predeterminada"
+            hint="No marca cambios"
+            description="Apariencia base para este tipo de gráfico."
             active={customCount === 0}
             onClick={() => applyMode(null)}
           />
@@ -515,8 +525,8 @@ function OverrideDropdown({
                 key={o.id}
                 kind="mode"
                 label={o.nombre}
-                hint={`${Object.keys(o.args).length} ajustes`}
-                description="Aplica esta variante solo a este gráfico."
+                hint={`${Object.keys(o.args).length} ajuste${Object.keys(o.args).length === 1 ? "" : "s"}`}
+                description="Reutiliza este estilo en el gráfico seleccionado."
                 active={exactMatch?.id === o.id}
                 onClick={() => applyMode({ ...o.args })}
               />
@@ -524,7 +534,7 @@ function OverrideDropdown({
           })}
           {aplicables.length === 0 && (
             <div className="pulso-gv2-mode-empty">
-              Aún no hay variantes guardadas para este tipo de gráfico.
+              Aún no hay estilos guardados para {graphLabel}. Ajusta un control y guárdalo como estilo cuando quieras reutilizarlo.
             </div>
           )}
 
@@ -539,7 +549,7 @@ function OverrideDropdown({
             >
               <Save size={12} />
               <span className="pulso-gv2-mode-option-label">
-                Guardar ajustes como variante
+                Guardar estilo reutilizable
               </span>
             </button>
           )}
@@ -552,7 +562,7 @@ function OverrideDropdown({
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
               <RotateCcw size={11} />
-              Quitar ajustes propios
+              Volver a base predeterminada
             </button>
           )}
         </div>,

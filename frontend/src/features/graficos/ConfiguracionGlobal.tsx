@@ -23,7 +23,7 @@ const TABS: { key: Tab; label: string; icon: typeof Palette }[] = [
   { key: "paletas",   label: "Paletas",   icon: Palette },
   { key: "iconos",    label: "Iconos",    icon: Image },
   { key: "presets",   label: "Presets",   icon: Sliders },
-  { key: "overrides", label: "Overrides", icon: Layers3 },
+  { key: "overrides", label: "Estilos guardados", icon: Layers3 },
 ];
 
 export function ConfiguracionGlobal() {
@@ -46,7 +46,7 @@ export function ConfiguracionGlobal() {
     `${nPaletas} ${nPaletas === 1 ? "paleta" : "paletas"}`,
     `${nIconos} ${nIconos === 1 ? "ícono" : "iconos"}`,
     `${nPresets} presets`,
-    `${nOverrides} overrides`,
+    `${nOverrides} ${nOverrides === 1 ? "estilo guardado" : "estilos guardados"}`,
   ];
 
   return (
@@ -101,8 +101,8 @@ export function ConfiguracionGlobal() {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-          title="Configurar defaults de la app"
-          aria-label="Configurar defaults"
+          title="Configurar valores iniciales de la app"
+          aria-label="Configurar valores iniciales"
           style={{
             padding: "10px 14px",
             background: "transparent",
@@ -134,13 +134,13 @@ export function ConfiguracionGlobal() {
               }}
             >
               <MenuItem
-                label="Modificar defaults de presets"
-                hint="Editar los valores base que sirven de arranque a cualquier estudio."
+                label="Editar bases predeterminadas"
+                hint="Valores iniciales que no marcan cambios en un estudio nuevo."
                 onClick={() => { setMenuOpen(false); setDefaultsModal("presets"); }}
               />
               <MenuItem
-                label="Modificar defaults de overrides"
-                hint="Editar / añadir overrides reusables (reducido, compacto…)."
+                label="Editar estilos guardados"
+                hint="Apariencias reutilizables como compacto o destacado."
                 onClick={() => { setMenuOpen(false); setDefaultsModal("overrides"); }}
               />
             </div>

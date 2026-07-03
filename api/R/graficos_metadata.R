@@ -844,7 +844,7 @@
   # =========================================================================
   base = list(
     titulo_humano = "Base — estilo común",
-    descripcion   = "Valores por defecto que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y el debug de placeholders. Lo que pongas acá aplica a todo el reporte salvo que un preset tipo lo sobrescriba.",
+    descripcion   = "Base visual que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y guías de espacio para revisar el layout. Lo que ajustes aquí aplica a todo el reporte salvo que un tipo de gráfico tenga una base propia.",
     icono_ui      = "Layers",
     args = list(
       # --- Tipografía y fuente --------------------------------------------

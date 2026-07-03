@@ -244,18 +244,18 @@ function fieldStateMeta(argState: ArgState): {
 } {
   if (argState === "custom") {
     return {
-      label: "Propio",
+      label: "Ajuste",
       className: "is-custom",
-      title: "Ajuste propio de este gráfico. Tiene prioridad sobre la base y la variante.",
+      title: "Ajuste adicional de este gráfico. Tiene prioridad sobre la base y el estilo guardado.",
       ariaLabel: "Valor cambiado en este gráfico",
     };
   }
   if (argState === "from-mode") {
     return {
-      label: "Variante",
+      label: "Estilo",
       className: "is-mode",
-      title: "Valor aplicado por la variante activa",
-      ariaLabel: "Valor proveniente de la variante activa",
+      title: "Valor aplicado por el estilo guardado activo",
+      ariaLabel: "Valor proveniente del estilo guardado activo",
     };
   }
   return {
@@ -540,7 +540,7 @@ function TextControl({
       {showAutomaticPreview && (
         <div
           className="pulso-gv2-auto-preview"
-          aria-label={`Placeholder automatico: ${placeholder}`}
+          aria-label={`Texto automático sugerido: ${placeholder}`}
         >
           <Sparkles size={12} />
           <span className="pulso-gv2-auto-preview-kicker">Placeholder</span>
@@ -597,8 +597,8 @@ function buildTextSourceMeta(draft: string, placeholder: string | undefined, arg
   if (argState === "from-mode") {
     return {
       state: "mode",
-      label: "Variante",
-      detail: "Variante activa",
+      label: "Estilo",
+      detail: "Estilo guardado",
     };
   }
   if (argState === "inherited") {
@@ -611,7 +611,7 @@ function buildTextSourceMeta(draft: string, placeholder: string | undefined, arg
   if (trimmed.length > 0) {
     return {
       state: "manual",
-      label: "Ajustes propios",
+      label: "Ajustes adicionales",
       detail: `${trimmed.length} caracteres`,
     };
   }
@@ -1235,7 +1235,7 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   umbral_rojo_pct: "Define porcentaje de disparo del color rojo.",
   nivel: "Nivel de severidad o intensidad de la señal.",
   nota_pie: "Nota corta que refuerza la lectura final del bloque.",
-  overrides: "Ajustes heredados de modo o base que puedes refinar por slide/slot.",
+  overrides: "Ajustes heredados de la base predeterminada o de un estilo guardado que puedes refinar en este gráfico.",
   pos_titulo: "Ajusta la posición/espaciado del título principal.",
   tabla_auto_fit: "Ajusta tabla al espacio disponible.",
   tabla_body_size: "Tamaño de texto del cuerpo de tabla.",
@@ -1400,7 +1400,7 @@ function buildTypeHint(meta: ArgMetadata, options: { forText?: boolean; forNumbe
     return "Selecciona un icono para reforzar el mensaje visual.";
   }
   if (tipo === "overrides") {
-    return "Configurable desde estilos globales o variantes para aplicar cambios a varios gráficos.";
+    return "Configurable desde estilos globales para aplicar una misma apariencia a varios gráficos.";
   }
   if (tipo === "filtros") {
     return "Este control usa una interfaz dedicada para combinar condiciones lógicas.";
@@ -1466,7 +1466,7 @@ function buildTextStatusMessage({
 }): string {
   const trimmed = (value ?? "").trim();
   if (trimmed.length === 0 && placeholder) {
-    return "Fallback automatico activo desde el placeholder del graficador.";
+    return "Se usará el texto automático si dejas este campo vacío.";
   }
   if (isCriticalTextField(metaName) && trimmed.length === 0) {
     return "Este texto es clave para la lectura del gráfico.";
@@ -2132,7 +2132,7 @@ function DedicatedSurfaceNotice({
 
 function surfaceLabel(tipo: string): string {
   if (tipo === "filtros") return "Se configura desde la pestaña Filtros.";
-  if (tipo === "overrides") return "Se configura desde Variante o Estilo del gráfico.";
+  if (tipo === "overrides") return "Se configura desde Estilo guardado o Ajustes adicionales.";
   if (tipo === "base_config") return "La base se calcula automáticamente o se edita como texto del gráfico.";
   return "Este ajuste usa una interfaz dedicada.";
 }

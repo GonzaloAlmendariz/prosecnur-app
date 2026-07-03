@@ -68,7 +68,7 @@ export function OverridesEditor() {
 
   function handleCreate() {
     const tipoDefault = tipoOptions[0]?.name ?? "barras_apiladas";
-    const nuevoNombre = `Variante ${overrides.length + 1}`;
+    const nuevoNombre = `Estilo ${overrides.length + 1}`;
     const nuevo: OverrideReusable = {
       id: newId(),
       nombre: nuevoNombre,
@@ -91,7 +91,7 @@ export function OverridesEditor() {
   }
 
   function handleDelete(id: string) {
-    const confirm = window.confirm("¿Eliminar esta variante? Los gráficos que la estén usando volverán a la base visual.");
+    const confirm = window.confirm("¿Eliminar este estilo guardado? Los gráficos que lo estén usando volverán a la base predeterminada.");
     if (!confirm) return;
     removeOverride(id);
     if (selectedId === id) {
@@ -102,28 +102,28 @@ export function OverridesEditor() {
 
   return (
     <div className="pulso-gv2-overrides-editor">
-      <div className="pulso-gv2-overrides-overview" aria-label="Resumen de variantes reutilizables">
+      <div className="pulso-gv2-overrides-overview" aria-label="Resumen de estilos guardados">
         <span className="pulso-gv2-overrides-overview-icon" aria-hidden="true">
           <Layers3 size={15} />
         </span>
         <span className="pulso-gv2-overrides-overview-copy">
-          <strong>Variantes reutilizables</strong>
+          <strong>Estilos guardados</strong>
           <span>
             {overrides.length === 0
-              ? "Crea variantes como compacto, narrativo o alta densidad"
-              : `${overrides.length} variante${overrides.length === 1 ? "" : "s"} · ${modesWithArgs} con ajustes · ${coveredTypes} tipo${coveredTypes === 1 ? "" : "s"} de gráfico`}
+              ? "Crea apariencias como compacto, narrativo o alta densidad"
+              : `${overrides.length} estilo${overrides.length === 1 ? "" : "s"} · ${modesWithArgs} con ajustes · ${coveredTypes} tipo${coveredTypes === 1 ? "" : "s"} de gráfico`}
           </span>
         </span>
         <span className="pulso-gv2-overrides-overview-pill">
           {totalArgs} ajuste{totalArgs === 1 ? "" : "s"}
         </span>
       </div>
-      <div className="pulso-gv2-overrides-map" aria-label="Estructura de variantes reutilizables">
-        <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
+      <div className="pulso-gv2-overrides-map" aria-label="Estructura de estilos guardados">
+        <span className="is-base"><CheckCircle2 size={12} /> Base predeterminada</span>
         <span className="is-connector" aria-hidden="true">/</span>
-        <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} variante{overrides.length === 1 ? "" : "s"}</span>
+        <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} estilo{overrides.length === 1 ? "" : "s"} guardado{overrides.length === 1 ? "" : "s"}</span>
         <span className="is-connector" aria-hidden="true">/</span>
-        <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes propios</span>
+        <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes adicionales</span>
       </div>
       <div className="pulso-gv2-overrides-workbench">
       {/* Sidebar */}
@@ -133,15 +133,15 @@ export function OverridesEditor() {
           className="pulso-primary pulso-gv2-overrides-new"
           onClick={handleCreate}
         >
-          <Plus size={13} /> Nueva variante
+          <Plus size={13} /> Nuevo estilo
         </button>
 
         {overrides.length === 0 ? (
           <EmptyState
             variant="inline"
             icon={<Layers3 size={16} />}
-            title="Sin variantes"
-            hint="Crea una y aplícala desde cualquier gráfico."
+            title="Sin estilos guardados"
+            hint="Crea uno y aplícalo desde cualquier gráfico."
           />
         ) : (
           <div className="pulso-gv2-overrides-list">
@@ -190,11 +190,11 @@ export function OverridesEditor() {
         ) : (
           <EmptyState
             icon={<Layers3 size={22} />}
-            title={overrides.length === 0 ? "Aún no hay variantes" : "Selecciona una variante"}
+            title={overrides.length === 0 ? "Aún no hay estilos guardados" : "Selecciona un estilo guardado"}
             hint={
               overrides.length === 0
-                ? "Las variantes guardan una apariencia reusable para aplicarla a gráficos específicos cuando la base global no alcanza."
-                : "Elige una del panel izquierdo para editar sus ajustes."
+                ? "Un estilo guardado conserva una apariencia reusable para aplicarla a gráficos específicos cuando la base predeterminada no alcanza."
+                : "Elige uno del panel izquierdo para editar sus ajustes."
             }
             cta={
               overrides.length === 0 ? (
@@ -207,7 +207,7 @@ export function OverridesEditor() {
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  <Plus size={13} /> Crear primera variante
+                  <Plus size={13} /> Crear primer estilo
                 </button>
               ) : undefined
             }
@@ -279,7 +279,7 @@ function OverrideEditPanel({
           <Icon size={15} />
         </span>
         <div className="pulso-gv2-override-detail-copy">
-          <span className="pulso-gv2-override-eyebrow">Variante reutilizable</span>
+          <span className="pulso-gv2-override-eyebrow">Estilo guardado</span>
           <input
             type="text"
             value={override.nombre}
@@ -327,8 +327,8 @@ function OverrideEditPanel({
         </div>
       </header>
 
-      <div className="pulso-gv2-override-lineage" aria-label="Estructura de la variante seleccionada">
-        <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
+      <div className="pulso-gv2-override-lineage" aria-label="Estructura del estilo seleccionado">
+        <span className="is-base"><CheckCircle2 size={12} /> Base predeterminada</span>
         <span className="is-connector" aria-hidden="true">/</span>
         <span className="is-mode">{modelLabel}</span>
         <span className="is-connector" aria-hidden="true">/</span>
@@ -343,7 +343,7 @@ function OverrideEditPanel({
 
       {tipoMeta?.descripcion && (
         <p className="pulso-gv2-override-description">
-          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre la base visual cuando uses esta variante.
+          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre la base predeterminada cuando uses este estilo.
         </p>
       )}
 
@@ -400,17 +400,17 @@ function OverrideFocusGrid({
   argCount: number;
 }) {
   return (
-    <div className="pulso-gv2-override-focus-grid" aria-label="Resumen de la variante seleccionada">
+    <div className="pulso-gv2-override-focus-grid" aria-label="Resumen del estilo guardado seleccionado">
       <span className="is-model">
         <strong>Tipo compatible</strong>
         <b>{modelLabel}</b>
       </span>
       <span className={argCount > 0 ? "is-custom" : "is-base"}>
         <strong>Herencia</strong>
-        <b>{argCount > 0 ? `${argCount} sobre base` : "Usa base global"}</b>
+        <b>{argCount > 0 ? `${argCount} sobre base` : "Usa base predeterminada"}</b>
       </span>
       <span className="is-mode">
-        <strong>Variante</strong>
+        <strong>Estilo guardado</strong>
         <b>{modeName.trim() || "Sin nombre"}</b>
       </span>
     </div>

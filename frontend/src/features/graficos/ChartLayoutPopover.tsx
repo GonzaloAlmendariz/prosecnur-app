@@ -222,14 +222,14 @@ export function ChartLayoutEditor({
   const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
   const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
-  const sourceLabel = sourceState === "manual" ? "Manual del slot" : sourceState === "mode" ? "Modo aplicado" : "Base establecida";
+  const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Base predeterminada";
   const sourceDetail = sourceState === "manual"
     ? `${customFieldCount} zona${customFieldCount === 1 ? "" : "s"} ajustada${customFieldCount === 1 ? "" : "s"}`
     : sourceState === "mode"
       ? `${inheritedFieldCount} valor${inheritedFieldCount === 1 ? "" : "es"} heredado${inheritedFieldCount === 1 ? "" : "s"}`
       : "Base sin cambios";
   const hasManualLayout = customFieldCount > 0;
-  const resetLabel = hasManualLayout ? "Restaurar manuales" : "Sin cambios manuales";
+  const resetLabel = hasManualLayout ? "Quitar ajustes" : "Sin ajustes adicionales";
 
   if (!kind || fields.length === 0) return null;
 
@@ -468,9 +468,9 @@ export function ChartLayoutEditor({
 
           <div className="pulso-gv2-layout-footer">
             <div className="pulso-gv2-layout-source-legend" aria-label="Origen de valores">
-              <span className="is-base"><i /> Base sin cambios</span>
-              <span className="is-mode"><i /> Modo heredado</span>
-              <span className="is-manual"><i /> Manual</span>
+              <span className="is-base"><i /> Base predeterminada</span>
+              <span className="is-mode"><i /> Estilo guardado</span>
+              <span className="is-manual"><i /> Ajustes adicionales</span>
             </div>
             <div className="pulso-gv2-layout-footer-tools" aria-label="Herramientas del editor">
               <span><MousePointer2 size={11} /> Bordes ajustables</span>
@@ -482,7 +482,7 @@ export function ChartLayoutEditor({
               onClick={resetAll}
               className="pulso-gv2-layout-reset"
               disabled={!hasManualLayout}
-              title={hasManualLayout ? "Quitar medidas manuales y volver a la base o modo visible" : "Este layout no tiene medidas manuales"}
+              title={hasManualLayout ? "Quitar ajustes adicionales y volver a la base o estilo visible" : "Este layout no tiene ajustes adicionales"}
             >
               <RotateCcw size={12} /> {resetLabel}
             </button>

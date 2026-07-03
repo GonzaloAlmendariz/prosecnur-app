@@ -18777,3 +18777,280 @@
     font-size: 10.8px;
   }
 }
+
+/* Suite polish pass 23: friendlier style inheritance language in graph controls. */
+.pulso-gv2-mode-current {
+  grid-template-areas:
+    "eyebrow eyebrow"
+    "label hint"
+    "detail detail"
+    "lineage lineage";
+  gap: 4px 8px;
+}
+
+.pulso-gv2-mode-current-detail {
+  grid-area: detail;
+  margin: 0;
+  color: color-mix(in srgb, var(--pulso-text-soft) 88%, var(--pulso-text));
+  font-size: 10.2px;
+  font-weight: 650;
+  line-height: 1.28;
+}
+
+.pulso-gv2-mode-popover-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-mode-lineage span {
+  max-width: 178px;
+}
+
+.pulso-gv2-mode-option-label {
+  line-height: 1.12;
+}
+
+.pulso-gv2-mode-option-description {
+  white-space: normal;
+}
+
+.pulso-gv2-mode-option-hint {
+  text-transform: none;
+}
+
+.pulso-gv2-mode-empty {
+  color: color-mix(in srgb, var(--pulso-text-soft) 88%, var(--pulso-text));
+  font-size: 10.3px;
+  font-weight: 650;
+  line-height: 1.34;
+}
+
+@media (max-width: 860px) {
+  .pulso-gv2-mode-current {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "eyebrow"
+      "label"
+      "hint"
+      "detail"
+      "lineage";
+  }
+
+  .pulso-gv2-mode-current small {
+    justify-self: start;
+  }
+}
+
+/* Suite polish pass 24: global style menu as a full professional workbench. */
+.pulso-gv2-estilo-backdrop {
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.pulso-gv2-estilo-dialog {
+  width: min(1480px, calc(100vw - 28px));
+  max-width: 1480px;
+  height: min(920px, calc(100vh - 28px));
+  min-height: min(700px, calc(100vh - 28px));
+  border-radius: 18px;
+}
+
+.pulso-gv2-estilo-body {
+  padding: 18px;
+}
+
+.pulso-gv2-estilo-body.is-ppt,
+.pulso-gv2-estilo-body.is-word,
+.pulso-gv2-estilo-body.is-paletas,
+.pulso-gv2-estilo-body.is-modos {
+  align-items: stretch;
+}
+
+.pulso-gv2-presets-stack,
+.pulso-gv2-overrides-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-gv2-presets-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.pulso-gv2-presets-editor,
+.pulso-gv2-overrides-workbench {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-gv2-estilo-body.is-paletas .pulso-gv2-paletas-editor {
+  min-height: 0;
+}
+
+.pulso-gv2-paletas-detail .pulso-gv2-ppt-style-panel {
+  flex: 0 0 auto;
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 44%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 24%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-paletas-detail .pulso-gv2-ppt-style-intro {
+  grid-template-columns: 34px minmax(0, 1fr) minmax(220px, auto);
+}
+
+.pulso-gv2-paletas-detail .pulso-gv2-ppt-style-list {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.pulso-gv2-word-overview {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 60%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-surface-2) 74%, var(--gv2-accent-soft, var(--pulso-primary-soft)))),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-word-overview-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--gv2-accent, var(--pulso-primary));
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px var(--gv2-accent-border, var(--pulso-primary-border));
+  line-height: 0;
+}
+
+.pulso-gv2-word-overview-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-gv2-word-overview-copy strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.pulso-gv2-word-overview-copy span {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 660;
+}
+
+.pulso-gv2-word-overview-current {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border: 1px solid var(--gv2-accent-border, var(--pulso-primary-border));
+  border-radius: 999px;
+  background: var(--gv2-accent-soft, var(--pulso-primary-soft));
+  color: var(--gv2-accent, var(--pulso-primary));
+  font-size: 10px;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.pulso-gv2-word-overview-current.is-inherited {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 78%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-gv2-word-option-card {
+  padding: 12px 14px;
+}
+
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="choice"],
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="multiflag"],
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="criteria_config"],
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="variables_list"],
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="series_colors"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-areas:
+    "copy"
+    "utilities"
+    "control" !important;
+  align-items: start;
+  gap: 10px !important;
+}
+
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="choice"] .pulso-gv2-field-utilities,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="multiflag"] .pulso-gv2-field-utilities,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="criteria_config"] .pulso-gv2-field-utilities,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="variables_list"] .pulso-gv2-field-utilities,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="series_colors"] .pulso-gv2-field-utilities {
+  justify-self: start;
+}
+
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="choice"] .pulso-gv2-field-control,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="multiflag"] .pulso-gv2-field-control,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="criteria_config"] .pulso-gv2-field-control,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="variables_list"] .pulso-gv2-field-control,
+.pulso-gv2-word-presets .pulso-gv2-field-card[data-arg-type="series_colors"] .pulso-gv2-field-control {
+  max-width: min(100%, 760px);
+}
+
+.pulso-gv2-paletas-suggestions-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.pulso-gv2-sugerido-card {
+  min-height: 88px;
+}
+
+.pulso-gv2-sugerido-apply {
+  min-height: 88px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  padding: 12px 94px 12px 12px;
+}
+
+.pulso-gv2-sugerido-swatches {
+  width: 42px;
+  min-height: 46px;
+  justify-content: center;
+  align-items: stretch;
+  border-radius: 14px;
+}
+
+.pulso-gv2-sugerido-swatches span {
+  height: 36px;
+}
+
+.pulso-gv2-sugerido-mode {
+  margin-top: 2px;
+}
+
+@media (max-height: 780px) {
+  .pulso-gv2-estilo-dialog {
+    height: calc(100vh - 20px);
+    min-height: calc(100vh - 20px);
+  }
+
+  .pulso-gv2-estilo-head {
+    padding-block: 12px 10px;
+  }
+
+  .pulso-gv2-estilo-flow {
+    padding-block: 7px 6px;
+  }
+
+  .pulso-gv2-estilo-tabs {
+    padding-block: 6px;
+  }
+}
