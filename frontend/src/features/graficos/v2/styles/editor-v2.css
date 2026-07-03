@@ -17239,3 +17239,363 @@
     padding-inline: 5px;
   }
 }
+
+/* Suite polish pass 16: clearer Base / Mode / Manual hierarchy across graph styling. */
+.pulso-gv2-estilo-flow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 9px 20px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--gv2-panel-line, var(--pulso-border)) 70%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--pulso-surface-2) 76%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-estilo-backdrop {
+  background: rgba(10, 18, 32, 0.54);
+  backdrop-filter: blur(11px) saturate(0.98);
+  -webkit-backdrop-filter: blur(11px) saturate(0.98);
+}
+
+.pulso-gv2-estilo-dialog {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--gv2-panel-line, var(--pulso-border)) 80%, rgba(15, 23, 42, 0.12));
+  box-shadow:
+    0 34px 78px rgba(15, 23, 42, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.pulso-gv2-estilo-head,
+.pulso-gv2-estilo-tabs,
+.pulso-gv2-estilo-body {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-surface-2) 58%, #ffffff)),
+    #ffffff;
+}
+
+.pulso-gv2-estilo-flow-label {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-weight: 820;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pulso-gv2-estilo-flow-step {
+  --flow-accent: var(--gv2-accent, var(--pulso-primary));
+  min-width: 0;
+  min-height: 30px;
+  display: inline-grid;
+  grid-template-columns: 14px minmax(0, auto) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--flow-accent) 18%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--flow-accent) 5%, #ffffff);
+  color: color-mix(in srgb, var(--flow-accent) 72%, var(--pulso-text));
+}
+
+.pulso-gv2-estilo-flow-step.is-mode {
+  --flow-accent: #7c3aed;
+}
+
+.pulso-gv2-estilo-flow-step.is-manual {
+  --flow-accent: #0f766e;
+}
+
+.pulso-gv2-estilo-flow-step.is-active {
+  border-color: color-mix(in srgb, var(--flow-accent) 36%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--flow-accent) 10%, #ffffff), rgba(255, 255, 255, 0.86));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 5px 14px color-mix(in srgb, var(--flow-accent) 10%, transparent);
+}
+
+.pulso-gv2-estilo-flow-step svg {
+  flex: 0 0 auto;
+}
+
+.pulso-gv2-estilo-flow-step > span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pulso-gv2-estilo-flow-step strong,
+.pulso-gv2-estilo-flow-step small {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-estilo-flow-step strong {
+  color: inherit;
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.pulso-gv2-estilo-flow-step small {
+  color: color-mix(in srgb, currentColor 70%, var(--pulso-text-soft));
+  font-size: 8.7px;
+  font-weight: 680;
+}
+
+.pulso-gv2-estilo-flow-step i {
+  width: 15px;
+  height: 1px;
+  display: block;
+  background: color-mix(in srgb, var(--flow-accent) 34%, var(--pulso-border));
+}
+
+.pulso-gv2-preset-source-rail,
+.pulso-gv2-override-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulso-gv2-preset-source-rail span,
+.pulso-gv2-override-focus-grid span {
+  --rail-accent: var(--gv2-accent, var(--pulso-primary));
+  min-width: 0;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  gap: 2px 7px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--rail-accent) 20%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--rail-accent) 6%, #ffffff)),
+    var(--pulso-surface);
+  color: color-mix(in srgb, var(--rail-accent) 74%, var(--pulso-text));
+}
+
+.pulso-gv2-preset-source-rail span.is-base,
+.pulso-gv2-preset-source-rail span.is-inherited,
+.pulso-gv2-override-focus-grid span.is-base {
+  --rail-accent: #15803d;
+}
+
+.pulso-gv2-preset-source-rail span.is-custom,
+.pulso-gv2-override-focus-grid span.is-custom {
+  --rail-accent: #0f766e;
+}
+
+.pulso-gv2-preset-source-rail span.is-model,
+.pulso-gv2-override-focus-grid span.is-model {
+  --rail-accent: #2563eb;
+}
+
+.pulso-gv2-override-focus-grid span.is-mode {
+  --rail-accent: #7c3aed;
+}
+
+.pulso-gv2-preset-source-rail svg,
+.pulso-gv2-override-focus-grid svg {
+  grid-area: icon;
+  align-self: center;
+}
+
+.pulso-gv2-preset-source-rail strong,
+.pulso-gv2-preset-source-rail b,
+.pulso-gv2-preset-source-rail code,
+.pulso-gv2-override-focus-grid strong,
+.pulso-gv2-override-focus-grid b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-preset-source-rail strong,
+.pulso-gv2-override-focus-grid strong {
+  grid-area: label;
+  color: var(--pulso-text-soft);
+  font-size: 8.8px;
+  font-weight: 820;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-preset-source-rail b,
+.pulso-gv2-preset-source-rail code,
+.pulso-gv2-override-focus-grid b {
+  grid-area: value;
+  color: inherit;
+  font-size: 10.5px;
+  font-weight: 820;
+  line-height: 1.15;
+}
+
+.pulso-gv2-preset-source-rail code {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+}
+
+.pulso-gv2-override-detail-head {
+  align-items: start;
+}
+
+.pulso-gv2-override-model-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 280px);
+  align-items: center;
+}
+
+.pulso-gv2-override-model-select,
+.pulso-gv2-override-name {
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-gv2-override-name:focus {
+  outline: 0;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 42%, transparent);
+}
+
+.pulso-gv2-override-model-select:focus {
+  outline: 0;
+  border-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 46%, var(--pulso-border));
+  background: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 12%, transparent);
+}
+
+.pulso-gv2-override-actions {
+  flex-wrap: wrap;
+}
+
+.pulso-gv2-presets-sidebar,
+.pulso-gv2-presets-detail,
+.pulso-gv2-overrides-list,
+.pulso-gv2-overrides-detail,
+.pulso-gv2-estilo-body {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 28%, #94a3b8) transparent;
+}
+
+.pulso-gv2-presets-sidebar::-webkit-scrollbar,
+.pulso-gv2-presets-detail::-webkit-scrollbar,
+.pulso-gv2-overrides-list::-webkit-scrollbar,
+.pulso-gv2-overrides-detail::-webkit-scrollbar,
+.pulso-gv2-estilo-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.pulso-gv2-presets-sidebar::-webkit-scrollbar-track,
+.pulso-gv2-presets-detail::-webkit-scrollbar-track,
+.pulso-gv2-overrides-list::-webkit-scrollbar-track,
+.pulso-gv2-overrides-detail::-webkit-scrollbar-track,
+.pulso-gv2-estilo-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pulso-gv2-presets-sidebar::-webkit-scrollbar-thumb,
+.pulso-gv2-presets-detail::-webkit-scrollbar-thumb,
+.pulso-gv2-overrides-list::-webkit-scrollbar-thumb,
+.pulso-gv2-overrides-detail::-webkit-scrollbar-thumb,
+.pulso-gv2-estilo-body::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 34%, #94a3b8), color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 22%, #cbd5e1))
+    padding-box;
+}
+
+.pulso-gv2-layout-state-card span {
+  color: color-mix(in srgb, var(--pulso-text-soft) 74%, var(--layout-ink, var(--pulso-text)));
+}
+
+.pulso-gv2-layout-instruction-strip span {
+  min-height: 26px;
+  padding-inline: 9px;
+}
+
+@media (max-width: 980px) {
+  .pulso-gv2-preset-source-rail,
+  .pulso-gv2-override-focus-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-gv2-override-detail-head {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-override-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .pulso-gv2-estilo-flow {
+    padding-inline: 12px;
+  }
+
+  .pulso-gv2-estilo-flow-step {
+    flex: 1 1 150px;
+  }
+
+  .pulso-gv2-override-model-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-height: 760px) and (max-width: 1120px) {
+  .pulso-gv2-preset-header {
+    padding: 9px 10px;
+  }
+
+  .pulso-gv2-preset-header-description {
+    display: none;
+  }
+
+  .pulso-gv2-preset-source-rail {
+    gap: 5px;
+  }
+
+  .pulso-gv2-preset-source-rail span {
+    min-height: 28px;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    grid-template-areas: "icon label value";
+    gap: 5px;
+    padding: 4px 7px;
+    border-radius: 999px;
+  }
+
+  .pulso-gv2-preset-source-rail strong {
+    font-size: 8px;
+  }
+
+  .pulso-gv2-preset-source-rail b,
+  .pulso-gv2-preset-source-rail code {
+    font-size: 9px;
+  }
+
+  .pulso-gv2-presets-detail {
+    gap: 8px;
+  }
+}
