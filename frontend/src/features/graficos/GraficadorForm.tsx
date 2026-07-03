@@ -10,7 +10,7 @@ import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { ArgState } from "./ArgField";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
-import { IconError, IconForward, IconModes, IconTemplate } from "../../lib/icons";
+import { IconChecklist, IconError, IconForward, IconModes, IconSuccess, IconTemplate } from "../../lib/icons";
 
 // Formulario dinámico de un graficador con jerarquía de fuentes:
 //
@@ -399,22 +399,35 @@ function UnknownGraficadorState({
 
       <div className="pulso-gv2-unknown-graf-copy">
         <div className="pulso-gv2-unknown-graf-kicker">
-          <span>Modelo pendiente</span>
+          <span>Modelo pendiente de actualizar</span>
           {slotLabel && <strong>{slotLabel}</strong>}
         </div>
-        <h4>Modelo fuera de catálogo, configuración preservada</h4>
+        <h4>Tu configuración está protegida</h4>
         <p>
-          El plan conserva este slot y sus argumentos. Reemplázalo por un modelo vigente
-          para recuperar preview exacta y edición completa.
+          Este slot usa un identificador de modelo que ya no aparece en el catálogo actual.
+          Conservamos sus argumentos para que puedas elegir un modelo vigente sin perder ajustes.
         </p>
-        <div className="pulso-gv2-unknown-graf-meta" aria-label="Estado del slot">
+        <div className="pulso-gv2-unknown-graf-flow" aria-label="Ruta de recuperación">
           <span>
-            <IconTemplate size={12} /> Plan intacto
+            <IconChecklist size={12} /> Ajustes guardados
           </span>
+          <IconForward className="pulso-gv2-unknown-graf-flow-arrow" size={11} aria-hidden="true" />
           <span>
+            <IconTemplate size={12} /> Elegir modelo vigente
+          </span>
+          <IconForward className="pulso-gv2-unknown-graf-flow-arrow" size={11} aria-hidden="true" />
+          <span>
+            <IconModes size={12} /> Preview exacta
+          </span>
+        </div>
+        <div className="pulso-gv2-unknown-graf-meta" aria-label="Estado del slot">
+          <span data-tone="safe">
+            <IconSuccess size={12} /> Plan intacto
+          </span>
+          <span data-tone="limited">
             <IconModes size={12} /> Preview limitado
           </span>
-          <code>{graficador}</code>
+          <code title={`Identificador pendiente: ${graficador}`}>{graficador}</code>
         </div>
       </div>
 
@@ -424,11 +437,12 @@ function UnknownGraficadorState({
           className="pulso-primary pulso-gv2-pill-button pulso-gv2-unknown-graf-action"
           onClick={onReplaceGraficador}
           title={actionLabel}
+          aria-label={`${actionLabel}: ${slotLabel ?? graficador}`}
         >
           <IconForward size={13} /> {actionLabel}
         </button>
       ) : (
-        <span className="pulso-gv2-unknown-graf-hint">Ve a Datos para cambiar modelo</span>
+        <span className="pulso-gv2-unknown-graf-hint">Abre Datos para elegir modelo</span>
       )}
     </div>
   );
