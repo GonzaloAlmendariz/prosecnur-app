@@ -9994,7 +9994,8 @@
 }
 
 .pulso-gv2-preset-nav-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -10036,11 +10037,47 @@
 }
 
 .pulso-gv2-preset-nav-label {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pulso-gv2-preset-nav-state {
+  min-width: 42px;
+  max-width: 76px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  overflow: hidden;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 760;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-preset-nav-state.is-base {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 68%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 70%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-gv2-preset-nav-state.is-custom {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 64%, var(--pulso-border));
+  background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 68%, #ffffff);
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-gv2-preset-nav-item.is-active .pulso-gv2-preset-nav-state {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .pulso-gv2-preset-nav-dot {
