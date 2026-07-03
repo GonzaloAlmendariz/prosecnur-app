@@ -16738,6 +16738,76 @@
   }
 }
 
+/* Suite polish pass 14: larger preview viewport while keeping local fallback bounded. */
+.pulso-slide-preview-bubble {
+  top: clamp(72px, 9vh, 96px);
+  right: 20px;
+  width: min(1120px, calc(100vw - 40px));
+  max-width: min(1120px, calc(100vw - 40px));
+  min-width: min(500px, calc(100vw - 48px));
+  max-height: calc(100vh - 88px);
+  padding: 8px;
+  border-radius: 18px;
+}
+
+.pulso-slide-preview-chrome {
+  padding: 4px 4px 2px;
+}
+
+.pulso-slide-preview-status strong {
+  font-size: 12px;
+}
+
+.pulso-slide-preview-bubble-inner {
+  max-width: min(100%, 1120px);
+  max-height: min(82vh, 760px);
+  border-radius: 16px;
+}
+
+.pulso-slide-preview-local-frame {
+  inset: 10px 10px 96px;
+}
+
+.pulso-slide-preview-local-frame.has-images {
+  inset: 12px 12px 96px;
+}
+
+.pulso-slide-preview-local-panel {
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  padding: 9px 11px;
+}
+
+@media (max-width: 760px) {
+  .pulso-slide-preview-bubble {
+    top: 68px;
+    right: 12px;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    min-width: 0;
+  }
+
+  .pulso-slide-preview-bubble-inner {
+    max-height: min(70vh, 620px);
+  }
+}
+
+@media (max-height: 720px) {
+  .pulso-slide-preview-bubble {
+    top: 58px;
+    right: 20px;
+    width: min(1000px, calc(100vw - 40px));
+    max-width: min(1000px, calc(100vw - 40px));
+    min-width: min(380px, calc(100vw - 40px));
+    max-height: calc(100vh - 76px);
+  }
+
+  .pulso-slide-preview-bubble-inner {
+    max-height: calc(100vh - 116px);
+  }
+}
+
 /* Suite polish pass 13: clearer direct-manipulation affordances for placeholder editing. */
 .pulso-gv2-layout-panel[data-source-state="base"] .pulso-gv2-layout-state-card {
   border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 52%, var(--pulso-border));
