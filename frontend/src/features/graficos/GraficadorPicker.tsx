@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { BarChart3, Plus, Search, SearchX, X } from "lucide-react";
+import { BarChart3, CheckCircle2, Layers3, Plus, Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
@@ -76,6 +76,16 @@ export default function GraficadorPicker({
       .filter((c) => c.items.length > 0);
   }, [registry, query, dimOk]);
 
+  const catalogSummary = useMemo(() => {
+    const visibleCount = categoriasConItems.reduce((total, cat) => total + cat.items.length, 0);
+    const hiddenDimensionCount = registry?.graficadores.filter((g) => g.available !== false && g.requisito === "dimensiones").length ?? 0;
+    return {
+      visibleCount,
+      categoryCount: categoriasConItems.length,
+      hiddenDimensionCount,
+    };
+  }, [categoriasConItems, registry]);
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -128,6 +138,22 @@ export default function GraficadorPicker({
               </button>
             )}
           </div>
+          {!loading && !error && (
+            <div className="pulso-gv2-graf-picker-summary" aria-label="Estado del catálogo visible">
+              <span>
+                <Layers3 size={13} />
+                {catalogSummary.visibleCount} modelos visibles
+              </span>
+              <span>
+                <BarChart3 size={13} />
+                {catalogSummary.categoryCount} familias activas
+              </span>
+              <span className={dimOk ? "is-ready" : "is-muted"}>
+                <CheckCircle2 size={13} />
+                {dimOk ? "Dimensiones habilitadas" : `${catalogSummary.hiddenDimensionCount} modelos de dimensión ocultos`}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="pulso-gv2-graf-picker-body">
@@ -198,14 +224,15 @@ function GraficadorCard({
         <span className="pulso-gv2-graf-card-title">
           {graf.titulo_humano}
         </span>
+        <span className="pulso-gv2-graf-card-tags" aria-label="Uso recomendado y salida">
+          <span>{grafCardUsageLabel(graf)}</span>
+          <span>{grafCardOutputLabel(kind)}</span>
+        </span>
         <span className="pulso-gv2-graf-card-desc">{graf.descripcion}</span>
       </span>
       <span className="pulso-gv2-graf-card-footer">
-        <span className="pulso-gv2-graf-card-kind">
-          {grafCardKindLabel(kind)}
-        </span>
         <span className="pulso-gv2-graf-card-action" aria-hidden="true">
-          <Plus size={11} /> Elegir
+          <Plus size={11} /> Usar modelo
         </span>
       </span>
       {dimReady && (
@@ -227,25 +254,52 @@ function GraficadorCard({
   );
 }
 
+function grafCardUsageLabel(graf: GraficadorMetadata): string {
+  switch (graf.name) {
+    case "p_barras_apiladas":
+      return "Escalas Likert";
+    case "p_barras_agrupadas":
+      return "Comparar segmentos";
+    case "p_barras_multiapiladas":
+      return "Varias preguntas";
+    case "p_pie":
+    case "p_donut":
+      return "Pocas categorías";
+    case "p_numerico":
+      return "KPI ejecutivo";
+    case "p_boxplot":
+      return "Distribución numérica";
+    case "p_media_rango":
+      return "Promedios";
+    case "p_radar":
+    case "p_radar_tabla":
+      return "Índices comparables";
+    case "p_tabla":
+      return "Tabla ejecutiva";
+    default:
+      return graf.feature_kind === "territorial_coverage" ? "Cobertura territorial" : "Visual estándar";
+  }
+}
+
+function grafCardOutputLabel(kind: GrafCardKind): string {
+  switch (kind) {
+    case "numeric":
+      return "Indicador";
+    case "multi":
+      return "Comparativo";
+    case "dimensions":
+      return "Analítica";
+    case "territory":
+      return "Mapa/tabla";
+    default:
+      return "Gráfico";
+  }
+}
+
 function grafCardKind(graf: GraficadorMetadata): GrafCardKind {
   if (graf.requisito === "territorial_coverage" || graf.feature_kind === "territorial_coverage") return "territory";
   if (graf.requisito === "dimensiones") return "dimensions";
   if (["p_numerico", "p_boxplot", "p_media_rango"].includes(graf.name)) return "numeric";
   if (["p_radar", "p_tabla", "p_radar_tabla"].includes(graf.name)) return "multi";
   return "distribution";
-}
-
-function grafCardKindLabel(kind: GrafCardKind): string {
-  switch (kind) {
-    case "numeric":
-      return "Resumen";
-    case "multi":
-      return "Multi-variable";
-    case "dimensions":
-      return "Dimensiones";
-    case "territory":
-      return "Territorio";
-    default:
-      return "Categorías";
-  }
 }
