@@ -216,6 +216,16 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                         <span className="pulso-gv2-picker-tile-desc">{meta.descripcion}</span>
                       )}
                     </span>
+                    <span
+                      className="pulso-gv2-picker-tile-blueprint"
+                      data-pattern={blueprintPattern(t)}
+                      aria-hidden="true"
+                    >
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
                   </button>
                 );
               })}
@@ -231,6 +241,15 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
     </div>,
     document.body,
   );
+}
+
+function blueprintPattern(type: SlideType): "cover" | "single" | "narrative" | "split" | "grid" | "population" {
+  if (type.includes("poblacion")) return "population";
+  if (type.includes("4_graficos") || type.includes("5_graficos") || type.includes("6_graficos")) return "grid";
+  if (type.includes("2_graficos") || type.includes("texto_derecha") || type.includes("texto_izquierda")) return "split";
+  if (type.includes("narrativo") || type.includes("texto")) return "narrative";
+  if (type.includes("1_grafico")) return "single";
+  return "cover";
 }
 
 // Botón trigger del picker. Lo monta el TimelinePanelV2.
