@@ -87,6 +87,16 @@ export function ArgField({
   const labelId = useId();
   const description = resolveArgumentDescription(meta);
   const descriptionId = `${labelId}-description`;
+  const hasAutomaticPlaceholder =
+    !hasOwnValue &&
+    (meta.tipo_input === "string" || meta.tipo_input === "textarea") &&
+    typeof placeholder === "string" &&
+    placeholder.trim().length > 0;
+  const hasInheritedPreview =
+    !hasOwnValue &&
+    inheritedValue !== undefined &&
+    inheritedValue !== null &&
+    inheritedValue !== "";
 
   return (
     <div
@@ -95,6 +105,8 @@ export function ArgField({
       data-arg-type={meta.tipo_input}
       data-arg-state={argState}
       data-has-own-value={hasOwnValue}
+      data-has-auto-text={hasAutomaticPlaceholder}
+      data-has-inherited-preview={hasInheritedPreview}
       aria-labelledby={labelId}
       aria-describedby={descriptionId}
       style={{
@@ -109,6 +121,7 @@ export function ArgField({
         onReset={onReset}
         labelId={labelId}
         descriptionId={descriptionId}
+        hasAutomaticPlaceholder={hasAutomaticPlaceholder}
       />
       <div className="pulso-gv2-field-control">
         <FieldControl
@@ -144,6 +157,7 @@ function FieldHeader({
   onReset,
   labelId,
   descriptionId,
+  hasAutomaticPlaceholder,
 }: {
   meta: ArgMetadata;
   argState: ArgState;
@@ -151,15 +165,24 @@ function FieldHeader({
   onReset?: () => void;
   labelId: string;
   descriptionId?: string;
+  hasAutomaticPlaceholder?: boolean;
 }) {
   const label = safeText(meta.label, safeText(meta.name, "Campo"));
   const isCustom = argState === "custom";
   const stateMeta = fieldStateMeta(argState);
+  const technicalName = safeText(meta.name);
 
   return (
     <>
       <span className="pulso-gv2-field-copy">
-        <span id={labelId} className="pulso-gv2-field-title">{label}</span>
+        <span className="pulso-gv2-field-title-row">
+          <span id={labelId} className="pulso-gv2-field-title">{label}</span>
+          {technicalName && (
+            <code className="pulso-gv2-field-code" title={technicalName}>
+              {technicalName}
+            </code>
+          )}
+        </span>
         {description && (
           <span id={descriptionId} className="pulso-gv2-field-description">
             {description}
@@ -178,25 +201,35 @@ function FieldHeader({
           />
           {stateMeta.label}
         </span>
-          {isCustom && onReset && (
-            <button
-              type="button"
-              className="pulso-gv2-field-reset"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onReset();
-              }}
-              title="Restablecer al valor base"
-              aria-label="Restablecer cambio manual al valor base"
-            >
-              <RotateCcw size={13} />
-            </button>
-          )}
+        {hasAutomaticPlaceholder && (
+          <span
+            className="pulso-gv2-source-badge is-auto"
+            title="Este campo usa un texto generado desde la variable si lo dejas vacío."
+            aria-label="Texto automático desde la variable"
+          >
+            <span aria-hidden="true" className="pulso-gv2-source-dot is-auto" />
+            Auto
+          </span>
+        )}
+        {isCustom && onReset && (
+          <button
+            type="button"
+            className="pulso-gv2-field-reset"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onReset();
+            }}
+            title="Restablecer al valor base"
+            aria-label="Restablecer cambio manual al valor base"
+          >
+            <RotateCcw size={13} />
+          </button>
+        )}
       </span>
     </>
   );
