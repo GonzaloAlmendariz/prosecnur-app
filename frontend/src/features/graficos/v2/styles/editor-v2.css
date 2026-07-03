@@ -7275,14 +7275,14 @@
 
 .pulso-gv2-ppt-style-panel {
   display: grid;
-  grid-template-columns: minmax(210px, 0.6fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
   padding: 12px;
   border: 1px solid var(--pulso-primary-border);
-  border-radius: 12px;
+  border-radius: 15px;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--pulso-primary-soft) 62%, white) 0%, white 58%),
+    linear-gradient(135deg, color-mix(in srgb, var(--pulso-primary-soft) 72%, white) 0%, white 56%),
     var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
 }
@@ -7304,9 +7304,10 @@
 }
 
 .pulso-gv2-ppt-style-intro {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -7345,6 +7346,55 @@
   color: var(--pulso-text-soft);
 }
 
+.pulso-gv2-ppt-style-session {
+  min-height: 34px;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-width: 190px;
+  max-width: 260px;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--pulso-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.pulso-gv2-ppt-style-session.is-applied {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 54%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-gv2-ppt-style-session > span {
+  min-width: 0;
+  margin: 0;
+}
+
+.pulso-gv2-ppt-style-session strong,
+.pulso-gv2-ppt-style-session small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-ppt-style-session strong {
+  color: currentColor;
+  font-size: 11px;
+  font-weight: 830;
+  line-height: 1.1;
+}
+
+.pulso-gv2-ppt-style-session small {
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
 .pulso-gv2-ppt-style-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -7357,14 +7407,32 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "head action"
-    "swatches action";
-  align-items: center;
+    "swatches action"
+    "meta action";
+  align-items: stretch;
   gap: 8px 12px;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 13px;
   background: color-mix(in srgb, var(--pulso-surface) 96%, var(--pulso-primary-soft));
   border: 1px solid var(--pulso-border);
   min-width: 0;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-gv2-ppt-style-card.is-applied {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 76%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 32%, #ffffff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pulso-success-border) 42%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-ppt-style-card:hover {
+    border-color: color-mix(in srgb, var(--pulso-primary-border) 78%, var(--pulso-border));
+    box-shadow: var(--pulso-shadow-soft);
+  }
 }
 
 .pulso-gv2-ppt-style-card-head {
@@ -7431,12 +7499,39 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
+.pulso-gv2-ppt-style-card-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pulso-gv2-ppt-style-card-meta span {
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 760;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pulso-gv2-ppt-style-card button {
   grid-area: action;
   min-height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
   gap: 6px;
   padding: 6px 11px;
   border-radius: 999px;
@@ -9076,11 +9171,22 @@
     grid-template-columns: 1fr;
   }
 
+  .pulso-gv2-ppt-style-intro {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pulso-gv2-ppt-style-session {
+    grid-column: 1 / -1;
+    justify-self: start;
+    max-width: 100%;
+  }
+
   .pulso-gv2-ppt-style-card {
     grid-template-columns: 1fr;
     grid-template-areas:
       "head"
       "swatches"
+      "meta"
       "action";
   }
 
