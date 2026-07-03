@@ -3535,6 +3535,127 @@
   margin-bottom: 0;
 }
 
+.pulso-gv2-unknown-graf {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--pulso-danger-border) 58%, var(--pulso-primary-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pulso-danger-bg) 54%, white) 0%, rgba(255, 255, 255, 0.96) 52%),
+    var(--pulso-surface);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--pulso-danger-fg) 72%, var(--pulso-primary)),
+    var(--pulso-shadow-low);
+}
+
+.pulso-gv2-unknown-graf-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 72%, white);
+  border: 1px solid var(--pulso-danger-border);
+}
+
+.pulso-gv2-unknown-graf-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pulso-gv2-unknown-graf-kicker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--pulso-danger-fg);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-unknown-graf-kicker strong {
+  max-width: 138px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  border: 1px solid var(--pulso-primary-border);
+}
+
+.pulso-gv2-unknown-graf h4 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 760;
+}
+
+.pulso-gv2-unknown-graf p {
+  margin: 0;
+  max-width: 620px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pulso-gv2-unknown-graf-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-gv2-unknown-graf-meta span,
+.pulso-gv2-unknown-graf-meta code,
+.pulso-gv2-unknown-graf-hint {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 72%, var(--pulso-primary-border));
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.pulso-gv2-unknown-graf-meta code {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+}
+
+.pulso-gv2-unknown-graf-action {
+  align-self: center;
+  white-space: nowrap;
+}
+
+.pulso-gv2-unknown-graf-hint {
+  color: var(--pulso-primary);
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+}
+
 /* ── Multi-apiladas builder ────────────────────────────────────────────── */
 
 .pulso-gv2-multi-builder {
@@ -8510,6 +8631,18 @@
   }
 
   .pulso-gv2-slot-empty-card > .pulso-gv2-pill-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pulso-gv2-unknown-graf {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .pulso-gv2-unknown-graf-action,
+  .pulso-gv2-unknown-graf-hint {
+    grid-column: 1 / -1;
     width: 100%;
     justify-content: center;
   }

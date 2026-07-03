@@ -213,6 +213,8 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             graf={value}
             onArgs={(patch) => updateArgs(slideId, slotName, patch)}
             groupFilter={allowedGroups}
+            slotLabel={slotLabel}
+            onReplaceGraficador={mode === "data" ? () => setPickerOpen(true) : undefined}
           />
         )}
       </div>

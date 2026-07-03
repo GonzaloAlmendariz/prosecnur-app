@@ -10,6 +10,7 @@ import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { ArgState } from "./ArgField";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
+import { IconError, IconForward, IconModes, IconTemplate } from "../../lib/icons";
 
 // Formulario dinámico de un graficador con jerarquía de fuentes:
 //
@@ -29,6 +30,8 @@ type Props = {
   onArgs: (patch: Record<string, unknown>) => void;
   groupFilter?: ArgGrupo[];
   flatten?: boolean;
+  slotLabel?: string;
+  onReplaceGraficador?: () => void;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -60,7 +63,14 @@ function clarifyGraphTitleArg(arg: ArgMetadata): ArgMetadata {
   };
 }
 
-export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = false }: Props) {
+export default function GraficadorForm({
+  graf,
+  onArgs,
+  groupFilter,
+  flatten = false,
+  slotLabel,
+  onReplaceGraficador,
+}: Props) {
   const { graficadoresById, loading, error } = useGraficosRegistry();
   const { presetsByName } = usePresetsMetadata();
   const { presets: presetsDefaults } = usePresetsDefaults();
@@ -318,9 +328,10 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   }
   if (!meta) {
     return (
-      <ErrorBlock
-        label="Graficador desconocido"
-        detail={`El graficador "${graf.graficador}" no existe en el registry actual.`}
+      <UnknownGraficadorState
+        graficador={graf.graficador}
+        slotLabel={slotLabel}
+        onReplaceGraficador={onReplaceGraficador}
       />
     );
   }
@@ -360,6 +371,57 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
           ) : undefined}
         />
       ))}
+    </div>
+  );
+}
+
+function UnknownGraficadorState({
+  graficador,
+  slotLabel,
+  onReplaceGraficador,
+}: {
+  graficador: string;
+  slotLabel?: string;
+  onReplaceGraficador?: () => void;
+}) {
+  return (
+    <div className="pulso-gv2-unknown-graf" role="alert">
+      <span className="pulso-gv2-unknown-graf-mark" aria-hidden="true">
+        <IconError size={16} />
+      </span>
+
+      <div className="pulso-gv2-unknown-graf-copy">
+        <div className="pulso-gv2-unknown-graf-kicker">
+          <span>Modelo no disponible</span>
+          {slotLabel && <strong>{slotLabel}</strong>}
+        </div>
+        <h4>Este espacio usa un graficador fuera del catálogo actual</h4>
+        <p>
+          Conservamos la configuración del proyecto y el resto del slide.
+          Reemplázalo por un modelo vigente para recuperar preview y edición completa.
+        </p>
+        <div className="pulso-gv2-unknown-graf-meta" aria-label="Estado del slot">
+          <span>
+            <IconTemplate size={12} /> Configuración preservada
+          </span>
+          <span>
+            <IconModes size={12} /> Requiere modelo vigente
+          </span>
+          <code>{graficador}</code>
+        </div>
+      </div>
+
+      {onReplaceGraficador ? (
+        <button
+          type="button"
+          className="pulso-primary pulso-gv2-pill-button pulso-gv2-unknown-graf-action"
+          onClick={onReplaceGraficador}
+        >
+          <IconForward size={13} /> Cambiar modelo
+        </button>
+      ) : (
+        <span className="pulso-gv2-unknown-graf-hint">Datos / Cambiar</span>
+      )}
     </div>
   );
 }
