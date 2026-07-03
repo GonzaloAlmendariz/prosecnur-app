@@ -16866,6 +16866,161 @@
     0 2px 7px color-mix(in srgb, var(--layout-accent, #0d2e61) 42%, rgba(15, 23, 42, 0.26));
 }
 
+/* Suite polish pass 15: tactile resize handles for the dynamic layout canvas. */
+.pulso-gv2-layout-canvas {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(249, 251, 253, 0.86)),
+    linear-gradient(90deg, rgba(71, 85, 105, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(71, 85, 105, 0.055) 1px, transparent 1px);
+  background-size: auto, 28px 28px, 28px 28px;
+}
+
+.pulso-gv2-layout-handle {
+  touch-action: none;
+}
+
+.pulso-gv2-layout-handle.is-x {
+  right: 0;
+  width: 12px;
+}
+
+.pulso-gv2-layout-handle.is-x.is-leading {
+  left: 0;
+  right: auto;
+}
+
+.pulso-gv2-layout-handle.is-y {
+  bottom: -1px;
+  height: 12px;
+}
+
+.pulso-gv2-layout-handle.is-y.is-leading {
+  top: -1px;
+  bottom: auto;
+}
+
+.pulso-gv2-layout-handle::before {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 82%, #0f172a), var(--layout-accent, var(--gv2-accent, var(--pulso-primary))));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.96),
+    0 2px 6px color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 34%, rgba(15, 23, 42, 0.24));
+}
+
+.pulso-gv2-layout-handle::after {
+  opacity: 0.72;
+  border: 1px solid color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 22%, rgba(15, 23, 42, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 1px 4px rgba(15, 23, 42, 0.08);
+  transition:
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--gv2-press-ease),
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-gv2-layout-handle.is-x::after {
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.86) 0 1px,
+      transparent 1px 4px
+    ),
+    color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 10%, #ffffff);
+}
+
+.pulso-gv2-layout-handle.is-y::after {
+  top: 50%;
+  left: 50%;
+  width: 58px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.86) 0 1px,
+      transparent 1px 4px
+    ),
+    color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 10%, #ffffff);
+}
+
+.pulso-gv2-layout-handle:hover::after,
+.pulso-gv2-layout-handle:focus-visible::after,
+.pulso-gv2-layout-canvas.is-dragging .pulso-gv2-layout-handle::after {
+  opacity: 1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 4px 10px color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 18%, rgba(15, 23, 42, 0.12));
+}
+
+.pulso-gv2-layout-handle.is-x:hover::after,
+.pulso-gv2-layout-handle.is-x:focus-visible::after {
+  transform: translate(-50%, -50%) scaleX(1.08);
+}
+
+.pulso-gv2-layout-handle.is-y:hover::after,
+.pulso-gv2-layout-handle.is-y:focus-visible::after {
+  transform: translate(-50%, -50%) scaleY(1.08);
+}
+
+.pulso-gv2-layout-frame:focus-within {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 14%, transparent),
+    0 8px 18px rgba(15, 23, 42, 0.075);
+}
+
+.pulso-gv2-layout-frame:focus-within .pulso-gv2-layout-metric {
+  border-color: color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 34%, rgba(31, 41, 55, 0.12));
+}
+
+.pulso-gv2-layout-frame[data-role="header"] .pulso-gv2-layout-metric {
+  display: none !important;
+}
+
+.pulso-gv2-layout-frame[data-role="header"] .pulso-gv2-layout-zero,
+.pulso-gv2-layout-frame.is-compact:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-zero {
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+}
+
+.pulso-gv2-layout-frame[data-role="header"] .pulso-gv2-layout-zero svg,
+.pulso-gv2-layout-frame.is-compact:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-zero svg {
+  width: 11px;
+  height: 11px;
+}
+
+.pulso-gv2-layout-frame {
+  container-type: size;
+}
+
+@container (max-height: 36px) {
+  .pulso-gv2-layout-frame > span,
+  .pulso-gv2-layout-frame .pulso-gv2-layout-metric {
+    display: none !important;
+  }
+}
+
+.pulso-gv2-layout-frame.is-compact:not([data-role="plot"]):not([data-role="panel"]) {
+  overflow: clip !important;
+}
+
+.pulso-gv2-layout-frame.is-compact:not([data-role="plot"]):not([data-role="panel"]) .pulso-gv2-layout-metric {
+  display: none !important;
+}
+
+.pulso-gv2-layout-frame.is-compact:not([data-role="plot"]):not([data-role="panel"]) > span {
+  display: none !important;
+}
+
 /* Suite polish pass 14: clearer numeric controls inside the graph inspector. */
 .pulso-gv2-number-stepper {
   padding: 3px;

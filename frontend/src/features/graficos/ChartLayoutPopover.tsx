@@ -161,7 +161,7 @@ export function ChartLayoutEditor({
         setDragGuide({
           axis: drag.axis,
           position: guidePosition,
-          label: `${layoutFieldLabel(leftName, fields, argsByName)} ${formatNumber(nextLeft)} · ${layoutFieldLabel(rightName, fields, argsByName)} ${formatNumber(nextRight)}`,
+          label: `${layoutFieldLabel(leftName, fields, argsByName)} ${formatNumber(nextLeft)} · ${layoutFieldLabel(rightName, fields, argsByName)} ${formatNumber(nextRight)} - suelta para aplicar`,
         });
       } else {
         const name = drag.names[0];
@@ -173,7 +173,7 @@ export function ChartLayoutEditor({
         setDragGuide({
           axis: drag.axis,
           position: guidePosition,
-          label: `${layoutFieldLabel(name, fields, argsByName)} ${formatNumber(next)}`,
+          label: `${layoutFieldLabel(name, fields, argsByName)} ${formatNumber(next)} - suelta para aplicar`,
         });
       }
     }
@@ -279,7 +279,7 @@ export function ChartLayoutEditor({
     setDragGuide({
       axis,
       position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
-      label: `Ajustando ${layoutFieldLabel(leftName, fields, argsByName)} y ${layoutFieldLabel(rightName, fields, argsByName)}`,
+      label: `Ajustando ${layoutFieldLabel(leftName, fields, argsByName)} y ${layoutFieldLabel(rightName, fields, argsByName)} - suelta para aplicar`,
     });
   }
 
@@ -302,7 +302,7 @@ export function ChartLayoutEditor({
     setDragGuide({
       axis,
       position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
-      label: `Ajustando ${layoutFieldLabel(name, fields, argsByName)}`,
+      label: `Ajustando ${layoutFieldLabel(name, fields, argsByName)} - suelta para aplicar`,
     });
   }
 
@@ -400,12 +400,18 @@ export function ChartLayoutEditor({
           </div>
 
           <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
-            <span><MoveHorizontal size={11} /> Divisores: reparte espacio</span>
-            <span><Ruler size={11} /> Valores: ajuste exacto</span>
-            <span><X size={11} /> Cerrar: oculta la zona</span>
+            <span><MoveHorizontal size={11} /> Divisores: arrastra límites</span>
+            <span><Ruler size={11} /> Valor: escribe ajuste exacto</span>
+            <span><X size={11} /> Ocultar: lleva zona a 0</span>
           </div>
 
-          <div ref={canvasRef} className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`} data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}>
+          <div
+            ref={canvasRef}
+            className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`}
+            data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}
+            role="group"
+            aria-label={`Canvas de layout ${layoutKindLabel}. Arrastra divisores o edita valores exactos.`}
+          >
             {dragGuide && <DragGuide guide={dragGuide} />}
             {kind === "bars" && (
               <BarsLayout
@@ -577,7 +583,7 @@ function BarsLayout({
               <BarsHorizontalRow fields={horizontalFields} valueOf={valueOf} total={hTotal} beginPairDrag={beginPairDrag} onSetArgValue={onSetArgValue} />
             ) : (
               <div
-                className={`pulso-gv2-layout-frame${share < 0.08 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
+                className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
                 data-role={field.role}
                 data-title-align={isTitleLayoutField(field) ? titleAlign : undefined}
                 data-caption-align={field.role === "caption" ? captionAlign : undefined}
@@ -642,7 +648,7 @@ function BarsHorizontalRow({
         return (
           <div
             key={field.name}
-            className={`pulso-gv2-layout-frame${share < 0.08 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
+            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
             data-role={field.role}
             style={flexTrackStyle(rawValue, field.role === "gap")}
             title={`${field.label}: ${formatNumber(rawValue)} (${formatPercent(share)})`}
@@ -724,7 +730,7 @@ function VerticalLayout({
         return (
           <div
             key={field.name}
-            className={`pulso-gv2-layout-frame${share < 0.08 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
+            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
             data-role={field.role}
             data-title-align={isTitleLayoutField(field) ? titleAlign : undefined}
             data-caption-align={field.role === "caption" ? captionAlign : undefined}
@@ -819,7 +825,7 @@ function PieLayout({
         return (
           <div
             key={field.name}
-            className={`pulso-gv2-layout-frame${share < 0.08 ? " is-compact" : ""}${realValue <= 0 && !isPanel ? " is-zero" : ""}`}
+            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${realValue <= 0 && !isPanel ? " is-zero" : ""}`}
             data-role={field.role}
             data-title-align={isTitleLayoutField(field) ? titleAlign : undefined}
             data-caption-align={field.role === "caption" ? captionAlign : undefined}
