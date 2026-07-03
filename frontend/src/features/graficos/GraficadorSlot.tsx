@@ -345,6 +345,10 @@ function OverrideDropdown({
     exactMatch?.nombre ??
     partialMatch?.nombre ??
     (isPureCustom ? `${customCount} ajustes` : "sin cambios");
+  const lineageModeLabel = exactMatch?.nombre ?? partialMatch?.nombre ?? "Sin modo";
+  const lineageSlotLabel = customCount > 0
+    ? `${customCount} ajuste${customCount === 1 ? "" : "s"}`
+    : "sin ajustes";
 
   function applyMode(args: Record<string, unknown> | null) {
     // Si hay edits custom y vamos a reemplazar, pedir confirmación.
@@ -454,6 +458,15 @@ function OverrideDropdown({
             <span>Estado actual</span>
             <strong>{triggerLabel}</strong>
             <small>{triggerHint}</small>
+            <div className="pulso-gv2-mode-lineage" aria-label="Estructura de estilo aplicada">
+              <span className="is-base"><Check size={11} /> Base</span>
+              <span className={exactMatch || partialMatch ? "is-mode" : "is-muted"}>
+                {lineageModeLabel}
+              </span>
+              <span className={customCount > 0 ? "is-manual" : "is-muted"}>
+                {lineageSlotLabel}
+              </span>
+            </div>
           </div>
 
           <div className="pulso-gv2-mode-popover-label">

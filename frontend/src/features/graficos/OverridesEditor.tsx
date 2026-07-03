@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Copy, Trash2, Circle, Layers3 } from "lucide-react";
+import { Plus, Copy, Trash2, CheckCircle2, Layers3, SlidersHorizontal } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
@@ -63,6 +63,7 @@ export function OverridesEditor() {
   const selected = overrides.find((o) => o.id === selectedId);
   const modesWithArgs = overrides.filter((o) => Object.keys(o.args).length > 0).length;
   const coveredTypes = new Set(overrides.map((o) => o.tipo_preset)).size;
+  const totalArgs = overrides.reduce((sum, o) => sum + Object.keys(o.args).length, 0);
 
   function handleCreate() {
     const tipoDefault = tipoOptions[0]?.name ?? "barras_apiladas";
@@ -113,20 +114,23 @@ export function OverridesEditor() {
           </span>
         </span>
         <span className="pulso-gv2-overrides-overview-pill">
-          Por slot
+          {totalArgs} ajuste{totalArgs === 1 ? "" : "s"}
         </span>
+      </div>
+      <div className="pulso-gv2-overrides-map" aria-label="Estructura de modos reutilizables">
+        <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
+        <span className="is-connector" aria-hidden="true">/</span>
+        <span className={overrides.length > 0 ? "is-mode" : "is-muted"}>{overrides.length || 0} modo{overrides.length === 1 ? "" : "s"}</span>
+        <span className="is-connector" aria-hidden="true">/</span>
+        <span className={modesWithArgs > 0 ? "is-custom" : "is-muted"}>{modesWithArgs} con ajustes</span>
       </div>
       <div className="pulso-gv2-overrides-workbench">
       {/* Sidebar */}
       <aside className="pulso-gv2-overrides-sidebar">
         <button
           type="button"
-          className="pulso-primary"
+          className="pulso-primary pulso-gv2-overrides-new"
           onClick={handleCreate}
-          style={{
-            fontSize: 12, padding: "7px 10px",
-            display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "center",
-          }}
         >
           <Plus size={13} /> Nuevo modo
         </button>
@@ -152,16 +156,7 @@ export function OverridesEditor() {
                   type="button"
                   onClick={() => setSelectedId(o.id)}
                   className={`pulso-gv2-mode-list-item ${isActive ? "is-active" : ""}`}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "7px 9px", borderRadius: 6,
-                    border: "1px solid transparent",
-                    background: isActive ? "var(--pulso-primary-soft)" : "transparent",
-                    color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-                    fontSize: 12, fontWeight: isActive ? 600 : 500,
-                    textAlign: "left", cursor: "pointer",
-                    minWidth: 0,
-                  }}
+                  data-empty={hasArgs ? "false" : "true"}
                 >
                   <Icon size={13} />
                   <span className="pulso-gv2-mode-list-copy">
@@ -170,9 +165,9 @@ export function OverridesEditor() {
                       {tipoMeta?.titulo_humano ?? o.tipo_preset} · {argCount} ajuste{argCount === 1 ? "" : "s"}
                     </span>
                   </span>
-                  {hasArgs && (
-                    <Circle size={6} fill="var(--pulso-primary)" color="transparent" />
-                  )}
+                  <span className={`pulso-gv2-mode-list-state ${hasArgs ? "is-custom" : "is-base"}`}>
+                    {hasArgs ? argCount : "Base"}
+                  </span>
                 </button>
               );
             })}
@@ -240,6 +235,10 @@ function OverrideEditPanel({
 }) {
   const tipoMeta = presetsByName[override.tipo_preset];
   const Icon = resolveGraphLucideIcon(tipoMeta?.icono_ui, "Sliders");
+  const argCount = Object.keys(override.args).length;
+  const stateLabel = argCount > 0
+    ? `${argCount} ajuste${argCount === 1 ? "" : "s"}`
+    : "Base heredada";
 
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];
@@ -273,45 +272,25 @@ function OverrideEditPanel({
   return (
     <>
       {/* Header con nombre editable + tipo + acciones */}
-      <header
-        style={{
-          display: "flex", alignItems: "center", gap: 10,
-          paddingBottom: 10,
-          borderBottom: "1px solid var(--pulso-border)",
-        }}
-      >
-        <span
-          style={{
-            width: 30, height: 30, borderRadius: 7,
-            background: "var(--pulso-primary-soft)",
-            color: "var(--pulso-primary)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
+      <header className="pulso-gv2-override-detail-head">
+        <span className="pulso-gv2-override-detail-icon" aria-hidden="true">
           <Icon size={15} />
         </span>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="pulso-gv2-override-detail-copy">
+          <span className="pulso-gv2-override-eyebrow">Modo reutilizable</span>
           <input
             type="text"
             value={override.nombre}
             onChange={(e) => onUpdate({ nombre: e.target.value })}
             placeholder="Nombre del modo"
-            className="pulso-inline-edit"
+            className="pulso-inline-edit pulso-gv2-override-name"
           />
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <label style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-              Aplica a:
-            </label>
+          <div className="pulso-gv2-override-model-row">
+            <label>Modelo</label>
             <select
               value={override.tipo_preset}
               onChange={(e) => handleTipoChange(e.target.value)}
-              style={{
-                fontSize: 11, padding: "3px 6px",
-                border: "1px solid var(--pulso-border)",
-                borderRadius: 5, background: "white",
-                color: "var(--pulso-text)",
-              }}
+              className="pulso-gv2-override-model-select"
             >
               {tipoOptions.map((t) => (
                 <option key={t.name} value={t.name}>
@@ -321,17 +300,16 @@ function OverrideEditPanel({
             </select>
           </div>
         </div>
+        <div className="pulso-gv2-override-actions">
+          <span className={`pulso-gv2-override-state ${argCount > 0 ? "is-custom" : "is-base"}`}>
+            <SlidersHorizontal size={11} />
+            {stateLabel}
+          </span>
         <button
           type="button"
           onClick={onDuplicate}
           title="Duplicar este modo"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            fontSize: 11, padding: "5px 10px",
-            border: "1px solid var(--pulso-border)", borderRadius: 6,
-            background: "white", color: "var(--pulso-text)",
-            cursor: "pointer",
-          }}
+          className="pulso-gv2-override-action-button"
         >
           <Copy size={11} /> Duplicar
         </button>
@@ -344,29 +322,26 @@ function OverrideEditPanel({
         >
           <Trash2 size={12} />
         </button>
+        </div>
       </header>
 
+      <div className="pulso-gv2-override-lineage" aria-label="Estructura del modo seleccionado">
+        <span className="is-base"><CheckCircle2 size={12} /> Base global</span>
+        <span className="is-connector" aria-hidden="true">/</span>
+        <span className="is-mode">{tipoMeta?.titulo_humano ?? override.tipo_preset}</span>
+        <span className="is-connector" aria-hidden="true">/</span>
+        <span className={argCount > 0 ? "is-custom" : "is-muted"}>{stateLabel}</span>
+      </div>
+
       {tipoMeta?.descripcion && (
-        <p
-          style={{
-            margin: 0, fontSize: 11,
-            color: "var(--pulso-text-soft)", lineHeight: 1.5,
-          }}
-        >
+        <p className="pulso-gv2-override-description">
           {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre el preset global cuando uses este modo.
         </p>
       )}
 
       <div className="pulso-gv2-presets-body">
         {gruposDeArgs.length === 0 ? (
-          <div
-            style={{
-              fontSize: 12, color: "var(--pulso-text-soft)",
-              padding: "14px 16px", borderRadius: 6,
-              background: "var(--pulso-surface)",
-              border: "1px solid var(--pulso-border)",
-            }}
-          >
+          <div className="pulso-gv2-override-empty">
             Este tipo de preset no tiene ajustes visuales catalogados todavía.
             No se puede editar desde esta pantalla.
           </div>

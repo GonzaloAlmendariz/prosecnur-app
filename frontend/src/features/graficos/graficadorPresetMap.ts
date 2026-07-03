@@ -9,6 +9,10 @@
 // en ese caso retornamos `null` y el slot no ofrece overrides.
 
 const MAP: Record<string, string | null> = {
+  // Alias legacy en planes guardados antes de separar barras agrupadas/apiladas.
+  // El backend lo normaliza igual para preview/export; la UI debe mostrar
+  // los mismos modos disponibles en slots antiguos.
+  p_barras:                     "barras_agrupadas",
   p_barras_apiladas:           "barras_apiladas",
   p_barras_agrupadas:          "barras_agrupadas",
   p_barras_multiapiladas:      "multi_apiladas",
