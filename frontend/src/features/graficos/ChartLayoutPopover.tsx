@@ -32,6 +32,12 @@ type DragState = {
   lastPatch?: Record<string, unknown>;
 };
 
+type DragGuideState = {
+  axis: "x" | "y";
+  position: number;
+  label: string;
+};
+
 type Props = {
   presetType: string | null;
   args: ArgMetadata[];
@@ -117,6 +123,7 @@ export function ChartLayoutEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [liveValues, setLiveValues] = useState<Record<string, unknown>>({});
+  const [dragGuide, setDragGuide] = useState<DragGuideState | null>(null);
 
   const argsByName = useMemo(() => {
     const map: Record<string, ArgMetadata> = {};
@@ -134,11 +141,12 @@ export function ChartLayoutEditor({
   const inheritedValuesKey = JSON.stringify(inheritedValues);
 
   useEffect(() => {
-  function onPointerMove(e: PointerEvent) {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const client = drag.axis === "x" ? e.clientX : e.clientY;
-    const delta = ((client - drag.startClient) / Math.max(1, drag.scalePx)) * drag.total;
+    function onPointerMove(e: PointerEvent) {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const client = drag.axis === "x" ? e.clientX : e.clientY;
+      const delta = ((client - drag.startClient) / Math.max(1, drag.scalePx)) * drag.total;
+      const guidePosition = pointerPositionInCanvas(canvasRef.current, drag.axis, e);
       if (drag.names.length === 2) {
         const [leftName, rightName] = drag.names;
         const [nextLeft, nextRight] = clampPairByMeta(
@@ -150,6 +158,11 @@ export function ChartLayoutEditor({
         const patch = { [leftName]: nextLeft, [rightName]: nextRight };
         drag.lastPatch = patch;
         setLiveValues((prev) => ({ ...prev, ...patch }));
+        setDragGuide({
+          axis: drag.axis,
+          position: guidePosition,
+          label: `${layoutFieldLabel(leftName, fields, argsByName)} ${formatNumber(nextLeft)} · ${layoutFieldLabel(rightName, fields, argsByName)} ${formatNumber(nextRight)}`,
+        });
       } else {
         const name = drag.names[0];
         const direction = drag.direction ?? (kind === "radar" ? -1 : 1);
@@ -157,6 +170,11 @@ export function ChartLayoutEditor({
         const patch = { [name]: next };
         drag.lastPatch = patch;
         setLiveValues((prev) => ({ ...prev, ...patch }));
+        setDragGuide({
+          axis: drag.axis,
+          position: guidePosition,
+          label: `${layoutFieldLabel(name, fields, argsByName)} ${formatNumber(next)}`,
+        });
       }
     }
     function onPointerUp() {
@@ -185,6 +203,7 @@ export function ChartLayoutEditor({
         }
       }
       dragRef.current = null;
+      setDragGuide(null);
     }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -242,7 +261,7 @@ export function ChartLayoutEditor({
   const showTitle = !argsByName.mostrar_titulo || boolValueOf("mostrar_titulo", true);
   const showLegend = legendPosition !== "none" && (!argsByName.mostrar_leyenda || boolValueOf("mostrar_leyenda", true));
 
-function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
+  function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
     e.preventDefault();
     e.stopPropagation();
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -257,6 +276,11 @@ function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, 
       total: total > 0 ? total : 1,
       valueMin: 0,
     };
+    setDragGuide({
+      axis,
+      position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
+      label: `Ajustando ${layoutFieldLabel(leftName, fields, argsByName)} y ${layoutFieldLabel(rightName, fields, argsByName)}`,
+    });
   }
 
   function beginSingleDrag(e: ReactPointerEvent, axis: "x" | "y", name: string, direction?: 1 | -1) {
@@ -275,6 +299,11 @@ function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, 
       direction,
       valueMin: getDragMin(name),
     };
+    setDragGuide({
+      axis,
+      position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
+      label: `Ajustando ${layoutFieldLabel(name, fields, argsByName)}`,
+    });
   }
 
   function getDragRange(name: string): number {
@@ -370,7 +399,14 @@ function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, 
             </div>
           </div>
 
-          <div ref={canvasRef} className={`pulso-gv2-layout-canvas is-${kind}`} data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}>
+          <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
+            <span><MoveHorizontal size={11} /> Arrastra divisores para repartir espacio</span>
+            <span><Ruler size={11} /> Edita números para precisión fina</span>
+            <span><X size={11} /> Oculta título, leyenda o pie con el botón de cerrar</span>
+          </div>
+
+          <div ref={canvasRef} className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`} data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}>
+            {dragGuide && <DragGuide guide={dragGuide} />}
             {kind === "bars" && (
               <BarsLayout
                 fields={fields}
@@ -1117,8 +1153,8 @@ function ZeroButton({
     <button
       type="button"
       className="pulso-gv2-layout-zero"
-      aria-label={`Poner ${field.label} en cero`}
-      title={`Poner ${field.label} en 0`}
+      aria-label={`Ocultar ${field.label} poniendo su espacio en cero`}
+      title={`Ocultar ${field.label}`}
       onPointerEnter={(event) => {
         setZeroInteraction(event.currentTarget, true);
       }}
@@ -1206,7 +1242,8 @@ function FrameMetric({
     <input
       type="text"
       inputMode="decimal"
-      aria-label="Editar valor del placeholder"
+      aria-label={`Editar ${axisTitle.toLowerCase()} del placeholder`}
+      title="Usa coma o punto decimal. Presiona Enter para aplicar."
       value={draft}
       onPointerDown={(event) => event.stopPropagation()}
       onChange={(event) => setDraft(event.currentTarget.value)}
@@ -1255,6 +1292,42 @@ function FrameMetric({
       </span>
     </small>
   );
+}
+
+function DragGuide({ guide }: { guide: DragGuideState }) {
+  const style = guide.axis === "x"
+    ? { left: `${guide.position * 100}%` }
+    : { top: `${guide.position * 100}%` };
+  return (
+    <div className={`pulso-gv2-layout-drag-guide is-${guide.axis}`} style={style} aria-hidden="true">
+      <span>{guide.label}</span>
+    </div>
+  );
+}
+
+function pointerPositionInCanvas(
+  canvas: HTMLDivElement | null,
+  axis: "x" | "y",
+  event: Pick<PointerEvent, "clientX" | "clientY">
+): number {
+  const rect = canvas?.getBoundingClientRect();
+  if (!rect) return 0.5;
+  const axisSize = axis === "x" ? rect.width : rect.height;
+  const axisStart = axis === "x" ? rect.left : rect.top;
+  const client = axis === "x" ? event.clientX : event.clientY;
+  const position = (client - axisStart) / Math.max(1, axisSize);
+  return Math.min(1, Math.max(0, position));
+}
+
+function layoutFieldLabel(
+  name: string,
+  fields: LayoutField[],
+  argsByName: Record<string, ArgMetadata>
+): string {
+  const knownField =
+    fields.find((field) => field.name === name) ??
+    [...BAR_FIELDS, ...VERTICAL_FIELDS, ...RADAR_FIELDS].find((field) => field.name === name);
+  return knownField?.short ?? knownField?.label ?? argsByName[name]?.label ?? name;
 }
 
 function formatNumber(value: number): string {
