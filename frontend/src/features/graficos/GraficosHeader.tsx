@@ -500,7 +500,6 @@ export function GraficosHeader({
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const nSlides = usePlanStore((s) => s.plan.slides.length);
-  const nPresets = usePlanStore((s) => Object.keys(s.presets).length);
   const nPaletas = usePlanStore((s) => Object.keys(s.paletas).length);
   const nIconos = usePlanStore((s) => s.iconos.length);
   const nModos = usePlanStore((s) => s.overridesReusables.length);
@@ -522,6 +521,12 @@ export function GraficosHeader({
   const { project } = useProjectShell();
   const savedRef = useRef<Record<string, true>>({});
   const [saveStatus, setSaveStatus] = useState("");
+  const styleTriggerItems = [
+    { key: "ppt", label: "Base PPT", tone: "base" },
+    ...(nModos > 0 ? [{ key: "modos", label: `${nModos} modo${nModos === 1 ? "" : "s"}`, tone: "mode" }] : []),
+    ...(nPaletas > 0 ? [{ key: "paletas", label: `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`, tone: "color" }] : []),
+    ...(nIconos > 0 ? [{ key: "iconos", label: `${nIconos} ícono${nIconos === 1 ? "" : "s"}`, tone: "asset" }] : []),
+  ];
 
   // El botón de export se desactiva si el padre lo bloquea (sesión sin
   // rp_data) O si el validador detecta errores (plan vacío, etc.).
@@ -981,14 +986,9 @@ export function GraficosHeader({
             <span className="pulso-gv2-estilo-trigger-copy">
               <span className="pulso-gv2-estilo-trigger-label">Estilo global</span>
               <span className="pulso-gv2-estilo-trigger-meta">
-                {nPaletas + nIconos + nPresets + nModos > 0
-                  ? [
-                      nPresets > 0 && `${nPresets} preset${nPresets === 1 ? "" : "s"}`,
-                      nModos > 0 && `${nModos} modo${nModos === 1 ? "" : "s"}`,
-                      nPaletas > 0 && `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`,
-                      nIconos > 0 && `${nIconos} ícono${nIconos === 1 ? "" : "s"}`,
-                    ].filter(Boolean).join(" · ")
-                  : "configurar"}
+                {styleTriggerItems.map((item) => (
+                  <span key={item.key} data-tone={item.tone}>{item.label}</span>
+                ))}
               </span>
             </span>
           </button>

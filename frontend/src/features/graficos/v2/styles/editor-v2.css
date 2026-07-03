@@ -12014,13 +12014,49 @@
 
 .pulso-gv2-estilo-trigger-meta {
   max-width: min(260px, 34vw);
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 0;
-  border-radius: 0;
-  background: transparent;
+  overflow: hidden;
+}
+
+.pulso-gv2-estilo-trigger-meta > span {
+  min-width: 0;
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 30%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: 640;
-  line-height: 1.05;
+  font-size: 9.2px;
+  font-weight: 760;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-estilo-trigger-meta > span[data-tone="base"] {
+  color: var(--gv2-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 54%, #ffffff);
+}
+
+.pulso-gv2-estilo-trigger-meta > span[data-tone="mode"] {
+  color: #5b21b6;
+  background: color-mix(in srgb, #ede9fe 68%, #ffffff);
+}
+
+.pulso-gv2-estilo-trigger-meta > span[data-tone="color"] {
+  color: #0f766e;
+  background: color-mix(in srgb, #ccfbf1 62%, #ffffff);
+}
+
+.pulso-gv2-estilo-trigger-meta > span[data-tone="asset"] {
+  color: #b7791f;
+  background: color-mix(in srgb, #fef3c7 62%, #ffffff);
 }
 
 .pulso-gv2-export-suite {
