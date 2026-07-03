@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Trash2, X, ListChecks, Paintbrush } from "lucide-react";
+import {
+  CheckCircle2,
+  Layers,
+  ListChecks,
+  Paintbrush,
+  Palette,
+  RotateCcw,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { IconAI } from "../../lib/icons";
 import {
   apiGraficosPaletasSugeridas,
@@ -29,6 +40,10 @@ type SugeridaPalette = {
 
 function opcionesKey(choices: Array<{ name: string; label: string }>) {
   return choices.map((item) => `${item.name}::${item.label}`).join("|");
+}
+
+function compactColors(colors: Array<string | undefined>) {
+  return colors.filter((color): color is string => Boolean(color));
 }
 
 type PaletasPorCantidad = Record<number, SugeridaPalette[]>;
@@ -146,6 +161,14 @@ export function PaletasEditor() {
     });
     return byFirma;
   }, [listasSugeridas]);
+  const totalPaletasPersonalizadas = useMemo(
+    () => Object.values(paletas).filter((paleta) => Object.keys(paleta ?? {}).length > 0).length,
+    [paletas],
+  );
+  const gruposCompatibles = useMemo(
+    () => Array.from(listaFirmas.values()).filter((count) => count > 1).length,
+    [listaFirmas],
+  );
 
   useEffect(() => {
     setAplicarAGrupo(false);
@@ -188,6 +211,13 @@ export function PaletasEditor() {
   }
 
   const paletaActiva = (activeListName && paletas[activeListName]) || {};
+  const coloresActivos = activaData
+    ? compactColors(activaData.choices.map((choice) => paletaActiva[choice.label]))
+    : [];
+  const coloresPersonalizados = Object.keys(paletaActiva).length;
+  const coberturaActiva = activaData
+    ? Math.round((Math.min(coloresActivos.length, activaData.choices.length) / Math.max(activaData.choices.length, 1)) * 100)
+    : 0;
 
   return (
     <div className="pulso-gv2-paletas-editor">
@@ -198,22 +228,13 @@ export function PaletasEditor() {
           hint="Cada lista de respuestas puede tener su paleta. Si no le asignas colores, prosecnur usa su paleta azul por defecto."
         />
 
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "7px 10px", borderRadius: 8,
-            border: "1px solid var(--pulso-border)",
-            background: "var(--pulso-surface)",
-            boxShadow: "inset 0 1px 2px rgba(15, 23, 42, 0.04)",
-          }}
-        >
-          <Search size={12} color="var(--pulso-text-soft)" />
+        <div className="pulso-gv2-paletas-search">
+          <Search size={13} />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar lista…"
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 11, padding: "2px 0" }}
           />
           {query && (
             <button type="button" onClick={() => setQuery("")} className="pulso-icon" aria-label="Limpiar">
@@ -227,55 +248,40 @@ export function PaletasEditor() {
             const active = l.list_name === activeListName;
             const tienePaleta = !!paletas[l.list_name] && Object.keys(paletas[l.list_name] ?? {}).length > 0;
             const firmasSimilares = listaFirmas.get(opcionesKey(l.choices)) ?? 1;
+            const coloresFila = compactColors(l.choices.map((choice) => paletas[l.list_name]?.[choice.label])).slice(0, 7);
             return (
               <button
                 key={l.list_name}
                 type="button"
                 onClick={() => setActiveListName(l.list_name)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
-                  padding: "7px 9px", borderRadius: 8,
-                  border: `1px solid ${active ? "var(--pulso-primary-border)" : "transparent"}`,
-                  background: active ? "var(--pulso-primary-soft)" : "transparent",
-                  color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-                  cursor: "pointer",
-                  fontSize: 11,
-                  textAlign: "left",
-                  transition: "background 120ms ease",
-                }}
+                className="pulso-gv2-paleta-row"
+                data-active={active ? "true" : "false"}
+                data-has-palette={tienePaleta ? "true" : "false"}
               >
-                <code style={{ fontFamily: "monospace", fontWeight: active ? 700 : 500, color: "inherit" }}>
-                  {l.list_name}
-                </code>
-                <span
-                  title={
-                    tienePaleta
-                      ? "Tiene paleta personalizada"
-                      : `${l.choices.length} ${l.choices.length === 1 ? "opción" : "opciones"} sin paleta`
-                  }
-                  style={{
-                    fontSize: 10, fontWeight: 600,
-                    padding: "2px 7px", borderRadius: 999,
-                    border: "1px solid",
-                    borderColor: tienePaleta ? "var(--pulso-primary-border)" : "var(--pulso-border)",
-                    background: tienePaleta ? "var(--pulso-primary-soft)" : "white",
-                    color: tienePaleta ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {tienePaleta && (
-                    <span style={{
-                      width: 5, height: 5, borderRadius: "50%",
-                      background: "var(--pulso-primary)",
-                    }} />
-                  )}
-                  {l.choices.length}
-                  {firmasSimilares > 1 && (
-                    <span style={{ marginLeft: 4, color: "var(--pulso-text-soft)" }}>
-                      · {firmasSimilares}×
-                    </span>
-                  )}
+                <span className="pulso-gv2-paleta-row-copy">
+                  <code>{l.list_name}</code>
+                  <small>
+                    {l.choices.length} {l.choices.length === 1 ? "opción" : "opciones"}
+                    {firmasSimilares > 1 ? ` · ${firmasSimilares} listas compatibles` : ""}
+                  </small>
+                </span>
+                <span className="pulso-gv2-paleta-row-visual" title={tienePaleta ? "Paleta personalizada" : "Preset base sin cambios"}>
+                  <span className="pulso-gv2-paleta-row-strip" data-empty={coloresFila.length === 0 ? "true" : "false"}>
+                    {coloresFila.length > 0
+                      ? coloresFila.map((color, index) => (
+                        <span key={`${l.list_name}-${color}-${index}`} style={{ background: color }} />
+                      ))
+                      : (
+                        <>
+                          <span />
+                          <span />
+                          <span />
+                        </>
+                      )}
+                  </span>
+                  <span className="pulso-gv2-paleta-row-state">
+                    {tienePaleta ? "Personal" : "Base"}
+                  </span>
                 </span>
               </button>
             );
@@ -286,112 +292,98 @@ export function PaletasEditor() {
       {/* Columna derecha: editor de colores de la lista activa */}
       <div className="pulso-gv2-paletas-detail">
         {!activaData ? (
-          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+          <div className="pulso-gv2-paletas-empty-detail">
             Elige una lista a la izquierda para editar su paleta.
           </div>
         ) : (
           <>
-            <header style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <span
-                style={{
-                  width: 30, height: 30, borderRadius: 9,
-                  background: "var(--pulso-primary-soft)",
-                  color: "var(--pulso-primary)",
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Paintbrush size={15} strokeWidth={2.1} />
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h3 style={{
-                  margin: 0, fontSize: 14, lineHeight: 1.3,
-                  display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
-                }}>
-                  Paleta de <code style={{
-                    fontFamily: "monospace", color: "var(--pulso-primary)",
-                    background: "var(--pulso-primary-soft)",
-                    padding: "1px 6px", borderRadius: 4, fontSize: 12,
-                  }}>{activaData.list_name}</code>
-                </h3>
-                <p style={{
-                  margin: "4px 0 0", fontSize: 11,
-                  color: "var(--pulso-text-soft)", lineHeight: 1.5,
-                  maxWidth: 540,
-                }}>
-                  {activaData.choices.length} {activaData.choices.length === 1 ? "opción" : "opciones"} en esta lista.
-                  Cada color se aplica a su value-label en todos los gráficos que usen esta variable.
-                </p>
+            <header className="pulso-gv2-paleta-hero">
+              <div className="pulso-gv2-paleta-hero-main">
+                <span className="pulso-gv2-paleta-hero-mark">
+                  <Paintbrush size={16} strokeWidth={2.15} />
+                </span>
+                <div className="pulso-gv2-paleta-hero-copy">
+                  <span>Paleta activa</span>
+                  <h3>
+                    Colores de <code>{activaData.list_name}</code>
+                  </h3>
+                  <p>
+                    El preset base no marca cambios. Personaliza solo las categorías que necesitan un color fijo en reportes, slides y dashboards.
+                  </p>
+                  <div className="pulso-gv2-paleta-hero-chips">
+                    <span><Palette size={12} /> {activaData.choices.length} categorías</span>
+                    <span><CheckCircle2 size={12} /> {totalPaletasPersonalizadas}/{listasSugeridas.length} listas personalizadas</span>
+                    <span><Layers size={12} /> {gruposCompatibles || 0} grupos compatibles</span>
+                  </div>
+                </div>
                 {listasMismaFirma.length > 1 && (
                   <label
                     title={listasMismaFirma.map((lista) => lista.list_name).join(", ")}
-                    style={{
-                      marginTop: 6,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 11,
-                      color: "var(--pulso-text-soft)",
-                    }}
+                    className="pulso-gv2-paleta-group-toggle"
+                    data-active={aplicarAGrupo ? "true" : "false"}
                   >
                     <input
                       type="checkbox"
                       checked={aplicarAGrupo}
                       onChange={(e) => setAplicarAGrupo(e.target.checked)}
                     />
-                    Aplicar a {listasMismaFirma.length - 1} lista{listasMismaFirma.length - 1 === 1 ? "" : "s"} con las mismas opciones
+                    <span>
+                      <Layers size={12} />
+                      Aplicar a {listasMismaFirma.length - 1} lista{listasMismaFirma.length - 1 === 1 ? "" : "s"} con las mismas opciones
+                    </span>
                   </label>
                 )}
               </div>
-              {Object.keys(paletaActiva).length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => removePaleta(activaData.list_name)}
-                  title="Quitar todos los colores personalizados de esta lista"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#fef2f2";
-                    e.currentTarget.style.borderColor = "#fecaca";
-                    e.currentTarget.style.color = "#991b1b";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.borderColor = "var(--pulso-border)";
-                    e.currentTarget.style.color = "var(--pulso-text-soft)";
-                  }}
-                  style={{
-                    fontSize: 11, padding: "5px 10px", borderRadius: 6,
-                    border: "1px solid var(--pulso-border)",
-                    background: "transparent", color: "var(--pulso-text-soft)",
-                    cursor: "pointer", flexShrink: 0,
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
-                  }}
+              <aside className="pulso-gv2-paleta-state-card" aria-label="Estado de la paleta seleccionada">
+                <span>Estado</span>
+                <strong>{coloresPersonalizados > 0 ? "Personalizada" : "Predeterminada"}</strong>
+                <small>
+                  {coloresPersonalizados > 0
+                    ? `${coloresActivos.length}/${activaData.choices.length} categorías con color (${coberturaActiva}%)`
+                    : "Usa el preset base del sistema"}
+                </small>
+                <div
+                  className="pulso-gv2-paleta-state-strip"
+                  data-empty={coloresActivos.length === 0 ? "true" : "false"}
                 >
-                  <Trash2 size={11} /> Vaciar paleta
-                </button>
-              )}
+                  {coloresActivos.length > 0
+                    ? coloresActivos.slice(0, 8).map((color, index) => (
+                      <span key={`${color}-${index}`} style={{ background: color }} />
+                    ))
+                    : (
+                      <>
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </>
+                    )}
+                </div>
+                {coloresPersonalizados > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => removePaleta(activaData.list_name)}
+                    title="Quitar todos los colores personalizados de esta lista"
+                    className="pulso-gv2-paleta-clear-button"
+                  >
+                    <Trash2 size={12} /> Vaciar
+                  </button>
+                )}
+              </aside>
             </header>
 
             {/* Paletas sugeridas */}
-            <div style={{
-              display: "flex", flexDirection: "column", gap: 6,
-              padding: "10px 12px",
-              background: "var(--pulso-surface)",
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 8,
-            }}>
-              <span style={{
-                fontSize: 10, fontWeight: 700,
-                letterSpacing: 0,
-                color: "var(--pulso-text-soft)",
-                display: "inline-flex", alignItems: "center", gap: 5,
-              }}>
-                <IconAI size={11} /> Paletas sugeridas por categorías
-              </span>
-              <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
-                {activaData.choices.length} categorías · {paletasSugeridas.length} propuestas
-              </span>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(176px, 1fr))", gap: 8 }}>
+            <section className="pulso-gv2-paletas-suggestions">
+              <header className="pulso-gv2-paletas-suggestions-head">
+                <span className="pulso-gv2-paletas-suggestions-mark">
+                  <Sparkles size={14} />
+                </span>
+                <div>
+                  <strong><IconAI size={12} /> Presets recomendados</strong>
+                  <small>{activaData.choices.length} categorías · {paletasSugeridas.length} propuestas calibradas</small>
+                </div>
+              </header>
+              <div className="pulso-gv2-paletas-suggestions-grid">
                 {paletasSugeridas.map((palette) => {
                   const previewKey = `${activaData.list_name}:${palette.label}`;
                   const isInverted = !!paletaInvertidaPreviews[previewKey];
@@ -420,128 +412,93 @@ export function PaletasEditor() {
                   );
                 })}
               </div>
-            </div>
+            </section>
 
             {/* Tabla de labels con color picker */}
-            <div
-              style={{
-                border: "1px solid var(--pulso-border)",
-                borderRadius: 6,
-                background: "white",
-                maxHeight: 340,
-                overflowY: "auto",
-              }}
-            >
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                <thead>
-                  <tr
-                    style={{
-                      position: "sticky", top: 0, zIndex: 1,
-                      background: "var(--pulso-surface)",
-                      borderBottom: "1px solid var(--pulso-border)",
-                    }}
-                  >
-                    <Th style={{ width: 60 }}>Código</Th>
-                    <Th>Etiqueta</Th>
-                    <Th style={{ width: 80 }}>Color</Th>
-                    <Th style={{ width: 120 }}>Hex</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activaData.choices.map((c, rowIndex) => {
-                    const color = paletaActiva[c.label] ?? "";
-                    const colorValue = color || "#cbd5e1";
-                    const colorInputId = `palette-color-${rowIndex}`;
-                    return (
-                      <tr
-                        key={c.name}
-                        style={{ borderBottom: "1px solid var(--pulso-border)" }}
-                      >
-                        <td style={{ padding: "6px 10px", fontFamily: "monospace", color: "var(--pulso-text-soft)" }}>
-                          {c.name}
-                        </td>
-                        <td style={{ padding: "6px 10px", color: "var(--pulso-text)" }}>
-                          {c.label}
-                        </td>
-                        <td style={{ padding: "6px 10px" }}>
-                          <label
-                            htmlFor={colorInputId}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 7,
-                              padding: "0 9px",
-                              minWidth: 74,
-                              height: 26,
-                              borderRadius: 999,
-                              border: "1px solid var(--pulso-border)",
-                              background: "white",
-                              cursor: "pointer",
-                              boxShadow: "0 1px 1px rgba(15, 23, 42, 0.03)",
-                            }}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              const input = document.getElementById(colorInputId) as (HTMLInputElement & { showPicker?: () => void }) | null;
-                              if (!input) return;
-                              if (typeof input.showPicker === "function") {
-                                input.showPicker();
-                                return;
-                              }
-                              input.click();
-                            }}
-                          >
-                            <span style={{
-                              width: 14,
-                              height: 14,
-                              borderRadius: 999,
-                              border: "1px solid rgba(15, 23, 42, 0.1)",
-                              background: colorValue,
-                              boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.25)",
-                            }} />
-                            <Paintbrush size={12} color="var(--pulso-text-soft)" />
-                          </label>
-                          <input
-                            id={colorInputId}
-                            type="color"
-                            value={colorValue}
-                            onChange={(e) => setColorEnPaleta(activaData.list_name, c.label, e.target.value)}
-                            style={{
-                              position: "absolute",
-                              width: 0,
-                              height: 0,
-                              opacity: 0,
-                              border: "none",
-                              padding: 0,
-                              margin: 0,
-                              pointerEvents: "none",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "6px 10px" }}>
-                          <input
-                            type="text"
-                            value={color}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              // Validar hex básico
-                              if (/^#?[0-9a-fA-F]{0,6}$/.test(v)) {
-                                setColorEnPaleta(activaData.list_name, c.label, v.startsWith("#") || v === "" ? v : `#${v}`);
-                              }
-                            }}
-                            placeholder="#cccccc"
-                            style={{
-                              width: "100%", fontSize: 11, fontFamily: "monospace",
-                              padding: "3px 6px", borderRadius: 4,
-                              border: "1px solid var(--pulso-border)",
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <section className="pulso-gv2-paleta-map">
+              <header className="pulso-gv2-paleta-map-head">
+                <div>
+                  <strong>Mapa de categorías</strong>
+                  <small>Edita color por etiqueta. Los campos vacíos permanecen en el preset base.</small>
+                </div>
+                <span>{coloresActivos.length}/{activaData.choices.length} definidos</span>
+              </header>
+              <div className="pulso-gv2-paleta-table-shell">
+                <table className="pulso-gv2-paleta-table">
+                  <thead>
+                    <tr>
+                      <Th style={{ width: 72 }}>Código</Th>
+                      <Th>Etiqueta</Th>
+                      <Th style={{ width: 92 }}>Color</Th>
+                      <Th style={{ width: 132 }}>Hex</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activaData.choices.map((c, rowIndex) => {
+                      const color = paletaActiva[c.label] ?? "";
+                      const colorValue = color || "#cbd5e1";
+                      const colorInputId = `palette-color-${rowIndex}`;
+                      return (
+                        <tr
+                          key={c.name}
+                          className="pulso-gv2-paleta-color-row"
+                          data-assigned={color ? "true" : "false"}
+                        >
+                          <td className="pulso-gv2-paleta-code-cell">
+                            <code>{c.name}</code>
+                          </td>
+                          <td className="pulso-gv2-paleta-label-cell">
+                            {c.label}
+                          </td>
+                          <td className="pulso-gv2-paleta-color-cell">
+                            <label
+                              htmlFor={colorInputId}
+                              className="pulso-gv2-paleta-color-trigger"
+                              data-empty={color ? "false" : "true"}
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                const input = document.getElementById(colorInputId) as (HTMLInputElement & { showPicker?: () => void }) | null;
+                                if (!input) return;
+                                if (typeof input.showPicker === "function") {
+                                  input.showPicker();
+                                  return;
+                                }
+                                input.click();
+                              }}
+                            >
+                              <span style={{ background: colorValue }} />
+                              <Paintbrush size={12} />
+                            </label>
+                            <input
+                              id={colorInputId}
+                              type="color"
+                              value={colorValue}
+                              onChange={(e) => setColorEnPaleta(activaData.list_name, c.label, e.target.value)}
+                              className="pulso-gv2-paleta-native-color"
+                            />
+                          </td>
+                          <td className="pulso-gv2-paleta-hex-cell">
+                            <input
+                              type="text"
+                              value={color}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                // Validar hex básico
+                                if (/^#?[0-9a-fA-F]{0,6}$/.test(v)) {
+                                  setColorEnPaleta(activaData.list_name, c.label, v.startsWith("#") || v === "" ? v : `#${v}`);
+                                }
+                              }}
+                              placeholder="#cccccc"
+                              className="pulso-gv2-paleta-hex-input"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </>
         )}
       </div>
@@ -552,12 +509,8 @@ export function PaletasEditor() {
 function Th({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <th
+      className="pulso-gv2-paleta-th"
       style={{
-        textAlign: "left",
-        padding: "6px 10px",
-        fontSize: 10, fontWeight: 700,
-        letterSpacing: 0,
-        color: "var(--pulso-text-soft)",
         ...style,
       }}
     >
@@ -582,60 +535,30 @@ function SugeridoButton({
   description?: string;
 }) {
   return (
-    <div
-      style={{
-        position: "relative",
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        background: "#fff",
-      }}
-    >
+    <div className="pulso-gv2-sugerido-card" data-inverted={isInverted ? "true" : "false"}>
       <button
         type="button"
         onClick={onApply}
-        style={{
-          width: "100%",
-          fontSize: 11,
-          padding: "8px 34px 8px 10px",
-          border: "none",
-          background: "transparent",
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 7,
-          transition: "background 120ms ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(14, 165, 233, 0.03)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-        }}
+        className="pulso-gv2-sugerido-apply"
         title={`Aplicar paleta ${label}${description ? ` — ${description}` : ""}`}
       >
-        <span style={{ display: "inline-flex", gap: 1 }}>
-          {colores.slice(0, 5).map((c, i) => (
+        <span className="pulso-gv2-sugerido-swatches">
+          {colores.slice(0, 7).map((c, i) => (
             <span
               key={i}
-              style={{
-                display: "inline-block", width: 9, height: 14,
-                background: c, borderRadius: 2,
-                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
-              }}
+              style={{ background: c }}
             />
           ))}
         </span>
-        <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <span style={{ fontWeight: 600, color: "var(--pulso-text)" }}>
+        <span className="pulso-gv2-sugerido-copy">
+          <strong>
             {label}
-          </span>
-          <span style={{
-            fontSize: 9,
-            color: isInverted ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-            letterSpacing: 0,
-          }}>
-            {isInverted ? "Inversa" : "Base"}
-          </span>
+          </strong>
+          {description && <small>{description}</small>}
+        </span>
+        <span className="pulso-gv2-sugerido-mode">
+          <CheckCircle2 size={11} />
+          {isInverted ? "Inverso" : "Base"}
         </span>
       </button>
       <button
@@ -644,38 +567,11 @@ function SugeridoButton({
           event.stopPropagation();
           onInvert();
         }}
-        style={{
-          position: "absolute",
-          top: 5,
-          right: 5,
-          border: `1px solid ${isInverted ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-          background: isInverted ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
-          color: isInverted ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-          borderRadius: 999,
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: 0.1,
-          padding: "2px 7px",
-          lineHeight: 1.2,
-          cursor: "pointer",
-          boxShadow: isInverted ? "inset 0 0 0 1px rgba(59, 130, 246, 0.25)" : "none",
-          transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
-        }}
+        className="pulso-gv2-sugerido-invert"
         aria-pressed={isInverted}
-        onMouseEnter={(event) => {
-          event.currentTarget.style.borderColor = "var(--pulso-primary)";
-          event.currentTarget.style.color = "var(--pulso-primary)";
-        }}
-        onMouseLeave={(event) => {
-          event.currentTarget.style.borderColor = isInverted
-            ? "var(--pulso-primary)"
-            : "var(--pulso-border)";
-          event.currentTarget.style.color = isInverted
-            ? "var(--pulso-primary)"
-            : "var(--pulso-text-soft)";
-        }}
         title={`Invertir paleta ${label}`}
       >
+        <RotateCcw size={11} />
         {isInverted ? "Inversa" : "Invertir"}
       </button>
     </div>
