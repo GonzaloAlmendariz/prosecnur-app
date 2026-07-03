@@ -21854,6 +21854,91 @@
   opacity: 0.82;
 }
 
+/* Suite polish pass 33: clearer narrative text zones in model miniatures. */
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy {
+  grid-row: 2 / 4;
+  min-height: 0;
+  align-content: center;
+  gap: 3px;
+  padding: 5px 9px 5px clamp(28px, 14%, 39px);
+  border-color: color-mix(in srgb, var(--gv2-picker-cat) 16%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-picker-cat-soft) 24%, #ffffff));
+}
+
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy::before,
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy::before {
+  content: "";
+  left: 7px;
+  width: clamp(15px, 10%, 24px);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-picker-cat) 36%, #ffffff), color-mix(in srgb, var(--gv2-picker-cat) 36%, #ffffff)) 34% 34% / 44% 8% no-repeat,
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-picker-cat) 25%, #ffffff), color-mix(in srgb, var(--gv2-picker-cat) 25%, #ffffff)) 34% 51% / 52% 7% no-repeat,
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-picker-cat) 25%, #ffffff), color-mix(in srgb, var(--gv2-picker-cat) 25%, #ffffff)) 34% 67% / 38% 7% no-repeat,
+    color-mix(in srgb, var(--gv2-picker-cat-soft) 74%, #ffffff);
+}
+
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy i,
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy i {
+  height: 3px;
+}
+
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy i:first-child,
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy i:first-child {
+  width: 68%;
+  height: 3px;
+}
+
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy i:nth-child(2),
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy i:nth-child(2) {
+  width: 88%;
+}
+
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy i:nth-child(3),
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy i:nth-child(3) {
+  width: 74%;
+}
+
+.pulso-gv2-picker-slide-preview[data-layout="singleNarrative"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview[data-layout="twoNarrative"] .pulso-gv2-picker-slide-slots {
+  grid-row: 4 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy {
+  grid-row: 2 / 4;
+  padding: 4px 7px 4px 27px;
+  gap: 2px;
+  border-radius: 7px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy::before,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy::before {
+  content: "";
+  left: 6px;
+  width: 15px;
+  border-radius: 6px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy i,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy i {
+  height: 2px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-slots {
+  grid-row: 4 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-hero[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-hero[data-layout="singleNarrative"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-hero[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-hero[data-layout="twoNarrative"] .pulso-gv2-picker-slide-slots {
+  margin-inline: 4px;
+}
+
 @media (max-width: 980px) {
   .pulso-gv2-picker {
     height: min(820px, calc(100vh - 42px));
