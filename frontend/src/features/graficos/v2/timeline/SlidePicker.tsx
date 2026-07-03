@@ -457,6 +457,48 @@ function blueprintLayout(type: SlideType): SlidePreviewLayout {
   }
 }
 
+function pptLayoutName(type: SlideType): string {
+  switch (type) {
+    case "p_slide_1_grafico":
+      return "Graficos";
+    case "p_slide_2_graficos":
+      return "Graficos_2columnas";
+    case "p_slide_1_grafico_narrativo":
+      return "1_Grafico_narrativo";
+    case "p_slide_2_graficos_narrativo":
+      return "1_Graficos_2columnas_narrativo";
+    case "p_slide_grafico_texto_derecha":
+      return "right_grafico_texto";
+    case "p_slide_grafico_texto_izquierda":
+      return "left_grafico_texto";
+    case "p_slide_2_graficos_texto_derecha":
+      return "right_2graficos_texto";
+    case "p_slide_2_graficos_texto_izquierda":
+      return "left_2graficos_texto";
+    case "p_slide_4_graficos":
+      return "4_paneles";
+    case "p_slide_2_graficos_poblacion":
+      return "poblacion_2";
+    case "p_slide_4_graficos_poblacion":
+      return "poblacion_4";
+    case "p_slide_5_graficos_poblacion":
+      return "poblacion_5";
+    case "p_slide_6_graficos_poblacion":
+      return "poblacion_6";
+    case "p_slide_indice":
+      return "Indice";
+    case "p_slide_seccion":
+      return "Section Header";
+    case "p_slide_objetivo_icono":
+      return "Objetivos_Secciones";
+    case "p_slide_texto":
+    case "p_slide_tabla_tecnica":
+      return "Title and Content";
+    default:
+      return "Title Slide";
+  }
+}
+
 function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType; slots: string[]; scale?: PreviewScale }) {
   const layout = blueprintLayout(type);
   const slotCount = inferredSlotCount(type) || slots.length;
@@ -466,6 +508,7 @@ function SlideModelMiniature({ type, slots, scale = "card" }: { type: SlideType;
     <span
       className={`pulso-gv2-picker-slide-preview is-${scale}`}
       data-layout={layout}
+      data-ppt-layout={pptLayoutName(type)}
       data-slots={slotCount}
       aria-hidden="true"
     >
