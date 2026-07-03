@@ -719,6 +719,7 @@ export function GraficosHeader({
         <SaveStatusIndicator
           state={savedAll ? "saved" : savingNow ? "saving" : "loading"}
           savedLabel="Autoguardado"
+          showLabel={false}
         />
 
         <span className="pulso-gv2-header-note">

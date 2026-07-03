@@ -34,6 +34,11 @@ type Props = {
    * Default: "Guardado".
    */
   savedLabel?: string;
+  /**
+   * Oculta el texto visible cuando el estado ya vive dentro de una barra muy
+   * densa. El label queda disponible via aria-label/title.
+   */
+  showLabel?: boolean;
 };
 
 type Cfg = {
@@ -105,12 +110,15 @@ export function SaveStatusIndicator({
   state,
   variant = "inline",
   savedLabel = "Guardado",
+  showLabel = true,
 }: Props) {
   const cfg = cfgFor(state, savedLabel);
   if (variant === "badge") {
     return (
       <span
         role="status"
+        aria-label={showLabel ? undefined : cfg.label}
+        title={showLabel ? undefined : cfg.label}
         style={{
           display: "inline-flex", alignItems: "center", gap: 4,
           padding: "2px 8px", borderRadius: 4,
@@ -122,7 +130,7 @@ export function SaveStatusIndicator({
         }}
       >
         {cfg.icon}
-        {cfg.label}
+        {showLabel && cfg.label}
       </span>
     );
   }
@@ -130,6 +138,8 @@ export function SaveStatusIndicator({
   return (
     <span
       role="status"
+      aria-label={showLabel ? undefined : cfg.label}
+      title={showLabel ? undefined : cfg.label}
       style={{
         display: "inline-flex", alignItems: "center", gap: 5,
         color: cfg.color,
@@ -139,7 +149,7 @@ export function SaveStatusIndicator({
       }}
     >
       {cfg.icon}
-      {cfg.label}
+      {showLabel && cfg.label}
     </span>
   );
 }
