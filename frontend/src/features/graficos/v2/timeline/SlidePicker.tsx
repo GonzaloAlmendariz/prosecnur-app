@@ -37,6 +37,26 @@ const ALL_TYPES: SlideType[] = [
 
 const ORDER: ("all" | SlideCategory)[] = ["all", "estructural", "1g", "2g", "grid", "poblacion"];
 type BlueprintPattern = "cover" | "single" | "narrative" | "split" | "grid" | "population";
+type SlidePreviewLayout =
+  | "cover"
+  | "index"
+  | "section"
+  | "objective"
+  | "text"
+  | "technical"
+  | "single"
+  | "singleNarrative"
+  | "splitRight"
+  | "splitLeft"
+  | "two"
+  | "twoNarrative"
+  | "twoTextLeft"
+  | "twoTextRight"
+  | "grid4"
+  | "population2"
+  | "population4"
+  | "population5"
+  | "population6";
 
 const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
   all: "Todos",
@@ -200,6 +220,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                 const meta = slidesById[t];
                 const cat = categoryOf(t);
                 const pattern = blueprintPattern(t);
+                const slots = meta?.slots ?? [];
                 return (
                   <button
                     key={t}
@@ -222,22 +243,13 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                       )}
                       <span className="pulso-gv2-picker-tile-tags" aria-label={`Estructura del modelo: ${modelSlotLabel(t)}`}>
                         <span>{modelSlotLabel(t)}</span>
-                        <span>Modelo base</span>
+                        <span>PPT 16:9</span>
                       </span>
                     </span>
                     <span className="pulso-gv2-picker-tile-action">
                       <Plus size={11} /> Insertar
                     </span>
-                    <span
-                      className="pulso-gv2-picker-tile-blueprint"
-                      data-pattern={pattern}
-                      aria-hidden="true"
-                    >
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </span>
+                    <SlideModelMiniature type={t} slots={slots} />
                   </button>
                 );
               })}
@@ -288,6 +300,102 @@ function blueprintPattern(type: SlideType): BlueprintPattern {
   if (type.includes("narrativo") || type.includes("texto")) return "narrative";
   if (type.includes("1_grafico")) return "single";
   return "cover";
+}
+
+function blueprintLayout(type: SlideType): SlidePreviewLayout {
+  switch (type) {
+    case "p_slide_indice":
+      return "index";
+    case "p_slide_seccion":
+      return "section";
+    case "p_slide_objetivo_icono":
+      return "objective";
+    case "p_slide_texto":
+      return "text";
+    case "p_slide_tabla_tecnica":
+      return "technical";
+    case "p_slide_1_grafico":
+      return "single";
+    case "p_slide_1_grafico_narrativo":
+      return "singleNarrative";
+    case "p_slide_grafico_texto_derecha":
+      return "splitRight";
+    case "p_slide_grafico_texto_izquierda":
+      return "splitLeft";
+    case "p_slide_2_graficos":
+      return "two";
+    case "p_slide_2_graficos_narrativo":
+      return "twoNarrative";
+    case "p_slide_2_graficos_texto_izquierda":
+      return "twoTextLeft";
+    case "p_slide_2_graficos_texto_derecha":
+      return "twoTextRight";
+    case "p_slide_4_graficos":
+      return "grid4";
+    case "p_slide_2_graficos_poblacion":
+      return "population2";
+    case "p_slide_4_graficos_poblacion":
+      return "population4";
+    case "p_slide_5_graficos_poblacion":
+      return "population5";
+    case "p_slide_6_graficos_poblacion":
+      return "population6";
+    default:
+      return "cover";
+  }
+}
+
+function SlideModelMiniature({ type, slots }: { type: SlideType; slots: string[] }) {
+  const layout = blueprintLayout(type);
+  const slotCount = slots.length || inferredSlotCount(type);
+  const slotItems = Array.from({ length: Math.min(slotCount, 6) }, (_, index) => index + 1);
+
+  return (
+    <span
+      className="pulso-gv2-picker-slide-preview"
+      data-layout={layout}
+      data-slots={slotCount}
+      aria-hidden="true"
+    >
+      <span className="pulso-gv2-picker-slide-paper">
+        <span className="pulso-gv2-picker-slide-band is-top" />
+        <span className="pulso-gv2-picker-slide-title">
+          <i />
+          <i />
+        </span>
+        <span className="pulso-gv2-picker-slide-copy">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="pulso-gv2-picker-slide-table">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="pulso-gv2-picker-slide-icon" />
+        <span className="pulso-gv2-picker-slide-slots">
+          {slotItems.map((slot) => (
+            <span key={slot} className="pulso-gv2-picker-slide-slot">
+              <i />
+              <b />
+            </span>
+          ))}
+        </span>
+        <span className="pulso-gv2-picker-slide-band is-bottom" />
+      </span>
+    </span>
+  );
+}
+
+function inferredSlotCount(type: SlideType): number {
+  if (type.includes("6_graficos")) return 6;
+  if (type.includes("5_graficos")) return 5;
+  if (type.includes("4_graficos")) return 4;
+  if (type.includes("2_graficos")) return 2;
+  if (type.includes("1_grafico") || type.includes("grafico_texto")) return 1;
+  return 0;
 }
 
 // Botón trigger del picker. Lo monta el TimelinePanelV2.
