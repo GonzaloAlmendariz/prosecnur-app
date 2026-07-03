@@ -34,7 +34,7 @@ describe("resolveArgumentDescription", () => {
     );
 
     expect(text).toContain("Texto principal del bloque");
-    expect(text).toContain("mensaje que ve el lector");
+    expect(text).not.toContain("Texto visible en el resultado");
   });
 
   test("genera explicación de rango para numéricos sin descripción", () => {
@@ -51,7 +51,7 @@ describe("resolveArgumentDescription", () => {
       { forNumber: true },
     );
 
-    expect(text).toContain("Ajusta un valor numérico");
+    expect(text).toContain("Tamaño del texto del título");
     expect(text).toContain("Rango permitido");
     expect(text).toContain("px");
   });
@@ -66,8 +66,8 @@ describe("resolveArgumentDescription", () => {
       { forText: true },
     );
 
-    expect(text).toContain("Activa o desactiva");
-    expect(text).toContain("bloque");
+    expect(text).toContain("Muestra u oculta los valores numéricos");
+    expect(text).not.toContain("Activa o desactiva este comportamiento");
   });
 
   test("usa copy específica para espacio de etiquetas", () => {
@@ -82,7 +82,7 @@ describe("resolveArgumentDescription", () => {
     );
 
     expect(text).toContain("Espacio destinado a etiquetas");
-    expect(text).toContain("Ajusta un valor numérico");
+    expect(text).not.toContain("Ajusta un valor numérico");
   });
 
   test("explica claramente el control de barras extra", () => {
@@ -95,7 +95,6 @@ describe("resolveArgumentDescription", () => {
       { forText: true },
     );
 
-    expect(text).toContain("Activa o desactiva");
     expect(text).toContain("Muestra");
   });
 
@@ -171,6 +170,7 @@ describe("resolveArgumentDescription", () => {
 
     expect(text).toContain("Ajusta el valor numérico");
     expect(text).toContain("Ajuste manual avanzado");
+    expect(text).not.toContain("Ajusta un valor numérico");
   });
 
   test("explica orden y agrupación de barras con lenguaje de PPT", () => {
