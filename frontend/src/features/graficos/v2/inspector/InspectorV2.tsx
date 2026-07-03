@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { ChevronDown, LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon } from "lucide-react";
-import { ArgGrupo, ArgMetadata, GraficadorRef } from "../../../../api/client";
+import { BarChart3, ChevronDown, FileText, Database, Layers3, LayoutPanelTop, Palette, Plus, Filter as FilterIcon } from "lucide-react";
+import { ArgGrupo, ArgMetadata, GraficadorRef, SlideType } from "../../../../api/client";
 import { useSession } from "../../../../lib/SessionContext";
 import { usePlanStore, SLIDE_LABELS, InspectorTab } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
@@ -33,9 +33,23 @@ const TABS: { key: InspectorTab; label: string; Icon: typeof FileText; grupos: A
   { key: "filters", label: "Filtros",   Icon: FilterIcon, grupos: [] },
 ];
 
+const STARTER_SLIDES: {
+  tipo: SlideType;
+  label: string;
+  detail: string;
+  tone: "cover" | "section" | "chart";
+  Icon: typeof LayoutPanelTop;
+}[] = [
+  { tipo: "p_slide_portada", label: "Portada", detail: "Informe base", tone: "cover", Icon: LayoutPanelTop },
+  { tipo: "p_slide_seccion", label: "Sección", detail: "Bloque editorial", tone: "section", Icon: Layers3 },
+  { tipo: "p_slide_1_grafico", label: "Un gráfico", detail: "Visual base", tone: "chart", Icon: BarChart3 },
+];
+
 export function InspectorV2() {
   const { state } = useSession();
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
+  const slides = usePlanStore((s) => s.plan.slides);
+  const addSlide = usePlanStore((s) => s.addSlide);
   const slide = usePlanStore((s) => s.plan.slides.find((x) => x.id === selectedSlideId));
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const inspectorTab = usePlanStore((s) => s.inspectorTab);
@@ -77,14 +91,20 @@ export function InspectorV2() {
   }, [issues, slide]);
 
   if (!slide) {
+    const isEmptyPlan = slides.length === 0;
+
     return (
       <div className="pulso-gv2-inspector">
-        <div className="pulso-gv2-inspector-empty">
-          <EmptyState
-            icon={<LayoutPanelTop size={22} />}
-            title="Sin slide seleccionado"
-            hint="Selecciona uno del timeline o agrégalo desde la sección de abajo."
-          />
+        <div className={`pulso-gv2-inspector-empty ${isEmptyPlan ? "has-start-surface" : ""}`}>
+          {isEmptyPlan ? (
+            <EmptyPlanStart onAddSlide={addSlide} />
+          ) : (
+            <EmptyState
+              icon={<LayoutPanelTop size={22} />}
+              title="Sin slide seleccionado"
+              hint="Selecciona un slide del timeline para editar contenido, datos y estilo."
+            />
+          )}
         </div>
       </div>
     );
@@ -230,6 +250,71 @@ export function InspectorV2() {
         )}
       </div>
     </div>
+  );
+}
+
+function EmptyPlanStart({
+  onAddSlide,
+}: {
+  onAddSlide: (tipo: SlideType) => void;
+}) {
+  return (
+    <section className="pulso-gv2-start-surface" aria-label="Plan de reporte sin slides">
+      <div className="pulso-gv2-start-copy">
+        <span className="pulso-gv2-start-eyebrow">Plan de reporte</span>
+        <h2>Construye la primera secuencia</h2>
+        <p>
+          Portada, secciones y gráficos quedan listos para configurar en el inspector.
+        </p>
+        <div className="pulso-gv2-start-actions" aria-label="Crear primer slide">
+          {STARTER_SLIDES.map(({ tipo, label, detail, tone, Icon }) => (
+            <button
+              key={tipo}
+              type="button"
+              className={`pulso-gv2-start-action is-${tone}`}
+              onClick={() => onAddSlide(tipo)}
+            >
+              <span className="pulso-gv2-start-action-icon" aria-hidden="true">
+                <Icon size={15} />
+              </span>
+              <span className="pulso-gv2-start-action-copy">
+                <strong>{label}</strong>
+                <small>{detail}</small>
+              </span>
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pulso-gv2-start-preview" aria-hidden="true">
+        <div className="pulso-gv2-start-preview-rail">
+          <span>01</span>
+          <span>02</span>
+          <span>03</span>
+        </div>
+        <div className="pulso-gv2-start-preview-stack">
+          <div className="pulso-gv2-start-slide is-cover">
+            <span />
+            <strong />
+            <em />
+          </div>
+          <div className="pulso-gv2-start-slide is-section">
+            <span />
+            <strong />
+          </div>
+          <div className="pulso-gv2-start-slide is-chart">
+            <span />
+            <div>
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
