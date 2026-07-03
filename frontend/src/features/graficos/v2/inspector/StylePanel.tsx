@@ -144,7 +144,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
           <div className="pulso-gv2-style-banner-body">
             <div className="pulso-gv2-style-banner-title-row">
               <div className="pulso-gv2-style-banner-title">
-                Estilo del gráfico
+                Apariencia del gráfico
               </div>
               <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por gráfico">
                 <span><strong>{slotStyleInfo.counts.base}</strong> Base predeterminada</span>
@@ -153,7 +153,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
               </div>
             </div>
             <div className="pulso-gv2-style-banner-hint">
-              <div className="pulso-gv2-style-flow-title">Cómo se decide el estilo</div>
+              <div className="pulso-gv2-style-flow-title">Orden de aplicación</div>
               <div className="pulso-gv2-style-flow" aria-label="Jerarquía de origen de los valores">
                 <div className={`pulso-gv2-style-flow-step is-base ${styleFlow.hasPreset ? "is-active" : ""}`} data-state="Base">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
@@ -210,7 +210,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
             </button>
           </div>
           <div className="pulso-gv2-style-section-hint">
-            Márgenes, color de fondo, encabezado y pie de la lámina. No del gráfico.
+            Márgenes, fondo, encabezado y pie de la lámina completa.
           </div>
           {grouped.map(({ grupo, args: gargs }) => (
             <ArgGroup
@@ -233,9 +233,9 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
             <span>Cada gráfico</span>
           </div>
           <div className="pulso-gv2-style-section-hint">
-            Ajusta lectura, espacio, leyenda y valores del gráfico.
-            Usa <strong>Estilo guardado</strong> para reutilizar la misma apariencia en varios gráficos y,
-            cuando hace falta, <strong>Ajustes adicionales</strong> para cambios finos solo aquí.
+            Ajusta lectura, espacio, leyenda y valores visibles.
+            Usa <strong>Estilo guardado</strong> para reutilizar una apariencia y
+            <strong> Ajustes adicionales</strong> para afinar solo este gráfico.
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => {

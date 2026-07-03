@@ -50,35 +50,35 @@ type Props = {
 
 const BAR_FIELDS: LayoutField[] = [
   { name: "canvas_w_grupo", label: "Columna de grupo", short: "Grupo", role: "label" },
-  { name: "canvas_w_buf_grupo_etq", label: "Separador grupo-etiquetas", short: "Sep. grupo", role: "gap" },
-  { name: "canvas_w_etiquetas", label: "Columna de etiquetas", short: "Etiquetas", role: "label" },
-  { name: "canvas_w_buf_etq_bars", label: "Separador etiquetas-barras", short: "Sep. etiquetas", role: "gap" },
-  { name: "canvas_w_bars", label: "Área principal de barras", short: "Área de barras", role: "plot" },
-  { name: "canvas_w_buf_bars_extra", label: "Separador barras-extra", short: "Sep. extra", role: "gap" },
-  { name: "canvas_w_extra", label: "Barra extra", short: "Barra extra", role: "extra" },
+  { name: "canvas_w_buf_grupo_etq", label: "Separación grupo-etiquetas", short: "Respiro", role: "gap" },
+  { name: "canvas_w_etiquetas", label: "Espacio para etiquetas", short: "Etiquetas", role: "label" },
+  { name: "canvas_w_buf_etq_bars", label: "Separación etiquetas-barras", short: "Respiro", role: "gap" },
+  { name: "canvas_w_bars", label: "Espacio para barras", short: "Barras", role: "plot" },
+  { name: "canvas_w_buf_bars_extra", label: "Separación barra-columna derecha", short: "Respiro", role: "gap" },
+  { name: "canvas_w_extra", label: "Columna derecha", short: "Columna derecha", role: "extra" },
 ];
 
 const VERTICAL_FIELDS: LayoutField[] = [
-  { name: "canvas_h_header_in", label: "Franja de encabezado", short: "Encabezado", role: "header" },
-  { name: "canvas_h_title", label: "Franja de título", short: "Título", role: "header" },
-  { name: "canvas_pad_top", label: "Margen superior", short: "Margen sup.", role: "gap" },
-  { name: "canvas_h_toprow_in", label: "Fila superior auxiliar", short: "Fila superior", role: "header" },
-  { name: "alto_por_categoria", label: "Panel de categorías", short: "Categorías", role: "row" },
-  { name: "canvas_h_legend_in", label: "Franja de leyenda", short: "Leyenda", role: "legend" },
-  { name: "canvas_h_legend", label: "Franja de leyenda", short: "Leyenda", role: "legend" },
+  { name: "canvas_h_header_in", label: "Alto del encabezado", short: "Encabezado", role: "header" },
+  { name: "canvas_h_title", label: "Espacio para título", short: "Título", role: "header" },
+  { name: "canvas_pad_top", label: "Respiro superior", short: "Respiro", role: "gap" },
+  { name: "canvas_h_toprow_in", label: "Fila auxiliar superior", short: "Auxiliar", role: "header" },
+  { name: "alto_por_categoria", label: "Alto de filas del gráfico", short: "Filas", role: "row" },
+  { name: "canvas_h_legend_in", label: "Espacio para leyenda", short: "Leyenda", role: "legend" },
+  { name: "canvas_h_legend", label: "Espacio para leyenda", short: "Leyenda", role: "legend" },
   { name: "canvas_h_legend_bottom", label: "Leyenda inferior", short: "Leyenda inferior", role: "legend" },
-  { name: "canvas_h_caption_in", label: "Franja de pie", short: "Pie", role: "caption" },
-  { name: "canvas_h_caption", label: "Franja de pie", short: "Pie", role: "caption" },
+  { name: "canvas_h_caption_in", label: "Espacio para nota/base", short: "Nota / base", role: "caption" },
+  { name: "canvas_h_caption", label: "Espacio para nota/base", short: "Nota / base", role: "caption" },
 ];
 
 const RADAR_FIELDS: LayoutField[] = [
   { name: "tabla_ph_ancho", label: "Tabla de apoyo", short: "Tabla de apoyo", role: "table" },
-  { name: "tabla_ph_gap", label: "Separador radar-tabla", short: "Separador", role: "gap" },
+  { name: "tabla_ph_gap", label: "Separación radar-tabla", short: "Respiro", role: "gap" },
   { name: "tabla_ph_margin_top", label: "Margen superior de tabla", short: "Margen sup.", role: "gap" },
   { name: "tabla_ph_margin_bot", label: "Margen inferior de tabla", short: "Margen inf.", role: "gap" },
-  { name: "canvas_h_header_in", label: "Franja de encabezado", short: "Encabezado", role: "header" },
-  { name: "canvas_h_legend_in", label: "Franja de leyenda", short: "Leyenda", role: "legend" },
-  { name: "canvas_h_caption_in", label: "Franja de pie", short: "Pie", role: "caption" },
+  { name: "canvas_h_header_in", label: "Alto del encabezado", short: "Encabezado", role: "header" },
+  { name: "canvas_h_legend_in", label: "Espacio para leyenda", short: "Leyenda", role: "legend" },
+  { name: "canvas_h_caption_in", label: "Espacio para nota/base", short: "Nota / base", role: "caption" },
 ];
 
 const BARS_PRESETS = new Set(["barras_apiladas", "multi_apiladas", "barras_agrupadas"]);
@@ -219,7 +219,7 @@ export function ChartLayoutEditor({
 
   const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
   const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
-  const layoutKindLabel = kind === "bars" ? "Barras" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Circular" : "Vertical";
+  const layoutKindLabel = kind === "bars" ? "Gráfico de barras" : kind === "radar" ? "Radar con tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Layout vertical";
   const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
   const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Base predeterminada";
@@ -377,13 +377,13 @@ export function ChartLayoutEditor({
   }
 
   return (
-    <div className="pulso-gv2-layout-panel" data-source-state={sourceState} aria-label="Editor visual de placeholders">
+    <div className="pulso-gv2-layout-panel" data-source-state={sourceState} aria-label="Editor visual de espacios del gráfico">
           <div className="pulso-gv2-layout-head">
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
               <strong>Editor visual de espacios</strong>
-              <span>Reparte título, leyenda y área del gráfico sin tocar los datos</span>
+              <span>Ajusta título, leyenda, etiquetas y área del gráfico desde una vista directa.</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
               <span>Fuente visible</span>
@@ -401,7 +401,7 @@ export function ChartLayoutEditor({
             </div>
           </div>
 
-          <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de placeholders">
+          <div className="pulso-gv2-layout-instruction-strip" aria-label="Guía rápida del editor de espacios">
             <span><MoveHorizontal size={11} /> Arrastra el borde entre zonas</span>
             <span><Ruler size={11} /> Escribe una medida exacta</span>
             <span><X size={11} /> Pon 0 para ocultar una zona</span>
@@ -410,9 +410,9 @@ export function ChartLayoutEditor({
           <div
             ref={canvasRef}
             className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`}
-            data-layout-kind={`${layoutKindLabel} · ${sourceLabel}`}
+            data-layout-kind={layoutKindLabel}
             role="group"
-            aria-label={`Editor visual ${layoutKindLabel}. Arrastra bordes entre zonas o escribe medidas exactas.`}
+            aria-label={`Editor visual de espacios para ${layoutKindLabel}. Arrastra bordes entre zonas o escribe medidas exactas.`}
           >
             {dragGuide && <DragGuide guide={dragGuide} />}
             {kind === "bars" && (
@@ -466,6 +466,13 @@ export function ChartLayoutEditor({
             )}
           </div>
 
+          <LayoutMeasureBoard
+            fields={fields}
+            valueOf={valueOf}
+            argsByName={argsByName}
+            onSetArgValue={setArgValue}
+          />
+
           <div className="pulso-gv2-layout-footer">
             <div className="pulso-gv2-layout-source-legend" aria-label="Origen de valores">
               <span className="is-base"><i /> Base predeterminada</span>
@@ -498,6 +505,103 @@ export function hasChartLayoutSpec(presetType: string | null, args: ArgMetadata[
 }
 
 export const ChartLayoutPopover = (props: Parameters<typeof ChartLayoutEditor>[0]) => <ChartLayoutEditor {...props} />;
+
+function LayoutMeasureBoard({
+  fields,
+  valueOf,
+  argsByName,
+  onSetArgValue,
+}: {
+  fields: LayoutField[];
+  valueOf: (name: string) => number;
+  argsByName: Record<string, ArgMetadata>;
+  onSetArgValue: (name: string, value: number) => void;
+}) {
+  const visibleFields = fields.filter((field) => argsByName[field.name]);
+  if (visibleFields.length === 0) return null;
+
+  return (
+    <details className="pulso-gv2-layout-measure-board">
+      <summary>
+        <span>
+          <Ruler size={12} />
+          <strong>Medidas exactas</strong>
+        </span>
+        <small>{visibleFields.length} espacios editables</small>
+      </summary>
+      <div className="pulso-gv2-layout-measure-grid">
+        {visibleFields.map((field) => (
+          <LayoutMeasureCell
+            key={field.name}
+            field={field}
+            value={valueOf(field.name)}
+            meta={argsByName[field.name]}
+            onCommit={(next) => onSetArgValue(field.name, next)}
+          />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function LayoutMeasureCell({
+  field,
+  value,
+  meta,
+  onCommit,
+}: {
+  field: LayoutField;
+  value: number;
+  meta?: ArgMetadata;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState(formatNumber(value));
+
+  useEffect(() => {
+    setDraft(formatNumber(value));
+  }, [value]);
+
+  function commitDraft() {
+    const next = parseLayoutNumber(draft);
+    if (next === null) {
+      setDraft(formatNumber(value));
+      return;
+    }
+    onCommit(next);
+  }
+
+  return (
+    <label className="pulso-gv2-layout-measure-cell" data-role={field.role}>
+      <span className="pulso-gv2-layout-measure-copy">
+        <strong>{field.label}</strong>
+        <small>{layoutFieldHelp(field, meta)}</small>
+      </span>
+      <span className="pulso-gv2-layout-measure-input">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={draft}
+          aria-label={`Medida exacta: ${field.label}`}
+          onChange={(event) => setDraft(event.currentTarget.value)}
+          onBlur={commitDraft}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitDraft();
+              event.currentTarget.blur();
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setDraft(formatNumber(value));
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <em>{layoutFieldUnit(meta)}</em>
+      </span>
+    </label>
+  );
+}
 
 function buildRoleSummary(fields: LayoutField[]): Array<{ role: LayoutField["role"]; label: string; count: number }> {
   const counts = new Map<LayoutField["role"], number>();
@@ -1003,6 +1107,30 @@ function fieldIfPresent(
   role: LayoutField["role"]
 ): LayoutField | null {
   return argsByName[name] ? { name, label, short, role } : null;
+}
+
+function layoutFieldHelp(field: LayoutField, meta?: ArgMetadata): string {
+  if (field.name === "canvas_w_etiquetas") return "Más espacio evita cortes en preguntas largas.";
+  if (field.name === "canvas_w_bars") return "Cuerpo principal donde se dibujan las barras.";
+  if (field.name === "canvas_w_extra") return "Reserva para N, total, Top 2 u otra columna de apoyo.";
+  if (field.name === "canvas_h_header_in") return "Zona superior para título, pregunta o subtítulo.";
+  if (field.name === "canvas_h_toprow_in") return "Fila opcional para indicadores sobre las barras.";
+  if (field.name === "alto_por_categoria") return "Controla cuánto respira cada categoría.";
+  if (field.role === "legend") return "Espacio reservado para la leyenda visible.";
+  if (field.role === "caption") return "Notas, fuente o base al pie del gráfico.";
+  if (field.role === "gap") return "Separación visual entre zonas cercanas.";
+  if (field.role === "table") return "Área dedicada a la tabla de apoyo.";
+  if (meta?.descripcion) return meta.descripcion;
+  return "Medida exacta de esta zona del gráfico.";
+}
+
+function layoutFieldUnit(meta?: ArgMetadata): string {
+  const unit = String(meta?.unidad ?? "").trim();
+  if (unit) return unit;
+  const name = String(meta?.name ?? "");
+  if (name.endsWith("_in")) return "pulg.";
+  if (name.includes("_w_") || name.includes("_h_") || name.includes("_frac")) return "proporción";
+  return "valor";
 }
 
 function isResizableField(field: LayoutField & { synthetic?: boolean }): boolean {

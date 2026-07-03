@@ -1046,10 +1046,25 @@ function normalizeArgKey(input: string): string {
 }
 
 function normalizeHintSentence(value: string): string {
-  const text = value.trim().replace(/\s+/g, " ");
+  const text = polishArgumentCopy(value);
   if (!text) return "";
   if (/[.!?]$/.test(text)) return text;
   return `${text}.`;
+}
+
+function polishArgumentCopy(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\bcanvas\b/gi, "área interna")
+    .replace(/\bplaceholder(?:s)?\b/gi, "espacio visual")
+    .replace(/\bcaption\b/gi, "nota/base")
+    .replace(/\blayout\b/gi, "distribución")
+    .replace(/\bdebug\b/gi, "guía visual")
+    .replace(/\boverrides?\b/gi, "ajustes")
+    .replace(/\bslot\b/gi, "gráfico")
+    .replace(/\btop row\b/gi, "fila superior")
+    .replace(/Parametros/g, "Parámetros");
 }
 
 export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
@@ -1152,20 +1167,20 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   color_n_sobre_barras: "Color del contador N mostrado sobre barras.",
   grosor_borde: "Grosor del borde de bloques o líneas.",
   radio_borde: "Redondez de esquinas para bloques y tarjetas.",
-  canvas_w_bars: "Espacio para barras dentro del canvas.",
-  canvas_w_buf_bars_extra: "Margen interno para barras auxiliares.",
-  canvas_w_buf_etq_bars: "Espacio de separación para etiquetas de barras.",
-  canvas_w_legend_right: "Espacio reservado al lado derecho de la leyenda.",
-  canvas_h_caption: "Altura del área de caption del bloque.",
-  canvas_h_caption_in: "Sangría interna del área de caption.",
-  canvas_h_header_in: "Sangría interna del encabezado.",
-  canvas_h_legend: "Altura para el área de leyenda.",
+  canvas_w_bars: "Espacio para barras dentro del área interna.",
+  canvas_w_buf_bars_extra: "Respiro entre barras y columna derecha.",
+  canvas_w_buf_etq_bars: "Separación entre etiquetas y barras.",
+  canvas_w_legend_right: "Espacio reservado al lado derecho para la leyenda.",
+  canvas_h_caption: "Altura reservada para nota, fuente o base del gráfico.",
+  canvas_h_caption_in: "Espacio interno para nota, fuente o base del gráfico.",
+  canvas_h_header_in: "Alto reservado para título, pregunta o subtítulo del gráfico.",
+  canvas_h_legend: "Alto reservado para la leyenda.",
   canvas_h_title: "Altura disponible para el título.",
-  canvas_h_toprow_in: "Altura reservada encima de las barras para títulos auxiliares como Top 2 Box.",
-  canvas_h_legend_in: "Margen interno para leyenda.",
+  canvas_h_toprow_in: "Fila auxiliar encima de las barras para indicadores como Top 2 Box.",
+  canvas_h_legend_in: "Espacio interno para la leyenda.",
   canvas_h_legend_bottom: "Altura base para leyenda inferior.",
-  canvas_pad_top: "Margen superior interno del canvas.",
-  canvas_w_extra: "Ancho adicional de reserva del canvas.",
+  canvas_pad_top: "Respiro superior dentro del gráfico.",
+  canvas_w_extra: "Ancho reservado para una columna derecha de apoyo.",
   bar_ra_extra: "Ajuste para el bloque de barras extra.",
   bar_rrra_extra: "Ajusta separación extra del bloque de barras.",
   barra_extra_preset: "Elige si la columna adicional muestra Base/N, Top 2 Box u otro indicador.",
@@ -1441,7 +1456,7 @@ export function resolveArgumentDescription(meta: ArgMetadata, options: {
   const source =
     safeTrimmedText(meta.efecto) ||
     safeTrimmedText(meta.descripcion);
-  if (source) return source;
+  if (source) return normalizeHintSentence(source);
 
   const rangeHint = options.forNumber ? buildRangeHint(meta) : "";
   const typeHint = buildTypeHint(meta, options);
