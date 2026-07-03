@@ -23807,3 +23807,56 @@
     min-width: var(--gv2-command-control-h);
   }
 }
+
+/* Suite polish pass 40: make command groups read as toolbars. */
+.pulso-graficos-frame .pulso-gv2-command-cluster--review,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools {
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), color-mix(in srgb, var(--pulso-surface-2) 62%, #ffffff));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 1px 2px rgba(0, 36, 87, 0.035);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--review {
+  gap: 4px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools {
+  gap: 5px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--review .pulso-gv2-undo-redo {
+  gap: 4px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--review .pulso-gv2-icon-button:disabled {
+  opacity: 0.46;
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #ffffff) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools .pulso-gv2-debug-border,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools .pulso-gv2-estilo-trigger,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools .pulso-gv2-toolbar-action,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools .pulso-gv2-toolbar-reset {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools .pulso-gv2-export-menu-trigger {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 5px 14px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 18%, transparent) !important;
+}
+
+@media (max-width: 1360px) {
+  .pulso-graficos-frame .pulso-gv2-command-cluster--review,
+  .pulso-graficos-frame .pulso-gv2-command-cluster--tools {
+    padding: 1px;
+    gap: 4px;
+  }
+}
