@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LayoutGrid, Bookmark, Copy, Trash2 } from "lucide-react";
-import { Slide } from "../../../../api/client";
+import { BarChart3, Bookmark, Copy, Layers3, LayoutGrid, LayoutPanelTop, Plus, Trash2 } from "lucide-react";
+import { Slide, SlideType } from "../../../../api/client";
 import { usePlanStore } from "../../store";
 import { usePlanValidator } from "../../usePlanValidator";
-import { EmptyState } from "../../../../components/States";
 import { buildPlanGraph } from "./buildPlanGraph";
 import {
   planAutoLayout,
@@ -35,6 +34,18 @@ import { useVariables } from "../../useVariables";
 //
 // Snap to grid: siempre activo. Cada slide cae en una celda; el número
 // de columnas se ajusta al ancho disponible hasta un máximo de 6.
+
+const CANVAS_STARTERS: {
+  tipo: SlideType;
+  label: string;
+  detail: string;
+  tone: "cover" | "section" | "chart";
+  Icon: typeof LayoutGrid;
+}[] = [
+  { tipo: "p_slide_portada", label: "Portada", detail: "Inicio", tone: "cover", Icon: LayoutPanelTop },
+  { tipo: "p_slide_seccion", label: "Sección", detail: "Bloque", tone: "section", Icon: Layers3 },
+  { tipo: "p_slide_1_grafico", label: "Un gráfico", detail: "Visual", tone: "chart", Icon: BarChart3 },
+];
 
 export function PlanCanvas() {
   const slides = usePlanStore((s) => s.plan.slides);
@@ -308,15 +319,7 @@ export function PlanCanvas() {
   }, []);
 
   if (graph.nodes.length === 0) {
-    return (
-      <div style={{ flex: 1, padding: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <EmptyState
-          icon={<LayoutGrid size={22} />}
-          title="Sin slides para visualizar"
-          hint="Agrega slides desde el modo Timeline para ver la grilla del plan."
-        />
-      </div>
-    );
+    return <CanvasEmptyStart density={density} onAddSlide={addSlide} />;
   }
 
   return (
@@ -479,10 +482,65 @@ export function PlanCanvas() {
         </div>
       )}
 
-      {/* Hint flotante */}
-      <div className="pulso-gv2-canvas-hint" aria-hidden>
-        <strong>Click</strong> selecciona · <strong>Shift+Click</strong> añade · <strong>Drag</strong> mueve · <strong>Esc</strong> limpia
-      </div>
+    </div>
+  );
+}
+
+function CanvasEmptyStart({
+  density,
+  onAddSlide,
+}: {
+  density: "comfortable" | "compact";
+  onAddSlide: (tipo: SlideType) => void;
+}) {
+  return (
+    <div className={`pulso-gv2-canvas pulso-gv2-canvas-empty-shell ${density === "compact" ? "is-compact" : ""}`}>
+      <section className="pulso-gv2-canvas-empty-surface" aria-label="Canvas sin slides">
+        <div className="pulso-gv2-canvas-empty-board" aria-hidden="true">
+          <div className="pulso-gv2-canvas-empty-section is-primary">
+            <span />
+            <div>
+              <i />
+              <i />
+              <i />
+            </div>
+          </div>
+          <div className="pulso-gv2-canvas-empty-section is-secondary">
+            <span />
+            <div>
+              <i />
+              <i />
+            </div>
+          </div>
+          <div className="pulso-gv2-canvas-empty-cursor">
+            <Plus size={13} />
+          </div>
+        </div>
+
+        <div className="pulso-gv2-canvas-empty-copy">
+          <span className="pulso-gv2-canvas-empty-eyebrow">Canvas</span>
+          <h2>Organiza el plan visualmente</h2>
+          <p>
+            Crea el primer bloque y el lienzo dibujará la grilla de slides por secciones.
+          </p>
+          <div className="pulso-gv2-canvas-empty-actions" aria-label="Crear primer slide desde Canvas">
+            {CANVAS_STARTERS.map(({ tipo, label, detail, tone, Icon }) => (
+              <button
+                key={tipo}
+                type="button"
+                className={`pulso-gv2-canvas-empty-action is-${tone}`}
+                onClick={() => onAddSlide(tipo)}
+              >
+                <Icon size={14} />
+                <span>
+                  <strong>{label}</strong>
+                  <small>{detail}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
