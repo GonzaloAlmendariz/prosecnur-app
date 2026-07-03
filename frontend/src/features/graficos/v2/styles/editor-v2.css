@@ -10854,3 +10854,165 @@
     justify-self: start;
   }
 }
+
+/* Suite polish pass 3: professional dynamic arg cells and placeholder controls. */
+.pulso-gv2-field-card {
+  --gv2-field-line: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 48%, var(--pulso-border));
+  --gv2-field-tint: color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 42%, #ffffff);
+  border-color: var(--gv2-field-line);
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-surface-2) 34%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-field-card::before {
+  width: 3px;
+  background: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 24%, var(--pulso-border));
+}
+
+.pulso-gv2-field-card[data-has-own-value="false"][data-has-inherited-preview="true"],
+.pulso-gv2-field-card[data-has-auto-text="true"] {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 54%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--gv2-field-tint) 64%, #ffffff)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-field-card[data-has-auto-text="true"]::before {
+  background: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-gv2-field-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pulso-gv2-field-title-row .pulso-gv2-field-title {
+  flex: 0 1 auto;
+}
+
+.pulso-gv2-field-code {
+  max-width: min(190px, 44%);
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-field-card:focus-within .pulso-gv2-field-code,
+.pulso-gv2-field-card:hover .pulso-gv2-field-code {
+  color: var(--gv2-accent, var(--pulso-primary));
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 60%, var(--pulso-border));
+  background: var(--gv2-field-tint);
+}
+
+.pulso-gv2-source-badge {
+  width: auto;
+  min-width: 72px;
+  max-width: 116px;
+  padding-inline: 8px;
+}
+
+.pulso-gv2-source-badge.is-auto {
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 62%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, var(--gv2-field-tint), rgba(255, 255, 255, 0.86));
+  color: var(--gv2-accent, var(--pulso-primary));
+}
+
+.pulso-gv2-source-dot.is-auto {
+  background: var(--gv2-accent, var(--pulso-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 72%, transparent);
+}
+
+.pulso-gv2-field-utilities {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pulso-gv2-field-card[data-has-auto-text="true"] .pulso-gv2-text-input-control::placeholder,
+.pulso-gv2-field-card[data-has-own-value="false"] :where(input, textarea)::placeholder {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 58%, var(--pulso-text-soft));
+  opacity: 0.82;
+}
+
+.pulso-gv2-field-card[data-has-auto-text="true"] .pulso-gv2-field-status {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 76%, var(--pulso-text-soft));
+  font-weight: 650;
+}
+
+.pulso-gv2-field-card[data-has-own-value="false"] .pulso-gv2-number-input,
+.pulso-gv2-field-card[data-has-own-value="false"] .pulso-gv2-text-input-control {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--gv2-field-tint) 40%, #ffffff)) !important;
+}
+
+.pulso-gv2-field-card[data-arg-state="custom"] .pulso-gv2-field-code {
+  color: var(--pulso-success-fg);
+  border-color: color-mix(in srgb, var(--pulso-success-border) 70%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 74%, #ffffff);
+}
+
+.pulso-gv2-field-card[data-arg-state="from-mode"] .pulso-gv2-field-code {
+  color: #5b21b6;
+  border-color: color-mix(in srgb, #7c3aed 24%, var(--pulso-border));
+  background: color-mix(in srgb, #ede9fe 70%, #ffffff);
+}
+
+.pulso-gv2-field-description {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: initial;
+}
+
+.pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-description,
+.pulso-gv2-word-presets .pulso-gv2-field-description {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  text-overflow: clip;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: initial;
+}
+
+@media (min-width: 1100px) {
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field {
+    grid-template-columns: minmax(300px, 1fr) minmax(96px, auto) minmax(300px, 540px);
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-card[data-has-auto-text="true"] {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 40%, transparent), transparent 62%);
+  }
+}
+
+@media (max-width: 820px) {
+  .pulso-gv2-field-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pulso-gv2-field-code {
+    max-width: 100%;
+  }
+
+  .pulso-gv2-field-utilities {
+    justify-content: flex-start;
+  }
+}
