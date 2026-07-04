@@ -223,7 +223,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
             </div>
           </aside>
 
-          <section className="pulso-gv2-picker-library" aria-label={`Modelos: ${activeLabel}`}>
+          <section className="pulso-gv2-picker-library" data-cat={filter} aria-label={`Modelos: ${activeLabel}`}>
             <div className="pulso-gv2-picker-library-head">
               <div className="pulso-gv2-picker-library-title">
                 <span className="pulso-gv2-picker-library-icon" aria-hidden="true">

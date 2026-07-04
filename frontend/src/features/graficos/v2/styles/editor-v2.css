@@ -29974,3 +29974,181 @@
   font-size: 8px;
   line-height: 1;
 }
+
+/* Suite polish pass 77: compact icon wells keep contrast at real desktop sizes. */
+.pulso-gv2-picker-head-mark,
+.pulso-gv2-picker-tab-icon,
+.pulso-gv2-picker-library-icon,
+.pulso-gv2-picker-inspector-icon,
+.pulso-gv2-ppt-style-intro-icon {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 88%, #071a3d);
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 64%, #ffffff));
+  border: 1px solid color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 32%, var(--pulso-border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 5px 12px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 9%, transparent);
+}
+
+.pulso-gv2-picker-tile-icon,
+.pulso-gv2-slide-card-type-icon,
+.pulso-gv2-slide-card-model-icon {
+  color: color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-slide-cat, var(--gv2-accent, var(--pulso-primary)))) 90%, #071a3d);
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      color-mix(in srgb, var(--gv2-picker-cat-soft, var(--gv2-slide-cat-soft, var(--gv2-accent-soft, var(--pulso-primary-soft)))) 72%, #ffffff)
+    );
+  border: 1px solid color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-slide-cat, var(--gv2-accent, var(--pulso-primary)))) 30%, var(--pulso-border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 4px 10px color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-slide-cat, var(--gv2-accent, var(--pulso-primary)))) 9%, transparent);
+}
+
+.pulso-gv2-ppt-style-card-icon {
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 86%, #1f3f72), var(--gv2-accent, var(--pulso-primary)));
+  border: 1px solid color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 86%, #061f4b);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 6px 14px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 16%, transparent);
+}
+
+.pulso-gv2-picker-head-mark,
+.pulso-gv2-picker-tab-icon,
+.pulso-gv2-picker-library-icon,
+.pulso-gv2-picker-tile-icon,
+.pulso-gv2-picker-inspector-icon,
+.pulso-gv2-ppt-style-intro-icon,
+.pulso-gv2-ppt-style-card-icon,
+.pulso-gv2-slide-card-type-icon,
+.pulso-gv2-slide-card-model-icon {
+  display: inline-grid;
+  place-items: center;
+  line-height: 0;
+}
+
+.pulso-gv2-picker-head-mark svg,
+.pulso-gv2-picker-tab-icon svg,
+.pulso-gv2-picker-library-icon svg,
+.pulso-gv2-picker-tile-icon svg,
+.pulso-gv2-picker-inspector-icon svg,
+.pulso-gv2-ppt-style-intro-icon svg,
+.pulso-gv2-ppt-style-card-icon svg,
+.pulso-gv2-slide-card-type-icon svg,
+.pulso-gv2-slide-card-model-icon svg {
+  display: block;
+  margin: 0;
+  color: currentColor;
+  opacity: 1;
+  stroke-width: 2.35;
+}
+
+.pulso-gv2-picker-tile-icon svg [fill="currentColor"][opacity],
+.pulso-gv2-picker-inspector-icon svg [fill="currentColor"][opacity],
+.pulso-gv2-slide-card-type-icon svg [fill="currentColor"][opacity],
+.pulso-gv2-slide-card-model-icon svg [fill="currentColor"][opacity] {
+  opacity: 0.26;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab.is-active .pulso-gv2-picker-tab-icon {
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 86%, #ffffff), var(--gv2-accent, var(--pulso-primary)));
+  border-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 80%, #061f4b);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 13px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 15%, transparent);
+}
+
+.pulso-gv2-picker-library[data-cat="all"] {
+  --gv2-picker-cat: #082f68;
+  --gv2-picker-cat-soft: color-mix(in srgb, #dbeafe 80%, #ffffff);
+}
+
+.pulso-gv2-picker-library[data-cat="estructural"] {
+  --gv2-picker-cat: #4f46e5;
+  --gv2-picker-cat-soft: color-mix(in srgb, #eef2ff 86%, #ffffff);
+}
+
+.pulso-gv2-picker-library[data-cat="1g"] {
+  --gv2-picker-cat: #0f766e;
+  --gv2-picker-cat-soft: color-mix(in srgb, #ccfbf1 76%, #ffffff);
+}
+
+.pulso-gv2-picker-library[data-cat="2g"] {
+  --gv2-picker-cat: #0891b2;
+  --gv2-picker-cat-soft: color-mix(in srgb, #cffafe 78%, #ffffff);
+}
+
+.pulso-gv2-picker-library[data-cat="grid"] {
+  --gv2-picker-cat: #b7791f;
+  --gv2-picker-cat-soft: color-mix(in srgb, #fef3c7 78%, #ffffff);
+}
+
+.pulso-gv2-picker-library[data-cat="poblacion"] {
+  --gv2-picker-cat: #be185d;
+  --gv2-picker-cat-soft: color-mix(in srgb, #fce7f3 78%, #ffffff);
+}
+
+.pulso-gv2-picker-library .pulso-gv2-picker-library-icon {
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-picker-cat) 88%, #ffffff), var(--gv2-picker-cat));
+  border-color: color-mix(in srgb, var(--gv2-picker-cat) 82%, #061f4b);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 7px 15px color-mix(in srgb, var(--gv2-picker-cat) 16%, transparent);
+}
+
+.pulso-gv2-picker-library .pulso-gv2-picker-library-icon svg {
+  stroke-width: 2.45;
+}
+
+.pulso-gv2-estilo-mark,
+.pulso-gv2-estilo-context-icon,
+.pulso-gv2-estilo-section-icon,
+.pulso-gv2-estilo-tab-icon,
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon,
+.pulso-gv2-debug-border-popover-icon,
+.pulso-gv2-export-menu-action-icon {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 88%, #071a3d) !important;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 66%, #ffffff)) !important;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 30%, var(--pulso-border)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 5px 12px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 9%, transparent) !important;
+}
+
+.pulso-gv2-estilo-tab.is-active .pulso-gv2-estilo-tab-icon,
+.pulso-gv2-estilo-sectionbar .pulso-gv2-estilo-section-icon {
+  color: #ffffff !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 88%, #ffffff), var(--gv2-accent, var(--pulso-primary))) !important;
+  border-color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 82%, #061f4b) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 7px 15px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 15%, transparent) !important;
+}
+
+.pulso-gv2-estilo-mark svg,
+.pulso-gv2-estilo-context-icon svg,
+.pulso-gv2-estilo-section-icon svg,
+.pulso-gv2-estilo-tab-icon svg,
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon svg,
+.pulso-gv2-debug-border-popover-icon svg,
+.pulso-gv2-export-menu-action-icon svg,
+.pulso-gv2-estilo-flow-step svg {
+  display: block;
+  margin: 0;
+  color: currentColor;
+  opacity: 1;
+  stroke-width: 2.35;
+}
+
+.pulso-gv2-estilo-flow-step svg {
+  color: color-mix(in srgb, var(--flow-accent, var(--gv2-accent, var(--pulso-primary))) 82%, #071a3d);
+}
