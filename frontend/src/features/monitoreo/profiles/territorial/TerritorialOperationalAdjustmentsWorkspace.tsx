@@ -91,6 +91,13 @@ export function TerritorialOperationalAdjustmentsWorkspace({
   ];
   const selectedMovements = selected ? territorialOperationalAdjustmentMovements(selected) : [];
   const selectedResponseCount = territorialOperationalAdjustmentResponseCount(selectedMovements);
+  const selectedMovementCount = selected
+    ? numberOrNull(selected.package_movements) ?? selected.adjustments?.length ?? 1
+    : 0;
+  const selectedDistanceLabel = selected ? territorialOperationalAdjustmentDistanceLabel(selected) : "";
+  const selectedTargetActivityLabel = selected
+    ? territorialOperationalAdjustmentDateLabel(territorialOperationalAdjustmentTargetActivity(selected), "Sin actividad")
+    : "Sin actividad";
 
   const applySelected = async () => {
     if (!selected || !onApply || !canApply) return;
@@ -271,6 +278,29 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                   <strong>{formatMetric(numberOrNull(selected.count) ?? 0)} caso(s) para cerrar la UMP</strong>
                 </header>
                 <div className="mon-operational-adjustments__detail-body">
+                  <div className="mon-operational-decision-spine" aria-label="Ruta del paquete seleccionado">
+                    <article className="is-surplus">
+                      <span>Sobrante protegido</span>
+                      <strong>{territorialOperationalAdjustmentBlockLabel(selected, "source")}</strong>
+                      <em>{territorialOperationalAdjustmentSideResponsibleLabel(selected, "source")}</em>
+                    </article>
+                    <div className="mon-operational-decision-spine__flow">
+                      <ArrowRight size={16} />
+                      <strong>{formatMetric(numberOrNull(selected.count) ?? 0)} caso(s)</strong>
+                      <em>{selectedDistanceLabel || "misma ruta operativa"}</em>
+                    </div>
+                    <article className="is-pending">
+                      <span>UMP faltante</span>
+                      <strong>{territorialOperationalAdjustmentBlockLabel(selected, "target")}</strong>
+                      <em>{territorialOperationalAdjustmentSideResponsibleLabel(selected, "target")}</em>
+                    </article>
+                  </div>
+                  <div className="mon-operational-decision-facts" aria-label="Evidencia de trazabilidad del paquete">
+                    <span className="is-complete"><strong>{formatMetric(selectedMovementCount)}</strong><em>movimientos</em></span>
+                    <span className="is-surplus"><strong>{formatMetric(selectedResponseCount)}</strong><em>ID fuente</em></span>
+                    <span className="is-pending"><strong>{territorialOperationalAdjustmentCellLabel(selected)}</strong><em>celda compatible</em></span>
+                    <span><strong>{selectedTargetActivityLabel}</strong><em>últ. aplicación UMP</em></span>
+                  </div>
                   <div className="mon-operational-guardrails" aria-label="Reglas de seguridad del paquete">
                     <span className="is-complete"><CheckCircle2 size={13} /> Origen conserva cuota</span>
                     <span className="is-pending">Sexo + rango + distrito</span>
@@ -278,30 +308,22 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                     <span className="is-complete">Sin duplicar respuestas</span>
                   </div>
                   <dl>
-                    <div className="is-surplus">
-                      <dt>Sobrante</dt>
-                      <dd>{territorialOperationalAdjustmentBlockLabel(selected, "source")}</dd>
-                    </div>
-                    <div className="is-pending">
-                      <dt>Faltante</dt>
-                      <dd>{territorialOperationalAdjustmentBlockLabel(selected, "target")}</dd>
-                    </div>
                     <div className="is-pending">
                       <dt>Celda faltante</dt>
                       <dd>{territorialOperationalAdjustmentCellLabel(selected)}</dd>
                     </div>
                     <div>
                       <dt>Movimientos del paquete</dt>
-                      <dd>{formatMetric(numberOrNull(selected.package_movements) ?? selected.adjustments?.length ?? 1)}</dd>
+                      <dd>{formatMetric(selectedMovementCount)}</dd>
                     </div>
                     <div>
                       <dt>Casos disponibles</dt>
                       <dd>{formatMetric(selectedResponseCount)}</dd>
                     </div>
-                    {territorialOperationalAdjustmentDistanceLabel(selected) ? (
+                    {selectedDistanceLabel ? (
                       <div className="is-distance">
                         <dt>Cercanía</dt>
-                        <dd><MapPin size={13} /> {territorialOperationalAdjustmentDistanceLabel(selected)}</dd>
+                        <dd><MapPin size={13} /> {selectedDistanceLabel}</dd>
                       </div>
                     ) : null}
                     <div className="is-surplus">
@@ -314,7 +336,7 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                     </div>
                     <div className="is-pending is-priority">
                       <dt>Última aplicación de la UMP</dt>
-                      <dd>{territorialOperationalAdjustmentDateLabel(territorialOperationalAdjustmentTargetActivity(selected), "Sin actividad")}</dd>
+                      <dd>{selectedTargetActivityLabel}</dd>
                     </div>
                   </dl>
                   <div className="mon-operational-package-ledger" aria-label="Desglose del paquete seleccionado">
