@@ -206,6 +206,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                     key={c}
                     type="button"
                     className={`pulso-gv2-picker-tab ${filter === c ? "is-active" : ""}`}
+                    data-cat={c}
                     onClick={() => setFilter(c)}
                     aria-pressed={filter === c}
                   >
