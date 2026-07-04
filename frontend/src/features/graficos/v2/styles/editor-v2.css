@@ -27743,3 +27743,75 @@
     grid-template-columns: 184px minmax(0, 1fr);
   }
 }
+
+/* Suite polish pass 61: timeline graph chips fit inside their cards. */
+.pulso-gv2-slide-card {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.pulso-gv2-slide-card.has-graphs {
+  min-height: 96px;
+  padding-bottom: 10px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs {
+  min-height: 116px;
+}
+
+.pulso-gv2-slide-card-title {
+  min-width: 0;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.pulso-gv2-slide-card-type-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+}
+
+.pulso-gv2-slide-card-models {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  overflow: hidden;
+}
+
+.pulso-gv2-slide-card-model {
+  width: 100%;
+  max-width: 100%;
+  min-height: 26px;
+  box-sizing: border-box;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 3px 8px 3px 3px;
+  border-radius: 9px;
+}
+
+.pulso-gv2-slide-card-model-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+}
+
+.pulso-gv2-slide-card-model-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.pulso-gv2-slide-card-model-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.pulso-gv2-slide-card-model-count {
+  align-self: center;
+}
