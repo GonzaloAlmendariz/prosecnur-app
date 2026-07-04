@@ -25,6 +25,14 @@ function clonePlanWithFreshIds(plan: PlanJson): PlanJson {
   };
 }
 
+type ComparisonMode = "koica_group" | "district" | "none";
+
+const COMPARISON_MODE_OPTIONS: Array<{ value: ComparisonMode; label: string; hint: string }> = [
+  { value: "koica_group", label: "Comparativo", hint: "Cruza los gráficos por la variable territorial comparativa." },
+  { value: "district", label: "Distrito", hint: "Usa distrito como lectura territorial." },
+  { value: "none", label: "Sin comparativo", hint: "Genera el plan territorial sin cruces adicionales." },
+];
+
 export function SuggestedPlanButton() {
   const currentPlan = usePlanStore((s) => s.plan);
   const loadPlan = usePlanStore((s) => s.loadPlan);
@@ -37,7 +45,7 @@ export function SuggestedPlanButton() {
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
   const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
   const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
-  const [comparisonMode, setComparisonMode] = useState<"koica_group" | "district" | "none">("koica_group");
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("koica_group");
   const rootRef = useRef<HTMLDivElement>(null);
   const territorialCoverageMeta = registry?.graficadores.find(
     (g) => g.feature_kind === "territorial_coverage" || g.requisito === "territorial_coverage",
@@ -197,32 +205,38 @@ export function SuggestedPlanButton() {
                       setResult(null);
                     }}
                   >
-                    <Map size={13} /> Territorial KOICA
+                    <Map size={13} /> Territorial
                   </button>
                 </div>
                 {acnurMode === "general" ? (
                   <div className="pulso-gv2-suggest-option-text">
-                    <strong>Barras agrupadas sin comparativo</strong>
-                    <small>Usa el azul ACNUR y no inserta mapas.</small>
+                    <strong>ACNUR normal</strong>
+                    <small>Usa el azul ACNUR, sin mapas territoriales ni comparativos.</small>
                   </div>
                 ) : (
-                  <label>
+                  <div className="pulso-gv2-suggest-comparison">
                     <span className="pulso-gv2-suggest-option-text">
-                      <strong>Comparativo por variable opcional</strong>
-                      <small>El mapa territorial se agrega al inicio del plan.</small>
+                      <strong>ACNUR territorial</strong>
+                      <small>Agrega mapas al inicio. Puedes activar o quitar el comparativo.</small>
                     </span>
-                    <select
-                      value={comparisonMode}
-                      onChange={(e) => {
-                        setComparisonMode(e.target.value as "koica_group" | "district" | "none");
-                        setResult(null);
-                      }}
-                    >
-                      <option value="koica_group">intervención vs comparación</option>
-                      <option value="district">distrito</option>
-                      <option value="none">sin comparativo</option>
-                    </select>
-                  </label>
+                    <div className="pulso-gv2-suggest-comparison-segment" role="radiogroup" aria-label="Comparativo territorial">
+                      {COMPARISON_MODE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={comparisonMode === option.value ? "is-active" : ""}
+                          aria-pressed={comparisonMode === option.value}
+                          title={option.hint}
+                          onClick={() => {
+                            setComparisonMode(option.value);
+                            setResult(null);
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}

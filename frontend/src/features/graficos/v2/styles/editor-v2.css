@@ -1223,9 +1223,8 @@
   box-shadow: none;
 }
 
-.pulso-gv2-suggest-acnur label {
-  display: inline-flex;
-  align-items: flex-start;
+.pulso-gv2-suggest-comparison {
+  display: grid;
   gap: 7px;
   min-width: 0;
   width: 100%;
@@ -1259,23 +1258,34 @@
   font-weight: 620;
 }
 
-.pulso-gv2-suggest-acnur input {
-  width: 14px;
-  height: 14px;
-  margin-top: 1px;
-  accent-color: var(--pulso-primary);
-}
-
-.pulso-gv2-suggest-acnur select {
-  align-self: center;
-  flex: 0 0 148px;
-  height: 28px;
+.pulso-gv2-suggest-comparison-segment {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 3px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
-  background: white;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.pulso-gv2-suggest-comparison-segment button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: 760;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.pulso-gv2-suggest-comparison-segment button.is-active {
+  background: var(--pulso-primary);
+  color: white;
+  box-shadow: 0 6px 14px rgba(0, 114, 188, 0.16);
 }
 
 .pulso-gv2-suggest-regenerate {
