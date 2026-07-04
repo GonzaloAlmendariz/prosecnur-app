@@ -49,9 +49,9 @@ const TABS: TabMeta<ValidacionTabId>[] = [
   },
   {
     key: "instrumento",
-    label: "Reglas del instrumento",
+    label: "Reglas del formulario",
     icon: ListTree,
-    desc: "Validar contra el XLSForm",
+    desc: "Saltos, rangos y catálogos",
   },
   {
     key: "reglas_custom",
@@ -149,7 +149,7 @@ export default function ValidacionPage() {
   return (
     <PageFrame
       title="Fase 2 - Validación"
-      lead="Explora la base, valida contra el XLSForm, afina reglas y cierra la limpieza."
+      lead="Explora la base, valida contra el formulario, afina reglas y cierra la limpieza."
       className="pulso-validacion-frame"
       density="compact"
       headerMode="sr-only"
@@ -187,7 +187,7 @@ export default function ValidacionPage() {
           {!prereqsOk && (
             <Alert kind="warn">
               <strong>Faltan insumos.</strong>{" "}
-              Para revisar consistencias necesitas un XLSForm y una base de datos cargados en la Fase 1.
+              Para revisar consistencias necesitas un formulario y una base de datos cargados en la Fase 1.
             </Alert>
           )}
 
@@ -265,8 +265,8 @@ function ValidacionStatusSummary({
 }) {
   return (
     <div className="pulso-validacion-status" aria-label="Estado de la validación">
-      <ValidacionStatusPill label="XLSForm" done={hasXlsform} />
-      <ValidacionStatusPill label="Data" done={hasData} />
+      <ValidacionStatusPill label="Formulario" done={hasXlsform} />
+      <ValidacionStatusPill label="Datos" done={hasData} />
       <span className={`pulso-validacion-status-pill${auditoriaRun ? " is-done" : ""}`}>
         <ShieldCheck size={13} />
         {auditoriaRun ? "Auditoría corrida" : prereqsOk ? "Lista para auditar" : "En espera"}
