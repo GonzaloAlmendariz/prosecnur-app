@@ -51,6 +51,7 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
   const titulo = slideDisplayTitle(slide, variables);
   const slideTypeLabel = SLIDE_LABELS[slide.tipo] ?? humanizeIdentifier(slide.tipo, "Slide");
   const graphItems = graphItemsForSlide(slide, graficadoresById);
+  const graphCount = graphItems.reduce((total, item) => total + item.count, 0);
 
   const isSeparator = slide.tipo === "p_slide_seccion";
 
@@ -59,8 +60,8 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
       ref={setNodeRef}
       style={style}
       data-cat={cat}
-      className={`pulso-gv2-slide-card ${active ? "is-active" : ""} ${isDragging ? "is-dragging" : ""} ${isSeparator ? "is-separator" : ""} ${graphItems.length > 0 ? "has-graphs" : ""}`}
-      data-graph-count={graphItems.length}
+      className={`pulso-gv2-slide-card ${active ? "is-active" : ""} ${isDragging ? "is-dragging" : ""} ${isSeparator ? "is-separator" : ""} ${graphCount > 0 ? "has-graphs" : ""} ${graphCount > 1 ? "has-multiple-graphs" : ""}`}
+      data-graph-count={graphCount}
       onClick={() => select(slide.id)}
       role="button"
       tabIndex={0}
@@ -99,6 +100,11 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
           <SlideTypeIcon tipo={slide.tipo} iconoUi={meta?.icono_ui} size={12} />
         </span>
         <span className="pulso-gv2-slide-card-title-label">{slideTypeLabel}</span>
+        {graphCount > 1 && (
+          <span className="pulso-gv2-slide-card-graph-count">
+            {graphCount} gráficos
+          </span>
+        )}
       </div>
 
       {graphItems.length > 0 && (
@@ -116,6 +122,11 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
                 <GraficadorTypeIcon name={item.name} iconoUi={item.iconoUi} size={12} />
               </span>
               <span className="pulso-gv2-slide-card-model-label">{item.label}</span>
+              {item.count > 1 && (
+                <span className="pulso-gv2-slide-card-model-count" aria-hidden="true">
+                  x{item.count}
+                </span>
+              )}
             </span>
           ))}
           {graphItems.length > 2 && (
@@ -154,6 +165,7 @@ type GraphTimelineItem = {
   label: string;
   ariaLabel: string;
   iconoUi?: string;
+  count: number;
 };
 
 type GraphMetaLookup = Record<string, { titulo_humano?: string | null; icono_ui?: string | null } | undefined>;
@@ -191,13 +203,13 @@ function graphItemsForSlide(slide: Slide, graficadoresById: GraphMetaLookup): Gr
 
   return Array.from(grouped.values()).map((item) => {
     const count = item.slots.length;
-    const label = count > 1 ? `${count}x ${item.label}` : item.label;
     return {
       slot: item.slots.join("+"),
       name: item.name,
-      label,
+      label: item.label,
       ariaLabel: count > 1 ? `${count} gráficos de ${item.label}` : item.label,
       iconoUi: item.iconoUi,
+      count,
     };
   });
 }
