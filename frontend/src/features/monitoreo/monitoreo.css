@@ -53995,6 +53995,7 @@ button.mon-acr-requirement-metric:active {
 
 .mon-territorial-reconciliation-panel {
   min-width: 0;
+  max-width: 100%;
   min-height: 0;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -54004,7 +54005,13 @@ button.mon-acr-requirement-metric:active {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.86)),
     #fff;
+  overflow: hidden;
   padding: 12px;
+}
+
+.mon-territorial-reconciliation-panel > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .mon-territorial-reconciliation-panel.is-ump {
@@ -54044,18 +54051,24 @@ button.mon-acr-requirement-metric:active {
 
 .mon-territorial-reconciliation-metrics {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 7px;
 }
 
 .mon-territorial-reconciliation-metrics span {
   min-width: 0;
+  min-height: 44px;
   display: grid;
+  align-content: center;
   gap: 2px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
   padding: 8px;
 }
 
@@ -54085,6 +54098,7 @@ button.mon-acr-requirement-metric:active {
   font-style: normal;
   font-weight: 850;
   letter-spacing: 0.035em;
+  line-height: 1.08;
   text-transform: uppercase;
 }
 
