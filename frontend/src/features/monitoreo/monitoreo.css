@@ -23572,6 +23572,39 @@
     grid-template-rows: minmax(250px, 1fr) minmax(212px, 0.8fr);
   }
 
+  .mon-operational-adjustments__detail-body {
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .mon-operational-adjustments__detail footer {
+    grid-template-columns: minmax(270px, 0.56fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 9px;
+  }
+
+  .mon-operational-adjustments__detail footer button {
+    min-height: 32px;
+    border-radius: 11px;
+  }
+
+  .mon-operational-adjustments__detail footer small {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .mon-operational-guardrails {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .mon-operational-guardrails span {
+    min-height: 28px;
+    padding: 5px 6px;
+    font-size: 0.58rem;
+  }
+
   .mon-operational-decision-spine {
     grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr);
     gap: 7px;
