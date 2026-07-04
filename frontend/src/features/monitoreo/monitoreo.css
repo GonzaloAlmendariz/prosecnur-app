@@ -22383,8 +22383,8 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 
-.mon-operational-adjustments__suggestions header div,
-.mon-operational-adjustments__applied header div {
+.mon-operational-adjustments__suggestions header > div:first-child,
+.mon-operational-adjustments__applied header > div:first-child {
   display: grid;
   gap: 3px;
 }
@@ -22472,11 +22472,75 @@
 }
 
 .mon-operational-adjustments__applied .mon-operational-adjustments__panel-tools {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .mon-operational-adjustments__applied .mon-operational-adjustments__search {
   flex: 1 1 260px;
+}
+
+.mon-operational-applied-segment {
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 28%, var(--pulso-border));
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--pulso-muted-surface) 68%, #fff)),
+    #fff;
+  padding: 3px;
+}
+
+.mon-operational-applied-segment button {
+  --applied-segment-accent: var(--pulso-accent);
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 880;
+  line-height: 1;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.mon-operational-applied-segment button strong {
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 930;
+  line-height: 1;
+}
+
+.mon-operational-applied-segment button:hover,
+.mon-operational-applied-segment button:focus-visible {
+  color: var(--pulso-text);
+  outline: none;
+}
+
+.mon-operational-applied-segment button.status-active {
+  --applied-segment-accent: var(--pulso-success-fg);
+}
+
+.mon-operational-applied-segment button.status-reverted {
+  --applied-segment-accent: var(--pulso-text-muted);
+}
+
+.mon-operational-applied-segment button.is-active {
+  border-color: color-mix(in srgb, var(--applied-segment-accent) 24%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--applied-segment-accent) 9%, #fff), #fff),
+    #fff;
+  color: var(--applied-segment-accent);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--applied-segment-accent) 9%, transparent);
 }
 
 .mon-operational-adjustments__applied .mon-operational-applied-audit {
