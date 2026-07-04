@@ -84,7 +84,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
       <div className="pulso-codificacion-adaptar-stats">
         <Stat label="Preguntas" value={t.n_preguntas} />
         <Divider />
-        <Stat label="Variables nuevas" value={t.n_variables_nuevas} hint="Se agregan como *_recod al dataset" />
+        <Stat label="Campos nuevos" value={t.n_variables_nuevas} hint="Se agregan como columnas *_recod" />
         <Divider />
         <Stat label="Códigos nuevos" value={t.n_codigos_nuevos} />
         <Divider />
@@ -109,7 +109,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
 
       {/* Tabla de preguntas soportadas */}
       {preguntasSoportadas.length > 0 && (
-        <Panel eyebrow="Qué se va a adaptar" title="Variables que se crearán en el dataset">
+        <Panel eyebrow="Qué se va a aplicar" title="Campos que se crearán">
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {preguntasSoportadas.map((p) => (
               <PreguntaPlanCard key={p.parent} p={p} />
@@ -125,7 +125,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
             {preguntasNoSoportadas.length} {preguntasNoSoportadas.length === 1 ? "pregunta quedará" : "preguntas quedarán"} fuera de la adaptación
           </div>
           <div style={{ fontSize: 12 }}>
-            Estas preguntas tienen grupos codificados pero su configuración no permite adaptarlas automáticamente todavía:
+            Estas preguntas tienen grupos codificados, pero sus ajustes no permiten aplicarlas automáticamente todavía:
           </div>
           <ul style={{ marginTop: 6, marginBottom: 0, fontSize: 12, paddingLeft: 20 }}>
             {preguntasNoSoportadas.map((p) => (
@@ -151,14 +151,14 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
             disabled={!!jobId || t.n_preguntas === 0}
             style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            <Play size={14} /> Adaptar dataset
+            <Play size={14} /> Aplicar a respuestas
           </button>
         </div>
       )}
 
       {jobId && (
         <JobProgress<AplicarResult>
-          label="Adaptando dataset e instrumento"
+          label="Aplicando cambios al formulario y respuestas"
           jobId={jobId}
           onDone={onJobDone}
           onError={onJobError}
@@ -213,7 +213,7 @@ function Divider() {
 function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
   const arqLabel =
     p.tipo === "select_one" && p.modo_so === "hijo" ? "SO · texto codificado aparte" :
-    p.tipo === "select_one" && p.modo_so === "padre" ? "SO · variable original codificada" :
+    p.tipo === "select_one" && p.modo_so === "padre" ? "SO · pregunta original codificada" :
     p.tipo === "integer" ? "Numérica · rangos" :
     p.tipo === "text" ? "Texto abierto" :
     p.tipo === "select_multiple" ? "Opción múltiple" : p.tipo;
@@ -260,7 +260,7 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ color: "var(--pulso-success-fg)", fontWeight: 700 }}>Nueva variable:</span>
+        <span style={{ color: "var(--pulso-success-fg)", fontWeight: 700 }}>Campo nuevo:</span>
         <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{p.nueva_variable}</code>
         <span style={{ color: "var(--pulso-success-fg)" }}>·</span>
         <span>{p.n_respuestas_afectadas} {p.n_respuestas_afectadas === 1 ? "respuesta afectada" : "respuestas afectadas"}</span>
@@ -335,5 +335,5 @@ function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respu
 
 function motivoNoSoportado(p: PlanPregunta): string {
   if (p.tipo === "select_multiple" && !p.text_col) return "SM sin 'Otros, especifique' emparejado";
-  return "configuración no reconocida";
+  return "ajuste no reconocido";
 }

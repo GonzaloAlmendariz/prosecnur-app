@@ -111,7 +111,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         <div style={{ marginBottom: 16 }}>
           <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 1 · Columna "Otros, especifique"</div>
           <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10 }}>
-            ¿Qué columna del dataset contiene el texto abierto de esta pregunta?
+            ¿Dónde está el texto abierto de esta pregunta?
           </div>
 
           {candidatosCols.length > 0 && !showAllCols && (
@@ -176,15 +176,15 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Codificar variable original"
-                description={`La variable ${pregunta.parent} se convierte en ${pregunta.parent}_recod: conserva sus opciones originales y suma categorías creadas desde "${childCol}". Lo no categorizable queda como "Otros".`}
+                title="Codificar pregunta original"
+                description={`${pregunta.parent} se convierte en ${pregunta.parent}_recod: conserva sus opciones originales y suma categorías creadas desde "${childCol}". Lo no categorizable queda como "Otros".`}
               />
               <ModoOption
                 value="hijo"
                 current={modoSo}
                 onChange={setModoSo}
                 title="Codificar texto aparte"
-                description={`Los textos de "${childCol}" se codifican como ${childCol}_recod, una variable independiente. Las opciones originales de ${pregunta.parent} no cambian.`}
+                description={`Los textos de "${childCol}" se codifican como ${childCol}_recod, separados de las opciones originales. ${pregunta.parent} no cambia.`}
               />
             </div>
           </div>

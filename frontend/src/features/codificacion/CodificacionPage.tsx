@@ -100,7 +100,7 @@ export default function CodificacionPage() {
           </ContextBar>
 
           {!prereqOk && (
-            <Alert kind="warn">Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de codificar.</Alert>
+            <Alert kind="warn">Necesitas cargar el formulario y las respuestas en <strong>1. Carga</strong> antes de codificar.</Alert>
           )}
         </div>
       }
@@ -127,7 +127,7 @@ export default function CodificacionPage() {
             <EmptyState
               icon={<FileSpreadsheet size={20} />}
               title="Carga insumos para codificar"
-              hint="La codificación se habilita cuando la sesión tiene un XLSForm y una base de datos cargados."
+              hint="La codificación se habilita cuando la sesión tiene un formulario y respuestas cargadas."
               cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
           ) : (
@@ -221,7 +221,7 @@ function CodificacionStatusSummary({
   return (
     <div className="pulso-codificacion-status" aria-label="Estado de la codificación">
       <CodificacionStatusPill label="Formulario" done={hasXlsform} />
-      <CodificacionStatusPill label="Datos" done={hasData} />
+      <CodificacionStatusPill label="Respuestas" done={hasData} />
       <span className={`pulso-codificacion-status-pill${applied ? " is-done" : ""}`}>
         {applied ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
         {applied ? "Codificación aplicada" : prereqOk ? readyLabel : "En espera"}

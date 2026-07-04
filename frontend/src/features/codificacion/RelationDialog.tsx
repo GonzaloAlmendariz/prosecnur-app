@@ -139,7 +139,7 @@ export function RelationDialog({
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Codificar variable original"
+                title="Codificar pregunta original"
                 description={`${parent.parent} se convierte en ${parent.parent}_recod: conserva sus opciones originales y suma categorías creadas desde ${childCol}.`}
               />
               <ModoOption
@@ -147,7 +147,7 @@ export function RelationDialog({
                 current={modoSo}
                 onChange={setModoSo}
                 title="Codificar texto aparte"
-                description={`${childCol} se codifica como ${childCol}_recod, una variable independiente. ${parent.parent} queda tal cual.`}
+                description={`${childCol} se codifica como ${childCol}_recod, separado de las opciones originales. ${parent.parent} queda tal cual.`}
               />
             </section>
           )}

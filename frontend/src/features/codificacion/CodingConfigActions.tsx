@@ -42,7 +42,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       a.download = suggestedFilename || `prosecnur_codificacion_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(href);
-      setMessage(`Configuración exportada: ${payload.variables.length} variable(s).`);
+      setMessage(`Ajustes exportados: ${payload.variables.length} pregunta(s) o campo(s).`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -64,7 +64,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
   ) : null;
 
   return (
-    <div className="pulso-codificacion-config-actions" aria-label="Configuración de codificación">
+    <div className="pulso-codificacion-config-actions" aria-label="Ajustes de codificación">
       <button
         type="button"
         className="pulso-codificacion-config-button"
@@ -73,7 +73,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
         title="Descarga categorías, reglas y ajustes de codificación. No incluye filas ni casos."
       >
         <Download size={13} />
-        {busy === "export" ? "Exportando..." : "Exportar config"}
+        {busy === "export" ? "Exportando..." : "Exportar ajustes"}
       </button>
       <button
         type="button"
@@ -84,10 +84,10 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           setDialogOpen(true);
         }}
         disabled={disabled}
-        title="Revisa un JSON o Excel de categorizaciones antes de aplicarlo al proyecto actual."
+        title="Revisa un archivo portable o Excel de categorizaciones antes de aplicarlo al proyecto actual."
       >
         <Upload size={13} />
-        Importar config
+        Importar ajustes
       </button>
       {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
       {error && <span className="pulso-codificacion-config-feedback is-error">{error}</span>}
@@ -203,9 +203,9 @@ function CodingConfigImportDialog({
         <header className="pulso-codificacion-import-head">
           <span className="pulso-codificacion-import-icon" aria-hidden="true"><FileJson size={18} /></span>
           <div>
-            <span className="pulso-section-eyebrow">Configuración portable</span>
-            <h2 id="codif-import-title">Importar configuración</h2>
-            <p>Valida variables y conflictos antes de modificar la codificación del proyecto actual.</p>
+            <span className="pulso-section-eyebrow">Ajustes portables</span>
+            <h2 id="codif-import-title">Importar ajustes</h2>
+            <p>Revisa coincidencias y conflictos antes de modificar la codificación del proyecto actual.</p>
           </div>
           <button type="button" className="pulso-icon" onClick={onClose} aria-label="Cerrar">
             <X size={14} />
@@ -216,7 +216,7 @@ function CodingConfigImportDialog({
           <div className="pulso-codificacion-import-picker">
             <div>
               <strong>{fileName || "Selecciona un archivo JSON o Excel"}</strong>
-              <span>JSON portable o Excel con pares respuesta original / recategorización. No importa filas de casos al proyecto.</span>
+              <span>Archivo portable o Excel con pares de respuesta original y recategorización. No importa filas de casos al proyecto.</span>
             </div>
             <button type="button" className="pulso-secondary" disabled={busy !== null} onClick={() => fileRef.current?.click()}>
               <Upload size={13} />
@@ -247,7 +247,7 @@ function CodingConfigImportDialog({
                   <thead>
                     <tr>
                       <th>Importar</th>
-                      <th>Variable origen</th>
+                      <th>Origen</th>
                       <th>Destino</th>
                       <th>Estado</th>
                       <th>Cambios</th>
@@ -295,11 +295,11 @@ function CodingConfigImportDialog({
                             >
                               <option value="keep">Conservar actual</option>
                               <option value="merge_missing">Agregar faltantes</option>
-                              <option value="replace">Reemplazar variable</option>
+                              <option value="replace">Reemplazar destino</option>
                               <option value="duplicate">Duplicar como versión</option>
                             </select>
                           ) : (
-                            <span className="pulso-codificacion-import-strategy">Aplicar configuración</span>
+                            <span className="pulso-codificacion-import-strategy">Aplicar ajustes</span>
                           )}
                         </td>
                       </tr>

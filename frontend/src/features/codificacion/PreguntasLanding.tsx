@@ -71,13 +71,13 @@ export function modoSoOptionsForDisplay(parent: string, childCol: string): Array
   return [
     {
       value: "padre",
-      label: "Codificar variable original",
+      label: "Codificar pregunta original",
       title: `Crear ${parent}_recod con opciones originales y categorías provenientes de ${childCol}`,
     },
     {
       value: "hijo",
       label: "Codificar texto aparte",
-      title: `Crear ${childCol}_recod como variable independiente`,
+      title: `Crear ${childCol}_recod como texto aparte`,
     },
   ];
 }
@@ -207,7 +207,7 @@ export function PreguntasLanding() {
       if (padre.tipo === "select_multiple" && !dummy_col) {
         announce(`${childCol} adoptada por ${padre.parent}. Falta indicar cuál opción es "Otros".`);
       } else {
-        announce(`${childCol} adoptada por ${padre.parent}${modo_so === "padre" ? " para codificar la variable original" : modo_so === "hijo" ? " como texto aparte" : ""}.`);
+        announce(`${childCol} conectada con ${padre.parent}${modo_so === "padre" ? " para codificar la pregunta original" : modo_so === "hijo" ? " como texto aparte" : ""}.`);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -251,8 +251,8 @@ export function PreguntasLanding() {
       glowCard(padre.parent);
       announce(
         modo_so === "padre"
-          ? `${padre.parent} se codifica como variable original en ${padre.parent}_recod.`
-          : `${pj.child_col} se codifica como variable independiente en ${pj.child_col}_recod.`
+          ? `${padre.parent} se codifica como pregunta original en ${padre.parent}_recod.`
+          : `${pj.child_col} se codifica como texto aparte en ${pj.child_col}_recod.`
       );
     } catch (e) {
       setError((e as Error).message);
@@ -782,7 +782,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   const tipoRow = (
     <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
       <span style={{ padding: "2px 6px", borderRadius: 4, background: ts.bg, color: ts.fg, fontWeight: 600 }}>{ts.label}</span>
-      {p.col_efectiva && <span>col: <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code></span>}
+      {p.col_efectiva && <span>Texto leído desde <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code></span>}
     </div>
   );
 
@@ -826,7 +826,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--adoptada-fg)" }}>{p.parent}</div>
           <div style={{ flex: 1 }} />
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
-            <Check size={10} /> Adoptada por {padre?.parent ?? "padre"}
+            <Check size={10} /> Texto conectado
           </span>
         </div>
         {label}
@@ -842,7 +842,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
             display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
           }}
         >
-          ↗ Gestionar desde {padre?.parent ?? "padre"}
+          ↗ Gestionar con {padre?.parent ?? "la pregunta principal"}
         </button>
         {marcarFooter}
       </article>
@@ -943,7 +943,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     const modoLabel = needsDummy
       ? "Falta opción 'Otros'"
       : p.modo_so === "padre"
-      ? "Variable original codificada"
+      ? "Pregunta original codificada"
       : p.modo_so === "hijo"
       ? "Texto codificado aparte"
       : "Emparejada";
@@ -980,7 +980,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <Link2 size={12} color="var(--pulso-primary)" />
           <PairedSide
             title={pareja.child_col}
-            subtitle={p.modo_so === "padre" ? "aporta nuevas categorías" : p.modo_so === "hijo" ? "se codifica como variable aparte" : "texto asociado"}
+            subtitle={p.modo_so === "padre" ? "aporta nuevas categorías" : p.modo_so === "hijo" ? "se codifica como texto aparte" : "texto asociado"}
             tone="soft"
           />
         </div>
@@ -1045,7 +1045,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // Sin emparejar. No mostramos candidatos ni mensajes de "no se detectó"
   // en la card — se ofrecen solo dentro del diálogo "Emparejar con…"
   // (si hay candidatos, aparecen preseleccionados allí; si no, el diálogo
-  // permite buscar entre todas las columnas del dataset).
+  // permite buscar entre todas las columnas disponibles).
   const hasCands = p.candidatos_texto && p.candidatos_texto.length > 0;
   return (
     <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
@@ -1272,7 +1272,7 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
   if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: IconAI };
   if (arq === "solitaria") return { label: "Solitaria", bg: "#f3f4f6", fg: "#4b5563", icon: Check };
   if (arq === "huerfana") return { label: "Texto libre", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
-  if (arq === "adoptada") return { label: "Adoptada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };
+  if (arq === "adoptada") return { label: "Conectada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };
   if (arq === "no-aplica") return { label: "Inactiva", bg: "#f3f4f6", fg: "#9ca3af", icon: Check };
   if ((arq === "pareja-so" || arq === "pareja-sm") && paired) {
     return { label: "Emparejada", bg: "var(--pulso-success-bg)", fg: "var(--pulso-success-fg)", icon: Link2 };

@@ -81,7 +81,7 @@ export default function PreguntaDetalle() {
               {pregunta.parent_label}
             </h2>
             <code
-              title={`ID del XLSForm: ${pregunta.parent}`}
+              title={`ID del formulario: ${pregunta.parent}`}
               style={{
                 fontFamily: "ui-monospace, monospace",
                 fontSize: 11, fontWeight: 600,
