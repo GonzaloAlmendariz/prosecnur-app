@@ -17209,13 +17209,80 @@ h1.pulso-page-title {
   font-weight: 700;
 }
 .analitica-empty {
-  padding: 16px;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
+  justify-content: center;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 11px 14px;
   border: 1px dashed var(--pulso-border);
   border-radius: 8px;
-  background: var(--pulso-surface-2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--pulso-surface-2) 78%, #fff));
   text-align: center;
   color: var(--pulso-text-soft);
   font-size: 12px;
+}
+.analitica-empty-icon {
+  grid-row: 1 / span 2;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.analitica-empty strong {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: left;
+}
+.analitica-empty small {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: 680;
+  line-height: 1.2;
+  text-align: left;
+}
+.analitica-add-inline {
+  width: fit-content;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 760;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.analitica-add-inline:active:not(:disabled) {
+  transform: scale(0.98);
+}
+@media (hover: hover) and (pointer: fine) {
+  .analitica-add-inline:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border);
+    background: var(--pulso-primary-soft);
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--pulso-primary) 10%, transparent);
+  }
 }
 .analitica-panel-workbench {
   min-width: 0;
@@ -17424,12 +17491,8 @@ h1.pulso-page-title {
   overflow-wrap: anywhere;
 }
 .analitica-panel-empty {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   width: 100%;
-  min-height: 78px;
+  min-height: 64px;
 }
 .analitica-panel-check {
   display: inline-flex;

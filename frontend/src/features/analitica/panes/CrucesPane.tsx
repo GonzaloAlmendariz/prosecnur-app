@@ -282,7 +282,11 @@ function VariableChips({
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {selected.length === 0 && !adding && (
         <div className="analitica-empty">
-          Aún no elegiste variables. Usa <strong>Añadir variable</strong> para crear el primer bloque de cruces.
+          <span className="analitica-empty-icon" aria-hidden="true">
+            <GitBranch size={15} />
+          </span>
+          <strong>Sin variables de cruce</strong>
+          <small>El primer bloque se crea con una variable de columna.</small>
         </div>
       )}
       {selected.length > 0 && (
@@ -360,7 +364,7 @@ function VariableChips({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start" }}
+          className="analitica-add-inline"
         >
           <Plus size={12} /> Añadir variable
         </button>

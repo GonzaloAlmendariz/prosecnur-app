@@ -267,7 +267,11 @@ function NumericasPicker({
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {numericas.length === 0 && !adding && (
         <div className="analitica-empty">
-          Aún no hay variables marcadas como numéricas.
+          <span className="analitica-empty-icon" aria-hidden="true">
+            <Hash size={15} />
+          </span>
+          <strong>Sin resumen numérico</strong>
+          <small>Marca edades, ingresos o puntajes para resumirlos aparte.</small>
         </div>
       )}
       {numericas.length > 0 && (

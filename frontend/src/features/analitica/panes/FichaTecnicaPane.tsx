@@ -233,7 +233,13 @@ export function FichaTecnicaPane() {
                       ))}
                     </div>
                   ) : (
-                    <div className="analitica-empty">Sin KPIs automáticos para este proyecto.</div>
+                    <div className="analitica-empty">
+                      <span className="analitica-empty-icon" aria-hidden="true">
+                        <Gauge size={15} />
+                      </span>
+                      <strong>Sin KPIs automáticos</strong>
+                      <small>Los indicadores aparecerán cuando haya evidencia disponible.</small>
+                    </div>
                   )}
                 </Section>
 
