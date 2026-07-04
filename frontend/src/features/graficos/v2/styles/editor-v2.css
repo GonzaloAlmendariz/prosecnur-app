@@ -27337,3 +27337,179 @@
     grid-template-columns: 218px minmax(0, 1fr);
   }
 }
+
+/* Suite polish pass 56: make the model picker spend its canvas on readable cards. */
+.pulso-gv2-picker-backdrop {
+  padding: 9px;
+}
+
+.pulso-gv2-picker {
+  width: min(2028px, calc(100vw - 18px));
+  max-width: 2028px;
+  height: calc(100vh - 18px);
+  max-height: calc(100vh - 18px);
+}
+
+.pulso-gv2-picker-stage {
+  grid-template-columns: clamp(184px, 10vw, 210px) minmax(0, 1fr) clamp(306px, 18vw, 360px);
+}
+
+.pulso-gv2-picker-library {
+  padding: 12px 14px 14px;
+}
+
+.pulso-gv2-picker-library .pulso-gv2-picker-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 276px), 1fr));
+  gap: 12px;
+  padding: 0 8px 18px 0;
+}
+
+.pulso-gv2-picker-tile {
+  min-height: 224px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: minmax(58px, auto) minmax(132px, 1fr);
+  gap: 10px;
+  padding: 11px 12px 13px;
+  align-self: start;
+  align-content: stretch;
+  overflow: clip;
+}
+
+.pulso-gv2-picker-tile-copy {
+  align-self: start;
+  min-height: 0;
+  padding-right: 18px;
+}
+
+.pulso-gv2-picker-tile-meta-row,
+.pulso-gv2-picker-tile-tags {
+  min-width: 0;
+}
+
+.pulso-gv2-picker-tile-label {
+  line-height: 1.14;
+}
+
+.pulso-gv2-picker-tab-copy small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.12;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: initial;
+}
+
+.pulso-gv2-picker-tile:not([data-cat="estructural"]) .pulso-gv2-picker-slide-preview.is-card {
+  width: min(318px, 100%);
+  align-self: stretch;
+  justify-self: stretch;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-paper {
+  padding: 8px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-slot {
+  min-height: 24px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-copy,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-copy {
+  grid-row: 2 / 4;
+  padding-left: 25px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="singleNarrative"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="twoNarrative"] .pulso-gv2-picker-slide-slots {
+  grid-row: 4 / 8;
+}
+
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population5"] .pulso-gv2-picker-slide-slots,
+.pulso-gv2-picker-slide-preview.is-card[data-layout="population6"] .pulso-gv2-picker-slide-slots {
+  grid-template-rows: repeat(2, minmax(30px, 1fr));
+  gap: 5px 6px;
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] {
+  min-height: 132px;
+  grid-template-columns: 30px minmax(0, 1fr) 64px;
+  grid-template-rows: minmax(92px, 1fr);
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] .pulso-gv2-picker-slide-preview.is-card {
+  width: 62px;
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] .pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-paper {
+  width: 62px;
+  height: 62px;
+}
+
+.pulso-gv2-picker-inspector {
+  padding: 15px 15px 17px;
+}
+
+.pulso-gv2-picker-inspector .pulso-gv2-picker-slide-preview.is-hero {
+  width: min(100%, 340px);
+  justify-self: center;
+}
+
+@media (min-width: 1600px) {
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 276px), 1fr));
+  }
+
+  .pulso-gv2-picker-grid > .pulso-gv2-picker-tile[data-cat="estructural"]:nth-of-type(5),
+  .pulso-gv2-picker-grid > .pulso-gv2-picker-tile[data-cat="estructural"]:nth-of-type(6) {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 1500px) {
+  .pulso-gv2-picker {
+    width: calc(100vw - 18px);
+    height: calc(100vh - 18px);
+  }
+
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 192px minmax(0, 1fr) 300px;
+  }
+
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 278px), 1fr));
+  }
+}
+
+@media (max-width: 1320px) {
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 188px minmax(0, 1fr) 282px;
+  }
+
+  .pulso-gv2-picker-tile {
+    min-height: 214px;
+    grid-template-rows: minmax(56px, auto) minmax(124px, 1fr);
+  }
+
+  .pulso-gv2-picker-tile[data-cat="estructural"] {
+    min-height: 96px;
+    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-rows: minmax(58px, auto);
+  }
+
+  .pulso-gv2-picker-tile[data-cat="estructural"] .pulso-gv2-picker-slide-preview.is-card {
+    display: none;
+  }
+}
+
+@media (max-width: 1080px) {
+  .pulso-gv2-picker {
+    width: calc(100vw - 18px);
+    height: calc(100vh - 18px);
+  }
+
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+}
