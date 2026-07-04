@@ -201,11 +201,10 @@ function PersonMark({ x = 7.2, y = 12.4 }: { x?: number; y?: number }) {
 function TargetMark() {
   return (
     <g>
-      <circle cx="11.2" cy="12.8" r="6.9" />
-      <circle cx="11.2" cy="12.8" r="4" />
-      <circle cx="11.2" cy="12.8" r="1.25" fill="currentColor" stroke="none" />
-      <path d="M14.4 9.6 20.6 3.4" strokeWidth="1.95" />
-      <path d="M17.2 3.4h3.4v3.4" strokeWidth="1.95" />
+      <circle cx="12" cy="12" r="8.1" strokeWidth="1.85" />
+      <circle cx="12" cy="12" r="5.25" strokeWidth="1.85" />
+      <circle cx="12" cy="12" r="2.35" strokeWidth="1.85" />
+      <circle cx="12" cy="12" r="0.95" fill="currentColor" stroke="none" />
     </g>
   );
 }
