@@ -205,7 +205,7 @@ export function InspectorV2() {
             })}
           </div>
 
-          <SlidePreview slide={slide} prepOk={prepOk} compact />
+          <SlidePreview key={slide.id} slide={slide} prepOk={prepOk} compact />
         </div>
       </div>
 

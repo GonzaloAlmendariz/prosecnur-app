@@ -157,7 +157,7 @@ export default function SlideEditor() {
 
       {/* Preview del slide individual — mini-PPTX descargable */}
       <div style={{ maxWidth: 760 }}>
-        <SlidePreview slide={slide} prepOk={prepOk} />
+        <SlidePreview key={slide.id} slide={slide} prepOk={prepOk} />
       </div>
     </div>
   );
