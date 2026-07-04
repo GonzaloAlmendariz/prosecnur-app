@@ -1737,6 +1737,8 @@ function CargaFollowupContent({
   busy: string;
   error: string;
 }) {
+  const showReadinessBoard = !showInspection && (allReady || pendingChoiceMapping || isMultiBase);
+
   return (
     <>
       {showInspection && estructura && (
@@ -1760,7 +1762,7 @@ function CargaFollowupContent({
         </section>
       )}
 
-      {!showInspection && (
+      {showReadinessBoard && (
         <CargaReadinessBoard
           hasXlsform={hasXlsform}
           hasData={hasData}
