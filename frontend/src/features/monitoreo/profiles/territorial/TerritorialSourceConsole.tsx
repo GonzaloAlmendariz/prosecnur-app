@@ -331,6 +331,8 @@ export function TerritorialSourceConsole({
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(() => new Set());
   const [batchApplying, setBatchApplying] = useState(false);
   const [batchMessage, setBatchMessage] = useState("");
+  const [codeReviewSearch, setCodeReviewSearch] = useState("");
+  const [umpReviewSearch, setUmpReviewSearch] = useState("");
   const [rosterFile, setRosterFile] = useState<File | null>(null);
   const [rosterFormat, setRosterFormat] = useState<"PXXX" | "DNI">("PXXX");
   const [rosterSearch, setRosterSearch] = useState("");
@@ -829,19 +831,6 @@ export function TerritorialSourceConsole({
     return "muted";
   };
   const umpSummary = reports?.ump_declared_summary;
-  const codeReviewRows = [
-    ...(codeSummary?.reconciliation_responses ?? []),
-    ...(codeSummary?.unrecognized_responses ?? []),
-  ].slice(0, 8);
-  const umpRows = umpSummary?.rows ?? [];
-  const umpManualRows = umpRows.filter((row) => row.status === "review" || row.status === "missing");
-  const umpReviewRows = (umpManualRows.length
-    ? umpManualRows
-    : umpRows).slice(0, 8);
-  const umpRowsWithoutRoute = umpManualRows.filter((row) => !row.assigned_ump && !(row.route_blocks?.length ?? 0));
-  const umpRowsWithRouteCandidate = umpManualRows.filter((row) => (row.route_blocks?.length ?? 0) > 0 || Boolean(row.assigned_ump));
-  const umpManualPreviewRows = (umpManualRows.length ? umpManualRows : umpRows).slice(0, 4);
-  const umpAcceptedCount = (umpSummary?.metrics?.recognized_ump_count ?? 0) + (umpSummary?.metrics?.reconciled_ump_count ?? 0);
   const declaredUmpReviewReason = (row: TerritorialSourceDeclaredUmpRow) => {
     if (row.status === "missing") return "Sin UMP declarada";
     if (row.assigned_ump) return "Ruta guardada";
@@ -849,6 +838,54 @@ export function TerritorialSourceConsole({
     if ((row.route_blocks?.length ?? 0) === 1) return "Ruta candidata";
     return "Sin ruta asignada";
   };
+  const normalizedCodeReviewSearch = normalizeSearch(codeReviewSearch);
+  const normalizedUmpReviewSearch = normalizeSearch(umpReviewSearch);
+  const codeReviewSourceRows = [
+    ...(codeSummary?.reconciliation_responses ?? []),
+    ...(codeSummary?.unrecognized_responses ?? []),
+  ];
+  const filteredCodeReviewRows = normalizedCodeReviewSearch
+    ? codeReviewSourceRows.filter((row) => normalizeSearch([
+      row.response_id,
+      row.raw_code,
+      row.normalized_code,
+      row.code,
+      row.ump,
+      row.district,
+      row.assigned_code,
+      row.assigned_name,
+      row.reconciled ? "reconciliado asignada" : "por revisar",
+    ].join(" ")).includes(normalizedCodeReviewSearch))
+    : codeReviewSourceRows;
+  const codeReviewRows = filteredCodeReviewRows.slice(0, 8);
+  const umpRows = umpSummary?.rows ?? [];
+  const umpManualRows = umpRows.filter((row) => row.status === "review" || row.status === "missing");
+  const umpReviewSourceRows = umpManualRows.length ? umpManualRows : umpRows;
+  const filteredUmpReviewRows = normalizedUmpReviewSearch
+    ? umpReviewSourceRows.filter((row) => {
+      const routeText = (row.route_blocks ?? [])
+        .map((block) => [block.route_ump, block.distrito, block.responsable, block.manzana].join(" "))
+        .join(" ");
+      return normalizeSearch([
+        row.response_id,
+        row.raw_ump,
+        row.normalized_ump,
+        row.assigned_ump,
+        row.assigned_block_id,
+        row.assigned_district,
+        row.assigned_responsible,
+        row.responsible,
+        row.status,
+        declaredUmpReviewReason(row),
+        routeText,
+      ].join(" ")).includes(normalizedUmpReviewSearch);
+    })
+    : umpReviewSourceRows;
+  const umpReviewRows = filteredUmpReviewRows.slice(0, 8);
+  const umpRowsWithoutRoute = umpManualRows.filter((row) => !row.assigned_ump && !(row.route_blocks?.length ?? 0));
+  const umpRowsWithRouteCandidate = umpManualRows.filter((row) => (row.route_blocks?.length ?? 0) > 0 || Boolean(row.assigned_ump));
+  const umpManualPreviewRows = (umpManualRows.length ? umpManualRows : umpRows).slice(0, 4);
+  const umpAcceptedCount = (umpSummary?.metrics?.recognized_ump_count ?? 0) + (umpSummary?.metrics?.reconciled_ump_count ?? 0);
   const declaredUmpStatusLabel = (status: string) => {
     if (status === "recognized") return "Exacta";
     if (status === "reconciled") return "Reconciliada";
@@ -1481,6 +1518,24 @@ export function TerritorialSourceConsole({
                   <span className={(codeSummary?.unrecognized_response_count ?? 0) ? "is-warning" : ""}><strong>{fmt(codeSummary?.unrecognized_response_count ?? 0)}</strong><em>revisar</em></span>
                   <span><strong>{fmt(codeSummary?.missing_response_count ?? 0)}</strong><em>sin código</em></span>
                 </div>
+                <div className="mon-territorial-reconciliation-review-lens">
+                  <div className="mon-territorial-reconciliation-review-lens-field">
+                    <Search size={13} />
+                    <input
+                      type="search"
+                      value={codeReviewSearch}
+                      onChange={(event) => setCodeReviewSearch(event.currentTarget.value)}
+                      placeholder="Buscar código, UMP, distrito o responsable"
+                      aria-label="Buscar códigos Pulso por revisar"
+                    />
+                    {codeReviewSearch ? (
+                      <button type="button" onClick={() => setCodeReviewSearch("")} aria-label="Limpiar búsqueda de códigos Pulso">
+                        <XCircle size={13} />
+                      </button>
+                    ) : null}
+                  </div>
+                  <span>{fmt(codeReviewRows.length)} de {fmt(filteredCodeReviewRows.length)}</span>
+                </div>
                 <div className="mon-territorial-reconciliation-list">
                   {codeReviewRows.length ? codeReviewRows.map((row, index) => {
                     const recommendationId = codeBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
@@ -1517,7 +1572,7 @@ export function TerritorialSourceConsole({
                     </button>
                     );
                   }) : (
-                    <div className="mon-territorial-source-empty">Sin códigos pendientes.</div>
+                    <div className="mon-territorial-source-empty">{normalizedCodeReviewSearch ? "Sin coincidencias para este filtro." : "Sin códigos pendientes."}</div>
                   )}
                 </div>
               </section>
@@ -1533,6 +1588,24 @@ export function TerritorialSourceConsole({
                   <span className={(umpSummary?.metrics?.review_ump_count ?? 0) ? "is-warning" : ""}><strong>{fmt(umpSummary?.metrics?.review_ump_count ?? 0)}</strong><em>UMP por revisar</em></span>
                   <span><strong>{fmt(umpSummary?.metrics?.responses_with_ump ?? 0)}</strong><em>respuestas con UMP</em></span>
                   <span><strong>{fmt(umpSummary?.metrics?.responses_without_ump ?? 0)}</strong><em>sin UMP</em></span>
+                </div>
+                <div className="mon-territorial-reconciliation-review-lens">
+                  <div className="mon-territorial-reconciliation-review-lens-field">
+                    <Search size={13} />
+                    <input
+                      type="search"
+                      value={umpReviewSearch}
+                      onChange={(event) => setUmpReviewSearch(event.currentTarget.value)}
+                      placeholder="Buscar UMP, ruta, distrito o responsable"
+                      aria-label="Buscar UMP declaradas por revisar"
+                    />
+                    {umpReviewSearch ? (
+                      <button type="button" onClick={() => setUmpReviewSearch("")} aria-label="Limpiar búsqueda de UMP">
+                        <XCircle size={13} />
+                      </button>
+                    ) : null}
+                  </div>
+                  <span>{fmt(umpReviewRows.length)} de {fmt(filteredUmpReviewRows.length)}</span>
                 </div>
                 <div className="mon-territorial-reconciliation-list">
                   {umpReviewRows.length ? umpReviewRows.map((row, index) => {
@@ -1573,7 +1646,7 @@ export function TerritorialSourceConsole({
                     </button>
                     );
                   }) : (
-                    <div className="mon-territorial-source-empty">Sin UMP pendientes.</div>
+                    <div className="mon-territorial-source-empty">{normalizedUmpReviewSearch ? "Sin coincidencias para este filtro." : "Sin UMP pendientes."}</div>
                   )}
                 </div>
                 <aside className="mon-territorial-reconciliation-queue" aria-label="Bandeja de revisión de UMP">
