@@ -11344,6 +11344,16 @@
   --spatial-tone: #b7791f;
 }
 
+.mon-territorial-spatial-pattern.is-queued,
+.mon-territorial-spatial-candidate.is-queued {
+  border-color: color-mix(in srgb, var(--spatial-tone) 42%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--spatial-tone) 10%, #fff), rgba(255, 255, 255, 0.96));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--spatial-tone) 14%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
 .mon-territorial-spatial-pattern > div:first-child {
   min-width: 0;
   display: grid;
@@ -11446,6 +11456,19 @@
   font-size: 13px;
   font-weight: 920;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-spatial-candidate-status {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--spatial-tone) 26%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--spatial-tone) 7%, #fff);
+  color: color-mix(in srgb, var(--spatial-tone) 74%, var(--pulso-text));
+  font-size: 9.5px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 5px 7px;
   white-space: nowrap;
 }
 
@@ -60411,6 +60434,14 @@ button.mon-acr-requirement-metric:active {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-muted-surface) 72%, #fff)),
     #fff;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcopy > span {
+  color: var(--pulso-success-fg);
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcounts span:first-child strong {
+  color: var(--pulso-success-fg);
 }
 
 .mon-territorial-reconciliation-batchbar > div:first-child {
