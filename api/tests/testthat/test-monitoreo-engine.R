@@ -5492,6 +5492,7 @@ test_that("anulacion territorial activa excluye produccion y la reversion restau
   base_cfg <- list(
     monitoreo_profile = list(family = "territorial", status = "active"),
     territorial = list(
+      ump_var = "Core/M8_ump",
       pulso_code_var = "codigo_encuestador",
       platform_effective_var = "filtro_fuente",
       platform_effective_values = list("apto"),
@@ -5524,6 +5525,16 @@ test_that("anulacion territorial activa excluye produccion y la reversion restau
   expect_equal(active_report$kpis$total_respuestas, 1L)
   expect_equal(active_report$production_annulments$summary$active, 1L)
   expect_equal(active_report$production_annulments$summary$annulled_responses, 2L)
+  active_ump_rows <- vapply(active_report$ump_declared_summary$rows, function(row) as.character(row$raw_ump %||% ""), character(1))
+  expect_false("m1" %in% active_ump_rows)
+  expect_true("m2" %in% active_ump_rows)
+  expect_equal(active_report$ump_declared_summary$metrics$responses_with_ump, 1L)
+
+  source_report <- monitoreo_territorial_reportes(data, monitoreo_normalize_config(active_cfg, data), list(phase = "field"), report_scope = "source")
+  source_ump_rows <- vapply(source_report$ump_declared_summary$rows, function(row) as.character(row$raw_ump %||% ""), character(1))
+  expect_false("m1" %in% source_ump_rows)
+  expect_true("m2" %in% source_ump_rows)
+  expect_equal(source_report$ump_declared_summary$metrics$responses_with_ump, 1L)
 
   reverted_cfg <- active_cfg
   reverted_cfg$territorial$production_annulments$field[[1]]$status <- "reverted"
