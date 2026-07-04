@@ -27513,3 +27513,58 @@
     grid-template-columns: 190px minmax(0, 1fr);
   }
 }
+
+/* Suite polish pass 57: timeline cards as compact slide signatures. */
+.pulso-gv2-slide-card {
+  padding: 7px 8px 8px 9px;
+}
+
+.pulso-gv2-slide-card.has-graphs {
+  min-height: 78px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs {
+  min-height: 84px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs .pulso-gv2-slide-card-title {
+  min-height: 24px;
+  align-items: center;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs .pulso-gv2-slide-card-title-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.pulso-gv2-slide-card-title {
+  grid-template-columns: 21px minmax(0, 1fr) auto;
+}
+
+.pulso-gv2-slide-card-models {
+  gap: 3px;
+}
+
+.pulso-gv2-slide-card-model {
+  min-height: 21px;
+  max-width: calc(100% - 2px);
+  padding: 2px 7px 2px 2px;
+  border-radius: 7px;
+}
+
+.pulso-gv2-slide-card-model-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.pulso-gv2-slide-card-model-icon svg {
+  width: 10.5px;
+  height: 10.5px;
+}
+
+.pulso-gv2-slide-card-model-count {
+  min-width: 16px;
+  padding-inline: 4px;
+}
