@@ -28838,6 +28838,202 @@
   margin: 0;
 }
 
+/* Suite polish pass 67: model picker uses wide desktops without squeezing card content. */
+.pulso-gv2-picker-stage {
+  grid-template-columns:
+    clamp(156px, 9vw, 172px)
+    minmax(0, 1fr)
+    clamp(306px, 18vw, 340px);
+}
+
+.pulso-gv2-picker-library {
+  padding: 10px 13px 13px;
+}
+
+.pulso-gv2-picker-library .pulso-gv2-picker-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 9px 18px 0;
+}
+
+.pulso-gv2-picker-tile {
+  height: 176px;
+  min-height: 176px;
+  grid-template-columns: 28px minmax(126px, 0.72fr) minmax(192px, 1.28fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 8px 10px;
+  padding: 10px 11px 11px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.pulso-gv2-picker-tile-icon {
+  align-self: start;
+}
+
+.pulso-gv2-picker-tile-copy {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  gap: 3px;
+  padding-right: 0;
+}
+
+.pulso-gv2-picker-tile-label {
+  font-size: 12.2px;
+  line-height: 1.12;
+  -webkit-line-clamp: 2;
+}
+
+.pulso-gv2-picker-tile-meta-row,
+.pulso-gv2-picker-tile-tags {
+  flex-wrap: wrap;
+}
+
+.pulso-gv2-picker-tile-meta,
+.pulso-gv2-picker-tile-structure,
+.pulso-gv2-picker-tile-tags span {
+  min-height: 16px;
+  padding: 3px 6px;
+  font-size: 7.7px;
+}
+
+.pulso-gv2-picker-tile:not([data-cat="estructural"]) .pulso-gv2-picker-slide-preview.is-card {
+  grid-column: 3;
+  grid-row: 1;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
+  justify-self: stretch;
+  padding: 6px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-paper {
+  inset: 5px;
+  padding: 7px;
+  gap: 3px;
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy {
+  padding-left: clamp(17px, 11%, 24px);
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-copy::before {
+  width: clamp(13px, 8%, 19px);
+}
+
+.pulso-gv2-picker-slide-preview.is-card .pulso-gv2-picker-slide-slot-icon {
+  width: clamp(10px, 20%, 16px);
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] {
+  height: 88px;
+  min-height: 88px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] .pulso-gv2-picker-tile-copy {
+  align-self: center;
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] .pulso-gv2-picker-slide-preview.is-card {
+  display: none !important;
+}
+
+.pulso-gv2-picker-inspector {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  padding: 12px 13px 14px;
+}
+
+.pulso-gv2-picker-inspector > * {
+  grid-column: 1 / -1;
+}
+
+.pulso-gv2-picker-inspector .pulso-gv2-picker-slide-preview.is-hero {
+  grid-column: 1 / -1 !important;
+  width: 100%;
+  max-width: none;
+  height: clamp(220px, 25vh, 292px);
+  min-height: 220px;
+  align-self: start;
+}
+
+.pulso-gv2-picker-inspector-copy h3 {
+  font-size: 15.8px;
+  line-height: 1.08;
+}
+
+.pulso-gv2-picker-insert-primary {
+  margin-top: 2px;
+}
+
+.pulso-gv2-picker-inspector-note {
+  align-self: start;
+  margin: 0;
+}
+
+@media (min-width: 1580px) {
+  .pulso-gv2-picker-stage {
+    grid-template-columns:
+      clamp(160px, 9vw, 180px)
+      minmax(0, 1fr)
+      clamp(306px, 16vw, 336px);
+  }
+
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pulso-gv2-picker-tile {
+    height: 184px;
+    min-height: 184px;
+    grid-template-columns: 28px minmax(110px, 0.68fr) minmax(178px, 1.32fr);
+  }
+
+  .pulso-gv2-picker-tile[data-cat="estructural"] {
+    height: 92px;
+    min-height: 92px;
+  }
+}
+
+@media (max-width: 1320px) {
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 152px minmax(0, 1fr) 300px;
+  }
+
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .pulso-gv2-picker-tile {
+    height: 166px;
+    min-height: 166px;
+    grid-template-columns: 26px minmax(104px, 0.7fr) minmax(174px, 1.3fr);
+    gap: 7px 9px;
+    padding: 9px 10px 10px;
+  }
+
+  .pulso-gv2-picker-tile[data-cat="estructural"] {
+    height: 82px;
+    min-height: 82px;
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-picker-inspector .pulso-gv2-picker-slide-preview.is-hero {
+    height: 198px;
+    min-height: 198px;
+  }
+}
+
 .pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-chip {
   display: none !important;
 }
