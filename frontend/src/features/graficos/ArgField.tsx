@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
@@ -395,6 +396,164 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 5,
   background: "white",
   outline: "none",
+};
+
+const iconPickerTriggerStyle: React.CSSProperties = {
+  minHeight: 44,
+  width: "100%",
+  display: "grid",
+  gridTemplateColumns: "34px minmax(0, 1fr) auto",
+  alignItems: "center",
+  gap: 10,
+  padding: "6px 10px",
+  border: "1px solid color-mix(in srgb, var(--pulso-module-processing-border) 72%, var(--pulso-border))",
+  borderRadius: 8,
+  background: "linear-gradient(180deg, rgba(255,255,255,0.98), color-mix(in srgb, var(--pulso-module-processing-soft) 18%, #ffffff))",
+  color: "var(--pulso-text)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.88), 0 5px 14px rgba(0, 36, 87, 0.05)",
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+const iconPickerPreviewStyle: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 8,
+  border: "1px solid color-mix(in srgb, var(--pulso-module-processing-border) 66%, var(--pulso-border))",
+  background: "color-mix(in srgb, var(--pulso-module-processing-soft) 48%, #ffffff)",
+  color: "var(--pulso-module-processing)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.82)",
+  overflow: "hidden",
+  flex: "0 0 auto",
+};
+
+const iconPickerImageStyle: React.CSSProperties = {
+  width: "78%",
+  height: "78%",
+  objectFit: "contain",
+  display: "block",
+  filter: "drop-shadow(0 1px 1px rgba(0, 36, 87, 0.12))",
+};
+
+const iconPickerTitleStyle: React.CSSProperties = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontSize: 12,
+  lineHeight: 1.15,
+  color: "var(--pulso-text)",
+  letterSpacing: 0,
+};
+
+const iconPickerSubtitleStyle: React.CSSProperties = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontSize: 10.5,
+  lineHeight: 1.15,
+  color: "var(--pulso-text-soft)",
+  letterSpacing: 0,
+};
+
+function iconPickerPopoverStyle(positionStyle: React.CSSProperties): React.CSSProperties {
+  return {
+    ...positionStyle,
+    zIndex: 10020,
+    display: "grid",
+    gap: 10,
+    padding: 10,
+    border: "1px solid color-mix(in srgb, var(--pulso-module-processing-border) 74%, var(--pulso-border))",
+    borderRadius: 10,
+    background: "color-mix(in srgb, var(--pulso-surface) 94%, transparent)",
+    boxShadow: "var(--pulso-shadow-popover)",
+    backdropFilter: "blur(14px)",
+    overflow: "hidden",
+  };
+}
+
+const iconPickerPopoverHeadStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "34px minmax(0, 1fr)",
+  alignItems: "center",
+  gap: 10,
+  padding: "2px 2px 8px",
+  borderBottom: "1px solid var(--pulso-border)",
+};
+
+const iconPickerGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(136px, 1fr))",
+  gap: 8,
+  overflow: "auto",
+  paddingRight: 2,
+};
+
+const iconPickerOptionStyle: React.CSSProperties = {
+  position: "relative",
+  minWidth: 0,
+  minHeight: 76,
+  display: "grid",
+  gridTemplateRows: "38px auto",
+  placeItems: "center",
+  gap: 6,
+  padding: "9px 8px 8px",
+  border: "1px solid var(--pulso-border)",
+  borderRadius: 8,
+  background: "rgba(255,255,255,0.92)",
+  color: "var(--pulso-text)",
+  cursor: "pointer",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.82)",
+};
+
+const iconPickerOptionActiveStyle: React.CSSProperties = {
+  borderColor: "var(--pulso-module-processing)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--pulso-module-processing-soft) 50%, #ffffff), #ffffff)",
+  boxShadow: "0 0 0 2px color-mix(in srgb, var(--pulso-module-processing-soft) 72%, transparent)",
+};
+
+const iconPickerOptionThumbStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 8,
+  border: "1px solid color-mix(in srgb, var(--pulso-module-processing-border) 62%, var(--pulso-border))",
+  background: "color-mix(in srgb, var(--pulso-module-processing-soft) 42%, #ffffff)",
+  color: "var(--pulso-module-processing)",
+  overflow: "hidden",
+};
+
+const iconPickerOptionNameStyle: React.CSSProperties = {
+  width: "100%",
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  textAlign: "center",
+  fontSize: 11,
+  lineHeight: 1.2,
+  fontWeight: 800,
+  color: "var(--pulso-text)",
+  letterSpacing: 0,
+};
+
+const iconPickerCheckStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 7,
+  right: 7,
+  width: 18,
+  height: 18,
+  padding: 3,
+  borderRadius: 999,
+  background: "var(--pulso-module-processing)",
+  color: "white",
+  boxShadow: "0 4px 10px rgba(15, 118, 110, 0.22)",
 };
 
 function TextControl({
@@ -2046,6 +2205,28 @@ function IconoSelect({
 }) {
   const iconos = usePlanStore((s) => s.iconos);
   const selected = iconos.find((i) => i.id === value);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocMouseDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   if (iconos.length === 0) {
     return (
@@ -2063,41 +2244,119 @@ function IconoSelect({
     );
   }
 
+  function toggleOpen() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (rect) {
+      const width = Math.min(460, window.innerWidth - 28);
+      const left = Math.max(14, Math.min(rect.left, window.innerWidth - width - 14));
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUp = spaceBelow < 300 && spaceAbove > spaceBelow;
+      setPopoverStyle({
+        position: "fixed",
+        left,
+        width,
+        maxHeight: Math.max(240, Math.min(440, (openUp ? spaceAbove : spaceBelow) - 14)),
+        ...(openUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: rect.bottom + 8 }),
+      });
+    }
+    setOpen(true);
+  }
+
+  function commit(nextValue: string | null) {
+    onChange(nextValue);
+    setOpen(false);
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        style={{ ...inputStyle, padding: "5px 8px" }}
+    <div ref={rootRef} style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      <button
+        type="button"
+        onClick={toggleOpen}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        style={iconPickerTriggerStyle}
       >
-        <option value="">(ninguno)</option>
-        {iconos.map((ic) => {
-          const nombre = safeText(ic.nombre, "Icono");
-          return (
-            <option key={ic.id} value={ic.id}>
-              {nombre}
-            </option>
-          );
-        })}
-      </select>
-      {selected && (
+        <span style={iconPickerPreviewStyle} aria-hidden="true">
+          {selected ? (
+            <img
+              src={downloadUrl(selected.file_id)}
+              alt=""
+              style={iconPickerImageStyle}
+            />
+          ) : (
+            <ImageIcon size={15} />
+          )}
+        </span>
+        <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+          <strong style={iconPickerTitleStyle}>{selected ? safeText(selected.nombre, "Icono") : "Sin icono"}</strong>
+          <small style={iconPickerSubtitleStyle}>{iconos.length} recurso{iconos.length === 1 ? "" : "s"} disponible{iconos.length === 1 ? "" : "s"}</small>
+        </span>
+        <ChevronDown size={14} style={{ color: "var(--pulso-text-soft)" }} />
+      </button>
+
+      {open && typeof document !== "undefined" && createPortal((
         <div
-          style={{
-            marginTop: 4, padding: 6,
-            background: "var(--pulso-surface)",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 5,
-            display: "flex", alignItems: "center", gap: 8,
-          }}
+          ref={popoverRef}
+          role="dialog"
+          aria-label="Seleccionar icono"
+          style={iconPickerPopoverStyle(popoverStyle)}
         >
-          <img
-            src={downloadUrl(selected.file_id)}
-            alt={safeText(selected.nombre, "Icono")}
-            style={{ width: 34, height: 34, objectFit: "contain" }}
-          />
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{safeText(selected.nombre, "Icono")}</span>
+          <div style={iconPickerPopoverHeadStyle}>
+            <span style={iconPickerPreviewStyle} aria-hidden="true"><ImageIcon size={15} /></span>
+            <span style={{ minWidth: 0 }}>
+              <strong style={iconPickerTitleStyle}>Seleccionar icono</strong>
+              <small style={iconPickerSubtitleStyle}>Recursos cargados en Estilo global</small>
+            </span>
+          </div>
+          <div style={iconPickerGridStyle}>
+            <button
+              type="button"
+              onClick={() => commit(null)}
+              aria-pressed={!value}
+              style={{
+                ...iconPickerOptionStyle,
+                ...(!value ? iconPickerOptionActiveStyle : {}),
+              }}
+            >
+              <span style={iconPickerOptionThumbStyle}><XIcon size={15} /></span>
+              <span style={iconPickerOptionNameStyle}>Sin icono</span>
+              {!value && <Check size={13} style={iconPickerCheckStyle} />}
+            </button>
+            {iconos.map((ic) => {
+              const active = ic.id === value;
+              const nombre = safeText(ic.nombre, "Icono");
+              return (
+                <button
+                  key={ic.id}
+                  type="button"
+                  onClick={() => commit(ic.id)}
+                  aria-pressed={active}
+                  title={nombre}
+                  style={{
+                    ...iconPickerOptionStyle,
+                    ...(active ? iconPickerOptionActiveStyle : {}),
+                  }}
+                >
+                  <span style={iconPickerOptionThumbStyle}>
+                    <img
+                      src={downloadUrl(ic.file_id)}
+                      alt=""
+                      style={iconPickerImageStyle}
+                    />
+                  </span>
+                  <span style={iconPickerOptionNameStyle}>{nombre}</span>
+                  {active && <Check size={13} style={iconPickerCheckStyle} />}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
