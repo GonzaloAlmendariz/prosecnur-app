@@ -54917,40 +54917,86 @@ button.mon-acr-requirement-metric:active {
   overflow: auto;
 }
 
-.mon-territorial-reconciliation-queue-list span {
+.mon-territorial-reconciliation-queue-list article {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(76px, 0.46fr) minmax(0, 0.62fr) minmax(0, 1fr);
+  grid-template-columns: minmax(78px, 0.36fr) minmax(0, 0.58fr) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 74%, #fff);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.76);
-  padding: 8px;
+  padding: 7px 8px;
 }
 
-.mon-territorial-reconciliation-queue-list span.is-warning {
+.mon-territorial-reconciliation-queue-list article.is-ready {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 52%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 20%, #fff);
+}
+
+.mon-territorial-reconciliation-queue-list article.is-warning {
   border-color: color-mix(in srgb, var(--pulso-warn-border) 58%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-warn-bg) 28%, #fff);
 }
 
-.mon-territorial-reconciliation-queue-list span.is-danger {
+.mon-territorial-reconciliation-queue-list article.is-danger {
   border-color: color-mix(in srgb, var(--pulso-danger-border) 58%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-danger-bg) 30%, #fff);
 }
 
-.mon-territorial-reconciliation-queue-list span.is-muted {
+.mon-territorial-reconciliation-queue-list article.is-muted {
   border-color: color-mix(in srgb, var(--pulso-border-strong) 34%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-muted-surface) 62%, #fff);
 }
 
-.mon-territorial-reconciliation-queue-list span.is-recommended {
+.mon-territorial-reconciliation-queue-list article.is-recommended {
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--pulso-primary) 78%, var(--pulso-success-fg));
 }
 
-.mon-territorial-reconciliation-queue-list span.is-empty {
+.mon-territorial-reconciliation-queue-list article.is-empty {
   border-color: color-mix(in srgb, var(--pulso-success-border) 50%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-success-bg) 28%, #fff);
+}
+
+.mon-territorial-reconciliation-queue-list article > b {
+  min-width: 0;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  line-height: 1;
+  padding: 4px 7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-queue-list article.is-ready > b,
+.mon-territorial-reconciliation-queue-list article.is-empty > b {
+  color: var(--pulso-success-fg);
+}
+
+.mon-territorial-reconciliation-queue-list article.is-warning > b {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-territorial-reconciliation-queue-list article.is-danger > b {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-territorial-reconciliation-queue-list article.is-recommended > b {
+  color: var(--pulso-primary);
+}
+
+.mon-territorial-reconciliation-queue-list article > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
 .mon-territorial-reconciliation-queue-list strong,
@@ -62511,7 +62557,7 @@ button.mon-acr-requirement-metric:active {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .mon-territorial-reconciliation-queue-list span {
+  .mon-territorial-reconciliation-queue-list article {
     grid-template-columns: 1fr;
     gap: 3px;
   }
