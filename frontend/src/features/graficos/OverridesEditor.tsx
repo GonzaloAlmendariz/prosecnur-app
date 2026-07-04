@@ -8,6 +8,7 @@ import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { humanizeIdentifier } from "./graficadorDisplay";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
+import PresetTypePicker from "./PresetTypePicker";
 // Los overrides reutilizables usan solo controles catalogados.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
@@ -289,17 +290,13 @@ function OverrideEditPanel({
           />
           <div className="pulso-gv2-override-model-row">
             <label>Tipo de gráfico</label>
-            <select
+            <PresetTypePicker
               value={override.tipo_preset}
-              onChange={(e) => handleTipoChange(e.target.value)}
-              className="pulso-gv2-override-model-select"
-            >
-              {tipoOptions.map((t) => (
-                <option key={t.name} value={t.name}>
-                  {t.titulo_humano}
-                </option>
-              ))}
-            </select>
+              options={tipoOptions}
+              onChange={handleTipoChange}
+              caption="Tipo de gráfico"
+              showCaption={false}
+            />
           </div>
         </div>
         <div className="pulso-gv2-override-actions">

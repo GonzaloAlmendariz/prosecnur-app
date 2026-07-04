@@ -14,6 +14,7 @@ import { useOverridesDefaults } from "./useOverridesDefaults";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, EmptyState } from "../../components/States";
 import { GraphSettingsIcon, resolveGraphLucideIcon } from "./lucideRegistry";
+import PresetTypePicker from "./PresetTypePicker";
 
 // Modal "Gestionar defaults". Dos modos según cómo se abrió:
 //   - mode="presets": edita los defaults de presets (lo que sirve de
@@ -608,19 +609,13 @@ function OverrideEditForm({
             borderRadius: 5, background: "white", outline: "none",
           }}
         />
-        <select
+        <PresetTypePicker
           value={override.tipo_preset}
-          onChange={(e) => onUpdate({ tipo_preset: e.target.value, args: {} })}
-          style={{
-            fontSize: 11, padding: "5px 8px",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 5, background: "white",
-          }}
-        >
-          {tipoOptions.map((t) => (
-            <option key={t.name} value={t.name}>{t.titulo_humano}</option>
-          ))}
-        </select>
+          options={tipoOptions}
+          onChange={(nextValue) => onUpdate({ tipo_preset: nextValue, args: {} })}
+          caption="Tipo de gráfico"
+          style={{ flex: "0 1 250px" }}
+        />
         <button
           type="button"
           onClick={onDelete}
