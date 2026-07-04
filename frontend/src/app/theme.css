@@ -5580,6 +5580,231 @@ a { color: var(--pulso-primary); }
   gap: 16px;
 }
 
+.pulso-validacion-explorar-loading {
+  min-height: clamp(420px, calc(100dvh - 280px), 700px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 44%, var(--pulso-border));
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-primary-soft) 17%, #ffffff));
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.075);
+}
+
+.pulso-validacion-explorar-loading-head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 42%, var(--pulso-border));
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.pulso-validacion-explorar-loading-icon,
+.pulso-validacion-explorar-loading-step > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-primary-soft) 48%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-validacion-explorar-loading-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+}
+
+.pulso-validacion-explorar-loading-head h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: clamp(17px, 1.35vw, 22px);
+  font-weight: 860;
+  letter-spacing: 0;
+  line-height: 1.14;
+}
+
+.pulso-validacion-explorar-loading-head p {
+  max-width: 780px;
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 640;
+  line-height: 1.45;
+}
+
+.pulso-validacion-explorar-loading-steps {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pulso-validacion-explorar-loading-step {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon hint";
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 2px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 34%, var(--pulso-border));
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-validacion-explorar-loading-step > span {
+  grid-area: icon;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.pulso-validacion-explorar-loading-step strong,
+.pulso-validacion-explorar-loading-step small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-validacion-explorar-loading-step strong {
+  grid-area: label;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
+.pulso-validacion-explorar-loading-step small {
+  grid-area: hint;
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-weight: 620;
+  line-height: 1.25;
+}
+
+.pulso-validacion-explorar-loading-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 290px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.pulso-validacion-explorar-loading-sidebar,
+.pulso-validacion-explorar-loading-preview {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 30%, var(--pulso-border));
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.pulso-validacion-explorar-loading-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 14px;
+}
+
+.pulso-validacion-explorar-loading-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 32%, var(--pulso-border));
+  border-radius: 999px;
+  color: var(--pulso-primary);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.pulso-validacion-explorar-loading-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 24%, var(--pulso-border));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-validacion-explorar-loading-row span {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+.pulso-validacion-explorar-loading-preview {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+}
+
+.pulso-validacion-explorar-loading-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pulso-validacion-explorar-loading-metrics i {
+  min-height: 58px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 24%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-validacion-explorar-loading-chart {
+  display: grid;
+  gap: 12px;
+  min-height: 230px;
+  padding: 22px;
+  align-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 26%, var(--pulso-border));
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-validacion-explorar-loading-line,
+.pulso-validacion-explorar-loading-search i,
+.pulso-validacion-explorar-loading-row span,
+.pulso-validacion-explorar-loading-row i,
+.pulso-validacion-explorar-loading-metrics i,
+.pulso-validacion-explorar-loading-chart span {
+  display: block;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.62), color-mix(in srgb, var(--pulso-primary-soft) 56%, #ffffff), rgba(255, 255, 255, 0.62));
+  background-size: 200% 100%;
+  animation: pulso-shimmer 2.2s linear infinite;
+}
+
+.pulso-validacion-explorar-loading-search i,
+.pulso-validacion-explorar-loading-row i {
+  height: 10px;
+}
+
+.pulso-validacion-explorar-loading-line.is-title {
+  width: 42%;
+  height: 14px;
+}
+
+.pulso-validacion-explorar-loading-chart span {
+  height: 16px;
+}
+
 /* Codificación · shell de trabajo, navegación persistente y controles */
 .pulso-codificacion-frame .pulso-page-frame-toolbar {
   margin-top: 10px;
@@ -6785,6 +7010,18 @@ a { color: var(--pulso-primary); }
 
   .pulso-validacion-explorar-sidebar {
     position: static;
+  }
+
+  .pulso-validacion-explorar-loading {
+    min-height: 520px;
+    padding: 14px;
+  }
+
+  .pulso-validacion-explorar-loading-head,
+  .pulso-validacion-explorar-loading-steps,
+  .pulso-validacion-explorar-loading-body,
+  .pulso-validacion-explorar-loading-metrics {
+    grid-template-columns: 1fr;
   }
 
   .pulso-codificacion-commandbar {
