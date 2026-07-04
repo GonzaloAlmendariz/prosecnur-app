@@ -274,6 +274,7 @@ function AnaliticaProductRail({
               aria-controls="analitica-panel"
               disabled={disabled}
               onClick={() => onChange(item.key)}
+              title={`${item.label} - ${item.desc}`}
               className={`pulso-analitica-product${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
             >
               <span className="pulso-analitica-product-icon" aria-hidden="true">
