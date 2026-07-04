@@ -755,17 +755,25 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
         <div className="pulso-integrated-source-tabs" role="tablist" aria-label="Fuente de instrumentos hermanos">
           <button
             type="button"
+            role="tab"
+            aria-selected={sourceMode === "manual"}
             className={sourceMode === "manual" ? "is-active" : ""}
+            title="Archivos manuales"
             onClick={() => { setSourceMode("manual"); setGuideSurveyId(""); setRows([makeManualOrigin(), makeManualOrigin()]); resetAudit(); }}
           >
-            <FileSpreadsheet size={14} /> Archivos manuales
+            <FileSpreadsheet size={14} />
+            <span className="pulso-integrated-source-label">Archivos manuales</span>
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={sourceMode === "surveymonkey"}
             className={sourceMode === "surveymonkey" ? "is-active" : ""}
+            title="SurveyMonkey"
             onClick={() => { setSourceMode("surveymonkey"); setRows([]); setGuideSurveyId(""); resetAudit(); }}
           >
-            <Cloud size={14} /> SurveyMonkey
+            <Cloud size={14} />
+            <span className="pulso-integrated-source-label">SurveyMonkey</span>
           </button>
         </div>
 

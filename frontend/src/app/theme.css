@@ -13686,32 +13686,89 @@ h1.pulso-page-title {
 }
 .pulso-integrated-source-tabs {
   display: inline-flex;
-  gap: 6px;
-  padding: 4px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 250, 0.72)),
+    color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 24%, var(--pulso-surface-2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
   justify-self: start;
 }
 .pulso-integrated-source-tabs button {
+  flex: 0 0 32px;
+  max-width: 156px;
   min-height: 30px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  border-radius: 7px;
+  justify-content: center;
+  gap: 0;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-weight: 760;
   cursor: pointer;
+  overflow: hidden;
+  transition:
+    flex-basis var(--motion-dur-base) var(--motion-ease-out),
+    gap var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-integrated-source-tabs button svg {
+  flex: 0 0 auto;
+}
+.pulso-integrated-source-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    max-width var(--motion-dur-base) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-integrated-source-tabs button:hover:not(:disabled),
+.pulso-integrated-source-tabs button:focus-visible,
+.pulso-integrated-source-tabs button.is-active {
+  flex-basis: auto;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.pulso-integrated-source-tabs button:hover:not(:disabled) .pulso-integrated-source-label,
+.pulso-integrated-source-tabs button:focus-visible .pulso-integrated-source-label,
+.pulso-integrated-source-tabs button.is-active .pulso-integrated-source-label {
+  max-width: 118px;
+  opacity: 1;
+  transform: translateX(0);
+}
+.pulso-integrated-source-tabs button:hover:not(.is-active):not(:disabled) {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--pulso-text);
+}
+.pulso-integrated-source-tabs button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pulso-integrated-source-tabs button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 74%, transparent);
 }
 .pulso-integrated-source-tabs button.is-active {
   background: #fff;
-  color: var(--pulso-primary);
-  border-color: var(--pulso-primary-border);
-  box-shadow: var(--pulso-shadow-low);
+  color: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    inset 0 0 0 1px var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
 }
 .pulso-integrated-link {
   display: grid;
@@ -13920,6 +13977,24 @@ h1.pulso-page-title {
   font-size: 10px;
   font-weight: 760;
   cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-integrated-origin-tabs button:hover:not(:disabled):not(.is-active) {
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 44%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--pulso-text);
+}
+.pulso-integrated-origin-tabs button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.pulso-integrated-origin-tabs button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
 }
 .pulso-integrated-origin-tabs button.is-active {
   border-color: var(--pulso-primary-border);
