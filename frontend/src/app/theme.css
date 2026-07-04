@@ -11278,10 +11278,13 @@ h1.pulso-page-title {
   --sm-channel-border: #ddd6fe;
 }
 .pulso-sm-channel-select-control select {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   min-height: 32px;
-  padding: 0;
+  padding: 0 24px 0 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -11289,6 +11292,8 @@ h1.pulso-page-title {
   font-size: 12px;
   font-weight: 720;
   outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pulso-sm-channel-select-control select:focus {
   box-shadow: none;
