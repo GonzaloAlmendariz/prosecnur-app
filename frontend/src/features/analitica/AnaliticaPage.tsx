@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart2,
   BookOpen,
@@ -18,7 +18,7 @@ import {
 import { apiAnaliticaBaseSheet, apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { EmptyState, LoadingBlock } from "../../components/States";
+import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
@@ -33,6 +33,7 @@ import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
 import { PanelBasePane } from "./panes/PanelBasePane";
 import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
+import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
 type Reporte = "datos" | "base_final" | "codebook" | "bases" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
@@ -157,11 +158,29 @@ export default function AnaliticaPage() {
           aria-labelledby={`analitica-tab-${active}`}
         >
           {!prereqOk ? (
-            <EmptyState
-              icon={<FileSpreadsheet size={20} />}
-              title="Carga insumos para analizar"
-              hint="Analítica se habilita cuando la sesión tiene un XLSForm y una base de datos cargados."
-              cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
+            <ProcessingPrereqGate
+              eyebrow="Antes de analizar"
+              title="Carga los insumos del estudio"
+              copy="Analítica necesita el instrumento y la base para preparar tablas, frecuencias, cruces y libros de códigos."
+              ctaLabel="Ir a Carga"
+              note="La preparación se ejecuta automáticamente al entrar."
+              steps={[
+                {
+                  label: "Formulario",
+                  detail: "Estructura, etiquetas y tipos de pregunta.",
+                  Icon: FileSpreadsheet,
+                },
+                {
+                  label: "Base de datos",
+                  detail: "Respuestas listas para lectura y tabulación.",
+                  Icon: Database,
+                },
+                {
+                  label: "Reportes",
+                  detail: "Después se habilitan tablas, cruces y frecuencias.",
+                  Icon: BarChart2,
+                },
+              ]}
             />
           ) : (
             <>
