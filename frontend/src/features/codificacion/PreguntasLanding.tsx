@@ -468,26 +468,30 @@ export function PreguntasLanding() {
         />
       )}
 
-      {visibleSections.map((s) => (
-        <SectionBlock
-          key={s.id}
-          id={s.id}
-          label={s.label}
-          preguntas={s.preguntas}
-          collapsed={collapsed.has(s.id)}
-          onToggle={() => toggleSection(s.id)}
-          onPair={(p) => setPairingFor({ parent: p })}
-          onUnpair={onDesemparejar}
-          busyPair={busyPair}
-          dragActive={!!activeDragId}
-          adoptedBy={adoptedBy}
-          recentlyAdopted={recentlyAdopted}
-          onSetDummy={setDummyForSm}
-          onSetModoSo={setModoSoForSelectOne}
-          onScrollToPadre={scrollToPadre}
-          onToggleMarcada={onToggleMarcada}
-        />
-      ))}
+      {visibleSections.length > 0 && (
+        <div className="pulso-codificacion-sections-grid">
+          {visibleSections.map((s) => (
+            <SectionBlock
+              key={s.id}
+              id={s.id}
+              label={s.label}
+              preguntas={s.preguntas}
+              collapsed={collapsed.has(s.id)}
+              onToggle={() => toggleSection(s.id)}
+              onPair={(p) => setPairingFor({ parent: p })}
+              onUnpair={onDesemparejar}
+              busyPair={busyPair}
+              dragActive={!!activeDragId}
+              adoptedBy={adoptedBy}
+              recentlyAdopted={recentlyAdopted}
+              onSetDummy={setDummyForSm}
+              onSetModoSo={setModoSoForSelectOne}
+              onScrollToPadre={scrollToPadre}
+              onToggleMarcada={onToggleMarcada}
+            />
+          ))}
+        </div>
+      )}
 
       <div aria-live="polite" aria-atomic="true" style={srOnlyStyle}>{liveMsg}</div>
 
@@ -609,13 +613,13 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
         onClick={onToggle}
       >
         {collapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
-        <h2 id={`sec-${id}`} style={{ margin: 0, fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text)" }}>
+        <h2 id={`sec-${id}`} className="pulso-codificacion-section-title">
           {label}
         </h2>
-        <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+        <span className="pulso-codificacion-section-meta">
           {preguntas.length} {preguntas.length === 1 ? "pregunta" : "preguntas"}
-          {emparejadas > 0 && <> · <strong style={{ color: "var(--pulso-primary)" }}>{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
-          {codificadas > 0 && <> · <strong style={{ color: "var(--pulso-success-fg)" }}>{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
+          {emparejadas > 0 && <> · <strong className="is-paired">{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
+          {codificadas > 0 && <> · <strong className="is-coded">{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
         </span>
       </header>
       {!collapsed && (

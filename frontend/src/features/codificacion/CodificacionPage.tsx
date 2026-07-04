@@ -216,12 +216,12 @@ function CodificacionStatusSummary({
 }) {
   const readyLabel =
     step === "codificar" ? "Lista para codificar" :
-    step === "adaptar" ? "Lista para adaptar" :
-    "Lista para organizar";
+    step === "adaptar" ? "Lista para salida" :
+    "Lista para preparar";
   return (
     <div className="pulso-codificacion-status" aria-label="Estado de la codificación">
-      <CodificacionStatusPill label="XLSForm" done={hasXlsform} />
-      <CodificacionStatusPill label="Data" done={hasData} />
+      <CodificacionStatusPill label="Formulario" done={hasXlsform} />
+      <CodificacionStatusPill label="Datos" done={hasData} />
       <span className={`pulso-codificacion-status-pill${applied ? " is-done" : ""}`}>
         {applied ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
         {applied ? "Codificación aplicada" : prereqOk ? readyLabel : "En espera"}
@@ -304,7 +304,7 @@ function CodificacionModeSidebar({
 
 // Definición de los 3 pasos del flujo de codificación.
 const CODIFICACION_STEPS: StepMeta<Step>[] = [
-  { key: "organizar", n: 1, label: "Organizar", icon: Layers, hint: "Emparejar y marcar" },
+  { key: "organizar", n: 1, label: "Preparar", icon: Layers, hint: "Emparejar y marcar" },
   { key: "codificar", n: 2, label: "Codificar", icon: Tags,   hint: "Agrupar respuestas" },
-  { key: "adaptar",   n: 3, label: "Adaptar",   icon: Wand2,  hint: "Generar el dataset" },
+  { key: "adaptar",   n: 3, label: "Salida final", icon: Wand2, hint: "Aplicar a la base" },
 ];

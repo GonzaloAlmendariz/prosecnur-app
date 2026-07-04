@@ -70,10 +70,10 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
         className="pulso-codificacion-config-button"
         onClick={exportConfig}
         disabled={disabled || busy === "export"}
-        title="Exporta categorías, reglas y configuraciones de codificación. No incluye filas ni casos."
+        title="Descarga categorías, reglas y ajustes de codificación. No incluye filas ni casos."
       >
         <Download size={13} />
-        {busy === "export" ? "Exportando..." : "Exportar configuración"}
+        {busy === "export" ? "Exportando..." : "Exportar config"}
       </button>
       <button
         type="button"
@@ -84,10 +84,10 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           setDialogOpen(true);
         }}
         disabled={disabled}
-        title="Valida un JSON o Excel de categorizaciones antes de aplicar cambios al proyecto actual."
+        title="Revisa un JSON o Excel de categorizaciones antes de aplicarlo al proyecto actual."
       >
         <Upload size={13} />
-        Importar configuración...
+        Importar config
       </button>
       {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
       {error && <span className="pulso-codificacion-config-feedback is-error">{error}</span>}
