@@ -1,18 +1,23 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
+import { createPortal } from "react-dom";
 import {
   AlertCircle,
   ArrowDown,
   ArrowUp,
+  ChevronDown,
   CheckCircle2,
+  Database,
   GitCompare,
   Layers3,
   ListPlus,
   Plus,
   Rows3,
+  Search,
   Split,
   Trash2,
   UsersRound,
+  X,
 } from "lucide-react";
 import { GraficadorRef } from "../../api/client";
 import { VarWithSource, formatVarRef, parseVarRef, useVariables } from "./useVariables";
@@ -401,16 +406,28 @@ function BlockEditor({
     <div style={blockStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <strong style={{ fontSize: 12 }}>Bloque {index + 1}</strong>
-        <select
-          value={blockIntent}
-          onChange={(e) => setBlockIntent(e.target.value as Intent)}
-          style={{ ...inputStyle, width: "auto", flex: 1 }}
-        >
-          <option value="comparar">Comparar preguntas</option>
-          <option value="pregunta_grupos">Abrir una pregunta por grupos</option>
-          <option value="preguntas_grupos">Abrir preguntas por grupos</option>
-          <option value="publicos_tema" disabled={!multi || sourceCount < 2}>Comparar publicos por tema</option>
-        </select>
+        <div style={blockIntentSwitcherStyle} aria-label="Tipo de bloque">
+          {INTENTS.filter((item) => item.key !== "combinar").map((item) => {
+            const active = item.key === blockIntent;
+            const disabled = item.requiresMulti && (!multi || sourceCount < 2);
+            return (
+              <button
+                key={item.key}
+                type="button"
+                disabled={disabled}
+                aria-pressed={active}
+                onClick={() => setBlockIntent(item.key)}
+                style={{
+                  ...blockIntentButtonStyle,
+                  ...(active ? blockIntentButtonActiveStyle : {}),
+                  ...(disabled ? blockIntentButtonDisabledStyle : {}),
+                }}
+              >
+                {item.title}
+              </button>
+            );
+          })}
+        </div>
         <button type="button" className="pulso-icon" onClick={() => onMove("up")} aria-label="Subir bloque"><ArrowUp size={12} /></button>
         <button type="button" className="pulso-icon" onClick={() => onMove("down")} aria-label="Bajar bloque"><ArrowDown size={12} /></button>
         <button type="button" className="pulso-icon pulso-icon-danger" onClick={onRemove} aria-label="Eliminar bloque"><Trash2 size={12} /></button>
@@ -526,17 +543,7 @@ function MultiVarPicker({
   multi: boolean;
   compact?: boolean;
 }) {
-  const [query, setQuery] = useState("");
   const selected = new Set(value);
-  const options = variables
-    .map((v) => ({ ...v, ref: formatVarRef(v.source, v.name, multi) }))
-    .filter((v) => !selected.has(v.ref))
-    .filter((v) => {
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      return v.name.toLowerCase().includes(q) || v.label.toLowerCase().includes(q) || v.source.toLowerCase().includes(q);
-    })
-    .slice(0, 250);
 
   function move(index: number, direction: -1 | 1) {
     const target = index + direction;
@@ -554,7 +561,8 @@ function MultiVarPicker({
           const info = findVar(ref, variables, multi);
           return (
             <span key={`${ref}-${index}`} style={chipStyle} aria-label={info?.label ?? ref}>
-              <span style={{ fontFamily: "ui-monospace, monospace" }}>{displayRef(ref, multi)}</span>
+              <span style={chipLabelStyle}>{info?.label ?? displayRef(ref, multi)}</span>
+              <code style={chipCodeStyle}>{displayRef(ref, multi)}</code>
               <button type="button" className="pulso-icon" onClick={() => move(index, -1)} aria-label="Subir"><ArrowUp size={10} /></button>
               <button type="button" className="pulso-icon" onClick={() => move(index, 1)} aria-label="Bajar"><ArrowDown size={10} /></button>
               <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label="Quitar"><Trash2 size={10} /></button>
@@ -562,29 +570,15 @@ function MultiVarPicker({
           );
         })}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 140px", gap: 6 }}>
-        <select
-          value=""
-          onChange={(e) => {
-            const ref = e.target.value;
-            if (ref) onChange([...value, ref]);
-          }}
-          style={inputStyle}
-        >
-          <option value="">Agregar pregunta...</option>
-          {options.map((v) => (
-            <option key={`${v.source}:${v.name}`} value={v.ref}>
-              {multi ? `${v.source}$` : ""}{v.name} - {v.label.slice(0, 56)}{v.label.length > 56 ? "..." : ""}
-            </option>
-          ))}
-        </select>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar"
-          style={inputStyle}
-        />
-      </div>
+      <VariableChoicePopover
+        variables={variables}
+        multi={multi}
+        excludeRefs={selected}
+        compact={compact}
+        placeholder="Agregar pregunta"
+        emptyHint={`${Math.max(0, variables.length - selected.size)} disponible${variables.length - selected.size === 1 ? "" : "s"}`}
+        onPick={(ref) => onChange([...value, ref])}
+      />
     </div>
   );
 }
@@ -601,17 +595,228 @@ function SingleVarSelect({
   multi: boolean;
 }) {
   return (
-    <select value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={inputStyle}>
-      <option value="">Selecciona variable...</option>
-      {variables.map((v) => {
-        const ref = formatVarRef(v.source, v.name, multi);
-        return (
-          <option key={`${v.source}:${v.name}`} value={ref}>
-            {multi ? `${v.source}$` : ""}{v.name} - {v.label.slice(0, 64)}{v.label.length > 64 ? "..." : ""}
-          </option>
-        );
-      })}
-    </select>
+    <VariableChoicePopover
+      value={value}
+      variables={variables}
+      multi={multi}
+      placeholder="Selecciona variable"
+      emptyHint={`${variables.length} disponible${variables.length === 1 ? "" : "s"}`}
+      allowEmpty
+      onPick={onChange}
+    />
+  );
+}
+
+function VariableChoicePopover({
+  value,
+  variables,
+  multi,
+  excludeRefs,
+  compact = false,
+  placeholder,
+  emptyHint,
+  allowEmpty = false,
+  onPick,
+}: {
+  value?: string;
+  variables: VarWithSource[];
+  multi: boolean;
+  excludeRefs?: Set<string>;
+  compact?: boolean;
+  placeholder: string;
+  emptyHint: string;
+  allowEmpty?: boolean;
+  onPick: (ref: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [popoverSide, setPopoverSide] = useState<"top" | "bottom">("bottom");
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+  const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const selected = value ? findVar(value, variables, multi) : undefined;
+  const q = query.trim().toLowerCase();
+  const options = variables
+    .map((v) => ({ ...v, ref: formatVarRef(v.source, v.name, multi) }))
+    .filter((v) => !excludeRefs?.has(v.ref) || v.ref === value)
+    .filter((v) => {
+      if (!q) return true;
+      return (
+        v.name.toLowerCase().includes(q) ||
+        v.label.toLowerCase().includes(q) ||
+        v.source.toLowerCase().includes(q) ||
+        (v.seccion ?? "").toLowerCase().includes(q) ||
+        (v.list_name ?? "").toLowerCase().includes(q)
+      );
+    })
+    .slice(0, 180);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocMouseDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => searchRef.current?.focus());
+  }, [open]);
+
+  function toggleOpen() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (rect) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const nextSide = spaceBelow < 380 && spaceAbove > spaceBelow ? "top" : "bottom";
+      const available = nextSide === "top" ? spaceAbove : spaceBelow;
+      const width = Math.min(620, window.innerWidth - 28);
+      const left = Math.max(14, Math.min(rect.left, window.innerWidth - width - 14));
+      setPopoverSide(nextSide);
+      setPopoverStyle({
+        left,
+        width,
+        maxHeight: Math.max(280, Math.min(560, available - 16)),
+        ...(nextSide === "top"
+          ? { bottom: window.innerHeight - rect.top + 8 }
+          : { top: rect.bottom + 8 }),
+      });
+    }
+    setOpen(true);
+  }
+
+  function commit(ref: string) {
+    onPick(ref);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <div ref={rootRef} className="pulso-gv2-variable-picker">
+      <button
+        type="button"
+        className={`pulso-gv2-variable-trigger ${selected ? "has-value" : ""}`}
+        style={compact ? compactVariableTriggerStyle : undefined}
+        onClick={toggleOpen}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        <span className="pulso-gv2-variable-trigger-icon" aria-hidden="true">
+          <Database size={14} />
+        </span>
+        <span className="pulso-gv2-variable-trigger-copy">
+          <strong>{selected ? selected.label : placeholder}</strong>
+          <small>{selected ? displayRef(value ?? "", multi) : emptyHint}</small>
+        </span>
+        {selected && multi && (
+          <span className="pulso-gv2-variable-trigger-source">{selected.source}</span>
+        )}
+        <ChevronDown size={14} className="pulso-gv2-variable-trigger-chevron" />
+      </button>
+
+      {open && typeof document !== "undefined" && createPortal((
+        <div
+          ref={popoverRef}
+          className="pulso-gv2-variable-popover"
+          data-side={popoverSide}
+          style={popoverStyle}
+          role="dialog"
+          aria-label="Elegir variable"
+        >
+          <div className="pulso-gv2-variable-popover-head">
+            <span aria-hidden="true"><Database size={15} /></span>
+            <div>
+              <strong>Elegir variable</strong>
+              <small>{variables.length} disponibles</small>
+            </div>
+          </div>
+
+          <div className="pulso-gv2-variable-search">
+            <Search size={14} />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por pregunta, codigo, base o lista..."
+              aria-label="Buscar variable"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} aria-label="Limpiar busqueda">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          <div className="pulso-gv2-variable-list" role="listbox" aria-label="Variables disponibles">
+            {allowEmpty && (
+              <button
+                type="button"
+                className={`pulso-gv2-variable-option is-empty ${!value ? "is-selected" : ""}`}
+                onClick={() => commit("")}
+                role="option"
+                aria-selected={!value}
+              >
+                <span className="pulso-gv2-variable-option-check">{!value && <CheckCircle2 size={13} />}</span>
+                <span className="pulso-gv2-variable-option-main">
+                  <strong>Sin variable</strong>
+                  <small>Dejar este campo sin asignar.</small>
+                </span>
+              </button>
+            )}
+            {options.map((v) => {
+              const isSelected = v.ref === value;
+              return (
+                <button
+                  key={`${v.source}:${v.name}`}
+                  type="button"
+                  className={`pulso-gv2-variable-option ${isSelected ? "is-selected" : ""}`}
+                  onClick={() => commit(v.ref)}
+                  role="option"
+                  aria-selected={isSelected}
+                  title={v.label}
+                >
+                  <span className="pulso-gv2-variable-option-check">
+                    {isSelected && <CheckCircle2 size={13} />}
+                  </span>
+                  <span className="pulso-gv2-variable-option-main">
+                    <span className="pulso-gv2-variable-option-title">
+                      <strong>{v.label}</strong>
+                      <code>{v.name}</code>
+                    </span>
+                    <span className="pulso-gv2-variable-option-meta">
+                      {multi && <em>{v.source}</em>}
+                      {v.seccion && <em>{v.seccion}</em>}
+                      {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
+                      {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+            {options.length === 0 && (
+              <div className="pulso-gv2-variable-empty">
+                No hay variables que coincidan con la busqueda actual.
+              </div>
+            )}
+          </div>
+        </div>
+      ), document.body)}
+    </div>
   );
 }
 
@@ -1035,6 +1240,18 @@ function displayRef(ref: string, multi: boolean): string {
   return parseVarRef(ref).name;
 }
 
+function friendlyVarType(tipo: string) {
+  const normalized = (tipo ?? "").toLowerCase();
+  if (!normalized) return "tipo no definido";
+  if (normalized.includes("select_one")) return "seleccion unica";
+  if (normalized.includes("select_multiple")) return "seleccion multiple";
+  if (normalized.includes("integer")) return "entero";
+  if (normalized.includes("decimal")) return "decimal";
+  if (normalized.includes("text")) return "texto";
+  if (normalized.includes("date")) return "fecha";
+  return normalized.replaceAll("_", " ");
+}
+
 function toneColor(tone: Tone | ValidationIssue["kind"]) {
   if (tone === "idle") return "var(--pulso-text-soft)";
   if (tone === "ok") return "var(--pulso-success-fg, #157347)";
@@ -1092,6 +1309,67 @@ const chipStyle: React.CSSProperties = {
   borderRadius: 6,
   padding: "3px 5px",
   fontSize: 11,
+};
+
+const chipLabelStyle: React.CSSProperties = {
+  maxWidth: 220,
+  color: "var(--pulso-text)",
+  fontWeight: 760,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const chipCodeStyle: React.CSSProperties = {
+  maxWidth: 132,
+  padding: "1px 5px",
+  border: "1px solid color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border))",
+  borderRadius: 999,
+  background: "rgba(255, 255, 255, 0.72)",
+  color: "var(--pulso-text-soft)",
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  fontSize: 10,
+  fontWeight: 760,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const compactVariableTriggerStyle: React.CSSProperties = {
+  minHeight: 38,
+  padding: "5px 8px",
+  borderRadius: 10,
+};
+
+const blockIntentSwitcherStyle: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 5,
+};
+
+const blockIntentButtonStyle: React.CSSProperties = {
+  minHeight: 26,
+  padding: "4px 8px",
+  border: "1px solid var(--pulso-border)",
+  borderRadius: 999,
+  background: "rgba(255, 255, 255, 0.76)",
+  color: "var(--pulso-text-soft)",
+  fontSize: 10.4,
+  fontWeight: 740,
+  cursor: "pointer",
+};
+
+const blockIntentButtonActiveStyle: React.CSSProperties = {
+  borderColor: "color-mix(in srgb, var(--pulso-primary) 42%, var(--pulso-border))",
+  background: "color-mix(in srgb, var(--pulso-primary-soft) 72%, #ffffff)",
+  color: "var(--pulso-primary)",
+};
+
+const blockIntentButtonDisabledStyle: React.CSSProperties = {
+  opacity: 0.48,
+  cursor: "not-allowed",
 };
 
 const hintStyle: React.CSSProperties = {
