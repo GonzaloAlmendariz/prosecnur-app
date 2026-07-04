@@ -86,6 +86,13 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     setPreviewImages([]);
     setError("");
     setLastHash(null);
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setIsBubbleOpen(false);
+    setIsBubbleClosing(false);
+    setIsBubbleRendered(false);
   }, [currentHash]);
 
   useEffect(() => {
