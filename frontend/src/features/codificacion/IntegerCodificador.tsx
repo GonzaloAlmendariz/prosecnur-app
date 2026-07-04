@@ -412,7 +412,7 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
         ) : (
           <>
             <AlertTriangle size={11} color="var(--pulso-warn-fg)" style={{ verticalAlign: "middle" }} />{" "}
-            Ningún valor en el dataset cae en este rango.
+            Ninguna respuesta cae en este rango.
           </>
         )}
       </div>

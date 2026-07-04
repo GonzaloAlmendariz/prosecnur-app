@@ -134,7 +134,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
                 <CheckCircle2 size={11} /> Autoguardado activo
               </div>
               <div style={{ fontSize: 11, color: "var(--pulso-success-fg)", opacity: 0.85, lineHeight: 1.4 }}>
-                El progreso se guarda en el proyecto. La exportación e importación de configuraciones vive en la barra superior.
+                El progreso se guarda en el proyecto. La exportación e importación de ajustes vive en la barra superior.
               </div>
             </div>
           </div>
@@ -236,8 +236,8 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
 
   return (
     <section className="pulso-codificacion-coder-pane">
-      {/* Header: misma jerarquía que el resto del app — h2 humano + code-pill
-          del identifier del XLSForm + chip de tipo + sección. */}
+      {/* Header: misma jerarquía que el resto del app: pregunta, ID del
+          formulario, chip de tipo y sección. */}
       <header className="pulso-codificacion-coder-head">
         <span
           className="pulso-codificacion-type-avatar"
@@ -253,7 +253,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="pulso-codificacion-coder-meta">
             <code
-              title={`ID del XLSForm: ${p.parent}`}
+              title={`ID del formulario: ${p.parent}`}
               className="pulso-codificacion-coder-code"
               style={{ color: ts.fg, background: ts.bg, borderColor: ts.border }}
             >
