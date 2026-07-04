@@ -377,7 +377,7 @@
     )
   }
   title <- if (identical(scope, "overview_koica")) {
-    "Overview territorial KOICA"
+    "Overview territorial"
   } else {
     paste("Cobertura efectiva -", selected[[1]]$distrito)
   }
@@ -437,8 +437,8 @@
   }
   match_idx <- match(ub, cw$ubigeo)
   distrito <- ifelse(!is.na(match_idx), cw$distrito[match_idx], "Otros distritos")
-  group <- ifelse(!is.na(match_idx) & cw$group[match_idx] == "intervencion", "Intervencion KOICA",
-                  ifelse(!is.na(match_idx) & cw$group[match_idx] == "comparacion", "Comparacion KOICA", "Otros distritos"))
+  group <- ifelse(!is.na(match_idx) & cw$group[match_idx] == "intervencion", "Intervencion territorial",
+                  ifelse(!is.na(match_idx) & cw$group[match_idx] == "comparacion", "Comparacion territorial", "Otros distritos"))
   list(ubigeo = ub, distrito = distrito, group = group)
 }
 
@@ -489,9 +489,9 @@
         choices <<- rbind(choices, row[, names(choices), drop = FALSE])
       }
     }
-    add_survey("__koica_group", "Grupo KOICA", "__koica_group_list")
+    add_survey("__koica_group", "Grupo territorial", "__koica_group_list")
     add_survey("__district", "Distrito", "__district_list")
-    add_choices("__koica_group_list", c("Intervencion KOICA", "Comparacion KOICA", "Otros distritos"))
+    add_choices("__koica_group_list", c("Intervencion territorial", "Comparacion territorial", "Otros distritos"))
     add_choices("__district_list", unique(as.character(detected$distrito)))
     rp_inst$survey <- survey
     rp_inst$choices <- choices
@@ -1080,7 +1080,7 @@
       id = .graficos_plan_slide_id("acnur"),
       tipo = "p_slide_portada",
       payload = list(
-        titulo = if (territorial_mode) "ACNUR KOICA" else "ACNUR",
+        titulo = if (territorial_mode) "ACNUR territorial" else "ACNUR",
         subtitulo = if (territorial_mode) "Resultados Kobo + cobertura territorial" else "Resultados Kobo",
         fecha = format(Sys.Date(), "%Y"),
         subtexto = "Plantilla Prosecnur original inspirada en estructura Kobo-style"
@@ -1111,10 +1111,10 @@
       id = .graficos_plan_slide_id("acnur"),
       tipo = "p_slide_texto",
       payload = list(
-        titulo = "Diseno de intervencion y comparacion",
+        titulo = "Diseno territorial y comparativo",
         texto = c(
-          "Intervencion KOICA: San Juan de Lurigancho, San Martin de Porres y Chorrillos.",
-          "Comparacion KOICA: Ate, San Juan de Miraflores y Los Olivos."
+          "Intervencion territorial: San Juan de Lurigancho, San Martin de Porres y Chorrillos.",
+          "Comparacion territorial: Ate, San Juan de Miraflores y Los Olivos."
         ),
         bullets = "",
         base = ""
@@ -1127,11 +1127,11 @@
       id = .graficos_plan_slide_id("map"),
       tipo = "p_slide_1_grafico_narrativo",
       payload = list(
-        titulo = "Overview territorial KOICA",
+        titulo = "Overview territorial",
         texto = "",
         grafico = list(
           graficador = "p_mapa_cobertura_territorial",
-          args = list(scope = "overview_koica", titulo = "Overview territorial KOICA", contexto = overview_context)
+          args = list(scope = "overview_koica", titulo = "Overview territorial", contexto = overview_context)
         ),
         base = "",
         pie = "",

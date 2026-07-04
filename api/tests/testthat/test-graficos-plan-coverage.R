@@ -358,7 +358,7 @@ test_that("plan ACNUR general usa barras agrupadas sin mapa ni comparativo", {
   }, logical(1))))
 })
 
-test_that("perfil ACNUR/Kobo agrega variables virtuales KOICA sin exponerlas como preguntas", {
+test_that("perfil ACNUR/Kobo agrega variables virtuales territoriales sin exponerlas como preguntas", {
   sid <- .graficos_acnur_test_session()
   on.exit(session_delete(sid), add = TRUE)
 
@@ -371,7 +371,7 @@ test_that("perfil ACNUR/Kobo agrega variables virtuales KOICA sin exponerlas com
   expect_true("__district" %in% names(data))
   expect_equal(
     as.character(data$`__koica_group`[1:3]),
-    c("Intervencion KOICA", "Comparacion KOICA", "Comparacion KOICA")
+    c("Intervencion territorial", "Comparacion territorial", "Comparacion territorial")
   )
   expect_false("__koica_group" %in% vapply(vars, `[[`, character(1), "name"))
   expect_false("__district" %in% vapply(vars, `[[`, character(1), "name"))
@@ -398,12 +398,22 @@ test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficabl
   }, logical(1)))
   section_idx <- which(vapply(slides, function(slide) identical(slide$tipo, "p_slide_seccion"), logical(1)))
   refs <- .graficos_collect_plan_refs(suggested$plan)
+  visible_text <- paste(unlist(lapply(slides, function(slide) {
+    payload <- (slide %||% list())$payload %||% list()
+    graf <- payload$grafico %||% list()
+    args <- graf$args %||% list()
+    contexto <- args$contexto %||% list()
+    list(payload$titulo, payload$texto, args$titulo, contexto$titulo)
+  }), use.names = FALSE), collapse = " ")
 
   expect_equal(map_idx, 4:10)
   expect_true(length(section_idx) > 0L)
   expect_true(max(map_idx) < min(section_idx))
   expect_true("__koica_group" %in% refs)
   expect_false(any(c("intro_note", "calc_score", "gps_raw", "email") %in% refs))
+  expect_false(grepl("KOICA", visible_text, ignore.case = TRUE))
+  expect_match(visible_text, "ACNUR territorial")
+  expect_match(visible_text, "Comparacion territorial")
 })
 
 test_that("plan ACNUR/Kobo omite mapas territoriales si faltan Hojas de Ruta o Monitoreo", {
