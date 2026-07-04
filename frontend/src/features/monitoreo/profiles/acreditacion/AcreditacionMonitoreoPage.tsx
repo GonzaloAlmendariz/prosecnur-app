@@ -10671,6 +10671,44 @@ function caseSubsanacionActionLabel(item: MonitoreoInternalQueryCase) {
   return assistedReviewVisible(item) ? "Revisar" : "Explicar";
 }
 
+function caseCompletionGroupKey(item: MonitoreoInternalQueryCase) {
+  const actor = normalizeCaseSearch(item.actor || "sin actor");
+  const key = normalizeCaseSearch(item.case_key);
+  if (!key) return "";
+  return `${actor}:${key}`;
+}
+
+export function caseHasLaterCompleteResponse(item: MonitoreoInternalQueryCase, allCases: MonitoreoInternalQueryCase[]) {
+  if (internalCaseResponseStateValue(item) !== "partial" || !caseHasPlatformResponse(item)) return false;
+  const groupKey = caseCompletionGroupKey(item);
+  if (!groupKey) return false;
+  const responseId = String(item.response_id || "").trim();
+  const currentTime = caseResponseSortTime(item);
+  return allCases.some((candidate) => {
+    if (candidate === item) return false;
+    if (caseCompletionGroupKey(candidate) !== groupKey) return false;
+    if (responseId && String(candidate.response_id || "").trim() === responseId) return false;
+    if (internalCaseResponseStateValue(candidate) !== "complete") return false;
+    if (caseCountsInAdvance(candidate) !== true) return false;
+    const candidateTime = caseResponseSortTime(candidate);
+    if (currentTime > 0 && candidateTime > 0) return candidateTime > currentTime;
+    return true;
+  });
+}
+
+export function casePlatformActionLabel(item: MonitoreoInternalQueryCase, allCases: MonitoreoInternalQueryCase[] = []) {
+  if (caseIsSubsanacionCandidate(item)) return caseSubsanacionActionLabel(item);
+  if (caseHasLaterCompleteResponse(item, allCases)) return "Completada después";
+  return "Sin subsanación";
+}
+
+function casePlatformActionDetail(item: MonitoreoInternalQueryCase, allCases: MonitoreoInternalQueryCase[] = []) {
+  if (caseHasLaterCompleteResponse(item, allCases)) {
+    return "La parcial queda como trazabilidad; el mismo caso tiene una completa posterior que cuenta en avance.";
+  }
+  return "Sin decisión o subsanación operativa asociada.";
+}
+
 function caseSubsanacionActionDetail(item: MonitoreoInternalQueryCase) {
   if (caseIsActionableSubsanacion(item)) {
     return "Respuesta completa o parcial sin cruce: puede vincularse con evidencia y nota.";
@@ -12793,6 +12831,7 @@ function AcreditacionPendingExitView({
 
 function AcreditacionPlatformRecordsView({
   cases,
+  allCases,
   selectedCase,
   filters,
   actorOptions,
@@ -12809,6 +12848,7 @@ function AcreditacionPlatformRecordsView({
   onJumpToSubsanacion,
 }: {
   cases: MonitoreoInternalQueryCase[];
+  allCases: MonitoreoInternalQueryCase[];
   selectedCase: MonitoreoInternalQueryCase | null;
   filters: AcreditacionCaseFilters;
   actorOptions: Array<{ value: string; label: string; count: number }>;
@@ -12867,6 +12907,7 @@ function AcreditacionPlatformRecordsView({
                   const id = caseIdentity(item);
                   const selected = id === selectedId;
                   const canOpenSubsanacion = caseIsSubsanacionCandidate(item);
+                  const actionLabel = casePlatformActionLabel(item, allCases);
                   const trace = caseKeyTraceSummary(item);
                   return (
                     <tr key={id} className={`is-${caseToneValue(item)}${selected ? " is-selected" : ""}`}>
@@ -12896,10 +12937,10 @@ function AcreditacionPlatformRecordsView({
                         {canOpenSubsanacion ? (
                           <button type="button" className="mon-acr-table-action" onClick={() => onJumpToSubsanacion(item)}>
                             <ShieldAlert size={13} />
-                            <span>{caseSubsanacionActionLabel(item)}</span>
+                            <span>{actionLabel}</span>
                           </button>
                         ) : (
-                          <span className="mon-acr-action-muted">Sin subsanación</span>
+                          <span className="mon-acr-action-muted" title={casePlatformActionDetail(item, allCases)}>{actionLabel}</span>
                         )}
                       </td>
                     </tr>
@@ -13312,6 +13353,7 @@ function AcreditacionCasesWorkspace({
 function AcreditacionConsultaBody({
   activeTab,
   modeCases,
+  allModeCases,
   selectedCase,
   filters,
   actorOptions,
@@ -13332,6 +13374,7 @@ function AcreditacionConsultaBody({
 }: {
   activeTab: AcreditacionConsultaTab;
   modeCases: MonitoreoInternalQueryCase[];
+  allModeCases: MonitoreoInternalQueryCase[];
   selectedCase: MonitoreoInternalQueryCase | null;
   filters: AcreditacionCaseFilters;
   actorOptions: Array<{ value: string; label: string; count: number }>;
@@ -13390,6 +13433,7 @@ function AcreditacionConsultaBody({
   return (
     <AcreditacionPlatformRecordsView
       cases={modeCases}
+      allCases={allModeCases}
       selectedCase={selectedCase}
       filters={filters}
       actorOptions={actorOptions}
@@ -13573,6 +13617,7 @@ function AcreditacionConsultasPanel({
           <AcreditacionConsultaBody
             activeTab={activeTab}
             modeCases={modeCases}
+            allModeCases={allModeCases}
             selectedCase={selectedCase}
             filters={activeCaseFilters}
             actorOptions={actorOptions}

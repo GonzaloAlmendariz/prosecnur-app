@@ -719,10 +719,12 @@ graficar_barras_agrupadas <- function(
 
     ancho_texto_datos <- ancho_texto_estimado * base_max
     margen_texto_datos <- ifelse(label_con_n, 0.030, 0.014) * base_max
+    min_inside_con_n <- if (isTRUE(usar_canvas) && identical(orientacion, "horizontal")) 0.36 else 0.30
+    min_inside_sin_n <- if (isTRUE(usar_canvas) && identical(orientacion, "horizontal")) 0.15 else 0.13
     cabe_texto_inside <- identical(orientacion, "horizontal") &
       !is.na(df_lab$.valor_plot) &
       df_lab$.valor_plot >= pmax(
-        ifelse(label_con_n, 0.30, 0.13),
+        ifelse(label_con_n, min_inside_con_n, min_inside_sin_n),
         ancho_texto_datos + margen_texto_datos
       )
     if (identical(orientacion, "horizontal")) {

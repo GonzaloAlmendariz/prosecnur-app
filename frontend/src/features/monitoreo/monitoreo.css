@@ -15529,7 +15529,7 @@
 .mon-territorial-route-accordion-trigger {
   width: 100%;
   min-width: 0;
-  min-height: 58px;
+  min-height: 66px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) minmax(96px, 118px);
   align-items: center;
@@ -15560,6 +15560,7 @@
 
 .mon-territorial-route-accordion-title strong,
 .mon-territorial-route-accordion-title em,
+.mon-territorial-route-accordion-title small,
 .mon-territorial-route-accordion-meta b {
   min-width: 0;
   overflow: hidden;
@@ -15585,6 +15586,15 @@
   white-space: normal;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.mon-territorial-route-accordion-title small {
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-text-soft));
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mon-territorial-route-accordion-meta {
@@ -19510,9 +19520,9 @@
 }
 
 .mon-territorial-quota-margin-adjustment b.is-reassigned {
-  border-color: color-mix(in srgb, var(--pulso-warn-border) 82%, #fff);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 68%, #fff);
-  color: var(--pulso-warn-fg);
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 72%, var(--pulso-warn-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg) 58%, #fff);
+  color: var(--pulso-danger-fg);
 }
 
 .mon-territorial-quota-observed {
@@ -19608,6 +19618,16 @@
   color: #1d4ed8;
 }
 
+.mon-territorial-quota-layer-strip .is-reassigned {
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 74%, #fff);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 58%, #fff);
+}
+
+.mon-territorial-quota-layer-strip .is-reassigned strong,
+.mon-territorial-quota-layer-strip .is-reassigned b {
+  color: var(--pulso-danger-fg);
+}
+
 .mon-territorial-quota-layer-strip .is-real-missing {
   border-color: color-mix(in srgb, var(--pulso-warn-border) 86%, #fff);
   background: color-mix(in srgb, var(--pulso-warn-bg) 64%, #fff);
@@ -19675,6 +19695,14 @@
   font-weight: 820;
 }
 
+.mon-territorial-quota-observed td.has-adjustment {
+  background: color-mix(in srgb, #dbeafe 56%, #fff);
+}
+
+.mon-territorial-quota-observed td.has-adjustment.is-negative-adjustment {
+  background: color-mix(in srgb, var(--pulso-danger-bg) 50%, #fff);
+}
+
 .mon-territorial-quota-observed tbody td.is-empty {
   color: var(--pulso-text-faint);
   font-weight: 720;
@@ -19699,6 +19727,33 @@
 .mon-territorial-quota-observed td strong,
 .mon-territorial-quota-observed tfoot strong {
   font-weight: 880;
+}
+
+.mon-territorial-quota-cell-adjustment {
+  min-width: 18px;
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  background: color-mix(in srgb, #dbeafe 78%, #fff);
+  color: #1d4ed8;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.mon-territorial-quota-cell-adjustment.is-reassigned {
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 78%, #fff);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 66%, #fff);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-territorial-quota-cell-adjustment.is-compact {
+  margin-left: 0;
 }
 
 .mon-territorial-quota-observed td em,
@@ -54980,7 +55035,7 @@ button.mon-acr-requirement-metric:active {
 
 .mon-territorial-source-workgrid--reconciliation {
   min-height: 0;
-  height: clamp(420px, calc(100vh - 352px), 760px);
+  height: clamp(420px, calc(100dvh - 312px), 900px);
 }
 
 .mon-territorial-reconciliation-console {
@@ -55999,13 +56054,13 @@ button.mon-acr-requirement-metric:active {
 
 @media (max-width: 1500px) {
   .mon-territorial-reconciliation-panel.is-ump {
-    grid-template-rows: auto auto auto 58px minmax(118px, 1fr);
+    grid-template-rows: auto auto auto minmax(76px, 0.64fr) minmax(144px, 1fr);
     gap: 7px;
     padding: 10px;
   }
 
   .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-list {
-    max-height: 58px;
+    max-height: clamp(76px, 10dvh, 118px);
     gap: 6px;
   }
 
@@ -56067,6 +56122,14 @@ button.mon-acr-requirement-metric:active {
 }
 
 @media (max-width: 1500px) and (max-height: 850px) {
+  .mon-territorial-source-workgrid--reconciliation {
+    height: clamp(468px, calc(100dvh - 268px), 620px);
+  }
+
+  .mon-territorial-reconciliation-panel.is-ump {
+    grid-template-rows: auto auto auto 58px minmax(168px, 1fr);
+  }
+
   .mon-territorial-reconciliation-list-head,
   .mon-territorial-reconciliation-queue-list-head {
     display: none;
@@ -56074,7 +56137,53 @@ button.mon-acr-requirement-metric:active {
 
   .mon-territorial-reconciliation-panel.is-code .mon-territorial-reconciliation-list,
   .mon-territorial-reconciliation-queue-list {
+    max-height: clamp(96px, 14dvh, 132px);
+  }
+
+  .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-list {
     max-height: 58px;
+  }
+
+  .mon-territorial-reconciliation-panel.is-code .mon-territorial-reconciliation-code-row,
+  .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-ump-row {
+    min-height: 44px;
+    gap: 6px;
+    padding: 5px 7px;
+  }
+
+  .mon-territorial-reconciliation-code-main,
+  .mon-territorial-reconciliation-code-context,
+  .mon-territorial-reconciliation-code-target,
+  .mon-territorial-reconciliation-ump-main,
+  .mon-territorial-reconciliation-ump-route,
+  .mon-territorial-reconciliation-ump-evidence {
+    gap: 0;
+  }
+
+  .mon-territorial-reconciliation-code-kicker,
+  .mon-territorial-reconciliation-ump-kicker,
+  .mon-territorial-reconciliation-queue-main small {
+    font-size: 7px;
+  }
+
+  .mon-territorial-reconciliation-queue-list article {
+    min-height: 40px;
+    gap: 5px;
+    padding: 5px 6px;
+  }
+
+  .mon-territorial-reconciliation-queue-list article > b {
+    min-height: 19px;
+    font-size: 7.8px;
+    padding: 3px 5px;
+  }
+
+  .mon-territorial-reconciliation-queue-evidence {
+    gap: 0;
+  }
+
+  .mon-territorial-reconciliation-queue-evidence em {
+    display: none;
   }
 }
 
@@ -58886,6 +58995,7 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-field-occurrences-workspace,
+.mon-field-occurrences-register,
 .mon-field-occurrences-overview,
 .mon-stage--ocurrencias .mon-field-occurrences-body {
   flex: 1 1 auto;
@@ -58976,12 +59086,15 @@ button.mon-acr-requirement-metric:active {
 .mon-field-occurrences-workspace-stats span.is-priorizar { --occurrence-status-color: #b7791f; }
 .mon-field-occurrences-workspace-stats span.is-observar { --occurrence-status-color: #b7791f; }
 .mon-field-occurrences-workspace-stats span.is-sin_consolidado { --occurrence-status-color: #667085; }
+.mon-field-occurrences-workspace-stats span.is-total { --occurrence-status-color: var(--pulso-primary); }
+.mon-field-occurrences-workspace-stats span.is-reported { --occurrence-status-color: var(--occurrence-effective-color); }
 .mon-field-occurrences-workspace-stats span.is-revisar_cruce { --occurrence-status-color: var(--occurrence-review-color); }
 .mon-field-occurrences-workspace-stats span.is-reportada_no_efectiva { --occurrence-status-color: var(--occurrence-noneffective-color); }
 .mon-field-occurrences-workspace-stats span.is-reportada_efectiva { --occurrence-status-color: var(--occurrence-effective-color); }
 .mon-field-occurrences-workspace-stats span.is-completa_sin_reporte { --occurrence-status-color: var(--occurrence-complete-missing-color); }
 .mon-field-occurrences-workspace-stats span.is-incompleta_sin_reporte { --occurrence-status-color: var(--occurrence-incomplete-missing-color); }
 .mon-field-occurrences-workspace-stats span.is-iniciada_sin_reporte { --occurrence-status-color: var(--occurrence-started-missing-color); }
+.mon-field-occurrences-workspace-stats span.is-replacement { --occurrence-status-color: #0e7490; }
 .mon-field-occurrences-workspace-stats span.is-sin_reporte { --occurrence-status-color: var(--occurrence-missing-color); }
 
 .mon-field-occurrences-workspace-stats strong,
@@ -59190,6 +59303,10 @@ button.mon-acr-requirement-metric:active {
 .mon-field-occurrences-ump-row.is-incompleta_sin_reporte { --occurrence-status-color: var(--occurrence-incomplete-missing-color); }
 .mon-field-occurrences-ump-row.is-iniciada_sin_reporte { --occurrence-status-color: var(--occurrence-started-missing-color); }
 .mon-field-occurrences-ump-row.is-sin_reporte { --occurrence-status-color: var(--occurrence-missing-color); }
+
+.mon-field-occurrences-ump-row.is-replacement-family {
+  box-shadow: inset 3px 0 0 #0e7490;
+}
 
 .mon-field-occurrences-ump-row:hover {
   border-color: color-mix(in srgb, var(--occurrence-status-color) 32%, var(--pulso-border));
@@ -59488,6 +59605,11 @@ button.mon-acr-requirement-metric:active {
   background: color-mix(in srgb, var(--occurrence-noneffective-color, #b66a2c) 6%, #fff);
 }
 
+.mon-field-occurrences-detail-kpis span.is-replacement {
+  border-color: color-mix(in srgb, #0e7490 22%, var(--pulso-border));
+  background: color-mix(in srgb, #0e7490 6%, #fff);
+}
+
 .mon-field-occurrences-detail-kpis span.is-advance {
   border-color: color-mix(in srgb, var(--occurrence-status-color) 24%, var(--pulso-border));
   background: color-mix(in srgb, var(--occurrence-status-color) 7%, #fff);
@@ -59709,6 +59831,16 @@ button.mon-acr-requirement-metric:active {
 
 .mon-field-occurrences-detail-notice.is-advance-missing svg {
   color: var(--occurrence-status-color);
+}
+
+.mon-field-occurrences-detail-notice.is-replacement-family {
+  border-color: color-mix(in srgb, #0e7490 26%, var(--pulso-border));
+  background: color-mix(in srgb, #0e7490 7%, #fff);
+  color: color-mix(in srgb, #0e7490 78%, var(--pulso-text));
+}
+
+.mon-field-occurrences-detail-notice.is-replacement-family svg {
+  color: #0e7490;
 }
 
 .mon-field-occurrences-detail-kpis {
@@ -60190,6 +60322,68 @@ button.mon-acr-requirement-metric:active {
   overflow: hidden;
 }
 
+.mon-stage--ocurrencias .mon-field-occurrences-body.is-rhythm {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.mon-stage--ocurrencias .mon-field-occurrences-body.is-rhythm .mon-field-occurrences-chart-card.is-daily {
+  min-height: 0;
+}
+
+.mon-field-occurrences-rhythm-side {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+}
+
+.mon-field-occurrences-rhythm-kpis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mon-field-occurrences-rhythm-kpis span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 28%, var(--pulso-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #fff);
+  padding: 8px;
+}
+
+.mon-field-occurrences-rhythm-kpis strong,
+.mon-field-occurrences-rhythm-kpis em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-field-occurrences-rhythm-kpis strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 920;
+  line-height: 1.05;
+}
+
+.mon-field-occurrences-rhythm-kpis em {
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  line-height: 1.08;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
 .mon-field-occurrences-alerts-panel {
   min-width: 0;
   min-height: 0;
@@ -60539,8 +60733,251 @@ button.mon-acr-requirement-metric:active {
   white-space: normal;
 }
 
+.mon-field-occurrences-register {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+}
+
+.mon-field-occurrences-register-head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(420px, 0.58fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 28%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 94%, var(--pulso-surface-2)), rgba(248, 250, 252, 0.9)),
+    #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 8px;
+}
+
+.mon-field-occurrences-register-head > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.mon-field-occurrences-register-head span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 880;
+  letter-spacing: 0.045em;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+
+.mon-field-occurrences-register-head strong,
+.mon-field-occurrences-register-head em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-register-head > div:first-child > strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 920;
+  line-height: 1.15;
+}
+
+.mon-field-occurrences-register-head > div:first-child > em {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.mon-field-occurrences-register-kpis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(92px, 1fr));
+  gap: 6px;
+}
+
+.mon-field-occurrences-register-kpis span {
+  --occurrence-register-color: var(--pulso-primary);
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  border: 1px solid color-mix(in srgb, var(--occurrence-register-color) 18%, var(--pulso-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--occurrence-register-color) 5%, #fff);
+  padding: 6px 8px;
+}
+
+.mon-field-occurrences-register-kpis span.is-total { --occurrence-register-color: var(--pulso-primary); }
+.mon-field-occurrences-register-kpis span.is-reported { --occurrence-register-color: var(--occurrence-effective-color); }
+.mon-field-occurrences-register-kpis span.is-missing { --occurrence-register-color: var(--occurrence-missing-color); }
+.mon-field-occurrences-register-kpis span.is-review { --occurrence-register-color: var(--occurrence-review-color); }
+
+.mon-field-occurrences-register-kpis strong {
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: 920;
+  line-height: 1;
+}
+
+.mon-field-occurrences-register-kpis em {
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+.mon-field-occurrences-register-toolbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) repeat(2, minmax(170px, 0.26fr));
+  gap: 7px;
+}
+
+.mon-field-occurrences-register-toolbar select {
+  min-width: 0;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 780;
+  padding: 0 26px 0 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-register-toolbar select:focus-visible {
+  border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--pulso-border));
+  box-shadow: 0 0 0 3px var(--pulso-primary-soft);
+  outline: none;
+}
+
+.mon-field-occurrences-register-table {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 84%, #fff);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+}
+
+.mon-field-occurrences-register-list {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.mon-field-occurrences-register-row {
+  --occurrence-register-row-color: var(--pulso-primary);
+  min-width: 980px;
+  display: grid;
+  grid-template-columns: minmax(190px, 1.12fr) minmax(132px, 0.62fr) minmax(176px, 0.9fr) minmax(176px, 0.9fr) minmax(154px, 0.7fr) minmax(126px, 0.56fr);
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  padding: 8px 10px;
+}
+
+.mon-field-occurrences-register-row.is-head {
+  min-height: 34px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom-color: color-mix(in srgb, var(--pulso-primary-border) 24%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94)),
+    #fff;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.mon-field-occurrences-register-row.is-con_registro { --occurrence-register-row-color: var(--occurrence-effective-color); }
+.mon-field-occurrences-register-row.is-sin_registro { --occurrence-register-row-color: var(--occurrence-missing-color); }
+.mon-field-occurrences-register-row.is-sin_conciliacion { --occurrence-register-row-color: var(--occurrence-review-color); }
+
+.mon-field-occurrences-register-row:not(.is-head) {
+  border-left: 3px solid color-mix(in srgb, var(--occurrence-register-row-color) 72%, transparent);
+}
+
+.mon-field-occurrences-register-row:last-child {
+  border-bottom: 0;
+}
+
+.mon-field-occurrences-register-row span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-field-occurrences-register-row strong,
+.mon-field-occurrences-register-row b,
+.mon-field-occurrences-register-row em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-field-occurrences-register-row strong,
+.mon-field-occurrences-register-row b {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-register-row b {
+  color: color-mix(in srgb, var(--occurrence-register-row-color) 78%, var(--pulso-text));
+}
+
+.mon-field-occurrences-register-row em {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.mon-field-occurrences-register-row .is-identity strong {
+  font-size: 12.5px;
+}
+
+.mon-field-occurrences-register-empty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 760;
+}
+
 @media (max-width: 1420px) {
   .mon-stage--ocurrencias .mon-field-occurrences-command,
+  .mon-field-occurrences-register-head,
   .mon-field-occurrences-workspace-head,
   .mon-field-occurrences-split,
   .mon-field-occurrences-detail-grid,
@@ -60566,10 +61003,12 @@ button.mon-acr-requirement-metric:active {
 }
 
 @media (max-width: 980px) {
+  .mon-field-occurrences-register-toolbar,
   .mon-field-occurrences-workspace-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .mon-field-occurrences-register-kpis,
   .mon-field-occurrences-ump-rows {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -60587,6 +61026,7 @@ button.mon-acr-requirement-metric:active {
   }
 
   .mon-field-occurrences-workspace-stats,
+  .mon-field-occurrences-register-kpis,
   .mon-field-occurrences-detail-kpis,
   .mon-field-occurrences-district-counts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -60599,16 +61039,20 @@ button.mon-acr-requirement-metric:active {
   }
 
   .mon-field-occurrences-workspace,
+  .mon-field-occurrences-register,
   .mon-field-occurrences-overview,
   .mon-stage--ocurrencias .mon-field-occurrences-body {
     min-height: 720px;
   }
 
+  .mon-field-occurrences-register-toolbar,
   .mon-field-occurrences-workspace-filters,
+  .mon-field-occurrences-register-kpis,
   .mon-field-occurrences-workspace-stats,
   .mon-field-occurrences-detail-kpis,
   .mon-field-occurrences-district-counts,
   .mon-stage--ocurrencias .mon-field-occurrences-body.is-alerts,
+  .mon-stage--ocurrencias .mon-field-occurrences-body.is-rhythm,
   .mon-stage--ocurrencias .mon-field-occurrences-body.is-side-only .mon-field-occurrences-side {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -60618,6 +61062,15 @@ button.mon-acr-requirement-metric:active {
   .mon-field-occurrences-detail-section.is-records article {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: none;
+  }
+
+  .mon-field-occurrences-register-row {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mon-field-occurrences-register-row.is-head {
+    display: none;
   }
 
   .mon-field-occurrences-detail-section.is-records strong,
@@ -60675,6 +61128,13 @@ button.mon-acr-requirement-metric:active {
   align-content: stretch;
   align-items: stretch;
   overflow: hidden;
+}
+
+.mon-field-occurrences-overview.is-summary {
+  grid-template-columns: minmax(250px, 0.68fr) minmax(360px, 1fr);
+  grid-template-areas:
+    "state outcomes"
+    "districts districts";
 }
 
 .mon-field-occurrences-state-grid {
@@ -60821,6 +61281,13 @@ button.mon-acr-requirement-metric:active {
       "districts districts daily";
   }
 
+  .mon-field-occurrences-overview.is-summary {
+    grid-template-columns: minmax(230px, 0.62fr) minmax(320px, 1fr);
+    grid-template-areas:
+      "state outcomes"
+      "districts districts";
+  }
+
   .mon-field-occurrences-state-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -60890,6 +61357,13 @@ button.mon-acr-requirement-metric:active {
       "state"
       "outcomes"
       "daily"
+      "districts";
+  }
+
+  .mon-field-occurrences-overview.is-summary {
+    grid-template-areas:
+      "state"
+      "outcomes"
       "districts";
   }
 
@@ -66640,6 +67114,8 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-quota-commandbar,
   .mon-field-occurrences-command,
   .mon-field-occurrences-alerts-toolbar,
+  .mon-field-occurrences-register-head,
+  .mon-field-occurrences-register-toolbar,
   .mon-field-occurrences-workspace-head,
   .mon-field-occurrences-workspace-filters,
   .mon-operational-ump-toolbar,
@@ -66668,6 +67144,7 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-ump-toolbar,
   .mon-territorial-quota-commandbar,
   .mon-field-occurrences-alerts-toolbar,
+  .mon-field-occurrences-register-toolbar,
   .mon-field-occurrences-workspace-filters,
   .mon-operational-ump-toolbar,
   .mon-territorial-enumerator-table-toolbar,
@@ -66686,6 +67163,7 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-route-command,
   .mon-query-command,
   .mon-field-occurrences-command,
+  .mon-field-occurrences-register-head,
   .mon-field-occurrences-workspace-head,
   .mon-operational-adjustments__header,
   .mon-aulas-commandbar
@@ -66745,6 +67223,7 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-route-sheet-actions button,
   .mon-field-occurrences-command-actions button,
   .mon-field-occurrences-alerts-toolbar button,
+  .mon-field-occurrences-register-toolbar button,
   .mon-field-occurrences-workspace-filters button,
   .mon-field-occurrences-detail-actions button,
   .mon-territorial-quota-command-actions button,
@@ -66771,6 +67250,7 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-reconciliation-batchactions button:not(.is-primary):not(.is-danger),
   .mon-field-occurrences-command-actions button:not(.is-primary):not(.is-danger),
   .mon-field-occurrences-alerts-toolbar button:not(.is-primary):not(.is-danger),
+  .mon-field-occurrences-register-toolbar button:not(.is-primary):not(.is-danger),
   .mon-field-occurrences-workspace-filters button:not(.is-primary):not(.is-danger),
   .mon-field-occurrences-detail-actions button:not(.is-primary):not(.is-danger),
   .mon-territorial-quota-command-actions button:not(.is-primary):not(.is-danger),
@@ -66798,6 +67278,7 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-reconciliation-batchactions button:not(:disabled):hover,
   .mon-field-occurrences-command-actions button:not(:disabled):hover,
   .mon-field-occurrences-alerts-toolbar button:not(:disabled):hover,
+  .mon-field-occurrences-register-toolbar button:not(:disabled):hover,
   .mon-field-occurrences-workspace-filters button:not(:disabled):hover,
   .mon-field-occurrences-detail-actions button:not(:disabled):hover,
   .mon-territorial-quota-command-actions button:not(:disabled):hover,
@@ -66840,6 +67321,8 @@ button.mon-acr-requirement-metric:active {
     .mon-territorial-quota-commandbar,
     .mon-field-occurrences-command,
     .mon-field-occurrences-alerts-toolbar,
+    .mon-field-occurrences-register-head,
+    .mon-field-occurrences-register-toolbar,
     .mon-field-occurrences-workspace-head,
     .mon-field-occurrences-workspace-filters,
     .mon-operational-ump-toolbar,
@@ -66868,6 +67351,7 @@ button.mon-acr-requirement-metric:active {
     .mon-territorial-ump-toolbar,
     .mon-territorial-quota-commandbar,
     .mon-field-occurrences-alerts-toolbar,
+    .mon-field-occurrences-register-toolbar,
     .mon-field-occurrences-workspace-filters,
     .mon-operational-ump-toolbar,
     .mon-territorial-enumerator-table-toolbar,
@@ -66887,6 +67371,7 @@ button.mon-acr-requirement-metric:active {
     .mon-territorial-route-command,
     .mon-query-command,
     .mon-field-occurrences-command,
+    .mon-field-occurrences-register-head,
     .mon-field-occurrences-workspace-head,
     .mon-operational-adjustments__header,
     .mon-aulas-commandbar
@@ -66934,8 +67419,8 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-page .mon-territorial-route-table-workspace {
-  height: min(620px, calc(100vh - 252px));
-  min-height: 440px;
+  height: clamp(500px, calc(100dvh - 282px), 980px);
+  min-height: 500px;
   align-content: stretch;
   overflow: hidden;
 }
@@ -66997,7 +67482,7 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-page .pulso-panel button.mon-territorial-route-accordion-trigger {
-  min-height: 54px;
+  min-height: 64px;
   padding: 8px 9px;
 }
 

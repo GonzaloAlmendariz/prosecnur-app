@@ -145,9 +145,20 @@ function routePrimaryUmpLabel(block: TerritorialBlockProgress) {
   return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER ? `UMP ${fmt(value)}` : "UMP por definir";
 }
 
+function routeReplacementUmpNumber(block: TerritorialBlockProgress) {
+  return numberOrNull(block.titular_hoja_num)
+    ?? numberOrNull(block.titular_orden_seleccion)
+    ?? numberOrNull(block.ump);
+}
+
 function routeReplacementLabel(block: TerritorialBlockProgress) {
-  const order = routeReplacementOrder(block);
-  return Number.isFinite(order) && order !== Number.MAX_SAFE_INTEGER ? `R${fmt(order)}` : "R";
+  const unit = routeReplacementUmpNumber(block);
+  const order = numberOrNull(block.replacement_order);
+  if (unit != null) {
+    return order != null && order > 1 ? `R ${fmt(unit)}.${fmt(order)}` : `R ${fmt(unit)}`;
+  }
+  const fallbackOrder = routeReplacementOrder(block);
+  return Number.isFinite(fallbackOrder) && fallbackOrder !== Number.MAX_SAFE_INTEGER ? `R ${fmt(fallbackOrder)}` : "R";
 }
 
 function routeOperationalLabel(block: TerritorialBlockProgress) {
@@ -161,6 +172,20 @@ function routeOperationalLabel(block: TerritorialBlockProgress) {
 
 function physicalBlockLabel(block: TerritorialBlockProgress) {
   return `Mz ${block.manzana || block.id_manzana || "S/D"}`;
+}
+
+function routeBlockResponsible(block: TerritorialBlockProgress | null | undefined) {
+  const record = block as (TerritorialBlockProgress & Record<string, unknown>) | null | undefined;
+  const value = record?.responsable
+    ?? record?.responsible_display
+    ?? record?.responsible
+    ?? record?.encuestador
+    ?? record?.assigned_to;
+  return String(value ?? "").trim();
+}
+
+function routeBlockResponsibleLabel(block: TerritorialBlockProgress | null | undefined, fallback = "S/D") {
+  return routeBlockResponsible(block) || fallback;
 }
 
 function routeRangeLabel(block: TerritorialBlockProgress) {
@@ -566,7 +591,7 @@ function RouteBlockTable({
         block.distrito,
         block.zona,
         block.manzana,
-        block.responsable,
+        routeBlockResponsible(block),
         block.territorio_muestral,
       ].join(" "));
       return districtOk && (!q || haystack.includes(q));
@@ -656,6 +681,7 @@ function RouteBlockTable({
                 <span className="mon-territorial-route-accordion-title">
                   <strong title={`${block.distrito || block.ubigeo || ""} · ${physicalBlockLabel(block)}`}>{routeOperationalLabel(block)}</strong>
                   <em>{block.distrito || "Sin distrito"} · {physicalBlockLabel(block)} · Zona {block.zona || "S/D"} · Rango {routeRangeLabel(block)}</em>
+                  <small>{routeBlockResponsibleLabel(block, "Sin responsable")}</small>
                 </span>
                 <span className="mon-territorial-route-accordion-meta">
                   <b>{replacements.length ? `${fmt(replacements.length)} reemplazos` : "sin reemplazos"}</b>
@@ -668,7 +694,7 @@ function RouteBlockTable({
                     <span className="mon-territorial-route-badge is-titular">Titular</span>
                     <strong>{routeOperationalLabel(block)}</strong>
                     <em>{physicalBlockLabel(block)} · Zona {block.zona || "S/D"}</em>
-                    <small>{block.ubigeo || "sin ubigeo"} · {block.territorio_muestral || block.ump || "sin territorio"}</small>
+                    <small>{routeBlockResponsibleLabel(block, "Sin responsable")} · {block.ubigeo || "sin ubigeo"} · {block.territorio_muestral || block.ump || "sin territorio"}</small>
                   </button>
                   <div className="mon-territorial-route-replacement-list" aria-label={`Reemplazos de ${block.manzana || block.id_manzana || "la titular"}`}>
                     {replacements.map((replacement) => {
@@ -678,7 +704,7 @@ function RouteBlockTable({
                           <span className="mon-territorial-route-badge is-replacement">{routeReplacementLabel(replacement)}</span>
                           <strong>{routeOperationalLabel(replacement)}</strong>
                           <em>{physicalBlockLabel(replacement)} · Zona {replacement.zona || "S/D"}</em>
-                          <small>Reemplazo de {routePrimaryUmpLabel(replacement)} · rango titular {routeRangeLabel(block)}</small>
+                          <small>{routeBlockResponsibleLabel(replacement, "Sin responsable")} · Reemplazo de {routePrimaryUmpLabel(replacement)} · rango titular {routeRangeLabel(block)}</small>
                         </button>
                       );
                     })}
@@ -740,7 +766,7 @@ function RouteBlockContext({
               <span><em>Válidas</em><strong>{fmt(block.validas)}</strong></span>
               <span><em>Revisión</em><strong>{fmt(block.revision)}</strong></span>
               <span><em>Brecha</em><strong>{fmt(block.brecha, "S/D")}</strong></span>
-              <span><em>Responsable</em><strong>{block.responsable || "S/D"}</strong></span>
+              <span><em>Responsable</em><strong>{routeBlockResponsibleLabel(block)}</strong></span>
               <span><em>Avance</em><strong>{block.avance_pct == null ? "S/D" : `${fmt(block.avance_pct)}%`}</strong></span>
             </div>
           </div>
@@ -764,7 +790,7 @@ function RouteBlockContext({
                       <span className={`mon-territorial-route-badge ${replacement ? "is-replacement" : "is-titular"}`}>{replacement ? routeReplacementLabel(item) : "Titular"}</span>
                       <strong>{routeOperationalLabel(item)}</strong>
                       <em>{physicalBlockLabel(item)} · Zona {item.zona || "S/D"}</em>
-                      <small>{replacement ? `Reemplazo de ${routePrimaryUmpLabel(item)}` : `Rango ${routeRangeLabel(item)}`}</small>
+                      <small>{replacement ? `Reemplazo de ${routePrimaryUmpLabel(item)}` : `Rango ${routeRangeLabel(item)}`} · {routeBlockResponsibleLabel(item, "Sin responsable")}</small>
                     </button>
                   );
                 })}

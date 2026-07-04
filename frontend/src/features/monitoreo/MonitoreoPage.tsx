@@ -1073,9 +1073,11 @@ function localTabsForWorkbenchView(route: { family: MonitoreoRouteFamily }, view
         { key: "salidas", label: "Salidas", desc: "PDF y Sheets", icon: Table2 },
       ],
       ocurrencias: [
-        { key: "states", label: "Estados general", desc: "Efectivas y no efectivas", icon: ClipboardCheck },
-        { key: "ump", label: "Por UMP", desc: "Seguimiento territorial", icon: Route },
-        { key: "alerts", label: "Observaciones", desc: "Señales operativas", icon: ShieldAlert },
+        { key: "states", label: "Resumen", desc: "Estados y distritos", icon: ClipboardCheck },
+        { key: "registro", label: "Registro", desc: "Dia, hora y responsable", icon: Table2 },
+        { key: "ump", label: "UMP", desc: "Con/sin ocurrencia", icon: Route },
+        { key: "alerts", label: "Alertas", desc: "Cruces y observaciones", icon: ShieldAlert },
+        { key: "rhythm", label: "Ritmo", desc: "Dias e historial", icon: CalendarRange },
       ],
       telefonico: [],
     };
@@ -7408,7 +7410,7 @@ const TERRITORIAL_UMP_TARGET = 8;
 
 type TerritorialAdvanceTab = "resumen" | "ump" | "ritmo" | "salidas";
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
-type TerritorialOccurrenceTab = "states" | "ump" | "alerts";
+type TerritorialOccurrenceTab = "states" | "registro" | "ump" | "alerts" | "rhythm";
 type TerritorialUmpStatus = "complete" | "incomplete" | "none";
 type TerritorialQuotaStatus = "complete" | "subsanada" | "in_field" | "pending" | "missing" | "not_configured";
 type TerritorialQuotaConsistencyFilter = "complete" | "subsanada" | "pending" | "in_field" | "missing";
@@ -7439,7 +7441,7 @@ function isTerritorialAdvanceTab(value: unknown): value is TerritorialAdvanceTab
 }
 
 function isTerritorialOccurrenceTab(value: unknown): value is TerritorialOccurrenceTab {
-  return value === "states" || value === "ump" || value === "alerts";
+  return value === "states" || value === "registro" || value === "ump" || value === "alerts" || value === "rhythm";
 }
 
 type TerritorialDistrictDashboardRow = TerritorialDistrictProgress & {
@@ -23675,17 +23677,16 @@ function TerritorialFieldOccurrencesView({
       ) : null}
 
       {occurrenceTab === "states" ? (
-        <section className="mon-field-occurrences-overview">
+        <section className="mon-field-occurrences-overview is-summary">
           <div className="mon-field-occurrences-state-grid">
             <OccurrenceStateComposition summary={summary} rateLabel={rateLabel} />
             <OccurrenceOutcomeBars items={topOutcomes} total={summary.no_efectivas} />
-            <OccurrenceDailyBars rows={occurrences?.by_day ?? []} />
           </div>
           <OccurrenceDistrictMatrix rows={districtSummary} />
         </section>
       ) : null}
 
-      {occurrenceTab === "ump" ? (
+      {occurrenceTab === "ump" || occurrenceTab === "registro" ? (
         <OccurrenceUmpWorkspace
           rows={filteredUmpRows}
           allRows={routeUmpRows}
@@ -23739,6 +23740,24 @@ function TerritorialFieldOccurrencesView({
             {!history.length && <em>Sin eventos registrados.</em>}
           </section>
         </aside>
+        </section>
+      ) : null}
+
+      {occurrenceTab === "rhythm" ? (
+        <section className="mon-field-occurrences-body is-rhythm">
+          <OccurrenceDailyBars rows={occurrences?.by_day ?? []} />
+          <aside className="mon-field-occurrences-side is-alert-summary">
+            <section>
+              <header><Clock size={15} /><strong>Historial operativo</strong></header>
+              {history.slice(0, 12).map((entry) => (
+                <p key={entry.id}>
+                  <strong>{entry.type}</strong>
+                  <span>{entry.created_at ? formatDate(entry.created_at) : "sin fecha"} · {formatMetric(entry.response_count)} registros</span>
+                </p>
+              ))}
+              {!history.length && <em>Sin eventos registrados.</em>}
+            </section>
+          </aside>
         </section>
       ) : null}
     </Panel>

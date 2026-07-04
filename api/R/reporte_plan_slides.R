@@ -375,18 +375,205 @@ p_slide_portada <- function(
 
 #' @title Slide de indice predeterminado
 #'
+#' @param titulo Titulo del indice. Si se omite junto con `secciones` y
+#'   `subtemas`, el export PPT usa el layout de indice de la plantilla.
+#' @param secciones Vector/lista o texto separado por saltos de linea con las
+#'   secciones principales.
+#' @param subtemas Vector/lista o texto separado por saltos de linea con los
+#'   subtemas a mostrar bajo el indice. Si `subindices` no se define, se
+#'   asocian a la ultima seccion.
+#' @param subindices Lista nombrada o tabla con subindices por seccion.
+#' @param iconos_focos Vector opcional con nombres internos o rutas SVG/PNG para
+#'   los iconos de los focos.
+#' @param redibujar_focos Si es `TRUE`, redibuja desde cero la zona izquierda de
+#'   focos. Por defecto se conservan los focos de la plantilla y solo se limpian
+#'   los iconos previos cuando se agregan iconos personalizados.
+#' @param mostrar_iconos_focos Si es `TRUE`, muestra los iconos dentro de los
+#'   focos.
+#' @param iconos_focos_fill Colores opcionales de los focos.
+#' @param iconos_focos_objeto_unico Si es `TRUE`, inserta circulo e icono como
+#'   una sola imagen editable en PowerPoint.
+#' @param iconos_focos_diametro_cm Diametro de los circulos de icono, en cm.
+#' @param iconos_focos_icon_scale Escala interna del icono dentro del circulo.
+#' @param iconos_focos_left_cm Compatibilidad historica; las posiciones del
+#'   layout de focos son fijas.
+#' @param iconos_focos_top_cm Compatibilidad historica; las posiciones del
+#'   layout de focos son fijas.
+#' @param subtopic_badge_fill Color de las marcas numeradas del subindice.
+#' @param subtopic_badge_width Ancho de las marcas numeradas del subindice.
+#' @param subtopic_badge_gap Separacion entre marca numerada y texto.
+#' @param estilo Lista opcional de parametros visuales del indice.
 #' @param meta Lista libre para notas internas.
 #'
 #' @return Objeto con clase `"ppt_slide"`.
 #' @family reporte
 #' @export
-p_slide_indice <- function(meta = list()) {
+p_slide_indice <- function(titulo = NULL,
+                           secciones = NULL,
+                           subtemas = NULL,
+                           subindices = NULL,
+                           iconos_focos = NULL,
+                           redibujar_focos = FALSE,
+                           mostrar_iconos_focos = TRUE,
+                           iconos_focos_fill = NULL,
+                           iconos_focos_objeto_unico = NULL,
+                           iconos_focos_diametro_cm = NULL,
+                           iconos_focos_icon_scale = NULL,
+                           iconos_focos_left_cm = NULL,
+                           iconos_focos_top_cm = NULL,
+                           subtopic_badge_fill = NULL,
+                           subtopic_badge_width = NULL,
+                           subtopic_badge_gap = NULL,
+                           estilo = list(),
+                           meta = list()) {
+  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+
+  parse_numeric_vec <- function(x) {
+    if (is.null(x) || length(x) == 0L) return(NULL)
+    if (is.character(x) && length(x) == 1L) {
+      x <- unlist(strsplit(x, "[,;|\\r\\n\\t ]+", perl = TRUE), use.names = FALSE)
+    }
+    x <- suppressWarnings(as.numeric(x))
+    x <- x[is.finite(x)]
+    if (!length(x)) NULL else x
+  }
+  recycle_focus_vec <- function(x, n = 5L) {
+    if (is.null(x)) return(NULL)
+    if (length(x) == 1L) return(rep(x, n))
+    x
+  }
+  cm_to_in_vec <- function(x) {
+    x <- parse_numeric_vec(x)
+    if (is.null(x)) NULL else x / 2.54
+  }
+
+  if (!is.null(iconos_focos)) estilo$iconos_focos <- iconos_focos
+  if (!is.null(redibujar_focos)) estilo$redibujar_focos <- isTRUE(redibujar_focos)
+  if (!is.null(mostrar_iconos_focos)) estilo$mostrar_iconos_focos <- isTRUE(mostrar_iconos_focos)
+  if (!is.null(iconos_focos_fill)) estilo$iconos_focos_fill <- iconos_focos_fill
+  if (!is.null(iconos_focos_objeto_unico)) estilo$iconos_focos_objeto_unico <- isTRUE(iconos_focos_objeto_unico)
+  if (!is.null(iconos_focos_diametro_cm)) {
+    diametro_in <- recycle_focus_vec(cm_to_in_vec(iconos_focos_diametro_cm))
+    if (!is.null(diametro_in)) {
+      estilo$iconos_focos_cover_width <- diametro_in
+      estilo$iconos_focos_cover_height <- diametro_in
+    }
+  }
+  icon_scale <- recycle_focus_vec(parse_numeric_vec(iconos_focos_icon_scale))
+  if (!is.null(icon_scale)) estilo$iconos_focos_icon_scale <- icon_scale
+  if (!is.null(subtopic_badge_fill)) estilo$subtopic_badge_fill <- .ppt_norm_text1(subtopic_badge_fill, blank = NULL)
+  if (!is.null(subtopic_badge_width)) estilo$subtopic_badge_width <- parse_numeric_vec(subtopic_badge_width)[1]
+  if (!is.null(subtopic_badge_gap)) estilo$subtopic_badge_gap <- parse_numeric_vec(subtopic_badge_gap)[1]
   .ppt_chk_meta(meta)
 
   .ppt_as_slide(list(
     .slide_type = "indice",
-    title       = NULL,
-    slots       = list(),
+    title       = .ppt_norm_text1(titulo, blank = NULL),
+    slots       = list(
+      title = .ppt_norm_text1(titulo, blank = NULL),
+      secciones = secciones,
+      subtemas = subtemas,
+      subindices = subindices,
+      iconos_focos = iconos_focos,
+      redibujar_focos = redibujar_focos,
+      mostrar_iconos_focos = mostrar_iconos_focos,
+      iconos_focos_fill = iconos_focos_fill,
+      iconos_focos_objeto_unico = iconos_focos_objeto_unico,
+      iconos_focos_diametro_cm = iconos_focos_diametro_cm,
+      iconos_focos_icon_scale = iconos_focos_icon_scale,
+      iconos_focos_left_cm = iconos_focos_left_cm,
+      iconos_focos_top_cm = iconos_focos_top_cm,
+      subtopic_badge_fill = subtopic_badge_fill,
+      subtopic_badge_width = subtopic_badge_width,
+      subtopic_badge_gap = subtopic_badge_gap,
+      estilo = estilo
+    ),
+    style       = estilo,
+    meta        = meta
+  ))
+}
+
+#' @title Slide explicativo de Top Two Box
+#'
+#' @param titulo Titulo principal.
+#' @param texto Parrafo explicativo.
+#' @param valores Porcentajes de la escala. Por defecto usa 5%, 5%, 35% y 55%.
+#' @param etiquetas Etiquetas de la escala/leyenda.
+#' @param top_two_indices Posiciones de `valores` que componen el Top Two Box.
+#' @param extremo_izquierda Texto del extremo izquierdo de la escala.
+#' @param extremo_derecha Texto del extremo derecho de la escala.
+#' @param accent_color Color de acento para título y anotación de Top Two Box.
+#' @param grosor_barra Grosor visual de la barra de referencia.
+#' @param size_texto_porcentajes Tamaño del texto de porcentajes dentro de la
+#'   barra de referencia.
+#' @param size_texto_porcentajes_peq Tamaño alternativo para porcentajes en
+#'   segmentos pequeños.
+#' @param color_texto_porcentajes Color del texto de porcentajes dentro de la
+#'   barra.
+#' @param margen_llave Margen lateral extra para la llave que engloba el Top
+#'   Two Box.
+#' @param grosor_flecha Grosor de la flecha inferior de escala.
+#' @param estilo Lista opcional de parametros visuales.
+#' @param meta Lista libre para notas internas.
+#'
+#' @return Objeto con clase `"ppt_slide"`.
+#' @family reporte
+#' @export
+p_slide_top_two_box <- function(
+    titulo = "TOP TWO BOX",
+    texto = NULL,
+    valores = c(5, 5, 35, 55),
+    etiquetas = c("1", "2", "3", "4"),
+    top_two_indices = c(3, 4),
+    extremo_izquierda = "Totalmente\nen desacuerdo",
+    extremo_derecha = "Totalmente\nde acuerdo",
+    accent_color = NULL,
+    colores = NULL,
+    grosor_barra = NULL,
+    size_texto_porcentajes = NULL,
+    size_texto_porcentajes_peq = NULL,
+    color_texto_porcentajes = NULL,
+    margen_llave = NULL,
+    grosor_flecha = NULL,
+    estilo = list(),
+    meta = list()
+) {
+  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  if (!is.null(accent_color)) estilo$accent_color <- .ppt_norm_text1(accent_color, blank = NULL)
+  if (!is.null(colores)) estilo$colores <- colores
+  if (!is.null(grosor_barra)) estilo$grosor_barra <- grosor_barra
+  if (!is.null(size_texto_porcentajes)) estilo$size_texto_porcentajes <- size_texto_porcentajes
+  if (!is.null(size_texto_porcentajes_peq)) estilo$size_texto_porcentajes_peq <- size_texto_porcentajes_peq
+  if (!is.null(color_texto_porcentajes)) estilo$color_texto_porcentajes <- .ppt_norm_text1(color_texto_porcentajes, blank = NULL)
+  if (!is.null(margen_llave)) estilo$margen_llave <- margen_llave
+  if (!is.null(grosor_flecha)) estilo$grosor_flecha <- grosor_flecha
+  .ppt_chk_meta(meta)
+  texto_default <- "Con el fin de hacer la lectura de datos de forma más amigable, se plantea la suma de los dos valores superiores de la escala, comúnmente llamada top two box. Esta suma permite comparar de manera más rápida y eficiente los datos entre categorías o con mediciones de otros años."
+  if (is.null(texto)) texto <- texto_default
+  texto <- .ppt_norm_text1(texto, blank = texto_default)
+
+  .ppt_as_slide(list(
+    .slide_type = "top_two_box",
+    title       = .ppt_norm_text1(titulo, blank = "TOP TWO BOX"),
+    slots       = list(
+      title = .ppt_norm_text1(titulo, blank = "TOP TWO BOX"),
+      text = texto,
+      valores = valores,
+      etiquetas = etiquetas,
+      top_two_indices = top_two_indices,
+      extremo_izquierda = extremo_izquierda,
+      extremo_derecha = extremo_derecha,
+      accent_color = accent_color,
+      colores = colores,
+      grosor_barra = grosor_barra,
+      size_texto_porcentajes = size_texto_porcentajes,
+      size_texto_porcentajes_peq = size_texto_porcentajes_peq,
+      color_texto_porcentajes = color_texto_porcentajes,
+      margen_llave = margen_llave,
+      grosor_flecha = grosor_flecha,
+      estilo = estilo
+    ),
+    style       = estilo,
     meta        = meta
   ))
 }

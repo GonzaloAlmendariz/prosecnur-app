@@ -2730,11 +2730,26 @@ function territorialRouteUmpNumber(block: TerritorialBlockProgress) {
     ?? Number.MAX_SAFE_INTEGER;
 }
 
+function territorialRouteReplacementUmpNumber(block: TerritorialBlockProgress) {
+  return numberOrNull(block.titular_hoja_num)
+    ?? numberOrNull(block.titular_orden_seleccion)
+    ?? numberOrNull(block.ump);
+}
+
+function territorialRouteReplacementLabel(block: TerritorialBlockProgress) {
+  const unit = territorialRouteReplacementUmpNumber(block);
+  const order = numberOrNull(block.replacement_order);
+  if (unit != null) {
+    return order != null && order > 1 ? `R ${formatMetric(unit)}.${formatMetric(order)}` : `R ${formatMetric(unit)}`;
+  }
+  const fallbackOrder = numberOrNull(block.replacement_order) ?? numberOrNull(block.hoja_num) ?? numberOrNull(block.orden_seleccion);
+  return fallbackOrder != null ? `R ${formatMetric(fallbackOrder)}` : "R";
+}
+
 function territorialRouteOperationalLabel(block: TerritorialBlockProgress) {
   if (isReplacementBlock(block)) {
     const titular = numberOrNull(block.titular_hoja_num) ?? numberOrNull(block.titular_orden_seleccion);
-    const replacement = numberOrNull(block.replacement_order) ?? numberOrNull(block.hoja_num) ?? numberOrNull(block.orden_seleccion);
-    return `${titular != null ? `UMP ${formatMetric(titular)}` : "UMP por definir"} · ${replacement != null ? `R${formatMetric(replacement)}` : "R"}`;
+    return `${titular != null ? `UMP ${formatMetric(titular)}` : "UMP por definir"} · ${territorialRouteReplacementLabel(block)}`;
   }
   const value = territorialRouteUmpNumber(block);
   return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER ? `UMP ${formatMetric(value)}` : "UMP por definir";

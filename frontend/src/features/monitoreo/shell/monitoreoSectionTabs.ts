@@ -104,9 +104,11 @@ export function localTabsForSection({
         { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
       ]),
       ocurrencias: controlledTabs([
-        { key: "states", label: "Estados", detail: "Composición general", icon: ClipboardCheck },
-        { key: "ump", label: "Por UMP", detail: "Atención por manzana", icon: Route },
-        { key: "alerts", label: "Observaciones", detail: "Señales operativas", icon: AlertTriangle },
+        { key: "states", label: "Resumen", detail: "Estados y distritos", icon: ClipboardCheck },
+        { key: "registro", label: "Registro", detail: "Dia, hora y responsable", icon: Table2 },
+        { key: "ump", label: "UMP", detail: "Con/sin ocurrencia", icon: Route },
+        { key: "alerts", label: "Alertas", detail: "Cruces y observaciones", icon: AlertTriangle },
+        { key: "rhythm", label: "Ritmo", detail: "Dias e historial", icon: Activity },
       ]),
     };
     return byView[activeView] ?? [];

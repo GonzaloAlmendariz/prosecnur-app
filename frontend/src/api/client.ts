@@ -6054,12 +6054,16 @@ export type TerritorialQuotaObservedCrossCell = {
   label: string;
   age?: string;
   value: number;
+  adjustment_delta?: number;
+  adjusted_value?: number;
 };
 
 export type TerritorialQuotaObservedCrossRow = {
   label: string;
   target?: number;
   total: number;
+  adjustment_delta?: number;
+  adjusted_total?: number;
   cells: TerritorialQuotaObservedCrossCell[];
 };
 
@@ -6067,6 +6071,8 @@ export type TerritorialQuotaObservedCrossColumn = {
   label: string;
   target?: number;
   total: number;
+  adjustment_delta?: number;
+  adjusted_total?: number;
 };
 
 export type TerritorialQuotaObservedCross = {
@@ -6074,6 +6080,8 @@ export type TerritorialQuotaObservedCross = {
   source?: string;
   total?: number;
   total_consentido?: number;
+  adjustment_delta?: number;
+  adjusted_total?: number;
   rows: TerritorialQuotaObservedCrossRow[];
   columns: TerritorialQuotaObservedCrossColumn[];
   note?: string;
@@ -6097,6 +6105,8 @@ export type TerritorialQuotaProgressBlock = {
   responsible?: string;
   configured: boolean;
   status: "complete" | "in_field" | "pending" | "partial" | "missing" | "exceeded" | "not_configured" | string;
+  operational_group_status?: "complete" | "in_field" | "pending" | "partial" | "missing" | "exceeded" | "not_configured" | string;
+  operational_group_selected?: boolean;
   target: number;
   validas: number;
   observed_validas?: number;
@@ -6169,6 +6179,35 @@ export type TerritorialQuotaProgressPayload = {
     demographic_missing_total?: number;
     districts_with_gap?: number;
   };
+  ump_summary?: {
+    total: number;
+    complete: number;
+    subsanada?: number;
+    in_field?: number;
+    pending?: number;
+    partial?: number;
+    missing: number;
+    exceeded: number;
+    not_configured: number;
+    sex_missing_total?: number;
+    age_missing_total?: number;
+    demographic_missing_total?: number;
+  };
+  ump_groups?: Array<{
+    ump: string;
+    status: string;
+    selected_id_manzana?: string;
+    selected_tipo_manzana?: string;
+    selected_replacement_order?: string | number | null;
+    block_count?: number;
+    replacement_count?: number;
+    target?: number;
+    validas?: number;
+    missing_total?: number;
+    sex_missing_total?: number;
+    age_missing_total?: number;
+    demographic_missing_total?: number;
+  }>;
   blocks: TerritorialQuotaProgressBlock[];
   districts?: TerritorialQuotaProgressDistrict[];
   district_summary?: {

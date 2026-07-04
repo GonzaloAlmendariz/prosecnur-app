@@ -558,6 +558,29 @@
     }
 
     # -------------------------
+    # TOP_TWO_BOX
+    # -------------------------
+    if (identical(stype, "top_two_box")) {
+      slots <- s$slots %||% NULL
+      if (is.null(slots) || !is.list(slots)) {
+        msg <- paste0("`.validate_plan()`: top_two_box (i=", i, ") requiere `slots` como lista.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+        next
+      }
+      ttl <- slots$title %||% s$title %||% NULL
+      if (is.null(ttl) || !is.character(ttl) || length(ttl) != 1L || !nzchar(trimws(ttl))) {
+        msg <- paste0("`.validate_plan()`: top_two_box (i=", i, ") requiere `title` no vacío.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+      }
+      txt <- slots$text %||% NULL
+      if (is.null(txt) || !(is.character(txt) && length(txt) == 1L && nzchar(trimws(txt)))) {
+        msg <- paste0("`.validate_plan()`: top_two_box (i=", i, ") requiere `slots$text` como character(1) no vacío.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+      }
+      next
+    }
+
+    # -------------------------
     # OBJETIVO_ICONO
     # -------------------------
     if (identical(stype, "objetivo_icono")) {

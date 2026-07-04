@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260701-telefonico-kobo-filter-v1"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260704-territorial-route-responsible-v1"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
@@ -1801,7 +1801,7 @@
   context
 }
 
-.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v24"
+.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v26"
 .monitoreo_territorial_report_cache_limit <- 18L
 
 .monitoreo_territorial_report_cache_key_info <- function(sid, snapshot, data, cfg, report_scope = "full") {
@@ -3388,8 +3388,38 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     stop_api(400, "E_TERRITORIAL_OPERATIONAL_ADJUSTMENT_INVALID", "No se pudo normalizar la subsanacion operativa.")
   }
   phase_entries <- current[[phase]] %||% list()
+  entry_id <- .monitoreo_scalar(entry$id, "")
+  same_id <- vapply(phase_entries, function(item) {
+    identical(.monitoreo_scalar(item$id, ""), entry_id)
+  }, logical(1))
+  same_id_reverted <- same_id & vapply(phase_entries, function(item) {
+    !identical(.monitoreo_scalar(item$status, "active"), "active")
+  }, logical(1))
+  if (nzchar(entry_id) && any(same_id_reverted, na.rm = TRUE)) {
+    existing_ids <- vapply(phase_entries, function(item) .monitoreo_scalar(item$id, ""), character(1))
+    seed <- paste(
+      entry_id,
+      phase,
+      .monitoreo_scalar(entry$source_block_id, ""),
+      .monitoreo_scalar(entry$target_block_id, ""),
+      paste(.monitoreo_chr_vec(entry$source_response_ids %||% list()), collapse = "|"),
+      sep = "::"
+    )
+    suffix <- substr(digest::digest(seed, algo = "sha1"), 1, 8)
+    candidate_id <- paste(entry_id, suffix, sep = "__")
+    counter <- 1L
+    while (candidate_id %in% existing_ids) {
+      counter <- counter + 1L
+      candidate_id <- paste(entry_id, suffix, counter, sep = "__")
+    }
+    entry$original_id <- entry_id
+    entry$id <- candidate_id
+  }
   phase_entries <- Filter(function(item) {
-    !identical(.monitoreo_scalar(item$id, ""), entry$id)
+    !(
+      identical(.monitoreo_scalar(item$id, ""), entry_id) &&
+        identical(.monitoreo_scalar(item$status, "active"), "active")
+    )
   }, phase_entries)
   current[[phase]] <- c(phase_entries, list(entry))
   tcfg$active_route_phase <- phase
@@ -3471,7 +3501,18 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   active_before <- sum(vapply(current[[phase]] %||% list(), function(item) {
     identical(.monitoreo_scalar(item$status, "active"), "active")
   }, logical(1)), na.rm = TRUE)
-  current[[phase]] <- list()
+  reset_reason <- .monitoreo_scalar(
+    payload$reason %||% payload$motivo,
+    "Revertida por reconstruccion de subsanaciones desde excedentes reales"
+  )
+  reset_at <- .monitoreo_now_iso()
+  current[[phase]] <- lapply(current[[phase]] %||% list(), function(item) {
+    if (!identical(.monitoreo_scalar(item$status, "active"), "active")) return(item)
+    item$status <- "reverted"
+    item$reverted_at <- reset_at
+    item$revert_reason <- reset_reason
+    item
+  })
   tcfg$active_route_phase <- phase
   tcfg$operational_adjustments <- current
   list(tcfg = tcfg, phase = phase, active_before = as.integer(active_before))

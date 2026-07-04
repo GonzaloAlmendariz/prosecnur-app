@@ -136,6 +136,16 @@ type TerritorialDailyDashboardRow = MonitoreoTerritorialDashboard["daily"][numbe
 type TerritorialAdvanceGeoDisposition = "en_zona" | "en_distrito" | "fuera_distrito" | "sin_cruce" | "sin_gps";
 type TerritorialAdvanceUmpStatus = "complete" | "incomplete" | "none";
 type TerritorialAdvanceQuotaStatus = "complete" | "in_field" | "pending" | "missing" | "not_configured";
+type TerritorialExecutiveUmpStack = {
+  total: number;
+  complete: number;
+  incomplete: number;
+  none: number;
+  subsanada: number;
+  inField: number;
+  notConfigured: number;
+  source: "operational_quota" | "raw_progress";
+};
 
 type TerritorialAdvanceKoboPoint = MonitoreoTerritorialDashboard["map"]["points"][number] & {
   latValue: number;
@@ -177,6 +187,7 @@ export function TerritorialAdvanceWorkbench({
   const dailyRows = useMemo(() => buildTerritorialDailyRows(reports, dailyTargetTotal, blocks), [blocks, dailyTargetTotal, reports]);
   const advance = useMemo(() => buildAdvanceSummary(reports), [reports]);
   const districts = useMemo(() => districtRows(reports), [reports]);
+  const umpStack = useMemo(() => summarizeOperationalUmp(reports, blocks), [blocks, reports]);
   const mapLayers = useTerritorialAdvanceMapLayers(reports, blocks);
   const distributions = useMemo(() => buildAdvanceDistributions(reports), [reports]);
   const demographicQuota = useMemo(() => buildDemographicQuotaProgress(reports), [reports]);
@@ -205,6 +216,7 @@ export function TerritorialAdvanceWorkbench({
               criterionLabel={criterionLabel}
               cutLabel={cutLabel}
               districts={districts}
+              umpStack={umpStack}
               distributions={distributions}
               demographicQuota={demographicQuota}
               phaseLabel={phaseLabel}
@@ -254,6 +266,7 @@ function TerritorialAdvanceSummary({
   criterionLabel,
   cutLabel,
   districts,
+  umpStack,
   demographicQuota,
   distributions,
   phaseLabel,
@@ -266,6 +279,7 @@ function TerritorialAdvanceSummary({
   criterionLabel: string;
   cutLabel: string;
   districts: TerritorialDistrictProgress[];
+  umpStack: TerritorialExecutiveUmpStack;
   demographicQuota: DemographicQuotaProgress;
   distributions: { sex: DistributionItem[]; age: DistributionItem[] };
   phaseLabel: string;
@@ -273,7 +287,6 @@ function TerritorialAdvanceSummary({
   onOpenDistrict: (districtKey: string) => void;
   onOpenUmp: (districtKey: string, umpKey: string) => void;
 }) {
-  const umpStack = summarizeUmp(blocks);
   const priorities = buildAdvancePriorities(districts, blocks);
   const activeDistricts = districts.filter((row) => numberOrZero(row.validas) > 0).length;
   return (
@@ -351,18 +364,26 @@ function TerritorialExecutiveProgressPanel({
   );
 }
 
-function TerritorialExecutiveUmpPanel({ stack }: { stack: ReturnType<typeof summarizeUmp> }) {
+function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUmpStack }) {
   const pending = Math.max(0, stack.incomplete + stack.none);
+  const operational = stack.source === "operational_quota";
+  const incompleteLabel = operational
+    ? stack.inField > 0 ? "Pendientes" : "Cuota pendiente"
+    : "Incompletas";
+  const noneLabel = operational ? "No iniciadas" : "Sin avance";
+  const completeDetail = operational && stack.subsanada > 0
+    ? ` · ${formatMetric(stack.subsanada)} subsanadas`
+    : "";
   const segments = [
     { key: "complete", label: "Completas", value: stack.complete, tone: "ready" },
-    { key: "incomplete", label: "Incompletas", value: stack.incomplete, tone: "warning" },
-    { key: "none", label: "Sin avance", value: stack.none, tone: "muted" },
+    { key: "incomplete", label: incompleteLabel, value: stack.incomplete, tone: "warning" },
+    { key: "none", label: noneLabel, value: stack.none, tone: "muted" },
   ];
   return (
     <section className="mon-territorial-exec-ump" aria-label="Estado de UMP y manzanas">
       <header>
         <span><Route size={14} /> Estado UMP</span>
-        <strong>{formatMetric(stack.complete)} completas · {formatMetric(pending)} faltan</strong>
+        <strong>{formatMetric(stack.complete)} completas · {formatMetric(pending)} faltan{completeDetail}</strong>
       </header>
       <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
         {segments.map((segment) => {
@@ -2731,7 +2752,46 @@ function summarizeUmp(blocks: TerritorialBlockProgress[]) {
   const complete = blocks.filter((row) => blockStatus(row) === "complete").length;
   const none = blocks.filter((row) => blockStatus(row) === "none").length;
   const incomplete = Math.max(0, total - complete - none);
-  return { total, complete, incomplete, none };
+  return {
+    total,
+    complete,
+    incomplete,
+    none,
+    subsanada: 0,
+    inField: 0,
+    notConfigured: 0,
+    source: "raw_progress" as const,
+  };
+}
+
+function summarizeOperationalUmp(
+  reports: MonitoreoTerritorialDashboard | null,
+  blocks: TerritorialBlockProgress[],
+): TerritorialExecutiveUmpStack {
+  const quota = reports?.route_quota_progress;
+  const summary = quota?.ump_summary;
+  if (quota?.configured && summary) {
+    const total = Math.max(0, Math.round(numberOrNull(summary.total) ?? 0));
+    const complete = Math.max(0, Math.round(numberOrNull(summary.complete) ?? 0));
+    const subsanada = Math.max(0, Math.round(numberOrNull(summary.subsanada) ?? 0));
+    const pending = Math.max(0, Math.round(numberOrNull(summary.pending) ?? 0));
+    const partial = Math.max(0, Math.round(numberOrNull(summary.partial) ?? 0));
+    const inField = Math.max(0, Math.round(numberOrNull(summary.in_field) ?? 0));
+    const none = Math.max(0, Math.round(numberOrNull(summary.missing) ?? 0));
+    const notConfigured = Math.max(0, Math.round(numberOrNull(summary.not_configured) ?? 0));
+    const incomplete = Math.max(0, pending + partial + inField);
+    return {
+      total: Math.max(total, complete + incomplete + none + notConfigured),
+      complete,
+      incomplete,
+      none: none + notConfigured,
+      subsanada,
+      inField,
+      notConfigured,
+      source: "operational_quota",
+    };
+  }
+  return summarizeUmp(blocks);
 }
 
 function blockStatus(row: TerritorialBlockProgress) {

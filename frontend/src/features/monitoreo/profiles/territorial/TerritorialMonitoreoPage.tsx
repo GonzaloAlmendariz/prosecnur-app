@@ -30,12 +30,17 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  apiJobStatus,
+  apiMonitoreoSync,
   apiMonitoreoState,
   apiMonitoreoTerritorialOperationalAdjustmentApply,
   apiMonitoreoTerritorialOperationalAdjustmentReset,
   apiMonitoreoTerritorialOperationalAdjustmentRevert,
   apiMonitoreoTerritorialPhase,
+  type JobSnapshot,
+  type MonitoreoSource,
   type MonitoreoState,
+  type MonitoreoSyncResult,
   type MonitoreoTerritorialDashboard,
   type MonitoreoTerritorialConfig,
   type MonitoreoTerritorialOperationalAdjustment,
@@ -89,6 +94,13 @@ const TERRITORIAL_FIELD_SCOPES: MonitoreoReportScope[] = [
   "queries_summary",
 ];
 const TERRITORIAL_PILOT_SCOPES: MonitoreoReportScope[] = ["advance_summary"];
+const TERRITORIAL_CANONICAL_HEADER_SCOPES: MonitoreoReportScope[] = [
+  "advance_summary",
+  "validation_summary",
+  "queries_summary",
+  "full",
+];
+const TERRITORIAL_CANONICAL_HEADER_SCOPE_SET = new Set<string>(TERRITORIAL_CANONICAL_HEADER_SCOPES);
 
 const VIEW_ICONS: Partial<Record<WorkbenchView, typeof Route>> = {
   fuentes: DatabaseZap,
@@ -138,9 +150,11 @@ const TERRITORIAL_LOCAL_TABS = {
     { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
   ],
   ocurrencias: [
-    { key: "states", label: "Estados general", detail: "Efectivas y no efectivas", icon: ClipboardCheck },
-    { key: "ump", label: "Por UMP", detail: "Seguimiento territorial", icon: Route },
-    { key: "alerts", label: "Observaciones", detail: "Señales operativas", icon: ShieldAlert },
+    { key: "states", label: "Resumen", detail: "Estados y distritos", icon: ClipboardCheck },
+    { key: "registro", label: "Registro", detail: "Dia, hora y responsable", icon: Table2 },
+    { key: "ump", label: "UMP", detail: "Con/sin ocurrencia", icon: Route },
+    { key: "alerts", label: "Alertas", detail: "Cruces y observaciones", icon: ShieldAlert },
+    { key: "rhythm", label: "Ritmo", detail: "Dias e historial", icon: CalendarRange },
   ],
   telefonico: [],
 } satisfies Record<WorkbenchView, readonly TerritorialLocalTabDefinition[]>;
@@ -301,6 +315,51 @@ function scopesForPhase(phase: MonitoreoTerritorialPhase): MonitoreoReportScope[
 
 function viewAllowedInPhase(phase: MonitoreoTerritorialPhase, view: WorkbenchView) {
   return phase === "pilot" ? view === "avance" : true;
+}
+
+function sourcePhase(source: MonitoreoSource | null | undefined): MonitoreoTerritorialPhase | "" {
+  const phase = source?.dimensions?.territorial_phase;
+  return phase === "pilot" || phase === "field" ? phase : "";
+}
+
+function activeTerritorialKoboSource(state: MonitoreoState | null, phase: MonitoreoTerritorialPhase) {
+  if (!state) return null;
+  const phaseSource = state.config?.territorial?.phase_sources?.[phase];
+  const sources = (state.sources ?? []).filter((source) => (
+    source.kind === "kobo" && source.role !== "ocurrencias_campo"
+  ));
+  return sources.find((source) => source.id && source.id === phaseSource?.source_id)
+    ?? sources.find((source) => source.asset_uid && source.asset_uid === phaseSource?.asset_uid)
+    ?? sources.find((source) => sourcePhase(source) === phase)
+    ?? sources.find((source) => source.enabled)
+    ?? sources[0]
+    ?? null;
+}
+
+function isTerminalJob<T>(job: JobSnapshot<T> | null): job is JobSnapshot<T> {
+  return job?.status === "done" || job?.status === "error" || job?.status === "cancelled";
+}
+
+function jobProgressPercent(job: JobSnapshot | null) {
+  const percent = Number(job?.progress && "percent" in job.progress ? job.progress.percent : null);
+  if (!Number.isFinite(percent)) return null;
+  return Math.max(0, Math.min(100, percent));
+}
+
+function jobProgressPhase(job: JobSnapshot | null) {
+  const progress = job?.progress;
+  return progress && "phase" in progress && typeof progress.phase === "string" ? progress.phase : undefined;
+}
+
+function jobProgressMessage(job: JobSnapshot | null) {
+  const progress = job?.progress;
+  return progress && "message" in progress && typeof progress.message === "string" ? progress.message : undefined;
+}
+
+function jobErrorMessage(job: JobSnapshot | null) {
+  const error = job?.error;
+  if (!error) return "";
+  return typeof error === "string" ? error : "";
 }
 
 function scopeForPhaseViewTab(
@@ -1241,6 +1300,7 @@ function renderView(
     phase?: MonitoreoTerritorialPhase;
     onPublished?: () => void;
     onReload?: () => void;
+    onSyncKobo?: () => Promise<void> | void;
     onStateChange?: (state: MonitoreoState) => void;
     onLocalTabChange?: (tab: string) => void;
     onOpenValidationCase?: (tab: "geolocalizacion" | "duracion", responseId?: string) => void;
@@ -1264,6 +1324,7 @@ function renderView(
         state={options.state ?? null}
         onError={options.onError}
         onReload={options.onReload ?? (() => undefined)}
+        onSyncKobo={options.onSyncKobo}
         onStateChange={options.onStateChange ?? (() => undefined)}
       />
     );
@@ -1365,11 +1426,16 @@ export default function TerritorialMonitoreoPage() {
   const [loadingView, setLoadingView] = useState<WorkbenchView | "initial" | "background" | null>("initial");
   const [mutationBusy, setMutationBusy] = useState(false);
   const [error, setError] = useState("");
-  const inFlightRef = useRef(new Set<string>());
+  const inFlightRef = useRef(new Map<string, number>());
+  const scopeRequestSeqRef = useRef(0);
+  const latestScopeRequestRef = useRef(new Map<string, number>());
   const scopeStateCacheRef = useRef(new Map<string, MonitoreoState>());
   const stateRef = useRef<MonitoreoState | null>(null);
   const activeViewRef = useRef<WorkbenchView>("fuentes");
   const activeLocalTabsRef = useRef<Partial<Record<WorkbenchView, string>>>(activeLocalTabs);
+  const [chromeSyncJob, setChromeSyncJob] = useState<JobSnapshot<MonitoreoSyncResult> | null>(null);
+  const [chromeSyncJobId, setChromeSyncJobId] = useState("");
+  const chromeSyncReloadedRef = useRef("");
   const [pendingScopes, setPendingScopes] = useState<Set<string>>(() => new Set());
 
   const markScopePending = useCallback((key: string, pending: boolean) => {
@@ -1454,23 +1520,37 @@ export default function TerritorialMonitoreoPage() {
       }
       if (monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope })) return stateRef.current;
     }
-    if (inFlightRef.current.has(key)) return null;
-    inFlightRef.current.add(key);
+    const inFlightCount = inFlightRef.current.get(key) ?? 0;
+    if (inFlightCount > 0 && !force) return null;
+    const requestId = scopeRequestSeqRef.current + 1;
+    scopeRequestSeqRef.current = requestId;
+    latestScopeRequestRef.current.set(key, requestId);
+    inFlightRef.current.set(key, inFlightCount + 1);
     markScopePending(key, true);
     if (viewForLoading) setLoadingView(viewForLoading);
     try {
       const next = await apiMonitoreoState({ includeReports: true, reportScope: scope, warmupCache: !force, force });
+      if (latestScopeRequestRef.current.get(key) !== requestId) return next;
       rememberScopeState(next);
       setState(next);
       setError("");
       return next;
     } catch (e) {
-      setError((e as Error).message);
+      if (latestScopeRequestRef.current.get(key) === requestId) {
+        setError((e as Error).message);
+      }
       return null;
     } finally {
-      inFlightRef.current.delete(key);
-      markScopePending(key, false);
-      if (viewForLoading) setLoadingView(null);
+      const isLatestRequest = latestScopeRequestRef.current.get(key) === requestId;
+      const remaining = Math.max(0, (inFlightRef.current.get(key) ?? 1) - 1);
+      if (remaining > 0) {
+        inFlightRef.current.set(key, remaining);
+      } else {
+        inFlightRef.current.delete(key);
+        latestScopeRequestRef.current.delete(key);
+        markScopePending(key, false);
+      }
+      if (viewForLoading && isLatestRequest) setLoadingView(null);
     }
   }, [markScopePending, phase, rememberScopeState, scopeStateKey, sourceKey]);
 
@@ -1546,6 +1626,22 @@ export default function TerritorialMonitoreoPage() {
     }, delay);
     return () => window.clearTimeout(timer);
   }, [activeLocalTab, activeView, cachedEntry, error, loadScope, loadingView, phase, state]);
+
+  useEffect(() => {
+    if (!state || loadingView === "initial") return;
+    if (error) return;
+    if (rawReports && TERRITORIAL_CANONICAL_HEADER_SCOPE_SET.has(rawReports.report_scope || "")) return;
+    const cachedAdvance = monitoreoScopeCache.getTerritorial({
+      phase,
+      source: sourceKey,
+      scope: "advance_summary",
+    });
+    if (cachedAdvance) return;
+    const timer = window.setTimeout(() => {
+      void loadScope("advance_summary");
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [error, loadScope, loadingView, phase, rawReports?.report_scope, sourceKey, state?.synced_at]);
 
   useEffect(() => {
     if (!state || loadingView === "initial") return;
@@ -1626,11 +1722,20 @@ export default function TerritorialMonitoreoPage() {
       }));
     }
   }, []);
+  const canonicalHeaderReports = useMemo(() => {
+    if (rawReports && TERRITORIAL_CANONICAL_HEADER_SCOPE_SET.has(rawReports.report_scope || "")) return rawReports;
+    for (const scope of TERRITORIAL_CANONICAL_HEADER_SCOPES) {
+      const entry = monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope });
+      if (entry?.reports) return entry.reports;
+    }
+    return null;
+  }, [phase, rawReports, sourceKey, state?.synced_at]);
   const reportKpis = territorialReportKpis(reports);
+  const canonicalReportKpis = territorialReportKpis(canonicalHeaderReports);
   const dashboardKpis = state?.dashboard?.kpis;
-  const headerValidas = nullableMetric(reportKpis.validas) ?? nullableMetric(dashboardKpis?.valid);
-  const headerMeta = nullableMetric(reportKpis.meta) ?? nullableMetric(dashboardKpis?.target);
-  const headerAvance = nullableMetric(reportKpis.avance_pct) ?? nullableMetric(dashboardKpis?.avance_pct);
+  const headerValidas = nullableMetric(canonicalReportKpis.validas) ?? nullableMetric(reportKpis.validas) ?? nullableMetric(dashboardKpis?.valid);
+  const headerMeta = nullableMetric(canonicalReportKpis.meta) ?? nullableMetric(reportKpis.meta) ?? nullableMetric(dashboardKpis?.target);
+  const headerAvance = nullableMetric(canonicalReportKpis.avance_pct) ?? nullableMetric(reportKpis.avance_pct) ?? nullableMetric(dashboardKpis?.avance_pct);
   const sectionViewMetrics = { avance: pct(headerAvance) };
   const cacheMeta = state?.territorial_report_cache;
   const pilotPhaseHealth = territorialPhaseHealthForState(state, "pilot");
@@ -1639,6 +1744,78 @@ export default function TerritorialMonitoreoPage() {
   const refreshCurrentView = useCallback(() => {
     void loadScope(preferredScope, activeView, true);
   }, [activeView, loadScope, preferredScope]);
+  const syncActiveTerritorialSource = useCallback(async (syncMode: "advance" | "full" = "advance") => {
+    if (!state?.config) {
+      setError("Abre un proyecto territorial antes de actualizar.");
+      return;
+    }
+    const source = activeTerritorialKoboSource(state, phase);
+    if (!source?.id) {
+      setError(`Define primero una fuente Kobo para ${phase === "field" ? "Campo" : "Piloto"}.`);
+      return;
+    }
+    setError("");
+    setChromeSyncJob(null);
+    setChromeSyncJobId("");
+    chromeSyncReloadedRef.current = "";
+    try {
+      const started = await apiMonitoreoSync(state.config, [source.id], { syncMode });
+      setChromeSyncJobId(started.job_id);
+      const first = await apiJobStatus<MonitoreoSyncResult>(started.job_id).catch(() => null);
+      setChromeSyncJob(first);
+    } catch (e) {
+      setChromeSyncJob(null);
+      setChromeSyncJobId("");
+      setError((e as Error).message);
+      throw e;
+    }
+  }, [phase, state]);
+  const syncAdvance = useCallback(() => syncActiveTerritorialSource("advance"), [syncActiveTerritorialSource]);
+  const syncField = useCallback(() => syncActiveTerritorialSource("full"), [syncActiveTerritorialSource]);
+  useEffect(() => {
+    if (!chromeSyncJobId) return;
+    if (isTerminalJob(chromeSyncJob)) {
+      if (chromeSyncJob.status === "done" && chromeSyncReloadedRef.current !== chromeSyncJobId) {
+        chromeSyncReloadedRef.current = chromeSyncJobId;
+        refreshCurrentView();
+      }
+      if (chromeSyncJob.status === "error") {
+        setError(jobErrorMessage(chromeSyncJob) || "La actualización territorial terminó con error.");
+      }
+      setChromeSyncJobId("");
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const next = await apiJobStatus<MonitoreoSyncResult>(chromeSyncJobId);
+        if (cancelled) return;
+        setChromeSyncJob(next);
+        if (next.status === "done" && chromeSyncReloadedRef.current !== chromeSyncJobId) {
+          chromeSyncReloadedRef.current = chromeSyncJobId;
+          refreshCurrentView();
+          setChromeSyncJobId("");
+        } else if (next.status === "error") {
+          setError(jobErrorMessage(next) || "La actualización territorial terminó con error.");
+          setChromeSyncJobId("");
+        } else if (next.status === "cancelled") {
+          setChromeSyncJobId("");
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError((e as Error).message);
+          setChromeSyncJobId("");
+        }
+      }
+    };
+    void poll();
+    const timer = window.setInterval(() => { void poll(); }, 1400);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [chromeSyncJob, chromeSyncJobId, refreshCurrentView]);
   const applyTerritorialPageState = useCallback((next: MonitoreoState) => {
     const withPhase = withTerritorialPhase(next, phase);
     clearScopeStateCache();
@@ -1735,7 +1912,14 @@ export default function TerritorialMonitoreoPage() {
     || loadingView === activeView
     || activeScopePending
     || Boolean(state && activeNeedsReport && !reportReady && !error);
-  const chromeBusy = activeLoading || mutationBusy;
+  const chromeSyncing = Boolean(chromeSyncJobId);
+  const chromeBusy = activeLoading || mutationBusy || chromeSyncing;
+  const chromeSyncProgress = chromeSyncing ? {
+    active: "advance" as const,
+    percent: jobProgressPercent(chromeSyncJob),
+    phase: jobProgressPhase(chromeSyncJob) ?? "Actualizando",
+    message: jobProgressMessage(chromeSyncJob) ?? "Sincronizando respuestas territoriales...",
+  } : null;
   const chromeGeneratedAt = reports?.generated_at ?? state?.generated_at ?? state?.synced_at ?? "";
   const chromeGenerationStatus = error ? "failed" : reportReady ? "" : "stale";
 
@@ -1766,12 +1950,13 @@ export default function TerritorialMonitoreoPage() {
         activeSources={activeSources}
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
-        syncing={chromeBusy}
+        syncing={chromeSyncing}
+        syncProgress={chromeSyncProgress}
         viewMetrics={sectionViewMetrics}
         advanceSyncDisabled={!state || chromeBusy}
-        advanceSyncLabel="Vista"
-        advanceSyncTitle="Actualizar vista territorial activa"
-        onSyncAdvance={refreshCurrentView}
+        advanceSyncLabel="Avance"
+        advanceSyncTitle="Actualizar avance territorial"
+        onSyncAdvance={syncAdvance}
         onViewChange={setActiveView}
       />
 
@@ -1822,6 +2007,7 @@ export default function TerritorialMonitoreoPage() {
               onError: setError,
               onPublished: refreshCurrentView,
               onReload: refreshCurrentView,
+              onSyncKobo: syncField,
               onLocalTabChange: changeLocalTab,
               onOpenValidationCase: openValidationCase,
               onOperationalAdjustmentApply: applyOperationalAdjustment,

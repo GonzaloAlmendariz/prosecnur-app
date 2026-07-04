@@ -20,6 +20,7 @@ import {
   caseKeyTraceSummary,
   caseIsActionableSubsanacion,
   caseIsSubsanacionCandidate,
+  casePlatformActionLabel,
   caseResponseDateTimeLabel,
   caseResponseTimeDetailLabel,
   dailyPointsFromRows,
@@ -212,6 +213,37 @@ describe("Acreditacion consultas", () => {
     expect(caseIsSubsanacionCandidate(refusalNoCross)).toBe(true);
     expect(caseIsActionableSubsanacion(refusalNoCross)).toBe(false);
     expect(caseIsSubsanacionCandidate(crossed)).toBe(false);
+  });
+
+  test("registros en plataforma etiqueta parciales cerradas por una completa posterior", () => {
+    const partial = consultaCase({
+      response_id: "resp-parcial",
+      response_datetime: "2026-07-01T10:00:00Z",
+      platform_state: "Parcial",
+      advancement: "partial",
+      counts_in_advance: false,
+      duplicate_group_size: 2,
+    });
+    const laterComplete = consultaCase({
+      response_id: "resp-completa",
+      response_datetime: "2026-07-02T10:00:00Z",
+      platform_state: "Completa",
+      advancement: "effective",
+      counts_in_advance: true,
+      duplicate_group_size: 2,
+    });
+    const earlierComplete = consultaCase({
+      response_id: "resp-completa-antigua",
+      response_datetime: "2026-06-30T10:00:00Z",
+      platform_state: "Completa",
+      advancement: "effective",
+      counts_in_advance: true,
+      duplicate_group_size: 2,
+    });
+
+    expect(casePlatformActionLabel(partial, [partial, laterComplete])).toBe("Completada después");
+    expect(casePlatformActionLabel(partial, [partial, earlierComplete])).toBe("Sin subsanación");
+    expect(casePlatformActionLabel(partial, [partial])).toBe("Sin subsanación");
   });
 
   test("guia de subsanacion orienta la accion segun evidencia disponible", () => {

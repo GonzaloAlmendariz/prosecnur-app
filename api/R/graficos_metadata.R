@@ -162,11 +162,188 @@
 
   p_slide_indice = list(
     titulo_humano = "Índice",
-    descripcion   = "Tabla de contenidos auto-generada a partir de las secciones del reporte.",
+    descripcion   = "Tabla de contenidos del reporte. Puede usar el layout de la plantilla o un índice limpio generado desde Prosecnur.",
     icono_ui      = "List",
     categoria     = "estructural",
     slots         = character(0),
-    args          = list()
+    args = list(
+      list(
+        name = "titulo",
+        label = "Título",
+        tipo_input = "string",
+        grupo = "textos",
+        descripcion = "Título visible del índice. Si se deja vacío y no se definen secciones, se usa el layout de índice de la plantilla."
+      ),
+      list(
+        name = "secciones",
+        label = "Secciones principales",
+        tipo_input = "textarea",
+        grupo = "textos",
+        descripcion = "Una sección por línea. Se muestran como filas numeradas."
+      ),
+      list(
+        name = "subtemas",
+        label = "Subtemas de resultados",
+        tipo_input = "textarea",
+        grupo = "textos",
+        descripcion = "Uno por línea. Si no se define un subíndice por sección, se muestran bajo la última sección."
+      ),
+      list(
+        name = "subindices",
+        label = "Subíndices por sección",
+        tipo_input = "textarea",
+        grupo = "textos",
+        descripcion = "Opcional. Use una línea por subtema con el formato 'Sección: subtema' para asociarlo a una sección específica."
+      ),
+      list(
+        name = "iconos_focos",
+        label = "Íconos de los focos",
+        tipo_input = "textarea",
+        grupo = "diseño",
+        descripcion = "Opcional. Nombres internos o rutas SVG/PNG, en orden fijo: objetivo, metodología, perfil, resultados e inteligencia artificial."
+      ),
+      list(
+        name = "redibujar_focos",
+        label = "Redibujar focos desde cero",
+        tipo_input = "bool",
+        grupo = "diseño",
+        default = FALSE,
+        descripcion = "Úselo solo si la plantilla no trae focos. Por defecto conserva los focos originales y limpia solo los íconos previos."
+      ),
+      list(
+        name = "mostrar_iconos_focos",
+        label = "Mostrar íconos en focos",
+        tipo_input = "bool",
+        grupo = "diseño",
+        default = TRUE,
+        descripcion = "Permite ocultar o mostrar los íconos internos de los focos."
+      ),
+      list(
+        name = "iconos_focos_fill",
+        label = "Colores de focos",
+        tipo_input = "codigos_list",
+        grupo = "diseño",
+        descripcion = "Colores HEX para cada foco, en orden. Si se deja vacío, usa la paleta Pulso del índice."
+      ),
+      list(
+        name = "iconos_focos_objeto_unico",
+        label = "Mover círculo e ícono juntos",
+        tipo_input = "bool",
+        grupo = "diseño",
+        default = TRUE,
+        descripcion = "Inserta cada foco como una sola imagen editable: círculo de color e ícono blanco juntos. Útil para moverlos en PowerPoint sin desalinearlos."
+      ),
+      list(
+        name = "iconos_focos_diametro_cm",
+        label = "Diámetro de círculos (cm)",
+        tipo_input = "number",
+        grupo = "diseño",
+        default = 2.18,
+        min = 0.8,
+        max = 3.4,
+        step = 0.01,
+        descripcion = "Tamaño de cada círculo de ícono. El valor se aplica por igual a todos los focos."
+      ),
+      list(
+        name = "iconos_focos_icon_scale",
+        label = "Tamaño interno del ícono",
+        tipo_input = "number",
+        grupo = "diseño",
+        default = 0.76,
+        min = 0.30,
+        max = 0.90,
+        step = 0.01,
+        descripcion = "Escala del ícono blanco dentro del círculo. Aumenta el ícono sin agrandar el círculo."
+      ),
+      list(
+        name = "subtopic_badge_fill",
+        label = "Color de numeración de subíndices",
+        tipo_input = "color",
+        grupo = "diseño",
+        default = "#D8504F",
+        descripcion = "Color del número tipográfico que jerarquiza cada subíndice."
+      ),
+      list(
+        name = "subtopic_badge_width",
+        label = "Ancho del número de subíndice",
+        tipo_input = "number",
+        grupo = "diseño",
+        default = 0.26,
+        min = 0.18,
+        max = 0.70,
+        step = 0.01,
+        descripcion = "Ancho en pulgadas reservado para el número del subíndice."
+      ),
+      list(
+        name = "subtopic_badge_gap",
+        label = "Separación número-texto",
+        tipo_input = "number",
+        grupo = "diseño",
+        default = 0.13,
+        min = 0.02,
+        max = 0.25,
+        step = 0.01,
+        descripcion = "Espacio en pulgadas entre el número y el texto del subíndice."
+      ),
+      list(
+        name = "estilo",
+        label = "Ajustes avanzados de índice",
+        tipo_input = "json",
+        grupo = "diseño",
+        descripcion = "Permite ajustar posiciones, tamaños, colores, subíndices y focos cuando se requiere control fino."
+      )
+    )
+  ),
+
+  p_slide_top_two_box = list(
+    titulo_humano = "Explicación Top Two Box",
+    descripcion   = "Lámina explicativa reutilizable para mostrar cómo se calcula Top Two Box con barra, llave, flecha y leyenda.",
+    icono_ui      = "BarChart3",
+    categoria     = "estructural",
+    slots         = character(0),
+    args = list(
+      list(name = "titulo", label = "Título", tipo_input = "string", grupo = "textos",
+           descripcion = "Título principal de la lámina."),
+      list(name = "texto", label = "Texto explicativo", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Párrafo que explica el uso de Top Two Box."),
+      list(name = "valores", label = "Porcentajes de ejemplo", tipo_input = "string", grupo = "valores",
+           default = "5, 5, 35, 55",
+           descripcion = "Valores de la barra, separados por coma. Ejemplo: 5, 5, 35, 55."),
+      list(name = "etiquetas", label = "Etiquetas de escala", tipo_input = "string", grupo = "valores",
+           descripcion = "Etiquetas de la leyenda, separadas por coma. Ejemplo: 1, 2, 3, 4."),
+      list(name = "top_two_indices", label = "Posiciones Top Two Box", tipo_input = "string", grupo = "valores",
+           descripcion = "Posiciones que se suman para Top Two Box. Por defecto: 3, 4."),
+      list(name = "extremo_izquierda", label = "Texto extremo izquierdo", tipo_input = "string", grupo = "textos",
+           descripcion = "Etiqueta inferior del extremo izquierdo de la escala."),
+      list(name = "extremo_derecha", label = "Texto extremo derecho", tipo_input = "string", grupo = "textos",
+           descripcion = "Etiqueta inferior del extremo derecho de la escala."),
+      list(name = "accent_color", label = "Color de acento", tipo_input = "color", grupo = "diseño",
+           default = "#D8504F",
+           descripcion = "Color usado en el título y la anotación del Top Two Box. En Ingeniería se usa el rojo Pulso."),
+      list(name = "colores", label = "Paleta de la escala", tipo_input = "string", grupo = "diseño",
+           default = "#D8504F, #FFD966, #B7D7A8, #70AD47",
+           descripcion = "Colores de los segmentos de la escala, separados por coma. Por defecto usa la paleta de barras apiladas de Ingeniería."),
+      list(name = "grosor_barra", label = "Grosor de la barra", tipo_input = "number", grupo = "diseño",
+           default = 82, min = 30, max = 130, step = 2,
+           descripcion = "Alto visual de la barra de referencia del Top Two Box. Sube este valor si quieres una barra más gruesa."),
+      list(name = "size_texto_porcentajes", label = "Tamaño de porcentajes", tipo_input = "number", grupo = "diseño",
+           default = 22, min = 8, max = 42, step = 1,
+           descripcion = "Tamaño del texto de porcentajes dentro de la barra de referencia."),
+      list(name = "size_texto_porcentajes_peq", label = "Tamaño de porcentajes pequeños", tipo_input = "number", grupo = "diseño",
+           default = 16, min = 8, max = 32, step = 1,
+           descripcion = "Tamaño alternativo para porcentajes en segmentos pequeños, como 5%."),
+      list(name = "color_texto_porcentajes", label = "Color de porcentajes", tipo_input = "color", grupo = "diseño",
+           default = "#FFFFFF",
+           descripcion = "Color del texto que va dentro de la barra de referencia."),
+      list(name = "margen_llave", label = "Margen de la llave", tipo_input = "number", grupo = "diseño",
+           default = 4, min = 0, max = 24, step = 1,
+           descripcion = "Margen lateral para que la llave englobe visualmente todo el Top Two Box."),
+      list(name = "grosor_flecha", label = "Grosor de la flecha", tipo_input = "number", grupo = "diseño",
+           default = 3.6, min = 1, max = 8, step = 0.2,
+           descripcion = "Grosor de la flecha inferior que explica la dirección de la escala."),
+      list(name = "estilo", label = "Estilo visual", tipo_input = "json", grupo = "diseño",
+           descripcion = "Permite ajustar colores, posiciones y tamaños de título, texto, diagrama y leyenda.")
+    )
   ),
 
   p_slide_seccion = list(
@@ -1933,7 +2110,7 @@
     canvas_pad_bars_y_in     = 0.08,
 
     grosor_modo              = "manual",
-    grosor_barras            = 0.70,
+    grosor_barras            = 0.82,
     grosor_barras_mult       = 1,
 
     mostrar_valores          = TRUE,
@@ -1987,7 +2164,7 @@
     canvas_pad_bars_y_in     = 0.08,
     ancho_max_eje_y          = 40,
     grosor_modo              = "manual",
-    grosor_barras            = 0.70,
+    grosor_barras            = 0.82,
     grosor_barras_mult       = 1,
 
     mostrar_valores          = TRUE,

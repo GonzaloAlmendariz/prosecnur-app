@@ -49,10 +49,11 @@ import {
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
 
-type OccurrenceTab = "states" | "ump" | "alerts";
+type OccurrenceTab = "states" | "registro" | "ump" | "alerts" | "rhythm";
 type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync";
 type OccurrenceAlertKind = "missing" | "observations" | "outside_route" | "high_non_effective";
 type OccurrenceAlertFilter = "todos" | OccurrenceAlertKind;
+type OccurrenceRegisterFilter = "todos" | "con_registro" | "sin_registro" | "sin_conciliacion";
 
 type OccurrenceAlertReviewItem = {
   id: string;
@@ -237,7 +238,7 @@ function occurrenceOutcomeColor(key: string) {
 }
 
 function isOccurrenceTab(value: unknown): value is OccurrenceTab {
-  return value === "states" || value === "ump" || value === "alerts";
+  return value === "states" || value === "registro" || value === "ump" || value === "alerts" || value === "rhythm";
 }
 
 function occurrenceRateLabel(summary: MonitoreoFieldOccurrenceDashboard["summary"]) {
@@ -275,6 +276,71 @@ function occurrenceRowsAdvanceContext(rows: OccurrenceRouteUmpRow[]) {
     ? `${formatMetric(validas)}/${formatMetric(meta)} validas`
     : `${formatMetric(validas)} validas`;
   return latest ? `${progress} · ultimo ingreso ${latest}` : progress;
+}
+
+function occurrenceBlockIsReplacement(block: OccurrenceRouteUmpRow["expected_blocks"][number]) {
+  const type = `${block.tipo_manzana ?? ""} ${block.block_type ?? ""} ${block.tipo ?? ""}`.toLocaleLowerCase("es-PE");
+  if (type.includes("reemplazo") || type.includes("replacement")) return true;
+  const declaredUmp = String(block.ump_group ?? block.ump ?? "").trim();
+  const titularHint = String(block.titular_hoja_num ?? block.titular_orden_seleccion ?? "").trim();
+  return Boolean(titularHint && /(?:^|[^a-z0-9])R\s*[0-9]+(?:$|[^a-z0-9])/i.test(declaredUmp));
+}
+
+function occurrenceBlockLookupValues(block: OccurrenceRouteUmpRow["expected_blocks"][number]) {
+  return [
+    block.route_key,
+    block.manzana_key,
+    block.id_manzana,
+    block.block_id,
+    block.id,
+  ].map((value) => String(value ?? "").trim()).filter(Boolean);
+}
+
+function occurrenceBlockHasAdvance(block: OccurrenceRouteUmpRow["expected_blocks"][number]) {
+  return [
+    block.validas,
+    block.avance_validas,
+    block.revision,
+    block.no_defendibles,
+    block.no_defendibles_validas,
+  ].some((value) => Number(value) > 0);
+}
+
+function occurrenceRowAppliedReplacementCount(row: Pick<OccurrenceRouteUmpRow, "expected_blocks" | "records" | "has_report" | "manzana" | "zona" | "distrito">) {
+  return row.expected_blocks.filter((block) => {
+    if (!occurrenceBlockIsReplacement(block)) return false;
+    if (occurrenceBlockHasAdvance(block)) return true;
+    const blockKeys = new Set(occurrenceBlockLookupValues(block));
+    const blockManzana = String(block.manzana ?? "").trim();
+    const blockZona = String(block.zona ?? "").trim();
+    const blockDistrito = String(block.distrito ?? "").trim();
+    if (row.has_report && blockManzana && row.manzana === blockManzana && (!blockZona || row.zona === blockZona) && (!blockDistrito || row.distrito === blockDistrito)) {
+      return true;
+    }
+    return row.records.some((record) => {
+      const recordKeys = [record.manzana_key, record.route_label, record.row_id].map((value) => String(value ?? "").trim()).filter(Boolean);
+      if (recordKeys.some((key) => blockKeys.has(key))) return true;
+      const recordType = String(record.tipo_manzana ?? "").toLocaleLowerCase("es-PE");
+      const recordManzana = String(record.manzana ?? "").trim();
+      const recordZona = String(record.zona ?? "").trim();
+      const recordDistrito = String(record.distrito ?? "").trim();
+      return recordType.includes("reemplazo") && blockManzana && recordManzana === blockManzana && (!blockZona || recordZona === blockZona) && (!blockDistrito || recordDistrito === blockDistrito);
+    });
+  }).length;
+}
+
+function occurrenceCoverageCounts(rows: OccurrenceRouteUmpRow[]) {
+  const expectedRows = rows.filter((row) => !row.is_unreconciled);
+  const missingAdvanceRows = expectedRows.filter((row) => row.advance_started && !row.has_report);
+  return {
+    expected: expectedRows.length,
+    reported: expectedRows.filter((row) => row.has_report).length,
+    missing: expectedRows.filter((row) => !row.has_report).length,
+    validasMissing: missingAdvanceRows.reduce((sum, row) => sum + row.advance_validas, 0),
+    latestMissing: latestOccurrenceDateLabel(missingAdvanceRows.map((row) => row.advance_last_activity)),
+    replacementFamilies: expectedRows.filter((row) => occurrenceRowAppliedReplacementCount(row) > 0).length,
+    unreconciled: rows.filter((row) => row.is_unreconciled).length,
+  };
 }
 
 function compactParts(parts: Array<string | number | boolean | null | undefined>) {
@@ -473,6 +539,7 @@ export function TerritorialFieldOccurrencesWorkbench({
   const syncLabel = config?.last_sync_at ? formatDate(config.last_sync_at) : "Sin sincronizar";
 
   const routeUmpRows = useMemo(() => buildOccurrenceRouteUmpRows({ occurrences }), [occurrences]);
+  const coverageCounts = useMemo(() => occurrenceCoverageCounts(routeUmpRows), [routeUmpRows]);
   const districtSummary = useMemo(() => buildOccurrenceDistrictSummary(occurrences, routeUmpRows), [occurrences, routeUmpRows]);
   const topOutcomes = useMemo(() => (
     [...(occurrences?.by_outcome ?? [])].sort((a, b) => b.total - a.total).slice(0, 7)
@@ -482,9 +549,6 @@ export function TerritorialFieldOccurrencesWorkbench({
   const startedNoOccurrenceRows = expectedRouteUmpRows.filter((row) => row.advance_started && !row.has_report);
   const completeNoOccurrenceRows = expectedRouteUmpRows.filter((row) => row.status === "completa_sin_reporte");
   const incompleteNoOccurrenceRows = expectedRouteUmpRows.filter((row) => row.status === "incompleta_sin_reporte");
-  const noReportUmpCount = expectedRouteUmpRows.filter((row) => !row.has_report).length;
-  const noReportAdvanceValidas = startedNoOccurrenceRows.reduce((sum, row) => sum + row.advance_validas, 0);
-  const noReportAdvanceLast = latestOccurrenceDateLabel(startedNoOccurrenceRows.map((row) => row.advance_last_activity));
   const alertReviewItems = useMemo(() => buildOccurrenceAlertReviewItems({
     missingRows: expectedRouteUmpRows.filter((row) => !row.has_report),
     observationRows: occurrences?.alerts?.observations ?? [],
@@ -720,9 +784,9 @@ export function TerritorialFieldOccurrencesWorkbench({
           </div>
           <div className="mon-field-occurrences-command-metrics" aria-label="Resumen compacto de ocurrencias">
             <span><strong>{formatMetric(summary.total_records)}</strong><em>reportes</em></span>
-            <span><strong>{formatMetric(summary.efectivas)}</strong><em>efectivas</em></span>
-            <span><strong>{formatMetric(summary.no_efectivas)}</strong><em>{rateLabel}</em></span>
-            <span><strong>{formatMetric(noReportUmpCount)}</strong><em>{formatMetric(noReportAdvanceValidas)} validas sin ocurrencias{noReportAdvanceLast ? ` · ${noReportAdvanceLast}` : ""}</em></span>
+            <span><strong>{formatMetric(coverageCounts.reported)}/{formatMetric(coverageCounts.expected)}</strong><em>UMP con registro</em></span>
+            <span><strong>{formatMetric(coverageCounts.missing)}</strong><em>{formatMetric(coverageCounts.validasMissing)} validas sin ocurrencias{coverageCounts.latestMissing ? ` · ${coverageCounts.latestMissing}` : ""}</em></span>
+            <span><strong>{formatMetric(summary.no_efectivas)}</strong><em>{rateLabel} no efectiva · {formatMetric(coverageCounts.replacementFamilies)} reemplazos usados como titular</em></span>
           </div>
           <div className="mon-field-occurrences-command-actions">
             <button type="button" className="pulso-button" onClick={() => setAssetPickerOpen((current) => !current)} disabled={disabled}>
@@ -882,14 +946,17 @@ export function TerritorialFieldOccurrencesWorkbench({
         ) : null}
 
         {tab === "states" ? (
-          <section className="mon-field-occurrences-overview">
+          <section className="mon-field-occurrences-overview is-summary">
             <div className="mon-field-occurrences-state-grid">
               <OccurrenceStateComposition summary={summary} rateLabel={rateLabel} />
               <OccurrenceOutcomeBars items={topOutcomes} total={summary.no_efectivas} />
-              <OccurrenceDailyBars rows={occurrences?.by_day ?? []} />
             </div>
             <OccurrenceDistrictMatrix rows={districtSummary} />
           </section>
+        ) : null}
+
+        {tab === "registro" ? (
+          <OccurrenceRegisterWorkspace rows={routeUmpRows} />
         ) : null}
 
         {tab === "ump" ? (
@@ -953,24 +1020,18 @@ export function TerritorialFieldOccurrencesWorkbench({
                 <OccurrenceAlertLine label="Fuera de ruta" value={occurrences?.alerts?.outside_route?.length ?? 0} />
                 <OccurrenceAlertLine label="No efectividad alta" value={occurrences?.alerts?.high_non_effective?.length ?? 0} />
               </section>
-              <section className="mon-field-occurrences-history">
-                <header><Clock size={15} /><strong>Historial</strong><em>{formatMetric(history.length)} eventos</em></header>
-                <div className="mon-field-occurrences-history-list">
-                  {history.slice(0, 16).map((entry) => (
-                    <article key={entry.id}>
-                      <div>
-                        <strong>{entry.type || "evento"}</strong>
-                        {entry.status ? <span>{entry.status}</span> : null}
-                      </div>
-                      <p>{entry.created_at ? formatDate(entry.created_at) : "sin fecha"} · {formatMetric(entry.response_count)} registros{entry.asset_uid ? ` · ${shortenMiddle(entry.asset_uid, 20)}` : ""}</p>
-                      {entry.message ? <small>{entry.message}</small> : null}
-                    </article>
-                  ))}
-                  {!history.length && <em>Sin eventos registrados.</em>}
-                </div>
-              </section>
             </aside>
           </section>
+        ) : null}
+
+        {tab === "rhythm" ? (
+          <OccurrenceRhythmWorkspace
+            rows={occurrences?.by_day ?? []}
+            history={history}
+            summary={summary}
+            syncLabel={syncLabel}
+            configStatusLabel={configStatusLabel}
+          />
         ) : null}
       </Panel>
     </section>
@@ -1075,6 +1136,58 @@ function OccurrenceDailyBars({ rows }: { rows: MonitoreoFieldOccurrenceDashboard
   );
 }
 
+function OccurrenceRhythmWorkspace({
+  rows,
+  history,
+  summary,
+  syncLabel,
+  configStatusLabel,
+}: {
+  rows: MonitoreoFieldOccurrenceDashboard["by_day"];
+  history: NonNullable<MonitoreoFieldOccurrenceDashboard["history"]>;
+  summary: MonitoreoFieldOccurrenceDashboard["summary"];
+  syncLabel: string;
+  configStatusLabel: string;
+}) {
+  const totalAttempts = summary.intentos || summary.efectivas + summary.no_efectivas;
+  const latestDay = [...rows].sort((a, b) => String(a.date).localeCompare(String(b.date), "es-PE")).at(-1);
+  const peakDay = [...rows].sort((a, b) => (b.intentos || 0) - (a.intentos || 0))[0];
+  return (
+    <section className="mon-field-occurrences-body is-rhythm" data-occurrence-tab="rhythm">
+      <OccurrenceDailyBars rows={rows} />
+      <aside className="mon-field-occurrences-side is-alert-summary mon-field-occurrences-rhythm-side">
+        <section className="mon-field-occurrences-rhythm-summary">
+          <header><CalendarRange size={15} /><strong>Corte y ritmo</strong></header>
+          <div className="mon-field-occurrences-rhythm-kpis">
+            <span><strong>{formatMetric(totalAttempts)}</strong><em>intentos</em></span>
+            <span><strong>{formatMetric(rows.length)}</strong><em>dias con reporte</em></span>
+            <span><strong>{peakDay ? formatMetric(peakDay.intentos || 0) : "0"}</strong><em>pico diario{peakDay ? ` · ${peakDay.date_label || formatShortDate(peakDay.date)}` : ""}</em></span>
+            <span><strong>{latestDay?.date_label || "S/D"}</strong><em>ultimo dia</em></span>
+            <span><strong>{configStatusLabel}</strong><em>formulario</em></span>
+            <span><strong>{syncLabel}</strong><em>ultima sincronizacion</em></span>
+          </div>
+        </section>
+        <section className="mon-field-occurrences-history">
+          <header><Clock size={15} /><strong>Historial operativo</strong><em>{formatMetric(history.length)} eventos</em></header>
+          <div className="mon-field-occurrences-history-list">
+            {history.slice(0, 18).map((entry) => (
+              <article key={entry.id}>
+                <div>
+                  <strong>{entry.type || "evento"}</strong>
+                  {entry.status ? <span>{entry.status}</span> : null}
+                </div>
+                <p>{entry.created_at ? formatDate(entry.created_at) : "sin fecha"} · {formatMetric(entry.response_count)} registros{entry.asset_uid ? ` · ${shortenMiddle(entry.asset_uid, 20)}` : ""}</p>
+                {entry.message ? <small>{entry.message}</small> : null}
+              </article>
+            ))}
+            {!history.length && <em>Sin eventos registrados.</em>}
+          </div>
+        </section>
+      </aside>
+    </section>
+  );
+}
+
 function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] }) {
   const maxIntentos = Math.max(1, ...rows.map((row) => row.intentos || 0));
   return (
@@ -1145,6 +1258,189 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
   );
 }
 
+function occurrenceRegisterStatus(row: OccurrenceRouteUmpRow): Exclude<OccurrenceRegisterFilter, "todos"> {
+  if (row.is_unreconciled) return "sin_conciliacion";
+  return row.has_report ? "con_registro" : "sin_registro";
+}
+
+function occurrenceRegisterStatusLabel(status: Exclude<OccurrenceRegisterFilter, "todos">) {
+  if (status === "con_registro") return "Con registro";
+  if (status === "sin_conciliacion") return "Sin conciliacion";
+  return "Sin registro";
+}
+
+function occurrenceRegisterStamp(row: OccurrenceRouteUmpRow) {
+  const record = row.records.find((item) => occurrenceRecordStamp(item));
+  const stamp = record ? occurrenceRecordStamp(record) : "";
+  if (stamp) return stamp;
+  if (row.has_report && row.last_report_label && row.last_report_label !== "Sin reporte") return row.last_report_label;
+  return "";
+}
+
+function occurrenceRegisterReporter(row: OccurrenceRouteUmpRow) {
+  const record = row.records.find((item) => String(item.responsable || item.codigo_pulso).trim());
+  return String(record?.responsable || record?.codigo_pulso || "").trim();
+}
+
+function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<OccurrenceRegisterFilter>("todos");
+  const [districtFilter, setDistrictFilter] = useState("todos");
+  const registerRows = useMemo(() => rows.map((row) => {
+    const status = occurrenceRegisterStatus(row);
+    const statusLabel = occurrenceRegisterStatusLabel(status);
+    const registeredAt = occurrenceRegisterStamp(row);
+    const reporter = occurrenceRegisterReporter(row);
+    const replacementCount = occurrenceRowAppliedReplacementCount(row);
+    const dateLabel = registeredAt || (row.has_report ? row.report_window_label : "");
+    const sourceLabel = row.has_report
+      ? `${formatMetric(row.reportes || row.records.length)} reporte${(row.reportes || row.records.length) === 1 ? "" : "s"}`
+      : row.is_unreconciled
+        ? "Por conciliar"
+        : "Pendiente";
+    const title = row.is_unreconciled
+      ? `UMP ${row.ump || "S/D"}`
+      : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+    const routeMeta = row.is_unreconciled
+      ? row.route_match_message || "No cruza con la ruta activa"
+      : replacementCount > 0
+        ? `${row.route_label || row.distrito || "Ruta activa"} · R cuenta como titular`
+        : row.route_label || row.distrito || "Ruta activa";
+    const searchText = [
+      row.search_text,
+      title,
+      routeMeta,
+      statusLabel,
+      row.responsable,
+      reporter,
+      dateLabel,
+      sourceLabel,
+    ].join(" ").toLocaleLowerCase("es-PE");
+    return {
+      row,
+      status,
+      statusLabel,
+      registeredAt: dateLabel,
+      reporter,
+      replacementCount,
+      sourceLabel,
+      title,
+      routeMeta,
+      searchText,
+    };
+  }).sort((a, b) => {
+    const priority: Record<Exclude<OccurrenceRegisterFilter, "todos">, number> = {
+      sin_registro: 0,
+      sin_conciliacion: 1,
+      con_registro: 2,
+    };
+    return priority[a.status] - priority[b.status] ||
+      String(a.row.distrito).localeCompare(String(b.row.distrito), "es-PE") ||
+      String(a.row.ump).localeCompare(String(b.row.ump), "es-PE", { numeric: true }) ||
+      a.title.localeCompare(b.title, "es-PE", { numeric: true });
+  }), [rows]);
+  const counts = useMemo(() => {
+    const expected = registerRows.filter((item) => !item.row.is_unreconciled);
+    return {
+      expected: expected.length,
+      reported: expected.filter((item) => item.status === "con_registro").length,
+      missing: expected.filter((item) => item.status === "sin_registro").length,
+      unreconciled: registerRows.filter((item) => item.status === "sin_conciliacion").length,
+      replacements: expected.filter((item) => item.replacementCount > 0).length,
+    };
+  }, [registerRows]);
+  const districtOptions = useMemo(() => (
+    Array.from(new Set(registerRows.map((item) => item.row.distrito).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es-PE"))
+  ), [registerRows]);
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("es-PE");
+    return registerRows.filter((item) => {
+      if (statusFilter !== "todos" && item.status !== statusFilter) return false;
+      if (districtFilter !== "todos" && item.row.distrito !== districtFilter) return false;
+      return !query || item.searchText.includes(query);
+    });
+  }, [districtFilter, registerRows, search, statusFilter]);
+
+  return (
+    <section className="mon-field-occurrences-register" aria-label="Registro de ocurrencias por UMP" data-occurrence-tab="registro">
+      <header className="mon-field-occurrences-register-head">
+        <div>
+          <span><FileCheck2 size={14} /> Registro por UMP</span>
+          <strong>{formatMetric(counts.reported)}/{formatMetric(counts.expected)} con ocurrencia · {formatMetric(counts.missing)} pendientes</strong>
+          <em>{formatMetric(filteredRows.length)} visibles · {formatMetric(counts.replacements)} con reemplazo aplicado · {formatMetric(counts.unreconciled)} sin conciliacion</em>
+        </div>
+        <div className="mon-field-occurrences-register-kpis" aria-label="Resumen del registro UMP">
+          <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>titulares</em></span>
+          <span className="is-reported"><strong>{formatMetric(counts.reported)}</strong><em>con registro</em></span>
+          <span className="is-missing"><strong>{formatMetric(counts.missing)}</strong><em>sin registro</em></span>
+          <span className="is-review"><strong>{formatMetric(counts.unreconciled)}</strong><em>sin conciliacion</em></span>
+        </div>
+      </header>
+
+      <div className="mon-field-occurrences-register-toolbar" aria-label="Filtros del registro de ocurrencias">
+        <label className="mon-field-occurrences-search">
+          <Search size={14} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar UMP, responsable, distrito, fecha u hora" />
+        </label>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as OccurrenceRegisterFilter)} aria-label="Filtrar registro por estado">
+          <option value="todos">Todos ({formatMetric(registerRows.length)})</option>
+          <option value="con_registro">Con registro ({formatMetric(counts.reported)})</option>
+          <option value="sin_registro">Sin registro ({formatMetric(counts.missing)})</option>
+          <option value="sin_conciliacion">Sin conciliacion ({formatMetric(counts.unreconciled)})</option>
+        </select>
+        <select value={districtFilter} onChange={(event) => setDistrictFilter(event.target.value)} aria-label="Filtrar registro por distrito">
+          <option value="todos">Todos los distritos</option>
+          {districtOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+      </div>
+
+      <div className="mon-field-occurrences-register-table" role="table" aria-label="Lista completa de UMP con ocurrencias de campo">
+        <div className="mon-field-occurrences-register-row is-head" role="row">
+          <span role="columnheader">UMP</span>
+          <span role="columnheader">Estado</span>
+          <span role="columnheader">Responsable</span>
+          <span role="columnheader">Llenado por</span>
+          <span role="columnheader">Dia y hora</span>
+          <span role="columnheader">Fuente</span>
+        </div>
+        <div className="mon-field-occurrences-register-list" role="rowgroup">
+          {filteredRows.map((item) => (
+            <article key={item.row.id} className={`mon-field-occurrences-register-row is-${item.status}`} role="row">
+              <span className="is-identity" role="cell">
+                <strong>{item.title}</strong>
+                <em>{item.routeMeta}</em>
+              </span>
+              <span role="cell">
+                <b>{item.statusLabel}</b>
+                <em>{item.replacementCount > 0 ? `${formatMetric(item.replacementCount)} R bajo titular` : item.row.status === "completa_sin_reporte" ? "Completa sin ocurrencia" : item.row.status === "incompleta_sin_reporte" ? "Incompleta sin ocurrencia" : item.row.status === "iniciada_sin_reporte" ? "Avance sin ocurrencia" : item.row.route_match_status || "ruta"}</em>
+              </span>
+              <span role="cell">
+                <strong>{item.row.responsable || "Sin responsable"}</strong>
+                <em>{item.row.distrito || "Sin distrito"}</em>
+              </span>
+              <span role="cell">
+                <strong>{item.reporter || (item.row.has_report ? item.row.responsable || "Sin responsable" : "Sin registro")}</strong>
+                <em>{item.row.has_report ? `${formatMetric(item.row.efectivas)} efectivas · ${formatMetric(item.row.no_efectivas)} no efectivas` : item.row.advance_started ? occurrenceAdvanceProgressLabel(item.row) : "pendiente"}</em>
+              </span>
+              <span role="cell">
+                <strong>{item.registeredAt || "Sin fecha"}</strong>
+                <em>{item.row.has_report ? item.row.report_window_label : item.row.advance_last_activity || "sin ocurrencia"}</em>
+              </span>
+              <span role="cell">
+                <strong>{item.sourceLabel}</strong>
+                <em>{item.row.source_row_ids.slice(0, 2).join(", ") || item.row.manzana_key || "S/D"}</em>
+              </span>
+            </article>
+          ))}
+          {!filteredRows.length ? (
+            <p className="mon-field-occurrences-register-empty">Sin UMP para estos filtros.</p>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function OccurrenceUmpWorkspace({ rows, allRows }: { rows: OccurrenceRouteUmpRow[]; allRows: OccurrenceRouteUmpRow[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | OccurrenceUmpAttentionStatus>("todos");
@@ -1191,14 +1487,16 @@ function OccurrenceUmpWorkspace({ rows, allRows }: { rows: OccurrenceRouteUmpRow
       ultimaSinReporte: latestOccurrenceDateLabel(missingAdvanceRows.map((row) => row.advance_last_activity)),
       sinConciliacion: allRows.filter((row) => row.is_unreconciled).length,
       sinReporte: expectedRows.filter((row) => !row.has_report).length,
+      replacementFamilies: expectedRows.filter((row) => occurrenceRowAppliedReplacementCount(row) > 0).length,
+      expectedBlocks: expectedRows.reduce((sum, row) => sum + row.expected_blocks.length, 0),
     };
   }, [allRows]);
   useEffect(() => {
     if (!selectedRow) setDetailOpen(false);
   }, [selectedRow]);
   const coverageSummary = counts.sinConciliacion
-    ? `${formatMetric(counts.expected)} UMP esperadas · ${formatMetric(counts.sinConciliacion)} sin conciliacion · ${formatMetric(filteredRows.length)} visibles`
-    : `${formatMetric(counts.expected)} UMP esperadas · ${formatMetric(filteredRows.length)} visibles`;
+    ? `${formatMetric(counts.expected)} UMP titulares · ${formatMetric(counts.sinConciliacion)} sin conciliacion · ${formatMetric(filteredRows.length)} visibles`
+    : `${formatMetric(counts.expected)} UMP titulares · ${formatMetric(filteredRows.length)} visibles`;
 
   const openDetail = useCallback((row: OccurrenceRouteUmpRow, index: number) => {
     setSelectedId(row.id);
@@ -1210,16 +1508,19 @@ function OccurrenceUmpWorkspace({ rows, allRows }: { rows: OccurrenceRouteUmpRow
     <section className="mon-field-occurrences-workspace" aria-label="Cobertura por UMP">
       <header className="mon-field-occurrences-workspace-head">
         <div className="mon-field-occurrences-workspace-title">
-          <span><Route size={14} /> Cobertura por UMP</span>
-          <strong>{coverageSummary}</strong>
-          <em>{formatMetric(counts.reportadas)} reportadas · {formatMetric(counts.completasSinReporte)} completas sin ocurrencias · {formatMetric(counts.incompletasSinReporte)} incompletas sin ocurrencias</em>
+          <span><Route size={14} /> Lista completa de UMP</span>
+          <strong>{formatMetric(counts.expected)} titulares · {formatMetric(counts.reportadas)} con registro · {formatMetric(counts.sinReporte)} sin registro</strong>
+          <em>{coverageSummary} · {formatMetric(counts.replacementFamilies)} con reemplazo usado como titular · {formatMetric(counts.expectedBlocks)} manzanas activas</em>
         </div>
         <div className="mon-field-occurrences-workspace-stats" aria-label="Indicadores de cobertura UMP">
+          <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>UMP titulares</em></span>
+          <span className="is-reported"><strong>{formatMetric(counts.reportadas)}</strong><em>con registro</em></span>
           <span className="is-reportada_efectiva"><strong>{formatMetric(counts.efectivas)}</strong><em>efectivas</em></span>
           <span className="is-reportada_no_efectiva"><strong>{formatMetric(counts.noEfectivas)}</strong><em>no efectivas</em></span>
           <span className="is-completa_sin_reporte"><strong>{formatMetric(counts.completasSinReporte)}</strong><em>completas sin ocurrencias</em></span>
           <span className="is-incompleta_sin_reporte"><strong>{formatMetric(counts.incompletasSinReporte)}</strong><em>incompletas sin ocurrencias</em></span>
           <span className="is-iniciada_sin_reporte"><strong>{formatMetric(counts.validasSinReporte)}</strong><em>validas sin ocurrencias{counts.ultimaSinReporte ? ` · ${counts.ultimaSinReporte}` : ""}</em></span>
+          <span className="is-replacement"><strong>{formatMetric(counts.replacementFamilies)}</strong><em>reemplazo usado como titular</em></span>
           <span className="is-revisar_cruce"><strong>{formatMetric(counts.sinConciliacion)}</strong><em>sin conciliacion</em></span>
           <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
         </div>
@@ -1301,9 +1602,15 @@ function OccurrenceUmpListRow({
   const nonEffectivePct = row.intentos > 0 ? Math.max(0, Math.min(100, (row.no_efectivas / row.intentos) * 100)) : 0;
   const unexpectedUmp = row.is_unreconciled;
   const missingWithAdvance = !unexpectedUmp && !row.has_report && row.advance_started;
+  const replacementCount = occurrenceRowAppliedReplacementCount(row);
+  const hasReplacementFamily = !unexpectedUmp && replacementCount > 0;
   const advanceProgress = occurrenceAdvanceProgressLabel(row);
   const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
-  const identityLabel = unexpectedUmp ? `Declarada ${row.ump || "S/D"} · requiere cruce` : row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? ` · Zona ${row.zona}` : ""}`;
+  const identityLabel = unexpectedUmp
+    ? `Declarada ${row.ump || "S/D"} · requiere cruce`
+    : hasReplacementFamily
+      ? `${row.route_label || row.distrito || "Ruta esperada"} · reemplazo cuenta como titular`
+      : row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? ` · Zona ${row.zona}` : ""}`;
   const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
   const resultLabel = unexpectedUmp
     ? "No vinculada a una UMP esperada"
@@ -1330,7 +1637,7 @@ function OccurrenceUmpListRow({
       : "Pendiente de sincronizacion";
   const resultColor = row.dominant_outcome ? occurrenceOutcomeColor(row.dominant_outcome.key) : "var(--occurrence-status-color)";
   return (
-    <button type="button" className={`mon-field-occurrences-ump-row is-${row.status} ${missingWithAdvance ? "is-advance-missing" : ""} ${selected ? "is-selected" : ""}`} onClick={onSelect} role="option" aria-selected={selected}>
+    <button type="button" className={`mon-field-occurrences-ump-row is-${row.status} ${missingWithAdvance ? "is-advance-missing" : ""} ${hasReplacementFamily ? "is-replacement-family" : ""} ${selected ? "is-selected" : ""}`} onClick={onSelect} role="option" aria-selected={selected}>
       <div className="mon-field-occurrences-ump-row-main">
         <div className="mon-field-occurrences-ump-identity">
           <span>{title}</span>
@@ -1353,6 +1660,7 @@ function OccurrenceUmpListRow({
       <div className="mon-field-occurrences-ump-row-meta">
         <span>{unexpectedUmp ? "UMP sin conciliacion" : row.distrito || "Sin distrito"}</span>
         <span>{row.responsable || "Sin responsable"}</span>
+        {hasReplacementFamily ? <span>{formatMetric(replacementCount)} reemplazo{replacementCount === 1 ? "" : "s"} usado{replacementCount === 1 ? "" : "s"} como titular</span> : null}
         <span>{sourceMeta}</span>
       </div>
     </button>
@@ -1374,6 +1682,8 @@ function OccurrenceUmpDetail({
   const topOutcomes = [...row.outcomes].filter((item) => item.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
   const unexpectedUmp = row.is_unreconciled;
   const missingWithAdvance = !unexpectedUmp && !row.has_report && row.advance_started;
+  const replacementCount = occurrenceRowAppliedReplacementCount(row);
+  const activeBlockCount = row.expected_blocks.length;
   const advanceProgress = occurrenceAdvanceProgressLabel(row);
   const missingNoticeTitle = row.status === "completa_sin_reporte"
     ? "UMP completa sin registro de ocurrencias"
@@ -1440,6 +1750,16 @@ function OccurrenceUmpDetail({
         </section>
       ) : null}
 
+      {!unexpectedUmp && replacementCount > 0 ? (
+        <section className="mon-field-occurrences-detail-notice is-replacement-family">
+          <Route size={14} />
+          <div>
+            <strong>Reemplazo usado como titular</strong>
+            <span>{formatMetric(replacementCount)} reemplazo{replacementCount === 1 ? "" : "s"} se cuenta{replacementCount === 1 ? "" : "n"} dentro de UMP {row.ump || "S/D"} porque el formulario de ocurrencias no registra sufijo R.</span>
+          </div>
+        </section>
+      ) : null}
+
       {row.observation_excerpt ? (
         <section className="mon-field-occurrences-detail-notice">
           <ShieldAlert size={14} />
@@ -1456,6 +1776,8 @@ function OccurrenceUmpDetail({
         <OccurrenceDetailMetric label="no efectivas" value={formatMetric(row.no_efectivas)} tone="noneffective" />
         <OccurrenceDetailMetric label="validas avance" value={occurrenceAdvanceProgressLabel(row)} />
         <OccurrenceDetailMetric label="reportes fuente" value={formatMetric(sourceTotal)} />
+        {replacementCount > 0 ? <OccurrenceDetailMetric label="reemplazos usados" value={formatMetric(replacementCount)} tone="replacement" /> : null}
+        {activeBlockCount > 1 ? <OccurrenceDetailMetric label="manzanas activas" value={formatMetric(activeBlockCount)} /> : null}
       </div>
       <div className="mon-field-occurrences-detail-meter" aria-label="Composicion efectiva y no efectiva">
         <span className="is-effective" style={{ width: `${effectivePct}%` }} />
