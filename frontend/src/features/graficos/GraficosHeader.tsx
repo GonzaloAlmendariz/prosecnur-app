@@ -810,7 +810,7 @@ export function GraficosHeader({
             className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
             aria-expanded={jsonMenuOpen}
             aria-label={`Compartir plan. ${selectedJsonSections().length} de ${GRAFICOS_JSON_SECTIONS.length} secciones activas`}
-            title="Compartir plan editable e importar/exportar configuración"
+            title="Compartir plan editable e importar/exportar ajustes"
           >
             <SlidersHorizontal size={12} />
             <span className="pulso-gv2-toolbar-label">Compartir</span>
@@ -834,7 +834,7 @@ export function GraficosHeader({
                   <div>
                     <strong style={jsonIoStyles.optionTitle}>Paquete portable</strong>
                     <small style={jsonIoStyles.optionHelp}>
-                      No cambia data ni XLSForm. Al aplicar, reemplaza solo el plan de Gráficos y pide regenerar PPT/Word.
+                      No cambia formulario ni respuestas. Al aplicar, reemplaza solo el plan de Gráficos y pide regenerar PPT/Word.
                     </small>
                   </div>
                   <div style={jsonIoStyles.packageActions}>
@@ -896,7 +896,7 @@ export function GraficosHeader({
                             </span>
                             <span>
                               <strong style={jsonIoStyles.cellTitle}>{base.current.n_slides} slides</strong>
-                              <small style={jsonIoStyles.cellMuted}>XLSForm y data se conservan</small>
+                              <small style={jsonIoStyles.cellMuted}>Formulario y respuestas se conservan</small>
                             </span>
                             <span>
                               <strong style={jsonIoStyles.cellTitle}>
