@@ -23746,7 +23746,7 @@
   }
 
   .mon-operational-adjustments__grid {
-    grid-template-rows: minmax(242px, 0.95fr) minmax(210px, 1.05fr);
+    grid-template-rows: minmax(332px, 1.26fr) minmax(136px, 0.74fr);
     gap: 9px;
   }
 
@@ -23791,7 +23791,7 @@
     grid-template-columns: minmax(270px, 0.56fr) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
-    padding: 8px 10px 9px;
+    padding: 7px 10px 8px;
   }
 
   .mon-operational-adjustments__detail footer button {
