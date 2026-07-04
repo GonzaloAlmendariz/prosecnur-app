@@ -1642,7 +1642,7 @@ function CargaWorkspaceTabs({
     <div className="pulso-carga-source-switch pulso-carga-view-tabs" role="tablist" aria-label="Vista de carga">
       <button
         type="button"
-        className={active === "insumos" ? "is-active" : ""}
+        className={`pulso-carga-view-tab${active === "insumos" ? " is-active" : ""}`}
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
@@ -1653,15 +1653,16 @@ function CargaWorkspaceTabs({
       </button>
       <button
         type="button"
-        className={active === "base" ? "is-active" : ""}
+        className={`pulso-carga-view-tab${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
         onClick={() => onChange("base")}
         role="tab"
         aria-selected={active === "base"}
         aria-disabled={!baseReady}
-        title="Base de carga - revisar respuestas cargadas"
+        title={baseReady ? "Base de carga - revisar respuestas cargadas" : "Base de carga - pendiente hasta cargar formulario y respuestas"}
       >
         <Table2 size={14} />
         <span className="pulso-carga-tab-label">Base de carga</span>
+        <span className="pulso-carga-view-tab-state" aria-hidden="true" />
       </button>
     </div>
   );
