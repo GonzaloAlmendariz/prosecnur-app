@@ -118,7 +118,7 @@ export default function GraficosPage() {
         <>
           {!prepOk && (
             <Alert kind="warn">
-              Primero prepara los datos en <strong>4. Analítica</strong>. La exportación requiere <code>rp_data</code> + <code>rp_inst</code> en sesión.
+              Primero prepara los datos en <strong>4. Analítica</strong>. La exportación se activa cuando la base queda lista para generar reportes.
             </Alert>
           )}
 
@@ -187,7 +187,7 @@ export default function GraficosPage() {
           <EmptyState
             icon={<BarChart2 size={20} />}
             title="Prepara Analítica para generar gráficos"
-            hint="Gráficos se habilita cuando Analítica deja listos rp_data y rp_inst en la sesión."
+            hint="Gráficos se habilita cuando Analítica termina de preparar la base activa para reportes."
             cta={<Link className="pulso-empty-cta" to="/analitica">Ir a Analítica</Link>}
           />
         </div>
