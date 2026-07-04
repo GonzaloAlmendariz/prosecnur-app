@@ -1,5 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -33,15 +33,15 @@ type GraficosJsonSectionId =
   | "ui_state";
 
 const GRAFICOS_JSON_SECTIONS: Array<{ id: GraficosJsonSectionId; label: string; help: string }> = [
-  { id: "plan", label: "Slides", help: "La estructura del reporte y el contenido de cada lámina." },
-  { id: "presets", label: "Estilo para PPT", help: "La apariencia base de los gráficos en PowerPoint." },
-  { id: "w_presets", label: "Estilo para Word", help: "Cómo se ven los gráficos y tablas en el documento." },
-  { id: "paletas", label: "Colores", help: "Las paletas usadas para respuestas y categorías." },
-  { id: "iconos", label: "Íconos", help: "Los íconos cargados para láminas de población." },
-  { id: "overrides_reusables", label: "Estilos guardados", help: "Apariencias reutilizables para aplicar el mismo ajuste a varios gráficos." },
-  { id: "debug_ph", label: "Guías visuales", help: "Marcas temporales para revisar espacios y posiciones." },
-  { id: "scope_rules", label: "Reglas específicas", help: "Ajustes que aplican solo a una lista, gráfico o slide." },
-  { id: "ui_state", label: "Vista de trabajo", help: "La vista, pestaña y zoom con que dejaste el editor." },
+  { id: "plan", label: "Láminas", help: "Orden y contenido de cada lámina." },
+  { id: "presets", label: "Estilo para PPT", help: "Bases visuales para PowerPoint." },
+  { id: "w_presets", label: "Estilo para Word", help: "Formato de gráficos y tablas." },
+  { id: "paletas", label: "Colores", help: "Paletas de respuestas y categorías." },
+  { id: "iconos", label: "Íconos", help: "Recursos para láminas de población." },
+  { id: "overrides_reusables", label: "Estilos reutilizables", help: "Ajustes guardados para varios gráficos." },
+  { id: "debug_ph", label: "Guías de edición", help: "Marcas temporales de espacio." },
+  { id: "scope_rules", label: "Reglas por caso", help: "Ajustes por lista, gráfico o slide." },
+  { id: "ui_state", label: "Vista de trabajo", help: "Vista, pestaña y zoom del editor." },
 ];
 
 const DEFAULT_JSON_SECTIONS = Object.fromEntries(
@@ -124,44 +124,45 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     fontWeight: 800,
   },
   popover: {
-    position: "absolute",
+    position: "fixed",
     zIndex: 10000,
-    top: "calc(100% + 10px)",
-    right: 0,
-    width: 720,
+    top: 64,
+    right: 24,
+    width: "min(980px, calc(100vw - 32px))",
     maxWidth: "calc(100vw - 32px)",
-    padding: 14,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 18,
     border: "1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 50%, var(--pulso-border))",
     background: "linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 6%, #ffffff))",
-    boxShadow: "0 22px 52px rgba(0, 36, 87, 0.16), 0 4px 12px rgba(0, 36, 87, 0.07), inset 0 1px 0 rgba(255,255,255,0.86)",
+    boxShadow: "0 28px 72px rgba(0, 36, 87, 0.18), 0 8px 20px rgba(0, 36, 87, 0.08), inset 0 1px 0 rgba(255,255,255,0.86)",
     backdropFilter: "none",
     WebkitBackdropFilter: "none",
-    maxHeight: "calc(100vh - 148px)",
+    maxHeight: "calc(100vh - 88px)",
     overflowY: "auto",
   },
   packagePanel: {
     border: "1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 32%, var(--pulso-border))",
-    borderRadius: 13,
-    background: "linear-gradient(180deg, rgba(255,255,255,0.96), color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 12%, #ffffff))",
-    padding: 12,
+    borderRadius: 15,
+    background: "linear-gradient(135deg, rgba(255,255,255,0.98), color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 18%, #ffffff))",
+    padding: 14,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.86)",
   },
   packageHead: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) auto",
+    gridTemplateColumns: "minmax(260px, 1fr) auto",
     alignItems: "center",
-    gap: 10,
+    gap: 14,
   },
   packageActions: {
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 8,
+    gap: 10,
     flexWrap: "wrap",
   },
   primaryActionButton: {
-    minHeight: 30,
-    borderRadius: 10,
+    minHeight: 34,
+    borderRadius: 12,
     border: "1px solid var(--pulso-primary)",
     background: "var(--pulso-primary)",
     color: "white",
@@ -169,14 +170,16 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    padding: "0 10px",
-    fontSize: 10.5,
+    padding: "0 13px",
+    fontSize: 11.2,
     fontWeight: 800,
     cursor: "pointer",
+    whiteSpace: "nowrap",
+    boxShadow: "0 10px 20px rgba(0, 45, 105, 0.14)",
   },
   secondaryActionButton: {
-    minHeight: 30,
-    borderRadius: 10,
+    minHeight: 34,
+    borderRadius: 12,
     border: "1px solid var(--pulso-border)",
     background: "white",
     color: "var(--pulso-primary)",
@@ -184,10 +187,12 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    padding: "0 10px",
-    fontSize: 10.5,
+    padding: "0 13px",
+    fontSize: 11.2,
     fontWeight: 760,
     cursor: "pointer",
+    whiteSpace: "nowrap",
+    boxShadow: "0 8px 18px rgba(15, 23, 42, 0.06)",
   },
   inspectSummary: {
     marginTop: 10,
@@ -249,7 +254,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   advancedToggle: {
     width: "100%",
-    marginTop: 10,
+    marginTop: 12,
     border: "1px solid color-mix(in srgb, var(--pulso-border) 84%, transparent)",
     borderRadius: 12,
     background: "rgba(255,255,255,0.72)",
@@ -257,11 +262,31 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "8px 10px",
-    fontSize: 11,
+    padding: "9px 11px",
+    fontSize: 11.2,
     fontWeight: 800,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.72)",
+  },
+  advancedPanel: {
+    marginTop: 10,
+    border: "1px solid color-mix(in srgb, var(--pulso-border) 84%, transparent)",
+    borderRadius: 15,
+    background: "rgba(255,255,255,0.72)",
+    padding: 12,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.74)",
+  },
+  advancedBody: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(218px, 260px)",
+    gap: 12,
+    alignItems: "start",
+  },
+  advancedSide: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    minWidth: 0,
   },
   applyBar: {
     position: "sticky",
@@ -278,7 +303,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     gap: 12,
     alignItems: "flex-start",
-    padding: "2px 2px 10px",
+    padding: "2px 2px 12px",
     marginBottom: 0,
   },
   headerActions: {
@@ -289,24 +314,29 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   title: {
     display: "block",
-    fontSize: 13.5,
+    fontSize: 14.5,
     lineHeight: 1.15,
     color: "var(--pulso-text)",
   },
   lead: {
-    margin: "3px 0 0",
+    margin: "4px 0 0",
     color: "var(--pulso-text-soft)",
-    fontSize: 10.4,
+    fontSize: 11.1,
     lineHeight: 1.4,
+    fontWeight: 560,
   },
   close: {
-    width: 27,
-    height: 27,
+    width: 30,
+    height: 30,
     borderRadius: 999,
     border: "1px solid var(--pulso-border)",
     background: "rgba(255,255,255,0.82)",
     cursor: "pointer",
     lineHeight: 1,
+    color: "var(--pulso-text-soft)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   smallButton: {
     fontSize: 10,
@@ -318,20 +348,20 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: 8,
-    marginTop: 6,
+    marginTop: 0,
     border: 0,
     background: "transparent",
   },
   option: {
     position: "relative",
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) 28px",
-    gap: 10,
+    gridTemplateColumns: "minmax(0, 1fr) 34px",
+    gap: 12,
     alignItems: "center",
-    minHeight: 56,
-    padding: "9px 10px",
+    minHeight: 72,
+    padding: "11px 12px",
     borderRadius: 12,
     border: "1px solid color-mix(in srgb, var(--pulso-border) 82%, transparent)",
     background: "rgba(255,255,255,0.64)",
@@ -349,22 +379,26 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     flexDirection: "column",
     alignItems: "flex-start",
     gap: 2,
+    overflow: "hidden",
   },
   optionTitle: {
     display: "block",
     color: "var(--pulso-text)",
-    fontSize: 11.6,
+    fontSize: 12,
     lineHeight: 1.15,
     fontWeight: 740,
     letterSpacing: "-0.01em",
   },
   optionHelp: {
-    display: "block",
     color: "var(--pulso-text-soft)",
-    fontSize: 9.8,
+    fontSize: 10.1,
     lineHeight: 1.25,
     fontWeight: 500,
     letterSpacing: "-0.005em",
+    overflow: "hidden",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    display: "-webkit-box",
   },
   checkDot: {
     width: 28,
@@ -402,40 +436,46 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     pointerEvents: "none",
   },
   modeBox: {
-    marginTop: 9,
-    padding: "9px 10px",
+    marginTop: 0,
+    padding: "11px",
     borderRadius: 12,
     background: "rgba(255,255,255,0.66)",
     border: "1px solid color-mix(in srgb, var(--pulso-border) 84%, transparent)",
     display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
+    alignItems: "stretch",
+    flexDirection: "column",
+    gap: 8,
     fontSize: 11,
   },
   modeLabel: {
     color: "var(--pulso-text-soft)",
-    fontWeight: 700,
+    fontWeight: 800,
     flexBasis: "auto",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    fontSize: 9.4,
   },
   radio: {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
     cursor: "pointer",
-    padding: "4px 8px",
-    borderRadius: 999,
+    padding: "7px 9px",
+    borderRadius: 11,
     background: "rgba(255,255,255,0.74)",
     border: "1px solid color-mix(in srgb, var(--pulso-border) 80%, transparent)",
+    color: "var(--pulso-text)",
+    fontWeight: 720,
   },
   actions: {
     display: "flex",
+    flexDirection: "column",
     gap: 8,
-    marginTop: 10,
+    marginTop: 0,
   },
   actionButton: {
-    flex: "1 1 0",
-    minHeight: 32,
+    flex: "0 0 auto",
+    minHeight: 34,
     borderRadius: 12,
     border: "1px solid var(--pulso-primary-border)",
     background: "white",
@@ -801,224 +841,230 @@ export function GraficosHeader({
           </button>
 
           <div style={jsonIoStyles.wrap} ref={shareMenuRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setExportMenuOpen(false);
-              setJsonMenuOpen((x) => !x);
-            }}
-            className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
-            aria-expanded={jsonMenuOpen}
-            aria-label={`Compartir plan. ${selectedJsonSections().length} de ${GRAFICOS_JSON_SECTIONS.length} secciones activas`}
-            title="Compartir plan editable e importar/exportar ajustes"
-          >
-            <SlidersHorizontal size={12} />
-            <span className="pulso-gv2-toolbar-label">Compartir</span>
-            <span style={jsonIoStyles.count}>{selectedJsonSections().length}/{GRAFICOS_JSON_SECTIONS.length}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setExportMenuOpen(false);
+                setJsonMenuOpen((x) => !x);
+              }}
+              className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
+              aria-expanded={jsonMenuOpen}
+              aria-label={`Compartir plan. ${selectedJsonSections().length} de ${GRAFICOS_JSON_SECTIONS.length} secciones activas`}
+              title="Compartir o importar el plan editable"
+            >
+              <SlidersHorizontal size={12} />
+              <span className="pulso-gv2-toolbar-label">Compartir</span>
+              <span style={jsonIoStyles.count}>{selectedJsonSections().length}/{GRAFICOS_JSON_SECTIONS.length}</span>
+            </button>
 
-          {jsonMenuOpen && (
-            <div style={jsonIoStyles.popover} role="dialog" aria-label="Compartir plan de gráficos">
-              <div style={jsonIoStyles.header}>
-                <div>
-                  <strong style={jsonIoStyles.title}>Compartir plan de gráficos</strong>
-                  <p style={jsonIoStyles.lead}>Paquete portable para llevar el plan editable a otro proyecto compatible.</p>
-                </div>
-                <div style={jsonIoStyles.headerActions}>
-                  <button type="button" onClick={() => setJsonMenuOpen(false)} style={jsonIoStyles.close}>×</button>
-                </div>
-              </div>
-
-              <div style={jsonIoStyles.packagePanel}>
-                <div style={jsonIoStyles.packageHead}>
+            {jsonMenuOpen && (
+              <div style={jsonIoStyles.popover} role="dialog" aria-label="Compartir plan de gráficos">
+                <div style={jsonIoStyles.header}>
                   <div>
-                    <strong style={jsonIoStyles.optionTitle}>Paquete portable</strong>
-                    <small style={jsonIoStyles.optionHelp}>
-                      No cambia formulario ni respuestas. Al aplicar, reemplaza solo el plan de Gráficos y pide regenerar PPT/Word.
-                    </small>
+                    <strong style={jsonIoStyles.title}>Compartir plan de gráficos</strong>
+                    <p style={jsonIoStyles.lead}>Lleva este plan editable a otro proyecto sin mover formulario ni respuestas.</p>
                   </div>
-                  <div style={jsonIoStyles.packageActions}>
-                    <button type="button" onClick={packageExport} disabled={shareBusy === "export"} style={jsonIoStyles.primaryActionButton}>
-                      {shareBusy === "export" ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
-                      Exportar plan compartible
+                  <div style={jsonIoStyles.headerActions}>
+                    <button type="button" onClick={() => setJsonMenuOpen(false)} style={jsonIoStyles.close} aria-label="Cerrar">
+                      <X size={15} />
                     </button>
-                    <label style={{ ...jsonIoStyles.secondaryActionButton, cursor: shareBusy === "inspect" ? "wait" : "pointer" }}>
-                      {shareBusy === "inspect" ? <Loader2 size={12} className="pulso-spin" /> : <Upload size={12} />}
-                      Importar plan compartido
-                      <input
-                        ref={shareFileRef}
-                        type="file"
-                        accept=".pulso-graficos.zip,.zip,application/zip"
-                        style={{ display: "none" }}
-                        onChange={(e) => void packageInspect(e.target.files?.[0])}
-                      />
-                    </label>
                   </div>
                 </div>
 
-                {sharePlan && (
-                  <>
-                    <div style={jsonIoStyles.inspectSummary}>
-                      <span>
-                        {sharePlan.summary.n_compatible}/{sharePlan.summary.n_bases} bases compatibles · {sharePlan.manifest.n_slides} slides · {sharePlan.summary.n_warnings} advertencias
-                      </span>
-                      <span>{sharePlan.filename}</span>
-                    </div>
-
-                    <div style={jsonIoStyles.planTable}>
-                      <div style={{ ...jsonIoStyles.planRow, ...jsonIoStyles.planRowHead }}>
-                        <span>Base</span>
-                        <span>Actualmente</span>
-                        <span>Después de aplicar</span>
-                        <span>Variables faltantes</span>
-                      </div>
-                      {sharePlan.bases.map((base, index) => {
-                        const missing = base.impact.missing_variables;
-                        const checked = Boolean(shareSelected[base.base_name] && !base.blocking);
-                        return (
-                          <label
-                            key={base.base_name}
-                            style={{
-                              ...jsonIoStyles.planRow,
-                              ...(index === sharePlan.bases.length - 1 ? { borderBottom: 0 } : {}),
-                              ...(base.blocking ? { background: "var(--pulso-warn-bg)" } : {}),
-                            }}
-                          >
-                            <span>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={base.blocking}
-                                onChange={(e) => setShareSelected((prev) => ({ ...prev, [base.base_name]: e.target.checked }))}
-                              />{" "}
-                              <strong style={jsonIoStyles.cellTitle}>{base.base_label || base.base_name}</strong>
-                              <small style={jsonIoStyles.cellMuted}>{base.base_name}</small>
-                            </span>
-                            <span>
-                              <strong style={jsonIoStyles.cellTitle}>{base.current.n_slides} slides</strong>
-                              <small style={jsonIoStyles.cellMuted}>Formulario y respuestas se conservan</small>
-                            </span>
-                            <span>
-                              <strong style={jsonIoStyles.cellTitle}>
-                                {base.incoming.n_slides_applicable}/{base.incoming.n_slides_total} slides se conservarán
-                              </strong>
-                              <small style={jsonIoStyles.cellMuted}>
-                                {missing.length > 0
-                                  ? "variables faltantes quedarán vacías"
-                                  : "sin omisiones"}
-                              </small>
-                            </span>
-                            <span>
-                              {missing.length === 0 ? (
-                                <small style={jsonIoStyles.cellMuted}>Todas las variables del plan están disponibles.</small>
-                              ) : (
-                                <small style={jsonIoStyles.warningText}>
-                                  {missing.slice(0, 4).map((v) => `${v.code}: ${v.label}`).join(" · ")}
-                                  {missing.length > 4 ? ` · +${missing.length - 4}` : ""}
-                                </small>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-
-                    <div style={jsonIoStyles.applyBar}>
-                      <button
-                        type="button"
-                        onClick={packageApply}
-                        disabled={shareBusy === "apply" || selectedShareBases().length === 0}
-                        style={jsonIoStyles.primaryActionButton}
-                      >
-                        {shareBusy === "apply" ? <Loader2 size={12} className="pulso-spin" /> : <Check size={12} />}
-                        Aplicar a {selectedShareBases().length} base{selectedShareBases().length === 1 ? "" : "s"} compatible{selectedShareBases().length === 1 ? "" : "s"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setJsonAdvancedOpen((v) => !v)}
-                style={jsonIoStyles.advancedToggle}
-                aria-expanded={jsonAdvancedOpen}
-              >
-                <span>JSON avanzado</span>
-                <ChevronDown size={13} />
-              </button>
-
-              {jsonAdvancedOpen && (
-                <>
-                  <div style={jsonIoStyles.header}>
+                <div style={jsonIoStyles.packagePanel}>
+                  <div style={jsonIoStyles.packageHead}>
                     <div>
-                      <strong style={jsonIoStyles.title}>Partes del JSON</strong>
-                      <p style={jsonIoStyles.lead}>{selectedJsonSections().length} de {GRAFICOS_JSON_SECTIONS.length} secciones activas.</p>
+                      <strong style={jsonIoStyles.optionTitle}>Plan portátil</strong>
+                      <small style={jsonIoStyles.optionHelp}>
+                        Comparte composición, estilos y ajustes. Al aplicar, solo actualiza Gráficos y luego puedes regenerar PPT/Word.
+                      </small>
                     </div>
-                    <div style={jsonIoStyles.headerActions}>
-                      <button type="button" onClick={() => setAllJsonSections(true)} style={jsonIoStyles.smallButton}>Todo</button>
-                      <button type="button" onClick={() => setAllJsonSections(false)} style={jsonIoStyles.smallButton}>Nada</button>
-                    </div>
-                  </div>
-
-                  <div style={jsonIoStyles.grid}>
-                    {GRAFICOS_JSON_SECTIONS.map((section) => (
-                      <label
-                        key={section.id}
-                        title={section.help}
-                        style={{
-                          ...jsonIoStyles.option,
-                          ...(jsonSections[section.id] ? jsonIoStyles.optionOn : {}),
-                        }}
-                        >
-                          <span style={jsonIoStyles.optionText}>
-                            <strong style={jsonIoStyles.optionTitle}>{section.label}</strong>
-                            <small style={jsonIoStyles.optionHelp}>{section.help}</small>
-                        </span>
-                        <span style={{ ...jsonIoStyles.checkDot, ...(jsonSections[section.id] ? jsonIoStyles.checkDotOn : {}) }}>
-                          <span style={{ ...jsonIoStyles.switchKnob, ...(jsonSections[section.id] ? jsonIoStyles.switchKnobOn : {}) }} />
-                        </span>
+                    <div style={jsonIoStyles.packageActions}>
+                      <button type="button" onClick={packageExport} disabled={shareBusy === "export"} style={jsonIoStyles.primaryActionButton}>
+                        {shareBusy === "export" ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
+                        Exportar plan
+                      </button>
+                      <label style={{ ...jsonIoStyles.secondaryActionButton, cursor: shareBusy === "inspect" ? "wait" : "pointer" }}>
+                        {shareBusy === "inspect" ? <Loader2 size={12} className="pulso-spin" /> : <Upload size={12} />}
+                        Importar plan
                         <input
-                          type="checkbox"
-                          checked={jsonSections[section.id]}
-                          onChange={(e) => setJsonSections((prev) => ({ ...prev, [section.id]: e.target.checked }))}
-                          style={jsonIoStyles.hiddenInput}
+                          ref={shareFileRef}
+                          type="file"
+                          accept=".pulso-graficos.zip,.zip,application/zip"
+                          style={{ display: "none" }}
+                          onChange={(e) => void packageInspect(e.target.files?.[0])}
                         />
                       </label>
-                    ))}
+                    </div>
                   </div>
 
-                  <div style={jsonIoStyles.modeBox}>
-                    <span style={jsonIoStyles.modeLabel}>Importación JSON</span>
-                    <label style={jsonIoStyles.radio}>
-                      <input type="radio" checked={jsonImportMode === "merge"} onChange={() => setJsonImportMode("merge")} />
-                      Fusionar objetos
-                    </label>
-                    <label style={jsonIoStyles.radio}>
-                      <input type="radio" checked={jsonImportMode === "replace"} onChange={() => setJsonImportMode("replace")} />
-                      Reemplazar secciones
-                    </label>
-                  </div>
+                  {sharePlan && (
+                    <>
+                      <div style={jsonIoStyles.inspectSummary}>
+                        <span>
+                          {sharePlan.summary.n_compatible}/{sharePlan.summary.n_bases} bases compatibles · {sharePlan.manifest.n_slides} slides · {sharePlan.summary.n_warnings} advertencias
+                        </span>
+                        <span>{sharePlan.filename}</span>
+                      </div>
 
-                  <div style={jsonIoStyles.actions}>
-                    <button type="button" onClick={ioExport} disabled={jsonBusy === "export" || selectedJsonSections().length === 0} style={jsonIoStyles.actionButton}>
-                      <Download size={12} /> {jsonBusy === "export" ? "Exportando…" : "Exportar selección"}
-                    </button>
-                    <label style={{ ...jsonIoStyles.actionButton, cursor: jsonBusy === "import" ? "wait" : "pointer" }}>
-                      <Upload size={12} /> {jsonBusy === "import" ? "Importando…" : "Importar selección"}
-                      <input
-                        ref={jsonFileRef}
-                        type="file"
-                        accept=".json,application/json"
-                        style={{ display: "none" }}
-                        onChange={(e) => void ioImport(e.target.files?.[0])}
-                      />
-                    </label>
+                      <div style={jsonIoStyles.planTable}>
+                        <div style={{ ...jsonIoStyles.planRow, ...jsonIoStyles.planRowHead }}>
+                          <span>Base</span>
+                          <span>Actualmente</span>
+                          <span>Después de aplicar</span>
+                          <span>Variables faltantes</span>
+                        </div>
+                        {sharePlan.bases.map((base, index) => {
+                          const missing = base.impact.missing_variables;
+                          const checked = Boolean(shareSelected[base.base_name] && !base.blocking);
+                          return (
+                            <label
+                              key={base.base_name}
+                              style={{
+                                ...jsonIoStyles.planRow,
+                                ...(index === sharePlan.bases.length - 1 ? { borderBottom: 0 } : {}),
+                                ...(base.blocking ? { background: "var(--pulso-warn-bg)" } : {}),
+                              }}
+                            >
+                              <span>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={base.blocking}
+                                  onChange={(e) => setShareSelected((prev) => ({ ...prev, [base.base_name]: e.target.checked }))}
+                                />{" "}
+                                <strong style={jsonIoStyles.cellTitle}>{base.base_label || base.base_name}</strong>
+                                <small style={jsonIoStyles.cellMuted}>{base.base_name}</small>
+                              </span>
+                              <span>
+                                <strong style={jsonIoStyles.cellTitle}>{base.current.n_slides} slides</strong>
+                                <small style={jsonIoStyles.cellMuted}>Formulario y respuestas se conservan</small>
+                              </span>
+                              <span>
+                                <strong style={jsonIoStyles.cellTitle}>
+                                  {base.incoming.n_slides_applicable}/{base.incoming.n_slides_total} slides se conservarán
+                                </strong>
+                                <small style={jsonIoStyles.cellMuted}>
+                                  {missing.length > 0
+                                    ? "variables faltantes quedarán vacías"
+                                    : "sin omisiones"}
+                                </small>
+                              </span>
+                              <span>
+                                {missing.length === 0 ? (
+                                  <small style={jsonIoStyles.cellMuted}>Todas las variables del plan están disponibles.</small>
+                                ) : (
+                                  <small style={jsonIoStyles.warningText}>
+                                    {missing.slice(0, 4).map((v) => `${v.code}: ${v.label}`).join(" · ")}
+                                    {missing.length > 4 ? ` · +${missing.length - 4}` : ""}
+                                  </small>
+                                )}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div style={jsonIoStyles.applyBar}>
+                        <button
+                          type="button"
+                          onClick={packageApply}
+                          disabled={shareBusy === "apply" || selectedShareBases().length === 0}
+                          style={jsonIoStyles.primaryActionButton}
+                        >
+                          {shareBusy === "apply" ? <Loader2 size={12} className="pulso-spin" /> : <Check size={12} />}
+                          Aplicar a {selectedShareBases().length} base{selectedShareBases().length === 1 ? "" : "s"} compatible{selectedShareBases().length === 1 ? "" : "s"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setJsonAdvancedOpen((v) => !v)}
+                  style={jsonIoStyles.advancedToggle}
+                  aria-expanded={jsonAdvancedOpen}
+                >
+                  <span>Selección avanzada</span>
+                  <ChevronDown size={13} />
+                </button>
+
+                {jsonAdvancedOpen && (
+                  <div style={jsonIoStyles.advancedPanel}>
+                    <div style={jsonIoStyles.header}>
+                      <div>
+                        <strong style={jsonIoStyles.title}>Componentes del plan</strong>
+                        <p style={jsonIoStyles.lead}>{selectedJsonSections().length} de {GRAFICOS_JSON_SECTIONS.length} incluidos en la transferencia.</p>
+                      </div>
+                      <div style={jsonIoStyles.headerActions}>
+                        <button type="button" onClick={() => setAllJsonSections(true)} style={jsonIoStyles.smallButton}>Todo</button>
+                        <button type="button" onClick={() => setAllJsonSections(false)} style={jsonIoStyles.smallButton}>Nada</button>
+                      </div>
+                    </div>
+
+                    <div style={jsonIoStyles.advancedBody}>
+                      <div style={jsonIoStyles.grid}>
+                        {GRAFICOS_JSON_SECTIONS.map((section) => (
+                          <label
+                            key={section.id}
+                            title={section.help}
+                            style={{
+                              ...jsonIoStyles.option,
+                              ...(jsonSections[section.id] ? jsonIoStyles.optionOn : {}),
+                            }}
+                          >
+                            <span style={jsonIoStyles.optionText}>
+                              <strong style={jsonIoStyles.optionTitle}>{section.label}</strong>
+                              <small style={jsonIoStyles.optionHelp}>{section.help}</small>
+                            </span>
+                            <span style={{ ...jsonIoStyles.checkDot, ...(jsonSections[section.id] ? jsonIoStyles.checkDotOn : {}) }}>
+                              <span style={{ ...jsonIoStyles.switchKnob, ...(jsonSections[section.id] ? jsonIoStyles.switchKnobOn : {}) }} />
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={jsonSections[section.id]}
+                              onChange={(e) => setJsonSections((prev) => ({ ...prev, [section.id]: e.target.checked }))}
+                              style={jsonIoStyles.hiddenInput}
+                            />
+                          </label>
+                        ))}
+                      </div>
+
+                      <div style={jsonIoStyles.advancedSide}>
+                        <div style={jsonIoStyles.modeBox}>
+                          <span style={jsonIoStyles.modeLabel}>Al importar</span>
+                          <label style={jsonIoStyles.radio}>
+                            <input type="radio" checked={jsonImportMode === "merge"} onChange={() => setJsonImportMode("merge")} />
+                            Combinar con lo existente
+                          </label>
+                          <label style={jsonIoStyles.radio}>
+                            <input type="radio" checked={jsonImportMode === "replace"} onChange={() => setJsonImportMode("replace")} />
+                            Reemplazar componentes
+                          </label>
+                        </div>
+
+                        <div style={jsonIoStyles.actions}>
+                          <button type="button" onClick={ioExport} disabled={jsonBusy === "export" || selectedJsonSections().length === 0} style={jsonIoStyles.actionButton}>
+                            <Download size={12} /> {jsonBusy === "export" ? "Exportando…" : "Exportar componentes"}
+                          </button>
+                          <label style={{ ...jsonIoStyles.actionButton, cursor: jsonBusy === "import" ? "wait" : "pointer" }}>
+                            <Upload size={12} /> {jsonBusy === "import" ? "Importando…" : "Importar componentes"}
+                            <input
+                              ref={jsonFileRef}
+                              type="file"
+                              accept=".json,application/json"
+                              style={{ display: "none" }}
+                              onChange={(e) => void ioImport(e.target.files?.[0])}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
           </div>
 
           <div className="pulso-gv2-export-menu" ref={exportMenuRef}>
