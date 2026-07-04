@@ -69,12 +69,15 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const rendererChecking = !rendererStatusChecked;
   const rendererAvailable = rendererStatus?.available === true;
   const rendererUnavailable = rendererStatusChecked && !rendererAvailable;
-  const hasPreview = !!slidePreview?.png_base64;
-  const hasEmbeddedImages = previewImages.length > 0;
+  const rawHasPreview = !!slidePreview?.png_base64;
+  const hasPreview = rawHasPreview && !isStale;
+  const activePreviewImages = isStale ? [] : previewImages;
+  const hasEmbeddedImages = activePreviewImages.length > 0;
   const hasResult = !!fileId && !error;
-  const renderFailed = hasResult && !hasPreview && rendererAvailable;
-  const hasUsableResult = hasResult && (hasPreview || hasEmbeddedImages || rendererUnavailable || renderFailed);
-  const hasLocalFallback = !!error || rendererUnavailable || renderFailed || hasUsableResult;
+  const hasFreshResult = hasResult && !isStale;
+  const renderFailed = hasFreshResult && !hasPreview && rendererAvailable;
+  const hasUsableResult = hasFreshResult && (hasPreview || hasEmbeddedImages || rendererUnavailable || renderFailed);
+  const hasLocalFallback = isStale || !!error || rendererUnavailable || renderFailed || hasUsableResult;
 
   useEffect(() => {
     if (latestHashRef.current === currentHash) return;
@@ -254,7 +257,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
   const showRefreshAction = compact && hasResult;
 
-  const previewAspectRatio = previewAspect(slidePreview);
+  const previewAspectRatio = isStale ? undefined : previewAspect(slidePreview);
   const frameStyle: CSSProperties | undefined = previewAspectRatio
     ? { aspectRatio: previewAspectRatio }
     : undefined;
@@ -290,7 +293,9 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
       : hasLocalFallback
         ? "local"
         : "idle";
-  const chromeDetail = hasPreview && !isStale
+  const chromeDetail = isStale
+    ? "Actualiza para ver este slide"
+    : hasPreview
     ? `Captura PPTX${rendererStatus?.renderer ? ` · ${formatRendererName(rendererStatus.renderer)}` : ""}`
     : error
       ? "Vista de estructura disponible"
@@ -413,7 +418,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               </span>
             </span>
             <span className="pulso-slide-preview-chrome-actions">
-              {fileId && !busy && (
+              {fileId && !busy && !isStale && (
                 <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-download">
                   <Download size={12} />
                   PPTX
@@ -445,6 +450,15 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 <Loader2 size={18} className="pulso-spin" />
                 <span>Renderizando PPTX...</span>
               </div>
+            ) : isStale ? (
+              <LocalPreviewFallback
+                slide={slide}
+                tone="warn"
+                title="Actualiza esta vista"
+                detail="La captura anterior pertenece a otra versión del slide. La vista local muestra la estructura actual mientras generas una nueva preview."
+                images={[]}
+                fileId={null}
+              />
             ) : hasPreview ? (
               <>
                 <img
@@ -458,7 +472,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 title="Vista local lista"
                 detail={hasEmbeddedImages ? "Imagen interna extraída del PPTX." : "Referencia visual incluida para revisar composición del slide."}
-                images={previewImages}
+                images={activePreviewImages}
                 fileId={fileId}
               />
             ) : renderFailed ? (
@@ -467,7 +481,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 tone="warn"
                 title="Captura no disponible"
                 detail={hasEmbeddedImages ? "Usando imagen interna del PPTX como referencia visual." : "El PPTX se generó, pero la captura exacta no devolvió imagen."}
-                images={previewImages}
+                images={activePreviewImages}
                 fileId={fileId}
               />
             ) : hasResult ? (
@@ -475,7 +489,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 title="Vista local disponible"
                 detail={hasEmbeddedImages ? "Imagen del gráfico extraída del PPTX." : "Este equipo no tiene captura PPTX exacta disponible."}
-                images={previewImages}
+                images={activePreviewImages}
                 fileId={fileId}
               />
             ) : error ? (
@@ -484,7 +498,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 tone="warn"
                 title="Vista local disponible"
                 detail={`${humanizePreviewError(error)} La app mantiene esta vista para revisar estructura sin bloquear tu trabajo.`}
-                images={previewImages}
+                images={activePreviewImages}
                 fileId={fileId}
               />
             ) : (
@@ -680,6 +694,7 @@ function getStateLabel(state: {
   if (state.busy) return "Generando preview";
   if (!state.prepOk) return "Datos no preparados";
   if (state.blocked) return "Configuración incompleta";
+  if (state.isStale) return "Preview desactualizada";
   if (state.error) return "Vista local disponible";
   if (state.rendererChecking) return "Comprobando motor";
   if (state.hasPreview) return state.isStale ? "Preview desactualizada" : "Preview lista";
