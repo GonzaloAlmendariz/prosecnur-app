@@ -1760,22 +1760,29 @@ export function TerritorialSourceConsole({
                       const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
                       const district = row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D";
                       const recommendationId = umpRecommendationIdForRow(row);
+                      const statusLabel = recommendationId ? "Sugerida" : declaredUmpStatusLabel(row.status);
                       return (
-                        <span
+                        <article
                           key={`${row.raw_ump || "missing"}-${row.response_id || index}`}
                           className={`is-${declaredUmpStatusTone(row.status)}${recommendationId ? " is-recommended" : ""}`}
                         >
-                          <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
-                          <em>{declaredUmpReviewReason(row)}</em>
-                          <small>{recommendationId ? "Sugerida · " : ""}{assignedUmp || "Sin ruta"} · {district}</small>
-                        </span>
+                          <b>{statusLabel}</b>
+                          <div>
+                            <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
+                            <em>{declaredUmpReviewReason(row)}</em>
+                          </div>
+                          <small>{fmt(row.response_count)} respuestas · {assignedUmp || "Sin ruta"} · {district}</small>
+                        </article>
                       );
                     }) : (
-                      <span className="is-empty">
-                        <strong>{emptyUmpQueueLabel}</strong>
-                        <em>{activeUmpQueueLens.label}</em>
+                      <article className="is-empty">
+                        <b>Cola</b>
+                        <div>
+                          <strong>{emptyUmpQueueLabel}</strong>
+                          <em>{activeUmpQueueLens.label}</em>
+                        </div>
                         <small>{emptyUmpQueueHint}</small>
-                      </span>
+                      </article>
                     )}
                   </div>
                 </aside>
