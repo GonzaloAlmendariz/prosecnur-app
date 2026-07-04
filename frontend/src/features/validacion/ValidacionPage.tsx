@@ -43,9 +43,9 @@ import type { ValidacionTabId } from "./types";
 const TABS: TabMeta<ValidacionTabId>[] = [
   {
     key: "explorar",
-    label: "Explorar datos",
+    label: "Explorar respuestas",
     icon: Compass,
-    desc: "Distribuciones y anomalías",
+    desc: "Distribuciones y señales de revisión",
   },
   {
     key: "instrumento",
@@ -149,7 +149,7 @@ export default function ValidacionPage() {
   return (
     <PageFrame
       title="Fase 2 - Validación"
-      lead="Explora la base, valida contra el formulario, afina reglas y cierra la limpieza."
+      lead="Explora las respuestas, valida contra el formulario, afina criterios y cierra la limpieza."
       className="pulso-validacion-frame"
       density="compact"
       headerMode="sr-only"
@@ -187,7 +187,7 @@ export default function ValidacionPage() {
           {!prereqsOk && (
             <Alert kind="warn">
               <strong>Faltan insumos.</strong>{" "}
-              Para revisar consistencias necesitas un formulario y una base de datos cargados en la Fase 1.
+              Para revisar consistencias necesitas un formulario y respuestas cargadas en la Fase 1.
             </Alert>
           )}
 
@@ -217,7 +217,7 @@ export default function ValidacionPage() {
             <EmptyState
               icon={<Compass size={18} />}
               title="Carga insumos para validar"
-              hint="La validación se habilita cuando la sesión tiene un XLSForm y una base cargados."
+              hint="La validación se habilita cuando la sesión tiene un formulario y respuestas cargadas."
               cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
           ) : (
@@ -266,7 +266,7 @@ function ValidacionStatusSummary({
   return (
     <div className="pulso-validacion-status" aria-label="Estado de la validación">
       <ValidacionStatusPill label="Formulario" done={hasXlsform} />
-      <ValidacionStatusPill label="Datos" done={hasData} />
+      <ValidacionStatusPill label="Respuestas" done={hasData} />
       <span className={`pulso-validacion-status-pill${auditoriaRun ? " is-done" : ""}`}>
         <ShieldCheck size={13} />
         {auditoriaRun ? "Auditoría corrida" : prereqsOk ? "Lista para auditar" : "En espera"}
