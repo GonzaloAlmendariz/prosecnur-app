@@ -1559,7 +1559,11 @@ function PlatformImportPanel({
       <div className="pulso-platform-list" aria-label={`Catálogo ${providerName}`}>
         {rowsCount === 0 ? (
           <div className="pulso-platform-empty">
-            {hasConnection ? "Sin resultados cargados" : `Conecta ${providerName} en Configuración`}
+            <span className="pulso-platform-empty-icon" aria-hidden="true">
+              <Search size={15} />
+            </span>
+            <strong>{hasConnection ? "Catálogo sin cargar" : `Sin conexión ${providerName}`}</strong>
+            <small>{hasConnection ? "0 fuentes disponibles en esta vista" : "Perfil pendiente"}</small>
           </div>
         ) : isSurveyMonkey ? (
           smSurveys.map((survey) => (
