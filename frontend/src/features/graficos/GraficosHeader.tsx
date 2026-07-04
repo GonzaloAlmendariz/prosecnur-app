@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -530,6 +531,7 @@ export function GraficosHeader({
   exportBusy,
   exportJobKind,
   canExport,
+  prepReady,
 }: {
   onExportPpt: () => void;
   onExportWord: () => void;
@@ -540,6 +542,7 @@ export function GraficosHeader({
   exportBusy: boolean;
   exportJobKind: "ppt" | "word" | null;
   canExport: boolean;
+  prepReady: boolean;
 }) {
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
@@ -580,6 +583,7 @@ export function GraficosHeader({
   // Los warnings no bloquean — aparecen en el badge pero el export corre.
   const validator = usePlanValidator();
   const canExportFinal = canExport && validator.canExport;
+  const prepBlocked = !prepReady;
   const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(docxFileId));
 
   useEffect(() => {
@@ -785,7 +789,7 @@ export function GraficosHeader({
   }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path]);
 
   return (
-    <div className="pulso-gv2-command-header">
+    <div className={`pulso-gv2-command-header${prepBlocked ? " is-prep-blocked" : ""}`}>
       <ContextBar
         ariaLabel="Acciones del plan de gráficos"
         density="compact"
@@ -1067,101 +1071,113 @@ export function GraficosHeader({
             )}
           </div>
 
-          <div className="pulso-gv2-export-menu" ref={exportMenuRef}>
-            <button
-              type="button"
-              className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger"
-              onClick={() => {
-                setJsonMenuOpen(false);
-                setExportMenuOpen((v) => !v);
-              }}
-              disabled={!canExportFinal && !pptFileId && !docxFileId}
-              aria-haspopup="dialog"
-              aria-expanded={exportMenuOpen}
-              title={canExportFinal ? "Exportar el reporte en PowerPoint o Word" : "Revisa el estado del plan antes de exportar"}
+          {prepBlocked ? (
+            <Link
+              to="/analitica"
+              className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger pulso-gv2-prepare-trigger"
+              title="Preparar la base en Analítica"
             >
-              {exportBusy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
-              <span>Exportar</span>
-              {generatedReports > 0 && <b>{generatedReports}</b>}
-              <ChevronDown size={13} />
-            </button>
+              <Database size={13} />
+              <span>Preparar</span>
+              <ArrowRight size={13} />
+            </Link>
+          ) : (
+            <div className="pulso-gv2-export-menu" ref={exportMenuRef}>
+              <button
+                type="button"
+                className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger"
+                onClick={() => {
+                  setJsonMenuOpen(false);
+                  setExportMenuOpen((v) => !v);
+                }}
+                disabled={!canExportFinal && !pptFileId && !docxFileId}
+                aria-haspopup="dialog"
+                aria-expanded={exportMenuOpen}
+                title={canExportFinal ? "Exportar el reporte en PowerPoint o Word" : "Revisa el estado del plan antes de exportar"}
+              >
+                {exportBusy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
+                <span>Exportar</span>
+                {generatedReports > 0 && <b>{generatedReports}</b>}
+                <ChevronDown size={13} />
+              </button>
 
-            {exportMenuOpen && (
-              <div className="pulso-gv2-export-menu-popover" role="dialog" aria-label="Exportar reporte">
-                <div className="pulso-gv2-export-menu-head">
-                  <span className="pulso-gv2-export-menu-mark" aria-hidden="true">
-                    <Download size={15} />
-                  </span>
-                  <div>
-                    <strong>Exportar reporte</strong>
-                    <span>Elige el archivo final que necesitas generar.</span>
+              {exportMenuOpen && (
+                <div className="pulso-gv2-export-menu-popover" role="dialog" aria-label="Exportar reporte">
+                  <div className="pulso-gv2-export-menu-head">
+                    <span className="pulso-gv2-export-menu-mark" aria-hidden="true">
+                      <Download size={15} />
+                    </span>
+                    <div>
+                      <strong>Exportar reporte</strong>
+                      <span>Elige el archivo final que necesitas generar.</span>
+                    </div>
                   </div>
-                </div>
 
-                {!canExportFinal && (
-                  <div className="pulso-gv2-export-menu-warning">
-                    Revisa el estado del plan antes de generar archivos.
-                  </div>
-                )}
+                  {!canExportFinal && (
+                    <div className="pulso-gv2-export-menu-warning">
+                      Revisa el estado del plan antes de generar archivos.
+                    </div>
+                  )}
 
-                <div className="pulso-gv2-export-menu-actions">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      onExportPpt();
-                    }}
-                    disabled={!canExportFinal || exportBusy}
-                  >
-                    <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                      {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
-                    </span>
-                    <span>
-                      <strong>PowerPoint</strong>
-                      <small>PPTX editable</small>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      onExportWord();
-                    }}
-                    disabled={!canExportFinal || exportBusy}
-                  >
-                    <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                      {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
-                    </span>
-                    <span>
-                      <strong>Word</strong>
-                      <small>DOCX narrativo</small>
-                    </span>
-                  </button>
-                </div>
-
-                {(pptFileId || docxFileId || saveStatus) && (
-                  <div className="pulso-gv2-export-menu-files">
-                    {pptFileId && !exportBusy && (
-                      <a href={downloadUrl(pptFileId)}>
-                        <Download size={12} /> {pptFilename ?? "reporte.pptx"}
-                      </a>
-                    )}
-                    {docxFileId && !exportBusy && (
-                      <a href={downloadUrl(docxFileId)}>
-                        <Download size={12} /> {docxFilename ?? "reporte.docx"}
-                      </a>
-                    )}
-                    {saveStatus && (
-                      <span className={saveStatus.startsWith("[") ? "is-error" : "is-ok"}>
-                        {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
-                        {saveStatus}
+                  <div className="pulso-gv2-export-menu-actions">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        onExportPpt();
+                      }}
+                      disabled={!canExportFinal || exportBusy}
+                    >
+                      <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
+                        {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
                       </span>
-                    )}
+                      <span>
+                        <strong>PowerPoint</strong>
+                        <small>PPTX editable</small>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        onExportWord();
+                      }}
+                      disabled={!canExportFinal || exportBusy}
+                    >
+                      <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
+                        {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                      </span>
+                      <span>
+                        <strong>Word</strong>
+                        <small>DOCX narrativo</small>
+                      </span>
+                    </button>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+
+                  {(pptFileId || docxFileId || saveStatus) && (
+                    <div className="pulso-gv2-export-menu-files">
+                      {pptFileId && !exportBusy && (
+                        <a href={downloadUrl(pptFileId)}>
+                          <Download size={12} /> {pptFilename ?? "reporte.pptx"}
+                        </a>
+                      )}
+                      {docxFileId && !exportBusy && (
+                        <a href={downloadUrl(docxFileId)}>
+                          <Download size={12} /> {docxFilename ?? "reporte.docx"}
+                        </a>
+                      )}
+                      {saveStatus && (
+                        <span className={saveStatus.startsWith("[") ? "is-error" : "is-ok"}>
+                          {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
+                          {saveStatus}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             type="button"

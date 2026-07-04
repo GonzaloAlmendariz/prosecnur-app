@@ -29841,6 +29841,35 @@
   }
 }
 
+/* Suite polish pass 75: blocked graph workflow turns the toolbar into guidance. */
+.pulso-graficos-frame .pulso-gv2-command-header.is-prep-blocked {
+  --gv2-command-cell-hover: color-mix(in srgb, var(--pulso-module-processing-soft) 42%, #ffffff);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header.is-prep-blocked .pulso-gv2-command-spacer {
+  flex-basis: clamp(10px, 3vw, 44px);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header.is-prep-blocked .pulso-gv2-undo-redo,
+.pulso-graficos-frame .pulso-gv2-command-header.is-prep-blocked .pulso-gv2-toolbar-reset:disabled {
+  display: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-prepare-trigger {
+  min-width: 104px;
+  text-decoration: none;
+}
+
+.pulso-graficos-frame .pulso-gv2-prepare-trigger > svg {
+  color: currentColor;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified a.pulso-gv2-prepare-trigger > svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.15;
+}
+
 .pulso-gv2-slide-card-models {
   max-height: none;
   min-height: 22px;

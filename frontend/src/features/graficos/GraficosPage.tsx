@@ -131,6 +131,7 @@ export default function GraficosPage() {
             exportBusy={!!busyValidating || !!exportJob}
             exportJobKind={exportJob?.kind ?? null}
             canExport={canExport}
+            prepReady={prepOk}
           />
 
           {exportJob && (
