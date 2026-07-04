@@ -58,6 +58,7 @@ export type TerritorialSourceConsoleProps = {
   busy?: boolean;
   onStateChange: (state: MonitoreoState) => void;
   onReload: () => void;
+  onSyncKobo?: () => Promise<void> | void;
   onError?: (message: string) => void;
 };
 
@@ -304,6 +305,7 @@ export function TerritorialSourceConsole({
   state,
   onError,
   onReload,
+  onSyncKobo,
   onStateChange,
 }: TerritorialSourceConsoleProps) {
   const config = state?.config;
@@ -511,6 +513,11 @@ export function TerritorialSourceConsole({
     setSaving(true);
     setMessage("");
     try {
+      if (onSyncKobo) {
+        await Promise.resolve(onSyncKobo());
+        setMessage(`Actualización ${phaseLabel(phase)} en cola.`);
+        return;
+      }
       const result = await apiMonitoreoSync(config, [koboSource.id]);
       setSyncJobId(result.job_id);
       syncJobReloadedRef.current = "";
@@ -523,7 +530,7 @@ export function TerritorialSourceConsole({
     } finally {
       setSaving(false);
     }
-  }, [config, koboSource?.id, notifyError, onReload]);
+  }, [config, koboSource?.id, notifyError, onReload, onSyncKobo, phase]);
 
   const toggleBatchRecommendation = useCallback((clientId: string) => {
     setSelectedBatchIds((current) => {
@@ -846,6 +853,57 @@ export function TerritorialSourceConsole({
   const syncProgressPercent = jobProgressPercent(syncJob);
   const batchCodeCount = batchRecommendations.filter((item) => item.kind === "code").length;
   const batchUmpCount = batchRecommendations.filter((item) => item.kind === "ump").length;
+  const hasBatchRecommendations = batchRecommendations.length > 0;
+  const batchStatusTitle = selectedBatchRecommendations.length
+    ? `${fmt(selectedBatchRecommendations.length)} seleccionadas`
+    : hasBatchRecommendations
+      ? `${fmt(batchRecommendations.length)} sugerencias listas`
+      : "Sin lote automático";
+  const batchStatusDetail = batchMessage || (selectedBatchRecommendations.length
+    ? "Revisa la selección antes de aplicar el lote canónico."
+    : hasBatchRecommendations
+      ? "Selecciona sugerencias individuales o aplica todo el lote seguro."
+      : "No hay sugerencias automáticas seguras; las filas visibles quedan como revisión manual.");
+  const codeBatchIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    batchRecommendations.forEach((item) => {
+      if (item.kind !== "code") return;
+      const reconciliation = item.reconciliation;
+      const responseScoped = Boolean(reconciliation.response_id) || String(reconciliation.scope ?? "").trim() === "response";
+      const keys = [
+        reconciliation.response_id ? `response:${reconciliation.response_id}` : "",
+        ...(!responseScoped ? [
+          reconciliation.raw_code ? `raw:${reconciliation.raw_code}` : "",
+          reconciliation.normalized_code ? `normalized:${reconciliation.normalized_code}` : "",
+        ] : []),
+      ];
+      keys.forEach((key) => {
+        if (key && !index.has(key)) index.set(key, item.client_id);
+      });
+    });
+    return index;
+  }, [batchRecommendations]);
+  const umpBatchIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    batchRecommendations.forEach((item) => {
+      if (item.kind !== "ump") return;
+      const reconciliation = item.reconciliation;
+      const responseScoped = Boolean(reconciliation.response_id) || String(reconciliation.scope ?? "").trim() === "response";
+      const keys = [
+        reconciliation.response_id ? `response:${reconciliation.response_id}` : "",
+        ...(!responseScoped ? [
+          reconciliation.raw_ump ? `raw:${reconciliation.raw_ump}` : "",
+          reconciliation.assigned_ump ? `assigned:${reconciliation.assigned_ump}` : "",
+          reconciliation.assigned_block_id ? `block:${reconciliation.assigned_block_id}` : "",
+          reconciliation.raw_ump && reconciliation.assigned_ump ? `pair:${reconciliation.raw_ump}->${reconciliation.assigned_ump}` : "",
+        ] : []),
+      ];
+      keys.forEach((key) => {
+        if (key && !index.has(key)) index.set(key, item.client_id);
+      });
+    });
+    return index;
+  }, [batchRecommendations]);
 
   return (
     <div className={`mon-territorial-source-console is-tab-${activeTab}`} data-source-tab={activeTab}>
@@ -1361,31 +1419,38 @@ export function TerritorialSourceConsole({
           <section className="mon-territorial-source-card mon-territorial-reconciliation-console" aria-label="Reconciliación UMP y Código Pulso">
             <header>
               <span><Link2 size={14} /> Lote de reconciliación</span>
-              <strong>{selectedBatchRecommendations.length ? `${fmt(selectedBatchRecommendations.length)} seleccionadas` : "Sin cambios pendientes"}</strong>
+              <strong>{batchStatusTitle}</strong>
             </header>
-            <div className={`mon-territorial-reconciliation-batchbar ${selectedBatchRecommendations.length ? "is-active" : ""}`} aria-label="Aplicación por lote de reconciliación">
+            <div className={`mon-territorial-reconciliation-batchbar ${selectedBatchRecommendations.length ? "is-active" : ""}${hasBatchRecommendations ? "" : " is-empty"}`} aria-label="Aplicación por lote de reconciliación">
               <div className="mon-territorial-reconciliation-batchcopy">
                 <span><Link2 size={13} /> Lote canónico</span>
-                <strong>{selectedBatchRecommendations.length ? `${fmt(selectedBatchRecommendations.length)} seleccionadas` : "Selecciona sugerencias para aplicar"}</strong>
-                <em>{batchMessage || "Aplica Código Pulso y UMP con el endpoint de lote existente."}</em>
+                <strong>{batchStatusTitle}</strong>
+                <em>{batchStatusDetail}</em>
               </div>
               <div className="mon-territorial-reconciliation-batchrail">
                 <div className="mon-territorial-reconciliation-batchcounts">
                   <span><strong>{fmt(batchCodeCount)}</strong><em>código</em></span>
                   <span><strong>{fmt(batchUmpCount)}</strong><em>UMP</em></span>
                 </div>
-                <div className="mon-territorial-reconciliation-batchactions">
-                  <button type="button" onClick={selectAllBatchRecommendations} disabled={saving || busy || batchApplying || !batchRecommendations.length}>
-                    Todas
-                  </button>
-                  <button type="button" onClick={clearBatchRecommendations} disabled={saving || busy || batchApplying || !selectedBatchRecommendations.length}>
-                    Limpiar
-                  </button>
-                  <button type="button" className="is-primary" onClick={() => { void applyBatchReconciliation(); }} disabled={saving || busy || batchApplying || !selectedBatchRecommendations.length}>
-                    {batchApplying ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                    <span>Aplicar</span>
-                  </button>
-                </div>
+                {hasBatchRecommendations ? (
+                  <div className="mon-territorial-reconciliation-batchactions">
+                    <button type="button" onClick={selectAllBatchRecommendations} disabled={saving || busy || batchApplying || !batchRecommendations.length}>
+                      Todas
+                    </button>
+                    <button type="button" onClick={clearBatchRecommendations} disabled={saving || busy || batchApplying || !selectedBatchRecommendations.length}>
+                      Limpiar
+                    </button>
+                    <button type="button" className="is-primary" onClick={() => { void applyBatchReconciliation(); }} disabled={saving || busy || batchApplying || !selectedBatchRecommendations.length}>
+                      {batchApplying ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                      <span>Aplicar</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mon-territorial-reconciliation-batchstate">
+                    <CheckCircle2 size={13} />
+                    <span>Revisión manual</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1404,14 +1469,41 @@ export function TerritorialSourceConsole({
                   <span><strong>{fmt(codeSummary?.missing_response_count ?? 0)}</strong><em>sin código</em></span>
                 </div>
                 <div className="mon-territorial-reconciliation-list">
-                  {codeReviewRows.length ? codeReviewRows.map((row, index) => (
-                    <article key={`${row.response_id || index}-${row.raw_code || row.normalized_code || row.code}`} className={row.reconciled || row.assigned_code ? "is-ready" : "is-warning"}>
-                      <span>{row.reconciled || row.assigned_code ? "Asignada" : "Por revisar"}</span>
-                      <strong>{row.raw_code || row.normalized_code || row.code || "S/D"}</strong>
-                      <em>{row.ump || "UMP S/D"} · {row.district || "Distrito S/D"}</em>
-                      <small>{row.assigned_code ? `${row.assigned_code} · ${row.assigned_name || "asignada"}` : "Sin asignación guardada"}</small>
-                    </article>
-                  )) : (
+                  {codeReviewRows.length ? codeReviewRows.map((row, index) => {
+                    const recommendationId = codeBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
+                      ?? codeBatchIndex.get(row.raw_code ? `raw:${row.raw_code}` : "")
+                      ?? codeBatchIndex.get(row.normalized_code ? `normalized:${row.normalized_code}` : "")
+                      ?? codeBatchIndex.get(row.code ? `normalized:${row.code}` : "");
+                    const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
+                    const tone = row.reconciled || row.assigned_code ? "ready" : "warning";
+                    const rowKey = `${row.response_id || index}-${row.raw_code || row.normalized_code || row.code}`;
+                    const rowContent = (
+                      <>
+                        <span>{isSelected ? "Seleccionada" : recommendationId ? "Sugerida" : row.reconciled || row.assigned_code ? "Asignada" : "Por revisar"}</span>
+                        <strong>{row.raw_code || row.normalized_code || row.code || "S/D"}</strong>
+                        <em>{row.ump || "UMP S/D"} · {row.district || "Distrito S/D"}</em>
+                        <small>{row.assigned_code ? `${row.assigned_code} · ${row.assigned_name || "asignada"}` : recommendationId ? "Lista para lote canónico" : "Sin asignación guardada"}</small>
+                      </>
+                    );
+                    if (!recommendationId) {
+                      return (
+                        <article key={rowKey} className={`is-${tone}`}>
+                          {rowContent}
+                        </article>
+                      );
+                    }
+                    return (
+                    <button
+                      key={rowKey}
+                      type="button"
+                      className={`mon-territorial-reconciliation-row is-${tone}${recommendationId ? " is-recommended" : ""}${isSelected ? " is-selected" : ""}`}
+                      onClick={() => { if (recommendationId) toggleBatchRecommendation(recommendationId); }}
+                      disabled={saving || busy || batchApplying}
+                    >
+                      {rowContent}
+                    </button>
+                    );
+                  }) : (
                     <div className="mon-territorial-source-empty">Sin códigos pendientes.</div>
                   )}
                 </div>
@@ -1430,14 +1522,44 @@ export function TerritorialSourceConsole({
                   <span><strong>{fmt(umpSummary?.metrics?.responses_without_ump ?? 0)}</strong><em>sin UMP</em></span>
                 </div>
                 <div className="mon-territorial-reconciliation-list">
-                  {umpReviewRows.length ? umpReviewRows.map((row, index) => (
-                    <article key={`${row.raw_ump || index}-${row.response_id || row.status}`} className={`is-${declaredUmpStatusTone(row.status)}`}>
-                      <span>{declaredUmpStatusLabel(row.status)}</span>
-                      <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
-                      <em>{row.assigned_ump || row.route_blocks?.[0]?.route_ump || "Sin ruta asignada"} · {row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D"}</em>
-                      <small>{fmt(row.response_count)} respuestas · {row.responsible || row.assigned_responsible || row.route_blocks?.[0]?.responsable || "Sin responsable"}</small>
-                    </article>
-                  )) : (
+                  {umpReviewRows.length ? umpReviewRows.map((row, index) => {
+                    const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
+                    const recommendationId = umpBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
+                      ?? umpBatchIndex.get(row.raw_ump ? `raw:${row.raw_ump}` : "")
+                      ?? umpBatchIndex.get(row.normalized_ump ? `raw:${row.normalized_ump}` : "")
+                      ?? umpBatchIndex.get(assignedUmp ? `assigned:${assignedUmp}` : "")
+                      ?? umpBatchIndex.get(row.assigned_block_id ? `block:${row.assigned_block_id}` : "")
+                      ?? umpBatchIndex.get(row.raw_ump && assignedUmp ? `pair:${row.raw_ump}->${assignedUmp}` : "");
+                    const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
+                    const tone = declaredUmpStatusTone(row.status);
+                    const rowKey = `${row.raw_ump || index}-${row.response_id || row.status}`;
+                    const rowContent = (
+                      <>
+                        <span>{isSelected ? "Seleccionada" : recommendationId ? "Sugerida" : declaredUmpStatusLabel(row.status)}</span>
+                        <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
+                        <em>{assignedUmp || "Sin ruta asignada"} · {row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D"}</em>
+                        <small>{fmt(row.response_count)} respuestas · {recommendationId ? "lista para lote" : row.responsible || row.assigned_responsible || row.route_blocks?.[0]?.responsable || "Sin responsable"}</small>
+                      </>
+                    );
+                    if (!recommendationId) {
+                      return (
+                        <article key={rowKey} className={`is-${tone}`}>
+                          {rowContent}
+                        </article>
+                      );
+                    }
+                    return (
+                    <button
+                      key={rowKey}
+                      type="button"
+                      className={`mon-territorial-reconciliation-row is-${tone}${recommendationId ? " is-recommended" : ""}${isSelected ? " is-selected" : ""}`}
+                      onClick={() => { if (recommendationId) toggleBatchRecommendation(recommendationId); }}
+                      disabled={saving || busy || batchApplying}
+                    >
+                      {rowContent}
+                    </button>
+                    );
+                  }) : (
                     <div className="mon-territorial-source-empty">Sin UMP pendientes.</div>
                   )}
                 </div>
