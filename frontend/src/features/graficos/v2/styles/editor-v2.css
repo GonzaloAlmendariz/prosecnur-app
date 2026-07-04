@@ -31288,3 +31288,498 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 7px 14px color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 18%, transparent) !important;
 }
+
+/* Suite polish pass 85: space distribution editor as a calmer design surface. */
+.pulso-gv2-arg-body-intro:has(.pulso-gv2-layout-panel) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pulso-gv2-layout-panel {
+  --layout-ink: #172033;
+  --layout-muted: #667085;
+  --layout-line: rgba(20, 35, 58, 0.12);
+  --layout-workspace: #f8fafc;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--layout-line);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 251, 253, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 28px rgba(15, 23, 42, 0.055);
+  overflow: visible;
+}
+
+.pulso-gv2-layout-panel::before {
+  display: none;
+}
+
+.pulso-gv2-layout-head {
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 0 1px;
+}
+
+.pulso-gv2-layout-head-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-primary-soft) 22%, #ffffff));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  color: color-mix(in srgb, var(--pulso-primary) 82%, #061a3d);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 4px 10px rgba(7, 26, 61, 0.055);
+}
+
+.pulso-gv2-layout-head-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.45;
+}
+
+.pulso-gv2-layout-head-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pulso-gv2-layout-eyebrow {
+  color: color-mix(in srgb, var(--pulso-primary) 76%, var(--layout-muted));
+  font-size: 9px !important;
+  font-weight: 820;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-layout-head-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--layout-ink);
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-layout-head-copy > span:not(.pulso-gv2-layout-eyebrow) {
+  color: var(--layout-muted);
+  font-size: 10.5px !important;
+  font-weight: 610;
+  line-height: 1.22;
+}
+
+.pulso-gv2-layout-state-card {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  align-self: center;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 16%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 32%, #ffffff);
+  box-shadow: none;
+}
+
+.pulso-gv2-layout-panel[data-source-state="mode"] .pulso-gv2-layout-state-card {
+  border-color: color-mix(in srgb, #7c3aed 22%, var(--pulso-border));
+  background: color-mix(in srgb, #ede9fe 48%, #ffffff);
+}
+
+.pulso-gv2-layout-panel[data-source-state="manual"] .pulso-gv2-layout-state-card {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 72%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 54%, #ffffff);
+}
+
+.pulso-gv2-layout-state-card span,
+.pulso-gv2-layout-state-card strong {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-gv2-layout-state-card span {
+  color: var(--layout-muted);
+  font-size: 8.5px;
+  font-weight: 760;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-layout-state-card strong {
+  color: color-mix(in srgb, var(--pulso-primary) 76%, var(--layout-ink));
+  font-size: 10.5px;
+  font-weight: 830;
+  letter-spacing: 0;
+}
+
+.pulso-gv2-layout-state-card small,
+.pulso-gv2-layout-role-strip {
+  display: none;
+}
+
+.pulso-gv2-layout-canvas {
+  min-height: clamp(350px, 35vh, 500px);
+  padding: 10px;
+  border: 1px solid rgba(20, 35, 58, 0.12);
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.88)),
+    radial-gradient(circle, rgba(20, 35, 58, 0.055) 1px, transparent 1.2px);
+  background-size: auto, 22px 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58),
+    0 1px 2px rgba(15, 23, 42, 0.035);
+}
+
+.pulso-gv2-layout-canvas::before {
+  display: none;
+}
+
+.pulso-gv2-layout-canvas::after {
+  top: 8px;
+  right: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: color-mix(in srgb, var(--pulso-primary) 76%, var(--layout-ink));
+  font-size: 8.8px;
+  font-weight: 820;
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-gv2-layout-bars-grid,
+.pulso-gv2-layout-column {
+  overflow: hidden;
+  border: 1px solid rgba(20, 35, 58, 0.12);
+  border-radius: 11px;
+  background: #ffffff;
+}
+
+.pulso-gv2-layout-row,
+.pulso-gv2-layout-radar-grid,
+.pulso-gv2-layout-bars-band {
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-gv2-layout-frame {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px;
+  border-color: color-mix(in srgb, var(--layout-accent) 36%, rgba(20, 35, 58, 0.13));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.72)),
+    var(--layout-tint);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.pulso-gv2-layout-frame:hover,
+.pulso-gv2-layout-frame:focus-within {
+  z-index: 6;
+  border-color: color-mix(in srgb, var(--layout-accent) 56%, rgba(20, 35, 58, 0.12));
+  background:
+    linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.84)),
+    var(--layout-tint);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 0 0 3px color-mix(in srgb, var(--layout-accent) 8%, transparent);
+  transform: none;
+}
+
+.pulso-gv2-layout-frame::before,
+.pulso-gv2-layout-frame::after {
+  display: none;
+}
+
+.pulso-gv2-layout-frame > span {
+  max-width: calc(100% - 10px);
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--layout-accent) 18%, rgba(20, 35, 58, 0.08));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: color-mix(in srgb, var(--layout-accent) 68%, var(--layout-ink));
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.pulso-gv2-layout-frame[data-role="gap"] {
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.78), rgba(241, 245, 249, 0.68)),
+    repeating-linear-gradient(
+      135deg,
+      rgba(100, 116, 139, 0.07),
+      rgba(100, 116, 139, 0.07) 3px,
+      rgba(255, 255, 255, 0.52) 3px,
+      rgba(255, 255, 255, 0.52) 8px
+    );
+}
+
+.pulso-gv2-layout-frame[data-role="gap"] > span {
+  max-width: 100%;
+  padding-inline: 5px;
+  color: #6f7a89;
+  font-size: 9px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric {
+  width: min(100%, 118px);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(20, 35, 58, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell {
+  min-width: 0;
+  min-height: 27px;
+  display: grid;
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: 1px;
+  padding: 3px 5px;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-cell + .pulso-gv2-layout-metric-cell {
+  border-left: 1px solid rgba(20, 35, 58, 0.08);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric em {
+  color: var(--layout-muted);
+  font-size: 6.6px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric b,
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
+  color: var(--layout-ink);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input {
+  width: 100%;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  box-shadow: none;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric input:focus {
+  border: 0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--layout-accent) 14%, transparent);
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric-bar,
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric-tier {
+  display: none !important;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric[data-share-tier="compact"] {
+  width: min(100%, 54px);
+  grid-template-columns: 1fr;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric[data-share-tier="compact"] .pulso-gv2-layout-metric-cell.is-value {
+  display: none;
+}
+
+.pulso-gv2-layout-frame.is-compact > span,
+.pulso-gv2-layout-frame.is-compact .pulso-gv2-layout-metric {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pulso-gv2-layout-zero {
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  opacity: 0.42;
+}
+
+.pulso-gv2-layout-frame:hover .pulso-gv2-layout-zero,
+.pulso-gv2-layout-frame:focus-within .pulso-gv2-layout-zero {
+  opacity: 0.9;
+}
+
+.pulso-gv2-layout-handle::before {
+  background: color-mix(in srgb, var(--pulso-primary) 80%, #061a3d);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.92),
+    0 1px 3px rgba(15, 23, 42, 0.18);
+}
+
+.pulso-gv2-layout-handle.is-x::before {
+  width: 2px;
+  height: min(22px, 32%);
+}
+
+.pulso-gv2-layout-handle.is-y::before {
+  width: min(34px, 24%);
+  height: 2px;
+}
+
+.pulso-gv2-layout-measure-board {
+  border: 1px solid rgba(20, 35, 58, 0.11);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.pulso-gv2-layout-measure-board summary {
+  min-height: 31px;
+  padding: 5px 8px;
+}
+
+.pulso-gv2-layout-measure-board summary strong {
+  color: var(--layout-ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pulso-gv2-layout-measure-board summary small {
+  color: var(--layout-muted);
+  font-size: 9px;
+  font-weight: 740;
+}
+
+.pulso-gv2-layout-measure-grid {
+  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
+  gap: 7px;
+  padding: 0 8px 8px;
+}
+
+.pulso-gv2-layout-measure-cell {
+  grid-template-columns: minmax(0, 1fr) 78px;
+  gap: 6px;
+  padding: 7px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--measure-color) 4%, #ffffff);
+}
+
+.pulso-gv2-layout-measure-copy strong {
+  font-size: 10.2px;
+  line-height: 1.12;
+}
+
+.pulso-gv2-layout-measure-copy small {
+  font-size: 8.8px;
+  line-height: 1.16;
+}
+
+.pulso-gv2-layout-measure-input input {
+  min-height: 27px;
+  border-radius: 8px;
+  font-size: 11.2px;
+}
+
+.pulso-gv2-layout-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 5px 6px 0;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-gv2-layout-source-legend {
+  gap: 5px;
+}
+
+.pulso-gv2-layout-source-legend span {
+  min-height: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--layout-muted);
+  font-size: 8.8px;
+  font-weight: 760;
+}
+
+.pulso-gv2-layout-reset {
+  min-height: 25px !important;
+  padding-inline: 8px !important;
+  border-radius: 999px !important;
+  font-size: 10.5px !important;
+}
+
+.pulso-gv2-layout-canvas::after {
+  display: none !important;
+}
+
+.pulso-gv2-layout-frame .pulso-gv2-layout-metric > .pulso-gv2-layout-metric-tier {
+  display: none !important;
+}
+
+.pulso-gv2-layout-zero {
+  opacity: 0;
+}
+
+.pulso-gv2-layout-frame:hover .pulso-gv2-layout-zero,
+.pulso-gv2-layout-frame:focus-within .pulso-gv2-layout-zero,
+.pulso-gv2-layout-zero:focus-visible {
+  opacity: 0.86;
+}
+
+@media (max-width: 1100px) {
+  .pulso-gv2-layout-head {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-layout-state-card {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
