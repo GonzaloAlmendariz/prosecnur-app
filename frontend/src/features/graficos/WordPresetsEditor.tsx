@@ -123,12 +123,12 @@ export function WordPresetsEditor() {
           <strong>Biblioteca visual Word</strong>
           <span>
             {editablePresets.length} tipos · {wordTunedCount === 0
-              ? "usa la base PPT"
-              : `${wordTunedCount} con ajuste Word`}
+              ? "todos heredan PPT"
+              : `${wordTunedCount} con ajustes Word`}
           </span>
         </span>
         <span className={`pulso-gv2-word-overview-current ${hasSelectedChanges ? "is-custom" : "is-inherited"}`}>
-          {hasSelectedChanges ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"}` : "Base PPT"}
+          {hasSelectedChanges ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"} Word` : "Hereda PPT"}
         </span>
       </div>
 
@@ -177,7 +177,7 @@ export function WordPresetsEditor() {
                   {p.titulo_humano}
                 </span>
                 <span className={`pulso-gv2-word-preset-state ${modified ? "is-custom" : "is-inherited"}`}>
-                  {modified ? "Word" : "PPT"}
+                  {modified ? "Word" : "Hereda"}
                 </span>
               </button>
             );
@@ -205,7 +205,7 @@ export function WordPresetsEditor() {
                 )}
               </div>
               <p>
-                Hereda la base PPT. Cambia solo lo que necesite una lectura distinta en el reporte Word.
+                Parte del valor por defecto del PPT y guarda solo las diferencias necesarias para una lectura cómoda en Word.
               </p>
             </div>
             {hasSelectedChanges && (
@@ -222,6 +222,7 @@ export function WordPresetsEditor() {
 
           <WordSourceRail
             metaName={meta.name}
+            metaLabel={meta.titulo_humano}
             editableArgCount={meta.args.length}
             selectedPatchCount={selectedPatchCount}
             hasChanges={hasSelectedChanges}
@@ -255,11 +256,13 @@ export function WordPresetsEditor() {
 
 function WordSourceRail({
   metaName,
+  metaLabel,
   editableArgCount,
   selectedPatchCount,
   hasChanges,
 }: {
   metaName: string;
+  metaLabel: string;
   editableArgCount: number;
   selectedPatchCount: number;
   hasChanges: boolean;
@@ -269,22 +272,22 @@ function WordSourceRail({
     <div className="pulso-gv2-word-source-rail" aria-label="Origen de valores del preset Word">
       <span className="is-ppt">
         <CheckCircle2 size={12} />
-        <strong>Base PPT</strong>
-        <b>heredada</b>
+        <strong>Valor por defecto</strong>
+        <b>PPT heredado</b>
       </span>
       <span className={hasChanges ? "is-word" : "is-inherited"}>
         <Circle size={8} fill={hasChanges ? "currentColor" : "transparent"} />
-        <strong>{hasChanges ? "Diferencia Word" : "Sin diferencia Word"}</strong>
+        <strong>{hasChanges ? "Ajustes Word" : "Sin ajustes extra"}</strong>
         <b>
           {hasChanges
             ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"}`
             : `${inheritedCount} heredado${inheritedCount === 1 ? "" : "s"}`}
         </b>
       </span>
-      <span className="is-model">
+      <span className="is-model" title={`Tipo interno: ${metaName}`}>
         <SlidersHorizontal size={12} />
-        <strong>Tipo</strong>
-        <code>{metaName}</code>
+        <strong>Tipo de gráfico</strong>
+        <b>{metaLabel}</b>
       </span>
     </div>
   );

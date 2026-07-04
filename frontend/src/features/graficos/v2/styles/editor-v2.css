@@ -23584,21 +23584,23 @@
 
 .pulso-gv2-word-source-rail span {
   min-width: 0;
-  min-height: 42px;
+  min-height: 46px;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 7px;
-  padding: 7px 9px;
-  border: 1px solid var(--pulso-border);
+  column-gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #ffffff);
   border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(249, 251, 253, 0.88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .pulso-gv2-word-source-rail svg {
   grid-row: 1 / span 2;
+  justify-self: center;
 }
 
 .pulso-gv2-word-source-rail strong,
@@ -23612,16 +23614,15 @@
 
 .pulso-gv2-word-source-rail strong {
   color: var(--pulso-text);
-  font-size: 9.4px;
-  font-weight: 850;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 10.6px;
+  font-weight: 820;
+  line-height: 1.08;
 }
 
 .pulso-gv2-word-source-rail b,
 .pulso-gv2-word-source-rail code {
   color: var(--pulso-text-soft);
-  font-size: 10.4px;
+  font-size: 10.2px;
   font-weight: 720;
   line-height: 1.15;
 }
@@ -23634,20 +23635,30 @@
   border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 48%, var(--pulso-border));
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 40%, #ffffff), rgba(255, 255, 255, 0.9));
+  color: var(--gv2-accent, var(--pulso-primary));
 }
 
 .pulso-gv2-word-source-rail .is-word {
   border-color: color-mix(in srgb, var(--pulso-success-border) 74%, var(--pulso-border));
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-success-bg) 72%, #ffffff), rgba(255, 255, 255, 0.9));
+  color: var(--pulso-success-fg);
+}
+
+.pulso-gv2-word-source-rail .is-inherited {
+  border-color: color-mix(in srgb, var(--pulso-border) 76%, var(--gv2-accent-border, var(--pulso-primary-border)));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-surface-2) 76%, #ffffff));
+  color: var(--pulso-text-soft);
 }
 
 .pulso-gv2-word-source-rail .is-model {
   border-color: color-mix(in srgb, #bfdbfe 72%, var(--pulso-border));
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 84%, var(--pulso-text));
 }
 
 .pulso-gv2-word-preset-state {
-  min-width: 40px;
+  min-width: 52px;
   justify-self: end;
   display: inline-flex;
   align-items: center;

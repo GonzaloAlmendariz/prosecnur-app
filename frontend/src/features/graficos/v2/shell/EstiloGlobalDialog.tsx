@@ -68,7 +68,7 @@ const STYLE_FLOW: Array<{
 }> = [
   { key: "base", label: "Valor por defecto", detail: "No marca cambios" },
   { key: "mode", label: "Estilo guardado", detail: "Reusable" },
-  { key: "manual", label: "Ajuste adicional", detail: "Solo el gráfico activo" },
+  { key: "manual", label: "Ajustes adicionales", detail: "Solo el gráfico activo" },
 ];
 
 export type EstiloGlobalDialogProps = {
