@@ -7807,6 +7807,42 @@ h1.pulso-page-title {
 .pulso-carga-view-tabs button.is-active .pulso-carga-tab-label {
   max-width: 126px;
 }
+.pulso-carga-view-tabs {
+  border-color: color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 58%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 250, 0.72)),
+    color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 24%, var(--pulso-surface-2));
+}
+.pulso-carga-view-tab {
+  --carga-view-state: var(--pulso-info);
+}
+.pulso-carga-view-tab.is-ready {
+  --carga-view-state: var(--pulso-success);
+}
+.pulso-carga-view-tab.is-pending {
+  --carga-view-state: var(--pulso-text-faint);
+}
+.pulso-carga-view-tab-state {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-end: 5px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #fff;
+  border-radius: 999px;
+  background: var(--carga-view-state);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--carga-view-state) 36%, transparent);
+  opacity: 0.92;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease;
+}
+.pulso-carga-view-tab:hover:not(:disabled) .pulso-carga-view-tab-state,
+.pulso-carga-view-tab:focus-visible .pulso-carga-view-tab-state,
+.pulso-carga-view-tab.is-active .pulso-carga-view-tab-state {
+  opacity: 1;
+  transform: scale(1.08);
+}
 .pulso-carga-source-switch button:hover:not(.is-active):not(:disabled) {
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text);
