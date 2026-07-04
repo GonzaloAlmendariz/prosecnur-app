@@ -23170,7 +23170,7 @@
 .mon-operational-decision-facts {
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 0.84fr) minmax(0, 1.38fr) minmax(0, 1.14fr);
   gap: 7px;
 }
 
@@ -23201,6 +23201,11 @@
   background: var(--op-pending-soft);
 }
 
+.mon-operational-decision-facts span.is-cell,
+.mon-operational-decision-facts span.is-activity {
+  align-content: start;
+}
+
 .mon-operational-decision-facts strong {
   color: var(--pulso-text);
   font-size: 0.86rem;
@@ -23218,6 +23223,17 @@
 
 .mon-operational-decision-facts span.is-pending strong {
   color: var(--pulso-warn-fg);
+}
+
+.mon-operational-decision-facts span.is-cell strong,
+.mon-operational-decision-facts span.is-activity strong {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .mon-operational-guardrails {
@@ -23853,12 +23869,12 @@
   }
 
   .mon-operational-decision-facts {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(86px, 0.82fr) minmax(82px, 0.76fr) minmax(136px, 1.3fr) minmax(112px, 1.08fr);
     gap: 6px;
   }
 
   .mon-operational-decision-facts span {
-    min-height: 32px;
+    min-height: 38px;
     border-radius: 10px;
     padding: 5px 7px;
   }
@@ -23877,12 +23893,27 @@
     padding: 7px 9px;
   }
 
+  .mon-operational-adjustments__detail dl div:first-child,
+  .mon-operational-adjustments__detail dl div.is-priority {
+    grid-column: 1 / -1;
+  }
+
   .mon-operational-adjustments__detail dt {
     font-size: 0.58rem;
   }
 
   .mon-operational-adjustments__detail dd {
     font-size: 0.76rem;
+  }
+
+  .mon-operational-adjustments__detail dl div:first-child dd,
+  .mon-operational-adjustments__detail dl div.is-priority dd {
+    display: -webkit-box;
+    overflow: hidden;
+    line-height: 1.12;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .mon-operational-suggestion {
