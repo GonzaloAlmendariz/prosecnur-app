@@ -27568,3 +27568,44 @@
   min-width: 16px;
   padding-inline: 4px;
 }
+
+/* Suite polish pass 58: exact preview uses the editor lane without covering the timeline. */
+@keyframes pulso-slide-preview-workspace-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulso-slide-preview-workspace-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.985); }
+}
+
+.pulso-slide-preview-bubble {
+  left: clamp(320px, 23vw, 420px);
+  right: 20px;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  transform: translateY(-8px) scale(0.985);
+  transform-origin: top right;
+  animation: pulso-slide-preview-workspace-out var(--motion-dur-fast) ease both;
+}
+
+.pulso-slide-preview-bubble.is-open {
+  animation: pulso-slide-preview-workspace-in var(--motion-dur-fast) ease both;
+}
+
+.pulso-slide-preview-bubble.is-closing {
+  animation: pulso-slide-preview-workspace-out var(--motion-dur-fast) ease both;
+}
+
+.pulso-slide-preview-bubble-inner {
+  max-width: 100%;
+}
+
+@media (max-width: 980px) {
+  .pulso-slide-preview-bubble {
+    left: 14px;
+    right: 14px;
+  }
+}
