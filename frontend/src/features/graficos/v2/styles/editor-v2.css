@@ -29106,6 +29106,61 @@
   min-width: 0;
 }
 
+/* Suite polish pass 68: keep the constructor state legible in the unified toolbar. */
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-status {
+  width: auto !important;
+  min-width: 112px !important;
+  flex: 0 0 auto !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  padding: 3px 9px 3px 5px !important;
+  overflow: visible !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy {
+  min-width: 0;
+  display: grid !important;
+  gap: 1px;
+  line-height: 1;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy strong,
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy strong {
+  color: var(--pulso-text);
+  font-size: 10.6px;
+  font-weight: 820;
+  letter-spacing: 0;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy span {
+  max-width: 76px;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 720;
+  letter-spacing: 0;
+}
+
+@media (max-width: 1180px) {
+  .pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-status {
+    width: var(--gv2-command-control-h) !important;
+    min-width: var(--gv2-command-control-h) !important;
+    flex-basis: var(--gv2-command-control-h) !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy {
+    display: none !important;
+  }
+}
+
 .pulso-graficos-frame .pulso-gv2-command-row--unified {
   white-space: nowrap;
 }
