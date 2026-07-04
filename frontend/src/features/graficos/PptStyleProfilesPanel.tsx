@@ -30,6 +30,7 @@ export function PptStyleProfilesPanel() {
   if (!profiles.length) return null;
 
   const appliedProfile = profiles.find((profile) => profile.name === applied) ?? null;
+  const appliedProfileTitle = appliedProfile ? profileDisplayTitle(appliedProfile) : "";
 
   return (
     <section className="pulso-gv2-ppt-style-panel" aria-label="Líneas visuales de presentación">
@@ -42,7 +43,7 @@ export function PptStyleProfilesPanel() {
         <span className={`pulso-gv2-ppt-style-session ${appliedProfile ? "is-applied" : "is-base"}`}>
           {appliedProfile ? <Check size={12} /> : <Layers3 size={12} />}
           <span>
-            <strong>{appliedProfile ? appliedProfile.titulo_humano : "Valor por defecto"}</strong>
+            <strong>{appliedProfile ? appliedProfileTitle : "Valor por defecto"}</strong>
             <small>{appliedProfile ? "Aplicada en esta sesión" : "Sin línea aplicada"}</small>
           </span>
         </span>
@@ -54,13 +55,15 @@ export function PptStyleProfilesPanel() {
           const isApplied = applied === profile.name;
           const impact = profileImpactLabel(profile);
           const colorCount = profile.preview_colors?.length ?? 0;
+          const displayTitle = profileDisplayTitle(profile);
+          const displayDescription = profileDisplayDescription(profile);
           return (
             <article className={`pulso-gv2-ppt-style-card ${isApplied ? "is-applied" : ""}`} key={profile.name}>
               <div className="pulso-gv2-ppt-style-card-head">
                 <span className="pulso-gv2-ppt-style-card-icon"><Icon size={15} /></span>
                 <div>
-                  <strong>{profile.titulo_humano}</strong>
-                  <span>{profile.descripcion}</span>
+                  <strong>{displayTitle}</strong>
+                  <span>{displayDescription}</span>
                 </div>
               </div>
 
@@ -83,7 +86,7 @@ export function PptStyleProfilesPanel() {
                 type="button"
                 className={isApplied ? "is-applied" : ""}
                 aria-pressed={isApplied}
-                title={isApplied ? "Línea visual aplicada en esta sesión" : `Aplicar línea visual ${profile.titulo_humano}`}
+                title={isApplied ? "Línea visual aplicada en esta sesión" : `Aplicar línea visual ${displayTitle}`}
                 onClick={() => {
                   applyPptStyleProfile(profile);
                   setApplied(profile.name);
@@ -109,4 +112,19 @@ function profileImpactLabel(profile: PptStyleProfileMeta): string {
   if (paletteCount > 0) parts.push(`${paletteCount} paleta${paletteCount === 1 ? "" : "s"}`);
   if (modeCount > 0) parts.push(`${modeCount} estilo${modeCount === 1 ? "" : "s"}`);
   return parts.length > 0 ? parts.join(" · ") : "Sin ajustes catalogados";
+}
+
+function profileDisplayTitle(profile: PptStyleProfileMeta): string {
+  return profile.titulo_humano
+    .replace(/ACNUR\s+KOICA\s*[-–]\s*/gi, "ACNUR territorial - ")
+    .replace(/\bKOICA\b/gi, "territorial");
+}
+
+function profileDisplayDescription(profile: PptStyleProfileMeta): string {
+  return profile.descripcion
+    .replace(/El modo territorial KOICA agrega mapas y comparativos solo cuando corresponde\./gi, "La variante territorial agrega mapas y permite comparativos solo cuando corresponde.")
+    .replace(/ACNUR\/KOICA/gi, "ACNUR territorial")
+    .replace(/ACNUR\s+KOICA/gi, "ACNUR territorial")
+    .replace(/diseño\s+KOICA/gi, "diseño territorial")
+    .replace(/\bKOICA\b/gi, "territorial");
 }
