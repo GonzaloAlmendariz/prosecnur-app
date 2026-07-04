@@ -62471,6 +62471,48 @@ button.mon-acr-requirement-metric:active {
   padding: 0 10px;
 }
 
+.mon-territorial-reconciliation-batchbar.is-empty {
+  min-height: 38px;
+  padding: 4px 6px 4px 8px;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcopy {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcopy > span {
+  grid-row: 1 / span 2;
+  min-height: 22px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 36%, #fff);
+  font-size: 7.5px;
+  justify-content: center;
+  padding: 3px 7px;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcopy > strong {
+  font-size: 11.5px;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcopy > em {
+  font-size: 8.8px;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcounts span {
+  min-width: 66px;
+  min-height: 32px;
+  padding: 4px 6px;
+}
+
+.mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchstate {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 9px;
+}
+
 .mon-territorial-enumerator-roster.is-reconciliation {
   grid-template-rows: minmax(34px, auto) minmax(0, 1fr);
 }
