@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart2 } from "lucide-react";
+import { ArrowRight, BarChart2, CheckCircle2, Database, FileSpreadsheet } from "lucide-react";
 import {
   apiGraficosPpt,
   apiGraficosWord,
@@ -8,7 +8,6 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { EmptyState } from "../../components/States";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { usePlanStore } from "./store";
@@ -183,18 +182,68 @@ export default function GraficosPage() {
       {prepOk ? (
         <EditorShell />
       ) : (
-        <div className="pulso-graficos-blocked">
-          <EmptyState
-            icon={<BarChart2 size={20} />}
-            title="Prepara Analítica para generar gráficos"
-            hint="Gráficos se habilita cuando Analítica termina de preparar la base activa para reportes."
-            cta={<Link className="pulso-empty-cta" to="/analitica">Ir a Analítica</Link>}
-          />
-        </div>
+        <GraficosPrepBlocked />
       )}
     </PageFrame>
 
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </>
+  );
+}
+
+function GraficosPrepBlocked() {
+  return (
+    <div className="pulso-graficos-blocked">
+      <section className="pulso-graficos-prep-card" aria-label="Gráficos pendientes de Analítica">
+        <div className="pulso-graficos-prep-visual" aria-hidden="true">
+          <div className="pulso-graficos-prep-slide is-data">
+            <span />
+            <i />
+            <i />
+          </div>
+          <div className="pulso-graficos-prep-flow">
+            <span>01</span>
+            <span>02</span>
+            <span>03</span>
+          </div>
+          <div className="pulso-graficos-prep-slide is-chart">
+            <span />
+            <div>
+              <i />
+              <i />
+              <i />
+            </div>
+          </div>
+        </div>
+
+        <div className="pulso-graficos-prep-copy">
+          <span className="pulso-graficos-prep-eyebrow">Antes de construir gráficos</span>
+          <h2>Prepara la base en Analítica</h2>
+          <p>
+            Gráficos necesita la base preparada para leer etiquetas, variables recodificadas y cortes disponibles sin tocar tus respuestas originales.
+          </p>
+
+          <div className="pulso-graficos-prep-checks" aria-label="Qué se habilita después">
+            <span>
+              <Database size={14} />
+              Base lista para reportes
+            </span>
+            <span>
+              <FileSpreadsheet size={14} />
+              Variables y etiquetas disponibles
+            </span>
+            <span>
+              <CheckCircle2 size={14} />
+              Exportación PPT/Word habilitada
+            </span>
+          </div>
+
+          <Link className="pulso-graficos-prep-cta" to="/analitica">
+            Ir a Analítica
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }
