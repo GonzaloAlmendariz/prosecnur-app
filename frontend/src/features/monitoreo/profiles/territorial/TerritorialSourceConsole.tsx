@@ -1628,6 +1628,12 @@ export function TerritorialSourceConsole({
                   <span>{fmt(codeReviewRows.length)} de {fmt(filteredCodeReviewRows.length)}</span>
                 </div>
                 <div className="mon-territorial-reconciliation-list">
+                  <div className="mon-territorial-reconciliation-list-head is-code" aria-hidden="true">
+                    <span>Estado</span>
+                    <span>Código Kobo</span>
+                    <span>UMP / distrito</span>
+                    <span>Resolución</span>
+                  </div>
                   {codeReviewRows.length ? codeReviewRows.map((row, index) => {
                     const recommendationId = codeRecommendationIdForRow(row);
                     const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
@@ -1717,6 +1723,12 @@ export function TerritorialSourceConsole({
                   <span>{fmt(umpReviewRows.length)} de {fmt(filteredUmpReviewRows.length)}</span>
                 </div>
                 <div className="mon-territorial-reconciliation-list">
+                  <div className="mon-territorial-reconciliation-list-head is-ump" aria-hidden="true">
+                    <span>Estado</span>
+                    <span>Declarada</span>
+                    <span>Ruta / distrito</span>
+                    <span>Evidencia Kobo</span>
+                  </div>
                   {umpReviewRows.length ? umpReviewRows.map((row, index) => {
                     const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
                     const recommendationId = umpRecommendationIdForRow(row);
@@ -1795,6 +1807,11 @@ export function TerritorialSourceConsole({
                     </div>
                   </div>
                   <div className="mon-territorial-reconciliation-queue-list">
+                    <div className="mon-territorial-reconciliation-queue-list-head" aria-hidden="true">
+                      <span>Estado</span>
+                      <span>Declarada</span>
+                      <span>Ruta / evidencia</span>
+                    </div>
                     {umpQueuePreviewRows.length ? umpQueuePreviewRows.map((row, index) => {
                       const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
                       const district = row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D";
