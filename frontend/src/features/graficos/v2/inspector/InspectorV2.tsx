@@ -41,9 +41,9 @@ const STARTER_SLIDES: {
   tone: "cover" | "section" | "chart";
   Icon: typeof LayoutPanelTop;
 }[] = [
-  { tipo: "p_slide_portada", label: "Portada", detail: "Informe base", tone: "cover", Icon: LayoutPanelTop },
-  { tipo: "p_slide_seccion", label: "Sección", detail: "Bloque editorial", tone: "section", Icon: Layers3 },
-  { tipo: "p_slide_1_grafico", label: "Un gráfico", detail: "Visual base", tone: "chart", Icon: BarChart3 },
+  { tipo: "p_slide_portada", label: "Portada", detail: "Inicio del reporte", tone: "cover", Icon: LayoutPanelTop },
+  { tipo: "p_slide_seccion", label: "Sección", detail: "Separador editorial", tone: "section", Icon: Layers3 },
+  { tipo: "p_slide_1_grafico", label: "Un gráfico", detail: "Visual principal", tone: "chart", Icon: BarChart3 },
 ];
 
 export function InspectorV2() {
