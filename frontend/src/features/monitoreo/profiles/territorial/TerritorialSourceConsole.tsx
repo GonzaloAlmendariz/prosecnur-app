@@ -50,6 +50,10 @@ import type { WorkbenchView } from "../../core/monitoreoRegistry";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
 type TerritorialSourceDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];
+type TerritorialSourceCodeReviewRow =
+  | NonNullable<NonNullable<MonitoreoTerritorialDashboard["enumerator_code_summary"]>["reconciliation_responses"]>[number]
+  | NonNullable<NonNullable<MonitoreoTerritorialDashboard["enumerator_code_summary"]>["unrecognized_responses"]>[number];
+type TerritorialSourceCodeReviewLens = "all" | "assigned" | "suggested" | "manual";
 type TerritorialSourceUmpQueueLens = "manual" | "without-route" | "missing" | "suggested";
 
 export type TerritorialSourceConsoleProps = {
@@ -333,6 +337,7 @@ export function TerritorialSourceConsole({
   const [batchApplying, setBatchApplying] = useState(false);
   const [batchMessage, setBatchMessage] = useState("");
   const [codeReviewSearch, setCodeReviewSearch] = useState("");
+  const [codeReviewLens, setCodeReviewLens] = useState<TerritorialSourceCodeReviewLens>("all");
   const [umpReviewSearch, setUmpReviewSearch] = useState("");
   const [umpQueueLens, setUmpQueueLens] = useState<TerritorialSourceUmpQueueLens>("manual");
   const [rosterFile, setRosterFile] = useState<File | null>(null);
@@ -846,20 +851,6 @@ export function TerritorialSourceConsole({
     ...(codeSummary?.reconciliation_responses ?? []),
     ...(codeSummary?.unrecognized_responses ?? []),
   ];
-  const filteredCodeReviewRows = normalizedCodeReviewSearch
-    ? codeReviewSourceRows.filter((row) => normalizeSearch([
-      row.response_id,
-      row.raw_code,
-      row.normalized_code,
-      row.code,
-      row.ump,
-      row.district,
-      row.assigned_code,
-      row.assigned_name,
-      row.reconciled ? "reconciliado asignada" : "por revisar",
-    ].join(" ")).includes(normalizedCodeReviewSearch))
-    : codeReviewSourceRows;
-  const codeReviewRows = filteredCodeReviewRows.slice(0, 8);
   const umpRows = umpSummary?.rows ?? [];
   const umpManualRows = umpRows.filter((row) => row.status === "review" || row.status === "missing");
   const umpReviewSourceRows = umpManualRows.length ? umpManualRows : umpRows;
@@ -933,6 +924,49 @@ export function TerritorialSourceConsole({
     });
     return index;
   }, [batchRecommendations]);
+  const codeRecommendationIdForRow = useCallback((row: TerritorialSourceCodeReviewRow) => (
+    codeBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
+      ?? codeBatchIndex.get(row.raw_code ? `raw:${row.raw_code}` : "")
+      ?? codeBatchIndex.get(row.normalized_code ? `normalized:${row.normalized_code}` : "")
+      ?? codeBatchIndex.get(row.code ? `normalized:${row.code}` : "")
+      ?? ""
+  ), [codeBatchIndex]);
+  const codeReviewAssignedRows = codeReviewSourceRows.filter((row) => Boolean(row.reconciled || row.assigned_code));
+  const codeReviewSuggestedRows = codeReviewSourceRows.filter((row) => !row.reconciled && !row.assigned_code && Boolean(codeRecommendationIdForRow(row)));
+  const codeReviewManualRows = codeReviewSourceRows.filter((row) => !row.reconciled && !row.assigned_code && !codeRecommendationIdForRow(row));
+  const codeReviewLensOptions: Array<{
+    key: TerritorialSourceCodeReviewLens;
+    label: string;
+    count: number;
+    tone: "ready" | "warning" | "primary" | "muted";
+  }> = [
+    { key: "all", label: "Todos", count: codeReviewSourceRows.length, tone: "primary" },
+    { key: "assigned", label: "Asignados", count: codeReviewAssignedRows.length, tone: "ready" },
+    { key: "suggested", label: "Sugeridos", count: codeReviewSuggestedRows.length, tone: "primary" },
+    { key: "manual", label: "Manual", count: codeReviewManualRows.length, tone: "warning" },
+  ];
+  const codeReviewLensRows = codeReviewLens === "assigned"
+    ? codeReviewAssignedRows
+    : codeReviewLens === "suggested"
+      ? codeReviewSuggestedRows
+      : codeReviewLens === "manual"
+        ? codeReviewManualRows
+        : codeReviewSourceRows;
+  const filteredCodeReviewRows = normalizedCodeReviewSearch
+    ? codeReviewLensRows.filter((row) => normalizeSearch([
+      row.response_id,
+      row.raw_code,
+      row.normalized_code,
+      row.code,
+      row.ump,
+      row.district,
+      row.assigned_code,
+      row.assigned_name,
+      row.reconciled ? "reconciliado asignada" : "por revisar",
+      codeRecommendationIdForRow(row) ? "sugerido lote" : "manual",
+    ].join(" ")).includes(normalizedCodeReviewSearch))
+    : codeReviewLensRows;
+  const codeReviewRows = filteredCodeReviewRows.slice(0, 8);
   const umpBatchIndex = useMemo(() => {
     const index = new Map<string, string>();
     batchRecommendations.forEach((item) => {
@@ -1560,6 +1594,21 @@ export function TerritorialSourceConsole({
                   <span className={(codeSummary?.unrecognized_response_count ?? 0) ? "is-warning" : ""}><strong>{fmt(codeSummary?.unrecognized_response_count ?? 0)}</strong><em>revisar</em></span>
                   <span><strong>{fmt(codeSummary?.missing_response_count ?? 0)}</strong><em>sin código</em></span>
                 </div>
+                <div className="mon-territorial-reconciliation-code-lenses" aria-label="Filtrar códigos Pulso por estado de conciliación">
+                  {codeReviewLensOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      className={`is-${option.tone}${codeReviewLens === option.key ? " is-active" : ""}`}
+                      aria-pressed={codeReviewLens === option.key}
+                      aria-label={`Ver códigos ${option.label.toLocaleLowerCase("es-PE")} (${fmt(option.count)})`}
+                      onClick={() => setCodeReviewLens(option.key)}
+                    >
+                      <span>{option.label}</span>
+                      <strong>{fmt(option.count)}</strong>
+                    </button>
+                  ))}
+                </div>
                 <div className="mon-territorial-reconciliation-review-lens">
                   <div className="mon-territorial-reconciliation-review-lens-field">
                     <Search size={13} />
@@ -1580,10 +1629,7 @@ export function TerritorialSourceConsole({
                 </div>
                 <div className="mon-territorial-reconciliation-list">
                   {codeReviewRows.length ? codeReviewRows.map((row, index) => {
-                    const recommendationId = codeBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
-                      ?? codeBatchIndex.get(row.raw_code ? `raw:${row.raw_code}` : "")
-                      ?? codeBatchIndex.get(row.normalized_code ? `normalized:${row.normalized_code}` : "")
-                      ?? codeBatchIndex.get(row.code ? `normalized:${row.code}` : "");
+                    const recommendationId = codeRecommendationIdForRow(row);
                     const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
                     const tone = row.reconciled || row.assigned_code ? "ready" : "warning";
                     const rowKey = `${row.response_id || index}-${row.raw_code || row.normalized_code || row.code}`;
@@ -1614,7 +1660,7 @@ export function TerritorialSourceConsole({
                     </button>
                     );
                   }) : (
-                    <div className="mon-territorial-source-empty">{normalizedCodeReviewSearch ? "Sin coincidencias para este filtro." : "Sin códigos pendientes."}</div>
+                    <div className="mon-territorial-source-empty">{normalizedCodeReviewSearch ? "Sin coincidencias para este filtro." : "Sin códigos en este lente."}</div>
                   )}
                 </div>
               </section>
