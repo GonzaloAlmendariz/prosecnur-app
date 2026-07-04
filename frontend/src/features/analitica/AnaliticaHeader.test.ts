@@ -24,9 +24,10 @@ describe("AnaliticaHeader source guidance", () => {
       }),
     ];
 
-    expect(messages[0]).toContain("Original:");
+    expect(messages[0]).toContain("base cargada");
     expect(messages[1]).toContain("sin recodificaciones");
-    expect(messages[2]).toContain("con recodificaciones");
+    expect(messages[2]).toContain("recodificaciones");
+    expect(messages.join(" ")).not.toMatch(/XLSForm|Fase 1|Fase 3|Data:/i);
     expect(messages.join(" ")).not.toMatch(/recomendad|suele ser|opci[oó]n recomendada/i);
   });
 });

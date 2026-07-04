@@ -45,16 +45,16 @@ type ReporteMeta = {
 };
 
 const REPORTES: ReporteMeta[] = [
-  { key: "datos",        label: "Datos",             icon: ClipboardList, desc: "Revisión de data" },
-  { key: "base_final",   label: "Base final",        icon: Table2, desc: "BBDD completa" },
-  { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario de variables" },
-  { key: "bases",        label: "Bases e instrumento", icon: Database,  desc: "Data, XLSForm y exportables" },
-  { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Tablas univariadas" },
-  { key: "multibase",    label: "Tablas multibase",  icon: GitBranch, desc: "Global y hojas por llave" },
-  { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Wide por persona y medición" },
-  { key: "ficha",        label: "Ficha técnica",     icon: FileText,  desc: "Metodología y Word" },
-  { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Tablas 2D con semáforo" },
-  { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices 0-100 jerárquicos" },
+  { key: "datos",        label: "Datos",             icon: ClipboardList, desc: "Etiquetas y variables" },
+  { key: "base_final",   label: "Base final",        icon: Table2, desc: "Tabla lista para exportar" },
+  { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario del estudio" },
+  { key: "bases",        label: "Bases e instrumento", icon: Database,  desc: "Archivos y versiones" },
+  { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Distribución de respuestas" },
+  { key: "multibase",    label: "Tablas multibase",  icon: GitBranch, desc: "Comparación entre bases" },
+  { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Personas y mediciones" },
+  { key: "ficha",        label: "Ficha técnica",     icon: FileText,  desc: "Metodología e informe" },
+  { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Comparaciones 2D" },
+  { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices y puntajes" },
 ];
 
 export default function AnaliticaPage() {
