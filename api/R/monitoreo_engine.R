@@ -12308,7 +12308,8 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
                                                         route_blocks = NULL,
                                                         enumerator_assigned = NULL,
                                                         audit = NULL,
-                                                        phase = NULL) {
+                                                        phase = NULL,
+                                                        eligible_mask = NULL) {
   if (is.null(data) || !is.data.frame(data)) data <- data.frame()
   n <- nrow(data)
   phase <- .monitoreo_territorial_phase(phase %||% tcfg$active_route_phase, "pilot")
@@ -12326,6 +12327,18 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
   normalized <- .monitoreo_territorial_normalize_ump(raw)
   missing <- !nzchar(raw) | vapply(raw, .monitoreo_territorial_ump_missing_key, logical(1))
   normalized[missing] <- ""
+  if (is.null(eligible_mask) &&
+      is.data.frame(audit) &&
+      nrow(audit) == n &&
+      "production_annulled" %in% names(audit)) {
+    eligible_mask <- !(audit$production_annulled %in% TRUE)
+  }
+  if (is.null(eligible_mask) || length(eligible_mask) != n) {
+    eligible_mask <- rep(TRUE, n)
+  } else {
+    eligible_mask <- eligible_mask %in% TRUE
+  }
+  eligible_mask[is.na(eligible_mask)] <- FALSE
 
   if (is.null(enumerator_assigned) || length(enumerator_assigned) != n) {
     if (is.data.frame(audit) && "enumerator_assigned" %in% names(audit) && nrow(audit) == n) {
@@ -12424,9 +12437,9 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     )
   }
   rows <- list()
-  non_missing_values <- unique(raw[!missing])
+  non_missing_values <- unique(raw[eligible_mask & !missing])
   for (raw_value in non_missing_values) {
-    idx <- which(!missing & raw == raw_value)
+    idx <- which(eligible_mask & !missing & raw == raw_value)
     if (!length(idx)) next
     norm <- normalized[[idx[[1]]]]
     route_ids <- match_chr("advance_block_id")[idx]
@@ -12494,7 +12507,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       )
     )
   }
-  missing_count <- as.integer(sum(missing, na.rm = TRUE))
+  missing_count <- as.integer(sum(eligible_mask & missing, na.rm = TRUE))
   if (missing_count > 0L) {
     rows[[length(rows) + 1L]] <- list(
       raw_ump = "",
@@ -12534,7 +12547,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     metrics = list(
       recognized_ump_count = as.integer(sum(recognized_rows, na.rm = TRUE)),
       review_ump_count = as.integer(sum(row_status == "review", na.rm = TRUE)),
-      responses_with_ump = as.integer(sum(!missing, na.rm = TRUE)),
+      responses_with_ump = as.integer(sum(eligible_mask & !missing, na.rm = TRUE)),
       responses_without_ump = missing_count,
       reconciled_ump_count = as.integer(sum(row_status == "reconciled", na.rm = TRUE))
     ),
@@ -12768,6 +12781,22 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     source_filter_missing = source_filter_missing,
     phase = phase
   )
+  submitted_by <- .monitoreo_territorial_source_value(data, tcfg$submitted_by_var, "Sin encuestador asignado")
+  submitted_by[is.na(submitted_by) | !nzchar(trimws(submitted_by))] <- "Sin encuestador asignado"
+  pulso_code <- pulso_payload$pulso_code
+  pulso_code_recognized <- pulso_payload$pulso_code_recognized
+  enumerator_assigned <- pulso_payload$enumerator_assigned
+  responsible_display <- trimws(as.character(submitted_by %||% ""))
+  responsible_display[is.na(responsible_display) | !nzchar(responsible_display)] <- "Sin encuestador asignado"
+  assigned_label <- trimws(as.character(enumerator_assigned %||% ""))
+  assigned_label[is.na(assigned_label)] <- ""
+  code_label <- trimws(as.character(pulso_code %||% ""))
+  code_label[is.na(code_label)] <- ""
+  has_assigned <- nzchar(assigned_label)
+  display_with_code <- has_assigned & pulso_code_recognized & nzchar(code_label)
+  responsible_display[display_with_code] <- paste(code_label[display_with_code], assigned_label[display_with_code], sep = " · ")
+  responsible_display[has_assigned & !display_with_code] <- assigned_label[has_assigned & !display_with_code]
+  responsible_display[!has_assigned & nzchar(code_label)] <- "Responsable no identificado"
   submission_time_pick <- .monitoreo_territorial_submission_time_values(data, tcfg)
   submission_time <- submission_time_pick$values
   submission_time_source <- .monitoreo_scalar(submission_time_pick$source, "")
@@ -12794,6 +12823,10 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     nearest_block_id = trimws(as.character(ump_raw)),
     distrito = response_distrito,
     ubigeo = response_ubigeo,
+    submitted_by = submitted_by,
+    pulso_code = pulso_code,
+    enumerator_assigned = enumerator_assigned,
+    responsible_display = responsible_display,
     declared_ump_raw = declared_ump_match$declared_ump_raw,
     declared_ump_normalized = declared_ump_match$declared_ump_normalized,
     advance_block_id = declared_ump_match$advance_block_id,
@@ -12818,6 +12851,10 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     stringsAsFactors = FALSE
   )
   audit_summary$nearest_block_id[is.na(audit_summary$nearest_block_id)] <- ""
+  annulment_phase <- .monitoreo_scalar(context$phase, tcfg$active_route_phase)
+  annulled_mask <- .monitoreo_territorial_production_annulment_mask(audit_summary, tcfg, annulment_phase)
+  audit_summary$production_annulled <- annulled_mask
+  audit_summary$production_annulment_status <- ifelse(annulled_mask, "anulada", "")
   advance_district_key <- if (any(nzchar(trimws(as.character(audit_summary$advance_block_ubigeo %||% ""))), na.rm = TRUE)) {
     trimws(as.character(audit_summary$advance_block_ubigeo %||% ""))
   } else {
@@ -12847,8 +12884,10 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     data,
     tcfg,
     route_blocks = summary_operational_blocks,
-    enumerator_assigned = pulso_payload$enumerator_assigned,
-    phase = phase
+    enumerator_assigned = enumerator_assigned,
+    audit = audit_summary,
+    phase = phase,
+    eligible_mask = !annulled_mask
   )
   route_overview <- .monitoreo_territorial_route_overview(context, blocks, operational_blocks, district_progress, responsible_summary)
   phase_status <- monitoreo_territorial_phase_source_status(tcfg, phase = phase)
@@ -14307,8 +14346,9 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     data,
     tcfg,
     route_blocks = operational_blocks,
-    audit = audit,
-    phase = .monitoreo_scalar(context$phase, tcfg$active_route_phase)
+    audit = audit_all,
+    phase = .monitoreo_scalar(context$phase, tcfg$active_route_phase),
+    eligible_mask = !annulled_mask
   )
   route_overview <- .monitoreo_territorial_route_overview(context, blocks, operational_blocks, district_progress, responsible_summary)
 
