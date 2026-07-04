@@ -44,6 +44,7 @@ export function TerritorialOperationalAdjustmentsWorkspace({
   const appliedRows = useMemo(() => [...applied].sort(territorialOperationalAppliedCompare), [applied]);
   const summary = model?.summary ?? {};
   const [selectedId, setSelectedId] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [suggestionSearch, setSuggestionSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [appliedStatusFilter, setAppliedStatusFilter] = useState<AppliedStatusFilter>("all");
@@ -103,17 +104,39 @@ export function TerritorialOperationalAdjustmentsWorkspace({
   const appliedHeaderLabel = appliedSearchNeedle
     ? `${formatMetric(visibleAppliedRows.length)} de ${formatMetric(statusFilteredAppliedRows.length)} ${appliedFilterLabel}`
     : `${formatMetric(statusFilteredAppliedRows.length)} ${appliedFilterLabel}`;
-  const selected = visibleSuggestions.find((item) => item.id === selectedId) ?? visibleSuggestions[0] ?? null;
+  const selected = visibleSuggestions.find((item) => territorialOperationalAdjustmentSelectionId(item) === selectedId)
+    ?? visibleSuggestions[0]
+    ?? null;
+  const selectedSuggestions = useMemo(
+    () => suggestions.filter((item) => selectedIds.has(territorialOperationalAdjustmentSelectionId(item))),
+    [selectedIds, suggestions],
+  );
+  const selectedSuggestionCount = selectedSuggestions.length;
+  const selectedSuggestionCaseCount = selectedSuggestions.reduce(
+    (total, item) => total + (numberOrNull(item.count) ?? 0),
+    0,
+  );
+  const visibleSuggestionsSelected = visibleSuggestions.length > 0
+    && visibleSuggestions.every((item) => selectedIds.has(territorialOperationalAdjustmentSelectionId(item)));
 
   useEffect(() => {
     if (!visibleSuggestions.length) {
       if (selectedId) setSelectedId("");
       return;
     }
-    if (!selected || !visibleSuggestions.some((item) => item.id === selectedId)) {
-      setSelectedId(visibleSuggestions[0].id);
+    if (!selected || !visibleSuggestions.some((item) => territorialOperationalAdjustmentSelectionId(item) === selectedId)) {
+      setSelectedId(territorialOperationalAdjustmentSelectionId(visibleSuggestions[0]));
     }
   }, [selected, selectedId, visibleSuggestions]);
+
+  useEffect(() => {
+    if (!selectedIds.size) return;
+    const validIds = new Set(suggestions.map((item) => territorialOperationalAdjustmentSelectionId(item)));
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((id) => validIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [selectedIds.size, suggestions]);
 
   useEffect(() => {
     if (!selected) {
@@ -123,7 +146,8 @@ export function TerritorialOperationalAdjustmentsWorkspace({
     setNote(territorialOperationalAdjustmentDefaultNote(selected));
   }, [selected?.id]);
 
-  const canApply = Boolean(selected && onApply && note.trim().length >= 8 && !saving && !busyId);
+  const canApply = Boolean(selected && onApply && !saving && !busyId);
+  const canApplySelection = Boolean(selectedSuggestionCount && onApply && !saving && !busyId);
   const summaryCards = [
     { label: "Faltantes compatibles", value: summary.pending_cells ?? deficits.length, tone: "pending" },
     { label: "Sobrantes disponibles", value: summary.eligible_surplus ?? 0, tone: "surplus" },
@@ -144,23 +168,85 @@ export function TerritorialOperationalAdjustmentsWorkspace({
     ? territorialOperationalAdjustmentDateLabel(territorialOperationalAdjustmentTargetActivity(selected), "Sin actividad")
     : "Sin actividad";
 
-  const applySelected = async () => {
-    if (!selected || !onApply || !canApply) return;
-    setBusyId(selected.id);
+  const toggleSuggestionSelection = (id: string) => {
+    setSelectedId(id);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectVisibleSuggestions = () => {
+    if (!visibleSuggestions.length || saving || busyId) return;
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      visibleSuggestions.forEach((item) => next.add(territorialOperationalAdjustmentSelectionId(item)));
+      return next;
+    });
+    if (!selected && visibleSuggestions[0]) {
+      setSelectedId(territorialOperationalAdjustmentSelectionId(visibleSuggestions[0]));
+    }
+  };
+
+  const clearSelectedSuggestions = () => {
+    if (saving || busyId) return;
+    setSelectedIds(new Set());
+  };
+
+  const applyAdjustmentList = async (
+    items: MonitoreoTerritorialOperationalAdjustment[],
+    mode: "single" | "selection",
+  ) => {
+    if (!items.length || !onApply || saving || busyId) return;
+    const selectedDefaultNote = selected ? territorialOperationalAdjustmentDefaultNote(selected) : "";
+    const reusableNote = note.trim().length >= 8 && note.trim() !== selectedDefaultNote ? note.trim() : "";
     setMessage("");
     setLocalError("");
+    let completed = 0;
+    const totalCases = items.reduce((total, item) => total + (numberOrNull(item.count) ?? 0), 0);
     try {
-      await onApply({
-        ...selected,
-        note: note.trim(),
-        reason: selected.reason || "Excedente compatible usado como subsanación operativa",
+      for (const item of items) {
+        setBusyId(territorialOperationalAdjustmentSelectionId(item));
+        await onApply({
+          ...item,
+          note: reusableNote || territorialOperationalAdjustmentDefaultNote(item),
+          reason: item.reason || "Excedente compatible usado como subsanación operativa",
+        });
+        completed += 1;
+      }
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        items.forEach((item) => next.delete(territorialOperationalAdjustmentSelectionId(item)));
+        return next;
       });
-      setMessage("Subsanación guardada. El avance se recalculó con esta lectura operativa.");
+      setMessage(
+        mode === "selection"
+          ? `${formatMetric(completed)} paquete(s) aplicados (${formatMetric(totalCases)} caso(s)). El avance se recalculó con esta selección.`
+          : "Subsanación guardada. El avance se recalculó con esta lectura operativa.",
+      );
     } catch (error) {
-      setLocalError((error as Error).message || String(error));
+      const prefix = completed
+        ? `${formatMetric(completed)} paquete(s) aplicados antes de detenerse. `
+        : "";
+      setLocalError(`${prefix}${(error as Error).message || String(error)}`);
     } finally {
       setBusyId("");
     }
+  };
+
+  const applySelected = async () => {
+    if (!selected || !canApply) return;
+    await applyAdjustmentList([selected], "single");
+  };
+
+  const applySelectedSuggestions = async () => {
+    if (!canApplySelection) return;
+    await applyAdjustmentList(selectedSuggestions, "selection");
   };
 
   const revertItem = async (item: MonitoreoTerritorialOperationalAdjustment) => {
@@ -260,20 +346,54 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                 ) : null}
               </label>
             </header>
+            <div className="mon-operational-adjustments__selectionbar" aria-label="Selección de subsanaciones por aplicar">
+              <span className="mon-operational-selection-count">
+                <strong>{formatMetric(selectedSuggestionCount)}</strong>
+                <em>{selectedSuggestionCount === 1 ? "seleccionada" : "seleccionadas"}</em>
+                {selectedSuggestionCount ? <b>{formatMetric(selectedSuggestionCaseCount)} caso(s)</b> : null}
+              </span>
+              <button
+                type="button"
+                onClick={selectVisibleSuggestions}
+                disabled={!visibleSuggestions.length || visibleSuggestionsSelected || saving || Boolean(busyId)}
+              >
+                Todas visibles
+              </button>
+              <button
+                type="button"
+                onClick={clearSelectedSuggestions}
+                disabled={!selectedSuggestionCount || saving || Boolean(busyId)}
+              >
+                Limpiar
+              </button>
+              <button
+                type="button"
+                className="is-primary"
+                onClick={applySelectedSuggestions}
+                disabled={!canApplySelection}
+              >
+                {busyId && selectedSuggestionCount ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                <span>Aplicar selección</span>
+              </button>
+            </div>
             {visibleSuggestions.length ? (
               <div className="mon-operational-adjustments__list">
                 {visibleSuggestions.map((item) => {
-                  const isSelected = selected?.id === item.id;
+                  const itemSelectionId = territorialOperationalAdjustmentSelectionId(item);
+                  const isSelected = selectedId === itemSelectionId;
+                  const isBatchSelected = selectedIds.has(itemSelectionId);
                   const distanceLabel = territorialOperationalAdjustmentDistanceLabel(item);
                   const movementCount = numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1;
                   const responseCount = territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item));
                   const cellLabel = territorialOperationalAdjustmentCellLabel(item);
                   return (
                     <button
-                      key={item.id}
+                      key={itemSelectionId}
                       type="button"
-                      className={`mon-operational-suggestion${isSelected ? " is-selected" : ""}`}
-                      onClick={() => setSelectedId(item.id)}
+                      className={`mon-operational-suggestion${isSelected ? " is-selected" : ""}${isBatchSelected ? " is-batch-selected" : ""}`}
+                      aria-pressed={isBatchSelected}
+                      onClick={() => toggleSuggestionSelection(itemSelectionId)}
+                      disabled={saving || Boolean(busyId)}
                     >
                       <span className="mon-operational-node is-surplus">
                         <small>Sobrante</small>
@@ -301,6 +421,11 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                         <i className="is-cell"><strong>Celda</strong><em>{cellLabel}</em></i>
                         <i className="is-movement"><strong>{formatMetric(movementCount)}</strong><em>movimientos</em></i>
                         <i className="is-source"><strong>{formatMetric(responseCount)}</strong><em>ID fuente</em></i>
+                        <i className={`is-choice${isBatchSelected ? " is-on" : ""}`}>
+                          {busyId === itemSelectionId ? <Loader2 size={11} className="pulso-spin" /> : <CheckCircle2 size={11} />}
+                          <strong>{isBatchSelected ? "Seleccionada" : "Elegir"}</strong>
+                          <em>aplicar</em>
+                        </i>
                         <i className="is-safe"><CheckCircle2 size={11} /><strong>Origen ok</strong><em>cuota conserva</em></i>
                       </span>
                     </button>
@@ -539,6 +664,21 @@ function territorialOperationalAdjustmentBlockLabel(item: MonitoreoTerritorialOp
   const block = stringOrEmpty(side === "source" ? item.source_block_id : item.target_block_id).trim();
   const base = ump || (block ? shortenMiddle(block, 18) : "UMP sin código");
   return manzana ? `${base} · Mz ${manzana}` : base;
+}
+
+function territorialOperationalAdjustmentSelectionId(item: MonitoreoTerritorialOperationalAdjustment) {
+  const directId = stringOrEmpty(item.id || item.package_id).trim();
+  if (directId) return directId;
+  return [
+    item.source_block_id,
+    item.target_block_id,
+    item.district,
+    item.ubigeo,
+    item.sex,
+    item.age_group,
+    item.count,
+    ...(item.source_response_ids ?? []),
+  ].map((value) => stringOrEmpty(value).trim()).filter(Boolean).join("|");
 }
 
 function territorialOperationalAdjustmentCellLabel(item: MonitoreoTerritorialOperationalAdjustment) {
