@@ -16,6 +16,8 @@ import type {
 } from "../../../../api/client";
 import { formatInternalQueryDateAxisLabel } from "../../internalQueries";
 
+type AppliedStatusFilter = "all" | "active" | "reverted";
+
 export function TerritorialOperationalAdjustmentsWorkspace({
   model,
   phaseLabel,
@@ -37,13 +39,14 @@ export function TerritorialOperationalAdjustmentsWorkspace({
   );
   const deficits = model?.deficits ?? [];
   const applied = model?.applied ?? [];
-  const active = applied.filter((item) => stringOrEmpty(item.status || "active") === "active");
-  const reverted = applied.filter((item) => stringOrEmpty(item.status || "active") !== "active");
+  const active = applied.filter((item) => territorialOperationalAppliedStatus(item) === "active");
+  const reverted = applied.filter((item) => territorialOperationalAppliedStatus(item) === "reverted");
   const appliedRows = useMemo(() => [...applied].sort(territorialOperationalAppliedCompare), [applied]);
   const summary = model?.summary ?? {};
   const [selectedId, setSelectedId] = useState("");
   const [suggestionSearch, setSuggestionSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedStatusFilter, setAppliedStatusFilter] = useState<AppliedStatusFilter>("all");
   const [note, setNote] = useState("");
   const [busyId, setBusyId] = useState("");
   const [message, setMessage] = useState("");
@@ -54,10 +57,52 @@ export function TerritorialOperationalAdjustmentsWorkspace({
     if (!suggestionSearchNeedle) return suggestions;
     return suggestions.filter((item) => territorialOperationalAdjustmentSearchText(item).includes(suggestionSearchNeedle));
   }, [suggestionSearchNeedle, suggestions]);
+  const statusFilteredAppliedRows = useMemo(() => {
+    if (appliedStatusFilter === "active") {
+      return appliedRows.filter((item) => territorialOperationalAppliedStatus(item) === "active");
+    }
+    if (appliedStatusFilter === "reverted") {
+      return appliedRows.filter((item) => territorialOperationalAppliedStatus(item) === "reverted");
+    }
+    return appliedRows;
+  }, [appliedRows, appliedStatusFilter]);
   const visibleAppliedRows = useMemo(() => {
-    if (!appliedSearchNeedle) return appliedRows;
-    return appliedRows.filter((item) => territorialOperationalAdjustmentSearchText(item).includes(appliedSearchNeedle));
-  }, [appliedRows, appliedSearchNeedle]);
+    if (!appliedSearchNeedle) return statusFilteredAppliedRows;
+    return statusFilteredAppliedRows.filter((item) => territorialOperationalAdjustmentSearchText(item).includes(appliedSearchNeedle));
+  }, [appliedSearchNeedle, statusFilteredAppliedRows]);
+  const appliedFilterLabel = appliedStatusFilter === "active"
+    ? "activas"
+    : appliedStatusFilter === "reverted"
+      ? "revertidas"
+      : "movimientos";
+  const appliedStatusOptions: Array<{
+    key: AppliedStatusFilter;
+    label: string;
+    count: number;
+    ariaLabel: string;
+  }> = [
+    {
+      key: "all",
+      label: "Todas",
+      count: applied.length,
+      ariaLabel: `Ver todas las subsanaciones auditadas (${formatMetric(applied.length)})`,
+    },
+    {
+      key: "active",
+      label: "Activas",
+      count: active.length,
+      ariaLabel: `Ver subsanaciones activas (${formatMetric(active.length)})`,
+    },
+    {
+      key: "reverted",
+      label: "Revertidas",
+      count: reverted.length,
+      ariaLabel: `Ver subsanaciones revertidas (${formatMetric(reverted.length)})`,
+    },
+  ];
+  const appliedHeaderLabel = appliedSearchNeedle
+    ? `${formatMetric(visibleAppliedRows.length)} de ${formatMetric(statusFilteredAppliedRows.length)} ${appliedFilterLabel}`
+    : `${formatMetric(statusFilteredAppliedRows.length)} ${appliedFilterLabel}`;
   const selected = visibleSuggestions.find((item) => item.id === selectedId) ?? visibleSuggestions[0] ?? null;
 
   useEffect(() => {
@@ -386,9 +431,24 @@ export function TerritorialOperationalAdjustmentsWorkspace({
               <header>
                 <div>
                   <span>Historial operativo</span>
-                  <strong>{formatMetric(visibleAppliedRows.length)} de {formatMetric(applied.length)} movimientos auditados</strong>
+                  <strong>{appliedHeaderLabel}</strong>
                 </div>
                 <div className="mon-operational-adjustments__panel-tools">
+                  <div className="mon-operational-applied-segment" aria-label="Filtrar historial operativo por estado">
+                    {appliedStatusOptions.map((option) => (
+                      <button
+                        key={option.key}
+                        type="button"
+                        className={`status-${option.key}${appliedStatusFilter === option.key ? " is-active" : ""}`}
+                        aria-pressed={appliedStatusFilter === option.key}
+                        aria-label={option.ariaLabel}
+                        onClick={() => setAppliedStatusFilter(option.key)}
+                      >
+                        <span>{option.label}</span>
+                        <strong>{formatMetric(option.count)}</strong>
+                      </button>
+                    ))}
+                  </div>
                   <label className="mon-operational-adjustments__search">
                     <Search size={13} />
                     <input
@@ -412,7 +472,7 @@ export function TerritorialOperationalAdjustmentsWorkspace({
               <div className="mon-operational-adjustments__applied-list">
                 {visibleAppliedRows.length ? visibleAppliedRows.map((item) => {
                   const id = stringOrEmpty(item.id).trim();
-                  const isActive = stringOrEmpty(item.status || "active") === "active";
+                  const isActive = territorialOperationalAppliedStatus(item) === "active";
                   const movementCount = numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1;
                   const responseCount = territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item));
                   return (
@@ -436,9 +496,11 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                 }) : (
                   <div className="mon-operational-adjustments__empty is-compact">
                     <Search size={16} />
-                    <strong>Sin historial visible</strong>
-                    <span>No hay subsanaciones auditadas que coincidan con el filtro.</span>
-                    <button type="button" onClick={() => setAppliedSearch("")}>Limpiar filtro</button>
+                    <strong>{appliedSearch ? "Sin historial con ese filtro" : `Sin subsanaciones ${appliedFilterLabel}`}</strong>
+                    <span>{appliedSearch ? "Prueba con UMP, distrito, responsable, sexo, edad o ID fuente." : "Cambia el estado del historial para ver otros movimientos auditados."}</span>
+                    {appliedSearch ? (
+                      <button type="button" onClick={() => setAppliedSearch("")}>Limpiar filtro</button>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -502,8 +564,12 @@ function territorialOperationalAdjustmentResponseCount(items: MonitoreoTerritori
   return ids.size || fallback;
 }
 
+function territorialOperationalAppliedStatus(item: MonitoreoTerritorialOperationalAdjustment): "active" | "reverted" {
+  return stringOrEmpty(item.status || "active").trim().toLowerCase() === "active" ? "active" : "reverted";
+}
+
 function territorialOperationalAppliedDateLabel(item: MonitoreoTerritorialOperationalAdjustment) {
-  const status = stringOrEmpty(item.status || "active");
+  const status = territorialOperationalAppliedStatus(item);
   const date = status === "active"
     ? stringOrEmpty(item.created_at || item.latest_activity || item.target_latest_activity)
     : stringOrEmpty(item.reverted_at || item.created_at || item.latest_activity || item.target_latest_activity);
@@ -515,8 +581,8 @@ function territorialOperationalAppliedCompare(
   a: MonitoreoTerritorialOperationalAdjustment,
   b: MonitoreoTerritorialOperationalAdjustment,
 ) {
-  const aActive = stringOrEmpty(a.status || "active") === "active";
-  const bActive = stringOrEmpty(b.status || "active") === "active";
+  const aActive = territorialOperationalAppliedStatus(a) === "active";
+  const bActive = territorialOperationalAppliedStatus(b) === "active";
   if (aActive !== bActive) return aActive ? -1 : 1;
   const aDate = territorialOperationalAdjustmentActivitySortValue(
     aActive ? (a.created_at || a.latest_activity || a.target_latest_activity) : (a.reverted_at || a.created_at || a.latest_activity || a.target_latest_activity),
