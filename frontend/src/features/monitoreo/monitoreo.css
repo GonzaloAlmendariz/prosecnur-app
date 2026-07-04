@@ -23683,8 +23683,94 @@
 }
 
 @media (max-width: 1500px) {
+  .mon-operational-adjustments {
+    gap: 9px;
+    height: clamp(560px, calc(100vh - 328px), 720px);
+  }
+
+  .mon-operational-adjustments__header {
+    align-items: center;
+    gap: 12px;
+    border-radius: 14px;
+    padding: 9px 13px;
+  }
+
+  .mon-operational-adjustments__header > div:first-child {
+    gap: 2px;
+  }
+
+  .mon-operational-adjustments__header span,
+  .mon-operational-adjustments__suggestions header span,
+  .mon-operational-adjustments__applied header span,
+  .mon-operational-adjustments__detail header span {
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+  }
+
+  .mon-operational-adjustments__header strong {
+    font-size: 1.08rem;
+  }
+
+  .mon-operational-adjustments__header p {
+    font-size: 0.74rem;
+    line-height: 1.25;
+  }
+
+  .mon-operational-adjustments__status {
+    gap: 6px;
+  }
+
+  .mon-operational-adjustments__status span,
+  .mon-operational-reset-button {
+    min-height: 28px;
+    padding: 5px 9px;
+    font-size: 0.7rem;
+  }
+
+  .mon-operational-adjustments__metrics {
+    gap: 8px;
+  }
+
+  .mon-operational-adjustments__metrics span {
+    min-height: 46px;
+    border-radius: 12px;
+    padding: 7px 10px;
+  }
+
+  .mon-operational-adjustments__metrics strong {
+    font-size: 1.06rem;
+  }
+
+  .mon-operational-adjustments__metrics em {
+    font-size: 0.58rem;
+  }
+
   .mon-operational-adjustments__grid {
-    grid-template-rows: minmax(282px, 1.08fr) minmax(182px, 0.72fr);
+    grid-template-rows: minmax(242px, 0.95fr) minmax(210px, 1.05fr);
+    gap: 9px;
+  }
+
+  .mon-operational-adjustments__suggestions,
+  .mon-operational-adjustments__detail,
+  .mon-operational-adjustments__applied {
+    border-radius: 14px;
+  }
+
+  .mon-operational-adjustments__suggestions header,
+  .mon-operational-adjustments__applied header,
+  .mon-operational-adjustments__detail header {
+    padding: 9px 12px;
+  }
+
+  .mon-operational-adjustments__suggestions header strong,
+  .mon-operational-adjustments__applied header strong {
+    font-size: 0.88rem;
+  }
+
+  .mon-operational-adjustments__list,
+  .mon-operational-adjustments__applied-list {
+    gap: 6px;
+    padding: 9px;
   }
 
   .mon-operational-adjustments__detail header {
@@ -23800,11 +23886,49 @@
   }
 
   .mon-operational-suggestion {
-    min-height: 108px;
+    min-height: 94px;
+    gap: 7px;
+    padding: 7px;
   }
 
   .mon-operational-suggestion .mon-operational-node {
-    min-height: 88px;
+    min-height: 74px;
+    padding: 6px 8px;
+  }
+
+  .mon-operational-suggestion__chips {
+    min-height: 24px;
+    gap: 5px !important;
+  }
+
+  .mon-operational-suggestion__chips i {
+    min-height: 22px;
+    border-radius: 8px;
+    padding: 3px 7px;
+  }
+
+  .mon-operational-adjustments__applied .mon-operational-adjustments__panel-tools {
+    gap: 6px;
+  }
+
+  .mon-operational-applied-segment {
+    min-height: 30px;
+  }
+
+  .mon-operational-applied-segment button {
+    min-height: 22px;
+    padding: 3px 7px;
+  }
+
+  .mon-operational-applied-audit span {
+    min-height: 26px;
+    padding: 4px 8px;
+  }
+
+  .mon-operational-applied {
+    min-height: 74px;
+    border-radius: 12px;
+    padding: 8px;
   }
 }
 
