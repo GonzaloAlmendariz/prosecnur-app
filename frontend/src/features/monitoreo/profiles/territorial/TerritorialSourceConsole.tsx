@@ -1633,17 +1633,34 @@ export function TerritorialSourceConsole({
                     const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
                     const tone = row.reconciled || row.assigned_code ? "ready" : "warning";
                     const rowKey = `${row.response_id || index}-${row.raw_code || row.normalized_code || row.code}`;
+                    const rawCode = row.raw_code || row.normalized_code || row.code || "S/D";
+                    const statusLabel = isSelected ? "Seleccionada" : recommendationId ? "Sugerida" : row.reconciled || row.assigned_code ? "Asignada" : "Por revisar";
+                    const assignmentLabel = row.assigned_code || (recommendationId ? "Lote canónico" : "Sin asignación");
+                    const assignmentDetail = row.assigned_code
+                      ? row.assigned_name || "Asignada"
+                      : recommendationId
+                        ? "Lista para aplicar"
+                        : "Requiere decisión manual";
                     const rowContent = (
                       <>
-                        <span>{isSelected ? "Seleccionada" : recommendationId ? "Sugerida" : row.reconciled || row.assigned_code ? "Asignada" : "Por revisar"}</span>
-                        <strong>{row.raw_code || row.normalized_code || row.code || "S/D"}</strong>
-                        <em>{row.ump || "UMP S/D"} · {row.district || "Distrito S/D"}</em>
-                        <small>{row.assigned_code ? `${row.assigned_code} · ${row.assigned_name || "asignada"}` : recommendationId ? "Lista para lote canónico" : "Sin asignación guardada"}</small>
+                        <span>{statusLabel}</span>
+                        <div className="mon-territorial-reconciliation-code-main">
+                          <strong>{rawCode}</strong>
+                          <em>Declarado</em>
+                        </div>
+                        <div className="mon-territorial-reconciliation-code-context">
+                          <strong>{row.ump || "UMP S/D"}</strong>
+                          <em>{row.district || "Distrito S/D"}</em>
+                        </div>
+                        <div className="mon-territorial-reconciliation-code-target">
+                          <strong>{assignmentLabel}</strong>
+                          <small>{assignmentDetail}</small>
+                        </div>
                       </>
                     );
                     if (!recommendationId) {
                       return (
-                        <article key={rowKey} className={`is-${tone}`}>
+                        <article key={rowKey} className={`mon-territorial-reconciliation-code-row is-${tone}`}>
                           {rowContent}
                         </article>
                       );
@@ -1652,7 +1669,7 @@ export function TerritorialSourceConsole({
                     <button
                       key={rowKey}
                       type="button"
-                      className={`mon-territorial-reconciliation-row is-${tone}${recommendationId ? " is-recommended" : ""}${isSelected ? " is-selected" : ""}`}
+                      className={`mon-territorial-reconciliation-row mon-territorial-reconciliation-code-row is-${tone}${recommendationId ? " is-recommended" : ""}${isSelected ? " is-selected" : ""}`}
                       onClick={() => { if (recommendationId) toggleBatchRecommendation(recommendationId); }}
                       disabled={saving || busy || batchApplying}
                     >
