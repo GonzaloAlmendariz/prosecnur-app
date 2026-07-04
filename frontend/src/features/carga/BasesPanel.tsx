@@ -367,9 +367,10 @@ export function BasesPanel({
           role="tab"
           aria-selected={strategy === "separate"}
           onClick={() => setStrategy("separate")}
+          title="Mantener bases separadas - formulario y respuestas por base"
         >
           <Layers size={15} />
-          <span>
+          <span className="pulso-multi-strategy-label">
             <strong>Mantener bases separadas</strong>
             <small>Formulario y respuestas por base.</small>
           </span>
@@ -380,9 +381,10 @@ export function BasesPanel({
           role="tab"
           aria-selected={strategy === "integrated"}
           onClick={() => setStrategy("integrated")}
+          title="Unificar bases compatibles - formulario comun y base final"
         >
           <GitMerge size={15} />
-          <span>
+          <span className="pulso-multi-strategy-label">
             <strong>Unificar bases compatibles</strong>
             <small>Formulario común y base final.</small>
           </span>
@@ -393,9 +395,10 @@ export function BasesPanel({
           role="tab"
           aria-selected={strategy === "independent"}
           onClick={() => setStrategy("independent")}
+          title="Fuentes independientes - entregables por encuesta"
         >
           <Cloud size={15} />
-          <span>
+          <span className="pulso-multi-strategy-label">
             <strong>Fuentes independientes</strong>
             <small>Entregables por encuesta.</small>
           </span>
