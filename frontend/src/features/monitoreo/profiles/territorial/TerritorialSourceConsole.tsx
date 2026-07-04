@@ -1723,17 +1723,35 @@ export function TerritorialSourceConsole({
                     const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
                     const tone = declaredUmpStatusTone(row.status);
                     const rowKey = `${row.raw_ump || index}-${row.response_id || row.status}`;
+                    const rawUmp = row.raw_ump || row.normalized_ump || "UMP S/D";
+                    const routeLabel = assignedUmp || "Sin ruta asignada";
+                    const districtLabel = row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D";
+                    const evidenceKicker = recommendationId ? "Lote" : "Kobo";
+                    const evidenceDetail = recommendationId
+                      ? "Lista para lote"
+                      : row.responsible || row.assigned_responsible || row.route_blocks?.[0]?.responsable || "Sin responsable";
                     const rowContent = (
                       <>
                         <span>{isSelected ? "Seleccionada" : recommendationId ? "Sugerida" : declaredUmpStatusLabel(row.status)}</span>
-                        <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
-                        <em>{assignedUmp || "Sin ruta asignada"} · {row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D"}</em>
-                        <small>{fmt(row.response_count)} respuestas · {recommendationId ? "lista para lote" : row.responsible || row.assigned_responsible || row.route_blocks?.[0]?.responsable || "Sin responsable"}</small>
+                        <div className="mon-territorial-reconciliation-ump-main">
+                          <small className="mon-territorial-reconciliation-ump-kicker">Declarada</small>
+                          <strong>{rawUmp}</strong>
+                        </div>
+                        <div className="mon-territorial-reconciliation-ump-route">
+                          <small className="mon-territorial-reconciliation-ump-kicker">Ruta / distrito</small>
+                          <strong>{routeLabel}</strong>
+                          <em>{districtLabel}</em>
+                        </div>
+                        <div className="mon-territorial-reconciliation-ump-evidence">
+                          <small className="mon-territorial-reconciliation-ump-kicker">{evidenceKicker}</small>
+                          <strong>{fmt(row.response_count)} respuestas</strong>
+                          <em>{evidenceDetail}</em>
+                        </div>
                       </>
                     );
                     if (!recommendationId) {
                       return (
-                        <article key={rowKey} className={`is-${tone}`}>
+                        <article key={rowKey} className={`mon-territorial-reconciliation-ump-row is-${tone}`}>
                           {rowContent}
                         </article>
                       );
@@ -1742,7 +1760,7 @@ export function TerritorialSourceConsole({
                     <button
                       key={rowKey}
                       type="button"
-                      className={`mon-territorial-reconciliation-row is-${tone}${recommendationId ? " is-recommended" : ""}${isSelected ? " is-selected" : ""}`}
+                      className={`mon-territorial-reconciliation-row mon-territorial-reconciliation-ump-row is-${tone}${recommendationId ? " is-recommended" : ""}${isSelected ? " is-selected" : ""}`}
                       onClick={() => { if (recommendationId) toggleBatchRecommendation(recommendationId); }}
                       disabled={saving || busy || batchApplying}
                     >
