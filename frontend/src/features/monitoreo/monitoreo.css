@@ -55620,14 +55620,18 @@ button.mon-acr-requirement-metric:active {
 
 @media (max-width: 1500px) {
   .mon-territorial-reconciliation-panel.is-ump {
-    grid-template-rows: auto auto auto minmax(62px, 0.34fr) minmax(118px, 1fr);
+    grid-template-rows: auto auto auto 58px minmax(118px, 1fr);
     gap: 7px;
     padding: 10px;
   }
 
   .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-list {
-    max-height: 76px;
+    max-height: 58px;
     gap: 6px;
+  }
+
+  .mon-territorial-reconciliation-panel.is-code .mon-territorial-reconciliation-list {
+    max-height: 256px;
   }
 
   .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-ump-row {
@@ -55680,6 +55684,13 @@ button.mon-acr-requirement-metric:active {
   .mon-territorial-reconciliation-queue-list article {
     gap: 6px;
     padding: 6px 7px;
+  }
+}
+
+@media (max-width: 1500px) and (max-height: 850px) {
+  .mon-territorial-reconciliation-panel.is-code .mon-territorial-reconciliation-list,
+  .mon-territorial-reconciliation-queue-list {
+    max-height: 58px;
   }
 }
 
