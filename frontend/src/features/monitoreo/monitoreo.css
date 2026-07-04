@@ -19030,11 +19030,18 @@
 }
 
 @media (max-width: 1500px) {
+  .mon-territorial-quota-consistency {
+    gap: 9px;
+    padding: 8px;
+  }
+
   .mon-territorial-quota-commandbar {
     grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
     grid-template-areas:
       "title search"
       "actions actions";
+    gap: 7px;
+    padding: 7px;
   }
 
   .mon-territorial-quota-command-title {
@@ -19053,6 +19060,101 @@
 
   .mon-territorial-quota-command-actions [role="tablist"] {
     flex-wrap: nowrap;
+  }
+
+  .mon-territorial-quota-block-list {
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 10px;
+    min-height: clamp(660px, calc(100vh - 238px), 1080px);
+    padding-bottom: 10px;
+  }
+
+  .mon-territorial-quota-block-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .mon-territorial-quota-block-card > header {
+    gap: 8px;
+  }
+
+  .mon-territorial-quota-block-card > header div {
+    gap: 2px;
+  }
+
+  .mon-territorial-quota-block-card > header span {
+    font-size: 9px;
+    line-height: 1.18;
+  }
+
+  .mon-territorial-quota-block-card > header strong {
+    font-size: 15px;
+  }
+
+  .mon-territorial-quota-block-card > header b {
+    min-height: 24px;
+    padding: 4px 8px;
+  }
+
+  .mon-territorial-quota-block-meta {
+    gap: 5px;
+  }
+
+  .mon-territorial-quota-block-meta span {
+    padding: 5px 7px;
+  }
+
+  .mon-territorial-quota-total-meter {
+    height: 6px;
+  }
+
+  .mon-territorial-quota-margins {
+    grid-template-columns: repeat(2, minmax(190px, 1fr));
+    gap: 6px;
+  }
+
+  .mon-territorial-quota-margin-group {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .mon-territorial-quota-margin-group > div {
+    gap: 4px;
+  }
+
+  .mon-territorial-quota-margin-row {
+    gap: 2px 6px;
+  }
+
+  .mon-territorial-quota-observed {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .mon-territorial-quota-layer-strip {
+    gap: 5px;
+  }
+
+  .mon-territorial-quota-layer-strip > span {
+    gap: 2px;
+    padding: 5px 6px;
+  }
+
+  .mon-territorial-quota-layer-strip strong {
+    font-size: 13px;
+  }
+
+  .mon-territorial-quota-layer-strip em {
+    font-size: 8.2px;
+  }
+
+  .mon-territorial-quota-observed th,
+  .mon-territorial-quota-observed td {
+    padding: 5px 6px;
+  }
+
+  .mon-territorial-quota-observed > p {
+    display: none;
   }
 }
 
@@ -19652,6 +19754,19 @@
 
   .mon-territorial-quota-block-list {
     min-height: clamp(620px, calc(100vh - 300px), 1040px);
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1280px) {
+  .mon-territorial-quota-commandbar {
+    grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
+    grid-template-areas:
+      "title search"
+      "actions actions";
+  }
+
+  .mon-territorial-quota-block-list {
+    min-height: clamp(640px, calc(100vh - 248px), 1040px);
   }
 }
 
