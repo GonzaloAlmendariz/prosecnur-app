@@ -50,6 +50,7 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
   const cat = categoryOf(slide.tipo);
   const titulo = slideDisplayTitle(slide, variables);
   const slideTypeLabel = SLIDE_LABELS[slide.tipo] ?? humanizeIdentifier(slide.tipo, "Slide");
+  const timelineTypeLabel = compactTimelineSlideLabel(slideTypeLabel);
   const graphItems = graphItemsForSlide(slide, graficadoresById);
   const graphCount = graphItems.reduce((total, item) => total + item.count, 0);
 
@@ -99,8 +100,8 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
         <span className="pulso-gv2-slide-card-type-icon" aria-hidden="true">
           <SlideTypeIcon tipo={slide.tipo} iconoUi={meta?.icono_ui} size={12} />
         </span>
-        <span className="pulso-gv2-slide-card-title-label">{slideTypeLabel}</span>
-        {graphCount > 1 && (
+        <span className="pulso-gv2-slide-card-title-label">{timelineTypeLabel}</span>
+        {graphCount > 2 && (
           <span className="pulso-gv2-slide-card-graph-count">
             {graphCount} gráficos
           </span>
@@ -169,6 +170,14 @@ type GraphTimelineItem = {
 };
 
 type GraphMetaLookup = Record<string, { titulo_humano?: string | null; icono_ui?: string | null } | undefined>;
+
+function compactTimelineSlideLabel(label: string): string {
+  return label
+    .replace(/^Un gráfico\b/, "1 gráfico")
+    .replace(/^Dos gráficos\b/, "2 gráficos")
+    .replace(/\s+\(población\)$/i, "")
+    .replace(/^Separador de sección$/i, "Separador");
+}
 
 function graphItemsForSlide(slide: Slide, graficadoresById: GraphMetaLookup): GraphTimelineItem[] {
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
