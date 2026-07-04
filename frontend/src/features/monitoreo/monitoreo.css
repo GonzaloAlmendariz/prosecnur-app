@@ -55159,6 +55159,53 @@ button.mon-acr-requirement-metric:active {
   gap: 2px;
 }
 
+.mon-territorial-reconciliation-queue-main {
+  align-content: center;
+  gap: 1px;
+}
+
+.mon-territorial-reconciliation-queue-main small {
+  color: var(--pulso-text-faint);
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-queue-evidence {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border-strong) 34%, transparent);
+  padding-left: 8px;
+}
+
+.mon-territorial-reconciliation-queue-evidence span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 10px;
+  font-weight: 860;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-queue-evidence strong {
+  color: var(--pulso-text);
+  font-size: 10px;
+  font-weight: 880;
+  line-height: 1.1;
+}
+
+.mon-territorial-reconciliation-queue-evidence em {
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-weight: 740;
+}
+
 .mon-territorial-reconciliation-queue-list strong,
 .mon-territorial-reconciliation-queue-list em,
 .mon-territorial-reconciliation-queue-list small {

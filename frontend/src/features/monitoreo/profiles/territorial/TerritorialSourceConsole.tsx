@@ -1800,17 +1800,24 @@ export function TerritorialSourceConsole({
                       const district = row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D";
                       const recommendationId = umpRecommendationIdForRow(row);
                       const statusLabel = recommendationId ? "Sugerida" : declaredUmpStatusLabel(row.status);
+                      const rawUmp = row.raw_ump || row.normalized_ump || "UMP S/D";
+                      const routeLabel = assignedUmp || "Sin ruta";
                       return (
                         <article
                           key={`${row.raw_ump || "missing"}-${row.response_id || index}`}
                           className={`is-${declaredUmpStatusTone(row.status)}${recommendationId ? " is-recommended" : ""}`}
                         >
                           <b>{statusLabel}</b>
-                          <div>
-                            <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
+                          <div className="mon-territorial-reconciliation-queue-main">
+                            <small>Declarada</small>
+                            <strong>{rawUmp}</strong>
                             <em>{declaredUmpReviewReason(row)}</em>
                           </div>
-                          <small>{fmt(row.response_count)} respuestas · {assignedUmp || "Sin ruta"} · {district}</small>
+                          <small className="mon-territorial-reconciliation-queue-evidence">
+                            <span>{fmt(row.response_count)} respuestas</span>
+                            <strong>{routeLabel}</strong>
+                            <em>{district}</em>
+                          </small>
                         </article>
                       );
                     }) : (
