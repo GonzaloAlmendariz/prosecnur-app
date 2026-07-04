@@ -1611,17 +1611,17 @@ function PlatformImportPanel({
         )}
       </div>
 
-      <div className="pulso-platform-footer">
+      <div className={`pulso-platform-footer${selectedReady ? " is-ready" : " is-waiting"}`}>
         <span>
           {selectedReady
             ? isSurveyMonkey
               ? selectedSurvey?.title
               : selectedAsset?.name
-            : "Selecciona una fuente"}
+            : "Selecciona una fuente para activar la importación"}
         </span>
         <button
           type="button"
-          className="pulso-platform-import-button"
+          className={`pulso-platform-import-button${selectedReady ? " is-ready" : " is-unavailable"}${busy ? " is-busy" : ""}`}
           onClick={onImport}
           disabled={busy || catalogLoading || !hasConnection || !selectedReady}
         >

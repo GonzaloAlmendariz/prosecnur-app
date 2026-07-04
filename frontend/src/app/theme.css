@@ -14867,6 +14867,12 @@ h1.pulso-page-title {
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 252, 251, 0.78)),
     color-mix(in srgb, var(--platform-soft) 34%, #fff);
 }
+.pulso-platform-footer.is-waiting {
+  border-color: color-mix(in srgb, var(--pulso-border) 88%, #fff);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.78)),
+    var(--pulso-surface-2);
+}
 .pulso-platform-footer > span {
   min-width: 0;
   color: var(--pulso-text-soft);
@@ -14886,6 +14892,17 @@ h1.pulso-page-title {
 .pulso-platform-import-button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--platform-accent) 88%, #111827);
   border-color: color-mix(in srgb, var(--platform-accent) 88%, #111827);
+}
+.pulso-platform-import-button.is-unavailable:disabled {
+  border-color: color-mix(in srgb, var(--pulso-border) 86%, #fff);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(241, 245, 249, 0.82));
+  color: var(--pulso-text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.pulso-platform-import-button.is-unavailable:disabled svg {
+  opacity: 0.62;
 }
 
 .pulso-data-review-card {
