@@ -43,6 +43,7 @@ type Props = {
   args: ArgMetadata[];
   values: Record<string, unknown>;
   inheritedValues?: Record<string, unknown>;
+  surfaceLabel?: string;
   onChangeArg: (name: string, value: unknown) => void;
   onChangeArgs?: (patch: Record<string, unknown>) => void;
   onResetArg?: (name: string) => void;
@@ -116,6 +117,7 @@ export function ChartLayoutEditor({
   args,
   values,
   inheritedValues = {},
+  surfaceLabel,
   onChangeArg,
   onChangeArgs,
   onResetArg,
@@ -382,15 +384,15 @@ export function ChartLayoutEditor({
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
-              <strong>Mapa de espacios</strong>
-              <span>Arrastra bordes. Abre medidas exactas para afinar; 0 oculta una zona.</span>
+              <strong>{surfaceLabel ? `Mapa de espacios · ${surfaceLabel}` : "Mapa de espacios"}</strong>
+              <span>Arrastra los bordes para repartir espacio. Abre medidas exactas cuando necesites afinar.</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
               <span>Aplicando</span>
               <strong>{sourceLabel}</strong>
               <small>{sourceDetail}</small>
             </div>
-            <div className="pulso-gv2-layout-role-strip" aria-label="Zonas visibles del placeholder">
+            <div className="pulso-gv2-layout-role-strip" aria-label="Zonas visibles del gráfico">
               {roleSummary.map(({ role, label, count }) => (
                 <span key={role} data-role={role}>
                   <i aria-hidden="true" />

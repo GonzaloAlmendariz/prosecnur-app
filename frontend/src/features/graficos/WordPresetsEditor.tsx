@@ -7,6 +7,7 @@ import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, ARG_GROUP_ORDER, GRUPO_META, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
+import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -64,19 +65,25 @@ export function WordPresetsEditor() {
   }
 
   function setPresetArg(presetName: string, argName: string, value: unknown) {
+    setPresetPatch(presetName, { [argName]: value });
+  }
+
+  function setPresetPatch(presetName: string, patchIn: Record<string, unknown>) {
     const nextChartPresets: Record<string, Record<string, unknown>> = {
       ...chartPresets,
       [presetName]: { ...(chartPresets[presetName] ?? {}) },
     };
-    if (value === null || value === undefined || value === "") {
-      const defaultPatch = defaultChartPresets[presetName] ?? {};
-      if (Object.prototype.hasOwnProperty.call(defaultPatch, argName)) {
-        nextChartPresets[presetName][argName] = defaultPatch[argName];
+    const defaultPatch = defaultChartPresets[presetName] ?? {};
+    for (const [argName, value] of Object.entries(patchIn)) {
+      if (value === null || value === undefined || value === "") {
+        if (Object.prototype.hasOwnProperty.call(defaultPatch, argName)) {
+          nextChartPresets[presetName][argName] = defaultPatch[argName];
+        } else {
+          delete nextChartPresets[presetName][argName];
+        }
       } else {
-        delete nextChartPresets[presetName][argName];
+        nextChartPresets[presetName][argName] = value;
       }
-    } else {
-      nextChartPresets[presetName][argName] = value;
     }
     if (Object.keys(nextChartPresets[presetName]).length === 0) {
       delete nextChartPresets[presetName];
@@ -244,6 +251,17 @@ export function WordPresetsEditor() {
                   onChangeArg={(name, val) => setPresetArg(meta.name, name, val)}
                   onResetArg={(name) => setPresetArg(meta.name, name, null)}
                   variables={[]}
+                  bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(meta.name, meta.args) ? (
+                    <ChartLayoutEditor
+                      presetType={meta.name}
+                      args={meta.args}
+                      values={selectedPatch}
+                      inheritedValues={inherited}
+                      surfaceLabel="Word"
+                      onChangeArg={(name, value) => setPresetArg(meta.name, name, value)}
+                      onChangeArgs={(patch) => setPresetPatch(meta.name, patch)}
+                    />
+                  ) : undefined}
                 />
               ))
             )}
