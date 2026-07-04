@@ -164,9 +164,9 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
         <div className="pulso-gv2-estilo-workbench">
           <aside className="pulso-gv2-estilo-rail" aria-label="Secciones de estilo global">
             <div className="pulso-gv2-estilo-rail-head">
-              <span>Mapa visual</span>
-              <strong>Base, identidad y estilos</strong>
-              <small>Primero fija la base; después guarda variaciones reutilizables cuando haga falta.</small>
+              <span>Estructura visual</span>
+              <strong>Base, color y estilos</strong>
+              <small>Fija la base; guarda variaciones solo cuando necesites reutilizarlas.</small>
             </div>
 
             <div className="pulso-gv2-estilo-flow" aria-label="Cómo se aplican los estilos">
