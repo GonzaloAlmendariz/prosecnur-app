@@ -856,8 +856,11 @@ function formatCell(value: unknown) {
 function EmptyPanelState({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <div className="analitica-empty analitica-panel-empty">
-      {icon}
-      <span>{label}</span>
+      <span className="analitica-empty-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <strong>{label}</strong>
+      <small>Revisa la configuración o previsualiza de nuevo.</small>
     </div>
   );
 }
