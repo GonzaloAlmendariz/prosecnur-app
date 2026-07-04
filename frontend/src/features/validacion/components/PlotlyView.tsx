@@ -63,6 +63,15 @@ const SEVERIDAD_COLORS: Record<
   },
 };
 
+function friendlyValidationText(value?: string | null) {
+  if (!value) return value;
+  return value
+    .replace(/\bTotal casos\b/g, "Casos revisados")
+    .replace(/\bFilas en la base\b/g, "Registros en la base")
+    .replace(/\bMissing\b/g, "Sin respuesta")
+    .replace(/\bmissing\b/g, "sin respuesta");
+}
+
 export default function PlotlyView({ view, onAction, height }: Props) {
   if (view.kind === "kpi_card") {
     return <KpiCard view={view} onAction={onAction} />;
@@ -75,9 +84,11 @@ function KpiCard({ view }: { view: ViewDescriptor; onAction?: OnAction }) {
   const colors = SEVERIDAD_COLORS[sev] ?? SEVERIDAD_COLORS.neutral;
   const Icon = SEVERIDAD_ICONS[sev] ?? SEVERIDAD_ICONS.neutral;
   const value = view.meta?.value;
-  const footer = deriveChartFooter(view);
+  const footer = friendlyValidationText(deriveChartFooter(view));
   const chips = buildMetaChips(view.meta);
-  const eyebrow = deriveChartEyebrow(view);
+  const eyebrow = friendlyValidationText(deriveChartEyebrow(view));
+  const title = friendlyValidationText(view.title);
+  const subtitle = friendlyValidationText(view.subtitle);
 
   return (
     <article
@@ -118,7 +129,7 @@ function KpiCard({ view }: { view: ViewDescriptor; onAction?: OnAction }) {
               color: "var(--pulso-text)",
             }}
           >
-            {view.title}
+            {title}
           </div>
         </div>
         <span
@@ -151,7 +162,7 @@ function KpiCard({ view }: { view: ViewDescriptor; onAction?: OnAction }) {
         {value == null || value === "" ? "—" : String(value)}
       </div>
 
-      {view.subtitle && (
+      {subtitle && (
         <div
           style={{
             fontSize: 12,
@@ -159,7 +170,7 @@ function KpiCard({ view }: { view: ViewDescriptor; onAction?: OnAction }) {
             color: "var(--pulso-text-soft)",
           }}
         >
-          {view.subtitle}
+          {subtitle}
         </div>
       )}
 
@@ -202,9 +213,11 @@ function PlotlyChart({
   height?: number;
 }) {
   const tone = getChartTone(view);
-  const eyebrow = deriveChartEyebrow(view);
+  const eyebrow = friendlyValidationText(deriveChartEyebrow(view)) ?? "";
   const chips = buildMetaChips(view.meta);
-  const footer = deriveChartFooter(view);
+  const footer = friendlyValidationText(deriveChartFooter(view));
+  const title = friendlyValidationText(view.title) ?? view.title;
+  const subtitle = friendlyValidationText(view.subtitle) ?? undefined;
 
   const layout = useMemo(() => buildPlotlyLayout(view, height), [view, height]);
   const config = useMemo(() => buildPlotlyConfig(view), [view]);
@@ -225,8 +238,8 @@ function PlotlyChart({
     >
       <ChartHeader
         eyebrow={eyebrow}
-        title={view.title}
-        subtitle={view.subtitle}
+        title={title}
+        subtitle={subtitle}
         chips={chips}
         accent={tone.accent}
       />
@@ -256,7 +269,7 @@ function PlotlyChart({
               layout={layout as Record<string, unknown>}
               config={config as Record<string, unknown>}
               height={height ?? 260}
-              ariaLabel={view.title}
+              ariaLabel={title}
             />
           )}
         </div>

@@ -69,7 +69,7 @@ export default function VariablePicker({
           textAlign: "center",
         }}
       >
-        Sin variables en esta base.
+        Sin preguntas o campos en esta base.
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function VariablePicker({
         />
         <input
           type="text"
-          placeholder="Buscar variable…"
+          placeholder="Buscar pregunta o campo…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{
@@ -267,7 +267,7 @@ function VariableRow({
       </div>
       {showMissing && (
         <span
-          title={`${(pctMissing * 100).toFixed(1)}% missing`}
+          title={`${(pctMissing * 100).toFixed(1)}% sin respuesta`}
           style={{
             flexShrink: 0,
             fontSize: 10,

@@ -231,7 +231,7 @@ export default function ExplorarTab() {
     return (
       <EmptyState
         icon={<Compass size={20} />}
-        title="Sin variables para explorar"
+        title="Sin preguntas o campos para explorar"
         hint="La base no tiene columnas reconocibles. Revisa la carga en la Fase 1."
       />
     );
@@ -242,7 +242,7 @@ export default function ExplorarTab() {
       {/* --- Sidebar: picker --------------------------------------------- */}
       <aside className="pulso-validacion-explorar-sidebar">
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
-          Variables · {inv.n_variables}
+          Preguntas y campos · {inv.n_variables}
         </div>
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginBottom: 10 }}>
           Este explorador muestra <strong>Selección única</strong>, <strong>Selección múltiple</strong>, <strong>numéricas</strong> y <strong>respuestas abiertas</strong>.
@@ -256,7 +256,7 @@ export default function ExplorarTab() {
 
       {/* --- Vista principal ---------------------------------------------- */}
       <main className="pulso-validacion-explorar-main">
-        {/* Toggle de fuente: data cruda vs final (tras Limpieza). */}
+        {/* Toggle de momento: respuestas cargadas vs versión final tras Limpieza. */}
         <FuenteToggle
           fuente={fuente}
           onChange={setFuente}
@@ -275,8 +275,8 @@ export default function ExplorarTab() {
         {!selected && (
           <EmptyState
             icon={<Compass size={20} />}
-            title="Elige una variable"
-            hint="Selecciona una variable del panel izquierdo para ver su distribución, resumen y cruces."
+            title="Elige una pregunta o campo"
+            hint="Selecciona un elemento del panel izquierdo para ver su distribución, resumen y cruces."
           />
         )}
 
@@ -520,9 +520,9 @@ function TextCell({
 }
 
 // -----------------------------------------------------------------------------
-// FuenteToggle — selector "data cruda" vs "data final" (tras Limpieza)
+// FuenteToggle — selector de momento de revisión
 // -----------------------------------------------------------------------------
-// Segmentado de 2 posiciones. El botón "Data final" queda deshabilitado
+// Segmentado de 2 posiciones. El botón "Después de limpieza" queda deshabilitado
 // (con tooltip explicativo) hasta que Limpieza se haya finalizado.
 // Cuando está activo, un pequeño hint muestra cuándo se cerró la base.
 function FuenteToggle({
@@ -569,11 +569,11 @@ function FuenteToggle({
           color: "var(--pulso-text-soft)",
         }}
       >
-        Fuente
+        Momento
       </span>
       <div
         role="group"
-        aria-label="Fuente de datos del explorador"
+        aria-label="Momento de respuestas del explorador"
         style={{
           display: "inline-flex",
           border: "1px solid var(--pulso-border)",
@@ -582,17 +582,17 @@ function FuenteToggle({
         }}
       >
         <FuenteButton
-          label="Datos originales"
-          hint="Base tal como se cargó. Útil para detectar errores."
+          label="Antes de limpieza"
+          hint="Respuestas tal como se cargaron. Útil para detectar errores."
           active={fuente === "raw"}
           disabled={false}
           onClick={() => onChange("raw")}
         />
         <FuenteButton
-          label="Datos finales"
+          label="Después de limpieza"
           hint={
             hasFinal
-              ? "Base tras aplicar todas las decisiones de Limpieza."
+              ? "Respuestas tras aplicar todas las decisiones de Limpieza."
               : "Cierra Limpieza primero para habilitar este modo."
           }
           active={fuente === "final"}
@@ -607,7 +607,7 @@ function FuenteToggle({
       )}
       {fuente === "raw" && hasFinal && (
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          Hay una versión final disponible.
+          Hay una versión posterior a limpieza disponible.
         </span>
       )}
     </div>
