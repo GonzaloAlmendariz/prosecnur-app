@@ -374,21 +374,20 @@ export function DataReviewPane() {
   return (
     <Panel
       className="pulso-data-review-panel"
-      eyebrow="Datos"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Datos / Revisión de etiquetas</span>}
+      title={<span className="pulso-data-review-title"><Database size={16} /> Revisión de etiquetas</span>}
       hint="Define qué variables entran a los reportes y corrige etiquetas de variables u opciones sin tocar respuestas crudas."
       actions={
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <span style={pillStyle}>{includedCount}/{variables.length} incluidas</span>
+        <div className="pulso-data-review-command">
+          <span className="pulso-data-review-command-chip">{includedCount}/{variables.length} incluidas</span>
           {excludedCount > 0 ? (
-            <span style={pillStyle}>{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
+            <span className="pulso-data-review-command-chip">{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
           ) : null}
-          <span style={pillStyle}>{editedCount} etiqueta{editedCount === 1 ? "" : "s"} editada{editedCount === 1 ? "" : "s"}</span>
+          <span className="pulso-data-review-command-chip">{editedCount} etiqueta{editedCount === 1 ? "" : "s"} editada{editedCount === 1 ? "" : "s"}</span>
           {draftStatus.pendingCount > 0 ? (
-            <span style={pillStyle}>{draftStatus.pendingCount} etiqueta{draftStatus.pendingCount === 1 ? "" : "s"} sin confirmar</span>
+            <span className="pulso-data-review-command-chip">{draftStatus.pendingCount} etiqueta{draftStatus.pendingCount === 1 ? "" : "s"} sin confirmar</span>
           ) : null}
           {draftStatus.emptyCount > 0 && draftStatus.pendingCount > 0 ? (
-            <span style={{ ...pillStyle, color: "var(--pulso-danger-fg)", borderColor: "var(--pulso-danger-border)" }}>
+            <span className="pulso-data-review-command-chip is-danger">
               {draftStatus.emptyCount} etiqueta{draftStatus.emptyCount === 1 ? "" : "s"} vacía{draftStatus.emptyCount === 1 ? "" : "s"}
             </span>
           ) : null}
@@ -396,8 +395,7 @@ export function DataReviewPane() {
             type="button"
             onClick={confirmDraftLabels}
             disabled={loading || draftStatus.pendingCount === 0}
-            className="pulso-primary"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            className="pulso-primary pulso-data-review-command-button"
             title={draftStatus.pendingCount === 0 ? "No hay etiquetas pendientes. La inclusión de variables se autoguarda." : "Validar y guardar etiquetas editadas."}
           >
             <CheckCircle2 size={13} />
@@ -407,8 +405,7 @@ export function DataReviewPane() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="pulso-ghost"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            className="pulso-ghost pulso-data-review-command-button"
           >
             <RefreshCw size={13} className={loading ? "pulso-spin" : ""} />
             Actualizar
