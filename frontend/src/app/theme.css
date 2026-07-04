@@ -16988,10 +16988,15 @@ h1.pulso-page-title {
   line-height: 1.45;
 }
 .analitica-segmented {
-  display: inline-grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: flex-start;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 4px;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  overflow-x: auto;
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
   border-radius: 13px;
@@ -17000,11 +17005,18 @@ h1.pulso-page-title {
   box-shadow:
     inset 0 1px 1px rgba(15, 23, 42, 0.045),
     inset 0 -1px 0 rgba(255, 255, 255, 0.78);
+  scrollbar-width: none;
+}
+.analitica-segmented::-webkit-scrollbar {
+  display: none;
 }
 .analitica-segmented button {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   min-height: 34px;
+  min-width: 104px;
+  padding: 0 12px;
   justify-content: center;
   border-radius: 10px;
   border-color: transparent;
@@ -17013,6 +17025,21 @@ h1.pulso-page-title {
   font-weight: 760;
   color: var(--pulso-text-soft);
   box-shadow: none;
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.analitica-segmented button:hover:not(:disabled):not(.is-on),
+.analitica-segmented button:focus-visible:not(.is-on) {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--pulso-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-primary-border) 34%, transparent);
+}
+.analitica-segmented button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 .analitica-segmented button.is-on {
   background:
@@ -17023,8 +17050,8 @@ h1.pulso-page-title {
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
     0 5px 12px rgba(0, 36, 87, 0.07);
 }
-.analitica-segmented--five {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+.analitica-segmented--five button {
+  min-width: 96px;
 }
 .analitica-inline-title {
   display: inline-flex;
@@ -17068,8 +17095,9 @@ h1.pulso-page-title {
 }
 .analitica-panel-commandbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto auto;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
@@ -17870,9 +17898,15 @@ h1.pulso-page-title {
   }
 
   .analitica-report-overview,
-  .analitica-control-grid,
-  .analitica-segmented {
+  .analitica-control-grid {
     grid-template-columns: 1fr;
+  }
+  .analitica-segmented {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .analitica-segmented button {
+    flex: 1 1 138px;
   }
   .analitica-panel-commandbar {
     align-items: stretch;
