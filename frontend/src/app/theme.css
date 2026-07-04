@@ -15672,14 +15672,16 @@ h1.pulso-page-title {
 }
 .pulso-analitica-product {
   position: relative;
-  min-width: 118px;
-  max-width: 172px;
+  flex: 0 0 42px;
+  min-width: 0;
+  max-width: 168px;
   min-height: 40px;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
-  gap: 7px;
+  gap: 0;
   padding: 7px 8px;
+  overflow: hidden;
   border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
@@ -15687,6 +15689,10 @@ h1.pulso-page-title {
   cursor: pointer;
   text-align: left;
   transition:
+    flex-basis var(--motion-dur-base) var(--motion-ease-out),
+    max-width var(--motion-dur-base) var(--motion-ease-out),
+    gap var(--motion-dur-fast) ease,
+    padding var(--motion-dur-fast) ease,
     transform var(--motion-dur-press) var(--motion-ease-out),
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -15698,6 +15704,13 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text);
 }
+.pulso-analitica-product:hover:not(:disabled),
+.pulso-analitica-product:focus-visible,
+.pulso-analitica-product:active:not(:disabled) {
+  flex-basis: 166px;
+  gap: 8px;
+  padding-right: 28px;
+}
 .pulso-analitica-product:active:not(:disabled) {
   transform: scale(0.98);
 }
@@ -15706,6 +15719,9 @@ h1.pulso-page-title {
   opacity: 0.62;
 }
 .pulso-analitica-product.is-active {
+  flex-basis: 166px;
+  gap: 8px;
+  padding-right: 28px;
   border-color: color-mix(in srgb, var(--analitica-accent) 34%, var(--pulso-border));
   background: #fff;
   color: var(--analitica-accent);
@@ -15714,8 +15730,8 @@ h1.pulso-page-title {
     inset 0 0 0 1px color-mix(in srgb, var(--analitica-border) 72%, transparent);
 }
 .pulso-analitica-product-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15731,26 +15747,68 @@ h1.pulso-page-title {
 .pulso-analitica-product-copy {
   min-width: 0;
   display: grid;
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    max-width var(--motion-dur-base) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-analitica-product:hover:not(:disabled) .pulso-analitica-product-copy,
+.pulso-analitica-product:focus-visible .pulso-analitica-product-copy,
+.pulso-analitica-product.is-active .pulso-analitica-product-copy {
+  max-width: 108px;
+  opacity: 1;
+  transform: translateX(0);
 }
 .pulso-analitica-product-copy strong,
 .pulso-analitica-product-copy span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .pulso-analitica-product-copy strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   color: var(--pulso-text);
   font-size: 11.5px;
   font-weight: 780;
-  line-height: 1.15;
+  line-height: 1.08;
+  white-space: normal;
 }
 .pulso-analitica-product-copy span {
   display: none;
 }
 .pulso-analitica-product-done {
+  position: absolute;
+  top: 6px;
+  right: 7px;
   display: inline-flex;
   color: var(--pulso-success-fg);
+  opacity: 0;
+  transform: scale(0.78);
+  transition:
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-analitica-product.is-done:not(:hover):not(:focus-visible):not(.is-active)::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pulso-success-fg);
+  box-shadow: 0 0 0 2px #fff;
+}
+.pulso-analitica-product:hover:not(:disabled) .pulso-analitica-product-done,
+.pulso-analitica-product:focus-visible .pulso-analitica-product-done,
+.pulso-analitica-product.is-active .pulso-analitica-product-done {
+  opacity: 1;
+  transform: scale(1);
 }
 .pulso-analitica-sourcebar {
   width: 100%;
