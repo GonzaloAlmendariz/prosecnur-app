@@ -188,8 +188,8 @@ function SourceButton({
   const xls = first?.xlsform?.filename ?? "XLSForm no resuelto";
   const data = first?.data?.filename ?? "Data no resuelta";
   const titleAttr = bases.length > 1
-    ? bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin XLSForm"} + ${b.data?.filename ?? "sin data"}`).join("\n")
-    : `${xls}\n${data}`;
+    ? `${title} - ${description}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin XLSForm"} + ${b.data?.filename ?? "sin data"}`).join("\n")}`
+    : `${title} - ${description}\n${xls}\n${data}`;
 
   return (
     <button
