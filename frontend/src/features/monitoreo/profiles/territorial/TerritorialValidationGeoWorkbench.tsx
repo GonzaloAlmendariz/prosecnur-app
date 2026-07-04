@@ -529,6 +529,7 @@ export function TerritorialSpatialReconciliationWorkbench({
           applying={applying}
           message={message}
           saving={saving}
+          summary={summary}
           onConfirm={() => setConfirmOpen(true)}
           onDiscard={() => {
             if (busy) return;
@@ -565,6 +566,7 @@ function TerritorialSpatialReconciliationBatchBar({
   applying,
   message,
   saving,
+  summary,
   onConfirm,
   onDiscard,
 }: {
@@ -572,32 +574,50 @@ function TerritorialSpatialReconciliationBatchBar({
   applying: boolean;
   message: string;
   saving: boolean;
+  summary: MonitoreoTerritorialSpatialReconciliationSummary | null;
   onConfirm: () => void;
   onDiscard: () => void;
 }) {
-  if (!changes.length && !message) return null;
   const errorCount = changes.filter((item) => item.status === "error").length;
+  const candidateCount = summary?.metrics?.candidates ?? summary?.candidates?.length ?? 0;
+  const patternCount = summary?.metrics?.patterns ?? summary?.patterns?.length ?? 0;
+  const hasQueue = changes.length > 0;
+  const fallbackMessage = hasQueue
+    ? `${formatMetric(changes.length)} UMP listas para confirmar${errorCount ? ` · ${formatMetric(errorCount)} con error` : ""}`
+    : candidateCount || patternCount
+      ? `${formatMetric(candidateCount)} candidatas · ${formatMetric(patternCount)} patrones por revisar`
+      : "Motor limpio: sin movimientos preparados.";
   return (
-    <section className={`mon-territorial-reconciliation-batchbar${changes.length ? " is-active" : ""}`} aria-label="Cambios de reconciliación pendientes">
+    <section className={`mon-territorial-reconciliation-batchbar${hasQueue ? " is-active" : " is-empty"}`} aria-label="Cambios de reconciliación pendientes">
       <div className="mon-territorial-reconciliation-batchcopy">
-        <span><ClipboardCheck size={14} /> Lote de reconciliación</span>
-        <strong>{changes.length ? `${formatMetric(changes.length)} cambios pendientes` : "Sin cambios pendientes"}</strong>
-        <em>{message || `${formatMetric(0)} Código Pulso · ${formatMetric(changes.length)} UMP${errorCount ? ` · ${formatMetric(errorCount)} con error` : ""}`}</em>
+        <span><ClipboardCheck size={14} /> Cola de reconciliación UMP</span>
+        <strong>{hasQueue ? `${formatMetric(changes.length)} cambios listos` : "Sin cambios en cola"}</strong>
+        <em>{message || fallbackMessage}</em>
       </div>
       <div className="mon-territorial-reconciliation-batchrail">
         <div className="mon-territorial-reconciliation-batchcounts" aria-label="Conteo de cambios pendientes">
-          <span><strong>{formatMetric(0)}</strong><em>Código Pulso</em></span>
-          <span><strong>{formatMetric(changes.length)}</strong><em>UMP</em></span>
+          <span><strong>{formatMetric(changes.length)}</strong><em>En cola</em></span>
+          <span><strong>{formatMetric(candidateCount)}</strong><em>Candidatas</em></span>
+          <span><strong>{formatMetric(patternCount)}</strong><em>Patrones</em></span>
         </div>
         <div className="mon-territorial-reconciliation-batchactions">
-          <button type="button" onClick={onDiscard} disabled={applying || saving || !changes.length}>
-            <Trash2 size={13} />
-            <span>Descartar</span>
-          </button>
-          <button type="button" className="is-primary" onClick={onConfirm} disabled={applying || saving || !changes.length}>
-            {applying ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-            <span>Confirmar...</span>
-          </button>
+          {hasQueue ? (
+            <>
+              <button type="button" onClick={onDiscard} disabled={applying || saving}>
+                <Trash2 size={13} />
+                <span>Descartar</span>
+              </button>
+              <button type="button" className="is-primary" onClick={onConfirm} disabled={applying || saving}>
+                {applying ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
+                <span>Confirmar lote</span>
+              </button>
+            </>
+          ) : (
+            <span className="mon-territorial-reconciliation-batchstate">
+              <CheckCircle2 size={13} />
+              <span>Revisión manual</span>
+            </span>
+          )}
         </div>
       </div>
     </section>
@@ -733,18 +753,19 @@ function TerritorialSpatialReconciliationPanel({
                   const pendingId = candidate ? pendingUmpReconciliationId(candidate.reconciliation) : "";
                   return pendingId && queuedIds.has(pendingId);
                 }).length;
+                const patternQueued = candidateIds.length > 0 && stagedCount === candidateIds.length;
                 return (
-                  <article key={pattern.pattern_key} className={`mon-territorial-spatial-pattern is-${normalizeMatch(pattern.confidence)}`}>
+                  <article key={pattern.pattern_key} className={`mon-territorial-spatial-pattern is-${normalizeMatch(pattern.confidence)}${patternQueued ? " is-queued" : ""}`}>
                     <div>
                       <span>Patrón · {territorialSpatialConfidenceLabel(pattern.confidence)}</span>
                       <strong>{formatMetric(pattern.count)} casos: UMP {pattern.raw_ump || pattern.declared_ump || "-"} → UMP {pattern.target_ump || "-"}</strong>
                       <em>{pattern.responsible || pattern.target_responsible || "Sin responsable"} · {pattern.target_district || "Sin distrito"}</em>
                     </div>
                     <div className="mon-territorial-spatial-pattern-actions">
-                      <small>{formatMetric(pattern.score)} pts{stagedCount ? ` · ${formatMetric(stagedCount)} en cola` : ""}</small>
-                      <button type="button" onClick={() => onStagePattern(pattern)} disabled={saving || !candidateIds.length}>
+                      <small>{formatMetric(pattern.score)} pts · {formatMetric(candidateIds.length)} candidatas{stagedCount ? ` · ${formatMetric(stagedCount)} en cola` : ""}</small>
+                      <button type="button" onClick={() => onStagePattern(pattern)} disabled={saving || !candidateIds.length || patternQueued}>
                         <ClipboardCheck size={13} />
-                        <span>Poner patrón en cola</span>
+                        <span>{patternQueued ? "Patrón en cola" : "Poner patrón en cola"}</span>
                       </button>
                       <button type="button" onClick={() => onDismissPattern(pattern)} disabled={saving}>
                         <Trash2 size={13} />
@@ -772,12 +793,13 @@ function TerritorialSpatialReconciliationPanel({
               });
               const queued = queuedIds.has(pendingUmpReconciliationId(candidate.reconciliation));
               return (
-                <article key={candidate.candidate_id} className={`mon-territorial-spatial-candidate is-${normalizeMatch(candidate.confidence)}`}>
+                <article key={candidate.candidate_id} className={`mon-territorial-spatial-candidate is-${normalizeMatch(candidate.confidence)}${queued ? " is-queued" : ""}`}>
                   <header>
                     <div>
                       <span>{territorialSpatialConfidenceLabel(candidate.confidence)} · {formatMetric(candidate.score)} pts</span>
                       <strong>{candidate.responsible || candidate.target_responsible || "Sin responsable"}</strong>
                     </div>
+                    <span className="mon-territorial-spatial-candidate-status">{queued ? "En cola" : "Sugerencia"}</span>
                     <button type="button" onClick={() => onFocusCandidate(candidate)} title="Ver este punto en el mapa">
                       <MapPin size={14} />
                       <span>Mapa</span>
