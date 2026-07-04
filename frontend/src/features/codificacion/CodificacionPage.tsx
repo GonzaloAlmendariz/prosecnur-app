@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
@@ -7,12 +7,12 @@ import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
-import { EmptyState } from "../../components/States";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
 import { useCodifSource } from "./useCodifSource";
 import { CodingConfigActions } from "./CodingConfigActions";
+import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 
 type Step = "organizar" | "codificar" | "adaptar";
 
@@ -124,11 +124,29 @@ export default function CodificacionPage() {
           aria-labelledby={`codificacion-step-${step}`}
         >
           {!prereqOk ? (
-            <EmptyState
-              icon={<FileSpreadsheet size={20} />}
-              title="Carga insumos para codificar"
-              hint="La codificación se habilita cuando la sesión tiene un formulario y respuestas cargadas."
-              cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
+            <ProcessingPrereqGate
+              eyebrow="Antes de codificar"
+              title="Carga formulario y respuestas"
+              copy="Con esos insumos Prosecnur puede ubicar preguntas abiertas, leer respuestas y preparar la mesa de codificación."
+              ctaLabel="Ir a Carga"
+              note="No cambia tu base; solo habilita el trabajo de codificación."
+              steps={[
+                {
+                  label: "Formulario",
+                  detail: "Preguntas, tipos y etiquetas del instrumento.",
+                  Icon: FileSpreadsheet,
+                },
+                {
+                  label: "Respuestas",
+                  detail: "Base cargada para revisar textos abiertos.",
+                  Icon: Database,
+                },
+                {
+                  label: "Codificación",
+                  detail: "Luego podrás organizar, agrupar y adaptar códigos.",
+                  Icon: Tags,
+                },
+              ]}
             />
           ) : (
             <>
