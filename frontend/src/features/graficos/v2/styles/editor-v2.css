@@ -27609,3 +27609,17 @@
     right: 14px;
   }
 }
+
+/* Suite polish pass 59: reset belongs to the same command family as the toolbar. */
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-toolbar-reset {
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 56%, var(--pulso-text-soft)) !important;
+  border-color: var(--gv2-command-cell-border) !important;
+  background: var(--gv2-command-cell-bg) !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-toolbar-reset:hover:not(:disabled),
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-toolbar-reset:focus-visible {
+  color: color-mix(in srgb, var(--pulso-danger-fg) 62%, var(--pulso-text)) !important;
+  border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 44%, var(--pulso-border)) !important;
+  background: var(--gv2-command-cell-hover) !important;
+}
