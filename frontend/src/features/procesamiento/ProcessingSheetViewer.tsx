@@ -108,6 +108,7 @@ export function ProcessingSheetViewer({
     [columnFilters, search],
   );
   const hasCodingLegend = highlightCoding && columns.some((column) => column.coded);
+  const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
 
   function resetFilters() {
     setSearchDraft("");
@@ -148,7 +149,7 @@ export function ProcessingSheetViewer({
   }
 
   return (
-    <section className="pulso-processing-sheet" aria-label={title}>
+    <section className={`pulso-processing-sheet${isWideSheet ? " is-wide" : ""}`} aria-label={title}>
       <div className="pulso-processing-sheet-toolbar">
         <div className="pulso-processing-sheet-title">
           <span className="pulso-processing-sheet-icon" aria-hidden="true">
@@ -317,6 +318,7 @@ export function ProcessingSheetViewer({
                 ? `${visibleStart.toLocaleString("es-PE")}-${visibleEnd.toLocaleString("es-PE")} de ${total.toLocaleString("es-PE")}`
                 : "0 filas"}
               {payload ? ` · ${payload.n_columns.toLocaleString("es-PE")} columnas` : ""}
+              {isWideSheet ? " · desplaza horizontalmente" : ""}
             </span>
             <div className="pulso-processing-sheet-pager">
               <select
