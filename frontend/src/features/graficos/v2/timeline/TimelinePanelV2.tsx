@@ -212,13 +212,13 @@ export function TimelinePanelV2() {
           <div className="pulso-gv2-timeline-empty-icon">
             <LayoutPanelTop size={28} />
           </div>
-          <div className="pulso-gv2-timeline-empty-title">Plan nuevo</div>
+          <div className="pulso-gv2-timeline-empty-title">Sin slides aún</div>
           <div className="pulso-gv2-timeline-empty-hint">
-            Crea una portada, sección o slide gráfico para activar el inspector.
+            Abre la biblioteca o crea un primer modelo para activar el editor.
           </div>
           <div className="pulso-gv2-timeline-empty-flow" aria-hidden="true">
             <span>Portada</span>
-            <span>Sección</span>
+            <span>Separador</span>
             <span>Gráfico</span>
           </div>
           <button
@@ -226,7 +226,7 @@ export function TimelinePanelV2() {
             className="pulso-gv2-timeline-empty-cta"
             onClick={() => setPickerOpen(true)}
           >
-            <Plus size={14} /> Agregar slide
+            <Plus size={14} /> Agregar modelo
           </button>
         </div>
       ) : filtered.length === 0 ? (
