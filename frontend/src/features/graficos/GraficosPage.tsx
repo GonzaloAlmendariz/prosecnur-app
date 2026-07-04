@@ -193,56 +193,59 @@ export default function GraficosPage() {
 }
 
 function GraficosPrepBlocked() {
+  const prepSteps = [
+    {
+      Icon: Database,
+      label: "Preparar base",
+      detail: "Consolida etiquetas, variables recodificadas y cortes.",
+    },
+    {
+      Icon: BarChart2,
+      label: "Construir gráficos",
+      detail: "Vuelve aquí para elegir modelos, variables y estilos.",
+    },
+    {
+      Icon: FileSpreadsheet,
+      label: "Exportar reporte",
+      detail: "Habilita PPT editable y Word narrativo.",
+    },
+  ];
+
   return (
     <div className="pulso-graficos-blocked">
       <section className="pulso-graficos-prep-card" aria-label="Gráficos pendientes de Analítica">
-        <div className="pulso-graficos-prep-visual" aria-hidden="true">
-          <div className="pulso-graficos-prep-slide is-data">
-            <span />
-            <i />
-            <i />
-          </div>
-          <div className="pulso-graficos-prep-flow">
-            <span>01</span>
-            <span>02</span>
-            <span>03</span>
-          </div>
-          <div className="pulso-graficos-prep-slide is-chart">
-            <span />
-            <div>
-              <i />
-              <i />
-              <i />
-            </div>
+        <div className="pulso-graficos-prep-copy">
+          <span className="pulso-graficos-prep-eyebrow">Requisito de datos</span>
+          <h2>Prepara la base para graficar</h2>
+          <p>
+            El generador usa la base preparada para leer etiquetas, recodificaciones y cortes sin modificar tus respuestas originales.
+          </p>
+
+          <div className="pulso-graficos-prep-actions">
+            <Link className="pulso-graficos-prep-cta" to="/analitica">
+              Preparar en Analítica
+              <ArrowRight size={15} />
+            </Link>
+            <span>
+              <CheckCircle2 size={13} />
+              Proceso local y reversible
+            </span>
           </div>
         </div>
 
-        <div className="pulso-graficos-prep-copy">
-          <span className="pulso-graficos-prep-eyebrow">Antes de construir gráficos</span>
-          <h2>Prepara la base en Analítica</h2>
-          <p>
-            Gráficos necesita la base preparada para leer etiquetas, variables recodificadas y cortes disponibles sin tocar tus respuestas originales.
-          </p>
-
-          <div className="pulso-graficos-prep-checks" aria-label="Qué se habilita después">
-            <span>
-              <Database size={14} />
-              Base lista para reportes
-            </span>
-            <span>
-              <FileSpreadsheet size={14} />
-              Variables y etiquetas disponibles
-            </span>
-            <span>
-              <CheckCircle2 size={14} />
-              Exportación PPT/Word habilitada
-            </span>
-          </div>
-
-          <Link className="pulso-graficos-prep-cta" to="/analitica">
-            Ir a Analítica
-            <ArrowRight size={15} />
-          </Link>
+        <div className="pulso-graficos-prep-panel" aria-label="Flujo para habilitar gráficos">
+          {prepSteps.map(({ Icon, label, detail }, index) => (
+            <div className="pulso-graficos-prep-step" key={label}>
+              <span className="pulso-graficos-prep-step-index">{String(index + 1).padStart(2, "0")}</span>
+              <span className="pulso-graficos-prep-step-icon" aria-hidden="true">
+                <Icon size={16} />
+              </span>
+              <span className="pulso-graficos-prep-step-copy">
+                <strong>{label}</strong>
+                <small>{detail}</small>
+              </span>
+            </div>
+          ))}
         </div>
       </section>
     </div>
