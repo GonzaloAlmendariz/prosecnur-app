@@ -940,9 +940,10 @@ export default function CargaPage() {
                     onClick={() => setSourceMode("files")}
                     role="tab"
                     aria-selected={sourceMode === "files"}
+                    title="Archivos - carga manual desde XLSForm y respuestas"
                   >
                     <Upload size={14} />
-                    Archivos
+                    <span className="pulso-carga-tab-label">Archivos</span>
                   </button>
                   <button
                     type="button"
@@ -950,9 +951,10 @@ export default function CargaPage() {
                     onClick={() => setSourceMode("platform")}
                     role="tab"
                     aria-selected={sourceMode === "platform"}
+                    title="Plataforma - importar desde SurveyMonkey o KoboToolbox"
                   >
                     <CloudDownload size={14} />
-                    Plataforma
+                    <span className="pulso-carga-tab-label">Plataforma</span>
                   </button>
                 </div>
               )}
@@ -1642,9 +1644,10 @@ function CargaWorkspaceTabs({
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
+        title="Insumos - formulario, respuestas y fuentes"
       >
         <Upload size={14} />
-        Insumos
+        <span className="pulso-carga-tab-label">Insumos</span>
       </button>
       <button
         type="button"
@@ -1653,9 +1656,10 @@ function CargaWorkspaceTabs({
         role="tab"
         aria-selected={active === "base"}
         aria-disabled={!baseReady}
+        title="Base de carga - revisar respuestas cargadas"
       >
         <Table2 size={14} />
-        Base de carga
+        <span className="pulso-carga-tab-label">Base de carga</span>
       </button>
     </div>
   );

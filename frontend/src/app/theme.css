@@ -7747,6 +7747,9 @@ h1.pulso-page-title {
   flex-shrink: 0;
 }
 .pulso-carga-source-switch button {
+  position: relative;
+  flex: 0 0 32px;
+  max-width: 148px;
   min-height: 30px;
   padding: 5px 10px;
   border: 0;
@@ -7755,21 +7758,65 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 0;
+  overflow: hidden;
   font-size: 12px;
   font-weight: 760;
   transition:
+    flex-basis var(--motion-dur-base) var(--motion-ease-out),
+    gap var(--motion-dur-fast) ease,
+    padding var(--motion-dur-fast) ease,
     transform var(--motion-dur-press) var(--motion-ease-out),
     background var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
-.pulso-carga-source-switch button:hover:not(.is-active) {
+.pulso-carga-source-switch button svg {
+  flex: 0 0 auto;
+}
+.pulso-carga-tab-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    max-width var(--motion-dur-base) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-carga-source-switch button:hover:not(:disabled),
+.pulso-carga-source-switch button:focus-visible,
+.pulso-carga-source-switch button.is-active {
+  flex-basis: auto;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.pulso-carga-source-switch button:hover:not(:disabled) .pulso-carga-tab-label,
+.pulso-carga-source-switch button:focus-visible .pulso-carga-tab-label,
+.pulso-carga-source-switch button.is-active .pulso-carga-tab-label {
+  max-width: 104px;
+  opacity: 1;
+  transform: translateX(0);
+}
+.pulso-carga-view-tabs button:hover:not(:disabled) .pulso-carga-tab-label,
+.pulso-carga-view-tabs button:focus-visible .pulso-carga-tab-label,
+.pulso-carga-view-tabs button.is-active .pulso-carga-tab-label {
+  max-width: 126px;
+}
+.pulso-carga-source-switch button:hover:not(.is-active):not(:disabled) {
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text);
 }
 .pulso-carga-source-switch button:active {
   transform: scale(0.97);
+}
+.pulso-carga-source-switch button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 74%, transparent);
 }
 .pulso-carga-source-switch button.is-active {
   background: #fff;
@@ -14227,10 +14274,19 @@ h1.pulso-page-title {
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
     background var(--motion-dur-fast) ease,
-    color var(--motion-dur-fast) ease;
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-platform-provider-tabs button:hover:not(.is-active):not(:disabled) {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--pulso-text);
 }
 .pulso-platform-provider-tabs button:active {
   transform: scale(0.97);
+}
+.pulso-platform-provider-tabs button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-soft) 78%, transparent);
 }
 .pulso-platform-provider-tabs button.is-active {
   background: #fff;
