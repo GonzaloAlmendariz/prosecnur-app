@@ -9,7 +9,6 @@ import {
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
-import { Section } from "../PaneKit";
 import { useAnaliticaStore, type SeccionConfig } from "../store";
 
 export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
@@ -420,31 +419,33 @@ export function DataReviewPane() {
         {draftError ? <ErrorBlock label="No se pueden confirmar cambios" detail={draftError} /> : null}
 
         {!loading && !error ? (
-          <Section
-            title="Estructura y variables"
-            subtitle="Las secciones ordenan las preguntas para Frecuencias y Cruces. Cada variable decide si entra a los entregables y qué etiqueta usará en el libro de códigos, las bases y los cruces finales."
-          >
+          <section className="pulso-data-review-structure" aria-label="Estructura y variables">
+            <div className="pulso-data-review-structurebar">
+              <div className="pulso-data-review-structure-copy">
+                <strong>Estructura y variables</strong>
+                <span>Ordena secciones y decide qué etiquetas entran a reportes, bases y cruces.</span>
+              </div>
+              <div className="pulso-data-review-structure-actions">
+                <span className="pulso-data-review-structure-count">
+                  {groups.length} {groups.length === 1 ? "sección" : "secciones"} · {variables.length} {variables.length === 1 ? "variable" : "variables"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void detectSections()}
+                  disabled={sectionBusy}
+                  className="pulso-ghost pulso-data-review-detect-button"
+                  title="Vuelve a leer la estructura del instrumento y conserva renombres manuales cuando sea posible."
+                >
+                  {sectionBusy ? <RefreshCw size={12} className="pulso-spin" /> : <FolderSearch size={12} />}
+                  {sectionBusy ? "Detectando..." : "Detectar estructura"}
+                </button>
+              </div>
+            </div>
             {variables.length === 0 ? (
               <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "8px 0" }}>
                 No hay variables preparadas para revisar. Verifica la fuente activa o vuelve a preparar Analítica.
               </div>
             ) : null}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-              <button
-                type="button"
-                onClick={() => void detectSections()}
-                disabled={sectionBusy}
-                className="pulso-ghost"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                title="Vuelve a leer la estructura del instrumento y conserva renombres manuales cuando sea posible."
-              >
-                {sectionBusy ? <RefreshCw size={12} className="pulso-spin" /> : <FolderSearch size={12} />}
-                {sectionBusy ? "Detectando..." : "Detectar estructura"}
-              </button>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-                {groups.length} {groups.length === 1 ? "sección" : "secciones"} · {variables.length} {variables.length === 1 ? "variable" : "variables"}
-              </span>
-            </div>
             <div style={{ display: "grid", gap: 10 }}>
               {groups.map((group) => (
                 <DataReviewSection
@@ -469,7 +470,7 @@ export function DataReviewPane() {
                 />
               ))}
             </div>
-          </Section>
+          </section>
         ) : null}
       </div>
     </Panel>
