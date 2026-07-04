@@ -479,13 +479,30 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                   const isActive = territorialOperationalAppliedStatus(item) === "active";
                   const movementCount = numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1;
                   const responseCount = territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item));
+                  const caseCount = numberOrNull(item.count) ?? 0;
+                  const targetLabel = territorialOperationalAdjustmentBlockLabel(item, "target");
+                  const sourceLabel = territorialOperationalAdjustmentBlockLabel(item, "source");
+                  const cellLabel = territorialOperationalAdjustmentCellLabel(item);
+                  const stateLabel = isActive ? "Activa" : "Revertida";
                   return (
                     <article key={id || `${item.source_block_id}-${item.target_block_id}`} className={`mon-operational-applied is-${isActive ? "active" : "reverted"}`}>
-                      <div>
-                        <strong>{territorialOperationalAdjustmentBlockLabel(item, "target")}</strong>
-                        <span>{territorialOperationalAdjustmentCellLabel(item)} · {formatMetric(numberOrNull(item.count) ?? 0)} caso(s) · {formatMetric(responseCount)} ID(s)</span>
-                        <em>{formatMetric(movementCount)} movimiento(s) · Sobrante usado: {territorialOperationalAdjustmentBlockLabel(item, "source")}</em>
-                        <small>{territorialOperationalAppliedDateLabel(item)}</small>
+                      <span className="mon-operational-applied__state">{stateLabel}</span>
+                      <div className="mon-operational-applied__ledger">
+                        <div className="mon-operational-applied__cell is-target">
+                          <small>UMP cerrada</small>
+                          <strong>{targetLabel}</strong>
+                          <em>{cellLabel}</em>
+                        </div>
+                        <div className="mon-operational-applied__cell is-source">
+                          <small>Sobrante usado</small>
+                          <strong>{sourceLabel}</strong>
+                          <em>{formatMetric(movementCount)} movimiento(s)</em>
+                        </div>
+                        <div className="mon-operational-applied__cell is-audit">
+                          <small>Evidencia</small>
+                          <strong>{formatMetric(caseCount)} caso(s)</strong>
+                          <em>{formatMetric(responseCount)} ID(s) · {territorialOperationalAppliedDateLabel(item)}</em>
+                        </div>
                       </div>
                       {isActive ? (
                         <button type="button" onClick={() => revertItem(item)} disabled={!onRevert || saving || Boolean(busyId)}>

@@ -23401,12 +23401,13 @@
 }
 
 .mon-operational-applied {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 9px;
   min-width: 0;
-  padding: 12px;
+  min-height: 88px;
+  padding: 10px;
   border: 1px solid var(--pulso-border);
   border-radius: 14px;
   background: #ffffff;
@@ -23421,10 +23422,69 @@
   opacity: 0.72;
 }
 
-.mon-operational-applied > div {
+.mon-operational-applied__state {
+  min-width: 68px;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 999px;
+  color: var(--pulso-success-fg);
+  font-size: 0.64rem;
+  font-weight: 930;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  padding: 4px 8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-operational-applied.is-reverted .mon-operational-applied__state {
+  color: var(--pulso-text-muted);
+}
+
+.mon-operational-applied__ledger {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-operational-applied__cell {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+}
+
+.mon-operational-applied__cell + .mon-operational-applied__cell {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border-strong) 34%, transparent);
+  padding-left: 8px;
+}
+
+.mon-operational-applied__cell small {
+  color: var(--pulso-text-faint);
+  font-size: 0.55rem;
+  font-weight: 920;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mon-operational-applied__cell strong {
+  color: var(--pulso-text);
+  font-size: 0.78rem;
+  font-weight: 930;
+  line-height: 1.15;
+}
+
+.mon-operational-applied__cell em {
+  color: var(--pulso-text-muted);
+  font-size: 0.68rem;
+  font-weight: 760;
+  line-height: 1.15;
 }
 
 .mon-operational-applied small {
