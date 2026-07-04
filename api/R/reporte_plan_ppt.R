@@ -1349,6 +1349,1009 @@ reporte_ppt_plan <- function(
     flextable::fix_border_issues(ft)
   }
 
+  .indice_clean_vec <- function(x) {
+    if (is.null(x)) return(character(0))
+    if (is.data.frame(x)) {
+      if (!ncol(x) || !nrow(x)) return(character(0))
+      x <- x[[1]]
+    } else if (is.list(x)) {
+      x <- unlist(x, recursive = TRUE, use.names = FALSE)
+    }
+    x <- as.character(x)
+    x <- x[!is.na(x)]
+    x <- unlist(strsplit(x, "\\r?\\n", perl = TRUE), use.names = FALSE)
+    x <- trimws(x)
+    x[nzchar(x)]
+  }
+
+  .indice_subindices_df <- function(subindices = NULL, subtemas = NULL, secciones = character(0)) {
+    clean <- function(x) {
+      x <- as.character(x)
+      x[is.na(x)] <- ""
+      trimws(x)
+    }
+
+    last_section <- if (length(secciones)) tail(as.character(secciones), 1) else ""
+    rows <- list()
+
+    if (!is.null(subindices)) {
+      if (is.data.frame(subindices)) {
+        df <- as.data.frame(subindices, stringsAsFactors = FALSE, check.names = FALSE)
+        if (ncol(df) >= 2L && nrow(df)) {
+          names_low <- tolower(names(df))
+          col_section <- match(TRUE, names_low %in% c("seccion", "section", "indice", "grupo"))
+          col_item <- match(TRUE, names_low %in% c("subindice", "subtema", "tema", "item"))
+          if (is.na(col_section)) col_section <- 1L
+          if (is.na(col_item)) col_item <- 2L
+          rows[[length(rows) + 1L]] <- data.frame(
+            seccion = clean(df[[col_section]]),
+            item = clean(df[[col_item]]),
+            stringsAsFactors = FALSE
+          )
+        }
+      } else if (is.list(subindices) && !is.data.frame(subindices)) {
+        nm <- names(subindices)
+        if (is.null(nm)) nm <- rep(last_section, length(subindices))
+        for (i in seq_along(subindices)) {
+          items <- .indice_clean_vec(subindices[[i]])
+          if (!length(items)) next
+          section <- clean(nm[[i]])
+          if (!nzchar(section)) section <- last_section
+          rows[[length(rows) + 1L]] <- data.frame(
+            seccion = rep(section, length(items)),
+            item = items,
+            stringsAsFactors = FALSE
+          )
+        }
+      } else {
+        lines <- .indice_clean_vec(subindices)
+        if (length(lines)) {
+          parsed <- lapply(lines, function(line) {
+            parts <- regexpr("\\s*[:|]\\s*", line, perl = TRUE)
+            if (parts[[1]] > 0L) {
+              start <- parts[[1]]
+              len <- attr(parts, "match.length")[[1]]
+              seccion <- substr(line, 1L, start - 1L)
+              item <- substr(line, start + len, nchar(line))
+            } else {
+              seccion <- last_section
+              item <- line
+            }
+            data.frame(
+              seccion = clean(seccion),
+              item = clean(item),
+              stringsAsFactors = FALSE
+            )
+          })
+          rows <- c(rows, parsed)
+        }
+      }
+    }
+
+    if (!length(rows)) {
+      items <- .indice_clean_vec(subtemas)
+      if (length(items)) {
+        rows[[1L]] <- data.frame(
+          seccion = rep(last_section, length(items)),
+          item = items,
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+
+    if (!length(rows)) {
+      return(data.frame(seccion = character(0), item = character(0), stringsAsFactors = FALSE))
+    }
+    out <- do.call(rbind, rows)
+    out$seccion <- clean(out$seccion)
+    out$item <- clean(out$item)
+    out <- out[nzchar(out$item), , drop = FALSE]
+    rownames(out) <- NULL
+    out
+  }
+
+  .indice_section_key <- function(x) {
+    x <- as.character(x)
+    x[is.na(x)] <- ""
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+    x <- tolower(trimws(x))
+    gsub("\\s+", " ", x, perl = TRUE)
+  }
+
+  .make_indice_sections_flextable <- function(secciones, style, font_family_default, numeros = NULL) {
+    if (!requireNamespace("flextable", quietly = TRUE)) {
+      stop("Se requiere el paquete 'flextable' para renderizar `p_slide_indice` con contenido.", call. = FALSE)
+    }
+
+    tbl <- data.frame(
+      numero = as.character(numeros %||% seq_along(secciones)),
+      seccion = as.character(secciones),
+      stringsAsFactors = FALSE
+    )
+
+    table_width <- .style_num(style, "table_width", 6.85, min = 3)
+    number_width <- .style_num(style, "number_width", 0.52, min = 0.30, max = 0.90)
+    row_height <- .style_num(style, "row_height", 0.39, min = 0.24)
+    font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
+    number_fill <- as.character(.style_value(style, "number_fill", "#D8504F"))[1]
+    section_fill <- as.character(.style_value(style, "section_fill", "#E7E7E7"))[1]
+    text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
+    number_size <- .style_num(style, "number_size", 14, min = 7)
+    section_size <- .style_num(style, "section_size", 13, min = 7)
+    row_gap_color <- as.character(.style_value(style, "row_gap_color", "#F2F2F2"))[1]
+
+    ft <- flextable::flextable(tbl)
+    ft <- flextable::delete_part(ft, part = "header")
+    ft <- flextable::set_table_properties(ft, layout = "fixed")
+    ft <- flextable::width(ft, j = 1, width = number_width)
+    ft <- flextable::width(ft, j = 2, width = table_width - number_width)
+    ft <- flextable::height(ft, i = seq_len(nrow(tbl)), height = row_height, part = "body")
+    ft <- flextable::hrule(ft, rule = "exact", part = "body")
+    ft <- flextable::font(ft, fontname = font_family, part = "all")
+    ft <- flextable::fontsize(ft, j = 1, size = number_size, part = "body")
+    ft <- flextable::fontsize(ft, j = 2, size = section_size, part = "body")
+    ft <- flextable::bold(ft, bold = TRUE, part = "body")
+    ft <- flextable::color(ft, j = 1, color = "#FFFFFF", part = "body")
+    ft <- flextable::color(ft, j = 2, color = text_color, part = "body")
+    ft <- flextable::bg(ft, j = 1, bg = number_fill, part = "body")
+    ft <- flextable::bg(ft, j = 2, bg = section_fill, part = "body")
+    ft <- flextable::align(ft, j = 1, align = "center", part = "body")
+    ft <- flextable::align(ft, j = 2, align = "left", part = "body")
+    ft <- flextable::valign(ft, valign = "center", part = "body")
+    ft <- flextable::padding(
+      ft,
+      padding.top = 2,
+      padding.bottom = 2,
+      padding.left = 7,
+      padding.right = 7,
+      part = "body"
+    )
+    ft <- flextable::border_remove(ft)
+    row_gap <- officer::fp_border(color = row_gap_color, width = 4)
+    ft <- flextable::border_inner_h(ft, border = row_gap, part = "body")
+    flextable::fix_border_issues(ft)
+  }
+
+  .make_indice_cover_flextable <- function(width, height, fill = "#F2F2F2") {
+    if (!requireNamespace("flextable", quietly = TRUE)) {
+      stop("Se requiere el paquete 'flextable' para renderizar `p_slide_indice` con contenido.", call. = FALSE)
+    }
+    ft <- flextable::flextable(data.frame(x = "", stringsAsFactors = FALSE))
+    ft <- flextable::delete_part(ft, part = "header")
+    ft <- flextable::set_table_properties(ft, layout = "fixed")
+    ft <- flextable::width(ft, j = 1, width = width)
+    ft <- flextable::height(ft, i = 1, height = height, part = "body")
+    ft <- flextable::hrule(ft, rule = "exact", part = "body")
+    ft <- flextable::bg(ft, bg = fill, part = "body")
+    ft <- flextable::color(ft, color = fill, part = "body")
+    ft <- flextable::padding(ft, padding.top = 0, padding.bottom = 0, padding.left = 0, padding.right = 0, part = "body")
+    ft <- flextable::border_remove(ft)
+    flextable::fix_border_issues(ft)
+  }
+
+  .indice_sanitize_fill <- function(fill, default = "#F2F2F2") {
+    fill <- as.character(fill %||% default)[1]
+    if (!grepl("^#[0-9A-Fa-f]{6}$", fill)) default else fill
+  }
+
+  .indice_cover_svg <- function(fill = "#F2F2F2") {
+    fill <- .indice_sanitize_fill(fill)
+    out <- tempfile("indice_cover_", fileext = ".svg")
+    writeLines(
+      sprintf(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="10" height="10" fill="%s"/></svg>',
+        fill
+      ),
+      con = out,
+      useBytes = TRUE
+    )
+    out
+  }
+
+  .add_indice_cover <- function(doc, left, top, width, height, fill = "#F2F2F2", label = "Indice cover") {
+    svg <- .indice_cover_svg(fill)
+    officer::ph_with(
+      doc,
+      value = officer::external_img(src = svg, width = width, height = height, alt = label),
+      location = officer::ph_location(
+        left = left,
+        top = top,
+        width = width,
+        height = height,
+        newlabel = label
+      )
+    )
+  }
+
+  .indice_icon_cover_svg <- function(fill = "#F2F2F2") {
+    fill <- .indice_sanitize_fill(fill)
+    out <- tempfile("indice_icon_cover_", fileext = ".svg")
+    writeLines(
+      sprintf(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="50" ry="50" fill="%s"/></svg>',
+        fill
+      ),
+      con = out,
+      useBytes = TRUE
+    )
+    out
+  }
+
+  .add_indice_icon_cover <- function(doc, left, top, width, height, fill, label) {
+    svg <- .indice_icon_cover_svg(fill)
+    officer::ph_with(
+      doc,
+      value = officer::external_img(src = svg, width = width, height = height, alt = label),
+      location = officer::ph_location(
+        left = left,
+        top = top,
+        width = width,
+        height = height,
+        newlabel = label
+      )
+    )
+  }
+
+  .indice_icon_compuesto_svg <- function(icon_path, fill = "#F2F2F2", icon_scale = 0.66) {
+    fill <- .indice_sanitize_fill(fill)
+    icon_scale <- suppressWarnings(as.numeric(icon_scale)[1])
+    if (!is.finite(icon_scale)) icon_scale <- 0.66
+    icon_scale <- max(0.30, min(0.86, icon_scale))
+
+    ext <- tolower(tools::file_ext(icon_path))
+    mime <- switch(
+      ext,
+      "svg" = "image/svg+xml",
+      "jpg" = "image/jpeg",
+      "jpeg" = "image/jpeg",
+      "image/png"
+    )
+    bin <- readBin(icon_path, what = "raw", n = file.info(icon_path)$size)
+    encoded <- openssl::base64_encode(bin)
+    icon_size <- 512 * icon_scale
+    icon_xy <- (512 - icon_size) / 2
+
+    out <- tempfile("indice_icon_compuesto_", fileext = ".svg")
+    writeLines(
+      c(
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">',
+        sprintf('<circle cx="256" cy="256" r="256" fill="%s"/>', fill),
+        sprintf(
+          '<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" preserveAspectRatio="xMidYMid meet" href="data:%s;base64,%s" xlink:href="data:%s;base64,%s"/>',
+          icon_xy, icon_xy, icon_size, icon_size, mime, encoded, mime, encoded
+        ),
+        '</svg>'
+      ),
+      con = out,
+      useBytes = TRUE
+    )
+    out
+  }
+
+  .indice_icon_compuesto_asset <- function(icon_path, fill = "#F2F2F2", icon_scale = 0.66) {
+    svg <- .indice_icon_compuesto_svg(icon_path, fill = fill, icon_scale = icon_scale)
+    if (!requireNamespace("rsvg", quietly = TRUE)) {
+      return(svg)
+    }
+    out <- tempfile("indice_icon_compuesto_", fileext = ".png")
+    rsvg::rsvg_png(svg, file = out, width = 1024, height = 1024)
+    out
+  }
+
+  .indice_subtopic_badge_asset <- function(label, fill = "#D8504F", text_color = "#FFFFFF",
+                                           font_family = "Arial") {
+    fill <- .indice_sanitize_fill(fill, "#D8504F")
+    text_color <- .indice_sanitize_fill(text_color, "#FFFFFF")
+    label <- gsub("&", "&amp;", as.character(label %||% "")[1], fixed = TRUE)
+    label <- gsub("<", "&lt;", label, fixed = TRUE)
+    label <- gsub(">", "&gt;", label, fixed = TRUE)
+    label <- gsub('"', "&quot;", label, fixed = TRUE)
+    font_family <- gsub('"', "", as.character(font_family %||% "Arial")[1], fixed = TRUE)
+    out <- tempfile("indice_subtopic_badge_", fileext = ".svg")
+    writeLines(
+      c(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="72" viewBox="0 0 160 72">',
+        sprintf('<rect x="6" y="6" width="148" height="60" rx="18" fill="%s"/>', fill),
+        sprintf('<text x="80" y="38" text-anchor="middle" dominant-baseline="middle" font-family="%s, Arial, sans-serif" font-size="28" font-weight="700" fill="%s">%s</text>',
+                font_family, text_color, label),
+        '</svg>'
+      ),
+      con = out,
+      useBytes = TRUE
+    )
+    out
+  }
+
+  .indice_bullet_text <- function(label, bullet_color = "#081F5C", text_color = "#081F5C",
+                                  font_family = "Arial", font_size = 10.5,
+                                  marker = NULL, marker_style = c("bullet", "number", "none")) {
+    marker_style <- match.arg(marker_style)
+    marker_text <- switch(
+      marker_style,
+      bullet = "•  ",
+      number = paste0(as.character(marker %||% ""), "  "),
+      none = ""
+    )
+    text_run <- officer::ftext(as.character(label), prop = officer::fp_text(
+      color = text_color,
+      font.size = font_size,
+      bold = marker_style == "number",
+      font.family = font_family
+    ))
+    if (nzchar(marker_text)) {
+      return(officer::fpar(
+        officer::ftext(marker_text, prop = officer::fp_text(
+          color = bullet_color,
+          font.size = font_size,
+          bold = TRUE,
+          font.family = font_family
+        )),
+        text_run,
+        fp_p = officer::fp_par(text.align = "left", line_spacing = 1.05)
+      ))
+    }
+    officer::fpar(
+      text_run,
+      fp_p = officer::fp_par(text.align = "left", line_spacing = 1.05)
+    )
+  }
+
+  .add_indice_subtopics <- function(doc, labels, style, font_family_default,
+                                    anchor_left, anchor_top, anchor_width) {
+    labels <- .indice_clean_vec(labels)
+    if (!length(labels)) return(doc)
+
+    font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
+    text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
+    bullet_color <- as.character(.style_value(style, "subtopic_bullet_color", text_color))[1]
+    badge_fill <- as.character(.style_value(style, "subtopic_badge_fill", .style_value(style, "accent_color", "#D8504F")))[1]
+    badge_text_color <- as.character(.style_value(style, "subtopic_badge_text_color", "#FFFFFF"))[1]
+    font_size <- .style_num(style, "subtopic_size", 10.1, min = 6)
+    marker_style <- as.character(.style_value(style, "subtopic_marker", "number_text"))[1]
+    if (!marker_style %in% c("bullet", "number", "number_text", "none")) marker_style <- "number_text"
+    cols <- as.integer(round(.style_num(style, "subtopic_cols", 2, min = 1, max = 3)))
+    row_height <- .style_num(style, "subtopic_row_height", 0.26, min = 0.18)
+    col_gap <- .style_num(style, "subtopic_col_gap", 0.34, min = 0.05, max = 1)
+    badge_width <- .style_num(style, "subtopic_badge_width", 0.34, min = 0.18, max = 0.70)
+    badge_gap <- .style_num(style, "subtopic_badge_gap", 0.09, min = 0.02, max = 0.25)
+    badge_height <- .style_num(
+      style,
+      "subtopic_badge_height",
+      min(0.28, max(0.24, row_height * 0.45)),
+      min = 0.12,
+      max = 0.40
+    )
+    col_width <- (anchor_width - (cols - 1L) * col_gap) / cols
+    rows <- ceiling(length(labels) / cols)
+
+    if (isTRUE(.style_value(style, "subtopic_heading", TRUE))) {
+      heading <- as.character(.style_value(style, "subtopic_heading_text", "Principales resultados"))[1]
+      heading_size <- .style_num(style, "subtopic_heading_size", 10.9, min = 7)
+      heading_color <- as.character(.style_value(style, "subtopic_heading_color", .style_value(style, "accent_color", text_color)))[1]
+      heading_top <- anchor_top
+      heading_value <- officer::fpar(
+        officer::ftext(heading, prop = officer::fp_text(
+          color = heading_color,
+          font.size = heading_size,
+          bold = TRUE,
+          font.family = font_family
+        )),
+        fp_p = officer::fp_par(text.align = "left", line_spacing = 1.05)
+      )
+      doc <- officer::ph_with(
+        doc,
+        value = heading_value,
+        location = officer::ph_location(
+          left = anchor_left,
+          top = heading_top,
+          width = anchor_width,
+          height = 0.20,
+          newlabel = "Indice subtopics heading"
+        )
+      )
+      anchor_top <- anchor_top + .style_num(style, "subtopic_heading_gap", 0.23, min = 0.08, max = 0.5)
+    }
+
+    for (idx in seq_along(labels)) {
+      col <- ((idx - 1L) %/% rows) + 1L
+      row <- ((idx - 1L) %% rows) + 1L
+      left <- anchor_left + (col - 1L) * (col_width + col_gap)
+      top <- anchor_top + (row - 1L) * row_height
+      text_left <- left
+      text_width <- col_width
+      text_marker_style <- marker_style
+      if (identical(marker_style, "number")) {
+        badge_top <- top + max(0, (row_height - badge_height) / 2)
+        doc <- officer::ph_with(
+          doc,
+          value = officer::external_img(
+            src = .indice_subtopic_badge_asset(
+              sprintf("%02d", idx),
+              fill = badge_fill,
+              text_color = badge_text_color,
+              font_family = font_family
+            ),
+            width = badge_width,
+            height = badge_height,
+            alt = paste("Subindice", idx)
+          ),
+          location = officer::ph_location(
+            left = left,
+            top = badge_top,
+            width = badge_width,
+            height = badge_height,
+            newlabel = paste0("Indice subtopic badge ", idx)
+          )
+        )
+        text_left <- left + badge_width + badge_gap
+        text_width <- max(0.3, col_width - badge_width - badge_gap)
+        text_marker_style <- "none"
+      } else if (identical(marker_style, "number_text")) {
+        number_label <- if (isTRUE(.style_value(style, "subtopic_number_zero_pad", FALSE))) {
+          sprintf("%02d", idx)
+        } else {
+          as.character(idx)
+        }
+        number_value <- officer::fpar(
+          officer::ftext(number_label, prop = officer::fp_text(
+            color = badge_fill,
+            font.size = .style_num(style, "subtopic_number_size", font_size, min = 6),
+            bold = TRUE,
+            font.family = font_family
+          )),
+          fp_p = officer::fp_par(text.align = "right", line_spacing = 1.05)
+        )
+        doc <- officer::ph_with(
+          doc,
+          value = number_value,
+          location = officer::ph_location(
+            left = left,
+            top = top,
+            width = badge_width,
+            height = row_height + 0.04,
+            newlabel = paste0("Indice subtopic number ", idx)
+          )
+        )
+        text_left <- left + badge_width + badge_gap
+        text_width <- max(0.3, col_width - badge_width - badge_gap)
+        text_marker_style <- "none"
+      }
+      doc <- officer::ph_with(
+        doc,
+        value = .indice_bullet_text(
+          labels[[idx]],
+          bullet_color = bullet_color,
+          text_color = text_color,
+          font_family = font_family,
+          font_size = font_size,
+          marker = sprintf("%02d", idx),
+          marker_style = if (identical(text_marker_style, "number_text")) "none" else text_marker_style
+        ),
+        location = officer::ph_location(
+          left = text_left,
+          top = top,
+          width = text_width,
+          height = row_height + 0.04,
+          newlabel = paste0("Indice subtopic ", idx)
+        )
+      )
+    }
+    doc
+  }
+
+  .indice_subtopics_height <- function(labels, style) {
+    labels <- .indice_clean_vec(labels)
+    if (!length(labels)) return(0)
+
+    cols <- as.integer(round(.style_num(style, "subtopic_cols", 2, min = 1, max = 3)))
+    row_height <- .style_num(style, "subtopic_row_height", 0.26, min = 0.18)
+    rows <- ceiling(length(labels) / cols)
+    height <- rows * row_height + 0.04
+    if (isTRUE(.style_value(style, "subtopic_heading", TRUE))) {
+      height <- height +
+        0.20 +
+        .style_num(style, "subtopic_heading_gap", 0.23, min = 0.08, max = 0.5)
+    }
+    height
+  }
+
+  .indice_icon_dir <- function() {
+    candidates <- c(
+      system.file("ppt_assets/indice_icons", package = "prosecnurapp"),
+      system.file("ppt_assets/indice_icons", package = "prosecnur"),
+      file.path(getwd(), "api", "inst", "ppt_assets", "indice_icons"),
+      file.path(getwd(), "inst", "ppt_assets", "indice_icons")
+    )
+    candidates <- candidates[nzchar(candidates)]
+    hit <- candidates[dir.exists(candidates)][1]
+    if (is.na(hit) || !nzchar(hit)) "" else normalizePath(hit, winslash = "/", mustWork = TRUE)
+  }
+
+  .indice_default_icon_names <- function() {
+    c(
+      "target-arrow",
+      "clipboard-list",
+      "circle-user-round",
+      "chart-column",
+      "artificial-intelligence"
+    )
+  }
+
+  .indice_icon_values <- function(style) {
+    icons <- style[["iconos_focos"]] %||%
+      style[["icons_focos"]] %||%
+      style[["indice_icons"]] %||%
+      style[["indice_iconos"]] %||%
+      NULL
+    if (is.null(icons) || length(icons) == 0L) {
+      return(.indice_default_icon_names())
+    }
+    if (is.character(icons) && length(icons) == 1L) {
+      icons <- .indice_clean_vec(icons)
+    } else if (is.list(icons) && !is.data.frame(icons)) {
+      icons <- vapply(icons, function(x) {
+        if (is.list(x)) {
+          as.character(x$icono %||% x$icon %||% x$name %||% x$ruta %||% x$path %||% "")[1]
+        } else {
+          as.character(x)[1]
+        }
+      }, character(1))
+    } else {
+      icons <- as.character(icons)
+    }
+    defaults <- .indice_default_icon_names()
+    out <- defaults
+    n <- min(length(out), length(icons))
+    if (n > 0L) {
+      repl <- trimws(icons[seq_len(n)])
+      keep <- nzchar(repl)
+      out[seq_len(n)[keep]] <- repl[keep]
+    }
+    out
+  }
+
+  .resolve_indice_icon_path <- function(icon) {
+    icon <- trimws(as.character(icon %||% "")[1])
+    if (!nzchar(icon)) return("")
+    if (tolower(icon) %in% c("none", "plantilla", "template", "sin_icono", "sin-icono")) return("")
+    if (file.exists(icon)) return(normalizePath(icon, winslash = "/", mustWork = TRUE))
+    icon_base <- sub("\\.(svg|png|jpg|jpeg)$", "", basename(icon), ignore.case = TRUE)
+    icon_dir <- .indice_icon_dir()
+    if (!nzchar(icon_dir)) return("")
+    candidates <- file.path(icon_dir, paste0(icon_base, c(".png", ".svg", ".jpg", ".jpeg")))
+    hit <- candidates[file.exists(candidates)][1]
+    if (is.na(hit) || !nzchar(hit)) "" else normalizePath(hit, winslash = "/", mustWork = TRUE)
+  }
+
+  .indice_parse_numeric_vec <- function(x) {
+    if (is.null(x) || length(x) == 0L) return(NULL)
+    if (is.character(x) && length(x) == 1L) {
+      x <- unlist(strsplit(x, "[,;|\\r\\n\\t ]+", perl = TRUE), use.names = FALSE)
+    }
+    out <- suppressWarnings(as.numeric(x))
+    out <- out[is.finite(out)]
+    if (!length(out)) NULL else out
+  }
+
+  .indice_recycle_focus_vec <- function(x, n = 5L) {
+    if (is.null(x)) return(NULL)
+    if (length(x) == 1L) rep(x, n) else x
+  }
+
+  .indice_cm_to_in_vec <- function(x, recycle = FALSE) {
+    out <- .indice_parse_numeric_vec(x)
+    if (is.null(out)) return(NULL)
+    out <- out / 2.54
+    if (isTRUE(recycle)) out <- .indice_recycle_focus_vec(out)
+    out
+  }
+
+  .style_num_vec <- function(style, name, default) {
+    raw <- style[[name]]
+    if (is.null(raw) || length(raw) == 0L) return(default)
+    out <- suppressWarnings(as.numeric(raw))
+    if (length(out) < length(default)) out <- c(out, default[(length(out) + 1L):length(default)])
+    out <- out[seq_along(default)]
+    out[!is.finite(out)] <- default[!is.finite(out)]
+    out
+  }
+
+  .indice_bulbs_base_svg <- function(style) {
+    background_fill <- .indice_sanitize_fill(.style_value(style, "background_fill", "#F2F2F2"))
+    dark <- .indice_sanitize_fill(.style_value(style, "focos_cap_color", "#061B2A"), "#061B2A")
+    fills <- as.character(style[["iconos_focos_fill"]] %||%
+      c("#EFD25E", "#E4A34C", "#9688D3", "#7594CC", "#85BB85"))
+    default_fills <- c("#EFD25E", "#E4A34C", "#9688D3", "#7594CC", "#85BB85")
+    if (length(fills) < length(default_fills)) fills <- c(fills, default_fills[(length(fills) + 1L):length(default_fills)])
+    fills <- vapply(seq_along(default_fills), function(i) .indice_sanitize_fill(fills[[i]], default_fills[[i]]), character(1))
+
+    bulb_path <- function(cx, y, scale, fill) {
+      neck <- 31 * scale
+      side <- 64 * scale
+      bottom <- 153 * scale
+      sprintf(
+        '<path d="M %.1f %.1f H %.1f C %.1f %.1f %.1f %.1f %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f Z" fill="%s"/>',
+        cx - neck, y, cx + neck,
+        cx + neck, y + 24 * scale, cx + side, y + 45 * scale, cx + side, y + 86 * scale,
+        cx + side, y + 127 * scale, cx + 30 * scale, y + bottom, cx, y + bottom,
+        cx - 30 * scale, y + bottom, cx - side, y + 127 * scale, cx - side, y + 86 * scale,
+        cx - side, y + 45 * scale, cx - neck, y + 24 * scale, cx - neck, y,
+        fill
+      )
+    }
+    cap <- function(cx, y, w, h) {
+      sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="15" fill="%s"/>', cx - w / 2, y, w, h, dark)
+    }
+    cord <- function(x, y1, y2) {
+      sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="8" stroke-linecap="round"/>', x, y1, x, y2, dark)
+    }
+
+    parts <- c(
+      cord(112, -12, 180),
+      bulb_path(112, 218, 1.02, fills[[1]]),
+      cap(112, 176, 66, 43),
+      cord(270, -12, 180),
+      bulb_path(270, 220, 1.00, fills[[2]]),
+      cap(270, 176, 66, 43),
+      cord(196, -12, 404),
+      bulb_path(196, 444, 0.96, fills[[3]]),
+      cap(196, 402, 66, 43),
+      cord(360, -12, 436),
+      bulb_path(360, 478, 0.96, fills[[4]]),
+      cap(360, 434, 66, 43),
+      cord(492, -12, 224),
+      bulb_path(492, 266, 0.91, fills[[5]]),
+      cap(492, 222, 62, 43)
+    )
+
+    out <- tempfile("indice_bulbs_clean_", fileext = ".svg")
+    writeLines(
+      c(
+        sprintf('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="720" viewBox="0 0 640 720">'),
+        sprintf('<rect x="0" y="0" width="640" height="720" fill="%s"/>', background_fill),
+        parts,
+        '</svg>'
+      ),
+      con = out,
+      useBytes = TRUE
+    )
+    out
+  }
+
+  .add_indice_bulbs_base <- function(doc, style) {
+    svg <- .indice_bulbs_base_svg(style)
+    left <- .style_num(style, "focos_panel_left", 0, min = 0)
+    top <- .style_num(style, "focos_panel_top", 0, min = 0)
+    width <- .style_num(style, "focos_panel_width", 6.40, min = 1)
+    height <- .style_num(style, "focos_panel_height", 7.20, min = 1)
+    officer::ph_with(
+      doc,
+      value = officer::external_img(src = svg, width = width, height = height, alt = "Indice bulbs"),
+      location = officer::ph_location(
+        left = left,
+        top = top,
+        width = width,
+        height = height,
+        newlabel = "Indice clean bulbs"
+      )
+    )
+  }
+
+  .add_indice_bulb_icons <- function(doc, style) {
+    if (!isTRUE(.style_value(style, "mostrar_iconos_focos", TRUE))) return(doc)
+
+    cm_to_in <- function(x) x / 2.54
+    defaults <- data.frame(
+      left = cm_to_in(c(1.85, 6.28, 11.63, 4.32, 8.67)),
+      top = cm_to_in(c(6.68, 6.68, 7.52, 11.07, 11.56)),
+      width = rep(cm_to_in(2.18), 5),
+      height = rep(cm_to_in(2.18), 5),
+      fill = c("#EFD25E", "#E4A34C", "#85BB85", "#9688D3", "#7594CC"),
+      stringsAsFactors = FALSE
+    )
+    icons <- .indice_icon_values(style)
+    defaults$icon <- icons[seq_len(nrow(defaults))]
+    defaults$width <- .style_num_vec(style, "iconos_focos_width", defaults$width)
+    defaults$height <- .style_num_vec(style, "iconos_focos_height", defaults$height)
+    fills <- style[["iconos_focos_fill"]] %||% defaults$fill
+    fills <- as.character(fills)
+    if (length(fills) < nrow(defaults)) fills <- c(fills, defaults$fill[(length(fills) + 1L):nrow(defaults)])
+    defaults$fill <- vapply(seq_len(nrow(defaults)), function(k) .indice_sanitize_fill(fills[[k]], defaults$fill[[k]]), character(1))
+    cover_left <- defaults$left
+    cover_top <- defaults$top
+    cover_width <- .style_num_vec(style, "iconos_focos_cover_width", defaults$width)
+    cover_height <- .style_num_vec(style, "iconos_focos_cover_height", defaults$height)
+    icon_scale <- .style_num_vec(style, "iconos_focos_icon_scale", rep(0.76, nrow(defaults)))
+    usar_objeto_unico <- isTRUE(.style_value(style, "iconos_focos_objeto_unico", TRUE))
+    redibujar_focos <- isTRUE(.style_value(style, "redibujar_focos", FALSE))
+    if (redibujar_focos) {
+      doc <- .add_indice_bulbs_base(doc, style)
+    }
+
+    for (idx in seq_len(nrow(defaults))) {
+      icon_path <- .resolve_indice_icon_path(defaults$icon[[idx]])
+      if (!nzchar(icon_path)) next
+      if (usar_objeto_unico) {
+        icon_compuesto <- .indice_icon_compuesto_asset(
+          icon_path = icon_path,
+          fill = defaults$fill[[idx]],
+          icon_scale = icon_scale[[idx]]
+        )
+        doc <- officer::ph_with(
+          doc,
+          value = officer::external_img(
+            src = icon_compuesto,
+            width = cover_width[[idx]],
+            height = cover_height[[idx]],
+            alt = paste("Indice icon", idx)
+          ),
+          location = officer::ph_location(
+            left = cover_left[[idx]],
+            top = cover_top[[idx]],
+            width = cover_width[[idx]],
+            height = cover_height[[idx]],
+            newlabel = paste0("Indice bulb icon ", idx)
+          )
+        )
+        next
+      }
+      if (!redibujar_focos && isTRUE(.style_value(style, "limpiar_iconos_focos", TRUE))) {
+        doc <- .add_indice_icon_cover(
+          doc,
+          left = cover_left[[idx]],
+          top = cover_top[[idx]],
+          width = cover_width[[idx]],
+          height = cover_height[[idx]],
+          fill = defaults$fill[[idx]],
+          label = paste0("Indice bulb icon cover ", idx)
+        )
+      }
+      doc <- officer::ph_with(
+        doc,
+        value = officer::external_img(
+          src = icon_path,
+          width = defaults$width[[idx]],
+          height = defaults$height[[idx]],
+          alt = paste("Indice icon", idx)
+        ),
+        location = officer::ph_location(
+          left = defaults$left[[idx]],
+          top = defaults$top[[idx]],
+          width = defaults$width[[idx]],
+          height = defaults$height[[idx]],
+          newlabel = paste0("Indice bulb icon ", idx)
+        )
+      )
+    }
+    doc
+  }
+
+  .svg_text_escape <- function(x) {
+    x <- as.character(x %||% "")[1]
+    x <- gsub("&", "&amp;", x, fixed = TRUE)
+    x <- gsub("<", "&lt;", x, fixed = TRUE)
+    x <- gsub(">", "&gt;", x, fixed = TRUE)
+    x <- gsub('"', "&quot;", x, fixed = TRUE)
+    x
+  }
+
+  .top_two_parse_colors <- function(style, n) {
+    default <- c("#D8504F", "#FFD966", "#B7D7A8", "#70AD47")
+    raw <- style[["colores"]] %||% style[["colores_escala"]] %||% default
+    if (is.list(raw) && !is.data.frame(raw)) {
+      raw <- unlist(raw, recursive = TRUE, use.names = FALSE)
+    }
+    raw <- as.character(raw)
+    if (length(raw) == 1L && grepl("[,;|\\n]", raw)) {
+      raw <- unlist(strsplit(raw, "[,;|\\n]+"))
+    }
+    raw <- trimws(raw)
+    raw <- raw[nzchar(raw)]
+    if (!length(raw)) raw <- default
+    raw <- rep(raw, length.out = n)
+    fallback <- rep(default, length.out = n)
+    vapply(seq_len(n), function(i) .indice_sanitize_fill(raw[[i]], fallback[[i]]), character(1))
+  }
+
+  .top_two_box_svg <- function(valores, etiquetas, top_two_indices, extremo_izquierda, extremo_derecha, style) {
+    valores <- suppressWarnings(as.numeric(valores))
+    valores <- valores[is.finite(valores) & valores >= 0]
+    if (!length(valores)) valores <- c(5, 5, 35, 55)
+    etiquetas <- as.character(etiquetas %||% seq_along(valores))
+    if (length(etiquetas) < length(valores)) etiquetas <- c(etiquetas, as.character((length(etiquetas) + 1L):length(valores)))
+    etiquetas <- etiquetas[seq_along(valores)]
+    total <- sum(valores)
+    if (!is.finite(total) || total <= 0) {
+      valores <- c(5, 5, 35, 55)
+      total <- sum(valores)
+    }
+    valores_pct <- valores / total * 100
+    top_two_indices <- suppressWarnings(as.integer(top_two_indices %||% tail(seq_along(valores), 2)))
+    top_two_indices <- top_two_indices[top_two_indices >= 1L & top_two_indices <= length(valores)]
+    if (!length(top_two_indices)) top_two_indices <- tail(seq_along(valores), min(2L, length(valores)))
+
+    colors <- .top_two_parse_colors(style, length(valores))
+    blue <- .indice_sanitize_fill(.style_value(style, "text_color", "#081F5C"), "#081F5C")
+    accent <- .indice_sanitize_fill(.style_value(style, "accent_color", .style_value(style, "title_color", "#D8504F")), "#D8504F")
+    brace_color <- .indice_sanitize_fill(.style_value(style, "brace_color", accent), accent)
+    top_label_color <- .indice_sanitize_fill(.style_value(style, "top_label_color", accent), accent)
+    label_color <- .indice_sanitize_fill(
+      .style_value(style, "color_texto_porcentajes", .style_value(style, "svg_label_color", "#FFFFFF")),
+      "#FFFFFF"
+    )
+    background <- .indice_sanitize_fill(.style_value(style, "background_fill", "#F2F2F2"), "#F2F2F2")
+
+    style_num_any <- function(names, default) {
+      for (nm in names) {
+        val <- suppressWarnings(as.numeric(.style_value(style, nm, NA_real_))[1])
+        if (is.finite(val)) return(val)
+      }
+      default
+    }
+    top_two_bar_height <- function(default = 70) {
+      val <- style_num_any(c("svg_bar_height", "grosor_barra", "grosor_barras"), default)
+      if (is.finite(val) && val > 0 && val <= 2.5) val <- val / 0.82 * default
+      min(130, max(30, val))
+    }
+    top_two_label_size <- function(default = 21,
+                                   names = c("svg_label_size", "size_texto_porcentajes", "size_texto_barras")) {
+      val <- style_num_any(names, default)
+      if (is.finite(val) && val > 0 && val <= 12) val <- val * 16 / 5.6
+      min(42, max(8, val))
+    }
+
+    bar_x <- .style_num(style, "svg_bar_x", 160, min = 20)
+    bar_y <- .style_num(style, "svg_bar_y", 68, min = 20)
+    bar_w <- .style_num(style, "svg_bar_width", 650, min = 200)
+    bar_h <- top_two_bar_height(82)
+    label_size <- top_two_label_size(22)
+    small_label_size <- top_two_label_size(
+      16,
+      c("svg_small_label_size", "size_texto_porcentajes_peq", "size_texto_barras_peq")
+    )
+    legend_size <- .style_num(style, "svg_legend_size", 20, min = 8)
+    brace_pad <- .style_num(style, "margen_llave", .style_num(style, "svg_brace_pad", 4, min = 0, max = 24), min = 0, max = 24)
+    arrow_width <- .style_num(style, "grosor_flecha", .style_num(style, "svg_arrow_width", 3.6, min = 1, max = 8), min = 1, max = 8)
+    arrow_head <- .style_num(style, "svg_arrow_head", 12, min = 6, max = 24)
+    arrow_y <- .style_num(style, "svg_arrow_y", 360, min = 300, max = 430)
+
+    starts <- cumsum(c(0, head(valores_pct, -1))) / 100 * bar_w
+    widths <- valores_pct / 100 * bar_w
+    rects <- vapply(seq_along(valores), function(i) {
+      x <- bar_x + starts[[i]]
+      w <- widths[[i]]
+      fs <- if (w < 45) small_label_size else label_size
+      sprintf(
+        '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/><text x="%.2f" y="%.2f" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="%.1f" font-weight="700" fill="%s">%s%%</text>',
+        x, bar_y, w, bar_h, colors[[i]],
+        x + w / 2, bar_y + bar_h / 2,
+        fs, label_color,
+        round(valores[[i]])
+      )
+    }, character(1))
+
+    top_start <- min(starts[top_two_indices])
+    top_end <- max(starts[top_two_indices] + widths[top_two_indices])
+    brace_x1 <- max(bar_x, bar_x + top_start - brace_pad)
+    brace_x2 <- min(bar_x + bar_w, bar_x + top_end + brace_pad)
+    brace_y <- bar_y + bar_h + 28
+    brace_mid <- (brace_x1 + brace_x2) / 2
+    top_sum <- sum(valores[top_two_indices])
+    top_formula <- paste(paste0(round(valores[top_two_indices]), "%"), collapse = " + ")
+
+    legend_x0 <- bar_x + 170
+    legend_y <- 385
+    legend_gap <- 88
+    legends <- vapply(seq_along(valores), function(i) {
+      x <- legend_x0 + (i - 1L) * legend_gap
+      sprintf(
+        '<rect x="%.2f" y="%.2f" width="24" height="24" fill="%s"/><text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" font-size="%.1f" font-weight="700" fill="%s">%s</text>',
+        x, legend_y, colors[[i]],
+        x + 12, legend_y + 58,
+        legend_size, blue,
+        .svg_text_escape(etiquetas[[i]])
+      )
+    }, character(1))
+
+    left_lines <- strsplit(as.character(extremo_izquierda %||% ""), "\\n", fixed = FALSE)[[1]]
+    right_lines <- strsplit(as.character(extremo_derecha %||% ""), "\\n", fixed = FALSE)[[1]]
+    mk_multiline <- function(lines, x, y, anchor) {
+      paste(vapply(seq_along(lines), function(i) {
+        sprintf(
+          '<text x="%.2f" y="%.2f" text-anchor="%s" font-family="Arial, sans-serif" font-size="22" fill="%s">%s</text>',
+          x, y + (i - 1L) * 26, anchor, blue, .svg_text_escape(lines[[i]])
+        )
+      }, character(1)), collapse = "")
+    }
+
+    out <- tempfile("top_two_box_", fileext = ".svg")
+    writeLines(
+      c(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520">',
+        sprintf('<rect x="0" y="0" width="1000" height="520" fill="%s"/>', background),
+        rects,
+        sprintf('<path d="M %.2f %.2f V %.2f H %.2f V %.2f" fill="none" stroke="%s" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
+                brace_x1, brace_y - 14, brace_y + 6,
+                brace_x2, brace_y - 14,
+                brace_color),
+        sprintf('<path d="M %.2f %.2f V %.2f" fill="none" stroke="%s" stroke-width="1.9" stroke-linecap="round"/>',
+                brace_mid, brace_y + 6, brace_y + 24, brace_color),
+        sprintf('<text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="%s">TOP TWO BOX</text>', brace_mid, brace_y + 60, top_label_color),
+        sprintf('<text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="%s">%s</text>', brace_mid, brace_y + 86, top_label_color, .svg_text_escape(top_formula)),
+        sprintf('<text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="%s">%s%%</text>', brace_mid, brace_y + 112, top_label_color, round(top_sum)),
+        mk_multiline(left_lines, bar_x + 55, 368, "middle"),
+        mk_multiline(right_lines, bar_x + bar_w - 28, 368, "middle"),
+        sprintf('<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="%s" stroke-width="%.2f" stroke-linecap="round"/>',
+                bar_x + 150 + arrow_head, arrow_y,
+                bar_x + bar_w - 105 - arrow_head, arrow_y,
+                blue, arrow_width),
+        sprintf('<polygon points="%.2f,%.2f %.2f,%.2f %.2f,%.2f" fill="%s"/>',
+                bar_x + 150, arrow_y,
+                bar_x + 150 + arrow_head, arrow_y - arrow_head * 0.62,
+                bar_x + 150 + arrow_head, arrow_y + arrow_head * 0.62,
+                blue),
+        sprintf('<polygon points="%.2f,%.2f %.2f,%.2f %.2f,%.2f" fill="%s"/>',
+                bar_x + bar_w - 105, arrow_y,
+                bar_x + bar_w - 105 - arrow_head, arrow_y - arrow_head * 0.62,
+                bar_x + bar_w - 105 - arrow_head, arrow_y + arrow_head * 0.62,
+                blue),
+        legends,
+        '</svg>'
+      ),
+      con = out,
+      useBytes = TRUE
+    )
+    out
+  }
+
+  .make_indice_subtopics_flextable <- function(subtemas, style, font_family_default) {
+    if (!requireNamespace("flextable", quietly = TRUE)) {
+      stop("Se requiere el paquete 'flextable' para renderizar `p_slide_indice` con contenido.", call. = FALSE)
+    }
+
+    n_cols <- .style_num(style, "subtopic_cols", 2, min = 1, max = 3)
+    n_cols <- as.integer(round(n_cols))
+    n_rows <- ceiling(length(subtemas) / n_cols)
+    values <- rep("", n_rows * n_cols)
+    values[seq_along(subtemas)] <- paste0("•  ", subtemas)
+    tbl <- as.data.frame(
+      matrix(values, nrow = n_rows, ncol = n_cols, byrow = FALSE),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    names(tbl) <- paste0("col", seq_len(n_cols))
+
+    table_width <- .style_num(style, "subtopic_width", 6.85, min = 3)
+    row_height <- .style_num(style, "subtopic_row_height", 0.27, min = 0.18)
+    font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
+    text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
+    font_size <- .style_num(style, "subtopic_size", 10.6, min = 6)
+
+    ft <- flextable::flextable(tbl)
+    ft <- flextable::delete_part(ft, part = "header")
+    ft <- flextable::set_table_properties(ft, layout = "fixed")
+    ft <- flextable::font(ft, fontname = font_family, part = "all")
+    ft <- flextable::fontsize(ft, size = font_size, part = "body")
+    ft <- flextable::color(ft, color = text_color, part = "body")
+    ft <- flextable::align(ft, align = "left", part = "body")
+    ft <- flextable::valign(ft, valign = "top", part = "body")
+    ft <- flextable::padding(
+      ft,
+      padding.top = 1,
+      padding.bottom = 1,
+      padding.left = 2,
+      padding.right = 8,
+      part = "body"
+    )
+    ft <- flextable::height(ft, i = seq_len(n_rows), height = row_height, part = "body")
+    ft <- flextable::hrule(ft, rule = "atleast", part = "body")
+    for (j in seq_len(n_cols)) {
+      ft <- flextable::width(ft, j = j, width = table_width / n_cols)
+    }
+    ft <- flextable::border_remove(ft)
+    flextable::fix_border_issues(ft)
+  }
+
   # ---------------------------------------------------------------------------
   # 2) Helpers  -  Plan (recoleccion diapo_###)
   # ---------------------------------------------------------------------------
@@ -6002,14 +7005,355 @@ reporte_ppt_plan <- function(
     if (identical(stype, "indice")) {
 
       contract <- PPT_CONTRACT$indice
+      slots <- slide$slots %||% list()
+      style <- slide$style %||% slots$estilo %||% list()
+      if (!is.null(slots$iconos_focos)) style$iconos_focos <- slots$iconos_focos
+      if (!is.null(slots$redibujar_focos)) style$redibujar_focos <- isTRUE(slots$redibujar_focos)
+      if (!is.null(slots$mostrar_iconos_focos)) style$mostrar_iconos_focos <- isTRUE(slots$mostrar_iconos_focos)
+      if (!is.null(slots$iconos_focos_fill)) style$iconos_focos_fill <- slots$iconos_focos_fill
+      if (!is.null(slots$iconos_focos_objeto_unico)) {
+        style$iconos_focos_objeto_unico <- isTRUE(slots$iconos_focos_objeto_unico)
+      }
+      diametro_in <- .indice_cm_to_in_vec(slots$iconos_focos_diametro_cm %||% NULL, recycle = TRUE)
+      if (!is.null(diametro_in)) {
+        style$iconos_focos_cover_width <- diametro_in
+        style$iconos_focos_cover_height <- diametro_in
+      }
+      icon_scale <- .indice_recycle_focus_vec(.indice_parse_numeric_vec(slots$iconos_focos_icon_scale %||% NULL))
+      if (!is.null(icon_scale)) style$iconos_focos_icon_scale <- icon_scale
+      for (nm in c("subtopic_badge_fill", "subtopic_badge_width", "subtopic_badge_gap")) {
+        if (!is.null(slots[[nm]])) style[[nm]] <- slots[[nm]]
+      }
+
+      title_raw <- slots$title %||% slide$title %||% NULL
+      secciones <- .indice_clean_vec(slots$secciones %||% NULL)
+      subtemas <- .indice_clean_vec(slots$subtemas %||% NULL)
+      subindices_df <- .indice_subindices_df(
+        subindices = slots$subindices %||% NULL,
+        subtemas = subtemas,
+        secciones = secciones
+      )
+      has_custom_index <- length(secciones) > 0L ||
+        nrow(subindices_df) > 0L ||
+        (!is.null(title_raw) && nzchar(trimws(as.character(title_raw)[1])))
 
       if (!isTRUE(solo_lista)) {
-        doc <- .add_slide_strict(doc, contract$layout)
+        if (isTRUE(has_custom_index)) {
+          custom_layout <- contract$layout %||% NA_character_
+          if (is.null(custom_layout) || is.na(custom_layout) || !nzchar(custom_layout)) {
+            custom_layout <- PPT_CONTRACT$text_slide$layout %||% NA_character_
+          }
+          doc <- .add_slide_strict(doc, custom_layout)
+
+          font_family_default <- presets$base$args$font_family_ppt %||%
+            presets$base$args$font_family %||% "Arial"
+          style$font_family <- style$font_family %||% font_family_default
+          background_fill <- as.character(.style_value(style, "background_fill", "#F2F2F2"))[1]
+
+          if (isTRUE(.style_value(style, "limpiar_panel_indice", TRUE))) {
+            doc <- .add_indice_cover(
+              doc,
+              left = .style_num(style, "panel_left", 6.42, min = 0),
+              top = .style_num(style, "panel_top", 1.55, min = 0),
+              width = .style_num(style, "panel_width", 5.86, min = 1),
+              height = .style_num(style, "panel_height", 4.22, min = 1),
+              fill = background_fill,
+              label = "Indice right content cover"
+            )
+          }
+          doc <- .add_indice_bulb_icons(doc, style)
+
+          title_txt <- title_raw %||% "Índice"
+          title_txt <- as.character(title_txt)[1]
+          title_txt <- trimws(title_txt)
+          if (!nzchar(title_txt)) title_txt <- "Índice"
+          if (isTRUE(.style_value(style, "mayusculas_titulo", TRUE))) {
+            title_txt <- toupper(title_txt)
+          }
+
+          title_prop <- officer::fp_text(
+            color = as.character(.style_value(style, "title_color", "#081F5C"))[1],
+            font.size = .style_num(style, "title_size", 28, min = 10),
+            bold = TRUE,
+            font.family = as.character(style$font_family)[1]
+          )
+          title_value <- officer::fpar(
+            officer::ftext(title_txt, prop = title_prop),
+            fp_p = officer::fp_par(
+              text.align = as.character(.style_value(style, "title_align", "center"))[1],
+              line_spacing = 1
+            )
+          )
+          title_left <- .style_num(style, "title_left", 6.58, min = 0)
+          title_top <- .style_num(style, "title_top", 1.32, min = 0)
+          title_width <- .style_num(style, "title_width", 5.10, min = 1)
+          title_height <- .style_num(style, "title_height", 0.62, min = 0.2)
+          doc <- officer::ph_with(
+            doc,
+            value = title_value,
+            location = officer::ph_location(
+              left = title_left,
+              top = title_top,
+              width = title_width,
+              height = title_height
+            )
+          )
+
+          table_left <- .style_num(style, "table_left", 6.56, min = 0)
+          table_top <- .style_num(style, "table_top", 2.14, min = 0)
+          table_width <- .style_num(style, "table_width", 5.22, min = 3)
+          row_height_default <- if (length(secciones) <= 4L) 0.55 else max(0.34, min(0.48, 2.34 / length(secciones)))
+          row_height <- .style_num(style, "row_height", row_height_default, min = 0.24)
+          style$number_width <- style$number_width %||% 0.55
+          style$number_size <- style$number_size %||% if (length(secciones) <= 4L) 20 else 16
+          style$section_size <- style$section_size %||% if (length(secciones) <= 4L) 18 else 16
+          style$section_fill <- style$section_fill %||% "#E7E7E7"
+          style$row_gap_color <- style$row_gap_color %||% "#F2F2F2"
+          style$subtopic_heading <- style$subtopic_heading %||% FALSE
+          style$subtopic_marker <- style$subtopic_marker %||% "number_text"
+          style$subtopic_row_height <- style$subtopic_row_height %||% 0.76
+          style$subtopic_col_gap <- style$subtopic_col_gap %||% 0.30
+          style$subtopic_badge_width <- style$subtopic_badge_width %||% 0.26
+          style$subtopic_badge_gap <- style$subtopic_badge_gap %||% 0.13
+          style$subtopic_size <- style$subtopic_size %||% 16
+          style$subtopic_number_size <- style$subtopic_number_size %||% 16
+          style$table_width <- table_width
+          style$row_height <- row_height
+
+          subindices_inline <- isTRUE(.style_value(style, "subindices_inline", TRUE))
+          if (length(secciones) && nrow(subindices_df) && subindices_inline) {
+            sub_keys <- .indice_section_key(subindices_df$seccion)
+            section_keys <- .indice_section_key(secciones)
+            current_top <- table_top
+            row_gap <- .style_num(style, "row_gap", 0.10, min = 0, max = 0.35)
+            subtopic_top_gap <- .style_num(style, "subtopic_inline_top_gap", 0.10, min = 0, max = 0.30)
+            subtopic_bottom_gap <- .style_num(style, "subtopic_inline_bottom_gap", 0.13, min = 0, max = 0.35)
+            subtopic_left <- .style_num(
+              style,
+              "subtopic_inline_left",
+              table_left + 0.28,
+              min = 0
+            )
+            subtopic_width <- .style_num(
+              style,
+              "subtopic_inline_width",
+              table_width - 0.16,
+              min = 2.2
+            )
+
+            for (idx_section in seq_along(secciones)) {
+              ft_index <- .make_indice_sections_flextable(
+                secciones[[idx_section]],
+                style = style,
+                font_family_default = font_family_default,
+                numeros = idx_section
+              )
+              doc <- officer::ph_with(
+                doc,
+                value = ft_index,
+                location = officer::ph_location(
+                  left = table_left,
+                  top = current_top,
+                  width = table_width,
+                  height = row_height + 0.04
+                )
+              )
+
+              current_top <- current_top + row_height
+              subtopic_items <- subindices_df$item[sub_keys == section_keys[[idx_section]]]
+              if (length(subtopic_items)) {
+                mostrar_grupo <- .style_value(style, "mostrar_grupo_subindice", FALSE)
+                subtopic_labels <- if (isTRUE(mostrar_grupo)) {
+                  paste0(secciones[[idx_section]], ": ", subtopic_items)
+                } else {
+                  subtopic_items
+                }
+                doc <- .add_indice_subtopics(
+                  doc,
+                  labels = subtopic_labels,
+                  style = style,
+                  font_family_default = font_family_default,
+                  anchor_left = subtopic_left,
+                  anchor_top = current_top + subtopic_top_gap,
+                  anchor_width = subtopic_width
+                )
+                current_top <- current_top +
+                  subtopic_top_gap +
+                  .indice_subtopics_height(subtopic_labels, style) +
+                  subtopic_bottom_gap
+              } else {
+                current_top <- current_top + row_gap
+              }
+            }
+          } else if (length(secciones)) {
+            ft_index <- .make_indice_sections_flextable(
+              secciones,
+              style = style,
+              font_family_default = font_family_default
+            )
+            doc <- officer::ph_with(
+              doc,
+              value = ft_index,
+              location = officer::ph_location(
+                left = table_left,
+                top = table_top,
+                width = table_width,
+                height = row_height * length(secciones) + 0.08
+              )
+            )
+          }
+
+          if (nrow(subindices_df) && (!length(secciones) || !subindices_inline)) {
+            subtopic_top <- .style_num(
+              style,
+              "subtopic_top",
+              table_top + max(1L, length(secciones)) * row_height + 0.30,
+              min = 0
+            )
+            subtopic_left <- .style_num(style, "subtopic_left", table_left + 0.18, min = 0)
+            subtopic_width <- .style_num(style, "subtopic_width", table_width - 0.18, min = 3)
+
+            mostrar_grupo <- .style_value(
+              style,
+              "mostrar_grupo_subindice",
+              FALSE
+            )
+            subtopic_labels <- if (isTRUE(mostrar_grupo)) {
+              paste0(subindices_df$seccion, ": ", subindices_df$item)
+            } else {
+              subindices_df$item
+            }
+            doc <- .add_indice_subtopics(
+              doc,
+              labels = subtopic_labels,
+              style = style,
+              font_family_default = font_family_default,
+              anchor_left = subtopic_left,
+              anchor_top = subtopic_top,
+              anchor_width = subtopic_width
+            )
+          }
+        } else {
+          doc <- .add_slide_strict(doc, contract$layout)
+        }
       }
 
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(
         slide_i    = i,
         slide_type = "indice",
+        element    = NA_character_,
+        var        = NA_character_
+      )
+      next
+    }
+
+    # ---- TOP_TWO_BOX --------------------------------------------------------
+    if (identical(stype, "top_two_box")) {
+
+      contract <- PPT_CONTRACT$text_slide
+      slots <- slide$slots %||% list()
+      style <- slide$style %||% slots$estilo %||% list()
+      if (!is.null(slots$accent_color)) style$accent_color <- slots$accent_color
+      if (!is.null(slots$colores)) style$colores <- slots$colores
+      if (!is.null(slots$grosor_barra)) style$grosor_barra <- slots$grosor_barra
+      if (!is.null(slots$size_texto_porcentajes)) style$size_texto_porcentajes <- slots$size_texto_porcentajes
+      if (!is.null(slots$size_texto_porcentajes_peq)) style$size_texto_porcentajes_peq <- slots$size_texto_porcentajes_peq
+      if (!is.null(slots$color_texto_porcentajes)) style$color_texto_porcentajes <- slots$color_texto_porcentajes
+      if (!is.null(slots$margen_llave)) style$margen_llave <- slots$margen_llave
+      if (!is.null(slots$grosor_flecha)) style$grosor_flecha <- slots$grosor_flecha
+
+      if (is.null(contract$layout) || is.na(contract$layout) || !nzchar(contract$layout)) {
+        stop("La plantilla NO tiene layout requerido para `top_two_box`: 'Title and Content' o 'General Objective'.", call. = FALSE)
+      }
+
+      if (!isTRUE(solo_lista)) {
+        doc <- .add_slide_strict(doc, contract$layout)
+
+        font_family_default <- presets$base$args$font_family_ppt %||%
+          presets$base$args$font_family %||% "Arial"
+        style$font_family <- style$font_family %||% font_family_default
+
+        title_text <- as.character(slots$title %||% slide$title %||% "TOP TWO BOX")[1]
+        if (!nzchar(trimws(title_text))) title_text <- "TOP TWO BOX"
+        if (isTRUE(.style_value(style, "mayusculas_titulo", TRUE))) title_text <- toupper(title_text)
+
+        title_value <- officer::fpar(
+          officer::ftext(
+            title_text,
+            prop = officer::fp_text(
+              color = as.character(.style_value(style, "title_color", .style_value(style, "accent_color", "#D8504F")))[1],
+              font.size = .style_num(style, "title_size", 24, min = 8),
+              bold = TRUE,
+              font.family = as.character(style$font_family)[1]
+            )
+          ),
+          fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
+        )
+        doc <- officer::ph_with(
+          doc,
+          value = title_value,
+          location = officer::ph_location(
+            left = .style_num(style, "title_left", 0.62, min = 0),
+            top = .style_num(style, "title_top", 0.58, min = 0),
+            width = .style_num(style, "title_width", 10.4, min = 1),
+            height = .style_num(style, "title_height", 0.48, min = 0.2),
+            newlabel = "Top Two Box title"
+          )
+        )
+
+        body_text <- as.character(slots$text %||% "")[1]
+        body_value <- officer::fpar(
+          officer::ftext(
+            body_text,
+            prop = officer::fp_text(
+              color = as.character(.style_value(style, "text_color", "#081F5C"))[1],
+              font.size = .style_num(style, "text_size", 14.8, min = 8),
+              bold = FALSE,
+              font.family = as.character(style$font_family)[1]
+            )
+          ),
+          fp_p = officer::fp_par(text.align = "justify", line_spacing = 1.05)
+        )
+        doc <- officer::ph_with(
+          doc,
+          value = body_value,
+          location = officer::ph_location(
+            left = .style_num(style, "text_left", 0.62, min = 0),
+            top = .style_num(style, "text_top", 1.24, min = 0),
+            width = .style_num(style, "text_width", 12.0, min = 3),
+            height = .style_num(style, "text_height", 0.95, min = 0.2),
+            newlabel = "Top Two Box text"
+          )
+        )
+
+        svg <- .top_two_box_svg(
+          valores = slots$valores %||% c(5, 5, 35, 55),
+          etiquetas = slots$etiquetas %||% c("1", "2", "3", "4"),
+          top_two_indices = slots$top_two_indices %||% c(3, 4),
+          extremo_izquierda = slots$extremo_izquierda %||% "Totalmente\nen desacuerdo",
+          extremo_derecha = slots$extremo_derecha %||% "Totalmente\nde acuerdo",
+          style = style
+        )
+        diagram_left <- .style_num(style, "diagram_left", 1.65, min = 0)
+        diagram_top <- .style_num(style, "diagram_top", 2.34, min = 0)
+        diagram_width <- .style_num(style, "diagram_width", 9.65, min = 3)
+        diagram_height <- .style_num(style, "diagram_height", 4.35, min = 1)
+        doc <- officer::ph_with(
+          doc,
+          value = officer::external_img(src = svg, width = diagram_width, height = diagram_height, alt = "Top Two Box"),
+          location = officer::ph_location(
+            left = diagram_left,
+            top = diagram_top,
+            width = diagram_width,
+            height = diagram_height,
+            newlabel = "Top Two Box diagram"
+          )
+        )
+      }
+
+      log_rows[[length(log_rows) + 1]] <- tibble::tibble(
+        slide_i    = i,
+        slide_type = "top_two_box",
         element    = NA_character_,
         var        = NA_character_
       )

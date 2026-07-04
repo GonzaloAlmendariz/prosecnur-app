@@ -66,6 +66,359 @@ test_that("reporte_ppt_plan renderiza text_slide en PPT", {
   expect_match(slide_xml, 'sz="1400"', fixed = TRUE)
 })
 
+test_that("p_slide_indice renderiza contenido editable en PPT", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("flextable")
+
+  dat <- data.frame(x = 1)
+  inst <- list(
+    survey = data.frame(
+      name = "x",
+      type = "integer",
+      list_name = NA_character_,
+      stringsAsFactors = FALSE
+    ),
+    choices = NULL,
+    orders_list = NULL
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  expect_no_error(
+    reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = list(
+        diapo_001 = p_slide_indice(
+          titulo = "Índice",
+          secciones = c("Objetivo del estudio", "Metodología y ficha técnica"),
+          subindices = list(
+            "Metodología y ficha técnica" = c("Perfil del egresado", "Satisfacción con la carrera")
+          )
+        )
+      ),
+      presets = p_presets(),
+      path_ppt = out_ppt,
+      mensajes_progreso = FALSE
+    )
+  )
+
+  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- paste(slide_xml, collapse = "\n")
+  expect_match(slide_xml, "ÍNDICE", fixed = TRUE)
+  expect_match(slide_xml, "Objetivo del estudio", fixed = TRUE)
+  expect_match(slide_xml, "Perfil del egresado", fixed = TRUE)
+  expect_match(slide_xml, 'sz="1600"', fixed = TRUE)
+})
+
+test_that("p_slide_indice expone controles amigables para focos editables", {
+  slide <- p_slide_indice(
+    titulo = "Índice",
+    iconos_focos = c("target-arrow", "clipboard-list", "circle-user-round", "chart-column", "artificial-intelligence"),
+    iconos_focos_objeto_unico = TRUE,
+    iconos_focos_diametro_cm = 2.18,
+    iconos_focos_icon_scale = 0.74,
+    iconos_focos_left_cm = "0.1, 0.2, 0.3, 0.4, 0.5",
+    iconos_focos_top_cm = "0.1, 0.2, 0.3, 0.4, 0.5",
+    subtopic_badge_fill = "#CA5651",
+    subtopic_badge_width = 0.36,
+    subtopic_badge_gap = 0.08
+  )
+
+  expect_true(isTRUE(slide$style$iconos_focos_objeto_unico))
+  expect_equal(slide$style$iconos_focos_cover_width, rep(2.18 / 2.54, 5))
+  expect_equal(slide$style$iconos_focos_cover_height, rep(2.18 / 2.54, 5))
+  expect_equal(slide$style$iconos_focos_icon_scale, rep(0.74, 5))
+  expect_null(slide$style$iconos_focos_cover_left)
+  expect_null(slide$style$iconos_focos_cover_top)
+  expect_equal(slide$style$subtopic_badge_fill, "#CA5651")
+  expect_equal(slide$style$subtopic_badge_width, 0.36)
+  expect_equal(slide$style$subtopic_badge_gap, 0.08)
+})
+
+test_that("reporte_ppt_plan aplica controles de focos desde slots del editor", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("rsvg")
+  skip_if_not_installed("xml2")
+
+  dat <- data.frame(x = 1)
+  inst <- list(
+    survey = data.frame(
+      name = "x",
+      type = "integer",
+      list_name = NA_character_,
+      stringsAsFactors = FALSE
+    ),
+    choices = NULL,
+    orders_list = NULL
+  )
+
+  slide <- structure(
+    list(
+      .slide_type = "indice",
+      title = "Índice",
+      slots = list(
+        title = "Índice",
+        secciones = c("Objetivo", "Metodología"),
+        iconos_focos = c("target-arrow", "clipboard-list", "circle-user-round", "chart-column", "artificial-intelligence"),
+        iconos_focos_objeto_unico = TRUE,
+        iconos_focos_icon_scale = 0.72,
+        iconos_focos_left_cm = "0.1, 0.2, 0.3, 0.4, 0.5",
+        iconos_focos_top_cm = "0.1, 0.2, 0.3, 0.4, 0.5"
+      )
+    ),
+    class = "ppt_slide"
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  expect_no_error(
+    reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = list(
+        diapo_001 = slide,
+        diapo_002 = p_slide_indice(
+          titulo = "Índice",
+          secciones = c("Objetivo", "Metodología")
+        )
+      ),
+      presets = p_presets(),
+      path_ppt = out_ppt,
+      mensajes_progreso = FALSE
+    )
+  )
+
+  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  xml <- xml2::read_xml(slide_xml)
+  ns <- xml2::xml_ns(xml)
+  pics <- xml2::xml_find_all(xml, ".//p:pic", ns = ns)
+  names <- xml2::xml_attr(xml2::xml_find_first(pics, ".//p:cNvPr", ns = ns), "name")
+  icon_idx <- grep("^Indice bulb icon", names)
+  expect_length(icon_idx, 5)
+  ext <- xml2::xml_find_first(pics[icon_idx], ".//a:ext", ns = ns)
+  off <- xml2::xml_find_first(pics[icon_idx], ".//a:off", ns = ns)
+  left_cm <- as.numeric(xml2::xml_attr(off, "x")) / 914400 * 2.54
+  top_cm <- as.numeric(xml2::xml_attr(off, "y")) / 914400 * 2.54
+  widths_cm <- as.numeric(xml2::xml_attr(ext, "cx")) / 914400 * 2.54
+  heights_cm <- as.numeric(xml2::xml_attr(ext, "cy")) / 914400 * 2.54
+  expect_equal(round(left_cm, 2), c(1.85, 6.28, 11.63, 4.32, 8.67))
+  expect_equal(round(top_cm, 2), c(6.68, 6.68, 7.52, 11.07, 11.56))
+  expect_equal(round(widths_cm, 2), rep(2.18, 5))
+  expect_equal(round(heights_cm, 2), rep(2.18, 5))
+
+  slide2_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide2.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  xml2_slide <- xml2::read_xml(slide2_xml)
+  ns2 <- xml2::xml_ns(xml2_slide)
+  pics2 <- xml2::xml_find_all(xml2_slide, ".//p:pic", ns = ns2)
+  names2 <- xml2::xml_attr(xml2::xml_find_first(pics2, ".//p:cNvPr", ns = ns2), "name")
+  icon_idx2 <- grep("^Indice bulb icon", names2)
+  expect_length(icon_idx2, 5)
+  off2 <- xml2::xml_find_first(pics2[icon_idx2], ".//a:off", ns = ns2)
+  ext2 <- xml2::xml_find_first(pics2[icon_idx2], ".//a:ext", ns = ns2)
+  left_cm2 <- as.numeric(xml2::xml_attr(off2, "x")) / 914400 * 2.54
+  top_cm2 <- as.numeric(xml2::xml_attr(off2, "y")) / 914400 * 2.54
+  width_cm2 <- as.numeric(xml2::xml_attr(ext2, "cx")) / 914400 * 2.54
+  height_cm2 <- as.numeric(xml2::xml_attr(ext2, "cy")) / 914400 * 2.54
+  expect_equal(round(left_cm2, 2), c(1.85, 6.28, 11.63, 4.32, 8.67))
+  expect_equal(round(top_cm2, 2), c(6.68, 6.68, 7.52, 11.07, 11.56))
+  expect_equal(round(width_cm2, 2), rep(2.18, 5))
+  expect_equal(round(height_cm2, 2), rep(2.18, 5))
+})
+
+test_that("p_slide_indice soporta variantes de 3 a 6 apartados con subindices", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("flextable")
+
+  dat <- data.frame(x = 1)
+  inst <- list(
+    survey = data.frame(
+      name = "x",
+      type = "integer",
+      list_name = NA_character_,
+      stringsAsFactors = FALSE
+    ),
+    choices = NULL,
+    orders_list = NULL
+  )
+
+  make_slide <- function(n_sections, sub_section) {
+    secciones <- paste("Seccion", seq_len(n_sections))
+    p_slide_indice(
+      titulo = paste("Indice", n_sections),
+      secciones = secciones,
+      subindices = stats::setNames(
+        list(c("Subtema alfa", "Subtema beta")),
+        sub_section
+      ),
+      estilo = list(
+        subindices_inline = TRUE,
+        redibujar_focos = TRUE,
+        mostrar_iconos_focos = TRUE
+      )
+    )
+  }
+
+  plan <- list(
+    diapo_001 = make_slide(3, "Seccion 3"),
+    diapo_002 = make_slide(4, "Seccion 4"),
+    diapo_003 = make_slide(5, "Seccion 4"),
+    diapo_004 = make_slide(6, "Seccion 6")
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  expect_no_error(
+    reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = plan,
+      presets = p_presets(),
+      path_ppt = out_ppt,
+      mensajes_progreso = FALSE
+    )
+  )
+  expect_true(file.exists(out_ppt))
+
+  expected <- list(
+    list(slide = 1L, title = "INDICE 3", section = "Seccion 3"),
+    list(slide = 2L, title = "INDICE 4", section = "Seccion 4"),
+    list(slide = 3L, title = "INDICE 5", section = "Seccion 4"),
+    list(slide = 4L, title = "INDICE 6", section = "Seccion 6")
+  )
+
+  for (item in expected) {
+    slide_xml <- readLines(
+      unz(out_ppt, sprintf("ppt/slides/slide%s.xml", item$slide)),
+      warn = FALSE,
+      encoding = "UTF-8"
+    )
+    slide_xml <- paste(slide_xml, collapse = "\n")
+    expect_match(slide_xml, item$title, fixed = TRUE)
+    expect_match(slide_xml, item$section, fixed = TRUE)
+    expect_match(slide_xml, "Subtema alfa", fixed = TRUE)
+    expect_match(slide_xml, "Subtema beta", fixed = TRUE)
+  }
+})
+
+test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(x = 1)
+  inst <- list(
+    survey = data.frame(
+      name = "x",
+      type = "integer",
+      list_name = NA_character_,
+      stringsAsFactors = FALSE
+    ),
+    choices = NULL,
+    orders_list = NULL
+  )
+
+  out_ppt <- tempfile(fileext = ".pptx")
+  top_two_slide <- p_slide_top_two_box(
+    accent_color = "#CA5651",
+    colores = c("#CA5651", "#FFD965", "#ADD493", "#70AD47"),
+    grosor_barra = 84,
+    size_texto_porcentajes = 18,
+    size_texto_porcentajes_peq = 14,
+    color_texto_porcentajes = "#FFFFFF",
+    margen_llave = 6,
+    grosor_flecha = 3.8
+  )
+  expect_equal(top_two_slide$style$colores, c("#CA5651", "#FFD965", "#ADD493", "#70AD47"))
+  expect_equal(top_two_slide$style$grosor_barra, 84)
+  expect_equal(top_two_slide$style$size_texto_porcentajes, 18)
+  expect_equal(top_two_slide$style$size_texto_porcentajes_peq, 14)
+  expect_equal(top_two_slide$style$color_texto_porcentajes, "#FFFFFF")
+  expect_equal(top_two_slide$style$margen_llave, 6)
+  expect_equal(top_two_slide$style$grosor_flecha, 3.8)
+
+  expect_no_error(
+    reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = list(
+        diapo_001 = top_two_slide
+      ),
+      presets = p_presets(),
+      path_ppt = out_ppt,
+      mensajes_progreso = FALSE
+    )
+  )
+
+  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- paste(slide_xml, collapse = "\n")
+  expect_match(slide_xml, "TOP TWO BOX", fixed = TRUE)
+  expect_match(slide_xml, "lectura de datos", fixed = TRUE)
+
+  ppt_files <- utils::unzip(out_ppt, list = TRUE)$Name
+  svg_files <- ppt_files[grepl("^ppt/media/.*\\.svg$", ppt_files)]
+  expect_length(svg_files, 1)
+  svg_txt <- paste(readLines(unz(out_ppt, svg_files[[1]]), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(svg_txt, "#CA5651", fixed = TRUE)
+  expect_match(svg_txt, "#ADD493", fixed = TRUE)
+  expect_match(svg_txt, 'height="84.00"', fixed = TRUE)
+  expect_match(svg_txt, 'font-size="18.0"', fixed = TRUE)
+  expect_match(svg_txt, 'font-size="14.0"', fixed = TRUE)
+  expect_match(svg_txt, 'fill="#FFFFFF">35%</text>', fixed = TRUE)
+  expect_match(svg_txt, 'stroke-width="3.80"', fixed = TRUE)
+  expect_false(grepl("#F4B183", svg_txt, fixed = TRUE))
+  expect_false(grepl("marker-", svg_txt, fixed = TRUE))
+  expect_true(any(grepl("^ppt/media/.*\\.svg$", ppt_files)))
+  svg_file <- ppt_files[grepl("^ppt/media/.*\\.svg$", ppt_files)][[1]]
+  svg_xml <- paste(readLines(unz(out_ppt, svg_file), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(svg_xml, "#CA5651", fixed = TRUE)
+
+  out_ppt_slots <- tempfile(fileext = ".pptx")
+  top_two_slots <- structure(
+    list(
+      .slide_type = "top_two_box",
+      title = "TOP TWO BOX",
+      slots = list(
+        title = "TOP TWO BOX",
+        text = "Referencia de cálculo de Top Two Box.",
+        valores = c(4, 6, 35, 55),
+        etiquetas = c("1", "2", "3", "4"),
+        top_two_indices = c(3, 4),
+        extremo_izquierda = "Totalmente\nen desacuerdo",
+        extremo_derecha = "Totalmente\nde acuerdo",
+        accent_color = "#CA5651",
+        colores = c("#CA5651", "#FFD965", "#ADD493", "#70AD47"),
+        grosor_barra = 92,
+        size_texto_porcentajes = 20,
+        size_texto_porcentajes_peq = 13,
+        color_texto_porcentajes = "#FFFFFF",
+        margen_llave = 5,
+        grosor_flecha = 4
+      ),
+      style = list()
+    ),
+    class = "ppt_slide"
+  )
+  expect_no_error(
+    reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = list(diapo_001 = top_two_slots),
+      presets = p_presets(),
+      path_ppt = out_ppt_slots,
+      mensajes_progreso = FALSE
+    )
+  )
+  ppt_files_slots <- utils::unzip(out_ppt_slots, list = TRUE)$Name
+  svg_slots <- ppt_files_slots[grepl("^ppt/media/.*\\.svg$", ppt_files_slots)][[1]]
+  svg_slots_txt <- paste(readLines(unz(out_ppt_slots, svg_slots), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(svg_slots_txt, 'height="92.00"', fixed = TRUE)
+  expect_match(svg_slots_txt, 'font-size="20.0"', fixed = TRUE)
+  expect_match(svg_slots_txt, 'font-size="13.0"', fixed = TRUE)
+  expect_match(svg_slots_txt, 'fill="#FFFFFF">35%</text>', fixed = TRUE)
+  expect_match(svg_slots_txt, 'stroke-width="4.00"', fixed = TRUE)
+})
+
 test_that("technical_table respeta mayusculas y minusculas del titulo", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")

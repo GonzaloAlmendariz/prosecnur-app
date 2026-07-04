@@ -156,6 +156,86 @@ describe("buildOccurrenceRouteUmpRows", () => {
     expect(rows.some((row) => row.ump === "2" && row.status === "sin_reporte")).toBe(true);
   });
 
+  it("keeps the route responsible on expected UMPs without occurrence reports", () => {
+    const rows = buildOccurrenceRouteUmpRows({
+      occurrences: dashboard({
+        config: {
+          ...dashboard().config,
+          route_choices: [routeChoice({ responsable: "P132 · Venturo Perales Rosa Magda" })],
+        },
+        by_ump: [],
+        records: [],
+      }),
+    });
+
+    expect(rows[0].status).toBe("sin_reporte");
+    expect(rows[0].responsable).toBe("P132 · Venturo Perales Rosa Magda");
+  });
+
+  it("rolls replacement route blocks into the titular UMP for occurrence coverage", () => {
+    const titularBlock = routeChoice({
+      route_key: "m0143",
+      ump_group: "143",
+      manzana: "0590",
+      block_label: "Mz 0590 · Zona 01 · Titular",
+    });
+    const replacementBlock = routeChoice({
+      route_key: "m0143-r1",
+      ump_group: "143 · R1",
+      ump: "143 · R1",
+      manzana: "0440",
+      block_label: "Mz 0440 · Zona 01 · Reemplazo de UMP 143",
+      tipo_manzana: "reemplazo",
+      titular_hoja_num: "143",
+      titular_id_manzana: "m0143",
+    });
+    const rows = buildOccurrenceRouteUmpRows({
+      occurrences: dashboard({
+        config: { ...dashboard().config, route_choices: [titularBlock, replacementBlock] },
+        by_ump: [
+          summary({
+            key: "m0143-r1",
+            ump: "143",
+            manzana: "0440",
+            manzana_key: "m0143-r1",
+            route_label: "ATE · Zona 01 · Mz 0440 · UMP 143",
+            distrito: "ATE",
+          }),
+        ],
+        records: [
+          record({
+            row_id: "r-replacement",
+            ump: "143",
+            manzana: "0440",
+            manzana_key: "m0143-r1",
+            tipo_manzana: "reemplazo",
+          }),
+        ],
+      }),
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].ump).toBe("143");
+    expect(rows[0].expected_blocks).toHaveLength(2);
+    expect(rows[0].has_report).toBe(true);
+  });
+
+  it("does not duplicate an expected UMP when a missing alert uses a different district label", () => {
+    const rows = buildOccurrenceRouteUmpRows({
+      occurrences: dashboard({
+        config: { ...dashboard().config, route_choices: [routeChoice({ route_key: "m0001", distrito: "ATE", ump_group: "1", titular_hoja_num: "NA" })] },
+        alerts: {
+          missing_blocks: [routeChoice({ route_key: "m0001-shadow", distrito: "150103", district_key: "150103", ump_group: "1" })],
+          high_non_effective: [],
+          observations: [],
+          outside_route: [],
+        },
+      }),
+    });
+
+    expect(rows.filter((row) => row.ump === "1")).toHaveLength(1);
+  });
+
   it("splits UMPs with advance but no occurrence report by quota completion", () => {
     const occurrences = dashboard({
       config: {

@@ -611,9 +611,23 @@ export function territorialRouteBlockIsReplacement(block: TerritorialBlockProgre
 
 function territorialRouteReplacementShortLabel(block: TerritorialBlockProgress) {
   const order = numberOrNull(block.replacement_order);
-  if (order != null) return `R${formatMetric(order)}`;
+  const unit = territorialRouteReplacementUnitLabel(block);
+  if (unit) {
+    return order != null && order > 1 ? `R ${unit}.${formatMetric(order)}` : `R ${unit}`;
+  }
   const raw = String(block.replacement_label ?? "").trim();
   return raw || "Reemplazo";
+}
+
+function territorialRouteReplacementUnitLabel(block: TerritorialBlockProgress) {
+  const values = [block.titular_hoja_num, block.titular_orden_seleccion, block.ump];
+  for (const value of values) {
+    const numeric = numberOrNull(value);
+    if (numeric != null) return formatMetric(numeric);
+    const raw = String(value ?? "").trim().replace(/^UMP\s+/i, "");
+    if (raw) return raw;
+  }
+  return "";
 }
 
 function territorialRouteBlockMapTitle(block: TerritorialBlockProgress, fallbackDistrict?: string) {

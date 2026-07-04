@@ -3854,6 +3854,19 @@ test_that("Google Sheets sanea celdas que exceden el limite nativo", {
   expect_equal(rows[[2]][[1]], exact_value)
 })
 
+test_that("Google Sheets colorea estados de avance parcial, rechazo y sin respuesta", {
+  palette <- .monitoreo_sheets_status_palette()
+
+  expect_equal(palette$Parcial$bg, "#FEF3C7")
+  expect_equal(palette$Parcial$fg, "#92400E")
+  expect_equal(palette$Rechazo$bg, "#FEE2E2")
+  expect_equal(palette$Rechazo$fg, "#991B1B")
+  expect_equal(palette$`Rechazos plataforma`$bg, "#FEE2E2")
+  expect_equal(palette$`Sin respuesta`$bg, "#E5E7EB")
+  expect_equal(palette$`Sin respuesta`$fg, "#374151")
+  expect_equal(palette$`Sin respuesta plataforma`$bg, "#E5E7EB")
+})
+
 test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   expect_error(
     monitoreo_sheets_publish_tabs("sheet_abc", list(Barrido = list(c("A", "B")))),
@@ -4049,6 +4062,33 @@ test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   expect_equal(length(report$map$points), 4L)
   expect_equal(report$map$points[[1]]$lat, -12.1)
   expect_equal(report$map$points[[1]]$geo_estado, "geo_ok")
+})
+
+test_that("monitoreo territorial muestra responsable observado por manzana", {
+  blocks <- data.frame(
+    id_manzana = c("150133001001", "150133001002"),
+    ubigeo = "150133",
+    distrito = "SAN JUAN DE MIRAFLORES",
+    zona = "001",
+    manzana = c("001", "002"),
+    entrevistas = c(2L, 2L),
+    responsable = c("", "P100 · Responsable planificado"),
+    stringsAsFactors = FALSE
+  )
+  audit <- data.frame(
+    advance_block_id = c("150133001001", "150133001001", "150133001002"),
+    validation_status = c("validada", "validada", "validada"),
+    advance_valid = c(TRUE, TRUE, TRUE),
+    responsible_display = c("P930 · Bonilla Saavedra Yeimy Daniela", "P930 · Bonilla Saavedra Yeimy Daniela", "P884 · Rodriguez Zárate Marco"),
+    enumerator_assigned = c("", "", ""),
+    submitted_by = c("fallback-a", "fallback-a", "fallback-b"),
+    stringsAsFactors = FALSE
+  )
+
+  progress <- .monitoreo_territorial_block_progress(blocks, audit, block_key_col = "advance_block_id")
+
+  expect_equal(progress[[1]]$responsable, "P930 · Bonilla Saavedra Yeimy Daniela")
+  expect_equal(progress[[2]]$responsable, "P100 · Responsable planificado")
 })
 
 test_that("monitoreo territorial full conserva auditoria completa para publicacion", {
@@ -5089,14 +5129,318 @@ test_that("subsanaciones activas ajustan progreso final de UMP sin inflar el tot
   expect_equal(blocks[["b-target"]]$operational_adjustment_gain, 1L)
   expect_equal(blocks[["b-target"]]$status, "subsanada")
   expect_equal(blocks[["b-target"]]$missing_total, 0L)
+  target_cross <- blocks[["b-target"]]$observed_cross
+  target_cross_rows <- stats::setNames(target_cross$rows, vapply(target_cross$rows, function(row) as.character(row$label %||% ""), character(1)))
+  target_hombre_cells <- stats::setNames(
+    target_cross_rows[["Hombre"]]$cells,
+    vapply(target_cross_rows[["Hombre"]]$cells, function(cell) as.character(cell$label %||% ""), character(1))
+  )
+  expect_equal(target_cross$adjusted_total, 2L)
+  expect_equal(target_hombre_cells[["30-44"]]$value, 1L)
+  expect_equal(target_hombre_cells[["30-44"]]$adjustment_delta, 1L)
+  expect_equal(target_hombre_cells[["30-44"]]$adjusted_value, 2L)
   expect_equal(blocks[["b-source"]]$observed_validas, 3L)
   expect_equal(blocks[["b-source"]]$validas, 2L)
   expect_equal(blocks[["b-source"]]$operational_adjustment_loss, 1L)
+  expect_equal(blocks[["b-source"]]$operational_adjustment_delta, -1L)
   expect_equal(blocks[["b-source"]]$status, "complete")
   expect_equal(payload$summary$complete, 2L)
   expect_equal(payload$summary$subsanada, 1L)
+  expect_equal(payload$ump_summary$total, 2L)
+  expect_equal(payload$ump_summary$complete, 2L)
+  expect_equal(payload$ump_summary$subsanada, 1L)
   expect_equal(payload$summary$operational_adjustment_gain, 1L)
   expect_equal(payload$summary$operational_adjustment_loss, 1L)
+})
+
+test_that("subsanaciones activas no toman respuestas que no son excedente real en origen", {
+  restore_quota_marginals <- .with_mocked_hojas_ruta_reference_quota_marginals(function(block, config) NULL)
+  on.exit(restore_quota_marginals(), add = TRUE)
+
+  context <- list(
+    phase = "field",
+    blocks = list(
+      list(id_manzana = "b-target", ubigeo = "150103", distrito = "ATE", zona = "001", manzana = "0390", hoja_num = 1, entrevistas = 2, responsable = "P001"),
+      list(id_manzana = "b-source", ubigeo = "150103", distrito = "ATE", zona = "002", manzana = "0200", hoja_num = 2, entrevistas = 2, responsable = "P002")
+    ),
+    quota = list(cells = list(
+      list(id_manzana = "b-target", ubigeo = "150103", territorio = "ATE-1", rango_edad = "30-44", sexo = "Hombre", cuota = 2),
+      list(id_manzana = "b-source", ubigeo = "150103", territorio = "ATE-2", rango_edad = "30-44", sexo = "Hombre", cuota = 1),
+      list(id_manzana = "b-source", ubigeo = "150103", territorio = "ATE-2", rango_edad = "45-59", sexo = "Mujer", cuota = 1)
+    ))
+  )
+  operational_blocks <- .monitoreo_territorial_block_goal_df(context, include_replacements = TRUE)
+  audit <- data.frame(
+    advance_block_id = c("b-target", "b-source", "b-source", "b-source"),
+    declared_ump_raw = c("1", "2", "2", "2"),
+    advance_valid = TRUE,
+    sex = c("Hombre", "Hombre", "Mujer", "Mujer"),
+    age = c(35, 35, 48, 49),
+    response_id = c("target-1", "source-hombre-base", "source-mujer-base", "source-mujer-surplus"),
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit,
+    list(
+      active_route_phase = "field",
+      age_var = "edad",
+      sex_var = "sexo",
+      operational_adjustments = list(field = list(list(
+        phase = "field",
+        status = "active",
+        source_block_id = "b-source",
+        target_block_id = "b-target",
+        district = "ATE",
+        ubigeo = "150103",
+        sex = "Hombre",
+        age_group = "30-44",
+        source_response_ids = list("source-hombre-base"),
+        count = 1L
+      )))
+    )
+  )
+  blocks <- stats::setNames(payload$blocks, vapply(payload$blocks, function(block) as.character(block$id_manzana %||% ""), character(1)))
+
+  expect_equal(blocks[["b-target"]]$observed_validas, 1L)
+  expect_equal(blocks[["b-target"]]$validas, 1L)
+  expect_equal(blocks[["b-target"]]$operational_adjustment_gain, 0L)
+  expect_equal(blocks[["b-target"]]$status, "pending")
+  expect_equal(blocks[["b-source"]]$observed_validas, 3L)
+  expect_equal(blocks[["b-source"]]$validas, 3L)
+  expect_equal(blocks[["b-source"]]$operational_adjustment_loss, 0L)
+  expect_equal(blocks[["b-source"]]$status, "complete")
+
+  source_sex <- stats::setNames(blocks[["b-source"]]$sex, vapply(blocks[["b-source"]]$sex, function(item) item$label, character(1)))
+  source_age <- stats::setNames(blocks[["b-source"]]$age, vapply(blocks[["b-source"]]$age, function(item) item$label, character(1)))
+  expect_equal(source_sex[["Hombre"]]$achieved, 1L)
+  expect_equal(source_sex[["Hombre"]]$missing, 0L)
+  expect_equal(source_age[["30-44"]]$achieved, 1L)
+  expect_equal(source_age[["30-44"]]$missing, 0L)
+})
+
+test_that("subsanaciones operativas no sugieren sobrantes de otra celda sexo-rango", {
+  quota_progress <- list(
+    schema = "monitoreo_territorial_quota_progress_v3",
+    operational_adjustments_applied = TRUE,
+    blocks = list(
+      list(
+        id_manzana = "target-cell",
+        distrito = "ATE",
+        ubigeo = "150103",
+        ump = "1",
+        manzana = "0100",
+        tipo_manzana = "titular",
+        responsable = "P100",
+        status = "pending",
+        target = 2L,
+        validas = 1L,
+        missing_total = 1L,
+        sex = list(
+          list(label = "Hombre", target = 2L, value = 1L, missing = 1L),
+          list(label = "Mujer", target = 0L, value = 0L, missing = 0L)
+        ),
+        age = list(
+          list(label = "30-44", target = 2L, value = 1L, missing = 1L),
+          list(label = "45-59", target = 0L, value = 0L, missing = 0L)
+        ),
+        cross = list(
+          list(label = "Hombre 30-44", target = 2L, value = 1L, missing = 1L)
+        )
+      ),
+      list(
+        id_manzana = "source-other-cell",
+        distrito = "ATE",
+        ubigeo = "150103",
+        ump = "2",
+        manzana = "0200",
+        tipo_manzana = "titular",
+        responsable = "P200",
+        status = "complete",
+        target = 2L,
+        validas = 3L,
+        missing_total = 0L,
+        sex = list(
+          list(label = "Hombre", target = 1L, value = 1L, missing = 0L),
+          list(label = "Mujer", target = 1L, value = 2L, missing = 0L)
+        ),
+        age = list(
+          list(label = "30-44", target = 1L, value = 1L, missing = 0L),
+          list(label = "45-59", target = 1L, value = 2L, missing = 0L)
+        ),
+        cross = list(
+          list(label = "Hombre 30-44", target = 1L, value = 1L, missing = 0L),
+          list(label = "Mujer 45-59", target = 1L, value = 2L, missing = 0L)
+        )
+      )
+    )
+  )
+  audit <- data.frame(
+    advance_valid = TRUE,
+    advance_block_id = c("target-cell", "source-other-cell", "source-other-cell", "source-other-cell"),
+    response_id = c("target-h", "source-h-base", "source-m-base", "source-m-surplus"),
+    sex = c("Hombre", "Hombre", "Mujer", "Mujer"),
+    age = c(35, 35, 48, 49),
+    advance_block_distrito = "ATE",
+    advance_block_ubigeo = "150103",
+    responsible_display = c("P100", "P200", "P200", "P200"),
+    submission_datetime = c(
+      "2026-06-20T10:00:00",
+      "2026-06-21T10:00:00",
+      "2026-06-21T10:01:00",
+      "2026-06-21T10:02:00"
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_operational_adjustments_payload(
+    quota_progress,
+    audit,
+    list(active_route_phase = "field", operational_adjustments = list()),
+    phase = "field"
+  )
+
+  expect_equal(payload$summary$pending_cells, 1L)
+  expect_equal(payload$summary$suggestions, 0L)
+  expect_equal(length(payload$suggestions), 0L)
+  target_deficits <- Filter(function(item) identical(item$target_block_id, "target-cell"), payload$deficits)
+  expect_true(length(target_deficits) > 0L)
+  expect_true(all(vapply(target_deficits, function(item) identical(item$match_status, "blocked"), logical(1))))
+})
+
+test_that("reinicio de subsanaciones operativas conserva auditoria revertida", {
+  tcfg <- list(
+    active_route_phase = "field",
+    operational_adjustments = list(field = list(
+      list(
+        id = "adj-active",
+        phase = "field",
+        status = "active",
+        source_block_id = "source-1",
+        target_block_id = "target-1",
+        district = "ATE",
+        sex = "Hombre",
+        age_group = "30-44",
+        source_response_ids = list("resp-1"),
+        count = 1L
+      ),
+      list(
+        id = "adj-old",
+        phase = "field",
+        status = "reverted",
+        source_block_id = "source-2",
+        target_block_id = "target-2",
+        district = "ATE",
+        sex = "Mujer",
+        age_group = "45-59",
+        source_response_ids = list("resp-2"),
+        count = 1L,
+        reverted_at = "2026-06-01T00:00:00",
+        revert_reason = "Ya revertida"
+      )
+    ))
+  )
+
+  reset <- .monitoreo_territorial_reset_operational_adjustments(
+    tcfg,
+    list(reason = "Reconstruccion completa"),
+    phase = "field"
+  )
+  entries <- stats::setNames(
+    reset$tcfg$operational_adjustments$field,
+    vapply(reset$tcfg$operational_adjustments$field, function(item) item$id, character(1))
+  )
+
+  expect_equal(reset$active_before, 1L)
+  expect_equal(length(entries), 2L)
+  expect_equal(entries[["adj-active"]]$status, "reverted")
+  expect_true(nzchar(entries[["adj-active"]]$reverted_at))
+  expect_equal(entries[["adj-active"]]$revert_reason, "Reconstruccion completa")
+  expect_equal(entries[["adj-old"]]$status, "reverted")
+  expect_equal(entries[["adj-old"]]$revert_reason, "Ya revertida")
+
+  reapplied <- .monitoreo_territorial_apply_operational_adjustment(
+    reset$tcfg,
+    list(
+      id = "adj-active",
+      phase = "field",
+      source_block_id = "source-3",
+      target_block_id = "target-3",
+      district = "ATE",
+      sex = "Hombre",
+      age_group = "30-44",
+      source_response_ids = list("resp-3"),
+      count = 1L
+    ),
+    phase = "field"
+  )
+  reapplied_entries <- reapplied$tcfg$operational_adjustments$field
+  active_entries <- Filter(function(item) identical(item$status, "active"), reapplied_entries)
+  reverted_entries <- Filter(function(item) identical(item$status, "reverted"), reapplied_entries)
+
+  expect_equal(length(reapplied_entries), 3L)
+  expect_equal(length(active_entries), 1L)
+  expect_equal(length(reverted_entries), 2L)
+  expect_equal(active_entries[[1]]$original_id, "adj-active")
+  expect_match(active_entries[[1]]$id, "^adj-active__")
+})
+
+test_that("resumen operativo de UMP no cuenta reemplazos vacios como pendientes", {
+  restore_quota_marginals <- .with_mocked_hojas_ruta_reference_quota_marginals(function(block, config) NULL)
+  on.exit(restore_quota_marginals(), add = TRUE)
+
+  context <- list(
+    phase = "field",
+    quota = list(cells = list(
+      list(id_manzana = "titular-1", ubigeo = "150103", territorio = "ATE-1", rango_edad = "30-44", sexo = "Mujer", cuota = 2),
+      list(id_manzana = "reemplazo-1", ubigeo = "150103", territorio = "ATE-1", rango_edad = "30-44", sexo = "Mujer", cuota = 2)
+    ))
+  )
+  operational_blocks <- data.frame(
+    id_manzana = c("titular-1", "reemplazo-1"),
+    ubigeo = "150103",
+    distrito = "ATE",
+    zona = c("001", "002"),
+    manzana = c("0390", "0200"),
+    tipo_manzana = c("titular", "reemplazo"),
+    ump = c("1", "1"),
+    titular_id_manzana = c("", "titular-1"),
+    titular_hoja_num = c("", "1"),
+    replacement_order = c(NA_integer_, 1L),
+    replacement_total = c(1L, 1L),
+    replacement_label = c("", "Reemplazo de 0390"),
+    entrevistas = c(2L, 2L),
+    stringsAsFactors = FALSE
+  )
+  audit <- data.frame(
+    advance_block_id = c("reemplazo-1", "reemplazo-1"),
+    declared_ump_raw = c("1", "1"),
+    advance_valid = TRUE,
+    sex = c("Mujer", "Mujer"),
+    age = c(35, 36),
+    response_id = c("rep-1", "rep-2"),
+    stringsAsFactors = FALSE
+  )
+
+  payload <- .monitoreo_territorial_quota_progress_payload(
+    context,
+    operational_blocks,
+    audit,
+    list(active_route_phase = "field", age_var = "edad", sex_var = "sexo")
+  )
+  blocks <- stats::setNames(payload$blocks, vapply(payload$blocks, function(block) as.character(block$id_manzana %||% ""), character(1)))
+
+  expect_equal(payload$summary$total, 2L)
+  expect_equal(payload$summary$missing, 1L)
+  expect_equal(payload$ump_summary$total, 1L)
+  expect_equal(payload$ump_summary$complete, 1L)
+  expect_equal(payload$ump_summary$pending, 0L)
+  expect_equal(payload$ump_summary$missing, 0L)
+  expect_equal(blocks[["titular-1"]]$operational_group_status, "complete")
+  expect_false(blocks[["titular-1"]]$operational_group_selected)
+  expect_true(blocks[["reemplazo-1"]]$operational_group_selected)
 })
 
 test_that("monitoreo territorial cuenta encuesta valida solo por filtro de fuente", {
@@ -6617,6 +6961,65 @@ test_that("publicacion ejecutiva en Sheets separa hojas y datos por audiencia", 
   internal_text <- paste(unlist(internal_tabs, use.names = FALSE), collapse = " ")
   expect_true(grepl("Seguimiento|Alertas|Corte y fuentes", paste(names(internal_tabs), collapse = " ")))
   expect_false("Registros del corte" %in% names(internal_tabs))
+})
+
+test_that("pestanas de avance por actor usan el rollup canonico por caso", {
+  data <- data.frame(
+    `N°` = c(1L, 2L, NA_integer_),
+    `Código PUCP` = c("20163302", "20190000", "20163302"),
+    `Apellidos, Nombres` = c(
+      "HUARINGA HUARINGA, ETHEL MILAGROS",
+      "PENDIENTE BASE, ANA",
+      "HUARINGA HUARINGA, ETHEL MILAGROS"
+    ),
+    Nombre = c(
+      "Huaringa Huaringa, Ethel Milagros",
+      "Pendiente Base, Ana",
+      "Huaringa Huaringa, Ethel Milagros"
+    ),
+    Ciclo = c("2021-1", "2021-1", ""),
+    `E-Mail` = c("ethel@example.invalid", "ana@example.invalid", ""),
+    Celular = c("999111222", "999333444", ""),
+    dim_actor = c("Egresados", "Egresados", "Egresados"),
+    dim_canal = c("", "", "Enlace personalizado"),
+    response_id = c("", "", "resp-personalizado-1"),
+    response_status = c("", "", "completed"),
+    date_modified = c("", "", "2026-07-02T15:20:15Z"),
+    `.source_id` = c("universo-egresados", "universo-egresados", "egresados-personalizado"),
+    `.source_label` = c(
+      "Universo · Egresados",
+      "Universo · Egresados",
+      "Acreditación Contabilidad PUCP - Egresados Personalizado"
+    ),
+    `.source_role` = c("universo", "universo", "respuestas"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  cfg <- list(monitoreo_profile = list(family = "acreditacion"))
+
+  tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "client")
+  expect_true("Egresados - Avance" %in% names(tabs))
+  expect_silent(.monitoreo_sheets_validate_controlled_tabs(names(tabs)))
+
+  rows <- tabs[["Egresados - Avance"]]
+  header <- as.character(rows[[1L]])
+  values <- lapply(rows[-1L], function(row) {
+    row <- as.character(row)
+    length(row) <- length(header)
+    row[is.na(row)] <- ""
+    row
+  })
+  body <- as.data.frame(do.call(rbind, values), stringsAsFactors = FALSE, check.names = FALSE)
+  names(body) <- header
+
+  expect_equal(body[["Estado avance"]][body[["Código PUCP"]] == "20163302"], "Completa")
+  expect_equal(body[["Estado avance"]][body[["Código PUCP"]] == "20190000"], "Sin respuesta")
+
+  controls <- .monitoreo_report_control_distribution_df(data, cfg$monitoreo_profile)
+  year_row <- controls[controls$Actor == "Egresados" & controls$Variable == "Año de egreso" & controls$Valor == "2021", , drop = FALSE]
+  expect_equal(as.integer(year_row$Universo), 2L)
+  expect_equal(as.integer(year_row$Efectivas), 1L)
+  expect_equal(as.integer(year_row$`Sin respuesta plataforma`), 1L)
 })
 
 test_that("estado operativo territorial distingue campo de pendiente por actividad de hoy", {

@@ -151,6 +151,7 @@ function latestOccurrenceDateLabel(values: unknown[]) {
 function normalizeUmp(value: unknown) {
   return text(value)
     .replace(/^UMP\s*/i, "")
+    .replace(/^([0-9]+)\s*(?:[·._/-]?\s*)R\s*[0-9]+$/i, "$1")
     .replace(/\.0+$/g, "")
     .replace(/^0+([0-9]+)$/g, "$1")
     .trim();
@@ -160,28 +161,49 @@ function pick(row: MonitoreoRow | Record<string, unknown> | null | undefined, ke
   if (!row) return "";
   for (const key of keys) {
     const value = text(row[key]);
+    if (value.toLocaleUpperCase("es-PE") === "NA") continue;
     if (value) return value;
   }
   return "";
 }
 
 function blockUmp(row: MonitoreoRow) {
-  return normalizeUmp(pick(row, ["ump_group", "ump", "hoja_num", "orden_seleccion", "titular_hoja_num", "titular_orden_seleccion"]));
+  const titularUmp = normalizeUmp(pick(row, [
+    "titular_ump",
+    "ump_titular",
+    "titular_ump_group",
+    "ump_base",
+    "titular_hoja_num",
+    "hoja_num_titular",
+    "titular_orden_seleccion",
+    "orden_seleccion_titular",
+  ]));
+  return titularUmp || normalizeUmp(pick(row, ["ump_group", "ump", "hoja_num", "orden_seleccion"]));
 }
 
 function blockDistrict(row: MonitoreoRow) {
   return pick(row, ["distrito", "district", "district_label", "ubigeo", "district_key"]);
 }
 
-function blockIdentity(row: MonitoreoRow) {
-  const ump = blockUmp(row);
-  const district = normalizeKey(blockDistrict(row));
-  if (ump) return `ump:${district || "sin_distrito"}:${normalizeKey(ump)}`;
-  return `route:${normalizeKey(pick(row, ["route_key", "manzana_key", "id_manzana", "block_id", "id"])) || normalizeKey(pick(row, ["manzana", "zona", "distrito"]))}`;
+function blockResponsible(row: MonitoreoRow | undefined) {
+  return pick(row, [
+    "responsable",
+    "responsable_nombre",
+    "responsable_label",
+    "responsable_codigo",
+    "responsable_id",
+    "encuestador",
+    "encuestador_nombre",
+    "encuestador_codigo",
+    "codigo_pulso",
+    "pulso_code",
+  ]);
 }
 
-function summaryDistrict(row: MonitoreoFieldOccurrenceUmpSummary) {
-  return normalizeKey(row.distrito);
+function blockIdentity(row: MonitoreoRow) {
+  const ump = blockUmp(row);
+  if (ump) return `ump:${normalizeKey(ump)}`;
+  return `route:${normalizeKey(pick(row, ["route_key", "manzana_key", "id_manzana", "block_id", "id"])) || normalizeKey(pick(row, ["manzana", "zona", "distrito"]))}`;
 }
 
 function summaryUmp(row: MonitoreoFieldOccurrenceUmpSummary) {
@@ -190,7 +212,7 @@ function summaryUmp(row: MonitoreoFieldOccurrenceUmpSummary) {
 
 function summaryIdentity(row: MonitoreoFieldOccurrenceUmpSummary) {
   const ump = summaryUmp(row);
-  if (ump) return `ump:${summaryDistrict(row) || "sin_distrito"}:${normalizeKey(ump)}`;
+  if (ump) return `ump:${normalizeKey(ump)}`;
   return `route:${normalizeKey(row.manzana_key || row.key || row.route_label)}`;
 }
 
@@ -201,7 +223,7 @@ function summaryLooseUmp(row: MonitoreoFieldOccurrenceUmpSummary) {
 
 function recordIdentity(row: MonitoreoFieldOccurrenceRecord) {
   const ump = normalizeUmp(row.ump);
-  if (ump) return `ump:${normalizeKey(row.distrito) || "sin_distrito"}:${normalizeKey(ump)}`;
+  if (ump) return `ump:${normalizeKey(ump)}`;
   return `route:${normalizeKey(row.manzana_key || row.route_label || row.row_id)}`;
 }
 
@@ -427,11 +449,12 @@ function makeRow(params: {
     backendStatus: summary?.estado_consolidado,
   });
   const blockUmpValue = anchor ? blockUmp(anchor) : "";
-  const ump = text(summary?.ump) || blockUmpValue;
+  const ump = blockUmpValue || text(summary?.ump);
   const manzana = text(summary?.manzana) || pick(anchor, ["manzana"]);
   const distrito = text(summary?.distrito) || blockDistrict(anchor);
   const zona = text(summary?.zona) || pick(anchor, ["zona"]);
   const routeLabel = text(summary?.route_label) || (anchor ? routeLabelFromBlock(anchor, params.expectedBlocks) : "");
+  const responsable = text(summary?.responsable) || blockResponsible(anchor) || "Sin responsable";
   const lastReport = text(summary?.ultimo_reporte);
   const sourceRowIds = params.records.map((record) => text(record.row_id)).filter(Boolean);
   const base: Omit<OccurrenceRouteUmpRow, "search_text"> = {
@@ -443,7 +466,7 @@ function makeRow(params: {
     route_label: routeLabel,
     distrito,
     zona,
-    responsable: text(summary?.responsable) || "Sin responsable",
+    responsable,
     route_match_status: text(summary?.route_match_status),
     route_match_message: text(summary?.route_match_message),
     reportes,

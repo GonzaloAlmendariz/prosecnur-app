@@ -29,6 +29,7 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<TerritorialQuotaConsistencyFilter | null>(null);
   const [showReplacements, setShowReplacements] = useState(true);
+  const hasUmpSummary = Boolean(quota?.ump_summary);
   const replacementCount = useMemo(
     () => blocks.filter(territorialQuotaBlockIsReplacement).length,
     [blocks],
@@ -37,13 +38,27 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
     () => blocks.filter((block) => showReplacements || !territorialQuotaBlockIsReplacement(block)),
     [blocks, showReplacements],
   );
-  const summary = useMemo(() => summarizeTerritorialQuotaProgressBlocks(visibleBlocks), [visibleBlocks]);
+  const listBlocks = useMemo(
+    () => blocks.filter((block) => (
+      filter && hasUmpSummary
+        ? territorialQuotaOperationalGroupSelected(block)
+        : showReplacements || !territorialQuotaBlockIsReplacement(block)
+    )),
+    [blocks, filter, hasUmpSummary, showReplacements],
+  );
+  const rowSummary = useMemo(() => summarizeTerritorialQuotaProgressBlocks(visibleBlocks), [visibleBlocks]);
+  const summary = useMemo(
+    () => quota?.ump_summary
+      ? normalizeTerritorialQuotaSummary(quota.ump_summary, rowSummary)
+      : rowSummary,
+    [quota?.ump_summary, rowSummary],
+  );
   const orderedBlocks = useMemo(() => {
     const query = normalizeMatch(search);
-    return [...visibleBlocks]
+    return [...listBlocks]
       .filter((block) => block.configured || territorialQuotaStatus(block.status) !== "not_configured")
       .filter((block) => {
-        const status = territorialQuotaStatus(block.status);
+        const status = territorialQuotaBlockOperationalStatus(block);
         if (filter && status !== filter) return false;
         if (!query) return true;
         const haystack = normalizeMatch([
@@ -58,13 +73,14 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
           territorialQuotaReplacementShortLabel(block),
           territorialQuotaBlockTypeLabel(block),
           territorialQuotaStatusLabel(status),
+          territorialQuotaStatusLabel(territorialQuotaStatus(block.status)),
           ...(block.sex ?? []).map((item) => item.label),
           ...(block.age ?? []).map((item) => item.label),
         ].join(" "));
         return haystack.includes(query);
       })
       .sort(compareTerritorialQuotaBlocks);
-  }, [filter, search, visibleBlocks]);
+  }, [filter, listBlocks, search]);
 
   const filterOptions: Array<{ key: TerritorialQuotaConsistencyFilter | "all"; label: string; value: number }> = [
     { key: "complete", label: "Completas", value: summary.complete },
@@ -80,7 +96,7 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
       <header className="mon-territorial-quota-commandbar">
         <div className="mon-territorial-quota-command-title">
           <span><Target size={14} /> Cuotas por manzana</span>
-          <strong>{quota?.configured ? `${formatMetric(summary.total)} ${showReplacements ? "manzanas evaluadas" : "titulares evaluadas"}` : "Cuotas no disponibles"}</strong>
+          <strong>{quota?.configured ? `${formatMetric(summary.total)} UMP · ${formatMetric(visibleBlocks.length)} ${showReplacements ? "manzanas" : "titulares"}` : "Cuotas no disponibles"}</strong>
         </div>
         <label className="mon-territorial-quota-search">
           <Search size={13} />
@@ -145,7 +161,7 @@ export function TerritorialQuotaConsistencyPanel({ reports }: { reports: Monitor
 }
 
 function TerritorialQuotaBlockCard({ block }: { block: TerritorialQuotaProgressBlock }) {
-  const status = territorialQuotaStatus(block.status);
+  const status = territorialQuotaBlockOperationalStatus(block);
   const target = Math.max(0, numberOrNull(block.target) ?? 0);
   const validas = Math.max(0, numberOrNull(block.validas) ?? 0);
   const progressPct = target > 0 ? Math.min(140, Math.max(0, (validas / target) * 100)) : 0;
@@ -183,6 +199,11 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
   const total = Math.max(0, Math.round(numberOrNull(cross?.total_consentido ?? cross?.total) ?? 0));
   const layers = territorialQuotaBlockLayers(block, total);
   const adjustmentLabels = territorialQuotaAdjustmentTargetLabels(block);
+  const adjustmentClass = layers.adjustment > 0
+    ? "is-subsanado has-value"
+    : layers.adjustment < 0
+      ? "is-reassigned has-value"
+      : "is-subsanado";
   const hasMatrix = rows.length > 0 && columns.length > 0;
   return (
     <section className="mon-territorial-quota-observed" aria-label="Llenado observado por sexo y edad">
@@ -196,10 +217,10 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
           <strong>{formatMetric(layers.observed)}</strong>
           <em>levantado en campo</em>
         </span>
-        <span className={`is-subsanado ${layers.adjustment > 0 ? "has-value" : ""}`}>
-          <b>Subsanado</b>
-          <strong>{layers.adjustment > 0 ? `+${formatMetric(layers.adjustment)}` : "0"}</strong>
-          <em>{adjustmentLabels.length ? `Aporta a ${adjustmentLabels.join(" · ")}` : "sin ajuste aplicado"}</em>
+        <span className={adjustmentClass}>
+          <b>{layers.adjustment < 0 ? "Ajuste" : "Subsanado"}</b>
+          <strong>{formatSignedMetric(layers.adjustment)}</strong>
+          <em>{adjustmentLabels.length ? `${layers.adjustment < 0 ? "Resta de" : "Aporta a"} ${adjustmentLabels.join(" · ")}` : "sin ajuste aplicado"}</em>
         </span>
         <span className={layers.realMissing > 0 ? "is-real-missing" : "is-real-ready"}>
           <b>Falta real</b>
@@ -228,15 +249,24 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
                   <tr key={row.label}>
                     <th scope="row">{row.label}</th>
                     {columns.map((column) => {
-                      const value = cells.get(column.label) ?? 0;
+                      const cell = (row.cells ?? []).find((item) => stringOrEmpty(item.label || item.age) === column.label);
+                      const value = Math.max(0, Math.round(numberOrNull(cell?.value) ?? cells.get(column.label) ?? 0));
+                      const adjustmentDelta = Math.round(numberOrNull(cell?.adjustment_delta) ?? 0);
+                      const adjustedValue = Math.max(0, value + adjustmentDelta);
                       return (
-                        <td key={`${row.label}-${column.label}`} className={value > 0 ? "" : "is-empty"}>
-                          {formatMetric(value)}
+                        <td
+                          key={`${row.label}-${column.label}`}
+                          className={`${value > 0 || adjustmentDelta !== 0 ? "" : "is-empty"} ${territorialQuotaAdjustmentClass(adjustmentDelta)}`}
+                          title={adjustmentDelta !== 0 ? `${row.label} ${column.label}: ${formatMetric(value)} observado · ajuste ${formatSignedMetric(adjustmentDelta)} · efectivo ${formatMetric(adjustedValue)}` : undefined}
+                        >
+                          {value > 0 ? <strong>{formatMetric(value)}</strong> : adjustmentDelta === 0 ? formatMetric(value) : null}
+                          {adjustmentDelta !== 0 ? <QuotaAdjustmentPill value={adjustmentDelta} compact /> : null}
                         </td>
                       );
                     })}
                     <td className="is-total">
                       <strong>{formatMetric(rowTotal)}</strong>
+                      <QuotaAdjustmentPill value={numberOrNull(row.adjustment_delta) ?? 0} />
                       {rowTarget > 0 ? <em>/ {formatMetric(rowTarget)}</em> : null}
                     </td>
                   </tr>
@@ -249,15 +279,18 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
                 {columns.map((column) => {
                   const columnTotal = Math.max(0, Math.round(numberOrNull(column.total) ?? 0));
                   const columnTarget = Math.max(0, Math.round(numberOrNull(column.target) ?? 0));
+                  const columnAdjustment = Math.round(numberOrNull(column.adjustment_delta) ?? 0);
                   return (
-                    <td key={`total-${column.label}`}>
+                    <td key={`total-${column.label}`} className={territorialQuotaAdjustmentClass(columnAdjustment)}>
                       <strong>{formatMetric(columnTotal)}</strong>
+                      <QuotaAdjustmentPill value={columnAdjustment} />
                       {columnTarget > 0 ? <em>/ {formatMetric(columnTarget)}</em> : null}
                     </td>
                   );
                 })}
                 <td className="is-total">
                   <strong>{formatMetric(total)}</strong>
+                  <QuotaAdjustmentPill value={numberOrNull(cross?.adjustment_delta) ?? 0} />
                 </td>
               </tr>
             </tfoot>
@@ -266,8 +299,18 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
       ) : (
         <p className="mon-territorial-quota-observed-empty">Sin registros consentidos asociados a esta UMP.</p>
       )}
-      <p>El cruce muestra solo lo levantado por encuestadores. Las subsanaciones se muestran en azul y la falta real se calcula después de aplicarlas.</p>
+      <p>La matriz separa lo levantado por encuestadores y los ajustes operativos; la falta real se calcula después de aplicarlos.</p>
     </section>
+  );
+}
+
+function QuotaAdjustmentPill({ value, compact = false }: { value: number; compact?: boolean }) {
+  const delta = Math.round(numberOrNull(value) ?? 0);
+  if (delta === 0) return null;
+  return (
+    <span className={`mon-territorial-quota-cell-adjustment ${delta > 0 ? "is-subsanado" : "is-reassigned"} ${compact ? "is-compact" : ""}`}>
+      {formatSignedMetric(delta)}
+    </span>
   );
 }
 
@@ -321,7 +364,7 @@ function TerritorialQuotaMarginRow({ item }: { item: TerritorialQuotaProgressBlo
         <span className="mon-territorial-quota-margin-adjustment">
           <b>Encuestadores {formatMetric(observed)}</b>
           <b className={adjustmentDelta > 0 ? "is-subsanado" : "is-reassigned"}>
-            {adjustmentDelta > 0 ? `Subsanado +${formatMetric(adjustmentDelta)}` : `Ajuste ${formatMetric(adjustmentDelta)}`}
+            {adjustmentDelta > 0 ? `Subsanado +${formatMetric(adjustmentDelta)}` : `Ajuste ${formatSignedMetric(adjustmentDelta)}`}
           </b>
         </span>
       ) : null}
@@ -349,6 +392,14 @@ function territorialQuotaStatusLabel(status: TerritorialQuotaStatus) {
     not_configured: "Sin cuota",
   };
   return labels[status];
+}
+
+function territorialQuotaBlockOperationalStatus(block: TerritorialQuotaProgressBlock) {
+  return territorialQuotaStatus(block.operational_group_status || block.status);
+}
+
+function territorialQuotaOperationalGroupSelected(block: TerritorialQuotaProgressBlock) {
+  return block.operational_group_selected === true || String(block.operational_group_selected ?? "").toLowerCase() === "true";
 }
 
 function territorialQuotaBlockResponsibleLabel(block: TerritorialQuotaProgressBlock) {
@@ -427,6 +478,25 @@ function summarizeTerritorialQuotaProgressBlocks(blocks: TerritorialQuotaProgres
   }, emptyTerritorialQuotaSummary());
 }
 
+function normalizeTerritorialQuotaSummary(value: Partial<TerritorialQuotaSummary> | null | undefined, fallback: TerritorialQuotaSummary) {
+  if (!value) return fallback;
+  const summary = emptyTerritorialQuotaSummary();
+  summary.total = Math.max(0, Math.round(numberOrNull(value.total) ?? fallback.total));
+  summary.complete = Math.max(0, Math.round(numberOrNull(value.complete) ?? fallback.complete));
+  summary.subsanada = Math.max(0, Math.round(numberOrNull(value.subsanada) ?? fallback.subsanada));
+  summary.in_field = Math.max(0, Math.round(numberOrNull(value.in_field) ?? fallback.in_field));
+  summary.pending = Math.max(0, Math.round(numberOrNull(value.pending) ?? fallback.pending));
+  summary.partial = Math.max(0, Math.round(numberOrNull(value.partial) ?? fallback.partial));
+  summary.missing = Math.max(0, Math.round(numberOrNull(value.missing) ?? fallback.missing));
+  summary.exceeded = Math.max(0, Math.round(numberOrNull(value.exceeded) ?? fallback.exceeded));
+  summary.not_configured = Math.max(0, Math.round(numberOrNull(value.not_configured) ?? fallback.not_configured));
+  summary.sex_missing_total = Math.max(0, Math.round(numberOrNull(value.sex_missing_total) ?? fallback.sex_missing_total));
+  summary.age_missing_total = Math.max(0, Math.round(numberOrNull(value.age_missing_total) ?? fallback.age_missing_total));
+  summary.demographic_missing_total = Math.max(0, Math.round(numberOrNull(value.demographic_missing_total) ?? fallback.demographic_missing_total));
+  summary.districts_with_gap = Math.max(0, Math.round(numberOrNull(value.districts_with_gap) ?? fallback.districts_with_gap));
+  return summary;
+}
+
 function territorialQuotaBlockSexMissingTotal(block: TerritorialQuotaProgressBlock) {
   return Math.max(0, Math.round(numberOrNull(block.sex_missing_total) ?? territorialQuotaItemMissingTotal(block.sex)));
 }
@@ -453,20 +523,24 @@ function territorialQuotaBlockLayers(block: TerritorialQuotaProgressBlock, obser
   const delta = Math.round(numberOrNull(block.operational_adjustment_delta) ?? 0);
   const observedBase = numberOrNull(block.observed_validas) ?? (validas || delta ? validas - delta : observedFallback);
   const observed = Math.max(0, Math.round(observedBase));
-  const gain = Math.max(0, Math.round(numberOrNull(block.operational_adjustment_gain) ?? Math.max(0, delta)));
   return {
     observed,
-    adjustment: gain,
+    adjustment: delta,
     realMissing: territorialQuotaBlockRealMissingTotal(block),
   };
 }
 
 function territorialQuotaAdjustmentTargetLabels(block: TerritorialQuotaProgressBlock) {
   const labels = [...(block.sex ?? []), ...(block.age ?? [])]
-    .filter((item) => territorialQuotaItemAdjustmentDelta(item) > 0)
+    .filter((item) => territorialQuotaItemAdjustmentDelta(item) !== 0)
     .map((item) => stringOrEmpty(item.label).trim())
     .filter(Boolean);
   return Array.from(new Set(labels));
+}
+
+function territorialQuotaAdjustmentClass(delta: number) {
+  if (delta === 0) return "";
+  return `has-adjustment ${delta < 0 ? "is-negative-adjustment" : "is-positive-adjustment"}`;
 }
 
 function territorialQuotaRealMissingLabel(block: TerritorialQuotaProgressBlock, realMissing: number) {
@@ -548,7 +622,11 @@ function territorialQuotaPrimaryUmpLabel(block: TerritorialQuotaProgressBlock) {
 
 function territorialQuotaReplacementShortLabel(block: TerritorialQuotaProgressBlock) {
   const order = numberOrNull(block.replacement_order);
-  if (order != null && order > 0) return `R ${formatReplacementOrder(order)}`;
+  const unit = territorialQuotaReplacementUnitLabel(block);
+  if (unit) {
+    if (order != null && order > 1) return `R ${unit}.${formatReplacementOrder(order)}`;
+    return `R ${unit}`;
+  }
   const values = [block.replacement_label, block.ump];
   for (const value of values) {
     const raw = stringOrEmpty(value).trim();
@@ -556,6 +634,24 @@ function territorialQuotaReplacementShortLabel(block: TerritorialQuotaProgressBl
     if (match) return `R ${match[1].replace(",", ".")}`;
   }
   return stringOrEmpty(block.replacement_label).trim();
+}
+
+function territorialQuotaReplacementUnitLabel(block: TerritorialQuotaProgressBlock) {
+  const values = [block.titular_hoja_num, block.ump];
+  for (const value of values) {
+    const raw = stringOrEmpty(value).trim();
+    if (!raw) continue;
+    const cleaned = raw
+      .replace(/^UMP\s+/i, "")
+      .split(/\s*·\s*/)
+      .find((part) => !/^R\s*[0-9]/i.test(part))
+      ?.replace(/^R\s*/i, "")
+      .trim();
+    if (cleaned) return cleaned;
+  }
+  const fallback = stringOrEmpty(block.replacement_label).trim();
+  const match = fallback.match(/\bR\s*([0-9]+(?:[.,][0-9]+)?)/i);
+  return match ? match[1].replace(",", ".") : "";
 }
 
 function formatReplacementOrder(value: unknown) {
@@ -600,6 +696,11 @@ function formatMetric(value: unknown, fallback = "0") {
   const number = numberOrNull(value);
   if (number == null) return fallback;
   return new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 }).format(number);
+}
+
+function formatSignedMetric(value: unknown) {
+  const number = Math.round(numberOrNull(value) ?? 0);
+  return `${number > 0 ? "+" : ""}${formatMetric(number)}`;
 }
 
 function formatPercentLabel(value: number | null | undefined) {
