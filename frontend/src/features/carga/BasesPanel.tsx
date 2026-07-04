@@ -513,27 +513,7 @@ export function BasesPanel({
           type="button"
           onClick={() => setAdding(true)}
           disabled={maxReached || !!busy}
-          style={{
-            marginTop: 12,
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 12, fontWeight: 600,
-            padding: "8px 14px", borderRadius: 8,
-            border: "1px dashed var(--pulso-primary-border)",
-            background: "var(--pulso-primary-soft)",
-            color: "var(--pulso-primary)",
-            cursor: maxReached ? "not-allowed" : "pointer",
-            opacity: maxReached ? 0.55 : 1,
-            transition: "background 120ms ease, border-color 120ms ease",
-          }}
-          onMouseEnter={(e) => {
-            if (maxReached || busy) return;
-            e.currentTarget.style.borderStyle = "solid";
-            e.currentTarget.style.background = "white";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderStyle = "dashed";
-            e.currentTarget.style.background = "var(--pulso-primary-soft)";
-          }}
+          className={`pulso-base-add-button${maxReached ? " is-limited" : ""}`}
         >
           <Plus size={13} />
           {maxReached
