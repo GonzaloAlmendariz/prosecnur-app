@@ -54799,6 +54799,59 @@ button.mon-acr-requirement-metric:active {
   color: var(--pulso-warn-fg);
 }
 
+.mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-ump-row {
+  grid-template-columns: minmax(82px, 0.28fr) minmax(80px, 0.32fr) minmax(0, 0.68fr) minmax(0, 0.72fr);
+  gap: 9px;
+  min-height: 58px;
+  padding: 9px;
+}
+
+.mon-territorial-reconciliation-ump-main,
+.mon-territorial-reconciliation-ump-route,
+.mon-territorial-reconciliation-ump-evidence {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+}
+
+.mon-territorial-reconciliation-ump-kicker {
+  color: var(--pulso-text-faint);
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-ump-main strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 930;
+  letter-spacing: 0;
+}
+
+.mon-territorial-reconciliation-ump-route,
+.mon-territorial-reconciliation-ump-evidence {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border-strong) 34%, transparent);
+  padding-left: 9px;
+}
+
+.mon-territorial-reconciliation-ump-route strong,
+.mon-territorial-reconciliation-ump-evidence strong {
+  font-size: 10.5px;
+  font-weight: 860;
+  line-height: 1.15;
+}
+
+.mon-territorial-reconciliation-ump-row.is-warning .mon-territorial-reconciliation-ump-main strong {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-territorial-reconciliation-ump-row.is-danger .mon-territorial-reconciliation-ump-main strong {
+  color: var(--pulso-danger-fg);
+}
+
 .mon-territorial-reconciliation-queue {
   min-width: 0;
   min-height: 0;
