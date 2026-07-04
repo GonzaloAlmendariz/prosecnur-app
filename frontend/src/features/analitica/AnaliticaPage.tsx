@@ -340,6 +340,7 @@ function AnaliticaSidebar({
               aria-controls="analitica-panel"
               disabled={disabled}
               onClick={() => onChange(item.key)}
+              title={`${item.label} - ${item.desc}`}
               className={`pulso-analitica-nav-item${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
             >
               <span aria-hidden="true" className="pulso-analitica-nav-icon">
