@@ -6626,18 +6626,24 @@ function BaseRow({
             />
           </div>
         ) : (
-          <div className="pulso-base-row-title">
-            <code>{base.nombre}</code>
-            <button
-              type="button"
-              onClick={onStartRename}
-              disabled={busy}
-              title="Renombrar base"
-              aria-label={`Renombrar base ${base.nombre}`}
-              className="pulso-icon"
-            >
-              <Pencil size={10} />
-            </button>
+          <div className="pulso-base-row-title-line">
+            <div className="pulso-base-row-title">
+              <code>{base.nombre}</code>
+              <button
+                type="button"
+                onClick={onStartRename}
+                disabled={busy}
+                title="Renombrar base"
+                aria-label={`Renombrar base ${base.nombre}`}
+                className="pulso-icon"
+              >
+                <Pencil size={10} />
+              </button>
+            </div>
+            <span className="pulso-base-row-status">
+              <CheckCircle2 size={12} />
+              Lista
+            </span>
           </div>
         )}
         <div className="pulso-base-row-meta">
