@@ -14293,19 +14293,58 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.76);
 }
 .pulso-platform-provider-tabs button {
+  flex: 0 0 32px;
   border: 0;
   border-radius: 6px;
   min-height: 30px;
+  max-width: 142px;
   padding: 5px 11px;
   background: transparent;
   color: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   font-size: 12px;
   font-weight: 760;
+  overflow: hidden;
   transition:
+    flex-basis var(--motion-dur-base) var(--motion-ease-out),
+    gap var(--motion-dur-fast) ease,
     transform var(--motion-dur-press) var(--motion-ease-out),
     background var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-platform-provider-tabs button svg {
+  flex: 0 0 auto;
+}
+.pulso-platform-provider-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    max-width var(--motion-dur-base) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-platform-provider-tabs button:hover:not(:disabled),
+.pulso-platform-provider-tabs button:focus-visible,
+.pulso-platform-provider-tabs button.is-active {
+  flex-basis: auto;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.pulso-platform-provider-tabs button:hover:not(:disabled) .pulso-platform-provider-label,
+.pulso-platform-provider-tabs button:focus-visible .pulso-platform-provider-label,
+.pulso-platform-provider-tabs button.is-active .pulso-platform-provider-label {
+  max-width: 106px;
+  opacity: 1;
+  transform: translateX(0);
 }
 .pulso-platform-provider-tabs button:hover:not(.is-active):not(:disabled) {
   background: rgba(255, 255, 255, 0.78);

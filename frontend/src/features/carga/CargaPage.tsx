@@ -1454,8 +1454,10 @@ function PlatformImportPanel({
               onClick={() => onProviderChange(item)}
               role="tab"
               aria-selected={provider === item}
+              title={`${providerLabel(item)} - seleccionar proveedor de origen`}
             >
-              {providerLabel(item)}
+              {item === "surveymonkey" ? <CloudDownload size={14} /> : <Database size={14} />}
+              <span className="pulso-platform-provider-label">{providerLabel(item)}</span>
             </button>
           ))}
         </div>
