@@ -81,12 +81,12 @@ const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
 };
 
 const CAT_META: Record<"all" | SlideCategory, { Icon: LucideIcon; hint: string }> = {
-  all: { Icon: LayoutGrid, hint: "Todos los modelos" },
-  estructural: { Icon: LayoutPanelTop, hint: "Apertura y narrativa" },
-  "1g": { Icon: BarChart3, hint: "Un visual principal" },
-  "2g": { Icon: Columns3, hint: "Comparación en paralelo" },
-  grid: { Icon: Grid3X3, hint: "Matrices de lectura" },
-  poblacion: { Icon: UsersRound, hint: "Perfiles poblacionales" },
+  all: { Icon: LayoutGrid, hint: "Biblioteca" },
+  estructural: { Icon: LayoutPanelTop, hint: "Portada y texto" },
+  "1g": { Icon: BarChart3, hint: "Visual único" },
+  "2g": { Icon: Columns3, hint: "Comparación" },
+  grid: { Icon: Grid3X3, hint: "Matriz" },
+  poblacion: { Icon: UsersRound, hint: "Perfiles" },
 };
 
 export type SlidePickerProps = {
