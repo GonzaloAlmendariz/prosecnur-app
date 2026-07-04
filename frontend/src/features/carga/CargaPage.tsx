@@ -806,7 +806,12 @@ export default function CargaPage() {
                 <CargaFollowupContent
                   showInspection={!!state?.instrumento_parsed && !!estructura}
                   estructura={estructura}
+                  hasXlsform={hasXlsform}
+                  hasData={hasData}
+                  pendingChoiceMapping={pendingChoiceMapping}
                   allReady={allReady}
+                  isMultiBase={isMultiBase}
+                  bases={state?.n_bases ?? 0}
                   busy={busy}
                   error={error}
                 />
@@ -822,6 +827,52 @@ export default function CargaPage() {
                 onSelectedBaseChange={setSelectedCargaBase}
               />
             )}
+          </div>
+        </AdaptiveSplitView>
+      )}
+
+      {isMultiBase && !estudio && (
+        <AdaptiveSplitView
+          ariaLabel="Mesa de trabajo de varias bases"
+          railLabel="Estado de carga"
+          className="pulso-upload-section pulso-carga-workbench"
+          rail={(
+            <CargaStageRail
+              hasXlsform={hasXlsform}
+              hasData={hasData}
+              pendingChoiceMapping={pendingChoiceMapping}
+              allReady={allReady}
+              isMultiBase={isMultiBase}
+              bases={state?.n_bases ?? 0}
+              instrumento={instrumento}
+              dataPreview={dataPreview}
+              estructura={estructura}
+            />
+          )}
+        >
+          <div className="pulso-carga-content pulso-content-area">
+            <CargaReadinessBoard
+              hasXlsform={hasXlsform}
+              hasData={hasData}
+              pendingChoiceMapping={pendingChoiceMapping}
+              allReady={allReady}
+              isMultiBase={isMultiBase}
+              bases={state?.n_bases ?? 0}
+            />
+            <section className="pulso-carga-study-loading" aria-live="polite">
+              <span aria-hidden="true">
+                <Loader2 size={17} className="pulso-spin" />
+              </span>
+              <div>
+                <strong>Abriendo bases del estudio</strong>
+                <p>La estructura de bases se está preparando para mostrar formularios, respuestas y origen de cada fuente.</p>
+              </div>
+              <div className="pulso-carga-study-skeleton" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </div>
+            </section>
           </div>
         </AdaptiveSplitView>
       )}
@@ -1108,7 +1159,12 @@ export default function CargaPage() {
           <CargaFollowupContent
             showInspection={!!state?.instrumento_parsed && !!estructura}
             estructura={estructura}
+            hasXlsform={hasXlsform}
+            hasData={hasData}
+            pendingChoiceMapping={pendingChoiceMapping}
             allReady={allReady}
+            isMultiBase={isMultiBase}
+            bases={state?.n_bases ?? 0}
             busy={busy}
             error={error}
           />
@@ -1661,13 +1717,23 @@ function cargaBaseMeta(base: EstudioBase) {
 function CargaFollowupContent({
   showInspection,
   estructura,
+  hasXlsform,
+  hasData,
+  pendingChoiceMapping,
   allReady,
+  isMultiBase,
+  bases,
   busy,
   error,
 }: {
   showInspection: boolean;
   estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
+  hasXlsform: boolean;
+  hasData: boolean;
+  pendingChoiceMapping: boolean;
   allReady: boolean;
+  isMultiBase: boolean;
+  bases: number;
   busy: string;
   error: string;
 }) {
@@ -1694,8 +1760,110 @@ function CargaFollowupContent({
         </section>
       )}
 
+      {!showInspection && (
+        <CargaReadinessBoard
+          hasXlsform={hasXlsform}
+          hasData={hasData}
+          pendingChoiceMapping={pendingChoiceMapping}
+          allReady={allReady}
+          isMultiBase={isMultiBase}
+          bases={bases}
+        />
+      )}
+
       {allReady && !busy && !error && <ContinuarCTA />}
     </>
+  );
+}
+
+function CargaReadinessBoard({
+  hasXlsform,
+  hasData,
+  pendingChoiceMapping,
+  allReady,
+  isMultiBase,
+  bases,
+}: {
+  hasXlsform: boolean;
+  hasData: boolean;
+  pendingChoiceMapping: boolean;
+  allReady: boolean;
+  isMultiBase: boolean;
+  bases: number;
+}) {
+  const reviewReady = allReady && !pendingChoiceMapping;
+  const headline = allReady
+    ? "Base lista para revisar"
+    : hasXlsform
+    ? "Falta conectar respuestas"
+    : "Prepara los insumos";
+  const detail = allReady
+    ? "El siguiente paso es auditar consistencia, filtros y reglas antes de producir resultados."
+    : hasXlsform
+    ? "El formulario ya define la estructura. Ahora carga o importa las respuestas."
+    : "Comienza con el formulario; luego Pulso habilita la carga de respuestas.";
+  const items = [
+    {
+      key: "form",
+      icon: FileSpreadsheet,
+      title: "Formulario",
+      meta: hasXlsform ? "Estructura disponible" : "Pendiente",
+      ready: hasXlsform,
+    },
+    {
+      key: "data",
+      icon: Database,
+      title: "Respuestas",
+      meta: hasData ? "Base conectada" : hasXlsform ? "Lista para cargar" : "Bloqueada",
+      ready: hasData,
+    },
+    {
+      key: "review",
+      icon: ShieldCheck,
+      title: "Revisión",
+      meta: pendingChoiceMapping ? "Mapeo pendiente" : reviewReady ? "Lista" : "En espera",
+      ready: reviewReady,
+      warning: pendingChoiceMapping,
+    },
+  ];
+
+  return (
+    <section className="pulso-carga-readiness" aria-label="Estado operativo de carga">
+      <div className="pulso-carga-readiness-main">
+        <span className="pulso-carga-readiness-icon" aria-hidden="true">
+          {allReady ? <CheckCircle2 size={20} /> : <Upload size={20} />}
+        </span>
+        <div>
+          <span className="pulso-carga-readiness-kicker">Preparación</span>
+          <strong>{headline}</strong>
+          <p>{detail}</p>
+        </div>
+      </div>
+
+      <div className="pulso-carga-readiness-grid">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={item.key}
+              className={`pulso-carga-readiness-card${item.ready ? " is-ready" : ""}${item.warning ? " is-warning" : ""}`}
+            >
+              <span aria-hidden="true">
+                <Icon size={16} />
+              </span>
+              <strong>{item.title}</strong>
+              <small>{item.meta}</small>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="pulso-carga-entry-strip" aria-label="Modos de entrada">
+        <span><Upload size={13} /> Archivos</span>
+        <span><CloudDownload size={13} /> Plataforma</span>
+        <span><ArrowRightLeft size={13} /> {isMultiBase ? `${bases} base${bases === 1 ? "" : "s"}` : "Una base"}</span>
+      </div>
+    </section>
   );
 }
 
