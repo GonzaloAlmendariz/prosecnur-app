@@ -53850,6 +53850,14 @@ button.mon-acr-requirement-metric:active {
   padding: 12px;
 }
 
+.mon-territorial-reconciliation-panel.is-ump {
+  grid-template-rows: auto auto auto minmax(128px, 1fr);
+}
+
+.mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-list {
+  max-height: 286px;
+}
+
 .mon-territorial-reconciliation-panel > header {
   min-width: 0;
   display: flex;
@@ -54049,6 +54057,159 @@ button.mon-acr-requirement-metric:active {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
+  font-weight: 720;
+}
+
+.mon-territorial-reconciliation-queue {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-self: stretch;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 24%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-primary-soft) 12%, #fff)),
+    #fff;
+  padding: 10px;
+}
+
+.mon-territorial-reconciliation-queue-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mon-territorial-reconciliation-queue-head span,
+.mon-territorial-reconciliation-queue-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-queue-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-primary);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-queue-head strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 880;
+}
+
+.mon-territorial-reconciliation-queue-metrics {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mon-territorial-reconciliation-queue-metrics span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 7px;
+}
+
+.mon-territorial-reconciliation-queue-metrics span.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 62%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 34%, #fff);
+}
+
+.mon-territorial-reconciliation-queue-metrics span.is-primary {
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 62%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-primary-soft) 34%, #fff);
+}
+
+.mon-territorial-reconciliation-queue-metrics strong,
+.mon-territorial-reconciliation-queue-metrics em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-queue-metrics strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.mon-territorial-reconciliation-queue-metrics em {
+  color: var(--pulso-text-soft);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-queue-list {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  overflow: auto;
+}
+
+.mon-territorial-reconciliation-queue-list span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(76px, 0.46fr) minmax(0, 0.62fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 74%, #fff);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 8px;
+}
+
+.mon-territorial-reconciliation-queue-list span.is-empty {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 50%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 28%, #fff);
+}
+
+.mon-territorial-reconciliation-queue-list strong,
+.mon-territorial-reconciliation-queue-list em,
+.mon-territorial-reconciliation-queue-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-territorial-reconciliation-queue-list strong {
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 880;
+}
+
+.mon-territorial-reconciliation-queue-list em {
+  color: var(--pulso-warn-fg);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 820;
+}
+
+.mon-territorial-reconciliation-queue-list small {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
   font-weight: 720;
 }
 
@@ -61526,6 +61687,7 @@ button.mon-acr-requirement-metric:active {
 
 @media (max-width: 1180px) {
   .mon-territorial-reconciliation-grid,
+  .mon-territorial-reconciliation-panels,
   .mon-territorial-enumerator-roster.is-roster .mon-territorial-enumerator-layout {
     grid-template-columns: 1fr;
   }
@@ -61535,9 +61697,26 @@ button.mon-acr-requirement-metric:active {
     align-items: stretch;
   }
 
+  .mon-territorial-source-workgrid--reconciliation,
+  .mon-territorial-reconciliation-console {
+    height: auto;
+  }
+
+  .mon-territorial-reconciliation-console {
+    grid-template-rows: auto auto auto;
+  }
+
   .mon-territorial-reconciliation-batchcounts,
   .mon-territorial-reconciliation-batchactions {
     justify-content: flex-start;
+  }
+
+  .mon-territorial-reconciliation-panel.is-ump {
+    grid-template-rows: auto auto auto;
+  }
+
+  .mon-territorial-reconciliation-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   }
 
   .mon-territorial-enumerator-roster.is-roster .mon-territorial-enumerator-layout {
@@ -61550,6 +61729,21 @@ button.mon-acr-requirement-metric:active {
 @media (max-width: 760px) {
   .mon-operational-ump-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mon-territorial-reconciliation-queue-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mon-territorial-reconciliation-queue-list span {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .mon-territorial-reconciliation-list article,
+  .mon-territorial-reconciliation-list button.mon-territorial-reconciliation-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .mon-territorial-reconciliation-confirm-list article {

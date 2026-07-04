@@ -49,6 +49,7 @@ import {
 import type { WorkbenchView } from "../../core/monitoreoRegistry";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
+type TerritorialSourceDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];
 
 export type TerritorialSourceConsoleProps = {
   activeLocalTab?: string;
@@ -833,9 +834,21 @@ export function TerritorialSourceConsole({
     ...(codeSummary?.unrecognized_responses ?? []),
   ].slice(0, 8);
   const umpRows = umpSummary?.rows ?? [];
-  const umpReviewRows = (umpRows.filter((row) => row.status === "review" || row.status === "missing").length
-    ? umpRows.filter((row) => row.status === "review" || row.status === "missing")
+  const umpManualRows = umpRows.filter((row) => row.status === "review" || row.status === "missing");
+  const umpReviewRows = (umpManualRows.length
+    ? umpManualRows
     : umpRows).slice(0, 8);
+  const umpRowsWithoutRoute = umpManualRows.filter((row) => !row.assigned_ump && !(row.route_blocks?.length ?? 0));
+  const umpRowsWithRouteCandidate = umpManualRows.filter((row) => (row.route_blocks?.length ?? 0) > 0 || Boolean(row.assigned_ump));
+  const umpManualPreviewRows = (umpManualRows.length ? umpManualRows : umpRows).slice(0, 4);
+  const umpAcceptedCount = (umpSummary?.metrics?.recognized_ump_count ?? 0) + (umpSummary?.metrics?.reconciled_ump_count ?? 0);
+  const declaredUmpReviewReason = (row: TerritorialSourceDeclaredUmpRow) => {
+    if (row.status === "missing") return "Sin UMP declarada";
+    if (row.assigned_ump) return "Ruta guardada";
+    if ((row.route_blocks?.length ?? 0) > 1) return `${fmt(row.route_blocks?.length)} rutas posibles`;
+    if ((row.route_blocks?.length ?? 0) === 1) return "Ruta candidata";
+    return "Sin ruta asignada";
+  };
   const declaredUmpStatusLabel = (status: string) => {
     if (status === "recognized") return "Exacta";
     if (status === "reconciled") return "Reconciliada";
@@ -1563,6 +1576,37 @@ export function TerritorialSourceConsole({
                     <div className="mon-territorial-source-empty">Sin UMP pendientes.</div>
                   )}
                 </div>
+                <aside className="mon-territorial-reconciliation-queue" aria-label="Bandeja de revisión de UMP">
+                  <div className="mon-territorial-reconciliation-queue-head">
+                    <span><SlidersHorizontal size={13} /> Cola UMP</span>
+                    <strong>{fmt(umpSummary?.metrics?.review_ump_count ?? 0)} pendientes</strong>
+                  </div>
+                  <div className="mon-territorial-reconciliation-queue-metrics">
+                    <span><strong>{fmt(umpAcceptedCount)}</strong><em>listas</em></span>
+                    <span className={umpRowsWithoutRoute.length ? "is-warning" : ""}><strong>{fmt(umpRowsWithoutRoute.length)}</strong><em>sin ruta</em></span>
+                    <span className={(umpSummary?.metrics?.responses_without_ump ?? 0) ? "is-warning" : ""}><strong>{fmt(umpSummary?.metrics?.responses_without_ump ?? 0)}</strong><em>sin UMP</em></span>
+                    <span className={batchUmpCount ? "is-primary" : ""}><strong>{fmt(batchUmpCount)}</strong><em>sugeridas</em></span>
+                  </div>
+                  <div className="mon-territorial-reconciliation-queue-list">
+                    {umpManualPreviewRows.length ? umpManualPreviewRows.map((row, index) => {
+                      const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
+                      const district = row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D";
+                      return (
+                        <span key={`${row.raw_ump || "missing"}-${row.response_id || index}`}>
+                          <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
+                          <em>{declaredUmpReviewReason(row)}</em>
+                          <small>{assignedUmp || "Sin ruta"} · {district}</small>
+                        </span>
+                      );
+                    }) : (
+                      <span className="is-empty">
+                        <strong>Sin cola manual</strong>
+                        <em>Todo exacto</em>
+                        <small>{fmt(umpRowsWithRouteCandidate.length)} con ruta candidata</small>
+                      </span>
+                    )}
+                  </div>
+                </aside>
               </section>
             </div>
           </section>
