@@ -6,6 +6,7 @@ import {
   inferNumberStep,
   isPartialNumberInput,
   parseNumberInput,
+  unwrapNumberInputValue,
 } from "./argFieldNumberUtils";
 import { ArgMetadata } from "../../api/client";
 
@@ -45,6 +46,19 @@ describe("argFieldNumberUtils", () => {
     expect(formatNumberInput(1.5, 100)).toBe("150");
     expect(formatNumberInput("1,5", 1)).toBe("1.5");
     expect(formatNumberInput("", 1)).toBe("");
+  });
+
+  test("no expone objetos heredados como texto técnico", () => {
+    expect(formatNumberInput({})).toBe("");
+    expect(formatNumberInput([])).toBe("");
+    expect(formatNumberInput({ value: 2.5 })).toBe("2.5");
+    expect(formatNumberInput({ valor: "2,5" })).toBe("2.5");
+    expect(String(formatNumberInput({}))).not.toContain("[object Object]");
+  });
+
+  test("extrae wrappers numéricos y deja objetos no escalares como vacío", () => {
+    expect(unwrapNumberInputValue({ value: { valor: "8" } })).toBe("8");
+    expect(unwrapNumberInputValue({ ancho_bin: null })).toBe("");
   });
 
   test("elige step por heurística de proporciones", () => {

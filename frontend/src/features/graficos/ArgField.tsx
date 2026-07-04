@@ -84,7 +84,7 @@ export function ArgField({
   // Si el arg está heredado y no tiene valor propio, mostramos el
   // valor del preset en el input pero con styling gris.
   const isInherited = argState === "inherited";
-  const hasOwnValue = value !== undefined && value !== null && (value !== "" || allowsEmptyStringValue(meta));
+  const hasOwnValue = hasOwnArgValue(meta, value);
   const displayValue: ArgValue = hasOwnValue ? value : resolveDisplayFallback(meta, inheritedValue);
   const labelId = useId();
   const description = resolveArgumentDescription(meta);
@@ -146,6 +146,13 @@ export function ArgField({
 
 function allowsEmptyStringValue(meta: ArgMetadata): boolean {
   return meta.tipo_input === "string" || meta.tipo_input === "textarea";
+}
+
+function hasOwnArgValue(meta: ArgMetadata, value: ArgValue): boolean {
+  if (value === undefined || value === null) return false;
+  if (value === "") return allowsEmptyStringValue(meta);
+  if (meta.tipo_input === "number") return coerceNumber(value) !== null;
+  return true;
 }
 
 export function resolveDisplayFallback(meta: ArgMetadata, inheritedValue?: ArgValue): ArgValue {

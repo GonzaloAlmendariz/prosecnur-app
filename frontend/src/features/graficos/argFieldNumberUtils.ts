@@ -7,6 +7,11 @@ export function isEmptyNumericLike(value: string): boolean {
 }
 
 export function coerceNumber(value: unknown): number | null {
+  const scalar = unwrapNumberInputValue(value);
+  if (value !== null && typeof value === "object") {
+    return coerceNumber(scalar);
+  }
+
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
@@ -17,6 +22,38 @@ export function coerceNumber(value: unknown): number | null {
   }
 
   return null;
+}
+
+export function unwrapNumberInputValue(value: unknown): unknown {
+  return unwrapNumberInputValueInner(value, 0);
+}
+
+function unwrapNumberInputValueInner(value: unknown, depth: number): unknown {
+  if (depth > 3) return "";
+  if (value === null || value === undefined || value === "") return value;
+  if (typeof value === "number" || typeof value === "string") return value;
+  if (Array.isArray(value)) return "";
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of ["value", "valor", "default", "current", "actual"]) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) {
+        const unwrapped = unwrapNumberInputValueInner(record[key], depth + 1);
+        if (
+          unwrapped === null ||
+          unwrapped === undefined ||
+          unwrapped === "" ||
+          typeof unwrapped === "number" ||
+          typeof unwrapped === "string"
+        ) {
+          return unwrapped;
+        }
+      }
+    }
+    return "";
+  }
+
+  return "";
 }
 
 export function parseNumberInput(value: string): number | null {
@@ -45,6 +82,11 @@ export function isPartialNumberInput(value: string): boolean {
 }
 
 export function formatNumberInput(value: unknown, scale = 1): string {
+  const scalar = unwrapNumberInputValue(value);
+  if (value !== null && typeof value === "object") {
+    return formatNumberInput(scalar, scale);
+  }
+
   if (value === null || value === undefined || value === "") return "";
 
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -57,7 +99,7 @@ export function formatNumberInput(value: unknown, scale = 1): string {
     return normalizeNumberDisplay(parsed * scale);
   }
 
-  return String(value);
+  return "";
 }
 
 export function decimalsForStep(step: number): number {
