@@ -1290,10 +1290,10 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const selectedIndex = selectedSlideId ? slides.findIndex((slide) => slide.id === selectedSlideId) : -1;
   const currentSlideLabel = slides.length === 0
-    ? "sin slides"
+    ? "Plan nuevo"
     : selectedIndex >= 0
-      ? `slide ${selectedIndex + 1}/${slides.length}`
-      : `${slides.length} ${slides.length === 1 ? "slide" : "slides"}`;
+      ? `Lámina ${selectedIndex + 1}/${slides.length}`
+      : `${slides.length} ${slides.length === 1 ? "lámina" : "láminas"}`;
   const densityLabel = density === "compact" ? "Compacto" : "Cómodo";
 
   return (
@@ -1303,8 +1303,8 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
           <LayoutGrid size={13} />
         </span>
         <span className="pulso-gv2-suite-copy">
-          <strong>Constructor</strong>
-          <span>{currentSlideLabel}</span>
+          <strong>{currentSlideLabel}</strong>
+          <span>Constructor</span>
         </span>
         {issueCount > 0 && (
           <span className="pulso-gv2-suite-chip is-warn">
