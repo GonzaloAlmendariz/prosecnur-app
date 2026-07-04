@@ -13,11 +13,7 @@ export function hasMeaningfulValue(value: unknown): boolean {
 }
 
 export function validateNumericArgValue(value: unknown, meta: ArgMetadata): NumericArgValidationResult {
-  const parsed = typeof value === "number"
-    ? (Number.isFinite(value) ? value : null)
-    : typeof value === "string"
-      ? coerceNumber(value)
-      : null;
+  const parsed = coerceNumber(value);
 
   if (parsed === null) {
     return { ok: false, message: "debe ser un número válido" };

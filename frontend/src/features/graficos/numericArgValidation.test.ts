@@ -26,6 +26,11 @@ describe("validateNumericArgValue", () => {
     expect(validateNumericArgValue(4, meta({})).ok).toBe(true);
   });
 
+  test("normaliza wrappers y rechaza objetos vacíos sin coerción textual", () => {
+    expect(validateNumericArgValue({ value: "2" }, meta({}))).toEqual({ ok: true, value: 2 });
+    expect(validateNumericArgValue({}, meta({})).ok).toBe(false);
+  });
+
   test("respeta el rango más estricto de decimales del promedio", () => {
     const avgMeta = meta({ name: "decimales_promedio", max: 2 });
     expect(validateNumericArgValue(2, avgMeta).ok).toBe(true);
