@@ -42,8 +42,8 @@ const STARTER_SLIDES: {
   Icon: typeof LayoutPanelTop;
 }[] = [
   { tipo: "p_slide_portada", label: "Portada", detail: "Inicio del reporte", tone: "cover", Icon: LayoutPanelTop },
-  { tipo: "p_slide_seccion", label: "Sección", detail: "Separador editorial", tone: "section", Icon: Layers3 },
-  { tipo: "p_slide_1_grafico", label: "Un gráfico", detail: "Visual principal", tone: "chart", Icon: BarChart3 },
+  { tipo: "p_slide_seccion", label: "Separador", detail: "Nueva sección", tone: "section", Icon: Layers3 },
+  { tipo: "p_slide_1_grafico", label: "Gráfico", detail: "Visual principal", tone: "chart", Icon: BarChart3 },
 ];
 
 export function InspectorV2() {
@@ -260,11 +260,16 @@ function EmptyPlanStart({
   return (
     <section className="pulso-gv2-start-surface" aria-label="Plan de reporte sin slides">
       <div className="pulso-gv2-start-copy">
-        <span className="pulso-gv2-start-eyebrow">Plan de reporte</span>
-        <h2>Construye la primera secuencia</h2>
+        <span className="pulso-gv2-start-eyebrow">Inicio del plan</span>
+        <h2>Elige el primer modelo</h2>
         <p>
-          Portada, secciones y gráficos quedan listos para configurar en el inspector.
+          Empieza con una lámina base. Después podrás ajustar contenido, variables y estilo desde el editor.
         </p>
+        <div className="pulso-gv2-start-route" aria-label="Flujo sugerido">
+          <span>Modelo</span>
+          <span>Datos</span>
+          <span>Estilo</span>
+        </div>
         <div className="pulso-gv2-start-actions" aria-label="Crear primer slide">
           {STARTER_SLIDES.map(({ tipo, label, detail, tone, Icon }) => (
             <button

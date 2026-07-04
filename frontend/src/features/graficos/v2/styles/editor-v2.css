@@ -30803,3 +30803,189 @@
   opacity: 1 !important;
   stroke-width: 2.45 !important;
 }
+
+/* Suite polish pass 80: empty report starts as a compact workbench, not a hero. */
+.pulso-gv2-start-surface {
+  grid-template-columns: minmax(320px, 0.74fr) minmax(340px, 0.72fr);
+  gap: clamp(24px, 3.2vw, 48px);
+  padding: clamp(26px, 4vh, 42px) clamp(34px, 4vw, 56px);
+  align-items: center;
+}
+
+.pulso-gv2-start-surface::before {
+  background-size: 42px 42px;
+  opacity: 0.28;
+}
+
+.pulso-gv2-start-copy {
+  max-width: 560px;
+  gap: 10px;
+}
+
+.pulso-gv2-start-copy h2 {
+  max-width: 22ch;
+  font-size: clamp(24px, 2.2vw, 30px);
+  line-height: 1.05;
+}
+
+.pulso-gv2-start-copy p {
+  max-width: 62ch;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.pulso-gv2-start-route {
+  width: min(100%, 420px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pulso-gv2-start-route span {
+  min-width: 0;
+  min-height: 26px;
+  display: inline-grid;
+  place-items: center;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 42%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 76%, var(--pulso-text));
+  font-size: 10px;
+  font-weight: 790;
+  line-height: 1;
+}
+
+.pulso-gv2-start-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pulso-gv2-start-action {
+  min-height: 68px;
+  grid-template-columns: 30px minmax(0, 1fr) 16px;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.pulso-gv2-start-action-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+
+.pulso-gv2-start-action-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.45;
+}
+
+.pulso-gv2-start-action-copy strong {
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.pulso-gv2-start-action-copy small {
+  font-size: 9.5px;
+  line-height: 1.18;
+}
+
+.pulso-gv2-start-action > svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.35;
+}
+
+.pulso-gv2-start-preview {
+  max-width: 440px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.pulso-gv2-start-preview-rail {
+  gap: 11px;
+}
+
+.pulso-gv2-start-preview-rail span {
+  width: 26px;
+  height: 26px;
+  font-size: 8.5px;
+}
+
+.pulso-gv2-start-preview-stack {
+  gap: 10px;
+}
+
+.pulso-gv2-start-slide {
+  min-height: 76px;
+  border-radius: 13px;
+}
+
+.pulso-gv2-start-slide.is-cover {
+  padding: 16px 20px;
+}
+
+.pulso-gv2-start-slide.is-section {
+  min-height: 66px;
+  padding: 14px 20px;
+}
+
+.pulso-gv2-start-slide.is-chart {
+  min-height: 100px;
+  padding: 15px 20px 17px;
+}
+
+.pulso-gv2-timeline-empty {
+  padding: 18px 14px 16px;
+}
+
+.pulso-gv2-timeline-empty-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+}
+
+.pulso-gv2-timeline-empty-icon svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.45;
+}
+
+.pulso-gv2-timeline-empty-title {
+  margin-top: 10px;
+  font-size: 12.5px;
+}
+
+.pulso-gv2-timeline-empty-hint {
+  max-width: 25ch;
+  margin-inline: auto;
+  font-size: 10.5px;
+  line-height: 1.32;
+}
+
+.pulso-gv2-timeline-empty-flow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 6px 0 12px;
+}
+
+.pulso-gv2-timeline-empty-flow span {
+  min-height: 20px;
+  padding: 3px 5px;
+  font-size: 8.5px;
+}
+
+@media (max-width: 1180px) {
+  .pulso-gv2-start-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .pulso-gv2-start-actions {
+    grid-template-columns: 1fr;
+  }
+}
