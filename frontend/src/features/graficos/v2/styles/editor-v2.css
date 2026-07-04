@@ -31176,3 +31176,115 @@
     padding: 18px 18px 6px 22px;
   }
 }
+
+/* Suite polish pass 82: model family rail icons keep real contrast at small size. */
+.pulso-gv2-picker-stage {
+  grid-template-columns:
+    clamp(174px, 9.8vw, 198px)
+    minmax(0, 1fr)
+    clamp(286px, 15vw, 318px) !important;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab {
+  grid-template-columns: 26px minmax(0, 1fr) 25px !important;
+  border-color: color-mix(
+    in srgb,
+    var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 16%,
+    var(--pulso-border)
+  ) !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      color-mix(
+        in srgb,
+        var(--gv2-picker-cat-soft, var(--gv2-accent-soft, var(--pulso-primary-soft))) 20%,
+        #ffffff
+      )
+    ) !important;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 32%,
+    var(--pulso-border)
+  ) !important;
+  background: #ffffff !important;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab-icon {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  color: color-mix(
+    in srgb,
+    var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 90%,
+    #061a3d
+  ) !important;
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      color-mix(
+        in srgb,
+        var(--gv2-picker-cat-soft, var(--gv2-accent-soft, var(--pulso-primary-soft))) 54%,
+        #ffffff
+      )
+    ) !important;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 34%,
+      #ffffff
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 4px 9px color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 9%, transparent) !important;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2.65 !important;
+  vector-effect: non-scaling-stroke;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab.is-active {
+  border-color: color-mix(
+    in srgb,
+    var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 30%,
+    var(--pulso-border)
+  ) !important;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--gv2-picker-cat-soft, var(--gv2-accent-soft, var(--pulso-primary-soft))) 42%,
+        #ffffff
+      ),
+      #ffffff
+    ) !important;
+  box-shadow:
+    inset 3px 0 0 var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))),
+    0 8px 16px rgba(7, 26, 61, 0.06) !important;
+}
+
+.pulso-gv2-picker-rail .pulso-gv2-picker-tab.is-active .pulso-gv2-picker-tab-icon {
+  color: #ffffff !important;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 82%, #ffffff),
+      var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary)))
+    ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 82%,
+    #061a3d
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 7px 14px color-mix(in srgb, var(--gv2-picker-cat, var(--gv2-accent, var(--pulso-primary))) 18%, transparent) !important;
+}
