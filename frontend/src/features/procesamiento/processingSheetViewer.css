@@ -241,6 +241,7 @@
 .pulso-processing-sheet-scroll {
   background:
     linear-gradient(90deg, rgba(248, 250, 252, 0.95), transparent 32px) left/32px 100% no-repeat,
+    linear-gradient(270deg, rgba(248, 250, 252, 0.98), transparent 36px) right/36px 100% no-repeat,
     #fff;
   flex: 1;
   max-width: 100%;
@@ -387,6 +388,9 @@
 .pulso-processing-sheet-rownum {
   background:
     linear-gradient(180deg, #f8fafc, #eef2f7) !important;
+  box-shadow:
+    1px 0 0 color-mix(in srgb, var(--pulso-border) 70%, transparent),
+    8px 0 18px rgba(15, 23, 42, 0.055);
   color: var(--pulso-text-soft) !important;
   font-weight: 800;
   left: 0;
@@ -400,6 +404,11 @@
 .pulso-processing-sheet-table td.pulso-processing-sheet-rownum {
   font-size: 11px;
   padding: 7px 6px;
+}
+
+.pulso-processing-sheet.is-wide .pulso-processing-sheet-footer > span {
+  color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 58%, var(--pulso-text-soft));
+  font-weight: 760;
 }
 
 .pulso-processing-sheet-table .is-coded {
