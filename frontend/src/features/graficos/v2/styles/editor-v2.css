@@ -29788,6 +29788,59 @@
   min-height: 116px;
 }
 
+/* Suite polish pass 74: model picker exposes more options on mid-size desktop. */
+@media (min-width: 1321px) and (max-width: 1500px) {
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 136px minmax(0, 1fr) 252px;
+  }
+
+  .pulso-gv2-picker-library {
+    padding-inline: 10px;
+  }
+
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pulso-gv2-picker-tile {
+    min-height: 206px;
+    height: 206px;
+    grid-template-rows: auto minmax(118px, 1fr);
+    gap: 8px 9px;
+    padding: 10px;
+  }
+
+  .pulso-gv2-picker-tile[data-cat="estructural"] {
+    min-height: 78px;
+    height: 78px;
+  }
+
+  .pulso-gv2-picker-tile-label {
+    font-size: 12.4px;
+  }
+
+  .pulso-gv2-picker-tile-meta,
+  .pulso-gv2-picker-tile-structure,
+  .pulso-gv2-picker-tile-tags span {
+    padding-inline: 6px;
+  }
+
+  .pulso-gv2-picker-tile:not([data-cat="estructural"]) .pulso-gv2-picker-slide-preview.is-card {
+    min-height: 118px;
+    padding: 6px;
+  }
+
+  .pulso-gv2-picker-inspector {
+    padding-inline: 12px;
+  }
+
+  .pulso-gv2-picker-inspector .pulso-gv2-picker-slide-preview.is-hero {
+    height: 214px;
+    min-height: 214px;
+  }
+}
+
 .pulso-gv2-slide-card-models {
   max-height: none;
   min-height: 22px;
