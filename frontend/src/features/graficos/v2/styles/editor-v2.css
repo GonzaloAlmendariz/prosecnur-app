@@ -26523,3 +26523,108 @@
     display: none;
   }
 }
+
+/* Suite polish pass 41: use the available desktop canvas for the two large graph sheets. */
+.pulso-gv2-estilo-dialog {
+  width: min(1640px, calc(100vw - 40px));
+  max-width: 1640px;
+  height: min(1048px, calc(100vh - 40px));
+  min-height: min(760px, calc(100vh - 40px));
+}
+
+.pulso-gv2-estilo-head {
+  padding-inline: 18px;
+}
+
+.pulso-gv2-estilo-workbench {
+  grid-template-columns: 270px minmax(0, 1fr);
+}
+
+.pulso-gv2-estilo-body {
+  padding: 16px 18px 18px;
+}
+
+.pulso-gv2-estilo-body .pulso-gv2-paletas-sidebar {
+  flex-basis: 256px;
+  width: 256px;
+}
+
+.pulso-gv2-picker {
+  width: min(1660px, calc(100vw - 40px));
+  max-width: 1660px;
+  height: min(1028px, calc(100vh - 42px));
+}
+
+.pulso-gv2-picker-stage {
+  grid-template-columns: 238px minmax(940px, 1fr) 366px;
+}
+
+.pulso-gv2-picker-library .pulso-gv2-picker-grid {
+  grid-template-columns: repeat(3, minmax(310px, 1fr));
+  align-content: start;
+}
+
+.pulso-gv2-picker-tile {
+  min-height: 188px;
+  grid-template-rows: minmax(58px, auto) minmax(96px, 1fr);
+}
+
+.pulso-gv2-picker-tile[data-cat="estructural"] {
+  min-height: 174px;
+  grid-template-rows: minmax(48px, auto) minmax(86px, 1fr);
+}
+
+.pulso-gv2-picker-inspector {
+  padding: 16px 16px 18px;
+}
+
+@media (max-width: 1500px) {
+  .pulso-gv2-picker {
+    width: min(1480px, calc(100vw - 32px));
+  }
+
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 226px minmax(0, 1fr) 336px;
+  }
+
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(286px, 1fr));
+  }
+}
+
+@media (max-width: 1320px) {
+  .pulso-gv2-estilo-dialog {
+    width: calc(100vw - 24px);
+    height: calc(100vh - 24px);
+    min-height: calc(100vh - 24px);
+  }
+
+  .pulso-gv2-estilo-workbench {
+    grid-template-columns: 238px minmax(0, 1fr);
+  }
+
+  .pulso-gv2-estilo-body .pulso-gv2-paletas-sidebar {
+    flex-basis: 226px;
+    width: 226px;
+  }
+
+  .pulso-gv2-picker {
+    width: min(1280px, calc(100vw - 28px));
+    height: min(920px, calc(100vh - 32px));
+  }
+
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 212px minmax(0, 1fr) 314px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .pulso-gv2-picker {
+    width: min(980px, calc(100vw - 28px));
+    height: min(860px, calc(100vh - 28px));
+  }
+
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 196px minmax(0, 1fr);
+  }
+}
