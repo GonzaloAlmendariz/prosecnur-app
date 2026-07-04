@@ -104,13 +104,13 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
       {graphItems.length > 0 && (
         <div
           className="pulso-gv2-slide-card-models"
-          aria-label={`Gráficos usados: ${graphItems.map((item) => item.label).join(", ")}`}
+          aria-label={`Gráficos usados: ${graphItems.map((item) => item.ariaLabel).join(", ")}`}
         >
           {graphItems.slice(0, 2).map((item) => (
             <span
               className="pulso-gv2-slide-card-model"
               key={`${item.slot}-${item.name}`}
-              title={item.label}
+              title={item.ariaLabel}
             >
               <span className="pulso-gv2-slide-card-model-icon" aria-hidden="true">
                 <GraficadorTypeIcon name={item.name} iconoUi={item.iconoUi} size={12} />
@@ -152,6 +152,7 @@ type GraphTimelineItem = {
   slot: string;
   name: string;
   label: string;
+  ariaLabel: string;
   iconoUi?: string;
 };
 
@@ -164,15 +165,40 @@ function graphItemsForSlide(slide: Slide, graficadoresById: GraphMetaLookup): Gr
     ? slots.map((slot) => [slot, payload[slot]] as const)
     : Object.entries(payload);
 
-  return entries.flatMap(([slot, value]) => {
-    if (!isGraficadorRef(value)) return [];
+  const grouped = new Map<string, {
+    slots: string[];
+    name: string;
+    label: string;
+    iconoUi?: string;
+  }>();
+
+  for (const [slot, value] of entries) {
+    if (!isGraficadorRef(value)) continue;
     const meta = graficadoresById[value.graficador];
-    return [{
-      slot,
+    const label = graficadorDisplayName(value.graficador, meta);
+    const current = grouped.get(value.graficador);
+    if (current) {
+      current.slots.push(slot);
+      continue;
+    }
+    grouped.set(value.graficador, {
+      slots: [slot],
       name: value.graficador,
-      label: graficadorDisplayName(value.graficador, meta),
+      label,
       iconoUi: meta?.icono_ui ?? undefined,
-    }];
+    });
+  }
+
+  return Array.from(grouped.values()).map((item) => {
+    const count = item.slots.length;
+    const label = count > 1 ? `${count}x ${item.label}` : item.label;
+    return {
+      slot: item.slots.join("+"),
+      name: item.name,
+      label,
+      ariaLabel: count > 1 ? `${count} gráficos de ${item.label}` : item.label,
+      iconoUi: item.iconoUi,
+    };
   });
 }
 

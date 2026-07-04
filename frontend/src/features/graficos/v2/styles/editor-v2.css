@@ -16029,6 +16029,7 @@
   --gv2-slide-cat: var(--gv2-accent, var(--pulso-primary));
   --gv2-slide-cat-soft: var(--gv2-accent-soft, var(--pulso-primary-soft));
   --gv2-slide-cat-border: var(--gv2-accent-border, var(--pulso-primary-border));
+  overflow: visible;
 }
 
 .pulso-gv2-slide-card[data-cat="estructural"] {
@@ -16081,6 +16082,7 @@
   grid-template-columns: 21px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
+  min-height: 21px;
 }
 
 .pulso-gv2-slide-card-type-icon {
@@ -16116,13 +16118,21 @@
 
 .pulso-gv2-slide-card-models {
   gap: 4px;
+  justify-items: start;
+  overflow: visible;
+}
+
+.pulso-gv2-slide-card.has-graphs {
+  min-height: 76px;
 }
 
 .pulso-gv2-slide-card-model {
-  min-height: 24px;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 6px;
-  padding: 2px 7px 2px 2px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 22px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 5px;
+  padding: 2px 8px 2px 2px;
   border: 1px solid color-mix(in srgb, var(--gv2-slide-cat) 18%, var(--pulso-border));
   border-radius: 8px;
   background:
@@ -16132,8 +16142,8 @@
 }
 
 .pulso-gv2-slide-card-model-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 0;
   border-radius: 6px;
   background: color-mix(in srgb, var(--gv2-slide-cat-soft) 78%, #ffffff);
@@ -16141,8 +16151,8 @@
 }
 
 .pulso-gv2-slide-card-model-icon svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   color: color-mix(in srgb, var(--gv2-slide-cat) 88%, var(--pulso-text));
 }
 
