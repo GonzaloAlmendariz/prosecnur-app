@@ -37,6 +37,8 @@ export function TerritorialOperationalAdjustmentsWorkspace({
   const deficits = model?.deficits ?? [];
   const applied = model?.applied ?? [];
   const active = applied.filter((item) => stringOrEmpty(item.status || "active") === "active");
+  const reverted = applied.filter((item) => stringOrEmpty(item.status || "active") !== "active");
+  const appliedRows = useMemo(() => [...applied].sort(territorialOperationalAppliedCompare), [applied]);
   const summary = model?.summary ?? {};
   const [selectedId, setSelectedId] = useState("");
   const [note, setNote] = useState("");
@@ -74,6 +76,8 @@ export function TerritorialOperationalAdjustmentsWorkspace({
     },
     { label: "Completas", value: summary.active ?? active.length, tone: "complete" },
   ];
+  const selectedMovements = selected ? territorialOperationalAdjustmentMovements(selected) : [];
+  const selectedResponseCount = territorialOperationalAdjustmentResponseCount(selectedMovements);
 
   const applySelected = async () => {
     if (!selected || !onApply || !canApply) return;
@@ -133,9 +137,9 @@ export function TerritorialOperationalAdjustmentsWorkspace({
     <section className="mon-operational-adjustments" aria-label="Subsanaciones operativas de avance">
       <header className="mon-operational-adjustments__header">
         <div>
-          <span><ArrowRight size={14} /> Subsanaciones operativas · {phaseLabel}</span>
-          <strong>Paquetes que cierran UMP pendientes</strong>
-          <p>Primero se priorizan las pendientes más antiguas. Solo se sugieren conjuntos que pueden dejar una UMP completa, respetando distrito, sexo, rango etario y cercanía.</p>
+          <span><ArrowRight size={14} /> Subsanador operativo · {phaseLabel}</span>
+          <strong>Excedentes reales, paquetes completos</strong>
+          <p>Solo aparecen movimientos que cierran una UMP pendiente con respuestas sobrantes trazables y que conservan completa la UMP origen.</p>
         </div>
         <div className="mon-operational-adjustments__status">
           <span className="is-surplus">Sobrante</span>
@@ -212,6 +216,11 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                           <i className="is-priority">Últ. aplicación UMP: {territorialOperationalAdjustmentDateLabel(territorialOperationalAdjustmentTargetActivity(item), "Sin actividad")}</i>
                         </span>
                       </span>
+                      <span className="mon-operational-suggestion__chips">
+                        <i>{formatMetric(numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1)} movimiento(s)</i>
+                        <i>{formatMetric(territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item)))} ID(s) fuente</i>
+                        <i>Origen protegido</i>
+                      </span>
                     </button>
                   );
                 })}
@@ -232,55 +241,78 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                   <span><Target size={14} /> Revisión operativa</span>
                   <strong>{formatMetric(numberOrNull(selected.count) ?? 0)} caso(s) para cerrar la UMP</strong>
                 </header>
-                <dl>
-                  <div className="is-surplus">
-                    <dt>Sobrante</dt>
-                    <dd>{territorialOperationalAdjustmentBlockLabel(selected, "source")}</dd>
+                <div className="mon-operational-adjustments__detail-body">
+                  <div className="mon-operational-guardrails" aria-label="Reglas de seguridad del paquete">
+                    <span className="is-complete"><CheckCircle2 size={13} /> Origen conserva cuota</span>
+                    <span className="is-pending">Sexo + rango + distrito</span>
+                    <span className="is-surplus">{formatMetric(selectedResponseCount)} ID(s) reales</span>
+                    <span className="is-complete">Sin duplicar respuestas</span>
                   </div>
-                  <div className="is-pending">
-                    <dt>Faltante</dt>
-                    <dd>{territorialOperationalAdjustmentBlockLabel(selected, "target")}</dd>
-                  </div>
-                  <div className="is-pending">
-                    <dt>Celda faltante</dt>
-                    <dd>{territorialOperationalAdjustmentCellLabel(selected)}</dd>
-                  </div>
-                  <div>
-                    <dt>Movimientos del paquete</dt>
-                    <dd>{formatMetric(numberOrNull(selected.package_movements) ?? selected.adjustments?.length ?? 1)}</dd>
-                  </div>
-                  <div>
-                    <dt>Casos disponibles</dt>
-                    <dd>{formatMetric(selected.source_response_ids?.length ?? selected.count ?? 0)}</dd>
-                  </div>
-                  {territorialOperationalAdjustmentDistanceLabel(selected) ? (
-                    <div className="is-distance">
-                      <dt>Cercanía</dt>
-                      <dd><MapPin size={13} /> {territorialOperationalAdjustmentDistanceLabel(selected)}</dd>
+                  <dl>
+                    <div className="is-surplus">
+                      <dt>Sobrante</dt>
+                      <dd>{territorialOperationalAdjustmentBlockLabel(selected, "source")}</dd>
                     </div>
-                  ) : null}
-                  <div className="is-surplus">
-                    <dt>Responsable sobrante</dt>
-                    <dd>{territorialOperationalAdjustmentSideResponsibleLabel(selected, "source")}</dd>
+                    <div className="is-pending">
+                      <dt>Faltante</dt>
+                      <dd>{territorialOperationalAdjustmentBlockLabel(selected, "target")}</dd>
+                    </div>
+                    <div className="is-pending">
+                      <dt>Celda faltante</dt>
+                      <dd>{territorialOperationalAdjustmentCellLabel(selected)}</dd>
+                    </div>
+                    <div>
+                      <dt>Movimientos del paquete</dt>
+                      <dd>{formatMetric(numberOrNull(selected.package_movements) ?? selected.adjustments?.length ?? 1)}</dd>
+                    </div>
+                    <div>
+                      <dt>Casos disponibles</dt>
+                      <dd>{formatMetric(selectedResponseCount)}</dd>
+                    </div>
+                    {territorialOperationalAdjustmentDistanceLabel(selected) ? (
+                      <div className="is-distance">
+                        <dt>Cercanía</dt>
+                        <dd><MapPin size={13} /> {territorialOperationalAdjustmentDistanceLabel(selected)}</dd>
+                      </div>
+                    ) : null}
+                    <div className="is-surplus">
+                      <dt>Responsable sobrante</dt>
+                      <dd>{territorialOperationalAdjustmentSideResponsibleLabel(selected, "source")}</dd>
+                    </div>
+                    <div className="is-pending">
+                      <dt>Responsable faltante</dt>
+                      <dd>{territorialOperationalAdjustmentSideResponsibleLabel(selected, "target")}</dd>
+                    </div>
+                    <div className="is-pending is-priority">
+                      <dt>Última aplicación de la UMP</dt>
+                      <dd>{territorialOperationalAdjustmentDateLabel(territorialOperationalAdjustmentTargetActivity(selected), "Sin actividad")}</dd>
+                    </div>
+                  </dl>
+                  <div className="mon-operational-package-ledger" aria-label="Desglose del paquete seleccionado">
+                    <header>
+                      <span>Contabilidad del paquete</span>
+                      <strong>{formatMetric(selectedMovements.length)} línea(s)</strong>
+                    </header>
+                    <div>
+                      {selectedMovements.slice(0, 6).map((movement, index) => (
+                        <article key={`${movement.source_block_id}-${movement.target_block_id}-${movement.sex}-${movement.age_group}-${index}`}>
+                          <span>{formatMetric(numberOrNull(movement.count) ?? movement.source_response_ids?.length ?? 0)}</span>
+                          <strong>{territorialOperationalAdjustmentBlockLabel(movement, "source")} → {territorialOperationalAdjustmentBlockLabel(movement, "target")}</strong>
+                          <em>{territorialOperationalAdjustmentCellLabel(movement)}</em>
+                        </article>
+                      ))}
+                    </div>
                   </div>
-                  <div className="is-pending">
-                    <dt>Responsable faltante</dt>
-                    <dd>{territorialOperationalAdjustmentSideResponsibleLabel(selected, "target")}</dd>
-                  </div>
-                  <div className="is-pending is-priority">
-                    <dt>Última aplicación de la UMP</dt>
-                    <dd>{territorialOperationalAdjustmentDateLabel(territorialOperationalAdjustmentTargetActivity(selected), "Sin actividad")}</dd>
-                  </div>
-                </dl>
-                <label className="mon-operational-adjustments__note">
-                  <span>Nota de decisión</span>
-                  <textarea
-                    value={note}
-                    onChange={(event) => setNote(event.currentTarget.value)}
-                    rows={3}
-                    disabled={saving || Boolean(busyId)}
-                  />
-                </label>
+                  <label className="mon-operational-adjustments__note">
+                    <span>Nota de decisión</span>
+                    <textarea
+                      value={note}
+                      onChange={(event) => setNote(event.currentTarget.value)}
+                      rows={3}
+                      disabled={saving || Boolean(busyId)}
+                    />
+                  </label>
+                </div>
                 <footer>
                   <button type="button" className="mon-operational-apply-button" onClick={applySelected} disabled={!canApply}>
                     {busyId === selected.id ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
@@ -303,19 +335,27 @@ export function TerritorialOperationalAdjustmentsWorkspace({
               <header>
                 <div>
                   <span>Historial operativo</span>
-                  <strong>{formatMetric(applied.length)} movimientos</strong>
+                  <strong>{formatMetric(applied.length)} movimientos auditados</strong>
+                </div>
+                <div className="mon-operational-applied-audit" aria-label="Resumen de auditoría de subsanaciones">
+                  <span className="is-active"><strong>{formatMetric(active.length)}</strong><em>activas</em></span>
+                  <span className="is-reverted"><strong>{formatMetric(reverted.length)}</strong><em>revertidas</em></span>
+                  <span className="is-gain"><strong>{formatMetric(summary.operational_gain ?? active.reduce((total, item) => total + (numberOrNull(item.count) ?? 0), 0))}</strong><em>ganancia</em></span>
                 </div>
               </header>
               <div className="mon-operational-adjustments__applied-list">
-                {applied.map((item) => {
+                {appliedRows.map((item) => {
                   const id = stringOrEmpty(item.id).trim();
                   const isActive = stringOrEmpty(item.status || "active") === "active";
+                  const movementCount = numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1;
+                  const responseCount = territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item));
                   return (
                     <article key={id || `${item.source_block_id}-${item.target_block_id}`} className={`mon-operational-applied is-${isActive ? "active" : "reverted"}`}>
                       <div>
                         <strong>{territorialOperationalAdjustmentBlockLabel(item, "target")}</strong>
-                        <span>{territorialOperationalAdjustmentCellLabel(item)} · {formatMetric(numberOrNull(item.count) ?? 0)} caso(s)</span>
-                        <em>Sobrante usado: {territorialOperationalAdjustmentBlockLabel(item, "source")}</em>
+                        <span>{territorialOperationalAdjustmentCellLabel(item)} · {formatMetric(numberOrNull(item.count) ?? 0)} caso(s) · {formatMetric(responseCount)} ID(s)</span>
+                        <em>{formatMetric(movementCount)} movimiento(s) · Sobrante usado: {territorialOperationalAdjustmentBlockLabel(item, "source")}</em>
+                        <small>{territorialOperationalAppliedDateLabel(item)}</small>
                       </div>
                       {isActive ? (
                         <button type="button" onClick={() => revertItem(item)} disabled={!onRevert || saving || Boolean(busyId)}>
@@ -369,6 +409,53 @@ function territorialOperationalAdjustmentDistanceLabel(item: MonitoreoTerritoria
   if (distance < 1) return `${Math.max(1, Math.round(distance * 1000))} m`;
   if (distance < 10) return `${distance.toFixed(1)} km`;
   return `${Math.round(distance)} km`;
+}
+
+function territorialOperationalAdjustmentMovements(item: MonitoreoTerritorialOperationalAdjustment) {
+  return item.adjustments?.length ? item.adjustments : [item];
+}
+
+function territorialOperationalAdjustmentResponseCount(items: MonitoreoTerritorialOperationalAdjustment[]) {
+  const ids = new Set<string>();
+  let fallback = 0;
+  items.forEach((item) => {
+    const responseIds = item.source_response_ids ?? [];
+    responseIds.forEach((id) => {
+      const normalized = stringOrEmpty(id).trim();
+      if (normalized) ids.add(normalized);
+    });
+    if (!responseIds.length) fallback += numberOrNull(item.count) ?? 0;
+  });
+  return ids.size || fallback;
+}
+
+function territorialOperationalAppliedDateLabel(item: MonitoreoTerritorialOperationalAdjustment) {
+  const status = stringOrEmpty(item.status || "active");
+  const date = status === "active"
+    ? stringOrEmpty(item.created_at || item.latest_activity || item.target_latest_activity)
+    : stringOrEmpty(item.reverted_at || item.created_at || item.latest_activity || item.target_latest_activity);
+  const label = territorialOperationalAdjustmentDateLabel(date, "Sin fecha");
+  return status === "active" ? `Activa desde ${label}` : `Revertida el ${label}`;
+}
+
+function territorialOperationalAppliedCompare(
+  a: MonitoreoTerritorialOperationalAdjustment,
+  b: MonitoreoTerritorialOperationalAdjustment,
+) {
+  const aActive = stringOrEmpty(a.status || "active") === "active";
+  const bActive = stringOrEmpty(b.status || "active") === "active";
+  if (aActive !== bActive) return aActive ? -1 : 1;
+  const aDate = territorialOperationalAdjustmentActivitySortValue(
+    aActive ? (a.created_at || a.latest_activity || a.target_latest_activity) : (a.reverted_at || a.created_at || a.latest_activity || a.target_latest_activity),
+  );
+  const bDate = territorialOperationalAdjustmentActivitySortValue(
+    bActive ? (b.created_at || b.latest_activity || b.target_latest_activity) : (b.reverted_at || b.created_at || b.latest_activity || b.target_latest_activity),
+  );
+  if (aDate !== bDate) return bDate - aDate;
+  return territorialOperationalAdjustmentBlockLabel(a, "target").localeCompare(
+    territorialOperationalAdjustmentBlockLabel(b, "target"),
+    "es",
+  );
 }
 
 function territorialOperationalAdjustmentActivitySortValue(value: unknown) {
