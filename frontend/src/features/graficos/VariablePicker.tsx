@@ -115,6 +115,7 @@ export default function VariablePicker({
   const selectedSource = sources.find((s) => s.name === selectedSourceName) ?? source;
   const selectedVar = selectedSource?.variables.find((v) => safeText(v.name) === parsed.name) ?? null;
   const selectedLabel = selectedVar ? safeText(selectedVar.label, selectedVar.name) : "";
+  const selectedCode = selectedVar ? safeText(selectedVar.name) : "";
   const selectedSourceLabel = selectedVar ? (selectedSource?.name ?? "") : (pickerSource ?? "");
 
   function handleSourceChange(newSource: string) {
@@ -180,10 +181,10 @@ export default function VariablePicker({
           <Database size={14} />
         </span>
         <span className="pulso-gv2-variable-trigger-copy">
-          <strong>{selectedVar ? selectedVar.name : placeholder}</strong>
+          <strong>{selectedVar ? selectedLabel : placeholder}</strong>
           <small>
             {selectedVar
-              ? selectedLabel
+              ? selectedCode
               : `${eligible.length} variable${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
           </small>
         </span>
@@ -290,10 +291,11 @@ export default function VariablePicker({
                   </span>
                   <span className="pulso-gv2-variable-option-main">
                     <span className="pulso-gv2-variable-option-title">
-                      <code>{name}</code>
                       <strong>{label}</strong>
+                      <code>{name}</code>
                     </span>
                     <span className="pulso-gv2-variable-option-meta">
+                      {multi && source?.name && <em>{source.name}</em>}
                       {v.seccion && <em>{v.seccion}</em>}
                       {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
                       {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
