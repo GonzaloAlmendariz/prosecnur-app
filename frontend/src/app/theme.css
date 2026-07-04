@@ -12736,25 +12736,41 @@ h1.pulso-page-title {
   font-family: ui-monospace, monospace;
 }
 .pulso-base-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 72%, var(--pulso-border));
+  gap: 11px;
+  padding: 11px 13px 11px 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 46%, var(--pulso-border));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--pulso-success-bg) 82%, #fff 18%);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--pulso-success-bg) 46%, #fff 54%) 0 52px, rgba(255, 255, 255, 0.96) 52px),
+    #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 1px 2px rgba(15, 23, 42, 0.035);
 }
 .pulso-base-row-icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-color: var(--pulso-success-border);
+  background: #fff;
   color: var(--pulso-success-fg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-success-bg) 72%, transparent);
 }
 .pulso-base-row-main {
   min-width: 0;
   display: grid;
-  gap: 5px;
+  gap: 6px;
+}
+.pulso-base-row-title-line {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .pulso-base-row-title {
   display: inline-flex;
@@ -12776,10 +12792,27 @@ h1.pulso-page-title {
   min-width: 22px;
   min-height: 22px;
 }
+.pulso-base-row-status {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 999px;
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 10.5px;
+  font-weight: 820;
+  line-height: 1;
+}
+.pulso-base-row-status svg {
+  flex: 0 0 auto;
+}
 .pulso-base-row-meta {
   display: flex;
   align-items: center;
-  gap: 10px 14px;
+  gap: 7px 11px;
   flex-wrap: wrap;
   color: var(--pulso-text-soft);
   font-size: 11px;
@@ -12794,15 +12827,20 @@ h1.pulso-page-title {
 .pulso-base-row-actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex: 0 0 auto;
 }
 .pulso-base-row-button {
   min-height: 28px;
-  padding: 6px 9px;
+  padding: 6px 8px;
   border: 1px solid var(--pulso-border);
   background: #fff;
   color: var(--pulso-text-soft);
+}
+.pulso-base-row .pulso-base-row-button.is-primary {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
 }
 .pulso-base-row-button.is-active {
   border-color: var(--carga-accent-border, var(--pulso-primary-border));
@@ -12810,6 +12848,18 @@ h1.pulso-page-title {
   color: var(--carga-accent, var(--pulso-primary));
 }
 @media (hover: hover) and (pointer: fine) {
+  .pulso-base-row:hover {
+    border-color: color-mix(in srgb, var(--pulso-success-border) 68%, var(--pulso-border));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.86),
+      0 8px 18px rgba(15, 23, 42, 0.045);
+  }
+  .pulso-base-row .pulso-base-row-button.is-primary:not(:disabled):hover {
+    border-color: var(--pulso-success-fg);
+    background: var(--pulso-success-fg);
+    color: #fff;
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--pulso-success-fg) 16%, transparent);
+  }
   .pulso-base-row-button:not(.is-primary):not(.is-danger):not(:disabled):hover {
     border-color: var(--carga-accent-border, var(--pulso-primary-border));
     color: var(--carga-accent, var(--pulso-primary));
