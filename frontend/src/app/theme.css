@@ -7646,6 +7646,95 @@ h1.pulso-page-title {
   justify-content: space-between;
   gap: 12px;
 }
+.pulso-carga-suitebar {
+  --carga-suite-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  --carga-suite-soft: var(--module-accent-soft, var(--pulso-module-processing-soft, var(--pulso-primary-soft)));
+  --carga-suite-border: var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(270px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--carga-suite-border) 62%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 253, 252, 0.78)),
+    color-mix(in srgb, var(--pulso-surface) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 10px 26px rgba(15, 23, 42, 0.055);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+}
+.pulso-carga-suitebar-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.pulso-carga-suitebar-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--carga-suite-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--carga-suite-soft) 74%, #fff);
+  color: var(--carga-suite-accent);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--carga-suite-accent) 10%, transparent);
+}
+.pulso-carga-suitebar-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.pulso-carga-suitebar-kicker {
+  color: var(--carga-suite-accent);
+  font-size: 9.5px;
+  font-weight: 830;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.pulso-carga-suitebar-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 780;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-carga-suitebar-copy p {
+  min-width: 0;
+  max-width: 76ch;
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-carga-suitebar-meter,
+.pulso-carga-suitebar-controls {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pulso-carga-suitebar-meter {
+  justify-content: center;
+}
+.pulso-carga-suitebar-controls {
+  justify-content: flex-end;
+}
 .pulso-carga-source-switch {
   display: inline-flex;
   align-items: center;
@@ -7684,10 +7773,26 @@ h1.pulso-page-title {
 }
 .pulso-carga-source-switch button.is-active {
   background: #fff;
-  color: var(--pulso-primary);
+  color: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.08),
-    inset 0 0 0 1px var(--pulso-primary-border);
+    inset 0 0 0 1px var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
+}
+@media (max-width: 1180px) {
+  .pulso-carga-suitebar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .pulso-carga-suitebar-meter,
+  .pulso-carga-suitebar-controls {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 760px) {
+  .pulso-carga-suitebar-copy strong,
+  .pulso-carga-suitebar-copy p {
+    white-space: normal;
+  }
 }
 .pulso-carga-inspection {
   display: grid;
@@ -13966,12 +14071,17 @@ h1.pulso-page-title {
 }
 
 .pulso-platform-import {
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
+  --platform-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  --platform-soft: var(--module-accent-soft, var(--pulso-module-processing-soft, var(--pulso-primary-soft)));
+  --platform-border: var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
+  border: 1px solid color-mix(in srgb, var(--platform-border) 54%, var(--pulso-border));
+  border-radius: 12px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 250, 0.92)),
     var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 26px rgba(15, 23, 42, 0.05);
   padding: 14px;
   display: grid;
   gap: 12px;
@@ -14085,14 +14195,20 @@ h1.pulso-page-title {
 }
 .pulso-platform-topbar {
   justify-content: space-between;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--platform-border) 42%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 249, 0.7)),
+    color-mix(in srgb, var(--platform-soft) 42%, #fff);
 }
 .pulso-platform-provider-tabs {
   display: inline-flex;
   gap: 3px;
   padding: 3px;
-  border: 1px solid var(--pulso-border);
+  border: 1px solid color-mix(in srgb, var(--platform-border) 52%, var(--pulso-border));
   border-radius: 8px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.76);
 }
 .pulso-platform-provider-tabs button {
   border: 0;
@@ -14112,8 +14228,11 @@ h1.pulso-page-title {
   transform: scale(0.97);
 }
 .pulso-platform-provider-tabs button.is-active {
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
+  background: #fff;
+  color: var(--platform-accent);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    inset 0 0 0 1px var(--platform-border);
 }
 .pulso-platform-status {
   display: inline-flex;
@@ -14143,7 +14262,14 @@ h1.pulso-page-title {
   background: var(--pulso-success-fg);
 }
 .pulso-platform-controls {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(260px, 1fr) auto 34px;
+  align-items: end;
+  flex-wrap: nowrap;
+  padding: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff);
 }
 .pulso-platform-field {
   display: grid;
@@ -14190,8 +14316,8 @@ h1.pulso-page-title {
 .pulso-platform-field select:focus,
 .pulso-platform-search input:focus {
   outline: none;
-  border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 3px var(--pulso-primary-soft);
+  border-color: var(--platform-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-soft) 74%, transparent);
 }
 .pulso-platform-load,
 .pulso-platform-refresh,
@@ -14214,7 +14340,7 @@ h1.pulso-page-title {
 .pulso-platform-load,
 .pulso-platform-refresh {
   background: #fff;
-  color: var(--pulso-primary);
+  color: var(--platform-accent);
   border: 1px solid var(--pulso-border);
 }
 .pulso-platform-refresh {
@@ -14223,8 +14349,8 @@ h1.pulso-page-title {
 }
 .pulso-platform-load:hover:not(:disabled),
 .pulso-platform-refresh:hover:not(:disabled) {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-primary-soft);
+  border-color: var(--platform-border);
+  background: var(--platform-soft);
 }
 .pulso-platform-load:active:not(:disabled),
 .pulso-platform-refresh:active:not(:disabled),
@@ -14268,9 +14394,14 @@ h1.pulso-page-title {
 .pulso-platform-list {
   display: grid;
   gap: 7px;
-  max-height: 290px;
+  max-height: min(360px, 42vh);
   overflow: auto;
-  padding: 2px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--platform-border));
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(248, 250, 253, 0.72)),
+    var(--pulso-surface-2);
 }
 .pulso-platform-empty {
   min-height: 96px;
@@ -14286,9 +14417,9 @@ h1.pulso-page-title {
 .pulso-platform-row {
   width: 100%;
   min-height: 58px;
-  padding: 9px 10px;
+  padding: 10px 11px;
   border: 1px solid var(--pulso-border);
-  border-radius: 8px;
+  border-radius: 9px;
   background: #fff;
   color: var(--pulso-text);
   display: grid;
@@ -14303,16 +14434,18 @@ h1.pulso-page-title {
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-platform-row:hover {
-  border-color: var(--pulso-primary-border);
-  background: color-mix(in srgb, var(--pulso-primary-soft) 58%, #fff);
+  border-color: var(--platform-border);
+  background: color-mix(in srgb, var(--platform-soft) 48%, #fff);
 }
 .pulso-platform-row:active {
   transform: scale(0.995);
 }
 .pulso-platform-row.is-selected {
-  border-color: var(--pulso-primary);
+  border-color: var(--platform-accent);
+  background:
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--platform-soft) 28%, #fff));
   box-shadow:
-    inset 0 0 0 1px var(--pulso-primary),
+    inset 3px 0 0 var(--platform-accent),
     0 1px 2px rgba(15, 23, 42, 0.07);
 }
 .pulso-platform-row-main {
@@ -14356,7 +14489,12 @@ h1.pulso-page-title {
 }
 .pulso-platform-footer {
   justify-content: space-between;
-  padding-top: 2px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--platform-border) 44%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 252, 251, 0.78)),
+    color-mix(in srgb, var(--platform-soft) 34%, #fff);
 }
 .pulso-platform-footer > span {
   min-width: 0;
@@ -14369,14 +14507,14 @@ h1.pulso-page-title {
 }
 .pulso-platform-import-button {
   padding: 7px 13px;
-  border: 1px solid var(--pulso-primary);
-  background: var(--pulso-primary);
+  border: 1px solid var(--platform-accent);
+  background: var(--platform-accent);
   color: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--platform-accent) 16%, transparent);
 }
 .pulso-platform-import-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--pulso-primary) 88%, #111827);
-  border-color: color-mix(in srgb, var(--pulso-primary) 88%, #111827);
+  background: color-mix(in srgb, var(--platform-accent) 88%, #111827);
+  border-color: color-mix(in srgb, var(--platform-accent) 88%, #111827);
 }
 
 .pulso-data-review-card {
@@ -15445,6 +15583,9 @@ h1.pulso-page-title {
     width: 100%;
     flex-basis: 100%;
   }
+  .pulso-platform-controls {
+    grid-template-columns: 1fr;
+  }
   .pulso-platform-refresh {
     width: 100%;
   }
@@ -15493,6 +15634,118 @@ h1.pulso-page-title {
 .pulso-analitica-toolbar-stack {
   display: grid;
   gap: 8px;
+}
+.pulso-analitica-product-rail {
+  --analitica-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  --analitica-soft: var(--module-accent-soft, var(--pulso-module-processing-soft, var(--pulso-primary-soft)));
+  --analitica-border: var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 1px 0 3px;
+  scrollbar-width: none;
+}
+.pulso-analitica-product-rail::-webkit-scrollbar {
+  display: none;
+}
+.pulso-analitica-product-track {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--analitica-border) 62%, var(--pulso-border));
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 251, 250, 0.76)),
+    color-mix(in srgb, var(--pulso-surface) 80%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 8px 22px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+}
+.pulso-analitica-product {
+  position: relative;
+  min-width: 118px;
+  max-width: 172px;
+  min-height: 40px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-analitica-product:hover:not(:disabled):not(.is-active) {
+  border-color: color-mix(in srgb, var(--analitica-border) 54%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--pulso-text);
+}
+.pulso-analitica-product:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.pulso-analitica-product:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+.pulso-analitica-product.is-active {
+  border-color: color-mix(in srgb, var(--analitica-accent) 34%, var(--pulso-border));
+  background: #fff;
+  color: var(--analitica-accent);
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--analitica-accent) 12%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--analitica-border) 72%, transparent);
+}
+.pulso-analitica-product-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: currentColor;
+}
+.pulso-analitica-product.is-active .pulso-analitica-product-icon {
+  border-color: var(--analitica-border);
+  background: var(--analitica-soft);
+}
+.pulso-analitica-product-copy {
+  min-width: 0;
+  display: grid;
+}
+.pulso-analitica-product-copy strong,
+.pulso-analitica-product-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-analitica-product-copy strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 780;
+  line-height: 1.15;
+}
+.pulso-analitica-product-copy span {
+  display: none;
+}
+.pulso-analitica-product-done {
+  display: inline-flex;
+  color: var(--pulso-success-fg);
 }
 .pulso-analitica-sourcebar {
   width: 100%;
@@ -16098,6 +16351,8 @@ h1.pulso-page-title {
   min-height: 0;
 }
 .pulso-data-review-panel {
+  min-height: 0;
+  overflow: auto;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 253, 255, 0.94)),
     var(--pulso-surface);
