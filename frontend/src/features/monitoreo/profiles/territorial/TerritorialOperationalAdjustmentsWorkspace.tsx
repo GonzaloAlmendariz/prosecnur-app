@@ -6,6 +6,7 @@ import {
   Loader2,
   MapPin,
   RefreshCw,
+  Search,
   Target,
   XCircle,
 } from "lucide-react";
@@ -41,21 +42,33 @@ export function TerritorialOperationalAdjustmentsWorkspace({
   const appliedRows = useMemo(() => [...applied].sort(territorialOperationalAppliedCompare), [applied]);
   const summary = model?.summary ?? {};
   const [selectedId, setSelectedId] = useState("");
+  const [suggestionSearch, setSuggestionSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [note, setNote] = useState("");
   const [busyId, setBusyId] = useState("");
   const [message, setMessage] = useState("");
   const [localError, setLocalError] = useState("");
-  const selected = suggestions.find((item) => item.id === selectedId) ?? suggestions[0] ?? null;
+  const suggestionSearchNeedle = normalizeOperationalSearch(suggestionSearch);
+  const appliedSearchNeedle = normalizeOperationalSearch(appliedSearch);
+  const visibleSuggestions = useMemo(() => {
+    if (!suggestionSearchNeedle) return suggestions;
+    return suggestions.filter((item) => territorialOperationalAdjustmentSearchText(item).includes(suggestionSearchNeedle));
+  }, [suggestionSearchNeedle, suggestions]);
+  const visibleAppliedRows = useMemo(() => {
+    if (!appliedSearchNeedle) return appliedRows;
+    return appliedRows.filter((item) => territorialOperationalAdjustmentSearchText(item).includes(appliedSearchNeedle));
+  }, [appliedRows, appliedSearchNeedle]);
+  const selected = visibleSuggestions.find((item) => item.id === selectedId) ?? visibleSuggestions[0] ?? null;
 
   useEffect(() => {
-    if (!suggestions.length) {
+    if (!visibleSuggestions.length) {
       if (selectedId) setSelectedId("");
       return;
     }
-    if (!selected || !suggestions.some((item) => item.id === selectedId)) {
-      setSelectedId(suggestions[0].id);
+    if (!selected || !visibleSuggestions.some((item) => item.id === selectedId)) {
+      setSelectedId(visibleSuggestions[0].id);
     }
-  }, [selected, selectedId, suggestions]);
+  }, [selected, selectedId, visibleSuggestions]);
 
   useEffect(() => {
     if (!selected) {
@@ -179,12 +192,25 @@ export function TerritorialOperationalAdjustmentsWorkspace({
             <header>
               <div>
                 <span>Sugerencias</span>
-                <strong>{formatMetric(suggestions.length)} paquete(s) para cerrar UMP</strong>
+                <strong>{formatMetric(visibleSuggestions.length)} de {formatMetric(suggestions.length)} paquete(s)</strong>
               </div>
+              <label className="mon-operational-adjustments__search">
+                <Search size={13} />
+                <input
+                  value={suggestionSearch}
+                  onChange={(event) => setSuggestionSearch(event.currentTarget.value)}
+                  placeholder="Filtrar UMP, responsable, celda o ID..."
+                />
+                {suggestionSearch ? (
+                  <button type="button" onClick={() => setSuggestionSearch("")} aria-label="Limpiar filtro de sugerencias">
+                    <XCircle size={12} />
+                  </button>
+                ) : null}
+              </label>
             </header>
-            {suggestions.length ? (
+            {visibleSuggestions.length ? (
               <div className="mon-operational-adjustments__list">
-                {suggestions.map((item) => {
+                {visibleSuggestions.map((item) => {
                   const isSelected = selected?.id === item.id;
                   const distanceLabel = territorialOperationalAdjustmentDistanceLabel(item);
                   return (
@@ -228,8 +254,11 @@ export function TerritorialOperationalAdjustmentsWorkspace({
             ) : (
               <div className="mon-operational-adjustments__empty is-compact">
                 <CheckCircle2 size={16} />
-                <strong>Sin sugerencias pendientes</strong>
-                <span>No hay excedentes compatibles para las brechas abiertas.</span>
+                <strong>{suggestionSearch ? "Sin paquetes con ese filtro" : "Sin sugerencias pendientes"}</strong>
+                <span>{suggestionSearch ? "Prueba con UMP, distrito, responsable, sexo, edad o ID fuente." : "No hay excedentes compatibles para las brechas abiertas."}</span>
+                {suggestionSearch ? (
+                  <button type="button" onClick={() => setSuggestionSearch("")}>Limpiar filtro</button>
+                ) : null}
               </div>
             )}
           </section>
@@ -335,16 +364,31 @@ export function TerritorialOperationalAdjustmentsWorkspace({
               <header>
                 <div>
                   <span>Historial operativo</span>
-                  <strong>{formatMetric(applied.length)} movimientos auditados</strong>
+                  <strong>{formatMetric(visibleAppliedRows.length)} de {formatMetric(applied.length)} movimientos auditados</strong>
                 </div>
-                <div className="mon-operational-applied-audit" aria-label="Resumen de auditoría de subsanaciones">
-                  <span className="is-active"><strong>{formatMetric(active.length)}</strong><em>activas</em></span>
-                  <span className="is-reverted"><strong>{formatMetric(reverted.length)}</strong><em>revertidas</em></span>
-                  <span className="is-gain"><strong>{formatMetric(summary.operational_gain ?? active.reduce((total, item) => total + (numberOrNull(item.count) ?? 0), 0))}</strong><em>ganancia</em></span>
+                <div className="mon-operational-adjustments__panel-tools">
+                  <label className="mon-operational-adjustments__search">
+                    <Search size={13} />
+                    <input
+                      value={appliedSearch}
+                      onChange={(event) => setAppliedSearch(event.currentTarget.value)}
+                      placeholder="Filtrar historial..."
+                    />
+                    {appliedSearch ? (
+                      <button type="button" onClick={() => setAppliedSearch("")} aria-label="Limpiar filtro de historial">
+                        <XCircle size={12} />
+                      </button>
+                    ) : null}
+                  </label>
+                  <div className="mon-operational-applied-audit" aria-label="Resumen de auditoría de subsanaciones">
+                    <span className="is-active"><strong>{formatMetric(active.length)}</strong><em>activas</em></span>
+                    <span className="is-reverted"><strong>{formatMetric(reverted.length)}</strong><em>revertidas</em></span>
+                    <span className="is-gain"><strong>{formatMetric(summary.operational_gain ?? active.reduce((total, item) => total + (numberOrNull(item.count) ?? 0), 0))}</strong><em>ganancia</em></span>
+                  </div>
                 </div>
               </header>
               <div className="mon-operational-adjustments__applied-list">
-                {appliedRows.map((item) => {
+                {visibleAppliedRows.length ? visibleAppliedRows.map((item) => {
                   const id = stringOrEmpty(item.id).trim();
                   const isActive = stringOrEmpty(item.status || "active") === "active";
                   const movementCount = numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1;
@@ -367,7 +411,14 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                       )}
                     </article>
                   );
-                })}
+                }) : (
+                  <div className="mon-operational-adjustments__empty is-compact">
+                    <Search size={16} />
+                    <strong>Sin historial visible</strong>
+                    <span>No hay subsanaciones auditadas que coincidan con el filtro.</span>
+                    <button type="button" onClick={() => setAppliedSearch("")}>Limpiar filtro</button>
+                  </div>
+                )}
               </div>
             </section>
           ) : null}
@@ -494,6 +545,64 @@ function territorialOperationalAdjustmentDateLabel(value: unknown, emptyLabel = 
 
 function territorialOperationalAdjustmentDefaultNote(item: MonitoreoTerritorialOperationalAdjustment) {
   return `Sobrante de ${territorialOperationalAdjustmentBlockLabel(item, "source")} pasa a cubrir el faltante de ${territorialOperationalAdjustmentBlockLabel(item, "target")} en ${territorialOperationalAdjustmentCellLabel(item)}.`;
+}
+
+function territorialOperationalAdjustmentSearchText(item: MonitoreoTerritorialOperationalAdjustment) {
+  const movements = territorialOperationalAdjustmentMovements(item);
+  return normalizeOperationalSearch([
+    item.id,
+    item.package_id,
+    item.status,
+    item.reason,
+    item.note,
+    item.district,
+    item.ubigeo,
+    item.source_ump,
+    item.source_manzana,
+    item.source_block_id,
+    item.source_responsible,
+    item.target_ump,
+    item.target_manzana,
+    item.target_block_id,
+    item.target_responsible,
+    item.sex,
+    item.age_group,
+    item.created_at,
+    item.reverted_at,
+    territorialOperationalAdjustmentBlockLabel(item, "source"),
+    territorialOperationalAdjustmentBlockLabel(item, "target"),
+    territorialOperationalAdjustmentCellLabel(item),
+    territorialOperationalAdjustmentDistanceLabel(item),
+    ...movements.flatMap((movement) => [
+      movement.id,
+      movement.package_id,
+      movement.district,
+      movement.ubigeo,
+      movement.source_ump,
+      movement.source_manzana,
+      movement.source_block_id,
+      movement.source_responsible,
+      movement.target_ump,
+      movement.target_manzana,
+      movement.target_block_id,
+      movement.target_responsible,
+      movement.sex,
+      movement.age_group,
+      territorialOperationalAdjustmentBlockLabel(movement, "source"),
+      territorialOperationalAdjustmentBlockLabel(movement, "target"),
+      territorialOperationalAdjustmentCellLabel(movement),
+      ...(movement.source_response_ids ?? []),
+    ]),
+    ...(item.source_response_ids ?? []),
+  ].join(" "));
+}
+
+function normalizeOperationalSearch(value: unknown) {
+  return stringOrEmpty(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function formatMetric(value: unknown, fallback = "0") {
