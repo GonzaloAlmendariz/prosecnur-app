@@ -22242,7 +22242,7 @@
   --op-complete-soft: color-mix(in srgb, var(--pulso-success-bg) 76%, #fff);
   --op-complete-border: color-mix(in srgb, var(--pulso-success-border) 78%, var(--pulso-border));
   min-height: 0;
-  height: clamp(540px, calc(100vh - 365px), 700px);
+  height: clamp(620px, calc(100vh - 270px), 1040px);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
@@ -22463,7 +22463,7 @@
   height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  grid-template-rows: minmax(320px, 1.15fr) minmax(148px, 0.85fr);
+  grid-template-rows: minmax(340px, 0.82fr) minmax(260px, 1.18fr);
   align-items: stretch;
   gap: 12px;
   max-height: none;
@@ -22483,7 +22483,7 @@
 
 .mon-operational-adjustments__suggestions {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   max-height: 100%;
 }
 
@@ -22575,6 +22575,87 @@
   border-color: color-mix(in srgb, var(--pulso-accent) 32%, var(--pulso-border));
   color: var(--pulso-accent);
   outline: none;
+}
+
+.mon-operational-adjustments__selectionbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--op-complete-soft) 64%, #fff), rgba(255, 255, 255, 0.94)),
+    #fff;
+}
+
+.mon-operational-selection-count {
+  min-width: 148px;
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--op-complete-border) 70%, var(--pulso-border));
+  border-radius: 999px;
+  background: #fff;
+  color: var(--op-complete);
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.mon-operational-selection-count strong {
+  color: currentColor;
+  font-size: 0.88rem;
+  font-weight: 940;
+  line-height: 1;
+}
+
+.mon-operational-selection-count em,
+.mon-operational-selection-count b {
+  min-width: 0;
+  overflow: hidden;
+  color: color-mix(in srgb, currentColor 72%, var(--pulso-text-muted));
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 860;
+  line-height: 1;
+  text-overflow: ellipsis;
+}
+
+.mon-operational-selection-count em {
+  text-transform: uppercase;
+}
+
+.mon-page .pulso-panel .mon-operational-adjustments .mon-operational-adjustments__selectionbar button {
+  min-height: 31px;
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--pulso-border-strong) 46%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--pulso-text-muted);
+  font-size: 0.72rem;
+  font-weight: 880;
+  padding: 5px 11px;
+}
+
+.mon-page .pulso-panel .mon-operational-adjustments .mon-operational-adjustments__selectionbar button:hover,
+.mon-page .pulso-panel .mon-operational-adjustments .mon-operational-adjustments__selectionbar button:focus-visible {
+  border-color: color-mix(in srgb, var(--op-complete) 34%, var(--pulso-border));
+  color: var(--op-complete);
+  outline: none;
+}
+
+.mon-page .pulso-panel .mon-operational-adjustments .mon-operational-adjustments__selectionbar button.is-primary {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--op-complete) 44%, var(--op-complete-border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--op-complete) 86%, #fff 14%), var(--op-complete));
+  color: #fff;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--op-complete) 15%, transparent);
+}
+
+.mon-page .pulso-panel .mon-operational-adjustments .mon-operational-adjustments__selectionbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .mon-operational-adjustments__panel-tools {
@@ -22735,6 +22816,7 @@
 .mon-operational-adjustments__applied-list {
   min-height: 0;
   display: grid;
+  align-content: start;
   gap: 8px;
   overflow: auto;
   overscroll-behavior: contain;
@@ -22775,6 +22857,22 @@
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--op-surplus) 5%, #fff), color-mix(in srgb, var(--pulso-warn-bg) 34%, #fff));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--op-surplus) 9%, transparent), 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.mon-operational-suggestion.is-batch-selected {
+  border-color: color-mix(in srgb, var(--op-complete) 46%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--op-complete) 10%, transparent), 0 12px 24px rgba(15, 23, 42, 0.075);
+}
+
+.mon-operational-suggestion.is-selected.is-batch-selected {
+  border-color: color-mix(in srgb, var(--op-complete) 44%, var(--op-pending-border));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--op-complete) 8%, #fff), color-mix(in srgb, var(--pulso-warn-bg) 32%, #fff));
+}
+
+.mon-operational-suggestion:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .mon-operational-suggestion span {
@@ -22977,16 +23075,29 @@
 }
 
 .mon-operational-suggestion__chips i.is-cell {
-  flex: 1 1 178px;
+  flex: 1 1 146px;
 }
 
 .mon-operational-suggestion__chips i.is-movement,
 .mon-operational-suggestion__chips i.is-source {
-  flex: 0 0 auto;
+  flex: 0 1 82px;
+}
+
+.mon-operational-suggestion__chips i.is-choice {
+  flex: 0 1 112px;
+  border-color: color-mix(in srgb, var(--op-complete) 18%, var(--pulso-border));
+  background: color-mix(in srgb, var(--op-complete-soft) 56%, #fff);
+  color: color-mix(in srgb, var(--op-complete) 74%, var(--pulso-text-muted));
+}
+
+.mon-operational-suggestion__chips i.is-choice.is-on {
+  border-color: color-mix(in srgb, var(--op-complete) 44%, var(--pulso-border));
+  background: color-mix(in srgb, var(--op-complete-soft) 86%, #fff);
+  color: var(--op-complete);
 }
 
 .mon-operational-suggestion__chips i.is-safe {
-  flex: 0 1 132px;
+  flex: 0 1 116px;
   border-color: color-mix(in srgb, var(--pulso-success-border) 70%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-success-bg) 56%, #fff);
   color: var(--pulso-success-fg);
@@ -23024,7 +23135,12 @@
 }
 
 .mon-operational-suggestion__chips i.is-safe strong,
+.mon-operational-suggestion__chips i.is-choice strong,
 .mon-operational-suggestion__chips i.is-safe em {
+  grid-column: 2;
+}
+
+.mon-operational-suggestion__chips i.is-choice em {
   grid-column: 2;
 }
 
@@ -23701,7 +23817,7 @@
 @media (max-width: 1500px) {
   .mon-operational-adjustments {
     gap: 9px;
-    height: clamp(560px, calc(100vh - 328px), 720px);
+    height: clamp(610px, calc(100vh - 244px), 780px);
   }
 
   .mon-operational-adjustments__header {
@@ -23762,7 +23878,7 @@
   }
 
   .mon-operational-adjustments__grid {
-    grid-template-rows: minmax(332px, 1.26fr) minmax(136px, 0.74fr);
+    grid-template-rows: minmax(292px, 1.1fr) minmax(162px, 0.9fr);
     gap: 9px;
   }
 
@@ -23776,6 +23892,32 @@
   .mon-operational-adjustments__applied header,
   .mon-operational-adjustments__detail header {
     padding: 9px 12px;
+  }
+
+  .mon-operational-adjustments__selectionbar {
+    gap: 5px;
+    padding: 6px 9px;
+  }
+
+  .mon-operational-selection-count {
+    min-width: 132px;
+    min-height: 28px;
+    padding: 3px 9px;
+  }
+
+  .mon-operational-selection-count strong {
+    font-size: 0.8rem;
+  }
+
+  .mon-operational-selection-count em,
+  .mon-operational-selection-count b {
+    font-size: 0.6rem;
+  }
+
+  .mon-page .pulso-panel .mon-operational-adjustments .mon-operational-adjustments__selectionbar button {
+    min-height: 28px;
+    font-size: 0.66rem;
+    padding: 4px 9px;
   }
 
   .mon-operational-adjustments__suggestions header strong,
@@ -23935,7 +24077,24 @@
   .mon-operational-suggestion__chips i {
     min-height: 22px;
     border-radius: 8px;
-    padding: 3px 7px;
+    padding: 3px 6px;
+  }
+
+  .mon-operational-suggestion__chips i.is-cell {
+    flex-basis: 130px;
+  }
+
+  .mon-operational-suggestion__chips i.is-movement,
+  .mon-operational-suggestion__chips i.is-source {
+    flex-basis: 72px;
+  }
+
+  .mon-operational-suggestion__chips i.is-choice {
+    flex-basis: 98px;
+  }
+
+  .mon-operational-suggestion__chips i.is-safe {
+    flex-basis: 102px;
   }
 
   .mon-operational-adjustments__applied .mon-operational-adjustments__panel-tools {
@@ -29242,6 +29401,17 @@ button.mon-territorial-ump-audit-scrim {
   border-color: color-mix(in srgb, var(--op-surplus) 38%, var(--op-pending-border));
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--op-surplus) 5%, #fff), color-mix(in srgb, var(--pulso-warn-bg) 34%, #fff));
+}
+
+.mon-page .pulso-panel .mon-operational-adjustments button.mon-operational-suggestion.is-batch-selected {
+  border-color: color-mix(in srgb, var(--op-complete) 46%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--op-complete) 10%, transparent), 0 12px 24px rgba(15, 23, 42, 0.075);
+}
+
+.mon-page .pulso-panel .mon-operational-adjustments button.mon-operational-suggestion.is-selected.is-batch-selected {
+  border-color: color-mix(in srgb, var(--op-complete) 44%, var(--op-pending-border));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--op-complete) 8%, #fff), color-mix(in srgb, var(--pulso-warn-bg) 32%, #fff));
 }
 
 .mon-page .pulso-panel .mon-operational-adjustments button.mon-operational-apply-button {
