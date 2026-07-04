@@ -24,7 +24,7 @@ type Props = {
 };
 
 function hashSlide(slide: Slide, visualConfigHash: string): string {
-  return JSON.stringify({ tipo: slide.tipo, payload: slide.payload, visualConfigHash });
+  return JSON.stringify({ id: slide.id, tipo: slide.tipo, payload: slide.payload, visualConfigHash });
 }
 
 let rendererStatusRequest: Promise<GraficosPreviewRendererStatus> | null = null;
@@ -53,6 +53,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const closeTimerRef = useRef<number | null>(null);
   const previewRootRef = useRef<HTMLDivElement>(null);
   const previewBubbleRef = useRef<HTMLDivElement>(null);
+  const latestHashRef = useRef<string | null>(null);
+  const requestSeqRef = useRef(0);
   const visualConfigHash = usePlanStore((s) => JSON.stringify({
     presets: s.presets,
     debugPh: s.debugPh,
@@ -73,6 +75,18 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const renderFailed = hasResult && !hasPreview && rendererAvailable;
   const hasUsableResult = hasResult && (hasPreview || hasEmbeddedImages || rendererUnavailable || renderFailed);
   const hasLocalFallback = !!error || rendererUnavailable || renderFailed || hasUsableResult;
+
+  useEffect(() => {
+    if (latestHashRef.current === currentHash) return;
+    latestHashRef.current = currentHash;
+    requestSeqRef.current += 1;
+    setBusy(false);
+    setFileId(null);
+    setSlidePreview(null);
+    setPreviewImages([]);
+    setError("");
+    setLastHash(null);
+  }, [currentHash]);
 
   useEffect(() => {
     let alive = true;
@@ -157,9 +171,15 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
   async function onGenerate() {
     if (blocked || busy || !prepOk) return;
+    const requestId = requestSeqRef.current + 1;
+    const requestHash = currentHash;
+    requestSeqRef.current = requestId;
     setBusy(true);
     setError("");
+    setFileId(null);
+    setSlidePreview(null);
     setPreviewImages([]);
+    setLastHash(null);
     if (!isBubbleRendered) {
       openBubble();
     }
@@ -172,15 +192,19 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
           include_images: true,
         },
       );
+      if (requestSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
       setFileId(r.file_id);
       setSlidePreview(r.slide_preview ?? null);
       setPreviewImages(Array.isArray(r.images) ? r.images : []);
       setLastHash(currentHash);
       openBubble();
     } catch (e) {
+      if (requestSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      if (requestSeqRef.current === requestId) {
+        setBusy(false);
+      }
     }
   }
 
