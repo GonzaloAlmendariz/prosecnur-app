@@ -22242,7 +22242,7 @@
   --op-complete-soft: color-mix(in srgb, var(--pulso-success-bg) 76%, #fff);
   --op-complete-border: color-mix(in srgb, var(--pulso-success-border) 78%, var(--pulso-border));
   min-height: 0;
-  height: clamp(620px, calc(100vh - 270px), 1040px);
+  height: clamp(620px, calc(100dvh - 238px), 1180px);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
@@ -23837,7 +23837,7 @@
 @media (max-width: 1500px) {
   .mon-operational-adjustments {
     gap: 9px;
-    height: clamp(610px, calc(100vh - 244px), 780px);
+    height: clamp(610px, calc(100dvh - 208px), 960px);
   }
 
   .mon-operational-adjustments__header {
