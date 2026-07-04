@@ -29870,6 +29870,62 @@
   stroke-width: 2.15;
 }
 
+/* Suite polish pass 76: model picker scales with large desktops and gives previews stable room. */
+@media (min-width: 1880px) {
+  .pulso-gv2-picker-stage {
+    grid-template-columns:
+      clamp(154px, 7.5vw, 176px)
+      minmax(0, 1fr)
+      clamp(320px, 16vw, 384px);
+  }
+
+  .pulso-gv2-picker-library .pulso-gv2-picker-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .pulso-gv2-picker-tile {
+    min-height: 224px;
+    height: clamp(224px, 18dvh, 258px);
+    grid-template-rows: auto minmax(132px, 1fr);
+  }
+
+  .pulso-gv2-picker-tile:not([data-cat="estructural"]) .pulso-gv2-picker-slide-preview.is-card {
+    min-height: 132px;
+  }
+
+  .pulso-gv2-picker-tile[data-cat="estructural"] {
+    min-height: 88px;
+    height: clamp(88px, 7dvh, 96px);
+  }
+
+  .pulso-gv2-picker-inspector .pulso-gv2-picker-slide-preview.is-hero {
+    min-height: 300px;
+    height: clamp(300px, 31dvh, 400px);
+  }
+}
+
+@media (min-width: 1321px) and (max-width: 1500px) {
+  .pulso-gv2-picker-stage {
+    grid-template-columns: 136px minmax(0, 1fr) 244px;
+  }
+
+  .pulso-gv2-picker-tile {
+    min-height: 218px;
+    height: 218px;
+    grid-template-rows: auto minmax(130px, 1fr);
+  }
+
+  .pulso-gv2-picker-tile:not([data-cat="estructural"]) .pulso-gv2-picker-slide-preview.is-card {
+    min-height: 130px;
+  }
+
+  .pulso-gv2-picker-inspector .pulso-gv2-picker-slide-preview.is-hero {
+    min-height: 202px;
+    height: 202px;
+  }
+}
+
 .pulso-gv2-slide-card-models {
   max-height: none;
   min-height: 22px;
