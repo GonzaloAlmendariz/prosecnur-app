@@ -151,8 +151,8 @@ export function BasesPanel({
     .join("|");
   const maxReached = estudio.n_bases >= estudio.max_bases;
   const canonicalOptionsRaw = [
-    ...(hasSessionXlsform ? [{ fileId: "", label: "XLSForm cargado en Carga/Editor" }] : []),
-    ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · XLSForm` })),
+    ...(hasSessionXlsform ? [{ fileId: "", label: "Formulario cargado en Carga/Editor" }] : []),
+    ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · formulario` })),
   ];
   const canonicalOptionKeys = new Set<string>();
   const canonicalOptions = canonicalOptionsRaw.filter((option) => {
@@ -221,7 +221,7 @@ export function BasesPanel({
     // Con 0 bases no hay nada que confirmar — solo apaga el modo.
     if (bases.length === 1 && !window.confirm(
       `¿Volver al modo de carga simple?\n\nEl estudio con varias bases se cierra. ` +
-      `Los archivos (XLSForm + data) quedan como carga simple y puedes ` +
+      `Los archivos (formulario + respuestas) quedan como carga simple y puedes ` +
       `seguir trabajando normalmente.`
     )) return;
     setError(""); setBusy("Volviendo a carga simple…");
@@ -296,7 +296,7 @@ export function BasesPanel({
           <Layers size={18} />
         </span>
         <div className="pulso-multibase-study-copy">
-          <div className="pulso-multibase-study-kicker">Carga multibase</div>
+          <div className="pulso-multibase-study-kicker">Varias bases</div>
           {editingEstudioNombre ? (
             <div className="pulso-multibase-study-edit">
               <input
@@ -327,7 +327,7 @@ export function BasesPanel({
             </button>
           )}
           <div className="pulso-multibase-study-note">
-            Selecciona la estrategia de carga.
+            Elige cómo se organiza este estudio.
           </div>
         </div>
         <span className="pulso-multibase-study-count">
@@ -342,10 +342,10 @@ export function BasesPanel({
             type="button"
             onClick={handleDowngrade}
             disabled={!!busy}
-            title="Cerrar el modo multi-base — los archivos de esta base quedan en carga simple"
+            title="Volver a una sola base conservando los archivos cargados"
             className="pulso-multibase-study-action is-primary"
           >
-            <ArrowLeft size={11} /> Volver a carga simple
+            <ArrowLeft size={11} /> Volver a una base
           </button>
         ) : (
           <button
@@ -360,7 +360,7 @@ export function BasesPanel({
         )}
       </header>
 
-      <div className="pulso-multi-strategy" role="tablist" aria-label="Estrategia del flujo multi">
+      <div className="pulso-multi-strategy" role="tablist" aria-label="Forma de trabajar varias bases">
         <button
           type="button"
           className={strategy === "separate" ? "is-active" : ""}
@@ -371,7 +371,7 @@ export function BasesPanel({
           <Layers size={15} />
           <span>
             <strong>Mantener bases separadas</strong>
-            <small>XLSForm y data por base.</small>
+            <small>Formulario y respuestas por base.</small>
           </span>
         </button>
         <button
@@ -383,8 +383,8 @@ export function BasesPanel({
         >
           <GitMerge size={15} />
           <span>
-            <strong>Integrar hermanas</strong>
-            <small>XLSForm común y data final.</small>
+            <strong>Unificar bases compatibles</strong>
+            <small>Formulario común y base final.</small>
           </span>
         </button>
         <button
@@ -396,7 +396,7 @@ export function BasesPanel({
         >
           <Cloud size={15} />
           <span>
-            <strong>Hermanas independientes</strong>
+            <strong>Fuentes independientes</strong>
             <small>Entregables por encuesta.</small>
           </span>
         </button>
@@ -820,7 +820,7 @@ export function smSavBundleIssueGroups(file: SurveyMonkeySavBundleFileInspection
       label: file.blocking ? "Bloqueo de inspección" : "Advertencias de inspección",
       reason: file.blocking
         ? "El archivo no se puede aplicar hasta resolver esta condición."
-        : "La importación puede continuar, pero conviene revisar estos avisos antes de reemplazar la data.",
+        : "La importación puede continuar, pero conviene revisar estos avisos antes de reemplazar las respuestas.",
       variables: [],
       notes: file.warnings,
       tone: file.blocking ? "danger" : "warning",
@@ -830,7 +830,7 @@ export function smSavBundleIssueGroups(file: SurveyMonkeySavBundleFileInspection
     groups.push({
       key: "missing",
       label: "Faltantes en SAV",
-      reason: "El XLSForm vigente espera estas variables, pero no se encontró una columna equivalente en el SAV. Se crearán vacías para conservar la estructura.",
+      reason: "El formulario vigente espera estas variables, pero no se encontró una columna equivalente en el SAV. Se crearán vacías para conservar la estructura.",
       variables: file.missing_variables,
       notes: [],
       tone: "warning",
@@ -1860,7 +1860,7 @@ function MonitoringProcessingSuggestionsCard({
         <div>
           <strong>Monitoreo detectó un procesamiento de acreditación</strong>
           <span>
-            {status || suggestions?.message || "Fuentes listas para organizar como bases hermanas por actor."}
+            {status || suggestions?.message || "Fuentes listas para organizar por actor."}
           </span>
         </div>
         <div className="pulso-monitoring-suggestions-actions">
@@ -3938,7 +3938,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const canImportSavBundle = smSavBundleInspectionCanImport(savBundleInspection) && !busy && !disabled;
   const hasCanonicalReference = canonicalOptions.length > 0;
   const selectedCanonical = canonicalOptions.find((option) => option.fileId === canonicalFileId) ?? canonicalOptions[0] ?? null;
-  const canonicalReferenceKind = selectedCanonical?.fileId ? "Base hermana existente" : "XLSForm cargado en Carga/Editor";
+  const canonicalReferenceKind = selectedCanonical?.fileId ? "Base existente" : "Formulario cargado en Carga/Editor";
   const familyStatus = String(estudio.independent_siblings?.status || "");
   const familyLogicAppliedAt = String(estudio.independent_siblings?.logic_applied_at || "");
   const hasFamilyLogicApplied = !!familyLogicAppliedAt || familyStatus.includes("logic_applied");
@@ -4082,7 +4082,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       return;
     }
     if (!wasSelected && !hasExistingIndependentBases && selectedInputs.length >= capacityLeft) {
-      setError(`Este modo permite máximo ${independentMaxBases} bases hermanas independientes por estudio.`);
+      setError(`Este modo permite máximo ${independentMaxBases} fuentes independientes por estudio.`);
       return;
     }
     setSelectedIds((prev) => {
@@ -4187,7 +4187,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       .map(koboMonitoringSuggestionInput)
       .filter((asset): asset is KoboIndependentAssetInput => Boolean(asset?.asset_uid));
     if (!assets.length) {
-      setError("No hay sugerencias Kobo nuevas para importar como bases hermanas.");
+      setError("No hay sugerencias Kobo nuevas para importar como fuentes independientes.");
       return;
     }
     if (assets.length > capacityLeft) {
@@ -4198,7 +4198,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setAudit(null);
     setLogicSync(null);
     setCanonicalRepairResult(null);
-    setBusy(assets.length === 1 ? "Importando Kobo como base hermana..." : "Importando Kobo como bases hermanas...");
+    setBusy(assets.length === 1 ? "Importando Kobo como fuente independiente..." : "Importando Kobo como fuentes independientes...");
     try {
       const result = await apiCargaImportKoboIndependent({ assets });
       if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
@@ -4328,7 +4328,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       ? "Importando bases nuevas y fusionando campañas..."
       : hasMergeCampaigns
         ? "Agregando campañas a bases existentes..."
-        : "Importando bases hermanas independientes...";
+        : "Importando fuentes independientes...";
     try {
       const directLogicEntries = surveyMonkeyLogicPreviewEntries;
       const directLogicRules = directLogicEntries.map((entry) => entry.rule);
@@ -4382,7 +4382,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     if (!promotedBase) return;
     setError("");
     setLogicSync(null);
-    setBusy("Convirtiendo el estudio actual a bases hermanas independientes...");
+    setBusy("Convirtiendo el estudio actual a fuentes independientes...");
     try {
       const result = await apiEstudioPromoteIndependentSiblings({
         active_base: promotedBase.nombre,
@@ -4404,7 +4404,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setError("");
     setLogicSync(null);
     setCanonicalRepairResult(null);
-    setBusy("Sincronizando lógica XLSForm entre bases compatibles...");
+    setBusy("Sincronizando reglas de formulario entre bases compatibles...");
     try {
       const result = await apiEstudioApplyIndependentTemplateLogic({
         template_base: templateBase || undefined,
@@ -4432,7 +4432,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setError("");
     setLogicSync(null);
     setCanonicalRepairResult(null);
-    setBusy("Aplicando lógica del XLSForm base a las hermanas...");
+    setBusy("Aplicando reglas del formulario de referencia...");
     try {
       const result = await apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic({
         canonical_xlsform_file_id: canonicalFileId,
@@ -4483,7 +4483,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       });
       setWorkbookInspection(result);
       if (!result.ok) {
-        setError("Hay hojas sin base hermana asignada. Revisa el nombre de las hojas o usa una plantilla con bases existentes.");
+        setError("Hay hojas sin base asignada. Revisa el nombre de las hojas o usa una plantilla con bases existentes.");
       }
     } catch (e) {
       setError((e as Error).message);
@@ -4544,7 +4544,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       });
       setSavBundleInspection(result);
       if (!result.ok) {
-        setError("Hay archivos SAV sin base hermana asignada o asignaciones duplicadas. Revisa los nombres antes de aplicar.");
+        setError("Hay archivos SAV sin base asignada o asignaciones duplicadas. Revisa los nombres antes de aplicar.");
       }
     } catch (e) {
       setError((e as Error).message);
@@ -4758,12 +4758,12 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <span className="pulso-sm-multibase-icon" aria-hidden="true"><Cloud size={18} /></span>
         <div>
           <div className="pulso-sm-multibase-kicker">{independentProviderLabel}</div>
-          <h3>Bases hermanas independientes</h3>
-          <p>Importa cada fuente con su propio XLSForm, data y estado de procesamiento.</p>
+          <h3>Fuentes independientes</h3>
+          <p>Importa cada fuente con su propio formulario, respuestas y estado de procesamiento.</p>
           <p>
             Usa los perfiles activos en Ajustes. Si una clave llega al límite,
             cambia manualmente al perfil secundario y actualiza el catálogo correspondiente.
-            Si ya tenías una base trabajada, esa base puede actuar como referencia para sincronizar reglas XLSForm compatibles.
+            Si ya tenías una base trabajada, esa base puede actuar como referencia para sincronizar reglas compatibles.
           </p>
           <div className="pulso-sm-family-meter pulso-sm-independent-meter" aria-label="Resumen de familia independiente">
             <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
@@ -4778,7 +4778,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
           <AlertTriangle size={15} />
           <span>
             Este estudio ya tiene una base normalizada o en proceso. Puedes convertirla en plantilla,
-            conservar lo trabajado y sumar hermanas independientes después.
+            conservar lo trabajado y sumar fuentes independientes después.
           </span>
           <button
             type="button"
@@ -4792,17 +4792,17 @@ function IndependentSiblingsSurveyMonkeyWizard({
         </div>
       )}
 
-      <div className={`pulso-sm-logic-reference${hasCanonicalReference ? "" : " is-missing"}`} aria-label="XLSForm base para lógica compartida">
+      <div className={`pulso-sm-logic-reference${hasCanonicalReference ? "" : " is-missing"}`} aria-label="Formulario de referencia para reglas compartidas">
         <div className="pulso-sm-logic-reference-main">
           <span className="pulso-sm-logic-reference-icon" aria-hidden="true">
             {hasCanonicalReference ? <FileSpreadsheet size={15} /> : <AlertTriangle size={15} />}
           </span>
           <div>
-            <strong>XLSForm base de lógica</strong>
+            <strong>Formulario de referencia</strong>
             <span>
               {hasCanonicalReference
-                ? "Se aplicará a los XLSForms de cada encuesta nueva antes de normalizar la data."
-                : "Carga un XLSForm en Carga/Editor para usarlo como plantilla de lógica."}
+                ? "Se aplicará a cada encuesta nueva antes de preparar las respuestas."
+                : "Carga un formulario en Carga/Editor para usarlo como referencia."}
             </span>
           </div>
         </div>
@@ -4823,7 +4823,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 {option.label}
               </option>
             )) : (
-              <option value="">Sin XLSForm base</option>
+              <option value="">Sin formulario de referencia</option>
             )}
           </select>
         </label>
@@ -4892,7 +4892,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                   </div>
                 ))}
               </div>
-              <small>Esta revisión confirma sintaxis e intención general; la importación vuelve a validar cada regla contra el XLSForm de cada actor.</small>
+              <small>Esta revisión confirma sintaxis e intención general; la importación vuelve a validar cada regla contra el formulario de cada actor.</small>
             </div>
           )}
           {monitoringLogicSuggestion && (
@@ -4905,7 +4905,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
           {hasCanonicalReference ? (
             <>
               <span><CheckCircle2 size={12} /> Lógica compartida activa</span>
-              <small>{canonicalReferenceKind}: {selectedCanonical?.label ?? "XLSForm base"}</small>
+              <small>{canonicalReferenceKind}: {selectedCanonical?.label ?? "formulario de referencia"}</small>
             </>
           ) : (
             <>
@@ -4931,16 +4931,16 @@ function IndependentSiblingsSurveyMonkeyWizard({
       />
 
       {shouldOfferCanonicalRepair && (
-        <div className="pulso-sm-logic-repair" aria-label="Aviso de lógica pendiente en bases hermanas">
+        <div className="pulso-sm-logic-repair" aria-label="Aviso de reglas pendientes en fuentes independientes">
           <div className="pulso-sm-logic-repair-copy">
             <span className="pulso-sm-logic-repair-icon" aria-hidden="true">
               <AlertTriangle size={15} />
             </span>
             <div>
-              <strong>Estas bases podrían estar sin la lógica del XLSForm base</strong>
+              <strong>Estas bases podrían estar sin las reglas del formulario de referencia</strong>
               <span>
-                Puedes alinear sus instrumentos con <b>{selectedCanonical?.label ?? "el XLSForm base"}</b>.
-                No reemplaza respuestas ni cambia la base de datos; actualiza las reglas de salto/visibilidad de cada hermana.
+                Puedes alinear sus instrumentos con <b>{selectedCanonical?.label ?? "el formulario de referencia"}</b>.
+                No reemplaza respuestas ni cambia la base; actualiza reglas de salto y visibilidad.
               </span>
             </div>
           </div>
@@ -4950,7 +4950,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
             disabled={disabled || !!busy}
           >
             {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-            Aplicar lógica a hermanas
+            Aplicar reglas
           </button>
         </div>
       )}
@@ -4964,8 +4964,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
             <div>
               <strong>
                 {canonicalRepairResult.n_updated_bases > 0
-                  ? "Lógica aplicada a las bases hermanas"
-                  : "Las bases hermanas ya estaban alineadas"}
+                  ? "Reglas aplicadas a las fuentes"
+                  : "Las fuentes ya estaban alineadas"}
               </strong>
               <span>
                 {canonicalRepairResult.n_updated_bases}/{canonicalRepairResult.n_targets} bases actualizadas
@@ -4987,7 +4987,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <div>
                 <strong>Importar Excel exportado</strong>
                 <span>
-                  Actualiza la data de bases existentes con un workbook multihoja. Faltantes como p3, p4 o p5 quedan vacíos con advertencia.
+                  Actualiza las respuestas de bases existentes con un Excel multihoja. Faltantes como p3, p4 o p5 quedan vacíos con advertencia.
                 </span>
               </div>
               <div className="pulso-sm-family-actions">
@@ -5041,7 +5041,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                       <FileSpreadsheet size={12} />
                       Sin inspección
                     </span>
-                    <small>Las hojas se emparejan por nombre normalizado con las bases hermanas.</small>
+                    <small>Las hojas se emparejan por nombre normalizado con las fuentes cargadas.</small>
                   </>
                 )}
               </div>
@@ -5051,7 +5051,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 <div className="pulso-sm-family-row is-head is-workbook-row" role="row">
                   <span>Hoja</span>
                   <span>Base</span>
-                  <span>Data</span>
+                  <span>Respuestas</span>
                   <span>Encabezados</span>
                   <span>Advertencias</span>
                 </div>
@@ -5097,7 +5097,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <div className="pulso-sm-multibase-warning">
                 <CheckCircle2 size={15} />
                 <span>
-                  Importadas {workbookImportResult.imported_bases} bases desde {workbookImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
+                  Importadas {workbookImportResult.imported_bases} bases desde {workbookImportResult.filename}. Se reemplazaron las respuestas activas y se conservó cada formulario.
                 </span>
               </div>
             )}
@@ -5107,7 +5107,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <div>
                 <strong>Importar ZIP SAV</strong>
                 <span>
-                  Reemplaza de forma controlada la data efectiva de bases hermanas existentes. El XLSForm de cada carrera se conserva.
+                  Reemplaza de forma controlada las respuestas activas de bases existentes. El formulario de cada carrera se conserva.
                 </span>
               </div>
               <div className="pulso-sm-family-actions">
@@ -5149,7 +5149,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                     <small>
                       {smSavBundleInspectionWarningCount(savBundleInspection)} advertencias · {savBundleInspection.filename}
                     </small>
-                    <small>Se reemplazará solo la base de datos. El XLSForm no cambiará.</small>
+                    <small>Se reemplazarán solo las respuestas. El formulario no cambiará.</small>
                   </>
                 ) : (
                   <>
@@ -5157,7 +5157,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                       <Database size={12} />
                       Sin inspección
                     </span>
-                    <small>Los archivos .sav se emparejan por carrera y se normalizan contra el XLSForm vigente.</small>
+                    <small>Los archivos .sav se emparejan por carrera y se preparan contra el formulario vigente.</small>
                   </>
                 )}
               </div>
@@ -5167,7 +5167,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 <AlertTriangle size={15} />
                 <span>
                   Plan inspeccionado pendiente de aplicar. Todavía no se reemplazó ninguna base ni se guardó el ZIP en el proyecto:
-                  pulsa <strong>Aplicar actualización</strong> para cambiar la data efectiva.
+                  pulsa <strong>Aplicar actualización</strong> para cambiar las respuestas activas.
                 </span>
               </div>
             )}
@@ -5204,7 +5204,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                           <Database size={12} />
                           {currentRows ?? "?"} filas
                         </span>
-                        <small>{currentColumns ?? "?"} columnas actuales · XLSForm preservado</small>
+                        <small>{currentColumns ?? "?"} columnas actuales · formulario preservado</small>
                       </div>
                       <div className="pulso-sm-family-data-cell">
                         <span className={`pulso-sm-family-status${file.blocking ? " is-warning" : " is-neutral"}`}>
@@ -5248,7 +5248,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                                       return (
                                         <span className="pulso-sm-sav-variable-item" key={variable} title={variableLabel ? `${variable} · ${variableLabel}` : variable}>
                                           <code>{variable}</code>
-                                          <span>{variableLabel || "Sin etiqueta XLSForm"}</span>
+                                          <span>{variableLabel || "Sin etiqueta de formulario"}</span>
                                         </span>
                                       );
                                     })}
@@ -5275,7 +5275,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <div className="pulso-sm-multibase-warning">
                 <CheckCircle2 size={15} />
                 <span>
-                  Actualizadas {savBundleImportResult.imported_bases} bases desde {savBundleImportResult.filename}. Se reemplazó la data efectiva y se conservó cada XLSForm.
+                  Actualizadas {savBundleImportResult.imported_bases} bases desde {savBundleImportResult.filename}. Se reemplazaron las respuestas activas y se conservó cada formulario.
                 </span>
               </div>
             )}
@@ -5285,7 +5285,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <span>#</span>
               <span>Base visible</span>
               <span>Fuente original</span>
-              <span>Data</span>
+              <span>Respuestas</span>
               <span>Estado</span>
               <span>Canal</span>
             </div>
@@ -5459,7 +5459,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <div className="pulso-sm-family-table is-refresh" role="table" aria-label="Diagnóstico de fuentes SurveyMonkey">
                 <div className="pulso-sm-family-row is-head is-refresh-row" role="row">
                   <span>Fuente</span>
-                  <span>Data</span>
+                  <span>Respuestas</span>
                   <span>Estructura</span>
                   <span>Resultado</span>
                 </div>
@@ -5561,14 +5561,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
             </div>
           )}
           <div className="pulso-sm-family-config-head">
-            <span>Para trabajar usa el selector de base activa del lateral. La base de referencia puede sincronizar reglas XLSForm con hermanas compatibles.</span>
+            <span>Para trabajar usa el selector de base activa del lateral. La base de referencia puede sincronizar reglas compatibles.</span>
             <div className="pulso-sm-family-actions">
               <button
                 type="button"
                 className="pulso-sm-secondary"
                 disabled={disabled || !!busy || existingKoboBases.length === 0}
                 onClick={() => void refreshKoboIndependentBases()}
-                title={existingKoboBases.length ? "Actualizar data e instrumento desde las fuentes Kobo guardadas" : "No hay bases Kobo conectadas"}
+                title={existingKoboBases.length ? "Actualizar formulario y respuestas desde las fuentes Kobo guardadas" : "No hay bases Kobo conectadas"}
               >
                 <RefreshCw size={13} />
                 Actualizar Kobo
@@ -5587,10 +5587,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 className="pulso-sm-secondary"
                 disabled={disabled || !!busy || estudio.n_bases < 2 || !templateSyncBase}
                 onClick={runTemplateLogicSync}
-                title={templateSyncBase ? `Usar ${templateSyncBase} como referencia XLSForm` : "Primero debe existir una base de referencia en la familia"}
+                title={templateSyncBase ? `Usar ${templateSyncBase} como referencia de formulario` : "Primero debe existir una base de referencia en la familia"}
               >
                 <GitMerge size={13} />
-                Sincronizar lógica XLSForm
+                Sincronizar reglas
               </button>
               <button
                 type="button"
@@ -5724,7 +5724,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 <span>#</span>
                 <span>Destino</span>
                 <span>Encuesta original</span>
-                <span>Data</span>
+                <span>Respuestas</span>
                 <span>Filtros y campañas</span>
                 <span aria-hidden="true" />
               </div>
@@ -5818,7 +5818,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                       </summary>
                       <div className="pulso-sm-scope-popover-panel" aria-label={`Alcance de importación de ${smSurveyTitle(item)}`}>
                         <div className="pulso-sm-scope-head">
-                          <span><Filter size={13} /> Alcance de data</span>
+                          <span><Filter size={13} /> Alcance de respuestas</span>
                           <em>SurveyMonkey</em>
                         </div>
                         <div className="pulso-sm-scope-fixed" aria-label="Alcance aplicado">
@@ -6036,7 +6036,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               ? "Importar y agregar campañas"
               : selectedMergeCampaignCount
                 ? "Agregar como campañas/canales"
-                : "Importar como bases hermanas independientes"}
+                : "Importar como fuentes independientes"}
           </button>
         </div>
       )}
@@ -6048,7 +6048,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <div className={`pulso-sm-logic-sync${logicSync.ok === false ? " is-warning" : ""}`}>
           <div className="pulso-sm-logic-sync-head">
             {logicSync.ok === false ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
-            <strong>{logicSync.ok === false ? "Importación hecha; lógica pendiente" : "Lógica XLSForm sincronizada"}</strong>
+            <strong>{logicSync.ok === false ? "Importación hecha; reglas pendientes" : "Reglas sincronizadas"}</strong>
             <span>
               Referencia <code>{logicSync.template_base}</code> · {logicSync.n_updated_bases ?? 0}/{logicSync.n_targets ?? 0} bases actualizadas
             </span>
@@ -6165,7 +6165,7 @@ function responseFilterLabel(filter?: Record<string, unknown> | null) {
   const sourceCount = filter.source_count == null || Number.isNaN(Number(filter.source_count))
     ? null
     : Number(filter.source_count);
-  if (kind === "uploaded_data") return kept == null ? "Data subida" : `Data subida · ${kept} registros`;
+  if (kind === "uploaded_data") return kept == null ? "Respuestas subidas" : `Respuestas subidas · ${kept} registros`;
   const parts: string[] = [];
   if (sourceCount && sourceCount > 1) parts.push(`${sourceCount} fuentes`);
   if (kept != null) parts.push(`${kept} filtradas`);
@@ -6342,17 +6342,17 @@ function IntegratedHistoryPanel({
             <div className="pulso-integrated-history-files" aria-label={`Archivos canónicos de ${base.nombre}`}>
               <HistoryFile
                 icon={<FileSpreadsheet size={14} />}
-                label="XLSForm guía"
+                label="Formulario guía"
                 value={fileLabel(meta?.guide_xlsform_file_id, meta?.guide?.filename)}
               />
               <HistoryFile
                 icon={<FileSpreadsheet size={14} />}
-                label="XLSForm integrado"
+                label="Formulario integrado"
                 value={fileLabel(base.xlsform_file_id, base.xlsform_file_name)}
               />
               <HistoryFile
                 icon={<Database size={14} />}
-                label="Data integrada"
+                label="Respuestas integradas"
                 value={fileLabel(base.data_file_id, base.data_file_name)}
               />
             </div>
@@ -6639,7 +6639,7 @@ function BaseRow({
         )}
         <div className="pulso-base-row-meta">
           <span>
-            <FileSpreadsheet size={12} /> XLSForm cargado
+            <FileSpreadsheet size={12} /> Formulario cargado
           </span>
           {showSourceAlias && (
             <span title={sourceAlias}>
@@ -6660,7 +6660,7 @@ function BaseRow({
             <Database size={12} />
             {base.n_filas != null && base.n_columnas != null
               ? `${base.n_filas} registros · ${base.n_columnas} cols`
-              : "Datos cargados"}
+              : "Respuestas cargadas"}
             {base.data_ext && ` · .${base.data_ext}`}
           </span>
         </div>
@@ -6682,7 +6682,7 @@ function BaseRow({
           type="button"
           onClick={onStartReplace}
           disabled={busy || isReplacing}
-          title={`Reemplazar el XLSForm o la data de ${base.nombre}`}
+          title={`Reemplazar el formulario o las respuestas de ${base.nombre}`}
           aria-label={`Reemplazar archivos de ${base.nombre}`}
           className={`pulso-base-row-button${isReplacing ? " is-active" : ""}`}
         >
@@ -6767,7 +6767,7 @@ function AddBaseForm({
         <div className="pulso-base-editor-copy">
           <strong>Agregar otra base al estudio</strong>
           <span>
-            Sube el XLSForm y la base de datos. El nombre es opcional — si lo
+            Sube el formulario y las respuestas. El nombre es opcional — si lo
             dejas vacío se llamará <code>{autoName}</code>{" "}
             y podrás renombrarla después.
           </span>
@@ -6818,7 +6818,7 @@ function AddBaseForm({
       <div className="pulso-base-file-grid">
         <FilePicker
           icon={FileSpreadsheet}
-          title="XLSForm"
+          title="Formulario"
           accept=".xlsx,.xls"
           acceptLabel="Excel (.xlsx)"
           file={xlsformFile}
@@ -6826,7 +6826,7 @@ function AddBaseForm({
         />
         <FilePicker
           icon={Database}
-          title="Base de datos"
+          title="Respuestas"
           accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
           acceptLabel=".xlsx · .csv · .sav"
           file={dataFile}
@@ -6843,11 +6843,11 @@ function AddBaseForm({
           {!puedeAgregar && !uploading && (
             <>
               {!xlsformFile && !dataFile
-                ? "Falta subir el XLSForm y la base de datos."
+                ? "Falta subir el formulario y las respuestas."
                 : !xlsformFile
-                ? "Falta subir el XLSForm."
+                ? "Falta subir el formulario."
                 : !dataFile
-                ? "Falta subir la base de datos."
+                ? "Falta subir las respuestas."
                 : nombreDuplicado
                 ? "Cambia el nombre — ya existe una base así."
                 : !nombreValido
@@ -6932,7 +6932,7 @@ function ReplaceFilesForm({
             Reemplazar archivos de <code>{baseNombre}</code>
           </strong>
           <span>
-            Sube el XLSForm, la base de datos, o ambos. Lo que no toques se
+            Sube el formulario, las respuestas, o ambos. Lo que no toques se
             queda igual. La validación y el plan de analítica se invalidan.
           </span>
         </div>
@@ -6951,7 +6951,7 @@ function ReplaceFilesForm({
       <div className="pulso-base-file-grid">
         <FilePicker
           icon={FileSpreadsheet}
-          title="Nuevo XLSForm"
+          title="Nuevo formulario"
           accept=".xlsx,.xls"
           acceptLabel="Excel (.xlsx) · opcional"
           file={xlsformFile}
@@ -6959,7 +6959,7 @@ function ReplaceFilesForm({
         />
         <FilePicker
           icon={Database}
-          title="Nueva base de datos"
+          title="Nuevas respuestas"
           accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
           acceptLabel=".xlsx · .csv · .sav · opcional"
           file={dataFile}

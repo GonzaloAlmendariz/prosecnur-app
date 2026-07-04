@@ -11934,7 +11934,7 @@ h1.pulso-page-title {
 }
 .pulso-multi-strategy {
   display: flex;
-  width: fit-content;
+  width: min(100%, 760px);
   max-width: 100%;
   gap: 3px;
   margin: 0 auto 14px;
@@ -11947,6 +11947,7 @@ h1.pulso-page-title {
 }
 .pulso-multi-strategy button {
   flex: 1 1 0;
+  box-sizing: border-box;
   min-height: 46px;
   min-width: 0;
   display: grid;
