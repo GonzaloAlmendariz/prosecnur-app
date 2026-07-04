@@ -374,7 +374,7 @@ export function DataReviewPane() {
   return (
     <Panel
       eyebrow="Datos"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Datos / Revisión de data</span>}
+      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Datos / Revisión de etiquetas</span>}
       hint="Define qué variables entran a los reportes y corrige etiquetas de variables u opciones sin tocar respuestas crudas."
       actions={
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -416,7 +416,7 @@ export function DataReviewPane() {
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {loading ? <LoadingBlock variant="inline" label="Cargando revisión de data..." /> : null}
+        {loading ? <LoadingBlock variant="inline" label="Cargando revisión de datos..." /> : null}
         {error ? <ErrorBlock label="No se pudo cargar la revisión" detail={error} /> : null}
         {sectionError ? <ErrorBlock label="No se pudo detectar la estructura" detail={sectionError} /> : null}
         {draftError ? <ErrorBlock label="No se pueden confirmar cambios" detail={draftError} /> : null}
@@ -424,7 +424,7 @@ export function DataReviewPane() {
         {!loading && !error ? (
           <Section
             title="Estructura y variables"
-            subtitle="Las secciones ordenan las preguntas para Frecuencias y Cruces. Cada variable decide si entra a los entregables y qué etiqueta usará en Codebook, Bases, Cruces y XLSForm final."
+            subtitle="Las secciones ordenan las preguntas para Frecuencias y Cruces. Cada variable decide si entra a los entregables y qué etiqueta usará en el libro de códigos, las bases y los cruces finales."
           >
             {variables.length === 0 ? (
               <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "8px 0" }}>
@@ -438,7 +438,7 @@ export function DataReviewPane() {
                 disabled={sectionBusy}
                 className="pulso-ghost"
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                title="Re-detecta secciones desde begin_group/end_group y conserva renombres manuales cuando sea posible."
+                title="Vuelve a leer la estructura del instrumento y conserva renombres manuales cuando sea posible."
               >
                 {sectionBusy ? <RefreshCw size={12} className="pulso-spin" /> : <FolderSearch size={12} />}
                 {sectionBusy ? "Detectando..." : "Detectar estructura"}

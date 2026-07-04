@@ -35,12 +35,12 @@ export function analiticaFuenteGuidance({
   if (prepBusy) return "Preparando datos...";
   if (prepError) return `Error preparando: ${prepError}`;
   if (!codificadaDisponible) {
-    return "Original: datos e instrumento de Fase 1. Codificada aparece después de aplicar Fase 3.";
+    return "Trabaja con la base cargada. La fuente codificada aparecerá cuando termines Codificación.";
   }
   if (usandoAdaptados) {
-    return "Codificada: datos e instrumento de Fase 3, con recodificaciones, nuevas variables y categorías.";
+    return "Incluye recodificaciones, nuevas variables y categorías creadas en Codificación.";
   }
-  return "Original: datos e instrumento de Fase 1, sin recodificaciones de Codificación.";
+  return "Usa la base original, sin recodificaciones ni variables nuevas de Codificación.";
 }
 
 export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; prepError: string }) {
@@ -93,6 +93,10 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
   const activeFirst = activeBases?.find((b) => b.available) ?? activeBases?.[0];
   const activeXls = activeFirst?.xlsform?.filename ?? "XLSForm no resuelto";
   const activeData = activeFirst?.data?.filename ?? "Data no resuelta";
+  const activeAvailableCount = activeBases?.filter((b) => b.available).length ?? 0;
+  const sourceFilesSummary = activeAvailableCount > 1
+    ? `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
+    : "Instrumento y datos vinculados";
   const guidance = analiticaFuenteGuidance({
     prepBusy,
     prepError,
@@ -113,11 +117,11 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
         </span>
         <div className="pulso-analitica-source-copy">
           <strong>
-            Fuente analítica: {usandoAdaptados ? "Codificada" : "Original"}
+            Datos de trabajo: {usandoAdaptados ? "codificados" : "originales"}
           </strong>{" "}
           <span>{guidance}</span>
           <div className="pulso-analitica-source-files" title={`XLSForm: ${activeXls} · Data: ${activeData}`}>
-            XLSForm: {activeXls} · Data: {activeData}
+            {sourceFilesSummary}
           </div>
         </div>
       </div>
@@ -130,7 +134,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           active={fuenteActiva === "originales"}
           disabled={prepBusy || switching}
           bases={detalle?.original.bases ?? []}
-          description="Fase 1"
+          description="Carga"
           onSelect={selectFuente}
         />
         <SourceButton
@@ -140,7 +144,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           active={fuenteActiva === "adaptados"}
           disabled={prepBusy || switching || !codificadaDisponible}
           bases={detalle?.codificada.bases ?? []}
-          description={codificadaDisponible ? "Fase 3" : "No disponible"}
+          description={codificadaDisponible ? "Codificación" : "Pendiente"}
           onSelect={selectFuente}
         />
       </div>
@@ -153,6 +157,8 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           onExport={ioExport}
           onImport={ioImport}
           filenamePrefix="prosecnur_analitica"
+          exportLabel="Exportar config"
+          importLabel="Importar config"
         />
       </div>
     </ContextBar>
