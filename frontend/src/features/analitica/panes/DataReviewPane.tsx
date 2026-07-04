@@ -373,6 +373,7 @@ export function DataReviewPane() {
 
   return (
     <Panel
+      className="pulso-data-review-panel"
       eyebrow="Datos"
       title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Datos / Revisión de etiquetas</span>}
       hint="Define qué variables entran a los reportes y corrige etiquetas de variables u opciones sin tocar respuestas crudas."
@@ -415,8 +416,8 @@ export function DataReviewPane() {
         </div>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {loading ? <LoadingBlock variant="inline" label="Cargando revisión de datos..." /> : null}
+      <div className="pulso-data-review-workbench">
+        {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos..." /> : null}
         {error ? <ErrorBlock label="No se pudo cargar la revisión" detail={error} /> : null}
         {sectionError ? <ErrorBlock label="No se pudo detectar la estructura" detail={sectionError} /> : null}
         {draftError ? <ErrorBlock label="No se pueden confirmar cambios" detail={draftError} /> : null}
