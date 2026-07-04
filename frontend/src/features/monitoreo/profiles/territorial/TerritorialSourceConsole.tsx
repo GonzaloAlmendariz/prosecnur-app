@@ -1636,6 +1636,7 @@ export function TerritorialSourceConsole({
                     const rawCode = row.raw_code || row.normalized_code || row.code || "S/D";
                     const statusLabel = isSelected ? "Seleccionada" : recommendationId ? "Sugerida" : row.reconciled || row.assigned_code ? "Asignada" : "Por revisar";
                     const assignmentLabel = row.assigned_code || (recommendationId ? "Lote canónico" : "Sin asignación");
+                    const assignmentKicker = row.assigned_code ? "Pulso asignado" : recommendationId ? "Sugerencia" : "Resolución";
                     const assignmentDetail = row.assigned_code
                       ? row.assigned_name || "Asignada"
                       : recommendationId
@@ -1645,14 +1646,17 @@ export function TerritorialSourceConsole({
                       <>
                         <span>{statusLabel}</span>
                         <div className="mon-territorial-reconciliation-code-main">
+                          <small className="mon-territorial-reconciliation-code-kicker">Código Kobo</small>
                           <strong>{rawCode}</strong>
                           <em>Declarado</em>
                         </div>
                         <div className="mon-territorial-reconciliation-code-context">
+                          <small className="mon-territorial-reconciliation-code-kicker">UMP / distrito</small>
                           <strong>{row.ump || "UMP S/D"}</strong>
                           <em>{row.district || "Distrito S/D"}</em>
                         </div>
                         <div className="mon-territorial-reconciliation-code-target">
+                          <small className="mon-territorial-reconciliation-code-kicker">{assignmentKicker}</small>
                           <strong>{assignmentLabel}</strong>
                           <small>{assignmentDetail}</small>
                         </div>
