@@ -16029,6 +16029,7 @@
   --gv2-slide-cat: var(--gv2-accent, var(--pulso-primary));
   --gv2-slide-cat-soft: var(--gv2-accent-soft, var(--pulso-primary-soft));
   --gv2-slide-cat-border: var(--gv2-accent-border, var(--pulso-primary-border));
+  min-height: 64px;
   overflow: visible;
 }
 
@@ -16079,10 +16080,10 @@
 
 .pulso-gv2-slide-card-title {
   display: grid;
-  grid-template-columns: 21px minmax(0, 1fr);
+  grid-template-columns: 21px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
-  min-height: 21px;
+  min-height: 23px;
 }
 
 .pulso-gv2-slide-card-type-icon {
@@ -16116,6 +16117,22 @@
   white-space: nowrap;
 }
 
+.pulso-gv2-slide-card-graph-count {
+  min-width: max-content;
+  justify-self: end;
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--gv2-slide-cat) 18%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv2-slide-cat-soft) 62%, #ffffff);
+  color: color-mix(in srgb, var(--gv2-slide-cat) 78%, var(--pulso-text));
+  font-size: 8.6px;
+  font-weight: 760;
+  line-height: 1;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
 .pulso-gv2-slide-card-models {
   gap: 4px;
   justify-items: start;
@@ -16123,14 +16140,35 @@
 }
 
 .pulso-gv2-slide-card.has-graphs {
-  min-height: 76px;
+  min-height: 84px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs {
+  min-height: 104px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs .pulso-gv2-slide-card-title {
+  align-items: start;
+  min-height: 34px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs .pulso-gv2-slide-card-title-label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs .pulso-gv2-slide-card-graph-count {
+  align-self: start;
 }
 
 .pulso-gv2-slide-card-model {
   width: fit-content;
   max-width: 100%;
   min-height: 22px;
-  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   gap: 5px;
   padding: 2px 8px 2px 2px;
   border: 1px solid color-mix(in srgb, var(--gv2-slide-cat) 18%, var(--pulso-border));
@@ -16158,6 +16196,28 @@
 
 .pulso-gv2-slide-card-model-label {
   line-height: 1;
+}
+
+.pulso-gv2-slide-card-model-count {
+  min-width: 17px;
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv2-slide-cat) 12%, #ffffff);
+  color: color-mix(in srgb, var(--gv2-slide-cat) 86%, var(--pulso-text));
+  font-size: 8.2px;
+  font-weight: 820;
+  line-height: 1;
+  text-align: center;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.pulso-gv2-slide-card-model.is-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
 }
 
 .pulso-gv2-slide-card-handle {
