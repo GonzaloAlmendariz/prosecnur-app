@@ -29778,3 +29778,61 @@
     height: 204px;
   }
 }
+
+/* Suite polish pass 72: timeline graph chips fit without internal clipping. */
+.pulso-gv2-slide-card.has-graphs {
+  min-height: 90px;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs {
+  min-height: 116px;
+}
+
+.pulso-gv2-slide-card-models {
+  max-height: none;
+  min-height: 22px;
+  gap: 4px;
+  align-content: start;
+  overflow: hidden;
+}
+
+.pulso-gv2-slide-card.has-multiple-graphs .pulso-gv2-slide-card-models {
+  min-height: 48px;
+}
+
+.pulso-gv2-slide-card-model {
+  min-height: 22px;
+  height: 22px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 5px;
+  padding: 2px 7px 2px 2px;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.pulso-gv2-slide-card-model-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+}
+
+.pulso-gv2-slide-card-model-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.pulso-gv2-slide-card-model-label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10.5px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-slide-card-model-count {
+  min-width: 16px;
+  padding: 1px 4px;
+  font-size: 8px;
+  line-height: 1;
+}
