@@ -347,8 +347,8 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                   <div className="mon-operational-decision-facts" aria-label="Evidencia de trazabilidad del paquete">
                     <span className="is-complete"><strong>{formatMetric(selectedMovementCount)}</strong><em>movimientos</em></span>
                     <span className="is-surplus"><strong>{formatMetric(selectedResponseCount)}</strong><em>ID fuente</em></span>
-                    <span className="is-pending"><strong>{territorialOperationalAdjustmentCellLabel(selected)}</strong><em>celda compatible</em></span>
-                    <span><strong>{selectedTargetActivityLabel}</strong><em>últ. aplicación UMP</em></span>
+                    <span className="is-pending is-cell"><strong title={territorialOperationalAdjustmentCellLabel(selected)}>{territorialOperationalAdjustmentCellLabel(selected)}</strong><em>celda compatible</em></span>
+                    <span className="is-activity"><strong title={selectedTargetActivityLabel}>{selectedTargetActivityLabel}</strong><em>últ. aplicación UMP</em></span>
                   </div>
                   <div className="mon-operational-guardrails" aria-label="Reglas de seguridad del paquete">
                     <span className="is-complete"><CheckCircle2 size={13} /> Origen conserva cuota</span>
