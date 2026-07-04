@@ -134,6 +134,14 @@ export default function ExplorarTab() {
     clearPrefill("explorar");
   }, [inv, prefill, clearPrefill]);
 
+  // Si el explorador ya tiene inventario y no viene un deep-link, abrir la
+  // primera variable evita que la mesa arranque vacía pese a tener datos.
+  useEffect(() => {
+    if (!inv || selected || prefill?.var) return;
+    const first = pickInitialVariable(inv);
+    if (first) setSelected(first);
+  }, [inv, selected, prefill?.var]);
+
   // Cargar univariado al seleccionar variable o cambiar filtros.
   useEffect(() => {
     if (!selected) return;
@@ -574,17 +582,17 @@ function FuenteToggle({
         }}
       >
         <FuenteButton
-          label="Data cruda"
-          hint="Data tal como se cargó. Útil para detectar errores."
+          label="Datos originales"
+          hint="Base tal como se cargó. Útil para detectar errores."
           active={fuente === "raw"}
           disabled={false}
           onClick={() => onChange("raw")}
         />
         <FuenteButton
-          label="Data final"
+          label="Datos finales"
           hint={
             hasFinal
-              ? "Data tras aplicar todas las decisiones de Limpieza."
+              ? "Base tras aplicar todas las decisiones de Limpieza."
               : "Cierra Limpieza primero para habilitar este modo."
           }
           active={fuente === "final"}
@@ -823,4 +831,23 @@ function findSeccionOf(
     if (sec.variables.some((v) => v.name === varName)) return sec.nombre;
   }
   return null;
+}
+
+function pickInitialVariable(inv: ExploradorVariablesList): ExploradorVariable | null {
+  const variables = inv.secciones.flatMap((section) => section.variables);
+  if (!variables.length) return null;
+  const usefulTypes = new Set<ExploradorVariable["tipo"]>(["so", "sm", "num", "fecha"]);
+  const isOperational = (variable: ExploradorVariable) => {
+    const name = variable.name.toLowerCase();
+    const label = variable.label.toLowerCase();
+    return (
+      /(^|_)(id|uuid|enumerador|enumerator|respondent|response)(_|$)/.test(name) ||
+      /id de respuesta|enumerador|respondente/.test(label)
+    );
+  };
+  return (
+    variables.find((variable) => usefulTypes.has(variable.tipo) && !isOperational(variable)) ??
+    variables.find((variable) => !isOperational(variable)) ??
+    variables[0]
+  );
 }
