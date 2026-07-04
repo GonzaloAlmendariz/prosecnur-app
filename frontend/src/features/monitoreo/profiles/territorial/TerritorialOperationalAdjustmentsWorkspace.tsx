@@ -265,6 +265,9 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                 {visibleSuggestions.map((item) => {
                   const isSelected = selected?.id === item.id;
                   const distanceLabel = territorialOperationalAdjustmentDistanceLabel(item);
+                  const movementCount = numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1;
+                  const responseCount = territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item));
+                  const cellLabel = territorialOperationalAdjustmentCellLabel(item);
                   return (
                     <button
                       key={item.id}
@@ -295,9 +298,10 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                         </span>
                       </span>
                       <span className="mon-operational-suggestion__chips">
-                        <i>{formatMetric(numberOrNull(item.package_movements) ?? item.adjustments?.length ?? 1)} movimiento(s)</i>
-                        <i>{formatMetric(territorialOperationalAdjustmentResponseCount(territorialOperationalAdjustmentMovements(item)))} ID(s) fuente</i>
-                        <i>Origen protegido</i>
+                        <i className="is-cell"><strong>Celda</strong><em>{cellLabel}</em></i>
+                        <i className="is-movement"><strong>{formatMetric(movementCount)}</strong><em>movimientos</em></i>
+                        <i className="is-source"><strong>{formatMetric(responseCount)}</strong><em>ID fuente</em></i>
+                        <i className="is-safe"><CheckCircle2 size={11} /><strong>Origen ok</strong><em>cuota conserva</em></i>
                       </span>
                     </button>
                   );

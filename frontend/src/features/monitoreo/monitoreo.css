@@ -22838,24 +22838,79 @@
   display: flex !important;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px !important;
-  min-height: 24px;
+  gap: 6px !important;
+  min-height: 30px;
+  padding-top: 2px;
 }
 
 .mon-operational-suggestion__chips i {
-  display: inline-flex;
+  min-width: 0;
+  min-height: 26px;
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  min-height: 20px;
-  padding: 2px 7px;
+  gap: 2px 5px;
+  padding: 4px 8px;
   border: 1px solid color-mix(in srgb, var(--op-surplus) 18%, var(--pulso-border));
-  border-radius: 999px;
+  border-radius: 10px;
   background: color-mix(in srgb, #fff 76%, var(--op-surplus-soft));
   color: color-mix(in srgb, var(--op-surplus) 78%, var(--pulso-text));
   font-size: 0.64rem;
   font-style: normal;
   font-weight: 850;
-  line-height: 1;
+  line-height: 1.05;
+}
+
+.mon-operational-suggestion__chips i.is-cell {
+  flex: 1 1 178px;
+}
+
+.mon-operational-suggestion__chips i.is-movement,
+.mon-operational-suggestion__chips i.is-source {
+  flex: 0 0 auto;
+}
+
+.mon-operational-suggestion__chips i.is-safe {
+  flex: 0 1 132px;
+  border-color: color-mix(in srgb, var(--pulso-success-border) 70%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 56%, #fff);
+  color: var(--pulso-success-fg);
+}
+
+.mon-operational-suggestion__chips i strong,
+.mon-operational-suggestion__chips i em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mon-operational-suggestion__chips i strong {
+  grid-column: 1;
+  color: currentColor;
+  font-size: 0.66rem;
+  font-weight: 930;
+  line-height: 1;
+}
+
+.mon-operational-suggestion__chips i em {
+  grid-column: 2;
+  color: color-mix(in srgb, currentColor 70%, var(--pulso-text-muted));
+  font-size: 0.61rem;
+  font-style: normal;
+  font-weight: 780;
+  line-height: 1;
+}
+
+.mon-operational-suggestion__chips i svg {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.mon-operational-suggestion__chips i.is-safe strong,
+.mon-operational-suggestion__chips i.is-safe em {
+  grid-column: 2;
 }
 
 .mon-operational-adjustments__detail {
