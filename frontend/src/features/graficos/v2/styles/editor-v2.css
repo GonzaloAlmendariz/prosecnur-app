@@ -25439,6 +25439,101 @@
   background: color-mix(in srgb, var(--pulso-danger-bg) 54%, #ffffff) !important;
 }
 
+/* Suite polish pass 49: calmer, single-family command controls. */
+.pulso-graficos-frame .pulso-gv2-command-header {
+  --gv2-command-control-h: 30px;
+  --gv2-command-button-radius: 9px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+  min-height: 42px !important;
+  gap: 3px !important;
+  padding: 5px 8px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster {
+  min-height: 32px;
+  gap: 2px;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--mode::before,
+.pulso-graficos-frame .pulso-gv2-command-cluster--review::before,
+.pulso-graficos-frame .pulso-gv2-command-cluster--tools::before {
+  height: 22px;
+  margin-right: 3px;
+  background: color-mix(in srgb, var(--pulso-border) 62%, transparent);
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border {
+  height: var(--gv2-command-control-h);
+  min-height: var(--gv2-command-control-h);
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-trigger {
+  min-width: 74px;
+  padding-inline: 7px 6px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-debug-border-options {
+  width: 24px !important;
+  min-width: 24px !important;
+  border-left-color: transparent !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-debug-border-chip {
+  width: 7px;
+  height: 7px;
+  background: color-mix(in srgb, var(--gv2-debug-border-color) 78%, #ffffff);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gv2-debug-border-color) 9%, #ffffff),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger {
+  min-width: 92px;
+  max-width: 124px;
+  padding: 3px 7px 3px 4px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-icon {
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
+}
+
+.pulso-graficos-frame .pulso-gv2-estilo-trigger-meta > span {
+  min-height: 14px;
+  padding: 1px 6px;
+  font-size: 8.4px;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-action {
+  min-width: 66px;
+  padding-inline: 8px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-action [style] {
+  min-width: 30px !important;
+  height: 16px !important;
+  font-size: 9.4px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-export-menu-trigger {
+  min-width: 108px;
+  padding-inline: 12px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-toolbar-reset {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified :where(button, label) > svg,
+.pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-estilo-trigger-icon > svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* Suite polish pass 45: denser, PPT-faithful model picker cards. */
 .pulso-gv2-picker {
   width: min(1260px, calc(100vw - 48px));
