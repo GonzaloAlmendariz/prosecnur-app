@@ -862,33 +862,34 @@ export function GraficosHeader({
             </button>
 
             {jsonMenuOpen && (
-              <div style={jsonIoStyles.popover} role="dialog" aria-label="Compartir plan de gráficos">
-                <div style={jsonIoStyles.header}>
-                  <div>
-                    <strong style={jsonIoStyles.title}>Compartir plan de gráficos</strong>
-                    <p style={jsonIoStyles.lead}>Lleva este plan editable a otro proyecto sin mover formulario ni respuestas.</p>
+              <div className="pulso-gv2-share-popover" role="dialog" aria-label="Compartir plan de gráficos">
+                <div className="pulso-gv2-share-head">
+                  <span className="pulso-gv2-share-mark" aria-hidden="true">
+                    <SlidersHorizontal size={15} />
+                  </span>
+                  <div className="pulso-gv2-share-head-copy">
+                    <strong>Compartir plan de gráficos</strong>
+                    <p>Lleva este plan editable a otro proyecto sin mover formulario ni respuestas.</p>
                   </div>
-                  <div style={jsonIoStyles.headerActions}>
-                    <button type="button" onClick={() => setJsonMenuOpen(false)} style={jsonIoStyles.close} aria-label="Cerrar">
-                      <X size={15} />
-                    </button>
-                  </div>
+                  <button type="button" onClick={() => setJsonMenuOpen(false)} className="pulso-gv2-share-close" aria-label="Cerrar">
+                    <X size={15} />
+                  </button>
                 </div>
 
-                <div style={jsonIoStyles.packagePanel}>
-                  <div style={jsonIoStyles.packageHead}>
-                    <div>
-                      <strong style={jsonIoStyles.optionTitle}>Plan portátil</strong>
-                      <small style={jsonIoStyles.optionHelp}>
+                <div className="pulso-gv2-share-package">
+                  <div className="pulso-gv2-share-package-head">
+                    <div className="pulso-gv2-share-package-copy">
+                      <strong>Plan portátil</strong>
+                      <small>
                         Comparte composición, estilos y ajustes. Al aplicar, solo actualiza Gráficos y luego puedes regenerar PPT/Word.
                       </small>
                     </div>
-                    <div style={jsonIoStyles.packageActions}>
-                      <button type="button" onClick={packageExport} disabled={shareBusy === "export"} style={jsonIoStyles.primaryActionButton}>
+                    <div className="pulso-gv2-share-package-actions">
+                      <button type="button" onClick={packageExport} disabled={shareBusy === "export"} className="pulso-gv2-share-action is-primary">
                         {shareBusy === "export" ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
                         Exportar plan
                       </button>
-                      <label style={{ ...jsonIoStyles.secondaryActionButton, cursor: shareBusy === "inspect" ? "wait" : "pointer" }}>
+                      <label className={`pulso-gv2-share-action is-secondary${shareBusy === "inspect" ? " is-busy" : ""}`}>
                         {shareBusy === "inspect" ? <Loader2 size={12} className="pulso-spin" /> : <Upload size={12} />}
                         Importar plan
                         <input
@@ -904,15 +905,15 @@ export function GraficosHeader({
 
                   {sharePlan && (
                     <>
-                      <div style={jsonIoStyles.inspectSummary}>
+                      <div className="pulso-gv2-share-inspect-summary">
                         <span>
                           {sharePlan.summary.n_compatible}/{sharePlan.summary.n_bases} bases compatibles · {sharePlan.manifest.n_slides} slides · {sharePlan.summary.n_warnings} advertencias
                         </span>
                         <span>{sharePlan.filename}</span>
                       </div>
 
-                      <div style={jsonIoStyles.planTable}>
-                        <div style={{ ...jsonIoStyles.planRow, ...jsonIoStyles.planRowHead }}>
+                      <div className="pulso-gv2-share-plan-table">
+                        <div className="pulso-gv2-share-plan-row is-head">
                           <span>Base</span>
                           <span>Actualmente</span>
                           <span>Después de aplicar</span>
@@ -924,11 +925,7 @@ export function GraficosHeader({
                           return (
                             <label
                               key={base.base_name}
-                              style={{
-                                ...jsonIoStyles.planRow,
-                                ...(index === sharePlan.bases.length - 1 ? { borderBottom: 0 } : {}),
-                                ...(base.blocking ? { background: "var(--pulso-warn-bg)" } : {}),
-                              }}
+                              className={`pulso-gv2-share-plan-row${base.blocking ? " is-blocked" : ""}${index === sharePlan.bases.length - 1 ? " is-last" : ""}`}
                             >
                               <span>
                                 <input
@@ -937,18 +934,18 @@ export function GraficosHeader({
                                   disabled={base.blocking}
                                   onChange={(e) => setShareSelected((prev) => ({ ...prev, [base.base_name]: e.target.checked }))}
                                 />{" "}
-                                <strong style={jsonIoStyles.cellTitle}>{base.base_label || base.base_name}</strong>
-                                <small style={jsonIoStyles.cellMuted}>{base.base_name}</small>
+                                <strong className="pulso-gv2-share-cell-title">{base.base_label || base.base_name}</strong>
+                                <small className="pulso-gv2-share-cell-muted">{base.base_name}</small>
                               </span>
                               <span>
-                                <strong style={jsonIoStyles.cellTitle}>{base.current.n_slides} slides</strong>
-                                <small style={jsonIoStyles.cellMuted}>Formulario y respuestas se conservan</small>
+                                <strong className="pulso-gv2-share-cell-title">{base.current.n_slides} slides</strong>
+                                <small className="pulso-gv2-share-cell-muted">Formulario y respuestas se conservan</small>
                               </span>
                               <span>
-                                <strong style={jsonIoStyles.cellTitle}>
+                                <strong className="pulso-gv2-share-cell-title">
                                   {base.incoming.n_slides_applicable}/{base.incoming.n_slides_total} slides se conservarán
                                 </strong>
-                                <small style={jsonIoStyles.cellMuted}>
+                                <small className="pulso-gv2-share-cell-muted">
                                   {missing.length > 0
                                     ? "variables faltantes quedarán vacías"
                                     : "sin omisiones"}
@@ -956,9 +953,9 @@ export function GraficosHeader({
                               </span>
                               <span>
                                 {missing.length === 0 ? (
-                                  <small style={jsonIoStyles.cellMuted}>Todas las variables del plan están disponibles.</small>
+                                  <small className="pulso-gv2-share-cell-muted">Todas las variables del plan están disponibles.</small>
                                 ) : (
-                                  <small style={jsonIoStyles.warningText}>
+                                  <small className="pulso-gv2-share-warning">
                                     {missing.slice(0, 4).map((v) => `${v.code}: ${v.label}`).join(" · ")}
                                     {missing.length > 4 ? ` · +${missing.length - 4}` : ""}
                                   </small>
@@ -969,12 +966,12 @@ export function GraficosHeader({
                         })}
                       </div>
 
-                      <div style={jsonIoStyles.applyBar}>
+                      <div className="pulso-gv2-share-applybar">
                         <button
                           type="button"
                           onClick={packageApply}
                           disabled={shareBusy === "apply" || selectedShareBases().length === 0}
-                          style={jsonIoStyles.primaryActionButton}
+                          className="pulso-gv2-share-action is-primary"
                         >
                           {shareBusy === "apply" ? <Loader2 size={12} className="pulso-spin" /> : <Check size={12} />}
                           Aplicar a {selectedShareBases().length} base{selectedShareBases().length === 1 ? "" : "s"} compatible{selectedShareBases().length === 1 ? "" : "s"}
@@ -987,72 +984,76 @@ export function GraficosHeader({
                 <button
                   type="button"
                   onClick={() => setJsonAdvancedOpen((v) => !v)}
-                  style={jsonIoStyles.advancedToggle}
+                  className={`pulso-gv2-share-advanced-toggle${jsonAdvancedOpen ? " is-open" : ""}`}
                   aria-expanded={jsonAdvancedOpen}
                 >
-                  <span>Selección avanzada</span>
+                  <span>
+                    <strong>Selección avanzada</strong>
+                    <small>{selectedJsonSections().length} de {GRAFICOS_JSON_SECTIONS.length} componentes incluidos</small>
+                  </span>
                   <ChevronDown size={13} />
                 </button>
 
                 {jsonAdvancedOpen && (
-                  <div style={jsonIoStyles.advancedPanel}>
-                    <div style={jsonIoStyles.header}>
+                  <div className="pulso-gv2-share-advanced-panel">
+                    <div className="pulso-gv2-share-section-head">
                       <div>
-                        <strong style={jsonIoStyles.title}>Componentes del plan</strong>
-                        <p style={jsonIoStyles.lead}>{selectedJsonSections().length} de {GRAFICOS_JSON_SECTIONS.length} incluidos en la transferencia.</p>
+                        <strong>Componentes del plan</strong>
+                        <p>Elige qué viaja dentro del archivo editable.</p>
                       </div>
-                      <div style={jsonIoStyles.headerActions}>
-                        <button type="button" onClick={() => setAllJsonSections(true)} style={jsonIoStyles.smallButton}>Todo</button>
-                        <button type="button" onClick={() => setAllJsonSections(false)} style={jsonIoStyles.smallButton}>Nada</button>
+                      <div className="pulso-gv2-share-section-actions">
+                        <button type="button" onClick={() => setAllJsonSections(true)}>Todo</button>
+                        <button type="button" onClick={() => setAllJsonSections(false)}>Nada</button>
                       </div>
                     </div>
 
-                    <div style={jsonIoStyles.advancedBody}>
-                      <div style={jsonIoStyles.grid}>
+                    <div className="pulso-gv2-share-advanced-body">
+                      <div className="pulso-gv2-share-section-grid">
                         {GRAFICOS_JSON_SECTIONS.map((section) => (
                           <label
                             key={section.id}
                             title={section.help}
-                            style={{
-                              ...jsonIoStyles.option,
-                              ...(jsonSections[section.id] ? jsonIoStyles.optionOn : {}),
-                            }}
+                            className={`pulso-gv2-share-option${jsonSections[section.id] ? " is-on" : ""}`}
                           >
-                            <span style={jsonIoStyles.optionText}>
-                              <strong style={jsonIoStyles.optionTitle}>{section.label}</strong>
-                              <small style={jsonIoStyles.optionHelp}>{section.help}</small>
+                            <span className="pulso-gv2-share-option-copy">
+                              <strong>{section.label}</strong>
+                              <small>{section.help}</small>
                             </span>
-                            <span style={{ ...jsonIoStyles.checkDot, ...(jsonSections[section.id] ? jsonIoStyles.checkDotOn : {}) }}>
-                              <span style={{ ...jsonIoStyles.switchKnob, ...(jsonSections[section.id] ? jsonIoStyles.switchKnobOn : {}) }} />
+                            <span className="pulso-gv2-share-switch" aria-hidden="true">
+                              <span />
                             </span>
                             <input
                               type="checkbox"
                               checked={jsonSections[section.id]}
                               onChange={(e) => setJsonSections((prev) => ({ ...prev, [section.id]: e.target.checked }))}
-                              style={jsonIoStyles.hiddenInput}
+                              className="pulso-gv2-share-native-input"
                             />
                           </label>
                         ))}
                       </div>
 
-                      <div style={jsonIoStyles.advancedSide}>
-                        <div style={jsonIoStyles.modeBox}>
-                          <span style={jsonIoStyles.modeLabel}>Al importar</span>
-                          <label style={jsonIoStyles.radio}>
+                      <div className="pulso-gv2-share-advanced-side">
+                        <div className="pulso-gv2-share-modebox">
+                          <span>Al importar</span>
+                          <label className={`pulso-gv2-share-radio${jsonImportMode === "merge" ? " is-selected" : ""}`}>
                             <input type="radio" checked={jsonImportMode === "merge"} onChange={() => setJsonImportMode("merge")} />
-                            Combinar con lo existente
+                            <i aria-hidden="true" />
+                            <strong>Combinar</strong>
+                            <small>Conserva lo existente y suma lo elegido.</small>
                           </label>
-                          <label style={jsonIoStyles.radio}>
+                          <label className={`pulso-gv2-share-radio${jsonImportMode === "replace" ? " is-selected" : ""}`}>
                             <input type="radio" checked={jsonImportMode === "replace"} onChange={() => setJsonImportMode("replace")} />
-                            Reemplazar componentes
+                            <i aria-hidden="true" />
+                            <strong>Reemplazar</strong>
+                            <small>Sustituye solo los componentes incluidos.</small>
                           </label>
                         </div>
 
-                        <div style={jsonIoStyles.actions}>
-                          <button type="button" onClick={ioExport} disabled={jsonBusy === "export" || selectedJsonSections().length === 0} style={jsonIoStyles.actionButton}>
+                        <div className="pulso-gv2-share-advanced-actions">
+                          <button type="button" onClick={ioExport} disabled={jsonBusy === "export" || selectedJsonSections().length === 0}>
                             <Download size={12} /> {jsonBusy === "export" ? "Exportando…" : "Exportar componentes"}
                           </button>
-                          <label style={{ ...jsonIoStyles.actionButton, cursor: jsonBusy === "import" ? "wait" : "pointer" }}>
+                          <label className={jsonBusy === "import" ? "is-busy" : ""}>
                             <Upload size={12} /> {jsonBusy === "import" ? "Importando…" : "Importar componentes"}
                             <input
                               ref={jsonFileRef}
