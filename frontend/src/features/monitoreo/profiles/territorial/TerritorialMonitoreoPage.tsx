@@ -1631,6 +1631,7 @@ export default function TerritorialMonitoreoPage() {
   const headerValidas = nullableMetric(reportKpis.validas) ?? nullableMetric(dashboardKpis?.valid);
   const headerMeta = nullableMetric(reportKpis.meta) ?? nullableMetric(dashboardKpis?.target);
   const headerAvance = nullableMetric(reportKpis.avance_pct) ?? nullableMetric(dashboardKpis?.avance_pct);
+  const sectionViewMetrics = { avance: pct(headerAvance) };
   const cacheMeta = state?.territorial_report_cache;
   const pilotPhaseHealth = territorialPhaseHealthForState(state, "pilot");
   const fieldPhaseHealth = territorialPhaseHealthForState(state, "field");
@@ -1766,6 +1767,7 @@ export default function TerritorialMonitoreoPage() {
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={chromeBusy}
+        viewMetrics={sectionViewMetrics}
         advanceSyncDisabled={!state || chromeBusy}
         advanceSyncLabel="Vista"
         advanceSyncTitle="Actualizar vista territorial activa"
