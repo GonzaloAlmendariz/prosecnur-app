@@ -50,6 +50,7 @@ import type { WorkbenchView } from "../../core/monitoreoRegistry";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
 type TerritorialSourceDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];
+type TerritorialSourceUmpQueueLens = "manual" | "without-route" | "missing" | "suggested";
 
 export type TerritorialSourceConsoleProps = {
   activeLocalTab?: string;
@@ -333,6 +334,7 @@ export function TerritorialSourceConsole({
   const [batchMessage, setBatchMessage] = useState("");
   const [codeReviewSearch, setCodeReviewSearch] = useState("");
   const [umpReviewSearch, setUmpReviewSearch] = useState("");
+  const [umpQueueLens, setUmpQueueLens] = useState<TerritorialSourceUmpQueueLens>("manual");
   const [rosterFile, setRosterFile] = useState<File | null>(null);
   const [rosterFormat, setRosterFormat] = useState<"PXXX" | "DNI">("PXXX");
   const [rosterSearch, setRosterSearch] = useState("");
@@ -883,8 +885,6 @@ export function TerritorialSourceConsole({
     : umpReviewSourceRows;
   const umpReviewRows = filteredUmpReviewRows.slice(0, 8);
   const umpRowsWithoutRoute = umpManualRows.filter((row) => !row.assigned_ump && !(row.route_blocks?.length ?? 0));
-  const umpRowsWithRouteCandidate = umpManualRows.filter((row) => (row.route_blocks?.length ?? 0) > 0 || Boolean(row.assigned_ump));
-  const umpManualPreviewRows = (umpManualRows.length ? umpManualRows : umpRows).slice(0, 4);
   const umpAcceptedCount = (umpSummary?.metrics?.recognized_ump_count ?? 0) + (umpSummary?.metrics?.reconciled_ump_count ?? 0);
   const declaredUmpStatusLabel = (status: string) => {
     if (status === "recognized") return "Exacta";
@@ -954,6 +954,48 @@ export function TerritorialSourceConsole({
     });
     return index;
   }, [batchRecommendations]);
+  const umpRecommendationIdForRow = useCallback((row: TerritorialSourceDeclaredUmpRow) => {
+    const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
+    return umpBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
+      ?? umpBatchIndex.get(row.raw_ump ? `raw:${row.raw_ump}` : "")
+      ?? umpBatchIndex.get(row.normalized_ump ? `raw:${row.normalized_ump}` : "")
+      ?? umpBatchIndex.get(assignedUmp ? `assigned:${assignedUmp}` : "")
+      ?? umpBatchIndex.get(row.assigned_block_id ? `block:${row.assigned_block_id}` : "")
+      ?? umpBatchIndex.get(row.raw_ump && assignedUmp ? `pair:${row.raw_ump}->${assignedUmp}` : "")
+      ?? "";
+  }, [umpBatchIndex]);
+  const umpRowsMissing = umpManualRows.filter((row) => row.status === "missing");
+  const umpRowsSuggested = umpManualRows.filter((row) => Boolean(umpRecommendationIdForRow(row)));
+  const umpQueueLensOptions: Array<{
+    key: TerritorialSourceUmpQueueLens;
+    label: string;
+    count: number;
+    tone: "warning" | "danger" | "primary";
+  }> = [
+    { key: "manual", label: "Manual", count: umpManualRows.length, tone: "warning" },
+    { key: "without-route", label: "Sin ruta", count: umpRowsWithoutRoute.length, tone: "warning" },
+    { key: "missing", label: "Sin UMP", count: umpRowsMissing.length, tone: "danger" },
+    { key: "suggested", label: "Sugeridas", count: umpRowsSuggested.length, tone: "primary" },
+  ];
+  const umpQueueSourceRows = umpQueueLens === "without-route"
+    ? umpRowsWithoutRoute
+    : umpQueueLens === "missing"
+      ? umpRowsMissing
+      : umpQueueLens === "suggested"
+        ? umpRowsSuggested
+        : umpManualRows;
+  const umpQueuePreviewRows = umpQueueSourceRows.slice(0, 4);
+  const activeUmpQueueLens = umpQueueLensOptions.find((item) => item.key === umpQueueLens) ?? umpQueueLensOptions[0];
+  const emptyUmpQueueLabel = umpQueueLens === "suggested"
+    ? "Sin sugerencias de UMP"
+    : umpQueueLens === "missing"
+      ? "Sin UMP en blanco"
+      : umpQueueLens === "without-route"
+        ? "Sin pendientes sin ruta"
+        : "Sin cola manual";
+  const emptyUmpQueueHint = umpQueueLens === "manual"
+    ? `${fmt(umpAcceptedCount)} UMP ya listas`
+    : "Cambia el lente para revisar otra parte de la cola";
 
   return (
     <div className={`mon-territorial-source-console is-tab-${activeTab}`} data-source-tab={activeTab}>
@@ -1610,12 +1652,7 @@ export function TerritorialSourceConsole({
                 <div className="mon-territorial-reconciliation-list">
                   {umpReviewRows.length ? umpReviewRows.map((row, index) => {
                     const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
-                    const recommendationId = umpBatchIndex.get(row.response_id ? `response:${row.response_id}` : "")
-                      ?? umpBatchIndex.get(row.raw_ump ? `raw:${row.raw_ump}` : "")
-                      ?? umpBatchIndex.get(row.normalized_ump ? `raw:${row.normalized_ump}` : "")
-                      ?? umpBatchIndex.get(assignedUmp ? `assigned:${assignedUmp}` : "")
-                      ?? umpBatchIndex.get(row.assigned_block_id ? `block:${row.assigned_block_id}` : "")
-                      ?? umpBatchIndex.get(row.raw_ump && assignedUmp ? `pair:${row.raw_ump}->${assignedUmp}` : "");
+                    const recommendationId = umpRecommendationIdForRow(row);
                     const isSelected = recommendationId ? selectedBatchIds.has(recommendationId) : false;
                     const tone = declaredUmpStatusTone(row.status);
                     const rowKey = `${row.raw_ump || index}-${row.response_id || row.status}`;
@@ -1654,28 +1691,44 @@ export function TerritorialSourceConsole({
                     <span><SlidersHorizontal size={13} /> Cola UMP</span>
                     <strong>{fmt(umpSummary?.metrics?.review_ump_count ?? 0)} pendientes</strong>
                   </div>
-                  <div className="mon-territorial-reconciliation-queue-metrics">
-                    <span><strong>{fmt(umpAcceptedCount)}</strong><em>listas</em></span>
-                    <span className={umpRowsWithoutRoute.length ? "is-warning" : ""}><strong>{fmt(umpRowsWithoutRoute.length)}</strong><em>sin ruta</em></span>
-                    <span className={(umpSummary?.metrics?.responses_without_ump ?? 0) ? "is-warning" : ""}><strong>{fmt(umpSummary?.metrics?.responses_without_ump ?? 0)}</strong><em>sin UMP</em></span>
-                    <span className={batchUmpCount ? "is-primary" : ""}><strong>{fmt(batchUmpCount)}</strong><em>sugeridas</em></span>
+                  <div className="mon-territorial-reconciliation-queue-filterbar">
+                    <span className="mon-territorial-reconciliation-queue-ready"><strong>{fmt(umpAcceptedCount)}</strong><em>listas</em></span>
+                    <div className="mon-territorial-reconciliation-queue-lenses" aria-label="Filtrar cola UMP por tipo de revisión">
+                      {umpQueueLensOptions.map((option) => (
+                        <button
+                          key={option.key}
+                          type="button"
+                          className={`is-${option.tone}${umpQueueLens === option.key ? " is-active" : ""}`}
+                          aria-pressed={umpQueueLens === option.key}
+                          aria-label={`Ver cola ${option.label.toLocaleLowerCase("es-PE")} (${fmt(option.count)})`}
+                          onClick={() => setUmpQueueLens(option.key)}
+                        >
+                          <span>{option.label}</span>
+                          <strong>{fmt(option.count)}</strong>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="mon-territorial-reconciliation-queue-list">
-                    {umpManualPreviewRows.length ? umpManualPreviewRows.map((row, index) => {
+                    {umpQueuePreviewRows.length ? umpQueuePreviewRows.map((row, index) => {
                       const assignedUmp = row.assigned_ump || row.route_blocks?.[0]?.route_ump || "";
                       const district = row.assigned_district || row.route_blocks?.[0]?.distrito || "Distrito S/D";
+                      const recommendationId = umpRecommendationIdForRow(row);
                       return (
-                        <span key={`${row.raw_ump || "missing"}-${row.response_id || index}`}>
+                        <span
+                          key={`${row.raw_ump || "missing"}-${row.response_id || index}`}
+                          className={`is-${declaredUmpStatusTone(row.status)}${recommendationId ? " is-recommended" : ""}`}
+                        >
                           <strong>{row.raw_ump || row.normalized_ump || "UMP S/D"}</strong>
                           <em>{declaredUmpReviewReason(row)}</em>
-                          <small>{assignedUmp || "Sin ruta"} · {district}</small>
+                          <small>{recommendationId ? "Sugerida · " : ""}{assignedUmp || "Sin ruta"} · {district}</small>
                         </span>
                       );
                     }) : (
                       <span className="is-empty">
-                        <strong>Sin cola manual</strong>
-                        <em>Todo exacto</em>
-                        <small>{fmt(umpRowsWithRouteCandidate.length)} con ruta candidata</small>
+                        <strong>{emptyUmpQueueLabel}</strong>
+                        <em>{activeUmpQueueLens.label}</em>
+                        <small>{emptyUmpQueueHint}</small>
                       </span>
                     )}
                   </div>
