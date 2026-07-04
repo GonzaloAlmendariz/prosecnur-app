@@ -23,6 +23,7 @@ type MonitoreoModuleChromeProps = {
   hasSnapshot: boolean;
   syncing?: boolean;
   syncProgress?: MonitoreoModuleSyncProgress | null;
+  viewMetrics?: Partial<Record<WorkbenchView, string>>;
   syncDisabled?: boolean;
   syncLabel?: string;
   syncTitle?: string;
@@ -93,6 +94,7 @@ export function MonitoreoModuleChrome({
   hasSnapshot,
   syncing = false,
   syncProgress = null,
+  viewMetrics,
   syncDisabled = false,
   syncLabel = "Actualizar todo",
   syncTitle,
@@ -168,18 +170,20 @@ export function MonitoreoModuleChrome({
           {views.map((item, index) => {
             const selected = item.key === activeView;
             const displayLabel = item.shortLabel ?? item.label;
+            const metric = viewMetrics?.[item.key] ?? "";
+            const accessibilityLabel = metric ? `${displayLabel}, ${metric}: ${item.desc}` : `${displayLabel}: ${item.desc}`;
             return (
               <li key={item.key} className="pulso-phase-pill-item">
                 <button
                   type="button"
                   role="tab"
                   className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}${saving ? " is-disabled" : ""}`}
-                  aria-label={`${displayLabel}: ${item.desc}`}
+                  aria-label={accessibilityLabel}
                   aria-current={selected ? "page" : undefined}
                   aria-selected={selected}
                   data-view-key={item.key}
                   disabled={saving}
-                  title={`${item.label}: ${item.desc}`}
+                  title={metric ? `${item.label}: ${metric} · ${item.desc}` : `${item.label}: ${item.desc}`}
                   onClick={() => {
                     if (!saving) onViewChange?.(item.key);
                   }}
@@ -188,7 +192,8 @@ export function MonitoreoModuleChrome({
                   <span className="pulso-phase-pill-stack">
                     <span className="pulso-phase-pill-label">
                       <span className="pulso-phase-pill-number">{index + 1}</span>
-                      <span>{displayLabel}</span>
+                      <span className="pulso-phase-pill-text">{displayLabel}</span>
+                      {metric ? <em className="pulso-phase-pill-metric">{metric}</em> : null}
                     </span>
                   </span>
                 </button>

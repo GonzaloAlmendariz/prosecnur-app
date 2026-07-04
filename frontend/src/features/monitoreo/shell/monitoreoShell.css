@@ -476,13 +476,28 @@
   gap: 6px;
 }
 
-.mon-section-pill .pulso-phase-pill-label > span:last-child {
+.mon-section-pill .pulso-phase-pill-label > span:last-child,
+.mon-section-pill .pulso-phase-pill-text {
   max-width: 148px;
   overflow: hidden;
   color: inherit;
   font-size: 12px;
   font-weight: 800;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-section-pill .pulso-phase-pill-metric {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--mon-shell-accent) 26%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mon-shell-accent) 8%, #fff);
+  color: color-mix(in srgb, var(--mon-shell-accent) 82%, var(--pulso-text));
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  padding: 3px 5px;
   white-space: nowrap;
 }
 
@@ -514,6 +529,12 @@
 
 .mon-section-pill.pulso-phase-pill.is-active .pulso-phase-pill-number {
   border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.mon-section-pill.pulso-phase-pill.is-active .pulso-phase-pill-metric {
+  border-color: rgba(255, 255, 255, 0.34);
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
@@ -1300,9 +1321,15 @@
     gap: 3px;
   }
 
-  .mon-section-pill .pulso-phase-pill-label > span:last-child {
+  .mon-section-pill .pulso-phase-pill-label > span:last-child,
+  .mon-section-pill .pulso-phase-pill-text {
     max-width: clamp(48px, 7.2vw, 86px);
     font-size: 9.6px;
+  }
+
+  .mon-section-pill .pulso-phase-pill-metric {
+    font-size: 8.4px;
+    padding-inline: 4px;
   }
 
   .mon-section-pill .pulso-phase-pill-number {
@@ -1482,7 +1509,8 @@
     gap: 4px;
   }
 
-  .mon-section-pill .pulso-phase-pill-label > span:last-child {
+  .mon-section-pill .pulso-phase-pill-label > span:last-child,
+  .mon-section-pill .pulso-phase-pill-text {
     max-width: 118px;
     font-size: 11px;
   }
