@@ -53998,7 +53998,7 @@ button.mon-acr-requirement-metric:active {
   max-width: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   gap: 10px;
   border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 20%, var(--pulso-border));
   border-radius: 13px;
@@ -54015,7 +54015,7 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-territorial-reconciliation-panel.is-ump {
-  grid-template-rows: auto auto auto minmax(128px, 1fr);
+  grid-template-rows: auto auto auto minmax(96px, 0.72fr) minmax(128px, 1fr);
 }
 
 .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-list {
@@ -54100,6 +54100,87 @@ button.mon-acr-requirement-metric:active {
   letter-spacing: 0.035em;
   line-height: 1.08;
   text-transform: uppercase;
+}
+
+.mon-territorial-reconciliation-review-lens {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.mon-territorial-reconciliation-review-lens-field {
+  min-width: 0;
+  min-height: 32px;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #fff);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-muted-surface) 62%, #fff)),
+    #fff;
+  color: var(--pulso-text-soft);
+  padding: 5px 7px;
+}
+
+.mon-territorial-reconciliation-review-lens-field:focus-within {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 42%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+}
+
+.mon-territorial-reconciliation-review-lens-field input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 760;
+}
+
+.mon-territorial-reconciliation-review-lens-field input::placeholder {
+  color: var(--pulso-text-faint);
+}
+
+.mon-territorial-reconciliation-review-lens-field button {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 0;
+}
+
+.mon-territorial-reconciliation-review-lens-field button:hover,
+.mon-territorial-reconciliation-review-lens-field button:focus-visible {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 34%, var(--pulso-border));
+  color: var(--module-accent, var(--pulso-primary));
+  outline: none;
+}
+
+.mon-territorial-reconciliation-review-lens > span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 22%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-weight: 880;
+  line-height: 1;
+  padding: 5px 8px;
+  white-space: nowrap;
 }
 
 .mon-territorial-reconciliation-list {
