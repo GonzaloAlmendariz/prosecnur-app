@@ -55213,6 +55213,47 @@ button.mon-acr-requirement-metric:active {
   padding-right: 2px;
 }
 
+.mon-territorial-reconciliation-list-head {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  min-width: 0;
+  min-height: 26px;
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-muted-surface) 58%, #fff)),
+    #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.045);
+  color: var(--pulso-text-faint);
+  padding: 5px 9px;
+}
+
+.mon-territorial-reconciliation-list-head.is-code {
+  grid-template-columns: minmax(82px, 0.32fr) minmax(76px, 0.34fr) minmax(0, 0.58fr) minmax(0, 0.68fr);
+  gap: 9px;
+}
+
+.mon-territorial-reconciliation-list-head.is-ump {
+  grid-template-columns: minmax(82px, 0.28fr) minmax(80px, 0.32fr) minmax(0, 0.68fr) minmax(0, 0.72fr);
+  gap: 9px;
+}
+
+.mon-territorial-reconciliation-list-head span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 7.6px;
+  font-weight: 930;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .mon-territorial-reconciliation-list article,
 .mon-territorial-reconciliation-list button.mon-territorial-reconciliation-row {
   min-width: 0;
@@ -55662,6 +55703,37 @@ button.mon-acr-requirement-metric:active {
   overflow: auto;
 }
 
+.mon-territorial-reconciliation-queue-list-head {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  min-width: 0;
+  min-height: 24px;
+  display: grid;
+  grid-template-columns: minmax(78px, 0.36fr) minmax(0, 0.58fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 24%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-primary-soft) 12%, #fff)),
+    #fff;
+  color: var(--pulso-text-faint);
+  padding: 5px 8px;
+}
+
+.mon-territorial-reconciliation-queue-list-head span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 7.4px;
+  font-weight: 930;
+  letter-spacing: 0.055em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .mon-territorial-reconciliation-queue-list article {
   min-width: 0;
   display: grid;
@@ -55889,6 +55961,11 @@ button.mon-acr-requirement-metric:active {
 }
 
 @media (max-width: 1500px) and (max-height: 850px) {
+  .mon-territorial-reconciliation-list-head,
+  .mon-territorial-reconciliation-queue-list-head {
+    display: none;
+  }
+
   .mon-territorial-reconciliation-panel.is-code .mon-territorial-reconciliation-list,
   .mon-territorial-reconciliation-queue-list {
     max-height: 58px;
