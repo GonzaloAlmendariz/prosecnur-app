@@ -28816,3 +28816,42 @@
     grid-template-columns: 184px minmax(0, 1fr);
   }
 }
+
+/* Suite polish pass 66: command bar status becomes a compact, non-wrapping control. */
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-status {
+  width: var(--gv2-command-control-h) !important;
+  min-width: var(--gv2-command-control-h) !important;
+  flex: 0 0 var(--gv2-command-control-h) !important;
+  padding: 0 !important;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-copy {
+  display: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-mark {
+  width: calc(var(--gv2-command-control-h) - 8px);
+  height: calc(var(--gv2-command-control-h) - 8px);
+  flex: 0 0 calc(var(--gv2-command-control-h) - 8px);
+  margin: 0;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-suite-chip {
+  display: none !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-view-control {
+  position: relative;
+  gap: 5px !important;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-cluster--mode {
+  flex-basis: auto;
+  min-width: 0;
+}
+
+.pulso-graficos-frame .pulso-gv2-command-row--unified {
+  white-space: nowrap;
+}
