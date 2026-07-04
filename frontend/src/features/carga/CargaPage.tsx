@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowRight, ArrowRightLeft, CheckCircle2, CloudDownload, Database, FileSpreadsheet,
   Download, Info, Loader2, RefreshCw, Search, ShieldCheck, Table2, Trash2, Upload,
@@ -46,7 +46,7 @@ import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
@@ -780,10 +780,23 @@ export default function CargaPage() {
           )}
         >
           <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi">
-            <CargaWorkspaceTabs
-              active={activeCargaTab}
-              onChange={setActiveCargaTab}
-              baseReady={cargaBaseOptions.length > 0}
+            <CargaSuiteBar
+              modeLabel="Varias bases"
+              headline={cargaBaseOptions.length > 0 ? "Mesa multibase activa" : "Define las fuentes del estudio"}
+              detail={cargaBaseOptions.length > 0
+                ? `${cargaBaseOptions.length} base${cargaBaseOptions.length === 1 ? "" : "s"} listas para revisar, comparar y consolidar.`
+                : "Elige entre carga manual, fuentes conectadas o organización independiente desde Monitoreo."}
+              hasXlsform={hasXlsform}
+              hasData={hasData}
+              pendingChoiceMapping={pendingChoiceMapping}
+              allReady={allReady}
+              controls={(
+                <CargaWorkspaceTabs
+                  active={activeCargaTab}
+                  onChange={setActiveCargaTab}
+                  baseReady={cargaBaseOptions.length > 0}
+                />
+              )}
             />
             {activeCargaTab === "insumos" ? (
               <>
@@ -902,12 +915,18 @@ export default function CargaPage() {
       >
 
         <div className="pulso-carga-content pulso-content-area">
-          <div className="pulso-upload-section-head pulso-carga-content-head">
-            <SectionEyebrow
-              label="Formulario y respuestas"
-              hint="Carga primero el formulario y luego las respuestas. Pulso usa esa estructura para preparar variables, reconstruir selecciones múltiples y revisar compatibilidad antes de procesar reportes."
-            />
-            <div className="pulso-carga-header-controls">
+          <CargaSuiteBar
+            modeLabel={sourceMode === "files" ? "Carga manual" : "Carga conectada"}
+            headline={allReady ? "Insumos listos para validar" : sourceMode === "platform" ? "Importa desde una plataforma" : "Carga formulario y respuestas"}
+            detail={sourceMode === "platform"
+              ? "Lee SurveyMonkey o KoboToolbox, selecciona una fuente y deja el instrumento con su base listos en el mismo flujo."
+              : "Carga primero el formulario y luego las respuestas para reconstruir variables, códigos y compatibilidad antes de validar."}
+            hasXlsform={hasXlsform}
+            hasData={hasData}
+            pendingChoiceMapping={pendingChoiceMapping}
+            allReady={allReady}
+            controls={(
+              <>
               <CargaWorkspaceTabs
                 active={activeCargaTab}
                 onChange={setActiveCargaTab}
@@ -937,8 +956,9 @@ export default function CargaPage() {
                   </button>
                 </div>
               )}
-            </div>
-          </div>
+              </>
+            )}
+          />
 
           {activeCargaTab === "insumos" ? (
             <>
@@ -1902,6 +1922,53 @@ function CargaCommandPill({ label, done }: { label: string; done: boolean }) {
       <span aria-hidden="true" className="pulso-carga-command-dot" />
       {label}
     </span>
+  );
+}
+
+function CargaSuiteBar({
+  modeLabel,
+  headline,
+  detail,
+  hasXlsform,
+  hasData,
+  pendingChoiceMapping,
+  allReady,
+  controls,
+}: {
+  modeLabel: string;
+  headline: string;
+  detail: string;
+  hasXlsform: boolean;
+  hasData: boolean;
+  pendingChoiceMapping: boolean;
+  allReady: boolean;
+  controls: ReactNode;
+}) {
+  const reviewText = pendingChoiceMapping ? "Revisar códigos" : allReady ? "Validable" : "Pendiente";
+  return (
+    <section className="pulso-carga-suitebar" aria-label="Centro de control de carga">
+      <div className="pulso-carga-suitebar-main">
+        <span className="pulso-carga-suitebar-icon" aria-hidden="true">
+          {allReady ? <ShieldCheck size={18} /> : <Database size={18} />}
+        </span>
+        <div className="pulso-carga-suitebar-copy">
+          <span className="pulso-carga-suitebar-kicker">{modeLabel}</span>
+          <strong>{headline}</strong>
+          <p>{detail}</p>
+        </div>
+      </div>
+      <div className="pulso-carga-suitebar-meter" aria-label="Estado de insumos">
+        <CargaCommandPill label="Formulario" done={hasXlsform} />
+        <CargaCommandPill label="Respuestas" done={hasData} />
+        <span className={`pulso-carga-command-review${allReady ? " is-ready" : pendingChoiceMapping ? " needs-review" : ""}`}>
+          <ShieldCheck size={13} />
+          {reviewText}
+        </span>
+      </div>
+      <div className="pulso-carga-suitebar-controls">
+        {controls}
+      </div>
+    </section>
   );
 }
 
