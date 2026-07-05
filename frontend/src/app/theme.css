@@ -4616,6 +4616,12 @@ a { color: var(--pulso-primary); }
   min-height: 0;
   padding: 14px;
 }
+.pulso-validacion-panel-body:has(> .pulso-validacion-explorar-layout) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .pulso-validacion-content.is-contained-scroll .pulso-validacion-panel-body {
   overflow: hidden;
   display: flex;
@@ -5749,20 +5755,23 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-validacion-explorar-layout {
+  flex: 1 1 auto;
+  height: 100%;
   display: grid;
   grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
-  min-height: clamp(560px, calc(100dvh - 224px), 980px);
+  min-height: 0;
 }
 .pulso-validacion-explorar-sidebar {
-  position: sticky;
-  top: 66px;
-  align-self: start;
+  position: relative;
+  top: auto;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  max-height: clamp(520px, calc(100dvh - 178px), 920px);
-  min-height: min(720px, calc(100dvh - 224px));
+  height: 100%;
+  max-height: none;
+  min-height: 0;
   min-width: 0;
   padding: 14px;
   border: 1px solid var(--pulso-border);
@@ -5811,10 +5820,14 @@ a { color: var(--pulso-primary); }
 }
 .pulso-validacion-explorar-main {
   min-width: 0;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
 }
 .pulso-validacion-kpi-grid {
   display: grid;
@@ -5915,12 +5928,12 @@ a { color: var(--pulso-primary); }
   .pulso-validacion-explorar-layout {
     grid-template-columns: minmax(236px, 280px) minmax(0, 1fr);
     gap: 12px;
-    min-height: auto;
+    min-height: 0;
   }
 
   .pulso-validacion-explorar-sidebar {
     top: 52px;
-    max-height: calc(100dvh - 190px);
+    max-height: none;
     min-height: 0;
     padding: 12px;
   }
