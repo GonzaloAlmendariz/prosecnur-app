@@ -1,4 +1,4 @@
-import { Edit3, Layers, RefreshCw } from "lucide-react";
+import { AlertTriangle, Edit3, Layers, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   apiAnaliticaDimensionesBuild,
@@ -43,6 +43,9 @@ export function DimensionesPane() {
   const builtFlag = !!state?.analitica_dim_ok;
   const efectivo: "wizard" | "resumen" =
     modo === "wizard" ? "wizard" : modo === "resumen" ? "resumen" : builtFlag ? "resumen" : "wizard";
+  const listasCount = dim.listas_objetivo.length;
+  const bloquesCount = dim.subindices.length;
+  const indicesCount = dim.indices.length;
 
   // Para el modo "wizard" cuando arranca tras "Editar": cargar el draft
   // desde el config persistido en lugar de los defaults vacíos.
@@ -59,19 +62,38 @@ export function DimensionesPane() {
   }
 
   return (
-    <Panel
-      title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Layers size={16} /> Dimensiones e índices
-        </span>
-      }
-      hint="Recodifica preguntas evaluativas a una escala 0-100, agrúpalas en bloques temáticos y combínalas en índices compuestos. El resultado alimenta Cruces (modo dimensiones), Gráficos PPT/Word y el módulo Dashboard."
-    >
+    <Panel className="analitica-dimensiones-panel">
+      <div className="analitica-report-shell analitica-dimensiones-workbench">
+        <div className="analitica-dimensiones-docbar">
+          <span className="analitica-dimensiones-docbar-icon" aria-hidden="true">
+            <Layers size={16} />
+          </span>
+          <div className="analitica-dimensiones-docbar-copy">
+            <span>Producto de índices</span>
+            <strong>Dimensiones e índices</strong>
+            <small>Escalas 0-100 para Cruces, Gráficos y Dashboard.</small>
+          </div>
+          <div className="analitica-dimensiones-docbar-stats" aria-label="Estado de dimensiones e índices">
+            <span>
+              Listas
+              <strong>{listasCount}</strong>
+            </span>
+            <span>
+              Bloques
+              <strong>{bloquesCount}</strong>
+            </span>
+            <span>
+              Índices
+              <strong>{indicesCount}</strong>
+            </span>
+          </div>
+        </div>
       {efectivo === "wizard" ? (
         <DimensionesWizard onComplete={onWizardComplete} />
       ) : (
         <ResumenPostBuild onEditar={abrirWizardDesdeConfig} />
       )}
+      </div>
     </Panel>
   );
 }
@@ -127,44 +149,50 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
     }
   }
 
-  if (statusErr) {
+  const noDimensiones = statusErr.includes("[E_NO_DIM]");
+
+  if (statusErr && !noDimensiones) {
     return <ErrorBlock label="No se pudo leer el estado de dimensiones" detail={statusErr} />;
   }
-  if (hasBuilt === null) return <LoadingBlock label="Cargando estado…" />;
 
-  if (!hasBuilt) {
+  if (hasBuilt === null && !noDimensiones) return <LoadingBlock label="Cargando estado…" />;
+
+  if (hasBuilt === false || noDimensiones) {
     // Edge case: state.analitica_dim_ok true pero el backend dice no built.
-    // Caemos al wizard.
+    // Lo tratamos como estado recuperable para no bloquear al analista.
     return (
-      <Alert kind="warn">
-        El estado del proyecto indicaba dimensiones generadas, pero no encontramos
-        la base. Vuelve al asistente para reconstruirlas.
-      </Alert>
+      <div className="analitica-dimensiones-empty">
+        <span className="analitica-dimensiones-empty-icon" aria-hidden="true">
+          <AlertTriangle size={16} />
+        </span>
+        <div className="analitica-dimensiones-empty-copy">
+          <strong>Dimensiones pendientes de construir</strong>
+          <span>
+            El proyecto no tiene todavía la base de índices <code>idx_*</code> y <code>sub_*</code>.
+            Abre el asistente para revisar listas, bloques e índices antes de generar.
+          </span>
+        </div>
+        <button type="button" className="pulso-primary analitica-dimensiones-action" onClick={onEditar}>
+          <Edit3 size={13} /> Abrir asistente
+        </button>
+      </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div className="analitica-dimensiones-summary">
       <Alert kind="info">
         Dimensiones activas. Cruces, Gráficos y Dashboard ya pueden consumir{" "}
         <code>idx_*</code> y <code>sub_*</code>. Si cambiaste la base río arriba,
         regenera para refrescar; si quieres reorganizar la estructura, edítala.
         <br />
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          💾 Esta configuración viaja con tu <code>.pulso</code> — al reabrir el
+        <span className="analitica-dimensiones-persistence-note">
+          Esta configuración viaja con tu <code>.pulso</code>; al reabrir el
           proyecto, las dimensiones estarán listas sin re-importar nada.
         </span>
       </Alert>
 
-      <div
-        style={{
-          padding: "16px 18px",
-          borderRadius: 12,
-          border: "1px solid var(--pulso-border)",
-          background: "var(--pulso-surface)",
-          overflowX: "auto",
-        }}
-      >
+      <div className="analitica-dimensiones-tree">
         <DiagramaArbol
           listas={dim.listas_objetivo}
           bloques={dim.subindices}
@@ -173,21 +201,12 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
       </div>
 
       {cobertura && cobertura.length > 0 && (
-        <section>
-          <h4
-            style={{
-              margin: "0 0 8px",
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: 0.4,
-              color: "var(--pulso-text-soft)",
-            }}
-          >
+        <section className="analitica-dimensiones-coverage">
+          <h4>
             Cobertura por columna
           </h4>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <div className="analitica-dimensiones-table-scroll">
+            <table className="analitica-dimensiones-table">
               <thead>
                 <tr>
                   <Th>Columna</Th>
@@ -215,21 +234,11 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
         </section>
       )}
 
-      <footer
-        style={{
-          display: "flex",
-          gap: 10,
-          paddingTop: 12,
-          borderTop: "1px solid var(--pulso-border)",
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
+      <footer className="analitica-dimensiones-footer">
         <button
           type="button"
           className="pulso-primary"
           onClick={onEditar}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <Edit3 size={13} /> Editar estructura
         </button>
@@ -237,11 +246,10 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
           type="button"
           onClick={regenerar}
           disabled={busy}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <RefreshCw size={13} /> {busy ? "Regenerando…" : "Regenerar"}
         </button>
-        {busy && <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{busyMsg}</span>}
+        {busy && <span className="analitica-dimensiones-busy">{busyMsg}</span>}
       </footer>
     </div>
   );
@@ -249,19 +257,7 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th
-      style={{
-        textAlign: "left",
-        padding: "6px 10px",
-        borderBottom: "1px solid var(--pulso-border)",
-        background: "var(--pulso-surface-2, #f4f5f9)",
-        fontWeight: 600,
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: 0.3,
-        color: "var(--pulso-text-soft)",
-      }}
-    >
+    <th>
       {children}
     </th>
   );
@@ -269,13 +265,7 @@ function Th({ children }: { children: React.ReactNode }) {
 
 function Td({ children, mono }: { children: React.ReactNode; mono?: boolean }) {
   return (
-    <td
-      style={{
-        padding: "6px 10px",
-        borderBottom: "1px solid var(--pulso-border-soft, #eef0f5)",
-        fontFamily: mono ? "ui-monospace, monospace" : undefined,
-      }}
-    >
+    <td className={mono ? "is-mono" : undefined}>
       {children}
     </td>
   );

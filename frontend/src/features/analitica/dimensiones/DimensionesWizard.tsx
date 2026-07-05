@@ -40,15 +40,12 @@ export function DimensionesWizard({ onComplete }: { onComplete: () => void }) {
   })();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div className="analitica-dimensiones-wizard">
       <ProgressStepper current={step} furthestVisited={furthestVisited} onJump={goTo} />
 
       <div
         key={step}
-        style={{
-          // Cross-fade ligero entre pasos para no perder el contexto.
-          animation: "pulso-lens-fade-in-kf var(--anim-dur-med) var(--anim-ease-smooth)",
-        }}
+        className="analitica-dimensiones-step-surface"
       >
         {step === 1 && (
           <Step1_Plantilla
@@ -67,24 +64,15 @@ export function DimensionesWizard({ onComplete }: { onComplete: () => void }) {
       {/* Footer con back/next solo en steps 2-4. Step 1 elige por sí mismo
           via cards; step 5 tiene su propio botón "Generar". */}
       {step >= 2 && step <= 4 && (
-        <footer
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            paddingTop: 12,
-            borderTop: "1px solid var(--pulso-border)",
-          }}
-        >
+        <footer className="analitica-dimensiones-wizard-footer">
           <button
             type="button"
             onClick={back}
             disabled={step === 1}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             <ArrowLeft size={13} /> Atrás
           </button>
-          <span style={{ flex: 1, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          <span className="analitica-dimensiones-wizard-hint">
             {hint}
           </span>
           <button
@@ -92,7 +80,6 @@ export function DimensionesWizard({ onComplete }: { onComplete: () => void }) {
             className="pulso-primary"
             disabled={!puedeAvanzar}
             onClick={next}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             Continuar <ArrowRight size={13} />
           </button>

@@ -29,16 +29,7 @@ export function ProgressStepper({
   return (
     <nav
       aria-label="Pasos del asistente de Dimensiones"
-      style={{
-        display: "flex",
-        alignItems: "stretch",
-        gap: 0,
-        padding: "16px 18px",
-        borderRadius: 12,
-        border: "1px solid var(--pulso-border)",
-        background: "var(--pulso-surface)",
-        boxShadow: "var(--pulso-shadow-low)",
-      }}
+      className="pulso-stepper analitica-dimensiones-stepper"
     >
       {STEPS.map((s, i) => {
         const isActive = current === s.n;
@@ -46,74 +37,31 @@ export function ProgressStepper({
         const isReachable = s.n <= furthestVisited;
         const isLast = i === STEPS.length - 1;
         return (
-          <div key={s.n} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
+          <div key={s.n} className="pulso-stepper-node analitica-dimensiones-stepper-node">
             <button
               type="button"
               onClick={() => isReachable && onJump(s.n)}
               disabled={!isReachable}
               aria-current={isActive ? "step" : undefined}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "6px 8px",
-                background: "transparent",
-                border: "none",
-                cursor: isReachable ? "pointer" : "default",
-                opacity: isReachable ? 1 : 0.55,
-                flex: 1,
-                minWidth: 0,
-                textAlign: "left",
-                transition: "opacity var(--anim-dur-short) var(--anim-ease-smooth)",
-              }}
+              className={[
+                "pulso-step-chip",
+                "analitica-dimensiones-step-chip",
+                isActive ? "is-active" : "",
+                isDone ? "is-done" : "",
+                !isReachable ? "is-disabled" : "",
+              ].filter(Boolean).join(" ")}
             >
               <span
-                className={isActive ? "pulso-stepper-pulse" : undefined}
+                className={`pulso-step-icon ${isActive ? "pulso-stepper-pulse" : ""}`}
                 aria-hidden="true"
-                style={{
-                  width: 32,
-                  height: 32,
-                  minWidth: 32,
-                  borderRadius: 999,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  background: isActive
-                    ? "var(--pulso-primary)"
-                    : isDone
-                      ? "var(--pulso-success-fg, #15803d)"
-                      : "var(--pulso-surface-2, #f4f5f9)",
-                  color: isActive || isDone ? "white" : "var(--pulso-text-soft)",
-                  border: `1px solid ${isActive ? "var(--pulso-primary)" : isDone ? "var(--pulso-success-fg, #15803d)" : "var(--pulso-border)"}`,
-                  transition: "background var(--anim-dur-short) var(--anim-ease-smooth), border-color var(--anim-dur-short) var(--anim-ease-smooth)",
-                }}
               >
                 {isDone ? <Check size={16} /> : s.n}
               </span>
-              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: isActive ? 700 : 600,
-                    color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+              <div className="pulso-step-copy">
+                <span className="pulso-step-label">
                   {s.label}
                 </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: "var(--pulso-text-soft)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+                <span className="pulso-step-hint">
                   {s.hint}
                 </span>
               </div>
@@ -121,16 +69,7 @@ export function ProgressStepper({
             {!isLast && (
               <span
                 aria-hidden="true"
-                style={{
-                  height: 2,
-                  flex: "0 0 24px",
-                  margin: "0 4px",
-                  background: isDone
-                    ? "var(--pulso-success-fg, #15803d)"
-                    : "var(--pulso-border)",
-                  borderRadius: 2,
-                  transition: "background var(--anim-dur-med) var(--anim-ease-smooth)",
-                }}
+                className={`pulso-step-connector ${isDone ? "is-done" : ""}`}
               />
             )}
           </div>
