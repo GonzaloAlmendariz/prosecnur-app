@@ -18,7 +18,6 @@ import {
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
-import { LoadingBlock } from "../../../components/States";
 import { GenerateFooter, Section } from "../PaneKit";
 import { type FichaTecnicaConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
@@ -133,7 +132,7 @@ export function FichaTecnicaPane() {
         </div>
 
         {loading ? (
-          <LoadingBlock label="Leyendo evidencia metodológica..." />
+          <FichaLoadingState />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : (
@@ -280,6 +279,57 @@ export function FichaTecnicaPane() {
         )}
       </div>
     </Panel>
+  );
+}
+
+function FichaLoadingState() {
+  const steps = [
+    { icon: BookOpenCheck, label: "Fuentes", detail: "Hojas de Ruta y metadatos" },
+    { icon: Gauge, label: "KPIs", detail: "Indicadores metodológicos" },
+    { icon: Table2, label: "Tablas", detail: "Anexos disponibles" },
+  ];
+
+  return (
+    <div className="analitica-ficha-loading" role="status" aria-live="polite">
+      <section className="analitica-ficha-loading-hero" aria-label="Preparando ficha técnica">
+        <span className="analitica-ficha-loading-icon" aria-hidden="true">
+          <FileText size={18} />
+        </span>
+        <div className="analitica-ficha-loading-copy">
+          <span>Lectura metodológica</span>
+          <h3>Preparando evidencia de ficha técnica</h3>
+          <p>Estamos cruzando configuración, muestra, base longitudinal y tablas disponibles para sugerir una ficha editable.</p>
+        </div>
+      </section>
+
+      <div className="analitica-ficha-loading-steps" aria-hidden="true">
+        {steps.map(({ icon: Icon, label, detail }) => (
+          <div className="analitica-ficha-loading-step" key={label}>
+            <span><Icon size={14} /></span>
+            <div>
+              <strong>{label}</strong>
+              <small>{detail}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="analitica-ficha-loading-grid" aria-hidden="true">
+        <div className="analitica-ficha-loading-editor">
+          <i className="analitica-ficha-loading-line is-title" />
+          <i className="analitica-ficha-loading-line" />
+          <i className="analitica-ficha-loading-block" />
+          <i className="analitica-ficha-loading-line is-short" />
+          <i className="analitica-ficha-loading-block is-soft" />
+        </div>
+        <div className="analitica-ficha-loading-side">
+          <i className="analitica-ficha-loading-line is-title" />
+          <i className="analitica-ficha-loading-pill" />
+          <i className="analitica-ficha-loading-pill" />
+          <i className="analitica-ficha-loading-pill is-soft" />
+        </div>
+      </div>
+    </div>
   );
 }
 
