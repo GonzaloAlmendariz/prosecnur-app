@@ -2833,7 +2833,7 @@
   list(built = built, sources = sources)
 }
 
-.analitica_ficha_contextual_cfg <- function(sid, cfg) {
+.analitica_ficha_contextual_cfg <- function(sid, cfg, include_panel = TRUE) {
   cfg <- cfg %||% .analitica_get_config(sid)
   cfg$ficha_tecnica <- cfg$ficha_tecnica %||% list()
   ft <- cfg$ficha_tecnica
@@ -2854,7 +2854,7 @@
     ft$calc_muestra_context <- list(calc_muestra_estudio = s$calc_muestra_estudio)
   }
 
-  if (is.null(ft$panel_context)) {
+  if (isTRUE(include_panel) && is.null(ft$panel_context)) {
     panel_bundle <- .analitica_ficha_panel_build(sid, cfg)
     if (!is.null(panel_bundle)) {
       ft$panel_context <- .panel_ficha_context(panel_bundle$built, panel_bundle$sources$data_sources)
@@ -2863,6 +2863,32 @@
 
   cfg$ficha_tecnica <- ft
   cfg
+}
+
+.analitica_ficha_panel_hint <- function(sid, cfg) {
+  s <- session_get(sid, required = FALSE)
+  bases <- ((s %||% list())$estudio %||% list())$bases %||% list()
+  n_bases <- length(bases)
+  if (n_bases < 2L) {
+    return(list(
+      available = FALSE,
+      detail = "Sin base panel consolidable en la sesión."
+    ))
+  }
+
+  panel_cfg <- (cfg %||% list())$panel %||% list()
+  key <- .ficha_tecnica_scalar(panel_cfg$key, "")
+  if (!nzchar(key)) {
+    return(list(
+      available = FALSE,
+      detail = sprintf("%s mediciones detectadas; confirma la llave panel para calcular el resumen longitudinal.", n_bases)
+    ))
+  }
+
+  list(
+    available = TRUE,
+    detail = sprintf("%s mediciones detectadas; el resumen longitudinal se calculará al generar la ficha.", n_bases)
+  )
 }
 
 .analitica_ficha_suggestions_cfg <- function(cfg) {
@@ -2919,23 +2945,30 @@
   out
 }
 
-.analitica_ficha_sources <- function(cfg) {
+.analitica_ficha_sources <- function(cfg, panel_hint = NULL) {
   ft <- (cfg %||% list())$ficha_tecnica %||% list()
+  panel_hint <- panel_hint %||% list()
   hr_ok <- !is.null(ft$hojas_ruta_context) || nzchar(.ficha_tecnica_scalar(ft$hojas_ruta_pulso_path, ""))
   calc_ok <- !is.null(ft$calc_muestra_context) || nzchar(.ficha_tecnica_scalar(ft$calc_muestra_pulso_path, ""))
   panel_ok <- !is.null(ft$panel_context)
+  panel_detail <- if (isTRUE(panel_ok)) {
+    "Resumen de mediciones y cobertura panel disponible."
+  } else {
+    .ficha_tecnica_scalar(panel_hint$detail, "Sin base panel consolidable en la sesión.")
+  }
   list(
     list(key = "hojas_ruta", label = "Hojas de ruta", available = isTRUE(hr_ok),
          detail = if (isTRUE(hr_ok)) "Diseño territorial, rutas y distribución operativa disponibles." else "Sin contexto de rutas en la sesión."),
     list(key = "calc_muestra", label = "Cálculo de muestra", available = isTRUE(calc_ok),
          detail = if (isTRUE(calc_ok)) "Parámetros muestrales disponibles." else "Sin cálculo de muestra asociado."),
-    list(key = "panel", label = "Base longitudinal", available = isTRUE(panel_ok),
-         detail = if (isTRUE(panel_ok)) "Resumen de mediciones y cobertura panel disponible." else "Sin base panel consolidable en la sesión.")
+    list(key = "panel", label = "Base longitudinal", available = isTRUE(panel_ok) || isTRUE(panel_hint$available),
+         detail = panel_detail)
   )
 }
 
 .analitica_ficha_info <- function(sid, cfg = NULL) {
-  cfg_ctx <- .analitica_ficha_contextual_cfg(sid, cfg %||% .analitica_get_config(sid))
+  cfg_ctx <- .analitica_ficha_contextual_cfg(sid, cfg %||% .analitica_get_config(sid), include_panel = FALSE)
+  panel_hint <- .analitica_ficha_panel_hint(sid, cfg_ctx)
   cfg_suggest <- .analitica_ficha_suggestions_cfg(cfg_ctx)
   current_ft <- cfg_ctx$ficha_tecnica %||% list()
   suggest_ft <- cfg_suggest$ficha_tecnica %||% list()
@@ -2961,7 +2994,7 @@
     ok = TRUE,
     fields = fields,
     kpis = .analitica_ficha_kpis(cfg_suggest),
-    sources = .analitica_ficha_sources(cfg_ctx),
+    sources = .analitica_ficha_sources(cfg_ctx, panel_hint = panel_hint),
     tables = list(subtables = as.list(subtables), appendices = as.list(appendices)),
     layout = .ficha_tecnica_scalar(current_ft$layout, "pulso_oficial")
   )
@@ -3166,11 +3199,14 @@ mount_analitica <- function(pr) {
         cfg$ficha_tecnica <- utils::modifyList(cfg$ficha_tecnica %||% list(), parsed$ficha_tecnica)
       }
       template_path <- parsed$template_path %||% ((cfg$ficha_tecnica %||% list())$template_path %||% NULL)
-      cfg <- .analitica_ficha_contextual_cfg(sid, cfg)
+      cfg <- .analitica_ficha_contextual_cfg(sid, cfg, include_panel = FALSE)
       .analitica_config_set(sid, cfg)
+      cfg_doc <- cfg
 
       panel_bundle <- .analitica_ficha_panel_build(sid, cfg)
       if (!is.null(panel_bundle)) {
+        cfg_doc$ficha_tecnica <- cfg_doc$ficha_tecnica %||% list()
+        cfg_doc$ficha_tecnica$panel_context <- .panel_ficha_context(panel_bundle$built, panel_bundle$sources$data_sources)
         data_ficha <- panel_bundle$built$base_wide
         inst_ficha <- panel_bundle$built$inst_wide
         fuente <- panel_bundle$sources$fuente
@@ -3200,7 +3236,7 @@ mount_analitica <- function(pr) {
         instrumento = inst_ficha,
         reporte = "Ficha técnica",
         fuente = fuente,
-        cfg = cfg,
+        cfg = cfg_doc,
         template_path = template_path,
         detalles = detalles
       )
