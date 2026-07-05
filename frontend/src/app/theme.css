@@ -38246,6 +38246,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-main--processing :is(
     .pulso-carga-stage-item,
+    .pulso-validacion-nav-item,
+    .pulso-analitica-nav-item,
     .pulso-codificacion-nav-item
   )::before {
     content: attr(data-rail-title);
@@ -38284,6 +38286,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   .pulso-main--processing :is(
     .pulso-carga-stage-item:hover,
     .pulso-carga-stage-item:focus-visible,
+    .pulso-validacion-nav-item:hover,
+    .pulso-validacion-nav-item:focus-visible,
+    .pulso-analitica-nav-item:hover,
+    .pulso-analitica-nav-item:focus-visible,
     .pulso-codificacion-nav-item:hover,
     .pulso-codificacion-nav-item:focus-visible
   )::before {
@@ -38292,18 +38298,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     transform: translate(0, -50%) scale(1);
   }
 
-  .pulso-main--processing .pulso-analitica-nav-item::before,
-  .pulso-main--processing .pulso-analitica-nav-item:hover::before,
-  .pulso-main--processing .pulso-analitica-nav-item:focus-visible::before,
-  .pulso-main--processing .pulso-validacion-nav-item::before,
-  .pulso-main--processing .pulso-validacion-nav-item:hover::before,
-  .pulso-main--processing .pulso-validacion-nav-item:focus-visible::before {
-    content: none !important;
-    display: none !important;
-  }
-
   .pulso-main--processing :is(
     .pulso-carga-stage-item,
+    .pulso-validacion-nav-item,
+    .pulso-analitica-nav-item,
     .pulso-codificacion-nav-item
   )::after {
     content: attr(data-rail-desc);
@@ -38334,6 +38332,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   .pulso-main--processing :is(
     .pulso-carga-stage-item:hover,
     .pulso-carga-stage-item:focus-visible,
+    .pulso-validacion-nav-item:hover,
+    .pulso-validacion-nav-item:focus-visible,
+    .pulso-analitica-nav-item:hover,
+    .pulso-analitica-nav-item:focus-visible,
     .pulso-codificacion-nav-item:hover,
     .pulso-codificacion-nav-item:focus-visible
   )::after {
