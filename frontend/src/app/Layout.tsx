@@ -142,32 +142,39 @@ function BrandMark() {
   );
 }
 
-function NavItem({ it }: { it: NavItem }) {
+function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
+  return (
+    <nav
+      className="pulso-processing-phase-dock"
+      aria-label="Fases del procesamiento"
+    >
+      <ol className="pulso-processing-phase-list">
+        {items.map((it) => (
+          <ProcessingPhaseDockItem key={it.to} it={it} />
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+function ProcessingPhaseDockItem({ it }: { it: NavItem }) {
   const blocked = !!it.blockedReason;
   return (
-    <li className="pulso-phase-pill-item">
+    <li className="pulso-processing-phase-item">
       <NavLink
         to={it.to}
         title={it.blockedReason ?? undefined}
         aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : it.label}
+        data-phase-title={it.label}
+        data-phase-desc={it.blockedReason ?? (it.done ? "Completada" : "Abrir fase")}
         className={({ isActive }) => [
-          "pulso-phase-pill",
+          "pulso-processing-phase-link",
           isActive ? "is-active" : "",
           it.done ? "is-done" : "",
           blocked ? "is-blocked" : "",
         ].filter(Boolean).join(" ")}
       >
-        <span className="pulso-phase-pill-circle" aria-hidden="true" />
-        <span className="pulso-phase-pill-stack">
-          <span className="pulso-phase-pill-label">
-            <span className="pulso-phase-pill-number">{it.n}</span>
-            <span>{it.label}</span>
-          </span>
-          <span className="pulso-phase-pill-label-hover" aria-hidden="true">
-            <span className="pulso-phase-pill-number">{it.n}</span>
-            <span>{it.label}</span>
-          </span>
-        </span>
+        <span className="pulso-processing-phase-number" aria-hidden="true">{it.n}</span>
       </NavLink>
     </li>
   );
@@ -434,21 +441,6 @@ export default function Layout() {
           <Brand />
           <ModuleSwitcher />
         </div>
-        {showFases && (
-          <div className="pulso-phase-rail" aria-label="Contexto de carga, validación y productos">
-            <span className="pulso-phase-separator" aria-hidden="true" />
-            <nav
-              aria-label="Etapas 6 a 10 del proyecto"
-              className="pulso-phase-pillbar"
-            >
-              <ul className="pulso-phase-pill-list">
-                {items.map((it) => (
-                  <NavItem key={it.to} it={it} />
-                ))}
-              </ul>
-            </nav>
-          </div>
-        )}
         <div className="pulso-app-header-spacer" />
         <div className="pulso-app-header-actions">
           {projectShell ? (
@@ -470,6 +462,7 @@ export default function Layout() {
         ].filter(Boolean).join(" ")}
         data-route-policy={policy}
       >
+        {showFases && <ProcessingPhaseDock items={items} />}
         <SiblingWorkbenchSelector visible={showFases} />
         <div className="pulso-main-inner">
           <div
