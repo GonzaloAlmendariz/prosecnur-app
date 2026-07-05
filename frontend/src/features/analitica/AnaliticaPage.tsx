@@ -303,6 +303,8 @@ function AnaliticaSidebar({
               aria-controls="analitica-panel"
               aria-label={`${item.label}. ${item.desc}`}
               aria-describedby={tooltip?.key === item.key ? "analitica-rail-tooltip" : undefined}
+              data-rail-title={item.label}
+              data-rail-desc={item.desc}
               disabled={disabled}
               onClick={() => {
                 setTooltip(null);

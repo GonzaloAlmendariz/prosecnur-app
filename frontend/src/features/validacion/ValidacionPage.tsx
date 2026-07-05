@@ -353,7 +353,8 @@ function ValidacionModeSidebar({
               onBlur={() => setTooltip(null)}
               className={`pulso-validacion-nav-item${isActive ? " is-active" : ""}`}
               aria-label={`${tab.label}${tab.desc ? `. ${tab.desc}` : ""}`}
-              title={`${tab.label}${tab.desc ? ` - ${tab.desc}` : ""}`}
+              data-rail-title={tab.label}
+              data-rail-desc={tab.desc ?? ""}
             >
               <span className="pulso-validacion-nav-index">{index + 1}</span>
               <span aria-hidden="true" className="pulso-validacion-nav-icon">
