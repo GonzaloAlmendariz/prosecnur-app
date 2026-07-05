@@ -17731,6 +17731,12 @@ h1.pulso-page-title {
   margin-top: 5px;
   accent-color: var(--pulso-module-processing);
 }
+.analitica-control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
 .analitica-output-card {
   min-height: 132px;
   flex-direction: column;
@@ -18894,6 +18900,163 @@ h1.pulso-page-title {
 }
 .analitica-frecuencias-clear:active {
   transform: scale(0.98);
+}
+.analitica-cruces-panel {
+  padding-top: 10px;
+}
+.analitica-cruces-workbench {
+  min-width: 0;
+}
+.analitica-cruces-docbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(240px, 1fr) minmax(330px, 0.9fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 48%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 250, 0.82)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 20%, var(--pulso-surface));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 8px 18px color-mix(in srgb, var(--pulso-module-processing) 6%, transparent);
+}
+.analitica-cruces-docbar-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 68%, #fff 32%);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-module-processing-soft) 56%, #ffffff));
+  color: var(--pulso-module-processing);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.analitica-cruces-docbar-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.analitica-cruces-docbar-copy span {
+  color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
+  font-size: 9.5px;
+  font-weight: 840;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.analitica-cruces-docbar-copy strong,
+.analitica-cruces-docbar-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.analitica-cruces-docbar-copy strong {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: 860;
+  line-height: 1.18;
+}
+.analitica-cruces-docbar-copy small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.3;
+}
+.analitica-cruces-docbar-stats {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.analitica-cruces-docbar-stats > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 34%, var(--pulso-border));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.analitica-cruces-docbar-stats strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 820;
+  letter-spacing: 0;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.analitica-cruces-summary {
+  margin-top: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.analitica-cruces-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--pulso-text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.analitica-cruces-filter-chip:hover {
+  border-color: color-mix(in srgb, var(--pulso-module-processing-border) 58%, #fff 42%);
+  color: var(--pulso-module-processing);
+}
+.analitica-cruces-filter-chip.is-active {
+  border-color: var(--tipo-text-border);
+  background: var(--tipo-text-bg);
+  color: var(--tipo-text-fg);
+  font-weight: 760;
+}
+.analitica-cruces-filter-chip:active {
+  transform: scale(0.98);
+}
+.analitica-variable-row .pulso-icon {
+  min-width: 20px;
+  min-height: 20px;
+}
+.analitica-cruces-mode-option {
+  text-align: left;
+}
+.analitica-cruces-mode-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.analitica-cruces-mode-option.is-disabled:hover {
+  border-color: color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 252, 253, 0.88)),
+    var(--pulso-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 .analitica-codebook-workbench {
   min-width: 0;
