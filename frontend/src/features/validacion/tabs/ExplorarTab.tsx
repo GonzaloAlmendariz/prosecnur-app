@@ -307,13 +307,7 @@ export default function ExplorarTab() {
             />
 
             {/* KPIs a todo el ancho (no se parten con el cruce). */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 12,
-              }}
-            >
+            <div className="pulso-validacion-kpi-grid">
               {uni.kpis.map((k, i) => (
                 <PlotlyView key={i} view={k} />
               ))}
