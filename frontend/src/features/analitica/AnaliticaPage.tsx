@@ -129,19 +129,13 @@ export default function AnaliticaPage() {
       layout="workbench"
       scrollOwner="panels"
       resetScrollKey={`${active}:${state?.active_base ?? ""}`}
-      toolbar={
+      toolbar={!prereqOk ? (
         <div className="pulso-analitica-toolbar-stack">
-          {!prereqOk && (
-            <Alert kind="warn">
-              Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
-            </Alert>
-          )}
-
-          {prereqOk && (
-            <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
-          )}
+          <Alert kind="warn">
+            Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
+          </Alert>
         </div>
-      }
+      ) : undefined}
     >
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de analítica"
@@ -201,10 +195,7 @@ export default function AnaliticaPage() {
                   <h2>{activeMeta.label}</h2>
                   <p>{activeMeta.desc}</p>
                 </div>
-                <span className={`pulso-analitica-prep-pill${prepOk ? " is-done" : prepBusy ? " is-busy" : ""}`}>
-                  {prepOk ? <CheckCircle2 size={12} /> : <Database size={12} />}
-                  {prepBusy ? "Preparando" : prepOk ? "Datos listos" : "Pendiente"}
-                </span>
+                <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />
               </header>
 
               <div className="pulso-analitica-panel-body">
