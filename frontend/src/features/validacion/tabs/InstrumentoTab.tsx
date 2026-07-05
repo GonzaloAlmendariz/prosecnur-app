@@ -344,19 +344,10 @@ export default function InstrumentoTab() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="pulso-instrumento-workbench">
       {/* --- Paso 1: Construir plan --- */}
       <section
-        style={{
-          padding: "18px 20px",
-          borderRadius: 12,
-          background: "white",
-          border: "1px solid var(--pulso-border)",
-          boxShadow: "var(--pulso-shadow-low)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
+        className={`pulso-instrumento-step pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
       >
         <StepHeader
           idx={1}
@@ -366,19 +357,31 @@ export default function InstrumentoTab() {
           count={estado.plan_construido ? estado.n_reglas : null}
           countLabel="reglas"
         />
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {!estado.plan_construido && (
+          <div className="pulso-instrumento-setup-grid" aria-label="Secuencia de validación del instrumento">
+            <div className="pulso-instrumento-setup-card is-active">
+              <span>1</span>
+              <strong>Leer XLSForm</strong>
+              <small>Detecta required, relevant, constraints, cálculos y filtros.</small>
+            </div>
+            <div className="pulso-instrumento-setup-card">
+              <span>2</span>
+              <strong>Preparar auditoría</strong>
+              <small>Genera un plan editable antes de tocar los datos.</small>
+            </div>
+            <div className="pulso-instrumento-setup-card">
+              <span>3</span>
+              <strong>Revisar casos</strong>
+              <small>Ejecuta reglas, abre drill-downs y decide limpieza.</small>
+            </div>
+          </div>
+        )}
+        <div className="pulso-instrumento-action-row">
           <button
             type="button"
-            className="pulso-primary"
+            className="pulso-primary pulso-instrumento-action"
             onClick={() => void onBuildPlan()}
             disabled={!!busy || !!jobId}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              padding: "8px 14px",
-            }}
           >
             {estado.plan_construido ? <RefreshCcw size={12} /> : <ListTree size={12} />}
             {estado.plan_construido ? "Reconstruir plan" : "Construir plan"}
@@ -389,28 +392,12 @@ export default function InstrumentoTab() {
                 type="button"
                 onClick={() => void onExport()}
                 disabled={!!busy}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 12,
-                  padding: "8px 14px",
-                }}
+                className="pulso-instrumento-action"
               >
                 <Download size={12} /> Exportar a Excel
               </button>
               <label
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 12,
-                  padding: "8px 14px",
-                  border: "1px solid var(--pulso-border)",
-                  borderRadius: 6,
-                  cursor: busy ? "wait" : "pointer",
-                  background: "white",
-                }}
+                className={`pulso-instrumento-action pulso-instrumento-file-action${busy ? " is-busy" : ""}`}
               >
                 <Upload size={12} /> Importar plan editado
                 <input
@@ -429,17 +416,7 @@ export default function InstrumentoTab() {
         </div>
         {exportFileId && (
           <div
-            style={{
-              padding: "8px 12px",
-              background: "var(--pulso-success-bg)",
-              border: "1px solid var(--pulso-success-border)",
-              borderRadius: 6,
-              fontSize: 12,
-              color: "var(--pulso-success-fg)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-            }}
+            className="pulso-instrumento-export-note"
           >
             Plan exportado.{" "}
             <a
