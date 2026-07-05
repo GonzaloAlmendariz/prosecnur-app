@@ -37028,9 +37028,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     .pulso-analitica-sidebar:hover .pulso-analitica-nav-item,
     .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-item
   ) {
-    width: 42px !important;
-    min-height: 42px !important;
-    height: 42px !important;
+    width: var(--pulso-processing-rail-item-width, 42px) !important;
+    min-height: var(--pulso-processing-rail-item-height, 42px) !important;
+    height: var(--pulso-processing-rail-item-height, 42px) !important;
     grid-template-columns: 1fr !important;
     justify-items: center !important;
     gap: 0 !important;
@@ -37126,5 +37126,40 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     display: block;
     opacity: 1;
     transform: translate(0, -50%) scale(1);
+  }
+}
+
+/* Analitica has the densest processing rail; keep every report icon reachable on short desktop viewports. */
+@media (min-width: 901px) and (max-height: 700px) {
+  .pulso-main--processing .pulso-analitica-sidebar,
+  .pulso-main--processing .pulso-analitica-sidebar:hover,
+  .pulso-main--processing .pulso-analitica-sidebar:focus-within {
+    --pulso-processing-rail-item-height: 30px;
+    gap: 5px;
+    padding: 6px 7px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .pulso-main--processing .pulso-analitica-nav {
+    gap: 3px;
+  }
+
+  .pulso-main--processing .pulso-analitica-nav-item,
+  .pulso-main--processing .pulso-analitica-sidebar:hover .pulso-analitica-nav-item,
+  .pulso-main--processing .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-item {
+    border-radius: 8px;
+  }
+
+  .pulso-main--processing .pulso-analitica-nav-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+  }
+
+  .pulso-main--processing .pulso-analitica-nav-item.is-done::after {
+    right: 5px;
+    bottom: 5px;
+    width: 6px;
+    height: 6px;
   }
 }
