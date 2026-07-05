@@ -1461,9 +1461,22 @@ function PlatformImportPanel({
             </button>
           ))}
         </div>
-        <div className={`pulso-platform-status${hasConnection ? " is-ready" : ""}`}>
-          <span aria-hidden="true" />
-          {connectionsLoading ? "Verificando conexiones" : hasConnection ? "Conectado" : "Sin conexión"}
+        <div className="pulso-platform-topbar-actions">
+          <div className={`pulso-platform-status${hasConnection ? " is-ready" : ""}`}>
+            <span aria-hidden="true" />
+            {connectionsLoading ? "Verificando conexiones" : hasConnection ? "Conectado" : "Sin conexión"}
+          </div>
+          {isSurveyMonkey && (
+            <label className="pulso-platform-check">
+              <input
+                type="checkbox"
+                checked={includePartials}
+                onChange={(event) => onIncludePartialsChange(event.target.checked)}
+                disabled={busy}
+              />
+              <span>Parciales</span>
+            </label>
+          )}
         </div>
       </div>
 
@@ -1526,18 +1539,6 @@ function PlatformImportPanel({
           <RefreshCw size={14} />
         </button>
       </div>
-
-      {isSurveyMonkey && (
-        <label className="pulso-platform-check">
-          <input
-            type="checkbox"
-            checked={includePartials}
-            onChange={(event) => onIncludePartialsChange(event.target.checked)}
-            disabled={busy}
-          />
-          <span>Incluir parciales</span>
-        </label>
-      )}
 
       {!isSurveyMonkey && detectedKoboSource && (
         <DetectedKoboSourceCallout
