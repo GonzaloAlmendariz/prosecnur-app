@@ -2985,7 +2985,7 @@ function SmDecisionSuite({
           <div className="pulso-sm-decision-context">
             <strong title={baseSurveyTitle}>{baseSurveyTitle || "Base SurveyMonkey"}</strong>
             <span>
-              {sourceCount || 1} campaña{(sourceCount || 1) === 1 ? "" : "s"} · {selectedCollectorIds.length} collector{selectedCollectorIds.length === 1 ? "" : "s"} entra{selectedCollectorIds.length === 1 ? "" : "n"} · {hasPendingPolicyChanges ? "cambios pendientes" : "configuración guardada"}
+              {sourceCount || 1} campaña{(sourceCount || 1) === 1 ? "" : "s"} · {selectedCollectorIds.length} recopilador{selectedCollectorIds.length === 1 ? "" : "es"} entra{selectedCollectorIds.length === 1 ? "" : "n"} · {hasPendingPolicyChanges ? "cambios pendientes" : "configuración guardada"}
             </span>
           </div>
           <SmDecisionSignature audit={auditReady ? audit : null} />
@@ -6155,7 +6155,7 @@ function responseFilterLabel(filter?: Record<string, unknown> | null) {
   const statuses = Array.isArray(filter.statuses) ? filter.statuses.map(String).filter(Boolean) : [];
   if (statuses.length) parts.push(statuses.join("/"));
   const collectors = Array.isArray(filter.collector_ids) ? filter.collector_ids.map(String).filter(Boolean) : [];
-  if (collectors.length) parts.push(`collector ${collectors.join(", ")}`);
+  if (collectors.length) parts.push(`recopilador ${collectors.join(", ")}`);
   const until = String(filter.date_modified_lte ?? "").trim();
   if (until && until !== "NA") parts.push(`hasta ${until.slice(0, 16).replace("T", " ")}`);
   return parts.join(" · ");
