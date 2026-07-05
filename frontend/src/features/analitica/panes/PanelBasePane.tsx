@@ -208,7 +208,8 @@ export function PanelBasePane() {
   const crossVarsCount = cruces.cruces_vars.length;
   const crossConfigLabel = crossVarsCount > 0
     ? `${crossVarsCount} ${crossVarsCount === 1 ? "variable elegida" : "variables elegidas"}`
-    : "Sexo, NSE y distrito sugeridos";
+    : "Sexo, nivel socioeconómico y distrito sugeridos";
+  const crossStatusLabel = crossVarsCount > 0 ? crossConfigLabel : "Variables sugeridas";
   const suffixPreview = waves.length
     ? waves.map((wave) => wave.suffix).filter(Boolean).join(" / ")
     : "med1 / med2";
@@ -221,13 +222,13 @@ export function PanelBasePane() {
   const panelStats: Array<{ label: string; value: number | string; suffix?: string; compact?: boolean }> = loading
     ? [
         { label: "Bases", value: "Leyendo" },
-        { label: "Identificador", value: "Buscando", compact: true },
+        { label: "ID común", value: "Buscando", compact: true },
         { label: "Personas", value: "Calculando" },
         { label: "Archivos", value: activeOutputCount, suffix: "activos" },
       ]
     : [
-        { label: "Bases", value: info?.n_bases ?? 0, suffix: "bases" },
-        { label: "Identificador", value: activeConfig.key || "Pendiente", compact: true },
+        { label: "Mediciones", value: info?.n_bases ?? 0, suffix: "bases" },
+        { label: "ID común", value: activeConfig.key || "Pendiente", compact: true },
         { label: "Personas", value: summary?.n_panel_keys ?? "-", suffix: "únicas" },
         { label: "Archivos", value: activeOutputCount, suffix: "activos" },
       ];
@@ -294,7 +295,7 @@ export function PanelBasePane() {
               previewReady={Boolean(preview)}
               suffixPreview={measurementSummary}
               suffixRange={suffixRange}
-              crossConfigLabel={crossConfigLabel}
+              crossConfigLabel={crossStatusLabel}
               nAuditRows={summary?.n_audit_rows}
             />
 
@@ -325,13 +326,13 @@ export function PanelBasePane() {
                   <div className="analitica-panel-status-row">
                     <span className={`analitica-panel-badge ${info?.available ? "is-ok" : "is-warn"}`}>
                       {info?.available ? <Database size={12} /> : <AlertTriangle size={12} />}
-                      {info?.available ? "Identificador listo" : "Falta identificador"}
+                      {info?.available ? "ID común listo" : "Falta ID común"}
                     </span>
                     <span>{panelSourceLabel(info?.fuente)}</span>
                   </div>
                 </div>
                 <DenseTable
-                  columns={["Nombre visible", "Base", "Etiqueta de medición", "Casos", "Con persona", "Personas repetidas", "Sin persona"]}
+                  columns={["Nombre visible", "Base", "Nombre corto", "Casos", "Con ID", "Duplicadas", "Sin ID"]}
                   rows={waves.map((wave) => [
                     <input
                       key={`${wave.base}-label`}
@@ -715,11 +716,11 @@ function PanelContractStrip({
         icon={<Columns3 size={14} />}
         label="Mediciones"
         value={suffixPreview}
-        detail={suffixRange ? `etiquetas ${suffixRange}` : "listas para comparar"}
+        detail={suffixRange || "listas para comparar"}
       />
       <PanelContractItem
         icon={<GitMerge size={14} />}
-        label="Cortes"
+        label="Comparaciones"
         value={crossConfigLabel}
         detail="para leer cambios"
       />
@@ -796,7 +797,7 @@ function ExportReadinessPanel({
       active: outputs.auditoria,
       icon: <FileWarning size={14} />,
       title: "Revisión",
-      detail: nseEnabled ? "con contexto NSE" : "sin contexto NSE",
+      detail: nseEnabled ? "con nivel socioeconómico" : "sin nivel socioeconómico",
     },
     {
       key: "base",
