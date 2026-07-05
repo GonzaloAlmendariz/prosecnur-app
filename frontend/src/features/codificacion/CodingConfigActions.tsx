@@ -87,7 +87,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
         title="Aplica una plantilla JSON o Excel y revisa coincidencias antes de cambiar la codificación."
       >
         <Upload size={13} />
-        Aplicar plantilla...
+        Aplicar plantilla
       </button>
       {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
       {error && <span className="pulso-codificacion-config-feedback is-error">{error}</span>}
@@ -174,7 +174,7 @@ function CodingConfigImportDialog({
     try {
       const applied = await apiCodifImportJsonApply(bundle, selections, fileName);
       setResult(
-        `${applied.summary.variables_imported} importada(s), ${applied.summary.variables_versioned} versionada(s), ${applied.summary.variables_skipped} omitida(s).`
+        `${applied.summary.variables_imported} importada(s), ${applied.summary.variables_versioned} guardada(s) como nueva versión, ${applied.summary.variables_skipped} omitida(s).`
       );
       onImported();
     } catch (e) {
@@ -203,7 +203,7 @@ function CodingConfigImportDialog({
         <header className="pulso-codificacion-import-head">
           <span className="pulso-codificacion-import-icon" aria-hidden="true"><FileJson size={18} /></span>
           <div>
-            <span className="pulso-section-eyebrow">Plantilla portable</span>
+            <span className="pulso-section-eyebrow">Plantilla reutilizable</span>
             <h2 id="codif-import-title">Aplicar plantilla de codificación</h2>
             <p>Compara origen y destino antes de traer categorías, reglas o recodificaciones al proyecto actual.</p>
           </div>
@@ -251,7 +251,7 @@ function CodingConfigImportDialog({
                       <th>Destino</th>
                       <th>Estado</th>
                       <th>Cambios</th>
-                      <th>Estrategia</th>
+                      <th>Cómo aplicar</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -281,7 +281,7 @@ function CodingConfigImportDialog({
                         <td>
                           <span>{item.changes.categories_new} nuevas</span>
                           <span>{item.changes.categories_overwrite} posibles reemplazos</span>
-                          <span>{item.changes.rules_add + item.changes.recodes_add} reglas/recodes</span>
+                          <span>{item.changes.rules_add + item.changes.recodes_add} reglas/recodificaciones</span>
                         </td>
                         <td>
                           {item.existing_state ? (
@@ -294,9 +294,9 @@ function CodingConfigImportDialog({
                               }))}
                             >
                               <option value="keep">Conservar actual</option>
-                              <option value="merge_missing">Agregar faltantes</option>
-                              <option value="replace">Reemplazar destino</option>
-                              <option value="duplicate">Duplicar como versión</option>
+                              <option value="merge_missing">Agregar solo faltantes</option>
+                              <option value="replace">Reemplazar lo actual</option>
+                              <option value="duplicate">Guardar como nueva versión</option>
                             </select>
                           ) : (
                             <span className="pulso-codificacion-import-strategy">Aplicar plantilla</span>
