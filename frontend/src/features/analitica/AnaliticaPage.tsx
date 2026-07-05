@@ -65,8 +65,8 @@ export default function AnaliticaPage() {
 
   useAnaliticaAutosave();
 
-  const prereqOk = !!state?.xlsform && !!state?.data;
   const prepOk = !!state?.analitica_prep_ok;
+  const prereqOk = prepOk || (!!state?.xlsform && !!state?.data);
   const independentSiblings = state?.estudio_processing_mode === "independent_siblings";
   const reportes = REPORTES.filter((r) => {
     if (r.key === "multibase" && independentSiblings) return false;

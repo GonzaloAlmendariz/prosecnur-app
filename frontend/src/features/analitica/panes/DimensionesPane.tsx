@@ -71,7 +71,7 @@ export function DimensionesPane() {
           <div className="analitica-dimensiones-docbar-copy">
             <span>Producto de índices</span>
             <strong>Dimensiones e índices</strong>
-            <small>Escalas 0-100 para Cruces, Gráficos y Dashboard.</small>
+            <small>Convierte grupos de preguntas en puntajes 0-100 listos para comparar.</small>
           </div>
           <div className="analitica-dimensiones-docbar-stats" aria-label="Estado de dimensiones e índices">
             <span>
@@ -167,10 +167,9 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
           <AlertTriangle size={16} />
         </span>
         <div className="analitica-dimensiones-empty-copy">
-          <strong>Dimensiones pendientes de construir</strong>
+          <strong>Aún no hay puntajes construidos</strong>
           <span>
-            El proyecto no tiene todavía la base de índices <code>idx_*</code> y <code>sub_*</code>.
-            Abre el asistente para revisar listas, bloques e índices antes de generar.
+            Abre el asistente para elegir preguntas, agruparlas en bloques y generar los puntajes que luego usarán Cruces, Gráficos y Dashboard.
           </span>
         </div>
         <button type="button" className="pulso-primary analitica-dimensiones-action" onClick={onEditar}>
@@ -183,13 +182,12 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
   return (
     <div className="analitica-dimensiones-summary">
       <Alert kind="info">
-        Dimensiones activas. Cruces, Gráficos y Dashboard ya pueden consumir{" "}
-        <code>idx_*</code> y <code>sub_*</code>. Si cambiaste la base río arriba,
-        regenera para refrescar; si quieres reorganizar la estructura, edítala.
+        Dimensiones activas. Cruces, Gráficos y Dashboard ya pueden usar estos puntajes.
+        Si cambiaste la base o la codificación, regenera para refrescar; si quieres reorganizar preguntas y bloques, edita la estructura.
         <br />
         <span className="analitica-dimensiones-persistence-note">
-          Esta configuración viaja con tu <code>.pulso</code>; al reabrir el
-          proyecto, las dimensiones estarán listas sin re-importar nada.
+          Esta configuración viaja con tu <code>.pulso</code>; al reabrir el proyecto,
+          los puntajes estarán listos sin reimportar nada.
         </span>
       </Alert>
 
@@ -204,7 +202,7 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
       {cobertura && cobertura.length > 0 && (
         <section className="analitica-dimensiones-coverage">
           <h4>
-            Cobertura por columna
+            Cobertura de puntajes
           </h4>
           <div className="analitica-dimensiones-table-scroll">
             <table className="analitica-dimensiones-table">
