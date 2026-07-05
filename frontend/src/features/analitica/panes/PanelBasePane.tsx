@@ -207,25 +207,31 @@ export function PanelBasePane() {
     : "med1 / med2";
 
   return (
-    <Panel
-      eyebrow="Reporte"
-      title={<span className="analitica-inline-title"><GitMerge size={16} /> Base panel</span>}
-      hint="Consolida mediciones en formato wide y genera entregables con los mismos motores de Analítica."
-    >
+    <Panel className="analitica-panel-base-panel">
       <div className="analitica-report-shell analitica-panel-workbench">
+        <div className="analitica-panel-docbar">
+          <span className="analitica-panel-docbar-icon" aria-hidden="true">
+            <GitMerge size={16} />
+          </span>
+          <div className="analitica-panel-docbar-copy">
+            <span>Producto longitudinal</span>
+            <strong>Base panel</strong>
+            <small>Mediciones wide y entregables analíticos.</small>
+          </div>
+          <div className="analitica-report-overview analitica-report-overview--panel">
+            <Metric label="Mediciones" value={info?.n_bases ?? 0} suffix="bases" />
+            <Metric label="Llave" value={activeConfig.key || "Pendiente"} compact />
+            <Metric label="Personas" value={summary?.n_panel_keys ?? "-"} suffix="panel" />
+            <Metric label="Entregables" value={activeOutputCount} suffix="activos" />
+          </div>
+        </div>
+
         {loading ? (
           <LoadingBlock label="Leyendo mediciones del estudio..." />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : (
           <>
-            <div className="analitica-report-overview analitica-report-overview--panel">
-              <Metric label="Mediciones" value={info?.n_bases ?? 0} suffix="bases" />
-              <Metric label="Llave" value={activeConfig.key || "Pendiente"} compact />
-              <Metric label="Personas" value={summary?.n_panel_keys ?? "-"} suffix="panel" />
-              <Metric label="Entregables" value={activeOutputCount} suffix="activos" />
-            </div>
-
             {!info?.available && (
               <Alert kind="warn">
                 {info?.reason || "Base panel requiere al menos dos mediciones y una llave común."}
