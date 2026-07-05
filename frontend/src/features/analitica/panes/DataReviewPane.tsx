@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
 import { CheckCircle2, ChevronDown, Database, Eye, EyeOff, FolderSearch, RefreshCw, RotateCcw, Tags } from "lucide-react";
 import {
   apiAnaliticaDataReview,
@@ -371,48 +370,53 @@ export function DataReviewPane() {
   }
 
   return (
-    <Panel
-      className="pulso-data-review-panel"
-      title={<span className="pulso-data-review-title"><Database size={16} /> Revisión de etiquetas</span>}
-      hint="Define qué variables entran a los reportes y corrige etiquetas de variables u opciones sin tocar respuestas crudas."
-      actions={
-        <div className="pulso-data-review-command">
-          <span className="pulso-data-review-command-chip">{includedCount}/{variables.length} incluidas</span>
-          {excludedCount > 0 ? (
-            <span className="pulso-data-review-command-chip">{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
-          ) : null}
-          <span className="pulso-data-review-command-chip">{editedCount} etiqueta{editedCount === 1 ? "" : "s"} editada{editedCount === 1 ? "" : "s"}</span>
-          {draftStatus.pendingCount > 0 ? (
-            <span className="pulso-data-review-command-chip">{draftStatus.pendingCount} etiqueta{draftStatus.pendingCount === 1 ? "" : "s"} sin confirmar</span>
-          ) : null}
-          {draftStatus.emptyCount > 0 && draftStatus.pendingCount > 0 ? (
-            <span className="pulso-data-review-command-chip is-danger">
-              {draftStatus.emptyCount} etiqueta{draftStatus.emptyCount === 1 ? "" : "s"} vacía{draftStatus.emptyCount === 1 ? "" : "s"}
-            </span>
-          ) : null}
-          <button
-            type="button"
-            onClick={confirmDraftLabels}
-            disabled={loading || draftStatus.pendingCount === 0}
-            className="pulso-primary pulso-data-review-command-button"
-            title={draftStatus.pendingCount === 0 ? "No hay etiquetas pendientes. La inclusión de variables se autoguarda." : "Validar y guardar etiquetas editadas."}
-          >
-            <CheckCircle2 size={13} />
-            Confirmar etiquetas
-          </button>
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="pulso-ghost pulso-data-review-command-button"
-          >
-            <RefreshCw size={13} className={loading ? "pulso-spin" : ""} />
-            Actualizar
-          </button>
-        </div>
-      }
-    >
+    <Panel className="pulso-data-review-panel">
       <div className="pulso-data-review-workbench">
+        <div className="pulso-data-review-docbar">
+          <span className="pulso-data-review-docbar-icon" aria-hidden="true">
+            <Database size={16} />
+          </span>
+          <div className="pulso-data-review-docbar-copy">
+            <span>Producto de datos</span>
+            <strong>Revisión de etiquetas</strong>
+            <small>Variables, secciones y labels que alimentan todos los reportes.</small>
+          </div>
+          <div className="pulso-data-review-command">
+            <span className="pulso-data-review-command-chip">{includedCount}/{variables.length} incluidas</span>
+            {excludedCount > 0 ? (
+              <span className="pulso-data-review-command-chip">{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
+            ) : null}
+            <span className="pulso-data-review-command-chip">{editedCount} etiqueta{editedCount === 1 ? "" : "s"} editada{editedCount === 1 ? "" : "s"}</span>
+            {draftStatus.pendingCount > 0 ? (
+              <span className="pulso-data-review-command-chip">{draftStatus.pendingCount} etiqueta{draftStatus.pendingCount === 1 ? "" : "s"} sin confirmar</span>
+            ) : null}
+            {draftStatus.emptyCount > 0 && draftStatus.pendingCount > 0 ? (
+              <span className="pulso-data-review-command-chip is-danger">
+                {draftStatus.emptyCount} etiqueta{draftStatus.emptyCount === 1 ? "" : "s"} vacía{draftStatus.emptyCount === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={confirmDraftLabels}
+              disabled={loading || draftStatus.pendingCount === 0}
+              className="pulso-primary pulso-data-review-command-button"
+              title={draftStatus.pendingCount === 0 ? "No hay etiquetas pendientes. La inclusión de variables se autoguarda." : "Validar y guardar etiquetas editadas."}
+            >
+              <CheckCircle2 size={13} />
+              Confirmar etiquetas
+            </button>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="pulso-ghost pulso-data-review-command-button"
+            >
+              <RefreshCw size={13} className={loading ? "pulso-spin" : ""} />
+              Actualizar
+            </button>
+          </div>
+        </div>
+
         {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos..." /> : null}
         {error ? <ErrorBlock label="No se pudo cargar la revisión" detail={error} /> : null}
         {sectionError ? <ErrorBlock label="No se pudo detectar la estructura" detail={sectionError} /> : null}
@@ -442,11 +446,11 @@ export function DataReviewPane() {
               </div>
             </div>
             {variables.length === 0 ? (
-              <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "8px 0" }}>
+              <div className="pulso-data-review-empty-note">
                 No hay variables preparadas para revisar. Verifica la fuente activa o vuelve a preparar Analítica.
               </div>
             ) : null}
-            <div style={{ display: "grid", gap: 10 }}>
+            <div className="pulso-data-review-section-list">
               {groups.map((group) => (
                 <DataReviewSection
                   key={group.id}
@@ -527,8 +531,8 @@ function DataReviewSection({
   return (
     <section className={`pulso-data-review-section${group.hidden ? " is-hidden" : ""}`}>
       <div className="pulso-data-review-section-head">
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div className="pulso-data-review-section-copy">
+          <div className="pulso-data-review-section-title-row">
             {editing && !group.synthetic ? (
               <input
                 autoFocus
@@ -539,7 +543,7 @@ function DataReviewSection({
                   if (e.key === "Enter") commitSectionName();
                   if (e.key === "Escape") setEditing(false);
                 }}
-                style={{ ...inputStyle, maxWidth: 320, padding: "5px 8px", fontWeight: 800 }}
+                className="pulso-data-review-input pulso-data-review-section-input"
               />
             ) : (
               <button
@@ -553,10 +557,10 @@ function DataReviewSection({
                 {group.name}
               </button>
             )}
-            {group.manual ? <span style={pillStyle}>editada</span> : null}
-            {group.synthetic ? <span style={pillStyle}>sin estructura XLSForm</span> : null}
+            {group.manual ? <span className="pulso-data-review-pill">editada</span> : null}
+            {group.synthetic ? <span className="pulso-data-review-pill">sin estructura XLSForm</span> : null}
           </div>
-          <div style={{ marginTop: 3, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          <div className="pulso-data-review-section-meta">
             {includedInSection}/{group.variables.length} incluidas · {group.hidden ? "sección oculta en agrupadores" : "sección visible en agrupadores"}
           </div>
         </div>
@@ -582,7 +586,7 @@ function DataReviewSection({
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: 8 }}>
+      <div className="pulso-data-review-variable-list">
         {group.variables.map((variable) => {
           const included = !excluded.has(variable.name);
           const draftLabel = draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable);
@@ -620,41 +624,27 @@ function DataReviewSection({
                     onChange={() => onToggleVariable(variable.name)}
                   />
                 </label>
-                <div style={{ minWidth: 0 }}>
-                  <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, color: "var(--pulso-primary)" }}>
+                <div className="pulso-data-review-variable-copy">
+                  <code className="pulso-data-review-variable-code">
                     {variable.name}
                   </code>
                   {isDummyOption ? (
                     <span
-                      style={{
-                        marginLeft: 8,
-                        fontSize: 10,
-                        fontWeight: 800,
-                        padding: "2px 7px",
-                        borderRadius: 999,
-                        background: "var(--pulso-primary-soft)",
-                        color: "var(--pulso-primary)",
-                      }}
+                      className="pulso-data-review-dummy-badge"
                       title={`Opción de «${dummyParentLabel}»`}
                     >
                       opción dummy
                     </span>
                   ) : null}
-                  <div style={{ marginTop: 3, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+                  <div className="pulso-data-review-variable-meta">
                     {typeCaption}
                   </div>
                   {isDummyOption ? (
                     <div
-                      style={{
-                        marginTop: 4,
-                        fontSize: 11,
-                        color: "var(--pulso-text-soft)",
-                        lineHeight: 1.35,
-                        maxWidth: 520,
-                      }}
+                      className="pulso-data-review-dummy-parent"
                       title={dummyParentLabel}
                     >
-                      Pertenece a <code style={{ fontFamily: "ui-monospace, monospace" }}>{dummyParent}</code> · {dummyOptionLabel}
+                      Pertenece a <code>{dummyParent}</code> · {dummyOptionLabel}
                     </div>
                   ) : null}
                 </div>
@@ -664,7 +654,7 @@ function DataReviewSection({
                     type="text"
                     value={draftLabel}
                     onChange={(e) => onSetVariableLabel(variable.name, e.target.value)}
-                    style={draftLabel.trim() ? inputStyle : emptyInputStyle}
+                    className={`pulso-data-review-input${draftLabel.trim() ? "" : " is-empty"}`}
                     aria-label={`Etiqueta de ${variable.name}`}
                   />
                 </label>
@@ -672,9 +662,8 @@ function DataReviewSection({
                   type="button"
                   onClick={() => onResetVariable(variable.name)}
                   disabled={!hasEdits}
-                  className="pulso-ghost"
+                  className="pulso-ghost pulso-data-review-restore-button"
                   title="Restaurar etiquetas originales de esta variable"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center" }}
                 >
                   <RotateCcw size={12} />
                   Restaurar
@@ -705,7 +694,7 @@ function DataReviewSection({
                         <span>Etiqueta editable</span>
                         <span>Conteo</span>
                       </div>
-                      <div style={{ display: "grid", gap: 7 }}>
+                      <div className="pulso-data-review-option-list">
                         {variable.opciones.map((option) => {
                           const optionDraft = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
                           return (
@@ -713,17 +702,17 @@ function DataReviewSection({
                               key={`${variable.name}-${option.code}`}
                               className="pulso-data-review-option-row"
                             >
-                              <code style={{ fontFamily: "ui-monospace, monospace", color: "var(--pulso-text)", fontSize: 12 }}>
+                              <code className="pulso-data-review-option-code">
                                 {option.code}
                               </code>
                               <input
                                 type="text"
                                 value={optionDraft}
                                 onChange={(e) => onSetValueLabel(variable.name, option.code, e.target.value)}
-                                style={optionDraft.trim() ? inputStyle : emptyInputStyle}
+                                className={`pulso-data-review-input${optionDraft.trim() ? "" : " is-empty"}`}
                                 aria-label={`Etiqueta de ${variable.name} código ${option.code}`}
                               />
-                              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", textAlign: "right" }}>
+                              <span className="pulso-data-review-option-count">
                                 n={option.count}
                               </span>
                             </div>
@@ -741,30 +730,3 @@ function DataReviewSection({
     </section>
   );
 }
-
-const pillStyle = {
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "4px 9px",
-  borderRadius: 999,
-  border: "1px solid var(--pulso-border)",
-  background: "var(--pulso-surface)",
-  fontWeight: 700,
-} satisfies CSSProperties;
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 6,
-  padding: "7px 9px",
-  fontSize: 12,
-  color: "var(--pulso-text)",
-  background: "white",
-} satisfies CSSProperties;
-
-const emptyInputStyle = {
-  ...inputStyle,
-  borderColor: "var(--pulso-danger-border)",
-  background: "var(--pulso-danger-bg)",
-} satisfies CSSProperties;

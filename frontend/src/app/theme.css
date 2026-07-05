@@ -15323,6 +15323,16 @@ h1.pulso-page-title {
   gap: 10px;
   align-items: center;
 }
+.pulso-data-review-section-copy {
+  min-width: 0;
+}
+.pulso-data-review-section-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 .pulso-data-review-section-title {
   border: 0;
@@ -15340,6 +15350,24 @@ h1.pulso-page-title {
 
 .pulso-data-review-section-title:disabled {
   cursor: default;
+}
+.pulso-data-review-section-meta {
+  margin-top: 3px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.pulso-data-review-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 760;
 }
 
 .pulso-data-review-section-actions {
@@ -15388,6 +15416,61 @@ h1.pulso-page-title {
   margin: 0;
   cursor: pointer;
 }
+.pulso-data-review-variable-list,
+.pulso-data-review-section-list,
+.pulso-data-review-option-list {
+  display: grid;
+}
+.pulso-data-review-section-list {
+  gap: 10px;
+}
+.pulso-data-review-variable-list {
+  gap: 8px;
+}
+.pulso-data-review-option-list {
+  gap: 7px;
+}
+.pulso-data-review-variable-copy {
+  min-width: 0;
+}
+.pulso-data-review-variable-code,
+.pulso-data-review-option-code,
+.pulso-data-review-dummy-parent code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.pulso-data-review-variable-code {
+  color: var(--pulso-primary);
+  font-size: 12px;
+}
+.pulso-data-review-option-code {
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+.pulso-data-review-variable-meta {
+  margin-top: 3px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.pulso-data-review-dummy-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 10px;
+  font-weight: 800;
+}
+.pulso-data-review-dummy-parent {
+  max-width: 520px;
+  margin-top: 4px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
 
 .pulso-data-review-label {
   display: grid;
@@ -15399,6 +15482,35 @@ h1.pulso-page-title {
   font-size: 10px;
   font-weight: 800;
   color: var(--pulso-text-soft);
+}
+.pulso-data-review-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+.pulso-data-review-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--pulso-primary) 22%, transparent);
+  border-color: var(--pulso-primary-border);
+}
+.pulso-data-review-input.is-empty {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+.pulso-data-review-section-input {
+  max-width: 320px;
+  padding: 5px 8px;
+  font-weight: 800;
+}
+.pulso-data-review-restore-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 }
 
 .pulso-data-review-options {
@@ -15484,6 +15596,11 @@ h1.pulso-page-title {
 }
 
 .pulso-data-review-option-head span:last-child {
+  text-align: right;
+}
+.pulso-data-review-option-count {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
   text-align: right;
 }
 
@@ -17404,6 +17521,67 @@ h1.pulso-page-title {
   flex-direction: column;
   gap: 9px;
 }
+.pulso-data-review-docbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) minmax(420px, auto);
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 44%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 252, 250, 0.82)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 20%, var(--pulso-surface));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(0, 44, 69, 0.045);
+}
+.pulso-data-review-docbar-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 54%, #fff);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), color-mix(in srgb, var(--pulso-module-processing-soft) 35%, #fff)),
+    var(--pulso-surface);
+  color: var(--pulso-module-processing);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+.pulso-data-review-docbar-copy {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.pulso-data-review-docbar-copy span {
+  min-width: 0;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--pulso-module-processing) 82%, var(--pulso-text-soft));
+  font-size: 9.5px;
+  font-weight: 840;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pulso-data-review-docbar-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 820;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-data-review-docbar-copy small {
+  display: none;
+}
 .pulso-data-review-panel > .pulso-panel-header {
   align-items: center;
   gap: 8px;
@@ -17433,7 +17611,7 @@ h1.pulso-page-title {
   min-width: 0;
 }
 .pulso-data-review-command-chip {
-  min-height: 26px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -17454,11 +17632,20 @@ h1.pulso-page-title {
   background: var(--pulso-danger-bg);
 }
 .pulso-data-review-command-button {
-  min-height: 30px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+.pulso-data-review-empty-note {
+  padding: 11px 12px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-border) 74%, var(--pulso-module-processing-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-module-processing-soft) 16%, #fff);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
 }
 .pulso-data-review-workbench > .pulso-loading-block {
   flex: 1 1 auto;
@@ -17531,6 +17718,33 @@ h1.pulso-page-title {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+@media (max-width: 1120px) {
+  .pulso-data-review-docbar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pulso-data-review-docbar-copy {
+    display: grid;
+    gap: 1px;
+  }
+
+  .pulso-data-review-docbar-copy small {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--pulso-text-soft);
+    font-size: 11px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pulso-data-review-command {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
 }
 
 /* Analítica · panes de generación */
