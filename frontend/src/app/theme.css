@@ -19184,9 +19184,14 @@ h1.pulso-page-title {
 }
 .analitica-frecuencias-panel {
   padding-top: 10px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .analitica-frecuencias-workbench {
   min-width: 0;
+  min-height: min-content;
 }
 .analitica-frecuencias-docbar {
   min-width: 0;
