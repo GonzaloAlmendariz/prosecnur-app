@@ -1640,9 +1640,10 @@ function CargaWorkspaceTabs({
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
-        title="Preparar carga - formulario, respuestas y fuentes"
+        aria-label="Preparar carga. Formulario, respuestas y fuentes"
         data-rail-title="Preparar"
         data-rail-desc="Formulario, respuestas y fuentes"
+        data-rail-tooltip={"Preparar\nFormulario, respuestas y fuentes"}
       >
         <Upload size={14} />
         <span className="pulso-carga-tab-label">Preparar</span>
@@ -1656,9 +1657,10 @@ function CargaWorkspaceTabs({
         role="tab"
         aria-selected={active === "base"}
         aria-disabled={!baseReady}
-        title={baseReady ? "Ver base - revisar respuestas cargadas" : "Ver base - pendiente hasta cargar formulario y respuestas"}
+        aria-label={baseReady ? "Ver base. Respuestas cargadas" : "Ver base. Pendiente hasta completar insumos"}
         data-rail-title="Ver base"
         data-rail-desc={baseReady ? "Respuestas cargadas" : "Pendiente hasta completar insumos"}
+        data-rail-tooltip={baseReady ? "Ver base\nRespuestas cargadas" : "Ver base\nPendiente hasta completar insumos"}
       >
         <Table2 size={14} />
         <span className="pulso-carga-tab-label">Ver base</span>

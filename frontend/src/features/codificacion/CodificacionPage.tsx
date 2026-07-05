@@ -303,6 +303,7 @@ function CodificacionModeSidebar({
               aria-label={`${item.label}${item.hint ? `. ${item.hint}` : ""}`}
               data-rail-title={item.label}
               data-rail-desc={item.hint ?? ""}
+              data-rail-tooltip={item.hint ? `${item.label}\n${item.hint}` : item.label}
             >
               <span className="pulso-codificacion-nav-index">{item.n}</span>
               <span aria-hidden="true" className="pulso-codificacion-nav-icon">

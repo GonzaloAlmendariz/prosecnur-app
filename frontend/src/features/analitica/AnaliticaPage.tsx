@@ -1,4 +1,4 @@
-import { useEffect, useState, type FocusEvent, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart2,
@@ -43,14 +43,6 @@ type ReporteMeta = {
   label: string;
   icon: LucideIcon;
   desc: string;
-};
-
-type RailTooltip = {
-  key: Reporte;
-  label: string;
-  desc: string;
-  top: number;
-  left: number;
 };
 
 const REPORTES: ReporteMeta[] = [
@@ -252,22 +244,6 @@ function AnaliticaSidebar({
   state: ReturnType<typeof useSession>["state"];
   reportes: ReporteMeta[];
 }) {
-  const [tooltip, setTooltip] = useState<RailTooltip | null>(null);
-
-  function showTooltip(
-    item: ReporteMeta,
-    event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
-  ) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltip({
-      key: item.key,
-      label: item.label,
-      desc: item.desc,
-      top: Math.round(rect.top + rect.height / 2),
-      left: Math.round(rect.right + 11),
-    });
-  }
-
   return (
     <aside className="pulso-analitica-sidebar pulso-sidebar" aria-label="Reportes de analítica">
       <div className="pulso-analitica-sidebar-head">
@@ -293,18 +269,13 @@ function AnaliticaSidebar({
               aria-selected={isActive}
               aria-controls="analitica-panel"
               aria-label={`${item.label}. ${item.desc}`}
-              aria-describedby={tooltip?.key === item.key ? "analitica-rail-tooltip" : undefined}
               data-rail-title={item.label}
               data-rail-desc={item.desc}
+              data-rail-tooltip={`${item.label}\n${item.desc}`}
               disabled={disabled}
               onClick={() => {
-                setTooltip(null);
                 onChange(item.key);
               }}
-              onMouseEnter={(event) => showTooltip(item, event)}
-              onMouseLeave={() => setTooltip(null)}
-              onFocus={(event) => showTooltip(item, event)}
-              onBlur={() => setTooltip(null)}
               className={`pulso-analitica-nav-item${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
             >
               <span aria-hidden="true" className="pulso-analitica-nav-icon">
@@ -323,17 +294,6 @@ function AnaliticaSidebar({
           );
         })}
       </div>
-      {tooltip && (
-        <div
-          id="analitica-rail-tooltip"
-          role="tooltip"
-          className="pulso-analitica-nav-tooltip"
-          style={{ top: tooltip.top, left: tooltip.left }}
-        >
-          <strong>{tooltip.label}</strong>
-          <span>{tooltip.desc}</span>
-        </div>
-      )}
     </aside>
   );
 }
