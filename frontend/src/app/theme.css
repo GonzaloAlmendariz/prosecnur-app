@@ -17134,6 +17134,50 @@ h1.pulso-page-title {
   }
 }
 
+@media (min-width: 900px) and (max-width: 1180px) and (max-height: 680px) {
+  .pulso-carga-content {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .pulso-carga-suitebar {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .pulso-multibase-study-shell {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .pulso-multibase-study-head {
+    grid-template-columns: 30px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .pulso-multibase-study-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .pulso-multibase-study-note {
+    display: none;
+  }
+
+  .pulso-multibase-study-count,
+  .pulso-multibase-study-action {
+    grid-column: auto;
+    justify-self: auto;
+  }
+
+  .pulso-multibase-study-action {
+    min-height: 28px;
+    padding: 5px 8px;
+  }
+}
+
 @media (max-width: 620px) {
   .pulso-multi-strategy {
     width: 100%;
