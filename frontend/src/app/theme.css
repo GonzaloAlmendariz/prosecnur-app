@@ -20222,6 +20222,212 @@ h1.pulso-page-title {
 .analitica-ficha-docbar .analitica-stat-value {
   font-size: 15px;
 }
+
+/* Analytics products: compact document chrome so the first viewport exposes the actual workbench. */
+.pulso-main--processing :is(
+  .pulso-data-review-docbar,
+  .analitica-codebook-docbar,
+  .analitica-bases-docbar,
+  .analitica-frecuencias-docbar,
+  .analitica-cruces-docbar,
+  .analitica-panel-docbar,
+  .analitica-ficha-docbar,
+  .analitica-dimensiones-docbar
+) {
+  min-height: 46px;
+  grid-template-columns: 28px minmax(160px, 1fr) minmax(260px, auto);
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 11px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 5px 14px color-mix(in srgb, var(--pulso-module-processing) 5%, transparent);
+}
+
+.pulso-main--processing :is(
+  .pulso-data-review-docbar-icon,
+  .analitica-codebook-docbar-icon,
+  .analitica-bases-docbar-icon,
+  .analitica-frecuencias-docbar-icon,
+  .analitica-cruces-docbar-icon,
+  .analitica-panel-docbar-icon,
+  .analitica-ficha-docbar-icon,
+  .analitica-dimensiones-docbar-icon
+) {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+.pulso-main--processing :is(
+  .pulso-data-review-docbar-copy,
+  .analitica-codebook-docbar-copy,
+  .analitica-bases-docbar-copy,
+  .analitica-frecuencias-docbar-copy,
+  .analitica-cruces-docbar-copy,
+  .analitica-panel-docbar-copy,
+  .analitica-ficha-docbar-copy,
+  .analitica-dimensiones-docbar-copy
+) {
+  gap: 0;
+}
+
+.pulso-main--processing .pulso-data-review-docbar-copy {
+  gap: 7px;
+}
+
+.pulso-main--processing :is(
+  .pulso-data-review-docbar-copy span,
+  .analitica-codebook-docbar-copy span,
+  .analitica-bases-docbar-copy span,
+  .analitica-frecuencias-docbar-copy span,
+  .analitica-cruces-docbar-copy span,
+  .analitica-panel-docbar-copy span,
+  .analitica-ficha-docbar-copy span,
+  .analitica-dimensiones-docbar-copy span
+) {
+  font-size: 8.8px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.pulso-main--processing :is(
+  .pulso-data-review-docbar-copy strong,
+  .analitica-codebook-docbar-copy strong,
+  .analitica-bases-docbar-copy strong,
+  .analitica-frecuencias-docbar-copy strong,
+  .analitica-cruces-docbar-copy strong,
+  .analitica-panel-docbar-copy strong,
+  .analitica-ficha-docbar-copy strong,
+  .analitica-dimensiones-docbar-copy strong
+) {
+  font-size: 12.8px;
+  line-height: 1.12;
+}
+
+.pulso-main--processing :is(
+  .pulso-data-review-docbar-copy small,
+  .analitica-codebook-docbar-copy small,
+  .analitica-bases-docbar-copy small,
+  .analitica-frecuencias-docbar-copy small,
+  .analitica-cruces-docbar-copy small,
+  .analitica-panel-docbar-copy small,
+  .analitica-ficha-docbar-copy small,
+  .analitica-dimensiones-docbar-copy small
+) {
+  font-size: 10.2px;
+  line-height: 1.18;
+}
+
+.pulso-main--processing :is(
+  .analitica-codebook-docbar-stats,
+  .analitica-bases-docbar-stats,
+  .analitica-frecuencias-docbar-stats,
+  .analitica-cruces-docbar-stats,
+  .analitica-dimensiones-docbar-stats
+) {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-main--processing :is(
+  .analitica-codebook-docbar-stats,
+  .analitica-bases-docbar-stats,
+  .analitica-frecuencias-docbar-stats,
+  .analitica-cruces-docbar-stats,
+  .analitica-dimensiones-docbar-stats
+) > span {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 8.8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-main--processing :is(
+  .analitica-codebook-docbar-stats,
+  .analitica-bases-docbar-stats,
+  .analitica-frecuencias-docbar-stats,
+  .analitica-cruces-docbar-stats,
+  .analitica-dimensiones-docbar-stats
+) strong {
+  max-width: 124px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.pulso-main--processing .analitica-ficha-docbar .analitica-report-overview--ficha {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-main--processing .analitica-ficha-docbar .analitica-stat {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.pulso-main--processing .analitica-ficha-docbar .analitica-stat-label {
+  margin: 0;
+  font-size: 8.8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-main--processing .analitica-ficha-docbar .analitica-stat-value {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.pulso-main--processing .analitica-report-shell {
+  gap: 10px;
+}
+
+.pulso-main--processing .analitica-report-note {
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 9px;
+  font-size: 10.5px;
+  line-height: 1.32;
+}
+
+@media (max-width: 1120px) {
+  .pulso-main--processing :is(
+    .pulso-data-review-docbar,
+    .analitica-codebook-docbar,
+    .analitica-bases-docbar,
+    .analitica-frecuencias-docbar,
+    .analitica-cruces-docbar,
+    .analitica-panel-docbar,
+    .analitica-ficha-docbar,
+    .analitica-dimensiones-docbar
+  ) {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .pulso-main--processing :is(
+    .analitica-codebook-docbar-stats,
+    .analitica-bases-docbar-stats,
+    .analitica-frecuencias-docbar-stats,
+    .analitica-cruces-docbar-stats,
+    .analitica-dimensiones-docbar-stats,
+    .analitica-report-overview--ficha
+  ) {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
 .analitica-ficha-loading {
   min-height: 386px;
   display: grid;
