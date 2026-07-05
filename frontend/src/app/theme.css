@@ -14399,8 +14399,14 @@ h1.pulso-page-title {
 }
 .pulso-upload-card.is-done {
   border-color: var(--pulso-success-border);
-  background: #fff;
-  box-shadow: var(--pulso-shadow-low);
+  gap: 10px;
+  padding: 14px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 253, 251, 0.88)),
+    #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 7px 18px rgba(22, 101, 52, 0.055);
 }
 .pulso-upload-card.is-done::before {
   background: var(--pulso-success-fg);
@@ -14428,7 +14434,9 @@ h1.pulso-page-title {
   flex-shrink: 0;
 }
 .pulso-upload-card.is-done .pulso-upload-card-icon {
-  background: #fff;
+  width: 34px;
+  height: 34px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 74%, #ffffff);
   color: var(--pulso-success-fg);
   border-color: var(--pulso-success-border);
 }
@@ -14482,6 +14490,9 @@ h1.pulso-page-title {
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
 }
+.pulso-upload-card.is-done .pulso-upload-note {
+  display: none;
+}
 .pulso-upload-dropzone {
   min-height: 72px;
   padding: 13px 14px;
@@ -14501,6 +14512,18 @@ h1.pulso-page-title {
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease;
+}
+.pulso-upload-card.is-done .pulso-upload-dropzone {
+  min-height: 50px;
+  padding: 9px 12px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  border-width: 1px;
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.78);
+}
+.pulso-upload-card.is-done .pulso-upload-dropzone-icon {
+  width: 18px;
+  height: 18px;
 }
 .pulso-upload-dropzone:hover,
 .pulso-upload-dropzone.is-drag-over {
@@ -15334,6 +15357,10 @@ h1.pulso-page-title {
   grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 7px;
 }
+.pulso-upload-card.is-done .pulso-upload-summary {
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 6px;
+}
 .pulso-resumen-stat {
   display: grid;
   gap: 3px;
@@ -15345,6 +15372,11 @@ h1.pulso-page-title {
   background: var(--pulso-surface-2);
   font-size: 12px;
   color: var(--pulso-text-soft);
+}
+.pulso-upload-card.is-done .pulso-resumen-stat {
+  min-height: 42px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.82);
 }
 .pulso-resumen-stat span {
   min-width: 0;
