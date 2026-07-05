@@ -1917,25 +1917,64 @@ function CargaCommandSummary({
   pendingChoiceMapping: boolean;
   allReady: boolean;
 }) {
-  const reviewLabel = pendingChoiceMapping ? "Mapeo pendiente" : allReady ? "Listo para validar" : "En preparación";
   return (
-    <div className="pulso-carga-command-summary" aria-label="Resumen de carga">
-      <CargaCommandPill label="Formulario" done={hasXlsform} />
-      <CargaCommandPill label="Respuestas" done={hasData} />
-      <span className={`pulso-carga-command-review${allReady ? " is-ready" : pendingChoiceMapping ? " needs-review" : ""}`}>
-        <ShieldCheck size={13} />
-        {reviewLabel}
-      </span>
-    </div>
+    <CargaProgressMeter
+      hasXlsform={hasXlsform}
+      hasData={hasData}
+      pendingChoiceMapping={pendingChoiceMapping}
+      allReady={allReady}
+    />
   );
 }
 
-function CargaCommandPill({ label, done }: { label: string; done: boolean }) {
+function CargaProgressMeter({
+  hasXlsform,
+  hasData,
+  pendingChoiceMapping,
+  allReady,
+}: {
+  hasXlsform: boolean;
+  hasData: boolean;
+  pendingChoiceMapping: boolean;
+  allReady: boolean;
+}) {
+  const reviewStatus = pendingChoiceMapping ? "Revisar códigos" : allReady ? "Validable" : "Pendiente";
+  const steps = [
+    {
+      key: "formulario",
+      label: "Formulario",
+      status: hasXlsform ? "Cargado" : "Pendiente",
+      tone: hasXlsform ? "ready" : "pending",
+    },
+    {
+      key: "respuestas",
+      label: "Respuestas",
+      status: hasData ? "Cargadas" : "Pendientes",
+      tone: hasData ? "ready" : "pending",
+    },
+    {
+      key: "revision",
+      label: "Revisión",
+      status: reviewStatus,
+      tone: pendingChoiceMapping ? "warning" : allReady ? "ready" : "pending",
+    },
+  ];
+
   return (
-    <span className={`pulso-carga-command-pill${done ? " is-done" : ""}`}>
-      <span aria-hidden="true" className="pulso-carga-command-dot" />
-      {label}
-    </span>
+    <div className="pulso-carga-progress-meter" aria-label="Estado de insumos">
+      <span className="pulso-carga-progress-label">Estado</span>
+      <ol className="pulso-carga-progress-steps">
+        {steps.map((step, index) => (
+          <li key={step.key} className={`is-${step.tone}`}>
+            <span className="pulso-carga-progress-node" aria-hidden="true">{index + 1}</span>
+            <span className="pulso-carga-progress-copy">
+              <strong>{step.label}</strong>
+              <small>{step.status}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -1958,7 +1997,6 @@ function CargaSuiteBar({
   allReady: boolean;
   controls: ReactNode;
 }) {
-  const reviewText = pendingChoiceMapping ? "Revisar códigos" : allReady ? "Validable" : "Pendiente";
   return (
     <section className="pulso-carga-suitebar" aria-label="Centro de control de carga">
       <div className="pulso-carga-suitebar-main">
@@ -1972,12 +2010,12 @@ function CargaSuiteBar({
         </div>
       </div>
       <div className="pulso-carga-suitebar-meter" aria-label="Estado de insumos">
-        <CargaCommandPill label="Formulario" done={hasXlsform} />
-        <CargaCommandPill label="Respuestas" done={hasData} />
-        <span className={`pulso-carga-command-review${allReady ? " is-ready" : pendingChoiceMapping ? " needs-review" : ""}`}>
-          <ShieldCheck size={13} />
-          {reviewText}
-        </span>
+        <CargaProgressMeter
+          hasXlsform={hasXlsform}
+          hasData={hasData}
+          pendingChoiceMapping={pendingChoiceMapping}
+          allReady={allReady}
+        />
       </div>
       <div className="pulso-carga-suitebar-controls">
         {controls}
