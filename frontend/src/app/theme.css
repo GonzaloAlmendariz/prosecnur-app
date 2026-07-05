@@ -36400,6 +36400,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     .pulso-codificacion-nav-item,
     .pulso-analitica-nav-item
   ) {
+    position: relative;
     width: 42px;
     min-height: 42px;
     height: 42px;
@@ -36478,6 +36479,32 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     justify-self: center;
   }
 
+  .pulso-main--processing .pulso-analitica-nav-item.is-done::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 7px;
+    height: 7px;
+    border: 1.5px solid rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    background: var(--pulso-success-fg);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--pulso-success-border) 58%, transparent);
+    opacity: 0.92;
+    transform: scale(1);
+    transition:
+      opacity var(--motion-dur-fast) ease,
+      transform var(--motion-dur-fast) var(--motion-ease-out);
+  }
+
+  .pulso-main--processing :is(
+    .pulso-analitica-sidebar:hover,
+    .pulso-analitica-sidebar:focus-within
+  ) .pulso-analitica-nav-item.is-done::after {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
   .pulso-main--processing :is(
     .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-index,
     .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-index,
@@ -36502,6 +36529,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     display: grid !important;
     align-self: center;
     min-width: 0;
+  }
+
+  .pulso-main--processing :is(
+    .pulso-analitica-sidebar:hover,
+    .pulso-analitica-sidebar:focus-within
+  ) .pulso-analitica-nav-done {
+    display: inline-flex !important;
   }
 
   .pulso-main--processing :is(
