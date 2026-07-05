@@ -45,27 +45,35 @@ export function CodebookPane() {
   ];
 
   return (
-    <Panel
-      eyebrow="Reporte"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={16} /> Libro de códigos</span>}
-      hint="Genera el diccionario de variables y, en la misma corrida, el XLSForm final que queda sincronizado con las etiquetas confirmadas en Datos / Revisión."
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 8,
-            padding: "10px 12px",
-            borderRadius: 8,
-            background: "var(--pulso-surface)",
-            border: "1px solid var(--pulso-border)",
-            fontSize: 11,
-            color: "var(--pulso-text-soft)",
-            lineHeight: 1.5,
-          }}
-        >
-          <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+    <Panel className="analitica-codebook-panel">
+      <div className="analitica-report-shell analitica-codebook-workbench">
+        <div className="analitica-codebook-docbar">
+          <span className="analitica-codebook-docbar-icon" aria-hidden="true">
+            <BookOpen size={16} />
+          </span>
+          <div className="analitica-codebook-docbar-copy">
+            <span>Producto documental</span>
+            <strong>Libro de códigos</strong>
+            <small>Diccionario sincronizado con etiquetas confirmadas y XLSForm final.</small>
+          </div>
+          <div className="analitica-codebook-docbar-stats" aria-label="Estado del libro de códigos">
+            <span>
+              Fuente
+              <strong>{fuenteLabel}</strong>
+            </span>
+            <span>
+              Códigos
+              <strong>{codes.length}/5 activos</strong>
+            </span>
+            <span>
+              Excluidas
+              <strong>{excluidasCount}</strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="analitica-codebook-info">
+          <Info size={14} />
           <div>
             Esta corrida usa la fuente analítica <strong>{fuenteLabel}</strong> y aplica los cambios confirmados en <strong>Datos / Revisión de data</strong>: variables excluidas, etiquetas de preguntas y etiquetas de opciones. El resultado principal es el libro de códigos; el <strong>XLSForm final</strong> queda disponible aquí mismo al terminar.
           </div>
@@ -77,42 +85,26 @@ export function CodebookPane() {
             Los códigos <code>95</code>–<code>99</code> son convenciones Pulso para respuestas especiales (NS/NR/NA). Las variables marcadas aquí <strong>solo los muestran si al menos un respondiente los marcó</strong>. Así evitas que la tabla final traiga filas vacías.
           </>}
         >
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div className="analitica-codebook-code-grid">
             {codigosMeta.map((c) => {
               const active = codes.includes(c.code);
               return (
-                <button
+                <label
                   key={c.code}
-                  type="button"
-                  onClick={() => toggle(c.code)}
                   title={c.label}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "6px 12px", borderRadius: 8,
-                    border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                    background: active ? "var(--pulso-primary-soft)" : "white",
-                    cursor: "pointer", fontSize: 12,
-                  }}
+                  className={`analitica-codebook-code ${active ? "is-active" : ""}`}
                 >
-                  <input type="checkbox" checked={active} onChange={() => toggle(c.code)} style={{ margin: 0 }} />
-                  <code style={{ fontFamily: "monospace", fontWeight: 700, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{c.code}</code>
-                  <span style={{ color: "var(--pulso-text-soft)" }}>{c.label}</span>
-                </button>
+                  <input type="checkbox" checked={active} onChange={() => toggle(c.code)} />
+                  <code>{c.code}</code>
+                  <span>{c.label}</span>
+                </label>
               );
             })}
           </div>
         </Section>
 
         {excluidasCount > 0 && (
-          <div
-            style={{
-              fontSize: 11, color: "var(--pulso-text-soft)",
-              padding: "8px 12px", borderRadius: 6,
-              background: "var(--pulso-surface)",
-              border: "1px solid var(--pulso-border)",
-              lineHeight: 1.5,
-            }}
-          >
+          <div className="analitica-codebook-note">
             Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"} globalmente. Edita esa selección en <strong>Datos / Revisión de data</strong>.
           </div>
         )}
@@ -139,19 +131,9 @@ function FinalXlsformDownload({ result }: { result?: MultiBaseResult }) {
   const multi = (result?.bases?.length ?? 0) > 1;
 
   return (
-    <div
-      style={{
-        padding: "10px 12px",
-        borderRadius: 8,
-        border: "1px solid var(--pulso-border)",
-        background: "var(--pulso-surface)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 800, color: "var(--pulso-text)" }}>
+    <div className="analitica-codebook-xlsform">
+      <div className="analitica-codebook-xlsform-head">
+        <div>
           <FileSpreadsheet size={14} />
           XLSForm final descargable
         </div>
@@ -159,71 +141,36 @@ function FinalXlsformDownload({ result }: { result?: MultiBaseResult }) {
           <a
             href={downloadUrl(fileId)}
             download={filename}
-            style={{
-              fontSize: 12,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "5px 10px",
-              borderRadius: 999,
-              color: "var(--pulso-primary)",
-              background: "var(--pulso-primary-soft)",
-              textDecoration: "none",
-              fontWeight: 700,
-            }}
+            className="analitica-codebook-download"
           >
             <Download size={12} />
             {multi ? `${filename} (zip)` : filename}
           </a>
         ) : (
-          <span
-            style={{
-              fontSize: 11,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "5px 10px",
-              borderRadius: 999,
-              border: "1px dashed var(--pulso-border)",
-              color: "var(--pulso-text-soft)",
-              fontWeight: 700,
-            }}
-          >
+          <span className="analitica-codebook-pending">
             Pendiente de generar
           </span>
         )}
       </div>
 
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+      <div className="analitica-codebook-xlsform-copy">
         Este archivo se genera junto con el libro de códigos y usa las mismas etiquetas de variables y opciones que Frecuencias, Bases y Cruces. También omite las variables excluidas en Datos / Revisión.
       </div>
       {fileId ? (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 700 }}>
+        <div className="analitica-codebook-sync">
           <CheckCircle2 size={12} />
           Sincronizado con la última generación del libro de códigos
         </div>
       ) : null}
 
       {multi && result?.bases?.length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div className="analitica-codebook-base-links">
           {result.bases.map((base) => (
             base.file_id ? (
               <a
                 key={base.nombre}
                 href={downloadUrl(base.file_id)}
-                style={{
-                  fontSize: 11,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "3px 9px",
-                  borderRadius: 999,
-                  background: "white",
-                  border: "1px solid var(--pulso-border)",
-                  color: "var(--pulso-text)",
-                  textDecoration: "none",
-                  fontWeight: 500,
-                }}
+                className="analitica-codebook-base-link"
               >
                 <Download size={10} />
                 {base.nombre}
