@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
 import { AlertCircle, Check, Download, Upload } from "lucide-react";
 
-// Botones "Exportar JSON" + "Importar JSON" compartidos.
+// Botones "descargar JSON" + "cargar JSON" compartidos.
 //
 // Antes estaban duplicados en AnaliticaHeader + GraficosHeader con el
 // mismo shape (spinner, feedback, error inline, file input oculto).
 // Este componente encapsula el patrón:
 //   - Loading state por botón (exportando / importando).
-//   - Mensaje de éxito transitorio ("Exportado ✓") con fade.
+//   - Mensaje de éxito transitorio con fade.
 //   - Mensaje de error en chip rojo al lado.
 //   - Hooks `onExport()` → Promise<Blob o string o payload> + filename,
 //     `onImport(parsed)` → Promise que reporta algo que se muestra.
@@ -42,6 +42,22 @@ export type ConfigIoProps = {
    * Label del botón importar en reposo (default "Importar JSON").
    */
   importLabel?: string;
+  /**
+   * Ayuda del botón de descarga. Útil cuando el label evita jerga técnica.
+   */
+  exportTitle?: string;
+  /**
+   * Ayuda del botón de carga. Útil cuando el label evita jerga técnica.
+   */
+  importTitle?: string;
+  /**
+   * Mensaje de éxito tras descargar el JSON.
+   */
+  exportSuccessLabel?: string;
+  /**
+   * Mensaje de éxito por defecto cuando `onImport` no devuelve texto.
+   */
+  importSuccessLabel?: string;
 };
 
 export function ConfigIoButtons({
@@ -50,6 +66,10 @@ export function ConfigIoButtons({
   filenamePrefix = "prosecnur_config",
   exportLabel = "Exportar JSON",
   importLabel = "Importar JSON",
+  exportTitle,
+  importTitle,
+  exportSuccessLabel = "Exportado ✓",
+  importSuccessLabel = "Importado ✓",
 }: ConfigIoProps) {
   const [busy, setBusy] = useState<"export" | "import" | null>(null);
   const [msg, setMsg] = useState("");
@@ -67,7 +87,7 @@ export function ConfigIoButtons({
       a.download = `${filenamePrefix}_${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
-      setMsg("Exportado ✓");
+      setMsg(exportSuccessLabel);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -83,7 +103,7 @@ export function ConfigIoButtons({
       const text = await file.text();
       const parsed = JSON.parse(text);
       const okMsg = await onImport(parsed);
-      setMsg(okMsg ?? "Importado ✓");
+      setMsg(okMsg ?? importSuccessLabel);
     } catch (e) {
       setError(`JSON inválido: ${(e as Error).message}`);
     } finally {
@@ -99,6 +119,8 @@ export function ConfigIoButtons({
         type="button"
         onClick={handleExport}
         disabled={busy === "export"}
+        title={exportTitle}
+        aria-label={exportTitle ?? exportLabel}
         style={{
           fontSize: 11, padding: "5px 10px",
           display: "inline-flex", alignItems: "center", gap: 5,
@@ -116,6 +138,8 @@ export function ConfigIoButtons({
           borderRadius: 6, background: "white",
           transition: "background 120ms ease",
         }}
+        title={importTitle}
+        aria-label={importTitle ?? importLabel}
       >
         <Upload size={12} />
         {busy === "import" ? "Importando…" : importLabel}
