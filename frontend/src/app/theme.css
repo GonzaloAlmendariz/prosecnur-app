@@ -38707,8 +38707,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-main--processing :is(
     .pulso-carga-stage-item,
-    .pulso-validacion-nav-item,
-    .pulso-analitica-nav-item,
     .pulso-codificacion-nav-item
   )::before {
     content: attr(data-rail-title);
@@ -38747,10 +38745,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   .pulso-main--processing :is(
     .pulso-carga-stage-item:not(.is-active):hover,
     .pulso-carga-stage-item:not(.is-active):focus-visible,
-    .pulso-validacion-nav-item:not(.is-active):hover,
-    .pulso-validacion-nav-item:not(.is-active):focus-visible,
-    .pulso-analitica-nav-item:not(.is-active):hover,
-    .pulso-analitica-nav-item:not(.is-active):focus-visible,
     .pulso-codificacion-nav-item:not(.is-active):hover,
     .pulso-codificacion-nav-item:not(.is-active):focus-visible
   )::before {
@@ -38761,8 +38755,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-main--processing :is(
     .pulso-carga-stage-item,
-    .pulso-validacion-nav-item,
-    .pulso-analitica-nav-item,
     .pulso-codificacion-nav-item
   )::after {
     content: attr(data-rail-desc);
@@ -38793,10 +38785,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   .pulso-main--processing :is(
     .pulso-carga-stage-item:not(.is-active):hover,
     .pulso-carga-stage-item:not(.is-active):focus-visible,
-    .pulso-validacion-nav-item:not(.is-active):hover,
-    .pulso-validacion-nav-item:not(.is-active):focus-visible,
-    .pulso-analitica-nav-item:not(.is-active):hover,
-    .pulso-analitica-nav-item:not(.is-active):focus-visible,
     .pulso-codificacion-nav-item:not(.is-active):hover,
     .pulso-codificacion-nav-item:not(.is-active):focus-visible
   )::after {
