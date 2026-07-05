@@ -789,6 +789,13 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // TODAS las cards drop-target cuando empezaba un drag — con el drag
   // universal eso saturaba visualmente. Ahora el feedback es puntual.
   const dropOver = droppable.isOver && isDropTarget;
+  const cardClassName = [
+    "pulso-codificacion-question-card",
+    `is-${arq}`,
+    paired ? "is-paired" : "",
+    dropOver ? "is-drop-over" : "",
+    isDraggable ? "is-draggable" : "",
+  ].filter(Boolean).join(" ");
   const common: React.CSSProperties = {
     border: dropOver
       ? `2px dashed var(--drag-valid-border)`
@@ -808,7 +815,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     minHeight: 210,
     height: "100%",
     position: "relative",
-    transition: "background 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out, opacity 140ms ease-out",
+    transition: "background 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out, opacity 140ms ease-out, transform 140ms ease-out",
     opacity: draggable.isDragging ? 0.4 : 1,
   };
   // Attach dnd-kit refs — una card puede ser AL MISMO TIEMPO draggable y
@@ -870,6 +877,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     const padre = adoptedBy.get(p.col_efectiva || p.parent);
     return (
       <article
+        className={cardClassName}
         data-parent={p.parent}
         style={{
           ...common,
@@ -909,7 +917,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // CASE 1: auto (integer)
   if (arq === "auto") {
     return (
-      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
+      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -931,7 +939,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // CASE 2: solitaria (text puro)
   if (arq === "solitaria") {
     return (
-      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
+      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -951,6 +959,8 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         ref={ref}
         {...listeners}
         {...attributes}
+        className={cardClassName}
+        data-parent={p.parent}
         style={{
           ...common,
           borderStyle: draggable.isDragging ? "solid" : "dashed",
@@ -979,7 +989,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // CASE 5: no-aplica
   if (arq === "no-aplica") {
     return (
-      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={{ ...common, opacity: 0.55 }}>
+      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={{ ...common, opacity: 0.55 }}>
         {header}
         {label}
         {tipoRow}
@@ -1007,7 +1017,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     const fresh = recentlyAdopted.has(p.parent);
 
     return (
-      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
+      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
           <div style={{ flex: 1 }} />
@@ -1105,7 +1115,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // permite buscar entre todas las columnas disponibles).
   const hasCands = p.candidatos_texto && p.candidatos_texto.length > 0;
   return (
-    <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
+    <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
       {header}
       {label}
       {tipoRow}
