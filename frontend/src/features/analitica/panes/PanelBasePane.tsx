@@ -36,10 +36,10 @@ import { useReporteRun } from "../useReporteRun";
 type PanelView = "estructura" | "variables" | "nse" | "auditoria" | "exportar";
 
 const VIEWS: Array<{ key: PanelView; label: string }> = [
-  { key: "estructura", label: "Personas" },
+  { key: "estructura", label: "Conexión" },
   { key: "variables", label: "Vista previa" },
   { key: "nse", label: "Contexto" },
-  { key: "auditoria", label: "Revisión" },
+  { key: "auditoria", label: "Control" },
   { key: "exportar", label: "Entregables" },
 ];
 
@@ -200,11 +200,17 @@ export function PanelBasePane() {
   ].filter(Boolean).length;
   const crossVarsCount = cruces.cruces_vars.length;
   const crossConfigLabel = crossVarsCount > 0
-    ? `${crossVarsCount} ${crossVarsCount === 1 ? "variable" : "variables"} configuradas`
-    : "Auto: sexo, NSE y distrito";
+    ? `${crossVarsCount} ${crossVarsCount === 1 ? "variable elegida" : "variables elegidas"}`
+    : "Sexo, NSE y distrito sugeridos";
   const suffixPreview = waves.length
     ? waves.map((wave) => wave.suffix).filter(Boolean).join(" / ")
     : "med1 / med2";
+  const suffixRange = waves.length > 2
+    ? `${waves[0]?.suffix || "med1"} a ${waves[waves.length - 1]?.suffix || `med${waves.length}`}`
+    : suffixPreview;
+  const measurementSummary = waves.length > 2
+    ? `${waves.length} mediciones`
+    : suffixPreview;
 
   return (
     <Panel className="analitica-panel-base-panel">
@@ -214,15 +220,15 @@ export function PanelBasePane() {
             <GitMerge size={16} />
           </span>
           <div className="analitica-panel-docbar-copy">
-            <span>Producto longitudinal</span>
+            <span>Panel longitudinal</span>
             <strong>Base panel</strong>
-            <small>Une mediciones de las mismas personas y prepara entregables longitudinales.</small>
+            <small>Conecta a las mismas personas en varias bases y deja listos los archivos para analizar cambios.</small>
           </div>
           <div className="analitica-report-overview analitica-report-overview--panel">
-            <Metric label="Mediciones" value={info?.n_bases ?? 0} suffix="bases" />
-            <Metric label="ID común" value={activeConfig.key || "Pendiente"} compact />
-            <Metric label="Personas" value={summary?.n_panel_keys ?? "-"} suffix="panel" />
-            <Metric label="Entregables" value={activeOutputCount} suffix="activos" />
+            <Metric label="Bases" value={info?.n_bases ?? 0} suffix="bases" />
+            <Metric label="Clave" value={activeConfig.key || "Pendiente"} compact />
+            <Metric label="Personas" value={summary?.n_panel_keys ?? "-"} suffix="únicas" />
+            <Metric label="Salidas" value={activeOutputCount} suffix="activas" />
           </div>
         </div>
 
@@ -267,16 +273,17 @@ export function PanelBasePane() {
             <PanelContractStrip
               ready={!disabled}
               previewReady={Boolean(preview)}
-              suffixPreview={suffixPreview}
+              suffixPreview={measurementSummary}
+              suffixRange={suffixRange}
               crossConfigLabel={crossConfigLabel}
               nAuditRows={summary?.n_audit_rows}
             />
 
             {view === "estructura" && (
-              <Section title="Personas y mediciones" subtitle="Elige el identificador que conecta a la misma persona entre bases y revisa cómo se nombrará cada medición.">
+              <Section title="Conectar personas entre bases" subtitle="Elige la clave que identifica a una misma persona y define el nombre visible de cada medición.">
                 <div className="analitica-panel-form-grid">
                   <label className="analitica-panel-field">
-                    <span><KeyRound size={13} /> Identificador común</span>
+                    <span><KeyRound size={13} /> Clave de persona</span>
                     {candidateOptions.length ? (
                       <select
                         value={activeConfig.key}
@@ -299,13 +306,13 @@ export function PanelBasePane() {
                   <div className="analitica-panel-status-row">
                     <span className={`analitica-panel-badge ${info?.available ? "is-ok" : "is-warn"}`}>
                       {info?.available ? <Database size={12} /> : <AlertTriangle size={12} />}
-                      {info?.available ? "Lista" : "Pendiente"}
+                      {info?.available ? "Clave lista" : "Falta clave"}
                     </span>
                     <span>{info?.fuente ?? "fuente analitica"}</span>
                   </div>
                 </div>
                 <DenseTable
-                  columns={["Medición", "Base", "Sufijo", "Filas", "Llaves", "Duplicadas", "Vacías"]}
+                  columns={["Medición", "Base original", "Código corto", "Filas", "Con clave", "Repetidas", "Sin clave"]}
                   rows={waves.map((wave) => [
                     <input
                       key={`${wave.base}-label`}
@@ -328,9 +335,9 @@ export function PanelBasePane() {
             )}
 
             {view === "variables" && (
-              <Section title="Vista previa de base panel" subtitle="Primeras filas con una columna por medición. Los entregables usan esta misma organización.">
+              <Section title="Vista previa de la base panel" subtitle="Primeras filas del archivo que se entregará, con cada medición organizada para comparar cambios.">
                 {!preview ? (
-                  <EmptyPanelState icon={<Table2 size={16} />} label="Previsualiza para confirmar cómo quedará la base panel." />
+                  <EmptyPanelState icon={<Table2 size={16} />} label="Previsualiza para confirmar el archivo antes de exportar." />
                 ) : (
                   <DenseObjectTable rows={preview.preview} maxCols={9} />
                 )}
@@ -338,17 +345,17 @@ export function PanelBasePane() {
             )}
 
             {view === "nse" && (
-              <Section title="Contexto NSE" subtitle="Revisa si el nivel socioeconómico está disponible para la base panel.">
+              <Section title="Contexto para lectura" subtitle="Agrega variables de contexto que ayudan a interpretar el cambio entre mediciones.">
                 <label className="analitica-panel-check">
                   <input
                     type="checkbox"
                     checked={panel.nse.enabled}
                     onChange={(e) => setPanel({ nse: { ...panel.nse, enabled: e.target.checked } })}
                   />
-                  <span>Incluir lectura de NSE</span>
+                  <span>Incluir nivel socioeconómico cuando esté disponible</span>
                 </label>
                 {!preview ? (
-                  <EmptyPanelState icon={<BookOpenCheck size={16} />} label="Previsualiza para calcular cobertura de NSE." />
+                  <EmptyPanelState icon={<BookOpenCheck size={16} />} label="Previsualiza para ver qué tan completo está el contexto." />
                 ) : (
                   <DenseObjectTable rows={preview.cobertura_nse} />
                 )}
@@ -356,13 +363,13 @@ export function PanelBasePane() {
             )}
 
             {view === "auditoria" && (
-              <Section title="Revisión de consistencia" subtitle="Detecta personas duplicadas, mediciones faltantes e inconsistencias antes de exportar.">
+              <Section title="Control antes de exportar" subtitle="Revisa personas repetidas, mediciones ausentes y señales que conviene resolver antes de entregar.">
                 {!preview ? (
-                  <EmptyPanelState icon={<FileWarning size={16} />} label="Previsualiza para generar la revisión." />
+                  <EmptyPanelState icon={<FileWarning size={16} />} label="Previsualiza para activar el control de calidad." />
                 ) : preview.audit_preview.length ? (
                   <DenseObjectTable rows={preview.audit_preview} />
                 ) : (
-                  <EmptyPanelState icon={<BookOpenCheck size={16} />} label="Sin incidencias en la muestra revisada." />
+                  <EmptyPanelState icon={<BookOpenCheck size={16} />} label="Sin alertas en la muestra revisada." />
                 )}
               </Section>
             )}
@@ -373,15 +380,15 @@ export function PanelBasePane() {
                   outputs={panel.outputs}
                   crossConfigLabel={crossConfigLabel}
                   nseEnabled={panel.nse.enabled}
-                  suffixPreview={suffixPreview}
+                  suffixPreview={measurementSummary}
                 />
 
-                <Section title="Reportes de la base panel" subtitle="Genera cada entregable por separado con el formato estándar de Analítica.">
+                <Section title="Lecturas de la base panel" subtitle="Genera cada lectura por separado con el formato estándar de Analítica.">
                   <div className="analitica-panel-format-grid">
                     <PanelExportCard
                       icon={<BookOpenCheck size={15} />}
                       title="Libro de códigos"
-                      copy="Diccionario con preguntas equivalentes alineadas por medición."
+                      copy="Diccionario que muestra qué pregunta corresponde a cada medición."
                     >
                       <ToggleOutput
                         label="Activar libro"
@@ -408,7 +415,7 @@ export function PanelBasePane() {
                     <PanelExportCard
                       icon={<Table2 size={15} />}
                       title="Frecuencias"
-                      copy="Tablas de distribución por medición, respetando secciones y etiquetas."
+                      copy="Distribuciones por medición, respetando secciones y etiquetas."
                     >
                       <ToggleOutput
                         label="Activar frecuencias"
@@ -435,7 +442,7 @@ export function PanelBasePane() {
                     <PanelExportCard
                       icon={<GitMerge size={15} />}
                       title="Cruces"
-                      copy={`Comparaciones longitudinales. ${crossConfigLabel}; respeta exclusiones configuradas.`}
+                      copy={`Comparaciones entre mediciones. ${crossConfigLabel}; respeta exclusiones configuradas.`}
                     >
                       <ToggleOutput
                         label="Activar cruces"
@@ -462,7 +469,7 @@ export function PanelBasePane() {
                     <PanelExportCard
                       icon={<FileWarning size={15} />}
                       title="Revisión"
-                      copy="Personas duplicadas, mediciones faltantes y cobertura de contexto."
+                      copy="Personas repetidas, mediciones faltantes y cobertura de contexto."
                     >
                       <ToggleOutput
                         label="Activar revisión"
@@ -488,9 +495,9 @@ export function PanelBasePane() {
                   </div>
                 </Section>
 
-                <Section title="Ficha técnica Word" subtitle="Genera la ficha metodológica en DOCX como archivo independiente.">
+                <Section title="Ficha técnica" subtitle="Crea un documento Word con la metodología del panel y sus decisiones principales.">
                   <GenerateFooter
-                    label="Generar ficha Word"
+                    label="Generar ficha técnica"
                     busy={fichaRun.busy}
                     jobId={fichaRun.jobId}
                     fileId={fichaRun.fileId}
@@ -507,12 +514,12 @@ export function PanelBasePane() {
                   />
                 </Section>
 
-                <Section title="Base panel por formato" subtitle="Exporta solo la base longitudinal con etiquetas, multi-respuesta y lectura para SPSS cuando aplique.">
+                <Section title="Archivo de datos" subtitle="Exporta la base panel en el formato que necesita el equipo de análisis.">
                   <div className="analitica-panel-format-grid">
                     <PanelExportCard
                       icon={<FileSpreadsheet size={15} />}
                       title="Excel panel"
-                      copy="Nombres técnicos en fila 1 y etiquetas de variable en fila 2."
+                      copy="Libro listo para revisar en Excel, con nombres y etiquetas de variable."
                     >
                       <MiniSelect
                         label="Contenido"
@@ -550,7 +557,7 @@ export function PanelBasePane() {
                     <PanelExportCard
                       icon={<FileText size={15} />}
                       title="CSV panel"
-                      copy="Archivo plano UTF-8 con códigos o etiquetas y separador configurable."
+                      copy="Archivo plano para flujos de datos, con códigos o etiquetas."
                     >
                       <MiniSelect
                         label="Contenido"
@@ -596,7 +603,7 @@ export function PanelBasePane() {
                     <PanelExportCard
                       icon={<Archive size={15} />}
                       title="SPSS panel"
-                      copy="SAV con etiquetas y lectura de variables preparada."
+                      copy="SAV con etiquetas de variable y lectura preparada para SPSS."
                     >
                       <label className="analitica-panel-check">
                         <input
@@ -604,7 +611,7 @@ export function PanelBasePane() {
                           checked={panel.formatos.sav.incluir_sps}
                           onChange={(e) => setPanel({ formatos: { ...panel.formatos, sav: { ...panel.formatos.sav, incluir_sps: e.target.checked } } })}
                         />
-                        <span>Incluir niveles_medida.sps</span>
+                        <span>Incluir sintaxis de niveles de medida</span>
                       </label>
                       <MiniSelect
                         label="Multi-respuesta"
@@ -665,12 +672,14 @@ function PanelContractStrip({
   ready,
   previewReady,
   suffixPreview,
+  suffixRange,
   crossConfigLabel,
   nAuditRows,
 }: {
   ready: boolean;
   previewReady: boolean;
   suffixPreview: string;
+  suffixRange: string;
   crossConfigLabel: string;
   nAuditRows?: number;
 }) {
@@ -678,28 +687,28 @@ function PanelContractStrip({
     <div className="analitica-panel-contract-strip" aria-label="Estado de la base panel">
       <PanelContractItem
         icon={ready ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-        label="Estado"
-        value={ready ? "Lista para exportar" : "Pendiente"}
-        detail={ready ? "identificador común detectado" : "revisar personas y mediciones"}
+        label="Preparación"
+        value={ready ? "Lista para armar" : "Pendiente"}
+        detail={ready ? "clave compartida encontrada" : "elige una clave válida"}
         tone={ready ? "ok" : "warn"}
       />
       <PanelContractItem
         icon={<Columns3 size={14} />}
-        label="Columnas"
+        label="Mediciones"
         value={suffixPreview}
-        detail="sufijos longitudinales"
+        detail={suffixRange}
       />
       <PanelContractItem
         icon={<GitMerge size={14} />}
-        label="Cruces"
+        label="Comparación"
         value={crossConfigLabel}
-        detail="columnas de comparación"
+        detail="segmentos de lectura"
       />
       <PanelContractItem
         icon={<FileWarning size={14} />}
-        label="Revisión"
-        value={previewReady ? `${nAuditRows ?? 0} filas` : "sin vista previa"}
-        detail={previewReady ? "incidencias revisadas" : "pendiente de cálculo"}
+        label="Control"
+        value={previewReady ? `${nAuditRows ?? 0} filas` : "sin vista"}
+        detail={previewReady ? "alertas revisadas" : "previsualización pendiente"}
       />
     </div>
   );
@@ -747,14 +756,14 @@ function ExportReadinessPanel({
       active: outputs.codebook,
       icon: <BookOpenCheck size={14} />,
       title: "Libro de códigos",
-      detail: "bloques paralelos por medición",
+      detail: "preguntas alineadas",
     },
     {
       key: "frecuencias",
       active: outputs.frecuencias,
       icon: <Table2 size={14} />,
       title: "Frecuencias",
-      detail: "tablas univariadas estándar",
+      detail: "resumen por medición",
     },
     {
       key: "cruces",
@@ -768,7 +777,7 @@ function ExportReadinessPanel({
       active: outputs.auditoria,
       icon: <FileWarning size={14} />,
       title: "Revisión",
-      detail: nseEnabled ? "incluye cobertura NSE" : "sin cobertura NSE",
+      detail: nseEnabled ? "con contexto NSE" : "sin contexto NSE",
     },
     {
       key: "base",
@@ -791,8 +800,8 @@ function ExportReadinessPanel({
       <div className="analitica-panel-export-summary-head">
         <span className="analitica-control-icon"><ListChecks size={15} /></span>
         <div>
-          <strong>Salida longitudinal</strong>
-          <small>Archivos independientes, sin ZIP obligatorio.</small>
+          <strong>Paquete de entrega</strong>
+          <small>Archivos separados para descargar solo lo necesario.</small>
         </div>
       </div>
       <div className="analitica-panel-export-summary-grid">
@@ -866,15 +875,15 @@ function EmptyPanelState({ icon, label }: { icon: ReactNode; label: string }) {
         {icon}
       </span>
       <strong>{label}</strong>
-      <small>Revisa la configuración o previsualiza de nuevo.</small>
+      <small>Previsualiza cuando quieras recalcular esta vista.</small>
     </div>
   );
 }
 
 const MULTI_SELECT_OPTIONS: Array<[string, string]> = [
-  ["dummy_01", "Dummies 0/1"],
-  ["etiquetas_unidas", "Etiquetas unidas"],
-  ["codigos_crudos", "Codigos crudos"],
+  ["dummy_01", "Columnas 0/1"],
+  ["etiquetas_unidas", "Respuestas con etiquetas"],
+  ["codigos_crudos", "Códigos originales"],
 ];
 
 function PanelExportCard({
@@ -934,7 +943,7 @@ function ToggleOutput({ label, checked, onChange }: { label: string; checked: bo
       <span className="analitica-control-icon">{checked ? <CheckCircle2 size={15} /> : <BookOpenCheck size={15} />}</span>
       <span>
         <span className="analitica-control-title">{label}</span>
-        <span className="analitica-control-copy">Disponible para generar.</span>
+        <span className="analitica-control-copy">Se incluirá cuando lo generes.</span>
       </span>
     </label>
   );
