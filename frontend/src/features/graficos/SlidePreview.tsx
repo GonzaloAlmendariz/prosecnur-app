@@ -13,8 +13,10 @@ import {
 } from "../../api/client";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { graficadorDisplayName, humanizeIdentifier } from "./graficadorDisplay";
+import { graficadorToPresetType } from "./graficadorPresetMap";
 import { SLIDE_GRAF_SLOTS, SLIDE_LABELS, usePlanStore } from "./store";
 import SlidePreviewMockup from "./SlidePreviewMockup";
+import { usePresetsDefaults } from "./usePresetsDefaults";
 
 type Props = {
   slide: Slide;
@@ -43,6 +45,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const latestHashRef = useRef<string | null>(null);
   const downloadSeqRef = useRef(0);
   const debugPh = usePlanStore((s) => s.debugPh);
+  const userPresets = usePlanStore((s) => s.presets);
+  const { presets: presetsDefaults } = usePresetsDefaults();
   const visualConfigHash = usePlanStore((s) => JSON.stringify({
     presets: s.presets,
     debugPh: s.debugPh,
@@ -328,6 +332,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 slide={slide}
                 layout={layout}
                 placeholders={placeholders}
+                userPresets={userPresets}
+                presetsDefaults={presetsDefaults}
               />
             ) : (
               <LocalReferenceViewer
@@ -359,10 +365,14 @@ function SlideLayoutViewer({
   slide,
   layout,
   placeholders,
+  userPresets,
+  presetsDefaults,
 }: {
   slide: Slide;
   layout: GraficosSlideLayoutPreview | null;
   placeholders: GraficosSlideLayoutPlaceholder[];
+  userPresets: PresetArgsMap;
+  presetsDefaults: PresetArgsMap;
 }) {
   const aspectRatio = Number(layout?.aspectRatio);
   const frameStyle: CSSProperties = {
@@ -375,6 +385,9 @@ function SlideLayoutViewer({
         {placeholders.map((placeholder) => {
           const value = readPayloadValue(slide, placeholder);
           const assigned = isAssignedValue(value, placeholder.role);
+          const chartLayout = assigned && placeholder.role === "chart" && isGraficadorRef(value)
+            ? buildChartMicroLayout(value, userPresets, presetsDefaults)
+            : null;
           return (
             <div
               key={`${placeholder.key}-${placeholder.payload_key ?? ""}`}
@@ -382,12 +395,14 @@ function SlideLayoutViewer({
                 "pulso-slide-preview-slot",
                 `is-${placeholder.role ?? "shape"}`,
                 assigned ? "is-filled" : "is-empty",
+                chartLayout ? "has-chart-layout" : "",
                 Number(placeholder.rect.height) < 0.075 ? "is-small" : "",
               ].join(" ")}
               style={rectStyle(placeholder)}
               title={`${slotDisplayLabel(placeholder)} · ${assigned ? slotValueLabel(value, placeholder.role) : "pendiente"}`}
             >
               <span className="pulso-slide-preview-slot-label">{slotDisplayLabel(placeholder)}</span>
+              {chartLayout && <ChartMicroLayout spec={chartLayout} />}
               <span className="pulso-slide-preview-slot-meta">{assigned ? slotValueLabel(value, placeholder.role) : "Pendiente"}</span>
             </div>
           );
@@ -399,6 +414,165 @@ function SlideLayoutViewer({
       </div>
     </div>
   );
+}
+
+type PresetArgsMap = Record<string, Record<string, unknown>>;
+
+type ChartMicroSegment = {
+  key: "group" | "buffer-group" | "labels" | "buffer-labels" | "bars" | "buffer-extra" | "extra";
+  label: string;
+  value: number;
+  tone: "muted" | "labels" | "bars" | "extra" | "group";
+};
+
+type ChartMicroLayoutSpec = {
+  presetType: string;
+  segments: ChartMicroSegment[];
+  total: number;
+};
+
+const BAR_CANVAS_PRESETS = new Set(["barras_apiladas", "multi_apiladas", "barras_agrupadas"]);
+const BAR_CANVAS_KEYS = [
+  "canvas_w_grupo",
+  "canvas_w_buf_grupo_etq",
+  "canvas_w_etiquetas",
+  "canvas_w_buf_etq_bars",
+  "canvas_w_bars",
+  "canvas_w_buf_bars_extra",
+  "canvas_w_extra",
+  "mostrar_barra_extra",
+];
+
+const BAR_CANVAS_DEFAULTS: PresetArgsMap = {
+  barras_apiladas: {
+    canvas_w_grupo: 0,
+    canvas_w_buf_grupo_etq: 0,
+    canvas_w_etiquetas: 0.18,
+    canvas_w_buf_etq_bars: 0.03,
+    canvas_w_bars: 0.54,
+    canvas_w_buf_bars_extra: 0.02,
+    canvas_w_extra: 0.12,
+    mostrar_barra_extra: true,
+  },
+  multi_apiladas: {
+    canvas_w_grupo: 0,
+    canvas_w_buf_grupo_etq: 0,
+    canvas_w_etiquetas: 0.36,
+    canvas_w_buf_etq_bars: 0.05,
+    canvas_w_bars: 0.46,
+    canvas_w_buf_bars_extra: 0,
+    canvas_w_extra: 0.10,
+    mostrar_barra_extra: true,
+  },
+  barras_agrupadas: {
+    canvas_w_grupo: 0,
+    canvas_w_buf_grupo_etq: 0,
+    canvas_w_etiquetas: 0.45,
+    canvas_w_buf_etq_bars: 0.03,
+    canvas_w_bars: 0.52,
+    canvas_w_buf_bars_extra: 0,
+    canvas_w_extra: 0,
+    mostrar_barra_extra: false,
+  },
+};
+
+function ChartMicroLayout({ spec }: { spec: ChartMicroLayoutSpec }) {
+  return (
+    <div
+      className="pulso-slide-preview-graph-layout"
+      aria-label={`Distribución interna del gráfico: ${spec.segments.map((s) => s.label).join(", ")}`}
+    >
+      {spec.segments.map((segment) => {
+        const pct = spec.total > 0 ? Math.round((segment.value / spec.total) * 100) : 0;
+        return (
+          <span
+            key={segment.key}
+            className={[
+              "pulso-slide-preview-graph-segment",
+              `is-${segment.tone}`,
+              segment.key.startsWith("buffer") ? "is-buffer" : "",
+            ].filter(Boolean).join(" ")}
+            style={{ flexGrow: Math.max(segment.value, 0.006) }}
+            title={`${segment.label}: ${pct}% del canvas interno`}
+          >
+            <span className="pulso-slide-preview-graph-mark" aria-hidden="true" />
+            <span className="pulso-slide-preview-graph-segment-label">{segment.label}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function buildChartMicroLayout(
+  value: GraficadorRef,
+  userPresets: PresetArgsMap,
+  presetsDefaults: PresetArgsMap,
+): ChartMicroLayoutSpec | null {
+  const presetType = graficadorToPresetType(value.graficador);
+  if (!presetType || !BAR_CANVAS_PRESETS.has(presetType)) return null;
+
+  const args = asRecord(value.args);
+  const merged = {
+    ...(BAR_CANVAS_DEFAULTS[presetType] ?? {}),
+    ...normalizePresetArgs(presetsDefaults[presetType]),
+    ...normalizePresetArgs(userPresets[presetType]),
+    ...pickCanvasArgs(args),
+    ...pickCanvasArgs(asRecord(args.overrides)),
+  };
+
+  const rawExtra = readPositiveNumber(merged.canvas_w_extra);
+  const showExtra = readBoolean(merged.mostrar_barra_extra, rawExtra > 0);
+  const rawSegments: ChartMicroSegment[] = [
+    { key: "group", label: "Grupo", value: readPositiveNumber(merged.canvas_w_grupo), tone: "group" },
+    { key: "buffer-group", label: "Buffer", value: readPositiveNumber(merged.canvas_w_buf_grupo_etq), tone: "muted" },
+    { key: "labels", label: "Etiquetas", value: readPositiveNumber(merged.canvas_w_etiquetas), tone: "labels" },
+    { key: "buffer-labels", label: "Buffer", value: readPositiveNumber(merged.canvas_w_buf_etq_bars), tone: "muted" },
+    { key: "bars", label: "Barras", value: readPositiveNumber(merged.canvas_w_bars), tone: "bars" },
+    { key: "buffer-extra", label: "Buffer", value: readPositiveNumber(merged.canvas_w_buf_bars_extra), tone: "muted" },
+    { key: "extra", label: showExtra ? "Barra extra" : "Reserva", value: rawExtra, tone: "extra" },
+  ];
+  const segments = rawSegments.filter((segment) => segment.value > 0.001);
+
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+  if (total <= 0 || segments.length < 2) return null;
+  return { presetType, segments, total };
+}
+
+function normalizePresetArgs(value: unknown): Record<string, unknown> {
+  const record = asRecord(value);
+  const nestedArgs = asRecord(record.args);
+  return Object.keys(nestedArgs).length > 0 ? nestedArgs : record;
+}
+
+function pickCanvasArgs(value: Record<string, unknown>): Record<string, unknown> {
+  const picked: Record<string, unknown> = {};
+  for (const key of BAR_CANVAS_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) picked[key] = value[key];
+  }
+  return picked;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function readPositiveNumber(value: unknown) {
+  const next = typeof value === "string" && value.trim() !== "" ? Number(value) : Number(value);
+  if (!Number.isFinite(next) || next <= 0) return 0;
+  return Math.min(next, 1);
+}
+
+function readBoolean(value: unknown, fallback: boolean) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "si", "sí", "yes"].includes(normalized)) return true;
+    if (["false", "0", "no"].includes(normalized)) return false;
+  }
+  return fallback;
 }
 
 function LocalReferenceViewer({ slide, reason }: { slide: Slide; reason: string }) {
