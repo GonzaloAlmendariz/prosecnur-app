@@ -130,16 +130,7 @@ export default function AnaliticaPage() {
           )}
 
           {prereqOk && (
-            <>
-              <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
-              <AnaliticaProductRail
-                active={active}
-                reportes={reportes}
-                state={state}
-                disabled={prepBusy || !prepOk}
-                onChange={goReporte}
-              />
-            </>
+            <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
           )}
         </div>
       }
@@ -242,58 +233,6 @@ export default function AnaliticaPage() {
         </main>
       </AdaptiveSplitView>
     </PageFrame>
-  );
-}
-
-function AnaliticaProductRail({
-  active,
-  reportes,
-  state,
-  disabled,
-  onChange,
-}: {
-  active: Reporte;
-  reportes: ReporteMeta[];
-  state: ReturnType<typeof useSession>["state"];
-  disabled: boolean;
-  onChange: (reporte: Reporte) => void;
-}) {
-  return (
-    <nav className="pulso-analitica-product-rail" aria-label="Productos de analítica">
-      <div className="pulso-analitica-product-track" role="tablist" aria-label="Productos disponibles">
-        {reportes.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.key;
-          const done = reporteDone(item.key, state);
-          return (
-            <button
-              key={item.key}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls="analitica-panel"
-              disabled={disabled}
-              onClick={() => onChange(item.key)}
-              title={`${item.label} - ${item.desc}`}
-              className={`pulso-analitica-product${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
-            >
-              <span className="pulso-analitica-product-icon" aria-hidden="true">
-                <Icon size={15} />
-              </span>
-              <span className="pulso-analitica-product-copy">
-                <strong>{item.label}</strong>
-                <span>{item.desc}</span>
-              </span>
-              {done && (
-                <span className="pulso-analitica-product-done" aria-label="Producto preparado">
-                  <CheckCircle2 size={12} />
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
   );
 }
 

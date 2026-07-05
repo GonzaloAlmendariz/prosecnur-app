@@ -157,8 +157,8 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           onExport={ioExport}
           onImport={ioImport}
           filenamePrefix="prosecnur_analitica"
-          exportLabel="Exportar config"
-          importLabel="Importar config"
+          exportLabel="Exportar configuración"
+          importLabel="Importar configuración"
         />
       </div>
     </ContextBar>
