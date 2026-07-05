@@ -32107,6 +32107,12 @@
     linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--slide-guide-color) 10%, #ffffff));
 }
 
+.pulso-slide-preview-slot.is-chart.has-chart-layout {
+  grid-template-rows: auto minmax(28px, 1fr) auto;
+  align-content: stretch;
+  padding: 6px;
+}
+
 .pulso-slide-preview-slot.is-text,
 .pulso-slide-preview-slot.is-note {
   border-radius: 7px;
@@ -32154,6 +32160,122 @@
   color: color-mix(in srgb, var(--slide-guide-color) 68%, var(--pulso-text));
 }
 
+.pulso-slide-preview-graph-layout {
+  container-type: inline-size;
+  min-width: 0;
+  min-height: 30px;
+  align-self: stretch;
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--slide-guide-color) 23%, rgba(15, 23, 42, 0.10));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), color-mix(in srgb, var(--slide-guide-color) 7%, #ffffff));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.pulso-slide-preview-graph-segment {
+  position: relative;
+  min-width: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), color-mix(in srgb, var(--slide-guide-color) 9%, #ffffff));
+  color: color-mix(in srgb, var(--slide-guide-color) 52%, var(--pulso-text));
+  font-size: 8.5px;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.pulso-slide-preview-graph-segment.is-labels {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-info-bg) 58%, #ffffff));
+}
+
+.pulso-slide-preview-graph-segment.is-bars {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--slide-guide-color) 32%, #ffffff), color-mix(in srgb, var(--slide-guide-color) 15%, #ffffff));
+  color: color-mix(in srgb, var(--slide-guide-color) 74%, var(--pulso-text));
+}
+
+.pulso-slide-preview-graph-segment.is-extra {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-success-bg) 70%, #ffffff), color-mix(in srgb, var(--pulso-success-border) 24%, #ffffff));
+  color: color-mix(in srgb, var(--pulso-success-fg) 72%, var(--pulso-text));
+}
+
+.pulso-slide-preview-graph-segment.is-group {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-warn-bg) 60%, #ffffff), color-mix(in srgb, var(--pulso-warn-border) 22%, #ffffff));
+  color: color-mix(in srgb, var(--pulso-warn-fg) 68%, var(--pulso-text));
+}
+
+.pulso-slide-preview-graph-segment.is-buffer {
+  min-width: 3px;
+  border-style: dashed;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(15, 23, 42, 0.05) 0 2px,
+      transparent 2px 5px
+    ),
+    rgba(255, 255, 255, 0.52);
+  color: transparent;
+}
+
+.pulso-slide-preview-graph-mark {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 10px;
+  opacity: 0.8;
+}
+
+.pulso-slide-preview-graph-segment.is-labels .pulso-slide-preview-graph-mark {
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, currentColor 0 2px, transparent 2px 4px, currentColor 4px 6px, transparent 6px 8px, currentColor 8px 10px);
+}
+
+.pulso-slide-preview-graph-segment.is-bars .pulso-slide-preview-graph-mark {
+  width: 14px;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, currentColor 0 22%, transparent 22% 35%, currentColor 35% 66%, transparent 66% 78%, currentColor 78% 100%);
+}
+
+.pulso-slide-preview-graph-segment.is-extra .pulso-slide-preview-graph-mark {
+  width: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 5px 0 0 color-mix(in srgb, currentColor 58%, transparent);
+}
+
+.pulso-slide-preview-graph-segment.is-group .pulso-slide-preview-graph-mark {
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, currentColor 0 2px, transparent 2px 4px, currentColor 4px 6px, transparent 6px 8px, currentColor 8px 10px);
+  transform: skewX(-10deg);
+}
+
+.pulso-slide-preview-graph-segment.is-buffer .pulso-slide-preview-graph-mark,
+.pulso-slide-preview-graph-segment.is-buffer .pulso-slide-preview-graph-segment-label {
+  display: none;
+}
+
+.pulso-slide-preview-graph-segment-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pulso-slide-preview-slot.is-small {
   align-content: center;
   padding: 2px 4px;
@@ -32167,6 +32289,16 @@
 
 .pulso-slide-preview-slot.is-small .pulso-slide-preview-slot-meta {
   display: none;
+}
+
+.pulso-slide-preview-slot.is-small .pulso-slide-preview-graph-layout {
+  display: none;
+}
+
+@container (max-width: 260px) {
+  .pulso-slide-preview-graph-segment-label {
+    display: none;
+  }
 }
 
 .pulso-slide-preview-layout-caption {
