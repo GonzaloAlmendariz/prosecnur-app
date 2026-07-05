@@ -4772,7 +4772,9 @@ a { color: var(--pulso-primary); }
   flex: 0 0 auto;
 }
 .pulso-validacion-panel-copy h2 {
+  flex: 0 0 auto;
   margin: 0;
+  max-width: min(240px, 42vw);
   color: var(--pulso-text);
   font-size: 13.5px;
   font-weight: 820;
