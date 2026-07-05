@@ -132,7 +132,7 @@ export function FichaTecnicaPane() {
           <div className="analitica-ficha-docbar-copy">
             <span>Producto metodológico</span>
             <strong>Ficha técnica</strong>
-            <small>Evidencia de Hojas de Ruta, muestra y base longitudinal.</small>
+            <small>Resume diseño, muestra, fuentes y base longitudinal en un documento editable.</small>
           </div>
           <div className="analitica-report-overview analitica-report-overview--ficha">
             <FichaStat label="Campos completos" value={`${completedCount}/${fields.length || 0}`} />
@@ -165,11 +165,11 @@ export function FichaTecnicaPane() {
               </div>
               <button type="button" className="pulso-secondary" onClick={applyEmptySuggestions} disabled={!suggestedCount}>
                 <Wand2 size={14} />
-                Completar vacíos
+                Completar sugeridos
               </button>
               <button type="button" className="pulso-secondary" onClick={() => void loadInfo(true)}>
                 <RefreshCw size={14} />
-                Actualizar KPIs
+                Actualizar evidencia
               </button>
             </div>
 
@@ -179,7 +179,7 @@ export function FichaTecnicaPane() {
                   <Section
                     key={group}
                     title={group}
-                    subtitle="Campos editables de la ficha Word. Las sugerencias usan la evidencia disponible del proyecto."
+                    subtitle={`${groupFields.length} ${groupFields.length === 1 ? "campo editable" : "campos editables"} para el documento Word. Las sugerencias usan la evidencia disponible del proyecto.`}
                   >
                     <div className="analitica-ficha-field-list">
                       {groupFields.map((field) => {
@@ -216,7 +216,7 @@ export function FichaTecnicaPane() {
                   </Section>
                 ))}
 
-                <Section title="Exportar ficha Word" subtitle="La ficha se genera como entregable independiente en DOCX.">
+                <Section title="Exportar ficha" subtitle="La ficha se genera como documento Word independiente.">
                   <GenerateFooter
                     label="Generar ficha"
                     busy={run.busy}
@@ -234,7 +234,7 @@ export function FichaTecnicaPane() {
               </div>
 
               <aside className="analitica-ficha-side" aria-label="Evidencia metodológica">
-                <Section title="KPIs metodológicos" subtitle="Lectura automática desde módulos auxiliares disponibles.">
+                <Section title="Indicadores metodológicos" subtitle="Lectura automática desde las fuentes disponibles del proyecto.">
                   {info?.kpis?.length ? (
                     <div className="analitica-ficha-kpi-list">
                       {info.kpis.map((kpi) => (
@@ -253,13 +253,13 @@ export function FichaTecnicaPane() {
                       <span className="analitica-empty-icon" aria-hidden="true">
                         <Gauge size={15} />
                       </span>
-                      <strong>Sin KPIs automáticos</strong>
+                      <strong>Sin indicadores automáticos</strong>
                       <small>Los indicadores aparecerán cuando haya evidencia disponible.</small>
                     </div>
                   )}
                 </Section>
 
-                <Section title="Fuentes detectadas" subtitle="Contextos que alimentan la redacción sugerida.">
+                <Section title="Fuentes de evidencia" subtitle="Contextos que alimentan la redacción sugerida.">
                   <div className="analitica-ficha-source-list">
                     {(info?.sources ?? []).map((source) => (
                       <div className={`analitica-ficha-source ${source.available ? "is-on" : ""}`} key={source.key}>
@@ -273,7 +273,7 @@ export function FichaTecnicaPane() {
                   </div>
                 </Section>
 
-                <Section title="Tablas disponibles" subtitle="Se incorporan en el DOCX cuando el formato lo permite.">
+                <Section title="Tablas para anexar" subtitle="Se incorporan al Word cuando el formato lo permite.">
                   <div className="analitica-ficha-table-list">
                     {[...(info?.tables?.subtables ?? []), ...(info?.tables?.appendices ?? [])].length ? (
                       [...(info?.tables?.subtables ?? []), ...(info?.tables?.appendices ?? [])].map((name) => (
@@ -296,7 +296,7 @@ export function FichaTecnicaPane() {
 function FichaLoadingState() {
   const steps = [
     { icon: BookOpenCheck, label: "Fuentes", detail: "Hojas de Ruta y metadatos" },
-    { icon: Gauge, label: "KPIs", detail: "Indicadores metodológicos" },
+    { icon: Gauge, label: "Indicadores", detail: "Resumen metodológico" },
     { icon: Table2, label: "Tablas", detail: "Anexos disponibles" },
   ];
 
