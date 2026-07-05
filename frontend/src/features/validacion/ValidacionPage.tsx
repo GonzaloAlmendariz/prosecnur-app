@@ -61,9 +61,9 @@ const TABS: TabMeta<ValidacionTabId>[] = [
   },
   {
     key: "limpieza",
-    label: "Limpieza y normalización",
+    label: "Cierre de base",
     icon: Activity,
-    desc: "Decidir y cerrar la base",
+    desc: "Limpieza y normalización",
   },
 ];
 
