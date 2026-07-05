@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -89,111 +89,61 @@ function KpiCard({ view }: { view: ViewDescriptor; onAction?: OnAction }) {
   const eyebrow = friendlyValidationText(deriveChartEyebrow(view));
   const title = friendlyValidationText(view.title);
   const subtitle = friendlyValidationText(view.subtitle);
+  const cardStyle = {
+    "--pulso-validacion-kpi-border": colors.border,
+    "--pulso-validacion-kpi-panel": colors.panel,
+    "--pulso-validacion-kpi-bg": colors.bg,
+    "--pulso-validacion-kpi-fg": colors.fg,
+  } as CSSProperties & Record<string, string>;
 
   return (
-    <article
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        minHeight: 144,
-        padding: "16px 18px 18px",
-        borderRadius: 16,
-        border: `1px solid ${colors.border}`,
-        background: `linear-gradient(180deg, ${colors.panel} 0%, ${colors.bg} 62%, #ffffff 100%)`,
-        boxShadow: "var(--pulso-shadow-soft)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <article className="pulso-validacion-kpi-card" style={cardStyle}>
+      <div className="pulso-validacion-kpi-card-head">
+        <div className="pulso-validacion-kpi-card-copy">
           <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 10,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-              color: colors.fg,
-            }}
+            className="pulso-validacion-kpi-eyebrow"
           >
             <Icon size={13} />
             {eyebrow}
           </span>
           <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              lineHeight: 1.3,
-              color: "var(--pulso-text)",
-            }}
+            className="pulso-validacion-kpi-title"
           >
             {title}
           </div>
         </div>
         <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minWidth: 42,
-            height: 42,
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.85)",
-            border: `1px solid ${colors.border}`,
-            color: colors.fg,
-          }}
+          className="pulso-validacion-kpi-icon"
         >
           <Icon size={18} />
         </span>
       </div>
 
       <div
-        style={{
-          fontSize: 40,
-          fontWeight: 800,
-          color: colors.fg,
-          fontVariantNumeric: "tabular-nums",
-          letterSpacing: -1.2,
-          lineHeight: 1,
-        }}
+        className="pulso-validacion-kpi-value"
       >
         {value == null || value === "" ? "—" : String(value)}
       </div>
 
       {subtitle && (
         <div
-          style={{
-            fontSize: 12,
-            lineHeight: 1.5,
-            color: "var(--pulso-text-soft)",
-          }}
+          className="pulso-validacion-kpi-subtitle"
         >
           {subtitle}
         </div>
       )}
 
       {(chips.length > 0 || footer) && (
-        <footer
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            marginTop: "auto",
-            paddingTop: 12,
-            borderTop: "1px solid rgba(255,255,255,0.75)",
-          }}
-        >
+        <footer className="pulso-validacion-kpi-footer">
           {chips.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div className="pulso-validacion-kpi-chips">
               {chips.map((chip) => (
                 <MetaChip key={chip.label} label={chip.label} tone={chip.tone} mono={chip.mono} />
               ))}
             </div>
           )}
           {footer && (
-            <div style={{ fontSize: 11, lineHeight: 1.5, color: colors.fg, opacity: 0.92 }}>
+            <div className="pulso-validacion-kpi-note">
               {footer}
             </div>
           )}
