@@ -48,10 +48,12 @@ export function FichaTecnicaPane() {
   const run = useReporteRun();
   const [info, setInfo] = useState<AnaliticaFichaTecnicaInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingSlow, setLoadingSlow] = useState(false);
   const [error, setError] = useState("");
 
   async function loadInfo(force = false) {
     setLoading(true);
+    setLoadingSlow(false);
     setError("");
     try {
       const out = await fetchFichaTecnicaInfo(force);
@@ -71,6 +73,15 @@ export function FichaTecnicaPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!loading) {
+      setLoadingSlow(false);
+      return undefined;
+    }
+    const handle = window.setTimeout(() => setLoadingSlow(true), 4500);
+    return () => window.clearTimeout(handle);
+  }, [loading]);
+
   const fields = info?.fields ?? [];
   const fieldsByGroup = useMemo(() => {
     const grouped = new Map<string, AnaliticaFichaTecnicaField[]>();
@@ -89,6 +100,19 @@ export function FichaTecnicaPane() {
   const completedCount = fields.filter((field) => fieldValue(ficha, field).trim()).length;
   const sourceCount = (info?.sources ?? []).filter((source) => source.available).length;
   const tableCount = (info?.tables?.subtables?.length ?? 0) + (info?.tables?.appendices?.length ?? 0);
+  const fichaStats: Array<{ label: string; value: string | number; suffix?: string }> = loading
+    ? [
+        { label: "Campos", value: "Leyendo" },
+        { label: "Sugerencias", value: "Armando" },
+        { label: "Fuentes", value: "Cruzando" },
+        { label: "Tablas", value: "Buscando" },
+      ]
+    : [
+        { label: "Campos completos", value: `${completedCount}/${fields.length || 0}` },
+        { label: "Sugerencias", value: suggestedCount || "0", suffix: "por revisar" },
+        { label: "Fuentes", value: sourceCount || "0", suffix: "activas" },
+        { label: "Tablas", value: tableCount || "0", suffix: "anexables" },
+      ];
 
   function updateField(field: AnaliticaFichaTecnicaField, value: string) {
     setFichaTecnica({ [field.key]: value } as Partial<FichaTecnicaConfig>);
@@ -135,15 +159,14 @@ export function FichaTecnicaPane() {
             <small>Resume diseño, muestra, fuentes y base longitudinal en un documento editable.</small>
           </div>
           <div className="analitica-report-overview analitica-report-overview--ficha">
-            <FichaStat label="Campos completos" value={`${completedCount}/${fields.length || 0}`} />
-            <FichaStat label="Sugerencias" value={suggestedCount || "0"} suffix="por revisar" />
-            <FichaStat label="Fuentes" value={sourceCount || "0"} suffix="activas" />
-            <FichaStat label="Tablas" value={tableCount || "0"} suffix="anexables" />
+            {fichaStats.map((stat) => (
+              <FichaStat key={stat.label} {...stat} />
+            ))}
           </div>
         </div>
 
         {loading ? (
-          <FichaLoadingState />
+          <FichaLoadingState slow={loadingSlow} />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : (
@@ -293,7 +316,7 @@ export function FichaTecnicaPane() {
   );
 }
 
-function FichaLoadingState() {
+function FichaLoadingState({ slow }: { slow: boolean }) {
   const steps = [
     { icon: BookOpenCheck, label: "Fuentes", detail: "Hojas de Ruta y metadatos" },
     { icon: Gauge, label: "Indicadores", detail: "Resumen metodológico" },
@@ -301,17 +324,33 @@ function FichaLoadingState() {
   ];
 
   return (
-    <div className="analitica-ficha-loading" role="status" aria-live="polite">
+    <div className={`analitica-ficha-loading${slow ? " is-slow" : ""}`} role="status" aria-live="polite">
       <section className="analitica-ficha-loading-hero" aria-label="Preparando ficha técnica">
         <span className="analitica-ficha-loading-icon" aria-hidden="true">
           <FileText size={18} />
         </span>
         <div className="analitica-ficha-loading-copy">
-          <span>Lectura metodológica</span>
-          <h3>Preparando evidencia de ficha técnica</h3>
-          <p>Estamos cruzando configuración, muestra, base longitudinal y tablas disponibles. En proyectos grandes puede tomar unos segundos.</p>
+          <span>{slow ? "Lectura extendida" : "Lectura metodológica"}</span>
+          <h3>{slow ? "Seguimos armando la ficha técnica" : "Preparando evidencia de ficha técnica"}</h3>
+          <p>
+            {slow
+              ? "Los proyectos con varias bases requieren cruzar Hojas de Ruta, muestra y tablas antes de abrir el editor."
+              : "Estamos leyendo configuración, muestra, base longitudinal y tablas disponibles."}
+          </p>
         </div>
       </section>
+
+      {slow && (
+        <div className="analitica-ficha-loading-note">
+          <span aria-hidden="true">
+            <RefreshCw size={13} />
+          </span>
+          <div>
+            <strong>Evidencia en preparación</strong>
+            <small>La ficha se abrirá apenas termine la lectura de fuentes metodológicas.</small>
+          </div>
+        </div>
+      )}
 
       <div className="analitica-ficha-loading-steps" aria-hidden="true">
         {steps.map(({ icon: Icon, label, detail }) => (
