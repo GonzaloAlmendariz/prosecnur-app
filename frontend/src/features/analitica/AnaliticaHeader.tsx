@@ -43,10 +43,17 @@ export function analiticaFuenteGuidance({
   return "Usa la base original, sin recodificaciones ni variables nuevas de Codificación.";
 }
 
-export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; prepError: string }) {
+type AnaliticaHeaderProps = {
+  prepBusy: boolean;
+  prepError: string;
+  variant?: "bar" | "panel";
+};
+
+export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: AnaliticaHeaderProps) {
   const { state, refresh } = useSession();
   const config = useAnaliticaStore((s) => s.config);
   const setFuente = useAnaliticaStore((s) => s.setFuente);
+  const panelVariant = variant === "panel";
 
   const fuenteActual = state?.analitica_fuente ?? "";
   const usandoAdaptados = fuenteActual.startsWith("adaptados");
@@ -95,8 +102,17 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
   const activeData = activeFirst?.data?.filename ?? "Base de datos no resuelta";
   const activeAvailableCount = activeBases?.filter((b) => b.available).length ?? 0;
   const sourceFilesSummary = activeAvailableCount > 1
-    ? `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
+    ? panelVariant
+      ? `${activeAvailableCount} bases disponibles`
+      : `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
     : "Instrumento y datos vinculados";
+  const sourceTitle = panelVariant
+    ? prepBusy
+      ? "Preparando datos"
+      : prepError
+        ? "Revisar datos"
+        : "Datos listos"
+    : `Datos de trabajo: ${usandoAdaptados ? "codificados" : "originales"}`;
   const guidance = analiticaFuenteGuidance({
     prepBusy,
     prepError,
@@ -108,17 +124,15 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
     <ContextBar
       ariaLabel="Fuente de datos y configuración de analítica"
       density="compact"
-      className={`pulso-analitica-sourcebar${usandoAdaptados ? " is-adapted" : ""}${prepError ? " has-error" : ""}`}
-      elevated
+      className={`pulso-analitica-sourcebar pulso-analitica-sourcebar--${variant}${usandoAdaptados ? " is-adapted" : ""}${prepError ? " has-error" : ""}`}
+      elevated={!panelVariant}
     >
       <div className="pulso-analitica-source-status">
         <span aria-hidden="true" className="pulso-analitica-source-icon">
           {usandoAdaptados ? <CheckCircle2 size={16} /> : <Database size={16} />}
         </span>
         <div className="pulso-analitica-source-copy">
-          <strong>
-            Datos de trabajo: {usandoAdaptados ? "codificados" : "originales"}
-          </strong>{" "}
+          <strong>{sourceTitle}</strong>{" "}
           <span>{guidance}</span>
           <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
             {sourceFilesSummary}
@@ -149,10 +163,10 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
         />
       </div>
 
-      <ContextBarDivider />
+      {!panelVariant && <ContextBarDivider />}
 
       <div className="pulso-analitica-source-actions">
-        <SaveStatusIndicator state="saved" savedLabel="Autoguardado" />
+        <SaveStatusIndicator state="saved" savedLabel="Autoguardado" showLabel={!panelVariant} />
         <ConfigIoButtons
           onExport={ioExport}
           onImport={ioImport}
