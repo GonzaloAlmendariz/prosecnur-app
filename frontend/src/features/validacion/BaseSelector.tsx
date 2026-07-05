@@ -50,7 +50,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
               disabled={disabled || active}
               title={
                 b.n_filas != null
-                  ? `${label} · ${b.n_filas} filas · ${b.n_columnas} cols`
+                  ? `${label} · ${b.n_filas} filas · ${b.n_columnas} columnas`
                   : label
               }
               className={`pulso-validacion-base-chip${active ? " is-active" : ""}`}
