@@ -13505,11 +13505,11 @@ h1.pulso-page-title {
   }
 }
 .pulso-multi-strategy {
-  --pulso-multi-strategy-expand-dur: 860ms;
-  --pulso-multi-strategy-collapse-dur: 340ms;
-  --pulso-multi-strategy-label-dur: 660ms;
-  --pulso-multi-strategy-label-delay: 120ms;
-  --pulso-multi-strategy-chrome-dur: 440ms;
+  --pulso-multi-strategy-expand-dur: 1040ms;
+  --pulso-multi-strategy-collapse-dur: 520ms;
+  --pulso-multi-strategy-label-dur: 780ms;
+  --pulso-multi-strategy-label-delay: 160ms;
+  --pulso-multi-strategy-chrome-dur: 560ms;
   display: inline-flex;
   width: fit-content;
   max-width: 100%;
