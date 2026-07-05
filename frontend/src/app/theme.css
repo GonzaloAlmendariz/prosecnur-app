@@ -17408,82 +17408,118 @@ h1.pulso-page-title {
 }
 
 /* Independent sibling base switcher follows the compact processing rail. */
-@media (min-width: 901px) {
-  .pulso-main--processing:has(.pulso-sibling-switcher) {
-    --pulso-active-base-footer-reserve: 52px;
-  }
+.pulso-main--processing:has(.pulso-sibling-switcher.is-compact) {
+  --pulso-active-base-footer-reserve: 52px;
+}
 
-  .pulso-main--processing .pulso-sibling-switcher {
-    left: 16px;
-    right: auto;
-    bottom: 14px;
-    width: 42px;
-    min-width: 42px;
-    gap: 0;
-    padding: 5px;
-    border-radius: 13px;
-    transition:
-      width var(--motion-dur-base) var(--motion-ease-out),
-      min-width var(--motion-dur-base) var(--motion-ease-out),
-      padding var(--motion-dur-base) var(--motion-ease-out),
-      box-shadow var(--motion-dur-fast) ease;
-  }
+.pulso-sibling-switcher.is-compact {
+  left: 16px;
+  right: auto;
+  bottom: 14px;
+  width: 42px;
+  min-width: 42px;
+  gap: 0;
+  padding: 5px;
+  border-radius: 13px;
+  transition:
+    width var(--motion-dur-base) var(--motion-ease-out),
+    min-width var(--motion-dur-base) var(--motion-ease-out),
+    padding var(--motion-dur-base) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) ease;
+}
 
-  .pulso-main--processing .pulso-sibling-switcher:hover,
-  .pulso-main--processing .pulso-sibling-switcher:focus-within,
-  .pulso-main--processing .pulso-sibling-switcher.is-open {
-    width: min(166px, calc(100vw - 40px));
-    min-width: min(166px, calc(100vw - 40px));
-    padding: 5px;
-  }
+.pulso-sibling-switcher.is-compact::after {
+  content: attr(data-progress);
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  min-width: 24px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 70%, #fff);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--pulso-primary);
+  font-size: 9px;
+  font-weight: 840;
+  line-height: 1;
+  box-shadow: 0 7px 18px rgba(15, 23, 42, 0.12);
+  pointer-events: none;
+}
 
-  .pulso-main--processing .pulso-sibling-switcher-top {
-    display: none !important;
-  }
+.pulso-sibling-switcher.is-compact:hover,
+.pulso-sibling-switcher.is-compact:focus-within,
+.pulso-sibling-switcher.is-compact.is-open {
+  width: min(158px, calc(100vw - 40px));
+  min-width: min(158px, calc(100vw - 40px));
+  padding: 5px;
+}
 
-  .pulso-main--processing .pulso-sibling-trigger {
-    min-height: 30px;
-    height: 30px;
-    grid-template-columns: 30px;
-    justify-items: center;
-    gap: 0;
-    padding: 0;
-    border-radius: 10px;
-  }
+.pulso-sibling-switcher.is-compact:hover::after,
+.pulso-sibling-switcher.is-compact:focus-within::after,
+.pulso-sibling-switcher.is-compact.is-open::after {
+  opacity: 0;
+  transform: translateY(2px) scale(0.96);
+}
 
-  .pulso-main--processing .pulso-sibling-switcher:hover .pulso-sibling-trigger,
-  .pulso-main--processing .pulso-sibling-switcher:focus-within .pulso-sibling-trigger,
-  .pulso-main--processing .pulso-sibling-switcher.is-open .pulso-sibling-trigger {
-    height: 32px;
-    min-height: 32px;
-    grid-template-columns: 26px minmax(0, 1fr) 14px;
-    justify-items: stretch;
-    gap: 5px;
-    padding: 3px 6px;
-    border-radius: 10px;
-  }
+.pulso-sibling-switcher.is-compact .pulso-sibling-switcher-top {
+  display: none !important;
+}
 
-  .pulso-main--processing .pulso-sibling-trigger-icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-  }
+.pulso-sibling-switcher.is-compact .pulso-sibling-trigger {
+  min-height: 30px;
+  height: 30px;
+  grid-template-columns: 30px;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 10px;
+}
 
-  .pulso-main--processing .pulso-sibling-trigger-copy,
-  .pulso-main--processing .pulso-sibling-trigger > svg {
-    display: none;
-  }
+.pulso-sibling-switcher.is-compact:hover .pulso-sibling-trigger,
+.pulso-sibling-switcher.is-compact:focus-within .pulso-sibling-trigger,
+.pulso-sibling-switcher.is-compact.is-open .pulso-sibling-trigger {
+  height: 32px;
+  min-height: 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 14px;
+  justify-items: stretch;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 10px;
+}
 
-  .pulso-main--processing .pulso-sibling-switcher:hover .pulso-sibling-trigger-copy,
-  .pulso-main--processing .pulso-sibling-switcher:focus-within .pulso-sibling-trigger-copy,
-  .pulso-main--processing .pulso-sibling-switcher.is-open .pulso-sibling-trigger-copy {
-    display: block;
-  }
+.pulso-sibling-switcher.is-compact .pulso-sibling-trigger-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
 
-  .pulso-main--processing .pulso-sibling-switcher:hover .pulso-sibling-trigger > svg,
-  .pulso-main--processing .pulso-sibling-switcher:focus-within .pulso-sibling-trigger > svg,
-  .pulso-main--processing .pulso-sibling-switcher.is-open .pulso-sibling-trigger > svg {
-    display: block;
+.pulso-sibling-switcher.is-compact .pulso-sibling-trigger-copy,
+.pulso-sibling-switcher.is-compact .pulso-sibling-trigger > svg {
+  display: none;
+}
+
+.pulso-sibling-switcher.is-compact:hover .pulso-sibling-trigger-copy,
+.pulso-sibling-switcher.is-compact:focus-within .pulso-sibling-trigger-copy,
+.pulso-sibling-switcher.is-compact.is-open .pulso-sibling-trigger-copy {
+  display: block;
+}
+
+.pulso-sibling-switcher.is-compact:hover .pulso-sibling-trigger > svg,
+.pulso-sibling-switcher.is-compact:focus-within .pulso-sibling-trigger > svg,
+.pulso-sibling-switcher.is-compact.is-open .pulso-sibling-trigger > svg {
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .pulso-sibling-switcher.is-compact:hover,
+  .pulso-sibling-switcher.is-compact:focus-within,
+  .pulso-sibling-switcher.is-compact.is-open {
+    width: calc(100vw - 20px);
+    min-width: calc(100vw - 20px);
   }
 }
 
