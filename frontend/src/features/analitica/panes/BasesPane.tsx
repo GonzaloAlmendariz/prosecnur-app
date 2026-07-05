@@ -46,13 +46,13 @@ export function BasesPane() {
             <Database size={16} />
           </span>
           <div className="analitica-bases-docbar-copy">
-            <span>Producto de base</span>
-            <strong>Bases e instrumento</strong>
-            <small>Elige el archivo adecuado para revisar, compartir o analizar la base.</small>
+            <span>Archivos del estudio</span>
+            <strong>Bases e instrumentos</strong>
+            <small>Descarga la base, el formulario y formatos de análisis sin modificar el proyecto.</small>
           </div>
           <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
             <span>
-              Fuente
+              Fuente activa
               <strong>{fuenteLabel}</strong>
             </span>
             <span>
@@ -65,7 +65,7 @@ export function BasesPane() {
             </span>
           </div>
         </div>
-        <FuenteInfo />
+        <BasesUseGuide fuenteLabel={fuenteLabel} siblingsLabel={siblingsLabel} />
         <UnifiedSiblingsCard cfg={bases.xlsx} />
         <ArchivosFuenteSection />
         <MetadatosSection />
@@ -77,18 +77,40 @@ export function BasesPane() {
   );
 }
 
-// ---- Fuente info ----------------------------------------------------------
+// ---- Guia rapida ----------------------------------------------------------
 
-function FuenteInfo() {
-  const { state } = useSession();
-  const fuenteLabel = state?.analitica_fuente === "adaptados" ? "Codificada" : "Original";
-
+function BasesUseGuide({
+  fuenteLabel,
+  siblingsLabel,
+}: {
+  fuenteLabel: string;
+  siblingsLabel: string;
+}) {
   return (
-    <div className="analitica-bases-info">
-      <Info size={14} />
-      <div>
-        Estás descargando desde la <strong>fuente activa</strong>: <strong>{fuenteLabel}</strong>.
-        Usa los archivos de referencia para revisar el origen y los formatos de análisis para trabajar la base.
+    <div className="analitica-bases-guide" aria-label="Guía rápida para elegir archivos">
+      <div className="analitica-bases-guide-context">
+        <Info size={14} />
+        <div>
+          <strong>Fuente {fuenteLabel.toLowerCase()} · {siblingsLabel}</strong>
+          <span>Elige según lo que necesitas hacer ahora; cada descarga es una copia y no cambia el proyecto.</span>
+        </div>
+      </div>
+      <div className="analitica-bases-guide-options">
+        <span>
+          <FileCode2 size={14} />
+          <strong>Revisar origen</strong>
+          <small>Base + formulario</small>
+        </span>
+        <span>
+          <Database size={14} />
+          <strong>Comparar bases</strong>
+          <small>Excel combinado</small>
+        </span>
+        <span>
+          <FileSpreadsheet size={14} />
+          <strong>Analizar fuera</strong>
+          <small>SAV, CSV o Excel</small>
+        </span>
       </div>
     </div>
   );
@@ -101,10 +123,10 @@ function ArchivosFuenteSection() {
     <Section
       title={
         <span className="analitica-inline-title">
-          <FileCode2 size={14} /> Archivos fuente
+          <FileCode2 size={14} /> Revisar origen
         </span>
       }
-      subtitle="Datos e instrumento tal como quedan en la fuente activa."
+      subtitle="Base y formulario de la fuente activa, listos para auditoría o trazabilidad."
     >
       <div className="analitica-bases-source-grid">
         <SourceDataCard />
@@ -130,7 +152,7 @@ function SourceDataCard() {
         <div className="analitica-bases-source-copy">
           <strong>Base de datos</strong>
           <span>
-            Archivo principal de respuestas. En fuente codificada incluye variables recodificadas junto a sus originales.
+            Respuestas de la fuente activa. Si usas la fuente codificada, incluye las variables recodificadas junto a sus originales.
           </span>
         </div>
       </div>
@@ -161,9 +183,9 @@ function SourceInstrumentCard() {
           <FileCode2 size={15} />
         </span>
         <div className="analitica-bases-source-copy">
-          <strong>XLSForm</strong>
+          <strong>Formulario XLSForm</strong>
           <span>
-            Instrumento que explica preguntas, opciones y estructura de la base.
+            Instrumento que explica preguntas, opciones y estructura de la base descargada.
           </span>
         </div>
       </div>
@@ -195,17 +217,17 @@ function MetadatosSection() {
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Wand2 size={14} /> Cómo leer variables en SPSS
+          <Wand2 size={14} /> Lectura para SPSS
         </span>
       }
       subtitle={
         <>
-          Ajusta si SPSS debe tratar una variable como categoría, orden o escala numérica antes de crear el archivo.
+          Ajusta solo si una variable necesita leerse como categoría, orden o escala numérica antes de crear el archivo.
         </>
       }
     >
       <Collapsible
-        title="Ajustar lectura de variables"
+        title="Ajustar lectura"
         summary={summary}
         defaultOpen={overridesCount > 0}
       >
@@ -250,12 +272,12 @@ function SavCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Database size={14} /> Archivo SPSS (.sav)
+          <Database size={14} /> Analizar en SPSS
         </span>
       }
       subtitle={
         <>
-          Para abrir directamente en SPSS con etiquetas de variables, respuestas y tipo de medida.
+          Archivo SAV con etiquetas de variables, respuestas y tipo de medida.
         </>
       }
     >
@@ -301,7 +323,7 @@ function SavCard({
         </Collapsible>
 
         <GenerateFooter
-          label="Descargar SAV"
+          label="Descargar archivo SAV"
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? downloadName}
@@ -383,10 +405,10 @@ function CsvCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <FileText size={14} /> CSV
+          <FileText size={14} /> Compartir CSV
         </span>
       }
-      subtitle="Para equipos que necesitan un archivo plano compatible con Excel, R, Python o Stata."
+      subtitle="Archivo plano para equipos que trabajan en R, Python, Stata o Excel."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <RadioRow
@@ -465,10 +487,10 @@ function XlsxCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <FileSpreadsheet size={14} /> Excel (.xlsx)
+          <FileSpreadsheet size={14} /> Revisar en Excel
         </span>
       }
-      subtitle="Para revisar la base sin software especializado."
+      subtitle="Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas multi-respuesta."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <RadioRow
@@ -555,12 +577,12 @@ function UnifiedSiblingsCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <FileSpreadsheet size={14} /> Base combinada en Excel
+          <FileSpreadsheet size={14} /> Comparar todas las bases en Excel
         </span>
       }
       subtitle={
         <>
-          Crea un Excel temporal con todas las bases hermanas para comparar variables comunes y revisar diferencias entre bases.
+          Descarga una tabla temporal con todas las bases hermanas para comparar variables comunes.
         </>
       }
     >
