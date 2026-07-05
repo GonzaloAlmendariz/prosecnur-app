@@ -107,7 +107,7 @@ export function ProcessingSheetViewer({
     () => Object.values(columnFilters).some((value) => value.trim().length > 0) || search.trim().length > 0,
     [columnFilters, search],
   );
-  const hasCodingLegend = highlightCoding && columns.some((column) => column.coded);
+  const hasCodingLegend = highlightCoding && columns.some((column) => isRecodedColumn(column));
   const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
 
   function resetFilters() {
@@ -265,7 +265,7 @@ export function ProcessingSheetViewer({
                         <button type="button" onClick={() => toggleSort(column)}>
                           <span>{column.label || column.key}</span>
                           <small>{column.key}</small>
-                          {column.coded && highlightCoding ? (
+                          {isRecodedColumn(column) && highlightCoding ? (
                             <em>{KIND_LABELS[column.type_kind]}</em>
                           ) : null}
                         </button>
@@ -363,8 +363,13 @@ export function ProcessingSheetViewer({
 }
 
 function columnClass(column: ProcessingSheetColumn, highlightCoding: boolean) {
+  const recoded = isRecodedColumn(column);
   return [
-    highlightCoding && column.coded ? "is-coded" : "",
-    highlightCoding && column.coded ? `is-${column.type_kind}` : "",
+    highlightCoding && recoded ? "is-coded" : "",
+    highlightCoding && recoded ? `is-${column.type_kind}` : "",
   ].filter(Boolean).join(" ");
+}
+
+function isRecodedColumn(column: ProcessingSheetColumn) {
+  return /(?:^|[/._-])recod$/i.test(column.key);
 }

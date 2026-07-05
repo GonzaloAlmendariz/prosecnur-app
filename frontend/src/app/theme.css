@@ -5752,26 +5752,52 @@ a { color: var(--pulso-primary); }
   display: grid;
   grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  min-height: clamp(560px, calc(100dvh - 224px), 980px);
 }
 .pulso-validacion-explorar-sidebar {
   position: sticky;
   top: 66px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  max-height: clamp(520px, calc(100dvh - 178px), 920px);
+  min-height: min(720px, calc(100dvh - 224px));
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: #fff;
   box-shadow: var(--pulso-shadow-low);
+  overflow: hidden;
 }
 .pulso-validacion-explorar-main {
   min-width: 0;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+.pulso-variable-picker {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.pulso-variable-picker-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
 
 .pulso-validacion-explorar-loading {
-  min-height: clamp(420px, calc(100dvh - 280px), 700px);
+  min-height: clamp(520px, calc(100dvh - 224px), 860px);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 14px;
@@ -8715,6 +8741,23 @@ h1.pulso-page-title {
   padding: 6px 9px;
   outline: none;
 }
+.pulso-sm-multibase-name select,
+.pulso-sm-scope-field select,
+.pulso-sm-target-field select,
+.pulso-sm-channel-select select,
+.pulso-sm-extra-advanced select,
+.pulso-sm-logic-reference-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--pulso-text-soft) 50%) calc(100% - 14px) 50% / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--pulso-text-soft) 50%, transparent 50%) calc(100% - 9px) 50% / 5px 5px no-repeat,
+    #fff;
+  padding-right: 28px;
+}
 .pulso-sm-multibase-name input:focus,
 .pulso-sm-multibase-name select:focus,
 .pulso-sm-search input:focus,
@@ -8981,7 +9024,6 @@ h1.pulso-page-title {
   height: 32px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
-  background: #fff;
   color: var(--pulso-text);
   font-size: 12px;
   font-weight: 650;
@@ -11293,6 +11335,19 @@ h1.pulso-page-title {
   min-height: 34px;
   border-radius: 9px;
 }
+.pulso-sm-decision-controls select {
+  appearance: none;
+  -webkit-appearance: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--pulso-text-soft) 50%) calc(100% - 14px) 50% / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--pulso-text-soft) 50%, transparent 50%) calc(100% - 9px) 50% / 5px 5px no-repeat,
+    #fff;
+  font-size: 10.5px;
+  padding-right: 28px;
+}
 .pulso-sm-decision-controls select:focus-visible,
 .pulso-sm-decision-controls input:focus-visible,
 .pulso-sm-case-filters select:focus-visible,
@@ -12970,6 +13025,8 @@ h1.pulso-page-title {
   }
 }
 .pulso-multi-strategy {
+  --pulso-multi-strategy-dur: 520ms;
+  --pulso-multi-strategy-label-dur: 380ms;
   display: inline-flex;
   width: fit-content;
   max-width: 100%;
@@ -13009,14 +13066,14 @@ h1.pulso-page-title {
   cursor: pointer;
   overflow: hidden;
   transition:
-    flex-basis var(--motion-dur-base) var(--motion-ease-out),
-    gap var(--motion-dur-fast) ease,
-    padding var(--motion-dur-fast) ease,
+    flex-basis var(--pulso-multi-strategy-dur) var(--motion-ease-productive),
+    gap var(--pulso-multi-strategy-label-dur) ease,
+    padding var(--pulso-multi-strategy-label-dur) ease,
     transform var(--motion-dur-press) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) ease,
-    background var(--motion-dur-fast) ease,
-    color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+    border-color var(--pulso-multi-strategy-label-dur) ease,
+    background var(--pulso-multi-strategy-label-dur) ease,
+    color var(--pulso-multi-strategy-label-dur) ease,
+    box-shadow var(--pulso-multi-strategy-label-dur) var(--motion-ease-out);
 }
 .pulso-multi-strategy button svg {
   flex: 0 0 auto;
@@ -13068,9 +13125,9 @@ h1.pulso-page-title {
   overflow: hidden;
   transform: translateX(-4px);
   transition:
-    max-width var(--motion-dur-base) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) ease,
-    transform var(--motion-dur-fast) var(--motion-ease-out);
+    max-width var(--pulso-multi-strategy-dur) var(--motion-ease-productive),
+    opacity var(--pulso-multi-strategy-label-dur) ease,
+    transform var(--pulso-multi-strategy-label-dur) var(--motion-ease-out);
 }
 .pulso-multi-strategy button:hover .pulso-multi-strategy-label,
 .pulso-multi-strategy button:focus-visible .pulso-multi-strategy-label,

@@ -75,7 +75,7 @@ export default function VariablePicker({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="pulso-variable-picker">
       {/* Buscador */}
       <div style={{ position: "relative" }}>
         <Search
@@ -107,16 +107,7 @@ export default function VariablePicker({
       </div>
 
       {/* Secciones */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          maxHeight: 560,
-          overflowY: "auto",
-          paddingRight: 4,
-        }}
-      >
+      <div className="pulso-variable-picker-list">
         {filteredSecs.map((sec) => {
           const isCollapsed = !!collapsed[sec.nombre];
           return (
