@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FilePlus2, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, FilePlus2, FileSpreadsheet, Gauge, ListChecks, Network } from "lucide-react";
 import { PlantillaCard } from "../shared/PlantillaCard";
 import { JsonImportPanel } from "../confirmar-import/JsonImportPanel";
 import { useDimensionesWizardStore } from "../store";
@@ -17,6 +17,24 @@ import { useDimensionesWizardStore } from "../store";
 // específicas a ningún estudio. Las recetas concretas (GIZ, otros)
 // viven como archivos JSON que el analista elige importar.
 
+const FLUJO_GUIA = [
+  {
+    icon: ListChecks,
+    title: "Selecciona preguntas evaluativas",
+    copy: "Confirma qué escalas del instrumento entran al cálculo.",
+  },
+  {
+    icon: Network,
+    title: "Agrupa por temas",
+    copy: "Ordena las preguntas en bloques que reflejen el diseño del estudio.",
+  },
+  {
+    icon: Gauge,
+    title: "Genera puntajes comparables",
+    copy: "Crea variables 0-100 listas para Cruces, Gráficos y Dashboard.",
+  },
+];
+
 export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) => void }) {
   const setDraft = useDimensionesWizardStore((s) => s.setDraft);
   const setVarsFaltantesJson = useDimensionesWizardStore((s) => s.setVarsFaltantesJson);
@@ -31,49 +49,83 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
     <div className="analitica-dimensiones-step-one">
       <header className="analitica-dimensiones-step-one-head">
         <h2>
-          ¿Cómo quieres armar las dimensiones?
+          Elige el punto de partida
         </h2>
         <p>
-          Las <strong>dimensiones</strong> agrupan preguntas evaluativas en bloques
-          temáticos y los combinan en índices 0-100. Elige por dónde empezar.
+          Las dimensiones convierten preguntas evaluativas en puntajes 0-100.
+          Puedes partir de una estructura ya acordada o crear una nueva con ayuda del asistente.
         </p>
       </header>
 
-      <div className="analitica-dimensiones-template-grid">
-        <PlantillaCard
-          index={0}
-          icon={FileSpreadsheet}
-          accent="#7c3aed"
-          iconBg="#f5f3ff"
-          iconFg="#7c3aed"
-          iconBorder="#ddd6fe"
-          title="Importar receta y confirmar"
-          blurb="Sube un JSON de dimensiones (exportado desde otro proyecto o entregado por el equipo de diseño). Lo validamos contra tu XLSForm y te mostramos qué piezas aplican y cuáles requieren atención."
-          highlights={[
-            "Cruza listas, bloques e índices con tu instrumento",
-            "Marca ✓ coincidencias / ⚠ faltantes",
-            "Continúa con lo que sí calza",
-          ]}
-          ctaLabel="Subir JSON"
-          onClick={() => setImportOpen(true)}
-        />
-        <PlantillaCard
-          index={1}
-          icon={FilePlus2}
-          accent="#059669"
-          iconBg="#ecfdf5"
-          iconFg="#059669"
-          iconBorder="#a7f3d0"
-          title="Construir desde cero"
-          blurb="Para estudios sin receta previa. Te guiamos paso a paso: detectamos las escalas evaluativas del instrumento, sugerimos bloques desde los grupos del XLSForm y combinas los índices."
-          highlights={[
-            "Detección automática de escalas",
-            "Sugerencias de bloques por grupo del XLSForm",
-            "Drag-drop para refinar",
-          ]}
-          ctaLabel="Empezar desde cero"
-          onClick={elegirDesdeCero}
-        />
+      <div className="analitica-dimensiones-step-one-layout">
+        <div className="analitica-dimensiones-template-grid">
+          <PlantillaCard
+            index={0}
+            icon={FileSpreadsheet}
+            accent="#7c3aed"
+            iconBg="#f5f3ff"
+            iconFg="#7c3aed"
+            iconBorder="#ddd6fe"
+            title="Usar una estructura existente"
+            blurb="Para estudios que ya tienen una receta de dimensiones. Prosecnur la contrasta con el instrumento activo antes de generar puntajes."
+            highlights={[
+              "Revisa qué preguntas coinciden",
+              "Detecta piezas que requieren ajuste",
+              "Conserva la estructura acordada",
+            ]}
+            ctaLabel="Elegir archivo de receta"
+            onClick={() => setImportOpen(true)}
+          />
+          <PlantillaCard
+            index={1}
+            icon={FilePlus2}
+            accent="#059669"
+            iconBg="#ecfdf5"
+            iconFg="#059669"
+            iconBorder="#a7f3d0"
+            title="Crear una estructura nueva"
+            blurb="Para estudios sin receta previa. El asistente detecta escalas, sugiere bloques desde el instrumento y deja que confirmes la organización final."
+            highlights={[
+              "Elige las preguntas evaluativas",
+              "Agrupa variables por tema",
+              "Genera puntajes listos para analizar",
+            ]}
+            ctaLabel="Empezar estructura nueva"
+            onClick={elegirDesdeCero}
+          />
+        </div>
+
+        <aside className="analitica-dimensiones-guide" aria-label="Resumen del flujo de dimensiones">
+          <div className="analitica-dimensiones-guide-head">
+            <span className="analitica-dimensiones-guide-icon" aria-hidden="true">
+              <CheckCircle2 size={16} />
+            </span>
+            <div>
+              <span>Ruta de trabajo</span>
+              <strong>De preguntas a puntajes</strong>
+            </div>
+          </div>
+          <ol className="analitica-dimensiones-guide-steps">
+            {FLUJO_GUIA.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.title}>
+                  <span className="analitica-dimensiones-guide-step-icon" aria-hidden="true">
+                    <Icon size={15} />
+                  </span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <span>{item.copy}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          <div className="analitica-dimensiones-guide-result">
+            <span>Resultado</span>
+            <strong>Índices comparables sin perder trazabilidad</strong>
+          </div>
+        </aside>
       </div>
 
       <JsonImportPanel
