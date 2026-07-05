@@ -336,7 +336,7 @@ export function BasesPanel({
 
         {/* Acción de salida contextual:
             - 0 o 1 base: "Volver a carga simple" (no destructivo).
-            - ≥2 bases: "Cerrar estudio" (destructivo, confirmación). */}
+            - ≥2 bases: descartar el estudio multibase completo (confirmación). */}
         {bases.length <= 1 ? (
           <button
             type="button"
@@ -352,10 +352,10 @@ export function BasesPanel({
             type="button"
             onClick={handleDiscardEstudio}
             disabled={!!busy}
-            title="Cerrar el estudio y descartar todas las bases"
+            title="Descartar el estudio multibase y quitar todas sus bases"
             className="pulso-multibase-study-action is-danger"
           >
-            <XIcon size={11} /> Cerrar estudio
+            <XIcon size={11} /> Descartar estudio
           </button>
         )}
       </header>
@@ -6648,7 +6648,7 @@ function BaseRow({
           <span>
             <Database size={12} />
             {base.n_filas != null && base.n_columnas != null
-              ? `${base.n_filas} registros · ${base.n_columnas} cols`
+              ? `${base.n_filas} registros · ${base.n_columnas} columnas`
               : "Respuestas cargadas"}
             {base.data_ext && ` · .${base.data_ext}`}
           </span>
@@ -6660,33 +6660,33 @@ function BaseRow({
           type="button"
           onClick={onExport}
           disabled={busy}
-          title={`Descargar base normalizada de ${base.nombre}`}
-          aria-label={`Descargar base normalizada de ${base.nombre}`}
+          title={`Descargar la base lista para análisis de ${base.nombre}`}
+          aria-label={`Descargar base lista para análisis de ${base.nombre}`}
           className="pulso-base-row-button is-primary"
         >
-          <Download size={11} /> Normalizada
+          <Download size={11} /> Descargar base
         </button>
 
         <button
           type="button"
           onClick={onStartReplace}
           disabled={busy || isReplacing}
-          title={`Reemplazar el formulario o las respuestas de ${base.nombre}`}
-          aria-label={`Reemplazar archivos de ${base.nombre}`}
+          title={`Actualizar el formulario o las respuestas de ${base.nombre}`}
+          aria-label={`Actualizar archivos de ${base.nombre}`}
           className={`pulso-base-row-button${isReplacing ? " is-active" : ""}`}
         >
-          <RefreshCw size={11} /> Reemplazar
+          <RefreshCw size={11} /> Actualizar archivos
         </button>
 
         <button
           type="button"
           onClick={onRemove}
           disabled={busy}
-          title={`Quitar base ${base.nombre}`}
-          aria-label={`Quitar base ${base.nombre}`}
+          title={`Retirar base ${base.nombre} del estudio`}
+          aria-label={`Retirar base ${base.nombre} del estudio`}
           className="pulso-base-row-button is-danger"
         >
-          <Trash2 size={11} /> Quitar
+          <Trash2 size={11} /> Retirar
         </button>
       </div>
     </div>
