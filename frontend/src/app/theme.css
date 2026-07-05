@@ -7869,20 +7869,24 @@ h1.pulso-page-title {
   align-items: center;
   gap: 3px;
   padding: 3px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 88%, #fff);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  border: 1px solid color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 52%, var(--pulso-border));
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(247, 251, 250, 0.72)),
+    color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 28%, var(--pulso-surface-2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 7px 16px rgba(15, 23, 42, 0.05);
   flex-shrink: 0;
 }
 .pulso-carga-source-switch button {
   position: relative;
-  flex: 0 0 32px;
+  flex: 0 0 38px;
   max-width: 148px;
   min-height: 30px;
   padding: 5px 10px;
-  border: 0;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--pulso-text-soft);
   display: inline-flex;
@@ -7973,8 +7977,10 @@ h1.pulso-page-title {
   transform: scale(1.08);
 }
 .pulso-carga-source-switch button:hover:not(.is-active):not(:disabled) {
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--pulso-text);
+  border-color: color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, #fff);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--module-accent, var(--pulso-module-processing));
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 8%, transparent);
 }
 .pulso-carga-source-switch button:active {
   transform: scale(0.97);
@@ -7984,11 +7990,13 @@ h1.pulso-page-title {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 74%, transparent);
 }
 .pulso-carga-source-switch button.is-active {
-  background: #fff;
-  color: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 80%, #fff 20%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 92%, #fff 8%), var(--module-accent, var(--pulso-module-processing)));
+  color: #fff;
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.08),
-    inset 0 0 0 1px var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 14px color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 18%, transparent);
 }
 @media (max-width: 1180px) {
   .pulso-carga-suitebar {
@@ -12806,15 +12814,16 @@ h1.pulso-page-title {
   padding-inline-end: 12px;
 }
 .pulso-multi-strategy button.is-active {
-  border-color: color-mix(in srgb, var(--carga-accent) 32%, var(--pulso-border));
-  background: #fff;
-  color: var(--carga-accent);
+  border-color: color-mix(in srgb, var(--carga-accent) 82%, #fff 18%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--carga-accent) 92%, #fff 8%), var(--carga-accent));
+  color: #fff;
   box-shadow:
-    0 8px 18px color-mix(in srgb, var(--carga-accent) 12%, transparent),
-    0 0 0 3px var(--carga-accent-ring, var(--pulso-primary-ring));
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 18px color-mix(in srgb, var(--carga-accent) 16%, transparent);
 }
 .pulso-multi-strategy button.is-active svg {
-  color: var(--carga-accent);
+  color: #fff;
 }
 @media (hover: hover) and (pointer: fine) {
   .pulso-multi-strategy button:hover {
@@ -12822,7 +12831,8 @@ h1.pulso-page-title {
     background: rgba(255, 255, 255, 0.72);
   }
   .pulso-multi-strategy button.is-active:hover {
-    background: #fff;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--carga-accent) 88%, #fff 12%), var(--carga-accent));
   }
 }
 .pulso-multi-strategy-label {
@@ -12844,6 +12854,10 @@ h1.pulso-page-title {
   max-width: 206px;
   opacity: 1;
   transform: translateX(0);
+}
+.pulso-multi-strategy button.is-active strong,
+.pulso-multi-strategy button.is-active small {
+  color: #fff;
 }
 .pulso-multi-strategy strong {
   display: block;
@@ -13850,12 +13864,14 @@ h1.pulso-page-title {
   align-items: center;
   gap: 3px;
   padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, var(--pulso-border));
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 56%, var(--pulso-border));
+  border-radius: 11px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 250, 0.72)),
-    color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 24%, var(--pulso-surface-2));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(247, 251, 250, 0.72)),
+    color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 28%, var(--pulso-surface-2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 7px 16px rgba(15, 23, 42, 0.05);
   justify-self: start;
 }
 .pulso-integrated-source-tabs button {
@@ -13867,8 +13883,8 @@ h1.pulso-page-title {
   justify-content: center;
   gap: 0;
   padding: 5px 10px;
-  border: 0;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 11px;
@@ -13914,8 +13930,10 @@ h1.pulso-page-title {
   transform: translateX(0);
 }
 .pulso-integrated-source-tabs button:hover:not(.is-active):not(:disabled) {
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--pulso-text);
+  border-color: color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, #fff);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--module-accent, var(--pulso-module-processing));
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 8%, transparent);
 }
 .pulso-integrated-source-tabs button:active:not(:disabled) {
   transform: scale(0.97);
@@ -13925,11 +13943,13 @@ h1.pulso-page-title {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 74%, transparent);
 }
 .pulso-integrated-source-tabs button.is-active {
-  background: #fff;
-  color: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 80%, #fff 20%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 92%, #fff 8%), var(--module-accent, var(--pulso-module-processing)));
+  color: #fff;
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.08),
-    inset 0 0 0 1px var(--module-accent-border, var(--pulso-module-processing-border, var(--pulso-primary-border)));
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 14px color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 18%, transparent);
 }
 .pulso-integrated-link {
   display: grid;
@@ -14698,11 +14718,16 @@ h1.pulso-page-title {
   padding: 3px;
   border: 1px solid color-mix(in srgb, var(--platform-border) 48%, var(--pulso-border));
   border-radius: var(--pulso-radius-chip);
-  background: rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 251, 250, 0.72)),
+    color-mix(in srgb, var(--platform-soft) 26%, var(--pulso-surface-2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 7px 16px rgba(15, 23, 42, 0.05);
 }
 .pulso-platform-provider-tabs button {
   flex: 0 0 30px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: var(--pulso-radius-chip);
   min-height: 28px;
   max-width: 142px;
@@ -14755,8 +14780,10 @@ h1.pulso-page-title {
   transform: translateX(0);
 }
 .pulso-platform-provider-tabs button:hover:not(.is-active):not(:disabled) {
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--pulso-text);
+  border-color: color-mix(in srgb, var(--platform-border) 58%, #fff 42%);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--platform-accent);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--platform-accent) 8%, transparent);
 }
 .pulso-platform-provider-tabs button:active {
   transform: scale(0.97);
@@ -14766,11 +14793,13 @@ h1.pulso-page-title {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-soft) 78%, transparent);
 }
 .pulso-platform-provider-tabs button.is-active {
-  background: #fff;
-  color: var(--platform-accent);
+  border-color: color-mix(in srgb, var(--platform-accent) 80%, #fff 20%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--platform-accent) 92%, #fff 8%), var(--platform-accent));
+  color: #fff;
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    inset 0 0 0 1px var(--platform-border);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 14px color-mix(in srgb, var(--platform-accent) 18%, transparent);
 }
 .pulso-platform-status {
   display: inline-flex;
