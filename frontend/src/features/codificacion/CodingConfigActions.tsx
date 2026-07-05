@@ -42,7 +42,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       a.download = suggestedFilename || `prosecnur_codificacion_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(href);
-      setMessage(`Ajustes exportados: ${payload.variables.length} pregunta(s) o campo(s).`);
+      setMessage(`Ajustes descargados: ${payload.variables.length} pregunta(s) o campo(s).`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -56,7 +56,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       onClose={() => setDialogOpen(false)}
       onImported={() => {
         onImported?.();
-        setMessage("Importación aplicada y registrada en auditoría.");
+        setMessage("Ajustes cargados y registrados en auditoría.");
         window.setTimeout(() => setMessage(""), 3600);
       }}
     />,
@@ -73,7 +73,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
         title="Descarga categorías, reglas y ajustes de codificación. No incluye filas ni casos."
       >
         <Download size={13} />
-        {busy === "export" ? "Exportando..." : "Exportar ajustes"}
+        {busy === "export" ? "Descargando..." : "Descargar ajustes"}
       </button>
       <button
         type="button"
@@ -84,10 +84,10 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           setDialogOpen(true);
         }}
         disabled={disabled}
-        title="Revisa un archivo portable o Excel de categorizaciones antes de aplicarlo al proyecto actual."
+        title="Carga un archivo portable o Excel de categorizaciones y revisa los cambios antes de aplicarlos."
       >
         <Upload size={13} />
-        Importar ajustes
+        Cargar ajustes...
       </button>
       {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
       {error && <span className="pulso-codificacion-config-feedback is-error">{error}</span>}
@@ -204,7 +204,7 @@ function CodingConfigImportDialog({
           <span className="pulso-codificacion-import-icon" aria-hidden="true"><FileJson size={18} /></span>
           <div>
             <span className="pulso-section-eyebrow">Ajustes portables</span>
-            <h2 id="codif-import-title">Importar ajustes</h2>
+            <h2 id="codif-import-title">Cargar ajustes</h2>
             <p>Revisa coincidencias y conflictos antes de modificar la codificación del proyecto actual.</p>
           </div>
           <button type="button" className="pulso-icon" onClick={onClose} aria-label="Cerrar">
