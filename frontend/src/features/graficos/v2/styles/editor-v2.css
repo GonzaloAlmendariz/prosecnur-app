@@ -30982,6 +30982,30 @@
   .pulso-gv2-start-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .pulso-gv2-start-action {
+    min-height: 72px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 5px;
+    padding: 8px 7px;
+    text-align: center;
+  }
+
+  .pulso-gv2-start-action-copy {
+    justify-items: center;
+  }
+
+  .pulso-gv2-start-action-copy strong,
+  .pulso-gv2-start-action-copy small {
+    max-width: 100%;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .pulso-gv2-start-action > svg {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {
