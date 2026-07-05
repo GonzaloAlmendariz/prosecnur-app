@@ -47,7 +47,7 @@ export function JsonImportPanel({
   return (
     <div
       role="dialog"
-      aria-label="Confirmar JSON contra instrumento"
+      aria-label="Aplicar plantilla al instrumento"
       style={{
         position: "fixed",
         inset: 0,
@@ -87,7 +87,7 @@ export function JsonImportPanel({
         >
           <FileJson size={18} color="var(--pulso-primary)" />
           <h3 style={{ margin: 0, flex: 1, fontSize: 15, fontWeight: 700 }}>
-            Confirmar JSON contra el instrumento
+            Aplicar plantilla al instrumento
           </h3>
           <button
             type="button"
@@ -213,10 +213,10 @@ function Dropzone({
     >
       <Upload size={28} color={draggingOver ? "var(--pulso-primary)" : "var(--pulso-text-soft)"} />
       <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
-        Arrastra tu archivo <code>.json</code> aquí
+        Arrastra tu plantilla <code>.json</code> aquí
       </div>
       <div style={{ marginTop: 4, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-        o haz click para elegirlo
+        o haz click para elegir la plantilla
       </div>
     </div>
   );
@@ -237,11 +237,11 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
-        <AlertCircle size={16} /> No se pudo validar el JSON
+        <AlertCircle size={16} /> No se pudo validar la plantilla
       </div>
       <div style={{ fontSize: 12, fontWeight: 400 }}>{message}</div>
       <button type="button" onClick={onRetry} style={{ alignSelf: "flex-start" }}>
-        Probar otro archivo
+        Probar otra plantilla
       </button>
     </div>
   );
