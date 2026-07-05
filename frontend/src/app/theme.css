@@ -32895,32 +32895,41 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-analitica-nav-item {
-  min-height: 42px;
+  min-height: 46px;
+  height: 46px;
   grid-template-columns: 24px minmax(0, 1fr) 14px;
   gap: 6px;
   padding: 6px;
-  border-radius: 9px;
+  border-radius: 10px;
   border-color: color-mix(in srgb, var(--pulso-border) 86%, #ffffff);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 252, 254, 0.86));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 253, 0.78)),
+    rgba(255, 255, 255, 0.74);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
     0 4px 12px rgba(15, 23, 42, 0.03);
-}
-
-.pulso-analitica-nav-item:hover:not(:disabled),
-.pulso-analitica-nav-item.is-active {
-  min-height: 50px;
+  overflow: hidden;
+  transform-origin: center;
 }
 
 .pulso-analitica-nav-item.is-active {
-  border-color: color-mix(in srgb, var(--pulso-primary) 80%, var(--pulso-primary-border));
+  border-color: color-mix(in srgb, var(--pulso-primary) 86%, #ffffff);
   background:
-    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-primary-soft) 72%, #ffffff));
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 92%, #ffffff 8%), var(--pulso-primary));
+  color: #fff;
   box-shadow:
-    inset 3px 0 0 var(--pulso-primary),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 8px 20px rgba(8, 31, 92, 0.07);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 7px 16px rgba(8, 31, 92, 0.14);
+}
+
+.pulso-analitica-nav-item:hover:not(:disabled):not(.is-active) {
+  border-color: var(--pulso-primary-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 255, 0.76)),
+    color-mix(in srgb, var(--pulso-primary-soft) 54%, white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 5px 12px rgba(15, 23, 42, 0.055);
 }
 
 .pulso-analitica-nav-icon {
@@ -32930,6 +32939,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   border-color: color-mix(in srgb, var(--pulso-primary-border) 54%, var(--pulso-border));
   background:
     linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-primary-soft) 44%, #ffffff));
+}
+
+.pulso-analitica-nav-item.is-active .pulso-analitica-nav-icon {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .pulso-analitica-nav-copy {
@@ -32953,12 +32968,21 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   display: none;
   font-size: 9.5px;
   font-weight: 650;
+  opacity: 1;
+  transition:
+    color var(--motion-dur-fast) ease,
+    opacity var(--motion-dur-fast) ease;
 }
 
 .pulso-analitica-nav-item:hover:not(:disabled) .pulso-analitica-nav-copy span,
 .pulso-analitica-nav-item:focus-visible .pulso-analitica-nav-copy span,
 .pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy span {
   display: block;
+}
+
+.pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy strong,
+.pulso-analitica-nav-item.is-active .pulso-analitica-nav-copy span {
+  color: #fff;
 }
 
 .pulso-analitica-nav-done {
@@ -32968,6 +32992,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   justify-content: center;
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-success-bg) 78%, #ffffff);
+}
+
+.pulso-analitica-nav-item.is-active .pulso-analitica-nav-done {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .pulso-analitica-panel-head {
