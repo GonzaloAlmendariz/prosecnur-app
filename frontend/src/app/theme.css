@@ -8621,6 +8621,48 @@ h1.pulso-page-title {
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 250, 0.72)),
     color-mix(in srgb, var(--module-accent-soft, var(--pulso-module-processing-soft)) 24%, var(--pulso-surface-2));
 }
+.pulso-carga-workspace-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 8px 7px;
+  overflow: visible;
+}
+.pulso-carga-workspace-sidebar-head {
+  display: none;
+}
+.pulso-carga-workspace-sidebar .pulso-carga-view-tabs {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.pulso-carga-workspace-sidebar .pulso-carga-view-tab,
+.pulso-carga-workspace-sidebar .pulso-carga-view-tab:hover:not(:disabled),
+.pulso-carga-workspace-sidebar .pulso-carga-view-tab:focus-visible,
+.pulso-carga-workspace-sidebar .pulso-carga-view-tab.is-active {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+.pulso-carga-workspace-sidebar .pulso-carga-tab-label {
+  display: none;
+}
+.pulso-carga-workspace-sidebar .pulso-carga-view-tab:not(.is-active) {
+  border-color: color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.7);
+}
+.pulso-carga-workspace-sidebar .pulso-carga-view-tab[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
 .pulso-carga-view-tab {
   --carga-view-state: var(--pulso-info);
 }
@@ -8650,6 +8692,9 @@ h1.pulso-page-title {
 .pulso-carga-view-tab.is-active .pulso-carga-view-tab-state {
   opacity: 1;
   transform: scale(1.08);
+}
+.pulso-carga-workbench--top-only {
+  display: block;
 }
 .pulso-carga-source-switch button:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]) {
   border-color: color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, #fff);
@@ -38736,6 +38781,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-main--processing :is(
     .pulso-carga-stage-item,
+    .pulso-carga-view-tab.is-sidebar,
     .pulso-codificacion-nav-item
   )::before {
     content: attr(data-rail-title);
@@ -38774,6 +38820,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   .pulso-main--processing :is(
     .pulso-carga-stage-item:not(.is-active):hover,
     .pulso-carga-stage-item:not(.is-active):focus-visible,
+    .pulso-carga-view-tab.is-sidebar:hover,
+    .pulso-carga-view-tab.is-sidebar:focus-visible,
     .pulso-codificacion-nav-item:not(.is-active):hover,
     .pulso-codificacion-nav-item:not(.is-active):focus-visible
   )::before {
@@ -38784,6 +38832,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-main--processing :is(
     .pulso-carga-stage-item,
+    .pulso-carga-view-tab.is-sidebar,
     .pulso-codificacion-nav-item
   )::after {
     content: attr(data-rail-desc);
@@ -38814,6 +38863,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   .pulso-main--processing :is(
     .pulso-carga-stage-item:not(.is-active):hover,
     .pulso-carga-stage-item:not(.is-active):focus-visible,
+    .pulso-carga-view-tab.is-sidebar:hover,
+    .pulso-carga-view-tab.is-sidebar:focus-visible,
     .pulso-codificacion-nav-item:not(.is-active):hover,
     .pulso-codificacion-nav-item:not(.is-active):focus-visible
   )::after {
