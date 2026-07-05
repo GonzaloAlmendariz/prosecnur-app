@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Database, FileCode2, FileText, FileSpreadsheet, Info, Wand2 } from "lucide-react";
+import { CheckCircle2, Database, FileCode2, FileText, FileSpreadsheet, Info, KeyRound, ShieldCheck, Wand2 } from "lucide-react";
 import {
   apiAnaliticaBasesData,
   apiAnaliticaBasesInstrumento,
@@ -48,7 +48,7 @@ export function BasesPane() {
           <div className="analitica-bases-docbar-copy">
             <span>Archivos del estudio</span>
             <strong>Bases e instrumentos</strong>
-            <small>Descarga la base, el formulario y formatos de análisis sin modificar el proyecto.</small>
+            <small>Elige una copia de trabajo: origen, comparación entre bases o formato para análisis.</small>
           </div>
           <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
             <span>
@@ -91,24 +91,24 @@ function BasesUseGuide({
       <div className="analitica-bases-guide-context">
         <Info size={14} />
         <div>
-          <strong>Fuente {fuenteLabel.toLowerCase()} · {siblingsLabel}</strong>
-          <span>Elige según lo que necesitas hacer ahora; cada descarga es una copia y no cambia el proyecto.</span>
+          <strong>Qué necesitas descargar</strong>
+          <span>{fuenteLabel} · {siblingsLabel}. Todas las salidas son copias; el proyecto queda intacto.</span>
         </div>
       </div>
       <div className="analitica-bases-guide-options">
         <span>
           <FileCode2 size={14} />
-          <strong>Revisar origen</strong>
+          <strong>Auditar fuente</strong>
           <small>Base + formulario</small>
         </span>
         <span>
           <Database size={14} />
-          <strong>Comparar bases</strong>
-          <small>Excel combinado</small>
+          <strong>Comparar mediciones</strong>
+          <small>Excel de bases</small>
         </span>
         <span>
           <FileSpreadsheet size={14} />
-          <strong>Analizar fuera</strong>
+          <strong>Entregar análisis</strong>
           <small>SAV, CSV o Excel</small>
         </span>
       </div>
@@ -126,7 +126,7 @@ function ArchivosFuenteSection() {
           <FileCode2 size={14} /> Revisar origen
         </span>
       }
-      subtitle="Base y formulario de la fuente activa, listos para auditoría o trazabilidad."
+      subtitle="Copia fiel de la fuente activa para revisar respuestas, preguntas y opciones."
     >
       <div className="analitica-bases-source-grid">
         <SourceDataCard />
@@ -216,7 +216,7 @@ function MetadatosSection() {
   return (
     <Section
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="analitica-inline-title">
           <Wand2 size={14} /> Lectura para SPSS
         </span>
       }
@@ -227,7 +227,7 @@ function MetadatosSection() {
       }
     >
       <Collapsible
-        title="Ajustar lectura"
+        title="Revisar etiquetas y escala"
         summary={summary}
         defaultOpen={overridesCount > 0}
       >
@@ -271,7 +271,7 @@ function SavCard({
   return (
     <Section
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="analitica-inline-title">
           <Database size={14} /> Analizar en SPSS
         </span>
       }
@@ -281,49 +281,33 @@ function SavCard({
         </>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div
-          style={{
-            display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start",
-            padding: "10px 12px",
-            background: "var(--pulso-surface)",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 6,
-          }}
-        >
-          <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 12, color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)", padding: "3px 8px", borderRadius: 4 }}>
-            datos.sav
-          </code>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            La lectura de cada columna se guarda dentro del archivo. Si necesitas corregir una variable, usa “Cómo leer variables en SPSS”.
+      <div className="analitica-bases-format-stack">
+        <div className="analitica-bases-file-note">
+          <code>datos.sav</code>
+          <div>
+            La lectura de cada columna se guarda dentro del archivo. Si una variable necesita ajuste, abre “Revisar etiquetas y escala”.
           </div>
         </div>
         <SavWriterStatus writer={writer} />
 
         <Collapsible title="Avanzado" summary={cfg.incluir_sps ? "respaldo incluido" : "sin respaldo"} defaultOpen={false}>
-          <label
-            style={{
-              display: "inline-flex", alignItems: "flex-start", gap: 8,
-              fontSize: 12, cursor: "pointer", padding: "4px 0",
-            }}
-          >
+          <label className="analitica-bases-check-option">
             <input
               type="checkbox"
               checked={cfg.incluir_sps}
               onChange={(e) => onChange({ incluir_sps: e.target.checked })}
-              style={{ marginTop: 2 }}
             />
             <span>
               <strong>Incluir respaldo técnico para SPSS</strong>
-              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
+              <small>
                 Agrega un archivo con instrucciones de lectura. Normalmente no hace falta; actívalo solo si alguien necesita auditar la importación.
-              </div>
+              </small>
             </span>
           </label>
         </Collapsible>
 
         <GenerateFooter
-          label="Descargar archivo SAV"
+          label="Descargar SAV para SPSS"
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? downloadName}
@@ -343,28 +327,8 @@ function SavWriterStatus({ writer }: { writer: BasesSavWriterInfo | null }) {
       ? writer.message
       : "Si el motor principal no está disponible, conserva el respaldo para SPSS.";
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexWrap: "wrap",
-        fontSize: 11,
-        color: ok ? "var(--tipo-int-fg)" : "var(--pulso-text-soft)",
-      }}
-    >
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 8px",
-          borderRadius: 999,
-          border: `1px solid ${ok ? "var(--tipo-int-border)" : "var(--pulso-border)"}`,
-          background: ok ? "var(--tipo-int-bg)" : "var(--pulso-surface)",
-          fontWeight: 700,
-        }}
-      >
+    <div className={`analitica-bases-writer-status${ok ? " is-ok" : ""}`}>
+      <span>
         {ok ? "Metadatos embebidos" : "Respaldo disponible"}
       </span>
       <span>
@@ -404,13 +368,13 @@ function CsvCard({
   return (
     <Section
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="analitica-inline-title">
           <FileText size={14} /> Compartir CSV
         </span>
       }
       subtitle="Archivo plano para equipos que trabajan en R, Python, Stata o Excel."
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="analitica-bases-format-stack">
         <RadioRow
           label="Contenido"
           value={cfg.valores}
@@ -422,15 +386,15 @@ function CsvCard({
         />
 
         <RadioRow
-          label="Preguntas multi-respuesta"
+          label="Preguntas de varias opciones"
           value={cfg.multi_select}
           onChange={(v) => onChange({ multi_select: v as "codigos_crudos" | "etiquetas_unidas" | "dummy_01" })}
           options={[
-            { value: "dummy_01", label: "Expandir a columnas 0/1", hint: "Una columna por opción (estándar en análisis estadístico)." },
+            { value: "dummy_01", label: "Una columna por opción (0/1)", hint: "Formato recomendado para análisis estadístico." },
             {
               value: "etiquetas_unidas",
-              label: "Etiquetas unidas con '|'",
-              hint: "Solo aplica si el contenido es 'Etiquetas'.",
+              label: "Unir respuestas en una celda",
+              hint: "Solo aplica si el contenido usa etiquetas; separa opciones con |.",
               disabled: cfg.valores !== "etiquetas",
             },
             { value: "codigos_crudos", label: "Mantener códigos originales", hint: "Conserva respuestas como '1 3 5'." },
@@ -448,7 +412,7 @@ function CsvCard({
         />
 
         <GenerateFooter
-          label="Exportar CSV"
+          label="Descargar CSV"
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? "datos.csv"}
@@ -486,13 +450,13 @@ function XlsxCard({
   return (
     <Section
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="analitica-inline-title">
           <FileSpreadsheet size={14} /> Revisar en Excel
         </span>
       }
-      subtitle="Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas multi-respuesta."
+      subtitle="Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas de varias opciones."
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="analitica-bases-format-stack">
         <RadioRow
           label="Contenido"
           value={cfg.valores}
@@ -505,15 +469,15 @@ function XlsxCard({
         />
 
         <RadioRow
-          label="Preguntas multi-respuesta"
+          label="Preguntas de varias opciones"
           value={cfg.multi_select}
           onChange={(v) => onChange({ multi_select: v as "codigos_crudos" | "etiquetas_unidas" | "dummy_01" })}
           options={[
-            { value: "dummy_01", label: "Expandir a columnas 0/1", hint: "Una columna por opción (estándar en análisis estadístico)." },
+            { value: "dummy_01", label: "Una columna por opción (0/1)", hint: "Formato recomendado para análisis estadístico." },
             {
               value: "etiquetas_unidas",
-              label: "Etiquetas unidas con '|'",
-              hint: "Solo afecta la hoja de etiquetas.",
+              label: "Unir respuestas en una celda",
+              hint: "Solo afecta la hoja de etiquetas; separa opciones con |.",
               disabled: etiquetasDisabled,
             },
             { value: "codigos_crudos", label: "Mantener códigos originales", hint: "Conserva respuestas como '1 3 5'." },
@@ -521,7 +485,7 @@ function XlsxCard({
         />
 
         <GenerateFooter
-          label="Exportar Excel"
+          label="Descargar Excel"
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? "datos.xlsx"}
@@ -576,70 +540,67 @@ function UnifiedSiblingsCard({
   return (
     <Section
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <FileSpreadsheet size={14} /> Comparar todas las bases en Excel
+        <span className="analitica-inline-title">
+          <FileSpreadsheet size={14} /> Comparar {state?.n_bases ?? 0} bases
         </span>
       }
-      subtitle={
-        <>
-          Descarga una tabla temporal con todas las bases hermanas para comparar variables comunes.
-        </>
-      }
+      subtitle="Crea una copia en Excel para revisar variables comunes entre bases. No modifica el proyecto."
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div
-          style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid var(--pulso-border)",
-            background: "var(--pulso-surface)",
-            fontSize: 11,
-            color: "var(--pulso-text-soft)",
-            lineHeight: 1.5,
-          }}
-        >
-          No cambia tus bases dentro del proyecto. Solo descarga una tabla combinada para exploración en Excel.
-          {summary && (
-            <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>
-              {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} comunes · {summary.n_variables_no_comunes} no comunes
+      <div className="analitica-bases-unified-card">
+        <div className="analitica-bases-unified-proof" aria-label="Opciones de comparación multibase">
+          <span>
+            <CheckCircle2 size={14} />
+            <div>
+              <strong>Copia temporal</strong>
+              <small>No altera base activa ni codificación.</small>
             </div>
-          )}
+          </span>
+          <span>
+            <ShieldCheck size={14} />
+            <div>
+              <strong>Versión limpia</strong>
+              <small>Recomendada para revisar y compartir.</small>
+            </div>
+          </span>
+          <span>
+            <KeyRound size={14} />
+            <div>
+              <strong>Versión trazable</strong>
+              <small>Incluye IDs, fechas y metadatos operativos.</small>
+            </div>
+          </span>
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: 10,
-          }}
-        >
-          <div>
+        <div className="analitica-bases-unified-actions">
+          <GenerateFooter
+            label="Descargar versión limpia"
+            busy={cleanRun.busy}
+            fileId={cleanRun.fileId}
+            downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
+            error={cleanRun.error}
+            onGenerate={onGenerateClean}
+            perBase={cleanRun.perBase}
+          />
+          <div title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas.">
             <GenerateFooter
-              label="Descargar base limpia"
-              busy={cleanRun.busy}
-              fileId={cleanRun.fileId}
-              downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
-              error={cleanRun.error}
-              onGenerate={onGenerateClean}
-              perBase={cleanRun.perBase}
-            />
-          </div>
-          <div
-            title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas."
-          >
-            <GenerateFooter
-              label="Descargar con metadatos"
+              label="Descargar versión trazable"
               busy={metadataRun.busy}
               fileId={metadataRun.fileId}
               downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
               error={metadataRun.error}
               onGenerate={onGenerateWithMetadata}
               disabled={cleanRun.busy}
-              disabledHint={cleanRun.busy ? "Espera a que termine la exportación limpia." : undefined}
+              disabledHint={cleanRun.busy ? "Espera a que termine la versión limpia." : undefined}
               perBase={metadataRun.perBase}
               variant="secondary"
             />
           </div>
+        </div>
+        <div className="analitica-bases-unified-summary" aria-live="polite">
+          {summary && (
+            <span>
+              {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} variables comunes · {summary.n_variables_no_comunes} no comunes
+            </span>
+          )}
         </div>
       </div>
     </Section>
@@ -667,11 +628,9 @@ function RadioRow({
   onChange: (v: string) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
-        {label}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div className="analitica-bases-radio-group">
+      <span className="analitica-bases-radio-label">{label}</span>
+      <div className="analitica-bases-radio-options">
         {options.map((opt) => (
           <RadioOption
             key={opt.value}
@@ -694,53 +653,23 @@ function RadioOption({
   active: boolean;
   onSelect: () => void;
 }) {
-  const [hover, setHover] = useState(false);
   const isDisabled = !!opt.disabled;
-  const borderColor = active
-    ? "var(--pulso-primary)"
-    : hover && !isDisabled
-    ? "var(--pulso-text-soft)"
-    : "var(--pulso-border)";
-  const bg = active
-    ? "var(--pulso-primary-soft)"
-    : hover && !isDisabled
-    ? "var(--pulso-surface)"
-    : "white";
 
   return (
     <label
+      className={`analitica-bases-radio-option${active ? " is-active" : ""}${isDisabled ? " is-disabled" : ""}`}
       title={isDisabled ? "No disponible con esta configuración" : opt.hint}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: "flex", alignItems: "flex-start", gap: 9,
-        padding: "9px 12px", borderRadius: 6,
-        border: `1px solid ${borderColor}`,
-        background: bg,
-        cursor: isDisabled ? "not-allowed" : "pointer",
-        opacity: isDisabled ? 0.5 : 1,
-        transition: "background 120ms ease, border-color 120ms ease",
-      }}
     >
       <input
         type="radio"
         checked={active}
         disabled={isDisabled}
         onChange={() => !isDisabled && onSelect()}
-        style={{
-          marginTop: 2,
-          accentColor: "var(--pulso-primary)",
-          cursor: isDisabled ? "not-allowed" : "pointer",
-        }}
       />
-      <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--pulso-text)", lineHeight: 1.35 }}>
-          {opt.label}
-        </span>
+      <span className="analitica-bases-radio-copy">
+        <strong>{opt.label}</strong>
         {opt.hint && (
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
-            {opt.hint}
-          </span>
+          <small>{opt.hint}</small>
         )}
       </span>
     </label>
