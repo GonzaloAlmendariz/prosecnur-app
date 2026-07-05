@@ -116,8 +116,9 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
     apiAnaliticaDimensionesStatus()
       .then((r) => {
         if (cancelled) return;
-        setHasBuilt(r.built);
-        if (r.built) {
+        const previewReady = r.built && r.n_filas > 0 && (r.n_idx > 0 || r.n_sub > 0);
+        setHasBuilt(previewReady);
+        if (previewReady) {
           return apiAnaliticaDimensionesPreview().then((p) => {
             if (!cancelled) setCobertura(p.preview.cobertura);
           });
