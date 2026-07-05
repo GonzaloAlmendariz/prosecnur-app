@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { Database, FileCode2, FileText, FileSpreadsheet, Info, Wand2 } from "lucide-react";
 import {
   apiAnaliticaBasesData,
@@ -30,14 +30,41 @@ export function BasesPane() {
   const setBasesSav = useAnaliticaStore((s) => s.setBasesSav);
   const setBasesCsv = useAnaliticaStore((s) => s.setBasesCsv);
   const setBasesXlsx = useAnaliticaStore((s) => s.setBasesXlsx);
+  const { state } = useSession();
+
+  const fuenteLabel = state?.analitica_fuente === "adaptados" ? "Codificada" : "Original";
+  const siblingsLabel =
+    state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1
+      ? `${state?.n_bases ?? 0} bases`
+      : "Base activa";
 
   return (
-    <Panel
-      eyebrow="Reporte"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Bases e instrumento</span>}
-      hint="Descarga la data y el XLSForm de la fuente activa, o exporta la base analítica en SPSS, CSV y Excel."
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+    <Panel className="analitica-bases-panel">
+      <div className="analitica-report-shell analitica-bases-workbench">
+        <div className="analitica-bases-docbar">
+          <span className="analitica-bases-docbar-icon" aria-hidden="true">
+            <Database size={16} />
+          </span>
+          <div className="analitica-bases-docbar-copy">
+            <span>Producto de base</span>
+            <strong>Bases e instrumento</strong>
+            <small>Fuente activa, archivos originales y exportes analíticos.</small>
+          </div>
+          <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
+            <span>
+              Fuente
+              <strong>{fuenteLabel}</strong>
+            </span>
+            <span>
+              Alcance
+              <strong>{siblingsLabel}</strong>
+            </span>
+            <span>
+              Formatos
+              <strong>SAV / CSV / XLSX</strong>
+            </span>
+          </div>
+        </div>
         <FuenteInfo />
         <UnifiedSiblingsCard cfg={bases.xlsx} />
         <ArchivosFuenteSection />
@@ -53,19 +80,14 @@ export function BasesPane() {
 // ---- Fuente info ----------------------------------------------------------
 
 function FuenteInfo() {
+  const { state } = useSession();
+  const fuenteLabel = state?.analitica_fuente === "adaptados" ? "Codificada" : "Original";
+
   return (
-    <div
-      style={{
-        display: "flex", alignItems: "flex-start", gap: 8,
-        padding: "10px 12px", borderRadius: 6,
-        background: "var(--pulso-surface)",
-        border: "1px solid var(--pulso-border)",
-        fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5,
-      }}
-    >
-      <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+    <div className="analitica-bases-info">
+      <Info size={14} />
       <div>
-        Todas las descargas usan la <strong>misma fuente activa</strong> seleccionada en el encabezado: Original o Codificada.
+        Todas las descargas usan la <strong>misma fuente activa</strong> seleccionada en el encabezado: <strong>{fuenteLabel}</strong>.
         Los archivos fuente conservan el formato original; los formatos analíticos aplican sus propias opciones de exportación.
       </div>
     </div>
@@ -78,13 +100,13 @@ function ArchivosFuenteSection() {
   return (
     <Section
       title={
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="analitica-inline-title">
           <FileCode2 size={14} /> Archivos fuente
         </span>
       }
       subtitle="Descarga directa de la data y el XLSForm de la fuente activa. En Codificada se entrega el output del adaptador, conservando colores y formato."
     >
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+      <div className="analitica-bases-source-grid">
         <SourceDataCard />
         <SourceInstrumentCard />
       </div>
@@ -100,14 +122,14 @@ function SourceDataCard() {
   }
 
   return (
-    <div style={sourceCardStyle}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <span style={sourceIconStyle}>
+    <div className="analitica-bases-source-card">
+      <div className="analitica-bases-source-head">
+        <span className="analitica-bases-source-icon" aria-hidden="true">
           <FileSpreadsheet size={15} />
         </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <strong style={{ fontSize: 13 }}>Data</strong>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        <div className="analitica-bases-source-copy">
+          <strong>Data</strong>
+          <span>
             Copia el archivo de datos de la fuente activa. Si está codificada, conserva las columnas <code>*_recod</code> y sus colores.
           </span>
         </div>
@@ -133,14 +155,14 @@ function SourceInstrumentCard() {
   }
 
   return (
-    <div style={sourceCardStyle}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <span style={sourceIconStyle}>
+    <div className="analitica-bases-source-card">
+      <div className="analitica-bases-source-head">
+        <span className="analitica-bases-source-icon" aria-hidden="true">
           <FileCode2 size={15} />
         </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <strong style={{ fontSize: 13 }}>XLSForm</strong>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        <div className="analitica-bases-source-copy">
+          <strong>XLSForm</strong>
+          <span>
             Copia el instrumento de la fuente activa. El XLSForm codificado mantiene el coloreado del paquete para las variables recodificadas.
           </span>
         </div>
@@ -157,28 +179,6 @@ function SourceInstrumentCard() {
     </div>
   );
 }
-
-const sourceCardStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  padding: "12px",
-  borderRadius: 6,
-  border: "1px solid var(--pulso-border)",
-  background: "var(--pulso-surface)",
-};
-
-const sourceIconStyle: CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: 6,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "var(--pulso-primary)",
-  background: "var(--pulso-primary-soft)",
-  flexShrink: 0,
-};
 
 // ---- Metadatos SPSS (inferencia editable) ---------------------------------
 
