@@ -36,17 +36,24 @@ import { useReporteRun } from "../useReporteRun";
 type PanelView = "estructura" | "variables" | "nse" | "auditoria" | "exportar";
 
 const VIEWS: Array<{ key: PanelView; label: string }> = [
-  { key: "estructura", label: "Conexión" },
-  { key: "variables", label: "Vista previa" },
+  { key: "estructura", label: "Preparar" },
+  { key: "variables", label: "Revisar base" },
   { key: "nse", label: "Contexto" },
-  { key: "auditoria", label: "Control" },
-  { key: "exportar", label: "Entregables" },
+  { key: "auditoria", label: "Calidad" },
+  { key: "exportar", label: "Descargar" },
 ];
 
 function normalizePanelSuffix(value: string | undefined, order: number | undefined) {
   const fallback = `med${order && order > 0 ? order : 1}`;
   const raw = (value || fallback).trim() || fallback;
   return raw.replace(/^(ola|met)(\d+)$/i, "med$2");
+}
+
+function panelSourceLabel(value: string | undefined) {
+  if (!value) return "Datos de Analítica";
+  if (value === "adaptados") return "Datos codificados";
+  if (value === "originales") return "Datos originales";
+  return value;
 }
 
 export function PanelBasePane() {
@@ -220,15 +227,15 @@ export function PanelBasePane() {
             <GitMerge size={16} />
           </span>
           <div className="analitica-panel-docbar-copy">
-            <span>Panel longitudinal</span>
+            <span>Seguimiento de personas</span>
             <strong>Base panel</strong>
-            <small>Conecta a las mismas personas en varias bases y deja listos los archivos para analizar cambios.</small>
+            <small>Une mediciones de la misma persona para comparar cambios y exportar una base lista.</small>
           </div>
           <div className="analitica-report-overview analitica-report-overview--panel">
             <Metric label="Bases" value={info?.n_bases ?? 0} suffix="bases" />
-            <Metric label="Clave" value={activeConfig.key || "Pendiente"} compact />
+            <Metric label="Identificador" value={activeConfig.key || "Pendiente"} compact />
             <Metric label="Personas" value={summary?.n_panel_keys ?? "-"} suffix="únicas" />
-            <Metric label="Salidas" value={activeOutputCount} suffix="activas" />
+            <Metric label="Archivos" value={activeOutputCount} suffix="activos" />
           </div>
         </div>
 
@@ -280,10 +287,10 @@ export function PanelBasePane() {
             />
 
             {view === "estructura" && (
-              <Section title="Conectar personas entre bases" subtitle="Elige la clave que identifica a una misma persona y define el nombre visible de cada medición.">
+              <Section title="Preparar seguimiento entre mediciones" subtitle="Elige el identificador que reconoce a la misma persona y define cómo se verá cada medición.">
                 <div className="analitica-panel-form-grid">
                   <label className="analitica-panel-field">
-                    <span><KeyRound size={13} /> Clave de persona</span>
+                    <span><KeyRound size={13} /> Identificador de persona</span>
                     {candidateOptions.length ? (
                       <select
                         value={activeConfig.key}
@@ -306,13 +313,13 @@ export function PanelBasePane() {
                   <div className="analitica-panel-status-row">
                     <span className={`analitica-panel-badge ${info?.available ? "is-ok" : "is-warn"}`}>
                       {info?.available ? <Database size={12} /> : <AlertTriangle size={12} />}
-                      {info?.available ? "Clave lista" : "Falta clave"}
+                      {info?.available ? "Identificador listo" : "Falta identificador"}
                     </span>
-                    <span>{info?.fuente ?? "fuente analitica"}</span>
+                    <span>{panelSourceLabel(info?.fuente)}</span>
                   </div>
                 </div>
                 <DenseTable
-                  columns={["Medición", "Base original", "Código corto", "Filas", "Con clave", "Repetidas", "Sin clave"]}
+                  columns={["Nombre visible", "Base", "Código", "Casos", "Con identificador", "IDs repetidos", "Sin identificador"]}
                   rows={waves.map((wave) => [
                     <input
                       key={`${wave.base}-label`}
@@ -687,28 +694,28 @@ function PanelContractStrip({
     <div className="analitica-panel-contract-strip" aria-label="Estado de la base panel">
       <PanelContractItem
         icon={ready ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-        label="Preparación"
+        label="Identificador"
         value={ready ? "Lista para armar" : "Pendiente"}
-        detail={ready ? "clave compartida encontrada" : "elige una clave válida"}
+        detail={ready ? "presente en todas las bases" : "elige una variable común"}
         tone={ready ? "ok" : "warn"}
       />
       <PanelContractItem
         icon={<Columns3 size={14} />}
         label="Mediciones"
         value={suffixPreview}
-        detail={suffixRange}
+        detail={`columnas ${suffixRange}`}
       />
       <PanelContractItem
         icon={<GitMerge size={14} />}
         label="Comparación"
         value={crossConfigLabel}
-        detail="segmentos de lectura"
+        detail="comparadores sugeridos"
       />
       <PanelContractItem
         icon={<FileWarning size={14} />}
-        label="Control"
-        value={previewReady ? `${nAuditRows ?? 0} filas` : "sin vista"}
-        detail={previewReady ? "alertas revisadas" : "previsualización pendiente"}
+        label="Calidad"
+        value={previewReady ? `${nAuditRows ?? 0} filas` : "pendiente"}
+        detail={previewReady ? "alertas revisadas" : "usa Previsualizar"}
       />
     </div>
   );
