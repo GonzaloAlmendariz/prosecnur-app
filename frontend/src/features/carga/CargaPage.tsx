@@ -476,6 +476,8 @@ export default function CargaPage() {
   const hasData = !!state?.data;
   const pendingChoiceMapping = !!dataPreview?.normalizacion?.choice_code_maps?.requires_confirmation;
   const allReady = hasXlsform && hasData && !pendingChoiceMapping;
+  const studyLoadingBases = state?.n_bases ?? 0;
+  const studyLoadingBasesLabel = `${studyLoadingBases} base${studyLoadingBases === 1 ? "" : "s"}`;
 
   // ¿Está el usuario en modo multi-base? Dos formas de activarse:
   // 1) Demo/preset cargó ≥1 base real (Acreditación) → has_estudio
@@ -877,13 +879,28 @@ export default function CargaPage() {
                 <Loader2 size={17} className="pulso-spin" />
               </span>
               <div>
-                <strong>Abriendo bases del estudio</strong>
-                <p>La estructura de bases se está preparando para mostrar formularios, respuestas y origen de cada fuente.</p>
+                <strong>Preparando mesa multibase</strong>
+                <p>
+                  Ordenando {studyLoadingBasesLabel} para mostrar formularios, respuestas
+                  y origen de cada fuente sin cambiar tus archivos.
+                </p>
               </div>
-              <div className="pulso-carga-study-skeleton" aria-hidden="true">
-                <i />
-                <i />
-                <i />
+              <div className="pulso-carga-study-loading-map" aria-hidden="true">
+                <span>
+                  <Database size={12} />
+                  <strong>{studyLoadingBases}</strong>
+                  <small>bases</small>
+                </span>
+                <span>
+                  <FileSpreadsheet size={12} />
+                  <strong>{hasXlsform && hasData ? "listos" : "revisando"}</strong>
+                  <small>insumos</small>
+                </span>
+                <span>
+                  <ShieldCheck size={12} />
+                  <strong>{allReady ? "validable" : "pendiente"}</strong>
+                  <small>revisión</small>
+                </span>
               </div>
             </section>
           </div>
