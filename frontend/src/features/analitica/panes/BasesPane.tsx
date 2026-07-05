@@ -46,9 +46,9 @@ export function BasesPane() {
             <Database size={16} />
           </span>
           <div className="analitica-bases-docbar-copy">
-            <span>Archivos del estudio</span>
+            <span>Paquete de trabajo</span>
             <strong>Bases e instrumentos</strong>
-            <small>Elige una copia de trabajo: origen, comparación entre bases o formato para análisis.</small>
+            <small>Escoge qué revisar o entregar: fuente, unión multibase o archivo final para análisis.</small>
           </div>
           <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
             <span>
@@ -60,7 +60,7 @@ export function BasesPane() {
               <strong>{siblingsLabel}</strong>
             </span>
             <span>
-              Salidas
+              Formatos
               <strong>SAV / CSV / XLSX</strong>
             </span>
           </div>
@@ -91,24 +91,24 @@ function BasesUseGuide({
       <div className="analitica-bases-guide-context">
         <Info size={14} />
         <div>
-          <strong>Qué necesitas descargar</strong>
-          <span>{fuenteLabel} · {siblingsLabel}. Todas las salidas son copias; el proyecto queda intacto.</span>
+          <strong>Elige qué necesitas</strong>
+          <span>{fuenteLabel} · {siblingsLabel}. Todo se genera como archivo nuevo; el proyecto queda intacto.</span>
         </div>
       </div>
       <div className="analitica-bases-guide-options">
         <span>
           <FileCode2 size={14} />
-          <strong>Auditar fuente</strong>
+          <strong>Revisar fuente</strong>
           <small>Base + formulario</small>
         </span>
         <span>
           <Database size={14} />
-          <strong>Comparar mediciones</strong>
-          <small>Excel de bases</small>
+          <strong>Unir bases</strong>
+          <small>Excel comparativo</small>
         </span>
         <span>
           <FileSpreadsheet size={14} />
-          <strong>Entregar análisis</strong>
+          <strong>Preparar entrega</strong>
           <small>SAV, CSV o Excel</small>
         </span>
       </div>
@@ -123,10 +123,10 @@ function ArchivosFuenteSection() {
     <Section
       title={
         <span className="analitica-inline-title">
-          <FileCode2 size={14} /> Revisar origen
+          <FileCode2 size={14} /> Descargar fuente original
         </span>
       }
-      subtitle="Copia fiel de la fuente activa para revisar respuestas, preguntas y opciones."
+      subtitle="Respuestas y formulario de la fuente activa, listos para revisar sin alterar el proyecto."
     >
       <div className="analitica-bases-source-grid">
         <SourceDataCard />
@@ -150,14 +150,14 @@ function SourceDataCard() {
           <FileSpreadsheet size={15} />
         </span>
         <div className="analitica-bases-source-copy">
-          <strong>Base de datos</strong>
+          <strong>Respuestas</strong>
           <span>
             Respuestas de la fuente activa. Si usas la fuente codificada, incluye las variables recodificadas junto a sus originales.
           </span>
         </div>
       </div>
       <GenerateFooter
-        label="Descargar base"
+        label="Descargar respuestas"
         busy={run.busy}
         fileId={run.fileId}
         downloadName={run.filename ?? "data_codificada.xlsx"}
@@ -183,14 +183,14 @@ function SourceInstrumentCard() {
           <FileCode2 size={15} />
         </span>
         <div className="analitica-bases-source-copy">
-          <strong>Formulario XLSForm</strong>
+          <strong>Formulario</strong>
           <span>
             Instrumento que explica preguntas, opciones y estructura de la base descargada.
           </span>
         </div>
       </div>
       <GenerateFooter
-        label="Descargar XLSForm"
+        label="Descargar formulario"
         busy={run.busy}
         fileId={run.fileId}
         downloadName={run.filename ?? "instrumento_codificado.xlsx"}
@@ -541,38 +541,38 @@ function UnifiedSiblingsCard({
     <Section
       title={
         <span className="analitica-inline-title">
-          <FileSpreadsheet size={14} /> Comparar {state?.n_bases ?? 0} bases
+          <FileSpreadsheet size={14} /> Unir {state?.n_bases ?? 0} bases en Excel
         </span>
       }
-      subtitle="Crea una copia en Excel para revisar variables comunes entre bases. No modifica el proyecto."
+      subtitle="Genera una tabla comparativa con las variables comunes de cada base. No modifica el proyecto."
     >
       <div className="analitica-bases-unified-card">
         <div className="analitica-bases-unified-proof" aria-label="Opciones de comparación multibase">
           <span>
             <CheckCircle2 size={14} />
             <div>
-              <strong>Copia temporal</strong>
+              <strong>Sin tocar el proyecto</strong>
               <small>No altera base activa ni codificación.</small>
             </div>
           </span>
           <span>
             <ShieldCheck size={14} />
             <div>
-              <strong>Versión limpia</strong>
-              <small>Recomendada para revisar y compartir.</small>
+              <strong>Para revisar</strong>
+              <small>Lista para leer y compartir.</small>
             </div>
           </span>
           <span>
             <KeyRound size={14} />
             <div>
-              <strong>Versión trazable</strong>
+              <strong>Con trazabilidad</strong>
               <small>Incluye IDs, fechas y metadatos operativos.</small>
             </div>
           </span>
         </div>
         <div className="analitica-bases-unified-actions">
           <GenerateFooter
-            label="Descargar versión limpia"
+            label="Descargar Excel limpio"
             busy={cleanRun.busy}
             fileId={cleanRun.fileId}
             downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
@@ -582,14 +582,14 @@ function UnifiedSiblingsCard({
           />
           <div title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas.">
             <GenerateFooter
-              label="Descargar versión trazable"
+              label="Descargar Excel trazable"
               busy={metadataRun.busy}
               fileId={metadataRun.fileId}
               downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
               error={metadataRun.error}
               onGenerate={onGenerateWithMetadata}
               disabled={cleanRun.busy}
-              disabledHint={cleanRun.busy ? "Espera a que termine la versión limpia." : undefined}
+              disabledHint={cleanRun.busy ? "Espera a que termine el Excel limpio." : undefined}
               perBase={metadataRun.perBase}
               variant="secondary"
             />
