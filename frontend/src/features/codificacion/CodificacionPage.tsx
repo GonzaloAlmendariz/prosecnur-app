@@ -44,7 +44,7 @@ export default function CodificacionPage() {
 
   const activeStepMeta = CODIFICACION_STEPS.find((s) => s.key === step) ?? CODIFICACION_STEPS[0];
   const ActiveIcon = activeStepMeta.icon;
-  const activeBaseName = codifSource.active && codifSource.active !== "default" ? codifSource.active : "Base única";
+  const activeBaseName = codifSource.labelFor(codifSource.active);
 
   return (
     <PageFrame
@@ -200,6 +200,7 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
       <div className="pulso-codificacion-base-list">
         {options.map((src) => {
           const isActive = src === active;
+          const label = source.labelFor(src);
           return (
             <button
               key={src}
@@ -207,8 +208,9 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
               disabled={loading}
               onClick={() => setActive(src)}
               className={`pulso-codificacion-base-chip${isActive ? " is-active" : ""}`}
+              title={label !== src ? src : undefined}
             >
-              {src}
+              {label}
             </button>
           );
         })}

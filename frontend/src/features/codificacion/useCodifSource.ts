@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiCodifSourceGet, apiCodifSourceSet, CodifSourceState } from "../../api/client";
+import {
+  apiCodifSourceGet,
+  apiCodifSourceSet,
+  apiEstudioGet,
+  CodifSourceState,
+  EstudioPayload,
+} from "../../api/client";
 
 // Hook de "base activa para codificación". Lee del backend al montar +
 // escucha `pulso:session-changed` para rehidratar al cambiar de demo.
@@ -11,21 +17,28 @@ import { apiCodifSourceGet, apiCodifSourceSet, CodifSourceState } from "../../ap
 export function useCodifSource(): {
   active: string | null;
   options: string[];
+  labels: Record<string, string>;
   processingMode: string | null;
   loading: boolean;
   error: string;
+  labelFor: (source: string | null | undefined) => string;
   setActive: (source: string) => Promise<void>;
   refresh: () => Promise<void>;
 } {
   const [state, setState] = useState<CodifSourceState>({ active: null, options: [] });
+  const [labels, setLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const s = await apiCodifSourceGet();
+      const [s, estudio] = await Promise.all([
+        apiCodifSourceGet(),
+        apiEstudioGet().catch(() => null),
+      ]);
       setState(s);
+      setLabels(buildCodifSourceLabels(estudio));
       setError("");
     } catch (e) {
       setError((e as Error).message);
@@ -70,13 +83,30 @@ export function useCodifSource(): {
     }
   }, [state.active]);
 
+  const labelFor = useCallback((source: string | null | undefined) => {
+    if (!source || source === "default") return "Base única";
+    return labels[source] || source;
+  }, [labels]);
+
   return {
     active: state.active,
     options: state.options,
+    labels,
     processingMode: state.processing_mode ?? null,
     loading,
     error,
+    labelFor,
     setActive,
     refresh,
   };
+}
+
+function buildCodifSourceLabels(estudio: EstudioPayload | null): Record<string, string> {
+  if (!estudio?.bases) return {};
+  return Object.fromEntries(Object.entries(estudio.bases).map(([name, base]) => {
+    const label = [base.source_alias, base.source_title, name]
+      .map((value) => String(value ?? "").trim())
+      .find(Boolean) || name;
+    return [name, label];
+  }));
 }
