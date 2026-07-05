@@ -13235,8 +13235,11 @@ h1.pulso-page-title {
   }
 }
 .pulso-multi-strategy {
-  --pulso-multi-strategy-dur: 520ms;
-  --pulso-multi-strategy-label-dur: 380ms;
+  --pulso-multi-strategy-expand-dur: 680ms;
+  --pulso-multi-strategy-collapse-dur: 260ms;
+  --pulso-multi-strategy-label-dur: 520ms;
+  --pulso-multi-strategy-label-delay: 80ms;
+  --pulso-multi-strategy-chrome-dur: 340ms;
   display: inline-flex;
   width: fit-content;
   max-width: 100%;
@@ -13276,14 +13279,14 @@ h1.pulso-page-title {
   cursor: pointer;
   overflow: hidden;
   transition:
-    flex-basis var(--pulso-multi-strategy-dur) var(--motion-ease-productive),
+    flex-basis var(--pulso-multi-strategy-expand-dur) var(--motion-ease-productive),
     gap var(--pulso-multi-strategy-label-dur) ease,
     padding var(--pulso-multi-strategy-label-dur) ease,
     transform var(--motion-dur-press) var(--motion-ease-out),
-    border-color var(--pulso-multi-strategy-label-dur) ease,
-    background var(--pulso-multi-strategy-label-dur) ease,
-    color var(--pulso-multi-strategy-label-dur) ease,
-    box-shadow var(--pulso-multi-strategy-label-dur) var(--motion-ease-out);
+    border-color var(--pulso-multi-strategy-chrome-dur) ease,
+    background var(--pulso-multi-strategy-chrome-dur) ease,
+    color var(--pulso-multi-strategy-chrome-dur) ease,
+    box-shadow var(--pulso-multi-strategy-chrome-dur) var(--motion-ease-out);
 }
 .pulso-multi-strategy button svg {
   flex: 0 0 auto;
@@ -13335,9 +13338,9 @@ h1.pulso-page-title {
   overflow: hidden;
   transform: translateX(-4px);
   transition:
-    max-width var(--pulso-multi-strategy-dur) var(--motion-ease-productive),
-    opacity var(--pulso-multi-strategy-label-dur) ease,
-    transform var(--pulso-multi-strategy-label-dur) var(--motion-ease-out);
+    max-width var(--pulso-multi-strategy-collapse-dur) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-multi-strategy button:hover .pulso-multi-strategy-label,
 .pulso-multi-strategy button:focus-visible .pulso-multi-strategy-label,
@@ -13345,6 +13348,14 @@ h1.pulso-page-title {
   max-width: 206px;
   opacity: 1;
   transform: translateX(0);
+  transition:
+    max-width var(--pulso-multi-strategy-expand-dur) var(--motion-ease-productive),
+    opacity var(--pulso-multi-strategy-label-dur) ease,
+    transform var(--pulso-multi-strategy-label-dur) var(--motion-ease-out);
+  transition-delay:
+    0ms,
+    var(--pulso-multi-strategy-label-delay),
+    var(--pulso-multi-strategy-label-delay);
 }
 .pulso-multi-strategy button.is-active strong,
 .pulso-multi-strategy button.is-active small {
