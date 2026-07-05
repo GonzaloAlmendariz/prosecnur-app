@@ -17759,61 +17759,83 @@ h1.pulso-page-title {
   left: 16px;
   right: auto;
   bottom: 14px;
-  width: 46px;
-  min-width: 46px;
+  width: 42px;
+  min-width: 42px;
+  min-height: 42px;
   gap: 0;
-  padding: 6px;
-  border-radius: 15px;
+  padding: 5px;
+  border-radius: 14px;
   transition:
     border-color var(--motion-dur-fast) ease,
     transform var(--motion-dur-press) var(--motion-ease-out),
     box-shadow var(--motion-dur-fast) ease;
 }
 
-.pulso-sibling-switcher.is-compact::before {
-  content: attr(data-active-label);
+.pulso-sibling-tooltip {
   position: absolute;
   left: calc(100% + 10px);
-  bottom: 1px;
+  bottom: -1px;
   z-index: 180;
-  display: none;
-  min-width: 138px;
-  max-width: 250px;
-  padding: 7px 9px;
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  min-width: 166px;
+  max-width: 260px;
+  padding: 7px 10px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 52%, var(--pulso-border));
   border-radius: 10px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
     var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 11.5px;
-  font-weight: 780;
   line-height: 1.25;
   box-shadow: var(--pulso-shadow-popover);
   pointer-events: none;
+  visibility: hidden;
   opacity: 0;
   transform: translateX(-4px) scale(0.98);
   transition:
+    visibility 0s linear 150ms,
     opacity 150ms var(--motion-ease-out),
     transform 150ms var(--motion-ease-out);
+}
+
+.pulso-sibling-tooltip strong,
+.pulso-sibling-tooltip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-sibling-tooltip strong {
+  color: var(--pulso-text);
+  font-size: 11.6px;
+  font-weight: 820;
+}
+
+.pulso-sibling-tooltip span {
+  color: var(--pulso-text-soft);
+  font-size: 10.2px;
+  font-weight: 680;
 }
 
 .pulso-sibling-switcher.is-compact::after {
   content: attr(data-progress);
   position: absolute;
-  top: -7px;
-  right: -6px;
-  min-width: 24px;
-  height: 17px;
+  top: -6px;
+  right: -7px;
+  min-width: 22px;
+  height: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 5px;
+  padding: 0 4px;
   border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 70%, #fff);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
   color: var(--pulso-primary);
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 840;
   line-height: 1;
   box-shadow: 0 7px 18px rgba(15, 23, 42, 0.12);
@@ -17823,9 +17845,9 @@ h1.pulso-page-title {
 .pulso-sibling-switcher.is-compact:hover,
 .pulso-sibling-switcher.is-compact:focus-within,
 .pulso-sibling-switcher.is-compact.is-open {
-  width: 46px;
-  min-width: 46px;
-  padding: 6px;
+  width: 42px;
+  min-width: 42px;
+  padding: 5px;
   border-color: color-mix(in srgb, var(--pulso-module-processing-border) 72%, var(--pulso-border));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -17833,11 +17855,12 @@ h1.pulso-page-title {
     0 0 0 4px color-mix(in srgb, var(--pulso-module-processing-soft) 54%, transparent);
 }
 
-.pulso-sibling-switcher.is-compact:hover::before,
-.pulso-sibling-switcher.is-compact:focus-within:not(.is-open)::before {
-  display: block;
+.pulso-sibling-switcher.is-compact:hover .pulso-sibling-tooltip,
+.pulso-sibling-switcher.is-compact:focus-within:not(.is-open) .pulso-sibling-tooltip {
+  visibility: visible;
   opacity: 1;
   transform: translateX(0) scale(1);
+  transition-delay: 0s;
 }
 
 .pulso-sibling-switcher.is-compact:hover::after,
@@ -17874,9 +17897,9 @@ h1.pulso-page-title {
 }
 
 .pulso-sibling-switcher.is-compact .pulso-sibling-trigger-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
 }
 
 .pulso-sibling-switcher.is-compact .pulso-sibling-trigger-copy,

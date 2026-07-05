@@ -298,6 +298,8 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
     ["Gráf", statusOn(s.graficos)],
   ] as const;
   const done = steps.filter(([, ok]) => ok).length;
+  const activeBaseLabel = siblingLabel(activeBase);
+  const progressLabel = `${done} de ${steps.length} procesos listos`;
 
   async function changeActive(next: string) {
     if (!next || next === active || switching) return;
@@ -326,8 +328,7 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
       <div
         className={`pulso-sibling-switcher is-compact${open ? " is-open" : ""}`}
         aria-label="Base activa"
-        title={`Base activa: ${siblingLabel(activeBase)}`}
-        data-active-label={`Base activa: ${siblingLabel(activeBase)}`}
+        title={`Base activa: ${activeBaseLabel} · ${progressLabel}`}
         data-progress={`${done}/${steps.length}`}
       >
         <div className="pulso-sibling-switcher-top">
@@ -337,19 +338,23 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
         <Select.Trigger
           className="pulso-sibling-trigger"
           disabled={switching}
-          aria-label="Seleccionar base activa"
-          title={siblingSourceTitle(activeBase)}
+          aria-label={`Seleccionar base activa: ${activeBaseLabel}. ${progressLabel}`}
+          title="Cambiar base activa"
         >
           <span className="pulso-sibling-trigger-icon" aria-hidden="true">
             <Database size={14} />
           </span>
           <span className="pulso-sibling-trigger-copy">
-            <strong>{siblingLabel(activeBase)}</strong>
+            <strong>{activeBaseLabel}</strong>
           </span>
           <Select.Icon asChild>
             <ChevronDown size={14} aria-hidden="true" />
           </Select.Icon>
         </Select.Trigger>
+        <span className="pulso-sibling-tooltip" role="tooltip">
+          <strong>{activeBaseLabel}</strong>
+          <span>{progressLabel}</span>
+        </span>
       </div>
       <Select.Portal>
         <Select.Content
