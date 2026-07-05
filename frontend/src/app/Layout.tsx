@@ -323,7 +323,11 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
       onOpenChange={setOpen}
       onValueChange={(next) => void changeActive(next)}
     >
-      <div className={`pulso-sibling-switcher${open ? " is-open" : ""}`} aria-label="Base activa">
+      <div
+        className={`pulso-sibling-switcher is-compact${open ? " is-open" : ""}`}
+        aria-label="Base activa"
+        data-progress={`${done}/${steps.length}`}
+      >
         <div className="pulso-sibling-switcher-top">
           <span>Base activa</span>
           <strong>{done}/{steps.length}</strong>
