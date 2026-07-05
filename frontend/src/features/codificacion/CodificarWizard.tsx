@@ -134,7 +134,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
                 <CheckCircle2 size={11} /> Autoguardado activo
               </div>
               <div style={{ fontSize: 11, color: "var(--pulso-success-fg)", opacity: 0.85, lineHeight: 1.4 }}>
-                El progreso se guarda en el proyecto. Puedes descargar o cargar ajustes desde la barra superior.
+                El progreso se guarda en el proyecto. Puedes guardar o aplicar plantillas desde la barra superior sin mover respuestas ni bases.
               </div>
             </div>
           </div>

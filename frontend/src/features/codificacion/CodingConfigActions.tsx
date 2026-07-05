@@ -42,7 +42,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       a.download = suggestedFilename || `prosecnur_codificacion_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(href);
-      setMessage(`Ajustes descargados: ${payload.variables.length} pregunta(s) o campo(s).`);
+      setMessage(`Plantilla guardada: ${payload.variables.length} pregunta(s) o campo(s).`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -56,7 +56,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       onClose={() => setDialogOpen(false)}
       onImported={() => {
         onImported?.();
-        setMessage("Ajustes cargados y registrados en auditoría.");
+        setMessage("Plantilla aplicada y registrada en el historial.");
         window.setTimeout(() => setMessage(""), 3600);
       }}
     />,
@@ -64,16 +64,16 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
   ) : null;
 
   return (
-    <div className="pulso-codificacion-config-actions" aria-label="Ajustes de codificación">
+    <div className="pulso-codificacion-config-actions" aria-label="Plantillas de codificación">
       <button
         type="button"
         className="pulso-codificacion-config-button"
         onClick={exportConfig}
         disabled={disabled || busy === "export"}
-        title="Descarga categorías, reglas y ajustes de codificación. No incluye filas ni casos."
+        title="Guarda categorías, reglas y criterios como plantilla reutilizable. No incluye respuestas ni bases."
       >
         <Download size={13} />
-        {busy === "export" ? "Descargando..." : "Descargar ajustes"}
+        {busy === "export" ? "Guardando..." : "Guardar plantilla"}
       </button>
       <button
         type="button"
@@ -84,10 +84,10 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           setDialogOpen(true);
         }}
         disabled={disabled}
-        title="Carga un archivo portable o Excel de categorizaciones y revisa los cambios antes de aplicarlos."
+        title="Aplica una plantilla JSON o Excel y revisa coincidencias antes de cambiar la codificación."
       >
         <Upload size={13} />
-        Cargar ajustes...
+        Aplicar plantilla...
       </button>
       {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
       {error && <span className="pulso-codificacion-config-feedback is-error">{error}</span>}
@@ -166,7 +166,7 @@ function CodingConfigImportDialog({
       strategy: strategies[item.match_id] ?? (item.existing_state ? "merge_missing" : "replace"),
     }));
     if (!selections.length) {
-      setError("Selecciona al menos una variable compatible para importar.");
+      setError("Selecciona al menos una variable compatible para aplicar la plantilla.");
       return;
     }
     setBusy("apply");
@@ -203,9 +203,9 @@ function CodingConfigImportDialog({
         <header className="pulso-codificacion-import-head">
           <span className="pulso-codificacion-import-icon" aria-hidden="true"><FileJson size={18} /></span>
           <div>
-            <span className="pulso-section-eyebrow">Ajustes portables</span>
-            <h2 id="codif-import-title">Cargar ajustes</h2>
-            <p>Revisa coincidencias y conflictos antes de modificar la codificación del proyecto actual.</p>
+            <span className="pulso-section-eyebrow">Plantilla portable</span>
+            <h2 id="codif-import-title">Aplicar plantilla de codificación</h2>
+            <p>Compara origen y destino antes de traer categorías, reglas o recodificaciones al proyecto actual.</p>
           </div>
           <button type="button" className="pulso-icon" onClick={onClose} aria-label="Cerrar">
             <X size={14} />
@@ -215,8 +215,8 @@ function CodingConfigImportDialog({
         <div className="pulso-codificacion-import-body">
           <div className="pulso-codificacion-import-picker">
             <div>
-              <strong>{fileName || "Selecciona un archivo JSON o Excel"}</strong>
-              <span>Archivo portable o Excel con pares de respuesta original y recategorización. No importa filas de casos al proyecto.</span>
+              <strong>{fileName || "Selecciona una plantilla JSON o Excel"}</strong>
+              <span>Puede venir de Prosecnur o de un Excel con respuesta original y recategorización. No agrega filas ni bases.</span>
             </div>
             <button type="button" className="pulso-secondary" disabled={busy !== null} onClick={() => fileRef.current?.click()}>
               <Upload size={13} />
@@ -246,7 +246,7 @@ function CodingConfigImportDialog({
                 <table className="pulso-codificacion-import-table">
                   <thead>
                     <tr>
-                      <th>Importar</th>
+                      <th>Usar</th>
                       <th>Origen</th>
                       <th>Destino</th>
                       <th>Estado</th>
@@ -263,7 +263,7 @@ function CodingConfigImportDialog({
                             checked={!!selected[item.match_id]}
                             disabled={!item.can_apply || busy !== null}
                             onChange={(e) => setItemSelected(item, e.target.checked)}
-                            aria-label={`Importar ${item.source.name}`}
+                            aria-label={`Usar ${item.source.name}`}
                           />
                         </td>
                         <td>
@@ -299,7 +299,7 @@ function CodingConfigImportDialog({
                               <option value="duplicate">Duplicar como versión</option>
                             </select>
                           ) : (
-                            <span className="pulso-codificacion-import-strategy">Aplicar ajustes</span>
+                            <span className="pulso-codificacion-import-strategy">Aplicar plantilla</span>
                           )}
                         </td>
                       </tr>
@@ -320,7 +320,7 @@ function CodingConfigImportDialog({
             onClick={applyImport}
           >
             <ShieldCheck size={14} />
-            {busy === "apply" ? "Aplicando..." : `Aplicar importación (${selectedItems.length})`}
+            {busy === "apply" ? "Aplicando..." : `Aplicar plantilla (${selectedItems.length})`}
           </button>
         </footer>
       </section>
