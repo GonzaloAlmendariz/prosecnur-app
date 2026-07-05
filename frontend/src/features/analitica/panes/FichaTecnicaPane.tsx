@@ -30,6 +30,17 @@ const LAYOUTS: Array<{ key: FichaLayout; label: string }> = [
   { key: "simple", label: "Simple" },
 ];
 
+let fichaTecnicaInfoInflight: Promise<AnaliticaFichaTecnicaInfo> | null = null;
+
+function fetchFichaTecnicaInfo(force = false) {
+  if (!force && fichaTecnicaInfoInflight) return fichaTecnicaInfoInflight;
+  fichaTecnicaInfoInflight = apiAnaliticaFichaTecnicaInfo()
+    .finally(() => {
+      fichaTecnicaInfoInflight = null;
+    });
+  return fichaTecnicaInfoInflight;
+}
+
 export function FichaTecnicaPane() {
   const config = useAnaliticaStore((s) => s.config);
   const ficha = useAnaliticaStore((s) => s.config.ficha_tecnica);
@@ -39,11 +50,11 @@ export function FichaTecnicaPane() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function loadInfo() {
+  async function loadInfo(force = false) {
     setLoading(true);
     setError("");
     try {
-      const out = await apiAnaliticaFichaTecnicaInfo();
+      const out = await fetchFichaTecnicaInfo(force);
       setInfo(out);
       if (!ficha.layout && out.layout) {
         setFichaTecnica({ layout: out.layout as FichaLayout });
@@ -108,7 +119,7 @@ export function FichaTecnicaPane() {
     };
     await apiAnaliticaConfigPut(nextConfig);
     await run.runSync(() => apiAnaliticaFichaTecnicaExport(ficha as Record<string, unknown>));
-    await loadInfo();
+    await loadInfo(true);
   }
 
   return (
@@ -156,7 +167,7 @@ export function FichaTecnicaPane() {
                 <Wand2 size={14} />
                 Completar vacíos
               </button>
-              <button type="button" className="pulso-secondary" onClick={loadInfo}>
+              <button type="button" className="pulso-secondary" onClick={() => void loadInfo(true)}>
                 <RefreshCw size={14} />
                 Actualizar KPIs
               </button>
@@ -298,7 +309,7 @@ function FichaLoadingState() {
         <div className="analitica-ficha-loading-copy">
           <span>Lectura metodológica</span>
           <h3>Preparando evidencia de ficha técnica</h3>
-          <p>Estamos cruzando configuración, muestra, base longitudinal y tablas disponibles para sugerir una ficha editable.</p>
+          <p>Estamos cruzando configuración, muestra, base longitudinal y tablas disponibles. En proyectos grandes puede tomar unos segundos.</p>
         </div>
       </section>
 

@@ -48,7 +48,7 @@ export function BasesPane() {
           <div className="analitica-bases-docbar-copy">
             <span>Producto de base</span>
             <strong>Bases e instrumento</strong>
-            <small>Fuente activa, archivos originales y exportes analíticos.</small>
+            <small>Descarga la base lista para trabajar y el formulario que la explica.</small>
           </div>
           <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
             <span>
@@ -60,7 +60,7 @@ export function BasesPane() {
               <strong>{siblingsLabel}</strong>
             </span>
             <span>
-              Formatos
+              Salidas
               <strong>SAV / CSV / XLSX</strong>
             </span>
           </div>
@@ -87,8 +87,8 @@ function FuenteInfo() {
     <div className="analitica-bases-info">
       <Info size={14} />
       <div>
-        Todas las descargas usan la <strong>misma fuente activa</strong> seleccionada en el encabezado: <strong>{fuenteLabel}</strong>.
-        Los archivos fuente conservan el formato original; los formatos analíticos aplican sus propias opciones de exportación.
+        Todas las descargas salen desde la <strong>fuente activa</strong>: <strong>{fuenteLabel}</strong>.
+        Usa los archivos fuente para auditar el origen y los formatos analíticos para compartir o analizar la base.
       </div>
     </div>
   );
@@ -104,7 +104,7 @@ function ArchivosFuenteSection() {
           <FileCode2 size={14} /> Archivos fuente
         </span>
       }
-      subtitle="Descarga directa de la base de datos y el XLSForm de la fuente activa. En Codificada se entrega la salida del adaptador, conservando colores y formato."
+      subtitle="Los archivos tal como quedan en la fuente activa. Úsalos para respaldar, revisar o entregar el paquete base."
     >
       <div className="analitica-bases-source-grid">
         <SourceDataCard />
@@ -130,7 +130,7 @@ function SourceDataCard() {
         <div className="analitica-bases-source-copy">
           <strong>Base de datos</strong>
           <span>
-            Copia el archivo de datos de la fuente activa. Si está codificada, conserva las columnas <code>*_recod</code> y sus colores.
+            Archivo de datos de la fuente activa. Si trabajas con la versión codificada, incluye las variables recodificadas y su formato.
           </span>
         </div>
       </div>
@@ -163,7 +163,7 @@ function SourceInstrumentCard() {
         <div className="analitica-bases-source-copy">
           <strong>XLSForm</strong>
           <span>
-            Copia el instrumento de la fuente activa. El XLSForm codificado mantiene el coloreado del paquete para las variables recodificadas.
+            Formulario que documenta preguntas, opciones y estructura. La versión codificada conserva las marcas de recodificación.
           </span>
         </div>
       </div>
@@ -195,21 +195,18 @@ function MetadatosSection() {
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Wand2 size={14} /> Metadatos SPSS inferidos
+          <Wand2 size={14} /> Lectura para SPSS
         </span>
       }
       subtitle={
         <>
-          Cada variable recibe un <strong>nivel de medida</strong> (nominal/ordinal/escala) inferido
-          desde el tipo XLSForm y las value-labels. Si la inferencia no acertó — por ejemplo una
-          Likert que quedó como nominal — puedes corregirla aquí. El formato SPSS (<code>F8.0</code>,
-          <code>A40</code>, <code>DATE10</code>…) lo elige el sistema automáticamente. Solo afecta
-          al export <code>.sav</code>; CSV y XLSX lo ignoran.
+          Revisa cómo SPSS leerá cada variable: categoría, orden o escala numérica. Si una escala
+          quedó mal interpretada, corrígela aquí antes de exportar el <code>.sav</code>.
         </>
       }
     >
       <Collapsible
-        title="Revisar / editar inferencia"
+        title="Revisar lectura de variables"
         summary={summary}
         defaultOpen={overridesCount > 0}
       >
@@ -259,7 +256,7 @@ function SavCard({
       }
       subtitle={
         <>
-          Binario nativo de SPSS con etiquetas de variable, value-labels y <strong>nivel de medida</strong> (nominal/ordinal/escala) embebidos. Listo para abrir sin pasos extra.
+          Archivo listo para abrir en SPSS con etiquetas de variable, etiquetas de respuesta y tipo de medida incluidos.
         </>
       }
     >
@@ -277,7 +274,7 @@ function SavCard({
             datos.sav
           </code>
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            Se infiere automáticamente <code>measure</code> (editable arriba), <code>format.spss</code> y <code>display_width</code> por columna a partir del tipo XLSForm (<code>select_one</code> likert → ordinal; <code>integer/decimal</code> → scale; texto → nominal).
+            El sistema prepara la lectura de cada columna para SPSS. Si necesitas auditar el detalle técnico, revísalo en “Lectura para SPSS”.
           </div>
         </div>
         <SavWriterStatus writer={writer} />
@@ -296,9 +293,9 @@ function SavCard({
               style={{ marginTop: 2 }}
             />
             <span>
-              <strong>Incluir <code>niveles_medida.sps</code> de respaldo</strong>
+              <strong>Incluir archivo de respaldo para SPSS</strong>
               <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-                Syntax con <code>VARIABLE LEVEL</code> + <code>FORMATS</code> como respaldo auditable. Con el escritor actual el <code>.sav</code> ya incorpora los metadatos; al activarlo, el output pasa a ser un <code>.zip</code> con ambos archivos.
+                Agrega un archivo técnico con las instrucciones de lectura. Normalmente no hace falta; actívalo solo si alguien necesita revisar el detalle en SPSS.
               </div>
             </span>
           </label>
@@ -386,7 +383,7 @@ function CsvCard({
           <FileText size={14} /> CSV
         </span>
       }
-      subtitle="Archivo plano universal. Se abre en cualquier software (Excel, R, Python, Stata). UTF-8 con BOM para compatibilidad con Excel en Windows."
+      subtitle="Archivo plano para equipos que trabajan en Excel, R, Python o Stata."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <RadioRow
@@ -394,8 +391,8 @@ function CsvCard({
           value={cfg.valores}
           onChange={(v) => onChange({ valores: v as "codigos" | "etiquetas" })}
           options={[
-            { value: "codigos", label: "Códigos numéricos", hint: "Respuestas como 1, 2, 3 — ideal para stats (R, SPSS, Stata)." },
-            { value: "etiquetas", label: "Etiquetas de texto", hint: "Respuestas como 'Hombre', 'Mujer' — más legible para humanos." },
+            { value: "codigos", label: "Códigos", hint: "Valores como 1, 2, 3 para análisis estadístico." },
+            { value: "etiquetas", label: "Etiquetas", hint: "Textos legibles para revisar o compartir." },
           ]}
         />
 
@@ -468,7 +465,7 @@ function XlsxCard({
           <FileSpreadsheet size={14} /> Excel (.xlsx)
         </span>
       }
-      subtitle="Libro con los nombres técnicos en la fila 1 y las etiquetas de variable en la fila 2. Ideal para compartir con stakeholders que quieren explorar la base sin software especializado."
+      subtitle="Libro para revisar la base sin software especializado. Incluye nombres técnicos y etiquetas de variable."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <RadioRow
@@ -560,15 +557,9 @@ function UnifiedSiblingsCard({
       }
       subtitle={
         <>
-          Descarga una sola base con todas las hermanas. Incluye <code>base_hermana</code>{" "}
-          <code>registro_origen_id</code> y <code>registro_unificado_id</code> al inicio
-          para identificar carrera, registro original y fila única global. Si la base viene de SurveyMonkey,
-          conserva <code>id_enlace_sm</code> como ID técnico del enlace para doble cruce. La base efectiva incluye
-          respuestas completas con consentimiento válido; casos posteriores al corte o de recopilador no esperado se
-          conservan con marcas de observación. La descarga estándar omite PII no necesaria; usa <strong>Con metadatos</strong> cuando necesites
-          auditar o reenviar la base completa.
-          El libro incluye auditoría de <strong>variables comunes</strong> y <strong>variables no comunes</strong>;
-          los reportes comparativos deben leerse solo sobre las comunes.
+          Descarga una sola base con todas las bases hermanas. La salida estándar omite datos personales no necesarios;
+          usa <strong>Con metadatos</strong> cuando necesites reenviar o revisar la base completa. El libro separa variables
+          comunes y no comunes para que las comparaciones se lean con claridad.
         </>
       }
     >
@@ -584,9 +575,7 @@ function UnifiedSiblingsCard({
             lineHeight: 1.5,
           }}
         >
-          Mantiene la independencia de procesamiento: no cambia la base activa, no fusiona estados y no afecta Gráficos.
-          Solo prepara una descarga analítica combinada para exploración preliminar en Excel. Cada fila conserva
-          su identificador original, el <code>id_enlace_sm</code> de SurveyMonkey cuando existe, observaciones de corte/recopilador y un identificador único para la tabla unificada.
+          Mantiene cada base independiente dentro del proyecto. Esta descarga solo arma una tabla combinada para exploración en Excel.
           {summary && (
             <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>
               {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} comunes · {summary.n_variables_no_comunes} no comunes
