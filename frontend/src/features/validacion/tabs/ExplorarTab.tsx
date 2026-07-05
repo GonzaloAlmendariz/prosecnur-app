@@ -245,11 +245,12 @@ export default function ExplorarTab() {
     <div className="pulso-validacion-explorar-layout">
       {/* --- Sidebar: picker --------------------------------------------- */}
       <aside className="pulso-validacion-explorar-sidebar">
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
-          Preguntas y campos · {inv.n_variables}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginBottom: 10 }}>
-          Este explorador muestra <strong>Selección única</strong>, <strong>Selección múltiple</strong>, <strong>numéricas</strong> y <strong>respuestas abiertas</strong>.
+        <div className="pulso-validacion-explorar-picker-head">
+          <div>
+            <span>Preguntas y campos</span>
+            <strong>{inv.n_variables}</strong>
+          </div>
+          <p>Única · Múltiple · Numérica · Abierta</p>
         </div>
         <VariablePicker
           secciones={inv.secciones}

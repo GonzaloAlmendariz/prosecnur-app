@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { Activity, CheckCircle2, Compass, Database, ListTree, PieChart, ShieldCheck } from "lucide-react";
 import {
@@ -299,6 +299,28 @@ function ValidacionModeSidebar({
   onChange: (tab: ValidacionTabId) => void;
   disabled: boolean;
 }) {
+  const [tooltip, setTooltip] = useState<{
+    key: ValidacionTabId;
+    label: string;
+    desc: string;
+    top: number;
+    left: number;
+  } | null>(null);
+
+  function showTooltip(
+    tab: TabMeta<ValidacionTabId>,
+    event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltip({
+      key: tab.key,
+      label: tab.label,
+      desc: tab.desc ?? "",
+      top: Math.round(rect.top + rect.height / 2),
+      left: Math.round(rect.right + 11),
+    });
+  }
+
   return (
     <aside className="pulso-validacion-sidebar pulso-sidebar" aria-label="Secciones de validación">
       <div className="pulso-validacion-sidebar-head">
@@ -322,8 +344,13 @@ function ValidacionModeSidebar({
               role="tab"
               aria-selected={isActive}
               aria-controls="validacion-panel"
+              aria-describedby={tooltip?.key === tab.key ? "validacion-rail-tooltip" : undefined}
               disabled={disabled}
               onClick={() => onChange(tab.key)}
+              onMouseEnter={(event) => showTooltip(tab, event)}
+              onMouseLeave={() => setTooltip(null)}
+              onFocus={(event) => showTooltip(tab, event)}
+              onBlur={() => setTooltip(null)}
               className={`pulso-validacion-nav-item${isActive ? " is-active" : ""}`}
               aria-label={`${tab.label}${tab.desc ? `. ${tab.desc}` : ""}`}
               title={`${tab.label}${tab.desc ? ` - ${tab.desc}` : ""}`}
@@ -345,6 +372,17 @@ function ValidacionModeSidebar({
           );
         })}
       </div>
+      {tooltip && (
+        <div
+          id="validacion-rail-tooltip"
+          role="tooltip"
+          className="pulso-validacion-nav-tooltip"
+          style={{ top: tooltip.top, left: tooltip.left }}
+        >
+          <strong>{tooltip.label}</strong>
+          {tooltip.desc && <span>{tooltip.desc}</span>}
+        </div>
+      )}
     </aside>
   );
 }
