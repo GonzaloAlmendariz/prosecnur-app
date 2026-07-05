@@ -17407,6 +17407,86 @@ h1.pulso-page-title {
   }
 }
 
+/* Independent sibling base switcher follows the compact processing rail. */
+@media (min-width: 901px) {
+  .pulso-main--processing:has(.pulso-sibling-switcher) {
+    --pulso-active-base-footer-reserve: 52px;
+  }
+
+  .pulso-main--processing .pulso-sibling-switcher {
+    left: 16px;
+    right: auto;
+    bottom: 14px;
+    width: 42px;
+    min-width: 42px;
+    gap: 0;
+    padding: 5px;
+    border-radius: 13px;
+    transition:
+      width var(--motion-dur-base) var(--motion-ease-out),
+      min-width var(--motion-dur-base) var(--motion-ease-out),
+      padding var(--motion-dur-base) var(--motion-ease-out),
+      box-shadow var(--motion-dur-fast) ease;
+  }
+
+  .pulso-main--processing .pulso-sibling-switcher:hover,
+  .pulso-main--processing .pulso-sibling-switcher:focus-within,
+  .pulso-main--processing .pulso-sibling-switcher.is-open {
+    width: min(166px, calc(100vw - 40px));
+    min-width: min(166px, calc(100vw - 40px));
+    padding: 5px;
+  }
+
+  .pulso-main--processing .pulso-sibling-switcher-top {
+    display: none !important;
+  }
+
+  .pulso-main--processing .pulso-sibling-trigger {
+    min-height: 30px;
+    height: 30px;
+    grid-template-columns: 30px;
+    justify-items: center;
+    gap: 0;
+    padding: 0;
+    border-radius: 10px;
+  }
+
+  .pulso-main--processing .pulso-sibling-switcher:hover .pulso-sibling-trigger,
+  .pulso-main--processing .pulso-sibling-switcher:focus-within .pulso-sibling-trigger,
+  .pulso-main--processing .pulso-sibling-switcher.is-open .pulso-sibling-trigger {
+    height: 32px;
+    min-height: 32px;
+    grid-template-columns: 26px minmax(0, 1fr) 14px;
+    justify-items: stretch;
+    gap: 5px;
+    padding: 3px 6px;
+    border-radius: 10px;
+  }
+
+  .pulso-main--processing .pulso-sibling-trigger-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+  }
+
+  .pulso-main--processing .pulso-sibling-trigger-copy,
+  .pulso-main--processing .pulso-sibling-trigger > svg {
+    display: none;
+  }
+
+  .pulso-main--processing .pulso-sibling-switcher:hover .pulso-sibling-trigger-copy,
+  .pulso-main--processing .pulso-sibling-switcher:focus-within .pulso-sibling-trigger-copy,
+  .pulso-main--processing .pulso-sibling-switcher.is-open .pulso-sibling-trigger-copy {
+    display: block;
+  }
+
+  .pulso-main--processing .pulso-sibling-switcher:hover .pulso-sibling-trigger > svg,
+  .pulso-main--processing .pulso-sibling-switcher:focus-within .pulso-sibling-trigger > svg,
+  .pulso-main--processing .pulso-sibling-switcher.is-open .pulso-sibling-trigger > svg {
+    display: block;
+  }
+}
+
 @media (min-width: 901px) {
   :root[data-pulso-layout-mode="short"] .pulso-main--processing :is(
     .pulso-validacion-nav-item,
