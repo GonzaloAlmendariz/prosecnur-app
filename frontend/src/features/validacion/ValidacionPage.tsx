@@ -311,6 +311,10 @@ function ValidacionModeSidebar({
     tab: TabMeta<ValidacionTabId>,
     event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
   ) {
+    if (tab.key === active) {
+      setTooltip(null);
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     setTooltip({
       key: tab.key,
@@ -344,9 +348,12 @@ function ValidacionModeSidebar({
               role="tab"
               aria-selected={isActive}
               aria-controls="validacion-panel"
-              aria-describedby={tooltip?.key === tab.key ? "validacion-rail-tooltip" : undefined}
+              aria-describedby={tooltip?.key === tab.key && !isActive ? "validacion-rail-tooltip" : undefined}
               disabled={disabled}
-              onClick={() => onChange(tab.key)}
+              onClick={() => {
+                setTooltip(null);
+                onChange(tab.key);
+              }}
               onMouseEnter={(event) => showTooltip(tab, event)}
               onMouseLeave={() => setTooltip(null)}
               onFocus={(event) => showTooltip(tab, event)}
