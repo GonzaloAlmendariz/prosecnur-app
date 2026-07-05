@@ -6,7 +6,7 @@ import type {
   ProcessingSheetPayload,
   ProcessingSheetRequest,
 } from "../../api/client";
-import { ErrorBlock, LoadingBlock } from "../../components/States";
+import { ErrorBlock } from "../../components/States";
 import "./processingSheetViewer.css";
 
 type Props = {
@@ -257,13 +257,36 @@ export function ProcessingSheetViewer({
       {error ? (
         <ErrorBlock label="No se pudo cargar la base" detail={error} />
       ) : !payload && loading ? (
-        <div className="pulso-processing-sheet-loading">
-          <LoadingBlock label={`Cargando ${title.toLowerCase()}...`} />
-          <small>
-            {loadingSlow
-              ? "El proyecto tiene muchas columnas. Seguimos preparando la vista previa sin cambiar la base."
-              : "Preparando las primeras filas, filtros y nombres de columnas."}
-          </small>
+        <div className="pulso-processing-sheet-loading" role="status" aria-live="polite">
+          <div className="pulso-processing-sheet-loading-card">
+            <span className="pulso-processing-sheet-loading-icon" aria-hidden="true">
+              <RefreshCw size={17} className="pulso-spin" />
+            </span>
+            <div>
+              <strong>Armando vista previa</strong>
+              <span>
+                {loadingSlow
+                  ? "El proyecto tiene muchas columnas. Seguimos preparando la tabla sin cambiar la base."
+                  : `Cargando ${title.toLowerCase()} con filtros y nombres de columnas.`}
+              </span>
+            </div>
+          </div>
+
+          <div className="pulso-processing-sheet-loading-steps" aria-hidden="true">
+            <span><i /> Primeras filas</span>
+            <span><i /> Filtros por columna</span>
+            <span><i /> {highlightCoding ? "Recodificadas al lado" : "Columnas listas"}</span>
+          </div>
+
+          <div className="pulso-processing-sheet-loading-skeleton" aria-hidden="true">
+            {Array.from({ length: 5 }, (_, rowIndex) => (
+              <div key={rowIndex}>
+                {Array.from({ length: 6 }, (_, colIndex) => (
+                  <span key={colIndex} className={colIndex === 0 ? "is-short" : ""} />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <>
@@ -322,11 +345,19 @@ export function ProcessingSheetViewer({
                       <td className="pulso-processing-sheet-rownum">
                         {visibleStart + rowIndex}
                       </td>
-                      {columns.map((column) => (
-                        <td key={column.key} className={columnClass(column, highlightCoding)} data-kind={column.type_kind}>
-                          {row[column.key] ?? ""}
-                        </td>
-                      ))}
+                      {columns.map((column) => {
+                        const value = row[column.key] ?? "";
+                        return (
+                          <td
+                            key={column.key}
+                            className={columnClass(column, highlightCoding)}
+                            data-kind={column.type_kind}
+                            title={value || undefined}
+                          >
+                            {value}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))
                 )}
