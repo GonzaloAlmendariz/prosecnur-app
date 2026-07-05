@@ -408,87 +408,57 @@ function ExclusionEditor({
   }
 
   return (
-    <div
-      style={{
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        background: "white",
-        padding: 12,
-        display: "flex", flexDirection: "column", gap: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Filter size={14} color="var(--pulso-warn-fg)" />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 700 }}>
-            Excluir categorías de <code style={{ fontFamily: "monospace" }}>{cruceVar.name}</code>
+    <div className="analitica-exclusion-editor">
+      <div className="analitica-exclusion-head">
+        <span className="analitica-exclusion-icon" aria-hidden="true">
+          <Filter size={14} />
+        </span>
+        <div className="analitica-exclusion-copy">
+          <div className="analitica-exclusion-title">
+            Excluir categorías de <code>{cruceVar.name}</code>
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+          <div className="analitica-exclusion-subtitle">
             Las categorías marcadas aquí <strong>no aparecerán como columnas</strong> cuando esta variable sea cruce. Útil para ocultar categorías con casi nula frecuencia.
           </div>
         </div>
-        <button type="button" onClick={onClose} className="pulso-icon" aria-label="Cerrar" style={{ minWidth: 24, minHeight: 24 }}>
+        <button type="button" onClick={onClose} className="pulso-icon analitica-exclusion-close" aria-label="Cerrar">
           <X size={13} />
         </button>
       </div>
 
-      <div
-        style={{
-          display: "flex", alignItems: "flex-start", gap: 8,
-          padding: "8px 10px",
-          background: "var(--pulso-warn-bg)",
-          border: "1px solid #f0d799",
-          borderRadius: 6,
-          fontSize: 11, color: "var(--pulso-warn-fg)", lineHeight: 1.5,
-        }}
-      >
-        <AlertTriangle size={12} style={{ marginTop: 2, flexShrink: 0 }} />
+      <div className="analitica-exclusion-warning">
+        <AlertTriangle size={12} />
         <div>
           <strong>Limitación conocida:</strong> al excluir una categoría, las filas con ese valor se filtran antes de generar todas las tablas. Eso significa que la categoría <em>tampoco aparece como fila</em> cuando la variable es cruzada por otra. En Frecuencias y Libro de códigos la categoría sigue visible con normalidad.
         </div>
       </div>
 
       {error && (
-        <div style={{ fontSize: 11, color: "var(--pulso-danger-fg)", padding: "6px 10px", background: "var(--pulso-danger-bg)", border: "1px solid #fecaca", borderRadius: 4 }}>
+        <div className="analitica-exclusion-error">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 10 }}>Cargando categorías…</div>
+        <div className="analitica-exclusion-state">Cargando categorías…</div>
       ) : valores.length === 0 ? (
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 10 }}>
+        <div className="analitica-exclusion-state">
           Esta variable no tiene categorías distintas en la data.
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex", flexDirection: "column", gap: 3,
-            maxHeight: 280, overflowY: "auto",
-            border: "1px solid var(--pulso-border)", borderRadius: 6,
-            padding: 4,
-            scrollbarWidth: "thin", scrollbarColor: "var(--pulso-border) transparent",
-          }}
-        >
+        <div className="analitica-exclusion-list">
           {valores.map((v) => {
             const active = excluidas.includes(v.value);
             return (
               <label
                 key={v.value}
-                style={{
-                  display: "grid", gridTemplateColumns: "14px 1fr", gap: 8, alignItems: "center",
-                  padding: "4px 8px", borderRadius: 4,
-                  background: active ? "var(--pulso-warn-bg)" : "transparent",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
-                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
+                className={`analitica-exclusion-row${active ? " is-active" : ""}`}
               >
-                <input type="checkbox" checked={active} onChange={() => toggle(v.value)} style={{ margin: 0 }} />
-                <div style={{ minWidth: 0 }}>
-                  <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: active ? "var(--pulso-warn-fg)" : "var(--pulso-text)" }}>{v.value}</code>
+                <input type="checkbox" checked={active} onChange={() => toggle(v.value)} />
+                <div className="analitica-exclusion-value">
+                  <code>{v.value}</code>
                   {v.label && (
-                    <span style={{ marginLeft: 6, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+                    <span>
                       {v.label}
                     </span>
                   )}
@@ -500,8 +470,8 @@ function ExclusionEditor({
       )}
 
       {excluidas.length > 0 && (
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button type="button" onClick={() => onChange([])} style={{ fontSize: 11 }}>Quitar todas las exclusiones</button>
+        <div className="analitica-exclusion-actions">
+          <button type="button" onClick={() => onChange([])} className="pulso-secondary">Quitar todas las exclusiones</button>
         </div>
       )}
     </div>

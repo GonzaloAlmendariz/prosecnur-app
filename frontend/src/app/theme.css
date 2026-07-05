@@ -18539,6 +18539,164 @@ h1.pulso-page-title {
   flex-direction: column;
   gap: 6px;
 }
+.analitica-exclusion-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-border) 36%, var(--pulso-border) 64%);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 251, 241, 0.62)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 8px 18px rgba(15, 23, 42, 0.055);
+}
+.analitica-exclusion-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+.analitica-exclusion-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-warn-border) 72%, #fff 28%);
+}
+.analitica-exclusion-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.analitica-exclusion-title {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.analitica-exclusion-title code,
+.analitica-exclusion-value code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.analitica-exclusion-title code {
+  color: var(--pulso-module-processing);
+}
+.analitica-exclusion-subtitle {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.38;
+}
+.analitica-exclusion-close {
+  min-width: 24px;
+  min-height: 24px;
+}
+.analitica-exclusion-warning {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-border) 78%, #fff 22%);
+  border-radius: 7px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 10.8px;
+  line-height: 1.45;
+}
+.analitica-exclusion-warning svg {
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+.analitica-exclusion-error {
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: 7px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.analitica-exclusion-state {
+  padding: 10px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  text-align: center;
+}
+.analitica-exclusion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff 22%);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.74);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border) transparent;
+}
+.analitica-exclusion-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+.analitica-exclusion-row:hover:not(.is-active) {
+  border-color: color-mix(in srgb, var(--pulso-border) 74%, #fff 26%);
+  background: var(--pulso-surface-2);
+}
+.analitica-exclusion-row.is-active {
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 78%, #fff 22%);
+  background: var(--pulso-warn-bg);
+}
+.analitica-exclusion-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--pulso-warn-fg);
+}
+.analitica-exclusion-value {
+  min-width: 0;
+}
+.analitica-exclusion-value code {
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 760;
+}
+.analitica-exclusion-row.is-active .analitica-exclusion-value code {
+  color: var(--pulso-warn-fg);
+}
+.analitica-exclusion-value span {
+  margin-left: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+.analitica-exclusion-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.analitica-exclusion-actions .pulso-secondary {
+  min-height: 28px;
+  padding: 4px 9px;
+  font-size: 11px;
+}
 .analitica-variable-row code {
   min-width: 0;
   overflow: hidden;
