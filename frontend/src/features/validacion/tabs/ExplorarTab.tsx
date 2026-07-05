@@ -904,8 +904,10 @@ function pickInitialVariable(inv: ExploradorVariablesList): ExploradorVariable |
     const name = variable.name.toLowerCase();
     const label = variable.label.toLowerCase();
     return (
+      /^(collector|source|survey|response|respondent|case|date|email|first|last|ip|phone|form|campaign|campania|device)/.test(name) ||
       /(^|_)(id|uuid|enumerador|enumerator|respondent|response)(_|$)/.test(name) ||
-      /id de respuesta|enumerador|respondente/.test(label)
+      /(^|_)(ip|email|correo|mail|first_name|last_name|nombre|apellido|phone|telefono|collector|source|campaign|campania|form|formulario|device|date|time)(_|$)/.test(name) ||
+      /id de respuesta|direcci[oó]n ip|correo|email|nombre|apellido|tel[eé]fono|enumerador|respondente|recopilador|fuente|campa[ñn]a|formulario|dispositivo|fecha|hora/.test(label)
     );
   };
   return (
