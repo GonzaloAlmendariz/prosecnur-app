@@ -38284,14 +38284,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   }
 
   .pulso-main--processing :is(
-    .pulso-carga-stage-item:hover,
-    .pulso-carga-stage-item:focus-visible,
-    .pulso-validacion-nav-item:hover,
-    .pulso-validacion-nav-item:focus-visible,
-    .pulso-analitica-nav-item:hover,
-    .pulso-analitica-nav-item:focus-visible,
-    .pulso-codificacion-nav-item:hover,
-    .pulso-codificacion-nav-item:focus-visible
+    .pulso-carga-stage-item:not(.is-active):hover,
+    .pulso-carga-stage-item:not(.is-active):focus-visible,
+    .pulso-validacion-nav-item:not(.is-active):hover,
+    .pulso-validacion-nav-item:not(.is-active):focus-visible,
+    .pulso-analitica-nav-item:not(.is-active):hover,
+    .pulso-analitica-nav-item:not(.is-active):focus-visible,
+    .pulso-codificacion-nav-item:not(.is-active):hover,
+    .pulso-codificacion-nav-item:not(.is-active):focus-visible
   )::before {
     display: block;
     opacity: 1;
@@ -38330,14 +38330,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   }
 
   .pulso-main--processing :is(
-    .pulso-carga-stage-item:hover,
-    .pulso-carga-stage-item:focus-visible,
-    .pulso-validacion-nav-item:hover,
-    .pulso-validacion-nav-item:focus-visible,
-    .pulso-analitica-nav-item:hover,
-    .pulso-analitica-nav-item:focus-visible,
-    .pulso-codificacion-nav-item:hover,
-    .pulso-codificacion-nav-item:focus-visible
+    .pulso-carga-stage-item:not(.is-active):hover,
+    .pulso-carga-stage-item:not(.is-active):focus-visible,
+    .pulso-validacion-nav-item:not(.is-active):hover,
+    .pulso-validacion-nav-item:not(.is-active):focus-visible,
+    .pulso-analitica-nav-item:not(.is-active):hover,
+    .pulso-analitica-nav-item:not(.is-active):focus-visible,
+    .pulso-codificacion-nav-item:not(.is-active):hover,
+    .pulso-codificacion-nav-item:not(.is-active):focus-visible
   )::after {
     display: block;
     opacity: 1;
