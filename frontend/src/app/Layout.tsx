@@ -306,7 +306,7 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
   ] as const;
   const done = steps.filter(([, ok]) => ok).length;
   const activeBaseLabel = siblingLabel(activeBase);
-  const progressLabel = `${done} de ${steps.length} procesos listos`;
+  const progressLabel = `${done} de ${steps.length} etapas listas`;
 
   async function changeActive(next: string) {
     if (!next || next === active || switching) return;
@@ -333,7 +333,7 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
       onValueChange={(next) => void changeActive(next)}
     >
       <div
-        className={`pulso-sibling-switcher is-compact${open ? " is-open" : ""}`}
+        className={`pulso-sibling-switcher is-compact is-progress-${done}${open ? " is-open" : ""}`}
         aria-label="Base activa"
         title={`Base activa: ${activeBaseLabel} · ${progressLabel}`}
         data-progress={`${done}/${steps.length}`}
@@ -361,6 +361,7 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
         <span className="pulso-sibling-tooltip" role="tooltip">
           <strong>{activeBaseLabel}</strong>
           <span>{progressLabel}</span>
+          <small>Clic para cambiar base</small>
         </span>
       </div>
       <Select.Portal>
@@ -394,9 +395,9 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
                     <Select.ItemText>
                       <strong>{siblingLabel(base)}</strong>
                     </Select.ItemText>
-                    <small>{baseDone}/{baseSteps.length} procesos</small>
+                    <small>{baseDone}/{baseSteps.length} etapas listas</small>
                   </span>
-                  <span className="pulso-sibling-option-dots" aria-label={`${baseDone} de ${baseSteps.length} procesos listos`}>
+                  <span className="pulso-sibling-option-dots" aria-label={`${baseDone} de ${baseSteps.length} etapas listas`}>
                     {baseSteps.map(([label, ok]) => (
                       <i key={label} className={ok ? "is-done" : ""} title={label} />
                     ))}
