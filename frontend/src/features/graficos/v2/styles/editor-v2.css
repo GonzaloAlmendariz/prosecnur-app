@@ -31807,3 +31807,141 @@
     justify-self: start;
   }
 }
+
+/* Suite polish pass 81: keep the graph command rail compact in constrained widths. */
+@media (max-width: 1180px) {
+  .pulso-graficos-frame .pulso-gv2-command-header {
+    --gv2-command-control-h: 28px;
+    --gv2-command-button-radius: 8px;
+    margin-bottom: 4px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+    min-height: 36px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 3px !important;
+    padding: 3px 5px !important;
+    overflow: visible !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-cluster {
+    flex: 0 0 auto !important;
+    min-height: var(--gv2-command-control-h) !important;
+    gap: 3px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-cluster::before {
+    height: 18px;
+    margin-right: 1px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-cluster--mode {
+    min-width: 0 !important;
+    flex-basis: auto !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-spacer {
+    display: none !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-view-control {
+    gap: 3px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tab {
+    padding-inline: 8px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-icon-button,
+  .pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-suggest-trigger,
+  .pulso-graficos-frame .pulso-gv2-command-row--unified .pulso-gv2-toolbar-reset {
+    width: var(--gv2-command-control-h) !important;
+    min-width: var(--gv2-command-control-h) !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-plan-snapshot-trigger,
+  .pulso-graficos-frame .pulso-gv2-health-trigger,
+  .pulso-graficos-frame .pulso-gv2-coverage-trigger,
+  .pulso-graficos-frame .pulso-gv2-toolbar-action,
+  .pulso-graficos-frame .pulso-gv2-estilo-trigger {
+    min-width: 0 !important;
+    padding-inline: 7px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-plan-snapshot-trigger span {
+    display: none !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-debug-border-trigger {
+    min-width: 46px !important;
+    padding-inline: 6px !important;
+    gap: 4px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-debug-border-label {
+    display: none !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-estilo-trigger {
+    max-width: 88px;
+    gap: 4px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-estilo-trigger-icon {
+    width: 19px;
+    height: 19px;
+    flex-basis: 19px;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-toolbar-action {
+    gap: 4px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-toolbar-action [style] {
+    min-width: 30px !important;
+    padding-inline: 5px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-menu-trigger:disabled {
+    width: var(--gv2-command-control-h) !important;
+    min-width: var(--gv2-command-control-h) !important;
+    padding-inline: 0 !important;
+    gap: 0 !important;
+    justify-content: center !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-menu-trigger:disabled > span,
+  .pulso-graficos-frame .pulso-gv2-export-menu-trigger:disabled > svg:last-child {
+    display: none !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-export-menu-trigger:disabled > svg:first-child {
+    display: block !important;
+    color: color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 62%, var(--pulso-text-soft)) !important;
+  }
+}
+
+@media (max-width: 1040px) {
+  .pulso-graficos-frame .pulso-gv2-command-header > .pulso-gv2-command-row--unified {
+    gap: 2px !important;
+    padding-inline: 4px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-cluster {
+    gap: 2px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-command-view-control .pulso-gv2-mode-tab {
+    padding-inline: 7px !important;
+  }
+
+  .pulso-graficos-frame .pulso-gv2-coverage-trigger {
+    width: var(--gv2-command-control-h) !important;
+    min-width: var(--gv2-command-control-h) !important;
+    padding-inline: 0 !important;
+    justify-content: center !important;
+    font-size: 0 !important;
+    gap: 0 !important;
+  }
+}
