@@ -795,28 +795,33 @@ export function GraficosHeader({
         density="compact"
         className="pulso-gv2-command-row pulso-gv2-command-row--unified"
       >
-        <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--state">
-          <PlanSnapshotBadge
-            nSlides={nSlides}
-            hydrated={hydrated}
-            dirty={dirty}
-          />
+        <div className="pulso-gv2-command-zone pulso-gv2-command-zone--left">
+          <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--state">
+            <PlanSnapshotBadge
+              nSlides={nSlides}
+              hydrated={hydrated}
+              dirty={dirty}
+            />
+          </div>
         </div>
 
-        <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--mode">
-          <ConstructorViewControls issueCount={validator.issues.length} />
+        <div className="pulso-gv2-command-zone pulso-gv2-command-zone--center">
+          <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--mode">
+            <ConstructorViewControls issueCount={validator.issues.length} />
+          </div>
+
+          <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--review">
+            <UndoRedoButtons />
+            <PlanHealthBadge />
+            <PlanCoverageBadge />
+            <SuggestedPlanButton />
+          </div>
         </div>
 
-        <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--review">
-          <UndoRedoButtons />
-          <PlanHealthBadge />
-          <PlanCoverageBadge />
-          <SuggestedPlanButton />
-        </div>
+        <div className="pulso-gv2-command-zone pulso-gv2-command-zone--right">
+          <div className="pulso-gv2-command-spacer" aria-hidden="true" />
 
-        <div className="pulso-gv2-command-spacer" aria-hidden="true" />
-
-        <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--tools">
+          <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--tools">
           <DebugPhToggle />
 
           <button
@@ -1190,14 +1195,15 @@ export function GraficosHeader({
           >
             <RotateCcw size={12} />
           </button>
-        </div>
+          </div>
 
-        {jsonMsg && (
-          <span role="status" style={jsonIoStyles.msg}><Check size={11} /> {jsonMsg}</span>
-        )}
-        {jsonError && (
-          <span role="alert" style={jsonIoStyles.error}><AlertCircle size={11} /> {jsonError}</span>
-        )}
+          {jsonMsg && (
+            <span role="status" style={jsonIoStyles.msg}><Check size={11} /> {jsonMsg}</span>
+          )}
+          {jsonError && (
+            <span role="alert" style={jsonIoStyles.error}><AlertCircle size={11} /> {jsonError}</span>
+          )}
+        </div>
       </ContextBar>
 
       <EstiloGlobalDialog open={estiloOpen} onClose={() => setEstiloOpen(false)} />

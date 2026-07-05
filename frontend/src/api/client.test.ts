@@ -50,6 +50,7 @@ import {
   apiV2InstrumentoVariablesExcluidas,
   apiV2InstrumentoVariablesExcluidasSave,
   apiGraficosPpt,
+  apiGraficosSlideLayoutPreview,
   apiGraficosPreviewSlide,
   apiGraficosShareExport,
   apiGraficosShareImport,
@@ -2830,7 +2831,7 @@ describe("Graficos preview/export client", () => {
     ]);
   });
 
-  test("preview slide sends optional quality/image flags when provided", async () => {
+  test("preview slide sends optional quality/image/render flags when provided", async () => {
     const bodies: unknown[] = [];
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       bodies.push(JSON.parse(String(init?.body ?? "{}")));
@@ -2849,7 +2850,8 @@ describe("Graficos preview/export client", () => {
 
     await apiGraficosPreviewSlide(slide as never, config, {
       preview_quality: "normal",
-      include_images: true,
+      include_images: false,
+      render_slide_preview: false,
     });
 
     expect(bodies).toEqual([
@@ -2857,8 +2859,37 @@ describe("Graficos preview/export client", () => {
         slide,
         config,
         preview_quality: "normal",
-        include_images: true,
+        include_images: false,
+        render_slide_preview: false,
       },
     ]);
+  });
+
+  test("requests slide layout geometry by slide type", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({
+      ok: true,
+      tipo: "p_slide_2_graficos",
+      contract: "slide_2",
+      layout: "Graficos_2columnas",
+      aspectRatio: 16 / 9,
+      source: "template",
+      placeholders: [
+        {
+          key: "left",
+          payload_key: "izquierda",
+          role: "chart",
+          rect: { x: 0.05, y: 0.1, width: 0.4, height: 0.7 },
+        },
+      ],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await apiGraficosSlideLayoutPreview("p_slide_2_graficos");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/graficos/slide-layout-preview?tipo=p_slide_2_graficos",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+    expect(response.placeholders[0]?.payload_key).toBe("izquierda");
   });
 });
