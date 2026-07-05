@@ -113,25 +113,31 @@ export function FichaTecnicaPane() {
   }
 
   return (
-    <Panel
-      eyebrow="Reporte"
-      title={<span className="analitica-inline-title"><FileText size={16} /> Ficha técnica</span>}
-      hint="Redacta la ficha metodológica con apoyo de Hojas de Ruta, cálculo de muestra y base longitudinal."
-    >
+    <Panel className="analitica-ficha-panel">
       <div className="analitica-report-shell analitica-ficha-workbench">
+        <div className="analitica-ficha-docbar">
+          <span className="analitica-ficha-docbar-icon" aria-hidden="true">
+            <FileText size={16} />
+          </span>
+          <div className="analitica-ficha-docbar-copy">
+            <span>Producto metodológico</span>
+            <strong>Ficha técnica</strong>
+            <small>Evidencia de Hojas de Ruta, muestra y base longitudinal.</small>
+          </div>
+          <div className="analitica-report-overview analitica-report-overview--ficha">
+            <FichaStat label="Campos completos" value={`${completedCount}/${fields.length || 0}`} />
+            <FichaStat label="Sugerencias" value={suggestedCount || "0"} suffix="por revisar" />
+            <FichaStat label="Fuentes" value={sourceCount || "0"} suffix="activas" />
+            <FichaStat label="Tablas" value={tableCount || "0"} suffix="anexables" />
+          </div>
+        </div>
+
         {loading ? (
           <LoadingBlock label="Leyendo evidencia metodológica..." />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : (
           <>
-            <div className="analitica-report-overview analitica-report-overview--ficha">
-              <FichaStat label="Campos completos" value={`${completedCount}/${fields.length || 0}`} />
-              <FichaStat label="Sugerencias" value={suggestedCount || "0"} suffix="por revisar" />
-              <FichaStat label="Fuentes" value={sourceCount || "0"} suffix="activas" />
-              <FichaStat label="Tablas" value={tableCount || "0"} suffix="anexables" />
-            </div>
-
             <div className="analitica-ficha-commandbar">
               <div className="analitica-segmented" role="tablist" aria-label="Formato de ficha">
                 {LAYOUTS.map((layout) => (
