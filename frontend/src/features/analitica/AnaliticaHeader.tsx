@@ -17,7 +17,7 @@ import { useAnaliticaStore, type FuentePreferida } from "./store";
 // Header global del módulo Analítica. Muestra:
 // - Qué fuente de datos alimenta los reportes (data codificada vs
 //   original) con toggle para forzar una u otra.
-// - Descarga/carga de ajustes como JSON.
+// - Plantilla portable de Analitica como JSON.
 // - Indicador "Autoguardado activo".
 // Aparece como command bar por encima del split view de reportes.
 
@@ -86,7 +86,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
     // listener de `pulso:session-changed` en useAnaliticaAutosave hace
     // el GET /api/analitica/config y aplica el resultado al Zustand.
     window.dispatchEvent(new Event("pulso:session-changed"));
-    return "Ajustes cargados";
+    return "Plantilla aplicada";
   }
 
   const activeBases = fuenteActiva === "adaptados" ? detalle?.codificada.bases : detalle?.original.bases;
@@ -157,12 +157,12 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           onExport={ioExport}
           onImport={ioImport}
           filenamePrefix="prosecnur_analitica"
-          exportLabel="Descargar ajustes"
-          importLabel="Cargar ajustes..."
-          exportTitle="Descargar una copia JSON de los ajustes de Analítica"
-          importTitle="Cargar ajustes de Analítica desde un archivo JSON"
-          exportSuccessLabel="Ajustes descargados"
-          importSuccessLabel="Ajustes cargados"
+          exportLabel="Guardar plantilla"
+          importLabel="Aplicar plantilla..."
+          exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
+          importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
+          exportSuccessLabel="Plantilla guardada"
+          importSuccessLabel="Plantilla aplicada"
         />
       </div>
     </ContextBar>
