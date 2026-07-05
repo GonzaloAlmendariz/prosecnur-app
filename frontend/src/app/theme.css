@@ -19464,6 +19464,96 @@ h1.pulso-page-title {
   margin-top: 2px;
   color: var(--pulso-module-processing);
 }
+.analitica-bases-guide {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.76fr) minmax(420px, 1.24fr);
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 36%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 250, 0.74)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 12%, var(--pulso-surface));
+}
+.analitica-bases-guide-context {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+.analitica-bases-guide-context svg {
+  color: var(--pulso-module-processing);
+}
+.analitica-bases-guide-context div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.analitica-bases-guide-context strong,
+.analitica-bases-guide-context span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.analitica-bases-guide-context strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.16;
+  white-space: nowrap;
+}
+.analitica-bases-guide-context span {
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-weight: 610;
+  line-height: 1.28;
+}
+.analitica-bases-guide-options {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.analitica-bases-guide-options > span {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  column-gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 30%, var(--pulso-border));
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.analitica-bases-guide-options svg {
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--pulso-module-processing);
+}
+.analitica-bases-guide-options strong,
+.analitica-bases-guide-options small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.analitica-bases-guide-options strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 820;
+  line-height: 1.12;
+}
+.analitica-bases-guide-options small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 1.12;
+}
 .analitica-bases-source-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

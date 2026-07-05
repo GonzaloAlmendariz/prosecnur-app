@@ -57,7 +57,7 @@ const REPORTES: ReporteMeta[] = [
   { key: "datos",        label: "Datos",             icon: ClipboardList, desc: "Etiquetas y variables" },
   { key: "base_final",   label: "Base final",        icon: Table2, desc: "Tabla lista para exportar" },
   { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario del estudio" },
-  { key: "bases",        label: "Bases e instrumento", icon: Database,  desc: "Archivos y versiones" },
+  { key: "bases",        label: "Bases e instrumentos", icon: Database,  desc: "Archivos y versiones" },
   { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Distribución de respuestas" },
   { key: "multibase",    label: "Tablas multibase",  icon: GitBranch, desc: "Comparación entre bases" },
   { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Personas y mediciones" },
