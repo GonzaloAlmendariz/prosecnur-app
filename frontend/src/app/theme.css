@@ -5953,10 +5953,10 @@ a { color: var(--pulso-primary); }
   flex: 1 1 auto;
   height: 100%;
   display: grid;
-  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
-  min-height: 0;
+  min-height: clamp(560px, calc(100dvh - 244px), 840px);
 }
 .pulso-validacion-explorar-sidebar {
   position: relative;
@@ -5968,11 +5968,13 @@ a { color: var(--pulso-primary); }
   max-height: none;
   min-height: 0;
   min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--pulso-border);
+  padding: 14px 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-validacion-border) 58%, var(--pulso-border));
   border-radius: 8px;
-  background: #fff;
-  box-shadow: var(--pulso-shadow-low);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff 42%),
+    color-mix(in srgb, var(--pulso-validacion-soft) 20%, #ffffff);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
 .pulso-validacion-explorar-picker-head {
@@ -6210,7 +6212,8 @@ a { color: var(--pulso-primary); }
   gap: 6px;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 4px;
+  margin: 0 -4px -2px 0;
+  padding: 2px 4px 6px 0;
   scrollbar-gutter: stable;
 }
 
