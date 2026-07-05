@@ -145,14 +145,16 @@ function BrandMark() {
 function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
   return (
     <nav
-      className="pulso-processing-phase-dock"
-      aria-label="Fases del procesamiento"
+      className="pulso-phase-rail pulso-processing-phase-dock"
+      aria-label="Secciones de procesamiento"
     >
-      <ol className="pulso-processing-phase-list">
-        {items.map((it) => (
-          <ProcessingPhaseDockItem key={it.to} it={it} />
-        ))}
-      </ol>
+      <div className="pulso-phase-pillbar pulso-processing-phase-bar">
+        <ol className="pulso-phase-pill-list pulso-processing-phase-list">
+          {items.map((it) => (
+            <ProcessingPhaseDockItem key={it.to} it={it} />
+          ))}
+        </ol>
+      </div>
     </nav>
   );
 }
@@ -163,18 +165,23 @@ function ProcessingPhaseDockItem({ it }: { it: NavItem }) {
     <li className="pulso-processing-phase-item">
       <NavLink
         to={it.to}
-        title={it.blockedReason ?? undefined}
-        aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : it.label}
-        data-phase-title={it.label}
-        data-phase-desc={it.blockedReason ?? (it.done ? "Completada" : "Abrir fase")}
+        title={it.blockedReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
+        aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`}
         className={({ isActive }) => [
+          "pulso-phase-pill",
           "pulso-processing-phase-link",
           isActive ? "is-active" : "",
           it.done ? "is-done" : "",
           blocked ? "is-blocked" : "",
         ].filter(Boolean).join(" ")}
       >
-        <span className="pulso-processing-phase-number" aria-hidden="true">{it.n}</span>
+        <span className="pulso-phase-pill-circle" aria-hidden="true" />
+        <span className="pulso-phase-pill-stack">
+          <span className="pulso-phase-pill-label">
+            <span className="pulso-phase-pill-number pulso-processing-phase-number">{it.n}</span>
+            <span className="pulso-phase-pill-text">{it.label}</span>
+          </span>
+        </span>
       </NavLink>
     </li>
   );
@@ -260,14 +267,22 @@ function statusOn(value: unknown) {
   return value === true;
 }
 
-function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
+function SiblingWorkbenchSelector({
+  visible,
+  placement = "floating",
+}: {
+  visible: boolean;
+  placement?: "floating" | "row";
+}) {
   const { state, refresh } = useSession();
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
   const [switching, setSwitching] = useState(false);
   const [open, setOpen] = useState(false);
+  const inRow = placement === "row";
+  const baseCount = state?.n_bases ?? 0;
   const independent = visible &&
     state?.estudio_processing_mode === "independent_siblings" &&
-    (state?.n_bases ?? 0) > 0;
+    baseCount > 0;
 
   async function load() {
     if (!independent) return;
@@ -292,7 +307,29 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [independent, state?.active_base, state?.n_bases]);
 
-  if (!independent || !estudio) return null;
+  if (!independent || !estudio) {
+    if (inRow && visible && baseCount > 0) {
+      const modeLabel = independent ? "Preparando selector" : baseCount === 1 ? "Base única" : "Bases combinadas";
+      return (
+        <div
+          className="pulso-sibling-switcher is-row is-summary"
+          aria-label={`${modeLabel}: ${baseCount} ${baseCount === 1 ? "base" : "bases"}`}
+          title={`${modeLabel}: ${baseCount} ${baseCount === 1 ? "base" : "bases"}`}
+        >
+          <div className="pulso-sibling-trigger pulso-sibling-trigger--summary" role="status">
+            <span className="pulso-sibling-trigger-icon" aria-hidden="true">
+              <Database size={14} />
+            </span>
+            <span className="pulso-sibling-trigger-copy">
+              <strong>{baseCount} {baseCount === 1 ? "base" : "bases"}</strong>
+            </span>
+            <span className="pulso-sibling-trigger-progress" aria-hidden="true">{modeLabel}</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
   const bases = Object.values(estudio.bases ?? {});
   const active = estudio.active_base || state?.active_base || bases[0]?.nombre || "";
   const activeBase = bases.find((base) => base.nombre === active) ?? bases[0];
@@ -333,7 +370,7 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
       onValueChange={(next) => void changeActive(next)}
     >
       <div
-        className={`pulso-sibling-switcher is-compact is-progress-${done}${open ? " is-open" : ""}`}
+        className={`pulso-sibling-switcher ${inRow ? "is-row" : "is-compact"} is-progress-${done}${open ? " is-open" : ""}`}
         aria-label="Base activa"
         title={`Base activa: ${activeBaseLabel} · ${progressLabel}`}
         data-progress={`${done}/${steps.length}`}
@@ -354,6 +391,7 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
           <span className="pulso-sibling-trigger-copy">
             <strong>{activeBaseLabel}</strong>
           </span>
+          <span className="pulso-sibling-trigger-progress" aria-hidden="true">{done}/{steps.length}</span>
           <Select.Icon asChild>
             <ChevronDown size={14} aria-hidden="true" />
           </Select.Icon>
@@ -368,8 +406,8 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
         <Select.Content
           className="pulso-sibling-menu"
           position="popper"
-          side="top"
-          align="start"
+          side={inRow ? "bottom" : "top"}
+          align={inRow ? "end" : "start"}
           sideOffset={8}
           collisionPadding={10}
         >
@@ -454,6 +492,14 @@ export default function Layout() {
           <SessionErrorChip />
         </div>
       </header>
+      {showFases && (
+        <div className="pulso-processing-phase-row">
+          <ProcessingPhaseDock items={items} />
+          <div className="pulso-processing-phase-side pulso-processing-phase-side--right">
+            <SiblingWorkbenchSelector visible={showFases} placement="row" />
+          </div>
+        </div>
+      )}
       <main
         className={[
           "pulso-main",
@@ -463,8 +509,6 @@ export default function Layout() {
         ].filter(Boolean).join(" ")}
         data-route-policy={policy}
       >
-        {showFases && <ProcessingPhaseDock items={items} />}
-        <SiblingWorkbenchSelector visible={showFases} />
         <div className="pulso-main-inner">
           <div
             key={routeMotionKey}
