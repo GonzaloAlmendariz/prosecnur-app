@@ -325,6 +325,8 @@ function ValidacionModeSidebar({
               disabled={disabled}
               onClick={() => onChange(tab.key)}
               className={`pulso-validacion-nav-item${isActive ? " is-active" : ""}`}
+              aria-label={`${tab.label}${tab.desc ? `. ${tab.desc}` : ""}`}
+              title={`${tab.label}${tab.desc ? ` - ${tab.desc}` : ""}`}
             >
               <span className="pulso-validacion-nav-index">{index + 1}</span>
               <span aria-hidden="true" className="pulso-validacion-nav-icon">

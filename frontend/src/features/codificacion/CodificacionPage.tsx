@@ -298,6 +298,8 @@ function CodificacionModeSidebar({
               disabled={disabled}
               onClick={() => onChange(item.key)}
               className={`pulso-codificacion-nav-item${isActive ? " is-active" : ""}`}
+              aria-label={`${item.label}${item.hint ? `. ${item.hint}` : ""}`}
+              title={`${item.label}${item.hint ? ` - ${item.hint}` : ""}`}
             >
               <span className="pulso-codificacion-nav-index">{item.n}</span>
               <span aria-hidden="true" className="pulso-codificacion-nav-icon">
