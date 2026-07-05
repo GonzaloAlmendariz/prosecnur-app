@@ -106,7 +106,24 @@ type Props = {
   /** Callback tras degradar multi-base → single-base. El parent debe
       refrescar el state de sesión y limpiar la referencia al estudio. */
   onDowngraded?: () => Promise<void>;
-  initialStrategy?: "separate" | "integrated" | "independent";
+  initialStrategy?: MultiBaseStrategy;
+};
+
+type MultiBaseStrategy = "separate" | "integrated" | "independent";
+
+const MULTI_BASE_STRATEGY_COPY: Record<MultiBaseStrategy, { label: string; detail: string }> = {
+  separate: {
+    label: "Mantener bases separadas",
+    detail: "formularios y respuestas por base",
+  },
+  integrated: {
+    label: "Unificar bases compatibles",
+    detail: "formulario común y base final",
+  },
+  independent: {
+    label: "Fuentes independientes",
+    detail: "entregables por encuesta",
+  },
 };
 
 type SmCanonicalOption = {
@@ -125,7 +142,7 @@ export function BasesPanel({
   const [error, setError] = useState<string>("");
   const [editingEstudioNombre, setEditingEstudioNombre] = useState(false);
   const [estudioDraft, setEstudioDraft] = useState("");
-  const [strategy, setStrategy] = useState<"separate" | "integrated" | "independent">(initialStrategy ?? "separate");
+  const [strategy, setStrategy] = useState<MultiBaseStrategy>(initialStrategy ?? "separate");
   const [showNewIntegration, setShowNewIntegration] = useState(false);
 
   // Consumir la señal de auto-open una sola vez al montar/recibir true.
@@ -180,6 +197,22 @@ export function BasesPanel({
     // Solo reacciona cuando cambia la integración persistida del estudio.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integratedSignature, estudio.processing_mode]);
+
+  function requestStrategyChange(next: MultiBaseStrategy) {
+    if (next === strategy) return;
+    const currentCopy = MULTI_BASE_STRATEGY_COPY[strategy];
+    const nextCopy = MULTI_BASE_STRATEGY_COPY[next];
+    const ok = window.confirm(
+      `¿Cambiar de modo?\n\n` +
+      `Ahora estás en "${currentCopy.label}" (${currentCopy.detail}). ` +
+      `Vas a abrir "${nextCopy.label}" (${nextCopy.detail}).\n\n` +
+      `No se eliminan archivos ni respuestas; solo cambia la mesa de trabajo y las acciones visibles.`
+    );
+    if (!ok) return;
+    setStrategy(next);
+    if (next !== "integrated") setShowNewIntegration(false);
+    if (next !== "separate") setAdding(false);
+  }
 
   async function handleRemoveBase(nombre: string) {
     if (!window.confirm(
@@ -366,7 +399,7 @@ export function BasesPanel({
           className={strategy === "separate" ? "is-active" : ""}
           role="tab"
           aria-selected={strategy === "separate"}
-          onClick={() => setStrategy("separate")}
+          onClick={() => requestStrategyChange("separate")}
           title="Mantener bases separadas - formulario y respuestas por base"
         >
           <Layers size={15} />
@@ -380,7 +413,7 @@ export function BasesPanel({
           className={strategy === "integrated" ? "is-active" : ""}
           role="tab"
           aria-selected={strategy === "integrated"}
-          onClick={() => setStrategy("integrated")}
+          onClick={() => requestStrategyChange("integrated")}
           title="Unificar bases compatibles - formulario comun y base final"
         >
           <GitMerge size={15} />
@@ -394,7 +427,7 @@ export function BasesPanel({
           className={strategy === "independent" ? "is-active" : ""}
           role="tab"
           aria-selected={strategy === "independent"}
-          onClick={() => setStrategy("independent")}
+          onClick={() => requestStrategyChange("independent")}
           title="Fuentes independientes - entregables por encuesta"
         >
           <Cloud size={15} />
