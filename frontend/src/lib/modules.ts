@@ -219,9 +219,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "procesamiento",
-    title: "Carga, validación y análisis",
-    shortLabel: "Carga",
-    tagline: "Consolida data y produce bases/reportes",
+    title: "Procesamiento",
+    shortLabel: "Procesamiento",
+    tagline: "Carga, valida, codifica, analiza y reporta",
     blurb:
       "Tramo de procesamiento posterior al levantamiento: carga bases recibidas o sincronizadas, normaliza el estudio multibase, valida y limpia, codifica abiertas, prepara analítica y genera gráficos PPT/Word.",
     features: [
