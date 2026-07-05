@@ -933,10 +933,10 @@ export default function CargaPage() {
                 baseReady={allReady}
               />
               {activeCargaTab === "insumos" && (
-                <div className="pulso-carga-source-switch" role="tablist" aria-label="Origen de carga">
+                <div className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs" role="tablist" aria-label="Origen de carga">
                   <button
                     type="button"
-                    className={sourceMode === "files" ? "is-active" : ""}
+                    className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "files" ? " is-active" : ""}`}
                     onClick={() => setSourceMode("files")}
                     role="tab"
                     aria-selected={sourceMode === "files"}
@@ -947,7 +947,7 @@ export default function CargaPage() {
                   </button>
                   <button
                     type="button"
-                    className={sourceMode === "platform" ? "is-active" : ""}
+                    className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "platform" ? " is-active" : ""}`}
                     onClick={() => setSourceMode("platform")}
                     role="tab"
                     aria-selected={sourceMode === "platform"}
@@ -1445,12 +1445,12 @@ function PlatformImportPanel({
   return (
     <section className="pulso-platform-import" aria-label="Carga desde plataforma">
       <div className="pulso-platform-topbar">
-        <div className="pulso-platform-provider-tabs" role="tablist" aria-label="Proveedor">
+        <div className="pulso-platform-provider-tabs pulso-compact-tabs" role="tablist" aria-label="Proveedor">
           {(["surveymonkey", "kobo"] as CargaPlatformProvider[]).map((item) => (
             <button
               key={item}
               type="button"
-              className={provider === item ? "is-active" : ""}
+              className={`pulso-compact-tab${provider === item ? " is-active" : ""}`}
               onClick={() => onProviderChange(item)}
               role="tab"
               aria-selected={provider === item}
@@ -1644,10 +1644,10 @@ function CargaWorkspaceTabs({
   onChange: (tab: CargaWorkspaceTab) => void;
 }) {
   return (
-    <div className="pulso-carga-source-switch pulso-carga-view-tabs" role="tablist" aria-label="Vista de carga">
+    <div className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-view-tabs" role="tablist" aria-label="Vista de carga">
       <button
         type="button"
-        className={`pulso-carga-view-tab${active === "insumos" ? " is-active" : ""}`}
+        className={`pulso-compact-tab pulso-carga-view-tab${active === "insumos" ? " is-active" : ""}`}
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
@@ -1658,7 +1658,7 @@ function CargaWorkspaceTabs({
       </button>
       <button
         type="button"
-        className={`pulso-carga-view-tab${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
+        className={`pulso-compact-tab pulso-carga-view-tab${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
         onClick={() => onChange("base")}
         role="tab"
         aria-selected={active === "base"}
