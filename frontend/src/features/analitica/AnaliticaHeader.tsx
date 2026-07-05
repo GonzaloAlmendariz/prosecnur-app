@@ -91,8 +91,8 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
 
   const activeBases = fuenteActiva === "adaptados" ? detalle?.codificada.bases : detalle?.original.bases;
   const activeFirst = activeBases?.find((b) => b.available) ?? activeBases?.[0];
-  const activeXls = activeFirst?.xlsform?.filename ?? "XLSForm no resuelto";
-  const activeData = activeFirst?.data?.filename ?? "Data no resuelta";
+  const activeXls = activeFirst?.xlsform?.filename ?? "Formulario XLSForm no resuelto";
+  const activeData = activeFirst?.data?.filename ?? "Base de datos no resuelta";
   const activeAvailableCount = activeBases?.filter((b) => b.available).length ?? 0;
   const sourceFilesSummary = activeAvailableCount > 1
     ? `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
@@ -120,7 +120,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
             Datos de trabajo: {usandoAdaptados ? "codificados" : "originales"}
           </strong>{" "}
           <span>{guidance}</span>
-          <div className="pulso-analitica-source-files" title={`XLSForm: ${activeXls} · Data: ${activeData}`}>
+          <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
             {sourceFilesSummary}
           </div>
         </div>
@@ -185,10 +185,10 @@ function SourceButton({
   onSelect: (source: FuentePreferida) => Promise<void>;
 }) {
   const first = bases.find((b) => b.available) ?? bases[0];
-  const xls = first?.xlsform?.filename ?? "XLSForm no resuelto";
-  const data = first?.data?.filename ?? "Data no resuelta";
+  const xls = first?.xlsform?.filename ?? "Formulario XLSForm no resuelto";
+  const data = first?.data?.filename ?? "Base de datos no resuelta";
   const titleAttr = bases.length > 1
-    ? `${title} - ${description}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin XLSForm"} + ${b.data?.filename ?? "sin data"}`).join("\n")}`
+    ? `${title} - ${description}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin formulario XLSForm"} + ${b.data?.filename ?? "sin base de datos"}`).join("\n")}`
     : `${title} - ${description}\n${xls}\n${data}`;
 
   return (

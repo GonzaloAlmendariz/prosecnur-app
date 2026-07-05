@@ -104,7 +104,7 @@ function ArchivosFuenteSection() {
           <FileCode2 size={14} /> Archivos fuente
         </span>
       }
-      subtitle="Descarga directa de la data y el XLSForm de la fuente activa. En Codificada se entrega el output del adaptador, conservando colores y formato."
+      subtitle="Descarga directa de la base de datos y el XLSForm de la fuente activa. En Codificada se entrega la salida del adaptador, conservando colores y formato."
     >
       <div className="analitica-bases-source-grid">
         <SourceDataCard />
@@ -128,14 +128,14 @@ function SourceDataCard() {
           <FileSpreadsheet size={15} />
         </span>
         <div className="analitica-bases-source-copy">
-          <strong>Data</strong>
+          <strong>Base de datos</strong>
           <span>
             Copia el archivo de datos de la fuente activa. Si está codificada, conserva las columnas <code>*_recod</code> y sus colores.
           </span>
         </div>
       </div>
       <GenerateFooter
-        label="Descargar data"
+        label="Descargar base"
         busy={run.busy}
         fileId={run.fileId}
         downloadName={run.filename ?? "data_codificada.xlsx"}
@@ -555,7 +555,7 @@ function UnifiedSiblingsCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <FileSpreadsheet size={14} /> Data unificada entre bases
+          <FileSpreadsheet size={14} /> Base unificada entre bases
         </span>
       }
       subtitle={
@@ -564,8 +564,8 @@ function UnifiedSiblingsCard({
           <code>registro_origen_id</code> y <code>registro_unificado_id</code> al inicio
           para identificar carrera, registro original y fila única global. Si la base viene de SurveyMonkey,
           conserva <code>id_enlace_sm</code> como ID técnico del enlace para doble cruce. La base efectiva incluye
-          respuestas completas con consentimiento válido; casos posteriores al corte o de collector no esperado se
-          conservan con marcas de observación. La descarga estándar omite PII no necesaria; usa <strong>Con metadata</strong> cuando necesites
+          respuestas completas con consentimiento válido; casos posteriores al corte o de recopilador no esperado se
+          conservan con marcas de observación. La descarga estándar omite PII no necesaria; usa <strong>Con metadatos</strong> cuando necesites
           auditar o reenviar la base completa.
           El libro incluye auditoría de <strong>variables comunes</strong> y <strong>variables no comunes</strong>;
           los reportes comparativos deben leerse solo sobre las comunes.
@@ -586,7 +586,7 @@ function UnifiedSiblingsCard({
         >
           Mantiene la independencia de procesamiento: no cambia la base activa, no fusiona estados y no afecta Gráficos.
           Solo prepara una descarga analítica combinada para exploración preliminar en Excel. Cada fila conserva
-          su identificador original, el <code>id_enlace_sm</code> de SurveyMonkey cuando existe, observaciones de corte/collector y un identificador único para la tabla unificada.
+          su identificador original, el <code>id_enlace_sm</code> de SurveyMonkey cuando existe, observaciones de corte/recopilador y un identificador único para la tabla unificada.
           {summary && (
             <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>
               {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} comunes · {summary.n_variables_no_comunes} no comunes
@@ -603,7 +603,7 @@ function UnifiedSiblingsCard({
         >
           <div>
             <GenerateFooter
-              label="Exportar data unificada"
+              label="Exportar base unificada"
               busy={cleanRun.busy}
               fileId={cleanRun.fileId}
               downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
@@ -616,7 +616,7 @@ function UnifiedSiblingsCard({
             title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas."
           >
             <GenerateFooter
-              label="Con metadata"
+              label="Con metadatos"
               busy={metadataRun.busy}
               fileId={metadataRun.fileId}
               downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
