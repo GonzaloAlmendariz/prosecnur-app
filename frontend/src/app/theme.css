@@ -35927,6 +35927,41 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   }
 }
 
+@media (max-width: 1100px) {
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-rail {
+    max-width: calc(100vw - 24px);
+  }
+
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pillbar {
+    width: auto;
+    max-width: 100%;
+  }
+
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill-list {
+    min-width: 0;
+  }
+
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill {
+    min-width: 29px;
+    padding-inline: 5px;
+  }
+
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill.is-active,
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:not(.is-active):is(:hover, :focus-visible) {
+    padding-inline: 8px;
+  }
+
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:not(.is-active):not(:hover):not(:focus-visible) .pulso-phase-pill-label {
+    gap: 0;
+  }
+
+  .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:not(.is-active):not(:hover):not(:focus-visible) .pulso-phase-pill-label > span:not(.pulso-phase-pill-number) {
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+}
+
 /* Processing prerequisite gate: compact, clear blocked states for Codificacion/Analitica. */
 .pulso-codificacion-shell.is-empty .pulso-codificacion-content,
 .pulso-analitica-shell.is-empty .pulso-analitica-content {
