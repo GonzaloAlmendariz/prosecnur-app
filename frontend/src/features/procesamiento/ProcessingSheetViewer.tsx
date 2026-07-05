@@ -246,9 +246,9 @@ export function ProcessingSheetViewer({
         <div className="pulso-processing-sheet-legend" aria-label="Lectura de columnas recodificadas">
           <span className="is-original">
             <i aria-hidden="true" />
-            Originales en gris
+            Variables originales
           </span>
-          <em>Recodificadas por tipo</em>
+          <em>Solo recodificadas usan color</em>
           {(["integer", "sm", "so", "text"] as const).map((kind) => (
             <span key={kind} className={`is-${kind}`}>
               <i aria-hidden="true" />
