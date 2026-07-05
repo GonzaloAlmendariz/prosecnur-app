@@ -16460,10 +16460,30 @@ h1.pulso-page-title {
     color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
+.pulso-analitica-product::before {
+  content: "";
+  position: absolute;
+  inset-inline: 9px;
+  inset-block-end: 3px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleX(0.42);
+  transform-origin: center;
+  transition:
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
 .pulso-analitica-product:hover:not(:disabled):not(.is-active) {
-  border-color: color-mix(in srgb, var(--analitica-border) 50%, var(--pulso-border));
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--pulso-text);
+  border-color: color-mix(in srgb, var(--analitica-border) 58%, #fff 42%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 252, 251, 0.76)),
+    color-mix(in srgb, var(--analitica-soft) 34%, transparent);
+  color: var(--analitica-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 5px 13px color-mix(in srgb, var(--analitica-accent) 10%, transparent);
 }
 .pulso-analitica-product:hover:not(:disabled),
 .pulso-analitica-product:focus-visible,
@@ -16476,6 +16496,12 @@ h1.pulso-page-title {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--analitica-soft) 78%, transparent);
 }
+.pulso-analitica-product:hover:not(:disabled)::before,
+.pulso-analitica-product:focus-visible::before,
+.pulso-analitica-product.is-active::before {
+  opacity: 0.7;
+  transform: scaleX(1);
+}
 .pulso-analitica-product:active:not(:disabled) {
   transform: scale(0.98);
 }
@@ -16487,12 +16513,17 @@ h1.pulso-page-title {
   flex-basis: 154px;
   gap: 7px;
   padding-right: 26px;
-  border-color: color-mix(in srgb, var(--analitica-accent) 34%, var(--pulso-border));
-  background: #fff;
-  color: var(--analitica-accent);
+  border-color: color-mix(in srgb, var(--analitica-accent) 82%, #fff 18%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--analitica-accent) 90%, #ffffff 10%), var(--analitica-accent));
+  color: #fff;
   box-shadow:
-    0 8px 18px color-mix(in srgb, var(--analitica-accent) 12%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--analitica-border) 72%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -7px 11px rgba(0, 0, 0, 0.07),
+    0 7px 15px color-mix(in srgb, var(--analitica-accent) 20%, transparent);
+}
+.pulso-analitica-product.is-active::before {
+  opacity: 0.42;
 }
 .pulso-analitica-product-icon {
   width: 22px;
@@ -16506,8 +16537,9 @@ h1.pulso-page-title {
   color: currentColor;
 }
 .pulso-analitica-product.is-active .pulso-analitica-product-icon {
-  border-color: var(--analitica-border);
-  background: var(--analitica-soft);
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 .pulso-analitica-product-copy {
   min-width: 0;
@@ -16544,6 +16576,9 @@ h1.pulso-page-title {
 .pulso-analitica-product-copy span {
   display: none;
 }
+.pulso-analitica-product.is-active .pulso-analitica-product-copy strong {
+  color: #fff;
+}
 .pulso-analitica-product-done {
   position: absolute;
   top: 6px;
@@ -16572,6 +16607,9 @@ h1.pulso-page-title {
 .pulso-analitica-product.is-active .pulso-analitica-product-done {
   opacity: 1;
   transform: scale(1);
+}
+.pulso-analitica-product.is-active .pulso-analitica-product-done {
+  color: #fff;
 }
 .pulso-analitica-sourcebar {
   width: 100%;
