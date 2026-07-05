@@ -304,12 +304,14 @@ function AnaliticaSidebar({
               aria-label={`${item.label}. ${item.desc}`}
               aria-describedby={tooltip?.key === item.key ? "analitica-rail-tooltip" : undefined}
               disabled={disabled}
-              onClick={() => onChange(item.key)}
+              onClick={() => {
+                setTooltip(null);
+                onChange(item.key);
+              }}
               onMouseEnter={(event) => showTooltip(item, event)}
               onMouseLeave={() => setTooltip(null)}
               onFocus={(event) => showTooltip(item, event)}
               onBlur={() => setTooltip(null)}
-              title={`${item.label} - ${item.desc}`}
               className={`pulso-analitica-nav-item${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
             >
               <span aria-hidden="true" className="pulso-analitica-nav-icon">
