@@ -28,40 +28,18 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <header style={{ marginBottom: 4 }}>
-        <h2
-          style={{
-            margin: 0,
-            fontSize: 22,
-            fontWeight: 800,
-            color: "var(--pulso-text)",
-          }}
-        >
+    <div className="analitica-dimensiones-step-one">
+      <header className="analitica-dimensiones-step-one-head">
+        <h2>
           ¿Cómo quieres armar las dimensiones?
         </h2>
-        <p
-          style={{
-            margin: "6px 0 0 0",
-            fontSize: 13,
-            color: "var(--pulso-text-soft)",
-            lineHeight: 1.5,
-            maxWidth: 720,
-          }}
-        >
+        <p>
           Las <strong>dimensiones</strong> agrupan preguntas evaluativas en bloques
           temáticos y los combinan en índices 0-100. Elige por dónde empezar.
         </p>
       </header>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 16,
-          maxWidth: 820,
-        }}
-      >
+      <div className="analitica-dimensiones-template-grid">
         <PlantillaCard
           index={0}
           icon={FileSpreadsheet}
