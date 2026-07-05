@@ -17782,6 +17782,7 @@ h1.pulso-page-title {
   gap: 9px;
 }
 .pulso-data-review-docbar {
+  flex: 0 0 auto;
   min-width: 0;
   display: grid;
   grid-template-columns: auto minmax(180px, 1fr) minmax(420px, auto);
