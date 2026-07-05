@@ -940,10 +940,10 @@ export default function CargaPage() {
                     onClick={() => setSourceMode("files")}
                     role="tab"
                     aria-selected={sourceMode === "files"}
-                    title="Archivos - carga manual desde XLSForm y respuestas"
+                    title="Carga manual - XLSForm y respuestas desde archivos locales"
                   >
                     <Upload size={14} />
-                    <span className="pulso-carga-tab-label">Archivos</span>
+                    <span className="pulso-carga-tab-label">Manual</span>
                   </button>
                   <button
                     type="button"
@@ -1651,10 +1651,10 @@ function CargaWorkspaceTabs({
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
-        title="Insumos - formulario, respuestas y fuentes"
+        title="Preparar carga - formulario, respuestas y fuentes"
       >
         <Upload size={14} />
-        <span className="pulso-carga-tab-label">Insumos</span>
+        <span className="pulso-carga-tab-label">Preparar</span>
       </button>
       <button
         type="button"
@@ -1665,10 +1665,10 @@ function CargaWorkspaceTabs({
         role="tab"
         aria-selected={active === "base"}
         aria-disabled={!baseReady}
-        title={baseReady ? "Base de carga - revisar respuestas cargadas" : "Base de carga - pendiente hasta cargar formulario y respuestas"}
+        title={baseReady ? "Ver base - revisar respuestas cargadas" : "Ver base - pendiente hasta cargar formulario y respuestas"}
       >
         <Table2 size={14} />
-        <span className="pulso-carga-tab-label">Base de carga</span>
+        <span className="pulso-carga-tab-label">Ver base</span>
         <span className="pulso-carga-view-tab-state" aria-hidden="true" />
       </button>
     </div>
@@ -1895,7 +1895,7 @@ function CargaReadinessBoard({
       </div>
 
       <div className="pulso-carga-entry-strip" aria-label="Modos de entrada">
-        <span><Upload size={13} /> Archivos</span>
+        <span><Upload size={13} /> Carga manual</span>
         <span><CloudDownload size={13} /> Plataforma</span>
         <span><ArrowRightLeft size={13} /> {isMultiBase ? `${bases} base${bases === 1 ? "" : "s"}` : "Una base"}</span>
       </div>
