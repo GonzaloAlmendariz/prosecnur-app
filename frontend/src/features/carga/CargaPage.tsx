@@ -1659,7 +1659,9 @@ function CargaWorkspaceTabs({
       <button
         type="button"
         className={`pulso-compact-tab pulso-carga-view-tab${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
-        onClick={() => onChange("base")}
+        onClick={() => {
+          if (baseReady) onChange("base");
+        }}
         role="tab"
         aria-selected={active === "base"}
         aria-disabled={!baseReady}
