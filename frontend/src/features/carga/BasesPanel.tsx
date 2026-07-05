@@ -443,7 +443,7 @@ export function BasesPanel({
       {strategy === "separate" && (
         <>
       {/* Lista de bases */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="pulso-base-list">
         {bases.map((b) => (
           <div key={b.nombre}>
             <BaseRow
@@ -525,12 +525,12 @@ export function BasesPanel({
       )}
 
       {busy && (
-        <div style={{ marginTop: 10, fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+        <div className="pulso-multibase-study-feedback" aria-live="polite">
           {busy}
         </div>
       )}
       {error && (
-        <div style={{ marginTop: 10 }}>
+        <div className="pulso-multibase-study-error">
           <ErrorBlock label="No se pudo completar" detail={error} />
         </div>
       )}
