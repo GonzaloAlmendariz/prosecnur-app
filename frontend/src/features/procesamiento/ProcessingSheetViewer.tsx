@@ -259,11 +259,11 @@ export function ProcessingSheetViewer({
       ) : !payload && loading ? (
         <div className="pulso-processing-sheet-loading">
           <LoadingBlock label={`Cargando ${title.toLowerCase()}...`} />
-          {loadingSlow && (
-            <small>
-              Preparando una tabla ancha con etiquetas, filtros y columnas recodificadas. Puede tardar unos segundos en proyectos grandes.
-            </small>
-          )}
+          <small>
+            {loadingSlow
+              ? "El proyecto tiene muchas columnas. Seguimos preparando la vista previa sin cambiar la base."
+              : "Preparando las primeras filas, filtros y nombres de columnas."}
+          </small>
         </div>
       ) : (
         <>
@@ -387,11 +387,12 @@ export function ProcessingSheetViewer({
 function columnClass(column: ProcessingSheetColumn, highlightCoding: boolean) {
   const recoded = isRecodedColumn(column);
   return [
+    highlightCoding && !recoded ? "is-original" : "",
     highlightCoding && recoded ? "is-coded" : "",
     highlightCoding && recoded ? `is-${column.type_kind}` : "",
   ].filter(Boolean).join(" ");
 }
 
-function isRecodedColumn(column: ProcessingSheetColumn) {
-  return /(?:^|[/._-])recod$/i.test(column.key);
+export function isRecodedColumn(column: Pick<ProcessingSheetColumn, "key">) {
+  return /(?:^|[/._-])recod(?:$|[/._-])/i.test(column.key);
 }

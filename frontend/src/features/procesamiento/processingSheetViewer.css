@@ -442,6 +442,18 @@
   font-weight: 760;
 }
 
+.pulso-processing-sheet-table .is-original {
+  --sheet-original: #94a3b8;
+}
+
+.pulso-processing-sheet-table thead th.is-original {
+  background:
+    linear-gradient(180deg, #f8fafc, #f1f5f9);
+  box-shadow:
+    inset 1px 0 0 color-mix(in srgb, var(--sheet-original) 24%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--pulso-border) 76%, transparent);
+}
+
 .pulso-processing-sheet-table .is-coded {
   --sheet-kind: var(--module-accent, var(--pulso-primary));
 }
@@ -461,7 +473,16 @@
 }
 
 .pulso-processing-sheet-table tbody td.is-coded {
+  background: color-mix(in srgb, var(--sheet-kind) 7%, #fff 93%);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--sheet-kind) 48%, transparent);
+}
+
+.pulso-processing-sheet-table tbody tr:nth-child(even) td.is-coded {
+  background: color-mix(in srgb, var(--sheet-kind) 8%, #fbfcfe 92%);
+}
+
+.pulso-processing-sheet-table tbody tr:hover td.is-coded {
+  background: color-mix(in srgb, var(--sheet-kind) 15%, #fff 85%);
 }
 
 .pulso-processing-sheet-empty-cell {
