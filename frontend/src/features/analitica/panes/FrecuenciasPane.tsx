@@ -74,21 +74,35 @@ export function FrecuenciasPane() {
   const ordenActual = ordenOptions.find((o) => o.k === frec.orden) ?? ordenOptions[0];
 
   return (
-    <Panel
-      eyebrow="Reporte"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BarChart2 size={16} /> Frecuencias</span>}
-      hint="Tablas univariadas estilo SPSS, una por variable, agrupadas según la estructura del instrumento. Ideal para revisar distribuciones rápidas."
-    >
-      <div className="analitica-report-shell">
-        <div className="analitica-report-overview">
-          <Metric label="Secciones" value={seccionesActivas.length} suffix={seccionesActivas.length === 1 ? "activa" : "activas"} />
-          <Metric label="Variables" value={nVariablesAfectadas} suffix="analizables" />
-          <Metric label="Numéricas" value={numericas.length} suffix="resumen" />
-          <Metric label="Orden" value={ordenActual.label} compact />
+    <Panel className="analitica-frecuencias-panel">
+      <div className="analitica-report-shell analitica-frecuencias-workbench">
+        <div className="analitica-frecuencias-docbar">
+          <span className="analitica-frecuencias-docbar-icon" aria-hidden="true">
+            <BarChart2 size={16} />
+          </span>
+          <div className="analitica-frecuencias-docbar-copy">
+            <span>Producto tabular</span>
+            <strong>Frecuencias</strong>
+            <small>Tablas univariadas estilo SPSS agrupadas por instrumento.</small>
+          </div>
+          <div className="analitica-frecuencias-docbar-stats" aria-label="Estado del reporte de frecuencias">
+            <span>
+              Secciones
+              <strong>{seccionesActivas.length} {seccionesActivas.length === 1 ? "activa" : "activas"}</strong>
+            </span>
+            <span>
+              Variables
+              <strong>{nVariablesAfectadas} analizables</strong>
+            </span>
+            <span>
+              Orden
+              <strong>{ordenActual.label}</strong>
+            </span>
+          </div>
         </div>
 
         <div className="analitica-report-note">
-          <Info size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+          <Info size={14} />
           <div>
             Secciones y exclusiones se controlan en <strong>Definición global</strong>. Aquí solo ajustas cómo se resumen las variables y cómo queda presentada la tabla final.
             {excluidas.length > 0 && (
@@ -103,7 +117,7 @@ export function FrecuenciasPane() {
             Las variables marcadas aquí se muestran con <strong>media, desviación, mínimo, máximo y percentiles</strong> en lugar de una tabla de frecuencias. Útil para edades, ingresos, tiempos de espera, etc.
           </>}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="analitica-frecuencias-picker-stack">
             <NumericasPicker
               numericas={numericas}
               variables={variables}
@@ -114,7 +128,7 @@ export function FrecuenciasPane() {
               <button
                 type="button"
                 onClick={clearNumericas}
-                style={{ alignSelf: "flex-start", fontSize: 11, padding: "3px 8px" }}
+                className="analitica-frecuencias-clear"
                 title="Quitar todas las variables numéricas de este reporte"
               >
                 Quitar numéricas
@@ -127,7 +141,7 @@ export function FrecuenciasPane() {
           title="Presentación"
           subtitle="Cómo se ordenan las respuestas dentro de cada tabla del reporte."
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="analitica-frecuencias-presentation-stack">
             <div className="analitica-segmented" role="group" aria-label="Orden de respuestas">
               {ordenOptions.map((o) => (
                 <button
@@ -137,7 +151,7 @@ export function FrecuenciasPane() {
                   className={frec.orden === o.k ? "is-on" : undefined}
                   title={o.hint}
                 >
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span className="analitica-inline-title">
                     {o.icon}
                     {o.label}
                   </span>
@@ -146,12 +160,11 @@ export function FrecuenciasPane() {
             </div>
 
             <div className="analitica-control-grid">
-              <label className={`analitica-control-card ${frec.mostrar_todo ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
+              <label className={`analitica-control-card ${frec.mostrar_todo ? "is-active" : ""}`}>
                 <input
                   type="checkbox"
                   checked={frec.mostrar_todo}
                   onChange={(e) => setFrec({ mostrar_todo: e.target.checked })}
-                  style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
                 />
                 <span className="analitica-control-icon">
                   {frec.mostrar_todo ? <CheckCircle2 size={15} /> : <Rows3 size={15} />}
@@ -164,12 +177,11 @@ export function FrecuenciasPane() {
                 </span>
               </label>
 
-              <label className={`analitica-control-card ${frec.incluir_secciones ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
+              <label className={`analitica-control-card ${frec.incluir_secciones ? "is-active" : ""}`}>
                 <input
                   type="checkbox"
                   checked={frec.incluir_secciones}
                   onChange={(e) => setFrec({ incluir_secciones: e.target.checked })}
-                  style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
                 />
                 <span className="analitica-control-icon">
                   {frec.incluir_secciones ? <CheckCircle2 size={15} /> : <Rows3 size={15} />}
@@ -208,28 +220,6 @@ export function FrecuenciasPane() {
         />
       </div>
     </Panel>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  suffix,
-  compact,
-}: {
-  label: string;
-  value: number | string;
-  suffix?: string;
-  compact?: boolean;
-}) {
-  return (
-    <div className="analitica-stat">
-      <span className="analitica-stat-label">{label}</span>
-      <span className="analitica-stat-value" style={compact ? { fontSize: 13, paddingTop: 2 } : undefined}>
-        {value}
-        {suffix && <small>{suffix}</small>}
-      </span>
-    </div>
   );
 }
 
@@ -291,7 +281,6 @@ function NumericasPicker({
                   onClick={() => onRemove(v)}
                   className="pulso-icon"
                   aria-label={`Quitar ${v}`}
-                  style={{ minWidth: 16, minHeight: 16 }}
                 >
                   <X size={10} />
                 </button>
