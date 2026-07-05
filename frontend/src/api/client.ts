@@ -3580,6 +3580,8 @@ export type ProcessingSheetColumn = {
   type_base: string;
   type_kind: ProcessingSheetTypeKind;
   coded: boolean;
+  is_recoded?: boolean;
+  raw_parent?: string | null;
   dummy_parent?: string | null;
   dummy_code?: string | null;
 };
