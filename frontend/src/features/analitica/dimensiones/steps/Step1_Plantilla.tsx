@@ -20,17 +20,17 @@ import { useDimensionesWizardStore } from "../store";
 const FLUJO_GUIA = [
   {
     icon: ListChecks,
-    title: "Selecciona preguntas evaluativas",
-    copy: "Confirma qué escalas del instrumento entran al cálculo.",
+    title: "Elige escalas",
+    copy: "Marca qué listas evaluativas entran al cálculo.",
   },
   {
     icon: Network,
-    title: "Agrupa por temas",
+    title: "Forma bloques",
     copy: "Ordena las preguntas en bloques que reflejen el diseño del estudio.",
   },
   {
     icon: Gauge,
-    title: "Genera puntajes comparables",
+    title: "Genera variables 0-100",
     copy: "Crea variables 0-100 listas para Cruces, Gráficos y Dashboard.",
   },
 ];
@@ -49,11 +49,11 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
     <div className="analitica-dimensiones-step-one">
       <header className="analitica-dimensiones-step-one-head">
         <h2>
-          Elige el punto de partida
+          Elige cómo construir los puntajes
         </h2>
         <p>
-          Las dimensiones convierten preguntas evaluativas en puntajes 0-100.
-          Puedes partir de una estructura ya acordada o crear una nueva con ayuda del asistente.
+          Usa una plantilla ya acordada o deja que Prosecnur detecte preguntas evaluativas del instrumento.
+          En ambos casos revisarás los bloques antes de generar.
         </p>
       </header>
 
@@ -66,14 +66,14 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
             iconBg="#f5f3ff"
             iconFg="#7c3aed"
             iconBorder="#ddd6fe"
-            title="Aplicar plantilla de dimensiones"
-            blurb="Para estudios con una estructura ya acordada. Prosecnur la compara con el instrumento activo antes de generar puntajes."
+            title="Usar una plantilla acordada"
+            blurb="Para estudios con bloques o índices ya definidos. Prosecnur cruza la plantilla con este instrumento antes de generar."
             highlights={[
-              "Revisa qué preguntas coinciden",
-              "Marca lo que no aplica a este estudio",
+              "Confirma preguntas que sí existen",
+              "Detecta faltantes antes de calcular",
               "Conserva bloques e índices acordados",
             ]}
-            ctaLabel="Elegir plantilla .json"
+            ctaLabel="Cargar plantilla"
             onClick={() => setImportOpen(true)}
           />
           <PlantillaCard
@@ -83,14 +83,14 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
             iconBg="#ecfdf5"
             iconFg="#059669"
             iconBorder="#a7f3d0"
-            title="Crear desde el instrumento"
-            blurb="Para estudios sin plantilla previa. El asistente detecta escalas, sugiere bloques desde el XLSForm y deja que confirmes la organización final."
+            title="Construir desde preguntas"
+            blurb="Para armar dimensiones nuevas. El asistente detecta escalas del XLSForm y te guía hasta crear los puntajes."
             highlights={[
-              "Elige las preguntas evaluativas",
-              "Agrupa variables por tema",
-              "Genera puntajes listos para analizar",
+              "Selecciona escalas evaluativas",
+              "Agrupa preguntas por tema",
+              "Genera puntajes 0-100",
             ]}
-            ctaLabel="Empezar desde preguntas"
+            ctaLabel="Empezar con el instrumento"
             onClick={elegirDesdeCero}
           />
         </div>
