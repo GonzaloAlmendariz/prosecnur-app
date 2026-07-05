@@ -19329,6 +19329,7 @@ h1.pulso-page-title {
 .analitica-panel-field select,
 .analitica-panel-field input,
 .analitica-panel-table input {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
   min-height: 32px;
@@ -19479,6 +19480,12 @@ h1.pulso-page-title {
   font-size: 10px;
   font-weight: 780;
   text-transform: uppercase;
+}
+.analitica-panel-table th:nth-child(1),
+.analitica-panel-table td:nth-child(1),
+.analitica-panel-table th:nth-child(3),
+.analitica-panel-table td:nth-child(3) {
+  min-width: 170px;
 }
 .analitica-panel-table tr:last-child td {
   border-bottom: none;
@@ -21635,8 +21642,18 @@ h1.pulso-page-title {
   gap: 5px;
 }
 
+.pulso-main--processing .analitica-panel-docbar .analitica-report-overview--panel {
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-main--processing .analitica-panel-docbar .analitica-stat,
 .pulso-main--processing .analitica-ficha-docbar .analitica-stat {
   min-height: 26px;
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -21644,6 +21661,7 @@ h1.pulso-page-title {
   border-radius: 999px;
 }
 
+.pulso-main--processing .analitica-panel-docbar .analitica-stat-label,
 .pulso-main--processing .analitica-ficha-docbar .analitica-stat-label {
   margin: 0;
   font-size: 8.8px;
@@ -21651,9 +21669,16 @@ h1.pulso-page-title {
   white-space: nowrap;
 }
 
+.pulso-main--processing .analitica-panel-docbar .analitica-stat-value,
 .pulso-main--processing .analitica-ficha-docbar .analitica-stat-value {
+  min-width: 0;
   font-size: 11px;
   line-height: 1;
+}
+
+.pulso-main--processing .analitica-panel-docbar .analitica-stat-value small,
+.pulso-main--processing .analitica-ficha-docbar .analitica-stat-value small {
+  max-width: 76px;
 }
 
 .pulso-main--processing .analitica-report-shell {
@@ -21688,10 +21713,15 @@ h1.pulso-page-title {
     .analitica-frecuencias-docbar-stats,
     .analitica-cruces-docbar-stats,
     .analitica-dimensiones-docbar-stats,
+    .analitica-report-overview--panel,
     .analitica-report-overview--ficha
   ) {
     grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+
+  .pulso-main--processing .analitica-panel-docbar .analitica-report-overview--panel {
+    display: none;
   }
 }
 .analitica-ficha-loading {
