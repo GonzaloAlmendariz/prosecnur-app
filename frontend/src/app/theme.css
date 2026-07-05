@@ -8700,13 +8700,12 @@ h1.pulso-page-title {
 
 .pulso-carga-readiness {
   display: grid;
-  grid-template-columns: minmax(250px, 0.82fr) minmax(0, 1.18fr);
-  grid-template-areas:
-    "main cards"
-    "entry cards";
+  grid-template-columns: minmax(270px, 0.88fr) minmax(360px, 1.18fr) auto;
+  grid-template-areas: "main cards entry";
+  align-items: center;
   gap: 12px;
-  min-height: clamp(188px, 25vh, 256px);
-  padding: 14px;
+  min-height: 0;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border, var(--pulso-primary-border)) 58%, var(--pulso-border));
   border-radius: 12px;
   background:
@@ -8719,9 +8718,9 @@ h1.pulso-page-title {
 .pulso-carga-readiness-main {
   grid-area: main;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr);
-  align-content: start;
-  gap: 11px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
 }
 
 .pulso-carga-readiness-icon,
@@ -8735,9 +8734,9 @@ h1.pulso-page-title {
 }
 
 .pulso-carga-readiness-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   box-shadow: 0 8px 16px color-mix(in srgb, var(--pulso-module-processing, var(--pulso-primary)) 10%, transparent);
 }
 
@@ -8755,35 +8754,40 @@ h1.pulso-page-title {
 .pulso-carga-readiness-main strong {
   display: block;
   color: var(--pulso-text);
-  font-size: clamp(17px, 1.3vw, 21px);
+  font-size: clamp(15px, 1.1vw, 18px);
   font-weight: 780;
-  line-height: 1.08;
+  line-height: 1.14;
 }
 
 .pulso-carga-readiness-main p {
   max-width: 42ch;
-  margin: 7px 0 0;
+  margin: 4px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.42;
+  font-size: 11.5px;
+  line-height: 1.35;
 }
 
 .pulso-carga-readiness-grid {
   grid-area: cards;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   align-self: stretch;
 }
 
 .pulso-carga-readiness-card {
   min-width: 0;
-  min-height: 118px;
+  min-height: 62px;
   display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    "icon title"
+    "icon meta";
   align-content: center;
-  justify-items: start;
-  gap: 7px;
-  padding: 12px;
+  align-items: center;
+  justify-items: stretch;
+  gap: 2px 8px;
+  padding: 9px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.78);
@@ -8791,6 +8795,7 @@ h1.pulso-page-title {
 }
 
 .pulso-carga-readiness-card > span {
+  grid-area: icon;
   width: 30px;
   height: 30px;
   border-radius: 9px;
@@ -8798,17 +8803,27 @@ h1.pulso-page-title {
 }
 
 .pulso-carga-readiness-card strong {
+  grid-area: title;
+  min-width: 0;
+  overflow: hidden;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 780;
-  line-height: 1.14;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-carga-readiness-card small {
+  grid-area: meta;
+  min-width: 0;
+  overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 650;
-  line-height: 1.25;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-carga-readiness-card.is-ready {
@@ -8825,10 +8840,12 @@ h1.pulso-page-title {
 
 .pulso-carga-entry-strip {
   grid-area: entry;
-  align-self: end;
+  align-self: center;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 7px;
+  max-width: 288px;
 }
 
 .pulso-carga-entry-strip span {
@@ -8847,19 +8864,21 @@ h1.pulso-page-title {
 
 .pulso-carga-study-loading {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) minmax(150px, 0.24fr);
+  grid-template-columns: 32px minmax(0, 1fr) minmax(250px, auto);
   align-items: center;
-  gap: 12px;
-  min-height: clamp(72px, 8.5vh, 92px);
-  padding: 11px 13px;
+  gap: 10px;
+  min-height: 62px;
+  padding: 9px 11px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border, var(--pulso-primary-border)) 44%, var(--pulso-border));
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.82);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 252, 251, 0.78)),
+    color-mix(in srgb, var(--pulso-module-processing-soft, var(--pulso-primary-soft)) 16%, #ffffff);
 }
 
 .pulso-carga-study-loading > span {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8885,27 +8904,28 @@ h1.pulso-page-title {
 }
 
 .pulso-carga-study-loading-map {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 5px;
   min-width: 0;
   margin-top: 0;
 }
 
 .pulso-carga-study-loading-map span {
   min-width: 0;
-  min-height: 42px;
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 5px 6px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-items: start;
+  gap: 4px;
+  padding: 4px 7px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border, var(--pulso-primary-border)) 48%, var(--pulso-border));
-  border-radius: 9px;
+  border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 250, 0.72)),
     color-mix(in srgb, var(--pulso-module-processing-soft, var(--pulso-primary-soft)) 34%, #ffffff);
-  text-align: center;
+  text-align: left;
 }
 
 .pulso-carga-study-loading-map svg {
@@ -8917,7 +8937,7 @@ h1.pulso-page-title {
   color: var(--pulso-text);
   font-size: 10.5px;
   font-weight: 820;
-  line-height: 1.05;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -8927,7 +8947,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   font-size: 8.5px;
   font-weight: 760;
-  line-height: 1.05;
+  line-height: 1;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -8940,6 +8960,8 @@ h1.pulso-page-title {
 
   .pulso-carga-study-loading-map {
     grid-column: 1 / -1;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }
 
@@ -8954,6 +8976,11 @@ h1.pulso-page-title {
 
   .pulso-carga-readiness-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pulso-carga-entry-strip {
+    justify-content: flex-start;
+    max-width: none;
   }
 }
 
