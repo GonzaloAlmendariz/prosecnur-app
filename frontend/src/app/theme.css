@@ -7976,7 +7976,7 @@ h1.pulso-page-title {
   opacity: 1;
   transform: scale(1.08);
 }
-.pulso-carga-source-switch button:hover:not(.is-active):not(:disabled) {
+.pulso-carga-source-switch button:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]) {
   border-color: color-mix(in srgb, var(--module-accent-border, var(--pulso-module-processing-border)) 54%, #fff);
   background: rgba(255, 255, 255, 0.82);
   color: var(--module-accent, var(--pulso-module-processing));
@@ -14826,6 +14826,12 @@ h1.pulso-page-title {
   will-change: flex-basis, transform;
 }
 
+.pulso-compact-tabs .pulso-compact-tab svg {
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) ease;
+}
+
 .pulso-compact-tabs .pulso-compact-tab::after {
   content: "";
   position: absolute;
@@ -14842,7 +14848,7 @@ h1.pulso-page-title {
     transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-compact-tabs .pulso-compact-tab:hover:not(.is-active):not(:disabled) {
+.pulso-compact-tabs .pulso-compact-tab:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]) {
   border-color: color-mix(in srgb, var(--compact-tab-border) 58%, #fff 42%);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 252, 251, 0.76)),
@@ -14859,6 +14865,12 @@ h1.pulso-page-title {
   flex-basis: auto;
   gap: 6px;
   justify-content: flex-start;
+}
+
+.pulso-compact-tabs .pulso-compact-tab:hover:not(:disabled) svg,
+.pulso-compact-tabs .pulso-compact-tab:focus-visible svg,
+.pulso-compact-tabs .pulso-compact-tab.is-active svg {
+  transform: scale(1.03);
 }
 
 .pulso-compact-tabs .pulso-compact-tab:hover:not(:disabled)::after,
@@ -14881,6 +14893,26 @@ h1.pulso-page-title {
 
 .pulso-compact-tabs .pulso-compact-tab.is-active::after {
   opacity: 0.44;
+}
+
+.pulso-compact-tabs .pulso-compact-tab[aria-disabled="true"] {
+  cursor: not-allowed;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-compact-tabs .pulso-compact-tab[aria-disabled="true"]:hover:not(.is-active) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  box-shadow: none;
+}
+
+.pulso-compact-tabs .pulso-compact-tab[aria-disabled="true"]::after {
+  opacity: 0.16;
+}
+
+.pulso-compact-tabs .pulso-compact-tab[aria-disabled="true"] svg {
+  opacity: 0.68;
 }
 
 .pulso-compact-tabs .pulso-compact-tab:is(:hover, :focus-visible, .is-active) :where(.pulso-carga-tab-label, .pulso-platform-provider-label) {
