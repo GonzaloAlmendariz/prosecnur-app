@@ -5612,6 +5612,142 @@ a { color: var(--pulso-primary); }
     grid-column: auto;
   }
 }
+.pulso-instrumento-workbench {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pulso-instrumento-step {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--pulso-shadow-low);
+}
+.pulso-instrumento-step.is-setup {
+  min-height: 232px;
+  border-color: color-mix(in srgb, var(--pulso-module-processing-border) 48%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 252, 250, 0.82)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 18%, var(--pulso-surface));
+}
+.pulso-instrumento-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.pulso-instrumento-setup-card {
+  min-width: 0;
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 9px;
+  row-gap: 3px;
+  align-items: start;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+}
+.pulso-instrumento-setup-card span {
+  grid-row: 1 / span 2;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 820;
+}
+.pulso-instrumento-setup-card strong,
+.pulso-instrumento-setup-card small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-instrumento-setup-card strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 820;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.pulso-instrumento-setup-card small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.pulso-instrumento-setup-card.is-active {
+  border-color: var(--pulso-module-processing-border);
+  background:
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-module-processing-soft) 28%, #fff)),
+    var(--pulso-surface);
+  box-shadow: inset 3px 0 0 var(--pulso-module-processing);
+}
+.pulso-instrumento-setup-card.is-active span {
+  border-color: var(--pulso-module-processing);
+  background: var(--pulso-module-processing);
+  color: #fff;
+}
+.pulso-instrumento-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pulso-instrumento-action {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 13px;
+  font-size: 12px;
+}
+.pulso-instrumento-file-action {
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--pulso-text);
+  cursor: pointer;
+}
+.pulso-instrumento-file-action.is-busy {
+  cursor: wait;
+}
+.pulso-instrumento-export-note {
+  width: max-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 8px;
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 12px;
+}
+
+@media (max-width: 1120px) {
+  .pulso-instrumento-setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pulso-instrumento-step.is-setup {
+    min-height: 0;
+  }
+}
+
 .pulso-validacion-explorar-layout {
   display: grid;
   grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
