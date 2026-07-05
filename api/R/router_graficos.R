@@ -1227,6 +1227,236 @@
   }) |> Filter(f = Negate(is.null))
 }
 
+.graficos_preview_bool_option <- function(parsed, name, default) {
+  value <- parsed[[name]] %||% default
+  if (!is.logical(value) || length(value) != 1L) {
+    stop(sprintf("%s debe ser booleano.", name), call. = FALSE)
+  }
+  value
+}
+
+.graficos_internal_template_path <- function() {
+  configured <- getOption("prosecnur.template_pptx", NA_character_)
+  candidates <- c(
+    if (!is.null(configured) && length(configured) && !is.na(configured) && nzchar(configured)) configured else "",
+    system.file("plantillas/plantilla_16_9.pptx", package = "prosecnurapp"),
+    system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur"),
+    {
+      repo_root <- Sys.getenv("PULSO_REPO_ROOT", unset = "")
+      if (nzchar(repo_root)) file.path(repo_root, "api", "inst", "plantillas", "plantilla_16_9.pptx") else ""
+    },
+    file.path(getwd(), "api", "inst", "plantillas", "plantilla_16_9.pptx"),
+    file.path(getwd(), "inst", "plantillas", "plantilla_16_9.pptx")
+  )
+  candidates <- unique(candidates[nzchar(candidates)])
+  hit <- candidates[file.exists(candidates)]
+  if (length(hit)) hit[[1]] else ""
+}
+
+.graficos_slide_contract_key <- function(tipo) {
+  switch(
+    as.character(tipo %||% "")[1],
+    p_slide_portada = "title_slide",
+    p_slide_indice = "indice",
+    p_slide_seccion = "section",
+    p_slide_objetivo_icono = "objetivo_icono",
+    p_slide_texto = "text_slide",
+    p_slide_tabla_tecnica = "technical_table",
+    p_slide_1_grafico = "slide_1",
+    p_slide_2_graficos = "slide_2",
+    p_slide_1_grafico_narrativo = "slide_1_narrativo",
+    p_slide_2_graficos_narrativo = "slide_2_narrativo",
+    p_slide_grafico_texto_derecha = "text_r",
+    p_slide_grafico_texto_izquierda = "text_l",
+    p_slide_2_graficos_texto_derecha = "text_r2",
+    p_slide_2_graficos_texto_izquierda = "text_l2",
+    p_slide_4_graficos = "paneles_4",
+    p_slide_2_graficos_poblacion = "poblacion_2",
+    p_slide_4_graficos_poblacion = "poblacion_4",
+    p_slide_5_graficos_poblacion = "poblacion_5",
+    p_slide_6_graficos_poblacion = "poblacion_6",
+    ""
+  )
+}
+
+.graficos_payload_key_for_slot <- function(contract_key, slot_name) {
+  maps <- list(
+    slide_1 = list(plot = "grafico", right = "pie"),
+    slide_1_narrativo = list(plot = "grafico", footer = "pie"),
+    slide_2 = list(left = "izquierda", right = "derecha", right_text = "pie"),
+    slide_2_narrativo = list(left = "izquierda", right = "derecha", footer = "pie"),
+    paneles_4 = list(
+      up_left = "superior_izquierda",
+      up_right = "superior_derecha",
+      bottom_left = "inferior_izquierda",
+      bottom_right = "inferior_derecha",
+      footer = "pie"
+    ),
+    poblacion_4 = list(
+      up_left = "superior_izquierda",
+      up_right = "superior_derecha",
+      bottom_left = "inferior_izquierda",
+      bottom_right = "inferior_derecha"
+    ),
+    poblacion_5 = list(
+      pic1 = "grafico_superior_2",
+      pic2 = "grafico_superior_1",
+      pic3 = "grafico_superior_3",
+      pic4 = "grafico_inferior_2",
+      pic5 = "grafico_inferior_1",
+      footer = "pie"
+    ),
+    poblacion_6 = list(
+      pic1 = "grafico_superior_2",
+      pic2 = "grafico_superior_1",
+      pic3 = "grafico_superior_3",
+      pic4 = "grafico_inferior_3",
+      pic5 = "grafico_inferior_1",
+      pic6 = "grafico_inferior_2",
+      footer = "pie"
+    ),
+    text_r = list(plot = "grafico", footer = "pie"),
+    text_l = list(plot = "grafico", footer = "pie"),
+    text_r2 = list(plot1 = "grafico_1", plot2 = "grafico_2", footer = "pie"),
+    text_l2 = list(plot1 = "grafico_1", plot2 = "grafico_2", footer = "pie"),
+    objetivo_icono = list(icon = "icono")
+  )
+  map <- maps[[contract_key]] %||% list()
+  as.character(map[[slot_name]] %||% slot_name)[1]
+}
+
+.graficos_placeholder_role <- function(slot_name, spec) {
+  if (!is.null(spec$type) && as.character(spec$type)[1] %in% c("pic")) return("chart")
+  if (
+    slot_name %in% c("plot", "plot1", "plot2", "left", "right", "up_left", "up_right", "bottom_left", "bottom_right") ||
+      grepl("^pic[0-9]+$", slot_name)
+  ) return("chart")
+  if (slot_name %in% c("title", "subtitle", "date", "subtexto", "text")) return("text")
+  if (slot_name %in% c("base", "footer", "right_text", "right")) return("note")
+  if (slot_name %in% c("icon")) return("icon")
+  "shape"
+}
+
+.graficos_rect_from_loc <- function(loc, slide_size) {
+  list(
+    x = max(0, min(1, as.numeric(loc$left %||% 0) / slide_size$width)),
+    y = max(0, min(1, as.numeric(loc$top %||% 0) / slide_size$height)),
+    width = max(0, min(1, as.numeric(loc$width %||% 0) / slide_size$width)),
+    height = max(0, min(1, as.numeric(loc$height %||% 0) / slide_size$height))
+  )
+}
+
+.graficos_rect_from_props <- function(props, slide_size) {
+  list(
+    x = max(0, min(1, as.numeric(props$offx[[1]]) / slide_size$width)),
+    y = max(0, min(1, as.numeric(props$offy[[1]]) / slide_size$height)),
+    width = max(0, min(1, as.numeric(props$cx[[1]]) / slide_size$width)),
+    height = max(0, min(1, as.numeric(props$cy[[1]]) / slide_size$height))
+  )
+}
+
+.graficos_select_placeholder_props <- function(props, spec) {
+  if (!is.data.frame(props) || !nrow(props) || is.null(spec$type)) return(NULL)
+
+  label <- spec$ph_label %||% NULL
+  if (!is.null(label) && nzchar(label) && "ph_label" %in% names(props)) {
+    by_label <- props[props$ph_label %in% label, , drop = FALSE]
+    if (nrow(by_label)) return(by_label[1, , drop = FALSE])
+  }
+
+  by_type <- props[props$type %in% as.character(spec$type)[1], , drop = FALSE]
+  if (!nrow(by_type)) return(NULL)
+
+  type_idx <- spec$type_idx %||% NULL
+  if (!is.null(type_idx) && "type_idx" %in% names(by_type)) {
+    type_idx <- suppressWarnings(as.integer(type_idx)[1])
+    by_idx <- by_type[by_type$type_idx == type_idx, , drop = FALSE]
+    if (nrow(by_idx)) return(by_idx[1, , drop = FALSE])
+  }
+
+  by_type[1, , drop = FALSE]
+}
+
+.graficos_slide_layout_preview <- function(tipo) {
+  tipo <- as.character(tipo %||% "")[1]
+  fallback <- function(contract_key = "", reason = "missing_geometry") {
+    list(
+      ok = TRUE,
+      tipo = tipo,
+      contract = contract_key,
+      layout = NA,
+      aspectRatio = 16 / 9,
+      source = "reference_local",
+      reason = reason,
+      placeholders = list()
+    )
+  }
+  if (!nzchar(tipo)) return(fallback(reason = "missing_tipo"))
+
+  contract_key <- .graficos_slide_contract_key(tipo)
+  if (!nzchar(contract_key)) return(fallback(reason = "unknown_tipo"))
+  contract <- .PPT_CONTRACT[[contract_key]] %||% NULL
+  if (is.null(contract) || !is.list(contract)) return(fallback(contract_key, "missing_contract"))
+
+  template_path <- .graficos_internal_template_path()
+  if (!nzchar(template_path)) return(fallback(contract_key, "missing_template"))
+
+  doc <- tryCatch(officer::read_pptx(path = template_path), error = function(e) NULL)
+  if (is.null(doc)) return(fallback(contract_key, "template_unreadable"))
+
+  slide_size <- officer::slide_size(doc)
+  layout_info <- officer::layout_summary(doc)
+  layout_name <- as.character(contract$layout %||% "")[1]
+  if (!nzchar(layout_name) || !(layout_name %in% layout_info$layout)) {
+    return(fallback(contract_key, "missing_layout"))
+  }
+  master <- layout_info$master[match(layout_name, layout_info$layout)]
+  props <- tryCatch(
+    officer::layout_properties(doc, layout = layout_name, master = master),
+    error = function(e) data.frame()
+  )
+
+  slots <- contract$slots %||% list()
+  placeholders <- list()
+  if (is.list(slots) && length(slots)) {
+    for (slot_name in names(slots)) {
+      spec <- slots[[slot_name]]
+      if (!is.list(spec)) next
+
+      rect <- NULL
+      if (!is.null(spec$loc) && is.list(spec$loc)) {
+        rect <- .graficos_rect_from_loc(spec$loc, slide_size)
+      } else {
+        hit <- .graficos_select_placeholder_props(props, spec)
+        if (!is.null(hit)) rect <- .graficos_rect_from_props(hit, slide_size)
+      }
+      if (is.null(rect)) next
+
+      payload_key <- .graficos_payload_key_for_slot(contract_key, slot_name)
+      placeholders[[length(placeholders) + 1L]] <- list(
+        key = slot_name,
+        payload_key = payload_key,
+        label = payload_key,
+        role = .graficos_placeholder_role(slot_name, spec),
+        type = as.character(spec$type %||% "")[1],
+        type_idx = spec$type_idx %||% NA,
+        rect = rect,
+        hidden = FALSE
+      )
+    }
+  }
+
+  list(
+    ok = TRUE,
+    tipo = tipo,
+    contract = contract_key,
+    layout = layout_name,
+    aspectRatio = slide_size$width / slide_size$height,
+    source = "template",
+    placeholders = placeholders
+  )
+}
+
 .first_available_cmd <- function(candidates) {
   hits <- Sys.which(candidates)
   hits <- unname(hits[nzchar(hits)])
@@ -1854,6 +2084,10 @@ mount_graficos <- function(pr) {
       # paletas y overrides al plan actual.
       .ppt_style_profiles_payload()
     })) |>
+    plumber::pr_get("/api/graficos/slide-layout-preview", wrap_endpoint(function(req, res, tipo = "") {
+      tipo <- as.character((req$argsQuery$tipo %||% tipo %||% "")[1])
+      .graficos_slide_layout_preview(tipo)
+    })) |>
     plumber::pr_get("/api/graficos/preview-renderer", wrap_endpoint(function(req, res) {
       c(list(ok = TRUE), .preview_renderer_status())
     })) |>
@@ -2122,10 +2356,14 @@ mount_graficos <- function(pr) {
       if (!preview_quality %in% c("quick", "normal")) {
         stop_api(400, "E_BAD_PREVIEW_QUALITY", "preview_quality debe ser 'quick' o 'normal'.")
       }
-      include_images <- parsed$include_images %||% TRUE
-      if (!is.logical(include_images) || length(include_images) != 1L) {
-        stop_api(400, "E_BAD_INCLUDE_IMAGES", "include_images debe ser booleano.")
-      }
+      include_images <- tryCatch(
+        .graficos_preview_bool_option(parsed, "include_images", TRUE),
+        error = function(e) stop_api(400, "E_BAD_INCLUDE_IMAGES", conditionMessage(e))
+      )
+      render_slide_preview <- tryCatch(
+        .graficos_preview_bool_option(parsed, "render_slide_preview", FALSE),
+        error = function(e) stop_api(400, "E_BAD_RENDER_SLIDE_PREVIEW", conditionMessage(e))
+      )
 
       # Validación mínima: tiene tipo y payload.
       tipo <- as.character(slide$tipo %||% "")
@@ -2154,7 +2392,8 @@ mount_graficos <- function(pr) {
           algo = "xxhash64"
         ),
         preview_quality = preview_quality,
-        include_images = include_images
+        include_images = include_images,
+        render_slide_preview = render_slide_preview
       ), algo = "xxhash64")
       preview_cache <- s$graficos_preview_cache %||% list()
       if (!is.list(preview_cache)) preview_cache <- list()
@@ -2184,7 +2423,7 @@ mount_graficos <- function(pr) {
             size = cached$size,
             type = "pptx",
             images = if (include_images) cached$images %||% list() else list(),
-            slide_preview = cached$slide_preview %||% NA
+            slide_preview = if (isTRUE(render_slide_preview)) cached$slide_preview %||% NA else NA
           ))
         }
       }
@@ -2299,11 +2538,6 @@ mount_graficos <- function(pr) {
                  sprintf("No se pudo generar el preview: %s", .graficos_base_error(sid, conditionMessage(e))))
       })
 
-      # Si no hay renderer headless disponible, devolvemos el .pptx y
-      # mantenemos slide_preview en NULL para que el front-end ofrezca
-      # descarga de fallback sin romper flujo.
-      renderer_status <- .preview_renderer_status()
-
       # Extraemos las imágenes PNG embebidas en el .pptx para devolverlas
       # inline al frontend. Los graficadores de prosecnur con
       # `usar_canvas=TRUE` (invariante global) renderizan cada slot como
@@ -2316,11 +2550,16 @@ mount_graficos <- function(pr) {
       # slots, N PNGs. El frontend los puede mostrar lado a lado. Los
       # layouts puros (p_slide_portada, p_slide_indice) devuelven 0.
       images <- if (isTRUE(include_images)) .extract_pptx_images(out_path) else list()
-      slide_preview <- if (isTRUE(renderer_status$available)) {
-        .render_pptx_slide_preview(
-          out_path,
-          preview_quality = preview_quality
-        )
+      slide_preview <- if (isTRUE(render_slide_preview)) {
+        renderer_status <- .preview_renderer_status()
+        if (isTRUE(renderer_status$available)) {
+          .render_pptx_slide_preview(
+            out_path,
+            preview_quality = preview_quality
+          )
+        } else {
+          NULL
+        }
       } else {
         NULL
       }

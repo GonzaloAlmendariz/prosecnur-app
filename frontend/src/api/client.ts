@@ -10348,6 +10348,7 @@ export type SlideRenderedPreview = {
 export type PreviewSlideOptions = {
   preview_quality?: "quick" | "normal";
   include_images?: boolean;
+  render_slide_preview?: boolean;
 };
 
 export type PreviewSlideResponse = {
@@ -10376,6 +10377,33 @@ export type GraficosPreviewRendererStatus = {
   }>;
 };
 
+export type GraficosSlideLayoutPlaceholder = {
+  key: string;
+  payload_key?: string | null;
+  label?: string | null;
+  role?: "chart" | "text" | "note" | "icon" | "shape" | string;
+  type?: string | null;
+  type_idx?: number | null;
+  hidden?: boolean;
+  rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+};
+
+export type GraficosSlideLayoutPreview = {
+  ok: true;
+  tipo: string;
+  contract?: string | null;
+  layout?: string | null;
+  aspectRatio: number;
+  source?: "template" | "reference_local" | string;
+  reason?: string | null;
+  placeholders: GraficosSlideLayoutPlaceholder[];
+};
+
 export async function apiGraficosPreviewSlide(
   slide: Slide,
   config?: unknown,
@@ -10393,6 +10421,14 @@ export async function apiGraficosPreviewSlide(
 export async function apiGraficosPreviewRenderer() {
   return handle<GraficosPreviewRendererStatus>(
     await apiFetch("/api/graficos/preview-renderer", {
+      headers: headers(),
+    })
+  );
+}
+
+export async function apiGraficosSlideLayoutPreview(tipo: string) {
+  return handle<GraficosSlideLayoutPreview>(
+    await apiFetch(`/api/graficos/slide-layout-preview?tipo=${encodeURIComponent(tipo)}`, {
       headers: headers(),
     })
   );
