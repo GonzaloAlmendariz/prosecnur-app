@@ -14407,11 +14407,11 @@ h1.pulso-page-title {
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 250, 0.92)),
     var(--pulso-surface);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 10px 26px rgba(15, 23, 42, 0.05);
-  padding: 14px;
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 8px 22px rgba(15, 23, 42, 0.045);
+  padding: 12px;
   display: grid;
-  gap: 12px;
+  gap: 9px;
 }
 
 .pulso-kobo-detected {
@@ -14522,28 +14522,39 @@ h1.pulso-page-title {
 }
 .pulso-platform-topbar {
   justify-content: space-between;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--platform-border) 42%, var(--pulso-border));
-  border-radius: 10px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--platform-border) 50%, var(--pulso-material-border));
+  border-radius: var(--pulso-radius-card);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 249, 0.7)),
-    color-mix(in srgb, var(--platform-soft) 42%, #fff);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 251, 250, 0.72)),
+    color-mix(in srgb, var(--platform-soft) 24%, var(--pulso-material-bg-strong));
+  box-shadow: var(--pulso-material-shadow);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+.pulso-platform-topbar-actions {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
 }
 .pulso-platform-provider-tabs {
   display: inline-flex;
   gap: 3px;
   padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--platform-border) 52%, var(--pulso-border));
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid color-mix(in srgb, var(--platform-border) 48%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: rgba(255, 255, 255, 0.78);
 }
 .pulso-platform-provider-tabs button {
-  flex: 0 0 32px;
+  flex: 0 0 30px;
   border: 0;
-  border-radius: 6px;
-  min-height: 30px;
+  border-radius: var(--pulso-radius-chip);
+  min-height: 28px;
   max-width: 142px;
-  padding: 5px 11px;
+  padding: 5px 10px;
   background: transparent;
   color: var(--pulso-text-soft);
   display: inline-flex;
@@ -14641,10 +14652,12 @@ h1.pulso-page-title {
   grid-template-columns: minmax(180px, 0.34fr) minmax(260px, 1fr) auto 34px;
   align-items: end;
   flex-wrap: nowrap;
-  padding: 10px;
-  border: 1px solid var(--pulso-border);
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, var(--platform-border));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 250, 0.78)),
+    color-mix(in srgb, var(--platform-soft) 12%, var(--pulso-surface-2));
 }
 .pulso-platform-field {
   display: grid;
@@ -14661,7 +14674,7 @@ h1.pulso-page-title {
 }
 .pulso-platform-field select,
 .pulso-platform-search input {
-  min-height: 34px;
+  min-height: 32px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: #fff;
@@ -14697,7 +14710,7 @@ h1.pulso-page-title {
 .pulso-platform-load,
 .pulso-platform-refresh,
 .pulso-platform-import-button {
-  min-height: 34px;
+  min-height: 32px;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
@@ -14736,17 +14749,22 @@ h1.pulso-page-title {
   justify-self: start;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 4px 9px;
-  border: 1px solid var(--pulso-border);
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 88%, #fff);
   border-radius: var(--pulso-radius-chip);
   background: #fff;
   color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 760;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 .pulso-platform-check input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
   accent-color: var(--pulso-primary);
 }
 .pulso-platform-alert {
@@ -14768,8 +14786,8 @@ h1.pulso-page-title {
 }
 .pulso-platform-list {
   display: grid;
-  gap: 7px;
-  max-height: min(360px, 42vh);
+  gap: 6px;
+  max-height: min(390px, 46vh);
   overflow: auto;
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--platform-border));
@@ -14779,7 +14797,7 @@ h1.pulso-page-title {
     var(--pulso-surface-2);
 }
 .pulso-platform-empty {
-  min-height: 96px;
+  min-height: 88px;
   display: grid;
   place-items: center;
   align-content: center;
@@ -14819,8 +14837,8 @@ h1.pulso-page-title {
 }
 .pulso-platform-row {
   width: 100%;
-  min-height: 58px;
-  padding: 10px 11px;
+  min-height: 54px;
+  padding: 9px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: 9px;
   background: #fff;
@@ -14892,7 +14910,7 @@ h1.pulso-page-title {
 }
 .pulso-platform-footer {
   justify-content: space-between;
-  padding: 9px 10px;
+  padding: 8px 9px;
   border: 1px solid color-mix(in srgb, var(--platform-border) 44%, var(--pulso-border));
   border-radius: 10px;
   background:
@@ -14915,7 +14933,7 @@ h1.pulso-page-title {
   white-space: nowrap;
 }
 .pulso-platform-import-button {
-  padding: 7px 13px;
+  padding: 6px 12px;
   border: 1px solid var(--platform-accent);
   background: var(--platform-accent);
   color: #fff;
