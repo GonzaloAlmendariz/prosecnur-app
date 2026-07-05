@@ -4743,11 +4743,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <div>
           <div className="pulso-sm-multibase-kicker">{independentProviderLabel}</div>
           <h3>Fuentes independientes</h3>
-          <p>Importa cada fuente con su propio formulario, respuestas y estado de procesamiento.</p>
+          <p>Cada encuesta conserva sus respuestas y entregables, pero comparte una plantilla de referencia para revisar lógica compatible.</p>
           <p>
-            Usa los perfiles activos en Ajustes. Si una clave llega al límite,
-            cambia manualmente al perfil secundario y actualiza el catálogo correspondiente.
-            Si ya tenías una base trabajada, esa base puede actuar como referencia para sincronizar reglas compatibles.
+            Usa el catálogo conectado para sumar carreras o actores sin mezclar sus bases. Si ya tenías una base trabajada,
+            puede servir como referencia para alinear saltos, cierres y preguntas comunes.
           </p>
           <div className="pulso-sm-family-meter pulso-sm-independent-meter" aria-label="Resumen de familia independiente">
             <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
@@ -4814,11 +4813,11 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <div className="pulso-sm-logic-reference-rules">
           <div className="pulso-sm-logic-reference-rules-head">
             <div className="pulso-sm-logic-reference-rules-title">
-              <label htmlFor="pulso-sm-logic-rules">Saltos y cierres compartidos</label>
+              <label htmlFor="pulso-sm-logic-rules">Reglas compartidas entre encuestas</label>
               <span>
                 {hasSharedSurveyMonkeyLogic
                   ? `${surveyMonkeyLogicRuleLines.length} ${surveyMonkeyLogicRuleLines.length === 1 ? "regla lista" : "reglas listas"} para validar`
-                  : "Opcional · solo para lógica directa de SurveyMonkey"}
+                  : "Opcional · cuando SurveyMonkey trae saltos o cierres directos"}
               </span>
             </div>
             <div className="pulso-sm-logic-reference-rules-actions">
@@ -4827,10 +4826,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 className="pulso-sm-secondary"
                 disabled={disabled || !!busy || surveyMonkeyLogicRuleLines.length === 0}
                 onClick={() => void runSurveyMonkeyLogicPreview()}
-                title="Validar sintaxis e interpretación básica antes de importar"
+                title="Revisar sintaxis e intención antes de importar"
               >
                 {busy === "Validando reglas SurveyMonkey..." ? <Loader2 size={12} className="pulso-spin" /> : <CheckCircle2 size={12} />}
-                Validar reglas
+                Revisar reglas
               </button>
               {monitoringLogicSuggestion && (
                 <button
@@ -4855,7 +4854,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
             value={surveyMonkeyLogicRules}
             disabled={disabled || !!busy}
             rows={3}
-            placeholder={monitoringLogicSuggestion || "Ej.: Q1 = C1 => Ocultar P2."}
+            placeholder={monitoringLogicSuggestion || "Ej.: Q1 = C1 => Ocultar P2 (oculta la pregunta 2)."}
             onChange={(event) => {
               setSurveyMonkeyLogicRules(event.target.value);
               setSurveyMonkeyLogicPreview(null);
@@ -4863,9 +4862,9 @@ function IndependentSiblingsSurveyMonkeyWizard({
             }}
           />
           <div className="pulso-sm-logic-reference-guide" aria-label="Lectura rápida de lógica SurveyMonkey">
-            <span><CheckCircle2 size={12} /> Común para las encuestas nuevas</span>
+            <span><CheckCircle2 size={12} /> Se aplica a las encuestas nuevas</span>
             <span><GitMerge size={12} /> Puede venir de Monitoreo</span>
-            <span><FileSpreadsheet size={12} /> Se contrasta con la referencia</span>
+            <span><FileSpreadsheet size={12} /> Se revisa contra la referencia</span>
           </div>
           {surveyMonkeyLogicPreview && (
             <div className={`pulso-sm-logic-preview${surveyMonkeyLogicPreviewErrors ? " has-errors" : " is-ok"}`} role="status">
@@ -5864,13 +5863,13 @@ function IndependentSiblingsSurveyMonkeyWizard({
 	                            value={scope.logicRules}
 	                            disabled={disabled || !!busy}
 	                            rows={2}
-	                            placeholder="Opcional: Q1 != C1 => Ocultar P2."
+	                            placeholder="Opcional: Q1 != C1 => Ocultar P2 (oculta la pregunta 2)."
 	                            onChange={(event) => {
 	                              updateScope(item.id, { logicRules: event.target.value });
 	                              setSurveyMonkeyLogicPreview(null);
 	                            }}
 	                          />
-	                          <small>Úsalo si SurveyMonkey movió Q1/Q2/Q3 por una pregunta adicional como Código Pulso.</small>
+	                          <small>Úsalo si este actor agregó una pregunta previa y cambió el orden de los saltos.</small>
 	                        </label>
 
 	                        <div className="pulso-sm-extra-sources">
