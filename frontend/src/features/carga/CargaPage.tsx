@@ -765,19 +765,13 @@ export default function CargaPage() {
       {isMultiBase && estudio && (
         <AdaptiveSplitView
           ariaLabel="Mesa de trabajo de varias bases"
-          railLabel="Estado de carga"
+          railLabel="Pestañas de carga"
           className="pulso-upload-section pulso-carga-workbench"
           rail={(
-            <CargaStageRail
-              hasXlsform={hasXlsform}
-              hasData={hasData}
-              pendingChoiceMapping={pendingChoiceMapping}
-              allReady={allReady}
-              isMultiBase={isMultiBase}
-              bases={state?.n_bases ?? 0}
-              instrumento={instrumento}
-              dataPreview={dataPreview}
-              estructura={estructura}
+            <CargaWorkspaceSidebar
+              active={activeCargaTab}
+              onChange={setActiveCargaTab}
+              baseReady={cargaBaseOptions.length > 0}
             />
           )}
         >
@@ -792,13 +786,6 @@ export default function CargaPage() {
               hasData={hasData}
               pendingChoiceMapping={pendingChoiceMapping}
               allReady={allReady}
-              controls={(
-                <CargaWorkspaceTabs
-                  active={activeCargaTab}
-                  onChange={setActiveCargaTab}
-                  baseReady={cargaBaseOptions.length > 0}
-                />
-              )}
             />
             {activeCargaTab === "insumos" ? (
               <>
@@ -847,23 +834,9 @@ export default function CargaPage() {
       )}
 
       {isMultiBase && !estudio && (
-        <AdaptiveSplitView
-          ariaLabel="Mesa de trabajo de varias bases"
-          railLabel="Estado de carga"
-          className="pulso-upload-section pulso-carga-workbench"
-          rail={(
-            <CargaStageRail
-              hasXlsform={hasXlsform}
-              hasData={hasData}
-              pendingChoiceMapping={pendingChoiceMapping}
-              allReady={allReady}
-              isMultiBase={isMultiBase}
-              bases={state?.n_bases ?? 0}
-              instrumento={instrumento}
-              dataPreview={dataPreview}
-              estructura={estructura}
-            />
-          )}
+        <section
+          aria-label="Mesa de trabajo de varias bases"
+          className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--top-only"
         >
           <div className="pulso-carga-content pulso-content-area">
             <CargaReadinessBoard
@@ -904,7 +877,7 @@ export default function CargaPage() {
               </div>
             </section>
           </div>
-        </AdaptiveSplitView>
+        </section>
       )}
 
       {/* Sección 1 — LOS DOS INSUMOS (single-base). Solo se muestra si
@@ -914,19 +887,13 @@ export default function CargaPage() {
       <>
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de carga"
-        railLabel="Estado de carga"
+        railLabel="Pestañas de carga"
         className="pulso-upload-section pulso-carga-workbench"
         rail={(
-          <CargaStageRail
-            hasXlsform={hasXlsform}
-            hasData={hasData}
-            pendingChoiceMapping={pendingChoiceMapping}
-            allReady={allReady}
-            isMultiBase={isMultiBase}
-            bases={state?.n_bases ?? 0}
-            instrumento={instrumento}
-            dataPreview={dataPreview}
-            estructura={estructura}
+          <CargaWorkspaceSidebar
+            active={activeCargaTab}
+            onChange={setActiveCargaTab}
+            baseReady={allReady}
           />
         )}
       >
@@ -942,14 +909,7 @@ export default function CargaPage() {
             hasData={hasData}
             pendingChoiceMapping={pendingChoiceMapping}
             allReady={allReady}
-            controls={(
-              <>
-              <CargaWorkspaceTabs
-                active={activeCargaTab}
-                onChange={setActiveCargaTab}
-                baseReady={allReady}
-              />
-              {activeCargaTab === "insumos" && (
+            controls={activeCargaTab === "insumos" ? (
                 <div className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs" role="tablist" aria-label="Origen de carga">
                   <button
                     type="button"
@@ -974,9 +934,7 @@ export default function CargaPage() {
                     <span className="pulso-carga-tab-label">Plataforma</span>
                   </button>
                 </div>
-              )}
-              </>
-            )}
+              ) : null}
           />
 
           {activeCargaTab === "insumos" ? (
@@ -1659,27 +1617,39 @@ function CargaWorkspaceTabs({
   active,
   baseReady,
   onChange,
+  layout = "toolbar",
 }: {
   active: CargaWorkspaceTab;
   baseReady: boolean;
   onChange: (tab: CargaWorkspaceTab) => void;
+  layout?: "toolbar" | "sidebar";
 }) {
+  const isSidebar = layout === "sidebar";
+  const sidebarClass = isSidebar ? " is-sidebar" : "";
+
   return (
-    <div className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-view-tabs" role="tablist" aria-label="Vista de carga">
+    <div
+      className={`pulso-carga-source-switch pulso-compact-tabs pulso-carga-view-tabs${sidebarClass}`}
+      role="tablist"
+      aria-label="Vista de carga"
+      aria-orientation={isSidebar ? "vertical" : undefined}
+    >
       <button
         type="button"
-        className={`pulso-compact-tab pulso-carga-view-tab${active === "insumos" ? " is-active" : ""}`}
+        className={`pulso-compact-tab pulso-carga-view-tab${sidebarClass}${active === "insumos" ? " is-active" : ""}`}
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
         title="Preparar carga - formulario, respuestas y fuentes"
+        data-rail-title="Preparar"
+        data-rail-desc="Formulario, respuestas y fuentes"
       >
         <Upload size={14} />
         <span className="pulso-carga-tab-label">Preparar</span>
       </button>
       <button
         type="button"
-        className={`pulso-compact-tab pulso-carga-view-tab${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
+        className={`pulso-compact-tab pulso-carga-view-tab${sidebarClass}${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
         onClick={() => {
           if (baseReady) onChange("base");
         }}
@@ -1687,12 +1657,39 @@ function CargaWorkspaceTabs({
         aria-selected={active === "base"}
         aria-disabled={!baseReady}
         title={baseReady ? "Ver base - revisar respuestas cargadas" : "Ver base - pendiente hasta cargar formulario y respuestas"}
+        data-rail-title="Ver base"
+        data-rail-desc={baseReady ? "Respuestas cargadas" : "Pendiente hasta completar insumos"}
       >
         <Table2 size={14} />
         <span className="pulso-carga-tab-label">Ver base</span>
         <span className="pulso-carga-view-tab-state" aria-hidden="true" />
       </button>
     </div>
+  );
+}
+
+function CargaWorkspaceSidebar({
+  active,
+  baseReady,
+  onChange,
+}: {
+  active: CargaWorkspaceTab;
+  baseReady: boolean;
+  onChange: (tab: CargaWorkspaceTab) => void;
+}) {
+  return (
+    <aside className="pulso-carga-workspace-sidebar pulso-sidebar" aria-label="Pestañas de carga">
+      <div className="pulso-carga-workspace-sidebar-head">
+        <span className="pulso-section-eyebrow">Carga</span>
+        <strong>Vistas</strong>
+      </div>
+      <CargaWorkspaceTabs
+        active={active}
+        onChange={onChange}
+        baseReady={baseReady}
+        layout="sidebar"
+      />
+    </aside>
   );
 }
 
@@ -2016,7 +2013,7 @@ function CargaSuiteBar({
   hasData: boolean;
   pendingChoiceMapping: boolean;
   allReady: boolean;
-  controls: ReactNode;
+  controls?: ReactNode;
 }) {
   return (
     <section className="pulso-carga-suitebar" aria-label="Centro de control de carga">
@@ -2038,121 +2035,12 @@ function CargaSuiteBar({
           allReady={allReady}
         />
       </div>
-      <div className="pulso-carga-suitebar-controls">
-        {controls}
-      </div>
+      {controls && (
+        <div className="pulso-carga-suitebar-controls">
+          {controls}
+        </div>
+      )}
     </section>
-  );
-}
-
-function CargaStageRail({
-  hasXlsform,
-  hasData,
-  pendingChoiceMapping,
-  allReady,
-  isMultiBase,
-  bases,
-  instrumento,
-  dataPreview,
-  estructura,
-}: {
-  hasXlsform: boolean;
-  hasData: boolean;
-  pendingChoiceMapping: boolean;
-  allReady: boolean;
-  isMultiBase: boolean;
-  bases: number;
-  instrumento: InstrumentoResumen | null;
-  dataPreview: DataPreview | null;
-  estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
-}) {
-  const xlsformMeta = instrumento
-    ? `${instrumento.n_preguntas} preguntas · ${instrumento.n_secciones} secciones`
-    : hasXlsform
-    ? "Formulario cargado"
-    : "Pendiente";
-  const dataMeta = dataPreview
-    ? `${dataPreview.n_filas} filas · ${dataPreview.n_columnas} columnas`
-    : hasData
-    ? "Respuestas cargadas"
-    : hasXlsform
-    ? "Lista para cargar"
-    : "Espera el formulario";
-  const reviewTone = pendingChoiceMapping ? "warning" : allReady ? "ready" : "pending";
-  const reviewMeta = pendingChoiceMapping
-    ? "Requiere confirmar mapeo"
-    : allReady
-    ? "Compatible para Validación"
-    : estructura
-    ? `${estructura.secciones.length} secciones detectadas`
-    : "Se activa con ambos insumos";
-
-  return (
-    <aside className="pulso-carga-stage-rail pulso-sidebar" aria-label="Estado de la carga">
-      <div className="pulso-carga-stage-head">
-        <span className="pulso-carga-stage-kicker">Ruta de carga</span>
-        <strong>{allReady ? "Insumos listos" : "Preparando estudio"}</strong>
-      </div>
-      <div className="pulso-carga-stage-list">
-        <CargaStageItem
-          icon={FileSpreadsheet}
-          title="Formulario"
-          meta={xlsformMeta}
-          tone={hasXlsform ? "ready" : "pending"}
-          index="1"
-        />
-        <CargaStageItem
-          icon={Database}
-          title="Respuestas"
-          meta={dataMeta}
-          tone={hasData ? "ready" : "pending"}
-          index="2"
-        />
-        <CargaStageItem
-          icon={ShieldCheck}
-          title="Revisión"
-          meta={reviewMeta}
-          tone={reviewTone}
-          index="3"
-        />
-      </div>
-      <div className={`pulso-carga-stage-mode${isMultiBase ? " is-on" : ""}`}>
-        <span>{isMultiBase ? "Varias bases" : "Una base"}</span>
-        <strong>{isMultiBase ? `${bases} base${bases === 1 ? "" : "s"}` : "Flujo simple"}</strong>
-      </div>
-    </aside>
-  );
-}
-
-function CargaStageItem({
-  icon: Icon,
-  title,
-  meta,
-  tone,
-  index,
-}: {
-  icon: IconCmp;
-  title: string;
-  meta: string;
-  tone: "ready" | "pending" | "warning";
-  index: string;
-}) {
-  return (
-    <div
-      className={`pulso-carga-stage-item is-${tone}`}
-      aria-label={`${title}. ${meta}`}
-      data-rail-title={title}
-      data-rail-desc={meta}
-    >
-      <span className="pulso-carga-stage-index">{index}</span>
-      <span aria-hidden="true" className="pulso-carga-stage-icon">
-        <Icon size={15} />
-      </span>
-      <span className="pulso-carga-stage-copy">
-        <strong>{title}</strong>
-        <span>{meta}</span>
-      </span>
-    </div>
   );
 }
 
