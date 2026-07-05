@@ -24,9 +24,9 @@ type SortState = { col: string; desc: boolean } | null;
 const PAGE_SIZES = [25, 50, 100, 200] as const;
 
 const KIND_LABELS: Record<ProcessingSheetColumn["type_kind"], string> = {
-  integer: "Integer",
-  sm: "SM",
-  so: "SO",
+  integer: "Entera",
+  sm: "Múltiple",
+  so: "Única",
   text: "Texto",
   other: "Otro",
 };
@@ -49,6 +49,7 @@ export function ProcessingSheetViewer({
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(50);
   const [payload, setPayload] = useState<ProcessingSheetPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingSlow, setLoadingSlow] = useState(false);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const requestKey = useMemo(() => JSON.stringify(request ?? {}), [request]);
@@ -97,6 +98,15 @@ export function ProcessingSheetViewer({
       cancelled = true;
     };
   }, [columnFilters, enabled, load, mode, page, pageSize, reloadKey, requestKey, search, sort]);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingSlow(false);
+      return;
+    }
+    const handle = window.setTimeout(() => setLoadingSlow(true), 2500);
+    return () => window.clearTimeout(handle);
+  }, [loading]);
 
   const columns = payload?.columns ?? [];
   const total = payload?.total ?? 0;
@@ -229,7 +239,12 @@ export function ProcessingSheetViewer({
       </div>
 
       {hasCodingLegend && (
-        <div className="pulso-processing-sheet-legend" aria-label="Tipos de codificación">
+        <div className="pulso-processing-sheet-legend" aria-label="Lectura de columnas recodificadas">
+          <span className="is-original">
+            <i aria-hidden="true" />
+            Originales en gris
+          </span>
+          <em>Recodificadas por tipo</em>
           {(["integer", "sm", "so", "text"] as const).map((kind) => (
             <span key={kind} className={`is-${kind}`}>
               <i aria-hidden="true" />
@@ -242,7 +257,14 @@ export function ProcessingSheetViewer({
       {error ? (
         <ErrorBlock label="No se pudo cargar la base" detail={error} />
       ) : !payload && loading ? (
-        <LoadingBlock label="Cargando base..." />
+        <div className="pulso-processing-sheet-loading">
+          <LoadingBlock label={`Cargando ${title.toLowerCase()}...`} />
+          {loadingSlow && (
+            <small>
+              Preparando una tabla ancha con etiquetas, filtros y columnas recodificadas. Puede tardar unos segundos en proyectos grandes.
+            </small>
+          )}
+        </div>
       ) : (
         <>
           <div className="pulso-processing-sheet-scroll">

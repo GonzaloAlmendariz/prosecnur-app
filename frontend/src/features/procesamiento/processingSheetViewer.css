@@ -213,6 +213,14 @@
   padding: 6px 12px;
 }
 
+.pulso-processing-sheet-legend > em {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 760;
+  letter-spacing: 0.12px;
+}
+
 .pulso-processing-sheet-legend span {
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--legend-color) 34%, var(--pulso-border));
@@ -233,10 +241,33 @@
   width: 7px;
 }
 
+.pulso-processing-sheet-legend .is-original {
+  --legend-color: #94a3b8;
+  color: #475569;
+  background: #f8fafc;
+}
 .pulso-processing-sheet-legend .is-integer { --legend-color: var(--sheet-integer); }
 .pulso-processing-sheet-legend .is-sm { --legend-color: var(--sheet-sm); }
 .pulso-processing-sheet-legend .is-so { --legend-color: var(--sheet-so); }
 .pulso-processing-sheet-legend .is-text { --legend-color: var(--sheet-text); }
+
+.pulso-processing-sheet-loading {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  flex: 1;
+  min-height: 260px;
+  padding: 28px;
+  text-align: center;
+}
+
+.pulso-processing-sheet-loading small {
+  max-width: 460px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
 
 .pulso-processing-sheet-scroll {
   background:
