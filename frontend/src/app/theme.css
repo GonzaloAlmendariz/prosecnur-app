@@ -9302,12 +9302,23 @@ h1.pulso-page-title {
   flex-wrap: wrap;
   gap: 6px;
 }
-.pulso-sm-logic-reference-rules-head label {
+.pulso-sm-logic-reference-rules-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.pulso-sm-logic-reference-rules-title label {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.25px;
   text-transform: uppercase;
+}
+.pulso-sm-logic-reference-rules-title span {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1.25;
 }
 .pulso-sm-logic-reference-rules-actions button {
   min-height: 28px;
@@ -9335,6 +9346,27 @@ h1.pulso-page-title {
   outline: 2px solid var(--pulso-primary-focus);
   outline-offset: 1px;
   border-color: var(--pulso-primary-border);
+}
+.pulso-sm-logic-reference-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.pulso-sm-logic-reference-guide span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 52%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 52%, #fff 48%);
+  color: color-mix(in srgb, var(--pulso-primary) 72%, var(--pulso-text));
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1;
+  white-space: nowrap;
 }
 .pulso-sm-logic-preview {
   display: grid;

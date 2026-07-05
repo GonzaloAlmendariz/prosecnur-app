@@ -3961,6 +3961,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     surveyLogicLabels,
   );
   const surveyMonkeyLogicRuleLines = surveyMonkeyLogicPreviewEntries.map((entry) => entry.rule);
+  const hasSharedSurveyMonkeyLogic = surveyMonkeyLogicRuleLines.length > 0;
   const surveyMonkeyLogicPreviewErrors = surveyMonkeyLogicPreview?.filter((row) => !row.ok).length ?? 0;
   const surveyMonkeyLogicPreviewWarnings = surveyMonkeyLogicPreview?.reduce((sum, row) => sum + row.warnings.length, 0) ?? 0;
   const preparedMonitoringSuggestionGroups = (monitoringSuggestions?.groups ?? [])
@@ -4812,7 +4813,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
         </label>
         <div className="pulso-sm-logic-reference-rules">
           <div className="pulso-sm-logic-reference-rules-head">
-            <label htmlFor="pulso-sm-logic-rules">Reglas SurveyMonkey</label>
+            <div className="pulso-sm-logic-reference-rules-title">
+              <label htmlFor="pulso-sm-logic-rules">Saltos y cierres compartidos</label>
+              <span>
+                {hasSharedSurveyMonkeyLogic
+                  ? `${surveyMonkeyLogicRuleLines.length} ${surveyMonkeyLogicRuleLines.length === 1 ? "regla lista" : "reglas listas"} para validar`
+                  : "Opcional · solo para lógica directa de SurveyMonkey"}
+              </span>
+            </div>
             <div className="pulso-sm-logic-reference-rules-actions">
               <button
                 type="button"
@@ -4847,13 +4855,18 @@ function IndependentSiblingsSurveyMonkeyWizard({
             value={surveyMonkeyLogicRules}
             disabled={disabled || !!busy}
             rows={3}
-            placeholder={monitoringLogicSuggestion || "Q1 = C1 => Ocultar P2."}
+            placeholder={monitoringLogicSuggestion || "Ej.: Q1 = C1 => Ocultar P2."}
             onChange={(event) => {
               setSurveyMonkeyLogicRules(event.target.value);
               setSurveyMonkeyLogicPreview(null);
               setAudit(null);
             }}
           />
+          <div className="pulso-sm-logic-reference-guide" aria-label="Lectura rápida de lógica SurveyMonkey">
+            <span><CheckCircle2 size={12} /> Común para las encuestas nuevas</span>
+            <span><GitMerge size={12} /> Puede venir de Monitoreo</span>
+            <span><FileSpreadsheet size={12} /> Se contrasta con la referencia</span>
+          </div>
           {surveyMonkeyLogicPreview && (
             <div className={`pulso-sm-logic-preview${surveyMonkeyLogicPreviewErrors ? " has-errors" : " is-ok"}`} role="status">
               <strong>
@@ -4880,7 +4893,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
           )}
           {monitoringLogicSuggestion && (
             <small>
-              Sugerida por Monitoreo para fuentes SurveyMonkey con enlaces personalizados; revisa Q/P antes de importar.
+              Sugerida por Monitoreo para fuentes con enlaces personalizados; se valida antes de importar.
             </small>
           )}
         </div>
