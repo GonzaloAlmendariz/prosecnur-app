@@ -17619,18 +17619,21 @@ h1.pulso-page-title {
   display: inline-flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 2px;
   width: auto;
   max-width: 100%;
   overflow-x: auto;
-  padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
-  border-radius: 13px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 54%, var(--pulso-border) 46%);
+  border-radius: 12px;
   background:
-    linear-gradient(180deg, rgba(246, 249, 253, 0.95), rgba(255, 255, 255, 0.72));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(245, 251, 250, 0.72)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 34%, var(--pulso-surface) 66%);
   box-shadow:
-    inset 0 1px 1px rgba(15, 23, 42, 0.045),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.78);
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 8px 18px rgba(15, 23, 42, 0.055);
+  backdrop-filter: blur(12px) saturate(1.06);
+  -webkit-backdrop-filter: blur(12px) saturate(1.06);
   scrollbar-width: none;
 }
 .analitica-segmented::-webkit-scrollbar {
@@ -17640,15 +17643,16 @@ h1.pulso-page-title {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  min-width: 104px;
-  padding: 0 12px;
+  min-height: 30px;
+  min-width: 88px;
+  padding: 0 11px;
   justify-content: center;
-  border-radius: 10px;
-  border-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
   background: transparent;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 760;
+  line-height: 1;
   color: var(--pulso-text-soft);
   box-shadow: none;
   transition:
@@ -17660,24 +17664,27 @@ h1.pulso-page-title {
 }
 .analitica-segmented button:hover:not(:disabled):not(.is-on),
 .analitica-segmented button:focus-visible:not(.is-on) {
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--pulso-text);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-primary-border) 34%, transparent);
+  border-color: color-mix(in srgb, var(--pulso-module-processing-border) 58%, #fff 42%);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--pulso-module-processing);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 4px 10px color-mix(in srgb, var(--pulso-module-processing) 9%, transparent);
 }
 .analitica-segmented button:active:not(:disabled) {
   transform: scale(0.98);
 }
 .analitica-segmented button.is-on {
   background:
-    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-primary-soft) 54%, #fff 46%));
-  border-color: color-mix(in srgb, var(--pulso-primary-border) 78%, #fff 22%);
-  color: var(--pulso-primary);
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-module-processing) 92%, #fff 8%), var(--pulso-module-processing));
+  border-color: color-mix(in srgb, var(--pulso-module-processing) 82%, #fff 18%);
+  color: #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 5px 12px rgba(0, 36, 87, 0.07);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 14px color-mix(in srgb, var(--pulso-module-processing) 20%, transparent);
 }
 .analitica-segmented--five button {
-  min-width: 96px;
+  min-width: 82px;
 }
 .analitica-inline-title {
   display: inline-flex;
@@ -17788,7 +17795,7 @@ h1.pulso-page-title {
 }
 .analitica-panel-commandbar {
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -17800,6 +17807,10 @@ h1.pulso-page-title {
 }
 .analitica-panel-commandbar .pulso-secondary {
   white-space: nowrap;
+}
+.analitica-panel-commandbar .analitica-segmented {
+  min-width: 0;
+  width: fit-content;
 }
 .analitica-panel-form-grid {
   display: grid;
@@ -18172,7 +18183,7 @@ h1.pulso-page-title {
 }
 .analitica-ficha-commandbar {
   display: grid;
-  grid-template-columns: minmax(220px, 340px) auto auto;
+  grid-template-columns: minmax(210px, auto) minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -18182,7 +18193,11 @@ h1.pulso-page-title {
     linear-gradient(180deg, rgba(248, 250, 253, 0.94), rgba(255, 255, 255, 0.82));
 }
 .analitica-ficha-commandbar .pulso-secondary {
+  justify-content: center;
   white-space: nowrap;
+}
+.analitica-ficha-commandbar .analitica-segmented {
+  width: fit-content;
 }
 .analitica-ficha-layout {
   display: grid;
