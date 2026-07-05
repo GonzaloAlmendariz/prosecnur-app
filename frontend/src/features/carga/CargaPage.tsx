@@ -2138,7 +2138,12 @@ function CargaStageItem({
   index: string;
 }) {
   return (
-    <div className={`pulso-carga-stage-item is-${tone}`} aria-label={`${title}. ${meta}`} title={`${title} - ${meta}`}>
+    <div
+      className={`pulso-carga-stage-item is-${tone}`}
+      aria-label={`${title}. ${meta}`}
+      data-rail-title={title}
+      data-rail-desc={meta}
+    >
       <span className="pulso-carga-stage-index">{index}</span>
       <span aria-hidden="true" className="pulso-carga-stage-icon">
         <Icon size={15} />
