@@ -48,7 +48,7 @@ export function BasesPane() {
           <div className="analitica-bases-docbar-copy">
             <span>Producto de base</span>
             <strong>Bases e instrumento</strong>
-            <small>Descarga la base lista para trabajar y el formulario que la explica.</small>
+            <small>Elige el archivo adecuado para revisar, compartir o analizar la base.</small>
           </div>
           <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
             <span>
@@ -87,8 +87,8 @@ function FuenteInfo() {
     <div className="analitica-bases-info">
       <Info size={14} />
       <div>
-        Todas las descargas salen desde la <strong>fuente activa</strong>: <strong>{fuenteLabel}</strong>.
-        Usa los archivos fuente para auditar el origen y los formatos analíticos para compartir o analizar la base.
+        Estás descargando desde la <strong>fuente activa</strong>: <strong>{fuenteLabel}</strong>.
+        Usa los archivos de referencia para revisar el origen y los formatos de análisis para trabajar la base.
       </div>
     </div>
   );
@@ -104,7 +104,7 @@ function ArchivosFuenteSection() {
           <FileCode2 size={14} /> Archivos fuente
         </span>
       }
-      subtitle="Los archivos tal como quedan en la fuente activa. Úsalos para respaldar, revisar o entregar el paquete base."
+      subtitle="Datos e instrumento tal como quedan en la fuente activa."
     >
       <div className="analitica-bases-source-grid">
         <SourceDataCard />
@@ -130,7 +130,7 @@ function SourceDataCard() {
         <div className="analitica-bases-source-copy">
           <strong>Base de datos</strong>
           <span>
-            Archivo de datos de la fuente activa. Si trabajas con la versión codificada, incluye las variables recodificadas y su formato.
+            Archivo principal de respuestas. En fuente codificada incluye variables recodificadas junto a sus originales.
           </span>
         </div>
       </div>
@@ -163,7 +163,7 @@ function SourceInstrumentCard() {
         <div className="analitica-bases-source-copy">
           <strong>XLSForm</strong>
           <span>
-            Formulario que documenta preguntas, opciones y estructura. La versión codificada conserva las marcas de recodificación.
+            Instrumento que explica preguntas, opciones y estructura de la base.
           </span>
         </div>
       </div>
@@ -195,18 +195,17 @@ function MetadatosSection() {
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Wand2 size={14} /> Lectura para SPSS
+          <Wand2 size={14} /> Cómo leer variables en SPSS
         </span>
       }
       subtitle={
         <>
-          Revisa cómo SPSS leerá cada variable: categoría, orden o escala numérica. Si una escala
-          quedó mal interpretada, corrígela aquí antes de exportar el <code>.sav</code>.
+          Ajusta si SPSS debe tratar una variable como categoría, orden o escala numérica antes de crear el archivo.
         </>
       }
     >
       <Collapsible
-        title="Revisar lectura de variables"
+        title="Ajustar lectura de variables"
         summary={summary}
         defaultOpen={overridesCount > 0}
       >
@@ -251,12 +250,12 @@ function SavCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Database size={14} /> SPSS (.sav)
+          <Database size={14} /> Archivo SPSS (.sav)
         </span>
       }
       subtitle={
         <>
-          Archivo listo para abrir en SPSS con etiquetas de variable, etiquetas de respuesta y tipo de medida incluidos.
+          Para abrir directamente en SPSS con etiquetas de variables, respuestas y tipo de medida.
         </>
       }
     >
@@ -274,12 +273,12 @@ function SavCard({
             datos.sav
           </code>
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            El sistema prepara la lectura de cada columna para SPSS. Si necesitas auditar el detalle técnico, revísalo en “Lectura para SPSS”.
+            La lectura de cada columna se guarda dentro del archivo. Si necesitas corregir una variable, usa “Cómo leer variables en SPSS”.
           </div>
         </div>
         <SavWriterStatus writer={writer} />
 
-        <Collapsible title="Avanzado" summary={cfg.incluir_sps ? ".sps incluido" : "Sin .sps"} defaultOpen={false}>
+        <Collapsible title="Avanzado" summary={cfg.incluir_sps ? "respaldo incluido" : "sin respaldo"} defaultOpen={false}>
           <label
             style={{
               display: "inline-flex", alignItems: "flex-start", gap: 8,
@@ -293,16 +292,16 @@ function SavCard({
               style={{ marginTop: 2 }}
             />
             <span>
-              <strong>Incluir archivo de respaldo para SPSS</strong>
+              <strong>Incluir respaldo técnico para SPSS</strong>
               <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-                Agrega un archivo técnico con las instrucciones de lectura. Normalmente no hace falta; actívalo solo si alguien necesita revisar el detalle en SPSS.
+                Agrega un archivo con instrucciones de lectura. Normalmente no hace falta; actívalo solo si alguien necesita auditar la importación.
               </div>
             </span>
           </label>
         </Collapsible>
 
         <GenerateFooter
-          label="Exportar .sav"
+          label="Descargar SAV"
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? downloadName}
@@ -317,6 +316,10 @@ function SavCard({
 
 function SavWriterStatus({ writer }: { writer: BasesSavWriterInfo | null }) {
   const ok = writer?.engine === "pyreadstat" && writer.ok !== false;
+  const fallbackMessage =
+    writer?.message && !/fallback|\.sps/i.test(writer.message)
+      ? writer.message
+      : "Si el motor principal no está disponible, conserva el respaldo para SPSS.";
   return (
     <div
       style={{
@@ -340,12 +343,12 @@ function SavWriterStatus({ writer }: { writer: BasesSavWriterInfo | null }) {
           fontWeight: 700,
         }}
       >
-        {ok ? "pyreadstat activo" : "fallback SAV"}
+        {ok ? "Metadatos embebidos" : "Respaldo disponible"}
       </span>
       <span>
         {ok
-          ? "Metadatos SPSS embebidos en el .sav."
-          : writer?.message ?? "Si el motor cae a fallback, conserva el .sps como respaldo."}
+          ? "El archivo guarda etiquetas y tipos de medida dentro del SAV."
+          : fallbackMessage}
       </span>
     </div>
   );
@@ -383,7 +386,7 @@ function CsvCard({
           <FileText size={14} /> CSV
         </span>
       }
-      subtitle="Archivo plano para equipos que trabajan en Excel, R, Python o Stata."
+      subtitle="Para equipos que necesitan un archivo plano compatible con Excel, R, Python o Stata."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <RadioRow
@@ -391,7 +394,7 @@ function CsvCard({
           value={cfg.valores}
           onChange={(v) => onChange({ valores: v as "codigos" | "etiquetas" })}
           options={[
-            { value: "codigos", label: "Códigos", hint: "Valores como 1, 2, 3 para análisis estadístico." },
+            { value: "codigos", label: "Códigos", hint: "Valores como 1, 2, 3 para análisis." },
             { value: "etiquetas", label: "Etiquetas", hint: "Textos legibles para revisar o compartir." },
           ]}
         />
@@ -408,7 +411,7 @@ function CsvCard({
               hint: "Solo aplica si el contenido es 'Etiquetas'.",
               disabled: cfg.valores !== "etiquetas",
             },
-            { value: "codigos_crudos", label: "Códigos crudos ('1 3 5')", hint: "Preserva el formato original del dataset." },
+            { value: "codigos_crudos", label: "Mantener códigos originales", hint: "Conserva respuestas como '1 3 5'." },
           ]}
         />
 
@@ -465,7 +468,7 @@ function XlsxCard({
           <FileSpreadsheet size={14} /> Excel (.xlsx)
         </span>
       }
-      subtitle="Libro para revisar la base sin software especializado. Incluye nombres técnicos y etiquetas de variable."
+      subtitle="Para revisar la base sin software especializado."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <RadioRow
@@ -473,7 +476,7 @@ function XlsxCard({
           value={cfg.valores}
           onChange={(v) => onChange({ valores: v as "codigos" | "etiquetas" | "ambos" })}
           options={[
-            { value: "ambos", label: "Ambos (2 hojas)", hint: "Hoja 'codigos' + hoja 'etiquetas' en el mismo archivo." },
+            { value: "ambos", label: "Códigos y etiquetas", hint: "Dos hojas: una para análisis y otra para lectura." },
             { value: "codigos", label: "Solo códigos", hint: "Una sola hoja con valores numéricos." },
             { value: "etiquetas", label: "Solo etiquetas", hint: "Una sola hoja con texto legible." },
           ]}
@@ -491,7 +494,7 @@ function XlsxCard({
               hint: "Solo afecta la hoja de etiquetas.",
               disabled: etiquetasDisabled,
             },
-            { value: "codigos_crudos", label: "Códigos crudos ('1 3 5')", hint: "Preserva el formato original." },
+            { value: "codigos_crudos", label: "Mantener códigos originales", hint: "Conserva respuestas como '1 3 5'." },
           ]}
         />
 
@@ -552,14 +555,12 @@ function UnifiedSiblingsCard({
     <Section
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <FileSpreadsheet size={14} /> Base unificada entre bases
+          <FileSpreadsheet size={14} /> Base combinada en Excel
         </span>
       }
       subtitle={
         <>
-          Descarga una sola base con todas las bases hermanas. La salida estándar omite datos personales no necesarios;
-          usa <strong>Con metadatos</strong> cuando necesites reenviar o revisar la base completa. El libro separa variables
-          comunes y no comunes para que las comparaciones se lean con claridad.
+          Crea un Excel temporal con todas las bases hermanas para comparar variables comunes y revisar diferencias entre bases.
         </>
       }
     >
@@ -575,7 +576,7 @@ function UnifiedSiblingsCard({
             lineHeight: 1.5,
           }}
         >
-          Mantiene cada base independiente dentro del proyecto. Esta descarga solo arma una tabla combinada para exploración en Excel.
+          No cambia tus bases dentro del proyecto. Solo descarga una tabla combinada para exploración en Excel.
           {summary && (
             <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>
               {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} comunes · {summary.n_variables_no_comunes} no comunes
@@ -592,7 +593,7 @@ function UnifiedSiblingsCard({
         >
           <div>
             <GenerateFooter
-              label="Exportar base unificada"
+              label="Descargar base limpia"
               busy={cleanRun.busy}
               fileId={cleanRun.fileId}
               downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
@@ -605,7 +606,7 @@ function UnifiedSiblingsCard({
             title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas."
           >
             <GenerateFooter
-              label="Con metadatos"
+              label="Descargar con metadatos"
               busy={metadataRun.busy}
               fileId={metadataRun.fileId}
               downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
