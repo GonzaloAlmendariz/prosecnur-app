@@ -37504,7 +37504,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-analitica-panel-head > .pulso-analitica-sourcebar--panel {
   width: auto;
-  max-width: min(100%, 778px);
+  max-width: min(100%, 508px);
   min-height: 38px;
   margin-left: auto;
   padding: 3px 4px;
@@ -37518,7 +37518,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 7px 18px rgba(21, 128, 61, 0.06);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .pulso-analitica-sourcebar--panel.has-error {
@@ -37528,8 +37529,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-analitica-sourcebar--panel .pulso-analitica-source-status {
-  min-width: 138px;
-  flex: 0 1 184px;
+  min-width: 104px;
+  flex: 0 0 118px;
   gap: 6px;
 }
 
@@ -37572,15 +37573,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-analitica-sourcebar--panel .pulso-analitica-source-files {
-  max-width: 126px;
-  margin: 1px 0 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: color-mix(in srgb, var(--pulso-text-soft) 82%, var(--pulso-success-fg));
-  font-size: 9.6px;
-  font-weight: 730;
-  line-height: 1.05;
+  display: none;
 }
 
 .pulso-analitica-sourcebar--panel .pulso-analitica-source-switch {
@@ -37610,6 +37603,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-analitica-sourcebar--panel .pulso-analitica-source-actions {
+  position: relative;
   flex: 0 0 auto;
   flex-wrap: nowrap;
   gap: 4px;
@@ -37633,18 +37627,145 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   box-shadow: none !important;
 }
 
+.pulso-analitica-template-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pulso-analitica-template-trigger {
+  gap: 5px !important;
+  white-space: nowrap;
+}
+
+.pulso-analitica-template-trigger > span {
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-analitica-template-popover {
+  position: absolute;
+  z-index: 1500;
+  top: calc(100% + 7px);
+  right: 0;
+  width: 224px;
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 58%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-success-bg) 32%, #ffffff));
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.pulso-analitica-template-popover::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: 18px;
+  width: 9px;
+  height: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-success-border) 58%, var(--pulso-border));
+  border-left: 1px solid color-mix(in srgb, var(--pulso-success-border) 58%, var(--pulso-border));
+  background: #ffffff;
+  transform: rotate(45deg);
+}
+
+.pulso-analitica-template-popover button {
+  min-height: 48px !important;
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 7px 8px !important;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #ffffff) !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: var(--pulso-text) !important;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.pulso-analitica-template-popover button:hover:not(:disabled),
+.pulso-analitica-template-popover button:focus-visible {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 72%, var(--pulso-border)) !important;
+  background: color-mix(in srgb, var(--pulso-success-bg) 44%, #ffffff) !important;
+}
+
+.pulso-analitica-template-popover button > svg {
+  color: var(--pulso-success-fg);
+  justify-self: center;
+}
+
+.pulso-analitica-template-popover button span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-analitica-template-popover button strong,
+.pulso-analitica-template-popover button small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-analitica-template-popover button strong {
+  color: var(--pulso-text);
+  font-size: 11.2px;
+  font-weight: 820;
+}
+
+.pulso-analitica-template-popover button small {
+  color: var(--pulso-text-soft);
+  font-size: 9.4px;
+  font-weight: 650;
+}
+
+.pulso-analitica-template-feedback {
+  position: absolute;
+  z-index: 1501;
+  top: calc(100% + 7px);
+  right: 0;
+  min-height: 25px;
+  max-width: 240px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10.2px;
+  font-weight: 760;
+  white-space: nowrap;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.pulso-analitica-template-feedback.is-ok {
+  color: var(--pulso-success-fg);
+  border: 1px solid var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 82%, #ffffff);
+}
+
+.pulso-analitica-template-feedback.is-error {
+  color: var(--pulso-danger-fg);
+  border: 1px solid var(--pulso-danger-border);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 82%, #ffffff);
+}
+
 @media (max-width: 1320px) {
   .pulso-analitica-panel-head > .pulso-analitica-sourcebar--panel {
-    max-width: min(100%, 682px);
+    max-width: min(100%, 468px);
   }
 
   .pulso-analitica-sourcebar--panel .pulso-analitica-source-status {
-    flex-basis: 154px;
-    min-width: 122px;
-  }
-
-  .pulso-analitica-sourcebar--panel .pulso-analitica-source-files {
-    max-width: 92px;
+    flex-basis: 112px;
+    min-width: 96px;
   }
 
   .pulso-analitica-sourcebar--panel .pulso-analitica-source-actions :where(button, label) {
@@ -37652,7 +37773,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   }
 }
 
-@media (max-width: 1080px), (max-height: 700px) {
+@media (max-width: 860px) {
   .pulso-analitica-panel-head {
     grid-template-columns: 30px minmax(0, 1fr);
   }
@@ -37666,10 +37787,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
   .pulso-analitica-sourcebar--panel .pulso-analitica-source-status {
     flex: 1 1 150px;
-  }
-
-  .pulso-analitica-sourcebar--panel .pulso-analitica-source-files {
-    max-width: 150px;
   }
 }
 

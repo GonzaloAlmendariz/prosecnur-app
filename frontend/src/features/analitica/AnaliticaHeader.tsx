@@ -1,6 +1,17 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { CheckCircle2, Database, FileSpreadsheet, GitBranch } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Database,
+  Download,
+  FileSpreadsheet,
+  GitBranch,
+  Loader2,
+  Upload,
+} from "lucide-react";
 import {
   apiAnaliticaConfigExport,
   apiAnaliticaConfigImport,
@@ -102,9 +113,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   const activeData = activeFirst?.data?.filename ?? "Base de datos no resuelta";
   const activeAvailableCount = activeBases?.filter((b) => b.available).length ?? 0;
   const sourceFilesSummary = activeAvailableCount > 1
-    ? panelVariant
-      ? `${activeAvailableCount} bases disponibles`
-      : `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
+    ? `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
     : "Instrumento y datos vinculados";
   const sourceTitle = panelVariant
     ? prepBusy
@@ -134,9 +143,11 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         <div className="pulso-analitica-source-copy">
           <strong>{sourceTitle}</strong>{" "}
           <span>{guidance}</span>
-          <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
-            {sourceFilesSummary}
-          </div>
+          {!panelVariant && (
+            <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
+              {sourceFilesSummary}
+            </div>
+          )}
         </div>
       </div>
 
@@ -166,20 +177,182 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
       {!panelVariant && <ContextBarDivider />}
 
       <div className="pulso-analitica-source-actions">
-        <SaveStatusIndicator state="saved" savedLabel="Autoguardado" showLabel={!panelVariant} />
-        <ConfigIoButtons
-          onExport={ioExport}
-          onImport={ioImport}
-          filenamePrefix="prosecnur_analitica"
-          exportLabel="Guardar plantilla"
-          importLabel="Aplicar plantilla..."
-          exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
-          importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
-          exportSuccessLabel="Plantilla guardada"
-          importSuccessLabel="Plantilla aplicada"
-        />
+        {!panelVariant && <SaveStatusIndicator state="saved" savedLabel="Autoguardado" />}
+        {panelVariant ? (
+          <AnaliticaTemplateMenu
+            onExport={ioExport}
+            onImport={ioImport}
+            filenamePrefix="prosecnur_analitica"
+            exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
+            importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
+            exportSuccessLabel="Plantilla guardada"
+            importSuccessLabel="Plantilla aplicada"
+          />
+        ) : (
+          <ConfigIoButtons
+            onExport={ioExport}
+            onImport={ioImport}
+            filenamePrefix="prosecnur_analitica"
+            exportLabel="Guardar plantilla"
+            importLabel="Aplicar plantilla..."
+            exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
+            importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
+            exportSuccessLabel="Plantilla guardada"
+            importSuccessLabel="Plantilla aplicada"
+          />
+        )}
       </div>
     </ContextBar>
+  );
+}
+
+function AnaliticaTemplateMenu({
+  onExport,
+  onImport,
+  filenamePrefix,
+  exportTitle,
+  importTitle,
+  exportSuccessLabel,
+  importSuccessLabel,
+}: {
+  onExport: () => Promise<unknown>;
+  onImport: (parsed: unknown) => Promise<string | void>;
+  filenamePrefix: string;
+  exportTitle: string;
+  importTitle: string;
+  exportSuccessLabel: string;
+  importSuccessLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<"export" | "import" | null>(null);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocMouseDown(event: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  async function handleExport() {
+    setError("");
+    setMsg("");
+    setBusy("export");
+    try {
+      const payload = await onExport();
+      const text = JSON.stringify(payload, null, 2);
+      const blob = new Blob([text], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${filenamePrefix}_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setMsg(exportSuccessLabel);
+      setOpen(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+      window.setTimeout(() => setMsg(""), 2500);
+    }
+  }
+
+  async function handleImport(file?: File) {
+    if (!file) return;
+    setError("");
+    setMsg("");
+    setBusy("import");
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const okMsg = await onImport(parsed);
+      setMsg(okMsg ?? importSuccessLabel);
+      setOpen(false);
+    } catch (e) {
+      setError(`JSON inválido: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      window.setTimeout(() => setMsg(""), 3000);
+    }
+  }
+
+  const busyLabel = busy === "export" ? "Guardando..." : busy === "import" ? "Aplicando..." : "Plantilla";
+
+  return (
+    <div className="pulso-analitica-template-menu" ref={rootRef}>
+      <button
+        type="button"
+        className="pulso-analitica-template-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Guardar o aplicar plantilla de Analítica"
+        onClick={() => setOpen((value) => !value)}
+        disabled={busy !== null}
+      >
+        {busy ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
+        <span>{busyLabel}</span>
+        <ChevronDown size={12} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="pulso-analitica-template-popover" role="menu" aria-label="Plantilla de Analítica">
+          <button type="button" role="menuitem" onClick={() => void handleExport()} disabled={busy !== null} title={exportTitle}>
+            <Download size={13} />
+            <span>
+              <strong>Guardar plantilla</strong>
+              <small>No incluye respuestas ni bases.</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy !== null}
+            title={importTitle}
+          >
+            <Upload size={13} />
+            <span>
+              <strong>Aplicar plantilla...</strong>
+              <small>Actualiza solo la configuración.</small>
+            </span>
+          </button>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="pulso-sr-only"
+        onChange={(e) => void handleImport(e.target.files?.[0])}
+      />
+
+      {msg && (
+        <span role="status" className="pulso-analitica-template-feedback is-ok">
+          <Check size={11} />
+          {msg}
+        </span>
+      )}
+      {error && (
+        <span role="alert" className="pulso-analitica-template-feedback is-error">
+          <AlertCircle size={11} />
+          {error}
+        </span>
+      )}
+    </div>
   );
 }
 
