@@ -3366,16 +3366,16 @@ function SmCollectorPicker({
             onClick={loadCollectors}
           >
             {loading ? <Loader2 size={11} className="pulso-spin" /> : null}
-            Leer lista
+            Actualizar recopiladores
           </button>
         </div>
       </div>
       <div className="pulso-sm-collector-options">
         {!cleanSurveyId && <small>Elige una encuesta para listar sus recopiladores.</small>}
         {!collectors && !loading && cleanSurveyId && !error && (
-          <small>Se muestran los filtros guardados. Pulsa Leer lista solo si necesitas cambiar recopiladores.</small>
+          <small>Se muestran los filtros guardados. Actualiza recopiladores solo si necesitas cambiar la selección.</small>
         )}
-        {loading && <small><Loader2 size={12} className="pulso-spin" /> Leyendo recopiladores...</small>}
+        {loading && <small><Loader2 size={12} className="pulso-spin" /> Actualizando recopiladores...</small>}
         {error && <small className="is-error">{error}</small>}
         {collectors?.map((collector) => {
           const collectorId = collector.id;

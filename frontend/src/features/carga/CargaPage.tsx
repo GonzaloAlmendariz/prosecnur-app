@@ -1489,7 +1489,7 @@ function PlatformImportPanel({
 
       <div className="pulso-platform-controls">
         <label className="pulso-platform-field">
-          <span>Perfil</span>
+          <span>Conexión</span>
           <select
             value={selectedProfile?.id || ""}
             onChange={(event) => {
@@ -1515,7 +1515,7 @@ function PlatformImportPanel({
             onKeyDown={(event) => {
               if (event.key === "Enter") onLoadCatalog(false);
             }}
-            placeholder={isSurveyMonkey ? "Buscar encuesta" : "Buscar proyecto"}
+            placeholder={isSurveyMonkey ? "Filtrar encuestas" : "Filtrar proyectos"}
             disabled={busy || catalogLoading || !hasConnection}
           />
         </label>
@@ -1526,13 +1526,13 @@ function PlatformImportPanel({
           disabled={busy || catalogLoading || !hasConnection}
         >
           {catalogLoading ? <Loader2 size={14} className="pulso-spin" /> : <CloudDownload size={14} />}
-          Leer lista
+          Actualizar catálogo
         </button>
         <button
           type="button"
           className="pulso-platform-refresh"
-          title={`Actualizar ${providerName}`}
-          aria-label={`Actualizar ${providerName}`}
+          title={`Forzar actualización del catálogo de ${providerName}`}
+          aria-label={`Forzar actualización del catálogo de ${providerName}`}
           onClick={() => onLoadCatalog(true)}
           disabled={busy || catalogLoading || !hasConnection}
         >
@@ -1563,8 +1563,8 @@ function PlatformImportPanel({
             <span className="pulso-platform-empty-icon" aria-hidden="true">
               <Search size={15} />
             </span>
-            <strong>{hasConnection ? "Catálogo sin cargar" : `Sin conexión ${providerName}`}</strong>
-            <small>{hasConnection ? "0 fuentes disponibles en esta vista" : "Perfil pendiente"}</small>
+            <strong>{hasConnection ? "Catálogo pendiente" : `Sin conexión con ${providerName}`}</strong>
+            <small>{hasConnection ? "Actualiza el catálogo para ver fuentes disponibles." : "Elige una conexión antes de importar."}</small>
           </div>
         ) : isSurveyMonkey ? (
           smSurveys.map((survey) => (
@@ -1618,7 +1618,11 @@ function PlatformImportPanel({
             ? isSurveyMonkey
               ? selectedSurvey?.title
               : selectedAsset?.name
-            : "Selecciona una fuente para activar la importación"}
+            : hasConnection
+              ? rowsCount > 0
+                ? "Elige una fuente para importar."
+                : "Actualiza el catálogo y elige una fuente."
+              : `Conecta ${providerName} para importar fuentes.`}
         </span>
         <button
           type="button"
@@ -1627,7 +1631,7 @@ function PlatformImportPanel({
           disabled={busy || catalogLoading || !hasConnection || !selectedReady}
         >
           {busy ? <Loader2 size={15} className="pulso-spin" /> : <CloudDownload size={15} />}
-          Importar a carga
+          Importar seleccionada
         </button>
       </div>
     </section>
