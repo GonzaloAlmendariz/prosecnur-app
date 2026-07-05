@@ -6,7 +6,7 @@ import { useDimensionesWizardStore } from "../store";
 
 // Step 1 — Punto de partida. Dos caminos genéricos:
 //
-// • Confirmar JSON: el analista sube una receta exportada (de otro
+// • Confirmar JSON: el analista sube una plantilla exportada (de otro
 //   proyecto, de una plantilla institucional, etc.). Se valida contra
 //   el instrumento del proyecto activo. El wizard arranca en step 3
 //   con las coincidencias preseleccionadas.
@@ -14,7 +14,7 @@ import { useDimensionesWizardStore } from "../store";
 //   propone bloques desde el XLSForm.
 //
 // El software es neutral por diseño: no incluye plantillas hardcoded
-// específicas a ningún estudio. Las recetas concretas (GIZ, otros)
+// específicas a ningún estudio. Las plantillas concretas (GIZ, otros)
 // viven como archivos JSON que el analista elige importar.
 
 const FLUJO_GUIA = [
@@ -66,14 +66,14 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
             iconBg="#f5f3ff"
             iconFg="#7c3aed"
             iconBorder="#ddd6fe"
-            title="Usar una estructura existente"
-            blurb="Para estudios que ya tienen una receta de dimensiones. Prosecnur la contrasta con el instrumento activo antes de generar puntajes."
+            title="Aplicar plantilla de dimensiones"
+            blurb="Para estudios con una estructura ya acordada. Prosecnur la compara con el instrumento activo antes de generar puntajes."
             highlights={[
               "Revisa qué preguntas coinciden",
-              "Detecta piezas que requieren ajuste",
-              "Conserva la estructura acordada",
+              "Marca lo que no aplica a este estudio",
+              "Conserva bloques e índices acordados",
             ]}
-            ctaLabel="Elegir archivo de receta"
+            ctaLabel="Elegir plantilla .json"
             onClick={() => setImportOpen(true)}
           />
           <PlantillaCard
@@ -83,14 +83,14 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
             iconBg="#ecfdf5"
             iconFg="#059669"
             iconBorder="#a7f3d0"
-            title="Crear una estructura nueva"
-            blurb="Para estudios sin receta previa. El asistente detecta escalas, sugiere bloques desde el instrumento y deja que confirmes la organización final."
+            title="Crear desde el instrumento"
+            blurb="Para estudios sin plantilla previa. El asistente detecta escalas, sugiere bloques desde el XLSForm y deja que confirmes la organización final."
             highlights={[
               "Elige las preguntas evaluativas",
               "Agrupa variables por tema",
               "Genera puntajes listos para analizar",
             ]}
-            ctaLabel="Empezar estructura nueva"
+            ctaLabel="Empezar desde preguntas"
             onClick={elegirDesdeCero}
           />
         </div>
