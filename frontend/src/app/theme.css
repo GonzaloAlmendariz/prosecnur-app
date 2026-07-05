@@ -21723,6 +21723,10 @@ h1.pulso-page-title {
   .pulso-main--processing .analitica-panel-docbar .analitica-report-overview--panel {
     display: none;
   }
+
+  .pulso-main--processing .analitica-ficha-docbar .analitica-report-overview--ficha {
+    display: none;
+  }
 }
 .analitica-ficha-loading {
   min-height: 386px;
