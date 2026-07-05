@@ -2004,8 +2004,8 @@ a { color: var(--pulso-primary); }
 }
 .pulso-sibling-menu {
   z-index: 82;
-  width: min(var(--radix-select-trigger-width, 231px), calc(100vw - 40px));
-  min-width: min(var(--radix-select-trigger-width, 231px), calc(100vw - 40px));
+  width: min(264px, calc(100vw - 40px));
+  min-width: min(264px, calc(100vw - 40px));
   max-height: min(52vh, 430px);
   overflow: auto;
   padding: 7px;
@@ -17416,16 +17416,43 @@ h1.pulso-page-title {
   left: 16px;
   right: auto;
   bottom: 14px;
-  width: 42px;
-  min-width: 42px;
+  width: 46px;
+  min-width: 46px;
   gap: 0;
-  padding: 5px;
-  border-radius: 13px;
+  padding: 6px;
+  border-radius: 15px;
   transition:
-    width var(--motion-dur-base) var(--motion-ease-out),
-    min-width var(--motion-dur-base) var(--motion-ease-out),
-    padding var(--motion-dur-base) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out),
     box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-sibling-switcher.is-compact::before {
+  content: attr(data-active-label);
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 1px;
+  z-index: 180;
+  display: none;
+  min-width: 138px;
+  max-width: 250px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 52%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
+    var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 780;
+  line-height: 1.25;
+  box-shadow: var(--pulso-shadow-popover);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-4px) scale(0.98);
+  transition:
+    opacity 150ms var(--motion-ease-out),
+    transform 150ms var(--motion-ease-out);
 }
 
 .pulso-sibling-switcher.is-compact::after {
@@ -17453,9 +17480,21 @@ h1.pulso-page-title {
 .pulso-sibling-switcher.is-compact:hover,
 .pulso-sibling-switcher.is-compact:focus-within,
 .pulso-sibling-switcher.is-compact.is-open {
-  width: min(158px, calc(100vw - 40px));
-  min-width: min(158px, calc(100vw - 40px));
-  padding: 5px;
+  width: 46px;
+  min-width: 46px;
+  padding: 6px;
+  border-color: color-mix(in srgb, var(--pulso-module-processing-border) 72%, var(--pulso-border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 12px 26px rgba(15, 23, 42, 0.14),
+    0 0 0 4px color-mix(in srgb, var(--pulso-module-processing-soft) 54%, transparent);
+}
+
+.pulso-sibling-switcher.is-compact:hover::before,
+.pulso-sibling-switcher.is-compact:focus-within:not(.is-open)::before {
+  display: block;
+  opacity: 1;
+  transform: translateX(0) scale(1);
 }
 
 .pulso-sibling-switcher.is-compact:hover::after,
@@ -17470,13 +17509,13 @@ h1.pulso-page-title {
 }
 
 .pulso-sibling-switcher.is-compact .pulso-sibling-trigger {
-  min-height: 30px;
-  height: 30px;
-  grid-template-columns: 30px;
+  min-height: 32px;
+  height: 32px;
+  grid-template-columns: 32px;
   justify-items: center;
   gap: 0;
   padding: 0;
-  border-radius: 10px;
+  border-radius: 11px;
 }
 
 .pulso-sibling-switcher.is-compact:hover .pulso-sibling-trigger,
@@ -17484,17 +17523,17 @@ h1.pulso-page-title {
 .pulso-sibling-switcher.is-compact.is-open .pulso-sibling-trigger {
   height: 32px;
   min-height: 32px;
-  grid-template-columns: 26px minmax(0, 1fr) 14px;
-  justify-items: stretch;
-  gap: 5px;
-  padding: 3px 6px;
-  border-radius: 10px;
+  grid-template-columns: 32px;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 11px;
 }
 
 .pulso-sibling-switcher.is-compact .pulso-sibling-trigger-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
 }
 
 .pulso-sibling-switcher.is-compact .pulso-sibling-trigger-copy,
@@ -17505,13 +17544,13 @@ h1.pulso-page-title {
 .pulso-sibling-switcher.is-compact:hover .pulso-sibling-trigger-copy,
 .pulso-sibling-switcher.is-compact:focus-within .pulso-sibling-trigger-copy,
 .pulso-sibling-switcher.is-compact.is-open .pulso-sibling-trigger-copy {
-  display: block;
+  display: none;
 }
 
 .pulso-sibling-switcher.is-compact:hover .pulso-sibling-trigger > svg,
 .pulso-sibling-switcher.is-compact:focus-within .pulso-sibling-trigger > svg,
 .pulso-sibling-switcher.is-compact.is-open .pulso-sibling-trigger > svg {
-  display: block;
+  display: none;
 }
 
 @media (max-width: 480px) {
