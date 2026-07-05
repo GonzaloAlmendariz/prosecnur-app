@@ -215,9 +215,22 @@ export function PanelBasePane() {
   const suffixRange = waves.length > 2
     ? `${waves[0]?.suffix || "med1"} a ${waves[waves.length - 1]?.suffix || `med${waves.length}`}`
     : suffixPreview;
-  const measurementSummary = waves.length > 2
-    ? `${waves.length} mediciones`
-    : suffixPreview;
+  const measurementSummary = waves.length
+    ? `${waves.length} ${waves.length === 1 ? "medición" : "mediciones"}`
+    : "mediciones";
+  const panelStats: Array<{ label: string; value: number | string; suffix?: string; compact?: boolean }> = loading
+    ? [
+        { label: "Bases", value: "Leyendo" },
+        { label: "Identificador", value: "Buscando", compact: true },
+        { label: "Personas", value: "Calculando" },
+        { label: "Archivos", value: activeOutputCount, suffix: "activos" },
+      ]
+    : [
+        { label: "Bases", value: info?.n_bases ?? 0, suffix: "bases" },
+        { label: "Identificador", value: activeConfig.key || "Pendiente", compact: true },
+        { label: "Personas", value: summary?.n_panel_keys ?? "-", suffix: "únicas" },
+        { label: "Archivos", value: activeOutputCount, suffix: "activos" },
+      ];
 
   return (
     <Panel className="analitica-panel-base-panel">
@@ -232,15 +245,14 @@ export function PanelBasePane() {
             <small>Une mediciones de la misma persona para comparar cambios y exportar una base lista.</small>
           </div>
           <div className="analitica-report-overview analitica-report-overview--panel">
-            <Metric label="Bases" value={info?.n_bases ?? 0} suffix="bases" />
-            <Metric label="Identificador" value={activeConfig.key || "Pendiente"} compact />
-            <Metric label="Personas" value={summary?.n_panel_keys ?? "-"} suffix="únicas" />
-            <Metric label="Archivos" value={activeOutputCount} suffix="activos" />
+            {panelStats.map((stat) => (
+              <Metric key={stat.label} {...stat} />
+            ))}
           </div>
         </div>
 
         {loading ? (
-          <LoadingBlock label="Leyendo mediciones del estudio..." />
+          <LoadingBlock label="Buscando identificador y mediciones..." />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : (
@@ -287,7 +299,7 @@ export function PanelBasePane() {
             />
 
             {view === "estructura" && (
-              <Section title="Preparar seguimiento entre mediciones" subtitle="Elige el identificador que reconoce a la misma persona y define cómo se verá cada medición.">
+              <Section title="Vincular personas entre mediciones" subtitle="Elige la variable que reconoce a la misma persona y define el nombre visible de cada medición.">
                 <div className="analitica-panel-form-grid">
                   <label className="analitica-panel-field">
                     <span><KeyRound size={13} /> Identificador de persona</span>
@@ -319,7 +331,7 @@ export function PanelBasePane() {
                   </div>
                 </div>
                 <DenseTable
-                  columns={["Nombre visible", "Base", "Código", "Casos", "Con identificador", "IDs repetidos", "Sin identificador"]}
+                  columns={["Nombre visible", "Base", "Etiqueta de medición", "Casos", "Con persona", "Personas repetidas", "Sin persona"]}
                   rows={waves.map((wave) => [
                     <input
                       key={`${wave.base}-label`}
@@ -694,28 +706,28 @@ function PanelContractStrip({
     <div className="analitica-panel-contract-strip" aria-label="Estado de la base panel">
       <PanelContractItem
         icon={ready ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-        label="Identificador"
-        value={ready ? "Lista para armar" : "Pendiente"}
-        detail={ready ? "presente en todas las bases" : "elige una variable común"}
+        label="Personas"
+        value={ready ? "Vinculadas" : "Pendiente"}
+        detail={ready ? "identificador en todas las bases" : "elige el identificador"}
         tone={ready ? "ok" : "warn"}
       />
       <PanelContractItem
         icon={<Columns3 size={14} />}
         label="Mediciones"
         value={suffixPreview}
-        detail={`columnas ${suffixRange}`}
+        detail={suffixRange ? `etiquetas ${suffixRange}` : "listas para comparar"}
       />
       <PanelContractItem
         icon={<GitMerge size={14} />}
-        label="Comparación"
+        label="Cortes"
         value={crossConfigLabel}
-        detail="comparadores sugeridos"
+        detail="para leer cambios"
       />
       <PanelContractItem
         icon={<FileWarning size={14} />}
-        label="Calidad"
-        value={previewReady ? `${nAuditRows ?? 0} filas` : "pendiente"}
-        detail={previewReady ? "alertas revisadas" : "usa Previsualizar"}
+        label="Revisión"
+        value={previewReady ? `${nAuditRows ?? 0} alertas` : "Pendiente"}
+        detail={previewReady ? "control actualizado" : "previsualiza primero"}
       />
     </div>
   );
