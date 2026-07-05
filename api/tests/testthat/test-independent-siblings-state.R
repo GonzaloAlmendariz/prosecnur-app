@@ -153,7 +153,7 @@ test_that("shared codification logic can be propagated from a template base", {
   expect_equal(s$codif_por_base$ingenieria_minas$grupos_recod$p1[[1]]$label, "Grupo")
 })
 
-test_that("independent sibling analytics and graphics config stay scoped by active base", {
+test_that("independent sibling analytics stay scoped and graphics borrow a starter plan", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
 
@@ -198,9 +198,10 @@ test_that("independent sibling analytics and graphics config stay scoped by acti
   .graficos_status_set(sid, "graficos_ppt_ok", TRUE)
 
   estudio_active_base_set(sid, "ingenieria_industrial")
-  expect_length(.graficos_config_get(sid)$plan$slides, 0)
+  expect_equal(.graficos_config_get(sid)$plan$slides[[1]]$id, "civil-cover")
   expect_length(.analitica_config_get(sid)$secciones, 0)
   s <- session_get(sid)
+  expect_null(s$graficos_config_por_base$ingenieria_industrial)
   expect_false(isTRUE(s$analitica_prep_ok))
   expect_false(isTRUE(s$graficos_ppt_ok))
 
