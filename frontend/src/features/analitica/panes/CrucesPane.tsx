@@ -279,7 +279,7 @@ function VariableChips({
   const editingCr = selected.find((cv) => cv.name === editingExclusion) ?? null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="analitica-variable-picker">
       {selected.length === 0 && !adding && (
         <div className="analitica-empty">
           <span className="analitica-empty-icon" aria-hidden="true">
@@ -290,7 +290,7 @@ function VariableChips({
         </div>
       )}
       {selected.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="analitica-variable-list">
           {selected.map((cv) => {
             const meta = variables.find((x) => x.name === cv.name);
             const nExcl = cv.excluidas?.length ?? 0;
@@ -348,8 +348,8 @@ function VariableChips({
       )}
 
       {adding ? (
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 260 }}>
+        <div className="analitica-picker-edit-row">
+          <div className="analitica-picker-select">
             <VariableSelect
               variables={variables.filter((v) => !selected.some((cv) => cv.name === v.name))}
               value={pendingVar}
@@ -357,8 +357,8 @@ function VariableChips({
               placeholder="Seleccionar variable a cruzar…"
             />
           </div>
-          <button type="button" className="pulso-primary" onClick={commit} disabled={!pendingVar} style={{ fontSize: 12, padding: "6px 14px" }}>Añadir</button>
-          <button type="button" onClick={() => { setAdding(false); setPendingVar(""); }} style={{ fontSize: 12, padding: "6px 10px" }}>Cancelar</button>
+          <button type="button" className="pulso-primary" onClick={commit} disabled={!pendingVar}>Añadir</button>
+          <button type="button" className="pulso-secondary" onClick={() => { setAdding(false); setPendingVar(""); }}>Cancelar</button>
         </div>
       ) : (
         <button

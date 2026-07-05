@@ -264,7 +264,7 @@ function NumericasPicker({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="analitica-variable-picker">
       {numericas.length === 0 && !adding && (
         <div className="analitica-empty">
           <span className="analitica-empty-icon" aria-hidden="true">
@@ -302,8 +302,8 @@ function NumericasPicker({
       )}
 
       {adding ? (
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 260 }}>
+        <div className="analitica-picker-edit-row">
+          <div className="analitica-picker-select">
             <VariableSelect
               variables={variables.filter((v) => !!v.numerica && !numericas.includes(v.name))}
               value={pendingVar}
@@ -316,30 +316,29 @@ function NumericasPicker({
             className="pulso-primary"
             onClick={commitAdd}
             disabled={!pendingVar}
-            style={{ fontSize: 12, padding: "6px 14px" }}
           >
             Añadir
           </button>
           <button
             type="button"
             onClick={() => { setAdding(false); setPendingVar(""); }}
-            style={{ fontSize: 12, padding: "6px 10px" }}
+            className="pulso-secondary"
           >
             Cancelar
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <div className="analitica-picker-actions">
           <button
             type="button"
             onClick={() => setAdding(true)}
-            style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
+            className="analitica-add-inline"
           >
             <Plus size={12} /> Añadir variable numérica
           </button>
           {sugeridas.length > 0 && (
             <>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginLeft: 4 }}>
+              <span className="analitica-picker-hint">
                 sugerencias:
               </span>
               {sugeridas.map((v) => (
@@ -348,16 +347,10 @@ function NumericasPicker({
                   type="button"
                   onClick={() => onAdd(v.name)}
                   title={v.label}
-                  style={{
-                    fontSize: 10, padding: "3px 8px", borderRadius: 999,
-                    border: "1px dashed var(--pulso-border)",
-                    background: "white", color: "var(--pulso-text-soft)",
-                    cursor: "pointer",
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                  }}
+                  className="analitica-suggestion-chip"
                 >
                   <Plus size={9} />
-                  <code style={{ fontFamily: "monospace" }}>{v.name}</code>
+                  <code>{v.name}</code>
                 </button>
               ))}
             </>
