@@ -18995,9 +18995,14 @@ h1.pulso-page-title {
 }
 .analitica-bases-panel {
   padding-top: 10px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .analitica-bases-workbench {
   min-width: 0;
+  min-height: min-content;
 }
 .analitica-bases-docbar {
   min-width: 0;
