@@ -685,6 +685,37 @@
   ""
 }
 
+.graficos_config_has_slides <- function(cfg) {
+  is.list(cfg) &&
+    is.list(cfg$plan) &&
+    is.list(cfg$plan$slides) &&
+    length(cfg$plan$slides) > 0L
+}
+
+.graficos_independent_template_base <- function(s) {
+  base <- (((s$estudio %||% list())$independent_siblings %||% list())$template_base %||% "")
+  base <- as.character(base %||% "")[1]
+  if (!length(base) || is.na(base)) "" else base
+}
+
+.graficos_config_inherit_candidate <- function(s, active = "") {
+  configs <- s$graficos_config_por_base
+  if (is.null(configs) || !is.list(configs) || !length(configs)) return(NULL)
+
+  active <- as.character(active %||% "")[1]
+  template_base <- .graficos_independent_template_base(s)
+  if (nzchar(template_base) &&
+      !identical(template_base, active) &&
+      .graficos_config_has_slides(configs[[template_base]])) {
+    return(configs[[template_base]])
+  }
+
+  candidates <- names(configs)[vapply(configs, .graficos_config_has_slides, logical(1))]
+  candidates <- setdiff(candidates, active)
+  if (length(candidates) != 1L) return(NULL)
+  configs[[candidates[[1]]]]
+}
+
 .graficos_config_get <- function(sid, s = NULL) {
   s <- s %||% session_get(sid, required = FALSE)
   if (is.null(s)) return(.graficos_default_config(sid))
@@ -703,6 +734,8 @@
       session_set(sid, "graficos_config_por_base", configs)
       return(s$graficos_config)
     }
+    inherited <- .graficos_config_inherit_candidate(s, active)
+    if (!is.null(inherited)) return(inherited)
     return(.graficos_default_config(sid))
   }
   s$graficos_config %||% .graficos_default_config(sid)
