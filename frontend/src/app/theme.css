@@ -17812,6 +17812,80 @@ h1.pulso-page-title {
   line-height: 1.2;
   text-align: left;
 }
+.analitica-variable-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.analitica-picker-actions,
+.analitica-picker-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.analitica-picker-edit-row {
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 42%, var(--pulso-border) 58%);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 250, 0.78)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 16%, var(--pulso-surface) 84%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.analitica-picker-select {
+  flex: 1 1 260px;
+  min-width: 260px;
+}
+.analitica-picker-edit-row .pulso-primary,
+.analitica-picker-edit-row .pulso-secondary {
+  min-height: 30px;
+  padding: 5px 11px;
+  font-size: 12px;
+  line-height: 1;
+}
+.analitica-picker-hint {
+  margin-left: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 720;
+  letter-spacing: 0.18px;
+  text-transform: uppercase;
+}
+.analitica-suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-module-processing-border) 52%, var(--pulso-border) 48%);
+  border-radius: var(--pulso-radius-chip);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 720;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.analitica-suggestion-chip code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+}
+.analitica-suggestion-chip:hover {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--pulso-module-processing-border) 76%, #fff 24%);
+  background: #fff;
+  color: var(--pulso-module-processing);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--pulso-module-processing) 10%, transparent);
+}
+.analitica-suggestion-chip:active {
+  transform: scale(0.98);
+}
 .analitica-add-inline {
   width: fit-content;
   min-height: 32px;
@@ -18459,6 +18533,11 @@ h1.pulso-page-title {
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: #fff;
+}
+.analitica-variable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .analitica-variable-row code {
   min-width: 0;
