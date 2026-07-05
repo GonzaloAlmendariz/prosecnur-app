@@ -456,7 +456,7 @@ export function RespuestasCodificador({ parent }: Props) {
           }}>
             {grupos.map((g, idx) => (
               <GrupoCard
-                key={g.id}
+                key={`${g.id}-${idx}`}
                 grupo={g}
                 respuestas={respuestas}
                 asignacion={asignacion}
@@ -674,13 +674,13 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
       )}
       {grupo.respuestas.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {grupo.respuestas.map((t) => {
+          {grupo.respuestas.map((t, idx) => {
             const r = respByNorm.get(t);
             const display = r?.texto ?? t;
             const freq = r?.frecuencia ?? 0;
             return (
               <span
-                key={t}
+                key={`${t}-${idx}`}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 3,
                   background: "white", border: "1px solid var(--pulso-border)",
@@ -717,12 +717,12 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
             <IconAI size={11} /> Sugerencias similares
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {sugerencias.map(({ t, sim }) => {
+            {sugerencias.map(({ t, sim }, idx) => {
               const pct = Math.round(sim * 100);
               const simColor = sim >= 0.85 ? "var(--pulso-success-fg)" : sim >= 0.7 ? "var(--pulso-warn-fg)" : "var(--pulso-status-empty)";
               return (
                 <button
-                  key={t.texto_normalizado}
+                  key={`${t.texto_normalizado}-${idx}`}
                   type="button"
                   onClick={() => onAddRespuesta(t.texto_normalizado)}
                   title={`${pct}% similar — click para agregar al grupo`}
