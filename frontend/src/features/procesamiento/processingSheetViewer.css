@@ -581,6 +581,19 @@
     inset 0 -1px 0 color-mix(in srgb, var(--pulso-border) 76%, transparent);
 }
 
+.pulso-processing-sheet-table tbody td.is-original {
+  background: color-mix(in srgb, #f8fafc 86%, var(--sheet-original) 14%);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--sheet-original) 20%, transparent);
+}
+
+.pulso-processing-sheet-table tbody tr:nth-child(even) td.is-original {
+  background: color-mix(in srgb, #f1f5f9 88%, var(--sheet-original) 12%);
+}
+
+.pulso-processing-sheet-table tbody tr:hover td.is-original {
+  background: color-mix(in srgb, #eef2f7 82%, var(--sheet-original) 18%);
+}
+
 .pulso-processing-sheet-table .is-coded {
   --sheet-kind: var(--module-accent, var(--pulso-primary));
 }

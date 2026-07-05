@@ -216,7 +216,7 @@ export default function AnaliticaPage() {
                     {active === "base_final"   && (
                       <ProcessingSheetViewer
                         title="Base final"
-                        sourceLabel="Analítica · resultados finales"
+                        sourceLabel="Resultados listos para revisar y exportar"
                         highlightCoding
                         load={apiAnaliticaBaseSheet}
                       />
