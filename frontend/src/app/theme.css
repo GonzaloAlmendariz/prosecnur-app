@@ -18097,11 +18097,87 @@ h1.pulso-page-title {
     box-shadow: 0 6px 14px color-mix(in srgb, var(--pulso-primary) 10%, transparent);
   }
 }
+.analitica-panel-base-panel {
+  padding-top: 10px;
+}
 .analitica-panel-workbench {
   min-width: 0;
 }
+.analitica-panel-docbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 0.72fr) minmax(420px, 1.28fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 48%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 250, 0.82)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 20%, var(--pulso-surface));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 8px 18px color-mix(in srgb, var(--pulso-module-processing) 6%, transparent);
+}
+.analitica-panel-docbar-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 68%, #fff 32%);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--pulso-module-processing-soft) 56%, #ffffff));
+  color: var(--pulso-module-processing);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.analitica-panel-docbar-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.analitica-panel-docbar-copy span {
+  color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
+  font-size: 9.5px;
+  font-weight: 840;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.analitica-panel-docbar-copy strong,
+.analitica-panel-docbar-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.analitica-panel-docbar-copy strong {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: 860;
+  line-height: 1.18;
+}
+.analitica-panel-docbar-copy small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.3;
+}
 .analitica-report-overview--panel {
   grid-template-columns: 0.85fr 1.45fr 1fr 1fr;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.analitica-panel-docbar .analitica-stat {
+  min-height: 44px;
+  padding: 7px 9px;
+  border-color: color-mix(in srgb, var(--pulso-module-processing-border) 34%, var(--pulso-border));
+}
+.analitica-panel-docbar .analitica-stat-value {
+  font-size: 15px;
 }
 .analitica-panel-commandbar {
   display: grid;
