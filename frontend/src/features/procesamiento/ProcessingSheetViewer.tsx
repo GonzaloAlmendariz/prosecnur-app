@@ -358,7 +358,7 @@ export function ProcessingSheetViewer({
                             data-kind={column.type_kind}
                             title={value || undefined}
                           >
-                            {value}
+                            <span className="pulso-processing-sheet-cell-text">{value}</span>
                           </td>
                         );
                       })}

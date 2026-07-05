@@ -518,8 +518,17 @@
   line-height: 1.35;
   overflow: hidden;
   padding: 7px 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+}
+
+.pulso-processing-sheet-cell-text {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
 }
 
 .pulso-processing-sheet-table tbody tr {
