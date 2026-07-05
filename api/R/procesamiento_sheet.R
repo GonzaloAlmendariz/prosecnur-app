@@ -75,6 +75,19 @@
   "other"
 }
 
+.procesamiento_sheet_is_recoded_col <- function(col) {
+  col <- .procesamiento_sheet_scalar(col, "")
+  nzchar(col) && grepl("(^|[/._-])recod($|[/._-])", col, ignore.case = TRUE, perl = TRUE)
+}
+
+.procesamiento_sheet_raw_parent_for_recod <- function(col) {
+  col <- .procesamiento_sheet_scalar(col, "")
+  if (!.procesamiento_sheet_is_recoded_col(col)) return(NULL)
+  raw <- sub("([/._-])recod($|[/._-].*)$", "", col, ignore.case = TRUE, perl = TRUE)
+  raw <- trimws(raw)
+  if (!nzchar(raw) || identical(raw, col)) NULL else raw
+}
+
 .procesamiento_sheet_label_map_from_attr <- function(col) {
   if (exists(".analitica_label_map_from_attr", mode = "function")) {
     return(.analitica_label_map_from_attr(col))
@@ -103,13 +116,17 @@
     type_base <- meta$type_base %||% ""
     if (!is.null(dummy)) type_base <- "dummy_select_multiple"
     kind <- .procesamiento_sheet_type_kind(type_base, col)
+    raw_parent <- .procesamiento_sheet_raw_parent_for_recod(col)
+    is_recoded <- isTRUE(coded) && !is.null(raw_parent)
     list(
       key = col,
       label = label,
       type = meta$type %||% type_base,
       type_base = type_base,
       type_kind = kind,
-      coded = isTRUE(coded) && kind %in% c("integer", "sm", "so", "text"),
+      coded = is_recoded && kind %in% c("integer", "sm", "so", "text"),
+      is_recoded = is_recoded,
+      raw_parent = raw_parent %||% "",
       dummy_parent = dummy$dummy_parent %||% NULL,
       dummy_code = dummy$dummy_code %||% NULL
     )

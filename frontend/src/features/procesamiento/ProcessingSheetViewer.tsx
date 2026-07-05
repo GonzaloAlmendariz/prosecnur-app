@@ -108,7 +108,11 @@ export function ProcessingSheetViewer({
     return () => window.clearTimeout(handle);
   }, [loading]);
 
-  const columns = payload?.columns ?? [];
+  const rawColumns = payload?.columns ?? [];
+  const columns = useMemo(
+    () => orderColumnsForCoding(rawColumns, highlightCoding),
+    [highlightCoding, rawColumns],
+  );
   const total = payload?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const visibleStart = total > 0 ? (page - 1) * pageSize + 1 : 0;
@@ -424,6 +428,57 @@ function columnClass(column: ProcessingSheetColumn, highlightCoding: boolean) {
   ].filter(Boolean).join(" ");
 }
 
-export function isRecodedColumn(column: Pick<ProcessingSheetColumn, "key">) {
+export function isRecodedColumn(column: Pick<ProcessingSheetColumn, "key"> & Partial<Pick<ProcessingSheetColumn, "is_recoded">>) {
+  if (typeof column.is_recoded === "boolean") return column.is_recoded;
   return /(?:^|[/._-])recod(?:$|[/._-])/i.test(column.key);
+}
+
+function rawParentForRecodedColumn(column: Pick<ProcessingSheetColumn, "key"> & Partial<Pick<ProcessingSheetColumn, "raw_parent">>) {
+  if (typeof column.raw_parent === "string" && column.raw_parent.trim()) return column.raw_parent.trim();
+  if (!isRecodedColumn(column)) return null;
+  const raw = column.key.replace(/[/._-]recod(?:$|[/._-].*)/i, "").trim();
+  return raw && raw !== column.key ? raw : null;
+}
+
+export function orderColumnsForCoding(columns: ProcessingSheetColumn[], highlightCoding: boolean) {
+  if (!highlightCoding || columns.length <= 1) return columns;
+
+  const byKey = new Map(columns.map((column) => [column.key, column]));
+  const recodedByParent = new Map<string, ProcessingSheetColumn[]>();
+
+  for (const column of columns) {
+    if (!isRecodedColumn(column)) continue;
+    const parent = rawParentForRecodedColumn(column);
+    if (!parent || !byKey.has(parent)) continue;
+    const group = recodedByParent.get(parent) ?? [];
+    group.push(column);
+    recodedByParent.set(parent, group);
+  }
+
+  if (recodedByParent.size === 0) return columns;
+
+  const placed = new Set<string>();
+  const ordered: ProcessingSheetColumn[] = [];
+
+  for (const column of columns) {
+    if (placed.has(column.key)) continue;
+    const parent = rawParentForRecodedColumn(column);
+    if (parent && byKey.has(parent)) continue;
+
+    ordered.push(column);
+    placed.add(column.key);
+
+    for (const recoded of recodedByParent.get(column.key) ?? []) {
+      if (placed.has(recoded.key)) continue;
+      ordered.push(recoded);
+      placed.add(recoded.key);
+    }
+  }
+
+  for (const column of columns) {
+    if (placed.has(column.key)) continue;
+    ordered.push(column);
+  }
+
+  return ordered;
 }
