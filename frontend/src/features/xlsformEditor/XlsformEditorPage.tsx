@@ -16,9 +16,11 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  GitBranch,
   Layers3,
   ListChecks,
   Plus,
+  ShieldCheck,
   Trash2,
   Upload,
   X,
@@ -852,6 +854,16 @@ export default function XlsformEditorPage() {
     }
     return out;
   }, [localDiagnostics, remoteDiagnostics]);
+  const suiteMetrics = useMemo(
+    () => buildSuiteMetrics(structure, catalogs.length, diagnostics),
+    [structure, catalogs.length, diagnostics],
+  );
+  const activeFocusLabel = useMemo(() => {
+    if (!workbook) return "Sin formulario activo";
+    if (selection?.kind === "settings") return "Ajustes del formulario";
+    if (!selectedNode) return "Sin pieza seleccionada";
+    return selectedNode.label || selectedNode.name || `Fila ${selectedNode.rowIndex + 1}`;
+  }, [selectedNode, selection?.kind, workbook]);
   const movement = selection?.kind === "survey"
     ? getSiblingRows(structure, selection.rowIndex)
     : { prevRow: null as number | null, nextRow: null as number | null };
@@ -2097,6 +2109,11 @@ export default function XlsformEditorPage() {
               <span className="pulso-xlsform-document-divider" aria-hidden="true" />
               <DocumentMetric value={structure?.outline.length ?? 0} label="piezas" />
               <DocumentMetric value={catalogs.length} label="catálogos" />
+              <DocumentMetric
+                value={diagnostics.filter((diagnostic) => diagnostic.level === "warn").length}
+                label="avisos"
+                tone={diagnostics.some((diagnostic) => diagnostic.level === "warn") ? "warn" : "success"}
+              />
             </div>
           </div>
 
@@ -2264,14 +2281,15 @@ export default function XlsformEditorPage() {
 
           <Panel
             className="pulso-xlsform-workbench-panel"
-            title="Espacio de construcción"
-            hint={
-              editorMode === "sheets"
-                ? "Vista de hojas — edita celdas crudas del XLSForm. Los cambios se reflejan en el constructor automáticamente."
-                : status ||
-                  "Trabaja en modo Constructor para diseñar el formulario. La vista por hojas queda como recurso técnico secundario."
-            }
+            noPadding
           >
+            <WorkbenchSuiteHeader
+              mode={editorMode}
+              busy={busy}
+              status={status}
+              activeFocusLabel={activeFocusLabel}
+              metrics={suiteMetrics}
+            />
             {editorMode === "sheets" && workbook && (
               <SheetsView
                 workbook={workbook}
@@ -2287,10 +2305,15 @@ export default function XlsformEditorPage() {
                 <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--outline">
                   <Panel
                     className="pulso-xlsform-sidebar-panel"
-                    title="Estructura del formulario"
-                    hint="Navega por secciones y preguntas. Este panel manda el foco del constructor."
-                    actions={(
-                      <div style={{ position: "relative" }}>
+                    noPadding
+                  >
+                    <div className="pulso-xlsform-outline-chrome">
+                      <div>
+                        <span className="pulso-section-eyebrow">Outline maestro</span>
+                        <strong>Estructura</strong>
+                        <small>{suiteMetrics.questions} preguntas · {suiteMetrics.sections} secciones</small>
+                      </div>
+                      <div className="pulso-xlsform-outline-actions" style={{ position: "relative" }}>
                         <button
                           type="button"
                           className="pulso-icon"
@@ -2306,8 +2329,7 @@ export default function XlsformEditorPage() {
                           />
                         )}
                       </div>
-                    )}
-                  >
+                    </div>
                     <SurveyOutline
                       structure={structure}
                       selection={selection}
@@ -2632,6 +2654,129 @@ function AddElementMenu({
         </button>
       ))}
     </div>
+  );
+}
+
+type SuiteMetrics = {
+  pieces: number;
+  sections: number;
+  questions: number;
+  catalogs: number;
+  required: number;
+  logicRules: number;
+  warnings: number;
+  infos: number;
+};
+
+function buildSuiteMetrics(
+  structure: BuilderStructure | null,
+  catalogsCount: number,
+  diagnostics: BuilderDiagnostic[],
+): SuiteMetrics {
+  const nodes = structure?.outline ?? [];
+  return {
+    pieces: nodes.length,
+    sections: nodes.filter((node) => node.kind === "section" || node.kind === "repeat").length,
+    questions: nodes.filter((node) => node.kind === "question" || node.kind === "note" || node.kind === "calculate").length,
+    catalogs: catalogsCount,
+    required: nodes.filter((node) => node.required).length,
+    logicRules: nodes.filter(
+      (node) =>
+        node.relevant?.trim() ||
+        node.constraint?.trim() ||
+        node.calculation?.trim() ||
+        node.choiceFilter?.trim(),
+    ).length,
+    warnings: diagnostics.filter((diagnostic) => diagnostic.level === "warn").length,
+    infos: diagnostics.filter((diagnostic) => diagnostic.level === "info").length,
+  };
+}
+
+function WorkbenchSuiteHeader({
+  mode,
+  busy,
+  status,
+  activeFocusLabel,
+  metrics,
+}: {
+  mode: "builder" | "sheets";
+  busy: string | null;
+  status: string;
+  activeFocusLabel: string;
+  metrics: SuiteMetrics;
+}) {
+  const modeLabel = mode === "builder" ? "Constructor profesional" : "Hojas técnicas";
+  const modeHint = mode === "builder"
+    ? "Diseño visual, outline e inspector trabajan como una sola cabina."
+    : "Edición tabular de celdas crudas con sincronización hacia el constructor.";
+  const validationLabel = metrics.warnings > 0
+    ? `${metrics.warnings} por revisar`
+    : "Sin avisos";
+
+  return (
+    <div className="pulso-xlsform-suite-header">
+      <div className="pulso-xlsform-suite-identity">
+        <span className="pulso-xlsform-suite-icon" aria-hidden="true">
+          {mode === "builder" ? <Layers3 size={16} /> : <FileSpreadsheet size={16} />}
+        </span>
+        <div>
+          <span className="pulso-section-eyebrow">Suite de formulario</span>
+          <strong>{modeLabel}</strong>
+          <small>{busy || status || modeHint}</small>
+        </div>
+      </div>
+
+      <div className="pulso-xlsform-suite-rail" aria-label="Estado del formulario">
+        <SuiteMetricItem
+          icon={<ListChecks size={14} />}
+          value={metrics.questions}
+          label="preguntas"
+        />
+        <SuiteMetricItem
+          icon={<GitBranch size={14} />}
+          value={metrics.logicRules}
+          label="lógica"
+        />
+        <SuiteMetricItem
+          icon={<FileSpreadsheet size={14} />}
+          value={metrics.catalogs}
+          label="catálogos"
+        />
+        <SuiteMetricItem
+          icon={<ShieldCheck size={14} />}
+          value={validationLabel}
+          label={metrics.infos > 0 ? `${metrics.infos} notas` : "calidad"}
+          tone={metrics.warnings > 0 ? "warn" : "success"}
+        />
+      </div>
+
+      <div className="pulso-xlsform-suite-focus" title={activeFocusLabel}>
+        <span>Foco</span>
+        <strong>{activeFocusLabel}</strong>
+      </div>
+    </div>
+  );
+}
+
+function SuiteMetricItem({
+  icon,
+  value,
+  label,
+  tone = "neutral",
+}: {
+  icon: ReactNode;
+  value: ReactNode;
+  label: string;
+  tone?: "neutral" | "warn" | "success";
+}) {
+  return (
+    <span className={`pulso-xlsform-suite-metric is-${tone}`}>
+      <span className="pulso-xlsform-suite-metric-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </span>
   );
 }
 
