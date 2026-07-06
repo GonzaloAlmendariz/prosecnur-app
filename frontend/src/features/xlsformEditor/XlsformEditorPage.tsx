@@ -2753,6 +2753,9 @@ function WorkbenchSuiteHeader({
       <div className="pulso-xlsform-suite-focus" title={activeFocusLabel}>
         <span>Foco</span>
         <strong>{activeFocusLabel}</strong>
+        <small>
+          {metrics.pieces} piezas · {metrics.required} obligatorias
+        </small>
       </div>
     </div>
   );
