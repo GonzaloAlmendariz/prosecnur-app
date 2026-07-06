@@ -1751,6 +1751,7 @@ function CargaBaseSheetPane({
         sourceLabel={sourceLabel}
         enabled={enabled}
         disabledMessage={disabledMessage}
+        highlightCoding
         request={activeBase ? { base_nombre: activeBase.nombre } : undefined}
         load={apiCargaBaseSheet}
       />

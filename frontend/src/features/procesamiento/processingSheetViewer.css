@@ -3,6 +3,7 @@
   --sheet-sm: #2f9e44;
   --sheet-so: #1d74d8;
   --sheet-text: #c59a13;
+  --sheet-text-sm: #8fa529;
   --sheet-border: color-mix(in srgb, var(--module-accent-border, var(--pulso-border)) 58%, var(--pulso-border));
   --sheet-soft: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 58%, #fff 42%);
   background:
@@ -250,6 +251,7 @@
 .pulso-processing-sheet-legend .is-sm { --legend-color: var(--sheet-sm); }
 .pulso-processing-sheet-legend .is-so { --legend-color: var(--sheet-so); }
 .pulso-processing-sheet-legend .is-text { --legend-color: var(--sheet-text); }
+.pulso-processing-sheet-legend .is-text-sm { --legend-color: var(--sheet-text-sm); }
 
 .pulso-processing-sheet-loading {
   align-content: center;
@@ -602,6 +604,7 @@
 .pulso-processing-sheet-table .is-coded.is-sm { --sheet-kind: var(--sheet-sm); }
 .pulso-processing-sheet-table .is-coded.is-so { --sheet-kind: var(--sheet-so); }
 .pulso-processing-sheet-table .is-coded.is-text { --sheet-kind: var(--sheet-text); }
+.pulso-processing-sheet-table .is-coded.is-text-sm { --sheet-kind: var(--sheet-text-sm); }
 
 .pulso-processing-sheet-table thead th.is-coded {
   background: color-mix(in srgb, var(--sheet-kind) 10%, #fff 90%);

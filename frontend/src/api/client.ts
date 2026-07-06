@@ -3579,6 +3579,8 @@ export type ProcessingSheetColumn = {
   type: string;
   type_base: string;
   type_kind: ProcessingSheetTypeKind;
+  source_type_base?: string | null;
+  source_type_kind?: ProcessingSheetTypeKind | "" | null;
   coded: boolean;
   is_recoded?: boolean;
   raw_parent?: string | null;
