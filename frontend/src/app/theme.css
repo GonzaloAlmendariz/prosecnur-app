@@ -34590,6 +34590,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex-direction: column;
   gap: 6px;
   min-width: 292px;
+  max-height: min(650px, calc(100dvh - 150px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 50;
 }
 .pulso-canvas-addbetween-menu-eyebrow {
@@ -38112,6 +38115,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   padding: 7px;
   border: 1px solid var(--xls-border, var(--pulso-border));
   border-radius: 12px;
+  max-height: min(650px, calc(100dvh - 150px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   transform-origin: top right;
   animation: pulso-xls-popover-in 170ms var(--motion-ease-out) both;
 }

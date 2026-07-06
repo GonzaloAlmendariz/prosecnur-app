@@ -19,6 +19,12 @@ import {
   Calculator,
   FolderPlus,
   ChevronLeft,
+  ImagePlus,
+  Mic,
+  Video,
+  File,
+  QrCode,
+  MapPin,
 } from "lucide-react";
 
 export type AddBetweenKind =
@@ -29,6 +35,12 @@ export type AddBetweenKind =
   | "integer"
   | "decimal"
   | "date"
+  | "image"
+  | "audio"
+  | "video"
+  | "file"
+  | "barcode"
+  | "geopoint"
   | "note"
   | "calculate";
 
@@ -59,7 +71,7 @@ const TYPES: Array<{
   label: string;
   icon: typeof TypeIcon;
   hint: string;
-  group: "capture" | "choices" | "logic";
+  group: "capture" | "choices" | "evidence" | "logic";
 }> = [
   { kind: "text", label: "Texto", icon: TypeIcon, hint: "Respuesta abierta, nombres, códigos o comentarios", group: "capture" },
   { kind: "integer", label: "Número entero", icon: Hash, hint: "Cantidades, edades o puntajes sin decimales", group: "capture" },
@@ -67,6 +79,12 @@ const TYPES: Array<{
   { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Día, periodo o hito del levantamiento", group: "capture" },
   { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una opción desde una lista Kobo", group: "choices" },
   { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones desde una lista Kobo", group: "choices" },
+  { kind: "image", label: "Foto o imagen", icon: ImagePlus, hint: "Evidencia visual desde cámara o archivo", group: "evidence" },
+  { kind: "audio", label: "Audio", icon: Mic, hint: "Grabación de voz o sonido en campo", group: "evidence" },
+  { kind: "video", label: "Video", icon: Video, hint: "Registro audiovisual corto", group: "evidence" },
+  { kind: "file", label: "Archivo", icon: File, hint: "Documento u otro adjunto", group: "evidence" },
+  { kind: "barcode", label: "Código de barras", icon: QrCode, hint: "Lectura de código o QR", group: "evidence" },
+  { kind: "geopoint", label: "Punto GPS", icon: MapPin, hint: "Ubicación puntual del levantamiento", group: "evidence" },
   { kind: "note", label: "Nota informativa", icon: MessageSquare, hint: "Instrucción visible sin guardar respuesta", group: "logic" },
   { kind: "calculate", label: "Campo automático", icon: Calculator, hint: "Variable calculada con una fórmula XLSForm", group: "logic" },
   { kind: "section", label: "Sección", icon: FolderPlus, hint: "Bloque para ordenar preguntas y aplicar lógica común", group: "logic" },
@@ -75,6 +93,7 @@ const TYPES: Array<{
 const GROUPS: Array<{ id: (typeof TYPES)[number]["group"]; label: string }> = [
   { id: "capture", label: "Texto y captura" },
   { id: "choices", label: "Opciones Kobo" },
+  { id: "evidence", label: "Evidencia y ubicación" },
   { id: "logic", label: "Estructura y lógica" },
 ];
 
