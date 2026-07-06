@@ -1663,7 +1663,7 @@ export default function XlsformEditorPage() {
    */
   function handleAddAfter(
     afterRowIndex: number | null,
-    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "date" | "note" | "calculate",
+    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "note" | "calculate",
     reuseListName?: string,
   ) {
     if (kind === "section") addSection(afterRowIndex);

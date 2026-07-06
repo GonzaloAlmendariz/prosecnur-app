@@ -27,6 +27,7 @@ export type AddBetweenKind =
   | "select_one"
   | "select_multiple"
   | "integer"
+  | "decimal"
   | "date"
   | "note"
   | "calculate";
@@ -61,7 +62,8 @@ const TYPES: Array<{
   group: "capture" | "choices" | "logic";
 }> = [
   { kind: "text", label: "Texto", icon: TypeIcon, hint: "Respuesta abierta, nombres, códigos o comentarios", group: "capture" },
-  { kind: "integer", label: "Número", icon: Hash, hint: "Cantidad o medida que luego puede validarse", group: "capture" },
+  { kind: "integer", label: "Número entero", icon: Hash, hint: "Cantidades, edades o puntajes sin decimales", group: "capture" },
+  { kind: "decimal", label: "Número decimal", icon: Hash, hint: "Montos, porcentajes o medidas con decimales", group: "capture" },
   { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Día, periodo o hito del levantamiento", group: "capture" },
   { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una opción desde una lista Kobo", group: "choices" },
   { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones desde una lista Kobo", group: "choices" },
