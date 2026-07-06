@@ -1391,6 +1391,14 @@ export default function XlsformEditorPage() {
     });
   }
 
+  function updateSurveyFields(rowIndex: number, updates: Record<string, string>) {
+    updateWorkbook((draft) => {
+      for (const [field, value] of Object.entries(updates)) {
+        setCell(draft.survey, rowIndex, field, value);
+      }
+    });
+  }
+
   function updateSettingsField(field: string, value: string) {
     updateWorkbook((draft) => {
       if (!draft.settings.rows.length) {
@@ -2377,6 +2385,10 @@ export default function XlsformEditorPage() {
                     onFieldChange={(field, value) => {
                       if (!selectedNode) return;
                       updateSurveyField(selectedNode.rowIndex, field, value);
+                    }}
+                    onFieldsChange={(updates) => {
+                      if (!selectedNode) return;
+                      updateSurveyFields(selectedNode.rowIndex, updates);
                     }}
                     onTypeChange={(value) => {
                       if (!selectedNode) return;

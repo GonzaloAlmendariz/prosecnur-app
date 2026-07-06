@@ -58,15 +58,22 @@ const TYPES: Array<{
   label: string;
   icon: typeof TypeIcon;
   hint: string;
+  group: "capture" | "choices" | "logic";
 }> = [
-  { kind: "text", label: "Texto", icon: TypeIcon, hint: "Pregunta de respuesta abierta" },
-  { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una sola opción a elegir" },
-  { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones a elegir" },
-  { kind: "integer", label: "Número", icon: Hash, hint: "Cantidad o medida numérica" },
-  { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Captura de fecha" },
-  { kind: "note", label: "Nota informativa", icon: MessageSquare, hint: "Texto que solo se muestra al encuestador" },
-  { kind: "calculate", label: "Campo automático", icon: Calculator, hint: "Se completa con una fórmula" },
-  { kind: "section", label: "Sección", icon: FolderPlus, hint: "Agrupa varias preguntas relacionadas" },
+  { kind: "text", label: "Texto", icon: TypeIcon, hint: "Respuesta abierta, nombres, códigos o comentarios", group: "capture" },
+  { kind: "integer", label: "Número", icon: Hash, hint: "Cantidad o medida que luego puede validarse", group: "capture" },
+  { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Día, periodo o hito del levantamiento", group: "capture" },
+  { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una opción desde una lista Kobo", group: "choices" },
+  { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones desde una lista Kobo", group: "choices" },
+  { kind: "note", label: "Nota informativa", icon: MessageSquare, hint: "Instrucción visible sin guardar respuesta", group: "logic" },
+  { kind: "calculate", label: "Campo automático", icon: Calculator, hint: "Variable calculada con una fórmula XLSForm", group: "logic" },
+  { kind: "section", label: "Sección", icon: FolderPlus, hint: "Bloque para ordenar preguntas y aplicar lógica común", group: "logic" },
+];
+
+const GROUPS: Array<{ id: (typeof TYPES)[number]["group"]; label: string }> = [
+  { id: "capture", label: "Texto y captura" },
+  { id: "choices", label: "Opciones Kobo" },
+  { id: "logic", label: "Estructura y lógica" },
 ];
 
 type Stage =
@@ -138,23 +145,30 @@ export function AddBetween({
       {open && stage.kind === "type" && (
         <div className="pulso-canvas-addbetween-menu" role="menu">
           <span className="pulso-canvas-addbetween-menu-eyebrow">Insertar</span>
-          {TYPES.map(({ kind, label, icon: Icon, hint }) => (
-            <button
-              key={kind}
-              type="button"
-              role="menuitem"
-              className="pulso-canvas-addbetween-menu-item"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTypeClick(kind);
-              }}
-            >
-              <Icon size={14} />
-              <span>
-                <strong>{label}</strong>
-                <em>{hint}</em>
-              </span>
-            </button>
+          {GROUPS.map((group) => (
+            <div key={group.id} className="pulso-canvas-addbetween-group">
+              <span className="pulso-canvas-addbetween-group-title">{group.label}</span>
+              {TYPES.filter((type) => type.group === group.id).map(({ kind, label, icon: Icon, hint }) => (
+                <button
+                  key={kind}
+                  type="button"
+                  role="menuitem"
+                  className="pulso-canvas-addbetween-menu-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTypeClick(kind);
+                  }}
+                >
+                  <span className="pulso-canvas-addbetween-menu-icon">
+                    <Icon size={14} />
+                  </span>
+                  <span>
+                    <strong>{label}</strong>
+                    <em>{hint}</em>
+                  </span>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -184,7 +198,9 @@ export function AddBetween({
               setOpen(false);
             }}
           >
-            <Plus size={14} />
+            <span className="pulso-canvas-addbetween-menu-icon">
+              <Plus size={14} />
+            </span>
             <span>
               <strong>Crear lista nueva</strong>
               <em>Empieza de cero con una lista vacía</em>
@@ -205,7 +221,9 @@ export function AddBetween({
                 setOpen(false);
               }}
             >
-              <ListChecks size={14} />
+              <span className="pulso-canvas-addbetween-menu-icon">
+                <ListChecks size={14} />
+              </span>
               <span>
                 <strong>{list.listName}</strong>
                 <em>
