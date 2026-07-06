@@ -1016,6 +1016,7 @@ function RequiredControl({
     (conditionalContext.selfRelevant.length > 0 ||
       conditionalContext.ancestorRelevants.length > 0);
   const requiredMessage = node.required_message ?? "";
+  const messagePresets = REQUIRED_MESSAGE_PRESETS;
 
   return (
     <>
@@ -1090,11 +1091,61 @@ function RequiredControl({
             onChange={(event) => onFieldChange("required_message", event.target.value)}
             placeholder="Ej. Esta respuesta es necesaria para continuar."
           />
+          {node.required && (
+            <div className="pulso-focus-message-presets" aria-label="Mensajes sugeridos para respuesta faltante">
+              <div className="pulso-focus-message-presets-head">
+                <span className="pulso-section-eyebrow">Mensajes claros</span>
+                <strong>Texto listo para Kobo</strong>
+                <small>Elige un mensaje comprensible para campo, sin términos técnicos.</small>
+              </div>
+              <div className="pulso-focus-message-preset-grid">
+                {messagePresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className="pulso-focus-message-preset"
+                    onClick={() => onFieldChange("required_message", preset.message)}
+                    title={preset.hint}
+                  >
+                    <span className="pulso-focus-message-preset-icon">
+                      <CheckCircle2 size={12} />
+                    </span>
+                    <span className="pulso-focus-message-preset-copy">
+                      <strong>{preset.label}</strong>
+                      <small>{preset.hint}</small>
+                      <em>{preset.message}</em>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </InspectorField>
       )}
     </>
   );
 }
+
+const REQUIRED_MESSAGE_PRESETS = [
+  {
+    id: "continue",
+    label: "Necesaria para continuar",
+    hint: "Para campos obligatorios generales.",
+    message: "Esta respuesta es necesaria para continuar.",
+  },
+  {
+    id: "confirm",
+    label: "Confirmar con la persona",
+    hint: "Para datos que deben verificarse en campo.",
+    message: "Confirma esta información antes de avanzar.",
+  },
+  {
+    id: "analysis",
+    label: "Dato clave del análisis",
+    hint: "Para variables que no deberían quedar vacías.",
+    message: "Necesitamos este dato para completar el análisis.",
+  },
+] as const;
 
 function FocusedCatalogInfo({
   info,
