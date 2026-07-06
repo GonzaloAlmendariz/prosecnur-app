@@ -37444,6 +37444,116 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-weight: 800;
 }
 
+.pulso-focus-message-presets {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 34%, #ffffff);
+}
+
+.pulso-focus-message-presets-head {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-message-presets-head strong {
+  color: #1f2a3d;
+  font-size: 12.5px;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.pulso-focus-message-presets-head small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 640;
+  line-height: 1.35;
+}
+
+.pulso-focus-message-preset-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  gap: 6px;
+}
+
+.pulso-focus-message-preset {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #253149;
+  text-align: left;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-focus-message-preset-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 62%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-focus-message-preset-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-message-preset-copy strong,
+.pulso-focus-message-preset-copy small,
+.pulso-focus-message-preset-copy em {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-message-preset-copy strong {
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pulso-focus-message-preset-copy small {
+  color: #667386;
+  font-size: 10.5px;
+  font-weight: 640;
+  line-height: 1.25;
+}
+
+.pulso-focus-message-preset-copy em {
+  color: color-mix(in srgb, var(--pulso-success-fg) 74%, #253149);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
 .pulso-focus-data-note,
 .pulso-focus-soft-empty {
   padding: 10px;
@@ -37627,6 +37737,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   .pulso-focus-mode-toggle button:hover:not(.is-on),
   .pulso-focus-tabs button:hover:not(.is-active),
   .pulso-focus-validation-presets button:hover,
+  .pulso-focus-message-presets button:hover,
   .pulso-focus-shared-list button:hover,
   .pulso-focus-link-action:hover {
     border-color: var(--xls-border-strong);
@@ -37841,6 +37952,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-xlsform-frame .pulso-focus-danger-action:active:not(:disabled),
 .pulso-xlsform-frame .pulso-focus-link-action:active:not(:disabled),
 .pulso-xlsform-frame .pulso-focus-validation-presets button:active:not(:disabled),
+.pulso-xlsform-frame .pulso-focus-message-presets button:active:not(:disabled),
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button:active:not(:disabled),
 .pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled),
 .pulso-xlsform-frame .pulso-more-views-trigger:active:not(:disabled),
