@@ -78,6 +78,7 @@ export type FocusedWorkspaceProps = {
   onDelete: () => void;
   onSettingsChange: (field: string, value: string) => void;
   onFieldChange: (field: string, value: string) => void;
+  onFieldsChange: (updates: Record<string, string>) => void;
   onTypeChange: (next: string) => void;
   onRequiredChange: (checked: boolean) => void;
   onCatalogAssign: (listName: string) => void;
@@ -111,6 +112,7 @@ export function FocusedWorkspace({
   onDelete,
   onSettingsChange,
   onFieldChange,
+  onFieldsChange,
   onTypeChange,
   onRequiredChange,
   onCatalogAssign,
@@ -229,6 +231,7 @@ export function FocusedWorkspace({
             catalogs={catalogs}
             logicScope={logicScope}
             onFieldChange={onFieldChange}
+            onFieldsChange={onFieldsChange}
             onTypeChange={onTypeChange}
             onRequiredChange={onRequiredChange}
             onCatalogAssign={onCatalogAssign}
@@ -399,6 +402,7 @@ function FocusedSurveyWorkspace({
   catalogs,
   logicScope,
   onFieldChange,
+  onFieldsChange,
   onTypeChange,
   onRequiredChange,
   onCatalogAssign,
@@ -419,6 +423,7 @@ function FocusedSurveyWorkspace({
   catalogs: CatalogSummary[];
   logicScope: LogicScope;
   onFieldChange: (field: string, value: string) => void;
+  onFieldsChange: (updates: Record<string, string>) => void;
   onTypeChange: (next: string) => void;
   onRequiredChange: (checked: boolean) => void;
   onCatalogAssign: (listName: string) => void;
@@ -519,6 +524,7 @@ function FocusedSurveyWorkspace({
               scope={logicScope}
               conditionalContext={conditionalContext}
               onFieldChange={onFieldChange}
+              onFieldsChange={onFieldsChange}
             />
           )}
           {activeTab === "presentation" && (
@@ -1143,11 +1149,13 @@ function RulesTab({
   scope,
   conditionalContext,
   onFieldChange,
+  onFieldsChange,
 }: {
   node: BuilderNode;
   scope: LogicScope;
   conditionalContext?: ConditionalContext | null;
   onFieldChange: (field: string, value: string) => void;
+  onFieldsChange: (updates: Record<string, string>) => void;
 }) {
   const isSelect =
     node.typeInfo.base === "select_one" || node.typeInfo.base === "select_multiple";
@@ -1208,6 +1216,7 @@ function RulesTab({
             node={node}
             scope={scope}
             onFieldChange={onFieldChange}
+            onFieldsChange={onFieldsChange}
           />
           <CustomValidationPanel
             node={node}
@@ -1291,10 +1300,11 @@ function CustomValidationPanel({
 
   return (
     <details className="pulso-focus-custom-validation" open={openByDefault}>
-      <summary>Regla personalizada XLSForm</summary>
+      <summary>Regex o fórmula avanzada</summary>
       <p>
-        Usa este campo para pegar o escribir una fórmula completa, por ejemplo
-        regex, count-selected o una validación que venga de otro XLSForm.
+        Pega una regla completa cuando el atajo no alcance. Por ejemplo:
+        regex para patrones, count-selected para selección múltiple o una regla
+        importada desde otro XLSForm.
       </p>
       <InspectorField
         label="Fórmula de validación"
@@ -1435,10 +1445,12 @@ function ValidationSummary({
   node,
   scope,
   onFieldChange,
+  onFieldsChange,
 }: {
   node: BuilderNode;
   scope: LogicScope;
   onFieldChange: (field: string, value: string) => void;
+  onFieldsChange: (updates: Record<string, string>) => void;
 }) {
   const summary = describeValidation(node.constraint, node, scope);
   const presets = validationPresetsFor(node);
@@ -1461,20 +1473,40 @@ function ValidationSummary({
 
       {presets.length > 0 && (
         <div className="pulso-focus-validation-presets" aria-label="Validaciones sugeridas">
-          <span>Aplicar regla común</span>
-          <div>
+          <div className="pulso-focus-validation-presets-head">
+            <span className="pulso-section-eyebrow">Atajos Kobo</span>
+            <strong>Aplicar una regla común</strong>
+            <small>La regla técnica y el mensaje para el encuestado se completan juntos.</small>
+          </div>
+          <div className="pulso-focus-validation-preset-grid">
             {presets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
+                className="pulso-focus-validation-preset"
                 onClick={() => {
+                  if (preset.message) {
+                    onFieldsChange({
+                      constraint: preset.expression,
+                      constraint_message: preset.message,
+                    });
+                    return;
+                  }
                   onFieldChange("constraint", preset.expression);
-                  if (preset.message) onFieldChange("constraint_message", preset.message);
                 }}
                 title={preset.hint}
               >
-                <CheckCircle2 size={12} />
-                {preset.label}
+                <span className="pulso-focus-validation-preset-icon">
+                  <CheckCircle2 size={12} />
+                </span>
+                <span className="pulso-focus-validation-preset-copy">
+                  <strong>{preset.label}</strong>
+                  <small>{preset.hint}</small>
+                  {preset.message && <em>{preset.message}</em>}
+                </span>
+                {preset.expression.includes("regex(") && (
+                  <code className="pulso-focus-validation-preset-badge">regex</code>
+                )}
               </button>
             ))}
           </div>

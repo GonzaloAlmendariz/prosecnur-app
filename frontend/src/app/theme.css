@@ -34585,30 +34585,47 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 36, 87, 0.12);
-  padding: 6px;
+  padding: 7px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 240px;
+  gap: 6px;
+  min-width: 292px;
   z-index: 50;
 }
 .pulso-canvas-addbetween-menu-eyebrow {
   display: block;
-  padding: 6px 10px 4px;
+  padding: 6px 10px 0;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
 }
+.pulso-canvas-addbetween-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 64%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-surface-2, #f4f7fb) 62%, #ffffff);
+}
+.pulso-canvas-addbetween-group-title {
+  padding: 2px 5px 4px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1.2;
+}
 .pulso-canvas-addbetween-menu-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 8px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.62);
+  border-radius: 8px;
   cursor: pointer;
   text-align: left;
   color: var(--pulso-text);
@@ -34617,12 +34634,21 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-canvas-addbetween-menu-item:hover {
   background: var(--pulso-surface-2, rgba(0, 36, 87, 0.05));
 }
-.pulso-canvas-addbetween-menu-item svg {
-  margin-top: 1px;
-  color: var(--pulso-primary);
+.pulso-canvas-addbetween-menu-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
 }
-.pulso-canvas-addbetween-menu-item span {
+.pulso-canvas-addbetween-menu-item svg {
+  color: currentColor;
+}
+.pulso-canvas-addbetween-menu-item > span:not(.pulso-canvas-addbetween-menu-icon) {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -36256,6 +36282,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   white-space: nowrap;
 }
 
+.pulso-xlsform-suite-identity small {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .pulso-xlsform-suite-rail {
   min-width: 0;
   display: grid;
@@ -37285,40 +37316,132 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.pulso-focus-validation-presets > span {
-  color: #667386;
-  font-size: 10.5px;
-  font-weight: 760;
-  text-transform: uppercase;
-}
-
-.pulso-focus-validation-presets > div {
+.pulso-focus-validation-presets-head {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.pulso-focus-validation-presets button {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 8px;
+.pulso-focus-validation-presets-head strong {
+  color: #1f2a3d;
+  font-size: 12.5px;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.pulso-focus-validation-presets-head small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 640;
+  line-height: 1.35;
+}
+
+.pulso-focus-validation-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  min-width: 0;
+  gap: 7px;
+}
+
+.pulso-focus-validation-preset {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 9px;
   border: 1px solid var(--xls-border);
-  border-radius: 7px;
-  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.82)),
+    #ffffff;
   color: #253149;
-  font-size: 11.5px;
-  font-weight: 720;
+  text-align: left;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
     transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-focus-validation-preset-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 22%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 58%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-focus-validation-preset-copy {
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-validation-preset-copy strong {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-validation-preset-copy small {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  color: #667386;
+  font-size: 10.5px;
+  font-weight: 640;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-validation-preset-copy em {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  color: color-mix(in srgb, var(--pulso-success-fg) 76%, #253149);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 720;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-validation-preset-badge {
+  justify-self: end;
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
+  color: var(--pulso-primary);
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .pulso-focus-data-note,
