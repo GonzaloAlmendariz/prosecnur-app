@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 import type { ProcessingSheetColumn } from "../../api/client";
-import { isRecodedColumn, orderColumnsForCoding } from "./ProcessingSheetViewer";
+import {
+  columnDisplayKind,
+  columnKindLabel,
+  isOpenTextMultipleRecodColumn,
+  isRecodedColumn,
+  isSelectMultipleDummyColumn,
+  orderColumnsForCoding,
+} from "./ProcessingSheetViewer";
 
 describe("ProcessingSheetViewer helpers", () => {
   test("detects recoded columns without coloring original variables", () => {
@@ -49,6 +56,40 @@ describe("ProcessingSheetViewer helpers", () => {
       "p4",
       "p4_other_recod",
     ]);
+  });
+
+  test("treats select-multiple dummies as multiple values for visual coding", () => {
+    expect(isSelectMultipleDummyColumn(column("p34.5", { dummy_parent: "p34", type_kind: "sm" }))).toBe(true);
+    expect(isSelectMultipleDummyColumn(column("p34_recod.5", { type_kind: "other" }))).toBe(true);
+    expect(isSelectMultipleDummyColumn(column("p34/5_recod", { type_kind: "other" }))).toBe(true);
+    expect(isSelectMultipleDummyColumn(column("p34_recod", { type_kind: "text" }))).toBe(false);
+
+    expect(columnDisplayKind(column("p34_recod.5", { type_kind: "other" }))).toBe("sm");
+    expect(columnDisplayKind(column("p35_recod", { type_kind: "text" }))).toBe("text");
+  });
+
+  test("labels open-text recodes expanded as multiple categories with the hybrid tone", () => {
+    const textToMultiple = column("p35_recod.1", {
+      type: "text",
+      type_base: "dummy_select_multiple",
+      type_kind: "sm",
+      is_recoded: true,
+      source_type_kind: "text",
+      dummy_parent: "p35",
+    });
+    const nativeMultiple = column("p34_recod.1", {
+      type: "select_multiple p34",
+      type_base: "dummy_select_multiple",
+      type_kind: "sm",
+      is_recoded: true,
+      source_type_kind: "sm",
+      dummy_parent: "p34",
+    });
+
+    expect(isOpenTextMultipleRecodColumn(textToMultiple)).toBe(true);
+    expect(columnKindLabel(textToMultiple)).toBe("Abierta a múltiple");
+    expect(isOpenTextMultipleRecodColumn(nativeMultiple)).toBe(false);
+    expect(columnKindLabel(nativeMultiple)).toBe("Múltiple");
   });
 });
 

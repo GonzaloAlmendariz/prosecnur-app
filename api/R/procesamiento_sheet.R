@@ -49,17 +49,44 @@
 }
 
 .procesamiento_sheet_dummy_meta <- function(col, survey_meta) {
-  if (!grepl("/", col, fixed = TRUE)) return(NULL)
-  parent <- sub("/.*$", "", col)
-  code <- sub("^.*/", "", col)
-  candidates <- unique(c(
-    parent,
-    sub("(_recod|_sm|_filtro|_aux|_tmp)$", "", parent)
-  ))
-  for (candidate in candidates) {
-    meta <- survey_meta[[candidate]] %||% NULL
-    if (is.null(meta) || !identical(meta$type_base, "select_multiple")) next
-    return(c(meta, list(dummy_parent = candidate, dummy_code = code)))
+  col <- .procesamiento_sheet_scalar(col, "")
+  if (!nzchar(col)) return(NULL)
+
+  recod_dot <- regmatches(col, regexec("^(.+)_recod\\.([^./]+)$", col, perl = TRUE))[[1]]
+  if (length(recod_dot) >= 3L) {
+    parent <- recod_dot[2]
+    code <- recod_dot[3]
+    meta <- survey_meta[[parent]] %||% list(name = parent, label = parent, type = "", type_base = "")
+    return(c(meta, list(dummy_parent = parent, dummy_code = code, dummy_recoded = TRUE)))
+  }
+
+  dot_dummy <- regmatches(col, regexec("^(.+)\\.([^./]+)$", col, perl = TRUE))[[1]]
+  if (length(dot_dummy) >= 3L) {
+    parent <- dot_dummy[2]
+    code <- dot_dummy[3]
+    meta <- survey_meta[[parent]] %||% NULL
+    if (!is.null(meta) && identical(meta$type_base, "select_multiple")) {
+      return(c(meta, list(dummy_parent = parent, dummy_code = code)))
+    }
+  }
+
+  if (grepl("/", col, fixed = TRUE)) {
+    parent <- sub("/.*$", "", col)
+    code <- sub("^.*/", "", col)
+    code_clean <- sub("_recod$", "", code, ignore.case = TRUE, perl = TRUE)
+    candidates <- unique(c(
+      parent,
+      sub("(_recod|_sm|_filtro|_aux|_tmp)$", "", parent)
+    ))
+    for (candidate in candidates) {
+      meta <- survey_meta[[candidate]] %||% NULL
+      if (is.null(meta) || !identical(meta$type_base, "select_multiple")) next
+      return(c(meta, list(
+        dummy_parent = candidate,
+        dummy_code = code_clean,
+        dummy_recoded = grepl("_recod$", code, ignore.case = TRUE, perl = TRUE)
+      )))
+    }
   }
   NULL
 }
@@ -108,22 +135,35 @@
 .procesamiento_sheet_column_meta <- function(data, inst, coded = FALSE) {
   survey_meta <- .procesamiento_sheet_survey_meta(inst)
   lapply(names(data), function(col) {
+    raw_parent <- .procesamiento_sheet_raw_parent_for_recod(col)
     direct <- survey_meta[[col]] %||% NULL
     dummy <- .procesamiento_sheet_dummy_meta(col, survey_meta)
-    meta <- direct %||% dummy %||% list(name = col, label = "", type = "", type_base = "")
+    recoded_parent <- if (!is.null(raw_parent)) survey_meta[[raw_parent]] %||% NULL else NULL
+    meta <- direct %||% dummy %||% recoded_parent %||% list(name = col, label = "", type = "", type_base = "")
     label <- attr(data[[col]], "label", exact = TRUE) %||% meta$label %||% col
     label <- .procesamiento_sheet_scalar(label, col)
     type_base <- meta$type_base %||% ""
     if (!is.null(dummy)) type_base <- "dummy_select_multiple"
     kind <- .procesamiento_sheet_type_kind(type_base, col)
-    raw_parent <- .procesamiento_sheet_raw_parent_for_recod(col)
-    is_recoded <- isTRUE(coded) && !is.null(raw_parent)
+    is_recoded <- !is.null(raw_parent) || isTRUE(dummy$dummy_recoded %||% FALSE)
+    source_type_base <- ""
+    if (!is.null(dummy)) source_type_base <- dummy$type_base %||% ""
+    if (!is.null(raw_parent) && !is.null(recoded_parent)) {
+      source_type_base <- recoded_parent$type_base %||% source_type_base
+    }
+    source_type_kind <- if (nzchar(source_type_base)) {
+      .procesamiento_sheet_type_kind(source_type_base, raw_parent %||% "")
+    } else {
+      ""
+    }
     list(
       key = col,
       label = label,
       type = meta$type %||% type_base,
       type_base = type_base,
       type_kind = kind,
+      source_type_base = source_type_base,
+      source_type_kind = source_type_kind,
       coded = is_recoded && kind %in% c("integer", "sm", "so", "text"),
       is_recoded = is_recoded,
       raw_parent = raw_parent %||% "",

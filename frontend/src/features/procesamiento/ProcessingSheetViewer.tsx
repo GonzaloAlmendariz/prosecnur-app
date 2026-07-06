@@ -30,6 +30,7 @@ const KIND_LABELS: Record<ProcessingSheetColumn["type_kind"], string> = {
   text: "Texto",
   other: "Otro",
 };
+const TEXT_TO_MULTIPLE_LABEL = "Abierta a múltiple";
 
 export function ProcessingSheetViewer({
   title,
@@ -121,7 +122,8 @@ export function ProcessingSheetViewer({
     () => Object.values(columnFilters).some((value) => value.trim().length > 0) || search.trim().length > 0,
     [columnFilters, search],
   );
-  const hasCodingLegend = highlightCoding && columns.some((column) => isRecodedColumn(column));
+  const hasCodingLegend = highlightCoding && columns.some((column) => isColumnWithKindColor(column));
+  const hasOpenTextMultipleLegend = highlightCoding && columns.some((column) => isOpenTextMultipleRecodColumn(column));
   const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
 
   function resetFilters() {
@@ -248,13 +250,19 @@ export function ProcessingSheetViewer({
             <i aria-hidden="true" />
             Variables originales
           </span>
-          <em>Solo recodificadas usan color</em>
+          <em>Recodificadas y dummies múltiples usan color</em>
           {(["integer", "sm", "so", "text"] as const).map((kind) => (
             <span key={kind} className={`is-${kind}`}>
               <i aria-hidden="true" />
               {KIND_LABELS[kind]}
             </span>
           ))}
+          {hasOpenTextMultipleLegend && (
+            <span className="is-text-sm">
+              <i aria-hidden="true" />
+              {TEXT_TO_MULTIPLE_LABEL}
+            </span>
+          )}
         </div>
       )}
 
@@ -303,19 +311,20 @@ export function ProcessingSheetViewer({
                   </th>
                   {columns.map((column) => {
                     const sorted = sort?.col === column.key;
+                    const displayKind = columnDisplayKind(column);
                     return (
                       <th
                         key={column.key}
                         className={columnClass(column, highlightCoding)}
-                        data-kind={column.type_kind}
+                        data-kind={displayKind}
                         aria-sort={sorted ? sort?.desc ? "descending" : "ascending" : "none"}
                         title={column.key}
                       >
                         <button type="button" onClick={() => toggleSort(column)}>
                           <span>{column.label || column.key}</span>
                           <small>{column.key}</small>
-                          {isRecodedColumn(column) && highlightCoding ? (
-                            <em>{KIND_LABELS[column.type_kind]}</em>
+                          {isColumnWithKindColor(column) && highlightCoding ? (
+                            <em>{columnKindLabel(column)}</em>
                           ) : null}
                         </button>
                       </th>
@@ -324,16 +333,19 @@ export function ProcessingSheetViewer({
                 </tr>
                 <tr className="pulso-processing-sheet-filter-row">
                   <th className="pulso-processing-sheet-rownum" />
-                  {columns.map((column) => (
-                    <th key={`filter-${column.key}`} className={columnClass(column, highlightCoding)} data-kind={column.type_kind}>
-                      <input
-                        type="text"
-                        value={columnFilters[column.key] ?? ""}
-                        onChange={(event) => setColumnFilter(column.key, event.target.value)}
-                        aria-label={`Filtrar ${column.label || column.key}`}
-                      />
-                    </th>
-                  ))}
+                  {columns.map((column) => {
+                    const displayKind = columnDisplayKind(column);
+                    return (
+                      <th key={`filter-${column.key}`} className={columnClass(column, highlightCoding)} data-kind={displayKind}>
+                        <input
+                          type="text"
+                          value={columnFilters[column.key] ?? ""}
+                          onChange={(event) => setColumnFilter(column.key, event.target.value)}
+                          aria-label={`Filtrar ${column.label || column.key}`}
+                        />
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -351,11 +363,12 @@ export function ProcessingSheetViewer({
                       </td>
                       {columns.map((column) => {
                         const value = row[column.key] ?? "";
+                        const displayKind = columnDisplayKind(column);
                         return (
                           <td
                             key={column.key}
                             className={columnClass(column, highlightCoding)}
-                            data-kind={column.type_kind}
+                            data-kind={displayKind}
                             title={value || undefined}
                           >
                             <span className="pulso-processing-sheet-cell-text">{value}</span>
@@ -420,12 +433,60 @@ export function ProcessingSheetViewer({
 }
 
 function columnClass(column: ProcessingSheetColumn, highlightCoding: boolean) {
-  const recoded = isRecodedColumn(column);
+  const colorized = isColumnWithKindColor(column);
+  const kindClass = isOpenTextMultipleRecodColumn(column) ? "is-text-sm" : `is-${columnDisplayKind(column)}`;
   return [
-    highlightCoding && !recoded ? "is-original" : "",
-    highlightCoding && recoded ? "is-coded" : "",
-    highlightCoding && recoded ? `is-${column.type_kind}` : "",
+    highlightCoding && !colorized ? "is-original" : "",
+    highlightCoding && colorized ? "is-coded" : "",
+    highlightCoding && colorized ? kindClass : "",
+    highlightCoding && isSelectMultipleDummyColumn(column) ? "is-sm-dummy" : "",
   ].filter(Boolean).join(" ");
+}
+
+type ProcessingSheetVisualColumn = Pick<ProcessingSheetColumn, "key" | "type_kind"> &
+  Partial<Pick<ProcessingSheetColumn, "dummy_parent" | "is_recoded" | "source_type_base" | "source_type_kind" | "type" | "type_base">>;
+
+export function columnDisplayKind(column: ProcessingSheetVisualColumn): ProcessingSheetColumn["type_kind"] {
+  if (column.type_kind !== "other") return column.type_kind;
+  if (isSelectMultipleDummyColumn(column)) return "sm";
+  return column.type_kind;
+}
+
+export function columnKindLabel(column: ProcessingSheetVisualColumn) {
+  if (isOpenTextMultipleRecodColumn(column)) return TEXT_TO_MULTIPLE_LABEL;
+  return KIND_LABELS[columnDisplayKind(column)];
+}
+
+export function isSelectMultipleDummyColumn(
+  column: Pick<ProcessingSheetColumn, "key"> & Partial<Pick<ProcessingSheetColumn, "dummy_parent">>,
+) {
+  if (typeof column.dummy_parent === "string" && column.dummy_parent.trim()) return true;
+  return /(?:^|[/._-])recod[._-][^/._-]+$/i.test(column.key) || /\/[^/]+_recod$/i.test(column.key);
+}
+
+export function isOpenTextMultipleRecodColumn(column: ProcessingSheetVisualColumn) {
+  if (columnDisplayKind(column) !== "sm" || !isRecodedColumn(column)) return false;
+  const sourceKind = column.source_type_kind || typeBaseKind(column.source_type_base || "");
+  const rawKind = typeBaseKind(column.type || "");
+  const baseKind = normalizeTypeBase(column.type_base || "");
+  return sourceKind === "text" || (rawKind === "text" && baseKind === "dummy_select_multiple");
+}
+
+function isColumnWithKindColor(column: ProcessingSheetVisualColumn) {
+  return isRecodedColumn(column) || isSelectMultipleDummyColumn(column);
+}
+
+function typeBaseKind(value: string) {
+  const base = normalizeTypeBase(value);
+  if (base === "text" || base === "string") return "text";
+  if (base === "select_multiple" || base === "dummy_select_multiple") return "sm";
+  if (base === "select_one") return "so";
+  if (base === "integer" || base === "decimal") return "integer";
+  return "";
+}
+
+function normalizeTypeBase(value: string) {
+  return String(value || "").trim().toLowerCase().replace(/\s+.*$/, "");
 }
 
 export function isRecodedColumn(column: Pick<ProcessingSheetColumn, "key"> & Partial<Pick<ProcessingSheetColumn, "is_recoded">>) {
