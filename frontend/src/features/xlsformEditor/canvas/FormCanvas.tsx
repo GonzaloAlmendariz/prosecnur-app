@@ -52,7 +52,7 @@ export type FormCanvasProps = {
    *  existente en lugar de crear una. */
   onAddAfter: (
     rowIndex: number | null,
-    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "note" | "calculate",
+    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "image" | "audio" | "video" | "file" | "barcode" | "geopoint" | "note" | "calculate",
     reuseListName?: string,
   ) => void;
   /** Listas existentes que el AddBetween ofrece reusar al crear un select. */

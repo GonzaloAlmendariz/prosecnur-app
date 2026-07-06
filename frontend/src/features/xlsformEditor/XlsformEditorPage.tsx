@@ -1663,7 +1663,7 @@ export default function XlsformEditorPage() {
    */
   function handleAddAfter(
     afterRowIndex: number | null,
-    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "note" | "calculate",
+    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "image" | "audio" | "video" | "file" | "barcode" | "geopoint" | "note" | "calculate",
     reuseListName?: string,
   ) {
     if (kind === "section") addSection(afterRowIndex);
@@ -2037,6 +2037,54 @@ export default function XlsformEditorPage() {
       icon: addMenuIcon("select_multiple"),
       action: () => addQuestion("select_multiple"),
       group: "choices",
+    },
+    {
+      key: "image",
+      label: "Foto o imagen",
+      hint: "Evidencia visual desde cámara o archivo.",
+      icon: addMenuIcon("image"),
+      action: () => addQuestion("image"),
+      group: "evidence",
+    },
+    {
+      key: "audio",
+      label: "Audio",
+      hint: "Grabación de voz o sonido en campo.",
+      icon: addMenuIcon("audio"),
+      action: () => addQuestion("audio"),
+      group: "evidence",
+    },
+    {
+      key: "video",
+      label: "Video",
+      hint: "Registro audiovisual corto.",
+      icon: addMenuIcon("video"),
+      action: () => addQuestion("video"),
+      group: "evidence",
+    },
+    {
+      key: "file",
+      label: "Archivo",
+      hint: "Documento u otro adjunto.",
+      icon: addMenuIcon("file"),
+      action: () => addQuestion("file"),
+      group: "evidence",
+    },
+    {
+      key: "barcode",
+      label: "Código de barras",
+      hint: "Lectura de código o QR.",
+      icon: addMenuIcon("barcode"),
+      action: () => addQuestion("barcode"),
+      group: "evidence",
+    },
+    {
+      key: "geopoint",
+      label: "Punto GPS",
+      hint: "Ubicación puntual del levantamiento.",
+      icon: addMenuIcon("geopoint"),
+      action: () => addQuestion("geopoint"),
+      group: "evidence",
     },
     {
       key: "note",
@@ -2656,6 +2704,7 @@ function AddElementMenu({
   const groups = [
     { id: "capture", label: "Texto y captura" },
     { id: "choices", label: "Opciones Kobo" },
+    { id: "evidence", label: "Evidencia y ubicación" },
     { id: "logic", label: "Estructura y lógica" },
   ] as const;
 
