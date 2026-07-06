@@ -547,3 +547,37 @@ test_that("normalize_data_for_xlsform preserva madre *_recod de select_multiple 
   expect_identical(out$p19_recod, raw$p19_recod)
   expect_true(isTRUE(compat$ok))
 })
+
+test_that("normalize_data_for_xlsform no descarta columnas que tambien son variables survey", {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_multiple lst_info", "text"),
+      name = c("D1_information", "D1_information_text"),
+      list_name = c("lst_info", ""),
+      label = c("Informacion", "Texto informacion"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_info",
+      name = "text",
+      label = "Texto",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  raw <- data.frame(
+    D1_information = c("text", NA),
+    D1_information_text = c("detalle", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  out <- normalize_data_for_xlsform(raw, inst)
+  compat <- validate_data_xlsform_compatibility(out, inst)
+
+  expect_true("D1_information_text" %in% names(out))
+  expect_identical(out$D1_information_text, raw$D1_information_text)
+  expect_identical(out$D1_information, raw$D1_information)
+  expect_true(isTRUE(compat$ok))
+})

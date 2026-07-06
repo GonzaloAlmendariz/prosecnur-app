@@ -2961,9 +2961,23 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
   key
 }
 
-.monitoreo_territorial_production_annulment_entry_id <- function(phase, responsible_key, created_at) {
+.monitoreo_territorial_production_annulment_scope <- function(value) {
+  scope <- .monitoreo_safe_name(.monitoreo_scalar(value, "all_production"))
+  if (scope %in% c("response", "single_response", "single_case", "case", "caso", "uuid", "response_id")) "response" else "all_production"
+}
+
+.monitoreo_territorial_production_annulment_response_key <- function(value) {
+  value <- as.character(value %||% "")
+  value[is.na(value)] <- ""
+  value <- trimws(value)
+  value <- sub("^uuid[:/]+", "", value, ignore.case = TRUE)
+  tolower(value)
+}
+
+.monitoreo_territorial_production_annulment_entry_id <- function(phase, annulment_key, created_at, scope = "all_production") {
   seed <- paste(.monitoreo_scalar(phase, "field"),
-                .monitoreo_scalar(responsible_key, ""),
+                .monitoreo_scalar(scope, "all_production"),
+                .monitoreo_scalar(annulment_key, ""),
                 .monitoreo_scalar(created_at, ""),
                 sep = "::")
   paste0("annul_", substr(digest::digest(seed, algo = "sha1"), 1, 16))
@@ -2972,6 +2986,7 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
 .monitoreo_territorial_normalize_production_annulment_entry <- function(item, phase = "field") {
   if (is.null(item) || !is.list(item)) return(NULL)
   phase <- .monitoreo_territorial_phase(item$phase %||% item$fase %||% phase, "field")
+  scope <- .monitoreo_territorial_production_annulment_scope(item$scope %||% item$ambito)
   status <- .monitoreo_safe_name(.monitoreo_scalar(item$status %||% item$estado, "active"))
   if (status %in% c("revertida", "inactive", "archived")) status <- "reverted"
   if (!status %in% c("active", "reverted")) status <- "active"
@@ -2987,19 +3002,33 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
   responsible_key <- .monitoreo_territorial_production_annulment_key(
     if (nzchar(responsible_key_raw)) responsible_key_raw else responsible_label
   )
-  if (!nzchar(responsible_key)) return(NULL)
-  if (!nzchar(responsible_label)) responsible_label <- responsible_key
+  response_id <- .monitoreo_scalar(.monitoreo_territorial_production_annulment_response_key(
+    item$response_id %||% item$responseId %||% item$uuid %||% item$`_uuid` %||% item$id_respuesta
+  ), "")
+  response_id_field <- .monitoreo_scalar(item$response_id_field %||% item$responseIdField %||% item$campo_uuid, "")
+  response_label <- .monitoreo_scalar(item$response_label %||% item$responseLabel %||% item$case_label %||% item$caso_label, "")
+  if (identical(scope, "response")) {
+    if (!nzchar(response_id)) return(NULL)
+    if (!nzchar(response_label)) response_label <- response_id
+  } else {
+    if (!nzchar(responsible_key)) return(NULL)
+    if (!nzchar(responsible_label)) responsible_label <- responsible_key
+  }
   id <- .monitoreo_scalar(item$id %||% item$annulment_id %||% item$annulmentId, "")
   if (!nzchar(id)) {
-    id <- .monitoreo_territorial_production_annulment_entry_id(phase, responsible_key, created_at)
+    annulment_key <- if (identical(scope, "response")) response_id else responsible_key
+    id <- .monitoreo_territorial_production_annulment_entry_id(phase, annulment_key, created_at, scope)
   }
   list(
     id = id,
     phase = phase,
     status = status,
-    scope = "all_production",
+    scope = scope,
     responsible_key = responsible_key,
     responsible_label = responsible_label,
+    response_id = response_id,
+    response_id_field = response_id_field,
+    response_label = response_label,
     reason = .monitoreo_scalar(item$reason %||% item$motivo, ""),
     note = .monitoreo_scalar(item$note %||% item$nota %||% item$comentario, ""),
     created_at = created_at,
@@ -3035,7 +3064,7 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
   normalize_bucket <- function(bucket, default_phase) {
     if (is.data.frame(bucket)) bucket <- lapply(seq_len(nrow(bucket)), function(i) as.list(bucket[i, , drop = FALSE]))
     if (!is.list(bucket)) return()
-    if (length(bucket) && !is.null(names(bucket)) && any(c("responsible_key", "responsibleKey", "responsible", "responsable") %in% names(bucket))) {
+    if (length(bucket) && !is.null(names(bucket)) && any(c("responsible_key", "responsibleKey", "responsible", "responsable", "response_id", "responseId", "uuid", "_uuid", "id_respuesta") %in% names(bucket))) {
       add_entry(bucket, default_phase)
       return()
     }
@@ -3058,9 +3087,12 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
   )
   entries <- annulments[[phase]] %||% list()
   Filter(function(entry) {
-    is.list(entry) &&
-      identical(.monitoreo_scalar(entry$status, ""), "active") &&
-      nzchar(.monitoreo_scalar(entry$responsible_key, ""))
+    if (!is.list(entry) || !identical(.monitoreo_scalar(entry$status, ""), "active")) return(FALSE)
+    scope <- .monitoreo_territorial_production_annulment_scope(entry$scope)
+    if (identical(scope, "response")) {
+      return(nzchar(.monitoreo_scalar(entry$response_id, "")))
+    }
+    nzchar(.monitoreo_scalar(entry$responsible_key, ""))
   }, entries)
 }
 
@@ -3084,16 +3116,45 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
   apply(combos, c(1, 2), .monitoreo_territorial_production_annulment_key)
 }
 
+.monitoreo_territorial_response_candidate_keys <- function(audit) {
+  n <- if (is.data.frame(audit)) nrow(audit) else 0L
+  if (!n) return(matrix(character(0), nrow = 0L, ncol = 0L))
+  get_col <- function(name) {
+    if (name %in% names(audit)) as.character(audit[[name]]) else NULL
+  }
+  cols <- c("response_id", "responseId", "_uuid", "uuid", "id_respuesta", "submission_uuid", "instance_id", "instanceID")
+  values <- lapply(cols, get_col)
+  values <- values[!vapply(values, is.null, logical(1))]
+  if (!length(values)) return(matrix(character(0), nrow = n, ncol = 0L))
+  do.call(cbind, lapply(values, .monitoreo_territorial_production_annulment_response_key))
+}
+
 .monitoreo_territorial_production_annulment_mask <- function(audit, tcfg, phase = "field") {
   n <- if (is.data.frame(audit)) nrow(audit) else 0L
   if (!n) return(rep(FALSE, n))
   entries <- .monitoreo_territorial_active_production_annulments(tcfg, phase)
-  keys <- unique(vapply(entries, function(entry) .monitoreo_scalar(entry$responsible_key, ""), character(1)))
+  if (!length(entries)) return(rep(FALSE, n))
+  mask <- rep(FALSE, n)
+  scopes <- vapply(entries, function(entry) .monitoreo_territorial_production_annulment_scope(entry$scope), character(1))
+  responsible_entries <- entries[scopes != "response"]
+  keys <- unique(vapply(responsible_entries, function(entry) .monitoreo_scalar(entry$responsible_key, ""), character(1)))
   keys <- keys[nzchar(keys)]
-  if (!length(keys)) return(rep(FALSE, n))
-  candidates <- .monitoreo_territorial_responsible_candidate_keys(audit)
-  if (!length(candidates)) return(rep(FALSE, n))
-  apply(candidates, 1, function(row) any(row %in% keys))
+  if (length(keys)) {
+    candidates <- .monitoreo_territorial_responsible_candidate_keys(audit)
+    if (length(candidates)) {
+      mask <- mask | apply(candidates, 1, function(row) any(row %in% keys))
+    }
+  }
+  response_entries <- entries[scopes == "response"]
+  response_keys <- unique(vapply(response_entries, function(entry) .monitoreo_scalar(entry$response_id, ""), character(1)))
+  response_keys <- response_keys[nzchar(response_keys)]
+  if (length(response_keys)) {
+    response_candidates <- .monitoreo_territorial_response_candidate_keys(audit)
+    if (length(response_candidates)) {
+      mask <- mask | apply(response_candidates, 1, function(row) any(row %in% response_keys))
+    }
+  }
+  mask
 }
 
 .monitoreo_territorial_annulment_chr <- function(df, aliases, default = "") {
@@ -3150,6 +3211,7 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
 .monitoreo_territorial_responsibles_for_annulment <- function(audit, tcfg, phase = "field") {
   if (!is.data.frame(audit) || !nrow(audit)) return(list())
   entries <- .monitoreo_territorial_active_production_annulments(tcfg, phase)
+  entries <- Filter(function(entry) !identical(.monitoreo_territorial_production_annulment_scope(entry$scope), "response"), entries)
   active_keys <- unique(vapply(entries, function(entry) .monitoreo_scalar(entry$responsible_key, ""), character(1)))
   labels <- as.character(audit$responsible_display %||% rep("", nrow(audit)))
   fallback <- as.character(audit$submitted_by %||% rep("", nrow(audit)))
@@ -3183,6 +3245,17 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
 
 .monitoreo_territorial_annulled_rows_payload <- function(audit) {
   if (!is.data.frame(audit) || !nrow(audit)) return(list())
+  if (!"response_id" %in% names(audit)) {
+    response_candidates <- .monitoreo_territorial_response_candidate_keys(audit)
+    audit$response_id <- if (length(response_candidates)) {
+      apply(response_candidates, 1, function(row) {
+        hit <- row[nzchar(row)]
+        if (length(hit)) hit[[1]] else ""
+      })
+    } else {
+      rep("", nrow(audit))
+    }
+  }
   audit$district <- .monitoreo_territorial_annulment_district(audit)
   audit$zone <- .monitoreo_territorial_annulment_chr(audit, c("advance_block_zona", "zone", "zona"))
   audit$advance_ump_label <- .monitoreo_territorial_annulment_ump(audit)
@@ -32280,7 +32353,9 @@ build_daily_progress_model <- function(data, config = list(), family = "generic"
     data.frame(
       `ID anulación` = as.character(entries$id %||% ""),
       Estado = as.character(entries$status %||% ""),
+      `Ámbito` = ifelse(as.character(entries$scope %||% "all_production") == "response", "Caso individual", "Responsable completo"),
       `Responsable Pulso` = as.character(entries$responsible_label %||% ""),
+      `ID respuesta` = as.character(entries$response_id %||% ""),
       `Motivo` = as.character(entries$reason %||% ""),
       Nota = as.character(entries$note %||% ""),
       `Fecha tacha` = as.character(entries$created_at %||% ""),

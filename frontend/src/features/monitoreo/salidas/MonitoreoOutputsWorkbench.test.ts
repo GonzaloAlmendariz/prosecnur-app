@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type {
+  MonitoreoProcessingHandoffResult,
   MonitoreoPublicationEvidencePackResult,
   MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
@@ -11,6 +12,9 @@ import {
   monitoreoOperationalPackageReviewForPublication,
   monitoreoOperationalPackageReviewSource,
   monitoreoOperationalPackageStatusKind,
+  monitoreoProcessingHandoffDetail,
+  monitoreoProcessingHandoffFileLinks,
+  preflightHasOnlyColdPerformanceWarnings,
 } from "./MonitoreoOutputsWorkbench";
 
 function reviewResult(
@@ -51,6 +55,55 @@ function reviewResult(
 }
 
 describe("MonitoreoOutputsWorkbench operational package status", () => {
+  test("treats cold performance as a non-blocking publication warning", () => {
+    expect(preflightHasOnlyColdPerformanceWarnings({
+      schema: "monitoreo_deliverables_preflight_v1",
+      generated_at: "2026-07-06T12:37:00Z",
+      family: "acreditacion",
+      audience: "client",
+      project: "ACRDCONTA",
+      cut: "2026-07-06T12:37:00Z",
+      source: "Motor canonico Prosecnur",
+      status: "warnings",
+      score: 93,
+      blocking_issues: [],
+      warnings: [{
+        code: "cold_performance_over_threshold",
+        severity: "warning",
+        message: "Cold generation performance exceeds the expected threshold.",
+      }],
+      scorecard: { status: "warnings", score: 93, blocking_count: 0, warning_count: 1 },
+    })).toBe(true);
+  });
+
+  test("keeps mixed warnings under regular review", () => {
+    expect(preflightHasOnlyColdPerformanceWarnings({
+      schema: "monitoreo_deliverables_preflight_v1",
+      generated_at: "2026-07-06T12:37:00Z",
+      family: "acreditacion",
+      audience: "client",
+      project: "ACRDCONTA",
+      cut: "2026-07-06T12:37:00Z",
+      source: "Motor canonico Prosecnur",
+      status: "warnings",
+      score: 86,
+      blocking_issues: [],
+      warnings: [
+        {
+          code: "cold_performance_over_threshold",
+          severity: "warning",
+          message: "Cold generation performance exceeds the expected threshold.",
+        },
+        {
+          code: "client_pii_or_internal_columns",
+          severity: "warning",
+          message: "Client deliverable contains internal or PII-like columns.",
+        },
+      ],
+      scorecard: { status: "warnings", score: 86, blocking_count: 0, warning_count: 2 },
+    })).toBe(false);
+  });
+
   test("blocks a review-ready territorial package when apply payload is missing", () => {
     const result = reviewResult({
       review: {
@@ -317,6 +370,87 @@ describe("MonitoreoOutputsWorkbench evidence pack highlights", () => {
         key: "publication_decision",
         label: "Decisión",
         downloadUrl: "/api/files/decision-json/download",
+      },
+    ]);
+  });
+});
+
+describe("MonitoreoOutputsWorkbench processing handoff package", () => {
+  test("summarizes processable rows and direct package links", () => {
+    const result = {
+      ok: true,
+      schema: "monitoreo_processing_handoff_v1",
+      universe: "processable",
+      included_statuses: ["validada", "revision"],
+      counts: {
+        exported_rows: 1283,
+        validada: 1028,
+        revision: 255,
+      },
+      file_id: "zip-file",
+      filename: "acnurcg-procesable-processing-handoff.zip",
+      size: 2048,
+      download_url: "/api/files/zip-file/download",
+      files: {
+        package: {
+          file_id: "zip-file",
+          filename: "acnurcg-procesable-processing-handoff.zip",
+          download_url: "/api/files/zip-file/download",
+        },
+        data_xlsx: {
+          file_id: "data-file",
+          filename: "acnurcg-procesable-data-procesamiento.xlsx",
+          download_url: "/api/files/data-file/download",
+        },
+        xlsform: {
+          file_id: "xlsform-file",
+          filename: "acnurcg-xlsform.xlsx",
+          download_url: "/api/files/xlsform-file/download",
+        },
+      },
+      would_mutate_pulso: false,
+    } as MonitoreoProcessingHandoffResult;
+
+    expect(monitoreoProcessingHandoffDetail(result)).toBe("1,283 filas · estatus validada + revision · 2 KB");
+    expect(monitoreoProcessingHandoffFileLinks(result)).toEqual([
+      {
+        key: "package",
+        label: "ZIP completo",
+        downloadUrl: "/api/files/zip-file/download",
+      },
+      {
+        key: "data_xlsx",
+        label: "Data XLSX",
+        downloadUrl: "/api/files/data-file/download",
+      },
+      {
+        key: "xlsform",
+        label: "XLSForm",
+        downloadUrl: "/api/files/xlsform-file/download",
+      },
+    ]);
+  });
+
+  test("omits package links that do not have a download URL yet", () => {
+    expect(monitoreoProcessingHandoffFileLinks({
+      ok: true,
+      schema: "monitoreo_processing_handoff_v1",
+      universe: "strict_validada",
+      included_statuses: ["validada"],
+      counts: { exported_rows: 12 },
+      file_id: "zip-file",
+      files: {
+        data_xlsx: {
+          file_id: "data-file",
+          filename: "data.xlsx",
+          download_url: "/api/files/data-file/download",
+        },
+      },
+    })).toEqual([
+      {
+        key: "data_xlsx",
+        label: "Data XLSX",
+        downloadUrl: "/api/files/data-file/download",
       },
     ]);
   });

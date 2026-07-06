@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Eye, Hash, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
   apiMonitoreoTerritorialProductionAnnulmentApply,
   apiMonitoreoTerritorialProductionAnnulmentPreview,
@@ -15,10 +15,28 @@ import { EmptyState } from "../../../../components/States";
 
 type TerritorialProductionAnnulmentRequest = {
   phase?: MonitoreoTerritorialPhase;
-  responsible_key: string;
+  scope?: "all_production" | "response";
+  responsible_key?: string;
   responsible_label?: string;
+  response_id?: string;
+  response_label?: string;
   reason?: string;
   note?: string;
+};
+
+type TerritorialProductionAnnulmentMode = "responsible" | "response";
+
+type TerritorialProductionAnnulmentCase = {
+  response_id: string;
+  label: string;
+  responsible_key?: string;
+  responsible_label?: string;
+  pulso_code?: string;
+  district?: string;
+  ump?: string;
+  validation_status?: string;
+  source_effective?: string;
+  latest_activity?: string;
 };
 
 type TerritorialProductionAnnulmentWorkspaceProps = {
@@ -33,19 +51,37 @@ export function TerritorialProductionAnnulmentWorkspace({
   onStateChange,
 }: TerritorialProductionAnnulmentWorkspaceProps) {
   const responsibles = useMemo(() => territorialProductionAnnulmentResponsibles(reports), [reports]);
+  const caseOptions = useMemo(() => territorialProductionAnnulmentCases(reports), [reports]);
   const activeEntries = useMemo(
     () => (reports.production_annulments?.entries ?? []).filter((entry) => stringOrEmpty(entry.status) === "active"),
     [reports.production_annulments?.entries],
   );
   const historyEntries = reports.production_annulments?.entries ?? [];
+  const [mode, setMode] = useState<TerritorialProductionAnnulmentMode>("responsible");
   const [selectedKey, setSelectedKey] = useState(() => responsibles.find((item) => item.status !== "anulado")?.key ?? responsibles[0]?.key ?? "");
+  const [responsibleQuery, setResponsibleQuery] = useState("");
+  const [responseId, setResponseId] = useState(() => caseOptions[0]?.response_id ?? "");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
   const [preview, setPreview] = useState<MonitoreoTerritorialProductionAnnulmentImpact | null>(null);
   const [localError, setLocalError] = useState("");
   const [saving, setSaving] = useState(false);
   const selectedResponsible = responsibles.find((item) => item.key === selectedKey) ?? responsibles[0] ?? null;
-  const alreadyAnnulled = !!activeEntries.find((entry) => entry.responsible_key === selectedKey);
+  const filteredResponsibles = useMemo(() => {
+    const query = normalizeMatch(responsibleQuery);
+    if (!query) return responsibles;
+    return responsibles.filter((item) => territorialProductionAnnulmentResponsibleSearchText(item).includes(query));
+  }, [responsibleQuery, responsibles]);
+  const visibleResponsibles = useMemo(() => {
+    if (!selectedResponsible) return filteredResponsibles;
+    if (filteredResponsibles.some((item) => item.key === selectedResponsible.key)) return filteredResponsibles;
+    return [selectedResponsible, ...filteredResponsibles];
+  }, [filteredResponsibles, selectedResponsible]);
+  const selectedCase = caseOptions.find((item) => territorialProductionAnnulmentResponseKey(item.response_id) === territorialProductionAnnulmentResponseKey(responseId)) ?? null;
+  const alreadyAnnulled = mode === "response"
+    ? !!activeEntries.find((entry) => stringOrEmpty(entry.scope) === "response" && territorialProductionAnnulmentResponseKey(entry.response_id) === territorialProductionAnnulmentResponseKey(responseId))
+    : !!activeEntries.find((entry) => stringOrEmpty(entry.scope || "all_production") !== "response" && entry.responsible_key === selectedKey);
+  const hasTarget = mode === "response" ? !!responseId.trim() : !!selectedResponsible;
   const blocks = preview?.blocks ?? [];
 
   useEffect(() => {
@@ -53,14 +89,40 @@ export function TerritorialProductionAnnulmentWorkspace({
   }, [responsibles, selectedKey]);
 
   useEffect(() => {
+    if (mode === "responsible" && !responsibles.length && caseOptions.length) setMode("response");
+  }, [caseOptions.length, mode, responsibles.length]);
+
+  useEffect(() => {
+    if (!responseId && caseOptions.length) setResponseId(caseOptions[0]!.response_id);
+  }, [caseOptions, responseId]);
+
+  useEffect(() => {
     setPreview(null);
     setLocalError("");
-  }, [selectedKey]);
+  }, [mode, selectedKey, responseId]);
 
   const requestPayload = (): TerritorialProductionAnnulmentRequest | null => {
+    if (mode === "response") {
+      const id = responseId.trim();
+      if (!id) {
+        setLocalError("Ingresa el UUID o ID de respuesta del caso.");
+        return null;
+      }
+      return {
+        phase: (phase === "pilot" ? "pilot" : "field") as MonitoreoTerritorialPhase,
+        scope: "response",
+        response_id: id,
+        response_label: selectedCase?.label ?? id,
+        responsible_key: selectedCase?.responsible_key,
+        responsible_label: selectedCase?.responsible_label,
+        reason,
+        note,
+      };
+    }
     if (!selectedResponsible) return null;
     return {
       phase: (phase === "pilot" ? "pilot" : "field") as MonitoreoTerritorialPhase,
+      scope: "all_production",
       responsible_key: selectedResponsible.key,
       responsible_label: selectedResponsible.label,
       reason,
@@ -87,10 +149,13 @@ export function TerritorialProductionAnnulmentWorkspace({
     const payload = requestPayload();
     if (!payload) return;
     if (!reason.trim()) {
-      setLocalError("Escribe un motivo antes de anular la producción.");
+      setLocalError("Escribe un motivo antes de registrar la anulación.");
       return;
     }
-    const ok = window.confirm(`Anular toda la producción de ${selectedResponsible?.label ?? "este responsable"}? Esta acción no borra Kobo y puede revertirse.`);
+    const targetLabel = mode === "response"
+      ? (selectedCase?.label ?? responseId.trim())
+      : `toda la producción de ${selectedResponsible?.label ?? "este responsable"}`;
+    const ok = window.confirm(`Anular ${targetLabel}? Esta acción no borra Kobo y puede revertirse.`);
     if (!ok) return;
     setSaving(true);
     setLocalError("");
@@ -125,7 +190,7 @@ export function TerritorialProductionAnnulmentWorkspace({
     }
   };
 
-  if (!responsibles.length) {
+  if (!responsibles.length && !caseOptions.length) {
     return (
       <EmptyState
         icon={<Trash2 size={18} />}
@@ -140,8 +205,8 @@ export function TerritorialProductionAnnulmentWorkspace({
       <header className="mon-production-annulments__hero">
         <div>
           <span><Trash2 size={14} /> Anulación auditada · Campo</span>
-          <strong>Tachar producción de un Responsable Pulso</strong>
-          <p>La tacha excluye sus respuestas de avance, cuotas, consultas, mapas y exportables normales. Kobo permanece intacto.</p>
+          <strong>Tachar producción o un caso por UUID</strong>
+          <p>La tacha excluye respuestas de avance, cuotas, consultas, mapas y exportables normales. Kobo permanece intacto.</p>
         </div>
         <div className="mon-production-annulments__chips" aria-label="Resumen de anulaciones">
           <span className="is-danger"><strong>{formatMetric(reports.production_annulments?.summary?.active ?? 0)}</strong><em>activas</em></span>
@@ -153,24 +218,78 @@ export function TerritorialProductionAnnulmentWorkspace({
       <div className="mon-production-annulments__grid">
         <section className="mon-production-annulments__control">
           <label>
-            <span>Responsable Pulso</span>
-            <select value={selectedKey} onChange={(event) => setSelectedKey(event.currentTarget.value)}>
-              {responsibles.map((item) => (
-                <option key={item.key} value={item.key}>
-                  {item.label} · {formatMetric(item.responses ?? 0)} respuestas · {formatMetric(item.valid_responses ?? 0)} válidas · {formatMetric(item.umps ?? 0)} UMP
-                </option>
-              ))}
+            <span>Tipo de anulación</span>
+            <select value={mode} onChange={(event) => setMode(event.currentTarget.value as TerritorialProductionAnnulmentMode)}>
+              <option value="responsible">Responsable completo</option>
+              <option value="response">Caso individual por UUID</option>
             </select>
           </label>
-          {selectedResponsible ? (
-            <div className="mon-production-annulments__responsible">
-              <strong>{selectedResponsible.label}</strong>
-              <span>
-                {formatMetric(selectedResponsible.responses ?? 0)} respuestas · {formatMetric(selectedResponsible.valid_responses ?? 0)} válidas · {formatMetric(selectedResponsible.umps ?? 0)} UMP · {selectedResponsible.districts || "sin distrito"}
-              </span>
-              {alreadyAnnulled ? <em>Ya tiene una anulación activa.</em> : null}
-            </div>
-          ) : null}
+          {mode === "responsible" ? (
+            <>
+              <label className="mon-production-annulments__responsible-picker">
+                <span>Responsable Pulso</span>
+                <div className="mon-production-annulments__search">
+                  <Search size={14} aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={responsibleQuery}
+                    onChange={(event) => setResponsibleQuery(event.currentTarget.value)}
+                    placeholder="Buscar código o nombre del responsable"
+                    aria-label="Buscar código o nombre del responsable Pulso"
+                  />
+                </div>
+                <select value={selectedKey} onChange={(event) => setSelectedKey(event.currentTarget.value)}>
+                  {visibleResponsibles.map((item) => (
+                    <option key={item.key} value={item.key}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                {responsibleQuery ? (
+                  <em className="mon-production-annulments__filter-note">
+                    {filteredResponsibles.length
+                      ? `${formatMetric(filteredResponsibles.length)} coincidencia${filteredResponsibles.length === 1 ? "" : "s"}`
+                      : "Sin coincidencias; se mantiene la selección actual."}
+                  </em>
+                ) : null}
+              </label>
+              {selectedResponsible ? (
+                <div className="mon-production-annulments__responsible">
+                  <strong>{selectedResponsible.label}</strong>
+                  <span>
+                    {formatMetric(selectedResponsible.responses ?? 0)} respuestas · {formatMetric(selectedResponsible.valid_responses ?? 0)} válidas · {formatMetric(selectedResponsible.umps ?? 0)} UMP · {selectedResponsible.districts || "sin distrito"}
+                  </span>
+                  {alreadyAnnulled ? <em>Ya tiene una anulación activa.</em> : null}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <label>
+                <span>UUID / ID respuesta</span>
+                <input
+                  list="mon-production-annulments-cases"
+                  value={responseId}
+                  onChange={(event) => setResponseId(event.currentTarget.value)}
+                  placeholder="Pega el UUID del caso"
+                />
+                <datalist id="mon-production-annulments-cases">
+                  {caseOptions.slice(0, 500).map((item) => (
+                    <option key={item.response_id} value={item.response_id} label={item.label} />
+                  ))}
+                </datalist>
+              </label>
+              <div className="mon-production-annulments__responsible">
+                <strong>{selectedCase?.label ?? "Caso ingresado manualmente"}</strong>
+                <span>
+                  {selectedCase
+                    ? `${selectedCase.responsible_label || "sin responsable"} · ${selectedCase.district || "sin distrito"} · ${selectedCase.ump || "sin UMP"} · ${selectedCase.validation_status || "sin estado"}`
+                    : "Se validará contra la auditoría territorial vigente al previsualizar o aplicar."}
+                </span>
+                {alreadyAnnulled ? <em>Ya tiene una anulación activa.</em> : null}
+              </div>
+            </>
+          )}
           <label>
             <span>Motivo obligatorio</span>
             <input value={reason} onChange={(event) => setReason(event.currentTarget.value)} placeholder="Ej. producción observada por supervisión" />
@@ -181,13 +300,13 @@ export function TerritorialProductionAnnulmentWorkspace({
           </label>
           {localError ? <p className="mon-production-annulments__error">{localError}</p> : null}
           <div className="mon-production-annulments__actions">
-            <button type="button" onClick={runPreview} disabled={saving || !selectedResponsible}>
+            <button type="button" onClick={runPreview} disabled={saving || !hasTarget}>
               {saving ? <Loader2 size={14} className="spin" /> : <Eye size={14} />}
               <span>Previsualizar impacto</span>
             </button>
-            <button type="button" className="is-danger" onClick={applyAnnulment} disabled={saving || !selectedResponsible || alreadyAnnulled}>
-              <Trash2 size={14} />
-              <span>Anular producción</span>
+            <button type="button" className="is-danger" onClick={applyAnnulment} disabled={saving || !hasTarget || alreadyAnnulled}>
+              {mode === "response" ? <Hash size={14} /> : <Trash2 size={14} />}
+              <span>{mode === "response" ? "Anular caso" : "Anular producción"}</span>
             </button>
           </div>
         </section>
@@ -227,7 +346,7 @@ export function TerritorialProductionAnnulmentWorkspace({
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={6}>Previsualiza un responsable para ver las UMP afectadas.</td>
+                    <td colSpan={6}>Previsualiza la anulación para ver las UMP afectadas.</td>
                   </tr>
                 )}
               </tbody>
@@ -246,8 +365,8 @@ export function TerritorialProductionAnnulmentWorkspace({
             <article key={entry.id} className={stringOrEmpty(entry.status) === "active" ? "is-active" : ""}>
               <div>
                 <span>{stringOrEmpty(entry.status) === "active" ? "Activa" : "Revertida"}</span>
-                <strong>{entry.responsible_label}</strong>
-                <em>{entry.reason || "Sin motivo registrado"} · {entry.created_at ? formatDate(entry.created_at) : "sin fecha"}</em>
+                <strong>{territorialProductionAnnulmentEntryLabel(entry)}</strong>
+                <em>{territorialProductionAnnulmentEntryScope(entry) === "response" ? "Caso individual" : "Responsable completo"} · {entry.reason || "Sin motivo registrado"} · {entry.created_at ? formatDate(entry.created_at) : "sin fecha"}</em>
               </div>
               <div>
                 <strong>{formatMetric(entry.impact?.responses_excluded ?? 0)}</strong>
@@ -271,8 +390,67 @@ export function TerritorialProductionAnnulmentWorkspace({
   );
 }
 
+function territorialProductionAnnulmentResponseKey(value: unknown) {
+  return stringOrEmpty(value).trim().replace(/^uuid[:/]+/i, "").toLowerCase();
+}
+
+function territorialProductionAnnulmentEntryScope(entry: MonitoreoTerritorialProductionAnnulment) {
+  return stringOrEmpty(entry.scope || "all_production") === "response" ? "response" : "all_production";
+}
+
+function territorialProductionAnnulmentEntryLabel(entry: MonitoreoTerritorialProductionAnnulment) {
+  if (territorialProductionAnnulmentEntryScope(entry) === "response") {
+    return entry.response_label || entry.response_id || "Caso individual";
+  }
+  return entry.responsible_label || entry.responsible_key || "Responsable Pulso";
+}
+
+function territorialProductionAnnulmentResponsibleSearchText(
+  item: NonNullable<MonitoreoTerritorialProductionAnnulmentsPayload["responsibles"]>[number],
+) {
+  return normalizeMatch([
+    item.key,
+    item.label,
+    item.pulso_code,
+    item.districts,
+    item.responses,
+    item.valid_responses,
+    item.umps,
+  ].filter((value) => value != null && value !== "").join(" "));
+}
+
 function territorialProductionAnnulmentKey(value: unknown) {
   return normalizeMatch(value).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function territorialProductionAnnulmentCases(reports: MonitoreoTerritorialDashboard): TerritorialProductionAnnulmentCase[] {
+  const seen = new Set<string>();
+  const rows: TerritorialProductionAnnulmentCase[] = [];
+  for (const row of reports.response_audit ?? []) {
+    const rowAliases = row as unknown as Record<string, unknown>;
+    const responseId = stringOrEmpty(row.response_id || rowAliases._uuid || rowAliases.uuid || rowAliases.id_respuesta).trim();
+    const responseKey = territorialProductionAnnulmentResponseKey(responseId);
+    if (!responseKey || seen.has(responseKey)) continue;
+    seen.add(responseKey);
+    const responsibleLabel = stringOrEmpty(row.responsible_display || row.submitted_by || row.pulso_code || "Sin responsable").trim();
+    const district = stringOrEmpty(row.distrito || row.advance_block_distrito || rowAliases.district).trim();
+    const ump = stringOrEmpty(row.advance_block_ump || row.declared_ump_raw || row.declared_ump_normalized || rowAliases.ump).trim();
+    const validationStatus = stringOrEmpty(row.validation_status).trim();
+    const latestActivity = stringOrEmpty(row.submission_date_iso || row.submission_time).trim();
+    rows.push({
+      response_id: responseId,
+      label: [responseId, responsibleLabel, district, ump].filter(Boolean).join(" · "),
+      responsible_key: territorialProductionAnnulmentKey(responsibleLabel),
+      responsible_label: responsibleLabel,
+      pulso_code: stringOrEmpty(row.pulso_code).trim(),
+      district,
+      ump,
+      validation_status: validationStatus,
+      source_effective: stringOrEmpty(row.source_effective).trim(),
+      latest_activity: latestActivity,
+    });
+  }
+  return rows.sort((a, b) => (b.latest_activity || "").localeCompare(a.latest_activity || "") || a.response_id.localeCompare(b.response_id));
 }
 
 function territorialProductionAnnulmentResponsibles(

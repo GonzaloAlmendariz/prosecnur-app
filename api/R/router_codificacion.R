@@ -310,14 +310,14 @@
   rows
 }
 
-.codif_normalize_legacy_select_one_modes <- function(sid, draft, data_df = NULL) {
+.codif_normalize_legacy_select_one_modes <- function(sid, draft, data_df = NULL, source = NULL) {
   if (is.null(draft) || !length(draft$rows %||% list())) return(draft)
   if (is.null(data_df)) {
-    data_df <- tryCatch(codif_data_cached(sid), error = function(e) NULL)
+    data_df <- tryCatch(codif_data_cached(sid, source), error = function(e) NULL)
   }
   data_cols <- if (is.data.frame(data_df)) names(data_df) else character(0)
-  grupos_map <- codif_get(sid, "grupos_recod") %||% list()
-  recod_map <- codif_get(sid, "respuestas_recod") %||% list()
+  grupos_map <- codif_get(sid, "grupos_recod", source = source) %||% list()
+  recod_map <- codif_get(sid, "respuestas_recod", source = source) %||% list()
   rows <- draft$rows
   changed <- FALSE
 
@@ -351,7 +351,7 @@
     draft$rows <- rows
     draft$source <- draft$source %||% "draft"
     draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    codif_set(sid, "familias_draft", draft)
+    codif_set(sid, "familias_draft", draft, source = source)
   }
   draft
 }
@@ -853,12 +853,10 @@ isTRUE_vec <- function(x) {
 # Generate the "suggestion" tibble that `escribir_plantilla_familias` would
 # write to disk. We call it into a temp xlsx and read it back because the
 # helpers that build the tibble are not exported from prosecnur.
-.familias_suggest_tibble <- function(sid) {
-  xls <- .require_xlsform_path(sid)
-  dat <- .require_data_path(sid)
+.familias_suggest_tibble <- function(sid, source = NULL) {
   s <- session_get(sid)
-  inst <- codif_inst_cached(sid)
-  data_df <- codif_data_cached(sid)
+  inst <- codif_inst_cached(sid, source)
+  data_df <- codif_data_cached(sid, source)
   tmp <- tempfile(fileext = ".xlsx")
   on.exit(unlink(tmp), add = TRUE)
   escribir_plantilla_familias(
@@ -1029,7 +1027,7 @@ isTRUE_vec <- function(x) {
   )
   if (is.null(df) || nrow(df) < 2L) return(NULL)
   tech_row <- as.character(df[1, , drop = TRUE])
-  tech_row[is.na(tech_row)] <- ""
+  tech_row[is.na(tech_row) | !nzchar(trimws(tech_row)) | toupper(trimws(tech_row)) == "NA"] <- ""
   list(
     df = df,
     tech_row = tech_row,
@@ -1067,6 +1065,18 @@ isTRUE_vec <- function(x) {
     if (cn %in% names(data_df)) return(cn)
   }
   NA_character_
+}
+
+.template_key_col_indices <- function(tech_row) {
+  idx <- which(tech_row %in% .codif_key_candidates)
+  idx[!is.na(idx)]
+}
+
+.row_text_value <- function(df, row_idx, col_idx) {
+  if (is.null(col_idx) || length(col_idx) == 0L || is.na(col_idx)) return("")
+  if (row_idx > nrow(df) || col_idx > ncol(df)) return("")
+  value <- as.character(df[row_idx, col_idx])
+  if (is.na(value)) "" else trimws(value)
 }
 
 # Patch a single sheet of the plantilla xlsx to fill one *_recod column
@@ -1108,6 +1118,187 @@ isTRUE_vec <- function(x) {
     }
   }
   .write_aux_block(wb, sheet, h$nuevo_cod_idx, h$nueva_et_idx, lookup$new_codes)
+  invisible(TRUE)
+}
+
+.groups_have_matrix_cases <- function(grupos) {
+  is.list(grupos) && any(vapply(grupos, function(g) {
+    cases <- g$matrix_cases %||% list()
+    is.list(cases) && length(cases) > 0L
+  }, logical(1)))
+}
+
+.patch_text_matrix_sm_sheet <- function(wb, sheet, parent_col, source_col, grupos, data_df) {
+  h <- .read_sheet_headers(wb, sheet)
+  if (is.null(h)) return(invisible(FALSE))
+
+  source_idx <- unname(which(h$tech_row == source_col)[1])
+  key_indices <- unique(c(.template_key_col_indices(h$tech_row), h$uuid_idx))
+  key_indices <- key_indices[!is.na(key_indices)]
+  if (!length(key_indices) && is.na(source_idx)) return(invisible(FALSE))
+  if (!source_col %in% names(data_df) && is.na(source_idx)) return(invisible(FALSE))
+
+  tech_row <- h$tech_row
+  label_row <- if (!is.null(h$df) && nrow(h$df) >= 2L) {
+    as.character(h$df[2, , drop = TRUE])
+  } else {
+    rep("", length(tech_row))
+  }
+  label_row[is.na(label_row)] <- ""
+
+  code_to_label <- list()
+  code_to_col <- list()
+  rx <- sprintf("^\\Q%s\\E/([^/]+)_recod$", parent_col)
+  for (j in seq_along(tech_row)) {
+    m <- regmatches(tech_row[j], regexec(rx, tech_row[j], perl = TRUE))[[1]]
+    if (length(m) >= 2L && nzchar(m[2]) && m[2] != "ejemplo") {
+      code_to_col[[m[2]]] <- j
+      lab <- trimws(as.character(label_row[j]))
+      if (nzchar(lab)) code_to_label[[m[2]]] <- lab
+    }
+  }
+
+  for (g in grupos) {
+    code <- as.character(g$codigo %||% "")[1]
+    if (is.na(code) || !nzchar(code)) next
+    lab <- .codif_group_label_or_fallback(g$etiqueta %||% "", code)
+    code_to_label[[code]] <- lab
+  }
+
+  missing_codes <- names(code_to_label)[vapply(
+    names(code_to_label),
+    function(code) is.null(code_to_col[[code]]),
+    logical(1)
+  )]
+  if (length(missing_codes)) {
+    sep_idx <- unname(which(!nzchar(tech_row))[1])
+    insert_at <- if (!is.na(sep_idx)) {
+      sep_idx
+    } else {
+      max(which(nzchar(tech_row)), 0L, na.rm = TRUE) + 1L
+    }
+    if (!is.na(sep_idx)) {
+      old_df <- h$df
+      new_cols <- as.data.frame(
+        matrix(NA_character_, nrow = nrow(old_df), ncol = length(missing_codes)),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+      new_df <- cbind(
+        old_df[, seq_len(sep_idx - 1L), drop = FALSE],
+        new_cols,
+        old_df[, sep_idx:ncol(old_df), drop = FALSE]
+      )
+      names(new_df) <- paste0("V", seq_len(ncol(new_df)))
+      openxlsx::removeWorksheet(wb, sheet = sheet)
+      openxlsx::addWorksheet(wb, sheet)
+      openxlsx::writeData(wb, sheet = sheet, x = new_df, colNames = FALSE)
+      h$df <- new_df
+      for (code in names(code_to_col)) {
+        if (!is.null(code_to_col[[code]]) && code_to_col[[code]] >= insert_at) {
+          code_to_col[[code]] <- code_to_col[[code]] + length(missing_codes)
+        }
+      }
+    }
+  }
+  for (offset in seq_along(missing_codes)) {
+    code <- missing_codes[[offset]]
+    col_idx <- insert_at + offset - 1L
+    code_to_col[[code]] <- col_idx
+    openxlsx::writeData(
+      wb, sheet = sheet, x = sprintf("%s/%s_recod", parent_col, code),
+      startCol = col_idx, startRow = 1L, colNames = FALSE
+    )
+    openxlsx::writeData(
+      wb, sheet = sheet, x = as.character(code_to_label[[code]]),
+      startCol = col_idx, startRow = 2L, colNames = FALSE
+    )
+  }
+
+  uuid_to_text <- stats::setNames(character(0), character(0))
+  if (source_col %in% names(data_df)) {
+    data_key_cols <- intersect(.codif_key_candidates, names(data_df))
+    for (key_col in data_key_cols) {
+      key_values <- as.character(data_df[[key_col]])
+      text_values <- as.character(data_df[[source_col]])
+      ok <- !is.na(key_values) & nzchar(trimws(key_values))
+      if (any(ok)) {
+        uuid_to_text <- c(uuid_to_text, stats::setNames(text_values[ok], key_values[ok]))
+      }
+    }
+  }
+  text_to_codes <- list()
+  id_to_codes <- list()
+  for (g in grupos) {
+    code <- as.character(g$codigo %||% "")[1]
+    if (is.na(code) || !nzchar(code)) next
+    cases <- g$matrix_cases %||% list()
+    if (length(cases)) {
+      for (case in cases) {
+        id <- as.character(case$id_caso %||% "")[1]
+        if (!is.na(id) && nzchar(id)) {
+          id_to_codes[[id]] <- unique(c(id_to_codes[[id]] %||% character(0), code))
+        }
+        txt <- as.character(case$respuesta %||% "")[1]
+        tn <- .normalize_text(txt)[1]
+        if (!is.na(tn) && nzchar(tn)) {
+          text_to_codes[[tn]] <- unique(c(text_to_codes[[tn]] %||% character(0), code))
+        }
+      }
+    } else {
+      for (txt in (g$respuestas %||% list())) {
+        tn <- .normalize_text(as.character(txt))[1]
+        if (!is.na(tn) && nzchar(tn)) {
+          text_to_codes[[tn]] <- unique(c(text_to_codes[[tn]] %||% character(0), code))
+        }
+      }
+    }
+  }
+
+  df <- h$df
+  if (nrow(df) >= 3L) {
+    for (i in 3:nrow(df)) {
+      row_keys <- unique(vapply(
+        key_indices,
+        function(idx) .row_text_value(df, i, idx),
+        character(1)
+      ))
+      row_keys <- row_keys[nzchar(row_keys)]
+      codes <- character(0)
+      for (uid in row_keys) {
+        codes <- unique(c(codes, id_to_codes[[uid]] %||% character(0)))
+      }
+      if (!length(codes)) {
+        for (uid in row_keys) {
+          resp <- uuid_to_text[uid]
+          if (!is.null(resp) && length(resp) > 0L) {
+            tn <- .normalize_text(resp[[1]])[1]
+            if (!is.na(tn) && nzchar(tn)) {
+              codes <- unique(c(codes, text_to_codes[[tn]] %||% character(0)))
+            }
+          }
+        }
+      }
+      if (!length(codes) && !is.na(source_idx)) {
+        row_text <- .row_text_value(df, i, source_idx)
+        tn <- .normalize_text(row_text)[1]
+        if (!is.na(tn) && nzchar(tn)) {
+          codes <- unique(c(codes, text_to_codes[[tn]] %||% character(0)))
+        }
+      }
+      codes <- unique(as.character(codes))
+      codes <- codes[nzchar(codes)]
+      if (!length(codes)) next
+      for (code in codes) {
+        col_idx <- code_to_col[[code]]
+        if (is.null(col_idx)) next
+        openxlsx::writeData(
+          wb, sheet = sheet, x = 1L,
+          startCol = col_idx, startRow = i, colNames = FALSE
+        )
+      }
+    }
+  }
   invisible(TRUE)
 }
 
@@ -1427,7 +1618,11 @@ isTRUE_vec <- function(x) {
       sheet <- parent
       source_col <- if (nzchar(text_col)) text_col else parent
       recod_col <- paste0(source_col, "_recod")
-      ok <- .patch_text_sheet(wb, sheet, recod_col, source_col, grupos, data_df)
+      ok <- if (.groups_have_matrix_cases(grupos)) {
+        .patch_text_matrix_sm_sheet(wb, sheet, source_col, source_col, grupos, data_df)
+      } else {
+        .patch_text_sheet(wb, sheet, recod_col, source_col, grupos, data_df)
+      }
       if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
     } else if (tipo == "select_one" && modo_so == "hijo") {
       # SO hijo: texto se codifica en <text_col>_recod.
@@ -1717,6 +1912,45 @@ isTRUE_vec <- function(x) {
   )
 }
 
+.codif_apply_job_runner <- function(xls_path, data_path, codes_path, fam_path,
+                                    data_out, inst_out, sm_vars,
+                                    so_parent_vars, so_child_vars, int_vars,
+                                    text_vars, progress_path = NULL) {
+  report <- if (exists("job_progress_writer", mode = "function")) {
+    job_progress_writer(progress_path)
+  } else {
+    function(...) invisible(NULL)
+  }
+  report("adapt", percent = 12, message = "Adaptando base de datos...")
+  ppra_adaptar_data(
+    path_instrumento = xls_path,
+    path_datos       = data_path,
+    path_plantilla   = codes_path,
+    sm_vars          = sm_vars,
+    so_parent_vars   = so_parent_vars,
+    so_child_vars    = so_child_vars,
+    text_vars        = text_vars,
+    int_vars         = int_vars,
+    out_path         = data_out,
+    path_familias    = fam_path
+  )
+  report("adapt", percent = 62, message = "Adaptando instrumento...")
+  ppra_adaptar_instrumento(
+    path_instrumento_in  = xls_path,
+    path_data_adaptada   = data_out,
+    path_instrumento_out = inst_out,
+    path_plantilla       = codes_path,
+    sm_vars              = sm_vars,
+    so_parent_vars       = so_parent_vars,
+    so_child_vars        = so_child_vars,
+    text_vars            = text_vars,
+    integer_vars         = int_vars
+  )
+  report("export", percent = 94, message = "Guardando archivos adaptados...")
+  list(data_out = data_out, inst_out = inst_out)
+}
+attr(.codif_apply_job_runner, "prosecnur_job_function_name") <- ".codif_apply_job_runner"
+
 .codif_start_apply_job <- function(sid, base_name = NULL, kind = "codificacion.aplicar") {
   .codif_with_base_active(sid, base_name, {
     s <- session_get(sid)
@@ -1813,46 +2047,11 @@ isTRUE_vec <- function(x) {
     job_id <- job_submit(
       sid = sid,
       kind = kind,
-      func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
-                      sm_vars, so_parent_vars, so_child_vars, int_vars, text_vars,
-                      progress_path = NULL) {
-        report <- if (exists("job_progress_writer", mode = "function")) {
-          job_progress_writer(progress_path)
-        } else {
-          function(...) invisible(NULL)
-        }
-        report("adapt", percent = 12, message = "Adaptando base de datos...")
-        ppra_adaptar_data(
-          path_instrumento = xls_path,
-          path_datos       = data_path,
-          path_plantilla   = codes_path,
-          sm_vars          = sm_vars,
-          so_parent_vars   = so_parent_vars,
-          so_child_vars    = so_child_vars,
-          text_vars        = text_vars,
-          int_vars         = int_vars,
-          out_path         = data_out,
-          path_familias    = fam_path
-        )
-        report("adapt", percent = 62, message = "Adaptando instrumento...")
-        ppra_adaptar_instrumento(
-          path_instrumento_in  = xls_path,
-          path_data_adaptada   = data_out,
-          path_instrumento_out = inst_out,
-          path_plantilla       = codes_path,
-          sm_vars              = sm_vars,
-          so_parent_vars       = so_parent_vars,
-          so_child_vars        = so_child_vars,
-          text_vars            = text_vars,
-          integer_vars         = int_vars
-        )
-        report("export", percent = 94, message = "Guardando archivos adaptados...")
-        list(data_out = data_out, inst_out = inst_out)
-      },
+      func = .codif_apply_job_runner,
       args = list(
         xls_path = xls$path,
         data_path = data_adapt_path,
-        codes_path = codes_path,
+        codes_path = codes_meta$path,
         fam_path = fam_path,
         data_out = data_out,
         inst_out = inst_out,
@@ -1944,8 +2143,8 @@ mount_codificacion <- function(pr) {
       file_id <- as.character(parsed$file_id %||% "")[1]
       if (!nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta file_id del Excel de categorizaciones.")
       meta <- get_file(sid, file_id)
-      if (!tolower(meta$ext %||% "") %in% c("xlsx", "xls")) {
-        stop_api(400, "E_UNSUPPORTED_EXT", "El archivo de categorizaciones debe ser .xlsx o .xls.")
+      if (!tolower(meta$ext %||% "") %in% c("xlsx", "xls", "xlsm")) {
+        stop_api(400, "E_UNSUPPORTED_EXT", "El archivo de categorizaciones debe ser .xlsx, .xlsm o .xls.")
       }
       bundle <- codif_config_bundle_from_categorization_xlsx(
         sid, meta$path, parsed$file_name %||% meta$original_name %||% ""
@@ -1957,25 +2156,97 @@ mount_codificacion <- function(pr) {
         preview = codif_config_preview_import(sid, bundle, parsed$file_name %||% meta$original_name %||% "")
       )
     })) |>
-    plumber::pr_get("/api/codificacion/preguntas-abiertas", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/codificacion/matrices/preview", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      file_id <- as.character(parsed$file_id %||% "")[1]
+      if (!nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta file_id de la matriz.")
+      meta <- get_file(sid, file_id)
+      if (!tolower(meta$ext %||% "") %in% c("xlsx", "xls", "xlsm")) {
+        stop_api(400, "E_UNSUPPORTED_EXT", "La matriz debe ser .xlsx, .xlsm o .xls.")
+      }
+      codif_matrix_preview(sid, meta$path, parsed$file_name %||% meta$original_name %||% "")
+    })) |>
+    plumber::pr_post("/api/codificacion/matrices/apply", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      bundle <- parsed$bundle %||% list()
+      selections <- parsed$selections %||% list()
+      codif_matrix_apply_import(sid, bundle, selections, parsed$file_name %||% "")
+    })) |>
+    plumber::pr_get("/api/codificacion/matrices/mapa", wrap_endpoint(function(req, res, base = NULL) {
+      sid <- session_header(req)
+      codif_matrix_map(sid, base = base)
+    })) |>
+    plumber::pr_post("/api/codificacion/matrices/caso", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      codif_matrix_patch_case(
+        sid,
+        base = parsed$base %||% "",
+        variable = parsed$variable %||% "",
+        id_caso = parsed$id_caso %||% "",
+        codigo = parsed$codigo %||% "",
+        etiqueta = parsed$etiqueta %||% "",
+        from_codigo = parsed$from_codigo %||% ""
+      )
+    })) |>
+    plumber::pr_post("/api/codificacion/matrices/export", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+      } else {
+        list()
+      }
+      visibility <- as.character(parsed$visibility %||% "client")[1]
+      variables <- parsed$variables %||% list()
+      base <- parsed$base %||% NULL
+      codif_matrix_export_xlsx(sid, visibility = visibility, variables = variables, base = base)
+    })) |>
+    plumber::pr_get("/api/codificacion/preguntas-abiertas", wrap_endpoint(function(req, res, base = NULL) {
       sid <- session_header(req)
       s <- session_get(sid)
+      source <- .codif_config_scalar(base, "")
+      source <- if (nzchar(source)) .codif_matrix_selected_bases(sid, source)[[1]] else NULL
       # Ensure we have the draft (will auto-generate suggestion if absent)
-      draft <- codif_get(sid, "familias_draft")
+      draft <- codif_get(sid, "familias_draft", source = source)
       if (is.null(draft)) {
         # Generate suggestion just like GET /familias/draft does
-        df <- .familias_suggest_tibble(sid)
+        df <- .familias_suggest_tibble(sid, source)
         rows <- .familias_rows_from_df(df)
         draft <- list(
           rows = rows,
           source = "suggestion",
           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
         )
-        codif_set(sid, "familias_draft", draft)
-        codif_set(sid, "familias_generated", TRUE)
+        codif_set(sid, "familias_draft", draft, source = source)
+        codif_set(sid, "familias_generated", TRUE, source = source)
       }
-      data_df <- codif_data_cached(sid)
-      inst <- codif_inst_cached(sid)
+      data_df <- codif_data_cached(sid, source)
+      inst <- codif_inst_cached(sid, source)
 
       section_info <- .section_map(inst)
       # Survey rows of type text, needed to filter candidatos_texto to actual
@@ -1986,10 +2257,10 @@ mount_codificacion <- function(pr) {
         else data.frame(name = character(0), stringsAsFactors = FALSE)
       } else data.frame(name = character(0), stringsAsFactors = FALSE)
 
-      marcadas_set <- codif_get(sid, "marcadas") %||% list()
+      marcadas_set <- codif_get(sid, "marcadas", source = source) %||% list()
 
       rows <- draft$rows %||% list()
-      draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df)
+      draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df, source = source)
       rows <- draft$rows %||% list()
       labels_changed <- FALSE
       preguntas <- lapply(seq_along(rows), function(.row_idx) {
@@ -2009,7 +2280,7 @@ mount_codificacion <- function(pr) {
           else if (modo_so == "hijo") "select_one_hijo"
           else "select_one_sin_modo"
         } else tipo
-        recoded <- codif_get(sid, "respuestas_recod")[[parent]] %||% list()
+        recoded <- codif_get(sid, "respuestas_recod", source = source)[[parent]] %||% list()
         n_cod <- length(recoded)
         needs_config <- tipo == "select_one" && !modo_so %in% c("padre", "hijo")
         status <- if (!use_flag) "no-aplica"
@@ -2092,7 +2363,7 @@ mount_codificacion <- function(pr) {
       if (isTRUE(labels_changed)) {
         draft$rows <- rows
         draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-        codif_set(sid, "familias_draft", draft)
+        codif_set(sid, "familias_draft", draft, source = source)
       }
       list(ok = TRUE, preguntas = preguntas)
     })) |>
@@ -2702,51 +2973,11 @@ mount_codificacion <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "codificacion.aplicar",
-        func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
-                        sm_vars, so_parent_vars, so_child_vars, int_vars, text_vars,
-                        progress_path = NULL) {
-          report <- if (exists("job_progress_writer", mode = "function")) {
-            job_progress_writer(progress_path)
-          } else {
-            function(...) invisible(NULL)
-          }
-          report("adapt", percent = 12, message = "Adaptando base de datos...")
-          ppra_adaptar_data(
-            path_instrumento = xls_path,
-            path_datos       = data_path,
-            path_plantilla   = codes_path,
-            sm_vars          = sm_vars,
-            so_parent_vars   = so_parent_vars,
-            so_child_vars    = so_child_vars,
-            text_vars        = text_vars,
-            int_vars         = int_vars,
-            out_path         = data_out,
-            path_familias    = fam_path
-          )
-          report("adapt", percent = 62, message = "Adaptando instrumento...")
-          ppra_adaptar_instrumento(
-            path_instrumento_in  = xls_path,
-            path_data_adaptada   = data_out,
-            path_instrumento_out = inst_out,
-            path_plantilla       = codes_path,
-            # Sin estos vectores, ppra_adaptar_instrumento usa los
-            # defaults (character(0)), los if(length(...)) quedan FALSE
-            # y escribe el xlsform original sin cambios. Bug real hasta
-            # que lo cableamos acá. Mapeo de nombres: `int_vars` local
-            # → `integer_vars` en el API de ppra_adaptar_instrumento.
-            sm_vars              = sm_vars,
-            so_parent_vars       = so_parent_vars,
-            so_child_vars        = so_child_vars,
-            text_vars            = text_vars,
-            integer_vars         = int_vars
-          )
-          report("export", percent = 94, message = "Guardando archivos adaptados...")
-          list(data_out = data_out, inst_out = inst_out)
-        },
+        func = .codif_apply_job_runner,
         args = list(
           xls_path = xls$path,
           data_path = data_adapt_path,
-          codes_path = codes_path,
+          codes_path = codes_meta$path,
           fam_path = fam_path,
           data_out = data_out,
           inst_out = inst_out,

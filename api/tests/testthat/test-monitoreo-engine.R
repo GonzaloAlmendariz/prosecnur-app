@@ -5891,6 +5891,195 @@ test_that("anulacion territorial activa excluye produccion y la reversion restau
   expect_true(any(grepl("Ana Campo", reverted_audit$responsible_display, fixed = TRUE)))
 })
 
+test_that("anulacion territorial por uuid excluye solo un caso", {
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm", "sjm"),
+    `Core/M8_ump` = c("m1", "m1", "m2"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0"),
+    codigo_encuestador = c("P001", "P001", "P002"),
+    filtro_fuente = c("apto", "apto", "apto"),
+    `_status` = rep("submitted_via_web", 3),
+    `_uuid` = c("a", "b", "c"),
+    check.names = FALSE
+  )
+  base_cfg <- list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      ump_var = "Core/M8_ump",
+      pulso_code_var = "codigo_encuestador",
+      platform_effective_var = "filtro_fuente",
+      platform_effective_values = list("apto"),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P002", nombre = "Luis Ruta")
+        )
+      )
+    )
+  )
+  prepared <- .monitoreo_territorial_annulment_entry_from_payload(
+    base_cfg$territorial,
+    list(scope = "response", uuid = "b", reason = "Caso observado"),
+    require_reason = TRUE
+  )
+  expect_equal(prepared$entry$scope, "response")
+  expect_equal(prepared$entry$response_id, "b")
+
+  active_cfg <- base_cfg
+  active_cfg$territorial$production_annulments <- list(field = list(list(
+    id = "annul_case_b",
+    phase = "field",
+    status = "active",
+    scope = "response",
+    response_id = "b",
+    response_label = "Caso b",
+    reason = "Caso observado",
+    created_at = "2026-06-26T10:00:00-0500"
+  )))
+  active_report <- monitoreo_territorial_reportes(data, monitoreo_normalize_config(active_cfg, data), list(phase = "field"), report_scope = "validation_summary")
+  active_audit <- .monitoreo_territorial_rows_df(active_report$response_audit)
+  annulled_rows <- .monitoreo_territorial_rows_df(active_report$production_annulments$rows)
+
+  expect_equal(nrow(active_audit), 2L)
+  expect_false("b" %in% as.character(active_audit$response_id))
+  expect_true("a" %in% as.character(active_audit$response_id))
+  expect_equal(active_report$kpis$total_respuestas, 2L)
+  expect_equal(active_report$production_annulments$summary$active, 1L)
+  expect_equal(active_report$production_annulments$summary$annulled_responses, 1L)
+  expect_equal(nrow(annulled_rows), 1L)
+  expect_equal(annulled_rows$response_id[[1]], "b")
+  expect_equal(active_report$production_annulments$entries[[1]]$scope, "response")
+
+  reverted_cfg <- active_cfg
+  reverted_cfg$territorial$production_annulments$field[[1]]$status <- "reverted"
+  reverted_report <- monitoreo_territorial_reportes(data, monitoreo_normalize_config(reverted_cfg, data), list(phase = "field"), report_scope = "validation_summary")
+  reverted_audit <- .monitoreo_territorial_rows_df(reverted_report$response_audit)
+
+  expect_equal(nrow(reverted_audit), 3L)
+  expect_equal(reverted_report$production_annulments$summary$annulled_responses, 0L)
+})
+
+test_that("paquete manual para procesamiento exporta revision y excluye uuid anulado", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm", "sjm", "sjm"),
+    `Core/M8_ump` = c("m1", "m1", "m2", "m3"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0", ""),
+    codigo_encuestador = c("P001", "P001", "P002", "P003"),
+    filtro_fuente = c("apto", "apto", "apto", "apto"),
+    `_status` = rep("submitted_via_web", 4),
+    `_uuid` = c("a", "b", "c", "d"),
+    check.names = FALSE
+  )
+  cfg <- list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      active_route_phase = "field",
+      asset_uid = "asset_test",
+      kobo_version_id = "v1",
+      kobo_asset_name = "Formulario Kobo test",
+      phase_sources = list(field = list(
+        asset_uid = "asset_test",
+        kobo_version_id = "v1",
+        kobo_asset_name = "Formulario Kobo test",
+        source_id = "kobo_asset_test"
+      )),
+      ump_var = "Core/M8_ump",
+      pulso_code_var = "codigo_encuestador",
+      platform_effective_var = "filtro_fuente",
+      platform_effective_values = list("apto"),
+      production_annulments = list(field = list(list(
+        id = "annul_case_b",
+        phase = "field",
+        status = "active",
+        scope = "response",
+        response_id = "b",
+        response_label = "Caso b",
+        reason = "Caso observado",
+        created_at = "2026-06-26T10:00:00-0500"
+      ))),
+      enumerator_roster = list(
+        enabled = TRUE,
+        code_format = "PXXX",
+        assignments = list(
+          list(codigo_pulso = "P001", nombre = "Ana Campo"),
+          list(codigo_pulso = "P002", nombre = "Luis Ruta")
+        )
+      )
+    )
+  )
+  xlsform_state <- .xlsform_editor_workbook_payload(list(
+    survey = data.frame(
+      type = "text",
+      name = "pregunta_1",
+      label = "Pregunta suelta incompatible",
+      check.names = FALSE
+    ),
+    choices = data.frame(list_name = character(), name = character(), label = character(), check.names = FALSE),
+    settings = data.frame(form_title = "Paquete test", form_id = "paquete_test", check.names = FALSE)
+  ))
+  kobo_detail <- list(
+    uid = "asset_test",
+    name = "Formulario Kobo test",
+    version_id = "v1",
+    content = list(
+      survey = list(
+        list(type = "select_one", select_from_list_name = "district", name = "M5_district", "$xpath" = "Core/M5_district", label = "Distrito", required = "yes"),
+        list(type = "text", name = "M8_ump", "$xpath" = "Core/M8_ump", label = "UMP", relevant = "${filtro_fuente} = 'apto'"),
+        list(type = "text", name = "codigo_encuestador", label = "Codigo"),
+        list(type = "select_one", select_from_list_name = "filtro", name = "filtro_fuente", label = "Filtro", constraint = ". = 'apto'"),
+        list(type = "text", name = "D1_information_text", label = "Campo esperado sin columna en snapshot")
+      ),
+      choices = list(
+        list(list_name = "district", name = "sjm", label = "SJM"),
+        list(list_name = "filtro", name = "apto", label = "Apto")
+      ),
+      settings = list(
+        list(form_title = "Formulario Kobo test", form_id = "formulario_kobo_test", version = "v1")
+      )
+    )
+  )
+
+  session_set(sid, "monitoreo_snapshot", list(data = data, synced_at = "2026-07-06T12:00:00Z"))
+  session_set(sid, "monitoreo_config", monitoreo_normalize_config(cfg, data))
+  session_set(sid, "xlsform_state", xlsform_state)
+  session_set(sid, "monitoreo_kobo_asset_details", list(field = kobo_detail))
+
+  out <- .monitoreo_processing_handoff_export(sid, list(universe = "processable", project = "Paquete Test"))
+  exported <- openxlsx::read.xlsx(get_file(sid, out$files$data_xlsx$file_id)$path, sheet = "datos")
+  zip_files <- zip::zip_list(get_file(sid, out$file_id)$path)$filename
+  xlsform_path <- get_file(sid, out$files$xlsform$file_id)$path
+  xlsform_sheets <- openxlsx::getSheetNames(xlsform_path)
+  xlsform_survey <- openxlsx::read.xlsx(xlsform_path, sheet = "survey")
+  xlsform_inst <- leer_instrumento_xlsform(xlsform_path)
+  compat <- validate_data_xlsform_compatibility(exported, xlsform_inst)
+
+  expect_true(isTRUE(out$ok))
+  expect_equal(out$universe, "processable")
+  expect_equal(unlist(out$included_statuses, use.names = FALSE), c("validada", "revision"))
+  expect_equal(out$counts$raw_rows, 4L)
+  expect_equal(out$counts$exported_rows, 3L)
+  expect_equal(out$counts$revision, 3L)
+  expect_equal(out$counts$active_annulments, 1L)
+  expect_equal(out$counts$annulled_responses, 1L)
+  expect_equal(as.character(exported$`_uuid`), c("a", "c", "d"))
+  expect_true(any(grepl("data-procesamiento.xlsx$", zip_files)))
+  expect_true(any(grepl("xlsform.xlsx$", zip_files)))
+  expect_true(all(c("survey", "choices", "settings") %in% xlsform_sheets))
+  expect_true(isTRUE(compat$ok))
+  expect_true("M8_ump" %in% as.character(xlsform_survey$name))
+  expect_true("M8_ump" %in% names(exported))
+  expect_true("D1_information_text" %in% names(exported))
+  expect_false("pregunta_1" %in% as.character(xlsform_survey$name))
+  expect_true("required" %in% names(xlsform_survey))
+  expect_true("relevant" %in% names(xlsform_survey))
+  expect_true("constraint" %in% names(xlsform_survey))
+  expect_false(isTRUE(out$would_mutate_pulso))
+})
+
 test_that("anulacion territorial resume UMP con columnas auditadas actuales", {
   audit <- data.frame(
     response_id = c("r1", "r2", "r3"),

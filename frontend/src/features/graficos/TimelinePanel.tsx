@@ -20,6 +20,7 @@ const SLIDE_GROUPS: { label: string; items: SlideType[] }[] = [
       "p_slide_objetivo_icono",
       "p_slide_texto",
       "p_slide_tabla_tecnica",
+      "p_slide_top_two_box",
     ],
   },
   {

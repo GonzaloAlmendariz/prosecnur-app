@@ -124,6 +124,37 @@
 }
 
 test_that("metadata de graficadores expone controles claros y sin duplicados", {
+  ui_tipo_input_soportado <- c(
+    "variable", "variable_opt", "variables_list", "string", "textarea",
+    "number", "bool", "choice", "codigos_list", "multiflag", "color",
+    "series_colors", "criteria_config", "icono", "overrides", "filtros",
+    "base_config", "meta"
+  )
+  ui_grupo_soportado <- c(
+    "datos", "lectura", "valores", "leyenda", "espacio", "tabla",
+    "diagnostico", "textos", "estilo", "filtro", "semaforo", "canvas",
+    "avanzado"
+  )
+
+  slide_args <- unlist(lapply(.SLIDES_META, `[[`, "args"), recursive = FALSE)
+  graf_args <- unlist(lapply(.GRAFICADORES_META, `[[`, "args"), recursive = FALSE)
+  preset_args <- unlist(lapply(.PRESETS_META, `[[`, "args"), recursive = FALSE)
+  all_args <- c(slide_args, graf_args, preset_args)
+  all_args <- all_args[vapply(all_args, is.list, logical(1))]
+  get_arg_field <- function(arg, field) {
+    value <- arg[[field]]
+    if (is.null(value)) "" else as.character(value[[1]])
+  }
+
+  expect_equal(
+    setdiff(unique(vapply(all_args, get_arg_field, character(1), field = "tipo_input")), ui_tipo_input_soportado),
+    character(0)
+  )
+  expect_equal(
+    setdiff(unique(vapply(all_args, get_arg_field, character(1), field = "grupo")), ui_grupo_soportado),
+    character(0)
+  )
+
   payload <- .presets_metadata_payload()
   presets <- stats::setNames(payload$presets, vapply(payload$presets, `[[`, character(1), "name"))
 
@@ -151,6 +182,12 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
 	  expect_equal(by_name_agr$agrupar_resto_en_otros$default, TRUE)
 	  expect_match(by_name_agr$umbral_posicion$label, "etiquetas pequeñas")
 	  expect_equal(by_name_agr$excluir_opciones$tipo_input, "codigos_list")
+  expect_equal(by_name_agr$lineheight_eje_y$label, "Interlineado de etiquetas")
+  expect_equal(by_name_agr$lineheight_eje_y$grupo, "espacio")
+  expect_equal(by_name_agr$lineheight_eje_y$step, 0.05)
+  expect_equal(by_name_agr$normalizar_etiquetas$tipo_input, "choice")
+  expect_equal(by_name_agr$normalizar_etiquetas$grupo, "lectura")
+  expect_true("mayuscula_inicial" %in% vapply(by_name_agr$normalizar_etiquetas$choices, `[[`, character(1), "value"))
 
   expect_true("histograma" %in% names(presets))
   hist <- presets$histograma$args
@@ -160,7 +197,18 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_hist$mostrar_frecuencia$grupo, "valores")
   expect_equal(by_name_hist$posicion_etiquetas$tipo_input, "choice")
   expect_true("cima" %in% vapply(by_name_hist$posicion_etiquetas$choices, `[[`, character(1), "value"))
+  hist_top_modes <- vapply(by_name_hist$etiqueta_cima_modo$choices, `[[`, character(1), "value")
+  expect_true("porcentaje_conteos_grupo" %in% hist_top_modes)
+  expect_true("porcentaje_grupo_conteos_grupo" %in% hist_top_modes)
+  expect_equal(by_name_hist$etiqueta_cima_formato$tipo_input, "choice")
+  expect_equal(by_name_hist$etiqueta_cima_orden_grupo$tipo_input, "choice")
   expect_equal(by_name_hist$abreviaturas_grupos$tipo_input, "codigos_list")
+  expect_equal(by_name_hist$mostrar_resumen_grupos_subtitulo$tipo_input, "bool")
+  expect_equal(by_name_hist$mostrar_resumen_grupos_subtitulo$grupo, "valores")
+  expect_equal(by_name_hist$prefijo_resumen_grupos_subtitulo$tipo_input, "string")
+  expect_equal(by_name_hist$separador_resumen_grupos_subtitulo$tipo_input, "string")
+  expect_equal(by_name_hist$pos_y_subtitulo$tipo_input, "number")
+  expect_equal(by_name_hist$pos_y_subtitulo$grupo, "lectura")
   expect_equal(by_name_hist$orden_grupos$tipo_input, "codigos_list")
   expect_equal(by_name_hist$mostrar_bins_vacios$tipo_input, "bool")
   expect_equal(by_name_hist$legend_key_cm$grupo, "leyenda")
@@ -181,6 +229,7 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_graf_agr$orden_barras$default, "instrumento")
   expect_equal(by_name_graf_agr$max_categorias$default, 10)
   expect_equal(by_name_graf_agr$canvas_w_etiquetas$label, "Espacio para etiquetas")
+  expect_equal(by_name_graf_agr$normalizar_etiquetas$tipo_input, "choice")
   expect_true("p_nube_palabras" %in% names(grafs))
   expect_equal(
     stats::setNames(grafs$p_nube_palabras$args, vapply(grafs$p_nube_palabras$args, `[[`, character(1), "name"))$var$tipo_input,
@@ -197,11 +246,14 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_indice$subindices$tipo_input, "textarea")
   expect_equal(by_name_indice$iconos_focos$label, "Íconos de los focos")
   expect_equal(by_name_indice$iconos_focos$tipo_input, "textarea")
+  expect_equal(by_name_indice$iconos_focos$grupo, "espacio")
   expect_equal(by_name_indice$redibujar_focos$label, "Redibujar focos desde cero")
   expect_equal(by_name_indice$redibujar_focos$tipo_input, "bool")
+  expect_equal(by_name_indice$redibujar_focos$grupo, "espacio")
   expect_false(isTRUE(by_name_indice$redibujar_focos$default))
   expect_equal(by_name_indice$mostrar_iconos_focos$tipo_input, "bool")
   expect_equal(by_name_indice$iconos_focos_fill$tipo_input, "codigos_list")
+  expect_equal(by_name_indice$iconos_focos_fill$grupo, "valores")
   expect_equal(by_name_indice$iconos_focos_objeto_unico$label, "Mover círculo e ícono juntos")
   expect_equal(by_name_indice$iconos_focos_objeto_unico$tipo_input, "bool")
   expect_true(isTRUE(by_name_indice$iconos_focos_objeto_unico$default))
@@ -214,11 +266,14 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_false("iconos_focos_top_cm" %in% names(by_name_indice))
   expect_equal(by_name_indice$subtopic_badge_fill$label, "Color de numeración de subíndices")
   expect_equal(by_name_indice$subtopic_badge_fill$tipo_input, "color")
+  expect_equal(by_name_indice$subtopic_badge_fill$grupo, "lectura")
   expect_equal(by_name_indice$subtopic_badge_width$tipo_input, "number")
+  expect_equal(by_name_indice$subtopic_badge_width$grupo, "espacio")
   expect_equal(by_name_indice$subtopic_badge_width$default, 0.26)
   expect_equal(by_name_indice$subtopic_badge_gap$default, 0.13)
   expect_equal(by_name_indice$subtopic_badge_gap$step, 0.01)
-  expect_equal(by_name_indice$estilo$tipo_input, "json")
+  expect_equal(by_name_indice$estilo$tipo_input, "meta")
+  expect_equal(by_name_indice$estilo$grupo, "diagnostico")
 
   top_two_args <- .SLIDES_META$p_slide_top_two_box$args
   by_name_top_two <- stats::setNames(top_two_args, vapply(top_two_args, `[[`, character(1), "name"))
@@ -229,33 +284,60 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_top_two$extremo_izquierda$grupo, "textos")
   expect_equal(by_name_top_two$accent_color$label, "Color de acento")
   expect_equal(by_name_top_two$accent_color$tipo_input, "color")
+  expect_equal(by_name_top_two$accent_color$grupo, "valores")
   expect_equal(by_name_top_two$colores$label, "Paleta de la escala")
+  expect_equal(by_name_top_two$colores$grupo, "valores")
   expect_equal(by_name_top_two$colores$default, "#D8504F, #FFD966, #B7D7A8, #70AD47")
   expect_equal(by_name_top_two$grosor_barra$label, "Grosor de la barra")
   expect_equal(by_name_top_two$grosor_barra$tipo_input, "number")
+  expect_equal(by_name_top_two$grosor_barra$grupo, "espacio")
   expect_equal(by_name_top_two$grosor_barra$default, 82)
   expect_equal(by_name_top_two$grosor_barra$min, 30)
   expect_equal(by_name_top_two$grosor_barra$max, 130)
   expect_equal(by_name_top_two$size_texto_porcentajes$label, "Tamaño de porcentajes")
   expect_equal(by_name_top_two$size_texto_porcentajes$tipo_input, "number")
+  expect_equal(by_name_top_two$size_texto_porcentajes$grupo, "lectura")
   expect_equal(by_name_top_two$size_texto_porcentajes$default, 22)
   expect_equal(by_name_top_two$size_texto_porcentajes$min, 8)
   expect_equal(by_name_top_two$size_texto_porcentajes$max, 42)
   expect_equal(by_name_top_two$size_texto_porcentajes_peq$label, "Tamaño de porcentajes pequeños")
   expect_equal(by_name_top_two$size_texto_porcentajes_peq$tipo_input, "number")
+  expect_equal(by_name_top_two$size_texto_porcentajes_peq$grupo, "lectura")
   expect_equal(by_name_top_two$size_texto_porcentajes_peq$default, 16)
   expect_equal(by_name_top_two$size_texto_porcentajes_peq$min, 8)
   expect_equal(by_name_top_two$size_texto_porcentajes_peq$max, 32)
   expect_equal(by_name_top_two$color_texto_porcentajes$label, "Color de porcentajes")
   expect_equal(by_name_top_two$color_texto_porcentajes$tipo_input, "color")
+  expect_equal(by_name_top_two$color_texto_porcentajes$grupo, "lectura")
   expect_equal(by_name_top_two$color_texto_porcentajes$default, "#FFFFFF")
   expect_equal(by_name_top_two$margen_llave$label, "Margen de la llave")
   expect_equal(by_name_top_two$margen_llave$tipo_input, "number")
+  expect_equal(by_name_top_two$margen_llave$grupo, "espacio")
   expect_equal(by_name_top_two$margen_llave$default, 4)
   expect_equal(by_name_top_two$grosor_flecha$label, "Grosor de la flecha")
   expect_equal(by_name_top_two$grosor_flecha$tipo_input, "number")
+  expect_equal(by_name_top_two$grosor_flecha$grupo, "espacio")
   expect_equal(by_name_top_two$grosor_flecha$default, 3.6)
-  expect_equal(by_name_top_two$estilo$tipo_input, "json")
+  expect_equal(by_name_top_two$estilo$tipo_input, "meta")
+  expect_equal(by_name_top_two$estilo$grupo, "diagnostico")
+})
+
+test_that("normalizador de etiquetas de barras agrupadas soporta mayuscula inicial", {
+  expect_equal(
+    .barras_agrupadas_normalizar_etiquetas(
+      c("SUPERVISOR DE MANTENIMIENTO", "¿QUÉ ACTIVIDADES REALIZA?", NA_character_),
+      "mayuscula_inicial"
+    ),
+    c("Supervisor de mantenimiento", "¿Qué actividades realiza?", NA_character_)
+  )
+  expect_equal(
+    .barras_agrupadas_normalizar_etiquetas("TEXTO ORIGINAL", "ninguna"),
+    "TEXTO ORIGINAL"
+  )
+  expect_equal(
+    .barras_agrupadas_normalizacion_modo("sin cambio"),
+    "ninguna"
+  )
 })
 
 test_that("barras agrupadas respetan orden, Otros al final y maximo de categorias", {
@@ -825,6 +907,8 @@ test_that("controles expuestos de leyenda llegan a los renderizadores canvas", {
   expect_true("modo" %in% names(formals(graficar_histograma)))
   expect_true("posicion_etiquetas" %in% names(formals(graficar_histograma)))
   expect_true("abreviaturas_grupos" %in% names(formals(graficar_histograma)))
+  expect_true("mostrar_resumen_grupos_subtitulo" %in% names(formals(graficar_histograma)))
+  expect_true("pos_y_subtitulo" %in% names(formals(graficar_histograma)))
 	})
 
 test_that("histograma apilado calcula proporciones por intervalo y total", {
@@ -876,6 +960,61 @@ test_that("histograma apilado calcula proporciones por intervalo y total", {
     if ("label" %in% names(x)) x$label else character()
   }), use.names = FALSE)
   expect_true(any(grepl("H 2\\s+M 2", built_labels)))
+
+  p_top_pct <- graficar_histograma(
+    df,
+    var = "edad",
+    grupo = "sexo",
+    ancho_bin = 1,
+    modo = "porcentaje_total",
+    posicion_etiquetas = "cima",
+    etiqueta_cima_modo = "porcentaje_conteos_grupo",
+    abreviaturas_grupos = c("Hombre" = "H", "Mujer" = "M"),
+    umbral_etiqueta = 0,
+    mostrar_bins_vacios = FALSE,
+    usar_canvas = FALSE
+  )
+  d_top_pct <- attr(p_top_pct, "pulso_histograma_data")
+  expect_true(all(unique(as.character(d_top_pct$.bin_label)) %in% as.character(25:29)))
+  expect_false(any(grepl("-", unique(as.character(d_top_pct$.bin_label)), fixed = TRUE)))
+  built_labels_pct <- unlist(lapply(ggplot2::ggplot_build(p_top_pct)$data, function(x) {
+    if ("label" %in% names(x)) x$label else character()
+  }), use.names = FALSE)
+  expect_true(any(grepl("25% \\(2\\).*H 1\\s+M 1", built_labels_pct)))
+
+  p_top_group_pct <- graficar_histograma(
+    df,
+    var = "edad",
+    grupo = "sexo",
+    ancho_bin = 1,
+    modo = "porcentaje_total",
+    posicion_etiquetas = "cima",
+    etiqueta_cima_modo = "porcentaje_grupo_conteos_grupo",
+    etiqueta_cima_formato = "dos_lineas",
+    abreviaturas_grupos = c("Hombre" = "H", "Mujer" = "M"),
+    umbral_etiqueta = 0,
+    mostrar_bins_vacios = FALSE,
+    usar_canvas = FALSE
+  )
+  built_labels_group_pct <- unlist(lapply(ggplot2::ggplot_build(p_top_group_pct)$data, function(x) {
+    if ("label" %in% names(x)) x$label else character()
+  }), use.names = FALSE)
+  expect_true(any(grepl("H 1\\(50%\\).*M 1\\(50%\\)", built_labels_group_pct)))
+  expect_true(any(grepl("\n", built_labels_group_pct, fixed = TRUE)))
+
+  p_sub <- graficar_histograma(
+    df,
+    var = "edad",
+    grupo = "sexo",
+    ancho_bin = 1,
+    modo = "porcentaje_total",
+    mostrar_resumen_grupos_subtitulo = TRUE,
+    prefijo_resumen_grupos_subtitulo = "Sexo: ",
+    subtitulo = "Distribución por edad",
+    usar_canvas = FALSE
+  )
+  expect_equal(attr(p_sub, "pulso_histograma_resumen_grupos"), "Sexo: Hombre 50% · Mujer 50%")
+  expect_equal(attr(p_sub, "pulso_histograma_subtitulo"), "Distribución por edad\nSexo: Hombre 50% · Mujer 50%")
 })
 
 test_that("p_histograma y p_presets exponen contratos publicos", {

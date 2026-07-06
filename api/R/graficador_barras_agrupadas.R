@@ -1,3 +1,42 @@
+.barras_agrupadas_sentence_case <- function(x) {
+  unname(vapply(
+    as.character(x),
+    function(s) {
+      if (is.na(s)) return(NA_character_)
+      s <- trimws(gsub("\\s+", " ", s, perl = TRUE))
+      if (!nzchar(s)) return(s)
+      chars <- strsplit(tolower(s), "", fixed = FALSE, useBytes = FALSE)[[1]]
+      idx <- which(grepl("[[:alpha:]]", chars))[1]
+      if (length(idx) && is.finite(idx) && !is.na(idx)) {
+        chars[[idx]] <- toupper(chars[[idx]])
+      }
+      paste0(chars, collapse = "")
+    },
+    character(1)
+  ))
+}
+
+.barras_agrupadas_normalizacion_modo <- function(modo = "ninguna") {
+  if (is.null(modo)) modo <- "ninguna"
+  modo <- as.character(modo)[1]
+  if (is.na(modo) || !nzchar(trimws(modo))) modo <- "ninguna"
+  modo <- tolower(trimws(modo))
+  modo <- gsub("[ -]+", "_", modo)
+  if (modo %in% c("sin_cambio", "original", "none", "no", "false")) modo <- "ninguna"
+  if (modo %in% c("capital_inicial", "sentence_case", "oracion", "oración")) modo <- "mayuscula_inicial"
+  if (!modo %in% c("ninguna", "mayuscula_inicial")) modo <- "ninguna"
+  modo
+}
+
+.barras_agrupadas_normalizar_etiquetas <- function(x, modo = "ninguna") {
+  modo <- .barras_agrupadas_normalizacion_modo(modo)
+  switch(
+    modo,
+    mayuscula_inicial = .barras_agrupadas_sentence_case(x),
+    x
+  )
+}
+
 #' Graficar barras agrupadas para porcentajes por categoria
 #'
 #' Construye un grafico de **barras agrupadas** para comparar una o mas series de
@@ -77,6 +116,9 @@
 #'   el numero de series).
 #' @param color_barra_extra,size_barra_extra Color y tamano del texto adicional por categoria.
 #' @param color_ejes,size_ejes Color y tamano de las etiquetas de categorias.
+#' @param lineheight_eje_y Interlineado de las etiquetas de categorias cuando
+#'   se envuelven en varias lineas. Si es `NULL`, usa el valor por defecto de
+#'   `ggplot2`.
 #' @param usar_eje_libre Si `FALSE`, fija el maximo en 100% (1.0) para facilitar comparacion
 #'   entre graficos. Si `TRUE`, ajusta el maximo al valor observado.
 #' @param color_fondo Color de fondo del grafico. Por defecto es transparente (`NA`).
@@ -87,6 +129,11 @@
 #' @param espacio_izquierda_rel Expansion inferior/izquierda de la escala (modo estandar).
 #' @param ancho_max_eje_y Si se define, aplica "wrap" a las etiquetas de categorias usando
 #'   ese ancho (requiere `stringr`).
+#' @param normalizar_etiquetas Normalizacion visual de etiquetas de categorias.
+#'   `"ninguna"` conserva el texto original; `"mayuscula_inicial"` pone el
+#'   primer caracter alfabetico en mayuscula y el resto en minuscula.
+#' @param forzar_ancho_max_eje_y Si `TRUE`, respeta `ancho_max_eje_y` incluso en
+#'   graficos densos. Por defecto el motor lo acota para proteger layouts generales.
 #'
 #' @param mostrar_leyenda Si `FALSE`, oculta la leyenda.
 #' @param orden_barras Criterio para ordenar categorias: `"instrumento"`
@@ -212,6 +259,7 @@ graficar_barras_agrupadas <- function(
     size_barra_extra          = 3,
     color_ejes                = "#081F5C",
     size_ejes                 = 9,
+    lineheight_eje_y          = NULL,
     usar_eje_libre            = FALSE,
     color_fondo               = NA,
     font_family               = "Arial",
@@ -220,6 +268,8 @@ graficar_barras_agrupadas <- function(
     extra_derecha_rel         = 0.25,
     espacio_izquierda_rel     = 0.05,
     ancho_max_eje_y           = NULL,
+    normalizar_etiquetas      = c("ninguna", "mayuscula_inicial"),
+    forzar_ancho_max_eje_y    = FALSE,
 
 	    mostrar_leyenda           = TRUE,
 	    leyenda_posicion          = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
@@ -298,6 +348,7 @@ graficar_barras_agrupadas <- function(
 	  pos_nota_pie <- match.arg(pos_nota_pie)
 	  leyenda_posicion <- match.arg(leyenda_posicion)
 	  orden_barras <- match.arg(orden_barras)
+  normalizar_etiquetas <- .barras_agrupadas_normalizacion_modo(normalizar_etiquetas)
   font_family <- as.character(font_family %||% "Arial")[1]
   if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
   if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
@@ -581,6 +632,10 @@ graficar_barras_agrupadas <- function(
   if (!is.finite(size_ejes_eff) || is.na(size_ejes_eff) || size_ejes_eff <= 0) {
     size_ejes_eff <- 9
   }
+  lineheight_eje_y_eff <- suppressWarnings(as.numeric(lineheight_eje_y)[1])
+  if (!is.finite(lineheight_eje_y_eff) || is.na(lineheight_eje_y_eff) || lineheight_eje_y_eff <= 0) {
+    lineheight_eje_y_eff <- NA_real_
+  }
   ancho_max_eje_y_eff <- ancho_max_eje_y
   if (isTRUE(usar_canvas) && identical(orientacion, "horizontal") && n_categorias > 0) {
     cat_widths <- nchar(as.character(cat_lvls), type = "width", allowNA = FALSE, keepNA = FALSE)
@@ -588,7 +643,8 @@ graficar_barras_agrupadas <- function(
     max_cat_width <- max(cat_widths, na.rm = TRUE)
     if (!is.finite(max_cat_width)) max_cat_width <- 0
     wide_labels <- max_cat_width >= 28
-    if (isTRUE(wide_labels)) {
+    forzar_ancho_max_eje_y <- isTRUE(forzar_ancho_max_eje_y)
+    if (isTRUE(wide_labels) && !forzar_ancho_max_eje_y) {
       wrap_cap <- if (n_categorias <= 6L) 30 else if (n_categorias <= 8L) 31 else 32
       if (!is.null(ancho_max_eje_y_eff)) {
         ancho_max_eje_y_eff <- min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), wrap_cap)
@@ -599,9 +655,9 @@ graficar_barras_agrupadas <- function(
     dense_labels <- n_categorias >= 8L || max_cat_width >= 42
     if (isTRUE(dense_labels)) {
       size_ejes_eff <- min(size_ejes_eff, if (n_categorias >= 10L || max_cat_width >= 48) 12.2 else 13.2)
-      if (!is.null(ancho_max_eje_y_eff)) {
+      if (!forzar_ancho_max_eje_y && !is.null(ancho_max_eje_y_eff)) {
         ancho_max_eje_y_eff <- min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), 32)
-      } else {
+      } else if (!forzar_ancho_max_eje_y) {
         ancho_max_eje_y_eff <- 32
       }
     }
@@ -791,7 +847,16 @@ graficar_barras_agrupadas <- function(
 
   if (!is.null(ancho_max_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
-    p <- p + ggplot2::scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = ancho_max_eje_y_eff))
+    p <- p + ggplot2::scale_x_discrete(labels = function(x) {
+      stringr::str_wrap(
+        .barras_agrupadas_normalizar_etiquetas(x, normalizar_etiquetas),
+        width = ancho_max_eje_y_eff
+      )
+    })
+  } else if (!identical(normalizar_etiquetas, "ninguna")) {
+    p <- p + ggplot2::scale_x_discrete(labels = function(x) {
+      .barras_agrupadas_normalizar_etiquetas(x, normalizar_etiquetas)
+    })
   }
 
   # caption
@@ -1081,7 +1146,7 @@ graficar_barras_agrupadas <- function(
   }
 
   # etiquetas y extra (texto)
-  etiquetas_vec <- cat_lvls
+  etiquetas_vec <- .barras_agrupadas_normalizar_etiquetas(cat_lvls, normalizar_etiquetas)
   if (!is.null(ancho_max_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
     etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = ancho_max_eje_y_eff)
@@ -1114,7 +1179,8 @@ graficar_barras_agrupadas <- function(
     )
     max_lineas_etq <- suppressWarnings(max(lineas_etq, na.rm = TRUE))
     if (is.finite(max_lineas_etq) && max_lineas_etq > 1) {
-      alto_min_etq <- (size_ejes_eff / 72) * max_lineas_etq * 1.42 + 0.08
+      lineheight_est <- if (is.finite(lineheight_eje_y_eff)) lineheight_eje_y_eff else 1.20
+      alto_min_etq <- (size_ejes_eff / 72) * max_lineas_etq * lineheight_est * 1.18 + 0.08
       if (is.finite(alto_min_etq) && alto_min_etq > 0) {
         alto_por_cat_eff <- max(alto_por_cat_eff, alto_min_etq)
       }
@@ -1296,18 +1362,22 @@ graficar_barras_agrupadas <- function(
   x_lab <- x_etq0 + w_etq * (1 - pad_x)
   fontface_etq <- if ("eje_y" %in% textos_negrita) "bold" else "plain"
 
+  text_args_eje_y <- list(
+    text     = NULL,
+    x        = x_lab,
+    y        = NULL,
+    hjust    = 1,
+    vjust    = 0.5,
+    size     = size_ejes_eff,
+    colour   = color_ejes,
+    family   = font_family,
+    fontface = fontface_etq
+  )
+  if (is.finite(lineheight_eje_y_eff)) text_args_eje_y$lineheight <- lineheight_eje_y_eff
   for (i in seq_len(n_categorias)) {
-    canvas <- canvas + cowplot::draw_text(
-      text     = etiquetas_vec[i],
-      x        = x_lab,
-      y        = y_abs[i],
-      hjust    = 1,
-      vjust    = 0.5,
-      size     = size_ejes_eff,
-      colour   = color_ejes,
-      family = font_family,
-      fontface = fontface_etq
-    )
+    text_args_eje_y$text <- etiquetas_vec[i]
+    text_args_eje_y$y <- y_abs[i]
+    canvas <- canvas + do.call(cowplot::draw_text, text_args_eje_y)
   }
 
   # extra derecha
@@ -1404,6 +1474,7 @@ graficar_barras_agrupadas <- function(
       canvas_min_filas = canvas_min_filas_eff,
       h_panel_in = h_panel_in,
       size_ejes_eff = size_ejes_eff,
+      lineheight_eje_y_eff = lineheight_eje_y_eff,
       ancho_max_eje_y_eff = ancho_max_eje_y_eff
     )
     return(canvas)

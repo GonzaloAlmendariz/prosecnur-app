@@ -4683,6 +4683,39 @@ export type MonitoreoTerritorialOperationalPackageFile = {
   download_url?: string;
 };
 
+export type MonitoreoProcessingHandoffUniverse = "processable" | "strict_validada";
+
+export type MonitoreoProcessingHandoffCounts = {
+  raw_rows?: number;
+  audit_rows?: number;
+  exported_rows?: number;
+  selected_audit_rows?: number;
+  validada?: number;
+  revision?: number;
+  no_defendible?: number;
+  missing_raw_matches?: number;
+  active_annulments?: number;
+  annulled_responses?: number;
+};
+
+export type MonitoreoProcessingHandoffResult = {
+  ok: true;
+  schema: "monitoreo_processing_handoff_v1" | string;
+  universe: MonitoreoProcessingHandoffUniverse | string;
+  included_statuses?: string[];
+  counts?: MonitoreoProcessingHandoffCounts;
+  file_id: string;
+  filename?: string;
+  size?: number;
+  download_url?: string;
+  files?: {
+    package?: MonitoreoTerritorialOperationalPackageFile;
+    data_xlsx?: MonitoreoTerritorialOperationalPackageFile;
+    xlsform?: MonitoreoTerritorialOperationalPackageFile;
+  };
+  would_mutate_pulso?: boolean;
+};
+
 export type MonitoreoTerritorialOperationalPackageReview = {
   schema: "monitoreo_deliverables_territorial_operational_package_review_v1" | string;
   generated_at?: string;
@@ -4755,8 +4788,11 @@ export type MonitoreoTerritorialOperationalPackageReviewResult = {
 
 export type MonitoreoTerritorialProductionAnnulmentImpact = {
   schema?: string;
+  scope?: "all_production" | "response" | string;
   responsible_key?: string;
   responsible_label?: string;
+  response_id?: string;
+  response_label?: string;
   responses_excluded?: number;
   valid_responses_excluded?: number;
   umps_affected?: number;
@@ -4794,9 +4830,12 @@ export type MonitoreoTerritorialProductionAnnulment = {
   id: string;
   phase?: MonitoreoTerritorialPhase | string;
   status?: "active" | "reverted" | string;
-  scope?: "all_production" | string;
-  responsible_key: string;
-  responsible_label: string;
+  scope?: "all_production" | "response" | string;
+  responsible_key?: string;
+  responsible_label?: string;
+  response_id?: string;
+  response_id_field?: string;
+  response_label?: string;
   reason?: string;
   note?: string;
   created_at?: string;
@@ -6544,6 +6583,8 @@ export type MonitoreoSheetsPublishResult = {
   controlled_tabs: string[];
   updated_at: string;
   mode: "controlled_write";
+  audience?: "client" | "internal" | string;
+  preflight?: MonitoreoDeliverablesPreflight;
 };
 
 export type MonitoreoDeliverablesIssue = {
@@ -6773,7 +6814,7 @@ export async function apiMonitoreoPublicationSheetsPublish(
   spreadsheetId = "",
   options: MonitoreoPublicationRequestOptions = {},
 ) {
-  return handle<MonitoreoSheetsPublishResult & { audience?: "client" | "internal" | string; preflight?: MonitoreoDeliverablesPreflight["scorecard"] }>(
+  return handle<MonitoreoSheetsPublishResult>(
     await apiFetch("/api/monitoreo/publication/sheets", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -7275,8 +7316,11 @@ export async function apiMonitoreoTerritorialOperationalAdjustmentRevert(payload
 
 export async function apiMonitoreoTerritorialProductionAnnulmentPreview(payload: {
   phase?: MonitoreoTerritorialPhase;
-  responsible_key: string;
+  scope?: "all_production" | "response" | string;
+  responsible_key?: string;
   responsible_label?: string;
+  response_id?: string;
+  response_label?: string;
   reason?: string;
   note?: string;
 }) {
@@ -7296,8 +7340,11 @@ export async function apiMonitoreoTerritorialProductionAnnulmentPreview(payload:
 
 export async function apiMonitoreoTerritorialProductionAnnulmentApply(payload: {
   phase?: MonitoreoTerritorialPhase;
-  responsible_key: string;
+  scope?: "all_production" | "response" | string;
+  responsible_key?: string;
   responsible_label?: string;
+  response_id?: string;
+  response_label?: string;
   reason: string;
   note?: string;
 }) {
@@ -7761,6 +7808,42 @@ export async function apiMonitoreoExport(config?: Partial<MonitoreoConfig>) {
       body: JSON.stringify(config ? { config } : {}),
     }),
   );
+}
+
+function withProcessingHandoffDownloadUrls(
+  result: MonitoreoProcessingHandoffResult,
+): MonitoreoProcessingHandoffResult {
+  const withUrl = (file?: MonitoreoTerritorialOperationalPackageFile) =>
+    file?.file_id ? { ...file, download_url: downloadUrl(file.file_id) } : file;
+  return {
+    ...result,
+    ...(result.file_id ? { download_url: downloadUrl(result.file_id) } : {}),
+    ...(result.files ? {
+      files: {
+        ...result.files,
+        package: withUrl(result.files.package),
+        data_xlsx: withUrl(result.files.data_xlsx),
+        xlsform: withUrl(result.files.xlsform),
+      },
+    } : {}),
+  };
+}
+
+export async function apiMonitoreoProcessingHandoffExport(options: {
+  universe?: MonitoreoProcessingHandoffUniverse | string;
+  config?: Partial<MonitoreoConfig>;
+} = {}) {
+  const result = await handle<MonitoreoProcessingHandoffResult>(
+    await apiFetch("/api/monitoreo/processing-handoff/export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        ...(options.universe ? { universe: options.universe } : {}),
+        ...(options.config ? { config: options.config } : {}),
+      }),
+    }),
+  );
+  return withProcessingHandoffDownloadUrls(result);
 }
 
 // ---------- Hojas de ruta para campo ----------
@@ -8998,9 +9081,10 @@ export function guessDummyColFromOpciones(opciones: OpcionSM[] | undefined): str
   return sugerida?.col_dummy ?? "";
 }
 
-export async function apiCodifPreguntasAbiertas() {
+export async function apiCodifPreguntasAbiertas(base?: string) {
+  const query = base ? `?base=${encodeURIComponent(base)}` : "";
   return handle<{ ok: true; preguntas: PreguntaAbierta[] }>(
-    await apiFetch("/api/codificacion/preguntas-abiertas", { headers: headers() })
+    await apiFetch(`/api/codificacion/preguntas-abiertas${query}`, { headers: headers() })
   );
 }
 
@@ -9717,7 +9801,7 @@ export async function apiAnaliticaBasesMetadata() {
 // el editor dinámicamente a partir de este metadata.
 // La fuente de verdad vive en `api/R/graficos_metadata.R`.
 
-// Nombres canónicos de los 19 tipos de slide en prosecnur (en español).
+// Nombres canónicos de los tipos de slide en prosecnur (en español).
 // Reemplaza los nombres viejos en inglés (p_slide_title, p_slide_1, etc.).
 export type SlideType =
   // Estructurales (sin slots de gráfico)
@@ -9727,6 +9811,7 @@ export type SlideType =
   | "p_slide_objetivo_icono"
   | "p_slide_texto"
   | "p_slide_tabla_tecnica"
+  | "p_slide_top_two_box"
   // 1 gráfico
   | "p_slide_1_grafico"
   | "p_slide_1_grafico_narrativo"
@@ -11754,6 +11839,28 @@ export type CodifConfigVariable = {
   configuration?: unknown;
 };
 
+export type CodifMatrixSummary = {
+  source_sheet?: string;
+  total?: {
+    carrera?: string;
+    filas?: number;
+    puestos_categorizados?: number;
+    puestos_revision?: number;
+    funciones_categorizadas?: number;
+    funciones_revision?: number;
+    filas_revision?: number;
+  } | null;
+  by_career?: Array<{
+    carrera?: string;
+    filas?: number;
+    puestos_categorizados?: number;
+    puestos_revision?: number;
+    funciones_categorizadas?: number;
+    funciones_revision?: number;
+    filas_revision?: number;
+  }>;
+};
+
 export type CodifConfigBundle = {
   ok: true;
   schema_version: "prosecnur.coding_config.v1" | string;
@@ -11768,6 +11875,8 @@ export type CodifConfigBundle = {
     source?: string;
     notes?: string;
     exported_bases?: string[];
+    matrix_layouts?: string[];
+    matrix_summary?: CodifMatrixSummary | null;
     normalization?: {
       adopted_text_duplicates?: Array<{
         base_id: string;
@@ -11815,6 +11924,19 @@ export type CodifImportPreviewItem = {
     rules_add: number;
     recodes_add: number;
   };
+  matrix_layout?: "case_code_matrix" | "paired_category_matrix" | string;
+  matrix_diagnostics?: {
+    rows?: number;
+    unique_cases?: number;
+    unique_texts?: number;
+    duplicate_case_rows?: number;
+    matched_cases?: number;
+    unmatched_cases?: number;
+    review_rows?: number;
+    categorized?: number;
+    blocking?: boolean;
+    code_label_conflicts?: string[];
+  };
   default_strategy: CodifConfigImportStrategy;
   can_apply: boolean;
 };
@@ -11860,6 +11982,7 @@ export type CodifImportPreview = {
     n_missing: number;
     n_conflicts: number;
   };
+  matrix_summary?: CodifMatrixSummary | null;
   requires_confirmation: boolean;
 };
 
@@ -11894,9 +12017,50 @@ export type CodifImportApplyResult = {
 
 export type CodifExcelCategorizationPreview = {
   ok: true;
-  source_format: "categorization_excel";
+  source_format: "categorization_excel" | "matrix_excel";
   bundle: CodifConfigBundle;
   preview: CodifImportPreview;
+};
+
+export type CodifMatrixMap = {
+  ok: true;
+  bases: Array<{
+    base: string;
+    variables: Array<{
+      variable: string;
+      variable_label?: string;
+      variable_kind?: string;
+      variable_kind_label?: string;
+      n_categorias?: number;
+      n_casos?: number;
+      n_asignaciones?: number;
+      n_observaciones?: number;
+      categories: Array<{
+        codigo: string;
+        etiqueta: string;
+        category_role?: "regular" | "otro" | "no_contesta" | string;
+        category_role_label?: string;
+        n_respuestas: number;
+        n_casos: number;
+        n_asignaciones?: number;
+        n_observaciones?: number;
+        cases?: Array<{
+          id_caso: string;
+          respuesta: string;
+          codigo: string;
+          etiqueta: string;
+          obs?: string;
+        }>;
+      }>;
+    }>;
+  }>;
+};
+
+export type CodifMatrixExportResult = {
+  ok: true;
+  file_id: string;
+  size: number;
+  visibility: "work" | "internal" | "client" | string;
 };
 
 export async function apiCodifExportJson() {
@@ -11931,6 +12095,64 @@ export async function apiCodifImportExcelCategorizationPreview(fileId: string, f
       method: "POST",
       headers: { ...headers(), "Content-Type": "application/json" },
       body: JSON.stringify({ file_id: fileId, file_name: fileName ?? "" }),
+    })
+  );
+}
+
+export async function apiCodifMatricesPreview(fileId: string, fileName?: string) {
+  return handle<CodifExcelCategorizationPreview>(
+    await apiFetch("/api/codificacion/matrices/preview", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ file_id: fileId, file_name: fileName ?? "" }),
+    })
+  );
+}
+
+export async function apiCodifMatricesApply(bundle: unknown, selections: CodifImportSelection[], fileName?: string) {
+  return handle<CodifImportApplyResult>(
+    await apiFetch("/api/codificacion/matrices/apply", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ bundle, selections, file_name: fileName ?? "" }),
+    })
+  );
+}
+
+export async function apiCodifMatricesMap(base?: string) {
+  const query = base ? `?base=${encodeURIComponent(base)}` : "";
+  return handle<CodifMatrixMap>(
+    await apiFetch(`/api/codificacion/matrices/mapa${query}`, { headers: headers() })
+  );
+}
+
+export async function apiCodifMatricesCasePatch(payload: {
+  base: string;
+  variable: string;
+  id_caso: string;
+  from_codigo?: string;
+  codigo: string;
+  etiqueta: string;
+}) {
+  return handle<{ ok: true; map: CodifMatrixMap }>(
+    await apiFetch("/api/codificacion/matrices/caso", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+  );
+}
+
+export async function apiCodifMatricesExport(
+  visibility: "work" | "internal" | "client",
+  variables?: string[],
+  base?: string,
+) {
+  return handle<CodifMatrixExportResult>(
+    await apiFetch("/api/codificacion/matrices/export", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ visibility, variables: variables ?? [], base: base ?? "" }),
     })
   );
 }

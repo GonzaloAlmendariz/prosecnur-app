@@ -60840,11 +60840,12 @@ button.mon-acr-requirement-metric:active {
 .mon-field-occurrences-register-toolbar {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) repeat(2, minmax(170px, 0.26fr));
+  grid-template-columns: minmax(280px, 1fr) repeat(2, minmax(170px, 0.26fr)) auto;
   gap: 7px;
 }
 
-.mon-field-occurrences-register-toolbar select {
+.mon-field-occurrences-register-toolbar select,
+.mon-field-occurrences-register-toolbar button {
   min-width: 0;
   height: 34px;
   overflow: hidden;
@@ -60859,7 +60860,16 @@ button.mon-acr-requirement-metric:active {
   white-space: nowrap;
 }
 
-.mon-field-occurrences-register-toolbar select:focus-visible {
+.mon-field-occurrences-register-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--pulso-text);
+}
+
+.mon-field-occurrences-register-toolbar select:focus-visible,
+.mon-field-occurrences-register-toolbar button:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--pulso-border));
   box-shadow: 0 0 0 3px var(--pulso-primary-soft);
   outline: none;
@@ -66602,6 +66612,52 @@ button.mon-acr-requirement-metric:active {
 .mon-production-annulments__control textarea {
   min-height: 92px;
   resize: vertical;
+}
+
+.mon-production-annulments__responsible-picker {
+  border: 1px solid color-mix(in srgb, var(--pulso-danger, #be123c) 16%, var(--pulso-border, #d8e0ec));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 9px;
+}
+
+.mon-production-annulments__search {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-width: 0;
+}
+
+.mon-production-annulments__search svg {
+  position: absolute;
+  left: 11px;
+  z-index: 1;
+  color: var(--pulso-muted, #657186);
+  pointer-events: none;
+}
+
+.mon-production-annulments__control .mon-production-annulments__search input {
+  border-color: color-mix(in srgb, var(--pulso-danger, #be123c) 18%, var(--pulso-border, #d8e0ec));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.88)),
+    #fff;
+  padding-left: 32px;
+}
+
+.mon-production-annulments__control .mon-production-annulments__search input:focus,
+.mon-production-annulments__control select:focus,
+.mon-production-annulments__control input:focus,
+.mon-production-annulments__control textarea:focus {
+  border-color: color-mix(in srgb, var(--pulso-danger, #be123c) 48%, var(--pulso-border, #d8e0ec));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-danger, #be123c) 12%, transparent);
+  outline: none;
+}
+
+.mon-production-annulments__filter-note {
+  color: var(--pulso-muted, #657186);
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 760;
 }
 
 .mon-production-annulments__responsible {

@@ -21,6 +21,7 @@ import {
   apiEstudioGet,
   apiJobStatus,
   apiMonitoreoClientReportPdf,
+  apiMonitoreoProcessingHandoffExport,
   apiMonitoreoPublicationEvidencePack,
   apiMonitoreoPublicationPreflight,
   apiMonitoreoPublicationSheetsPublish,
@@ -35,6 +36,8 @@ import {
   type MonitoreoConfig,
   type MonitoreoDeliverablesPreflight,
   type MonitoreoLastSheetsPublication,
+  type MonitoreoProcessingHandoffResult,
+  type MonitoreoProcessingHandoffUniverse,
   type MonitoreoPublicationEvidencePackResult,
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
@@ -78,10 +81,20 @@ type ProcessingHandoffStatus = {
   message: string;
   detail?: string;
 };
+type ProcessingPackageStatus = {
+  kind: "idle" | "generating" | "ready" | "error";
+  message: string;
+  detail?: string;
+};
 type ProcessingBaseOption = Pick<
   EstudioBase,
   "nombre" | "source_alias" | "source_title" | "source_channel" | "source_kind" | "survey_id" | "n_filas" | "n_columnas"
 >;
+export type ProcessingHandoffFileLink = {
+  key: "package" | "data_xlsx" | "xlsform";
+  label: string;
+  downloadUrl: string;
+};
 
 export type MonitoreoOutputsWorkbenchProps = {
   family: OutputFamily;
@@ -254,6 +267,7 @@ function statusLabel(status: PublicationStatus, ready: boolean) {
 function preflightHeading(preflight?: MonitoreoDeliverablesPreflight | null) {
   if (!preflight) return "Validación";
   if (preflight.status === "blocked") return "Validación bloqueada";
+  if (preflightHasOnlyColdPerformanceWarnings(preflight)) return "Validación lista, generación lenta";
   if (preflight.status === "warnings") return "Validación con advertencias";
   return "Validación lista";
 }
@@ -262,12 +276,29 @@ function preflightDetail(preflight?: MonitoreoDeliverablesPreflight | null) {
   if (!preflight) return "";
   const blocking = preflight.scorecard?.blocking_count ?? preflight.blocking_issues?.length ?? 0;
   const warnings = preflight.scorecard?.warning_count ?? preflight.warnings?.length ?? 0;
+  if (preflightHasOnlyColdPerformanceWarnings(preflight)) {
+    return `${Math.round(Number(preflight.score) || 0)}/100 · sin bloqueos · la generación en frío tardó más de lo esperado`;
+  }
   return `${Math.round(Number(preflight.score) || 0)}/100 · ${blocking} bloqueos · ${warnings} advertencias`;
+}
+
+export function preflightHasOnlyColdPerformanceWarnings(preflight?: MonitoreoDeliverablesPreflight | null) {
+  if (!preflight || preflight.status !== "warnings") return false;
+  const blocking = preflight.blocking_issues ?? [];
+  const warnings = preflight.warnings ?? [];
+  return blocking.length === 0 && warnings.length > 0 && warnings.every((issue) => issue.code === "cold_performance_over_threshold");
 }
 
 function preflightIssues(preflight?: MonitoreoDeliverablesPreflight | null) {
   if (!preflight) return [];
-  return [...(preflight.blocking_issues ?? []), ...(preflight.warnings ?? [])].slice(0, 3);
+  return [...(preflight.blocking_issues ?? []), ...(preflight.warnings ?? [])]
+    .map((issue) => issue.code === "cold_performance_over_threshold"
+      ? {
+          ...issue,
+          message: "La generación en frío tardó más de lo esperado; no bloquea la publicación.",
+        }
+      : issue)
+    .slice(0, 3);
 }
 
 function normalizedText(value: string) {
@@ -370,6 +401,41 @@ export function monitoreoEvidencePackFileLinks(result?: MonitoreoPublicationEvid
       key: "publication_decision" as const,
       label: "Decisión",
       downloadUrl: files.publication_decision?.download_url ?? "",
+    },
+  ].filter((item) => item.downloadUrl);
+}
+
+export function monitoreoProcessingHandoffDetail(result?: MonitoreoProcessingHandoffResult | null) {
+  const counts = result?.counts;
+  if (!counts) return "";
+  const statusLabel = (result?.included_statuses ?? [])
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .join(" + ");
+  return [
+    `${fmt(counts.exported_rows ?? 0)} filas`,
+    statusLabel ? `estatus ${statusLabel}` : "",
+    formatBytes(result?.size),
+  ].filter(Boolean).join(" · ");
+}
+
+export function monitoreoProcessingHandoffFileLinks(result?: MonitoreoProcessingHandoffResult | null): ProcessingHandoffFileLink[] {
+  const files = result?.files;
+  return [
+    {
+      key: "package" as const,
+      label: "ZIP completo",
+      downloadUrl: result?.download_url ?? files?.package?.download_url ?? "",
+    },
+    {
+      key: "data_xlsx" as const,
+      label: "Data XLSX",
+      downloadUrl: files?.data_xlsx?.download_url ?? "",
+    },
+    {
+      key: "xlsform" as const,
+      label: "XLSForm",
+      downloadUrl: files?.xlsform?.download_url ?? "",
     },
   ].filter((item) => item.downloadUrl);
 }
@@ -574,6 +640,12 @@ export function MonitoreoOutputsWorkbench({
     kind: "idle",
     message: "",
   });
+  const [processingUniverse, setProcessingUniverse] = useState<MonitoreoProcessingHandoffUniverse>("processable");
+  const [processingPackage, setProcessingPackage] = useState<MonitoreoProcessingHandoffResult | null>(null);
+  const [processingPackageStatus, setProcessingPackageStatus] = useState<ProcessingPackageStatus>({
+    kind: "idle",
+    message: "",
+  });
   const clientInitial = useMemo(() => sheetsStateFromPublication(clientSheets), [clientSheets]);
   const internalInitial = useMemo(() => sheetsStateFromPublication(internalSheets), [internalSheets]);
   const [spreadsheetIds, setSpreadsheetIds] = useState<Record<OutputAudience, string>>({
@@ -642,6 +714,9 @@ export function MonitoreoOutputsWorkbench({
     setOperationalReviewStatus({ kind: "idle", message: "" });
     setOperationalPackageUpload(null);
     setOperationalDriftUpload(null);
+    setProcessingPackage(null);
+    setProcessingPackageStatus({ kind: "idle", message: "" });
+    setProcessingUniverse("processable");
     setProductionPdfTitle(productionDefaultTitle);
   }, [clientInitial, defaultTitle, family, internalInitial, productionDefaultTitle, routeLabel]);
 
@@ -739,6 +814,12 @@ export function MonitoreoOutputsWorkbench({
   }, [estudio, sessionBaseOptions]);
   const selectedProcessingBase = processingBases.find((base) => base.nombre === processingBase) ?? null;
   const processingBusy = processingStatus.kind === "loading" || processingStatus.kind === "setting";
+  const processingPackageBusy = processingPackageStatus.kind === "generating";
+  const canGenerateProcessingPackage = family === "territorial" &&
+    hasSnapshot &&
+    nRows > 0 &&
+    !processingPackageBusy;
+  const processingPackageFiles = monitoreoProcessingHandoffFileLinks(processingPackage);
 
   const publicationOperationalEvidence = (audience: OutputAudience) => (
     family === "territorial" && audience === "internal"
@@ -973,19 +1054,35 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
+  const generateProcessingPackage = async () => {
+    if (!canGenerateProcessingPackage) return;
+    setProcessingPackage(null);
+    setProcessingPackageStatus({
+      kind: "generating",
+      message: "Preparando data procesable y XLSForm...",
+    });
+    try {
+      const result = await apiMonitoreoProcessingHandoffExport({
+        universe: processingUniverse,
+        ...(config ? { config } : {}),
+      });
+      setProcessingPackage(result);
+      setProcessingPackageStatus({
+        kind: "ready",
+        message: "Paquete listo para compartir.",
+        detail: monitoreoProcessingHandoffDetail(result),
+      });
+    } catch (e) {
+      setProcessingPackageStatus({ kind: "error", message: (e as Error).message });
+    }
+  };
+
   const publishSheets = async () => {
     if (!canPublishSheets) return;
     const audience = activeAudience;
     setPublishing(audience);
-    updateStatus(audience, { kind: "checking", message: `Validando salida ${audienceLabel(audience).toLowerCase()}...` });
+    updateStatus(audience, { kind: "publishing", message: `Validando y actualizando Sheets ${audienceLabel(audience).toLowerCase()}...` });
     try {
-      const preflight = await requestPreflight(audience);
-      if (!preflight) return;
-      if (preflight.status === "blocked") {
-        updateStatus(audience, { kind: "error", message: "Validación bloqueada. No se publicó en Sheets." });
-        return;
-      }
-      updateStatus(audience, { kind: "publishing", message: `Actualizando Sheets ${audienceLabel(audience).toLowerCase()}...` });
       const out = await apiMonitoreoPublicationSheetsPublish(activeTarget.trim(), {
         audience,
         includeTargets,
@@ -993,6 +1090,9 @@ export function MonitoreoOutputsWorkbench({
         ...publicationOperationalEvidence(audience),
         ...(config ? { config } : {}),
       });
+      if (out.preflight) {
+        setPreflights((current) => ({ ...current, [audience]: out.preflight ?? null }));
+      }
       const next = {
         spreadsheetId: out.spreadsheet_id,
         url: spreadsheetUrl(out.spreadsheet_id),
@@ -1001,9 +1101,12 @@ export function MonitoreoOutputsWorkbench({
       };
       setPublished((current) => ({ ...current, [audience]: next }));
       setSpreadsheetIds((current) => ({ ...current, [audience]: out.spreadsheet_id }));
+      const performanceOnlyWarning = preflightHasOnlyColdPerformanceWarnings(out.preflight);
       updateStatus(audience, {
         kind: "success",
-        message: next.tabs.length
+        message: performanceOnlyWarning
+          ? `${next.tabs.length || 0} pestañas actualizadas. La validación solo detectó demora en frío.`
+          : next.tabs.length
           ? `${next.tabs.length} pestañas actualizadas.`
           : "Publicación enviada a Google Sheets.",
         detail: out.spreadsheet_id,
@@ -1204,6 +1307,63 @@ export function MonitoreoOutputsWorkbench({
               <strong>Procesamiento</strong>
               <small>{hasSnapshot ? snapshotHint : "Esperando corte sincronizado"}</small>
             </div>
+            {family === "territorial" ? (
+              <>
+                <label className="mon-outputs-field">
+                  <span>Paquete manual</span>
+                  <select
+                    value={processingUniverse}
+                    onChange={(event) => {
+                      setProcessingUniverse(event.target.value as MonitoreoProcessingHandoffUniverse);
+                      setProcessingPackage(null);
+                      setProcessingPackageStatus({ kind: "idle", message: "" });
+                    }}
+                    disabled={processingPackageBusy}
+                  >
+                    <option value="processable">Procesable (validada + revisión)</option>
+                    <option value="strict_validada">Sólo validada</option>
+                  </select>
+                  <small>Descarga data filtrada, XLSForm, auditoría y manifest.</small>
+                </label>
+                {processingPackageStatus.kind !== "idle" || processingPackage ? (
+                  <div className={`mon-outputs-evidence is-${processingPackageStatus.kind}`} role="status" aria-live="polite">
+                    <div className="mon-outputs-evidence__summary">
+                      <span>
+                        {processingPackageStatus.kind === "generating"
+                          ? <Loader2 size={14} className="pulso-spin" />
+                          : processingPackageStatus.kind === "error"
+                            ? <AlertTriangle size={14} />
+                            : <Archive size={14} />}
+                      </span>
+                      <div>
+                        <strong>Data + XLSForm</strong>
+                        <small>{processingPackageStatus.message}</small>
+                        {processingPackageStatus.detail ? <small>{processingPackageStatus.detail}</small> : null}
+                      </div>
+                    </div>
+                    {processingPackageFiles.length ? (
+                      <div className="mon-outputs-evidence__files" aria-label="Archivos del paquete manual para Procesamiento">
+                        {processingPackageFiles.map((item) => (
+                          <a key={item.key} className="mon-outputs-download" href={item.downloadUrl} download>
+                            <Download size={14} />
+                            {item.label}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="mon-outputs-processing-link"
+                  onClick={() => { void generateProcessingPackage(); }}
+                  disabled={!canGenerateProcessingPackage}
+                >
+                  {processingPackageBusy ? <Loader2 size={14} className="pulso-spin" /> : <Download size={14} />}
+                  {processingPackageBusy ? "Preparando paquete" : "Descargar data + XLSForm"}
+                </button>
+              </>
+            ) : null}
             {processingBases.length > 1 ? (
               <label className="mon-outputs-field">
                 <span>Base activa</span>

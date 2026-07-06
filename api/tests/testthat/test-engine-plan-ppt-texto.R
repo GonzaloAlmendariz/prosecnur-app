@@ -108,6 +108,8 @@ test_that("p_slide_indice renderiza contenido editable en PPT", {
   expect_match(slide_xml, "ÍNDICE", fixed = TRUE)
   expect_match(slide_xml, "Objetivo del estudio", fixed = TRUE)
   expect_match(slide_xml, "Perfil del egresado", fixed = TRUE)
+  expect_match(slide_xml, "2.1", fixed = TRUE)
+  expect_match(slide_xml, "2.2", fixed = TRUE)
   expect_match(slide_xml, 'sz="1600"', fixed = TRUE)
 })
 
@@ -282,10 +284,10 @@ test_that("p_slide_indice soporta variantes de 3 a 6 apartados con subindices", 
   expect_true(file.exists(out_ppt))
 
   expected <- list(
-    list(slide = 1L, title = "INDICE 3", section = "Seccion 3"),
-    list(slide = 2L, title = "INDICE 4", section = "Seccion 4"),
-    list(slide = 3L, title = "INDICE 5", section = "Seccion 4"),
-    list(slide = 4L, title = "INDICE 6", section = "Seccion 6")
+    list(slide = 1L, title = "INDICE 3", section = "Seccion 3", numbers = c("3.1", "3.2")),
+    list(slide = 2L, title = "INDICE 4", section = "Seccion 4", numbers = c("4.1", "4.2")),
+    list(slide = 3L, title = "INDICE 5", section = "Seccion 4", numbers = c("4.1", "4.2")),
+    list(slide = 4L, title = "INDICE 6", section = "Seccion 6", numbers = c("6.1", "6.2"))
   )
 
   for (item in expected) {
@@ -299,6 +301,8 @@ test_that("p_slide_indice soporta variantes de 3 a 6 apartados con subindices", 
     expect_match(slide_xml, item$section, fixed = TRUE)
     expect_match(slide_xml, "Subtema alfa", fixed = TRUE)
     expect_match(slide_xml, "Subtema beta", fixed = TRUE)
+    expect_match(slide_xml, item$numbers[[1]], fixed = TRUE)
+    expect_match(slide_xml, item$numbers[[2]], fixed = TRUE)
   }
 })
 

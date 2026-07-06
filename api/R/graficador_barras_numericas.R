@@ -849,15 +849,26 @@ graficar_histograma <- function(
     titulo = NULL,
     subtitulo = NULL,
     nota_pie = NULL,
+    mostrar_resumen_grupos_subtitulo = FALSE,
+    prefijo_resumen_grupos_subtitulo = NULL,
+    separador_resumen_grupos_subtitulo = " · ",
 
     mostrar_valores = TRUE,
     mostrar_frecuencia = TRUE,
     posicion_etiquetas = c("segmento", "cima", "ninguna"),
-    etiqueta_cima_modo = c("conteos_grupo", "conteo_total"),
+    etiqueta_cima_modo = c("conteos_grupo", "conteo_total", "porcentaje_conteos_grupo", "porcentaje_grupo_conteos_grupo"),
+    etiqueta_cima_formato = c("lineal", "dos_lineas"),
+    etiqueta_cima_orden_grupo = c("frecuencia_porcentaje", "porcentaje_frecuencia"),
     abreviaturas_grupos = NULL,
     separador_etiquetas_cima = "  ",
     color_etiqueta_cima = "#06245C",
     size_etiqueta_cima = 4.2,
+    lineheight_etiqueta_cima = 0.88,
+    alternar_etiquetas_cima = FALSE,
+    desfase_etiquetas_cima = 0.035,
+    repeler_etiquetas_cima_x = FALSE,
+    desfase_horizontal_etiquetas_cima = 0.18,
+    umbral_altura_repel_etiquetas_cima = 0.025,
     decimales = 0,
     umbral_etiqueta = 0.04,
     color_texto_barras = "white",
@@ -892,6 +903,7 @@ graficar_histograma <- function(
     size_titulo = 12,
     size_subtitulo = 10,
     size_nota_pie = 8,
+    pos_y_subtitulo = 0.25,
     pos_titulo = "center",
     pos_nota_pie = "left",
 
@@ -914,6 +926,8 @@ graficar_histograma <- function(
   exportar <- match.arg(exportar)
   posicion_etiquetas <- match.arg(posicion_etiquetas)
   etiqueta_cima_modo <- match.arg(etiqueta_cima_modo)
+  etiqueta_cima_formato <- match.arg(etiqueta_cima_formato)
+  etiqueta_cima_orden_grupo <- match.arg(etiqueta_cima_orden_grupo)
 
   if (!is.data.frame(data)) stop("`data` debe ser un data.frame.", call. = FALSE)
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
@@ -1093,6 +1107,37 @@ graficar_histograma <- function(
   legend_item_gap_pt <- max(0, as.numeric(legend_espaciado %||% 0.6)) * 28.35
 
   accuracy <- if (decimales <= 0) 1 else 10^-decimales
+  resumen_grupos_subtitulo <- NULL
+  if (isTRUE(mostrar_resumen_grupos_subtitulo) && !is.null(grupo)) {
+    n_grupo <- stats::aggregate(n ~ .grupo_label, tab, sum, na.rm = TRUE)
+    n_grupo <- n_grupo[n_grupo$n > 0, , drop = FALSE]
+    if (nrow(n_grupo)) {
+      n_grupo$.orden <- match(as.character(n_grupo$.grupo_label), niveles_grupo)
+      n_grupo <- n_grupo[order(n_grupo$.orden, na.last = TRUE), , drop = FALSE]
+      total_grupo <- sum(n_grupo$n, na.rm = TRUE)
+      if (is.finite(total_grupo) && total_grupo > 0) {
+        partes <- paste0(
+          as.character(n_grupo$.grupo_label),
+          " ",
+          scales::percent(n_grupo$n / total_grupo, accuracy = accuracy)
+        )
+        sep_resumen <- as.character(separador_resumen_grupos_subtitulo %||% " · ")
+        if (!length(sep_resumen) || is.na(sep_resumen)) sep_resumen <- " · "
+        pref_resumen <- as.character(prefijo_resumen_grupos_subtitulo %||% "")
+        if (!length(pref_resumen) || is.na(pref_resumen)) pref_resumen <- ""
+        resumen_grupos_subtitulo <- paste0(pref_resumen, paste(partes, collapse = sep_resumen))
+      }
+    }
+  }
+  subtitulo_efectivo <- subtitulo
+  if (!is.null(resumen_grupos_subtitulo) && nzchar(trimws(resumen_grupos_subtitulo))) {
+    subtitulo_efectivo <- if (!is.null(subtitulo) && nzchar(trimws(subtitulo))) {
+      paste(subtitulo, resumen_grupos_subtitulo, sep = "\n")
+    } else {
+      resumen_grupos_subtitulo
+    }
+  }
+
   pct_label <- scales::percent(if (identical(modo, "conteo")) tab$pct_total else tab$.valor, accuracy = accuracy)
   tab$.label <- if (identical(modo, "conteo")) {
     as.character(tab$n)
@@ -1134,12 +1179,64 @@ graficar_histograma <- function(
         top_data$.label_top <- as.character(top_data$n_bin_total)
       } else {
         abbr <- stats::setNames(.grupo_abbr(niveles_grupo, abreviaturas_grupos), niveles_grupo)
-        top_data$.label_top <- vapply(as.character(top_data$.bin), function(bin_i) {
+        .rows_for_bin <- function(bin_i) {
           rows <- tab[as.character(tab$.bin) == bin_i & tab$n > 0, , drop = FALSE]
           rows <- rows[match(intersect(niveles_grupo, as.character(rows$.grupo)), as.character(rows$.grupo)), , drop = FALSE]
+          rows
+        }
+        .counts_for_bin <- function(bin_i) {
+          rows <- .rows_for_bin(bin_i)
           if (!nrow(rows)) return("")
           paste0(unname(abbr[as.character(rows$.grupo)]), " ", rows$n, collapse = separador_etiquetas_cima)
-        }, character(1))
+        }
+        .group_pct_counts_for_bin <- function(bin_i) {
+          rows <- .rows_for_bin(bin_i)
+          if (!nrow(rows)) return("")
+          n_bin <- sum(rows$n, na.rm = TRUE)
+          if (!is.finite(n_bin) || n_bin <= 0) return("")
+          pct_rows <- scales::percent(rows$n / n_bin, accuracy = accuracy)
+          partes <- if (identical(etiqueta_cima_orden_grupo, "porcentaje_frecuencia")) {
+            paste0(
+              unname(abbr[as.character(rows$.grupo)]),
+              " ",
+              pct_rows,
+              "(",
+              rows$n,
+              ")"
+            )
+          } else {
+            paste0(
+              unname(abbr[as.character(rows$.grupo)]),
+              " ",
+              rows$n,
+              "(",
+              pct_rows,
+              ")"
+            )
+          }
+          paste(partes, collapse = if (identical(etiqueta_cima_formato, "dos_lineas")) "\n" else separador_etiquetas_cima)
+        }
+        conteos_grupo <- vapply(as.character(top_data$.bin), .counts_for_bin, character(1))
+        if (identical(etiqueta_cima_modo, "porcentaje_grupo_conteos_grupo")) {
+          top_data$.label_top <- vapply(as.character(top_data$.bin), .group_pct_counts_for_bin, character(1))
+        } else if (identical(etiqueta_cima_modo, "porcentaje_conteos_grupo")) {
+          pct_top <- if (identical(modo, "conteo")) {
+            if (n_total > 0) top_data$n_bin_total / n_total else 0
+          } else {
+            top_data$.valor
+          }
+          pct_n_label <- paste0(
+            scales::percent(pct_top, accuracy = accuracy),
+            " (", top_data$n_bin_total, ")"
+          )
+          top_data$.label_top <- if (identical(etiqueta_cima_formato, "dos_lineas")) {
+            paste0(pct_n_label, "\n", conteos_grupo)
+          } else {
+            paste0(pct_n_label, " · ", conteos_grupo)
+          }
+        } else {
+          top_data$.label_top <- conteos_grupo
+        }
       }
       top_data <- top_data[nzchar(top_data$.label_top), , drop = FALSE]
     }
@@ -1153,6 +1250,37 @@ graficar_histograma <- function(
   )
   y_max <- if (identical(modo, "porcentaje_bin")) 1 else max(stats::aggregate(.valor ~ .bin, tab, sum)$.valor, na.rm = TRUE)
   if (!is.finite(y_max) || y_max <= 0) y_max <- 1
+
+  if (!is.null(top_data) && nrow(top_data)) {
+    top_data$.label_y <- top_data$.valor
+    top_data$.label_x_nudge <- 0
+    if (isTRUE(alternar_etiquetas_cima)) {
+      desfase_etiquetas_cima <- suppressWarnings(as.numeric(desfase_etiquetas_cima %||% 0.035))
+      if (!is.finite(desfase_etiquetas_cima) || desfase_etiquetas_cima < 0) {
+        desfase_etiquetas_cima <- 0.035
+      }
+      bin_idx <- match(as.character(top_data$.bin), levels(tab$.bin))
+      top_data$.label_y <- top_data$.label_y + (bin_idx %% 2L) * y_max * desfase_etiquetas_cima
+    }
+    if (isTRUE(repeler_etiquetas_cima_x)) {
+      dx <- suppressWarnings(as.numeric(desfase_horizontal_etiquetas_cima %||% 0.18))
+      if (!is.finite(dx) || dx < 0) dx <- 0.18
+      dy_threshold <- suppressWarnings(as.numeric(umbral_altura_repel_etiquetas_cima %||% 0.025))
+      if (!is.finite(dy_threshold) || dy_threshold < 0) dy_threshold <- 0.025
+      bin_idx <- match(as.character(top_data$.bin), levels(tab$.bin))
+      ord <- order(bin_idx)
+      for (ii in seq_len(max(0L, length(ord) - 1L))) {
+        i <- ord[[ii]]
+        j <- ord[[ii + 1L]]
+        if (!is.finite(bin_idx[[i]]) || !is.finite(bin_idx[[j]])) next
+        adjacent <- abs(bin_idx[[j]] - bin_idx[[i]]) <= 1
+        same_height <- abs(top_data$.label_y[[j]] - top_data$.label_y[[i]]) <= y_max * dy_threshold
+        if (!adjacent || !same_height) next
+        if (abs(top_data$.label_x_nudge[[i]]) < 1e-8) top_data$.label_x_nudge[[i]] <- -dx
+        if (abs(top_data$.label_x_nudge[[j]]) < 1e-8) top_data$.label_x_nudge[[j]] <- dx
+      }
+    }
+  }
 
   expand_y_eff <- as.numeric(expand_y %||% 0.06)
   if (!is.finite(expand_y_eff) || expand_y_eff < 0) expand_y_eff <- 0.06
@@ -1219,13 +1347,20 @@ graficar_histograma <- function(
     )
   }
   if (isTRUE(mostrar_valores) && identical(posicion_etiquetas, "cima") && !is.null(top_data) && nrow(top_data)) {
+    pos_top <- if (any(abs(top_data$.label_x_nudge %||% 0) > 1e-8)) {
+      ggplot2::position_nudge(x = top_data$.label_x_nudge)
+    } else {
+      "identity"
+    }
     p <- p + ggplot2::geom_text(
       data = top_data,
-      ggplot2::aes(x = .data$.bin, y = .data$.valor, label = .data$.label_top),
+      ggplot2::aes(x = .data$.bin, y = .data$.label_y, label = .data$.label_top),
       inherit.aes = FALSE,
+      position = pos_top,
       vjust = -0.35,
       color = color_etiqueta_cima,
       size = size_etiqueta_cima,
+      lineheight = lineheight_etiqueta_cima,
       family = font_family,
       fontface = if ("valores" %in% textos_negrita) "bold" else "plain",
       show.legend = FALSE
@@ -1235,12 +1370,15 @@ graficar_histograma <- function(
   p_final <- p
   if (isTRUE(usar_canvas)) {
     align <- switch(pos_titulo, left = 0, right = 1, center = 0.5, 0.5)
+    pos_y_subtitulo <- suppressWarnings(as.numeric(pos_y_subtitulo %||% 0.25))
+    if (!is.finite(pos_y_subtitulo)) pos_y_subtitulo <- 0.25
+    pos_y_subtitulo <- max(0.05, min(0.55, pos_y_subtitulo))
     title_block <- cowplot::ggdraw() +
       cowplot::draw_label(titulo %||% "", x = align, hjust = align, y = 0.70,
                           color = color_titulo, fontfamily = font_family,
                           fontface = if ("titulo" %in% textos_negrita) "bold" else "bold",
                           size = size_titulo) +
-      cowplot::draw_label(subtitulo %||% "", x = align, hjust = align, y = 0.25,
+      cowplot::draw_label(subtitulo_efectivo %||% "", x = align, hjust = align, y = pos_y_subtitulo,
                           color = color_subtitulo, fontfamily = font_family,
                           fontface = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
                           size = size_subtitulo)
@@ -1276,6 +1414,13 @@ graficar_histograma <- function(
   }
 
   attr(p_final, "pulso_histograma_data") <- tab
+  attr(p_final, "pulso_histograma_top_labels") <- if (!is.null(top_data) && nrow(top_data)) {
+    as.character(top_data$.label_top)
+  } else {
+    character()
+  }
+  attr(p_final, "pulso_histograma_subtitulo") <- subtitulo_efectivo %||% ""
+  attr(p_final, "pulso_histograma_resumen_grupos") <- resumen_grupos_subtitulo %||% ""
 
   if (exportar == "rplot") return(p_final)
   if (is.null(path_salida) || !nzchar(path_salida)) {

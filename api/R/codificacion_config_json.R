@@ -804,6 +804,23 @@ codif_config_preview_import <- function(sid, bundle, file_name = "") {
   codif_set(sid, "config_versions", versions, source = source)
 }
 
+.codif_config_tag_matrix_groups <- function(groups, exported) {
+  role <- .codif_config_scalar(exported$role, "")
+  metadata <- exported$metadata %||% list()
+  layout <- .codif_config_scalar(metadata$matrix_layout, "")
+  if (!identical(role, "matrix_categorization") && !nzchar(layout)) return(groups %||% list())
+  lapply(groups %||% list(), function(g) {
+    g$codif_origin <- "matrix"
+    g$matrix_import <- TRUE
+    if (nzchar(layout)) g$matrix_layout <- layout
+    rows <- metadata$matrix_rows %||% NULL
+    if (!is.null(rows)) g$matrix_rows <- as.integer(rows)
+    g$matrix_source_variable <- .codif_config_scalar(exported$name, "")
+    g$matrix_applied_at <- .codif_config_now()
+    g
+  })
+}
+
 .codif_config_apply_one <- function(sid, exported, item, selection) {
   strategy <- .codif_config_scalar(selection$strategy, item$default_strategy %||% "replace")
   target_base <- .codif_config_scalar(item$target$base_id, "")
@@ -823,7 +840,7 @@ codif_config_preview_import <- function(sid, bundle, file_name = "") {
     target_name,
     target_label
   )
-  incoming_groups <- cfg$grupos %||% list()
+  incoming_groups <- .codif_config_tag_matrix_groups(cfg$grupos %||% list(), exported)
   existing_groups <- .codif_config_existing_groups_for_target(sid, target_base, target_name)
   final_groups <- if (identical(strategy, "merge_missing")) {
     .codif_config_merge_groups_missing(existing_groups, incoming_groups)

@@ -79,6 +79,21 @@
   unique(toks[nzchar(toks)])
 }
 
+.collect_recod_dummy_cols <- function(df_or_path, col_rec) {
+  if (is.character(df_or_path) && file.exists(df_or_path)) {
+    cols <- unique(unlist(lapply(.read_all_sheets(df_or_path), names), use.names = FALSE))
+  } else if (is.data.frame(df_or_path)) {
+    cols <- names(df_or_path)
+  } else {
+    stop("path_data_adaptada debe ser data.frame o ruta a XLSX con la data adaptada.")
+  }
+  if (!length(cols)) return(character(0))
+  rx <- paste0("^", gsub("([\\W])", "\\\\\\1", col_rec), "[\\._/][^\\._/]+$")
+  dummy_cols <- cols[grepl(rx, cols, perl = TRUE)]
+  suffix <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", col_rec), "[\\._/]"), "", dummy_cols, perl = TRUE)
+  dummy_cols[!tolower(suffix) %in% c("label", "labels", "etiqueta", "etiquetas")]
+}
+
 .collect_code_label_map_from_col <- function(df_or_path, code_col, label_col,
                                              known_codes = character(0),
                                              context = code_col){
@@ -979,27 +994,38 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
       if (!col_rec %in% all_cols_data) next
       toks <- .collect_tokens_from_col(path_data_adaptada, col_rec)
       toks <- toks[nzchar(toks)]
-      lab_map <- .collect_aux_code_label_map_from_template(
-        path_plantilla = path_plantilla,
-        parent = pv,
-        target_col = col_rec,
-        known_codes = character(0),
-        required_codes = unique(toks),
-        context = col_rec
-      )
-      if (!length(lab_map)) {
-        lab_map <- .collect_code_label_map_from_col(
-          path_data_adaptada,
-          code_col = col_rec,
-          label_col = paste0(col_rec, "_label"),
+      dummy_cols <- .collect_recod_dummy_cols(path_data_adaptada, col_rec)
+      is_text_sm <- length(dummy_cols) > 0L
+      if (isTRUE(is_text_sm)) {
+        lab_map <- .collect_sm_code_label_map_from_template(
+          path_plantilla = path_plantilla,
+          parent = pv,
           known_codes = character(0),
           context = col_rec
         )
+      } else {
+        lab_map <- .collect_aux_code_label_map_from_template(
+          path_plantilla = path_plantilla,
+          parent = pv,
+          target_col = col_rec,
+          known_codes = character(0),
+          required_codes = unique(toks),
+          context = col_rec
+        )
+        if (!length(lab_map)) {
+          lab_map <- .collect_code_label_map_from_col(
+            path_data_adaptada,
+            code_col = col_rec,
+            label_col = paste0(col_rec, "_label"),
+            known_codes = character(0),
+            context = col_rec
+          )
+        }
       }
 
       res <- .add_recoded_q(survey, choices,
                             base_name      = pv,
-                            kind           = "one",
+                            kind           = if (isTRUE(is_text_sm)) "multiple" else "one",
                             list_name_hint = paste0("lst_", col_rec),
                             tokens_from_data = toks,
                             labels_from_data = lab_map,
@@ -1013,8 +1039,13 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
       survey  <- res$survey
       choices <- res$choices
 
-      new_names_so <- c(new_names_so, res$new_name)
-      new_lists_so <- c(new_lists_so, res$list_name)
+      if (isTRUE(is_text_sm)) {
+        new_names_sm <- c(new_names_sm, res$new_name)
+        new_lists_sm <- c(new_lists_sm, res$list_name)
+      } else {
+        new_names_so <- c(new_names_so, res$new_name)
+        new_lists_so <- c(new_lists_so, res$list_name)
+      }
     }
   }
 

@@ -166,7 +166,13 @@
     }
 
     if (identical(type_base[i], "select_multiple") || grepl("^select_multiple\\b", type_raw[i], perl = TRUE)) {
-      dummies <- .dn_match_sm_dummy_columns(data, parent, ch, choice_map = preferred_map)
+      dummies <- .dn_match_sm_dummy_columns(
+        data,
+        parent,
+        ch,
+        choice_map = preferred_map,
+        protected_names = .dn_survey_protected_dummy_names(survey, parent, ch, ln)
+      )
       dummies <- dummies[!is.na(dummies) & nzchar(dummies) & dummies %in% names(data)]
       if (!length(dummies)) next
       items <- lapply(names(dummies), function(xls_code) {
@@ -379,7 +385,7 @@
   paste0(prefix, suffix)
 }
 
-.dn_match_sm_dummy_columns <- function(data, parent, choices_sub, choice_map = NULL) {
+.dn_match_sm_dummy_columns <- function(data, parent, choices_sub, choice_map = NULL, protected_names = character()) {
   data_names <- names(data)
   if (!length(data_names) || is.na(parent) || !nzchar(parent)) {
     return(stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name))
@@ -388,6 +394,11 @@
   prefix_pat <- paste0("^", .dn_escape_regex(parent), "([_/.])(.+)$")
   candidates <- data_names[grepl(prefix_pat, data_names, perl = TRUE)]
   candidates <- candidates[!grepl("([_/.])(other|otro|otra|specify|texto)$", candidates, ignore.case = TRUE)]
+  protected_names <- as.character(protected_names %||% character())
+  protected_names <- protected_names[!is.na(protected_names) & nzchar(protected_names)]
+  if (length(protected_names)) {
+    candidates <- setdiff(candidates, protected_names)
+  }
   # En data ya recodificada, `<parent>_recod` es una madre analítica, no
   # una dummy de opción de `<parent>`. Si la dejamos como candidata, el
   # normalizador puede usarla como dummy y luego eliminarla.
@@ -557,6 +568,47 @@
   trimws(out)
 }
 
+.dn_survey_protected_dummy_names <- function(survey, parent, choices_sub, list_name = NA_character_) {
+  survey_names_all <- .dn_survey_names(survey)
+  keep <- !is.na(survey_names_all) & nzchar(survey_names_all)
+  survey_names <- survey_names_all[keep]
+  if (!length(survey_names) || is.na(parent) || !nzchar(parent)) {
+    return(survey_names)
+  }
+
+  type_base_all <- .dn_survey_type_base(survey)
+  type_base <- rep("", length(survey_names_all))
+  n_type <- min(length(type_base_all), length(type_base))
+  if (n_type > 0L) {
+    type_base[seq_len(n_type)] <- type_base_all[seq_len(n_type)]
+  }
+  type_base <- type_base[keep]
+  row_list_names_all <- vapply(seq_len(nrow(survey)), function(i) {
+    .dn_survey_list_name(survey[i, , drop = FALSE])
+  }, character(1))
+  row_list_names <- row_list_names_all[keep]
+  row_list_names[is.na(row_list_names)] <- ""
+  prefix_pat <- paste0("^", .dn_escape_regex(parent), "([_/.])(.+)$")
+  is_child_name <- grepl(prefix_pat, survey_names, perl = TRUE)
+  suffix <- rep(NA_character_, length(survey_names))
+  suffix[is_child_name] <- sub(prefix_pat, "\\2", survey_names[is_child_name], perl = TRUE)
+  suffix_unpadded <- sub("^0+([0-9]+)$", "\\1", suffix)
+  suffix_unpadded[!nzchar(suffix_unpadded)] <- "0"
+  choice_names <- as.character(choices_sub$name %||% character())
+  choice_unpadded <- sub("^0+([0-9]+)$", "\\1", choice_names)
+  choice_unpadded[!nzchar(choice_unpadded)] <- "0"
+  same_list <- rep(TRUE, length(survey_names))
+  if (!is.na(list_name) && nzchar(list_name)) {
+    same_list <- row_list_names == list_name
+  }
+
+  is_matrix_child <- type_base == "select_one" &
+    same_list &
+    is_child_name &
+    (suffix %in% choice_names | suffix_unpadded %in% choice_unpadded)
+  survey_names[!is_matrix_child]
+}
+
 .dn_expected_data_names <- function(instrumento) {
   survey <- instrumento$survey
   if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) {
@@ -695,7 +747,13 @@ normalize_data_for_xlsform <- function(data,
     ch <- choices[as.character(choices$list_name) == ln, c("name", "label"), drop = FALSE]
     if (!nrow(ch)) next
     ch$name <- as.character(ch$name)
-    dummies <- .dn_match_sm_dummy_columns(out, parent, ch, choice_map = choice_code_maps[[parent]])
+    dummies <- .dn_match_sm_dummy_columns(
+      out,
+      parent,
+      ch,
+      choice_map = choice_code_maps[[parent]],
+      protected_names = .dn_survey_protected_dummy_names(survey, parent, ch, ln)
+    )
     dummies <- dummies[!is.na(dummies) & nzchar(dummies) & dummies %in% names(out)]
     if (!length(dummies)) next
 
