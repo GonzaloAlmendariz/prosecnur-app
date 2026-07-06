@@ -1991,32 +1991,12 @@ export default function XlsformEditorPage() {
 
   const addMenuItems: AddMenuItem[] = [
     {
-      key: "section",
-      label: "Sección",
-      hint: "Agrupa preguntas y puede tener una condición propia.",
-      icon: addMenuIcon("begin_group"),
-      action: addSection,
-    },
-    {
       key: "text",
       label: "Pregunta abierta",
       hint: "Texto libre para respuestas cortas o comentarios.",
       icon: addMenuIcon("text"),
       action: () => addQuestion("text"),
-    },
-    {
-      key: "select_one",
-      label: "Selección única",
-      hint: "Una sola respuesta usando un catálogo de opciones.",
-      icon: addMenuIcon("select_one"),
-      action: () => addQuestion("select_one"),
-    },
-    {
-      key: "select_multiple",
-      label: "Selección múltiple",
-      hint: "Varias respuestas usando un catálogo reutilizable.",
-      icon: addMenuIcon("select_multiple"),
-      action: () => addQuestion("select_multiple"),
+      group: "capture",
     },
     {
       key: "integer",
@@ -2024,6 +2004,7 @@ export default function XlsformEditorPage() {
       hint: "Edad, cantidades, puntajes u otros valores sin decimales.",
       icon: addMenuIcon("integer"),
       action: () => addQuestion("integer"),
+      group: "capture",
     },
     {
       key: "decimal",
@@ -2031,6 +2012,7 @@ export default function XlsformEditorPage() {
       hint: "Montos, proporciones o medidas con decimales.",
       icon: addMenuIcon("decimal"),
       action: () => addQuestion("decimal"),
+      group: "capture",
     },
     {
       key: "date",
@@ -2038,6 +2020,23 @@ export default function XlsformEditorPage() {
       hint: "Fechas de atención, nacimiento, visita o eventos.",
       icon: addMenuIcon("date"),
       action: () => addQuestion("date"),
+      group: "capture",
+    },
+    {
+      key: "select_one",
+      label: "Selección única",
+      hint: "Una sola respuesta usando un catálogo de opciones.",
+      icon: addMenuIcon("select_one"),
+      action: () => addQuestion("select_one"),
+      group: "choices",
+    },
+    {
+      key: "select_multiple",
+      label: "Selección múltiple",
+      hint: "Varias respuestas usando un catálogo reutilizable.",
+      icon: addMenuIcon("select_multiple"),
+      action: () => addQuestion("select_multiple"),
+      group: "choices",
     },
     {
       key: "note",
@@ -2045,6 +2044,7 @@ export default function XlsformEditorPage() {
       hint: "Instrucciones o mensajes que no guardan respuesta.",
       icon: addMenuIcon("note"),
       action: () => addQuestion("note"),
+      group: "logic",
     },
     {
       key: "calculate",
@@ -2052,6 +2052,15 @@ export default function XlsformEditorPage() {
       hint: "Variable automática basada en otras respuestas.",
       icon: addMenuIcon("calculate"),
       action: () => addQuestion("calculate"),
+      group: "logic",
+    },
+    {
+      key: "section",
+      label: "Sección",
+      hint: "Agrupa preguntas y puede tener una condición propia.",
+      icon: addMenuIcon("begin_group"),
+      action: addSection,
+      group: "logic",
     },
   ];
 
@@ -2644,27 +2653,43 @@ function AddElementMenu({
   items: AddMenuItem[];
   onClose: () => void;
 }) {
+  const groups = [
+    { id: "capture", label: "Texto y captura" },
+    { id: "choices", label: "Opciones Kobo" },
+    { id: "logic", label: "Estructura y lógica" },
+  ] as const;
+
   return (
     <div className="pulso-add-element-menu">
-      {items.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          onClick={() => {
-            item.action();
-            onClose();
-          }}
-          className="pulso-add-element-menu-item"
-        >
-          <span className="pulso-add-element-menu-icon">
-            {item.icon}
-          </span>
-          <span className="pulso-add-element-menu-copy">
-            <strong>{item.label}</strong>
-            <span>{item.hint}</span>
-          </span>
-        </button>
-      ))}
+      <span className="pulso-add-element-menu-eyebrow">Añadir pieza</span>
+      {groups.map((group) => {
+        const groupItems = items.filter((item) => item.group === group.id);
+        if (!groupItems.length) return null;
+        return (
+          <div key={group.id} className="pulso-add-element-menu-group">
+            <span className="pulso-add-element-menu-group-title">{group.label}</span>
+            {groupItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  item.action();
+                  onClose();
+                }}
+                className="pulso-add-element-menu-item"
+              >
+                <span className="pulso-add-element-menu-icon">
+                  {item.icon}
+                </span>
+                <span className="pulso-add-element-menu-copy">
+                  <strong>{item.label}</strong>
+                  <span>{item.hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

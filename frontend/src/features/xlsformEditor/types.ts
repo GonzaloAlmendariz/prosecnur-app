@@ -153,6 +153,7 @@ export type AddMenuItem = {
   hint: string;
   icon: ReactNode;
   action: () => void;
+  group?: "capture" | "choices" | "logic";
 };
 
 // -----------------------------------------------------------------------------

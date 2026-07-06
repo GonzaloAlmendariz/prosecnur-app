@@ -37992,11 +37992,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   position: absolute;
   right: 0;
   top: 38px;
-  width: min(360px, calc(100vw - 32px));
+  width: min(390px, calc(100vw - 32px));
   z-index: 80;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4px;
+  gap: 6px;
   padding: 7px;
   border: 1px solid var(--xls-border, var(--pulso-border));
   border-radius: 12px;
@@ -38004,15 +38004,42 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   animation: pulso-xls-popover-in 170ms var(--motion-ease-out) both;
 }
 
+.pulso-add-element-menu-eyebrow {
+  padding: 6px 10px 0;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.pulso-add-element-menu-group {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--xls-border) 70%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--xls-content-soft) 78%, #ffffff);
+}
+
+.pulso-add-element-menu-group-title {
+  padding: 2px 5px 4px;
+  color: #667386;
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
 .pulso-add-element-menu-item {
   width: 100%;
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 9px 10px;
+  padding: 8px;
   border-radius: 8px;
   border: 1px solid transparent;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.6);
   text-align: left;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
