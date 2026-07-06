@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -124,6 +124,10 @@ export function FocusedWorkspace({
     () => buildHeaderCopy(selection, node, section, settingsRecord),
     [selection, node, section, settingsRecord],
   );
+  const focusStatus = useMemo(
+    () => buildFocusStatusItems(node, selectedChoices, catalogUsageCount, conditionalContext),
+    [node, selectedChoices, catalogUsageCount, conditionalContext],
+  );
   const HeaderIcon = header.icon;
 
   return (
@@ -141,6 +145,21 @@ export function FocusedWorkspace({
               dangerouslySetInnerHTML={{ __html: renderMarkdownInline(header.title) }}
             />
             <p>{header.subtitle}</p>
+            {focusStatus.length > 0 && (
+              <div className="pulso-focus-status-strip" aria-label="Estado rápido del elemento seleccionado">
+                {focusStatus.map((item) => (
+                  <span key={item.key} className={`pulso-focus-status-chip is-${item.tone}`}>
+                    <span className="pulso-focus-status-icon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                    <span>
+                      <strong>{item.value}</strong>
+                      <small>{item.label}</small>
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -266,6 +285,72 @@ function buildHeaderCopy(
     icon: Layers3,
     iconStyle: undefined,
   };
+}
+
+type FocusStatusItem = {
+  key: string;
+  label: string;
+  value: string;
+  tone: "neutral" | "accent" | "success" | "warn";
+  icon: ReactNode;
+};
+
+function buildFocusStatusItems(
+  node: BuilderNode | null,
+  choices: ChoiceItem[],
+  catalogUsageCount: number,
+  conditionalContext?: ConditionalContext | null,
+): FocusStatusItem[] {
+  if (!node) return [];
+  const isSelect = node.typeInfo.base === "select_one" || node.typeInfo.base === "select_multiple";
+  const logicCount = [
+    node.relevant,
+    node.constraint,
+    node.calculation,
+    node.choiceFilter,
+  ].filter((value) => value?.trim()).length;
+  const requiredIsConditional =
+    node.required &&
+    Boolean(conditionalContext?.selfRelevant || conditionalContext?.ancestorRelevants.length);
+
+  const items: FocusStatusItem[] = [
+    {
+      key: "required",
+      label: "Obligatoriedad",
+      value: node.required ? (requiredIsConditional ? "Condicionada" : "Obligatoria") : "Opcional",
+      tone: node.required ? "warn" : "neutral",
+      icon: <IconRequired size={12} />,
+    },
+    {
+      key: "logic",
+      label: "Lógica",
+      value: logicCount > 0 ? `${logicCount} ${logicCount === 1 ? "regla" : "reglas"}` : "Sin reglas",
+      tone: logicCount > 0 ? "accent" : "neutral",
+      icon: <IconConditionalLogic size={12} />,
+    },
+  ];
+
+  if (isSelect) {
+    items.push({
+      key: "catalog",
+      label: isSelect && catalogUsageCount > 1 ? `${catalogUsageCount} usos` : "Catálogo",
+      value: `${choices.length} ${choices.length === 1 ? "opción" : "opciones"}`,
+      tone: "accent",
+      icon: <Database size={12} />,
+    });
+  }
+
+  if (node.constraint?.trim()) {
+    items.push({
+      key: "validation",
+      label: "Validación",
+      value: "Con regla",
+      tone: "success",
+      icon: <ShieldCheck size={12} />,
+    });
+  }
+
+  return items;
 }
 
 function FullFormWorkspace({

@@ -36546,6 +36546,88 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   white-space: nowrap;
 }
 
+.pulso-focus-status-strip {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.pulso-focus-status-chip {
+  min-width: 0;
+  max-width: 190px;
+  min-height: 26px;
+  display: inline-grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  padding: 4px 7px 4px 5px;
+  border: 1px solid color-mix(in srgb, var(--xls-border) 88%, transparent);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #536174;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.pulso-focus-status-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: #ffffff;
+  color: currentColor;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.pulso-focus-status-chip > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pulso-focus-status-chip strong,
+.pulso-focus-status-chip small {
+  overflow: hidden;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-focus-status-chip strong {
+  color: #172136;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pulso-focus-status-chip small {
+  color: #667386;
+  font-size: 9.5px;
+  font-weight: 740;
+}
+
+.pulso-focus-status-chip.is-accent {
+  border-color: color-mix(in srgb, var(--pulso-primary) 20%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-status-chip.is-success {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 20%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 42%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-focus-status-chip.is-warn {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #ffffff);
+  color: var(--pulso-warn-fg);
+}
+
 .pulso-focus-workspace-controls {
   display: inline-flex;
   align-items: center;
