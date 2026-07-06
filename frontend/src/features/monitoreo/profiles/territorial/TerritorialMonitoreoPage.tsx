@@ -151,7 +151,7 @@ const TERRITORIAL_LOCAL_TABS = {
   ],
   ocurrencias: [
     { key: "states", label: "Resumen", detail: "Estados y distritos", icon: ClipboardCheck },
-    { key: "registro", label: "Registro", detail: "Dia, hora y responsable", icon: Table2 },
+    { key: "registro", label: "Reporte UMP", detail: "Con/sin reporte", icon: Table2 },
     { key: "ump", label: "UMP", detail: "Con/sin ocurrencia", icon: Route },
     { key: "alerts", label: "Alertas", detail: "Cruces y observaciones", icon: ShieldAlert },
     { key: "rhythm", label: "Ritmo", detail: "Dias e historial", icon: CalendarRange },

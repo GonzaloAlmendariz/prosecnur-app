@@ -49,7 +49,9 @@ function matchRule(regla: ReglaInteger | undefined, respuestas: RespuestaUnica[]
 
 // Migra grupos legacy cuyo regla tenía tipo "range" o "values" a las
 // nuevas formas.
-function migrateRegla(g: Grupo): Grupo {
+function migrateRegla(g: Grupo, index = 0): Grupo {
+  const withId = g.id ? g : { ...g, id: `legacy_${index}_${g.codigo || "sin_codigo"}` };
+  g = withId;
   const r: unknown = g.regla;
   if (!r || typeof r !== "object") return g;
   const obj = r as { tipo?: string; min?: number | null; max?: number | null };
@@ -85,7 +87,7 @@ export function IntegerCodificador({ parent }: Props) {
         const r = await apiCodifRespuestas(parent);
         skipNext.current = true;
         setRespuestas(r.respuestas);
-        setGrupos((r.grupos ?? []).map(migrateRegla));
+        setGrupos((r.grupos ?? []).map((g, index) => migrateRegla(g, index)));
         setSaveStatus("idle");
       } catch (e) {
         setError((e as Error).message);
@@ -253,7 +255,7 @@ export function IntegerCodificador({ parent }: Props) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {grupos.map((g, idx) => (
           <GrupoReglaCard
-            key={g.id}
+            key={g.id || `${idx}:${g.codigo}:${g.etiqueta}`}
             grupo={g}
             respuestas={respuestas}
             onUpdate={(patch) => updateGroup(g.id, patch)}
@@ -399,21 +401,21 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
 
       <div style={{ marginTop: 8, fontSize: 11, color: "var(--pulso-text-soft)" }}>
         {incompleta ? (
-          <>
+          <span key="incompleta">
             <AlertTriangle size={11} color="var(--pulso-warn-fg)" style={{ verticalAlign: "middle" }} />{" "}
             <span style={{ color: "var(--pulso-warn-fg)" }}>Rango incompleto — completa los valores para que cubra respuestas.</span>
-          </>
+          </span>
         ) : cobertura.n > 0 ? (
-          <>
+          <span key="cubierta">
             <Check size={11} color="var(--pulso-success-fg)" style={{ verticalAlign: "middle" }} />{" "}
             <strong>{cobertura.n}</strong> valor{cobertura.n === 1 ? "" : "es"} ·{" "}
             <strong>{cobertura.casos}</strong> caso{cobertura.casos === 1 ? "" : "s"} cubierto{cobertura.casos === 1 ? "" : "s"}
-          </>
+          </span>
         ) : (
-          <>
+          <span key="sin-cobertura">
             <AlertTriangle size={11} color="var(--pulso-warn-fg)" style={{ verticalAlign: "middle" }} />{" "}
             Ninguna respuesta cae en este rango.
-          </>
+          </span>
         )}
       </div>
     </article>

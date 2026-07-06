@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Tags, Wand2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
@@ -14,7 +14,7 @@ import { useCodifSource } from "./useCodifSource";
 import { CodingConfigActions } from "./CodingConfigActions";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 
-type Step = "organizar" | "codificar" | "adaptar";
+type Step = "organizar" | "codificar" | "matrices" | "adaptar";
 
 export default function CodificacionPage() {
   const { state, refresh: refreshSession } = useSession();
@@ -32,6 +32,7 @@ export default function CodificacionPage() {
   const rawStep = new URLSearchParams(location.search).get("step");
   const step: Step =
     rawStep === "codificar" ? "codificar" :
+    rawStep === "matrices" ? "matrices" :
     rawStep === "adaptar" ? "adaptar" :
     "organizar";
 
@@ -61,7 +62,9 @@ export default function CodificacionPage() {
           ? "Organiza las preguntas abiertas y marca las que quieres codificar."
           : step === "codificar"
           ? "Agrupa respuestas similares y asigna códigos pregunta por pregunta."
-          : "Revisa la adaptación y descarga los archivos finales."
+          : step === "matrices"
+          ? "Prepara el mapeo Excel de textos abiertos con control por base, variable e ID caso."
+          : "Confirma todos los mapeos manuales y de matriz antes de adaptar las respuestas."
       }
       toolbar={
         <div className="pulso-codificacion-toolbar-stack">
@@ -86,17 +89,6 @@ export default function CodificacionPage() {
               </>
             )}
 
-            {prereqOk && (
-              <>
-                <ContextBarDivider />
-                <CodingConfigActions
-                  onImported={() => {
-                    setImportRevision((n) => n + 1);
-                    void refreshSession();
-                  }}
-                />
-              </>
-            )}
           </ContextBar>
 
           {!prereqOk && (
@@ -143,7 +135,7 @@ export default function CodificacionPage() {
                 },
                 {
                   label: "Codificación",
-                  detail: "Luego podrás organizar, agrupar y adaptar códigos.",
+                  detail: "Luego podrás organizar, agrupar, mapear en matriz y adaptar códigos.",
                   Icon: Tags,
                 },
               ]}
@@ -173,7 +165,22 @@ export default function CodificacionPage() {
                     nueva sin tener que refactorear 8 archivos con listeners. */}
                 {step === "organizar" && <PreguntasLanding key={codifActive} />}
                 {step === "codificar" && <CodificarWizard key={codifActive} onBackToOrganizar={() => goStep("organizar")} />}
-                {step === "adaptar" && <AdaptarPane key={codifActive} onBackToCodificar={() => goStep("codificar")} />}
+                {step === "matrices" && (
+                  <CodingConfigActions
+                    key={codifActive}
+                    onImported={() => {
+                      setImportRevision((n) => n + 1);
+                      void refreshSession();
+                    }}
+                  />
+                )}
+                {step === "adaptar" && (
+                  <AdaptarPane
+                    key={codifActive}
+                    onBackToCodificar={() => goStep("codificar")}
+                    onBackToMatrices={() => goStep("matrices")}
+                  />
+                )}
               </div>
             </>
           )}
@@ -236,7 +243,8 @@ function CodificacionStatusSummary({
 }) {
   const readyLabel =
     step === "codificar" ? "Lista para codificar" :
-    step === "adaptar" ? "Lista para salida" :
+    step === "matrices" ? "Lista para matrices" :
+    step === "adaptar" ? "Lista para adaptar" :
     "Lista para preparar";
   return (
     <div className="pulso-codificacion-status" aria-label="Estado de la codificación">
@@ -326,9 +334,10 @@ function CodificacionModeSidebar({
   );
 }
 
-// Definición de los 3 pasos del flujo de codificación.
+// Definición de los pasos del flujo de codificación.
 const CODIFICACION_STEPS: StepMeta<Step>[] = [
   { key: "organizar", n: 1, label: "Preparar", icon: Layers, hint: "Emparejar y marcar" },
-  { key: "codificar", n: 2, label: "Codificar", icon: Tags,   hint: "Agrupar respuestas" },
-  { key: "adaptar",   n: 3, label: "Salida final", icon: Wand2, hint: "Aplicar a la base" },
+  { key: "codificar", n: 2, label: "Codificar", icon: Tags, hint: "Agrupar respuestas" },
+  { key: "matrices", n: 3, label: "Matrices", icon: Network, hint: "Mapear textos abiertos" },
+  { key: "adaptar", n: 4, label: "Adaptación", icon: Wand2, hint: "Confirmar y aplicar" },
 ];

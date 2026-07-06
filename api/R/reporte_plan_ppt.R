@@ -1458,6 +1458,27 @@ reporte_ppt_plan <- function(
     gsub("\\s+", " ", x, perl = TRUE)
   }
 
+  .indice_subtopic_number_labels <- function(subindices_df, secciones = character(0)) {
+    if (!is.data.frame(subindices_df) || !nrow(subindices_df)) {
+      return(character(0))
+    }
+
+    n <- nrow(subindices_df)
+    labels <- rep(NA_character_, n)
+    section_keys <- .indice_section_key(secciones)
+    if (!length(section_keys)) return(labels)
+
+    sub_keys <- .indice_section_key(subindices_df$seccion %||% rep("", n))
+    counters <- integer(length(section_keys))
+    for (idx in seq_len(n)) {
+      section_idx <- match(sub_keys[[idx]], section_keys)
+      if (is.na(section_idx)) next
+      counters[[section_idx]] <- counters[[section_idx]] + 1L
+      labels[[idx]] <- paste0(section_idx, ".", counters[[section_idx]])
+    }
+    labels
+  }
+
   .make_indice_sections_flextable <- function(secciones, style, font_family_default, numeros = NULL) {
     if (!requireNamespace("flextable", quietly = TRUE)) {
       stop("Se requiere el paquete 'flextable' para renderizar `p_slide_indice` con contenido.", call. = FALSE)
@@ -1697,9 +1718,19 @@ reporte_ppt_plan <- function(
   }
 
   .add_indice_subtopics <- function(doc, labels, style, font_family_default,
-                                    anchor_left, anchor_top, anchor_width) {
+                                    anchor_left, anchor_top, anchor_width,
+                                    number_labels = NULL) {
     labels <- .indice_clean_vec(labels)
     if (!length(labels)) return(doc)
+    number_labels <- as.character(number_labels %||% character(0))
+    if (!length(number_labels)) {
+      number_labels <- rep(NA_character_, length(labels))
+    } else {
+      number_labels <- trimws(number_labels)
+      empty_number_label <- is.na(number_labels) | !nzchar(number_labels)
+      number_labels[empty_number_label] <- NA_character_
+      length(number_labels) <- length(labels)
+    }
 
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
     text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
@@ -1713,6 +1744,9 @@ reporte_ppt_plan <- function(
     row_height <- .style_num(style, "subtopic_row_height", 0.26, min = 0.18)
     col_gap <- .style_num(style, "subtopic_col_gap", 0.34, min = 0.05, max = 1)
     badge_width <- .style_num(style, "subtopic_badge_width", 0.34, min = 0.18, max = 0.70)
+    if (any(grepl("\\.", number_labels, fixed = FALSE), na.rm = TRUE)) {
+      badge_width <- max(badge_width, 0.62)
+    }
     badge_gap <- .style_num(style, "subtopic_badge_gap", 0.09, min = 0.02, max = 0.25)
     badge_height <- .style_num(
       style,
@@ -1723,6 +1757,16 @@ reporte_ppt_plan <- function(
     )
     col_width <- (anchor_width - (cols - 1L) * col_gap) / cols
     rows <- ceiling(length(labels) / cols)
+
+    number_for <- function(idx) {
+      custom <- number_labels[[idx]]
+      if (!is.na(custom) && nzchar(custom)) return(custom)
+      if (isTRUE(.style_value(style, "subtopic_number_zero_pad", FALSE))) {
+        sprintf("%02d", idx)
+      } else {
+        as.character(idx)
+      }
+    }
 
     if (isTRUE(.style_value(style, "subtopic_heading", TRUE))) {
       heading <- as.character(.style_value(style, "subtopic_heading_text", "Principales resultados"))[1]
@@ -1761,19 +1805,20 @@ reporte_ppt_plan <- function(
       text_width <- col_width
       text_marker_style <- marker_style
       if (identical(marker_style, "number")) {
+        number_label <- number_for(idx)
         badge_top <- top + max(0, (row_height - badge_height) / 2)
         doc <- officer::ph_with(
           doc,
           value = officer::external_img(
             src = .indice_subtopic_badge_asset(
-              sprintf("%02d", idx),
+              number_label,
               fill = badge_fill,
               text_color = badge_text_color,
               font_family = font_family
             ),
             width = badge_width,
             height = badge_height,
-            alt = paste("Subindice", idx)
+            alt = paste("Subindice", number_label)
           ),
           location = officer::ph_location(
             left = left,
@@ -1787,11 +1832,7 @@ reporte_ppt_plan <- function(
         text_width <- max(0.3, col_width - badge_width - badge_gap)
         text_marker_style <- "none"
       } else if (identical(marker_style, "number_text")) {
-        number_label <- if (isTRUE(.style_value(style, "subtopic_number_zero_pad", FALSE))) {
-          sprintf("%02d", idx)
-        } else {
-          as.character(idx)
-        }
+        number_label <- number_for(idx)
         number_value <- officer::fpar(
           officer::ftext(number_label, prop = officer::fp_text(
             color = badge_fill,
@@ -2736,6 +2777,45 @@ reporte_ppt_plan <- function(
     trimws(gsub("\\s+", " ", x, perl = TRUE))
   }
 
+  .sentence_case_other_response <- function(x) {
+    unname(vapply(
+      as.character(x),
+      function(s) {
+        if (is.na(s)) return(NA_character_)
+        s <- trimws(gsub("\\s+", " ", s, perl = TRUE))
+        if (!nzchar(s)) return(s)
+        chars <- strsplit(tolower(s), "", fixed = FALSE, useBytes = FALSE)[[1]]
+        idx <- which(grepl("[[:alpha:]]", chars))[1]
+        if (length(idx) && is.finite(idx) && !is.na(idx)) {
+          chars[[idx]] <- toupper(chars[[idx]])
+        }
+        paste0(chars, collapse = "")
+      },
+      character(1)
+    ))
+  }
+
+  .normalizar_other_response_mode <- function(modo = "ninguna") {
+    if (is.null(modo)) modo <- "ninguna"
+    modo <- as.character(modo)[1]
+    if (is.na(modo) || !nzchar(trimws(modo))) modo <- "ninguna"
+    modo <- tolower(trimws(modo))
+    modo <- gsub("[ -]+", "_", modo)
+    if (modo %in% c("sin_cambio", "original", "none", "no", "false")) modo <- "ninguna"
+    if (modo %in% c("capital_inicial", "sentence_case", "oracion", "oración")) modo <- "mayuscula_inicial"
+    if (!modo %in% c("ninguna", "mayuscula_inicial")) modo <- "ninguna"
+    modo
+  }
+
+  .normalizar_other_response_bullets <- function(x, modo = "ninguna") {
+    modo <- .normalizar_other_response_mode(modo)
+    switch(
+      modo,
+      mayuscula_inicial = .sentence_case_other_response(x),
+      x
+    )
+  }
+
   .related_recod_var <- function(dsrc, ctx_parent, text_var) {
     if (grepl("_recod$", ctx_parent$var, ignore.case = TRUE) &&
         ctx_parent$var %in% names(dsrc)) {
@@ -3077,13 +3157,70 @@ reporte_ppt_plan <- function(
     paste(info$source, info$parent_var, info$text_var, filtros_key, sep = "\r")
   }
 
-  .make_otros_slides <- function(info) {
-    respuestas <- .clean_other_response_bullet(info$respuestas %||% character(0))
+  .otros_bullet_line_count <- function(x, wrap_chars = 88L) {
+    x <- trimws(as.character(x %||% ""))
+    if (!nzchar(x)) return(0L)
+    wrap_chars <- suppressWarnings(as.integer(wrap_chars)[1])
+    if (!is.finite(wrap_chars) || is.na(wrap_chars) || wrap_chars < 30L) wrap_chars <- 88L
+
+    parts <- unlist(strsplit(x, "\\s*\\n+\\s*", perl = TRUE), use.names = FALSE)
+    parts <- parts[nzchar(trimws(parts))]
+    if (!length(parts)) parts <- x
+
+    # +2 accounts for the bullet glyph and the hanging-indent cost in PowerPoint.
+    sum(pmax(1L, ceiling((nchar(parts, type = "width") + 2L) / wrap_chars)))
+  }
+
+  .chunk_otros_respuestas <- function(respuestas,
+                                      max_lines = 18L,
+                                      max_items = 8L,
+                                      wrap_chars = 88L) {
     respuestas <- respuestas[nzchar(respuestas)]
     if (!length(respuestas)) return(list())
 
-    max_por_slide <- 14L
-    chunks <- split(respuestas, ceiling(seq_along(respuestas) / max_por_slide))
+    max_lines <- suppressWarnings(as.integer(max_lines)[1])
+    max_items <- suppressWarnings(as.integer(max_items)[1])
+    if (!is.finite(max_lines) || is.na(max_lines) || max_lines < 6L) max_lines <- 18L
+    if (!is.finite(max_items) || is.na(max_items) || max_items < 1L) max_items <- 8L
+
+    chunks <- list()
+    current <- character(0)
+    current_lines <- 0L
+
+    for (resp in respuestas) {
+      resp_lines <- max(1L, .otros_bullet_line_count(resp, wrap_chars = wrap_chars))
+      would_overflow_lines <- length(current) > 0L && (current_lines + resp_lines) > max_lines
+      would_overflow_items <- length(current) >= max_items
+
+      if (would_overflow_lines || would_overflow_items) {
+        chunks[[length(chunks) + 1L]] <- current
+        current <- character(0)
+        current_lines <- 0L
+      }
+
+      current <- c(current, resp)
+      current_lines <- current_lines + resp_lines
+    }
+
+    if (length(current)) chunks[[length(chunks) + 1L]] <- current
+    chunks
+  }
+
+  .make_otros_slides <- function(info) {
+    respuestas <- .clean_other_response_bullet(info$respuestas %||% character(0))
+    normalizar_modo <- info$normalizar_respuestas %||% {
+      if (identical(info$kind %||% "open_text_otros", "grouped_otros")) "ninguna" else "mayuscula_inicial"
+    }
+    respuestas <- .normalizar_other_response_bullets(respuestas, normalizar_modo)
+    respuestas <- respuestas[nzchar(respuestas)]
+    if (!length(respuestas)) return(list())
+
+    chunks <- .chunk_otros_respuestas(
+      respuestas,
+      max_lines = info$max_lines %||% 18L,
+      max_items = info$max_items %||% 8L,
+      wrap_chars = info$wrap_chars %||% 88L
+    )
     total_chunks <- length(chunks)
     n_txt <- format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE)
     base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas abiertas")
@@ -7112,9 +7249,9 @@ reporte_ppt_plan <- function(
           style$subtopic_heading <- style$subtopic_heading %||% FALSE
           style$subtopic_marker <- style$subtopic_marker %||% "number_text"
           style$subtopic_row_height <- style$subtopic_row_height %||% 0.76
-          style$subtopic_col_gap <- style$subtopic_col_gap %||% 0.30
+          style$subtopic_col_gap <- style$subtopic_col_gap %||% 0.16
           style$subtopic_badge_width <- style$subtopic_badge_width %||% 0.26
-          style$subtopic_badge_gap <- style$subtopic_badge_gap %||% 0.13
+          style$subtopic_badge_gap <- style$subtopic_badge_gap %||% 0.08
           style$subtopic_size <- style$subtopic_size %||% 16
           style$subtopic_number_size <- style$subtopic_number_size %||% 16
           style$table_width <- table_width
@@ -7131,13 +7268,13 @@ reporte_ppt_plan <- function(
             subtopic_left <- .style_num(
               style,
               "subtopic_inline_left",
-              table_left + 0.28,
+              table_left + 0.18,
               min = 0
             )
             subtopic_width <- .style_num(
               style,
               "subtopic_inline_width",
-              table_width - 0.16,
+              table_width + 0.60,
               min = 2.2
             )
 
@@ -7168,6 +7305,7 @@ reporte_ppt_plan <- function(
                 } else {
                   subtopic_items
                 }
+                subtopic_numbers <- paste0(idx_section, ".", seq_along(subtopic_labels))
                 doc <- .add_indice_subtopics(
                   doc,
                   labels = subtopic_labels,
@@ -7175,7 +7313,8 @@ reporte_ppt_plan <- function(
                   font_family_default = font_family_default,
                   anchor_left = subtopic_left,
                   anchor_top = current_top + subtopic_top_gap,
-                  anchor_width = subtopic_width
+                  anchor_width = subtopic_width,
+                  number_labels = subtopic_numbers
                 )
                 current_top <- current_top +
                   subtopic_top_gap +
@@ -7223,6 +7362,10 @@ reporte_ppt_plan <- function(
             } else {
               subindices_df$item
             }
+            subtopic_numbers <- .indice_subtopic_number_labels(
+              subindices_df,
+              secciones = secciones
+            )
             doc <- .add_indice_subtopics(
               doc,
               labels = subtopic_labels,
@@ -7230,7 +7373,8 @@ reporte_ppt_plan <- function(
               font_family_default = font_family_default,
               anchor_left = subtopic_left,
               anchor_top = subtopic_top,
-              anchor_width = subtopic_width
+              anchor_width = subtopic_width,
+              number_labels = subtopic_numbers
             )
           }
         } else {
@@ -7334,10 +7478,17 @@ reporte_ppt_plan <- function(
           extremo_derecha = slots$extremo_derecha %||% "Totalmente\nde acuerdo",
           style = style
         )
-        diagram_left <- .style_num(style, "diagram_left", 1.65, min = 0)
         diagram_top <- .style_num(style, "diagram_top", 2.34, min = 0)
-        diagram_width <- .style_num(style, "diagram_width", 9.65, min = 3)
-        diagram_height <- .style_num(style, "diagram_height", 4.35, min = 1)
+        diagram_height <- .style_num(style, "diagram_height", 4.62, min = 1)
+        diagram_width_default <- diagram_height * (1000 / 520)
+        diagram_width <- .style_num(style, "diagram_width", diagram_width_default, min = 3)
+        diagram_center_x <- .style_num(style, "diagram_center_x", 1.65 + 9.65 / 2, min = 0)
+        diagram_left <- .style_num(
+          style,
+          "diagram_left",
+          max(0, diagram_center_x - diagram_width / 2),
+          min = 0
+        )
         doc <- officer::ph_with(
           doc,
           value = officer::external_img(src = svg, width = diagram_width, height = diagram_height, alt = "Top Two Box"),
@@ -7902,10 +8053,20 @@ reporte_ppt_plan <- function(
         }
         doc <- .ph_with_strict(doc, combined, contract$slots$text)
 
+        plot_slot <- contract$slots$plot
+        slide_meta <- slide$meta %||% list()
+        if (is.list(slide_meta)) {
+          plot_slot <- .plot_slot_expand_down_cm(
+            plot_slot,
+            extra_cm = slide_meta$plot_extra_height_cm %||% slide_meta$grafico_extra_height_cm %||% NULL,
+            max_height_cm = slide_meta$plot_max_height_cm %||% slide_meta$grafico_max_height_cm %||% NULL
+          )
+        }
+
         doc <- .ph_with_strict(
           doc,
           rvg::dml(ggobj = p, bg = "transparent"),
-          contract$slots$plot
+          plot_slot
         )
 
         base_txt <- slots$base %||% NULL

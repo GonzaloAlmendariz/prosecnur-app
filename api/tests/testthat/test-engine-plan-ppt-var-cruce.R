@@ -487,7 +487,17 @@ test_that("reporte_ppt_plan renderiza histograma apilado por grupo usando variab
         grupo = "sexo",
         modo = "porcentaje_bin",
         ancho_bin = 2,
-        overrides = list(mostrar_valores = FALSE, usar_canvas = FALSE)
+        overrides = list(
+          mostrar_valores = TRUE,
+          posicion_etiquetas = "cima",
+          etiqueta_cima_modo = "porcentaje_grupo_conteos_grupo",
+          etiqueta_cima_formato = "dos_lineas",
+          abreviaturas_grupos = c("Hombres" = "H", "Mujeres" = "M"),
+          mostrar_resumen_grupos_subtitulo = TRUE,
+          prefijo_resumen_grupos_subtitulo = "Sexo: ",
+          umbral_etiqueta = 0,
+          usar_canvas = FALSE
+        )
       )
     )
   )
@@ -509,6 +519,12 @@ test_that("reporte_ppt_plan renderiza histograma apilado por grupo usando variab
   expect_setequal(as.character(hist_data$.grupo_label), c("Hombres", "Mujeres"))
   bin_sums <- stats::aggregate(.valor ~ .bin_label, hist_data[hist_data$n_bin > 0, , drop = FALSE], sum)
   expect_equal(bin_sums$.valor, rep(1, nrow(bin_sums)), tolerance = 1e-8)
+  top_labels <- attr(out$rendered[[1]], "pulso_histograma_top_labels")
+  expect_true(any(grepl("H 2\\(50%\\).*M 2\\(50%\\)", top_labels)))
+  expect_equal(
+    attr(out$rendered[[1]], "pulso_histograma_resumen_grupos"),
+    "Sexo: Hombres 50% · Mujeres 50%"
+  )
 })
 
 test_that("barras agrupadas oculta opciones 0 por defecto y permite mostrarlas", {
@@ -770,7 +786,7 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
 
   dat <- data.frame(
     p12 = c("1", "99", "99", "2", "1"),
-    p12_other = c("", "puentes verdes", "laboratorio vial", "", "texto fuera"),
+    p12_other = c("", "PUENTES VERDES", "laboratorio vial", "", "texto fuera"),
     stringsAsFactors = FALSE
   )
   attr(dat$p12, "label") <- "Actividad preferida"
@@ -805,8 +821,8 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
   expect_identical(out$plan[[2]]$.slide_type, "text_slide")
 
   txt <- out$plan[[2]]$slots$text
-  expect_true(grepl("\u2022 puentes verdes", txt, fixed = TRUE))
-  expect_true(grepl("\u2022 laboratorio vial", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Puentes verdes", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Laboratorio vial", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
   expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
 
@@ -915,8 +931,8 @@ test_that("slide Otros lista solo respuestas aun no categorizadas", {
   expect_length(out$plan, 2L)
   txt <- out$plan[[2]]$slots$text
   expect_false(grepl("ya categorizado", txt, fixed = TRUE))
-  expect_true(grepl("\u2022 queda otro", txt, fixed = TRUE))
-  expect_true(grepl("\u2022 sin recod", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Queda otro", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Sin recod", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
   expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
 })
@@ -962,8 +978,8 @@ test_that("slide Otros usa variable madre cuando la recodificada queda en Otros"
   expect_length(out$plan, 2L)
   expect_identical(out$plan[[2]]$title, "Otros: ¿Cuál es su puesto actual?")
   txt <- out$plan[[2]]$slots$text
-  expect_true(grepl("\u2022 growth manager", txt, fixed = TRUE))
-  expect_true(grepl("\u2022 site reliability", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Growth manager", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Site reliability", txt, fixed = TRUE))
   expect_false(grepl("analista", txt, fixed = TRUE))
   expect_false(grepl("coordinador", txt, fixed = TRUE))
   expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
@@ -1096,7 +1112,7 @@ test_that("slide Otros respeta fuente y filtros del grafico original", {
   expect_length(out$plan, 2L)
   expect_equal(out$plan[[2]]$meta$source, "docentes")
   txt <- out$plan[[2]]$slots$text
-  expect_true(grepl("\u2022 puentes costa", txt, fixed = TRUE))
+  expect_true(grepl("\u2022 Puentes costa", txt, fixed = TRUE))
   expect_false(grepl("laboratorio andino", txt, fixed = TRUE))
   expect_false(grepl("texto estudiante", txt, fixed = TRUE))
 })

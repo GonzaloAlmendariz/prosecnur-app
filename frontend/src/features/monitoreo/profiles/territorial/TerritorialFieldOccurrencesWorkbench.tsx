@@ -1264,9 +1264,9 @@ function occurrenceRegisterStatus(row: OccurrenceRouteUmpRow): Exclude<Occurrenc
 }
 
 function occurrenceRegisterStatusLabel(status: Exclude<OccurrenceRegisterFilter, "todos">) {
-  if (status === "con_registro") return "Con registro";
+  if (status === "con_registro") return "CON REPORTE";
   if (status === "sin_conciliacion") return "Sin conciliacion";
-  return "Sin registro";
+  return "SIN REPORTE";
 }
 
 function occurrenceRegisterStamp(row: OccurrenceRouteUmpRow) {
@@ -1282,22 +1282,70 @@ function occurrenceRegisterReporter(row: OccurrenceRouteUmpRow) {
   return String(record?.responsable || record?.codigo_pulso || "").trim();
 }
 
-function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<OccurrenceRegisterFilter>("todos");
-  const [districtFilter, setDistrictFilter] = useState("todos");
-  const registerRows = useMemo(() => rows.map((row) => {
+function occurrenceRegisterCsvValue(value: unknown) {
+  const textValue = String(value ?? "").replace(/\r?\n/g, " ").trim();
+  return /[",;]/.test(textValue) ? `"${textValue.replace(/"/g, '""')}"` : textValue;
+}
+
+function occurrenceRegisterDownloadCsv(rows: ReturnType<typeof buildOccurrenceRegisterRows>, suffix = "visibles") {
+  const header = [
+    "UMP",
+    "Reporte_UMP",
+    "Responsable",
+    "Distrito",
+    "Zona",
+    "Manzana",
+    "Tipo_manzana",
+    "Meta",
+    "Validas",
+    "Revision",
+    "No_defendibles",
+    "Avance_pct",
+    "Brecha",
+    "Fecha_reporte",
+    "Codigo_pulso_reporte",
+  ];
+  const body = rows
+    .filter((item) => !item.row.is_unreconciled)
+    .map((item) => [
+      item.row.ump,
+      item.statusLabel,
+      item.row.responsable || "Sin responsable",
+      item.row.distrito,
+      item.row.zona,
+      item.row.manzana,
+      item.row.expected_blocks[0]?.tipo_manzana ?? "",
+      item.row.advance_meta,
+      item.row.advance_validas,
+      item.row.expected_blocks.reduce((sum, block) => sum + Number(block.revision ?? 0), 0),
+      item.row.expected_blocks.reduce((sum, block) => sum + Number(block.no_defendibles ?? 0), 0),
+      item.row.advance_meta > 0 ? Math.round((item.row.advance_validas / item.row.advance_meta) * 100) : "",
+      Math.max(0, item.row.advance_meta - item.row.advance_validas),
+      item.row.has_report ? item.registeredAt : "",
+      item.row.records.map((record) => occurrenceRecordCode(record)).filter(Boolean).join("; "),
+    ]);
+  const csv = [header, ...body]
+    .map((line) => line.map(occurrenceRegisterCsvValue).join(","))
+    .join("\n");
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `reporte_ump_ocurrencias_${suffix}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function buildOccurrenceRegisterRows(rows: OccurrenceRouteUmpRow[]) {
+  return rows.map((row) => {
     const status = occurrenceRegisterStatus(row);
     const statusLabel = occurrenceRegisterStatusLabel(status);
     const registeredAt = occurrenceRegisterStamp(row);
     const reporter = occurrenceRegisterReporter(row);
     const replacementCount = occurrenceRowAppliedReplacementCount(row);
     const dateLabel = registeredAt || (row.has_report ? row.report_window_label : "");
-    const sourceLabel = row.has_report
-      ? `${formatMetric(row.reportes || row.records.length)} reporte${(row.reportes || row.records.length) === 1 ? "" : "s"}`
-      : row.is_unreconciled
-        ? "Por conciliar"
-        : "Pendiente";
     const title = row.is_unreconciled
       ? `UMP ${row.ump || "S/D"}`
       : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
@@ -1306,6 +1354,14 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
       : replacementCount > 0
         ? `${row.route_label || row.distrito || "Ruta activa"} · R cuenta como titular`
         : row.route_label || row.distrito || "Ruta activa";
+    const advanceLabel = occurrenceAdvanceProgressLabel(row);
+    const sourceLabel = row.is_unreconciled
+      ? "Por conciliar"
+      : row.has_report
+        ? "Reporte UMP"
+        : row.advance_started
+          ? `${advanceLabel} · sin reporte`
+          : "Sin reporte";
     const searchText = [
       row.search_text,
       title,
@@ -1338,7 +1394,14 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
       String(a.row.distrito).localeCompare(String(b.row.distrito), "es-PE") ||
       String(a.row.ump).localeCompare(String(b.row.ump), "es-PE", { numeric: true }) ||
       a.title.localeCompare(b.title, "es-PE", { numeric: true });
-  }), [rows]);
+  });
+}
+
+function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<OccurrenceRegisterFilter>("todos");
+  const [districtFilter, setDistrictFilter] = useState("todos");
+  const registerRows = useMemo(() => buildOccurrenceRegisterRows(rows), [rows]);
   const counts = useMemo(() => {
     const expected = registerRows.filter((item) => !item.row.is_unreconciled);
     return {
@@ -1362,46 +1425,50 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
   }, [districtFilter, registerRows, search, statusFilter]);
 
   return (
-    <section className="mon-field-occurrences-register" aria-label="Registro de ocurrencias por UMP" data-occurrence-tab="registro">
+    <section className="mon-field-occurrences-register" aria-label="Reporte UMP de ocurrencias" data-occurrence-tab="registro">
       <header className="mon-field-occurrences-register-head">
         <div>
-          <span><FileCheck2 size={14} /> Registro por UMP</span>
-          <strong>{formatMetric(counts.reported)}/{formatMetric(counts.expected)} con ocurrencia · {formatMetric(counts.missing)} pendientes</strong>
-          <em>{formatMetric(filteredRows.length)} visibles · {formatMetric(counts.replacements)} con reemplazo aplicado · {formatMetric(counts.unreconciled)} sin conciliacion</em>
+          <span><FileCheck2 size={14} /> Reporte UMP</span>
+          <strong>{formatMetric(counts.reported)} con reporte · {formatMetric(counts.missing)} sin reporte</strong>
+          <em>{formatMetric(filteredRows.length)} visibles de {formatMetric(counts.expected)} UMP oficiales · {formatMetric(counts.unreconciled)} controles por conciliar</em>
         </div>
         <div className="mon-field-occurrences-register-kpis" aria-label="Resumen del registro UMP">
-          <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>titulares</em></span>
-          <span className="is-reported"><strong>{formatMetric(counts.reported)}</strong><em>con registro</em></span>
-          <span className="is-missing"><strong>{formatMetric(counts.missing)}</strong><em>sin registro</em></span>
-          <span className="is-review"><strong>{formatMetric(counts.unreconciled)}</strong><em>sin conciliacion</em></span>
+          <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>UMP oficiales</em></span>
+          <span className="is-reported"><strong>{formatMetric(counts.reported)}</strong><em>con reporte</em></span>
+          <span className="is-missing"><strong>{formatMetric(counts.missing)}</strong><em>sin reporte</em></span>
+          <span className="is-review"><strong>{formatMetric(counts.unreconciled)}</strong><em>controles</em></span>
         </div>
       </header>
 
       <div className="mon-field-occurrences-register-toolbar" aria-label="Filtros del registro de ocurrencias">
         <label className="mon-field-occurrences-search">
           <Search size={14} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar UMP, responsable, distrito, fecha u hora" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar UMP, distrito, responsable o fecha" />
         </label>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as OccurrenceRegisterFilter)} aria-label="Filtrar registro por estado">
           <option value="todos">Todos ({formatMetric(registerRows.length)})</option>
-          <option value="con_registro">Con registro ({formatMetric(counts.reported)})</option>
-          <option value="sin_registro">Sin registro ({formatMetric(counts.missing)})</option>
-          <option value="sin_conciliacion">Sin conciliacion ({formatMetric(counts.unreconciled)})</option>
+          <option value="con_registro">Con reporte ({formatMetric(counts.reported)})</option>
+          <option value="sin_registro">Sin reporte ({formatMetric(counts.missing)})</option>
+          <option value="sin_conciliacion">Controles ({formatMetric(counts.unreconciled)})</option>
         </select>
         <select value={districtFilter} onChange={(event) => setDistrictFilter(event.target.value)} aria-label="Filtrar registro por distrito">
           <option value="todos">Todos los distritos</option>
           {districtOptions.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
+        <button type="button" className="pulso-button" onClick={() => occurrenceRegisterDownloadCsv(filteredRows, "visibles")}>
+          <Download size={14} />
+          CSV UMP
+        </button>
       </div>
 
-      <div className="mon-field-occurrences-register-table" role="table" aria-label="Lista completa de UMP con ocurrencias de campo">
+      <div className="mon-field-occurrences-register-table" role="table" aria-label="Lista simple de UMP con y sin reporte">
         <div className="mon-field-occurrences-register-row is-head" role="row">
           <span role="columnheader">UMP</span>
-          <span role="columnheader">Estado</span>
+          <span role="columnheader">Reporte UMP</span>
           <span role="columnheader">Responsable</span>
-          <span role="columnheader">Llenado por</span>
-          <span role="columnheader">Dia y hora</span>
-          <span role="columnheader">Fuente</span>
+          <span role="columnheader">Distrito</span>
+          <span role="columnheader">Avance</span>
+          <span role="columnheader">Fecha reporte</span>
         </div>
         <div className="mon-field-occurrences-register-list" role="rowgroup">
           {filteredRows.map((item) => (
@@ -1412,23 +1479,23 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
               </span>
               <span role="cell">
                 <b>{item.statusLabel}</b>
-                <em>{item.replacementCount > 0 ? `${formatMetric(item.replacementCount)} R bajo titular` : item.row.status === "completa_sin_reporte" ? "Completa sin ocurrencia" : item.row.status === "incompleta_sin_reporte" ? "Incompleta sin ocurrencia" : item.row.status === "iniciada_sin_reporte" ? "Avance sin ocurrencia" : item.row.route_match_status || "ruta"}</em>
+                <em>{item.row.is_unreconciled ? item.row.route_match_status || "revisar" : item.row.has_report ? "reporte único por UMP" : "pendiente"}</em>
               </span>
               <span role="cell">
                 <strong>{item.row.responsable || "Sin responsable"}</strong>
-                <em>{item.row.distrito || "Sin distrito"}</em>
+                <em>{item.replacementCount > 0 ? `${formatMetric(item.replacementCount)} R bajo titular` : "asignado en ruta"}</em>
               </span>
               <span role="cell">
-                <strong>{item.reporter || (item.row.has_report ? item.row.responsable || "Sin responsable" : "Sin registro")}</strong>
-                <em>{item.row.has_report ? `${formatMetric(item.row.efectivas)} efectivas · ${formatMetric(item.row.no_efectivas)} no efectivas` : item.row.advance_started ? occurrenceAdvanceProgressLabel(item.row) : "pendiente"}</em>
+                <strong>{item.row.distrito || "Sin distrito"}</strong>
+                <em>{compactParts([item.row.zona ? `Zona ${item.row.zona}` : "", item.row.manzana ? `Mz ${item.row.manzana}` : ""]) || "Sin manzana"}</em>
               </span>
               <span role="cell">
-                <strong>{item.registeredAt || "Sin fecha"}</strong>
-                <em>{item.row.has_report ? item.row.report_window_label : item.row.advance_last_activity || "sin ocurrencia"}</em>
+                <strong>{occurrenceAdvanceProgressLabel(item.row)}</strong>
+                <em>{item.row.advance_last_activity || item.row.advance_quota_status || "sin avance"}</em>
               </span>
               <span role="cell">
-                <strong>{item.sourceLabel}</strong>
-                <em>{item.row.source_row_ids.slice(0, 2).join(", ") || item.row.manzana_key || "S/D"}</em>
+                <strong>{item.row.has_report ? item.registeredAt || "Con reporte" : "Sin reporte"}</strong>
+                <em>{item.sourceLabel}</em>
               </span>
             </article>
           ))}

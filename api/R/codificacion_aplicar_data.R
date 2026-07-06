@@ -43,6 +43,22 @@ pick_join_key_pair <- function(x, y){
   NA_character_
 }
 
+.pick_join_key_alias_pair <- function(x, y){
+  groups <- list(
+    c("_uuid", "uuid", "meta_instance_id", "instanceid", "respondent_id", "response_id", "_id", "Pulso_code", "pulso_code"),
+    c("_index"),
+    c("Codigo pulso", "Código pulso")
+  )
+  for (grp in groups) {
+    x_hit <- grp[grp %in% names(x) & vapply(grp, function(k) .join_key_has_values(x[[k]]), logical(1))]
+    y_hit <- grp[grp %in% names(y) & vapply(grp, function(k) .join_key_has_values(y[[k]]), logical(1))]
+    if (length(x_hit) && length(y_hit)) {
+      return(list(x = x_hit[1], y = y_hit[1]))
+    }
+  }
+  NULL
+}
+
 # asegura nombres únicos (evita "Input columns in `y` must be unique")
 .ensure_unique_names <- function(df){
   names(df) <- make.unique(names(df), sep = "__")
@@ -72,6 +88,22 @@ pick_join_key_pair <- function(x, y){
     y <- y[, keep, drop = FALSE]
   }
   dplyr::left_join(x, y, by = key, na_matches = "never")
+}
+
+.safe_left_join_by_alias <- function(x, y, key_x, key_y, cols_right = NULL){
+  join_key <- "__ppra_join_key"
+  x2 <- x
+  y2 <- y
+  x2[[join_key]] <- .to_key_char(x2[[key_x]])
+  y2[[join_key]] <- .to_key_char(y2[[key_y]])
+  if (!is.null(cols_right)) {
+    keep <- unique(c(join_key, cols_right))
+    keep <- keep[keep %in% names(y2)]
+    y2 <- y2[, keep, drop = FALSE]
+  }
+  out <- dplyr::left_join(x2, y2, by = join_key, na_matches = "never")
+  out[[join_key]] <- NULL
+  out
 }
 
 # normalizar valores 0/1/NA (NO nombres de columnas)
@@ -813,6 +845,19 @@ resolve_child_recod_col <- function(parent, colnames_tpl, text_col = NULL){
   cand[1]
 }
 
+.text_matrix_sm_cols <- function(parent, cols) {
+  if (!length(cols)) return(character(0))
+  rx <- paste0("^", gsub("([\\W])", "\\\\\\1", parent), "/[^/]+_(?i:recod)$")
+  out <- cols[grepl(rx, cols, perl = TRUE)]
+  out <- out[!.ppra_is_sm_example_col(parent, out)]
+  out
+}
+
+.text_matrix_sm_codes <- function(parent, cols) {
+  codes <- sub("^.+/", "", cols)
+  sub("_(?i:recod)$", "", codes, perl = TRUE)
+}
+
 ppra_so_child <- function(df, parent, path_plantilla, path_familias = NULL, path_datos = NULL){
   where   <- if (!is.null(path_datos)) locate_var_sheet(parent, path_datos, path_familias) else list(source="main", sheet=NA)
   df_work <- if (identical(where$source, "main")) df else read_sheet_ci(path_datos, where$sheet)
@@ -826,7 +871,9 @@ ppra_so_child <- function(df, parent, path_plantilla, path_familias = NULL, path
   }
 
   kd <- pick_join_key_pair(df_work, tpl)
-  if (is.na(kd)) {
+  key_alias <- NULL
+  if (is.na(kd)) key_alias <- .pick_join_key_alias_pair(df_work, tpl)
+  if (is.na(kd) && is.null(key_alias)) {
     message("[SO-hijo] Sin clave común para '", parent, "'. Omito.")
     return(list(df=df, new_col=character(0),
                 repeat_sheet=NULL, repeat_df=NULL, repeat_cols_to_color=character(0)))
@@ -834,6 +881,57 @@ ppra_so_child <- function(df, parent, path_plantilla, path_familias = NULL, path
 
   text_col <- ppra_get_textcol_from_familias(path_familias, parent)
   recod_cols <- setdiff(names(tpl)[grepl("(?i)_recod$", names(tpl), perl = TRUE)], "control")
+  sm_cols <- .text_matrix_sm_cols(parent, recod_cols)
+  if (length(sm_cols)) {
+    join_left <- df_work
+    tmp <- if (!is.na(kd)) {
+      .safe_left_join_by(join_left[, c(kd), drop = FALSE], tpl[, c(kd, sm_cols), drop = FALSE], kd)
+    } else {
+      .safe_left_join_by_alias(
+        join_left[, key_alias$x, drop = FALSE],
+        tpl[, c(key_alias$y, sm_cols), drop = FALSE],
+        key_alias$x,
+        key_alias$y
+      )
+    }
+    codes <- .text_matrix_sm_codes(parent, sm_cols)
+    dummy_names <- paste0(parent, "_recod.", codes)
+    selected <- lapply(seq_len(nrow(tmp)), function(i) {
+      vals <- .norm01(unlist(tmp[i, sm_cols, drop = TRUE], use.names = FALSE))
+      codes[!is.na(vals) & vals == 1L]
+    })
+    parent_recod <- vapply(selected, function(x) {
+      x <- unique(as.character(x))
+      x <- x[nz(x)]
+      if (length(x)) paste(x, collapse = " ") else NA_character_
+    }, character(1))
+    dummy_df <- as.data.frame(
+      lapply(seq_along(codes), function(j) {
+        vapply(selected, function(x) as.integer(codes[j] %in% x), integer(1))
+      }),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    names(dummy_df) <- dummy_names
+    out_col <- paste0(parent, "_recod")
+    anchor <- if (nz(text_col) && text_col %in% names(df_work)) text_col else parent
+    cols_out <- c(out_col, dummy_names)
+
+    if (identical(where$source, "main")) {
+      df[[out_col]] <- parent_recod
+      for (nm in dummy_names) df[[nm]] <- dummy_df[[nm]]
+      df <- insert_right_of(df, anchor, cols_out)
+      return(list(df=df, new_col=cols_out,
+                  repeat_sheet=NULL, repeat_df=NULL, repeat_cols_to_color=character(0)))
+    } else {
+      df_work[[out_col]] <- parent_recod
+      for (nm in dummy_names) df_work[[nm]] <- dummy_df[[nm]]
+      df_work <- insert_right_of(df_work, anchor, cols_out)
+      return(list(df=df, new_col=character(0),
+                  repeat_sheet=where$sheet, repeat_df=df_work, repeat_cols_to_color=cols_out))
+    }
+  }
+
   src <- NA_character_
   if (nz(text_col)) {
     src <- recod_cols[match(tolower(paste0(text_col, "_recod")), tolower(recod_cols))]
@@ -851,7 +949,16 @@ ppra_so_child <- function(df, parent, path_plantilla, path_familias = NULL, path
                 repeat_sheet=NULL, repeat_df=NULL, repeat_cols_to_color=character(0)))
   }
 
-  tmp <- .safe_left_join_by(df_work[, c(kd), drop = FALSE], tpl[, c(kd, src), drop = FALSE], kd)
+  tmp <- if (!is.na(kd)) {
+    .safe_left_join_by(df_work[, c(kd), drop = FALSE], tpl[, c(kd, src), drop = FALSE], kd)
+  } else {
+    .safe_left_join_by_alias(
+      df_work[, key_alias$x, drop = FALSE],
+      tpl[, c(key_alias$y, src), drop = FALSE],
+      key_alias$x,
+      key_alias$y
+    )
+  }
   val <- trimws(as.character(tmp[[src]])); val[val==""] <- NA_character_
 
   # En modo hijo la data solo necesita copiar el código elegido para el texto

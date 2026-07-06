@@ -4542,6 +4542,36 @@ export default function MonitoreoPage() {
     }
   }
 
+  function shouldSyncFieldOccurrencesAfterSourceSync(result: MonitoreoSyncResult) {
+    if (route.family !== "territorial") return false;
+    if (!["advance", "full"].includes(String(result.sync_mode || "full"))) return false;
+    const occurrences = configRef.current.territorial?.field_occurrences ?? null;
+    if (!occurrences?.enabled) return false;
+    return Boolean(occurrences.asset_uid || occurrences.source_id);
+  }
+
+  async function syncFieldOccurrencesAfterSourceSync(result: MonitoreoSyncResult) {
+    if (!shouldSyncFieldOccurrencesAfterSourceSync(result)) return;
+    const mode = result.sync_mode === "advance" ? "advance" : "full";
+    setOccurrencesBusy("sync");
+    setSourceSyncJob({
+      jobId: null,
+      label: "Actualizando ocurrencias",
+      mode,
+      phase: "Ocurrencias",
+      message: "Sincronizando reportes de trabajo de campo...",
+      percent: 94,
+    });
+    try {
+      const occurrencesResult = await apiMonitoreoTerritorialOccurrencesSync();
+      applyMonitoreoState(stateWithTerritorialPhase(occurrencesResult.state, selectedRoutePhaseRef.current));
+    } catch (e) {
+      setError(`Avance actualizado, pero ocurrencias no se pudo sincronizar: ${(e as Error).message}`);
+    } finally {
+      setOccurrencesBusy("");
+    }
+  }
+
   async function selectMonitoringRoute(family: MonitoreoRouteFamily) {
     const nextRoute = monitoreoRouteFor(family);
     if (nextRoute.status !== "active") return;
@@ -4908,9 +4938,10 @@ export default function MonitoreoPage() {
                           });
                         }}
                         onDone={async (result) => {
-                          setSourceSyncJob(null);
                           const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
                           setSourceSyncRateLimitNotice(rateLimitNotice);
+                          await syncFieldOccurrencesAfterSourceSync(result);
+                          setSourceSyncJob(null);
                           await refresh();
                         }}
                         onError={(msg) => {

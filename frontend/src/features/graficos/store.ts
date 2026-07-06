@@ -215,6 +215,7 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_objetivo_icono: { titulo: "", texto: "", icono: null },
   p_slide_texto:          { titulo: "", texto: "", bullets: "", base: "" },
   p_slide_tabla_tecnica:  { titulo: "", filas: "", pie: "" },
+  p_slide_top_two_box:    {},
 
   // ---- 1 gráfico ------------------------------------------------------
   p_slide_1_grafico:           { titulo: "", grafico: null, base: "", pie: "", etiqueta: "" },
@@ -700,6 +701,7 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_objetivo_icono:               "Objetivo con ícono",
   p_slide_texto:                        "Bloque de texto",
   p_slide_tabla_tecnica:                "Tabla técnica",
+  p_slide_top_two_box:                  "Explicación Top Two Box",
   p_slide_1_grafico:                    "Un gráfico",
   p_slide_1_grafico_narrativo:          "Un gráfico + narrativa",
   p_slide_grafico_texto_derecha:        "Gráfico + texto derecha",
@@ -724,6 +726,7 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_objetivo_icono:               [],
   p_slide_texto:                        [],
   p_slide_tabla_tecnica:                [],
+  p_slide_top_two_box:                  [],
   p_slide_1_grafico:                    ["grafico"],
   p_slide_1_grafico_narrativo:          ["grafico"],
   p_slide_grafico_texto_derecha:        ["grafico"],

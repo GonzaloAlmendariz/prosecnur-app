@@ -34,15 +34,16 @@ make_codif_config_inst <- function(include_p36 = TRUE, include_p40 = TRUE) {
 
 make_codif_categorization_inst <- function() {
   survey <- data.frame(
-    type = rep("text", 6),
-    name = c("p23", "p24_1", "p24_2", "p24_3", "p24_4", "p24_5"),
+    type = rep("text", 7),
+    name = c("p23", "p24_1", "p24_2", "p24_3", "p24_4", "p24_5", "p35"),
     label = c(
       "¿Cuál es su puesto actual?:",
       "Función 1:",
       "Función 2:",
       "Función 3:",
       "Función 4:",
-      "Función 5:"
+      "Función 5:",
+      "Después de todos sus años de egreso, coméntenos en qué podría mejorar la carrera:"
     ),
     stringsAsFactors = FALSE
   )
@@ -73,8 +74,10 @@ seed_codif_config_session <- function(base_defs, with_project = FALSE) {
     groups <- def$groups %||% list()
     marcadas <- def$marcadas %||% list()
     respuestas <- def$respuestas %||% list()
+    data <- def$data %||% NULL
     s$codif_por_base[[base]] <- list(
       inst = inst,
+      data = data,
       familias_draft = list(rows = rows, source = "test"),
       grupos_recod = groups,
       marcadas = marcadas,
@@ -544,6 +547,592 @@ test_that("codificacion importa categorizaciones desde Excel por hoja y pares re
   expect_equal(length(codif_snapshot(target_sid, "ingenieria_de_minas")$grupos_recod$p23), 2L)
   expect_equal(length(codif_snapshot(target_sid, "ingenieria_de_minas")$grupos_recod$p24_1), 2L)
   expect_null(codif_snapshot(target_sid, "ingenieria_civil")$grupos_recod$p23)
+})
+
+test_that("codificacion matrices p35 importan 9 bases y conservan multi-codigo por caso", {
+  testthat::skip_if_not_installed("openxlsx")
+  sheet_map <- c(
+    Civil = "ingenieria_civil",
+    Telecom = "ingenieria_de_las_telecomunicaciones",
+    Minas = "ingenieria_de_minas",
+    Electronica = "ingenieria_electronica",
+    Geologica = "ingenieria_geologica",
+    Industrial = "ingenieria_industrial",
+    Informatica = "ingenieria_informatica",
+    Mecanica = "ingenieria_mecanica",
+    Mecatronica = "ingenieria_mecatronica"
+  )
+  base_defs <- lapply(names(sheet_map), function(sheet) {
+    base <- sheet_map[[sheet]]
+    list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(
+        response_id = c(paste0(base, "_1"), paste0(base, "_2")),
+        p35 = c("mejorar tecnologia", "más prácticas"),
+        stringsAsFactors = FALSE
+      )
+    )
+  })
+  names(base_defs) <- unname(sheet_map)
+  target_sid <- seed_codif_config_session(base_defs)
+
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Diccionario")
+  openxlsx::writeData(wb, "Diccionario", data.frame(codigo = 1, codificacion = "Tecnología"))
+  for (sheet in names(sheet_map)) {
+    base <- sheet_map[[sheet]]
+    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::writeData(wb, sheet, data.frame(
+      id_caso = c(paste0(base, "_1"), paste0(base, "_1"), paste0(base, "_2")),
+      texto_p35 = c("mejorar tecnologia", "mejorar tecnologia", "más prácticas"),
+      codigo = c("1", "2", "2"),
+      codificacion = c("Tecnología", "Práctica", "Práctica"),
+      obs = c("", "doble código", ""),
+      stringsAsFactors = FALSE
+    ))
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  matrix <- codif_matrix_preview(target_sid, path, "p35.xlsx")
+  preview <- matrix$preview
+
+  expect_equal(preview$summary$n_compatible, 9L)
+  expect_equal(length(preview$items), 9L)
+  expect_true(all(vapply(preview$items, function(item) {
+    isTRUE(item$matrix_diagnostics$case_match_available) &&
+      identical(item$matrix_diagnostics$unmatched_cases, 0L)
+  }, logical(1))))
+
+  selections <- lapply(preview$items, function(item) list(match_id = item$match_id, strategy = "replace"))
+  result <- codif_matrix_apply_import(target_sid, matrix$bundle, selections, "p35.xlsx")
+
+  expect_equal(result$summary$variables_imported, 9L)
+  for (base in unname(sheet_map)) {
+    groups <- codif_snapshot(target_sid, base)$grupos_recod$p35
+    expect_length(groups, 2L)
+    expect_equal(groups[[1]]$matrix_cases[[1]]$id_caso, paste0(base, "_1"))
+    expect_equal(groups[[2]]$matrix_cases[[1]]$id_caso, paste0(base, "_1"))
+  }
+})
+
+test_that("codificacion matrices p35 bloquean conflicto codigo-etiqueta", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_electronica = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(response_id = c("e1", "e2"), p35 = c("texto a", "texto b"), stringsAsFactors = FALSE)
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Electronica")
+  openxlsx::writeData(wb, "Electronica", data.frame(
+    id_caso = c("e1", "e2"),
+    texto_p35 = c("texto a", "texto b"),
+    codigo = c("1", "1"),
+    codificacion = c("Etiqueta A", "Etiqueta B"),
+    obs = c("", ""),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  matrix <- codif_matrix_preview(target_sid, path, "p35_conflicto.xlsx")
+  item <- matrix$preview$items[[1]]
+
+  expect_equal(item$status, "conflict")
+  expect_false(item$can_apply)
+  expect_match(matrix$bundle$metadata$warnings[[1]], "más de una etiqueta")
+})
+
+test_that("codificacion matrices caso-codigo aceptan variable explicita", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(response_id = c("c1", "c2"), p24_2 = c("gestionar datos", "modelar procesos"), stringsAsFactors = FALSE)
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", data.frame(
+    id_caso = c("c1", "c2"),
+    variable = c("p24_2", "p24_2"),
+    texto_original = c("gestionar datos", "modelar procesos"),
+    codigo = c("1", "2"),
+    codificacion = c("Datos", "Procesos"),
+    obs = c("", ""),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  matrix <- codif_matrix_preview(target_sid, path, "matriz_trabajo.xlsx")
+
+  expect_equal(matrix$preview$summary$n_compatible, 1L)
+  expect_equal(matrix$bundle$variables[[1]]$name, "p24_2")
+  expect_equal(matrix$preview$items[[1]]$matrix_layout, "case_code_matrix")
+})
+
+test_that("codificacion matrices importan contrato final por bloques con observaciones", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(
+        response_id = c("c1", "c2"),
+        p23 = c("analista", "jefe"),
+        p35 = c("ia y malla", "practicas"),
+        stringsAsFactors = FALSE
+      )
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", "Puesto actual", startRow = 1, startCol = 1, colNames = FALSE)
+  openxlsx::writeData(wb, "Civil", matrix(c("ID caso", "Respuesta", "Código", "Categoría", "Observaciones"), nrow = 1), startRow = 2, startCol = 1, colNames = FALSE)
+  openxlsx::writeData(wb, "Civil", data.frame(
+    `ID caso` = "c1",
+    Respuesta = "analista",
+    Código = "1",
+    Categoría = "Analista Junior",
+    Observaciones = "",
+    check.names = FALSE
+  ), startRow = 3, startCol = 1, colNames = FALSE)
+  openxlsx::writeData(wb, "Civil", "Mejoras de la carrera", startRow = 1, startCol = 7, colNames = FALSE)
+  openxlsx::writeData(wb, "Civil", matrix(c("ID caso", "Respuesta", "Código", "Categoría", "Observaciones"), nrow = 1), startRow = 2, startCol = 7, colNames = FALSE)
+  openxlsx::writeData(wb, "Civil", data.frame(
+    `ID caso` = c("c1", "c1", "c2", "c2"),
+    Respuesta = c("ia y malla", "ia y malla", "practicas", "practicas"),
+    Código = c("1", "8", "2", "99"),
+    Categoría = c("Tecnología", "Otro", "Prácticas", "No contesta"),
+    Observaciones = c("nota tecnologia", "", "nota practica", ""),
+    check.names = FALSE
+  ), startRow = 3, startCol = 7, colNames = FALSE)
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  matrix <- codif_matrix_preview(target_sid, path, "matriz_final.xlsx")
+  preview <- matrix$preview
+
+  expect_equal(matrix$bundle$metadata$matrix_layouts, list("final_work_matrix"))
+  expect_equal(preview$summary$n_compatible, 2L)
+  expect_true(all(vapply(preview$items, function(item) identical(item$matrix_layout, "final_work_matrix"), logical(1))))
+  expect_true(all(vapply(preview$items, function(item) identical(item$matrix_diagnostics$unmatched_cases, 0L), logical(1))))
+
+  selections <- lapply(preview$items, function(item) list(match_id = item$match_id, strategy = "replace"))
+  codif_matrix_apply_import(target_sid, matrix$bundle, selections, "matriz_final.xlsx")
+
+  groups <- codif_snapshot(target_sid, "ingenieria_civil")$grupos_recod
+  expect_equal(groups$p35[[1]]$matrix_cases[[1]]$obs, "nota tecnologia")
+  expect_equal(groups$p35[[2]]$matrix_cases[[1]]$id_caso, "c1")
+  expect_equal(groups$p35[[3]]$matrix_cases[[1]]$obs, "nota practica")
+
+  map <- codif_matrix_map(target_sid, base = "ingenieria_civil")
+  p35 <- map$bases[[1]]$variables[[which(vapply(map$bases[[1]]$variables, function(v) identical(v$variable, "p35"), logical(1)))]]
+  expect_equal(p35$variable_label, "Después de todos sus años de egreso, coméntenos en qué podría mejorar la carrera")
+  expect_equal(p35$variable_kind, "text_select_multiple")
+  expect_equal(p35$variable_kind_label, "Texto abierto multicode")
+  expect_equal(p35$n_casos, 2L)
+  expect_equal(p35$n_asignaciones, 4L)
+  expect_equal(p35$categories[[1]]$cases[[1]]$obs, "nota tecnologia")
+  roles <- stats::setNames(
+    vapply(p35$categories, function(category) category$category_role, character(1)),
+    vapply(p35$categories, function(category) category$codigo, character(1))
+  )
+  role_labels <- stats::setNames(
+    vapply(p35$categories, function(category) category$category_role_label, character(1)),
+    vapply(p35$categories, function(category) category$codigo, character(1))
+  )
+  expect_equal(roles[["8"]], "otro")
+  expect_equal(roles[["99"]], "no_contesta")
+  expect_equal(role_labels[["8"]], "Otro")
+  expect_equal(role_labels[["99"]], "No contesta")
+
+  work <- codif_matrix_export_xlsx(target_sid, "work", variables = c("p23", "p35"), base = "ingenieria_civil")
+  s <- session_get(target_sid)
+  headers <- readxl::read_excel(s$files[[work$file_id]]$path, sheet = "Civil", col_names = FALSE, n_max = 2)
+  expect_equal(as.character(headers[[1]][1]), "¿Cuál es su puesto actual?")
+  expect_equal(as.character(headers[[7]][1]), "Después de todos sus años de egreso, coméntenos en qué podría mejorar la carrera")
+
+  internal <- codif_matrix_export_xlsx(target_sid, "internal", variables = c("p23", "p35"), base = "ingenieria_civil")
+  s <- session_get(target_sid)
+  dictionary_head <- readxl::read_excel(s$files[[internal$file_id]]$path, sheet = "Diccionario", col_names = FALSE, n_max = 4)
+  expect_true("Tipo" %in% as.character(unlist(dictionary_head, use.names = FALSE)))
+})
+
+test_that("codificacion matrices de una hoja respetan la base destino en proyectos multibase", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(response_id = c("c1", "c2"), p35 = c("texto civil a", "texto civil b"), stringsAsFactors = FALSE)
+    ),
+    ingenieria_mecatronica = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(response_id = c("m1", "m2"), p35 = c("texto meca a", "texto meca b"), stringsAsFactors = FALSE)
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", data.frame(
+    id_caso = c("c1", "c2"),
+    variable = c("p35", "p35"),
+    texto_original = c("texto civil a", "texto civil b"),
+    codigo = c("1", "2"),
+    codificacion = c("Civil A", "Civil B"),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  matrix <- codif_matrix_preview(target_sid, path, "civil_p35.xlsx")
+  targets <- vapply(matrix$preview$items, function(item) item$target$base_id, character(1))
+
+  expect_equal(matrix$bundle$mode, "multibase")
+  expect_equal(length(matrix$preview$items), 1L)
+  expect_equal(targets, "ingenieria_civil")
+})
+
+test_that("codificacion matrices laborales excluyen Revision como categoria", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(inst = make_codif_categorization_inst(), rows = list())
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", data.frame(
+    "¿Cuál es su puesto actual?:" = c("controller", "analista"),
+    "Categoría de puesto" = c("Revisión", "Analista Junior"),
+    "¿Cuál es su función principal?" = c("controlar costos", "hacer reportes"),
+    "Categoría de función principal" = c("Revisión", "Finanzas"),
+    check.names = FALSE
+  ))
+  openxlsx::addWorksheet(wb, "Resumen")
+  resumen <- data.frame(
+    X1 = c("Resumen de recategorización laboral", "Carrera", "Civil", "Total"),
+    X2 = c(NA, "Filas con datos", 2, 816),
+    X3 = c(NA, "Puestos categorizados", 1, 535),
+    X4 = c(NA, "Puestos con revisión", 1, 281),
+    X5 = c(NA, "Funciones categorizadas", 1, 1335),
+    X6 = c(NA, "Funciones con revisión", 1, 77),
+    X7 = c(NA, "Filas con revisión", 1, 318),
+    X8 = c(NA, "% filas con revisión", 0.5, 0.3897),
+    check.names = FALSE
+  )
+  openxlsx::writeData(wb, "Resumen", resumen, colNames = FALSE)
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  matrix <- codif_matrix_preview(target_sid, path, "laboral.xlsx")
+  labels <- unlist(lapply(matrix$bundle$variables, function(v) {
+    vapply(v$configuration$grupos, function(g) g$etiqueta, character(1))
+  }))
+
+  expect_false("Revisión" %in% labels)
+  expect_true("Analista Junior" %in% labels)
+  expect_true("Finanzas" %in% labels)
+  expect_equal(matrix$preview$matrix_summary$total$filas, 816L)
+  expect_equal(matrix$preview$matrix_summary$total$puestos_categorizados, 535L)
+  expect_equal(matrix$preview$matrix_summary$total$puestos_revision, 281L)
+  expect_equal(matrix$preview$matrix_summary$total$funciones_categorizadas, 1335L)
+  expect_equal(matrix$preview$matrix_summary$total$funciones_revision, 77L)
+  expect_true(any(vapply(matrix$bundle$variables, function(v) {
+    identical(v$metadata$diagnostics$review_rows, 1L)
+  }, logical(1))))
+})
+
+test_that("codificacion matrices exportan matriz de trabajo y auditoria estandar", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(response_id = "c1", p35 = "mejorar tecnologia", stringsAsFactors = FALSE)
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", data.frame(
+    id_caso = c("c1", "c1"),
+    texto_p35 = c("mejorar tecnologia", "mejorar tecnologia"),
+    codigo = c("1", "2"),
+    codificacion = c("Tecnología", "Prácticas"),
+    obs = c("nota interna", "segunda nota"),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  matrix <- codif_matrix_preview(target_sid, path, "p35.xlsx")
+  codif_matrix_apply_import(
+    target_sid,
+    matrix$bundle,
+    list(list(match_id = matrix$preview$items[[1]]$match_id, strategy = "replace")),
+    "p35.xlsx"
+  )
+
+  work <- codif_matrix_export_xlsx(target_sid, "work", variables = "p35")
+  internal <- codif_matrix_export_xlsx(target_sid, "internal")
+  client <- codif_matrix_export_xlsx(target_sid, "client")
+  s <- session_get(target_sid)
+  work_sheets <- readxl::excel_sheets(s$files[[work$file_id]]$path)
+  internal_sheets <- readxl::excel_sheets(s$files[[internal$file_id]]$path)
+  client_sheets <- readxl::excel_sheets(s$files[[client$file_id]]$path)
+  work_header_rows <- readxl::read_excel(s$files[[work$file_id]]$path, sheet = "Civil", col_names = FALSE, n_max = 2)
+  work_first_cases <- readxl::read_excel(s$files[[work$file_id]]$path, sheet = "Civil", col_names = FALSE, skip = 2, n_max = 2)
+  internal_cases_headers <- names(readxl::read_excel(s$files[[internal$file_id]]$path, sheet = "Casos", skip = 3, n_max = 1))
+  client_header_rows <- readxl::read_excel(s$files[[client$file_id]]$path, sheet = "Civil", col_names = FALSE, n_max = 2)
+  client_first_cases <- readxl::read_excel(s$files[[client$file_id]]$path, sheet = "Civil", col_names = FALSE, skip = 2, n_max = 2)
+
+  expect_false("Resumen" %in% work_sheets)
+  expect_true(all(c("Diccionario", "Civil") %in% work_sheets))
+  expect_true("Guía" %in% work_sheets)
+  expect_true("Guía" %in% internal_sheets)
+  expect_false("Guía" %in% client_sheets)
+  expect_equal(as.character(work_header_rows[[1]][1]), "Después de todos sus años de egreso, coméntenos en qué podría mejorar la carrera")
+  expect_equal(as.character(unlist(work_header_rows[2, 1:5], use.names = FALSE)), c("ID caso", "Respuesta", "Código", "Categoría", "Observaciones"))
+  expect_equal(as.character(work_first_cases[[1]][1:2]), c("c1", "c1"))
+  expect_equal(as.character(work_first_cases[[2]][1:2]), c("mejorar tecnologia", "mejorar tecnologia"))
+  expect_equal(as.character(work_first_cases[[3]][1:2]), c("1", "2"))
+  expect_equal(as.character(work_first_cases[[4]][1:2]), c("Tecnología", "Prácticas"))
+  expect_equal(as.character(work_first_cases[[5]][1:2]), c("nota interna", "segunda nota"))
+  expect_true(all(c("Resumen", "Diccionario", "Civil") %in% client_sheets))
+  expect_false(any(c("Notas", "Casos", "Respuestas") %in% client_sheets))
+  expect_equal(as.character(client_header_rows[[1]][1]), "Después de todos sus años de egreso, coméntenos en qué podría mejorar la carrera")
+  expect_equal(as.character(unlist(client_header_rows[2, 1:4], use.names = FALSE)), c("ID caso", "Respuesta", "Código", "Categoría"))
+  expect_false("Observaciones" %in% as.character(unlist(client_header_rows[2, ], use.names = FALSE)))
+  expect_equal(as.character(client_first_cases[[1]][1:2]), c("c1", "c1"))
+  expect_equal(as.character(client_first_cases[[2]][1:2]), c("mejorar tecnologia", "mejorar tecnologia"))
+  expect_equal(as.character(client_first_cases[[3]][1:2]), c("1", "2"))
+  expect_equal(as.character(client_first_cases[[4]][1:2]), c("Tecnología", "Prácticas"))
+  expect_true("Casos" %in% internal_sheets)
+  expect_true("ID caso" %in% internal_cases_headers)
+  expect_false(any(grepl("_uuid|respondent_id|response_id|variable_fuente|variable_recodificada", as.character(unlist(client_header_rows, use.names = FALSE)))))
+  guide_text <- readxl::read_excel(s$files[[work$file_id]]$path, sheet = "Guía", col_names = FALSE, n_max = 12)
+  guide_text <- paste(as.character(unlist(guide_text, use.names = FALSE)), collapse = " ")
+  expect_true(grepl("Otro", guide_text, fixed = TRUE))
+  expect_true(grepl("No contesta", guide_text, fixed = TRUE))
+  expect_true(grepl("no un código hardcodeado", guide_text, fixed = TRUE))
+})
+
+test_that("codificacion matrices no propagan observaciones entre casos", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(
+        response_id = c("c1", "c2"),
+        p35 = c("mejorar tecnologia", "mejorar tecnologia"),
+        stringsAsFactors = FALSE
+      )
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", data.frame(
+    id_caso = c("c1", "c1", "c2"),
+    texto_p35 = c("mejorar tecnologia", "mejorar tecnologia", "mejorar tecnologia"),
+    codigo = c("1", "2", "1"),
+    codificacion = c("Tecnología", "Prácticas", "Tecnología"),
+    obs = c("nota solo c1", "", ""),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  matrix <- codif_matrix_preview(target_sid, path, "p35.xlsx")
+  codif_matrix_apply_import(
+    target_sid,
+    matrix$bundle,
+    list(list(match_id = matrix$preview$items[[1]]$match_id, strategy = "replace")),
+    "p35.xlsx"
+  )
+
+  work <- codif_matrix_export_xlsx(target_sid, "work", variables = "p35")
+  s <- session_get(target_sid)
+  rows <- readxl::read_excel(s$files[[work$file_id]]$path, sheet = "Civil", col_names = FALSE, skip = 2)
+
+  expect_equal(nrow(rows), 3L)
+  expect_equal(as.character(rows[[1]]), c("c1", "c1", "c2"))
+  expect_equal(as.character(rows[[3]]), c("1", "2", "1"))
+  expect_equal(as.character(rows[[5]][1]), "nota solo c1")
+  expect_true(is.na(rows[[5]][2]) || !nzchar(as.character(rows[[5]][2])))
+  expect_true(is.na(rows[[5]][3]) || !nzchar(as.character(rows[[5]][3])))
+})
+
+test_that("codificacion matrices exportan variables con etiquetas duplicadas", {
+  testthat::skip_if_not_installed("openxlsx")
+  inst <- make_codif_categorization_inst()
+  inst$survey <- rbind(
+    inst$survey,
+    data.frame(type = c("text", "text"), name = c("p40", "p41"), label = c("Contacto", "Contacto"), stringsAsFactors = FALSE)
+  )
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = inst,
+      rows = list(),
+      data = data.frame(
+        response_id = c("c1", "c2"),
+        p40 = c("uno", "dos"),
+        p41 = c("tres", "cuatro"),
+        stringsAsFactors = FALSE
+      )
+    )
+  ))
+
+  out <- codif_matrix_export_xlsx(target_sid, visibility = "work", variables = list("p40", "p41"), base = "ingenieria_civil")
+  meta <- get_file(target_sid, out$file_id)
+
+  expect_true(file.exists(meta$path))
+  expect_gt(out$size, 0L)
+  expect_true("Civil" %in% openxlsx::getSheetNames(meta$path))
+})
+
+test_that("codificacion matrices distinguen visualmente seleccion unica y multiple", {
+  testthat::skip_if_not_installed("openxlsx")
+  inst <- make_codif_config_inst()
+  inst$survey <- rbind(
+    inst$survey,
+    data.frame(type = "select_multiple ai", name = "p19", label = "IA usada", stringsAsFactors = FALSE)
+  )
+  target_sid <- seed_codif_config_session(list(
+    base_a = list(
+      inst = inst,
+      rows = list(
+        codif_config_row_p36(),
+        codif_config_row_select_multiple_with_other("p19", "p19_other", "IA usada")
+      ),
+      groups = list(
+        p36 = codif_config_groups_p36("Selección única QA"),
+        p19 = codif_config_groups_p36("Selección múltiple QA")
+      ),
+      data = data.frame(
+        response_id = "a1",
+        p36 = "texto normalizado",
+        p19 = "texto normalizado",
+        stringsAsFactors = FALSE
+      )
+    )
+  ))
+
+  out <- codif_matrix_export_xlsx(target_sid, visibility = "client", variables = list("p36", "p19"), base = "base_a")
+  s <- session_get(target_sid)
+  resumen <- readxl::read_excel(s$files[[out$file_id]]$path, sheet = "Resumen", skip = 5)
+
+  expect_true(all(c("Selección única", "Selección múltiple") %in% resumen$Tipo))
+})
+
+test_that("codificacion matrices exportan mapeo filtrado por base", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    base_a = list(
+      inst = make_codif_categorization_inst(),
+      groups = list(p35 = codif_config_groups_p36("Base A")),
+      data = data.frame(response_id = "a1", p35 = "texto base a", stringsAsFactors = FALSE)
+    ),
+    base_b = list(
+      inst = make_codif_categorization_inst(),
+      groups = list(p35 = codif_config_groups_p36("Base B")),
+      data = data.frame(response_id = "b1", p35 = "texto base b", stringsAsFactors = FALSE)
+    )
+  ))
+
+  work <- codif_matrix_export_xlsx(target_sid, "work", variables = "p35", base = "base_b")
+  client <- codif_matrix_export_xlsx(target_sid, "client", variables = "p35", base = "base_b")
+  s <- session_get(target_sid)
+  sheet_b <- "base_b"
+  work_sheets <- readxl::excel_sheets(s$files[[work$file_id]]$path)
+  client_sheets <- readxl::excel_sheets(s$files[[client$file_id]]$path)
+  work_first_case <- readxl::read_excel(s$files[[work$file_id]]$path, sheet = sheet_b, col_names = FALSE, skip = 2, n_max = 1)
+  client_first_case <- readxl::read_excel(s$files[[client$file_id]]$path, sheet = sheet_b, col_names = FALSE, skip = 2, n_max = 1)
+
+  expect_true(sheet_b %in% work_sheets)
+  expect_false("base_a" %in% work_sheets)
+  expect_true(sheet_b %in% client_sheets)
+  expect_false("base_a" %in% client_sheets)
+  expect_equal(as.character(work_first_case[[2]][1]), "texto base b")
+  expect_equal(as.character(client_first_case[[2]][1]), "texto base b")
+})
+
+test_that("codificacion matrices mapa excluye codificacion manual y reconstruye casos", {
+  target_sid <- seed_codif_config_session(list(
+    base_a = list(
+      inst = make_codif_categorization_inst(),
+      groups = list(
+        p2 = codif_config_groups_p36("Edad agrupada"),
+        p23 = codif_config_groups_p36("Analista Junior")
+      ),
+      data = data.frame(
+        response_id = c("a1", "a2"),
+        p2 = c("texto normalizado", "texto normalizado"),
+        p23 = c("texto normalizado", "otro puesto"),
+        stringsAsFactors = FALSE
+      )
+    )
+  ))
+
+  map <- codif_matrix_map(target_sid, base = "base_a")
+  expect_equal(vapply(map$bases[[1]]$variables, `[[`, character(1), "variable"), "p23")
+  expect_equal(map$bases[[1]]$variables[[1]]$n_casos, 1L)
+  expect_equal(map$bases[[1]]$variables[[1]]$categories[[1]]$cases[[1]]$id_caso, "a1")
+  expect_equal(map$bases[[1]]$variables[[1]]$categories[[1]]$cases[[1]]$respuesta, "texto normalizado")
+})
+
+test_that("codificacion matrices permiten corregir un caso puntual del mapeo", {
+  testthat::skip_if_not_installed("openxlsx")
+  target_sid <- seed_codif_config_session(list(
+    ingenieria_civil = list(
+      inst = make_codif_categorization_inst(),
+      rows = list(),
+      data = data.frame(response_id = "c1", p35 = "mejorar tecnologia", stringsAsFactors = FALSE)
+    )
+  ))
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Civil")
+  openxlsx::writeData(wb, "Civil", data.frame(
+    id_caso = "c1",
+    texto_p35 = "mejorar tecnologia",
+    codigo = "1",
+    codificacion = "Tecnología",
+    obs = "",
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  matrix <- codif_matrix_preview(target_sid, path, "p35.xlsx")
+  codif_matrix_apply_import(
+    target_sid,
+    matrix$bundle,
+    list(list(match_id = matrix$preview$items[[1]]$match_id, strategy = "replace")),
+    "p35.xlsx"
+  )
+
+  before <- codif_matrix_map(target_sid)
+  expect_equal(before$bases[[1]]$variables[[1]]$categories[[1]]$cases[[1]]$id_caso, "c1")
+
+  patched <- codif_matrix_patch_case(
+    target_sid,
+    base = "ingenieria_civil",
+    variable = "p35",
+    id_caso = "c1",
+    from_codigo = "1",
+    codigo = "2",
+    etiqueta = "Prácticas"
+  )
+  categories <- patched$map$bases[[1]]$variables[[1]]$categories
+  target <- categories[[which(vapply(categories, function(x) identical(x$codigo, "2"), logical(1)))]]
+  source <- categories[[which(vapply(categories, function(x) identical(x$codigo, "1"), logical(1)))]]
+
+  expect_equal(target$n_casos, 1L)
+  expect_equal(target$cases[[1]]$id_caso, "c1")
+  expect_equal(target$cases[[1]]$etiqueta, "Prácticas")
+  expect_equal(source$n_casos, 0L)
 })
 
 test_that("codificacion import Excel preserva variables fuera de la seleccion", {

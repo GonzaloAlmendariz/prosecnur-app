@@ -1,0 +1,1013 @@
+---
+title: "KoboToolbox y principios de XLSForm"
+subtitle: "Sesión introductoria para diseñar formularios de campo"
+author: "Prosecnur"
+lang: es
+format:
+  revealjs:
+    theme: simple
+    css: prosecnur-reveal.css
+    width: 1280
+    height: 720
+    margin: 0.055
+    slide-number: true
+    preview-links: auto
+    scrollable: true
+    code-overflow: wrap
+    code-copy: false
+    code-line-numbers: false
+    embed-resources: true
+execute:
+  echo: false
+---
+
+## Objetivo de la sesión
+
+Al final de la clase podrás leer un XLSForm, reconocer sus hojas principales y escribir reglas básicas para mejorar la calidad de datos en KoboToolbox.
+
+::: {.lesson-map}
+::: {.lesson-item}
+**Estructura**
+
+`survey`, `choices` y `settings`
+:::
+::: {.lesson-item}
+**Variables**
+
+Tipos, nombres y datos exportados
+:::
+::: {.lesson-item}
+**Lógica**
+
+Saltos, cálculos y filtros
+:::
+::: {.lesson-item}
+**Calidad**
+
+Constraints, mensajes y regex
+:::
+:::
+
+::: {.notes}
+Meta de facilitación: al final, el grupo debe poder leer un XLSForm pequeño, explicar qué hace cada columna importante y corregir reglas simples antes de subir el formulario a KoboToolbox. Abrir preguntando qué problemas recuerdan de formularios de campo: respuestas vacías, saltos mal hechos, categorías duplicadas, documentos con formato distinto.
+:::
+
+## El caso conductor será una visita de campo
+
+Trabajaremos con un formulario para registrar hogares visitados.
+
+| Necesidad de campo | Decisión XLSForm |
+|---|---|
+| Identificar el hogar | `text` para código y DNI con formato controlado |
+| Registrar composición | `integer` para totales y grupos de edad |
+| Mostrar preguntas según respuestas | `relevant` con `${variable}` |
+| Evitar errores de digitación | `constraint` y `constraint_message` |
+| Filtrar territorios | `choice_filter` con columnas auxiliares |
+
+La clase usa este caso para leer, corregir y ampliar fragmentos reales de XLSForm.
+
+::: {.notes}
+Usar el caso como hilo conductor. Cada concepto vuelve a esta visita: qué se pregunta, cómo se guarda, cuándo aparece y cómo se valida. Si alguien pregunta por casos más complejos, anotar que repeats y filtros se verán como extensión del mismo principio.
+:::
+
+## El dato viaja por una cadena completa
+
+::: {.flow-strip}
+::: {.flow-step}
+**1. Diseño**
+
+Qué dato se necesita
+:::
+::: {.flow-step}
+**2. XLSForm**
+
+Cómo se captura
+:::
+::: {.flow-step}
+**3. KoboToolbox**
+
+Cómo se despliega
+:::
+::: {.flow-step}
+**4. KoboCollect**
+
+Cómo se levanta en campo
+:::
+::: {.flow-step}
+**5. Base**
+
+Cómo se analiza
+:::
+:::
+
+Si el XLSForm está bien pensado, la base exportada llega con nombres, tipos y reglas que facilitan el análisis.
+
+## KoboToolbox en un flujo de campo
+
+KoboToolbox permite construir, desplegar y administrar formularios para recolección de datos.
+
+KoboCollect es la aplicación móvil usada por los encuestadores para levantar datos en Android, incluso con conectividad limitada.
+
+Un flujo típico:
+
+1. Diseñar el formulario.
+2. Probarlo con datos ficticios.
+3. Desplegarlo en KoboToolbox.
+4. Recoger datos con KoboCollect o formulario web.
+5. Revisar, limpiar y exportar respuestas.
+
+## 1. XLSForm como plano del formulario {.section-divider}
+
+El archivo no solo lista preguntas. También define qué se guarda, cuándo aparece, cómo se valida y cómo se verá en campo.
+
+## XLSForm se lee como una tabla de decisiones
+
+XLSForm usa un libro de Excel para describir un formulario de manera estructurada.
+
+Cada fila responde una pregunta de diseño:
+
+| Pregunta de diseño | Columna donde se expresa |
+|---|---|
+| ¿Qué tipo de dato capturo? | `type` |
+| ¿Cómo se llamará en la base? | `name` |
+| ¿Qué leerá la persona en campo? | `label` |
+| ¿Cuándo aparece? | `relevant` |
+| ¿Qué respuestas son válidas? | `constraint` |
+
+## Tres hojas trabajan juntas {.compact}
+
+| Hoja | Rol |
+|---|---|
+| `survey` | Define la secuencia del formulario: preguntas, grupos, reglas y cálculos. |
+| `choices` | Define listas de respuestas para preguntas de selección. |
+| `settings` | Define metadatos del formulario: nombre, id, versión, idioma y opciones generales. |
+
+La mayor parte del diseño ocurre en `survey`. Las listas viven en `choices`. La identidad del formulario vive en `settings`.
+
+## La hoja `survey` organiza el recorrido {.compact}
+
+Cada fila suele representar una pregunta, una instrucción o una acción del formulario.
+
+Columnas mínimas:
+
+| Columna | Uso |
+|---|---|
+| `type` | Tipo de pregunta o instrucción. |
+| `name` | Nombre técnico de la variable. |
+| `label` | Texto visible para la persona encuestada o encuestadora. |
+
+El orden de las filas define el orden de navegación.
+
+## Un fragmento mínimo ya tiene estructura
+
+```text
+type,name,label
+text,codigo_hogar,Código del hogar
+integer,total_personas,Total de personas en el hogar
+select_one yes_no,tiene_celular,¿Algún miembro tiene celular?
+```
+
+::: {.trainer-note}
+Primera lectura: el formulario capturará tres variables y una de ellas usa una lista llamada `yes_no`.
+:::
+
+## Nombres de variables que sirven para analizar
+
+El `name` aparece luego en la base de datos.
+
+Buenas prácticas:
+
+- Usar nombres cortos y legibles: `edad`, `sexo`, `dni`, `distrito`.
+- Mantener una convención: minúsculas y guion bajo.
+- Evitar espacios, tildes y signos.
+- Nombrar por contenido, no por número de pregunta.
+
+## Mejora de nombres: de pregunta a variable {.compact}
+
+| Nombre débil | Nombre útil | Motivo |
+|---|---|---|
+| `p1` | `codigo_hogar` | Dice qué dato contiene. |
+| `pregunta_edad` | `edad` | Evita redundancia. |
+| `telefono encuestado` | `telefono_contacto` | Sin espacios y con propósito claro. |
+| `Distrito` | `distrito` | Convención consistente. |
+
+El nombre técnico debe ayudar al análisis, no solo al diseño del cuestionario.
+
+## Antes y después: una fila más legible {.compact}
+
+::: {.compare-grid}
+::: {.compare-card .compare-card--weak}
+**Fila débil**
+
+```text
+integer,p4,Edad?,,
+```
+
+El `name` no explica el dato y la fila no protege valores imposibles.
+:::
+
+::: {.compare-card .compare-card--strong}
+**Fila lista para campo**
+
+```text
+integer,edad,Edad,. >= 0 and . <= 120,Ingrese una edad entre 0 y 120.
+```
+
+El `name`, la restricción y el mensaje trabajan juntos.
+:::
+:::
+
+La mejora no está solo en el texto visible. Está en cómo la fila se comporta y cómo se exporta.
+
+## 2. Tipos de variables {.section-divider}
+
+El tipo define el control de captura, el valor exportado y las reglas que podrás aplicar.
+
+## Tipos básicos de captura {.compact}
+
+| Tipo | Qué captura | Ejemplo de uso |
+|---|---|---|
+| `text` | Texto libre | Nombre, dirección, código alfanumérico |
+| `integer` | Número entero | Edad, cantidad de miembros |
+| `decimal` | Número con decimales | Peso, ingreso, área |
+| `date` | Fecha | Fecha de entrevista |
+| `time` | Hora | Hora de inicio de una actividad |
+| `dateTime` | Fecha y hora | Marca temporal completa |
+
+La elección del tipo define cómo se captura, valida y exporta el dato.
+
+## Elegir tipo también es elegir análisis
+
+| Dato | Tipo recomendado | Razón |
+|---|---|---|
+| Edad | `integer` | Permite rangos y promedios. |
+| DNI | `text` | Conserva ceros iniciales y formato exacto. |
+| Peso | `decimal` | Admite valores con decimales. |
+| Distrito | `select_one distrito` | Estandariza categorías. |
+| Servicios del hogar | `select_multiple servicios` | Permite varias opciones. |
+
+::: {.trainer-note}
+Para documentos, teléfonos y códigos, `text` con teclado numérico y regex suele ser más seguro que `integer`.
+:::
+
+## Mini dinámica: decide tipo y regla {.compact}
+
+| Situación | Decisión recomendada |
+|---|---|
+| DNI con 8 dígitos | `text` + `appearance` `numbers` + regex |
+| Edad reportada | `integer` + rango aceptable |
+| Código de institución | `text` + regex con prefijo esperado |
+| Comunidad de residencia | `select_one comunidad` |
+| Servicios disponibles | `select_multiple servicios` |
+
+::: {.trainer-note}
+La pregunta guía es: ¿necesito operar como número o necesito conservar un formato exacto?
+:::
+
+## Selecciones: una respuesta o varias
+
+Las preguntas de selección conectan `survey` con `choices`.
+
+```text
+select_one sexo
+select_multiple servicios
+```
+
+`select_one sexo` guarda una sola opción de la lista `sexo`.
+
+`select_multiple servicios` guarda una o más opciones de la lista `servicios`.
+
+En selección múltiple, los valores se guardan como una cadena con opciones separadas por espacios. Por eso conviene que los códigos de opciones no tengan espacios.
+
+## Estructura y captura avanzada {.compact}
+
+| Tipo | Uso |
+|---|---|
+| `note` | Muestra instrucciones sin capturar respuesta. |
+| `calculate` | Calcula una variable oculta o derivada. |
+| `begin_group` / `end_group` | Agrupa preguntas relacionadas. |
+| `begin_repeat` / `end_repeat` | Repite un bloque para personas, eventos, bienes o visitas. |
+| `geopoint` | Captura una coordenada GPS. |
+| `image`, `audio`, `video`, `file` | Captura evidencias o archivos. |
+
+Estos tipos ayudan a que el formulario refleje el trabajo real de campo.
+
+## Mini decisión: hogar con miembros repetidos
+
+Cuando se necesita registrar a cada integrante del hogar, `begin_repeat` permite repetir un bloque.
+
+```text
+begin_repeat,miembros,Miembros del hogar
+text,nombre_miembro,Nombre
+integer,edad_miembro,Edad
+select_one parentesco,parentesco,Parentesco
+end_repeat,,
+```
+
+El resultado será una tabla relacionada: una visita puede tener varios miembros.
+
+## 3. Listas, opciones y filtros {.section-divider}
+
+Las listas limpias hacen que la base exportada sea más consistente y más fácil de cruzar.
+
+## La hoja `choices` alimenta las listas {.compact}
+
+Columnas mínimas:
+
+| Columna | Uso |
+|---|---|
+| `list_name` | Nombre de la lista de opciones. |
+| `name` | Código guardado en la base. |
+| `label` | Texto visible en el formulario. |
+
+Ejemplo:
+
+| list_name | name | label |
+|---|---|---|
+| sexo | mujer | Mujer |
+| sexo | hombre | Hombre |
+| sexo | otro | Otro |
+
+## `list_name` es el puente entre hojas {.compact}
+
+En `survey`:
+
+```text
+select_one sexo sexo_persona Sexo de la persona
+```
+
+En `choices`:
+
+| list_name | name | label |
+|---|---|---|
+| sexo | mujer | Mujer |
+| sexo | hombre | Hombre |
+| sexo | otro | Otro |
+
+La palabra después de `select_one` o `select_multiple` debe existir como `list_name`.
+
+## Código y etiqueta cumplen roles distintos {.compact}
+
+| Elemento | Se ve en campo | Se guarda en la base |
+|---|---:|---:|
+| `label` | Sí | No |
+| `name` | No | Sí |
+
+Ejemplo:
+
+| list_name | name | label |
+|---|---|---|
+| condicion_vivienda | propia | Propia |
+| condicion_vivienda | alquilada | Alquilada |
+| condicion_vivienda | cedida | Cedida por familiar |
+
+En el análisis verás `propia`, `alquilada` o `cedida`.
+
+## `choice_filter` crea listas dinámicas {.compact}
+
+Un filtro de opciones usa columnas auxiliares de `choices`.
+
+`survey`:
+
+| type | name | label | choice_filter |
+|---|---|---|---|
+| select_one region | region | Región |  |
+| select_one distrito | distrito | Distrito | `region=${region}` |
+
+La segunda lista se reduce usando la región seleccionada.
+
+## `choice_filter` conecta con columnas auxiliares {.compact}
+
+`choices`:
+
+| list_name | name | label | region |
+|---|---|---|---|
+| region | lima | Lima |  |
+| region | cusco | Cusco |  |
+| distrito | miraflores | Miraflores | lima |
+| distrito | wanchaq | Wanchaq | cusco |
+
+La columna auxiliar `region` no es una pregunta. Sirve para filtrar la lista `distrito`.
+
+## Práctica rápida: filtro territorial
+
+Completa el filtro para que el encuestador vea solo comunidades del distrito elegido.
+
+```text
+survey
+select_one distrito,distrito,Distrito,
+select_one comunidad,comunidad,Comunidad,?
+
+choices
+list_name,name,label,distrito
+comunidad,san_miguel,San Miguel,ate
+comunidad,santa_rosa,Santa Rosa,ate
+comunidad,el_carmen,El Carmen,comas
+```
+
+::: {.answer}
+Respuesta esperada: `distrito=${distrito}`
+:::
+
+## Diagnóstico rápido de listas {.compact}
+
+| Síntoma | Causa probable | Corrección |
+|---|---|---|
+| La pregunta no muestra opciones | El `list_name` no existe en `choices` | Igualar el nombre después de `select_one` con `list_name`. |
+| Aparecen opciones de otro territorio | Filtro incompleto o columna auxiliar mal escrita | Revisar `choice_filter` y la columna auxiliar. |
+| Exportación difícil de cruzar | Códigos `name` largos o inconsistentes | Usar códigos cortos, estables y sin espacios. |
+| Selección múltiple falla en lógica | Se comparó con `=` | Usar `selected(${variable}, 'opcion')`. |
+
+Esta lectura evita perder tiempo buscando el error solo en KoboToolbox.
+
+## 4. Columnas que controlan el comportamiento {.section-divider}
+
+Las columnas de `survey` convierten una lista de preguntas en un instrumento inteligente.
+
+## Columnas útiles en `survey` {.compact}
+
+| Columna | Para qué sirve |
+|---|---|
+| `hint` | Da una ayuda breve. |
+| `required` | Obliga una respuesta. |
+| `relevant` | Muestra la pregunta solo si se cumple una condición. |
+| `constraint` | Valida que una respuesta sea aceptable. |
+| `constraint_message` | Muestra el mensaje cuando la validación falla. |
+| `calculation` | Define el cálculo de una variable. |
+| `appearance` | Cambia la forma visual de captura. |
+| `choice_filter` | Filtra listas dinámicas. |
+
+## `hint` orienta sin llenar la pregunta de texto
+
+| type | name | label | hint |
+|---|---|---|---|
+| text | direccion | Dirección de la vivienda | Use referencias visibles si no hay numeración. |
+| geopoint | gps_vivienda | Punto GPS | Capture el punto frente a la vivienda. |
+
+El `label` pregunta. El `hint` aclara cómo responder.
+
+## `required` controla obligatoriedad {.compact}
+
+Una pregunta requerida debe responderse antes de avanzar.
+
+| type | name | label | required |
+|---|---|---|---|
+| text | nombre | Nombre completo | yes |
+| integer | edad | Edad | yes |
+
+También puede depender de otra respuesta:
+
+```text
+${acepta_contacto} = 'yes'
+```
+
+La obligatoriedad debe responder a una necesidad operativa.
+
+## `relevant` controla saltos {.compact}
+
+`relevant` decide si una pregunta aparece.
+
+| type | name | label | relevant |
+|---|---|---|---|
+| select_one yes_no | tiene_celular | ¿Tiene celular? |  |
+| text | celular | Número de celular | `${tiene_celular} = 'yes'` |
+
+La regla se evalúa como verdadero o falso. Si es verdadero, la pregunta se muestra.
+
+## Leer una regla `relevant`
+
+```text
+${tiene_celular} = 'yes'
+```
+
+::: {.flow-strip}
+::: {.flow-step}
+**Variable**
+
+`${tiene_celular}`
+:::
+::: {.flow-step}
+**Operador**
+
+`=`
+:::
+::: {.flow-step}
+**Valor esperado**
+
+`'yes'`
+:::
+::: {.flow-step}
+**Resultado**
+
+Muestra la pregunta
+:::
+:::
+
+::: {.notes}
+Hacer que el grupo lea la regla en voz alta: "si tiene celular es yes, entonces muestro la pregunta". Esa traducción oral detecta muchas reglas invertidas antes de probar el formulario.
+:::
+
+## La lógica vive en varias columnas {.compact}
+
+| Columna | Pregunta que responde | Ejemplo |
+|---|---|---|
+| `relevant` | ¿Cuándo aparece? | `${edad} >= 18` |
+| `constraint` | ¿Qué respuesta acepto? | `. <= ${total_hogar}` |
+| `calculation` | ¿Qué valor derivo? | `${hombres} + ${mujeres}` |
+| `choice_filter` | ¿Qué opciones muestro? | `region=${region}` |
+
+La misma sintaxis de variables aparece en varios lugares. Cambia el propósito de la columna.
+
+## `constraint` protege la calidad del dato {.compact}
+
+Una restricción define qué respuestas son válidas.
+
+| type | name | label | constraint | constraint_message |
+|---|---|---|---|---|
+| integer | edad | Edad | `. >= 0 and . <= 120` | Ingrese una edad entre 0 y 120. |
+
+El punto `.` representa la respuesta de la pregunta actual.
+
+El mensaje debe explicar cómo corregir el dato.
+
+## Mensajes de restricción que ayudan {.compact}
+
+| Regla | Mensaje útil |
+|---|---|
+| `. >= 0 and . <= 120` | Ingrese una edad entre 0 y 120. |
+| `regex(., '^[0-9]{8}$')` | Ingrese 8 dígitos, sin puntos ni espacios. |
+| `${ninos} <= ${total}` | El número de niños no puede superar el total de personas. |
+
+Un buen mensaje reduce llamadas al supervisor durante campo.
+
+## `calculation` crea variables derivadas {.compact}
+
+Los cálculos permiten guardar valores que no se preguntan directamente.
+
+| type | name | label | calculation |
+|---|---|---|---|
+| integer | hombres | Hombres en el hogar |  |
+| integer | mujeres | Mujeres en el hogar |  |
+| calculate | total_personas |  | `${hombres} + ${mujeres}` |
+
+Una variable calculada puede usarse después en etiquetas, saltos o validaciones.
+
+## Cálculo como control de consistencia
+
+```text
+type,name,label,calculation,relevant,constraint,constraint_message
+integer,total_hogar,Total de personas,,,,
+integer,total_mujeres,Total de mujeres,,,. <= ${total_hogar},No puede superar el total.
+integer,total_hombres,Total de hombres,,,. <= ${total_hogar},No puede superar el total.
+calculate,total_reportado,,${total_mujeres} + ${total_hombres},,,
+note,alerta_total,Revise: mujeres + hombres no coincide con total,,${total_reportado} != ${total_hogar},,
+```
+
+::: {.trainer-note}
+La lógica también sirve para auditoría interna del formulario, no solo para saltos visibles.
+:::
+
+## `appearance` ajusta la experiencia de captura {.compact}
+
+`appearance` cambia cómo se muestra una pregunta.
+
+| Tipo | Appearance | Uso |
+|---|---|---|
+| `select_one` | `minimal` | Lista desplegable compacta. |
+| `select_one` | `horizontal` | Opciones en una línea. |
+| `text` | `numbers` | Teclado numérico para texto con formato numérico. |
+| `date` | `no-calendar` | Entrada directa de fecha. |
+
+La apariencia ayuda al encuestador, pero no sustituye una restricción.
+
+## La hoja `settings` identifica el formulario {.compact}
+
+| Columna | Uso |
+|---|---|
+| `form_title` | Título visible del formulario. |
+| `form_id` | Identificador técnico. |
+| `version` | Versión del instrumento. |
+| `default_language` | Idioma por defecto. |
+
+Una buena versión evita confusiones cuando el equipo trabaja con varios formularios parecidos.
+
+## Versionar evita mezclar instrumentos
+
+```text
+settings
+form_title,form_id,version,default_language
+Visita de hogares,hogares_visita,2026-07-06,Español
+```
+
+::: {.trainer-note}
+Subir una nueva versión antes de campo ayuda a saber qué formulario produjo cada base.
+:::
+
+## 5. Fórmulas y lógica {.section-divider}
+
+Las fórmulas conectan respuestas y convierten el formulario en una secuencia adaptativa.
+
+## Referencias entre preguntas
+
+La sintaxis `${variable}` trae la respuesta de otra pregunta.
+
+```text
+${edad} >= 18
+${consentimiento} = 'yes'
+${total_ninos} <= ${total_personas}
+```
+
+En la misma fila, el punto `.` representa la respuesta actual:
+
+```text
+. >= 0 and . <= 100
+```
+
+## Operadores frecuentes {.compact}
+
+| Operador | Uso |
+|---|---|
+| `=` | Igual a |
+| `!=` | Distinto de |
+| `>` | Mayor que |
+| `<` | Menor que |
+| `>=` | Mayor o igual |
+| `<=` | Menor o igual |
+| `and` | Ambas condiciones deben cumplirse |
+| `or` | Al menos una condición debe cumplirse |
+| `not()` | Niega una condición |
+
+Estas piezas construyen reglas de salto, validación y cálculo.
+
+## Funciones útiles en formularios {.compact}
+
+| Función | Uso |
+|---|---|
+| `selected(${var}, 'opcion')` | Revisa si una opción fue marcada en selección múltiple. |
+| `if(condicion, valor_si, valor_no)` | Devuelve un valor según una condición. |
+| `coalesce(valor, reemplazo)` | Usa un reemplazo cuando falta un valor. |
+| `today()` | Fecha actual del dispositivo. |
+| `now()` | Fecha y hora actual. |
+| `regex(., 'patron')` | Valida texto con una expresión regular. |
+
+## `selected()` para selección múltiple {.compact}
+
+Una selección múltiple puede contener varias opciones.
+
+```text
+selected(${servicios}, 'agua')
+```
+
+Uso en `relevant`:
+
+| type | name | label | relevant |
+|---|---|---|---|
+| select_multiple servicios | servicios | Servicios disponibles |  |
+| text | agua_fuente | Fuente de agua | `selected(${servicios}, 'agua')` |
+
+## `if()` ayuda a clasificar durante la captura
+
+```text
+type,name,label,calculation
+integer,edad,Edad,
+calculate,grupo_edad,,if(${edad} < 18, 'menor', 'adulto')
+```
+
+La variable `grupo_edad` no se pregunta, pero queda guardada para filtros o controles posteriores.
+
+## 6. Regex para formatos {.section-divider}
+
+Regex sirve para validar textos con una forma exacta: documentos, teléfonos, códigos y patrones institucionales.
+
+## Regex valida formatos de texto
+
+Una expresión regular describe un patrón de caracteres.
+
+En XLSForm se usa con `regex()`:
+
+```text
+regex(., '^[0-9]{8}$')
+```
+
+Lectura:
+
+- `.` toma la respuesta actual.
+- `^` marca el inicio del texto.
+- `[0-9]` acepta dígitos.
+- `{8}` exige ocho repeticiones.
+- `$` marca el final del texto.
+
+## Anatomía de una regex
+
+::: {.formula-strip}
+::: {.formula-part}
+`^`
+
+Inicio
+:::
+::: {.formula-part}
+`[0-9]`
+
+Dígito
+:::
+::: {.formula-part}
+`{8}`
+
+Ocho veces
+:::
+::: {.formula-part}
+`$`
+
+Final
+:::
+:::
+
+Patrón completo: `^[0-9]{8}$`
+
+::: {.notes}
+Subrayar que regex es lectura de izquierda a derecha. Primero inicio, luego caracteres permitidos, luego cantidad, luego final. Si faltan `^` y `$`, la regla puede aceptar texto extra alrededor del patrón.
+:::
+
+## Piezas básicas de regex {.compact}
+
+| Pieza | Significado |
+|---|---|
+| `^` | Inicio del texto. |
+| `$` | Final del texto. |
+| `[0-9]` | Un dígito. |
+| `[A-Za-z]` | Una letra sin tildes. |
+| `[A-Z]` | Una letra mayúscula. |
+| `+` | Una o más repeticiones. |
+| `*` | Cero o más repeticiones. |
+| `{n}` | Exactamente n repeticiones. |
+| `{min,max}` | Entre mínimo y máximo de repeticiones. |
+
+## Patrones comunes para campo {.compact}
+
+| Necesidad | Constraint |
+|---|---|
+| DNI de 8 dígitos | `regex(., '^[0-9]{8}$')` |
+| Teléfono de 9 dígitos | `regex(., '^[0-9]{9}$')` |
+| Código ABC-1234 | `regex(., '^[A-Z]{3}-[0-9]{4}$')` |
+| Solo letras mayúsculas | `regex(., '^[A-Z]+$')` |
+| Código alfanumérico de 4 a 10 caracteres | `regex(., '^[A-Za-z0-9]{4,10}$')` |
+
+Para teléfonos, documentos largos y códigos con ceros iniciales, conviene usar `text` con `appearance` `numbers` y una restricción regex.
+
+## Construcción guiada: código de visita {.compact}
+
+Queremos aceptar valores como `VIS-2026-001`.
+
+::: {.formula-strip}
+::: {.formula-part}
+`VIS`
+
+Prefijo fijo
+:::
+::: {.formula-part}
+`-`
+
+Separador
+:::
+::: {.formula-part}
+`[0-9]{4}`
+
+Año
+:::
+::: {.formula-part}
+`[0-9]{3}`
+
+Correlativo
+:::
+:::
+
+Patrón final: `^VIS-[0-9]{4}-[0-9]{3}$`
+
+## Regex o rango: elige por tipo de problema {.compact}
+
+| Problema | Mejor herramienta | Ejemplo |
+|---|---|---|
+| Edad entre 0 y 120 | Rango numérico | `. >= 0 and . <= 120` |
+| DNI con 8 dígitos | Regex | `regex(., '^[0-9]{8}$')` |
+| Código con guiones | Regex | `regex(., '^[A-Z]{3}-[0-9]{4}$')` |
+| Total de niños menor al total | Comparación | `. <= ${total_personas}` |
+
+## Práctica: corregir una regla
+
+La variable `codigo_visita` debe tener el formato `VIS-2026-001`.
+
+Regla incompleta:
+
+```text
+regex(., '[A-Z]{3}-[0-9]{4}-[0-9]{3}')
+```
+
+Mejora esperada:
+
+```text
+regex(., '^[A-Z]{3}-[0-9]{4}-[0-9]{3}$')
+```
+
+Las anclas aseguran que todo el texto cumpla el formato.
+
+::: {.notes}
+Pedir dos variantes al grupo: una que permita cualquier prefijo de tres letras y otra que obligue `VIS`. Comparar `^[A-Z]{3}-...$` con `^VIS-...$`.
+:::
+
+## 7. Ejemplo integrado {.section-divider}
+
+Ahora juntamos tipos, listas, saltos, restricciones y mensajes en un fragmento compacto.
+
+## Ejemplo integrado: hoja `survey` {.compact}
+
+```text
+survey
+type,name,label,required,relevant,constraint,constraint_message
+text,dni,DNI,yes,,regex(., '^[0-9]{8}$'),Ingrese 8 dígitos.
+integer,edad,Edad,yes,,. >= 0 and . <= 120,Ingrese una edad válida.
+select_one yes_no,tiene_celular,¿Tiene celular?,yes,,,
+text,celular,Número de celular,,${tiene_celular} = 'yes',regex(., '^[0-9]{9}$'),Ingrese 9 dígitos.
+```
+
+Valida identificación, controla rangos y muestra celular solo cuando corresponde.
+
+## Ejemplo integrado: hoja `choices`
+
+```text
+choices
+list_name,name,label
+yes_no,yes,Sí
+yes_no,no,No
+```
+
+La lista `yes_no` alimenta la pregunta `select_one yes_no`.
+
+## Lectura guiada del ejemplo
+
+| Elemento | Qué resuelve |
+|---|---|
+| `dni` como `text` | Conserva formato exacto. |
+| `regex(., '^[0-9]{8}$')` | Evita DNI incompletos o con letras. |
+| `edad` como `integer` | Permite rangos y análisis numérico. |
+| `${tiene_celular} = 'yes'` | Evita preguntar celular cuando no corresponde. |
+| `constraint_message` | Indica cómo corregir en campo. |
+
+## Ejemplo integrado: qué probar antes de desplegar {.compact}
+
+| Prueba | Respuesta esperada |
+|---|---|
+| DNI `1234567` | Rechaza por tener 7 dígitos. |
+| DNI `12345678` | Acepta. |
+| Edad `130` | Rechaza por estar fuera de rango. |
+| `tiene_celular = no` | Oculta `celular`. |
+| `tiene_celular = yes` y celular `987654321` | Muestra y acepta celular. |
+
+Probar con valores incorrectos es tan importante como probar el camino feliz.
+
+## 8. Laboratorio corto {.section-divider}
+
+La mejor forma de aprender XLSForm es leer una fila, predecir qué hará y luego probarla.
+
+## Práctica 1: leer el formulario {.compact}
+
+Revisa este fragmento:
+
+```text
+type,name,label,relevant,constraint
+integer,total_hogar,Total de personas,,
+integer,menores,Menores de edad,,. <= ${total_hogar}
+select_multiple servicios,servicios,Servicios del hogar,,
+text,otro_servicio,Especifique otro,selected(${servicios}, 'otro'),
+```
+
+Preguntas:
+
+- ¿Qué variables se guardan?
+- ¿Qué regla protege la consistencia del hogar?
+- ¿Cuándo aparece `otro_servicio`?
+
+## Práctica 1: solución esperada {.compact}
+
+| Pregunta | Respuesta |
+|---|---|
+| Variables guardadas | `total_hogar`, `menores`, `servicios`, `otro_servicio` |
+| Regla de consistencia | `menores` no puede superar `total_hogar` |
+| Aparición de `otro_servicio` | Solo si `servicios` incluye `otro` |
+
+La clave es leer la fila completa, no solo el `label`.
+
+## Práctica 1: discusión breve {.compact}
+
+Antes de mirar la solución, marca cada fila con una intención:
+
+| Fila | Intención |
+|---|---|
+| `total_hogar` | Captura una referencia para controles posteriores. |
+| `menores` | Captura un subconjunto y lo compara con el total. |
+| `servicios` | Estandariza una selección múltiple. |
+| `otro_servicio` | Abre texto libre solo cuando hace falta. |
+
+Esta lectura convierte el XLSForm en una revisión de diseño, no en una revisión celda por celda.
+
+## Práctica 2: completar una validación
+
+La pregunta `total_ninos` debe aceptar valores entre 0 y `total_personas`.
+
+```text
+type,name,label,constraint,constraint_message
+integer,total_personas,Total de personas,,
+integer,total_ninos,Total de niños,?,?
+```
+
+::: {.answer}
+Constraint: `. >= 0 and . <= ${total_personas}`  
+Mensaje: `El total de niños debe estar entre 0 y el total de personas.`
+:::
+
+## Práctica 3: elegir el tipo correcto {.compact}
+
+| Dato | Tipo recomendado |
+|---|---|
+| Edad | `integer` |
+| DNI | `text` con `appearance` `numbers` y regex |
+| Peso en kg | `decimal` |
+| Fecha de entrevista | `date` |
+| Distrito | `select_one distrito` |
+| Servicios del hogar | `select_multiple servicios` |
+| Coordenada de visita | `geopoint` |
+
+El tipo debe reflejar cómo se capturará y cómo se analizará el dato.
+
+## Errores frecuentes y reparación rápida {.compact}
+
+| Error | Cómo se ve | Reparación |
+|---|---|---|
+| `name` duplicado | Dos columnas iguales en la base | Renombrar una variable y revisar referencias. |
+| Lista inexistente | `select_one distrito` sin `choices` | Crear `list_name = distrito`. |
+| Regex sin anclas | Acepta texto extra | Agregar `^` y `$`. |
+| Constraint sin mensaje | Campo sabe que falla, pero no cómo corregir | Agregar `constraint_message`. |
+| Selección múltiple con `=` | La regla no detecta opciones marcadas | Usar `selected()`. |
+
+Una reparación rápida empieza leyendo la fila completa y la hoja que la alimenta.
+
+## Simulación final de cinco minutos {.compact}
+
+::: {.checklist-grid}
+::: {.checkline}
+**1. Cargar**
+
+Sube el XLSForm y revisa advertencias.
+:::
+::: {.checkline}
+**2. Responder**
+
+Completa un caso normal y uno con errores.
+:::
+::: {.checkline}
+**3. Navegar**
+
+Prueba saltos, filtros y repeats.
+:::
+::: {.checkline}
+**4. Exportar**
+
+Confirma nombres, tipos y valores guardados.
+:::
+:::
+
+La prueba mínima debe parecerse al trabajo real de campo.
+
+## Checklist de diseño antes de desplegar {.smaller}
+
+- Las hojas `survey`, `choices` y `settings` están completas.
+- Cada `name` es único y estable.
+- Cada `select_one` o `select_multiple` tiene una lista en `choices`.
+- Las preguntas obligatorias tienen sentido operativo.
+- Las restricciones tienen mensajes claros.
+- Las reglas `relevant` fueron probadas con respuestas distintas.
+- Las regex validan el formato completo con `^` y `$`.
+- El formulario fue probado en el mismo modo de captura que usará el equipo.
+
+## Cierre
+
+XLSForm convierte el formulario en una tabla revisable.
+
+Una buena clase de formulario combina tres decisiones:
+
+- Tipo de variable correcto.
+- Lista de opciones limpia.
+- Regla de lógica clara.
+
+Cuando esas decisiones están bien tomadas, KoboCollect se vuelve una herramienta de captura ordenada y la base exportada requiere menos reparación.
+
+::: {.notes}
+Cerrar conectando con el primer caso: si puedo explicar tipo, lista, lógica y validación de cada fila crítica, ya tengo un instrumento revisable por equipo técnico y por equipo de campo.
+:::
+
+## Referencias {.smaller}
+
+- XLSForm Docs: <https://xlsform.org/en/>
+- ODK Docs, operadores y funciones: <https://docs.getodk.org/form-operators-functions/>
+- ODK Docs, expresiones regulares: <https://docs.getodk.org/form-regex/>
+- KoboToolbox, form logic in XLSForm: <https://support.kobotoolbox.org/form_logic_xls.html>
+- KoboToolbox, constraints in XLSForm: <https://support.kobotoolbox.org/constraints_xls.html>

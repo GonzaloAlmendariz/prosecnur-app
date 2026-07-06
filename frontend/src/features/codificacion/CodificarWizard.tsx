@@ -14,12 +14,20 @@ type Props = {
   onBackToOrganizar: () => void;
 };
 
-const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
+type TipoStyle = { bg: string; border: string; fg: string; label: string };
+
+const TIPO_STYLE: Record<string, TipoStyle> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
   select_one: { bg: "var(--tipo-so-bg)", border: "var(--tipo-so-border)", fg: "var(--tipo-so-fg)", label: "Opción única" },
   integer: { bg: "var(--tipo-int-bg)", border: "var(--tipo-int-border)", fg: "var(--tipo-int-fg)", label: "Numérica" },
   text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
+  text_select_multiple: { bg: "var(--tipo-text-sm-bg)", border: "var(--tipo-text-sm-border)", fg: "var(--tipo-text-sm-fg)", label: "Texto abierto · múltiple" },
 };
+
+function tipoStyleForPregunta(p: PreguntaAbierta, arq = arquetipoOf(p)): TipoStyle {
+  if (arq === "pareja-sm") return TIPO_STYLE.text_select_multiple;
+  return TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
+}
 
 function questionLabel(p: PreguntaAbierta): string {
   const label = (p.parent_label ?? "").trim();
@@ -166,7 +174,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
 }
 
 function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boolean; onClick: () => void }) {
-  const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
+  const ts = tipoStyleForPregunta(p);
   const sm = statusMeta(p.status);
   const StatusIcon = sm.Icon;
   const label = questionLabel(p);
@@ -216,7 +224,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
   nextLabel: string;
 }) {
   const arq = arquetipoOf(p);
-  const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
+  const ts = tipoStyleForPregunta(p, arq);
   const label = questionLabel(p);
 
   // Todos los arquetipos que codifican valores discretos o texto abierto

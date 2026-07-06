@@ -36,6 +36,7 @@ const ALL_TYPES: SlideType[] = [
   "p_slide_objetivo_icono",
   "p_slide_texto",
   "p_slide_tabla_tecnica",
+  "p_slide_top_two_box",
   "p_slide_1_grafico",
   "p_slide_1_grafico_narrativo",
   "p_slide_grafico_texto_derecha",
@@ -96,22 +97,34 @@ export type SlidePickerProps = {
 
 export function SlidePicker({ open, onClose }: SlidePickerProps) {
   const addSlide = usePlanStore((s) => s.addSlide);
-  const { slidesById } = useGraficosRegistry();
+  const { registry, slidesById } = useGraficosRegistry();
   const [filter, setFilter] = useState<"all" | SlideCategory>("all");
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<SlideType>(ALL_TYPES[0]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const availableTypes = useMemo(() => {
+    const registryTypes = (registry?.slides ?? [])
+      .map((slide) => slide.name)
+      .filter(Boolean) as SlideType[];
+    if (registryTypes.length === 0) return ALL_TYPES;
+    const registrySet = new Set(registryTypes);
+    return [
+      ...ALL_TYPES.filter((type) => registrySet.has(type)),
+      ...registryTypes.filter((type) => !ALL_TYPES.includes(type)),
+    ];
+  }, [registry]);
+
   // Auto-focus búsqueda al abrir + reset estado al cerrar
   useEffect(() => {
     if (open) {
       setQuery("");
       setFilter("all");
-      setSelectedType(ALL_TYPES[0]);
+      setSelectedType(availableTypes[0] ?? ALL_TYPES[0]);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
-  }, [open]);
+  }, [availableTypes, open]);
 
   // Esc + click outside para cerrar
   useEffect(() => {
@@ -132,14 +145,14 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ALL_TYPES.filter((t) => {
+    return availableTypes.filter((t) => {
       if (filter !== "all" && categoryOf(t) !== filter) return false;
       if (!q) return true;
       const label = (SLIDE_LABELS[t] ?? t).toLowerCase();
       const desc = (slidesById[t]?.descripcion ?? "").toLowerCase();
       return label.includes(q) || desc.includes(q) || t.toLowerCase().includes(q);
     });
-  }, [filter, query, slidesById]);
+  }, [availableTypes, filter, query, slidesById]);
 
   useEffect(() => {
     if (!open || filtered.length === 0 || filtered.includes(selectedType)) return;
@@ -148,10 +161,10 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
 
   const categoryCounts = useMemo(() => {
     const counts = Object.fromEntries(ORDER.map((c) => [c, 0])) as Record<"all" | SlideCategory, number>;
-    counts.all = ALL_TYPES.length;
-    for (const type of ALL_TYPES) counts[categoryOf(type)] += 1;
+    counts.all = availableTypes.length;
+    for (const type of availableTypes) counts[categoryOf(type)] += 1;
     return counts;
-  }, []);
+  }, [availableTypes]);
 
   const activeMeta = CAT_META[filter];
   const activeLabel = CAT_LABEL_WITH_ALL[filter];
@@ -429,6 +442,8 @@ function blueprintLayout(type: SlideType): SlidePreviewLayout {
       return "text";
     case "p_slide_tabla_tecnica":
       return "technical";
+    case "p_slide_top_two_box":
+      return "text";
     case "p_slide_1_grafico":
       return "single";
     case "p_slide_1_grafico_narrativo":
@@ -496,6 +511,7 @@ function pptLayoutName(type: SlideType): string {
       return "Objetivos_Secciones";
     case "p_slide_texto":
     case "p_slide_tabla_tecnica":
+    case "p_slide_top_two_box":
       return "Title and Content";
     default:
       return "Title Slide";

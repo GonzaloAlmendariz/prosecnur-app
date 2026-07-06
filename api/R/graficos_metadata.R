@@ -199,14 +199,14 @@
         name = "iconos_focos",
         label = "Íconos de los focos",
         tipo_input = "textarea",
-        grupo = "diseño",
+        grupo = "espacio",
         descripcion = "Opcional. Nombres internos o rutas SVG/PNG, en orden fijo: objetivo, metodología, perfil, resultados e inteligencia artificial."
       ),
       list(
         name = "redibujar_focos",
         label = "Redibujar focos desde cero",
         tipo_input = "bool",
-        grupo = "diseño",
+        grupo = "espacio",
         default = FALSE,
         descripcion = "Úselo solo si la plantilla no trae focos. Por defecto conserva los focos originales y limpia solo los íconos previos."
       ),
@@ -214,7 +214,7 @@
         name = "mostrar_iconos_focos",
         label = "Mostrar íconos en focos",
         tipo_input = "bool",
-        grupo = "diseño",
+        grupo = "espacio",
         default = TRUE,
         descripcion = "Permite ocultar o mostrar los íconos internos de los focos."
       ),
@@ -222,14 +222,14 @@
         name = "iconos_focos_fill",
         label = "Colores de focos",
         tipo_input = "codigos_list",
-        grupo = "diseño",
+        grupo = "valores",
         descripcion = "Colores HEX para cada foco, en orden. Si se deja vacío, usa la paleta Pulso del índice."
       ),
       list(
         name = "iconos_focos_objeto_unico",
         label = "Mover círculo e ícono juntos",
         tipo_input = "bool",
-        grupo = "diseño",
+        grupo = "espacio",
         default = TRUE,
         descripcion = "Inserta cada foco como una sola imagen editable: círculo de color e ícono blanco juntos. Útil para moverlos en PowerPoint sin desalinearlos."
       ),
@@ -237,7 +237,7 @@
         name = "iconos_focos_diametro_cm",
         label = "Diámetro de círculos (cm)",
         tipo_input = "number",
-        grupo = "diseño",
+        grupo = "espacio",
         default = 2.18,
         min = 0.8,
         max = 3.4,
@@ -248,7 +248,7 @@
         name = "iconos_focos_icon_scale",
         label = "Tamaño interno del ícono",
         tipo_input = "number",
-        grupo = "diseño",
+        grupo = "espacio",
         default = 0.76,
         min = 0.30,
         max = 0.90,
@@ -259,7 +259,7 @@
         name = "subtopic_badge_fill",
         label = "Color de numeración de subíndices",
         tipo_input = "color",
-        grupo = "diseño",
+        grupo = "lectura",
         default = "#D8504F",
         descripcion = "Color del número tipográfico que jerarquiza cada subíndice."
       ),
@@ -267,7 +267,7 @@
         name = "subtopic_badge_width",
         label = "Ancho del número de subíndice",
         tipo_input = "number",
-        grupo = "diseño",
+        grupo = "espacio",
         default = 0.26,
         min = 0.18,
         max = 0.70,
@@ -278,7 +278,7 @@
         name = "subtopic_badge_gap",
         label = "Separación número-texto",
         tipo_input = "number",
-        grupo = "diseño",
+        grupo = "espacio",
         default = 0.13,
         min = 0.02,
         max = 0.25,
@@ -288,8 +288,8 @@
       list(
         name = "estilo",
         label = "Ajustes avanzados de índice",
-        tipo_input = "json",
-        grupo = "diseño",
+        tipo_input = "meta",
+        grupo = "diagnostico",
         descripcion = "Permite ajustar posiciones, tamaños, colores, subíndices y focos cuando se requiere control fino."
       )
     )
@@ -317,31 +317,31 @@
            descripcion = "Etiqueta inferior del extremo izquierdo de la escala."),
       list(name = "extremo_derecha", label = "Texto extremo derecho", tipo_input = "string", grupo = "textos",
            descripcion = "Etiqueta inferior del extremo derecho de la escala."),
-      list(name = "accent_color", label = "Color de acento", tipo_input = "color", grupo = "diseño",
+      list(name = "accent_color", label = "Color de acento", tipo_input = "color", grupo = "valores",
            default = "#D8504F",
            descripcion = "Color usado en el título y la anotación del Top Two Box. En Ingeniería se usa el rojo Pulso."),
-      list(name = "colores", label = "Paleta de la escala", tipo_input = "string", grupo = "diseño",
+      list(name = "colores", label = "Paleta de la escala", tipo_input = "string", grupo = "valores",
            default = "#D8504F, #FFD966, #B7D7A8, #70AD47",
            descripcion = "Colores de los segmentos de la escala, separados por coma. Por defecto usa la paleta de barras apiladas de Ingeniería."),
-      list(name = "grosor_barra", label = "Grosor de la barra", tipo_input = "number", grupo = "diseño",
+      list(name = "grosor_barra", label = "Grosor de la barra", tipo_input = "number", grupo = "espacio",
            default = 82, min = 30, max = 130, step = 2,
            descripcion = "Alto visual de la barra de referencia del Top Two Box. Sube este valor si quieres una barra más gruesa."),
-      list(name = "size_texto_porcentajes", label = "Tamaño de porcentajes", tipo_input = "number", grupo = "diseño",
+      list(name = "size_texto_porcentajes", label = "Tamaño de porcentajes", tipo_input = "number", grupo = "lectura",
            default = 22, min = 8, max = 42, step = 1,
            descripcion = "Tamaño del texto de porcentajes dentro de la barra de referencia."),
-      list(name = "size_texto_porcentajes_peq", label = "Tamaño de porcentajes pequeños", tipo_input = "number", grupo = "diseño",
+      list(name = "size_texto_porcentajes_peq", label = "Tamaño de porcentajes pequeños", tipo_input = "number", grupo = "lectura",
            default = 16, min = 8, max = 32, step = 1,
            descripcion = "Tamaño alternativo para porcentajes en segmentos pequeños, como 5%."),
-      list(name = "color_texto_porcentajes", label = "Color de porcentajes", tipo_input = "color", grupo = "diseño",
+      list(name = "color_texto_porcentajes", label = "Color de porcentajes", tipo_input = "color", grupo = "lectura",
            default = "#FFFFFF",
            descripcion = "Color del texto que va dentro de la barra de referencia."),
-      list(name = "margen_llave", label = "Margen de la llave", tipo_input = "number", grupo = "diseño",
+      list(name = "margen_llave", label = "Margen de la llave", tipo_input = "number", grupo = "espacio",
            default = 4, min = 0, max = 24, step = 1,
            descripcion = "Margen lateral para que la llave englobe visualmente todo el Top Two Box."),
-      list(name = "grosor_flecha", label = "Grosor de la flecha", tipo_input = "number", grupo = "diseño",
+      list(name = "grosor_flecha", label = "Grosor de la flecha", tipo_input = "number", grupo = "espacio",
            default = 3.6, min = 1, max = 8, step = 0.2,
            descripcion = "Grosor de la flecha inferior que explica la dirección de la escala."),
-      list(name = "estilo", label = "Estilo visual", tipo_input = "json", grupo = "diseño",
+      list(name = "estilo", label = "Estilo visual", tipo_input = "meta", grupo = "diagnostico",
            descripcion = "Permite ajustar colores, posiciones y tamaños de título, texto, diagrama y leyenda.")
     )
   ),
@@ -590,12 +590,28 @@
       list(name = "etiqueta_otros", label = "Etiqueta Otros", tipo_input = "string", grupo = "textos",
            default = "Otros",
            descripcion = "Nombre que recibirá la categoría agregada del excedente."),
+      list(name = "normalizar_etiquetas", label = "Normalización de etiquetas", tipo_input = "choice", grupo = "textos",
+           default = "ninguna",
+           choices = list(
+             list(value = "ninguna", label = "Sin cambios"),
+             list(value = "mayuscula_inicial", label = "Mayúscula inicial")
+           ),
+           descripcion = "Ajusta solo el texto visible de las etiquetas. Mayúscula inicial convierte, por ejemplo, 'SUPERVISOR DE OBRA' en 'Supervisor de obra'."),
       list(name = "umbral_posicion", label = "Ubicación de etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
            default = 0.07,
            descripcion = "Por debajo de este valor relativo, la etiqueta se muestra fuera de la barra para que no se pierda."),
       list(name = "ancho_max_eje_y", label = "Ancho de texto de etiquetas", tipo_input = "number", grupo = "filtro",
            default = 30,
            descripcion = "Cuántos caracteres puede ocupar cada línea de etiquetas antes de envolver el texto."),
+      list(name = "lineheight_eje_y", label = "Interlineado de etiquetas", tipo_input = "number", grupo = "estilo",
+           default = 1.05,
+           min = 0.75,
+           max = 1.60,
+           step = 0.05,
+           descripcion = "Separación vertical entre líneas cuando una etiqueta de categoría se envuelve en varias filas."),
+      list(name = "forzar_ancho_max_eje_y", label = "Respetar ancho de etiquetas", tipo_input = "bool", grupo = "filtro",
+           default = FALSE,
+           descripcion = "Evita que el motor compacte automáticamente el wrap cuando hay muchas categorías. Útil para etiquetas descriptivas largas."),
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
            default = 0.36,
            descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")
@@ -754,6 +770,18 @@
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
            default = TRUE,
            descripcion = "Escribe etiquetas como 42% (76)."),
+      list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),
+      list(name = "prefijo_resumen_grupos_subtitulo", label = "Prefijo del resumen de grupos", tipo_input = "string", grupo = "valores",
+           default = "",
+           descripcion = "Texto opcional antes del resumen. Ejemplo: Sexo: "),
+      list(name = "separador_resumen_grupos_subtitulo", label = "Separador del resumen de grupos", tipo_input = "string", grupo = "valores",
+           default = " · ",
+           descripcion = "Separador entre grupos dentro del subtítulo."),
+      list(name = "pos_y_subtitulo", label = "Separación título-subtítulo", tipo_input = "number", grupo = "textos",
+           default = 0.25, min = 0.05, max = 0.55, step = 0.01,
+           descripcion = "Posición vertical del subtítulo dentro del encabezado del gráfico. Valores menores lo bajan y lo separan más del título."),
       list(name = "excluir_grupos", label = "Excluir grupos del apilado", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Oculta grupos como 'Prefiero no responder' cuando el apilado debe mostrar solo categorías sustantivas."),
       list(name = "orden_grupos", label = "Orden de grupos", tipo_input = "codigos_list", grupo = "datos",
@@ -771,7 +799,23 @@
            descripcion = "Cuando la etiqueta va encima, define si muestra conteos por grupo abreviados o el total del intervalo.",
            choices = list(
              list(value = "conteos_grupo", label = "Conteos por grupo"),
-             list(value = "conteo_total",  label = "Conteo total")
+             list(value = "conteo_total",  label = "Conteo total"),
+             list(value = "porcentaje_conteos_grupo", label = "Porcentaje total + conteos por grupo"),
+             list(value = "porcentaje_grupo_conteos_grupo", label = "Porcentaje por grupo + conteos")
+           )),
+      list(name = "etiqueta_cima_formato", label = "Formato de etiqueta superior", tipo_input = "choice", grupo = "valores",
+           default = "lineal",
+           descripcion = "Permite partir la etiqueta superior en dos lineas cuando los conteos por grupo son largos.",
+           choices = list(
+             list(value = "lineal", label = "Una linea"),
+             list(value = "dos_lineas", label = "Dos lineas")
+           )),
+      list(name = "etiqueta_cima_orden_grupo", label = "Orden conteo/porcentaje por grupo", tipo_input = "choice", grupo = "valores",
+           default = "frecuencia_porcentaje",
+           descripcion = "Define como se combina cada grupo en la etiqueta superior. En histogramas suele priorizarse la frecuencia.",
+           choices = list(
+             list(value = "frecuencia_porcentaje", label = "Conteo y porcentaje: H 5(10%)"),
+             list(value = "porcentaje_frecuencia", label = "Porcentaje y conteo: H 10%(5)")
            )),
       list(name = "abreviaturas_grupos", label = "Abreviaturas de grupos", tipo_input = "codigos_list", grupo = "valores",
            descripcion = "Mapa opcional para etiquetas superiores. Ejemplo: Hombre = H, Mujer = M."),
@@ -1452,6 +1496,13 @@
            descripcion = "Agrupa las categorías que exceden el máximo configurado."),
       list(name = "etiqueta_otros",       label = "Etiqueta Otros",        tipo_input = "string", grupo = "textos",
            default = "Otros"),
+      list(name = "normalizar_etiquetas", label = "Normalización de etiquetas", tipo_input = "choice", grupo = "textos",
+           default = "ninguna",
+           choices = list(
+             list(value = "ninguna", label = "Sin cambios"),
+             list(value = "mayuscula_inicial", label = "Mayúscula inicial")
+           ),
+           descripcion = "Ajusta solo el texto visible de las etiquetas de categoría. No cambia códigos, orden ni porcentajes."),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.001),
@@ -1473,6 +1524,12 @@
 
       # --- Eje Y / labels -------------------------------------------------
       list(name = "ancho_max_eje_y",      label = "Ancho de texto de etiquetas", tipo_input = "number", grupo = "filtro", default = 30),
+      list(name = "lineheight_eje_y",     label = "Interlineado de etiquetas", tipo_input = "number", grupo = "estilo",
+           default = 1.05,
+           min = 0.75,
+           max = 1.60,
+           step = 0.05,
+           descripcion = "Separación vertical entre líneas cuando una etiqueta de categoría se envuelve en varias filas."),
       list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas ---------------------------------------------------------
@@ -1610,6 +1667,18 @@
 
       list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),
+      list(name = "prefijo_resumen_grupos_subtitulo", label = "Prefijo del resumen de grupos", tipo_input = "string", grupo = "valores",
+           default = "",
+           descripcion = "Texto opcional antes del resumen. Ejemplo: Sexo: "),
+      list(name = "separador_resumen_grupos_subtitulo", label = "Separador del resumen de grupos", tipo_input = "string", grupo = "valores",
+           default = " · ",
+           descripcion = "Separador entre grupos dentro del subtítulo."),
+      list(name = "pos_y_subtitulo", label = "Separación título-subtítulo", tipo_input = "number", grupo = "textos",
+           default = 0.25, min = 0.05, max = 0.55, step = 0.01,
+           descripcion = "Posición vertical del subtítulo dentro del encabezado del gráfico. Valores menores lo bajan y lo separan más del título."),
       list(name = "posicion_etiquetas", label = "Ubicación de etiquetas", tipo_input = "choice", grupo = "valores",
            default = "segmento",
            choices = list(
@@ -1621,7 +1690,21 @@
            default = "conteos_grupo",
            choices = list(
              list(value = "conteos_grupo", label = "Conteos por grupo"),
-             list(value = "conteo_total",  label = "Conteo total")
+             list(value = "conteo_total",  label = "Conteo total"),
+             list(value = "porcentaje_conteos_grupo", label = "Porcentaje total + conteos por grupo"),
+             list(value = "porcentaje_grupo_conteos_grupo", label = "Porcentaje por grupo + conteos")
+           )),
+      list(name = "etiqueta_cima_formato", label = "Formato de etiqueta superior", tipo_input = "choice", grupo = "valores",
+           default = "lineal",
+           choices = list(
+             list(value = "lineal", label = "Una linea"),
+             list(value = "dos_lineas", label = "Dos lineas")
+           )),
+      list(name = "etiqueta_cima_orden_grupo", label = "Orden conteo/porcentaje por grupo", tipo_input = "choice", grupo = "valores",
+           default = "frecuencia_porcentaje",
+           choices = list(
+             list(value = "frecuencia_porcentaje", label = "Conteo y porcentaje: H 5(10%)"),
+             list(value = "porcentaje_frecuencia", label = "Porcentaje y conteo: H 10%(5)")
            )),
       list(name = "abreviaturas_grupos", label = "Abreviaturas de grupos", tipo_input = "codigos_list", grupo = "valores",
            descripcion = "Mapa opcional para etiquetas superiores. Ejemplo: Hombre = H, Mujer = M."),
@@ -2291,10 +2374,15 @@
     mostrar_bins_vacios      = TRUE,
     mostrar_valores          = TRUE,
     mostrar_frecuencia       = TRUE,
+    mostrar_resumen_grupos_subtitulo = FALSE,
+    prefijo_resumen_grupos_subtitulo = "",
+    separador_resumen_grupos_subtitulo = " · ",
+    pos_y_subtitulo       = 0.25,
     excluir_grupos           = NULL,
     orden_grupos             = NULL,
     posicion_etiquetas       = "segmento",
     etiqueta_cima_modo       = "conteos_grupo",
+    etiqueta_cima_orden_grupo = "frecuencia_porcentaje",
     abreviaturas_grupos      = NULL,
     separador_etiquetas_cima = "  ",
     color_etiqueta_cima      = .PULSO_PPT_COLORS$azul,
@@ -2765,7 +2853,7 @@
   if (nm %in% c("debug_ph_bordes", "debug_ph_col", "debug_ph_lwd", "debug_lw", "exportar")) {
     return("diagnostico")
   }
-  if (grepl("^(canvas_|tabla_ph_|alto_por_categoria$|ancho_max_eje_y$|wrap_y$|wrap_ejes$|eje_label_mult$|grosor_)", nm)) {
+  if (grepl("^(canvas_|tabla_ph_|alto_por_categoria$|ancho_max_eje_y$|lineheight_eje_y$|wrap_y$|wrap_ejes$|eje_label_mult$|grosor_)", nm)) {
     return("espacio")
   }
   if (grepl("^(tabla_|mostrar_tabla_derecha$|titulo_tabla$|umbral_rojo_pct$)", nm)) {

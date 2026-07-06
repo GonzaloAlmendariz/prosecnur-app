@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Play, RefreshCw, Tags } from "lucide-react";
 import {
   apiCodifAplicar,
   apiCodifPlanAdaptacion,
@@ -16,9 +16,10 @@ import { useSession } from "../../lib/SessionContext";
 
 type Props = {
   onBackToCodificar: () => void;
+  onBackToMatrices: () => void;
 };
 
-export function AdaptarPane({ onBackToCodificar }: Props) {
+export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
   const { refresh } = useSession();
   const [plan, setPlan] = useState<PlanAdaptacion | null>(null);
   const [loadErr, setLoadErr] = useState<string>("");
@@ -101,15 +102,31 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
         </button>
       </div>
 
+      <div className="pulso-codificacion-adaptar-bridge" aria-label="Confirmación de codificación">
+        <span className="pulso-codificacion-adaptar-bridge-icon" aria-hidden="true">
+          <CheckCircle2 size={17} />
+        </span>
+        <div className="pulso-codificacion-adaptar-bridge-copy">
+          <strong>Adaptación confirma toda la codificación</strong>
+          <p>
+            Integra los grupos creados en Prosecnur y los mapeos importados desde matrices Excel; recién aquí se aplican a las respuestas adaptadas.
+          </p>
+        </div>
+        <div className="pulso-codificacion-adaptar-bridge-paths" aria-label="Fuentes que se confirman">
+          <span><Tags size={13} /> Manual Prosecnur</span>
+          <span><FileSpreadsheet size={13} /> Matriz Excel</span>
+        </div>
+      </div>
+
       {noHayNada && (
         <Alert kind="warn">
-          No hay preguntas con grupos codificados. Vuelve al paso <strong>2 · Codificar</strong> y agrupa respuestas antes de adaptar.
+          No hay preguntas con grupos codificados. Vuelve a <strong>Codificar</strong> o <strong>Matrices</strong> para preparar un mapeo antes de adaptar.
         </Alert>
       )}
 
       {/* Tabla de preguntas soportadas */}
       {preguntasSoportadas.length > 0 && (
-        <Panel eyebrow="Qué se va a aplicar" title="Campos que se crearán">
+        <Panel eyebrow="Confirmación final" title="Codificaciones que se aplicarán">
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {preguntasSoportadas.map((p) => (
               <PreguntaPlanCard key={p.parent} p={p} />
@@ -143,6 +160,9 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
           <button type="button" onClick={onBackToCodificar} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <ArrowLeft size={13} /> Volver a codificar
           </button>
+          <button type="button" onClick={onBackToMatrices} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <FileSpreadsheet size={13} /> Revisar matrices
+          </button>
           <div style={{ flex: 1 }} />
           <button
             type="button"
@@ -151,14 +171,14 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
             disabled={!!jobId || t.n_preguntas === 0}
             style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            <Play size={14} /> Aplicar a respuestas
+            <Play size={14} /> Confirmar y adaptar respuestas
           </button>
         </div>
       )}
 
       {jobId && (
         <JobProgress<AplicarResult>
-          label="Aplicando cambios al formulario y respuestas"
+          label="Adaptando respuestas con mapeos confirmados"
           jobId={jobId}
           onDone={onJobDone}
           onError={onJobError}
