@@ -87,6 +87,10 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
             fieldLabel="Cómo se valida la respuesta"
             hint="Define qué condición tiene que cumplir la respuesta para que se acepte."
             onChange={(next) => onFieldChange("constraint", next)}
+            onApplyPreset={({ expression, message }) => {
+              onFieldChange("constraint", expression);
+              onFieldChange("constraint_message", message);
+            }}
           />
           {/* El mensaje de error vive aquí: aparece solo si hay validación
               definida o si el usuario ya tenía un mensaje desde el .xlsx
