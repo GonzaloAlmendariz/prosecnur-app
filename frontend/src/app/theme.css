@@ -36795,10 +36795,28 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text);
 }
 
+.pulso-xlsform-history-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--xls-surface-soft);
+  border: 1px solid color-mix(in srgb, var(--xls-border) 78%, transparent);
+  color: var(--pulso-primary);
+  flex: 0 0 auto;
+}
+
+.pulso-xlsform-history-button:disabled .pulso-xlsform-history-icon {
+  color: var(--pulso-text-muted);
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, transparent);
+}
+
 .pulso-xlsform-history-button svg {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   color: currentColor;
 }
 
