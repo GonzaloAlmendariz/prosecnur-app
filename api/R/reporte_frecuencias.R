@@ -3,6 +3,135 @@
 # ============================
 
 #' @noRd
+.freq_is_consecutive_numeric_scale <- function(names) {
+  codes <- trimws(as.character(names %||% character(0)))
+  if (length(codes) < 5L || any(!nzchar(codes))) return(FALSE)
+  if (any(!grepl("^-?[0-9]+$", codes))) return(FALSE)
+  vals <- suppressWarnings(as.integer(codes))
+  if (any(is.na(vals))) return(FALSE)
+  all(diff(vals) == 1L)
+}
+
+#' @noRd
+.freq_scale_labels_should_be_codes <- function(names, labels) {
+  names <- as.character(names %||% character(0))
+  labels <- as.character(labels %||% character(0))
+  if (!.freq_is_consecutive_numeric_scale(names)) return(FALSE)
+  if (!length(labels)) labels <- rep(NA_character_, length(names))
+  if (length(labels) != length(names)) labels <- rep_len(labels, length(names))
+
+  empty <- is.na(labels) | !nzchar(trimws(labels))
+  if (any(empty)) return(TRUE)
+
+  # Escalas ancladas: los intermedios ya son codigos, pero extremos traen texto.
+  matches_code <- trimws(labels) == trimws(names)
+  sum(matches_code, na.rm = TRUE) >= length(names) - 2L
+}
+
+#' @noRd
+.freq_fill_empty_choice_labels <- function(names, labels) {
+  names <- as.character(names %||% character(0))
+  labels <- as.character(labels %||% character(0))
+  if (!length(names)) return(character(0))
+  if (!length(labels)) labels <- rep(NA_character_, length(names))
+  if (length(labels) != length(names)) labels <- rep_len(labels, length(names))
+  if (.freq_scale_labels_should_be_codes(names, labels)) return(names)
+  empty <- is.na(labels) | !nzchar(trimws(labels))
+  labels[empty] <- names[empty]
+  labels
+}
+
+#' @noRd
+.freq_orders_entry <- function(orders_list, var) {
+  if (is.null(orders_list) || !(var %in% names(orders_list))) return(NULL)
+  entry <- orders_list[[var]]
+  ord_nam <- tryCatch(entry$names, error = function(e) NULL)
+  ord_lbl <- tryCatch(entry$labels, error = function(e) NULL)
+  if (is.null(ord_nam)) return(NULL)
+  ord_nam <- as.character(ord_nam)
+  ord_lbl <- .freq_fill_empty_choice_labels(ord_nam, ord_lbl)
+  list(names = ord_nam, labels = ord_lbl, label = entry$label %||% var)
+}
+
+#' @noRd
+.freq_survey_list_name <- function(row) {
+  ln <- as.character(row$list_name %||% NA_character_)[1]
+  if (!is.na(ln) && nzchar(trimws(ln))) return(trimws(ln))
+
+  tp <- trimws(as.character(row$type %||% "")[1])
+  if (grepl("^select_(one|multiple)\\b", tp)) {
+    m <- regmatches(
+      tp,
+      regexec("^select_(?:one|multiple)\\s+(\\S+)", tp, perl = TRUE)
+    )[[1]]
+    if (length(m) >= 2L && nzchar(m[2])) return(m[2])
+  }
+
+  NA_character_
+}
+
+#' @noRd
+.freq_augment_orders_list_from_choices <- function(orders_list = NULL,
+                                                  survey = NULL,
+                                                  choices = NULL) {
+  out <- orders_list %||% list()
+  for (nm in names(out)) {
+    if (is.null(out[[nm]]$names)) next
+    out[[nm]]$labels <- .freq_fill_empty_choice_labels(out[[nm]]$names, out[[nm]]$labels)
+  }
+  if (is.null(survey) || is.null(choices)) return(out)
+  if (!("name" %in% names(survey))) return(out)
+  if (!all(c("list_name", "name", "label") %in% names(choices))) return(out)
+
+  survey_lns <- survey
+  if (!("list_name" %in% names(survey_lns))) {
+    survey_lns$list_name <- NA_character_
+  }
+  if (!("label" %in% names(survey_lns))) {
+    survey_lns$label <- survey_lns$name
+  }
+  survey_lns$.list_name <- vapply(
+    seq_len(nrow(survey_lns)),
+    function(i) .freq_survey_list_name(survey_lns[i, , drop = FALSE]),
+    character(1)
+  )
+
+  survey_lns <- survey_lns |>
+    dplyr::filter(
+      !is.na(.data$name), nzchar(as.character(.data$name)),
+      !is.na(.data$.list_name), nzchar(as.character(.data$.list_name))
+    ) |>
+    dplyr::transmute(
+      name = as.character(.data$name),
+      list_name = as.character(.data$.list_name),
+      label = as.character(.data$label)
+    ) |>
+    dplyr::distinct()
+
+  if (!nrow(survey_lns)) return(out)
+
+  for (i in seq_len(nrow(survey_lns))) {
+    var <- as.character(survey_lns$name[i])
+    if (var %in% names(out)) next
+    ln <- as.character(survey_lns$list_name[i])
+    ch <- choices |>
+      dplyr::filter(
+        as.character(.data$list_name) == ln,
+        !is.na(.data$name), nzchar(as.character(.data$name))
+      )
+    if (!nrow(ch)) next
+    labels <- .freq_fill_empty_choice_labels(ch$name, ch$label)
+    out[[var]] <- list(
+      names = as.character(ch$name),
+      labels = labels,
+      label = as.character(survey_lns$label[i] %||% var)
+    )
+  }
+
+  out
+}
+
+#' @noRd
 .peso_vec <- function(data){
   if (!("peso" %in% names(data))) return(rep(1, nrow(data)))
   w <- suppressWarnings(as.numeric(data$peso))
@@ -59,8 +188,9 @@
   total <- if (any(is_total)) tab[ is_total, , drop = FALSE] else NULL
   if (!nrow(body)) return(tab)
 
-  ord_lbl <- tryCatch(orders_list[[var]]$labels, error = function(e) NULL)
-  ord_nam <- tryCatch(orders_list[[var]]$names,  error = function(e) NULL)
+  ord_entry <- .freq_orders_entry(orders_list, var)
+  ord_lbl <- ord_entry$labels %||% NULL
+  ord_nam <- ord_entry$names %||% NULL
 
   if (!is.null(ord_nam) && !is.null(ord_lbl)) {
     idx_code <- match(body$Opciones, ord_nam)
@@ -103,9 +233,9 @@
 
   if (!nrow(body)) return(tab)
 
-  ord_entry <- orders_list[[var]]
-  ord_lbl   <- tryCatch(ord_entry$labels, error = function(e) NULL)
-  ord_nam   <- tryCatch(ord_entry$names,  error = function(e) NULL)
+  ord_entry <- .freq_orders_entry(orders_list, var)
+  ord_lbl   <- ord_entry$labels %||% NULL
+  ord_nam   <- ord_entry$names %||% NULL
 
   if (is.null(ord_lbl)) return(tab)
 
@@ -163,8 +293,9 @@
   total <- if (any(is_total)) tab[ is_total, , drop = FALSE] else NULL
   if (!nrow(body)) return(tab)
 
-  ord_lbl <- tryCatch(orders_list[[var]]$labels, error = function(e) NULL)
-  ord_nam <- tryCatch(orders_list[[var]]$names,  error = function(e) NULL)
+  ord_entry <- .freq_orders_entry(orders_list, var)
+  ord_lbl <- ord_entry$labels %||% NULL
+  ord_nam <- ord_entry$names %||% NULL
 
   if (!is.null(ord_lbl)) {
     body <- dplyr::mutate(body, .orden_aux = match(Opciones, ord_lbl))
@@ -1916,6 +2047,12 @@ reporte_frecuencias <- function(data,
     dplyr::distinct(name, .keep_all = TRUE)
 
   orders_list <- if (!is.null(instrumento$orders_list)) instrumento$orders_list else NULL
+  choices <- if (!is.null(instrumento$choices)) instrumento$choices else NULL
+  orders_list <- .freq_augment_orders_list_from_choices(
+    orders_list = orders_list,
+    survey = survey,
+    choices = choices
+  )
   orden <- match.arg(orden)
 
   if (is.null(secciones)) {
