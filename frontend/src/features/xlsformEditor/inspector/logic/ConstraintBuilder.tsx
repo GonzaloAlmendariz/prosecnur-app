@@ -17,8 +17,10 @@
 //     corpus auditado).
 // =============================================================================
 
+import type { ReactNode } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
+import TechTerm from "../../helpers/TechTerm";
 import {
   expandConstraint,
   parseExpression,
@@ -37,8 +39,12 @@ export type ConstraintBuilderProps = {
   baseType: string;
   /** Catálogo si la pregunta es select_*. */
   listName?: string;
-  fieldLabel: string;
+  /** Etiqueta del campo. Acepta nodos para incrustar `<TechTerm />`. */
+  fieldLabel: ReactNode;
   hint?: string;
+  /** Columna XLSForm que edita este builder (ej. "constraint") — se
+   *  muestra junto al readout "Código Kobo". Solo estética. */
+  techTerm?: string;
   onChange: (next: string) => void;
   onApplyPreset?: (next: { expression: string; message: string }) => void;
   showShortcuts?: boolean;
@@ -51,6 +57,7 @@ export function ConstraintBuilder({
   listName,
   fieldLabel,
   hint,
+  techTerm,
   onChange,
   onApplyPreset,
   showShortcuts = true,
@@ -96,7 +103,7 @@ export function ConstraintBuilder({
             <div className="pulso-constraint-shortcuts-head">
               <span className="pulso-section-eyebrow">Atajos Kobo</span>
               <strong>Reglas frecuentes sin escribir fórmula</strong>
-              <small>Aplican un constraint listo para exportar; en el inspector también completan el mensaje para campo.</small>
+              <small>Aplican la regla <TechTerm t="constraint" /> y su mensaje, listos para exportar.</small>
             </div>
             <div className="pulso-constraint-shortcut-grid">
               {shortcutPresets.map((preset) => (
@@ -133,11 +140,12 @@ export function ConstraintBuilder({
         <span className="pulso-logic-builder-status">Regla técnica</span>
       </header>
       <div className="pulso-logic-builder-raw">
+        <span className="pulso-xfi-code-head" aria-hidden="true">
+          Código Kobo{techTerm ? <> <TechTerm t={techTerm} /></> : null}
+        </span>
         <pre>{raw}</pre>
         <p className="pulso-logic-builder-rawhint">
-          Esta validación vino con una forma técnica. Se preserva tal cual al
-          exportar; puedes reemplazarla por una regla guiada si necesitas
-          editarla desde esta vista.
+          Se preserva al exportar; reemplázala por una regla guiada para editarla.
         </p>
         <div className="pulso-logic-builder-rawactions">
           <button

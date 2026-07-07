@@ -5,11 +5,11 @@
 // (para repeats), parámetros y mensajes (constraint_message, required_message).
 //
 // Estos eran inputs sueltos en el monolito. Acá los agrupamos con etiquetas
-// claras y pistas explicativas para que el usuario sin contexto XLSForm los
-// entienda.
+// claras en español + el término técnico entre paréntesis (`TechTerm`).
 // =============================================================================
 
 import type { BuilderNode } from "../types";
+import TechTerm from "../helpers/TechTerm";
 import { InspectorBlock, InspectorField } from "./InspectorPrimitives";
 
 export type MoreTabProps = {
@@ -27,16 +27,16 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
       {isRepeat && (
         <InspectorBlock>
           <InspectorField
-            label="Cantidad de repeticiones"
-            hint="Número fijo o referencia a otra pregunta. Vacío = el encuestador decide."
+            label={<>Cantidad de repeticiones <TechTerm t="repeat_count" /></>}
+            hint="Número fijo o referencia. Vacío = decide el encuestador."
           >
             <input
               type="text"
+              className="pulso-xfi-mono"
               value={(node as BuilderNode & { repeat_count?: string }).repeat_count ?? ""}
               onChange={(event) => onFieldChange("repeat_count", event.target.value)}
               placeholder='Ej. 5  o  ${num_personas}'
               spellCheck={false}
-              style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}
             />
           </InspectorField>
         </InspectorBlock>
@@ -46,8 +46,8 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
         <>
           <InspectorBlock>
             <InspectorField
-              label="Número visible en papel"
-              hint="Opcional. Si queda vacío, el PDF deriva el número desde el código de la pregunta o su orden."
+              label={<>Número visible en papel <TechTerm t="paper_number" /></>}
+              hint="Vacío = el PDF lo deriva del nombre interno o el orden."
             >
               <input
                 type="text"
@@ -57,8 +57,8 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               />
             </InspectorField>
             <InspectorField
-              label="Texto alternativo para papel"
-              hint="Opcional. Reemplaza el texto del XLSForm solo en el PDF impreso."
+              label={<>Texto alternativo para papel <TechTerm t="paper_label" /></>}
+              hint="Reemplaza el texto solo en el PDF impreso."
             >
               <input
                 type="text"
@@ -68,8 +68,8 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               />
             </InspectorField>
             <InspectorField
-              label="Salto impreso"
-              hint="Instrucción manual tipo IR A LA PREGUNTA 117. Tiene prioridad sobre la inferencia automática."
+              label={<>Salto impreso <TechTerm t="paper_skip" /></>}
+              hint="Instrucción manual; prima sobre la inferencia automática."
             >
               <input
                 type="text"
@@ -79,8 +79,8 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               />
             </InspectorField>
             <InspectorField
-              label="Grupo / matriz en papel"
-              hint="Usa el mismo valor en varias filas para imprimirlas como matriz."
+              label={<>Grupo / matriz en papel <TechTerm t="paper_group" /></>}
+              hint="Mismo valor en varias filas = se imprimen como matriz."
             >
               <input
                 type="text"
@@ -90,8 +90,8 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               />
             </InspectorField>
             <InspectorField
-              label="Layout de papel"
-              hint="Valores útiles: full, wide, matrix, compact. Vacío = automático."
+              label={<>Layout de papel <TechTerm t="paper_layout" /></>}
+              hint="full, wide, matrix o compact. Vacío = automático."
             >
               <input
                 type="text"
@@ -113,16 +113,16 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
                 }
               />
               <span>
-                <strong>Solo lectura</strong>
-                <em>El encuestado ve el valor pero no lo puede modificar.</em>
+                <strong>Solo lectura <TechTerm t="read_only" /></strong>
+                <em>Se muestra el valor pero no se puede modificar.</em>
               </span>
             </label>
           </InspectorBlock>
 
           <InspectorBlock>
             <InspectorField
-              label="Mensaje cuando es obligatoria"
-              hint="Se muestra si el encuestado intenta avanzar sin responder. El mensaje de validación vive en la tab Lógica, junto a la regla."
+              label={<>Mensaje cuando es obligatoria <TechTerm t="required_message" /></>}
+              hint="Se muestra al intentar avanzar sin responder."
             >
               <input
                 type="text"
@@ -138,17 +138,17 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
       )}
 
       <InspectorBlock>
-            <InspectorField
-              label="Parámetros técnicos"
-              hint="Atributos crudos del XLSForm. Modifícalos solo cuando el formulario lo requiera."
+        <InspectorField
+          label={<>Parámetros técnicos <TechTerm t="parameters" /></>}
+          hint="Atributos crudos del XLSForm; cámbialos solo si hace falta."
         >
           <input
             type="text"
+            className="pulso-xfi-mono"
             value={(node as BuilderNode & { parameters?: string }).parameters ?? ""}
             onChange={(event) => onFieldChange("parameters", event.target.value)}
             placeholder="Ej. randomize=true seed=42"
             spellCheck={false}
-            style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}
           />
         </InspectorField>
       </InspectorBlock>

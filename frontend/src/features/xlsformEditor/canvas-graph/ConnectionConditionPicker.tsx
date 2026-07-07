@@ -21,6 +21,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
+import { TechTerm } from "../helpers/TechTerm";
 import type { CatalogContext, GraphNode } from "./buildGraph";
 
 type Operator = "exists" | "missing" | "equals" | "not_equals";
@@ -121,10 +122,15 @@ export function ConnectionConditionPicker({
       aria-label="Definir condición de la conexión"
     >
       <header>
-        <div className="pulso-graph-condpicker-pair">
-          <code>{source.name}</code>
-          <span aria-hidden="true">→</span>
-          <code>{target.name}</code>
+        <div className="pulso-graph-condpicker-head">
+          <span className="pulso-graph-condpicker-eyebrow">
+            Condición para mostrarse <TechTerm t="relevant" />
+          </span>
+          <div className="pulso-graph-condpicker-pair">
+            <code>{source.name}</code>
+            <span aria-hidden="true">→</span>
+            <code>{target.name}</code>
+          </div>
         </div>
         <button
           type="button"

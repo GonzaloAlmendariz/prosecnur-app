@@ -29,11 +29,12 @@ import {
   QrCode,
   Type as TypeIcon,
 } from "lucide-react";
-import { IconAI, IconChecklist, IconConditionalLogic } from "../../../lib/icons";
+import { IconAI, IconChecklist, IconConditionalLogic, IconRequired } from "../../../lib/icons";
 import type { BuilderNode, ChoiceItem } from "../types";
 import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { renderMarkdownInline } from "../helpers/markdown";
+import { TechTerm } from "../helpers/TechTerm";
 import { typeLabel } from "../parsing/parseType";
 
 export type PreviewQuestionCardProps = {
@@ -49,6 +50,8 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
   const accent = paletteForType(node.typeInfo.base);
   const accentSoft = paletteSoftForType(node.typeInfo.base);
   const Icon = iconForType(node.typeInfo.base);
+  const baseType = node.typeInfo.base;
+  const baseLabel = typeLabel(baseType);
 
   return (
     <article
@@ -59,7 +62,10 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
       <div className="pulso-canvas-card-header">
         <span className="pulso-canvas-card-typebadge" style={{ color: accent, background: accentSoft }}>
           <Icon size={13} />
-          {typeLabel(node.typeInfo.base)}
+          {baseLabel}
+          {baseType && baseLabel !== baseType && (
+            <TechTerm t={baseType} title={`Tipo XLSForm: ${baseType}`} />
+          )}
         </span>
         {position && (
           <span className="pulso-canvas-card-position" title="Posición en el formulario">
@@ -71,7 +77,7 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
             className="pulso-canvas-card-required"
             title="Pregunta obligatoria"
           >
-            ★ Obligatoria
+            <IconRequired size={11} /> Obligatoria
           </span>
         )}
         {node.relevant && (
@@ -217,8 +223,12 @@ function PreviewInput({
         <PreviewBox
           icon={<IconAI size={14} />}
           tone="var(--pulso-text-soft)"
-          title="Auto-meta"
-          detail={`El sistema captura este valor automáticamente (${base}).`}
+          title="Dato automático"
+          detail={
+            <>
+              El sistema captura este valor automáticamente <TechTerm t={base} />.
+            </>
+          }
         />
       );
 
@@ -273,7 +283,7 @@ function PreviewInput({
         <PreviewBox
           icon={<CircleDot size={14} />}
           tone="var(--pulso-text-soft)"
-          title={`Tipo: ${base || "sin definir"}`}
+          title={base ? <>Tipo <TechTerm t={base} /></> : "Tipo sin definir"}
           detail="No hay vista previa específica para este tipo todavía."
         />
       );
@@ -402,8 +412,8 @@ function PreviewBox({
 }: {
   icon: React.ReactNode;
   tone: string;
-  title: string;
-  detail: string;
+  title: React.ReactNode;
+  detail: React.ReactNode;
 }) {
   return (
     <div className="pulso-canvas-previewbox">

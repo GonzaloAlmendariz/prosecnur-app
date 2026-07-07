@@ -7,9 +7,10 @@
 // secciones anidadas se identan visualmente por `depth`.
 // =============================================================================
 
-import { ChevronDown, ChevronRight, Folder, Repeat } from "lucide-react";
+import { ChevronDown, Folder, Repeat } from "lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 import { RichInline } from "../helpers/RichInline";
+import { TechTerm } from "../helpers/TechTerm";
 
 export type SectionHeaderProps = {
   /** Título editable de la sección. */
@@ -56,7 +57,7 @@ export function SectionHeader({
     >
       <button
         type="button"
-        className="pulso-canvas-section-toggle"
+        className={`pulso-canvas-section-toggle${collapsed ? " is-collapsed" : ""}`}
         onClick={(e) => {
           e.stopPropagation();
           onToggleCollapsed();
@@ -64,7 +65,7 @@ export function SectionHeader({
         aria-label={collapsed ? "Expandir sección" : "Colapsar sección"}
         aria-expanded={!collapsed}
       >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+        <ChevronDown size={14} />
       </button>
       <span className="pulso-canvas-section-icon" aria-hidden="true">
         <Icon size={15} />
@@ -87,9 +88,8 @@ export function SectionHeader({
           title={`Cierre técnico ${closingType} creado automáticamente. Ajusta su posición desde el panel del bloque.`}
           aria-label={`Cierre automático ${closingType}`}
         >
-          <ChevronDown size={12} />
-          <code>{closingType}</code>
-          <span>auto</span>
+          <span>Cierre auto</span>
+          <TechTerm t={closingType} title="Fila de cierre creada automáticamente" />
         </span>
         {hasRelevant && (
           <span className="pulso-canvas-section-conditional" title="Sección condicional">

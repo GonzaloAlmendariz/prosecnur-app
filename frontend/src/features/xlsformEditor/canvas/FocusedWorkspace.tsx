@@ -1,3 +1,5 @@
+import "../styles/xf-canvas.css";
+
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,

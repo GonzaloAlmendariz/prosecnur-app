@@ -19,8 +19,9 @@ export function InspectorField({
   hint,
   children,
 }: {
-  label: string;
-  hint?: string;
+  /** Texto del label. Acepta nodos para incrustar `<TechTerm />`. */
+  label: ReactNode;
+  hint?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -42,8 +43,8 @@ export function InspectorEyebrow({
   hint,
 }: {
   icon?: ReactNode;
-  title: string;
-  hint?: string;
+  title: ReactNode;
+  hint?: ReactNode;
 }) {
   return (
     <header className="pulso-inspector-eyebrow">

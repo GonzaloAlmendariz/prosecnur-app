@@ -12,7 +12,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
-import { Layers3, ListChecks, MoreHorizontal, type LucideIcon } from "lucide-react";
+import { CirclePlay, Gauge, Layers3, ListChecks, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 
 export type MoreViewsMenuProps = {
@@ -21,6 +21,8 @@ export type MoreViewsMenuProps = {
   onOpenSurveyMonkeyLogic: () => void;
   onOpenQuestionnaireView: () => void;
   onOpenCatalogsLens: () => void;
+  onOpenSimulator: () => void;
+  onOpenSummary: () => void;
 };
 
 type MenuItem = {
@@ -38,6 +40,8 @@ export function MoreViewsMenu({
   onOpenSurveyMonkeyLogic,
   onOpenQuestionnaireView,
   onOpenCatalogsLens,
+  onOpenSimulator,
+  onOpenSummary,
 }: MoreViewsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +64,26 @@ export function MoreViewsMenu({
   }, [open]);
 
   const items: MenuItem[] = [
+    {
+      key: "simulator",
+      label: "Probar formulario",
+      description: "Llénalo como encuestado y comprueba los saltos de lógica en vivo.",
+      icon: CirclePlay,
+      onClick: () => {
+        onOpenSimulator();
+        setOpen(false);
+      },
+    },
+    {
+      key: "summary",
+      label: "Resumen del formulario",
+      description: "Panorama en cifras: tipos de pregunta, secciones y salud general.",
+      icon: Gauge,
+      onClick: () => {
+        onOpenSummary();
+        setOpen(false);
+      },
+    },
     {
       key: "questionnaire-view",
       label: "Vista del cuestionario",

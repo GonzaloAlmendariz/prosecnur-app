@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Info, ListChecks, Plus, Trash2, Users } from "lucide-react";
 import type { ChoiceItem } from "../types";
 import { RichInline } from "../helpers/RichInline";
+import { TechTerm } from "../helpers/TechTerm";
 
 export type EditableChoiceListProps = {
   items: ChoiceItem[];
@@ -124,7 +125,10 @@ export function EditableChoiceList({
           </span>
           <div>
             <strong>Lista en preparación</strong>
-            <p>Agrega la primera opción cuando tengas el texto real. No creamos opciones de ejemplo en la hoja choices.</p>
+            <p>
+              Agrega la primera opción cuando tengas el texto real. No creamos opciones de ejemplo
+              en la hoja de opciones <TechTerm t="choices" />.
+            </p>
           </div>
         </div>
       )}
