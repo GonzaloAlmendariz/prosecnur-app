@@ -1496,6 +1496,7 @@ function RulesTab({
             node={node}
             validation={validation}
             onFieldChange={onFieldChange}
+            onFieldsChange={onFieldsChange}
           />
           {isGuidedPreset && validation ? (
             <GuidedValidationNotice
@@ -1850,16 +1851,20 @@ function CustomValidationPanel({
   node,
   validation,
   onFieldChange,
+  onFieldsChange,
 }: {
   node: BuilderNode;
   validation: (HumanizedExpression & { status: string }) | null;
   onFieldChange: (field: string, value: string) => void;
+  onFieldsChange: (updates: Record<string, string>) => void;
 }) {
   const openByDefault = Boolean(
     node.constraint.trim() &&
       validation?.status !== "Preset claro" &&
       validation?.status !== "Editable visualmente",
   );
+  const regexPresets = regexPresetsFor(node);
+  const showRegexPresets = regexPresets.length > 0 && validation?.status !== "Preset claro";
 
   return (
     <details className="pulso-focus-custom-validation" open={openByDefault}>
@@ -1869,6 +1874,38 @@ function CustomValidationPanel({
         regex para patrones, count-selected para selección múltiple o una regla
         importada desde otro XLSForm.
       </p>
+      {showRegexPresets && (
+        <div className="pulso-focus-regex-shortcuts" aria-label="Atajos de Regex">
+          <div className="pulso-focus-regex-shortcuts-head">
+            <span className="pulso-section-eyebrow">Regex guiado</span>
+            <strong>Patrones frecuentes listos para Kobo</strong>
+            <small>Aplican la fórmula y el mensaje para campo en una sola acción.</small>
+          </div>
+          <div className="pulso-focus-regex-shortcut-grid">
+            {regexPresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="pulso-focus-regex-shortcut"
+                onClick={() => {
+                  onFieldsChange({
+                    constraint: preset.expression,
+                    constraint_message: preset.message,
+                  });
+                }}
+                title={preset.hint}
+              >
+                <span className="pulso-focus-regex-shortcut-copy">
+                  <strong>{preset.label}</strong>
+                  <small>{preset.hint}</small>
+                  <em>{preset.message}</em>
+                </span>
+                <code>{preset.preview}</code>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <InspectorField
         label="Fórmula de validación"
         hint="Debe evaluar verdadero cuando la respuesta es aceptable. Se guarda en constraint."
@@ -1883,6 +1920,53 @@ function CustomValidationPanel({
       </InspectorField>
     </details>
   );
+}
+
+type RegexShortcutPreset = {
+  id: string;
+  label: string;
+  hint: string;
+  expression: string;
+  preview: string;
+  message: string;
+};
+
+function regexPresetsFor(node: BuilderNode): RegexShortcutPreset[] {
+  if (node.typeInfo.base !== "text") return [];
+  return [
+    {
+      id: "email",
+      label: "Correo electrónico",
+      hint: "Para respuestas como nombre@dominio.org.",
+      expression: "regex(., '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
+      preview: "email",
+      message: "Ingresa un correo electrónico válido.",
+    },
+    {
+      id: "url",
+      label: "Enlace web",
+      hint: "Para URLs que empiezan con http:// o https://.",
+      expression: "regex(., '^https?://.+')",
+      preview: "https://",
+      message: "Ingresa un enlace web válido.",
+    },
+    {
+      id: "digits",
+      label: "Solo dígitos",
+      hint: "Para DNI, códigos numéricos o identificadores sin letras.",
+      expression: "regex(., '^\\d+$')",
+      preview: "0-9",
+      message: "Ingresa solo números, sin letras ni símbolos.",
+    },
+    {
+      id: "code",
+      label: "Código sin espacios",
+      hint: "Acepta letras, números, guion y guion bajo.",
+      expression: "regex(., '^[A-Za-z0-9_-]+$')",
+      preview: "ABC_123",
+      message: "Ingresa un código sin espacios.",
+    },
+  ];
 }
 
 function ConstraintMessageField({
@@ -3089,6 +3173,9 @@ function knownValidation(expr: Expr, raw: string, baseType: string): string | nu
     const pattern = expr.args[1]?.kind === "literal" ? String(expr.args[1].value).toLowerCase() : normalized;
     if (pattern.includes("@")) return "La respuesta debe tener formato de correo electrónico.";
     if (pattern.includes("http")) return "La respuesta debe ser una URL válida.";
+    if (pattern.includes("a-z") && pattern.includes("0-9") && pattern.includes("_-")) {
+      return "La respuesta debe ser un código sin espacios.";
+    }
     if (pattern.includes("\\d") || pattern.includes("[0-9]")) return "La respuesta debe contener solo dígitos.";
   }
   if (baseType === "date" && normalized.includes("<=today()")) {
@@ -3123,6 +3210,13 @@ function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
           hint: "Acepta únicamente caracteres numéricos.",
           expression: "regex(., '^\\d+$')",
           message: "Ingresa solo números.",
+        },
+        {
+          id: "code",
+          label: "Código sin espacios",
+          hint: "Acepta letras, números, guion y guion bajo.",
+          expression: "regex(., '^[A-Za-z0-9_-]+$')",
+          message: "Ingresa un código sin espacios.",
         },
       ];
     case "integer":

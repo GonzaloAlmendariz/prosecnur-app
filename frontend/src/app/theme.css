@@ -37329,6 +37329,113 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   line-height: 1.45;
 }
 
+.pulso-focus-regex-shortcuts {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 15%, var(--xls-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-regex-shortcuts-head {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-regex-shortcuts-head strong {
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.pulso-focus-regex-shortcuts-head small {
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-weight: 640;
+  line-height: 1.35;
+}
+
+.pulso-focus-regex-shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 7px;
+  min-width: 0;
+}
+
+.pulso-focus-regex-shortcut {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  text-align: left;
+}
+
+.pulso-focus-regex-shortcut-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-regex-shortcut-copy strong {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  color: #1f2a3d;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-regex-shortcut-copy small,
+.pulso-focus-regex-shortcut-copy em {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 640;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-regex-shortcut-copy em {
+  color: color-mix(in srgb, var(--pulso-primary) 72%, #253149);
+  font-weight: 760;
+}
+
+.pulso-focus-regex-shortcut code {
+  justify-self: start;
+  max-width: 76px;
+  padding: 3px 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
+  color: var(--pulso-primary);
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .pulso-focus-choice-filter {
   display: flex;
   min-width: 0;
