@@ -156,6 +156,9 @@ input {
 
 .boot-chooser {
   display: grid;
+  /* minmax(0, 1fr): sin esto, el ancho intrínseco del strip de recientes
+     infla el track y el input/las cards desbordan el panel. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 
