@@ -1312,7 +1312,7 @@ function RequiredControl({
                   <span>Aparece cuando</span>
                   <strong>{describeExpression(conditionalContext.selfRelevant, scope).summary}</strong>
                   <details>
-                    <summary>Ver fórmula técnica</summary>
+                    <summary>Ver regla XLSForm</summary>
                     <code>{conditionalContext.selfRelevant}</code>
                   </details>
                 </div>
@@ -1325,7 +1325,7 @@ function RequiredControl({
                   <span>Sección «{ancestor.sectionLabel}» aparece cuando</span>
                   <strong>{describeExpression(ancestor.relevant, scope).summary}</strong>
                   <details>
-                    <summary>Ver fórmula técnica</summary>
+                    <summary>Ver regla XLSForm</summary>
                     <code>{ancestor.relevant}</code>
                   </details>
                 </div>
@@ -2532,16 +2532,15 @@ function CustomValidationPanel({
 
   return (
     <details className="pulso-focus-custom-validation" open={openByDefault}>
-      <summary>Regex o fórmula avanzada</summary>
+      <summary>Patrón o regla avanzada</summary>
       <p>
-        Pega una regla completa cuando los atajos no alcancen: regex para
-        patrones, count-selected para selección múltiple o una regla importada
-        desde otro XLSForm.
+        Pega una regla completa cuando los atajos no alcancen: patrones de texto,
+        conteos de selección múltiple o una validación importada desde otro XLSForm.
       </p>
       {showRegexPresets && (
-        <div className="pulso-focus-regex-shortcuts" aria-label="Atajos de Regex">
+        <div className="pulso-focus-regex-shortcuts" aria-label="Atajos de patrón">
           <div className="pulso-focus-regex-shortcuts-head">
-            <span className="pulso-section-eyebrow">Regex guiado</span>
+            <span className="pulso-section-eyebrow">Patrones guiados</span>
             <strong>Patrones frecuentes listos para Kobo</strong>
             <small>Aplican la fórmula y el mensaje para campo en una sola acción.</small>
           </div>
@@ -2571,8 +2570,8 @@ function CustomValidationPanel({
         </div>
       )}
       <InspectorField
-        label="Fórmula de validación"
-        hint="Debe evaluar verdadero cuando la respuesta es aceptable. Se guarda en constraint."
+        label="Regla avanzada"
+        hint="Debe devolver verdadero cuando la respuesta puede aceptarse. Se exporta como validación XLSForm."
       >
         <textarea
           value={node.constraint}
@@ -2609,14 +2608,14 @@ function regexPresetsFor(node: BuilderNode): RegexShortcutPreset[] {
     {
       id: "url",
       label: "Enlace web",
-      hint: "Para URLs que empiezan con http:// o https://.",
+      hint: "Para enlaces que empiezan con http:// o https://.",
       expression: "regex(., '^https?://.+')",
       preview: "https://",
       message: "Ingresa un enlace web válido.",
     },
     {
       id: "digits",
-      label: "Solo dígitos",
+      label: "Solo números",
       hint: "Para DNI, códigos numéricos o identificadores sin letras.",
       expression: "regex(., '^\\d+$')",
       preview: "0-9",
@@ -2667,7 +2666,7 @@ function ConstraintMessageField({
           <div className="pulso-focus-message-presets-head">
             <span className="pulso-section-eyebrow">Mensajes claros</span>
             <strong>Texto entendible para campo</strong>
-            <small>Evita hablar de constraint, regex o fórmulas con el encuestador.</small>
+            <small>Usa una indicación directa para campo; deja los términos técnicos en la regla.</small>
           </div>
           <div className="pulso-focus-message-preset-grid">
             {presets.map((preset) => (
@@ -2714,15 +2713,15 @@ function constraintMessagePresetsFor(
     presets.push({
       id: "email",
       label: "Correo válido",
-      hint: "Para regex de correo electrónico.",
+      hint: "Para validaciones de correo electrónico.",
       message: "Ingresa un correo electrónico válido.",
     });
-  } else if (summary.includes("url")) {
+  } else if (summary.includes("url") || summary.includes("enlace")) {
     presets.push({
       id: "url",
       label: "Enlace válido",
       hint: "Para respuestas que deben ser enlaces web.",
-      message: "Ingresa un enlace válido.",
+      message: "Ingresa un enlace web válido.",
     });
   } else if (summary.includes("dígitos") || summary.includes("digitos")) {
     presets.push({
@@ -2774,7 +2773,7 @@ function constraintMessagePresetsFor(
     presets.push({
       id: "text-format",
       label: "Formato de texto",
-      hint: "Para reglas de formato o regex personalizadas.",
+      hint: "Para patrones de texto personalizados.",
       message: "Revisa el formato de esta respuesta.",
     });
   }
@@ -2944,7 +2943,7 @@ function ValidationSummary({
           <strong>{summary?.summary ?? "La respuesta se acepta tal como fue ingresada."}</strong>
           {summary?.technical && (
             <details>
-              <summary>Ver fórmula técnica</summary>
+              <summary>Ver regla XLSForm</summary>
               <code>{summary.raw}</code>
             </details>
           )}
@@ -4159,11 +4158,11 @@ function knownValidation(expr: Expr, raw: string, baseType: string): string | nu
   if (expr.kind === "call" && expr.name === "regex" && expr.args[0]?.kind === "current") {
     const pattern = expr.args[1]?.kind === "literal" ? String(expr.args[1].value).toLowerCase() : normalized;
     if (pattern.includes("@")) return "La respuesta debe tener formato de correo electrónico.";
-    if (pattern.includes("http")) return "La respuesta debe ser una URL válida.";
+    if (pattern.includes("http")) return "La respuesta debe ser un enlace web válido.";
     if (pattern.includes("a-z") && pattern.includes("0-9") && pattern.includes("_-")) {
       return "La respuesta debe ser un código sin espacios.";
     }
-    if (pattern.includes("\\d") || pattern.includes("[0-9]")) return "La respuesta debe contener solo dígitos.";
+    if (pattern.includes("\\d") || pattern.includes("[0-9]")) return "La respuesta debe usar solo números.";
   }
   if (baseType === "date" && normalized.includes("<=today()")) {
     return "La fecha no puede ser posterior a hoy.";
@@ -4186,17 +4185,17 @@ function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
         },
         {
           id: "url",
-          label: "URL",
+          label: "Enlace web",
           hint: "Acepta enlaces que empiezan con http:// o https://.",
           expression: "regex(., '^https?://.+')",
-          message: "Ingresa una URL válida.",
+          message: "Ingresa un enlace web válido.",
         },
         {
           id: "digits",
-          label: "Solo dígitos",
+          label: "Solo números",
           hint: "Acepta únicamente caracteres numéricos.",
           expression: "regex(., '^\\d+$')",
-          message: "Ingresa solo números.",
+          message: "Ingresa solo números, sin letras ni símbolos.",
         },
         {
           id: "code",
@@ -4211,7 +4210,7 @@ function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
       return [
         {
           id: "non-negative",
-          label: "No negativo",
+          label: "Cero o más",
           hint: "Acepta cero o valores mayores.",
           expression: ". >= 0",
           message: "Ingresa un valor igual o mayor que cero.",
@@ -4228,7 +4227,7 @@ function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
       return [
         {
           id: "not-future",
-          label: "No futura",
+          label: "Fecha hasta hoy",
           hint: "La fecha debe ser hoy o anterior.",
           expression: ". <= today()",
           message: "La fecha no puede ser posterior a hoy.",
