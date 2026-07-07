@@ -668,6 +668,7 @@ export default function XlsformEditorPage() {
       if (key === "n" && !event.shiftKey) {
         if (!workbookRef.current) return;
         event.preventDefault();
+        setEditorMode("builder");
         setShowAddMenu(true);
         return;
       }
