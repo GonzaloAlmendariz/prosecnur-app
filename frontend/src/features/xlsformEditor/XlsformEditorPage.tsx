@@ -2243,7 +2243,9 @@ export default function XlsformEditorPage() {
                     className="pulso-xlsform-history-button"
                     aria-label="Deshacer último cambio"
                   >
-                    <IconUndo size={14} strokeWidth={2.25} aria-hidden="true" />
+                    <span className="pulso-xlsform-history-icon" aria-hidden="true">
+                      <IconUndo size={13} strokeWidth={2.2} />
+                    </span>
                     <span>Deshacer</span>
                   </button>
                   <button
@@ -2254,7 +2256,9 @@ export default function XlsformEditorPage() {
                     className="pulso-xlsform-history-button"
                     aria-label="Rehacer cambio deshecho"
                   >
-                    <IconRedo size={14} strokeWidth={2.25} aria-hidden="true" />
+                    <span className="pulso-xlsform-history-icon" aria-hidden="true">
+                      <IconRedo size={13} strokeWidth={2.2} />
+                    </span>
                     <span>Rehacer</span>
                   </button>
                 </div>
