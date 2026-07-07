@@ -1,10 +1,11 @@
 // =============================================================================
-// canvas-graph/buildGraph.ts — del workbook al grafo de visibilidad
+// canvas-graph/buildGraph.ts — del workbook al grafo de lógica
 // =============================================================================
-// El canvas Obsidian-style se enfoca exclusivamente en VISIBILIDAD: qué
-// pregunta o sección se condiciona a qué otra (campo `relevant` del
-// XLSForm). Constraint, calculation, choice_filter y catálogos viven en
-// el inspector — meterlos al canvas crea ruido sin sumar valor estructural.
+// El canvas Obsidian-style resume dependencias lógicas del XLSForm:
+// aparición (`relevant`), validación (`constraint`), cálculos
+// (`calculation`) y filtros de listas (`choice_filter`). Las listas no
+// son nodos independientes: se leen como contexto inline de las preguntas
+// select para mantener el mapa enfocado en relaciones entre bloques.
 //
 // Modelo del grafo (rediseño post-feedback):
 //
@@ -16,14 +17,11 @@
 //                      nombre y conteo del catálogo, para mostrarlo INLINE
 //                      dentro de la card. NO hay nodo separado para catálogos.
 //
-//   * Solo un tipo de edge:
-//       - "depends-on" — A.relevant referencia B → B → A. La conexión
-//                        representa "B condiciona la aparición de A".
-//                        Containment, uses-catalog, validates-with,
-//                        calculates-from y filters-by ya no son edges
-//                        del grafo: la jerarquía se renderiza como árbol
-//                        colapsable, los demás campos solo viven en el
-//                        inspector.
+//   * Cuatro capas de edge:
+//       - "depends-on"       — B condiciona la aparición de A.
+//       - "constrained-by"   — A se valida usando B.
+//       - "calculated-from"  — A se calcula usando B.
+//       - "choice-filter"    — A filtra sus opciones usando B.
 //
 // El grafo es derivado puro (función del workbook + index). Mismo input
 // → mismo output.
@@ -166,7 +164,7 @@ export type LogicGraph = {
    *  ninguna sección (caso raro pero posible — preguntas previas al
    *  primer begin_group, por ejemplo). */
   rootNodes: GraphNode[];
-  /** Todos los edges depends-on, indexados por id de source/target. La
+  /** Edges de aparición, validación, cálculo y filtros de lista. La
    *  resolución (a qué nodo "real" apunta el edge cuando hay sección
    *  colapsada en medio) se hace en el render. */
   edges: GraphEdge[];

@@ -786,9 +786,8 @@ export function LogicCanvas({
                 selectedUnitKey !== null && edge.unitKey === selectedUnitKey;
               const isClickIsolated =
                 selectedUnitKey !== null && !inSelectedBundle;
-              // Filtro por TIPO de dependencia — usuario decide qué
-              // tipos visualizar (relevant/constraint/calculation/
-              // choice_filter). Por defecto todo queda visible.
+              // Capas de lógica: el usuario decide si quiere leer
+              // aparición, validación, cálculos o filtros de lista.
               const k = edge.edge.kind;
               const passesFilter =
                 (k === "depends-on" && edgeKindFilter.showRelevant) ||
@@ -1511,7 +1510,7 @@ export function LogicCanvas({
               {selectedNode.kind === "question" &&
                 selectedNode.catalogContext && (
                   <p>
-                    Catálogo:{" "}
+                    Lista:{" "}
                     <code>{selectedNode.catalogContext.listName}</code>
                     {" · "}
                     {selectedNode.catalogContext.itemCount}{" "}

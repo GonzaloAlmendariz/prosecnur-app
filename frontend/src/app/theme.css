@@ -33130,21 +33130,23 @@ button.pulso-focus-calculation-recipe {
   gap: 6px;
   max-width: calc(100vw - 32px);
   overflow-x: auto;
-  padding: 6px 8px;
-  background: white;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--pulso-border);
-  border-radius: 10px;
-  box-shadow: var(--pulso-shadow-soft);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.11);
+  backdrop-filter: blur(18px) saturate(150%);
   user-select: none;
 }
 .pulso-graph-toolbar-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 9px;
+  min-height: 30px;
+  padding: 6px 10px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--pulso-text-soft);
@@ -33167,21 +33169,38 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-toolbar-sep {
   width: 1px;
-  height: 16px;
+  height: 22px;
   background: var(--pulso-border);
   margin: 0 2px;
+}
+.pulso-graph-toolbar-layer-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 4px 0 2px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--pulso-text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 .pulso-graph-toolbar-segment {
   display: inline-flex;
   border: 1px solid var(--pulso-border);
-  border-radius: 7px;
+  border-radius: 9px;
   overflow: hidden;
-  background: var(--pulso-surface-2);
+  background: rgba(248, 250, 252, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 .pulso-graph-toolbar-segment button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: transparent;
   border: none;
-  padding: 5px 10px;
+  min-height: 30px;
+  padding: 6px 10px;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--pulso-text-soft);
@@ -33195,6 +33214,12 @@ button.pulso-focus-calculation-recipe {
 .pulso-graph-toolbar-segment button.is-on {
   background: var(--pulso-primary);
   color: white;
+}
+.pulso-graph-toolbar-segment button + button {
+  border-left: 1px solid rgba(148, 163, 184, 0.18);
+}
+.pulso-graph-toolbar-segment button svg {
+  flex: 0 0 auto;
 }
 
 /* Card en estado dragging — sombra elevada. */
