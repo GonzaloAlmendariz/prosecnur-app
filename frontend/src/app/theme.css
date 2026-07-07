@@ -39698,37 +39698,54 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   -webkit-backdrop-filter: blur(18px) saturate(1.12);
 }
 
+.pulso-add-element-menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2290;
+  border: 0;
+  background: rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(3px) saturate(1.02);
+  -webkit-backdrop-filter: blur(3px) saturate(1.02);
+  cursor: default;
+}
+
 .pulso-add-element-menu {
   position: fixed;
-  left: var(--pulso-add-menu-left, 16px);
-  top: var(--pulso-add-menu-top, 74px);
-  width: var(--pulso-add-menu-width, min(372px, calc(100vw - 32px)));
+  top: 64px;
+  right: 24px;
+  width: var(--pulso-add-menu-width, min(860px, calc(100vw - 32px)));
+  height: var(--pulso-add-menu-height, min(680px, calc(100dvh - 88px)));
   z-index: 2300;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  padding: 9px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 38%, var(--xls-border, var(--pulso-border)));
-  border-radius: 15px;
-  max-height: var(--pulso-add-menu-max-height, min(640px, calc(100dvh - 96px)));
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 46%, var(--xls-border, var(--pulso-border)));
+  border-radius: 17px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-primary-soft) 10%, #ffffff)),
+    var(--pulso-surface);
+  box-shadow:
+    0 24px 64px rgba(0, 36, 87, 0.16),
+    0 7px 18px rgba(0, 36, 87, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   transform-origin: top right;
   animation: pulso-xls-popover-in 170ms var(--motion-ease-out) both;
 }
 
 .pulso-add-element-menu-head {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 9px;
+  grid-template-columns: 34px minmax(0, 1fr) 32px;
+  gap: 10px;
   align-items: center;
   min-width: 0;
-  padding: 3px 3px 1px;
+  padding: 2px 2px 0;
 }
 
 .pulso-add-element-menu-mark {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: inline-grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 56%, var(--xls-border));
@@ -39748,7 +39765,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-add-element-menu-head-copy strong {
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 13.4px;
+  font-size: 14px;
   font-weight: 830;
   line-height: 1.12;
   text-overflow: ellipsis;
@@ -39758,57 +39775,125 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-add-element-menu-head-copy small {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 10.4px;
+  font-size: 10.8px;
   font-weight: 630;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pulso-add-element-menu-eyebrow {
-  padding: 6px 10px 0;
+.pulso-add-element-menu-close {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.76);
   color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: 760;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pulso-add-element-menu-close:hover,
+.pulso-add-element-menu-close:focus-visible {
+  color: var(--pulso-text);
+  background: color-mix(in srgb, var(--pulso-surface-2) 54%, #ffffff);
+}
+
+.pulso-add-element-menu-guidance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulso-add-element-menu-guidance span {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-info-border) 44%, var(--xls-border));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pulso-info-bg) 34%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-text-soft) 86%, var(--pulso-info-fg));
+  font-size: 10.6px;
+  font-weight: 630;
+  line-height: 1.32;
+}
+
+.pulso-add-element-menu-guidance strong {
+  color: var(--pulso-text);
+  font-weight: 820;
+}
+
+.pulso-add-element-menu-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1px 2px 2px;
 }
 
 .pulso-add-element-menu-group {
   display: grid;
   min-width: 0;
-  gap: 3px;
-  padding: 6px;
+  align-content: start;
+  gap: 7px;
+  padding: 9px;
   border: 1px solid color-mix(in srgb, var(--xls-border) 70%, transparent);
-  border-radius: 12px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--xls-content-soft) 84%, #ffffff));
 }
 
-.pulso-add-element-menu-head + .pulso-add-element-menu-group {
+.pulso-add-element-menu-group.is-primary {
+  grid-column: 1 / -1;
   border-color: color-mix(in srgb, var(--pulso-primary-border) 46%, var(--xls-border));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), color-mix(in srgb, var(--pulso-primary-soft) 36%, #ffffff));
 }
 
+.pulso-add-element-menu-group-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.pulso-add-element-menu-group.is-primary .pulso-add-element-menu-group-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1180px) {
+  .pulso-add-element-menu-body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .pulso-add-element-menu-group-title {
-  padding: 2px 5px 4px;
+  padding: 1px 3px 0;
   color: #667386;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .pulso-add-element-menu-item {
   width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.6);
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 74%, transparent);
+  background: rgba(255, 255, 255, 0.68);
+  min-width: 0;
   text-align: left;
+  white-space: normal;
   cursor: pointer;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -39825,12 +39910,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-add-element-menu-icon {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-primary) 8%, white);
   color: var(--pulso-primary);
   flex-shrink: 0;
@@ -39841,17 +39926,40 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   min-width: 0;
   flex-direction: column;
   gap: 2px;
+  overflow: hidden;
 }
 
 .pulso-add-element-menu-copy strong {
-  font-size: 13px;
+  display: block;
+  font-size: 12.8px;
   color: var(--pulso-text);
+  line-height: 1.15;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .pulso-add-element-menu-copy span {
-  font-size: 11px;
+  display: block;
+  font-size: 10.5px;
   color: var(--pulso-text-soft);
-  line-height: 1.42;
+  font-weight: 620;
+  line-height: 1.34;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  .pulso-add-element-menu {
+    inset: 52px 16px auto 16px;
+    width: auto;
+    height: min(720px, calc(100dvh - 72px));
+  }
+
+  .pulso-add-element-menu-guidance,
+  .pulso-add-element-menu-body,
+  .pulso-add-element-menu-group.is-primary .pulso-add-element-menu-group-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .pulso-xlsform-frame .pulso-inspector,

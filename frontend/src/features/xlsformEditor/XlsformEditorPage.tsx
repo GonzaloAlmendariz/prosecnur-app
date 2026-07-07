@@ -152,15 +152,6 @@ import type {
 } from "./logic";
 import { LogicCanvas } from "./canvas-graph/LogicCanvas";
 
-type FloatingMenuAnchor = {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-  width: number;
-  height: number;
-};
-
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
  * preguntas reales (question/note/calculate). Si la fila es una sección o
@@ -504,7 +495,6 @@ export default function XlsformEditorPage() {
   const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
   const addMenuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [addMenuAnchor, setAddMenuAnchor] = useState<FloatingMenuAnchor | null>(null);
   // Notificaciones efímeras (importé X, exporté Y) — reemplazan al setStatus
   // sticky para mensajes de operaciones que cierran su ciclo en un evento.
   const toasts = useToastDeck();
@@ -568,30 +558,6 @@ export default function XlsformEditorPage() {
     workbookRef.current = workbook;
   }, [workbook]);
 
-  const syncAddMenuAnchor = useCallback(() => {
-    const rect = addMenuButtonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setAddMenuAnchor({
-      top: rect.top,
-      right: rect.right,
-      bottom: rect.bottom,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!showAddMenu) return;
-    syncAddMenuAnchor();
-    window.addEventListener("resize", syncAddMenuAnchor);
-    window.addEventListener("scroll", syncAddMenuAnchor, true);
-    return () => {
-      window.removeEventListener("resize", syncAddMenuAnchor);
-      window.removeEventListener("scroll", syncAddMenuAnchor, true);
-    };
-  }, [showAddMenu, syncAddMenuAnchor]);
-
   // Programar autosave después de cada edición. El scheduler debouncea 2s
   // — si el usuario sigue editando, se posterga; si se queda quieto, escribe.
   // Pasamos el `projectScope` para que el snapshot se guarde en el bucket
@@ -639,7 +605,6 @@ export default function XlsformEditorPage() {
       if (key === "n" && !event.shiftKey) {
         if (!workbookRef.current) return;
         event.preventDefault();
-        syncAddMenuAnchor();
         setShowAddMenu(true);
         return;
       }
@@ -656,7 +621,7 @@ export default function XlsformEditorPage() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [syncAddMenuAnchor]);
+  }, []);
 
   const xlsformIndex = useMemo(
     () => (workbook ? buildXlsformIndex(workbook) : null),
@@ -2027,7 +1992,7 @@ export default function XlsformEditorPage() {
     {
       key: "integer",
       label: "Número entero",
-      hint: "Edad, cantidades, puntajes u otros valores sin decimales.",
+      hint: "Edades, cantidades o puntajes sin decimales.",
       icon: addMenuIcon("integer"),
       action: () => addQuestion("integer"),
       group: "capture",
@@ -2043,7 +2008,7 @@ export default function XlsformEditorPage() {
     {
       key: "date",
       label: "Fecha",
-      hint: "Fechas de atención, nacimiento, visita o eventos.",
+      hint: "Fechas de visita, nacimiento o eventos.",
       icon: addMenuIcon("date"),
       action: () => addQuestion("date"),
       group: "capture",
@@ -2075,7 +2040,7 @@ export default function XlsformEditorPage() {
     {
       key: "audio",
       label: "Audio",
-      hint: "Grabación de voz o sonido en campo.",
+      hint: "Grabación de voz o sonido.",
       icon: addMenuIcon("audio"),
       action: () => addQuestion("audio"),
       group: "evidence",
@@ -2107,7 +2072,7 @@ export default function XlsformEditorPage() {
     {
       key: "geopoint",
       label: "Punto GPS",
-      hint: "Ubicación puntual del levantamiento.",
+      hint: "Ubicación puntual.",
       icon: addMenuIcon("geopoint"),
       action: () => addQuestion("geopoint"),
       group: "evidence",
@@ -2115,7 +2080,7 @@ export default function XlsformEditorPage() {
     {
       key: "note",
       label: "Texto informativo",
-      hint: "Instrucciones o mensajes que no guardan respuesta.",
+      hint: "Instrucciones o mensajes sin respuesta.",
       icon: addMenuIcon("note"),
       action: () => addQuestion("note"),
       group: "logic",
@@ -2123,7 +2088,7 @@ export default function XlsformEditorPage() {
     {
       key: "calculate",
       label: "Cálculo",
-      hint: "Variable automática basada en otras respuestas.",
+      hint: "Variable automática basada en respuestas.",
       icon: addMenuIcon("calculate"),
       action: () => addQuestion("calculate"),
       group: "logic",
@@ -2131,7 +2096,7 @@ export default function XlsformEditorPage() {
     {
       key: "section",
       label: "Sección",
-      hint: "Agrupa preguntas y puede tener una condición propia.",
+      hint: "Agrupa preguntas y aplica lógica común.",
       icon: addMenuIcon("begin_group"),
       action: addSection,
       group: "logic",
@@ -2409,10 +2374,7 @@ export default function XlsformEditorPage() {
                           ref={addMenuButtonRef}
                           type="button"
                           className="pulso-icon"
-                          onClick={() => {
-                            syncAddMenuAnchor();
-                            setShowAddMenu((value) => !value);
-                          }}
+                          onClick={() => setShowAddMenu((value) => !value)}
                           title="Añadir pieza (Cmd/Ctrl+N)"
                         >
                           <Plus size={14} />
@@ -2420,7 +2382,6 @@ export default function XlsformEditorPage() {
                         {showAddMenu && (
                           <AddElementMenu
                             items={addMenuItems}
-                            anchor={addMenuAnchor}
                             anchorElement={addMenuButtonRef.current}
                             onClose={() => setShowAddMenu(false)}
                           />
@@ -2728,12 +2689,10 @@ export default function XlsformEditorPage() {
 
 function AddElementMenu({
   items,
-  anchor,
   anchorElement,
   onClose,
 }: {
   items: AddMenuItem[];
-  anchor: FloatingMenuAnchor | null;
   anchorElement: HTMLElement | null;
   onClose: () => void;
 }) {
@@ -2792,64 +2751,93 @@ function AddElementMenu({
   }, [anchorElement, onClose]);
 
   const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
-  const menuWidth = Math.min(372, viewportWidth - 32);
-  const menuLeft = anchor
-    ? Math.min(
-        Math.max(16, Math.round(anchor.right - menuWidth)),
-        Math.max(16, viewportWidth - menuWidth - 16),
-      )
-    : 16;
-  const style = anchor
-    ? ({
-        "--pulso-add-menu-top": `${Math.round(anchor.bottom + 8)}px`,
-        "--pulso-add-menu-left": `${menuLeft}px`,
-        "--pulso-add-menu-width": `${menuWidth}px`,
-        "--pulso-add-menu-max-height": `min(640px, calc(100dvh - ${Math.round(anchor.bottom + 24)}px))`,
-      } as CSSProperties)
-    : undefined;
+  const viewportHeight = typeof window === "undefined" ? 800 : window.innerHeight;
+  const menuWidth = Math.min(860, viewportWidth - 32);
+  const menuHeight = Math.min(680, viewportHeight - 88);
+  const style = {
+    "--pulso-add-menu-width": `${menuWidth}px`,
+    "--pulso-add-menu-height": `${menuHeight}px`,
+  } as CSSProperties;
 
   return createPortal((
-    <div ref={menuRef} className="pulso-add-element-menu" style={style} role="menu" aria-label="Añadir pieza al formulario">
+    <>
+    <button
+      type="button"
+      className="pulso-add-element-menu-scrim"
+      aria-label="Cerrar selector de piezas"
+      onClick={() => {
+        onClose();
+        anchorElement?.focus();
+      }}
+    />
+    <div
+      ref={menuRef}
+      className="pulso-add-element-menu"
+      style={style}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pulso-add-element-menu-title"
+    >
       <div className="pulso-add-element-menu-head">
         <span className="pulso-add-element-menu-mark" aria-hidden="true">
           <ListChecks size={14} />
         </span>
         <span className="pulso-add-element-menu-head-copy">
-          <strong>Añadir pieza</strong>
-          <small>Catálogos, captura, evidencia y lógica.</small>
+          <strong id="pulso-add-element-menu-title">Añadir pieza al formulario</strong>
+          <small>Elige el bloque que vas a construir; Enter aplica la opción enfocada.</small>
         </span>
+        <button
+          type="button"
+          className="pulso-add-element-menu-close"
+          onClick={() => {
+            onClose();
+            anchorElement?.focus();
+          }}
+          aria-label="Cerrar selector de piezas"
+          title="Cerrar"
+        >
+          <X size={15} />
+        </button>
       </div>
-      {groups.map((group, groupIndex) => {
-        const groupItems = items.filter((item) => item.group === group.id);
-        if (!groupItems.length) return null;
-        return (
-          <div key={group.id} className="pulso-add-element-menu-group">
-            <span className="pulso-add-element-menu-group-title">{group.label}</span>
-            {groupItems.map((item, itemIndex) => (
-              <button
-                key={item.key}
-                type="button"
-                role="menuitem"
-                autoFocus={groupIndex === 0 && itemIndex === 0}
-                onClick={() => {
-                  item.action();
-                  onClose();
-                }}
-                className="pulso-add-element-menu-item"
-              >
-                <span className="pulso-add-element-menu-icon">
-                  {item.icon}
-                </span>
-                <span className="pulso-add-element-menu-copy">
-                  <strong>{item.label}</strong>
-                  <span>{item.hint}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        );
-      })}
+      <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
+        <span><strong>Recomendado</strong> empieza por una selección Kobo cuando usarás catálogo.</span>
+        <span><strong>Atajo</strong> Cmd/Ctrl+N abre esta sheet sin crear campos por defecto.</span>
+      </div>
+      <div className="pulso-add-element-menu-body">
+        {groups.map((group, groupIndex) => {
+          const groupItems = items.filter((item) => item.group === group.id);
+          if (!groupItems.length) return null;
+          return (
+            <div key={group.id} className={`pulso-add-element-menu-group${group.id === "choices" ? " is-primary" : ""}`}>
+              <span className="pulso-add-element-menu-group-title">{group.label}</span>
+              <div className="pulso-add-element-menu-group-grid">
+                {groupItems.map((item, itemIndex) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    autoFocus={groupIndex === 0 && itemIndex === 0}
+                    onClick={() => {
+                      item.action();
+                      onClose();
+                    }}
+                    className="pulso-add-element-menu-item"
+                  >
+                    <span className="pulso-add-element-menu-icon">
+                      {item.icon}
+                    </span>
+                    <span className="pulso-add-element-menu-copy">
+                      <strong>{item.label}</strong>
+                      <span>{item.hint}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
+    </>
   ), document.body);
 }
 
