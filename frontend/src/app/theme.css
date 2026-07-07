@@ -37557,6 +37557,72 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   line-height: 1.25;
 }
 
+.pulso-focus-presentation-guide {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-info-fg) 18%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-info-bg) 32%, #ffffff);
+}
+
+.pulso-focus-presentation-guide-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-info-fg) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-info-bg) 68%, #ffffff);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-focus-presentation-guide > div:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-focus-presentation-guide strong {
+  color: #1f2a3d;
+  font-size: 12.5px;
+  font-weight: 780;
+  line-height: 1.3;
+}
+
+.pulso-focus-presentation-guide p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-focus-presentation-badges {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.pulso-focus-presentation-badges span {
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-info-fg) 18%, var(--xls-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-info-fg);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 780;
+  overflow-wrap: anywhere;
+}
+
 .pulso-focus-data-note,
 .pulso-focus-soft-empty {
   padding: 10px;

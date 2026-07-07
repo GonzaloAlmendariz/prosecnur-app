@@ -1599,12 +1599,107 @@ function PresentationTab({
           />
         </InspectorField>
       </InspectorBlock>
-      <div className="pulso-focus-soft-empty">
+      <PresentationGuidance node={node} />
+    </div>
+  );
+}
+
+function PresentationGuidance({ node }: { node: BuilderNode }) {
+  const base = node.typeInfo.base;
+  const guide = presentationGuideFor(base);
+
+  return (
+    <div className="pulso-focus-presentation-guide">
+      <div className="pulso-focus-presentation-guide-icon" aria-hidden="true">
         <Info size={14} />
-        <span>La multimedia no se configura desde este panel todavía; si el XLSX la trae, Prosecnur la conserva al exportar.</span>
+      </div>
+      <div>
+        <span className="pulso-section-eyebrow">{guide.kicker}</span>
+        <strong>{guide.title}</strong>
+        <p>{guide.body}</p>
+        {guide.badges.length > 0 && (
+          <div className="pulso-focus-presentation-badges">
+            {guide.badges.map((badge) => (
+              <span key={badge}>{badge}</span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function presentationGuideFor(baseType: string): {
+  kicker: string;
+  title: string;
+  body: string;
+  badges: string[];
+} {
+  switch (baseType) {
+    case "image":
+      return {
+        kicker: "Evidencia de campo",
+        title: "Foto, dibujo o anotación",
+        body: "Usa la apariencia para pedir foto normal, dibujo o anotación sobre imagen. La respuesta se guarda como adjunto del envío.",
+        badges: ["image", "draw", "annotate"],
+      };
+    case "audio":
+      return {
+        kicker: "Evidencia de campo",
+        title: "Registro de audio",
+        body: "Este control captura una grabación o archivo de audio. El texto de la pregunta debe explicar qué evidencia se espera.",
+        badges: ["audio", "media"],
+      };
+    case "video":
+      return {
+        kicker: "Evidencia de campo",
+        title: "Registro de video",
+        body: "Este control captura video como adjunto. Mantén la consigna breve para que el encuestador sepa qué registrar.",
+        badges: ["video", "media"],
+      };
+    case "file":
+      return {
+        kicker: "Evidencia de campo",
+        title: "Archivo adjunto",
+        body: "Sirve para solicitar un documento u otro respaldo. Si el XLSForm trae columnas media::, Prosecnur las conserva al exportar.",
+        badges: ["file", "media"],
+      };
+    case "barcode":
+      return {
+        kicker: "Captura rápida",
+        title: "Código de barras o QR",
+        body: "El encuestador escanea un código y Kobo guarda el valor leído. Es útil para formularios con identificadores físicos.",
+        badges: ["barcode", "qr"],
+      };
+    case "geopoint":
+      return {
+        kicker: "Ubicación",
+        title: "Punto GPS",
+        body: "Captura una coordenada puntual. Para recorridos o áreas, cambia el tipo a geotrace o geoshape desde el selector de tipo.",
+        badges: ["geopoint", "gps"],
+      };
+    case "geotrace":
+      return {
+        kicker: "Ubicación",
+        title: "Recorrido GPS",
+        body: "Captura una línea o recorrido. Úsalo cuando el levantamiento necesita trazar desplazamientos, no solo un punto.",
+        badges: ["geotrace", "gps"],
+      };
+    case "geoshape":
+      return {
+        kicker: "Ubicación",
+        title: "Área GPS",
+        body: "Captura un polígono o área. Es adecuado para delimitar zonas, parcelas o coberturas en campo.",
+        badges: ["geoshape", "gps"],
+      };
+    default:
+      return {
+        kicker: "Presentación",
+        title: `${typeLabel(baseType)} en Collect`,
+        body: "La apariencia ajusta cómo se muestra el control sin cambiar la columna de datos. Si el XLSX trae multimedia asociada, Prosecnur la conserva al exportar.",
+        badges: baseType ? [baseType] : [],
+      };
+  }
 }
 
 function DataTab({
