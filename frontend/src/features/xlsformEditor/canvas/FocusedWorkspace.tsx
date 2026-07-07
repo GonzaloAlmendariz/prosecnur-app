@@ -1595,10 +1595,15 @@ function CalculationRecipePanel({
 }) {
   const variables = scope.variables.filter((variable) => variable.name.trim().length > 0);
   const multiVariables = variables.filter((variable) => variable.baseType === "select_multiple");
+  const numericVariables = variables.filter(
+    (variable) => variable.baseType === "integer" || variable.baseType === "decimal",
+  );
   const variableOptionsKey = variables.map((variable) => variable.name).join("\u0000");
   const multiOptionsKey = multiVariables.map((variable) => variable.name).join("\u0000");
+  const numericOptionsKey = numericVariables.map((variable) => variable.name).join("\u0000");
   const [copyVariable, setCopyVariable] = useState(variables[0]?.name ?? "");
   const [multiVariable, setMultiVariable] = useState(multiVariables[0]?.name ?? "");
+  const [numericVariable, setNumericVariable] = useState(numericVariables[0]?.name ?? "");
   const hasExpression = expression.trim().length > 0;
 
   useEffect(() => {
@@ -1614,6 +1619,13 @@ function CalculationRecipePanel({
       return multiVariables[0]?.name ?? "";
     });
   }, [multiOptionsKey]);
+
+  useEffect(() => {
+    setNumericVariable((current) => {
+      if (current && numericVariables.some((variable) => variable.name === current)) return current;
+      return numericVariables[0]?.name ?? "";
+    });
+  }, [numericOptionsKey]);
 
   const applyFormula = (formula: string) => onFieldChange("calculation", formula);
   if (hasExpression) return null;
@@ -1692,6 +1704,27 @@ function CalculationRecipePanel({
               </select>
               <button type="button" onClick={() => multiVariable && applyFormula(`count-selected(\${${multiVariable}})`)}>
                 Contar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {numericVariables.length > 0 && (
+          <div className="pulso-focus-calculation-recipe is-builder">
+            <span>
+              <strong>Convertir años a meses</strong>
+              <small>Multiplica una edad, antigüedad o duración numérica por 12.</small>
+            </span>
+            <div className="pulso-focus-calculation-recipe-row">
+              <select value={numericVariable} onChange={(event) => setNumericVariable(event.target.value)}>
+                {numericVariables.map((variable) => (
+                  <option key={variable.name} value={variable.name}>
+                    {variableDisplayLabel(variable)}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => numericVariable && applyFormula(`\${${numericVariable}} * 12`)}>
+                Aplicar
               </button>
             </div>
           </div>

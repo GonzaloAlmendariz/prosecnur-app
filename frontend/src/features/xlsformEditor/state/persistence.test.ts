@@ -4,6 +4,7 @@ import type { XlsformEditorWorkbook } from "../types";
 import {
   loadSnapshot,
   reconcileSnapshotWithBackend,
+  saveSnapshot,
   type PersistedSnapshot,
   workbookHasSurveyMonkeyLogic,
 } from "./persistence";
@@ -201,6 +202,38 @@ describe("XLSForm editor snapshot loading", () => {
     expect(out?.workbook.surveyMonkeyLogic?.advanced_rules).toEqual([]);
     expect(out?.workbook.surveyMonkeyLogic?.visual_rules[0]?.choices[0]?.action).toEqual({ kind: "none" });
     expect(out?.workbook.surveyMonkeyLogic?.choice_order_overrides.Q1).toEqual([]);
+  });
+
+  test("normaliza metadata no textual de snapshots recuperables", () => {
+    vi.stubGlobal("localStorage", makeStorage({
+      "pulso.xlsformEditor.workbook.v2.no-project": JSON.stringify(workbook("restaurable")),
+      "pulso.xlsformEditor.meta.v2.no-project": JSON.stringify({
+        savedAt: 456,
+        sourceName: {},
+        sourceKind: {},
+      }),
+    }));
+    vi.stubGlobal("sessionStorage", makeStorage());
+
+    const out = loadSnapshot();
+
+    expect(out?.sourceName).toBeNull();
+    expect(out?.sourceKind).toBeNull();
+    expect(out?.savedAt).toBe(456);
+  });
+
+  test("guarda metadata no textual como null", () => {
+    const storage = makeStorage();
+    vi.stubGlobal("localStorage", storage);
+
+    const savedAt = saveSnapshot(workbook("guardable"), { sourceName: {} as never, sourceKind: {} as never });
+    const rawMeta = storage.getItem("pulso.xlsformEditor.meta.v2.no-project");
+
+    expect(savedAt).not.toBeNull();
+    expect(JSON.parse(rawMeta ?? "{}")).toMatchObject({
+      sourceName: null,
+      sourceKind: null,
+    });
   });
 
   test("ignora snapshots con hojas requeridas sin columnas", () => {

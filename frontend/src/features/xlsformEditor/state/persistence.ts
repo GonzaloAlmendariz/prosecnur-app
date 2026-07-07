@@ -85,6 +85,14 @@ function stringArrayOrEmpty(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => (item == null ? "" : String(item))) : [];
 }
 
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function savedAtOrNow(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : Date.now();
+}
+
 function cloneSurveyMonkeyLogic(logic: XlsformEditorWorkbook["surveyMonkeyLogic"] | unknown): SurveyMonkeyLogic | null {
   if (!isPlainRecord(logic)) return null;
   const advanced = arrayOrEmpty<Record<string, unknown>>(logic.advanced_rules ?? logic.rules)
@@ -190,8 +198,8 @@ export function saveSnapshot(
       metaKey(scope),
       JSON.stringify({
         savedAt,
-        sourceName: meta.sourceName,
-        sourceKind: meta.sourceKind,
+        sourceName: nullableString(meta.sourceName),
+        sourceKind: nullableString(meta.sourceKind),
       }),
     );
     return savedAt;
@@ -238,14 +246,14 @@ export function loadSnapshot(scope: ProjectScope = null): PersistedSnapshot | nu
     if (!wbRaw) return null;
     const workbook = normalizeWorkbookSnapshot(JSON.parse(wbRaw));
     const meta = metaRaw
-      ? (JSON.parse(metaRaw) as { savedAt: number; sourceName: string | null; sourceKind: string | null })
+      ? JSON.parse(metaRaw) as Record<string, unknown>
       : { savedAt: Date.now(), sourceName: null, sourceKind: null };
     if (!workbook) return null;
     return {
       workbook,
-      savedAt: meta.savedAt ?? Date.now(),
-      sourceName: meta.sourceName ?? null,
-      sourceKind: meta.sourceKind ?? null,
+      savedAt: savedAtOrNow(meta.savedAt),
+      sourceName: nullableString(meta.sourceName),
+      sourceKind: nullableString(meta.sourceKind),
     };
   } catch {
     return null;
@@ -299,7 +307,7 @@ export async function syncSnapshotToBackend(
   try {
     await apiXlsformEditorStateSave({
       workbook,
-      source: { kind: meta.sourceKind, original_name: meta.sourceName },
+      source: { kind: nullableString(meta.sourceKind), original_name: nullableString(meta.sourceName) },
       hallazgos: meta.hallazgos ?? [],
       saved_at: Date.now(),
     });
@@ -318,9 +326,9 @@ export async function loadSnapshotFromBackend(): Promise<PersistedSnapshot | nul
     if (!workbook) return null;
     return {
       workbook,
-      savedAt: st.saved_at ?? Date.now(),
-      sourceName: st.source?.original_name ?? null,
-      sourceKind: st.source?.kind ?? null,
+      savedAt: savedAtOrNow(st.saved_at),
+      sourceName: nullableString(st.source?.original_name),
+      sourceKind: nullableString(st.source?.kind),
       hallazgos: st.hallazgos ?? [],
     };
   } catch {
