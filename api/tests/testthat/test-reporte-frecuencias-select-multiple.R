@@ -229,3 +229,79 @@ test_that("frecuencias de Analitica anexan select_multiple faltantes por base", 
   expect_false("sexo" %in% vars)
   expect_true("redes" %in% names(out))
 })
+
+test_that("frecuencias no colapsan choices con label vacio", {
+  data <- data.frame(
+    p26 = as.character(c(1:10, 5)),
+    stringsAsFactors = FALSE
+  )
+
+  orders_list <- list(
+    p26 = list(
+      names = as.character(1:10),
+      labels = c("Extremo izquierdo", rep("", 8), "Extremo derecho"),
+      label = "Escala 1 a 10"
+    )
+  )
+
+  tab <- freq_table_spss(
+    data = data,
+    var = "p26",
+    survey = data.frame(
+      name = "p26",
+      type = "select_one escala",
+      stringsAsFactors = FALSE
+    ),
+    orders_list = orders_list,
+    mostrar_todo = TRUE
+  )
+
+  body <- tab[tab$Opciones != "Total", , drop = FALSE]
+  expect_equal(body$Opciones, as.character(1:10))
+  expect_equal(body$n, c(1, 1, 1, 1, 2, 1, 1, 1, 1, 1))
+  expect_false(any(is.na(body$Opciones) | !nzchar(trimws(body$Opciones))))
+})
+
+test_that("frecuencias arman orden desde choices aunque list_name este solo en type", {
+  survey <- data.frame(
+    name = "p26",
+    type = "select_one escala",
+    label = "Escala 1 a 10",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = "escala",
+    name = as.character(1:10),
+    label = c("Extremo izquierdo", rep(NA_character_, 8), "Extremo derecho"),
+    stringsAsFactors = FALSE
+  )
+
+  orders <- prosecnurapp:::.freq_augment_orders_list_from_choices(
+    orders_list = NULL,
+    survey = survey,
+    choices = choices
+  )
+
+  expect_true("p26" %in% names(orders))
+  expect_equal(orders$p26$labels, as.character(1:10))
+})
+
+test_that("frecuencias conservan labels en listas categoricas cortas", {
+  orders <- prosecnurapp:::.freq_augment_orders_list_from_choices(
+    orders_list = NULL,
+    survey = data.frame(
+      name = "sexo",
+      type = "select_one sexo",
+      label = "Sexo",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "sexo",
+      name = c("1", "2"),
+      label = c("Hombre", "Mujer"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  expect_equal(orders$sexo$labels, c("Hombre", "Mujer"))
+})
