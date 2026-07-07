@@ -37156,6 +37156,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-config-pane {
   display: flex;
   flex-direction: column;
+  scroll-padding-top: 64px;
 }
 
 .pulso-focus-tabs {
@@ -37181,6 +37182,7 @@ button.pulso-focus-calculation-recipe {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  scroll-padding-top: 64px;
   padding: 12px;
 }
 
@@ -38163,11 +38165,60 @@ button.pulso-focus-calculation-recipe {
   background: color-mix(in srgb, var(--pulso-success-bg) 34%, #ffffff);
 }
 
+.pulso-focus-required-message-assistant {
+  gap: 9px;
+  scroll-margin-top: 72px;
+  padding: 10px;
+  border-color: color-mix(in srgb, var(--pulso-primary) 17%, var(--xls-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-required-message-assistant.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 20%, var(--xls-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 235, 0.74)),
+    color-mix(in srgb, var(--pulso-warn-bg) 28%, #ffffff);
+}
+
 .pulso-focus-message-presets-head {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 2px;
+}
+
+.pulso-focus-required-message-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.pulso-focus-required-message-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-required-message-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-required-message-assistant.is-warning .pulso-focus-required-message-icon {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 78%, #253149);
 }
 
 .pulso-focus-message-presets-head strong {
@@ -38182,6 +38233,42 @@ button.pulso-focus-calculation-recipe {
   font-size: 11px;
   font-weight: 640;
   line-height: 1.35;
+}
+
+.pulso-focus-required-message-checks {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-focus-required-message-checks span {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 24px;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--xls-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #667386;
+  font-size: 10.4px;
+  font-weight: 740;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pulso-focus-required-message-checks span.is-ok {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 48%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-success-fg) 76%, #253149);
+}
+
+.pulso-focus-required-message-checks span.is-pending {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 16%, var(--xls-border));
+  background: rgba(255, 255, 255, 0.76);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 72%, #566172);
 }
 
 .pulso-focus-message-preset-grid {
@@ -38259,6 +38346,56 @@ button.pulso-focus-calculation-recipe {
   font-style: normal;
   font-weight: 720;
   line-height: 1.25;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  padding: 7px;
+  border-color: color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(178px, 100%), 1fr));
+  gap: 7px;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-icon {
+  width: 22px;
+  height: 22px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-copy {
+  gap: 4px;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-copy small {
+  display: none;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-copy em {
+  color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
+}
+
+.pulso-focus-required-message-alternatives {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-focus-required-message-alternatives summary {
+  cursor: pointer;
+  color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
+  font-size: 11.2px;
+  font-weight: 780;
+  line-height: 1.3;
+}
+
+.pulso-focus-required-message-alternatives[open] summary {
+  margin-bottom: 8px;
 }
 
 .pulso-focus-repeat-panel {
