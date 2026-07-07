@@ -3312,6 +3312,9 @@ function DataTab({
   const hasTechnicalOverrides = Boolean(
     node.read_only?.trim() || node.parameters?.trim() || node.paperOnly?.trim(),
   );
+  const selectGuide = isSelect
+    ? selectDataGuideFor(baseType, listName, catalogInfo, usageCount)
+    : [];
 
   return (
     <div className="pulso-focus-tab-panel">
@@ -3346,6 +3349,22 @@ function DataTab({
             salvo que estés corrigiendo una plantilla importada.
           </span>
         </div>
+        {selectGuide.length > 0 && (
+          <div className="pulso-focus-select-data-guide" aria-label="Cómo se guardan las selecciones">
+            <div className="pulso-focus-select-data-guide-head">
+              <ListChecks size={14} />
+              <strong>Cómo se guarda esta selección</strong>
+            </div>
+            <div className="pulso-focus-select-data-guide-grid">
+              {selectGuide.map((item) => (
+                <span key={item.title}>
+                  <strong>{item.title}</strong>
+                  <em>{item.detail}</em>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <InspectorBlock>
@@ -3482,6 +3501,39 @@ function DataTab({
       )}
     </div>
   );
+}
+
+function selectDataGuideFor(
+  baseType: string,
+  listName: string,
+  catalogInfo: CatalogInfo | undefined,
+  usageCount: number,
+): Array<{ title: string; detail: string }> {
+  const isMulti = baseType === "select_multiple";
+  const choicesCount = catalogInfo?.choicesCount ?? 0;
+  const listDetail = listName
+    ? choicesCount > 0
+      ? `${choicesCount} ${choicesCount === 1 ? "opción" : "opciones"} en ${listName}.`
+      : `Lista ${listName} preparada, aún sin opciones reales.`
+    : "Sin lista vinculada todavía.";
+  return [
+    {
+      title: isMulti ? "Guarda varias marcas" : "Guarda una marca",
+      detail: isMulti
+        ? "Kobo guarda los códigos elegidos en la misma columna, separados por espacios."
+        : "Kobo guarda un solo código de opción en esta columna.",
+    },
+    {
+      title: "Lista de opciones",
+      detail: listDetail,
+    },
+    {
+      title: usageCount > 1 ? "Lista reutilizada" : "Lista propia",
+      detail: usageCount > 1
+        ? `La comparten ${usageCount} preguntas; cambia códigos con cuidado.`
+        : "Puedes ajustar opciones sin afectar otras preguntas.",
+    },
+  ];
 }
 
 function scalarText(value: unknown): string {
