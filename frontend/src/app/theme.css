@@ -27611,7 +27611,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   width: 100%;
   font-size: 12px;
   font-weight: 720;
-  padding: 7px 8px;
+  padding: 6px 8px;
   border-radius: 7px;
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
@@ -27628,15 +27628,69 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   cursor: not-allowed;
   opacity: 0.64;
 }
+.pulso-logic-predicate-current,
+.pulso-logic-predicate-option-main {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pulso-logic-predicate-current {
+  flex: 1 1 auto;
+}
+.pulso-logic-predicate-mark {
+  flex: 0 0 auto;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--pulso-primary) 10%, #ffffff);
+  color: var(--pulso-primary-strong, var(--pulso-primary));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-weight: 860;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.pulso-logic-predicate-copy,
+.pulso-logic-predicate-option-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.pulso-logic-predicate-copy strong,
+.pulso-logic-predicate-option-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 760;
+}
+.pulso-logic-predicate-copy small,
+.pulso-logic-predicate-option-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
 .pulso-logic-predicate-pop {
   position: absolute;
   z-index: 70;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 100%;
+  min-width: max(100%, 240px);
+  max-width: min(420px, calc(100vw - 32px));
+  max-height: 360px;
+  overflow: auto;
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--pulso-primary) 22%, var(--pulso-border));
-  border-radius: 9px;
+  border-radius: 8px;
   background: color-mix(in srgb, #ffffff 96%, var(--pulso-primary) 2%);
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08);
 }
@@ -27663,6 +27717,22 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-logic-predicate-option:hover,
 .pulso-logic-predicate-option.is-active {
   background: color-mix(in srgb, var(--pulso-primary) 11%, #ffffff 89%);
+  color: var(--pulso-primary-strong, var(--pulso-primary));
+}
+.pulso-logic-predicate-option:hover .pulso-logic-predicate-mark,
+.pulso-logic-predicate-option.is-active .pulso-logic-predicate-mark {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--pulso-border));
+}
+.pulso-logic-predicate-check {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 12%, #ffffff);
   color: var(--pulso-primary-strong, var(--pulso-primary));
 }
 
