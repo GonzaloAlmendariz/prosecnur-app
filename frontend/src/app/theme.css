@@ -35080,6 +35080,43 @@ button.pulso-focus-calculation-recipe {
   flex-direction: column;
   gap: 4px;
 }
+.pulso-choices-edit-empty {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-primary) 24%, var(--xls-border, var(--pulso-border)));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.84)),
+    color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: #253149;
+}
+.pulso-choices-edit-empty-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+.pulso-choices-edit-empty strong {
+  display: block;
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.pulso-choices-edit-empty p {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 630;
+  line-height: 1.4;
+}
 .pulso-choice-edit-row {
   display: flex;
   align-items: center;
