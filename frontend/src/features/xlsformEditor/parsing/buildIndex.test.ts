@@ -42,4 +42,44 @@ describe("parseBuilderStructure", () => {
     expect(structure.outline[0]?.mediaAudio).toBe("instruccion.mp3");
     expect(structure.outline[0]?.mediaVideo).toBe("demo.mp4");
   });
+
+  test("distingue una sección vacía de las preguntas que quedan fuera del cierre", () => {
+    const survey: XlsformEditorSheet = {
+      name: "survey",
+      columns: ["type", "name", "label"],
+      rows: [
+        ["begin_group", "hogar", "Datos del hogar"],
+        ["end_group", "", ""],
+        ["text", "nombre", "Nombre"],
+      ],
+    };
+
+    const structure = parseBuilderStructure(survey);
+    const section = structure.sections.get("section-0");
+
+    expect(section?.itemCount).toBe(0);
+    expect(section?.endRowIndex).toBe(1);
+    expect(structure.outline.find((node) => node.name === "nombre")?.sectionId).toBe("root");
+  });
+
+  test("cuenta preguntas dentro cuando el cierre de sección queda después de ellas", () => {
+    const survey: XlsformEditorSheet = {
+      name: "survey",
+      columns: ["type", "name", "label"],
+      rows: [
+        ["begin_group", "hogar", "Datos del hogar"],
+        ["text", "nombre", "Nombre"],
+        ["integer", "edad", "Edad"],
+        ["end_group", "", ""],
+      ],
+    };
+
+    const structure = parseBuilderStructure(survey);
+    const section = structure.sections.get("section-0");
+
+    expect(section?.itemCount).toBe(2);
+    expect(section?.endRowIndex).toBe(3);
+    expect(structure.outline.find((node) => node.name === "nombre")?.sectionId).toBe("section-0");
+    expect(structure.outline.find((node) => node.name === "edad")?.sectionId).toBe("section-0");
+  });
 });

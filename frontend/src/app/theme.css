@@ -19707,7 +19707,7 @@ h1.pulso-page-title {
   text-align: left;
   font-size: 11px;
   font-weight: 760;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
   text-transform: uppercase;
   transition:
     background var(--motion-dur-fast) ease,
@@ -27172,7 +27172,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: #667386;
   font-size: 9.5px;
   font-weight: 780;
-  letter-spacing: 0.42px;
+  letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -27258,7 +27258,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
     .pulso-logic-builder-single
     .pulso-logic-condition-row {
-    grid-template-columns: minmax(170px, 1fr) minmax(116px, 0.52fr) minmax(140px, 0.72fr) 28px;
+    grid-template-columns: minmax(210px, 1.15fr) minmax(120px, 0.5fr) minmax(145px, 0.65fr) 28px;
     align-items: end;
     padding: 10px;
   }
@@ -27288,7 +27288,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   .pulso-xlsform-frame
     .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
     .pulso-logic-condition-row.has-presence {
-    grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.58fr) 28px;
+    grid-template-columns: minmax(250px, 1fr) minmax(150px, 0.58fr) 28px;
   }
 
   .pulso-xlsform-frame
@@ -27305,6 +27305,28 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     grid-column: 4;
     grid-row: 1;
     align-self: end;
+  }
+
+  .pulso-xlsform-frame
+    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
+    .pulso-logic-builder-single
+    .pulso-logic-condition-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.48fr) minmax(220px, 1fr);
+  }
+
+  .pulso-xlsform-frame
+    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
+    .pulso-logic-builder-single
+    .pulso-logic-condition-var {
+    grid-column: 1 / -1;
+  }
+
+  .pulso-xlsform-frame
+    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
+    .pulso-logic-builder-single
+    .pulso-logic-condition-value {
+    grid-column: 2;
   }
 }
 
@@ -34526,6 +34548,42 @@ button.pulso-focus-calculation-recipe {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+.pulso-sheets-guide {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 248, 252, 0.84)),
+    color-mix(in srgb, var(--pulso-primary) 5%, white);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-sheets-guide svg {
+  margin-top: 1px;
+  color: var(--pulso-primary);
+}
+
+.pulso-sheets-guide strong,
+.pulso-sheets-guide span {
+  display: block;
+}
+
+.pulso-sheets-guide strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 760;
+}
+
+.pulso-sheets-guide span {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+}
 .pulso-sheets-newcol {
   display: inline-flex;
   align-items: center;
@@ -34570,6 +34628,11 @@ button.pulso-focus-calculation-recipe {
 .pulso-sheets-btn-danger {
   color: var(--pulso-danger, #dc2626);
 }
+
+.pulso-sheets-advanced-toggle {
+  color: color-mix(in srgb, var(--pulso-primary) 82%, #1f2937 18%);
+}
+
 .pulso-sheets-meta {
   margin-left: auto;
   font-size: 11.5px;
@@ -34611,6 +34674,41 @@ button.pulso-focus-calculation-recipe {
   white-space: nowrap;
   letter-spacing: 0.3px;
 }
+
+.pulso-sheets-column-head {
+  display: inline-flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-sheets-column-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pulso-sheets-column-head small {
+  color: color-mix(in srgb, var(--pulso-text-soft) 76%, white);
+  font-size: 10px;
+  font-weight: 640;
+  text-transform: none;
+}
+
+.pulso-sheets-column-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 15px;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, #b7791f 38%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, #f59e0b 12%, white);
+  color: #9a5b13;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 820;
+}
+
 .pulso-sheets-table tbody td {
   border-bottom: 1px solid var(--pulso-border);
   padding: 4px 6px;
@@ -37271,6 +37369,109 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-fact code {
   font-family: ui-monospace, monospace;
   font-size: 12px;
+}
+
+.pulso-focus-section-boundary {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--xls-border-strong) 64%, #ffffff 36%);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 252, 0.86)),
+    var(--xls-content-soft);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--pulso-primary) 82%, #ffffff 18%),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.pulso-focus-section-boundary-head {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-section-boundary-head strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #1d2a3f;
+  font-size: 13px;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-focus-section-boundary p {
+  margin: 0;
+  color: #5f6b7d;
+  font-size: 12px;
+  line-height: 1.38;
+}
+
+.pulso-focus-section-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pulso-focus-section-boundary-button {
+  appearance: none;
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid var(--xls-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 720;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-focus-section-boundary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--pulso-primary) 44%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: var(--pulso-primary);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-focus-section-boundary-button.is-primary {
+  border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--xls-border));
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-section-boundary-button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+}
+
+.pulso-focus-section-boundary-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #667386;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.pulso-focus-section-boundary-hint span {
+  min-width: 0;
+}
+
+.pulso-focus-section-boundary-hint strong {
+  color: #324157;
+  font-weight: 760;
 }
 
 .pulso-focus-quicklook {

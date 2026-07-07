@@ -60,6 +60,16 @@ export type FocusWorkspaceMode = "focus" | "overview";
 
 type FormCanvasBundle = Omit<FormCanvasProps, "workbook" | "structure" | "selectedRow">;
 
+export type SectionBoundaryState = {
+  itemCount: number;
+  closeLabel: string;
+  closeDetail: string;
+  nextLabel: string | null;
+  lastChildLabel: string | null;
+  canIncludeNext: boolean;
+  canReleaseLast: boolean;
+};
+
 export type FocusedWorkspaceProps = {
   mode: FocusWorkspaceMode;
   onModeChange: (mode: FocusWorkspaceMode) => void;
@@ -76,6 +86,7 @@ export type FocusedWorkspaceProps = {
   conditionalContext?: ConditionalContext | null;
   catalogs: CatalogSummary[];
   logicScope: LogicScope;
+  sectionBoundary: SectionBoundaryState | null;
   canMoveUp: boolean;
   canMoveDown: boolean;
   onMoveUp: () => void;
@@ -90,6 +101,8 @@ export type FocusedWorkspaceProps = {
   onCatalogCreate: () => void;
   onOpenCatalogLens: (focusListName: string) => void;
   onCloneCatalog?: () => void;
+  onIncludeNextInSection: () => void;
+  onReleaseLastFromSection: () => void;
   onSelectRow: (rowIndex: number) => void;
   formCanvasProps: FormCanvasBundle;
 };
@@ -110,6 +123,7 @@ export function FocusedWorkspace({
   conditionalContext,
   catalogs,
   logicScope,
+  sectionBoundary,
   canMoveUp,
   canMoveDown,
   onMoveUp,
@@ -124,6 +138,8 @@ export function FocusedWorkspace({
   onCatalogCreate,
   onOpenCatalogLens,
   onCloneCatalog,
+  onIncludeNextInSection,
+  onReleaseLastFromSection,
   onSelectRow,
   formCanvasProps,
 }: FocusedWorkspaceProps) {
@@ -234,6 +250,7 @@ export function FocusedWorkspace({
             catalogInfo={catalogInfo}
             conditionalContext={conditionalContext}
             catalogs={catalogs}
+            sectionBoundary={sectionBoundary}
             choiceColumns={choiceFilterColumnsFromWorkbook(workbook)}
             logicScope={logicScope}
             onFieldChange={onFieldChange}
@@ -244,6 +261,8 @@ export function FocusedWorkspace({
             onCatalogCreate={onCatalogCreate}
             onOpenCatalogLens={onOpenCatalogLens}
             onCloneCatalog={onCloneCatalog}
+            onIncludeNextInSection={onIncludeNextInSection}
+            onReleaseLastFromSection={onReleaseLastFromSection}
             onSelectRow={onSelectRow}
             formCanvasProps={formCanvasProps}
           />
@@ -432,6 +451,7 @@ function FocusedSurveyWorkspace({
   catalogInfo,
   conditionalContext,
   catalogs,
+  sectionBoundary,
   choiceColumns,
   logicScope,
   onFieldChange,
@@ -442,6 +462,8 @@ function FocusedSurveyWorkspace({
   onCatalogCreate,
   onOpenCatalogLens,
   onCloneCatalog,
+  onIncludeNextInSection,
+  onReleaseLastFromSection,
   onSelectRow,
   formCanvasProps,
 }: {
@@ -454,6 +476,7 @@ function FocusedSurveyWorkspace({
   catalogInfo?: CatalogInfo;
   conditionalContext?: ConditionalContext | null;
   catalogs: CatalogSummary[];
+  sectionBoundary: SectionBoundaryState | null;
   choiceColumns: string[];
   logicScope: LogicScope;
   onFieldChange: (field: string, value: string) => void;
@@ -464,6 +487,8 @@ function FocusedSurveyWorkspace({
   onCatalogCreate: () => void;
   onOpenCatalogLens: (focusListName: string) => void;
   onCloneCatalog?: () => void;
+  onIncludeNextInSection: () => void;
+  onReleaseLastFromSection: () => void;
   onSelectRow: (rowIndex: number) => void;
   formCanvasProps: FormCanvasBundle;
 }) {
@@ -500,9 +525,12 @@ function FocusedSurveyWorkspace({
           catalogInfo={catalogInfo}
           conditionalContext={conditionalContext}
           logicScope={logicScope}
+          sectionBoundary={sectionBoundary}
           onFieldChange={onFieldChange}
           onCloneCatalog={onCloneCatalog}
           onOpenCatalogLens={onOpenCatalogLens}
+          onIncludeNextInSection={onIncludeNextInSection}
+          onReleaseLastFromSection={onReleaseLastFromSection}
           onSelectRow={onSelectRow}
           formCanvasProps={formCanvasProps}
         />
@@ -546,6 +574,7 @@ function FocusedSurveyWorkspace({
               catalogUsageCount={catalogUsageCount}
               catalogInfo={catalogInfo}
               conditionalContext={conditionalContext}
+              sectionBoundary={sectionBoundary}
               onTypeChange={onTypeChange}
               onFieldChange={onFieldChange}
               onRequiredChange={onRequiredChange}
@@ -553,6 +582,8 @@ function FocusedSurveyWorkspace({
               onCatalogCreate={onCatalogCreate}
               onOpenCatalogLens={onOpenCatalogLens}
               onCloneCatalog={onCloneCatalog}
+              onIncludeNextInSection={onIncludeNextInSection}
+              onReleaseLastFromSection={onReleaseLastFromSection}
               onSelectRow={onSelectRow}
             />
           )}
@@ -611,9 +642,12 @@ function FocusedPreview({
   catalogInfo,
   conditionalContext,
   logicScope,
+  sectionBoundary,
   onFieldChange,
   onCloneCatalog,
   onOpenCatalogLens,
+  onIncludeNextInSection,
+  onReleaseLastFromSection,
   onSelectRow,
   formCanvasProps,
 }: {
@@ -626,9 +660,12 @@ function FocusedPreview({
   catalogInfo?: CatalogInfo;
   conditionalContext?: ConditionalContext | null;
   logicScope: LogicScope;
+  sectionBoundary: SectionBoundaryState | null;
   onFieldChange: (field: string, value: string) => void;
   onCloneCatalog?: () => void;
   onOpenCatalogLens: (focusListName: string) => void;
+  onIncludeNextInSection: () => void;
+  onReleaseLastFromSection: () => void;
   onSelectRow: (rowIndex: number) => void;
   formCanvasProps: FormCanvasBundle;
 }) {
@@ -654,6 +691,11 @@ function FocusedPreview({
           <FocusFact label="Tipo de bloque" value={node.kind === "repeat" ? "Repetición" : "Sección"} />
           <FocusFact label="Código" value={node.name || "sin código"} code />
         </div>
+        <SectionBoundaryControl
+          boundary={sectionBoundary}
+          onIncludeNext={onIncludeNextInSection}
+          onReleaseLast={onReleaseLastFromSection}
+        />
       </div>
     );
   }
@@ -810,6 +852,71 @@ function FocusQuestionQuicklook({
         })}
       </div>
     </aside>
+  );
+}
+
+function SectionBoundaryControl({
+  boundary,
+  onIncludeNext,
+  onReleaseLast,
+}: {
+  boundary: SectionBoundaryState | null;
+  onIncludeNext: () => void;
+  onReleaseLast: () => void;
+}) {
+  if (!boundary) return null;
+  return (
+    <div className="pulso-focus-section-boundary" aria-label="Alcance del bloque">
+      <div className="pulso-focus-section-boundary-head">
+        <span className="pulso-section-eyebrow">Cierre del bloque</span>
+        <strong>{boundary.closeLabel}</strong>
+      </div>
+      <p>{boundary.closeDetail}</p>
+      <div className="pulso-focus-section-boundary-actions">
+        <button
+          type="button"
+          className="pulso-focus-section-boundary-button is-primary"
+          onClick={onIncludeNext}
+          disabled={!boundary.canIncludeNext}
+          title={
+            boundary.nextLabel
+              ? `Mover el cierre para incluir "${boundary.nextLabel}"`
+              : "No hay una pieza siguiente para incluir"
+          }
+        >
+          <ArrowDown size={13} />
+          <span>Incluir siguiente pieza</span>
+        </button>
+        <button
+          type="button"
+          className="pulso-focus-section-boundary-button"
+          onClick={onReleaseLast}
+          disabled={!boundary.canReleaseLast}
+          title={
+            boundary.lastChildLabel
+              ? `Mover el cierre antes de "${boundary.lastChildLabel}"`
+              : "El bloque no tiene piezas para sacar"
+          }
+        >
+          <ArrowUp size={13} />
+          <span>Sacar última pieza</span>
+        </button>
+      </div>
+      <div className="pulso-focus-section-boundary-hint">
+        {boundary.nextLabel ? (
+          <span>
+            Siguiente fuera del bloque: <strong>{boundary.nextLabel}</strong>
+          </span>
+        ) : (
+          <span>No hay más piezas al mismo nivel para sumar a este bloque.</span>
+        )}
+        {boundary.lastChildLabel && (
+          <span>
+            Última dentro: <strong>{boundary.lastChildLabel}</strong>
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -995,6 +1102,7 @@ function ResponseTab({
   catalogUsageCount,
   catalogInfo,
   conditionalContext,
+  sectionBoundary,
   onTypeChange,
   onFieldChange,
   onRequiredChange,
@@ -1002,6 +1110,8 @@ function ResponseTab({
   onCatalogCreate,
   onOpenCatalogLens,
   onCloneCatalog,
+  onIncludeNextInSection,
+  onReleaseLastFromSection,
   onSelectRow,
 }: {
   node: BuilderNode;
@@ -1011,6 +1121,7 @@ function ResponseTab({
   catalogUsageCount: number;
   catalogInfo?: CatalogInfo;
   conditionalContext?: ConditionalContext | null;
+  sectionBoundary: SectionBoundaryState | null;
   onTypeChange: (next: string) => void;
   onFieldChange: (field: string, value: string) => void;
   onRequiredChange: (checked: boolean) => void;
@@ -1018,6 +1129,8 @@ function ResponseTab({
   onCatalogCreate: () => void;
   onOpenCatalogLens: (focusListName: string) => void;
   onCloneCatalog?: () => void;
+  onIncludeNextInSection: () => void;
+  onReleaseLastFromSection: () => void;
   onSelectRow: (rowIndex: number) => void;
 }) {
   const isSection = node.kind === "section" || node.kind === "repeat";
@@ -1032,6 +1145,11 @@ function ResponseTab({
             <FocusFact label="Contenido directo" value={`${section?.itemCount ?? 0} piezas`} />
             <FocusFact label="Padre" value={section?.parentId && section.parentId !== "root" ? section.parentId : "Formulario"} />
           </div>
+          <SectionBoundaryControl
+            boundary={sectionBoundary}
+            onIncludeNext={onIncludeNextInSection}
+            onReleaseLast={onReleaseLastFromSection}
+          />
         </InspectorBlock>
         {node.kind === "repeat" && (
           <InspectorBlock>

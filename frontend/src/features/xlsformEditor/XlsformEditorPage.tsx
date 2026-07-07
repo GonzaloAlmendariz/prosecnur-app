@@ -96,6 +96,7 @@ import {
   extractChoiceItems,
   getSiblingRows,
   parseBuilderStructure,
+  previewKindLabel,
   resolveInsertionIndex,
 } from "./parsing/buildIndex";
 import { buildDiagnostics } from "./parsing/diagnostics";
@@ -136,6 +137,7 @@ import { applyRowMove } from "./outline/outlineUtils";
 import {
   FocusedWorkspace,
   type FocusWorkspaceMode,
+  type SectionBoundaryState,
 } from "./canvas/FocusedWorkspace";
 import { MoreViewsMenu } from "./shell/MoreViewsMenu";
 import { Coachmarks } from "./shell/Coachmarks";
@@ -431,6 +433,71 @@ function mergeChoiceCodeMaps(
   }
 
   return merged;
+}
+
+function sectionIdForRow(rowIndex: number): string {
+  return `section-${rowIndex}`;
+}
+
+function boundaryNodeLabel(node: BuilderNode | null | undefined): string {
+  if (!node) return "la pieza";
+  return node.label || node.name || previewKindLabel(node);
+}
+
+function findNextSiblingAfterSection(
+  structure: BuilderStructure | null,
+  sectionRowIndex: number,
+): BuilderNode | null {
+  const node = structure?.byRow.get(sectionRowIndex);
+  if (!structure || !node || (node.kind !== "section" && node.kind !== "repeat")) return null;
+  const section = structure.sections.get(sectionIdForRow(sectionRowIndex));
+  const span = structure.spans.get(sectionRowIndex);
+  const end = section?.endRowIndex ?? span?.end ?? sectionRowIndex;
+  return structure.outline.find(
+    (entry) => entry.sectionId === node.sectionId && entry.rowIndex > end,
+  ) ?? null;
+}
+
+function findLastDirectChildInSection(
+  structure: BuilderStructure | null,
+  sectionRowIndex: number,
+): BuilderNode | null {
+  if (!structure) return null;
+  const section = structure.sections.get(sectionIdForRow(sectionRowIndex));
+  const span = structure.spans.get(sectionRowIndex);
+  const end = section?.endRowIndex ?? span?.end ?? sectionRowIndex;
+  const children = structure.outline.filter(
+    (entry) =>
+      entry.sectionId === sectionIdForRow(sectionRowIndex) &&
+      entry.rowIndex > sectionRowIndex &&
+      entry.rowIndex < end,
+  );
+  return children[children.length - 1] ?? null;
+}
+
+function buildSectionBoundaryState(
+  structure: BuilderStructure | null,
+  node: BuilderNode | null,
+): SectionBoundaryState | null {
+  if (!structure || !node || (node.kind !== "section" && node.kind !== "repeat")) return null;
+  const section = structure.sections.get(sectionIdForRow(node.rowIndex));
+  if (!section) return null;
+  const itemCount = section.itemCount;
+  const next = findNextSiblingAfterSection(structure, node.rowIndex);
+  const lastChild = findLastDirectChildInSection(structure, node.rowIndex);
+  return {
+    itemCount,
+    closeLabel: itemCount > 0
+      ? `Cierra después de ${boundaryNodeLabel(lastChild)}`
+      : "Cierra justo después del título",
+    closeDetail: itemCount > 0
+      ? "El cierre técnico del XLSForm queda después de la última pieza incluida. Puedes ajustar el alcance sin entrar a la hoja cruda."
+      : "El bloque está vacío: su cierre técnico queda inmediatamente debajo del título, por eso las piezas siguientes todavía están fuera.",
+    nextLabel: next ? boundaryNodeLabel(next) : null,
+    lastChildLabel: lastChild ? boundaryNodeLabel(lastChild) : null,
+    canIncludeNext: Boolean(next),
+    canReleaseLast: Boolean(lastChild),
+  };
 }
 
 export default function XlsformEditorPage() {
@@ -847,6 +914,10 @@ export default function XlsformEditorPage() {
   const movement = selection?.kind === "survey"
     ? getSiblingRows(structure, selection.rowIndex)
     : { prevRow: null as number | null, nextRow: null as number | null };
+  const sectionBoundary = useMemo(
+    () => buildSectionBoundaryState(structure, selectedNode),
+    [structure, selectedNode],
+  );
 
   // Mapa nombre-de-catálogo → cuántas preguntas lo usan. Se calcula una vez
   // y se pasa al CatalogLibrary para mostrar el badge "usado en N preguntas"
@@ -1763,6 +1834,43 @@ export default function XlsformEditorPage() {
     setSelection({ kind: "survey", rowIndex: nextStart });
   }
 
+  function moveSectionBoundary(rowIndex: number, direction: "include-next" | "release-last") {
+    if (!workbook) return;
+    updateWorkbook((draft) => {
+      const draftStructure = parseBuilderStructure(draft.survey);
+      const section = draftStructure.sections.get(sectionIdForRow(rowIndex));
+      if (!section || section.endRowIndex == null) return;
+
+      const target = direction === "include-next"
+        ? findNextSiblingAfterSection(draftStructure, rowIndex)
+        : findLastDirectChildInSection(draftStructure, rowIndex);
+      if (!target) return;
+
+      const targetSpan = draftStructure.spans.get(target.rowIndex);
+      if (!targetSpan) return;
+
+      const [closingRow] = draft.survey.rows.splice(section.endRowIndex, 1);
+      if (!closingRow) return;
+
+      let insertAt = direction === "include-next"
+        ? targetSpan.end + 1
+        : targetSpan.start;
+      if (section.endRowIndex < insertAt) insertAt -= 1;
+      draft.survey.rows.splice(insertAt, 0, closingRow);
+    });
+    setSelection({ kind: "survey", rowIndex });
+  }
+
+  function includeNextInSelectedSection() {
+    if (!selectedNode || (selectedNode.kind !== "section" && selectedNode.kind !== "repeat")) return;
+    moveSectionBoundary(selectedNode.rowIndex, "include-next");
+  }
+
+  function releaseLastFromSelectedSection() {
+    if (!selectedNode || (selectedNode.kind !== "section" && selectedNode.kind !== "repeat")) return;
+    moveSectionBoundary(selectedNode.rowIndex, "release-last");
+  }
+
   function deleteCurrentSelection() {
     if (!workbook || !selection || selection.kind !== "survey") return;
     const currentRow = selection.rowIndex;
@@ -2393,6 +2501,7 @@ export default function XlsformEditorPage() {
                     conditionalContext={conditionalContext}
                     catalogs={catalogs}
                     logicScope={logicScope}
+                    sectionBoundary={sectionBoundary}
                     canMoveUp={!!movement.prevRow}
                     canMoveDown={!!movement.nextRow}
                     onMoveUp={() => moveSelection("up")}
@@ -2429,6 +2538,8 @@ export default function XlsformEditorPage() {
                         ? () => cloneCatalogForQuestion(selectedNode.rowIndex)
                         : undefined
                     }
+                    onIncludeNextInSection={includeNextInSelectedSection}
+                    onReleaseLastFromSection={releaseLastFromSelectedSection}
                     onSelectRow={(rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex })}
                     formCanvasProps={{
                       catalogUsage,

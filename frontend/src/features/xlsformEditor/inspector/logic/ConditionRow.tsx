@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { X } from "lucide-react";
-import type { FlatCondition, LogicScope } from "../../logic";
+import type { FlatCondition, LogicCatalog, LogicScope, PredicateKind } from "../../logic";
 import {
   defaultPredicate,
   predicateKey,
@@ -25,6 +25,39 @@ export type ConditionRowProps = {
   onRemove?: () => void;
   disabled?: boolean;
 };
+
+function defaultLiteralForPredicate(
+  baseType: string,
+  predicate: PredicateKind,
+  catalog?: LogicCatalog,
+): string {
+  if (predicate.kind === "selected" || predicate.kind === "not_selected") {
+    return catalog?.items[0]?.name ?? "";
+  }
+  if ((baseType === "select_one" || baseType === "select_multiple") && catalog?.items[0]?.name) {
+    return catalog.items[0].name;
+  }
+  if (baseType === "integer" || baseType === "decimal") return "0";
+  if (baseType === "date") return "2026-01-01";
+  if (baseType === "datetime") return "2026-01-01T00:00";
+  if (baseType === "time") return "00:00";
+  return "valor";
+}
+
+function valueForPredicate(
+  next: PredicateKind,
+  currentValue: FlatCondition["value"],
+  baseType: string,
+  catalog?: LogicCatalog,
+): FlatCondition["value"] {
+  if (next.kind === "presence") return { kind: "literal", raw: "" };
+  if (currentValue.kind === "ref") return currentValue;
+  if (currentValue.raw.trim()) return currentValue;
+  return {
+    kind: "literal",
+    raw: defaultLiteralForPredicate(baseType, next, catalog),
+  };
+}
 
 export function ConditionRow({
   scope,
@@ -49,14 +82,19 @@ export function ConditionRow({
   const handleVarChange = (next: string) => {
     const nextVar = scope.variables.find((v) => v.name === next);
     const nextType = nextVar?.baseType ?? baseType;
+    const nextCatalog = nextVar?.listName
+      ? scope.catalogsByListName.get(nextVar.listName)
+      : undefined;
     const nextPreds = predicatesForType(nextType, { includePresence: true });
     const stillValid = nextPreds.some(
       (p) => predicateKey(p) === predicateKey(predicate),
     );
+    const nextPredicate = stillValid ? predicate : defaultPredicate(nextType);
     onChange({
       ...condition,
       variableName: next,
-      predicate: stillValid ? predicate : defaultPredicate(nextType),
+      predicate: nextPredicate,
+      value: valueForPredicate(nextPredicate, condition.value, nextType, nextCatalog),
     });
   };
 
@@ -85,9 +123,7 @@ export function ConditionRow({
             onChange({
               ...condition,
               predicate: next,
-              value: next.kind === "presence"
-                ? { kind: "literal", raw: "" }
-                : condition.value,
+              value: valueForPredicate(next, condition.value, baseType, catalog),
             })
           }
           disabled={disabled || !condition.variableName}

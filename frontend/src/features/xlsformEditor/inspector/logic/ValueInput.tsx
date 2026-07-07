@@ -104,6 +104,7 @@ function LiteralControl({
 }) {
   // select_one/multiple → dropdown con choices.
   if ((baseType === "select_one" || baseType === "select_multiple") && catalog) {
+    const hasRawChoice = raw === "" || catalog.items.some((it) => it.name === raw);
     return (
       <select
         className="pulso-logic-valueinput-select"
@@ -112,6 +113,9 @@ function LiteralControl({
         disabled={disabled}
       >
         <option value="">Elige opción…</option>
+        {!hasRawChoice && (
+          <option value={raw}>{raw} (sin opción en catálogo)</option>
+        )}
         {catalog.items.map((it) => (
           <option key={`${it.rowIndex}-${it.name}`} value={it.name}>
             {it.label || it.name}
