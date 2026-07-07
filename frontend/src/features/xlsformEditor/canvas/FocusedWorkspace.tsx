@@ -1956,12 +1956,41 @@ function ChoiceFilterPanel({
   const currentFilter = node.choiceFilter ?? "";
   const hasFilter = currentFilter.trim().length > 0;
   const variables = scope.variables.filter((variable) => variable.name.trim().length > 0);
+  const priorVariables = variables.filter(
+    (variable) => variable.rowIndex == null || variable.rowIndex < node.rowIndex,
+  );
+  const controllingVariables = priorVariables.length > 0 ? priorVariables : variables;
   const [draftColumn, setDraftColumn] = useState(choiceColumns[0] ?? "");
-  const [draftVariable, setDraftVariable] = useState(variables[0]?.name ?? "");
-  const variableOptionsKey = variables.map((variable) => variable.name).join("\u0000");
+  const [draftVariable, setDraftVariable] = useState(controllingVariables[0]?.name ?? "");
+  const variableOptionsKey = controllingVariables.map((variable) => variable.name).join("\u0000");
   const columnOptionsKey = choiceColumns.join("\u0000");
   const status = describeChoiceFilter(currentFilter, scope, choiceColumns);
-  const selectedVariable = variables.find((variable) => variable.name === draftVariable);
+  const selectedVariable = controllingVariables.find((variable) => variable.name === draftVariable);
+  const simpleFilter = parseSimpleChoiceFilter(currentFilter);
+  const filterHasComparison = /(?:!=|<=|>=|=|<|>\b|\bselected\s*\()/i.test(currentFilter);
+  const suggestions = buildChoiceFilterSuggestions(node, choiceColumns, controllingVariables, currentFilter);
+  const checks = [
+    {
+      key: "columns",
+      label: choiceColumns.length > 0 ? "Columnas en choices" : "Añade columnas en choices",
+      ok: choiceColumns.length > 0,
+    },
+    {
+      key: "variable",
+      label: controllingVariables.length > 0 ? "Respuesta previa" : "Falta respuesta previa",
+      ok: controllingVariables.length > 0,
+    },
+    {
+      key: "comparison",
+      label: hasFilter ? "Regla comparativa" : "Sin filtro aplicado",
+      ok: hasFilter && filterHasComparison,
+    },
+    {
+      key: "column",
+      label: simpleFilter?.column ? `Columna ${simpleFilter.column}` : "Columna por definir",
+      ok: Boolean(simpleFilter?.column && (!choiceColumns.length || choiceColumns.includes(simpleFilter.column))),
+    },
+  ];
   const canApplyTemplate = draftColumn.trim().length > 0 && draftVariable.trim().length > 0;
   const datalistId = `pulso-choice-filter-columns-${node.rowIndex}`;
 
@@ -1974,8 +2003,8 @@ function ChoiceFilterPanel({
 
   useEffect(() => {
     setDraftVariable((current) => {
-      if (current && variables.some((variable) => variable.name === current)) return current;
-      return variables[0]?.name ?? "";
+      if (current && controllingVariables.some((variable) => variable.name === current)) return current;
+      return controllingVariables[0]?.name ?? "";
     });
   }, [variableOptionsKey]);
 
@@ -1985,6 +2014,35 @@ function ChoiceFilterPanel({
     if (!column || !variable) return;
     onFieldChange("choice_filter", `${column}=\${${variable}}`);
   };
+
+  const applySuggestion = (expression: string) => {
+    onFieldChange("choice_filter", expression);
+    const suggestion = parseSimpleChoiceFilter(expression);
+    if (suggestion) {
+      setDraftColumn(suggestion.column);
+      setDraftVariable(suggestion.variable);
+    }
+  };
+
+  const suggestionGrid = suggestions.length > 0 ? (
+    <div className="pulso-focus-choice-filter-suggestion-grid">
+      {suggestions.map((suggestion) => (
+        <button
+          key={suggestion.expression}
+          type="button"
+          className="pulso-focus-choice-filter-suggestion"
+          onClick={() => applySuggestion(suggestion.expression)}
+          title={suggestion.detail}
+        >
+          <span>
+            <strong>{suggestion.title}</strong>
+            <small>{suggestion.detail}</small>
+          </span>
+          <code>{suggestion.expression}</code>
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   const insertVariableReference = (variableName: string) => {
     const token = `\${${variableName}}`;
@@ -2023,6 +2081,30 @@ function ChoiceFilterPanel({
         </div>
       </div>
 
+      <div className="pulso-focus-choice-filter-checks" aria-label="Revisión rápida del filtro de opciones">
+        {checks.map((check) => (
+          <span key={check.key} className={check.ok ? "is-ok" : "is-pending"}>
+            {check.ok ? <CheckCircle2 size={11} /> : <Info size={11} />}
+            {check.label}
+          </span>
+        ))}
+      </div>
+
+      {suggestionGrid && status.tone === "ok" ? (
+        <details className="pulso-focus-choice-filter-suggestions pulso-focus-choice-filter-suggestions-compact">
+          <summary>Cambiar por otra cascada sugerida</summary>
+          {suggestionGrid}
+        </details>
+      ) : suggestionGrid ? (
+        <div className="pulso-focus-choice-filter-suggestions" aria-label="Atajos sugeridos para filtros de opciones">
+          <div className="pulso-focus-choice-filter-suggestions-head">
+            <strong>Cascadas sugeridas</strong>
+            <small>Atajos seguros desde columnas detectadas y respuestas previas.</small>
+          </div>
+          {suggestionGrid}
+        </div>
+      ) : null}
+
       <div className="pulso-focus-choice-filter-builder" aria-label="Constructor de filtro de opciones">
         <div className="pulso-focus-choice-filter-builder-head">
           <strong>Constructor rápido</strong>
@@ -2050,12 +2132,12 @@ function ChoiceFilterPanel({
             <select
               value={draftVariable}
               onChange={(event) => setDraftVariable(event.target.value)}
-              disabled={variables.length === 0}
+              disabled={controllingVariables.length === 0}
             >
-              {variables.length === 0 ? (
+              {controllingVariables.length === 0 ? (
                 <option value="">Sin variables disponibles</option>
               ) : (
-                variables.map((variable) => (
+                controllingVariables.map((variable) => (
                   <option key={variable.name} value={variable.name}>
                     {variableDisplayLabel(variable)}
                   </option>
@@ -2093,14 +2175,14 @@ function ChoiceFilterPanel({
           value={currentFilter}
           onChange={(event) => onFieldChange("choice_filter", event.target.value)}
           placeholder="Ej. region=${region}"
-          rows={3}
+          rows={2}
           spellCheck={false}
         />
       </InspectorField>
 
       <div className="pulso-focus-choice-filter-actions">
         <div className="pulso-focus-choice-filter-vars" aria-label="Insertar referencia a una respuesta">
-          {variables.slice(0, 6).map((variable) => (
+          {controllingVariables.slice(0, 6).map((variable) => (
             <button
               key={variable.name}
               type="button"
@@ -2221,6 +2303,81 @@ function parseSimpleChoiceFilter(expression: string): { column: string; variable
   const variable = (match[2] ?? "").trim();
   if (!column || !variable) return null;
   return { column, variable };
+}
+
+type ChoiceFilterSuggestion = {
+  title: string;
+  detail: string;
+  expression: string;
+};
+
+function buildChoiceFilterSuggestions(
+  node: BuilderNode,
+  choiceColumns: string[],
+  variables: LogicScope["variables"],
+  currentFilter: string,
+): ChoiceFilterSuggestion[] {
+  if (choiceColumns.length === 0 || variables.length === 0) return [];
+  const current = currentFilter.trim();
+  const scored: Array<ChoiceFilterSuggestion & { score: number }> = [];
+
+  choiceColumns.forEach((column) => {
+    variables.forEach((variable) => {
+      const expression = `${column}=\${${variable.name}}`;
+      if (expression === current) return;
+      const score = scoreChoiceFilterPair(column, variable, node);
+      if (score <= 0) return;
+      scored.push({
+        score,
+        expression,
+        title: `${column} coincide con ${variable.name}`,
+        detail: `Muestra opciones donde ${column} sea igual a ${variableDisplayLabel(variable)}.`,
+      });
+    });
+  });
+
+  scored.sort((a, b) => b.score - a.score || a.expression.localeCompare(b.expression));
+  const unique = new Map<string, ChoiceFilterSuggestion>();
+  scored.forEach(({ score: _score, ...suggestion }) => {
+    if (!unique.has(suggestion.expression)) unique.set(suggestion.expression, suggestion);
+  });
+  return [...unique.values()].slice(0, 3);
+}
+
+function scoreChoiceFilterPair(
+  column: string,
+  variable: LogicScope["variables"][number],
+  node: BuilderNode,
+): number {
+  const col = normalizeChoiceFilterToken(column);
+  const name = normalizeChoiceFilterToken(variable.name);
+  const listName = normalizeChoiceFilterToken(variable.listName ?? "");
+  const label = normalizeChoiceFilterToken(variable.label);
+  if (!col || !name) return 0;
+
+  let score = 0;
+  if (col === name) score += 10;
+  if (listName && col === listName) score += 8;
+  if (label && col === label) score += 7;
+  if (col.includes(name) || name.includes(col)) score += 5;
+  if (label && (label.includes(col) || col.includes(label))) score += 4;
+  if (variable.baseType === "select_one") score += 4;
+  if (variable.baseType === "select_multiple") score += 2;
+  if (variable.rowIndex == null || variable.rowIndex < node.rowIndex) score += 3;
+  if (/^(region|departamento|provincia|distrito|zona|sector|ubigeo|sede|facultad|curso)$/.test(col)) {
+    score += 2;
+  }
+  return score;
+}
+
+function normalizeChoiceFilterToken(value: string): string {
+  return stripMarkdown(value)
+    .toLowerCase()
+    .replace(/ñ/g, "n")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
 function variableDisplayLabel(variable: LogicScope["variables"][number]): string {
