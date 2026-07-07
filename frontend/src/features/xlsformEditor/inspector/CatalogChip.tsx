@@ -88,7 +88,7 @@ export function CatalogChip({
               type="button"
               className="pulso-catalogchip-edit"
               onClick={() => onOpenLens(assigned.listName)}
-              title="Abrir el catálogo para editar sus opciones"
+              title="Abrir la lista para editar sus opciones"
             >
               <PencilLine size={12} /> Editar
             </button>
@@ -96,7 +96,7 @@ export function CatalogChip({
               type="button"
               className="pulso-catalogchip-switch"
               onClick={() => setPickerOpen((open) => !open)}
-              title="Cambiar de catálogo"
+              title="Cambiar de lista"
               aria-expanded={pickerOpen}
             >
               <ChevronDown size={12} />
@@ -111,7 +111,7 @@ export function CatalogChip({
           aria-expanded={pickerOpen}
         >
           <ListChecks size={14} />
-          <span>Asignar catálogo de opciones</span>
+          <span>Asignar lista de opciones</span>
           <ChevronDown size={12} />
         </button>
       )}
@@ -119,7 +119,7 @@ export function CatalogChip({
       {pickerOpen && (
         <div className="pulso-catalogchip-pop" role="listbox">
           <div className="pulso-catalogchip-pop-header">
-            <span>Catálogos disponibles</span>
+            <span>Listas disponibles</span>
             <button
               type="button"
               className="pulso-catalogchip-pop-create"
@@ -134,7 +134,7 @@ export function CatalogChip({
 
           {catalogs.length === 0 ? (
             <div className="pulso-catalogchip-pop-empty">
-              Todavía no hay catálogos. Crea el primero para asignarlo.
+              Todavía no hay listas. Crea la primera para asignarla.
             </div>
           ) : (
             <ul className="pulso-catalogchip-pop-list">

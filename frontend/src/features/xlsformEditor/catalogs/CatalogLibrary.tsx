@@ -42,9 +42,9 @@ export function CatalogLibrary({
     return (
       <div className="pulso-cataloglibrary pulso-cataloglibrary-empty">
         <ListChecks size={20} />
-        <strong>Aún no hay catálogos</strong>
+        <strong>Aún no hay listas</strong>
         <p>
-          Crea el primer catálogo para definir las opciones reutilizables de tus
+          Crea la primera lista para definir las opciones reutilizables de tus
           preguntas de selección.
         </p>
         <button
@@ -52,7 +52,7 @@ export function CatalogLibrary({
           className="pulso-cataloglibrary-create"
           onClick={onCreate}
         >
-          <Plus size={13} /> Crear primer catálogo
+          <Plus size={13} /> Crear primera lista
         </button>
       </div>
     );
@@ -67,7 +67,7 @@ export function CatalogLibrary({
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar catálogo..."
+            placeholder="Buscar lista..."
             spellCheck={false}
           />
         </div>
@@ -76,7 +76,7 @@ export function CatalogLibrary({
       <div className="pulso-cataloglibrary-list">
         {filtered.length === 0 ? (
           <div className="pulso-cataloglibrary-empty-search">
-            Ningún catálogo coincide con <em>{query}</em>.
+            Ninguna lista coincide con <em>{query}</em>.
           </div>
         ) : (
           filtered.map((catalog) => {
@@ -108,7 +108,7 @@ export function CatalogLibrary({
                 {usage === 0 && (
                   <span
                     className="pulso-cataloglibrary-item-unused"
-                    title="Este catálogo no se está usando todavía"
+                    title="Esta lista no se está usando todavía"
                   >
                     sin uso
                   </span>

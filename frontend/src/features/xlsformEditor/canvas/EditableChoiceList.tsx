@@ -123,7 +123,7 @@ export function EditableChoiceList({
             <Info size={13} />
           </span>
           <div>
-            <strong>Catálogo vacío</strong>
+            <strong>Lista en preparación</strong>
             <p>Agrega la primera opción cuando tengas el texto real. No creamos opciones de ejemplo en la hoja choices.</p>
           </div>
         </div>

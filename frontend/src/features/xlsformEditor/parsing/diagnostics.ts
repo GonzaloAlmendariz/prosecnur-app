@@ -101,17 +101,17 @@ export function buildDiagnostics(
           id: `catalog-missing-${node.rowIndex}`,
           level: "warn",
           rowIndex: node.rowIndex,
-          title: "La pregunta no tiene catálogo asignado",
+          title: "La pregunta no tiene lista asignada",
           detail:
-            "Asigna un catálogo de opciones para que esta pregunta de selección quede completa.",
+            "Asigna una lista de opciones para que esta pregunta de selección quede completa.",
         });
       } else if (!catalogNames.has(node.typeInfo.listName)) {
         diagnostics.push({
           id: `catalog-empty-${node.rowIndex}`,
           level: "warn",
           rowIndex: node.rowIndex,
-          title: "El catálogo asignado todavía no tiene opciones",
-          detail: `La pregunta apunta al catálogo "${node.typeInfo.listName}", pero ese catálogo aún no tiene opciones definidas.`,
+          title: "La lista asignada todavía no tiene opciones",
+          detail: `La pregunta apunta a la lista "${node.typeInfo.listName}", pero esa lista aún no tiene opciones definidas.`,
         });
       }
     }
