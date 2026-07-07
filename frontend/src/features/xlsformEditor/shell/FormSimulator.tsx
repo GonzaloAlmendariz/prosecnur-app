@@ -15,10 +15,12 @@ import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   GitBranch,
   Pencil,
+  QrCode,
   RotateCcw,
   X,
 } from "lucide-react";
@@ -34,6 +36,7 @@ import { iconForType } from "../helpers/icons";
 import { paletteForType } from "../helpers/paletteForType";
 import { TechTerm } from "../helpers/TechTerm";
 import { evaluateRelevance } from "../logic";
+import { appearanceTokens, rangeParamsForNode } from "../canvas/previewInputs";
 import "../styles/xf-simulator.css";
 
 export type FormSimulatorProps = {
@@ -74,6 +77,9 @@ const ANSWERABLE_BASES = new Set([
   "time",
   "datetime",
   "acknowledge",
+  "range",
+  "rank",
+  "barcode",
 ]);
 
 function isRenderable(node: BuilderNode): boolean {
@@ -473,6 +479,37 @@ function QuestionControl({
         </div>
       );
     }
+
+    // select_one con appearance minimal/dropdown/autocomplete → select nativo.
+    const tokens = appearanceTokens(node);
+    if (
+      base === "select_one" &&
+      (tokens.includes("minimal") || tokens.includes("dropdown") || tokens.includes("autocomplete"))
+    ) {
+      const current = typeof value === "string" ? value : "";
+      return (
+        <div className="pulso-xfsim-selectwrap">
+          <select
+            className="pulso-xfsim-input pulso-xfsim-select"
+            value={current}
+            disabled={disabled}
+            aria-label={node.label}
+            onChange={(event) => onAnswer(node.name, event.target.value)}
+          >
+            <option value="">Seleccionar…</option>
+            {items.map((item) => (
+              <option key={`${item.rowIndex}-${item.name}`} value={item.name}>
+                {item.label || item.name}
+              </option>
+            ))}
+          </select>
+          <span className="pulso-xfsim-select-chev" aria-hidden="true">
+            <ChevronDown size={13} />
+          </span>
+        </div>
+      );
+    }
+
     const multi = base === "select_multiple";
     const selectedValues = multi
       ? Array.isArray(value)
@@ -520,6 +557,98 @@ function QuestionControl({
             </button>
           );
         })}
+      </div>
+    );
+  }
+
+  if (base === "rank") {
+    const items = choicesByList.get(node.typeInfo.listName) ?? [];
+    if (!items.length) {
+      return (
+        <div className="pulso-xfsim-options-empty">
+          Sin opciones en la lista <TechTerm t={node.typeInfo.listName || "choices"} />
+        </div>
+      );
+    }
+    // Valor XLSForm de rank: names en orden, separados por espacio.
+    const order =
+      typeof value === "string" && value.trim() !== "" ? value.trim().split(/\s+/) : [];
+    return (
+      <div className="pulso-xfsim-options" role="group" aria-label={node.label}>
+        <span className="pulso-xfsim-rank-help">Toca en orden de prioridad · vuelve a tocar para quitar</span>
+        {items.map((item) => {
+          const position = order.indexOf(item.name);
+          const isSelected = position >= 0;
+          return (
+            <button
+              key={`${item.rowIndex}-${item.name}`}
+              type="button"
+              aria-pressed={isSelected}
+              className={`pulso-xfsim-option${isSelected ? " is-selected" : ""}`}
+              disabled={disabled}
+              onClick={() => {
+                const next = isSelected
+                  ? order.filter((name) => name !== item.name)
+                  : [...order, item.name];
+                onAnswer(node.name, next.join(" "));
+              }}
+            >
+              <span
+                className={`pulso-xfsim-option-mark is-multi${isSelected ? " is-rank" : ""}`}
+                aria-hidden="true"
+              >
+                {isSelected ? (
+                  <span className="pulso-xfsim-rank-pos">{position + 1}</span>
+                ) : (
+                  <Check size={12} className="pulso-xfsim-option-check" />
+                )}
+              </span>
+              <span className="pulso-xfsim-option-label">{item.label || item.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (base === "range") {
+    const { start, end, step } = rangeParamsForNode(node);
+    const current = typeof value === "string" && value !== "" ? value : "";
+    const sliderValue = current === "" ? start : Number(current);
+    return (
+      <div className="pulso-xfsim-range">
+        <input
+          type="range"
+          className="pulso-xfsim-range-input"
+          min={start}
+          max={end}
+          step={step}
+          value={Number.isFinite(sliderValue) ? sliderValue : start}
+          disabled={disabled}
+          aria-label={node.label}
+          onChange={(event) => onAnswer(node.name, event.target.value)}
+        />
+        <output className={`pulso-xfsim-range-value${current === "" ? " is-empty" : ""}`}>
+          {current === "" ? "—" : current}
+        </output>
+      </div>
+    );
+  }
+
+  if (base === "barcode") {
+    return (
+      <div className="pulso-xfsim-barcode">
+        <span className="pulso-xfsim-barcode-icon" aria-hidden="true">
+          <QrCode size={14} />
+        </span>
+        <input
+          className="pulso-xfsim-input pulso-xfsim-barcode-input"
+          type="text"
+          placeholder="Código escaneado o digitado"
+          disabled={disabled}
+          value={typeof value === "string" ? value : ""}
+          onChange={(event) => onAnswer(node.name, event.target.value)}
+        />
       </div>
     );
   }

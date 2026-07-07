@@ -24,7 +24,7 @@ import {
   SURVEY_COLUMNS,
 } from "../types";
 
-export type TemplateId = "blank" | "household" | "service-quality" | "census";
+export type TemplateId = "blank" | "household" | "service-quality" | "census" | "stress";
 
 export type SeedSurveyRow = Record<string, string>;
 export type SeedCatalog = {
@@ -42,6 +42,9 @@ export type TemplateSeed = {
   highlights: string[];
   /** Acento de la card (hex). */
   accent: string;
+  /** Solo visible en dev (`import.meta.env.DEV`) — seeds de QA visual que
+   *  no deben aparecerle al usuario final en la galería. */
+  devOnly?: boolean;
   /** Settings */
   formTitle: string;
   formId: string;

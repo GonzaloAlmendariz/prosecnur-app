@@ -57,6 +57,9 @@ import { AppearancePicker } from "../inspector/AppearancePicker";
 import { CalculationBuilder } from "../inspector/logic/CalculationBuilder";
 import { LogicBuilder } from "../inspector/logic/LogicBuilder";
 import { ConstraintBuilder } from "../inspector/logic/ConstraintBuilder";
+import { TextRuleSuite } from "../inspector/logic/TextRuleSuite";
+import { matchTextRule } from "../inspector/logic/textRules";
+import { TechTerm } from "../helpers/TechTerm";
 
 export type FocusWorkspaceMode = "focus" | "overview";
 
@@ -2013,7 +2016,14 @@ function RulesTab({
   const targetNoun = isSection ? "este bloque" : "esta pregunta";
   const constraintMessage = node.constraint_message ?? "";
   const validation = describeValidation(node.constraint, node, scope);
-  const isGuidedPreset = validation?.status === "Preset claro";
+  // Si el constraint es una receta de texto reconocida, el ConstraintBuilder
+  // la muestra en modo humano editable (TextRuleSuite) — eso gana sobre el
+  // aviso "Preset claro" legado, que ocultaba la edición paramétrica.
+  const constraintTextRule = node.constraint.trim()
+    ? matchTextRule(parseExpression(node.constraint))
+    : null;
+  const isGuidedPreset =
+    validation?.status === "Preset claro" && !constraintTextRule;
   const readonlyBlocks: Array<{
     field: string;
     title: string;
@@ -2073,6 +2083,9 @@ function RulesTab({
             />
           ) : (
             <ConstraintBuilder
+              // Re-monta al cambiar de pregunta (mismo criterio que LogicTab):
+              // descarta borradores internos de la fila previa.
+              key={node.rowIndex}
               expression={node.constraint}
               scope={scope}
               baseType={node.typeInfo.base}
@@ -2080,6 +2093,9 @@ function RulesTab({
               fieldLabel="Cómo se valida la respuesta"
               hint="Define qué condición debe cumplir la respuesta. Puedes partir de un preset o editar la regla manualmente."
               onChange={(next) => onFieldChange("constraint", next)}
+              onApplyPreset={({ expression, message }) => {
+                onFieldsChange({ constraint: expression, constraint_message: message });
+              }}
               showShortcuts={false}
             />
           )}
@@ -2586,9 +2602,8 @@ function CustomValidationPanel({
       validation?.status !== "Preset claro" &&
       validation?.status !== "Editable visualmente",
   );
-  const regexPresets = regexPresetsFor(node);
-  const hasPrimaryPresets = validationPresetsFor(node).length > 0;
-  const showRegexPresets = regexPresets.length > 0 && validation?.status !== "Preset claro" && !hasPrimaryPresets;
+  // Las reglas de texto (regex) viven en la galería humana de
+  // ValidationSummary; este panel queda solo para la fórmula cruda.
 
   return (
     <details className="pulso-focus-custom-validation" open={openByDefault}>
@@ -2597,38 +2612,6 @@ function CustomValidationPanel({
         Pega una regla completa cuando los atajos no alcancen: patrones de texto,
         conteos de selección múltiple o una validación importada desde otro XLSForm.
       </p>
-      {showRegexPresets && (
-        <div className="pulso-focus-regex-shortcuts" aria-label="Atajos de patrón">
-          <div className="pulso-focus-regex-shortcuts-head">
-            <span className="pulso-section-eyebrow">Patrones guiados</span>
-            <strong>Patrones frecuentes listos para Kobo</strong>
-            <small>Aplican la fórmula y el mensaje para campo en una sola acción.</small>
-          </div>
-          <div className="pulso-focus-regex-shortcut-grid">
-            {regexPresets.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className="pulso-focus-regex-shortcut"
-                onClick={() => {
-                  onFieldsChange({
-                    constraint: preset.expression,
-                    constraint_message: preset.message,
-                  });
-                }}
-                title={preset.hint}
-              >
-                <span className="pulso-focus-regex-shortcut-copy">
-                  <strong>{preset.label}</strong>
-                  <small>{preset.hint}</small>
-                  <em>{preset.message}</em>
-                </span>
-                <code>{preset.preview}</code>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <InspectorField
         label="Regla avanzada"
         hint="Debe devolver verdadero cuando la respuesta puede aceptarse. Se exporta como validación XLSForm."
@@ -2645,52 +2628,6 @@ function CustomValidationPanel({
   );
 }
 
-type RegexShortcutPreset = {
-  id: string;
-  label: string;
-  hint: string;
-  expression: string;
-  preview: string;
-  message: string;
-};
-
-function regexPresetsFor(node: BuilderNode): RegexShortcutPreset[] {
-  if (node.typeInfo.base !== "text") return [];
-  return [
-    {
-      id: "email",
-      label: "Correo electrónico",
-      hint: "Para respuestas como nombre@dominio.org.",
-      expression: "regex(., '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
-      preview: "email",
-      message: "Ingresa un correo electrónico válido.",
-    },
-    {
-      id: "url",
-      label: "Enlace web",
-      hint: "Para enlaces que empiezan con http:// o https://.",
-      expression: "regex(., '^https?://.+')",
-      preview: "https://",
-      message: "Ingresa un enlace web válido.",
-    },
-    {
-      id: "digits",
-      label: "Solo números",
-      hint: "Para DNI, códigos numéricos o identificadores sin letras.",
-      expression: "regex(., '^\\d+$')",
-      preview: "0-9",
-      message: "Ingresa solo números, sin letras ni símbolos.",
-    },
-    {
-      id: "code",
-      label: "Código sin espacios",
-      hint: "Acepta letras, números, guion y guion bajo.",
-      expression: "regex(., '^[A-Za-z0-9_-]+$')",
-      preview: "ABC_123",
-      message: "Ingresa un código sin espacios.",
-    },
-  ];
-}
 
 function ConstraintMessageField({
   node,
@@ -3095,14 +3032,28 @@ function ValidationSummary({
   const messageStatus = summary
     ? validationMessageStatusFor(node.constraint_message ?? "")
     : null;
+  // Preguntas de texto: la galería de reglas humanas (textRules) reemplaza a
+  // los presets fijos. Solo en modo "elegir" — si el constraint actual ya es
+  // una receta reconocida, el ConstraintBuilder de abajo la muestra en modo
+  // humano y acá no se duplica.
+  const recognizedRule = node.constraint.trim()
+    ? matchTextRule(parseExpression(node.constraint))
+    : null;
+  const showTextRuleGallery = node.typeInfo.base === "text" && !recognizedRule;
+  // La lectura superior usa el título humano de la receta cuando existe
+  // ("Debe tener exactamente 8 dígitos" en vez de un resumen genérico).
+  const summaryStatus = recognizedRule ? "Regla de texto" : summary?.status;
+  const summaryText = recognizedRule
+    ? recognizedRule.recipe.title(recognizedRule.params)
+    : summary?.summary;
 
   return (
     <div className="pulso-focus-validation">
       <div className={`pulso-focus-validation-card ${summary ? "" : "is-empty"}`}>
         {summary ? <ShieldCheck size={14} /> : <Info size={14} />}
         <div>
-          <span>{summary?.status ?? "Sin validación"}</span>
-          <strong>{summary?.summary ?? "La respuesta se acepta tal como fue ingresada."}</strong>
+          <span>{summaryStatus ?? "Sin validación"}</span>
+          <strong>{summaryText ?? "La respuesta se acepta tal como fue ingresada."}</strong>
           {summary?.technical && (
             <details>
               <summary>Ver regla XLSForm</summary>
@@ -3118,6 +3069,30 @@ function ValidationSummary({
             <strong>{messageStatus.title}</strong>
             <small>{messageStatus.detail}</small>
           </span>
+        </div>
+      )}
+
+      {showTextRuleGallery && (
+        <div className="pulso-focus-validation-presets" aria-label="Reglas de texto">
+          <div className="pulso-focus-validation-presets-head">
+            <span className="pulso-section-eyebrow">
+              Formato del texto <TechTerm t="regex" />
+            </span>
+            <strong>Reglas en lenguaje claro</strong>
+            <small>La regla técnica y el mensaje para el encuestado se completan juntos.</small>
+          </div>
+          <TextRuleSuite
+            active={null}
+            onApply={(constraintExpr, message) => {
+              onFieldsChange({
+                constraint: constraintExpr,
+                constraint_message: message,
+              });
+            }}
+            onClear={() => {
+              onFieldsChange({ constraint: "", constraint_message: "" });
+            }}
+          />
         </div>
       )}
 
@@ -4424,37 +4399,9 @@ function knownValidation(expr: Expr, raw: string, baseType: string): string | nu
 
 function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
   switch (node.typeInfo.base) {
-    case "text":
-      return [
-        {
-          id: "email",
-          label: "Correo electrónico",
-          hint: "Acepta respuestas con formato nombre@dominio.",
-          expression: "regex(., '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
-          message: "Ingresa un correo electrónico válido.",
-        },
-        {
-          id: "url",
-          label: "Enlace web",
-          hint: "Acepta enlaces que empiezan con http:// o https://.",
-          expression: "regex(., '^https?://.+')",
-          message: "Ingresa un enlace web válido.",
-        },
-        {
-          id: "digits",
-          label: "Solo números",
-          hint: "Acepta únicamente caracteres numéricos.",
-          expression: "regex(., '^\\d+$')",
-          message: "Ingresa solo números, sin letras ni símbolos.",
-        },
-        {
-          id: "code",
-          label: "Código sin espacios",
-          hint: "Acepta letras, números, guion y guion bajo.",
-          expression: "regex(., '^[A-Za-z0-9_-]+$')",
-          message: "Ingresa un código sin espacios.",
-        },
-      ];
+    // "text" ya no vive aquí: las reglas de texto (regex) las sirve la
+    // galería humana TextRuleSuite en ValidationSummary — una sola fuente
+    // (inspector/logic/textRules.ts) con parámetros y probador en vivo.
     case "integer":
     case "decimal":
       return [
