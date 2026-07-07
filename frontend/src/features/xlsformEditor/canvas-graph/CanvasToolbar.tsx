@@ -16,13 +16,13 @@
 //       Toggle. Cuando está ON, las posiciones de drag se redondean
 //       a múltiplos de 16px. Útil para alineación rápida.
 //
-//   * Filtro de tipos (3 chips)
-//       "Todas" / "Macro" (sec↔sec + var→sec) / "Micro" (var↔var).
-//       Atenúa los edges que no pasan el filtro — no los elimina, solo
-//       los baja al 15% de opacidad para que el grafo no "pulse".
+//   * Capas de lógica
+//       Visibilidad, validación, cálculos y filtros de lista. Atenúa
+//       las flechas que no pasan el filtro — no las elimina, solo las
+//       baja de opacidad para que el grafo no "pulse".
 //
 // Acciones que NO entraron (con racional explícito):
-//   - Multi-select / lasso → overkill para mapa de visibilidad.
+//   - Multi-select / lasso → overkill para mapa de lógica.
 //   - Color picker manual de cards → los colores vienen del sectionColor.
 //   - Mini-map → el grafo nunca es lo suficientemente grande para
 //     justificarlo (el corpus tiene ≤30 nodos visibles colapsados).
@@ -30,7 +30,15 @@
 //     principal; el canvas es lectura + drag-arrow → relevant.
 // =============================================================================
 
-import { Magnet, RotateCcw, Undo2 } from "lucide-react";
+import {
+  Calculator,
+  Eye,
+  Filter,
+  Magnet,
+  RotateCcw,
+  ShieldCheck,
+  Undo2,
+} from "lucide-react";
 
 export type EdgeKindFilter = {
   showRelevant: boolean;
@@ -54,6 +62,42 @@ export type CanvasToolbarProps = {
   edgeKindFilter?: EdgeKindFilter;
   onChangeEdgeKindFilter?: (next: EdgeKindFilter) => void;
 };
+
+const LOGIC_LAYER_CONTROLS = [
+  {
+    key: "showRelevant",
+    label: "Aparición",
+    Icon: Eye,
+    title:
+      "Aparición: muestra cuándo aparece una pregunta o sección (relevant).",
+  },
+  {
+    key: "showConstraint",
+    label: "Validación",
+    Icon: ShieldCheck,
+    title:
+      "Validación: muestra respuestas que deben cumplir una regla (constraint).",
+  },
+  {
+    key: "showCalculation",
+    label: "Cálculos",
+    Icon: Calculator,
+    title:
+      "Cálculos: muestra campos automáticos construidos a partir de respuestas.",
+  },
+  {
+    key: "showChoiceFilter",
+    label: "Filtros de lista",
+    Icon: Filter,
+    title:
+      "Filtros de lista: muestra cascadas y filtros de opciones (choice_filter).",
+  },
+] as const satisfies ReadonlyArray<{
+  key: keyof EdgeKindFilter;
+  label: string;
+  Icon: typeof Eye;
+  title: string;
+}>;
 
 export function CanvasToolbar({
   readOnly = false,
@@ -116,14 +160,14 @@ export function CanvasToolbar({
             onClick={onToggleSnap}
             title={
               snapToGrid
-                ? "Desactivar snap a la grilla"
-                : "Activar snap a la grilla (16 px)"
+                ? "Dejar de alinear tarjetas a la grilla"
+                : "Alinear tarjetas a una grilla de 16 px al moverlas"
             }
             aria-pressed={snapToGrid}
-            aria-label="Snap to grid"
+            aria-label="Alinear a grilla"
           >
             <Magnet size={13} />
-            <span>Snap</span>
+            <span>Alinear</span>
           </button>
         </>
       )}
@@ -131,47 +175,25 @@ export function CanvasToolbar({
       {edgeKindFilter && onChangeEdgeKindFilter && (
         <>
           {!readOnly && <span className="pulso-graph-toolbar-sep" aria-hidden="true" />}
+          <span className="pulso-graph-toolbar-layer-label">Capas</span>
           <div
             className="pulso-graph-toolbar-segment"
             role="group"
-            aria-label="Tipos de dependencia visibles"
+            aria-label="Capas de lógica visibles"
           >
-            <button
-              type="button"
-              className={edgeKindFilter.showRelevant ? "is-on" : ""}
-              onClick={() => toggleKind("showRelevant")}
-              title="Mostrar/ocultar flechas de visibilidad (relevant)"
-              aria-pressed={edgeKindFilter.showRelevant}
-            >
-              Visibilidad
-            </button>
-            <button
-              type="button"
-              className={edgeKindFilter.showConstraint ? "is-on" : ""}
-              onClick={() => toggleKind("showConstraint")}
-              title="Mostrar/ocultar flechas de restricción (constraint)"
-              aria-pressed={edgeKindFilter.showConstraint}
-            >
-              Restricción
-            </button>
-            <button
-              type="button"
-              className={edgeKindFilter.showCalculation ? "is-on" : ""}
-              onClick={() => toggleKind("showCalculation")}
-              title="Mostrar/ocultar flechas de cálculo (calculation)"
-              aria-pressed={edgeKindFilter.showCalculation}
-            >
-              Cálculo
-            </button>
-            <button
-              type="button"
-              className={edgeKindFilter.showChoiceFilter ? "is-on" : ""}
-              onClick={() => toggleKind("showChoiceFilter")}
-              title="Mostrar/ocultar filtros de opciones (choice_filter)"
-              aria-pressed={edgeKindFilter.showChoiceFilter}
-            >
-              Filtros
-            </button>
+            {LOGIC_LAYER_CONTROLS.map(({ key, label, Icon, title }) => (
+              <button
+                type="button"
+                key={key}
+                className={edgeKindFilter[key] ? "is-on" : ""}
+                onClick={() => toggleKind(key)}
+                title={title}
+                aria-pressed={edgeKindFilter[key]}
+              >
+                <Icon size={12} strokeWidth={2.25} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
           </div>
         </>
       )}
