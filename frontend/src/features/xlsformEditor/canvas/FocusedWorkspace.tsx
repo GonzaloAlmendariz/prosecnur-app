@@ -1252,8 +1252,7 @@ function RulesTab({
   const isNote = node.kind === "note";
   const showConstraint = !isCalculate && !isSection && !isNote;
   const targetNoun = isSection ? "este bloque" : "esta pregunta";
-  const constraintMessage =
-    (node as BuilderNode & { constraint_message?: string }).constraint_message ?? "";
+  const constraintMessage = node.constraint_message ?? "";
   const validation = describeValidation(node.constraint, node, scope);
   const isGuidedPreset = validation?.status === "Preset claro";
   const readonlyBlocks: Array<{
@@ -1323,19 +1322,12 @@ function RulesTab({
             />
           )}
           {(node.constraint || constraintMessage) && (
-            <InspectorField
-              label="Mensaje / etiqueta cuando no es válida"
-              hint="Opcional. Texto visible si la respuesta no cumple la regla; también ayuda a reconocer una regla personalizada."
-            >
-              <input
-                type="text"
-                value={constraintMessage}
-                onChange={(event) =>
-                  onFieldChange("constraint_message", event.target.value)
-                }
-                placeholder="Ej. Ingresa un correo electrónico válido."
-              />
-            </InspectorField>
+            <ConstraintMessageField
+              node={node}
+              validation={validation}
+              value={constraintMessage}
+              onFieldChange={onFieldChange}
+            />
           )}
         </InspectorBlock>
       )}
@@ -1696,6 +1688,175 @@ function CustomValidationPanel({
       </InspectorField>
     </details>
   );
+}
+
+function ConstraintMessageField({
+  node,
+  validation,
+  value,
+  onFieldChange,
+}: {
+  node: BuilderNode;
+  validation: (HumanizedExpression & { status: string }) | null;
+  value: string;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const presets = constraintMessagePresetsFor(node, validation);
+
+  return (
+    <InspectorField
+      label="Mensaje si la respuesta no es válida"
+      hint="Texto visible en Kobo cuando la respuesta no cumple la regla. Escríbelo como una indicación para campo."
+    >
+      <input
+        type="text"
+        value={value}
+        onChange={(event) =>
+          onFieldChange("constraint_message", event.target.value)
+        }
+        placeholder="Ej. Ingresa un correo electrónico válido."
+      />
+      {presets.length > 0 && (
+        <div
+          className="pulso-focus-message-presets pulso-focus-constraint-message-presets"
+          aria-label="Mensajes sugeridos para validación"
+        >
+          <div className="pulso-focus-message-presets-head">
+            <span className="pulso-section-eyebrow">Mensajes claros</span>
+            <strong>Texto entendible para campo</strong>
+            <small>Evita hablar de constraint, regex o fórmulas con el encuestador.</small>
+          </div>
+          <div className="pulso-focus-message-preset-grid">
+            {presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="pulso-focus-message-preset"
+                onClick={() => onFieldChange("constraint_message", preset.message)}
+                title={preset.hint}
+              >
+                <span className="pulso-focus-message-preset-icon">
+                  <CheckCircle2 size={12} />
+                </span>
+                <span className="pulso-focus-message-preset-copy">
+                  <strong>{preset.label}</strong>
+                  <small>{preset.hint}</small>
+                  <em>{preset.message}</em>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </InspectorField>
+  );
+}
+
+type ConstraintMessagePreset = {
+  id: string;
+  label: string;
+  hint: string;
+  message: string;
+};
+
+function constraintMessagePresetsFor(
+  node: BuilderNode,
+  validation: (HumanizedExpression & { status: string }) | null,
+): ConstraintMessagePreset[] {
+  const summary = validation?.summary.toLowerCase() ?? "";
+  const base = node.typeInfo.base;
+  const presets: ConstraintMessagePreset[] = [];
+
+  if (summary.includes("correo")) {
+    presets.push({
+      id: "email",
+      label: "Correo válido",
+      hint: "Para regex de correo electrónico.",
+      message: "Ingresa un correo electrónico válido.",
+    });
+  } else if (summary.includes("url")) {
+    presets.push({
+      id: "url",
+      label: "Enlace válido",
+      hint: "Para respuestas que deben ser enlaces web.",
+      message: "Ingresa un enlace válido.",
+    });
+  } else if (summary.includes("dígitos") || summary.includes("digitos")) {
+    presets.push({
+      id: "digits",
+      label: "Solo números",
+      hint: "Para códigos o identificadores numéricos.",
+      message: "Ingresa solo números, sin letras ni símbolos.",
+    });
+  } else if (summary.includes("posterior a hoy") || summary.includes("hoy")) {
+    presets.push({
+      id: "date",
+      label: "Fecha permitida",
+      hint: "Para fechas que no pueden estar en el futuro.",
+      message: "La fecha no puede ser posterior a hoy.",
+    });
+  } else if (summary.includes("mayor que cero")) {
+    presets.push({
+      id: "positive",
+      label: "Valor positivo",
+      hint: "Para cantidades que no aceptan cero.",
+      message: "Ingresa un valor mayor que cero.",
+    });
+  } else if (summary.includes("cero o mayor") || summary.includes("igual o mayor")) {
+    presets.push({
+      id: "non-negative",
+      label: "Cero o más",
+      hint: "Para cantidades que no aceptan valores negativos.",
+      message: "Ingresa un valor igual o mayor que cero.",
+    });
+  }
+
+  if (base === "integer" || base === "decimal") {
+    presets.push({
+      id: "numeric-range",
+      label: "Rango numérico",
+      hint: "Para reglas de mínimos, máximos o rangos.",
+      message: "Ingresa un número dentro del rango permitido.",
+    });
+  }
+  if (base === "date") {
+    presets.push({
+      id: "date-general",
+      label: "Revisar fecha",
+      hint: "Para reglas de fecha importadas o personalizadas.",
+      message: "Revisa la fecha antes de continuar.",
+    });
+  }
+  if (base === "text") {
+    presets.push({
+      id: "text-format",
+      label: "Formato de texto",
+      hint: "Para reglas de formato o regex personalizadas.",
+      message: "Revisa el formato de esta respuesta.",
+    });
+  }
+
+  presets.push(
+    {
+      id: "field-confirm",
+      label: "Confirmar en campo",
+      hint: "Para datos que conviene verificar con la persona encuestada.",
+      message: "Confirma este dato antes de continuar.",
+    },
+    {
+      id: "review-answer",
+      label: "Revisar respuesta",
+      hint: "Mensaje general para reglas técnicas importadas.",
+      message: "Revisa esta respuesta antes de continuar.",
+    },
+  );
+
+  const seen = new Set<string>();
+  return presets.filter((preset) => {
+    if (seen.has(preset.message)) return false;
+    seen.add(preset.message);
+    return true;
+  }).slice(0, 4);
 }
 
 function GuidedValidationNotice({
