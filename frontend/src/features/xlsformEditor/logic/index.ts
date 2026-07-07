@@ -46,6 +46,7 @@ export {
 export {
   buildDefaultCondition,
   defaultLiteralForPredicate,
+  valueForPredicateTransition,
 } from "./defaultCondition";
 export type { FlatCondition, FlatConstraint, LogicTree } from "./conditionAdapter";
 export {

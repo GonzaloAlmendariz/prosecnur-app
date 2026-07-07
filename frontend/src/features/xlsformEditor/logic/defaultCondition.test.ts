@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { buildDefaultCondition, expandCondition, serializeExpression, type LogicScope } from ".";
+import {
+  buildDefaultCondition,
+  expandCondition,
+  serializeExpression,
+  valueForPredicateTransition,
+  type LogicScope,
+} from ".";
 
 function scope(partial: Partial<LogicScope>): LogicScope {
   return {
@@ -56,5 +62,46 @@ describe("buildDefaultCondition", () => {
     expect(condition.predicate).toMatchObject({ kind: "selected" });
     expect(condition.value).toEqual({ kind: "literal", raw: "rojo" });
     expect(serializeExpression(expandCondition(condition))).toBe("selected(${color}, 'rojo')");
+  });
+});
+
+describe("valueForPredicateTransition", () => {
+  test("rehidrata un valor editable al pasar de presencia vacía a igualdad numérica", () => {
+    const value = valueForPredicateTransition(
+      { kind: "compare", op: "=", label: "igual a" },
+      { kind: "literal", raw: "" },
+      "integer",
+    );
+
+    expect(value).toEqual({ kind: "literal", raw: "0" });
+    expect(
+      serializeExpression(
+        expandCondition({
+          variableName: "edad",
+          predicate: { kind: "compare", op: "=", label: "igual a" },
+          value,
+        }),
+      ),
+    ).toBe("${edad} = 0");
+  });
+
+  test("limpia el valor cuando el criterio vuelve a presencia", () => {
+    expect(
+      valueForPredicateTransition(
+        { kind: "presence", mode: "empty", label: "está vacía" },
+        { kind: "literal", raw: "18" },
+        "integer",
+      ),
+    ).toEqual({ kind: "literal", raw: "" });
+  });
+
+  test("preserva valores ya escritos al cambiar entre comparaciones", () => {
+    expect(
+      valueForPredicateTransition(
+        { kind: "compare", op: ">=", label: "mayor o igual" },
+        { kind: "literal", raw: "18" },
+        "integer",
+      ),
+    ).toEqual({ kind: "literal", raw: "18" });
   });
 });

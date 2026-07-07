@@ -7,12 +7,12 @@
 // =============================================================================
 
 import { X } from "lucide-react";
-import type { FlatCondition, LogicCatalog, LogicScope, PredicateKind } from "../../logic";
+import type { FlatCondition, LogicCatalog, LogicScope } from "../../logic";
 import {
   defaultPredicate,
-  defaultLiteralForPredicate,
   predicateKey,
   predicatesForType,
+  valueForPredicateTransition,
 } from "../../logic";
 import { VariablePicker } from "./VariablePicker";
 import { PredicatePicker } from "./PredicatePicker";
@@ -26,21 +26,6 @@ export type ConditionRowProps = {
   onRemove?: () => void;
   disabled?: boolean;
 };
-
-function valueForPredicate(
-  next: PredicateKind,
-  currentValue: FlatCondition["value"],
-  baseType: string,
-  catalog?: LogicCatalog,
-): FlatCondition["value"] {
-  if (next.kind === "presence") return { kind: "literal", raw: "" };
-  if (currentValue.kind === "ref") return currentValue;
-  if (currentValue.raw.trim()) return currentValue;
-  return {
-    kind: "literal",
-    raw: defaultLiteralForPredicate(baseType, next, catalog),
-  };
-}
 
 function valueHintForType(baseType: string, catalog?: LogicCatalog): string {
   if (baseType === "select_one" || baseType === "select_multiple") {
@@ -86,7 +71,7 @@ export function ConditionRow({
       ...condition,
       variableName: next,
       predicate: nextPredicate,
-      value: valueForPredicate(nextPredicate, condition.value, nextType, nextCatalog),
+      value: valueForPredicateTransition(nextPredicate, condition.value, nextType, nextCatalog),
     });
   };
 
@@ -116,7 +101,7 @@ export function ConditionRow({
             onChange({
               ...condition,
               predicate: next,
-              value: valueForPredicate(next, condition.value, baseType, catalog),
+              value: valueForPredicateTransition(next, condition.value, baseType, catalog),
             })
           }
           disabled={disabled || !condition.variableName}
