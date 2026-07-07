@@ -20,16 +20,14 @@ import type { ChoiceItem } from "../types";
 export type SortableChoiceRowProps = {
   choice: ChoiceItem;
   position: number;
-  onLabelChange: (next: string) => void;
-  onNameChange: (next: string) => void;
+  onCommit: (next: { label: string; name: string }) => void;
   onRemove: () => void;
 };
 
 export function SortableChoiceRow({
   choice,
   position,
-  onLabelChange,
-  onNameChange,
+  onCommit,
   onRemove,
 }: SortableChoiceRowProps) {
   const [draftLabel, setDraftLabel] = useState(choice.label);
@@ -49,8 +47,10 @@ export function SortableChoiceRow({
   const apply = () => {
     const nextLabel = draftLabel;
     const nextName = draftName.trim();
-    if (nextLabel !== baseline.label) onLabelChange(nextLabel);
-    if (nextName !== baseline.name) onNameChange(nextName);
+    if (!nextName) return;
+    if (nextLabel !== baseline.label || nextName !== baseline.name) {
+      onCommit({ label: nextLabel, name: nextName });
+    }
     setDraftName(nextName);
     setBaseline({ label: nextLabel, name: nextName });
   };

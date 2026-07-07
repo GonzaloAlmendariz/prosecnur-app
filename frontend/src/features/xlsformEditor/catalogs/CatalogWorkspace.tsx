@@ -33,7 +33,7 @@ export type CatalogWorkspaceProps = {
   usageCount: number;
   onRename: (currentListName: string, nextListName: string) => void;
   onAddChoice: (listName: string) => void;
-  onChoiceChange: (rowIndex: number, field: "name" | "label", value: string) => void;
+  onChoiceChange: (rowIndex: number, next: { label: string; name: string }) => void;
   onChoiceRemove: (rowIndex: number) => void;
   /** Reordena la opción `from` para que quede antes de la opción `to`. */
   onChoiceMove: (listName: string, fromRowIndex: number, toRowIndex: number) => void;
@@ -210,8 +210,7 @@ export function CatalogWorkspace({
                     key={choice.rowIndex}
                     choice={choice}
                     position={position}
-                    onLabelChange={(value) => onChoiceChange(choice.rowIndex, "label", value)}
-                    onNameChange={(value) => onChoiceChange(choice.rowIndex, "name", value)}
+                    onCommit={(value) => onChoiceChange(choice.rowIndex, value)}
                     onRemove={() => onChoiceRemove(choice.rowIndex)}
                   />
                 );
