@@ -137,6 +137,14 @@ export function CatalogWorkspace({
         </div>
       </header>
 
+      <div className="pulso-catalogworkspace-draft-note" role="note">
+        <Check size={13} />
+        <span>
+          Puedes escribir sin guardar a cada tecla. Usa <strong>Aplicar</strong> para confirmar
+          el texto o código de una opción.
+        </span>
+      </div>
+
       {showSearch && (
         <div className="pulso-catalogworkspace-search">
           <Search size={13} style={{ color: "var(--pulso-text-soft)" }} />
