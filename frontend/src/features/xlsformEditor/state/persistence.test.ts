@@ -1,7 +1,8 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import type { ChoiceCodeMap, SurveyMonkeyVisualLogicRule } from "../../../api/client";
 import type { XlsformEditorWorkbook } from "../types";
 import {
+  loadSnapshot,
   reconcileSnapshotWithBackend,
   type PersistedSnapshot,
   workbookHasSurveyMonkeyLogic,
@@ -43,6 +44,28 @@ function snapshot(
     hallazgos: [],
   };
 }
+
+function makeStorage(initial: Record<string, string> = {}): Storage {
+  const store = new Map(Object.entries(initial));
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+    getItem: (key: string) => store.get(key) ?? null,
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const advancedRule = {
   id: "a1",
@@ -143,5 +166,53 @@ describe("SurveyMonkey logic persistence reconciliation", () => {
     expect(out?.workbook.surveyMonkeyLogic?.advanced_rules[0].id).toBe("local");
     expect(out?.workbook.surveyMonkeyLogic?.visual_rules).toHaveLength(1);
     expect(out?.workbook.surveyMonkeyLogic?.choice_code_maps).toHaveLength(1);
+  });
+});
+
+describe("XLSForm editor snapshot loading", () => {
+  test("normaliza hojas opcionales incompletas antes de ofrecer restauracion", () => {
+    const malformed = {
+      ...workbook("restaurable"),
+      paper: {},
+      diagnostico: { rows: [["sin", "columnas"]] },
+      surveyMonkeyLogic: {
+        advanced_rules: {},
+        visual_rules: [{ id: "v1", choices: [{}] }],
+        choice_order_overrides: { Q1: "no-es-array" },
+        choice_code_maps: [{ mappings: {} }],
+      },
+    };
+    vi.stubGlobal("localStorage", makeStorage({
+      "pulso.xlsformEditor.workbook.v2.no-project": JSON.stringify(malformed),
+      "pulso.xlsformEditor.meta.v2.no-project": JSON.stringify({
+        savedAt: 123,
+        sourceName: "autosave.xlsx",
+        sourceKind: "xlsform",
+      }),
+    }));
+    vi.stubGlobal("sessionStorage", makeStorage());
+
+    const out = loadSnapshot();
+
+    expect(out?.sourceName).toBe("autosave.xlsx");
+    expect(out?.workbook.paper?.columns).toContain("title");
+    expect(out?.workbook.paper?.rows).toEqual([]);
+    expect(out?.workbook.diagnostico).toBeNull();
+    expect(out?.workbook.surveyMonkeyLogic?.advanced_rules).toEqual([]);
+    expect(out?.workbook.surveyMonkeyLogic?.visual_rules[0]?.choices[0]?.action).toEqual({ kind: "none" });
+    expect(out?.workbook.surveyMonkeyLogic?.choice_order_overrides.Q1).toEqual([]);
+  });
+
+  test("ignora snapshots con hojas requeridas sin columnas", () => {
+    const malformed = {
+      ...workbook("no restaurable"),
+      survey: { rows: [["text", "p1", "Pregunta"]] },
+    };
+    vi.stubGlobal("localStorage", makeStorage({
+      "pulso.xlsformEditor.workbook.v2.no-project": JSON.stringify(malformed),
+    }));
+    vi.stubGlobal("sessionStorage", makeStorage());
+
+    expect(loadSnapshot()).toBeNull();
   });
 });
