@@ -64,6 +64,8 @@ import {
   Target,
   TriangleAlert,
   Trash2,
+  Redo2,
+  Undo2,
   UserPen,
   Wand2,
   Workflow,
@@ -85,6 +87,8 @@ export const IconExpand = ChevronDown;
 export const IconCollapse = ChevronUp;
 export const IconSearch = Search;
 export const IconOpen = FolderOpen;
+export const IconUndo = Undo2;
+export const IconRedo = Redo2;
 
 // ── Estados ─────────────────────────────────────────────────────────────
 export const IconSuccess = CheckCircle2;

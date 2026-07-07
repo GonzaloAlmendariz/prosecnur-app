@@ -145,7 +145,11 @@ export function VariablePicker({
               spellCheck={false}
             />
           </div>
-          {filtered.length === 0 ? (
+          {variables.length === 0 ? (
+            <div className="pulso-logic-varpicker-empty">
+              Aún no hay preguntas previas disponibles para esta condición.
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="pulso-logic-varpicker-empty">
               Ninguna pregunta coincide con <em>{query}</em>.
             </div>

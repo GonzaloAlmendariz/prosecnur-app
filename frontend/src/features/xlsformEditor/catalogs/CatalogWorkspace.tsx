@@ -10,8 +10,8 @@
 //   5. Estado vacío explicativo si el catálogo no tiene opciones todavía.
 // =============================================================================
 
-import { useMemo, useState } from "react";
-import { ListChecks, Plus, Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, ListChecks, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -98,15 +98,10 @@ export function CatalogWorkspace({
             Código de la lista
           </label>
           <div className="pulso-catalogworkspace-headertop">
-            <input
-              id="catalog-listname-input"
-              type="text"
+            <CatalogListNameEditor
+              inputId="catalog-listname-input"
               value={catalog.listName}
-              onChange={(event) => onRename(catalog.listName, event.target.value)}
-              className="pulso-catalogworkspace-name"
-              spellCheck={false}
-              aria-label="Código de la lista"
-              title="Identificador de la lista (sin tildes ni espacios). Aparece en la columna list_name del XLSForm."
+              onCommit={(next) => onRename(catalog.listName, next)}
             />
             <button
               type="button"
@@ -216,6 +211,72 @@ export function CatalogWorkspace({
             </div>
           </SortableContext>
         </DndContext>
+      )}
+    </div>
+  );
+}
+
+function CatalogListNameEditor({
+  inputId,
+  value,
+  onCommit,
+}: {
+  inputId: string;
+  value: string;
+  onCommit: (next: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const cleanDraft = draft.trim();
+  const dirty = draft !== value;
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const apply = () => {
+    if (!cleanDraft || !dirty) return;
+    onCommit(cleanDraft);
+  };
+
+  const revert = () => setDraft(value);
+
+  return (
+    <div className={`pulso-catalogworkspace-name-editor${dirty ? " is-dirty" : ""}`}>
+      <input
+        id={inputId}
+        type="text"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        className="pulso-catalogworkspace-name"
+        spellCheck={false}
+        aria-label="Código de la lista"
+        title="Identificador de la lista (sin tildes ni espacios). Aparece en la columna list_name del XLSForm."
+        onKeyDown={(event) => {
+          if (event.key === "Enter") apply();
+          if (event.key === "Escape") revert();
+        }}
+      />
+      {dirty && (
+        <span className="pulso-catalogworkspace-name-actions" aria-label="Confirmar cambio de código de lista">
+          <button
+            type="button"
+            className="pulso-catalogdraft-apply"
+            onClick={apply}
+            disabled={!cleanDraft}
+            title="Aplicar nombre de lista"
+          >
+            <Check size={12} /> Aplicar
+          </button>
+          <button
+            type="button"
+            className="pulso-catalogdraft-revert"
+            onClick={revert}
+            title="Revertir"
+            aria-label="Revertir cambio de nombre de lista"
+          >
+            <RotateCcw size={12} />
+          </button>
+        </span>
       )}
     </div>
   );

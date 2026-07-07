@@ -33,6 +33,7 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
   const isCalculate = node.kind === "calculate";
   const isSection = node.kind === "section" || node.kind === "repeat";
   const isNote = node.kind === "note";
+  const targetNoun = isSection ? "este bloque" : "esta pregunta";
 
   // El constraint solo aplica a preguntas reales (no notas, no calc, no
   // secciones). Lo mostramos solo cuando tiene sentido.
@@ -72,7 +73,8 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
           expression={node.relevant}
           scope={scope}
           fieldLabel="Cuándo aparece"
-          hint="Define la condición que tiene que cumplirse para que esta pregunta se le muestre al encuestado."
+          hint={`Define la condición que tiene que cumplirse para que ${targetNoun} se le muestre al encuestado.`}
+          targetNoun={targetNoun}
           onChange={(next) => onFieldChange("relevant", next)}
         />
       </InspectorBlock>

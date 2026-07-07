@@ -20,6 +20,7 @@
 // bien en UI plana. F2-3+ aumentan la cobertura.
 // =============================================================================
 
+import { useState } from "react";
 import { X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
 import {
@@ -35,6 +36,7 @@ import { defaultPredicate } from "../../logic";
 import { ConditionRow } from "./ConditionRow";
 import { LogicGroupBlock } from "./LogicGroupBlock";
 import { LogicTreeBuilder } from "./LogicTreeBuilder";
+import { VariablePicker } from "./VariablePicker";
 
 export type LogicBuilderProps = {
   /** Expresión ODK actual. */
@@ -44,6 +46,8 @@ export type LogicBuilderProps = {
   fieldLabel: string;
   /** Hint debajo del builder. */
   hint?: string;
+  /** Sujeto visible para textos humanos: "esta pregunta", "este bloque". */
+  targetNoun?: string;
   /** Callback con la expresión ODK serializada. */
   onChange: (next: string) => void;
 };
@@ -53,13 +57,81 @@ export function LogicBuilder({
   scope,
   fieldLabel,
   hint,
+  targetNoun = "esta pregunta",
   onChange,
 }: LogicBuilderProps) {
+  const rawExpression = expression.trim();
+  const [manualOpen, setManualOpen] = useState(false);
+  const [guidedEmptyOpen, setGuidedEmptyOpen] = useState(false);
+  const [manualValue, setManualValue] = useState(rawExpression);
   const ast = parseExpression(expression);
   const buildEmpty = (): FlatCondition => buildEmptyCondition(scope);
+  const hasVariables = scope.variables.length > 0;
+  const openManual = () => {
+    setManualValue(rawExpression);
+    setManualOpen(true);
+  };
+
+  if (manualOpen) {
+    return (
+      <div className="pulso-logic-builder">
+        <header className="pulso-logic-builder-header">
+          <span className="pulso-section-eyebrow">{fieldLabel}</span>
+        </header>
+        <ManualFormulaEditor
+          value={manualValue}
+          targetNoun={targetNoun}
+          onChange={setManualValue}
+          onApply={() => {
+            onChange(manualValue.trim());
+            setManualOpen(false);
+          }}
+          onCancel={() => setManualOpen(false)}
+        />
+        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+      </div>
+    );
+  }
 
   // Caso 1: vacío.
   if (!ast) {
+    if (guidedEmptyOpen && !hasVariables) {
+      return (
+        <div className="pulso-logic-builder">
+          <header className="pulso-logic-builder-header">
+            <span className="pulso-section-eyebrow">{fieldLabel}</span>
+          </header>
+          <div className="pulso-logic-builder-guided-empty">
+            <NoVariablesGuidedCondition />
+            <p>
+              Las condiciones guiadas necesitan una pregunta ubicada antes de
+              {` ${targetNoun}`}. Cuando exista, aparecerá aquí para elegirla.
+            </p>
+            <div className="pulso-logic-builder-rawactions">
+              <button
+                type="button"
+                className="pulso-logic-builder-advanced"
+                onClick={openManual}
+              >
+                Escribir fórmula XLSForm
+              </button>
+              <button
+                type="button"
+                className="pulso-logic-builder-clear"
+                onClick={() => setGuidedEmptyOpen(false)}
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+          {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+        </div>
+      );
+    }
+
+    const emptyText = hasVariables
+      ? `Sin condición — ${targetNoun} siempre se muestra.`
+      : `Sin preguntas previas para armar una regla guiada. ${capitalizeFirst(targetNoun)} puede condicionarse con una fórmula XLSForm.`;
     return (
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
@@ -67,19 +139,82 @@ export function LogicBuilder({
         </header>
         <div className="pulso-logic-builder-empty">
           <IconHint size={14} />
-          <span>Sin condición — la pregunta siempre se muestra.</span>
+          <span>{emptyText}</span>
           <button
             type="button"
             className="pulso-logic-builder-add"
             onClick={() => {
+              if (!hasVariables) {
+                setGuidedEmptyOpen(true);
+                return;
+              }
               const cond = buildEmpty();
-              if (!cond.variableName) return;
+              if (!cond.variableName) {
+                setGuidedEmptyOpen(true);
+                return;
+              }
               onChange(serializeExpression(expandCondition(cond)));
             }}
-            disabled={!scope.variables.length}
           >
             + Agregar condición
           </button>
+          {hasVariables && (
+            <button
+              type="button"
+              className="pulso-logic-builder-advanced"
+              onClick={openManual}
+            >
+              Fórmula avanzada
+            </button>
+          )}
+        </div>
+        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+      </div>
+    );
+  }
+
+  if (ast.kind === "raw") {
+    return (
+      <div className="pulso-logic-builder">
+        <header className="pulso-logic-builder-header">
+          <span className="pulso-section-eyebrow">{fieldLabel}</span>
+          <button
+            type="button"
+            className="pulso-logic-builder-clear"
+            onClick={() => onChange("")}
+            title={`Quitar la condición — ${targetNoun} se mostrará siempre.`}
+          >
+            <X size={12} /> Quitar
+          </button>
+        </header>
+        <div className="pulso-logic-builder-raw">
+          <pre>{ast.text}</pre>
+          <p className="pulso-logic-builder-rawhint">
+            Esta fórmula se preserva al exportar. Puedes editarla aquí si ya
+            conoces el código XLSForm.
+          </p>
+          <div className="pulso-logic-builder-rawactions">
+            <button
+              type="button"
+              className="pulso-logic-builder-replace"
+              onClick={openManual}
+            >
+              Editar fórmula
+            </button>
+            {hasVariables && (
+              <button
+                type="button"
+                className="pulso-logic-builder-advanced"
+                onClick={() => {
+                  const cond = buildEmpty();
+                  if (!cond.variableName) return;
+                  onChange(serializeExpression(expandCondition(cond)));
+                }}
+              >
+                Rehacer guiado
+              </button>
+            )}
+          </div>
         </div>
         {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
       </div>
@@ -99,7 +234,7 @@ export function LogicBuilder({
           type="button"
           className="pulso-logic-builder-clear"
           onClick={() => onChange("")}
-          title="Quitar la condición — la pregunta se mostrará siempre."
+          title={`Quitar la condición — ${targetNoun} se mostrará siempre.`}
         >
           <X size={12} /> Quitar
         </button>
@@ -131,7 +266,7 @@ export function LogicBuilder({
             type="button"
             className="pulso-logic-builder-clear"
             onClick={() => onChange("")}
-            title="Quitar la condición — la pregunta se mostrará siempre."
+            title={`Quitar la condición — ${targetNoun} se mostrará siempre.`}
           >
             <X size={12} /> Quitar
           </button>
@@ -222,6 +357,78 @@ export function LogicBuilder({
   // "reemplazar todo".
   const tree = tryBuildLogicTree(ast);
   return renderTree(tree);
+}
+
+function NoVariablesGuidedCondition() {
+  return (
+    <div className="pulso-logic-condition-row pulso-logic-condition-row--starter">
+      <div className="pulso-logic-condition-piece pulso-logic-condition-var">
+        <span className="pulso-logic-condition-label">Pregunta</span>
+        <VariablePicker
+          variables={[]}
+          selected=""
+          onChange={() => {
+            // No hay variables elegibles todavía.
+          }}
+          placeholder="Elige una pregunta previa"
+        />
+      </div>
+      <div className="pulso-logic-starter-note">
+        Criterio y valor aparecerán cuando exista una pregunta previa.
+      </div>
+    </div>
+  );
+}
+
+function ManualFormulaEditor({
+  value,
+  targetNoun,
+  onChange,
+  onApply,
+  onCancel,
+}: {
+  value: string;
+  targetNoun: string;
+  onChange: (next: string) => void;
+  onApply: () => void;
+  onCancel: () => void;
+}) {
+  const clean = value.trim();
+  return (
+    <div className="pulso-logic-builder-manual">
+      <label>
+        <span>Fórmula XLSForm para mostrar {targetNoun}</span>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          rows={2}
+          placeholder="${pregunta_1} = 'si'"
+        />
+      </label>
+      <p>
+        Úsala cuando necesitas una condición avanzada o todavía no hay una
+        pregunta previa disponible para el asistente visual.
+      </p>
+      <div className="pulso-logic-builder-rawactions">
+        <button
+          type="button"
+          className="pulso-logic-builder-replace"
+          onClick={onApply}
+          disabled={!clean}
+        >
+          Aplicar fórmula
+        </button>
+        <button type="button" className="pulso-logic-builder-clear" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function capitalizeFirst(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 /**
