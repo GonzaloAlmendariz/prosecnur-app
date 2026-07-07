@@ -1,10 +1,12 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -149,6 +151,15 @@ import type {
   LogicVariable,
 } from "./logic";
 import { LogicCanvas } from "./canvas-graph/LogicCanvas";
+
+type FloatingMenuAnchor = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  width: number;
+  height: number;
+};
 
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
@@ -492,6 +503,8 @@ export default function XlsformEditorPage() {
   /** Snapshot del autosave detectado al montar; muestra UI de "continuar". */
   const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
+  const addMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [addMenuAnchor, setAddMenuAnchor] = useState<FloatingMenuAnchor | null>(null);
   // Notificaciones efímeras (importé X, exporté Y) — reemplazan al setStatus
   // sticky para mensajes de operaciones que cierran su ciclo en un evento.
   const toasts = useToastDeck();
@@ -555,6 +568,30 @@ export default function XlsformEditorPage() {
     workbookRef.current = workbook;
   }, [workbook]);
 
+  const syncAddMenuAnchor = useCallback(() => {
+    const rect = addMenuButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setAddMenuAnchor({
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showAddMenu) return;
+    syncAddMenuAnchor();
+    window.addEventListener("resize", syncAddMenuAnchor);
+    window.addEventListener("scroll", syncAddMenuAnchor, true);
+    return () => {
+      window.removeEventListener("resize", syncAddMenuAnchor);
+      window.removeEventListener("scroll", syncAddMenuAnchor, true);
+    };
+  }, [showAddMenu, syncAddMenuAnchor]);
+
   // Programar autosave después de cada edición. El scheduler debouncea 2s
   // — si el usuario sigue editando, se posterga; si se queda quieto, escribe.
   // Pasamos el `projectScope` para que el snapshot se guarde en el bucket
@@ -576,12 +613,12 @@ export default function XlsformEditorPage() {
   //   Cmd/Ctrl+Z         → deshacer
   //   Cmd/Ctrl+Shift+Z   → rehacer
   //   Ctrl+Y             → rehacer (Windows)
-  //   Cmd/Ctrl+N         → nueva pregunta (texto, después de la selección)
+  //   Cmd/Ctrl+N         → abrir selector de nueva pieza
   //
   // Undo/redo se ignoran si el foco está en un input/textarea/contentEditable
   // (el usuario espera que Cmd+Z deshaga su tipeo, no la última edición del
-  // workbook). "Nueva pregunta" funciona siempre — incluso tipeando — porque
-  // es una acción global del editor.
+  // workbook). El selector de nueva pieza funciona siempre — incluso
+  // tipeando — porque es una acción global del editor.
   useEffect(() => {
     function isTypingTarget(el: EventTarget | null): boolean {
       if (!(el instanceof HTMLElement)) return false;
@@ -595,16 +632,15 @@ export default function XlsformEditorPage() {
       if (!isMod) return;
       const key = event.key.toLowerCase();
 
-      // Cmd/Ctrl+N — nueva pregunta. Siempre funciona, sin importar el
-      // foco. PreventDefault es crítico porque el navegador captura
-      // este shortcut para "nueva ventana" — en Electron sí lo
-      // bloqueamos, en navegadores normales puede que no.
+      // Cmd/Ctrl+N — abre el selector de piezas. PreventDefault es
+      // crítico porque el navegador captura este shortcut para "nueva
+      // ventana" — en Electron sí lo bloqueamos, en navegadores normales
+      // puede que no.
       if (key === "n" && !event.shiftKey) {
         if (!workbookRef.current) return;
         event.preventDefault();
-        const afterRow =
-          selectionRef.current?.kind === "survey" ? selectionRef.current.rowIndex : null;
-        addQuestionRef.current?.("text", afterRow);
+        syncAddMenuAnchor();
+        setShowAddMenu(true);
         return;
       }
 
@@ -620,18 +656,7 @@ export default function XlsformEditorPage() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Refs estables para que el handler de teclado (registrado una sola
-  // vez en mount) acceda al estado actual sin re-suscribirse.
-  const selectionRef = useRef<BuilderSelection | null>(null);
-  const addQuestionRef = useRef<typeof addQuestion | null>(null);
-  useEffect(() => {
-    selectionRef.current = selection;
-  });
-  useEffect(() => {
-    addQuestionRef.current = addQuestion;
-  });
+  }, [syncAddMenuAnchor]);
 
   const xlsformIndex = useMemo(
     () => (workbook ? buildXlsformIndex(workbook) : null),
@@ -2381,16 +2406,22 @@ export default function XlsformEditorPage() {
                       </div>
                       <div className="pulso-xlsform-outline-actions" style={{ position: "relative" }}>
                         <button
+                          ref={addMenuButtonRef}
                           type="button"
                           className="pulso-icon"
-                          onClick={() => setShowAddMenu((value) => !value)}
-                          title="Añadir pieza"
+                          onClick={() => {
+                            syncAddMenuAnchor();
+                            setShowAddMenu((value) => !value);
+                          }}
+                          title="Añadir pieza (Cmd/Ctrl+N)"
                         >
                           <Plus size={14} />
                         </button>
                         {showAddMenu && (
                           <AddElementMenu
                             items={addMenuItems}
+                            anchor={addMenuAnchor}
+                            anchorElement={addMenuButtonRef.current}
                             onClose={() => setShowAddMenu(false)}
                           />
                         )}
@@ -2697,31 +2728,109 @@ export default function XlsformEditorPage() {
 
 function AddElementMenu({
   items,
+  anchor,
+  anchorElement,
   onClose,
 }: {
   items: AddMenuItem[];
+  anchor: FloatingMenuAnchor | null;
+  anchorElement: HTMLElement | null;
   onClose: () => void;
 }) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const groups = [
-    { id: "capture", label: "Texto y captura" },
     { id: "choices", label: "Opciones Kobo" },
+    { id: "capture", label: "Texto y captura" },
     { id: "evidence", label: "Evidencia y ubicación" },
     { id: "logic", label: "Estructura y lógica" },
   ] as const;
 
-  return (
-    <div className="pulso-add-element-menu">
-      <span className="pulso-add-element-menu-eyebrow">Añadir pieza</span>
-      {groups.map((group) => {
+  useLayoutEffect(() => {
+    menuRef.current?.querySelector<HTMLButtonElement>(".pulso-add-element-menu-item")?.focus();
+  }, []);
+
+  useEffect(() => {
+    const menuButtons = () => Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>(".pulso-add-element-menu-item") ?? []);
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        anchorElement?.focus();
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") return;
+      const buttons = menuButtons();
+      if (!buttons.length) return;
+      const activeIndex = buttons.findIndex((button) => button === document.activeElement);
+      if (event.key === "Enter" && activeIndex < 0) {
+        event.preventDefault();
+        buttons[0]?.click();
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      event.preventDefault();
+      const fallbackIndex = event.key === "ArrowDown" ? -1 : 0;
+      const index = activeIndex >= 0 ? activeIndex : fallbackIndex;
+      const nextIndex = event.key === "ArrowDown"
+        ? (index + 1) % buttons.length
+        : (index - 1 + buttons.length) % buttons.length;
+      buttons[nextIndex]?.focus();
+    }
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (menuRef.current?.contains(target)) return;
+      if (anchorElement?.contains(target)) return;
+      onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [anchorElement, onClose]);
+
+  const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
+  const menuWidth = Math.min(372, viewportWidth - 32);
+  const menuLeft = anchor
+    ? Math.min(
+        Math.max(16, Math.round(anchor.right - menuWidth)),
+        Math.max(16, viewportWidth - menuWidth - 16),
+      )
+    : 16;
+  const style = anchor
+    ? ({
+        "--pulso-add-menu-top": `${Math.round(anchor.bottom + 8)}px`,
+        "--pulso-add-menu-left": `${menuLeft}px`,
+        "--pulso-add-menu-width": `${menuWidth}px`,
+        "--pulso-add-menu-max-height": `min(640px, calc(100dvh - ${Math.round(anchor.bottom + 24)}px))`,
+      } as CSSProperties)
+    : undefined;
+
+  return createPortal((
+    <div ref={menuRef} className="pulso-add-element-menu" style={style} role="menu" aria-label="Añadir pieza al formulario">
+      <div className="pulso-add-element-menu-head">
+        <span className="pulso-add-element-menu-mark" aria-hidden="true">
+          <ListChecks size={14} />
+        </span>
+        <span className="pulso-add-element-menu-head-copy">
+          <strong>Añadir pieza</strong>
+          <small>Catálogos, captura, evidencia y lógica.</small>
+        </span>
+      </div>
+      {groups.map((group, groupIndex) => {
         const groupItems = items.filter((item) => item.group === group.id);
         if (!groupItems.length) return null;
         return (
           <div key={group.id} className="pulso-add-element-menu-group">
             <span className="pulso-add-element-menu-group-title">{group.label}</span>
-            {groupItems.map((item) => (
+            {groupItems.map((item, itemIndex) => (
               <button
                 key={item.key}
                 type="button"
+                role="menuitem"
+                autoFocus={groupIndex === 0 && itemIndex === 0}
                 onClick={() => {
                   item.action();
                   onClose();
@@ -2741,7 +2850,7 @@ function AddElementMenu({
         );
       })}
     </div>
-  );
+  ), document.body);
 }
 
 type SuiteMetrics = {

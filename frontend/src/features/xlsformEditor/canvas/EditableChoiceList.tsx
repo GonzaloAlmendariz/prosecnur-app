@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import { ListChecks, Plus, Trash2, Users, ExternalLink } from "lucide-react";
+import { CheckCircle2, ExternalLink, Info, ListChecks, Plus, Trash2, Users } from "lucide-react";
 import type { ChoiceItem } from "../types";
 import { RichInline } from "../helpers/RichInline";
 
@@ -138,7 +138,11 @@ export function EditableChoiceList({
             />
             <ChoiceCodeInput
               value={item.name}
+              label={item.label}
               placeholder={`opcion_${idx + 1}`}
+              takenCodes={items
+                .filter((other) => other.rowIndex !== item.rowIndex)
+                .map((other) => other.name)}
               onCommit={(v) => onNameChange(item.rowIndex, v)}
             />
             <button
@@ -215,15 +219,27 @@ export function EditableChoiceList({
 
 function ChoiceCodeInput({
   value,
+  label,
   placeholder,
+  takenCodes,
   onCommit,
 }: {
   value: string;
+  label: string;
   placeholder: string;
+  takenCodes: string[];
   onCommit: (next: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
+  const normalizedDraft = normalizeCode(draft);
+  const cleanDraft = draft.trim();
+  const isEmpty = cleanDraft.length === 0;
+  const hasCanonicalFormat = cleanDraft.length > 0 && cleanDraft === normalizedDraft;
+  const isDuplicate = normalizedDraft.length > 0 && takenCodes.some((code) => normalizeCode(code) === normalizedDraft);
+  const suggestion = suggestChoiceCode(label, value, placeholder, takenCodes);
+  const needsReview = isEmpty || !hasCanonicalFormat || isDuplicate;
+  const showAssistant = focused;
 
   // Sincronizar `draft` cuando `value` cambia desde fuera (ej. otro
   // componente normalizó el código). No pisamos al usuario mientras
@@ -238,11 +254,16 @@ function ChoiceCodeInput({
     setDraft(normalized);
   };
 
+  const applySuggestion = () => {
+    setDraft(suggestion);
+    if (suggestion !== value) onCommit(suggestion);
+  };
+
   return (
-    <span className={`pulso-choice-code-wrap${focused ? " is-focused" : ""}`}>
+    <span className={`pulso-choice-code-wrap${focused ? " is-focused" : ""}${showAssistant ? " has-assistant" : ""}`}>
       <input
         type="text"
-        className="pulso-choice-edit-code"
+        className={`pulso-choice-edit-code${needsReview && !focused ? " needs-review" : ""}`}
         value={draft}
         placeholder={placeholder}
         spellCheck={false}
@@ -261,9 +282,29 @@ function ChoiceCodeInput({
         aria-label="Código de la opción"
         title="Código de la opción — letras, números y guion bajo (sin tildes ni espacios)"
       />
-      {focused && (
-        <span className="pulso-choice-code-hint">
-          Código: solo letras, números y guion bajo
+      {showAssistant && (
+        <span className="pulso-choice-code-assistant" role="status">
+          <span className="pulso-choice-code-assistant-head">
+            {hasCanonicalFormat && !isDuplicate && !isEmpty ? (
+              <CheckCircle2 size={11} />
+            ) : (
+              <Info size={11} />
+            )}
+            <span>{choiceCodeStatusLabel(isEmpty, hasCanonicalFormat, isDuplicate)}</span>
+          </span>
+          {suggestion && suggestion !== cleanDraft && (
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={(event) => {
+                event.stopPropagation();
+                applySuggestion();
+              }}
+              title={`Usar ${suggestion}`}
+            >
+              Usar <code>{suggestion}</code>
+            </button>
+          )}
         </span>
       )}
     </span>
@@ -274,9 +315,10 @@ function ChoiceCodeInput({
  *  sin espacios, en minúscula. */
 function normalizeCode(raw: string): string {
   return raw
+    .replace(/ñ/g, "n")
     .normalize("NFD")
     // Quitar diacríticos (tildes, etc).
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     // Reemplazar caracteres no válidos por _.
     .replace(/[^a-zA-Z0-9_]+/g, "_")
     // Compactar _ múltiples.
@@ -284,6 +326,29 @@ function normalizeCode(raw: string): string {
     // Trim _ a los lados.
     .replace(/^_|_$/g, "")
     .toLowerCase();
+}
+
+function suggestChoiceCode(
+  label: string,
+  currentValue: string,
+  fallback: string,
+  takenCodes: string[],
+): string {
+  const base = normalizeCode(label) || normalizeCode(currentValue) || normalizeCode(fallback) || "opcion";
+  const taken = new Set(takenCodes.map((code) => normalizeCode(code)).filter(Boolean));
+  if (!taken.has(base)) return base;
+  for (let index = 2; index <= 99; index += 1) {
+    const candidate = `${base}_${index}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return base;
+}
+
+function choiceCodeStatusLabel(isEmpty: boolean, hasCanonicalFormat: boolean, isDuplicate: boolean): string {
+  if (isEmpty) return "Falta código Kobo";
+  if (isDuplicate) return "Código repetido en la lista";
+  if (!hasCanonicalFormat) return "Conviene limpiar el código";
+  return "Código listo para Kobo";
 }
 
 // -----------------------------------------------------------------------------
