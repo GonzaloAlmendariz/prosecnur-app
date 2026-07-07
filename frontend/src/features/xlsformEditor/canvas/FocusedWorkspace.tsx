@@ -1895,6 +1895,7 @@ function RulesTab({
               fieldLabel="Cómo se valida la respuesta"
               hint="Define qué condición debe cumplir la respuesta. Puedes partir de un preset o editar la regla manualmente."
               onChange={(next) => onFieldChange("constraint", next)}
+              showShortcuts={false}
             />
           )}
           {(node.constraint || constraintMessage) && (
@@ -2401,15 +2402,16 @@ function CustomValidationPanel({
       validation?.status !== "Editable visualmente",
   );
   const regexPresets = regexPresetsFor(node);
-  const showRegexPresets = regexPresets.length > 0 && validation?.status !== "Preset claro";
+  const hasPrimaryPresets = validationPresetsFor(node).length > 0;
+  const showRegexPresets = regexPresets.length > 0 && validation?.status !== "Preset claro" && !hasPrimaryPresets;
 
   return (
     <details className="pulso-focus-custom-validation" open={openByDefault}>
       <summary>Regex o fórmula avanzada</summary>
       <p>
-        Pega una regla completa cuando el atajo no alcance. Por ejemplo:
-        regex para patrones, count-selected para selección múltiple o una regla
-        importada desde otro XLSForm.
+        Pega una regla completa cuando los atajos no alcancen: regex para
+        patrones, count-selected para selección múltiple o una regla importada
+        desde otro XLSForm.
       </p>
       {showRegexPresets && (
         <div className="pulso-focus-regex-shortcuts" aria-label="Atajos de Regex">

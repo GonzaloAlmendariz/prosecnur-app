@@ -26815,6 +26815,145 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   line-height: 1.45;
 }
+
+.pulso-constraint-shortcuts {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 16%, var(--pulso-border));
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 253, 0.86)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-constraint-shortcuts-head {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-constraint-shortcuts-head strong {
+  color: #1f2a3d;
+  font-size: 12.3px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pulso-constraint-shortcuts-head small {
+  color: var(--pulso-text-soft);
+  font-size: 10.6px;
+  font-weight: 620;
+  line-height: 1.35;
+}
+
+.pulso-constraint-shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(184px, 100%), 1fr));
+  gap: 7px;
+  min-width: 0;
+}
+
+.pulso-constraint-shortcut {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--pulso-border));
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #253149;
+  text-align: left;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-constraint-shortcut-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-constraint-shortcut-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-constraint-shortcut-copy strong,
+.pulso-constraint-shortcut-copy small,
+.pulso-constraint-shortcut-copy em {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-constraint-shortcut-copy strong {
+  color: #1f2a3d;
+  font-size: 11.7px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pulso-constraint-shortcut-copy small {
+  color: #667386;
+  font-size: 10.3px;
+  font-weight: 630;
+  line-height: 1.25;
+}
+
+.pulso-constraint-shortcut-copy em {
+  color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
+  font-size: 10.3px;
+  font-style: normal;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.pulso-constraint-shortcut code {
+  align-self: flex-start;
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--pulso-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pulso-constraint-shortcut:hover {
+  border-color: color-mix(in srgb, var(--pulso-primary) 26%, var(--pulso-border));
+  background: color-mix(in srgb, #ffffff 82%, var(--pulso-primary) 7%);
+}
+
+.pulso-constraint-shortcut:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--pulso-primary) 32%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary) 14%, transparent);
+}
+
+.pulso-constraint-shortcut:active {
+  transform: scale(0.98);
+}
+
 .pulso-logic-builder-raw {
   display: flex;
   flex-direction: column;

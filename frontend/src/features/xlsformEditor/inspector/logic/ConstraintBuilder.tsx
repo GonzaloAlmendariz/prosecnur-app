@@ -17,7 +17,7 @@
 //     corpus auditado).
 // =============================================================================
 
-import { X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
 import {
   expandConstraint,
@@ -40,6 +40,8 @@ export type ConstraintBuilderProps = {
   fieldLabel: string;
   hint?: string;
   onChange: (next: string) => void;
+  onApplyPreset?: (next: { expression: string; message: string }) => void;
+  showShortcuts?: boolean;
 };
 
 export function ConstraintBuilder({
@@ -50,8 +52,19 @@ export function ConstraintBuilder({
   fieldLabel,
   hint,
   onChange,
+  onApplyPreset,
+  showShortcuts = true,
 }: ConstraintBuilderProps) {
   const ast = parseExpression(expression);
+  const shortcutPresets = constraintShortcutPresetsFor(baseType);
+
+  const applyShortcut = (preset: ConstraintShortcutPreset) => {
+    if (onApplyPreset) {
+      onApplyPreset({ expression: preset.expression, message: preset.message });
+      return;
+    }
+    onChange(preset.expression);
+  };
 
   const buildEmpty = (): FlatConstraint => ({
     predicate: defaultPredicate(baseType),
@@ -78,6 +91,36 @@ export function ConstraintBuilder({
             + Agregar validación
           </button>
         </div>
+        {showShortcuts && shortcutPresets.length > 0 && (
+          <div className="pulso-constraint-shortcuts" aria-label="Atajos comunes de validación">
+            <div className="pulso-constraint-shortcuts-head">
+              <span className="pulso-section-eyebrow">Atajos Kobo</span>
+              <strong>Reglas frecuentes sin escribir fórmula</strong>
+              <small>Aplican un constraint listo para exportar; en el inspector también completan el mensaje para campo.</small>
+            </div>
+            <div className="pulso-constraint-shortcut-grid">
+              {shortcutPresets.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="pulso-constraint-shortcut"
+                  onClick={() => applyShortcut(preset)}
+                  title={preset.hint}
+                >
+                  <span className="pulso-constraint-shortcut-icon" aria-hidden="true">
+                    <CheckCircle2 size={12} />
+                  </span>
+                  <span className="pulso-constraint-shortcut-copy">
+                    <strong>{preset.label}</strong>
+                    <small>{preset.hint}</small>
+                    <em>{preset.message}</em>
+                  </span>
+                  {preset.badge && <code>{preset.badge}</code>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
       </div>
     );
@@ -283,4 +326,97 @@ export function ConstraintBuilder({
   }
 
   return renderRaw(serializeExpression(ast));
+}
+
+type ConstraintShortcutPreset = {
+  id: string;
+  label: string;
+  hint: string;
+  expression: string;
+  message: string;
+  badge?: string;
+};
+
+function constraintShortcutPresetsFor(baseType: string): ConstraintShortcutPreset[] {
+  if (baseType === "text" || baseType === "") {
+    return [
+      {
+        id: "email",
+        label: "Correo electrónico",
+        hint: "Acepta respuestas como nombre@dominio.org.",
+        expression: "regex(., '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
+        message: "Ingresa un correo electrónico válido.",
+        badge: "regex",
+      },
+      {
+        id: "digits",
+        label: "Solo dígitos",
+        hint: "Para DNI, teléfonos, códigos numéricos o identificadores.",
+        expression: "regex(., '^\\d+$')",
+        message: "Ingresa solo números, sin letras ni símbolos.",
+        badge: "0-9",
+      },
+      {
+        id: "code",
+        label: "Código sin espacios",
+        hint: "Acepta letras, números, guion y guion bajo.",
+        expression: "regex(., '^[A-Za-z0-9_-]+$')",
+        message: "Ingresa un código sin espacios.",
+        badge: "ABC_123",
+      },
+    ];
+  }
+  if (baseType === "integer" || baseType === "decimal") {
+    return [
+      {
+        id: "positive",
+        label: "Mayor que cero",
+        hint: "Para montos, cantidades o mediciones que deben ser positivas.",
+        expression: ". > 0",
+        message: "Ingresa un valor mayor que cero.",
+        badge: "> 0",
+      },
+      {
+        id: "non-negative",
+        label: "Cero o más",
+        hint: "Permite cero, pero no acepta valores negativos.",
+        expression: ". >= 0",
+        message: "Ingresa un valor igual o mayor que cero.",
+        badge: ">= 0",
+      },
+      {
+        id: "adult-range",
+        label: "Edad 18 a 65",
+        hint: "Atajo común para edad adulta o población laboral.",
+        expression: ". >= 18 and . <= 65",
+        message: "Ingresa una edad entre 18 y 65.",
+        badge: "18-65",
+      },
+    ];
+  }
+  if (baseType === "date") {
+    return [
+      {
+        id: "not-future",
+        label: "No futura",
+        hint: "Acepta fechas iguales o anteriores a hoy.",
+        expression: ". <= today()",
+        message: "La fecha no puede ser posterior a hoy.",
+        badge: "today()",
+      },
+    ];
+  }
+  if (baseType === "select_multiple") {
+    return [
+      {
+        id: "max-three",
+        label: "Máximo 3 opciones",
+        hint: "Limita cuántas opciones puede marcar la persona encuestada.",
+        expression: "count-selected(.) <= 3",
+        message: "Selecciona máximo 3 opciones.",
+        badge: "count",
+      },
+    ];
+  }
+  return [];
 }
