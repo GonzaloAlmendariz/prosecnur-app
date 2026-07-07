@@ -297,8 +297,15 @@ function buildHeaderCopy(
     const place = section && section.kind !== "root"
       ? ` · en ${stripMarkdown(section.label)}`
       : "";
+    const kicker = node.kind === "section" || node.kind === "repeat"
+      ? "Bloque seleccionado"
+      : node.kind === "note"
+        ? "Nota seleccionada"
+        : node.kind === "calculate"
+          ? "Cálculo seleccionado"
+          : "Pregunta seleccionada";
     return {
-      kicker: node.kind === "section" || node.kind === "repeat" ? "Bloque seleccionado" : "Pregunta seleccionada",
+      kicker,
       title: node.label || node.name || "Elemento sin texto",
       subtitle: `${typeLabel(node.typeInfo.base)}${node.name ? ` · ${node.name}` : ""}${place}`,
       icon: Icon,
@@ -781,12 +788,14 @@ function FocusQuestionQuicklook({
     ? `${choices.length} ${choices.length === 1 ? "opción" : "opciones"} en ${catalogInfo?.listName || node.typeInfo.listName}${
         catalogUsageCount > 1 ? ` · usada por ${catalogUsageCount} preguntas` : ""
       }`
+    : node.kind === "note"
+      ? "No guarda respuesta; solo muestra contenido de apoyo."
     : node.kind === "calculate"
       ? "Se completa con una fórmula del XLSForm."
       : "Respuesta directa del encuestador.";
   const hasVisibility = Boolean(node.relevant.trim()) || Boolean(conditionalContext?.ancestorRelevants.length);
   const visibility = summarizeVisibilityForQuicklook(node, conditionalContext, logicScope);
-  const validation = describeValidation(node.constraint, node, logicScope);
+  const validation = node.kind === "note" ? null : describeValidation(node.constraint, node, logicScope);
   const location = section && section.kind !== "root"
     ? `Dentro de ${stripMarkdown(section.label || section.name || "la sección")}`
     : "En el nivel principal del formulario";
@@ -802,18 +811,20 @@ function FocusQuestionQuicklook({
       title: typeLabel(node.typeInfo.base),
       detail: responseDetail,
       icon: ListChecks,
-      tone: node.typeInfo.listName ? "accent" : "muted",
+      tone: node.typeInfo.listName ? "accent" : node.kind === "note" ? "success" : "muted",
     },
     {
       label: "Obligatoriedad",
-      title: node.required ? "Obligatoria" : "Opcional",
-      detail: node.required
+      title: node.kind === "note" ? "Sin captura" : node.required ? "Obligatoria" : "Opcional",
+      detail: node.kind === "note"
+        ? "La nota se muestra como apoyo y no pide entrada."
+        : node.required
         ? hasVisibility
           ? "Se exige solo cuando la pregunta aparece."
           : "El encuestador debe responderla."
         : "Puede quedar sin respuesta.",
       icon: CheckCircle2,
-      tone: node.required ? "success" : "muted",
+      tone: node.required || node.kind === "note" ? "success" : "muted",
     },
     {
       label: "Visibilidad",
@@ -824,8 +835,10 @@ function FocusQuestionQuicklook({
     },
     {
       label: "Validación",
-      title: validation ? validation.status : "Sin validación",
-      detail: validation?.summary ?? "Acepta el valor propio del tipo seleccionado.",
+      title: node.kind === "note" ? "No aplica" : validation ? validation.status : "Sin validación",
+      detail: node.kind === "note"
+        ? "Las notas no validan respuestas."
+        : validation?.summary ?? "Acepta el valor propio del tipo seleccionado.",
       icon: ShieldCheck,
       tone: validation ? (validation.technical ? "warn" : "success") : "muted",
     },
@@ -978,7 +991,13 @@ function ContentTab({
       <InspectorBlock>
         <InspectorField
           label={isSection ? "Título del bloque" : "Texto principal"}
-          hint={isSection ? "Nombre visible de la sección o repetición." : "La pregunta que verá el encuestado."}
+          hint={
+            isSection
+              ? "Nombre visible de la sección o repetición."
+              : node.kind === "note"
+                ? "La nota o instrucción que verá el encuestador."
+                : "La pregunta que verá el encuestado."
+          }
         >
           <MarkdownField
             value={node.label}

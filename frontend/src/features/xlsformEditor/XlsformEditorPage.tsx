@@ -1684,11 +1684,18 @@ export default function XlsformEditorPage() {
         listName = candidate;
       }
     }
+    const defaultLabel = isSelect
+      ? "Nueva pregunta de selección"
+      : nextBaseType === "calculate"
+        ? "Nuevo cálculo"
+        : nextBaseType === "note"
+          ? "Nueva nota informativa"
+          : "Nueva pregunta";
     updateWorkbook((draft) => {
       insertRecord(draft.survey, insertionIndex, {
         type: buildType(nextBaseType, listName),
         name: nextName,
-        label: isSelect ? "Nueva pregunta de selección" : nextBaseType === "calculate" ? "Nuevo cálculo" : "Nueva pregunta",
+        label: defaultLabel,
         hint: "",
         required: "",
         relevant: "",
@@ -2176,8 +2183,8 @@ export default function XlsformEditorPage() {
     },
     {
       key: "note",
-      label: "Texto informativo",
-      hint: "Instrucciones o mensajes sin respuesta.",
+      label: "Nota informativa",
+      hint: "Instrucciones, avisos o separadores sin guardar respuesta.",
       icon: addMenuIcon("note"),
       action: () => addQuestion("note"),
       group: "logic",
@@ -3041,7 +3048,7 @@ function describeAddMenuItem(item: AddMenuItem): {
     case "note":
       return {
         tag: "Sin respuesta",
-        detail: "Útil para instrucciones, avisos y separadores dentro del formulario.",
+        detail: "Inserta una nota visible que no guarda respuesta en Kobo.",
         tone: "logic",
         searchTerms: ["nota", "instruccion", "texto informativo"],
       };

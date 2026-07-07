@@ -410,7 +410,7 @@ export function previewKindLabel(node: BuilderNode | null): string {
   if (!node) return "Elemento";
   if (node.kind === "section") return "Sección";
   if (node.kind === "repeat") return "Bloque repetido";
-  if (node.kind === "note") return "Texto informativo";
+  if (node.kind === "note") return "Nota informativa";
   if (node.kind === "calculate") return "Cálculo";
   return typeLabel(node.typeInfo.base);
 }
