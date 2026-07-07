@@ -601,7 +601,13 @@ function FocusedSurveyWorkspace({
             <PresentationTab node={node} onFieldChange={onFieldChange} />
           )}
           {activeTab === "data" && (
-            <DataTab node={node} structure={structure} onFieldChange={onFieldChange} />
+            <DataTab
+              node={node}
+              structure={structure}
+              catalogInfo={catalogInfo}
+              catalogUsageCount={catalogUsageCount}
+              onFieldChange={onFieldChange}
+            />
           )}
         </div>
       </div>
@@ -3232,13 +3238,51 @@ function presentationGuideFor(baseType: string): {
 function DataTab({
   node,
   structure,
+  catalogInfo,
+  catalogUsageCount,
   onFieldChange,
 }: {
   node: BuilderNode;
   structure: BuilderStructure | null;
+  catalogInfo?: CatalogInfo;
+  catalogUsageCount: number;
   onFieldChange: (field: string, value: string) => void;
 }) {
   const isSection = node.kind === "section" || node.kind === "repeat";
+  const baseType = typeof node.typeInfo.base === "string" ? node.typeInfo.base : "text";
+  const listName = scalarText(node.typeInfo.listName);
+  const nodeName = scalarText(node.name);
+  const usageCount = Number.isFinite(Number(catalogUsageCount)) ? Number(catalogUsageCount) : 0;
+  const isSelect = baseType === "select_one" || baseType === "select_multiple";
+  const dataKindLabel = isSection
+    ? node.kind === "repeat" ? "Repetición" : "Sección"
+    : typeLabel(baseType);
+  const dataContractFacts = [
+    {
+      label: isSection ? "Código del bloque" : "Columna en base",
+      value: nodeName || "sin nombre",
+      code: Boolean(nodeName),
+    },
+    {
+      label: "Tipo guardado",
+      value: dataKindLabel,
+      code: false,
+    },
+    ...(isSelect
+      ? [
+          {
+            label: "Catálogo",
+            value: listName || "sin lista",
+            code: Boolean(listName),
+          },
+          {
+            label: "Uso de lista",
+            value: catalogInfo ? `${usageCount} ${usageCount === 1 ? "pregunta" : "preguntas"}` : "Pendiente",
+            code: false,
+          },
+        ]
+      : []),
+  ];
   const paperFields = [
     node.paperNumber,
     node.paperLabel,
@@ -3253,10 +3297,43 @@ function DataTab({
 
   return (
     <div className="pulso-focus-tab-panel">
+      <div className="pulso-focus-data-contract">
+        <div className="pulso-focus-data-contract-head">
+          <span className="pulso-focus-data-contract-icon">
+            <Database size={15} />
+          </span>
+          <div>
+            <strong>Contrato de datos</strong>
+            <p>
+              Estos campos no cambian el texto que ve el encuestador; definen
+              cómo se guarda la respuesta y cómo se conserva el XLSForm al exportar.
+            </p>
+          </div>
+        </div>
+        <div className="pulso-focus-data-contract-grid">
+          {dataContractFacts.map((fact) => (
+            <FocusFact
+              key={fact.label}
+              label={fact.label}
+              value={fact.value}
+              code={fact.code}
+            />
+          ))}
+        </div>
+        <div className="pulso-focus-data-principle">
+          <Info size={13} />
+          <span>
+            Regla práctica: cambia el nombre cuando lo usarás en lógica,
+            exportación o base de datos. Deja papel y parámetros en automático
+            salvo que estés corrigiendo una plantilla importada.
+          </span>
+        </div>
+      </div>
+
       <InspectorBlock>
         <InspectorField
-          label={isSection ? "Código interno del bloque" : "Código interno de la pregunta"}
-          hint="Identificador XLSForm usado por lógica, exportación y bases. No es el número visible para encuestadores."
+          label={isSection ? "Nombre de variable del bloque" : "Nombre de columna"}
+          hint="Se usa en reglas, exportación y bases. Usa algo corto, único y reconocible."
         >
           <NameField
             value={node.name}
@@ -3269,19 +3346,15 @@ function DataTab({
             onApply={(next) => onFieldChange("name", next)}
           />
         </InspectorField>
-        <div className="pulso-focus-data-note">
-          <Info size={13} />
-          <span>La numeración visible y los saltos impresos se derivan de la estructura y las reglas, salvo que el XLSX traiga un override explícito.</span>
-        </div>
       </InspectorBlock>
 
       {hasPaperOverrides && (
         <InspectorBlock>
           <details className="pulso-focus-disclosure" open>
-            <summary>Overrides de salida impresa importados</summary>
+            <summary>Ajustes de PDF importados</summary>
             <InspectorField
-              label="Número visible en papel"
-              hint="Override opcional para el PDF. Si queda vacío, se deriva automáticamente."
+              label="Número visible en PDF"
+              hint="Número heredado de una plantilla impresa. Si queda vacío, Quobo lo deriva automáticamente."
             >
               <input
                 type="text"
@@ -3291,8 +3364,8 @@ function DataTab({
               />
             </InspectorField>
             <InspectorField
-              label="Texto alternativo para papel"
-              hint="Reemplaza el texto de la pregunta solo en el PDF impreso."
+              label="Texto alternativo en PDF"
+              hint="Reemplaza el texto solo en la versión impresa, no en el formulario digital."
             >
               <input
                 type="text"
@@ -3303,7 +3376,7 @@ function DataTab({
             </InspectorField>
             <InspectorField
               label="Salto impreso manual"
-              hint="Tiene prioridad sobre el salto inferido desde Reglas. Úsalo solo cuando el papel necesita una redacción especial."
+              hint="Tiene prioridad sobre el salto inferido desde Reglas. Úsalo solo si el papel necesita una redacción especial."
             >
               <input
                 type="text"
@@ -3314,7 +3387,7 @@ function DataTab({
             </InspectorField>
             <InspectorField
               label="Agrupación impresa"
-              hint="Une varias filas en una matriz o bloque común dentro del PDF."
+              hint="Une varias filas en una matriz o bloque común dentro del PDF importado."
             >
               <input
                 type="text"
@@ -3325,7 +3398,7 @@ function DataTab({
             </InspectorField>
             <InspectorField
               label="Layout impreso"
-              hint="Override del layout automático: full, wide, matrix o compact."
+              hint="Anula el layout automático del PDF: full, wide, matrix o compact."
             >
               <input
                 type="text"
@@ -3342,7 +3415,7 @@ function DataTab({
       {hasTechnicalOverrides && (
         <InspectorBlock>
           <details className="pulso-focus-disclosure" open>
-            <summary>Comportamiento técnico importado</summary>
+            <summary>Atributos avanzados importados</summary>
             {node.read_only && (
               <label className="pulso-inspector-toggle">
                 <input
@@ -3354,7 +3427,7 @@ function DataTab({
                 />
                 <span>
                   <strong>Solo lectura</strong>
-                  <em>Se conserva porque vino configurado en el XLSX.</em>
+                  <em>Se conserva porque vino configurado en el archivo importado.</em>
                 </span>
               </label>
             )}
@@ -3391,6 +3464,12 @@ function DataTab({
       )}
     </div>
   );
+}
+
+function scalarText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "";
 }
 
 const KOBO_NAME_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
