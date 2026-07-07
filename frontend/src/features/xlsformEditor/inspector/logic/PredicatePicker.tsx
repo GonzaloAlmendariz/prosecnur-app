@@ -32,6 +32,7 @@ export function PredicatePicker({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const currentKey = predicateKey(value);
   const current = options.find((p) => predicateKey(p) === currentKey) ?? value;
+  const currentMeta = predicateMeta(current);
   const choosePredicate = (next: PredicateKind) => {
     onChange(next);
     setOpen(false);
@@ -44,7 +45,7 @@ export function PredicatePicker({
     const rect = containerRef.current?.getBoundingClientRect();
     if (rect && containerRef.current) {
       const bounds = verticalClipBounds(containerRef.current);
-      const estimatedHeight = Math.min(292, options.length * 32 + 16);
+      const estimatedHeight = Math.min(360, options.length * 50 + 18);
       const spaceBelow = bounds.bottom - rect.bottom;
       const spaceAbove = rect.top - bounds.top;
       setSide(spaceBelow < estimatedHeight && spaceAbove > spaceBelow ? "up" : "down");
@@ -83,7 +84,15 @@ export function PredicatePicker({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{current.label}</span>
+        <span className="pulso-logic-predicate-current">
+          <span className="pulso-logic-predicate-mark" aria-hidden="true">
+            {currentMeta.mark}
+          </span>
+          <span className="pulso-logic-predicate-copy">
+            <strong>{current.label}</strong>
+            <small>{currentMeta.hint}</small>
+          </span>
+        </span>
         <ChevronDown size={12} aria-hidden="true" />
       </button>
 
@@ -92,6 +101,7 @@ export function PredicatePicker({
           {options.map((p) => {
             const key = predicateKey(p);
             const active = key === currentKey;
+            const meta = predicateMeta(p);
             return (
               <button
                 key={key}
@@ -107,8 +117,20 @@ export function PredicatePicker({
                 role="option"
                 aria-selected={active}
               >
-                <span>{p.label}</span>
-                {active && <Check size={12} aria-hidden="true" />}
+                <span className="pulso-logic-predicate-option-main">
+                  <span className="pulso-logic-predicate-mark" aria-hidden="true">
+                    {meta.mark}
+                  </span>
+                  <span className="pulso-logic-predicate-option-copy">
+                    <span>{p.label}</span>
+                    <small>{meta.hint}</small>
+                  </span>
+                </span>
+                {active && (
+                  <span className="pulso-logic-predicate-check" aria-hidden="true">
+                    <Check size={12} />
+                  </span>
+                )}
               </button>
             );
           })}
@@ -133,4 +155,35 @@ function verticalClipBounds(element: HTMLElement): { top: number; bottom: number
     parent = parent.parentElement;
   }
   return { top, bottom };
+}
+
+function predicateMeta(predicate: PredicateKind): { mark: string; hint: string } {
+  if (predicate.kind === "selected") {
+    return { mark: "sel", hint: "La opción está marcada." };
+  }
+  if (predicate.kind === "not_selected") {
+    return { mark: "no", hint: "La opción no está marcada." };
+  }
+  if (predicate.kind === "presence") {
+    return predicate.mode === "answered"
+      ? { mark: "ok", hint: "Hay cualquier respuesta." }
+      : { mark: "vacio", hint: "No se respondió todavía." };
+  }
+
+  switch (predicate.op) {
+    case "=":
+      return { mark: "=", hint: "Coincide con un valor exacto." };
+    case "!=":
+      return { mark: "!=", hint: "Acepta cualquier valor diferente." };
+    case ">":
+      return { mark: ">", hint: "El valor debe ser mayor." };
+    case ">=":
+      return { mark: ">=", hint: "Mayor o exactamente igual." };
+    case "<":
+      return { mark: "<", hint: "El valor debe ser menor." };
+    case "<=":
+      return { mark: "<=", hint: "Menor o exactamente igual." };
+    default:
+      return { mark: "=", hint: "Compara con el valor indicado." };
+  }
 }
