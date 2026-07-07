@@ -9,10 +9,11 @@
 // =============================================================================
 
 import type { ReactNode } from "react";
-import { Upload } from "lucide-react";
+import { Upload, Wrench } from "lucide-react";
 import { IconNew } from "../../../lib/icons";
 import smMonkey from "../../../assets/sm-monkey.png";
 import type { TemplateSeed } from "../templates/seedHelper";
+import { TEMPLATES } from "../templates";
 import { HubFlowDiagram } from "./HubFlowDiagram";
 
 export type EmptyHomeAction = {
@@ -40,8 +41,14 @@ export default function EmptyHome({
   onNewBlank,
   onImportXls,
   onImportSurveyMonkey,
+  onPickTemplate,
   resumeBanner,
 }: EmptyHomeProps) {
+  // Seeds devOnly (QA visual): accesibles solo en dev, como chip discreto al
+  // pie del hub — no compiten con las 3 acciones reales del usuario.
+  const devSeeds = import.meta.env.DEV && onPickTemplate
+    ? TEMPLATES.filter((t) => t.devOnly)
+    : [];
   const actions: EmptyHomeAction[] = [
     {
       key: "blank",
@@ -123,6 +130,34 @@ export default function EmptyHome({
           <ActionCard key={action.key} action={action} />
         ))}
       </div>
+
+      {devSeeds.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {devSeeds.map((seed) => (
+            <button
+              key={seed.id}
+              type="button"
+              onClick={() => onPickTemplate?.(seed)}
+              title="Plantilla de QA visual — solo visible en desarrollo"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 12px",
+                borderRadius: 999,
+                border: "1px dashed var(--pulso-border-strong)",
+                background: "var(--pulso-surface)",
+                color: "var(--pulso-text-soft)",
+                fontSize: 11.5,
+                fontWeight: 650,
+                cursor: "pointer",
+              }}
+            >
+              <Wrench size={12} /> {seed.title} (dev)
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 4. Guía: qué pasa después de elegir uno de los caminos. Esto es
              contexto educativo, no parte del flujo de decisión — por eso

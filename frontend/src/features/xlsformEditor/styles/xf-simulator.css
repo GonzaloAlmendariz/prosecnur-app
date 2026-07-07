@@ -350,6 +350,155 @@
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 
+/* ── select_one con appearance minimal/dropdown: select nativo ─────────── */
+
+.pulso-xfsim-selectwrap {
+  position: relative;
+  display: inline-block;
+  margin: 10px 0 0 21px;
+  width: min(280px, calc(100% - 21px));
+}
+
+.pulso-xfsim-select {
+  margin: 0;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+.pulso-xfsim-select:disabled {
+  cursor: default;
+}
+
+.pulso-xfsim-select-chev {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--pulso-text-muted);
+  pointer-events: none;
+}
+
+/* ── rank: toca en orden 1..N; volver a tocar desasigna ────────────────── */
+
+.pulso-xfsim-rank-help {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xfsim-option-mark.is-rank {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+}
+
+.pulso-xfsim-rank-pos {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ── range: slider real con valor visible ──────────────────────────────── */
+
+.pulso-xfsim-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 0 21px;
+  width: calc(100% - 21px);
+  max-width: 420px;
+}
+
+.pulso-xfsim-range-input {
+  flex: 1;
+  min-width: 0;
+  height: 5px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  accent-color: var(--pulso-primary);
+  cursor: pointer;
+}
+
+.pulso-xfsim-range-input:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.pulso-xfsim-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--pulso-primary);
+  box-shadow: 0 1px 3px rgba(0, 36, 87, 0.22);
+  cursor: grab;
+}
+
+.pulso-xfsim-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--pulso-primary);
+  box-shadow: 0 1px 3px rgba(0, 36, 87, 0.22);
+  cursor: grab;
+}
+
+.pulso-xfsim-range-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xfsim-range-value {
+  flex-shrink: 0;
+  min-width: 34px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.pulso-xfsim-range-value.is-empty {
+  color: var(--pulso-text-muted);
+}
+
+/* ── barcode: input de texto con icono QR ──────────────────────────────── */
+
+.pulso-xfsim-barcode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0 21px;
+  width: calc(100% - 21px);
+  max-width: 320px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xfsim-barcode-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.pulso-xfsim-barcode-input {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
 /* ── Placeholder para tipos que solo se capturan en campo ──────────────── */
 
 .pulso-xfsim-placeholder {

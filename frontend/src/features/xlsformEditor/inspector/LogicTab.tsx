@@ -85,6 +85,9 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
       {showConstraint && (
         <InspectorBlock>
           <ConstraintBuilder
+            // Re-monta al cambiar de pregunta: descarta borradores internos
+            // (recetas de texto a medio editar, atajos min/max) de la fila previa.
+            key={node.rowIndex}
             expression={node.constraint}
             scope={scope}
             baseType={node.typeInfo.base}
