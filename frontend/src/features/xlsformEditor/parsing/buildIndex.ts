@@ -318,6 +318,15 @@ export function buildXlsformIndex(workbook: XlsformEditorWorkbook): XlsformIndex
       variablesByName.set(node.name, current);
     }
     if (node.typeInfo.listName) {
+      if (!catalogsByName.has(node.typeInfo.listName)) {
+        const emptyCatalog: CatalogSummary = {
+          listName: node.typeInfo.listName,
+          title: node.typeInfo.listName,
+          items: [],
+        };
+        catalogsByName.set(node.typeInfo.listName, emptyCatalog);
+        catalogs.push(emptyCatalog);
+      }
       const current = questionsByCatalog.get(node.typeInfo.listName) ?? [];
       current.push(node);
       questionsByCatalog.set(node.typeInfo.listName, current);
@@ -342,6 +351,7 @@ export function buildXlsformIndex(workbook: XlsformEditorWorkbook): XlsformIndex
   const missingReferences = dependencies.filter(
     (dependency) => !variablesByName.has(dependency.toName),
   );
+  catalogs.sort((a, b) => a.listName.localeCompare(b.listName));
 
   return {
     structure,

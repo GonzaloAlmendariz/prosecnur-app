@@ -71,14 +71,16 @@ export function CatalogChip({
   return (
     <div ref={containerRef} className="pulso-catalogchip" style={{ position: "relative" }}>
       {assigned ? (
-        <div className="pulso-catalogchip-assigned">
+        <div className={`pulso-catalogchip-assigned${assigned.items.length === 0 ? " is-empty" : ""}`}>
           <span className="pulso-catalogchip-icon">
             <ListChecks size={14} />
           </span>
           <div className="pulso-catalogchip-meta">
             <strong>{assigned.listName}</strong>
-            <span>
-              {assigned.items.length} {assigned.items.length === 1 ? "opción" : "opciones"}
+            <span className={assigned.items.length === 0 ? "is-empty" : undefined}>
+              {assigned.items.length === 0
+                ? "Vacío: agrega opciones reales"
+                : `${assigned.items.length} ${assigned.items.length === 1 ? "opción" : "opciones"}`}
             </span>
           </div>
           <div className="pulso-catalogchip-actions">
@@ -151,8 +153,8 @@ export function CatalogChip({
                       aria-selected={isCurrent}
                     >
                       <span className="pulso-catalogchip-pop-item-name">{catalog.listName}</span>
-                      <span className="pulso-catalogchip-pop-item-count">
-                        {catalog.items.length}
+                      <span className={`pulso-catalogchip-pop-item-count${catalog.items.length === 0 ? " is-empty" : ""}`}>
+                        {catalog.items.length === 0 ? "vacío" : catalog.items.length}
                       </span>
                     </button>
                   </li>
@@ -162,7 +164,7 @@ export function CatalogChip({
           )}
 
           <div className="pulso-catalogchip-pop-footer">
-            La edición de opciones vive en el panel de catálogos.
+            Una lista vacía está bien mientras diseñas; completa sus opciones antes de exportar.
           </div>
         </div>
       )}
