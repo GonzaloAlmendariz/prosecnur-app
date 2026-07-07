@@ -25590,6 +25590,20 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 10px 12px;
   line-height: 1.5;
 }
+
+.pulso-inspector-media-fields {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pulso-inspector-media-fields input {
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
 .pulso-inspector-coming {
   display: flex;
   gap: 10px;
@@ -37860,6 +37874,167 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-focus-constraint-message-presets .pulso-focus-message-preset-copy em {
   color: color-mix(in srgb, var(--pulso-primary) 78%, #253149);
+}
+
+.pulso-focus-media-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-media-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-media-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-media-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-media-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.pulso-focus-media-head p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.4px;
+  font-weight: 610;
+  line-height: 1.42;
+}
+
+.pulso-focus-media-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-focus-media-field {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.8fr) minmax(0, 1fr);
+  min-width: 0;
+  gap: 7px;
+  align-items: start;
+  padding: 9px;
+  border: 1px solid var(--xls-border);
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.pulso-focus-media-field.is-active {
+  border-color: color-mix(in srgb, var(--pulso-primary) 24%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-media-field-head {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 7px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-media-field-head > span {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-media-field-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-media-field-head strong {
+  color: #1f2a3d;
+  font-size: 11.8px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pulso-focus-media-field-head small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 620;
+  line-height: 1.28;
+}
+
+.pulso-focus-media-field input {
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+}
+
+.pulso-focus-media-examples {
+  grid-column: 1 / -1;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-focus-media-examples button {
+  max-width: 100%;
+  min-width: 0;
+  cursor: pointer;
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-primary) 82%, #253149);
+  font-size: 10.2px;
+  font-weight: 760;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.pulso-focus-media-examples button.is-clear {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 16%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg) 38%, #ffffff);
+  color: var(--pulso-danger-fg);
 }
 
 .pulso-focus-presentation-guide {
