@@ -20,6 +20,21 @@ export function defaultLiteralForPredicate(
   return "valor";
 }
 
+export function valueForPredicateTransition(
+  next: PredicateKind,
+  currentValue: FlatCondition["value"],
+  baseType: string,
+  catalog?: LogicCatalog,
+): FlatCondition["value"] {
+  if (next.kind === "presence") return { kind: "literal", raw: "" };
+  if (currentValue.kind === "ref") return currentValue;
+  if (currentValue.raw.trim()) return currentValue;
+  return {
+    kind: "literal",
+    raw: defaultLiteralForPredicate(baseType, next, catalog),
+  };
+}
+
 export function buildDefaultCondition(scope: LogicScope): FlatCondition {
   const firstVar = scope.variables[0];
   const baseType = firstVar?.baseType ?? "text";
