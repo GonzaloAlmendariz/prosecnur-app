@@ -23,7 +23,7 @@
 // =============================================================================
 
 import { useState } from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, Info } from "lucide-react";
 import type { XlsformEditorWorkbook, XlsformEditorSheet } from "../types";
 
 export type SheetsViewProps = {
@@ -52,6 +52,106 @@ export type SheetsViewProps = {
 
 type TabKey = "survey" | "choices" | "settings" | "paper";
 
+const PDF_EXTENSION_COLUMNS = new Set([
+  "paper_number",
+  "paper_label",
+  "paper_layout",
+  "paper_group",
+  "paper_only",
+  "paper_skip",
+]);
+
+const COLUMN_HELP: Record<string, { label: string; detail: string; badge?: string }> = {
+  type: {
+    label: "Tipo",
+    detail: "Define qué bloque es: texto, número, selección, sección, cierre técnico, nota o cálculo.",
+  },
+  name: {
+    label: "Código",
+    detail: "Nombre interno de la variable. Se usa en lógica, cálculos, filtros y exportación.",
+  },
+  label: {
+    label: "Texto visible",
+    detail: "Pregunta o título que verá la persona encuestada.",
+  },
+  hint: {
+    label: "Ayuda",
+    detail: "Aclaración breve que acompaña la pregunta.",
+  },
+  required: {
+    label: "Obligatoria",
+    detail: "Marca si la respuesta es necesaria cuando la pregunta está visible.",
+  },
+  relevant: {
+    label: "Lógica",
+    detail: "Regla que decide cuándo aparece la pieza.",
+  },
+  constraint: {
+    label: "Validación",
+    detail: "Regla que controla si una respuesta es aceptable.",
+  },
+  constraint_message: {
+    label: "Mensaje de validación",
+    detail: "Texto humano que aparece cuando la respuesta no cumple la regla.",
+  },
+  calculation: {
+    label: "Cálculo",
+    detail: "Fórmula que produce un valor automáticamente.",
+  },
+  choice_filter: {
+    label: "Filtro de opciones",
+    detail: "Reduce las opciones de un catálogo según una respuesta previa.",
+  },
+  appearance: {
+    label: "Presentación",
+    detail: "Ajuste visual de Kobo/ODK, como minimal, search o field-list.",
+  },
+  list_name: {
+    label: "Catálogo",
+    detail: "Lista reutilizable a la que pertenece una opción.",
+  },
+  paper_number: {
+    label: "Número impreso",
+    detail: "Numeración opcional para el PDF o cuestionario en papel. No afecta Kobo.",
+    badge: "PDF",
+  },
+  paper_label: {
+    label: "Texto impreso",
+    detail: "Texto alternativo para el PDF si el papel necesita una redacción distinta.",
+    badge: "PDF",
+  },
+  paper_layout: {
+    label: "Diseño impreso",
+    detail: "Indicación opcional de layout para la versión PDF o papel.",
+    badge: "PDF",
+  },
+  paper_group: {
+    label: "Grupo impreso",
+    detail: "Agrupa piezas en la maqueta de papel sin cambiar la lógica Kobo.",
+    badge: "PDF",
+  },
+  paper_only: {
+    label: "Solo papel",
+    detail: "Marca piezas pensadas solo para la versión impresa.",
+    badge: "PDF",
+  },
+  paper_skip: {
+    label: "Omitir en papel",
+    detail: "Oculta esta pieza u opción en la versión PDF, sin ocultarla en Kobo.",
+    badge: "PDF",
+  },
+};
+
+function isEmptyColumn(sheet: XlsformEditorSheet, columnName: string): boolean {
+  const colIndex = sheet.columns.indexOf(columnName);
+  if (colIndex < 0) return true;
+  return sheet.rows.every((row) => !(row[colIndex] ?? "").trim());
+}
+
+function isCollapsiblePdfColumn(sheetName: TabKey, columnName: string): boolean {
+  return sheetName !== "paper" && PDF_EXTENSION_COLUMNS.has(columnName);
+}
+
 export function SheetsView({
   workbook,
   onUpdateCell,
@@ -62,8 +162,18 @@ export function SheetsView({
 }: SheetsViewProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("survey");
   const [newColInput, setNewColInput] = useState("");
+  const [showAdvancedColumns, setShowAdvancedColumns] = useState(false);
 
   const sheet = workbook[activeTab] ?? { name: activeTab, columns: [], rows: [] };
+  const collapsiblePdfColumns = sheet.columns.filter(
+    (columnName) =>
+      isCollapsiblePdfColumn(activeTab, columnName) &&
+      isEmptyColumn(sheet, columnName),
+  );
+  const visibleColumns = showAdvancedColumns
+    ? sheet.columns
+    : sheet.columns.filter((columnName) => !collapsiblePdfColumns.includes(columnName));
+  const hiddenPdfCount = sheet.columns.length - visibleColumns.length;
 
   const handleAddCol = () => {
     const trimmed = newColInput.trim();
@@ -130,16 +240,42 @@ export function SheetsView({
             <Plus size={13} /> Columna
           </button>
         </div>
+        {collapsiblePdfColumns.length > 0 && (
+          <button
+            type="button"
+            className="pulso-sheets-btn pulso-sheets-advanced-toggle"
+            onClick={() => setShowAdvancedColumns((value) => !value)}
+            title={showAdvancedColumns ? "Ocultar columnas PDF vacías" : "Mostrar columnas PDF vacías"}
+          >
+            {showAdvancedColumns ? <EyeOff size={13} /> : <Eye size={13} />}
+            {showAdvancedColumns ? "Ocultar PDF vacío" : "Mostrar PDF vacío"}
+          </button>
+        )}
         <span className="pulso-sheets-meta">
-          {sheet.columns.length}{" "}
-          {sheet.columns.length === 1 ? "columna" : "columnas"} ·{" "}
+          {visibleColumns.length}{" "}
+          {visibleColumns.length === 1 ? "columna visible" : "columnas visibles"}
+          {hiddenPdfCount > 0 ? ` · ${hiddenPdfCount} PDF ${hiddenPdfCount === 1 ? "oculta" : "ocultas"}` : ""} ·{" "}
           {sheet.rows.length} {sheet.rows.length === 1 ? "fila" : "filas"}
         </span>
       </div>
 
+      {hiddenPdfCount > 0 && (
+        <div className="pulso-sheets-guide" role="note">
+          <Info size={15} />
+          <div>
+            <strong>Columnas de PDF ocultas por estar vacías</strong>
+            <span>
+              Sirven para la versión impresa o PDF; Kobo no las necesita. Si escribes un valor,
+              la columna queda visible automáticamente.
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="pulso-sheets-table-wrap">
         <SheetTable
           sheet={sheet}
+          visibleColumns={visibleColumns}
           sheetName={activeTab}
           onUpdateCell={onUpdateCell}
           onDeleteRow={onDeleteRow}
@@ -156,6 +292,7 @@ export function SheetsView({
 
 type SheetTableProps = {
   sheet: XlsformEditorSheet;
+  visibleColumns: string[];
   sheetName: TabKey;
   onUpdateCell: SheetsViewProps["onUpdateCell"];
   onDeleteRow: SheetsViewProps["onDeleteRow"];
@@ -164,6 +301,7 @@ type SheetTableProps = {
 
 function SheetTable({
   sheet,
+  visibleColumns,
   sheetName,
   onUpdateCell,
   onDeleteRow,
@@ -191,9 +329,9 @@ function SheetTable({
           <th aria-label="Acciones" className="pulso-sheets-actions-col">
             #
           </th>
-          {sheet.columns.map((col) => (
+          {visibleColumns.map((col) => (
             <th key={col} title={col}>
-              {col}
+              <ColumnHeader columnName={col} />
             </th>
           ))}
         </tr>
@@ -204,7 +342,8 @@ function SheetTable({
             key={rowIndex}
             row={row}
             rowIndex={rowIndex}
-            columns={sheet.columns}
+            columns={visibleColumns}
+            allColumns={sheet.columns}
             sheetName={sheetName}
             isFirst={rowIndex === 0}
             isLast={rowIndex === sheet.rows.length - 1}
@@ -222,6 +361,7 @@ type SheetRowProps = {
   row: string[];
   rowIndex: number;
   columns: string[];
+  allColumns: string[];
   sheetName: TabKey;
   isFirst: boolean;
   isLast: boolean;
@@ -234,6 +374,7 @@ function SheetRow({
   row,
   rowIndex,
   columns,
+  allColumns,
   sheetName,
   isFirst,
   isLast,
@@ -281,16 +422,33 @@ function SheetRow({
           </div>
         </div>
       </td>
-      {columns.map((col, colIdx) => (
-        <td key={col}>
-          <SheetCell
-            value={row[colIdx] ?? ""}
-            onChange={(next) => onUpdateCell(sheetName, rowIndex, col, next)}
-            isExpression={EXPRESSION_COLUMNS.has(col)}
-          />
-        </td>
-      ))}
+      {columns.map((col) => {
+        const colIdx = allColumns.indexOf(col);
+        return (
+          <td key={col}>
+            <SheetCell
+              value={colIdx >= 0 ? row[colIdx] ?? "" : ""}
+              onChange={(next) => onUpdateCell(sheetName, rowIndex, col, next)}
+              isExpression={EXPRESSION_COLUMNS.has(col)}
+            />
+          </td>
+        );
+      })}
     </tr>
+  );
+}
+
+function ColumnHeader({ columnName }: { columnName: string }) {
+  const help = COLUMN_HELP[columnName];
+  if (!help) return <span>{columnName}</span>;
+  return (
+    <span className="pulso-sheets-column-head" title={help.detail}>
+      <span>
+        {help.label}
+        {help.badge && <em className="pulso-sheets-column-badge">{help.badge}</em>}
+      </span>
+      <small>{columnName}</small>
+    </span>
   );
 }
 
