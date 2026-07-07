@@ -21,7 +21,10 @@
 //   - El usuario puede descartarlo explícitamente desde el home.
 // =============================================================================
 
-import type { XlsformEditorWorkbook } from "../types";
+import {
+  PAPER_COLUMNS,
+} from "../types";
+import type { XlsformEditorSheet, XlsformEditorWorkbook } from "../types";
 import {
   apiXlsformEditorStateClear,
   apiXlsformEditorStateSave,
@@ -70,23 +73,53 @@ export type PersistedSnapshot = {
 
 type SurveyMonkeyLogic = NonNullable<XlsformEditorWorkbook["surveyMonkeyLogic"]>;
 
-function cloneSurveyMonkeyLogic(logic: XlsformEditorWorkbook["surveyMonkeyLogic"]): SurveyMonkeyLogic | null {
-  if (!logic) return null;
-  const advanced = (logic.advanced_rules ?? logic.rules ?? []).map((rule) => ({ ...rule }));
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function arrayOrEmpty<T = unknown>(value: unknown): T[] {
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+function stringArrayOrEmpty(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => (item == null ? "" : String(item))) : [];
+}
+
+function cloneSurveyMonkeyLogic(logic: XlsformEditorWorkbook["surveyMonkeyLogic"] | unknown): SurveyMonkeyLogic | null {
+  if (!isPlainRecord(logic)) return null;
+  const advanced = arrayOrEmpty<Record<string, unknown>>(logic.advanced_rules ?? logic.rules)
+    .filter(isPlainRecord)
+    .map((rule) => ({ ...rule })) as SurveyMonkeyLogic["advanced_rules"];
+  const visualRules = arrayOrEmpty<Record<string, unknown>>(logic.visual_rules)
+    .filter(isPlainRecord)
+    .map((rule) => ({
+      ...rule,
+      choices: arrayOrEmpty<Record<string, unknown>>(rule.choices)
+        .filter(isPlainRecord)
+        .map((choice) => ({
+          ...choice,
+          action: isPlainRecord(choice.action) ? { ...choice.action } : { kind: "none" },
+        })),
+    })) as SurveyMonkeyLogic["visual_rules"];
+  const choiceOrderOverrides = isPlainRecord(logic.choice_order_overrides)
+    ? Object.fromEntries(
+        Object.entries(logic.choice_order_overrides).map(([key, labels]) => [key, stringArrayOrEmpty(labels)]),
+      )
+    : {};
+  const choiceCodeMaps = arrayOrEmpty<Record<string, unknown>>(logic.choice_code_maps)
+    .filter(isPlainRecord)
+    .map((map) => ({
+      ...map,
+      mappings: arrayOrEmpty<Record<string, unknown>>(map.mappings)
+        .filter(isPlainRecord)
+        .map((item) => ({ ...item })),
+    })) as SurveyMonkeyLogic["choice_code_maps"];
   return {
     rules: advanced.map((rule) => ({ ...rule })),
     advanced_rules: advanced,
-    visual_rules: (logic.visual_rules ?? []).map((rule) => ({
-      ...rule,
-      choices: (rule.choices ?? []).map((choice) => ({ ...choice, action: { ...choice.action } })),
-    })),
-    choice_order_overrides: Object.fromEntries(
-      Object.entries(logic.choice_order_overrides ?? {}).map(([key, labels]) => [key, [...labels]]),
-    ),
-    choice_code_maps: (logic.choice_code_maps ?? []).map((map) => ({
-      ...map,
-      mappings: (map.mappings ?? []).map((item) => ({ ...item })),
-    })),
+    visual_rules: visualRules,
+    choice_order_overrides: choiceOrderOverrides,
+    choice_code_maps: choiceCodeMaps,
   };
 }
 
@@ -203,11 +236,11 @@ export function loadSnapshot(scope: ProjectScope = null): PersistedSnapshot | nu
     }
 
     if (!wbRaw) return null;
-    const workbook = JSON.parse(wbRaw) as XlsformEditorWorkbook;
+    const workbook = normalizeWorkbookSnapshot(JSON.parse(wbRaw));
     const meta = metaRaw
       ? (JSON.parse(metaRaw) as { savedAt: number; sourceName: string | null; sourceKind: string | null })
       : { savedAt: Date.now(), sourceName: null, sourceKind: null };
-    if (!isWorkbookShape(workbook)) return null;
+    if (!workbook) return null;
     return {
       workbook,
       savedAt: meta.savedAt ?? Date.now(),
@@ -281,9 +314,10 @@ export async function loadSnapshotFromBackend(): Promise<PersistedSnapshot | nul
     const r = await apiXlsformEditorStateLoad();
     if (!r.has_state || !r.state) return null;
     const st = r.state;
-    if (!isWorkbookShape(st.workbook)) return null;
+    const workbook = normalizeWorkbookSnapshot(st.workbook);
+    if (!workbook) return null;
     return {
-      workbook: st.workbook,
+      workbook,
       savedAt: st.saved_at ?? Date.now(),
       sourceName: st.source?.original_name ?? null,
       sourceKind: st.source?.kind ?? null,
@@ -366,13 +400,43 @@ export function createPersistenceScheduler(
 // -----------------------------------------------------------------------------
 
 function isWorkbookShape(value: unknown): value is XlsformEditorWorkbook {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return isSheetShape(v.survey) && isSheetShape(v.choices) && isSheetShape(v.settings);
+  return normalizeWorkbookSnapshot(value) != null;
 }
 
-function isSheetShape(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
+function normalizeWorkbookSnapshot(value: unknown): XlsformEditorWorkbook | null {
+  if (!value || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
-  return Array.isArray(v.columns) && Array.isArray(v.rows);
+  const survey = normalizeSheet(v.survey, "survey", null);
+  const choices = normalizeSheet(v.choices, "choices", null);
+  const settings = normalizeSheet(v.settings, "settings", null);
+  if (!survey || !choices || !settings) return null;
+  return {
+    survey,
+    choices,
+    settings,
+    paper: normalizeSheet(v.paper, "paper", PAPER_COLUMNS),
+    diagnostico: normalizeSheet(v.diagnostico, "diagnostico", null),
+    surveyMonkeyLogic: cloneSurveyMonkeyLogic(v.surveyMonkeyLogic),
+  };
+}
+
+function normalizeSheet(
+  value: unknown,
+  fallbackName: string,
+  fallbackColumns: readonly string[] | null,
+): XlsformEditorSheet | null {
+  if (!isPlainRecord(value)) return null;
+  const v = value as Record<string, unknown>;
+  const columns = Array.isArray(v.columns)
+    ? v.columns.map((column) => (column == null ? "" : String(column)))
+    : fallbackColumns == null ? null : [...fallbackColumns];
+  if (!columns) return null;
+  const rows = Array.isArray(v.rows)
+    ? v.rows.map((row) => Array.isArray(row) ? row.map((cell) => (cell == null ? "" : String(cell))) : [])
+    : [];
+  return {
+    name: typeof v.name === "string" ? v.name : fallbackName,
+    columns,
+    rows,
+  };
 }
