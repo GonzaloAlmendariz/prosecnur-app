@@ -2709,7 +2709,7 @@ export default function XlsformEditorPage() {
 
 	      {questionnaireViewOpen ? createPortal((
         <div
-          className="pulso-graph-overlay"
+          className="pulso-graph-overlay pulso-questionnaire-overlay"
           role="dialog"
           aria-label="Vista del cuestionario"
         >
@@ -2724,10 +2724,20 @@ export default function XlsformEditorPage() {
               </button>
               <div className="pulso-graph-header-title">
                 <strong>Vista del cuestionario</strong>
-                <span>Recorrido completo por secciones y preguntas</span>
+                <span>
+                  {suiteMetrics.questions} pregunta{suiteMetrics.questions === 1 ? "" : "s"}
+                  {" · "}
+                  {suiteMetrics.sections} secci{suiteMetrics.sections === 1 ? "ón" : "ones"}
+                  {" · "}
+                  {suiteMetrics.logicRules} regla{suiteMetrics.logicRules === 1 ? "" : "s"}
+                </span>
               </div>
             </div>
             <div className="pulso-graph-header-right">
+              <div className="pulso-questionnaire-header-stats" aria-label="Resumen del formulario">
+                <span>{suiteMetrics.required} obligatoria{suiteMetrics.required === 1 ? "" : "s"}</span>
+                <span>{suiteMetrics.catalogs} catálogo{suiteMetrics.catalogs === 1 ? "" : "s"}</span>
+              </div>
               <button
                 type="button"
                 className="pulso-icon"
@@ -2739,17 +2749,15 @@ export default function XlsformEditorPage() {
               </button>
             </div>
           </header>
-          <main style={{ padding: 18, overflow: "auto", height: "calc(100vh - 64px)", background: "#f8fafc" }}>
-            <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-              <QuestionnaireProgressPanel
-                structure={structure}
-                selection={selection}
-                onSelect={(next) => {
-                  setSelection(next);
-                  setQuestionnaireViewOpen(false);
-                }}
-              />
-            </div>
+          <main className="pulso-questionnaire-shell">
+            <QuestionnaireProgressPanel
+              structure={structure}
+              selection={selection}
+              onSelect={(next) => {
+                setSelection(next);
+                setQuestionnaireViewOpen(false);
+              }}
+            />
           </main>
         </div>
       ), document.body) : null}
