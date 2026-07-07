@@ -35293,16 +35293,16 @@ button.pulso-focus-calculation-recipe {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 8px 16px;
+  padding: 8px 14px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 720;
   color: var(--pulso-text-soft);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   transition: color 140ms ease, border-color 140ms ease;
-  font-family: ui-monospace, monospace;
+  font-family: inherit;
 }
 .pulso-sheets-tabs button:hover {
   color: var(--pulso-text);
@@ -35312,7 +35312,23 @@ button.pulso-focus-calculation-recipe {
   border-bottom-color: var(--pulso-primary);
 }
 .pulso-sheets-tab-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
+}
+.pulso-sheets-tab-name code {
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pulso-border) 38%, #ffffff);
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-weight: 760;
+}
+.pulso-sheets-tabs button.is-active .pulso-sheets-tab-name code {
+  background: color-mix(in srgb, var(--pulso-primary) 12%, #ffffff);
+  color: var(--pulso-primary-strong, var(--pulso-primary));
 }
 .pulso-sheets-tab-count {
   display: inline-flex;
