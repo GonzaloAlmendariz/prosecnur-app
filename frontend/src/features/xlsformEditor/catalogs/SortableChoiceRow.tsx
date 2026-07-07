@@ -118,6 +118,7 @@ export function SortableChoiceRow({
         aria-label="Confirmar cambios de opción"
         aria-hidden={!dirty}
       >
+        {dirty && <span className="pulso-choice-row-draft-chip">Borrador sin aplicar</span>}
         <button
           type="button"
           className="pulso-catalogdraft-apply"
@@ -130,14 +131,13 @@ export function SortableChoiceRow({
         </button>
         <button
           type="button"
-          className="pulso-catalogdraft-revert"
+          className="pulso-catalogdraft-revert pulso-choice-row-discard"
           onMouseDown={(event) => event.preventDefault()}
           onClick={revert}
           disabled={!dirty}
-          title="Revertir"
-          aria-label="Revertir cambios de la opción"
+          title="Descartar cambios"
         >
-          <RotateCcw size={12} />
+          <RotateCcw size={12} /> Descartar
         </button>
       </span>
 
