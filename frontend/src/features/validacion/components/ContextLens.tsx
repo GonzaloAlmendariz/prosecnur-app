@@ -85,6 +85,11 @@ export default function ContextLens({
   const [closing, setClosing] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const effectiveTab = activeTabId ?? internalActiveTab;
 
@@ -100,9 +105,9 @@ export default function ContextLens({
     setClosing(true);
     window.setTimeout(() => {
       setClosing(false);
-      onClose();
+      onCloseRef.current();
     }, 220);
-  }, [onClose]);
+  }, []);
 
   // Manejo de Escape + focus trap básico + capturar focus al abrir
   useEffect(() => {

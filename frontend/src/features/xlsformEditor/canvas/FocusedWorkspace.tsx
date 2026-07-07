@@ -1860,6 +1860,7 @@ function RulesTab({
           scope={scope}
           fieldLabel="Editar condición propia"
           hint={`Modifica las reglas directas que muestran ${targetNoun}. Si también depende de una sección, esa herencia se muestra en la lectura superior.`}
+          targetNoun={targetNoun}
           onChange={(next) => onFieldChange("relevant", next)}
         />
       </InspectorBlock>

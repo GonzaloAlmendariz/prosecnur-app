@@ -26263,6 +26263,69 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   outline: none;
   transition: background 140ms ease, border-color 140ms ease;
 }
+.pulso-catalogworkspace-name-editor {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.pulso-catalogworkspace-name-editor.is-dirty .pulso-catalogworkspace-name {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 36%, var(--pulso-border));
+  background: color-mix(in srgb, #ffffff 82%, var(--pulso-warn-bg) 18%);
+}
+.pulso-catalogworkspace-name-actions,
+.pulso-choice-row-draft-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.pulso-catalogdraft-apply,
+.pulso-catalogdraft-revert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 740;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-catalogdraft-apply {
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 34%, var(--pulso-border));
+  background: var(--pulso-primary);
+  color: #ffffff;
+}
+.pulso-catalogdraft-apply:hover:not(:disabled) {
+  background: var(--pulso-primary-hover, #1d4ed8);
+}
+.pulso-catalogdraft-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pulso-catalogdraft-revert {
+  width: 28px;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-soft);
+}
+.pulso-catalogdraft-revert:hover {
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+}
+.pulso-catalogdraft-apply:active:not(:disabled),
+.pulso-catalogdraft-revert:active {
+  transform: scale(0.97);
+}
 .pulso-catalogworkspace-name:hover {
   background: rgba(0, 0, 0, 0.06);
 }
@@ -26461,6 +26524,19 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   min-width: 0;
   font-size: 12.5px;
   padding: 5px 8px;
+}
+.pulso-choice-row:has(.pulso-choice-row-draft-actions.is-visible) {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 34%, var(--pulso-border));
+  background: color-mix(in srgb, #ffffff 88%, var(--pulso-warn-bg) 12%);
+}
+.pulso-choice-row-draft-actions {
+  align-self: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+.pulso-choice-row-draft-actions.is-visible {
+  visibility: visible;
+  pointer-events: auto;
 }
 /* En contenedores muy estrechos (lens en mobile/tablet), apilar verticalmente
    y forzar también el header de columnas a una sola etiqueta. */
@@ -26764,7 +26840,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex-shrink: 0;
 }
 .pulso-logic-builder-add,
-.pulso-logic-builder-replace {
+.pulso-logic-builder-replace,
+.pulso-logic-builder-advanced {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -26787,6 +26864,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-text-soft);
   cursor: not-allowed;
   opacity: 0.6;
+}
+.pulso-logic-builder-advanced {
+  background: color-mix(in srgb, #ffffff 86%, var(--pulso-primary) 7%);
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 24%, var(--pulso-border));
+  color: var(--pulso-primary);
+}
+.pulso-logic-builder-advanced:hover {
+  background: color-mix(in srgb, #ffffff 76%, var(--pulso-primary) 12%);
 }
 .pulso-logic-builder-clear {
   display: inline-flex;
@@ -26984,6 +27069,65 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 6px;
   flex-wrap: wrap;
 }
+.pulso-logic-builder-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 20%, var(--pulso-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, #ffffff 88%, var(--pulso-primary) 5%);
+}
+.pulso-logic-builder-manual label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pulso-logic-builder-manual label > span {
+  font-size: 11px;
+  font-weight: 740;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.pulso-logic-builder-manual textarea {
+  min-height: 50px;
+  resize: vertical;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--pulso-text);
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  padding: 8px 10px;
+}
+.pulso-logic-builder-manual textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--pulso-primary) 46%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary) 14%, transparent);
+}
+.pulso-logic-builder-manual p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.pulso-logic-builder-guided-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 250, 255, 0.76)),
+    var(--pulso-surface-2);
+}
+.pulso-logic-builder-guided-empty > p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
 
 /* ConditionRow — una fila atómica del builder
  * Usa flex-wrap en lugar de grid para que con anchos chicos (el inspector
@@ -27000,6 +27144,23 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 9px;
   background: var(--pulso-surface);
   min-width: 0;
+}
+.pulso-logic-condition-row--starter {
+  align-items: flex-start;
+  padding: 6px;
+}
+.pulso-logic-condition-row--starter .pulso-logic-condition-var {
+  flex: 1 1 100%;
+}
+.pulso-logic-starter-note {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  border-radius: 7px;
+  background: color-mix(in srgb, #ffffff 82%, var(--pulso-primary) 5%);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
 }
 .pulso-logic-condition-piece {
   display: flex;
@@ -36440,6 +36601,10 @@ button.pulso-focus-calculation-recipe {
 }
 
 .pulso-xlsform-history-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 26px;
   padding: 0 10px;
   border-radius: 999px;
@@ -36449,10 +36614,19 @@ button.pulso-focus-calculation-recipe {
   font-size: 11px;
   font-weight: 740;
   box-shadow: var(--xls-shadow-hairline);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .pulso-xlsform-history-button:not(:disabled) {
   color: var(--pulso-text);
+}
+
+.pulso-xlsform-history-button svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: currentColor;
 }
 
 .pulso-xlsform-commandbar {

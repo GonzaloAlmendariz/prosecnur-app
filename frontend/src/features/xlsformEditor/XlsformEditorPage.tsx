@@ -23,7 +23,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { IconHint, IconNew, IconForward } from "../../lib/icons";
+import { IconForward, IconHint, IconNew, IconRedo, IconUndo } from "../../lib/icons";
 import {
   apiSaveEntregable,
   apiUpload,
@@ -2128,7 +2128,8 @@ export default function XlsformEditorPage() {
                     className="pulso-xlsform-history-button"
                     aria-label="Deshacer último cambio"
                   >
-                    ↶ Deshacer
+                    <IconUndo size={14} strokeWidth={2.25} aria-hidden="true" />
+                    <span>Deshacer</span>
                   </button>
                   <button
                     type="button"
@@ -2138,7 +2139,8 @@ export default function XlsformEditorPage() {
                     className="pulso-xlsform-history-button"
                     aria-label="Rehacer cambio deshecho"
                   >
-                    ↷ Rehacer
+                    <IconRedo size={14} strokeWidth={2.25} aria-hidden="true" />
+                    <span>Rehacer</span>
                   </button>
                 </div>
               )}
