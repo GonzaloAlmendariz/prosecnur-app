@@ -1361,8 +1361,8 @@ codif_matrix_patch_case <- function(sid, base, variable, id_caso, codigo, etique
         rows[[length(rows) + 1L]] <- data.frame(
           `ID caso` = case_ids[[i]],
           Respuesta = response[[i]],
-          Código = .codif_config_scalar(coding$codigo, ""),
-          Categoría = .codif_config_scalar(coding$categoria, ""),
+          `Código` = .codif_config_scalar(coding$codigo, ""),
+          `Categoría` = .codif_config_scalar(coding$categoria, ""),
           Observaciones = .codif_config_scalar(coding$obs, ""),
           check.names = FALSE,
           stringsAsFactors = FALSE
@@ -1372,7 +1372,7 @@ codif_matrix_patch_case <- function(sid, base, variable, id_caso, codigo, etique
     tbl <- if (length(rows)) {
       do.call(rbind, rows)
     } else {
-      data.frame(`ID caso` = character(), Respuesta = character(), Código = character(), Categoría = character(), Observaciones = character(), check.names = FALSE)
+      data.frame(`ID caso` = character(), Respuesta = character(), `Código` = character(), `Categoría` = character(), Observaciones = character(), check.names = FALSE)
     }
     tables[[var]] <- tbl
     summaries[[length(summaries) + 1L]] <- data.frame(
@@ -1384,7 +1384,7 @@ codif_matrix_patch_case <- function(sid, base, variable, id_caso, codigo, etique
       variable_kind_label = .codif_matrix_variable_kind_label(kind),
       respuestas = length(nonempty_idx),
       filas_codificacion = nrow(tbl),
-      categorias = length(unique(tbl$Código[nzchar(tbl$Código)])),
+      categorias = length(unique(tbl$`Código`[nzchar(tbl$`Código`)])),
       stringsAsFactors = FALSE
     )
   }
@@ -2019,9 +2019,9 @@ codif_matrix_patch_case <- function(sid, base, variable, id_caso, codigo, etique
       }
       tbl <- data.frame(
         Pregunta = as.character(block$variable_label %||% ""),
-        Código = as.character(block$codigo %||% ""),
+        `Código` = as.character(block$codigo %||% ""),
         Tipo = as.character(block$tipo_categoria %||% ""),
-        Categoría = as.character(block$etiqueta_categoria %||% ""),
+        `Categoría` = as.character(block$etiqueta_categoria %||% ""),
         `N respuestas` = as.integer(block$n_respuestas_unicas %||% 0L),
         stringsAsFactors = FALSE
       )
@@ -2104,7 +2104,7 @@ codif_matrix_export_xlsx <- function(sid, visibility = c("work", "internal", "cl
         Tipo = resumen_raw$variable_kind_label,
         Respuestas = resumen_raw$respuestas,
         `Filas de codificación` = resumen_raw$filas_codificacion,
-        Categorías = resumen_raw$categorias,
+        `Categorías` = resumen_raw$categorias,
         stringsAsFactors = FALSE
       ), styles
     )
