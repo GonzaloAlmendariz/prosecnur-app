@@ -1277,6 +1277,71 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   el
 }
 
+#' @title Barras categoricas
+#'
+#' @description
+#' Grafico especial para pocas categorias (maximo 10 por defecto), con una barra
+#' vertical por categoria y color propio por categoria. Puede mostrar promedio
+#' en el pie cuando el graficador recibe o calcula un puntaje.
+#'
+#' @param var Variable categorica a resumir.
+#' @param titulo Titulo opcional del elemento.
+#' @param overrides Lista de overrides para `graficar_barras_categoricas()`.
+#' @param base Lista de opciones de base.
+#' @param filtros Lista nombrada de filtros por igualdad/inclusion.
+#' @param mostrar_ceros Si `TRUE`, conserva opciones del instrumento con `n = 0`.
+#' @param excluir_opciones Opciones/codigos a ocultar antes de recalcular.
+#' @param max_categorias Maximo de categorias visibles.
+#' @param mostrar_promedio Si `TRUE`, intenta mostrar promedio en el pie.
+#' @param ... Argumentos adicionales de conveniencia para el graficador.
+#'
+#' @return Objeto `"ppt_element"`.
+#' @family reporte
+#' @export
+p_barras_categoricas <- function(
+    var,
+    titulo = NULL,
+    overrides = list(),
+    base = list(),
+    filtros = list(),
+    mostrar_ceros = NULL,
+    excluir_opciones = NULL,
+    max_categorias = NULL,
+    mostrar_promedio = NULL,
+    ...
+) {
+  if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
+    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+  }
+  var <- trimws(var)
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  extra <- list(...)
+  if (length(extra)) overrides <- utils::modifyList(overrides, extra)
+  if (!is.null(max_categorias)) overrides$max_categorias <- overrides$max_categorias %||% max_categorias
+  if (!is.null(mostrar_promedio)) overrides$mostrar_promedio <- overrides$mostrar_promedio %||% isTRUE(mostrar_promedio)
+  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.null(mostrar_ceros) &&
+      (!is.logical(mostrar_ceros) || length(mostrar_ceros) != 1L || is.na(mostrar_ceros))) {
+    stop("`mostrar_ceros` debe ser NULL o logical(1).", call. = FALSE)
+  }
+  filtros <- .ppt_norm_filters(filtros)
+  excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
+
+  el <- list(
+    .element_type = "barras_categoricas",
+    var           = var,
+    title_slide   = titulo,
+    mostrar_ceros = mostrar_ceros,
+    excluir_opciones = excluir_opciones,
+    overrides     = overrides,
+    base          = base,
+    filtros       = filtros
+  )
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
 #' @title Barras apiladas (1 variable)
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion,
 #'   por ejemplo `list(region = "Lima", sexo = c("Mujer", "Otro"))`.

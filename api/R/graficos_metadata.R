@@ -618,6 +618,71 @@
     ), .args_graf_comunes())
   ),
 
+  p_barras_categoricas = list(
+    titulo_humano = "Barras categóricas",
+    descripcion   = "Barras verticales para pocas categorías (máximo 10), con un color propio por categoría. Útil para puntajes o distribuciones simples que necesitan una lectura más cuidada.",
+    icono_ui      = "ChartColumn",
+    args = c(list(
+      list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta categórica que quieres resumir como barras de color por categoría."),
+      list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "datos",
+           default = FALSE,
+           descripcion = "Conserva opciones del instrumento aunque no tengan casos."),
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
+      list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
+           default = 10, min = 1, max = 10, step = 1,
+           descripcion = "Este motor está pensado para gráficos pequeños y legibles. Para más categorías conviene usar barras agrupadas."),
+      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
+           default = "instrumento",
+           choices = list(
+             list(value = "instrumento", label = "Orden del instrumento"),
+             list(value = "mayor_menor", label = "Mayor a menor"),
+             list(value = "menor_mayor", label = "Menor a mayor")
+           )),
+      list(name = "mostrar_promedio", label = "Mostrar promedio en pie", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Agrega una línea de promedio en el pie cuando el gráfico tiene puntajes o códigos numéricos."),
+      list(name = "promedio_label", label = "Etiqueta del promedio", tipo_input = "string", grupo = "valores",
+           default = "Promedio"),
+      list(name = "formato_valor", label = "Formato de etiquetas", tipo_input = "choice", grupo = "valores",
+           default = "porcentaje_n",
+           choices = list(
+             list(value = "valor", label = "Valor"),
+             list(value = "n", label = "Frecuencia"),
+             list(value = "porcentaje", label = "Porcentaje"),
+             list(value = "porcentaje_n", label = "Porcentaje + frecuencia"),
+             list(value = "valor_n", label = "Valor + frecuencia")
+           )),
+      list(name = "colores_categorias", label = "Colores por categoría", tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Asigna un color específico a cada categoría. Si lo dejas vacío, se usa la paleta Pulso."),
+      list(name = "normalizar_etiquetas", label = "Normalización de etiquetas", tipo_input = "choice", grupo = "textos",
+           default = "ninguna",
+           choices = list(
+             list(value = "ninguna", label = "Sin cambios"),
+             list(value = "mayuscula_inicial", label = "Mayúscula inicial")
+           )),
+      list(name = "ancho_max_eje_x", label = "Wrap de etiquetas", tipo_input = "number", grupo = "espacio",
+           default = 18, min = 6, max = 40, step = 1),
+      list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
+           default = 0.76, min = 0.25, max = 0.95, step = 0.01),
+      list(name = "limite_y", label = "Límite del eje Y", tipo_input = "number", grupo = "espacio",
+           descripcion = "Déjalo vacío para que el motor lo calcule automáticamente."),
+      list(name = "mostrar_eje_y", label = "Mostrar eje Y", tipo_input = "bool", grupo = "estilo",
+           default = FALSE),
+      list(name = "mostrar_linea_eje_x", label = "Mostrar línea del eje X", tipo_input = "bool", grupo = "estilo",
+           default = FALSE),
+      list(name = "mostrar_linea_eje_y", label = "Mostrar línea del eje Y", tipo_input = "bool", grupo = "estilo",
+           default = FALSE),
+      list(name = "mostrar_grid_y", label = "Mostrar grilla horizontal", tipo_input = "bool", grupo = "estilo",
+           default = FALSE),
+      list(name = "size_texto_barras", label = "Tamaño de etiquetas", tipo_input = "number", grupo = "valores",
+           default = 5.6),
+      list(name = "color_texto_barras", label = "Color de etiquetas", tipo_input = "color", grupo = "valores",
+           default = "#081F5C")
+    ), .args_graf_comunes())
+  ),
+
   p_barras_apiladas = list(
     titulo_humano = "Barras apiladas",
     descripcion   = "Barras donde cada segmento es una categoría de respuesta. Suma 100% por fila. Ideal para escalas Likert (satisfacción, acuerdo, etc.).",
@@ -1551,6 +1616,82 @@
   ),
 
   # =========================================================================
+  # BARRAS CATEGORICAS
+  # =========================================================================
+  barras_categoricas = list(
+    titulo_humano = "Barras categóricas",
+    descripcion   = "Estilo global para gráficos de pocas categorías, con una barra vertical y color propio por categoría. Recomendado hasta 10 categorías.",
+    icono_ui      = "ChartColumn",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "ejes", "valores")),
+
+      list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
+           default = 10, min = 1, max = 10, step = 1,
+           descripcion = "Límite visual del motor. Para más categorías usa barras agrupadas."),
+      list(name = "agrupar_resto_en_otros", label = "Agrupar excedente en Otros", tipo_input = "bool", grupo = "filtro",
+           default = FALSE,
+           descripcion = "Si hay más categorías que el máximo, agrupa el resto. Por defecto se exige revisar el gráfico."),
+      list(name = "etiqueta_otros", label = "Etiqueta Otros", tipo_input = "string", grupo = "textos",
+           default = "Otros"),
+      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
+           default = "instrumento",
+           choices = list(
+             list(value = "instrumento", label = "Orden del instrumento"),
+             list(value = "mayor_menor", label = "Mayor a menor"),
+             list(value = "menor_mayor", label = "Menor a mayor")
+           )),
+      list(name = "normalizar_etiquetas", label = "Normalización de etiquetas", tipo_input = "choice", grupo = "textos",
+           default = "ninguna",
+           choices = list(
+             list(value = "ninguna", label = "Sin cambios"),
+             list(value = "mayuscula_inicial", label = "Mayúscula inicial")
+           ),
+           descripcion = "Ajusta solo el texto visible de las categorías."),
+
+      list(name = "formato_valor", label = "Formato de etiquetas", tipo_input = "choice", grupo = "valores",
+           default = "porcentaje_n",
+           choices = list(
+             list(value = "valor", label = "Valor"),
+             list(value = "n", label = "Frecuencia"),
+             list(value = "porcentaje", label = "Porcentaje"),
+             list(value = "porcentaje_n", label = "Porcentaje + frecuencia"),
+             list(value = "valor_n", label = "Valor + frecuencia")
+           )),
+      list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 0),
+      list(name = "size_texto_barras", label = "Tamaño de etiquetas", tipo_input = "number", grupo = "valores", default = 5.6),
+      list(name = "color_texto_barras", label = "Color de etiquetas", tipo_input = "color", grupo = "valores", default = "#081F5C"),
+
+      list(name = "mostrar_promedio", label = "Mostrar promedio en pie", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Agrega un promedio al pie cuando existe un valor numerico o codigos numericos."),
+      list(name = "promedio_label", label = "Etiqueta del promedio", tipo_input = "string", grupo = "valores", default = "Promedio"),
+      list(name = "promedio_decimales", label = "Decimales del promedio", tipo_input = "number", grupo = "valores", default = 1),
+      list(name = "promedio_maximo", label = "Máximo de escala", tipo_input = "number", grupo = "valores",
+           descripcion = "Opcional. Si lo completas, el pie puede decir Promedio: 3.5 / 4."),
+
+      list(name = "colores_categorias", label = "Colores por categoría", tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Asigna colores a categorías específicas. Si está vacío, se usa la paleta Pulso."),
+      list(name = "mostrar_eje_y", label = "Mostrar eje Y", tipo_input = "bool", grupo = "estilo", default = FALSE),
+      list(name = "mostrar_linea_eje_x", label = "Mostrar línea del eje X", tipo_input = "bool", grupo = "estilo", default = FALSE),
+      list(name = "mostrar_linea_eje_y", label = "Mostrar línea del eje Y", tipo_input = "bool", grupo = "estilo", default = FALSE),
+      list(name = "mostrar_grid_y", label = "Mostrar grilla horizontal", tipo_input = "bool", grupo = "estilo", default = FALSE),
+      list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 16),
+
+      list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
+           default = 0.76, min = 0.25, max = 0.95, step = 0.01),
+      list(name = "ancho_max_eje_x", label = "Wrap de etiquetas", tipo_input = "number", grupo = "espacio",
+           default = 18, min = 6, max = 40, step = 1),
+      list(name = "limite_y", label = "Límite del eje Y", tipo_input = "number", grupo = "espacio",
+           descripcion = "Vacío = automático."),
+      list(name = "expand_y", label = "Aire superior", tipo_input = "number", grupo = "espacio",
+           default = 0.14, min = 0, max = 0.50, step = 0.01)
+    )
+  ),
+
+  # =========================================================================
   # NUBE DE PALABRAS
   # =========================================================================
   nube_palabras = list(
@@ -2324,6 +2465,58 @@
     encabezado_separacion_in = 0.52,
     colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul_barras),
     excluir_opciones         = .PULSO_PPT_EXCLUIR_SIN_GRADO
+  ),
+
+  barras_categoricas = list(
+    max_categorias            = 10,
+    agrupar_resto_en_otros    = FALSE,
+    etiqueta_otros            = "Otros",
+    orden_barras              = "instrumento",
+    normalizar_etiquetas      = "ninguna",
+
+    mostrar_valores           = TRUE,
+    formato_valor             = "porcentaje_n",
+    mostrar_frecuencia        = TRUE,
+    decimales                 = 0,
+    size_texto_barras         = 5.6,
+    color_texto_barras        = .PULSO_PPT_COLORS$azul,
+
+    mostrar_promedio          = FALSE,
+    promedio_label            = "Promedio",
+    promedio_decimales        = 1,
+    promedio_maximo           = NULL,
+
+    colores_categorias        = list(
+      Categoria_1 = .PULSO_PPT_COLORS$rojo,
+      Categoria_2 = .PULSO_PPT_COLORS$amarillo,
+      Categoria_3 = .PULSO_PPT_COLORS$verde,
+      Categoria_4 = .PULSO_PPT_COLORS$verde_top2,
+      Categoria_5 = .PULSO_PPT_COLORS$azul_secundario,
+      Categoria_6 = .PULSO_PPT_COLORS$morado,
+      Categoria_7 = .PULSO_PPT_COLORS$naranja,
+      Categoria_8 = .PULSO_PPT_COLORS$gris,
+      Categoria_9 = .PULSO_PPT_COLORS$azul,
+      Categoria_10 = .PULSO_PPT_COLORS$gris_secundario
+    ),
+
+    color_titulo              = .PULSO_PPT_COLORS$rojo,
+    color_subtitulo           = .PULSO_PPT_COLORS$azul,
+    color_nota_pie            = .PULSO_PPT_COLORS$azul,
+    color_ejes                = .PULSO_PPT_COLORS$azul,
+    size_titulo               = 16,
+    size_subtitulo            = 12,
+    size_nota_pie             = 12,
+    size_ejes                 = 16,
+    textos_negrita            = c("titulo", "valores", "ejes"),
+
+    grosor_barras             = 0.76,
+    limite_y                  = NULL,
+    expand_y                  = 0.14,
+    mostrar_eje_y             = FALSE,
+    mostrar_linea_eje_x       = FALSE,
+    mostrar_linea_eje_y       = FALSE,
+    mostrar_grid_y            = FALSE,
+    ancho_max_eje_x           = 18
   ),
 
   nube_palabras = list(
@@ -3131,9 +3324,9 @@
     max_categorias = list(
       label = "Máximo de categorías",
       descripcion = "Cantidad máxima de opciones visibles. Si hay más, el excedente puede agruparse como Otros solo en el gráfico.",
-      min = 2,
-      max = 30,
-      step = 1,
+      min = arg$min %||% 2,
+      max = arg$max %||% 30,
+      step = arg$step %||% 1,
       control = "stepper"
     ),
     agrupar_resto_en_otros = list(

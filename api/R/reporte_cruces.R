@@ -361,29 +361,106 @@ label_variable <- function(var, dic_vars = NULL, labels_override = NULL, data = 
 # =============================================================================
 
 get_list_name <- function(var, survey = NULL) {
-  if (is.null(survey) ||
-      !all(c("name", "list_name") %in% names(survey))) {
+  if (is.null(survey) || !("name" %in% names(survey))) {
     return(NA_character_)
   }
-  ln <- unique(na.omit(as.character(survey$list_name[survey$name == var])))
+
+  rows <- survey[!is.na(survey$name) & survey$name == var, , drop = FALSE]
+  if (!nrow(rows)) return(NA_character_)
+
+  ln <- character(0)
+  if ("list_name" %in% names(rows)) {
+    ln <- unique(na.omit(as.character(rows$list_name)))
+    ln <- ln[nzchar(trimws(ln))]
+  }
+  if (!length(ln) && "type" %in% names(rows)) {
+    tipos <- trimws(as.character(rows$type))
+    tipos <- tipos[!is.na(tipos) & grepl("^select_(one|multiple)\\b", tipos)]
+    ln <- vapply(tipos, function(tp) {
+      m <- regmatches(
+        tp,
+        regexec("^select_(?:one|multiple)\\s+(\\S+)", tp, perl = TRUE)
+      )[[1]]
+      if (length(m) >= 2L && nzchar(m[2])) m[2] else NA_character_
+    }, character(1))
+    ln <- unique(na.omit(ln))
+    ln <- ln[nzchar(trimws(ln))]
+  }
   if (!length(ln)) return(NA_character_)
   ln[1]
+}
+
+.cruces_is_consecutive_numeric_scale <- function(names) {
+  codes <- trimws(as.character(names %||% character(0)))
+  if (length(codes) < 5L || any(!nzchar(codes))) return(FALSE)
+  if (any(!grepl("^-?[0-9]+$", codes))) return(FALSE)
+  vals <- suppressWarnings(as.integer(codes))
+  if (any(is.na(vals))) return(FALSE)
+  all(diff(vals) == 1L)
+}
+
+.cruces_scale_labels_should_be_codes <- function(names, labels) {
+  names <- as.character(names %||% character(0))
+  labels <- as.character(labels %||% character(0))
+  if (!.cruces_is_consecutive_numeric_scale(names)) return(FALSE)
+  if (!length(labels)) labels <- rep(NA_character_, length(names))
+  if (length(labels) != length(names)) labels <- rep_len(labels, length(names))
+
+  empty <- is.na(labels) | !nzchar(trimws(labels))
+  if (any(empty)) return(TRUE)
+
+  # Escalas ancladas: los intermedios ya son codigos, pero extremos traen texto.
+  matches_code <- trimws(labels) == trimws(names)
+  sum(matches_code, na.rm = TRUE) >= length(names) - 2L
+}
+
+.cruces_fill_empty_choice_labels <- function(names, labels) {
+  names <- as.character(names %||% character(0))
+  labels <- as.character(labels %||% character(0))
+  if (!length(names)) return(character(0))
+  if (!length(labels)) labels <- rep(NA_character_, length(names))
+  if (length(labels) != length(names)) labels <- rep_len(labels, length(names))
+  if (.cruces_scale_labels_should_be_codes(names, labels)) return(names)
+  empty <- is.na(labels) | !nzchar(trimws(labels))
+  labels[empty] <- names[empty]
+  labels
 }
 
 .augment_orders_list_from_choices <- function(orders_list = NULL,
                                              survey = NULL,
                                              choices = NULL) {
   out <- orders_list %||% list()
+  for (nm in names(out)) {
+    if (is.null(out[[nm]]$names)) next
+    out[[nm]]$labels <- .cruces_fill_empty_choice_labels(out[[nm]]$names, out[[nm]]$labels)
+  }
   if (is.null(survey) || is.null(choices)) return(out)
-  if (!all(c("name", "list_name") %in% names(survey))) return(out)
+  if (!("name" %in% names(survey))) return(out)
   if (!all(c("list_name", "name", "label") %in% names(choices))) return(out)
 
-  survey_lns <- survey |>
+  survey_lns <- survey
+  if (!("list_name" %in% names(survey_lns))) {
+    survey_lns$list_name <- NA_character_
+  }
+  if (!("label" %in% names(survey_lns))) {
+    survey_lns$label <- survey_lns$name
+  }
+  survey_lns$.list_name <- vapply(
+    seq_len(nrow(survey_lns)),
+    function(i) get_list_name(as.character(survey_lns$name[i]), survey_lns[i, , drop = FALSE]),
+    character(1)
+  )
+
+  survey_lns <- survey_lns |>
     dplyr::filter(
       !is.na(.data$name), nzchar(as.character(.data$name)),
-      !is.na(.data$list_name), nzchar(as.character(.data$list_name))
+      !is.na(.data$.list_name), nzchar(as.character(.data$.list_name))
     ) |>
-    dplyr::select(name, list_name, dplyr::any_of("label")) |>
+    dplyr::transmute(
+      name = as.character(.data$name),
+      list_name = as.character(.data$.list_name),
+      label = as.character(.data$label)
+    ) |>
     dplyr::distinct()
 
   if (!nrow(survey_lns)) return(out)
@@ -400,8 +477,7 @@ get_list_name <- function(var, survey = NULL) {
       )
     if (!nrow(ch)) next
 
-    labels <- as.character(ch$label)
-    labels[is.na(labels) | !nzchar(labels)] <- as.character(ch$name[is.na(labels) | !nzchar(labels)])
+    labels <- .cruces_fill_empty_choice_labels(ch$name, ch$label)
 
     out[[var]] <- list(
       names = as.character(ch$name),
@@ -459,7 +535,7 @@ get_categorias <- function(var,
 
   if (!is.null(obj)) {
     codes  <- as.character(obj[["names"]])
-    labels <- as.character(obj[["labels"]])
+    labels <- .cruces_fill_empty_choice_labels(codes, obj[["labels"]])
 
   } else if (!is.null(lab_attr) && length(lab_attr) > 0) {
     # 2) attr(labels) de la data (reporte_data)
@@ -474,9 +550,13 @@ get_categorias <- function(var,
   }
 
   ok <- !is.na(codes) & nzchar(codes)
+  if (!length(labels) && length(codes)) {
+    labels <- rep(NA_character_, length(codes))
+  }
   if (length(labels) != length(codes)) {
     labels <- rep_len(labels, length(codes))
   }
+  labels <- .cruces_fill_empty_choice_labels(codes, labels)
   codes  <- codes[ok]
   labels <- labels[ok]
 
