@@ -693,6 +693,10 @@ export default function XlsformEditorPage() {
   const structure = xlsformIndex?.structure ?? null;
 
   const catalogs = xlsformIndex?.catalogs ?? [];
+  const readyCatalogsCount = useMemo(
+    () => catalogs.filter((catalog) => catalog.items.length > 0).length,
+    [catalogs],
+  );
 
   useEffect(() => {
     if (!workbook) {
@@ -1600,7 +1604,7 @@ export default function XlsformEditorPage() {
     const nextListName = slug(nextListNameRaw, "catalogo");
     if (!nextListName || nextListName === oldListName) return;
     if (catalogs.some((catalog) => catalog.listName === nextListName)) {
-      setError(`Ya existe un catálogo llamado "${nextListName}".`);
+      setError(`Ya existe una lista llamada "${nextListName}".`);
       return;
     }
     setError("");
@@ -2025,7 +2029,7 @@ export default function XlsformEditorPage() {
     if (catalogFocus === listName) setCatalogFocus(null);
     toasts.push({
       kind: "info",
-      title: "Catálogo borrado",
+      title: "Lista borrada",
       detail: `Eliminamos «${listName}» de la hoja choices.`,
     });
   }
@@ -2107,7 +2111,7 @@ export default function XlsformEditorPage() {
     {
       key: "select_one",
       label: "Selección única",
-      hint: "Una sola respuesta; crea un catálogo vacío para opciones reales.",
+      hint: "Una sola respuesta; deja una lista preparada para opciones reales.",
       icon: addMenuIcon("select_one"),
       action: () => addQuestion("select_one"),
       group: "choices",
@@ -2213,7 +2217,10 @@ export default function XlsformEditorPage() {
               </span>
               <span className="pulso-xlsform-document-divider" aria-hidden="true" />
               <DocumentMetric value={structure?.outline.length ?? 0} label="piezas" />
-              <DocumentMetric value={catalogs.length} label="catálogos" />
+              <DocumentMetric
+                value={catalogs.length}
+                label={catalogs.length === readyCatalogsCount ? "listas" : "listas preparadas"}
+              />
               <DocumentMetric
                 value={diagnostics.filter((diagnostic) => diagnostic.level === "warn").length}
                 label="avisos"
@@ -2615,7 +2622,8 @@ export default function XlsformEditorPage() {
       <CatalogsContextLens
         open={catalogsLensOpen}
         onClose={() => setCatalogsLensOpen(false)}
-        catalogsCount={catalogs.length}
+        listsCount={catalogs.length}
+        readyListsCount={readyCatalogsCount}
         onCreate={() => createCatalog(false)}
         library={(
           <CatalogLibraryV2
@@ -2879,7 +2887,7 @@ function AddElementMenu({
         </span>
         <span className="pulso-add-element-menu-head-copy">
           <strong id="pulso-add-element-menu-title">Añadir pieza al formulario</strong>
-          <small>Busca por tipo, evidencia, lógica o catálogo; Enter aplica la opción enfocada.</small>
+          <small>Busca por tipo, evidencia, lógica o lista; Enter aplica la opción enfocada.</small>
         </span>
         <button
           type="button"
@@ -2895,7 +2903,7 @@ function AddElementMenu({
         </button>
       </div>
       <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
-        <span><strong>Kobo limpio</strong> las selecciones crean catálogo vacío, listo para opciones reales.</span>
+        <span><strong>Kobo limpio</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
         <span><strong>Secciones</strong> insertan inicio y cierre; luego decides qué piezas quedan dentro.</span>
         <span><strong>Atajo</strong> Cmd/Ctrl+N abre esta sheet sin crear campos por defecto.</span>
       </div>

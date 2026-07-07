@@ -300,11 +300,11 @@ function ChoiceList({
       <PreviewBox
         icon={<ListChecks size={14} />}
         tone="var(--pulso-warn-fg)"
-        title={listName ? `Catálogo «${listName}» vacío` : "Sin catálogo asignado"}
+        title={listName ? `Lista «${listName}» en preparación` : "Sin lista asignada"}
         detail={
           listName
-            ? "Agrega opciones en el editor de catálogos para que esta pregunta tenga respuestas posibles."
-            : "Asigna un catálogo desde el inspector para que la pregunta sea respondible."
+            ? "Agrega opciones en el editor de listas para que esta pregunta tenga respuestas posibles."
+            : "Asigna una lista desde el inspector para que la pregunta sea respondible."
         }
       />
     );

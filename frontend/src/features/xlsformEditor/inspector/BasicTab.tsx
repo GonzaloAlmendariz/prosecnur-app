@@ -230,7 +230,7 @@ export function BasicTab({
 
         {!isSection && isSelect && (
           <InspectorField
-            label="Catálogo asignado"
+            label="Lista asignada"
             hint="Lista de opciones que usa esta pregunta. Reasigna para reusar una lista existente."
           >
             <CatalogChip

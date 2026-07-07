@@ -73,7 +73,7 @@ export function CatalogWorkspace({
     return (
       <div className="pulso-catalogworkspace pulso-catalogworkspace-empty">
         <ListChecks size={20} />
-        <strong>Selecciona un catálogo</strong>
+        <strong>Selecciona una lista</strong>
         <span>Elige una lista de la columna izquierda para editar sus opciones.</span>
       </div>
     );
@@ -129,9 +129,9 @@ export function CatalogWorkspace({
               type="button"
               className="pulso-catalogworkspace-delete"
               onClick={() => onDeleteCatalog(catalog.listName)}
-              title="Borrar catálogo (sin uso)"
+              title="Borrar lista (sin uso)"
             >
-              <Trash2 size={11} /> Borrar catálogo
+              <Trash2 size={11} /> Borrar lista
             </button>
           )}
         </div>
@@ -157,7 +157,7 @@ export function CatalogWorkspace({
 
       {totalCount === 0 ? (
         <div className="pulso-catalogworkspace-emptylist">
-          <strong>Catálogo vacío</strong>
+          <strong>Lista en preparación</strong>
           <span>
             Agrega la primera opción con el botón <code>+ Opción</code> arriba.
             Las opciones aparecen aquí en el mismo orden que verá el encuestado.

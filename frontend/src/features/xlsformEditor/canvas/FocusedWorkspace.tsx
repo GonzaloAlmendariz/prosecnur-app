@@ -367,7 +367,7 @@ function buildFocusStatusItems(
   if (isSelect) {
     items.push({
       key: "catalog",
-      label: isSelect && catalogUsageCount > 1 ? `${catalogUsageCount} usos` : "Catálogo",
+      label: isSelect && catalogUsageCount > 1 ? `${catalogUsageCount} usos` : "Lista",
       value: `${choices.length} ${choices.length === 1 ? "opción" : "opciones"}`,
       tone: "accent",
       icon: <Database size={12} />,
@@ -1210,8 +1210,8 @@ function ResponseTab({
       {isSelect && (
         <InspectorBlock>
           <InspectorField
-            label="Catálogo de opciones"
-            hint="Lista que alimenta esta pregunta. Puedes reusar listas o abrir el editor de catálogos."
+            label="Lista de opciones"
+            hint="Lista que alimenta esta pregunta. Puedes reusar listas o abrir el editor de listas."
           >
             <CatalogChip
               assignedListName={node.typeInfo.listName}
@@ -2184,7 +2184,7 @@ function ChoiceFilterPanel({
         </span>
         <div>
           <span className="pulso-section-eyebrow">Filtro de opciones Kobo</span>
-          <strong>{hasFilter ? "Catálogo condicionado" : "Catálogo completo"}</strong>
+          <strong>{hasFilter ? "Lista condicionada" : "Lista completa"}</strong>
           <p>
             Para cascadas como departamento, provincia y distrito: Kobo guarda esta regla en <code>choice_filter</code>.
           </p>
@@ -2234,7 +2234,7 @@ function ChoiceFilterPanel({
       <div className="pulso-focus-choice-filter-builder" aria-label="Constructor de filtro de opciones">
         <div className="pulso-focus-choice-filter-builder-head">
           <strong>Constructor rápido</strong>
-          <small>Une una columna del catálogo con una respuesta previa.</small>
+          <small>Une una columna de la lista con una respuesta previa.</small>
         </div>
         <div className="pulso-focus-choice-filter-builder-row">
           <label>
@@ -2348,7 +2348,7 @@ function describeChoiceFilter(
     return {
       tone: "empty",
       title: "Sin filtro aplicado",
-      detail: "Todas las opciones del catálogo aparecen cuando la pregunta se muestra.",
+      detail: "Todas las opciones de la lista aparecen cuando la pregunta se muestra.",
       references: [],
     };
   }
@@ -2376,7 +2376,7 @@ function describeChoiceFilter(
     return {
       tone: "warn",
       title: "Falta la comparación",
-      detail: "Agrega la columna del catálogo y el operador, por ejemplo region=${region}.",
+      detail: "Agrega la columna de la lista y el operador, por ejemplo region=${region}.",
       references,
     };
   }
@@ -3271,7 +3271,7 @@ function DataTab({
     ...(isSelect
       ? [
           {
-            label: "Catálogo",
+            label: "Lista",
             value: listName || "sin lista",
             code: Boolean(listName),
           },

@@ -23,8 +23,10 @@ import ContextLens from "../../validacion/components/ContextLens";
 export type CatalogsContextLensProps = {
   open: boolean;
   onClose: () => void;
-  /** Cantidad total de catálogos para el subtítulo. */
-  catalogsCount: number;
+  /** Cantidad total de listas, incluyendo las que aún no tienen opciones. */
+  listsCount: number;
+  /** Cantidad de listas que ya tienen al menos una opción real. */
+  readyListsCount: number;
   /** Acción "Nuevo catálogo" — botón en el header. */
   onCreate: () => void;
   /** Lista lateral (col izq). El monolito pasa su `<CatalogLibrary>`. */
@@ -36,22 +38,27 @@ export type CatalogsContextLensProps = {
 export default function CatalogsContextLens({
   open,
   onClose,
-  catalogsCount,
+  listsCount,
+  readyListsCount,
   onCreate,
   library,
   workspace,
 }: CatalogsContextLensProps) {
+  const pendingListsCount = Math.max(listsCount - readyListsCount, 0);
+  const subtitle =
+    listsCount === 0
+      ? "Define listas reutilizables y conéctalas a las preguntas de selección desde el inspector."
+      : pendingListsCount > 0
+        ? `${listsCount} ${listsCount === 1 ? "lista conectada" : "listas conectadas"} · ${pendingListsCount} ${pendingListsCount === 1 ? "en preparación" : "en preparación"}. Agrega opciones reales antes de exportar.`
+        : `${readyListsCount} ${readyListsCount === 1 ? "lista con opciones" : "listas con opciones"}. Conéctalas a las preguntas de selección desde el inspector.`;
+
   return (
     <ContextLens
       open={open}
       onClose={onClose}
       variant="wide"
-      title="Catálogos de opciones"
-      subtitle={
-        catalogsCount === 0
-          ? "Define listas reutilizables y conéctalas a las preguntas de selección desde el inspector."
-          : `${catalogsCount} ${catalogsCount === 1 ? "lista definida" : "listas definidas"}. Conéctalas a las preguntas de selección desde el inspector.`
-      }
+      title="Listas de opciones"
+      subtitle={subtitle}
       actions={(
         <button
           type="button"
@@ -65,7 +72,7 @@ export default function CatalogsContextLens({
             padding: "6px 12px",
           }}
         >
-          + Nuevo catálogo
+          + Nueva lista
         </button>
       )}
     >
