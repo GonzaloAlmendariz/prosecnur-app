@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -18,11 +17,8 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  GitBranch,
-  Layers3,
   ListChecks,
   Plus,
-  ShieldCheck,
   Trash2,
   Upload,
   X,
@@ -848,12 +844,6 @@ export default function XlsformEditorPage() {
     () => buildSuiteMetrics(structure, catalogs.length, diagnostics),
     [structure, catalogs.length, diagnostics],
   );
-  const activeFocusLabel = useMemo(() => {
-    if (!workbook) return "Sin formulario activo";
-    if (selection?.kind === "settings") return "Ajustes del formulario";
-    if (!selectedNode) return "Sin pieza seleccionada";
-    return selectedNode.label || selectedNode.name || `Fila ${selectedNode.rowIndex + 1}`;
-  }, [selectedNode, selection?.kind, workbook]);
   const movement = selection?.kind === "survey"
     ? getSiblingRows(structure, selection.rowIndex)
     : { prevRow: null as number | null, nextRow: null as number | null };
@@ -2108,50 +2098,8 @@ export default function XlsformEditorPage() {
       title="Editor de formularios"
       lead="Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench."
       className="pulso-xlsform-frame"
+      headerMode="sr-only"
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
-      meta={(
-        <div className="pulso-xlsform-doc-meta">
-          <StatusChip label={workbook ? formatSource(source?.kind ?? null) : "Sin archivo"} tone={workbook ? "info" : "neutral"} />
-          <StatusChip
-            label={
-              workbook
-                ? formatSaveStatus(dirty, lastSavedAt)
-                : "Sin cambios pendientes"
-            }
-            tone={
-              workbook && dirty
-                ? "warn"
-                : workbook && lastSavedAt != null
-                  ? "info"
-                  : "success"
-            }
-          />
-          {workbook && (canUndo || canRedo) && (
-            <div className="pulso-xlsform-history-controls">
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "UNDO" })}
-                disabled={!canUndo}
-                title="Deshacer (⌘Z)"
-                className="pulso-xlsform-history-button"
-                aria-label="Deshacer último cambio"
-              >
-                ↶ Deshacer
-              </button>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "REDO" })}
-                disabled={!canRedo}
-                title="Rehacer (⇧⌘Z)"
-                className="pulso-xlsform-history-button"
-                aria-label="Rehacer cambio deshecho"
-              >
-                ↷ Rehacer
-              </button>
-            </div>
-          )}
-        </div>
-      )}
       toolbar={workbook ? (
         <div className="pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
           <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--document">
@@ -2170,6 +2118,37 @@ export default function XlsformEditorPage() {
                 label="avisos"
                 tone={diagnostics.some((diagnostic) => diagnostic.level === "warn") ? "warn" : "success"}
               />
+            </div>
+            <div className="pulso-xlsform-state-strip" aria-label="Estado del formulario">
+              <StatusChip label={formatSource(source?.kind ?? null)} tone="info" />
+              <StatusChip
+                label={formatSaveStatus(dirty, lastSavedAt)}
+                tone={dirty ? "warn" : lastSavedAt != null ? "info" : "success"}
+              />
+              {(canUndo || canRedo) && (
+                <div className="pulso-xlsform-history-controls">
+                  <button
+                    type="button"
+                    onClick={() => dispatch({ type: "UNDO" })}
+                    disabled={!canUndo}
+                    title="Deshacer (Cmd/Ctrl+Z)"
+                    className="pulso-xlsform-history-button"
+                    aria-label="Deshacer último cambio"
+                  >
+                    ↶ Deshacer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dispatch({ type: "REDO" })}
+                    disabled={!canRedo}
+                    title="Rehacer (Shift+Cmd/Ctrl+Z)"
+                    className="pulso-xlsform-history-button"
+                    aria-label="Rehacer cambio deshecho"
+                  >
+                    ↷ Rehacer
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2339,13 +2318,6 @@ export default function XlsformEditorPage() {
             className="pulso-xlsform-workbench-panel"
             noPadding
           >
-            <WorkbenchSuiteHeader
-              mode={editorMode}
-              busy={busy}
-              status={status}
-              activeFocusLabel={activeFocusLabel}
-              metrics={suiteMetrics}
-            />
             {editorMode === "sheets" && workbook && (
               <SheetsView
                 workbook={workbook}
@@ -2874,97 +2846,6 @@ function buildSuiteMetrics(
     warnings: diagnostics.filter((diagnostic) => diagnostic.level === "warn").length,
     infos: diagnostics.filter((diagnostic) => diagnostic.level === "info").length,
   };
-}
-
-function WorkbenchSuiteHeader({
-  mode,
-  busy,
-  status,
-  activeFocusLabel,
-  metrics,
-}: {
-  mode: "builder" | "sheets";
-  busy: string | null;
-  status: string;
-  activeFocusLabel: string;
-  metrics: SuiteMetrics;
-}) {
-  const modeLabel = mode === "builder" ? "Constructor profesional" : "Hojas técnicas";
-  const modeHint = mode === "builder"
-    ? "Diseño visual, outline e inspector trabajan como una sola cabina."
-    : "Edición tabular de celdas crudas con sincronización hacia el constructor.";
-  const validationLabel = metrics.warnings > 0
-    ? `${metrics.warnings} por revisar`
-    : "Sin avisos";
-
-  return (
-    <div className="pulso-xlsform-suite-header">
-      <div className="pulso-xlsform-suite-identity">
-        <span className="pulso-xlsform-suite-icon" aria-hidden="true">
-          {mode === "builder" ? <Layers3 size={16} /> : <FileSpreadsheet size={16} />}
-        </span>
-        <div>
-          <span className="pulso-section-eyebrow">Suite de formulario</span>
-          <strong>{modeLabel}</strong>
-          <small>{busy || status || modeHint}</small>
-        </div>
-      </div>
-
-      <div className="pulso-xlsform-suite-rail" aria-label="Estado del formulario">
-        <SuiteMetricItem
-          icon={<ListChecks size={14} />}
-          value={metrics.questions}
-          label="preguntas"
-        />
-        <SuiteMetricItem
-          icon={<GitBranch size={14} />}
-          value={metrics.logicRules}
-          label="lógica"
-        />
-        <SuiteMetricItem
-          icon={<FileSpreadsheet size={14} />}
-          value={metrics.catalogs}
-          label="catálogos"
-        />
-        <SuiteMetricItem
-          icon={<ShieldCheck size={14} />}
-          value={validationLabel}
-          label={metrics.infos > 0 ? `${metrics.infos} notas` : "calidad"}
-          tone={metrics.warnings > 0 ? "warn" : "success"}
-        />
-      </div>
-
-      <div className="pulso-xlsform-suite-focus" title={activeFocusLabel}>
-        <span>Foco</span>
-        <strong>{activeFocusLabel}</strong>
-        <small>
-          {metrics.pieces} piezas · {metrics.required} obligatorias
-        </small>
-      </div>
-    </div>
-  );
-}
-
-function SuiteMetricItem({
-  icon,
-  value,
-  label,
-  tone = "neutral",
-}: {
-  icon: ReactNode;
-  value: ReactNode;
-  label: string;
-  tone?: "neutral" | "warn" | "success";
-}) {
-  return (
-    <span className={`pulso-xlsform-suite-metric is-${tone}`}>
-      <span className="pulso-xlsform-suite-metric-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <strong>{value}</strong>
-      <small>{label}</small>
-    </span>
-  );
 }
 
 function StatusChip({
