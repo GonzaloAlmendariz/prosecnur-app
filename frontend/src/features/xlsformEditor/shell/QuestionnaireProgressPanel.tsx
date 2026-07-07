@@ -34,11 +34,13 @@ export function QuestionnaireProgressPanel({
 }) {
   if (!structure || structure.outline.length === 0) {
     return (
-      <div style={emptyStyle}>
-        <Layers3 size={18} />
+      <div className="pulso-questionnaire-empty">
+        <span className="pulso-questionnaire-empty-icon" aria-hidden="true">
+          <Layers3 size={18} />
+        </span>
         <div>
           <strong>El cuestionario todavía no tiene preguntas</strong>
-          <p style={emptyTextStyle}>Agrega una sección o una pregunta para empezar a ver el recorrido completo.</p>
+          <p>Agrega una sección o una pregunta para empezar a ver el recorrido completo.</p>
         </div>
       </div>
     );
@@ -50,36 +52,50 @@ export function QuestionnaireProgressPanel({
   const conditionalCount = questionNodes.filter((node) => node.relevant).length;
   const labelledCount = questionNodes.filter((node) => Boolean(node.label?.trim())).length;
   const labelPct = questionNodes.length ? Math.round((labelledCount / questionNodes.length) * 100) : 0;
+  const answerableCount = questionNodes.filter((node) => node.kind === "question").length;
+  const supportCount = questionNodes.length - answerableCount;
+  const realSectionCount = Math.max(sections.length - (sections.some((section) => section.kind === "root") ? 1 : 0), 0);
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <div style={summaryGridStyle}>
+    <div className="pulso-questionnaire-panel">
+      <section className="pulso-questionnaire-overview" aria-label="Resumen del cuestionario">
+        <div className="pulso-questionnaire-overview-copy">
+          <span className="pulso-section-eyebrow">Recorrido completo</span>
+          <strong>Lee el formulario como lo verá la persona encuestada.</strong>
+          <p>
+            Las secciones agrupan el flujo real; cada fila conserva sus reglas y
+            saltos para que puedas entrar a editar justo donde está el problema.
+          </p>
+        </div>
+        <div className="pulso-questionnaire-quality" aria-label={`Textos visibles ${labelPct}%`}>
+          <strong>{labelPct}%</strong>
+          <span>textos visibles</span>
+          <div className="pulso-questionnaire-quality-bar" aria-hidden="true">
+            <i style={{ width: `${labelPct}%` }} />
+          </div>
+        </div>
+      </section>
+
+      <div className="pulso-questionnaire-summary-grid">
         <SummaryTile icon={<ListChecks size={15} />} value={questionNodes.length} label="preguntas/textos" />
-        <SummaryTile icon={<Layers3 size={15} />} value={Math.max(sections.length - 1, 0)} label="secciones" />
+        <SummaryTile icon={<Layers3 size={15} />} value={realSectionCount} label="secciones" />
         <SummaryTile icon={<CheckCircle2 size={15} />} value={requiredCount} label="obligatorias" />
         <SummaryTile icon={<CircleDot size={15} />} value={conditionalCount} label="con saltos" />
       </div>
 
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 8 }}>
+      <section className="pulso-questionnaire-map" aria-label="Recorrido por secciones">
+        <header className="pulso-questionnaire-map-header">
           <div>
-            <strong style={{ fontSize: 13 }}>Recorrido del cuestionario</strong>
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-              Revisa el formulario como lo verá una persona encuestada. Haz click en cualquier pregunta para editarla.
-            </p>
+            <strong>Recorrido del cuestionario</strong>
+            <p>Haz click en cualquier pieza para volver al editor en ese punto.</p>
           </div>
-          <div style={{ minWidth: 160 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--pulso-text-soft)", marginBottom: 4 }}>
-              <span>Textos visibles</span>
-              <strong>{labelPct}%</strong>
-            </div>
-            <div style={{ height: 6, borderRadius: 999, background: "#e5e7eb", overflow: "hidden" }}>
-              <div style={{ width: `${labelPct}%`, height: "100%", background: "var(--pulso-primary, #2563eb)" }} />
-            </div>
+          <div className="pulso-questionnaire-map-counts">
+            <span>{answerableCount} capturas</span>
+            <span>{supportCount} apoyos</span>
           </div>
-        </div>
+        </header>
 
-        <div style={sectionGridStyle}>
+        <div className="pulso-questionnaire-section-grid">
           {sections.map((section) => (
             <SectionCard
               key={section.id}
@@ -89,7 +105,7 @@ export function QuestionnaireProgressPanel({
             />
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -174,39 +190,45 @@ function SectionCard({
   const conditional = questions.filter((node) => node.relevant).length;
   const label = section.label || "Sección sin título";
   const range = questionRangeLabel(questions);
+  const kindLabel = section.kind === "repeat" ? "Repetición" : section.kind === "root" ? "Inicio" : "Sección";
 
   return (
-    <section style={sectionCardStyle}>
+    <section className={`pulso-questionnaire-section is-${section.kind}`}>
       <button
         type="button"
         onClick={() => {
           if (section.rowIndex != null) onSelect({ kind: "survey", rowIndex: section.rowIndex });
         }}
         disabled={section.rowIndex == null}
-        style={sectionHeaderButtonStyle}
+        className="pulso-questionnaire-section-head"
       >
-        <span style={sectionIconStyle}>
+        <span className="pulso-questionnaire-section-icon">
           {section.kind === "repeat" ? <ListChecks size={15} /> : <FileText size={15} />}
         </span>
-        <span style={{ minWidth: 0, flex: 1 }}>
-          <strong style={sectionTitleStyle}>{label}</strong>
-          <span style={sectionMetaStyle}>
-            {questions.length} elemento{questions.length === 1 ? "" : "s"}
+        <span className="pulso-questionnaire-section-copy">
+          <strong>{label}</strong>
+          <span>
+            {kindLabel}
             {range ? ` · ${range}` : ""}
-            {required ? ` · ${required} obligatoria${required === 1 ? "" : "s"}` : ""}
-            {conditional ? ` · ${conditional} con salto${conditional === 1 ? "" : "s"}` : ""}
+            {section.name ? ` · ${section.name}` : ""}
           </span>
         </span>
         {section.rowIndex != null ? <ChevronRight size={15} color="#9ca3af" /> : null}
       </button>
 
+      <div className="pulso-questionnaire-section-badges" aria-label="Estado de la sección">
+        <span>{questions.length} elemento{questions.length === 1 ? "" : "s"}</span>
+        {required ? <span>{required} obligatoria{required === 1 ? "" : "s"}</span> : null}
+        {conditional ? <span className="is-conditional">{conditional} con salto{conditional === 1 ? "" : "s"}</span> : null}
+      </div>
+
       {questions.length === 0 ? (
-        <div style={emptySectionStyle}>
+        <div className="pulso-questionnaire-section-empty">
           <AlertCircle size={14} />
           Esta sección no tiene preguntas editables.
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 6 }}>
+        <div className="pulso-questionnaire-question-list">
           {questions.map((node, index) => (
             <QuestionRow
               key={node.rowIndex}
@@ -237,28 +259,28 @@ function QuestionRow({
   const accent = paletteForType(node.typeInfo.base);
   const label = node.label || node.name || `Pregunta ${position}`;
   const ref = displayQuestionRef(node.name) || String(position);
+  const rowStyle = { "--question-accent": accent } as CSSProperties;
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      style={{
-        ...questionButtonStyle,
-        borderColor: active ? "var(--pulso-primary, #2563eb)" : "var(--pulso-border, #e5e7eb)",
-        background: active ? "var(--pulso-primary-soft, #eff6ff)" : "#fff",
-      }}
+      className={`pulso-questionnaire-question${active ? " is-active" : ""}${node.relevant ? " is-conditional" : ""}`}
+      style={rowStyle}
     >
-      <span style={questionNumberStyle}>{ref}</span>
-      <span style={{ color: accent, display: "inline-flex", marginTop: 2 }}>
+      <span className="pulso-questionnaire-question-ref">{ref}</span>
+      <span className="pulso-questionnaire-question-icon" aria-hidden="true">
         <Icon size={14} />
       </span>
-      <span style={{ minWidth: 0, flex: 1 }}>
-        <strong style={questionLabelStyle}>{label}</strong>
-        <span style={questionMetaStyle}>
+      <span className="pulso-questionnaire-question-copy">
+        <strong>{label}</strong>
+        <span>
           {node.kind === "note" ? "Nota informativa" : typeLabel(node.typeInfo.base)}
-          {node.required ? " · obligatoria" : ""}
-          {node.relevant ? " · con salto" : ""}
         </span>
+      </span>
+      <span className="pulso-questionnaire-question-flags" aria-label="Estados">
+        {node.required ? <em>Obligatoria</em> : null}
+        {node.relevant ? <em>Salto</em> : null}
       </span>
     </button>
   );
@@ -266,10 +288,10 @@ function QuestionRow({
 
 function SummaryTile({ icon, value, label }: { icon: ReactNode; value: number; label: string }) {
   return (
-    <div style={summaryTileStyle}>
-      <span style={summaryIconStyle}>{icon}</span>
-      <strong style={{ fontSize: 18, lineHeight: 1 }}>{value}</strong>
-      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{label}</span>
+    <div className="pulso-questionnaire-summary-tile">
+      <span className="pulso-questionnaire-summary-icon">{icon}</span>
+      <strong>{value}</strong>
+      <span>{label}</span>
     </div>
   );
 }
@@ -290,152 +312,3 @@ function displayQuestionRef(name: string): string {
   if (!match) return "";
   return `${match[1]!.toUpperCase()}${Number(match[2])}`;
 }
-
-const emptyStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 10,
-  padding: 14,
-  border: "1px dashed var(--pulso-border, #cbd5e1)",
-  borderRadius: 8,
-  color: "var(--pulso-text-soft)",
-};
-
-const emptyTextStyle: CSSProperties = {
-  margin: "3px 0 0",
-  fontSize: 12,
-};
-
-const summaryGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: 8,
-};
-
-const summaryTileStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "10px 12px",
-  border: "1px solid var(--pulso-border, #e5e7eb)",
-  borderRadius: 8,
-  background: "#fff",
-};
-
-const summaryIconStyle: CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: 7,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "var(--pulso-primary-soft, #eff6ff)",
-  color: "var(--pulso-primary, #2563eb)",
-  flexShrink: 0,
-};
-
-const sectionGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-  gap: 12,
-};
-
-const sectionCardStyle: CSSProperties = {
-  border: "1px solid var(--pulso-border, #e5e7eb)",
-  borderRadius: 8,
-  padding: 12,
-  background: "#fff",
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-};
-
-const sectionHeaderButtonStyle: CSSProperties = {
-  width: "100%",
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 9,
-  border: "none",
-  background: "transparent",
-  padding: 0,
-  marginBottom: 9,
-  textAlign: "left",
-  cursor: "pointer",
-};
-
-const sectionIconStyle: CSSProperties = {
-  width: 30,
-  height: 30,
-  borderRadius: 8,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "#fff",
-  color: "var(--pulso-primary, #2563eb)",
-  border: "1px solid var(--pulso-border, #e5e7eb)",
-  flexShrink: 0,
-};
-
-const sectionTitleStyle: CSSProperties = {
-  display: "block",
-  fontSize: 14,
-  lineHeight: 1.3,
-  color: "var(--pulso-text, #111827)",
-  whiteSpace: "normal",
-};
-
-const sectionMetaStyle: CSSProperties = {
-  display: "block",
-  marginTop: 3,
-  fontSize: 11,
-  color: "var(--pulso-text-soft)",
-};
-
-const emptySectionStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  fontSize: 11,
-  color: "var(--pulso-text-soft)",
-  padding: "8px 4px",
-};
-
-const questionButtonStyle: CSSProperties = {
-  width: "100%",
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 8,
-  border: "1px solid var(--pulso-border, #e5e7eb)",
-  borderRadius: 7,
-  padding: "7px 8px",
-  textAlign: "left",
-  cursor: "pointer",
-};
-
-const questionNumberStyle: CSSProperties = {
-  minWidth: 32,
-  height: 20,
-  padding: "0 6px",
-  borderRadius: 999,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "#f3f4f6",
-  color: "#6b7280",
-  fontSize: 10,
-  fontWeight: 700,
-  flexShrink: 0,
-};
-
-const questionLabelStyle: CSSProperties = {
-  display: "block",
-  fontSize: 12.5,
-  lineHeight: 1.35,
-  color: "var(--pulso-text, #111827)",
-  whiteSpace: "normal",
-};
-
-const questionMetaStyle: CSSProperties = {
-  display: "block",
-  marginTop: 2,
-  fontSize: 10.5,
-  color: "var(--pulso-text-soft)",
-};
