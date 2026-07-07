@@ -2940,9 +2940,9 @@
         color_texto_barras_fuera = .ACNUR_PPT_COLORS$navy,
         colores_series = list(
           Intervencion = .ACNUR_PPT_COLORS$blue,
-          Intervención = .ACNUR_PPT_COLORS$blue,
+          `Intervención` = .ACNUR_PPT_COLORS$blue,
           Comparacion = .ACNUR_PPT_COLORS$control,
-          Comparación = .ACNUR_PPT_COLORS$control,
+          `Comparación` = .ACNUR_PPT_COLORS$control,
           Porcentaje = .ACNUR_PPT_COLORS$blue
         )
       ),
@@ -3020,9 +3020,9 @@
           canvas_h_caption_in = 0.10,
           colores_series = list(
             Intervencion = .ACNUR_PPT_COLORS$blue,
-            Intervención = .ACNUR_PPT_COLORS$blue,
+            `Intervención` = .ACNUR_PPT_COLORS$blue,
             Comparacion = .ACNUR_PPT_COLORS$control,
-            Comparación = .ACNUR_PPT_COLORS$control
+            `Comparación` = .ACNUR_PPT_COLORS$control
           )
         )
       )
