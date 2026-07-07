@@ -54,6 +54,8 @@ export function OutlineRow({
 
   const Icon = iconForType(node.typeInfo.base);
   const accent = paletteForType(node.typeInfo.base);
+  const isBlock = node.kind === "section" || node.kind === "repeat";
+  const closingType = node.kind === "repeat" ? "end_repeat" : "end_group";
 
   function onKey(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Enter" || e.key === " ") {
@@ -121,18 +123,23 @@ export function OutlineRow({
               </>
             ) : null}
           </span>
+          {isBlock ? (
+            <span
+              className="pulso-outline-boundary"
+              title={`El cierre técnico ${closingType} se crea automáticamente y se mueve con el alcance de la sección.`}
+            >
+              <code>{closingType}</code>
+              <span>auto</span>
+            </span>
+          ) : null}
         </span>
         {node.relevant && (
           <span
             className={`pulso-outline-conditional ${
-              node.kind === "section" || node.kind === "repeat"
-                ? "is-section"
-                : "is-question"
+              isBlock ? "is-section" : "is-question"
             }`}
             title={
-              node.kind === "section" || node.kind === "repeat"
-                ? "Sección con visibilidad condicional"
-                : "Pregunta condicional"
+              isBlock ? "Sección con visibilidad condicional" : "Pregunta condicional"
             }
             aria-label="Visibilidad condicional"
           >

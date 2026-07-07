@@ -47,6 +47,7 @@ export function SectionHeader({
   onLabelChange,
 }: SectionHeaderProps) {
   const Icon = kind === "repeat" ? Repeat : Folder;
+  const closingType = kind === "repeat" ? "end_repeat" : "end_group";
   return (
     <header
       className={`pulso-canvas-section-header${selected ? " is-selected" : ""}`}
@@ -80,6 +81,15 @@ export function SectionHeader({
       <span className="pulso-canvas-section-meta">
         <span className="pulso-canvas-section-count">
           {childCount} {childCount === 1 ? "pregunta" : "preguntas"}
+        </span>
+        <span
+          className="pulso-canvas-section-boundary"
+          title={`Cierre técnico ${closingType} creado automáticamente. Ajusta su posición desde el panel del bloque.`}
+          aria-label={`Cierre automático ${closingType}`}
+        >
+          <ChevronDown size={12} />
+          <code>{closingType}</code>
+          <span>auto</span>
         </span>
         {hasRelevant && (
           <span className="pulso-canvas-section-conditional" title="Sección condicional">

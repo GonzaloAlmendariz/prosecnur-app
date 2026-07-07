@@ -874,7 +874,7 @@ function SectionBoundaryControl({
   return (
     <div className="pulso-focus-section-boundary" aria-label="Alcance del bloque">
       <div className="pulso-focus-section-boundary-head">
-        <span className="pulso-section-eyebrow">Cierre del bloque</span>
+        <span className="pulso-section-eyebrow">Cierre XLSForm</span>
         <strong>{boundary.closeLabel}</strong>
       </div>
       <p>{boundary.closeDetail}</p>
