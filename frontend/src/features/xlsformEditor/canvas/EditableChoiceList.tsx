@@ -19,6 +19,12 @@ import { CheckCircle2, ExternalLink, Info, ListChecks, Plus, Trash2, Users } fro
 import type { ChoiceItem } from "../types";
 import { RichInline } from "../helpers/RichInline";
 import { TechTerm } from "../helpers/TechTerm";
+import { SearchInline, filterChoices } from "./previewInputs";
+
+/** Con más opciones que esto, la lista gana scroll interno acotado. */
+const EDIT_SCROLL_THRESHOLD = 8;
+/** Con más opciones que esto, aparece la búsqueda inline. */
+const EDIT_SEARCH_THRESHOLD = 12;
 
 export type EditableChoiceListProps = {
   items: ChoiceItem[];
@@ -63,6 +69,17 @@ export function EditableChoiceList({
 }: EditableChoiceListProps) {
   const isShared = (catalogUsageCount ?? 1) > 1;
   const sharedList = sharedWith ?? [];
+  const [query, setQuery] = useState("");
+
+  const scrollable = items.length > EDIT_SCROLL_THRESHOLD;
+  const searchable = items.length > EDIT_SEARCH_THRESHOLD;
+  // Filtrado con índice ORIGINAL (los placeholders "Opción N" no deben
+  // renumerarse al buscar).
+  const indexed = items.map((item, idx) => ({ item, idx }));
+  const visible =
+    searchable && query
+      ? indexed.filter(({ item }) => filterChoices([item], query).length > 0)
+      : indexed;
 
   if (!items.length && !listName) {
     return (
@@ -133,63 +150,83 @@ export function EditableChoiceList({
         </div>
       )}
 
-      <ul className="pulso-canvas-choices pulso-choices-edit-list">
-        {items.map((item, idx) => (
-          <li
-            key={item.rowIndex}
-            className="pulso-canvas-choice-item pulso-choice-edit-row"
-          >
-            <span
-              className={`pulso-canvas-choice-mark ${kind === "radio" ? "is-radio" : "is-check"}`}
-              style={{ borderColor: accent }}
-            />
-            <RichInline
-              as="span"
-              className="pulso-canvas-choice-label pulso-choice-edit-label"
-              value={item.label}
-              onChange={(v) => onLabelChange(item.rowIndex, v)}
-              placeholder={`Opción ${idx + 1}`}
-              singleLine
-              ariaLabel={`Texto de la opción ${idx + 1}`}
-            />
-            <ChoiceCodeInput
-              value={item.name}
-              label={item.label}
-              placeholder={`opcion_${idx + 1}`}
-              takenCodes={items
-                .filter((other) => other.rowIndex !== item.rowIndex)
-                .map((other) => other.name)}
-              onCommit={(v) => onNameChange(item.rowIndex, v)}
-            />
-            <button
-              type="button"
-              className="pulso-choice-edit-remove"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(item.rowIndex);
-              }}
-              title="Eliminar opción"
-              aria-label="Eliminar opción"
-            >
-              <Trash2 size={12} />
-            </button>
-          </li>
-        ))}
+      {/* Contador + búsqueda para listas largas (mismo patrón que el preview
+          read-only: scroll interno acotado, el canvas conserva el scroll de
+          página). */}
+      {scrollable && (
+        <div className="pulso-xfpi-edithead">
+          <span className="pulso-xfpi-count">{items.length} opciones</span>
+          {searchable && (
+            <SearchInline query={query} onQuery={setQuery} placeholder="Buscar opción…" />
+          )}
+        </div>
+      )}
 
-        {/* + Agregar opción */}
-        <li className="pulso-choice-edit-add-row">
-          <button
-            type="button"
-            className="pulso-choice-edit-add"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-          >
-            <Plus size={13} /> Agregar opción
-          </button>
-        </li>
-      </ul>
+      {(() => {
+        const list = (
+          <ul className="pulso-canvas-choices pulso-choices-edit-list">
+            {visible.map(({ item, idx }) => (
+              <li
+                key={item.rowIndex}
+                className="pulso-canvas-choice-item pulso-choice-edit-row"
+              >
+                <span
+                  className={`pulso-canvas-choice-mark ${kind === "radio" ? "is-radio" : "is-check"}`}
+                  style={{ borderColor: accent }}
+                />
+                <RichInline
+                  as="span"
+                  className="pulso-canvas-choice-label pulso-choice-edit-label"
+                  value={item.label}
+                  onChange={(v) => onLabelChange(item.rowIndex, v)}
+                  placeholder={`Opción ${idx + 1}`}
+                  singleLine
+                  ariaLabel={`Texto de la opción ${idx + 1}`}
+                />
+                <ChoiceCodeInput
+                  value={item.name}
+                  label={item.label}
+                  placeholder={`opcion_${idx + 1}`}
+                  takenCodes={items
+                    .filter((other) => other.rowIndex !== item.rowIndex)
+                    .map((other) => other.name)}
+                  onCommit={(v) => onNameChange(item.rowIndex, v)}
+                />
+                <button
+                  type="button"
+                  className="pulso-choice-edit-remove"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(item.rowIndex);
+                  }}
+                  title="Eliminar opción"
+                  aria-label="Eliminar opción"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </li>
+            ))}
+            {visible.length === 0 && (
+              <li className="pulso-xfpi-noresults">Sin coincidencias para «{query}»</li>
+            )}
+          </ul>
+        );
+        return scrollable ? <div className="pulso-xfpi-scroll is-editable">{list}</div> : list;
+      })()}
+
+      {/* + Agregar opción — SIEMPRE visible, fuera del área con scroll. */}
+      <div className="pulso-choice-edit-add-row pulso-xfpi-edit-footer-add">
+        <button
+          type="button"
+          className="pulso-choice-edit-add"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd();
+          }}
+        >
+          <Plus size={13} /> Agregar opción
+        </button>
+      </div>
 
       {/* Footer con el nombre de la lista (editable) + acceso al editor
           de catálogos. El nombre lo establece el usuario para reconocer la
