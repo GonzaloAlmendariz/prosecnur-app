@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
-import { FolderOpen, Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import { AlertTriangle, Check, FolderOpen, FolderSearch, Loader2, Minus, Plus } from "lucide-react";
+import RecentProjectCard from "../components/RecentProjectCard";
 import {
   bootApiCreateSession,
   bootApiHealth,
@@ -79,18 +80,6 @@ function projectName(path: string | null | undefined) {
   const normalized = path.replace(/\\/g, "/");
   const base = normalized.split("/").filter(Boolean).pop() ?? path;
   return base.replace(/\.pulso$/i, "");
-}
-
-function formatRecentDate(value: string | null | undefined) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("es-PE", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
 }
 
 function readDevProjectPath() {
@@ -999,28 +988,36 @@ function ChooserView({
           <span>{recents.length}</span>
         </div>
         {recents.length ? (
-          <div className="boot-recent-list">
+          <div className="boot-recent-strip rpc-strip" role="list" aria-label="Proyectos recientes">
             {recents.map((recent) => (
-              <div className="boot-recent-row" key={recent.path}>
-                <button type="button" onClick={() => onOpenRecent(recent.path)} disabled={busy}>
-                  <strong>{recent.name || projectName(recent.path)}</strong>
-                  <span>{recent.path}</span>
-                </button>
-                <div className="boot-recent-meta">
-                  <span>{formatRecentDate(recent.opened_at)}</span>
-                  <button type="button" onClick={() => onRemoveRecent(recent.path)} disabled={busy} aria-label="Quitar reciente">
-                    Quitar
-                  </button>
-                </div>
-              </div>
+              <RecentProjectCard
+                key={recent.path}
+                name={recent.name || projectName(recent.path)}
+                path={recent.path}
+                openedAt={recent.opened_at}
+                busy={busy}
+                onOpen={() => onOpenRecent(recent.path)}
+                onRemove={() => onRemoveRecent(recent.path)}
+              />
             ))}
           </div>
         ) : (
-          <p className="boot-empty">No hay proyectos recientes en este equipo.</p>
+          <p className="boot-empty">
+            <FolderSearch size={16} aria-hidden="true" />
+            <span>No hay proyectos recientes en este equipo.</span>
+          </p>
         )}
       </div>
     </div>
   );
+}
+
+function WarmupStepIcon({ status }: { status: WarmupDisplayStepStatus }) {
+  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
+  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="boot-step-spin" aria-hidden="true" />;
+  if (status === "skipped") return <Minus size={12} strokeWidth={2.6} aria-hidden="true" />;
+  if (status === "timeout" || status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
+  return null;
 }
 
 function WarmupView({
@@ -1036,34 +1033,36 @@ function WarmupView({
   progressPercent: number;
   steps: WarmupDisplayStep[];
 }) {
+  const clampedPercent = Math.min(100, progressPercent);
   return (
     <div className="boot-warmup" data-boot-message={message}>
       <div className="boot-warmup-mark">Prosecnur</div>
-      <div className="boot-loader" aria-hidden="true">
-        <span className="boot-loader-ring boot-loader-ring-one" />
-        <span className="boot-loader-ring boot-loader-ring-two" />
-        <span className="boot-loader-core" />
+      <div
+        className="boot-ring"
+        style={{ "--boot-ring-p": clampedPercent } as CSSProperties}
+        role="progressbar"
+        aria-label="Avance de preparación"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={clampedPercent}
+      >
+        <span className="boot-ring-orbit" aria-hidden="true" />
+        <span className="boot-ring-arc" aria-hidden="true" />
+        <span className="boot-ring-core">
+          <span className="boot-progress-percent">{progressPercent}%</span>
+        </span>
       </div>
       <div className="boot-progress">
         <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
         <h1>{message}</h1>
         <p className="boot-progress-detail">{detail}</p>
-        <span className="boot-progress-percent">{progressPercent}%</span>
-        <div
-          className="boot-progress-track"
-          role="progressbar"
-          aria-label="Avance de preparación"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.min(100, progressPercent)}
-        >
-          <div className="boot-progress-bar" style={{ width: `${Math.min(100, progressPercent)}%` }} />
-        </div>
       </div>
       <div className="boot-warmup-steps" aria-label="Fases de preparación">
         {steps.map((step) => (
           <div className={`boot-warmup-step is-${step.status}`} key={step.id}>
-            <span aria-hidden="true" />
+            <span className="boot-step-icon" aria-hidden="true">
+              <WarmupStepIcon status={step.status} />
+            </span>
             <div>
               <strong>{step.label}</strong>
               {step.detail ? <small>{step.detail}</small> : null}

@@ -1,9 +1,14 @@
-import { Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+
+import "./states.css";
 
 // Componentes de estado compartidos entre los editores de Configuración
 // global. Antes vivían inline en cada editor (PaletasEditor, IconosEditor,
 // OverridesEditor, DefaultsModal) con copias divergentes — extraerlos acá
 // unifica el look y facilita ajustes globales.
+//
+// Estilos en states.css. Los min-height de LoadingBlock siguen inline
+// porque son prop (minHeight) con default por variante.
 
 export function LoadingBlock({
   label = "Cargando…",
@@ -22,17 +27,9 @@ export function LoadingBlock({
     <div
       role="status"
       className={`pulso-loading-block pulso-loading-block--${variant}`}
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 10, minHeight: effectiveMinHeight,
-        fontSize: 12, color: "var(--pulso-text-soft)",
-      }}
+      style={{ minHeight: effectiveMinHeight }}
     >
-      <Loader2
-        size={variant === "inline" ? 14 : 16}
-        color="var(--pulso-primary)"
-        className="pulso-spin"
-      />
+      <span className="pulso-states-spinner" aria-hidden="true" />
       {label}
     </div>
   );
@@ -46,18 +43,14 @@ export function ErrorBlock({
   detail?: string;
 }) {
   return (
-    <div
-      role="alert"
-      style={{
-        fontSize: 12, color: "var(--pulso-danger-fg)",
-        padding: "10px 14px", borderRadius: 6,
-        background: "var(--pulso-danger-bg)",
-        border: "1px solid var(--pulso-danger-border)",
-        display: "flex", flexDirection: "column", gap: 3,
-      }}
-    >
-      <strong>{label ?? "Error"}</strong>
-      {detail && <span style={{ fontWeight: 400 }}>{detail}</span>}
+    <div role="alert" className="pulso-error-block">
+      <span className="pulso-error-block-icon" aria-hidden="true">
+        <AlertTriangle size={14} />
+      </span>
+      <span className="pulso-error-block-copy">
+        <strong>{label ?? "Error"}</strong>
+        {detail && <span className="pulso-error-block-detail">{detail}</span>}
+      </span>
     </div>
   );
 }
@@ -77,44 +70,12 @@ export function EmptyState({
   // "inline" — compacto, para columnas o sidebars
   variant?: "panel" | "inline";
 }) {
-  const isInline = variant === "inline";
   return (
-    <div
-      style={{
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", textAlign: "center",
-        gap: isInline ? 6 : 8,
-        padding: isInline ? "18px 14px" : "40px 20px",
-        minHeight: isInline ? 140 : 240,
-        color: "var(--pulso-text-soft)",
-        border: isInline ? "1px dashed var(--pulso-border)" : "none",
-        borderRadius: isInline ? 8 : 0,
-        background: isInline ? "var(--pulso-surface)" : "transparent",
-      }}
-    >
-      <span
-        style={{
-          width: isInline ? 34 : 42,
-          height: isInline ? 34 : 42,
-          borderRadius: isInline ? 8 : 10,
-          background: "white",
-          color: "var(--pulso-text-soft)",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          border: "1px solid var(--pulso-border)",
-        }}
-      >
-        {icon}
-      </span>
-      <h4 style={{ margin: 0, fontSize: 13, color: "var(--pulso-text)" }}>{title}</h4>
-      {hint && (
-        <p style={{
-          margin: 0, fontSize: 11, lineHeight: 1.5,
-          maxWidth: isInline ? 200 : 320,
-        }}>
-          {hint}
-        </p>
-      )}
-      {cta && <div style={{ marginTop: 4 }}>{cta}</div>}
+    <div className={`pulso-empty-state pulso-empty-state--${variant}`}>
+      <span className="pulso-empty-state-icon">{icon}</span>
+      <h4 className="pulso-empty-state-title">{title}</h4>
+      {hint && <p className="pulso-empty-state-hint">{hint}</p>}
+      {cta && <div className="pulso-empty-state-cta">{cta}</div>}
     </div>
   );
 }
