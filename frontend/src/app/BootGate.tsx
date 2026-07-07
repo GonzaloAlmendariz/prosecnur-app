@@ -56,6 +56,7 @@ const BOOT_PROJECT_STATUS_KEY = "pulso.bootProject";
 const VISUAL_QA_WARMUP_FLAG_KEY = "pulso.visualQaWarmup";
 const VISUAL_QA_WARMUP_MODULES_KEY = "pulso.visualQaWarmupModuleIds";
 const VISUAL_QA_SKIP_BACKEND_KEY = "pulso.visualQaSkipBackendWarmup";
+const VISUAL_QA_RECENTS_KEY = "pulso.visualQaRecents";
 const COMPLETE_FRONTEND_STATUSES = new Set(["ready", "error"]);
 const COMPLETE_BACKEND_STATUSES = new Set(["ready", "skipped", "timeout", "error"]);
 const FALLBACK_FRONTEND_WARMUP_MODULES = ["home", "procesamiento", "carga", "monitoreo", "monitoreo_datos"];
@@ -108,6 +109,38 @@ function shouldUseDevQaWarmupSkip() {
   if (!import.meta.env.DEV || typeof window === "undefined") return false;
   const url = new URL(window.location.href);
   return url.searchParams.get("qaWarmup") === "skip";
+}
+
+/**
+ * Recientes falsos para QA visual del strip en navegador (sin Electron).
+ * Dev-only, mismo patrón que los demás flags `pulso.visualQa*`:
+ * `localStorage.setItem("pulso.visualQaRecents", JSON.stringify([{path,name,opened_at}]))`.
+ * En Electron nunca se consulta (los recientes reales tienen prioridad).
+ */
+function readVisualQaRecents(): RecentProject[] {
+  if (!import.meta.env.DEV || typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(VISUAL_QA_RECENTS_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (item): item is { path: string; name: string; opened_at?: unknown } =>
+          Boolean(
+            item &&
+              typeof (item as { path?: unknown }).path === "string" &&
+              typeof (item as { name?: unknown }).name === "string",
+          ),
+      )
+      .map((item) => ({
+        path: item.path,
+        name: item.name,
+        opened_at: String(item.opened_at ?? ""),
+      }));
+  } catch {
+    return [];
+  }
 }
 
 function readVisualQaWarmupModuleIds() {
@@ -533,7 +566,9 @@ export default function BootGate({ loadSuite }: BootGateProps) {
 
   const refreshRecents = useCallback(async () => {
     if (!window.prosecnurApi) {
-      setRecents([]);
+      // Navegador (sin Electron): sin recientes reales; en dev se puede
+      // sembrar el strip con el flag pulso.visualQaRecents para QA visual.
+      setRecents(readVisualQaRecents());
       return;
     }
     try {
