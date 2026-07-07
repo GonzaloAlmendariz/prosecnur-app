@@ -26319,6 +26319,20 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 5px;
   flex: 0 0 auto;
 }
+.pulso-choice-row-draft-chip {
+  max-width: 128px;
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-fg) 20%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 34%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, #253149);
+  font-size: 10.5px;
+  font-weight: 780;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .pulso-catalogdraft-apply,
 .pulso-catalogdraft-revert {
   display: inline-flex;
@@ -26359,6 +26373,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-catalogdraft-revert:hover {
   border-color: var(--pulso-border-strong);
   color: var(--pulso-text);
+}
+.pulso-choice-row-discard {
+  width: auto;
+  padding: 0 9px;
 }
 .pulso-catalogdraft-apply:active:not(:disabled),
 .pulso-catalogdraft-revert:active {
@@ -26588,8 +26606,16 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 5px 8px;
 }
 .pulso-choice-row:has(.pulso-choice-row-draft-actions.is-visible) {
+  flex-wrap: wrap;
   border-color: color-mix(in srgb, var(--pulso-warn-fg) 34%, var(--pulso-border));
   background: color-mix(in srgb, #ffffff 88%, var(--pulso-warn-bg) 12%);
+}
+.pulso-choice-row:has(.pulso-choice-row-draft-actions.is-visible) .pulso-choice-row-fields {
+  order: 3;
+  flex: 1 1 min(420px, 100%);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
 }
 .pulso-choice-row-draft-actions {
   align-self: center;
@@ -26597,8 +26623,16 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   pointer-events: none;
 }
 .pulso-choice-row-draft-actions.is-visible {
+  order: 5;
+  flex-basis: 100%;
+  justify-content: flex-end;
+  padding-left: 60px;
   visibility: visible;
   pointer-events: auto;
+}
+.pulso-choice-row:has(.pulso-choice-row-draft-actions.is-visible) .pulso-choice-row-delete {
+  order: 4;
+  align-self: flex-start;
 }
 /* En contenedores muy estrechos (lens en mobile/tablet), apilar verticalmente
    y forzar también el header de columnas a una sola etiqueta. */
