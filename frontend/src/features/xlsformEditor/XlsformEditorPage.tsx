@@ -1507,11 +1507,13 @@ export default function XlsformEditorPage() {
     }
 
     updateWorkbook((draft) => {
-      insertRecord(draft.choices, draft.choices.rows.length, {
-        list_name: nextName,
-        name: "opcion_1",
-        label: "Nueva opción 1",
-      });
+      if (!assignToSelected) {
+        insertRecord(draft.choices, draft.choices.rows.length, {
+          list_name: nextName,
+          name: "opcion_1",
+          label: "Nueva opción 1",
+        });
+      }
       if (assignToSelected && selection?.kind === "survey") {
         const record = rowToRecord(draft.survey, selection.rowIndex);
         const currentType = parseType(record.type ?? "");
@@ -1586,16 +1588,15 @@ export default function XlsformEditorPage() {
     const nextName = `pregunta_${workbook.survey.rows.length + 1}`;
     const isSelect = nextBaseType === "select_one" || nextBaseType === "select_multiple";
     // Para selects: si el usuario eligió "reusar lista existente" desde
-    // el AddBetween, vinculamos la pregunta a ese listName y NO creamos
-    // filas nuevas en `choices`. Si no, generamos una lista nueva con
-    // nombre único basado en el nombre de la pregunta.
+    // el AddBetween, vinculamos la pregunta a ese listName. Si no,
+    // generamos una lista nueva vacía con nombre único basado en la
+    // pregunta; las opciones se agregan explícitamente desde el lienzo o
+    // el editor de catálogos, sin filas placeholder en `choices`.
     let listName = "";
-    let createNewList = false;
     if (isSelect) {
       const existing = new Set(catalogs.map((c) => c.listName));
       if (reuseListName && existing.has(reuseListName)) {
         listName = reuseListName;
-        createNewList = false;
       } else {
         let candidate = `lista_${nextName}`;
         let i = 2;
@@ -1604,17 +1605,9 @@ export default function XlsformEditorPage() {
           i += 1;
         }
         listName = candidate;
-        createNewList = true;
       }
     }
     updateWorkbook((draft) => {
-      if (isSelect && createNewList) {
-        insertRecord(draft.choices, draft.choices.rows.length, {
-          list_name: listName,
-          name: "opcion_1",
-          label: "Nueva opción 1",
-        });
-      }
       insertRecord(draft.survey, insertionIndex, {
         type: buildType(nextBaseType, listName),
         name: nextName,

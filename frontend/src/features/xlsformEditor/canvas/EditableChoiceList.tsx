@@ -117,6 +117,18 @@ export function EditableChoiceList({
         </div>
       )}
 
+      {items.length === 0 && (
+        <div className="pulso-choices-edit-empty">
+          <span className="pulso-choices-edit-empty-icon" aria-hidden="true">
+            <Info size={13} />
+          </span>
+          <div>
+            <strong>Catálogo vacío</strong>
+            <p>Agrega la primera opción cuando tengas el texto real. No creamos opciones de ejemplo en la hoja choices.</p>
+          </div>
+        </div>
+      )}
+
       <ul className="pulso-canvas-choices pulso-choices-edit-list">
         {items.map((item, idx) => (
           <li
