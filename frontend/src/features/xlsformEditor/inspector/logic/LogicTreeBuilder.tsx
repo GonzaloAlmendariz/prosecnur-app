@@ -14,6 +14,7 @@
 
 import { Plus, X, FolderPlus, ChevronDown, Hash } from "lucide-react";
 import {
+  buildDefaultCondition,
   detectMultiSelected,
   expandMultiSelected,
   serializeExpression,
@@ -24,7 +25,6 @@ import type {
   LogicTree,
 } from "../../logic";
 import type { LogicalOp } from "../../logic/ast";
-import { defaultPredicate } from "../../logic";
 import { ConditionRow } from "./ConditionRow";
 
 export type LogicTreeBuilderProps = {
@@ -379,11 +379,5 @@ function MultiSelectedPill({
 // -----------------------------------------------------------------------------
 
 function buildEmptyCondition(scope: LogicScope): FlatCondition {
-  const firstVar = scope.variables[0];
-  const baseType = firstVar?.baseType ?? "text";
-  return {
-    variableName: firstVar?.name ?? "",
-    predicate: defaultPredicate(baseType),
-    value: { kind: "literal", raw: "" },
-  };
+  return buildDefaultCondition(scope);
 }

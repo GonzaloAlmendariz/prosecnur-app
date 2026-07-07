@@ -10,6 +10,7 @@ import { X } from "lucide-react";
 import type { FlatCondition, LogicCatalog, LogicScope, PredicateKind } from "../../logic";
 import {
   defaultPredicate,
+  defaultLiteralForPredicate,
   predicateKey,
   predicatesForType,
 } from "../../logic";
@@ -26,24 +27,6 @@ export type ConditionRowProps = {
   disabled?: boolean;
 };
 
-function defaultLiteralForPredicate(
-  baseType: string,
-  predicate: PredicateKind,
-  catalog?: LogicCatalog,
-): string {
-  if (predicate.kind === "selected" || predicate.kind === "not_selected") {
-    return catalog?.items[0]?.name ?? "";
-  }
-  if ((baseType === "select_one" || baseType === "select_multiple") && catalog?.items[0]?.name) {
-    return catalog.items[0].name;
-  }
-  if (baseType === "integer" || baseType === "decimal") return "0";
-  if (baseType === "date") return "2026-01-01";
-  if (baseType === "datetime") return "2026-01-01T00:00";
-  if (baseType === "time") return "00:00";
-  return "valor";
-}
-
 function valueForPredicate(
   next: PredicateKind,
   currentValue: FlatCondition["value"],
@@ -57,6 +40,15 @@ function valueForPredicate(
     kind: "literal",
     raw: defaultLiteralForPredicate(baseType, next, catalog),
   };
+}
+
+function valueHintForType(baseType: string, catalog?: LogicCatalog): string {
+  if (baseType === "select_one" || baseType === "select_multiple") {
+    return catalog ? "Elige la opción que activa la regla." : "Conecta un catálogo para elegir una opción.";
+  }
+  if (baseType === "integer" || baseType === "decimal") return "Escribe el número esperado.";
+  if (baseType === "date" || baseType === "datetime" || baseType === "time") return "Define el momento esperado.";
+  return "Escribe el texto exacto esperado.";
 }
 
 export function ConditionRow({
@@ -102,6 +94,7 @@ export function ConditionRow({
     ? scope.catalogsByListName.get(selectedVar.listName)
     : undefined;
   const showsValue = predicate.kind !== "presence";
+  const valueHint = valueHintForType(baseType, catalog);
 
   return (
     <div className={`pulso-logic-condition-row${showsValue ? "" : " has-presence"}`}>
@@ -142,6 +135,7 @@ export function ConditionRow({
             onChange={(next) => onChange({ ...condition, value: next })}
             disabled={disabled || !condition.variableName}
           />
+          <span className="pulso-logic-condition-hint">{valueHint}</span>
         </div>
       )}
       {onRemove && (

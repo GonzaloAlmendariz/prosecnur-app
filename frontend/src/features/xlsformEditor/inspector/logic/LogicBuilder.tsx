@@ -24,6 +24,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
 import {
+  buildDefaultCondition,
   expandCondition,
   parseExpression,
   serializeExpression,
@@ -32,7 +33,6 @@ import {
   tryFlattenCondition,
 } from "../../logic";
 import type { Expr, FlatCondition, LogicScope, LogicTree } from "../../logic";
-import { defaultPredicate } from "../../logic";
 import { ConditionRow } from "./ConditionRow";
 import { LogicGroupBlock } from "./LogicGroupBlock";
 import { LogicTreeBuilder } from "./LogicTreeBuilder";
@@ -65,7 +65,7 @@ export function LogicBuilder({
   const [guidedEmptyOpen, setGuidedEmptyOpen] = useState(false);
   const [manualValue, setManualValue] = useState(rawExpression);
   const ast = parseExpression(expression);
-  const buildEmpty = (): FlatCondition => buildEmptyCondition(scope);
+  const buildEmpty = (): FlatCondition => buildDefaultCondition(scope);
   const hasVariables = scope.variables.length > 0;
   const openManual = () => {
     setManualValue(rawExpression);
@@ -429,18 +429,4 @@ function ManualFormulaEditor({
 function capitalizeFirst(value: string): string {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-/**
- * Construye una condición default cuando el usuario agrega una vacía. Usa
- * la primera variable del scope (si existe) y su predicado por defecto.
- */
-function buildEmptyCondition(scope: LogicScope): FlatCondition {
-  const firstVar = scope.variables[0];
-  const baseType = firstVar?.baseType ?? "text";
-  return {
-    variableName: firstVar?.name ?? "",
-    predicate: defaultPredicate(baseType),
-    value: { kind: "literal", raw: "" },
-  };
 }
