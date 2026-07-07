@@ -26,25 +26,38 @@ execute:
 Al final de la clase podrás leer un XLSForm, reconocer sus hojas principales y escribir reglas básicas para mejorar la calidad de datos en KoboToolbox.
 
 ::: {.lesson-map}
-::: {.lesson-item}
+::: {.lesson-item .fragment}
 **Estructura**
 
 `survey`, `choices` y `settings`
 :::
-::: {.lesson-item}
+::: {.lesson-item .fragment}
 **Variables**
 
 Tipos, nombres y datos exportados
 :::
-::: {.lesson-item}
+::: {.lesson-item .fragment}
 **Lógica**
 
 Saltos, cálculos y filtros
 :::
-::: {.lesson-item}
+::: {.lesson-item .fragment}
 **Calidad**
 
 Constraints, mensajes y regex
+:::
+:::
+
+::: {.learning-lane}
+::: {.learning-card .fragment}
+**Lectura guiada**
+
+Tomaremos una fila y diremos qué captura, cómo se llama en la base y qué regla aplica.
+:::
+::: {.learning-card .fragment}
+**Prueba de campo**
+
+Usaremos respuestas correctas e incorrectas para revisar saltos, filtros y restricciones.
 :::
 :::
 
@@ -52,17 +65,37 @@ Constraints, mensajes y regex
 Meta de facilitación: al final, el grupo debe poder leer un XLSForm pequeño, explicar qué hace cada columna importante y corregir reglas simples antes de subir el formulario a KoboToolbox. Abrir preguntando qué problemas recuerdan de formularios de campo: respuestas vacías, saltos mal hechos, categorías duplicadas, documentos con formato distinto.
 :::
 
-## El caso conductor será una visita de campo
+## El caso conductor será una visita de campo {.compact}
 
 Trabajaremos con un formulario para registrar hogares visitados.
 
-| Necesidad de campo | Decisión XLSForm |
-|---|---|
-| Identificar el hogar | `text` para código y DNI con formato controlado |
-| Registrar composición | `integer` para totales y grupos de edad |
-| Mostrar preguntas según respuestas | `relevant` con `${variable}` |
-| Evitar errores de digitación | `constraint` y `constraint_message` |
-| Filtrar territorios | `choice_filter` con columnas auxiliares |
+::: {.case-grid}
+::: {.case-card .fragment}
+**Identificar el hogar**
+
+`text` para código y DNI.
+:::
+::: {.case-card .fragment}
+**Registrar composición**
+
+`integer` para totales.
+:::
+::: {.case-card .fragment}
+**Mostrar lo necesario**
+
+`relevant` con `${variable}`.
+:::
+::: {.case-card .fragment}
+**Evitar digitación débil**
+
+`constraint` y mensajes.
+:::
+::: {.case-card .fragment}
+**Filtrar territorios**
+
+`choice_filter` y auxiliares.
+:::
+:::
 
 La clase usa este caso para leer, corregir y ampliar fragmentos reales de XLSForm.
 
@@ -73,27 +106,27 @@ Usar el caso como hilo conductor. Cada concepto vuelve a esta visita: qué se pr
 ## El dato viaja por una cadena completa
 
 ::: {.flow-strip}
-::: {.flow-step}
+::: {.flow-step .fragment}
 **1. Diseño**
 
 Qué dato se necesita
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **2. XLSForm**
 
 Cómo se captura
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **3. KoboToolbox**
 
 Cómo se despliega
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **4. KoboCollect**
 
 Cómo se levanta en campo
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **5. Base**
 
 Cómo se analiza
@@ -134,6 +167,38 @@ Cada fila responde una pregunta de diseño:
 | ¿Cuándo aparece? | `relevant` |
 | ¿Qué respuestas son válidas? | `constraint` |
 
+## Lee cada fila en cinco pasos {.compact}
+
+::: {.method-strip}
+::: {.method-step .fragment}
+**1. Tipo**
+
+Qué control verá campo.
+:::
+::: {.method-step .fragment}
+**2. Nombre**
+
+Qué columna saldrá en la base.
+:::
+::: {.method-step .fragment}
+**3. Texto**
+
+Qué entiende la persona.
+:::
+::: {.method-step .fragment}
+**4. Lógica**
+
+Cuándo aparece o se calcula.
+:::
+::: {.method-step .fragment}
+**5. Calidad**
+
+Qué valores acepta.
+:::
+:::
+
+Este método convierte una fila de Excel en una decisión de diseño revisable.
+
 ## Tres hojas trabajan juntas {.compact}
 
 | Hoja | Rol |
@@ -160,15 +225,36 @@ El orden de las filas define el orden de navegación.
 
 ## Un fragmento mínimo ya tiene estructura
 
-```text
-type,name,label
-text,codigo_hogar,Código del hogar
-integer,total_personas,Total de personas en el hogar
-select_one yes_no,tiene_celular,¿Algún miembro tiene celular?
-```
+::: {.sheet-example}
+**Hoja `survey`**
+
+| type | name | label |
+|---|---|---|
+| `text` | `codigo_hogar` | Código del hogar |
+| `integer` | `total_personas` | Total de personas en el hogar |
+| `select_one yes_no` | `tiene_celular` | ¿Algún miembro tiene celular? |
+:::
 
 ::: {.trainer-note}
 Primera lectura: el formulario capturará tres variables y una de ellas usa una lista llamada `yes_no`.
+:::
+
+::: {.reading-grid}
+::: {.reading-step}
+**`type`**
+
+Define el control de captura y el tipo de dato esperado.
+:::
+::: {.reading-step}
+**`name`**
+
+Será la columna exportada en la base de datos.
+:::
+::: {.reading-step}
+**`label`**
+
+Es el texto visible para quien levanta la información.
+:::
 :::
 
 ## Nombres de variables que sirven para analizar
@@ -195,29 +281,47 @@ El nombre técnico debe ayudar al análisis, no solo al diseño del cuestionario
 
 ## Antes y después: una fila más legible {.compact}
 
-::: {.compare-grid}
-::: {.compare-card .compare-card--weak}
+::: {.compare-grid .compare-grid--stacked}
+::: {.compare-card .compare-card--weak .fragment}
 **Fila débil**
 
-```text
-integer,p4,Edad?,,
-```
+| type | name | label | constraint | constraint_message |
+|---|---|---|---|---|
+| `integer` | `p4` | Edad? |  |  |
 
 El `name` no explica el dato y la fila no protege valores imposibles.
 :::
 
-::: {.compare-card .compare-card--strong}
+::: {.compare-card .compare-card--strong .fragment}
 **Fila lista para campo**
 
-```text
-integer,edad,Edad,. >= 0 and . <= 120,Ingrese una edad entre 0 y 120.
-```
+| type | name | label | constraint | constraint_message |
+|---|---|---|---|---|
+| `integer` | `edad` | Edad | `. >= 0 and . <= 120` | Ingrese una edad entre 0 y 120. |
 
 El `name`, la restricción y el mensaje trabajan juntos.
 :::
 :::
 
 La mejora no está solo en el texto visible. Está en cómo la fila se comporta y cómo se exporta.
+
+::: {.reading-grid .reading-grid--three}
+::: {.reading-step}
+**Nombre**
+
+`edad` permite leer la base sin diccionario auxiliar.
+:::
+::: {.reading-step}
+**Rango**
+
+La restricción bloquea valores fuera del universo esperado.
+:::
+::: {.reading-step}
+**Mensaje**
+
+La corrección se comunica en lenguaje operativo.
+:::
+:::
 
 ## 2. Tipos de variables {.section-divider}
 
@@ -268,10 +372,14 @@ La pregunta guía es: ¿necesito operar como número o necesito conservar un for
 
 Las preguntas de selección conectan `survey` con `choices`.
 
-```text
-select_one sexo
-select_multiple servicios
-```
+::: {.sheet-example .sheet-example--compact}
+**En la columna `type` de `survey`**
+
+| type | list_name | Qué guarda |
+|---|---|---|
+| `select_one sexo` | `sexo` | Una opción de la lista. |
+| `select_multiple servicios` | `servicios` | Una o más opciones de la lista. |
+:::
 
 `select_one sexo` guarda una sola opción de la lista `sexo`.
 
@@ -296,13 +404,17 @@ Estos tipos ayudan a que el formulario refleje el trabajo real de campo.
 
 Cuando se necesita registrar a cada integrante del hogar, `begin_repeat` permite repetir un bloque.
 
-```text
-begin_repeat,miembros,Miembros del hogar
-text,nombre_miembro,Nombre
-integer,edad_miembro,Edad
-select_one parentesco,parentesco,Parentesco
-end_repeat,,
-```
+::: {.sheet-example}
+**Hoja `survey`**
+
+| type | name | label |
+|---|---|---|
+| `begin_repeat` | `miembros` | Miembros del hogar |
+| `text` | `nombre_miembro` | Nombre |
+| `integer` | `edad_miembro` | Edad |
+| `select_one parentesco` | `parentesco` | Parentesco |
+| `end_repeat` |  |  |
+:::
 
 El resultado será una tabla relacionada: una visita puede tener varios miembros.
 
@@ -332,9 +444,13 @@ Ejemplo:
 
 En `survey`:
 
-```text
-select_one sexo sexo_persona Sexo de la persona
-```
+::: {.sheet-example .sheet-example--compact}
+**Hoja `survey`**
+
+| type | name | label |
+|---|---|---|
+| `select_one sexo` | `sexo_persona` | Sexo de la persona |
+:::
 
 En `choices`:
 
@@ -393,30 +509,80 @@ La columna auxiliar `region` no es una pregunta. Sirve para filtrar la lista `di
 
 Completa el filtro para que el encuestador vea solo comunidades del distrito elegido.
 
-```text
-survey
-select_one distrito,distrito,Distrito,
-select_one comunidad,comunidad,Comunidad,?
+::: {.workbook-grid}
+::: {.sheet-example .sheet-example--compact}
+**Hoja `survey`**
 
-choices
-list_name,name,label,distrito
-comunidad,san_miguel,San Miguel,ate
-comunidad,santa_rosa,Santa Rosa,ate
-comunidad,el_carmen,El Carmen,comas
-```
+| type | name | label | choice_filter |
+|---|---|---|---|
+| `select_one distrito` | `distrito` | Distrito |  |
+| `select_one comunidad` | `comunidad` | Comunidad | `?` |
+:::
+::: {.sheet-example .sheet-example--compact}
+**Hoja `choices`**
+
+| list_name | name | label | distrito |
+|---|---|---|---|
+| `comunidad` | `san_miguel` | San Miguel | `ate` |
+| `comunidad` | `santa_rosa` | Santa Rosa | `ate` |
+| `comunidad` | `el_carmen` | El Carmen | `comas` |
+:::
+:::
 
 ::: {.answer}
 Respuesta esperada: `distrito=${distrito}`
 :::
 
+## Mini práctica: dos fallas en `choices` {.compact}
+
+::: {.workbook-grid}
+::: {.sheet-example .sheet-example--compact}
+**Hoja `survey`**
+
+| type | name | label |
+|---|---|---|
+| `select_one distrito` | `distrito` | Distrito |
+| `select_multiple servicios` | `servicios` | Servicios |
+:::
+::: {.sheet-example .sheet-example--compact}
+**Hoja `choices`**
+
+| list_name | name | label |
+|---|---|---|
+| `distritos` | `ate` | Ate |
+| `servicios` | `agua potable` | Agua potable |
+:::
+:::
+
+::: {.answer}
+Falla 1: `select_one distrito` busca `list_name = distrito`, pero la lista se llama `distritos`.  
+Falla 2: en selección múltiple, `agua potable` debería ser `agua_potable`.
+:::
+
 ## Diagnóstico rápido de listas {.compact}
 
-| Síntoma | Causa probable | Corrección |
-|---|---|---|
-| La pregunta no muestra opciones | El `list_name` no existe en `choices` | Igualar el nombre después de `select_one` con `list_name`. |
-| Aparecen opciones de otro territorio | Filtro incompleto o columna auxiliar mal escrita | Revisar `choice_filter` y la columna auxiliar. |
-| Exportación difícil de cruzar | Códigos `name` largos o inconsistentes | Usar códigos cortos, estables y sin espacios. |
-| Selección múltiple falla en lógica | Se comparó con `=` | Usar `selected(${variable}, 'opcion')`. |
+::: {.fix-grid}
+::: {.fix-card .fragment}
+**Sin opciones**
+
+Revisar que el nombre después de `select_one` exista como `list_name`.
+:::
+::: {.fix-card .fragment}
+**Opciones mezcladas**
+
+Revisar `choice_filter` y la columna auxiliar en `choices`.
+:::
+::: {.fix-card .fragment}
+**Base difícil de cruzar**
+
+Usar códigos `name` cortos, estables y sin espacios.
+:::
+::: {.fix-card .fragment}
+**Múltiple no detecta opción**
+
+Usar `selected(${variable}, 'opcion')`.
+:::
+:::
 
 Esta lectura evita perder tiempo buscando el error solo en KoboToolbox.
 
@@ -424,7 +590,7 @@ Esta lectura evita perder tiempo buscando el error solo en KoboToolbox.
 
 Las columnas de `survey` convierten una lista de preguntas en un instrumento inteligente.
 
-## Columnas útiles en `survey` {.compact}
+## Columnas útiles en `survey` {.compact .dense}
 
 | Columna | Para qué sirve |
 |---|---|
@@ -457,9 +623,9 @@ Una pregunta requerida debe responderse antes de avanzar.
 
 También puede depender de otra respuesta:
 
-```text
-${acepta_contacto} = 'yes'
-```
+::: {.formula-card}
+`${acepta_contacto} = 'yes'`
+:::
 
 La obligatoriedad debe responder a una necesidad operativa.
 
@@ -476,27 +642,27 @@ La regla se evalúa como verdadero o falso. Si es verdadero, la pregunta se mues
 
 ## Leer una regla `relevant`
 
-```text
-${tiene_celular} = 'yes'
-```
+::: {.formula-card .formula-card--large}
+`${tiene_celular} = 'yes'`
+:::
 
 ::: {.flow-strip}
-::: {.flow-step}
+::: {.flow-step .fragment}
 **Variable**
 
 `${tiene_celular}`
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **Operador**
 
 `=`
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **Valor esperado**
 
 `'yes'`
 :::
-::: {.flow-step}
+::: {.flow-step .fragment}
 **Resultado**
 
 Muestra la pregunta
@@ -530,7 +696,7 @@ El punto `.` representa la respuesta de la pregunta actual.
 
 El mensaje debe explicar cómo corregir el dato.
 
-## Mensajes de restricción que ayudan {.compact}
+## Mensajes de restricción que ayudan {.compact .dense}
 
 | Regla | Mensaje útil |
 |---|---|
@@ -552,16 +718,19 @@ Los cálculos permiten guardar valores que no se preguntan directamente.
 
 Una variable calculada puede usarse después en etiquetas, saltos o validaciones.
 
-## Cálculo como control de consistencia
+## Cálculo como control de consistencia {.compact .dense}
 
-```text
-type,name,label,calculation,relevant,constraint,constraint_message
-integer,total_hogar,Total de personas,,,,
-integer,total_mujeres,Total de mujeres,,,. <= ${total_hogar},No puede superar el total.
-integer,total_hombres,Total de hombres,,,. <= ${total_hogar},No puede superar el total.
-calculate,total_reportado,,${total_mujeres} + ${total_hombres},,,
-note,alerta_total,Revise: mujeres + hombres no coincide con total,,${total_reportado} != ${total_hogar},,
-```
+::: {.sheet-example .sheet-example--wide}
+**Hoja `survey`**
+
+| type | name | label | calculation | relevant | constraint | constraint_message |
+|---|---|---|---|---|---|---|
+| `integer` | `total_hogar` | Total de personas |  |  |  |  |
+| `integer` | `total_mujeres` | Total de mujeres |  |  | `. <= ${total_hogar}` | No puede superar el total. |
+| `integer` | `total_hombres` | Total de hombres |  |  | `. <= ${total_hogar}` | No puede superar el total. |
+| `calculate` | `total_reportado` |  | `${total_mujeres} + ${total_hombres}` |  |  |  |
+| `note` | `alerta_total` | Revise: mujeres + hombres no coincide con total |  | `${total_reportado} != ${total_hogar}` |  |  |
+:::
 
 ::: {.trainer-note}
 La lógica también sirve para auditoría interna del formulario, no solo para saltos visibles.
@@ -593,11 +762,13 @@ Una buena versión evita confusiones cuando el equipo trabaja con varios formula
 
 ## Versionar evita mezclar instrumentos
 
-```text
-settings
-form_title,form_id,version,default_language
-Visita de hogares,hogares_visita,2026-07-06,Español
-```
+::: {.sheet-example .sheet-example--compact}
+**Hoja `settings`**
+
+| form_title | form_id | version | default_language |
+|---|---|---|---|
+| Visita de hogares | `hogares_visita` | `2026-07-06` | Español |
+:::
 
 ::: {.trainer-note}
 Subir una nueva versión antes de campo ayuda a saber qué formulario produjo cada base.
@@ -607,21 +778,21 @@ Subir una nueva versión antes de campo ayuda a saber qué formulario produjo ca
 
 Las fórmulas conectan respuestas y convierten el formulario en una secuencia adaptativa.
 
-## Referencias entre preguntas
+## Referencias entre preguntas {.compact}
 
 La sintaxis `${variable}` trae la respuesta de otra pregunta.
 
-```text
-${edad} >= 18
-${consentimiento} = 'yes'
-${total_ninos} <= ${total_personas}
-```
+| Fórmula | Lectura |
+|---|---|
+| `${edad} >= 18` | La persona es mayor de edad. |
+| `${consentimiento} = 'yes'` | Se registró consentimiento. |
+| `${total_ninos} <= ${total_personas}` | El subconjunto no supera el total. |
 
 En la misma fila, el punto `.` representa la respuesta actual:
 
-```text
-. >= 0 and . <= 100
-```
+::: {.formula-card}
+`. >= 0 and . <= 100`
+:::
 
 ## Operadores frecuentes {.compact}
 
@@ -654,9 +825,9 @@ Estas piezas construyen reglas de salto, validación y cálculo.
 
 Una selección múltiple puede contener varias opciones.
 
-```text
-selected(${servicios}, 'agua')
-```
+::: {.formula-card}
+`selected(${servicios}, 'agua')`
+:::
 
 Uso en `relevant`:
 
@@ -667,11 +838,14 @@ Uso en `relevant`:
 
 ## `if()` ayuda a clasificar durante la captura
 
-```text
-type,name,label,calculation
-integer,edad,Edad,
-calculate,grupo_edad,,if(${edad} < 18, 'menor', 'adulto')
-```
+::: {.sheet-example .sheet-example--compact}
+**Hoja `survey`**
+
+| type | name | label | calculation |
+|---|---|---|---|
+| `integer` | `edad` | Edad |  |
+| `calculate` | `grupo_edad` |  | `if(${edad} < 18, 'menor', 'adulto')` |
+:::
 
 La variable `grupo_edad` no se pregunta, pero queda guardada para filtros o controles posteriores.
 
@@ -685,9 +859,9 @@ Una expresión regular describe un patrón de caracteres.
 
 En XLSForm se usa con `regex()`:
 
-```text
-regex(., '^[0-9]{8}$')
-```
+::: {.formula-card}
+`regex(., '^[0-9]{8}$')`
+:::
 
 Lectura:
 
@@ -700,22 +874,22 @@ Lectura:
 ## Anatomía de una regex
 
 ::: {.formula-strip}
-::: {.formula-part}
+::: {.formula-part .fragment}
 `^`
 
 Inicio
 :::
-::: {.formula-part}
+::: {.formula-part .fragment}
 `[0-9]`
 
 Dígito
 :::
-::: {.formula-part}
+::: {.formula-part .fragment}
 `{8}`
 
 Ocho veces
 :::
-::: {.formula-part}
+::: {.formula-part .fragment}
 `$`
 
 Final
@@ -742,7 +916,7 @@ Subrayar que regex es lectura de izquierda a derecha. Primero inicio, luego cara
 | `{n}` | Exactamente n repeticiones. |
 | `{min,max}` | Entre mínimo y máximo de repeticiones. |
 
-## Patrones comunes para campo {.compact}
+## Patrones comunes para campo {.compact .dense}
 
 | Necesidad | Constraint |
 |---|---|
@@ -759,22 +933,22 @@ Para teléfonos, documentos largos y códigos con ceros iniciales, conviene usar
 Queremos aceptar valores como `VIS-2026-001`.
 
 ::: {.formula-strip}
-::: {.formula-part}
+::: {.formula-part .fragment}
 `VIS`
 
 Prefijo fijo
 :::
-::: {.formula-part}
+::: {.formula-part .fragment}
 `-`
 
 Separador
 :::
-::: {.formula-part}
+::: {.formula-part .fragment}
 `[0-9]{4}`
 
 Año
 :::
-::: {.formula-part}
+::: {.formula-part .fragment}
 `[0-9]{3}`
 
 Correlativo
@@ -783,7 +957,7 @@ Correlativo
 
 Patrón final: `^VIS-[0-9]{4}-[0-9]{3}$`
 
-## Regex o rango: elige por tipo de problema {.compact}
+## Regex o rango: elige por tipo de problema {.compact .dense}
 
 | Problema | Mejor herramienta | Ejemplo |
 |---|---|---|
@@ -798,15 +972,18 @@ La variable `codigo_visita` debe tener el formato `VIS-2026-001`.
 
 Regla incompleta:
 
-```text
-regex(., '[A-Z]{3}-[0-9]{4}-[0-9]{3}')
-```
+::: {.compare-grid .compare-grid--stacked}
+::: {.compare-card .compare-card--weak}
+**Regla incompleta**
 
-Mejora esperada:
+`regex(., '[A-Z]{3}-[0-9]{4}-[0-9]{3}')`
+:::
+::: {.compare-card .compare-card--strong}
+**Mejora esperada**
 
-```text
-regex(., '^[A-Z]{3}-[0-9]{4}-[0-9]{3}$')
-```
+`regex(., '^[A-Z]{3}-[0-9]{4}-[0-9]{3}$')`
+:::
+:::
 
 Las anclas aseguran que todo el texto cumpla el formato.
 
@@ -818,27 +995,31 @@ Pedir dos variantes al grupo: una que permita cualquier prefijo de tres letras y
 
 Ahora juntamos tipos, listas, saltos, restricciones y mensajes en un fragmento compacto.
 
-## Ejemplo integrado: hoja `survey` {.compact}
+## Ejemplo integrado: hoja `survey` {.compact .dense}
 
-```text
-survey
-type,name,label,required,relevant,constraint,constraint_message
-text,dni,DNI,yes,,regex(., '^[0-9]{8}$'),Ingrese 8 dígitos.
-integer,edad,Edad,yes,,. >= 0 and . <= 120,Ingrese una edad válida.
-select_one yes_no,tiene_celular,¿Tiene celular?,yes,,,
-text,celular,Número de celular,,${tiene_celular} = 'yes',regex(., '^[0-9]{9}$'),Ingrese 9 dígitos.
-```
+::: {.sheet-example .sheet-example--wide}
+**Hoja `survey`**
+
+| type | name | label | required | relevant | constraint | constraint_message |
+|---|---|---|---|---|---|---|
+| `text` | `dni` | DNI | `yes` |  | `regex(., '^[0-9]{8}$')` | Ingrese 8 dígitos. |
+| `integer` | `edad` | Edad | `yes` |  | `. >= 0 and . <= 120` | Ingrese una edad válida. |
+| `select_one yes_no` | `tiene_celular` | ¿Tiene celular? | `yes` |  |  |  |
+| `text` | `celular` | Número de celular |  | `${tiene_celular} = 'yes'` | `regex(., '^[0-9]{9}$')` | Ingrese 9 dígitos. |
+:::
 
 Valida identificación, controla rangos y muestra celular solo cuando corresponde.
 
 ## Ejemplo integrado: hoja `choices`
 
-```text
-choices
-list_name,name,label
-yes_no,yes,Sí
-yes_no,no,No
-```
+::: {.sheet-example .sheet-example--compact}
+**Hoja `choices`**
+
+| list_name | name | label |
+|---|---|---|
+| `yes_no` | `yes` | Sí |
+| `yes_no` | `no` | No |
+:::
 
 La lista `yes_no` alimenta la pregunta `select_one yes_no`.
 
@@ -852,7 +1033,7 @@ La lista `yes_no` alimenta la pregunta `select_one yes_no`.
 | `${tiene_celular} = 'yes'` | Evita preguntar celular cuando no corresponde. |
 | `constraint_message` | Indica cómo corregir en campo. |
 
-## Ejemplo integrado: qué probar antes de desplegar {.compact}
+## Ejemplo integrado: qué probar antes de desplegar {.compact .dense}
 
 | Prueba | Respuesta esperada |
 |---|---|
@@ -868,17 +1049,20 @@ Probar con valores incorrectos es tan importante como probar el camino feliz.
 
 La mejor forma de aprender XLSForm es leer una fila, predecir qué hará y luego probarla.
 
-## Práctica 1: leer el formulario {.compact}
+## Práctica 1: leer el formulario {.compact .dense}
 
 Revisa este fragmento:
 
-```text
-type,name,label,relevant,constraint
-integer,total_hogar,Total de personas,,
-integer,menores,Menores de edad,,. <= ${total_hogar}
-select_multiple servicios,servicios,Servicios del hogar,,
-text,otro_servicio,Especifique otro,selected(${servicios}, 'otro'),
-```
+::: {.sheet-example .sheet-example--wide}
+**Hoja `survey`**
+
+| type | name | label | relevant | constraint |
+|---|---|---|---|---|
+| `integer` | `total_hogar` | Total de personas |  |  |
+| `integer` | `menores` | Menores de edad |  | `. <= ${total_hogar}` |
+| `select_multiple servicios` | `servicios` | Servicios del hogar |  |  |
+| `text` | `otro_servicio` | Especifique otro | `selected(${servicios}, 'otro')` |  |
+:::
 
 Preguntas:
 
@@ -909,15 +1093,18 @@ Antes de mirar la solución, marca cada fila con una intención:
 
 Esta lectura convierte el XLSForm en una revisión de diseño, no en una revisión celda por celda.
 
-## Práctica 2: completar una validación
+## Práctica 2: completar una validación {.compact}
 
 La pregunta `total_ninos` debe aceptar valores entre 0 y `total_personas`.
 
-```text
-type,name,label,constraint,constraint_message
-integer,total_personas,Total de personas,,
-integer,total_ninos,Total de niños,?,?
-```
+::: {.sheet-example .sheet-example--compact}
+**Hoja `survey`**
+
+| type | name | label | constraint | constraint_message |
+|---|---|---|---|---|
+| `integer` | `total_personas` | Total de personas |  |  |
+| `integer` | `total_ninos` | Total de niños | `?` | `?` |
+:::
 
 ::: {.answer}
 Constraint: `. >= 0 and . <= ${total_personas}`  
@@ -940,35 +1127,55 @@ El tipo debe reflejar cómo se capturará y cómo se analizará el dato.
 
 ## Errores frecuentes y reparación rápida {.compact}
 
-| Error | Cómo se ve | Reparación |
-|---|---|---|
-| `name` duplicado | Dos columnas iguales en la base | Renombrar una variable y revisar referencias. |
-| Lista inexistente | `select_one distrito` sin `choices` | Crear `list_name = distrito`. |
-| Regex sin anclas | Acepta texto extra | Agregar `^` y `$`. |
-| Constraint sin mensaje | Campo sabe que falla, pero no cómo corregir | Agregar `constraint_message`. |
-| Selección múltiple con `=` | La regla no detecta opciones marcadas | Usar `selected()`. |
+::: {.fix-grid}
+::: {.fix-card .fragment}
+**`name` duplicado**
+
+Renombrar una variable y revisar referencias.
+:::
+::: {.fix-card .fragment}
+**Lista inexistente**
+
+Crear el `list_name` que usa `select_one`.
+:::
+::: {.fix-card .fragment}
+**Regex sin anclas**
+
+Agregar `^` y `$`.
+:::
+::: {.fix-card .fragment}
+**Constraint sin mensaje**
+
+Agregar `constraint_message`.
+:::
+::: {.fix-card .fragment}
+**Selección múltiple con `=`**
+
+Usar `selected()`.
+:::
+:::
 
 Una reparación rápida empieza leyendo la fila completa y la hoja que la alimenta.
 
 ## Simulación final de cinco minutos {.compact}
 
 ::: {.checklist-grid}
-::: {.checkline}
+::: {.checkline .fragment}
 **1. Cargar**
 
 Sube el XLSForm y revisa advertencias.
 :::
-::: {.checkline}
+::: {.checkline .fragment}
 **2. Responder**
 
 Completa un caso normal y uno con errores.
 :::
-::: {.checkline}
+::: {.checkline .fragment}
 **3. Navegar**
 
 Prueba saltos, filtros y repeats.
 :::
-::: {.checkline}
+::: {.checkline .fragment}
 **4. Exportar**
 
 Confirma nombres, tipos y valores guardados.
@@ -1011,3 +1218,4 @@ Cerrar conectando con el primer caso: si puedo explicar tipo, lista, lógica y v
 - ODK Docs, expresiones regulares: <https://docs.getodk.org/form-regex/>
 - KoboToolbox, form logic in XLSForm: <https://support.kobotoolbox.org/form_logic_xls.html>
 - KoboToolbox, constraints in XLSForm: <https://support.kobotoolbox.org/constraints_xls.html>
+- KoboToolbox, regex y restricción de respuestas: <https://support.kobotoolbox.org/restrict_responses.html>
