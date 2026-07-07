@@ -1,0 +1,508 @@
+/* =============================================================================
+ * xf-graph.css — mapa de lógica (LogicCanvas): capa visual v2
+ * =============================================================================
+ * Overrides de las clases .pulso-graph-* base (theme.css ~28298) + clases
+ * nuevas del rediseño: iconseg glass del header, chips de tipos de relación,
+ * elevación de nodos (node-inner), flowline de edge seleccionado y popover
+ * glass del picker de condición.
+ *
+ * Solo presentación: transform/opacity (y stroke-dashoffset en paths SVG).
+ * El pan/zoom del lienzo vive como atributo inline del <g> raíz del SVG y
+ * NO se toca desde aquí.
+ *
+ * Importado por canvas-graph/LogicCanvas.tsx. Prefijo de especificidad:
+ * `.pulso-graph-overlay` (todo el canvas vive dentro del overlay).
+ * ========================================================================= */
+
+/* ── Keyframes locales ─────────────────────────────────────────────────── */
+
+@keyframes pulso-xfg-node-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulso-xfg-edge-in {
+  from { opacity: 0; }
+}
+
+@keyframes pulso-xfg-dash-flow {
+  to { stroke-dashoffset: -14; }
+}
+
+@keyframes pulso-xfg-toolbar-in {
+  /* La toolbar se centra con translateX(-50%): el keyframe final debe
+   * coincidir con ese transform base para no saltar al terminar. */
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes pulso-xfg-pop-in {
+  /* El condpicker lleva translate(8px, 8px) como offset del cursor:
+   * el keyframe final replica ese transform base. */
+  from { opacity: 0; transform: translate(8px, 8px) translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translate(8px, 8px); }
+}
+
+@keyframes pulso-xfg-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header del overlay ────────────────────────────────────────────────── */
+
+.pulso-graph-overlay .pulso-graph-header {
+  padding: 9px 16px;
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+}
+
+/* "Volver al editor" → pill con feedback de presión. */
+.pulso-graph-overlay .pulso-graph-back {
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 13px 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-primary-border);
+  background: var(--pulso-surface);
+  font-weight: 650;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-back:active {
+  transform: scale(0.97);
+}
+
+/* Título + subtítulo compactos. */
+.pulso-graph-overlay .pulso-graph-header-title strong {
+  font-size: 13.5px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.pulso-graph-overlay .pulso-graph-header-title span {
+  font-size: 10.5px;
+}
+
+.pulso-graph-overlay .pulso-graph-header-right {
+  gap: 6px;
+}
+
+/* "Expandir todo" / "Colapsar todo" → pills. */
+.pulso-graph-overlay .pulso-graph-allbutton {
+  min-height: 30px;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-allbutton:active {
+  transform: scale(0.97);
+}
+
+/* Segmented glass con los icon-buttons redondos (zoom − / + / ajustar /
+ * leyenda). El botón cerrar (danger) queda fuera, también redondo. */
+.pulso-graph-overlay .pulso-graph-iconseg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-primary-border);
+  background: color-mix(in srgb, var(--pulso-surface-2) 78%, transparent);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+}
+.pulso-graph-overlay .pulso-graph-iconseg .pulso-icon,
+.pulso-graph-overlay .pulso-graph-header-right > .pulso-icon {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-iconseg .pulso-icon:active,
+.pulso-graph-overlay .pulso-graph-header-right > .pulso-icon:active {
+  transform: scale(0.94);
+}
+.pulso-graph-overlay .pulso-graph-iconseg .pulso-icon.is-on {
+  background: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── Toolbar flotante (glass pill) ─────────────────────────────────────── */
+
+.pulso-graph-overlay .pulso-graph-toolbar {
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-primary-border);
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: var(--pulso-shadow-popover);
+  animation: pulso-xfg-toolbar-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.pulso-graph-overlay .pulso-graph-toolbar-btn {
+  min-height: 28px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-toolbar-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Filtro de tipos de relación → fila de chips con la muestra del trazo
+ * (color + patrón de dash del edge) y término técnico entre paréntesis. */
+.pulso-graph-overlay .pulso-graph-toolbar-segment {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+  gap: 4px;
+}
+.pulso-graph-overlay .pulso-graph-toolbar-segment button {
+  min-height: 26px;
+  padding: 3px 10px;
+  gap: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--pulso-text-muted);
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-toolbar-segment button:active {
+  transform: scale(0.96);
+}
+.pulso-graph-overlay .pulso-graph-toolbar-segment button.is-on {
+  background: color-mix(in srgb, var(--xfg-chip, var(--pulso-primary)) 10%, #ffffff);
+  border-color: color-mix(in srgb, var(--xfg-chip, var(--pulso-primary)) 45%, var(--pulso-border));
+  color: var(--pulso-text);
+}
+.pulso-graph-overlay .pulso-graph-toolbar-segment button svg {
+  opacity: 0.35;
+  transition: opacity var(--motion-dur-fast) ease;
+}
+.pulso-graph-overlay .pulso-graph-toolbar-segment button.is-on svg {
+  opacity: 1;
+}
+.pulso-graph-overlay .pulso-graph-toolbar-segment button .pulso-xf-tech {
+  font-size: 10px;
+}
+
+/* ── Nodos ─────────────────────────────────────────────────────────────── */
+
+/* Entrada fade-in-up sutil + elevación al hover: se anima el <g> interno
+ * (`node-inner`) para no pisar el translate(x, y) del <g> raíz del nodo. */
+.pulso-graph-overlay .pulso-graph-node-inner {
+  animation: pulso-xfg-node-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Sombra suave en reposo; se intensifica al seleccionar / arrastrar. */
+.pulso-graph-overlay .pulso-graph-node-inner > rect:first-of-type {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.07));
+  transition: filter var(--motion-dur-fast) ease;
+}
+.pulso-graph-overlay .pulso-graph-node.is-selected .pulso-graph-node-inner > rect:first-of-type {
+  filter: drop-shadow(0 8px 20px rgba(0, 36, 87, 0.16));
+}
+.pulso-graph-overlay .pulso-graph-node.is-dragging .pulso-graph-node-inner > rect:first-of-type {
+  filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.18));
+}
+
+/* Ring primario del nodo seleccionado. */
+.pulso-graph-overlay .pulso-graph-node-ring {
+  pointer-events: none;
+  animation: pulso-xfg-edge-in var(--motion-dur-fast) ease backwards;
+}
+
+/* ── Edges ─────────────────────────────────────────────────────────────── */
+
+/* Aparición con fade (el stagger viene del animation-delay inline). */
+.pulso-graph-overlay .pulso-graph-edge {
+  animation: pulso-xfg-edge-in 280ms ease backwards;
+}
+
+/* Dash-flow sutil sobre el edge seleccionado (overlay blanco punteado
+ * que "fluye" en la dirección de la dependencia). */
+.pulso-graph-overlay .pulso-graph-edge-flowline {
+  animation: pulso-xfg-dash-flow 0.9s linear infinite;
+}
+
+/* ── Popover de condición (ConnectionConditionPicker) ──────────────────── */
+
+.pulso-graph-overlay .pulso-graph-condpicker {
+  border-radius: 16px;
+  border-color: var(--pulso-primary-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--pulso-surface-2) 26%, #ffffff)),
+    #ffffff;
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  box-shadow: var(--pulso-shadow-popover);
+  transform-origin: top left;
+  animation: pulso-xfg-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+.pulso-graph-overlay .pulso-graph-condpicker > header {
+  background: transparent;
+  align-items: flex-start;
+  padding: 12px 12px 9px 14px;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-eyebrow .pulso-xf-tech {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+/* Opciones con stagger sutil (máx. 4 ítems). */
+.pulso-graph-overlay .pulso-graph-condpicker-option {
+  border-radius: 9px;
+  animation: pulso-xfg-fade-in-up var(--motion-dur-fast) var(--motion-ease-out) backwards;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-option:nth-child(2) { animation-delay: 30ms; }
+.pulso-graph-overlay .pulso-graph-condpicker-option:nth-child(3) { animation-delay: 60ms; }
+.pulso-graph-overlay .pulso-graph-condpicker-option:nth-child(4) { animation-delay: 90ms; }
+
+/* Acciones → pills. */
+.pulso-graph-overlay .pulso-graph-condpicker-actions {
+  background: transparent;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-actions button {
+  min-height: 30px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-actions button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-actions button.pulso-primary {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-value input,
+.pulso-graph-overlay .pulso-graph-condpicker-value select {
+  border-radius: 9px;
+}
+
+/* ── Paneles laterales (detalle de nodo / relación lógica) ─────────────── */
+
+.pulso-graph-overlay .pulso-graph-detail {
+  border-radius: 16px;
+  border-color: var(--pulso-primary-border);
+  box-shadow: var(--pulso-shadow-popover);
+}
+.pulso-graph-overlay .pulso-graph-detail-go {
+  min-height: 32px;
+  border-radius: 999px;
+  font-weight: 650;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  transition:
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-detail-go:active {
+  transform: scale(0.97);
+}
+.pulso-graph-overlay .pulso-graph-edge-panel-btn {
+  border-radius: 999px;
+  font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-edge-panel-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Leyenda / minimap / indicador de zoom → glass coherente ───────────── */
+
+.pulso-graph-overlay .pulso-graph-legend.is-open {
+  border-radius: 16px;
+  border-color: var(--pulso-primary-border);
+  background: color-mix(in srgb, #ffffff 92%, transparent);
+  backdrop-filter: blur(12px) saturate(1.08);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  box-shadow: var(--pulso-shadow-popover);
+}
+.pulso-graph-overlay .pulso-graph-legend-toggle {
+  transition:
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-legend-toggle:active {
+  transform: scale(0.94);
+}
+
+.pulso-graph-overlay .pulso-graph-minimap {
+  border-radius: 12px;
+  border-color: var(--pulso-primary-border);
+  background: color-mix(in srgb, #ffffff 90%, transparent);
+  backdrop-filter: blur(10px) saturate(1.06);
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
+}
+
+.pulso-graph-overlay .pulso-graph-zoom-indicator {
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* ── Hover (solo puntero fino) ─────────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-graph-overlay .pulso-graph-back:hover {
+    background: var(--pulso-surface);
+    color: var(--pulso-primary);
+    box-shadow: var(--pulso-shadow-soft);
+  }
+  .pulso-graph-overlay .pulso-graph-allbutton:hover {
+    background: var(--pulso-surface);
+    border-color: var(--pulso-primary-border);
+    color: var(--pulso-primary);
+  }
+  .pulso-graph-overlay .pulso-graph-iconseg .pulso-icon:hover:not(.is-on) {
+    background: var(--pulso-surface);
+  }
+  .pulso-graph-overlay .pulso-graph-toolbar-segment button:hover:not(.is-on) {
+    background: var(--pulso-surface);
+    border-color: var(--pulso-primary-border);
+    color: var(--pulso-text);
+  }
+  /* Elevación sutil de la card (transform en el g interno, nunca en el
+   * g raíz que lleva el translate del layout). */
+  .pulso-graph-overlay .pulso-graph-node:hover:not(.is-dragging) .pulso-graph-node-inner {
+    transform: translateY(-1px);
+  }
+  .pulso-graph-overlay .pulso-graph-node:hover:not(.is-dragging) .pulso-graph-node-inner > rect:first-of-type {
+    filter: drop-shadow(0 5px 14px rgba(15, 23, 42, 0.12));
+  }
+}
+
+/* ── Focus visible ─────────────────────────────────────────────────────── */
+
+.pulso-graph-overlay .pulso-graph-back:focus-visible,
+.pulso-graph-overlay .pulso-graph-allbutton:focus-visible,
+.pulso-graph-overlay .pulso-graph-iconseg .pulso-icon:focus-visible,
+.pulso-graph-overlay .pulso-graph-header-right > .pulso-icon:focus-visible,
+.pulso-graph-overlay .pulso-graph-toolbar-btn:focus-visible,
+.pulso-graph-overlay .pulso-graph-toolbar-segment button:focus-visible,
+.pulso-graph-overlay .pulso-graph-condpicker-actions button:focus-visible,
+.pulso-graph-overlay .pulso-graph-detail-go:focus-visible,
+.pulso-graph-overlay .pulso-graph-edge-panel-btn:focus-visible,
+.pulso-graph-overlay .pulso-graph-legend-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Área mínima usable del canvas (grammar "canvas") ──────────────────── */
+/* Los paneles flotantes nunca deben tapar el lienzo completo ni generar
+ * scroll horizontal del body: scroll interno propio y colapso de
+ * elementos secundarios en alturas bajas (hasta 1024x600). */
+
+.pulso-graph-overlay .pulso-graph-detail,
+.pulso-graph-overlay .pulso-graph-edge-panel {
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+}
+.pulso-graph-overlay .pulso-graph-legend.is-open {
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+}
+.pulso-graph-overlay .pulso-graph-condpicker {
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+
+/* Ancho justo (≤1180px): los chips pierden el término técnico y la
+ * etiqueta "Relaciones" para que la toolbar no desborde el lienzo. */
+@media (max-width: 1180px) {
+  .pulso-graph-overlay .pulso-graph-toolbar-segment button .pulso-xf-tech {
+    display: none;
+  }
+  .pulso-graph-overlay .pulso-graph-toolbar-layer-label {
+    display: none;
+  }
+}
+
+/* Alto bajo (≤700px): colapsa lo secundario — minimap fuera, header
+ * compacto sin subtítulo, leyenda y paneles con scroll interno. */
+@media (max-height: 700px) {
+  .pulso-graph-overlay .pulso-graph-minimap {
+    display: none;
+  }
+  .pulso-graph-overlay .pulso-graph-header {
+    padding: 5px 12px;
+  }
+  .pulso-graph-overlay .pulso-graph-header-title span {
+    display: none;
+  }
+  .pulso-graph-overlay .pulso-graph-toolbar {
+    top: 10px;
+  }
+  .pulso-graph-overlay .pulso-graph-detail,
+  .pulso-graph-overlay .pulso-graph-edge-panel,
+  .pulso-graph-overlay .pulso-graph-legend.is-open {
+    max-height: calc(100% - 20px);
+  }
+}
+
+/* ── Accesibilidad de movimiento ───────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-graph-overlay,
+  .pulso-graph-overlay * {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}

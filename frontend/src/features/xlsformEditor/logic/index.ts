@@ -25,6 +25,12 @@ export {
 } from "./ast";
 
 export { parseExpression, parseExpressionStrict } from "./parse";
+export type { RelevanceResult, SimAnswerValue, SimAnswers } from "./evaluate";
+export {
+  evaluateExpr,
+  evaluateRelevance,
+  UnsupportedExpressionError,
+} from "./evaluate";
 export { serializeExpression } from "./serialize";
 export {
   collectCalls,

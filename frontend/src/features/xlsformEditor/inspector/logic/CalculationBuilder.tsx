@@ -25,6 +25,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { ChevronDown, Code2, Variable, X } from "lucide-react";
 import { IconTemplate } from "../../../../lib/icons";
 import {
@@ -38,7 +39,8 @@ import { IfBlock } from "./IfBlock";
 export type CalculationBuilderProps = {
   expression: string;
   scope: LogicScope;
-  fieldLabel: string;
+  /** Etiqueta del campo. Acepta nodos para incrustar `<TechTerm />`. */
+  fieldLabel: ReactNode;
   hint?: string;
   onChange: (next: string) => void;
 };

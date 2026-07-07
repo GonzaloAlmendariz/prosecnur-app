@@ -61,6 +61,7 @@ export { default as CircleAlert } from "lucide-react/dist/esm/icons/circle-alert
 export { default as CircleDot } from "lucide-react/dist/esm/icons/circle-dot.mjs";
 export { default as CircleHelp } from "lucide-react/dist/esm/icons/circle-question-mark.mjs";
 export { default as CircleOff } from "lucide-react/dist/esm/icons/circle-off.mjs";
+export { default as CirclePlay } from "lucide-react/dist/esm/icons/circle-play.mjs";
 export { default as CircleSlash2 } from "lucide-react/dist/esm/icons/circle-slash-2.mjs";
 export { default as Clipboard } from "lucide-react/dist/esm/icons/clipboard.mjs";
 export { default as ClipboardCheck } from "lucide-react/dist/esm/icons/clipboard-check.mjs";
