@@ -1399,7 +1399,7 @@ function RequiredMessageAssistant({
 }) {
   const cleanValue = value.trim();
   const hasMessage = cleanValue.length > 0;
-  const looksTechnical = /\b(required|constraint|relevant|regex|odk|xlsform|formula)\b/i.test(cleanValue);
+  const looksTechnical = fieldMessageLooksTechnical(cleanValue);
   const isReady = hasMessage && !looksTechnical;
   const checks = [
     {
@@ -1476,6 +1476,12 @@ function RequiredMessageAssistant({
         presetGrid
       )}
     </div>
+  );
+}
+
+function fieldMessageLooksTechnical(value: string): boolean {
+  return /\b(required|constraint|constraint_message|relevant|regex|odk|xlsform|formula|fórmula|xpath)\b/i.test(
+    value,
   );
 }
 
@@ -2663,12 +2669,21 @@ function ConstraintMessageField({
   onFieldChange: (field: string, value: string) => void;
 }) {
   const presets = constraintMessagePresetsFor(node, validation);
+  const hasConstraint = node.constraint.trim().length > 0;
 
   return (
     <InspectorField
       label="Mensaje si la respuesta no es válida"
       hint="Texto visible en Kobo cuando la respuesta no cumple la regla. Escríbelo como una indicación para campo."
     >
+      {hasConstraint && (
+        <ConstraintMessageAssistant
+          value={value}
+          validation={validation}
+          presets={presets}
+          onApply={(message) => onFieldChange("constraint_message", message)}
+        />
+      )}
       <input
         type="text"
         value={value}
@@ -2677,38 +2692,6 @@ function ConstraintMessageField({
         }
         placeholder="Ej. Ingresa un correo electrónico válido."
       />
-      {presets.length > 0 && (
-        <div
-          className="pulso-focus-message-presets pulso-focus-constraint-message-presets"
-          aria-label="Mensajes sugeridos para validación"
-        >
-          <div className="pulso-focus-message-presets-head">
-            <span className="pulso-section-eyebrow">Mensajes claros</span>
-            <strong>Texto entendible para campo</strong>
-            <small>Usa una indicación directa para campo; deja los términos técnicos en la regla.</small>
-          </div>
-          <div className="pulso-focus-message-preset-grid">
-            {presets.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className="pulso-focus-message-preset"
-                onClick={() => onFieldChange("constraint_message", preset.message)}
-                title={preset.hint}
-              >
-                <span className="pulso-focus-message-preset-icon">
-                  <CheckCircle2 size={12} />
-                </span>
-                <span className="pulso-focus-message-preset-copy">
-                  <strong>{preset.label}</strong>
-                  <small>{preset.hint}</small>
-                  <em>{preset.message}</em>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </InspectorField>
   );
 }
@@ -2719,6 +2702,128 @@ type ConstraintMessagePreset = {
   hint: string;
   message: string;
 };
+
+function ConstraintMessageAssistant({
+  value,
+  validation,
+  presets,
+  onApply,
+}: {
+  value: string;
+  validation: (HumanizedExpression & { status: string }) | null;
+  presets: ConstraintMessagePreset[];
+  onApply: (message: string) => void;
+}) {
+  const cleanValue = value.trim();
+  const hasMessage = cleanValue.length > 0;
+  const looksTechnical = fieldMessageLooksTechnical(cleanValue);
+  const hasCorrectionCue =
+    /\b(ingresa|selecciona|elige|escribe|usa|verifica|corrige|marca|indica|debe|solo|entre|mínimo|máximo|mayor|menor)\b/i.test(
+      cleanValue,
+    );
+  const isReady = hasMessage && !looksTechnical && hasCorrectionCue;
+  const checks = [
+    {
+      key: "message",
+      label: hasMessage ? "Mensaje definido" : "Falta mensaje",
+      ok: hasMessage,
+    },
+    {
+      key: "language",
+      label: looksTechnical ? "Suena técnico" : "Lenguaje de campo",
+      ok: hasMessage && !looksTechnical,
+    },
+    {
+      key: "action",
+      label: hasCorrectionCue ? "Dice cómo corregir" : "Explica qué hacer",
+      ok: hasMessage && hasCorrectionCue,
+    },
+  ];
+  const primaryPresets = isReady ? presets : presets.slice(0, 2);
+  const secondaryPresets = isReady ? [] : presets.slice(2);
+  const renderPresetGrid = (items: ConstraintMessagePreset[]) =>
+    items.length > 0 ? (
+      <div className="pulso-focus-message-preset-grid">
+        {items.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className="pulso-focus-message-preset"
+            onClick={() => onApply(preset.message)}
+            title={preset.hint}
+          >
+            <span className="pulso-focus-message-preset-icon">
+              <CheckCircle2 size={12} />
+            </span>
+            <span className="pulso-focus-message-preset-copy">
+              <strong>{preset.label}</strong>
+              <small>{preset.hint}</small>
+              <em>{preset.message}</em>
+            </span>
+          </button>
+        ))}
+      </div>
+    ) : null;
+  const primaryPresetGrid = renderPresetGrid(primaryPresets);
+
+  return (
+    <div
+      className={`pulso-focus-message-presets pulso-focus-constraint-message-presets pulso-focus-constraint-message-assistant${isReady ? "" : " is-warning"}`}
+      aria-label="Asistente de mensaje de validación"
+    >
+      <div className="pulso-focus-message-presets-head pulso-focus-constraint-message-head">
+        <span className="pulso-focus-constraint-message-icon" aria-hidden="true">
+          {isReady ? <CheckCircle2 size={14} /> : <Info size={14} />}
+        </span>
+        <div>
+          <span className="pulso-section-eyebrow">Mensaje Kobo</span>
+          <strong>{isReady ? "Texto listo para campo" : "Completa una indicación clara"}</strong>
+          <small>
+            Kobo lo muestra cuando la respuesta no cumple
+            {validation?.summary ? " la regla resumida arriba." : " esta validación."}
+          </small>
+        </div>
+      </div>
+
+      <div className="pulso-focus-required-message-checks pulso-focus-constraint-message-checks" aria-label="Revisión del mensaje de validación">
+        {checks.map((check) => (
+          <span key={check.key} className={check.ok ? "is-ok" : "is-pending"}>
+            {check.ok ? <CheckCircle2 size={11} /> : <Info size={11} />}
+            {check.label}
+          </span>
+        ))}
+      </div>
+
+      {isReady ? (
+        primaryPresetGrid ? (
+          <details className="pulso-focus-required-message-alternatives">
+            <summary>Cambiar por otro texto sugerido</summary>
+            {primaryPresetGrid}
+          </details>
+        ) : null
+      ) : (
+        <>
+          {primaryPresetGrid}
+          {secondaryPresets.length > 0 && (
+            <details className="pulso-focus-required-message-alternatives pulso-focus-constraint-message-more">
+              <summary>Más textos sugeridos</summary>
+              {renderPresetGrid(secondaryPresets)}
+            </details>
+          )}
+          {!primaryPresetGrid && (
+            <div className="pulso-focus-constraint-message-guidance">
+              <strong>Guía rápida</strong>
+              <span>
+                Empieza con una acción: 'Ingresa...', 'Selecciona...' o 'Debe estar entre...'.
+                Evita mencionar regex, constraint o XLSForm.
+              </span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 function constraintMessagePresetsFor(
   node: BuilderNode,
@@ -2952,6 +3057,9 @@ function ValidationSummary({
 }) {
   const summary = describeValidation(node.constraint, node, scope);
   const presets = validationPresetsFor(node);
+  const messageStatus = summary
+    ? validationMessageStatusFor(node.constraint_message ?? "")
+    : null;
 
   return (
     <div className="pulso-focus-validation">
@@ -2968,6 +3076,15 @@ function ValidationSummary({
           )}
         </div>
       </div>
+      {messageStatus && (
+        <div className={`pulso-focus-validation-message-status is-${messageStatus.tone}`}>
+          {messageStatus.tone === "ok" ? <CheckCircle2 size={12} /> : <Info size={12} />}
+          <span>
+            <strong>{messageStatus.title}</strong>
+            <small>{messageStatus.detail}</small>
+          </span>
+        </div>
+      )}
 
       {presets.length > 0 && (
         <div className="pulso-focus-validation-presets" aria-label="Validaciones sugeridas">
@@ -3012,6 +3129,33 @@ function ValidationSummary({
       )}
     </div>
   );
+}
+
+function validationMessageStatusFor(value: string): {
+  tone: "ok" | "warning";
+  title: string;
+  detail: string;
+} {
+  const cleanValue = value.trim();
+  if (!cleanValue) {
+    return {
+      tone: "warning",
+      title: "Falta mensaje para campo",
+      detail: "Completa una frase clara para que Kobo explique cómo corregir la respuesta.",
+    };
+  }
+  if (fieldMessageLooksTechnical(cleanValue)) {
+    return {
+      tone: "warning",
+      title: "Mensaje suena técnico",
+      detail: "Cambia términos como regex, constraint o XLSForm por una instrucción directa.",
+    };
+  }
+  return {
+    tone: "ok",
+    title: "Mensaje listo para campo",
+    detail: "Kobo mostrará una indicación entendible cuando la respuesta no cumpla la regla.",
+  };
 }
 
 function PresentationTab({
