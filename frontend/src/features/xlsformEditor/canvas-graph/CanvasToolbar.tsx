@@ -66,31 +66,31 @@ export type CanvasToolbarProps = {
 const LOGIC_LAYER_CONTROLS = [
   {
     key: "showRelevant",
-    label: "Aparición",
+    label: "Aparece si",
     Icon: Eye,
     title:
-      "Aparición: muestra cuándo aparece una pregunta o sección (relevant).",
+      "Aparece si: flechas que deciden cuándo se muestra una pregunta o sección.",
   },
   {
     key: "showConstraint",
-    label: "Validación",
+    label: "Debe cumplir",
     Icon: ShieldCheck,
     title:
-      "Validación: muestra respuestas que deben cumplir una regla (constraint).",
+      "Debe cumplir: flechas hacia respuestas con una regla de validación.",
   },
   {
     key: "showCalculation",
-    label: "Cálculos",
+    label: "Calcula",
     Icon: Calculator,
     title:
-      "Cálculos: muestra campos automáticos construidos a partir de respuestas.",
+      "Calcula: flechas usadas para llenar campos automáticos.",
   },
   {
     key: "showChoiceFilter",
-    label: "Filtros de lista",
+    label: "Filtra opciones",
     Icon: Filter,
     title:
-      "Filtros de lista: muestra cascadas y filtros de opciones (choice_filter).",
+      "Filtra opciones: flechas que recortan opciones de una lista.",
   },
 ] as const satisfies ReadonlyArray<{
   key: keyof EdgeKindFilter;
@@ -175,11 +175,11 @@ export function CanvasToolbar({
       {edgeKindFilter && onChangeEdgeKindFilter && (
         <>
           {!readOnly && <span className="pulso-graph-toolbar-sep" aria-hidden="true" />}
-          <span className="pulso-graph-toolbar-layer-label">Capas</span>
+          <span className="pulso-graph-toolbar-layer-label">Relaciones</span>
           <div
             className="pulso-graph-toolbar-segment"
             role="group"
-            aria-label="Capas de lógica visibles"
+            aria-label="Filtrar relaciones visibles"
           >
             {LOGIC_LAYER_CONTROLS.map(({ key, label, Icon, title }) => (
               <button
