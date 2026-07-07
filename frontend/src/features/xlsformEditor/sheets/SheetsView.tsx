@@ -52,6 +52,29 @@ export type SheetsViewProps = {
 
 type TabKey = "survey" | "choices" | "settings" | "paper";
 
+const TAB_HELP: Record<TabKey, { label: string; code: string; detail: string }> = {
+  survey: {
+    label: "Preguntas",
+    code: "survey",
+    detail: "Filas del cuestionario: preguntas, notas, cálculos, secciones y lógica.",
+  },
+  choices: {
+    label: "Opciones",
+    code: "choices",
+    detail: "Catálogos reutilizables para preguntas de selección.",
+  },
+  settings: {
+    label: "Ajustes",
+    code: "settings",
+    detail: "Título, ID, versión e idioma principal del formulario.",
+  },
+  paper: {
+    label: "Papel/PDF",
+    code: "paper",
+    detail: "Ajustes opcionales de salida impresa, sin cambiar Kobo.",
+  },
+};
+
 const PDF_EXTENSION_COLUMNS = new Set([
   "paper_number",
   "paper_label",
@@ -193,7 +216,9 @@ export function SheetsView({
   return (
     <div className="pulso-sheets-view">
       <div className="pulso-sheets-tabs" role="tablist">
-        {(["survey", "choices", "settings", "paper"] as TabKey[]).map((tab) => (
+        {(["survey", "choices", "settings", "paper"] as TabKey[]).map((tab) => {
+          const tabHelp = TAB_HELP[tab];
+          return (
           <button
             key={tab}
             type="button"
@@ -201,13 +226,18 @@ export function SheetsView({
             aria-selected={activeTab === tab}
             className={activeTab === tab ? "is-active" : ""}
             onClick={() => setActiveTab(tab)}
+            title={tabHelp.detail}
           >
-            <span className="pulso-sheets-tab-name">{tab}</span>
+            <span className="pulso-sheets-tab-name">
+              {tabHelp.label}
+              <code>{tabHelp.code}</code>
+            </span>
             <span className="pulso-sheets-tab-count">
               {(workbook[tab]?.rows.length ?? 0)}
             </span>
           </button>
-        ))}
+        );
+        })}
       </div>
 
       <div className="pulso-sheets-toolbar">
@@ -215,7 +245,7 @@ export function SheetsView({
           type="button"
           onClick={() => onAddRow(activeTab)}
           className="pulso-sheets-btn"
-          title={`Agregar fila a ${activeTab}`}
+          title={`Agregar fila a ${TAB_HELP[activeTab].label}`}
         >
           <Plus size={13} /> Fila
         </button>
