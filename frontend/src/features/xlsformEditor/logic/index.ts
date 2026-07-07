@@ -43,6 +43,10 @@ export {
   predicateKey,
   predicatesForType,
 } from "./operators";
+export {
+  buildDefaultCondition,
+  defaultLiteralForPredicate,
+} from "./defaultCondition";
 export type { FlatCondition, FlatConstraint, LogicTree } from "./conditionAdapter";
 export {
   detectMultiSelected,
