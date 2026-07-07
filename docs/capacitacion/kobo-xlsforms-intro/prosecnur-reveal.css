@@ -25,20 +25,33 @@
   --pulso-danger-border: #fecaca;
   --pulso-danger-fg: #991b1b;
   --pulso-shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.07);
+  --xls-bg: #f3f5f8;
+  --xls-bg-elevated: #fafbfe;
+  --xls-content: #ffffff;
+  --xls-content-soft: #fbfcff;
+  --xls-toolbar: color-mix(in srgb, #ffffff 86%, transparent);
+  --xls-toolbar-strong: color-mix(in srgb, #ffffff 94%, transparent);
+  --xls-border: color-mix(in srgb, var(--pulso-border) 74%, rgba(0, 36, 87, 0.18));
+  --xls-border-strong: color-mix(in srgb, var(--pulso-primary-border) 72%, var(--pulso-border));
+  --xls-shadow-hairline: 0 1px 1px rgba(15, 23, 42, 0.035);
+  --xls-shadow-panel: 0 10px 28px rgba(15, 23, 42, 0.075);
+  --xls-radius-control: 8px;
+  --xls-radius-panel: 12px;
+  --xls-radius-workbench: 16px;
 }
 
 .reveal {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.14) 180px),
     linear-gradient(90deg, rgba(0, 36, 87, 0.016) 1px, transparent 1px),
     linear-gradient(180deg, rgba(0, 36, 87, 0.014) 1px, transparent 1px),
-    var(--pulso-bg);
+    var(--xls-bg);
   background-size: auto, 38px 38px, 38px 38px, auto;
   color: var(--pulso-text);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
     Helvetica, Arial, sans-serif;
-  font-size: 25px;
+  font-size: 22px;
 }
 
 .reveal .slides {
@@ -49,12 +62,12 @@
   box-sizing: border-box;
   height: 100%;
   overflow-y: auto !important;
-  padding: 38px 62px 50px;
+  padding: 34px 58px 46px;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
 }
 
-.reveal .slides section:not(#title-slide)::before {
+.reveal .slides section:not(#title-slide):not(.section-divider)::before {
   background: linear-gradient(
     90deg,
     var(--pulso-primary),
@@ -62,21 +75,21 @@
   );
   border-radius: 999px;
   content: "";
-  height: 3px;
-  left: 62px;
+  height: 2px;
+  left: 58px;
   position: absolute;
-  right: 62px;
-  top: 23px;
+  right: 58px;
+  top: 22px;
 }
 
-.reveal .slides section:not(#title-slide)::after {
+.reveal .slides section:not(#title-slide):not(.section-divider)::after {
   color: var(--pulso-text-faint);
   content: "Prosecnur · KoboToolbox · XLSForm";
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0;
   position: absolute;
-  right: 62px;
+  right: 58px;
   top: 8px;
 }
 
@@ -89,7 +102,7 @@
   flex-direction: column;
   justify-content: center;
   overflow: hidden !important;
-  padding: 82px 86px;
+  padding: 76px 82px;
 }
 
 .reveal .slides section.section-divider::before {
@@ -127,13 +140,13 @@
 }
 
 .reveal .section-divider h2 {
-  font-size: 52px;
+  font-size: 48px;
   margin-bottom: 18px;
 }
 
 .reveal .section-divider p {
   color: rgba(255, 255, 255, 0.84);
-  font-size: 27px;
+  font-size: 25px;
   line-height: 1.3;
 }
 
@@ -150,23 +163,23 @@
 }
 
 .reveal h1 {
-  font-size: 54px;
+  font-size: 50px;
   max-width: 900px;
 }
 
 .reveal h2 {
-  font-size: 36px;
+  font-size: 33px;
   max-width: 1050px;
 }
 
 .reveal h3 {
-  font-size: 28px;
+  font-size: 25px;
 }
 
 .reveal p,
 .reveal li {
-  font-size: 23px;
-  line-height: 1.31;
+  font-size: 20.5px;
+  line-height: 1.28;
 }
 
 .reveal p {
@@ -195,7 +208,7 @@
 }
 
 .reveal code {
-  background: rgba(15, 23, 42, 0.045);
+  background: color-mix(in srgb, var(--xls-bg) 82%, var(--pulso-primary) 3%);
   border: 0;
   border-radius: 4px;
   color: color-mix(in srgb, var(--pulso-primary) 78%, var(--pulso-text));
@@ -217,23 +230,28 @@
   padding: 0;
 }
 
+.reveal div.sourceCode {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  margin: 8px 0 12px !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
 .reveal pre,
 .reveal pre.sourceCode,
-.reveal div.sourceCode,
 .reveal div.sourceCode pre.sourceCode {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 249, 253, 0.7)),
-    var(--pulso-surface) !important;
+  background: color-mix(in srgb, var(--xls-content-soft) 82%, var(--xls-bg) 18%) !important;
   border: 0 !important;
   border-left: 0 !important;
-  border-radius: 8px !important;
+  border-radius: var(--xls-radius-control) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(0, 36, 87, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 1px 1px rgba(15, 23, 42, 0.03) !important;
-  margin: 10px 0 13px !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 1px 1px rgba(15, 23, 42, 0.025) !important;
+  margin: 8px 0 12px !important;
   outline: 0 !important;
-  padding: 9px 11px !important;
+  padding: 8px 10px !important;
   width: auto;
 }
 
@@ -245,9 +263,9 @@
   border: 0;
   color: #20324f;
   display: block;
-  font-size: 16.5px;
+  font-size: 14.8px;
   font-weight: 620;
-  line-height: 1.32;
+  line-height: 1.27;
   max-height: none;
   overflow-wrap: anywhere;
   padding: 0 !important;
@@ -255,11 +273,17 @@
 }
 
 .reveal pre.numberSource {
-  padding-left: 12px !important;
+  padding-left: 10px !important;
 }
 
 .reveal pre.numberSource code > span {
   left: 0 !important;
+  padding-left: 0 !important;
+  text-indent: 0 !important;
+}
+
+.reveal pre.numberSource code > span > a:first-child {
+  display: none !important;
 }
 
 .reveal pre.numberSource code > span > a:first-child::before {
@@ -278,20 +302,20 @@
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
   border-collapse: separate;
-  border-radius: 12px;
+  border-radius: var(--xls-radius-panel);
   border-spacing: 0;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--xls-shadow-hairline);
   color: var(--pulso-text);
-  font-size: 18.5px;
-  line-height: 1.2;
-  margin: 12px 0 15px;
+  font-size: 16.5px;
+  line-height: 1.18;
+  margin: 10px 0 13px;
   overflow: hidden;
   width: 100%;
 }
 
 .reveal table th {
   background:
-    linear-gradient(180deg, rgba(250, 251, 255, 0.94), rgba(241, 243, 249, 0.94)),
+    linear-gradient(180deg, rgba(250, 251, 255, 0.96), rgba(242, 244, 248, 0.96)),
     var(--pulso-surface-2);
   color: var(--pulso-primary);
   font-size: 0.92em;
@@ -303,7 +327,7 @@
   border: 0;
   border-bottom: 1px solid var(--pulso-border);
   overflow-wrap: anywhere;
-  padding: 7px 10px;
+  padding: 6px 9px;
   vertical-align: top;
 }
 
@@ -341,7 +365,7 @@
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
   border-left: 0;
-  border-radius: 12px;
+  border-radius: var(--xls-radius-panel);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
     0 1px 1px rgba(15, 23, 42, 0.03);
@@ -354,63 +378,259 @@
 .reveal .lesson-map {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 24px 0 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 20px 0 16px;
 }
 
 .reveal .lesson-item,
+.reveal .learning-card,
+.reveal .reading-step,
+.reveal .case-card,
 .reveal .flow-step,
 .reveal .formula-part,
+.reveal .method-step,
+.reveal .fix-card,
 .reveal .trainer-note,
 .reveal .answer,
 .reveal .compare-card,
+.reveal .sheet-example,
 .reveal .checkline {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.92)),
     var(--pulso-surface);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 88%, var(--pulso-border-strong));
-  border-radius: 10px;
+  border: 1px solid var(--xls-border);
+  border-radius: var(--xls-radius-control);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 1px 1px rgba(15, 23, 42, 0.03);
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    var(--xls-shadow-hairline);
   min-width: 0;
 }
 
 .reveal .lesson-item {
-  padding: 14px 15px;
+  min-height: 82px;
+  padding: 13px 15px;
 }
 
 .reveal .lesson-item strong {
   display: block;
-  font-size: 18px;
+  font-size: 16.5px;
   line-height: 1.2;
   margin-bottom: 8px;
 }
 
 .reveal .lesson-item p {
   color: var(--pulso-text-soft);
-  font-size: 17px;
+  font-size: 15.5px;
   line-height: 1.25;
   margin: 0;
 }
 
+.reveal .learning-lane {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.reveal .learning-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 255, 0.9)),
+    var(--pulso-surface);
+  border-color: color-mix(in srgb, var(--pulso-module-collectors) 18%, var(--xls-border));
+  min-height: 128px;
+  padding: 16px 18px;
+}
+
+.reveal .learning-card strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.18;
+  margin-bottom: 9px;
+}
+
+.reveal .learning-card p {
+  color: var(--pulso-text-soft);
+  font-size: 16.5px;
+  line-height: 1.28;
+  margin: 0;
+}
+
+.reveal .sheet-example {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.9)),
+    var(--pulso-surface);
+  margin: 14px 0 15px;
+  padding: 12px 14px 14px;
+}
+
+.reveal .sheet-example > p:first-child {
+  color: var(--pulso-primary);
+  font-size: 16px;
+  font-weight: 760;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+.reveal .sheet-example table {
+  margin: 0;
+}
+
+.reveal .sheet-example--compact {
+  margin: 12px 0;
+  padding: 10px 12px 12px;
+}
+
+.reveal .sheet-example--compact table {
+  font-size: 14.2px;
+}
+
+.reveal .sheet-example--wide {
+  padding: 10px 12px 12px;
+}
+
+.reveal .sheet-example--wide table {
+  font-size: 12.8px;
+  line-height: 1.12;
+}
+
+.reveal .sheet-example--wide table th,
+.reveal .sheet-example--wide table td {
+  padding: 5px 6px;
+}
+
+.reveal .sheet-example--wide table code {
+  font-size: 0.72em;
+}
+
+.reveal .workbook-grid {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 13px 0;
+}
+
+.reveal .workbook-grid .sheet-example {
+  margin: 0;
+}
+
+.reveal .workbook-grid table {
+  font-size: 12.8px;
+  line-height: 1.12;
+}
+
+.reveal .workbook-grid table th,
+.reveal .workbook-grid table td {
+  padding: 5px 6px;
+}
+
+.reveal .formula-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.88)),
+    var(--pulso-surface);
+  border: 1px solid color-mix(in srgb, var(--pulso-module-collectors) 18%, var(--xls-border));
+  border-radius: var(--xls-radius-control);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    var(--xls-shadow-hairline);
+  margin: 11px 0 13px;
+  padding: 12px 14px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.reveal .formula-card code {
+  background: transparent;
+  color: var(--pulso-primary);
+  display: block;
+  font-size: 18.5px;
+  line-height: 1.22;
+  padding: 0;
+  white-space: normal;
+}
+
+.reveal .formula-card--large code {
+  font-size: 24px;
+  font-weight: 760;
+}
+
+.reveal .reading-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 18px 0 0;
+}
+
+.reveal .reading-step {
+  border-color: color-mix(in srgb, var(--pulso-module-collectors) 18%, var(--xls-border));
+  min-height: 112px;
+  padding: 14px 15px;
+}
+
+.reveal .reading-step strong {
+  display: block;
+  font-size: 16.5px;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.reveal .reading-step p {
+  color: var(--pulso-text-soft);
+  font-size: 15.5px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.reveal .case-grid,
 .reveal .flow-strip,
+.reveal .method-strip,
+.reveal .fix-grid,
 .reveal .formula-strip {
   display: grid;
   gap: 10px;
-  margin: 18px 0;
+  margin: 15px 0;
+}
+
+.reveal .case-grid {
+  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
 }
 
 .reveal .flow-strip {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
-.reveal .flow-step {
-  padding: 12px;
+.reveal .method-strip {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.reveal .case-card,
+.reveal .flow-step,
+.reveal .fix-card {
+  padding: 10px;
   position: relative;
 }
 
-.reveal .flow-step::before {
+.reveal .case-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 252, 0.88)),
+    var(--pulso-surface);
+}
+
+.reveal .fix-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.reveal .fix-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 244, 224, 0.36)),
+    var(--pulso-warn-bg);
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 58%, var(--pulso-border));
+}
+
+.reveal .flow-step::before,
+.reveal .case-card::before,
+.reveal .fix-card::before,
+.reveal .method-step::before {
   background: color-mix(in srgb, var(--pulso-module-editor) 72%, var(--pulso-primary));
   border-radius: 999px;
   content: "";
@@ -420,25 +640,39 @@
   width: 42px;
 }
 
+.reveal .fix-card::before {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 66%, var(--pulso-module-editor));
+}
+
 .reveal .flow-step strong,
+.reveal .case-card strong,
+.reveal .fix-card strong,
+.reveal .method-step strong,
 .reveal .formula-part strong {
   display: block;
-  font-size: 17px;
+  font-size: 15.5px;
   line-height: 1.2;
   margin-bottom: 4px;
 }
 
-.reveal .flow-step p {
+.reveal .method-step {
+  padding: 12px;
+}
+
+.reveal .case-card p,
+.reveal .flow-step p,
+.reveal .fix-card p,
+.reveal .method-step p {
   color: var(--pulso-text-soft);
-  font-size: 16.5px;
+  font-size: 15px;
   line-height: 1.25;
   margin: 0;
 }
 
 .reveal .trainer-note,
 .reveal .answer {
-  margin: 16px 0;
-  padding: 12px 14px;
+  margin: 13px 0;
+  padding: 11px 13px;
 }
 
 .reveal .trainer-note {
@@ -457,8 +691,8 @@
 .reveal .trainer-note p,
 .reveal .answer p {
   color: var(--pulso-text);
-  font-size: 21px;
-  line-height: 1.34;
+  font-size: 18.5px;
+  line-height: 1.3;
   margin: 0;
 }
 
@@ -467,7 +701,7 @@
 }
 
 .reveal .formula-part {
-  padding: 14px;
+  padding: 12px;
   text-align: center;
 }
 
@@ -475,7 +709,7 @@
   background: transparent;
   color: var(--pulso-primary);
   display: block;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 760;
   margin-bottom: 8px;
   padding: 0;
@@ -483,7 +717,7 @@
 
 .reveal .formula-part p {
   color: var(--pulso-text-soft);
-  font-size: 17px;
+  font-size: 15.5px;
   line-height: 1.2;
   margin: 0;
 }
@@ -491,12 +725,16 @@
 .reveal .compare-grid,
 .reveal .checklist-grid {
   display: grid;
-  gap: 14px;
-  margin: 16px 0;
+  gap: 12px;
+  margin: 14px 0;
 }
 
 .reveal .compare-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reveal .compare-grid--stacked {
+  grid-template-columns: 1fr;
 }
 
 .reveal .checklist-grid {
@@ -506,7 +744,7 @@
 .reveal .compare-card,
 .reveal .checkline {
   min-width: 0;
-  padding: 13px 14px;
+  padding: 11px 12px;
 }
 
 .reveal .compare-card--weak {
@@ -527,7 +765,7 @@
 .reveal .compare-card strong,
 .reveal .checkline strong {
   display: block;
-  font-size: 17px;
+  font-size: 15.5px;
   line-height: 1.2;
   margin-bottom: 6px;
 }
@@ -535,7 +773,7 @@
 .reveal .compare-card p,
 .reveal .checkline p {
   color: var(--pulso-text-soft);
-  font-size: 16.5px;
+  font-size: 15px;
   line-height: 1.25;
   margin: 0;
 }
@@ -545,7 +783,23 @@
 }
 
 .reveal .compare-card pre code {
-  font-size: 14.5px;
+  font-size: 13.2px;
+}
+
+.reveal .compare-card table {
+  font-size: 13.8px;
+  margin: 7px 0 9px;
+}
+
+.reveal .compare-card table th,
+.reveal .compare-card table td {
+  padding: 5px 7px;
+}
+
+.reveal pre.wide-code code,
+.reveal .compact pre.wide-code code {
+  font-size: 12.5px;
+  line-height: 1.22;
 }
 
 .reveal #title-slide {
@@ -557,7 +811,7 @@
   flex-direction: column;
   justify-content: center;
   overflow: hidden !important;
-  padding: 82px 86px;
+  padding: 76px 82px;
 }
 
 .reveal #title-slide::before {
@@ -591,7 +845,7 @@
 
 .reveal #title-slide h1 {
   color: #fff;
-  font-size: 64px;
+  font-size: 58px;
   line-height: 1.02;
   margin-bottom: 18px;
   max-width: 900px;
@@ -599,7 +853,7 @@
 
 .reveal #title-slide .subtitle {
   color: rgba(255, 255, 255, 0.84);
-  font-size: 28px;
+  font-size: 25px;
   line-height: 1.28;
   max-width: 760px;
 }
@@ -619,14 +873,14 @@
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
   border-left: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: var(--xls-radius-panel);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
     0 1px 1px rgba(15, 23, 42, 0.03);
 }
 
 .reveal .columns {
-  gap: 24px;
+  gap: 20px;
 }
 
 .reveal .column {
@@ -635,24 +889,54 @@
 
 .reveal .smaller p,
 .reveal .smaller li {
-  font-size: 20.5px;
+  font-size: 18px;
 }
 
 .reveal .compact table {
-  font-size: 16.5px;
+  font-size: 15px;
+}
+
+.reveal .compact p,
+.reveal .compact li {
+  font-size: 18px;
+  line-height: 1.24;
 }
 
 .reveal .compact pre code {
-  font-size: 15px;
+  font-size: 13.8px;
 }
 
 .reveal .compact .trainer-note p,
 .reveal .compact .answer p {
-  font-size: 18px;
+  font-size: 16.5px;
+}
+
+.reveal .dense table {
+  font-size: 14px;
+}
+
+.reveal .dense p,
+.reveal .dense li {
+  font-size: 16.8px;
+}
+
+.reveal .dense pre code {
+  font-size: 12.5px;
+  line-height: 1.2;
+}
+
+.reveal .dense .trainer-note p,
+.reveal .dense .answer p {
+  font-size: 15.5px;
 }
 
 @media (max-width: 1100px) {
   .reveal .lesson-map,
+  .reveal .learning-lane,
+  .reveal .reading-grid,
+  .reveal .workbook-grid,
+  .reveal .case-grid,
+  .reveal .method-strip,
   .reveal .formula-strip,
   .reveal .checklist-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -661,7 +945,7 @@
 
 @media (max-width: 900px) {
   .reveal {
-    font-size: 23px;
+    font-size: 21px;
   }
 
   .reveal .slides section {
@@ -669,12 +953,12 @@
     padding-right: 42px;
   }
 
-  .reveal .slides section:not(#title-slide)::before {
+  .reveal .slides section:not(#title-slide):not(.section-divider)::before {
     left: 42px;
     right: 42px;
   }
 
-  .reveal .slides section:not(#title-slide)::after {
+  .reveal .slides section:not(#title-slide):not(.section-divider)::after {
     right: 42px;
   }
 }

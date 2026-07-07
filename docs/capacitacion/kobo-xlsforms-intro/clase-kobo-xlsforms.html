@@ -508,19 +508,32 @@ margin: 0 0.8em 0.2em -1em;  vertical-align: middle;
 --pulso-danger-border: #fecaca;
 --pulso-danger-fg: #991b1b;
 --pulso-shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.07);
+--xls-bg: #f3f5f8;
+--xls-bg-elevated: #fafbfe;
+--xls-content: #ffffff;
+--xls-content-soft: #fbfcff;
+--xls-toolbar: color-mix(in srgb, #ffffff 86%, transparent);
+--xls-toolbar-strong: color-mix(in srgb, #ffffff 94%, transparent);
+--xls-border: color-mix(in srgb, var(--pulso-border) 74%, rgba(0, 36, 87, 0.18));
+--xls-border-strong: color-mix(in srgb, var(--pulso-primary-border) 72%, var(--pulso-border));
+--xls-shadow-hairline: 0 1px 1px rgba(15, 23, 42, 0.035);
+--xls-shadow-panel: 0 10px 28px rgba(15, 23, 42, 0.075);
+--xls-radius-control: 8px;
+--xls-radius-panel: 12px;
+--xls-radius-workbench: 16px;
 }
 .reveal {
 background:
-linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent 34%),
+linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.14) 180px),
 linear-gradient(90deg, rgba(0, 36, 87, 0.016) 1px, transparent 1px),
 linear-gradient(180deg, rgba(0, 36, 87, 0.014) 1px, transparent 1px),
-var(--pulso-bg);
+var(--xls-bg);
 background-size: auto, 38px 38px, 38px 38px, auto;
 color: var(--pulso-text);
 font-family:
 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
 Helvetica, Arial, sans-serif;
-font-size: 25px;
+font-size: 22px;
 }
 .reveal .slides {
 text-align: left;
@@ -529,11 +542,11 @@ text-align: left;
 box-sizing: border-box;
 height: 100%;
 overflow-y: auto !important;
-padding: 38px 62px 50px;
+padding: 34px 58px 46px;
 scrollbar-width: thin;
 scrollbar-color: var(--pulso-border-strong) transparent;
 }
-.reveal .slides section:not(#title-slide)::before {
+.reveal .slides section:not(#title-slide):not(.section-divider)::before {
 background: linear-gradient(
 90deg,
 var(--pulso-primary),
@@ -541,20 +554,20 @@ color-mix(in srgb, var(--pulso-module-editor) 72%, var(--pulso-primary))
 );
 border-radius: 999px;
 content: "";
-height: 3px;
-left: 62px;
+height: 2px;
+left: 58px;
 position: absolute;
-right: 62px;
-top: 23px;
+right: 58px;
+top: 22px;
 }
-.reveal .slides section:not(#title-slide)::after {
+.reveal .slides section:not(#title-slide):not(.section-divider)::after {
 color: var(--pulso-text-faint);
 content: "Prosecnur · KoboToolbox · XLSForm";
 font-size: 11px;
 font-weight: 700;
 letter-spacing: 0;
 position: absolute;
-right: 62px;
+right: 58px;
 top: 8px;
 }
 .reveal .slides section.section-divider {
@@ -566,7 +579,7 @@ display: flex !important;
 flex-direction: column;
 justify-content: center;
 overflow: hidden !important;
-padding: 82px 86px;
+padding: 76px 82px;
 }
 .reveal .slides section.section-divider::before {
 background:
@@ -600,12 +613,12 @@ position: relative;
 z-index: 1;
 }
 .reveal .section-divider h2 {
-font-size: 52px;
+font-size: 48px;
 margin-bottom: 18px;
 }
 .reveal .section-divider p {
 color: rgba(255, 255, 255, 0.84);
-font-size: 27px;
+font-size: 25px;
 line-height: 1.3;
 }
 .reveal h1,
@@ -620,20 +633,20 @@ margin: 0 0 18px;
 text-transform: none;
 }
 .reveal h1 {
-font-size: 54px;
+font-size: 50px;
 max-width: 900px;
 }
 .reveal h2 {
-font-size: 36px;
+font-size: 33px;
 max-width: 1050px;
 }
 .reveal h3 {
-font-size: 28px;
+font-size: 25px;
 }
 .reveal p,
 .reveal li {
-font-size: 23px;
-line-height: 1.31;
+font-size: 20.5px;
+line-height: 1.28;
 }
 .reveal p {
 margin: 0 0 14px;
@@ -656,7 +669,7 @@ text-decoration-thickness: 2px;
 text-underline-offset: 4px;
 }
 .reveal code {
-background: rgba(15, 23, 42, 0.045);
+background: color-mix(in srgb, var(--xls-bg) 82%, var(--pulso-primary) 3%);
 border: 0;
 border-radius: 4px;
 color: color-mix(in srgb, var(--pulso-primary) 78%, var(--pulso-text));
@@ -676,23 +689,27 @@ font-size: 0.96em;
 font-weight: inherit;
 padding: 0;
 }
+.reveal div.sourceCode {
+background: transparent !important;
+border: 0 !important;
+box-shadow: none !important;
+margin: 8px 0 12px !important;
+overflow: visible !important;
+padding: 0 !important;
+}
 .reveal pre,
 .reveal pre.sourceCode,
-.reveal div.sourceCode,
 .reveal div.sourceCode pre.sourceCode {
-background:
-linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 249, 253, 0.7)),
-var(--pulso-surface) !important;
+background: color-mix(in srgb, var(--xls-content-soft) 82%, var(--xls-bg) 18%) !important;
 border: 0 !important;
 border-left: 0 !important;
-border-radius: 8px !important;
+border-radius: var(--xls-radius-control) !important;
 box-shadow:
-inset 0 0 0 1px rgba(0, 36, 87, 0.08),
-inset 0 1px 0 rgba(255, 255, 255, 0.78),
-0 1px 1px rgba(15, 23, 42, 0.03) !important;
-margin: 10px 0 13px !important;
+inset 0 1px 0 rgba(255, 255, 255, 0.72),
+0 1px 1px rgba(15, 23, 42, 0.025) !important;
+margin: 8px 0 12px !important;
 outline: 0 !important;
-padding: 9px 11px !important;
+padding: 8px 10px !important;
 width: auto;
 }
 .reveal pre code,
@@ -703,19 +720,24 @@ background: transparent;
 border: 0;
 color: #20324f;
 display: block;
-font-size: 16.5px;
+font-size: 14.8px;
 font-weight: 620;
-line-height: 1.32;
+line-height: 1.27;
 max-height: none;
 overflow-wrap: anywhere;
 padding: 0 !important;
 white-space: pre-wrap !important;
 }
 .reveal pre.numberSource {
-padding-left: 12px !important;
+padding-left: 10px !important;
 }
 .reveal pre.numberSource code > span {
 left: 0 !important;
+padding-left: 0 !important;
+text-indent: 0 !important;
+}
+.reveal pre.numberSource code > span > a:first-child {
+display: none !important;
 }
 .reveal pre.numberSource code > span > a:first-child::before {
 display: none !important;
@@ -730,19 +752,19 @@ display: none !important;
 background: var(--pulso-surface);
 border: 1px solid var(--pulso-border);
 border-collapse: separate;
-border-radius: 12px;
+border-radius: var(--xls-radius-panel);
 border-spacing: 0;
-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+box-shadow: var(--xls-shadow-hairline);
 color: var(--pulso-text);
-font-size: 18.5px;
-line-height: 1.2;
-margin: 12px 0 15px;
+font-size: 16.5px;
+line-height: 1.18;
+margin: 10px 0 13px;
 overflow: hidden;
 width: 100%;
 }
 .reveal table th {
 background:
-linear-gradient(180deg, rgba(250, 251, 255, 0.94), rgba(241, 243, 249, 0.94)),
+linear-gradient(180deg, rgba(250, 251, 255, 0.96), rgba(242, 244, 248, 0.96)),
 var(--pulso-surface-2);
 color: var(--pulso-primary);
 font-size: 0.92em;
@@ -753,7 +775,7 @@ font-weight: 760;
 border: 0;
 border-bottom: 1px solid var(--pulso-border);
 overflow-wrap: anywhere;
-padding: 7px 10px;
+padding: 6px 9px;
 vertical-align: top;
 }
 .reveal table code {
@@ -785,7 +807,7 @@ height: 4px;
 background: var(--pulso-surface);
 border: 1px solid var(--pulso-border);
 border-left: 0;
-border-radius: 12px;
+border-radius: var(--xls-radius-panel);
 box-shadow:
 inset 0 1px 0 rgba(255, 255, 255, 0.86),
 0 1px 1px rgba(15, 23, 42, 0.03);
@@ -797,55 +819,222 @@ width: auto;
 .reveal .lesson-map {
 display: grid;
 gap: 12px;
-grid-template-columns: repeat(4, minmax(0, 1fr));
-margin: 24px 0 8px;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+margin: 20px 0 16px;
 }
 .reveal .lesson-item,
+.reveal .learning-card,
+.reveal .reading-step,
+.reveal .case-card,
 .reveal .flow-step,
 .reveal .formula-part,
+.reveal .method-step,
+.reveal .fix-card,
 .reveal .trainer-note,
 .reveal .answer,
 .reveal .compare-card,
+.reveal .sheet-example,
 .reveal .checkline {
 background:
 linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.92)),
 var(--pulso-surface);
-border: 1px solid color-mix(in srgb, var(--pulso-border) 88%, var(--pulso-border-strong));
-border-radius: 10px;
+border: 1px solid var(--xls-border);
+border-radius: var(--xls-radius-control);
 box-shadow:
-inset 0 1px 0 rgba(255, 255, 255, 0.86),
-0 1px 1px rgba(15, 23, 42, 0.03);
+inset 0 1px 0 rgba(255, 255, 255, 0.72),
+var(--xls-shadow-hairline);
 min-width: 0;
 }
 .reveal .lesson-item {
-padding: 14px 15px;
+min-height: 82px;
+padding: 13px 15px;
 }
 .reveal .lesson-item strong {
 display: block;
-font-size: 18px;
+font-size: 16.5px;
 line-height: 1.2;
 margin-bottom: 8px;
 }
 .reveal .lesson-item p {
 color: var(--pulso-text-soft);
-font-size: 17px;
+font-size: 15.5px;
 line-height: 1.25;
 margin: 0;
 }
+.reveal .learning-lane {
+display: grid;
+gap: 12px;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+margin-top: 18px;
+}
+.reveal .learning-card {
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 255, 0.9)),
+var(--pulso-surface);
+border-color: color-mix(in srgb, var(--pulso-module-collectors) 18%, var(--xls-border));
+min-height: 128px;
+padding: 16px 18px;
+}
+.reveal .learning-card strong {
+display: block;
+font-size: 18px;
+line-height: 1.18;
+margin-bottom: 9px;
+}
+.reveal .learning-card p {
+color: var(--pulso-text-soft);
+font-size: 16.5px;
+line-height: 1.28;
+margin: 0;
+}
+.reveal .sheet-example {
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.9)),
+var(--pulso-surface);
+margin: 14px 0 15px;
+padding: 12px 14px 14px;
+}
+.reveal .sheet-example > p:first-child {
+color: var(--pulso-primary);
+font-size: 16px;
+font-weight: 760;
+line-height: 1.2;
+margin: 0 0 8px;
+}
+.reveal .sheet-example table {
+margin: 0;
+}
+.reveal .sheet-example--compact {
+margin: 12px 0;
+padding: 10px 12px 12px;
+}
+.reveal .sheet-example--compact table {
+font-size: 14.2px;
+}
+.reveal .sheet-example--wide {
+padding: 10px 12px 12px;
+}
+.reveal .sheet-example--wide table {
+font-size: 12.8px;
+line-height: 1.12;
+}
+.reveal .sheet-example--wide table th,
+.reveal .sheet-example--wide table td {
+padding: 5px 6px;
+}
+.reveal .sheet-example--wide table code {
+font-size: 0.72em;
+}
+.reveal .workbook-grid {
+align-items: start;
+display: grid;
+gap: 12px;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+margin: 13px 0;
+}
+.reveal .workbook-grid .sheet-example {
+margin: 0;
+}
+.reveal .workbook-grid table {
+font-size: 12.8px;
+line-height: 1.12;
+}
+.reveal .workbook-grid table th,
+.reveal .workbook-grid table td {
+padding: 5px 6px;
+}
+.reveal .formula-card {
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.88)),
+var(--pulso-surface);
+border: 1px solid color-mix(in srgb, var(--pulso-module-collectors) 18%, var(--xls-border));
+border-radius: var(--xls-radius-control);
+box-shadow:
+inset 0 1px 0 rgba(255, 255, 255, 0.72),
+var(--xls-shadow-hairline);
+margin: 11px 0 13px;
+padding: 12px 14px;
+width: fit-content;
+max-width: 100%;
+}
+.reveal .formula-card code {
+background: transparent;
+color: var(--pulso-primary);
+display: block;
+font-size: 18.5px;
+line-height: 1.22;
+padding: 0;
+white-space: normal;
+}
+.reveal .formula-card--large code {
+font-size: 24px;
+font-weight: 760;
+}
+.reveal .reading-grid {
+display: grid;
+gap: 12px;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+margin: 18px 0 0;
+}
+.reveal .reading-step {
+border-color: color-mix(in srgb, var(--pulso-module-collectors) 18%, var(--xls-border));
+min-height: 112px;
+padding: 14px 15px;
+}
+.reveal .reading-step strong {
+display: block;
+font-size: 16.5px;
+line-height: 1.15;
+margin-bottom: 8px;
+}
+.reveal .reading-step p {
+color: var(--pulso-text-soft);
+font-size: 15.5px;
+line-height: 1.25;
+margin: 0;
+}
+.reveal .case-grid,
 .reveal .flow-strip,
+.reveal .method-strip,
+.reveal .fix-grid,
 .reveal .formula-strip {
 display: grid;
 gap: 10px;
-margin: 18px 0;
+margin: 15px 0;
+}
+.reveal .case-grid {
+grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
 }
 .reveal .flow-strip {
 grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
-.reveal .flow-step {
-padding: 12px;
+.reveal .method-strip {
+grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.reveal .case-card,
+.reveal .flow-step,
+.reveal .fix-card {
+padding: 10px;
 position: relative;
 }
-.reveal .flow-step::before {
+.reveal .case-card {
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 252, 0.88)),
+var(--pulso-surface);
+}
+.reveal .fix-grid {
+grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.reveal .fix-card {
+background:
+linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 244, 224, 0.36)),
+var(--pulso-warn-bg);
+border-color: color-mix(in srgb, var(--pulso-warn-border) 58%, var(--pulso-border));
+}
+.reveal .flow-step::before,
+.reveal .case-card::before,
+.reveal .fix-card::before,
+.reveal .method-step::before {
 background: color-mix(in srgb, var(--pulso-module-editor) 72%, var(--pulso-primary));
 border-radius: 999px;
 content: "";
@@ -854,23 +1043,35 @@ height: 3px;
 margin-bottom: 10px;
 width: 42px;
 }
+.reveal .fix-card::before {
+background: color-mix(in srgb, var(--pulso-warn-fg) 66%, var(--pulso-module-editor));
+}
 .reveal .flow-step strong,
+.reveal .case-card strong,
+.reveal .fix-card strong,
+.reveal .method-step strong,
 .reveal .formula-part strong {
 display: block;
-font-size: 17px;
+font-size: 15.5px;
 line-height: 1.2;
 margin-bottom: 4px;
 }
-.reveal .flow-step p {
+.reveal .method-step {
+padding: 12px;
+}
+.reveal .case-card p,
+.reveal .flow-step p,
+.reveal .fix-card p,
+.reveal .method-step p {
 color: var(--pulso-text-soft);
-font-size: 16.5px;
+font-size: 15px;
 line-height: 1.25;
 margin: 0;
 }
 .reveal .trainer-note,
 .reveal .answer {
-margin: 16px 0;
-padding: 12px 14px;
+margin: 13px 0;
+padding: 11px 13px;
 }
 .reveal .trainer-note {
 background:
@@ -886,40 +1087,43 @@ border-color: color-mix(in srgb, var(--pulso-success-fg) 22%, var(--pulso-border
 .reveal .trainer-note p,
 .reveal .answer p {
 color: var(--pulso-text);
-font-size: 21px;
-line-height: 1.34;
+font-size: 18.5px;
+line-height: 1.3;
 margin: 0;
 }
 .reveal .formula-strip {
 grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .reveal .formula-part {
-padding: 14px;
+padding: 12px;
 text-align: center;
 }
 .reveal .formula-part code {
 background: transparent;
 color: var(--pulso-primary);
 display: block;
-font-size: 30px;
+font-size: 26px;
 font-weight: 760;
 margin-bottom: 8px;
 padding: 0;
 }
 .reveal .formula-part p {
 color: var(--pulso-text-soft);
-font-size: 17px;
+font-size: 15.5px;
 line-height: 1.2;
 margin: 0;
 }
 .reveal .compare-grid,
 .reveal .checklist-grid {
 display: grid;
-gap: 14px;
-margin: 16px 0;
+gap: 12px;
+margin: 14px 0;
 }
 .reveal .compare-grid {
 grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.reveal .compare-grid--stacked {
+grid-template-columns: 1fr;
 }
 .reveal .checklist-grid {
 grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -927,7 +1131,7 @@ grid-template-columns: repeat(4, minmax(0, 1fr));
 .reveal .compare-card,
 .reveal .checkline {
 min-width: 0;
-padding: 13px 14px;
+padding: 11px 12px;
 }
 .reveal .compare-card--weak {
 background:
@@ -945,14 +1149,14 @@ border-color: color-mix(in srgb, var(--pulso-success-border) 72%, var(--pulso-bo
 .reveal .compare-card strong,
 .reveal .checkline strong {
 display: block;
-font-size: 17px;
+font-size: 15.5px;
 line-height: 1.2;
 margin-bottom: 6px;
 }
 .reveal .compare-card p,
 .reveal .checkline p {
 color: var(--pulso-text-soft);
-font-size: 16.5px;
+font-size: 15px;
 line-height: 1.25;
 margin: 0;
 }
@@ -960,7 +1164,20 @@ margin: 0;
 margin: 7px 0 9px !important;
 }
 .reveal .compare-card pre code {
-font-size: 14.5px;
+font-size: 13.2px;
+}
+.reveal .compare-card table {
+font-size: 13.8px;
+margin: 7px 0 9px;
+}
+.reveal .compare-card table th,
+.reveal .compare-card table td {
+padding: 5px 7px;
+}
+.reveal pre.wide-code code,
+.reveal .compact pre.wide-code code {
+font-size: 12.5px;
+line-height: 1.22;
 }
 .reveal #title-slide {
 background:
@@ -971,7 +1188,7 @@ display: flex !important;
 flex-direction: column;
 justify-content: center;
 overflow: hidden !important;
-padding: 82px 86px;
+padding: 76px 82px;
 }
 .reveal #title-slide::before {
 background:
@@ -1001,14 +1218,14 @@ z-index: 1;
 }
 .reveal #title-slide h1 {
 color: #fff;
-font-size: 64px;
+font-size: 58px;
 line-height: 1.02;
 margin-bottom: 18px;
 max-width: 900px;
 }
 .reveal #title-slide .subtitle {
 color: rgba(255, 255, 255, 0.84);
-font-size: 28px;
+font-size: 25px;
 line-height: 1.28;
 max-width: 760px;
 }
@@ -1026,33 +1243,58 @@ text-transform: uppercase;
 background: var(--pulso-surface);
 border: 1px solid var(--pulso-border);
 border-left: 1px solid var(--pulso-border);
-border-radius: 12px;
+border-radius: var(--xls-radius-panel);
 box-shadow:
 inset 0 1px 0 rgba(255, 255, 255, 0.86),
 0 1px 1px rgba(15, 23, 42, 0.03);
 }
 .reveal .columns {
-gap: 24px;
+gap: 20px;
 }
 .reveal .column {
 min-width: 0;
 }
 .reveal .smaller p,
 .reveal .smaller li {
-font-size: 20.5px;
+font-size: 18px;
 }
 .reveal .compact table {
-font-size: 16.5px;
+font-size: 15px;
+}
+.reveal .compact p,
+.reveal .compact li {
+font-size: 18px;
+line-height: 1.24;
 }
 .reveal .compact pre code {
-font-size: 15px;
+font-size: 13.8px;
 }
 .reveal .compact .trainer-note p,
 .reveal .compact .answer p {
-font-size: 18px;
+font-size: 16.5px;
+}
+.reveal .dense table {
+font-size: 14px;
+}
+.reveal .dense p,
+.reveal .dense li {
+font-size: 16.8px;
+}
+.reveal .dense pre code {
+font-size: 12.5px;
+line-height: 1.2;
+}
+.reveal .dense .trainer-note p,
+.reveal .dense .answer p {
+font-size: 15.5px;
 }
 @media (max-width: 1100px) {
 .reveal .lesson-map,
+.reveal .learning-lane,
+.reveal .reading-grid,
+.reveal .workbook-grid,
+.reveal .case-grid,
+.reveal .method-strip,
 .reveal .formula-strip,
 .reveal .checklist-grid {
 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1060,17 +1302,17 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 @media (max-width: 900px) {
 .reveal {
-font-size: 23px;
+font-size: 21px;
 }
 .reveal .slides section {
 padding-left: 42px;
 padding-right: 42px;
 }
-.reveal .slides section:not(#title-slide)::before {
+.reveal .slides section:not(#title-slide):not(.section-divider)::before {
 left: 42px;
 right: 42px;
 }
-.reveal .slides section:not(#title-slide)::after {
+.reveal .slides section:not(#title-slide):not(.section-divider)::after {
 right: 42px;
 }
 }
@@ -1591,21 +1833,31 @@ Prosecnur
 <h2>Objetivo de la sesión</h2>
 <p>Al final de la clase podrás leer un XLSForm, reconocer sus hojas principales y escribir reglas básicas para mejorar la calidad de datos en KoboToolbox.</p>
 <div class="lesson-map">
-<div class="lesson-item">
+<div class="lesson-item fragment">
 <p><strong>Estructura</strong></p>
 <p><code>survey</code>, <code>choices</code> y <code>settings</code></p>
 </div>
-<div class="lesson-item">
+<div class="lesson-item fragment">
 <p><strong>Variables</strong></p>
 <p>Tipos, nombres y datos exportados</p>
 </div>
-<div class="lesson-item">
+<div class="lesson-item fragment">
 <p><strong>Lógica</strong></p>
 <p>Saltos, cálculos y filtros</p>
 </div>
-<div class="lesson-item">
+<div class="lesson-item fragment">
 <p><strong>Calidad</strong></p>
 <p>Constraints, mensajes y regex</p>
+</div>
+</div>
+<div class="learning-lane">
+<div class="learning-card fragment">
+<p><strong>Lectura guiada</strong></p>
+<p>Tomaremos una fila y diremos qué captura, cómo se llama en la base y qué regla aplica.</p>
+</div>
+<div class="learning-card fragment">
+<p><strong>Prueba de campo</strong></p>
+<p>Usaremos respuestas correctas e incorrectas para revisar saltos, filtros y restricciones.</p>
 </div>
 </div>
 <aside class="notes">
@@ -1622,43 +1874,31 @@ overflow: hidden!important;
 display:block!important;
 }</style></aside>
 </section>
-<section id="el-caso-conductor-será-una-visita-de-campo" class="slide level2">
+<section id="el-caso-conductor-será-una-visita-de-campo" class="slide level2 compact">
 <h2>El caso conductor será una visita de campo</h2>
 <p>Trabajaremos con un formulario para registrar hogares visitados.</p>
-<table class="caption-top">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Necesidad de campo</th>
-<th>Decisión XLSForm</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Identificar el hogar</td>
-<td><code>text</code> para código y DNI con formato controlado</td>
-</tr>
-<tr class="even">
-<td>Registrar composición</td>
-<td><code>integer</code> para totales y grupos de edad</td>
-</tr>
-<tr class="odd">
-<td>Mostrar preguntas según respuestas</td>
-<td><code>relevant</code> con <code>${variable}</code></td>
-</tr>
-<tr class="even">
-<td>Evitar errores de digitación</td>
-<td><code>constraint</code> y <code>constraint_message</code></td>
-</tr>
-<tr class="odd">
-<td>Filtrar territorios</td>
-<td><code>choice_filter</code> con columnas auxiliares</td>
-</tr>
-</tbody>
-</table>
+<div class="case-grid">
+<div class="case-card fragment">
+<p><strong>Identificar el hogar</strong></p>
+<p><code>text</code> para código y DNI.</p>
+</div>
+<div class="case-card fragment">
+<p><strong>Registrar composición</strong></p>
+<p><code>integer</code> para totales.</p>
+</div>
+<div class="case-card fragment">
+<p><strong>Mostrar lo necesario</strong></p>
+<p><code>relevant</code> con <code>${variable}</code>.</p>
+</div>
+<div class="case-card fragment">
+<p><strong>Evitar digitación débil</strong></p>
+<p><code>constraint</code> y mensajes.</p>
+</div>
+<div class="case-card fragment">
+<p><strong>Filtrar territorios</strong></p>
+<p><code>choice_filter</code> y auxiliares.</p>
+</div>
+</div>
 <p>La clase usa este caso para leer, corregir y ampliar fragmentos reales de XLSForm.</p>
 <aside class="notes">
 <p>Usar el caso como hilo conductor. Cada concepto vuelve a esta visita: qué se pregunta, cómo se guarda, cuándo aparece y cómo se valida. Si alguien pregunta por casos más complejos, anotar que repeats y filtros se verán como extensión del mismo principio.</p>
@@ -1677,23 +1917,23 @@ display:block!important;
 <section id="el-dato-viaja-por-una-cadena-completa" class="slide level2">
 <h2>El dato viaja por una cadena completa</h2>
 <div class="flow-strip">
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>1. Diseño</strong></p>
 <p>Qué dato se necesita</p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>2. XLSForm</strong></p>
 <p>Cómo se captura</p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>3. KoboToolbox</strong></p>
 <p>Cómo se despliega</p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>4. KoboCollect</strong></p>
 <p>Cómo se levanta en campo</p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>5. Base</strong></p>
 <p>Cómo se analiza</p>
 </div>
@@ -1751,6 +1991,32 @@ display:block!important;
 </tr>
 </tbody>
 </table>
+</section>
+<section id="lee-cada-fila-en-cinco-pasos" class="slide level2 compact">
+<h2>Lee cada fila en cinco pasos</h2>
+<div class="method-strip">
+<div class="method-step fragment">
+<p><strong>1. Tipo</strong></p>
+<p>Qué control verá campo.</p>
+</div>
+<div class="method-step fragment">
+<p><strong>2. Nombre</strong></p>
+<p>Qué columna saldrá en la base.</p>
+</div>
+<div class="method-step fragment">
+<p><strong>3. Texto</strong></p>
+<p>Qué entiende la persona.</p>
+</div>
+<div class="method-step fragment">
+<p><strong>4. Lógica</strong></p>
+<p>Cuándo aparece o se calcula.</p>
+</div>
+<div class="method-step fragment">
+<p><strong>5. Calidad</strong></p>
+<p>Qué valores acepta.</p>
+</div>
+</div>
+<p>Este método convierte una fila de Excel en una decisión de diseño revisable.</p>
 </section>
 <section id="tres-hojas-trabajan-juntas" class="slide level2 compact">
 <h2>Tres hojas trabajan juntas</h2>
@@ -1812,12 +2078,56 @@ display:block!important;
 </section>
 <section id="un-fragmento-mínimo-ya-tiene-estructura" class="slide level2">
 <h2>Un fragmento mínimo ya tiene estructura</h2>
-<pre class="text"><code>type,name,label
-text,codigo_hogar,Código del hogar
-integer,total_personas,Total de personas en el hogar
-select_one yes_no,tiene_celular,¿Algún miembro tiene celular?</code></pre>
+<div class="sheet-example">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>text</code></td>
+<td><code>codigo_hogar</code></td>
+<td>Código del hogar</td>
+</tr>
+<tr class="even">
+<td><code>integer</code></td>
+<td><code>total_personas</code></td>
+<td>Total de personas en el hogar</td>
+</tr>
+<tr class="odd">
+<td><code>select_one yes_no</code></td>
+<td><code>tiene_celular</code></td>
+<td>¿Algún miembro tiene celular?</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="trainer-note">
 <p>Primera lectura: el formulario capturará tres variables y una de ellas usa una lista llamada <code>yes_no</code>.</p>
+</div>
+<div class="reading-grid">
+<div class="reading-step">
+<p><strong><code>type</code></strong></p>
+<p>Define el control de captura y el tipo de dato esperado.</p>
+</div>
+<div class="reading-step">
+<p><strong><code>name</code></strong></p>
+<p>Será la columna exportada en la base de datos.</p>
+</div>
+<div class="reading-step">
+<p><strong><code>label</code></strong></p>
+<p>Es el texto visible para quien levanta la información.</p>
+</div>
 </div>
 </section>
 <section id="nombres-de-variables-que-sirven-para-analizar" class="slide level2">
@@ -1873,19 +2183,78 @@ select_one yes_no,tiene_celular,¿Algún miembro tiene celular?</code></pre>
 </section>
 <section id="antes-y-después-una-fila-más-legible" class="slide level2 compact">
 <h2>Antes y después: una fila más legible</h2>
-<div class="compare-grid">
-<div class="compare-card compare-card--weak">
+<div class="compare-grid compare-grid--stacked">
+<div class="compare-card compare-card--weak fragment">
 <p><strong>Fila débil</strong></p>
-<pre class="text"><code>integer,p4,Edad?,,</code></pre>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>constraint</th>
+<th>constraint_message</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>p4</code></td>
+<td>Edad?</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <p>El <code>name</code> no explica el dato y la fila no protege valores imposibles.</p>
 </div>
-<div class="compare-card compare-card--strong">
+<div class="compare-card compare-card--strong fragment">
 <p><strong>Fila lista para campo</strong></p>
-<pre class="text"><code>integer,edad,Edad,. &gt;= 0 and . &lt;= 120,Ingrese una edad entre 0 y 120.</code></pre>
+<table class="caption-top">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>constraint</th>
+<th>constraint_message</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>edad</code></td>
+<td>Edad</td>
+<td><code>. &gt;= 0 and . &lt;= 120</code></td>
+<td>Ingrese una edad entre 0 y 120.</td>
+</tr>
+</tbody>
+</table>
 <p>El <code>name</code>, la restricción y el mensaje trabajan juntos.</p>
 </div>
 </div>
 <p>La mejora no está solo en el texto visible. Está en cómo la fila se comporta y cómo se exporta.</p>
+<div class="reading-grid reading-grid--three">
+<div class="reading-step">
+<p><strong>Nombre</strong></p>
+<p><code>edad</code> permite leer la base sin diccionario auxiliar.</p>
+</div>
+<div class="reading-step">
+<p><strong>Rango</strong></p>
+<p>La restricción bloquea valores fuera del universo esperado.</p>
+</div>
+<div class="reading-step">
+<p><strong>Mensaje</strong></p>
+<p>La corrección se comunica en lenguaje operativo.</p>
+</div>
+</div>
 </section>
 <section id="tipos-de-variables" class="slide level2 section-divider">
 <h2>2. Tipos de variables</h2>
@@ -2022,8 +2391,35 @@ select_one yes_no,tiene_celular,¿Algún miembro tiene celular?</code></pre>
 <section id="selecciones-una-respuesta-o-varias" class="slide level2">
 <h2>Selecciones: una respuesta o varias</h2>
 <p>Las preguntas de selección conectan <code>survey</code> con <code>choices</code>.</p>
-<pre class="text"><code>select_one sexo
-select_multiple servicios</code></pre>
+<div class="sheet-example sheet-example--compact">
+<p><strong>En la columna <code>type</code> de <code>survey</code></strong></p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>list_name</th>
+<th>Qué guarda</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>select_one sexo</code></td>
+<td><code>sexo</code></td>
+<td>Una opción de la lista.</td>
+</tr>
+<tr class="even">
+<td><code>select_multiple servicios</code></td>
+<td><code>servicios</code></td>
+<td>Una o más opciones de la lista.</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p><code>select_one sexo</code> guarda una sola opción de la lista <code>sexo</code>.</p>
 <p><code>select_multiple servicios</code> guarda una o más opciones de la lista <code>servicios</code>.</p>
 <p>En selección múltiple, los valores se guardan como una cadena con opciones separadas por espacios. Por eso conviene que los códigos de opciones no tengan espacios.</p>
@@ -2073,11 +2469,45 @@ select_multiple servicios</code></pre>
 <section id="mini-decisión-hogar-con-miembros-repetidos" class="slide level2">
 <h2>Mini decisión: hogar con miembros repetidos</h2>
 <p>Cuando se necesita registrar a cada integrante del hogar, <code>begin_repeat</code> permite repetir un bloque.</p>
-<pre class="text"><code>begin_repeat,miembros,Miembros del hogar
-text,nombre_miembro,Nombre
-integer,edad_miembro,Edad
-select_one parentesco,parentesco,Parentesco
-end_repeat,,</code></pre>
+<div class="sheet-example">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>begin_repeat</code></td>
+<td><code>miembros</code></td>
+<td>Miembros del hogar</td>
+</tr>
+<tr class="even">
+<td><code>text</code></td>
+<td><code>nombre_miembro</code></td>
+<td>Nombre</td>
+</tr>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>edad_miembro</code></td>
+<td>Edad</td>
+</tr>
+<tr class="even">
+<td><code>select_one parentesco</code></td>
+<td><code>parentesco</code></td>
+<td>Parentesco</td>
+</tr>
+<tr class="odd">
+<td><code>end_repeat</code></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>El resultado será una tabla relacionada: una visita puede tener varios miembros.</p>
 </section>
 <section id="listas-opciones-y-filtros" class="slide level2 section-divider">
@@ -2140,7 +2570,25 @@ end_repeat,,</code></pre>
 <section id="list_name-es-el-puente-entre-hojas" class="slide level2 compact">
 <h2><code>list_name</code> es el puente entre hojas</h2>
 <p>En <code>survey</code>:</p>
-<pre class="text"><code>select_one sexo sexo_persona Sexo de la persona</code></pre>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>select_one sexo</code></td>
+<td><code>sexo_persona</code></td>
+<td>Sexo de la persona</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>En <code>choices</code>:</p>
 <table class="caption-top">
 <thead>
@@ -2296,64 +2744,156 @@ end_repeat,,</code></pre>
 <section id="práctica-rápida-filtro-territorial" class="slide level2">
 <h2>Práctica rápida: filtro territorial</h2>
 <p>Completa el filtro para que el encuestador vea solo comunidades del distrito elegido.</p>
-<pre class="text"><code>survey
-select_one distrito,distrito,Distrito,
-select_one comunidad,comunidad,Comunidad,?
-
-choices
-list_name,name,label,distrito
-comunidad,san_miguel,San Miguel,ate
-comunidad,santa_rosa,Santa Rosa,ate
-comunidad,el_carmen,El Carmen,comas</code></pre>
-<div class="answer">
-<p>Respuesta esperada: <code>distrito=${distrito}</code></p>
-</div>
-</section>
-<section id="diagnóstico-rápido-de-listas" class="slide level2 compact">
-<h2>Diagnóstico rápido de listas</h2>
+<div class="workbook-grid">
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>survey</code></strong></p>
 <table class="caption-top">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
 <thead>
 <tr class="header">
-<th>Síntoma</th>
-<th>Causa probable</th>
-<th>Corrección</th>
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>choice_filter</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>La pregunta no muestra opciones</td>
-<td>El <code>list_name</code> no existe en <code>choices</code></td>
-<td>Igualar el nombre después de <code>select_one</code> con <code>list_name</code>.</td>
+<td><code>select_one distrito</code></td>
+<td><code>distrito</code></td>
+<td>Distrito</td>
+<td></td>
 </tr>
 <tr class="even">
-<td>Aparecen opciones de otro territorio</td>
-<td>Filtro incompleto o columna auxiliar mal escrita</td>
-<td>Revisar <code>choice_filter</code> y la columna auxiliar.</td>
-</tr>
-<tr class="odd">
-<td>Exportación difícil de cruzar</td>
-<td>Códigos <code>name</code> largos o inconsistentes</td>
-<td>Usar códigos cortos, estables y sin espacios.</td>
-</tr>
-<tr class="even">
-<td>Selección múltiple falla en lógica</td>
-<td>Se comparó con <code>=</code></td>
-<td>Usar <code>selected(${variable}, &#39;opcion&#39;)</code>.</td>
+<td><code>select_one comunidad</code></td>
+<td><code>comunidad</code></td>
+<td>Comunidad</td>
+<td><code>?</code></td>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>choices</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>list_name</th>
+<th>name</th>
+<th>label</th>
+<th>distrito</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>comunidad</code></td>
+<td><code>san_miguel</code></td>
+<td>San Miguel</td>
+<td><code>ate</code></td>
+</tr>
+<tr class="even">
+<td><code>comunidad</code></td>
+<td><code>santa_rosa</code></td>
+<td>Santa Rosa</td>
+<td><code>ate</code></td>
+</tr>
+<tr class="odd">
+<td><code>comunidad</code></td>
+<td><code>el_carmen</code></td>
+<td>El Carmen</td>
+<td><code>comas</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="answer">
+<p>Respuesta esperada: <code>distrito=${distrito}</code></p>
+</div>
+</section>
+<section id="mini-práctica-dos-fallas-en-choices" class="slide level2 compact">
+<h2>Mini práctica: dos fallas en <code>choices</code></h2>
+<div class="workbook-grid">
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>select_one distrito</code></td>
+<td><code>distrito</code></td>
+<td>Distrito</td>
+</tr>
+<tr class="even">
+<td><code>select_multiple servicios</code></td>
+<td><code>servicios</code></td>
+<td>Servicios</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>choices</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>list_name</th>
+<th>name</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>distritos</code></td>
+<td><code>ate</code></td>
+<td>Ate</td>
+</tr>
+<tr class="even">
+<td><code>servicios</code></td>
+<td><code>agua potable</code></td>
+<td>Agua potable</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="answer">
+<p>Falla 1: <code>select_one distrito</code> busca <code>list_name = distrito</code>, pero la lista se llama <code>distritos</code>.<br>
+Falla 2: en selección múltiple, <code>agua potable</code> debería ser <code>agua_potable</code>.</p>
+</div>
+</section>
+<section id="diagnóstico-rápido-de-listas" class="slide level2 compact">
+<h2>Diagnóstico rápido de listas</h2>
+<div class="fix-grid">
+<div class="fix-card fragment">
+<p><strong>Sin opciones</strong></p>
+<p>Revisar que el nombre después de <code>select_one</code> exista como <code>list_name</code>.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Opciones mezcladas</strong></p>
+<p>Revisar <code>choice_filter</code> y la columna auxiliar en <code>choices</code>.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Base difícil de cruzar</strong></p>
+<p>Usar códigos <code>name</code> cortos, estables y sin espacios.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Múltiple no detecta opción</strong></p>
+<p>Usar <code>selected(${variable}, &#39;opcion&#39;)</code>.</p>
+</div>
+</div>
 <p>Esta lectura evita perder tiempo buscando el error solo en KoboToolbox.</p>
 </section>
 <section id="columnas-que-controlan-el-comportamiento" class="slide level2 section-divider">
 <h2>4. Columnas que controlan el comportamiento</h2>
 <p>Las columnas de <code>survey</code> convierten una lista de preguntas en un instrumento inteligente.</p>
 </section>
-<section id="columnas-útiles-en-survey" class="slide level2 compact">
+<section id="columnas-útiles-en-survey" class="slide level2 compact dense">
 <h2>Columnas útiles en <code>survey</code></h2>
 <table class="caption-top">
 <colgroup>
@@ -2464,7 +3004,9 @@ comunidad,el_carmen,El Carmen,comas</code></pre>
 </tbody>
 </table>
 <p>También puede depender de otra respuesta:</p>
-<pre class="text"><code>${acepta_contacto} = &#39;yes&#39;</code></pre>
+<div class="formula-card">
+<p><code>${acepta_contacto} = &#39;yes&#39;</code></p>
+</div>
 <p>La obligatoriedad debe responder a una necesidad operativa.</p>
 </section>
 <section id="relevant-controla-saltos" class="slide level2 compact">
@@ -2498,21 +3040,23 @@ comunidad,el_carmen,El Carmen,comas</code></pre>
 </section>
 <section id="leer-una-regla-relevant" class="slide level2">
 <h2>Leer una regla <code>relevant</code></h2>
-<pre class="text"><code>${tiene_celular} = &#39;yes&#39;</code></pre>
+<div class="formula-card formula-card--large">
+<p><code>${tiene_celular} = &#39;yes&#39;</code></p>
+</div>
 <div class="flow-strip">
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>Variable</strong></p>
 <p><code>${tiene_celular}</code></p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>Operador</strong></p>
 <p><code>=</code></p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>Valor esperado</strong></p>
 <p><code>&#39;yes&#39;</code></p>
 </div>
-<div class="flow-step">
+<div class="flow-step fragment">
 <p><strong>Resultado</strong></p>
 <p>Muestra la pregunta</p>
 </div>
@@ -2599,7 +3143,7 @@ display:block!important;
 <p>El punto <code>.</code> representa la respuesta de la pregunta actual.</p>
 <p>El mensaje debe explicar cómo corregir el dato.</p>
 </section>
-<section id="mensajes-de-restricción-que-ayudan" class="slide level2 compact">
+<section id="mensajes-de-restricción-que-ayudan" class="slide level2 compact dense">
 <h2>Mensajes de restricción que ayudan</h2>
 <table class="caption-top">
 <colgroup>
@@ -2664,14 +3208,80 @@ display:block!important;
 </table>
 <p>Una variable calculada puede usarse después en etiquetas, saltos o validaciones.</p>
 </section>
-<section id="cálculo-como-control-de-consistencia" class="slide level2">
+<section id="cálculo-como-control-de-consistencia" class="slide level2 compact dense">
 <h2>Cálculo como control de consistencia</h2>
-<pre class="text"><code>type,name,label,calculation,relevant,constraint,constraint_message
-integer,total_hogar,Total de personas,,,,
-integer,total_mujeres,Total de mujeres,,,. &lt;= ${total_hogar},No puede superar el total.
-integer,total_hombres,Total de hombres,,,. &lt;= ${total_hogar},No puede superar el total.
-calculate,total_reportado,,${total_mujeres} + ${total_hombres},,,
-note,alerta_total,Revise: mujeres + hombres no coincide con total,,${total_reportado} != ${total_hogar},,</code></pre>
+<div class="sheet-example sheet-example--wide">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>calculation</th>
+<th>relevant</th>
+<th>constraint</th>
+<th>constraint_message</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>total_hogar</code></td>
+<td>Total de personas</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>integer</code></td>
+<td><code>total_mujeres</code></td>
+<td>Total de mujeres</td>
+<td></td>
+<td></td>
+<td><code>. &lt;= ${total_hogar}</code></td>
+<td>No puede superar el total.</td>
+</tr>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>total_hombres</code></td>
+<td>Total de hombres</td>
+<td></td>
+<td></td>
+<td><code>. &lt;= ${total_hogar}</code></td>
+<td>No puede superar el total.</td>
+</tr>
+<tr class="even">
+<td><code>calculate</code></td>
+<td><code>total_reportado</code></td>
+<td></td>
+<td><code>${total_mujeres} + ${total_hombres}</code></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>note</code></td>
+<td><code>alerta_total</code></td>
+<td>Revise: mujeres + hombres no coincide con total</td>
+<td></td>
+<td><code>${total_reportado} != ${total_hogar}</code></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="trainer-note">
 <p>La lógica también sirve para auditoría interna del formulario, no solo para saltos visibles.</p>
 </div>
@@ -2749,9 +3359,27 @@ note,alerta_total,Revise: mujeres + hombres no coincide con total,,${total_repor
 </section>
 <section id="versionar-evita-mezclar-instrumentos" class="slide level2">
 <h2>Versionar evita mezclar instrumentos</h2>
-<pre class="text"><code>settings
-form_title,form_id,version,default_language
-Visita de hogares,hogares_visita,2026-07-06,Español</code></pre>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>settings</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>form_title</th>
+<th>form_id</th>
+<th>version</th>
+<th>default_language</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Visita de hogares</td>
+<td><code>hogares_visita</code></td>
+<td><code>2026-07-06</code></td>
+<td>Español</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="trainer-note">
 <p>Subir una nueva versión antes de campo ayuda a saber qué formulario produjo cada base.</p>
 </div>
@@ -2760,14 +3388,39 @@ Visita de hogares,hogares_visita,2026-07-06,Español</code></pre>
 <h2>5. Fórmulas y lógica</h2>
 <p>Las fórmulas conectan respuestas y convierten el formulario en una secuencia adaptativa.</p>
 </section>
-<section id="referencias-entre-preguntas" class="slide level2">
+<section id="referencias-entre-preguntas" class="slide level2 compact">
 <h2>Referencias entre preguntas</h2>
 <p>La sintaxis <code>${variable}</code> trae la respuesta de otra pregunta.</p>
-<pre class="text"><code>${edad} &gt;= 18
-${consentimiento} = &#39;yes&#39;
-${total_ninos} &lt;= ${total_personas}</code></pre>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Fórmula</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>${edad} &gt;= 18</code></td>
+<td>La persona es mayor de edad.</td>
+</tr>
+<tr class="even">
+<td><code>${consentimiento} = &#39;yes&#39;</code></td>
+<td>Se registró consentimiento.</td>
+</tr>
+<tr class="odd">
+<td><code>${total_ninos} &lt;= ${total_personas}</code></td>
+<td>El subconjunto no supera el total.</td>
+</tr>
+</tbody>
+</table>
 <p>En la misma fila, el punto <code>.</code> representa la respuesta actual:</p>
-<pre class="text"><code>. &gt;= 0 and . &lt;= 100</code></pre>
+<div class="formula-card">
+<p><code>. &gt;= 0 and . &lt;= 100</code></p>
+</div>
 </section>
 <section id="operadores-frecuentes" class="slide level2 compact">
 <h2>Operadores frecuentes</h2>
@@ -2863,7 +3516,9 @@ ${total_ninos} &lt;= ${total_personas}</code></pre>
 <section id="selected-para-selección-múltiple" class="slide level2 compact">
 <h2><code>selected()</code> para selección múltiple</h2>
 <p>Una selección múltiple puede contener varias opciones.</p>
-<pre class="text"><code>selected(${servicios}, &#39;agua&#39;)</code></pre>
+<div class="formula-card">
+<p><code>selected(${servicios}, &#39;agua&#39;)</code></p>
+</div>
 <p>Uso en <code>relevant</code>:</p>
 <table class="caption-top">
 <colgroup>
@@ -2898,9 +3553,39 @@ ${total_ninos} &lt;= ${total_personas}</code></pre>
 </section>
 <section id="if-ayuda-a-clasificar-durante-la-captura" class="slide level2">
 <h2><code>if()</code> ayuda a clasificar durante la captura</h2>
-<pre class="text"><code>type,name,label,calculation
-integer,edad,Edad,
-calculate,grupo_edad,,if(${edad} &lt; 18, &#39;menor&#39;, &#39;adulto&#39;)</code></pre>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>calculation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>edad</code></td>
+<td>Edad</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>calculate</code></td>
+<td><code>grupo_edad</code></td>
+<td></td>
+<td><code>if(${edad} &lt; 18, &#39;menor&#39;, &#39;adulto&#39;)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>La variable <code>grupo_edad</code> no se pregunta, pero queda guardada para filtros o controles posteriores.</p>
 </section>
 <section id="regex-para-formatos" class="slide level2 section-divider">
@@ -2911,7 +3596,9 @@ calculate,grupo_edad,,if(${edad} &lt; 18, &#39;menor&#39;, &#39;adulto&#39;)</co
 <h2>Regex valida formatos de texto</h2>
 <p>Una expresión regular describe un patrón de caracteres.</p>
 <p>En XLSForm se usa con <code>regex()</code>:</p>
-<pre class="text"><code>regex(., &#39;^[0-9]{8}$&#39;)</code></pre>
+<div class="formula-card">
+<p><code>regex(., &#39;^[0-9]{8}$&#39;)</code></p>
+</div>
 <p>Lectura:</p>
 <ul>
 <li><code>.</code> toma la respuesta actual.</li>
@@ -2924,19 +3611,19 @@ calculate,grupo_edad,,if(${edad} &lt; 18, &#39;menor&#39;, &#39;adulto&#39;)</co
 <section id="anatomía-de-una-regex" class="slide level2">
 <h2>Anatomía de una regex</h2>
 <div class="formula-strip">
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>^</code></p>
 <p>Inicio</p>
 </div>
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>[0-9]</code></p>
 <p>Dígito</p>
 </div>
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>{8}</code></p>
 <p>Ocho veces</p>
 </div>
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>$</code></p>
 <p>Final</p>
 </div>
@@ -3005,7 +3692,7 @@ display:block!important;
 </tbody>
 </table>
 </section>
-<section id="patrones-comunes-para-campo" class="slide level2 compact">
+<section id="patrones-comunes-para-campo" class="slide level2 compact dense">
 <h2>Patrones comunes para campo</h2>
 <table class="caption-top">
 <colgroup>
@@ -3047,26 +3734,26 @@ display:block!important;
 <h2>Construcción guiada: código de visita</h2>
 <p>Queremos aceptar valores como <code>VIS-2026-001</code>.</p>
 <div class="formula-strip">
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>VIS</code></p>
 <p>Prefijo fijo</p>
 </div>
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>-</code></p>
 <p>Separador</p>
 </div>
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>[0-9]{4}</code></p>
 <p>Año</p>
 </div>
-<div class="formula-part">
+<div class="formula-part fragment">
 <p><code>[0-9]{3}</code></p>
 <p>Correlativo</p>
 </div>
 </div>
 <p>Patrón final: <code>^VIS-[0-9]{4}-[0-9]{3}$</code></p>
 </section>
-<section id="regex-o-rango-elige-por-tipo-de-problema" class="slide level2 compact">
+<section id="regex-o-rango-elige-por-tipo-de-problema" class="slide level2 compact dense">
 <h2>Regex o rango: elige por tipo de problema</h2>
 <table class="caption-top">
 <colgroup>
@@ -3109,9 +3796,16 @@ display:block!important;
 <h2>Práctica: corregir una regla</h2>
 <p>La variable <code>codigo_visita</code> debe tener el formato <code>VIS-2026-001</code>.</p>
 <p>Regla incompleta:</p>
-<pre class="text"><code>regex(., &#39;[A-Z]{3}-[0-9]{4}-[0-9]{3}&#39;)</code></pre>
-<p>Mejora esperada:</p>
-<pre class="text"><code>regex(., &#39;^[A-Z]{3}-[0-9]{4}-[0-9]{3}$&#39;)</code></pre>
+<div class="compare-grid compare-grid--stacked">
+<div class="compare-card compare-card--weak">
+<p><strong>Regla incompleta</strong></p>
+<p><code>regex(., &#39;[A-Z]{3}-[0-9]{4}-[0-9]{3}&#39;)</code></p>
+</div>
+<div class="compare-card compare-card--strong">
+<p><strong>Mejora esperada</strong></p>
+<p><code>regex(., &#39;^[A-Z]{3}-[0-9]{4}-[0-9]{3}$&#39;)</code></p>
+</div>
+</div>
 <p>Las anclas aseguran que todo el texto cumpla el formato.</p>
 <aside class="notes">
 <p>Pedir dos variantes al grupo: una que permita cualquier prefijo de tres letras y otra que obligue <code>VIS</code>. Comparar <code>^[A-Z]{3}-...$</code> con <code>^VIS-...$</code>.</p>
@@ -3131,22 +3825,99 @@ display:block!important;
 <h2>7. Ejemplo integrado</h2>
 <p>Ahora juntamos tipos, listas, saltos, restricciones y mensajes en un fragmento compacto.</p>
 </section>
-<section id="ejemplo-integrado-hoja-survey" class="slide level2 compact">
+<section id="ejemplo-integrado-hoja-survey" class="slide level2 compact dense">
 <h2>Ejemplo integrado: hoja <code>survey</code></h2>
-<pre class="text"><code>survey
-type,name,label,required,relevant,constraint,constraint_message
-text,dni,DNI,yes,,regex(., &#39;^[0-9]{8}$&#39;),Ingrese 8 dígitos.
-integer,edad,Edad,yes,,. &gt;= 0 and . &lt;= 120,Ingrese una edad válida.
-select_one yes_no,tiene_celular,¿Tiene celular?,yes,,,
-text,celular,Número de celular,,${tiene_celular} = &#39;yes&#39;,regex(., &#39;^[0-9]{9}$&#39;),Ingrese 9 dígitos.</code></pre>
+<div class="sheet-example sheet-example--wide">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top" style="width:100%;">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>required</th>
+<th>relevant</th>
+<th>constraint</th>
+<th>constraint_message</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>text</code></td>
+<td><code>dni</code></td>
+<td>DNI</td>
+<td><code>yes</code></td>
+<td></td>
+<td><code>regex(., &#39;^[0-9]{8}$&#39;)</code></td>
+<td>Ingrese 8 dígitos.</td>
+</tr>
+<tr class="even">
+<td><code>integer</code></td>
+<td><code>edad</code></td>
+<td>Edad</td>
+<td><code>yes</code></td>
+<td></td>
+<td><code>. &gt;= 0 and . &lt;= 120</code></td>
+<td>Ingrese una edad válida.</td>
+</tr>
+<tr class="odd">
+<td><code>select_one yes_no</code></td>
+<td><code>tiene_celular</code></td>
+<td>¿Tiene celular?</td>
+<td><code>yes</code></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>text</code></td>
+<td><code>celular</code></td>
+<td>Número de celular</td>
+<td></td>
+<td><code>${tiene_celular} = &#39;yes&#39;</code></td>
+<td><code>regex(., &#39;^[0-9]{9}$&#39;)</code></td>
+<td>Ingrese 9 dígitos.</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Valida identificación, controla rangos y muestra celular solo cuando corresponde.</p>
 </section>
 <section id="ejemplo-integrado-hoja-choices" class="slide level2">
 <h2>Ejemplo integrado: hoja <code>choices</code></h2>
-<pre class="text"><code>choices
-list_name,name,label
-yes_no,yes,Sí
-yes_no,no,No</code></pre>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>choices</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>list_name</th>
+<th>name</th>
+<th>label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>yes_no</code></td>
+<td><code>yes</code></td>
+<td>Sí</td>
+</tr>
+<tr class="even">
+<td><code>yes_no</code></td>
+<td><code>no</code></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>La lista <code>yes_no</code> alimenta la pregunta <code>select_one yes_no</code>.</p>
 </section>
 <section id="lectura-guiada-del-ejemplo" class="slide level2">
@@ -3186,7 +3957,7 @@ yes_no,no,No</code></pre>
 </tbody>
 </table>
 </section>
-<section id="ejemplo-integrado-qué-probar-antes-de-desplegar" class="slide level2 compact">
+<section id="ejemplo-integrado-qué-probar-antes-de-desplegar" class="slide level2 compact dense">
 <h2>Ejemplo integrado: qué probar antes de desplegar</h2>
 <table class="caption-top">
 <colgroup>
@@ -3228,14 +3999,60 @@ yes_no,no,No</code></pre>
 <h2>8. Laboratorio corto</h2>
 <p>La mejor forma de aprender XLSForm es leer una fila, predecir qué hará y luego probarla.</p>
 </section>
-<section id="práctica-1-leer-el-formulario" class="slide level2 compact">
+<section id="práctica-1-leer-el-formulario" class="slide level2 compact dense">
 <h2>Práctica 1: leer el formulario</h2>
 <p>Revisa este fragmento:</p>
-<pre class="text"><code>type,name,label,relevant,constraint
-integer,total_hogar,Total de personas,,
-integer,menores,Menores de edad,,. &lt;= ${total_hogar}
-select_multiple servicios,servicios,Servicios del hogar,,
-text,otro_servicio,Especifique otro,selected(${servicios}, &#39;otro&#39;),</code></pre>
+<div class="sheet-example sheet-example--wide">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>relevant</th>
+<th>constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>total_hogar</code></td>
+<td>Total de personas</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>integer</code></td>
+<td><code>menores</code></td>
+<td>Menores de edad</td>
+<td></td>
+<td><code>. &lt;= ${total_hogar}</code></td>
+</tr>
+<tr class="odd">
+<td><code>select_multiple servicios</code></td>
+<td><code>servicios</code></td>
+<td>Servicios del hogar</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>text</code></td>
+<td><code>otro_servicio</code></td>
+<td>Especifique otro</td>
+<td><code>selected(${servicios}, &#39;otro&#39;)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Preguntas:</p>
 <ul>
 <li>¿Qué variables se guardan?</li>
@@ -3304,12 +4121,39 @@ text,otro_servicio,Especifique otro,selected(${servicios}, &#39;otro&#39;),</cod
 </table>
 <p>Esta lectura convierte el XLSForm en una revisión de diseño, no en una revisión celda por celda.</p>
 </section>
-<section id="práctica-2-completar-una-validación" class="slide level2">
+<section id="práctica-2-completar-una-validación" class="slide level2 compact">
 <h2>Práctica 2: completar una validación</h2>
 <p>La pregunta <code>total_ninos</code> debe aceptar valores entre 0 y <code>total_personas</code>.</p>
-<pre class="text"><code>type,name,label,constraint,constraint_message
-integer,total_personas,Total de personas,,
-integer,total_ninos,Total de niños,?,?</code></pre>
+<div class="sheet-example sheet-example--compact">
+<p><strong>Hoja <code>survey</code></strong></p>
+<table class="caption-top">
+<thead>
+<tr class="header">
+<th>type</th>
+<th>name</th>
+<th>label</th>
+<th>constraint</th>
+<th>constraint_message</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>integer</code></td>
+<td><code>total_personas</code></td>
+<td>Total de personas</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>integer</code></td>
+<td><code>total_ninos</code></td>
+<td>Total de niños</td>
+<td><code>?</code></td>
+<td><code>?</code></td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="answer">
 <p>Constraint: <code>. &gt;= 0 and . &lt;= ${total_personas}</code><br>
 Mensaje: <code>El total de niños debe estar entre 0 y el total de personas.</code></p>
@@ -3359,65 +4203,46 @@ Mensaje: <code>El total de niños debe estar entre 0 y el total de personas.</co
 </section>
 <section id="errores-frecuentes-y-reparación-rápida" class="slide level2 compact">
 <h2>Errores frecuentes y reparación rápida</h2>
-<table class="caption-top">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Error</th>
-<th>Cómo se ve</th>
-<th>Reparación</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>name</code> duplicado</td>
-<td>Dos columnas iguales en la base</td>
-<td>Renombrar una variable y revisar referencias.</td>
-</tr>
-<tr class="even">
-<td>Lista inexistente</td>
-<td><code>select_one distrito</code> sin <code>choices</code></td>
-<td>Crear <code>list_name = distrito</code>.</td>
-</tr>
-<tr class="odd">
-<td>Regex sin anclas</td>
-<td>Acepta texto extra</td>
-<td>Agregar <code>^</code> y <code>$</code>.</td>
-</tr>
-<tr class="even">
-<td>Constraint sin mensaje</td>
-<td>Campo sabe que falla, pero no cómo corregir</td>
-<td>Agregar <code>constraint_message</code>.</td>
-</tr>
-<tr class="odd">
-<td>Selección múltiple con <code>=</code></td>
-<td>La regla no detecta opciones marcadas</td>
-<td>Usar <code>selected()</code>.</td>
-</tr>
-</tbody>
-</table>
+<div class="fix-grid">
+<div class="fix-card fragment">
+<p><strong><code>name</code> duplicado</strong></p>
+<p>Renombrar una variable y revisar referencias.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Lista inexistente</strong></p>
+<p>Crear el <code>list_name</code> que usa <code>select_one</code>.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Regex sin anclas</strong></p>
+<p>Agregar <code>^</code> y <code>$</code>.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Constraint sin mensaje</strong></p>
+<p>Agregar <code>constraint_message</code>.</p>
+</div>
+<div class="fix-card fragment">
+<p><strong>Selección múltiple con <code>=</code></strong></p>
+<p>Usar <code>selected()</code>.</p>
+</div>
+</div>
 <p>Una reparación rápida empieza leyendo la fila completa y la hoja que la alimenta.</p>
 </section>
 <section id="simulación-final-de-cinco-minutos" class="slide level2 compact">
 <h2>Simulación final de cinco minutos</h2>
 <div class="checklist-grid">
-<div class="checkline">
+<div class="checkline fragment">
 <p><strong>1. Cargar</strong></p>
 <p>Sube el XLSForm y revisa advertencias.</p>
 </div>
-<div class="checkline">
+<div class="checkline fragment">
 <p><strong>2. Responder</strong></p>
 <p>Completa un caso normal y uno con errores.</p>
 </div>
-<div class="checkline">
+<div class="checkline fragment">
 <p><strong>3. Navegar</strong></p>
 <p>Prueba saltos, filtros y repeats.</p>
 </div>
-<div class="checkline">
+<div class="checkline fragment">
 <p><strong>4. Exportar</strong></p>
 <p>Confirma nombres, tipos y valores guardados.</p>
 </div>
@@ -3469,6 +4294,7 @@ display:block!important;
 <li>ODK Docs, expresiones regulares: <a href="https://docs.getodk.org/form-regex/" class="uri">https://docs.getodk.org/form-regex/</a></li>
 <li>KoboToolbox, form logic in XLSForm: <a href="https://support.kobotoolbox.org/form_logic_xls.html" class="uri">https://support.kobotoolbox.org/form_logic_xls.html</a></li>
 <li>KoboToolbox, constraints in XLSForm: <a href="https://support.kobotoolbox.org/constraints_xls.html" class="uri">https://support.kobotoolbox.org/constraints_xls.html</a></li>
+<li>KoboToolbox, regex y restricción de respuestas: <a href="https://support.kobotoolbox.org/restrict_responses.html" class="uri">https://support.kobotoolbox.org/restrict_responses.html</a></li>
 </ul>
 
 </section>
