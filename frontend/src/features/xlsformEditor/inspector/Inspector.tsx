@@ -21,6 +21,7 @@
 
 import { useEffect, useState } from "react";
 import { Layers, Paintbrush, Sliders } from "lucide-react";
+import "../styles/xf-inspector.css";
 import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderNode, CatalogSummary } from "../types";
 import type { LogicScope } from "../logic";
@@ -100,7 +101,7 @@ export function Inspector({
   });
 
   return (
-    <div className="pulso-inspector">
+    <div className="pulso-inspector pulso-xfi">
       <header className="pulso-inspector-header">
         <div className="pulso-inspector-header-top">
           <span

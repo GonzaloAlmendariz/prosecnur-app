@@ -1,16 +1,22 @@
 // =============================================================================
-// inspector/NameField.tsx — input para `name` con validación regex en vivo
+// inspector/NameField.tsx — input para `name` con borrador y confirmación
 // =============================================================================
 // XLSForm exige que `name` cumpla `^[a-zA-Z_][a-zA-Z0-9_]*$` (sin espacios,
 // sin diacríticos, sin empezar con número). Este componente:
-//   - Muestra un input controlado normal.
-//   - Pinta de ámbar el borde si el valor no es válido.
-//   - Sugiere debajo cómo arreglarlo (ej. "no puede empezar con número").
-//   - Permite igualmente que el usuario escriba — la validación es advertencia,
-//     no bloqueo. El export final lo bloqueará el endpoint /validate (Sub-PR 9).
+//   - Edita sobre un BORRADOR local: escribir no toca el workbook.
+//   - Aplica el cambio solo con confirmación explícita (botón "Aplicar" o
+//     Enter); Esc o el botón de descartar lo revierten.
+//   - Pinta de ámbar el borde si el borrador no es válido y sugiere cómo
+//     arreglarlo (ej. "no puede empezar con número").
+//
+// La confirmación explícita existe porque aplicar un rename propaga las
+// referencias `${old}` → `${new}` en todo el survey (ver updateSurveyField
+// en XlsformEditorPage): hacerlo por tecleo generaba una cascada de renames
+// intermedios y un toast por carácter.
 // =============================================================================
 
-import { AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, Check, Undo2 } from "lucide-react";
 
 const NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
@@ -23,54 +29,88 @@ export type NameFieldProps = {
 };
 
 export function NameField({ value, onChange, placeholder, disabled }: NameFieldProps) {
-  const trimmed = (value ?? "").trim();
+  const committed = value ?? "";
+  const [draft, setDraft] = useState(committed);
+
+  // Si el valor aplicado cambia desde fuera (selección de otra fila, asistente
+  // de nombres, undo), el borrador se realinea. Mientras se tipea, `value` no
+  // cambia porque ya no aplicamos por tecla.
+  useEffect(() => {
+    setDraft(committed);
+  }, [committed]);
+
+  const trimmed = draft.trim();
   const isEmpty = !trimmed;
   const isValid = isEmpty || NAME_REGEX.test(trimmed);
+  const dirty = trimmed !== committed.trim();
+  const canApply = dirty && !isEmpty && isValid;
   const reason = !isValid ? diagnoseNameProblem(trimmed) : null;
 
+  function apply() {
+    if (canApply) onChange(trimmed);
+  }
+
+  function revert() {
+    setDraft(committed);
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <input
-        type="text"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder ?? "ej. p1_edad"}
-        disabled={disabled}
-        spellCheck={false}
-        autoCapitalize="off"
-        autoComplete="off"
-        style={{
-          fontFamily: "ui-monospace, monospace",
-          fontSize: 13,
-          ...(isValid
-            ? {}
-            : {
-                borderColor: "var(--pulso-warn-fg)",
-                background: "var(--pulso-warn-bg)",
-              }),
-        }}
-      />
-      {!isValid && reason && (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 11,
-            color: "var(--pulso-warn-fg)",
+    <div className="pulso-xfi-namefield">
+      <div className="pulso-xfi-namefield-row">
+        <input
+          type="text"
+          className={`pulso-xfi-mono${isValid ? "" : " is-invalid"}`}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              apply();
+            } else if (event.key === "Escape" && dirty) {
+              event.preventDefault();
+              event.stopPropagation();
+              revert();
+            }
           }}
-        >
-          <AlertCircle size={12} /> {reason}
+          placeholder={placeholder ?? "ej. p1_edad"}
+          disabled={disabled}
+          spellCheck={false}
+          autoCapitalize="off"
+          autoComplete="off"
+        />
+        {dirty && (
+          <div className="pulso-xfi-namefield-actions">
+            <button
+              type="button"
+              className="pulso-xfi-namefield-apply"
+              onClick={apply}
+              disabled={!canApply}
+              title="Aplicar el nuevo nombre y actualizar sus referencias (Enter)"
+            >
+              <Check size={12} /> Aplicar
+            </button>
+            <button
+              type="button"
+              className="pulso-xfi-namefield-revert"
+              onClick={revert}
+              title="Descartar el cambio (Esc)"
+              aria-label="Descartar el cambio de nombre"
+            >
+              <Undo2 size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+      {dirty && canApply && committed.trim() && (
+        <span className="pulso-xfi-namefield-pending">
+          Al aplicar, las reglas que usan{" "}
+          <code>{"${" + committed.trim() + "}"}</code> pasan a{" "}
+          <code>{"${" + trimmed + "}"}</code>.
         </span>
       )}
-      {isValid && !isEmpty && (
-        <span
-          style={{
-            fontSize: 11,
-            color: "var(--pulso-text-soft)",
-          }}
-        >
-          Identificador interno · se usa en lógica y exports.
+      {!isValid && reason && (
+        <span className="pulso-xfi-namefield-warn">
+          <AlertCircle size={12} /> {reason}
         </span>
       )}
     </div>

@@ -30,15 +30,9 @@
 //     principal; el canvas es lectura + drag-arrow → relevant.
 // =============================================================================
 
-import {
-  Calculator,
-  Eye,
-  Filter,
-  Magnet,
-  RotateCcw,
-  ShieldCheck,
-  Undo2,
-} from "lucide-react";
+import type { CSSProperties } from "react";
+import { Magnet, RotateCcw, Undo2 } from "lucide-react";
+import { TechTerm } from "../helpers/TechTerm";
 
 export type EdgeKindFilter = {
   showRelevant: boolean;
@@ -63,39 +57,51 @@ export type CanvasToolbarProps = {
   onChangeEdgeKindFilter?: (next: EdgeKindFilter) => void;
 };
 
+/** Chips de tipos de conexión. Cada chip lleva una muestra del trazo con
+ *  el color y patrón de dash que usa ese tipo de edge en el lienzo
+ *  (sólido = visibilidad, dash = validación, punteado = cálculo,
+ *  dash-dot = filtro de opciones) + el término técnico XLSForm. */
 const LOGIC_LAYER_CONTROLS = [
   {
     key: "showRelevant",
-    label: "Aparece si",
-    Icon: Eye,
+    label: "Visibilidad",
+    tech: "relevant",
+    color: "#2457d6",
+    dash: undefined,
     title:
-      "Aparece si: flechas que deciden cuándo se muestra una pregunta o sección.",
+      "Visibilidad: flechas que deciden cuándo se muestra una pregunta o sección.",
   },
   {
     key: "showConstraint",
-    label: "Debe cumplir",
-    Icon: ShieldCheck,
+    label: "Validación",
+    tech: "constraint",
+    color: "#E15759",
+    dash: "5 3",
     title:
-      "Debe cumplir: flechas hacia respuestas con una regla de validación.",
+      "Validación: flechas hacia respuestas con una regla que deben cumplir.",
   },
   {
     key: "showCalculation",
-    label: "Calcula",
-    Icon: Calculator,
-    title:
-      "Calcula: flechas usadas para llenar campos automáticos.",
+    label: "Cálculo",
+    tech: "calculation",
+    color: "#59A14F",
+    dash: "1.5 3",
+    title: "Cálculo: flechas que alimentan campos calculados automáticos.",
   },
   {
     key: "showChoiceFilter",
-    label: "Filtra opciones",
-    Icon: Filter,
-    title:
-      "Filtra opciones: flechas que recortan opciones de una lista.",
+    label: "Filtro",
+    tech: "choice_filter",
+    color: "#B07AA1",
+    dash: "5 2 1.5 2",
+    title: "Filtro: flechas que recortan las opciones de una lista.",
   },
 ] as const satisfies ReadonlyArray<{
   key: keyof EdgeKindFilter;
   label: string;
-  Icon: typeof Eye;
+  tech: string;
+  color: string;
+  dash: string | undefined;
   title: string;
 }>;
 
@@ -181,7 +187,7 @@ export function CanvasToolbar({
             role="group"
             aria-label="Filtrar relaciones visibles"
           >
-            {LOGIC_LAYER_CONTROLS.map(({ key, label, Icon, title }) => (
+            {LOGIC_LAYER_CONTROLS.map(({ key, label, tech, color, dash, title }) => (
               <button
                 type="button"
                 key={key}
@@ -189,9 +195,22 @@ export function CanvasToolbar({
                 onClick={() => toggleKind(key)}
                 title={title}
                 aria-pressed={edgeKindFilter[key]}
+                style={{ "--xfg-chip": color } as CSSProperties}
               >
-                <Icon size={12} strokeWidth={2.25} aria-hidden="true" />
+                {/* Muestra del trazo: línea con el dash real + flecha. */}
+                <svg width={18} height={8} viewBox="0 0 18 8" aria-hidden="true">
+                  <path
+                    d="M 1 4 H 12"
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeDasharray={dash}
+                  />
+                  <path d="M 12 1.2 L 17 4 L 12 6.8 z" fill={color} />
+                </svg>
                 <span>{label}</span>
+                <TechTerm t={tech} />
               </button>
             ))}
           </div>

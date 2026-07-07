@@ -34,10 +34,8 @@ export function ForeignLanguageBadge({ notice }: ForeignLanguageBadgeProps) {
       <div className="pulso-foreign-banner-meta">
         <strong>Idiomas extra preservados</strong>
         <span>
-          Este formulario trae traducciones en {languageList}{extra}. Prosecnur las
-          conserva al exportar, pero la edición visual de otros idiomas llega
-          en una próxima iteración. Para editarlos ahora, modifica el archivo
-          .xlsx directamente.
+          Traducciones en {languageList}{extra}: se conservan al exportar.
+          Para editarlas hoy, usa el archivo .xlsx.
         </span>
       </div>
     </aside>

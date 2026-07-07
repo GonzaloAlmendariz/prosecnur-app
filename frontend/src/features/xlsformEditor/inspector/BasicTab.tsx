@@ -17,6 +17,7 @@
 import { useState } from "react";
 import { Info } from "lucide-react";
 import { IconRequired } from "../../../lib/icons";
+import TechTerm from "../helpers/TechTerm";
 import type { BuilderNode, CatalogSummary } from "../types";
 import type { LogicScope } from "../logic";
 import type { ConditionalContext } from "./ContextPanel";
@@ -85,7 +86,7 @@ export function BasicTab({
       {!isSection && (
         <InspectorBlock>
           <InspectorField
-            label="Tipo de respuesta"
+            label={<>Tipo de respuesta <TechTerm t="type" /></>}
             hint="Cómo va a contestar el encuestado."
           >
             <TypePicker value={node.typeInfo.base} onChange={onTypeChange} />
@@ -95,12 +96,14 @@ export function BasicTab({
 
       <InspectorBlock>
         <InspectorField
-          label={isSection ? "Título de la sección" : "Texto que ve el encuestado"}
-          hint={
-            isSection
-              ? "Cabecera del bloque. Usa los botones de la barra para aplicar negrita, itálica o agregar enlaces."
-              : "Se muestra arriba de la respuesta. Usa los botones para aplicar formato al texto seleccionado."
+          label={
+            isSection ? (
+              <>Título de la sección <TechTerm t="label" /></>
+            ) : (
+              <>Texto que ve el encuestado <TechTerm t="label" /></>
+            )
           }
+          hint={isSection ? "Cabecera del bloque." : "Usa la barra para dar formato."}
         >
           <MarkdownField
             value={node.label}
@@ -112,8 +115,8 @@ export function BasicTab({
 
         {!isSection && (
           <InspectorField
-            label="Pista o ayuda"
-            hint="Aclaración corta debajo del texto. Es opcional."
+            label={<>Pista o ayuda <TechTerm t="hint" /></>}
+            hint="Aclaración corta y opcional bajo el texto."
           >
             <MarkdownField
               value={node.hint}
@@ -137,8 +140,8 @@ export function BasicTab({
           <CalculationBuilder
             expression={node.calculation}
             scope={logicScope}
-            fieldLabel="Cómo se calcula"
-            hint="Fórmula que el sistema evalúa para llenar este campo. Usa ${variable} para referenciar otras preguntas."
+            fieldLabel={<>Fórmula de cálculo <TechTerm t="calculation" /></>}
+            hint={"Usa ${variable} para referenciar otras preguntas."}
             onChange={(next) => onFieldChange("calculation", next)}
           />
         </InspectorBlock>
@@ -164,10 +167,8 @@ export function BasicTab({
               />
             </span>
             <span>
-              <strong>Pregunta obligatoria</strong>
-              <em>
-                El encuestador no puede pasar de largo sin responderla.
-              </em>
+              <strong>Pregunta obligatoria <TechTerm t="required" /></strong>
+              <em>No se puede avanzar sin responderla.</em>
             </span>
           </label>
 
@@ -189,10 +190,7 @@ export function BasicTab({
               {conditionExplainOpen && (
                 <div className="pulso-inspector-conditional-required-body">
                   <p>
-                    Esta pregunta es obligatoria{" "}
-                    <strong>solo para quienes cumplan la condición de apertura</strong>.
-                    Si la pregunta no se le muestra al encuestado, el editor no
-                    pide respuesta.
+                    Obligatoria <strong>solo si se cumple la condición de apertura</strong>.
                   </p>
                   {conditionalContext?.selfRelevant && (
                     <div className="pulso-inspector-conditional-required-rule">
@@ -218,8 +216,8 @@ export function BasicTab({
 
       <InspectorBlock>
         <InspectorField
-          label="Código de la pregunta"
-          hint="Identificador que aparece en la lógica y en el archivo exportado. Solo letras, números y guion bajo."
+          label={<>Nombre interno <TechTerm t="name" /></>}
+          hint="Identifica a la pregunta en la lógica y el export."
         >
           <NameField
             value={node.name}
@@ -230,8 +228,8 @@ export function BasicTab({
 
         {!isSection && isSelect && (
           <InspectorField
-            label="Lista asignada"
-            hint="Lista de opciones que usa esta pregunta. Reasigna para reusar una lista existente."
+            label={<>Lista de opciones <TechTerm t="list_name" /></>}
+            hint="Reasigna para reusar una lista existente."
           >
             <CatalogChip
               assignedListName={node.typeInfo.listName}
@@ -246,7 +244,7 @@ export function BasicTab({
         {!isSection && isSharedCatalog && onCloneCatalog && (
           <InspectorField
             label="Divergir de la lista compartida"
-            hint="Crea una copia exclusiva para esta pregunta. Útil cuando esta pregunta necesita opciones distintas a las otras que comparten la lista."
+            hint="Para cuando esta pregunta necesita opciones distintas."
           >
             <button
               type="button"

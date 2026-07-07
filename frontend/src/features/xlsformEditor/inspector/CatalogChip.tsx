@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ListChecks, PencilLine, Plus } from "lucide-react";
 import type { CatalogSummary } from "../types";
+import TechTerm from "../helpers/TechTerm";
 
 export type CatalogChipProps = {
   /** Nombre del catálogo actualmente asignado, o vacío si no hay. */
@@ -77,9 +78,16 @@ export function CatalogChip({
           </span>
           <div className="pulso-catalogchip-meta">
             <strong>{assigned.listName}</strong>
-            <span className={assigned.items.length === 0 ? "is-empty" : undefined}>
+            <span
+              className={`pulso-xfi-catcount${assigned.items.length === 0 ? " is-empty" : ""}`}
+              title={
+                assigned.items.length === 0
+                  ? "La lista no tiene opciones todavía"
+                  : "Cantidad de opciones de la lista"
+              }
+            >
               {assigned.items.length === 0
-                ? "Vacío: agrega opciones reales"
+                ? "Vacía: agrega opciones"
                 : `${assigned.items.length} ${assigned.items.length === 1 ? "opción" : "opciones"}`}
             </span>
           </div>
@@ -119,7 +127,7 @@ export function CatalogChip({
       {pickerOpen && (
         <div className="pulso-catalogchip-pop" role="listbox">
           <div className="pulso-catalogchip-pop-header">
-            <span>Listas disponibles</span>
+            <span>Listas disponibles <TechTerm t="list_name" /></span>
             <button
               type="button"
               className="pulso-catalogchip-pop-create"
@@ -164,7 +172,7 @@ export function CatalogChip({
           )}
 
           <div className="pulso-catalogchip-pop-footer">
-            Una lista vacía está bien mientras diseñas; completa sus opciones antes de exportar.
+            Completa las opciones de la lista antes de exportar.
           </div>
         </div>
       )}
