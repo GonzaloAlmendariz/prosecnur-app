@@ -27606,6 +27606,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, #ffffff 96%, var(--pulso-primary) 2%);
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08);
 }
+.pulso-logic-predicate-pop.is-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
 .pulso-logic-predicate-option {
   display: flex;
   align-items: center;

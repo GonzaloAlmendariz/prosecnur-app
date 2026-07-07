@@ -28,9 +28,29 @@ export function PredicatePicker({
   disabled,
 }: PredicatePickerProps) {
   const [open, setOpen] = useState(false);
+  const [side, setSide] = useState<"down" | "up">("down");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const currentKey = predicateKey(value);
   const current = options.find((p) => predicateKey(p) === currentKey) ?? value;
+  const choosePredicate = (next: PredicateKind) => {
+    onChange(next);
+    setOpen(false);
+  };
+  const toggleOpen = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect && containerRef.current) {
+      const bounds = verticalClipBounds(containerRef.current);
+      const estimatedHeight = Math.min(292, options.length * 32 + 16);
+      const spaceBelow = bounds.bottom - rect.bottom;
+      const spaceAbove = rect.top - bounds.top;
+      setSide(spaceBelow < estimatedHeight && spaceAbove > spaceBelow ? "up" : "down");
+    }
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +77,7 @@ export function PredicatePicker({
       <button
         type="button"
         className="pulso-logic-predicate-trigger"
-        onClick={() => setOpen((next) => !next)}
+        onClick={toggleOpen}
         disabled={disabled}
         aria-label="Criterio de la condición"
         aria-haspopup="listbox"
@@ -68,7 +88,7 @@ export function PredicatePicker({
       </button>
 
       {open && (
-        <div className="pulso-logic-predicate-pop" role="listbox">
+        <div className={`pulso-logic-predicate-pop is-${side}`} role="listbox">
           {options.map((p) => {
             const key = predicateKey(p);
             const active = key === currentKey;
@@ -77,9 +97,12 @@ export function PredicatePicker({
                 key={key}
                 type="button"
                 className={`pulso-logic-predicate-option${active ? " is-active" : ""}`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  choosePredicate(p);
+                }}
                 onClick={() => {
-                  onChange(p);
-                  setOpen(false);
+                  choosePredicate(p);
                 }}
                 role="option"
                 aria-selected={active}
@@ -93,4 +116,21 @@ export function PredicatePicker({
       )}
     </div>
   );
+}
+
+function verticalClipBounds(element: HTMLElement): { top: number; bottom: number } {
+  let top = 0;
+  let bottom = window.innerHeight;
+  let parent = element.parentElement;
+  while (parent && parent !== document.body) {
+    const style = window.getComputedStyle(parent);
+    const overflow = `${style.overflow} ${style.overflowY}`;
+    if (/(auto|scroll|hidden|clip)/.test(overflow)) {
+      const rect = parent.getBoundingClientRect();
+      top = Math.max(top, rect.top);
+      bottom = Math.min(bottom, rect.bottom);
+    }
+    parent = parent.parentElement;
+  }
+  return { top, bottom };
 }
