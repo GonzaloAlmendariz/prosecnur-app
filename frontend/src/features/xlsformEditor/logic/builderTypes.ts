@@ -15,6 +15,8 @@ import type { ChoiceItem } from "../types";
  *  condición. Es la reducción mínima de un BuilderNode al contrato que el
  *  builder consume. */
 export type LogicVariable = {
+  /** Fila survey original, útil para ofrecer solo referencias previas. */
+  rowIndex?: number;
   /** Identificador interno (ej. `p1_edad`). */
   name: string;
   /** Texto visible (label de la pregunta). */

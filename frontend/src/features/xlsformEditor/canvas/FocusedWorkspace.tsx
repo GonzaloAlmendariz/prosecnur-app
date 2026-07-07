@@ -13,6 +13,7 @@ import {
   ListChecks,
   Mic,
   Paintbrush,
+  Repeat,
   Settings2,
   ShieldCheck,
   Trash2,
@@ -321,6 +322,7 @@ function buildFocusStatusItems(
     node.mediaAudio,
     node.mediaVideo,
   ].filter((value) => value?.trim()).length;
+  const repeatCount = node.kind === "repeat" ? (node.repeat_count ?? "").trim() : "";
   const requiredIsConditional =
     node.required &&
     Boolean(conditionalContext?.selfRelevant || conditionalContext?.ancestorRelevants.length);
@@ -369,6 +371,16 @@ function buildFocusStatusItems(
       value: `${mediaCount} ${mediaCount === 1 ? "adjunto" : "adjuntos"}`,
       tone: "accent",
       icon: <ImagePlus size={12} />,
+    });
+  }
+
+  if (node.kind === "repeat") {
+    items.push({
+      key: "repeat-count",
+      label: "Repetición",
+      value: repeatCount ? "Con límite" : "Manual",
+      tone: repeatCount ? "accent" : "neutral",
+      icon: <Repeat size={12} />,
     });
   }
 
@@ -923,19 +935,11 @@ function ResponseTab({
         </InspectorBlock>
         {node.kind === "repeat" && (
           <InspectorBlock>
-            <InspectorField
-              label="Cantidad de repeticiones"
-              hint="Número fijo o referencia a otra pregunta. Vacío = el encuestador decide."
-            >
-              <input
-                type="text"
-                value={node.repeat_count ?? ""}
-                onChange={(event) => onFieldChange("repeat_count", event.target.value)}
-                placeholder='Ej. 5 o ${num_personas}'
-                spellCheck={false}
-                style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}
-              />
-            </InspectorField>
+            <RepeatCountPanel
+              node={node}
+              scope={logicScope}
+              onFieldChange={onFieldChange}
+            />
           </InspectorBlock>
         )}
       </div>
@@ -1168,6 +1172,179 @@ const REQUIRED_MESSAGE_PRESETS = [
     message: "Necesitamos este dato para completar el análisis.",
   },
 ] as const;
+
+function RepeatCountPanel({
+  node,
+  scope,
+  onFieldChange,
+}: {
+  node: BuilderNode;
+  scope: LogicScope;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const value = node.repeat_count ?? "";
+  const trimmed = value.trim();
+  const variables = scope.variables.filter(
+    (variable) =>
+      variable.name.trim().length > 0 &&
+      ["integer", "decimal", "calculate"].includes(variable.baseType) &&
+      (typeof variable.rowIndex !== "number" || variable.rowIndex < node.rowIndex),
+  );
+  const variableOptionsKey = variables.map((variable) => variable.name).join("\u0000");
+  const [fixedCount, setFixedCount] = useState(isPositiveInteger(trimmed) ? trimmed : "");
+  const [selectedVariable, setSelectedVariable] = useState(variables[0]?.name ?? "");
+  const status = describeRepeatCount(trimmed, variables);
+
+  useEffect(() => {
+    setFixedCount(isPositiveInteger(trimmed) ? trimmed : "");
+  }, [trimmed]);
+
+  useEffect(() => {
+    setSelectedVariable((current) => {
+      if (current && variables.some((variable) => variable.name === current)) return current;
+      return variables[0]?.name ?? "";
+    });
+  }, [variableOptionsKey]);
+
+  const applyFixedCount = () => {
+    const next = fixedCount.trim();
+    if (!isPositiveInteger(next)) return;
+    onFieldChange("repeat_count", next);
+  };
+
+  const applyVariable = () => {
+    if (!selectedVariable) return;
+    onFieldChange("repeat_count", `\${${selectedVariable}}`);
+  };
+
+  return (
+    <div className={`pulso-focus-repeat-panel ${trimmed ? "is-active" : "is-empty"} ${status.tone === "warn" ? "is-warning" : ""}`}>
+      <div className="pulso-focus-repeat-head">
+        <span className="pulso-focus-repeat-icon" aria-hidden="true">
+          <Repeat size={14} />
+        </span>
+        <div>
+          <span className="pulso-section-eyebrow">Repeticiones Kobo</span>
+          <strong>{status.title}</strong>
+          <p>{status.detail}</p>
+        </div>
+        {trimmed && (
+          <button
+            type="button"
+            className="pulso-focus-repeat-clear-icon"
+            onClick={() => onFieldChange("repeat_count", "")}
+            aria-label="Quitar límite de repeticiones"
+            title="Quitar límite"
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
+
+      <div className="pulso-focus-repeat-builder" aria-label="Constructor de cantidad de repeticiones">
+        <label className="pulso-focus-repeat-fixed">
+          <span>Número fijo</span>
+          <div>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={fixedCount}
+              onChange={(event) => setFixedCount(event.target.value)}
+              placeholder="Ej. 5"
+            />
+            <button type="button" onClick={applyFixedCount} disabled={!isPositiveInteger(fixedCount)}>
+              Aplicar
+            </button>
+          </div>
+        </label>
+
+        <label className="pulso-focus-repeat-variable">
+          <span>Según respuesta previa</span>
+          <div>
+            <select
+              value={selectedVariable}
+              onChange={(event) => setSelectedVariable(event.target.value)}
+              disabled={variables.length === 0}
+            >
+              {variables.length === 0 ? (
+                <option value="">Sin variables numéricas</option>
+              ) : (
+                variables.map((variable) => (
+                  <option key={variable.name} value={variable.name}>
+                    {variableDisplayLabel(variable)}
+                  </option>
+                ))
+              )}
+            </select>
+            <button type="button" onClick={applyVariable} disabled={!selectedVariable}>
+              Usar
+            </button>
+          </div>
+        </label>
+      </div>
+
+      <InspectorField
+        label="Regla guardada"
+        hint="Vacío = el encuestador decide cuántas veces repetir. También puedes pegar una fórmula XLSForm."
+      >
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onFieldChange("repeat_count", event.target.value)}
+          placeholder='Ej. 5 o ${num_personas}'
+          spellCheck={false}
+          className="pulso-focus-repeat-formula"
+        />
+      </InspectorField>
+    </div>
+  );
+}
+
+function describeRepeatCount(
+  value: string,
+  variables: LogicScope["variables"],
+): { tone: "empty" | "ok" | "warn"; title: string; detail: string } {
+  if (!value) {
+    return {
+      tone: "empty",
+      title: "Cantidad decidida en campo",
+      detail: "Kobo preguntará al encuestador si desea agregar otra repetición.",
+    };
+  }
+  if (isPositiveInteger(value)) {
+    return {
+      tone: "ok",
+      title: `${value} ${value === "1" ? "repetición fija" : "repeticiones fijas"}`,
+      detail: "El bloque se abrirá esa cantidad de veces.",
+    };
+  }
+  const variable = simpleVariableReference(value);
+  if (variable) {
+    const match = variables.find((candidate) => candidate.name === variable);
+    return {
+      tone: match ? "ok" : "warn",
+      title: match ? "Controlada por una respuesta" : "Referencia por revisar",
+      detail: match
+        ? `La cantidad sale de ${variableDisplayLabel(match)}.`
+        : `No encuentro ${value} entre las variables actuales del formulario.`,
+    };
+  }
+  return {
+    tone: "warn",
+    title: "Fórmula avanzada",
+    detail: "Se preserva como repeat_count; confirma que devuelve un número entero positivo.",
+  };
+}
+
+function isPositiveInteger(value: string): boolean {
+  return /^[1-9]\d*$/.test(value.trim());
+}
+
+function simpleVariableReference(value: string): string | null {
+  const match = /^\$\{([^}]+)\}$/.exec(value.trim());
+  return match?.[1]?.trim() || null;
+}
 
 function FocusedCatalogInfo({
   info,

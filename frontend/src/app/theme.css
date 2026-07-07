@@ -37858,6 +37858,148 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   line-height: 1.25;
 }
 
+.pulso-focus-repeat-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-repeat-panel.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, #ffffff);
+}
+
+.pulso-focus-repeat-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-repeat-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-repeat-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-repeat-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.pulso-focus-repeat-head p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.4px;
+  font-weight: 610;
+  line-height: 1.42;
+}
+
+.pulso-focus-repeat-clear-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-danger-fg) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-danger-bg) 34%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-danger-fg) 78%, #23314a);
+  cursor: pointer;
+}
+
+.pulso-focus-repeat-builder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-focus-repeat-builder label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.pulso-focus-repeat-builder label > span {
+  color: #667386;
+  font-size: 10px;
+  font-weight: 780;
+  text-transform: uppercase;
+}
+
+.pulso-focus-repeat-builder label > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-focus-repeat-builder .pulso-focus-repeat-variable {
+  grid-column: 1 / -1;
+}
+
+.pulso-focus-repeat-builder input,
+.pulso-focus-repeat-builder select,
+.pulso-focus-repeat-formula {
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+}
+
+.pulso-focus-repeat-formula {
+  font-family: ui-monospace, monospace;
+}
+
+.pulso-focus-repeat-builder button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 20%, var(--xls-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.pulso-focus-repeat-builder button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .pulso-focus-constraint-message-presets {
   border-color: color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
   background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
