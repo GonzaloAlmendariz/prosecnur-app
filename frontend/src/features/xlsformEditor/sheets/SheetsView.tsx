@@ -111,34 +111,34 @@ const COLUMN_HELP: Record<string, { label: string; detail: string; badge?: strin
     detail: "Lista reutilizable a la que pertenece una opción.",
   },
   paper_number: {
-    label: "Número impreso",
+    label: "N° en papel",
     detail: "Numeración opcional para el PDF o cuestionario en papel. No afecta Kobo.",
-    badge: "PDF",
+    badge: "Papel",
   },
   paper_label: {
-    label: "Texto impreso",
+    label: "Texto en papel",
     detail: "Texto alternativo para el PDF si el papel necesita una redacción distinta.",
-    badge: "PDF",
+    badge: "Papel",
   },
   paper_layout: {
-    label: "Diseño impreso",
+    label: "Diseño en papel",
     detail: "Indicación opcional de layout para la versión PDF o papel.",
-    badge: "PDF",
+    badge: "Papel",
   },
   paper_group: {
-    label: "Grupo impreso",
+    label: "Grupo en papel",
     detail: "Agrupa piezas en la maqueta de papel sin cambiar la lógica Kobo.",
-    badge: "PDF",
+    badge: "Papel",
   },
   paper_only: {
     label: "Solo papel",
     detail: "Marca piezas pensadas solo para la versión impresa.",
-    badge: "PDF",
+    badge: "Papel",
   },
   paper_skip: {
-    label: "Omitir en papel",
+    label: "Ocultar en papel",
     detail: "Oculta esta pieza u opción en la versión PDF, sin ocultarla en Kobo.",
-    badge: "PDF",
+    badge: "Papel",
   },
 };
 
@@ -170,6 +170,9 @@ export function SheetsView({
       isCollapsiblePdfColumn(activeTab, columnName) &&
       isEmptyColumn(sheet, columnName),
   );
+  const pdfColumnCount = sheet.columns.filter((columnName) =>
+    isCollapsiblePdfColumn(activeTab, columnName),
+  ).length;
   const visibleColumns = showAdvancedColumns
     ? sheet.columns
     : sheet.columns.filter((columnName) => !collapsiblePdfColumns.includes(columnName));
@@ -245,28 +248,45 @@ export function SheetsView({
             type="button"
             className="pulso-sheets-btn pulso-sheets-advanced-toggle"
             onClick={() => setShowAdvancedColumns((value) => !value)}
-            title={showAdvancedColumns ? "Ocultar columnas PDF vacías" : "Mostrar columnas PDF vacías"}
+            title={
+              showAdvancedColumns
+                ? "Ocultar columnas opcionales de papel/PDF que están vacías"
+                : "Mostrar columnas opcionales para la versión papel/PDF"
+            }
           >
             {showAdvancedColumns ? <EyeOff size={13} /> : <Eye size={13} />}
-            {showAdvancedColumns ? "Ocultar PDF vacío" : "Mostrar PDF vacío"}
+            {showAdvancedColumns ? "Ocultar papel/PDF vacío" : "Mostrar papel/PDF"}
           </button>
         )}
         <span className="pulso-sheets-meta">
           {visibleColumns.length}{" "}
           {visibleColumns.length === 1 ? "columna visible" : "columnas visibles"}
-          {hiddenPdfCount > 0 ? ` · ${hiddenPdfCount} PDF ${hiddenPdfCount === 1 ? "oculta" : "ocultas"}` : ""} ·{" "}
+          {hiddenPdfCount > 0
+            ? ` · ${hiddenPdfCount} papel/PDF ${hiddenPdfCount === 1 ? "oculta" : "ocultas"}`
+            : pdfColumnCount > 0
+              ? ` · ${pdfColumnCount} papel/PDF`
+              : ""} ·{" "}
           {sheet.rows.length} {sheet.rows.length === 1 ? "fila" : "filas"}
         </span>
       </div>
 
-      {hiddenPdfCount > 0 && (
-        <div className="pulso-sheets-guide" role="note">
+      {pdfColumnCount > 0 && (
+        <div
+          className={`pulso-sheets-guide ${
+            hiddenPdfCount > 0 ? "is-muted" : "is-active"
+          }`}
+          role="note"
+        >
           <Info size={15} />
           <div>
-            <strong>Columnas de PDF ocultas por estar vacías</strong>
+            <strong>
+              {hiddenPdfCount > 0
+                ? "Columnas de papel/PDF ocultas por estar vacías"
+                : "Columnas de papel/PDF visibles"}
+            </strong>
             <span>
-              Sirven para la versión impresa o PDF; Kobo no las necesita. Si escribes un valor,
-              la columna queda visible automáticamente.
+              Sirven solo para ajustar la versión impresa o PDF. Kobo y la lógica del formulario
+              no cambian si las dejas en blanco.
             </span>
           </div>
         </div>
@@ -330,7 +350,7 @@ function SheetTable({
             #
           </th>
           {visibleColumns.map((col) => (
-            <th key={col} title={col}>
+            <th key={col} title={COLUMN_HELP[col]?.detail ?? col}>
               <ColumnHeader columnName={col} />
             </th>
           ))}
@@ -442,12 +462,17 @@ function ColumnHeader({ columnName }: { columnName: string }) {
   const help = COLUMN_HELP[columnName];
   if (!help) return <span>{columnName}</span>;
   return (
-    <span className="pulso-sheets-column-head" title={help.detail}>
+    <span
+      className={`pulso-sheets-column-head ${help.badge ? "is-extension" : ""}`}
+      title={`${help.label}: ${help.detail} XLSForm: ${columnName}`}
+    >
       <span>
         {help.label}
         {help.badge && <em className="pulso-sheets-column-badge">{help.badge}</em>}
       </span>
-      <small>{columnName}</small>
+      <small>
+        <code>{columnName}</code>
+      </small>
     </span>
   );
 }
