@@ -1966,6 +1966,7 @@ export default function XlsformEditorPage() {
           entry.kind !== "repeat",
       )
       .map((entry) => ({
+        rowIndex: entry.rowIndex,
         name: entry.name,
         label: entry.label,
         baseType: entry.typeInfo.base,
