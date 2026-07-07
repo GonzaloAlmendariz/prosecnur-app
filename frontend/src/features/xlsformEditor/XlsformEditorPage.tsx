@@ -2321,8 +2321,13 @@ export default function XlsformEditorPage() {
           </div>
 
           <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--actions">
-            <button type="button" onClick={onNewWorkbook} className="pulso-xlsform-toolbar-button">
-              <IconNew size={14} /> Nuevo
+            <button
+              type="button"
+              onClick={onNewWorkbook}
+              className="pulso-xlsform-toolbar-button"
+              title="Crear un formulario nuevo"
+            >
+              <IconNew size={14} /> Nuevo formulario
             </button>
             <button type="button" onClick={() => xlsInputRef.current?.click()} className="pulso-xlsform-toolbar-button">
               <Upload size={14} /> Importar
@@ -2918,7 +2923,7 @@ function AddElementMenu({
       <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
         <span><strong>Kobo limpio</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
         <span><strong>Secciones</strong> insertan inicio y cierre; luego decides qué piezas quedan dentro.</span>
-        <span><strong>Atajo</strong> Cmd/Ctrl+N abre esta sheet sin crear campos por defecto.</span>
+        <span><strong>Atajo</strong> Cmd/Ctrl+N abre este selector sin crear campos por defecto.</span>
       </div>
       <div className="pulso-add-element-menu-tools">
         <label className="pulso-add-element-menu-searchbox">
