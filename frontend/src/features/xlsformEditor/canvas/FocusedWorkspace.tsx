@@ -570,7 +570,7 @@ function FocusedSurveyWorkspace({
             <PresentationTab node={node} onFieldChange={onFieldChange} />
           )}
           {activeTab === "data" && (
-            <DataTab node={node} onFieldChange={onFieldChange} />
+            <DataTab node={node} structure={structure} onFieldChange={onFieldChange} />
           )}
         </div>
       </div>
@@ -2796,9 +2796,11 @@ function presentationGuideFor(baseType: string): {
 
 function DataTab({
   node,
+  structure,
   onFieldChange,
 }: {
   node: BuilderNode;
+  structure: BuilderStructure | null;
   onFieldChange: (field: string, value: string) => void;
 }) {
   const isSection = node.kind === "section" || node.kind === "repeat";
@@ -2825,6 +2827,11 @@ function DataTab({
             value={node.name}
             onChange={(next) => onFieldChange("name", next)}
             placeholder={isSection ? "ej. datos_hogar" : "ej. p1_edad"}
+          />
+          <KoboNameAssistant
+            node={node}
+            structure={structure}
+            onApply={(next) => onFieldChange("name", next)}
           />
         </InspectorField>
         <div className="pulso-focus-data-note">
@@ -2949,6 +2956,249 @@ function DataTab({
       )}
     </div>
   );
+}
+
+const KOBO_NAME_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const KOBO_NAME_MAX_LENGTH = 42;
+const KOBO_NAME_STOPWORDS = new Set([
+  "a",
+  "al",
+  "cual",
+  "cuales",
+  "cuando",
+  "cuantos",
+  "cuantas",
+  "de",
+  "del",
+  "el",
+  "en",
+  "es",
+  "esta",
+  "este",
+  "estos",
+  "estas",
+  "ha",
+  "han",
+  "indique",
+  "ingrese",
+  "la",
+  "las",
+  "lo",
+  "los",
+  "para",
+  "por",
+  "pregunte",
+  "que",
+  "seleccione",
+  "si",
+  "sobre",
+  "su",
+  "sus",
+  "un",
+  "una",
+]);
+
+function KoboNameAssistant({
+  node,
+  structure,
+  onApply,
+}: {
+  node: BuilderNode;
+  structure: BuilderStructure | null;
+  onApply: (next: string) => void;
+}) {
+  const currentName = (node.name ?? "").trim();
+  const hasName = Boolean(currentName);
+  const hasValidSyntax = hasName && KOBO_NAME_REGEX.test(currentName);
+  const duplicateCount = hasName
+    ? structure?.outline.filter((item) => item.name.trim() === currentName).length ?? 0
+    : 0;
+  const isDuplicate = duplicateCount > 1;
+  const isReady = hasValidSyntax && !isDuplicate;
+  const suggestions = buildKoboNameSuggestions(node, structure).filter((suggestion) => suggestion !== currentName);
+  const isGenericName = hasName && /^(?:p|q|fila|pregunta)_?\d+$/i.test(currentName);
+  const showSuggestions = suggestions.length > 0 && (!isReady || isGenericName);
+  const statusCopy = isReady
+    ? {
+        title: "Listo para Kobo",
+        body: "Este nombre ya funciona para lógica, exportación y bases.",
+      }
+    : {
+        title: hasName ? "Conviene ajustarlo" : "Falta un nombre interno",
+        body: "Usa una versión corta, sin espacios ni tildes, que puedas reconocer en reglas y datos.",
+      };
+  const checks = [
+    {
+      key: "start",
+      label: "Empieza con letra o _",
+      ok: hasName && /^[A-Za-z_]/.test(currentName),
+    },
+    {
+      key: "chars",
+      label: "Sin espacios ni símbolos",
+      ok: hasName && /^[A-Za-z_][A-Za-z0-9_]*$/.test(currentName),
+    },
+    {
+      key: "unique",
+      label: "Único en survey",
+      ok: hasName && !isDuplicate,
+    },
+  ];
+
+  return (
+    <div className={`pulso-focus-name-assistant${isReady ? "" : " is-warning"}`}>
+      <div className="pulso-focus-name-assistant-head">
+        <span className="pulso-focus-name-assistant-icon" aria-hidden="true">
+          {isReady ? <CheckCircle2 size={15} /> : <Database size={15} />}
+        </span>
+        <div>
+          <strong>{statusCopy.title}</strong>
+          <p>{statusCopy.body}</p>
+        </div>
+      </div>
+
+      <div className="pulso-focus-name-checks" aria-label="Revisión rápida del nombre Kobo">
+        {checks.map((check) => (
+          <span key={check.key} className={check.ok ? "is-ok" : "is-pending"}>
+            {check.ok ? <CheckCircle2 size={11} /> : <Info size={11} />}
+            {check.label}
+          </span>
+        ))}
+      </div>
+
+      {showSuggestions && (
+        <div className="pulso-focus-name-suggestions" aria-label="Sugerencias de nombre interno">
+          {suggestions.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => onApply(suggestion)}
+              title={`Usar ${suggestion} como name`}
+            >
+              <code>{suggestion}</code>
+              <span>Aplicar</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <p className="pulso-focus-name-tip">
+        Si se repite, Prosecnur lo marca en Diagnóstico; corrígelo antes de usarlo en relevant,
+        constraint, cálculo o choice_filter.
+      </p>
+    </div>
+  );
+}
+
+function buildKoboNameSuggestions(node: BuilderNode, structure: BuilderStructure | null): string[] {
+  const takenNames = new Set(
+    (structure?.outline ?? [])
+      .filter((item) => item.rowIndex !== node.rowIndex)
+      .map((item) => item.name.trim())
+      .filter(Boolean),
+  );
+  const fallback = fallbackKoboNameForNode(node);
+  const base = makeKoboName(node.label || node.hint || node.name, fallback);
+  const compact = makeKoboName(wordsForKoboName(node.label).slice(0, 4).join("_"), fallback);
+  const expanded = makeKoboName([node.label, node.hint].filter(Boolean).join(" "), fallback);
+  const prefix = koboNamePrefixForNode(node);
+  const candidates = [
+    base,
+    compact,
+    expanded,
+    prefix ? withKoboPrefix(base, prefix) : base,
+    node.kind === "section" ? withKoboPrefix(base, "grupo") : null,
+    node.kind === "repeat" ? withKoboPrefix(base, "rep") : null,
+    node.kind === "calculate" ? `${base}_calc` : null,
+    node.kind === "note" ? withKoboPrefix(base, "nota") : null,
+  ];
+
+  const unique = new Set<string>();
+  candidates.forEach((candidate) => {
+    if (!candidate) return;
+    const available = makeAvailableKoboName(candidate, takenNames);
+    if (available && KOBO_NAME_REGEX.test(available)) unique.add(available);
+  });
+  return [...unique].slice(0, 4);
+}
+
+function withKoboPrefix(value: string, prefix: string): string {
+  if (!value || value === prefix || value.startsWith(`${prefix}_`)) return value;
+  return limitKoboName(`${prefix}_${value}`);
+}
+
+function makeAvailableKoboName(value: string, takenNames: Set<string>): string {
+  const base = makeKoboName(value, "pregunta");
+  if (!takenNames.has(base)) return base;
+  for (let index = 2; index <= 9; index += 1) {
+    const candidate = limitKoboName(`${base}_${index}`);
+    if (!takenNames.has(candidate)) return candidate;
+  }
+  return base;
+}
+
+function makeKoboName(value: string, fallback: string): string {
+  const words = wordsForKoboName(value);
+  const raw = words.length > 0 ? words.join("_") : fallback;
+  const normalized = raw.replace(/_+/g, "_").replace(/^_+|_+$/g, "") || fallback;
+  const prefixed = /^[0-9]/.test(normalized) ? `p_${normalized}` : normalized;
+  return limitKoboName(/^[a-z_]/.test(prefixed) ? prefixed : `p_${prefixed}`);
+}
+
+function wordsForKoboName(value: string): string[] {
+  return stripMarkdown(value.replace(/_/g, " "))
+    .toLowerCase()
+    .replace(/ñ/g, "n")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .filter((word) => !KOBO_NAME_STOPWORDS.has(word));
+}
+
+function limitKoboName(value: string): string {
+  return value
+    .slice(0, KOBO_NAME_MAX_LENGTH)
+    .replace(/_+$/g, "")
+    .replace(/^([0-9])/, "p_$1");
+}
+
+function fallbackKoboNameForNode(node: BuilderNode): string {
+  if (node.kind === "section") return "grupo";
+  if (node.kind === "repeat") return "repeticion";
+  if (node.kind === "note") return "nota";
+  if (node.kind === "calculate") return "calculo";
+  if (node.typeInfo.base === "select_one" || node.typeInfo.base === "select_multiple") return "seleccion";
+  return makeKoboName(typeLabel(node.typeInfo.base), "pregunta");
+}
+
+function koboNamePrefixForNode(node: BuilderNode): string | null {
+  if (node.kind === "section") return "g";
+  if (node.kind === "repeat") return "rep";
+  if (node.kind === "note") return "nota";
+  if (node.kind === "calculate") return "calc";
+  switch (node.typeInfo.base) {
+    case "integer":
+    case "decimal":
+    case "range":
+      return "num";
+    case "select_one":
+      return "sel";
+    case "select_multiple":
+      return "multi";
+    case "geopoint":
+    case "geotrace":
+    case "geoshape":
+      return "gps";
+    case "image":
+    case "audio":
+    case "video":
+    case "file":
+    case "barcode":
+      return node.typeInfo.base;
+    default:
+      return null;
+  }
 }
 
 function FocusedSettingsWorkspace({
