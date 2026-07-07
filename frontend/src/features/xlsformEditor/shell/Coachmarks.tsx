@@ -43,7 +43,7 @@ const STEPS: CoachStep[] = [
     body: "La tarjeta activa muestra la pregunta tal como se verá y el panel de configuración queda al lado.",
   },
   {
-    selector: ".pulso-xlsform-sidebar-panel button[title='Añadir pieza']",
+    selector: ".pulso-xlsform-sidebar-panel button[title^='Añadir pieza']",
     placement: "right",
     title: "Agregar preguntas y secciones",
     body: "La estructura manda el foco del constructor y también concentra la creación de piezas nuevas.",
