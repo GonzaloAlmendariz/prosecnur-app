@@ -51,7 +51,7 @@ export function typeLabel(baseType: string): string {
     case "select_multiple":
       return "Selección múltiple";
     case "note":
-      return "Texto informativo";
+      return "Nota informativa";
     case "calculate":
       return "Cálculo";
     case "acknowledge":

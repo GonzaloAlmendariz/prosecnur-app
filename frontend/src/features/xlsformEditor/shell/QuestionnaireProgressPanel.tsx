@@ -255,7 +255,7 @@ function QuestionRow({
       <span style={{ minWidth: 0, flex: 1 }}>
         <strong style={questionLabelStyle}>{label}</strong>
         <span style={questionMetaStyle}>
-          {node.kind === "note" ? "Texto informativo" : typeLabel(node.typeInfo.base)}
+          {node.kind === "note" ? "Nota informativa" : typeLabel(node.typeInfo.base)}
           {node.required ? " · obligatoria" : ""}
           {node.relevant ? " · con salto" : ""}
         </span>
