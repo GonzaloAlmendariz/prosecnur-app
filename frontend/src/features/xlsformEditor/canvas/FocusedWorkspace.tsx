@@ -6,14 +6,17 @@ import {
   Database,
   Eye,
   FileText,
+  ImagePlus,
   Info,
   Layers3,
   LayoutList,
   ListChecks,
+  Mic,
   Paintbrush,
   Settings2,
   ShieldCheck,
   Trash2,
+  Video,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { IconConditionalLogic, IconRequired } from "../../../lib/icons";
@@ -313,6 +316,11 @@ function buildFocusStatusItems(
     node.calculation,
     node.choiceFilter,
   ].filter((value) => value?.trim()).length;
+  const mediaCount = [
+    node.mediaImage,
+    node.mediaAudio,
+    node.mediaVideo,
+  ].filter((value) => value?.trim()).length;
   const requiredIsConditional =
     node.required &&
     Boolean(conditionalContext?.selfRelevant || conditionalContext?.ancestorRelevants.length);
@@ -351,6 +359,16 @@ function buildFocusStatusItems(
       value: "Con regla",
       tone: "success",
       icon: <ShieldCheck size={12} />,
+    });
+  }
+
+  if (mediaCount > 0) {
+    items.push({
+      key: "prompt-media",
+      label: "Consigna",
+      value: `${mediaCount} ${mediaCount === 1 ? "adjunto" : "adjuntos"}`,
+      tone: "accent",
+      icon: <ImagePlus size={12} />,
     });
   }
 
@@ -2085,8 +2103,112 @@ function PresentationTab({
           />
         </InspectorField>
       </InspectorBlock>
+      <MediaAttachmentPanel node={node} onFieldChange={onFieldChange} />
       <PresentationGuidance node={node} />
     </div>
+  );
+}
+
+function MediaAttachmentPanel({
+  node,
+  onFieldChange,
+}: {
+  node: BuilderNode;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const fields = [
+    {
+      key: "media::image",
+      value: node.mediaImage ?? "",
+      label: "Imagen de apoyo",
+      placeholder: "Ej. referencia.png",
+      icon: ImagePlus,
+      hint: "Aparece junto al texto de la pregunta o nota.",
+      examples: ["referencia.png", "mapa_sector.png", "ejemplo_respuesta.png"],
+    },
+    {
+      key: "media::audio",
+      value: node.mediaAudio ?? "",
+      label: "Audio de consigna",
+      placeholder: "Ej. instruccion.mp3",
+      icon: Mic,
+      hint: "Útil para idiomas, pronunciación o instrucciones de campo.",
+      examples: ["instruccion.mp3", "lectura_consentimiento.mp3"],
+    },
+    {
+      key: "media::video",
+      value: node.mediaVideo ?? "",
+      label: "Video de referencia",
+      placeholder: "Ej. demostracion.mp4",
+      icon: Video,
+      hint: "Material breve para explicar un procedimiento.",
+      examples: ["demostracion.mp4", "ejemplo_visita.mp4"],
+    },
+  ];
+  const active = fields.filter((field) => field.value.trim().length > 0);
+
+  return (
+    <InspectorBlock>
+      <div className="pulso-focus-media-panel">
+        <div className="pulso-focus-media-head">
+          <span className="pulso-focus-media-icon" aria-hidden="true">
+            <ImagePlus size={14} />
+          </span>
+          <div>
+            <span className="pulso-section-eyebrow">Material de consigna</span>
+            <strong>{active.length ? `${active.length} adjunto${active.length === 1 ? "" : "s"} vinculado${active.length === 1 ? "" : "s"}` : "Sin multimedia adjunta"}</strong>
+            <p>Usa archivos que ya estarán en la carpeta media del XLSForm. No reemplaza preguntas de evidencia como foto, audio o video.</p>
+          </div>
+        </div>
+
+        <div className="pulso-focus-media-grid">
+          {fields.map((field) => {
+            const Icon = field.icon;
+            const hasValue = field.value.trim().length > 0;
+            return (
+              <div key={field.key} className={`pulso-focus-media-field ${hasValue ? "is-active" : ""}`}>
+                <div className="pulso-focus-media-field-head">
+                  <span aria-hidden="true">
+                    <Icon size={13} />
+                  </span>
+                  <div>
+                    <strong>{field.label}</strong>
+                    <small>{field.hint}</small>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={field.value}
+                  onChange={(event) => onFieldChange(field.key, event.target.value)}
+                  placeholder={field.placeholder}
+                  spellCheck={false}
+                />
+                <div className="pulso-focus-media-examples" aria-label={`Atajos para ${field.label}`}>
+                  {field.examples.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => onFieldChange(field.key, example)}
+                    >
+                      {example}
+                    </button>
+                  ))}
+                  {hasValue && (
+                    <button
+                      type="button"
+                      className="is-clear"
+                      onClick={() => onFieldChange(field.key, "")}
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </InspectorBlock>
   );
 }
 
@@ -2861,20 +2983,20 @@ function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
 
 function shouldOfferPresentationTab(node: BuilderNode): boolean {
   if (node.appearance.trim()) return true;
+  if (hasPromptMedia(node)) return true;
   if (node.kind === "section" || node.kind === "repeat") return true;
+  if (node.kind === "question" || node.kind === "note") return true;
   return [
-    "select_one",
-    "select_multiple",
-    "integer",
-    "decimal",
-    "date",
-    "image",
-    "audio",
-    "video",
-    "file",
-    "barcode",
     "geopoint",
     "geotrace",
     "geoshape",
   ].includes(node.typeInfo.base);
+}
+
+function hasPromptMedia(node: BuilderNode): boolean {
+  return Boolean(
+    node.mediaImage?.trim() ||
+      node.mediaAudio?.trim() ||
+      node.mediaVideo?.trim(),
+  );
 }

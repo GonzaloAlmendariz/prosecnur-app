@@ -57,13 +57,30 @@ export function AppearanceTab({ node, onFieldChange }: AppearanceTabProps) {
       <InspectorBlock>
         <InspectorField
           label="Multimedia adjunta"
-          hint="Imagen, audio o video que acompañan a la pregunta. Próximamente."
+          hint="Imagen, audio o video que acompañan a la consigna. Deben existir en la carpeta media del XLSForm."
         >
-          <div className="pulso-inspector-placeholder">
-            La carga de archivos llega en una próxima iteración. Por ahora puedes
-            seguir editando los campos `media::image`, `media::audio` y
-            `media::video` directamente en el .xlsx — Prosecnur los conserva al
-            exportar.
+          <div className="pulso-inspector-media-fields">
+            <input
+              type="text"
+              value={node.mediaImage ?? ""}
+              onChange={(event) => onFieldChange("media::image", event.target.value)}
+              placeholder="Imagen: referencia.png"
+              spellCheck={false}
+            />
+            <input
+              type="text"
+              value={node.mediaAudio ?? ""}
+              onChange={(event) => onFieldChange("media::audio", event.target.value)}
+              placeholder="Audio: instruccion.mp3"
+              spellCheck={false}
+            />
+            <input
+              type="text"
+              value={node.mediaVideo ?? ""}
+              onChange={(event) => onFieldChange("media::video", event.target.value)}
+              placeholder="Video: demostracion.mp4"
+              spellCheck={false}
+            />
           </div>
         </InspectorField>
       </InspectorBlock>

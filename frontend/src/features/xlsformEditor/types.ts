@@ -75,6 +75,9 @@ export type BuilderNode = {
   choiceFilter: string;
   hint: string;
   appearance: string;
+  mediaImage?: string;
+  mediaAudio?: string;
+  mediaVideo?: string;
   paperNumber?: string;
   paperLabel?: string;
   paperLayout?: string;
