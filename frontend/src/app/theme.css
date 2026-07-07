@@ -37315,6 +37315,293 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   line-height: 1.45;
 }
 
+.pulso-focus-choice-filter {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 13%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.78)),
+    color-mix(in srgb, var(--xls-content-soft) 70%, #ffffff 30%);
+}
+
+.pulso-focus-choice-filter.is-active {
+  border-color: color-mix(in srgb, var(--pulso-primary) 24%, var(--xls-border));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.pulso-focus-choice-filter-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.pulso-focus-choice-filter-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 20%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-choice-filter-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-choice-filter-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.pulso-focus-choice-filter-head p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 610;
+  line-height: 1.42;
+}
+
+.pulso-focus-choice-filter-head p code,
+.pulso-focus-choice-filter-code {
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 13%, var(--xls-border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: var(--pulso-primary);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.pulso-focus-choice-filter-head p code {
+  padding: 1px 4px;
+}
+
+.pulso-focus-choice-filter-code {
+  justify-self: end;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.pulso-focus-choice-filter-state {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 17%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 34%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-focus-choice-filter.is-empty .pulso-focus-choice-filter-state {
+  border-color: var(--xls-border);
+  background: #ffffff;
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-choice-filter.is-warning .pulso-focus-choice-filter-state {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 44%, #ffffff);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-focus-choice-filter-state svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.pulso-focus-choice-filter-state > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-focus-choice-filter-state strong {
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: 790;
+  line-height: 1.25;
+}
+
+.pulso-focus-choice-filter-state p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+
+.pulso-focus-choice-filter-refs,
+.pulso-focus-choice-filter-chips,
+.pulso-focus-choice-filter-vars {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-focus-choice-filter-refs span,
+.pulso-focus-choice-filter-chips button,
+.pulso-focus-choice-filter-vars button {
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-primary) 82%, #253149);
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pulso-focus-choice-filter-refs span {
+  padding: 3px 6px;
+}
+
+.pulso-focus-choice-filter-builder {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--xls-border);
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.pulso-focus-choice-filter-builder-head {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-choice-filter-builder-head strong {
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pulso-focus-choice-filter-builder-head small {
+  color: var(--pulso-text-soft);
+  font-size: 10.7px;
+  font-weight: 630;
+  line-height: 1.32;
+}
+
+.pulso-focus-choice-filter-builder-row {
+  display: grid;
+  grid-template-columns: minmax(104px, 0.9fr) minmax(132px, 1fr) auto;
+  gap: 7px;
+  align-items: end;
+  min-width: 0;
+}
+
+.pulso-focus-choice-filter-builder-row label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-focus-choice-filter-builder-row label span {
+  color: #667386;
+  font-size: 10px;
+  font-weight: 780;
+  text-transform: uppercase;
+}
+
+.pulso-focus-choice-filter-builder-row input,
+.pulso-focus-choice-filter-builder-row select,
+.pulso-focus-choice-filter textarea {
+  min-width: 0;
+  border: 1px solid var(--xls-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--pulso-text);
+}
+
+.pulso-focus-choice-filter-builder-row input,
+.pulso-focus-choice-filter-builder-row select {
+  min-height: 32px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+}
+
+.pulso-focus-choice-filter-apply {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 28%, var(--xls-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 790;
+  white-space: nowrap;
+}
+
+.pulso-focus-choice-filter-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.pulso-focus-choice-filter-chips button,
+.pulso-focus-choice-filter-vars button {
+  cursor: pointer;
+  padding: 4px 7px;
+  text-align: left;
+}
+
+.pulso-focus-choice-filter textarea {
+  min-height: 72px;
+  resize: vertical;
+  padding: 7px 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-focus-choice-filter-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (max-width: 980px) {
+  .pulso-focus-choice-filter-builder-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pulso-focus-choice-filter-apply {
+    width: 100%;
+  }
+}
+
 .pulso-focus-validation-presets {
   display: flex;
   min-width: 0;
