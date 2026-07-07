@@ -2933,7 +2933,7 @@ reporte_ppt_plan <- function(
     if (is.null(ctx_parent)) return(NULL)
 
     other_values <- .other_option_values(ctx_parent)
-    if (!nrow(other_values)) return(NULL)
+    has_predefined_otros <- nrow(other_values) > 0
 
     dsrc <- tryCatch(.filter_data(filtros, source = ctx_parent$source), error = function(e) NULL)
     if (is.null(dsrc) || !nrow(dsrc)) return(NULL)
@@ -2946,7 +2946,15 @@ reporte_ppt_plan <- function(
     text_mask <- .nonblank_open_text(text_raw) & .nonblank_open_text_for_nube(text_raw)
     if (!any(text_mask)) return(NULL)
 
-    parent_mask <- .parent_other_mask(dsrc, ctx_parent, other_values)
+    if (!has_predefined_otros && !nzchar(as.character(.related_recod_var(dsrc, ctx_parent, text_var) %||% ""))) {
+      return(NULL)
+    }
+
+    parent_mask <- if (has_predefined_otros) {
+      .parent_other_mask(dsrc, ctx_parent, other_values)
+    } else {
+      rep(TRUE, nrow(dsrc))
+    }
     if (length(parent_mask) != length(text_mask) || !any(parent_mask & text_mask)) return(NULL)
     text_mask <- text_mask & parent_mask
 
