@@ -325,6 +325,46 @@ render_var_cruce_multisource_plot <- function(vars, titulos_grupo = NULL, cruces
   })))
 }
 
+test_that("p_barras_categoricas se renderiza desde el plan PPT", {
+  fx <- make_plan_ppt_fixture()
+  plan <- list(
+    diapo_001 = p_slide_1_grafico(
+      grafico = p_barras_categoricas(
+        "p1",
+        mostrar_ceros = TRUE,
+        overrides = list(
+          mostrar_promedio = TRUE,
+          formato_valor = "porcentaje_n"
+        )
+      )
+    )
+  )
+
+  p <- reporte_ppt_plan(
+    data = fx$data,
+    instrumento = fx$instrumento,
+    plan = plan,
+    presets = p_presets(
+      barras_categoricas = list(
+        max_categorias = 10,
+        colores_categorias = c(
+          Bajo = "#CA5651",
+          Medio = "#EFD25E",
+          Alto = "#70AD47"
+        )
+      )
+    ),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )$rendered[[1]]
+
+  datos <- attr(p, "pulso_barras_categoricas_data")
+  expect_equal(nrow(datos), 3)
+  expect_equal(sum(datos$n), 6)
+  expect_equal(attr(p, "pulso_barras_categoricas_max_categorias"), 10)
+  expect_true(all(c("Bajo", "Medio", "Alto") %in% datos$categoria))
+})
+
 test_that("p_barras_multiapiladas valida modo var_cruce", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
@@ -824,7 +864,7 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
   expect_true(grepl("\u2022 Puentes verdes", txt, fixed = TRUE))
   expect_true(grepl("\u2022 Laboratorio vial", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
 
   out_off <- reporte_ppt_plan(
     data = dat,
@@ -836,6 +876,51 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
     mensajes_progreso = FALSE
   )
   expect_length(out_off$plan, 1L)
+})
+
+test_that("slide Otros paginada mantiene titulo sin contador entre parentesis", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    p12 = rep("99", 11),
+    p12_other = paste("respuesta abierta", seq_len(11)),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p12, "label") <- "Actividad preferida"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_other"),
+      type = c("select_one lst_p12", "text"),
+      list_name = c("lst_p12", NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_p12",
+      name = "99",
+      label = "Otros",
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 3L)
+  expect_identical(out$plan[[2]]$title, "Otros: Actividad preferida")
+  expect_identical(out$plan[[3]]$title, "Otros: Actividad preferida")
+  expect_false(grepl("\\([0-9]+/[0-9]+\\)", out$plan[[2]]$title))
+  expect_false(grepl("\\([0-9]+/[0-9]+\\)", out$plan[[3]]$title))
+  expect_true(grepl("Base: 11 respuestas en Otros", out$plan[[2]]$slots$text, fixed = TRUE))
+  expect_true(grepl("Base: 11 respuestas en Otros", out$plan[[3]]$slots$text, fixed = TRUE))
 })
 
 test_that("reporte_ppt_plan explica Otros agrupado por maximo de categorias", {
@@ -934,7 +1019,7 @@ test_that("slide Otros lista solo respuestas aun no categorizadas", {
   expect_true(grepl("\u2022 Queda otro", txt, fixed = TRUE))
   expect_true(grepl("\u2022 Sin recod", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
 })
 
 test_that("slide Otros usa variable madre cuando la recodificada queda en Otros", {
@@ -982,7 +1067,7 @@ test_that("slide Otros usa variable madre cuando la recodificada queda en Otros"
   expect_true(grepl("\u2022 Site reliability", txt, fixed = TRUE))
   expect_false(grepl("analista", txt, fixed = TRUE))
   expect_false(grepl("coordinador", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas abiertas", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
 })
 
 test_that("slide Otros no se genera si el campo abierto esta vacio", {
