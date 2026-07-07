@@ -2005,6 +2005,13 @@ export default function XlsformEditorPage() {
     });
   }
 
+  function updateChoiceFields(rowIndex: number, next: { label: string; name: string }) {
+    updateWorkbook((draft) => {
+      setCell(draft.choices, rowIndex, "label", next.label);
+      setCell(draft.choices, rowIndex, "name", next.name);
+    });
+  }
+
   function removeChoice(rowIndex: number) {
     updateWorkbook((draft) => {
       deleteRow(draft.choices, rowIndex);
@@ -2658,7 +2665,7 @@ export default function XlsformEditorPage() {
             usageCount={activeCatalogUsage}
             onRename={renameCatalog}
             onAddChoice={addCatalogChoice}
-            onChoiceChange={updateChoice}
+            onChoiceChange={updateChoiceFields}
             onChoiceRemove={removeChoice}
             onChoiceMove={moveChoice}
             onDeleteCatalog={deleteCatalogAction}
