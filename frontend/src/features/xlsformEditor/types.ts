@@ -70,6 +70,7 @@ export type BuilderNode = {
   required: boolean;
   relevant: string;
   constraint: string;
+  constraint_message?: string;
   calculation: string;
   choiceFilter: string;
   hint: string;

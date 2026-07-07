@@ -37844,6 +37844,24 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   line-height: 1.25;
 }
 
+.pulso-focus-constraint-message-presets {
+  border-color: color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+}
+
+.pulso-focus-constraint-message-presets .pulso-focus-message-preset {
+  border-color: color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+}
+
+.pulso-focus-constraint-message-presets .pulso-focus-message-preset-icon {
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-constraint-message-presets .pulso-focus-message-preset-copy em {
+  color: color-mix(in srgb, var(--pulso-primary) 78%, #253149);
+}
+
 .pulso-focus-presentation-guide {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
