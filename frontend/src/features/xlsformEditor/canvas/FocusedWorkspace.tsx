@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Calculator,
   CheckCircle2,
   Database,
   Eye,
@@ -1047,14 +1048,13 @@ function ResponseTab({
 
   return (
     <div className="pulso-focus-tab-panel">
-      <InspectorBlock>
-        <InspectorField label="Tipo de respuesta" hint="Cómo va a contestar el encuestado.">
-          <TypePicker value={node.typeInfo.base} onChange={onTypeChange} />
-        </InspectorField>
-      </InspectorBlock>
-
       {node.kind === "calculate" && (
         <InspectorBlock>
+          <CalculationRecipePanel
+            expression={node.calculation}
+            scope={logicScope}
+            onFieldChange={onFieldChange}
+          />
           <CalculationBuilder
             expression={node.calculation}
             scope={logicScope}
@@ -1064,6 +1064,12 @@ function ResponseTab({
           />
         </InspectorBlock>
       )}
+
+      <InspectorBlock>
+        <InspectorField label="Tipo de respuesta" hint="Cómo va a contestar el encuestado.">
+          <TypePicker value={node.typeInfo.base} onChange={onTypeChange} />
+        </InspectorField>
+      </InspectorBlock>
 
       {node.kind === "question" && (
         <InspectorBlock>
@@ -1271,6 +1277,124 @@ const REQUIRED_MESSAGE_PRESETS = [
     message: "Necesitamos este dato para completar el análisis.",
   },
 ] as const;
+
+function CalculationRecipePanel({
+  expression,
+  scope,
+  onFieldChange,
+}: {
+  expression: string;
+  scope: LogicScope;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const variables = scope.variables.filter((variable) => variable.name.trim().length > 0);
+  const multiVariables = variables.filter((variable) => variable.baseType === "select_multiple");
+  const variableOptionsKey = variables.map((variable) => variable.name).join("\u0000");
+  const multiOptionsKey = multiVariables.map((variable) => variable.name).join("\u0000");
+  const [copyVariable, setCopyVariable] = useState(variables[0]?.name ?? "");
+  const [multiVariable, setMultiVariable] = useState(multiVariables[0]?.name ?? "");
+  const hasExpression = expression.trim().length > 0;
+
+  useEffect(() => {
+    setCopyVariable((current) => {
+      if (current && variables.some((variable) => variable.name === current)) return current;
+      return variables[0]?.name ?? "";
+    });
+  }, [variableOptionsKey]);
+
+  useEffect(() => {
+    setMultiVariable((current) => {
+      if (current && multiVariables.some((variable) => variable.name === current)) return current;
+      return multiVariables[0]?.name ?? "";
+    });
+  }, [multiOptionsKey]);
+
+  const applyFormula = (formula: string) => onFieldChange("calculation", formula);
+  if (hasExpression) return null;
+
+  return (
+    <div className="pulso-focus-calculation-recipes" aria-label="Recetas rápidas de cálculo">
+      <div className="pulso-focus-calculation-recipes-head">
+        <span className="pulso-focus-calculation-recipes-icon" aria-hidden="true">
+          <Calculator size={14} />
+        </span>
+        <div>
+          <span className="pulso-section-eyebrow">Cálculo Kobo</span>
+          <strong>Recetas frecuentes sin escribir fórmula desde cero</strong>
+          <p>Aplican una fórmula XLSForm válida y dejan el editor avanzado disponible para ajustes finos.</p>
+        </div>
+      </div>
+
+      <div className="pulso-focus-calculation-recipe-grid">
+        <button
+          type="button"
+          className="pulso-focus-calculation-recipe"
+          onClick={() => applyFormula("today()")}
+        >
+          <span>
+            <strong>Fecha de hoy</strong>
+            <small>Guarda la fecha del dispositivo al abrir el formulario.</small>
+          </span>
+          <code>today()</code>
+        </button>
+        <button
+          type="button"
+          className="pulso-focus-calculation-recipe"
+          onClick={() => applyFormula("now()")}
+        >
+          <span>
+            <strong>Momento actual</strong>
+            <small>Guarda fecha y hora del dispositivo.</small>
+          </span>
+          <code>now()</code>
+        </button>
+
+        {variables.length > 0 && (
+          <div className="pulso-focus-calculation-recipe is-builder">
+            <span>
+              <strong>Copiar una respuesta</strong>
+              <small>Útil para conservar una versión calculada o normalizada.</small>
+            </span>
+            <div className="pulso-focus-calculation-recipe-row">
+              <select value={copyVariable} onChange={(event) => setCopyVariable(event.target.value)}>
+                {variables.map((variable) => (
+                  <option key={variable.name} value={variable.name}>
+                    {variableDisplayLabel(variable)}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => copyVariable && applyFormula(`\${${copyVariable}}`)}>
+                Usar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {multiVariables.length > 0 && (
+          <div className="pulso-focus-calculation-recipe is-builder">
+            <span>
+              <strong>Contar opciones marcadas</strong>
+              <small>Para preguntas de selección múltiple.</small>
+            </span>
+            <div className="pulso-focus-calculation-recipe-row">
+              <select value={multiVariable} onChange={(event) => setMultiVariable(event.target.value)}>
+                {multiVariables.map((variable) => (
+                  <option key={variable.name} value={variable.name}>
+                    {variableDisplayLabel(variable)}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => multiVariable && applyFormula(`count-selected(\${${multiVariable}})`)}>
+                Contar
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
 
 function RepeatCountPanel({
   node,
